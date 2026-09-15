@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
@@ -431,6 +432,55 @@ func TestSendGridService_SendEmail(t *testing.T) {
 				// Verify request body contains custom_args
 				body, _ := io.ReadAll(req.Body)
 				assert.Contains(t, string(body), `"notifuse_message_id":"msg-789"`)
+
+				return mockSendGridHTTPResponse(http.StatusAccepted, `{}`), nil
+			})
+
+		err := sendGridService.SendEmail(ctx, request)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("Success with plain text alternative", func(t *testing.T) {
+		ctx := context.Background()
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-456",
+			MessageID:     "msg-789",
+			FromAddress:   "sender@example.com",
+			FromName:      "Sender Name",
+			To:            "recipient@example.com",
+			Subject:       "Test Subject",
+			Content:       "<p>Test content</p>",
+			PlainText:     "Test content",
+			Provider: &domain.EmailProvider{
+				Kind: domain.EmailProviderKindSendGrid,
+				SendGrid: &domain.SendGridSettings{
+					APIKey: "SG.test-api-key",
+				},
+			},
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				body, _ := io.ReadAll(req.Body)
+
+				var parsed struct {
+					Content []struct {
+						Type  string `json:"type"`
+						Value string `json:"value"`
+					} `json:"content"`
+				}
+				require.NoError(t, json.Unmarshal(body, &parsed))
+
+				// text/plain must precede text/html per SendGrid's requirement.
+				require.Len(t, parsed.Content, 2)
+				assert.Equal(t, "text/plain", parsed.Content[0].Type)
+				assert.Equal(t, "Test content", parsed.Content[0].Value)
+				assert.Equal(t, "text/html", parsed.Content[1].Type)
+				assert.Equal(t, "<p>Test content</p>", parsed.Content[1].Value)
 
 				return mockSendGridHTTPResponse(http.StatusAccepted, `{}`), nil
 			})

@@ -320,6 +320,14 @@ func (s *SendGridService) SendEmail(ctx context.Context, request domain.SendEmai
 		}
 	}
 
+	// SendGrid requires text/plain to precede text/html when both are present.
+	// https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send#body
+	content := []Content{}
+	if request.PlainText != "" {
+		content = append(content, Content{Type: "text/plain", Value: request.PlainText})
+	}
+	content = append(content, Content{Type: "text/html", Value: request.Content})
+
 	// Build the mail request
 	mailReq := MailSendRequest{
 		Personalizations: []Personalization{personalization},
@@ -328,12 +336,7 @@ func (s *SendGridService) SendEmail(ctx context.Context, request domain.SendEmai
 			Name:  request.FromName,
 		},
 		Subject: request.Subject,
-		Content: []Content{
-			{
-				Type:  "text/html",
-				Value: request.Content,
-			},
-		},
+		Content: content,
 		CustomArgs: map[string]string{
 			"notifuse_message_id": request.MessageID,
 		},

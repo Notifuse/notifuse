@@ -556,6 +556,10 @@ func (s *PostmarkService) SendEmail(ctx context.Context, request domain.SendEmai
 		},
 	}
 
+	if request.PlainText != "" {
+		requestBody["TextBody"] = request.PlainText
+	}
+
 	// Add CC if specified
 	if len(request.EmailOptions.CC) > 0 {
 		var ccAddresses []string

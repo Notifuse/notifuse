@@ -372,6 +372,11 @@ type SendEmailProviderRequest struct {
 	Provider      *EmailProvider `validate:"required"`
 	EmailOptions  EmailOptions
 
+	// PlainText is the optional text/plain alternative body. Empty for templates that
+	// don't set one (EmailTemplate.Text is nullable) — providers must send HTML-only
+	// in that case rather than a text/plain part with empty content.
+	PlainText string
+
 	// CapturedMessageID, when non-nil, is written by providers that OVERWRITE the RFC
 	// Message-ID at send time (e.g. Amazon SES) with the provider-returned MessageId, so
 	// the caller can store the recipient-visible Message-ID for reply matching. It is a

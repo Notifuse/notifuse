@@ -516,6 +516,59 @@ func TestMailjetService_SendEmail(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("Successfully send email with plain text alternative", func(t *testing.T) {
+		ctx := context.Background()
+		plainText := "Test Email Content"
+
+		provider := &domain.EmailProvider{
+			Mailjet: &domain.MailjetSettings{
+				APIKey:    "test-api-key",
+				SecretKey: "test-secret-key",
+			},
+		}
+
+		expectedResponse := map[string]interface{}{
+			"Messages": []map[string]interface{}{
+				{"Status": "success"},
+			},
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+
+				var emailReq map[string]interface{}
+				err = json.Unmarshal(body, &emailReq)
+				require.NoError(t, err)
+
+				messages := emailReq["Messages"].([]interface{})
+				message := messages[0].(map[string]interface{})
+				assert.Equal(t, content, message["HTMLPart"])
+				assert.Equal(t, plainText, message["TextPart"])
+
+				return mockHTTPResponse(t, http.StatusOK, expectedResponse), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			PlainText:     plainText,
+			Provider:      provider,
+			EmailOptions:  domain.EmailOptions{},
+		}
+		err := service.SendEmail(ctx, request)
+
+		require.NoError(t, err)
+	})
+
 	t.Run("Missing Mailjet configuration", func(t *testing.T) {
 		ctx := context.Background()
 

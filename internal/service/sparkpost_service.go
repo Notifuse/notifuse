@@ -810,6 +810,7 @@ func (s *SparkPostService) SendEmail(ctx context.Context, request domain.SendEma
 		Subject      string            `json:"subject"`
 		ReplyTo      string            `json:"reply_to,omitempty"`
 		HTML         string            `json:"html"`
+		Text         string            `json:"text,omitempty"`
 		Headers      map[string]string `json:"headers,omitempty"`
 		Attachments  []Attachment      `json:"attachments,omitempty"`
 		InlineImages []InlineImage     `json:"inline_images,omitempty"`
@@ -842,6 +843,7 @@ func (s *SparkPostService) SendEmail(ctx context.Context, request domain.SendEma
 			},
 			Subject: request.Subject,
 			HTML:    request.Content,
+			Text:    request.PlainText,
 		},
 		Metadata: map[string]interface{}{
 			"notifuse_message_id": request.MessageID,

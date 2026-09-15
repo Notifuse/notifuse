@@ -730,6 +730,88 @@ func TestSMTPService_SendEmail_Integration(t *testing.T) {
 	assert.NotContains(t, mailFromCmd, "SMTPUTF8")
 }
 
+func TestSMTPService_SendEmail_WithPlainTextAlternative(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host: "127.0.0.1",
+			Port: server.Port(),
+		},
+	}
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test Subject",
+		Content:       "<h1>Hello</h1><p>This is a test.</p>",
+		PlainText:     "Hello\n\nThis is a test.",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.NoError(t, err)
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+
+	body := string(messages[0].data)
+	assert.Contains(t, body, "multipart/alternative")
+	assert.Contains(t, body, "text/plain")
+	assert.Contains(t, body, "text/html")
+	assert.Contains(t, body, "This is a test.")
+	assert.Contains(t, body, "Hello</h1>")
+}
+
+func TestSMTPService_SendEmail_WithoutPlainTextIsHTMLOnly(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host: "127.0.0.1",
+			Port: server.Port(),
+		},
+	}
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test Subject",
+		Content:       "<h1>Hello</h1><p>This is a test.</p>",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.NoError(t, err)
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+
+	body := string(messages[0].data)
+	assert.NotContains(t, body, "multipart/alternative")
+	assert.Contains(t, body, "text/html")
+}
+
 func TestSMTPService_SendEmail_DefaultEhloUsesFromDomain(t *testing.T) {
 	server := newMockSMTPServer(t, true)
 	defer server.Close()

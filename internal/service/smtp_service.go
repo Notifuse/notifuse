@@ -620,7 +620,14 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 	}
 
 	msg.Subject(request.Subject)
-	msg.SetBodyString(mail.TypeTextHTML, request.Content)
+	if request.PlainText != "" {
+		// Ordered least-to-most-preferred per RFC 2046 §5.1.4: text/plain first,
+		// text/html as the alternative, so clients that render only one part pick HTML.
+		msg.SetBodyString(mail.TypeTextPlain, request.PlainText)
+		msg.AddAlternativeString(mail.TypeTextHTML, request.Content)
+	} else {
+		msg.SetBodyString(mail.TypeTextHTML, request.Content)
+	}
 
 	// Add attachments if specified
 	for i, att := range request.EmailOptions.Attachments {

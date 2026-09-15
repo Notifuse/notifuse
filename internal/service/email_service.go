@@ -598,6 +598,29 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 
 	htmlContent := *compiledTemplate.HTML
 
+	// Plain-text alternative: same Liquid variables as the subject, but unlike the
+	// subject a rendering failure here must not fail the send — it's a deliverability
+	// enhancement (multipart/alternative), not the message itself. Fall back to the
+	// raw, unrendered text so recipients still get readable content instead of losing
+	// the alternative part entirely.
+	var plainTextContent string
+	if emailContent.Text != nil && *emailContent.Text != "" {
+		processedText, err := notifuse_mjml.ProcessLiquidTemplate(
+			*emailContent.Text,
+			request.MessageData.Data,
+			"email_plain_text",
+		)
+		if err != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"error":       err.Error(),
+				"message_id":  request.MessageID,
+				"template_id": request.TemplateConfig.TemplateID,
+			}).Warn("Failed to process plain-text alternative with Liquid templating, sending it unrendered")
+			processedText = *emailContent.Text
+		}
+		plainTextContent = processedText
+	}
+
 	now := time.Now().UTC()
 
 	// Convert email options to channel options for storage
@@ -657,6 +680,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		To:            request.Contact.Email,
 		Subject:       subject,
 		Content:       htmlContent,
+		PlainText:     plainTextContent,
 		Provider:      request.EmailProvider,
 		EmailOptions:  request.EmailOptions,
 	}

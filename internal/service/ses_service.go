@@ -19,17 +19,17 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
+	credentialsv2 "github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
+	sesv2types "github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/aws/aws-sdk-go/service/sns"
-	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
-	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
-	credentialsv2 "github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/sesv2"
-	sesv2types "github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 	"github.com/aws/smithy-go"
 	"golang.org/x/net/idna"
 	"golang.org/x/sync/singleflight"
@@ -200,9 +200,9 @@ func NewSESServiceWithClients(
 // connections are pooled across sends.
 func newSESv2Client(config domain.AmazonSESSettings) domain.SESv2Client {
 	return sesv2.NewFromConfig(awsv2.Config{
-		Region:           config.Region,
-		Credentials:      credentialsv2.NewStaticCredentialsProvider(config.AccessKey, config.SecretKey, ""),
-		HTTPClient: sharedSESHTTPClient,
+		Region:      config.Region,
+		Credentials: credentialsv2.NewStaticCredentialsProvider(config.AccessKey, config.SecretKey, ""),
+		HTTPClient:  sharedSESHTTPClient,
 		// v1 defaulted to 3 RETRIES (aws/client/default_retryer.go:40), i.e. 4 attempts, while
 		// v2 counts total ATTEMPTS. Using 4 keeps the send path exactly as resilient to SES
 		// throttling as it was before the migration.
@@ -665,9 +665,9 @@ func (s *SESService) RegisterWebhooks(
 			"integration_id":            integrationID,
 			"workspace_id":              workspaceID,
 			"aws_region":                providerConfig.SES.Region,
-			"delivery_topic":    topicARN,
-			"bounce_topic":      topicARN,
-			"complaint_topic":   topicARN,
+			"delivery_topic":            topicARN,
+			"bounce_topic":              topicARN,
+			"complaint_topic":           topicARN,
 		},
 	}
 
@@ -1365,6 +1365,7 @@ func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProv
 						Charset: awsv2.String("UTF-8"),
 						Data:    awsv2.String(request.Content),
 					},
+					Text: buildSESTextContent(request.PlainText),
 				},
 				Subject: &sesv2types.Content{
 					Charset: awsv2.String("UTF-8"),
@@ -1425,6 +1426,18 @@ func buildSESDestination(encodedTo string, cc, bcc []string) (*sesv2types.Destin
 	}
 
 	return destination, nil
+}
+
+// buildSESTextContent returns the plain-text Body part, or nil when there is none — SES rejects
+// an empty Data string the same way it rejects empty configuration-set names.
+func buildSESTextContent(plainText string) *sesv2types.Content {
+	if plainText == "" {
+		return nil
+	}
+	return &sesv2types.Content{
+		Charset: awsv2.String("UTF-8"),
+		Data:    awsv2.String(plainText),
+	}
 }
 
 // applySESSendingContext attaches the configuration set, the tenant and the message-id tag.
@@ -1537,6 +1550,28 @@ func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESv2Cli
 		return nil
 	}
 
+	// writeTextPart writes the quoted-printable plain-text body into the given writer.
+	writeTextPart := func(w *multipart.Writer) error {
+		textPart := textproto.MIMEHeader{}
+		textPart.Set("Content-Type", "text/plain; charset=UTF-8")
+		textPart.Set("Content-Transfer-Encoding", "quoted-printable")
+
+		textWriter, err := w.CreatePart(textPart)
+		if err != nil {
+			return fmt.Errorf("failed to create text part: %w", err)
+		}
+
+		qpWriter := quotedprintable.NewWriter(textWriter)
+		if _, err := qpWriter.Write([]byte(request.PlainText)); err != nil {
+			qpWriter.Close()
+			return fmt.Errorf("failed to write text content: %w", err)
+		}
+		if err := qpWriter.Close(); err != nil {
+			return fmt.Errorf("failed to close quoted-printable writer: %w", err)
+		}
+		return nil
+	}
+
 	// writeAttachmentPart writes a single attachment (inline or not) as a base64
 	// MIME part into the given writer.
 	writeAttachmentPart := func(w *multipart.Writer, att domain.Attachment, inline bool) error {
@@ -1608,12 +1643,17 @@ func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESv2Cli
 	boundary := writer.Boundary()
 	buf.WriteString(fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"%s\"\r\n\r\n", boundary))
 
-	// HTML body — wrapped in multipart/related when inline images are present.
-	if len(inlineAtts) > 0 {
+	// writeHTMLBody writes the HTML body into the given writer — wrapped in
+	// multipart/related when inline images are present, direct text/html otherwise.
+	writeHTMLBody := func(w *multipart.Writer) error {
+		if len(inlineAtts) == 0 {
+			return writeHTMLPart(w)
+		}
+
 		relatedBoundary := multipart.NewWriter(&bytes.Buffer{}).Boundary()
 		relatedHeader := textproto.MIMEHeader{}
 		relatedHeader.Set("Content-Type", fmt.Sprintf("multipart/related; type=\"text/html\"; boundary=\"%s\"", relatedBoundary))
-		relatedPart, err := writer.CreatePart(relatedHeader)
+		relatedPart, err := w.CreatePart(relatedHeader)
 		if err != nil {
 			return fmt.Errorf("failed to create related part: %w", err)
 		}
@@ -1629,11 +1669,35 @@ func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESv2Cli
 				return fmt.Errorf("inline attachment %d: %w", i, err)
 			}
 		}
-		if err := related.Close(); err != nil {
-			return fmt.Errorf("failed to close related writer: %w", err)
+		return related.Close()
+	}
+
+	// Body — wrapped in multipart/alternative alongside the plain-text part when one
+	// is set, so the boundary structure matches the no-attachments SendEmail path and
+	// clients that render only one alternative fall back to plain text, not nothing.
+	if request.PlainText != "" {
+		altBoundary := multipart.NewWriter(&bytes.Buffer{}).Boundary()
+		altHeader := textproto.MIMEHeader{}
+		altHeader.Set("Content-Type", fmt.Sprintf("multipart/alternative; boundary=\"%s\"", altBoundary))
+		altPart, err := writer.CreatePart(altHeader)
+		if err != nil {
+			return fmt.Errorf("failed to create alternative part: %w", err)
+		}
+		alternative := multipart.NewWriter(altPart)
+		if err := alternative.SetBoundary(altBoundary); err != nil {
+			return fmt.Errorf("failed to set alternative boundary: %w", err)
+		}
+		if err := writeTextPart(alternative); err != nil {
+			return err
+		}
+		if err := writeHTMLBody(alternative); err != nil {
+			return err
+		}
+		if err := alternative.Close(); err != nil {
+			return fmt.Errorf("failed to close alternative writer: %w", err)
 		}
 	} else {
-		if err := writeHTMLPart(writer); err != nil {
+		if err := writeHTMLBody(writer); err != nil {
 			return err
 		}
 	}

@@ -780,6 +780,9 @@ func (s *MailgunService) sendEmailSimple(ctx context.Context, apiURL string, req
 	form.Add("to", request.To)
 	form.Add("subject", request.Subject)
 	form.Add("html", request.Content)
+	if request.PlainText != "" {
+		form.Add("text", request.PlainText)
+	}
 
 	// Add cc recipients if provided
 	for _, ccAddress := range request.EmailOptions.CC {
@@ -859,6 +862,11 @@ func (s *MailgunService) sendEmailWithAttachments(ctx context.Context, apiURL st
 	}
 	if err := writer.WriteField("html", request.Content); err != nil {
 		return fmt.Errorf("failed to write html field: %w", err)
+	}
+	if request.PlainText != "" {
+		if err := writer.WriteField("text", request.PlainText); err != nil {
+			return fmt.Errorf("failed to write text field: %w", err)
+		}
 	}
 
 	// Add cc recipients if provided

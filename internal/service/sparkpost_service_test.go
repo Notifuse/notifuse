@@ -12,6 +12,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
@@ -1069,6 +1070,50 @@ func TestSparkPostService_SendEmail(t *testing.T) {
 		err := sparkPostService.SendEmail(ctx, request)
 
 		// Verify results
+		assert.NoError(t, err)
+	})
+
+	t.Run("Success with plain text alternative", func(t *testing.T) {
+		ctx := context.Background()
+		plainText := "Test Email Content"
+
+		provider := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				body, _ := io.ReadAll(req.Body)
+				var emailReq map[string]interface{}
+				require.NoError(t, json.Unmarshal(body, &emailReq))
+
+				contentMap, ok := emailReq["content"].(map[string]interface{})
+				assert.True(t, ok)
+				assert.Equal(t, content, contentMap["html"])
+				assert.Equal(t, plainText, contentMap["text"])
+
+				return mockHTTPResponse(http.StatusOK, `{"results":{"id":"test-transmission-id"}}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			PlainText:     plainText,
+			Provider:      provider,
+			EmailOptions:  domain.EmailOptions{},
+		}
+		err := sparkPostService.SendEmail(ctx, request)
+
 		assert.NoError(t, err)
 	})
 

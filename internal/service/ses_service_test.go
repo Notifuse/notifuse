@@ -12,13 +12,13 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
-	"github.com/aws/aws-sdk-go-v2/service/sesv2"
-	"github.com/aws/smithy-go"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/aws/smithy-go"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1636,6 +1636,94 @@ func TestSendEmail_Success(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestSendEmail_WithPlainTextAlternative verifies the structured (no-attachment) SES path
+// populates Simple.Body.Text alongside Html when a plain-text alternative is set.
+func TestSendEmail_WithPlainTextAlternative(t *testing.T) {
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{ConfigurationSets: []*ses.ConfigurationSet{}}, nil)
+
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			require.NotNil(t, input.Content.Simple)
+			require.NotNil(t, input.Content.Simple.Body.Html)
+			assert.Equal(t, "<html><body>Test Content</body></html>", *input.Content.Simple.Body.Html.Data)
+			require.NotNil(t, input.Content.Simple.Body.Text)
+			assert.Equal(t, "Test Content", *input.Content.Simple.Body.Text.Data)
+			return &sesv2.SendEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "test-workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "test-message-id",
+		FromAddress:   "from@example.com",
+		FromName:      "Test Sender",
+		To:            "to@example.com",
+		Subject:       "Test Subject",
+		Content:       "<html><body>Test Content</body></html>",
+		PlainText:     "Test Content",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
+// TestSendEmail_WithoutPlainTextLeavesBodyTextNil verifies the structured SES path leaves
+// Simple.Body.Text nil (not an empty string, which SES rejects) when no plain-text alternative
+// was provided.
+func TestSendEmail_WithoutPlainTextLeavesBodyTextNil(t *testing.T) {
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{ConfigurationSets: []*ses.ConfigurationSet{}}, nil)
+
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			assert.Nil(t, input.Content.Simple.Body.Text)
+			return &sesv2.SendEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "test-workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "test-message-id",
+		FromAddress:   "from@example.com",
+		FromName:      "Test Sender",
+		To:            "to@example.com",
+		Subject:       "Test Subject",
+		Content:       "<html><body>Test Content</body></html>",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
 // TestSendEmail_CapturesMessageID verifies SES surfaces the API-returned MessageId via
 // request.CapturedMessageID, so the worker can store the recipient-visible RFC Message-ID
 // for stop-on-reply matching (SES overwrites any Message-ID we set).
@@ -2412,6 +2500,66 @@ func TestSendEmail_WithInlineAttachment(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestSendEmail_WithInlineAttachmentAndPlainText verifies the multipart/related subtree
+// (HTML + inline image) nests correctly inside multipart/alternative when a plain-text
+// alternative is also set — the trickiest of the three nesting levels the raw-MIME path builds.
+func TestSendEmail_WithInlineAttachmentAndPlainText(t *testing.T) {
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "logo.png",
+			Content:     "iVBORw0KGgo=",
+			ContentType: "image/png",
+			Disposition: "inline",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			require.NotNil(t, input.Content.Raw)
+			rawData := string(input.Content.Raw.Data)
+
+			assert.Contains(t, rawData, "Content-Type: multipart/alternative")
+			assert.Contains(t, rawData, "Content-Type: multipart/related")
+			assert.Contains(t, rawData, "Content-Type: text/plain; charset=UTF-8")
+			assert.Contains(t, rawData, "See the logo below")
+			assert.Contains(t, rawData, "Content-Id: <logo.png>")
+
+			return &sesv2.SendEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "<html><body><img src=\"cid:logo.png\"/></body></html>",
+		PlainText:     "See the logo below",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{Attachments: attachments},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
 // Test SendEmail - inline attachment with an explicit content_id must be wrapped
 // in a multipart/related subtree and carry the caller-provided Content-ID.
 func TestSendEmail_InlineAttachment_MultipartRelatedAndContentID(t *testing.T) {
@@ -2990,6 +3138,123 @@ func TestSendEmail_VerifyMIMEStructureWithAttachments(t *testing.T) {
 			assert.Len(t, input.EmailTags, 1)
 			assert.Equal(t, "notifuse_message_id", *input.EmailTags[0].Name)
 			assert.Equal(t, "test-message-id", *input.EmailTags[0].Value)
+
+			return &sesv2.SendEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "test-message-id",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Test Subject",
+		Content:       "<html><body>Test</body></html>",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{Attachments: attachments},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
+// TestSendEmail_RawEmail_WithPlainTextAlternative verifies the raw-MIME path (forced here by
+// an attachment) wraps the plain-text and HTML bodies in a nested multipart/alternative part,
+// itself nested inside the top-level multipart/mixed alongside the attachment.
+func TestSendEmail_RawEmail_WithPlainTextAlternative(t *testing.T) {
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "test.txt",
+			Content:     "SGVsbG8gV29ybGQ=", // "Hello World"
+			ContentType: "text/plain",
+			Disposition: "attachment",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			require.NotNil(t, input.Content.Raw)
+			rawData := string(input.Content.Raw.Data)
+
+			assert.Contains(t, rawData, "Content-Type: multipart/mixed")
+			assert.Contains(t, rawData, "Content-Type: multipart/alternative")
+			assert.Contains(t, rawData, "Content-Type: text/plain; charset=UTF-8")
+			assert.Contains(t, rawData, "Content-Type: text/html; charset=UTF-8")
+			assert.Contains(t, rawData, "Plain text body")
+			assert.Contains(t, rawData, "<html><body>Test</body></html>")
+			assert.Contains(t, rawData, "Content-Disposition: attachment; filename=\"test.txt\"")
+
+			return &sesv2.SendEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "test-message-id",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Test Subject",
+		Content:       "<html><body>Test</body></html>",
+		PlainText:     "Plain text body",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{Attachments: attachments},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
+// TestSendEmail_RawEmail_WithoutPlainTextSkipsAlternative verifies the raw-MIME path keeps its
+// original (non-nested) structure when no plain-text alternative is set.
+func TestSendEmail_RawEmail_WithoutPlainTextSkipsAlternative(t *testing.T) {
+	service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "test.txt",
+			Content:     "SGVsbG8gV29ybGQ=",
+			ContentType: "text/plain",
+			Disposition: "attachment",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSESv2.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			require.NotNil(t, input.Content.Raw)
+			rawData := string(input.Content.Raw.Data)
+
+			assert.NotContains(t, rawData, "multipart/alternative")
+			assert.Contains(t, rawData, "Content-Type: text/html; charset=UTF-8")
 
 			return &sesv2.SendEmailOutput{}, nil
 		})

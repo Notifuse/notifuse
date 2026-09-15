@@ -1075,6 +1075,7 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
 
 	// Create email template
@@ -1166,6 +1167,152 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 
 		// Assertions
 		require.NoError(t, err)
+	})
+
+	t.Run("plain-text alternative is rendered through Liquid and passed to the provider", func(t *testing.T) {
+		plainText := "Hello {{name}}, visit {{link}}"
+		emailTemplate.Email.Text = &plainText
+		defer func() { emailTemplate.Email.Text = nil }()
+
+		workspace := &domain.Workspace{
+			ID:       workspaceID,
+			Settings: domain.WorkspaceSettings{},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).
+			Return(emailTemplate, nil)
+		mockTemplateService.EXPECT().
+			CompileTemplate(gomock.Any(), gomock.Any()).
+			Return(compileResult, nil)
+		mockMessageRepo.EXPECT().
+			Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+			Return(nil)
+
+		var capturedRequest domain.SendEmailProviderRequest
+		mockSESService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest) error {
+				capturedRequest = req
+				return nil
+			})
+
+		request := domain.SendEmailRequest{
+			WorkspaceID:      workspaceID,
+			IntegrationID:    "test-integration-id",
+			MessageID:        messageID,
+			ExternalID:       nil,
+			Contact:          contact,
+			TemplateConfig:   templateConfig,
+			MessageData:      messageData,
+			TrackingSettings: trackingSettings,
+			EmailProvider:    emailProvider,
+			EmailOptions:     options,
+		}
+		err := emailService.SendEmailForTemplate(ctx, request)
+
+		require.NoError(t, err)
+		assert.Equal(t, "Hello Test User, visit https://example.com/test", capturedRequest.PlainText)
+	})
+
+	t.Run("plain-text alternative is left empty when the template has none", func(t *testing.T) {
+		workspace := &domain.Workspace{
+			ID:       workspaceID,
+			Settings: domain.WorkspaceSettings{},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).
+			Return(emailTemplate, nil)
+		mockTemplateService.EXPECT().
+			CompileTemplate(gomock.Any(), gomock.Any()).
+			Return(compileResult, nil)
+		mockMessageRepo.EXPECT().
+			Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+			Return(nil)
+
+		var capturedRequest domain.SendEmailProviderRequest
+		mockSESService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest) error {
+				capturedRequest = req
+				return nil
+			})
+
+		request := domain.SendEmailRequest{
+			WorkspaceID:      workspaceID,
+			IntegrationID:    "test-integration-id",
+			MessageID:        messageID,
+			ExternalID:       nil,
+			Contact:          contact,
+			TemplateConfig:   templateConfig,
+			MessageData:      messageData,
+			TrackingSettings: trackingSettings,
+			EmailProvider:    emailProvider,
+			EmailOptions:     options,
+		}
+		err := emailService.SendEmailForTemplate(ctx, request)
+
+		require.NoError(t, err)
+		assert.Empty(t, capturedRequest.PlainText)
+	})
+
+	t.Run("plain-text alternative Liquid error falls back to the raw text instead of failing the send", func(t *testing.T) {
+		// Oversized Liquid content is a reliable, deterministic way to make
+		// processLiquidContent error (see SecureLiquidEngine's size limit in
+		// pkg/notifuse_mjml/liquid_secure_test.go) without depending on undocumented
+		// parser leniency for malformed syntax.
+		plainText := "{{name}} " + strings.Repeat("x", 200000)
+		emailTemplate.Email.Text = &plainText
+		defer func() { emailTemplate.Email.Text = nil }()
+
+		workspace := &domain.Workspace{
+			ID:       workspaceID,
+			Settings: domain.WorkspaceSettings{},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).
+			Return(emailTemplate, nil)
+		mockTemplateService.EXPECT().
+			CompileTemplate(gomock.Any(), gomock.Any()).
+			Return(compileResult, nil)
+		mockMessageRepo.EXPECT().
+			Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+			Return(nil)
+
+		var capturedRequest domain.SendEmailProviderRequest
+		mockSESService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest) error {
+				capturedRequest = req
+				return nil
+			})
+
+		request := domain.SendEmailRequest{
+			WorkspaceID:      workspaceID,
+			IntegrationID:    "test-integration-id",
+			MessageID:        messageID,
+			ExternalID:       nil,
+			Contact:          contact,
+			TemplateConfig:   templateConfig,
+			MessageData:      messageData,
+			TrackingSettings: trackingSettings,
+			EmailProvider:    emailProvider,
+			EmailOptions:     options,
+		}
+		err := emailService.SendEmailForTemplate(ctx, request)
+
+		// The send must still succeed — an unrenderable plain-text alternative is a
+		// deliverability nice-to-have, not a reason to drop the message.
+		require.NoError(t, err)
+		assert.Equal(t, plainText, capturedRequest.PlainText)
 	})
 
 	t.Run("TrackingMode survives the compile-request rebuild", func(t *testing.T) {

@@ -782,6 +782,54 @@ func TestMailgunService_SendEmail(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("with plain text alternative", func(t *testing.T) {
+		ctx := context.Background()
+		plainText := "Test Email Content"
+
+		provider := &domain.EmailProvider{
+			Mailgun: &domain.MailgunSettings{
+				Domain: "example.com",
+				APIKey: "test-api-key",
+				Region: "US",
+			},
+		}
+
+		resp := &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"id": "<message-id>", "message": "Queued. Thank you."}`)),
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+				formData := string(body)
+
+				assert.Contains(t, formData, "html="+url.QueryEscape(content))
+				assert.Contains(t, formData, "text="+url.QueryEscape(plainText))
+
+				return resp, nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			PlainText:     plainText,
+			Provider:      provider,
+			EmailOptions:  domain.EmailOptions{},
+		}
+		err := service.SendEmail(ctx, request)
+
+		require.NoError(t, err)
+	})
+
 	t.Run("EU region", func(t *testing.T) {
 		ctx := context.Background()
 
@@ -1031,6 +1079,70 @@ func TestMailgunService_SendEmail(t *testing.T) {
 		err := service.SendEmail(ctx, request)
 
 		// Verify results
+		require.NoError(t, err)
+	})
+
+	t.Run("with plain text alternative and attachment", func(t *testing.T) {
+		ctx := context.Background()
+		plainText := "Test Email Content"
+
+		provider := &domain.EmailProvider{
+			Mailgun: &domain.MailgunSettings{
+				Domain: "example.com",
+				APIKey: "test-api-key",
+				Region: "US",
+			},
+		}
+
+		base64Content := "c2FtcGxlIHBkZiBjb250ZW50" // base64 of "sample pdf content"
+
+		resp := &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"id": "<message-id>", "message": "Queued. Thank you."}`)),
+		}
+
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+				bodyStr := string(body)
+
+				assert.Contains(t, bodyStr, `name="html"`)
+				assert.Contains(t, bodyStr, `name="text"`)
+				assert.Contains(t, bodyStr, plainText)
+				assert.Contains(t, bodyStr, "filename=\"invoice.pdf\"")
+
+				return resp, nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			PlainText:     plainText,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     base64Content,
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
 		require.NoError(t, err)
 	})
 

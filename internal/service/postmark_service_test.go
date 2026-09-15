@@ -1612,6 +1612,51 @@ func TestPostmarkService_SendEmail(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("Successfully send email with plain text alternative", func(t *testing.T) {
+		// Setup
+		service, httpClient, _, _ := setupPostmarkTest(t)
+		workspaceID := "workspace-123"
+		content := "<p>This is a test email</p>"
+		plainText := "This is a test email"
+
+		providerConfig := &domain.EmailProvider{
+			Kind: domain.EmailProviderKindPostmark,
+			Postmark: &domain.PostmarkSettings{
+				ServerToken: "test-server-token",
+			},
+		}
+
+		httpClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				body, _ := io.ReadAll(req.Body)
+				var requestBody map[string]interface{}
+				err := json.Unmarshal(body, &requestBody)
+				require.NoError(t, err)
+				assert.Equal(t, content, requestBody["HtmlBody"])
+				assert.Equal(t, plainText, requestBody["TextBody"])
+
+				return createMockResponse(http.StatusOK, `{"MessageID":"12345"}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   "sender@example.com",
+			FromName:      "Sender Name",
+			To:            "recipient@example.com",
+			Subject:       "Test Email",
+			Content:       content,
+			PlainText:     plainText,
+			Provider:      providerConfig,
+			EmailOptions:  domain.EmailOptions{},
+		}
+		err := service.SendEmail(context.Background(), request)
+
+		assert.NoError(t, err)
+	})
+
 	t.Run("Missing Postmark configuration", func(t *testing.T) {
 		// Setup
 		service, _, _, _ := setupPostmarkTest(t)
