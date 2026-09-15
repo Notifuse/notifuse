@@ -18,6 +18,7 @@ export interface TranslationEditorState {
   enabled: boolean
   subject: string
   subjectPreview: string
+  text?: string
   visualEditorTree?: EmailBlock
   mjmlSource?: string
 }
@@ -29,6 +30,7 @@ interface TemplateTranslationsTabProps {
   onTranslationsStateChange: (state: Record<string, TranslationEditorState>) => void
   defaultSubject: string
   defaultSubjectPreview: string
+  defaultText: string
   defaultVisualEditorTree: EmailBlock
   defaultMjmlSource: string
   testData?: Record<string, unknown>
@@ -44,6 +46,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
   onTranslationsStateChange,
   defaultSubject,
   defaultSubjectPreview,
+  defaultText,
   defaultVisualEditorTree,
   defaultMjmlSource,
   testData,
@@ -85,7 +88,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
     (lang: string, checked: boolean) => {
       if (checked) {
         const existing = translationsState[lang]
-        if (existing && (existing.subject || existing.subjectPreview || existing.visualEditorTree || existing.mjmlSource)) {
+        if (existing && (existing.subject || existing.subjectPreview || existing.text || existing.visualEditorTree || existing.mjmlSource)) {
           // Re-enable with existing data
           updateLangState(lang, { enabled: true })
         } else {
@@ -94,6 +97,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
             enabled: true,
             subject: defaultSubject || '',
             subjectPreview: defaultSubjectPreview || '',
+            text: defaultText || undefined,
             visualEditorTree:
               editorMode === 'visual'
                 ? (JSON.parse(JSON.stringify(defaultVisualEditorTree)) as EmailBlock)
@@ -110,6 +114,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
       updateLangState,
       defaultSubject,
       defaultSubjectPreview,
+      defaultText,
       defaultVisualEditorTree,
       defaultMjmlSource,
       editorMode
@@ -242,6 +247,16 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                         placeholder={t`Preview text`}
                       />
                     </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-1">{t`Plain text`}</label>
+                      <Input.TextArea
+                        value={langState.text}
+                        disabled={locked}
+                        onChange={(e) => updateLangState(lang, { text: e.target.value })}
+                        placeholder={t`Optional — plain-text version for this language`}
+                        autoSize={{ minRows: 4, maxRows: 10 }}
+                      />
+                    </div>
                     {/* display:flex overrides the compact default inline-flex so the block button can fill the row */}
                     <Space.Compact style={{ display: 'flex' }}>
                       <Button
@@ -265,6 +280,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                                     updateLangState(lang, {
                                       subject: defaultSubject || '',
                                       subjectPreview: defaultSubjectPreview || '',
+                                      text: defaultText || undefined,
                                       visualEditorTree:
                                         editorMode === 'visual'
                                           ? (JSON.parse(JSON.stringify(defaultVisualEditorTree)) as EmailBlock)

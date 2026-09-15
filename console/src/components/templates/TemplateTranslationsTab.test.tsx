@@ -42,6 +42,7 @@ const renderTab = (
         onTranslationsStateChange={vi.fn()}
         defaultSubject="Hello"
         defaultSubjectPreview=""
+        defaultText=""
         defaultVisualEditorTree={tree}
         defaultMjmlSource=""
         onTestDataChange={vi.fn()}

@@ -232,6 +232,18 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     children: <JsonDataViewer data={testData} />
   })
 
+  if (record.email?.text) {
+    items.push({
+      key: '5',
+      label: t`Plain Text`,
+      children: (
+        <pre className="whitespace-pre-wrap p-4 text-sm font-sans overflow-auto">
+          {record.email.text}
+        </pre>
+      )
+    })
+  }
+
   // Only transactional sends carry metadata, so this tab is pushed only when there is
   // something in it — an always-present tab reading {} on every broadcast preview is
   // worse than no tab. The table column, not this, is what guarantees metadata is

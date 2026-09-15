@@ -260,6 +260,7 @@ export function CreateTemplateDrawer({
   const senderID = Form.useWatch(['email', 'sender_id'], form)
   const emailSubject = Form.useWatch(['email', 'subject'], form)
   const emailPreview = Form.useWatch(['email', 'subject_preview'], form)
+  const emailText = Form.useWatch(['email', 'text'], form)
   const watchedCategory = Form.useWatch(['category'], form)
   const categoryValue = forceCategory || watchedCategory
 
@@ -371,6 +372,7 @@ export function CreateTemplateDrawer({
         enabled: true,
         subject: trans.email?.subject || '',
         subjectPreview: trans.email?.subject_preview || '',
+        text: trans.email?.text || undefined,
         visualEditorTree: trans.email?.visual_editor_tree
           ? (typeof trans.email.visual_editor_tree === 'object'
               ? (JSON.parse(JSON.stringify(trans.email.visual_editor_tree)) as EmailBlock)
@@ -397,6 +399,7 @@ export function CreateTemplateDrawer({
         reply_to: latest.email?.reply_to || undefined,
         subject: latest.email?.subject || '',
         subject_preview: latest.email?.subject_preview || '',
+        text: latest.email?.text || '',
         content: latest.email?.visual_editor_tree || '',
         visual_editor_tree: latest.email?.visual_editor_tree || createDefaultBlocks()
       },
@@ -462,6 +465,7 @@ export function CreateTemplateDrawer({
           reply_to: template.email?.reply_to || undefined,
           subject: template.email?.subject || '',
           subject_preview: template.email?.subject_preview || '',
+          text: template.email?.text || '',
           content: template.email?.visual_editor_tree || '',
           visual_editor_tree: template.email?.visual_editor_tree || createDefaultBlocks()
         },
@@ -489,6 +493,7 @@ export function CreateTemplateDrawer({
           reply_to: fromTemplate.email?.reply_to || undefined,
           subject: fromTemplate.email?.subject || '',
           subject_preview: fromTemplate.email?.subject_preview || '',
+          text: fromTemplate.email?.text || '',
           content: fromTemplate.email?.visual_editor_tree || '',
           visual_editor_tree: fromTemplate.email?.visual_editor_tree || createDefaultBlocks()
         },
@@ -713,6 +718,9 @@ export function CreateTemplateDrawer({
                   const emailTranslation: TranslationEmailPayload = {
                     subject: state.subject,
                     subject_preview: state.subjectPreview || ''
+                  }
+                  if (state.text) {
+                    emailTranslation.text = state.text
                   }
                   if (editorMode === 'code') {
                     emailTranslation.editor_mode = 'code'
@@ -982,6 +990,34 @@ export function CreateTemplateDrawer({
                       </div>
                     </Col>
                   </Row>
+
+                  <div className="text-lg my-8 font-bold">{t`Plain text alternative`}</div>
+                  <Form.Item
+                    name={['email', 'text']}
+                    label={
+                      showTranslationsTab
+                        ? t`Plain text (${workspace.settings.default_language})`
+                        : t`Plain text`
+                    }
+                    extra={t`Sent as the text/plain part alongside the HTML body — improves deliverability and accessibility. Supports the same templating variables as the subject. Leave blank to send HTML only.`}
+                    rules={[
+                      { required: false, type: 'string' },
+                      {
+                        validator: (_, value) => {
+                          const validation = validateLiquidTags(value)
+                          if (!validation.isValid) {
+                            return Promise.reject(new Error(validation.error))
+                          }
+                          return Promise.resolve()
+                        }
+                      }
+                    ]}
+                  >
+                    <Input.TextArea
+                      autoSize={{ minRows: 6, maxRows: 16 }}
+                      placeholder={t`Optional — a plain-text version of this email`}
+                    />
+                  </Form.Item>
                 </div>
               </div>
 
@@ -1158,6 +1194,7 @@ export function CreateTemplateDrawer({
                     }}
                     defaultSubject={emailSubject}
                     defaultSubjectPreview={emailPreview}
+                    defaultText={emailText}
                     defaultVisualEditorTree={visualEditorTree}
                     defaultMjmlSource={mjmlSource}
                     testData={form.getFieldValue('test_data')}
