@@ -84,7 +84,16 @@ COPY pkg/ pkg/
 # Build the application with CGO disabled (pure Go)
 ENV CGO_ENABLED=0
 ENV GOOS=linux
-RUN go build -ldflags="-s -w" -o /tmp/server ./cmd/api
+
+# BUILD_TAGS is empty by default, which is what every published image must use: the
+# resulting binary trusts only the production licence signing key (pubkey_prod.go).
+# Passing --build-arg BUILD_TAGS=licdev for a local build switches it to trust the dev
+# signing key instead (pubkey_dev.go), whose private half is committed under
+# pkg/license/testdata/ for exactly that purpose. A licdev image must never be pushed
+# to a registry or run anywhere but a developer's own machine: the dev key is public,
+# so a licdev binary accepts a licence key anyone can mint.
+ARG BUILD_TAGS=""
+RUN go build -tags "${BUILD_TAGS}" -ldflags="-s -w" -o /tmp/server ./cmd/api
 
 # Stage 4: Create the runtime container (Alpine for smaller image)
 FROM alpine:3.24
