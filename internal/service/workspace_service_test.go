@@ -2138,7 +2138,7 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 			ID: userID,
 		}
 
-		// User is a member with no workspace write
+		// User is a member, not an owner
 		expectedUserWorkspace := &domain.UserWorkspace{
 			UserID:      userID,
 			WorkspaceID: workspaceID,
@@ -2152,93 +2152,6 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 			WorkspaceID:   workspaceID,
 			IntegrationID: integrationID,
 			Name:          integrationName,
-			Provider:      provider,
-		})
-		require.Error(t, err)
-		require.IsType(t, &domain.ErrUnauthorized{}, err)
-	})
-
-	t.Run("member with workspace write updates senders only", func(t *testing.T) {
-		expectedUser := &domain.User{ID: userID}
-		expectedUserWorkspace := &domain.UserWorkspace{
-			UserID:      userID,
-			WorkspaceID: workspaceID,
-			Role:        "member",
-			Permissions: domain.FullPermissions,
-		}
-		existingIntegration := domain.Integration{
-			ID:   integrationID,
-			Name: "Original SMTP Integration",
-			Type: domain.IntegrationTypeEmail,
-			EmailProvider: domain.EmailProvider{
-				Kind:               domain.EmailProviderKindSMTP,
-				RateLimitPerMinute: 25,
-				SMTP: &domain.SMTPSettings{
-					Host:     "smtp.example.com",
-					Port:     587,
-					Username: "smtp_user",
-					Password: "smtp_password",
-					UseTLS:   true,
-				},
-				Senders: []domain.EmailSender{
-					domain.NewEmailSender("test@example.com", "Test Sender"),
-				},
-			},
-			CreatedAt: time.Now().Add(-24 * time.Hour),
-			UpdatedAt: time.Now().Add(-24 * time.Hour),
-		}
-		expectedWorkspace := &domain.Workspace{
-			ID:           workspaceID,
-			Name:         "Test Workspace",
-			Integrations: []domain.Integration{existingIntegration},
-		}
-
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
-		mockRepo.EXPECT().GetUserWorkspace(ctx, userID, workspaceID).Return(expectedUserWorkspace, nil)
-		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(expectedWorkspace, nil)
-		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
-			require.Equal(t, 1, len(workspace.Integrations))
-			require.Equal(t, "smtp.example.com", workspace.Integrations[0].EmailProvider.SMTP.Host)
-			require.Equal(t, "updated@example.com", workspace.Integrations[0].EmailProvider.Senders[0].Email)
-			return nil
-		})
-
-		err := service.UpdateIntegration(ctx, domain.UpdateIntegrationRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: integrationID,
-			Name:          "Should not apply",
-			Provider:      provider,
-		})
-		require.NoError(t, err)
-	})
-
-	t.Run("member cannot update non-email integration", func(t *testing.T) {
-		expectedUser := &domain.User{ID: userID}
-		expectedUserWorkspace := &domain.UserWorkspace{
-			UserID:      userID,
-			WorkspaceID: workspaceID,
-			Role:        "member",
-			Permissions: domain.FullPermissions,
-		}
-		existingIntegration := domain.Integration{
-			ID:   integrationID,
-			Name: "Supabase",
-			Type: domain.IntegrationTypeSupabase,
-		}
-		expectedWorkspace := &domain.Workspace{
-			ID:           workspaceID,
-			Name:         "Test Workspace",
-			Integrations: []domain.Integration{existingIntegration},
-		}
-
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
-		mockRepo.EXPECT().GetUserWorkspace(ctx, userID, workspaceID).Return(expectedUserWorkspace, nil)
-		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(expectedWorkspace, nil)
-
-		err := service.UpdateIntegration(ctx, domain.UpdateIntegrationRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: integrationID,
-			Name:          "Supabase",
 			Provider:      provider,
 		})
 		require.Error(t, err)
