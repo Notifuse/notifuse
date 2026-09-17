@@ -106,6 +106,27 @@ describe('SignInPage', () => {
     expect(screen.getByText(/verify code/i)).toBeInTheDocument()
   })
 
+  it('marks the code input for OS one-time-code autofill and a numeric keypad', async () => {
+    vi.mocked(authService.authService.signIn).mockResolvedValueOnce({
+      message: 'Magic code sent'
+    })
+
+    renderWithProviders(<SignInPage />)
+
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: 'test@example.com' }
+    })
+    fireEvent.click(screen.getByText(/send magic code/i))
+
+    const codeInput = await screen.findByPlaceholderText('000000')
+
+    // Without these two the user has to read the code out of the mail client and
+    // retype it: autoComplete lets iOS/macOS offer it straight from Mail, and
+    // inputMode brings up the digit keypad on mobile instead of the full keyboard.
+    expect(codeInput).toHaveAttribute('autocomplete', 'one-time-code')
+    expect(codeInput).toHaveAttribute('inputmode', 'numeric')
+  })
+
   it('logs magic code to console when provided in response', async () => {
     // Mock console.log
     const consoleSpy = vi.spyOn(console, 'log')
