@@ -628,7 +628,7 @@ func TestWebhookSubscriptionHandler_HandleRegenerateSecret_NonOwnerIsForbidden(t
 
 	handler := &WebhookSubscriptionHandler{
 		// The repository is never reached: the owner check rejects first.
-		service:      service.NewWebhookSubscriptionService(nil, nil, authSvc, &mockLogger{}),
+		service:      service.NewWebhookSubscriptionService(nil, nil, authSvc, &mockLogger{}, false),
 		worker:       nil,
 		logger:       &mockLogger{},
 		getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
@@ -672,7 +672,7 @@ func TestWebhookSubscriptionHandler_HandleTest_ReadOnlyIsForbidden(t *testing.T)
 	handler := &WebhookSubscriptionHandler{
 		// Neither the repository nor the delivery worker is reached: the write gate
 		// rejects first, which is the point of the test.
-		service:      service.NewWebhookSubscriptionService(nil, nil, authSvc, &mockLogger{}),
+		service:      service.NewWebhookSubscriptionService(nil, nil, authSvc, &mockLogger{}, false),
 		worker:       nil,
 		logger:       &mockLogger{},
 		getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
@@ -714,7 +714,7 @@ func TestWebhookSubscriptionHandler_HandleList_UngrantedIsForbidden(t *testing.T
 		})
 
 	handler := &WebhookSubscriptionHandler{
-		service:      service.NewWebhookSubscriptionService(nil, nil, authSvc, &mockLogger{}),
+		service:      service.NewWebhookSubscriptionService(nil, nil, authSvc, &mockLogger{}, false),
 		worker:       nil,
 		logger:       &mockLogger{},
 		getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
@@ -812,7 +812,7 @@ func TestWebhookSubscriptionHandler_HandleCreate_SourceAndIDFilters(t *testing.T
 				})
 
 			handler := &WebhookSubscriptionHandler{
-				service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}),
+				service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}, false),
 				worker:       nil,
 				logger:       &mockLogger{},
 				getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
@@ -927,7 +927,7 @@ func TestWebhookSubscriptionHandler_HandleUpdate_LeavesSourceUnchanged(t *testin
 				})
 
 			handler := &WebhookSubscriptionHandler{
-				service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}),
+				service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}, false),
 				worker:       nil,
 				logger:       &mockLogger{},
 				getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
@@ -973,7 +973,7 @@ func TestWebhookSubscriptionHandler_HandleGet_SurfacesAttributionAndFailureState
 		}, nil)
 
 	handler := &WebhookSubscriptionHandler{
-		service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}),
+		service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}, false),
 		worker:       nil,
 		logger:       &mockLogger{},
 		getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
@@ -1034,7 +1034,7 @@ func TestWebhookSubscriptionHandler_HandleDelete_AlreadyGoneIsNotFound(t *testin
 	deliveryRepo.EXPECT().DeleteBySubscriptionID(gomock.Any(), "ws123", "sub123").Return(nil)
 
 	handler := &WebhookSubscriptionHandler{
-		service:      service.NewWebhookSubscriptionService(subRepo, deliveryRepo, authSvc, &mockLogger{}),
+		service:      service.NewWebhookSubscriptionService(subRepo, deliveryRepo, authSvc, &mockLogger{}, false),
 		logger:       &mockLogger{},
 		getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
 	}
@@ -1116,7 +1116,7 @@ func TestWebhookSubscriptionHandler_HandleUpdate_EnabledIsOptional(t *testing.T)
 				})
 
 			handler := &WebhookSubscriptionHandler{
-				service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}),
+				service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}, false),
 				worker:       nil,
 				logger:       &mockLogger{},
 				getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
@@ -1232,7 +1232,7 @@ func TestWebhookSubscriptionHandler_HandleUpdate_FiltersArePatched(t *testing.T)
 				})
 
 			handler := &WebhookSubscriptionHandler{
-				service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}),
+				service:      service.NewWebhookSubscriptionService(repo, nil, webhookWriteAuth(ctrl, "ws123"), &mockLogger{}, false),
 				worker:       nil,
 				logger:       &mockLogger{},
 				getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },

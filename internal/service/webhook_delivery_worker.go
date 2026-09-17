@@ -18,6 +18,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/safehttpclient"
 )
 
 const (
@@ -879,6 +880,23 @@ func (w *WebhookDeliveryWorker) processDelivery(ctx context.Context, workspaceID
 	// Send the request
 	resp, err := w.httpClient.Do(req)
 	if err != nil {
+		// A target the SSRF guard refused is this deployment's own policy, not a
+		// receiver that died, so it is retried and deliberately NOT counted
+		// against the subscription — the same reasoning handleResponseStatus
+		// applies to 429.
+		//
+		// Counting it would be worse than the hole it closes. Every subscription
+		// aimed at an internal host would be refused on every delivery, cross the
+		// threshold within one failure window of the upgrade that introduced the
+		// guard, and be retired under a reason blaming the receiver — and it
+		// would stay disabled after the operator sets the opt-out, because only a
+		// human re-enables a retired subscription.
+		if errors.Is(err, safehttpclient.ErrPrivateIP) {
+			w.handleDeliveryFailure(ctx, workspaceID, delivery, sub, nil, "", fmt.Sprintf(
+				"refused: %s resolves to a private or reserved address, which outgoing webhook delivery does not connect to; set WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true to deliver to your own network",
+				sub.URL))
+			return
+		}
 		w.failDelivery(ctx, workspaceID, delivery, sub, nil, "", err.Error(),
 			fmt.Sprintf("automatically disabled after repeated delivery failures (last error: %s)", err.Error()))
 		return

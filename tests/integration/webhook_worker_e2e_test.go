@@ -71,6 +71,10 @@ func TestWebhookWorkerEndToEnd(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		// Allow loopback test servers: this suite exercises webhook delivery against
+		// httptest servers, which bind to 127.0.0.1. Production refuses those by
+		// default; see TestWebhookDeliverySSRFProtection for the secure default.
+		cfg.Webhook.AllowPrivateDeliveryHosts = true
 		return app.NewApp(cfg)
 	})
 	defer func() { suite.Cleanup() }()

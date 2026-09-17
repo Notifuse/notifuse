@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [41.1] - WIP
+
+- **Security**: Outgoing webhook deliveries are no longer a server-side request forgery (SSRF) vector. The delivery worker used a plain HTTP client with no address validation, so anyone holding `webhook_subscriptions:write` could aim a subscription at the deployment's own network — the cloud instance metadata endpoint, an internal service, a private database — and read the response back through `webhookSubscriptions.test` or the delivery log. Deliveries now use the SSRF-safe client already used for data feeds and favicon detection, which rejects private, loopback, link-local and reserved addresses at dial time and re-checks every redirect, and a subscription naming such a target is refused when it is saved. Self-hosted deployments that deliberately deliver to their own internal network can opt out with `WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true`; until they do, a refused delivery is retried without counting toward the automatic-disable threshold, so no existing subscription is retired by this change.
+
 ## [41.0] - 2026-09-17
 
 - **Feature**: Audit logs. Logs → Audit logs shows who did what in a workspace — a member invited, a permission set changed, an API key created, an integration edited, a template saved, a broadcast scheduled, a contact deleted — with the address it came from, the request it belonged to, and whether it succeeded, failed or was refused. The security-sensitive entries carry a before/after of what changed, with every password, secret and key replaced by `[redacted]`; the fact that they changed is kept, the values are not. Failures are recorded too: a sign-in for an unknown address, a wrong or expired code, a request refused by a permission check or by the licence, each with the reason the response deliberately does not give away. What is never recorded is the data plane — contact upserts, sends, tracking, custom events — which belongs in Logs, not in a trail.

@@ -5,11 +5,13 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/safehttpclient"
 	"github.com/google/uuid"
 )
 
@@ -114,6 +116,10 @@ type WebhookSubscriptionService struct {
 	deliveryRepo domain.WebhookDeliveryRepository
 	authService  domain.AuthService
 	logger       logger.Logger
+	// allowPrivateHosts mirrors WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS. It only
+	// relaxes the save-time check here; the dial-time guard on the delivery
+	// client is configured from the same setting in app wiring.
+	allowPrivateHosts bool
 }
 
 // NewWebhookSubscriptionService creates a new webhook subscription service
@@ -122,12 +128,14 @@ func NewWebhookSubscriptionService(
 	deliveryRepo domain.WebhookDeliveryRepository,
 	authService domain.AuthService,
 	logger logger.Logger,
+	allowPrivateHosts bool,
 ) *WebhookSubscriptionService {
 	return &WebhookSubscriptionService{
-		repo:         repo,
-		deliveryRepo: deliveryRepo,
-		authService:  authService,
-		logger:       logger,
+		repo:              repo,
+		deliveryRepo:      deliveryRepo,
+		authService:       authService,
+		logger:            logger,
+		allowPrivateHosts: allowPrivateHosts,
 	}
 }
 
@@ -159,8 +167,20 @@ func generateWebhookID() string {
 	return strings.ReplaceAll(uuid.New().String(), "-", "")[:32]
 }
 
-// validateURL validates the webhook URL
-func validateURL(rawURL string) error {
+// validateURL validates the webhook URL.
+//
+// allowPrivateHosts is WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS. When it is false —
+// the default — a subscription may not be aimed at this deployment's own
+// network, which would make the delivery worker a request-forgery primitive for
+// anyone holding webhook_subscriptions:write.
+//
+// This layer only reads what the URL spells. A public hostname resolving to a
+// private address passes it and is refused at dial time by the SSRF-safe client
+// instead, which is the layer that actually protects the request. Resolving DNS
+// here would be a time-of-check illusion and an outbound request triggered by a
+// write; the point of this check is a clear error at save time rather than a
+// subscription that looks fine and silently never delivers.
+func validateURL(rawURL string, allowPrivateHosts bool) error {
 	if rawURL == "" {
 		return fmt.Errorf("URL is required")
 	}
@@ -176,6 +196,49 @@ func validateURL(rawURL string) error {
 
 	if parsed.Host == "" {
 		return fmt.Errorf("URL must have a host")
+	}
+
+	if !allowPrivateHosts {
+		if err := rejectPrivateWebhookHost(parsed.Hostname()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// rejectPrivateWebhookHost refuses host spellings that name an internal target.
+//
+// Literal addresses are checked against the same ranges the dial-time guard
+// uses, so the two layers cannot drift apart. Names are checked by suffix, which
+// covers .cluster.local through the .local rule rather than repeating it.
+//
+// A bare single-label name like "n8n" is deliberately NOT rejected. It is how a
+// container addresses a sibling, it is only reachable at all inside such a
+// network, and the dial refuses it there anyway — rejecting it by spelling would
+// block nothing and break the opt-out it is supposed to serve.
+func rejectPrivateWebhookHost(host string) error {
+	refuse := func() error {
+		return fmt.Errorf(
+			"URL must not target a private or internal address (%s); set WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true to deliver webhooks to your own network",
+			host)
+	}
+
+	if ip := net.ParseIP(host); ip != nil {
+		if safehttpclient.IsPrivateIP(ip) {
+			return refuse()
+		}
+		return nil
+	}
+
+	lower := strings.ToLower(host)
+	if lower == "localhost" {
+		return refuse()
+	}
+	for _, suffix := range []string{".localhost", ".local", ".internal"} {
+		if strings.HasSuffix(lower, suffix) {
+			return refuse()
+		}
 	}
 
 	return nil
@@ -240,7 +303,7 @@ func (s *WebhookSubscriptionService) Create(ctx context.Context, workspaceID str
 		return nil, fmt.Errorf("name is required")
 	}
 
-	if err := validateURL(webhookURL); err != nil {
+	if err := validateURL(webhookURL, s.allowPrivateHosts); err != nil {
 		return nil, err
 	}
 
@@ -380,7 +443,7 @@ func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID str
 		return nil, fmt.Errorf("name is required")
 	}
 
-	if err := validateURL(webhookURL); err != nil {
+	if err := validateURL(webhookURL, s.allowPrivateHosts); err != nil {
 		return nil, err
 	}
 

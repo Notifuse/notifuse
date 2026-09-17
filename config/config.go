@@ -15,18 +15,22 @@ import (
 	"github.com/spf13/viper"
 )
 
-const VERSION = "41.0"
+const VERSION = "41.1"
 
 type Config struct {
-	Server              ServerConfig
-	Database            DatabaseConfig
-	Security            SecurityConfig
-	Tracing             TracingConfig
-	SMTP                SMTPConfig
-	SMTPBridge          SMTPBridgeConfig
-	OIDC                OIDCConfig
-	Demo                DemoConfig
-	Broadcast           BroadcastConfig
+	Server     ServerConfig
+	Database   DatabaseConfig
+	Security   SecurityConfig
+	Tracing    TracingConfig
+	SMTP       SMTPConfig
+	SMTPBridge SMTPBridgeConfig
+	OIDC       OIDCConfig
+	Demo       DemoConfig
+	Broadcast  BroadcastConfig
+	// Webhook holds settings for OUTGOING webhook delivery — the subscriptions
+	// this deployment posts to. Not to be confused with WebhookEndpoint below,
+	// which is the public address email providers post INBOUND events to.
+	Webhook             WebhookConfig
 	TaskScheduler       TaskSchedulerConfig
 	AutomationScheduler AutomationSchedulerConfig
 	Plan                PlanLimitsConfig
@@ -205,6 +209,18 @@ type BroadcastConfig struct {
 	// Off by default. Only enable in trusted, self-hosted deployments that
 	// intentionally fetch data feeds from services on their internal network.
 	AllowPrivateDataFeedHosts bool
+}
+
+type WebhookConfig struct {
+	// AllowPrivateDeliveryHosts disables SSRF protection on outgoing webhook
+	// deliveries, allowing subscriptions to target private/loopback/link-local
+	// addresses. Off by default. Only enable in trusted, self-hosted deployments
+	// that intentionally deliver webhooks to services on their internal network.
+	//
+	// Deliberately separate from BroadcastConfig.AllowPrivateDataFeedHosts: the
+	// two relax different outbound paths for different reasons, and an operator
+	// who needs one should not be granted the other without naming it.
+	AllowPrivateDeliveryHosts bool
 }
 
 type TaskSchedulerConfig struct {
@@ -975,6 +991,9 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			// Metrics exporter configuration
 			MetricsExporter: v.GetString("TRACING_METRICS_EXPORTER"),
 			PrometheusPort:  v.GetInt("TRACING_PROMETHEUS_PORT"),
+		},
+		Webhook: WebhookConfig{
+			AllowPrivateDeliveryHosts: v.GetBool("WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS"),
 		},
 		Broadcast: BroadcastConfig{
 			DefaultRateLimit:          v.GetInt("BROADCAST_DEFAULT_RATE_LIMIT"),

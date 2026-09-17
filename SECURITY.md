@@ -69,10 +69,14 @@ are strongly encouraged to track the latest release. See
 
 ## Hardening Notes for Self-Hosted Operators
 
-- Run Notifuse behind a network egress policy where possible. Some features make
-  outbound HTTP requests (for example, broadcast data feeds); outbound requests
-  are SSRF-protected by default and refuse private/loopback/link-local targets.
-  The `BROADCAST_DATA_FEED_ALLOW_PRIVATE_HOSTS` setting (off by default) relaxes
-  this only for trusted internal feeds — leave it disabled unless you need it.
+- Run Notifuse behind a network egress policy where possible. Several features
+  make outbound HTTP requests to addresses a workspace member supplies —
+  broadcast data feeds, outgoing webhook deliveries, and link/favicon previews.
+  All of them are SSRF-protected by default: private, loopback, link-local and
+  reserved targets are refused at dial time, on the first hop and on every
+  redirect. Two settings relax this, each scoped to one feature and both off by
+  default — `BROADCAST_DATA_FEED_ALLOW_PRIVATE_HOSTS` for data feeds and
+  `WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS` for webhook delivery. Leave them
+  disabled unless you deliberately target your own internal network.
 - Grant workspace members the least privilege necessary; many privileged actions
   require resource-specific write permissions.

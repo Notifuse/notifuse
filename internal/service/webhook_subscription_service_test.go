@@ -63,7 +63,7 @@ func setupWebhookSubscriptionTestWithAuth(t *testing.T) (
 			}, nil
 		}).AnyTimes()
 
-	service := NewWebhookSubscriptionService(mockRepo, mockDeliveryRepo, mockAuthService, mockLogger)
+	service := NewWebhookSubscriptionService(mockRepo, mockDeliveryRepo, mockAuthService, mockLogger, false)
 
 	return mockRepo, mockDeliveryRepo, mockLogger, mockAuthService, service, ctrl
 }
@@ -77,7 +77,7 @@ func TestNewWebhookSubscriptionService(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	mockAuthService := mocks.NewMockAuthService(ctrl)
-	service := NewWebhookSubscriptionService(mockRepo, mockDeliveryRepo, mockAuthService, mockLogger)
+	service := NewWebhookSubscriptionService(mockRepo, mockDeliveryRepo, mockAuthService, mockLogger, false)
 
 	require.NotNil(t, service)
 	require.Equal(t, mockRepo, service.repo)
@@ -1057,10 +1057,11 @@ func TestWebhookSubscriptionService_GetEventTypes(t *testing.T) {
 
 func TestValidateURL(t *testing.T) {
 	testCases := []struct {
-		name        string
-		url         string
-		expectError bool
-		errorMsg    string
+		name              string
+		url               string
+		allowPrivateHosts bool
+		expectError       bool
+		errorMsg          string
 	}{
 		{
 			name:        "valid https URL",
@@ -1122,11 +1123,102 @@ func TestValidateURL(t *testing.T) {
 			expectError: true,
 			errorMsg:    "URL must have a host",
 		},
+		// SSRF: with the guard on (allowPrivateHosts false, the default) a
+		// subscription may not be aimed at the deployment's own network. These
+		// are the spellings a URL can carry on its face; a public hostname that
+		// resolves to a private address is caught at dial time instead.
+		{
+			name:        "private - IPv4 loopback",
+			url:         "http://127.0.0.1/hook",
+			expectError: true,
+			errorMsg:    "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS",
+		},
+		{
+			name:        "private - cloud metadata link-local",
+			url:         "http://169.254.169.254/latest/meta-data/",
+			expectError: true,
+			errorMsg:    "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS",
+		},
+		{
+			name:        "private - RFC1918 class A",
+			url:         "http://10.0.0.5/hook",
+			expectError: true,
+			errorMsg:    "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS",
+		},
+		{
+			name:        "private - RFC1918 class C",
+			url:         "http://192.168.1.10/hook",
+			expectError: true,
+			errorMsg:    "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS",
+		},
+		{
+			name:        "private - IPv6 loopback",
+			url:         "http://[::1]/hook",
+			expectError: true,
+			errorMsg:    "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS",
+		},
+		{
+			name:        "private - docker bridge range",
+			url:         "http://172.17.0.3:5678/hook",
+			expectError: true,
+			errorMsg:    "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS",
+		},
+		{
+			name:        "private - localhost by name",
+			url:         "http://localhost:3000/hook",
+			expectError: true,
+			errorMsg:    "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS",
+		},
+		{
+			name:        "private - .internal suffix",
+			url:         "http://n8n.internal/hook",
+			expectError: true,
+			errorMsg:    "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS",
+		},
+		{
+			name:        "private - kubernetes cluster domain",
+			url:         "http://svc.default.svc.cluster.local/hook",
+			expectError: true,
+			errorMsg:    "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS",
+		},
+		{
+			name:        "private - mDNS .local suffix",
+			url:         "http://nas.local/hook",
+			expectError: true,
+			errorMsg:    "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS",
+		},
+		// The opt-out is what a self-hosted deployment delivering to its own
+		// network turns on, so every rejection above has to become legal again.
+		{
+			name:              "opt-in allows loopback",
+			url:               "http://127.0.0.1/hook",
+			allowPrivateHosts: true,
+			expectError:       false,
+		},
+		{
+			name:              "opt-in allows a docker sibling by name",
+			url:               "http://n8n:5678/webhook/abc",
+			allowPrivateHosts: true,
+			expectError:       false,
+		},
+		{
+			name:              "opt-in allows the metadata endpoint",
+			url:               "http://169.254.169.254/latest/meta-data/",
+			allowPrivateHosts: true,
+			expectError:       false,
+		},
+		// A bare single-label host is not a private spelling. Blocking it would
+		// break "http://n8n:5678" under the opt-out and is the dial's job anyway.
+		{
+			name:        "public - single-label host is not rejected by spelling",
+			url:         "http://intranet-ish.example.com/hook",
+			expectError: false,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validateURL(tc.url)
+			err := validateURL(tc.url, tc.allowPrivateHosts)
 
 			if tc.expectError {
 				require.Error(t, err)
@@ -1498,7 +1590,7 @@ func TestWebhookSubscriptionService_RejectsNonMembers(t *testing.T) {
 				AuthenticateUserForWorkspace(gomock.Any(), victimWorkspace).
 				Return(nil, nil, nil, authFailure)
 
-			service := NewWebhookSubscriptionService(mockRepo, mockDeliveryRepo, mockAuthService, mockLogger)
+			service := NewWebhookSubscriptionService(mockRepo, mockDeliveryRepo, mockAuthService, mockLogger, false)
 
 			err := tc.call(context.Background(), service)
 			require.Error(t, err, "a non-member must not be served")
@@ -1550,7 +1642,7 @@ func TestWebhookSubscriptionSecretIsOwnerOnly(t *testing.T) {
 				}, nil
 			}).AnyTimes()
 
-		return NewWebhookSubscriptionService(repo, mocks.NewMockWebhookDeliveryRepository(ctrl), auth, logger), repo
+		return NewWebhookSubscriptionService(repo, mocks.NewMockWebhookDeliveryRepository(ctrl), auth, logger, false), repo
 	}
 
 	stored := func() *domain.WebhookSubscription {
@@ -1668,7 +1760,7 @@ func newPermissionScopedSubscriptionService(t *testing.T, workspaceID string, pe
 			}, nil
 		}).AnyTimes()
 
-	return NewWebhookSubscriptionService(repo, deliveryRepo, auth, logger), repo, deliveryRepo
+	return NewWebhookSubscriptionService(repo, deliveryRepo, auth, logger, false), repo, deliveryRepo
 }
 
 // TestWebhookSubscriptionService_PermissionEnforcement verifies that every
@@ -1877,7 +1969,7 @@ func TestWebhookSubscriptionService_SecretRedactionPerMethod(t *testing.T) {
 				}, nil
 			}).AnyTimes()
 
-		return NewWebhookSubscriptionService(repo, mocks.NewMockWebhookDeliveryRepository(ctrl), auth, logger), repo
+		return NewWebhookSubscriptionService(repo, mocks.NewMockWebhookDeliveryRepository(ctrl), auth, logger, false), repo
 	}
 
 	type decision struct {

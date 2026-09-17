@@ -19,6 +19,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/Notifuse/notifuse/pkg/safehttpclient"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -3388,5 +3389,120 @@ func TestWebhookDeliveryWorker_theRequestBudgetIsSpentFromTheClaim(t *testing.T)
 		assert.Equal(t, 0, row.Attempts)
 		require.NotNil(t, row.LastError)
 		assert.Contains(t, *row.LastError, "ran out of time before the request could be sent")
+	})
+}
+
+// A target refused by the SSRF guard is a configuration refusal, not a dying
+// endpoint, so it must not spend the subscription's failure budget.
+//
+// Without this the fix ships a far worse bug than the one it closes. A
+// self-hosted deployment delivering to a sibling container upgrades, every
+// delivery starts being refused, and twenty of them sustained over the failure
+// window retire the integration permanently — under a reason blaming the
+// receiver. Worse, it would not come back when the operator sets
+// WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS, because the subscription is disabled by
+// then and only a human re-enables it.
+//
+// This is the reasoning handleResponseStatus already applies to 429: a refusal
+// that is ours rather than the receiver's is retried, never counted.
+func TestWebhookDeliveryWorker_ssrfRefusalDoesNotRetireTheSubscription(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockSubRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+	mockDeliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "workspace1"
+
+	// Port 9 (discard) on loopback: refused by the guard before a connection is
+	// attempted, and refused by the network if the guard is not there — which is
+	// what lets the same URL prove both halves of the distinction below.
+	const privateURL = "http://127.0.0.1:9/hook"
+
+	newDelivery := func(attempts int) *domain.WebhookDelivery {
+		return &domain.WebhookDelivery{
+			ID:             "delivery1",
+			SubscriptionID: "sub1",
+			EventType:      "contact.created",
+			Payload:        map[string]interface{}{"email": "test@example.com"},
+			Attempts:       attempts,
+			MaxAttempts:    10,
+		}
+	}
+	newSubscription := func() *domain.WebhookSubscription {
+		return &domain.WebhookSubscription{
+			ID:      "sub1",
+			URL:     privateURL,
+			Secret:  "whsec_YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU=",
+			Enabled: true,
+		}
+	}
+
+	t.Run("a refused private target is retried without counting a failure", func(t *testing.T) {
+		worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger, safehttpclient.New())
+
+		// No IncrementFailures armed: gomock fails the test if one is called.
+		mockDeliveryRepo.EXPECT().ScheduleRetry(
+			gomock.Any(), workspaceID, "delivery1", gomock.Any(), 1, nil, gomock.Any(), gomock.Any(),
+		).Return(nil)
+
+		worker.processDelivery(ctx, workspaceID, newDelivery(0), newSubscription(), time.Now())
+	})
+
+	t.Run("the recorded error names the opt-out that would allow it", func(t *testing.T) {
+		worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger, safehttpclient.New())
+
+		var recorded string
+		mockDeliveryRepo.EXPECT().ScheduleRetry(
+			gomock.Any(), workspaceID, "delivery1", gomock.Any(), 1, nil, gomock.Any(), gomock.Any(),
+		).DoAndReturn(func(_ context.Context, _, _ string, _ time.Time, _ int, _ *int, _ *string, lastError *string) error {
+			if lastError != nil {
+				recorded = *lastError
+			}
+			return nil
+		})
+
+		worker.processDelivery(ctx, workspaceID, newDelivery(0), newSubscription(), time.Now())
+
+		// The delivery log is the only place an operator sees this, so it has to
+		// carry the remedy and not just the refusal.
+		assert.Contains(t, recorded, "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS")
+		assert.Contains(t, recorded, "127.0.0.1")
+	})
+
+	// The distinction is the whole point: same URL, same worker, different
+	// client. Only the guard's refusal is exempt from the counter.
+	t.Run("an ordinary transport error still counts a failure", func(t *testing.T) {
+		worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger,
+			&http.Client{Timeout: 2 * time.Second})
+
+		mockSubRepo.EXPECT().IncrementFailures(gomock.Any(), workspaceID, "sub1").Return(nil)
+		mockDeliveryRepo.EXPECT().ScheduleRetry(
+			gomock.Any(), workspaceID, "delivery1", gomock.Any(), 1, nil, gomock.Any(), gomock.Any(),
+		).Return(nil)
+
+		worker.processDelivery(ctx, workspaceID, newDelivery(0), newSubscription(), time.Now())
+	})
+
+	// Not counting the failure must not make the row immortal: the delivery's own
+	// retry ladder still ends where it always did.
+	t.Run("a refusal on the last attempt still marks the delivery failed", func(t *testing.T) {
+		worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger, safehttpclient.New())
+
+		mockDeliveryRepo.EXPECT().MarkFailed(
+			gomock.Any(), workspaceID, "delivery1", 10, gomock.Any(), nil, gomock.Any(),
+		).Return(nil)
+
+		worker.processDelivery(ctx, workspaceID, newDelivery(9), newSubscription(), time.Now())
 	})
 }

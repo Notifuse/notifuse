@@ -110,6 +110,46 @@ func TestLoad_DataFeedSSRFProtectionDefault(t *testing.T) {
 	})
 }
 
+func TestLoad_WebhookDeliverySSRFProtectionDefault(t *testing.T) {
+	// SECRET_KEY is required for the config to load successfully.
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+	defer func() { _ = os.Unsetenv("SECRET_KEY") }()
+
+	t.Run("defaults to off (SSRF protection enabled)", func(t *testing.T) {
+		_ = os.Unsetenv("WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS")
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		// Secure by default: a missing/typo'd env key must NOT disable protection.
+		assert.False(t, cfg.Webhook.AllowPrivateDeliveryHosts,
+			"outgoing webhook delivery SSRF protection must be ON by default")
+	})
+
+	t.Run("opt-in via env var", func(t *testing.T) {
+		_ = os.Setenv("WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS", "true")
+		defer func() { _ = os.Unsetenv("WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS") }()
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.True(t, cfg.Webhook.AllowPrivateDeliveryHosts)
+	})
+
+	// The two opt-outs are separate controls. Relaxing data feeds must not
+	// quietly relax webhook delivery, or an operator who enabled one would be
+	// granting the other without ever naming it.
+	t.Run("independent of the data-feed opt-out", func(t *testing.T) {
+		_ = os.Setenv("BROADCAST_DATA_FEED_ALLOW_PRIVATE_HOSTS", "true")
+		_ = os.Unsetenv("WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS")
+		defer func() { _ = os.Unsetenv("BROADCAST_DATA_FEED_ALLOW_PRIVATE_HOSTS") }()
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.True(t, cfg.Broadcast.AllowPrivateDataFeedHosts)
+		assert.False(t, cfg.Webhook.AllowPrivateDeliveryHosts,
+			"enabling the data-feed opt-out must not enable the webhook one")
+	})
+}
+
 func TestInvalidKeysHandling(t *testing.T) {
 	t.Run("missing_secret_key", func(t *testing.T) {
 		// Clear any existing environment variables

@@ -1144,7 +1144,7 @@ func TestCreateDemoWebhookSubscription_IsSwitchedOff(t *testing.T) {
 		return &DemoService{
 			logger: log,
 			webhookSubscriptionService: NewWebhookSubscriptionService(
-				repo, deliveryRepo, auth, log),
+				repo, deliveryRepo, auth, log, false),
 		}, repo
 	}
 

@@ -29,6 +29,7 @@ import (
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/mailer"
 	"github.com/Notifuse/notifuse/pkg/ratelimiter"
+	"github.com/Notifuse/notifuse/pkg/safehttpclient"
 	"github.com/Notifuse/notifuse/pkg/smtp_bridge"
 	"github.com/Notifuse/notifuse/pkg/tracing"
 
@@ -1036,6 +1037,7 @@ func (a *App) InitServices() error {
 		a.webhookDeliveryRepo,
 		a.authService,
 		a.logger,
+		a.config.Webhook.AllowPrivateDeliveryHosts,
 	)
 
 	// Initialize automation service. It is built here, ahead of the demo service, because the demo
@@ -1167,13 +1169,35 @@ func (a *App) InitServices() error {
 		a.logger,
 	)
 
-	// Initialize webhook delivery worker
+	// Initialize webhook delivery worker.
+	//
+	// It gets its own SSRF-protected client rather than the shared one above: a
+	// subscription's URL is supplied by whoever holds webhook_subscriptions:write,
+	// so without this the worker is a request-forgery primitive aimed at whatever
+	// the server can reach — and the test endpoint hands the response back.
+	// safehttpclient validates the resolved address at dial time, on the first hop
+	// and on every redirect, which is what closes the POST-to-GET downgrade a 302
+	// would otherwise buy.
+	//
+	// Its 10s timeout matches the shared client's, so the claim lease the worker
+	// derives from it in normaliseTimings is unchanged.
+	webhookDeliveryClient := safehttpclient.New()
+	if a.config.Webhook.AllowPrivateDeliveryHosts {
+		webhookDeliveryClient = &http.Client{Timeout: 10 * time.Second}
+		a.logger.Warn("WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS is enabled: outgoing webhook deliveries may reach private and internal addresses")
+	}
+	// After the branch, so the guard is wrapped rather than replaced:
+	// WrapHTTPClient keeps the base transport, and with it the safe DialContext.
+	if a.config.Tracing.Enabled {
+		webhookDeliveryClient = tracing.WrapHTTPClient(webhookDeliveryClient)
+	}
+
 	a.webhookDeliveryWorker = service.NewWebhookDeliveryWorker(
 		a.webhookSubscriptionRepo,
 		a.webhookDeliveryRepo,
 		a.workspaceRepo,
 		a.logger,
-		httpClient,
+		webhookDeliveryClient,
 	)
 
 	// Initialize email queue worker for processing marketing emails (broadcasts & automations)
