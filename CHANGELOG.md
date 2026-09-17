@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [41.0] - Unreleased
+## [41.0] - 2026-09-17
 
 - **Feature**: Audit logs. Logs → Audit logs shows who did what in a workspace — a member invited, a permission set changed, an API key created, an integration edited, a template saved, a broadcast scheduled, a contact deleted — with the address it came from, the request it belonged to, and whether it succeeded, failed or was refused. The security-sensitive entries carry a before/after of what changed, with every password, secret and key replaced by `[redacted]`; the fact that they changed is kept, the values are not. Failures are recorded too: a sign-in for an unknown address, a wrong or expired code, a request refused by a permission check or by the licence, each with the reason the response deliberately does not give away. What is never recorded is the data plane — contact upserts, sends, tracking, custom events — which belongs in Logs, not in a trail.
 
