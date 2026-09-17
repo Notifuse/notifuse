@@ -55,7 +55,7 @@
     "tsx": "^4.21.0",
     "typescript": "^5.3.3",
     "typescript-eslint": "^8.66.0",
-    "vitest": "^3.2.7"
+    "vitest": "^4.1.11"
   },
   "dependencies": {
     "ua-parser-js": "^2.0.0"

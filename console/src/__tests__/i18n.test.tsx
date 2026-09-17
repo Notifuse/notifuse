@@ -440,13 +440,15 @@ describe('Translation rendering', () => {
   it('renders English translations by default', async () => {
     renderWithI18n()
 
+    // The context locale is 'en' from the first render; i18n only catches up once the
+    // mount load has activated the catalog, so wait for both.
     await waitFor(() => {
       expect(screen.getByTestId('current-locale')).toHaveTextContent('en')
+      expect(screen.getByTestId('i18n-locale')).toHaveTextContent('en')
     })
 
     expect(screen.getByTestId('greeting')).toBeInTheDocument()
     expect(screen.getByTestId('farewell')).toBeInTheDocument()
-    expect(screen.getByTestId('i18n-locale')).toHaveTextContent('en')
   })
 
   it('updates i18n locale when context locale changes', async () => {

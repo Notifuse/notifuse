@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useTemplateConflictModal, type ConflictInfo } from './useTemplateConflictModal'
@@ -14,8 +14,8 @@ function Harness({ info }: { info: ConflictInfo }) {
 }
 
 describe('useTemplateConflictModal', () => {
-  let onOverwrite: ReturnType<typeof vi.fn>
-  let onReload: ReturnType<typeof vi.fn>
+  let onOverwrite: Mock
+  let onReload: Mock
 
   beforeEach(() => {
     onOverwrite = vi.fn()

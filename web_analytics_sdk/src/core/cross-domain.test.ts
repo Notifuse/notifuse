@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import {
   CrossDomainLinker,
   encode,
@@ -339,7 +339,7 @@ describe('CrossDomainLinker', () => {
 
   describe('click interception', () => {
     let linker: CrossDomainLinker;
-    let mockDocument: { addEventListener: ReturnType<typeof vi.fn>; removeEventListener: ReturnType<typeof vi.fn> };
+    let mockDocument: { addEventListener: Mock; removeEventListener: Mock };
 
     beforeEach(() => {
       vi.stubGlobal('location', {

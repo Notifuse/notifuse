@@ -102,6 +102,13 @@ func (s *LLMService) streamChatGemini(
 		var fcParts []*genai.Part
 		var finishReason genai.FinishReason
 
+		// Part census for one stream. Gemini is the only provider that can finish a turn
+		// having written nothing the user sees: it narrates inside its thought summaries
+		// and, when it calls tools, often emits no answer text at all. Without these
+		// counts that case is indistinguishable from a bug in the routing below, which is
+		// what it was mistaken for. Lengths only, never content.
+		var thoughtParts, thoughtChars, textParts, textChars, funcCallParts int
+
 		for resp, streamErr := range client.Models.GenerateContentStream(ctx, model, contents, config) {
 			if streamErr != nil {
 				return nil, nil, promptTokens, outputTokens, fmt.Errorf("stream error: %w", streamErr)
@@ -132,6 +139,8 @@ func (s *LLMService) streamChatGemini(
 				// Stream the model's internal reasoning ("thought") parts on a
 				// separate channel; stream the visible answer as text.
 				if part.Text != "" && part.Thought {
+					thoughtParts++
+					thoughtChars += len(part.Text)
 					if sendErr := onEvent(domain.LLMChatEvent{
 						Type:    "thinking",
 						Content: part.Text,
@@ -139,6 +148,8 @@ func (s *LLMService) streamChatGemini(
 						return nil, nil, promptTokens, outputTokens, fmt.Errorf("failed to send thinking event: %w", sendErr)
 					}
 				} else if part.Text != "" {
+					textParts++
+					textChars += len(part.Text)
 					if sendErr := onEvent(domain.LLMChatEvent{
 						Type:    "text",
 						Content: part.Text,
@@ -150,6 +161,7 @@ func (s *LLMService) streamChatGemini(
 
 				// Collect function calls (Gemini Developer API returns them complete).
 				if part.FunctionCall != nil {
+					funcCallParts++
 					fc := part.FunctionCall
 					// Preserve the original part so any thought signature is retained
 					// when the assistant turn is replayed in the agentic loop.
@@ -174,6 +186,18 @@ func (s *LLMService) streamChatGemini(
 				}
 			}
 		}
+
+		// text_parts == 0 with function_calls > 0 is the model acting without speaking:
+		// the thread then shows reasoning and tool steps but no reply, which is the model
+		// declining to write an answer, not a routing fault.
+		s.logger.WithFields(map[string]interface{}{
+			"thought_parts":       thoughtParts,
+			"thought_chars":       thoughtChars,
+			"text_parts":          textParts,
+			"text_chars":          textChars,
+			"function_call_parts": funcCallParts,
+			"finish_reason":       string(finishReason),
+		}).Debug("Gemini stream part census")
 
 		// Truncation: when the model spends the whole budget on reasoning it finishes
 		// with MAX_TOKENS (often with empty/partial parts). Report it as a

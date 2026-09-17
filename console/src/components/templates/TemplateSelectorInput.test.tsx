@@ -1,5 +1,5 @@
 import React from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -52,8 +52,8 @@ const Wrapper = ({ value }: { value: string | null }) => (
 describe('TemplateSelectorInput', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(templatesApi.list as ReturnType<typeof vi.fn>).mockResolvedValue({ templates: [] })
-    ;(templatesApi.get as ReturnType<typeof vi.fn>).mockImplementation(
+    ;(templatesApi.list as Mock).mockResolvedValue({ templates: [] })
+    ;(templatesApi.get as Mock).mockImplementation(
       ({ id }: { id: string }) =>
         Promise.resolve({
           template: makeTemplate(id, id === 'tpl-a' ? 'Template A' : 'Template B')

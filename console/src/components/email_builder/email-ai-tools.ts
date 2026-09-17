@@ -149,7 +149,7 @@ export const SELECT_BLOCK_TOOL: LLMTool = {
 export const SET_EMAIL_TREE_TOOL: LLMTool = {
   name: 'setEmailTree',
   description:
-    'Replace the entire email structure with a new tree. Use this when building emails from scratch or making major structural changes. The tree must follow MJML hierarchy (mjml > mj-body > mj-section > mj-column > content).',
+    'Replace the entire email structure with a new tree. Use this when building emails from scratch or making major structural changes. The tree must follow MJML hierarchy (mjml > mj-body > mj-section > mj-column > content). For a marketing template the new tree must keep, or add, the compliance footer section with the {{ unsubscribe_url }} and {{ notification_center_url }} links.',
   input_schema: {
     type: 'object',
     properties: {

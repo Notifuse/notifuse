@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -103,13 +103,13 @@ const save = async () => {
 }
 
 const updatePayload = () =>
-  (broadcastApi.update as ReturnType<typeof vi.fn>).mock.calls[0][0]
+  (broadcastApi.update as Mock).mock.calls[0][0]
 
 describe('UpsertBroadcastDrawer data feeds', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(broadcastApi.update as ReturnType<typeof vi.fn>).mockResolvedValue({ broadcast: {} })
-    ;(broadcastApi.create as ReturnType<typeof vi.fn>).mockResolvedValue({ broadcast: {} })
+    ;(broadcastApi.update as Mock).mockResolvedValue({ broadcast: {} })
+    ;(broadcastApi.create as Mock).mockResolvedValue({ broadcast: {} })
   })
 
   it('turns a stored feed off when the user unchecks both toggles', async () => {
@@ -149,7 +149,7 @@ describe('UpsertBroadcastDrawer data feeds', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(broadcastApi.create).toHaveBeenCalled())
-    const payload = (broadcastApi.create as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    const payload = (broadcastApi.create as Mock).mock.calls[0][0]
     expect(payload.data_feed.global_feed.enabled).toBe(false)
     expect(payload.data_feed.recipient_feed.enabled).toBe(false)
   })
@@ -179,8 +179,8 @@ describe('UpsertBroadcastDrawer data feeds', () => {
 describe('UpsertBroadcastDrawer schedule', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(broadcastApi.update as ReturnType<typeof vi.fn>).mockResolvedValue({ broadcast: {} })
-    ;(broadcastApi.create as ReturnType<typeof vi.fn>).mockResolvedValue({ broadcast: {} })
+    ;(broadcastApi.update as Mock).mockResolvedValue({ broadcast: {} })
+    ;(broadcastApi.create as Mock).mockResolvedValue({ broadcast: {} })
   })
 
   it('sends no schedule when a scheduled broadcast is edited', async () => {
@@ -230,7 +230,7 @@ describe('UpsertBroadcastDrawer schedule', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(broadcastApi.create).toHaveBeenCalled())
-    const payload = (broadcastApi.create as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    const payload = (broadcastApi.create as Mock).mock.calls[0][0]
     expect(payload.schedule).toEqual({ is_scheduled: false, use_recipient_timezone: false })
   })
 })

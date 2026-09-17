@@ -58,6 +58,14 @@ describe('Email AI Tools', () => {
       expect(properties?.blockType.enum).toContain('mj-image')
     })
 
+    // Replacing the whole tree is how a footer gets silently dropped, and the tool
+    // description is re-sent to the model on every round.
+    test('setEmailTree tells the model to keep the compliance footer of a marketing email', () => {
+      const tool = EMAIL_AI_TOOLS.find(t => t.name === 'setEmailTree')
+      expect(tool?.description).toContain('{{ unsubscribe_url }}')
+      expect(tool?.description).toContain('{{ notification_center_url }}')
+    })
+
     test('setEmailTree tool should require tree with specific structure', () => {
       const tool = EMAIL_AI_TOOLS.find(t => t.name === 'setEmailTree')
       expect(tool).toBeDefined()

@@ -837,8 +837,13 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
         // `silent` flags those refusals carry - either one alone closes the hole, and
         // this one closes it even if a future refusal branch forgets the flag.
         if (!outcome.ranHandler) break
-        // Acknowledgements alone (UI mutations) do not justify a billed round trip.
-        if (!returning.some((c) => !c.result.silent)) break
+        // Acknowledgements alone (UI mutations) do not justify a billed round trip -
+        // unless the model wrote nothing at all, in which case this round is the only one
+        // in which it ever answers. Gemini never puts text in the same response as a
+        // function call: its contract puts the reply after the tool results. Without this
+        // exception a Gemini turn ends with the page mutated and the thread silent -
+        // reasoning, two tool steps, no reply - which is exactly what it did.
+        if (!returning.some((c) => !c.result.silent) && outcome.text.trim()) break
 
         // One alternating pair per round. The assistant turn is non-empty by
         // construction, so no two user turns can ever end up adjacent.

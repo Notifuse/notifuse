@@ -1,5 +1,5 @@
 import React from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { render, waitFor } from '@testing-library/react'
 import EmailBuilder from './EmailBuilder'
 import type { EmailBlock } from './types'
@@ -37,7 +37,7 @@ const makeTree = (marker: string): EmailBlock =>
 
 const props = (
   tree: EmailBlock,
-  onCompile: ReturnType<typeof vi.fn>,
+  onCompile: Mock,
   forcedViewMode: 'edit' | 'preview' | null
 ) => ({
   tree,
@@ -50,7 +50,7 @@ const props = (
 })
 
 describe('EmailBuilder preview auto-recompile', () => {
-  let onCompile: ReturnType<typeof vi.fn>
+  let onCompile: Mock
 
   beforeEach(() => {
     onCompile = vi.fn().mockResolvedValue({ html: '<html></html>', mjml: '<mjml></mjml>' })

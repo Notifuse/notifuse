@@ -1295,6 +1295,7 @@ export function CreateTemplateDrawer({
               workspace={workspace}
               currentSubject={emailSubject}
               currentPreviewText={emailPreview}
+              category={categoryValue}
               onUpdateSubject={(subject) => form.setFieldValue(['email', 'subject'], subject)}
               onUpdatePreviewText={(preview) => form.setFieldValue(['email', 'subject_preview'], preview)}
               validateOnComplete={async () => {

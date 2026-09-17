@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, type Mock } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -74,7 +74,7 @@ const renderActivityForm = (
   )
 }
 
-const lastDraft = (onDraftChange: ReturnType<typeof vi.fn>) =>
+const lastDraft = (onDraftChange: Mock) =>
   onDraftChange.mock.calls[onDraftChange.mock.calls.length - 1][0] as TreeNode
 
 const openSelect = (index: number) => fireEvent.mouseDown(screen.getAllByRole('combobox')[index])

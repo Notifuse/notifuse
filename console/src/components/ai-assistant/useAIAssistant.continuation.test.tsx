@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import type { ReactElement, ReactNode } from 'react'
 import { Globe, Search } from 'lucide-react'
@@ -626,10 +626,11 @@ describe('useAIAssistant handler failure modes', () => {
     expect(calls).toHaveLength(1)
   })
 
-  it('does not spend a round on acknowledgements alone', async () => {
-    // "I navigated the page for you" tells the model nothing it did not already know.
+  it('does not spend a round on acknowledgements alone once the model has answered', async () => {
+    // "I navigated the page for you" tells the model nothing it did not already know, and
+    // it has already written the reply the user reads.
     const { calls } = scriptRounds([
-      [toolUse('navigate_to_tab', { tab: 'pages' }), done()],
+      [text('Opened the pages tab.'), toolUse('navigate_to_tab', { tab: 'pages' }), done()],
       [text('never reached'), done()]
     ])
     const handlers = new Map<string, ToolHandler>([
@@ -640,6 +641,27 @@ describe('useAIAssistant handler failure modes', () => {
     await send(result, 'open the pages tab')
 
     expect(calls).toHaveLength(1)
+  })
+
+  it('spends the round on acknowledgements alone when the model wrote nothing', async () => {
+    // Gemini never puts text in the same response as a function call - its contract puts
+    // the answer after the tool results. Refusing this round is what left a built template
+    // under a collapsed Thinking block with no reply anywhere in the thread.
+    const { calls } = scriptRounds([
+      [toolUse('setEmailTree', { tree: {} }), done()],
+      [text('I built your newsletter with a hero and a footer.'), done()]
+    ])
+    const handlers = new Map<string, ToolHandler>([
+      ['setEmailTree', () => ({ content: 'Email structure replaced', silent: true })]
+    ])
+
+    const { result } = renderAssistant({ toolHandlers: handlers, maxToolRounds: 2 })
+    await send(result, 'create a newsletter')
+
+    expect(calls).toHaveLength(2)
+    expect(lastTurnOf(calls[1].messages)).toContain('Email structure replaced')
+    const answers = result.current.messages.filter((m) => m.role === 'assistant')
+    expect(answers.some((m) => m.content.includes('I built your newsletter'))).toBe(true)
   })
 
   it('sends an acknowledgement along when a real result pays for the round', async () => {
@@ -663,7 +685,7 @@ describe('useAIAssistant handler failure modes', () => {
 })
 
 describe('useAIAssistant failure visibility', () => {
-  let consoleError: ReturnType<typeof vi.spyOn>
+  let consoleError: MockInstance<typeof console.error>
 
   beforeEach(() => {
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -997,7 +1019,7 @@ describe('useAIAssistant tool progress bubbles', () => {
 })
 
 describe('useAIAssistant turn identity and streaming state', () => {
-  let consoleError: ReturnType<typeof vi.spyOn>
+  let consoleError: MockInstance<typeof console.error>
 
   beforeEach(() => {
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -1514,7 +1536,7 @@ describe('useAIAssistant step icons', () => {
 })
 
 describe('useAIAssistant step duration', () => {
-  let nowSpy: ReturnType<typeof vi.spyOn>
+  let nowSpy: MockInstance<typeof Date.now>
 
   beforeEach(() => {
     nowSpy = vi.spyOn(Date, 'now')

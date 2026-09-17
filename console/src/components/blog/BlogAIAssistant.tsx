@@ -106,11 +106,22 @@ export function BlogAIAssistant({
         // The model can put anything in tool_input, so the Tiptap document is checked
         // for real instead of asserted: a non-object `content` was already a no-op
         // downstream (the editor only accepts a node whose type is "doc").
-        if (!isRecord(content)) return
+        if (!isRecord(content)) {
+          // A tool call with no document is what a response cut off by the token limit
+          // looks like from here. Returning quietly left the thread showing nothing at
+          // all: no article, no error, no explanation.
+          insert(
+            'The article was not applied: the request arrived without content, which usually means the response hit the token limit. Ask me again, or ask for a shorter post.',
+            BLOG_TOOL_NAMES.UPDATE_CONTENT
+          )
+          message.error('Article not applied')
+          return
+        }
         onUpdateContent(content)
         const toolMsg = asString(input?.message) || 'Content updated'
         insert(toolMsg, BLOG_TOOL_NAMES.UPDATE_CONTENT)
         message.success(toolMsg)
+        return { content: toolMsg, silent: true }
       }
     ],
     [
@@ -141,6 +152,7 @@ export function BlogAIAssistant({
         const toolMsg = asString(input.message) || 'Metadata updated'
         insert(toolMsg, BLOG_TOOL_NAMES.UPDATE_METADATA)
         message.success(toolMsg)
+        return { content: toolMsg, silent: true }
       }
     ]
   ])
@@ -150,7 +162,10 @@ export function BlogAIAssistant({
     config,
     tools: BLOG_AI_TOOLS,
     toolHandlers,
-    buildSystemPrompt
+    buildSystemPrompt,
+    // See EmailAIAssistant: the second round is only ever reached by a model that wrote
+    // no prose alongside its tool calls, and exists so it can still answer.
+    maxToolRounds: 2
   })
 
   return <AIAssistantChat {...assistant} workspace={workspace} config={config} />

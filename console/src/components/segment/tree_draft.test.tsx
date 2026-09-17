@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, type Mock } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -66,7 +66,7 @@ const editCondition = (index: number) =>
 
 const openSelect = (index: number) => fireEvent.mouseDown(screen.getAllByRole('combobox')[index])
 
-const lastCall = (mock: ReturnType<typeof vi.fn>) =>
+const lastCall = (mock: Mock) =>
   mock.mock.calls[mock.mock.calls.length - 1][0] as TreeNode | undefined
 
 describe('TreeNodeInput — draft tree', () => {

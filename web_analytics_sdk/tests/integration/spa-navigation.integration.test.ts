@@ -5,14 +5,14 @@
  * in Single Page Applications via History API and hash changes.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { NavigationTracker } from '../../src/events/navigation';
 import { ScrollTracker } from '../../src/events/scroll';
 
 describe('SPA Navigation Integration', () => {
   let navigationTracker: NavigationTracker;
   let scrollTracker: ScrollTracker;
-  let navigationCallback: ReturnType<typeof vi.fn>;
+  let navigationCallback: Mock;
   let originalPushState: typeof history.pushState;
   let originalReplaceState: typeof history.replaceState;
 

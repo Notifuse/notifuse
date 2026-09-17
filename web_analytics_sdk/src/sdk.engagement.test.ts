@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { NotifuseAnalyticsSDK } from './sdk';
 
 /**
@@ -77,9 +77,9 @@ describe('engagement time', () => {
     // Past heartbeatMaxDuration (10 min): the SDK stops pinging on purpose.
     await vi.advanceTimersByTimeAsync(11 * 60 * 1000);
 
-    const cappedCalls = (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls.length;
+    const cappedCalls = (globalThis.fetch as unknown as Mock).mock.calls.length;
     await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
-    expect((globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls.length).toBe(
+    expect((globalThis.fetch as unknown as Mock).mock.calls.length).toBe(
       cappedCalls
     );
 
@@ -88,7 +88,7 @@ describe('engagement time', () => {
     await vi.advanceTimersByTimeAsync(60 * 1000);
 
     expect(
-      (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls.length
+      (globalThis.fetch as unknown as Mock).mock.calls.length
     ).toBeGreaterThan(cappedCalls);
   });
 });

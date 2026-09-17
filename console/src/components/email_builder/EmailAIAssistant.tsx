@@ -5,19 +5,18 @@ import type { AIAssistantConfig, ToolHandler } from '../ai-assistant'
 import type { Workspace } from '../../services/api/workspace'
 import type { EmailBlock, MJMLComponentType } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
-import {
-  EMAIL_AI_TOOLS,
-  TOOL_NAMES,
-  serializeEmailTree,
-  type EmailAIAgentCallbacks
-} from './email-ai-tools'
-import { EMAIL_AI_SYSTEM_PROMPT } from './email-ai-system-prompt'
+import { EMAIL_AI_TOOLS, TOOL_NAMES, type EmailAIAgentCallbacks } from './email-ai-tools'
+import { buildEmailSystemPrompt } from './email-ai-system-prompt'
 
-interface EmailAIAssistantProps {
+export interface EmailAIAssistantProps {
   workspace: Workspace
   callbacks: EmailAIAgentCallbacks
   currentSubject?: string
   currentPreviewText?: string
+  // Template category picked in the Settings tab. It selects the compliance guidance in
+  // the system prompt — a marketing email needs an unsubscribe footer, a transactional
+  // one must not have one — and is undefined on a new template until the user picks it.
+  category?: string
   onUpdateSubject?: (subject: string) => void
   onUpdatePreviewText?: (preview: string) => void
   // Validates the current email after the assistant edits it (e.g. compiles MJML)
@@ -47,27 +46,22 @@ export function EmailAIAssistant({
   callbacks,
   currentSubject,
   currentPreviewText,
+  category,
   onUpdateSubject,
   onUpdatePreviewText,
   validateOnComplete,
   hidden = false
 }: EmailAIAssistantProps) {
-  const buildSystemPrompt = () => {
-    let systemPrompt = EMAIL_AI_SYSTEM_PROMPT
-
-    const currentTree = callbacks.getEmailTree()
-    if (currentTree) {
-      systemPrompt += `\n\n## Current Email Structure\n\n${serializeEmailTree(currentTree)}`
-    }
-    if (currentSubject) {
-      systemPrompt += `\n\nCurrent subject: "${currentSubject}"`
-    }
-    if (currentPreviewText) {
-      systemPrompt += `\nCurrent preview text: "${currentPreviewText}"`
-    }
-
-    return systemPrompt
-  }
+  // Deliberately not memoized: the hook refreshes its ref on every render and calls this
+  // once per request round, so a category or a tree changed mid-conversation reaches the
+  // next round. A useCallback here would pin a stale closure instead.
+  const buildSystemPrompt = () =>
+    buildEmailSystemPrompt({
+      tree: callbacks.getEmailTree(),
+      subject: currentSubject,
+      previewText: currentPreviewText,
+      category
+    })
 
   const toolHandlers = new Map<string, ToolHandler>([
     [
@@ -81,6 +75,7 @@ export function EmailAIAssistant({
         callbacks.onUpdateBlock(input.blockId, input.updates)
         insert(`Updated block ${input.blockId}`, TOOL_NAMES.UPDATE_BLOCK)
         message.success('Block updated')
+        return { content: `Updated block ${input.blockId}`, silent: true }
       }
     ],
     [
@@ -103,6 +98,7 @@ export function EmailAIAssistant({
         )
         insert(`Added ${input.blockType} to ${input.parentId}`, TOOL_NAMES.ADD_BLOCK)
         message.success(`Added ${input.blockType}`)
+        return { content: `Added ${input.blockType} to ${input.parentId}`, silent: true }
       }
     ],
     [
@@ -113,6 +109,7 @@ export function EmailAIAssistant({
         callbacks.onDeleteBlock(input.blockId)
         insert(`Deleted block ${input.blockId}`, TOOL_NAMES.DELETE_BLOCK)
         message.success('Block deleted')
+        return { content: `Deleted block ${input.blockId}`, silent: true }
       }
     ],
     [
@@ -127,6 +124,7 @@ export function EmailAIAssistant({
         callbacks.onMoveBlock(input.blockId, input.newParentId, input.position)
         insert(`Moved block ${input.blockId} to ${input.newParentId}`, TOOL_NAMES.MOVE_BLOCK)
         message.success('Block moved')
+        return { content: `Moved block ${input.blockId} to ${input.newParentId}`, silent: true }
       }
     ],
     [
@@ -136,13 +134,24 @@ export function EmailAIAssistant({
         if (!input?.blockId) return
         callbacks.onSelectBlock(input.blockId)
         insert(`Selected block ${input.blockId}`, TOOL_NAMES.SELECT_BLOCK)
+        return { content: `Selected block ${input.blockId}`, silent: true }
       }
     ],
     [
       TOOL_NAMES.SET_EMAIL_TREE,
       (event, insert) => {
         const input = event.tool_input as { tree: EmailBlock }
-        if (!input?.tree) return
+        if (!input?.tree) {
+          // A tool call with no tree is what a response cut off by the token limit
+          // looks like from here. Returning quietly left the thread showing a
+          // successful subject update and no email, with nothing to explain it.
+          insert(
+            'The email structure was not applied: the request arrived without a tree, which usually means the response hit the token limit. Ask me again, or ask for a simpler layout.',
+            TOOL_NAMES.SET_EMAIL_TREE
+          )
+          message.error('Email structure not applied')
+          return
+        }
 
         const errors = EmailBlockClass.validateStructure(input.tree)
         if (errors.length > 0) {
@@ -155,6 +164,7 @@ export function EmailAIAssistant({
         callbacks.setEmailTree(treeWithNewIds)
         insert('Email structure replaced', TOOL_NAMES.SET_EMAIL_TREE)
         message.success('Email template updated')
+        return { content: 'Email structure replaced', silent: true }
       }
     ],
     [
@@ -179,6 +189,7 @@ export function EmailAIAssistant({
         if (updates.length > 0) {
           insert(`Updated ${updates.join(' and ')}`, TOOL_NAMES.UPDATE_EMAIL_METADATA)
           message.success(`Updated ${updates.join(' and ')}`)
+          return { content: `Updated ${updates.join(' and ')}`, silent: true }
         }
       }
     ]
@@ -190,7 +201,11 @@ export function EmailAIAssistant({
     tools: EMAIL_AI_TOOLS,
     toolHandlers,
     buildSystemPrompt,
-    validateOnComplete
+    validateOnComplete,
+    // Two, not one: the second round exists only for a model that emitted tool calls and
+    // no prose, so it can finally write its reply. A model that already answered never
+    // reaches it - the loop stops as soon as a round comes back without tool calls.
+    maxToolRounds: 2
   })
 
   return (

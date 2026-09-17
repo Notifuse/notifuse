@@ -1,7 +1,7 @@
 /**
  * Tests for Sender
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { Sender } from './sender';
 import { Storage } from '../storage/storage';
 import type { SessionPayload } from '../types/session-state';
@@ -10,8 +10,8 @@ describe('Sender', () => {
   let sender: Sender;
   let mockStorage: Storage;
   let mockLocalStorage: ReturnType<typeof createMockStorage>;
-  let fetchMock: ReturnType<typeof vi.fn>;
-  let sendBeaconMock: ReturnType<typeof vi.fn>;
+  let fetchMock: Mock;
+  let sendBeaconMock: Mock;
 
   const createMockStorage = () => {
     const store: Record<string, string> = {};

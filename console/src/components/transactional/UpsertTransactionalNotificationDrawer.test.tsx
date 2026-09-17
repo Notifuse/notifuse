@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -98,10 +98,10 @@ const fillRequiredFields = async () => {
 describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(transactionalNotificationsApi.create as ReturnType<typeof vi.fn>).mockResolvedValue({
+    ;(transactionalNotificationsApi.create as Mock).mockResolvedValue({
       notification: {}
     })
-    ;(transactionalNotificationsApi.update as ReturnType<typeof vi.fn>).mockResolvedValue({
+    ;(transactionalNotificationsApi.update as Mock).mockResolvedValue({
       notification: {}
     })
   })
@@ -123,7 +123,7 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(transactionalNotificationsApi.create).toHaveBeenCalled())
-    const payload = (transactionalNotificationsApi.create as ReturnType<typeof vi.fn>).mock
+    const payload = (transactionalNotificationsApi.create as Mock).mock
       .calls[0][0]
     expect(payload.notification.tracking_settings.tracking_mode).toBe('inherit')
   })
@@ -138,7 +138,7 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(transactionalNotificationsApi.create).toHaveBeenCalled())
-    const payload = (transactionalNotificationsApi.create as ReturnType<typeof vi.fn>).mock
+    const payload = (transactionalNotificationsApi.create as Mock).mock
       .calls[0][0]
     expect(payload.notification.tracking_settings.tracking_mode).toBe('disabled')
   })
@@ -184,7 +184,7 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(transactionalNotificationsApi.update).toHaveBeenCalled())
-    const payload = (transactionalNotificationsApi.update as ReturnType<typeof vi.fn>).mock
+    const payload = (transactionalNotificationsApi.update as Mock).mock
       .calls[0][0]
     expect(payload.updates.tracking_settings.tracking_mode).toBe('inherit')
     // Regular (non integration-managed) updates keep sending the channels config.
@@ -206,7 +206,7 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(transactionalNotificationsApi.update).toHaveBeenCalled())
-    const payload = (transactionalNotificationsApi.update as ReturnType<typeof vi.fn>).mock
+    const payload = (transactionalNotificationsApi.update as Mock).mock
       .calls[0][0]
     expect(payload.updates.tracking_settings.tracking_mode).toBe('disabled')
   })
@@ -226,7 +226,7 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(transactionalNotificationsApi.update).toHaveBeenCalled())
-    const payload = (transactionalNotificationsApi.update as ReturnType<typeof vi.fn>).mock
+    const payload = (transactionalNotificationsApi.update as Mock).mock
       .calls[0][0]
     expect('metadata' in payload.updates).toBe(false)
   })
@@ -238,7 +238,7 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(transactionalNotificationsApi.create).toHaveBeenCalled())
-    const payload = (transactionalNotificationsApi.create as ReturnType<typeof vi.fn>).mock
+    const payload = (transactionalNotificationsApi.create as Mock).mock
       .calls[0][0]
     expect('metadata' in payload.notification).toBe(false)
   })
@@ -263,7 +263,7 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(transactionalNotificationsApi.update).toHaveBeenCalled())
-    const payload = (transactionalNotificationsApi.update as ReturnType<typeof vi.fn>).mock
+    const payload = (transactionalNotificationsApi.update as Mock).mock
       .calls[0][0]
     expect(payload.updates.channels).toBeUndefined()
     expect(payload.updates.tracking_settings.tracking_mode).toBe('disabled')
