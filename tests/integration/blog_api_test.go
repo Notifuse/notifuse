@@ -426,6 +426,62 @@ func runBlogPostAPITests(t *testing.T, suite *testutil.IntegrationTestSuite) {
 		assert.GreaterOrEqual(t, len(posts), 2, "Should have at least 2 posts")
 	})
 
+	// The handler used to read `offset`, which ListBlogPostsRequest.Validate then
+	// overwrote from the never-read page number, so every request returned page one.
+	t.Run("Paginate Posts", func(t *testing.T) {
+		pageCategory, err := suite.DataFactory.CreateBlogCategory(workspace.ID,
+			testutil.WithCategoryName("Pagination"),
+			testutil.WithCategorySlug("pagination"),
+		)
+		require.NoError(t, err)
+
+		created := map[string]bool{}
+		for i := 0; i < 3; i++ {
+			post, err := suite.DataFactory.CreateBlogPost(workspace.ID, pageCategory.ID,
+				testutil.WithPostSlug(fmt.Sprintf("paginated-post-%d", i)),
+			)
+			require.NoError(t, err)
+			created[post.ID] = true
+		}
+
+		listPage := func(page string) (ids []string, total float64) {
+			resp, err := client.ListBlogPosts(map[string]string{
+				"category_id": pageCategory.ID,
+				"limit":       "2",
+				"page":        page,
+			})
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+
+			var result struct {
+				Posts []struct {
+					ID string `json:"id"`
+				} `json:"posts"`
+				TotalCount float64 `json:"total_count"`
+			}
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+			for _, p := range result.Posts {
+				ids = append(ids, p.ID)
+			}
+			return ids, result.TotalCount
+		}
+
+		first, total := listPage("1")
+		second, _ := listPage("2")
+
+		assert.Equal(t, float64(3), total)
+		require.Len(t, first, 2)
+		require.Len(t, second, 1, "page 2 must hold the one post page 1 left out")
+
+		seen := map[string]bool{}
+		for _, id := range append(first, second...) {
+			assert.True(t, created[id], "post %s is not one of this category's posts", id)
+			assert.False(t, seen[id], "post %s appears on both pages", id)
+			seen[id] = true
+		}
+	})
+
 	t.Run("Update Post", func(t *testing.T) {
 		// Create a post
 		post, err := suite.DataFactory.CreateBlogPost(workspace.ID, category.ID,

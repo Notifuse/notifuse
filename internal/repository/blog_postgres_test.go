@@ -638,6 +638,43 @@ func TestBlogPostRepository(t *testing.T) {
 	})
 
 	t.Run("ListPosts", func(t *testing.T) {
+		// Pages are LIMIT/OFFSET slices, so they are only disjoint if the order is total.
+		// published_at ties whenever posts are imported with the same backdated date.
+		t.Run("order has an id tiebreaker for every status", func(t *testing.T) {
+			for status, wantOrder := range map[domain.BlogPostStatus]string{
+				domain.BlogPostStatusAll:       `ORDER BY created_at DESC, id DESC`,
+				domain.BlogPostStatusDraft:     `ORDER BY created_at DESC, id DESC`,
+				domain.BlogPostStatusPublished: `ORDER BY published_at DESC, id DESC`,
+			} {
+				t.Run(string(status), func(t *testing.T) {
+					ctrl := gomock.NewController(t)
+					defer ctrl.Finish()
+
+					testMockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+					testRepo := NewBlogPostRepository(testMockWorkspaceRepo)
+					testDB, testSqlMock, err := sqlmock.New()
+					require.NoError(t, err)
+					defer func() { _ = testDB.Close() }()
+
+					testMockWorkspaceRepo.EXPECT().
+						GetConnection(gomock.Any(), "workspace123").
+						Return(testDB, nil)
+
+					testSqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*)`)).
+						WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+					testSqlMock.ExpectQuery(`(?s)SELECT id, category_id.*`+regexp.QuoteMeta(wantOrder)+`\s+LIMIT \$1 OFFSET \$2`).
+						WithArgs(10, 20).
+						WillReturnRows(sqlmock.NewRows([]string{
+							"id", "category_id", "slug", "settings", "published_at", "created_at", "updated_at", "deleted_at",
+						}))
+
+					_, err = testRepo.ListPosts(ctx, domain.ListBlogPostsRequest{Status: status, Limit: 10, Offset: 20})
+					require.NoError(t, err)
+					assert.NoError(t, testSqlMock.ExpectationsWereMet())
+				})
+			}
+		})
+
 		t.Run("list all posts", func(t *testing.T) {
 			// Create new mocks for this test
 			ctrl := gomock.NewController(t)

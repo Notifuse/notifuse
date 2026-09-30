@@ -746,10 +746,12 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 		whereClause += " AND " + whereConditions[i]
 	}
 
-	// Determine ORDER BY clause based on status
-	orderByClause := "ORDER BY created_at DESC"
+	// Determine ORDER BY clause based on status. The id tiebreaker keeps LIMIT/OFFSET pages
+	// disjoint: posts imported with the same backdated published_at would otherwise come
+	// back in an arbitrary order per query, repeating some posts across pages and skipping others.
+	orderByClause := "ORDER BY created_at DESC, id DESC"
 	if params.Status == domain.BlogPostStatusPublished {
-		orderByClause = "ORDER BY published_at DESC"
+		orderByClause = "ORDER BY published_at DESC, id DESC"
 	}
 
 	// Count total

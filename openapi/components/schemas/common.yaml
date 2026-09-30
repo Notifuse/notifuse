@@ -6,3 +6,23 @@ ErrorResponse:
       description: Error message
   required:
     - error
+
+PermissionErrorResponse:
+  type: object
+  description: Returned with a 403 when the user or API key lacks the permission the endpoint requires.
+  properties:
+    error:
+      type: string
+      description: Error message
+    resource:
+      type: string
+      description: The permission resource the endpoint requires.
+      example: blog
+    permission:
+      type: string
+      enum: [read, write]
+      description: The access level the endpoint requires on that resource.
+  required:
+    - error
+    - resource
+    - permission

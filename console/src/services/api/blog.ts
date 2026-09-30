@@ -143,7 +143,7 @@ export interface ListBlogPostsRequest {
   category_id?: string
   status?: BlogPostStatus
   limit?: number
-  offset?: number
+  page?: number
 }
 
 export interface BlogPostListResponse {
@@ -287,8 +287,8 @@ export const blogPostsApi: BlogPostsApi = {
     if (params.limit) {
       url += `&limit=${params.limit}`
     }
-    if (params.offset) {
-      url += `&offset=${params.offset}`
+    if (params.page) {
+      url += `&page=${params.page}`
     }
     return await api.get<BlogPostListResponse>(url)
   },

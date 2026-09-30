@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -75,6 +76,9 @@ func (h *BlogHandler) HandleListCategories(w http.ResponseWriter, r *http.Reques
 	response, err := h.service.ListCategories(ctx)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to list categories")
+		if writePermissionError(w, err) {
+			return
+		}
 		WriteJSONError(w, "Failed to list categories", http.StatusInternalServerError)
 		return
 	}
@@ -120,6 +124,9 @@ func (h *BlogHandler) HandleGetCategory(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get category")
+		if writePermissionError(w, err) {
+			return
+		}
 		WriteJSONError(w, "Failed to get category", http.StatusInternalServerError)
 		return
 	}
@@ -154,6 +161,9 @@ func (h *BlogHandler) HandleCreateCategory(w http.ResponseWriter, r *http.Reques
 	category, err := h.service.CreateCategory(ctx, &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to create category")
+		if writePermissionError(w, err) {
+			return
+		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -188,6 +198,9 @@ func (h *BlogHandler) HandleUpdateCategory(w http.ResponseWriter, r *http.Reques
 	category, err := h.service.UpdateCategory(ctx, &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to update category")
+		if writePermissionError(w, err) {
+			return
+		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -221,6 +234,9 @@ func (h *BlogHandler) HandleDeleteCategory(w http.ResponseWriter, r *http.Reques
 
 	if err := h.service.DeleteCategory(ctx, &req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to delete category")
+		if writePermissionError(w, err) {
+			return
+		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -259,6 +275,9 @@ func (h *BlogHandler) HandleListPosts(w http.ResponseWriter, r *http.Request) {
 	response, err := h.service.ListPosts(ctx, &params)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to list posts")
+		if writePermissionError(w, err) {
+			return
+		}
 		WriteJSONError(w, "Failed to list posts", http.StatusInternalServerError)
 		return
 	}
@@ -307,6 +326,9 @@ func (h *BlogHandler) HandleGetPost(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get post")
+		if writePermissionError(w, err) {
+			return
+		}
 		WriteJSONError(w, "Failed to get post", http.StatusInternalServerError)
 		return
 	}
@@ -341,6 +363,9 @@ func (h *BlogHandler) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 	post, err := h.service.CreatePost(ctx, &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to create post")
+		if writePermissionError(w, err) {
+			return
+		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -375,6 +400,9 @@ func (h *BlogHandler) HandleUpdatePost(w http.ResponseWriter, r *http.Request) {
 	post, err := h.service.UpdatePost(ctx, &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to update post")
+		if writePermissionError(w, err) {
+			return
+		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -408,6 +436,9 @@ func (h *BlogHandler) HandleDeletePost(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.DeletePost(ctx, &req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to delete post")
+		if writePermissionError(w, err) {
+			return
+		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -441,6 +472,9 @@ func (h *BlogHandler) HandlePublishPost(w http.ResponseWriter, r *http.Request) 
 
 	if err := h.service.PublishPost(ctx, &req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to publish post")
+		if writePermissionError(w, err) {
+			return
+		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -474,6 +508,9 @@ func (h *BlogHandler) HandleUnpublishPost(w http.ResponseWriter, r *http.Request
 
 	if err := h.service.UnpublishPost(ctx, &req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to unpublish post")
+		if writePermissionError(w, err) {
+			return
+		}
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -487,7 +524,11 @@ func (h *BlogHandler) HandleUnpublishPost(w http.ResponseWriter, r *http.Request
 // Helper Functions
 // ====================
 
-// parseListBlogPostsParams parses URL query parameters into ListBlogPostsRequest
+// parseListBlogPostsParams parses URL query parameters into ListBlogPostsRequest.
+//
+// Pages are addressed by `page`, never by `offset`: ListBlogPostsRequest.Validate derives
+// Offset from Page, so an offset read here is overwritten before the query runs. That is how
+// this endpoint used to accept `offset` and answer every value with the first page.
 func parseListBlogPostsParams(values url.Values) (domain.ListBlogPostsRequest, error) {
 	params := domain.ListBlogPostsRequest{
 		CategoryID: values.Get("category_id"),
@@ -498,18 +539,18 @@ func parseListBlogPostsParams(values url.Values) (domain.ListBlogPostsRequest, e
 	if limitStr := values.Get("limit"); limitStr != "" {
 		limit, err := strconv.Atoi(limitStr)
 		if err != nil {
-			return params, err
+			return params, errors.New("limit must be a valid integer")
 		}
 		params.Limit = limit
 	}
 
-	// Parse offset
-	if offsetStr := values.Get("offset"); offsetStr != "" {
-		offset, err := strconv.Atoi(offsetStr)
+	// Parse page (1-indexed)
+	if pageStr := values.Get("page"); pageStr != "" {
+		page, err := strconv.Atoi(pageStr)
 		if err != nil {
-			return params, err
+			return params, errors.New("page must be a valid integer")
 		}
-		params.Offset = offset
+		params.Page = page
 	}
 
 	return params, nil

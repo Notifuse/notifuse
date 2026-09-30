@@ -516,14 +516,14 @@ func TestBlogHandler_HandleListPosts(t *testing.T) {
 				assert.Equal(t, "cat-1", params.CategoryID)
 				assert.Equal(t, domain.BlogPostStatusPublished, params.Status)
 				assert.Equal(t, 10, params.Limit)
-				assert.Equal(t, 20, params.Offset)
+				assert.Equal(t, 3, params.Page)
 				return &domain.BlogPostListResponse{
 					Posts:      posts,
 					TotalCount: 0,
 				}, nil
 			})
 
-		req := httptest.NewRequest(http.MethodGet, "/api/blogPosts.list?workspace_id="+workspaceID+"&category_id=cat-1&status=published&limit=10&offset=20", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/blogPosts.list?workspace_id="+workspaceID+"&category_id=cat-1&status=published&limit=10&page=3", nil)
 		w := httptest.NewRecorder()
 
 		handler.HandleListPosts(w, req)
@@ -549,13 +549,58 @@ func TestBlogHandler_HandleListPosts(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
-	t.Run("Invalid offset parameter", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/blogPosts.list?workspace_id=ws-123&offset=invalid", nil)
+	t.Run("Invalid page parameter", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/blogPosts.list?workspace_id=ws-123&page=invalid", nil)
 		w := httptest.NewRecorder()
 
 		handler.HandleListPosts(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "page must be a valid integer")
+	})
+
+	// The service runs ListBlogPostsRequest.Validate, which derives Offset from Page. The
+	// handler used to read `offset` into a field Validate then overwrote, so every offset
+	// returned the first page while a handler-level assertion on params.Offset kept passing.
+	// Running Validate here pins what the repository actually receives.
+	t.Run("Page reaches the repository as an offset", func(t *testing.T) {
+		handler, mockService, _, ctrl := setupBlogHandler(t)
+		defer ctrl.Finish()
+
+		mockService.EXPECT().
+			ListPosts(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, params *domain.ListBlogPostsRequest) (*domain.BlogPostListResponse, error) {
+				require.NoError(t, params.Validate())
+				assert.Equal(t, 20, params.Offset)
+				return &domain.BlogPostListResponse{Posts: []*domain.BlogPost{}}, nil
+			})
+
+		req := httptest.NewRequest(http.MethodGet, "/api/blogPosts.list?workspace_id=ws-123&limit=10&page=3", nil)
+		w := httptest.NewRecorder()
+
+		handler.HandleListPosts(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("Offset parameter is not read", func(t *testing.T) {
+		handler, mockService, _, ctrl := setupBlogHandler(t)
+		defer ctrl.Finish()
+
+		mockService.EXPECT().
+			ListPosts(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, params *domain.ListBlogPostsRequest) (*domain.BlogPostListResponse, error) {
+				assert.Equal(t, 0, params.Page)
+				assert.Equal(t, 0, params.Offset)
+				return &domain.BlogPostListResponse{Posts: []*domain.BlogPost{}}, nil
+			})
+
+		req := httptest.NewRequest(http.MethodGet, "/api/blogPosts.list?workspace_id=ws-123&offset=20", nil)
+		w := httptest.NewRecorder()
+
+		handler.HandleListPosts(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
 	t.Run("Service error", func(t *testing.T) {
@@ -1165,6 +1210,130 @@ func TestBlogHandler_HandleUnpublishPost(t *testing.T) {
 
 		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
 	})
+}
+
+// A permission denial must reach the client as a 403 naming the resource, on reads and
+// writes alike. The blog handlers used to answer it with their generic failure — a 500
+// "Failed to list posts" on reads, which hid the cause from an API key missing blog:read.
+func TestBlogHandler_PermissionErrors(t *testing.T) {
+	readErr := domain.NewPermissionError(domain.PermissionResourceBlog, domain.PermissionTypeRead,
+		"Insufficient permissions: read access to blog required")
+	writeErr := domain.NewPermissionError(domain.PermissionResourceBlog, domain.PermissionTypeWrite,
+		"Insufficient permissions: write access to blog required")
+
+	testCases := []struct {
+		name    string
+		method  string
+		target  string
+		body    string
+		expect  func(m *mocks.MockBlogService)
+		handler func(h *http_handler.BlogHandler) http.HandlerFunc
+		wantErr *domain.PermissionError
+	}{
+		{
+			name: "blogCategories.list", method: http.MethodGet, target: "/api/blogCategories.list?workspace_id=ws-123",
+			expect:  func(m *mocks.MockBlogService) { m.EXPECT().ListCategories(gomock.Any()).Return(nil, readErr) },
+			handler: func(h *http_handler.BlogHandler) http.HandlerFunc { return h.HandleListCategories },
+			wantErr: readErr,
+		},
+		{
+			name: "blogCategories.get", method: http.MethodGet, target: "/api/blogCategories.get?workspace_id=ws-123&id=cat-1",
+			expect:  func(m *mocks.MockBlogService) { m.EXPECT().GetCategory(gomock.Any(), "cat-1").Return(nil, readErr) },
+			handler: func(h *http_handler.BlogHandler) http.HandlerFunc { return h.HandleGetCategory },
+			wantErr: readErr,
+		},
+		{
+			name: "blogCategories.create", method: http.MethodPost, target: "/api/blogCategories.create?workspace_id=ws-123", body: `{"name":"News","slug":"news"}`,
+			expect: func(m *mocks.MockBlogService) {
+				m.EXPECT().CreateCategory(gomock.Any(), gomock.Any()).Return(nil, writeErr)
+			},
+			handler: func(h *http_handler.BlogHandler) http.HandlerFunc { return h.HandleCreateCategory },
+			wantErr: writeErr,
+		},
+		{
+			name: "blogCategories.update", method: http.MethodPost, target: "/api/blogCategories.update?workspace_id=ws-123", body: `{"id":"cat-1","name":"News","slug":"news"}`,
+			expect: func(m *mocks.MockBlogService) {
+				m.EXPECT().UpdateCategory(gomock.Any(), gomock.Any()).Return(nil, writeErr)
+			},
+			handler: func(h *http_handler.BlogHandler) http.HandlerFunc { return h.HandleUpdateCategory },
+			wantErr: writeErr,
+		},
+		{
+			name: "blogCategories.delete", method: http.MethodPost, target: "/api/blogCategories.delete?workspace_id=ws-123", body: `{"id":"cat-1"}`,
+			expect:  func(m *mocks.MockBlogService) { m.EXPECT().DeleteCategory(gomock.Any(), gomock.Any()).Return(writeErr) },
+			handler: func(h *http_handler.BlogHandler) http.HandlerFunc { return h.HandleDeleteCategory },
+			wantErr: writeErr,
+		},
+		{
+			name: "blogPosts.list", method: http.MethodGet, target: "/api/blogPosts.list?workspace_id=ws-123",
+			expect:  func(m *mocks.MockBlogService) { m.EXPECT().ListPosts(gomock.Any(), gomock.Any()).Return(nil, readErr) },
+			handler: func(h *http_handler.BlogHandler) http.HandlerFunc { return h.HandleListPosts },
+			wantErr: readErr,
+		},
+		{
+			name: "blogPosts.get", method: http.MethodGet, target: "/api/blogPosts.get?workspace_id=ws-123&id=post-1",
+			expect:  func(m *mocks.MockBlogService) { m.EXPECT().GetPost(gomock.Any(), "post-1").Return(nil, readErr) },
+			handler: func(h *http_handler.BlogHandler) http.HandlerFunc { return h.HandleGetPost },
+			wantErr: readErr,
+		},
+		{
+			name: "blogPosts.create", method: http.MethodPost, target: "/api/blogPosts.create?workspace_id=ws-123", body: `{"category_id":"cat-1","slug":"hello","title":"Hello","template_id":"tpl-1"}`,
+			expect: func(m *mocks.MockBlogService) {
+				m.EXPECT().CreatePost(gomock.Any(), gomock.Any()).Return(nil, writeErr)
+			},
+			handler: func(h *http_handler.BlogHandler) http.HandlerFunc { return h.HandleCreatePost },
+			wantErr: writeErr,
+		},
+		{
+			name: "blogPosts.update", method: http.MethodPost, target: "/api/blogPosts.update?workspace_id=ws-123", body: `{"id":"post-1","category_id":"cat-1","slug":"hello","title":"Hello","template_id":"tpl-1"}`,
+			expect: func(m *mocks.MockBlogService) {
+				m.EXPECT().UpdatePost(gomock.Any(), gomock.Any()).Return(nil, writeErr)
+			},
+			handler: func(h *http_handler.BlogHandler) http.HandlerFunc { return h.HandleUpdatePost },
+			wantErr: writeErr,
+		},
+		{
+			name: "blogPosts.delete", method: http.MethodPost, target: "/api/blogPosts.delete?workspace_id=ws-123", body: `{"id":"post-1"}`,
+			expect:  func(m *mocks.MockBlogService) { m.EXPECT().DeletePost(gomock.Any(), gomock.Any()).Return(writeErr) },
+			handler: func(h *http_handler.BlogHandler) http.HandlerFunc { return h.HandleDeletePost },
+			wantErr: writeErr,
+		},
+		{
+			name: "blogPosts.publish", method: http.MethodPost, target: "/api/blogPosts.publish?workspace_id=ws-123", body: `{"id":"post-1"}`,
+			expect:  func(m *mocks.MockBlogService) { m.EXPECT().PublishPost(gomock.Any(), gomock.Any()).Return(writeErr) },
+			handler: func(h *http_handler.BlogHandler) http.HandlerFunc { return h.HandlePublishPost },
+			wantErr: writeErr,
+		},
+		{
+			name: "blogPosts.unpublish", method: http.MethodPost, target: "/api/blogPosts.unpublish?workspace_id=ws-123", body: `{"id":"post-1"}`,
+			expect:  func(m *mocks.MockBlogService) { m.EXPECT().UnpublishPost(gomock.Any(), gomock.Any()).Return(writeErr) },
+			handler: func(h *http_handler.BlogHandler) http.HandlerFunc { return h.HandleUnpublishPost },
+			wantErr: writeErr,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			handler, mockService, mockLogger, ctrl := setupBlogHandler(t)
+			defer ctrl.Finish()
+
+			mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+			tc.expect(mockService)
+
+			req := httptest.NewRequest(tc.method, tc.target, bytes.NewBufferString(tc.body))
+			w := httptest.NewRecorder()
+
+			tc.handler(handler)(w, req)
+
+			assert.Equal(t, http.StatusForbidden, w.Code)
+			var body map[string]interface{}
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+			assert.Equal(t, tc.wantErr.Message, body["error"])
+			assert.Equal(t, string(domain.PermissionResourceBlog), body["resource"])
+			assert.Equal(t, string(tc.wantErr.Permission), body["permission"])
+		})
+	}
 }
 
 func TestBlogHandler_RegisterRoutes(t *testing.T) {

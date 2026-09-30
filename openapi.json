@@ -3734,6 +3734,1798 @@
         }
       }
     },
+    "/api/blogCategories.list": {
+      "get": {
+        "summary": "List blog categories",
+        "description": "Returns every category of the workspace's blog, newest first. Not paginated. Requires the blog read permission.",
+        "operationId": "listBlogCategories",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The workspace's categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListBlogCategoriesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing workspace_id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "workspace_id is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog read permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to blog required",
+                  "resource": "blog",
+                  "permission": "read"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Failed to list categories"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogCategories.get": {
+      "get": {
+        "summary": "Get a blog category",
+        "description": "Retrieves a category by `id` or by `slug`; when both are given, `id` wins. Requires the blog read permission.",
+        "operationId": "getBlogCategory",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The category ID. Either `id` or `slug` is required.",
+            "example": "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+          },
+          {
+            "name": "slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The category slug. Either `id` or `slug` is required.",
+            "example": "product"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The category",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlogCategoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "either id or slug is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog read permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to blog required",
+                  "resource": "blog",
+                  "permission": "read"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error. Also returned when no category matches the id or slug.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Failed to get category"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogCategories.create": {
+      "post": {
+        "summary": "Create a blog category",
+        "description": "Creates a category. Posts always belong to one, so a blog needs at least one category before its first post. Requires the blog write permission.",
+        "operationId": "createBlogCategory",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace. Passed in the query string, not the body.",
+            "example": "ws_1234567890"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBlogCategoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlogCategoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - validation failed or the slug is taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "slugTaken": {
+                    "value": {
+                      "error": "category with slug 'product' already exists"
+                    }
+                  },
+                  "invalidSlug": {
+                    "value": {
+                      "error": "slug must contain only lowercase letters, numbers, and hyphens"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog write permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to blog required",
+                  "resource": "blog",
+                  "permission": "write"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogCategories.update": {
+      "post": {
+        "summary": "Update a blog category",
+        "description": "Replaces a category's name, slug, description and SEO settings. This is not a patch: optional fields left out are cleared. Public pages are cached for up to 5 minutes, so a rename can take that long to show on the blog. Requires the blog write permission.",
+        "operationId": "updateBlogCategory",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace. Passed in the query string, not the body.",
+            "example": "ws_1234567890"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBlogCategoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlogCategoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - validation failed, slug taken or category not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "category not found: blog category not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog write permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to blog required",
+                  "resource": "blog",
+                  "permission": "write"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogCategories.delete": {
+      "post": {
+        "summary": "Delete a blog category",
+        "description": "Deletes a category **and every post in it**, in one transaction. Both are soft-deleted, which frees their slugs for reuse. Public pages are cached for up to 5 minutes, so the category can take that long to disappear from the blog. Requires the blog write permission.",
+        "operationId": "deleteBlogCategory",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace. Passed in the query string, not the body.",
+            "example": "ws_1234567890"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category and its posts deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing id or category not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "failed to delete category: blog category not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog write permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to blog required",
+                  "resource": "blog",
+                  "permission": "write"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogPosts.list": {
+      "get": {
+        "summary": "List blog posts",
+        "description": "Returns posts page by page, drafts included unless filtered out. Posts come newest-created first; with `status=published`, most recently published first. Page through with `page` and `limit` until you have `total_count` posts. Requires the blog read permission.",
+        "operationId": "listBlogPosts",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          {
+            "name": "category_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Only posts in this category.",
+            "example": "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "draft",
+                "published"
+              ],
+              "default": "all"
+            },
+            "description": "`draft` is posts never published or since unpublished; `published` is every post with a publication date, including one dated in the future.",
+            "example": "published"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "1-indexed page number.",
+            "example": 2
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 100
+            },
+            "description": "Posts per page. Values above the maximum are clamped to it rather than refused.",
+            "example": 50
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of posts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListBlogPostsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingWorkspaceId": {
+                    "value": {
+                      "error": "workspace_id is required"
+                    }
+                  },
+                  "invalidPage": {
+                    "value": {
+                      "error": "page must be a valid integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog read permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to blog required",
+                  "resource": "blog",
+                  "permission": "read"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error. Also returned for a `status` outside the enum.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Failed to list posts"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogPosts.get": {
+      "get": {
+        "summary": "Get a blog post",
+        "description": "Retrieves a post by `id` or by `slug`; when both are given, `id` wins. Drafts are returned too. Requires the blog read permission.",
+        "operationId": "getBlogPost",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The post ID. Either `id` or `slug` is required.",
+            "example": "1b4e28ba-2fa1-11d2-883f-0016d3cca427"
+          },
+          {
+            "name": "slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The post slug. Either `id` or `slug` is required. Post slugs are unique across the workspace, so the slug alone identifies the post.",
+            "example": "october-release"
+          },
+          {
+            "name": "category_slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "With `slug`, only match the post if it is in this category — the lookup a `/{category_slug}/{post_slug}` URL maps to.",
+            "example": "product"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The post",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlogPostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "either id or slug is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog read permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to blog required",
+                  "resource": "blog",
+                  "permission": "read"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error. Also returned when no post matches.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Failed to get post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogPosts.create": {
+      "post": {
+        "summary": "Create a blog post",
+        "description": "Creates a post as a draft. The post holds the metadata; its body lives in a web template, so publishing a post over the API takes three calls:\n\n1. `templates.create` with `channel: \"web\"`, `category: \"blog\"` and a `web` object. `web.html` is the body readers see, rendered as-is. `web.content` is required and is the Tiptap document the console editor opens; if you only have HTML, send `{\"type\": \"doc\", \"content\": []}`, and do not edit that post in the console afterwards, because saving there regenerates `web.html` from `web.content`.\n2. `blogPosts.create` with that template's `id` as `template_id`.\n3. `blogPosts.publish`.\n\nRequires the blog write permission, plus the templates write permission for step 1.\n",
+        "operationId": "createBlogPost",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace. Passed in the query string, not the body.",
+            "example": "ws_1234567890"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBlogPostRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Post created as a draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlogPostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - validation failed, slug taken or category not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "slugTaken": {
+                    "value": {
+                      "error": "post with slug 'october-release' already exists"
+                    }
+                  },
+                  "unknownCategory": {
+                    "value": {
+                      "error": "category not found: blog category not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog write permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to blog required",
+                  "resource": "blog",
+                  "permission": "write"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogPosts.update": {
+      "post": {
+        "summary": "Update a blog post",
+        "description": "Replaces a post's metadata. This is not a patch: optional fields left out are cleared, so send the post back with your changes applied.\n\nTo change the body, update the template with `templates.update`, which saves a new template version. A post pinned to a `template_version` keeps rendering the old one until you update the post with the new version; a post at version `0` follows the latest version on its own, within the 5-minute page cache.\n\nRequires the blog write permission.\n",
+        "operationId": "updateBlogPost",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace. Passed in the query string, not the body.",
+            "example": "ws_1234567890"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBlogPostRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Post updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlogPostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - validation failed, slug taken, or post or category not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "post not found: blog post not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog write permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to blog required",
+                  "resource": "blog",
+                  "permission": "write"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogPosts.delete": {
+      "post": {
+        "summary": "Delete a blog post",
+        "description": "Soft-deletes a post, which takes it off the blog and frees its slug. Its template is left in place. Requires the blog write permission.",
+        "operationId": "deleteBlogPost",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace. Passed in the query string, not the body.",
+            "example": "ws_1234567890"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlogPostIdRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Post deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing id or post not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "post not found: blog post not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog write permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to blog required",
+                  "resource": "blog",
+                  "permission": "write"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogPosts.publish": {
+      "post": {
+        "summary": "Publish a blog post",
+        "description": "Publishes a draft: it appears on the blog's home and category pages, at its own URL, and in the RSS and JSON feeds. Publishing a post that is already published is refused; unpublish it first to change its date. Requires the blog write permission.",
+        "operationId": "publishBlogPost",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace. Passed in the query string, not the body.",
+            "example": "ws_1234567890"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishBlogPostRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Post published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing id, post not found or already published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "failed to publish post: blog post not found or already published"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog write permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to blog required",
+                  "resource": "blog",
+                  "permission": "write"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogPosts.unpublish": {
+      "post": {
+        "summary": "Unpublish a blog post",
+        "description": "Turns a published post back into a draft and clears its publication date. Requires the blog write permission.",
+        "operationId": "unpublishBlogPost",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace. Passed in the query string, not the body.",
+            "example": "ws_1234567890"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlogPostIdRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Post unpublished",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing id, post not found or not published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "failed to unpublish post: blog post not found or not published"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog write permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to blog required",
+                  "resource": "blog",
+                  "permission": "write"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogThemes.list": {
+      "get": {
+        "summary": "List blog theme versions",
+        "description": "Returns the workspace's theme versions, newest first, files included. Requires the blog read permission.",
+        "operationId": "listBlogThemes",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 100
+            },
+            "description": "Versions per page. Values above the maximum are clamped to it rather than refused.",
+            "example": 50
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            },
+            "description": "Versions to skip.",
+            "example": 0
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of theme versions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListBlogThemesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "limit must be a valid integer"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog read permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to blog required",
+                  "resource": "blog",
+                  "permission": "read"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogThemes.get": {
+      "get": {
+        "summary": "Get a blog theme version",
+        "description": "Retrieves one theme version with its files. Requires the blog read permission.",
+        "operationId": "getBlogTheme",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The theme version",
+            "example": 4
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The theme version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlogThemeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing or non-integer version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "version parameter is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog read permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to blog required",
+                  "resource": "blog",
+                  "permission": "read"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No theme with this version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogThemes.getPublished": {
+      "get": {
+        "summary": "Get the published blog theme",
+        "description": "Retrieves the theme version currently live on the blog. Requires the blog read permission.",
+        "operationId": "getPublishedBlogTheme",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The published theme",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlogThemeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing workspace_id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "workspace_id is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog read permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to blog required",
+                  "resource": "blog",
+                  "permission": "read"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No theme is published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogThemes.create": {
+      "post": {
+        "summary": "Create a blog theme version",
+        "description": "Saves a new, unpublished theme version, numbered one above the highest existing version. Files left out are stored empty. Nothing changes on the blog until the version is published. Requires the blog write permission.",
+        "operationId": "createBlogTheme",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace. Passed in the query string, not the body.",
+            "example": "ws_1234567890"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBlogThemeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Theme version created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlogThemeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - malformed body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid request body"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog write permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to blog required",
+                  "resource": "blog",
+                  "permission": "write"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogThemes.update": {
+      "post": {
+        "summary": "Update a blog theme version",
+        "description": "Edits an unpublished theme version in place. Only the files named in `files` are replaced. The published version cannot be edited: create a new version, or edit an older one, and publish that instead. Requires the blog write permission.",
+        "operationId": "updateBlogTheme",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace. Passed in the query string, not the body.",
+            "example": "ws_1234567890"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBlogThemeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Theme version updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlogThemeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - version missing, not found or published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "cannot update published theme"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog write permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to blog required",
+                  "resource": "blog",
+                  "permission": "write"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogThemes.publish": {
+      "post": {
+        "summary": "Publish a blog theme version",
+        "description": "Makes a theme version the one the blog renders, and unpublishes the previous one in the same transaction. Any version can be published, so rolling back is publishing an older one. Requires the blog write permission.",
+        "operationId": "publishBlogTheme",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace. Passed in the query string, not the body.",
+            "example": "ws_1234567890"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishBlogThemeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Theme version published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Theme published successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - version missing or not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "version must be positive"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog write permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: write access to blog required",
+                  "resource": "blog",
+                  "permission": "write"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/customEvents.import": {
       "post": {
         "summary": "Import custom events",
@@ -5496,6 +7288,34 @@
         },
         "required": [
           "error"
+        ]
+      },
+      "PermissionErrorResponse": {
+        "type": "object",
+        "description": "Returned with a 403 when the user or API key lacks the permission the endpoint requires.",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "resource": {
+            "type": "string",
+            "description": "The permission resource the endpoint requires.",
+            "example": "blog"
+          },
+          "permission": {
+            "type": "string",
+            "enum": [
+              "read",
+              "write"
+            ],
+            "description": "The access level the endpoint requires on that resource."
+          }
+        },
+        "required": [
+          "error",
+          "resource",
+          "permission"
         ]
       },
       "AuditLog": {
@@ -8346,6 +10166,607 @@
           "message_id": {
             "type": "string",
             "description": "Message ID for tracking"
+          }
+        }
+      },
+      "SEOSettings": {
+        "type": "object",
+        "description": "Search and social metadata for the page, exposed to the blog theme.",
+        "properties": {
+          "meta_title": {
+            "type": "string",
+            "example": "Release notes for October"
+          },
+          "meta_description": {
+            "type": "string",
+            "example": "Everything that shipped this month."
+          },
+          "og_title": {
+            "type": "string",
+            "description": "Open Graph title"
+          },
+          "og_description": {
+            "type": "string",
+            "description": "Open Graph description"
+          },
+          "og_image": {
+            "type": "string",
+            "description": "Open Graph image URL",
+            "example": "https://cdn.example.com/og/october.png"
+          },
+          "canonical_url": {
+            "type": "string",
+            "example": "https://blog.example.com/product/october-release"
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "release",
+              "changelog"
+            ]
+          },
+          "meta_robots": {
+            "type": "string",
+            "description": "Content of the robots meta tag.",
+            "example": "index,follow"
+          }
+        }
+      },
+      "BlogAuthor": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Jane Doe"
+          },
+          "avatar_url": {
+            "type": "string",
+            "example": "https://cdn.example.com/avatars/jane.png"
+          }
+        }
+      },
+      "BlogCategory": {
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "settings",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Server-generated UUID.",
+            "example": "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+          },
+          "slug": {
+            "type": "string",
+            "description": "The category's path segment on the blog (`/{category_slug}`).",
+            "example": "product"
+          },
+          "settings": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "example": "Product"
+              },
+              "description": {
+                "type": "string",
+                "example": "Release notes and product announcements."
+              },
+              "seo": {
+                "$ref": "#/components/schemas/SEOSettings"
+              }
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateBlogCategoryRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "slug"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "example": "Product"
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 100,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "description": "Lowercase letters, digits and single hyphens. Must be unique among the workspace's categories.",
+            "example": "product"
+          },
+          "description": {
+            "type": "string",
+            "example": "Release notes and product announcements."
+          },
+          "seo": {
+            "$ref": "#/components/schemas/SEOSettings"
+          }
+        }
+      },
+      "UpdateBlogCategoryRequest": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ],
+        "description": "A full replacement, not a patch: `description` and `seo` are cleared when omitted. Send the category back with your changes applied.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "example": "Product"
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 100,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "description": "Changing it changes the URL of the category page and of every post in it. No redirect is created from the old URLs.",
+            "example": "product"
+          },
+          "description": {
+            "type": "string"
+          },
+          "seo": {
+            "$ref": "#/components/schemas/SEOSettings"
+          }
+        }
+      },
+      "BlogCategoryResponse": {
+        "type": "object",
+        "required": [
+          "category"
+        ],
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/BlogCategory"
+          }
+        }
+      },
+      "ListBlogCategoriesResponse": {
+        "type": "object",
+        "required": [
+          "categories",
+          "total_count"
+        ],
+        "properties": {
+          "categories": {
+            "type": "array",
+            "nullable": true,
+            "description": "Every category, newest first. `null` rather than `[]` when there are none.",
+            "items": {
+              "$ref": "#/components/schemas/BlogCategory"
+            }
+          },
+          "total_count": {
+            "type": "integer",
+            "example": 3
+          }
+        }
+      },
+      "BlogPost": {
+        "type": "object",
+        "required": [
+          "id",
+          "category_id",
+          "slug",
+          "settings",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Server-generated UUID.",
+            "example": "1b4e28ba-2fa1-11d2-883f-0016d3cca427"
+          },
+          "category_id": {
+            "type": "string",
+            "example": "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+          },
+          "slug": {
+            "type": "string",
+            "description": "The post's path segment on the blog (`/{category_slug}/{post_slug}`).",
+            "example": "october-release"
+          },
+          "settings": {
+            "type": "object",
+            "required": [
+              "title",
+              "template",
+              "reading_time_minutes"
+            ],
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "The post's H1.",
+                "example": "What shipped in October"
+              },
+              "template": {
+                "type": "object",
+                "required": [
+                  "template_id",
+                  "template_version"
+                ],
+                "description": "The web template holding the post body.",
+                "properties": {
+                  "template_id": {
+                    "type": "string",
+                    "example": "blog_october_release"
+                  },
+                  "template_version": {
+                    "type": "integer",
+                    "description": "The template version the post renders. `0` means the latest version, whatever it is at render time.",
+                    "example": 3
+                  }
+                }
+              },
+              "excerpt": {
+                "type": "string",
+                "example": "A faster editor, scheduled broadcasts and a new API."
+              },
+              "featured_image_url": {
+                "type": "string",
+                "example": "https://cdn.example.com/blog/october.png"
+              },
+              "authors": {
+                "type": "array",
+                "nullable": true,
+                "items": {
+                  "$ref": "#/components/schemas/BlogAuthor"
+                }
+              },
+              "reading_time_minutes": {
+                "type": "integer",
+                "description": "Displayed as given; not computed from the body.",
+                "example": 4
+              },
+              "seo": {
+                "$ref": "#/components/schemas/SEOSettings"
+              }
+            }
+          },
+          "published_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Absent while the post is a draft.",
+            "example": "2026-10-01T09:00:00Z"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateBlogPostRequest": {
+        "type": "object",
+        "required": [
+          "category_id",
+          "slug",
+          "title",
+          "template_id"
+        ],
+        "properties": {
+          "category_id": {
+            "type": "string",
+            "description": "An existing category.",
+            "example": "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 100,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "description": "Lowercase letters, digits and single hyphens. Must be unique across the whole workspace, not just within the category.",
+            "example": "october-release"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 500,
+            "example": "What shipped in October"
+          },
+          "template_id": {
+            "type": "string",
+            "description": "A web template (`channel: web`) holding the post body — create it first with `templates.create`. Its existence is not checked here: a post pointing at a missing template is saved and renders with an empty body.",
+            "example": "blog_october_release"
+          },
+          "template_version": {
+            "type": "integer",
+            "default": 0,
+            "description": "The template version to render. Omit it (or send `0`) to always render the template's latest version; pin a version to control exactly when a template edit reaches readers.",
+            "example": 1
+          },
+          "excerpt": {
+            "type": "string",
+            "example": "A faster editor, scheduled broadcasts and a new API."
+          },
+          "featured_image_url": {
+            "type": "string",
+            "example": "https://cdn.example.com/blog/october.png"
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BlogAuthor"
+            }
+          },
+          "reading_time_minutes": {
+            "type": "integer",
+            "example": 4
+          },
+          "seo": {
+            "$ref": "#/components/schemas/SEOSettings"
+          }
+        }
+      },
+      "UpdateBlogPostRequest": {
+        "allOf": [
+          {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "description": "A full replacement, not a patch: every optional field omitted here is cleared, including `template_version`, which falls back to `0` (latest version). Send the post back with your changes applied.",
+            "properties": {
+              "id": {
+                "type": "string",
+                "example": "1b4e28ba-2fa1-11d2-883f-0016d3cca427"
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/CreateBlogPostRequest"
+          }
+        ]
+      },
+      "BlogPostResponse": {
+        "type": "object",
+        "required": [
+          "post"
+        ],
+        "properties": {
+          "post": {
+            "$ref": "#/components/schemas/BlogPost"
+          }
+        }
+      },
+      "ListBlogPostsResponse": {
+        "type": "object",
+        "required": [
+          "posts",
+          "total_count"
+        ],
+        "properties": {
+          "posts": {
+            "type": "array",
+            "nullable": true,
+            "description": "The requested page. `null` rather than `[]` when the page is empty.",
+            "items": {
+              "$ref": "#/components/schemas/BlogPost"
+            }
+          },
+          "total_count": {
+            "type": "integer",
+            "description": "Posts matching the filters across all pages.",
+            "example": 128
+          }
+        }
+      },
+      "PublishBlogPostRequest": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "1b4e28ba-2fa1-11d2-883f-0016d3cca427"
+          },
+          "published_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The publication date to record, defaulting to now. Use it to backdate posts you import. A future date does not schedule the post: it goes live on the blog immediately, and only its appearance in the RSS and JSON feeds waits for the date.",
+            "example": "2024-03-12T08:00:00Z"
+          }
+        }
+      },
+      "BlogPostIdRequest": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "1b4e28ba-2fa1-11d2-883f-0016d3cca427"
+          }
+        }
+      },
+      "BlogThemeFiles": {
+        "type": "object",
+        "description": "The theme's source files. Liquid files render the blog's pages; see the blog theme guide for the variables each one receives.",
+        "properties": {
+          "home.liquid": {
+            "type": "string",
+            "description": "The blog home page."
+          },
+          "category.liquid": {
+            "type": "string",
+            "description": "A category page."
+          },
+          "post.liquid": {
+            "type": "string",
+            "description": "A post page."
+          },
+          "header.liquid": {
+            "type": "string"
+          },
+          "footer.liquid": {
+            "type": "string"
+          },
+          "shared.liquid": {
+            "type": "string",
+            "description": "Snippets shared by the other templates."
+          },
+          "styles.css": {
+            "type": "string"
+          },
+          "scripts.js": {
+            "type": "string"
+          }
+        }
+      },
+      "BlogTheme": {
+        "type": "object",
+        "required": [
+          "version",
+          "files",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "description": "Assigned on creation, one above the highest existing version.",
+            "example": 4
+          },
+          "published_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Present only on the theme currently live on the blog."
+          },
+          "published_by_user_id": {
+            "type": "string",
+            "description": "The user or API key that published it. Present only on the live theme."
+          },
+          "files": {
+            "$ref": "#/components/schemas/BlogThemeFiles"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Darker header, larger body text."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateBlogThemeRequest": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "$ref": "#/components/schemas/BlogThemeFiles"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Darker header, larger body text."
+          }
+        }
+      },
+      "UpdateBlogThemeRequest": {
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "description": "An unpublished theme version.",
+            "example": 4
+          },
+          "files": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BlogThemeFiles"
+              }
+            ],
+            "description": "Only the files named here are replaced; the others keep their stored content. Send a file as `\"\"` to empty it."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Kept as stored when omitted."
+          }
+        }
+      },
+      "PublishBlogThemeRequest": {
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "example": 4
+          }
+        }
+      },
+      "BlogThemeResponse": {
+        "type": "object",
+        "required": [
+          "theme"
+        ],
+        "properties": {
+          "theme": {
+            "$ref": "#/components/schemas/BlogTheme"
+          }
+        }
+      },
+      "ListBlogThemesResponse": {
+        "type": "object",
+        "required": [
+          "themes",
+          "total_count"
+        ],
+        "properties": {
+          "themes": {
+            "type": "array",
+            "nullable": true,
+            "description": "Newest version first. `null` rather than `[]` when the page is empty.",
+            "items": {
+              "$ref": "#/components/schemas/BlogTheme"
+            }
+          },
+          "total_count": {
+            "type": "integer",
+            "description": "Theme versions in the workspace across all pages.",
+            "example": 4
           }
         }
       },

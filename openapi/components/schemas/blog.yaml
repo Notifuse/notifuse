@@ -1,0 +1,433 @@
+SEOSettings:
+  type: object
+  description: Search and social metadata for the page, exposed to the blog theme.
+  properties:
+    meta_title:
+      type: string
+      example: Release notes for October
+    meta_description:
+      type: string
+      example: Everything that shipped this month.
+    og_title:
+      type: string
+      description: Open Graph title
+    og_description:
+      type: string
+      description: Open Graph description
+    og_image:
+      type: string
+      description: Open Graph image URL
+      example: https://cdn.example.com/og/october.png
+    canonical_url:
+      type: string
+      example: https://blog.example.com/product/october-release
+    keywords:
+      type: array
+      items:
+        type: string
+      example: [release, changelog]
+    meta_robots:
+      type: string
+      description: Content of the robots meta tag.
+      example: index,follow
+
+BlogAuthor:
+  type: object
+  required: [name]
+  properties:
+    name:
+      type: string
+      example: Jane Doe
+    avatar_url:
+      type: string
+      example: https://cdn.example.com/avatars/jane.png
+
+BlogCategory:
+  type: object
+  required: [id, slug, settings, created_at, updated_at]
+  properties:
+    id:
+      type: string
+      description: Server-generated UUID.
+      example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+    slug:
+      type: string
+      description: The category's path segment on the blog (`/{category_slug}`).
+      example: product
+    settings:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: Product
+        description:
+          type: string
+          example: Release notes and product announcements.
+        seo:
+          $ref: '#/SEOSettings'
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+CreateBlogCategoryRequest:
+  type: object
+  required: [name, slug]
+  properties:
+    name:
+      type: string
+      maxLength: 255
+      example: Product
+    slug:
+      type: string
+      maxLength: 100
+      pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+      description: >-
+        Lowercase letters, digits and single hyphens. Must be unique among the
+        workspace's categories.
+      example: product
+    description:
+      type: string
+      example: Release notes and product announcements.
+    seo:
+      $ref: '#/SEOSettings'
+
+UpdateBlogCategoryRequest:
+  type: object
+  required: [id, name, slug]
+  description: >-
+    A full replacement, not a patch: `description` and `seo` are cleared when
+    omitted. Send the category back with your changes applied.
+  properties:
+    id:
+      type: string
+      example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+    name:
+      type: string
+      maxLength: 255
+      example: Product
+    slug:
+      type: string
+      maxLength: 100
+      pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+      description: >-
+        Changing it changes the URL of the category page and of every post in
+        it. No redirect is created from the old URLs.
+      example: product
+    description:
+      type: string
+    seo:
+      $ref: '#/SEOSettings'
+
+BlogCategoryResponse:
+  type: object
+  required: [category]
+  properties:
+    category:
+      $ref: '#/BlogCategory'
+
+ListBlogCategoriesResponse:
+  type: object
+  required: [categories, total_count]
+  properties:
+    categories:
+      type: array
+      nullable: true
+      description: Every category, newest first. `null` rather than `[]` when there are none.
+      items:
+        $ref: '#/BlogCategory'
+    total_count:
+      type: integer
+      example: 3
+
+BlogPost:
+  type: object
+  required: [id, category_id, slug, settings, created_at, updated_at]
+  properties:
+    id:
+      type: string
+      description: Server-generated UUID.
+      example: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+    category_id:
+      type: string
+      example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+    slug:
+      type: string
+      description: The post's path segment on the blog (`/{category_slug}/{post_slug}`).
+      example: october-release
+    settings:
+      type: object
+      required: [title, template, reading_time_minutes]
+      properties:
+        title:
+          type: string
+          description: The post's H1.
+          example: What shipped in October
+        template:
+          type: object
+          required: [template_id, template_version]
+          description: The web template holding the post body.
+          properties:
+            template_id:
+              type: string
+              example: blog_october_release
+            template_version:
+              type: integer
+              description: >-
+                The template version the post renders. `0` means the latest
+                version, whatever it is at render time.
+              example: 3
+        excerpt:
+          type: string
+          example: A faster editor, scheduled broadcasts and a new API.
+        featured_image_url:
+          type: string
+          example: https://cdn.example.com/blog/october.png
+        authors:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/BlogAuthor'
+        reading_time_minutes:
+          type: integer
+          description: Displayed as given; not computed from the body.
+          example: 4
+        seo:
+          $ref: '#/SEOSettings'
+    published_at:
+      type: string
+      format: date-time
+      description: Absent while the post is a draft.
+      example: '2026-10-01T09:00:00Z'
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+CreateBlogPostRequest:
+  type: object
+  required: [category_id, slug, title, template_id]
+  properties:
+    category_id:
+      type: string
+      description: An existing category.
+      example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+    slug:
+      type: string
+      maxLength: 100
+      pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+      description: >-
+        Lowercase letters, digits and single hyphens. Must be unique across the
+        whole workspace, not just within the category.
+      example: october-release
+    title:
+      type: string
+      maxLength: 500
+      example: What shipped in October
+    template_id:
+      type: string
+      description: >-
+        A web template (`channel: web`) holding the post body — create it first
+        with `templates.create`. Its existence is not checked here: a post
+        pointing at a missing template is saved and renders with an empty body.
+      example: blog_october_release
+    template_version:
+      type: integer
+      default: 0
+      description: >-
+        The template version to render. Omit it (or send `0`) to always render
+        the template's latest version; pin a version to control exactly when a
+        template edit reaches readers.
+      example: 1
+    excerpt:
+      type: string
+      example: A faster editor, scheduled broadcasts and a new API.
+    featured_image_url:
+      type: string
+      example: https://cdn.example.com/blog/october.png
+    authors:
+      type: array
+      items:
+        $ref: '#/BlogAuthor'
+    reading_time_minutes:
+      type: integer
+      example: 4
+    seo:
+      $ref: '#/SEOSettings'
+
+UpdateBlogPostRequest:
+  allOf:
+    - type: object
+      required: [id]
+      description: >-
+        A full replacement, not a patch: every optional field omitted here is
+        cleared, including `template_version`, which falls back to `0` (latest
+        version). Send the post back with your changes applied.
+      properties:
+        id:
+          type: string
+          example: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+    - $ref: '#/CreateBlogPostRequest'
+
+BlogPostResponse:
+  type: object
+  required: [post]
+  properties:
+    post:
+      $ref: '#/BlogPost'
+
+ListBlogPostsResponse:
+  type: object
+  required: [posts, total_count]
+  properties:
+    posts:
+      type: array
+      nullable: true
+      description: The requested page. `null` rather than `[]` when the page is empty.
+      items:
+        $ref: '#/BlogPost'
+    total_count:
+      type: integer
+      description: Posts matching the filters across all pages.
+      example: 128
+
+PublishBlogPostRequest:
+  type: object
+  required: [id]
+  properties:
+    id:
+      type: string
+      example: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+    published_at:
+      type: string
+      format: date-time
+      description: >-
+        The publication date to record, defaulting to now. Use it to backdate
+        posts you import. A future date does not schedule the post: it goes
+        live on the blog immediately, and only its appearance in the RSS and
+        JSON feeds waits for the date.
+      example: '2024-03-12T08:00:00Z'
+
+BlogPostIdRequest:
+  type: object
+  required: [id]
+  properties:
+    id:
+      type: string
+      example: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+
+BlogThemeFiles:
+  type: object
+  description: >-
+    The theme's source files. Liquid files render the blog's pages; see the
+    blog theme guide for the variables each one receives.
+  properties:
+    home.liquid:
+      type: string
+      description: The blog home page.
+    category.liquid:
+      type: string
+      description: A category page.
+    post.liquid:
+      type: string
+      description: A post page.
+    header.liquid:
+      type: string
+    footer.liquid:
+      type: string
+    shared.liquid:
+      type: string
+      description: Snippets shared by the other templates.
+    styles.css:
+      type: string
+    scripts.js:
+      type: string
+
+BlogTheme:
+  type: object
+  required: [version, files, created_at, updated_at]
+  properties:
+    version:
+      type: integer
+      description: Assigned on creation, one above the highest existing version.
+      example: 4
+    published_at:
+      type: string
+      format: date-time
+      description: Present only on the theme currently live on the blog.
+    published_by_user_id:
+      type: string
+      description: The user or API key that published it. Present only on the live theme.
+    files:
+      $ref: '#/BlogThemeFiles'
+    notes:
+      type: string
+      example: Darker header, larger body text.
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+CreateBlogThemeRequest:
+  type: object
+  properties:
+    files:
+      $ref: '#/BlogThemeFiles'
+    notes:
+      type: string
+      example: Darker header, larger body text.
+
+UpdateBlogThemeRequest:
+  type: object
+  required: [version]
+  properties:
+    version:
+      type: integer
+      description: An unpublished theme version.
+      example: 4
+    files:
+      allOf:
+        - $ref: '#/BlogThemeFiles'
+      description: >-
+        Only the files named here are replaced; the others keep their stored
+        content. Send a file as `""` to empty it.
+    notes:
+      type: string
+      description: Kept as stored when omitted.
+
+PublishBlogThemeRequest:
+  type: object
+  required: [version]
+  properties:
+    version:
+      type: integer
+      example: 4
+
+BlogThemeResponse:
+  type: object
+  required: [theme]
+  properties:
+    theme:
+      $ref: '#/BlogTheme'
+
+ListBlogThemesResponse:
+  type: object
+  required: [themes, total_count]
+  properties:
+    themes:
+      type: array
+      nullable: true
+      description: Newest version first. `null` rather than `[]` when the page is empty.
+      items:
+        $ref: '#/BlogTheme'
+    total_count:
+      type: integer
+      description: Theme versions in the workspace across all pages.
+      example: 4

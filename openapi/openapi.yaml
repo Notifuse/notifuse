@@ -98,6 +98,42 @@ paths:
     $ref: './paths/templates.yaml#/~1api~1templates.delete'
   /api/templates.compile:
     $ref: './paths/templates.yaml#/~1api~1templates.compile'
+  /api/blogCategories.list:
+    $ref: './paths/blog.yaml#/~1api~1blogCategories.list'
+  /api/blogCategories.get:
+    $ref: './paths/blog.yaml#/~1api~1blogCategories.get'
+  /api/blogCategories.create:
+    $ref: './paths/blog.yaml#/~1api~1blogCategories.create'
+  /api/blogCategories.update:
+    $ref: './paths/blog.yaml#/~1api~1blogCategories.update'
+  /api/blogCategories.delete:
+    $ref: './paths/blog.yaml#/~1api~1blogCategories.delete'
+  /api/blogPosts.list:
+    $ref: './paths/blog.yaml#/~1api~1blogPosts.list'
+  /api/blogPosts.get:
+    $ref: './paths/blog.yaml#/~1api~1blogPosts.get'
+  /api/blogPosts.create:
+    $ref: './paths/blog.yaml#/~1api~1blogPosts.create'
+  /api/blogPosts.update:
+    $ref: './paths/blog.yaml#/~1api~1blogPosts.update'
+  /api/blogPosts.delete:
+    $ref: './paths/blog.yaml#/~1api~1blogPosts.delete'
+  /api/blogPosts.publish:
+    $ref: './paths/blog.yaml#/~1api~1blogPosts.publish'
+  /api/blogPosts.unpublish:
+    $ref: './paths/blog.yaml#/~1api~1blogPosts.unpublish'
+  /api/blogThemes.list:
+    $ref: './paths/blog.yaml#/~1api~1blogThemes.list'
+  /api/blogThemes.get:
+    $ref: './paths/blog.yaml#/~1api~1blogThemes.get'
+  /api/blogThemes.getPublished:
+    $ref: './paths/blog.yaml#/~1api~1blogThemes.getPublished'
+  /api/blogThemes.create:
+    $ref: './paths/blog.yaml#/~1api~1blogThemes.create'
+  /api/blogThemes.update:
+    $ref: './paths/blog.yaml#/~1api~1blogThemes.update'
+  /api/blogThemes.publish:
+    $ref: './paths/blog.yaml#/~1api~1blogThemes.publish'
   /api/customEvents.import:
     $ref: './paths/custom-events.yaml#/~1api~1customEvents.import'
   /api/webhookSubscriptions.create:
@@ -143,6 +179,8 @@ components:
   schemas:
     ErrorResponse:
       $ref: './components/schemas/common.yaml#/ErrorResponse'
+    PermissionErrorResponse:
+      $ref: './components/schemas/common.yaml#/PermissionErrorResponse'
     AuditLog:
       $ref: './components/schemas/audit-log.yaml#/AuditLog'
     AuditChange:
@@ -265,6 +303,48 @@ components:
       $ref: './components/schemas/template.yaml#/CompileTemplateResponse'
     TrackingSettings:
       $ref: './components/schemas/template.yaml#/TrackingSettings'
+    SEOSettings:
+      $ref: './components/schemas/blog.yaml#/SEOSettings'
+    BlogAuthor:
+      $ref: './components/schemas/blog.yaml#/BlogAuthor'
+    BlogCategory:
+      $ref: './components/schemas/blog.yaml#/BlogCategory'
+    CreateBlogCategoryRequest:
+      $ref: './components/schemas/blog.yaml#/CreateBlogCategoryRequest'
+    UpdateBlogCategoryRequest:
+      $ref: './components/schemas/blog.yaml#/UpdateBlogCategoryRequest'
+    BlogCategoryResponse:
+      $ref: './components/schemas/blog.yaml#/BlogCategoryResponse'
+    ListBlogCategoriesResponse:
+      $ref: './components/schemas/blog.yaml#/ListBlogCategoriesResponse'
+    BlogPost:
+      $ref: './components/schemas/blog.yaml#/BlogPost'
+    CreateBlogPostRequest:
+      $ref: './components/schemas/blog.yaml#/CreateBlogPostRequest'
+    UpdateBlogPostRequest:
+      $ref: './components/schemas/blog.yaml#/UpdateBlogPostRequest'
+    BlogPostResponse:
+      $ref: './components/schemas/blog.yaml#/BlogPostResponse'
+    ListBlogPostsResponse:
+      $ref: './components/schemas/blog.yaml#/ListBlogPostsResponse'
+    PublishBlogPostRequest:
+      $ref: './components/schemas/blog.yaml#/PublishBlogPostRequest'
+    BlogPostIdRequest:
+      $ref: './components/schemas/blog.yaml#/BlogPostIdRequest'
+    BlogThemeFiles:
+      $ref: './components/schemas/blog.yaml#/BlogThemeFiles'
+    BlogTheme:
+      $ref: './components/schemas/blog.yaml#/BlogTheme'
+    CreateBlogThemeRequest:
+      $ref: './components/schemas/blog.yaml#/CreateBlogThemeRequest'
+    UpdateBlogThemeRequest:
+      $ref: './components/schemas/blog.yaml#/UpdateBlogThemeRequest'
+    PublishBlogThemeRequest:
+      $ref: './components/schemas/blog.yaml#/PublishBlogThemeRequest'
+    BlogThemeResponse:
+      $ref: './components/schemas/blog.yaml#/BlogThemeResponse'
+    ListBlogThemesResponse:
+      $ref: './components/schemas/blog.yaml#/ListBlogThemesResponse'
     CustomEvent:
       $ref: './components/schemas/custom-event.yaml#/CustomEvent'
     ImportCustomEventsRequest:
