@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
@@ -9,13 +10,15 @@ import (
 
 // PostmarkWebhookPayload represents the base webhook payload from Postmark
 type PostmarkWebhookPayload struct {
-	RecordType    string            `json:"RecordType"`
-	MessageStream string            `json:"MessageStream"`
-	ID            string            `json:"ID"`
-	MessageID     string            `json:"MessageID"`
-	ServerID      int               `json:"ServerID"`
-	Metadata      map[string]string `json:"Metadata,omitempty"`
-	Tag           string            `json:"Tag,omitempty"`
+	RecordType    string `json:"RecordType"`
+	MessageStream string `json:"MessageStream"`
+	// ID is a number in Postmark Bounce/SpamComplaint payloads (e.g. 692560173);
+	// json.Number accepts both numeric and string-encoded values.
+	ID        json.Number       `json:"ID"`
+	MessageID string            `json:"MessageID"`
+	ServerID  int               `json:"ServerID"`
+	Metadata  map[string]string `json:"Metadata,omitempty"`
+	Tag       string            `json:"Tag,omitempty"`
 
 	// Delivered event specific fields
 	DeliveredFields *PostmarkDeliveredFields `json:"-"`

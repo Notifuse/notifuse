@@ -785,6 +785,31 @@ func TestProcessPostmarkWebhook(t *testing.T) {
 		assert.Equal(t, "message1", *events[0].MessageID)
 	})
 
+	// Postmark sends "ID" as a JSON number in Bounce/SpamComplaint payloads
+	// (https://postmarkapp.com/developer/webhooks/bounce-webhook). Postmark's webhook
+	// verification sends these payloads and rejects the webhook on any non-2xx.
+	t.Run("Bounce Event with numeric ID (official Postmark payload)", func(t *testing.T) {
+		rawPayload := []byte(`{"RecordType":"Bounce","MessageStream":"broadcast","ID":692560173,"Type":"HardBounce","TypeCode":1,"Name":"Hard bounce","MessageID":"883953f4-6105-42a2-a16a-77a8eac79483","ServerID":23,"Email":"test@example.com","BouncedAt":"2026-11-05T16:33:54.9070259Z","DumpAvailable":true,"Inactive":true,"CanActivate":true,"Subject":"Hello"}`)
+
+		events, err := service.processPostmarkWebhook(integrationID, rawPayload)
+
+		require.NoError(t, err)
+		require.Len(t, events, 1)
+		assert.Equal(t, domain.EmailEventBounce, events[0].Type)
+		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+	})
+
+	t.Run("SpamComplaint with numeric ID uses BouncedAt as timestamp", func(t *testing.T) {
+		rawPayload := []byte(`{"RecordType":"SpamComplaint","MessageStream":"broadcast","ID":692560174,"Type":"SpamComplaint","TypeCode":100001,"Name":"Spam complaint","MessageID":"883953f4-6105-42a2-a16a-77a8eac79483","ServerID":23,"Email":"test@example.com","BouncedAt":"2026-11-05T16:33:54Z","Subject":"Hello"}`)
+
+		events, err := service.processPostmarkWebhook(integrationID, rawPayload)
+
+		require.NoError(t, err)
+		require.Len(t, events, 1)
+		assert.Equal(t, domain.EmailEventComplaint, events[0].Type)
+		assert.Equal(t, time.Date(2026, 11, 5, 16, 33, 54, 0, time.UTC), events[0].Timestamp.UTC())
+	})
+
 	t.Run("Bounce Event", func(t *testing.T) {
 		// Create test bounce payload using a map to ensure correct JSON structure
 		rawPayload, err := json.Marshal(map[string]interface{}{

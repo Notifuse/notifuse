@@ -766,7 +766,12 @@ func (s *InboundWebhookEventService) processPostmarkWebhook(integrationID string
 			complaintFeedbackType = typeStr
 		}
 
-		if t, ok := jsonData["ComplainedAt"].(string); ok && t != "" {
+		// Postmark sends the complaint time in "BouncedAt"; keep "ComplainedAt" for compatibility.
+		complainedAt, _ := jsonData["ComplainedAt"].(string)
+		if complainedAt == "" {
+			complainedAt, _ = jsonData["BouncedAt"].(string)
+		}
+		if t := complainedAt; t != "" {
 			if parsedTime, err := time.Parse(time.RFC3339, t); err == nil {
 				timestamp = parsedTime
 			} else {
