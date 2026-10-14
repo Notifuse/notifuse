@@ -1,9 +1,12 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
@@ -18,9 +21,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestListUnsubscribeHeaders tests that RFC-8058 List-Unsubscribe headers are properly
-// included in broadcast emails. This verifies the one-click unsubscribe compliance
-// required by Gmail and Yahoo since 2024.
+// TestListUnsubscribeHeaders is the full-stack contract test for the RFC 8058
+// List-Unsubscribe header required by Gmail and Yahoo since 2024. Every subtest takes the
+// URL from the email actually delivered to Mailpit and uses it as a mail receiver would -
+// never a path re-joined onto the test server, which would test a URL no email contains -
+// in each of the ways receivers and people use it: the one-click POST in both encodings
+// RFC 8058 allows, and the GET/HEAD a browser or a scanner sends.
 func TestListUnsubscribeHeaders(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -30,6 +36,12 @@ func TestListUnsubscribeHeaders(t *testing.T) {
 		return app.NewApp(cfg)
 	})
 	defer suite.Cleanup()
+
+	// Scheduled broadcasts are sent by the email queue worker, which the harness only runs
+	// on request.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	require.NoError(t, suite.ServerManager.StartBackgroundWorkers(ctx))
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -53,26 +65,46 @@ func TestListUnsubscribeHeaders(t *testing.T) {
 	require.NoError(t, err)
 	client.SetWorkspaceID(workspace.ID)
 
+	// The harness runs with an empty API endpoint, which puts a relative URL in the header -
+	// one no mail client can use. Point the workspace's tracking endpoint at the live server
+	// so the delivered header carries a real, absolute URL.
+	serverURL := suite.ServerManager.GetURL()
+	require.NoError(t, factory.SetWorkspaceCustomEndpointURL(workspace.ID, serverURL))
+
 	// Clear any existing messages in Mailpit
-	err = testutil.ClearMailpitMessages(t)
-	if err != nil {
+	if err := testutil.ClearMailpitMessages(t); err != nil {
 		t.Logf("Warning: Could not clear Mailpit messages: %v", err)
 	}
 
-	t.Run("broadcast email should include List-Unsubscribe headers", func(t *testing.T) {
-		// Create a list
+	contactListRepo := suite.ServerManager.GetApp().GetContactListRepository()
+	statusOf := func(t *testing.T, email, listID string) domain.ContactListStatus {
+		t.Helper()
+		got, err := contactListRepo.GetContactListByIDs(context.Background(), workspace.ID, email, listID)
+		require.NoError(t, err)
+		return got.Status
+	}
+
+	// subscribedContact creates a list and a contact actively subscribed to it, so every
+	// subtest can tell whether its own request unsubscribed anyone.
+	subscribedContact := func(t *testing.T) (email, listID string) {
+		t.Helper()
 		list, err := factory.CreateList(workspace.ID)
 		require.NoError(t, err)
-
-		// Create a contact and add to list
 		contact, err := factory.CreateContact(workspace.ID)
 		require.NoError(t, err)
-
-		// Add contact to list using CreateContactList with options
 		_, err = factory.CreateContactList(workspace.ID,
 			testutil.WithContactListEmail(contact.Email),
-			testutil.WithContactListListID(list.ID))
+			testutil.WithContactListListID(list.ID),
+			testutil.WithContactListStatus(domain.ContactListStatusActive))
 		require.NoError(t, err)
+		return contact.Email, list.ID
+	}
+
+	// sendToIndividual sends a broadcast to a fresh subscribed contact through
+	// broadcasts.sendToIndividual and returns the email Mailpit received.
+	sendToIndividual := func(t *testing.T) (msg *testutil.MailpitMessage, email, listID string) {
+		t.Helper()
+		email, listID = subscribedContact(t)
 
 		// Create templates for A/B testing (requires at least 2)
 		template1, err := factory.CreateTemplate(workspace.ID)
@@ -80,131 +112,216 @@ func TestListUnsubscribeHeaders(t *testing.T) {
 		template2, err := factory.CreateTemplate(workspace.ID)
 		require.NoError(t, err)
 
-		// Create broadcast with A/B testing AND audience list set
 		broadcast, err := factory.CreateBroadcast(workspace.ID,
 			testutil.WithBroadcastABTesting([]string{template1.ID, template2.ID}),
 			testutil.WithBroadcastAudience(domain.AudienceSettings{
-				List:                list.ID,
+				List:                listID,
 				ExcludeUnsubscribed: true,
 			}))
 		require.NoError(t, err)
 
-		// Clear Mailpit before sending
-		err = testutil.ClearMailpitMessages(t)
-		if err != nil {
-			t.Logf("Warning: Could not clear Mailpit messages: %v", err)
-		}
-
-		// Send broadcast to individual (this is what the existing test uses)
-		sendRequest := map[string]interface{}{
+		resp, err := client.SendBroadcastToIndividual(map[string]interface{}{
 			"workspace_id":    workspace.ID,
 			"broadcast_id":    broadcast.ID,
-			"recipient_email": contact.Email,
+			"recipient_email": email,
 			"template_id":     template1.ID,
-		}
-
-		resp, err := client.SendBroadcastToIndividual(sendRequest)
+		})
 		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
-
-		// With SMTP provider configured, this should succeed
 		if resp.StatusCode != http.StatusOK {
 			var errResult map[string]interface{}
 			_ = json.NewDecoder(resp.Body).Decode(&errResult)
 			t.Fatalf("Failed to send broadcast: status=%d, response=%+v", resp.StatusCode, errResult)
 		}
 
-		var result map[string]interface{}
-		err = json.NewDecoder(resp.Body).Decode(&result)
-		require.NoError(t, err)
-
-		if successInterface, ok := result["success"]; ok && successInterface != nil {
-			assert.True(t, successInterface.(bool), "Send should succeed")
-		} else {
-			t.Errorf("success field is missing or nil in send individual response: %+v", result)
-		}
-
-		// Wait for email to arrive in Mailpit and get the full message with headers
-		msg, err := waitForEmailAndGetMessage(t, contact.Email, 10*time.Second)
+		msg, err = waitForEmailAndGetMessage(t, email, 10*time.Second)
 		require.NoError(t, err, "Should receive email in Mailpit")
+		return msg, email, listID
+	}
 
-		t.Logf("Email headers: %+v", msg.Headers)
+	t.Run("header carries an absolute one-click URL on the workspace endpoint", func(t *testing.T) {
+		msg, email, listID := sendToIndividual(t)
 
-		// Verify List-Unsubscribe header is present
-		// Mailpit properly handles RFC 5322 header folding, so we can check parsed headers
-		listUnsubscribe, hasListUnsubscribe := msg.Headers["List-Unsubscribe"]
-		assert.True(t, hasListUnsubscribe, "Email should have List-Unsubscribe header")
-		if hasListUnsubscribe && len(listUnsubscribe) > 0 {
-			t.Logf("List-Unsubscribe header: %s", listUnsubscribe[0])
-			// The header should contain a URL in angle brackets
-			assert.Contains(t, listUnsubscribe[0], "<", "List-Unsubscribe should contain URL in angle brackets")
-			assert.Contains(t, listUnsubscribe[0], ">", "List-Unsubscribe should contain URL in angle brackets")
-			assert.Contains(t, listUnsubscribe[0], "unsubscribe", "List-Unsubscribe URL should contain 'unsubscribe'")
-		}
+		u := listUnsubscribeURL(t, msg)
+		assert.Equal(t, serverURL, u.Scheme+"://"+u.Host, "the URL must point at the workspace endpoint")
+		assert.Equal(t, "/unsubscribe-oneclick", u.Path)
+		assert.Equal(t, email, u.Query().Get("email"))
+		assert.Equal(t, listID, u.Query().Get("lids"))
+		assert.NotEmpty(t, u.Query().Get("email_hmac"), "the endpoint authorizes the unsubscribe with this HMAC")
 
-		// Verify List-Unsubscribe-Post header is present
-		listUnsubscribePost, hasListUnsubscribePost := msg.Headers["List-Unsubscribe-Post"]
-		assert.True(t, hasListUnsubscribePost, "Email should have List-Unsubscribe-Post header")
-		if hasListUnsubscribePost && len(listUnsubscribePost) > 0 {
-			t.Logf("List-Unsubscribe-Post header: %s", listUnsubscribePost[0])
-			// The header should be exactly "List-Unsubscribe=One-Click" per RFC-8058
-			assert.Equal(t, "List-Unsubscribe=One-Click", listUnsubscribePost[0],
-				"List-Unsubscribe-Post should be 'List-Unsubscribe=One-Click'")
-		}
+		listUnsubscribePost := msg.Headers["List-Unsubscribe-Post"]
+		require.NotEmpty(t, listUnsubscribePost, "Email should have List-Unsubscribe-Post header")
+		assert.Equal(t, "List-Unsubscribe=One-Click", listUnsubscribePost[0],
+			"List-Unsubscribe-Post should be 'List-Unsubscribe=One-Click'")
+	})
 
-		// --- RFC 8058 one-click round trip (regression test for issue #362) ---
-		// A mail client POSTs the opaque "List-Unsubscribe=One-Click" token to the
-		// List-Unsubscribe URL. The endpoint must accept that body (it previously
-		// rejected it with 400 "Invalid request body") AND the URL must carry the
-		// email_hmac the service verifies (it previously omitted it). This closes the
-		// loop the original test left open: it only checked the headers were *present*,
-		// never that POSTing them actually unsubscribes the contact.
-		require.True(t, hasListUnsubscribe && len(listUnsubscribe) > 0,
-			"need a List-Unsubscribe header to exercise the one-click round trip")
+	// RFC 8058 section 3.2: the receiver SHOULD send the one-click POST as
+	// multipart/form-data and MAY send it url-encoded. Both must reach the real
+	// HMAC-verifying service and flip the subscription - a mocked service cannot show that.
+	oneClickBodies := []struct {
+		name  string
+		build func(t *testing.T) (contentType string, body io.Reader)
+	}{
+		{"url-encoded", func(t *testing.T) (string, io.Reader) {
+			return "application/x-www-form-urlencoded", strings.NewReader("List-Unsubscribe=One-Click")
+		}},
+		{"multipart/form-data", func(t *testing.T) (string, io.Reader) {
+			var body bytes.Buffer
+			form := multipart.NewWriter(&body)
+			require.NoError(t, form.WriteField("List-Unsubscribe", "One-Click"))
+			require.NoError(t, form.Close())
+			return form.FormDataContentType(), &body
+		}},
+	}
+	for _, oc := range oneClickBodies {
+		t.Run("one-click POST unsubscribes: "+oc.name, func(t *testing.T) {
+			msg, email, listID := sendToIndividual(t)
+			contentType, body := oc.build(t)
 
-		oneClickResp, err := postOneClickUnsubscribe(t, suite.ServerManager.GetURL(), listUnsubscribe[0],
-			"application/x-www-form-urlencoded", "List-Unsubscribe=One-Click")
+			resp := requestListUnsubscribeURL(t, http.MethodPost, listUnsubscribeURL(t, msg), contentType, body)
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode, "RFC 8058 one-click POST must be accepted, not rejected")
+			assert.Equal(t, domain.ContactListStatusUnsubscribed, statusOf(t, email, listID),
+				"one-click POST must flip contact_lists.status to 'unsubscribed'")
+		})
+	}
+
+	// A receiver that does not offer one-click - RFC 8058 section 4 tells it not to unless a
+	// DKIM signature covers both headers, which Mailpit never checks - opens the URL in a
+	// browser, as people do, and scanners fetch it on their own. That must land on the
+	// confirmation page and unsubscribe nobody.
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		t.Run(method+" lands on the confirmation page and unsubscribes nobody", func(t *testing.T) {
+			msg, email, listID := sendToIndividual(t)
+
+			resp := requestListUnsubscribeURL(t, method, listUnsubscribeURL(t, msg), "", nil)
+
+			require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+			location, err := url.Parse(resp.Header.Get("Location"))
+			require.NoError(t, err)
+			assert.Equal(t, "/notification-center", location.Path)
+			assert.Equal(t, "confirm_unsubscribe", location.Query().Get("action"))
+			assert.Equal(t, email, location.Query().Get("email"))
+			assert.Equal(t, listID, location.Query().Get("lid"))
+			assert.Equal(t, domain.ContactListStatusActive, statusOf(t, email, listID),
+				"opening the link must not unsubscribe without the visitor's confirmation")
+		})
+	}
+
+	// The Custom Endpoint URL is stored as typed. A trailing slash must not produce
+	// "//unsubscribe-oneclick": the mux answers that with a redirect, and RFC 8058
+	// section 3.1 forbids redirecting the one-click POST.
+	t.Run("custom endpoint with a trailing slash emits a single slash", func(t *testing.T) {
+		require.NoError(t, factory.SetWorkspaceCustomEndpointURL(workspace.ID, serverURL+"/"))
+		defer func() {
+			require.NoError(t, factory.SetWorkspaceCustomEndpointURL(workspace.ID, serverURL))
+		}()
+
+		msg, email, listID := sendToIndividual(t)
+		u := listUnsubscribeURL(t, msg)
+		assert.Equal(t, "/unsubscribe-oneclick", u.Path)
+
+		resp := requestListUnsubscribeURL(t, http.MethodPost, u,
+			"application/x-www-form-urlencoded", strings.NewReader("List-Unsubscribe=One-Click"))
+		assert.Equal(t, http.StatusOK, resp.StatusCode, "the one-click POST must not be redirected")
+		assert.Equal(t, domain.ContactListStatusUnsubscribed, statusOf(t, email, listID))
+	})
+
+	// Real broadcasts are not sent through broadcasts.sendToIndividual but scheduled and
+	// delivered by the email queue worker, which builds the header on its own path.
+	t.Run("scheduled broadcast delivered by the email queue carries a working header", func(t *testing.T) {
+		email, listID := subscribedContact(t)
+		template, err := factory.CreateTemplate(workspace.ID)
 		require.NoError(t, err)
-		defer func() { _ = oneClickResp.Body.Close() }()
-		assert.Equal(t, http.StatusOK, oneClickResp.StatusCode,
-			"RFC 8058 one-click POST must be accepted, not rejected")
-
-		// The contact must actually be unsubscribed from the list in the database.
-		// A mocked service can't catch this; only the real HMAC-verifying service can.
-		contactListRepo := suite.ServerManager.GetApp().GetContactListRepository()
-		got, err := contactListRepo.GetContactListByIDs(context.Background(), workspace.ID, contact.Email, list.ID)
+		broadcast, err := factory.CreateBroadcast(workspace.ID,
+			testutil.WithBroadcastAudience(domain.AudienceSettings{
+				List:                listID,
+				ExcludeUnsubscribed: true,
+			}))
 		require.NoError(t, err)
-		assert.Equal(t, domain.ContactListStatusUnsubscribed, got.Status,
-			"one-click POST must flip contact_lists.status to 'unsubscribed'")
+
+		broadcast.TestSettings.Variations[0].TemplateID = template.ID
+		updateResp, err := client.UpdateBroadcast(map[string]interface{}{
+			"workspace_id":  workspace.ID,
+			"id":            broadcast.ID,
+			"name":          broadcast.Name,
+			"audience":      broadcast.Audience,
+			"schedule":      broadcast.Schedule,
+			"test_settings": broadcast.TestSettings,
+		})
+		require.NoError(t, err)
+		_ = updateResp.Body.Close()
+
+		scheduleResp, err := client.ScheduleBroadcast(map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"id":           broadcast.ID,
+			"send_now":     true,
+		})
+		require.NoError(t, err)
+		_ = scheduleResp.Body.Close()
+
+		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
+			[]string{"processed", "completed"}, 60*time.Second)
+		require.NoError(t, err)
+
+		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+		require.NoError(t, err, "Should receive the broadcast email in Mailpit")
+
+		u := listUnsubscribeURL(t, msg)
+		assert.Equal(t, serverURL, u.Scheme+"://"+u.Host)
+		listUnsubscribePost := msg.Headers["List-Unsubscribe-Post"]
+		require.NotEmpty(t, listUnsubscribePost)
+		assert.Equal(t, "List-Unsubscribe=One-Click", listUnsubscribePost[0])
+
+		resp := requestListUnsubscribeURL(t, http.MethodPost, u,
+			"application/x-www-form-urlencoded", strings.NewReader("List-Unsubscribe=One-Click"))
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, domain.ContactListStatusUnsubscribed, statusOf(t, email, listID))
 	})
 }
 
-// postOneClickUnsubscribe replays an RFC 8058 one-click unsubscribe the way a mail
-// client does: it takes the raw List-Unsubscribe header value (<URL>), keeps the
-// path+query, and POSTs to the test server with the given body/content-type. It uses
-// curl's User-Agent (which is in the legacy bot blocklist) to prove a real automated
-// one-click POST is no longer suppressed by bot detection (issue #362).
-func postOneClickUnsubscribe(t *testing.T, baseURL, listUnsubscribeHeader, contentType, body string) (*http.Response, error) {
+// listUnsubscribeURL returns the URL in the delivered List-Unsubscribe header as a mail
+// receiver reads it, failing unless it is the absolute, angle-bracketed URL RFC 2369
+// and RFC 8058 require.
+func listUnsubscribeURL(t *testing.T, msg *testutil.MailpitMessage) *url.URL {
 	t.Helper()
-	raw := strings.Trim(listUnsubscribeHeader, "<>")
-	u, err := url.Parse(raw)
-	if err != nil {
-		return nil, err
-	}
-	endpoint := baseURL + u.Path
-	if u.RawQuery != "" {
-		endpoint += "?" + u.RawQuery
-	}
-	req, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
+	header := msg.Headers["List-Unsubscribe"]
+	require.NotEmpty(t, header, "Email should have List-Unsubscribe header")
+
+	value := strings.TrimSpace(header[0])
+	require.True(t, strings.HasPrefix(value, "<") && strings.HasSuffix(value, ">"),
+		"List-Unsubscribe should enclose its URL in angle brackets, got %q", value)
+
+	u, err := url.Parse(strings.TrimSuffix(strings.TrimPrefix(value, "<"), ">"))
+	require.NoError(t, err)
+	require.True(t, u.IsAbs() && u.Host != "", "a mail client can only use an absolute URL, got %q", value)
+	return u
+}
+
+// requestListUnsubscribeURL sends a request to the List-Unsubscribe URL exactly as
+// delivered and does not follow redirects: RFC 8058 forbids answering the one-click POST
+// with one, and the GET's redirect is asserted rather than followed. It uses curl's
+// User-Agent, which is on the legacy bot blocklist, to prove automated one-click POSTs
+// are not filtered out.
+func requestListUnsubscribeURL(t *testing.T, method string, u *url.URL, contentType string, body io.Reader) *http.Response {
+	t.Helper()
+	req, err := http.NewRequest(method, u.String(), body)
+	require.NoError(t, err)
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}
 	req.Header.Set("User-Agent", "curl/8.4.0")
-	client := &http.Client{Timeout: 5 * time.Second}
-	return client.Do(req)
+
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = resp.Body.Close() })
+	return resp
 }
 
 // waitForEmailAndGetMessage polls Mailpit for an email to the specified recipient

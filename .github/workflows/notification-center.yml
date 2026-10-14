@@ -1,0 +1,60 @@
+name: Notification Center
+
+# The notification center - the page behind every unsubscribe, preferences and
+# List-Unsubscribe link in sent emails - had no CI. The release image (Dockerfile
+# stage 2) type-checks and builds it, but its unit tests never ran, including the
+# ones guarding the List-Unsubscribe confirmation page and the preference sync that
+# must not fire on page load.
+# The path list is duplicated rather than shared through a YAML anchor:
+# GitHub Actions does not support anchors or aliases in workflow files.
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - 'notification_center/**'
+      - '.github/workflows/notification-center.yml'
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - 'notification_center/**'
+      - '.github/workflows/notification-center.yml'
+
+jobs:
+  checks:
+    name: Type-check, unit tests, lint, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./notification_center
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Matches the notification-center-builder stage in the Dockerfile, so a build
+          # that passes here is the same build that ships.
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: notification_center/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Run explicitly, and before the build, so a type error reports itself as one
+      # rather than as a build failure. tsconfig.json includes the test files.
+      - name: Type-check
+        run: npx tsc -b
+
+      - name: Unit tests
+        run: npx vitest run
+
+      # The tree is at zero errors and zero warnings; `npm run lint` fails on errors.
+      - name: Lint
+        run: npm run lint
+
+      # What Dockerfile stage 2 runs (tsc -b -> vite build).
+      - name: Production build
+        run: npm run build

@@ -8,6 +8,12 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The blog API — categories, posts and themes — is now in the API reference, and behaves as documented. `blogPosts.list` ignored its `offset` parameter and always returned the first page, so no API client could read past the first 100 posts; it now pages with `page` and `limit`, in a stable order. A missing blog permission now answers 403, where it used to be a 400 or a 500 that hid the cause.
 
+- **Fix**: Opening an email's `List-Unsubscribe` link no longer returns `{"error":"Method not allowed"}`, which is what contacts saw whenever their mail client opened the link instead of unsubscribing in one click (#450). They now land on the notification center, which asks them to confirm; loading the page alone unsubscribes nobody, since anti-spam scanners fetch these links on their own. The one-click request also accepts `multipart/form-data`, the encoding RFC 8058 recommends, which was rejected and left the contact subscribed.
+
+- **Fix**: A Custom Endpoint URL saved with a trailing slash no longer puts `//` in tracking, unsubscribe and notification center links, which made the one-click unsubscribe answer with a redirect RFC 8058 forbids.
+
+- **Improvement**: The notification center now saves a contact's browser language and timezone after their first click, tap or key press instead of on page load. Email security scanners open links from emails in real browsers, and could overwrite a contact's timezone with their own, shifting broadcasts sent in the recipient's timezone.
+
 ## [41.0] - 2026-09-17
 
 - **Feature**: Audit logs. Logs → Audit logs shows who did what in a workspace — a member invited, a permission set changed, an API key created, an integration edited, a template saved, a broadcast scheduled, a contact deleted — with the address it came from, the request it belonged to, and whether it succeeded, failed or was refused. The security-sensitive entries carry a before/after of what changed, with every password, secret and key replaced by `[redacted]`; the fact that they changed is kept, the values are not. Failures are recorded too: a sign-in for an unknown address, a wrong or expired code, a request refused by a permission check or by the licence, each with the reason the response deliberately does not give away. What is never recorded is the data plane — contact upserts, sends, tracking, custom events — which belongs in Logs, not in a trail.

@@ -5538,6 +5538,9 @@ func TestWorkspaceSettings_ResolveEndpoint(t *testing.T) {
 		expected string
 	}{
 		{name: "custom endpoint set", custom: stringPtr("https://track.example.com"), expected: "https://track.example.com"},
+		// Stored as typed; a trailing slash would compose "https://host//path" links.
+		{name: "custom endpoint trailing slash trimmed", custom: stringPtr("https://track.example.com/"), expected: "https://track.example.com"},
+		{name: "custom endpoint repeated trailing slashes trimmed", custom: stringPtr("https://track.example.com//"), expected: "https://track.example.com"},
 		{name: "custom endpoint nil falls back to api", custom: nil, expected: apiEndpoint},
 		{name: "custom endpoint empty falls back to api", custom: stringPtr(""), expected: apiEndpoint},
 	}

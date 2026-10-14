@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
 import * as notificationCenterApi from './api/notification_center'
@@ -120,8 +120,13 @@ describe('Notification Center App', () => {
       const mockUnsubscribe = vi.mocked(notificationCenterApi.unsubscribeOneClick)
       const mockParseParams = vi.mocked(notificationCenterApi.parseNotificationCenterParams)
 
-      const paramsWithoutLid = { ...testData.validParams }
-      delete (paramsWithoutLid as any).lid
+      const paramsWithoutLid = {
+        wid: testData.validParams.wid,
+        email: testData.validParams.email,
+        email_hmac: testData.validParams.email_hmac,
+        lname: testData.validParams.lname,
+        mid: testData.validParams.mid,
+      }
 
       mockParseParams.mockReturnValue({
         ...paramsWithoutLid,
@@ -138,6 +143,209 @@ describe('Notification Center App', () => {
       await waitFor(() => {
         expect(mockUnsubscribe).not.toHaveBeenCalled()
       })
+    })
+
+    // The load performs the URL's action, so nothing the visitor does may re-run it
+    it('runs the URL action only once, even after the visitor changes language', async () => {
+      const user = userEvent.setup()
+      const mockUnsubscribe = vi.mocked(notificationCenterApi.unsubscribeOneClick)
+      mockUnsubscribe.mockResolvedValue({ success: true })
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue({
+        ...testData.validParams,
+        action: 'unsubscribe',
+      })
+      mockURLSearchParams({ ...testData.validParams, action: 'unsubscribe' })
+      render(<App />)
+      await screen.findByText(/unsubscribed successfully/i)
+
+      await user.click(screen.getByRole('button', { name: /select language/i }))
+      await user.click(screen.getByRole('menuitem', { name: 'Deutsch' }))
+      await act(() => Promise.resolve())
+
+      expect(mockUnsubscribe).toHaveBeenCalledTimes(1)
+      expect(notificationCenterApi.getContactPreferences).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  // The server redirects a GET on the List-Unsubscribe header URL here. Anti-spam
+  // scanners fetch that URL on their own, so loading the page must never unsubscribe.
+  describe('Confirm-unsubscribe action (List-Unsubscribe header link)', () => {
+    const confirmParams = { ...testData.validParams, action: 'confirm_unsubscribe' }
+
+    beforeEach(() => {
+      // An earlier test leaves unsubscribeOneClick rejecting; clearAllMocks keeps that
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValue({ success: true })
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(confirmParams)
+      mockURLSearchParams(confirmParams)
+    })
+
+    it('asks to confirm for the linked list without unsubscribing on load', async () => {
+      // Fake timers so the assertion also covers work deferred past the render that shows
+      // the card, not only what ran before it appeared
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        render(<App />)
+
+        const prompt = await screen.findByTestId('confirm-unsubscribe')
+        expect(within(prompt).getByText('Newsletter')).toBeInTheDocument()
+        expect(within(prompt).getByText(/stop receiving emails from this list/i)).toBeInTheDocument()
+        // Named after the list: the list's row has an "Unsubscribe" button too
+        expect(
+          within(prompt).getByRole('button', { name: 'Unsubscribe: Newsletter' })
+        ).toBeInTheDocument()
+
+        await act(() => vi.runAllTimersAsync())
+        expect(notificationCenterApi.unsubscribeOneClick).not.toHaveBeenCalled()
+        expect(notificationCenterApi.updateContactPreferences).not.toHaveBeenCalled()
+        expect(screen.getByTestId('confirm-unsubscribe')).toBeInTheDocument()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('unsubscribes when the visitor confirms', async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+
+      expect(notificationCenterApi.unsubscribeOneClick).toHaveBeenCalledWith({
+        wid: testData.validParams.wid,
+        email: testData.validParams.email,
+        email_hmac: testData.validParams.email_hmac,
+        lids: [testData.validParams.lid],
+        mid: testData.validParams.mid,
+      })
+      expect(await screen.findByText(/unsubscribed successfully/i)).toBeInTheDocument()
+      expect(screen.queryByTestId('confirm-unsubscribe')).not.toBeInTheDocument()
+      // The result is announced, and takes the focus the removed button had
+      const banner = screen.getByText(/unsubscribed successfully/i).closest('[role="status"]')
+      expect(banner).not.toBeNull()
+      expect(banner).toHaveFocus()
+      // The list's own row reflects the unsubscribe
+      expect(screen.getByRole('button', { name: /^subscribe$/i })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^unsubscribe$/i })).not.toBeInTheDocument()
+    })
+
+    it('asks about and unsubscribes only the linked list when the contact has several', async () => {
+      const user = userEvent.setup()
+      const activeOn = (listId: string, listName: string) => ({
+        email: testData.contact.email,
+        list_id: listId,
+        list_name: listName,
+        status: 'active',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      })
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [],
+        // The linked list is not the first one
+        contact_lists: [activeOn('newsletter', 'Newsletter'), activeOn('promotions', 'Promotions')],
+      })
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue({
+        ...confirmParams,
+        lid: 'promotions',
+      })
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      expect(within(prompt).getByText('Promotions')).toBeInTheDocument()
+      expect(within(prompt).queryByText('Newsletter')).not.toBeInTheDocument()
+
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+
+      expect(notificationCenterApi.unsubscribeOneClick).toHaveBeenCalledTimes(1)
+      expect(notificationCenterApi.unsubscribeOneClick).toHaveBeenCalledWith(
+        expect.objectContaining({ lids: ['promotions'] })
+      )
+      expect(await screen.findByText(/unsubscribed successfully/i)).toBeInTheDocument()
+      // Newsletter keeps its Unsubscribe toggle; only Promotions flipped to Subscribe
+      expect(screen.getAllByRole('button', { name: /^unsubscribe$/i })).toHaveLength(1)
+      expect(screen.getAllByRole('button', { name: /^subscribe$/i })).toHaveLength(1)
+    })
+
+    it('keeps the prompt and shows an error when the unsubscribe fails', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockRejectedValueOnce(new Error('boom'))
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+
+      expect(await screen.findByText(/failed to unsubscribe/i)).toBeInTheDocument()
+      expect(screen.getByText(/failed to unsubscribe/i).closest('[role="alert"]')).not.toBeNull()
+      expect(screen.getByTestId('confirm-unsubscribe')).toBeInTheDocument()
+    })
+
+    it('tells a contact who already unsubscribed, instead of asking again', async () => {
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [{ id: 'newsletter', name: 'Newsletter' }],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'newsletter',
+            list_name: 'Newsletter',
+            status: 'unsubscribed',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      render(<App />)
+
+      expect(await screen.findByRole('button', { name: /^subscribe$/i })).toBeInTheDocument()
+      expect(screen.getByText(/already unsubscribed from this list/i)).toBeInTheDocument()
+      expect(screen.queryByTestId('confirm-unsubscribe')).not.toBeInTheDocument()
+      expect(notificationCenterApi.unsubscribeOneClick).not.toHaveBeenCalled()
+    })
+
+    it('says nothing about unsubscribing when the contact is on the list in another state', async () => {
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'newsletter',
+            list_name: 'Newsletter',
+            status: 'bounced',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      render(<App />)
+
+      expect(await screen.findByText('Newsletter')).toBeInTheDocument()
+      expect(screen.queryByText(/already unsubscribed/i)).not.toBeInTheDocument()
+      expect(screen.queryByTestId('confirm-unsubscribe')).not.toBeInTheDocument()
+    })
+
+    it("dismisses the prompt when the visitor uses the list's own toggle instead", async () => {
+      const user = userEvent.setup()
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      const rowToggle = screen
+        .getAllByRole('button', { name: /unsubscribe/i })
+        .find((button) => !prompt.contains(button))
+      expect(rowToggle).toBeDefined()
+      await user.click(rowToggle!)
+
+      await waitFor(() => {
+        expect(notificationCenterApi.unsubscribeOneClick).toHaveBeenCalledTimes(1)
+      })
+      expect(screen.queryByTestId('confirm-unsubscribe')).not.toBeInTheDocument()
+
+      // Re-subscribing from the row must not bring the confirmation back
+      await user.click(await screen.findByRole('button', { name: /^subscribe$/i }))
+      await waitFor(() => {
+        expect(notificationCenterApi.subscribeToLists).toHaveBeenCalledTimes(1)
+      })
+      expect(screen.queryByTestId('confirm-unsubscribe')).not.toBeInTheDocument()
     })
   })
 
@@ -427,72 +635,189 @@ describe('Notification Center App', () => {
     })
   })
 
-  describe('Language auto-save', () => {
-    it('should auto-save language when contact has no language set', async () => {
-      const mockUpdatePreferences = vi.mocked(notificationCenterApi.updateContactPreferences)
-      const mockGetPreferences = vi.mocked(notificationCenterApi.getContactPreferences)
-      const mockParseParams = vi.mocked(notificationCenterApi.parseNotificationCenterParams)
+  // The browser's language and timezone are saved on the visitor's first click, tap or key
+  // press, never on load: email security scanners open these links in real browsers.
+  describe('Preference sync on first interaction', () => {
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const credentials = {
+      workspace_id: testData.validParams.wid,
+      email: testData.validParams.email,
+      email_hmac: testData.validParams.email_hmac,
+    }
+    const preferences = (contact: { language?: string; timezone?: string } = {}) => ({
+      contact: { ...testData.contact, ...contact },
+      public_lists: [],
+      contact_lists: [],
+    })
 
-      // Contact has no language set
-      mockGetPreferences.mockResolvedValue({
-        contact: {
-          id: 'contact-123',
-          email: 'test@example.com',
-          first_name: 'John',
-          last_name: 'Doe',
-        },
-        public_lists: [],
-        contact_lists: [],
-        logo_url: 'https://example.com/logo.png',
-        website_url: 'https://example.com',
-      })
-
-      mockParseParams.mockReturnValue(testData.validParams)
+    beforeEach(() => {
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(testData.validParams)
+      vi.mocked(notificationCenterApi.updateContactPreferences).mockResolvedValue({ success: true })
       mockURLSearchParams(testData.validParams)
+    })
 
+    it('saves nothing on load, even once every pending timer has run', async () => {
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(preferences())
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        render(<App />)
+        expect(await screen.findByText(/Welcome/i)).toBeInTheDocument()
+
+        await act(() => vi.runAllTimersAsync())
+        expect(notificationCenterApi.updateContactPreferences).not.toHaveBeenCalled()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it("saves the browser's language and timezone once, on the first click", async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(preferences())
       render(<App />)
+      await screen.findByText(/Welcome/i)
+
+      await user.click(document.body)
 
       await waitFor(() => {
-        expect(mockUpdatePreferences).toHaveBeenCalled()
-        const callArgs = mockUpdatePreferences.mock.calls[0][0]
-        expect(callArgs.language).toBeDefined()
+        expect(notificationCenterApi.updateContactPreferences).toHaveBeenCalledTimes(1)
+      })
+      expect(notificationCenterApi.updateContactPreferences).toHaveBeenCalledWith({
+        ...credentials,
+        language: 'en',
+        timezone: browserTimezone,
+      })
+
+      // Later interactions save nothing more
+      await user.click(document.body)
+      await user.keyboard('{Tab}')
+      await act(() => Promise.resolve())
+      expect(notificationCenterApi.updateContactPreferences).toHaveBeenCalledTimes(1)
+    })
+
+    it('counts a key press as the first interaction', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(preferences())
+      render(<App />)
+      await screen.findByText(/Welcome/i)
+
+      await user.keyboard('{Tab}')
+
+      await waitFor(() => {
+        expect(notificationCenterApi.updateContactPreferences).toHaveBeenCalledTimes(1)
       })
     })
 
-    it('should NOT auto-save language when contact already has a language', async () => {
-      const mockUpdatePreferences = vi.mocked(notificationCenterApi.updateContactPreferences)
-      const mockGetPreferences = vi.mocked(notificationCenterApi.getContactPreferences)
-      const mockParseParams = vi.mocked(notificationCenterApi.parseNotificationCenterParams)
-
-      // Contact already has a language set
-      mockGetPreferences.mockResolvedValue({
-        contact: {
-          id: 'contact-123',
-          email: 'test@example.com',
-          first_name: 'John',
-          last_name: 'Doe',
-          language: 'fr',
-        },
-        public_lists: [],
-        contact_lists: [],
-        logo_url: 'https://example.com/logo.png',
-        website_url: 'https://example.com',
-      })
-
-      mockParseParams.mockReturnValue(testData.validParams)
-      mockURLSearchParams(testData.validParams)
-
+    it('saves once loaded when the visitor interacted while the page was loading', async () => {
+      const user = userEvent.setup()
+      let finishLoading: (value: ReturnType<typeof preferences>) => void = () => {}
+      vi.mocked(notificationCenterApi.getContactPreferences).mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishLoading = resolve
+        })
+      )
       render(<App />)
 
-      await waitFor(() => {
-        expect(mockGetPreferences).toHaveBeenCalled()
-      })
+      await user.click(document.body)
+      expect(notificationCenterApi.updateContactPreferences).not.toHaveBeenCalled()
 
-      // If updateContactPreferences was called, it should NOT include language
-      if (mockUpdatePreferences.mock.calls.length > 0) {
-        const callArgs = mockUpdatePreferences.mock.calls[0][0]
-        expect(callArgs.language).toBeUndefined()
-      }
+      finishLoading(preferences())
+      await waitFor(() => {
+        expect(notificationCenterApi.updateContactPreferences).toHaveBeenCalledWith({
+          ...credentials,
+          language: 'en',
+          timezone: browserTimezone,
+        })
+      })
+    })
+
+    it('does not save a language the contact already has', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(
+        preferences({ language: 'fr' })
+      )
+      render(<App />)
+      await screen.findByText(/Welcome/i)
+
+      await user.click(document.body)
+
+      await waitFor(() => {
+        expect(notificationCenterApi.updateContactPreferences).toHaveBeenCalledTimes(1)
+      })
+      expect(notificationCenterApi.updateContactPreferences).toHaveBeenCalledWith({
+        ...credentials,
+        timezone: browserTimezone,
+      })
+    })
+
+    it('saves nothing when the contact already has a language and the same timezone', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(
+        preferences({ language: 'fr', timezone: browserTimezone })
+      )
+      render(<App />)
+      await screen.findByText(/Welcome/i)
+
+      await user.click(document.body)
+      await act(() => Promise.resolve())
+
+      expect(notificationCenterApi.updateContactPreferences).not.toHaveBeenCalled()
+    })
+
+    it("saves the visitor's language choice after the detected one, so the choice wins", async () => {
+      const user = userEvent.setup()
+      let finishDetectedWrite: (value: { success: boolean }) => void = () => {}
+      vi.mocked(notificationCenterApi.updateContactPreferences).mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishDetectedWrite = resolve
+        })
+      )
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(preferences())
+      render(<App />)
+      await screen.findByText(/Welcome/i)
+
+      // Opening the language menu is the first interaction: the detected preferences go out
+      await user.click(screen.getByRole('button', { name: /select language/i }))
+      await waitFor(() => {
+        expect(notificationCenterApi.updateContactPreferences).toHaveBeenCalledTimes(1)
+      })
+      expect(notificationCenterApi.updateContactPreferences).toHaveBeenLastCalledWith(
+        expect.objectContaining({ language: 'en' })
+      )
+
+      // The choice waits for that write rather than racing it
+      await user.click(screen.getByRole('menuitem', { name: 'Deutsch' }))
+      await act(() => Promise.resolve())
+      expect(notificationCenterApi.updateContactPreferences).toHaveBeenCalledTimes(1)
+
+      finishDetectedWrite({ success: true })
+      await waitFor(() => {
+        expect(notificationCenterApi.updateContactPreferences).toHaveBeenCalledTimes(2)
+      })
+      expect(notificationCenterApi.updateContactPreferences).toHaveBeenLastCalledWith({
+        ...credentials,
+        language: 'de',
+      })
+    })
+
+    it("still saves the visitor's language choice when the detected write failed", async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.updateContactPreferences).mockRejectedValueOnce(
+        new Error('Network error')
+      )
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(preferences())
+      render(<App />)
+      await screen.findByText(/Welcome/i)
+
+      await user.click(screen.getByRole('button', { name: /select language/i }))
+      await user.click(screen.getByRole('menuitem', { name: 'Deutsch' }))
+
+      await waitFor(() => {
+        expect(notificationCenterApi.updateContactPreferences).toHaveBeenCalledTimes(2)
+      })
+      expect(notificationCenterApi.updateContactPreferences).toHaveBeenLastCalledWith({
+        ...credentials,
+        language: 'de',
+      })
     })
   })
 

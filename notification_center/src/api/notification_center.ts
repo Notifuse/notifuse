@@ -23,7 +23,7 @@ export interface Contact {
   external_id?: string
   language?: string | null
   timezone?: string | null
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export interface List {

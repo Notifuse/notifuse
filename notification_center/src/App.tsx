@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   getContactPreferences,
   parseNotificationCenterParams,
@@ -29,6 +29,12 @@ const languageNames: Record<Language, string> = {
   pl: 'Polski'
 }
 
+// The contact preference fields a write changes; absent fields are left as they are
+interface PreferenceUpdate {
+  language?: string
+  timezone?: string
+}
+
 function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,14 +50,83 @@ function App() {
     listId?: string
   } | null>(null)
   const [isPreviewMode, setIsPreviewMode] = useState(false)
+  // List the visitor is asked to confirm unsubscribing from (action=confirm_unsubscribe)
+  const [pendingUnsubscribeListId, setPendingUnsubscribeListId] = useState<string | null>(null)
   const languageMenuRef = useRef<HTMLDivElement>(null)
+  const confirmationResultRef = useRef<HTMLDivElement>(null)
+  // Set when the result banner must take focus once shown: the confirmation card's button,
+  // which had it, is gone
+  const focusConfirmationResultRef = useRef(false)
 
   // Translation helper function
   const t = (key: string) => getTranslation(key, language)
 
+  // Browser preferences detected on load, waiting for the visitor's first interaction
+  const pendingPreferenceSyncRef = useRef<PreferenceUpdate | null>(null)
+  const hasInteractedRef = useRef(false)
+  // Preference writes are sent one after the other, so a language the visitor picks is
+  // always saved after - and so overrides - the detected one
+  const preferenceWritesRef = useRef<Promise<void>>(Promise.resolve())
+
+  const savePreferences = useCallback((update: PreferenceUpdate) => {
+    const params = parseNotificationCenterParams()
+    if (!params) {
+      return
+    }
+
+    preferenceWritesRef.current = preferenceWritesRef.current
+      .then(() =>
+        updateContactPreferences({
+          workspace_id: params.wid,
+          email: params.email,
+          email_hmac: params.email_hmac,
+          ...update
+        })
+      )
+      .then(
+        () => undefined,
+        (err) => console.error('Failed to save preferences:', err)
+      )
+  }, [])
+
+  // The browser's language and timezone are saved on the visitor's first click, tap or key
+  // press, never on load: email security scanners open these links in real browsers and
+  // would otherwise write their own timezone (often UTC) onto the contact.
+  const syncPreferencesAfterInteraction = useCallback(
+    (update: PreferenceUpdate) => {
+      if (hasInteractedRef.current) {
+        savePreferences(update)
+      } else {
+        pendingPreferenceSyncRef.current = update
+      }
+    },
+    [savePreferences]
+  )
+
+  useEffect(() => {
+    const onFirstInteraction = () => {
+      document.removeEventListener('pointerdown', onFirstInteraction, true)
+      document.removeEventListener('keydown', onFirstInteraction, true)
+      hasInteractedRef.current = true
+      if (pendingPreferenceSyncRef.current) {
+        savePreferences(pendingPreferenceSyncRef.current)
+        pendingPreferenceSyncRef.current = null
+      }
+    }
+
+    // Capture phase, so the detected preferences are queued before anything the page's own
+    // handlers save for the same interaction
+    document.addEventListener('pointerdown', onFirstInteraction, true)
+    document.addEventListener('keydown', onFirstInteraction, true)
+    return () => {
+      document.removeEventListener('pointerdown', onFirstInteraction, true)
+      document.removeEventListener('keydown', onFirstInteraction, true)
+    }
+  }, [savePreferences])
+
   useEffect(() => {
     async function loadNotificationData() {
-      ;(window as any).Consecration =
+      ;(window as Window & { Consecration?: string }).Consecration =
         'Imperet illi Deus, supplices deprecamur: tuque, Princeps militiae caelestis, Satanam aliosque spiritus malignos, qui ad perditionem animarum pervagantur in mundo, divina virtute in infernum detrude. Amen.'
 
       try {
@@ -164,13 +239,10 @@ function App() {
         const tzChanged = !!browserTz && contactTz !== browserTz
 
         if (langChanged || tzChanged) {
-          updateContactPreferences({
-            workspace_id: params.wid,
-            email: params.email,
-            email_hmac: params.email_hmac,
+          syncPreferencesAfterInteraction({
             ...(langChanged ? { language: browserLang } : {}),
             ...(tzChanged ? { timezone: browserTz } : {})
-          }).catch((err) => console.error('Failed to auto-sync preferences:', err))
+          })
 
           // Also update the widget UI language if the browser lang is supported
           if (langChanged && browserLang in languageNames) {
@@ -226,6 +298,24 @@ function App() {
 
         setAllLists(combinedLists)
         setSubscriptions(initialSubscriptions)
+
+        // The List-Unsubscribe header link lands here when it is opened rather than
+        // one-click POSTed (the server redirects the GET). Anti-spam scanners fetch header
+        // links on their own, so nothing is unsubscribed until the visitor confirms.
+        if (params.action === 'confirm_unsubscribe' && params.lid) {
+          if (initialSubscriptions[params.lid]) {
+            setPendingUnsubscribeListId(params.lid)
+          } else if (
+            combinedLists.find((list) => list.id === params.lid)?.status === 'unsubscribed'
+          ) {
+            setConfirmationResult({
+              success: true,
+              messageKey: 'alreadyUnsubscribed',
+              listId: params.lid
+            })
+          }
+        }
+
         setLoading(false)
       } catch (err) {
         console.error('Failed to load notification center data:', err)
@@ -235,7 +325,17 @@ function App() {
     }
 
     loadNotificationData()
+    // Runs exactly once, on purpose: the load performs the URL's one-shot actions
+    // (action=unsubscribe, action=confirm), which must never repeat
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (confirmationResult && focusConfirmationResultRef.current) {
+      focusConfirmationResultRef.current = false
+      confirmationResultRef.current?.focus()
+    }
+  }, [confirmationResult])
 
   // Set favicon when logo is available
   useEffect(() => {
@@ -255,7 +355,8 @@ function App() {
   // Update page title with contact information
   useEffect(() => {
     if (notificationData?.contact) {
-      document.title = `${notificationData.contact.email} | ${t('emailSubscriptions')}`
+      const pageName = getTranslation('emailSubscriptions', language)
+      document.title = `${notificationData.contact.email} | ${pageName}`
     }
   }, [notificationData?.contact, language])
 
@@ -302,14 +403,8 @@ function App() {
       setLanguage(code as Language)
       setShowLanguageMenu(false)
       e.preventDefault()
-      const p = parseNotificationCenterParams()
-      if (p && !isPreviewMode) {
-        updateContactPreferences({
-          workspace_id: p.wid,
-          email: p.email,
-          email_hmac: p.email_hmac,
-          language: code
-        }).catch((err) => console.error('Failed to sync language:', err))
+      if (!isPreviewMode) {
+        savePreferences({ language: code })
       }
     }
   }
@@ -375,6 +470,9 @@ function App() {
 
   const unsubscribe = async (listId: string) => {
     try {
+      // The list's own toggle answers a pending unsubscribe confirmation for it
+      setPendingUnsubscribeListId((pending) => (pending === listId ? null : pending))
+
       // Set processing state
       setProcessingLists((prev) => ({ ...prev, [listId]: true }))
 
@@ -426,6 +524,42 @@ function App() {
       toast.error(t('failedUnsubscribe'))
     } finally {
       // Clear processing state
+      setProcessingLists((prev) => ({ ...prev, [listId]: false }))
+    }
+  }
+
+  const confirmUnsubscribe = async (listId: string) => {
+    const params = parseNotificationCenterParams()
+    if (!params) {
+      return
+    }
+
+    setProcessingLists((prev) => ({ ...prev, [listId]: true }))
+
+    try {
+      const response = await unsubscribeOneClick({
+        wid: params.wid,
+        email: params.email,
+        email_hmac: params.email_hmac,
+        lids: [listId],
+        mid: params.mid
+      })
+
+      if (!response.success) {
+        throw new Error('Unsubscribe was not successful')
+      }
+
+      setSubscriptions((prev) => ({ ...prev, [listId]: false }))
+      setAllLists((prev) =>
+        prev.map((list) => (list.id === listId ? { ...list, status: 'unsubscribed' } : list))
+      )
+      setPendingUnsubscribeListId(null)
+      focusConfirmationResultRef.current = true
+      setConfirmationResult({ success: true, messageKey: 'unsubscribeSuccess', listId })
+    } catch (err) {
+      console.error('Failed to unsubscribe:', err)
+      setConfirmationResult({ success: false, messageKey: 'unsubscribeFailed' })
+    } finally {
       setProcessingLists((prev) => ({ ...prev, [listId]: false }))
     }
   }
@@ -491,6 +625,10 @@ function App() {
 
   const websiteUrl = notificationData?.website_url || '#'
 
+  const pendingUnsubscribeList = pendingUnsubscribeListId
+    ? allLists.find((list) => list.id === pendingUnsubscribeListId)
+    : undefined
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Toaster />
@@ -550,16 +688,8 @@ function App() {
                       onClick={() => {
                         setLanguage(code as Language)
                         setShowLanguageMenu(false)
-                        const p = parseNotificationCenterParams()
-                        if (p && !isPreviewMode) {
-                          updateContactPreferences({
-                            workspace_id: p.wid,
-                            email: p.email,
-                            email_hmac: p.email_hmac,
-                            language: code
-                          }).catch((err) =>
-                            console.error('Failed to sync language:', err)
-                          )
+                        if (!isPreviewMode) {
+                          savePreferences({ language: code })
                         }
                       }}
                       onKeyDown={(e) => handleLanguageOptionKeyDown(e, code)}
@@ -591,6 +721,9 @@ function App() {
               {/* Confirmation result */}
               {confirmationResult && (
                 <div
+                  ref={confirmationResultRef}
+                  role={confirmationResult.success ? 'status' : 'alert'}
+                  tabIndex={-1}
                   className={`mb-6 p-4 rounded-sm border ${
                     confirmationResult.success
                       ? 'bg-green-50 border-green-200 text-green-800'
@@ -601,6 +734,30 @@ function App() {
                     {confirmationResult.success ? t('successHeader') : t('errorHeader')}
                   </div>
                   <div className="mt-1 text-sm">{t(confirmationResult.messageKey)}</div>
+                </div>
+              )}
+
+              {/* Unsubscribe confirmation (List-Unsubscribe header link opened in a browser) */}
+              {pendingUnsubscribeList && (
+                <div
+                  className="mb-6 p-4 rounded-sm border border-gray-300 bg-gray-50"
+                  data-testid="confirm-unsubscribe"
+                >
+                  <div className="font-medium">{pendingUnsubscribeList.name}</div>
+                  <p className="mt-1 text-sm text-gray-700">{t('confirmUnsubscribePrompt')}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => confirmUnsubscribe(pendingUnsubscribeList.id)}
+                    disabled={processingLists[pendingUnsubscribeList.id]}
+                    // The list's own row has an "Unsubscribe" button too
+                    aria-label={`${t('unsubscribe')}: ${pendingUnsubscribeList.name}`}
+                    className="mt-3 cursor-pointer border-red-500 text-red-500 hover:bg-red-50"
+                  >
+                    {processingLists[pendingUnsubscribeList.id]
+                      ? t('processing')
+                      : t('unsubscribe')}
+                  </Button>
                 </div>
               )}
 

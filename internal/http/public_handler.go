@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"strings"
@@ -245,6 +246,11 @@ func (h *NotificationCenterHandler) handleUnsubscribe(w http.ResponseWriter, r *
 
 func (h *NotificationCenterHandler) handleUnsubscribeOneClick(w http.ResponseWriter, r *http.Request) {
 
+	if r.Method == http.MethodGet || r.Method == http.MethodHead {
+		h.redirectOneClickToConfirmation(w, r)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -263,6 +269,8 @@ func (h *NotificationCenterHandler) handleUnsubscribeOneClick(w http.ResponseWri
 	//      notification center now posts to the dedicated /unsubscribe endpoint
 	//      (handleUnsubscribe), but already-cached widget bundles may still hit this
 	//      path. New code should use /unsubscribe.
+	//
+	// A GET or HEAD never unsubscribes - see redirectOneClickToConfirmation.
 	var req domain.UnsubscribeFromListsRequest
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
 		// Backward-compat shim for the SPA (see above). A link-prefetcher/scanner cannot
@@ -283,8 +291,8 @@ func (h *NotificationCenterHandler) handleUnsubscribeOneClick(w http.ResponseWri
 			return
 		}
 
-		// RFC 8058 (section 3.1): the POST body is application/x-www-form-urlencoded
-		// containing "List-Unsubscribe=One-Click". Requiring that token is the
+		// RFC 8058 (section 3.1): the POST body carries the "List-Unsubscribe=One-Click"
+		// pair (see carriesOneClickToken for its encodings). Requiring that token is the
 		// defense-in-depth against link-prefetchers and security scanners that fire a
 		// bare POST: a conformant one-click request always carries it. We do NOT apply
 		// User-Agent bot detection here - an RFC 8058 POST is always machine-generated
@@ -292,7 +300,7 @@ func (h *NotificationCenterHandler) handleUnsubscribeOneClick(w http.ResponseWri
 		// (the contact stays subscribed while the provider sees success). A missing
 		// token is a real 400, never a silent success. Authorization is the HMAC below.
 		bodyBytes, _ := io.ReadAll(io.LimitReader(r.Body, maxUnsubscribeBodyBytes))
-		if !strings.Contains(string(bodyBytes), "List-Unsubscribe=One-Click") {
+		if !carriesOneClickToken(r.Header.Get("Content-Type"), bodyBytes) {
 			h.logger.WithField("user_agent", r.Header.Get("User-Agent")).
 				Warn("One-click unsubscribe POST missing RFC 8058 List-Unsubscribe=One-Click token")
 			WriteJSONError(w, "Invalid request", http.StatusBadRequest)
@@ -311,6 +319,62 @@ func (h *NotificationCenterHandler) handleUnsubscribeOneClick(w http.ResponseWri
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 	})
+}
+
+// carriesOneClickToken reports whether a one-click POST body carries the RFC 8058
+// "List-Unsubscribe=One-Click" pair. Receivers send it url-encoded (some as text/plain)
+// or, as RFC 8058 section 3.2 prefers, as multipart/form-data, where the pair is split
+// into a part named "List-Unsubscribe" whose content is "One-Click" and the literal
+// "List-Unsubscribe=One-Click" never appears.
+//
+// The multipart body is matched as text rather than parsed: the RFC's own multipart
+// example (section 8.3) declares a boundary its delimiter lines do not use, so a strict
+// parser would reject a receiver that copied it. Text matching is enough here - this
+// check only has to tell a one-click body from a scanner's bare POST, and email_hmac is
+// what authorizes the unsubscribe.
+func carriesOneClickToken(contentType string, body []byte) bool {
+	text := string(body)
+	if strings.Contains(text, "List-Unsubscribe=One-Click") {
+		return true
+	}
+
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	return err == nil && mediaType == "multipart/form-data" &&
+		strings.Contains(text, "List-Unsubscribe") &&
+		strings.Contains(text, "One-Click")
+}
+
+// oneClickConfirmationAction is the notification center action a GET on the one-click
+// URL lands on: the page names the list and unsubscribes only when the visitor clicks.
+const oneClickConfirmationAction = "confirm_unsubscribe"
+
+// redirectOneClickToConfirmation answers a GET or HEAD on the List-Unsubscribe URL. Mail
+// clients open that URL in a browser instead of POSTing whenever they do not offer
+// one-click - RFC 8058 section 4 tells them not to unless a DKIM signature covers both
+// List-Unsubscribe headers - and people open it themselves. Anti-spam software also
+// fetches header URLs on its own (RFC 8058 section 1), so a GET must not unsubscribe
+// anyone: it redirects to the notification center, which asks the visitor to confirm.
+// The redirect is host-relative, keeping the visitor on the domain the email linked to.
+func (h *NotificationCenterHandler) redirectOneClickToConfirmation(w http.ResponseWriter, r *http.Request) {
+	var req domain.UnsubscribeFromListsRequest
+	if err := req.FromOneClickURLParams(r.URL.Query()); err != nil {
+		WriteJSONError(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	params := url.Values{}
+	params.Set("action", oneClickConfirmationAction)
+	params.Set("wid", req.WorkspaceID)
+	params.Set("email", req.Email)
+	params.Set("email_hmac", req.EmailHMAC)
+	// The emitted URL carries exactly one list (BuildTemplateData), and the confirmation
+	// page asks about one list.
+	params.Set("lid", req.ListIDs[0])
+	if req.MessageID != "" {
+		params.Set("mid", req.MessageID)
+	}
+
+	http.Redirect(w, r, "/notification-center?"+params.Encode(), http.StatusSeeOther)
 }
 
 func (h *NotificationCenterHandler) handleHealth(w http.ResponseWriter, r *http.Request) {

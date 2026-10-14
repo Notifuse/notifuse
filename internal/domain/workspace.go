@@ -605,9 +605,14 @@ func (ws *WorkspaceSettings) Validate(passphrase string) error {
 // Note: this falls back to the API endpoint. The blog/public-site origin uses a
 // different fallback (Custom Endpoint URL → Website URL); do not use this method
 // for blog URL composition.
+//
+// The Custom Endpoint URL is stored as typed, so trailing slashes are trimmed here, as
+// API_ENDPOINT's are at boot: every caller appends "/path", and "https://host//path"
+// is answered with a redirect - which a List-Unsubscribe URL must never return
+// (RFC 8058 section 3.1).
 func (ws *WorkspaceSettings) ResolveEndpoint(apiEndpoint string) string {
 	if ws.CustomEndpointURL != nil && *ws.CustomEndpointURL != "" {
-		return *ws.CustomEndpointURL
+		return strings.TrimRight(*ws.CustomEndpointURL, "/")
 	}
 	return apiEndpoint
 }

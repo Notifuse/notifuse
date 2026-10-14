@@ -16,8 +16,10 @@ export function renderWithProviders(
  */
 export function mockURLSearchParams(params: Record<string, string>) {
   const searchParams = new URLSearchParams(params)
-  delete (window as any).location
-  ;(window as any).location = {
+  // Only the fields the app reads; the real Location cannot be assigned in the test DOM
+  const testWindow = window as unknown as { location?: Partial<Location> }
+  delete testWindow.location
+  testWindow.location = {
     search: `?${searchParams.toString()}`,
     href: `http://localhost:3001/?${searchParams.toString()}`,
     origin: 'http://localhost:3001',

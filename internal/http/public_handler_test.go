@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -298,6 +300,8 @@ func TestNotificationCenterHandler_handleSubscribe(t *testing.T) {
 // bot detection: a legitimate caller here is always automated. The request is
 // authorized by the HMAC in the query string; the RFC 8058 "List-Unsubscribe=One-Click"
 // body token is required as defense-in-depth against bare prefetch/scanner POSTs.
+// A GET or HEAD on the same URL (a person, or a scanner, opening the link) never
+// unsubscribes: it lands on the notification center's confirmation.
 func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -311,13 +315,72 @@ func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 	const validQuery = "wid=ws123&email=test%40example.com&email_hmac=deadbeef&lids=list1&mid=msg-1"
 	const oneClickBody = "List-Unsubscribe=One-Click"
 
-	t.Run("rejects non-POST methods", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/unsubscribe-oneclick?"+validQuery, strings.NewReader(oneClickBody))
+	// handlerWithoutExpectations has its own mocks with no expectation set, so any service
+	// call fails the subtest - whatever expectations other subtests leave on the shared mocks.
+	handlerWithoutExpectations := func(t *testing.T) *NotificationCenterHandler {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+		return NewNotificationCenterHandler(mocks.NewMockNotificationCenterService(ctrl),
+			mocks.NewMockListService(ctrl), mockLogger, nil)
+	}
+
+	// A mail client that does not offer one-click opens this URL in a browser, and so do
+	// people; anti-spam software fetches it on its own. None of those may unsubscribe
+	// anyone: the request is redirected to the notification center, which asks the visitor
+	// to confirm.
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		t.Run(method+" redirects to the confirmation page without unsubscribing", func(t *testing.T) {
+			req := httptest.NewRequest(method, "/unsubscribe-oneclick?"+validQuery, nil)
+			rec := httptest.NewRecorder()
+			handlerWithoutExpectations(t).handleUnsubscribeOneClick(rec, req)
+
+			assert.Equal(t, http.StatusSeeOther, rec.Code)
+			location, err := url.Parse(rec.Header().Get("Location"))
+			require.NoError(t, err)
+			assert.Empty(t, location.Host, "host-relative: the visitor stays on the domain the email linked to")
+			assert.Equal(t, "/notification-center", location.Path)
+			assert.Equal(t, url.Values{
+				"action":     {"confirm_unsubscribe"},
+				"wid":        {"ws123"},
+				"email":      {"test@example.com"},
+				"email_hmac": {"deadbeef"},
+				"lid":        {"list1"},
+				"mid":        {"msg-1"},
+			}, location.Query())
+		})
+	}
+
+	t.Run("GET without mid leaves it out of the confirmation URL", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet,
+			"/unsubscribe-oneclick?wid=ws123&email=test%40example.com&email_hmac=deadbeef&lids=list1", nil)
 		rec := httptest.NewRecorder()
-		handler.handleUnsubscribeOneClick(rec, req)
-		assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
-		assert.JSONEq(t, `{"error":"Method not allowed"}`, rec.Body.String())
+		handlerWithoutExpectations(t).handleUnsubscribeOneClick(rec, req)
+
+		assert.Equal(t, http.StatusSeeOther, rec.Code)
+		location, err := url.Parse(rec.Header().Get("Location"))
+		require.NoError(t, err)
+		assert.NotContains(t, location.Query(), "mid")
+		assert.Equal(t, "list1", location.Query().Get("lid"))
 	})
+
+	t.Run("GET on a malformed link is a 400, not a redirect", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/unsubscribe-oneclick?email=test%40example.com", nil)
+		rec := httptest.NewRecorder()
+		handlerWithoutExpectations(t).handleUnsubscribeOneClick(rec, req)
+
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		assert.Empty(t, rec.Header().Get("Location"))
+	})
+
+	for _, method := range []string{http.MethodPut, http.MethodPatch, http.MethodDelete} {
+		t.Run("rejects "+method, func(t *testing.T) {
+			req := httptest.NewRequest(method, "/unsubscribe-oneclick?"+validQuery, strings.NewReader(oneClickBody))
+			rec := httptest.NewRecorder()
+			handler.handleUnsubscribeOneClick(rec, req)
+			assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
+			assert.JSONEq(t, `{"error":"Method not allowed"}`, rec.Body.String())
+		})
+	}
 
 	// The unsubscribe must succeed for ANY User-Agent as long as the RFC 8058 token is
 	// present - including automated callers (curl, Go stdlib, empty UA, even a security
@@ -362,6 +425,38 @@ func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 		})
 	}
 
+	// multipart/form-data is the encoding RFC 8058 section 3.2 says receivers SHOULD use:
+	// the pair arrives as a part named "List-Unsubscribe" whose content is "One-Click", so
+	// the body never contains the literal "List-Unsubscribe=One-Click".
+	t.Run("unsubscribes on an RFC 8058 multipart/form-data POST", func(t *testing.T) {
+		var captured *domain.UnsubscribeFromListsRequest
+		mockListService.EXPECT().
+			UnsubscribeFromLists(gomock.Any(), gomock.Any(), false).
+			DoAndReturn(func(_ context.Context, p *domain.UnsubscribeFromListsRequest, _ bool) error {
+				captured = p
+				return nil
+			})
+
+		var body bytes.Buffer
+		form := multipart.NewWriter(&body)
+		require.NoError(t, form.WriteField("List-Unsubscribe", "One-Click"))
+		require.NoError(t, form.Close())
+
+		req := httptest.NewRequest(http.MethodPost, "/unsubscribe-oneclick?"+validQuery, &body)
+		req.Header.Set("Content-Type", form.FormDataContentType())
+		rec := httptest.NewRecorder()
+		handler.handleUnsubscribeOneClick(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.JSONEq(t, `{"success":true}`, rec.Body.String())
+		require.NotNil(t, captured, "service must be called - the contact must actually be unsubscribed")
+		assert.Equal(t, "ws123", captured.WorkspaceID)
+		assert.Equal(t, "test@example.com", captured.Email)
+		assert.Equal(t, "deadbeef", captured.EmailHMAC)
+		assert.Equal(t, []string{"list1"}, captured.ListIDs)
+		assert.Equal(t, "msg-1", captured.MessageID)
+	})
+
 	// RFC 8058 (section 3.1) requires the body to carry "List-Unsubscribe=One-Click".
 	// A POST without it (a bare prefetch/scanner POST, or empty body) is rejected with
 	// 400 - never a silent 200 that leaves the contact subscribed. The service is never
@@ -369,6 +464,9 @@ func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 	rejectCases := []struct{ name, contentType, body string }{
 		{"empty body", "application/x-www-form-urlencoded", ""},
 		{"wrong token value", "application/x-www-form-urlencoded", "List-Unsubscribe=Two-Click"},
+		{"empty multipart body", "multipart/form-data; boundary=b", ""},
+		{"multipart with the wrong value", "multipart/form-data; boundary=b",
+			"--b\r\nContent-Disposition: form-data; name=\"List-Unsubscribe\"\r\n\r\nTwo-Click\r\n--b--\r\n"},
 	}
 	for _, rc := range rejectCases {
 		t.Run("rejects POST missing the RFC 8058 token: "+rc.name, func(t *testing.T) {
@@ -471,6 +569,43 @@ func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 		assert.JSONEq(t, `{"error":"Failed to unsubscribe from lists"}`, rec.Body.String())
 	})
+}
+
+// TestCarriesOneClickToken pins the RFC 8058 token match across the encodings receivers
+// send, including the RFC's own multipart example (section 8.3), whose delimiter lines
+// do not match its declared boundary, so a strict multipart parser cannot read it.
+func TestCarriesOneClickToken(t *testing.T) {
+	const rfc8058Example = "---FormBoundaryjWmhtjORrn\r\n" +
+		"Content-Disposition: form-data; name=\"List-Unsubscribe\"\r\n\r\n" +
+		"One-Click\r\n" +
+		"---FormBoundaryjWmhtjORrn--\r\n"
+
+	testCases := []struct {
+		name        string
+		contentType string
+		body        string
+		want        bool
+	}{
+		{"url-encoded, RFC 8058 section 8.1", "application/x-www-form-urlencoded", "List-Unsubscribe=One-Click", true},
+		{"text/plain carrying the pair", "text/plain", "List-Unsubscribe=One-Click", true},
+		{"no content type carrying the pair", "", "List-Unsubscribe=One-Click", true},
+		{"multipart, RFC 8058 section 8.3 verbatim", "multipart/form-data; boundary=---FormBoundaryjWmhtjORrn", rfc8058Example, true},
+		{"multipart, unquoted part name", "multipart/form-data; boundary=b",
+			"--b\r\nContent-Disposition: form-data; name=List-Unsubscribe\r\n\r\nOne-Click\r\n--b--\r\n", true},
+		{"empty body", "application/x-www-form-urlencoded", "", false},
+		{"url-encoded, wrong value", "application/x-www-form-urlencoded", "List-Unsubscribe=Two-Click", false},
+		{"multipart, wrong value", "multipart/form-data; boundary=b",
+			"--b\r\nContent-Disposition: form-data; name=\"List-Unsubscribe\"\r\n\r\nTwo-Click\r\n--b--\r\n", false},
+		{"multipart, other part name", "multipart/form-data; boundary=b",
+			"--b\r\nContent-Disposition: form-data; name=\"confirm\"\r\n\r\nOne-Click\r\n--b--\r\n", false},
+		{"split pair outside multipart", "text/plain", "List-Unsubscribe: One-Click", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, carriesOneClickToken(tc.contentType, []byte(tc.body)))
+		})
+	}
 }
 
 func TestNotificationCenterHandler_handleUnsubscribe(t *testing.T) {

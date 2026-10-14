@@ -35,7 +35,8 @@ func postUnsubscribeJSON(baseURL, path string, req domain.UnsubscribeFromListsRe
 // center unsubscribe. Unlike the handler unit tests (which mock ListService), this drives
 // the real HMAC-verifying service against a real database and asserts the contact's
 // contact_lists row actually flips to "unsubscribed". The mail-provider RFC 8058
-// one-click (form-encoded) round trip is covered by TestListUnsubscribeHeaders; this
+// one-click round trip (url-encoded and multipart, plus the GET redirect) is covered by
+// TestListUnsubscribeHeaders; this
 // covers the JSON body that the SPA actually posts - the path that had no full-stack
 // coverage and silently broke when the endpoint was made RFC 8058-strict.
 func TestUnsubscribe_Integration(t *testing.T) {

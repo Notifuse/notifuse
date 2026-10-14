@@ -279,6 +279,32 @@ export const translations: TranslationObject = {
     ru: 'Не удалось отписаться',
     ja: '登録解除に失敗しました',
     pl: 'Nie udało się wypisać'
+  },
+  confirmUnsubscribePrompt: {
+    en: 'Do you want to stop receiving emails from this list?',
+    fr: 'Voulez-vous ne plus recevoir les e-mails de cette liste ?',
+    es: '¿Desea dejar de recibir correos electrónicos de esta lista?',
+    de: 'Möchten Sie keine E-Mails mehr von dieser Liste erhalten?',
+    zh: '您要停止接收此列表的电子邮件吗？',
+    hi: 'क्या आप इस सूची से ईमेल प्राप्त करना बंद करना चाहते हैं?',
+    ar: 'هل تريد التوقف عن تلقي رسائل البريد الإلكتروني من هذه القائمة؟',
+    pt: 'Deseja deixar de receber e-mails desta lista?',
+    ru: 'Вы хотите перестать получать письма из этого списка?',
+    ja: 'このリストからのメールの受信を停止しますか？',
+    pl: 'Czy chcesz przestać otrzymywać e-maile z tej listy?'
+  },
+  alreadyUnsubscribed: {
+    en: 'You are already unsubscribed from this list.',
+    fr: 'Vous êtes déjà désabonné de cette liste.',
+    es: 'Ya se ha dado de baja de esta lista.',
+    de: 'Sie sind von dieser Liste bereits abgemeldet.',
+    zh: '您已取消订阅此列表。',
+    hi: 'आप इस सूची से पहले ही सदस्यता समाप्त कर चुके हैं।',
+    ar: 'لقد ألغيت اشتراكك في هذه القائمة بالفعل.',
+    pt: 'Você já cancelou a assinatura desta lista.',
+    ru: 'Вы уже отписаны от этого списка.',
+    ja: 'このリストの登録はすでに解除されています。',
+    pl: 'Jesteś już wypisany z tej listy.'
   }
 }
 
