@@ -173,6 +173,10 @@
               duplicateId:
                 value:
                   error: Template id already exists
+              deletedTemplateId:
+                summary: The id belongs to a deleted template
+                value:
+                  error: "Template id belongs to a deleted template and cannot be reused: deleted templates are kept so messages already sent with them can still be displayed. Choose another id"
               missingEmail:
                 value:
                   error: "email is required for channel 'email'"
@@ -197,7 +201,11 @@
 /api/templates.update:
   post:
     summary: Update a template
-    description: Updates an existing template. Creates a new version of the template.
+    description: >-
+      Updates an existing template. Creates a new version of the template. The email's
+      `editor_mode` must stay the one the template was created with; to switch between the
+      visual editor and MJML code, create a new template. A deleted template cannot be
+      updated.
     operationId: updateTemplate
     security:
       - BearerAuth: []
@@ -223,6 +231,11 @@
           application/json:
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              editorModeChange:
+                summary: The update is in the other editor mode
+                value:
+                  error: "cannot change editor mode: template was created in 'code' mode and its mode can't be changed; create a new template in 'visual' mode and copy the content with Import or Export MJML"
       '401':
         description: Unauthorized - invalid or missing authentication token
         content:
@@ -230,7 +243,7 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
       '404':
-        description: Template not found
+        description: Template not found, or deleted
         content:
           application/json:
             schema:
@@ -249,7 +262,11 @@
 /api/templates.delete:
   post:
     summary: Delete a template
-    description: Soft-deletes a template. The template will be marked as deleted but not removed from the database.
+    description: >-
+      Soft-deletes a template: it disappears from `templates.list` and can no longer be updated,
+      but every version is kept, because messages already sent (message history, broadcast
+      reports) are rendered from them. `templates.get` still returns it, with `deleted_at` set.
+      Its id stays reserved: creating a template with the same id is refused.
     operationId: deleteTemplate
     security:
       - BearerAuth: []

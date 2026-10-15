@@ -97,11 +97,24 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 		// server error and the author never learns the id is taken.
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
-			return &domain.ErrTemplateExists{Message: "template id already exists"}
+			return &domain.ErrTemplateExists{
+				Message: "template id already exists",
+				Deleted: r.isTemplateDeleted(ctx, workspaceDB, template.ID),
+			}
 		}
 		return fmt.Errorf("failed to create template: %w", err)
 	}
 	return nil
+}
+
+// isTemplateDeleted reports whether the latest version of a template is soft-deleted. It
+// only refines the message of a create that already failed, so a lookup error answers
+// false: the caller still learns the id is taken, just not why.
+func (r *templateRepository) isTemplateDeleted(ctx context.Context, db *sql.DB, id string) bool {
+	var deleted bool
+	err := db.QueryRowContext(ctx,
+		`SELECT deleted_at IS NOT NULL FROM templates WHERE id = $1 ORDER BY version DESC LIMIT 1`, id).Scan(&deleted)
+	return err == nil && deleted
 }
 
 func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID string, id string, version int64) (*domain.Template, error) {
@@ -131,7 +144,8 @@ func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID st
 				settings,
 				translations,
 				created_at,
-				updated_at
+				updated_at,
+				deleted_at
 			FROM templates
 			WHERE id = $1 AND version = $2
 		`
@@ -153,7 +167,8 @@ func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID st
 				settings,
 				translations,
 				created_at,
-				updated_at
+				updated_at,
+				deleted_at
 			FROM templates
 			WHERE id = $1
 			ORDER BY version DESC
@@ -233,6 +248,7 @@ func (r *templateRepository) GetTemplates(ctx context.Context, workspaceID strin
 		"t.translations",
 		"t.created_at",
 		"t.updated_at",
+		"t.deleted_at",
 	).Prefix(latestVersionsCTE).
 		From("templates t").
 		Join("latest_versions lv ON t.id = lv.id AND t.version = lv.max_version").
@@ -399,6 +415,7 @@ func scanTemplate(scanner interface {
 		templateMacroID  sql.NullString
 		integrationID    sql.NullString
 		translationsJSON []byte
+		deletedAt        sql.NullTime
 	)
 
 	err := scanner.Scan(
@@ -416,6 +433,7 @@ func scanTemplate(scanner interface {
 		&translationsJSON,
 		&template.CreatedAt,
 		&template.UpdatedAt,
+		&deletedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -427,6 +445,9 @@ func scanTemplate(scanner interface {
 	}
 	if integrationID.Valid {
 		template.IntegrationID = &integrationID.String
+	}
+	if deletedAt.Valid {
+		template.DeletedAt = &deletedAt.Time
 	}
 
 	// Unmarshal translations JSON, always initialize to empty map for consistency

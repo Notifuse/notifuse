@@ -810,3 +810,129 @@ func TestTemplateConcurrentSaveRace(t *testing.T) {
 	require.NoError(t, json.NewDecoder(getResp.Body).Decode(&getBody))
 	assert.Equal(t, 2, getBody.Template.Version, "exactly one new version should exist after the race")
 }
+
+// TestTemplateIDReuseAndModeLock drives, through the HTTP API, the two refusals #442 ran
+// into: a deleted template's id stays reserved (sent messages render from its versions),
+// and a template's editor mode can't change after creation.
+func TestTemplateIDReuseAndModeLock(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	token := performCompleteSignInFlow(t, client, "test@example.com")
+	client.SetToken(token)
+	workspaceID := createTestWorkspace(t, client, "Template ID Reuse Workspace")
+
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hi</mj-text></mj-column></mj-section></mj-body></mjml>"
+	codePayload := func(id string) map[string]interface{} {
+		return map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           id,
+			"name":         "Reuse Test",
+			"channel":      "email",
+			"category":     "marketing",
+			"email": map[string]interface{}{
+				"editor_mode": "code",
+				"mjml_source": mjmlSrc,
+				"subject":     "Reuse Subject",
+			},
+		}
+	}
+	decode := func(resp *http.Response) map[string]interface{} {
+		defer func() { _ = resp.Body.Close() }()
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		return body
+	}
+	listedIDs := func() []string {
+		resp, err := client.Get("/api/templates.list", map[string]string{"workspace_id": workspaceID})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		var body struct {
+			Templates []struct {
+				ID string `json:"id"`
+			} `json:"templates"`
+		}
+		defer func() { _ = resp.Body.Close() }()
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		ids := make([]string, 0, len(body.Templates))
+		for _, tpl := range body.Templates {
+			ids = append(ids, tpl.ID)
+		}
+		return ids
+	}
+
+	t.Run("deleted template id stays reserved and cannot be updated", func(t *testing.T) {
+		templateID := fmt.Sprintf("del-%d", time.Now().UnixNano())
+
+		createResp, err := client.CreateTemplate(codePayload(templateID))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, createResp.StatusCode)
+		_ = createResp.Body.Close()
+
+		deleteResp, err := client.Post("/api/templates.delete", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           templateID,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, deleteResp.StatusCode)
+		_ = deleteResp.Body.Close()
+
+		assert.NotContains(t, listedIDs(), templateID, "a deleted template is hidden from the list")
+
+		// Still readable, because sent messages are rendered from it, and now says it is deleted.
+		getResp, err := client.Get("/api/templates.get", map[string]string{"workspace_id": workspaceID, "id": templateID})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, getResp.StatusCode)
+		got := decode(getResp)
+		tpl, ok := got["template"].(map[string]interface{})
+		require.True(t, ok, "templates.get must return the template: %v", got)
+		assert.NotEmpty(t, tpl["deleted_at"], "templates.get must report deleted_at for a deleted template")
+
+		// An update used to write a new version with deleted_at NULL and bring it back.
+		updateResp, err := client.Post("/api/templates.update", codePayload(templateID))
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusNotFound, updateResp.StatusCode)
+		_ = updateResp.Body.Close()
+		assert.NotContains(t, listedIDs(), templateID, "a refused update must not bring the template back")
+
+		recreateResp, err := client.CreateTemplate(codePayload(templateID))
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, recreateResp.StatusCode)
+		body := decode(recreateResp)
+		assert.Contains(t, body["error"], "belongs to a deleted template and cannot be reused")
+	})
+
+	t.Run("editor mode change is refused with the way out", func(t *testing.T) {
+		templateID := fmt.Sprintf("mode-%d", time.Now().UnixNano())
+
+		createResp, err := client.CreateTemplate(codePayload(templateID))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, createResp.StatusCode)
+		_ = createResp.Body.Close()
+
+		visual := codePayload(templateID)
+		visual["email"] = map[string]interface{}{
+			"subject": "Reuse Subject",
+			"visual_editor_tree": map[string]interface{}{
+				"id":   "root",
+				"type": "mjml",
+				"children": []interface{}{
+					map[string]interface{}{"id": "body", "type": "mj-body", "children": []interface{}{}},
+				},
+			},
+		}
+		resp, err := client.Post("/api/templates.update", visual)
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		body := decode(resp)
+		assert.Contains(t, body["error"], "cannot change editor mode")
+		assert.Contains(t, body["error"], "create a new template in 'visual' mode")
+	})
+}

@@ -3456,6 +3456,12 @@
                       "error": "Template id already exists"
                     }
                   },
+                  "deletedTemplateId": {
+                    "summary": "The id belongs to a deleted template",
+                    "value": {
+                      "error": "Template id belongs to a deleted template and cannot be reused: deleted templates are kept so messages already sent with them can still be displayed. Choose another id"
+                    }
+                  },
                   "missingEmail": {
                     "value": {
                       "error": "email is required for channel 'email'"
@@ -3499,7 +3505,7 @@
     "/api/templates.update": {
       "post": {
         "summary": "Update a template",
-        "description": "Updates an existing template. Creates a new version of the template.",
+        "description": "Updates an existing template. Creates a new version of the template. The email's `editor_mode` must stay the one the template was created with; to switch between the visual editor and MJML code, create a new template. A deleted template cannot be updated.",
         "operationId": "updateTemplate",
         "security": [
           {
@@ -3538,6 +3544,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "editorModeChange": {
+                    "summary": "The update is in the other editor mode",
+                    "value": {
+                      "error": "cannot change editor mode: template was created in 'code' mode and its mode can't be changed; create a new template in 'visual' mode and copy the content with Import or Export MJML"
+                    }
+                  }
                 }
               }
             }
@@ -3553,7 +3567,7 @@
             }
           },
           "404": {
-            "description": "Template not found",
+            "description": "Template not found, or deleted",
             "content": {
               "application/json": {
                 "schema": {
@@ -3584,7 +3598,7 @@
     "/api/templates.delete": {
       "post": {
         "summary": "Delete a template",
-        "description": "Soft-deletes a template. The template will be marked as deleted but not removed from the database.",
+        "description": "Soft-deletes a template: it disappears from `templates.list` and can no longer be updated, but every version is kept, because messages already sent (message history, broadcast reports) are rendered from them. `templates.get` still returns it, with `deleted_at` set. Its id stays reserved: creating a template with the same id is refused.",
         "operationId": "deleteTemplate",
         "security": [
           {
@@ -9764,7 +9778,7 @@
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "When the template was deleted (null if active)"
+            "description": "When the template was deleted, null while it is active. Deleted templates no longer appear in `templates.list`, but `templates.get` still returns them, because messages already sent are rendered from them."
           }
         },
         "required": [
@@ -9777,6 +9791,20 @@
       "EmailTemplate": {
         "type": "object",
         "properties": {
+          "editor_mode": {
+            "type": "string",
+            "enum": [
+              "visual",
+              "code"
+            ],
+            "default": "visual",
+            "description": "Which editor the email is written in. `visual` stores the drag-and-drop block tree in `visual_editor_tree`; `code` stores raw MJML in `mjml_source`. The mode is set when the template is created and cannot be changed afterwards: an update in the other mode is refused with a 400. To switch, create a new template in the other mode."
+          },
+          "mjml_source": {
+            "type": "string",
+            "description": "Raw MJML source (supports Liquid templating). Required when `editor_mode` is `code`, ignored otherwise.",
+            "example": "<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{ contact.first_name }}</mj-text></mj-column></mj-section></mj-body></mjml>"
+          },
           "sender_id": {
             "type": "string",
             "description": "ID of the sender configuration to use",
@@ -9805,7 +9833,7 @@
           },
           "visual_editor_tree": {
             "type": "object",
-            "description": "MJML visual editor tree structure",
+            "description": "MJML visual editor tree structure. Required when `editor_mode` is `visual` (the default), ignored in `code` mode.",
             "example": {
               "type": "mjml",
               "children": []
@@ -9819,8 +9847,7 @@
         },
         "required": [
           "subject",
-          "compiled_preview",
-          "visual_editor_tree"
+          "compiled_preview"
         ]
       },
       "WebTemplate": {
@@ -10031,10 +10058,10 @@
       },
       "CompileTemplateRequest": {
         "type": "object",
+        "description": "Provide `visual_editor_tree` for a visual-mode template, or `mjml_source` for a code-mode one.",
         "required": [
           "workspace_id",
-          "message_id",
-          "visual_editor_tree"
+          "message_id"
         ],
         "properties": {
           "workspace_id": {
@@ -10051,6 +10078,10 @@
             "type": "object",
             "description": "MJML visual editor tree structure (must have type 'mjml')",
             "additionalProperties": true
+          },
+          "mjml_source": {
+            "type": "string",
+            "description": "Raw MJML source of a code-mode template. When set, it is compiled instead of `visual_editor_tree`."
           },
           "subject": {
             "type": "string",

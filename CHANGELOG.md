@@ -32,6 +32,10 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: `CORS_ALLOW_ORIGIN` now accepts the comma-separated list of origins the documentation describes. The list was sent to browsers as written, which they refuse, so restricting CORS to more than one origin blocked every cross-origin call, including the console and notification center opened on a workspace custom domain. A listed origin is now answered with itself, and any other origin gets no CORS header.
 
+- **Fix**: `templates.update` on a deleted template now answers `404` instead of saving a new version, which put the deleted template back in the template list and every template picker (#442).
+
+- **Improvement**: Creating a template with the ID of a deleted template now says why it is refused (deleted templates keep their ID, so messages already sent with them can still be displayed) instead of a bare "Template id already exists", and `templates.get` returns `deleted_at` for them. The template editor also says up front that the editor mode can't be changed after creation, and an update in the other mode now explains how to switch (#442).
+
 ## [41.0] - 2026-09-17
 
 - **Feature**: Audit logs. Logs → Audit logs shows who did what in a workspace — a member invited, a permission set changed, an API key created, an integration edited, a template saved, a broadcast scheduled, a contact deleted — with the address it came from, the request it belonged to, and whether it succeeded, failed or was refused. The security-sensitive entries carry a before/after of what changed, with every password, secret and key replaced by `[redacted]`; the fact that they changed is kept, the values are not. Failures are recorded too: a sign-in for an unknown address, a wrong or expired code, a request refused by a permission check or by the licence, each with the reason the response deliberately does not give away. What is never recorded is the data plane — contact upserts, sends, tracking, custom events — which belongs in Logs, not in a trail.

@@ -22,6 +22,9 @@ export interface Template {
   translations?: Record<string, TemplateTranslation>
   created_at: string
   updated_at: string
+  // Set on a soft-deleted template: templates.get still returns it (sent messages render
+  // from it) and its id stays reserved.
+  deleted_at?: string
 }
 
 export interface EmailTemplate {

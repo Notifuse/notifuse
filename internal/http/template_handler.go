@@ -127,6 +127,10 @@ func (h *TemplateHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
 		// surfaced as a 500.
 		var exists *domain.ErrTemplateExists
 		if errors.As(err, &exists) {
+			if exists.Deleted {
+				WriteJSONError(w, "Template id belongs to a deleted template and cannot be reused: deleted templates are kept so messages already sent with them can still be displayed. Choose another id", http.StatusBadRequest)
+				return
+			}
 			WriteJSONError(w, "Template id already exists", http.StatusBadRequest)
 			return
 		}

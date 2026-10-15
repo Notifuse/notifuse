@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -1689,12 +1690,18 @@ func testAutomationSegmentTrigger(t *testing.T, factory *testutil.TestDataFactor
 	t.Logf("Segment trigger E2E test passed: automation completed on segment.joined")
 }
 
-// testAutomationDeletionCleanup tests that deleting automation cleans up properly
-// Uses HTTP for automation CRUD and deletion, factory for timeline events (intentional)
+// testAutomationDeletionCleanup tests that deleting an automation cleans up after itself: the
+// automation is soft-deleted, its trigger is dropped so it enrolls nobody new, and a contact
+// still waiting mid-journey is exited rather than left to resume.
+// Uses HTTP for automation CRUD and deletion, factory for timeline events and DB state (intentional)
 func testAutomationDeletionCleanup(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
-	// 1. Create automation via HTTP
+	// 1. Create automation via HTTP. The day-long delay parks the enrolled contact mid-journey
+	// (active, scheduled a day out), which is the state deletion has to clean up. With a
+	// trigger-only automation the scheduler completes the contact within one tick, so there
+	// is nothing active left to exit and the cleanup goes unexercised.
 	automationID := shortuuid.New()
 	triggerNodeID := shortuuid.New()
+	delayNodeID := shortuuid.New()
 
 	createReq := map[string]interface{}{
 		"workspace_id": workspaceID,
@@ -1714,7 +1721,15 @@ func testAutomationDeletionCleanup(t *testing.T, factory *testutil.TestDataFacto
 					"automation_id": automationID,
 					"type":          "trigger",
 					"config":        map[string]interface{}{},
+					"next_node_id":  delayNodeID,
 					"position":      map[string]interface{}{"x": 0, "y": 0},
+				},
+				{
+					"id":            delayNodeID,
+					"automation_id": automationID,
+					"type":          "delay",
+					"config":        map[string]interface{}{"duration": 1, "unit": "days"},
+					"position":      map[string]interface{}{"x": 0, "y": 100},
 				},
 			},
 			"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
@@ -1735,6 +1750,35 @@ func testAutomationDeletionCleanup(t *testing.T, factory *testutil.TestDataFacto
 	require.Equal(t, http.StatusOK, activateResp.StatusCode)
 	activateResp.Body.Close()
 
+	workspaceDB, err := factory.GetWorkspaceDB(workspaceID)
+	require.NoError(t, err)
+
+	// PostgreSQL folds unquoted identifiers to lower case, so the catalog name is the
+	// lower-cased form of the mixed-case shortuuid used in the CREATE TRIGGER DDL.
+	triggerName := strings.ToLower("automation_trigger_" + strings.ReplaceAll(automationID, "-", ""))
+	triggerInstalled := func(t *testing.T) bool {
+		var installed bool
+		require.NoError(t, workspaceDB.QueryRowContext(context.Background(), `
+			SELECT EXISTS (
+				SELECT 1 FROM pg_trigger
+				WHERE tgrelid = to_regclass('contact_timeline')
+				  AND NOT tgisinternal
+				  AND tgname = $1
+			)`, triggerName).Scan(&installed))
+		return installed
+	}
+	functionInstalled := func(t *testing.T) bool {
+		var installed bool
+		require.NoError(t, workspaceDB.QueryRowContext(context.Background(),
+			`SELECT EXISTS (SELECT 1 FROM pg_proc WHERE proname = $1)`, triggerName).Scan(&installed))
+		return installed
+	}
+
+	// Positive control for the post-deletion checks: without it a wrong catalog name would
+	// make "the trigger is gone" pass vacuously.
+	require.True(t, triggerInstalled(t), "activation should install trigger %s", triggerName)
+	require.True(t, functionInstalled(t), "activation should install trigger function %s", triggerName)
+
 	// 3. Create contact via HTTP
 	email := "delete-test-e2e@example.com"
 	contactResp, err := client.CreateContact(map[string]interface{}{
@@ -1749,12 +1793,31 @@ func testAutomationDeletionCleanup(t *testing.T, factory *testutil.TestDataFacto
 	err = factory.CreateCustomEvent(workspaceID, email, "delete_test_event_e2e", nil)
 	require.NoError(t, err)
 
+	// The trigger enrolls inside the very insert that records the event. Pinned here because
+	// the post-deletion enrollment check relies on it to read an absence without waiting.
+	_, err = factory.GetContactAutomation(workspaceID, automationID, email)
+	require.NoError(t, err, "enrollment should be committed together with the triggering event")
+
 	// 5. Wait for enrollment via HTTP
 	caMap := waitForEnrollmentViaAPI(t, client, automationID, email, 2*time.Second)
 	require.NotNil(t, caMap)
 	assert.Equal(t, "active", caMap["status"])
 
-	// 6. Delete automation via HTTP API (use new client method)
+	// 6. Wait for the scheduler to run the contact through the delay node. Deleting before
+	// it has would race the scheduler's own write to the same row.
+	var parked *domain.ContactAutomation
+	testutil.WaitForCondition(t, func() bool {
+		ca, getErr := factory.GetContactAutomation(workspaceID, automationID, email)
+		if getErr != nil || ca == nil {
+			return false
+		}
+		parked = ca
+		return ca.Status == domain.ContactAutomationStatusActive &&
+			ca.ScheduledAt != nil && ca.ScheduledAt.After(time.Now().Add(time.Hour))
+	}, 10*time.Second, "waiting for scheduler to park the contact on the delay node")
+	t.Logf("Contact parked mid-journey, scheduled for %v", parked.ScheduledAt)
+
+	// 7. Delete automation via HTTP API
 	deleteResp, err := client.DeleteAutomation(map[string]interface{}{
 		"workspace_id":  workspaceID,
 		"automation_id": automationID,
@@ -1763,38 +1826,52 @@ func testAutomationDeletionCleanup(t *testing.T, factory *testutil.TestDataFacto
 	require.Equal(t, http.StatusOK, deleteResp.StatusCode)
 	deleteResp.Body.Close()
 
-	// 7. Verify via HTTP: automation should return 404 or error (not 200)
+	// 8. Verify via HTTP: automation should return 404 or error (not 200)
 	getResp, err := client.GetAutomation(automationID)
 	require.NoError(t, err)
 	// Soft-deleted automation should NOT return 200 OK - it should be 404 or 500
 	require.NotEqual(t, http.StatusOK, getResp.StatusCode, "Deleted automation should not return 200 OK")
 	getResp.Body.Close()
 
-	// 8. Verify via factory: automation has deleted_at set
-	workspaceDB, err := factory.GetWorkspaceDB(workspaceID)
-	require.NoError(t, err)
+	// 9. Verify via factory: automation is soft-deleted, not removed
 	var deletedAt sql.NullTime
 	err = workspaceDB.QueryRowContext(context.Background(),
 		`SELECT deleted_at FROM automations WHERE id = $1`,
 		automationID,
 	).Scan(&deletedAt)
-	require.NoError(t, err)
+	require.NoError(t, err, "soft delete must keep the automation row")
+	assert.True(t, deletedAt.Valid, "Delete should set deleted_at")
 
-	if !deletedAt.Valid {
-		addBug("TestAutomation_DeletionCleanup",
-			"Automation not soft-deleted after Delete API call",
-			"High", "Delete not setting deleted_at",
-			"internal/repository/automation_postgres.go:Delete")
-	}
+	// 10. Verify: the trigger and its function are dropped, so contact_timeline inserts no
+	// longer run code for an automation that no longer exists
+	assert.False(t, triggerInstalled(t), "Delete should drop trigger %s", triggerName)
+	assert.False(t, functionInstalled(t), "Delete should drop trigger function %s", triggerName)
 
-	// 9. Verify: active contacts should be marked as exited (factory - no HTTP API)
+	// 11. Verify: the contact waiting on the delay is exited and unscheduled, so it never resumes
 	caAfter, err := factory.GetContactAutomation(workspaceID, automationID, email)
-	if err == nil && caAfter.Status == domain.ContactAutomationStatusActive {
-		addBug("TestAutomation_DeletionCleanup",
-			"Active contact not marked as exited after automation deletion",
-			"Medium", "Delete not updating contact_automations",
-			"internal/repository/automation_postgres.go:Delete")
+	require.NoError(t, err)
+	assert.Equal(t, domain.ContactAutomationStatusExited, caAfter.Status,
+		"a contact still mid-journey should be exited when its automation is deleted")
+	if assert.NotNil(t, caAfter.ExitReason, "exit_reason should record why the contact left") {
+		assert.Equal(t, "automation_deleted", *caAfter.ExitReason)
 	}
+	assert.Nil(t, caAfter.ScheduledAt, "an exited contact must not stay scheduled")
+
+	// 12. Verify: the deleted automation enrolls nobody new. Enrollment is synchronous with
+	// the event insert (pinned in step 4), so its absence can be read straight away.
+	lateEmail := "delete-test-late-e2e@example.com"
+	lateContactResp, err := client.CreateContact(map[string]interface{}{
+		"workspace_id": workspaceID,
+		"contact":      map[string]interface{}{"email": lateEmail},
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, lateContactResp.StatusCode, "Contact creation should succeed")
+	lateContactResp.Body.Close()
+
+	err = factory.CreateCustomEvent(workspaceID, lateEmail, "delete_test_event_e2e", nil)
+	require.NoError(t, err)
+	_, err = factory.GetContactAutomation(workspaceID, automationID, lateEmail)
+	assert.ErrorIs(t, err, sql.ErrNoRows, "a deleted automation must not enroll contacts")
 
 	t.Logf("Deletion cleanup E2E test passed")
 }

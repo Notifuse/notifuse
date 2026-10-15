@@ -925,6 +925,35 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to update template")
 		assert.ErrorIs(t, err, repoErr)
 	})
+
+	// GetTemplateByID returns soft-deleted templates too. Saving a version on top of one
+	// would write it with deleted_at NULL and bring the template back into every list.
+	t.Run("Deleted template is not found and never written", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		templateService, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		templateToUpdate := *updatedTemplateData // Use a copy
+
+		deletedAt := time.Now().Add(-10 * time.Minute).UTC()
+		deletedTemplate := *existingTemplate
+		deletedTemplate.DeletedAt = &deletedAt
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(&deletedTemplate, nil)
+		// No UpdateTemplate expectation: gomock fails the test if the service writes.
+
+		err := templateService.UpdateTemplate(ctx, workspaceID, &templateToUpdate)
+
+		var notFound *domain.ErrTemplateNotFound
+		require.ErrorAs(t, err, &notFound)
+	})
 }
 
 func TestTemplateService_DeleteTemplate(t *testing.T) {
@@ -1534,8 +1563,11 @@ func TestTemplateService_UpdateTemplate_CodeMode(t *testing.T) {
 		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(existingVisualTemplate, nil)
 
 		err := templateService.UpdateTemplate(ctx, workspaceID, templateToUpdate)
-		assert.Error(t, err)
+		var modeErr *domain.ErrEditorModeChange
+		require.ErrorAs(t, err, &modeErr)
 		assert.Contains(t, err.Error(), "cannot change editor mode")
+		// The API caller is told how to get the other mode, not just that it is refused.
+		assert.Contains(t, err.Error(), "create a new template in 'code' mode")
 	})
 
 	t.Run("Fails - switch from code to visual", func(t *testing.T) {
@@ -1575,6 +1607,7 @@ func TestTemplateService_UpdateTemplate_CodeMode(t *testing.T) {
 		err := templateService.UpdateTemplate(ctx, workspaceID, templateToUpdate)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "cannot change editor mode")
+		assert.Contains(t, err.Error(), "create a new template in 'visual' mode")
 	})
 }
 

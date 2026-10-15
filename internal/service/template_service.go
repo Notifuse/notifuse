@@ -347,6 +347,13 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string
 		return fmt.Errorf("failed to check if template exists: %w", err)
 	}
 
+	// GetTemplateByID still returns soft-deleted templates, because sent messages are rendered
+	// from them. Saving a new version here would write it with deleted_at NULL and bring the
+	// template back into every list and picker.
+	if existingTemplate.DeletedAt != nil {
+		return &domain.ErrTemplateNotFound{Message: "template not found"}
+	}
+
 	// The client's base revision (the version its edit was based on) rides in on
 	// template.Version. 0 (unset) preserves legacy last-writer-wins behavior.
 	baseVersion := template.Version
@@ -410,7 +417,7 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string
 			newMode = domain.EditorModeVisual
 		}
 		if existingMode != newMode {
-			return &domain.ErrEditorModeChange{Message: fmt.Sprintf("cannot change editor mode: template was created in '%s' mode", existingMode)}
+			return &domain.ErrEditorModeChange{Message: fmt.Sprintf("cannot change editor mode: template was created in '%s' mode and its mode can't be changed; create a new template in '%s' mode and copy the content with Import or Export MJML", existingMode, newMode)}
 		}
 	}
 

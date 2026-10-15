@@ -86,7 +86,10 @@ Template:
       type: string
       format: date-time
       nullable: true
-      description: When the template was deleted (null if active)
+      description: >-
+        When the template was deleted, null while it is active. Deleted templates no longer
+        appear in `templates.list`, but `templates.get` still returns them, because messages
+        already sent are rendered from them.
   required:
     - id
     - name
@@ -96,6 +99,23 @@ Template:
 EmailTemplate:
   type: object
   properties:
+    editor_mode:
+      type: string
+      enum:
+        - visual
+        - code
+      default: visual
+      description: >-
+        Which editor the email is written in. `visual` stores the drag-and-drop block tree in
+        `visual_editor_tree`; `code` stores raw MJML in `mjml_source`. The mode is set when the
+        template is created and cannot be changed afterwards: an update in the other mode is
+        refused with a 400. To switch, create a new template in the other mode.
+    mjml_source:
+      type: string
+      description: >-
+        Raw MJML source (supports Liquid templating). Required when `editor_mode` is `code`,
+        ignored otherwise.
+      example: <mjml><mj-body><mj-section><mj-column><mj-text>Hello {{ contact.first_name }}</mj-text></mj-column></mj-section></mj-body></mjml>
     sender_id:
       type: string
       description: ID of the sender configuration to use
@@ -119,7 +139,9 @@ EmailTemplate:
       description: Compiled HTML preview of the email
     visual_editor_tree:
       type: object
-      description: MJML visual editor tree structure
+      description: >-
+        MJML visual editor tree structure. Required when `editor_mode` is `visual` (the
+        default), ignored in `code` mode.
       example:
         type: mjml
         children: []
@@ -130,7 +152,6 @@ EmailTemplate:
   required:
     - subject
     - compiled_preview
-    - visual_editor_tree
 
 WebTemplate:
   type: object
@@ -318,10 +339,10 @@ DeleteTemplateRequest:
 
 CompileTemplateRequest:
   type: object
+  description: Provide `visual_editor_tree` for a visual-mode template, or `mjml_source` for a code-mode one.
   required:
     - workspace_id
     - message_id
-    - visual_editor_tree
   properties:
     workspace_id:
       type: string
@@ -335,6 +356,11 @@ CompileTemplateRequest:
       type: object
       description: MJML visual editor tree structure (must have type 'mjml')
       additionalProperties: true
+    mjml_source:
+      type: string
+      description: >-
+        Raw MJML source of a code-mode template. When set, it is compiled instead of
+        `visual_editor_tree`.
     subject:
       type: string
       description: |

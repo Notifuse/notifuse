@@ -926,8 +926,14 @@ func (e *ErrTemplateNotFound) Error() string {
 // primary key (id, version). Creation always writes version 1, so this means the id
 // is taken. The handler turns it into a 400 naming the id; without it the caller gets
 // a 500 and no way to learn the id is already in use.
+//
+// Deleted reports that the id belongs to a soft-deleted template. Deletion keeps every
+// version, because messages already sent are rendered from them, so the id stays taken;
+// without saying so the author deletes a template, re-creates it and is told the id is
+// in use by a template no list shows.
 type ErrTemplateExists struct {
 	Message string
+	Deleted bool
 }
 
 func (e *ErrTemplateExists) Error() string {

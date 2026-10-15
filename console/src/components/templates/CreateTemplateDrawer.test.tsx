@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App as AntApp } from 'antd'
@@ -181,5 +181,69 @@ describe('CreateTemplateDrawer AI assistant context', () => {
         'marketing'
       )
     })
+  })
+})
+
+describe('CreateTemplateDrawer template ID and editor mode', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  async function typeTemplateId(id: string) {
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} />)
+    await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await userEvent.type(screen.getByPlaceholderText('i.e: welcome-email'), id)
+  }
+
+  // A deleted template keeps its id (sent messages render from it) and no list shows it,
+  // so "already exists" alone leaves the author hunting for a template they deleted.
+  it('says an id belongs to a deleted template', async () => {
+    ;(templatesApi.get as Mock).mockResolvedValue({
+      template: { ...makeTemplate(2), deleted_at: '2026-09-27T13:00:00Z' }
+    })
+
+    await typeTemplateId('tmpl1')
+
+    expect(
+      await screen.findByText("This ID belongs to a deleted template and can't be reused")
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Template ID already exists')).not.toBeInTheDocument()
+  })
+
+  it('keeps the plain message for an id taken by a live template', async () => {
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: makeTemplate(2) })
+
+    await typeTemplateId('tmpl1')
+
+    expect(await screen.findByText('Template ID already exists')).toBeInTheDocument()
+    expect(
+      screen.queryByText("This ID belongs to a deleted template and can't be reused")
+    ).not.toBeInTheDocument()
+  })
+
+  it('accepts an id the server does not know', async () => {
+    ;(templatesApi.get as Mock).mockRejectedValue(new Error('Template not found'))
+
+    await typeTemplateId('fresh-id')
+
+    await waitFor(() => expect(templatesApi.get).toHaveBeenCalled())
+    expect(screen.queryByText('Template ID already exists')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText("This ID belongs to a deleted template and can't be reused")
+    ).not.toBeInTheDocument()
+  })
+
+  // The mode is locked once saved; the field's help says so, and how to switch anyway.
+  it('explains in the editor mode help that the mode is permanent', async () => {
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} />)
+    await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+
+    const label = screen.getByText('Editor mode').closest('label')
+    expect(label).not.toBeNull()
+    await userEvent.hover(within(label as HTMLElement).getByRole('img', { name: 'question-circle' }))
+
+    expect(
+      await screen.findByText(/The editor mode can't be changed after the template is created/)
+    ).toBeInTheDocument()
   })
 })

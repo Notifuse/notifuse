@@ -453,6 +453,25 @@ func TestTemplateHandler_HandleCreate_DuplicateID(t *testing.T) {
 		assert.Equal(t, "Template id already exists", body["error"])
 	})
 
+	// A deleted template keeps its id, and no list shows it any more: the author has to be
+	// told why the id is taken, or they delete again and retry forever.
+	t.Run("id of a deleted template answers 400 explaining why", func(t *testing.T) {
+		mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+		defer cleanup()
+
+		mockService.EXPECT().CreateTemplate(gomock.Any(), "workspace123", gomock.Any()).
+			Return(fmt.Errorf("failed to create template: %w", &domain.ErrTemplateExists{Message: "template id already exists", Deleted: true}))
+
+		resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.create", serverURL), createTestToken(secretKey), validRequest)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		var body map[string]string
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		assert.Contains(t, body["error"], "belongs to a deleted template and cannot be reused")
+		assert.Contains(t, body["error"], "messages already sent")
+	})
+
 	// The contrast that gives the test its teeth: anything else is still an outage, so the
 	// author is not told to rename a template when the database was unreachable.
 	t.Run("any other failure stays a 500", func(t *testing.T) {

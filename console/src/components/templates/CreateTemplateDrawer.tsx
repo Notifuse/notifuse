@@ -827,12 +827,19 @@ export function CreateTemplateDrawer({
                           {
                             validator: async (_rule, value) => {
                               if (value && !template) {
+                                let existing: { template?: Template } | undefined
                                 try {
-                                  await templatesApi.get({ workspace_id: workspace.id, id: value })
-                                  return Promise.reject(t`Template ID already exists`)
+                                  existing = await templatesApi.get({ workspace_id: workspace.id, id: value })
                                 } catch {
                                   return Promise.resolve()
                                 }
+                                // A deleted template keeps its id and no list shows it, so
+                                // "already exists" alone sends the author looking for it.
+                                return Promise.reject(
+                                  existing?.template?.deleted_at
+                                    ? t`This ID belongs to a deleted template and can't be reused`
+                                    : t`Template ID already exists`
+                                )
                               }
                               return Promise.resolve()
                             }
@@ -888,7 +895,10 @@ export function CreateTemplateDrawer({
                       </Form.Item>
                     </Col>
                     <Col span={6}>
-                      <Form.Item label={t`Editor mode`}>
+                      <Form.Item
+                        label={t`Editor mode`}
+                        tooltip={t`The editor mode can't be changed after the template is created. To use the other editor, create a new template and copy the content with Import MJML or Export MJML.`}
+                      >
                         <Radio.Group
                           value={editorMode}
                           onChange={(e) => setEditorMode(e.target.value as 'visual' | 'code')}
