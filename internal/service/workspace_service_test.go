@@ -3598,8 +3598,8 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 			}, nil)
 
 		// User doesn't exist, should create new user
-		mockUserService.EXPECT().
-			GetUserByEmail(context.Background(), email).
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(context.Background(), email).
 			Return(nil, &domain.ErrUserNotFound{Message: "user not found"})
 
 		// Mock user creation
@@ -3636,7 +3636,7 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 
 		// Mock invitation deletion
 		mockRepo.EXPECT().
-			DeleteInvitation(context.Background(), invitationID).
+			DeleteInvitationByEmail(context.Background(), workspaceID, email).
 			Return(nil)
 
 		// Mock logger calls
@@ -3691,8 +3691,8 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 			}, nil)
 
 		// User exists
-		mockUserService.EXPECT().
-			GetUserByEmail(context.Background(), email).
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(context.Background(), email).
 			Return(existingUser, nil)
 
 		// Check if user is already a member (not a member)
@@ -3726,7 +3726,7 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 
 		// Mock invitation deletion
 		mockRepo.EXPECT().
-			DeleteInvitation(context.Background(), invitationID).
+			DeleteInvitationByEmail(context.Background(), workspaceID, email).
 			Return(nil)
 
 		// Mock logger call
@@ -3772,8 +3772,8 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 			}, nil)
 
 		// User exists
-		mockUserService.EXPECT().
-			GetUserByEmail(context.Background(), email).
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(context.Background(), email).
 			Return(existingUser, nil)
 
 		// Check if user is already a member (is a member)
@@ -3783,7 +3783,7 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 
 		// Mock invitation deletion (cleanup)
 		mockRepo.EXPECT().
-			DeleteInvitation(context.Background(), invitationID).
+			DeleteInvitationByEmail(context.Background(), workspaceID, email).
 			Return(nil)
 
 		// Mock logger calls
@@ -3818,8 +3818,8 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 			}, nil)
 
 		// User doesn't exist, should create new user but fails
-		mockUserService.EXPECT().
-			GetUserByEmail(context.Background(), email).
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(context.Background(), email).
 			Return(nil, &domain.ErrUserNotFound{Message: "user not found"})
 
 		// Mock user creation failure
@@ -3864,8 +3864,8 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 			}, nil)
 
 		// User exists
-		mockUserService.EXPECT().
-			GetUserByEmail(context.Background(), email).
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(context.Background(), email).
 			Return(existingUser, nil)
 
 		// Check if user is already a member (not a member)
@@ -3918,8 +3918,8 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 			}, nil)
 
 		// User exists
-		mockUserService.EXPECT().
-			GetUserByEmail(context.Background(), email).
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(context.Background(), email).
 			Return(existingUser, nil)
 
 		// Check if user is already a member (not a member)
@@ -3948,7 +3948,7 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 
 		// Mock invitation deletion failure (should not fail the main operation)
 		mockRepo.EXPECT().
-			DeleteInvitation(context.Background(), invitationID).
+			DeleteInvitationByEmail(context.Background(), workspaceID, email).
 			Return(errors.New("deletion failed"))
 
 		// Mock logger calls for deletion failure
@@ -4481,7 +4481,7 @@ func TestWorkspaceService_InviteMember_TeamMemberLimit(t *testing.T) {
 		*mocks.MockWorkspaceRepository,
 		*mocks.MockUserServiceInterface,
 		*mocks.MockAuthService,
-		*pkgmocks.MockLogger,
+		*mocks.MockUserRepository,
 	) {
 		ctrl := gomock.NewController(t)
 		mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
@@ -4509,7 +4509,7 @@ func TestWorkspaceService_InviteMember_TeamMemberLimit(t *testing.T) {
 			"secret_key", &SupabaseService{}, &DNSVerificationService{}, &BlogService{},
 			fullyLicensedProvider(ctrl),
 		)
-		return service, mockRepo, mockUserService, mockAuthService, mockLogger
+		return service, mockRepo, mockUserService, mockAuthService, mockUserRepo
 	}
 
 	t.Run("limit reached", func(t *testing.T) {
@@ -4522,8 +4522,10 @@ func TestWorkspaceService_InviteMember_TeamMemberLimit(t *testing.T) {
 		mockRepo.EXPECT().
 			GetByID(gomock.Any(), workspaceID).
 			Return(&domain.Workspace{ID: workspaceID}, nil)
+		// The count leaves out the invitee's own pending invitation (a resend reuses its
+		// seat); the database applies that exclusion, so the email must be passed through.
 		mockRepo.EXPECT().
-			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID).
+			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID, email).
 			Return(3, nil)
 
 		_, _, err := service.InviteMember(context.Background(), workspaceID, email, domain.UserPermissions{})
@@ -4535,8 +4537,33 @@ func TestWorkspaceService_InviteMember_TeamMemberLimit(t *testing.T) {
 		assert.Equal(t, 3, limitErr.Current)
 	})
 
-	t.Run("under limit", func(t *testing.T) {
-		service, mockRepo, mockUserService, mockAuthService, _ := setupService(t, 3)
+	t.Run("over the limit", func(t *testing.T) {
+		service, mockRepo, _, mockAuthService, _ := setupService(t, 3)
+
+		inviter := &domain.User{ID: inviterID}
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(context.Background(), inviter, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
+		mockRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(&domain.Workspace{ID: workspaceID}, nil)
+		// A cap lowered below the seats already held: refused, even for a resend.
+		mockRepo.EXPECT().
+			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID, email).
+			Return(4, nil)
+
+		_, _, err := service.InviteMember(context.Background(), workspaceID, email, domain.UserPermissions{})
+		require.Error(t, err)
+
+		var limitErr *domain.ErrTeamMemberLimitReached
+		require.True(t, errors.As(err, &limitErr))
+		assert.Equal(t, 4, limitErr.Current)
+	})
+
+	// An address can hold an account and no invitation for this workspace — the account came
+	// from another workspace's invitation, or from SSO. Inviting it seats the account directly.
+	t.Run("an existing account with no invitation waiting is seated", func(t *testing.T) {
+		service, mockRepo, mockUserService, mockAuthService, mockUserRepo := setupService(t, 3)
 
 		inviter := &domain.User{ID: inviterID}
 		mockAuthService.EXPECT().
@@ -4546,16 +4573,138 @@ func TestWorkspaceService_InviteMember_TeamMemberLimit(t *testing.T) {
 			GetByID(gomock.Any(), workspaceID).
 			Return(&domain.Workspace{ID: workspaceID}, nil)
 		mockRepo.EXPECT().
-			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID).
+			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID, email).
+			Return(2, nil)
+		mockUserService.EXPECT().
+			GetUserByID(gomock.Any(), inviterID).
+			Return(&domain.User{ID: inviterID, Name: "Inviter"}, nil)
+		mockRepo.EXPECT().
+			GetInvitationByEmail(gomock.Any(), workspaceID, email).
+			Return(nil, domain.ErrInvitationNotFound)
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(gomock.Any(), email).
+			Return(&domain.User{ID: "existing-user", Email: email}, nil)
+		mockRepo.EXPECT().
+			IsUserWorkspaceMember(gomock.Any(), "existing-user", workspaceID).
+			Return(false, nil)
+		mockRepo.EXPECT().
+			AddUserToWorkspace(gomock.Any(), gomock.Any()).
+			Return(nil)
+
+		invitation, token, err := service.InviteMember(context.Background(), workspaceID, email, domain.UserPermissions{})
+		require.NoError(t, err)
+		assert.Nil(t, invitation)
+		assert.Empty(t, token)
+	})
+
+	// An invitee who signed in with SSO before joining has an account AND a pending
+	// invitation. The owner's Resend sends the invitation again — it must not seat them:
+	// joining is theirs to do.
+	t.Run("an existing account with its invitation pending is sent it again, not seated", func(t *testing.T) {
+		service, mockRepo, mockUserService, mockAuthService, mockUserRepo := setupService(t, 3)
+
+		inviter := &domain.User{ID: inviterID}
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(context.Background(), inviter, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
+		mockRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(&domain.Workspace{ID: workspaceID}, nil)
+		mockRepo.EXPECT().
+			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID, email).
+			Return(2, nil)
+		mockUserService.EXPECT().
+			GetUserByID(gomock.Any(), inviterID).
+			Return(&domain.User{ID: inviterID, Name: "Inviter"}, nil)
+		mockRepo.EXPECT().
+			GetInvitationByEmail(gomock.Any(), workspaceID, email).
+			Return(&domain.WorkspaceInvitation{ID: "pending-inv", WorkspaceID: workspaceID, Email: email, ExpiresAt: time.Now().UTC().Add(time.Hour)}, nil)
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(gomock.Any(), email).
+			Return(&domain.User{ID: "sso-invitee", Email: email}, nil)
+		mockRepo.EXPECT().
+			IsUserWorkspaceMember(gomock.Any(), "sso-invitee", workspaceID).
+			Return(false, nil)
+		// No AddUserToWorkspace: the invitation is refreshed instead.
+		mockRepo.EXPECT().
+			CreateInvitation(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, inv *domain.WorkspaceInvitation) error {
+				inv.ID = "pending-inv"
+				return nil
+			})
+		mockAuthService.EXPECT().
+			GenerateInvitationToken(gomock.Any()).
+			Return("resent-token")
+
+		invitation, token, err := service.InviteMember(context.Background(), workspaceID, email, domain.UserPermissions{})
+		require.NoError(t, err)
+		require.NotNil(t, invitation)
+		assert.Equal(t, "pending-inv", invitation.ID)
+		assert.Equal(t, "resent-token", token)
+	})
+
+	// The upsert keys on the exact spelling: re-inviting "NewUser@Example.com" next to a
+	// pending "newuser@example.com" must refresh that row, not add a second seat-holding one.
+	t.Run("a re-invite in another case reuses the pending invitation's spelling", func(t *testing.T) {
+		service, mockRepo, mockUserService, mockAuthService, mockUserRepo := setupService(t, 3)
+
+		inviter := &domain.User{ID: inviterID}
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(context.Background(), inviter, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
+		mockRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(&domain.Workspace{ID: workspaceID}, nil)
+		mockRepo.EXPECT().
+			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID, "NewUser@Example.com").
+			Return(2, nil)
+		mockUserService.EXPECT().
+			GetUserByID(gomock.Any(), inviterID).
+			Return(&domain.User{ID: inviterID, Name: "Inviter"}, nil)
+		mockRepo.EXPECT().
+			GetInvitationByEmail(gomock.Any(), workspaceID, "NewUser@Example.com").
+			Return(&domain.WorkspaceInvitation{ID: "pending-inv", WorkspaceID: workspaceID, Email: email, ExpiresAt: time.Now().UTC().Add(time.Hour)}, nil)
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(gomock.Any(), email).
+			Return(nil, &domain.ErrUserNotFound{})
+		mockRepo.EXPECT().
+			CreateInvitation(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, inv *domain.WorkspaceInvitation) error {
+				assert.Equal(t, email, inv.Email, "the pending row's spelling, so the upsert hits it")
+				return nil
+			})
+		mockAuthService.EXPECT().
+			GenerateInvitationToken(gomock.Any()).
+			Return("token")
+
+		_, _, err := service.InviteMember(context.Background(), workspaceID, "NewUser@Example.com", domain.UserPermissions{})
+		require.NoError(t, err)
+	})
+
+	t.Run("under limit", func(t *testing.T) {
+		service, mockRepo, mockUserService, mockAuthService, mockUserRepo := setupService(t, 3)
+
+		inviter := &domain.User{ID: inviterID}
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(context.Background(), inviter, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
+		mockRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(&domain.Workspace{ID: workspaceID}, nil)
+		mockRepo.EXPECT().
+			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID, email).
 			Return(2, nil)
 
 		// After limit check passes, the flow continues — mock the user lookup
 		mockUserService.EXPECT().
 			GetUserByID(gomock.Any(), inviterID).
 			Return(&domain.User{ID: inviterID, Name: "Inviter"}, nil)
-		mockUserService.EXPECT().
-			GetUserByEmail(gomock.Any(), email).
-			Return(nil, fmt.Errorf("user not found"))
+		mockRepo.EXPECT().
+			GetInvitationByEmail(gomock.Any(), workspaceID, email).
+			Return(nil, domain.ErrInvitationNotFound)
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(gomock.Any(), email).
+			Return(nil, &domain.ErrUserNotFound{})
 
 		// User doesn't exist → invitation created
 		mockRepo.EXPECT().
@@ -4570,7 +4719,7 @@ func TestWorkspaceService_InviteMember_TeamMemberLimit(t *testing.T) {
 	})
 
 	t.Run("unlimited when MaxUsers is zero", func(t *testing.T) {
-		service, mockRepo, mockUserService, mockAuthService, _ := setupService(t, 0)
+		service, mockRepo, mockUserService, mockAuthService, mockUserRepo := setupService(t, 0)
 
 		inviter := &domain.User{ID: inviterID}
 		mockAuthService.EXPECT().
@@ -4586,9 +4735,12 @@ func TestWorkspaceService_InviteMember_TeamMemberLimit(t *testing.T) {
 		mockUserService.EXPECT().
 			GetUserByID(gomock.Any(), inviterID).
 			Return(&domain.User{ID: inviterID, Name: "Inviter"}, nil)
-		mockUserService.EXPECT().
-			GetUserByEmail(gomock.Any(), email).
-			Return(nil, fmt.Errorf("user not found"))
+		mockRepo.EXPECT().
+			GetInvitationByEmail(gomock.Any(), workspaceID, email).
+			Return(nil, domain.ErrInvitationNotFound)
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(gomock.Any(), email).
+			Return(nil, &domain.ErrUserNotFound{})
 		mockRepo.EXPECT().
 			CreateInvitation(gomock.Any(), gomock.Any()).
 			Return(nil)
@@ -4644,9 +4796,9 @@ func TestWorkspaceService_AcceptInvitation_TeamMemberLimit(t *testing.T) {
 	}
 
 	t.Run("limit reached on accept", func(t *testing.T) {
-		// MaxUsers=3, count returns 4 (3 members + 1 invitation including the one being accepted).
-		// The code subtracts 1 for the current invitation, so effective count = 3 >= limit 3 → blocked.
-		service, mockRepo, mockUserService, _, _ := setupService(t, 3)
+		// MaxUsers=3, and the other members and invitations already hold 3 seats — the count
+		// leaves out the invitation being accepted — so accepting would exceed the limit.
+		service, mockRepo, _, mockUserRepo, _ := setupService(t, 3)
 
 		mockRepo.EXPECT().
 			GetInvitationByID(gomock.Any(), invitationID).
@@ -4658,15 +4810,15 @@ func TestWorkspaceService_AcceptInvitation_TeamMemberLimit(t *testing.T) {
 			}, nil)
 
 		// Existing user
-		mockUserService.EXPECT().
-			GetUserByEmail(gomock.Any(), email).
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(gomock.Any(), email).
 			Return(&domain.User{ID: "user-123", Email: email}, nil)
 		mockRepo.EXPECT().
 			IsUserWorkspaceMember(gomock.Any(), "user-123", workspaceID).
 			Return(false, nil)
 		mockRepo.EXPECT().
-			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID).
-			Return(4, nil)
+			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID, email).
+			Return(3, nil)
 
 		_, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
 		require.Error(t, err)
@@ -4674,12 +4826,13 @@ func TestWorkspaceService_AcceptInvitation_TeamMemberLimit(t *testing.T) {
 		var limitErr *domain.ErrTeamMemberLimitReached
 		assert.True(t, errors.As(err, &limitErr))
 		assert.Equal(t, 3, limitErr.Limit)
+		assert.Equal(t, 3, limitErr.Current)
 	})
 
-	t.Run("accepts when count equals limit (current invitation counted)", func(t *testing.T) {
-		// MaxUsers=3, count returns 3 (2 members + 1 invitation being accepted).
-		// The code subtracts 1 → effective count = 2 < 3 → allowed.
-		service, mockRepo, mockUserService, mockUserRepo, mockAuthService := setupService(t, 3)
+	t.Run("accepts at the limit: its own invitation is left out of the count", func(t *testing.T) {
+		// MaxUsers=3 with 2 members plus the invitation being accepted: the count, which
+		// leaves that invitation out, is 2 < 3 → allowed. Accepting converts its seat.
+		service, mockRepo, _, mockUserRepo, mockAuthService := setupService(t, 3)
 
 		mockRepo.EXPECT().
 			GetInvitationByID(gomock.Any(), invitationID).
@@ -4690,53 +4843,14 @@ func TestWorkspaceService_AcceptInvitation_TeamMemberLimit(t *testing.T) {
 				Permissions: domain.UserPermissions{},
 			}, nil)
 
-		mockUserService.EXPECT().
-			GetUserByEmail(gomock.Any(), email).
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(gomock.Any(), email).
 			Return(nil, &domain.ErrUserNotFound{Message: "not found"})
 		mockUserRepo.EXPECT().
 			CreateUser(gomock.Any(), gomock.Any()).
 			Return(nil)
 		mockRepo.EXPECT().
-			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID).
-			Return(3, nil)
-		mockRepo.EXPECT().
-			AddUserToWorkspace(gomock.Any(), gomock.Any()).
-			Return(nil)
-		mockUserRepo.EXPECT().
-			CreateSession(gomock.Any(), gomock.Any()).
-			Return(nil)
-		mockAuthService.EXPECT().
-			GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).
-			Return("auth-token")
-		mockRepo.EXPECT().
-			DeleteInvitation(gomock.Any(), invitationID).
-			Return(nil)
-
-		resp, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
-		require.NoError(t, err)
-		assert.NotNil(t, resp)
-	})
-
-	t.Run("under limit on accept", func(t *testing.T) {
-		service, mockRepo, mockUserService, mockUserRepo, mockAuthService := setupService(t, 3)
-
-		mockRepo.EXPECT().
-			GetInvitationByID(gomock.Any(), invitationID).
-			Return(&domain.WorkspaceInvitation{
-				ID:          invitationID,
-				Email:       email,
-				WorkspaceID: workspaceID,
-				Permissions: domain.UserPermissions{},
-			}, nil)
-
-		mockUserService.EXPECT().
-			GetUserByEmail(gomock.Any(), email).
-			Return(nil, &domain.ErrUserNotFound{Message: "not found"})
-		mockUserRepo.EXPECT().
-			CreateUser(gomock.Any(), gomock.Any()).
-			Return(nil)
-		mockRepo.EXPECT().
-			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID).
+			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID, email).
 			Return(2, nil)
 		mockRepo.EXPECT().
 			AddUserToWorkspace(gomock.Any(), gomock.Any()).
@@ -4748,7 +4862,46 @@ func TestWorkspaceService_AcceptInvitation_TeamMemberLimit(t *testing.T) {
 			GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return("auth-token")
 		mockRepo.EXPECT().
-			DeleteInvitation(gomock.Any(), invitationID).
+			DeleteInvitationByEmail(gomock.Any(), workspaceID, email).
+			Return(nil)
+
+		resp, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
+		require.NoError(t, err)
+		assert.NotNil(t, resp)
+	})
+
+	t.Run("under limit on accept", func(t *testing.T) {
+		service, mockRepo, _, mockUserRepo, mockAuthService := setupService(t, 3)
+
+		mockRepo.EXPECT().
+			GetInvitationByID(gomock.Any(), invitationID).
+			Return(&domain.WorkspaceInvitation{
+				ID:          invitationID,
+				Email:       email,
+				WorkspaceID: workspaceID,
+				Permissions: domain.UserPermissions{},
+			}, nil)
+
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(gomock.Any(), email).
+			Return(nil, &domain.ErrUserNotFound{Message: "not found"})
+		mockUserRepo.EXPECT().
+			CreateUser(gomock.Any(), gomock.Any()).
+			Return(nil)
+		mockRepo.EXPECT().
+			CountWorkspaceMembersAndInvitations(gomock.Any(), workspaceID, email).
+			Return(1, nil)
+		mockRepo.EXPECT().
+			AddUserToWorkspace(gomock.Any(), gomock.Any()).
+			Return(nil)
+		mockUserRepo.EXPECT().
+			CreateSession(gomock.Any(), gomock.Any()).
+			Return(nil)
+		mockAuthService.EXPECT().
+			GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return("auth-token")
+		mockRepo.EXPECT().
+			DeleteInvitationByEmail(gomock.Any(), workspaceID, email).
 			Return(nil)
 
 		resp, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
@@ -6177,7 +6330,8 @@ func TestWorkspaceService_RBACLicenceGate(t *testing.T) {
 		deps.expectOwner(workspaceID, ownerID, 1)
 		deps.repo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID, Name: "Test"}, nil)
 		deps.userService.EXPECT().GetUserByID(gomock.Any(), ownerID).Return(&domain.User{ID: ownerID, Name: "Owner", Email: "owner@example.com"}, nil)
-		deps.userService.EXPECT().GetUserByEmail(gomock.Any(), inviteEmail).Return(nil, &domain.ErrUserNotFound{Message: "not found"})
+		deps.repo.EXPECT().GetInvitationByEmail(gomock.Any(), workspaceID, inviteEmail).Return(nil, domain.ErrInvitationNotFound)
+		deps.userRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), inviteEmail).Return(nil, &domain.ErrUserNotFound{Message: "not found"})
 
 		var stored *domain.WorkspaceInvitation
 		deps.repo.EXPECT().
@@ -6218,7 +6372,8 @@ func TestWorkspaceService_RBACLicenceGate(t *testing.T) {
 		deps.expectOwner(workspaceID, ownerID, 1)
 		deps.repo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{ID: workspaceID, Name: "Test"}, nil)
 		deps.userService.EXPECT().GetUserByID(gomock.Any(), ownerID).Return(&domain.User{ID: ownerID, Name: "Owner", Email: "owner@example.com"}, nil)
-		deps.userService.EXPECT().GetUserByEmail(gomock.Any(), inviteEmail).Return(nil, &domain.ErrUserNotFound{Message: "not found"})
+		deps.repo.EXPECT().GetInvitationByEmail(gomock.Any(), workspaceID, inviteEmail).Return(nil, domain.ErrInvitationNotFound)
+		deps.userRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), inviteEmail).Return(nil, &domain.ErrUserNotFound{Message: "not found"})
 
 		var stored *domain.WorkspaceInvitation
 		deps.repo.EXPECT().
@@ -6447,7 +6602,7 @@ func TestWorkspaceService_RBACLicenceNonRegressions(t *testing.T) {
 				Email:       inviteEmail,
 				Permissions: invited,
 			}, nil)
-		deps.userService.EXPECT().GetUserByEmail(gomock.Any(), inviteEmail).Return(nil, &domain.ErrUserNotFound{Message: "not found"})
+		deps.userRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), inviteEmail).Return(nil, &domain.ErrUserNotFound{Message: "not found"})
 		deps.userRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
 
 		var seated *domain.UserWorkspace
@@ -6459,7 +6614,7 @@ func TestWorkspaceService_RBACLicenceNonRegressions(t *testing.T) {
 			})
 		deps.userRepo.EXPECT().CreateSession(gomock.Any(), gomock.Any()).Return(nil)
 		deps.auth.EXPECT().GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).Return("auth-token")
-		deps.repo.EXPECT().DeleteInvitation(gomock.Any(), invitationID).Return(nil)
+		deps.repo.EXPECT().DeleteInvitationByEmail(gomock.Any(), workspaceID, inviteEmail).Return(nil)
 
 		response, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, inviteEmail)
 		require.NoError(t, err)

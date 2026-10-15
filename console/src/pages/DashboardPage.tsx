@@ -6,6 +6,7 @@ import { MainLayout, MainLayoutSidebar } from '../layouts/MainLayout'
 import { isRootUser } from '../services/api/auth'
 import { useLingui } from '@lingui/react/macro'
 import { SystemSettingsDrawer } from '../components/settings/SystemSettingsDrawer'
+import { PendingInvitations } from '../components/workspace/PendingInvitations'
 
 const { Text } = Typography
 
@@ -47,6 +48,7 @@ export function DashboardPage() {
           ) : undefined
         }
       >
+        <PendingInvitations />
         {workspaces.length === 0 ? (
           <Empty description={t`No workspaces`} style={{ margin: '24px 0' }} />
         ) : (

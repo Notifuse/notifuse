@@ -2,9 +2,10 @@ import { router } from "../../router";
 
 // Defined in ./errors so it can be imported without pulling in the router; re-exported
 // here because most call sites already import it from this module.
-export { ApiError } from "./errors";
+export { ApiError, ApiUnreachableError } from "./errors";
 import {
   ApiError,
+  ApiUnreachableError,
   permissionDeniedMessage,
   permissionDenialFromBody,
 } from "./errors";
@@ -83,10 +84,19 @@ async function fetchWithAuth(
   }
   const apiEndpoint =
     window.API_ENDPOINT?.trim().replace(/\/+$/, "") || defaultOrigin;
-  return fetch(`${apiEndpoint}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  try {
+    return await fetch(`${apiEndpoint}${endpoint}`, {
+      ...options,
+      headers,
+    });
+  } catch (err) {
+    // fetch rejects with a TypeError when no response arrives at all: DNS, refused
+    // connection, TLS, or a CORS refusal. An abort is a DOMException and passes through.
+    if (err instanceof TypeError) {
+      throw new ApiUnreachableError(err.message, apiEndpoint);
+    }
+    throw err;
+  }
 }
 
 async function request<T>(

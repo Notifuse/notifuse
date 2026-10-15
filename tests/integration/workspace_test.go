@@ -7,7 +7,10 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/app"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/google/uuid"
@@ -721,6 +724,84 @@ func TestWorkspaceMembershipSuite(t *testing.T) {
 			client.SetToken(ownerToken)
 		})
 
+		// Resending is a second inviteMember call for an email that already has a pending
+		// invitation — exactly what the console's "Resend invitation" button does. The upsert
+		// keeps the original row, so the link in the resent email has to name that row.
+		t.Run("resent invitation link can be verified and accepted", func(t *testing.T) {
+			client.SetToken(ownerToken)
+			defer client.SetToken(ownerToken)
+			inviteeEmail := "resent-invite-user@example.com"
+
+			invite := func() (token, invitationID string) {
+				resp, err := client.Post("/api/workspaces.inviteMember", map[string]interface{}{
+					"workspace_id": workspaceID,
+					"email":        inviteeEmail,
+					"permissions":  domain.NewFullPermissions(),
+				})
+				require.NoError(t, err)
+				defer resp.Body.Close()
+				require.Equal(t, http.StatusOK, resp.StatusCode)
+
+				var body map[string]interface{}
+				require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+				token, _ = body["token"].(string)
+				require.NotEmpty(t, token)
+				invitation, ok := body["invitation"].(map[string]interface{})
+				require.True(t, ok, "inviteMember must return the invitation")
+				invitationID, _ = invitation["id"].(string)
+				return token, invitationID
+			}
+
+			firstToken, firstID := invite()
+			// Both links name the same invitation and carry no nonce, and their time claims
+			// have one-second precision: two invites inside one second sign byte-identical
+			// tokens. Cross a second boundary so the first link really is an older one.
+			time.Sleep(time.Until(time.Now().Truncate(time.Second).Add(time.Second)))
+			resentToken, resentID := invite()
+			require.NotEqual(t, firstToken, resentToken, "the resend must sign a new link")
+
+			var rowID string
+			var rows int
+			require.NoError(t, db.QueryRow(
+				"SELECT COUNT(*), MIN(id::text) FROM workspace_invitations WHERE workspace_id = $1 AND email = $2",
+				workspaceID, inviteeEmail).Scan(&rows, &rowID))
+			require.Equal(t, 1, rows, "a resend refreshes the pending invitation, it does not add one")
+			assert.Equal(t, rowID, firstID)
+			assert.Equal(t, rowID, resentID, "the resend must report the invitation row that actually exists")
+
+			verify := func(token string) int {
+				resp, err := client.Post("/api/workspaces.verifyInvitationToken", map[string]string{"token": token})
+				require.NoError(t, err)
+				defer resp.Body.Close()
+				return resp.StatusCode
+			}
+
+			client.SetToken("")
+			assert.Equal(t, http.StatusOK, verify(resentToken), "the link in the resent email must resolve")
+			assert.Equal(t, http.StatusOK, verify(firstToken), "the link in the first email must keep working after a resend")
+
+			acceptResp, err := client.Post("/api/workspaces.acceptInvitation", map[string]string{"token": resentToken})
+			require.NoError(t, err)
+			defer acceptResp.Body.Close()
+			require.Equal(t, http.StatusOK, acceptResp.StatusCode)
+
+			var accepted map[string]interface{}
+			require.NoError(t, json.NewDecoder(acceptResp.Body).Decode(&accepted))
+			user, ok := accepted["user"].(map[string]interface{})
+			require.True(t, ok)
+
+			var memberships int
+			require.NoError(t, db.QueryRow(
+				"SELECT COUNT(*) FROM user_workspaces WHERE user_id = $1 AND workspace_id = $2",
+				user["id"], workspaceID).Scan(&memberships))
+			assert.Equal(t, 1, memberships, "accepting the resent link must seat the invitee")
+
+			require.NoError(t, db.QueryRow(
+				"SELECT COUNT(*) FROM workspace_invitations WHERE workspace_id = $1 AND email = $2",
+				workspaceID, inviteeEmail).Scan(&rows))
+			assert.Equal(t, 0, rows, "the accepted invitation must be consumed")
+		})
+
 		t.Run("accept invitation with invalid token", func(t *testing.T) {
 			client.SetToken("") // No auth required for accept
 
@@ -829,6 +910,144 @@ func TestWorkspaceMembershipSuite(t *testing.T) {
 
 			assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 		})
+	})
+}
+
+// ============================================================================
+// Seat limit (MAX_USERS)
+// MAX_USERS counts members plus live invitations. A resend refreshes the seat its
+// invitation already holds, and seating an existing account gives its invitation's
+// seat back: neither may cost a second seat or lock out the remaining invitees.
+// ============================================================================
+
+func TestWorkspaceSeatLimitSuite(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		cfg.MaxUsers = 3
+		return app.NewApp(cfg)
+	})
+	defer suite.Cleanup()
+
+	client := suite.APIClient
+	db := suite.DBManager.GetDB()
+	ownerToken := testutil.NewTokenCache(client).GetOrCreate(t, "test@example.com")
+	client.SetToken(ownerToken)
+
+	invite := func(t *testing.T, workspaceID, email string) (int, map[string]interface{}) {
+		t.Helper()
+		resp, err := client.Post("/api/workspaces.inviteMember", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"email":        email,
+			"permissions":  domain.NewFullPermissions(),
+		})
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		return resp.StatusCode, body
+	}
+	accept := func(t *testing.T, token string) int {
+		t.Helper()
+		client.SetToken("")
+		defer client.SetToken(ownerToken)
+		resp, err := client.Post("/api/workspaces.acceptInvitation", map[string]string{"token": token})
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		return resp.StatusCode
+	}
+
+	t.Run("resends, case variants and existing accounts at the limit", func(t *testing.T) {
+		workspaceID := createTestWorkspaceWithToken(t, client, ownerToken, "Seat Limit WS")
+		bob, carol := "seat-bob@example.com", "seat-carol@example.com"
+		// Invitations keep the owner's typing, so these count every spelling of an address.
+		invitationRows := func(t *testing.T, email string) int {
+			t.Helper()
+			var n int
+			require.NoError(t, db.QueryRow(
+				"SELECT COUNT(*) FROM workspace_invitations WHERE workspace_id = $1 AND lower(email) = lower($2)",
+				workspaceID, email).Scan(&n))
+			return n
+		}
+		accounts := func(t *testing.T, email string) int {
+			t.Helper()
+			var n int
+			require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM users WHERE lower(email) = lower($1)", email).Scan(&n))
+			return n
+		}
+
+		// owner + bob + carol = 3 seats, the limit.
+		status, _ := invite(t, workspaceID, bob)
+		require.Equal(t, http.StatusOK, status)
+		status, carolInvite := invite(t, workspaceID, carol)
+		require.Equal(t, http.StatusOK, status)
+		carolToken, _ := carolInvite["token"].(string)
+		require.NotEmpty(t, carolToken)
+
+		status, _ = invite(t, workspaceID, "seat-dave@example.com")
+		assert.Equal(t, http.StatusForbidden, status, "a new invitation at the limit takes a seat nobody has")
+
+		status, _ = invite(t, workspaceID, bob)
+		assert.Equal(t, http.StatusOK, status, "a resend reuses the seat bob's invitation holds")
+		assert.Equal(t, 1, invitationRows(t, bob))
+
+		// Typed differently, it is still bob's invitation: refreshed, not a second seat.
+		status, _ = invite(t, workspaceID, "Seat-Bob@Example.com")
+		assert.Equal(t, http.StatusOK, status)
+		assert.Equal(t, 1, invitationRows(t, bob), "a case variant must not hold a second seat")
+
+		// bob gets an account without joining this workspace, by accepting another one's
+		// invitation — as an invitee who signs in with SSO first does. Inviting him again
+		// sends his invitation again: it does not seat him without his say.
+		otherID := createTestWorkspaceWithToken(t, client, ownerToken, "Seat Limit Other WS")
+		status, otherInvite := invite(t, otherID, bob)
+		require.Equal(t, http.StatusOK, status)
+		otherToken, _ := otherInvite["token"].(string)
+		require.Equal(t, http.StatusOK, accept(t, otherToken))
+
+		status, resent := invite(t, workspaceID, bob)
+		require.Equal(t, http.StatusOK, status)
+		assert.Equal(t, "Invitation sent", resent["message"])
+		var memberships int
+		require.NoError(t, db.QueryRow(
+			`SELECT COUNT(*) FROM user_workspaces uw JOIN users u ON u.id = uw.user_id
+			 WHERE uw.workspace_id = $1 AND lower(u.email) = lower($2)`, workspaceID, bob).Scan(&memberships))
+		assert.Equal(t, 0, memberships, "a resend must not seat the invitee")
+		assert.Equal(t, 1, invitationRows(t, bob))
+
+		// owner + bob (invited) + carol (invited) = 3: accepting converts carol's own seat.
+		assert.Equal(t, http.StatusOK, accept(t, carolToken), "a full workspace must still let its invitees in")
+
+		// bob's link now finds his existing account, whatever the invitation's spelling:
+		// one account, seated, and every spelling of his invitation gone.
+		bobToken, _ := resent["token"].(string)
+		require.Equal(t, http.StatusOK, accept(t, bobToken))
+		assert.Equal(t, 1, accounts(t, bob), "accepting must not create a second account")
+		assert.Equal(t, 0, invitationRows(t, bob))
+	})
+
+	t.Run("an expired invitation holds no seat until it is sent again", func(t *testing.T) {
+		workspaceID := createTestWorkspaceWithToken(t, client, ownerToken, "Seat Expiry WS")
+		xavier, yann, zoe := "seat-xavier@example.com", "seat-yann@example.com", "seat-zoe@example.com"
+
+		for _, email := range []string{xavier, yann} {
+			status, _ := invite(t, workspaceID, email)
+			require.Equal(t, http.StatusOK, status)
+		}
+		// expires_at holds UTC wall-clock time without a time zone.
+		_, err := db.Exec(
+			`UPDATE workspace_invitations SET expires_at = (NOW() AT TIME ZONE 'UTC') - interval '1 hour'
+			 WHERE workspace_id = $1 AND email = $2`, workspaceID, yann)
+		require.NoError(t, err)
+
+		status, _ := invite(t, workspaceID, zoe)
+		require.Equal(t, http.StatusOK, status, "yann's expired invitation must not hold a seat")
+
+		// owner + xavier + zoe = 3. Sending yann's invitation again revives it: a new seat.
+		status, _ = invite(t, workspaceID, yann)
+		assert.Equal(t, http.StatusForbidden, status)
 	})
 }
 

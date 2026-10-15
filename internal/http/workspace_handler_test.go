@@ -74,6 +74,7 @@ var demoRestrictedWorkspaceRoutes = []string{
 	"/api/workspaces.createAPIKey",
 	"/api/workspaces.removeMember",
 	"/api/workspaces.deleteInvitation",
+	"/api/workspaces.joinInvitation",
 	"/api/workspaces.setUserPermissions",
 	"/api/workspaces.setCustomFieldLabels",
 	"/api/workspaces.setBlogSettings",
@@ -4331,5 +4332,150 @@ func TestWorkspaceHandler_HandleCreate_QuotaRefusalIs402(t *testing.T) {
 		wrapped := fmt.Errorf("failed to create workspace: %w",
 			&domain.ErrWorkspaceQuotaReached{Limit: 3, Current: 3})
 		assert.Equal(t, http.StatusPaymentRequired, postCreate(t, wrapped).Code)
+	})
+}
+
+// The signed-in invitee's side of an invitation: what they are invited to, and joining it
+// from the console instead of the emailed link.
+
+func TestWorkspaceHandler_PendingInvitations(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	t.Run("lists the caller's pending invitations", func(t *testing.T) {
+		token := createTestToken(t, secretKey, "user1")
+		expiresAt := time.Now().UTC().Add(24 * time.Hour).Truncate(time.Second)
+		workspaceSvc.EXPECT().ListPendingInvitations(gomock.Any()).Return([]*domain.PendingInvitation{
+			{ID: "inv-1", WorkspaceID: "wsacme", WorkspaceName: "Acme", InviterName: "Jane", ExpiresAt: expiresAt},
+		}, nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/workspaces.pendingInvitations", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var response struct {
+			Invitations []map[string]interface{} `json:"invitations"`
+		}
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+		require.Len(t, response.Invitations, 1)
+		assert.Equal(t, "inv-1", response.Invitations[0]["id"])
+		assert.Equal(t, "wsacme", response.Invitations[0]["workspace_id"])
+		assert.Equal(t, "Acme", response.Invitations[0]["workspace_name"])
+		assert.Equal(t, "Jane", response.Invitations[0]["inviter_name"])
+		assert.NotContains(t, response.Invitations[0], "permissions")
+	})
+
+	t.Run("none is an empty list", func(t *testing.T) {
+		token := createTestToken(t, secretKey, "user1")
+		workspaceSvc.EXPECT().ListPendingInvitations(gomock.Any()).Return([]*domain.PendingInvitation{}, nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/workspaces.pendingInvitations", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.JSONEq(t, `{"invitations":[]}`, w.Body.String())
+	})
+
+	t.Run("service error", func(t *testing.T) {
+		token := createTestToken(t, secretKey, "user1")
+		workspaceSvc.EXPECT().ListPendingInvitations(gomock.Any()).Return(nil, errors.New("connection reset"))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/workspaces.pendingInvitations", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.NotContains(t, w.Body.String(), "connection reset")
+	})
+
+	t.Run("method not allowed", func(t *testing.T) {
+		token := createTestToken(t, secretKey, "user1")
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.pendingInvitations", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	})
+
+	t.Run("requires authentication", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/workspaces.pendingInvitations", nil)
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+}
+
+func TestWorkspaceHandler_JoinInvitation(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	join := func(t *testing.T, body string) *httptest.ResponseRecorder {
+		t.Helper()
+		token := createTestToken(t, secretKey, "user1")
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.joinInvitation", strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+		return w
+	}
+
+	t.Run("joins and returns the workspace", func(t *testing.T) {
+		workspaceSvc.EXPECT().JoinInvitation(gomock.Any(), "inv-1").Return("wsacme", nil)
+
+		w := join(t, `{"invitation_id":"inv-1"}`)
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.JSONEq(t, `{"status":"success","workspace_id":"wsacme"}`, w.Body.String())
+	})
+
+	t.Run("an unavailable invitation is a 404", func(t *testing.T) {
+		workspaceSvc.EXPECT().JoinInvitation(gomock.Any(), "inv-1").Return("", domain.ErrInvitationUnavailable)
+
+		w := join(t, `{"invitation_id":"inv-1"}`)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Contains(t, w.Body.String(), "Invitation not found or no longer valid")
+	})
+
+	t.Run("the seat limit is a 403 that says so", func(t *testing.T) {
+		workspaceSvc.EXPECT().JoinInvitation(gomock.Any(), "inv-1").
+			Return("", &domain.ErrTeamMemberLimitReached{Limit: 3, Current: 3})
+
+		w := join(t, `{"invitation_id":"inv-1"}`)
+		assert.Equal(t, http.StatusForbidden, w.Code)
+		assert.Contains(t, w.Body.String(), "limit")
+	})
+
+	t.Run("an unexpected error is a 500 that leaks nothing", func(t *testing.T) {
+		workspaceSvc.EXPECT().JoinInvitation(gomock.Any(), "inv-1").Return("", errors.New("pq: connection reset"))
+
+		w := join(t, `{"invitation_id":"inv-1"}`)
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.NotContains(t, w.Body.String(), "pq:")
+	})
+
+	t.Run("invitation_id is required", func(t *testing.T) {
+		w := join(t, `{}`)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "invitation_id is required")
+	})
+
+	t.Run("invalid JSON", func(t *testing.T) {
+		w := join(t, `not json`)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("method not allowed", func(t *testing.T) {
+		token := createTestToken(t, secretKey, "user1")
+		req := httptest.NewRequest(http.MethodGet, "/api/workspaces.joinInvitation", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
 	})
 }

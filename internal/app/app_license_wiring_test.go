@@ -203,3 +203,17 @@ func unexportedField(t *testing.T, holder interface{}, name string) reflect.Valu
 func readInterface(field reflect.Value) interface{} {
 	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
 }
+
+// Without its invitation finder, SSO sign-in ignores pending invitations while
+// workspaces.joinInvitation still honours them, so an account created by a provider that is
+// not authoritative for the address could claim one. See OIDCServiceConfig.Invitations: like
+// the licence fields above, it is a struct-literal field whose omission no compiler notices.
+func TestAppWiresPendingInvitationsIntoSSO(t *testing.T) {
+	app := initialisedApp(t, nil)
+	require.NotNil(t, app.oidcService)
+	require.NotNil(t, app.workspaceRepo)
+
+	got := unexportedField(t, app.oidcService, "invitations")
+	require.False(t, got.IsNil(), "the OIDC service must be given the workspace repository as its invitation finder")
+	assert.Same(t, app.workspaceRepo, readInterface(got))
+}

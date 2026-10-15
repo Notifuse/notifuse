@@ -1,8 +1,9 @@
-import { Form, Input, Button, Card, App, Space, Divider } from 'antd'
+import { Form, Input, Button, Card, App, Space, Divider, Alert } from 'antd'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { authService } from '../services/api/auth'
+import { ApiUnreachableError } from '../services/api/errors'
 import { SignInRequest, VerifyCodeRequest } from '../services/api/types'
 import { MainLayout } from '../layouts/MainLayout'
 import { useLingui } from '@lingui/react/macro'
@@ -20,11 +21,39 @@ export function SignInPage() {
   const [form] = Form.useForm()
   const hasAutoSubmitted = useRef(false)
   const hasExchangedOidc = useRef(false)
+  const [unreachable, setUnreachable] = useState<{ endpoint: string; origin: string } | null>(
+    null
+  )
+
+  // The console is served by the server it talks to, so when this page loaded but a request
+  // to API_ENDPOINT got no answer, API_ENDPOINT names some other host — typically the old
+  // domain after an instance moved. The browser only says "Failed to fetch", and a toast is
+  // gone before anyone can copy a URL out of it, so that case gets a lasting alert naming
+  // both addresses. A same-origin failure is the server going away and keeps the toast.
+  const showRequestError = useCallback(
+    (error: unknown, fallback: string) => {
+      if (error instanceof ApiUnreachableError) {
+        let endpointOrigin = ''
+        try {
+          endpointOrigin = new URL(error.endpoint).origin
+        } catch {
+          // Not an absolute URL: it cannot point anywhere but this page's origin.
+        }
+        if (endpointOrigin && endpointOrigin !== window.location.origin) {
+          setUnreachable({ endpoint: error.endpoint, origin: window.location.origin })
+          return
+        }
+      }
+      message.error(error instanceof Error ? error.message : fallback)
+    },
+    [message]
+  )
 
   const handleCodeSubmit = useCallback(
     async (values: { code: string }, emailToUse?: string) => {
       try {
         setLoading(true)
+        setUnreachable(null)
         const data: VerifyCodeRequest = {
           email: emailToUse || email,
           code: values.code
@@ -42,19 +71,19 @@ export function SignInPage() {
           navigate({ to: '/console' })
         }, 100)
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : t`Failed to verify code`
-        message.error(errorMessage)
+        showRequestError(error, t`Failed to verify code`)
       } finally {
         setLoading(false)
       }
     },
-    [email, signin, message, navigate, t]
+    [email, signin, message, navigate, t, showRequestError]
   )
 
   const handleEmailSubmit = useCallback(
     async (values: SignInRequest) => {
       try {
         setLoading(true)
+        setUnreachable(null)
         const response = await authService.signIn(values)
 
         // Log code if present (for development)
@@ -71,13 +100,12 @@ export function SignInPage() {
         setShowCodeInput(true)
         message.success(t`Magic code sent to your email`)
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : t`Failed to send magic code`
-        message.error(errorMessage)
+        showRequestError(error, t`Failed to send magic code`)
       } finally {
         setLoading(false)
       }
     },
-    [handleCodeSubmit, message, t]
+    [handleCodeSubmit, message, t, showRequestError]
   )
 
   // mapOidcError translates a backend OIDC error code into a localized message. The
@@ -93,8 +121,12 @@ export function SignInPage() {
   const mapOidcError = useCallback(
     (code: string): string => {
       switch (code) {
+        // An invitee whose identity provider vouches for their address gets an account;
+        // one whose provider does not is refused here and has to use the emailed link.
         case 'not_provisioned':
-          return t`No Notifuse account is linked to that identity. Ask an administrator to invite you first.`
+          return t`No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you.`
+        case 'domain_not_allowed':
+          return t`Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you.`
         case 'email_unverified':
           return t`Your identity provider has not verified your email address.`
         case 'link_conflict':
@@ -183,6 +215,7 @@ export function SignInPage() {
   const handleResendCode = async () => {
     try {
       setResendLoading(true)
+      setUnreachable(null)
       const response = await authService.signIn({ email })
 
       // Log code if present (for development)
@@ -196,17 +229,41 @@ export function SignInPage() {
 
       message.success(t`New magic code sent to your email`)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : t`Failed to resend magic code`
-      message.error(errorMessage)
+      showRequestError(error, t`Failed to resend magic code`)
     } finally {
       setResendLoading(false)
     }
   }
 
+  const unreachableEndpoint = unreachable?.endpoint ?? ''
+  const pageOrigin = unreachable?.origin ?? ''
+
   return (
     <MainLayout>
       <div className="flex items-center justify-center h-[calc(100vh-48px)]">
         <Card title={t`Sign In`} style={{ width: 400 }}>
+          {unreachable && (
+            <Alert
+              type="error"
+              showIcon
+              style={{ marginBottom: 24 }}
+              message={t`Cannot reach the configured API endpoint`}
+              description={
+                <>
+                  <p style={{ marginBottom: 8, overflowWrap: 'anywhere' }}>
+                    {t`This page is served from ${pageOrigin}, but this instance sends its requests to ${unreachableEndpoint}, which did not answer. If Notifuse has moved to ${pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server.`}
+                  </p>
+                  <a
+                    href="https://docs.notifuse.com/self-hosting/changing-domain"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t`Changing your domain`}
+                  </a>
+                </>
+              }
+            />
+          )}
           {!showCodeInput ? (
             <Form
               form={form}

@@ -36,11 +36,6 @@ export function AcceptInvitationPage() {
       return
     }
 
-    // If user is already logged in, sign them out first
-    if (user) {
-      signout()
-    }
-
     // Verify the invitation token
     const verifyToken = async () => {
       try {
@@ -48,6 +43,12 @@ export function AcceptInvitationPage() {
         const response = await workspaceService.verifyInvitationToken(token)
         setInvitationData(response)
         setError(null)
+        // Someone else signed in on this browser gives way to the invitee. Only once the link
+        // has proved valid: signing out ends that account's sessions on every device, and a
+        // dead link — one already joined from the workspace list, say — must cost nothing.
+        if (user && user.email.toLowerCase() !== response.invitation.email.toLowerCase()) {
+          signout()
+        }
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : t`Invalid or expired invitation token`

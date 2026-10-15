@@ -51,18 +51,18 @@ func (mr *MockWorkspaceRepositoryMockRecorder) AddUserToWorkspace(arg0, arg1 int
 }
 
 // CountWorkspaceMembersAndInvitations mocks base method.
-func (m *MockWorkspaceRepository) CountWorkspaceMembersAndInvitations(arg0 context.Context, arg1 string) (int, error) {
+func (m *MockWorkspaceRepository) CountWorkspaceMembersAndInvitations(arg0 context.Context, arg1, arg2 string) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CountWorkspaceMembersAndInvitations", arg0, arg1)
+	ret := m.ctrl.Call(m, "CountWorkspaceMembersAndInvitations", arg0, arg1, arg2)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CountWorkspaceMembersAndInvitations indicates an expected call of CountWorkspaceMembersAndInvitations.
-func (mr *MockWorkspaceRepositoryMockRecorder) CountWorkspaceMembersAndInvitations(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockWorkspaceRepositoryMockRecorder) CountWorkspaceMembersAndInvitations(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountWorkspaceMembersAndInvitations", reflect.TypeOf((*MockWorkspaceRepository)(nil).CountWorkspaceMembersAndInvitations), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountWorkspaceMembersAndInvitations", reflect.TypeOf((*MockWorkspaceRepository)(nil).CountWorkspaceMembersAndInvitations), arg0, arg1, arg2)
 }
 
 // CountWorkspaces mocks base method.
@@ -162,6 +162,20 @@ func (m *MockWorkspaceRepository) DeleteInvitation(arg0 context.Context, arg1 st
 func (mr *MockWorkspaceRepositoryMockRecorder) DeleteInvitation(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInvitation", reflect.TypeOf((*MockWorkspaceRepository)(nil).DeleteInvitation), arg0, arg1)
+}
+
+// DeleteInvitationByEmail mocks base method.
+func (m *MockWorkspaceRepository) DeleteInvitationByEmail(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteInvitationByEmail", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteInvitationByEmail indicates an expected call of DeleteInvitationByEmail.
+func (mr *MockWorkspaceRepositoryMockRecorder) DeleteInvitationByEmail(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInvitationByEmail", reflect.TypeOf((*MockWorkspaceRepository)(nil).DeleteInvitationByEmail), arg0, arg1, arg2)
 }
 
 // GetByID mocks base method.
@@ -342,6 +356,21 @@ func (m *MockWorkspaceRepository) List(arg0 context.Context) ([]*domain.Workspac
 func (mr *MockWorkspaceRepositoryMockRecorder) List(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockWorkspaceRepository)(nil).List), arg0)
+}
+
+// ListPendingInvitationsForEmail mocks base method.
+func (m *MockWorkspaceRepository) ListPendingInvitationsForEmail(arg0 context.Context, arg1 string) ([]*domain.PendingInvitation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPendingInvitationsForEmail", arg0, arg1)
+	ret0, _ := ret[0].([]*domain.PendingInvitation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPendingInvitationsForEmail indicates an expected call of ListPendingInvitationsForEmail.
+func (mr *MockWorkspaceRepositoryMockRecorder) ListPendingInvitationsForEmail(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPendingInvitationsForEmail", reflect.TypeOf((*MockWorkspaceRepository)(nil).ListPendingInvitationsForEmail), arg0, arg1)
 }
 
 // PatchIntegrationSESSettings mocks base method.

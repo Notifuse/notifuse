@@ -27,6 +27,25 @@ export class ApiError extends Error {
 }
 
 /**
+ * The request never got an answer: fetch rejected before any response arrived. The message is
+ * the browser's own ("Failed to fetch", "Load failed"…), so a handler that shows it verbatim
+ * behaves as before; `endpoint` is the base URL the request went to.
+ *
+ * That base URL is API_ENDPOINT, not the page's origin, and the two drift apart when an instance
+ * moves to a new domain: the console keeps loading from the new one while every request goes to
+ * the old one. The sign-in page compares them to say so instead of "Failed to fetch".
+ */
+export class ApiUnreachableError extends Error {
+  constructor(
+    message: string,
+    public endpoint: string,
+  ) {
+    super(message);
+    this.name = "ApiUnreachableError";
+  }
+}
+
+/**
  * The query client's retry policy.
  *
  * An expired session, a missing permission and a licence refusal are not transient: the second

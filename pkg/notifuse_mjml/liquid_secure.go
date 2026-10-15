@@ -14,6 +14,14 @@ const (
 	DefaultRenderTimeout   = 5 * time.Second
 	DefaultMaxTemplateSize = 100 * 1024       // 100KB
 	DefaultMaxMemory       = 10 * 1024 * 1024 // 10MB (informational, not enforced by Go Liquid)
+	// DefaultMaxRenderLength caps the cumulative OUTPUT of a single Liquid render at
+	// 10MB (a real email body is well under 1MB). It bounds a render that expands to an
+	// enormous size — an output-producing runaway loop or a hostile feed — since the
+	// timeout below cannot interrupt the render goroutine once it is running. It does
+	// NOT bound a loop that emits little or no output (an empty-bodied or {% capture %}
+	// loop): liquidgo tracks only output length here, so the 5s timeout remains the only
+	// backstop for those.
+	DefaultMaxRenderLength = 10_000_000 // 10MB
 )
 
 // SecureLiquidEngine wraps the liquidgo engine with security protections
@@ -23,10 +31,25 @@ type SecureLiquidEngine struct {
 	env     *liquid.Environment
 }
 
-// NewSecureLiquidEngine creates a new secure liquidgo engine with default settings
-func NewSecureLiquidEngine() *SecureLiquidEngine {
+// newSecureLiquidEnv builds a liquidgo environment with the standard tags and a
+// render-length cap, shared by every engine constructor.
+func newSecureLiquidEnv(renderLength int) *liquid.Environment {
 	env := liquid.NewEnvironment()
 	tags.RegisterStandardTags(env)
+	env.SetDefaultResourceLimits(map[string]interface{}{"render_length_limit": renderLength})
+	return env
+}
+
+// newSecureLiquidEngineWithRenderLength builds an engine with a custom render-length
+// cap. Used by tests to exercise the cap with a small, fast-to-reach limit; production
+// always uses DefaultMaxRenderLength via the exported constructors.
+func newSecureLiquidEngineWithRenderLength(renderLength int) *SecureLiquidEngine {
+	return &SecureLiquidEngine{timeout: DefaultRenderTimeout, maxSize: DefaultMaxTemplateSize, env: newSecureLiquidEnv(renderLength)}
+}
+
+// NewSecureLiquidEngine creates a new secure liquidgo engine with default settings
+func NewSecureLiquidEngine() *SecureLiquidEngine {
+	env := newSecureLiquidEnv(DefaultMaxRenderLength)
 
 	return &SecureLiquidEngine{
 		timeout: DefaultRenderTimeout,
@@ -37,8 +60,7 @@ func NewSecureLiquidEngine() *SecureLiquidEngine {
 
 // NewSecureLiquidEngineWithOptions creates a new secure liquidgo engine with custom settings
 func NewSecureLiquidEngineWithOptions(timeout time.Duration, maxSize int) *SecureLiquidEngine {
-	env := liquid.NewEnvironment()
-	tags.RegisterStandardTags(env)
+	env := newSecureLiquidEnv(DefaultMaxRenderLength)
 
 	return &SecureLiquidEngine{
 		timeout: timeout,

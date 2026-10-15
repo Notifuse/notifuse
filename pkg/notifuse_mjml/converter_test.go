@@ -1,8 +1,11 @@
 package notifuse_mjml
 
 import (
+	"math/rand"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestProcessLiquidTemplate(t *testing.T) {
@@ -177,9 +180,9 @@ func TestCleanLiquidTemplate(t *testing.T) {
 			expected: "{{ contact.email }}",
 		},
 		{
-			name:     "unicode non-breaking space in variable",
+			name:     "unicode non-breaking space in variable becomes a space",
 			input:    "{{\u00a0contact.email\u00a0}}",
-			expected: "{{contact.email}}",
+			expected: "{{ contact.email }}",
 		},
 		{
 			name:     "mixed HTML entities and text",
@@ -196,6 +199,51 @@ func TestCleanLiquidTemplate(t *testing.T) {
 			input:    "{{\u200bcontact.email\u200b}}",
 			expected: "{{contact.email}}",
 		},
+		{
+			name:     "nbsp and curly quotes together, as the text editor stores them",
+			input:    "<p>Hello {{&nbsp;first_name | default: \u2018Valued User\u2019&nbsp;}}!</p>",
+			expected: "<p>Hello {{ first_name | default: 'Valued User' }}!</p>",
+		},
+		{
+			name:     "tag containing a percent sign",
+			input:    "{%&nbsp;assign year = 'now' | date: '%Y'&nbsp;%}",
+			expected: "{% assign year = 'now' | date: '%Y' %}",
+		},
+		{
+			name:     "raw non-breaking space between a tag name and its condition",
+			input:    "{% if\u00a0contact.discount contains '%' %}",
+			expected: "{% if contact.discount contains '%' %}",
+		},
+		{
+			name:     "raw body is left as Liquid outputs it",
+			input:    "{% raw %}{{ a &#60; b | default: \u2018x\u2019 }}{% endraw %}{{ y | default: \u2018z\u2019 }}",
+			expected: "{% raw %}{{ a &#60; b | default: \u2018x\u2019 }}{% endraw %}{{ y | default: 'z' }}",
+		},
+		{
+			name:     "raw tags with whitespace control and a non-breaking space",
+			input:    "{%- raw&nbsp;-%}{{ \u2018x\u2019 }}{%&nbsp;endraw&nbsp;%}{{ \u2018y\u2019 }}",
+			expected: "{%- raw -%}{{ \u2018x\u2019 }}{% endraw %}{{ 'y' }}",
+		},
+		{
+			name:     "endraw with whitespace control does not end a raw body, as in liquidgo",
+			input:    "{% raw %}{{ \u2018x\u2019 }}{%- endraw -%}{{ \u2018y\u2019 }}{% endraw %}{{ \u2018z\u2019 }}",
+			expected: "{% raw %}{{ \u2018x\u2019 }}{%- endraw -%}{{ \u2018y\u2019 }}{% endraw %}{{ 'z' }}",
+		},
+		{
+			name:     "endraw followed by more markup ends a raw body, as in liquidgo",
+			input:    "{% raw %}{{ \u2018x\u2019 }}{% endraw foo %}{{ \u2018y\u2019 }}",
+			expected: "{% raw %}{{ \u2018x\u2019 }}{% endraw foo %}{{ 'y' }}",
+		},
+		{
+			name:     "other spellings of a non-breaking space",
+			input:    "{%&#x00A0;if x&#XA0;%}",
+			expected: "{% if x %}",
+		},
+		{
+			name:     "curly quotes and entities outside Liquid markup unchanged",
+			input:    "<p>\u2018Hi\u2019 &gt; &quot;there&quot; {{ x }}</p>",
+			expected: "<p>\u2018Hi\u2019 &gt; &quot;there&quot; {{ x }}</p>",
+		},
 	}
 
 	for _, tt := range tests {
@@ -205,6 +253,381 @@ func TestCleanLiquidTemplate(t *testing.T) {
 				t.Errorf("Expected %q, got %q", tt.expected, result)
 			}
 		})
+	}
+}
+
+// TestNormalizeLiquidMarkup covers the spellings the console's rich text editor
+// (Tiptap Typography + HTML serialization) gives to Liquid syntax typed into a text
+// block. The curly characters are written as escapes so they cannot be mistaken for
+// ASCII quotes when reading the table.
+func TestNormalizeLiquidMarkup(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "curly single quotes around a filter argument",
+			input:    "{{ first_name | default: \u2018Valued User\u2019 }}",
+			expected: "{{ first_name | default: 'Valued User' }}",
+		},
+		{
+			name:     "curly double quotes around a filter argument",
+			input:    "{{ first_name | default: \u201cValued User\u201d }}",
+			expected: "{{ first_name | default: \"Valued User\" }}",
+		},
+		{
+			name:     "entity-encoded quotes from MJML attribute escaping",
+			input:    "{{ url | default: &#39;https://a.test&#39; | append: &quot;?x&quot; | append: &#34;y&#34; | append: &apos;z&apos; }}",
+			expected: "{{ url | default: 'https://a.test' | append: \"?x\" | append: \"y\" | append: 'z' }}",
+		},
+		{
+			name:     "not-equal sign becomes the != operator",
+			input:    "{% if contact.first_name \u2260 blank %}",
+			expected: "{% if contact.first_name != blank %}",
+		},
+		{
+			name:     "entity-encoded comparison operators",
+			input:    "{% if a &gt; 1 and b &lt; 2 and c &gt;= 3 and d &#62; 4 and e &#60;= 5 %}",
+			expected: "{% if a > 1 and b < 2 and c >= 3 and d > 4 and e <= 5 %}",
+		},
+		{
+			name:     "operator and curly quotes combined",
+			input:    "{% if contact.country \u2260 \u201cFR\u201d %}",
+			expected: "{% if contact.country != \"FR\" %}",
+		},
+		{
+			name:     "ASCII-quoted literal keeps a curly apostrophe",
+			input:    "{{ 'It\u2019s here' | upcase }}",
+			expected: "{{ 'It\u2019s here' | upcase }}",
+		},
+		{
+			name:     "ASCII-quoted literal keeps entities and the not-equal sign",
+			input:    "{{ \"a &gt; b \u2260 c &#39;d&#39;\" }}",
+			expected: "{{ \"a &gt; b \u2260 c &#39;d&#39;\" }}",
+		},
+		{
+			name:     "apostrophe the editor curled inside a curly literal is straightened",
+			input:    "{{ x | default: \u201cWe\u2019re glad\u201d }}",
+			expected: "{{ x | default: \"We're glad\" }}",
+		},
+		{
+			name:     "curly double-quoted literal keeps an ASCII apostrophe",
+			input:    "{{ x | default: \u201cWe're glad\u201d }}",
+			expected: "{{ x | default: \"We're glad\" }}",
+		},
+		{
+			name:     "literal opened by a curly quote closes on an ASCII quote",
+			input:    "{{ x | default: \u2018Guest' }}",
+			expected: "{{ x | default: 'Guest' }}",
+		},
+		{
+			name:     "markup ending inside a curly literal is left unchanged",
+			input:    "{{ x | default: \u2018Guest }}",
+			expected: "{{ x | default: \u2018Guest }}",
+		},
+		{
+			name:     "lone curly quote is left unchanged",
+			input:    "{{ \u2019 }}",
+			expected: "{{ \u2019 }}",
+		},
+		{
+			name:     "ASCII opener closed by a curly quote",
+			input:    "{{ x | default: 'Guest\u2019 }}",
+			expected: "{{ x | default: 'Guest' }}",
+		},
+		{
+			name:     "ASCII opener closed by a curly quote, followed by another literal",
+			input:    "{% if a == 'x\u2019 or b == 'y' %}",
+			expected: "{% if a == 'x' or b == 'y' %}",
+		},
+		{
+			name:     "two half-curled literals in one markup",
+			input:    "{{ c | append: 'a b\u2019 | prepend: '10%\u2019 }}",
+			expected: "{{ c | append: 'a b' | prepend: '10%' }}",
+		},
+		{
+			name:     "ASCII literal holding apostrophes that end words is left as typed",
+			input:    "{{ 'the dogs\u2019 and cats\u2019 toys' }}",
+			expected: "{{ 'the dogs\u2019 and cats\u2019 toys' }}",
+		},
+		{
+			name:     "double quotes inside a curly literal are kept",
+			input:    "{{ x | default: \u2018say \u201chi\u201d\u2019 | append: \u2018 &quot;ok&quot;\u2019 }}",
+			expected: "{{ x | default: 'say \u201chi\u201d' | append: ' &quot;ok&quot;' }}",
+		},
+		{
+			name:     "entity-encoded ASCII literal keeps a curly apostrophe",
+			input:    "{{ x | default: &#39;It\u2019s you&#39; }}",
+			expected: "{{ x | default: 'It\u2019s you' }}",
+		},
+		{
+			name:     "name with an apostrophe in a curly literal",
+			input:    "{% if contact.last_name == \u201cO\u2019Brien\u201d %}",
+			expected: "{% if contact.last_name == \"O'Brien\" %}",
+		},
+		{
+			name:     "other entity spellings of quotes",
+			input:    "{{ a | default: &#x27;A&#x27; | append: &#039;B&#039; | append: &lsquo;C&rsquo; | append: &ldquo;D&rdquo; | append: &#8216;E&#8217; }}",
+			expected: "{{ a | default: 'A' | append: 'B' | append: 'C' | append: \"D\" | append: 'E' }}",
+		},
+		{
+			name:     "German low quotes",
+			input:    "{{ x | default: \u201eGast\u201c }}",
+			expected: "{{ x | default: \"Gast\" }}",
+		},
+		{
+			name:     "other spellings of comparison operators",
+			input:    "{% if a \u2265 1 and b \u2264 2 and c &ne; 3 and d &#x3E; 4 and e &ge; 5 %}",
+			expected: "{% if a >= 1 and b <= 2 and c != 3 and d > 4 and e >= 5 %}",
+		},
+		{
+			name:     "entities that are neither quotes nor operators are copied",
+			input:    "{{ a | append: &amp; | append: &hellip; }}",
+			expected: "{{ a | append: &amp; | append: &hellip; }}",
+		},
+		{
+			name:     "valid markup is unchanged",
+			input:    "{% if contact.age >= 18 and contact.name != 'Jo' %}",
+			expected: "{% if contact.age >= 18 and contact.name != 'Jo' %}",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := normalizeLiquidMarkup(tt.input); got != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
+// TestProcessLiquidTemplate_EditorRewrittenMarkup renders Liquid exactly as the
+// console's text editor stores it once Typography has curled the quotes and HTML
+// serialization has encoded the operators. Unnormalized, a curly-quoted default
+// renders nothing, and ≠ or &gt; silently reduce the comparison to a truthiness test
+// of its left operand; the remaining cases guard against normalizing too much.
+func TestProcessLiquidTemplate_EditorRewrittenMarkup(t *testing.T) {
+	const greeting = "Hello {{ first_name | default: \u2018Valued User\u2019 }}!"
+
+	tests := []struct {
+		name         string
+		content      string
+		templateData map[string]interface{}
+		expected     string
+	}{
+		{
+			name:         "default applies when the variable is null",
+			content:      greeting,
+			templateData: map[string]interface{}{"first_name": nil},
+			expected:     "Hello Valued User!",
+		},
+		{
+			name:         "default applies when the variable is missing",
+			content:      greeting,
+			templateData: map[string]interface{}{"contact": map[string]interface{}{"email": "a@b.test"}},
+			expected:     "Hello Valued User!",
+		},
+		{
+			name:         "default applies when the variable is an empty string",
+			content:      greeting,
+			templateData: map[string]interface{}{"first_name": ""},
+			expected:     "Hello Valued User!",
+		},
+		{
+			name:         "default is ignored when the variable has a value",
+			content:      greeting,
+			templateData: map[string]interface{}{"first_name": "Jo"},
+			expected:     "Hello Jo!",
+		},
+		{
+			name:         "curly double quotes on a nested contact field",
+			content:      "Hi {{ contact.first_name | default: \u201cfriend\u201d }},",
+			templateData: map[string]interface{}{"contact": map[string]interface{}{"first_name": nil}},
+			expected:     "Hi friend,",
+		},
+		{
+			name:         "not-equal sign compares instead of testing truthiness",
+			content:      "{% if contact.name \u2260 \u2018Jo\u2019 %}other{% else %}jo{% endif %}",
+			templateData: map[string]interface{}{"contact": map[string]interface{}{"name": "Jo"}},
+			expected:     "jo",
+		},
+		{
+			name:         "entity-encoded greater-than compares instead of testing truthiness",
+			content:      "<p>{% if contact.age &gt; 18 %}adult{% else %}minor{% endif %}</p>",
+			templateData: map[string]interface{}{"contact": map[string]interface{}{"age": 10}},
+			expected:     "<p>minor</p>",
+		},
+		{
+			name:         "tag containing a percent sign",
+			content:      "{% assign year = \u20182024-03-05\u2019 | date: \u2018%Y\u2019 %}{{ year }}",
+			templateData: map[string]interface{}{"contact": map[string]interface{}{}},
+			expected:     "2024",
+		},
+		{
+			name:         "contains with a curly-quoted percent sign",
+			content:      "{% if contact.discount contains \u2018%\u2019 %}percent{% else %}amount{% endif %}",
+			templateData: map[string]interface{}{"contact": map[string]interface{}{"discount": "10%"}},
+			expected:     "percent",
+		},
+		{
+			name:         "name with an apostrophe compares equal",
+			content:      "{% if contact.last_name == \u201cO\u2019Brien\u201d %}match{% else %}nomatch{% endif %}",
+			templateData: map[string]interface{}{"contact": map[string]interface{}{"last_name": "O'Brien"}},
+			expected:     "match",
+		},
+		{
+			name:         "greater-or-equal sign from a word processor compares",
+			content:      "{% if contact.age \u2265 30 %}old{% else %}young{% endif %}",
+			templateData: map[string]interface{}{"contact": map[string]interface{}{"age": 20}},
+			expected:     "young",
+		},
+		{
+			name:         "lone curly quote still renders nothing",
+			content:      "[{{ \u2019 }}]",
+			templateData: map[string]interface{}{"contact": map[string]interface{}{}},
+			expected:     "[]",
+		},
+		{
+			name:         "raw body ends where liquidgo ends it",
+			content:      "{% raw %}{{ \u2018x\u2019 }}{%- endraw -%}{{ \u2018y\u2019 }}{% endraw %}{{ x | default: \u2018z\u2019 }}",
+			templateData: map[string]interface{}{"contact": map[string]interface{}{}},
+			expected:     "{{ \u2018x\u2019 }}{%- endraw -%}{{ \u2018y\u2019 }}z",
+		},
+		{
+			name:         "curly quotes outside Liquid markup are left alone",
+			content:      "<p>\u2018{{ first_name | default: \u2018there\u2019 }}\u2019 &gt; you</p>",
+			templateData: map[string]interface{}{"first_name": nil},
+			expected:     "<p>\u2018there\u2019 &gt; you</p>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := ProcessLiquidTemplate(tt.content, tt.templateData, "test")
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+// corruptLiquidLikeEditor rewrites the Liquid markup of a template the way the console's
+// text editor stored it before it left Liquid alone: Typography curled every typed
+// quote (opening after a space or an opening bracket, closing otherwise) and turned
+// != into ≠, HTML serialization encoded > and <, and some spaces became non-breaking.
+func corruptLiquidLikeEditor(rng *rand.Rand, template string) string {
+	return liquidMarkupRegex.ReplaceAllStringFunc(template, func(markup string) string {
+		var b strings.Builder
+		prev := ' '
+		for i := 0; i < len(markup); i++ {
+			c := markup[i]
+			opens := strings.ContainsRune(" ({[<'\"", prev)
+			switch {
+			case c == '\'' && opens:
+				b.WriteString("\u2018")
+			case c == '\'':
+				b.WriteString("\u2019")
+			case c == '"' && opens:
+				b.WriteString("\u201c")
+			case c == '"':
+				b.WriteString("\u201d")
+			case c == '!' && i+1 < len(markup) && markup[i+1] == '=':
+				b.WriteString("\u2260")
+				i++
+			case c == '>':
+				b.WriteString("&gt;")
+			case c == '<':
+				b.WriteString("&lt;")
+			case c == ' ' && rng.Intn(5) == 0:
+				b.WriteString([]string{"&nbsp;", "\u00a0"}[rng.Intn(2)])
+			default:
+				b.WriteByte(c)
+			}
+			prev = rune(c)
+		}
+		return b.String()
+	})
+}
+
+// randomLiquidTemplate builds a template from the Liquid a visual-editor user writes:
+// defaults, filters with string arguments, string and number comparisons, dates.
+func randomLiquidTemplate(rng *rand.Rand) string {
+	pick := func(options ...string) string { return options[rng.Intn(len(options))] }
+	literal := func() string {
+		text := pick("Guest", "Valued User", "10%", "%Y", "a b", "It's", "O'Brien")
+		if strings.Contains(text, "'") {
+			return `"` + text + `"`
+		}
+		quote := pick("'", `"`)
+		return quote + text + quote
+	}
+	field := pick("contact.first_name", "first_name", "contact.country", "contact.last_name", "contact.discount")
+	switch rng.Intn(5) {
+	case 0:
+		return "Hello {{ " + field + " | default: " + literal() + " }}!"
+	case 1:
+		return "{{ " + field + " | append: " + literal() + " | prepend: " + literal() + " }}"
+	case 2:
+		return "{% if " + field + " " + pick("==", "!=", "contains") + " " + literal() + " %}A{% else %}B{% endif %}"
+	case 3:
+		return "{% if contact.age " + pick(">", "<", ">=", "<=", "!=") + " " + pick("18", "20") + " and " + field + " != " + literal() + " %}A{% else %}B{% endif %}"
+	default:
+		return "{% assign day = '2024-03-05' | date: " + pick(`'%Y'`, `"%d %B"`) + " %}[{{ day }}]"
+	}
+}
+
+var liquidPropertyData = []map[string]interface{}{
+	{"first_name": nil, "contact": map[string]interface{}{"first_name": nil, "country": "FR", "last_name": "O'Brien", "discount": "10%", "age": 20}},
+	{"first_name": "Jo", "contact": map[string]interface{}{"first_name": "Sam", "country": "DE", "last_name": "Smith", "discount": "5", "age": 18}},
+}
+
+// TestCleanLiquidTemplate_EditorCorruptionRendersAsTyped is the promise of the
+// normalization: Liquid as the text editor stored it renders exactly like the Liquid
+// the user typed, and cleaning touches nothing outside the markup and is idempotent.
+func TestCleanLiquidTemplate_EditorCorruptionRendersAsTyped(t *testing.T) {
+	rng := rand.New(rand.NewSource(438))
+	for i := 0; i < 1500; i++ {
+		typed := randomLiquidTemplate(rng)
+		stored := corruptLiquidLikeEditor(rng, typed)
+		cleaned := cleanLiquidTemplate(stored)
+		require.Equal(t, cleaned, cleanLiquidTemplate(cleaned), "cleaning must be idempotent for %q", stored)
+		require.Equal(t, liquidMarkupRegex.ReplaceAllString(stored, ""), liquidMarkupRegex.ReplaceAllString(cleaned, ""),
+			"text outside the markup must not change for %q", stored)
+		for _, data := range liquidPropertyData {
+			want, wantErr := ProcessLiquidTemplate(typed, data, "typed")
+			got, gotErr := ProcessLiquidTemplate(stored, data, "stored")
+			require.Equal(t, wantErr == nil, gotErr == nil, "typed %q, stored %q", typed, stored)
+			require.Equal(t, want, got, "typed %q, stored %q, cleaned %q", typed, stored, cleaned)
+		}
+	}
+}
+
+// TestCleanLiquidTemplate_ASCIILiteralsKeepTheirTypography guards code-mode and API
+// templates: an ASCII-quoted literal that deliberately holds curly quotes, dashes or
+// entities renders exactly as Liquid renders it without any normalization.
+func TestCleanLiquidTemplate_ASCIILiteralsKeepTheirTypography(t *testing.T) {
+	texts := []string{"It\u2019s here", "the dogs\u2019 toys", "dogs\u2019 and cats\u2019 toys", "rock \u2019n\u2019 roll", "say \u2018hi\u2019 now", "\u201cquoted\u201d word", "\u2019tis", "a \u2260 b", "x &gt; y", "Today \u2014 \u201cnew\u201d"}
+	rng := rand.New(rand.NewSource(7))
+	engine := NewSecureLiquidEngine()
+	for i := 0; i < 600; i++ {
+		first, second := texts[rng.Intn(len(texts))], texts[rng.Intn(len(texts))]
+		template := []string{
+			"{{ contact.first_name | default: '" + first + "' }}",
+			"{{ contact.country | append: '" + first + "' | prepend: '" + second + "' }}",
+			"{% if contact.country == '" + first + "' or contact.country != '" + second + "' %}A{% else %}B{% endif %}",
+			"{% assign v = '" + first + "' %}{{ v | append: '" + second + "' }}",
+		}[rng.Intn(4)]
+		for _, data := range liquidPropertyData {
+			want, err := engine.Render(template, data)
+			require.NoError(t, err)
+			got, err := ProcessLiquidTemplate(template, data, "test")
+			require.NoError(t, err)
+			require.Equal(t, want, got, "template %q", template)
+		}
 	}
 }
 
@@ -547,7 +970,7 @@ func TestProcessAttributeValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := processAttributeValue(tt.value, tt.attributeKey, tt.templateData, tt.blockID)
+			result := processAttributeValue(tt.value, tt.attributeKey, tt.templateData, tt.blockID, false)
 
 			if result != tt.expected {
 				t.Errorf("Expected '%s', got '%s'", tt.expected, result)
@@ -981,5 +1404,56 @@ func BenchmarkProcessLiquidContentParallel(b *testing.B) {
 func BenchmarkCamelToKebab(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		camelToKebab("backgroundColor")
+	}
+}
+
+func TestProtectRestoreLiquidDelimiters_RoundTrips(t *testing.T) {
+	cases := []string{
+		"Hi {{ x }}",
+		"{% if a %}b{% endif %}",
+		"{{ a | default: '{% raw %}' }}",
+		"50% }} off {{",
+		"plain text, no delimiters",
+		"",
+		"{{{%}}%}",
+	}
+	for _, s := range cases {
+		if got := restoreLiquidDelimiters(protectRenderedLiquidDelimiters(s)); got != s {
+			t.Errorf("round-trip changed %q -> %q", s, got)
+		}
+	}
+}
+
+func TestProtectRemovesAllLiveDelimiters(t *testing.T) {
+	for _, s := range []string{"{{ x }}", "{% if a %}", "a }} b %} c", "{{{%"} {
+		p := protectRenderedLiquidDelimiters(s)
+		for _, delim := range []string{"{{", "}}", "{%", "%}"} {
+			if strings.Contains(p, delim) {
+				t.Errorf("protect left live delimiter %q in %q (-> %q)", delim, s, p)
+			}
+		}
+	}
+}
+
+func TestRestoreIsIdempotentAndSafeWithoutSentinels(t *testing.T) {
+	plain := "no sentinels {{ still literal }}"
+	if restoreLiquidDelimiters(plain) != plain {
+		t.Errorf("restore altered a string with no sentinels: %q", restoreLiquidDelimiters(plain))
+	}
+	p := protectRenderedLiquidDelimiters("{{ a }}{% b %}")
+	once := restoreLiquidDelimiters(p)
+	if restoreLiquidDelimiters(once) != once {
+		t.Errorf("restore is not idempotent")
+	}
+}
+
+func TestProtectStripsPreexistingSentinels(t *testing.T) {
+	// Data that already contains a sentinel must not forge a delimiter on restore.
+	planted := "danger" + liquidSentinelOpenVar + "evil" + liquidSentinelCloseTag
+	out := restoreLiquidDelimiters(protectRenderedLiquidDelimiters(planted))
+	for _, delim := range []string{"{{", "}}", "{%", "%}"} {
+		if strings.Contains(out, delim) {
+			t.Errorf("planted sentinel forged delimiter %q: %q", delim, out)
+		}
 	}
 }

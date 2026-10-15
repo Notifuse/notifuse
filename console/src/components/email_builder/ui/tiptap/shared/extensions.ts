@@ -3,7 +3,8 @@ import Typography from '@tiptap/extension-typography'
 import Underline from '@tiptap/extension-underline'
 import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
-import { Node, Mark, mergeAttributes } from '@tiptap/core'
+import { Node, Mark, InputRule, mergeAttributes } from '@tiptap/core'
+import type { AnyExtension } from '@tiptap/core'
 import type { Mark as ProseMirrorMark } from '@tiptap/pm/model'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import type { RawCommands } from '@tiptap/core'
@@ -512,10 +513,73 @@ export const InlineDocument = Node.create({
   }
 })
 
+/**
+ * True when text ending at the cursor is inside an unclosed Liquid tag. Follows how
+ * Liquid's tokenizer delimits markup in the common cases, whatever quotes it holds: a
+ * `{%` tag runs to the next `%}`, a `{{` variable to the next `}`.
+ */
+export const isInsideLiquidMarkup = (textBefore: string): boolean => {
+  let from = 0
+  for (;;) {
+    const variable = textBefore.indexOf('{{', from)
+    const tag = textBefore.indexOf('{%', from)
+    if (variable === -1 && tag === -1) return false
+    const isTag = tag !== -1 && (variable === -1 || tag < variable)
+    const closer = isTag ? '%}' : '}'
+    const end = textBefore.indexOf(closer, (isTag ? tag : variable) + 2)
+    if (end === -1) return true
+    from = end + closer.length
+  }
+}
+
+/**
+ * Input rules that never rewrite Liquid markup. Smart punctuation and Markdown
+ * shortcuts are wanted in prose but corrupt Liquid: a typed ' becomes ‘, != becomes
+ * ≠ and ` _x_ ` becomes <em>x</em>, none of which Liquid parses (`default: ‘Guest’`
+ * renders nothing). A rule is skipped when either end of the text it would rewrite
+ * lies inside a tag: the cursor, or the start of a shortcut opened in one
+ * (`{% assign _a = 1 %} b_`). A shortcut around a whole tag, like **{{ name }}**,
+ * still applies. The backend normalizes the typographic forms too, for templates
+ * saved before this and for other API clients.
+ */
+const skipInsideLiquid = (rules: InputRule[]): InputRule[] =>
+  rules.map(
+    (rule) =>
+      new InputRule({
+        find: rule.find,
+        undoable: rule.undoable,
+        handler: (props) => {
+          const { doc } = props.state
+          const blockStart = doc.resolve(props.range.from).start()
+          const beforeMatch = doc.textBetween(blockStart, props.range.from, undefined, '\ufffc')
+          return isInsideLiquidMarkup(beforeMatch) || isInsideLiquidMarkup(beforeMatch + props.match[0])
+            ? null
+            : rule.handler(props)
+        }
+      })
+  )
+
+const withLiquidSafeInputRules = (extension: AnyExtension): AnyExtension =>
+  extension.extend({
+    addInputRules() {
+      return skipInsideLiquid(this.parent?.() ?? [])
+    }
+  })
+
+// StarterKit's Markdown shortcuts (bold, italic, strike, code) and Typography's smart
+// punctuation, both kept out of Liquid markup.
+const LiquidSafeStarterKit = StarterKit.extend({
+  addExtensions() {
+    return (this.parent?.() ?? []).map(withLiquidSafeInputRules)
+  }
+})
+
+const LiquidSafeTypography = withLiquidSafeInputRules(Typography)
+
 // Extensions for rich text editor (full-featured)
 export const createRichExtensions = () => [
   // Use StarterKit for basic functionality and commands
-  StarterKit.configure({
+  LiquidSafeStarterKit.configure({
     // Disable headings for email compatibility, but enable lists
     heading: false,
     // Disable StarterKit's bundled Link/Underline so the explicit CustomLink
@@ -558,8 +622,8 @@ export const createRichExtensions = () => [
   }),
   Subscript,
   Superscript,
-  // Add typography improvements
-  Typography,
+  // Add typography improvements (never inside Liquid markup)
+  LiquidSafeTypography,
   // Add custom Link extension with style support
   CustomLink.configure({
     HTMLAttributes: {
@@ -576,7 +640,7 @@ export const createInlineExtensions = () => [
   // Add our comprehensive TextStyle mark for CSS support
   TextStyleMark,
   // Add basic formatting marks
-  StarterKit.configure({
+  LiquidSafeStarterKit.configure({
     // Disable all block-level elements for inline mode
     document: false, // We'll use our custom InlineDocument instead
     paragraph: false,
@@ -617,8 +681,8 @@ export const createInlineExtensions = () => [
   }),
   Subscript,
   Superscript,
-  // Add typography improvements (but limited to inline)
-  Typography,
+  // Add typography improvements (never inside Liquid markup)
+  LiquidSafeTypography,
   // Add custom Link extension with style support
   CustomLink.configure({
     HTMLAttributes: {

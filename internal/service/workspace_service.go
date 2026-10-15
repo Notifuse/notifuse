@@ -654,19 +654,8 @@ func (s *WorkspaceService) AddUserToWorkspace(ctx context.Context, workspaceID s
 		return domain.NewFeatureNotLicensedError(domain.FeatureRBAC)
 	}
 
-	// Check team member limit
-	if s.config.MaxUsers > 0 {
-		count, err := s.repo.CountWorkspaceMembersAndInvitations(ctx, workspaceID)
-		if err != nil {
-			s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to count workspace members")
-			return err
-		}
-		if count >= s.config.MaxUsers {
-			return &domain.ErrTeamMemberLimitReached{
-				Limit:   s.config.MaxUsers,
-				Current: count,
-			}
-		}
+	if err := s.ensureSeat(ctx, workspaceID, ""); err != nil {
+		return err
 	}
 
 	// Use the permissions passed as parameter
@@ -846,19 +835,11 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 	// The inviter's access was already verified by AuthenticateUserForWorkspace and the
 	// owner check above, so no extra membership check is needed.
 
-	// Check team member limit
-	if s.config.MaxUsers > 0 {
-		count, err := s.repo.CountWorkspaceMembersAndInvitations(ctx, workspaceID)
-		if err != nil {
-			s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to count workspace members")
-			return nil, "", err
-		}
-		if count >= s.config.MaxUsers {
-			return nil, "", &domain.ErrTeamMemberLimitReached{
-				Limit:   s.config.MaxUsers,
-				Current: count,
-			}
-		}
+	// Check team member limit. This address's own pending invitation is left out of the
+	// count: a resend refreshes the seat it already holds, and seating an existing account
+	// below clears it, so neither may be refused for the seat it is about to reuse.
+	if err := s.ensureSeat(ctx, workspaceID, email); err != nil {
+		return nil, "", err
 	}
 
 	// Get inviter user details for the email
@@ -872,8 +853,24 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 		inviterName = inviterDetails.Email
 	}
 
-	// Check if user already exists with this email
-	existingUser, err := s.userService.GetUserByEmail(ctx, email)
+	// The address's invitation, whatever case it was typed in. The upsert below keys on the
+	// exact spelling, so a re-invite reuses this one's: otherwise "Jane@x.com" next to a
+	// pending "jane@x.com" is a second row, holding a second seat.
+	pending, err := s.repo.GetInvitationByEmail(ctx, workspaceID, email)
+	switch {
+	case err == nil:
+		email = pending.Email
+	case errors.Is(err, domain.ErrInvitationNotFound):
+		pending = nil
+	default:
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to look up the pending invitation")
+		return nil, "", err
+	}
+	invitationPending := pending != nil && pending.ExpiresAt.After(time.Now().UTC())
+
+	// Check if user already exists with this email. Case-insensitive: single sign-on creates
+	// accounts under the provider's lower-cased address, and invitations keep the owner's typing.
+	existingUser, err := s.userRepo.GetUserByEmailInsensitive(ctx, email)
 	if err == nil && existingUser != nil {
 		// User exists, check if they're already a member
 		isMember, err := s.repo.IsUserWorkspaceMember(ctx, existingUser.ID, workspaceID)
@@ -884,7 +881,11 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 		if isMember {
 			return nil, "", fmt.Errorf("user is already a member of the workspace")
 		}
-
+	}
+	// An account with no invitation waiting is seated directly. One that has an invitation it
+	// has not accepted yet — typically an invitee who signed in with SSO first — is sent it
+	// again instead: this is the console's Resend, and joining stays the invitee's choice.
+	if err == nil && existingUser != nil && !invitationPending {
 		// User exists but is not a member, add them as a member
 		userWorkspace := &domain.UserWorkspace{
 			UserID:      existingUser.ID,
@@ -900,17 +901,26 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 			return nil, "", err
 		}
 
+		// An expired invitation for the address is dead weight once the account is seated.
+		// The membership stands either way.
+		if pending != nil {
+			if err := s.repo.DeleteInvitationByEmail(ctx, workspaceID, email); err != nil {
+				s.logger.WithField("workspace_id", workspaceID).WithField("email", email).WithField("error", err.Error()).Warn("Failed to delete expired invitation after adding existing user")
+			}
+		}
+
 		// Return nil invitation since user was directly added
 		return nil, "", nil
 	}
 
-	// User doesn't exist or there was an error (treat as user doesn't exist for security)
-	// Create an invitation
-	invitationID := uuid.New().String()
+	// No account, an account with its invitation still pending, or a lookup error (treated as
+	// no account for security): create or refresh the invitation.
+	// Create an invitation. CreateInvitation may replace this id with the one of an existing
+	// invitation for the address, so read it back from invitation.ID afterwards.
 	expiresAt := time.Now().UTC().Add(15 * 24 * time.Hour) // 15 days
 
 	invitation := &domain.WorkspaceInvitation{
-		ID:          invitationID,
+		ID:          uuid.New().String(),
 		WorkspaceID: workspaceID,
 		InviterID:   inviter.ID,
 		Email:       email,
@@ -1581,10 +1591,17 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 		return nil, fmt.Errorf("invitation not found: %w", err)
 	}
 
-	// Check if user already exists
-	existingUser, err := s.userService.GetUserByEmail(ctx, email)
+	// Check if user already exists. Case-insensitive: an invitee who signed in with SSO first
+	// has an account under the provider's lower-cased address, and this link carries the
+	// owner's typing — an exact match would give them a second account.
+	existingUser, err := s.userRepo.GetUserByEmailInsensitive(ctx, email)
 	var user *domain.User
 
+	var userNotFound *domain.ErrUserNotFound
+	if err != nil && !errors.As(err, &userNotFound) {
+		s.logger.WithField("email", email).WithField("error", err.Error()).Error("Failed to look up the invitee's account")
+		return nil, fmt.Errorf("failed to look up user: %w", err)
+	}
 	if err != nil {
 		// User doesn't exist, create a new one
 		user = &domain.User{
@@ -1616,29 +1633,18 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 		if isMember {
 			s.logger.WithField("user_id", user.ID).WithField("workspace_id", workspaceID).Info("User is already a member of the workspace")
 			// Delete the invitation since it's no longer needed
-			if err := s.repo.DeleteInvitation(ctx, invitationID); err != nil {
+			if err := s.repo.DeleteInvitationByEmail(ctx, workspaceID, invitation.Email); err != nil {
 				s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Warn("Failed to delete invitation after finding user is already a member")
 			}
 			return nil, fmt.Errorf("user is already a member of the workspace")
 		}
 	}
 
-	// Check team member limit before adding to workspace.
-	// Subtract 1 because the invitation being accepted is still counted in the total
-	// but will be deleted after the user is added — accepting converts an invitation
-	// into a member (net-zero change), so it should not block acceptance.
-	if s.config.MaxUsers > 0 {
-		count, err := s.repo.CountWorkspaceMembersAndInvitations(ctx, workspaceID)
-		if err != nil {
-			s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to count workspace members")
-			return nil, err
-		}
-		if count-1 >= s.config.MaxUsers {
-			return nil, &domain.ErrTeamMemberLimitReached{
-				Limit:   s.config.MaxUsers,
-				Current: count,
-			}
-		}
+	// Check team member limit before adding to workspace. The invitation being accepted is
+	// left out of the count: it is deleted once the user is added — accepting converts an
+	// invitation into a member (net-zero change), so it should not block acceptance.
+	if err := s.ensureSeat(ctx, workspaceID, invitation.Email); err != nil {
+		return nil, err
 	}
 
 	// Add user to workspace as a member with permissions from invitation
@@ -1675,8 +1681,9 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 	// Generate authentication token
 	token := s.authService.GenerateUserAuthToken(user, session.ID, session.ExpiresAt)
 
-	// Delete the invitation after successful acceptance
-	err = s.repo.DeleteInvitation(ctx, invitationID)
+	// Delete the invitation after successful acceptance — every spelling of the address, so a
+	// case-variant twin does not keep holding a seat.
+	err = s.repo.DeleteInvitationByEmail(ctx, workspaceID, invitation.Email)
 	if err != nil {
 		s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Warn("Failed to delete invitation after successful acceptance")
 		// Don't return error here as the main operation succeeded
@@ -1696,6 +1703,168 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 		User:      *user,
 		ExpiresAt: session.ExpiresAt,
 	}, nil
+}
+
+// ensureSeat enforces MAX_USERS: it refuses when the workspace's human members and live
+// invitations already fill it. The invitations addressed to email are left out of that
+// count — a resend, an acceptance and a join all reuse the seat such an invitation holds —
+// and "" leaves out none.
+func (s *WorkspaceService) ensureSeat(ctx context.Context, workspaceID, email string) error {
+	if s.config.MaxUsers <= 0 {
+		return nil
+	}
+	count, err := s.repo.CountWorkspaceMembersAndInvitations(ctx, workspaceID, email)
+	if err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to count workspace members")
+		return err
+	}
+	if count >= s.config.MaxUsers {
+		return &domain.ErrTeamMemberLimitReached{
+			Limit:   s.config.MaxUsers,
+			Current: count,
+		}
+	}
+	return nil
+}
+
+// isSessionUser reports whether the request is a person's console session rather than an
+// API key. It reads the token's type claim, which the auth middleware puts in the context:
+// the users row AuthenticateUserFromContext loads does not carry the type.
+func isSessionUser(ctx context.Context) bool {
+	userType, _ := ctx.Value(domain.UserTypeKey).(string)
+	return userType == string(domain.UserTypeUser)
+}
+
+// ListPendingInvitations returns the live invitations addressed to the signed-in user's
+// email, for workspaces they have not joined. It is how someone who signed in another way
+// than through the emailed link — single sign-on, typically — finds what they were invited
+// to. An API key has none.
+func (s *WorkspaceService) ListPendingInvitations(ctx context.Context) ([]*domain.PendingInvitation, error) {
+	user, err := s.authService.AuthenticateUserFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+	pending := []*domain.PendingInvitation{}
+	if !isSessionUser(ctx) {
+		return pending, nil
+	}
+
+	invitations, err := s.repo.ListPendingInvitationsForEmail(ctx, user.Email)
+	if err != nil {
+		s.logger.WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to list pending invitations")
+		return nil, err
+	}
+	for _, invitation := range invitations {
+		isMember, err := s.repo.IsUserWorkspaceMember(ctx, user.ID, invitation.WorkspaceID)
+		if err != nil {
+			s.logger.WithField("user_id", user.ID).WithField("workspace_id", invitation.WorkspaceID).WithField("error", err.Error()).Error("Failed to check workspace membership")
+			return nil, err
+		}
+		if !isMember {
+			pending = append(pending, invitation)
+		}
+	}
+	return pending, nil
+}
+
+// JoinInvitation seats the signed-in user in the workspace of an invitation addressed to
+// their email, with the permissions it grants — the console's counterpart to accepting the
+// emailed link. It returns the workspace's id.
+//
+// The account's email is the whole entitlement, and that is not a new trust: InviteMember
+// already seats an existing account whose email matches, with no acceptance at all. What
+// keeps it sound is that no account is created for an invited address without proof of that
+// address — the emailed link, or an identity provider authoritative for it (see
+// OIDCService.resolveOrProvisionUser).
+func (s *WorkspaceService) JoinInvitation(ctx context.Context, invitationID string) (string, error) {
+	user, err := s.authService.AuthenticateUserFromContext(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Not a UUID can name no invitation; asking the database would be a type error, not a miss.
+	if _, err := uuid.Parse(invitationID); err != nil {
+		return "", domain.ErrInvitationUnavailable
+	}
+	invitation, err := s.repo.GetInvitationByID(ctx, invitationID)
+	if err != nil {
+		if errors.Is(err, domain.ErrInvitationNotFound) {
+			return "", domain.ErrInvitationUnavailable
+		}
+		s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Error("Failed to get invitation")
+		return "", err
+	}
+
+	// Named before any check: the route is not workspace-scoped, and a refused attempt — a
+	// member trying a colleague's invitation id — belongs in that workspace's audit log too.
+	audit := domain.AuditFromContext(ctx)
+	if audit != nil {
+		audit.SetWorkspace(invitation.WorkspaceID)
+		audit.SetTarget(domain.AuditTargetInvitation, invitation.ID, invitation.Email)
+	}
+
+	if !isSessionUser(ctx) {
+		return "", domain.ErrInvitationUnavailable
+	}
+	// Entitled means listed: the same query the dashboard shows, so "addressed to you" is
+	// decided by one comparison (LOWER on both sides) and expiry by one clock (the database's).
+	// Go's case folding and PostgreSQL's disagree on characters such as U+0130.
+	listed, err := s.repo.ListPendingInvitationsForEmail(ctx, user.Email)
+	if err != nil {
+		s.logger.WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to list pending invitations")
+		return "", err
+	}
+	entitled := false
+	for _, pending := range listed {
+		if pending.ID == invitation.ID {
+			entitled = true
+			break
+		}
+	}
+	if !entitled {
+		return "", domain.ErrInvitationUnavailable
+	}
+
+	// Already a member — a double click, a stale list, or a seat granted since: the
+	// invitation has nothing left to give. The membership row is left alone rather than
+	// written again, because writing it is an upsert that would reset an owner to the
+	// invitation's member grant.
+	isMember, err := s.repo.IsUserWorkspaceMember(ctx, user.ID, invitation.WorkspaceID)
+	if err != nil {
+		s.logger.WithField("user_id", user.ID).WithField("workspace_id", invitation.WorkspaceID).WithField("error", err.Error()).Error("Failed to check workspace membership")
+		return "", err
+	}
+	if isMember {
+		if audit != nil {
+			audit.AddMetadata("already_member", true)
+		}
+	} else {
+		if err := s.ensureSeat(ctx, invitation.WorkspaceID, invitation.Email); err != nil {
+			return "", err
+		}
+		now := time.Now().UTC()
+		err = s.repo.AddUserToWorkspace(ctx, &domain.UserWorkspace{
+			UserID:      user.ID,
+			WorkspaceID: invitation.WorkspaceID,
+			Role:        "member", // Always set invited users as members
+			Permissions: invitation.Permissions,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		})
+		if err != nil {
+			s.logger.WithField("user_id", user.ID).WithField("workspace_id", invitation.WorkspaceID).WithField("error", err.Error()).Error("Failed to add user to workspace")
+			return "", fmt.Errorf("failed to add user to workspace: %w", err)
+		}
+	}
+
+	// Every invitation to this address for the workspace goes, case variants included: the
+	// person holds their seat as a member now.
+	if err := s.repo.DeleteInvitationByEmail(ctx, invitation.WorkspaceID, invitation.Email); err != nil {
+		s.logger.WithField("invitation_id", invitation.ID).WithField("error", err.Error()).Warn("Failed to delete invitation after joining")
+	}
+
+	s.logger.WithField("user_id", user.ID).WithField("workspace_id", invitation.WorkspaceID).WithField("invitation_id", invitation.ID).Info("User joined workspace from a pending invitation")
+	return invitation.WorkspaceID, nil
 }
 
 // DeleteInvitation deletes a workspace invitation by its ID

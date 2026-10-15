@@ -777,8 +777,11 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 				Language: "de",
 			}, nil)
 
-		mockUserSvc.EXPECT().
-			GetUserByEmail(ctx, email).
+		mockRepo.EXPECT().
+			GetInvitationByEmail(ctx, workspaceID, email).
+			Return(nil, domain.ErrInvitationNotFound)
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(ctx, email).
 			Return(nil, &domain.ErrUserNotFound{})
 
 		// Mock invitation creation
@@ -822,6 +825,48 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 		cfg.Environment = "development"
 	})
 
+	// A resend upserts onto the pending invitation, which keeps its id. The repository
+	// writes that id back, and the emailed link must be signed with it — signing the
+	// freshly generated one mails a link to a row that does not exist.
+	t.Run("resend signs the link with the pending invitation's id", func(t *testing.T) {
+		cfg.Environment = "development" // the token is only returned in development
+
+		mockAuthSvc.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: inviterID}, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
+		mockRepo.EXPECT().
+			GetByID(ctx, workspaceID).
+			Return(&domain.Workspace{ID: workspaceID, Name: "Test Workspace"}, nil)
+		mockUserSvc.EXPECT().
+			GetUserByID(ctx, inviterID).
+			Return(&domain.User{ID: inviterID, Name: "Test Inviter"}, nil)
+		mockRepo.EXPECT().
+			GetInvitationByEmail(ctx, workspaceID, email).
+			Return(nil, domain.ErrInvitationNotFound)
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(ctx, email).
+			Return(nil, &domain.ErrUserNotFound{})
+
+		mockRepo.EXPECT().
+			CreateInvitation(ctx, gomock.Any()).
+			DoAndReturn(func(_ context.Context, invitation *domain.WorkspaceInvitation) error {
+				invitation.ID = "pending-invitation-id"
+				return nil
+			})
+		mockAuthSvc.EXPECT().
+			GenerateInvitationToken(gomock.Any()).
+			DoAndReturn(func(invitation *domain.WorkspaceInvitation) string {
+				assert.Equal(t, "pending-invitation-id", invitation.ID)
+				return "resent-token"
+			})
+
+		invitation, token, err := service.InviteMember(ctx, workspaceID, email, domain.UserPermissions{})
+		require.NoError(t, err)
+		require.NotNil(t, invitation)
+		assert.Equal(t, "pending-invitation-id", invitation.ID)
+		assert.Equal(t, "resent-token", token)
+	})
+
 	t.Run("successful invitation for existing user", func(t *testing.T) {
 		existingUser := &domain.User{
 			ID:    "existing-user",
@@ -847,8 +892,11 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 				Email: "inviter@example.com",
 			}, nil)
 
-		mockUserSvc.EXPECT().
-			GetUserByEmail(ctx, email).
+		mockRepo.EXPECT().
+			GetInvitationByEmail(ctx, workspaceID, email).
+			Return(nil, domain.ErrInvitationNotFound)
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(ctx, email).
 			Return(existingUser, nil)
 
 		mockRepo.EXPECT().
@@ -863,6 +911,42 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 				assert.Equal(t, "member", uw.Role)
 				return nil
 			})
+		// No invitation was waiting, so there is nothing to clear.
+
+		invitation, token, err := service.InviteMember(ctx, workspaceID, email, domain.UserPermissions{})
+		require.NoError(t, err)
+		assert.Nil(t, invitation)
+		assert.Empty(t, token)
+	})
+
+	// An expired invitation for an address whose account is then seated is cleared. The
+	// membership is already written when the cleanup runs; failing the request then would
+	// report an invite that did happen as one that did not.
+	t.Run("a failed invitation cleanup does not fail the invite", func(t *testing.T) {
+		mockAuthSvc.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: inviterID}, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
+		mockRepo.EXPECT().
+			GetByID(ctx, workspaceID).
+			Return(&domain.Workspace{ID: workspaceID, Name: "Test Workspace"}, nil)
+		mockUserSvc.EXPECT().
+			GetUserByID(ctx, inviterID).
+			Return(&domain.User{ID: inviterID, Name: "Test Inviter"}, nil)
+		mockRepo.EXPECT().
+			GetInvitationByEmail(ctx, workspaceID, email).
+			Return(&domain.WorkspaceInvitation{ID: "expired-inv", WorkspaceID: workspaceID, Email: email, ExpiresAt: time.Now().UTC().Add(-time.Hour)}, nil)
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(ctx, email).
+			Return(&domain.User{ID: "existing-user", Email: email}, nil)
+		mockRepo.EXPECT().
+			IsUserWorkspaceMember(ctx, "existing-user", workspaceID).
+			Return(false, nil)
+		mockRepo.EXPECT().
+			AddUserToWorkspace(ctx, gomock.Any()).
+			Return(nil)
+		mockRepo.EXPECT().
+			DeleteInvitationByEmail(ctx, workspaceID, email).
+			Return(errors.New("connection reset"))
 
 		invitation, token, err := service.InviteMember(ctx, workspaceID, email, domain.UserPermissions{})
 		require.NoError(t, err)
@@ -989,8 +1073,11 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 				Email: "inviter@example.com",
 			}, nil)
 
-		mockUserSvc.EXPECT().
-			GetUserByEmail(ctx, email).
+		mockRepo.EXPECT().
+			GetInvitationByEmail(ctx, workspaceID, email).
+			Return(nil, domain.ErrInvitationNotFound)
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(ctx, email).
 			Return(existingUser, nil)
 
 		mockRepo.EXPECT().

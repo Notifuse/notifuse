@@ -2,12 +2,13 @@ import { Outlet, useNavigate, useMatch } from '@tanstack/react-router'
 import { Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { useAuth } from '../contexts/AuthContext'
+import { isRootUser } from '../services/api/auth'
 import { LicenseBanner } from '../components/license/LicenseBanner'
 import { useEffect } from 'react'
 
 export function RootLayout() {
   const { t } = useLingui()
-  const { isAuthenticated, loading, workspaces } = useAuth()
+  const { isAuthenticated, loading, workspaces, user } = useAuth()
   const navigate = useNavigate()
 
   const isSigninRoute = useMatch({ from: '/console/signin', shouldThrow: false })
@@ -31,9 +32,16 @@ export function RootLayout() {
   const shouldRedirectToSignin =
     !isLogoutRoute && !isSigninRoute && !isAuthenticated && !isPublicRoute && !shouldRedirectToSetup
 
-  // If authenticated and has no workspaces, redirect to workspace creation
+  // A root user with no workspace is sent to create the first one. Only root can create a
+  // workspace, so anyone else with none stays on the dashboard, where their pending
+  // invitations are: sending them to the form left them on a page the server refuses, which
+  // "back" bounced them to again.
   const shouldRedirectToCreateWorkspace =
-    isAuthenticated && workspaces.length === 0 && !isWorkspaceCreateRoute && !isLogoutRoute
+    isAuthenticated &&
+    workspaces.length === 0 &&
+    isRootUser(user?.email) &&
+    !isWorkspaceCreateRoute &&
+    !isLogoutRoute
 
   // console.log('isAuthenticated', isAuthenticated)
   // handle redirection...

@@ -107,7 +107,8 @@ vi.mock('../services/api/workspace', () => ({
     getMembers: vi.fn().mockResolvedValue({ members: [] }),
     inviteMember: vi.fn().mockResolvedValue({}),
     removeMember: vi.fn().mockResolvedValue({}),
-    updateMemberPermissions: vi.fn().mockResolvedValue({})
+    updateMemberPermissions: vi.fn().mockResolvedValue({}),
+    pendingInvitations: vi.fn().mockResolvedValue({ invitations: [] })
   }
 }))
 

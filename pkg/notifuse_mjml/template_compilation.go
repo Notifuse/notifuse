@@ -792,7 +792,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 			// Compile tree to MJML using our pkg/mjml function with template data
 			if templateDataStr != "" {
 				var err error
-				mjmlString, err = ConvertJSONToMJMLWithData(tree, templateDataStr)
+				mjmlString, err = ConvertJSONToMJMLWithDataProtected(tree, templateDataStr)
 				if err != nil {
 					return &CompileTemplateResponse{
 						Success:        false,
@@ -856,6 +856,11 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 
 	// Preprocess MJML to fix HTML vs XML incompatibilities
 	// gomjml uses a strict XML parser that doesn't accept HTML void tags (<br>) or HTML entities (&nbsp;)
+	// Restore the Liquid delimiters neutralized during the per-block render (see
+	// ConvertJSONToMJMLWithDataProtected). After this point data-borne Liquid is literal
+	// text; no-op when nothing was protected (code mode, no data).
+	mjmlString = restoreLiquidDelimiters(mjmlString)
+
 	preprocessedMjml := preprocessMjmlForXML(mjmlString)
 
 	// Compile MJML to HTML using gomjml library

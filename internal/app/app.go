@@ -657,7 +657,12 @@ func (a *App) InitServices() error {
 		// a restart. Leaving this field out compiles and passes every unit test while SSO
 		// runs unlicensed — app_license_wiring_test.go is what notices.
 		Entitlements: a.licenseService,
-		Logger:       a.logger,
+		// Lets a pending workspace invitation provision an SSO account, and lets SSO refuse a
+		// provider that is not authoritative for an invited address. Leaving it out WIDENS
+		// access (see OIDCServiceConfig.Invitations); TestAppWiresPendingInvitationsIntoSSO
+		// is what notices.
+		Invitations: a.workspaceRepo,
+		Logger:      a.logger,
 	})
 
 	// Initialize template service

@@ -213,6 +213,9 @@ func TestOIDCHandler_Callback_ErrorMapping(t *testing.T) {
 		{"not provisioned", domain.ErrOIDCAccountNotProvisioned, "not_provisioned"},
 		{"link conflict", domain.ErrOIDCIdentityConflict, "link_conflict"},
 		{"email unverified", domain.ErrOIDCEmailNotVerified, "email_unverified"},
+		// Its own reason so the console can say what happened; it used to fall through to
+		// auth_failed, whose "use a magic code" advice cannot work for someone with no account.
+		{"domain not allowed", domain.ErrOIDCDomainNotAllowed, "domain_not_allowed"},
 		{"provider unavailable", domain.ErrOIDCNotConfigured, "provider_unavailable"},
 		{"generic leaks nothing", errors.New("pq: password=topsecret dsn leak"), "auth_failed"},
 	}

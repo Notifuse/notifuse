@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/preslavrachev/gomjml/mjml"
@@ -1057,6 +1058,191 @@ func TestCompileTemplateWithHtmlEntitiesAndLiquid(t *testing.T) {
 	if !strings.Contains(*resp.HTML, "Welcome") {
 		t.Errorf("Expected HTML to contain 'Welcome', got:\n%s", *resp.HTML)
 	}
+}
+
+// editorText is a text block whose content went through the console's rich text editor.
+func editorText(content string) EmailBlock {
+	base := NewBaseBlock("text-1", MJMLComponentMjText)
+	base.Content = &content
+	return &MJTextBlock{BaseBlock: base}
+}
+
+// editorButton is a button whose text went through the console's inline text editor.
+func editorButton(content, href string) EmailBlock {
+	base := NewBaseBlock("button-1", MJMLComponentMjButton)
+	base.Attributes["href"] = href
+	base.Content = &content
+	return &MJButtonBlock{BaseBlock: base}
+}
+
+// editorImage is an image whose attribute was typed into the image panel.
+func editorImage(attribute, value string) EmailBlock {
+	base := NewBaseBlock("image-1", MJMLComponentMjImage)
+	base.Attributes["src"] = "https://example.com/a.png"
+	base.Attributes[attribute] = value
+	return &MJImageBlock{BaseBlock: base}
+}
+
+// editorTree builds the tree the visual editor saves around a single column of blocks.
+func editorTree(blocks ...EmailBlock) *MJMLBlock {
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = blocks
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+	return root
+}
+
+// compileVisual compiles a visual editor tree of the given blocks and returns its HTML,
+// failing the test unless the compile succeeds.
+func compileVisual(t *testing.T, data MapOfAny, blocks ...EmailBlock) string {
+	t.Helper()
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:      "ws",
+		MessageID:        "msg",
+		VisualEditorTree: editorTree(blocks...),
+		TemplateData:     data,
+	})
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.HTML)
+	return *resp.HTML
+}
+
+// TestCompileTemplateLiquidTypedInRichTextEditor compiles Liquid as the visual editor
+// stores it: the text editor curls typed quotes (‘ ’ “ ”), turns != into ≠, and
+// serializes > as &gt;. Before normalization the default filter rendered "Hello !"
+// and the comparison degraded to a truthiness test.
+func TestCompileTemplateLiquidTypedInRichTextEditor(t *testing.T) {
+	text := editorText("<p>Hello {{&nbsp;first_name | default: \u2018Valued User\u2019 }}!</p>" +
+		"<p>{% if contact.age &gt; 18 %}adult{% else %}minor{% endif %}</p>" +
+		"<p>{% if contact.country \u2260 \u201cFR\u201d %}abroad{% else %}france{% endif %}</p>")
+	button := editorButton("{{ contact.first_name | default: \u201cJoin us\u201d }}", "https://example.com")
+
+	t.Run("fallbacks when the contact has no first name", func(t *testing.T) {
+		html := compileVisual(t, MapOfAny{
+			"first_name": nil,
+			"contact":    map[string]interface{}{"first_name": nil, "age": 10, "country": "FR"},
+		}, text, button)
+		assert.Contains(t, html, "Hello Valued User!")
+		assert.NotContains(t, html, "Hello !")
+		assert.Contains(t, html, "Join us")
+		assert.Contains(t, html, "minor")
+		assert.NotContains(t, html, "adult")
+		assert.Contains(t, html, "france")
+		assert.NotContains(t, html, "abroad")
+	})
+
+	t.Run("values win over the fallbacks", func(t *testing.T) {
+		html := compileVisual(t, MapOfAny{
+			"first_name": "Jo",
+			"contact":    map[string]interface{}{"first_name": "Sam", "age": 30, "country": "DE"},
+		}, text, button)
+		assert.Contains(t, html, "Hello Jo!")
+		assert.Contains(t, html, "Sam")
+		assert.NotContains(t, html, "Join us")
+		assert.Contains(t, html, "adult")
+		assert.Contains(t, html, "abroad")
+	})
+}
+
+// TestCompileTemplateExportedMJMLKeepsLiquidQuotes round-trips a template through the
+// MJML export: export escapes the quotes of a Liquid attribute value to &#39;, and the
+// exported source must still render when compiled in code mode.
+func TestCompileTemplateExportedMJMLKeepsLiquidQuotes(t *testing.T) {
+	exported, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID: "ws",
+		MessageID:   "export",
+		VisualEditorTree: editorTree(editorText("<p>hello</p>"),
+			editorButton("Start", "{{ contact.start_url | default: 'https://example.com/start' }}")),
+		PreserveLiquid: true,
+	})
+	require.NoError(t, err)
+	require.True(t, exported.Success, "error: %v", exported.Error)
+	require.NotNil(t, exported.MJML)
+	require.Contains(t, *exported.MJML, "default: &#39;https://example.com/start&#39;",
+		"precondition: the export escapes the Liquid quotes inside the attribute")
+
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:  "ws",
+		MessageID:    "msg",
+		MjmlSource:   exported.MJML,
+		TemplateData: MapOfAny{"contact": map[string]interface{}{"email": "a@b.test"}},
+	})
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	require.NotNil(t, resp.HTML)
+	assert.Contains(t, *resp.HTML, `href="https://example.com/start"`)
+}
+
+// TestCompileTemplateLiquidEncodedBeforeRendering covers Liquid that is HTML-encoded
+// before the Liquid pass reads it: the text editor serializes a link's href with
+// &quot;, attribute escaping turns ' into &#39; for attributes rendered by the
+// whole-document pass, and a {% %} tag containing "%" must be cleaned like any other
+// (an &nbsp; left in it is a Liquid syntax error that fails the whole compile).
+func TestCompileTemplateLiquidEncodedBeforeRendering(t *testing.T) {
+	data := MapOfAny{"contact": map[string]interface{}{"first_name": nil}}
+
+	t.Run("link href serialized by the text editor", func(t *testing.T) {
+		html := compileVisual(t, data, editorText(`<p><a href="{{ contact.url | default: &quot;https://example.com/start&quot; }}">Start</a></p>`))
+		assert.Contains(t, html, `href="https://example.com/start"`)
+	})
+
+	t.Run("attribute escaped before the whole-document pass", func(t *testing.T) {
+		html := compileVisual(t, data, editorText("<p>hello</p>"),
+			editorImage("title", "{{ contact.first_name | default: 'friend' }}"))
+		assert.Contains(t, html, `title="friend"`)
+	})
+
+	t.Run("escaped attribute literal keeps its apostrophe", func(t *testing.T) {
+		html := compileVisual(t, data, editorText("<p>hello</p>"),
+			editorImage("title", "{{ contact.first_name | default: 'It\u2019s you' }}"))
+		assert.Contains(t, html, "title=\"It\u2019s you\"")
+	})
+
+	t.Run("double quotes inside a curled literal stay out of the attribute syntax", func(t *testing.T) {
+		html := compileVisual(t, data, editorText("<p>hello</p>"),
+			editorImage("title", "{{ contact.first_name | default: \u2018say \u201chi\u201d\u2019 }}"))
+		assert.Contains(t, html, "title=\"say \u201chi\u201d\"")
+	})
+
+	t.Run("tag containing a percent sign", func(t *testing.T) {
+		html := compileVisual(t, data, editorText("<p>{%&nbsp;assign year = \u20182024-03-05\u2019 | date: \u2018%Y\u2019 %}Year {{ year }}</p>"))
+		assert.Contains(t, html, "Year 2024")
+	})
+}
+
+// TestCompileTemplateLiquidNormalizationKeepsSavedTemplatesCompiling pins markup that
+// compiled before normalization existed and must keep compiling: normalizing it
+// carelessly glues a tag name to its condition, hands Liquid a lone quote (a parser
+// panic), or rewrites a raw body that Liquid outputs verbatim into invalid MJML.
+func TestCompileTemplateLiquidNormalizationKeepsSavedTemplatesCompiling(t *testing.T) {
+	data := MapOfAny{"contact": map[string]interface{}{"discount": "10%"}}
+
+	t.Run("non-breaking space after a tag name", func(t *testing.T) {
+		html := compileVisual(t, data, editorText("<p>{% if\u00a0contact.discount contains '%' %}yes{% else %}no{% endif %}</p>"))
+		assert.Contains(t, html, "<p>yes</p>")
+	})
+
+	t.Run("lone curly quote", func(t *testing.T) {
+		html := compileVisual(t, data, editorText("<p>[{{ \u2019 }}]</p>"))
+		assert.Contains(t, html, "<p>[]</p>")
+	})
+
+	t.Run("raw body in code mode", func(t *testing.T) {
+		source := `<mjml><mj-body><mj-section><mj-column><mj-button href="https://example.com">{% raw %}{{ a &#60; b }}{% endraw %}</mj-button></mj-column></mj-section></mj-body></mjml>`
+		resp, err := CompileTemplate(CompileTemplateRequest{
+			WorkspaceID:  "ws",
+			MessageID:    "msg",
+			MjmlSource:   &source,
+			TemplateData: data,
+		})
+		require.NoError(t, err)
+		require.True(t, resp.Success, "error: %v", resp.Error)
+	})
 }
 
 func TestCompileTemplateWithHtmlEntities(t *testing.T) {
@@ -2473,22 +2659,7 @@ func TestCompileTemplateWithMJLiquidTimeout(t *testing.T) {
 
 // minimalTree returns the smallest valid visual_editor_tree the compiler accepts.
 func minimalTree() EmailBlock {
-	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
-	textBase.Content = stringPtr("hello")
-	textBlock := &MJTextBlock{BaseBlock: textBase}
-
-	columnBlock := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
-	columnBlock.Children = []EmailBlock{textBlock}
-
-	sectionBlock := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
-	sectionBlock.Children = []EmailBlock{columnBlock}
-
-	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
-	bodyBlock.Children = []EmailBlock{sectionBlock}
-
-	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
-	mjml.Children = []EmailBlock{bodyBlock}
-	return mjml
+	return editorTree(editorText("hello"))
 }
 
 func TestCompileTemplateSubjectRendered(t *testing.T) {
@@ -3993,4 +4164,104 @@ func TestMatchesAllowedHost_ExactEntryNeverCoversSubdomains(t *testing.T) {
 	// The apex is still matched by both forms.
 	assert.True(t, MatchesAllowedHost("example.com", []string{"example.com"}))
 	assert.True(t, MatchesAllowedHost("example.com", []string{"*.example.com"}))
+}
+
+// editorLiquid is an mj-liquid block carrying raw Liquid, processed by the
+// whole-document pass (not per-block).
+func editorLiquid(content string) EmailBlock {
+	base := NewBaseBlock("liquid-1", MJMLComponentMjLiquid)
+	base.Content = &content
+	return &MJLiquidBlock{BaseBlock: base}
+}
+
+// --- Data-borne Liquid must render as literal text, not be executed (double-render fix) ---
+
+func TestCompileTemplate_LiquidInContactFieldRendersLiteral(t *testing.T) {
+	data := MapOfAny{"contact": map[string]interface{}{"first_name": "Ann", "bio": "Hi {{ contact.first_name }}"}}
+	html := compileVisual(t, data, editorText("<p>{{ contact.bio }}</p>"))
+	assert.Contains(t, html, "Hi {{ contact.first_name }}")
+	assert.NotContains(t, html, "Hi Ann")
+}
+
+func TestCompileTemplate_LiquidInFeedFieldRendersLiteral(t *testing.T) {
+	data := MapOfAny{"contact": map[string]interface{}{"first_name": "Ann"}, "global_feed": map[string]interface{}{"headline": "Today: {{ contact.first_name }}"}}
+	html := compileVisual(t, data, editorText("<p>{{ global_feed.headline }}</p>"))
+	assert.Contains(t, html, "Today: {{ contact.first_name }}")
+	assert.NotContains(t, html, "Today: Ann")
+}
+
+func TestCompileTemplate_LiquidInURLAttributeFromDataRendersLiteral(t *testing.T) {
+	data := MapOfAny{"contact": map[string]interface{}{"img": "https://e.test/a.png?u={{ contact.id }}", "id": "42"}}
+	html := compileVisual(t, data, editorImage("src", "{{ contact.img }}"))
+	src, ok := attrFromRenderedHTML(t, html, "src")
+	require.True(t, ok)
+	assert.Equal(t, "https://e.test/a.png?u={{ contact.id }}", src)
+}
+
+// alt is rendered in the per-block pass (unlike title, a non-URL attribute rendered
+// once by the whole-document pass), so it exercises the protect-then-escape interaction
+// with the image attribute fix: the quote survives via &amp;quot; and the data's braces
+// stay literal rather than being executed on the second pass.
+func TestCompileTemplate_LiquidAndQuotesInAttributeFromData(t *testing.T) {
+	data := MapOfAny{"contact": map[string]interface{}{"t": `say "hi" {{ x }}`}}
+	html := compileVisual(t, data, editorImage("alt", "{{ contact.t }}"))
+	alt, ok := attrFromRenderedHTML(t, html, "alt")
+	require.True(t, ok)
+	assert.Equal(t, `say "hi" {{ x }}`, alt)
+}
+
+func TestCompileTemplate_MalformedLiquidInDataDoesNotFailCompile(t *testing.T) {
+	data := MapOfAny{"contact": map[string]interface{}{"note": "{% bogus %}"}}
+	html := compileVisual(t, data, editorText("<p>{{ contact.note }}</p>"))
+	assert.Contains(t, html, "{% bogus %}")
+}
+
+func TestCompileTemplate_LoopBombInDataNotExecuted(t *testing.T) {
+	data := MapOfAny{"contact": map[string]interface{}{"note": "{% for i in (1..200000) %}x{% endfor %}"}}
+	start := time.Now()
+	html := compileVisual(t, data, editorText("<p>{{ contact.note }}</p>"))
+	elapsed := time.Since(start)
+	assert.Contains(t, html, "{% for i in (1..200000) %}")
+	assert.Less(t, elapsed, 2*time.Second, "a loop in data must not be executed")
+}
+
+// --- Behaviour that must stay unchanged ---
+
+func TestCompileTemplate_NormalPersonalizationUnaffected(t *testing.T) {
+	data := MapOfAny{"contact": map[string]interface{}{"first_name": "Ann"}}
+	html := compileVisual(t, data, editorText("<p>Hello {{ contact.first_name }}</p>"))
+	assert.Contains(t, html, "Hello Ann")
+	assert.NotContains(t, html, "{{")
+}
+
+func TestCompileTemplate_MjLiquidLoopUnaffected(t *testing.T) {
+	data := MapOfAny{"global_feed": map[string]interface{}{"items": []interface{}{
+		map[string]interface{}{"title": "FirstItem"}, map[string]interface{}{"title": "SecondItem"}}}}
+	html := compileVisual(t, data, editorLiquid("{% for item in global_feed.items %}<mj-text><p>{{ item.title }}</p></mj-text>{% endfor %}"))
+	assert.Contains(t, html, "FirstItem")
+	assert.Contains(t, html, "SecondItem")
+}
+
+func TestCompileTemplate_MjLiquidConditionalWrapperUnaffected(t *testing.T) {
+	compileWrapped := func(data MapOfAny) string {
+		return compileVisual(t, data, editorLiquid("{% if contact.vip %}"), editorText("<p>VIPmember {{ contact.first_name }}</p>"), editorLiquid("{% endif %}"))
+	}
+	shown := compileWrapped(MapOfAny{"contact": map[string]interface{}{"vip": true, "first_name": "Ann"}})
+	assert.Contains(t, shown, "VIPmember Ann")
+	hidden := compileWrapped(MapOfAny{"contact": map[string]interface{}{"vip": false, "first_name": "Ann"}})
+	assert.NotContains(t, hidden, "VIPmember")
+}
+
+func TestCompileTemplate_OutputHasNoSentinels(t *testing.T) {
+	data := MapOfAny{"contact": map[string]interface{}{"first_name": "Ann", "bio": "Hi {{ contact.first_name }}", "img": "https://e.test/a.png?u={{ contact.id }}"}}
+	resp, err := CompileTemplate(CompileTemplateRequest{WorkspaceID: "ws", MessageID: "m", TemplateData: data,
+		VisualEditorTree: editorTree(editorText("<p>{{ contact.bio }}</p>"), editorImage("src", "{{ contact.img }}"))})
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	for _, sentinel := range []string{liquidSentinelOpenVar, liquidSentinelCloseVar, liquidSentinelOpenTag, liquidSentinelCloseTag} {
+		assert.NotContains(t, *resp.HTML, sentinel, "sentinel leaked into HTML")
+		if resp.MJML != nil {
+			assert.NotContains(t, *resp.MJML, sentinel, "sentinel leaked into MJML")
+		}
+	}
 }

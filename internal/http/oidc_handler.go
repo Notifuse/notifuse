@@ -255,6 +255,8 @@ func mapCallbackError(err error) string {
 		return "link_conflict"
 	case errors.Is(err, domain.ErrOIDCEmailNotVerified):
 		return "email_unverified"
+	case errors.Is(err, domain.ErrOIDCDomainNotAllowed):
+		return "domain_not_allowed"
 	case errors.Is(err, domain.ErrOIDCNotConfigured):
 		return "provider_unavailable"
 	default:
@@ -267,5 +269,6 @@ func mapCallbackError(err error) string {
 func isExpectedCallbackError(err error) bool {
 	return errors.Is(err, domain.ErrOIDCAccountNotProvisioned) ||
 		errors.Is(err, domain.ErrOIDCIdentityConflict) ||
-		errors.Is(err, domain.ErrOIDCEmailNotVerified)
+		errors.Is(err, domain.ErrOIDCEmailNotVerified) ||
+		errors.Is(err, domain.ErrOIDCDomainNotAllowed)
 }

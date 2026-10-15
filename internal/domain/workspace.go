@@ -1075,6 +1075,17 @@ type WorkspaceInvitation struct {
 	UpdatedAt   time.Time       `json:"updated_at"`
 }
 
+// PendingInvitation is a live invitation as its invitee sees it: the workspace it opens
+// and who sent it. It carries no permissions — the invitee joins with whatever the owner
+// granted, and the console has no use for the grant before then.
+type PendingInvitation struct {
+	ID            string    `json:"id"`
+	WorkspaceID   string    `json:"workspace_id"`
+	WorkspaceName string    `json:"workspace_name"`
+	InviterName   string    `json:"inviter_name,omitempty"`
+	ExpiresAt     time.Time `json:"expires_at"`
+}
+
 type WorkspaceRepository interface {
 	Create(ctx context.Context, workspace *Workspace) error
 	GetByID(ctx context.Context, id string) (*Workspace, error)
@@ -1100,13 +1111,27 @@ type WorkspaceRepository interface {
 	UpdateUserWorkspacePermissions(ctx context.Context, userWorkspace *UserWorkspace) error
 
 	// Workspace invitation management
+	// CreateInvitation upserts on (workspace_id, email). An existing row for the address,
+	// pending or expired, keeps its id and created_at, and both are written back onto
+	// invitation — so invitation.ID can differ from the one passed in.
 	CreateInvitation(ctx context.Context, invitation *WorkspaceInvitation) error
 	GetInvitationByID(ctx context.Context, id string) (*WorkspaceInvitation, error)
+	// GetInvitationByEmail matches email case-insensitively, expired invitations included;
+	// none is ErrInvitationNotFound.
 	GetInvitationByEmail(ctx context.Context, workspaceID, email string) (*WorkspaceInvitation, error)
 	GetWorkspaceInvitations(ctx context.Context, workspaceID string) ([]*WorkspaceInvitation, error)
 	DeleteInvitation(ctx context.Context, id string) error
+	// DeleteInvitationByEmail deletes the workspace's invitations for email, matched
+	// case-insensitively; none is not an error.
+	DeleteInvitationByEmail(ctx context.Context, workspaceID, email string) error
+	// ListPendingInvitationsForEmail returns the live invitations addressed to email,
+	// matched case-insensitively, the newest one per workspace.
+	ListPendingInvitationsForEmail(ctx context.Context, email string) ([]*PendingInvitation, error)
 	IsUserWorkspaceMember(ctx context.Context, userID, workspaceID string) (bool, error)
-	CountWorkspaceMembersAndInvitations(ctx context.Context, workspaceID string) (int, error)
+	// CountWorkspaceMembersAndInvitations counts human members plus live invitations, leaving
+	// out the invitations addressed to excludeEmail, matched case-insensitively ("" leaves
+	// out none).
+	CountWorkspaceMembersAndInvitations(ctx context.Context, workspaceID, excludeEmail string) (int, error)
 	CountWorkspaces(ctx context.Context) (int, error)
 
 	// Database management
@@ -1123,6 +1148,14 @@ type WorkspaceRepository interface {
 // row for a workspace. Callers (e.g. the platform-admin override in AuthService) use
 // errors.Is to distinguish a plain "not a member" from a real database failure.
 var ErrUserNotInWorkspace = errors.New("user is not a member of the workspace")
+
+// ErrInvitationNotFound is returned (errors.Is-able) when no invitation has the id asked for.
+var ErrInvitationNotFound = errors.New("invitation not found")
+
+// ErrInvitationUnavailable is what a signed-in user is told about an invitation they cannot
+// join: missing, expired, addressed to someone else or offered to an API key all read the
+// same, so an invitation id is not something to probe with.
+var ErrInvitationUnavailable = errors.New("invitation not found or no longer valid")
 
 // ErrUnauthorized is returned when a user is not authorized to perform an action
 type ErrUnauthorized struct {
@@ -1181,6 +1214,10 @@ type WorkspaceServiceInterface interface {
 	GetInvitationByID(ctx context.Context, invitationID string) (*WorkspaceInvitation, error)
 	AcceptInvitation(ctx context.Context, invitationID, workspaceID, email string) (*AuthResponse, error)
 	DeleteInvitation(ctx context.Context, invitationID string) error
+	// ListPendingInvitations and JoinInvitation are the signed-in counterpart of the emailed
+	// link: the invitations addressed to the caller's email, and joining one of them.
+	ListPendingInvitations(ctx context.Context) ([]*PendingInvitation, error)
+	JoinInvitation(ctx context.Context, invitationID string) (workspaceID string, err error)
 
 	// Integration management
 	CreateIntegration(ctx context.Context, req CreateIntegrationRequest) (string, error)

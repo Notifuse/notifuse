@@ -898,6 +898,15 @@ func WithContactLanguage(language string) ContactOption {
 	}
 }
 
+// WithContactNameNil leaves first_name and last_name NULL; CreateContact otherwise
+// fills them with "Test" / "Contact".
+func WithContactNameNil() ContactOption {
+	return func(c *domain.Contact) {
+		c.FirstName = nil
+		c.LastName = nil
+	}
+}
+
 func WithContactLanguageNil() ContactOption {
 	return func(c *domain.Contact) {
 		c.Language = nil

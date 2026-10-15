@@ -187,7 +187,8 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 		// Create contact WITHOUT first_name/last_name (only email)
 		contactEmail := fmt.Sprintf("no-name-test-%s@example.com", uuid.New().String()[:8])
 		contact, err := factory.CreateContact(workspace.ID,
-			testutil.WithContactEmail(contactEmail))
+			testutil.WithContactEmail(contactEmail),
+			testutil.WithContactNameNil())
 		require.NoError(t, err)
 		t.Logf("Created contact: %s with NO name set", contact.Email)
 
@@ -261,6 +262,145 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 
 		// Subject should still have the unique ID (template rendered, just with empty name)
 		assert.Contains(t, msg.Subject, uniqueID, "Subject should contain unique ID (template was rendered)")
+	})
+
+	t.Run("default filter falls back for a contact without a name", func(t *testing.T) {
+		// Quotes as the visual editor stores them: its text editor curls the quotes
+		// typed around a default value. The fallback must reach the contact without
+		// a name, and must not replace the name of the contact who has one.
+		err := testutil.ClearMailpitMessages(t)
+		require.NoError(t, err)
+
+		list, err := factory.CreateList(workspace.ID,
+			testutil.WithListName("Liquid Default Filter List"))
+		require.NoError(t, err)
+
+		anonymousEmail := fmt.Sprintf("default-anon-%s@example.com", uuid.New().String()[:8])
+		namedEmail := fmt.Sprintf("default-named-%s@example.com", uuid.New().String()[:8])
+		_, err = factory.CreateContact(workspace.ID,
+			testutil.WithContactEmail(anonymousEmail),
+			testutil.WithContactNameNil())
+		require.NoError(t, err)
+		_, err = factory.CreateContact(workspace.ID,
+			testutil.WithContactEmail(namedEmail),
+			testutil.WithContactName("John", "Doe"))
+		require.NoError(t, err)
+
+		for _, email := range []string{anonymousEmail, namedEmail} {
+			_, err = factory.CreateContactList(workspace.ID,
+				testutil.WithContactListEmail(email),
+				testutil.WithContactListListID(list.ID),
+				testutil.WithContactListStatus(domain.ContactListStatusActive))
+			require.NoError(t, err)
+		}
+
+		uniqueID := uuid.New().String()[:8]
+		template, err := factory.CreateTemplate(workspace.ID,
+			testutil.WithTemplateName("Liquid Default Filter Template"),
+			testutil.WithTemplateSubject(fmt.Sprintf("Hi {{ contact.first_name | default: \u201cfriend\u201d }} - %s", uniqueID)),
+			testutil.WithTemplateEmailContent("<p>Hello {{ contact.first_name | default: \u2018Valued User\u2019 }}!</p>"))
+		require.NoError(t, err)
+
+		broadcast, err := factory.CreateBroadcast(workspace.ID,
+			testutil.WithBroadcastName("Liquid Default Filter Broadcast"),
+			testutil.WithBroadcastTemplateID(template.ID),
+			testutil.WithBroadcastAudience(domain.AudienceSettings{
+				List:                list.ID,
+				ExcludeUnsubscribed: true,
+			}))
+		require.NoError(t, err)
+
+		scheduleResp, err := client.ScheduleBroadcast(map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"id":           broadcast.ID,
+			"send_now":     true,
+		})
+		require.NoError(t, err)
+		defer func() { _ = scheduleResp.Body.Close() }()
+		require.Equal(t, http.StatusOK, scheduleResp.StatusCode, "scheduling the broadcast should succeed")
+
+		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
+			[]string{"processed", "completed"}, 60*time.Second)
+		require.NoError(t, err)
+
+		anonymousMsg, err := waitForEmailByRecipient(t, anonymousEmail, 15*time.Second)
+		require.NoError(t, err, "Should receive email for the contact without a name")
+		assert.Equal(t, "Hi friend - "+uniqueID, anonymousMsg.Subject)
+		assert.Contains(t, anonymousMsg.HTML, "Hello Valued User!")
+		assert.NotContains(t, anonymousMsg.HTML, "Hello !")
+
+		namedMsg, err := waitForEmailByRecipient(t, namedEmail, 15*time.Second)
+		require.NoError(t, err, "Should receive email for the named contact")
+		assert.Equal(t, "Hi John - "+uniqueID, namedMsg.Subject)
+		assert.Contains(t, namedMsg.HTML, "Hello John!")
+		assert.NotContains(t, namedMsg.HTML, "Valued User")
+	})
+
+	t.Run("Liquid stored in a contact field is delivered as text, not executed", func(t *testing.T) {
+		// A contact field can hold Liquid (anyone can set one via the public subscribe
+		// endpoint). It must render as literal text in the sent email, never execute.
+		err := testutil.ClearMailpitMessages(t)
+		require.NoError(t, err)
+
+		list, err := factory.CreateList(workspace.ID, testutil.WithListName("Liquid Injection List"))
+		require.NoError(t, err)
+
+		injectedEmail := fmt.Sprintf("inject-%s@example.com", uuid.New().String()[:8])
+		normalEmail := fmt.Sprintf("normal-%s@example.com", uuid.New().String()[:8])
+		_, err = factory.CreateContact(workspace.ID,
+			testutil.WithContactEmail(injectedEmail),
+			testutil.WithContactName("{{ 7 | times: 6 }}", "X"))
+		require.NoError(t, err)
+		_, err = factory.CreateContact(workspace.ID,
+			testutil.WithContactEmail(normalEmail),
+			testutil.WithContactName("Jane", "Doe"))
+		require.NoError(t, err)
+
+		for _, email := range []string{injectedEmail, normalEmail} {
+			_, err = factory.CreateContactList(workspace.ID,
+				testutil.WithContactListEmail(email),
+				testutil.WithContactListListID(list.ID),
+				testutil.WithContactListStatus(domain.ContactListStatusActive))
+			require.NoError(t, err)
+		}
+
+		uniqueID := uuid.New().String()[:8]
+		template, err := factory.CreateTemplate(workspace.ID,
+			testutil.WithTemplateName("Liquid Injection Template"),
+			testutil.WithTemplateSubject(fmt.Sprintf("Welcome - %s", uniqueID)),
+			testutil.WithTemplateEmailContent("<p>Hello {{ contact.first_name }}!</p>"))
+		require.NoError(t, err)
+
+		broadcast, err := factory.CreateBroadcast(workspace.ID,
+			testutil.WithBroadcastName("Liquid Injection Broadcast"),
+			testutil.WithBroadcastTemplateID(template.ID),
+			testutil.WithBroadcastAudience(domain.AudienceSettings{
+				List:                list.ID,
+				ExcludeUnsubscribed: true,
+			}))
+		require.NoError(t, err)
+
+		scheduleResp, err := client.ScheduleBroadcast(map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"id":           broadcast.ID,
+			"send_now":     true,
+		})
+		require.NoError(t, err)
+		defer func() { _ = scheduleResp.Body.Close() }()
+		require.Equal(t, http.StatusOK, scheduleResp.StatusCode, "scheduling the broadcast should succeed")
+
+		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
+			[]string{"processed", "completed"}, 60*time.Second)
+		require.NoError(t, err)
+
+		injectedMsg, err := waitForEmailByRecipient(t, injectedEmail, 15*time.Second)
+		require.NoError(t, err, "the contact with Liquid in its name must still receive the email")
+		assert.Contains(t, injectedMsg.HTML, "Hello {{ 7 | times: 6 }}!", "data-borne Liquid must render as literal text")
+		assert.NotContains(t, injectedMsg.HTML, "Hello 42", "data-borne Liquid must not be executed")
+
+		normalMsg, err := waitForEmailByRecipient(t, normalEmail, 15*time.Second)
+		require.NoError(t, err, "the control contact must receive a personalized email")
+		assert.Contains(t, normalMsg.HTML, "Hello Jane!")
 	})
 
 	t.Run("renders system variables like unsubscribe_url and notification_center_url", func(t *testing.T) {

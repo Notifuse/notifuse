@@ -634,7 +634,7 @@ msgstr "A/B test is in progress. Emails are being sent to the test group."
 msgid "A/B Testing"
 msgstr "A/B Testing"
 
-#: src/pages/AcceptInvitationPage.tsx:168
+#: src/pages/AcceptInvitationPage.tsx:169
 msgid "Accept Invitation"
 msgstr "Accept Invitation"
 
@@ -1456,7 +1456,7 @@ msgstr "Array index: {segment}"
 msgid "Ask about your traffic..."
 msgstr "Ask about your traffic..."
 
-#: src/components/ai-assistant/useAIAssistant.tsx:894
+#: src/components/ai-assistant/useAIAssistant.tsx:899
 msgid "Ask me to fix these issues."
 msgstr "Ask me to fix these issues."
 
@@ -1543,7 +1543,7 @@ msgid "Audit logs"
 msgstr "Audit logs"
 
 #: src/components/settings/PermissionsMatrix.tsx:136
-#: src/services/api/errors.ts:77
+#: src/services/api/errors.ts:96
 msgid "Audit Logs"
 msgstr "Audit Logs"
 
@@ -1669,7 +1669,7 @@ msgstr "Automation:"
 #: src/components/settings/PermissionsMatrix.tsx:130
 #: src/layouts/WorkspaceLayout.tsx:428
 #: src/pages/AutomationsPage.tsx:162
-#: src/services/api/errors.ts:71
+#: src/services/api/errors.ts:90
 msgid "Automations"
 msgstr "Automations"
 
@@ -1899,7 +1899,7 @@ msgstr "Blocks"
 #: src/components/settings/PermissionsMatrix.tsx:129
 #: src/components/settings/SettingsSidebar.tsx:121
 #: src/layouts/WorkspaceLayout.tsx:262
-#: src/services/api/errors.ts:70
+#: src/services/api/errors.ts:89
 msgid "Blog"
 msgstr "Blog"
 
@@ -2190,7 +2190,7 @@ msgstr "Broadcast updated successfully"
 #: src/components/settings/PermissionsMatrix.tsx:125
 #: src/layouts/WorkspaceLayout.tsx:402
 #: src/pages/BroadcastsPage.tsx:1604
-#: src/services/api/errors.ts:66
+#: src/services/api/errors.ts:85
 msgid "Broadcasts"
 msgstr "Broadcasts"
 
@@ -2422,6 +2422,10 @@ msgstr "Cancel Upload?"
 msgid "Cancelled"
 msgstr "Cancelled"
 
+#: src/pages/SignInPage.tsx:250
+msgid "Cannot reach the configured API endpoint"
+msgstr "Cannot reach the configured API endpoint"
+
 #: src/components/automations/context/AutomationContext.tsx:131
 msgid "Cannot remove list while email nodes exist. Delete email nodes first."
 msgstr "Cannot remove list while email nodes exist. Delete email nodes first."
@@ -2550,6 +2554,10 @@ msgstr "Change Status for {0}"
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:162
 msgid "Changes"
 msgstr "Changes"
+
+#: src/pages/SignInPage.tsx:261
+msgid "Changing your domain"
+msgstr "Changing your domain"
 
 #: src/components/messages/MessageHistoryTab.tsx:215
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
@@ -3176,7 +3184,7 @@ msgstr "Contact updated successfully"
 #: src/components/settings/PermissionsMatrix.tsx:122
 #: src/layouts/WorkspaceLayout.tsx:383
 #: src/pages/ContactsPage.tsx:1000
-#: src/services/api/errors.ts:63
+#: src/services/api/errors.ts:82
 msgid "Contacts"
 msgstr "Contacts"
 
@@ -3971,7 +3979,7 @@ msgstr "Days"
 msgid "Debug Segment Builder"
 msgstr "Debug Segment Builder"
 
-#: src/pages/AcceptInvitationPage.tsx:173
+#: src/pages/AcceptInvitationPage.tsx:174
 msgid "Decline"
 msgstr "Decline"
 
@@ -4956,8 +4964,8 @@ msgstr "email"
 #: src/components/timeline/ContactTimeline.tsx:584
 #: src/pages/ContactsPage.tsx:369
 #: src/pages/ContactsPage.tsx:536
-#: src/pages/SignInPage.tsx:219
-#: src/pages/SignInPage.tsx:226
+#: src/pages/SignInPage.tsx:276
+#: src/pages/SignInPage.tsx:283
 msgid "Email"
 msgstr "Email"
 
@@ -5075,7 +5083,7 @@ msgstr "Email Title Settings"
 msgid "Email widths above 650px may not display correctly in some email clients"
 msgstr "Email widths above 650px may not display correctly in some email clients"
 
-#: src/pages/AcceptInvitationPage.tsx:151
+#: src/pages/AcceptInvitationPage.tsx:152
 msgid "Email:"
 msgstr "Email:"
 
@@ -5366,7 +5374,7 @@ msgstr "Enter Reply-To email address"
 msgid "Enter spacing"
 msgstr "Enter spacing"
 
-#: src/pages/SignInPage.tsx:255
+#: src/pages/SignInPage.tsx:312
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "Enter the 6-digit code sent to {email}"
 
@@ -5621,7 +5629,7 @@ msgstr "Expired, in grace period"
 msgid "Expires"
 msgstr "Expires"
 
-#: src/pages/AcceptInvitationPage.tsx:154
+#: src/pages/AcceptInvitationPage.tsx:155
 msgid "Expires:"
 msgstr "Expires:"
 
@@ -5633,7 +5641,7 @@ msgstr "Explore"
 
 #: src/components/contacts/ExportContactsModal.tsx:325
 #: src/components/email_builder/MjmlCodeEditor.tsx:643
-#: src/components/logs/AuditLogActions.tsx:50
+#: src/components/logs/AuditLogActions.tsx:52
 #: src/components/templates/ImportExportButton.tsx:416
 #: src/pages/ContactsPage.tsx:1023
 msgid "Export"
@@ -5643,7 +5651,7 @@ msgstr "Export"
 msgid "Export Contacts to CSV"
 msgstr "Export Contacts to CSV"
 
-#: src/components/logs/AuditLogActions.tsx:22
+#: src/components/logs/AuditLogActions.tsx:24
 msgid "Export failed"
 msgstr "Export failed"
 
@@ -5659,7 +5667,7 @@ msgstr "Export MJML"
 msgid "Export the audit log as CSV or NDJSON"
 msgstr "Export the audit log as CSV or NDJSON"
 
-#: src/components/logs/AuditLogActions.tsx:48
+#: src/components/logs/AuditLogActions.tsx:50
 msgid "Export the current filter as CSV or NDJSON, up to {AUDIT_LOG_EXPORT_MAX_ROWS} rows"
 msgstr "Export the current filter as CSV or NDJSON, up to {AUDIT_LOG_EXPORT_MAX_ROWS} rows"
 
@@ -5720,7 +5728,7 @@ msgstr "failed"
 msgid "Failed"
 msgstr "Failed"
 
-#: src/pages/AcceptInvitationPage.tsx:84
+#: src/pages/AcceptInvitationPage.tsx:85
 msgid "Failed to accept invitation"
 msgstr "Failed to accept invitation"
 
@@ -5943,6 +5951,10 @@ msgstr "Failed to install the licence key"
 msgid "Failed to invite member"
 msgstr "Failed to invite member"
 
+#: src/components/workspace/PendingInvitations.tsx:54
+msgid "Failed to join the workspace"
+msgstr "Failed to join the workspace"
+
 #: src/components/segment/BroadcastSelectorInput.tsx:71
 msgid "Failed to load broadcasts"
 msgstr "Failed to load broadcasts"
@@ -6027,7 +6039,7 @@ msgstr "Failed to render preview"
 msgid "Failed to resend invitation"
 msgstr "Failed to resend invitation"
 
-#: src/pages/SignInPage.tsx:199
+#: src/pages/SignInPage.tsx:232
 msgid "Failed to resend magic code"
 msgstr "Failed to resend magic code"
 
@@ -6106,7 +6118,7 @@ msgstr "Failed to select winner"
 msgid "Failed to send broadcast"
 msgstr "Failed to send broadcast"
 
-#: src/pages/SignInPage.tsx:74
+#: src/pages/SignInPage.tsx:103
 msgid "Failed to send magic code"
 msgstr "Failed to send magic code"
 
@@ -6220,7 +6232,7 @@ msgstr "Failed to update workspace settings"
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "Failed to update workspace settings: {errorMessage}"
 
-#: src/pages/SignInPage.tsx:45
+#: src/pages/SignInPage.tsx:74
 msgid "Failed to verify code"
 msgstr "Failed to verify code"
 
@@ -6682,7 +6694,7 @@ msgstr "Global feed URL"
 msgid "Global feed URL is required when enabled"
 msgstr "Global feed URL is required when enabled"
 
-#: src/pages/AcceptInvitationPage.tsx:125
+#: src/pages/AcceptInvitationPage.tsx:126
 #: src/pages/SetupWizard.tsx:338
 msgid "Go to Sign In"
 msgstr "Go to Sign In"
@@ -6952,7 +6964,7 @@ msgstr "https://example.com or {{ url }}"
 msgid "https://fonts.googleapis.com/css?family=... or {{ font_url }}"
 msgstr "https://fonts.googleapis.com/css?family=... or {{ font_url }}"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:876
+#: src/components/ai-assistant/useAIAssistant.tsx:881
 msgid "I ran {maxRounds} rounds of tool calls without reaching an answer and stopped there. Ask a narrower question and I will try again."
 msgstr "I ran {maxRounds} rounds of tool calls without reaching an answer and stopped there. Ask a narrower question and I will try again."
 
@@ -7031,7 +7043,7 @@ msgid "ID must contain only lowercase letters, numbers, underscores, and hyphens
 msgstr "ID must contain only lowercase letters, numbers, underscores, and hyphens"
 
 #: src/components/timeline/ContactTimeline.tsx:783
-#: src/pages/DashboardPage.tsx:94
+#: src/pages/DashboardPage.tsx:96
 msgid "ID:"
 msgstr "ID:"
 
@@ -7370,7 +7382,7 @@ msgstr "Invalid email: {0}"
 msgid "Invalid format. Use: 90 or 1:30 or 1:00:30"
 msgstr "Invalid format. Use: 90 or 1:30 or 1:00:30"
 
-#: src/pages/AcceptInvitationPage.tsx:118
+#: src/pages/AcceptInvitationPage.tsx:119
 msgid "Invalid Invitation"
 msgstr "Invalid Invitation"
 
@@ -7391,7 +7403,7 @@ msgstr "Invalid JSON format. Please check your syntax."
 msgid "Invalid JSON in field {field}"
 msgstr "Invalid JSON in field {field}"
 
-#: src/pages/AcceptInvitationPage.tsx:53
+#: src/pages/AcceptInvitationPage.tsx:54
 msgid "Invalid or expired invitation token"
 msgstr "Invalid or expired invitation token"
 
@@ -7429,7 +7441,7 @@ msgstr "Invalid URL format. Use a valid URL or liquid expression like {{ variabl
 msgid "Invalid YouTube URL"
 msgstr "Invalid YouTube URL"
 
-#: src/pages/AcceptInvitationPage.tsx:77
+#: src/pages/AcceptInvitationPage.tsx:78
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "Invitation accepted successfully! Welcome to the workspace."
 
@@ -7453,6 +7465,10 @@ msgstr "Invitation sent to {inviteEmail}"
 #: src/components/settings/WorkspaceMembers.tsx:474
 msgid "Invite Member"
 msgstr "Invite Member"
+
+#: src/components/workspace/PendingInvitations.tsx:85
+msgid "Invited by {inviterName}"
+msgstr "Invited by {inviterName}"
 
 #: src/components/settings/audit_logs/AuditLogTable.tsx:266
 msgid "IP"
@@ -7526,6 +7542,10 @@ msgstr "Items per feed"
 #: src/pages/ContactsPage.tsx:732
 msgid "Job Title"
 msgstr "Job Title"
+
+#: src/components/workspace/PendingInvitations.tsx:96
+msgid "Join"
+msgstr "Join"
 
 #: src/components/timeline/ContactTimeline.tsx:557
 msgid "joined"
@@ -7991,7 +8011,7 @@ msgstr "List:"
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
 #: src/pages/ListsPage.tsx:155
-#: src/services/api/errors.ts:64
+#: src/services/api/errors.ts:83
 msgid "Lists"
 msgstr "Lists"
 
@@ -8011,7 +8031,7 @@ msgid "Live"
 msgstr "Live"
 
 #: src/components/settings/PermissionsMatrix.tsx:131
-#: src/services/api/errors.ts:72
+#: src/services/api/errors.ts:91
 msgid "LLM"
 msgstr "LLM"
 
@@ -8082,7 +8102,7 @@ msgstr "Loading webhook status..."
 #: src/components/timeline/ContactTimeline.tsx:1039
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:455
-#: src/layouts/RootLayout.tsx:91
+#: src/layouts/RootLayout.tsx:99
 #: src/pages/ContactsPage.tsx:531
 #: src/pages/ContactsPage.tsx:1161
 #: src/pages/ListsPage.tsx:149
@@ -8142,7 +8162,7 @@ msgstr "Lower precision = more privacy"
 msgid "lowercase"
 msgstr "lowercase"
 
-#: src/pages/SignInPage.tsx:72
+#: src/pages/SignInPage.tsx:101
 msgid "Magic code sent to your email"
 msgstr "Magic code sent to your email"
 
@@ -8338,7 +8358,7 @@ msgstr "Message"
 
 #: src/components/settings/PermissionsMatrix.tsx:128
 #: src/pages/LogsPage.tsx:56
-#: src/services/api/errors.ts:69
+#: src/services/api/errors.ts:88
 msgid "Message History"
 msgstr "Message History"
 
@@ -8656,7 +8676,7 @@ msgstr "New conversation"
 msgid "New folder"
 msgstr "New folder"
 
-#: src/pages/SignInPage.tsx:197
+#: src/pages/SignInPage.tsx:230
 msgid "New magic code sent to your email"
 msgstr "New magic code sent to your email"
 
@@ -8979,8 +8999,12 @@ msgid "No notes"
 msgstr "No notes"
 
 #: src/pages/SignInPage.tsx:97
-msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
-msgstr "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
+#~ msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
+#~ msgstr "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
+
+#: src/pages/SignInPage.tsx:127
+msgid "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
+msgstr "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 
 #: src/components/web_analytics/filters/TestFilterModal.tsx:201
 msgid "No operations defined"
@@ -9116,7 +9140,7 @@ msgstr "No webhook events found"
 msgid "No webhook subscriptions configured"
 msgstr "No webhook subscriptions configured"
 
-#: src/pages/DashboardPage.tsx:51
+#: src/pages/DashboardPage.tsx:53
 msgid "No workspaces"
 msgstr "No workspaces"
 
@@ -9543,7 +9567,7 @@ msgstr "Optional. If provided, sent as Authorization: Bearer <secret>"
 msgid "Optionally filter contacts by segments within the selected lists"
 msgstr "Optionally filter contacts by segments within the selected lists"
 
-#: src/pages/SignInPage.tsx:237
+#: src/pages/SignInPage.tsx:294
 msgid "or"
 msgstr "or"
 
@@ -9745,6 +9769,10 @@ msgstr "Pending"
 msgid "Pending confirmation"
 msgstr "Pending confirmation"
 
+#: src/components/workspace/PendingInvitations.tsx:68
+msgid "Pending invitations"
+msgstr "Pending invitations"
+
 #: src/components/broadcasts/BroadcastLinkStats.tsx:70
 msgid "Per-link click data is not available."
 msgstr "Per-link click data is not available."
@@ -9942,7 +9970,7 @@ msgstr "Please enter a slug"
 msgid "Please enter a URL"
 msgstr "Please enter a URL"
 
-#: src/pages/SignInPage.tsx:263
+#: src/pages/SignInPage.tsx:320
 msgid "Please enter a valid 6-digit code!"
 msgstr "Please enter a valid 6-digit code!"
 
@@ -9950,7 +9978,7 @@ msgstr "Please enter a valid 6-digit code!"
 msgid "Please enter a valid email"
 msgstr "Please enter a valid email"
 
-#: src/pages/SignInPage.tsx:223
+#: src/pages/SignInPage.tsx:280
 msgid "Please enter a valid email!"
 msgstr "Please enter a valid email!"
 
@@ -10016,11 +10044,11 @@ msgstr "Please enter workspace name"
 msgid "Please enter your API key"
 msgstr "Please enter your API key"
 
-#: src/pages/SignInPage.tsx:260
+#: src/pages/SignInPage.tsx:317
 msgid "Please input the magic code!"
 msgstr "Please input the magic code!"
 
-#: src/pages/SignInPage.tsx:222
+#: src/pages/SignInPage.tsx:279
 msgid "Please input your email!"
 msgstr "Please input your email!"
 
@@ -10824,8 +10852,8 @@ msgid "Referrers"
 msgstr "Referrers"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:630
-#: src/components/logs/AuditLogActions.tsx:30
-#: src/components/logs/AuditLogActions.tsx:36
+#: src/components/logs/AuditLogActions.tsx:32
+#: src/components/logs/AuditLogActions.tsx:37
 #: src/components/messages/MessageHistoryTable.tsx:426
 #: src/components/settings/LicenseSettings.tsx:155
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
@@ -11090,7 +11118,7 @@ msgstr "Required when SSO is enabled"
 msgid "Requires a padding"
 msgstr "Requires a padding"
 
-#: src/pages/SignInPage.tsx:294
+#: src/pages/SignInPage.tsx:353
 msgid "Resend code"
 msgstr "Resend code"
 
@@ -11684,7 +11712,7 @@ msgstr "Segment tree reset"
 #: src/pages/BroadcastsPage.tsx:1103
 #: src/pages/ContactsPage.tsx:425
 #: src/pages/ContactsPage.tsx:625
-#: src/services/api/errors.ts:74
+#: src/services/api/errors.ts:93
 msgid "Segments"
 msgstr "Segments"
 
@@ -11999,7 +12027,7 @@ msgid "Select Winner"
 msgstr "Select Winner"
 
 #: src/layouts/WorkspaceLayout.tsx:600
-#: src/pages/DashboardPage.tsx:31
+#: src/pages/DashboardPage.tsx:32
 msgid "Select workspace"
 msgstr "Select workspace"
 
@@ -12066,7 +12094,7 @@ msgstr "Send a transactional notification using TypeScript/JavaScript:"
 msgid "Send Invitation"
 msgstr "Send Invitation"
 
-#: src/pages/SignInPage.tsx:231
+#: src/pages/SignInPage.tsx:288
 msgid "Send Magic Code"
 msgstr "Send Magic Code"
 
@@ -12446,13 +12474,13 @@ msgstr "Show More ({0} remaining)"
 msgid "Showing the top 200 links by unique clicks."
 msgstr "Showing the top 200 links by unique clicks."
 
-#: src/pages/SignInPage.tsx:209
+#: src/pages/SignInPage.tsx:244
 msgid "Sign In"
 msgstr "Sign In"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:632
 #: src/pages/SetupWizard.tsx:747
-#: src/pages/SignInPage.tsx:248
+#: src/pages/SignInPage.tsx:305
 msgid "Sign in with SSO"
 msgstr "Sign in with SSO"
 
@@ -12481,8 +12509,12 @@ msgstr "Single sign-on"
 msgid "Single sign-on (SSO)"
 msgstr "Single sign-on (SSO)"
 
-#: src/pages/SignInPage.tsx:107
-#: src/pages/SignInPage.tsx:124
+#: src/pages/SignInPage.tsx:129
+msgid "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
+msgstr "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
+
+#: src/pages/SignInPage.tsx:139
+#: src/pages/SignInPage.tsx:156
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "Single sign-on failed. Please try again or use a magic code."
 
@@ -12490,7 +12522,7 @@ msgstr "Single sign-on failed. Please try again or use a magic code."
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr "Single sign-on is switched on, and this deployment's licence does not include it."
 
-#: src/pages/SignInPage.tsx:103
+#: src/pages/SignInPage.tsx:135
 msgid "Single sign-on is temporarily unavailable. Please try a magic code."
 msgstr "Single sign-on is temporarily unavailable. Please try a magic code."
 
@@ -12981,8 +13013,8 @@ msgstr "Successful"
 msgid "Successfully processed {successful} contacts"
 msgstr "Successfully processed {successful} contacts"
 
-#: src/pages/SignInPage.tsx:38
-#: src/pages/SignInPage.tsx:119
+#: src/pages/SignInPage.tsx:67
+#: src/pages/SignInPage.tsx:151
 msgid "Successfully signed in"
 msgstr "Successfully signed in"
 
@@ -13215,7 +13247,7 @@ msgstr "Template:"
 #: src/components/settings/PermissionsMatrix.tsx:124
 #: src/layouts/WorkspaceLayout.tsx:251
 #: src/pages/TemplatesPage.tsx:404
-#: src/services/api/errors.ts:65
+#: src/services/api/errors.ts:84
 msgid "Templates"
 msgstr "Templates"
 
@@ -13476,7 +13508,7 @@ msgstr "The export failed. Please try again."
 msgid "The following validation errors were found in your import:"
 msgstr "The following validation errors were found in your import:"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:891
+#: src/components/ai-assistant/useAIAssistant.tsx:896
 msgid "The generated email has issues that prevent it from rendering:"
 msgstr "The generated email has issues that prevent it from rendering:"
 
@@ -13647,7 +13679,7 @@ msgstr "They will be sent the same email again. Fix whatever the provider object
 msgid "Thinking"
 msgstr "Thinking"
 
-#: src/pages/SignInPage.tsx:101
+#: src/pages/SignInPage.tsx:133
 msgid "This account is already linked to a different single sign-on identity."
 msgstr "This account is already linked to a different single sign-on identity."
 
@@ -13767,7 +13799,7 @@ msgstr "This ID will be used in URLs and API requests. It can only contain lower
 msgid "This ID will be used when triggering the notification via API"
 msgstr "This ID will be used when triggering the notification via API"
 
-#: src/pages/AcceptInvitationPage.tsx:121
+#: src/pages/AcceptInvitationPage.tsx:122
 msgid "This invitation link is invalid or has expired."
 msgstr "This invitation link is invalid or has expired."
 
@@ -13814,6 +13846,10 @@ msgstr "This notification is managed by an integration and the template cannot b
 #: src/components/timeline/WebPageDrawer.tsx:86
 msgid "This page cannot be previewed here"
 msgstr "This page cannot be previewed here"
+
+#: src/pages/SignInPage.tsx:254
+msgid "This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server."
+msgstr "This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server."
 
 #: src/components/settings/PermissionsMatrix.tsx:77
 msgid "This permission gates no endpoint today."
@@ -13928,7 +13964,7 @@ msgstr "This will send a real test email to the address provided."
 msgid "This will set the value to NULL. Are you sure?"
 msgstr "This will set the value to NULL. Are you sure?"
 
-#: src/components/logs/AuditLogsTab.tsx:60
+#: src/components/logs/AuditLogsTab.tsx:64
 msgid "This workspace"
 msgstr "This workspace"
 
@@ -14144,7 +14180,7 @@ msgstr "Toggle between mobile and desktop views to see how your email appears on
 msgid "Toggle caption"
 msgstr "Toggle caption"
 
-#: src/pages/SignInPage.tsx:105
+#: src/pages/SignInPage.tsx:137
 msgid "Too many sign-in attempts. Please wait a moment and try again."
 msgstr "Too many sign-in attempts. Please wait a moment and try again."
 
@@ -14271,7 +14307,7 @@ msgstr "Traffic no filter rule has classified"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
 #: src/layouts/WorkspaceLayout.tsx:440
 #: src/pages/TemplatesPage.tsx:126
-#: src/services/api/errors.ts:67
+#: src/services/api/errors.ts:86
 msgid "Transactional"
 msgstr "Transactional"
 
@@ -14697,7 +14733,7 @@ msgstr "Use 0 to keep forever, or a value between {AUDIT_LOG_MIN_RETENTION_DAYS}
 #~ msgid "Use 0 to keep forever, or a value between 30 and 3650"
 #~ msgstr "Use 0 to keep forever, or a value between 30 and 3650"
 
-#: src/pages/SignInPage.tsx:286
+#: src/pages/SignInPage.tsx:345
 msgid "Use a different email"
 msgstr "Use a different email"
 
@@ -14890,11 +14926,11 @@ msgstr "Variant name"
 msgid "Variations"
 msgstr "Variations"
 
-#: src/pages/SignInPage.tsx:276
+#: src/pages/SignInPage.tsx:335
 msgid "Verify Code"
 msgstr "Verify Code"
 
-#: src/pages/AcceptInvitationPage.tsx:103
+#: src/pages/AcceptInvitationPage.tsx:104
 msgid "Verifying invitation..."
 msgstr "Verifying invitation..."
 
@@ -15047,7 +15083,7 @@ msgstr "We'll automatically detect and use your website's favicon"
 #: src/layouts/WorkspaceLayout.tsx:293
 #: src/pages/BroadcastsPage.tsx:1195
 #: src/pages/WebAnalyticsPage.tsx:94
-#: src/services/api/errors.ts:73
+#: src/services/api/errors.ts:92
 msgid "Web Analytics"
 msgstr "Web Analytics"
 
@@ -15109,7 +15145,7 @@ msgid "Webhook endpoint:"
 msgstr "Webhook endpoint:"
 
 #: src/components/settings/PermissionsMatrix.tsx:135
-#: src/services/api/errors.ts:76
+#: src/services/api/errors.ts:95
 msgid "Webhook Events"
 msgstr "Webhook Events"
 
@@ -15130,7 +15166,7 @@ msgid "Webhook subscription updated"
 msgstr "Webhook subscription updated"
 
 #: src/components/settings/PermissionsMatrix.tsx:134
-#: src/services/api/errors.ts:75
+#: src/services/api/errors.ts:94
 msgid "Webhook Subscriptions"
 msgstr "Webhook Subscriptions"
 
@@ -15284,7 +15320,7 @@ msgstr "Which landing pages bring the most sessions, and which ones have the wor
 msgid "Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed."
 msgstr "Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed."
 
-#: src/components/logs/AuditLogsTab.tsx:61
+#: src/components/logs/AuditLogsTab.tsx:65
 msgid "Whole deployment"
 msgstr "Whole deployment"
 
@@ -15352,7 +15388,7 @@ msgstr "With:"
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:109
 #: src/components/settings/audit_logs/AuditLogTable.tsx:248
 #: src/components/settings/PermissionsMatrix.tsx:127
-#: src/services/api/errors.ts:68
+#: src/services/api/errors.ts:87
 msgid "Workspace"
 msgstr "Workspace"
 
@@ -15377,7 +15413,7 @@ msgstr "Workspace ID does not match"
 msgid "Workspace ID is required"
 msgstr "Workspace ID is required"
 
-#: src/pages/AcceptInvitationPage.tsx:138
+#: src/pages/AcceptInvitationPage.tsx:139
 msgid "Workspace Invitation"
 msgstr "Workspace Invitation"
 
@@ -15414,7 +15450,7 @@ msgstr "Workspace settings updated successfully"
 msgid "Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, and creating, updating or deleting an integration, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write."
 msgstr "Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, and creating, updating or deleting an integration, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write."
 
-#: src/pages/AcceptInvitationPage.tsx:148
+#: src/pages/AcceptInvitationPage.tsx:149
 msgid "Workspace:"
 msgstr "Workspace:"
 
@@ -15542,11 +15578,11 @@ msgstr "Yesterday"
 msgid "You can only upload CSV files!"
 msgstr "You can only upload CSV files!"
 
-#: src/services/api/errors.ts:135
+#: src/services/api/errors.ts:154
 msgid "You do not have read access to {resource}."
 msgstr "You do not have read access to {resource}."
 
-#: src/services/api/errors.ts:136
+#: src/services/api/errors.ts:155
 msgid "You do not have write access to {resource}."
 msgstr "You do not have write access to {resource}."
 
@@ -15629,6 +15665,10 @@ msgstr "You have unsaved changes. Are you sure you want to close? Your changes w
 msgid "You have unsaved retention changes. Leave without saving?"
 msgstr "You have unsaved retention changes. Leave without saving?"
 
+#: src/components/workspace/PendingInvitations.tsx:35
+msgid "You joined {workspaceName}"
+msgstr "You joined {workspaceName}"
+
 #: src/components/settings/BlogSettings.tsx:273
 msgid "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 msgstr "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
@@ -15643,7 +15683,7 @@ msgstr "You need read template and write contact permissions to send test emails
 msgid "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {totalRows}."
 msgstr "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {totalRows}."
 
-#: src/pages/AcceptInvitationPage.tsx:140
+#: src/pages/AcceptInvitationPage.tsx:141
 msgid "You've been invited to join"
 msgstr "You've been invited to join"
 
@@ -15663,7 +15703,7 @@ msgstr "Your blog settings have not been saved. Leaving this page discards them.
 msgid "Your files can be uploaded to any S3 compatible storage."
 msgstr "Your files can be uploaded to any S3 compatible storage."
 
-#: src/pages/SignInPage.tsx:99
+#: src/pages/SignInPage.tsx:131
 msgid "Your identity provider has not verified your email address."
 msgstr "Your identity provider has not verified your email address."
 

@@ -9,6 +9,11 @@ vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn()
 }))
 
+// Root is whoever ROOT_EMAIL names; the real matcher is covered in services/api/auth.test.ts.
+vi.mock('../services/api/auth', () => ({
+  isRootUser: (email?: string) => email === 'root@example.com'
+}))
+
 // Mock the react router
 vi.mock('@tanstack/react-router', () => ({
   Outlet: () => <div data-testid="outlet">Outlet content</div>,
@@ -159,12 +164,13 @@ describe('RootLayout', () => {
     expect(mockNavigate).not.toHaveBeenCalled()
   })
 
-  it('redirects to workspace create when authenticated but has no workspaces', () => {
+  it('redirects root to workspace create when it has no workspaces', () => {
     // @ts-expect-error - we're mocking the return value
     useAuth.mockReturnValue({
       isAuthenticated: true,
       loading: false,
-      workspaces: []
+      workspaces: [],
+      user: { email: 'root@example.com' }
     })
 
     // Mock all matches as false
@@ -173,6 +179,25 @@ describe('RootLayout', () => {
 
     render(<RootLayout />)
     expect(mockNavigate).toHaveBeenCalledWith({ to: '/console/workspace/create' })
+  })
+
+  // Only root can create a workspace. Anyone else with none — an invitee who signed in with
+  // SSO before joining, typically — stays on the dashboard, where their pending invitations are.
+  it('keeps a non-root user with no workspaces on the dashboard', () => {
+    // @ts-expect-error - we're mocking the return value
+    useAuth.mockReturnValue({
+      isAuthenticated: true,
+      loading: false,
+      workspaces: [],
+      user: { email: 'invitee@example.com' }
+    })
+
+    // @ts-expect-error - we're mocking the return value
+    useMatch.mockImplementation(() => false)
+
+    render(<RootLayout />)
+    expect(mockNavigate).not.toHaveBeenCalled()
+    expect(screen.getByTestId('outlet')).toBeInTheDocument()
   })
 
   it('renders outlet when authenticated and has workspaces', () => {

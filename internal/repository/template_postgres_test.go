@@ -140,9 +140,22 @@ func (m *MockWorkspaceRepository) IsUserWorkspaceMember(ctx context.Context, use
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *MockWorkspaceRepository) CountWorkspaceMembersAndInvitations(ctx context.Context, workspaceID string) (int, error) {
-	args := m.Called(ctx, workspaceID)
+func (m *MockWorkspaceRepository) CountWorkspaceMembersAndInvitations(ctx context.Context, workspaceID, excludeEmail string) (int, error) {
+	args := m.Called(ctx, workspaceID, excludeEmail)
 	return args.Int(0), args.Error(1)
+}
+
+func (m *MockWorkspaceRepository) DeleteInvitationByEmail(ctx context.Context, workspaceID, email string) error {
+	args := m.Called(ctx, workspaceID, email)
+	return args.Error(0)
+}
+
+func (m *MockWorkspaceRepository) ListPendingInvitationsForEmail(ctx context.Context, email string) ([]*domain.PendingInvitation, error) {
+	args := m.Called(ctx, email)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*domain.PendingInvitation), args.Error(1)
 }
 
 func (m *MockWorkspaceRepository) CountWorkspaces(ctx context.Context) (int, error) {

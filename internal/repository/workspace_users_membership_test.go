@@ -86,12 +86,31 @@ func TestWorkspaceRepository_CountWorkspaceMembersAndInvitations(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(5)
 
 		mock.ExpectQuery(`SELECT`).
-			WithArgs(workspaceID).
+			WithArgs(workspaceID, "").
 			WillReturnRows(rows)
 
-		count, err := repo.CountWorkspaceMembersAndInvitations(context.Background(), workspaceID)
+		count, err := repo.CountWorkspaceMembersAndInvitations(context.Background(), workspaceID, "")
 		require.NoError(t, err)
 		assert.Equal(t, 5, count)
+
+		err = mock.ExpectationsWereMet()
+		require.NoError(t, err)
+	})
+
+	// The excluded address is a bound parameter of the invitations subquery, compared
+	// case-insensitively (invitations keep the address as typed), and expiry is read against
+	// NOW() at UTC: expires_at stores UTC wall-clock time without a time zone, so a bare
+	// NOW() would shift every expiry by the session TimeZone's offset.
+	t.Run("leaves out the excluded address's invitation and reads expiry at UTC", func(t *testing.T) {
+		rows := sqlmock.NewRows([]string{"count"}).AddRow(2)
+
+		mock.ExpectQuery(`FROM workspace_invitations WHERE workspace_id = \$1 AND LOWER\(email\) <> LOWER\(\$2\) AND expires_at > NOW\(\) AT TIME ZONE 'UTC'`).
+			WithArgs(workspaceID, "invitee@example.com").
+			WillReturnRows(rows)
+
+		count, err := repo.CountWorkspaceMembersAndInvitations(context.Background(), workspaceID, "invitee@example.com")
+		require.NoError(t, err)
+		assert.Equal(t, 2, count)
 
 		err = mock.ExpectationsWereMet()
 		require.NoError(t, err)
@@ -101,10 +120,10 @@ func TestWorkspaceRepository_CountWorkspaceMembersAndInvitations(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(0)
 
 		mock.ExpectQuery(`SELECT`).
-			WithArgs(workspaceID).
+			WithArgs(workspaceID, "").
 			WillReturnRows(rows)
 
-		count, err := repo.CountWorkspaceMembersAndInvitations(context.Background(), workspaceID)
+		count, err := repo.CountWorkspaceMembersAndInvitations(context.Background(), workspaceID, "")
 		require.NoError(t, err)
 		assert.Equal(t, 0, count)
 
@@ -114,10 +133,10 @@ func TestWorkspaceRepository_CountWorkspaceMembersAndInvitations(t *testing.T) {
 
 	t.Run("database error", func(t *testing.T) {
 		mock.ExpectQuery(`SELECT`).
-			WithArgs(workspaceID).
+			WithArgs(workspaceID, "").
 			WillReturnError(fmt.Errorf("database error"))
 
-		count, err := repo.CountWorkspaceMembersAndInvitations(context.Background(), workspaceID)
+		count, err := repo.CountWorkspaceMembersAndInvitations(context.Background(), workspaceID, "")
 		require.Error(t, err)
 		assert.Equal(t, 0, count)
 		assert.Contains(t, err.Error(), "failed to count workspace members and invitations")

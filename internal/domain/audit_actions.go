@@ -120,6 +120,7 @@ var AuditedActions = map[string]AuditActionSpec{
 	"workspaces.inviteMember":       {Category: AuditCategoryMembers, TargetType: AuditTargetUser, TargetKey: "email"},
 	"workspaces.acceptInvitation":   {Category: AuditCategoryMembers, TargetType: AuditTargetInvitation},
 	"workspaces.deleteInvitation":   {Category: AuditCategoryMembers, TargetType: AuditTargetInvitation, TargetKey: "invitation_id"},
+	"workspaces.joinInvitation":     {Category: AuditCategoryMembers, TargetType: AuditTargetInvitation, TargetKey: "invitation_id"},
 	"workspaces.removeMember":       {Category: AuditCategoryMembers, TargetType: AuditTargetUser, TargetKey: "user_id"},
 	"workspaces.setUserPermissions": {Category: AuditCategoryMembers, TargetType: AuditTargetUser, TargetKey: "user_id"},
 
@@ -327,6 +328,7 @@ var AuditExcludedRoutes = map[string]struct{}{
 	"workspaces.get":                   {},
 	"workspaces.list":                  {},
 	"workspaces.members":               {},
+	"workspaces.pendingInvitations":    {},
 	"workspaces.verifyInvitationToken": {},
 }
 

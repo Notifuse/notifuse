@@ -634,7 +634,7 @@ msgstr "La prova A/B està en curs. S'estan enviant els correus al grup de prova
 msgid "A/B Testing"
 msgstr "Proves A/B"
 
-#: src/pages/AcceptInvitationPage.tsx:168
+#: src/pages/AcceptInvitationPage.tsx:169
 msgid "Accept Invitation"
 msgstr "Acceptar invitació"
 
@@ -1456,7 +1456,7 @@ msgstr "Índex de matriu: {segment}"
 msgid "Ask about your traffic..."
 msgstr "Pregunteu sobre el vostre trànsit..."
 
-#: src/components/ai-assistant/useAIAssistant.tsx:894
+#: src/components/ai-assistant/useAIAssistant.tsx:899
 msgid "Ask me to fix these issues."
 msgstr "Demaneu-me que corregeixi aquests problemes."
 
@@ -1543,7 +1543,7 @@ msgid "Audit logs"
 msgstr "Registres d'auditoria"
 
 #: src/components/settings/PermissionsMatrix.tsx:136
-#: src/services/api/errors.ts:77
+#: src/services/api/errors.ts:96
 msgid "Audit Logs"
 msgstr "Registres d'auditoria"
 
@@ -1669,7 +1669,7 @@ msgstr "Automatització:"
 #: src/components/settings/PermissionsMatrix.tsx:130
 #: src/layouts/WorkspaceLayout.tsx:428
 #: src/pages/AutomationsPage.tsx:162
-#: src/services/api/errors.ts:71
+#: src/services/api/errors.ts:90
 msgid "Automations"
 msgstr "Automatitzacions"
 
@@ -1899,7 +1899,7 @@ msgstr "Blocs"
 #: src/components/settings/PermissionsMatrix.tsx:129
 #: src/components/settings/SettingsSidebar.tsx:121
 #: src/layouts/WorkspaceLayout.tsx:262
-#: src/services/api/errors.ts:70
+#: src/services/api/errors.ts:89
 msgid "Blog"
 msgstr "Blog"
 
@@ -2190,7 +2190,7 @@ msgstr "Difusió actualitzada correctament"
 #: src/components/settings/PermissionsMatrix.tsx:125
 #: src/layouts/WorkspaceLayout.tsx:402
 #: src/pages/BroadcastsPage.tsx:1604
-#: src/services/api/errors.ts:66
+#: src/services/api/errors.ts:85
 msgid "Broadcasts"
 msgstr "Difusions"
 
@@ -2422,6 +2422,10 @@ msgstr "Cancel·lar pujada?"
 msgid "Cancelled"
 msgstr "Cancel·lat"
 
+#: src/pages/SignInPage.tsx:250
+msgid "Cannot reach the configured API endpoint"
+msgstr "No es pot accedir al punt final API configurat"
+
 #: src/components/automations/context/AutomationContext.tsx:131
 msgid "Cannot remove list while email nodes exist. Delete email nodes first."
 msgstr "No es pot treure la llista mentre existeixin nodes de correu. Elimineu primer els nodes de correu."
@@ -2550,6 +2554,10 @@ msgstr "Canviar estat per a {0}"
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:162
 msgid "Changes"
 msgstr "Canvis"
+
+#: src/pages/SignInPage.tsx:261
+msgid "Changing your domain"
+msgstr "Canviar de domini"
 
 #: src/components/messages/MessageHistoryTab.tsx:215
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
@@ -3176,7 +3184,7 @@ msgstr "Contacte actualitzat correctament"
 #: src/components/settings/PermissionsMatrix.tsx:122
 #: src/layouts/WorkspaceLayout.tsx:383
 #: src/pages/ContactsPage.tsx:1000
-#: src/services/api/errors.ts:63
+#: src/services/api/errors.ts:82
 msgid "Contacts"
 msgstr "Contactes"
 
@@ -3971,7 +3979,7 @@ msgstr "Dies"
 msgid "Debug Segment Builder"
 msgstr "Depurar constructor de segments"
 
-#: src/pages/AcceptInvitationPage.tsx:173
+#: src/pages/AcceptInvitationPage.tsx:174
 msgid "Decline"
 msgstr "Rebutjar"
 
@@ -4956,8 +4964,8 @@ msgstr "Correu electrònic"
 #: src/components/timeline/ContactTimeline.tsx:584
 #: src/pages/ContactsPage.tsx:369
 #: src/pages/ContactsPage.tsx:536
-#: src/pages/SignInPage.tsx:219
-#: src/pages/SignInPage.tsx:226
+#: src/pages/SignInPage.tsx:276
+#: src/pages/SignInPage.tsx:283
 msgid "Email"
 msgstr "Correu electrònic"
 
@@ -5075,7 +5083,7 @@ msgstr "Configuració del títol del correu"
 msgid "Email widths above 650px may not display correctly in some email clients"
 msgstr "Les amplades de correu superiors a 650px poden no mostrar-se correctament en alguns clients de correu"
 
-#: src/pages/AcceptInvitationPage.tsx:151
+#: src/pages/AcceptInvitationPage.tsx:152
 msgid "Email:"
 msgstr "Correu:"
 
@@ -5366,7 +5374,7 @@ msgstr "Introduïu adreça de correu de resposta"
 msgid "Enter spacing"
 msgstr "Introduïu espaiat"
 
-#: src/pages/SignInPage.tsx:255
+#: src/pages/SignInPage.tsx:312
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "Introdueix el codi de 6 dígits enviat a {email}"
 
@@ -5621,7 +5629,7 @@ msgstr ""
 msgid "Expires"
 msgstr ""
 
-#: src/pages/AcceptInvitationPage.tsx:154
+#: src/pages/AcceptInvitationPage.tsx:155
 msgid "Expires:"
 msgstr "Caduca:"
 
@@ -5633,7 +5641,7 @@ msgstr "Explorar"
 
 #: src/components/contacts/ExportContactsModal.tsx:325
 #: src/components/email_builder/MjmlCodeEditor.tsx:643
-#: src/components/logs/AuditLogActions.tsx:50
+#: src/components/logs/AuditLogActions.tsx:52
 #: src/components/templates/ImportExportButton.tsx:416
 #: src/pages/ContactsPage.tsx:1023
 msgid "Export"
@@ -5643,7 +5651,7 @@ msgstr "Exportar"
 msgid "Export Contacts to CSV"
 msgstr "Exportar contactes a CSV"
 
-#: src/components/logs/AuditLogActions.tsx:22
+#: src/components/logs/AuditLogActions.tsx:24
 msgid "Export failed"
 msgstr "L'exportació ha fallat"
 
@@ -5659,7 +5667,7 @@ msgstr "Exportar MJML"
 msgid "Export the audit log as CSV or NDJSON"
 msgstr "Exportar el registre d'auditoria com a CSV o NDJSON"
 
-#: src/components/logs/AuditLogActions.tsx:48
+#: src/components/logs/AuditLogActions.tsx:50
 msgid "Export the current filter as CSV or NDJSON, up to {AUDIT_LOG_EXPORT_MAX_ROWS} rows"
 msgstr "Exporta el filtre actual com a CSV o NDJSON, fins a {AUDIT_LOG_EXPORT_MAX_ROWS} files"
 
@@ -5720,7 +5728,7 @@ msgstr "Fallat"
 msgid "Failed"
 msgstr "Fallat"
 
-#: src/pages/AcceptInvitationPage.tsx:84
+#: src/pages/AcceptInvitationPage.tsx:85
 msgid "Failed to accept invitation"
 msgstr "No s'ha pogut acceptar la invitació"
 
@@ -5943,6 +5951,10 @@ msgstr ""
 msgid "Failed to invite member"
 msgstr "No s'ha pogut convidar el membre"
 
+#: src/components/workspace/PendingInvitations.tsx:54
+msgid "Failed to join the workspace"
+msgstr "No s'ha pogut unir a l'espai de treball"
+
 #: src/components/segment/BroadcastSelectorInput.tsx:71
 msgid "Failed to load broadcasts"
 msgstr "No s'han pogut carregar les difusions"
@@ -6027,7 +6039,7 @@ msgstr "No s'ha pogut renderitzar la previsualització"
 msgid "Failed to resend invitation"
 msgstr "No s'ha pogut reenviar la invitació"
 
-#: src/pages/SignInPage.tsx:199
+#: src/pages/SignInPage.tsx:232
 msgid "Failed to resend magic code"
 msgstr "Error en reenviar el codi màgic"
 
@@ -6106,7 +6118,7 @@ msgstr "No s'ha pogut seleccionar el guanyador"
 msgid "Failed to send broadcast"
 msgstr "No s'ha pogut enviar la difusió"
 
-#: src/pages/SignInPage.tsx:74
+#: src/pages/SignInPage.tsx:103
 msgid "Failed to send magic code"
 msgstr "Error en enviar el codi màgic"
 
@@ -6220,7 +6232,7 @@ msgstr "No s'han pogut actualitzar els paràmetres de l'espai de treball"
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "No s'han pogut actualitzar els paràmetres de l'espai de treball: {errorMessage}"
 
-#: src/pages/SignInPage.tsx:45
+#: src/pages/SignInPage.tsx:74
 msgid "Failed to verify code"
 msgstr "Error en verificar el codi"
 
@@ -6682,7 +6694,7 @@ msgstr "URL del feed global"
 msgid "Global feed URL is required when enabled"
 msgstr "L'URL del feed global és requerida quan està habilitat"
 
-#: src/pages/AcceptInvitationPage.tsx:125
+#: src/pages/AcceptInvitationPage.tsx:126
 #: src/pages/SetupWizard.tsx:338
 msgid "Go to Sign In"
 msgstr "Anar a iniciar sessió"
@@ -6952,7 +6964,7 @@ msgstr "https://exemple.com o {{ url }}"
 msgid "https://fonts.googleapis.com/css?family=... or {{ font_url }}"
 msgstr "https://fonts.googleapis.com/css?family=... o {{ font_url }}"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:876
+#: src/components/ai-assistant/useAIAssistant.tsx:881
 msgid "I ran {maxRounds} rounds of tool calls without reaching an answer and stopped there. Ask a narrower question and I will try again."
 msgstr "He executat {maxRounds} rondes de crides a eines sense arribar a una resposta i m'he aturat aquí. Feu una pregunta més acotada i ho tornaré a provar."
 
@@ -7031,7 +7043,7 @@ msgid "ID must contain only lowercase letters, numbers, underscores, and hyphens
 msgstr "L'ID només pot contenir lletres minúscules, números, guions baixos i guions"
 
 #: src/components/timeline/ContactTimeline.tsx:783
-#: src/pages/DashboardPage.tsx:94
+#: src/pages/DashboardPage.tsx:96
 msgid "ID:"
 msgstr "ID:"
 
@@ -7370,7 +7382,7 @@ msgstr "Correu no vàlid: {0}"
 msgid "Invalid format. Use: 90 or 1:30 or 1:00:30"
 msgstr "Format invàlid. Utilitzeu: 90 o 1:30 o 1:00:30"
 
-#: src/pages/AcceptInvitationPage.tsx:118
+#: src/pages/AcceptInvitationPage.tsx:119
 msgid "Invalid Invitation"
 msgstr "Invitació invàlida"
 
@@ -7391,7 +7403,7 @@ msgstr "Format JSON invàlid. Si us plau, comproveu la vostra sintaxi."
 msgid "Invalid JSON in field {field}"
 msgstr "JSON invàlid al camp {field}"
 
-#: src/pages/AcceptInvitationPage.tsx:53
+#: src/pages/AcceptInvitationPage.tsx:54
 msgid "Invalid or expired invitation token"
 msgstr "Token d'invitació invàlid o caducat"
 
@@ -7429,7 +7441,7 @@ msgstr "Format d'URL invàlid. Utilitzeu una URL vàlida o una expressió liquid
 msgid "Invalid YouTube URL"
 msgstr "URL de YouTube invàlida"
 
-#: src/pages/AcceptInvitationPage.tsx:77
+#: src/pages/AcceptInvitationPage.tsx:78
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "Invitació acceptada correctament! Benvingut a l'espai de treball."
 
@@ -7453,6 +7465,10 @@ msgstr "Invitació enviada a {inviteEmail}"
 #: src/components/settings/WorkspaceMembers.tsx:474
 msgid "Invite Member"
 msgstr "Convidar membre"
+
+#: src/components/workspace/PendingInvitations.tsx:85
+msgid "Invited by {inviterName}"
+msgstr "Invitació de {inviterName}"
 
 #: src/components/settings/audit_logs/AuditLogTable.tsx:266
 msgid "IP"
@@ -7526,6 +7542,10 @@ msgstr "Elements per feed"
 #: src/pages/ContactsPage.tsx:732
 msgid "Job Title"
 msgstr "Càrrec"
+
+#: src/components/workspace/PendingInvitations.tsx:96
+msgid "Join"
+msgstr "Unir-se"
 
 #: src/components/timeline/ContactTimeline.tsx:557
 msgid "joined"
@@ -7991,7 +8011,7 @@ msgstr "Llista:"
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
 #: src/pages/ListsPage.tsx:155
-#: src/services/api/errors.ts:64
+#: src/services/api/errors.ts:83
 msgid "Lists"
 msgstr "Llistes"
 
@@ -8011,7 +8031,7 @@ msgid "Live"
 msgstr "En directe"
 
 #: src/components/settings/PermissionsMatrix.tsx:131
-#: src/services/api/errors.ts:72
+#: src/services/api/errors.ts:91
 msgid "LLM"
 msgstr "LLM"
 
@@ -8082,7 +8102,7 @@ msgstr "Carregant estat del webhook..."
 #: src/components/timeline/ContactTimeline.tsx:1039
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:455
-#: src/layouts/RootLayout.tsx:91
+#: src/layouts/RootLayout.tsx:99
 #: src/pages/ContactsPage.tsx:531
 #: src/pages/ContactsPage.tsx:1161
 #: src/pages/ListsPage.tsx:149
@@ -8142,7 +8162,7 @@ msgstr "Menys precisió = més privadesa"
 msgid "lowercase"
 msgstr "Minúscules"
 
-#: src/pages/SignInPage.tsx:72
+#: src/pages/SignInPage.tsx:101
 msgid "Magic code sent to your email"
 msgstr "Codi màgic enviat al teu correu"
 
@@ -8338,7 +8358,7 @@ msgstr "Missatge"
 
 #: src/components/settings/PermissionsMatrix.tsx:128
 #: src/pages/LogsPage.tsx:56
-#: src/services/api/errors.ts:69
+#: src/services/api/errors.ts:88
 msgid "Message History"
 msgstr "Historial de missatges"
 
@@ -8656,7 +8676,7 @@ msgstr "Nova conversa"
 msgid "New folder"
 msgstr "Nova carpeta"
 
-#: src/pages/SignInPage.tsx:197
+#: src/pages/SignInPage.tsx:230
 msgid "New magic code sent to your email"
 msgstr "Nou codi màgic enviat al teu correu"
 
@@ -8979,8 +8999,12 @@ msgid "No notes"
 msgstr "Sense notes"
 
 #: src/pages/SignInPage.tsx:97
-msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
-msgstr "No hi ha cap compte de Notifuse vinculat a aquesta identitat. Demaneu a un administrador que us convidi primer."
+#~ msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
+#~ msgstr "No hi ha cap compte de Notifuse vinculat a aquesta identitat. Demaneu a un administrador que us convidi primer."
+
+#: src/pages/SignInPage.tsx:127
+msgid "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
+msgstr "No hi ha cap compte de Notifuse vinculat a aquesta identitat. Si us han convidat, obriu l'enllaç del correu d'invitació; si no, demaneu a un administrador que us convidi."
 
 #: src/components/web_analytics/filters/TestFilterModal.tsx:201
 msgid "No operations defined"
@@ -9116,7 +9140,7 @@ msgstr "No s'han trobat esdeveniments de webhook"
 msgid "No webhook subscriptions configured"
 msgstr "No s'han configurat subscripcions de webhook"
 
-#: src/pages/DashboardPage.tsx:51
+#: src/pages/DashboardPage.tsx:53
 msgid "No workspaces"
 msgstr "Cap espai de treball"
 
@@ -9543,7 +9567,7 @@ msgstr "Opcional. Si es proporciona, s'envia com Authorization: Bearer <secret>"
 msgid "Optionally filter contacts by segments within the selected lists"
 msgstr "Opcionalment filtreu contactes per segments dins de les llistes seleccionades"
 
-#: src/pages/SignInPage.tsx:237
+#: src/pages/SignInPage.tsx:294
 msgid "or"
 msgstr "o"
 
@@ -9745,6 +9769,10 @@ msgstr "Pendent"
 msgid "Pending confirmation"
 msgstr "Confirmació pendent"
 
+#: src/components/workspace/PendingInvitations.tsx:68
+msgid "Pending invitations"
+msgstr "Invitacions pendents"
+
 #: src/components/broadcasts/BroadcastLinkStats.tsx:70
 msgid "Per-link click data is not available."
 msgstr "Les dades de clics per enllaç no estan disponibles."
@@ -9942,7 +9970,7 @@ msgstr "Si us plau, introduïu un slug"
 msgid "Please enter a URL"
 msgstr "Si us plau, introduïu una URL"
 
-#: src/pages/SignInPage.tsx:263
+#: src/pages/SignInPage.tsx:320
 msgid "Please enter a valid 6-digit code!"
 msgstr "Si us plau, introdueix un codi de 6 dígits vàlid!"
 
@@ -9950,7 +9978,7 @@ msgstr "Si us plau, introdueix un codi de 6 dígits vàlid!"
 msgid "Please enter a valid email"
 msgstr "Si us plau, introduïu un correu vàlid"
 
-#: src/pages/SignInPage.tsx:223
+#: src/pages/SignInPage.tsx:280
 msgid "Please enter a valid email!"
 msgstr "Si us plau, introdueix un correu vàlid!"
 
@@ -10016,11 +10044,11 @@ msgstr "Si us plau, introduïu el nom de l'espai de treball"
 msgid "Please enter your API key"
 msgstr "Si us plau, introduïu la vostra clau API"
 
-#: src/pages/SignInPage.tsx:260
+#: src/pages/SignInPage.tsx:317
 msgid "Please input the magic code!"
 msgstr "Si us plau, introdueix el codi màgic!"
 
-#: src/pages/SignInPage.tsx:222
+#: src/pages/SignInPage.tsx:279
 msgid "Please input your email!"
 msgstr "Si us plau, introdueix el teu correu!"
 
@@ -10824,8 +10852,8 @@ msgid "Referrers"
 msgstr "Referents"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:630
-#: src/components/logs/AuditLogActions.tsx:30
-#: src/components/logs/AuditLogActions.tsx:36
+#: src/components/logs/AuditLogActions.tsx:32
+#: src/components/logs/AuditLogActions.tsx:37
 #: src/components/messages/MessageHistoryTable.tsx:426
 #: src/components/settings/LicenseSettings.tsx:155
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
@@ -11090,7 +11118,7 @@ msgstr "Obligatori quan l'SSO està activat"
 msgid "Requires a padding"
 msgstr "Requereix un farciment"
 
-#: src/pages/SignInPage.tsx:294
+#: src/pages/SignInPage.tsx:353
 msgid "Resend code"
 msgstr "Reenviar codi"
 
@@ -11684,7 +11712,7 @@ msgstr "Arbre del segment restablert"
 #: src/pages/BroadcastsPage.tsx:1103
 #: src/pages/ContactsPage.tsx:425
 #: src/pages/ContactsPage.tsx:625
-#: src/services/api/errors.ts:74
+#: src/services/api/errors.ts:93
 msgid "Segments"
 msgstr "Segments"
 
@@ -11999,7 +12027,7 @@ msgid "Select Winner"
 msgstr "Seleccionar guanyador"
 
 #: src/layouts/WorkspaceLayout.tsx:600
-#: src/pages/DashboardPage.tsx:31
+#: src/pages/DashboardPage.tsx:32
 msgid "Select workspace"
 msgstr "Seleccionar espai de treball"
 
@@ -12066,7 +12094,7 @@ msgstr "Envieu una notificació transaccional utilitzant TypeScript/JavaScript:"
 msgid "Send Invitation"
 msgstr "Enviar invitació"
 
-#: src/pages/SignInPage.tsx:231
+#: src/pages/SignInPage.tsx:288
 msgid "Send Magic Code"
 msgstr "Enviar codi màgic"
 
@@ -12446,13 +12474,13 @@ msgstr "Mostrar més ({0} restants)"
 msgid "Showing the top 200 links by unique clicks."
 msgstr "Es mostren els 200 enllaços principals per clics únics."
 
-#: src/pages/SignInPage.tsx:209
+#: src/pages/SignInPage.tsx:244
 msgid "Sign In"
 msgstr "Iniciar sessió"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:632
 #: src/pages/SetupWizard.tsx:747
-#: src/pages/SignInPage.tsx:248
+#: src/pages/SignInPage.tsx:305
 msgid "Sign in with SSO"
 msgstr "Iniciar sessió amb SSO"
 
@@ -12481,8 +12509,12 @@ msgstr ""
 msgid "Single sign-on (SSO)"
 msgstr ""
 
-#: src/pages/SignInPage.tsx:107
-#: src/pages/SignInPage.tsx:124
+#: src/pages/SignInPage.tsx:129
+msgid "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
+msgstr "L'inici de sessió únic no pot crear un compte per al vostre domini de correu. Si us han convidat, obriu l'enllaç del correu d'invitació; si no, demaneu a un administrador que us convidi."
+
+#: src/pages/SignInPage.tsx:139
+#: src/pages/SignInPage.tsx:156
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "L'inici de sessió únic ha fallat. Torneu-ho a provar o utilitzeu un codi màgic."
 
@@ -12490,7 +12522,7 @@ msgstr "L'inici de sessió únic ha fallat. Torneu-ho a provar o utilitzeu un co
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr ""
 
-#: src/pages/SignInPage.tsx:103
+#: src/pages/SignInPage.tsx:135
 msgid "Single sign-on is temporarily unavailable. Please try a magic code."
 msgstr "L'inici de sessió únic no està disponible temporalment. Proveu amb un codi màgic."
 
@@ -12981,8 +13013,8 @@ msgstr "Correcte"
 msgid "Successfully processed {successful} contacts"
 msgstr "Processats {successful} contactes correctament"
 
-#: src/pages/SignInPage.tsx:38
-#: src/pages/SignInPage.tsx:119
+#: src/pages/SignInPage.tsx:67
+#: src/pages/SignInPage.tsx:151
 msgid "Successfully signed in"
 msgstr "Sessió iniciada correctament"
 
@@ -13215,7 +13247,7 @@ msgstr "Plantilla:"
 #: src/components/settings/PermissionsMatrix.tsx:124
 #: src/layouts/WorkspaceLayout.tsx:251
 #: src/pages/TemplatesPage.tsx:404
-#: src/services/api/errors.ts:65
+#: src/services/api/errors.ts:84
 msgid "Templates"
 msgstr "Plantilles"
 
@@ -13476,7 +13508,7 @@ msgstr "L'exportació ha fallat. Torneu-ho a provar."
 msgid "The following validation errors were found in your import:"
 msgstr "S'han trobat els següents errors de validació a la vostra importació:"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:891
+#: src/components/ai-assistant/useAIAssistant.tsx:896
 msgid "The generated email has issues that prevent it from rendering:"
 msgstr "El correu generat té problemes que n'impedeixen la renderització:"
 
@@ -13647,7 +13679,7 @@ msgstr "Se'ls tornarà a enviar el mateix correu. Corregiu primer allò que el p
 msgid "Thinking"
 msgstr "Pensant"
 
-#: src/pages/SignInPage.tsx:101
+#: src/pages/SignInPage.tsx:133
 msgid "This account is already linked to a different single sign-on identity."
 msgstr "Aquest compte ja està vinculat a una identitat d'inici de sessió únic diferent."
 
@@ -13767,7 +13799,7 @@ msgstr "Aquest ID s'utilitzarà en URLs i sol·licituds API. Només pot contenir
 msgid "This ID will be used when triggering the notification via API"
 msgstr "Aquest ID s'utilitzarà quan s'activi la notificació via API"
 
-#: src/pages/AcceptInvitationPage.tsx:121
+#: src/pages/AcceptInvitationPage.tsx:122
 msgid "This invitation link is invalid or has expired."
 msgstr "Aquest enllaç d'invitació no és vàlid o ha caducat."
 
@@ -13814,6 +13846,10 @@ msgstr "Aquesta notificació està gestionada per una integració i la plantilla
 #: src/components/timeline/WebPageDrawer.tsx:86
 msgid "This page cannot be previewed here"
 msgstr "Aquesta pàgina no es pot previsualitzar aquí"
+
+#: src/pages/SignInPage.tsx:254
+msgid "This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server."
+msgstr "Aquesta pàgina se serveix des de {pageOrigin}, però aquesta instància envia les seves sol·licituds a {unreachableEndpoint}, que no ha respost. Si Notifuse s'ha traslladat a {pageOrigin}, definiu la variable d'entorn API_ENDPOINT amb aquesta adreça i reinicieu el servidor."
 
 #: src/components/settings/PermissionsMatrix.tsx:77
 msgid "This permission gates no endpoint today."
@@ -13928,7 +13964,7 @@ msgstr "Això enviarà un correu de prova real a l'adreça proporcionada."
 msgid "This will set the value to NULL. Are you sure?"
 msgstr "Això establirà el valor a NULL. N'esteu segur?"
 
-#: src/components/logs/AuditLogsTab.tsx:60
+#: src/components/logs/AuditLogsTab.tsx:64
 msgid "This workspace"
 msgstr "Aquest workspace"
 
@@ -14144,7 +14180,7 @@ msgstr "Canvieu entre les vistes mòbil i escriptori per veure com es mostra el 
 msgid "Toggle caption"
 msgstr "Alternar llegenda"
 
-#: src/pages/SignInPage.tsx:105
+#: src/pages/SignInPage.tsx:137
 msgid "Too many sign-in attempts. Please wait a moment and try again."
 msgstr "Massa intents d'inici de sessió. Espereu un moment i torneu-ho a provar."
 
@@ -14271,7 +14307,7 @@ msgstr "Trànsit que cap regla de filtre no ha classificat"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
 #: src/layouts/WorkspaceLayout.tsx:440
 #: src/pages/TemplatesPage.tsx:126
-#: src/services/api/errors.ts:67
+#: src/services/api/errors.ts:86
 msgid "Transactional"
 msgstr "Transaccional"
 
@@ -14697,7 +14733,7 @@ msgstr "Feu servir 0 per conservar per sempre, o un valor entre {AUDIT_LOG_MIN_R
 #~ msgid "Use 0 to keep forever, or a value between 30 and 3650"
 #~ msgstr "Feu servir 0 per conservar per sempre, o un valor entre 30 i 3650"
 
-#: src/pages/SignInPage.tsx:286
+#: src/pages/SignInPage.tsx:345
 msgid "Use a different email"
 msgstr "Utilitzar un altre correu"
 
@@ -14890,11 +14926,11 @@ msgstr "Nom de la variant"
 msgid "Variations"
 msgstr "Variacions"
 
-#: src/pages/SignInPage.tsx:276
+#: src/pages/SignInPage.tsx:335
 msgid "Verify Code"
 msgstr "Verificar codi"
 
-#: src/pages/AcceptInvitationPage.tsx:103
+#: src/pages/AcceptInvitationPage.tsx:104
 msgid "Verifying invitation..."
 msgstr "Verificant invitació..."
 
@@ -15047,7 +15083,7 @@ msgstr "Detectarem i utilitzarem automàticament el favicon del vostre lloc web"
 #: src/layouts/WorkspaceLayout.tsx:293
 #: src/pages/BroadcastsPage.tsx:1195
 #: src/pages/WebAnalyticsPage.tsx:94
-#: src/services/api/errors.ts:73
+#: src/services/api/errors.ts:92
 msgid "Web Analytics"
 msgstr "Analítica web"
 
@@ -15109,7 +15145,7 @@ msgid "Webhook endpoint:"
 msgstr "Punt final del webhook:"
 
 #: src/components/settings/PermissionsMatrix.tsx:135
-#: src/services/api/errors.ts:76
+#: src/services/api/errors.ts:95
 msgid "Webhook Events"
 msgstr "Esdeveniments de webhooks"
 
@@ -15130,7 +15166,7 @@ msgid "Webhook subscription updated"
 msgstr "Subscripció de webhook actualitzada"
 
 #: src/components/settings/PermissionsMatrix.tsx:134
-#: src/services/api/errors.ts:75
+#: src/services/api/errors.ts:94
 msgid "Webhook Subscriptions"
 msgstr "Subscripcions de webhooks"
 
@@ -15284,7 +15320,7 @@ msgstr "Quines pàgines d'aterratge porten més sessions, i quines tenen la pitj
 msgid "Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed."
 msgstr "Qui ha fet què en aquest workspace: membres, permisos, claus d'API, integracions, configuració i canvis de contingut, amb l'adreça d'origen i si estava permès."
 
-#: src/components/logs/AuditLogsTab.tsx:61
+#: src/components/logs/AuditLogsTab.tsx:65
 msgid "Whole deployment"
 msgstr "Tot el desplegament"
 
@@ -15352,7 +15388,7 @@ msgstr "Amb:"
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:109
 #: src/components/settings/audit_logs/AuditLogTable.tsx:248
 #: src/components/settings/PermissionsMatrix.tsx:127
-#: src/services/api/errors.ts:68
+#: src/services/api/errors.ts:87
 msgid "Workspace"
 msgstr "Espai de treball"
 
@@ -15377,7 +15413,7 @@ msgstr "L'ID de l'espai de treball no coincideix"
 msgid "Workspace ID is required"
 msgstr "L'ID de l'espai de treball és obligatori"
 
-#: src/pages/AcceptInvitationPage.tsx:138
+#: src/pages/AcceptInvitationPage.tsx:139
 msgid "Workspace Invitation"
 msgstr "Invitació a l'espai de treball"
 
@@ -15414,7 +15450,7 @@ msgstr "Configuració de l'espai de treball actualitzada correctament"
 msgid "Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, and creating, updating or deleting an integration, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write."
 msgstr "L'escriptura d'Espai de treball és molt més estreta que el seu nom: l'únic endpoint d'espai de treball que protegeix és /api/workspaces.setCustomFieldLabels. Canviar el nom de l'espai de treball o eliminar-lo, i crear, actualitzar o eliminar una integració, són accions només per a propietaris i no consulten cap permís — concedir això no les atorga, i un propietari les té sense això. /api/workspaces.list tampoc no està protegit: retorna els espais de treball als quals pertanyeu digui el que digui aquest interruptor. Dos endpoints de configuració que semblen configuració de l'espai de treball responen en un altre lloc — /api/workspaces.setBlogSettings a l'escriptura de Blog, i /api/workspaces.setWebAnalyticsSettings a l'escriptura d'Analítica web."
 
-#: src/pages/AcceptInvitationPage.tsx:148
+#: src/pages/AcceptInvitationPage.tsx:149
 msgid "Workspace:"
 msgstr "Espai de treball:"
 
@@ -15542,11 +15578,11 @@ msgstr "Ahir"
 msgid "You can only upload CSV files!"
 msgstr "Només podeu pujar fitxers CSV!"
 
-#: src/services/api/errors.ts:135
+#: src/services/api/errors.ts:154
 msgid "You do not have read access to {resource}."
 msgstr "No teniu accés de lectura a {resource}."
 
-#: src/services/api/errors.ts:136
+#: src/services/api/errors.ts:155
 msgid "You do not have write access to {resource}."
 msgstr "No teniu accés d'escriptura a {resource}."
 
@@ -15629,6 +15665,10 @@ msgstr "Teniu canvis no desats. Esteu segur que voleu tancar? Els vostres canvis
 msgid "You have unsaved retention changes. Leave without saving?"
 msgstr "Teniu canvis de retenció sense desar. Voleu sortir sense desar?"
 
+#: src/components/workspace/PendingInvitations.tsx:35
+msgid "You joined {workspaceName}"
+msgstr "Us heu unit a {workspaceName}"
+
 #: src/components/settings/BlogSettings.tsx:273
 msgid "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 msgstr "Heu de configurar una URL de punt final personalitzat a la Configuració general anterior abans d'habilitar el blog."
@@ -15643,7 +15683,7 @@ msgstr "Necessiteu permisos de lectura de plantilla i escriptura de contacte per
 msgid "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {totalRows}."
 msgstr "Esteu continuant una sessió de càrrega anterior de \"{fileName}\". La càrrega es reprendrà des de la fila {0} de {totalRows}."
 
-#: src/pages/AcceptInvitationPage.tsx:140
+#: src/pages/AcceptInvitationPage.tsx:141
 msgid "You've been invited to join"
 msgstr "Heu estat convidat a unir-vos"
 
@@ -15663,7 +15703,7 @@ msgstr "La configuració del vostre blog no s'ha desat. Si sortiu d'aquesta pàg
 msgid "Your files can be uploaded to any S3 compatible storage."
 msgstr "Els vostres fitxers es poden pujar a qualsevol emmagatzematge compatible amb S3."
 
-#: src/pages/SignInPage.tsx:99
+#: src/pages/SignInPage.tsx:131
 msgid "Your identity provider has not verified your email address."
 msgstr "El vostre proveïdor d'identitat no ha verificat la vostra adreça de correu."
 

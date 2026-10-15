@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -65,8 +66,20 @@ type OIDCServiceConfig struct {
 	// direction and internal/app/app_license_wiring_test.go for what stops it from
 	// happening in production.
 	Entitlements domain.EntitlementProvider
-	Logger       logger.Logger
-	Tracer       tracing.Tracer
+	// Invitations lets a pending workspace invitation provision the account on a first
+	// sign-in, and lets the provisioning policy refuse a provider that is not authoritative
+	// for an invited address (see resolveOrProvisionUser). It must be wired: left nil,
+	// sign-in ignores invitations while JoinInvitation still honours them, so an account a
+	// weak provider created could claim one. internal/app/app_license_wiring_test.go checks it.
+	Invitations PendingInvitationFinder
+	Logger      logger.Logger
+	Tracer      tracing.Tracer
+}
+
+// PendingInvitationFinder is the slice of the workspace repository a first SSO sign-in
+// reads: whether the address has live invitations waiting.
+type PendingInvitationFinder interface {
+	ListPendingInvitationsForEmail(ctx context.Context, email string) ([]*domain.PendingInvitation, error)
 }
 
 // OIDCService mints Notifuse sessions from a verified external OIDC identity. It is
@@ -85,6 +98,7 @@ type OIDCService struct {
 	isRootEmail   func(string) bool
 	isProduction  bool
 	entitlements  domain.EntitlementProvider
+	invitations   PendingInvitationFinder
 	logger        logger.Logger
 	tracer        tracing.Tracer
 
@@ -119,6 +133,7 @@ func NewOIDCService(cfg OIDCServiceConfig) *OIDCService {
 		isRootEmail:   cfg.IsRootEmail,
 		isProduction:  cfg.IsProduction,
 		entitlements:  cfg.Entitlements,
+		invitations:   cfg.Invitations,
 		logger:        cfg.Logger,
 		tracer:        tracer,
 	}
@@ -349,9 +364,17 @@ func (s *OIDCService) HandleCallback(ctx context.Context, in domain.OIDCCallback
 		Sub           string        `json:"sub"`
 		Email         string        `json:"email"`
 		EmailVerified *flexibleBool `json:"email_verified"` // nil = claim absent; tolerates string "true"/"false"
-		Name          string        `json:"name"`
-		Azp           string        `json:"azp"`
-		Aud           audience      `json:"aud"` // tolerates string OR []string
+		// Read only to decide whether the provider is authoritative for the address
+		// (emailIsAuthoritative): Google's Workspace domain, Entra ID's optional "email
+		// domain owner verified" claim, and the home provider Entra names for a guest.
+		// Lenient, because they matter only on an invitee's first sign-in: a value of an
+		// unexpected type reads as absent rather than failing every login.
+		HostedDomain        lenientString `json:"hd"`
+		DomainOwnerVerified lenientBool   `json:"xms_edov"`
+		IdentityProvider    lenientString `json:"idp"`
+		Name                string        `json:"name"`
+		Azp                 string        `json:"azp"`
+		Aud                 audience      `json:"aud"` // tolerates string OR []string
 	}
 	if err := idToken.Claims(&claims); err != nil {
 		s.tracer.MarkSpanError(ctx, err)
@@ -370,7 +393,9 @@ func (s *OIDCService) HandleCallback(ctx context.Context, in domain.OIDCCallback
 	s.tracer.AddAttribute(ctx, "oidc.sub", sub)
 	s.tracer.AddAttribute(ctx, "oidc.issuer", issuer)
 
-	user, err := s.resolveOrProvisionUser(ctx, issuer, sub, email, (*bool)(claims.EmailVerified), claims.Name)
+	authoritative := emailIsAuthoritative(issuer, email, (*bool)(claims.EmailVerified),
+		claims.DomainOwnerVerified.ptr(), string(claims.HostedDomain), string(claims.IdentityProvider))
+	user, err := s.resolveOrProvisionUser(ctx, issuer, sub, email, (*bool)(claims.EmailVerified), claims.Name, authoritative)
 	if err != nil {
 		return "", err // typed errors flow to the HTTP layer for redirect mapping
 	}
@@ -389,6 +414,40 @@ func (s *OIDCService) HandleCallback(ctx context.Context, in domain.OIDCCallback
 			WithField("issuer", issuer).Info("OIDC login succeeded")
 	}
 	return oneTimeCode, nil
+}
+
+// lenientBool decodes an optional boolean hint that must never fail the claims decode: a
+// value flexibleBool cannot read is treated as absent.
+type lenientBool struct {
+	set, value bool
+}
+
+func (b *lenientBool) UnmarshalJSON(data []byte) error {
+	var v flexibleBool
+	if json.Unmarshal(data, &v) == nil {
+		b.set, b.value = true, bool(v)
+	}
+	return nil
+}
+
+// ptr returns the value, or nil when the claim was absent or unreadable.
+func (b lenientBool) ptr() *bool {
+	if !b.set {
+		return nil
+	}
+	v := b.value
+	return &v
+}
+
+// lenientString decodes an optional string hint; any other JSON type reads as empty.
+type lenientString string
+
+func (s *lenientString) UnmarshalJSON(data []byte) error {
+	var v string
+	if json.Unmarshal(data, &v) == nil {
+		*s = lenientString(v)
+	}
+	return nil
 }
 
 // flexibleBool decodes a JSON boolean claim that some IdPs (or claim-mapping
@@ -419,9 +478,11 @@ func (b *flexibleBool) UnmarshalJSON(data []byte) error {
 	}
 }
 
-// resolveOrProvisionUser implements the identity/linking state machine.
+// resolveOrProvisionUser implements the identity/linking state machine. emailAuthoritative
+// is emailIsAuthoritative's verdict on the same token; it only matters on a first sign-in
+// for an address with pending invitations.
 func (s *OIDCService) resolveOrProvisionUser(
-	ctx context.Context, issuer, sub, email string, emailVerified *bool, name string,
+	ctx context.Context, issuer, sub, email string, emailVerified *bool, name string, emailAuthoritative bool,
 ) (*domain.User, error) {
 
 	// (1) Stable identity lookup by (issuer, sub). Email NOT used for auth here.
@@ -545,28 +606,60 @@ func (s *OIDCService) resolveOrProvisionUser(
 		return nil, fmt.Errorf("oidc user-by-email lookup: %w", uerr)
 	}
 
-	// Provisioning policy.
-	if !s.cfg.AutoCreateUsers {
+	// ROOT_EMAIL guard: NEVER create a user whose email matches a configured ROOT_EMAIL
+	// — it is synthesized owner of ALL workspaces, so auto-minting it would be privilege
+	// escalation. It runs ahead of both provisioning paths below, invitations included:
+	// InviteMember refuses a root address, but compares it case-sensitively, so a
+	// case variant of one could still be pending.
+	if s.isRootEmail != nil && s.isRootEmail(email) {
+		if s.logger != nil {
+			s.logger.WithField("email", email).WithField("oidc_sub", sub).
+				Error("OIDC provisioning refused: email matches ROOT_EMAIL (would be privilege escalation)")
+		}
+		return nil, domain.ErrOIDCAccountNotProvisioned
+	}
+
+	// Provisioning policy. A pending invitation to this address is the owner's explicit
+	// grant for it, so — when the provider is authoritative for the address — it
+	// provisions the account in invited-only mode and outside the domain allowlist, as
+	// the emailed link would. It is not accepted here: the user joins from the console.
+	//
+	// When the provider is not authoritative, no path may create the account, JIT
+	// included: that account could claim the invitation from the console without anyone
+	// having proved the address, which is the nOAuth takeover with an invitation as the
+	// prize. The invitee is left with the link, which proves it.
+	invited, err := s.hasPendingInvitation(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case invited && !emailAuthoritative:
+		if s.logger != nil {
+			s.logger.WithField("email", email).WithField("oidc_sub", sub).WithField("issuer", issuer).
+				Warn("OIDC login rejected: the address has a pending invitation, but the identity provider is not " +
+					"authoritative for it, so the invitation link is required. Authoritative means email_verified=true; " +
+					"from Entra ID, xms_edov=true for a tenant member; from Google, only @gmail.com and Workspace (hd) accounts")
+		}
+		// Outside the allowlist, the same answer an uninvited outsider gets, so the reason
+		// does not tell a prober which addresses have an invitation waiting.
+		if s.cfg.AutoCreateUsers && len(s.cfg.AllowedDomains) > 0 && !domainAllowed(email, s.cfg.AllowedDomains) {
+			return nil, domain.ErrOIDCDomainNotAllowed
+		}
+		return nil, domain.ErrOIDCAccountNotProvisioned
+	case invited:
+		if s.logger != nil {
+			s.logger.WithField("email", email).WithField("oidc_sub", sub).
+				Info("OIDC provisioning a pending invitee")
+		}
+	case !s.cfg.AutoCreateUsers:
 		if s.logger != nil {
 			s.logger.WithField("email", email).WithField("oidc_sub", sub).
 				Warn("OIDC login rejected: no Notifuse account (invited-only)")
 		}
 		return nil, domain.ErrOIDCAccountNotProvisioned
-	}
-	// ROOT_EMAIL guard: NEVER JIT-create a user whose email matches a configured
-	// ROOT_EMAIL — it is synthesized owner of ALL workspaces, so auto-minting it
-	// would be privilege escalation. Force the invite path.
-	if s.isRootEmail != nil && s.isRootEmail(email) {
-		if s.logger != nil {
-			s.logger.WithField("email", email).WithField("oidc_sub", sub).
-				Error("OIDC JIT refused: email matches ROOT_EMAIL (would be privilege escalation); invite path required")
-		}
+	case len(s.cfg.AllowedDomains) == 0: // defense in depth (boot fails otherwise)
 		return nil, domain.ErrOIDCAccountNotProvisioned
-	}
-	if len(s.cfg.AllowedDomains) == 0 { // defense in depth (boot fails otherwise)
-		return nil, domain.ErrOIDCAccountNotProvisioned
-	}
-	if !domainAllowed(email, s.cfg.AllowedDomains) {
+	case !domainAllowed(email, s.cfg.AllowedDomains):
 		if s.logger != nil {
 			s.logger.WithField("email", email).Warn("OIDC JIT rejected: domain not in allowlist")
 		}
@@ -602,7 +695,8 @@ func (s *OIDCService) resolveOrProvisionUser(
 	}
 	if s.logger != nil {
 		s.logger.WithField("user_id", newUser.ID).WithField("oidc_sub", sub).
-			Info("OIDC JIT-provisioned new user")
+			WithField("pending_invitee", invited).
+			Info("OIDC provisioned new user")
 	}
 	return newUser, nil
 }
@@ -754,6 +848,70 @@ func randToken(n int) (string, error) {
 		return "", err
 	}
 	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+// hasPendingInvitation reports whether email has live workspace invitations waiting. With
+// no finder wired there is no invitation path at all.
+func (s *OIDCService) hasPendingInvitation(ctx context.Context, email string) (bool, error) {
+	if s.invitations == nil {
+		return false, nil
+	}
+	invitations, err := s.invitations.ListPendingInvitationsForEmail(ctx, email)
+	if err != nil {
+		return false, fmt.Errorf("oidc pending invitation lookup: %w", err)
+	}
+	return len(invitations) > 0, nil
+}
+
+// googleIssuer is the issuer Google signs its ID tokens with.
+const googleIssuer = "https://accounts.google.com"
+
+// entraIssuerHosts are the hosts Microsoft Entra ID issues tenant tokens from (v2.0, v1.0,
+// and the US government and China clouds).
+var entraIssuerHosts = map[string]bool{
+	"login.microsoftonline.com":        true,
+	"sts.windows.net":                  true,
+	"login.microsoftonline.us":         true,
+	"login.partner.microsoftonline.cn": true,
+}
+
+func isEntraIssuer(issuer string) bool {
+	u, err := url.Parse(issuer)
+	return err == nil && entraIssuerHosts[strings.ToLower(u.Host)]
+}
+
+// emailIsAuthoritative reports whether the identity provider vouches for the address
+// strongly enough for a pending invitation to that address to stand in for an account.
+//
+// That is a higher bar than signing in. OIDC_ALLOW_UNVERIFIED_EMAIL lets an absent
+// email_verified through so that Entra ID and Cloudflare Access can sign in at all, but an
+// invitation names an address, and claiming one on an address nobody verified is how nOAuth
+// took accounts over. So the provider must positively vouch, and only where it can:
+//
+//   - Google sets email_verified on every account, including a consumer account registered
+//     on someone else's domain, where it reflects a check made when the account was created
+//     and not who holds the mailbox now. Google documents itself as authoritative only for
+//     @gmail.com addresses and Workspace accounts (the hd claim).
+//   - Entra ID sends no email_verified; its optional xms_edov claim says the address's domain
+//     owner verified it. It is also true for guests signing in with a Microsoft or Google
+//     consumer account or a one-time passcode — the same weak case as Google's — so it counts
+//     only for members of the tenant, whose idp claim is absent or the issuer itself.
+//   - Any other provider: email_verified must be present and true. xms_edov means nothing
+//     outside Entra.
+//
+// A provider that brokers others (Keycloak, Dex) vouches with its own email_verified, so it
+// answers for the providers behind it.
+func emailIsAuthoritative(issuer, email string, emailVerified, domainOwnerVerified *bool, hostedDomain, identityProvider string) bool {
+	verified := emailVerified != nil && *emailVerified
+	switch {
+	case issuer == googleIssuer:
+		return verified && (strings.HasSuffix(email, "@gmail.com") || hostedDomain != "")
+	case isEntraIssuer(issuer):
+		member := identityProvider == "" || identityProvider == issuer
+		return member && domainOwnerVerified != nil && *domainOwnerVerified
+	default:
+		return verified
+	}
 }
 
 // domainAllowed reports whether email's domain is in the allowlist (case-insensitive).

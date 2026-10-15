@@ -527,6 +527,25 @@ export interface DeleteInvitationResponse {
   message: string
 }
 
+// An invitation addressed to the signed-in user's email, as they see it: no grant, just
+// where it leads and who sent it.
+export interface PendingInvitation {
+  id: string
+  workspace_id: string
+  workspace_name: string
+  inviter_name?: string
+  expires_at: string
+}
+
+export interface PendingInvitationsResponse {
+  invitations: PendingInvitation[]
+}
+
+export interface JoinInvitationResponse {
+  status: string
+  workspace_id: string
+}
+
 interface DetectFaviconResponse {
   iconUrl: string
   coverUrl?: string
@@ -588,6 +607,15 @@ export const workspaceService = {
 
   deleteInvitation: (data: DeleteInvitationRequest) =>
     api.post<DeleteInvitationResponse>('/api/workspaces.deleteInvitation', data),
+
+  // The signed-in invitee's side: what they are invited to, and joining without the link.
+  pendingInvitations: () =>
+    api.get<PendingInvitationsResponse>('/api/workspaces.pendingInvitations'),
+
+  joinInvitation: (invitationId: string) =>
+    api.post<JoinInvitationResponse>('/api/workspaces.joinInvitation', {
+      invitation_id: invitationId
+    }),
 
   setUserPermissions: (data: SetUserPermissionsRequest) =>
     api.post<SetUserPermissionsResponse>('/api/workspaces.setUserPermissions', data),

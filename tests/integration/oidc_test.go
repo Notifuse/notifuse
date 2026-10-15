@@ -21,6 +21,7 @@ import (
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/app"
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/tests/testutil"
 )
 
@@ -38,6 +39,9 @@ type fakeOIDP struct {
 	key     *rsa.PrivateKey
 	kid     string
 	idToken string // staged id_token returned by the next /token exchange
+	// claimOverrides is applied to every minted token: a value replaces or adds a claim,
+	// nil removes it (an IdP that omits email_verified, or one that emits xms_edov).
+	claimOverrides map[string]any
 }
 
 func newFakeOIDP(t *testing.T) *fakeOIDP {
@@ -94,6 +98,13 @@ func (f *fakeOIDP) mintIDToken(t *testing.T, sub, email string, emailVerified bo
 		"nonce":          nonce,
 		"iat":            time.Now().Unix(),
 		"exp":            time.Now().Add(time.Hour).Unix(),
+	}
+	for claim, value := range f.claimOverrides {
+		if value == nil {
+			delete(claims, claim)
+		} else {
+			claims[claim] = value
+		}
 	}
 	tok := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	tok.Header["kid"] = f.kid
@@ -452,10 +463,34 @@ func TestOIDCIntegrationJIT(t *testing.T) {
 	t.Run("out-of-allowlist domain is rejected and provisions nothing", func(t *testing.T) {
 		const outsider = "intruder@evil.com"
 		out := driveLogin(t, base, idp, "jit-sub-evil", outsider, true, false)
-		assert.NotEmpty(t, out.oidcError, "a non-allowlisted domain must be rejected")
+		assert.Equal(t, "domain_not_allowed", out.oidcError, "a non-allowlisted domain must be rejected, and say why")
 		assert.Empty(t, out.code)
 		assert.Equal(t, 0, countUsers(outsider), "rejected JIT must not create a user")
 		assert.Equal(t, 0, countFed("jit-sub-evil"), "rejected JIT must not create an identity")
+	})
+
+	// The allowlist scopes who may sign themselves up; an owner's invitation is the
+	// override for one address outside it.
+	t.Run("a pending invitee outside the allowlist is provisioned", func(t *testing.T) {
+		client := suite.APIClient
+		ownerToken := testutil.NewTokenCache(client).GetOrCreate(t, "test@example.com")
+		workspaceID := createTestWorkspaceWithToken(t, client, ownerToken, "JIT Invite WS")
+		const guest = "guest@partner-agency.com"
+
+		client.SetToken(ownerToken)
+		resp, err := client.Post("/api/workspaces.inviteMember", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"email":        guest,
+			"permissions":  domain.NewFullPermissions(),
+		})
+		require.NoError(t, err)
+		resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		out := driveLogin(t, base, idp, "jit-sub-guest", guest, true, false)
+		require.Empty(t, out.oidcError, "an invited address must not be held to the allowlist")
+		require.NotEmpty(t, out.code)
+		assert.Equal(t, 1, countUsers(guest))
 	})
 
 	t.Run("ROOT_EMAIL is never JIT/bridge-linked even with JIT on (escalation guard)", func(t *testing.T) {
@@ -467,5 +502,228 @@ func TestOIDCIntegrationJIT(t *testing.T) {
 			"linking an external identity to ROOT_EMAIL must be refused (privilege escalation)")
 		assert.Empty(t, out.code)
 		assert.Equal(t, 0, countFed("jit-sub-root"), "the root account must not be linked to the attacker sub")
+	})
+}
+
+// TestOIDCIntegrationPendingInvitations drives an invitee's first SSO sign-in end to end:
+// an owner invites an address through the real API, and that address signs in in
+// invited-only mode, where before nothing but the emailed link would let it in. The
+// invitation provisions the account but is not accepted at sign-in; the invitee joins
+// from the console.
+//
+// OIDC_ALLOW_UNVERIFIED_EMAIL is on so that an identity without email_verified reaches
+// the provisioning policy at all: signing in tolerates it, claiming an invitation must not.
+func TestOIDCIntegrationPendingInvitations(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	idp := newFakeOIDP(t)
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		cfg.OIDC = config.OIDCConfig{
+			Enabled:              true,
+			IssuerURL:            idp.server.URL,
+			ClientID:             oidcTestClientID,
+			ClientSecret:         "integration-secret",
+			RedirectURI:          "http://localhost/api/user.oidc.callback",
+			Scopes:               []string{"openid", "email", "profile"},
+			AutoCreateUsers:      false, // invited-only
+			AllowUnverifiedEmail: true,
+		}
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	base := suite.ServerManager.GetURL()
+	db := suite.DBManager.GetDB()
+	client := suite.APIClient
+	tokens := testutil.NewTokenCache(client)
+	ownerToken := tokens.GetOrCreate(t, "test@example.com")
+	workspaceID := createTestWorkspaceWithToken(t, client, ownerToken, "SSO Invite WS")
+
+	// invite returns the response, whose token is the emailed link's (development mode).
+	invite := func(t *testing.T, email string) map[string]any {
+		t.Helper()
+		client.SetToken(ownerToken)
+		resp, err := client.Post("/api/workspaces.inviteMember", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"email":        email,
+			"permissions":  domain.NewFullPermissions(),
+		})
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		var body map[string]any
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		return body
+	}
+	call := func(t *testing.T, method, path, token string, body any) (int, map[string]any) {
+		t.Helper()
+		var reader io.Reader
+		if body != nil {
+			raw, err := json.Marshal(body)
+			require.NoError(t, err)
+			reader = strings.NewReader(string(raw))
+		}
+		req, err := http.NewRequest(method, base+path, reader)
+		require.NoError(t, err)
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		var decoded map[string]any
+		_ = json.NewDecoder(resp.Body).Decode(&decoded)
+		return resp.StatusCode, decoded
+	}
+	pendingIDs := func(t *testing.T, token string) []string {
+		t.Helper()
+		status, body := call(t, http.MethodGet, "/api/workspaces.pendingInvitations", token, nil)
+		require.Equal(t, http.StatusOK, status)
+		list, ok := body["invitations"].([]any)
+		require.True(t, ok, "invitations must be a list, empty included: %v", body)
+		ids := []string{}
+		for _, item := range list {
+			ids = append(ids, item.(map[string]any)["id"].(string))
+		}
+		return ids
+	}
+	invitationID := func(t *testing.T, email string) string {
+		t.Helper()
+		var id string
+		require.NoError(t, db.QueryRow(
+			`SELECT id FROM workspace_invitations WHERE workspace_id = $1 AND lower(email) = lower($2)`,
+			workspaceID, email).Scan(&id))
+		return id
+	}
+	countUsers := func(email string) int {
+		var n int
+		require.NoError(t, db.QueryRow(`SELECT count(*) FROM users WHERE lower(email) = lower($1)`, email).Scan(&n))
+		return n
+	}
+	signIn := func(t *testing.T, sub, email string) string {
+		t.Helper()
+		out := driveLogin(t, base, idp, sub, email, true, false)
+		require.Empty(t, out.oidcError, "an invitee must be able to sign in")
+		require.NotEmpty(t, out.code)
+		token, status := exchangeCode(t, base, out.code)
+		require.Equal(t, http.StatusOK, status)
+		return token
+	}
+
+	t.Run("an invitee signs in with SSO, then joins from the console", func(t *testing.T) {
+		// Typed by the owner with capitals; the IdP asserts it lower-cased.
+		invite(t, "SSO-Invitee@Example.com")
+		id := invitationID(t, "sso-invitee@example.com")
+
+		token := signIn(t, "sub-invitee", "sso-invitee@example.com")
+		userID, email, status := meIdentity(t, base, token)
+		require.Equal(t, http.StatusOK, status)
+		assert.Equal(t, "sso-invitee@example.com", email)
+
+		// Signing in did not accept anything: that is the invitee's choice to make.
+		var memberships int
+		require.NoError(t, db.QueryRow(`SELECT count(*) FROM user_workspaces WHERE user_id = $1`, userID).Scan(&memberships))
+		assert.Equal(t, 0, memberships)
+		require.Equal(t, []string{id}, pendingIDs(t, token))
+
+		status, body := call(t, http.MethodPost, "/api/workspaces.joinInvitation", token, map[string]string{"invitation_id": id})
+		require.Equal(t, http.StatusOK, status, "join: %v", body)
+		assert.Equal(t, workspaceID, body["workspace_id"])
+
+		var role string
+		require.NoError(t, db.QueryRow(
+			`SELECT role FROM user_workspaces WHERE user_id = $1 AND workspace_id = $2`, userID, workspaceID).Scan(&role))
+		assert.Equal(t, "member", role)
+		assert.Empty(t, pendingIDs(t, token), "the joined invitation is consumed")
+
+		status, _ = call(t, http.MethodGet, "/api/workspaces.get?id="+workspaceID, token, nil)
+		assert.Equal(t, http.StatusOK, status, "the new member reaches the workspace")
+
+		status, _ = call(t, http.MethodPost, "/api/workspaces.joinInvitation", token, map[string]string{"invitation_id": id})
+		assert.Equal(t, http.StatusNotFound, status, "a consumed invitation cannot be joined again")
+	})
+
+	t.Run("another account cannot join someone else's invitation", func(t *testing.T) {
+		invite(t, "sso-second@example.com")
+		id := invitationID(t, "sso-second@example.com")
+		otherToken := tokens.GetOrCreate(t, "workspace-viewer@example.com")
+
+		assert.NotContains(t, pendingIDs(t, otherToken), id)
+		status, _ := call(t, http.MethodPost, "/api/workspaces.joinInvitation", otherToken, map[string]string{"invitation_id": id})
+		assert.Equal(t, http.StatusNotFound, status)
+		assert.Equal(t, id, invitationID(t, "sso-second@example.com"), "the invitation is untouched")
+	})
+
+	// The invitee signs in with SSO (account under the lower-cased address), then also opens
+	// the emailed link of an invitation the owner typed with capitals. The link must find that
+	// account — not create a second one the next SSO sign-in would never reach.
+	t.Run("the emailed link after an SSO sign-in seats that same account", func(t *testing.T) {
+		linkToken, _ := invite(t, "SSO-Linker@Example.com")["token"].(string)
+		require.NotEmpty(t, linkToken)
+
+		ssoToken := signIn(t, "sub-linker", "sso-linker@example.com")
+		ssoUserID, _, status := meIdentity(t, base, ssoToken)
+		require.Equal(t, http.StatusOK, status)
+
+		resp, err := http.Post(base+"/api/workspaces.acceptInvitation", "application/json",
+			strings.NewReader(fmt.Sprintf(`{"token":%q}`, linkToken)))
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		var accepted struct {
+			User struct {
+				ID string `json:"id"`
+			} `json:"user"`
+		}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&accepted))
+
+		assert.Equal(t, ssoUserID, accepted.User.ID, "the link must seat the SSO account")
+		assert.Equal(t, 1, countUsers("sso-linker@example.com"), "one person, one account")
+		var memberships int
+		require.NoError(t, db.QueryRow(
+			`SELECT count(*) FROM user_workspaces WHERE user_id = $1 AND workspace_id = $2`, ssoUserID, workspaceID).Scan(&memberships))
+		assert.Equal(t, 1, memberships)
+	})
+
+	// Once an invitee has signed in with SSO they have an account. The owner's Resend must
+	// send the invitation again — not seat them without the Join the console offers.
+	t.Run("the owner's resend after an SSO sign-in seats nobody", func(t *testing.T) {
+		invite(t, "sso-resend@example.com")
+		token := signIn(t, "sub-resend", "sso-resend@example.com")
+		userID, _, status := meIdentity(t, base, token)
+		require.Equal(t, http.StatusOK, status)
+
+		resent := invite(t, "sso-resend@example.com")
+		assert.Equal(t, "Invitation sent", resent["message"])
+
+		var memberships int
+		require.NoError(t, db.QueryRow(`SELECT count(*) FROM user_workspaces WHERE user_id = $1`, userID).Scan(&memberships))
+		assert.Equal(t, 0, memberships, "a resend must not seat the invitee")
+		assert.Len(t, pendingIDs(t, token), 1, "the invitation is still the invitee's to join")
+	})
+
+	t.Run("an identity without email_verified is not provisioned on an invitation", func(t *testing.T) {
+		invite(t, "sso-unverified@example.com")
+		idp.claimOverrides = map[string]any{"email_verified": nil}
+		t.Cleanup(func() { idp.claimOverrides = nil })
+
+		out := driveLogin(t, base, idp, "sub-unverified", "sso-unverified@example.com", true, false)
+		assert.Equal(t, "not_provisioned", out.oidcError)
+		assert.Empty(t, out.code)
+		assert.Equal(t, 0, countUsers("sso-unverified@example.com"), "the link is the only way in")
+	})
+
+	// xms_edov is Entra ID's claim; from any other issuer it is just a key in a token, and it
+	// must not stand in for email_verified. (The Entra case itself needs an Entra issuer URL:
+	// TestEmailIsAuthoritative covers it.)
+	t.Run("xms_edov from a provider other than Entra ID counts for nothing", func(t *testing.T) {
+		invite(t, "sso-entra@example.com")
+		idp.claimOverrides = map[string]any{"email_verified": nil, "xms_edov": true}
+		t.Cleanup(func() { idp.claimOverrides = nil })
+
+		out := driveLogin(t, base, idp, "sub-entra", "sso-entra@example.com", true, false)
+		assert.Equal(t, "not_provisioned", out.oidcError)
+		assert.Equal(t, 0, countUsers("sso-entra@example.com"))
 	})
 }

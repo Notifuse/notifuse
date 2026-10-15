@@ -634,7 +634,7 @@ msgstr "A/Bテストを実行中です。テストグループにメールを送
 msgid "A/B Testing"
 msgstr "A/Bテスト"
 
-#: src/pages/AcceptInvitationPage.tsx:168
+#: src/pages/AcceptInvitationPage.tsx:169
 msgid "Accept Invitation"
 msgstr "招待を承諾"
 
@@ -1456,7 +1456,7 @@ msgstr "配列インデックス: {segment}"
 msgid "Ask about your traffic..."
 msgstr "トラフィックについて質問してください..."
 
-#: src/components/ai-assistant/useAIAssistant.tsx:894
+#: src/components/ai-assistant/useAIAssistant.tsx:899
 msgid "Ask me to fix these issues."
 msgstr "これらの問題の修正を依頼してください。"
 
@@ -1543,7 +1543,7 @@ msgid "Audit logs"
 msgstr "監査ログ"
 
 #: src/components/settings/PermissionsMatrix.tsx:136
-#: src/services/api/errors.ts:77
+#: src/services/api/errors.ts:96
 msgid "Audit Logs"
 msgstr "監査ログ"
 
@@ -1669,7 +1669,7 @@ msgstr "オートメーション:"
 #: src/components/settings/PermissionsMatrix.tsx:130
 #: src/layouts/WorkspaceLayout.tsx:428
 #: src/pages/AutomationsPage.tsx:162
-#: src/services/api/errors.ts:71
+#: src/services/api/errors.ts:90
 msgid "Automations"
 msgstr "オートメーション"
 
@@ -1899,7 +1899,7 @@ msgstr "ブロック"
 #: src/components/settings/PermissionsMatrix.tsx:129
 #: src/components/settings/SettingsSidebar.tsx:121
 #: src/layouts/WorkspaceLayout.tsx:262
-#: src/services/api/errors.ts:70
+#: src/services/api/errors.ts:89
 msgid "Blog"
 msgstr "ブログ"
 
@@ -2190,7 +2190,7 @@ msgstr "ブロードキャストを更新しました"
 #: src/components/settings/PermissionsMatrix.tsx:125
 #: src/layouts/WorkspaceLayout.tsx:402
 #: src/pages/BroadcastsPage.tsx:1604
-#: src/services/api/errors.ts:66
+#: src/services/api/errors.ts:85
 msgid "Broadcasts"
 msgstr "ブロードキャスト"
 
@@ -2422,6 +2422,10 @@ msgstr "アップロードをキャンセルしますか?"
 msgid "Cancelled"
 msgstr "キャンセル済み"
 
+#: src/pages/SignInPage.tsx:250
+msgid "Cannot reach the configured API endpoint"
+msgstr "設定されたAPIエンドポイントに接続できません"
+
 #: src/components/automations/context/AutomationContext.tsx:131
 msgid "Cannot remove list while email nodes exist. Delete email nodes first."
 msgstr "メールノードが存在する間はリストを削除できません。先にメールノードを削除してください。"
@@ -2550,6 +2554,10 @@ msgstr "{0}のステータスを変更"
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:162
 msgid "Changes"
 msgstr "変更内容"
+
+#: src/pages/SignInPage.tsx:261
+msgid "Changing your domain"
+msgstr "ドメインの変更"
 
 #: src/components/messages/MessageHistoryTab.tsx:215
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
@@ -3176,7 +3184,7 @@ msgstr "コンタクトを更新しました"
 #: src/components/settings/PermissionsMatrix.tsx:122
 #: src/layouts/WorkspaceLayout.tsx:383
 #: src/pages/ContactsPage.tsx:1000
-#: src/services/api/errors.ts:63
+#: src/services/api/errors.ts:82
 msgid "Contacts"
 msgstr "コンタクト"
 
@@ -3971,7 +3979,7 @@ msgstr "日"
 msgid "Debug Segment Builder"
 msgstr "セグメントビルダーデバッグ"
 
-#: src/pages/AcceptInvitationPage.tsx:173
+#: src/pages/AcceptInvitationPage.tsx:174
 msgid "Decline"
 msgstr "辞退"
 
@@ -4956,8 +4964,8 @@ msgstr "メール"
 #: src/components/timeline/ContactTimeline.tsx:584
 #: src/pages/ContactsPage.tsx:369
 #: src/pages/ContactsPage.tsx:536
-#: src/pages/SignInPage.tsx:219
-#: src/pages/SignInPage.tsx:226
+#: src/pages/SignInPage.tsx:276
+#: src/pages/SignInPage.tsx:283
 msgid "Email"
 msgstr "メール"
 
@@ -5075,7 +5083,7 @@ msgstr "メールタイトル設定"
 msgid "Email widths above 650px may not display correctly in some email clients"
 msgstr "650pxを超える幅のメールは一部のメールクライアントで正しく表示されない場合があります"
 
-#: src/pages/AcceptInvitationPage.tsx:151
+#: src/pages/AcceptInvitationPage.tsx:152
 msgid "Email:"
 msgstr "メール:"
 
@@ -5366,7 +5374,7 @@ msgstr "返信先メールアドレスを入力"
 msgid "Enter spacing"
 msgstr "間隔を入力"
 
-#: src/pages/SignInPage.tsx:255
+#: src/pages/SignInPage.tsx:312
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "{email}に送信された6桁のコードを入力"
 
@@ -5621,7 +5629,7 @@ msgstr ""
 msgid "Expires"
 msgstr ""
 
-#: src/pages/AcceptInvitationPage.tsx:154
+#: src/pages/AcceptInvitationPage.tsx:155
 msgid "Expires:"
 msgstr "有効期限:"
 
@@ -5633,7 +5641,7 @@ msgstr "探索"
 
 #: src/components/contacts/ExportContactsModal.tsx:325
 #: src/components/email_builder/MjmlCodeEditor.tsx:643
-#: src/components/logs/AuditLogActions.tsx:50
+#: src/components/logs/AuditLogActions.tsx:52
 #: src/components/templates/ImportExportButton.tsx:416
 #: src/pages/ContactsPage.tsx:1023
 msgid "Export"
@@ -5643,7 +5651,7 @@ msgstr "エクスポート"
 msgid "Export Contacts to CSV"
 msgstr "コンタクトをCSVにエクスポート"
 
-#: src/components/logs/AuditLogActions.tsx:22
+#: src/components/logs/AuditLogActions.tsx:24
 msgid "Export failed"
 msgstr "エクスポートに失敗しました"
 
@@ -5659,7 +5667,7 @@ msgstr "MJMLをエクスポート"
 msgid "Export the audit log as CSV or NDJSON"
 msgstr "監査ログを CSV または NDJSON としてエクスポート"
 
-#: src/components/logs/AuditLogActions.tsx:48
+#: src/components/logs/AuditLogActions.tsx:50
 msgid "Export the current filter as CSV or NDJSON, up to {AUDIT_LOG_EXPORT_MAX_ROWS} rows"
 msgstr "現在のフィルターを CSV または NDJSON でエクスポート（最大 {AUDIT_LOG_EXPORT_MAX_ROWS} 行）"
 
@@ -5720,7 +5728,7 @@ msgstr "失敗"
 msgid "Failed"
 msgstr "失敗"
 
-#: src/pages/AcceptInvitationPage.tsx:84
+#: src/pages/AcceptInvitationPage.tsx:85
 msgid "Failed to accept invitation"
 msgstr "招待の承諾に失敗しました"
 
@@ -5943,6 +5951,10 @@ msgstr ""
 msgid "Failed to invite member"
 msgstr "メンバーの招待に失敗しました"
 
+#: src/components/workspace/PendingInvitations.tsx:54
+msgid "Failed to join the workspace"
+msgstr "ワークスペースへの参加に失敗しました"
+
 #: src/components/segment/BroadcastSelectorInput.tsx:71
 msgid "Failed to load broadcasts"
 msgstr "ブロードキャストの読み込みに失敗しました"
@@ -6027,7 +6039,7 @@ msgstr "プレビューのレンダリングに失敗しました"
 msgid "Failed to resend invitation"
 msgstr "招待の再送信に失敗しました"
 
-#: src/pages/SignInPage.tsx:199
+#: src/pages/SignInPage.tsx:232
 msgid "Failed to resend magic code"
 msgstr "マジックコードの再送信に失敗しました"
 
@@ -6106,7 +6118,7 @@ msgstr "勝者の選択に失敗しました"
 msgid "Failed to send broadcast"
 msgstr "ブロードキャストの送信に失敗しました"
 
-#: src/pages/SignInPage.tsx:74
+#: src/pages/SignInPage.tsx:103
 msgid "Failed to send magic code"
 msgstr "マジックコードの送信に失敗しました"
 
@@ -6220,7 +6232,7 @@ msgstr "ワークスペース設定の更新に失敗しました"
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "ワークスペース設定の更新に失敗しました: {errorMessage}"
 
-#: src/pages/SignInPage.tsx:45
+#: src/pages/SignInPage.tsx:74
 msgid "Failed to verify code"
 msgstr "コードの検証に失敗しました"
 
@@ -6682,7 +6694,7 @@ msgstr "グローバルフィードのURL"
 msgid "Global feed URL is required when enabled"
 msgstr "有効時はグローバルフィードのURLが必須です"
 
-#: src/pages/AcceptInvitationPage.tsx:125
+#: src/pages/AcceptInvitationPage.tsx:126
 #: src/pages/SetupWizard.tsx:338
 msgid "Go to Sign In"
 msgstr "サインインへ"
@@ -6952,7 +6964,7 @@ msgstr "https://example.com または {{ url }}"
 msgid "https://fonts.googleapis.com/css?family=... or {{ font_url }}"
 msgstr "https://fonts.googleapis.com/css?family=... または {{ font_url }}"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:876
+#: src/components/ai-assistant/useAIAssistant.tsx:881
 msgid "I ran {maxRounds} rounds of tool calls without reaching an answer and stopped there. Ask a narrower question and I will try again."
 msgstr "{maxRounds}回のツール呼び出しを行いましたが、答えに到達できなかったためそこで停止しました。もう少し絞り込んだ質問をいただければ、再度試みます。"
 
@@ -7031,7 +7043,7 @@ msgid "ID must contain only lowercase letters, numbers, underscores, and hyphens
 msgstr "IDは小文字の英字、数字、アンダースコア、ハイフンのみ使用できます"
 
 #: src/components/timeline/ContactTimeline.tsx:783
-#: src/pages/DashboardPage.tsx:94
+#: src/pages/DashboardPage.tsx:96
 msgid "ID:"
 msgstr "ID:"
 
@@ -7370,7 +7382,7 @@ msgstr "無効なメールアドレス: {0}"
 msgid "Invalid format. Use: 90 or 1:30 or 1:00:30"
 msgstr "無効な形式です。90または1:30または1:00:30を使用してください"
 
-#: src/pages/AcceptInvitationPage.tsx:118
+#: src/pages/AcceptInvitationPage.tsx:119
 msgid "Invalid Invitation"
 msgstr "無効な招待"
 
@@ -7391,7 +7403,7 @@ msgstr "無効なJSON形式です。構文を確認してください。"
 msgid "Invalid JSON in field {field}"
 msgstr "フィールド{field}のJSONが無効です"
 
-#: src/pages/AcceptInvitationPage.tsx:53
+#: src/pages/AcceptInvitationPage.tsx:54
 msgid "Invalid or expired invitation token"
 msgstr "無効または期限切れの招待トークンです"
 
@@ -7429,7 +7441,7 @@ msgstr "無効なURL形式です。有効なURLまたは{{ variable }}のよう�
 msgid "Invalid YouTube URL"
 msgstr "無効なYouTube URLです"
 
-#: src/pages/AcceptInvitationPage.tsx:77
+#: src/pages/AcceptInvitationPage.tsx:78
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "招待が正常に承認されました！ワークスペースへようこそ。"
 
@@ -7453,6 +7465,10 @@ msgstr "{inviteEmail}に招待を送信しました"
 #: src/components/settings/WorkspaceMembers.tsx:474
 msgid "Invite Member"
 msgstr "メンバーを招待"
+
+#: src/components/workspace/PendingInvitations.tsx:85
+msgid "Invited by {inviterName}"
+msgstr "{inviterName} さんからの招待"
 
 #: src/components/settings/audit_logs/AuditLogTable.tsx:266
 msgid "IP"
@@ -7526,6 +7542,10 @@ msgstr "フィードあたりの件数"
 #: src/pages/ContactsPage.tsx:732
 msgid "Job Title"
 msgstr "役職"
+
+#: src/components/workspace/PendingInvitations.tsx:96
+msgid "Join"
+msgstr "参加"
 
 #: src/components/timeline/ContactTimeline.tsx:557
 msgid "joined"
@@ -7991,7 +8011,7 @@ msgstr "リスト:"
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
 #: src/pages/ListsPage.tsx:155
-#: src/services/api/errors.ts:64
+#: src/services/api/errors.ts:83
 msgid "Lists"
 msgstr "リスト"
 
@@ -8011,7 +8031,7 @@ msgid "Live"
 msgstr "ライブ"
 
 #: src/components/settings/PermissionsMatrix.tsx:131
-#: src/services/api/errors.ts:72
+#: src/services/api/errors.ts:91
 msgid "LLM"
 msgstr "LLM"
 
@@ -8082,7 +8102,7 @@ msgstr "Webhookステータスを読み込み中..."
 #: src/components/timeline/ContactTimeline.tsx:1039
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:455
-#: src/layouts/RootLayout.tsx:91
+#: src/layouts/RootLayout.tsx:99
 #: src/pages/ContactsPage.tsx:531
 #: src/pages/ContactsPage.tsx:1161
 #: src/pages/ListsPage.tsx:149
@@ -8142,7 +8162,7 @@ msgstr "精度を下げるほどプライバシーが向上します"
 msgid "lowercase"
 msgstr "小文字"
 
-#: src/pages/SignInPage.tsx:72
+#: src/pages/SignInPage.tsx:101
 msgid "Magic code sent to your email"
 msgstr "マジックコードをメールに送信しました"
 
@@ -8338,7 +8358,7 @@ msgstr "メッセージ"
 
 #: src/components/settings/PermissionsMatrix.tsx:128
 #: src/pages/LogsPage.tsx:56
-#: src/services/api/errors.ts:69
+#: src/services/api/errors.ts:88
 msgid "Message History"
 msgstr "メッセージ履歴"
 
@@ -8656,7 +8676,7 @@ msgstr "新しい会話"
 msgid "New folder"
 msgstr "新規フォルダ"
 
-#: src/pages/SignInPage.tsx:197
+#: src/pages/SignInPage.tsx:230
 msgid "New magic code sent to your email"
 msgstr "新しいマジックコードをメールに送信しました"
 
@@ -8979,8 +8999,12 @@ msgid "No notes"
 msgstr "メモなし"
 
 #: src/pages/SignInPage.tsx:97
-msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
-msgstr "そのIDに紐づくNotifuseアカウントはありません。まず管理者に招待を依頼してください。"
+#~ msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
+#~ msgstr "そのIDに紐づくNotifuseアカウントはありません。まず管理者に招待を依頼してください。"
+
+#: src/pages/SignInPage.tsx:127
+msgid "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
+msgstr "そのIDに紐づくNotifuseアカウントはありません。招待を受けている場合は、招待メールのリンクを開いてください。そうでない場合は、管理者に招待を依頼してください。"
 
 #: src/components/web_analytics/filters/TestFilterModal.tsx:201
 msgid "No operations defined"
@@ -9116,7 +9140,7 @@ msgstr "Webhookイベントが見つかりません"
 msgid "No webhook subscriptions configured"
 msgstr "Webhookサブスクリプションが設定されていません"
 
-#: src/pages/DashboardPage.tsx:51
+#: src/pages/DashboardPage.tsx:53
 msgid "No workspaces"
 msgstr "ワークスペースがありません"
 
@@ -9543,7 +9567,7 @@ msgstr "任意。指定すると Authorization: Bearer <secret> として送信"
 msgid "Optionally filter contacts by segments within the selected lists"
 msgstr "選択したリスト内のコンタクトをセグメントでフィルタリング（任意）"
 
-#: src/pages/SignInPage.tsx:237
+#: src/pages/SignInPage.tsx:294
 msgid "or"
 msgstr "または"
 
@@ -9745,6 +9769,10 @@ msgstr "保留中"
 msgid "Pending confirmation"
 msgstr "確認待ち"
 
+#: src/components/workspace/PendingInvitations.tsx:68
+msgid "Pending invitations"
+msgstr "保留中の招待"
+
 #: src/components/broadcasts/BroadcastLinkStats.tsx:70
 msgid "Per-link click data is not available."
 msgstr "リンク別のクリックデータは利用できません。"
@@ -9942,7 +9970,7 @@ msgstr "スラッグを入力してください"
 msgid "Please enter a URL"
 msgstr "URLを入力してください"
 
-#: src/pages/SignInPage.tsx:263
+#: src/pages/SignInPage.tsx:320
 msgid "Please enter a valid 6-digit code!"
 msgstr "有効な6桁のコードを入力してください！"
 
@@ -9950,7 +9978,7 @@ msgstr "有効な6桁のコードを入力してください！"
 msgid "Please enter a valid email"
 msgstr "有効なメールアドレスを入力してください"
 
-#: src/pages/SignInPage.tsx:223
+#: src/pages/SignInPage.tsx:280
 msgid "Please enter a valid email!"
 msgstr "有効なメールアドレスを入力してください！"
 
@@ -10016,11 +10044,11 @@ msgstr "ワークスペース名を入力してください"
 msgid "Please enter your API key"
 msgstr "APIキーを入力してください"
 
-#: src/pages/SignInPage.tsx:260
+#: src/pages/SignInPage.tsx:317
 msgid "Please input the magic code!"
 msgstr "マジックコードを入力してください！"
 
-#: src/pages/SignInPage.tsx:222
+#: src/pages/SignInPage.tsx:279
 msgid "Please input your email!"
 msgstr "メールアドレスを入力してください！"
 
@@ -10824,8 +10852,8 @@ msgid "Referrers"
 msgstr "リファラー"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:630
-#: src/components/logs/AuditLogActions.tsx:30
-#: src/components/logs/AuditLogActions.tsx:36
+#: src/components/logs/AuditLogActions.tsx:32
+#: src/components/logs/AuditLogActions.tsx:37
 #: src/components/messages/MessageHistoryTable.tsx:426
 #: src/components/settings/LicenseSettings.tsx:155
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
@@ -11090,7 +11118,7 @@ msgstr "SSOが有効な場合は必須です"
 msgid "Requires a padding"
 msgstr "パディングが必要です"
 
-#: src/pages/SignInPage.tsx:294
+#: src/pages/SignInPage.tsx:353
 msgid "Resend code"
 msgstr "コードを再送"
 
@@ -11684,7 +11712,7 @@ msgstr "セグメントツリーをリセット"
 #: src/pages/BroadcastsPage.tsx:1103
 #: src/pages/ContactsPage.tsx:425
 #: src/pages/ContactsPage.tsx:625
-#: src/services/api/errors.ts:74
+#: src/services/api/errors.ts:93
 msgid "Segments"
 msgstr "セグメント"
 
@@ -11999,7 +12027,7 @@ msgid "Select Winner"
 msgstr "勝者を選択"
 
 #: src/layouts/WorkspaceLayout.tsx:600
-#: src/pages/DashboardPage.tsx:31
+#: src/pages/DashboardPage.tsx:32
 msgid "Select workspace"
 msgstr "ワークスペースを選択"
 
@@ -12066,7 +12094,7 @@ msgstr "TypeScript/JavaScriptを使用してトランザクション通知を送
 msgid "Send Invitation"
 msgstr "招待を送信"
 
-#: src/pages/SignInPage.tsx:231
+#: src/pages/SignInPage.tsx:288
 msgid "Send Magic Code"
 msgstr "マジックコードを送信"
 
@@ -12446,13 +12474,13 @@ msgstr "もっと表示（残り{0}件）"
 msgid "Showing the top 200 links by unique clicks."
 msgstr "ユニーククリック数の上位200件のリンクを表示しています。"
 
-#: src/pages/SignInPage.tsx:209
+#: src/pages/SignInPage.tsx:244
 msgid "Sign In"
 msgstr "サインイン"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:632
 #: src/pages/SetupWizard.tsx:747
-#: src/pages/SignInPage.tsx:248
+#: src/pages/SignInPage.tsx:305
 msgid "Sign in with SSO"
 msgstr "SSOでサインイン"
 
@@ -12481,8 +12509,12 @@ msgstr ""
 msgid "Single sign-on (SSO)"
 msgstr ""
 
-#: src/pages/SignInPage.tsx:107
-#: src/pages/SignInPage.tsx:124
+#: src/pages/SignInPage.tsx:129
+msgid "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
+msgstr "シングルサインオンでは、お使いのメールドメインのアカウントを作成できません。招待を受けている場合は、招待メールのリンクを開いてください。そうでない場合は、管理者に招待を依頼してください。"
+
+#: src/pages/SignInPage.tsx:139
+#: src/pages/SignInPage.tsx:156
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "シングルサインオンに失敗しました。もう一度お試しいただくか、マジックコードをご利用ください。"
 
@@ -12490,7 +12522,7 @@ msgstr "シングルサインオンに失敗しました。もう一度お試し
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr ""
 
-#: src/pages/SignInPage.tsx:103
+#: src/pages/SignInPage.tsx:135
 msgid "Single sign-on is temporarily unavailable. Please try a magic code."
 msgstr "シングルサインオンは一時的に利用できません。マジックコードをお試しください。"
 
@@ -12981,8 +13013,8 @@ msgstr "成功"
 msgid "Successfully processed {successful} contacts"
 msgstr "{successful}件のコンタクトを正常に処理しました"
 
-#: src/pages/SignInPage.tsx:38
-#: src/pages/SignInPage.tsx:119
+#: src/pages/SignInPage.tsx:67
+#: src/pages/SignInPage.tsx:151
 msgid "Successfully signed in"
 msgstr "正常にサインインしました"
 
@@ -13215,7 +13247,7 @@ msgstr "テンプレート:"
 #: src/components/settings/PermissionsMatrix.tsx:124
 #: src/layouts/WorkspaceLayout.tsx:251
 #: src/pages/TemplatesPage.tsx:404
-#: src/services/api/errors.ts:65
+#: src/services/api/errors.ts:84
 msgid "Templates"
 msgstr "テンプレート"
 
@@ -13476,7 +13508,7 @@ msgstr "エクスポートに失敗しました。もう一度お試しくださ
 msgid "The following validation errors were found in your import:"
 msgstr "インポートで以下の検証エラーが見つかりました:"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:891
+#: src/components/ai-assistant/useAIAssistant.tsx:896
 msgid "The generated email has issues that prevent it from rendering:"
 msgstr "生成されたメールには、レンダリングを妨げる問題があります:"
 
@@ -13647,7 +13679,7 @@ msgstr "同じメールがもう一度送信されます。プロバイダーが
 msgid "Thinking"
 msgstr "思考中"
 
-#: src/pages/SignInPage.tsx:101
+#: src/pages/SignInPage.tsx:133
 msgid "This account is already linked to a different single sign-on identity."
 msgstr "このアカウントはすでに別のシングルサインオンのIDに紐づけられています。"
 
@@ -13767,7 +13799,7 @@ msgstr "このIDはURLとAPIリクエストで使用されます。小文字と�
 msgid "This ID will be used when triggering the notification via API"
 msgstr "このIDはAPI経由で通知をトリガーする際に使用されます"
 
-#: src/pages/AcceptInvitationPage.tsx:121
+#: src/pages/AcceptInvitationPage.tsx:122
 msgid "This invitation link is invalid or has expired."
 msgstr "この招待リンクは無効または期限切れです。"
 
@@ -13814,6 +13846,10 @@ msgstr "この通知は連携によって管理されており、テンプレー
 #: src/components/timeline/WebPageDrawer.tsx:86
 msgid "This page cannot be previewed here"
 msgstr "このページはここでプレビューできません"
+
+#: src/pages/SignInPage.tsx:254
+msgid "This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server."
+msgstr "このページは {pageOrigin} から配信されていますが、このインスタンスはリクエストを {unreachableEndpoint} に送信しており、応答がありませんでした。Notifuse を {pageOrigin} に移行した場合は、環境変数 API_ENDPOINT をそのアドレスに設定してサーバーを再起動してください。"
 
 #: src/components/settings/PermissionsMatrix.tsx:77
 msgid "This permission gates no endpoint today."
@@ -13928,7 +13964,7 @@ msgstr "指定されたアドレスに実際のテストメールが送信され
 msgid "This will set the value to NULL. Are you sure?"
 msgstr "値がNULLに設定されます。よろしいですか？"
 
-#: src/components/logs/AuditLogsTab.tsx:60
+#: src/components/logs/AuditLogsTab.tsx:64
 msgid "This workspace"
 msgstr "このワークスペース"
 
@@ -14144,7 +14180,7 @@ msgstr "モバイルとデスクトップビューを切り替えて、異なる
 msgid "Toggle caption"
 msgstr "キャプションを切り替え"
 
-#: src/pages/SignInPage.tsx:105
+#: src/pages/SignInPage.tsx:137
 msgid "Too many sign-in attempts. Please wait a moment and try again."
 msgstr "サインインの試行回数が多すぎます。しばらく待ってからもう一度お試しください。"
 
@@ -14271,7 +14307,7 @@ msgstr "どのフィルタールールも分類していないトラフィック
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
 #: src/layouts/WorkspaceLayout.tsx:440
 #: src/pages/TemplatesPage.tsx:126
-#: src/services/api/errors.ts:67
+#: src/services/api/errors.ts:86
 msgid "Transactional"
 msgstr "トランザクション"
 
@@ -14697,7 +14733,7 @@ msgstr "永久に保持するには 0、または {AUDIT_LOG_MIN_RETENTION_DAYS}
 #~ msgid "Use 0 to keep forever, or a value between 30 and 3650"
 #~ msgstr "永久に保持するには 0、または 30 から 3650 の値を指定してください"
 
-#: src/pages/SignInPage.tsx:286
+#: src/pages/SignInPage.tsx:345
 msgid "Use a different email"
 msgstr "別のメールを使用"
 
@@ -14890,11 +14926,11 @@ msgstr "バリアント名"
 msgid "Variations"
 msgstr "バリエーション"
 
-#: src/pages/SignInPage.tsx:276
+#: src/pages/SignInPage.tsx:335
 msgid "Verify Code"
 msgstr "コードを確認"
 
-#: src/pages/AcceptInvitationPage.tsx:103
+#: src/pages/AcceptInvitationPage.tsx:104
 msgid "Verifying invitation..."
 msgstr "招待を確認中..."
 
@@ -15047,7 +15083,7 @@ msgstr "ウェブサイトのファビコンを自動検出して使用します
 #: src/layouts/WorkspaceLayout.tsx:293
 #: src/pages/BroadcastsPage.tsx:1195
 #: src/pages/WebAnalyticsPage.tsx:94
-#: src/services/api/errors.ts:73
+#: src/services/api/errors.ts:92
 msgid "Web Analytics"
 msgstr "Webアナリティクス"
 
@@ -15109,7 +15145,7 @@ msgid "Webhook endpoint:"
 msgstr "Webhookエンドポイント:"
 
 #: src/components/settings/PermissionsMatrix.tsx:135
-#: src/services/api/errors.ts:76
+#: src/services/api/errors.ts:95
 msgid "Webhook Events"
 msgstr "Webhookイベント"
 
@@ -15130,7 +15166,7 @@ msgid "Webhook subscription updated"
 msgstr "Webhookサブスクリプションが更新されました"
 
 #: src/components/settings/PermissionsMatrix.tsx:134
-#: src/services/api/errors.ts:75
+#: src/services/api/errors.ts:94
 msgid "Webhook Subscriptions"
 msgstr "Webhookサブスクリプション"
 
@@ -15284,7 +15320,7 @@ msgstr "最も多くのセッションをもたらしているランディング
 msgid "Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed."
 msgstr "このワークスペースで誰が何をしたか：メンバー、権限、API キー、連携、設定、コンテンツの変更を、発信元アドレスと許可の有無とともに記録します。"
 
-#: src/components/logs/AuditLogsTab.tsx:61
+#: src/components/logs/AuditLogsTab.tsx:65
 msgid "Whole deployment"
 msgstr "デプロイメント全体"
 
@@ -15352,7 +15388,7 @@ msgstr "含む内容:"
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:109
 #: src/components/settings/audit_logs/AuditLogTable.tsx:248
 #: src/components/settings/PermissionsMatrix.tsx:127
-#: src/services/api/errors.ts:68
+#: src/services/api/errors.ts:87
 msgid "Workspace"
 msgstr "ワークスペース"
 
@@ -15377,7 +15413,7 @@ msgstr "ワークスペースIDが一致しません"
 msgid "Workspace ID is required"
 msgstr "ワークスペースIDは必須です"
 
-#: src/pages/AcceptInvitationPage.tsx:138
+#: src/pages/AcceptInvitationPage.tsx:139
 msgid "Workspace Invitation"
 msgstr "ワークスペースへの招待"
 
@@ -15414,7 +15450,7 @@ msgstr "ワークスペース設定が正常に更新されました"
 msgid "Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, and creating, updating or deleting an integration, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write."
 msgstr "ワークスペースの書き込みは、その名前が示すよりもはるかに限定的です: これが制御する唯一のワークスペースのエンドポイントは /api/workspaces.setCustomFieldLabels です。ワークスペースの名称変更や削除、インテグレーションの作成・更新・削除はオーナー専用であり、権限を一切参照しません — これを付与してもそれらは与えられませんし、オーナーはこれがなくても行えます。/api/workspaces.list も制御されていません: このスイッチの状態にかかわらず、自分が所属するワークスペースを返します。ワークスペース設定のように見える2つの設定エンドポイントは別の権限に従います — /api/workspaces.setBlogSettings はブログの書き込みに、/api/workspaces.setWebAnalyticsSettings はWebアナリティクスの書き込みに従います。"
 
-#: src/pages/AcceptInvitationPage.tsx:148
+#: src/pages/AcceptInvitationPage.tsx:149
 msgid "Workspace:"
 msgstr "ワークスペース:"
 
@@ -15542,11 +15578,11 @@ msgstr "昨日"
 msgid "You can only upload CSV files!"
 msgstr "CSVファイルのみアップロードできます！"
 
-#: src/services/api/errors.ts:135
+#: src/services/api/errors.ts:154
 msgid "You do not have read access to {resource}."
 msgstr "{resource}への読み取りアクセス権がありません。"
 
-#: src/services/api/errors.ts:136
+#: src/services/api/errors.ts:155
 msgid "You do not have write access to {resource}."
 msgstr "{resource}への書き込みアクセス権がありません。"
 
@@ -15629,6 +15665,10 @@ msgstr "未保存の変更があります。閉じてもよろしいですか？
 msgid "You have unsaved retention changes. Leave without saving?"
 msgstr "保持期間の変更が保存されていません。保存せずに離れますか？"
 
+#: src/components/workspace/PendingInvitations.tsx:35
+msgid "You joined {workspaceName}"
+msgstr "{workspaceName} に参加しました"
+
 #: src/components/settings/BlogSettings.tsx:273
 msgid "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 msgstr "ブログを有効にする前に、上の一般設定でカスタムエンドポイントURLを設定する必要があります。"
@@ -15643,7 +15683,7 @@ msgstr "テストメールを送信するには、テンプレートの読み取
 msgid "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {totalRows}."
 msgstr "「{fileName}」の前回のアップロードセッションを続行しています。アップロードは{totalRows}行中の行{0}から再開されます。"
 
-#: src/pages/AcceptInvitationPage.tsx:140
+#: src/pages/AcceptInvitationPage.tsx:141
 msgid "You've been invited to join"
 msgstr "招待されています"
 
@@ -15663,7 +15703,7 @@ msgstr "ブログ設定は保存されていません。このページを離れ
 msgid "Your files can be uploaded to any S3 compatible storage."
 msgstr "ファイルは任意のS3互換ストレージにアップロードできます。"
 
-#: src/pages/SignInPage.tsx:99
+#: src/pages/SignInPage.tsx:131
 msgid "Your identity provider has not verified your email address."
 msgstr "お使いのIDプロバイダーはあなたのメールアドレスを検証していません。"
 

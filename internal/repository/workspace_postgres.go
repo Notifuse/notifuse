@@ -606,7 +606,12 @@ func (r *workspaceRepository) UpdateUserWorkspacePermissions(ctx context.Context
 	return nil
 }
 
-// CreateInvitation creates a new workspace invitation or updates an existing one
+// CreateInvitation creates a new workspace invitation or updates an existing one.
+//
+// An existing row for the address, pending or expired, keeps its id and created_at, and
+// both are written back onto invitation: the caller signs the invitation link with
+// invitation.ID, so keeping the freshly generated id would mail a link to a row that
+// does not exist.
 func (r *workspaceRepository) CreateInvitation(ctx context.Context, invitation *domain.WorkspaceInvitation) error {
 	query := `
 		INSERT INTO workspace_invitations (id, workspace_id, inviter_id, email, permissions, expires_at, created_at, updated_at)
@@ -616,8 +621,9 @@ func (r *workspaceRepository) CreateInvitation(ctx context.Context, invitation *
 			permissions = EXCLUDED.permissions,
 			expires_at = EXCLUDED.expires_at,
 			updated_at = EXCLUDED.updated_at
+		RETURNING id, created_at
 	`
-	_, err := r.systemDB.ExecContext(
+	err := r.systemDB.QueryRowContext(
 		ctx,
 		query,
 		invitation.ID,
@@ -628,7 +634,7 @@ func (r *workspaceRepository) CreateInvitation(ctx context.Context, invitation *
 		invitation.ExpiresAt,
 		invitation.CreatedAt,
 		invitation.UpdatedAt,
-	)
+	).Scan(&invitation.ID, &invitation.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create or update invitation: %w", err)
 	}
@@ -655,20 +661,22 @@ func (r *workspaceRepository) GetInvitationByID(ctx context.Context, id string) 
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("invitation not found")
+			return nil, domain.ErrInvitationNotFound
 		}
 		return nil, err
 	}
 	return &invitation, nil
 }
 
-// GetInvitationByEmail retrieves a workspace invitation by workspace ID and email
+// GetInvitationByEmail retrieves the workspace's invitation for email, expired or not,
+// matched case-insensitively — invitations keep the address as the owner typed it. When case
+// variants coexist it returns the most recently sent. No invitation is ErrInvitationNotFound.
 func (r *workspaceRepository) GetInvitationByEmail(ctx context.Context, workspaceID, email string) (*domain.WorkspaceInvitation, error) {
 	query := `
 		SELECT id, workspace_id, inviter_id, email, permissions, expires_at, created_at, updated_at
 		FROM workspace_invitations
-		WHERE workspace_id = $1 AND email = $2
-		ORDER BY created_at DESC
+		WHERE workspace_id = $1 AND LOWER(email) = LOWER($2)
+		ORDER BY updated_at DESC
 		LIMIT 1
 	`
 	var invitation domain.WorkspaceInvitation
@@ -684,7 +692,7 @@ func (r *workspaceRepository) GetInvitationByEmail(ctx context.Context, workspac
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("invitation not found")
+			return nil, domain.ErrInvitationNotFound
 		}
 		return nil, err
 	}
@@ -751,6 +759,62 @@ func (r *workspaceRepository) DeleteInvitation(ctx context.Context, id string) e
 	return nil
 }
 
+// DeleteInvitationByEmail deletes the workspace's invitations for email, matched
+// case-insensitively. Deleting nothing is not an error: callers clear the invitations of an
+// address they have just seated, and most such addresses never had one.
+func (r *workspaceRepository) DeleteInvitationByEmail(ctx context.Context, workspaceID, email string) error {
+	query := `DELETE FROM workspace_invitations WHERE workspace_id = $1 AND LOWER(email) = LOWER($2)`
+	if _, err := r.systemDB.ExecContext(ctx, query, workspaceID, email); err != nil {
+		return fmt.Errorf("failed to delete invitation by email: %w", err)
+	}
+	return nil
+}
+
+// ListPendingInvitationsForEmail returns the live invitations addressed to email, matched
+// case-insensitively because invitations keep the address as the owner typed it. One per
+// workspace — the most recently sent — with the workspace's name and the inviter's name
+// (their email when they set none), ordered by workspace name.
+func (r *workspaceRepository) ListPendingInvitationsForEmail(ctx context.Context, email string) ([]*domain.PendingInvitation, error) {
+	query := `
+		SELECT id, workspace_id, workspace_name, inviter_name, expires_at FROM (
+			SELECT DISTINCT ON (i.workspace_id)
+				i.id, i.workspace_id, w.name AS workspace_name,
+				COALESCE(NULLIF(u.name, ''), u.email, '') AS inviter_name,
+				i.expires_at
+			FROM workspace_invitations i
+			JOIN workspaces w ON w.id = i.workspace_id
+			LEFT JOIN users u ON u.id = i.inviter_id
+			WHERE LOWER(i.email) = LOWER($1) AND i.expires_at > NOW() AT TIME ZONE 'UTC'
+			ORDER BY i.workspace_id, i.updated_at DESC
+		) pending
+		ORDER BY workspace_name, workspace_id
+	`
+	rows, err := r.systemDB.QueryContext(ctx, query, email)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pending invitations: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	invitations := []*domain.PendingInvitation{}
+	for rows.Next() {
+		var invitation domain.PendingInvitation
+		if err := rows.Scan(
+			&invitation.ID,
+			&invitation.WorkspaceID,
+			&invitation.WorkspaceName,
+			&invitation.InviterName,
+			&invitation.ExpiresAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan pending invitation: %w", err)
+		}
+		invitations = append(invitations, &invitation)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating pending invitations: %w", err)
+	}
+	return invitations, nil
+}
+
 // IsUserWorkspaceMember checks if a user is a member of a workspace
 func (r *workspaceRepository) IsUserWorkspaceMember(ctx context.Context, userID, workspaceID string) (bool, error) {
 	query := `
@@ -768,14 +832,21 @@ func (r *workspaceRepository) IsUserWorkspaceMember(ctx context.Context, userID,
 
 // CountWorkspaceMembersAndInvitations returns the count of current human members
 // plus non-expired pending invitations. API key users are excluded from the count.
-func (r *workspaceRepository) CountWorkspaceMembersAndInvitations(ctx context.Context, workspaceID string) (int, error) {
+//
+// The invitations addressed to excludeEmail are left out: they are the seat a resend
+// refreshes or an acceptance converts, so callers compare the result with MAX_USERS
+// directly. The address is matched case-insensitively — invitations keep it as the owner
+// typed it — and "" leaves out none. expires_at holds UTC wall-clock time in a column
+// without a time zone, so it is compared with NOW() at UTC — a bare NOW() would be read in
+// the session's TimeZone and shift every expiry by its offset.
+func (r *workspaceRepository) CountWorkspaceMembersAndInvitations(ctx context.Context, workspaceID, excludeEmail string) (int, error) {
 	query := `
 		SELECT
 			(SELECT COUNT(*) FROM user_workspaces uw JOIN users u ON uw.user_id = u.id WHERE uw.workspace_id = $1 AND u.type != 'api_key') +
-			(SELECT COUNT(*) FROM workspace_invitations WHERE workspace_id = $1 AND expires_at > NOW())
+			(SELECT COUNT(*) FROM workspace_invitations WHERE workspace_id = $1 AND LOWER(email) <> LOWER($2) AND expires_at > NOW() AT TIME ZONE 'UTC')
 	`
 	var count int
-	err := r.systemDB.QueryRowContext(ctx, query, workspaceID).Scan(&count)
+	err := r.systemDB.QueryRowContext(ctx, query, workspaceID, excludeEmail).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count workspace members and invitations: %w", err)
 	}

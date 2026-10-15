@@ -5,6 +5,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { SignInPage } from '../pages/SignInPage'
 import { AuthProvider } from '../contexts/AuthContext'
 import * as authService from '../services/api/auth'
+import { ApiUnreachableError } from '../services/api/errors'
 import { App } from 'antd'
 
 // Mock the auth service
@@ -266,6 +267,103 @@ describe('SignInPage', () => {
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
   })
 
+  // An instance moved to a new domain keeps API_ENDPOINT pointing at the old one: the page loads
+  // from the new address while every request goes to an address nothing answers any more.
+  describe('unreachable API endpoint', () => {
+    const ALERT_TITLE = 'Cannot reach the configured API endpoint'
+
+    const submitEmail = () => {
+      fireEvent.change(screen.getByLabelText(/email/i), {
+        target: { value: 'root@example.com' }
+      })
+      fireEvent.click(screen.getByText(/send magic code/i))
+    }
+
+    it('names both addresses when API_ENDPOINT is another origin that does not answer', async () => {
+      window.API_ENDPOINT = 'https://old.example.com'
+      vi.mocked(authService.authService.signIn).mockRejectedValueOnce(
+        new ApiUnreachableError('Failed to fetch', 'https://old.example.com')
+      )
+
+      renderWithProviders(<SignInPage />)
+      submitEmail()
+
+      const title = await screen.findByText(ALERT_TITLE)
+      const alert = title.closest('[role="alert"]')
+      expect(alert).toHaveTextContent(`This page is served from ${window.location.origin}`)
+      expect(alert).toHaveTextContent('sends its requests to https://old.example.com')
+      expect(alert).toHaveTextContent('API_ENDPOINT')
+      expect(screen.getByRole('link', { name: 'Changing your domain' })).toHaveAttribute(
+        'href',
+        'https://docs.notifuse.com/self-hosting/changing-domain'
+      )
+      expect(mockMessage.error).not.toHaveBeenCalled()
+    })
+
+    it('keeps the plain toast when the request went to this same origin', async () => {
+      window.API_ENDPOINT = window.location.origin
+      vi.mocked(authService.authService.signIn).mockRejectedValueOnce(
+        new ApiUnreachableError('Failed to fetch', window.location.origin)
+      )
+
+      renderWithProviders(<SignInPage />)
+      submitEmail()
+
+      await waitFor(() => {
+        expect(mockMessage.error).toHaveBeenCalledWith('Failed to fetch')
+      })
+      expect(screen.queryByText(ALERT_TITLE)).not.toBeInTheDocument()
+    })
+
+    it('clears the alert once a later attempt gets through', async () => {
+      window.API_ENDPOINT = 'https://old.example.com'
+      vi.mocked(authService.authService.signIn)
+        .mockRejectedValueOnce(
+          new ApiUnreachableError('Failed to fetch', 'https://old.example.com')
+        )
+        .mockResolvedValueOnce({ message: 'Magic code sent' })
+
+      renderWithProviders(<SignInPage />)
+      submitEmail()
+      await screen.findByText(ALERT_TITLE)
+
+      fireEvent.click(screen.getByText(/send magic code/i))
+
+      await waitFor(() => {
+        expect(screen.getByText(/enter the 6-digit code sent to/i)).toBeInTheDocument()
+      })
+      expect(screen.queryByText(ALERT_TITLE)).not.toBeInTheDocument()
+    })
+
+    it('shows the alert when verifying the code cannot reach the endpoint either', async () => {
+      window.API_ENDPOINT = 'https://old.example.com'
+      vi.mocked(authService.authService.signIn).mockResolvedValueOnce({ message: 'Magic code sent' })
+      vi.mocked(authService.authService.verifyCode).mockRejectedValueOnce(
+        new ApiUnreachableError('Failed to fetch', 'https://old.example.com')
+      )
+
+      renderWithProviders(<SignInPage />)
+      submitEmail()
+      fireEvent.change(await screen.findByPlaceholderText('000000'), {
+        target: { value: '123456' }
+      })
+      fireEvent.click(screen.getByText(/verify code/i))
+
+      expect(await screen.findByText(ALERT_TITLE)).toBeInTheDocument()
+      expect(mockMessage.error).not.toHaveBeenCalled()
+    })
+
+    it('extracts the alert copy into the source catalog', () => {
+      const catalog = readFileSync(join(import.meta.dirname, '../i18n/locales/en.po'), 'utf8')
+      const messages = [
+        ALERT_TITLE,
+        'This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server.',
+        'Changing your domain'
+      ]
+      expect(messages.filter((m) => !catalog.includes(`msgid "${m}"`))).toEqual([])
+    })
+  })
+
   describe('OIDC SSO', () => {
     it('renders the SSO button + divider when window.OIDC_ENABLED', () => {
       window.OIDC_ENABLED = true
@@ -371,6 +469,19 @@ describe('SignInPage', () => {
       expect(shown).toMatch(/account/i)
     })
 
+    // An outsider to OIDC_ALLOWED_DOMAINS used to get the generic failure, whose advice to use
+    // a magic code cannot work for someone with no account.
+    it('names the domain allowlist when that is why sign-in was refused', async () => {
+      mockSearch.oidc_error = 'domain_not_allowed'
+      renderWithProviders(<SignInPage />)
+      await waitFor(() => {
+        expect(mockMessage.error).toHaveBeenCalled()
+      })
+      const shown = mockMessage.error.mock.calls[0][0]
+      expect(shown).toMatch(/domain/i)
+      expect(shown).not.toMatch(/magic code/i)
+    })
+
     // The empty toast the test above guards against is exactly what shipped, and that
     // test could not see it: the suite's macro mock resolves t`…` through i18n._ per
     // template string, whatever scope it is written in. The real macro rewrites only what
@@ -379,7 +490,8 @@ describe('SignInPage', () => {
     it('extracts every OIDC error message into the source catalog', () => {
       const catalog = readFileSync(join(import.meta.dirname, '../i18n/locales/en.po'), 'utf8')
       const messages = [
-        'No Notifuse account is linked to that identity. Ask an administrator to invite you first.',
+        'No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you.',
+        'Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you.',
         'Your identity provider has not verified your email address.',
         'This account is already linked to a different single sign-on identity.',
         'Single sign-on is temporarily unavailable. Please try a magic code.',

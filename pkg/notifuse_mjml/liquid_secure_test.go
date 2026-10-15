@@ -342,3 +342,36 @@ func TestSecureLiquidEngine_EdgeCases(t *testing.T) {
 		}
 	})
 }
+
+func TestSecureLiquidEngine_RenderLengthLimitStopsRunaway(t *testing.T) {
+	engine := newSecureLiquidEngineWithRenderLength(5000)
+	start := time.Now()
+	out, err := engine.Render("{% for i in (1..5000) %}0123456789{% endfor %}", map[string]interface{}{})
+	elapsed := time.Since(start)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, "Memory limits exceeded") {
+		t.Errorf("expected the render-length cap to stop the loop, got %q", out)
+	}
+	if len(out) > 5000 {
+		t.Errorf("output not bounded by the cap: %d bytes", len(out))
+	}
+	if elapsed > 2*time.Second {
+		t.Errorf("cap fired at the timeout (%v), not early", elapsed)
+	}
+}
+
+func TestSecureLiquidEngine_NormalRenderUnderLimit(t *testing.T) {
+	engine := NewSecureLiquidEngine() // 10MB default
+	out, err := engine.Render("{% for i in (1..1000) %}{{ i }},{% endfor %}", map[string]interface{}{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if strings.Contains(out, "Memory limits exceeded") {
+		t.Errorf("a normal render must not hit the cap")
+	}
+	if !strings.Contains(out, "1,2,3,") {
+		t.Errorf("expected rendered sequence, got %q", out[:min(40, len(out))])
+	}
+}

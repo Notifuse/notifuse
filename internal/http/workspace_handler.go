@@ -79,6 +79,9 @@ func (h *WorkspaceHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/workspaces.createAPIKey", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleCreateAPIKey))))
 	mux.Handle("/api/workspaces.removeMember", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleRemoveMember))))
 	mux.Handle("/api/workspaces.deleteInvitation", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleDeleteInvitation))))
+	// The signed-in invitee's side: what they are invited to, and joining it without the link.
+	mux.Handle("/api/workspaces.pendingInvitations", requireAuth(http.HandlerFunc(h.handlePendingInvitations)))
+	mux.Handle("/api/workspaces.joinInvitation", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleJoinInvitation))))
 	mux.Handle("/api/workspaces.setUserPermissions", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetUserPermissions))))
 	mux.Handle("/api/workspaces.setCustomFieldLabels", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetCustomFieldLabels))))
 	mux.Handle("/api/workspaces.setBlogSettings", restrictedInDemo(requireAuth(http.HandlerFunc(h.handleSetBlogSettings))))
@@ -1037,6 +1040,72 @@ func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http
 		"token":        authResponse.Token,
 		"user":         authResponse.User,
 		"expires_at":   authResponse.ExpiresAt,
+	})
+}
+
+// handlePendingInvitations lists the invitations addressed to the signed-in user's email.
+func (h *WorkspaceHandler) handlePendingInvitations(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	invitations, err := h.workspaceService.ListPendingInvitations(r.Context())
+	if err != nil {
+		if writeServiceError(w, err, "Failed to list pending invitations") {
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to list pending invitations")
+		WriteJSONError(w, "Failed to list pending invitations", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"invitations": invitations,
+	})
+}
+
+// handleJoinInvitation joins the workspace of an invitation addressed to the signed-in user.
+func (h *WorkspaceHandler) handleJoinInvitation(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		InvitationID string `json:"invitation_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if req.InvitationID == "" {
+		WriteJSONError(w, "invitation_id is required", http.StatusBadRequest)
+		return
+	}
+
+	workspaceID, err := h.workspaceService.JoinInvitation(r.Context(), req.InvitationID)
+	if err != nil {
+		if errors.Is(err, domain.ErrInvitationUnavailable) {
+			WriteJSONError(w, "Invitation not found or no longer valid", http.StatusNotFound)
+			return
+		}
+		var limitErr *domain.ErrTeamMemberLimitReached
+		if errors.As(err, &limitErr) {
+			WriteJSONError(w, limitErr.Error(), http.StatusForbidden)
+			return
+		}
+		if writeServiceError(w, err, "Failed to join workspace") {
+			return
+		}
+		h.logger.WithField("invitation_id", req.InvitationID).WithField("error", err.Error()).Error("Failed to join workspace from invitation")
+		WriteJSONError(w, "Failed to join workspace", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"status":       "success",
+		"workspace_id": workspaceID,
 	})
 }
 

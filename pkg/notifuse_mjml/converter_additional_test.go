@@ -151,7 +151,12 @@ func TestFormatAttributesAndHelpers(t *testing.T) {
 	if !strings.Contains(got, ` href="https://example.com?a=1&amp;b=2"`) {
 		t.Fatalf("href not formatted as expected: %s", got)
 	}
-	if !strings.Contains(got, ` title="He said &quot;Hi&quot;"`) {
+	// A double quote in a value is escaped as &amp;quot;, not &quot;: the MJML renderer
+	// pre-decodes &quot; to a raw " before parsing and writes attributes back without
+	// re-escaping, so &quot; here would end the attribute in the final HTML. The double
+	// form survives that pass and reaches the browser as ". See escapeAttributeValue and
+	// the end-to-end round trip in TestAttributeValueRoundTripThroughGomjml.
+	if !strings.Contains(got, ` title="He said &amp;quot;Hi&amp;quot;"`) {
 		t.Fatalf("title not escaped/quoted: %s", got)
 	}
 	if !strings.Contains(got, ` data-value="123"`) {
@@ -295,7 +300,7 @@ func TestFormatAttributesWithLiquid(t *testing.T) {
 		"fontSize":        "16px",                     // Should not be processed
 	}
 
-	result := formatAttributesWithLiquid(attrs, templateData, "test-block")
+	result := formatAttributesWithLiquid(attrs, templateData, "test-block", false)
 
 	// Check that URL attributes were processed
 	if !strings.Contains(result, `href="https://example.com/profile"`) {

@@ -230,6 +230,36 @@ func (mr *MockWorkspaceServiceInterfaceMockRecorder) InviteMember(arg0, arg1, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InviteMember", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).InviteMember), arg0, arg1, arg2, arg3)
 }
 
+// JoinInvitation mocks base method.
+func (m *MockWorkspaceServiceInterface) JoinInvitation(arg0 context.Context, arg1 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "JoinInvitation", arg0, arg1)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// JoinInvitation indicates an expected call of JoinInvitation.
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) JoinInvitation(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "JoinInvitation", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).JoinInvitation), arg0, arg1)
+}
+
+// ListPendingInvitations mocks base method.
+func (m *MockWorkspaceServiceInterface) ListPendingInvitations(arg0 context.Context) ([]*domain.PendingInvitation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPendingInvitations", arg0)
+	ret0, _ := ret[0].([]*domain.PendingInvitation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPendingInvitations indicates an expected call of ListPendingInvitations.
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) ListPendingInvitations(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPendingInvitations", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).ListPendingInvitations), arg0)
+}
+
 // ListWorkspaces mocks base method.
 func (m *MockWorkspaceServiceInterface) ListWorkspaces(arg0 context.Context) ([]*domain.Workspace, error) {
 	m.ctrl.T.Helper()
