@@ -9,6 +9,9 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"slices"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,15 +29,18 @@ type NotificationCenterHandler struct {
 	logger      logger.Logger
 	rateLimiter *ratelimiter.RateLimiter
 	httpClient  *http.Client // SSRF-safe client for outbound requests
+	// iconDetectBudget bounds one detect-favicon call, every fetch included
+	iconDetectBudget time.Duration
 }
 
 func NewNotificationCenterHandler(service domain.NotificationCenterService, listService domain.ListService, logger logger.Logger, rateLimiter *ratelimiter.RateLimiter) *NotificationCenterHandler {
 	return &NotificationCenterHandler{
-		service:     service,
-		listService: listService,
-		logger:      logger,
-		rateLimiter: rateLimiter,
-		httpClient:  safehttpclient.New(),
+		service:          service,
+		listService:      listService,
+		logger:           logger,
+		rateLimiter:      rateLimiter,
+		httpClient:       safehttpclient.New(),
+		iconDetectBudget: defaultIconDetectBudget,
 	}
 }
 
@@ -483,8 +489,12 @@ func (h *NotificationCenterHandler) HandleDetectFavicon(w http.ResponseWriter, r
 		return
 	}
 
+	// One budget covers the page, the manifest and every icon fetched to check it
+	ctx, cancel := context.WithTimeout(r.Context(), h.iconDetectBudget)
+	defer cancel()
+
 	// Fetch the webpage using SSRF-safe client
-	resp, err := h.httpClient.Get(req.URL)
+	resp, err := fetchWithContext(ctx, h.httpClient, req.URL, "")
 	if err != nil {
 		http.Error(w, "Error fetching URL", http.StatusInternalServerError)
 		return
@@ -498,28 +508,23 @@ func (h *NotificationCenterHandler) HandleDetectFavicon(w http.ResponseWriter, r
 		return
 	}
 
+	// Links resolve against the page reached after redirects, or its <base href>
+	pageURL := finalResponseURL(resp, baseURL)
+	docBase := documentBaseURL(doc, pageURL)
+
 	// Prepare response with both icon and cover URLs
 	response := FaviconResponse{}
 
 	// Check for cover image
-	if coverURL := findOpenGraphImage(doc, baseURL); coverURL != "" {
+	if coverURL := findOpenGraphImage(doc, docBase); coverURL != "" {
 		response.CoverURL = coverURL
-	} else if coverURL := findTwitterCardImage(doc, baseURL); coverURL != "" {
+	} else if coverURL := findTwitterCardImage(doc, docBase); coverURL != "" {
 		response.CoverURL = coverURL
-	} else if coverURL := findLargeImage(doc, baseURL); coverURL != "" {
+	} else if coverURL := findLargeImage(doc, docBase); coverURL != "" {
 		response.CoverURL = coverURL
 	}
 
-	// Check for apple-touch-icon
-	if iconURL := findAppleTouchIcon(doc, baseURL); iconURL != "" {
-		response.IconURL = iconURL
-	} else if iconURL := findManifestIcon(doc, baseURL, h.httpClient); iconURL != "" { // Check for manifest.json
-		response.IconURL = iconURL
-	} else if iconURL := findTraditionalFavicon(doc, baseURL); iconURL != "" { // Check for traditional favicon
-		response.IconURL = iconURL
-	} else if iconURL := tryDefaultFavicon(baseURL, h.httpClient); iconURL != "" { // Try default favicon location
-		response.IconURL = iconURL
-	}
+	response.IconURL = h.detectIcon(ctx, doc, docBase, pageURL, baseURL)
 
 	// Return the combined results
 	if response.IconURL != "" || response.CoverURL != "" {
@@ -532,87 +537,315 @@ func (h *NotificationCenterHandler) HandleDetectFavicon(w http.ResponseWriter, r
 
 // Favicon detection helper functions
 
-func findAppleTouchIcon(doc *goquery.Document, baseURL *url.URL) string {
-	var iconURL string
-	doc.Find("link[rel='apple-touch-icon']").Each(func(_ int, s *goquery.Selection) {
-		if href, exists := s.Attr("href"); exists {
-			if resolvedURL, err := resolveURL(baseURL, href); err == nil {
-				iconURL = resolvedURL
-				return
-			}
-		}
-	})
-	return iconURL
+const (
+	// defaultIconDetectBudget bounds one detect-favicon call, every fetch included
+	defaultIconDetectBudget = 20 * time.Second
+	// maxIconChecks caps the icon candidates one call fetches. With the page and
+	// the single manifest it reads, a call makes at most maxIconChecks+2 requests.
+	maxIconChecks = 6
+)
+
+// iconCandidate is an icon declared by the page or its manifest, not yet fetched.
+type iconCandidate struct {
+	href     string   // as written in the page or manifest
+	base     *url.URL // what href resolves against
+	scalable bool     // SVG, or sizes="any"
+	size     int      // largest declared side, 0 when undeclared
+	demoted  bool     // a dark-scheme variant, or a manifest icon not meant for general use
 }
 
-func findManifestIcon(doc *goquery.Document, baseURL *url.URL, client *http.Client) string {
-	var iconURL string
-	doc.Find("link[rel='manifest']").Each(func(_ int, s *goquery.Selection) {
-		if href, exists := s.Attr("href"); exists {
-			manifestURL, err := resolveURL(baseURL, href)
-			if err != nil {
-				return
+// detectIcon returns the first declared icon that actually loads as an image.
+// Groups are tried in a fixed order (apple-touch-icon, the web app manifest,
+// rel=icon, then /favicon.ico) and best-first within a group. Nothing is
+// returned unchecked: an empty or "#" href resolves to the page itself and a
+// declared icon can be missing, and both used to become the workspace logo.
+func (h *NotificationCenterHandler) detectIcon(ctx context.Context, doc *goquery.Document, docBase, pageURL, typedURL *url.URL) string {
+	touch, icons, manifestHref := collectLinkIcons(doc, docBase)
+	rankIconCandidates(touch)
+	rankIconCandidates(icons)
+
+	// The page is never its own icon, whichever URL it was reached by
+	seen := map[string]bool{sameDocumentKey(typedURL): true, sameDocumentKey(pageURL): true}
+	checks := 0
+	firstImage := func(candidates []iconCandidate) string {
+		for _, c := range candidates {
+			if checks >= maxIconChecks || ctx.Err() != nil {
+				return ""
 			}
-
-			resp, err := client.Get(manifestURL)
-			if err != nil {
-				return
+			iconURL, ok := usableIconURL(c.href, c.base, seen)
+			if !ok {
+				continue
 			}
-			defer func() { _ = resp.Body.Close() }()
-
-			var manifest struct {
-				Icons []struct {
-					Src   string `json:"src"`
-					Sizes string `json:"sizes"`
-				} `json:"icons"`
-			}
-
-			if err := json.NewDecoder(io.LimitReader(resp.Body, 1*1024*1024)).Decode(&manifest); err != nil {
-				return
-			}
-
-			if len(manifest.Icons) > 0 {
-				// Find the largest icon
-				largestIcon := manifest.Icons[0]
-				for _, icon := range manifest.Icons[1:] {
-					if icon.Sizes > largestIcon.Sizes {
-						largestIcon = icon
-					}
-				}
-
-				if resolvedURL, err := resolveURL(baseURL, largestIcon.Src); err == nil {
-					iconURL = resolvedURL
-				}
+			checks++
+			if verifyIconURL(ctx, h.httpClient, iconURL) {
+				return iconURL
 			}
 		}
-	})
-	return iconURL
-}
-
-func findTraditionalFavicon(doc *goquery.Document, baseURL *url.URL) string {
-	var iconURL string
-	doc.Find("link[rel='icon'], link[rel='shortcut icon']").Each(func(_ int, s *goquery.Selection) {
-		if href, exists := s.Attr("href"); exists {
-			if resolvedURL, err := resolveURL(baseURL, href); err == nil {
-				iconURL = resolvedURL
-				return
-			}
-		}
-	})
-	return iconURL
-}
-
-func tryDefaultFavicon(baseURL *url.URL, client *http.Client) string {
-	faviconURL := baseURL.ResolveReference(&url.URL{Path: "/favicon.ico"}).String()
-	resp, err := client.Head(faviconURL)
-	if err != nil {
 		return ""
 	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode == http.StatusOK {
-		return faviconURL
+
+	if iconURL := firstImage(touch); iconURL != "" {
+		return iconURL
 	}
-	return ""
+	if manifestURL, ok := usableIconURL(manifestHref, docBase, seen); ok {
+		if iconURL := firstImage(fetchManifestIcons(ctx, h.httpClient, manifestURL)); iconURL != "" {
+			return iconURL
+		}
+	}
+	if iconURL := firstImage(icons); iconURL != "" {
+		return iconURL
+	}
+	// Browsers look for /favicon.ico on the page's own origin, whatever <base> says
+	origin := &url.URL{Scheme: pageURL.Scheme, Host: pageURL.Host}
+	return firstImage([]iconCandidate{{href: "/favicon.ico", base: origin}})
+}
+
+// collectLinkIcons gathers a page's icon links in document order: touch icons,
+// rel=icon links, and the href of the first manifest link, the only one a
+// browser reads. rel is matched by token and case-insensitively, so
+// "Shortcut Icon" counts and "mask-icon" (a monochrome Safari pin) does not.
+func collectLinkIcons(doc *goquery.Document, base *url.URL) (touch, icons []iconCandidate, manifestHref string) {
+	manifestFound := false
+	doc.Find("link[rel][href]").Each(func(_ int, s *goquery.Selection) {
+		rel, _ := s.Attr("rel")
+		href, _ := s.Attr("href")
+		for token := range strings.FieldsSeq(strings.ToLower(rel)) {
+			switch token {
+			case "apple-touch-icon", "apple-touch-icon-precomposed":
+				touch = append(touch, linkIconCandidate(s, href, base))
+				return
+			case "icon":
+				c := linkIconCandidate(s, href, base)
+				media, _ := s.Attr("media")
+				c.demoted = prefersDarkScheme(media)
+				icons = append(icons, c)
+				return
+			case "manifest":
+				if !manifestFound {
+					manifestFound = true
+					manifestHref = href
+				}
+				return
+			}
+		}
+	})
+	return touch, icons, manifestHref
+}
+
+func linkIconCandidate(s *goquery.Selection, href string, base *url.URL) iconCandidate {
+	sizes, _ := s.Attr("sizes")
+	declaredType, _ := s.Attr("type")
+	size, scalable := parseIconSizes(sizes)
+	return iconCandidate{href: href, base: base, size: size, scalable: scalable || isSVGIcon(href, declaredType)}
+}
+
+// parseIconSizes reads a sizes value ("16x16 32x32", "any") into its largest
+// side and whether the icon is scalable. Unreadable tokens are ignored.
+func parseIconSizes(sizes string) (largest int, scalable bool) {
+	for token := range strings.FieldsSeq(strings.ToLower(sizes)) {
+		if token == "any" {
+			scalable = true
+			continue
+		}
+		width, height, ok := strings.Cut(token, "x")
+		if !ok {
+			continue
+		}
+		w, errW := strconv.Atoi(width)
+		h, errH := strconv.Atoi(height)
+		if errW != nil || errH != nil || w <= 0 || h <= 0 {
+			continue
+		}
+		largest = max(largest, w, h)
+	}
+	return largest, scalable
+}
+
+func isSVGIcon(href, declaredType string) bool {
+	if mediaType, _, _ := mime.ParseMediaType(declaredType); mediaType == "image/svg+xml" {
+		return true
+	}
+	u, err := url.Parse(cleanIconHref(href))
+	return err == nil && strings.HasSuffix(strings.ToLower(u.Path), ".svg")
+}
+
+func prefersDarkScheme(media string) bool {
+	return strings.Contains(strings.ReplaceAll(strings.ToLower(media), " ", ""), "prefers-color-scheme:dark")
+}
+
+// rankIconCandidates sorts best-first: general-purpose before demoted, scalable
+// before raster, larger before smaller, then document order.
+func rankIconCandidates(candidates []iconCandidate) {
+	sort.SliceStable(candidates, func(i, j int) bool {
+		a, b := candidates[i], candidates[j]
+		if a.demoted != b.demoted {
+			return !a.demoted
+		}
+		if a.scalable != b.scalable {
+			return a.scalable
+		}
+		return a.size > b.size
+	})
+}
+
+// fetchManifestIcons reads the icons of a web app manifest. Their src values
+// are relative to the manifest, not to the page that links it.
+func fetchManifestIcons(ctx context.Context, client *http.Client, manifestURL string) []iconCandidate {
+	resp, err := fetchWithContext(ctx, client, manifestURL, "")
+	if err != nil {
+		return nil
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return nil
+	}
+
+	var manifest struct {
+		Icons []struct {
+			Src     string `json:"src"`
+			Sizes   string `json:"sizes"`
+			Type    string `json:"type"`
+			Purpose string `json:"purpose"`
+		} `json:"icons"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1*1024*1024)).Decode(&manifest); err != nil {
+		return nil
+	}
+
+	requested, err := url.Parse(manifestURL)
+	if err != nil {
+		return nil
+	}
+	base := finalResponseURL(resp, requested)
+	candidates := make([]iconCandidate, 0, len(manifest.Icons))
+	for _, icon := range manifest.Icons {
+		size, scalable := parseIconSizes(icon.Sizes)
+		candidates = append(candidates, iconCandidate{
+			href:     icon.Src,
+			base:     base,
+			size:     size,
+			scalable: scalable || isSVGIcon(icon.Src, icon.Type),
+			// maskable and monochrome icons are cropped or flattened by design
+			demoted: !purposeIncludesAny(icon.Purpose),
+		})
+	}
+	rankIconCandidates(candidates)
+	return candidates
+}
+
+// purposeIncludesAny reports whether a manifest icon is meant for general use;
+// an icon without a purpose is.
+func purposeIncludesAny(purpose string) bool {
+	tokens := strings.Fields(strings.ToLower(purpose))
+	return len(tokens) == 0 || slices.Contains(tokens, "any")
+}
+
+// usableIconURL resolves an icon href and reports whether it is worth fetching:
+// an http(s) URL that is neither the page itself nor one already seen, which
+// it then marks seen. An empty or fragment-only href resolves to the page.
+func usableIconURL(href string, base *url.URL, seen map[string]bool) (string, bool) {
+	href = cleanIconHref(href)
+	if href == "" || strings.HasPrefix(href, "#") {
+		return "", false
+	}
+	resolved, err := resolveURL(base, href)
+	if err != nil {
+		return "", false
+	}
+	u, err := url.Parse(resolved)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return "", false
+	}
+	key := sameDocumentKey(u)
+	if seen[key] {
+		return "", false
+	}
+	seen[key] = true
+	return resolved, true
+}
+
+// cleanIconHref strips what browsers' URL parser ignores: ASCII tab and newline
+// anywhere, and C0 controls and spaces at either end. Go's url.Parse rejects the
+// former and percent-encodes the latter.
+func cleanIconHref(href string) string {
+	href = strings.NewReplacer("\t", "", "\n", "", "\r", "").Replace(href)
+	return strings.TrimFunc(href, func(r rune) bool { return r <= ' ' })
+}
+
+// sameDocumentKey identifies the resource a URL points at, ignoring the
+// fragment and reading an empty path as "/".
+func sameDocumentKey(u *url.URL) string {
+	path := u.EscapedPath()
+	if path == "" {
+		path = "/"
+	}
+	key := strings.ToLower(u.Scheme+"://"+u.Host) + path
+	if u.RawQuery != "" {
+		key += "?" + u.RawQuery
+	}
+	return key
+}
+
+// verifyIconURL fetches an icon and reports whether a browser would show it: a
+// 2xx answer whose declared type is an image or, when the server allows
+// sniffing, whose first bytes are a raster image. Neither browsers nor
+// http.DetectContentType sniff SVG, so an SVG must be served as image/svg+xml.
+func verifyIconURL(ctx context.Context, client *http.Client, iconURL string) bool {
+	resp, err := fetchWithContext(ctx, client, iconURL, "image/*,*/*;q=0.8")
+	if err != nil {
+		return false
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return false
+	}
+	if mediaType, _, _ := mime.ParseMediaType(resp.Header.Get("Content-Type")); strings.HasPrefix(mediaType, "image/") {
+		return true
+	}
+	if strings.EqualFold(strings.TrimSpace(resp.Header.Get("X-Content-Type-Options")), "nosniff") {
+		return false
+	}
+	head := make([]byte, 512)
+	n, _ := io.ReadFull(resp.Body, head)
+	return strings.HasPrefix(http.DetectContentType(head[:n]), "image/")
+}
+
+func fetchWithContext(ctx context.Context, client *http.Client, rawURL, accept string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	if accept != "" {
+		req.Header.Set("Accept", accept)
+	}
+	return client.Do(req)
+}
+
+// finalResponseURL is the URL a response was served from, after redirects.
+// Responses built by hand carry no request, hence the fallback.
+func finalResponseURL(resp *http.Response, fallback *url.URL) *url.URL {
+	if resp.Request != nil && resp.Request.URL != nil {
+		return resp.Request.URL
+	}
+	return fallback
+}
+
+// documentBaseURL is what the page's relative links resolve against: its first
+// <base href>, itself resolved against the page URL, or the page URL.
+func documentBaseURL(doc *goquery.Document, pageURL *url.URL) *url.URL {
+	href, ok := doc.Find("base[href]").First().Attr("href")
+	if !ok {
+		return pageURL
+	}
+	ref, err := url.Parse(cleanIconHref(href))
+	if err != nil {
+		return pageURL
+	}
+	base := pageURL.ResolveReference(ref)
+	if base.Scheme != "http" && base.Scheme != "https" {
+		return pageURL
+	}
+	return base
 }
 
 func resolveURL(baseURL *url.URL, href string) (string, error) {

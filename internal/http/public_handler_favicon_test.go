@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,7 +10,9 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 
@@ -185,175 +188,11 @@ func TestResolveURL(t *testing.T) {
 	}
 }
 
-func TestTryDefaultFavicon(t *testing.T) {
-	mockClient := &http.Client{
-		Transport: &mockTransport{
-			responses: map[string]*http.Response{
-				"https://example.com/favicon.ico": {
-					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader("mock icon")),
-				},
-				"https://noicon.com/favicon.ico": {
-					StatusCode: http.StatusNotFound,
-					Body:       io.NopCloser(strings.NewReader("not found")),
-				},
-			},
-		},
-	}
-
-	// Test successful icon detection
-	baseURL, err := url.Parse("https://example.com")
-	require.NoError(t, err)
-	result := tryDefaultFavicon(baseURL, mockClient)
-	assert.Equal(t, "https://example.com/favicon.ico", result)
-
-	// Test failed icon detection
-	baseURL, err = url.Parse("https://noicon.com")
-	require.NoError(t, err)
-	result = tryDefaultFavicon(baseURL, mockClient)
-	assert.Equal(t, "", result)
-}
-
 // Helper function to create a mock HTML document for testing
 func createMockHTMLDoc(t *testing.T, htmlContent string) *goquery.Document {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlContent))
 	require.NoError(t, err)
 	return doc
-}
-
-func TestFindAppleTouchIcon(t *testing.T) {
-	baseURL, err := url.Parse("https://example.com")
-	require.NoError(t, err)
-
-	t.Run("with apple-touch-icon", func(t *testing.T) {
-		html := `<html><head><link rel="apple-touch-icon" href="/apple-touch-icon.png"></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
-
-		result := findAppleTouchIcon(doc, baseURL)
-		assert.Equal(t, "https://example.com/apple-touch-icon.png", result)
-	})
-
-	t.Run("without apple-touch-icon", func(t *testing.T) {
-		html := `<html><head></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
-
-		result := findAppleTouchIcon(doc, baseURL)
-		assert.Equal(t, "", result)
-	})
-}
-
-func TestFindTraditionalFavicon(t *testing.T) {
-	baseURL, err := url.Parse("https://example.com")
-	require.NoError(t, err)
-
-	t.Run("with favicon link", func(t *testing.T) {
-		html := `<html><head><link rel="shortcut icon" href="/favicon.ico"></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
-
-		result := findTraditionalFavicon(doc, baseURL)
-		assert.Equal(t, "https://example.com/favicon.ico", result)
-	})
-
-	t.Run("with icon link", func(t *testing.T) {
-		html := `<html><head><link rel="icon" href="/icon.png"></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
-
-		result := findTraditionalFavicon(doc, baseURL)
-		assert.Equal(t, "https://example.com/icon.png", result)
-	})
-
-	t.Run("without favicon", func(t *testing.T) {
-		html := `<html><head></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
-
-		result := findTraditionalFavicon(doc, baseURL)
-		assert.Equal(t, "", result)
-	})
-}
-
-func TestFindManifestIcon(t *testing.T) {
-	baseURL, err := url.Parse("https://example.com")
-	require.NoError(t, err)
-
-	mockClient := &http.Client{
-		Transport: &mockTransport{
-			responses: map[string]*http.Response{
-				"https://example.com/manifest.json": {
-					StatusCode: http.StatusOK,
-					Body: io.NopCloser(strings.NewReader(`{
-						"icons": [
-							{
-								"src": "/icon-192.png",
-								"sizes": "192x192"
-							},
-							{
-								"src": "/icon-512.png",
-								"sizes": "512x512"
-							}
-						]
-					}`)),
-					Header: make(http.Header),
-				},
-				"https://example.com/empty-manifest.json": {
-					StatusCode: http.StatusOK,
-					Body: io.NopCloser(strings.NewReader(`{
-						"icons": []
-					}`)),
-					Header: make(http.Header),
-				},
-				"https://example.com/invalid-manifest.json": {
-					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader(`invalid json`)),
-					Header:     make(http.Header),
-				},
-				"https://failure.com/manifest.json": {
-					StatusCode: http.StatusNotFound,
-					Body:       io.NopCloser(strings.NewReader(`not found`)),
-					Header:     make(http.Header),
-				},
-			},
-		},
-	}
-
-	t.Run("with valid manifest", func(t *testing.T) {
-		html := `<html><head><link rel="manifest" href="/manifest.json"></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
-
-		result := findManifestIcon(doc, baseURL, mockClient)
-		assert.Equal(t, "https://example.com/icon-512.png", result)
-	})
-
-	t.Run("with empty manifest icons", func(t *testing.T) {
-		html := `<html><head><link rel="manifest" href="/empty-manifest.json"></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
-
-		result := findManifestIcon(doc, baseURL, mockClient)
-		assert.Equal(t, "", result)
-	})
-
-	t.Run("with invalid manifest JSON", func(t *testing.T) {
-		html := `<html><head><link rel="manifest" href="/invalid-manifest.json"></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
-
-		result := findManifestIcon(doc, baseURL, mockClient)
-		assert.Equal(t, "", result)
-	})
-
-	t.Run("with manifest fetch error", func(t *testing.T) {
-		html := `<html><head><link rel="manifest" href="https://failure.com/manifest.json"></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
-
-		result := findManifestIcon(doc, baseURL, mockClient)
-		assert.Equal(t, "", result)
-	})
-
-	t.Run("without manifest link", func(t *testing.T) {
-		html := `<html><head></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
-
-		result := findManifestIcon(doc, baseURL, mockClient)
-		assert.Equal(t, "", result)
-	})
 }
 
 func TestFaviconHandler_DetectFavicon_AppleTouchIcon_Success(t *testing.T) {
@@ -377,8 +216,8 @@ func TestFaviconHandler_DetectFavicon_AppleTouchIcon_Success(t *testing.T) {
 				},
 				"https://example.com/apple-touch-icon.png": {
 					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader("icon content")),
-					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader(testPNG)),
+					Header:     http.Header{"Content-Type": []string{"image/png"}},
 				},
 			},
 		},
@@ -434,8 +273,8 @@ func TestFaviconHandler_DetectFavicon_ManifestIcon_Success(t *testing.T) {
 				},
 				"https://example.com/icon-192.png": {
 					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader("icon content")),
-					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader(testPNG)),
+					Header:     http.Header{"Content-Type": []string{"image/png"}},
 				},
 			},
 		},
@@ -476,8 +315,8 @@ func TestFaviconHandler_DetectFavicon_Traditional_Success(t *testing.T) {
 				},
 				"https://example.com/favicon.ico": {
 					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader("icon content")),
-					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader(testICO)),
+					Header:     http.Header{"Content-Type": []string{"image/x-icon"}},
 				},
 			},
 		},
@@ -517,8 +356,8 @@ func TestFaviconHandler_DetectFavicon_DefaultLocation_Success(t *testing.T) {
 				},
 				"https://example.com/favicon.ico": {
 					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader("icon content")),
-					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader(testICO)),
+					Header:     http.Header{"Content-Type": []string{"image/x-icon"}},
 				},
 			},
 		},
@@ -995,6 +834,11 @@ func TestFaviconHandler_DetectFavicon_WithCoverImages(t *testing.T) {
 							Body:       io.NopCloser(strings.NewReader(tc.html)),
 							Header:     make(http.Header),
 						},
+						"https://example.com/apple-touch-icon.png": {
+							StatusCode: http.StatusOK,
+							Body:       io.NopCloser(strings.NewReader(testPNG)),
+							Header:     http.Header{"Content-Type": []string{"image/png"}},
+						},
 					},
 				},
 			}
@@ -1114,85 +958,6 @@ func TestResolveURL_EdgeCases(t *testing.T) {
 	}
 }
 
-func TestFindManifestIcon_EdgeCases(t *testing.T) {
-	baseURL, err := url.Parse("https://example.com")
-	require.NoError(t, err)
-
-	// Use a basic mock client for tests that don't need specific responses
-	basicMockClient := &http.Client{
-		Transport: &mockTransport{
-			responses: map[string]*http.Response{},
-		},
-	}
-
-	t.Run("with manifest URL resolution error", func(t *testing.T) {
-		html := `<html><head><link rel="manifest" href="://invalid-url"></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
-
-		result := findManifestIcon(doc, baseURL, basicMockClient)
-		assert.Equal(t, "", result)
-	})
-
-	t.Run("with manifest missing href", func(t *testing.T) {
-		html := `<html><head><link rel="manifest"></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
-
-		result := findManifestIcon(doc, baseURL, basicMockClient)
-		assert.Equal(t, "", result)
-	})
-
-	t.Run("with manifest icon URL resolution error", func(t *testing.T) {
-		mockClient := &http.Client{
-			Transport: &mockTransport{
-				responses: map[string]*http.Response{
-					"https://example.com/manifest.json": {
-						StatusCode: http.StatusOK,
-						Body: io.NopCloser(strings.NewReader(`{
-							"icons": [
-								{
-									"src": "://invalid-icon-url",
-									"sizes": "192x192"
-								}
-							]
-						}`)),
-						Header: make(http.Header),
-					},
-				},
-			},
-		}
-
-		html := `<html><head><link rel="manifest" href="/manifest.json"></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
-
-		result := findManifestIcon(doc, baseURL, mockClient)
-		assert.Equal(t, "", result)
-	})
-
-	t.Run("with network error for manifest fetch", func(t *testing.T) {
-		errClient := &http.Client{
-			Transport: &errorTransport{},
-		}
-
-		html := `<html><head><link rel="manifest" href="/manifest.json"></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
-
-		result := findManifestIcon(doc, baseURL, errClient)
-		assert.Equal(t, "", result)
-	})
-}
-
-func TestTryDefaultFavicon_NetworkError(t *testing.T) {
-	errClient := &http.Client{
-		Transport: &errorTransport{},
-	}
-
-	baseURL, err := url.Parse("https://example.com")
-	require.NoError(t, err)
-
-	result := tryDefaultFavicon(baseURL, errClient)
-	assert.Equal(t, "", result)
-}
-
 func TestHandleDetectFavicon_BlocksNonHTTPScheme(t *testing.T) {
 	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
@@ -1211,52 +976,598 @@ func TestHandleDetectFavicon_BlocksNonHTTPScheme(t *testing.T) {
 	}
 }
 
-func TestFindAppleTouchIcon_EdgeCases(t *testing.T) {
-	baseURL, err := url.Parse("https://example.com")
+// Icon detection fetches every candidate before returning it
+
+const (
+	testPNG = "\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+	testICO = "\x00\x00\x01\x00\x01\x00\x10\x10"
+	testSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"></svg>`
+)
+
+// iconRoute is one canned answer of an iconSite.
+type iconRoute struct {
+	status      int // 200 when zero
+	contentType string
+	body        string
+	headers     map[string]string
+}
+
+// iconSite is a fake website for the icon tests. Every request gets a fresh
+// response that carries its request, as net/http's own transport does, so
+// redirects and final URLs behave as in production. Requests are logged so a
+// test can assert what the handler fetched.
+type iconSite struct {
+	routes   map[string]iconRoute
+	mu       sync.Mutex
+	requests []string
+}
+
+func (s *iconSite) RoundTrip(req *http.Request) (*http.Response, error) {
+	s.mu.Lock()
+	s.requests = append(s.requests, req.URL.String())
+	s.mu.Unlock()
+
+	route, ok := s.routes[req.URL.String()]
+	if !ok {
+		route = iconRoute{status: http.StatusNotFound, contentType: "text/html", body: "<html>not found</html>"}
+	}
+	header := make(http.Header)
+	if route.contentType != "" {
+		header.Set("Content-Type", route.contentType)
+	}
+	for k, v := range route.headers {
+		header.Set(k, v)
+	}
+	status := route.status
+	if status == 0 {
+		status = http.StatusOK
+	}
+	return &http.Response{StatusCode: status, Header: header, Body: io.NopCloser(strings.NewReader(route.body)), Request: req}, nil
+}
+
+func (s *iconSite) fetched() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.requests...)
+}
+
+func htmlPage(head string) iconRoute {
+	return iconRoute{contentType: "text/html; charset=utf-8", body: "<!DOCTYPE html><html><head>" + head + "</head><body></body></html>"}
+}
+
+func handlerForSite(transport http.RoundTripper) *NotificationCenterHandler {
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
+	handler.httpClient = &http.Client{Transport: transport}
+	return handler
+}
+
+// postDetectFavicon calls the endpoint with the JSON body the console sends.
+func postDetectFavicon(t *testing.T, handler *NotificationCenterHandler, siteURL string) *httptest.ResponseRecorder {
+	t.Helper()
+	reqBody, err := json.Marshal(map[string]string{"url": siteURL})
 	require.NoError(t, err)
+	w := httptest.NewRecorder()
+	handler.HandleDetectFavicon(w, httptest.NewRequest(http.MethodPost, "/api/detect-favicon", bytes.NewBuffer(reqBody)))
+	return w
+}
 
-	t.Run("with apple-touch-icon missing href", func(t *testing.T) {
-		html := `<html><head><link rel="apple-touch-icon"></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
+func decodeFavicon(t *testing.T, w *httptest.ResponseRecorder) FaviconResponse {
+	t.Helper()
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var resp FaviconResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	return resp
+}
 
-		result := findAppleTouchIcon(doc, baseURL)
-		assert.Equal(t, "", result)
+func candidateHrefs(candidates []iconCandidate) []string {
+	hrefs := make([]string, 0, len(candidates))
+	for _, c := range candidates {
+		hrefs = append(hrefs, c.href)
+	}
+	return hrefs
+}
+
+func TestCleanIconHref(t *testing.T) {
+	testCases := []struct {
+		name     string
+		href     string
+		expected string
+	}{
+		{"surrounding spaces and newline", " /favicon.svg\n", "/favicon.svg"},
+		{"tab inside", "/fav\ticon.svg", "/favicon.svg"},
+		{"CRLF inside", "/fav\r\nicon.svg", "/favicon.svg"},
+		{"leading C0 controls", "\x00\x1f /a.png", "/a.png"},
+		{"inner space kept", "/a b.png", "/a b.png"},
+		{"only spaces", "   ", ""},
+		{"empty", "", ""},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, cleanIconHref(tc.href))
+		})
+	}
+}
+
+func TestParseIconSizes(t *testing.T) {
+	testCases := []struct {
+		sizes    string
+		largest  int
+		scalable bool
+	}{
+		{"512x512", 512, false},
+		{"16x16 32x32", 32, false},
+		{"192X192", 192, false},
+		{"24x48", 48, false},
+		{"any", 0, true},
+		{"any 48x48", 48, true},
+		{"", 0, false},
+		{"big", 0, false},
+		{"16x", 0, false},
+		{"0x0", 0, false},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.sizes, func(t *testing.T) {
+			largest, scalable := parseIconSizes(tc.sizes)
+			assert.Equal(t, tc.largest, largest)
+			assert.Equal(t, tc.scalable, scalable)
+		})
+	}
+}
+
+func TestRankIconCandidates(t *testing.T) {
+	t.Run("larger size first, compared as numbers", func(t *testing.T) {
+		small, _ := parseIconSizes("96x96")
+		large, _ := parseIconSizes("512x512")
+		candidates := []iconCandidate{{href: "96", size: small}, {href: "512", size: large}}
+		rankIconCandidates(candidates)
+		assert.Equal(t, []string{"512", "96"}, candidateHrefs(candidates))
 	})
 
-	t.Run("with multiple apple-touch-icon links", func(t *testing.T) {
-		html := `<html><head>
-			<link rel="apple-touch-icon" href="/first-icon.png">
-			<link rel="apple-touch-icon" href="/second-icon.png">
-		</head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
+	t.Run("scalable before any raster size", func(t *testing.T) {
+		candidates := []iconCandidate{{href: "ico", size: 1024}, {href: "svg", scalable: true}}
+		rankIconCandidates(candidates)
+		assert.Equal(t, []string{"svg", "ico"}, candidateHrefs(candidates))
+	})
 
-		result := findAppleTouchIcon(doc, baseURL)
-		// The function returns the last one found due to how goquery works
-		assert.Equal(t, "https://example.com/second-icon.png", result)
+	t.Run("demoted last", func(t *testing.T) {
+		candidates := []iconCandidate{{href: "dark", scalable: true, demoted: true}, {href: "light", size: 16}}
+		rankIconCandidates(candidates)
+		assert.Equal(t, []string{"light", "dark"}, candidateHrefs(candidates))
+	})
+
+	t.Run("ties keep document order", func(t *testing.T) {
+		candidates := []iconCandidate{{href: "a", size: 32}, {href: "b", size: 32}, {href: "c", size: 32}}
+		rankIconCandidates(candidates)
+		assert.Equal(t, []string{"a", "b", "c"}, candidateHrefs(candidates))
 	})
 }
 
-func TestFindTraditionalFavicon_EdgeCases(t *testing.T) {
-	baseURL, err := url.Parse("https://example.com")
+func TestUsableIconURL(t *testing.T) {
+	base, err := url.Parse("https://example.com")
 	require.NoError(t, err)
 
-	t.Run("with favicon link missing href", func(t *testing.T) {
-		html := `<html><head><link rel="icon"></head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
+	rejected := []string{
+		"", "   ", "#", "#top", "/", ".", "https://example.com/", "https://example.com/#x", "HTTPS://EXAMPLE.COM",
+		"data:image/svg+xml,<svg/>", "javascript:alert(1)", "mailto:icon@example.com",
+	}
+	for _, href := range rejected {
+		t.Run("rejects "+href, func(t *testing.T) {
+			seen := map[string]bool{sameDocumentKey(base): true}
+			got, ok := usableIconURL(href, base, seen)
+			assert.False(t, ok, "resolved to %q", got)
+		})
+	}
 
-		result := findTraditionalFavicon(doc, baseURL)
-		assert.Equal(t, "", result)
+	kept := []struct {
+		href     string
+		expected string
+	}{
+		{"/favicon.svg", "https://example.com/favicon.svg"},
+		{" /favicon.svg\n", "https://example.com/favicon.svg"},
+		{"/favicon.svg?v=2", "https://example.com/favicon.svg?v=2"},
+		{"//cdn.example.com/i.svg", "https://cdn.example.com/i.svg"},
+		{"https://other.com/", "https://other.com/"},
+	}
+	for _, tc := range kept {
+		t.Run("keeps "+tc.href, func(t *testing.T) {
+			seen := map[string]bool{sameDocumentKey(base): true}
+			got, ok := usableIconURL(tc.href, base, seen)
+			assert.True(t, ok)
+			assert.Equal(t, tc.expected, got)
+		})
+	}
+
+	t.Run("a URL already seen is skipped, fragment or not", func(t *testing.T) {
+		seen := map[string]bool{}
+		_, ok := usableIconURL("/favicon.svg", base, seen)
+		assert.True(t, ok)
+		_, ok = usableIconURL("/favicon.svg", base, seen)
+		assert.False(t, ok)
+		_, ok = usableIconURL("/favicon.svg#v2", base, seen)
+		assert.False(t, ok)
+	})
+}
+
+func TestCollectLinkIcons(t *testing.T) {
+	base, err := url.Parse("https://example.com")
+	require.NoError(t, err)
+
+	t.Run("rel is matched by token, case-insensitively", func(t *testing.T) {
+		doc := createMockHTMLDoc(t, `<html><head>
+			<link rel="Shortcut Icon" href="/a.ico">
+			<link rel="ICON" href="/b.png">
+			<link rel="icon shortcut" href="/c.png">
+			<link rel="apple-touch-icon-precomposed" href="/touch-pre.png">
+			<link rel="apple-touch-icon" href="/touch.png" sizes="180x180">
+			<link rel="mask-icon" href="/pin.svg">
+			<link rel="icon" href="">
+			<link rel="stylesheet" href="/style.css">
+		</head></html>`)
+
+		touch, icons, manifestHref := collectLinkIcons(doc, base)
+		assert.Equal(t, []string{"/touch-pre.png", "/touch.png"}, candidateHrefs(touch))
+		// the empty href is collected here and rejected by usableIconURL
+		assert.Equal(t, []string{"/a.ico", "/b.png", "/c.png", ""}, candidateHrefs(icons))
+		assert.Equal(t, "", manifestHref)
+		assert.Equal(t, 180, touch[1].size)
 	})
 
-	t.Run("with both icon and shortcut icon", func(t *testing.T) {
-		html := `<html><head>
-			<link rel="shortcut icon" href="/shortcut.ico">
-			<link rel="icon" href="/icon.png">
-		</head><body></body></html>`
-		doc := createMockHTMLDoc(t, html)
+	t.Run("only the first manifest link counts", func(t *testing.T) {
+		doc := createMockHTMLDoc(t, `<html><head>
+			<link rel="manifest" href="/first.webmanifest">
+			<link rel="manifest" href="/second.webmanifest">
+		</head></html>`)
 
-		result := findTraditionalFavicon(doc, baseURL)
-		// The function returns the last one found due to how goquery works
-		assert.Equal(t, "https://example.com/icon.png", result)
+		_, _, manifestHref := collectLinkIcons(doc, base)
+		assert.Equal(t, "/first.webmanifest", manifestHref)
 	})
+
+	rankingCases := []struct {
+		name     string
+		head     string
+		expected []string
+	}{
+		{
+			name:     "an SVG beats a 32px favicon.ico",
+			head:     `<link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/icon.svg" type="image/svg+xml">`,
+			expected: []string{"/icon.svg", "/favicon.ico"},
+		},
+		{
+			name:     "an SVG is recognised by its extension when type is missing",
+			head:     `<link rel="icon" href="/favicon.png" sizes="64x64"><link rel="icon" href="/logo.svg?v=3">`,
+			expected: []string{"/logo.svg?v=3", "/favicon.png"},
+		},
+		{
+			name:     "the larger raster icon first",
+			head:     `<link rel="icon" href="/16.png" sizes="16x16"><link rel="icon" href="/32.png" sizes="32x32">`,
+			expected: []string{"/32.png", "/16.png"},
+		},
+		{
+			name:     "the light variant before the dark one",
+			head:     `<link rel="icon" href="/dark.svg" media="(prefers-color-scheme: dark)"><link rel="icon" href="/light.svg" media="(prefers-color-scheme: light)">`,
+			expected: []string{"/light.svg", "/dark.svg"},
+		},
+	}
+	for _, tc := range rankingCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, icons, _ := collectLinkIcons(createMockHTMLDoc(t, "<html><head>"+tc.head+"</head></html>"), base)
+			rankIconCandidates(icons)
+			assert.Equal(t, tc.expected, candidateHrefs(icons))
+		})
+	}
+}
+
+func TestDocumentBaseURL(t *testing.T) {
+	pageURL, err := url.Parse("https://example.com/blog/post")
+	require.NoError(t, err)
+
+	testCases := []struct {
+		name     string
+		head     string
+		expected string
+	}{
+		{"no base element", ``, "https://example.com/blog/post"},
+		{"relative base", `<base href="/static/">`, "https://example.com/static/"},
+		{"absolute base", `<base href="https://cdn.example.com/assets/">`, "https://cdn.example.com/assets/"},
+		{"base without href", `<base target="_blank">`, "https://example.com/blog/post"},
+		{"non-http base", `<base href="javascript:void(0)">`, "https://example.com/blog/post"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			doc := createMockHTMLDoc(t, "<html><head>"+tc.head+"</head></html>")
+			assert.Equal(t, tc.expected, documentBaseURL(doc, pageURL).String())
+		})
+	}
+
+	t.Run("icon links resolve against the base element", func(t *testing.T) {
+		doc := createMockHTMLDoc(t, `<html><head><base href="/static/"><link rel="icon" href="i.svg"></head></html>`)
+		_, icons, _ := collectLinkIcons(doc, documentBaseURL(doc, pageURL))
+		require.Len(t, icons, 1)
+		got, ok := usableIconURL(icons[0].href, icons[0].base, map[string]bool{})
+		assert.True(t, ok)
+		assert.Equal(t, "https://example.com/static/i.svg", got)
+	})
+}
+
+func TestFetchManifestIcons(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("src resolves against the manifest and sizes rank as numbers", func(t *testing.T) {
+		site := &iconSite{routes: map[string]iconRoute{
+			"https://example.com/assets/site.webmanifest": {contentType: "application/manifest+json", body: `{"icons": [
+				{"src": "icon-96.png", "sizes": "96x96"},
+				{"src": "icon-512.png", "sizes": "512x512", "purpose": "any maskable"},
+				{"src": "mono.png", "sizes": "1024x1024", "purpose": "monochrome"},
+				{"src": "", "sizes": "any"}
+			]}`},
+		}}
+
+		candidates := fetchManifestIcons(ctx, &http.Client{Transport: site}, "https://example.com/assets/site.webmanifest")
+		assert.Equal(t, []string{"", "icon-512.png", "icon-96.png", "mono.png"}, candidateHrefs(candidates))
+
+		got, ok := usableIconURL(candidates[1].href, candidates[1].base, map[string]bool{})
+		assert.True(t, ok)
+		assert.Equal(t, "https://example.com/assets/icon-512.png", got)
+		// the empty src is ranked but never fetched
+		_, ok = usableIconURL(candidates[0].href, candidates[0].base, map[string]bool{"https://example.com/": true})
+		assert.False(t, ok)
+	})
+
+	t.Run("src resolves against the manifest URL reached after a redirect", func(t *testing.T) {
+		site := &iconSite{routes: map[string]iconRoute{
+			"https://example.com/manifest.json":        {status: http.StatusMovedPermanently, headers: map[string]string{"Location": "/assets/manifest.json"}},
+			"https://example.com/assets/manifest.json": {contentType: "application/json", body: `{"icons": [{"src": "icon.png", "sizes": "192x192"}]}`},
+		}}
+
+		candidates := fetchManifestIcons(ctx, &http.Client{Transport: site}, "https://example.com/manifest.json")
+		require.Len(t, candidates, 1)
+		got, ok := usableIconURL(candidates[0].href, candidates[0].base, map[string]bool{})
+		assert.True(t, ok)
+		assert.Equal(t, "https://example.com/assets/icon.png", got)
+	})
+
+	failures := map[string]iconRoute{
+		"not found":    {status: http.StatusNotFound, contentType: "text/html", body: "<html></html>"},
+		"invalid JSON": {contentType: "application/json", body: "invalid json"},
+		"no icons":     {contentType: "application/json", body: `{"icons": []}`},
+	}
+	for name, route := range failures {
+		t.Run(name, func(t *testing.T) {
+			site := &iconSite{routes: map[string]iconRoute{"https://example.com/manifest.json": route}}
+			assert.Empty(t, fetchManifestIcons(ctx, &http.Client{Transport: site}, "https://example.com/manifest.json"))
+		})
+	}
+
+	t.Run("network error", func(t *testing.T) {
+		assert.Empty(t, fetchManifestIcons(ctx, &http.Client{Transport: &errorTransport{}}, "https://example.com/manifest.json"))
+	})
+}
+
+func TestVerifyIconURL(t *testing.T) {
+	site := &iconSite{routes: map[string]iconRoute{
+		"https://example.com/svg":          {contentType: "image/svg+xml", body: testSVG},
+		"https://example.com/svg-nosniff":  {contentType: "image/svg+xml", body: testSVG, headers: map[string]string{"X-Content-Type-Options": "nosniff"}},
+		"https://example.com/png-upper":    {contentType: "IMAGE/PNG; charset=binary", body: testPNG},
+		"https://example.com/png-octet":    {contentType: "application/octet-stream", body: testPNG},
+		"https://example.com/ico-text":     {contentType: "text/plain", body: testICO},
+		"https://example.com/ico-untyped":  {body: testICO},
+		"https://example.com/redirect":     {status: http.StatusMovedPermanently, headers: map[string]string{"Location": "/svg"}},
+		"https://example.com/ico-nosniff":  {contentType: "text/plain", body: testICO, headers: map[string]string{"X-Content-Type-Options": "nosniff"}},
+		"https://example.com/catch-all":    {contentType: "text/html; charset=utf-8", body: "<!doctype html><html><head></head></html>"},
+		"https://example.com/svg-as-text":  {contentType: "text/plain", body: testSVG},
+		"https://example.com/png-404":      {status: http.StatusNotFound, contentType: "image/png", body: testPNG},
+		"https://example.com/empty":        {},
+		"https://example.com/svg-as-octet": {contentType: "application/octet-stream", body: testSVG},
+	}}
+	client := &http.Client{Transport: site}
+
+	testCases := []struct {
+		path     string
+		expected bool
+	}{
+		{"/svg", true},
+		{"/svg-nosniff", true},
+		{"/png-upper", true},
+		{"/png-octet", true},
+		{"/ico-text", true},
+		{"/ico-untyped", true},
+		{"/redirect", true},
+		{"/ico-nosniff", false},
+		{"/catch-all", false},
+		{"/svg-as-text", false},
+		{"/svg-as-octet", false},
+		{"/png-404", false},
+		{"/empty", false},
+		{"/missing", false},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.path, func(t *testing.T) {
+			assert.Equal(t, tc.expected, verifyIconURL(context.Background(), client, "https://example.com"+tc.path))
+		})
+	}
+
+	t.Run("network error", func(t *testing.T) {
+		assert.False(t, verifyIconURL(context.Background(), &http.Client{Transport: &errorTransport{}}, "https://example.com/svg"))
+	})
+}
+
+// Every page below also declares a working SVG icon, served the way the
+// reporting site serves it (image/svg+xml with nosniff). Each broken candidate
+// used to be returned as the logo instead of that SVG.
+func TestFaviconHandler_DetectFavicon_SkipsBrokenCandidates(t *testing.T) {
+	const svgLink = `<link rel="icon" type="image/svg+xml" href="/favicon.svg">`
+	svgRoute := iconRoute{contentType: "image/svg+xml", body: testSVG, headers: map[string]string{"X-Content-Type-Options": "nosniff"}}
+
+	testCases := []struct {
+		name     string
+		siteURL  string
+		head     string
+		manifest string
+	}{
+		{name: "apple-touch-icon with an empty href", siteURL: "https://example.com", head: `<link rel="apple-touch-icon" href="">` + svgLink},
+		{name: "apple-touch-icon with a fragment href", siteURL: "https://example.com", head: `<link rel="apple-touch-icon" href="#">` + svgLink},
+		{name: "apple-touch-icon pointing at the root path", siteURL: "https://example.com", head: `<link rel="apple-touch-icon" href="/">` + svgLink},
+		{name: "apple-touch-icon pointing at the absolute site root", siteURL: "https://example.com", head: `<link rel="apple-touch-icon" href="https://example.com/">` + svgLink},
+		{name: "apple-touch-icon with a dot href", siteURL: "https://example.com/", head: `<link rel="apple-touch-icon" href=".">` + svgLink},
+		{name: "apple-touch-icon that does not exist", siteURL: "https://example.com", head: `<link rel="apple-touch-icon" href="/apple-touch-icon.png">` + svgLink},
+		{name: "empty rel=icon after the SVG", siteURL: "https://example.com", head: svgLink + `<link rel="icon" href="">`},
+		{name: "data URI icon before the SVG", siteURL: "https://example.com", head: `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg/>">` + svgLink},
+		{name: "uppercase rel", siteURL: "https://example.com", head: `<link rel="Icon" type="image/svg+xml" href="/favicon.svg">`},
+		{
+			name:     "manifest icon with an empty src",
+			siteURL:  "https://example.com",
+			head:     `<link rel="manifest" href="/site.webmanifest">` + svgLink,
+			manifest: `{"icons": [{"src": "", "sizes": "any"}]}`,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			site := &iconSite{routes: map[string]iconRoute{
+				tc.siteURL:                        htmlPage(tc.head),
+				"https://example.com/favicon.svg": svgRoute,
+			}}
+			if tc.manifest != "" {
+				site.routes["https://example.com/site.webmanifest"] = iconRoute{contentType: "application/manifest+json", body: tc.manifest}
+			}
+
+			resp := decodeFavicon(t, postDetectFavicon(t, handlerForSite(site), tc.siteURL))
+			assert.Equal(t, "https://example.com/favicon.svg", resp.IconURL)
+		})
+	}
+
+	// A single-page app answers every path with its HTML shell, /favicon.ico included
+	catchAll := func(head string) *iconSite {
+		site := &iconSite{routes: map[string]iconRoute{
+			"https://example.com":             htmlPage(head),
+			"https://example.com/favicon.ico": htmlPage(head),
+		}}
+		return site
+	}
+
+	t.Run("catch-all /favicon.ico is not an icon", func(t *testing.T) {
+		w := postDetectFavicon(t, handlerForSite(catchAll(``)), "https://example.com")
+		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Contains(t, w.Body.String(), "No favicon or cover image found")
+	})
+
+	t.Run("catch-all /favicon.ico with a cover image", func(t *testing.T) {
+		w := postDetectFavicon(t, handlerForSite(catchAll(`<meta property="og:image" content="/og.png">`)), "https://example.com")
+		resp := decodeFavicon(t, w)
+		assert.Equal(t, "", resp.IconURL)
+		assert.Equal(t, "https://example.com/og.png", resp.CoverURL)
+	})
+}
+
+func TestFaviconHandler_DetectFavicon_ResolvesAgainstFinalURL(t *testing.T) {
+	t.Run("over real HTTP, after a redirect", func(t *testing.T) {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/" {
+				http.Redirect(w, r, "/en/", http.StatusFound)
+				return
+			}
+			http.NotFound(w, r)
+		})
+		mux.HandleFunc("/en/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = fmt.Fprint(w, `<!DOCTYPE html><html><head><link rel="icon" href="favicon.svg"></head></html>`)
+		})
+		mux.HandleFunc("/en/favicon.svg", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "image/svg+xml")
+			_, _ = fmt.Fprint(w, testSVG)
+		})
+		server := httptest.NewServer(mux)
+		defer server.Close()
+
+		// The SSRF-safe client refuses loopback, so the test server needs a plain one
+		handler := NewNotificationCenterHandler(nil, nil, nil, nil)
+		handler.httpClient = &http.Client{}
+
+		resp := decodeFavicon(t, postDetectFavicon(t, handler, server.URL))
+		assert.Equal(t, server.URL+"/en/favicon.svg", resp.IconURL)
+	})
+
+	t.Run("a response without its request falls back to the typed URL", func(t *testing.T) {
+		// mockTransport leaves Response.Request nil, unlike net/http's transport
+		handler := handlerForSite(&mockTransport{responses: map[string]*http.Response{
+			"https://example.com/blog/": {
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(`<html><head><link rel="icon" href="favicon.svg"></head></html>`)),
+				Header:     make(http.Header),
+			},
+			"https://example.com/blog/favicon.svg": {
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(testSVG)),
+				Header:     http.Header{"Content-Type": []string{"image/svg+xml"}},
+			},
+		}})
+
+		resp := decodeFavicon(t, postDetectFavicon(t, handler, "https://example.com/blog/"))
+		assert.Equal(t, "https://example.com/blog/favicon.svg", resp.IconURL)
+	})
+}
+
+func TestFaviconHandler_DetectFavicon_BoundsOutboundRequests(t *testing.T) {
+	t.Run("candidate fetches are capped", func(t *testing.T) {
+		var head strings.Builder
+		for i := 0; i < 20; i++ {
+			fmt.Fprintf(&head, `<link rel="icon" href="/icon-%d.png">`, i)
+		}
+		site := &iconSite{routes: map[string]iconRoute{"https://example.com": htmlPage(head.String())}}
+
+		w := postDetectFavicon(t, handlerForSite(site), "https://example.com")
+		assert.Equal(t, http.StatusNotFound, w.Code)
+		// the page, then six candidates
+		assert.Len(t, site.fetched(), 7)
+	})
+
+	t.Run("only the first manifest is fetched", func(t *testing.T) {
+		var head strings.Builder
+		for i := 0; i < 10; i++ {
+			fmt.Fprintf(&head, `<link rel="manifest" href="/manifest-%d.json">`, i)
+		}
+		site := &iconSite{routes: map[string]iconRoute{"https://example.com": htmlPage(head.String())}}
+
+		postDetectFavicon(t, handlerForSite(site), "https://example.com")
+		manifestFetches := 0
+		for _, u := range site.fetched() {
+			if strings.Contains(u, "/manifest-") {
+				manifestFetches++
+				assert.Equal(t, "https://example.com/manifest-0.json", u)
+			}
+		}
+		assert.Equal(t, 1, manifestFetches)
+	})
+
+	t.Run("a working apple-touch-icon costs no manifest fetch", func(t *testing.T) {
+		site := &iconSite{routes: map[string]iconRoute{
+			"https://example.com":               htmlPage(`<link rel="manifest" href="/manifest.json"><link rel="apple-touch-icon" href="/touch.png">`),
+			"https://example.com/touch.png":     {contentType: "image/png", body: testPNG},
+			"https://example.com/manifest.json": {contentType: "application/json", body: `{"icons": [{"src": "/icon.png"}]}`},
+		}}
+
+		resp := decodeFavicon(t, postDetectFavicon(t, handlerForSite(site), "https://example.com"))
+		assert.Equal(t, "https://example.com/touch.png", resp.IconURL)
+		assert.Equal(t, []string{"https://example.com", "https://example.com/touch.png"}, site.fetched())
+	})
+}
+
+// blockingTransport never answers; it returns only once the request's context ends.
+type blockingTransport struct{}
+
+func (blockingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	<-req.Context().Done()
+	return nil, req.Context().Err()
+}
+
+func TestFaviconHandler_DetectFavicon_RespectsBudget(t *testing.T) {
+	handler := handlerForSite(blockingTransport{})
+	handler.iconDetectBudget = 50 * time.Millisecond
+
+	start := time.Now()
+	w := postDetectFavicon(t, handler, "https://example.com")
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Contains(t, w.Body.String(), "Error fetching URL")
+	assert.Less(t, time.Since(start), 2*time.Second)
 }
