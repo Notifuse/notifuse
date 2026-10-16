@@ -1218,6 +1218,10 @@ func TestEmailNodeExecutor_Execute_GeneratesTemplateURLs(t *testing.T) {
 				"ListUnsubscribeURL should contain unsubscribe-oneclick path")
 			assert.Contains(t, entry.Payload.EmailOptions.ListUnsubscribeURL, "lids=list1",
 				"ListUnsubscribeURL should contain the list ID")
+			// The worker copies Payload.ListID into message_history.list_id, which the
+			// complaint/bounce trigger needs to record the status on the list.
+			assert.Equal(t, "list1", entry.Payload.ListID,
+				"automation entry must carry the automation's list")
 
 			return nil
 		})
@@ -1279,7 +1283,11 @@ func TestEmailNodeExecutor_Execute_NoListID_StillWorks(t *testing.T) {
 
 	mockEmailQueueRepo.EXPECT().
 		Enqueue(gomock.Any(), "ws1", gomock.Any()).
-		Return(nil)
+		DoAndReturn(func(ctx context.Context, workspaceID string, entries []*domain.EmailQueueEntry) error {
+			require.Len(t, entries, 1)
+			assert.Empty(t, entries[0].Payload.ListID, "an automation without a list sends for no list")
+			return nil
+		})
 
 	params := NodeExecutionParams{
 		WorkspaceID: "ws1",

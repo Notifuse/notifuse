@@ -195,8 +195,9 @@ type MessageHistoryRepository interface {
 	// (i.e. that A/B variation) are counted; empty templateID covers the whole broadcast.
 	GetBroadcastLinkStats(ctx context.Context, workspaceID, broadcastID, templateID string) ([]LinkClickStats, error)
 
-	// WasSentForList reports whether message messageID was sent to email for listID:
-	// as a broadcast to that list, or by an automation on it
+	// WasSentForList reports whether message messageID was sent to email for listID: by
+	// the list stored on the message, or, for an older automation message stored without
+	// one, by the automation's current list
 	WasSentForList(ctx context.Context, workspaceID, messageID, email, listID string) (bool, error)
 
 	// DeleteForEmail deletes all message history records for a specific email
