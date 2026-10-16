@@ -26,21 +26,32 @@ describe('normalizeGoalValue', () => {
     expect(normalizeGoalValue(input)).toBeUndefined();
   });
 
+  // JSON.stringify sends these as null, which the server reads as no value.
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    'treats the number %s as no value',
+    (input) => {
+      expect(normalizeGoalValue(input)).toBeUndefined();
+    },
+  );
+
   it.each([
     'forty-nine',
     '49,90',
     '0x10',
     'Infinity',
     'NaN',
+    '1e400',
     true,
     {},
     [],
-    Number.NaN,
-    Number.POSITIVE_INFINITY,
     -1,
     MAX_GOAL_VALUE * 10,
   ])('throws on %j', (input) => {
     expect(() => normalizeGoalValue(input)).toThrow(/trackGoal value/);
+  });
+
+  it('names the value it rejects as out of range', () => {
+    expect(() => normalizeGoalValue(-1)).toThrow(/between 0 and \d+, got -1$/);
   });
 });
 
@@ -65,8 +76,17 @@ describe('normalizeGoalProperties', () => {
     );
   });
 
-  it('leaves out null and undefined entries', () => {
-    expect(normalizeGoalProperties({ coupon: null, ref: undefined, plan: 'pro' })).toEqual({ plan: 'pro' });
+  // JSON.stringify sends a non-finite number as null, so it goes the same way.
+  it('leaves out null, undefined and non-finite entries', () => {
+    expect(
+      normalizeGoalProperties({
+        coupon: null,
+        ref: undefined,
+        total: Number.NaN,
+        cap: Number.POSITIVE_INFINITY,
+        plan: 'pro',
+      }),
+    ).toEqual({ plan: 'pro' });
   });
 
   it.each([undefined, null])('returns undefined for %j', (input) => {
@@ -76,7 +96,6 @@ describe('normalizeGoalProperties', () => {
   it.each([
     ['a nested object', { items: { sku: 'A1' } }],
     ['an array', { skus: ['A1', 'B2'] }],
-    ['a non-finite number', { total: Number.NaN }],
     ['a function', { cb: () => 1 }],
   ])('throws on %s', (_label, input) => {
     expect(() => normalizeGoalProperties(input)).toThrow(/must be a string, number or boolean/);
@@ -130,6 +149,31 @@ describe('trackGoal on the wire', () => {
     const [goal] = lastGoals();
     expect(goal.value).toBe(49.9);
     expect(goal.properties).toEqual({ order_id: '12345', first_order: 'true' });
+  });
+
+  // parseFloat('€49.90') is NaN. JSON.stringify sent it as null, which the
+  // server reads as no value, so the conversion was recorded; it must still be.
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    'records a goal whose value is %s, with no value',
+    async (value) => {
+      await sdk.trackGoal({ action: 'purchase', type: 'purchase', value });
+
+      const [goal] = lastGoals();
+      expect(goal.name).toBe('purchase');
+      expect(goal).not.toHaveProperty('value');
+    },
+  );
+
+  it('records a goal with a non-finite property, leaving that property out', async () => {
+    await sdk.trackGoal({
+      action: 'purchase',
+      type: 'purchase',
+      properties: { total: Number.NaN, plan: 'pro' },
+    });
+
+    const [goal] = lastGoals();
+    expect(goal.name).toBe('purchase');
+    expect(goal.properties).toEqual({ plan: 'pro' });
   });
 
   it('sends a Date property as the string JSON.stringify always sent', async () => {

@@ -12,13 +12,14 @@
 export declare const MAX_GOAL_VALUE = 1000000000000;
 /**
  * Returns the goal value as a number, or undefined when there is none.
- * undefined, null and '' mean no value; a numeric string is converted.
+ * undefined, null, '' and a non-finite number mean no value; a numeric string
+ * is converted.
  */
 export declare function normalizeGoalValue(value: unknown): number | undefined;
 /**
  * Returns the properties as a flat string map, or undefined when there are
  * none. Numbers and booleans become strings, and a value with toJSON (a Date)
- * its JSON form; null and undefined entries are left out. Objects, arrays and
- * anything else throw.
+ * its JSON form; null, undefined and non-finite entries are left out, as
+ * JSON.stringify sends those as null. Objects, arrays and anything else throw.
  */
 export declare function normalizeGoalProperties(properties: unknown): Record<string, string> | undefined;

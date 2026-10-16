@@ -2200,13 +2200,18 @@ const MAX_GOAL_VALUE = 1e12;
 const NUMERIC_STRING = /^-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?$/;
 /**
  * Returns the goal value as a number, or undefined when there is none.
- * undefined, null and '' mean no value; a numeric string is converted.
+ * undefined, null, '' and a non-finite number mean no value; a numeric string
+ * is converted.
  */
 function normalizeGoalValue(value) {
     if (value === undefined || value === null)
         return undefined;
     let num;
     if (typeof value === 'number') {
+        // NaN is what parseFloat('€49.90') gives. JSON.stringify sent it as null,
+        // which the server reads as no value, and the goal was still recorded.
+        if (!Number.isFinite(value))
+            return undefined;
         num = value;
     }
     else if (typeof value === 'string') {
@@ -2221,16 +2226,18 @@ function normalizeGoalValue(value) {
     else {
         throw new Error(`trackGoal value must be a number, got ${typeof value}`);
     }
+    // A numeric string can still overflow to Infinity ('1e400'), and the server
+    // drops that goal, so it is out of range here too.
     if (!Number.isFinite(num) || num < 0 || num > MAX_GOAL_VALUE) {
-        throw new Error(`trackGoal value must be between 0 and ${MAX_GOAL_VALUE}`);
+        throw new Error(`trackGoal value must be between 0 and ${MAX_GOAL_VALUE}, got ${num}`);
     }
     return num;
 }
 /**
  * Returns the properties as a flat string map, or undefined when there are
  * none. Numbers and booleans become strings, and a value with toJSON (a Date)
- * its JSON form; null and undefined entries are left out. Objects, arrays and
- * anything else throw.
+ * its JSON form; null, undefined and non-finite entries are left out, as
+ * JSON.stringify sends those as null. Objects, arrays and anything else throw.
  */
 function normalizeGoalProperties(properties) {
     if (properties === undefined || properties === null)
@@ -2246,13 +2253,15 @@ function normalizeGoalProperties(properties) {
         const raw = hasToJSON(entry) ? entry.toJSON(key) : entry;
         if (raw === undefined || raw === null)
             continue;
+        if (typeof raw === 'number' && !Number.isFinite(raw))
+            continue;
         if (typeof raw === 'string') {
             out[key] = raw;
         }
         else if (typeof raw === 'boolean') {
             out[key] = String(raw);
         }
-        else if (typeof raw === 'number' && Number.isFinite(raw)) {
+        else if (typeof raw === 'number') {
             out[key] = String(raw);
         }
         else {

@@ -126,8 +126,9 @@ interface GoalData {
      */
     type: GoalType;
     /**
-     * A non-negative amount. A numeric string ('49.90') is converted to a number;
-     * anything else throws.
+     * A non-negative amount. A numeric string ('49.90') is converted to a number,
+     * and NaN or Infinity means no value: the goal is recorded without one.
+     * Anything else, or an amount below 0 or above 1e12, throws.
      */
     value?: number | string;
     /**
@@ -138,8 +139,8 @@ interface GoalData {
      * and are never told it went nowhere.
      *
      * Stored as strings: numbers and booleans are converted, a Date is sent as
-     * its ISO string, null and undefined entries are left out, and a nested
-     * object or array throws.
+     * its ISO string, null, undefined, NaN and Infinity entries are left out,
+     * and a nested object or array throws.
      */
     properties?: Record<string, string | number | boolean | null | undefined>;
 }
