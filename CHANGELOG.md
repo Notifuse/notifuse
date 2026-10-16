@@ -48,7 +48,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: A contact removed from a list is now out of it everywhere. They no longer receive its broadcasts, and they no longer count as a member in segments, automation trigger conditions, filter and branch nodes, the notification center, the API's `contact_lists` or a template's `contact.contact_lists`. "Not in list" conditions now match them. Upgrading corrects existing segments and live automations, so removed contacts leave those segments, and their `segment.left` and `segment.joined` events fire once.
 
-- **Fix**: Adding a removed contact back to a list now records `list.subscribed` (`list.pending` with double opt-in) on their timeline and as a webhook event, as a first subscription does. Before, the re-add recorded nothing. Automations triggered by `list.subscribed` with "every time" frequency now enroll a re-added contact again, including contacts re-added in bulk by an import.
+- **Fix**: Adding a removed contact back to a list with the status they had now records `list.subscribed` (`list.pending` under double opt-in) on their timeline and as a webhook event, as a first subscription does. Before, that re-add recorded nothing, so automations triggered by `list.subscribed` with "every time" frequency never enrolled the contact again; they now do, including for contacts re-added in bulk by an import. A re-add that changes the status still records that change, such as `list.confirmed` or `list.resubscribed`. Removing a contact who is already removed no longer records `list.removed` a second time, which re-enrolled them in automations triggered by it.
 
 ## [41.0] - 2026-09-17
 

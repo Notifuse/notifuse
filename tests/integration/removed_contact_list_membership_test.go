@@ -413,6 +413,19 @@ func TestRemovedContactListMembership(t *testing.T) {
 		assert.Equal(t, 0, memberCount(t, db, toggled, notInSegment))
 	})
 
+	// Removing an already removed contact only moves deleted_at. It used to record
+	// list.removed again, which re-enrolled the contact in automations triggered by it.
+	t.Run("removing a contact who is already removed records nothing", func(t *testing.T) {
+		again := newContact(t, "again")
+		addTo(t, again, listX.ID)
+		removeViaAPI(t, again, listX.ID)
+		require.Equal(t, 1, timelineKindCount(t, db, again, "list.removed", listX.ID))
+
+		removeViaAPI(t, again, listX.ID)
+		assert.Equal(t, 1, timelineKindCount(t, db, again, "list.removed", listX.ID),
+			"a second removal records no second list.removed")
+	})
+
 	// --- 4. trigger condition --------------------------------------------------------
 
 	t.Run("an automation trigger condition on the list leaves removed contacts out", func(t *testing.T) {
@@ -539,7 +552,7 @@ func TestRemovedContactListMembership(t *testing.T) {
 		template, err := factory.CreateTemplate(workspace.ID)
 		require.NoError(t, err)
 		broadcast, err := factory.CreateBroadcast(workspace.ID,
-			testutil.WithBroadcastABTesting([]string{template.ID}),
+			testutil.WithBroadcastTemplateID(template.ID),
 			testutil.WithBroadcastAudience(domain.AudienceSettings{List: listY.ID, ExcludeUnsubscribed: true}))
 		require.NoError(t, err)
 		resp, err := client.SendBroadcastToIndividual(map[string]interface{}{

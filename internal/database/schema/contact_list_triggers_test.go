@@ -46,7 +46,7 @@ func TestTrackContactListChangesFunction_KeepsTheKindsItShipped(t *testing.T) {
 	assert.Contains(t, sql, insertChanges)
 
 	// Removal.
-	assert.Contains(t, sql, "IF OLD.deleted_at IS DISTINCT FROM NEW.deleted_at AND NEW.deleted_at IS NOT NULL THEN")
+	assert.Contains(t, sql, "IF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN")
 	assert.Contains(t, sql, "kind_value := 'list.removed';")
 
 	// Status transitions keep their own kinds.
@@ -97,4 +97,21 @@ func TestTrackContactListChangesFunction_ReAddRecordsAnInsert(t *testing.T) {
 
 	// The insert mapping appears in the INSERT branch and in the re-add branch, nowhere else.
 	assert.Equal(t, 2, strings.Count(normalizeIndent(sql), normalizeIndent(insertKindCase)))
+}
+
+// Removing a contact who is already removed moves deleted_at and nothing else. Only a
+// row that had no deleted_at records list.removed; the old guard, deleted_at merely
+// changing, recorded it again and re-enrolled the contact in list.removed automations.
+func TestTrackContactListChangesFunction_ReRemovalRecordsNothing(t *testing.T) {
+	sql := TrackContactListChangesFunction()
+
+	assert.NotContains(t, sql, "OLD.deleted_at IS DISTINCT FROM NEW.deleted_at")
+	assert.Equal(t, 1, strings.Count(sql, "kind_value := 'list.removed';"))
+
+	removalGuard := strings.Index(sql, "IF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN")
+	removal := strings.Index(sql, "kind_value := 'list.removed';")
+	transition := strings.Index(sql, "ELSIF OLD.status IS DISTINCT FROM NEW.status THEN")
+	require.NotEqual(t, -1, removalGuard)
+	assert.Less(t, removalGuard, removal, "list.removed is recorded only under the removal guard")
+	assert.Less(t, removal, transition)
 }
