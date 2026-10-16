@@ -468,14 +468,16 @@ func TestRemovedContactListMembership(t *testing.T) {
 			}
 		})
 
+		// nodeRemoved rather than apiRemoved: the exit path adds the contact to failList,
+		// and the notification center and API checks below expect apiRemoved on Y alone.
 		fireEvent(t, member, eventName)
-		fireEvent(t, apiRemoved, eventName)
+		fireEvent(t, nodeRemoved, eventName)
 
 		testutil.WaitForCondition(t, func() bool {
-			return isMember(t, member, passList.ID) && isMember(t, apiRemoved, failList.ID)
+			return isMember(t, member, passList.ID) && isMember(t, nodeRemoved, failList.ID)
 		}, 30*time.Second, "waiting for the filter node to route both contacts")
 		assert.False(t, isMember(t, member, failList.ID))
-		assert.False(t, isMember(t, apiRemoved, passList.ID), "a removed contact must not pass a membership filter")
+		assert.False(t, isMember(t, nodeRemoved, passList.ID), "a removed contact must not pass a membership filter")
 	})
 
 	// --- 6. webhooks -----------------------------------------------------------------

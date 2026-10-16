@@ -280,14 +280,18 @@ func TestV42RemovedListMembersMigration(t *testing.T) {
 	assert.Contains(t, functionSource(t, liveID),
 		"IF (EXISTS (SELECT 1 FROM contact_lists cl JOIN lists l ON cl.list_id = l.id WHERE cl.email = NEW.email AND cl.list_id = '"+listX.ID+"' AND cl.status = 'active' AND l.deleted_at IS NULL)) THEN")
 
-	// A segment whose tree no longer parses, with old SQL.
-	unparseable := "v42broken" + tag
+	// A segment whose tree no longer compiles (a list condition without a list), with old
+	// SQL. Its tree still parses: an active segment whose tree doesn't parse fails
+	// GetSegments, which stops the segment queue for the whole workspace, so no working
+	// workspace has one.
+	uncompilable := "v42broken" + tag
 	_, err = db.ExecContext(bg, `
 		INSERT INTO segments (id, name, color, tree, timezone, version, status, generated_sql, generated_args, db_created_at, db_updated_at)
-		VALUES ($1, 'V42 broken', '#FF5733', '{"kind": 123}', 'UTC', 1, 'active', $2, $3, NOW(), NOW())`,
-		unparseable, storedSQL(t, inSegment), mustJSON(t, []interface{}{listX.ID, "active"}))
+		VALUES ($1, 'V42 broken', '#FF5733', $2, 'UTC', 1, 'active', $3, $4, NOW(), NOW())`,
+		uncompilable, mustJSON(t, listLeaf("in", "", "active")), storedSQL(t, inSegment),
+		mustJSON(t, []interface{}{listX.ID, "active"}))
 	require.NoError(t, err)
-	brokenSQL := storedSQL(t, unparseable)
+	brokenSQL := storedSQL(t, uncompilable)
 
 	// The old behaviour: removing a contact keeps them in "in list".
 	drainQueue(t)
@@ -322,7 +326,7 @@ func TestV42RemovedListMembersMigration(t *testing.T) {
 			require.NoError(t, rows.Close())
 		}
 		assert.Equal(t, newWSQL, storedSQL(t, wSegment), "an already-fixed segment is left alone")
-		assert.Equal(t, brokenSQL, storedSQL(t, unparseable), "an unparseable segment keeps its SQL")
+		assert.Equal(t, brokenSQL, storedSQL(t, uncompilable), "a segment whose tree no longer compiles keeps its SQL")
 	})
 
 	t.Run("removed members of lists segments use are re-queued", func(t *testing.T) {
@@ -391,7 +395,7 @@ func TestV42RemovedListMembersMigration(t *testing.T) {
 
 		assert.Equal(t, inSQL, storedSQL(t, inSegment))
 		assert.Equal(t, notInSQL, storedSQL(t, notInSegment))
-		assert.Equal(t, brokenSQL, storedSQL(t, unparseable))
+		assert.Equal(t, brokenSQL, storedSQL(t, uncompilable))
 		assert.Equal(t, body, functionSource(t, liveID))
 
 		drainQueue(t)

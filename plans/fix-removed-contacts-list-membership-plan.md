@@ -274,7 +274,7 @@ Pre-42 state:
 - `webhook_contact_lists_trigger` is replaced by a stub (`RETURN NEW`), so the assertion that v42 installs it means something. A subscription to `list.subscribed` exists.
 - Two segments ("in" and "not in") and a live automation whose trigger condition is "in list X, active" are created through the API. Their stored SQL and function body are then turned into the pre-42 fixtures (the function through `pg_get_functiondef`, as the probe did) and asserted equal to them. The `pg_trigger` OID is recorded.
 - A third segment with a list condition on list W keeps its new SQL. That stands for one v36 or v37 already recompiled, and `wRemoved` is removed from W.
-- A paused automation carries the same condition, and a segment has an unparseable tree and old SQL.
+- A paused automation carries the same condition, and a segment has old SQL and a tree that parses but no longer compiles (a list condition without a list). Not an unparseable tree: an active segment whose tree doesn't parse makes `GetSegments` fail, which stops the segment queue for the whole workspace; the unit test covers that v42 skips one.
 - `member` and `removed` are active on X. `removed` is removed through the API, and the queue is drained: they're still in "in", which is the old behaviour.
 
 Assertions:
@@ -283,7 +283,7 @@ Assertions:
 - after aging and `ProcessQueue`, `removed` has left "in" and joined "not in";
 - the live function's body is byte-identical to a freshly generated one, its `pg_trigger` OID is unchanged, and the event enrolls `member` but not `removed`;
 - the paused automation is still not armed;
-- the unparseable segment keeps its SQL;
+- the segment whose tree no longer compiles keeps its SQL;
 - a re-add through `lists.subscribe` writes `list.subscribed`, and queues a `list.subscribed` delivery with `previous_status` null;
 - re-running the migration changes no SQL or function body, and memberships stay the same after `ProcessQueue`.
 
