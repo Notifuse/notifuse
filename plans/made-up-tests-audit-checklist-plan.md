@@ -69,6 +69,7 @@ Verification levels used below:
   - Test first: an automation email to a list member, then a complaint on that message through a provider webhook payload; expect `contact_lists.status = complained` and the next trigger exiting the contact.
   - Fix direction: set `Payload.ListID` on automation queue entries, the same field broadcasts set.
   - Also fixes a B1 edge case. B1 records a non-member's opt-out only for the list its email was sent for (`MessageHistoryRepository.WasSentForList`). Automation sends store no `list_id`, so that check reads the automation's current list. If someone moves an automation to another list, opt-outs from its earlier emails record nothing. With `list_id` stored, keep the automation join only as a fallback for older messages.
+  - Left open, needs a decision: a contact with no active row on the automation's list (a non-member, or one removed from it) keeps receiving the automation's emails after a complaint or a hard bounce. The trigger and `MarkEmailsAsBounced` only update existing rows, and the send gate ignores removed rows (`GetContactListByIDs` filters `deleted_at`). Reproduced in review for complaints: a non-member's left no row, a removed contact's marked the removed row `complained`, and in both cases the next trigger delivered a second email. Recording a `complained` or `bounced` row, as D2 does for unsubscribes, would close it; removed rows overlap B24.
 
 ## Medium
 

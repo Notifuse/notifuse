@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Unsubscribing from an automation email no longer fails for contacts who weren't on the automation's list. The unsubscribe link and the one-click unsubscribe answered with an error, and the contact kept receiving the automation's emails; the opt-out is now recorded on the list. Unsubscribing from an email sent before the contact or its list was deleted now succeeds too, without storing the address again.
 
-- **Fix**: A spam complaint on an automation email now marks the contact `complained` on the automation's list, so neither the automation nor the list's broadcasts email them again. Automation emails didn't record the list they were sent for, so the complaint was stored on the message alone and the contact stayed active. Emails sent before the upgrade still record no list.
+- **Fix**: A spam complaint on an automation email now marks the contact `complained` on the automation's list when they are on it, so neither the automation nor the list's broadcasts email them again. Automation emails didn't record the list they were sent for, so the complaint was stored on the message alone and the contact stayed active. Emails sent before the upgrade still record no list.
 
 - **Fix**: A broadcast created through the API without `exclude_unsubscribed` no longer emails the list's unsubscribed contacts: leaving the key out now means exclude, as in the console. Bounced and complained addresses are never emailed, even with `exclude_unsubscribed: false`, and unsubscribing no longer erases a bounce or complaint, which a mail client's one-click unsubscribe used to do right after a spam report. Broadcasts created before the upgrade keep the value they were saved with.
 
