@@ -47,7 +47,7 @@ import (
 //
 // Right after step 1, the complaint/bounce function of message_history is reinstalled
 // too (installStatusChangeFunction): a complaint or hard bounce from a contact with no
-// row on the list, or one removed from it, now records the status there.
+// row on the list stored on the message now records the status there.
 //
 // Every step is idempotent: the selections no longer match a patched function or a
 // recompiled segment, and re-queueing a contact again is harmless.
@@ -286,11 +286,11 @@ func (m *V42Migration) requeueRemovedListMembers(ctx context.Context, db DBExecu
 
 // installStatusChangeFunction reinstalls the function message_history_status_trigger
 // runs on a complaint or hard bounce, so a fresh workspace and an upgraded one record
-// them the same way: on the list the message was sent for (the automation's, for an
-// automation message stored without a list), with a new row for a contact who has none
-// there. Automations email contacts who aren't on their list; before, a complaint or
-// bounce from one of them recorded nothing and the next email went out. The trigger
-// stays attached, and replacing a function body takes no table lock.
+// them the same way: on the list stored on the message, with a new row for a contact
+// who has none there. Automations email contacts who aren't on their list; before, a
+// complaint or bounce from one of them recorded nothing and the next email went out. A
+// message stored without a list still records nothing. The trigger stays attached, and
+// replacing a function body takes no table lock.
 func (m *V42Migration) installStatusChangeFunction(ctx context.Context, db DBExecutor) error {
 	_, err := db.ExecContext(ctx, schema.UpdateContactListsOnStatusChangeFunction())
 	return err

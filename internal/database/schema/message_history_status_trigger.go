@@ -12,9 +12,10 @@ package schema
 //
 // What it does, for a new complaint (complained_at set) or a new hard bounce (bounced_at
 // set; the application sets it only for hard bounces):
-//   - The list is the one stored on the message, as broadcasts store it. An automation
-//     message stored without one was sent for the automation's list, the fallback
-//     MessageHistoryRepository.WasSentForList also reads.
+//   - The list is message_history.list_id, which broadcasts and automations store. A
+//     message without one (a transactional email, or an automation email sent before
+//     automations stored their list) changes no list status. The automation's current
+//     list is deliberately not used: it may have changed since the email went out.
 //   - The contact's row on that list takes the status, a removed row included. It stays
 //     removed: a removal is not membership, and the automation email gate reads the
 //     status of a removed row.
@@ -30,20 +31,10 @@ func UpdateContactListsOnStatusChangeFunction() string {
 		DECLARE
 			is_complaint BOOLEAN;
 			is_bounce BOOLEAN;
-			target_list_id TEXT;
 		BEGIN
 			is_complaint := NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL;
 			is_bounce := NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL;
-			IF NOT is_complaint AND NOT is_bounce THEN
-				RETURN NEW;
-			END IF;
-
-			-- The list the message was sent for
-			target_list_id := NEW.list_id;
-			IF target_list_id IS NULL AND NEW.automation_id IS NOT NULL THEN
-				SELECT a.list_id INTO target_list_id FROM automations a WHERE a.id = NEW.automation_id;
-			END IF;
-			IF target_list_id IS NULL OR target_list_id = '' THEN
+			IF (NOT is_complaint AND NOT is_bounce) OR NEW.list_id IS NULL THEN
 				RETURN NEW;
 			END IF;
 
@@ -53,13 +44,13 @@ func UpdateContactListsOnStatusChangeFunction() string {
 				SET status = 'complained',
 					updated_at = NEW.complained_at
 				WHERE email = NEW.contact_email
-				AND list_id = target_list_id
+				AND list_id = NEW.list_id
 				AND status != 'complained';
 				IF NOT FOUND THEN
 					INSERT INTO contact_lists (email, list_id, status, created_at, updated_at)
-					SELECT NEW.contact_email, target_list_id, 'complained', NEW.complained_at, NEW.complained_at
+					SELECT NEW.contact_email, NEW.list_id, 'complained', NEW.complained_at, NEW.complained_at
 					WHERE EXISTS (SELECT 1 FROM contacts c WHERE c.email = NEW.contact_email)
-					AND EXISTS (SELECT 1 FROM lists l WHERE l.id = target_list_id AND l.deleted_at IS NULL)
+					AND EXISTS (SELECT 1 FROM lists l WHERE l.id = NEW.list_id AND l.deleted_at IS NULL)
 					ON CONFLICT (email, list_id) DO NOTHING;
 				END IF;
 			END IF;
@@ -70,13 +61,13 @@ func UpdateContactListsOnStatusChangeFunction() string {
 				SET status = 'bounced',
 					updated_at = NEW.bounced_at
 				WHERE email = NEW.contact_email
-				AND list_id = target_list_id
+				AND list_id = NEW.list_id
 				AND status NOT IN ('complained', 'bounced');
 				IF NOT FOUND THEN
 					INSERT INTO contact_lists (email, list_id, status, created_at, updated_at)
-					SELECT NEW.contact_email, target_list_id, 'bounced', NEW.bounced_at, NEW.bounced_at
+					SELECT NEW.contact_email, NEW.list_id, 'bounced', NEW.bounced_at, NEW.bounced_at
 					WHERE EXISTS (SELECT 1 FROM contacts c WHERE c.email = NEW.contact_email)
-					AND EXISTS (SELECT 1 FROM lists l WHERE l.id = target_list_id AND l.deleted_at IS NULL)
+					AND EXISTS (SELECT 1 FROM lists l WHERE l.id = NEW.list_id AND l.deleted_at IS NULL)
 					ON CONFLICT (email, list_id) DO NOTHING;
 				END IF;
 			END IF;

@@ -3,7 +3,6 @@ package integration
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -82,7 +81,7 @@ func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 
 	automationID := shortuuid.New()
 	eventName := "complaint_not_on_list_" + uuid.New().String()[:8]
-	createNotOnListAutomation(t, client, workspace.ID, automationID, list.ID, eventName, template.ID)
+	createActiveAutomation(t, client, workspace.ID, automationID, list.ID, eventName, template.ID)
 
 	post := func(t *testing.T, path string, body map[string]interface{}) {
 		t.Helper()
@@ -120,7 +119,7 @@ func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 		require.NoError(t, factory.CreateCustomEvent(workspace.ID, email, eventName, map[string]interface{}{}))
 		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
 		require.NoError(t, err, "the automation email should reach Mailpit")
-		messageID := notOnListHeader(t, msg, "X-Message-ID")
+		messageID := deliveredHeader(t, msg, "X-Message-ID")
 
 		// An SMTP send records its message_history row only once the server accepted it
 		testutil.WaitForCondition(t, func() bool {
@@ -183,11 +182,11 @@ func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 
 	complain := func(t *testing.T, messageID, email string) {
 		t.Helper()
-		postNotOnListSES(t, client, webhookURL, notOnListComplaintPayload(messageID, email))
+		postSESNotification(t, client, webhookURL, sesComplaintPayload(messageID, email))
 	}
 	hardBounce := func(t *testing.T, messageID, email string) {
 		t.Helper()
-		postNotOnListSES(t, client, webhookURL,
+		postSESNotification(t, client, webhookURL,
 			sesBouncePayload(messageID, email, "Permanent", "General", "smtp; 550 5.1.1 user unknown"))
 	}
 
@@ -353,7 +352,8 @@ func TestStatusChangeTriggerRecordsTheListRow(t *testing.T) {
 		return id
 	}
 	// message stores a sent email as the queue worker does: a broadcast records its list,
-	// an automation message (before 42) only the automation.
+	// and so does an automation email since 42; one sent before recorded only the
+	// automation.
 	message := func(t *testing.T, email string, listID, automationID interface{}) string {
 		t.Helper()
 		id := uuid.New().String()
@@ -410,14 +410,23 @@ func TestStatusChangeTriggerRecordsTheListRow(t *testing.T) {
 		assert.Nil(t, prev, "a new row has no previous status")
 	})
 
-	t.Run("automation message stored without a list: the automation's list", func(t *testing.T) {
-		email := newContact(t)
-		complain(t, message(t, email, nil, newAutomation(t, list.ID)))
+	// The automation's list may have changed since an email sent before 42, so the
+	// complaint could land on a list the email was never sent for.
+	t.Run("automation message sent before 42, stored without a list: nothing is recorded, on the automation's list or any", func(t *testing.T) {
+		member := newContact(t)
+		addRow(t, member, list.ID, domain.ContactListStatusActive)
+		nonMember := newContact(t)
+		automationID := newAutomation(t, list.ID)
 
-		assert.Equal(t, &listRow{status: "complained"}, rowOf(t, email, list.ID))
+		complain(t, message(t, member, nil, automationID))
+		bounce(t, message(t, nonMember, nil, automationID))
+
+		assert.Equal(t, &listRow{status: "active"}, rowOf(t, member, list.ID))
+		assert.Equal(t, 1, rows(t, member))
+		assert.Zero(t, rows(t, nonMember))
 	})
 
-	t.Run("the stored list wins over the automation's", func(t *testing.T) {
+	t.Run("an automation email records the list stored on it, not the automation's current one", func(t *testing.T) {
 		email := newContact(t)
 		complain(t, message(t, email, list.ID, newAutomation(t, other.ID)))
 
@@ -507,124 +516,7 @@ func TestStatusChangeTriggerRecordsTheListRow(t *testing.T) {
 		require.NoError(t, tx.Commit())
 
 		after := newContact(t)
-		complain(t, message(t, after, nil, newAutomation(t, list.ID)))
+		complain(t, message(t, after, list.ID, newAutomation(t, list.ID)))
 		assert.Equal(t, &listRow{status: "complained"}, rowOf(t, after, list.ID))
 	})
-}
-
-// createNotOnListAutomation creates and activates an automation on listID: a custom
-// event, then an email with templateID.
-func createNotOnListAutomation(t *testing.T, client *testutil.APIClient, workspaceID, automationID, listID, eventName, templateID string) {
-	t.Helper()
-	triggerNodeID := shortuuid.New()
-	emailNodeID := shortuuid.New()
-
-	resp, err := client.CreateAutomation(map[string]interface{}{
-		"workspace_id": workspaceID,
-		"automation": map[string]interface{}{
-			"id":           automationID,
-			"workspace_id": workspaceID,
-			"name":         "Complaint from a contact not on the list",
-			"status":       "draft",
-			"list_id":      listID,
-			"trigger": map[string]interface{}{
-				"event_kind":        "custom_event",
-				"custom_event_name": eventName,
-				"frequency":         "every_time",
-			},
-			"root_node_id": triggerNodeID,
-			"nodes": []map[string]interface{}{
-				{
-					"id":            triggerNodeID,
-					"automation_id": automationID,
-					"type":          "trigger",
-					"config":        map[string]interface{}{},
-					"next_node_id":  emailNodeID,
-					"position":      map[string]interface{}{"x": 0, "y": 0},
-				},
-				{
-					"id":            emailNodeID,
-					"automation_id": automationID,
-					"type":          "email",
-					"config":        map[string]interface{}{"template_id": templateID},
-					"position":      map[string]interface{}{"x": 0, "y": 100},
-				},
-			},
-			"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
-		},
-	})
-	require.NoError(t, err)
-	body, _ := io.ReadAll(resp.Body)
-	_ = resp.Body.Close()
-	require.Equal(t, http.StatusCreated, resp.StatusCode, "create automation: %s", body)
-
-	resp, err = client.ActivateAutomation(map[string]interface{}{
-		"workspace_id":  workspaceID,
-		"automation_id": automationID,
-	})
-	require.NoError(t, err)
-	body, _ = io.ReadAll(resp.Body)
-	_ = resp.Body.Close()
-	require.Equal(t, http.StatusOK, resp.StatusCode, "activate automation: %s", body)
-}
-
-// notOnListHeader returns the one value of a header of a delivered email, matching the
-// name case-insensitively as mail headers are.
-func notOnListHeader(t *testing.T, msg *testutil.MailpitMessage, name string) string {
-	t.Helper()
-	for key, values := range msg.Headers {
-		if strings.EqualFold(key, name) {
-			require.Len(t, values, 1, "expected one %s header", name)
-			return strings.TrimSpace(values[0])
-		}
-	}
-	require.Failf(t, "missing header", "the delivered email has no %s header", name)
-	return ""
-}
-
-// postNotOnListSES POSTs an SNS-wrapped SES notification and expects 200.
-func postNotOnListSES(t *testing.T, client *testutil.APIClient, webhookURL, payload string) {
-	t.Helper()
-	resp, err := client.PostRaw(webhookURL, payload)
-	require.NoError(t, err)
-	body, _ := io.ReadAll(resp.Body)
-	_ = resp.Body.Close()
-	require.Equal(t, http.StatusOK, resp.StatusCode, "webhook POST: %s", body)
-}
-
-// notOnListComplaintPayload builds an SNS-wrapped SES complaint notification in the format
-// AWS publishes for a configuration set's event destination. SES copies the sent email's
-// headers into mail.headers, which is how the complaint names the Notifuse message.
-func notOnListComplaintPayload(notifuseMessageID, recipientEmail string) string {
-	now := time.Now().UTC().Format(time.RFC3339)
-	message := map[string]interface{}{
-		"eventType": "Complaint",
-		"complaint": map[string]interface{}{
-			"complainedRecipients":  []map[string]interface{}{{"emailAddress": recipientEmail}},
-			"timestamp":             now,
-			"feedbackId":            "feedback-" + uuid.New().String(),
-			"complaintFeedbackType": "abuse",
-		},
-		"mail": map[string]interface{}{
-			"timestamp":   now,
-			"messageId":   "ses-" + uuid.New().String(),
-			"source":      "test@example.com",
-			"destination": []string{recipientEmail},
-			"headers": []map[string]string{
-				{"name": "X-Message-ID", "value": notifuseMessageID},
-				{"name": "To", "value": recipientEmail},
-			},
-		},
-	}
-	messageBytes, _ := json.Marshal(message)
-
-	envelope := map[string]interface{}{
-		"Type":      "Notification",
-		"MessageId": "sns-" + uuid.New().String(),
-		"TopicArn":  "arn:aws:sns:us-east-1:123456789012:test-topic",
-		"Message":   string(messageBytes),
-		"Timestamp": now,
-	}
-	envelopeBytes, _ := json.Marshal(envelope)
-	return string(envelopeBytes)
 }
