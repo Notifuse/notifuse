@@ -7002,7 +7002,7 @@
     "/subscribe": {
       "post": {
         "summary": "Subscribe to email lists",
-        "description": "Subscribe a contact to one or more email lists. This is a public endpoint that doesn't require authentication.\n\n**Important:** For unauthenticated requests, only **public lists** can be subscribed to. To subscribe to private lists, you can either:\n- Provide a valid `email_hmac` in the contact object (used by the notification center for re-subscribing after unsubscribing)\n- Use the authenticated `/api/lists.subscribe` endpoint with a bearer token\n\nIf the list has double opt-in enabled, a confirmation email will be sent.\n",
+        "description": "Subscribe a contact to one or more email lists. This is a public endpoint that doesn't require authentication.\n\n**Important:** This endpoint subscribes contacts to **public lists** only. To add a contact to a private list, use the authenticated `/api/lists.subscribe` endpoint with a bearer token. A valid `email_hmac` in the contact object only lets the contact confirm a pending double opt-in on a private list: it never adds them to one, nor back to one they left.\n\nIf the list has double opt-in enabled, a confirmation email will be sent.\n",
         "operationId": "subscribeToLists",
         "security": [],
         "requestBody": {
@@ -8962,7 +8962,8 @@
           },
           "exclude_unsubscribed": {
             "type": "boolean",
-            "description": "Whether to exclude unsubscribed contacts",
+            "default": true,
+            "description": "Whether to exclude the list's unsubscribed contacts. Omitting the key excludes them; send false to mail them too, e.g. for a legal notice. Bounced and complained contacts are never mailed, whatever this value.",
             "example": true
           }
         }
@@ -8988,7 +8989,7 @@
           },
           "exclude_unsubscribed": {
             "type": "boolean",
-            "description": "Whether to exclude unsubscribed contacts. Omit to keep the stored value; send false to mail them too.",
+            "description": "Whether to exclude the list's unsubscribed contacts. Omit to keep the stored value; send false to mail them too. Bounced and complained contacts are never mailed, whatever this value.",
             "example": true
           }
         }

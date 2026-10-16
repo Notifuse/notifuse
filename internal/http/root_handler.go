@@ -45,6 +45,11 @@ type RootHandler struct {
 	// nil means disabled. Every caller that has an OIDC service passes its IsEnabled.
 	oidcEnabled     func() bool
 	oidcButtonLabel string
+	// webhookAllowPrivateHosts is WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS. The console
+	// reads it to decide whether a webhook node aimed at a private address is an
+	// error to show and a save to block. The server enforces the setting itself, on
+	// save and at dial time, whatever the console shows.
+	webhookAllowPrivateHosts bool
 }
 
 // NewRootHandler creates a root handler that serves both console and notification center static files
@@ -65,24 +70,26 @@ func NewRootHandler(
 	cache cache.Cache,
 	oidcEnabled func() bool,
 	oidcButtonLabel string,
+	webhookAllowPrivateHosts bool,
 ) *RootHandler {
 	return &RootHandler{
-		consoleDir:            consoleDir,
-		notificationCenterDir: notificationCenterDir,
-		logger:                logger,
-		apiEndpoint:           apiEndpoint,
-		version:               version,
-		rootEmail:             rootEmail,
-		isInstalledPtr:        isInstalledPtr,
-		smtpBridgeEnabled:     smtpBridgeEnabled,
-		smtpBridgeDomain:      smtpBridgeDomain,
-		smtpBridgePort:        smtpBridgePort,
-		smtpBridgeTLSMode:     smtpBridgeTLSMode,
-		workspaceRepo:         workspaceRepo,
-		blogService:           blogService,
-		cache:                 cache,
-		oidcEnabled:           oidcEnabled,
-		oidcButtonLabel:       oidcButtonLabel,
+		consoleDir:               consoleDir,
+		notificationCenterDir:    notificationCenterDir,
+		logger:                   logger,
+		apiEndpoint:              apiEndpoint,
+		version:                  version,
+		rootEmail:                rootEmail,
+		isInstalledPtr:           isInstalledPtr,
+		smtpBridgeEnabled:        smtpBridgeEnabled,
+		smtpBridgeDomain:         smtpBridgeDomain,
+		smtpBridgePort:           smtpBridgePort,
+		smtpBridgeTLSMode:        smtpBridgeTLSMode,
+		workspaceRepo:            workspaceRepo,
+		blogService:              blogService,
+		cache:                    cache,
+		oidcEnabled:              oidcEnabled,
+		oidcButtonLabel:          oidcButtonLabel,
+		webhookAllowPrivateHosts: webhookAllowPrivateHosts,
 	}
 }
 
@@ -174,8 +181,14 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 		oidcButtonLabel = "Sign in with SSO"
 	}
 
+	// Only the flag: which hosts it would allow, and why, stay on the server.
+	webhookAllowPrivateHostsStr := "false"
+	if h.webhookAllowPrivateHosts {
+		webhookAllowPrivateHostsStr = "true"
+	}
+
 	configJS := fmt.Sprintf(
-		"window.API_ENDPOINT = %q;\nwindow.VERSION = %q;\nwindow.ROOT_EMAIL = %q;\nwindow.IS_INSTALLED = %s;\nwindow.TIMEZONES = %s;\nwindow.SMTP_BRIDGE_ENABLED = %s;\nwindow.SMTP_BRIDGE_DOMAIN = %q;\nwindow.SMTP_BRIDGE_PORT = %d;\nwindow.SMTP_BRIDGE_TLS_MODE = %q;\nwindow.OIDC_ENABLED = %s;\nwindow.OIDC_BUTTON_LABEL = %q;",
+		"window.API_ENDPOINT = %q;\nwindow.VERSION = %q;\nwindow.ROOT_EMAIL = %q;\nwindow.IS_INSTALLED = %s;\nwindow.TIMEZONES = %s;\nwindow.SMTP_BRIDGE_ENABLED = %s;\nwindow.SMTP_BRIDGE_DOMAIN = %q;\nwindow.SMTP_BRIDGE_PORT = %d;\nwindow.SMTP_BRIDGE_TLS_MODE = %q;\nwindow.OIDC_ENABLED = %s;\nwindow.OIDC_BUTTON_LABEL = %q;\nwindow.WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS = %s;",
 		h.apiEndpoint,
 		h.version,
 		h.rootEmail,
@@ -187,6 +200,7 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 		h.smtpBridgeTLSMode,
 		oidcEnabledStr,
 		oidcButtonLabel,
+		webhookAllowPrivateHostsStr,
 	)
 	_, _ = w.Write([]byte(configJS))
 }

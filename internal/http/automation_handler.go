@@ -69,6 +69,13 @@ func (h *AutomationHandler) handleCreate(w http.ResponseWriter, r *http.Request)
 		if writePermissionError(w, err) {
 			return
 		}
+		// The caller's own input, such as a webhook node aimed at an internal
+		// address: say why, rather than a 500 that blames the server.
+		var validationErr domain.ValidationError
+		if errors.As(err, &validationErr) {
+			WriteJSONError(w, validationErr.Message, http.StatusBadRequest)
+			return
+		}
 		WriteJSONError(w, "Failed to create automation", http.StatusInternalServerError)
 		return
 	}
@@ -154,6 +161,11 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 	if err := h.service.Update(r.Context(), req.WorkspaceID, req.Automation); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to update automation")
 		if writePermissionError(w, err) {
+			return
+		}
+		var validationErr domain.ValidationError
+		if errors.As(err, &validationErr) {
+			WriteJSONError(w, validationErr.Message, http.StatusBadRequest)
 			return
 		}
 		// An update to a live automation regenerates its trigger, so the same

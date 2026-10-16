@@ -27,9 +27,10 @@ type Config struct {
 	OIDC       OIDCConfig
 	Demo       DemoConfig
 	Broadcast  BroadcastConfig
-	// Webhook holds settings for OUTGOING webhook delivery — the subscriptions
-	// this deployment posts to. Not to be confused with WebhookEndpoint below,
-	// which is the public address email providers post INBOUND events to.
+	// Webhook holds settings for OUTGOING webhooks — the subscriptions and the
+	// automation webhook nodes this deployment posts to. Not to be confused with
+	// WebhookEndpoint below, which is the public address email providers post
+	// INBOUND events to.
 	Webhook             WebhookConfig
 	TaskScheduler       TaskSchedulerConfig
 	AutomationScheduler AutomationSchedulerConfig
@@ -212,14 +213,20 @@ type BroadcastConfig struct {
 }
 
 type WebhookConfig struct {
-	// AllowPrivateDeliveryHosts disables SSRF protection on outgoing webhook
-	// deliveries, allowing subscriptions to target private/loopback/link-local
-	// addresses. Off by default. Only enable in trusted, self-hosted deployments
-	// that intentionally deliver webhooks to services on their internal network.
+	// AllowPrivateDeliveryHosts disables SSRF protection on outgoing webhooks,
+	// allowing subscriptions and automation webhook nodes to target
+	// private/loopback/link-local addresses. Off by default. Only enable in
+	// trusted, self-hosted deployments that intentionally deliver webhooks to
+	// services on their internal network.
 	//
-	// Deliberately separate from BroadcastConfig.AllowPrivateDataFeedHosts: the
-	// two relax different outbound paths for different reasons, and an operator
-	// who needs one should not be granted the other without naming it.
+	// Deliberately separate from BroadcastConfig.AllowPrivateDataFeedHosts:
+	// fetching feed content and posting webhooks are different features, and an
+	// operator who needs one should not be granted the other without naming it.
+	// Subscriptions and webhook nodes are one feature — posting an event about a
+	// contact to a URL a member chose, typically to the same internal receivers —
+	// so they share this setting. Turning it on trusts holders of
+	// webhook_subscriptions:write and of automations:write alike with the
+	// deployment's network.
 	AllowPrivateDeliveryHosts bool
 }
 

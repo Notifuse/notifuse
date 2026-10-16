@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/Notifuse/notifuse/pkg/safehttpclient"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1146,7 +1148,7 @@ func TestAutomationExecutor_Execute_WebhookNode_Success(t *testing.T) {
 		contactRepo:    mockContactRepo,
 		timelineRepo:   mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
-			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
+			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger, permissiveWebhookClient()),
 		},
 		logger: mockLogger,
 	}
@@ -1237,7 +1239,7 @@ func TestAutomationExecutor_Execute_WebhookNode_WithSecret(t *testing.T) {
 		contactRepo:    mockContactRepo,
 		timelineRepo:   mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
-			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
+			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger, permissiveWebhookClient()),
 		},
 		logger: mockLogger,
 	}
@@ -1308,7 +1310,7 @@ func TestAutomationExecutor_Execute_WebhookNode_ServerError_TriggersRetry(t *tes
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
-			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
+			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger, permissiveWebhookClient()),
 		},
 		logger: mockLogger,
 	}
@@ -1364,6 +1366,89 @@ func TestAutomationExecutor_Execute_WebhookNode_ServerError_TriggersRetry(t *tes
 	assert.NotNil(t, contactAutomation.ScheduledAt)
 }
 
+// A target the guard refuses goes through the same retry path as any other
+// webhook failure: the journey is rescheduled, and fails only once its retries
+// are spent. The receiver answers 500 so that a run without the guard takes this
+// very path too, and fails on the assertions below rather than somewhere else.
+func TestAutomationExecutor_Execute_WebhookNode_PrivateTargetRefused_IsRetried(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockLogger := setupMockLogger(ctrl)
+
+	var hits int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&hits, 1)
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"error": "internal server error"}`))
+	}))
+	defer server.Close()
+
+	executor := &AutomationExecutor{
+		automationRepo: mockAutomationRepo,
+		contactRepo:    mockContactRepo,
+		nodeExecutors: map[domain.NodeType]NodeExecutor{
+			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger, safehttpclient.New()),
+		},
+		logger: mockLogger,
+	}
+
+	workspaceID := "ws1"
+	nodeID := "webhook_node1"
+	contactAutomation := &domain.ContactAutomation{
+		ID:            "ca1",
+		AutomationID:  "auto1",
+		ContactEmail:  "test@example.com",
+		CurrentNodeID: &nodeID,
+		Status:        domain.ContactAutomationStatusActive,
+		RetryCount:    0,
+		MaxRetries:    3,
+	}
+	automation := &domain.Automation{
+		ID:     "auto1",
+		Name:   "Test Automation",
+		Status: domain.AutomationStatusLive,
+		Nodes: []*domain.AutomationNode{{
+			ID:     nodeID,
+			Type:   domain.NodeTypeWebhook,
+			Config: map[string]interface{}{"url": server.URL},
+		}},
+	}
+
+	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(&domain.Contact{Email: "test@example.com"}, nil)
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
+	var failed *domain.NodeExecution
+	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, entry *domain.NodeExecution) error {
+			failed = entry
+			return nil
+		})
+	// handleError: its own failed row, then the rescheduled journey.
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+
+	require.NoError(t, executor.Execute(context.Background(), workspaceID, contactAutomation))
+
+	require.NotNil(t, failed)
+	assert.Equal(t, domain.NodeActionFailed, failed.Action)
+	require.NotNil(t, failed.Error)
+	assert.Contains(t, *failed.Error, "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS")
+	// createNodeExecution starts Output as an empty map, so it is not nil.
+	assert.NotContains(t, failed.Output, "response", "nothing from a refused target is stored")
+	assert.NotContains(t, failed.Output, "status_code")
+
+	assert.Equal(t, 1, contactAutomation.RetryCount)
+	assert.NotNil(t, contactAutomation.ScheduledAt, "the journey is rescheduled, not failed")
+	assert.Equal(t, domain.ContactAutomationStatusActive, contactAutomation.Status)
+	require.NotNil(t, contactAutomation.LastError)
+	assert.Contains(t, *contactAutomation.LastError, "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS")
+	assert.Equal(t, int32(0), atomic.LoadInt32(&hits), "a refused target must never be contacted")
+}
+
 func TestAutomationExecutor_Execute_WebhookNode_ClientError_TriggersRetry(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1383,7 +1468,7 @@ func TestAutomationExecutor_Execute_WebhookNode_ClientError_TriggersRetry(t *tes
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
-			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
+			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger, permissiveWebhookClient()),
 		},
 		logger: mockLogger,
 	}
@@ -1459,7 +1544,7 @@ func TestAutomationExecutor_Execute_WebhookNode_TerminalNode(t *testing.T) {
 		contactRepo:    mockContactRepo,
 		timelineRepo:   mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
-			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
+			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger, permissiveWebhookClient()),
 		},
 		logger: mockLogger,
 	}
@@ -1537,7 +1622,7 @@ func TestAutomationExecutor_Execute_WebhookNode_ResponseStoredInContext(t *testi
 		contactRepo:    mockContactRepo,
 		timelineRepo:   mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
-			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
+			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger, permissiveWebhookClient()),
 		},
 		logger: mockLogger,
 	}

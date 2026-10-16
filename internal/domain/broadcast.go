@@ -445,15 +445,53 @@ type CreateBroadcastRequest struct {
 	UTMParameters *UTMParameters        `json:"utm_parameters,omitempty"`
 	Metadata      MapOfAny              `json:"metadata,omitempty"`
 	DataFeed      *DataFeedSettings     `json:"data_feed,omitempty"`
+
+	// Written by UnmarshalJSON only. A request assembled in Go has no wire body to read
+	// presence from, so it keeps the exclude_unsubscribed value it was given.
+	audienceExcludeUnsubscribedOmitted bool
+}
+
+// UnmarshalJSON decodes the request and records whether the audience carried
+// exclude_unsubscribed. A plain bool reads an omitted key as false, which would mail the
+// list's unsubscribed contacts to every API client that never heard of the key; Validate
+// turns an omitted key into true instead, the console's default. A null counts as
+// omitted.
+func (r *CreateBroadcastRequest) UnmarshalJSON(data []byte) error {
+	// The alias drops the methods, so this does not recurse.
+	type alias CreateBroadcastRequest
+	if err := json.Unmarshal(data, (*alias)(r)); err != nil {
+		return err
+	}
+
+	var sent map[string]json.RawMessage
+	if err := json.Unmarshal(data, &sent); err != nil {
+		return err
+	}
+
+	// The decode above has already accepted the audience as an object or a null.
+	var audience map[string]json.RawMessage
+	if !jsonKeyOmitted(sent, "audience") {
+		if err := json.Unmarshal(sent["audience"], &audience); err != nil {
+			return err
+		}
+	}
+	r.audienceExcludeUnsubscribedOmitted = jsonKeyOmitted(audience, "exclude_unsubscribed")
+
+	return nil
 }
 
 // Validate validates the create broadcast request
 func (r *CreateBroadcastRequest) Validate() (*Broadcast, error) {
+	audience := r.Audience
+	if r.audienceExcludeUnsubscribedOmitted {
+		audience.ExcludeUnsubscribed = true
+	}
+
 	broadcast := &Broadcast{
 		WorkspaceID:   r.WorkspaceID,
 		Name:          r.Name,
 		Status:        BroadcastStatusDraft,
-		Audience:      r.Audience,
+		Audience:      audience,
 		Schedule:      ScheduleSettings{}, // Empty schedule - must use broadcasts.schedule endpoint
 		TestSettings:  r.TestSettings,
 		UTMParameters: r.UTMParameters,

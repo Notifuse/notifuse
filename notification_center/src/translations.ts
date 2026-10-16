@@ -305,6 +305,19 @@ export const translations: TranslationObject = {
     ru: 'Вы уже отписаны от этого списка.',
     ja: 'このリストの登録はすでに解除されています。',
     pl: 'Jesteś już wypisany z tej listy.'
+  },
+  unsubscribedStatus: {
+    en: 'Unsubscribed',
+    fr: 'Désabonné',
+    es: 'Dado de baja',
+    de: 'Abgemeldet',
+    zh: '已取消订阅',
+    hi: 'सदस्यता समाप्त',
+    ar: 'تم إلغاء الاشتراك',
+    pt: 'Inscrição cancelada',
+    ru: 'Подписка отменена',
+    ja: '登録解除済み',
+    pl: 'Wypisano'
   }
 }
 

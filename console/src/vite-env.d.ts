@@ -12,6 +12,8 @@ declare global {
     SMTP_BRIDGE_TLS_MODE: 'off' | 'starttls' | 'implicit'
     OIDC_ENABLED: boolean
     OIDC_BUTTON_LABEL: string
+    // Absent from a config.js that predates it; read as not opted out.
+    WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS?: boolean
   }
 }
 

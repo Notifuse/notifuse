@@ -349,6 +349,28 @@ func (r *MessageHistoryRepository) GetBySMTPMessageID(ctx context.Context, works
 	return message, nil
 }
 
+// WasSentForList reports whether a message was sent to email for listID. A broadcast send
+// records its list on the message; an automation send records only the automation, so
+// its list is read from there.
+func (r *MessageHistoryRepository) WasSentForList(ctx context.Context, workspaceID, messageID, email, listID string) (bool, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `SELECT EXISTS (
+		SELECT 1 FROM message_history mh
+		LEFT JOIN automations a ON a.id = mh.automation_id
+		WHERE mh.id = $1 AND mh.contact_email = $2 AND (mh.list_id = $3 OR a.list_id = $3)
+	)`
+
+	var sent bool
+	if err := workspaceDB.QueryRowContext(ctx, query, messageID, email, listID).Scan(&sent); err != nil {
+		return false, fmt.Errorf("failed to check the list of message %s: %w", messageID, err)
+	}
+	return sent, nil
+}
+
 // SetStatusesIfNotSet updates multiple message statuses in a single batch operation
 // but only if the corresponding status timestamp is not already set
 func (r *MessageHistoryRepository) SetStatusesIfNotSet(ctx context.Context, workspaceID string, updates []domain.MessageEventUpdate) error {

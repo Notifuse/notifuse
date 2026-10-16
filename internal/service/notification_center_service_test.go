@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
@@ -14,7 +15,66 @@ import (
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+// The preferences page shows the lists a contact can act on. Private lists they left or
+// were never on are the workspace's to manage, and a removed row keeps its last status,
+// so it would show a removed member as subscribed.
+func TestNotificationCenterService_GetContactPreferences_ListsTheContactCanActOn(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockListRepo := mocks.NewMockListRepository(ctrl)
+	service := NewNotificationCenterService(mockContactRepo, mockWorkspaceRepo, mockListRepo, pkgmocks.NewMockLogger(ctrl))
+
+	email := "user@example.com"
+	row := func(listID string, status domain.ContactListStatus) *domain.ContactList {
+		return &domain.ContactList{Email: email, ListID: listID, Status: status}
+	}
+	removedAt := time.Now()
+	removed := row("public-removed", domain.ContactListStatusActive)
+	removed.DeletedAt = &removedAt
+
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace-123").Return(&domain.Workspace{
+		ID:       "workspace-123",
+		Settings: domain.WorkspaceSettings{SecretKey: "test-secret-key"},
+	}, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), "workspace-123", email).Return(&domain.Contact{
+		Email: email,
+		ContactLists: []*domain.ContactList{
+			row("public-left", domain.ContactListStatusUnsubscribed),
+			row("private-on", domain.ContactListStatusActive),
+			row("private-pending", domain.ContactListStatusPending),
+			row("private-left", domain.ContactListStatusUnsubscribed),
+			row("private-bounced", domain.ContactListStatusBounced),
+			removed,
+		},
+	}, nil)
+	mockListRepo.EXPECT().GetLists(gomock.Any(), "workspace-123").Return([]*domain.List{
+		{ID: "public-left", IsPublic: true},
+		{ID: "public-removed", IsPublic: true},
+		{ID: "private-on"},
+		{ID: "private-pending"},
+		{ID: "private-left"},
+		{ID: "private-bounced"},
+	}, nil)
+
+	resp, err := service.GetContactPreferences(context.Background(), "workspace-123", email,
+		crypto.ComputeHMAC256([]byte(email), "test-secret-key"))
+	require.NoError(t, err)
+
+	listIDs := func(rows []*domain.ContactList) []string {
+		ids := []string{}
+		for _, r := range rows {
+			ids = append(ids, r.ListID)
+		}
+		return ids
+	}
+	want := []string{"public-left", "private-on", "private-pending"}
+	assert.Equal(t, want, listIDs(resp.ContactLists))
+	assert.Equal(t, want, listIDs(resp.Contact.ContactLists), "the contact object carries the same rows")
+}
 
 // TestNotificationCenterService extends the original service to allow easier testing
 type TestNotificationCenterService struct {

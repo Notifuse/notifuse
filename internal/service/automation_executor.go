@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -36,6 +37,7 @@ func NewAutomationExecutor(
 	timelineRepo domain.ContactTimelineRepository,
 	log logger.Logger,
 	apiEndpoint string,
+	webhookHTTPClient *http.Client,
 ) *AutomationExecutor {
 	qb := NewQueryBuilder()
 
@@ -48,7 +50,7 @@ func NewAutomationExecutor(
 		domain.NodeTypeAddToList:        NewAddToListNodeExecutor(contactListRepo),
 		domain.NodeTypeRemoveFromList:   NewRemoveFromListNodeExecutor(contactListRepo),
 		domain.NodeTypeABTest:           NewABTestNodeExecutor(),
-		domain.NodeTypeWebhook:          NewWebhookNodeExecutor(log),
+		domain.NodeTypeWebhook:          NewWebhookNodeExecutor(log, webhookHTTPClient),
 		domain.NodeTypeListStatusBranch: NewListStatusBranchNodeExecutor(contactListRepo),
 	}
 
@@ -264,7 +266,9 @@ func (e *AutomationExecutor) handleError(ctx context.Context, workspaceID string
 			"error":         errStr,
 		}).Error("Automation execution failed after max retries")
 	} else {
-		// Exponential backoff: 1min, 2min, 4min, etc.
+		// Exponential backoff on the count just incremented: 2 min after the first
+		// failure, then 4 min; the journey fails once RetryCount reaches MaxRetries
+		// (3 by default).
 		backoff := time.Duration(1<<uint(ca.RetryCount)) * time.Minute
 		nextRetry := time.Now().UTC().Add(backoff)
 		ca.ScheduledAt = &nextRetry

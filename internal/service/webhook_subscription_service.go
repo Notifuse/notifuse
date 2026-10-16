@@ -218,6 +218,10 @@ func validateURL(rawURL string, allowPrivateHosts bool) error {
 // network, and the dial refuses it there anyway — rejecting it by spelling would
 // block nothing and break the opt-out it is supposed to serve.
 func rejectPrivateWebhookHost(host string) error {
+	// A fully qualified name may end in a dot and resolves exactly like the name
+	// without it, so "localhost." must not slip past the checks below.
+	host = strings.TrimSuffix(host, ".")
+
 	refuse := func() error {
 		return fmt.Errorf(
 			"URL must not target a private or internal address (%s); set WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true to deliver webhooks to your own network",

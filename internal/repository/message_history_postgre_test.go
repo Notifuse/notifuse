@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"testing"
@@ -2170,6 +2171,55 @@ func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
 		err := repo.DeleteForEmail(ctx, workspaceID, email)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to get affected rows")
+	})
+}
+
+// WasSentForList decides whether an unsubscribe link may record an opt-out for a contact
+// with no row on the list, so the query must tie the message to the address and to the
+// list, through either the broadcast's list or the automation's.
+func TestMessageHistoryRepository_WasSentForList(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	query := `SELECT EXISTS \(\s*SELECT 1 FROM message_history mh\s+` +
+		`LEFT JOIN automations a ON a\.id = mh\.automation_id\s+` +
+		`WHERE mh\.id = \$1 AND mh\.contact_email = \$2 AND \(mh\.list_id = \$3 OR a\.list_id = \$3\)\s*\)`
+
+	for _, sent := range []bool{true, false} {
+		t.Run(fmt.Sprintf("returns %v", sent), func(t *testing.T) {
+			mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+			mock.ExpectQuery(query).
+				WithArgs("msg-1", "test@example.com", "list-1").
+				WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(sent))
+
+			got, err := repo.WasSentForList(ctx, workspaceID, "msg-1", "test@example.com", "list-1")
+			require.NoError(t, err)
+			assert.Equal(t, sent, got)
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+
+	t.Run("query error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).
+			WithArgs("msg-1", "test@example.com", "list-1").
+			WillReturnError(errors.New("connection reset"))
+
+		got, err := repo.WasSentForList(ctx, workspaceID, "msg-1", "test@example.com", "list-1")
+		require.Error(t, err)
+		assert.False(t, got)
+		assert.Contains(t, err.Error(), "connection reset")
+	})
+
+	t.Run("workspace connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(nil, errors.New("connection error"))
+
+		got, err := repo.WasSentForList(ctx, workspaceID, "msg-1", "test@example.com", "list-1")
+		require.Error(t, err)
+		assert.False(t, got)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
 	})
 }
 

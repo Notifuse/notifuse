@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/Notifuse/notifuse/pkg/safehttpclient"
 	"github.com/google/uuid"
 )
 
@@ -1099,16 +1101,30 @@ func parseABTestNodeConfig(config map[string]interface{}) (*domain.ABTestNodeCon
 	return &c, nil
 }
 
-// WebhookNodeExecutor executes webhook nodes
+// WebhookNodeExecutor executes webhook nodes.
+//
+// The URL is whatever a member holding automations:write typed, and up to 10 KB
+// of the response is stored on the node execution, where automations read
+// returns it. The client therefore decides where a node may connect: app wiring
+// passes the SSRF-safe one, which refuses private, loopback, link-local and
+// reserved addresses on the first hop and on every redirect, unless the
+// deployment opts out with WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS.
 type WebhookNodeExecutor struct {
 	httpClient *http.Client
 	logger     logger.Logger
 }
 
-// NewWebhookNodeExecutor creates a new webhook node executor
-func NewWebhookNodeExecutor(log logger.Logger) *WebhookNodeExecutor {
+// NewWebhookNodeExecutor creates a webhook node executor that sends with
+// httpClient. A nil client gets the SSRF-safe one, with the node's 30s timeout,
+// rather than an unguarded default: a caller that forgets to wire a client must
+// fail closed.
+func NewWebhookNodeExecutor(log logger.Logger, httpClient *http.Client) *WebhookNodeExecutor {
+	if httpClient == nil {
+		httpClient = safehttpclient.New()
+		httpClient.Timeout = 30 * time.Second
+	}
 	return &WebhookNodeExecutor{
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: httpClient,
 		logger:     log,
 	}
 }
@@ -1149,6 +1165,13 @@ func (e *WebhookNodeExecutor) Execute(ctx context.Context, params NodeExecutionP
 	// 4. Make HTTP POST request
 	resp, err := e.httpClient.Do(req)
 	if err != nil {
+		// The guard refused the address, on the first hop or on a redirect from it,
+		// so the message cannot assume the configured URL itself resolved privately.
+		// It names the opt-out because the likeliest cause after an upgrade is a
+		// deployment that deliberately posts to its own network.
+		if errors.Is(err, safehttpclient.ErrPrivateIP) {
+			return nil, fmt.Errorf("webhook request refused: %s, or a redirect from it, leads to a private or reserved address, which webhook nodes do not connect to; set WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true to deliver to your own network: %w", config.URL, err)
+		}
 		return nil, fmt.Errorf("webhook request failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -1161,7 +1184,9 @@ func (e *WebhookNodeExecutor) Execute(ctx context.Context, params NodeExecutionP
 
 	// 5. Handle response status
 	if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-		// 4xx - client error, fail immediately (won't be fixed by retry)
+		// 4xx - client error. Retried on the executor's backoff like any other node
+		// error (handleError has no non-retryable class) until the journey's
+		// retries run out.
 		return nil, fmt.Errorf("webhook returned client error: %d %s", resp.StatusCode, string(bodyBytes))
 	}
 	if resp.StatusCode >= 500 {

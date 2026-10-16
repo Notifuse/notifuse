@@ -1608,7 +1608,8 @@ func TestGetContactsForBroadcast(t *testing.T) {
 
 		repo := NewContactRepository(workspaceRepo)
 
-		// Audience targets a list; ExcludeUnsubscribed is false to isolate the double opt-in guard.
+		// Audience targets a list; ExcludeUnsubscribed is false, so only the always-on bounce and
+		// complaint filters sit beside the double opt-in guard.
 		audience := domain.AudienceSettings{
 			List:                "list-doi",
 			ExcludeUnsubscribed: false,
@@ -1639,11 +1640,11 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		)
 
 		// The query must include the double opt-in guard:
-		// (l.is_double_optin = $2 OR cl.status <> $3)
+		// (l.is_double_optin = $4 OR cl.status <> $5)
 		// This predicate, when evaluated by the DB, keeps only rows where either the list does
 		// NOT use double opt-in, or the contact's status is not 'pending'.
-		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND \(l\.is_double_optin = \$2 OR cl\.status <> \$3\) ORDER BY c\.email ASC LIMIT 10`).
-			WithArgs("list-doi", false, domain.ContactListStatusPending).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND \(l\.is_double_optin = \$4 OR cl\.status <> \$5\) ORDER BY c\.email ASC LIMIT 10`).
+			WithArgs("list-doi", domain.ContactListStatusBounced, domain.ContactListStatusComplained, false, domain.ContactListStatusPending).
 			WillReturnRows(rows)
 
 		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123", audience, 10, "")
@@ -1652,6 +1653,41 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		require.Len(t, contacts, 1)
 		assert.Equal(t, "confirmed@example.com", contacts[0].Contact.Email)
 		assert.Equal(t, "list-doi", contacts[0].ListID)
+	})
+
+	// exclude_unsubscribed false is a deliberate send to the list's unsubscribed contacts,
+	// never to an address that bounced or complained. WithArgs pins every bound status, so
+	// an unsubscribed filter, or a missing bounce or complaint one, fails the match.
+	t.Run("without exclude_unsubscribed still skips bounced and complained contacts", func(t *testing.T) {
+		mockDB, mock, cleanup := setupMockDB(t)
+		defer cleanup()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(mockDB, nil)
+
+		repo := NewContactRepository(workspaceRepo)
+
+		audience := domain.AudienceSettings{
+			List:                "list1",
+			ExcludeUnsubscribed: false,
+		}
+
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND \(l\.is_double_optin = \$4 OR cl\.status <> \$5\) ORDER BY c\.email ASC LIMIT 10`).
+			WithArgs("list1",
+				domain.ContactListStatusBounced,
+				domain.ContactListStatusComplained,
+				false,
+				domain.ContactListStatusPending).
+			WillReturnRows(sqlmock.NewRows([]string{"email"}))
+
+		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123", audience, 10, "")
+
+		require.NoError(t, err)
+		assert.Empty(t, contacts)
+		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }
 
@@ -1889,7 +1925,8 @@ func TestCountContactsForBroadcast(t *testing.T) {
 
 		repo := NewContactRepository(workspaceRepo)
 
-		// Audience targets a list; ExcludeUnsubscribed is false to isolate the double opt-in guard.
+		// Audience targets a list; ExcludeUnsubscribed is false, so only the always-on bounce and
+		// complaint filters sit beside the double opt-in guard.
 		audience := domain.AudienceSettings{
 			List:                "list-doi",
 			ExcludeUnsubscribed: false,
@@ -1898,14 +1935,46 @@ func TestCountContactsForBroadcast(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(3)
 
 		// Only confirmed contacts (status != 'pending') from a double opt-in list are counted.
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND \(l\.is_double_optin = \$2 OR cl\.status <> \$3\)`).
-			WithArgs("list-doi", false, domain.ContactListStatusPending).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND \(l\.is_double_optin = \$4 OR cl\.status <> \$5\)`).
+			WithArgs("list-doi", domain.ContactListStatusBounced, domain.ContactListStatusComplained, false, domain.ContactListStatusPending).
 			WillReturnRows(rows)
 
 		count, err := repo.CountContactsForBroadcast(context.Background(), "workspace123", audience)
 
 		require.NoError(t, err)
 		assert.Equal(t, 3, count)
+	})
+
+	t.Run("without exclude_unsubscribed still skips bounced and complained contacts", func(t *testing.T) {
+		mockDB, mock, cleanup := setupMockDB(t)
+		defer cleanup()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(mockDB, nil)
+
+		repo := NewContactRepository(workspaceRepo)
+
+		audience := domain.AudienceSettings{
+			List:                "list1",
+			ExcludeUnsubscribed: false,
+		}
+
+		// The same filters as GetContactsForBroadcast, so the count shown matches the send
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND \(l\.is_double_optin = \$4 OR cl\.status <> \$5\)`).
+			WithArgs("list1",
+				domain.ContactListStatusBounced,
+				domain.ContactListStatusComplained,
+				false,
+				domain.ContactListStatusPending).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(7))
+
+		count, err := repo.CountContactsForBroadcast(context.Background(), "workspace123", audience)
+
+		require.NoError(t, err)
+		assert.Equal(t, 7, count)
 	})
 }
 

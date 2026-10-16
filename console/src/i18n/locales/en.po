@@ -1581,7 +1581,7 @@ msgstr "Authentication Type"
 msgid "Author name is required"
 msgstr "Author name is required"
 
-#: src/components/automations/config/WebhookConfigForm.tsx:47
+#: src/components/automations/config/WebhookConfigForm.tsx:56
 msgid "Authorization Secret"
 msgstr "Authorization Secret"
 
@@ -2982,7 +2982,7 @@ msgstr "Configuration set"
 #: src/components/automations/nodes/DelayNode.tsx:20
 #: src/components/automations/nodes/RemoveFromListNode.tsx:52
 #: src/components/automations/nodes/TriggerNode.tsx:72
-#: src/components/automations/nodes/WebhookNode.tsx:55
+#: src/components/automations/nodes/WebhookNode.tsx:65
 #: src/components/settings/Integrations.tsx:1274
 #: src/components/settings/Integrations.tsx:1322
 msgid "Configure"
@@ -9547,7 +9547,7 @@ msgstr "Opt-in"
 msgid "Optional"
 msgstr "Optional"
 
-#: src/components/automations/config/WebhookConfigForm.tsx:53
+#: src/components/automations/config/WebhookConfigForm.tsx:62
 msgid "Optional bearer token"
 msgstr "Optional bearer token"
 
@@ -9559,7 +9559,7 @@ msgstr "Optional. Controls how much reasoning models think. Leave as Default for
 msgid "Optional. For OpenAI-compatible providers (Ollama, vLLM, LiteLLM, Azure, etc.). Leave empty for the default OpenAI endpoint."
 msgstr "Optional. For OpenAI-compatible providers (Ollama, vLLM, LiteLLM, Azure, etc.). Leave empty for the default OpenAI endpoint."
 
-#: src/components/automations/config/WebhookConfigForm.tsx:48
+#: src/components/automations/config/WebhookConfigForm.tsx:57
 msgid "Optional. If provided, sent as Authorization: Bearer <secret>"
 msgstr "Optional. If provided, sent as Authorization: Bearer <secret>"
 
@@ -10878,6 +10878,10 @@ msgstr "Refresh the list"
 #: src/components/contacts/ContactDetailsDrawer.tsx:680
 msgid "Refreshing contact data..."
 msgstr "Refreshing contact data..."
+
+#: src/components/automations/nodes/WebhookNode.tsx:62
+msgid "Refused: private address"
+msgstr "Refused: private address"
 
 #: src/components/settings/WebhookCard.tsx:363
 msgid "Regenerate"
@@ -13607,13 +13611,18 @@ msgstr "The URL must be publicly accessible. A POST request will be sent with br
 msgid "The URL must use HTTPS. A POST request will be sent with contact information for each recipient."
 msgstr "The URL must use HTTPS. A POST request will be sent with contact information for each recipient."
 
-#: src/components/automations/config/WebhookConfigForm.tsx:37
+#: src/components/automations/config/WebhookConfigForm.tsx:46
 msgid "The URL to send the POST request to"
 msgstr "The URL to send the POST request to"
 
 #: src/components/integrations/SupabaseIntegration.tsx:208
 msgid "The user_metadata field in Supabase will be saved to this custom JSON field"
 msgstr "The user_metadata field in Supabase will be saved to this custom JSON field"
+
+#: src/components/automations/config/WebhookConfigForm.tsx:36
+#: src/components/automations/utils/flowConverter.ts:543
+msgid "The webhook URL points at a private or internal address ({host}), which Notifuse does not connect to. Use a public URL, or set WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true on a self-hosted install that delivers to its own network."
+msgstr "The webhook URL points at a private or internal address ({host}), which Notifuse does not connect to. Use a public URL, or set WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true on a self-hosted install that delivers to its own network."
 
 #: src/components/settings/WebhookCard.tsx:215
 msgid "The webhook will stop receiving events."
@@ -14709,7 +14718,7 @@ msgstr "URL copied to clipboard."
 msgid "URL is required"
 msgstr "URL is required"
 
-#: src/components/automations/config/WebhookConfigForm.tsx:35
+#: src/components/automations/config/WebhookConfigForm.tsx:34
 msgid "URL must start with http:// or https://"
 msgstr "URL must start with http:// or https://"
 
@@ -15129,7 +15138,7 @@ msgstr "Web session"
 
 #: src/components/automations/AddNodeButton.tsx:83
 #: src/components/automations/nodes/StatNode.tsx:88
-#: src/components/automations/nodes/WebhookNode.tsx:43
+#: src/components/automations/nodes/WebhookNode.tsx:47
 #: src/components/timeline/ContactTimeline.tsx:667
 msgid "Webhook"
 msgstr "Webhook"
@@ -15178,7 +15187,7 @@ msgstr "Webhook subscription updated"
 msgid "Webhook Subscriptions"
 msgstr "Webhook Subscriptions"
 
-#: src/components/automations/config/WebhookConfigForm.tsx:31
+#: src/components/automations/config/WebhookConfigForm.tsx:42
 msgid "Webhook URL"
 msgstr "Webhook URL"
 

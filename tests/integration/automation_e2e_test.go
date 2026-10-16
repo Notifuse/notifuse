@@ -156,6 +156,10 @@ func TestAutomation(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		// Allow loopback test servers: the WebhookNode subtest posts to an httptest
+		// server, which binds to 127.0.0.1. Production refuses those by default; see
+		// TestAutomationWebhookNodeSSRFProtection for the secure default.
+		cfg.Webhook.AllowPrivateDeliveryHosts = true
 		return app.NewApp(cfg)
 	})
 	defer suite.Cleanup()

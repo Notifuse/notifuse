@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react'
 import { v4 as uuidv4 } from 'uuid'
+import { msg } from '@lingui/core/macro'
 import type {
   Automation,
   AutomationNode,
@@ -10,10 +11,13 @@ import type {
   ABTestNodeConfig,
   AddToListNodeConfig,
   RemoveFromListNodeConfig,
-  ListStatusBranchNodeConfig
+  ListStatusBranchNodeConfig,
+  WebhookNodeConfig
 } from '../../../services/api/automation'
 import type { TreeNode } from '../../../services/api/segment'
 import { HasLeaf } from '../../segment/tree_completeness'
+import { i18n } from '../../../i18n'
+import { refusedWebhookHost } from './webhookTarget'
 
 // Node data stored in ReactFlow nodes.
 // Declared as a type alias rather than an interface on purpose: ReactFlow constrains node data to
@@ -520,6 +524,24 @@ export function validateFlow(
           nodeId: node.id,
           field: 'list_id',
           message: 'List Status node must have a list selected'
+        })
+      }
+    })
+
+  // Check webhook nodes are not aimed at an address this server refuses. The server
+  // refuses the save too; this catches it first, in the user's language.
+  nodes
+    .filter((n) => n.data.nodeType === 'webhook')
+    .forEach((node) => {
+      const config = node.data.config as Structural<WebhookNodeConfig>
+      const host = config.url ? refusedWebhookHost(config.url) : null
+      if (host) {
+        errors.push({
+          nodeId: node.id,
+          field: 'url',
+          message: i18n._(
+            msg`The webhook URL points at a private or internal address (${{ host }}), which Notifuse does not connect to. Use a public URL, or set WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true on a self-hosted install that delivers to its own network.`
+          )
         })
       }
     })

@@ -206,7 +206,11 @@ AudienceSettings:
         - premium_users
     exclude_unsubscribed:
       type: boolean
-      description: Whether to exclude unsubscribed contacts
+      default: true
+      description: >-
+        Whether to exclude the list's unsubscribed contacts. Omitting the key excludes
+        them; send false to mail them too, e.g. for a legal notice. Bounced and complained
+        contacts are never mailed, whatever this value.
       example: true
 
 AudienceSettingsPatch:
@@ -232,8 +236,9 @@ AudienceSettingsPatch:
     exclude_unsubscribed:
       type: boolean
       description: >-
-        Whether to exclude unsubscribed contacts. Omit to keep the stored value; send
-        false to mail them too.
+        Whether to exclude the list's unsubscribed contacts. Omit to keep the stored value;
+        send false to mail them too. Bounced and complained contacts are never mailed,
+        whatever this value.
       example: true
 
 ScheduleSettings:

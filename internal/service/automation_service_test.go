@@ -81,7 +81,7 @@ func TestAutomationService_Create(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	service := NewAutomationService(mockRepo, mockAuthService, mockLogger)
+	service := NewAutomationService(mockRepo, mockAuthService, mockLogger, false)
 
 	ctx := context.Background()
 	workspaceID := "workspace-123"
@@ -156,7 +156,7 @@ func TestAutomationService_Get(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	service := NewAutomationService(mockRepo, mockAuthService, mockLogger)
+	service := NewAutomationService(mockRepo, mockAuthService, mockLogger, false)
 
 	ctx := context.Background()
 	workspaceID := "workspace-123"
@@ -212,7 +212,7 @@ func TestAutomationService_List(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	service := NewAutomationService(mockRepo, mockAuthService, mockLogger)
+	service := NewAutomationService(mockRepo, mockAuthService, mockLogger, false)
 
 	ctx := context.Background()
 	workspaceID := "workspace-123"
@@ -259,7 +259,7 @@ func TestAutomationService_Update(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	service := NewAutomationService(mockRepo, mockAuthService, mockLogger)
+	service := NewAutomationService(mockRepo, mockAuthService, mockLogger, false)
 
 	ctx := context.Background()
 	workspaceID := "workspace-123"
@@ -597,6 +597,166 @@ func TestAutomationService_Update(t *testing.T) {
 // tests can express a key the caller never sent. A Go literal cannot: Nodes is a plain
 // slice on a struct with no optional fields, so "not part of this edit" and "delete every
 // node" are the same value once it is built by hand.
+// TestAutomationService_WebhookNodeTargets covers the save-time half of the guard on
+// webhook nodes: a URL that names an internal target is refused when it is saved,
+// with a ValidationError the handlers answer as 400. The dial-time half, which is
+// what actually protects the request, is TestWebhookNodeExecutor_Execute_RefusesAPrivateTarget.
+func TestAutomationService_WebhookNodeTargets(t *testing.T) {
+	const workspaceID = "workspace-123"
+
+	newService := func(t *testing.T, allowPrivateWebhookHosts bool) (*AutomationService, *mocks.MockAutomationRepository, context.Context) {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+		repo := mocks.NewMockAutomationRepository(ctrl)
+		auth := mocks.NewMockAuthService(ctrl)
+		ctx := context.Background()
+		auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{}, automationTransitionUserWorkspace(workspaceID), nil).AnyTimes()
+		return NewAutomationService(repo, auth, pkgmocks.NewMockLogger(ctrl), allowPrivateWebhookHosts), repo, ctx
+	}
+
+	// createTestAutomationService names "node-root" as the root, so the trigger
+	// carries that ID; otherwise Validate refuses the automation before the
+	// webhook check is ever reached.
+	withNode := func(nodeType domain.NodeType, url interface{}) *domain.Automation {
+		automation := createTestAutomationService("auto-123", workspaceID)
+		trigger := createTestAutomationNodeService("node-root", automation.ID, domain.NodeTypeTrigger)
+		trigger.NextNodeID = strPtr("node-hook")
+		node := createTestAutomationNodeService("node-hook", automation.ID, nodeType)
+		node.Config = map[string]interface{}{"url": url}
+		automation.Nodes = []*domain.AutomationNode{trigger, node}
+		return automation
+	}
+
+	t.Run("create refuses a URL that names an internal target", func(t *testing.T) {
+		for _, tc := range []struct{ name, url string }{
+			{"loopback", "http://127.0.0.1:8080/hook"},
+			{"IPv6 loopback", "http://[::1]/hook"},
+			{"cloud metadata", "http://169.254.169.254/latest/meta-data/"},
+			{"RFC1918", "http://10.0.0.5/hook"},
+			{"localhost by name", "http://localhost:3000/hook"},
+			{"kubernetes cluster domain", "http://svc.default.svc.cluster.local/hook"},
+			{"localhost with a trailing dot", "http://localhost./hook"},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				service, _, ctx := newService(t, false)
+
+				// No repo.Create expectation: gomock fails the test if it is called.
+				err := service.Create(ctx, workspaceID, withNode(domain.NodeTypeWebhook, tc.url))
+
+				var validationErr domain.ValidationError
+				require.True(t, errors.As(err, &validationErr), "want a ValidationError, got %v", err)
+				assert.Contains(t, validationErr.Message, "node-hook", "the message names the node")
+				assert.Contains(t, validationErr.Message, "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS", "and how to opt out")
+			})
+		}
+	})
+
+	// A single-label name is how a container addresses a sibling: it is decided at
+	// dial time, like everything that resolves privately. An empty or non-string
+	// URL is an unfinished draft, left to fail at run time as it always has.
+	t.Run("create accepts what does not name an internal target", func(t *testing.T) {
+		for _, tc := range []struct {
+			name string
+			url  interface{}
+		}{
+			{"public receiver with a token query", "https://hooks.example.com/notifuse?token=abc123"},
+			{"unconfigured draft", ""},
+			{"docker sibling by name", "http://n8n:5678/webhook"},
+			{"non-string url", 42},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				service, repo, ctx := newService(t, false)
+				automation := withNode(domain.NodeTypeWebhook, tc.url)
+				repo.EXPECT().Create(ctx, workspaceID, automation).Return(nil)
+
+				assert.NoError(t, service.Create(ctx, workspaceID, automation))
+			})
+		}
+	})
+
+	t.Run("create accepts an internal target when the deployment opts out", func(t *testing.T) {
+		service, repo, ctx := newService(t, true)
+		automation := withNode(domain.NodeTypeWebhook, "http://127.0.0.1:8080/hook")
+		repo.EXPECT().Create(ctx, workspaceID, automation).Return(nil)
+
+		assert.NoError(t, service.Create(ctx, workspaceID, automation))
+	})
+
+	t.Run("create ignores a url key on a node that is not a webhook", func(t *testing.T) {
+		service, repo, ctx := newService(t, false)
+		automation := withNode(domain.NodeTypeAddToList, "http://127.0.0.1/")
+		repo.EXPECT().Create(ctx, workspaceID, automation).Return(nil)
+
+		assert.NoError(t, service.Create(ctx, workspaceID, automation))
+	})
+
+	t.Run("update refuses an internal target among the nodes it carries", func(t *testing.T) {
+		service, _, ctx := newService(t, false)
+		req := decodeUpdateAutomationRequest(t, `{
+			"workspace_id": "workspace-123",
+			"automation": {
+				"id": "auto-123",
+				"workspace_id": "workspace-123",
+				"name": "Pointed inward",
+				"status": "draft",
+				"list_id": "list-123",
+				"trigger": {"event_kind": "email.opened", "frequency": "once"},
+				"root_node_id": "node-root",
+				"nodes": [
+					{"id": "node-root", "automation_id": "auto-123", "type": "trigger", "config": {}, "next_node_id": "node-hook"},
+					{"id": "node-hook", "automation_id": "auto-123", "type": "webhook", "config": {"url": "http://10.0.0.5/hook"}}
+				]
+			}
+		}`)
+		require.NoError(t, req.Validate())
+
+		// No GetByID or UpdateIfStatus expectation: the check runs before the stored
+		// row is read, so gomock fails the test if either is called.
+		err := service.Update(ctx, workspaceID, req.Automation)
+
+		var validationErr domain.ValidationError
+		require.True(t, errors.As(err, &validationErr), "want a ValidationError, got %v", err)
+		assert.Contains(t, validationErr.Message, "node-hook")
+	})
+
+	// A rename that leaves the workflow out keeps the stored nodes, and must not be
+	// refused for a URL saved before the guard existed: the dial-time guard is what
+	// stops that one, and blocking the rename would protect nothing.
+	t.Run("update that omits nodes does not re-check the stored workflow", func(t *testing.T) {
+		service, repo, ctx := newService(t, false)
+		req := decodeUpdateAutomationRequest(t, `{
+			"workspace_id": "workspace-123",
+			"automation": {
+				"id": "auto-123",
+				"workspace_id": "workspace-123",
+				"name": "Renamed",
+				"status": "draft",
+				"list_id": "list-123",
+				"trigger": {"event_kind": "email.opened", "frequency": "once"}
+			}
+		}`)
+		require.Nil(t, req.Automation.Nodes, "the request must carry no nodes, or this proves nothing")
+
+		repo.EXPECT().GetByID(ctx, workspaceID, "auto-123").Return(withNode(domain.NodeTypeWebhook, "http://10.0.0.5/hook"), nil)
+		var persisted *domain.Automation
+		repo.EXPECT().
+			UpdateIfStatus(ctx, workspaceID, gomock.Any(), domain.AutomationStatusDraft).
+			DoAndReturn(func(_ context.Context, _ string, a *domain.Automation, _ domain.AutomationStatus) (bool, error) {
+				persisted = a
+				return true, nil
+			})
+
+		require.NoError(t, service.Update(ctx, workspaceID, req.Automation))
+
+		require.NotNil(t, persisted)
+		require.Len(t, persisted.Nodes, 2)
+		assert.Equal(t, "http://10.0.0.5/hook", persisted.Nodes[1].Config["url"])
+		assert.Equal(t, "Renamed", persisted.Name)
+	})
+}
+
 func decodeUpdateAutomationRequest(t *testing.T, body string) *domain.UpdateAutomationRequest {
 	t.Helper()
 	var req domain.UpdateAutomationRequest
@@ -617,7 +777,7 @@ func TestAutomationService_Update_OmittedNodesKeepTheStoredWorkflow(t *testing.T
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	service := NewAutomationService(mockRepo, mockAuthService, mockLogger)
+	service := NewAutomationService(mockRepo, mockAuthService, mockLogger, false)
 
 	ctx := context.Background()
 	workspaceID := "workspace-123"
@@ -754,7 +914,7 @@ func TestAutomationService_Delete(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	service := NewAutomationService(mockRepo, mockAuthService, mockLogger)
+	service := NewAutomationService(mockRepo, mockAuthService, mockLogger, false)
 
 	ctx := context.Background()
 	workspaceID := "workspace-123"
@@ -826,7 +986,7 @@ func TestAutomationService_Activate(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	service := NewAutomationService(mockRepo, mockAuthService, mockLogger)
+	service := NewAutomationService(mockRepo, mockAuthService, mockLogger, false)
 
 	ctx := context.Background()
 	workspaceID := "workspace-123"
@@ -1090,7 +1250,7 @@ func TestAutomationService_Pause(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	service := NewAutomationService(mockRepo, mockAuthService, mockLogger)
+	service := NewAutomationService(mockRepo, mockAuthService, mockLogger, false)
 
 	ctx := context.Background()
 	workspaceID := "workspace-123"
@@ -1144,7 +1304,7 @@ func TestAutomationService_GetContactNodeExecutions(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	service := NewAutomationService(mockRepo, mockAuthService, mockLogger)
+	service := NewAutomationService(mockRepo, mockAuthService, mockLogger, false)
 
 	ctx := context.Background()
 	workspaceID := "workspace-123"
@@ -1221,7 +1381,7 @@ func newAutomationTransitionMocks(t *testing.T) (*AutomationService, *mocks.Mock
 	repo := mocks.NewMockAutomationRepository(ctrl)
 	auth := mocks.NewMockAuthService(ctrl)
 	log := pkgmocks.NewMockLogger(ctrl)
-	return NewAutomationService(repo, auth, log), repo, auth, log
+	return NewAutomationService(repo, auth, log, false), repo, auth, log
 }
 
 func automationTransitionUserWorkspace(workspaceID string) *domain.UserWorkspace {
@@ -1441,7 +1601,7 @@ func TestAutomationService_Update_OmittedExitOnReplyKeepsTheStoredSetting(t *tes
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	service := NewAutomationService(mockRepo, mockAuthService, mockLogger)
+	service := NewAutomationService(mockRepo, mockAuthService, mockLogger, false)
 
 	ctx := context.Background()
 	workspaceID := "workspace-123"
@@ -1562,7 +1722,7 @@ func TestAutomationService_Update_OmittedListIDKeepsTheStoredList(t *testing.T) 
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	service := NewAutomationService(mockRepo, mockAuthService, mockLogger)
+	service := NewAutomationService(mockRepo, mockAuthService, mockLogger, false)
 
 	ctx := context.Background()
 	workspaceID := "workspace-123"

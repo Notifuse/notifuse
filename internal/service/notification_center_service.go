@@ -76,6 +76,9 @@ func (s *NotificationCenterService) GetContactPreferences(ctx context.Context, w
 		}
 	}
 
+	// The contact object carries the same rows, so both are filtered
+	contact.ContactLists = visibleContactLists(contact.ContactLists, publicLists)
+
 	return &domain.ContactPreferencesResponse{
 		Contact:      contact,
 		PublicLists:  publicLists,
@@ -83,6 +86,35 @@ func (s *NotificationCenterService) GetContactPreferences(ctx context.Context, w
 		LogoURL:      workspace.Settings.LogoURL,
 		WebsiteURL:   workspace.Settings.WebsiteURL,
 	}, nil
+}
+
+// visibleContactLists keeps the rows the contact can act on in their preferences: every
+// row on a public list, and rows on private lists they are still on (active, or awaiting
+// a double opt-in confirmation). A private list they left is the workspace's to manage,
+// and showing it would only reveal its name. Removed rows keep their last status, so a
+// removed member would show as subscribed; they are dropped everywhere.
+func visibleContactLists(rows []*domain.ContactList, publicLists []*domain.List) []*domain.ContactList {
+	if rows == nil {
+		return nil
+	}
+
+	public := make(map[string]bool, len(publicLists))
+	for _, list := range publicLists {
+		public[list.ID] = true
+	}
+
+	visible := make([]*domain.ContactList, 0, len(rows))
+	for _, row := range rows {
+		if row.DeletedAt != nil {
+			continue
+		}
+		if !public[row.ListID] &&
+			row.Status != domain.ContactListStatusActive && row.Status != domain.ContactListStatusPending {
+			continue
+		}
+		visible = append(visible, row)
+	}
+	return visible
 }
 
 // UpdateContactPreferences updates a contact's language and/or timezone

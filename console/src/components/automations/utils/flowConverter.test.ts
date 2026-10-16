@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import type { Node } from '@xyflow/react'
 import {
   automationToFlow,
   buildTriggerConfig,
   flowToAutomationNodes,
   hydrateTriggerNodeConfig,
+  validateFlow,
   type AutomationNodeData
 } from './flowConverter'
 import type { Automation, TimelineTriggerConfig } from '../../../services/api/automation'
@@ -385,5 +386,44 @@ describe('node descriptions survive the converter', () => {
     )
 
     expect(nodes[0].data.config.description).toBe('Anyone new')
+  })
+})
+
+describe('validateFlow: webhook targets', () => {
+  const original = window.WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS
+  afterEach(() => {
+    window.WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS = original
+  })
+
+  const webhookNode = (url: string): Node<AutomationNodeData> => ({
+    id: 'hook-1',
+    type: 'webhook',
+    position: { x: 0, y: 0 },
+    data: { nodeType: 'webhook', label: 'Webhook', config: { url } }
+  })
+  const urlErrors = (url: string) =>
+    validateFlow([webhookNode(url)], []).filter((error) => error.field === 'url')
+
+  // Saving is refused by the server too; this says so before the request, in the
+  // user's language, on the node that caused it.
+  it('blocks a webhook node aimed at an address the server refuses', () => {
+    window.WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS = false
+    const errors = urlErrors('http://10.0.0.5/hook')
+    expect(errors).toHaveLength(1)
+    expect(errors[0].nodeId).toBe('hook-1')
+    expect(errors[0].message).toContain('WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS')
+    // Not a "Warning:" message: those are offered as "Save anyway".
+    expect(errors[0].message.startsWith('Warning:')).toBe(false)
+  })
+
+  it('lets it through on a server that delivers to its own network', () => {
+    window.WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS = true
+    expect(urlErrors('http://10.0.0.5/hook')).toHaveLength(0)
+  })
+
+  it('says nothing about a public receiver or an unconfigured draft', () => {
+    window.WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS = false
+    expect(urlErrors('https://hooks.example.com/hook')).toHaveLength(0)
+    expect(urlErrors('')).toHaveLength(0)
   })
 })

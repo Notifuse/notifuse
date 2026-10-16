@@ -1454,12 +1454,13 @@ func (r *contactRepository) GetContactsForBroadcast(
 			query = query.Where(sq.Gt{"c.email": afterEmail})
 		}
 
-		// Exclude unsubscribed contacts if required
+		// Bounced and complained addresses are never mailed. Unsubscribed contacts are
+		// mailed only when the broadcast explicitly asks for it, e.g. for a legal notice.
 		if audience.ExcludeUnsubscribed {
 			query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusUnsubscribed})
-			query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusBounced})
-			query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusComplained})
 		}
+		query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusBounced})
+		query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusComplained})
 
 		// Exclude contacts that have not completed double opt-in when the list requires it.
 		// When l.is_double_optin is true, a contact_list row with status='pending' means the
@@ -1738,12 +1739,13 @@ func (r *contactRepository) CountContactsForBroadcast(
 		// Filter out soft-deleted lists (matches GetContactsForBroadcast)
 		query = query.Where(sq.Eq{"l.deleted_at": nil})
 
-		// Exclude unsubscribed contacts if required
+		// Bounced and complained addresses are never mailed. Unsubscribed contacts are
+		// mailed only when the broadcast explicitly asks for it, e.g. for a legal notice.
 		if audience.ExcludeUnsubscribed {
 			query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusUnsubscribed})
-			query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusBounced})
-			query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusComplained})
 		}
+		query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusBounced})
+		query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusComplained})
 
 		// Exclude contacts that have not completed double opt-in when the list requires it.
 		// When l.is_double_optin is true, a contact_list row with status='pending' means the

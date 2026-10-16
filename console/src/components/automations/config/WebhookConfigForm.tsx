@@ -2,6 +2,7 @@ import React from 'react'
 import { Form, Input } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import type { WebhookNodeConfig } from '../../../services/api/automation'
+import { refusedWebhookHost } from '../utils/webhookTarget'
 
 interface WebhookConfigFormProps {
   config: WebhookNodeConfig
@@ -25,15 +26,23 @@ export const WebhookConfigForm: React.FC<WebhookConfigFormProps> = ({ config, on
     return url.startsWith('http://') || url.startsWith('https://')
   }
 
+  // The scheme message comes first: an address is only worth judging once the URL
+  // is a web URL at all.
+  const host = config.url ? refusedWebhookHost(config.url) : null
+  let urlError: string | undefined
+  if (config.url && !isValidUrl(config.url)) {
+    urlError = t`URL must start with http:// or https://`
+  } else if (host) {
+    urlError = t`The webhook URL points at a private or internal address (${host}), which Notifuse does not connect to. Use a public URL, or set WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true on a self-hosted install that delivers to its own network.`
+  }
+
   return (
     <Form layout="vertical" className="nodrag">
       <Form.Item
         label={t`Webhook URL`}
         required
-        validateStatus={config.url && !isValidUrl(config.url) ? 'error' : undefined}
-        help={
-          config.url && !isValidUrl(config.url) ? t`URL must start with http:// or https://` : undefined
-        }
+        validateStatus={urlError ? 'error' : undefined}
+        help={urlError}
         extra={t`The URL to send the POST request to`}
       >
         <Input

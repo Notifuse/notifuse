@@ -401,6 +401,53 @@ func TestCreateBroadcastRequest_Validate(t *testing.T) {
 	}
 }
 
+// exclude_unsubscribed is a plain bool, so a create body that never names it would read
+// as false and mail the list's unsubscribed contacts. Raw JSON, because a request literal
+// cannot express a key the body never carried.
+func TestCreateBroadcastRequest_Validate_OmittedExcludeUnsubscribedExcludes(t *testing.T) {
+	tests := []struct {
+		name     string
+		audience string
+		want     bool
+	}{
+		{name: "omitted key excludes", audience: `{"list": "list123"}`, want: true},
+		{name: "null excludes", audience: `{"list": "list123", "exclude_unsubscribed": null}`, want: true},
+		{name: "explicit false includes", audience: `{"list": "list123", "exclude_unsubscribed": false}`, want: false},
+		{name: "explicit true excludes", audience: `{"list": "list123", "exclude_unsubscribed": true}`, want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var req domain.CreateBroadcastRequest
+			body := `{"workspace_id": "workspace123", "name": "Newsletter", "audience": ` + tt.audience + `}`
+			require.NoError(t, json.Unmarshal([]byte(body), &req))
+
+			broadcast, err := req.Validate()
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, broadcast.Audience.ExcludeUnsubscribed)
+			assert.Equal(t, "list123", broadcast.Audience.List)
+		})
+	}
+
+	t.Run("a request built in Go keeps the value it was given", func(t *testing.T) {
+		req := domain.CreateBroadcastRequest{
+			WorkspaceID: "workspace123",
+			Name:        "Newsletter",
+			Audience:    domain.AudienceSettings{List: "list123"},
+		}
+
+		broadcast, err := req.Validate()
+		require.NoError(t, err)
+		assert.False(t, broadcast.Audience.ExcludeUnsubscribed)
+	})
+
+	t.Run("a malformed audience is still rejected", func(t *testing.T) {
+		var req domain.CreateBroadcastRequest
+		err := json.Unmarshal([]byte(`{"workspace_id": "workspace123", "name": "Newsletter", "audience": "list123"}`), &req)
+		assert.Error(t, err)
+	})
+}
+
 func TestUpdateBroadcastRequest_Validate(t *testing.T) {
 	existingBroadcast := createValidBroadcast()
 

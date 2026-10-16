@@ -1581,7 +1581,7 @@ msgstr "認証タイプ"
 msgid "Author name is required"
 msgstr "著者名は必須です"
 
-#: src/components/automations/config/WebhookConfigForm.tsx:47
+#: src/components/automations/config/WebhookConfigForm.tsx:56
 msgid "Authorization Secret"
 msgstr "認証シークレット"
 
@@ -2982,7 +2982,7 @@ msgstr "コンフィギュレーションセット"
 #: src/components/automations/nodes/DelayNode.tsx:20
 #: src/components/automations/nodes/RemoveFromListNode.tsx:52
 #: src/components/automations/nodes/TriggerNode.tsx:72
-#: src/components/automations/nodes/WebhookNode.tsx:55
+#: src/components/automations/nodes/WebhookNode.tsx:65
 #: src/components/settings/Integrations.tsx:1274
 #: src/components/settings/Integrations.tsx:1322
 msgid "Configure"
@@ -9547,7 +9547,7 @@ msgstr "オプトイン"
 msgid "Optional"
 msgstr "任意"
 
-#: src/components/automations/config/WebhookConfigForm.tsx:53
+#: src/components/automations/config/WebhookConfigForm.tsx:62
 msgid "Optional bearer token"
 msgstr "任意のBearerトークン"
 
@@ -9559,7 +9559,7 @@ msgstr "任意。推論モデルがどれだけ思考するかを制御します
 msgid "Optional. For OpenAI-compatible providers (Ollama, vLLM, LiteLLM, Azure, etc.). Leave empty for the default OpenAI endpoint."
 msgstr "任意。OpenAI互換のプロバイダー (Ollama、vLLM、LiteLLM、Azure など) 向けです。空欄の場合はデフォルトのOpenAIエンドポイントを使用します。"
 
-#: src/components/automations/config/WebhookConfigForm.tsx:48
+#: src/components/automations/config/WebhookConfigForm.tsx:57
 msgid "Optional. If provided, sent as Authorization: Bearer <secret>"
 msgstr "任意。指定すると Authorization: Bearer <secret> として送信"
 
@@ -10878,6 +10878,10 @@ msgstr "リストを更新"
 #: src/components/contacts/ContactDetailsDrawer.tsx:680
 msgid "Refreshing contact data..."
 msgstr "連絡先データを更新中..."
+
+#: src/components/automations/nodes/WebhookNode.tsx:62
+msgid "Refused: private address"
+msgstr "拒否: プライベートアドレス"
 
 #: src/components/settings/WebhookCard.tsx:363
 msgid "Regenerate"
@@ -13607,13 +13611,18 @@ msgstr "URLは公開アクセス可能である必要があります。ブロー
 msgid "The URL must use HTTPS. A POST request will be sent with contact information for each recipient."
 msgstr "URLはHTTPSを使用する必要があります。各受信者のコンタクト情報を含むPOSTリクエストが送信されます。"
 
-#: src/components/automations/config/WebhookConfigForm.tsx:37
+#: src/components/automations/config/WebhookConfigForm.tsx:46
 msgid "The URL to send the POST request to"
 msgstr "POSTリクエストを送信するURL"
 
 #: src/components/integrations/SupabaseIntegration.tsx:208
 msgid "The user_metadata field in Supabase will be saved to this custom JSON field"
 msgstr "Supabaseのuser_metadataフィールドはこのカスタムJSONフィールドに保存されます"
+
+#: src/components/automations/config/WebhookConfigForm.tsx:36
+#: src/components/automations/utils/flowConverter.ts:543
+msgid "The webhook URL points at a private or internal address ({host}), which Notifuse does not connect to. Use a public URL, or set WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true on a self-hosted install that delivers to its own network."
+msgstr "Webhook URLがプライベートまたは内部アドレス（{host}）を指しています。Notifuseはこのアドレスに接続しません。公開URLを使用するか、自社ネットワークに配信するセルフホスト環境ではWEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=trueを設定してください。"
 
 #: src/components/settings/WebhookCard.tsx:215
 msgid "The webhook will stop receiving events."
@@ -14709,7 +14718,7 @@ msgstr "URLがクリップボードにコピーされました。"
 msgid "URL is required"
 msgstr "URLは必須です"
 
-#: src/components/automations/config/WebhookConfigForm.tsx:35
+#: src/components/automations/config/WebhookConfigForm.tsx:34
 msgid "URL must start with http:// or https://"
 msgstr "URLはhttp://またはhttps://で始まる必要があります"
 
@@ -15129,7 +15138,7 @@ msgstr "Webセッション"
 
 #: src/components/automations/AddNodeButton.tsx:83
 #: src/components/automations/nodes/StatNode.tsx:88
-#: src/components/automations/nodes/WebhookNode.tsx:43
+#: src/components/automations/nodes/WebhookNode.tsx:47
 #: src/components/timeline/ContactTimeline.tsx:667
 msgid "Webhook"
 msgstr "Webhook"
@@ -15178,7 +15187,7 @@ msgstr "Webhookサブスクリプションが更新されました"
 msgid "Webhook Subscriptions"
 msgstr "Webhookサブスクリプション"
 
-#: src/components/automations/config/WebhookConfigForm.tsx:31
+#: src/components/automations/config/WebhookConfigForm.tsx:42
 msgid "Webhook URL"
 msgstr "Webhook URL"
 

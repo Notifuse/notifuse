@@ -240,7 +240,11 @@ describe('Notification Center App', () => {
       })
       vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
         contact: testData.contact,
-        public_lists: [],
+        // Public, so the unsubscribed row offers Subscribe again (private lists don't)
+        public_lists: [
+          { id: 'newsletter', name: 'Newsletter' },
+          { id: 'promotions', name: 'Promotions' },
+        ],
         // The linked list is not the first one
         contact_lists: [activeOn('newsletter', 'Newsletter'), activeOn('promotions', 'Promotions')],
       })
@@ -324,6 +328,87 @@ describe('Notification Center App', () => {
       expect(screen.queryByTestId('confirm-unsubscribe')).not.toBeInTheDocument()
     })
 
+    // Automations also email contacts who aren't on their list, with that list's header
+    // link. Telling them they already unsubscribed would leave them receiving its emails.
+    it('asks a contact who is not on the linked public list, and unsubscribes on confirm', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [{ id: 'newsletter', name: 'Newsletter' }],
+        contact_lists: [],
+      })
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      expect(within(prompt).getByText('Newsletter')).toBeInTheDocument()
+      expect(screen.queryByText(/already unsubscribed/i)).not.toBeInTheDocument()
+
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+
+      expect(notificationCenterApi.unsubscribeOneClick).toHaveBeenCalledWith(
+        expect.objectContaining({ lids: ['newsletter'] })
+      )
+      expect(await screen.findByText(/unsubscribed successfully/i)).toBeInTheDocument()
+    })
+
+    // Marketing emails reach a contact whose double opt-in is still pending, so the header
+    // link must let them out too: the row's own button would subscribe them instead
+    it('asks a contact whose subscription is still pending, and unsubscribes on confirm', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [{ id: 'newsletter', name: 'Newsletter' }],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'newsletter',
+            list_name: 'Newsletter',
+            status: 'pending',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      render(<App />)
+
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      expect(within(prompt).getByText('Newsletter')).toBeInTheDocument()
+
+      await user.click(within(prompt).getByRole('button', { name: /unsubscribe/i }))
+
+      expect(notificationCenterApi.unsubscribeOneClick).toHaveBeenCalledWith(
+        expect.objectContaining({ lids: ['newsletter'] })
+      )
+      expect(await screen.findByText(/unsubscribed successfully/i)).toBeInTheDocument()
+    })
+
+    it('asks a contact who is not on the linked private list, without showing its ID', async () => {
+      const user = userEvent.setup()
+      // The preferences carry neither the private list nor a row for it
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [],
+        contact_lists: [],
+      })
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue({
+        ...confirmParams,
+        lid: 'vipcustomers',
+      })
+      render(<App />)
+
+      // The page doesn't know the list's name, and its ID means nothing to the contact
+      const prompt = await screen.findByTestId('confirm-unsubscribe')
+      expect(within(prompt).getByText(/stop receiving emails from this list/i)).toBeInTheDocument()
+      expect(within(prompt).queryByText(/vipcustomers/)).not.toBeInTheDocument()
+
+      await user.click(within(prompt).getByRole('button', { name: /^unsubscribe$/i }))
+
+      expect(notificationCenterApi.unsubscribeOneClick).toHaveBeenCalledWith(
+        expect.objectContaining({ lids: ['vipcustomers'] })
+      )
+      expect(await screen.findByText(/unsubscribed successfully/i)).toBeInTheDocument()
+    })
+
     it("dismisses the prompt when the visitor uses the list's own toggle instead", async () => {
       const user = userEvent.setup()
       render(<App />)
@@ -346,6 +431,44 @@ describe('Notification Center App', () => {
         expect(notificationCenterApi.subscribeToLists).toHaveBeenCalledTimes(1)
       })
       expect(screen.queryByTestId('confirm-unsubscribe')).not.toBeInTheDocument()
+    })
+  })
+
+  // The workspace decides who joins a private list: the server refuses a subscribe, so
+  // the page must not offer one
+  describe('Private lists', () => {
+    it('lets the contact leave a private list and offers no way back in', async () => {
+      const user = userEvent.setup()
+      vi.mocked(notificationCenterApi.unsubscribeOneClick).mockResolvedValue({ success: true })
+      vi.mocked(notificationCenterApi.parseNotificationCenterParams).mockReturnValue(testData.validParams)
+      mockURLSearchParams(testData.validParams)
+      vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce({
+        contact: testData.contact,
+        public_lists: [],
+        contact_lists: [
+          {
+            email: testData.contact.email,
+            list_id: 'vip',
+            list_name: 'VIP',
+            status: 'active',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+      })
+      render(<App />)
+
+      await user.click(await screen.findByRole('button', { name: /^unsubscribe$/i }))
+
+      await waitFor(() => {
+        expect(notificationCenterApi.unsubscribeOneClick).toHaveBeenCalledWith(
+          expect.objectContaining({ lids: ['vip'] })
+        )
+      })
+      expect(screen.queryByRole('button', { name: /^subscribe$/i })).not.toBeInTheDocument()
+      // Translated, not the raw "unsubscribed" status
+      expect(screen.getByRole('button', { name: 'Unsubscribed' })).toBeDisabled()
+      expect(notificationCenterApi.subscribeToLists).not.toHaveBeenCalled()
     })
   })
 

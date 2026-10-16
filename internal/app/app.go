@@ -1052,6 +1052,7 @@ func (a *App) InitServices() error {
 		a.automationRepo,
 		a.authService,
 		a.logger,
+		a.config.Webhook.AllowPrivateDeliveryHosts,
 	)
 
 	// Initialize demo service
@@ -1177,32 +1178,20 @@ func (a *App) InitServices() error {
 	// Initialize webhook delivery worker.
 	//
 	// It gets its own SSRF-protected client rather than the shared one above: a
-	// subscription's URL is supplied by whoever holds webhook_subscriptions:write,
-	// so without this the worker is a request-forgery primitive aimed at whatever
-	// the server can reach — and the test endpoint hands the response back.
-	// safehttpclient validates the resolved address at dial time, on the first hop
-	// and on every redirect, which is what closes the POST-to-GET downgrade a 302
-	// would otherwise buy.
+	// subscription's URL is supplied by whoever holds webhook_subscriptions:write.
+	// See newOutgoingWebhookClient, which automation webhook nodes share.
 	//
 	// Its 10s timeout matches the shared client's, so the claim lease the worker
 	// derives from it in normaliseTimings is unchanged.
-	webhookDeliveryClient := safehttpclient.New()
 	if a.config.Webhook.AllowPrivateDeliveryHosts {
-		webhookDeliveryClient = &http.Client{Timeout: 10 * time.Second}
-		a.logger.Warn("WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS is enabled: outgoing webhook deliveries may reach private and internal addresses")
+		a.logger.Warn("WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS is enabled: outgoing webhooks (subscriptions and automation webhook nodes) may reach private and internal addresses")
 	}
-	// After the branch, so the guard is wrapped rather than replaced:
-	// WrapHTTPClient keeps the base transport, and with it the safe DialContext.
-	if a.config.Tracing.Enabled {
-		webhookDeliveryClient = tracing.WrapHTTPClient(webhookDeliveryClient)
-	}
-
 	a.webhookDeliveryWorker = service.NewWebhookDeliveryWorker(
 		a.webhookSubscriptionRepo,
 		a.webhookDeliveryRepo,
 		a.workspaceRepo,
 		a.logger,
-		webhookDeliveryClient,
+		newOutgoingWebhookClient(a.config.Webhook.AllowPrivateDeliveryHosts, a.config.Tracing.Enabled, 10*time.Second),
 	)
 
 	// Initialize email queue worker for processing marketing emails (broadcasts & automations)
@@ -1262,6 +1251,10 @@ func (a *App) InitServices() error {
 		a.contactTimelineRepo,
 		a.logger,
 		a.config.APIEndpoint,
+		// Webhook nodes post to a URL whoever holds automations:write typed, so they
+		// take the same guard and opt-out as subscriptions. 30s is the node's
+		// timeout from before it had a guard.
+		newOutgoingWebhookClient(a.config.Webhook.AllowPrivateDeliveryHosts, a.config.Tracing.Enabled, 30*time.Second),
 	)
 	a.automationScheduler = service.NewAutomationScheduler(
 		automationExecutor,
@@ -1332,6 +1325,32 @@ func (a *App) InitServices() error {
 	return nil
 }
 
+// newOutgoingWebhookClient builds the client for requests to a URL a workspace
+// member supplied: webhook subscription deliveries and automation webhook nodes.
+//
+// Without a guard either one is a request-forgery primitive aimed at whatever
+// the server can reach, and both hand the response back — the subscription test
+// endpoint and delivery log, and the node executions an automation stores.
+// safehttpclient validates the resolved address at dial time, on the first hop
+// and on every redirect, which is what closes the POST-to-GET downgrade a 302
+// would otherwise buy. allowPrivateHosts is WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS,
+// for deployments that deliberately deliver to their own network.
+//
+// Tracing wraps the client after the guard is chosen, so it wraps the guard
+// rather than replacing it: WrapHTTPClient keeps the base transport, and with it
+// the safe DialContext.
+func newOutgoingWebhookClient(allowPrivateHosts, tracingEnabled bool, timeout time.Duration) *http.Client {
+	client := safehttpclient.New()
+	if allowPrivateHosts {
+		client = &http.Client{}
+	}
+	client.Timeout = timeout
+	if tracingEnabled {
+		client = tracing.WrapHTTPClient(client)
+	}
+	return client
+}
+
 // InitHandlers initializes all HTTP handlers and routes
 func (a *App) InitHandlers() error {
 	// Create a new ServeMux to avoid route conflicts on restart
@@ -1380,6 +1399,7 @@ func (a *App) InitHandlers() error {
 		// or from staying hidden after a key was pasted, which needs no restart.
 		a.oidcService.IsEnabled,
 		a.config.OIDC.ButtonLabel,
+		a.config.Webhook.AllowPrivateDeliveryHosts,
 	)
 	setupHandler := httpHandler.NewSetupHandler(
 		a.setupService,

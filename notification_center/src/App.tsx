@@ -303,7 +303,11 @@ function App() {
         // one-click POSTed (the server redirects the GET). Anti-spam scanners fetch header
         // links on their own, so nothing is unsubscribed until the visitor confirms.
         if (params.action === 'confirm_unsubscribe' && params.lid) {
-          if (initialSubscriptions[params.lid]) {
+          // Automations also email contacts who aren't on their list, with that list's
+          // header link, so a contact with no row on the list is asked too, and so is one
+          // whose double opt-in is still pending, whom marketing emails reach as well
+          const row = data.contact_lists?.find((cl) => cl.list_id === params.lid)
+          if (initialSubscriptions[params.lid] || !row || row.status === 'pending') {
             setPendingUnsubscribeListId(params.lid)
           } else if (
             combinedLists.find((list) => list.id === params.lid)?.status === 'unsubscribed'
@@ -625,8 +629,13 @@ function App() {
 
   const websiteUrl = notificationData?.website_url || '#'
 
-  const pendingUnsubscribeList = pendingUnsubscribeListId
-    ? allLists.find((list) => list.id === pendingUnsubscribeListId)
+  // The preferences leave out private lists the contact isn't on, so for those the page
+  // only knows the list's ID, which means nothing to them: the card then goes unnamed
+  const pendingUnsubscribeList: List | undefined = pendingUnsubscribeListId
+    ? (allLists.find((list) => list.id === pendingUnsubscribeListId) ?? {
+        id: pendingUnsubscribeListId,
+        name: ''
+      })
     : undefined
 
   return (
@@ -743,7 +752,9 @@ function App() {
                   className="mb-6 p-4 rounded-sm border border-gray-300 bg-gray-50"
                   data-testid="confirm-unsubscribe"
                 >
-                  <div className="font-medium">{pendingUnsubscribeList.name}</div>
+                  {pendingUnsubscribeList.name && (
+                    <div className="font-medium">{pendingUnsubscribeList.name}</div>
+                  )}
                   <p className="mt-1 text-sm text-gray-700">{t('confirmUnsubscribePrompt')}</p>
                   <Button
                     variant="outline"
@@ -751,7 +762,11 @@ function App() {
                     onClick={() => confirmUnsubscribe(pendingUnsubscribeList.id)}
                     disabled={processingLists[pendingUnsubscribeList.id]}
                     // The list's own row has an "Unsubscribe" button too
-                    aria-label={`${t('unsubscribe')}: ${pendingUnsubscribeList.name}`}
+                    aria-label={
+                      pendingUnsubscribeList.name
+                        ? `${t('unsubscribe')}: ${pendingUnsubscribeList.name}`
+                        : t('unsubscribe')
+                    }
                     className="mt-3 cursor-pointer border-red-500 text-red-500 hover:bg-red-50"
                   >
                     {processingLists[pendingUnsubscribeList.id]
@@ -768,7 +783,14 @@ function App() {
                     {allLists.map((list) => {
                       const isSubscribed = subscriptions[list.id] || false
                       const isActive = list.status === 'active'
-                      const canToggle = list.status !== 'bounced' && list.status !== 'complained'
+                      const isPublic =
+                        notificationData?.public_lists?.some((l) => l.id === list.id) ?? false
+                      // The workspace decides who joins a private list: a contact can only
+                      // leave one, and the server refuses a subscribe
+                      const canToggle =
+                        list.status !== 'bounced' &&
+                        list.status !== 'complained' &&
+                        (isPublic || isSubscribed)
 
                       return (
                         <div
@@ -812,7 +834,9 @@ function App() {
                                 {processingLists[list.id]
                                   ? t('processing')
                                   : !canToggle
-                                  ? list.status
+                                  ? list.status === 'unsubscribed'
+                                    ? t('unsubscribedStatus')
+                                    : list.status
                                   : isSubscribed
                                   ? t('unsubscribe')
                                   : t('subscribe')}

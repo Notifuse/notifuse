@@ -426,6 +426,66 @@ func TestAutomationHandler_Activate_ErrorMapping(t *testing.T) {
 	}
 }
 
+const webhookTargetMessage = "webhook node node-hook: URL must not target a private or internal address (10.0.0.5); set WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true to deliver webhooks to your own network"
+
+func TestAutomationHandler_Create_ErrorMapping(t *testing.T) {
+	_, automationSvc, mux, secretKey := setupAutomationTest(t)
+
+	testCases := []struct {
+		name            string
+		serviceErr      error
+		expectedStatus  int
+		expectedMessage string
+	}{
+		{
+			name:            "validation error is surfaced as 400 with its message",
+			serviceErr:      domain.NewValidationError(webhookTargetMessage),
+			expectedStatus:  http.StatusBadRequest,
+			expectedMessage: webhookTargetMessage,
+		},
+		{
+			// The service wraps it, so the handler has to see through %w.
+			name:            "wrapped validation error is surfaced as 400 with its message",
+			serviceErr:      fmt.Errorf("invalid automation: %w", domain.NewValidationError(webhookTargetMessage)),
+			expectedStatus:  http.StatusBadRequest,
+			expectedMessage: webhookTargetMessage,
+		},
+		{
+			name:            "unrelated error stays a generic 500",
+			serviceErr:      errors.New("database connection lost"),
+			expectedStatus:  http.StatusInternalServerError,
+			expectedMessage: "Failed to create automation",
+		},
+		{
+			name:            "permission error stays 403",
+			serviceErr:      domain.NewPermissionError(domain.PermissionResourceAutomations, domain.PermissionTypeWrite, "user lacks automations:write"),
+			expectedStatus:  http.StatusForbidden,
+			expectedMessage: "user lacks automations:write",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			automationSvc.EXPECT().Create(gomock.Any(), "workspace-123", gomock.Any()).Return(tc.serviceErr)
+
+			body, err := json.Marshal(domain.CreateAutomationRequest{
+				WorkspaceID: "workspace-123",
+				Automation:  createTestAutomation("auto-123", "workspace-123"),
+			})
+			require.NoError(t, err)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/automations.create", bytes.NewReader(body))
+			req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.Equal(t, tc.expectedMessage, decodeErrorMessage(t, w))
+		})
+	}
+}
+
 func TestAutomationHandler_Update_ErrorMapping(t *testing.T) {
 	_, automationSvc, mux, secretKey := setupAutomationTest(t)
 
@@ -450,6 +510,20 @@ func TestAutomationHandler_Update_ErrorMapping(t *testing.T) {
 			serviceErr:      fmt.Errorf("failed to create automation trigger: %w", domain.NewTriggerConditionError(conditionMessage)),
 			expectedStatus:  http.StatusBadRequest,
 			expectedMessage: conditionMessage,
+		},
+		{
+			// A webhook node aimed at an internal target is refused on save; the caller
+			// has to be told why, and how a deployment opts out.
+			name:            "validation error is surfaced as 400 with its message",
+			serviceErr:      domain.NewValidationError(webhookTargetMessage),
+			expectedStatus:  http.StatusBadRequest,
+			expectedMessage: webhookTargetMessage,
+		},
+		{
+			name:            "wrapped validation error is surfaced as 400 with its message",
+			serviceErr:      fmt.Errorf("invalid automation: %w", domain.NewValidationError(webhookTargetMessage)),
+			expectedStatus:  http.StatusBadRequest,
+			expectedMessage: webhookTargetMessage,
 		},
 		{
 			name:            "unrelated error stays a generic 500",

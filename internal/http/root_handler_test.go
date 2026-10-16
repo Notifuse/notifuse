@@ -40,11 +40,12 @@ func TestNewRootHandler(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil, // workspaceRepo
-		nil, // blogService
-		nil, // cache
-		nil, // oidcEnabled
-		"",  // oidcButtonLabel
+		nil,   // workspaceRepo
+		nil,   // blogService
+		nil,   // cache
+		nil,   // oidcEnabled
+		"",    // oidcButtonLabel
+		false, // webhookAllowPrivateHosts
 	)
 
 	// Assert fields are set correctly
@@ -61,6 +62,7 @@ func TestServeConfigJS_OIDC(t *testing.T) {
 			false, "", 0, "off",
 			nil, nil, nil,
 			enabled, label,
+			false, // webhookAllowPrivateHosts
 		)
 	}
 	always := func(v bool) func() bool { return func() bool { return v } }
@@ -124,6 +126,30 @@ func TestServeConfigJS_OIDC(t *testing.T) {
 	})
 }
 
+// The console reads this flag to decide whether a webhook node aimed at a private
+// address deserves an error in the editor. Only the flag reaches the browser, and
+// it only steers the editor: the server enforces the setting itself, on save and
+// at dial time, whatever the console shows.
+func TestServeConfigJS_WebhookPrivateHosts(t *testing.T) {
+	isInstalled := true
+	serve := func(allowPrivateHosts bool) string {
+		h := NewRootHandler(
+			"console_test", "notification_center_test", logger.NewLogger(),
+			"https://api.example.com", "1.0", "root@example.com", &isInstalled,
+			false, "", 0, "off",
+			nil, nil, nil,
+			nil, "",
+			allowPrivateHosts,
+		)
+		rec := httptest.NewRecorder()
+		h.serveConfigJS(rec, httptest.NewRequest("GET", "/config.js", nil))
+		return rec.Body.String()
+	}
+
+	assert.Contains(t, serve(false), "window.WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS = false;")
+	assert.Contains(t, serve(true), "window.WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS = true;")
+}
+
 func TestRootHandler_Handle(t *testing.T) {
 	// Create a test logger
 	testLogger := logger.NewLogger()
@@ -140,11 +166,12 @@ func TestRootHandler_Handle(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil, // workspaceRepo
-		nil, // blogService
-		nil, // cache
-		nil, // oidcEnabled
-		"",  // oidcButtonLabel
+		nil,   // workspaceRepo
+		nil,   // blogService
+		nil,   // cache
+		nil,   // oidcEnabled
+		"",    // oidcButtonLabel
+		false, // webhookAllowPrivateHosts
 	)
 
 	// Create a test request
@@ -184,11 +211,12 @@ func TestRootHandler_RegisterRoutes(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil, // workspaceRepo
-		nil, // blogService
-		nil, // cache
-		nil, // oidcEnabled
-		"",  // oidcButtonLabel
+		nil,   // workspaceRepo
+		nil,   // blogService
+		nil,   // cache
+		nil,   // oidcEnabled
+		"",    // oidcButtonLabel
+		false, // webhookAllowPrivateHosts
 	)
 	mux := http.NewServeMux()
 
@@ -234,11 +262,12 @@ func TestRootHandler_RegisterRoutesWithNotificationCenter(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil, // workspaceRepo
-		nil, // blogService
-		nil, // cache
-		nil, // oidcEnabled
-		"",  // oidcButtonLabel
+		nil,   // workspaceRepo
+		nil,   // blogService
+		nil,   // cache
+		nil,   // oidcEnabled
+		"",    // oidcButtonLabel
+		false, // webhookAllowPrivateHosts
 	)
 
 	mux := http.NewServeMux()
@@ -277,11 +306,12 @@ func TestRootHandler_ServeConfigJS(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil, // workspaceRepo
-		nil, // blogService
-		nil, // cache
-		nil, // oidcEnabled
-		"",  // oidcButtonLabel
+		nil,   // workspaceRepo
+		nil,   // blogService
+		nil,   // cache
+		nil,   // oidcEnabled
+		"",    // oidcButtonLabel
+		false, // webhookAllowPrivateHosts
 	)
 
 	// Create a request to /config.js
@@ -335,11 +365,12 @@ func TestRootHandler_Handle_ConfigJS(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil, // workspaceRepo
-		nil, // blogService
-		nil, // cache
-		nil, // oidcEnabled
-		"",  // oidcButtonLabel
+		nil,   // workspaceRepo
+		nil,   // blogService
+		nil,   // cache
+		nil,   // oidcEnabled
+		"",    // oidcButtonLabel
+		false, // webhookAllowPrivateHosts
 	)
 
 	// Create a request to /config.js
@@ -396,11 +427,12 @@ func TestRootHandler_ServeNotificationCenter(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil, // workspaceRepo
-		nil, // blogService
-		nil, // cache
-		nil, // oidcEnabled
-		"",  // oidcButtonLabel
+		nil,   // workspaceRepo
+		nil,   // blogService
+		nil,   // cache
+		nil,   // oidcEnabled
+		"",    // oidcButtonLabel
+		false, // webhookAllowPrivateHosts
 	)
 
 	t.Run("ServeExactPath", func(t *testing.T) {
@@ -475,11 +507,12 @@ func TestRootHandler_ServeConsole(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil, // workspaceRepo
-		nil, // blogService
-		nil, // cache
-		nil, // oidcEnabled
-		"",  // oidcButtonLabel
+		nil,   // workspaceRepo
+		nil,   // blogService
+		nil,   // cache
+		nil,   // oidcEnabled
+		"",    // oidcButtonLabel
+		false, // webhookAllowPrivateHosts
 	)
 
 	t.Run("ServeExactPath", func(t *testing.T) {
@@ -570,11 +603,12 @@ func TestRootHandler_Handle_Comprehensive(t *testing.T) {
 		"",
 		0,
 		"off",
-		nil, // workspaceRepo
-		nil, // blogService
-		nil, // cache
-		nil, // oidcEnabled
-		"",  // oidcButtonLabel
+		nil,   // workspaceRepo
+		nil,   // blogService
+		nil,   // cache
+		nil,   // oidcEnabled
+		"",    // oidcButtonLabel
+		false, // webhookAllowPrivateHosts
 	)
 
 	t.Run("NotFoundAPIPath", func(t *testing.T) {
@@ -690,11 +724,12 @@ func TestRootHandler_CacheIntegration(t *testing.T) {
 			"",
 			0,
 			"off",
-			nil, // workspaceRepo
-			nil, // blogService
-			nil, // cache - nil is allowed
-			nil, // oidcEnabled
-			"",  // oidcButtonLabel
+			nil,   // workspaceRepo
+			nil,   // blogService
+			nil,   // cache - nil is allowed
+			nil,   // oidcEnabled
+			"",    // oidcButtonLabel
+			false, // webhookAllowPrivateHosts
 		)
 
 		// Verify handler is created successfully
@@ -762,8 +797,9 @@ func setupBlogHandlerTest(t *testing.T) (*mocks.MockBlogService, *pkgmocks.MockL
 		nil, // workspaceRepo
 		mockBlogService,
 		testCache,
-		nil, // oidcEnabled
-		"",  // oidcButtonLabel
+		nil,   // oidcEnabled
+		"",    // oidcButtonLabel
+		false, // webhookAllowPrivateHosts
 	)
 
 	return mockBlogService, mockLogger, testCache, workspace, handler

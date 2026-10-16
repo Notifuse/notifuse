@@ -158,6 +158,24 @@ func (s *quotaSMTPServer) Close() {
 	s.wg.Wait()
 }
 
+// broadcastStatsOnceRecorded reads a broadcast's message-history stats once they show
+// wantSent and wantFailed. The queue worker deletes a sent email's queue row before it
+// records the send in message history, so stats read as soon as the queue settles can be
+// one send short. On timeout it returns the last read, so the caller's assertions show the
+// actual counts.
+func broadcastStatsOnceRecorded(t *testing.T, repo domain.MessageHistoryRepository, workspaceID, broadcastID string, wantSent, wantFailed int) *domain.MessageHistoryStatusSum {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		stats, err := repo.GetBroadcastStats(context.Background(), workspaceID, broadcastID)
+		require.NoError(t, err)
+		if (stats.TotalSent == wantSent && stats.TotalFailed == wantFailed) || time.Now().After(deadline) {
+			return stats
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
 // TestBroadcastPartialFailure reproduces a campaign that reaches most of its audience
 // and not all of it: a list carrying stale addresses, which the receiving server
 // refuses with a 550 while every other message goes through.
@@ -224,8 +242,7 @@ func TestBroadcastPartialFailure(t *testing.T) {
 	assert.Equal(t, deadCount, refused, "a permanent rejection is not retried")
 
 	messageHistoryRepo := appInstance.GetMessageHistoryRepository()
-	stats, err := messageHistoryRepo.GetBroadcastStats(ctx, workspace.ID, broadcastID)
-	require.NoError(t, err)
+	stats := broadcastStatsOnceRecorded(t, messageHistoryRepo, workspace.ID, broadcastID, contactCount-deadCount, deadCount)
 	assert.Equal(t, contactCount-deadCount, stats.TotalSent, "a refused message was never sent")
 	assert.Equal(t, deadCount, stats.TotalFailed)
 
@@ -293,8 +310,7 @@ func TestBroadcastPartialFailure(t *testing.T) {
 
 	// And the campaign heals: a retry that succeeds clears the failure, so the badge
 	// goes back to Complete rather than carrying "4 failed" for ever.
-	healed, err := messageHistoryRepo.GetBroadcastStats(ctx, workspace.ID, broadcastID)
-	require.NoError(t, err)
+	healed := broadcastStatsOnceRecorded(t, messageHistoryRepo, workspace.ID, broadcastID, contactCount, 0)
 	assert.Equal(t, contactCount, healed.TotalSent, "everyone has now been sent to")
 	assert.Equal(t, 0, healed.TotalFailed, "a successful retry clears the failure it is retrying")
 }
@@ -347,8 +363,7 @@ func TestBroadcastFailuresOutliveTheirQueueRows(t *testing.T) {
 	assert.Equal(t, int64(0), counts.FailedTerminal, "the rows are gone, so a retry is no longer offered")
 
 	// What must not go with them: the fact that the campaign did not reach everyone.
-	stats, err := messageHistoryRepo.GetBroadcastStats(ctx, workspace.ID, broadcastID)
-	require.NoError(t, err)
+	stats := broadcastStatsOnceRecorded(t, messageHistoryRepo, workspace.ID, broadcastID, contactCount-deadCount, deadCount)
 	assert.Equal(t, deadCount, stats.TotalFailed,
 		"the campaign still knows it failed four people after the sweep")
 	assert.Equal(t, contactCount-deadCount, stats.TotalSent)
@@ -497,8 +512,7 @@ func TestBroadcastCircuitBreakerPause(t *testing.T) {
 	}, 90*time.Second, time.Second, "resuming should send to everyone the pause held back")
 
 	messageHistoryRepo := appInstance.GetMessageHistoryRepository()
-	stats, err := messageHistoryRepo.GetBroadcastStats(ctx, workspace.ID, broadcastID)
-	require.NoError(t, err)
+	stats := broadcastStatsOnceRecorded(t, messageHistoryRepo, workspace.ID, broadcastID, contactCount, 0)
 	assert.Equal(t, contactCount, stats.TotalSent, "the whole audience is reached in the end")
 	assert.Equal(t, 0, stats.TotalFailed, "a send that succeeds on resume clears its earlier failure")
 }

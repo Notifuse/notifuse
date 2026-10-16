@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -16,6 +17,10 @@ type AutomationService struct {
 	repo        domain.AutomationRepository
 	authService domain.AuthService
 	logger      logger.Logger
+	// allowPrivateWebhookHosts mirrors WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS. It only
+	// relaxes the save-time check on webhook node URLs; the dial-time guard on the
+	// node's client is configured from the same setting in app wiring.
+	allowPrivateWebhookHosts bool
 }
 
 // NewAutomationService creates a new AutomationService
@@ -23,11 +28,13 @@ func NewAutomationService(
 	repo domain.AutomationRepository,
 	authService domain.AuthService,
 	logger logger.Logger,
+	allowPrivateWebhookHosts bool,
 ) *AutomationService {
 	return &AutomationService{
-		repo:        repo,
-		authService: authService,
-		logger:      logger,
+		repo:                     repo,
+		authService:              authService,
+		logger:                   logger,
+		allowPrivateWebhookHosts: allowPrivateWebhookHosts,
 	}
 }
 
@@ -53,6 +60,10 @@ func (s *AutomationService) Create(ctx context.Context, workspaceID string, auto
 	automation.Status = domain.AutomationStatusDraft
 
 	if err := automation.Validate(); err != nil {
+		return fmt.Errorf("invalid automation: %w", err)
+	}
+
+	if err := validateWebhookNodeTargets(automation.Nodes, s.allowPrivateWebhookHosts); err != nil {
 		return fmt.Errorf("invalid automation: %w", err)
 	}
 
@@ -126,6 +137,15 @@ func (s *AutomationService) Update(ctx context.Context, workspaceID string, auto
 	}
 
 	if err := automation.Validate(); err != nil {
+		return fmt.Errorf("invalid automation: %w", err)
+	}
+
+	// Only the nodes this request carries. One that omits them — an API rename,
+	// say — keeps the stored ones below without a second look. One that carries
+	// them, as every console save does, is checked in full, unchanged nodes
+	// included: a URL saved before this check existed is reported the next time
+	// someone edits the automation, and the dial-time guard refuses it meanwhile.
+	if err := validateWebhookNodeTargets(automation.Nodes, s.allowPrivateWebhookHosts); err != nil {
 		return fmt.Errorf("invalid automation: %w", err)
 	}
 
@@ -481,4 +501,38 @@ func (s *AutomationService) GetContactNodeExecutions(ctx context.Context, worksp
 	}
 
 	return contactAutomation, entries, nil
+}
+
+// validateWebhookNodeTargets refuses a webhook node whose URL names an internal
+// target, unless allowPrivateHosts (WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS) is set.
+//
+// Like validateURL for subscriptions, it only reads what the URL spells, through
+// the same rejectPrivateWebhookHost. A public name that resolves privately passes
+// here and is refused at dial time by the node's client, the layer that actually
+// protects the request; the point of this one is a clear error when the
+// automation is saved, rather than a node that looks fine and fails every contact.
+//
+// A URL that is empty, not a string or does not parse is left alone: drafts are
+// savable unfinished, and such a node already fails when it runs.
+func validateWebhookNodeTargets(nodes []*domain.AutomationNode, allowPrivateHosts bool) error {
+	if allowPrivateHosts {
+		return nil
+	}
+	for _, node := range nodes {
+		if node == nil || node.Type != domain.NodeTypeWebhook {
+			continue
+		}
+		rawURL, _ := node.Config["url"].(string)
+		if rawURL == "" {
+			continue
+		}
+		parsed, err := url.Parse(rawURL)
+		if err != nil || parsed.Host == "" {
+			continue
+		}
+		if err := rejectPrivateWebhookHost(parsed.Hostname()); err != nil {
+			return domain.NewValidationError(fmt.Sprintf("webhook node %s: %v", node.ID, err))
+		}
+	}
+	return nil
 }

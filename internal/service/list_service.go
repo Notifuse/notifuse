@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -358,6 +359,14 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 			// Not found — proceed as new subscription
 		}
 
+		// The workspace decides who is on a private list. A link's signature lets its contact
+		// confirm a double opt-in the workspace started, but never join a private list,
+		// nor rejoin one they left.
+		if !list.IsPublic && !hasBearerToken &&
+			(existingCL == nil || existingCL.Status == domain.ContactListStatusUnsubscribed) {
+			return nil, fmt.Errorf("list is not public")
+		}
+
 		skipDBWrite := false
 		forceDoubleOptin := false
 
@@ -562,6 +571,7 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 	}
 
 	// Process each list for unsubscription
+	recorded := false
 	for _, listID := range payload.ListIDs {
 		var list *domain.List
 		for _, l := range lists {
@@ -571,24 +581,30 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 			}
 		}
 
+		// A list that doesn't exist, such as one deleted after its email went out, has no
+		// subscription left to end. Answering with an error would only make the recipient's
+		// mail provider retry.
 		if list == nil {
-			s.logger.WithField("list_id", listID).Error("List not found")
-			return fmt.Errorf("list not found")
+			s.logger.WithField("list_id", listID).Warn("Unsubscribe skipped: list not found or deleted")
+			continue
 		}
 
-		// Update contact's status to unsubscribed for this list
-		err = s.contactListRepo.UpdateContactListStatus(ctx, workspace.ID, payload.Email, listID, domain.ContactListStatusUnsubscribed)
+		var listRecorded bool
+		listRecorded, err = s.unsubscribeFromList(ctx, workspace.ID, payload.Email, listID, payload.MessageID)
 		if err != nil {
 			s.logger.WithField("email", payload.Email).
 				WithField("list_id", listID).
 				Error(fmt.Sprintf("Failed to unsubscribe from list: %v", err))
 			return fmt.Errorf("failed to unsubscribe from list: %w", err)
 		}
+		recorded = recorded || listRecorded
 	}
 
 	// Update message history with unsubscribe event if MessageID is provided
-	// This enables broadcast statistics to track unsubscribes via notification center
-	if payload.MessageID != "" {
+	// This enables broadcast statistics to track unsubscribes via notification center.
+	// Only once an opt-out was recorded: an erased contact's messages are kept with the
+	// address redacted, and marking one would still fire its email.unsubscribed webhook.
+	if payload.MessageID != "" && recorded {
 		now := time.Now()
 		updates := []domain.MessageEventUpdate{
 			{
@@ -606,4 +622,63 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 	}
 
 	return nil
+}
+
+// unsubscribeFromList records a contact's opt-out from one list and reports whether it
+// recorded anything. messageID is the email the request came from.
+func (s *ListService) unsubscribeFromList(ctx context.Context, workspaceID, email, listID, messageID string) (bool, error) {
+	// A bounced or complained address is never mailed, and its status says more than an
+	// opt-out, so it is kept. People who report spam often unsubscribe too: overwriting
+	// would turn the complaint into a plain "unsubscribed", which a broadcast set to
+	// include unsubscribed contacts mails again. The read and the update are separate
+	// statements, so a complaint saved between them is still overwritten.
+	current, err := s.contactListRepo.GetContactListByIDs(ctx, workspaceID, email, listID)
+	var notOnList *domain.ErrContactListNotFound
+	if err != nil && !errors.As(err, &notOnList) {
+		return false, err
+	}
+	if current != nil &&
+		(current.Status == domain.ContactListStatusBounced || current.Status == domain.ContactListStatusComplained) {
+		return true, nil
+	}
+
+	err = s.contactListRepo.UpdateContactListStatus(ctx, workspaceID, email, listID, domain.ContactListStatusUnsubscribed)
+	if !errors.As(err, &notOnList) {
+		return err == nil, err
+	}
+
+	// No row on the list: automations email contacts who aren't on their list, and those
+	// emails carry the list's unsubscribe links. Nothing is written for a contact that no
+	// longer exists, so a link from before an erasure can't store the address again.
+	if _, err := s.contactRepo.GetContactByEmail(ctx, workspaceID, email); err != nil {
+		if errors.Is(err, domain.ErrContactNotFound) {
+			s.logger.WithField("list_id", listID).Info("Unsubscribe skipped: contact no longer exists")
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to get contact: %w", err)
+	}
+
+	// The link's signature covers the address, not the list, so the list must be the one
+	// the email was sent for. Otherwise any link could put its contact on any list,
+	// private ones included, which the preferences page would then show by name.
+	sent := false
+	if messageID != "" {
+		sent, err = s.messageHistoryRepo.WasSentForList(ctx, workspaceID, messageID, email, listID)
+		if err != nil {
+			return false, err
+		}
+	}
+	if !sent {
+		s.logger.WithField("list_id", listID).WithField("message_id", messageID).
+			Warn("Unsubscribe skipped: the email was not sent for this list")
+		return false, nil
+	}
+
+	// AddContactToList never overwrites a bounced or complained row
+	err = s.contactListRepo.AddContactToList(ctx, workspaceID, &domain.ContactList{
+		Email:  email,
+		ListID: listID,
+		Status: domain.ContactListStatusUnsubscribed,
+	})
+	return err == nil, err
 }

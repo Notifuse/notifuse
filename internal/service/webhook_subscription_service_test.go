@@ -1187,6 +1187,26 @@ func TestValidateURL(t *testing.T) {
 			expectError: true,
 			errorMsg:    "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS",
 		},
+		// A fully qualified name ends in a dot, and resolves exactly like the
+		// name without it, so the suffix checks must not be dodged by one.
+		{
+			name:        "private - localhost with a trailing dot",
+			url:         "http://localhost./hook",
+			expectError: true,
+			errorMsg:    "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS",
+		},
+		{
+			name:        "private - cluster domain with a trailing dot",
+			url:         "http://svc.default.svc.cluster.local./hook",
+			expectError: true,
+			errorMsg:    "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS",
+		},
+		{
+			name:        "private - metadata name with a trailing dot",
+			url:         "http://metadata.google.internal./computeMetadata/v1/",
+			expectError: true,
+			errorMsg:    "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS",
+		},
 		// The opt-out is what a self-hosted deployment delivering to its own
 		// network turns on, so every rejection above has to become legal again.
 		{

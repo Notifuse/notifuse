@@ -210,3 +210,18 @@ func (mr *MockMessageHistoryRepositoryMockRecorder) Upsert(arg0, arg1, arg2, arg
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upsert", reflect.TypeOf((*MockMessageHistoryRepository)(nil).Upsert), arg0, arg1, arg2, arg3)
 }
+
+// WasSentForList mocks base method.
+func (m *MockMessageHistoryRepository) WasSentForList(arg0 context.Context, arg1, arg2, arg3, arg4 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WasSentForList", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WasSentForList indicates an expected call of WasSentForList.
+func (mr *MockMessageHistoryRepositoryMockRecorder) WasSentForList(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WasSentForList", reflect.TypeOf((*MockMessageHistoryRepository)(nil).WasSentForList), arg0, arg1, arg2, arg3, arg4)
+}

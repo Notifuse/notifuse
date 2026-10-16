@@ -32,6 +32,9 @@ func TestDemoAutomations_AreUsable(t *testing.T) {
 	for _, automation := range automations {
 		t.Run(automation.ID, func(t *testing.T) {
 			require.NoError(t, automation.Validate(), "automation does not validate")
+			// The seeder saves these through AutomationService.Create, which refuses a
+			// webhook node aimed at an internal host, so one here would break the reset.
+			require.NoError(t, validateWebhookNodeTargets(automation.Nodes, false), "a webhook node would be refused on save")
 			require.NotNil(t, automation.Trigger)
 			require.NoError(t, automation.Trigger.Validate(), "trigger does not validate")
 			assert.Contains(t, domain.ValidEventKinds, automation.Trigger.EventKind)
