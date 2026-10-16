@@ -12,6 +12,7 @@ import (
 	"github.com/preslavrachev/gomjml/mjml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/html"
 )
 
 func TestTrackLinks(t *testing.T) {
@@ -355,6 +356,222 @@ func TestTrackLinks_PreservesUTMInEncryptedToken(t *testing.T) {
 		if !strings.Contains(destinationURL, want) {
 			t.Errorf("expected destination URL %q to contain %q", destinationURL, want)
 		}
+	}
+}
+
+// anchorHrefs returns the href of every <a> in rendered, in document order and
+// decoded the way a mail client's HTML parser reads it.
+func anchorHrefs(t *testing.T, rendered string) []string {
+	t.Helper()
+	doc, err := html.Parse(strings.NewReader(rendered))
+	require.NoError(t, err)
+	var hrefs []string
+	var walk func(n *html.Node)
+	walk = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "a" {
+			for _, a := range n.Attr {
+				if a.Key == "href" {
+					hrefs = append(hrefs, a.Val)
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(doc)
+	return hrefs
+}
+
+// TestTrackLinks_URLsWithQuotes covers links whose URL contains a quote (B2,
+// B17). Each case compiles real MJML or a real visual editor tree through
+// CompileTemplate, so the HTML TrackLinks rewrites is the HTML gomjml actually
+// emits, then reads the delivered href back with an HTML parser. With tracking
+// off the href must be exactly the authored URL plus UTM and nf_id; with
+// tracking on it must be a /r/ redirect whose encrypted destination is that
+// same URL. Before the fix the URL ended at the first quote of either kind, so
+// "what's-new" became a dead /r/<token>'s-new link (tracking on) or
+// "what?utm_…'s-new" (tracking off), and a visual-editor "…?q=\"exact\"" lost
+// everything after "q=".
+func TestTrackLinks_URLsWithQuotes(t *testing.T) {
+	codeMode := func(body string) func() CompileTemplateRequest {
+		return func() CompileTemplateRequest {
+			src := `<mjml><mj-body><mj-section><mj-column>` + body + `</mj-column></mj-section></mj-body></mjml>`
+			return CompileTemplateRequest{MjmlSource: &src}
+		}
+	}
+	visualMode := func(block func() EmailBlock) func() CompileTemplateRequest {
+		return func() CompileTemplateRequest {
+			return CompileTemplateRequest{VisualEditorTree: editorTree(block())}
+		}
+	}
+
+	cases := []struct {
+		name     string
+		request  func() CompileTemplateRequest
+		authored string // the URL the recipient must land on, before UTM/nf_id
+	}{
+		{
+			name:     "code mode mj-text link with ' inside a double-quoted href",
+			request:  codeMode(`<mj-text><a href="https://example.com/blog/what's-new">Read</a></mj-text>`),
+			authored: "https://example.com/blog/what's-new",
+		},
+		{
+			name:     "code mode mj-button with ' inside a double-quoted href",
+			request:  codeMode(`<mj-button href="https://example.com/blog/what's-new">Read</mj-button>`),
+			authored: "https://example.com/blog/what's-new",
+		},
+		{
+			name:     `code mode mj-text link with " inside a single-quoted href`,
+			request:  codeMode(`<mj-text><a href='https://example.com/search?q="exact"'>Search</a></mj-text>`),
+			authored: `https://example.com/search?q="exact"`,
+		},
+		{
+			name:     `code mode mj-button with " inside a single-quoted href`,
+			request:  codeMode(`<mj-button href='https://example.com/search?q="exact"'>Search</mj-button>`),
+			authored: `https://example.com/search?q="exact"`,
+		},
+		{
+			name:     `code mode mj-text link with &quot; inside a double-quoted href`,
+			request:  codeMode(`<mj-text><a href="https://example.com/search?q=&quot;exact&quot;&amp;page=2">Search</a></mj-text>`),
+			authored: `https://example.com/search?q="exact"&page=2`,
+		},
+		{
+			name: "code mode Liquid personalised link rendering O'Brien",
+			request: func() CompileTemplateRequest {
+				req := codeMode(`<mj-text><a href="https://example.com/hello?name={{ contact.last_name }}">Hi</a></mj-text>`)()
+				req.TemplateData = MapOfAny{"contact": MapOfAny{"last_name": "O'Brien"}}
+				return req
+			},
+			authored: "https://example.com/hello?name=O'Brien",
+		},
+		{
+			name: "visual editor text link whose ' the rich text editor saved as &#39;",
+			request: visualMode(func() EmailBlock {
+				return editorText(`<p><a href="https://example.com/blog/what&#39;s-new">Read</a></p>`)
+			}),
+			authored: "https://example.com/blog/what's-new",
+		},
+		{
+			name: `visual editor text link whose " the rich text editor saved as &quot;`,
+			request: visualMode(func() EmailBlock {
+				return editorText(`<p><a href="https://example.com/search?q=&quot;exact&quot;">Search</a></p>`)
+			}),
+			authored: `https://example.com/search?q="exact"`,
+		},
+		{
+			name:     "visual editor button with ' in its href",
+			request:  visualMode(func() EmailBlock { return editorButton("Read", "https://example.com/blog/what's-new") }),
+			authored: "https://example.com/blog/what's-new",
+		},
+		{
+			name:     `visual editor button with " in its href`,
+			request:  visualMode(func() EmailBlock { return editorButton("Search", `https://example.com/search?q="exact"`) }),
+			authored: `https://example.com/search?q="exact"`,
+		},
+		{
+			name: "visual editor button Liquid href rendering O'Brien",
+			request: func() CompileTemplateRequest {
+				req := visualMode(func() EmailBlock {
+					return editorButton("Hi", "https://example.com/hello?name={{ contact.last_name }}")
+				})()
+				req.TemplateData = MapOfAny{"contact": MapOfAny{"last_name": "O'Brien"}}
+				return req
+			},
+			authored: "https://example.com/hello?name=O'Brien",
+		},
+	}
+
+	withQueryParams := func(u, params string) string {
+		if strings.Contains(u, "?") {
+			return u + "&" + params
+		}
+		return u + "?" + params
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name+" / tracking off", func(t *testing.T) {
+			req := tc.request()
+			req.WorkspaceID, req.MessageID = "ws-1", "msg-1"
+			req.TrackingSettings = TrackingSettings{
+				UTMSource:            "newsletter",
+				UTMContent:           "hero",
+				IdentifyToken:        "tok",
+				IdentifyAllowedHosts: []string{"example.com"},
+			}
+			resp, err := CompileTemplate(req)
+			require.NoError(t, err)
+			require.True(t, resp.Success, "compile error: %v", resp.Error)
+
+			assert.Equal(t,
+				[]string{withQueryParams(tc.authored, "utm_content=hero&utm_source=newsletter&nf_id=tok")},
+				anchorHrefs(t, *resp.HTML))
+		})
+
+		t.Run(tc.name+" / tracking on", func(t *testing.T) {
+			req := tc.request()
+			req.WorkspaceID, req.MessageID = "ws-1", "msg-1"
+			req.TrackingSettings = TrackingSettings{
+				EnableTracking: true,
+				Endpoint:       "https://track.example.com",
+				WorkspaceID:    "ws-1",
+				MessageID:      "msg-1",
+				UTMSource:      "newsletter",
+				UTMContent:     "hero",
+			}
+			resp, err := CompileTemplate(req)
+			require.NoError(t, err)
+			require.True(t, resp.Success, "compile error: %v", resp.Error)
+
+			hrefs := anchorHrefs(t, *resp.HTML)
+			require.Len(t, hrefs, 1)
+			const prefix = "https://track.example.com/r/"
+			require.True(t, strings.HasPrefix(hrefs[0], prefix), "not a redirect link: %q", hrefs[0])
+
+			plaintext, err := crypto.DecryptTrackingToken(strings.TrimPrefix(hrefs[0], prefix))
+			require.NoError(t, err, "href %q does not carry a valid token", hrefs[0])
+			parts := strings.SplitN(plaintext, "\n", 4)
+			require.Len(t, parts, 4)
+			assert.Equal(t, withQueryParams(tc.authored, "utm_content=hero&utm_source=newsletter"), parts[3])
+		})
+	}
+}
+
+// TestTrackLinks_KeepsTheAttributeDelimiterEscaped feeds TrackLinks HTML whose
+// href holds the delimiting quote as an entity and checks the rewritten
+// attribute still parses to the whole URL: the entity is decoded to read the
+// URL and escaped again on the way out.
+func TestTrackLinks_KeepsTheAttributeDelimiterEscaped(t *testing.T) {
+	settings := TrackingSettings{UTMSource: "newsletter"}
+	for _, tc := range []struct {
+		name, input, want string
+	}{
+		{
+			name:  `&quot; inside a double-quoted href`,
+			input: `<a class="x" href="https://example.com/s?q=&quot;exact&quot;" target="_blank">x</a>`,
+			want:  `https://example.com/s?q="exact"&utm_source=newsletter`,
+		},
+		{
+			name:  `&#39; inside a single-quoted href`,
+			input: `<a href='https://example.com/what&#39;s-new' target='_blank'>x</a>`,
+			want:  `https://example.com/what's-new?utm_source=newsletter`,
+		},
+		{
+			name:  `" inside a single-quoted href`,
+			input: `<a href='https://example.com/s?q="exact"'>x</a>`,
+			want:  `https://example.com/s?q="exact"&utm_source=newsletter`,
+		},
+		{
+			name:  `' inside a double-quoted href`,
+			input: `<A HREF="https://example.com/what's-new">x</A>`,
+			want:  `https://example.com/what's-new?utm_source=newsletter`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := TrackLinks(tc.input, settings)
+			require.NoError(t, err)
+			assert.Equal(t, []string{tc.want}, anchorHrefs(t, got), "rewritten HTML: %s", got)
+		})
 	}
 }
 
@@ -767,9 +984,31 @@ func TestDecodeHTMLEntitiesInURLAttributes(t *testing.T) {
 			expected: `<a href="https://example.com?a=1&b=2" class="btn" id="link">Text</a>`,
 		},
 		{
-			name:     "href with other HTML entities",
+			// The &quot; stays encoded: decoding it inside "…" would close the
+			// attribute at name= and drop the rest of the URL (B17).
+			name:     "href with &quot; inside a double-quoted value keeps the entity",
 			input:    `<a href="https://example.com?name=&quot;John&quot;&amp;age=30">Link</a>`,
-			expected: `<a href="https://example.com?name="John"&age=30">Link</a>`,
+			expected: `<a href="https://example.com?name=&quot;John&quot;&age=30">Link</a>`,
+		},
+		{
+			name:     "href with &#39; inside a double-quoted value is decoded",
+			input:    `<a href="https://example.com/what&#39;s-new?a=1&amp;b=2">Link</a>`,
+			expected: `<a href="https://example.com/what's-new?a=1&b=2">Link</a>`,
+		},
+		{
+			name:     "href with &#39; inside a single-quoted value keeps the entity",
+			input:    `<a href='https://example.com/what&#39;s-new?q=&quot;x&quot;'>Link</a>`,
+			expected: `<a href='https://example.com/what&#39;s-new?q="x"'>Link</a>`,
+		},
+		{
+			name:     "a double-escaped quote is decoded once, to the entity",
+			input:    `<a href="https://example.com?q=&amp;quot;x&amp;quot;">Link</a>`,
+			expected: `<a href="https://example.com?q=&quot;x&quot;">Link</a>`,
+		},
+		{
+			name:     "' inside a double-quoted value does not end it",
+			input:    `<a href="https://example.com/what's-new?a=1&amp;b=2">Link</a>`,
+			expected: `<a href="https://example.com/what's-new?a=1&b=2">Link</a>`,
 		},
 		{
 			name:     "no entities to decode",
@@ -883,6 +1122,21 @@ func TestPreprocessMjmlForXML(t *testing.T) {
 			name:     "preserve already self-closing br with space",
 			input:    "<mj-text><p>Line 1<br />Line 2</p></mj-text>",
 			expected: "<mj-text><p>Line 1<br />Line 2</p></mj-text>",
+		},
+		{
+			name:     "&quot; in a double-quoted href is shielded from gomjml's entity pre-pass",
+			input:    `<mj-text><a href="https://example.com/s?q=&quot;x&quot;" title="&quot;t&quot;">l</a></mj-text>`,
+			expected: `<mj-text><a href="https://example.com/s?q=&amp;quot;x&amp;quot;" title="&quot;t&quot;">l</a></mj-text>`,
+		},
+		{
+			name:     "quotes in a single-quoted href are shielded from gomjml's entity pre-pass",
+			input:    `<mj-button href='https://example.com/s?q="x"&amp;y=&quot;z&quot;&amp;n=O&apos;B'>b</mj-button>`,
+			expected: `<mj-button href='https://example.com/s?q=&amp;quot;x&amp;quot;&amp;y=&amp;quot;z&amp;quot;&amp;n=O&#39;B'>b</mj-button>`,
+		},
+		{
+			name:     "' in a double-quoted href is left as is",
+			input:    `<mj-button href="https://example.com/what's-new">b</mj-button>`,
+			expected: `<mj-button href="https://example.com/what's-new">b</mj-button>`,
 		},
 		{
 			name:     "convert hr tag to self-closing",

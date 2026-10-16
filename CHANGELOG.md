@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: A Custom Endpoint URL saved with a trailing slash no longer puts `//` in tracking, unsubscribe and notification center links, which made the one-click unsubscribe answer with a redirect RFC 8058 forbids.
 
+- **Fix**: Links whose URL contains an apostrophe or a double quote — `…/blog/what's-new`, `…/search?q="exact"`, or a link personalised with a name like O'Brien — now take recipients where they point. The URL was cut at its first quote: with click tracking on the link answered "Invalid token", and with it off the recipient landed on a different page, with the UTM and web analytics parameters spliced into the middle of the URL. In the visual editor, a `"` in a link also dropped everything after it.
+
 - **Fix**: Unsubscribing from an automation email no longer fails for contacts who weren't on the automation's list. The unsubscribe link and the one-click unsubscribe answered with an error, and the contact kept receiving the automation's emails; the opt-out is now recorded on the list. Unsubscribing from an email sent before the contact or its list was deleted now succeeds too, without storing the address again.
 
 - **Fix**: A broadcast created through the API without `exclude_unsubscribed` no longer emails the list's unsubscribed contacts: leaving the key out now means exclude, as in the console. Bounced and complained addresses are never emailed, even with `exclude_unsubscribed: false`, and unsubscribing no longer erases a bounce or complaint, which a mail client's one-click unsubscribe used to do right after a spam report. Broadcasts created before the upgrade keep the value they were saved with.

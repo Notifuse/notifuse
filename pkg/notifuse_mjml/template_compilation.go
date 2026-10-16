@@ -97,6 +97,31 @@ func preprocessMjmlForXML(mjmlString string) string {
 		return match
 	})
 
+	// Step 3: Keep quote entities inside URL attributes from turning into the
+	// quote that delimits them. gomjml decodes &quot; and &apos; to raw quotes
+	// before its XML parse, everywhere, including the raw HTML of an mj-text.
+	// A rich-text link saved as href="…?q=&quot;exact&quot;" therefore reached
+	// the HTML as href="…?q="exact"", which ends the URL at "q=". Doubling the
+	// ampersand (&amp;quot;) survives that pre-pass the way escapeAttributeValue
+	// does for visual-editor attributes; decodeHTMLEntitiesInURLAttributes
+	// brings it back to &quot; after the render.
+	//
+	// A single-quoted value needs more: gomjml writes an MJML element's
+	// attributes back between double quotes without escaping them, so a " in
+	// <mj-button href='…?q="exact"'>, raw or as &quot;, would close the output
+	// attribute too. It gets the same &amp;quot;. Its &apos; becomes &#39;,
+	// which gomjml leaves alone.
+	processed = urlAttrRegexp.ReplaceAllStringFunc(processed, func(match string) string {
+		prefix, value, quote, ok := splitQuotedAttribute(urlAttrRegexp, match)
+		if !ok {
+			return match
+		}
+		if quote == '\'' {
+			return prefix + "'" + singleQuotedURLAttrForGomjml.Replace(value) + "'"
+		}
+		return prefix + `"` + strings.ReplaceAll(value, "&quot;", "&amp;quot;") + `"`
+	})
+
 	return processed
 }
 
@@ -937,30 +962,84 @@ func decodeHTMLEntitiesInURLAttributes(html string) string {
 	// pasted Word or Outlook markup is a perfectly valid attribute, and leaving
 	// it out here means its &amp; entities are never decoded, so the query
 	// string the recipient lands on is broken.
-	urlAttrRegex := regexp.MustCompile(`(?i)((?:href|src|action)=["'])([^"']+)(["'])`)
-
-	return urlAttrRegex.ReplaceAllStringFunc(html, func(match string) string {
-		parts := urlAttrRegex.FindStringSubmatch(match)
-		if len(parts) != 4 {
-			return match // Return original if parsing fails
+	//
+	// Each quote style is matched on its own: a double-quoted value runs to the
+	// next ", a single-quoted one to the next '. A shared [^"'] class would end
+	// "…/what's-new" at the apostrophe.
+	return urlAttrRegexp.ReplaceAllStringFunc(html, func(match string) string {
+		prefix, value, quote, ok := splitQuotedAttribute(urlAttrRegexp, match)
+		if !ok {
+			return match
 		}
 
-		beforeURL := parts[1]  // href=" or src=" or action="
-		encodedURL := parts[2] // the URL with HTML entities
-		afterURL := parts[3]   // closing "
-
-		// Decode common HTML entities that appear in URLs
-		// Note: We only decode entities that are safe to decode in URL context
-		decodedURL := encodedURL
-		decodedURL = strings.ReplaceAll(decodedURL, "&amp;", "&")
-		decodedURL = strings.ReplaceAll(decodedURL, "&quot;", "\"")
-		decodedURL = strings.ReplaceAll(decodedURL, "&#39;", "'")
-		decodedURL = strings.ReplaceAll(decodedURL, "&lt;", "<")
-		decodedURL = strings.ReplaceAll(decodedURL, "&gt;", ">")
-
-		return beforeURL + decodedURL + afterURL
+		// Decode in a single pass, so "&amp;quot;" becomes the entity "&quot;"
+		// and not a raw quote. The entity of the quote that delimits the value
+		// is never decoded: a raw " inside "…" closes the attribute and
+		// truncates the URL.
+		decoder := urlAttrDoubleQuotedDecoder
+		if quote == '\'' {
+			decoder = urlAttrSingleQuotedDecoder
+		}
+		return prefix + string(quote) + decoder.Replace(value) + string(quote)
 	})
 }
+
+// urlAttrRegexp matches an href, src or action attribute with a double- or
+// single-quoted value. Group 1 is everything before the opening quote, group 2
+// a double-quoted value and group 3 a single-quoted one.
+var urlAttrRegexp = regexp.MustCompile(`(?i)((?:href|src|action)\s*=\s*)(?:"([^"]*)"|'([^']*)')`)
+
+var singleQuotedURLAttrForGomjml = strings.NewReplacer(`"`, "&amp;quot;", "&quot;", "&amp;quot;", "&apos;", "&#39;")
+
+var (
+	urlAttrDoubleQuotedDecoder = strings.NewReplacer("&amp;", "&", "&#39;", "'", "&lt;", "<", "&gt;", ">")
+	urlAttrSingleQuotedDecoder = strings.NewReplacer("&amp;", "&", "&quot;", "\"", "&lt;", "<", "&gt;", ">")
+)
+
+// splitQuotedAttribute splits a match of a regexp shaped like urlAttrRegexp or
+// anchorHrefRegexp (group 1 the text up to the opening quote, groups 2 and 3
+// the double- and single-quoted value) into that prefix, the raw value and its
+// delimiting quote.
+func splitQuotedAttribute(re *regexp.Regexp, match string) (prefix, value string, quote byte, ok bool) {
+	idx := re.FindStringSubmatchIndex(match)
+	if idx == nil || idx[3] < 0 {
+		return "", "", 0, false
+	}
+	prefix = match[idx[2]:idx[3]]
+	switch {
+	case idx[4] >= 0:
+		return prefix, match[idx[4]:idx[5]], '"', true
+	case idx[6] >= 0:
+		return prefix, match[idx[6]:idx[7]], '\'', true
+	}
+	return "", "", 0, false
+}
+
+// hrefQuoteEntityDecoder turns the quote entities an href may carry back into
+// the characters of the URL they stand for. Only quotes: the other entities
+// were already decoded by decodeHTMLEntitiesInURLAttributes, and decoding them
+// again would corrupt a URL that really contains "&amp;".
+var hrefQuoteEntityDecoder = strings.NewReplacer(
+	"&quot;", "\"", "&#34;", "\"", "&#x22;", "\"", "&#X22;", "\"",
+	"&#39;", "'", "&#x27;", "'", "&#X27;", "'", "&apos;", "'",
+)
+
+// escapeHrefForQuote escapes the one character that cannot appear raw inside
+// an attribute delimited by quote.
+func escapeHrefForQuote(value string, quote byte) string {
+	if quote == '\'' {
+		return strings.ReplaceAll(value, "'", "&#39;")
+	}
+	return strings.ReplaceAll(value, "\"", "&quot;")
+}
+
+// anchorTagRegexp matches an opening <a> tag, and anchorHrefRegexp its href
+// attribute with a double- or single-quoted value (groups as in
+// urlAttrRegexp).
+var (
+	anchorTagRegexp  = regexp.MustCompile(`(?i)<a[^>]*\shref\s*=\s*(?:"[^"]*"|'[^']*')[^>]*>`)
+	anchorHrefRegexp = regexp.MustCompile(`(?i)(\shref\s*=\s*)(?:"([^"]*)"|'([^']*)')`)
+)
 
 func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHTML string, err error) {
 	// The per-notification opt-out suppresses everything, including UTM
@@ -990,23 +1069,36 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 	// tracking, no UTM parameters and no identity token — while its lowercase
 	// neighbour in the same block is rewritten, so the loss is silent and
 	// partial rather than obvious.
-	hrefRegex := regexp.MustCompile(`(?i)(<a[^>]*\s+href=["'])([^"']+)(["'][^>]*>)`)
-
-	updatedHTML = hrefRegex.ReplaceAllStringFunc(htmlString, func(match string) string {
-		// Extract the parts: opening tag with href=", URL, closing " and rest of tag
-		parts := hrefRegex.FindStringSubmatch(match)
-		if len(parts) != 4 {
-			return match // Return original if parsing fails
+	//
+	// The value is read up to the quote that opened it, never to the first
+	// quote of either kind: "…/what's-new" and '…?q="exact"' are whole URLs.
+	// Ending at any quote cut such a URL in two, so the redirect token covered
+	// only its head (a dead link) or the UTM and nf_id parameters were spliced
+	// into its middle.
+	updatedHTML = anchorTagRegexp.ReplaceAllStringFunc(htmlString, func(tag string) string {
+		loc := anchorHrefRegexp.FindStringIndex(tag)
+		if loc == nil {
+			return tag
 		}
+		prefix, rawValue, quote, ok := splitQuotedAttribute(anchorHrefRegexp, tag[loc[0]:loc[1]])
+		if !ok {
+			return tag
+		}
+		beforeURL := tag[:loc[0]] + prefix + string(quote) // <a ...href="
+		afterURL := string(quote) + tag[loc[1]:]           // "...>
 
-		beforeURL := parts[1]   // <a ...href="
-		originalURL := parts[2] // the URL
-		afterURL := parts[3]    // "...>
+		// The URL the recipient lands on: the attribute value with its quote
+		// entities read back as the characters they stand for. It is escaped
+		// again for the delimiting quote when written back below.
+		originalURL := hrefQuoteEntityDecoder.Replace(rawValue)
+		if originalURL == "" {
+			return tag
+		}
 
 		// Skip tracking for special protocol links (mailto, tel, sms, etc.)
 		// These should not be wrapped in a redirect as it breaks their functionality
 		if isNonTrackableURL(originalURL) {
-			return match // Return original link unchanged
+			return tag // Return original link unchanged
 		}
 
 		// Append UTM parameters to the destination URL
@@ -1039,7 +1131,7 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 		}
 
 		// Return the updated tag
-		return beforeURL + trackedURL + afterURL
+		return beforeURL + escapeHrefForQuote(trackedURL, quote) + afterURL
 	})
 
 	if trackingSettings.EnableTracking {
