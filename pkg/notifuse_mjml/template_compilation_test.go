@@ -437,6 +437,18 @@ func TestTrackLinks_URLsWithQuotes(t *testing.T) {
 			authored: `https://example.com/search?q="exact"&page=2`,
 		},
 		{
+			// The numeric form Go's html.EscapeString writes: gomjml's XML
+			// parser decodes it like &quot; and writes the " back raw.
+			name:     `code mode mj-button with &#34; inside a double-quoted href`,
+			request:  codeMode(`<mj-button href="https://example.com/search?q=&#34;exact&#34;&amp;page=2">Search</mj-button>`),
+			authored: `https://example.com/search?q="exact"&page=2`,
+		},
+		{
+			name:     `code mode mj-button with &#x22; inside a single-quoted href`,
+			request:  codeMode(`<mj-button href='https://example.com/search?q=&#x22;exact&#x22;'>Search</mj-button>`),
+			authored: `https://example.com/search?q="exact"`,
+		},
+		{
 			name: "code mode Liquid personalised link rendering O'Brien",
 			request: func() CompileTemplateRequest {
 				req := codeMode(`<mj-text><a href="https://example.com/hello?name={{ contact.last_name }}">Hi</a></mj-text>`)()
@@ -535,6 +547,28 @@ func TestTrackLinks_URLsWithQuotes(t *testing.T) {
 			assert.Equal(t, withQueryParams(tc.authored, "utm_content=hero&utm_source=newsletter"), parts[3])
 		})
 	}
+}
+
+// TestTrackLinks_EmptyHrefIsNotRewritten compiles a link with an empty href,
+// which points the recipient at the email itself. It must stay empty: a
+// redirect wrapped around it would carry no destination, and the click
+// endpoint answers such a token with 400.
+func TestTrackLinks_EmptyHrefIsNotRewritten(t *testing.T) {
+	src := `<mjml><mj-body><mj-section><mj-column><mj-text><a href="">top</a></mj-text></mj-column></mj-section></mj-body></mjml>`
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		MjmlSource: &src,
+		TrackingSettings: TrackingSettings{
+			EnableTracking: true,
+			Endpoint:       "https://track.example.com",
+			WorkspaceID:    "ws-1",
+			MessageID:      "msg-1",
+			UTMSource:      "newsletter",
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, resp.Success, "compile error: %v", resp.Error)
+
+	assert.Equal(t, []string{""}, anchorHrefs(t, *resp.HTML))
 }
 
 // TestTrackLinks_KeepsTheAttributeDelimiterEscaped feeds TrackLinks HTML whose
