@@ -1,6 +1,6 @@
 # Fix: unsubscribe links that fail for contacts with no row on the list (B1)
 
-Created 2026-10-15. Checklist item B1 in `plans/made-up-tests-audit-checklist-plan.md`. Status: **implemented 2026-10-15, uncommitted** (see "Implementation" at the end).
+Created 2026-10-15. Checklist item B1 in `plans/made-up-tests-audit-checklist-plan.md`. Status: **implemented, on `dev`; docs PR and console label done 2026-10-16** (see "Implementation" at the end).
 
 - Decisions D1–D5 were taken on 2026-10-15, after a review of competitors' 2026 docs.
 - An independent review checked every claim and test helper against the code; its corrections are folded in.
@@ -163,8 +163,8 @@ Sources:
 
 ## Follow-ups (not in this plan)
 
-- [ ] **Docs (D1):** state in `../docs/features/automations.mdx` that an automation's emails also reach contacts who aren't on its list, and that a List Status Branch's "not in list" path is how to leave them out. Today neither the docs nor the console's "List" field say so. This ships as a separate docs PR.
-- [ ] **Docs (D3):** state in `../docs` that deleting a contact doesn't prevent a later import or API upsert from re-subscribing the address. This ships as a separate docs PR.
+- [x] **Docs (D1):** state in `../docs/features/automations.mdx` that an automation's emails also reach contacts who aren't on its list, and that a List Status Branch's "not in list" path is how to leave them out. Today neither the docs nor the console's "List" field say so. Done 2026-10-16 in the docs PR, together with the Part 3 docs and the `openapi.json` copy, which hadn't reached `Notifuse/docs`.
+- [x] **Docs (D3):** state in `../docs` that deleting a contact doesn't prevent a later import or API upsert from re-subscribing the address. Done 2026-10-16 in the same docs PR.
 
 ## Out of scope (checklist items)
 
@@ -331,4 +331,5 @@ The same-model adversarial pass found the complaint overwrite (fixed), B29 (an e
 **Not covered:** the widget has no automated browser test (it was checked once in headless Chrome), and the combined tree with the other sessions' uncommitted work wasn't tested.
 
 **Follow-ups found while implementing**
-- [ ] The console's broadcast switch still reads "Exclude unsubscribed, bounced & complained recipients" (`console/src/components/broadcasts/UpsertBroadcastDrawer.tsx:594`). Switched off, it now still excludes bounced and complained contacts. Reword it to "Exclude unsubscribed recipients" in all 8 catalogs once the console work another session has in progress lands, since extracting strings now would pull in theirs.
+- [x] The console's broadcast switch still reads "Exclude unsubscribed, bounced & complained recipients" (`console/src/components/broadcasts/UpsertBroadcastDrawer.tsx:594`). Switched off, it now still excludes bounced and complained contacts. Reword it to "Exclude unsubscribed recipients" in all 8 catalogs once the console work another session has in progress lands, since extracting strings now would pull in theirs.
+  - Done 2026-10-16 on `dev`: the label is now "Exclude unsubscribed recipients", translated in the 7 other catalogs. `lingui:extract` changed only this entry, and the i18n catalogue tests pass.
