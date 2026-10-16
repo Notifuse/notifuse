@@ -357,6 +357,11 @@ type ContactListRepository interface {
 	// GetContactListByIDs retrieves a contact list by email and list ID
 	GetContactListByIDs(ctx context.Context, workspaceID string, email, listID string) (*ContactList, error)
 
+	// GetContactListIncludingRemoved retrieves the contact's row on the list even when
+	// they were removed from it (DeletedAt set), for checks that read the status a
+	// removal leaves in place: unsubscribed, bounced or complained
+	GetContactListIncludingRemoved(ctx context.Context, workspaceID string, email, listID string) (*ContactList, error)
+
 	// GetContactsByListID retrieves all contacts for a list
 	GetContactsByListID(ctx context.Context, workspaceID string, listID string) ([]*ContactList, error)
 

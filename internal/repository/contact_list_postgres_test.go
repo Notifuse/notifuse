@@ -12,6 +12,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -154,6 +155,87 @@ func TestContactListRepository_GetContactListByIDs(t *testing.T) {
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to get contact list")
 		require.Nil(t, result)
+	})
+}
+
+// GetContactListIncludingRemoved reads the row whatever deleted_at says: removing a
+// contact from a list ends their membership, not the unsubscribe, bounce or complaint
+// recorded on it, which the automation email gate and the unsubscribe must still see.
+func TestContactListRepository_GetContactListIncludingRemoved(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupContactListTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	email := "test@example.com"
+	listID := "list123"
+	// Anchored, so a deleted_at filter added to the query fails the test
+	query := `^SELECT email, list_id, status, created_at, updated_at, deleted_at FROM contact_lists WHERE email = \$1 AND list_id = \$2$`
+
+	t.Run("a removed row is returned with its removal", func(t *testing.T) {
+		removedAt := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).
+			WithArgs(email, listID).
+			WillReturnRows(sqlmock.NewRows([]string{"email", "list_id", "status", "created_at", "updated_at", "deleted_at"}).
+				AddRow(email, listID, domain.ContactListStatusComplained, time.Now(), time.Now(), removedAt))
+
+		result, err := repo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, email, result.Email)
+		assert.Equal(t, listID, result.ListID)
+		assert.Equal(t, domain.ContactListStatusComplained, result.Status)
+		require.NotNil(t, result.DeletedAt)
+		assert.True(t, removedAt.Equal(*result.DeletedAt))
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a row on the list is returned without one", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).
+			WithArgs(email, listID).
+			WillReturnRows(sqlmock.NewRows([]string{"email", "list_id", "status", "created_at", "updated_at", "deleted_at"}).
+				AddRow(email, listID, domain.ContactListStatusActive, time.Now(), time.Now(), nil))
+
+		result, err := repo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, domain.ContactListStatusActive, result.Status)
+		assert.Nil(t, result.DeletedAt)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("no row", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs(email, listID).WillReturnError(sql.ErrNoRows)
+
+		result, err := repo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
+		require.Error(t, err)
+		assert.IsType(t, &domain.ErrContactListNotFound{}, err)
+		assert.Nil(t, result)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("query error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs(email, listID).WillReturnError(errors.New("connection reset"))
+
+		result, err := repo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get contact list")
+		assert.Contains(t, err.Error(), "connection reset")
+		assert.Nil(t, result)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("workspace connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(nil, errors.New("connection error"))
+
+		result, err := repo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+		assert.Nil(t, result)
 	})
 }
 

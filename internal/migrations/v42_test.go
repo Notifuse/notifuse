@@ -88,6 +88,13 @@ func expectV42Prelude(mock sqlmock.Sqlmock) {
 	mock.ExpectExec(exactly("SET LOCAL statement_timeout = 0")).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec(exactly(schema.TrackContactListChangesFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec(exactly(schema.WebhookContactListsTriggerFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
+	expectV42StatusChangeFunction(mock)
+}
+
+// expectV42StatusChangeFunction expects the complaint/bounce function, installed right
+// after the contact_lists functions: exactly the body a fresh workspace gets.
+func expectV42StatusChangeFunction(mock sqlmock.Sqlmock) {
+	mock.ExpectExec(exactly(schema.UpdateContactListsOnStatusChangeFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
 }
 
 func expectPatch(mock sqlmock.Sqlmock, patched string, execErr error) {
@@ -171,8 +178,8 @@ func TestV42Migration_Pre42FixturesMatchTheOldBuilder(t *testing.T) {
 	assert.Contains(t, oldFn, "IF (EXISTS (SELECT 1 FROM contact_lists cl JOIN lists l ON cl.list_id = l.id WHERE cl.email = NEW.email AND cl.list_id = 'listX' AND cl.status = 'active' AND l.deleted_at IS NULL)) THEN")
 }
 
-// Part 5's order: timeout, both contact_lists functions, the automation functions, the
-// segments, and the re-queue last.
+// Part 5's order: timeout, both contact_lists functions, the complaint/bounce function,
+// the automation functions, the segments, and the re-queue last.
 func TestV42Migration_RunsItsStepsInOrder(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
@@ -335,6 +342,23 @@ func TestV42Migration_PropagatesErrors(t *testing.T) {
 		err = runV42(t, db)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "contact_lists trigger function")
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("installing the complaint/bounce function", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		mock.ExpectExec(exactly("SET LOCAL statement_timeout = 0")).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec(exactly(schema.TrackContactListChangesFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec(exactly(schema.WebhookContactListsTriggerFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec(exactly(schema.UpdateContactListsOnStatusChangeFunction())).WillReturnError(errors.New("boom"))
+
+		err = runV42(t, db)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "complaint/bounce trigger function")
+		assert.Contains(t, err.Error(), "boom")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 

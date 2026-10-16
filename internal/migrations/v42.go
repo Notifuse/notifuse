@@ -45,6 +45,10 @@ import (
 //     rather than on their next unrelated timeline write. This runs last, so the queue
 //     row locks are held for as short a time as possible.
 //
+// Right after step 1, the complaint/bounce function of message_history is reinstalled
+// too (installStatusChangeFunction): a complaint or hard bounce from a contact with no
+// row on the list, or one removed from it, now records the status there.
+//
 // Every step is idempotent: the selections no longer match a patched function or a
 // recompiled segment, and re-queueing a contact again is harmless.
 type V42Migration struct{}
@@ -85,6 +89,10 @@ func (m *V42Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 		if _, err := db.ExecContext(ctx, query); err != nil {
 			return fmt.Errorf("v42: failed to install contact_lists trigger function for workspace %s: %w", workspace.ID, err)
 		}
+	}
+
+	if err := m.installStatusChangeFunction(ctx, db); err != nil {
+		return fmt.Errorf("v42: failed to install the complaint/bounce trigger function for workspace %s: %w", workspace.ID, err)
 	}
 
 	if err := m.patchAutomationTriggerFunctions(ctx, db); err != nil {
@@ -274,6 +282,18 @@ func (m *V42Migration) requeueRemovedListMembers(ctx context.Context, db DBExecu
 		return fmt.Errorf("failed to queue contacts: %w", err)
 	}
 	return nil
+}
+
+// installStatusChangeFunction reinstalls the function message_history_status_trigger
+// runs on a complaint or hard bounce, so a fresh workspace and an upgraded one record
+// them the same way: on the list the message was sent for (the automation's, for an
+// automation message stored without a list), with a new row for a contact who has none
+// there. Automations email contacts who aren't on their list; before, a complaint or
+// bounce from one of them recorded nothing and the next email went out. The trigger
+// stays attached, and replacing a function body takes no table lock.
+func (m *V42Migration) installStatusChangeFunction(ctx context.Context, db DBExecutor) error {
+	_, err := db.ExecContext(ctx, schema.UpdateContactListsOnStatusChangeFunction())
+	return err
 }
 
 func init() {

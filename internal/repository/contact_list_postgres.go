@@ -156,6 +156,32 @@ func (r *contactListRepository) GetContactListByIDs(ctx context.Context, workspa
 	return contactList, nil
 }
 
+// GetContactListIncludingRemoved returns the contact's row on the list even when they
+// were removed from it (DeletedAt set). A removal ends membership, so GetContactListByIDs
+// hides the row, but it doesn't end the unsubscribe, bounce or complaint recorded on it.
+func (r *contactListRepository) GetContactListIncludingRemoved(ctx context.Context, workspaceID string, email, listID string) (*domain.ContactList, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		SELECT email, list_id, status, created_at, updated_at, deleted_at
+		FROM contact_lists
+		WHERE email = $1 AND list_id = $2
+	`
+
+	contactList, err := domain.ScanContactList(workspaceDB.QueryRowContext(ctx, query, email, listID))
+	if err == sql.ErrNoRows {
+		return nil, &domain.ErrContactListNotFound{Message: "contact list not found"}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get contact list: %w", err)
+	}
+
+	return contactList, nil
+}
+
 func (r *contactListRepository) GetContactsByListID(ctx context.Context, workspaceID string, listID string) ([]*domain.ContactList, error) {
 
 	// Get the workspace database connection

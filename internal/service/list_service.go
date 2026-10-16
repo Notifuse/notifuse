@@ -630,9 +630,11 @@ func (s *ListService) unsubscribeFromList(ctx context.Context, workspaceID, emai
 	// A bounced or complained address is never mailed, and its status says more than an
 	// opt-out, so it is kept. People who report spam often unsubscribe too: overwriting
 	// would turn the complaint into a plain "unsubscribed", which a broadcast set to
-	// include unsubscribed contacts mails again. The read and the update are separate
-	// statements, so a complaint saved between them is still overwritten.
-	current, err := s.contactListRepo.GetContactListByIDs(ctx, workspaceID, email, listID)
+	// include unsubscribed contacts mails again. That holds for a contact removed from
+	// the list too, whose row the update below would also restore. The read and the
+	// update are separate statements, so a complaint saved between them is still
+	// overwritten.
+	current, err := s.contactListRepo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
 	var notOnList *domain.ErrContactListNotFound
 	if err != nil && !errors.As(err, &notOnList) {
 		return false, err

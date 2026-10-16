@@ -246,21 +246,24 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		return nil, fmt.Errorf("failed to get template: %w", err)
 	}
 
-	// 4b. Check subscription status for marketing/blog emails
+	// 4b. Check subscription status for marketing/blog emails. Contacts with no row on the
+	// list are emailed by design, and so are contacts removed from it. A removal ends
+	// membership but not the opt-out, bounce or complaint on the row, so the row is read
+	// whether or not the contact was removed.
 	if isSubscriptionSensitiveCategory(template.Category) && params.Automation.ListID != "" {
-		contactList, clErr := e.contactListRepo.GetContactListByIDs(
+		contactList, clErr := e.contactListRepo.GetContactListIncludingRemoved(
 			ctx,
 			params.WorkspaceID,
 			params.ContactData.Email,
 			params.Automation.ListID,
 		)
 		if clErr != nil {
-			// "Not found" means contact is not in list — proceed with sending
+			// "Not found" means the contact has no row on the list — proceed with sending
 			if _, ok := clErr.(*domain.ErrContactListNotFound); !ok {
 				return nil, fmt.Errorf("failed to check contact subscription status: %w", clErr)
 			}
 		} else {
-			// Contact found in list — check status
+			// Contact has a row on the list, removed or not — check status
 			switch contactList.Status {
 			case domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,

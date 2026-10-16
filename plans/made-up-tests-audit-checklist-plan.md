@@ -69,6 +69,10 @@ Verification levels used below:
   - Test first: an automation email to a list member, then a complaint on that message through a provider webhook payload; expect `contact_lists.status = complained` and the next trigger exiting the contact.
   - Fix direction: set `Payload.ListID` on automation queue entries, the same field broadcasts set.
   - Also fixes a B1 edge case. B1 records a non-member's opt-out only for the list its email was sent for (`MessageHistoryRepository.WasSentForList`). Automation sends store no `list_id`, so that check reads the automation's current list. If someone moves an automation to another list, opt-outs from its earlier emails record nothing. With `list_id` stored, keep the automation join only as a fallback for older messages.
+  - Left open by the B25 fix, now fixed (2026-10-16, branch `claude/made-up-tests-audit-high-ciyb05-b25-nonmembers`, inside v42): a contact with no active row on the automation's list (a non-member, or one removed from it) kept receiving the automation's emails after a complaint or a hard bounce. The trigger and `MarkEmailsAsBounced` only updated existing rows, and the send gate ignored removed rows. Now:
+    - `update_contact_lists_on_status_change` (`internal/database/schema/message_history_status_trigger.go`, installed by `init.go` and v42) records the status on the list the message was sent for: the stored `list_id`, else the automation's list. A contact with no row gets a `complained` or `bounced` row, as D2 does for unsubscribes; a removed row takes the status and stays removed. Nothing is inserted for an address that is no longer a contact or on a deleted list.
+    - The email node's gate and `unsubscribeFromList` read the row with `GetContactListIncludingRemoved`, so a removed row's `unsubscribed`, `bounced` or `complained` status still stops the email, and an unsubscribe no longer turns a removed row's complaint into `unsubscribed`.
+    - Tests: `tests/integration/automation_complaint_non_member_test.go`.
 
 ## Medium
 

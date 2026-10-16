@@ -767,38 +767,9 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
-		// Contact list status update on bounce/complaint trigger function
-		`CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()
-		RETURNS TRIGGER AS $$
-		BEGIN
-			-- Handle complaint events (worst status - can upgrade from any status)
-			IF NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL THEN
-				IF NEW.list_id IS NOT NULL THEN
-					UPDATE contact_lists
-					SET status = 'complained',
-						updated_at = NEW.complained_at
-					WHERE email = NEW.contact_email
-					AND list_id = NEW.list_id
-					AND status != 'complained';
-				END IF;
-			END IF;
-
-			-- Handle bounce events (ONLY HARD BOUNCES - can only update if not already complained or bounced)
-			-- Note: Application layer should only set bounced_at for hard/permanent bounces
-			IF NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL THEN
-				IF NEW.list_id IS NOT NULL THEN
-					UPDATE contact_lists
-					SET status = 'bounced',
-						updated_at = NEW.bounced_at
-					WHERE email = NEW.contact_email
-					AND list_id = NEW.list_id
-					AND status NOT IN ('complained', 'bounced');
-				END IF;
-			END IF;
-
-			RETURN NEW;
-		END;
-		$$ LANGUAGE plpgsql;`,
+		// Contact list status update on bounce/complaint trigger function, shared with the
+		// v42 migration so a fresh workspace and an upgraded one record the same statuses.
+		schema.UpdateContactListsOnStatusChangeFunction(),
 		// Custom event changes trigger function
 		`CREATE OR REPLACE FUNCTION track_custom_event_timeline()
 		RETURNS TRIGGER AS $$
