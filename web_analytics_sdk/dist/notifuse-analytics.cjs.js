@@ -2249,8 +2249,9 @@ function normalizeGoalValue(value) {
 }
 /**
  * Returns the properties as a flat string map, or undefined when there are
- * none. Numbers and booleans become strings; null and undefined entries are
- * left out. Objects, arrays and anything else throw.
+ * none. Numbers and booleans become strings, and a value with toJSON (a Date)
+ * its JSON form; null and undefined entries are left out. Objects, arrays and
+ * anything else throw.
  */
 function normalizeGoalProperties(properties) {
     if (properties === undefined || properties === null)
@@ -2259,7 +2260,11 @@ function normalizeGoalProperties(properties) {
         throw new Error('trackGoal properties must be an object');
     }
     const out = {};
-    for (const [key, raw] of Object.entries(properties)) {
+    for (const [key, entry] of Object.entries(properties)) {
+        // What JSON.stringify sends: a Date, a URL or a decimal library's number
+        // goes out as its toJSON() form, which reached the server as a string
+        // before properties were checked here.
+        const raw = hasToJSON(entry) ? entry.toJSON(key) : entry;
         if (raw === undefined || raw === null)
             continue;
         if (typeof raw === 'string') {
@@ -2276,6 +2281,11 @@ function normalizeGoalProperties(properties) {
         }
     }
     return out;
+}
+function hasToJSON(value) {
+    return (typeof value === 'object' &&
+        value !== null &&
+        typeof value.toJSON === 'function');
 }
 
 /**

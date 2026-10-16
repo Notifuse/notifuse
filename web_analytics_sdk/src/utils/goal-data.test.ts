@@ -51,6 +51,20 @@ describe('normalizeGoalProperties', () => {
     ).toEqual({ order_id: '12345', total: '49.9', first_order: 'true', gift: 'false', currency: 'EUR' });
   });
 
+  // A Date, a URL or a decimal library's number reached the server through
+  // its toJSON before properties were checked, and was stored as that string.
+  it('sends a value with toJSON, such as a Date, as its JSON form', () => {
+    const at = new Date(Date.UTC(2026, 0, 2));
+    const total = { toJSON: () => 49.9 };
+    expect(normalizeGoalProperties({ at, total, gone: { toJSON: () => undefined } })).toEqual({
+      at: '2026-01-02T00:00:00.000Z',
+      total: '49.9',
+    });
+    expect(() => normalizeGoalProperties({ nested: { toJSON: () => ({ sku: 'A1' }) } })).toThrow(
+      /must be a string, number or boolean/,
+    );
+  });
+
   it('leaves out null and undefined entries', () => {
     expect(normalizeGoalProperties({ coupon: null, ref: undefined, plan: 'pro' })).toEqual({ plan: 'pro' });
   });
@@ -116,6 +130,15 @@ describe('trackGoal on the wire', () => {
     const [goal] = lastGoals();
     expect(goal.value).toBe(49.9);
     expect(goal.properties).toEqual({ order_id: '12345', first_order: 'true' });
+  });
+
+  it('sends a Date property as the string JSON.stringify always sent', async () => {
+    const at = new Date(Date.UTC(2026, 0, 2));
+    // GoalData does not admit a Date; plain-JS callers pass one anyway.
+    await sdk.trackGoal({ action: 'booking', type: 'booking', properties: { at } } as unknown as GoalData);
+
+    const [goal] = lastGoals();
+    expect(goal.properties).toEqual({ at: '2026-01-02T00:00:00.000Z' });
   });
 
   it('rejects an uncoercible goal without recording it, and later goals still go out', async () => {

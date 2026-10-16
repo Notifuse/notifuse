@@ -137,8 +137,9 @@ interface GoalData {
      * forwards, sends or stores is worse than no field, because callers set it
      * and are never told it went nowhere.
      *
-     * Stored as strings: numbers and booleans are converted, null and undefined
-     * entries are left out, and a nested object or array throws.
+     * Stored as strings: numbers and booleans are converted, a Date is sent as
+     * its ISO string, null and undefined entries are left out, and a nested
+     * object or array throws.
      */
     properties?: Record<string, string | number | boolean | null | undefined>;
 }

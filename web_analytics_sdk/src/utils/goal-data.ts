@@ -45,8 +45,9 @@ export function normalizeGoalValue(value: unknown): number | undefined {
 
 /**
  * Returns the properties as a flat string map, or undefined when there are
- * none. Numbers and booleans become strings; null and undefined entries are
- * left out. Objects, arrays and anything else throw.
+ * none. Numbers and booleans become strings, and a value with toJSON (a Date)
+ * its JSON form; null and undefined entries are left out. Objects, arrays and
+ * anything else throw.
  */
 export function normalizeGoalProperties(
   properties: unknown,
@@ -57,7 +58,11 @@ export function normalizeGoalProperties(
   }
 
   const out: Record<string, string> = {};
-  for (const [key, raw] of Object.entries(properties as Record<string, unknown>)) {
+  for (const [key, entry] of Object.entries(properties as Record<string, unknown>)) {
+    // What JSON.stringify sends: a Date, a URL or a decimal library's number
+    // goes out as its toJSON() form, which reached the server as a string
+    // before properties were checked here.
+    const raw = hasToJSON(entry) ? entry.toJSON(key) : entry;
     if (raw === undefined || raw === null) continue;
     if (typeof raw === 'string') {
       out[key] = raw;
@@ -72,4 +77,12 @@ export function normalizeGoalProperties(
     }
   }
   return out;
+}
+
+function hasToJSON(value: unknown): value is { toJSON(key: string): unknown } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { toJSON?: unknown }).toJSON === 'function'
+  );
 }
