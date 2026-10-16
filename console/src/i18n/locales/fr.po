@@ -5581,8 +5581,8 @@ msgid "Exclude Unsubscribed"
 msgstr "Exclure les désabonnés"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:594
-msgid "Exclude unsubscribed, bounced & complained recipients"
-msgstr "Exclure les destinataires désinscrits, rejetés et ayant déposé une plainte"
+msgid "Exclude unsubscribed recipients"
+msgstr "Exclure les destinataires désinscrits"
 
 #: src/components/automations/UpsertAutomationDrawer.tsx:210
 msgid "Exit on reply"

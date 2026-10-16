@@ -5581,8 +5581,8 @@ msgid "Exclude Unsubscribed"
 msgstr "Excloure donats de baixa"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:594
-msgid "Exclude unsubscribed, bounced & complained recipients"
-msgstr "Excloure els destinataris que s'han donat de baixa, han rebotat i s'han queixat"
+msgid "Exclude unsubscribed recipients"
+msgstr "Excloure els destinataris que s'han donat de baixa"
 
 #: src/components/automations/UpsertAutomationDrawer.tsx:210
 msgid "Exit on reply"
