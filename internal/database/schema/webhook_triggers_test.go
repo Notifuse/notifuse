@@ -340,11 +340,60 @@ func TestWebhookContactListsTriggerFunction_EmitsTheKindsItShipped(t *testing.T)
 	assert.Contains(t, sql, "event_kind := 'list.removed';")
 
 	// previous_status is in the payload and is reproducible by no read endpoint,
-	// which is exactly why it must not be dropped.
-	assert.Contains(t, sql, "'previous_status', CASE WHEN TG_OP = 'UPDATE' THEN OLD.status ELSE NULL END")
+	// which is exactly why it must not be dropped. An update reports OLD.status
+	// unless it is a re-add (see the re-add test); an insert reports NULL.
+	assert.Contains(t, sql, "'previous_status', prev_status")
+	assert.Contains(t, sql, "IF TG_OP = 'UPDATE' THEN\n\t\t\t\tprev_status := OLD.status;")
 	for _, key := range []string{"'email', NEW.email", "'list_id', NEW.list_id", "'list_name', list_name", "'status', NEW.status"} {
 		assert.Contains(t, sql, key)
 	}
+}
+
+// A removed contact added back to a list is reported as a first subscription:
+// the insert kind for the row's status, with previous_status NULL. That holds
+// for a same-status re-add and for a re-add moved to pending under double
+// opt-in, which the status branch used to drop. A re-add that changes status to
+// active keeps its transition kind (list.resubscribed, list.confirmed).
+func TestWebhookContactListsTriggerFunction_ReAddIsReportedAsASubscription(t *testing.T) {
+	sql := WebhookContactListsTriggerFunction()
+
+	const insertKind = "event_kind := CASE NEW.status WHEN 'active' THEN 'list.subscribed' WHEN 'pending' THEN 'list.pending' WHEN 'unsubscribed' THEN 'list.unsubscribed' WHEN 'bounced' THEN 'list.bounced' WHEN 'complained' THEN 'list.complained' ELSE NULL END;"
+
+	assert.Contains(t, sql, "restored := OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NULL;")
+
+	statusBranch := lineContaining(t, sql, "IF NEW.status IS DISTINCT FROM OLD.status THEN")
+	complained := lineContaining(t, sql, "ELSIF NEW.status = 'complained' THEN")
+	removed := lineContaining(t, sql, "event_kind := 'list.removed';")
+
+	lines := strings.Split(sql, "\n")
+	var restoreLines []int
+	for i, line := range lines {
+		if strings.TrimSpace(line) == "ELSIF restored THEN" {
+			restoreLines = append(restoreLines, i)
+		}
+	}
+	require.Len(t, restoreLines, 2, "one re-add branch inside the status branch, one for a same-status re-add")
+
+	// Inside the status branch, after every transition kind and before its
+	// catch-all: only a change the transitions don't name (to pending) reaches it.
+	assert.Greater(t, restoreLines[0], complained)
+	assert.Less(t, restoreLines[0], removed)
+	assert.Greater(t, restoreLines[0], statusBranch)
+	// The same-status re-add comes after the removal branch.
+	assert.Greater(t, restoreLines[1], removed)
+
+	for _, at := range restoreLines {
+		assert.Equal(t, insertKind, strings.TrimSpace(lines[at+1]), "a re-add maps its status as an insert does")
+		assert.Equal(t, "prev_status := NULL;", strings.TrimSpace(lines[at+2]), "a re-add reports no previous status")
+		assert.Equal(t, "IF event_kind IS NULL THEN RETURN NEW; END IF;", strings.TrimSpace(lines[at+3]))
+	}
+
+	// prev_status is only ever cleared by a re-add.
+	assert.Equal(t, len(restoreLines), strings.Count(sql, "prev_status := NULL;"))
+
+	// The existing transition kinds are untouched.
+	assert.Contains(t, sql, "event_kind := 'list.confirmed';")
+	assert.Contains(t, sql, "event_kind := 'list.resubscribed';")
 }
 
 func TestWebhookContactSegmentsTriggerFunction_HandlesTheDeletePath(t *testing.T) {

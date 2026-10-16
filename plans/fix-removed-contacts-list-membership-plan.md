@@ -1,6 +1,6 @@
 # Fix: contacts removed from a list still count as its members (B24)
 
-Created 2026-10-15. Checklist item B24 in `plans/made-up-tests-audit-checklist-plan.md`. Status: **plan only, not implemented**.
+Created 2026-10-15. Checklist item B24 in `plans/made-up-tests-audit-checklist-plan.md`. Status: **implemented** (2026-10-16, branch `claude/made-up-tests-audit-high-ciyb05-b24`); see "Implementation".
 - Pierre chose the scope on 2026-10-15: the full fix, with a v42 migration.
 - An independent review then checked every claim and the design against the code. Its corrections are folded in; see "Independent review".
 - Pierre settled the two remaining decisions on 2026-10-16:
@@ -340,6 +340,19 @@ A separate reviewer re-checked every fact, searched the whole repo for other rea
   - The not-enrolled checks use `FindContactAutomation`, events go through the API, and assertions name contacts rather than whole sets.
   - The migration test's webhook check is no longer vacuous, and its re-run check now tolerates a re-queue.
 - **Wording.** F7's restore paths, F9 and F11 are corrected, the docs line numbers are fixed, a stale out-of-scope docs item is dropped, `-timeout` is added, and `--exit-code` is dropped.
+
+## Implementation (2026-10-16)
+
+Built on `origin/dev` at `44880ee`, where B1 had landed. Every part above is done; the line numbers above are from `c974080a` and were re-located.
+
+- **Part 1 and Part 4.** `cl.deleted_at IS NULL` follows `l.deleted_at IS NULL` in `GetContactsForBroadcast`, `CountContactsForBroadcast` and `fetchContact`.
+- **Part 2.** `parseContactListConditionsWithEmailRef` emits `cl.deleted_at IS NULL AND l.deleted_at IS NULL`. v42 patches by inserting the first before the second, so the builder keeps them adjacent.
+- **Part 3.** The timeline function lives in `internal/database/schema/contact_list_triggers.go`, and `init.go` installs it from there. The webhook function gained `restored` and `prev_status`.
+- **Part 5.** `internal/migrations/v42.go` follows the five steps. The automation functions are patched in place (D4), not regenerated as v38 does. A failed patch rolls back to its own savepoint.
+- **Part 6.** `VERSION = "42.0"`. The SDK bundle was rebuilt on Node 24, and only its version changed. `package-lock.json`'s root version moved with `package.json`, as it did for 41.1. The CHANGELOG heading is now `## [42.0] - WIP`, and the two **Fix** bullets were added as drafted.
+- **Deviation: webhook assertions.** Both integration tests read the queued `webhook_deliveries` rows rather than starting the delivery worker and an `httptest` receiver. The fix is in what the trigger queues; delivery is unchanged.
+- **Not done here:** the `../docs` edits, which belong in a separate PR in that repository.
+- **Not run here:** the integration tests, since Docker wasn't available. Both new files pass `go vet -tags integration,licdev ./tests/integration/`.
 
 ## Probes
 

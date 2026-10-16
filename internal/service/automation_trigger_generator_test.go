@@ -310,6 +310,10 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		assert.Contains(t, result.ConditionGuard, "cl.email = NEW.email")
 		assert.Contains(t, result.ConditionGuard, "'premium_members'") // Embedded value
 		assert.Contains(t, result.FunctionBody, result.ConditionGuard)
+		// A contact removed from the list is not a member: the guard and its validation
+		// probe both ignore removed rows.
+		assert.Contains(t, result.ConditionGuard, "cl.deleted_at IS NULL AND l.deleted_at IS NULL")
+		assert.Contains(t, result.ValidationQuery, "cl.deleted_at IS NULL AND l.deleted_at IS NULL")
 	})
 
 	// The automation id is not only embedded as a string literal in the function body —

@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [41.1] - WIP
+## [42.0] - WIP
 
 - **Security**: Outgoing webhooks are no longer a server-side request forgery (SSRF) vector. Webhook subscriptions and automation webhook nodes posted to a member-supplied URL with a plain HTTP client, so anyone holding `webhook_subscriptions:write` or `automations:write` could aim them at the deployment's own network — the cloud metadata endpoint, an internal service — and read the response back through `webhookSubscriptions.test`, the delivery log or an automation's node executions. Both now refuse private, loopback, link-local and reserved addresses at dial time and on every redirect, and refuse to save a URL that names one; the automation editor marks such a webhook node and says why. Self-hosted deployments that deliberately deliver to their own network can opt out with `WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true`; until they do, a refused subscription delivery is retried without counting toward the automatic-disable threshold, and a refused automation step fails like any other webhook error.
 
@@ -45,6 +45,10 @@ All notable changes to this project will be documented in this file.
 - **Improvement**: Creating a template with the ID of a deleted template now says why it is refused (deleted templates keep their ID, so messages already sent with them can still be displayed) instead of a bare "Template id already exists", and `templates.get` returns `deleted_at` for them. The template editor also says up front that the editor mode can't be changed after creation, and an update in the other mode now explains how to switch (#442).
 
 - **Fix**: "Detect from website URL" no longer fills the logo with the website's own address, or with an icon that doesn't exist (#432). It returned the first icon link it found without loading it, so an empty or placeholder link could beat a working SVG favicon. Each candidate is now loaded and must be an image, and links resolve against the page reached after redirects.
+
+- **Fix**: A contact removed from a list is now out of it everywhere. They no longer receive its broadcasts, and they no longer count as a member in segments, automation trigger conditions, filter and branch nodes, the notification center, the API's `contact_lists` or a template's `contact.contact_lists`. "Not in list" conditions now match them. Upgrading corrects existing segments and live automations, so removed contacts leave those segments, and their `segment.left` and `segment.joined` events fire once.
+
+- **Fix**: Adding a removed contact back to a list now records `list.subscribed` (`list.pending` with double opt-in) on their timeline and as a webhook event, as a first subscription does. Before, the re-add recorded nothing. Automations triggered by `list.subscribed` with "every time" frequency now enroll a re-added contact again, including contacts re-added in bulk by an import.
 
 ## [41.0] - 2026-09-17
 
