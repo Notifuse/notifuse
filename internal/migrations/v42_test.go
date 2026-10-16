@@ -2,7 +2,6 @@ package migrations
 
 import (
 	"context"
-	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"regexp"
@@ -72,14 +71,6 @@ func v42TriggerFunction(t *testing.T, id string, tree *domain.TreeNode) (string,
 	return result.FunctionBody, v42Pre42(result.FunctionBody)
 }
 
-// exactSQL matches a bound argument equal to want.
-type exactSQL struct{ want string }
-
-func (e exactSQL) Match(v driver.Value) bool {
-	s, ok := v.(string)
-	return ok && s == e.want
-}
-
 // exactly turns a statement into a pattern matching only that statement (sqlmock's
 // default matcher is an unanchored regexp, after collapsing whitespace on both sides).
 func exactly(stmt string) string { return "^" + regexp.QuoteMeta(stmt) + "$" }
@@ -109,22 +100,50 @@ func functionRows(defs ...string) *sqlmock.Rows {
 	return rows
 }
 
-func segmentRows() *sqlmock.Rows {
-	return sqlmock.NewRows([]string{"id", "tree", "generated_sql"})
+func treeRows(t *testing.T, trees ...interface{}) *sqlmock.Rows {
+	t.Helper()
+	rows := sqlmock.NewRows([]string{"tree"})
+	for _, tree := range trees {
+		switch v := tree.(type) {
+		case []byte:
+			rows.AddRow(v)
+		case *domain.TreeNode:
+			rows.AddRow(v42TreeJSON(t, v))
+		default:
+			t.Fatalf("unsupported tree fixture %T", tree)
+		}
+	}
+	return rows
 }
 
 const (
 	v42FunctionsQuery = `SELECT p.oid, pg_get_functiondef\(p.oid\)\s+FROM pg_proc p\s+WHERE p.proname LIKE 'automation\\_trigger\\_%'\s+AND p.prosrc LIKE '%FROM contact_lists cl JOIN lists l%'\s+AND p.prosrc NOT LIKE '%cl.deleted_at IS NULL%'`
-	v42SegmentsQuery  = `SELECT id, tree, generated_sql FROM segments\s+WHERE status <> 'deleted'`
-	v42RequeueStmt    = `INSERT INTO contact_segment_queue \(email, queued_at\)\s+SELECT DISTINCT cl.email, NOW\(\)\s+FROM contact_lists cl\s+JOIN lists l ON l.id = cl.list_id\s+WHERE cl.deleted_at IS NOT NULL\s+AND l.deleted_at IS NULL\s+AND cl.list_id = ANY\(\$1\)\s+ON CONFLICT \(email\) DO UPDATE SET queued_at = EXCLUDED.queued_at`
+	// One statement, so a segment saved while the migration runs is never overwritten with
+	// SQL derived from the version read before it.
+	v42SegmentPatchStmt  = `UPDATE segments\s+SET generated_sql = replace\(generated_sql, \$1, \$2\)\s+WHERE status <> 'deleted'\s+AND strpos\(generated_sql, \$1\) > 0\s+AND strpos\(generated_sql, \$3\) > 0\s+AND strpos\(generated_sql, \$4\) = 0`
+	v42SegmentTreesQuery = `SELECT tree FROM segments\s+WHERE status <> 'deleted'`
+	v42RequeueStmt       = `INSERT INTO contact_segment_queue \(email, queued_at\)\s+SELECT DISTINCT cl.email, NOW\(\)\s+FROM contact_lists cl\s+JOIN lists l ON l.id = cl.list_id\s+WHERE cl.deleted_at IS NOT NULL\s+AND l.deleted_at IS NULL\s+AND cl.list_id = ANY\(\$1\)\s+ON CONFLICT \(email\) DO UPDATE SET queued_at = EXCLUDED.queued_at`
 )
 
 func expectNoFunctions(mock sqlmock.Sqlmock) {
 	mock.ExpectQuery(v42FunctionsQuery).WillReturnRows(sqlmock.NewRows([]string{"oid", "pg_get_functiondef"}))
 }
 
+// expectSegmentPatch expects the in-place patch of stored segment SQL: the list condition's
+// old ending gains the removed-row filter, only where the SQL holds a list condition and not
+// the filter yet. generated_args is not touched: the filter takes no parameter.
+func expectSegmentPatch(mock sqlmock.Sqlmock) *sqlmock.ExpectedExec {
+	return mock.ExpectExec(v42SegmentPatchStmt).WithArgs(
+		" AND l.deleted_at IS NULL)",
+		" AND cl.deleted_at IS NULL AND l.deleted_at IS NULL)",
+		"FROM contact_lists cl JOIN lists l",
+		"cl.deleted_at IS NULL",
+	)
+}
+
 func expectNoSegments(mock sqlmock.Sqlmock) {
-	mock.ExpectQuery(v42SegmentsQuery).WillReturnRows(sqlmock.NewRows([]string{"id", "tree", "generated_sql"}))
+	expectSegmentPatch(mock).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(v42SegmentTreesQuery).WillReturnRows(sqlmock.NewRows([]string{"tree"}))
 }
 
 func runV42(t *testing.T, db DBExecutor) error {
@@ -171,6 +190,74 @@ func TestV42Migration_Pre42FixturesMatchTheOldBuilder(t *testing.T) {
 	assert.Contains(t, oldFn, "IF (EXISTS (SELECT 1 FROM contact_lists cl JOIN lists l ON cl.list_id = l.id WHERE cl.email = NEW.email AND cl.list_id = 'listX' AND cl.status = 'active' AND l.deleted_at IS NULL)) THEN")
 }
 
+func v42Branch(operator string, leaves ...*domain.TreeNode) *domain.TreeNode {
+	return &domain.TreeNode{Kind: "branch", Branch: &domain.TreeNodeBranch{Operator: operator, Leaves: leaves}}
+}
+
+func v42ContactLeaf(filters ...*domain.DimensionFilter) *domain.TreeNode {
+	return &domain.TreeNode{
+		Kind: "leaf",
+		Leaf: &domain.TreeNodeLeaf{Source: "contacts", Contact: &domain.ContactCondition{Filters: filters}},
+	}
+}
+
+// The patch is a text substitution, so it is right only if the list condition's old
+// ending occurs in compiled SQL nowhere but at the end of a list condition. That holds
+// beside a condition on each other source (contacts, including inlined JSON keys,
+// contact_timeline and custom_events_goals), in a segment and in a trigger function,
+// and the selections pick the old output and skip the new.
+func TestV42Migration_PatchTurnsPre42OutputIntoTheCurrentOutput(t *testing.T) {
+	active := "active"
+	unsubscribed := "unsubscribed"
+	anytime := "anytime"
+	country := &domain.DimensionFilter{FieldName: "country", FieldType: "string", Operator: "equals", StringValues: []string{"FR"}}
+	trees := map[string]*domain.TreeNode{
+		"in a list with a status": v42ListLeaf("in", "listX", &active),
+		"not in a list":           v42ListLeaf("not_in", "listX", nil),
+		"two list conditions": v42Branch("and",
+			v42ListLeaf("in", "listX", &active),
+			v42ListLeaf("not_in", "listY", nil)),
+		"a list or a contact field": v42Branch("or",
+			v42ListLeaf("in", "listX", nil),
+			v42ContactLeaf(country)),
+		"a list and a JSON key": v42Branch("and",
+			v42ListLeaf("in", "listX", &active),
+			v42ContactLeaf(&domain.DimensionFilter{FieldName: "custom_json_1", FieldType: "json", Operator: "is_not_set", JSONPath: []string{"tier"}}),
+			v42ContactLeaf(&domain.DimensionFilter{FieldName: "custom_json_2", FieldType: "string", Operator: "equals", JSONPath: []string{"plan", "name"}, StringValues: []string{"gold"}})),
+		"a list and a timeline count": v42Branch("and",
+			v42ListLeaf("in", "listX", nil),
+			&domain.TreeNode{Kind: "leaf", Leaf: &domain.TreeNodeLeaf{
+				Source:          "contact_timeline",
+				ContactTimeline: &domain.ContactTimelineCondition{Kind: "email_opened", CountOperator: "at_least", CountValue: 5, TimeframeOperator: &anytime},
+			}}),
+		"a list and a goal": v42Branch("and",
+			v42ListLeaf("not_in", "listX", nil),
+			&domain.TreeNode{Kind: "leaf", Leaf: &domain.TreeNodeLeaf{
+				Source:           "custom_events_goals",
+				CustomEventsGoal: &domain.CustomEventsGoalCondition{GoalType: "purchase", AggregateOperator: "count", Operator: "gte", Value: 1, TimeframeOperator: "anytime"},
+			}}),
+		"nested branches": v42Branch("or",
+			v42Branch("and", v42ListLeaf("in", "listX", &active), v42ContactLeaf(country)),
+			v42Branch("and", v42ListLeaf("not_in", "listY", nil), v42ListLeaf("in", "listZ", &unsubscribed))),
+	}
+
+	for name, tree := range trees {
+		t.Run(name, func(t *testing.T) {
+			current, pre42 := v42SegmentSQL(t, tree)
+			fnCurrent, fnPre42 := v42TriggerFunction(t, "auto1", tree)
+
+			for kind, out := range map[string][2]string{"segment": {current, pre42}, "trigger function": {fnCurrent, fnPre42}} {
+				now, old := out[0], out[1]
+				require.NotEqual(t, now, old, "%s: the fix must change this output", kind)
+				assert.Equal(t, now, strings.ReplaceAll(old, v42ListPredicateOld, v42ListPredicateNew), kind)
+				assert.Contains(t, old, v42ListConditionTag, kind)
+				assert.NotContains(t, old, v42RemovedRowFilter, kind)
+				assert.Contains(t, now, v42RemovedRowFilter, kind)
+			}
+		})
+	}
+}
+
 // Part 5's order: timeout, both contact_lists functions, the automation functions, the
 // segments, and the re-queue last.
 func TestV42Migration_RunsItsStepsInOrder(t *testing.T) {
@@ -180,17 +267,12 @@ func TestV42Migration_RunsItsStepsInOrder(t *testing.T) {
 
 	active := "active"
 	newFn, oldFn := v42TriggerFunction(t, "auto1", v42ListLeaf("in", "listX", &active))
-	tree := v42ListLeaf("in", "listX", &active)
-	newSQL, oldSQL := v42SegmentSQL(t, tree)
 
 	expectV42Prelude(mock)
 	mock.ExpectQuery(v42FunctionsQuery).WillReturnRows(functionRows(oldFn))
 	expectPatch(mock, newFn, nil)
-	mock.ExpectQuery(v42SegmentsQuery).
-		WillReturnRows(segmentRows().AddRow("seg1", v42TreeJSON(t, tree), oldSQL))
-	mock.ExpectExec("UPDATE segments SET generated_sql").
-		WithArgs(exactSQL{newSQL}, []byte(`["listX","active"]`), "seg1").
-		WillReturnResult(sqlmock.NewResult(0, 1))
+	expectSegmentPatch(mock).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(v42SegmentTreesQuery).WillReturnRows(treeRows(t, v42ListLeaf("in", "listX", &active)))
 	mock.ExpectExec(v42RequeueStmt).WithArgs(pq.Array([]string{"listX"})).WillReturnResult(sqlmock.NewResult(0, 3))
 
 	require.NoError(t, runV42(t, db))
@@ -255,52 +337,41 @@ func v42ContactsOnlyTree() *domain.TreeNode {
 	}
 }
 
-// Old segment SQL is recompiled; trees that don't parse or no longer compile keep their
-// SQL; list IDs come from every non-deleted segment, including one whose SQL is already
-// new; the re-queue runs with exactly those IDs.
-func TestV42Migration_RecompilesSegmentsAndRequeuesTheirRemovedMembers(t *testing.T) {
+// Stored segment SQL is patched by one statement, whatever the tree holds, and nothing
+// else is written to segments: no recompile, no generated_args, no version or status. List
+// IDs come from every non-deleted segment's tree, including one whose SQL was already
+// new; trees that don't parse or no longer compile contribute nothing; the re-queue runs
+// with exactly those IDs.
+func TestV42Migration_PatchesSegmentsInPlaceAndRequeuesTheirRemovedMembers(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer db.Close()
 
 	active := "active"
-	inX := v42ListLeaf("in", "listX", &active)
-	newInX, oldInX := v42SegmentSQL(t, inX)
-	notInX := v42ListLeaf("not_in", "listX", nil)
-	newNotInX, oldNotInX := v42SegmentSQL(t, notInX)
 	// Already recompiled by v36/v37 on a database upgraded from below 37.
 	inW := v42ListLeaf("in", "listW", nil)
-	newInW, _ := v42SegmentSQL(t, inW)
 	// Parses, but no longer compiles (a contact_lists leaf without a list ID).
 	broken := v42ListLeaf("in", "", nil)
-	contactsOnly := v42ContactsOnlyTree()
-	contactsSQL, _ := v42SegmentSQL(t, contactsOnly)
+	_, _, buildErr := service.NewQueryBuilder().BuildSQL(broken)
+	require.Error(t, buildErr, "the fixture must be a tree the builder refuses")
 
 	expectV42Prelude(mock)
 	expectNoFunctions(mock)
-	mock.ExpectQuery(v42SegmentsQuery).WillReturnRows(segmentRows().
-		AddRow("segIn", v42TreeJSON(t, inX), oldInX).
-		AddRow("segNotIn", v42TreeJSON(t, notInX), oldNotInX).
-		AddRow("segW", v42TreeJSON(t, inW), newInW).
-		AddRow("segUnparseable", []byte("{not json"), oldInX).
-		AddRow("segBroken", v42TreeJSON(t, broken), oldInX).
-		AddRow("segContacts", v42TreeJSON(t, contactsOnly), contactsSQL).
-		AddRow("segNoSQL", v42TreeJSON(t, contactsOnly), nil))
-	mock.ExpectExec("UPDATE segments SET generated_sql").
-		WithArgs(exactSQL{newInX}, []byte(`["listX","active"]`), "segIn").
-		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectExec("UPDATE segments SET generated_sql").
-		WithArgs(exactSQL{newNotInX}, []byte(`["listX"]`), "segNotIn").
-		WillReturnResult(sqlmock.NewResult(0, 1))
+	expectSegmentPatch(mock).WillReturnResult(sqlmock.NewResult(0, 2))
+	mock.ExpectQuery(v42SegmentTreesQuery).WillReturnRows(treeRows(t,
+		v42ListLeaf("in", "listX", &active),
+		v42ListLeaf("not_in", "listX", nil),
+		inW,
+		[]byte("{not json"),
+		broken,
+		v42ContactsOnlyTree(),
+	))
 	mock.ExpectExec(v42RequeueStmt).
 		WithArgs(pq.Array([]string{"listW", "listX"})).
 		WillReturnResult(sqlmock.NewResult(0, 2))
 
 	require.NoError(t, runV42(t, db))
 	require.NoError(t, mock.ExpectationsWereMet())
-
-	assert.Contains(t, newInX, "cl.deleted_at IS NULL")
-	assert.Contains(t, newNotInX, "NOT EXISTS")
 }
 
 // No segment names a list: nothing is re-queued.
@@ -309,13 +380,10 @@ func TestV42Migration_NoListConditionMeansNoRequeue(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	contactsOnly := v42ContactsOnlyTree()
-	contactsSQL, _ := v42SegmentSQL(t, contactsOnly)
-
 	expectV42Prelude(mock)
 	expectNoFunctions(mock)
-	mock.ExpectQuery(v42SegmentsQuery).WillReturnRows(segmentRows().
-		AddRow("segContacts", v42TreeJSON(t, contactsOnly), contactsSQL))
+	expectSegmentPatch(mock).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(v42SegmentTreesQuery).WillReturnRows(treeRows(t, v42ContactsOnlyTree()))
 
 	require.NoError(t, runV42(t, db))
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -338,22 +406,34 @@ func TestV42Migration_PropagatesErrors(t *testing.T) {
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("updating a segment", func(t *testing.T) {
+	t.Run("patching segments", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer db.Close()
 
-		inX := v42ListLeaf("in", "listX", nil)
-		_, oldInX := v42SegmentSQL(t, inX)
-
 		expectV42Prelude(mock)
 		expectNoFunctions(mock)
-		mock.ExpectQuery(v42SegmentsQuery).WillReturnRows(segmentRows().AddRow("segIn", v42TreeJSON(t, inX), oldInX))
-		mock.ExpectExec("UPDATE segments SET generated_sql").WillReturnError(errors.New("boom"))
+		expectSegmentPatch(mock).WillReturnError(errors.New("boom"))
 
 		err = runV42(t, db)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "segIn")
+		assert.Contains(t, err.Error(), "segment")
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("reading segment trees", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		expectV42Prelude(mock)
+		expectNoFunctions(mock)
+		expectSegmentPatch(mock).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(v42SegmentTreesQuery).WillReturnError(errors.New("boom"))
+
+		err = runV42(t, db)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "segment")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -362,12 +442,10 @@ func TestV42Migration_PropagatesErrors(t *testing.T) {
 		require.NoError(t, err)
 		defer db.Close()
 
-		inW := v42ListLeaf("in", "listW", nil)
-		newInW, _ := v42SegmentSQL(t, inW)
-
 		expectV42Prelude(mock)
 		expectNoFunctions(mock)
-		mock.ExpectQuery(v42SegmentsQuery).WillReturnRows(segmentRows().AddRow("segW", v42TreeJSON(t, inW), newInW))
+		expectSegmentPatch(mock).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(v42SegmentTreesQuery).WillReturnRows(treeRows(t, v42ListLeaf("in", "listW", nil)))
 		mock.ExpectExec(v42RequeueStmt).WillReturnError(errors.New("boom"))
 
 		err = runV42(t, db)

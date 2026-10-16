@@ -351,6 +351,12 @@ Built on `origin/dev` at `44880ee`, where B1 had landed. Every part above is don
 - **Part 5.** `internal/migrations/v42.go` follows the five steps. The automation functions are patched in place (D4), not regenerated as v38 does. A failed patch rolls back to its own savepoint.
 - **Part 6.** `VERSION = "42.0"`. The SDK bundle was rebuilt on Node 24, and only its version changed. `package-lock.json`'s root version moved with `package.json`, as it did for 41.1. The CHANGELOG heading is now `## [42.0] - WIP`, and the two **Fix** bullets were added as drafted.
 - **Deviation: webhook assertions.** Both integration tests read the queued `webhook_deliveries` rows rather than starting the delivery worker and an `httptest` receiver. The fix is in what the trigger queues; delivery is unchanged.
+- **Deviation: segments are patched in place, not recompiled (final review).** Recompiling from the tree, as Part 5 step 4 had it, did more than the fix:
+  - It also applied every builder change made since the segment was saved, while only removed list members are re-queued, so the segment's other members keep results from the old SQL. For example, 39.0's `jsonb_typeof` guards on custom_json key checks have reached no segment saved before 39.0, because only v36 and v37 recompile.
+  - It left the bug in a tree that no longer compiles.
+  - Its read-then-write could overwrite a segment saved concurrently with SQL from the tree it had read.
+
+  Step 4 is now a single `UPDATE segments SET generated_sql = replace(generated_sql, …)`, selected the same way as the function patch. `generated_args`, `version` and `status` are untouched, and the list IDs still come from every non-deleted segment's tree. `TestV42Migration_PatchTurnsPre42OutputIntoTheCurrentOutput` pins that the old ending occurs only at the end of a list condition, in both segments and trigger functions; the same battery was checked against `origin/dev`'s real builder. The integration test now asserts that the patched SQL is byte-identical to the fixed builder's, that a pre-39 custom_json segment gains only the list predicate, and that the uncompilable segment is patched too.
 - **Not done here:** the `../docs` edits, which belong in a separate PR in that repository.
 - **Not run here:** the integration tests, since Docker wasn't available. Both new files pass `go vet -tags integration,licdev ./tests/integration/`.
 

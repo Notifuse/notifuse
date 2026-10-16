@@ -2,7 +2,6 @@ package migrations
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -13,7 +12,6 @@ import (
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database/schema"
 	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/service"
 )
 
 // V42Migration makes a contact removed from a list (contact_lists.deleted_at set) a
@@ -39,14 +37,19 @@ import (
 //     next invocation. The patch adds a column every workspace has (contact_lists has had
 //     deleted_at since its creation), so no condition can start referencing a column
 //     that is missing. Each function is patched in its own savepoint.
-//  3. Stored segment SQL is recompiled from the tree, as v37 did.
+//  3. Stored segment SQL is patched in place the same way, by one UPDATE. Recompiling
+//     from the tree (as v37 did) would also apply every unrelated builder change made
+//     since the segment was saved, such as the custom_json guards, to segments whose other
+//     members are not re-evaluated; and it would leave the bug in a tree that no longer
+//     compiles. The filter takes no parameter, so generated_args stays valid, and the
+//     segment's version and status are untouched.
 //  4. Contacts removed from a list a segment's condition names are re-queued for segment
 //     recomputation, so they leave "in list" segments and join "not in list" ones now
 //     rather than on their next unrelated timeline write. This runs last, so the queue
 //     row locks are held for as short a time as possible.
 //
-// Every step is idempotent: the selections no longer match a patched function or a
-// recompiled segment, and re-queueing a contact again is harmless.
+// Every step is idempotent: the selections no longer match a patched function or
+// segment, and re-queueing a contact again is harmless.
 type V42Migration struct{}
 
 func (m *V42Migration) GetMajorVersion() float64 { return 42.0 }
@@ -91,9 +94,9 @@ func (m *V42Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 		return fmt.Errorf("v42: failed to patch automation trigger functions for workspace %s: %w", workspace.ID, err)
 	}
 
-	listIDs, err := m.recompileSegmentQueries(ctx, db)
+	listIDs, err := m.patchSegmentQueries(ctx, db)
 	if err != nil {
-		return fmt.Errorf("v42: failed to recompile segments for workspace %s: %w", workspace.ID, err)
+		return fmt.Errorf("v42: failed to patch segments for workspace %s: %w", workspace.ID, err)
 	}
 
 	if err := m.requeueRemovedListMembers(ctx, db, listIDs); err != nil {
@@ -164,71 +167,57 @@ func (m *V42Migration) patchAutomationTriggerFunctions(ctx context.Context, db D
 	return nil
 }
 
-// recompileSegmentQueries rebuilds generated_sql/generated_args from the tree of every
-// segment whose list condition still counts removed rows, and returns the list IDs named
-// by a contact_lists condition of every non-deleted segment, recompiled or not: on a
-// database upgraded from below 37, v36 or v37 already recompiled some segments with the
-// fixed builder, and their removed contacts still need re-queueing.
-func (m *V42Migration) recompileSegmentQueries(ctx context.Context, db DBExecutor) ([]string, error) {
+// patchSegmentQueries adds the removed-row filter to the stored SQL of every segment whose
+// list condition still counts removed rows, and returns the list IDs named by a
+// contact_lists condition of every non-deleted segment, patched or not: on a database
+// upgraded from below 37, v36 or v37 already recompiled the segments with the fixed
+// builder, and their removed contacts still need re-queueing.
+//
+// The builder emits the list condition's old ending nowhere else, values are bound as
+// parameters, and the one thing it inlines, a JSON key, is a quoted literal the inserted
+// text (which holds no quote) cannot break out of. One statement rather than a read and a
+// write per segment, so a segment saved while the migration runs is never overwritten
+// with SQL derived from the version read before it.
+func (m *V42Migration) patchSegmentQueries(ctx context.Context, db DBExecutor) ([]string, error) {
+	if _, err := db.ExecContext(ctx, `
+		UPDATE segments
+		SET generated_sql = replace(generated_sql, $1, $2)
+		WHERE status <> 'deleted'
+		  AND strpos(generated_sql, $1) > 0
+		  AND strpos(generated_sql, $3) > 0
+		  AND strpos(generated_sql, $4) = 0
+	`, v42ListPredicateOld, v42ListPredicateNew, v42ListConditionTag, v42RemovedRowFilter); err != nil {
+		return nil, fmt.Errorf("failed to patch segment queries: %w", err)
+	}
+
 	rows, err := db.QueryContext(ctx, `
-		SELECT id, tree, generated_sql FROM segments
+		SELECT tree FROM segments
 		WHERE status <> 'deleted'
 	`)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query segments: %w", err)
+		return nil, fmt.Errorf("failed to query segment trees: %w", err)
 	}
 
-	type segmentTree struct {
-		id   string
-		tree domain.TreeNode
-	}
-	var stale []segmentTree
 	listIDSet := make(map[string]struct{})
 	for rows.Next() {
-		var id string
 		var treeJSON []byte
-		var generatedSQL sql.NullString
-		if scanErr := rows.Scan(&id, &treeJSON, &generatedSQL); scanErr != nil {
+		if scanErr := rows.Scan(&treeJSON); scanErr != nil {
 			_ = rows.Close()
-			return nil, fmt.Errorf("failed to scan segment: %w", scanErr)
+			return nil, fmt.Errorf("failed to scan segment tree: %w", scanErr)
 		}
 		var tree domain.TreeNode
-		// A malformed tree can be neither recompiled nor read for list IDs; leave the
-		// segment as it is rather than abort the migration.
+		// A tree that does not parse names no list; skip it rather than abort the migration.
 		if json.Unmarshal(treeJSON, &tree) != nil {
 			continue
 		}
 		v42CollectListIDs(&tree, listIDSet)
-		if strings.Contains(generatedSQL.String, v42ListConditionTag) &&
-			!strings.Contains(generatedSQL.String, v42RemovedRowFilter) {
-			stale = append(stale, segmentTree{id: id, tree: tree})
-		}
 	}
 	if iterErr := rows.Err(); iterErr != nil {
 		_ = rows.Close()
-		return nil, fmt.Errorf("error iterating segments: %w", iterErr)
+		return nil, fmt.Errorf("error iterating segment trees: %w", iterErr)
 	}
 	if closeErr := rows.Close(); closeErr != nil {
-		return nil, fmt.Errorf("failed to close segments rows: %w", closeErr)
-	}
-
-	qb := service.NewQueryBuilder()
-	for _, s := range stale {
-		sqlQuery, args, buildErr := qb.BuildSQL(&s.tree)
-		if buildErr != nil {
-			// The tree no longer compiles: keep the stored SQL rather than blank the segment.
-			continue
-		}
-		argsJSON, marshalErr := json.Marshal(args)
-		if marshalErr != nil {
-			continue
-		}
-		if _, execErr := db.ExecContext(ctx, `
-			UPDATE segments SET generated_sql = $1, generated_args = $2
-			WHERE id = $3
-		`, sqlQuery, argsJSON, s.id); execErr != nil {
-			return nil, fmt.Errorf("failed to update segment %s: %w", s.id, execErr)
-		}
+		return nil, fmt.Errorf("failed to close segment tree rows: %w", closeErr)
 	}
 
 	listIDs := make([]string, 0, len(listIDSet))

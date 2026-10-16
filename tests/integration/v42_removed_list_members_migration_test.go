@@ -123,6 +123,37 @@ func TestV42RemovedListMembersMigration(t *testing.T) {
 			`SELECT generated_sql FROM segments WHERE id = $1`, segmentID).Scan(&s))
 		return s.String
 	}
+	storedArgs := func(t *testing.T, segmentID string) string {
+		t.Helper()
+		var raw []byte
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT generated_args FROM segments WHERE id = $1`, segmentID).Scan(&raw))
+		return string(raw)
+	}
+	versionAndStatus := func(t *testing.T, segmentID string) string {
+		t.Helper()
+		var version int
+		var status string
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT version, status FROM segments WHERE id = $1`, segmentID).Scan(&version, &status))
+		return fmt.Sprintf("%d/%s", version, status)
+	}
+	// matches runs a segment's stored SQL with its stored arguments, as the segment queue
+	// does, and returns how many contacts it matches.
+	matches := func(t *testing.T, segmentID string) int {
+		t.Helper()
+		var args []interface{}
+		require.NoError(t, json.Unmarshal([]byte(storedArgs(t, segmentID)), &args))
+		rows, err := db.QueryContext(bg, storedSQL(t, segmentID), args...)
+		require.NoError(t, err, "segment %s: stored SQL must execute", segmentID)
+		defer func() { _ = rows.Close() }()
+		matched := 0
+		for rows.Next() {
+			matched++
+		}
+		require.NoError(t, rows.Err())
+		return matched
+	}
 	listLeaf := func(operator, listID, status string) map[string]interface{} {
 		contactList := map[string]interface{}{"operator": operator, "list_id": listID}
 		if status != "" {
@@ -237,6 +268,21 @@ func TestV42RemovedListMembersMigration(t *testing.T) {
 	notInSegment := createSegment(t, "notin", listLeaf("not_in", listX.ID, ""))
 	// Stands for a segment v36 or v37 already recompiled with the fixed builder.
 	wSegment := createSegment(t, "w", listLeaf("in", listW.ID, ""))
+	// Saved by an older builder: a custom_json key check compiled before the builder
+	// started guarding it with jsonb_typeof.
+	olderSegment := createSegment(t, "older", map[string]interface{}{
+		"kind": "branch",
+		"branch": map[string]interface{}{"operator": "and", "leaves": []interface{}{
+			listLeaf("in", listX.ID, "active"),
+			map[string]interface{}{"kind": "leaf", "leaf": map[string]interface{}{
+				"source": "contacts",
+				"contact": map[string]interface{}{"filters": []interface{}{map[string]interface{}{
+					"field_name": "custom_json_1", "field_type": "json", "operator": "is_not_set",
+					"json_path": []string{"tier"},
+				}}},
+			}},
+		}},
+	})
 
 	eventName := "v42_condition_" + tag
 	liveID := createAutomation(t, "V42 live", eventName, listLeaf("in", listX.ID, "active"), marker.ID)
@@ -260,10 +306,21 @@ func TestV42RemovedListMembersMigration(t *testing.T) {
 	subscriptionID := createZapierSubscription(t, suite, workspace.ID, "V42 webhooks",
 		"https://hooks.example.com/v42", []string{"list.subscribed"}, []string{listX.ID}, nil)
 
+	// What the fixed builder stores, for comparing with what v42 leaves.
+	freshIn, freshNotIn := storedSQL(t, inSegment), storedSQL(t, notInSegment)
+	freshOlder := storedSQL(t, olderSegment)
+	require.Contains(t, freshOlder, "jsonb_typeof(custom_json_1) = 'object' AND ")
+
 	// Turn the stored SQL into what the builder produced before 42.
 	_, err = db.ExecContext(bg, `UPDATE segments SET generated_sql = replace(generated_sql, ' AND cl.deleted_at IS NULL', '')
-		WHERE id IN ($1, $2)`, inSegment, notInSegment)
+		WHERE id IN ($1, $2, $3)`, inSegment, notInSegment, olderSegment)
 	require.NoError(t, err)
+	_, err = db.ExecContext(bg, `UPDATE segments SET generated_sql = replace(generated_sql, 'jsonb_typeof(custom_json_1) = ''object'' AND ', '')
+		WHERE id = $1`, olderSegment)
+	require.NoError(t, err)
+	olderSQL := storedSQL(t, olderSegment)
+	require.Contains(t, olderSQL, "NOT (custom_json_1 ? $3)", "the older builder's key check")
+	require.NotContains(t, olderSQL, "cl.deleted_at IS NULL")
 	assert.Equal(t, "SELECT email FROM contacts WHERE EXISTS (SELECT 1 FROM contact_lists cl JOIN lists l ON cl.list_id = l.id WHERE cl.email = contacts.email AND cl.list_id = $1 AND cl.status = $2 AND l.deleted_at IS NULL)", storedSQL(t, inSegment))
 	assert.Equal(t, "SELECT email FROM contacts WHERE NOT EXISTS (SELECT 1 FROM contact_lists cl JOIN lists l ON cl.list_id = l.id WHERE cl.email = contacts.email AND cl.list_id = $1 AND l.deleted_at IS NULL)", storedSQL(t, notInSegment))
 	newWSQL := storedSQL(t, wSegment)
@@ -291,7 +348,6 @@ func TestV42RemovedListMembersMigration(t *testing.T) {
 		uncompilable, mustJSON(t, listLeaf("in", "", "active")), storedSQL(t, inSegment),
 		mustJSON(t, []interface{}{listX.ID, "active"}))
 	require.NoError(t, err)
-	brokenSQL := storedSQL(t, uncompilable)
 
 	// The old behaviour: removing a contact keeps them in "in list".
 	drainQueue(t)
@@ -304,29 +360,35 @@ func TestV42RemovedListMembersMigration(t *testing.T) {
 
 	// --- migrate ---------------------------------------------------------------------
 
+	segments := []string{inSegment, notInSegment, wSegment, olderSegment, uncompilable}
+	argsBefore := map[string]string{}
+	stateBefore := map[string]string{}
+	for _, segmentID := range segments {
+		argsBefore[segmentID] = storedArgs(t, segmentID)
+		stateBefore[segmentID] = versionAndStatus(t, segmentID)
+	}
+
 	runV42(t)
 
-	t.Run("stored segment SQL is recompiled and still executes", func(t *testing.T) {
-		for _, segmentID := range []string{inSegment, notInSegment} {
-			stored := storedSQL(t, segmentID)
-			assert.Contains(t, stored, "cl.deleted_at IS NULL AND l.deleted_at IS NULL")
+	t.Run("stored segment SQL is patched in place and still executes", func(t *testing.T) {
+		assert.Equal(t, freshIn, storedSQL(t, inSegment), "byte-identical to what the fixed builder stores")
+		assert.Equal(t, freshNotIn, storedSQL(t, notInSegment), "byte-identical to what the fixed builder stores")
+		assert.Positive(t, matches(t, inSegment))
+		assert.Positive(t, matches(t, notInSegment))
 
-			var argsJSON []byte
-			require.NoError(t, db.QueryRowContext(bg, `SELECT generated_args FROM segments WHERE id = $1`, segmentID).Scan(&argsJSON))
-			var args []interface{}
-			require.NoError(t, json.Unmarshal(argsJSON, &args))
-			rows, err := db.QueryContext(bg, stored, args...)
-			require.NoError(t, err, "recompiled SQL must execute")
-			matched := 0
-			for rows.Next() {
-				matched++
-			}
-			require.NoError(t, rows.Err())
-			assert.Positive(t, matched, "segment %s matches a contact", segmentID)
-			require.NoError(t, rows.Close())
-		}
 		assert.Equal(t, newWSQL, storedSQL(t, wSegment), "an already-fixed segment is left alone")
-		assert.Equal(t, brokenSQL, storedSQL(t, uncompilable), "a segment whose tree no longer compiles keeps its SQL")
+		assert.Equal(t, freshIn, storedSQL(t, uncompilable), "a segment whose tree no longer compiles is patched too")
+
+		older := storedSQL(t, olderSegment)
+		assert.Equal(t, strings.ReplaceAll(olderSQL, " AND l.deleted_at IS NULL)", " AND cl.deleted_at IS NULL AND l.deleted_at IS NULL)"), older,
+			"only the list condition changes: no other builder change since the segment was saved is applied")
+		assert.NotContains(t, older, "jsonb_typeof")
+		matches(t, olderSegment)
+
+		for _, segmentID := range segments {
+			assert.Equal(t, argsBefore[segmentID], storedArgs(t, segmentID), "segment %s: generated_args untouched", segmentID)
+			assert.Equal(t, stateBefore[segmentID], versionAndStatus(t, segmentID), "segment %s: version and status untouched", segmentID)
+		}
 	})
 
 	t.Run("removed members of lists segments use are re-queued", func(t *testing.T) {
@@ -388,14 +450,17 @@ func TestV42RemovedListMembersMigration(t *testing.T) {
 	})
 
 	t.Run("re-running the migration changes nothing", func(t *testing.T) {
-		inSQL, notInSQL := storedSQL(t, inSegment), storedSQL(t, notInSegment)
+		sqlBefore := map[string]string{}
+		for _, segmentID := range segments {
+			sqlBefore[segmentID] = storedSQL(t, segmentID)
+		}
 		body := functionSource(t, liveID)
 
 		runV42(t)
 
-		assert.Equal(t, inSQL, storedSQL(t, inSegment))
-		assert.Equal(t, notInSQL, storedSQL(t, notInSegment))
-		assert.Equal(t, brokenSQL, storedSQL(t, uncompilable))
+		for _, segmentID := range segments {
+			assert.Equal(t, sqlBefore[segmentID], storedSQL(t, segmentID), "segment %s", segmentID)
+		}
 		assert.Equal(t, body, functionSource(t, liveID))
 
 		drainQueue(t)
