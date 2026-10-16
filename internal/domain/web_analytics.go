@@ -386,6 +386,12 @@ type WebTrackAction struct {
 	Timestamp  int64             `json:"timestamp,omitempty"`
 	Value      float64           `json:"value,omitempty"`
 	Properties map[string]string `json:"properties,omitempty"`
+
+	// decodeErr is set by WebTrackPayload.UnmarshalJSON on an entry that could
+	// not be decoded at all. The entry keeps its slot so it still counts toward
+	// WebTrackMaxActions, and Validate reports the error, so dropInvalidActions
+	// removes it like any other malformed action.
+	decodeErr error
 }
 
 // UnmarshalJSON accepts fractional milliseconds for every ms-valued field.
@@ -412,12 +418,28 @@ func (a *WebTrackAction) UnmarshalJSON(data []byte) error {
 		EnteredAt *float64 `json:"entered_at,omitempty"`
 		ExitedAt  *float64 `json:"exited_at,omitempty"`
 		Timestamp *float64 `json:"timestamp,omitempty"`
+		// Goal value and properties come from the site's own code, often plain
+		// JS in a snippet or tag manager, so their JSON types are not to be
+		// trusted. See decodeGoalValue and decodeGoalProperties.
+		Value      json.RawMessage `json:"value,omitempty"`
+		Properties json.RawMessage `json:"properties,omitempty"`
 		*alias
 	}{alias: (*alias)(a)}
 
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
+
+	value, err := decodeGoalValue(aux.Value)
+	if err != nil {
+		return err
+	}
+	a.Value = value
+	props, err := decodeGoalProperties(aux.Properties)
+	if err != nil {
+		return err
+	}
+	a.Properties = props
 
 	// A NaN or ±Inf would round to an unusable int64, so leave those at zero
 	// and let Validate reject the action on its own terms rather than storing
@@ -433,6 +455,78 @@ func (a *WebTrackAction) UnmarshalJSON(data []byte) error {
 	a.ExitedAt = round(aux.ExitedAt)
 	a.Timestamp = round(aux.Timestamp)
 	return nil
+}
+
+// decodeGoalValue reads a goal value sent as a JSON number, or as a string
+// holding one ("49.90"), which is what a value read from the DOM or a data
+// layer usually is. An empty string or null means no value. Anything else is
+// an error, so the goal is dropped rather than stored with a value the site
+// never meant. The range is checked afterwards by Validate.
+func decodeGoalValue(raw json.RawMessage) (float64, error) {
+	text := strings.TrimSpace(string(raw))
+	if text == "" || text == "null" {
+		return 0, nil
+	}
+	if text[0] == '"' {
+		var s string
+		if err := json.Unmarshal(raw, &s); err != nil {
+			return 0, err
+		}
+		text = strings.TrimSpace(s)
+		if text == "" {
+			return 0, nil
+		}
+		// Only JSON number syntax: strconv.ParseFloat would also take "NaN",
+		// "Inf" and hex floats, and a NaN passes every range check.
+		if !startsLikeJSONNumber(text) {
+			return 0, fmt.Errorf("goal value %q is not a number", s)
+		}
+	}
+	var v float64
+	if err := json.Unmarshal([]byte(text), &v); err != nil {
+		return 0, fmt.Errorf("goal value is not a number: %w", err)
+	}
+	return v, nil
+}
+
+// decodeGoalProperties reads a goal's properties into the flat string map the
+// rest of the pipeline stores. Numbers and booleans are kept as their JSON
+// text (12345 becomes "12345"), and null as "", as it always decoded. A nested
+// object or array has no faithful flat form, so it is an error and the goal is
+// dropped. The size bounds are applied afterwards by validateGoalProperties,
+// to the coerced strings.
+func decodeGoalProperties(raw json.RawMessage) (map[string]string, error) {
+	text := strings.TrimSpace(string(raw))
+	if text == "" || text == "null" {
+		return nil, nil
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return nil, fmt.Errorf("goal properties must be an object: %w", err)
+	}
+	props := make(map[string]string, len(fields))
+	for key, value := range fields {
+		text := strings.TrimSpace(string(value))
+		switch {
+		case text == "null":
+			props[key] = ""
+		case text[0] == '"':
+			var s string
+			if err := json.Unmarshal(value, &s); err != nil {
+				return nil, err
+			}
+			props[key] = s
+		case text == "true" || text == "false", startsLikeJSONNumber(text):
+			props[key] = text
+		default:
+			return nil, fmt.Errorf("goal property %q must be a string, number or boolean", key)
+		}
+	}
+	return props, nil
+}
+
+func startsLikeJSONNumber(text string) bool {
+	return text != "" && (text[0] == '-' || (text[0] >= '0' && text[0] <= '9'))
 }
 
 // Validate checks a single action.
@@ -455,6 +549,9 @@ func normalizeWebGoalType(goalType string) string {
 }
 
 func (a *WebTrackAction) Validate() error {
+	if a.decodeErr != nil {
+		return a.decodeErr
+	}
 	if len(a.Path) > WebTrackMaxPathLength {
 		return fmt.Errorf("action path exceeds %d characters", WebTrackMaxPathLength)
 	}
@@ -555,6 +652,38 @@ type WebTrackPayload struct {
 
 	Dimensions map[string]string `json:"dimensions,omitempty"` // custom_1..custom_10
 	Seq        int64             `json:"seq"`                  // monotonic per-session beat counter
+}
+
+// UnmarshalJSON decodes actions one by one. An entry that cannot be decoded,
+// whatever the reason, must cost only itself: actions[] is cumulative, so a
+// decode error on the whole beat would reject every later beat of the session
+// too, before dropInvalidActions ever runs. The entry keeps its slot (see
+// WebTrackAction.decodeErr) and is removed there with the rest.
+//
+// Payload-level fields keep strict decoding: a beat whose workspace_id or
+// actions array has the wrong type is not one any SDK produces.
+func (p *WebTrackPayload) UnmarshalJSON(data []byte) error {
+	type alias WebTrackPayload
+	aux := struct {
+		Actions []json.RawMessage `json:"actions"`
+		*alias
+	}{alias: (*alias)(p)}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.Actions == nil {
+		p.Actions = nil
+		return nil
+	}
+	p.Actions = make([]WebTrackAction, len(aux.Actions))
+	for i, raw := range aux.Actions {
+		var action WebTrackAction
+		if err := json.Unmarshal(raw, &action); err != nil {
+			action = WebTrackAction{decodeErr: fmt.Errorf("action %d: %w", i, err)}
+		}
+		p.Actions[i] = action
+	}
+	return nil
 }
 
 // Validate checks the payload against the server clock. It does not resolve

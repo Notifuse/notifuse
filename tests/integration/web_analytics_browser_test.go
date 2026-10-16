@@ -159,10 +159,23 @@ func runBrowserVisit(t *testing.T, suite *testutil.IntegrationTestSuite, chrome,
       // customer's snippet does, so Chrome mutes its rejections from the
       // window 'unhandledrejection' hook above and the failure would otherwise
       // reach the assertions as an unexplained goals=0.
-      sdk.trackGoal({ action: 'browser_e2e', type: 'other', value: 42 })
+      //
+      // Typed the way plain-JS snippet and tag-manager callers type it: a
+      // string value and non-string properties. This used to reach the server
+      // as-is, fail the beat's decode with a 400 and, since actions[] is
+      // cumulative, lose every later beat of the session, including the clean
+      // goal below.
+      sdk.trackGoal({ action: 'browser_e2e', type: 'other', value: '42', properties: { order_id: 12345, first_order: true } })
         .catch(function (e) { window.__errs.push('trackGoal: ' + (e && (e.stack || e.message) || e)); });
     }
   }, 3000);
+  setTimeout(function () {
+    var sdk = window.NotifuseAnalytics;
+    if (sdk && typeof sdk.trackGoal === 'function') {
+      sdk.trackGoal({ action: 'browser_e2e_clean', type: 'lead' })
+        .catch(function (e) { window.__errs.push('trackGoal clean: ' + (e && (e.stack || e.message) || e)); });
+    }
+  }, 4000);
   // Report state back to this page's own origin so a failure explains itself.
   setTimeout(function () {
     var sdk = window.NotifuseAnalytics;
@@ -230,7 +243,7 @@ func runBrowserVisit(t *testing.T, suite *testutil.IntegrationTestSuite, chrome,
 		_ = wsDB.QueryRow(`SELECT COUNT(*) FROM web_sessions`).Scan(&sessions)
 		_ = wsDB.QueryRow(`SELECT COUNT(*) FROM web_pages`).Scan(&pages)
 		_ = wsDB.QueryRow(`SELECT COUNT(*) FROM web_goals`).Scan(&goals)
-		if sessions > 0 && pages >= 2 && goals > 0 {
+		if sessions > 0 && pages >= 2 && goals >= 2 {
 			break
 		}
 		time.Sleep(time.Second)
@@ -263,11 +276,17 @@ func runBrowserVisit(t *testing.T, suite *testutil.IntegrationTestSuite, chrome,
 	require.NoError(t, wsDB.QueryRow(`SELECT custom_1 FROM web_sessions LIMIT 1`).Scan(&custom1))
 	assert.Equal(t, "variant-a", custom1, "custom_1 must be captured from the landing URL")
 
-	var goalName string
 	var goalValue float64
-	require.NoError(t, wsDB.QueryRow(`SELECT goal_name, goal_value FROM web_goals LIMIT 1`).Scan(&goalName, &goalValue))
-	assert.Equal(t, "browser_e2e", goalName)
-	assert.InDelta(t, 42.0, goalValue, 0.01)
+	var goalProps string
+	require.NoError(t, wsDB.QueryRow(`SELECT goal_value, properties::text FROM web_goals WHERE goal_name = 'browser_e2e'`).
+		Scan(&goalValue, &goalProps))
+	assert.InDelta(t, 42.0, goalValue, 0.01, "a numeric string value must be stored as the number")
+	assert.JSONEq(t, `{"order_id":"12345","first_order":"true"}`, goalProps,
+		"non-string properties must be stored as strings")
+
+	var cleanGoals int
+	require.NoError(t, wsDB.QueryRow(`SELECT COUNT(*) FROM web_goals WHERE goal_name = 'browser_e2e_clean'`).Scan(&cleanGoals))
+	assert.Equal(t, 1, cleanGoals, "a goal tracked after a wrongly typed one must still be stored")
 
 	var exitPages int
 	require.NoError(t, wsDB.QueryRow(`SELECT COUNT(*) FROM web_pages WHERE is_exit`).Scan(&exitPages))

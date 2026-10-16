@@ -29,6 +29,7 @@ import { DEFAULT_AD_CLICK_IDS } from './utils/utm';
 import { CrossDomainLinker, DEFAULT_CROSS_DOMAIN_PARAM } from './core/cross-domain';
 import { parseCustomDimensions } from './utils/custom-dimensions';
 import { monotonicNow } from './utils/clock';
+import { normalizeGoalProperties, normalizeGoalValue } from './utils/goal-data';
 
 // Heartbeat constants
 const MIN_HEARTBEAT_INTERVAL = 5000; // 5 seconds minimum
@@ -969,6 +970,10 @@ export class NotifuseAnalyticsSDK {
         `trackGoal requires a type, one of: ${VALID_GOAL_TYPES.join(', ')}`,
       );
     }
+    // Coerced before anything is recorded: a wrongly typed goal used to be
+    // stored in the cumulative actions and resent on every beat.
+    const value = normalizeGoalValue(data.value);
+    const properties = normalizeGoalProperties(data.properties);
     if (!this.sessionState) return;
 
     // Rotate first if the window lapsed, so the goal lands on the live session
@@ -976,7 +981,7 @@ export class NotifuseAnalyticsSDK {
     await this.ensureFreshSession();
 
     // Add goal to SessionState
-    this.sessionState.addGoal(data.action, data.type, data.value, data.properties);
+    this.sessionState.addGoal(data.action, data.type, value, properties);
 
     // Cancel any pending debounced send
     if (this.sendDebounceTimeout) {

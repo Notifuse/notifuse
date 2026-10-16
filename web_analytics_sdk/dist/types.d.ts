@@ -157,15 +157,22 @@ export interface GoalData {
      * goal-based segment conditions. Use 'other' if none of the rest fit.
      */
     type: GoalType;
-    value?: number;
+    /**
+     * A non-negative amount. A numeric string ('49.90') is converted to a number;
+     * anything else throws.
+     */
+    value?: number | string;
     /**
      * Anything else the conversion carries — a currency, an order id, a plan
      * name. These reach the server and are stored on the goal, which is why
      * there are no dedicated fields for them: a declared field that nothing
      * forwards, sends or stores is worse than no field, because callers set it
      * and are never told it went nowhere.
+     *
+     * Stored as strings: numbers and booleans are converted, null and undefined
+     * entries are left out, and a nested object or array throws.
      */
-    properties?: Record<string, string>;
+    properties?: Record<string, string | number | boolean | null | undefined>;
 }
 export interface NotifuseAnalyticsAPI {
     init(config: NotifuseAnalyticsConfig): Promise<void>;
