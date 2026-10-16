@@ -1,12 +1,14 @@
 package domain
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"encoding/json"
 	"fmt"
 	"math"
 	"net"
+	"reflect"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -468,10 +470,10 @@ func decodeGoalValue(raw json.RawMessage) (float64, error) {
 		return 0, nil
 	}
 	if text[0] == '"' {
+		// raw is a JSON string the decoder has already validated: this
+		// cannot fail.
 		var s string
-		if err := json.Unmarshal(raw, &s); err != nil {
-			return 0, err
-		}
+		_ = json.Unmarshal(raw, &s)
 		text = strings.TrimSpace(s)
 		if text == "" {
 			return 0, nil
@@ -511,10 +513,10 @@ func decodeGoalProperties(raw json.RawMessage) (map[string]string, error) {
 		case text == "null":
 			props[key] = ""
 		case text[0] == '"':
+			// A JSON string the decoder has already validated: this cannot
+			// fail.
 			var s string
-			if err := json.Unmarshal(value, &s); err != nil {
-				return nil, err
-			}
+			_ = json.Unmarshal(value, &s)
 			props[key] = s
 		case text == "true" || text == "false", startsLikeJSONNumber(text):
 			props[key] = text
@@ -662,26 +664,38 @@ type WebTrackPayload struct {
 //
 // Payload-level fields keep strict decoding: a beat whose workspace_id or
 // actions array has the wrong type is not one any SDK produces.
+//
+// Entries past WebTrackMaxActions are not decoded: Validate rejects such a
+// beat on its length alone, and decoding them first would let one 1 MiB beat
+// of junk entries buy tens of thousands of decodes for nothing.
 func (p *WebTrackPayload) UnmarshalJSON(data []byte) error {
 	type alias WebTrackPayload
 	aux := struct {
-		Actions []json.RawMessage `json:"actions"`
+		Actions json.RawMessage `json:"actions"`
 		*alias
 	}{alias: (*alias)(p)}
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	if aux.Actions == nil {
-		p.Actions = nil
+	p.Actions = nil
+	if len(aux.Actions) == 0 || string(aux.Actions) == "null" {
 		return nil
 	}
-	p.Actions = make([]WebTrackAction, len(aux.Actions))
-	for i, raw := range aux.Actions {
+	if aux.Actions[0] != '[' {
+		return &json.UnmarshalTypeError{Value: "non-array", Type: reflect.TypeOf(p.Actions), Field: "actions"}
+	}
+	// aux.Actions is a valid JSON array, so Token cannot fail on its opening
+	// '[', and a Decode error is a type error in that entry alone, with the
+	// decoder already past it.
+	dec := json.NewDecoder(bytes.NewReader(aux.Actions))
+	_, _ = dec.Token()
+	p.Actions = []WebTrackAction{}
+	for len(p.Actions) <= WebTrackMaxActions && dec.More() {
 		var action WebTrackAction
-		if err := json.Unmarshal(raw, &action); err != nil {
-			action = WebTrackAction{decodeErr: fmt.Errorf("action %d: %w", i, err)}
+		if err := dec.Decode(&action); err != nil {
+			action = WebTrackAction{decodeErr: fmt.Errorf("action %d: %w", len(p.Actions), err)}
 		}
-		p.Actions[i] = action
+		p.Actions = append(p.Actions, action)
 	}
 	return nil
 }

@@ -125,9 +125,48 @@ func TestWebTrackPayloadDecodesWrongWireTypes(t *testing.T) {
 		assert.ErrorContains(t, p.Validate(now), "actions")
 	})
 
+	// A beat past the cap is rejected on its length alone, so decoding its
+	// entries first is pure cost: before actions were decoded one by one, the
+	// first undecodable entry ended the decode, and a body full of them cost
+	// next to nothing. Allocations stand in for that cost, being deterministic.
+	t.Run("entries past the action cap are not decoded", func(t *testing.T) {
+		body := func(n int) []byte {
+			actions := make([]string, n)
+			for i := range actions {
+				actions[i] = `{"type":"goal","name":"g","page_number":"x","value":"x"}`
+			}
+			return []byte(fmt.Sprintf(`{"workspace_id":"ws1","session_id":%q,"actions":[%s],"updated_at":%d,"seq":1}`,
+				uuidV7At(now.Add(-time.Minute)), strings.Join(actions, ","), ts))
+		}
+		allocs := func(raw []byte) float64 {
+			return testing.AllocsPerRun(3, func() {
+				var p WebTrackPayload
+				_ = json.Unmarshal(raw, &p)
+			})
+		}
+		const floodFactor = 10
+		overCap, flood := body(WebTrackMaxActions+1), body(floodFactor*(WebTrackMaxActions+1))
+
+		var p WebTrackPayload
+		require.NoError(t, json.Unmarshal(flood, &p))
+		assert.ErrorContains(t, p.Validate(now), "actions")
+		assert.Less(t, allocs(flood), 2*allocs(overCap),
+			"a flood of entries past the cap must cost about what a beat just over it does")
+	})
+
 	t.Run("payload-level type errors still fail the decode", func(t *testing.T) {
 		var p WebTrackPayload
 		assert.Error(t, json.Unmarshal([]byte(`{"workspace_id":1,"actions":[]}`), &p))
-		assert.Error(t, json.Unmarshal([]byte(`{"workspace_id":"ws1","actions":{"type":"goal"}}`), &p))
+		for _, actions := range []string{`{"type":"goal"}`, `"goal"`, `1`, `true`} {
+			assert.Error(t, json.Unmarshal([]byte(`{"workspace_id":"ws1","actions":`+actions+`}`), &p), actions)
+		}
+	})
+
+	t.Run("absent, null and empty actions decode to no actions", func(t *testing.T) {
+		for _, actions := range []string{``, `,"actions":null`, `,"actions":[]`, `,"actions": [ ] `} {
+			var p WebTrackPayload
+			require.NoError(t, json.Unmarshal([]byte(`{"workspace_id":"ws1"`+actions+`}`), &p), actions)
+			assert.Empty(t, p.Actions, actions)
+		}
 	})
 }
