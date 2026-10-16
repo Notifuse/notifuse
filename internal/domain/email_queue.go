@@ -81,7 +81,7 @@ type EmailQueuePayload struct {
 
 	// Message history tracking fields
 	TemplateVersion int                    `json:"template_version"`        // Needed for message_history
-	ListID          string                 `json:"list_id,omitempty"`       // For broadcasts
+	ListID          string                 `json:"list_id,omitempty"`       // List the email is sent for (broadcasts and automations)
 	TemplateData    map[string]interface{} `json:"template_data,omitempty"` // For message history logging
 
 	// ContactAutomationID is set only for sends from an exit_on_reply automation.

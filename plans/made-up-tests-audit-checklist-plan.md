@@ -62,7 +62,7 @@ Verification levels used below:
     - a re-add writes no event, so the query fix alone would keep re-added contacts out of their segments;
     - a v42 migration patches the stored SQL. Decided 2026-10-16: a re-add records what a subscribe does (P1), and B24 ships in the current unreleased version, which becomes 42.0 (P2).
 
-- [ ] **B25 — A complaint or hard bounce on an automation email is never recorded on the list**
+- [x] **B25 — A complaint or hard bounce on an automation email is never recorded on the list** — Fixed 2026-10-16, see PR. Hard bounces were already recorded on every list by `MarkEmailsAsBounced` (`internal/service/inbound_webhook_event_service.go`); complaints were the gap. Test: `tests/integration/automation_complaint_list_status_test.go`.
   - Impact: someone who reports an automation email as spam, or whose address hard-bounces, stays `active` on the automation's list. The automation keeps emailing them, and so do the list's broadcasts, which damages the sender's reputation.
   - Cause: the automation queue payload has no `ListID` (`internal/service/automation_node_executor.go:403-413`), so `message_history.list_id` stays NULL (`internal/service/queue/worker.go:584-585`). The trigger that turns complaints and bounces into list statuses acts only when `list_id` is set (`internal/database/init.go:831-861`), and no other code path sets those statuses.
   - Verified: Code-confirmed.

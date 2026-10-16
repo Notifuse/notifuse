@@ -1176,6 +1176,85 @@ func TestEmailQueueWorker_ProcessEntry_StoresTemplateDataInMessageHistory(t *tes
 	worker.processEntry(workspace, entry)
 }
 
+// An automation email is sent for the automation's list. Its message_history row must
+// record that list, because the complaint/bounce trigger acts only when list_id is set.
+func TestEmailQueueWorker_ProcessEntry_AutomationListIDInMessageHistory(t *testing.T) {
+	listOne := "list-1"
+	cases := []struct {
+		name   string
+		listID string
+		want   *string
+	}{
+		{name: "automation with a list", listID: "list-1", want: &listOne},
+		{name: "automation without a list", listID: "", want: nil},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+			mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+			mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+			mockLogger := pkgmocks.NewMockLogger(ctrl)
+			mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+			workspace := &domain.Workspace{
+				ID:       "workspace-1",
+				Settings: domain.WorkspaceSettings{SecretKey: "test-secret"},
+				Integrations: []domain.Integration{{
+					ID: "integration-1",
+					EmailProvider: domain.EmailProvider{
+						Kind:               domain.EmailProviderKindSMTP,
+						RateLimitPerMinute: 100,
+					},
+				}},
+			}
+			entry := &domain.EmailQueueEntry{
+				ID:            "entry-1",
+				Status:        domain.EmailQueueStatusPending,
+				SourceType:    domain.EmailQueueSourceAutomation,
+				SourceID:      "auto-1",
+				IntegrationID: "integration-1",
+				ProviderKind:  domain.EmailProviderKindSMTP,
+				ContactEmail:  "test@example.com",
+				MessageID:     "msg-1",
+				TemplateID:    "template-1",
+				Payload: domain.EmailQueuePayload{
+					FromAddress:        "sender@example.com",
+					FromName:           "Sender",
+					Subject:            "Test Subject",
+					HTMLContent:        "<p>Hello</p>",
+					RateLimitPerMinute: 100,
+					ListID:             tc.listID,
+				},
+				MaxAttempts: 3,
+			}
+
+			mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), "workspace-1", "entry-1").Return(nil)
+			mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
+			mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), "workspace-1", gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, wid, secretKey string, msg *domain.MessageHistory) error {
+					if assert.NotNil(t, msg.AutomationID) {
+						assert.Equal(t, "auto-1", *msg.AutomationID)
+					}
+					assert.Nil(t, msg.BroadcastID)
+					assert.Equal(t, tc.want, msg.ListID)
+					return nil
+				})
+			mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), "workspace-1", "entry-1").Return(nil)
+
+			worker := NewEmailQueueWorker(mockQueueRepo, mockWorkspaceRepo, mockEmailService,
+				mockMessageHistoryRepo, DefaultWorkerConfig(), mockLogger)
+			worker.ctx = context.Background()
+			worker.processEntry(workspace, entry)
+		})
+	}
+}
+
 func TestEmailQueueWorker_ProcessEntry_SMTPMessageIDForReplyMatching(t *testing.T) {
 	cases := []struct {
 		name         string
