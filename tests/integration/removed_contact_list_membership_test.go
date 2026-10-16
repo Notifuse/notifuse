@@ -30,9 +30,11 @@ import (
 // TestRemovedContactListMembership checks, through the public API on a fresh workspace,
 // that a contact removed from a list (contactLists.removeContact, or an automation's
 // Remove from List node) is no longer a member of it anywhere: broadcasts, segments,
-// automation trigger conditions and filter nodes, webhooks, the notification center, the
-// API's contact_lists and Liquid's contact.contact_lists. It also checks that adding them
-// back makes them a member again, which needs the re-add to write a timeline event.
+// automation trigger conditions and filter nodes, webhooks, the API's contact_lists and
+// Liquid's contact.contact_lists. It also checks that adding them back makes them a member
+// again, which needs the re-add to write a timeline event. The notification center already
+// hid removed rows before this fix; its subtest keeps that pinned end to end now that the
+// contact it reads no longer carries them.
 func TestRemovedContactListMembership(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -548,7 +550,10 @@ func TestRemovedContactListMembership(t *testing.T) {
 
 	// --- 7. notification center ------------------------------------------------------
 
-	t.Run("the notification center doesn't show lists the contact was removed from", func(t *testing.T) {
+	// visibleContactLists dropped removed rows before this fix, so this passes without it.
+	// It stays as an end-to-end guard: fetchContact now leaves those rows out itself, and
+	// the page must still show only the lists the contact is on.
+	t.Run("the notification center still hides lists the contact was removed from", func(t *testing.T) {
 		template, err := factory.CreateTemplate(workspace.ID)
 		require.NoError(t, err)
 		broadcast, err := factory.CreateBroadcast(workspace.ID,
