@@ -239,7 +239,8 @@ func membershipResult(contactList *domain.ContactList, listName string) *domain.
 // The resulting status is the part a caller cannot predict: a list in double
 // opt-in lands an unauthenticated subscriber on 'pending', a contact who had
 // unsubscribed is forced back through double opt-in whatever the list's setting,
-// and a bounced or complained address is refused outright. A caller told only
+// and a bounced or complained address is refused outright, both even once the
+// contact was removed from the list. A caller told only
 // that the request succeeded cannot tell any of those apart from a contact who is
 // now reachable.
 //
@@ -350,13 +351,21 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 			return nil, fmt.Errorf("list is not public")
 		}
 
-		// Check existing subscription status to prevent overwriting
-		existingCL, err := s.contactListRepo.GetContactListByIDs(ctx, workspace.ID, payload.Contact.Email, listID)
+		// Check existing subscription status to prevent overwriting. A contact removed from
+		// the list is read too: the removal ends their membership, not the opt-out, bounce or
+		// complaint on their row, which the guards below must still see.
+		existingCL, err := s.contactListRepo.GetContactListIncludingRemoved(ctx, workspace.ID, payload.Contact.Email, listID)
 		if err != nil {
 			if _, ok := err.(*domain.ErrContactListNotFound); !ok {
 				return nil, fmt.Errorf("failed to check existing subscription: %w", err)
 			}
 			// Not found — proceed as new subscription
+		}
+		// Removed while active or pending: not on the list, and nothing on the row to keep,
+		// so this is a new subscription
+		if existingCL != nil && existingCL.DeletedAt != nil &&
+			(existingCL.Status == domain.ContactListStatusActive || existingCL.Status == domain.ContactListStatusPending) {
+			existingCL = nil
 		}
 
 		// The workspace decides who is on a private list. A link's signature lets its contact

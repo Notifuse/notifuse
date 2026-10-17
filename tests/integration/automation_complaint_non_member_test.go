@@ -1,8 +1,10 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -293,6 +295,83 @@ func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 		require.NotNil(t, ca.ExitReason)
 		assert.Equal(t, string(domain.ContactListStatusUnsubscribed), *ca.ExitReason, "the next email is skipped, not sent")
 		assert.Equal(t, 1, deliveredCountTo(t, email), "only the first email was delivered")
+	})
+
+	// The subscribe flow read the row through GetContactListByIDs, which hides a removed
+	// contact's row, so anyone could submit the address of a contact removed after a
+	// complaint on the public form and have a confirmation email sent to it.
+	t.Run("contact removed from a double opt-in list after a complaint: refused as a member is, with no confirmation email", func(t *testing.T) {
+		subject := "confirm-" + uuid.New().String()[:8]
+		confirmation, err := factory.CreateTemplate(workspace.ID, testutil.WithTemplateSubject(subject))
+		require.NoError(t, err)
+		doiList, err := factory.CreateList(workspace.ID, testutil.WithListPublic(true), testutil.WithListDoubleOptin(true),
+			func(l *domain.List) {
+				l.DoubleOptInTemplate = &domain.TemplateReference{ID: confirmation.ID, Version: confirmation.Version}
+			})
+		require.NoError(t, err)
+
+		complained := newContact(t, "removed-complained-form", false)
+		_, err = factory.CreateContactList(workspace.ID,
+			testutil.WithContactListEmail(complained),
+			testutil.WithContactListListID(doiList.ID),
+			testutil.WithContactListStatus(domain.ContactListStatusComplained))
+		require.NoError(t, err)
+		post(t, "/api/contactLists.removeContact", map[string]interface{}{
+			"workspace_id": workspace.ID, "email": complained, "list_id": doiList.ID,
+		})
+		// A contact with no row on the list, who does get the confirmation email
+		control := newContact(t, "form-control", false)
+
+		submitForm := func(t *testing.T, email string) {
+			t.Helper()
+			body, err := json.Marshal(map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"contact":      map[string]interface{}{"email": email},
+				"list_ids":     []string{doiList.ID},
+			})
+			require.NoError(t, err)
+			resp, err := (&http.Client{Timeout: 10 * time.Second}).Post(
+				suite.ServerManager.GetURL()+"/subscribe", "application/json", bytes.NewReader(body))
+			require.NoError(t, err)
+			raw, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			require.Equal(t, http.StatusOK, resp.StatusCode, "/subscribe: %s", raw)
+		}
+		submitForm(t, complained)
+		submitForm(t, control)
+
+		// The form sends the confirmation before it answers, so once the control's email is
+		// in, one sent to the complained address before it would be too
+		_, err = waitForEmailAndGetMessage(t, control, 20*time.Second)
+		require.NoError(t, err, "the form sends the confirmation email to a new subscriber")
+		assert.Zero(t, deliveredCountTo(t, complained), "no confirmation email to an address that complained")
+
+		var status string
+		var deletedAt sql.NullTime
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT status, deleted_at FROM contact_lists WHERE email = $1 AND list_id = $2`,
+			complained, doiList.ID).Scan(&status, &deletedAt))
+		assert.Equal(t, string(domain.ContactListStatusComplained), status)
+		assert.True(t, deletedAt.Valid, "the contact stays removed")
+
+		// The API reports the refusal, as it does for a member who complained
+		resp, err := client.Post("/api/lists.subscribe", map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"contact":      map[string]interface{}{"email": complained},
+			"list_ids":     []string{doiList.ID},
+		})
+		require.NoError(t, err)
+		raw, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, "lists.subscribe: %s", raw)
+		var subscribed struct {
+			ContactLists []struct {
+				Status string `json:"status"`
+			} `json:"contact_lists"`
+		}
+		require.NoError(t, json.Unmarshal(raw, &subscribed))
+		require.Len(t, subscribed.ContactLists, 1)
+		assert.Equal(t, string(domain.ContactListStatusComplained), subscribed.ContactLists[0].Status)
 	})
 
 	t.Run("contact erased after delivery: a complaint stores nothing", func(t *testing.T) {
