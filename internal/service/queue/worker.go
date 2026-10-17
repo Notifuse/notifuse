@@ -581,11 +581,13 @@ func (w *EmailQueueWorker) upsertMessageHistory(
 	// Set source (broadcast or automation)
 	if entry.SourceType == domain.EmailQueueSourceBroadcast {
 		message.BroadcastID = &entry.SourceID
-		if entry.Payload.ListID != "" {
-			message.ListID = &entry.Payload.ListID
-		}
 	} else if entry.SourceType == domain.EmailQueueSourceAutomation {
 		message.AutomationID = &entry.SourceID
+	}
+	// The list the email was sent for. The complaint/bounce trigger on message_history
+	// records the contact's status on this list, and only when it is set.
+	if entry.Payload.ListID != "" {
+		message.ListID = &entry.Payload.ListID
 	}
 
 	// Record the recipient-visible Message-ID for ALL automation sends on providers
