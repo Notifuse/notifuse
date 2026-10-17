@@ -649,8 +649,9 @@ func (s *ListService) unsubscribeFromList(ctx context.Context, workspaceID, emai
 	}
 
 	// Nothing updated: either the row is bounced or complained and was kept, or the
-	// contact has no row on the list. A row in any other status was committed by a
-	// subscribe after the update ran, and takes the opt-out.
+	// contact has no row on the list. A row in any other status was written after the
+	// update ran, by a subscribe or an import or by clearing its bounce, and takes the
+	// opt-out.
 	row, err := s.contactListRepo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
 	if err == nil {
 		if row.Status == domain.ContactListStatusBounced || row.Status == domain.ContactListStatusComplained {

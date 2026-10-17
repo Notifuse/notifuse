@@ -2017,16 +2017,44 @@ func TestListService_UnsubscribeFromLists_RowStates(t *testing.T) {
 	// is recorded on that row rather than lost.
 	t.Run("row committed after the update: the opt-out is recorded on it", func(t *testing.T) {
 		f := setup(t)
+		payloadWithMessageID := *payload
+		payloadWithMessageID.MessageID = "msg-row-committed-meanwhile"
+
 		gomock.InOrder(
 			f.contactListRepo.EXPECT().MarkContactListUnsubscribed(gomock.Any(), workspaceID, email, listID).Return(false, nil),
 			f.contactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, listID).
 				Return(&domain.ContactList{Email: email, ListID: listID, Status: domain.ContactListStatusActive}, nil),
 			f.contactListRepo.EXPECT().MarkContactListUnsubscribed(gomock.Any(), workspaceID, email, listID).Return(true, nil),
 		)
-		// No AddContactToList expectation: gomock fails the test if it is called
+		// No AddContactToList expectation: gomock fails the test if it is called. The
+		// message is marked only because the second update reports the row it wrote.
+		f.messageHistoryRepo.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).
+			Do(func(_ context.Context, _ string, updates []domain.MessageEventUpdate) {
+				require.Len(t, updates, 1)
+				assert.Equal(t, "msg-row-committed-meanwhile", updates[0].ID)
+			}).Return(nil)
+
+		err := f.service.UnsubscribeFromLists(ctx, &payloadWithMessageID, false)
+		assert.NoError(t, err)
+	})
+
+	t.Run("error - the update of a row committed after the first one fails", func(t *testing.T) {
+		f := setup(t)
+		gomock.InOrder(
+			f.contactListRepo.EXPECT().MarkContactListUnsubscribed(gomock.Any(), workspaceID, email, listID).Return(false, nil),
+			f.contactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, listID).
+				Return(&domain.ContactList{Email: email, ListID: listID, Status: domain.ContactListStatusActive}, nil),
+			f.contactListRepo.EXPECT().MarkContactListUnsubscribed(gomock.Any(), workspaceID, email, listID).
+				Return(false, errors.New("connection refused")),
+		)
+		f.logger.EXPECT().WithField("email", email).Return(f.logger)
+		f.logger.EXPECT().WithField("list_id", listID).Return(f.logger)
+		f.logger.EXPECT().Error(gomock.Any())
 
 		err := f.service.UnsubscribeFromLists(ctx, payload, false)
-		assert.NoError(t, err)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to unsubscribe from list")
+		assert.Contains(t, err.Error(), "connection refused")
 	})
 
 	t.Run("error - the update fails", func(t *testing.T) {
