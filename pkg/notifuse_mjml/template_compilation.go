@@ -4,11 +4,13 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"html"
 	"net"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/preslavrachev/gomjml/mjml"
@@ -115,8 +117,13 @@ func preprocessMjmlForXML(mjmlString string) string {
 	// <mj-button href='…?q="exact"'>, raw or as an entity, would close the
 	// output attribute too. It gets the same &amp;quot;. Its &apos; becomes
 	// &#39;, which gomjml leaves alone.
+	//
+	// A hexadecimal reference written with an upper-case X, valid HTML, fails
+	// the whole compile when it sits in an MJML element's attribute, such as an
+	// mj-button's href: the XML parser only reads &#x. It is lower-cased.
 	processed = replaceQuotedValues(processed, urlAttrRegexp, func(value string, quote byte) string {
 		value = doubleQuoteEntityRegexp.ReplaceAllString(value, "&amp;quot;")
+		value = upperCaseHexReferenceRegexp.ReplaceAllString(value, "&#x$1;")
 		if quote == '\'' {
 			value = singleQuotedURLAttrForGomjml.Replace(value)
 		}
@@ -954,8 +961,8 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 // decodeHTMLEntitiesInURLAttributes decodes the HTML entities &amp;, &lt;, &gt;
 // and, in a double-quoted value, &#39; (in a single-quoted one, &quot;), in
 // href, src and action attributes, to ensure clickable links work correctly.
-// The other spellings of a quote are left as they are; TrackLinks decodes them
-// in the hrefs it rewrites.
+// The other numeric references, and the other spellings of a quote, are left
+// as they are; TrackLinks decodes them in the hrefs it rewrites.
 // The MJML-to-HTML compiler doesn't always decode these entities properly in attributes,
 // which breaks URLs with query parameters (e.g., ?action=confirm&email=... becomes &amp;email=...)
 func decodeHTMLEntitiesInURLAttributes(html string) string {
@@ -992,6 +999,10 @@ var urlAttrRegexp = regexp.MustCompile(`(?i)(?:href|src|action)\s*=\s*(?:"([^"]*
 // its XML parser refuses (&#X22;).
 var doubleQuoteEntityRegexp = regexp.MustCompile(`&(?:quot|#0*34|#[xX]0*22);`)
 
+// upperCaseHexReferenceRegexp matches a hexadecimal character reference written
+// &#X…;, which gomjml's XML parser refuses; group 1 is its digits.
+var upperCaseHexReferenceRegexp = regexp.MustCompile(`&#X([0-9a-fA-F]+);`)
+
 var singleQuotedURLAttrForGomjml = strings.NewReplacer(`"`, "&amp;quot;", "&apos;", "&#39;")
 
 var (
@@ -1021,30 +1032,64 @@ func replaceQuotedValues(s string, re *regexp.Regexp, replace func(value string,
 	return b.String()
 }
 
-// hrefQuoteEntityRegexp matches a reference to " or ' in every form an
-// encoder writes it: named, decimal with any leading zeros (PHP's
-// htmlspecialchars and WordPress write &#039;) and hexadecimal. Left encoded,
-// the # of a numeric reference reads as the start of the URL's fragment.
-var hrefQuoteEntityRegexp = regexp.MustCompile(`&(?:quot|apos|#0*3[49]|#[xX]0*2[27]);`)
+// hrefCharacterReferenceRegexp matches the character references an href may
+// carry: named, with their semicolon, and numeric, decimal or hexadecimal, with
+// or without it. Encoders write them in URLs: PHP's htmlspecialchars writes
+// &#039;, and WordPress writes & as &#038;. Left encoded, the # of a numeric
+// reference reads as the start of the URL's fragment.
+var hrefCharacterReferenceRegexp = regexp.MustCompile(`&[A-Za-z][A-Za-z0-9]*;|&#(?:[0-9]+|[xX][0-9a-fA-F]+);?`)
 
-// decodeHrefQuoteEntities turns the quote entities an href may carry back into
-// the characters of the URL they stand for. Only quotes:
-// decodeHTMLEntitiesInURLAttributes already decoded &amp;, &lt; and &gt;, and
-// decoding again would corrupt the destination a tracked link encrypts when the
-// URL really contains "&amp;". Other numeric references, such as &#38;, are
-// left as they are, as they always were.
-func decodeHrefQuoteEntities(value string) string {
-	return hrefQuoteEntityRegexp.ReplaceAllStringFunc(value, func(entity string) string {
-		if entity == "&quot;" || strings.HasSuffix(entity, "34;") || strings.HasSuffix(entity, "22;") {
-			return `"`
+// decodeHrefCharacterReferences turns the character references an href may
+// carry back into the characters of the URL they stand for, as a browser reads
+// them in an attribute: an invalid code point becomes U+FFFD, and most of 128
+// to 159 are read as Windows-1252. Two kinds are left as written:
+//   - &amp;, &lt; and &gt;: decodeHTMLEntitiesInURLAttributes already decoded
+//     them once, and decoding again would corrupt the destination a tracked
+//     link encrypts when the URL really contains "&amp;". Any other reference
+//     written after an &amp;, such as &amp;#39;, is read twice: a URL has no
+//     use for it as text.
+//   - A name without its semicolon: in "?a=1&reg_id=5", reg_id is a query key.
+func decodeHrefCharacterReferences(value string) string {
+	return hrefCharacterReferenceRegexp.ReplaceAllStringFunc(value, func(reference string) string {
+		if reference[1] != '#' {
+			switch reference {
+			case "&amp;", "&lt;", "&gt;":
+				return reference
+			case "&nLt;": // the two names html.UnescapeString lacks
+				return "\u226A\u20D2"
+			case "&nGt;":
+				return "\u226B\u20D2"
+			}
+			// html.UnescapeString reads a name it doesn't know as a known one
+			// followed by text (&notit; as ¬it;), which a browser doesn't do in
+			// an attribute. A known name stands for one or two characters.
+			if decoded := html.UnescapeString(reference); utf8.RuneCountInString(decoded) <= 2 {
+				return decoded
+			}
+			return reference
 		}
-		return "'"
+
+		// html.UnescapeString wraps a value too large for a rune around, where a
+		// browser reads U+FFFD. Past these lengths the value is over the last
+		// code point, whatever its digits.
+		digits, maxDigits := strings.TrimSuffix(reference[2:], ";"), 7
+		if digits[0] == 'x' || digits[0] == 'X' {
+			digits, maxDigits = digits[1:], 6
+		}
+		if len(strings.TrimLeft(digits, "0")) > maxDigits {
+			return "\uFFFD"
+		}
+		// It also refuses a one-digit reference without its semicolon (&#9).
+		return html.UnescapeString(strings.TrimSuffix(reference, ";") + ";")
 	})
 }
 
-// escapeHrefForQuote escapes the one character that cannot appear raw inside
-// an attribute delimited by quote.
+// escapeHrefForQuote escapes a URL for an attribute delimited by quote: the
+// quote, which would end the attribute, and &, so that a browser reads no
+// character reference into the URL. Written raw, the & of "?a=1&not_before=5"
+// reads as "?a=1¬_before=5".
 func escapeHrefForQuote(value string, quote byte) string {
+	value = strings.ReplaceAll(value, "&", "&amp;")
 	if quote == '\'' {
 		return strings.ReplaceAll(value, "'", "&#39;")
 	}
@@ -1091,10 +1136,10 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 	// only its head (a dead link) or the UTM and nf_id parameters were spliced
 	// into its middle.
 	updatedHTML = replaceQuotedValues(htmlString, anchorTagRegexp, func(rawValue string, quote byte) string {
-		// The URL the recipient lands on: the attribute value with its quote
-		// entities read back as the characters they stand for. It is escaped
-		// again for the delimiting quote when written back below.
-		originalURL := decodeHrefQuoteEntities(rawValue)
+		// The URL the recipient lands on: the attribute value with its
+		// character references read back as the characters they stand for. It
+		// is escaped again when written back below.
+		originalURL := decodeHrefCharacterReferences(rawValue)
 
 		// Skip tracking for empty hrefs and special protocol links (mailto,
 		// tel, sms, etc.). These should not be wrapped in a redirect as it

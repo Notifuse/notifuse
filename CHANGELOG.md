@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: A Custom Endpoint URL saved with a trailing slash no longer adds `//` to tracking, unsubscribe and notification center links.
 
-- **Improvement**: Links whose URL contains an apostrophe or a double quote, such as `…/blog/what's-new` or a link personalised with a name like O'Brien, now take recipients where they point, with or without click tracking. A code-mode link whose URL holds `&quot;` no longer fails to compile.
+- **Improvement**: Links whose URL contains an apostrophe or a double quote, such as `…/blog/what's-new` or a link personalised with a name like O'Brien, now take recipients where they point, with or without click tracking, as do links that encode a character, such as the `&#038;` WordPress writes for `&`. A code-mode link whose URL holds `&quot;` or `&#X27;` no longer fails to compile.
 
 - **Fix**: Unsubscribing from an automation email no longer fails for contacts who weren't on the automation's list. The unsubscribe link and the one-click unsubscribe answered with an error, and the contact kept receiving the automation's emails; the opt-out is now recorded on the list. Unsubscribing from an email sent before the contact or its list was deleted now succeeds too, without storing the address again.
 

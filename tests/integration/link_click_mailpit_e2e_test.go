@@ -278,19 +278,22 @@ func TestLinkClickMailpitE2E(t *testing.T) {
 	})
 }
 
-// TestLinkClickMailpitE2E_URLsWithQuotes sends real broadcasts whose links
-// contain a quote (B2, B17) and uses the delivered email the way a recipient
-// does: the hrefs are read with an HTML parser, requested unchanged, and the
+// TestLinkClickMailpitE2E_URLsWithQuotesOrCharacterReferences sends real
+// broadcasts whose links contain a quote (B2, B17), or write a character as a
+// numeric reference, and uses the delivered email the way a recipient does:
+// the hrefs are read with an HTML parser, requested unchanged, and the
 // redirect must point at the authored URL plus the default utm_content.
 //
 // It covers code-mode mj-text and mj-button links, a visual editor text block
 // (whose rich text editor saves " as &quot;, next to a ' stored as &#39; as
 // Liquid's escape filter and API-supplied HTML write it), visual editor
-// buttons, and links personalised with {{ contact.last_name }} = O'Brien.
-// Before the fix the rewriter ended every URL at its first quote of either
-// kind, so these links answered 400 "Invalid token" or redirected to a
-// truncated URL.
-func TestLinkClickMailpitE2E_URLsWithQuotes(t *testing.T) {
+// buttons, links personalised with {{ contact.last_name }} = O'Brien, and
+// links holding the &#038; WordPress writes for &. Before the fix the
+// rewriter ended every URL at its first quote of either kind, so these links
+// answered 400 "Invalid token" or redirected to a truncated URL; the # of
+// &#038; started the URL's fragment, and an mj-button href holding &#X27;
+// failed the whole compile.
+func TestLinkClickMailpitE2E_URLsWithQuotesOrCharacterReferences(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
 	defer testutil.CleanupTestEnvironment()
@@ -355,14 +358,17 @@ func TestLinkClickMailpitE2E_URLsWithQuotes(t *testing.T) {
 			<a href="https://example.com/blog/what's-new">code text apostrophe</a>
 			<a href='https://example.com/search?q="exact"'>code text quote</a>
 			<a href="https://example.com/hello?name={{ contact.last_name }}">code text liquid</a>
+			<a href="https://example.com/?s=code&#038;post_type=post">code text numeric reference</a>
 		</mj-text>
 		<mj-button href="https://example.com/blog/what's-new?from=button">code button apostrophe</mj-button>
+		<mj-button href="https://example.com/blog/what&#X27;s-new?from=button-reference">code button numeric reference</mj-button>
 	</mj-column></mj-section></mj-body></mjml>`
 
 	visualTree := visualTreeWithLinks(t,
 		`<p><a href="https://example.com/blog/what&#39;s-new?from=visual">visual text apostrophe</a> `+
 			`<a href="https://example.com/search?q=&quot;visual&quot;">visual text quote</a> `+
-			`<a href="https://example.com/hello?from=visual&amp;name={{ contact.last_name }}">visual text liquid</a></p>`,
+			`<a href="https://example.com/hello?from=visual&amp;name={{ contact.last_name }}">visual text liquid</a> `+
+			`<a href="https://example.com/?s=visual&#038;post_type=post">visual text numeric reference</a></p>`,
 		map[string]string{
 			"visual button apostrophe": "https://example.com/blog/what's-new?from=visual-button",
 			"visual button quote":      `https://example.com/search?q="visual-button"`,
@@ -378,10 +384,12 @@ func TestLinkClickMailpitE2E_URLsWithQuotes(t *testing.T) {
 			name:     "code mode",
 			template: testutil.WithCodeModeTemplate(codeModeMJML),
 			authored: map[string]string{
-				"code text apostrophe":   "https://example.com/blog/what's-new",
-				"code text quote":        `https://example.com/search?q="exact"`,
-				"code text liquid":       "https://example.com/hello?name=O'Brien",
-				"code button apostrophe": "https://example.com/blog/what's-new?from=button",
+				"code text apostrophe":          "https://example.com/blog/what's-new",
+				"code text quote":               `https://example.com/search?q="exact"`,
+				"code text liquid":              "https://example.com/hello?name=O'Brien",
+				"code button apostrophe":        "https://example.com/blog/what's-new?from=button",
+				"code text numeric reference":   "https://example.com/?s=code&post_type=post",
+				"code button numeric reference": "https://example.com/blog/what's-new?from=button-reference",
 			},
 		},
 		{
@@ -391,11 +399,12 @@ func TestLinkClickMailpitE2E_URLsWithQuotes(t *testing.T) {
 				tpl.Email.VisualEditorTree = visualTree
 			},
 			authored: map[string]string{
-				"visual text apostrophe":   "https://example.com/blog/what's-new?from=visual",
-				"visual text quote":        `https://example.com/search?q="visual"`,
-				"visual text liquid":       "https://example.com/hello?from=visual&name=O'Brien",
-				"visual button apostrophe": "https://example.com/blog/what's-new?from=visual-button",
-				"visual button quote":      `https://example.com/search?q="visual-button"`,
+				"visual text apostrophe":        "https://example.com/blog/what's-new?from=visual",
+				"visual text quote":             `https://example.com/search?q="visual"`,
+				"visual text liquid":            "https://example.com/hello?from=visual&name=O'Brien",
+				"visual button apostrophe":      "https://example.com/blog/what's-new?from=visual-button",
+				"visual button quote":           `https://example.com/search?q="visual-button"`,
+				"visual text numeric reference": "https://example.com/?s=visual&post_type=post",
 			},
 		},
 	}
