@@ -284,7 +284,8 @@ func TestLinkClickMailpitE2E(t *testing.T) {
 // redirect must point at the authored URL plus the default utm_content.
 //
 // It covers code-mode mj-text and mj-button links, a visual editor text block
-// (whose rich text editor saves ' as &#39; and " as &quot;), visual editor
+// (whose rich text editor saves " as &quot;, next to a ' stored as &#39; as
+// Liquid's escape filter and API-supplied HTML write it), visual editor
 // buttons, and links personalised with {{ contact.last_name }} = O'Brien.
 // Before the fix the rewriter ended every URL at its first quote of either
 // kind, so these links answered 400 "Invalid token" or redirected to a
@@ -449,9 +450,9 @@ func TestLinkClickMailpitE2E_URLsWithQuotes(t *testing.T) {
 				hrefs[text] = href
 			}
 
-			// Clicks within 7 seconds of the send are treated as bot prefetch;
-			// wait them out so the redirect is exercised as a person's click.
-			time.Sleep(8 * time.Second)
+			// No wait for the bot window: a click inside it is redirected the
+			// same way and only goes unrecorded, and this test checks the
+			// redirect.
 
 			for text, authored := range send.authored {
 				req, err := http.NewRequest(http.MethodGet, hrefs[text], nil)
