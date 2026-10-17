@@ -1428,6 +1428,38 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
+	t.Run("a later page of a list and segments bounds contact_segments by the cursor too", func(t *testing.T) {
+		mockDB, mock, cleanup := setupMockDB(t)
+		defer cleanup()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(mockDB, nil)
+
+		repo := NewContactRepository(workspaceRepo)
+
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id JOIN contact_segments cs ON c\.email = cs\.email WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND c\.email > \$2 AND cl\.email > \$3 AND cl\.status <> \$4 AND cl\.status <> \$5 AND \(l\.is_double_optin = \$6 OR cl\.status <> \$7\) AND cs\.segment_id IN \(\$8\) AND cs\.email > \$9 ORDER BY c\.email ASC LIMIT 10`).
+			WithArgs("list1",
+				"previous@example.com",
+				"previous@example.com",
+				domain.ContactListStatusBounced,
+				domain.ContactListStatusComplained,
+				false,
+				domain.ContactListStatusPending,
+				"segment1",
+				"previous@example.com").
+			WillReturnRows(sqlmock.NewRows([]string{"email"}))
+
+		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123",
+			domain.AudienceSettings{List: "list1", Segments: []string{"segment1"}}, 10, "previous@example.com")
+
+		require.NoError(t, err)
+		assert.Empty(t, contacts)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
 	t.Run("should get contacts without list filtering", func(t *testing.T) {
 		// Create a mock workspace database
 		mockDB, mock, cleanup := setupMockDB(t)

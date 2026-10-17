@@ -1453,8 +1453,8 @@ func (r *contactRepository) GetContactsForBroadcast(
 			OrderBy("c.email ASC") // Sort by email only (unique, deterministic)
 
 		// Cursor-based pagination: fetch contacts with email > afterEmail. The bound is
-		// repeated on cl.email, equal to c.email through the join, so the planner starts
-		// its contact_lists scan at the cursor. With c.email alone it read every row
+		// repeated on cl.email, equal to c.email through the join, so the planner can
+		// start its contact_lists scan at the cursor. With c.email alone it read every row
 		// before the cursor on each page, and a broadcast to a large list slowed down as
 		// it went.
 		if afterEmail != "" {
@@ -1499,6 +1499,10 @@ func (r *contactRepository) GetContactsForBroadcast(
 			// Join with contact_segments table in addition to the existing list joins
 			query = query.Join("contact_segments cs ON c.email = cs.email")
 			query = query.Where(sq.Eq{"cs.segment_id": audience.Segments})
+			// The cursor bounds contact_segments too, for the reason given for cl.email
+			if afterEmail != "" {
+				query = query.Where(sq.Gt{"cs.email": afterEmail})
+			}
 		} else {
 			// No list filtering, so we're filtering by segments only
 			// We need to select from contacts and join with contact_segments
