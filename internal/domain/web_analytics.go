@@ -478,8 +478,9 @@ func decodeGoalValue(raw json.RawMessage) (float64, error) {
 		if text == "" {
 			return 0, nil
 		}
-		// Only JSON number syntax: strconv.ParseFloat would also take "NaN",
-		// "Inf" and hex floats, and a NaN passes every range check.
+		// json.Unmarshal below rejects "NaN", "Infinity" and hex itself, but
+		// reads the literal null as no value without an error, so a "null"
+		// string would be stored as a value of 0.
 		if !startsLikeJSONNumber(text) {
 			return 0, fmt.Errorf("goal value %q is not a number", s)
 		}

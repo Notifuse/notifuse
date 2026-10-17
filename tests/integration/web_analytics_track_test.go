@@ -311,6 +311,62 @@ func TestWebAnalyticsTrackEndToEnd(t *testing.T) {
 		assert.Equal(t, false, body["success"])
 	})
 
+	// Bundles cached before the SDK coerced goal fields, and send queues saved
+	// by them, still send these types; a beat carrying them used to fail as a
+	// whole.
+	t.Run("wrongly typed goals are coerced, and an undecodable one is dropped alone", func(t *testing.T) {
+		typedSession := waUUIDv7At(now, 0x07)
+		goal := func(name string, extra map[string]interface{}) map[string]interface{} {
+			g := map[string]interface{}{"type": "goal", "name": name, "path": "/checkout",
+				"page_number": 1, "timestamp": now.UnixMilli()}
+			for k, v := range extra {
+				g[k] = v
+			}
+			return g
+		}
+		beat := waBeat{
+			workspaceID: workspace.ID, sessionID: typedSession, seq: 1,
+			actions: []map[string]interface{}{
+				waPageview("/checkout", 1, 1000, 10, now),
+				goal("purchase", map[string]interface{}{"value": "49.90",
+					"properties": map[string]interface{}{"order_id": 12345, "first_order": true, "coupon": nil}}),
+				goal("lead", map[string]interface{}{"properties": map[string]interface{}{"items": map[string]string{"sku": "A1"}}}),
+				goal("signup", map[string]interface{}{"value": 1}),
+			},
+		}
+		resp := waPostBeat(t, baseURL, beat.body(t, now), nil)
+		body := waCloseAndDecode(t, resp)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, true, body["success"])
+		buffer.FlushAll(context.Background())
+
+		pageviews, _, _, _, _ := waScanSession(t, wsDB, typedSession)
+		assert.Equal(t, 1, pageviews, "the rest of the beat is kept")
+
+		rows, err := wsDB.Query(`SELECT goal_name, goal_value, COALESCE(properties::text, '') FROM web_goals WHERE session_id = $1 ORDER BY goal_name`, typedSession)
+		require.NoError(t, err)
+		defer func() { _ = rows.Close() }()
+		type storedGoal struct {
+			value      float64
+			properties string
+		}
+		stored := map[string]storedGoal{}
+		for rows.Next() {
+			var name string
+			var g storedGoal
+			require.NoError(t, rows.Scan(&name, &g.value, &g.properties))
+			stored[name] = g
+		}
+		require.NoError(t, rows.Err())
+
+		require.Contains(t, stored, "purchase")
+		assert.InDelta(t, 49.9, stored["purchase"].value, 1e-4, "a numeric string value is stored as the number")
+		assert.JSONEq(t, `{"order_id":"12345","first_order":"true","coupon":""}`, stored["purchase"].properties)
+		require.Contains(t, stored, "signup")
+		assert.InDelta(t, 1.0, stored["signup"].value, 1e-6)
+		assert.NotContains(t, stored, "lead", "a nested property has no flat form, so that goal alone is dropped")
+	})
+
 	t.Run("bot user agents are absorbed", func(t *testing.T) {
 		botSession := waUUIDv7At(now, 0x06)
 		beat := waBeat{

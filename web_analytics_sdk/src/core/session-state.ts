@@ -33,6 +33,12 @@ export interface SessionStateConfig {
   created_at: number;
   /** Identifies this tab as a distinct writer under the shared session id. */
   tab_id?: number;
+  /**
+   * Log the action cap and storage warnings. They say nothing the site's
+   * developer can act on, and would repeat on every beat in the console of
+   * every visitor whose storage is full, so they are for debugging only.
+   */
+  debug?: boolean;
 }
 
 export class SessionState {
@@ -45,12 +51,14 @@ export class SessionState {
   private readonly workspaceId: string;
   private readonly sessionId: string;
   private readonly createdAt: number;
+  private readonly debug: boolean;
 
   constructor(config: SessionStateConfig) {
     this.workspaceId = config.workspace_id;
     this.sessionId = config.session_id;
     this.createdAt = config.created_at;
     this.tabId = config.tab_id ?? 0;
+    this.debug = config.debug ?? false;
   }
 
   // === Focus Time Callback ===
@@ -91,9 +99,11 @@ export class SessionState {
   addPageview(path: string): void {
     // Check MAX_ACTIONS limit (pageviews now consume action slots)
     if (this.actions.length >= MAX_ACTIONS) {
-      console.warn(
-        `[SessionState] MAX_ACTIONS (${MAX_ACTIONS}) reached, pageview not added`,
-      );
+      if (this.debug) {
+        console.warn(
+          `[SessionState] MAX_ACTIONS (${MAX_ACTIONS}) reached, pageview not added`,
+        );
+      }
       return;
     }
 
@@ -122,9 +132,11 @@ export class SessionState {
 
     // Warn if approaching limit
     if (this.actions.length >= MAX_ACTIONS * 0.9) {
-      console.warn(
-        `[SessionState] Approaching MAX_ACTIONS limit (${this.actions.length}/${MAX_ACTIONS})`,
-      );
+      if (this.debug) {
+        console.warn(
+          `[SessionState] Approaching MAX_ACTIONS limit (${this.actions.length}/${MAX_ACTIONS})`,
+        );
+      }
     }
   }
 
@@ -153,9 +165,11 @@ export class SessionState {
   ): boolean {
     // Check MAX_ACTIONS limit
     if (this.actions.length >= MAX_ACTIONS) {
-      console.warn(
-        `[SessionState] MAX_ACTIONS (${MAX_ACTIONS}) reached, goal not added`,
-      );
+      if (this.debug) {
+        console.warn(
+          `[SessionState] MAX_ACTIONS (${MAX_ACTIONS}) reached, goal not added`,
+        );
+      }
       return false;
     }
 
@@ -186,9 +200,11 @@ export class SessionState {
 
     // Warn if approaching limit
     if (this.actions.length >= MAX_ACTIONS * 0.9) {
-      console.warn(
-        `[SessionState] Approaching MAX_ACTIONS limit (${this.actions.length}/${MAX_ACTIONS})`,
-      );
+      if (this.debug) {
+        console.warn(
+          `[SessionState] Approaching MAX_ACTIONS limit (${this.actions.length}/${MAX_ACTIONS})`,
+        );
+      }
     }
 
     return true;
@@ -297,7 +313,7 @@ export class SessionState {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (e) {
       // sessionStorage may be unavailable (private mode, quota exceeded)
-      console.warn('[SessionState] Failed to persist:', e);
+      if (this.debug) console.warn('[SessionState] Failed to persist:', e);
     }
   }
 
@@ -323,7 +339,7 @@ export class SessionState {
       this.seq = typeof data.seq === 'number' ? data.seq : 0;
     } catch (e) {
       // Corrupted data, ignore
-      console.warn('[SessionState] Failed to restore:', e);
+      if (this.debug) console.warn('[SessionState] Failed to restore:', e);
       sessionStorage.removeItem(STORAGE_KEY);
     }
   }

@@ -88,6 +88,7 @@ func TestWebTrackPayloadDecodesWrongWireTypes(t *testing.T) {
 		{"NaN string value", `"value":"NaN"`},
 		{"Infinity string value", `"value":"Infinity"`},
 		{"hex string value", `"value":"0x10"`},
+		{"the string null as the value", `"value":"null"`},
 		{"boolean value", `"value":true`},
 		{"object value", `"value":{"amount":10}`},
 		{"nested object property", `"properties":{"items":{"sku":"A1"}}`},

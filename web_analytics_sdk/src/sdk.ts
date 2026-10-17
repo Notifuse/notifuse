@@ -29,7 +29,7 @@ import { DEFAULT_AD_CLICK_IDS } from './utils/utm';
 import { CrossDomainLinker, DEFAULT_CROSS_DOMAIN_PARAM } from './core/cross-domain';
 import { parseCustomDimensions } from './utils/custom-dimensions';
 import { monotonicNow } from './utils/clock';
-import { normalizeGoalProperties, normalizeGoalValue } from './utils/goal-data';
+import { checkGoalAction, normalizeGoalProperties, normalizeGoalValue } from './utils/goal-data';
 
 // Heartbeat constants
 const MIN_HEARTBEAT_INTERVAL = 5000; // 5 seconds minimum
@@ -285,13 +285,7 @@ export class NotifuseAnalyticsSDK {
     }
 
     // Initialize SessionState (V3)
-    const sessionStateConfig: SessionStateConfig = {
-      workspace_id: this.config.workspace_id,
-      session_id: session.id,
-      created_at: session.created_at,
-      tab_id: this.sessionManager.getTabId(),
-    };
-    this.sessionState = new SessionState(sessionStateConfig);
+    this.sessionState = this.createSessionState(session.id, session.created_at);
     this.sessionState.restore(); // Restore from sessionStorage if available
 
     // Wire up focus time getter for accurate page duration tracking
@@ -965,15 +959,31 @@ export class NotifuseAnalyticsSDK {
     await this.ensureInitialized();
     // Checked here, not before ensureInitialized: a call made before init should
     // still say the SDK is not configured, which is the more useful complaint.
-    if (!data || !VALID_GOAL_TYPES.includes(data.type as GoalType)) {
+    // Read once: a getter could pass the check and then record another type.
+    const type = data?.type;
+    if (!VALID_GOAL_TYPES.includes(type as GoalType)) {
       throw new Error(
         `trackGoal requires a type, one of: ${VALID_GOAL_TYPES.join(', ')}`,
       );
     }
     // Coerced before anything is recorded: a wrongly typed goal used to be
     // stored in the cumulative actions and resent on every beat.
-    const value = normalizeGoalValue(data.value);
-    const properties = normalizeGoalProperties(data.properties);
+    let action: string;
+    let value: number | undefined;
+    let properties: Record<string, string> | undefined;
+    try {
+      action = checkGoalAction(data.action);
+      value = normalizeGoalValue(data.value);
+      properties = normalizeGoalProperties(data.properties);
+    } catch (err) {
+      // Dropped with a warning, not rejected: the call resolved for such a
+      // goal before it was checked here, and a page that awaits trackGoal
+      // before redirecting must still redirect. What the page's own getter or
+      // toJSON throws need not be an Error.
+      const reason = err instanceof Error ? err.message : 'reading the goal data threw';
+      console.warn(`[NotifuseAnalytics] ${reason}; the goal was not recorded`);
+      return;
+    }
     if (!this.sessionState) return;
 
     // Rotate first if the window lapsed, so the goal lands on the live session
@@ -981,7 +991,7 @@ export class NotifuseAnalyticsSDK {
     await this.ensureFreshSession();
 
     // Add goal to SessionState
-    this.sessionState.addGoal(data.action, data.type, value, properties);
+    this.sessionState.addGoal(action, type, value, properties);
 
     // Cancel any pending debounced send
     if (this.sendDebounceTimeout) {
@@ -1094,9 +1104,18 @@ export class NotifuseAnalyticsSDK {
     this.resumeHeartbeat();
   }
 
-  /**
-   * Reset session
-   */
+  /** The SessionState for a session, built the same way at init, rotation and reset. */
+  private createSessionState(sessionId: string, createdAt: number): SessionState {
+    const config: SessionStateConfig = {
+      workspace_id: this.config!.workspace_id,
+      session_id: sessionId,
+      created_at: createdAt,
+      tab_id: this.sessionManager!.getTabId(),
+      debug: this.config!.debug,
+    };
+    return new SessionState(config);
+  }
+
   /**
    * Roll onto a fresh session id while keeping identity and custom dimensions.
    *
@@ -1113,12 +1132,7 @@ export class NotifuseAnalyticsSDK {
     await this.sendPayload();
 
     const session = this.sessionManager.getOrCreateSession();
-    this.sessionState = new SessionState({
-      workspace_id: this.config.workspace_id,
-      session_id: session.id,
-      created_at: session.created_at,
-      tab_id: this.sessionManager.getTabId(),
-    });
+    this.sessionState = this.createSessionState(session.id, session.created_at);
     this.sessionState.setFocusTimeGetter(() => this.getPageActiveMs());
     this.sessionState.addPageview(path || window.location.pathname);
 
@@ -1142,6 +1156,9 @@ export class NotifuseAnalyticsSDK {
     return false;
   }
 
+  /**
+   * Reset session
+   */
   async reset(): Promise<void> {
     await this.ensureInitialized();
     if (!this.sessionManager || !this.config) return;
@@ -1151,13 +1168,7 @@ export class NotifuseAnalyticsSDK {
     const session = this.sessionManager.getOrCreateSession();
 
     // Reinitialize SessionState with new session
-    const sessionStateConfig: SessionStateConfig = {
-      workspace_id: this.config.workspace_id,
-      session_id: session.id,
-      created_at: session.created_at,
-      tab_id: this.sessionManager.getTabId(),
-    };
-    this.sessionState = new SessionState(sessionStateConfig);
+    this.sessionState = this.createSessionState(session.id, session.created_at);
 
     // Wire up focus time getter for accurate page duration tracking
     this.sessionState.setFocusTimeGetter(() => this.getPageActiveMs());
