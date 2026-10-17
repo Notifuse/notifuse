@@ -54,7 +54,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Removing a contact who is already removed no longer records `list.removed` on their timeline again, which re-enrolled them in "every time" automations triggered by it.
 
-- **Change**: The database schema moves to v42. Workspace databases get the corrected `contact_lists` trigger functions, and their stored segment queries and live automation triggers gain the removed-member filter in place; contacts removed from a list that a segment uses are queued for re-evaluation. The system database is untouched.
+- **Change**: The database schema moves to v42. Workspace databases get the corrected `contact_lists` trigger functions and the `message_history` function that records a complaint or bounce on the list, and their stored segment queries and live automation triggers gain the removed-member filter in place; contacts removed from a list that a segment uses are queued for re-evaluation. The system database is untouched.
 
 ## [41.0] - 2026-09-17
 
