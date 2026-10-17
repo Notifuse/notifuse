@@ -349,9 +349,11 @@ func (r *MessageHistoryRepository) GetBySMTPMessageID(ctx context.Context, works
 	return message, nil
 }
 
-// WasSentForList reports whether a message was sent to email for listID. A broadcast send
-// records its list on the message; an automation send records only the automation, so
-// its list is read from there.
+// WasSentForList reports whether a message was sent to email for listID. Broadcast and
+// automation sends record their list on the message, and that list decides, so an
+// automation later moved to another list keeps its earlier emails tied to the old one.
+// Automation messages stored before automations recorded their list have a NULL
+// list_id; for those only, the automation's current list is read instead.
 func (r *MessageHistoryRepository) WasSentForList(ctx context.Context, workspaceID, messageID, email, listID string) (bool, error) {
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -360,8 +362,8 @@ func (r *MessageHistoryRepository) WasSentForList(ctx context.Context, workspace
 
 	query := `SELECT EXISTS (
 		SELECT 1 FROM message_history mh
-		LEFT JOIN automations a ON a.id = mh.automation_id
-		WHERE mh.id = $1 AND mh.contact_email = $2 AND (mh.list_id = $3 OR a.list_id = $3)
+		LEFT JOIN automations a ON a.id = mh.automation_id AND mh.list_id IS NULL
+		WHERE mh.id = $1 AND mh.contact_email = $2 AND COALESCE(mh.list_id, a.list_id) = $3
 	)`
 
 	var sent bool

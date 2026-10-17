@@ -407,6 +407,10 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 			HTMLContent:         htmlContent,
 			RateLimitPerMinute:  emailProvider.RateLimitPerMinute,
 			ContactAutomationID: contactAutomationID,
+			// The list this email is sent for, as broadcasts set it. The worker stores
+			// it as message_history.list_id, which the complaint/bounce trigger needs
+			// to record the contact's status on the list.
+			ListID: listID,
 			EmailOptions: domain.EmailOptions{
 				ReplyTo: emailContent.ReplyTo,
 			},
