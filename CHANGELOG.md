@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Unsubscribing from an automation email now works for contacts who aren't on the automation's list, and for emails sent before the contact or its list was deleted.
 
-- **Fix**: Spam complaints on automation emails are now recorded on the automation's list when the contact is on it, so the list's broadcasts and the marketing and blog emails of its automations skip that contact, and `list.complained` fires for the list. Automation emails now carry their list in the message log and in `email.*` webhook events.
+- **Fix**: Spam complaints on automation emails are now recorded on the automation's list when the contact is on it, so the list's broadcasts and the marketing and blog emails of its automations skip that contact, and `list.complained` fires for the list. This covers automation emails queued from this version on, which carry their list in the message log and in `email.*` webhook events.
 
 - **Fix**: Broadcasts created through the API without `exclude_unsubscribed` now leave out unsubscribed contacts, as in the console. Bounced and complained contacts are always left out, and unsubscribing keeps an existing bounce or complaint. Broadcasts created before the upgrade keep their saved setting.
 
