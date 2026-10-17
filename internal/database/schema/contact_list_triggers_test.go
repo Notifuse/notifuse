@@ -115,3 +115,22 @@ func TestTrackContactListChangesFunction_ReRemovalRecordsNothing(t *testing.T) {
 	assert.Less(t, removalGuard, removal, "list.removed is recorded only under the removal guard")
 	assert.Less(t, removal, transition)
 }
+
+// A removed contact is not on the list, so a write to a row that is removed before and
+// after records nothing: the status a bounce, complaint or unsubscribe leaves on it for
+// the email gate is no change of membership, and a list.bounced, list.complained or
+// list.unsubscribed row would enrol the contact in automations triggered by it.
+func TestTrackContactListChangesFunction_RemovedRowRecordsNothing(t *testing.T) {
+	sql := normalizeIndent(TrackContactListChangesFunction())
+
+	const guard = "IF OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NOT NULL THEN\nRETURN NEW;\nEND IF;"
+	require.Equal(t, 1, strings.Count(sql, guard))
+
+	update := strings.Index(sql, "op := 'update';")
+	at := strings.Index(sql, guard)
+	removal := strings.Index(sql, "IF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN")
+	require.NotEqual(t, -1, update)
+	require.NotEqual(t, -1, removal)
+	assert.Less(t, update, at, "the guard is part of the update path")
+	assert.Less(t, at, removal, "it comes before every branch that records")
+}

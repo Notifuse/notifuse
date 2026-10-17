@@ -128,5 +128,5 @@ func TestUpdateContactListsOnStatusChangeFunction_NeverRestoresARemovedRow(t *te
 	assert.NotContains(t, sql, "deleted_at =", "neither the updates nor the inserts' conflict updates write deleted_at")
 	assert.NotContains(t, sql, "SET deleted_at")
 	assert.NotContains(t, sql, "EXCLUDED.deleted_at")
-	assert.NotContains(t, sql, "cl.deleted_at", "the update reaches a removed row too")
+	assert.NotContains(t, sql, "AND deleted_at IS NULL", "the update reaches a removed row too")
 }

@@ -678,8 +678,9 @@ type ContactRepository interface {
 	// MarkEmailsAsBounced flips contact_lists.status to 'bounced' on every row
 	// each given email has, except where the row is already 'bounced' or
 	// 'complained'. The row of a contact removed from a list takes the bounce
-	// too and stays removed. The track_contact_list_changes trigger emits the
-	// corresponding list.bounced timeline rows.
+	// too and stays removed. The track_contact_list_changes trigger emits
+	// list.bounced for a row still on the list; a removed row's bounce records
+	// nothing.
 	MarkEmailsAsBounced(ctx context.Context, workspaceID string, emails []string, at time.Time) error
 }
 

@@ -1861,7 +1861,8 @@ func (r *contactRepository) GetBatchForSegment(ctx context.Context, workspaceID 
 // 'bounced'). A row whose contact was removed from the list takes the bounce
 // too and stays removed: a removal doesn't end a bounce, and the automation
 // email gate reads a removed row's status. The track_contact_list_changes
-// trigger emits the matching list.bounced timeline rows for transitions.
+// trigger emits list.bounced for a row still on the list; a removed row's
+// bounce records nothing.
 func (r *contactRepository) MarkEmailsAsBounced(ctx context.Context, workspaceID string, emails []string, at time.Time) error {
 	if len(emails) == 0 {
 		return nil

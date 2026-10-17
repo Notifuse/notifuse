@@ -239,6 +239,8 @@ func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 		require.NotNil(t, row)
 		assert.Equal(t, domain.ContactListStatusComplained, row.status)
 		assert.True(t, row.removed, "a complaint doesn't make a removed contact a member again")
+		assert.Zero(t, timelineKindCount(t, db, email, "list.complained", list.ID),
+			"a removed contact is not on the list, so the status on their row is no list event")
 		expectSkipped(t, email, domain.ContactListStatusComplained)
 	})
 
@@ -285,6 +287,8 @@ func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 
 		assert.Equal(t, &listRow{status: domain.ContactListStatusBounced, removed: true}, rowOf(t, email),
 			"the removed row takes the bounce and stays removed")
+		assert.Zero(t, timelineKindCount(t, db, email, "list.bounced", list.ID),
+			"a removed contact is not on the list, so the status on their row is no list event")
 		ca := sendAgain(t, email)
 		require.NotNil(t, ca.ExitReason)
 		assert.Equal(t, string(domain.ContactListStatusBounced), *ca.ExitReason, "the automation's email is skipped, not sent")
@@ -333,6 +337,8 @@ func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 
 		assert.Equal(t, &listRow{status: domain.ContactListStatusUnsubscribed, removed: true}, rowOf(t, email),
 			"the opt-out is recorded, and the contact is not put back on the list")
+		assert.Zero(t, timelineKindCount(t, db, email, "list.unsubscribed", list.ID),
+			"a removed contact is not on the list, so the status on their row is no list event")
 		assert.False(t, inBroadcastAudience(t, email),
 			"a broadcast that includes unsubscribed contacts doesn't email them")
 		ca := sendAgain(t, email)
@@ -579,7 +585,9 @@ func TestStatusChangeTriggerRecordsTheListRow(t *testing.T) {
 		assert.Nil(t, rowOf(t, email, other.ID))
 	})
 
-	t.Run("existing rows are updated as before: an active member, a removed contact", func(t *testing.T) {
+	// A removed contact is not on the list: their row keeps the status for the email gate,
+	// and a consumer that mirrors the list is not told of it.
+	t.Run("existing rows take the status: a member's change is reported, a removed contact's is not", func(t *testing.T) {
 		member := newContact(t)
 		addRow(t, member, list.ID, domain.ContactListStatusActive)
 		removed := newContact(t)
@@ -595,6 +603,10 @@ func TestStatusChangeTriggerRecordsTheListRow(t *testing.T) {
 		deliveries := b24Deliveries(t, db, subscriptionID, member)
 		require.Len(t, deliveries, 1)
 		assert.Equal(t, "active", deliveries[0].payload["previous_status"])
+		assert.Equal(t, 1, timelineKindCount(t, db, member, "list.complained", list.ID))
+
+		assert.Empty(t, b24Deliveries(t, db, subscriptionID, removed), "no webhook event for a removed contact")
+		assert.Zero(t, timelineKindCount(t, db, removed, "list.bounced", list.ID), "nor a timeline row")
 	})
 
 	t.Run("a bounce never replaces a complaint, a complaint replaces a bounce", func(t *testing.T) {
