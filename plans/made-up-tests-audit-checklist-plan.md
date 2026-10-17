@@ -18,7 +18,7 @@ Verification levels used below:
 
 1. Write the "Test first" test. It must use the real artifact (delivered email, real handler, real SDK output), and it must fail for the reported reason.
 2. Fix, see it pass, run the layer tests (see "Running the tests").
-3. CHANGELOG: the top section is the unreleased 42.0 (`- WIP`; B24 bumped `VERSION` to 42.0 with its v42 migration), so don't bump `VERSION` again. A schema change goes into the unreleased v42. A defect in released behaviour gets a short **Fix** bullet; a rough edge that worked as designed is an **Improvement**. Keep entries to 2-4 sentences.
+3. CHANGELOG: the top section is the unreleased 42.0 (`- WIP`; B24 bumped `VERSION` to 42.0 with its v42 migration), so don't bump `VERSION` again. A schema change goes into the unreleased v42. A defect in released behaviour gets a short **Fix** bullet, or an **Improvement** when it only shows in an edge case; a rough edge that worked as designed is an **Improvement**. Keep entries to 2-4 sentences.
 4. Tick the box and note the commit.
 
 ## High
