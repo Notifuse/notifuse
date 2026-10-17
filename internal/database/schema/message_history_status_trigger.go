@@ -28,7 +28,9 @@ package schema
 //     the update began, takes the status through the insert's ON CONFLICT DO UPDATE,
 //     under the same guard as the update; DO NOTHING would drop the complaint. Today the
 //     contact_segment_queue row that both writes queue for the address keeps them from
-//     interleaving that way, but nothing here should depend on that side effect.
+//     interleaving that way, but nothing here should depend on that side effect. A
+//     subscribe or import still uncommitted when the insert runs deadlocks with it, as an
+//     update of an existing row already could: Postgres aborts one of the two.
 //   - A complaint replaces any status; a bounce never replaces a complaint.
 func UpdateContactListsOnStatusChangeFunction() string {
 	return `CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()

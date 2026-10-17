@@ -112,8 +112,9 @@ func TestUpdateContactListsOnStatusChangeFunction_RecordsARowForAContactWithNone
 // A row a subscribe or an import commits after the update began is invisible to the
 // update, and DO NOTHING on the insert's conflict would drop the complaint or bounce, so
 // the next automation email would go out. The segment queue happens to serialize those
-// writes today; the inserts must not rely on it.
-func TestUpdateContactListsOnStatusChangeFunction_ARowCommittedConcurrentlyTakesTheStatus(t *testing.T) {
+// writes today, so this pins the SQL the inserts use rather than a behaviour a test can
+// reach; the inserts must not rely on that side effect.
+func TestUpdateContactListsOnStatusChangeFunction_InsertsApplyTheStatusOnConflict(t *testing.T) {
 	sql := UpdateContactListsOnStatusChangeFunction()
 	assert.NotContains(t, sql, "DO NOTHING")
 	assert.Equal(t, 2, strings.Count(sql, "ON CONFLICT (email, list_id) DO UPDATE"),
