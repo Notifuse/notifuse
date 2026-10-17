@@ -10,9 +10,11 @@ import (
 
 // statusWrite is what a new complaint or hard bounce writes on the list stored on the
 // message: the contact's existing row is updated, and a contact with no row gets one.
-// An already-complained row is not updated either, so NOT FOUND holds for it too; the
-// insert then hits the primary key and DO NOTHING keeps the row as it is.
-func statusWrite(status, at, updateGuard string) string {
+// NOT FOUND also holds for a row whose status the update keeps, and for a row the update
+// didn't see because a subscribe or an import committed it after the update began. The
+// insert then hits the primary key, and its DO UPDATE applies the status under the same
+// guard as the update: the kept row stays as it is, and the new one takes the status.
+func statusWrite(status, at, updateGuard, conflictGuard string) string {
 	return `UPDATE contact_lists
 SET status = '` + status + `',
 updated_at = NEW.` + at + `
@@ -24,7 +26,9 @@ INSERT INTO contact_lists (email, list_id, status, created_at, updated_at)
 SELECT NEW.contact_email, NEW.list_id, '` + status + `', NEW.` + at + `, NEW.` + at + `
 WHERE EXISTS (SELECT 1 FROM contacts c WHERE c.email = NEW.contact_email)
 AND EXISTS (SELECT 1 FROM lists l WHERE l.id = NEW.list_id AND l.deleted_at IS NULL)
-ON CONFLICT (email, list_id) DO NOTHING;
+ON CONFLICT (email, list_id) DO UPDATE
+SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at
+WHERE ` + conflictGuard + `;
 END IF;`
 }
 
@@ -84,16 +88,17 @@ func TestUpdateContactListsOnStatusChangeFunction_RecordsARowForAContactWithNone
 	body := normalizeIndent(UpdateContactListsOnStatusChangeFunction())
 
 	cases := []struct {
-		name, status, at, updateGuard string
+		name, status, at, updateGuard, conflictGuard string
 	}{
 		// The worst status: it replaces any other
-		{"complaint", "complained", "complained_at", "status != 'complained'"},
+		{"complaint", "complained", "complained_at", "status != 'complained'", "contact_lists.status <> 'complained'"},
 		// It never replaces a complaint
-		{"hard bounce", "bounced", "bounced_at", "status NOT IN ('complained', 'bounced')"},
+		{"hard bounce", "bounced", "bounced_at", "status NOT IN ('complained', 'bounced')",
+			"contact_lists.status NOT IN ('complained', 'bounced')"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, 1, strings.Count(body, statusWrite(tc.status, tc.at, tc.updateGuard)))
+			assert.Equal(t, 1, strings.Count(body, statusWrite(tc.status, tc.at, tc.updateGuard, tc.conflictGuard)))
 		})
 	}
 
@@ -104,11 +109,23 @@ func TestUpdateContactListsOnStatusChangeFunction_RecordsARowForAContactWithNone
 	assert.Equal(t, 2, strings.Count(body, "AND EXISTS (SELECT 1 FROM lists l WHERE l.id = NEW.list_id AND l.deleted_at IS NULL)"))
 }
 
+// A row a subscribe or an import commits after the update began is invisible to the
+// update, and DO NOTHING on the insert's conflict would drop the complaint or bounce, so
+// the next automation email would go out. The segment queue happens to serialize those
+// writes today; the inserts must not rely on it.
+func TestUpdateContactListsOnStatusChangeFunction_ARowCommittedConcurrentlyTakesTheStatus(t *testing.T) {
+	sql := UpdateContactListsOnStatusChangeFunction()
+	assert.NotContains(t, sql, "DO NOTHING")
+	assert.Equal(t, 2, strings.Count(sql, "ON CONFLICT (email, list_id) DO UPDATE"),
+		"both inserts apply the status to a row they conflict with")
+}
+
 // A removed contact's row takes the complaint or bounce and stays removed: a removal is
 // not membership, and the automation email gate reads the status of a removed row.
 func TestUpdateContactListsOnStatusChangeFunction_NeverRestoresARemovedRow(t *testing.T) {
 	sql := UpdateContactListsOnStatusChangeFunction()
-	assert.NotContains(t, sql, "deleted_at = NULL")
+	assert.NotContains(t, sql, "deleted_at =", "neither the updates nor the inserts' conflict updates write deleted_at")
 	assert.NotContains(t, sql, "SET deleted_at")
+	assert.NotContains(t, sql, "EXCLUDED.deleted_at")
 	assert.NotContains(t, sql, "cl.deleted_at", "the update reaches a removed row too")
 }

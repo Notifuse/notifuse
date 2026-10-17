@@ -24,6 +24,11 @@ package schema
 //     next email would go out. Nothing is inserted for an address that is no longer a
 //     contact (an erased contact's messages are kept with the address redacted) or on a
 //     deleted list.
+//   - A row the update didn't see, because a subscribe or an import committed it after
+//     the update began, takes the status through the insert's ON CONFLICT DO UPDATE,
+//     under the same guard as the update; DO NOTHING would drop the complaint. Today the
+//     contact_segment_queue row that both writes queue for the address keeps them from
+//     interleaving that way, but nothing here should depend on that side effect.
 //   - A complaint replaces any status; a bounce never replaces a complaint.
 func UpdateContactListsOnStatusChangeFunction() string {
 	return `CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()
@@ -51,7 +56,9 @@ func UpdateContactListsOnStatusChangeFunction() string {
 					SELECT NEW.contact_email, NEW.list_id, 'complained', NEW.complained_at, NEW.complained_at
 					WHERE EXISTS (SELECT 1 FROM contacts c WHERE c.email = NEW.contact_email)
 					AND EXISTS (SELECT 1 FROM lists l WHERE l.id = NEW.list_id AND l.deleted_at IS NULL)
-					ON CONFLICT (email, list_id) DO NOTHING;
+					ON CONFLICT (email, list_id) DO UPDATE
+					SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at
+					WHERE contact_lists.status <> 'complained';
 				END IF;
 			END IF;
 
@@ -68,7 +75,9 @@ func UpdateContactListsOnStatusChangeFunction() string {
 					SELECT NEW.contact_email, NEW.list_id, 'bounced', NEW.bounced_at, NEW.bounced_at
 					WHERE EXISTS (SELECT 1 FROM contacts c WHERE c.email = NEW.contact_email)
 					AND EXISTS (SELECT 1 FROM lists l WHERE l.id = NEW.list_id AND l.deleted_at IS NULL)
-					ON CONFLICT (email, list_id) DO NOTHING;
+					ON CONFLICT (email, list_id) DO UPDATE
+					SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at
+					WHERE contact_lists.status NOT IN ('complained', 'bounced');
 				END IF;
 			END IF;
 
