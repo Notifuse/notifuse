@@ -142,7 +142,7 @@ func TestAutomationComplaintRecordedOnList(t *testing.T) {
 		assert.Equal(t, 1, deliveredCountTo(t, email))
 	})
 
-	t.Run("WasSentForList reads the stored list", func(t *testing.T) {
+	t.Run("WasSentForList ties the email to its address and its list", func(t *testing.T) {
 		email, messageID := deliver(t)
 		other, err := factory.CreateList(workspace.ID)
 		require.NoError(t, err)
