@@ -247,6 +247,29 @@ func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 		expectSkipped(t, email, domain.ContactListStatusBounced)
 	})
 
+	// A hard bounce marks the address bounced on every list the contact has a row on,
+	// whatever email it came from. MarkEmailsAsBounced skipped removed rows, which the
+	// automation email gate reads, so the list's automation kept emailing the address.
+	t.Run("contact removed from the list: a hard bounce on another email marks the removed row bounced too", func(t *testing.T) {
+		email := newContact(t, "removed-other-bounce", true)
+		// Stored the way a transactional email is, with no list, so the bounce reaches the
+		// list rows through the address alone
+		messageID := uuid.New().String()
+		_, err := db.ExecContext(bg, `INSERT INTO message_history (id, contact_email, template_id,
+				template_version, channel, message_data, sent_at)
+			VALUES ($1, $2, 'tpl-other', 1, 'email', '{}'::jsonb, NOW())`, messageID, email)
+		require.NoError(t, err)
+
+		hardBounce(t, messageID, email)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusBounced, removed: true}, rowOf(t, email),
+			"the removed row takes the bounce and stays removed")
+		ca := sendAgain(t, email)
+		require.NotNil(t, ca.ExitReason)
+		assert.Equal(t, string(domain.ContactListStatusBounced), *ca.ExitReason, "the automation's email is skipped, not sent")
+		assert.Zero(t, deliveredCountTo(t, email))
+	})
+
 	// Mail clients often send the one-click unsubscribe right after a spam report, and a
 	// workspace may remove a contact who complained. Neither may erase the complaint.
 	t.Run("member who complained, then was removed: still skipped, and a one-click unsubscribe keeps the complaint", func(t *testing.T) {

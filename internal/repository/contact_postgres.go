@@ -1856,10 +1856,12 @@ func (r *contactRepository) GetBatchForSegment(ctx context.Context, workspaceID 
 	return emails, nil
 }
 
-// MarkEmailsAsBounced flips contact_lists.status='bounced' for every list each
-// given email is on, except rows already in a terminal status ('complained' or
-// 'bounced') or soft-deleted. The track_contact_list_changes trigger emits the
-// matching list.bounced timeline rows for transitions.
+// MarkEmailsAsBounced flips contact_lists.status='bounced' on every row each
+// given email has, except rows already in a terminal status ('complained' or
+// 'bounced'). A row whose contact was removed from the list takes the bounce
+// too and stays removed: a removal doesn't end a bounce, and the automation
+// email gate reads a removed row's status. The track_contact_list_changes
+// trigger emits the matching list.bounced timeline rows for transitions.
 func (r *contactRepository) MarkEmailsAsBounced(ctx context.Context, workspaceID string, emails []string, at time.Time) error {
 	if len(emails) == 0 {
 		return nil
@@ -1875,8 +1877,7 @@ UPDATE contact_lists
    SET status = 'bounced',
        updated_at = $2
  WHERE email = ANY($1)
-   AND status NOT IN ('complained', 'bounced')
-   AND deleted_at IS NULL`
+   AND status NOT IN ('complained', 'bounced')`
 
 	if _, err := workspaceDB.ExecContext(ctx, query, pq.Array(emails), at); err != nil {
 		return fmt.Errorf("failed to mark emails as bounced: %w", err)
