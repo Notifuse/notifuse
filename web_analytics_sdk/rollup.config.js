@@ -64,7 +64,9 @@ export default [
       typescript({ tsconfig: './tsconfig.json' }),
       production && terser({
         compress: {
-          drop_console: production,
+          // Debug logging only: warnings are meant for the site's developer,
+          // such as the one trackGoal logs when it skips a goal.
+          drop_console: production && ['log', 'info', 'debug'],
           drop_debugger: production,
         },
         // Keep /*! ... */ — this is what carries the licence notices required

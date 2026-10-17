@@ -19,6 +19,12 @@ export interface SessionStateConfig {
     created_at: number;
     /** Identifies this tab as a distinct writer under the shared session id. */
     tab_id?: number;
+    /**
+     * Log the action cap and storage warnings. They say nothing the site's
+     * developer can act on, and would repeat on every beat in the console of
+     * every visitor whose storage is full, so they are for debugging only.
+     */
+    debug?: boolean;
 }
 export declare class SessionState {
     private actions;
@@ -29,6 +35,7 @@ export declare class SessionState {
     private readonly workspaceId;
     private readonly sessionId;
     private readonly createdAt;
+    private readonly debug;
     constructor(config: SessionStateConfig);
     /**
      * Set the callback to get current page focus time from SDK's heartbeatState.

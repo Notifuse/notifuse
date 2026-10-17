@@ -7,6 +7,7 @@ import type { Session, UTMParams, CustomDimensions, InternalConfig, WebIdentity 
 import { Storage, TabStorage, STORAGE_KEYS } from '../storage/storage';
 import { generateTabId, generateUUIDv7 } from '../utils/uuid';
 import { parseUTMParams } from '../utils/utm';
+import { utf8Length } from '../utils/utf8';
 
 const SDK_VERSION = __SDK_VERSION__;
 const CLOCK_SKEW_TOLERANCE = 60; // seconds
@@ -20,31 +21,6 @@ const CLOCK_SKEW_TOLERANCE = 60; // seconds
 // sitting in the offline queue to still be replayed against the id it was
 // minted under. Deliberately not configurable: raising it re-opens the cliff.
 const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-
-/**
- * Length of a string in UTF-8 bytes.
- *
- * TextEncoder exists in every browser the SDK targets, but the SDK is dropped
- * into pages it does not control and globals do get stripped there, so a
- * missing one degrades to hand-counting rather than throwing a ReferenceError
- * on a call that used to work.
- */
-function utf8Length(value: string): number {
-  if (typeof TextEncoder !== 'undefined') {
-    return new TextEncoder().encode(value).length;
-  }
-  // for..of walks code points, so a surrogate pair arrives once as its combined
-  // code point and is counted as the single 4-byte character it encodes to.
-  let bytes = 0;
-  for (const char of value) {
-    const code = char.codePointAt(0)!;
-    if (code <= 0x7f) bytes += 1;
-    else if (code <= 0x7ff) bytes += 2;
-    else if (code <= 0xffff) bytes += 3;
-    else bytes += 4;
-  }
-  return bytes;
-}
 
 /**
  * Length of a string in Unicode code points.

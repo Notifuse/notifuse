@@ -45,6 +45,13 @@ describe('shipped bundle', () => {
     expect(code).not.toContain('_stm');
   });
 
+  // Minification drops debug logging, not the warnings meant for the site's
+  // developer.
+  it('keeps the warning trackGoal logs when it skips a goal, and drops debug logging', () => {
+    expect(code).toContain('the goal was not recorded');
+    expect(code).not.toContain('[NotifuseAnalytics] Initialized');
+  });
+
   it('namespaces browser storage and the cross-domain param under nf', () => {
     expect(code).toContain('nf_');
     expect(code).toContain('_nf');
