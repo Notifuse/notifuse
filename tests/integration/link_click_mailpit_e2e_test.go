@@ -17,6 +17,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/Notifuse/notifuse/tests/testutil"
 )
 
@@ -275,4 +276,245 @@ func TestLinkClickMailpitE2E(t *testing.T) {
 		assert.Equal(t, int64(1), result.LinkStats[1].TotalClicks)
 		assert.Equal(t, int64(1), result.LinkStats[1].UniqueClicks)
 	})
+}
+
+// TestLinkClickMailpitE2E_URLsWithQuotesOrCharacterReferences sends real
+// broadcasts whose links contain a quote (B2, B17), or write a character as a
+// numeric reference, and uses the delivered email the way a recipient does:
+// the hrefs are read with an HTML parser, requested unchanged, and the
+// redirect must point at the authored URL plus the default utm_content.
+//
+// It covers code-mode mj-text and mj-button links, a visual editor text block
+// (whose rich text editor saves " as &quot;, next to a ' stored as &#39; as
+// Liquid's escape filter and API-supplied HTML write it), visual editor
+// buttons, links personalised with {{ contact.last_name }} = O'Brien, and
+// links holding the &#038; WordPress writes for &. Before the fix the
+// rewriter ended every URL at its first quote of either kind, so these links
+// answered 400 "Invalid token" or redirected to a truncated URL; the # of
+// &#038; started the URL's fragment, and an mj-button href holding &#X27;
+// failed the whole compile.
+func TestLinkClickMailpitE2E_URLsWithQuotesOrCharacterReferences(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer func() { suite.Cleanup() }()
+
+	baseURL := suite.ServerManager.GetURL()
+	client := suite.APIClient
+	factory := suite.DataFactory
+
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	require.NoError(t, factory.AddUserToWorkspace(user.ID, workspace.ID, "owner"))
+	require.NoError(t, factory.EnableEmailTracking(workspace.ID))
+	// The harness runs with an empty API endpoint, which puts relative URLs in
+	// the email. Point the workspace endpoint at the live server so every
+	// delivered link is absolute and can be requested as delivered.
+	require.NoError(t, factory.SetWorkspaceCustomEndpointURL(workspace.ID, baseURL))
+
+	_, err = factory.SetupWorkspaceWithSMTPProvider(workspace.ID,
+		testutil.WithIntegrationEmailProvider(domain.EmailProvider{
+			Kind: domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{
+				domain.NewEmailSender("noreply@notifuse.test", "Link Quotes E2E"),
+			},
+			SMTP: &domain.SMTPSettings{
+				Host:   "localhost",
+				Port:   1025,
+				UseTLS: false,
+			},
+			RateLimitPerMinute: 2000,
+		}))
+	require.NoError(t, err)
+
+	workerCtx, cancelWorker := context.WithCancel(context.Background())
+	defer cancelWorker()
+	require.NoError(t, suite.ServerManager.StartBackgroundWorkers(workerCtx))
+	time.Sleep(100 * time.Millisecond)
+
+	require.NoError(t, client.Login(user.Email, "password"))
+	client.SetWorkspaceID(workspace.ID)
+
+	list, err := factory.CreateList(workspace.ID, testutil.WithListName("Link Quotes E2E List"))
+	require.NoError(t, err)
+
+	contactEmail := fmt.Sprintf("obrien-%s@example.com", uuid.New().String()[:8])
+	contact, err := factory.CreateContact(workspace.ID,
+		testutil.WithContactEmail(contactEmail),
+		testutil.WithContactName("Liam", "O'Brien"))
+	require.NoError(t, err)
+	_, err = factory.CreateContactList(workspace.ID,
+		testutil.WithContactListEmail(contact.Email),
+		testutil.WithContactListListID(list.ID),
+		testutil.WithContactListStatus(domain.ContactListStatusActive))
+	require.NoError(t, err)
+
+	codeModeMJML := `<mjml><mj-body><mj-section><mj-column>
+		<mj-text>
+			<a href="https://example.com/blog/what's-new">code text apostrophe</a>
+			<a href='https://example.com/search?q="exact"'>code text quote</a>
+			<a href="https://example.com/hello?name={{ contact.last_name }}">code text liquid</a>
+			<a href="https://example.com/?s=code&#038;post_type=post">code text numeric reference</a>
+		</mj-text>
+		<mj-button href="https://example.com/blog/what's-new?from=button">code button apostrophe</mj-button>
+		<mj-button href="https://example.com/blog/what&#X27;s-new?from=button-reference">code button numeric reference</mj-button>
+	</mj-column></mj-section></mj-body></mjml>`
+
+	visualTree := visualTreeWithLinks(t,
+		`<p><a href="https://example.com/blog/what&#39;s-new?from=visual">visual text apostrophe</a> `+
+			`<a href="https://example.com/search?q=&quot;visual&quot;">visual text quote</a> `+
+			`<a href="https://example.com/hello?from=visual&amp;name={{ contact.last_name }}">visual text liquid</a> `+
+			`<a href="https://example.com/?s=visual&#038;post_type=post">visual text numeric reference</a></p>`,
+		map[string]string{
+			"visual button apostrophe": "https://example.com/blog/what's-new?from=visual-button",
+			"visual button quote":      `https://example.com/search?q="visual-button"`,
+		})
+
+	sends := []struct {
+		name     string
+		template testutil.TemplateOption
+		// link text -> the URL its author wrote, as the recipient must land on it
+		authored map[string]string
+	}{
+		{
+			name:     "code mode",
+			template: testutil.WithCodeModeTemplate(codeModeMJML),
+			authored: map[string]string{
+				"code text apostrophe":          "https://example.com/blog/what's-new",
+				"code text quote":               `https://example.com/search?q="exact"`,
+				"code text liquid":              "https://example.com/hello?name=O'Brien",
+				"code button apostrophe":        "https://example.com/blog/what's-new?from=button",
+				"code text numeric reference":   "https://example.com/?s=code&post_type=post",
+				"code button numeric reference": "https://example.com/blog/what's-new?from=button-reference",
+			},
+		},
+		{
+			name: "visual editor",
+			template: func(tpl *domain.Template) {
+				tpl.Email.EditorMode = domain.EditorModeVisual
+				tpl.Email.VisualEditorTree = visualTree
+			},
+			authored: map[string]string{
+				"visual text apostrophe":        "https://example.com/blog/what's-new?from=visual",
+				"visual text quote":             `https://example.com/search?q="visual"`,
+				"visual text liquid":            "https://example.com/hello?from=visual&name=O'Brien",
+				"visual button apostrophe":      "https://example.com/blog/what's-new?from=visual-button",
+				"visual button quote":           `https://example.com/search?q="visual-button"`,
+				"visual text numeric reference": "https://example.com/?s=visual&post_type=post",
+			},
+		},
+	}
+
+	redirectClient := &http.Client{
+		Timeout: 10 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	for _, send := range sends {
+		t.Run(send.name, func(t *testing.T) {
+			require.NoError(t, testutil.ClearMailpitMessages(t))
+
+			template, err := factory.CreateTemplate(workspace.ID,
+				testutil.WithTemplateName("Link Quotes E2E "+send.name),
+				testutil.WithTemplateSubject(fmt.Sprintf("Link quotes %s %s", send.name, uuid.New().String()[:8])),
+				send.template)
+			require.NoError(t, err)
+
+			broadcast, err := factory.CreateBroadcast(workspace.ID,
+				testutil.WithBroadcastName("Link Quotes E2E "+send.name),
+				testutil.WithBroadcastTemplateID(template.ID),
+				testutil.WithBroadcastAudience(domain.AudienceSettings{
+					List:                list.ID,
+					ExcludeUnsubscribed: true,
+				}))
+			require.NoError(t, err)
+
+			scheduleResp, err := client.ScheduleBroadcast(map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"id":           broadcast.ID,
+				"send_now":     true,
+			})
+			require.NoError(t, err)
+			scheduleResp.Body.Close()
+
+			_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
+				[]string{"processed", "completed", "sent"}, 60*time.Second)
+			require.NoError(t, err)
+
+			email, err := waitForEmailByRecipientAddr(t, contactEmail, 30*time.Second)
+			require.NoError(t, err, "the broadcast email must arrive in Mailpit")
+
+			// Read every link as delivered before clicking any.
+			hrefs := map[string]string{}
+			for text := range send.authored {
+				href := deliveredLinkHref(t, email.HTML, text)
+				require.True(t, strings.HasPrefix(href, baseURL+"/r/"),
+					"%q must be delivered as a tracking redirect on this server, got %q", text, href)
+				hrefs[text] = href
+			}
+
+			// No wait for the bot window: a click inside it is redirected the
+			// same way and only goes unrecorded, and this test checks the
+			// redirect.
+
+			for text, authored := range send.authored {
+				req, err := http.NewRequest(http.MethodGet, hrefs[text], nil)
+				require.NoError(t, err, "delivered href %q of %q is not a usable URL", hrefs[text], text)
+				req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15")
+				resp, err := redirectClient.Do(req)
+				require.NoError(t, err)
+				_ = resp.Body.Close()
+
+				sep := "?"
+				if strings.Contains(authored, "?") {
+					sep = "&"
+				}
+				assert.Equal(t, http.StatusSeeOther, resp.StatusCode, "click on %q", text)
+				assert.Equal(t, authored+sep+"utm_content="+template.ID, resp.Header.Get("Location"),
+					"%q must redirect to its authored URL plus the default utm_content", text)
+			}
+		})
+	}
+}
+
+// visualTreeWithLinks builds a visual editor tree holding one text block with
+// the given rich-text content and one button per entry of buttons (link text
+// -> href), the shape the console saves.
+func visualTreeWithLinks(t *testing.T, textContent string, buttons map[string]string) notifuse_mjml.EmailBlock {
+	t.Helper()
+	children := []interface{}{map[string]interface{}{
+		"id":         "text-1",
+		"type":       "mj-text",
+		"content":    textContent,
+		"attributes": map[string]interface{}{},
+		"children":   []interface{}{},
+	}}
+	i := 0
+	for text, href := range buttons {
+		i++
+		children = append(children, map[string]interface{}{
+			"id":         fmt.Sprintf("button-%d", i),
+			"type":       "mj-button",
+			"content":    text,
+			"attributes": map[string]interface{}{"href": href},
+			"children":   []interface{}{},
+		})
+	}
+	wrap := func(id, kind string, child ...interface{}) map[string]interface{} {
+		return map[string]interface{}{"id": id, "type": kind, "attributes": map[string]interface{}{}, "children": child}
+	}
+	column := wrap("column-1", "mj-column", children...)
+	tree := wrap("mjml-1", "mjml", wrap("body-1", "mj-body", wrap("section-1", "mj-section", column)))
+
+	raw, err := json.Marshal(tree)
+	require.NoError(t, err)
+	block, err := notifuse_mjml.UnmarshalEmailBlock(raw)
+	require.NoError(t, err)
+	return block
 }

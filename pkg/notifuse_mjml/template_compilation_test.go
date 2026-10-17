@@ -12,6 +12,7 @@ import (
 	"github.com/preslavrachev/gomjml/mjml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/html"
 )
 
 func TestTrackLinks(t *testing.T) {
@@ -355,6 +356,576 @@ func TestTrackLinks_PreservesUTMInEncryptedToken(t *testing.T) {
 		if !strings.Contains(destinationURL, want) {
 			t.Errorf("expected destination URL %q to contain %q", destinationURL, want)
 		}
+	}
+}
+
+// anchorHrefs returns the href of every <a> in rendered, in document order and
+// decoded the way a mail client's HTML parser reads it.
+func anchorHrefs(t *testing.T, rendered string) []string {
+	t.Helper()
+	doc, err := html.Parse(strings.NewReader(rendered))
+	require.NoError(t, err)
+	var hrefs []string
+	var walk func(n *html.Node)
+	walk = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "a" {
+			for _, a := range n.Attr {
+				if a.Key == "href" {
+					hrefs = append(hrefs, a.Val)
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(doc)
+	return hrefs
+}
+
+// redirectDestination reads the one link of html, which must be a redirect
+// through https://track.example.com, and returns the destination its token
+// encrypts.
+func redirectDestination(t *testing.T, html string) string {
+	t.Helper()
+	hrefs := anchorHrefs(t, html)
+	require.Len(t, hrefs, 1)
+	const prefix = "https://track.example.com/r/"
+	require.True(t, strings.HasPrefix(hrefs[0], prefix), "not a redirect link: %q", hrefs[0])
+	plaintext, err := crypto.DecryptTrackingToken(strings.TrimPrefix(hrefs[0], prefix))
+	require.NoError(t, err, "href %q does not carry a valid token", hrefs[0])
+	parts := strings.SplitN(plaintext, "\n", 4)
+	require.Len(t, parts, 4)
+	return parts[3]
+}
+
+// TestTrackLinks_URLsWithQuotesOrCharacterReferences covers links whose URL
+// contains a quote (B2, B17), and links that write a character of their URL as
+// a character reference, such as the &#038; WordPress writes for & or &eacute;
+// for é. Each case compiles real MJML or a real visual editor tree through
+// CompileTemplate, so the HTML TrackLinks rewrites is the HTML gomjml actually
+// emits, then reads the delivered href back with an HTML parser. With tracking
+// off the href must be exactly the authored URL plus UTM and nf_id; with
+// tracking on it must be a /r/ redirect whose encrypted destination is that
+// same URL. Before the fix the URL ended at the first quote of either kind, so
+// "what's-new" became a dead /r/<token>'s-new link (tracking on) or
+// "what?utm_…'s-new" (tracking off), and a visual-editor "…?q=\"exact\"" lost
+// everything after "q=". The # of a numeric reference left encoded read as the
+// start of the fragment: "?s=foo&#038;post_type=bar" became
+// "?s=foo&&utm_…#038;post_type=bar", which loses post_type, and an mj-button
+// href holding &#X27; failed the whole compile.
+func TestTrackLinks_URLsWithQuotesOrCharacterReferences(t *testing.T) {
+	codeMode := func(body string) func() CompileTemplateRequest {
+		return func() CompileTemplateRequest {
+			src := `<mjml><mj-body><mj-section><mj-column>` + body + `</mj-column></mj-section></mj-body></mjml>`
+			return CompileTemplateRequest{MjmlSource: &src}
+		}
+	}
+	visualMode := func(block func() EmailBlock) func() CompileTemplateRequest {
+		return func() CompileTemplateRequest {
+			return CompileTemplateRequest{VisualEditorTree: editorTree(block())}
+		}
+	}
+
+	cases := []struct {
+		name     string
+		request  func() CompileTemplateRequest
+		authored string // the URL the recipient must land on, before UTM/nf_id
+	}{
+		{
+			name:     "code mode mj-text link with ' inside a double-quoted href",
+			request:  codeMode(`<mj-text><a href="https://example.com/blog/what's-new">Read</a></mj-text>`),
+			authored: "https://example.com/blog/what's-new",
+		},
+		{
+			name:     "code mode mj-button with ' inside a double-quoted href",
+			request:  codeMode(`<mj-button href="https://example.com/blog/what's-new">Read</mj-button>`),
+			authored: "https://example.com/blog/what's-new",
+		},
+		{
+			name:     `code mode mj-text link with " inside a single-quoted href`,
+			request:  codeMode(`<mj-text><a href='https://example.com/search?q="exact"'>Search</a></mj-text>`),
+			authored: `https://example.com/search?q="exact"`,
+		},
+		{
+			name:     `code mode mj-button with " inside a single-quoted href`,
+			request:  codeMode(`<mj-button href='https://example.com/search?q="exact"'>Search</mj-button>`),
+			authored: `https://example.com/search?q="exact"`,
+		},
+		{
+			name:     `code mode mj-text link with &quot; inside a double-quoted href`,
+			request:  codeMode(`<mj-text><a href="https://example.com/search?q=&quot;exact&quot;&amp;page=2">Search</a></mj-text>`),
+			authored: `https://example.com/search?q="exact"&page=2`,
+		},
+		{
+			// The numeric form Go's html.EscapeString writes: gomjml's XML
+			// parser decodes it like &quot; and writes the " back raw.
+			name:     `code mode mj-button with &#34; inside a double-quoted href`,
+			request:  codeMode(`<mj-button href="https://example.com/search?q=&#34;exact&#34;&amp;page=2">Search</mj-button>`),
+			authored: `https://example.com/search?q="exact"&page=2`,
+		},
+		{
+			// JSTL's escapeXml writes the double quote zero-padded.
+			name:     `code mode mj-button with &#034; inside a double-quoted href`,
+			request:  codeMode(`<mj-button href="https://example.com/search?q=&#034;exact&#034;">Search</mj-button>`),
+			authored: `https://example.com/search?q="exact"`,
+		},
+		{
+			name:     `code mode mj-button with &#x0022; inside a double-quoted href`,
+			request:  codeMode(`<mj-button href="https://example.com/search?q=&#x0022;exact&#x0022;">Search</mj-button>`),
+			authored: `https://example.com/search?q="exact"`,
+		},
+		{
+			name:     `code mode mj-button with &#X22; inside a double-quoted href`,
+			request:  codeMode(`<mj-button href="https://example.com/search?q=&#X22;exact&#X22;">Search</mj-button>`),
+			authored: `https://example.com/search?q="exact"`,
+		},
+		{
+			name:     `code mode mj-button with &#x22; inside a single-quoted href`,
+			request:  codeMode(`<mj-button href='https://example.com/search?q=&#x22;exact&#x22;'>Search</mj-button>`),
+			authored: `https://example.com/search?q="exact"`,
+		},
+		{
+			// PHP's htmlspecialchars, WordPress and JSTL write the apostrophe
+			// zero-padded; its # must not be read as the URL's fragment.
+			name:     "code mode mj-text link with &#039; inside a double-quoted href",
+			request:  codeMode(`<mj-text><a href="https://example.com/blog/what&#039;s-new">Read</a></mj-text>`),
+			authored: "https://example.com/blog/what's-new",
+		},
+		{
+			name:     "code mode mj-raw link with &#039; inside a double-quoted href",
+			request:  codeMode(`<mj-raw><a href="https://example.com/blog/what&#039;s-new">Read</a></mj-raw>`),
+			authored: "https://example.com/blog/what's-new",
+		},
+		{
+			name:     "code mode mj-text link with &#038;, as WordPress writes &",
+			request:  codeMode(`<mj-text><a href="https://example.com/?s=foo&#038;post_type=bar">Search</a></mj-text>`),
+			authored: "https://example.com/?s=foo&post_type=bar",
+		},
+		{
+			name:     "code mode mj-raw link with &#x3D;",
+			request:  codeMode(`<mj-raw><a href="https://example.com/search?s&#x3D;foo">Search</a></mj-raw>`),
+			authored: "https://example.com/search?s=foo",
+		},
+		{
+			name:     "code mode mj-text link with &eacute;",
+			request:  codeMode(`<mj-text><a href="https://example.com/caf&eacute;">Menu</a></mj-text>`),
+			authored: "https://example.com/café",
+		},
+		{
+			name:     "code mode mj-text link with &#X26;",
+			request:  codeMode(`<mj-text><a href="https://example.com/search?s=foo&#X26;page=2">Search</a></mj-text>`),
+			authored: "https://example.com/search?s=foo&page=2",
+		},
+		{
+			name:     "code mode mj-button with &#038;",
+			request:  codeMode(`<mj-button href="https://example.com/?s=foo&#038;post_type=bar">Search</mj-button>`),
+			authored: "https://example.com/?s=foo&post_type=bar",
+		},
+		{
+			name:     "code mode mj-button with &#X27; inside a double-quoted href",
+			request:  codeMode(`<mj-button href="https://example.com/blog/what&#X27;s-new">Read</mj-button>`),
+			authored: "https://example.com/blog/what's-new",
+		},
+		{
+			name:     "code mode mj-button with &#X27; inside a single-quoted href",
+			request:  codeMode(`<mj-button href='https://example.com/blog/what&#X27;s-new'>Read</mj-button>`),
+			authored: "https://example.com/blog/what's-new",
+		},
+		{
+			name: "code mode Liquid personalised link rendering O'Brien",
+			request: func() CompileTemplateRequest {
+				req := codeMode(`<mj-text><a href="https://example.com/hello?name={{ contact.last_name }}">Hi</a></mj-text>`)()
+				req.TemplateData = MapOfAny{"contact": MapOfAny{"last_name": "O'Brien"}}
+				return req
+			},
+			authored: "https://example.com/hello?name=O'Brien",
+		},
+		{
+			name: "visual editor text link whose ' is stored as &#39;, as Liquid's escape filter and API-supplied HTML write it",
+			request: visualMode(func() EmailBlock {
+				return editorText(`<p><a href="https://example.com/blog/what&#39;s-new">Read</a></p>`)
+			}),
+			authored: "https://example.com/blog/what's-new",
+		},
+		{
+			name: "visual editor text link with &#038;, as HTML copied from WordPress writes &",
+			request: visualMode(func() EmailBlock {
+				return editorText(`<p><a href="https://example.com/?s=foo&#038;post_type=bar">Search</a></p>`)
+			}),
+			authored: "https://example.com/?s=foo&post_type=bar",
+		},
+		{
+			name: `visual editor text link whose " the rich text editor saved as &quot;`,
+			request: visualMode(func() EmailBlock {
+				return editorText(`<p><a href="https://example.com/search?q=&quot;exact&quot;">Search</a></p>`)
+			}),
+			authored: `https://example.com/search?q="exact"`,
+		},
+		{
+			name:     "visual editor button with ' in its href",
+			request:  visualMode(func() EmailBlock { return editorButton("Read", "https://example.com/blog/what's-new") }),
+			authored: "https://example.com/blog/what's-new",
+		},
+		{
+			name:     `visual editor button with " in its href`,
+			request:  visualMode(func() EmailBlock { return editorButton("Search", `https://example.com/search?q="exact"`) }),
+			authored: `https://example.com/search?q="exact"`,
+		},
+		{
+			name: "visual editor button Liquid href rendering O'Brien",
+			request: func() CompileTemplateRequest {
+				req := visualMode(func() EmailBlock {
+					return editorButton("Hi", "https://example.com/hello?name={{ contact.last_name }}")
+				})()
+				req.TemplateData = MapOfAny{"contact": MapOfAny{"last_name": "O'Brien"}}
+				return req
+			},
+			authored: "https://example.com/hello?name=O'Brien",
+		},
+	}
+
+	withQueryParams := func(u, params string) string {
+		if strings.Contains(u, "?") {
+			return u + "&" + params
+		}
+		return u + "?" + params
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name+" / tracking off", func(t *testing.T) {
+			req := tc.request()
+			req.WorkspaceID, req.MessageID = "ws-1", "msg-1"
+			req.TrackingSettings = TrackingSettings{
+				UTMSource:            "newsletter",
+				UTMContent:           "hero",
+				IdentifyToken:        "tok",
+				IdentifyAllowedHosts: []string{"example.com"},
+			}
+			resp, err := CompileTemplate(req)
+			require.NoError(t, err)
+			require.True(t, resp.Success, "compile error: %v", resp.Error)
+
+			assert.Equal(t,
+				[]string{withQueryParams(tc.authored, "utm_content=hero&utm_source=newsletter&nf_id=tok")},
+				anchorHrefs(t, *resp.HTML))
+		})
+
+		t.Run(tc.name+" / tracking on", func(t *testing.T) {
+			req := tc.request()
+			req.WorkspaceID, req.MessageID = "ws-1", "msg-1"
+			req.TrackingSettings = TrackingSettings{
+				EnableTracking: true,
+				Endpoint:       "https://track.example.com",
+				WorkspaceID:    "ws-1",
+				MessageID:      "msg-1",
+				UTMSource:      "newsletter",
+				UTMContent:     "hero",
+			}
+			resp, err := CompileTemplate(req)
+			require.NoError(t, err)
+			require.True(t, resp.Success, "compile error: %v", resp.Error)
+
+			assert.Equal(t, withQueryParams(tc.authored, "utm_content=hero&utm_source=newsletter"),
+				redirectDestination(t, *resp.HTML))
+		})
+	}
+}
+
+// TestDecodeHrefCharacterReferences reads an href's character references the
+// way a browser does in an attribute: every numeric one, decimal or
+// hexadecimal, zero-padded, with an upper-case X or without its semicolon, and
+// every named one with its semicolon. &amp;, &lt; and &gt; stay encoded, since
+// decodeHTMLEntitiesInURLAttributes already decoded them once, and so do a
+// name without its semicolon and a reference with no digits.
+func TestDecodeHrefCharacterReferences(t *testing.T) {
+	for _, tc := range []struct{ in, want string }{
+		{"?s=foo&#038;post_type=bar", "?s=foo&post_type=bar"},
+		{"?s=foo&#38;post_type=bar", "?s=foo&post_type=bar"},
+		{"?s=foo&#x26;post_type=bar", "?s=foo&post_type=bar"},
+		{"?s=foo&#X26;post_type=bar", "?s=foo&post_type=bar"},
+		{"?s&#x3D;foo", "?s=foo"},
+		{"/what&#39;s-new", "/what's-new"},
+		{"/what&#00000000039;s-new", "/what's-new"},
+		{"/what&#x0000027;s-new", "/what's-new"},
+		{"/what&#X00000027;s-new", "/what's-new"},
+		{"/what&apos;s-new", "/what's-new"},
+		{"?q=&quot;exact&#x22;", `?q="exact"`},
+		{"/caf&#xE9;", "/café"},
+		{"/caf&eacute;", "/café"},
+		{"/&copy;", "/©"},
+		{"/&AMP;", "/&"},
+		{"/&notin;", "/\u2209"},
+		{"/&fjlig;", "/fj"},
+		{"/&frac12;", "/½"},
+		{"/&rightarrow;", "/\u2192"},
+		{"/&nLt;", "/\u226A\u20D2"},
+		{"/&nGt;", "/\u226B\u20D2"},
+		{"/&#x1F600;", "/\U0001F600"},
+		{"/&#1114111;", "/\U0010FFFF"},
+		{"/&#x10FFFF;", "/\U0010FFFF"},
+		// Without its semicolon a reference ends at its last digit.
+		{"/what&#39s-new", "/what's-new"},
+		{"?s=foo&#038post_type=bar", "?s=foo&post_type=bar"},
+		{"/&#x26b", "/\u026B"},
+		{"?x=&#9y", "?x=\ty"},
+		// A browser reads these as U+FFFD, and most of 128 to 159 as
+		// Windows-1252. Some are too large for a rune, which must not wrap
+		// around to a valid character: 4294967335 is 2^32 + 39, an apostrophe.
+		{"/&#0;", "/\uFFFD"},
+		{"/&#x110000;", "/\uFFFD"},
+		{"/&#12345678;", "/\uFFFD"},
+		{"/&#x1234567;", "/\uFFFD"},
+		{"/&#4294967335;", "/\uFFFD"},
+		{"/&#x100000027;", "/\uFFFD"},
+		{"/&#128;", "/\u20AC"},
+		// Left as written.
+		{"/&#x;", "/&#x;"},
+		{"/&#;", "/&#;"},
+		{"?a=1&quot_id=5", "?a=1&quot_id=5"},
+		{"?a=1&reg_id=5", "?a=1&reg_id=5"},
+		{"/&notit;", "/&notit;"},
+		{"/&notx;", "/&notx;"},
+		{"/&unknown;", "/&unknown;"},
+		{"?a=1&amp;b=2", "?a=1&amp;b=2"},
+		{"?a=&lt;b&gt;", "?a=&lt;b&gt;"},
+	} {
+		assert.Equal(t, tc.want, decodeHrefCharacterReferences(tc.in), tc.in)
+	}
+}
+
+// TestTrackLinks_EmptyHrefIsNotRewritten compiles a link with an empty href,
+// which points the recipient at the email itself. It must stay empty: a
+// redirect wrapped around it would carry no destination, and the click
+// endpoint answers such a token with 400.
+func TestTrackLinks_EmptyHrefIsNotRewritten(t *testing.T) {
+	src := `<mjml><mj-body><mj-section><mj-column><mj-text><a href="">top</a></mj-text></mj-column></mj-section></mj-body></mjml>`
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		MjmlSource: &src,
+		TrackingSettings: TrackingSettings{
+			EnableTracking: true,
+			Endpoint:       "https://track.example.com",
+			WorkspaceID:    "ws-1",
+			MessageID:      "msg-1",
+			UTMSource:      "newsletter",
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, resp.Success, "compile error: %v", resp.Error)
+
+	assert.Equal(t, []string{""}, anchorHrefs(t, *resp.HTML))
+}
+
+// TestTrackLinks_DecodesAmpersandEntitiesOnce compiles tracked links whose URL
+// really contains &amp; or &lt;, its & written &amp; in the source. The &amp;
+// is decoded once, so the destination the redirect encrypts keeps the entity:
+// decoding &amp;, &lt; and &gt; in sequence, or a second time, would turn it
+// into the character.
+func TestTrackLinks_DecodesAmpersandEntitiesOnce(t *testing.T) {
+	for _, tc := range []struct {
+		name, href, want string
+	}{
+		{"&amp;amp;", "https://example.com/s?a=1&amp;amp;b=2", "https://example.com/s?a=1&amp;b=2&utm_source=newsletter"},
+		{"&amp;lt;", "https://example.com/s?a=1&amp;lt;2", "https://example.com/s?a=1&lt;2&utm_source=newsletter"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := `<mjml><mj-body><mj-section><mj-column><mj-text><a href="` + tc.href + `">x</a></mj-text></mj-column></mj-section></mj-body></mjml>`
+			resp, err := CompileTemplate(CompileTemplateRequest{
+				MjmlSource:  &src,
+				WorkspaceID: "ws-1",
+				MessageID:   "msg-1",
+				TrackingSettings: TrackingSettings{
+					EnableTracking: true,
+					Endpoint:       "https://track.example.com",
+					WorkspaceID:    "ws-1",
+					MessageID:      "msg-1",
+					UTMSource:      "newsletter",
+				},
+			})
+			require.NoError(t, err)
+			require.True(t, resp.Success, "compile error: %v", resp.Error)
+
+			assert.Equal(t, tc.want, redirectDestination(t, *resp.HTML))
+		})
+	}
+}
+
+// TestTrackLinks_RewritesTheHrefABrowserFollows checks the link a browser
+// would follow is the one rewritten: an href written with spaces around its =,
+// and the first of duplicate href attributes, which is the one a browser keeps.
+func TestTrackLinks_RewritesTheHrefABrowserFollows(t *testing.T) {
+	settings := TrackingSettings{UTMSource: "newsletter"}
+	for _, tc := range []struct {
+		name, input, want string
+	}{
+		{
+			name:  "spaces around the =",
+			input: `<a href = "https://example.com/spaced">x</a>`,
+			want:  `https://example.com/spaced?utm_source=newsletter`,
+		},
+		{
+			name:  "duplicate href attributes",
+			input: `<a href="https://example.com/first" href="https://example.com/second">x</a>`,
+			want:  `https://example.com/first?utm_source=newsletter`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := TrackLinks(tc.input, settings)
+			require.NoError(t, err)
+			assert.Equal(t, []string{tc.want}, anchorHrefs(t, got), "rewritten HTML: %s", got)
+		})
+	}
+}
+
+// TestTrackLinks_KeepsTheAttributeDelimiterEscaped feeds TrackLinks HTML whose
+// href holds a quote, raw or as an entity, and checks the rewritten attribute
+// still parses to the whole URL: an entity is decoded to read the URL, and the
+// delimiting quote is escaped again on the way out.
+func TestTrackLinks_KeepsTheAttributeDelimiterEscaped(t *testing.T) {
+	settings := TrackingSettings{UTMSource: "newsletter"}
+	for _, tc := range []struct {
+		name, input, want string
+	}{
+		{
+			name:  `&quot; inside a double-quoted href`,
+			input: `<a class="x" href="https://example.com/s?q=&quot;exact&quot;" target="_blank">x</a>`,
+			want:  `https://example.com/s?q="exact"&utm_source=newsletter`,
+		},
+		{
+			name:  `&#39; inside a single-quoted href`,
+			input: `<a href='https://example.com/what&#39;s-new' target='_blank'>x</a>`,
+			want:  `https://example.com/what's-new?utm_source=newsletter`,
+		},
+		{
+			name:  `" inside a single-quoted href`,
+			input: `<a href='https://example.com/s?q="exact"'>x</a>`,
+			want:  `https://example.com/s?q="exact"&utm_source=newsletter`,
+		},
+		{
+			name:  `' inside a double-quoted href`,
+			input: `<A HREF="https://example.com/what's-new">x</A>`,
+			want:  `https://example.com/what's-new?utm_source=newsletter`,
+		},
+		{
+			name:  `&#039; inside a double-quoted href`,
+			input: `<a href="https://example.com/what&#039;s-new">x</a>`,
+			want:  `https://example.com/what's-new?utm_source=newsletter`,
+		},
+		{
+			name:  `&#x27; inside a single-quoted href`,
+			input: `<a href='https://example.com/what&#x27;s-new'>x</a>`,
+			want:  `https://example.com/what's-new?utm_source=newsletter`,
+		},
+		{
+			name:  `&#0034; inside a double-quoted href`,
+			input: `<a href="https://example.com/s?q=&#0034;exact&#0034;">x</a>`,
+			want:  `https://example.com/s?q="exact"&utm_source=newsletter`,
+		},
+		{
+			name:  `&#x0022; inside a single-quoted href`,
+			input: `<a href='https://example.com/s?q=&#x0022;exact&#x0022;'>x</a>`,
+			want:  `https://example.com/s?q="exact"&utm_source=newsletter`,
+		},
+		{
+			name:  `&#X27; inside a single-quoted href`,
+			input: `<a href='https://example.com/what&#X27;s-new'>x</a>`,
+			want:  `https://example.com/what's-new?utm_source=newsletter`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := TrackLinks(tc.input, settings)
+			require.NoError(t, err)
+			assert.Equal(t, []string{tc.want}, anchorHrefs(t, got), "rewritten HTML: %s", got)
+		})
+	}
+}
+
+// TestTrackLinks_EscapesTheAmpersandsItWritesBack reads rewritten hrefs back
+// with an HTML parser, as a browser does. The & a reference decodes to is
+// escaped again: written raw, "&not_before", "&reg_id" and "&copy" would read
+// as ¬_before, ®_id and ©, in a link left as authored and in one Notifuse
+// appends to.
+func TestTrackLinks_EscapesTheAmpersandsItWritesBack(t *testing.T) {
+	for _, tc := range []struct {
+		name, input, want string
+		settings          TrackingSettings
+	}{
+		{
+			name:     "a link that already carries its UTM parameters",
+			input:    `<a href="https://example.com/?utm_source=own&#038;reg_id=5">x</a>`,
+			want:     "https://example.com/?utm_source=own&reg_id=5",
+			settings: TrackingSettings{UTMSource: "newsletter"},
+		},
+		{
+			name:     "a link the identity token is appended to",
+			input:    `<a href="https://example.com/?a=1&#038;not_before=5">x</a>`,
+			want:     "https://example.com/?a=1&not_before=5&nf_id=tok",
+			settings: TrackingSettings{IdentifyToken: "tok", IdentifyAllowedHosts: []string{"example.com"}},
+		},
+		{
+			name:     "a link whose last pair is a bare key",
+			input:    `<a href='https://example.com/?a=1&#38;copy'>x</a>`,
+			want:     "https://example.com/?a=1&copy&utm_source=newsletter",
+			settings: TrackingSettings{UTMSource: "newsletter"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := TrackLinks(tc.input, tc.settings)
+			require.NoError(t, err)
+			assert.Equal(t, []string{tc.want}, anchorHrefs(t, got), "rewritten HTML: %s", got)
+		})
+	}
+}
+
+// TestTrackLinks_LeavesDecodedNonTrackableLinksAsAuthored checks that a link
+// is recognised as one not to rewrite from the URL its references decode to:
+// an anchor written &#35;top or a mailto: written &#109;ailto: keeps its href
+// exactly as authored, where a rewrite would break it.
+func TestTrackLinks_LeavesDecodedNonTrackableLinksAsAuthored(t *testing.T) {
+	settings := TrackingSettings{UTMSource: "newsletter"}
+	for _, input := range []string{
+		`<a href="&#35;top">x</a>`,
+		`<a href="&#109;ailto:someone@example.com">x</a>`,
+	} {
+		t.Run(input, func(t *testing.T) {
+			got, err := TrackLinks(input, settings)
+			require.NoError(t, err)
+			assert.Equal(t, input, got)
+		})
+	}
+}
+
+// TestTrackLinks_EncryptsTheDecodedURL checks the destination a tracked link
+// encrypts has its named quote entities decoded. With tracking off these cases
+// would prove nothing, since a browser decodes a named entity in the href
+// itself; nothing decodes the encrypted destination.
+func TestTrackLinks_EncryptsTheDecodedURL(t *testing.T) {
+	settings := TrackingSettings{
+		EnableTracking: true,
+		Endpoint:       "https://track.example.com",
+		WorkspaceID:    "ws-1",
+		MessageID:      "msg-1",
+	}
+	for _, tc := range []struct {
+		name, input, want string
+	}{
+		{
+			name:  `&apos; inside a double-quoted href`,
+			input: `<a href="https://example.com/what&apos;s-new">x</a>`,
+			want:  `https://example.com/what's-new`,
+		},
+		{
+			name:  `&quot; inside a single-quoted href`,
+			input: `<a href='https://example.com/s?q=&quot;exact&quot;'>x</a>`,
+			want:  `https://example.com/s?q="exact"`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := TrackLinks(tc.input, settings)
+			require.NoError(t, err)
+
+			assert.Equal(t, tc.want, redirectDestination(t, got))
+		})
 	}
 }
 
@@ -767,9 +1338,41 @@ func TestDecodeHTMLEntitiesInURLAttributes(t *testing.T) {
 			expected: `<a href="https://example.com?a=1&b=2" class="btn" id="link">Text</a>`,
 		},
 		{
-			name:     "href with other HTML entities",
+			// The &quot; stays encoded: decoding it inside "…" would close the
+			// attribute at name= and drop the rest of the URL (B17).
+			name:     "href with &quot; inside a double-quoted value keeps the entity",
 			input:    `<a href="https://example.com?name=&quot;John&quot;&amp;age=30">Link</a>`,
-			expected: `<a href="https://example.com?name="John"&age=30">Link</a>`,
+			expected: `<a href="https://example.com?name=&quot;John&quot;&age=30">Link</a>`,
+		},
+		{
+			name:     "href with &#39; inside a double-quoted value is decoded",
+			input:    `<a href="https://example.com/what&#39;s-new?a=1&amp;b=2">Link</a>`,
+			expected: `<a href="https://example.com/what's-new?a=1&b=2">Link</a>`,
+		},
+		{
+			name:     "href with &#39; inside a single-quoted value keeps the entity",
+			input:    `<a href='https://example.com/what&#39;s-new?q=&quot;x&quot;'>Link</a>`,
+			expected: `<a href='https://example.com/what&#39;s-new?q="x"'>Link</a>`,
+		},
+		{
+			name:     "a double-escaped quote is decoded once, to the entity",
+			input:    `<a href="https://example.com?q=&amp;quot;x&amp;quot;">Link</a>`,
+			expected: `<a href="https://example.com?q=&quot;x&quot;">Link</a>`,
+		},
+		{
+			name:     "href with &lt; and &gt; inside a double-quoted value is decoded",
+			input:    `<a href="https://example.com/s?q=&lt;b&gt;&amp;p=1">Link</a>`,
+			expected: `<a href="https://example.com/s?q=<b>&p=1">Link</a>`,
+		},
+		{
+			name:     "href with &lt; and &gt; inside a single-quoted value is decoded",
+			input:    `<a href='https://example.com/s?q=&lt;b&gt;&amp;p=1'>Link</a>`,
+			expected: `<a href='https://example.com/s?q=<b>&p=1'>Link</a>`,
+		},
+		{
+			name:     "' inside a double-quoted value does not end it",
+			input:    `<a href="https://example.com/what's-new?a=1&amp;b=2">Link</a>`,
+			expected: `<a href="https://example.com/what's-new?a=1&b=2">Link</a>`,
 		},
 		{
 			name:     "no entities to decode",
@@ -883,6 +1486,26 @@ func TestPreprocessMjmlForXML(t *testing.T) {
 			name:     "preserve already self-closing br with space",
 			input:    "<mj-text><p>Line 1<br />Line 2</p></mj-text>",
 			expected: "<mj-text><p>Line 1<br />Line 2</p></mj-text>",
+		},
+		{
+			name:     "&quot; in a double-quoted href is shielded from gomjml's entity pre-pass",
+			input:    `<mj-text><a href="https://example.com/s?q=&quot;x&quot;" title="&quot;t&quot;">l</a></mj-text>`,
+			expected: `<mj-text><a href="https://example.com/s?q=&amp;quot;x&amp;quot;" title="&quot;t&quot;">l</a></mj-text>`,
+		},
+		{
+			name:     "quotes in a single-quoted href are shielded from gomjml's entity pre-pass",
+			input:    `<mj-button href='https://example.com/s?q="x"&amp;y=&quot;z&quot;&amp;n=O&apos;B'>b</mj-button>`,
+			expected: `<mj-button href='https://example.com/s?q=&amp;quot;x&amp;quot;&amp;y=&amp;quot;z&amp;quot;&amp;n=O&#39;B'>b</mj-button>`,
+		},
+		{
+			name:     "an upper-case hexadecimal reference in an href is lower-cased for the XML parser",
+			input:    `<mj-button href="https://example.com/what&#X27;s-new?a&#X3D;1&amp;b&#X3d;2">b</mj-button>`,
+			expected: `<mj-button href="https://example.com/what&#x27;s-new?a&#x3D;1&amp;b&#x3d;2">b</mj-button>`,
+		},
+		{
+			name:     "' in a double-quoted href is left as is",
+			input:    `<mj-button href="https://example.com/what's-new">b</mj-button>`,
+			expected: `<mj-button href="https://example.com/what's-new">b</mj-button>`,
 		},
 		{
 			name:     "convert hr tag to self-closing",
@@ -3603,7 +4226,7 @@ func TestTrackLinks_IdentityTokenKeepsHandBuiltQuery(t *testing.T) {
 	result, err := TrackLinks(html, settings)
 	require.NoError(t, err)
 	assert.Equal(t,
-		`<html><body><a href="https://example.com/page?utm_source=x&sid=1;2&nf_id=tok-abc123#top">Link</a></body></html>`,
+		`<html><body><a href="https://example.com/page?utm_source=x&amp;sid=1;2&amp;nf_id=tok-abc123#top">Link</a></body></html>`,
 		result)
 }
 
@@ -4095,7 +4718,7 @@ func TestTrackLinks_UTMKeepsHandBuiltQuery(t *testing.T) {
 	result, err := TrackLinks(html, settings)
 	require.NoError(t, err)
 	assert.Equal(t,
-		`<html><body><a href="https://example.com/page?sid=1;2&sig=abc&utm_content=tpl-123#top">Link</a></body></html>`,
+		`<html><body><a href="https://example.com/page?sid=1;2&amp;sig=abc&amp;utm_content=tpl-123#top">Link</a></body></html>`,
 		result)
 }
 

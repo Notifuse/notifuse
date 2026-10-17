@@ -2176,7 +2176,10 @@ func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
 
 // WasSentForList decides whether an unsubscribe link may record an opt-out for a contact
 // with no row on the list, so the query must tie the message to the address and to the
-// list, through either the broadcast's list or the automation's.
+// list. The list stored on the message wins; the automation's current list is read only
+// for older automation messages stored without one. The behaviour against real rows
+// (stored list, NULL fallback, automation moved to another list) is covered by
+// TestAutomationComplaintRecordedOnList in tests/integration.
 func TestMessageHistoryRepository_WasSentForList(t *testing.T) {
 	mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
 	defer cleanup()
@@ -2184,8 +2187,8 @@ func TestMessageHistoryRepository_WasSentForList(t *testing.T) {
 	ctx := context.Background()
 	workspaceID := "workspace-123"
 	query := `SELECT EXISTS \(\s*SELECT 1 FROM message_history mh\s+` +
-		`LEFT JOIN automations a ON a\.id = mh\.automation_id\s+` +
-		`WHERE mh\.id = \$1 AND mh\.contact_email = \$2 AND \(mh\.list_id = \$3 OR a\.list_id = \$3\)\s*\)`
+		`LEFT JOIN automations a ON a\.id = mh\.automation_id AND mh\.list_id IS NULL\s+` +
+		`WHERE mh\.id = \$1 AND mh\.contact_email = \$2 AND COALESCE\(mh\.list_id, a\.list_id\) = \$3\s*\)`
 
 	for _, sent := range []bool{true, false} {
 		t.Run(fmt.Sprintf("returns %v", sent), func(t *testing.T) {
