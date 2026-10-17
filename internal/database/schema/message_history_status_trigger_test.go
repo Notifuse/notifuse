@@ -41,8 +41,21 @@ const (
 func TestUpdateContactListsOnStatusChangeFunction_Header(t *testing.T) {
 	sql := UpdateContactListsOnStatusChangeFunction()
 	assert.True(t, strings.HasPrefix(sql, "CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()"),
-		"the function name is what message_history_status_trigger executes")
+		"the function name is what message_history_bounce_complaint_trigger executes")
 	assert.True(t, strings.HasSuffix(sql, "$$ LANGUAGE plpgsql;"))
+}
+
+// PostgreSQL fires the AFTER triggers of one event in name order, comparing names
+// byte by byte. The trigger must fire before message_history_changes_trigger, whose
+// timeline entry locks the contact's contact_segment_queue row: firing after it, a
+// complaint deadlocked with an import of the same contact.
+func TestStatusChangeTriggerStatements(t *testing.T) {
+	assert.Equal(t, []string{
+		"DROP TRIGGER IF EXISTS message_history_status_trigger ON message_history",
+		"DROP TRIGGER IF EXISTS message_history_bounce_complaint_trigger ON message_history",
+		"CREATE TRIGGER message_history_bounce_complaint_trigger AFTER UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION update_contact_lists_on_status_change()",
+	}, StatusChangeTriggerStatements(), "the name before 42 is dropped, then the trigger is attached under its new name")
+	assert.Less(t, StatusChangeTrigger, "message_history_changes_trigger")
 }
 
 // The function runs after every message_history update, opens and clicks included, so

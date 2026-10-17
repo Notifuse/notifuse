@@ -859,8 +859,6 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE TRIGGER contact_segment_changes_trigger AFTER INSERT OR DELETE ON contact_segments FOR EACH ROW EXECUTE FUNCTION track_contact_segment_changes()`,
 		`DROP TRIGGER IF EXISTS contact_timeline_queue_trigger ON contact_timeline`,
 		`CREATE TRIGGER contact_timeline_queue_trigger AFTER INSERT ON contact_timeline FOR EACH ROW EXECUTE FUNCTION queue_contact_for_segment_recomputation()`,
-		`DROP TRIGGER IF EXISTS message_history_status_trigger ON message_history`,
-		`CREATE TRIGGER message_history_status_trigger AFTER UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION update_contact_lists_on_status_change()`,
 		`DROP TRIGGER IF EXISTS custom_event_timeline_trigger ON custom_events`,
 		`CREATE TRIGGER custom_event_timeline_trigger AFTER INSERT OR UPDATE ON custom_events FOR EACH ROW EXECUTE FUNCTION track_custom_event_timeline()`,
 		// Webhook trigger functions for outgoing webhooks
@@ -888,6 +886,9 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		// upgraded workspace and a fresh one enrol identically.
 		schema.AutomationEnrollContactFunction(),
 	}
+	// The bounce and complaint trigger, shared with the v42 migration: its name sets its
+	// firing order among the message_history triggers.
+	triggerQueries = append(triggerQueries, schema.StatusChangeTriggerStatements()...)
 
 	for _, query := range triggerQueries {
 		if _, err := db.Exec(query); err != nil {

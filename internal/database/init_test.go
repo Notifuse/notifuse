@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -399,6 +400,31 @@ func TestInitializeWorkspaceDatabase_InstallsSharedStatusChangeFunction(t *testi
 		}
 	}
 	assert.Equal(t, 1, count, "the function must be defined once, from the shared schema body")
+}
+
+// A fresh workspace attaches the complaint/bounce function under the name v42 gives it,
+// once, after the function exists. PostgreSQL fires the AFTER triggers of one event in
+// name order, and this one must fire before message_history_changes_trigger (see
+// schema.StatusChangeTrigger).
+func TestInitializeWorkspaceDatabase_StatusChangeTriggerFiresBeforeTheTimelineTrigger(t *testing.T) {
+	rec := recordWorkspaceSchema(t)
+
+	createTrigger := regexp.MustCompile(`^CREATE TRIGGER (\w+) AFTER [A-Z ]+ ON message_history FOR EACH ROW EXECUTE FUNCTION (\w+)\(\)$`)
+	triggersByFunction := map[string][]string{}
+	for _, stmt := range rec.issued {
+		if m := createTrigger.FindStringSubmatch(stmt); m != nil {
+			triggersByFunction[m[2]] = append(triggersByFunction[m[2]], m[1])
+		}
+	}
+	require.Equal(t, []string{"message_history_bounce_complaint_trigger"}, triggersByFunction["update_contact_lists_on_status_change"])
+	require.Equal(t, []string{"message_history_changes_trigger"}, triggersByFunction["track_message_history_changes"])
+	assert.Less(t, triggersByFunction["update_contact_lists_on_status_change"][0], triggersByFunction["track_message_history_changes"][0])
+
+	function := rec.indexOfStatementContaining(t, "CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()")
+	trigger := rec.indexOfStatementContaining(t, "CREATE TRIGGER message_history_bounce_complaint_trigger ")
+	assert.Less(t, function, trigger, "the trigger is attached after its function exists")
+	assert.Equal(t, schema.StatusChangeTriggerStatements(), rec.issued[trigger-2:trigger+1],
+		"the statements shared with v42, which drop the name before 42 first")
 }
 
 func TestInitializeWorkspaceDatabase_WebhookSubscriptionColumns(t *testing.T) {

@@ -80,12 +80,25 @@ func expectV42Prelude(mock sqlmock.Sqlmock) {
 	mock.ExpectExec(exactly(schema.TrackContactListChangesFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec(exactly(schema.WebhookContactListsTriggerFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
 	expectV42StatusChangeFunction(mock)
+	for _, stmt := range v42StatusChangeTriggerStmts {
+		mock.ExpectExec(exactly(stmt)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
 }
 
 // expectV42StatusChangeFunction expects the complaint/bounce function, installed right
 // after the contact_lists functions: exactly the body a fresh workspace gets.
 func expectV42StatusChangeFunction(mock sqlmock.Sqlmock) {
 	mock.ExpectExec(exactly(schema.UpdateContactListsOnStatusChangeFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
+}
+
+// v42StatusChangeTriggerStmts move the complaint/bounce trigger to its new name, right
+// after its function and before any step that locks rows. They are spelled out rather
+// than taken from schema.StatusChangeTriggerStatements: the name is what makes the trigger
+// fire before message_history_changes_trigger, so the test pins it.
+var v42StatusChangeTriggerStmts = []string{
+	"DROP TRIGGER IF EXISTS message_history_status_trigger ON message_history",
+	"DROP TRIGGER IF EXISTS message_history_bounce_complaint_trigger ON message_history",
+	"CREATE TRIGGER message_history_bounce_complaint_trigger AFTER UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION update_contact_lists_on_status_change()",
 }
 
 func expectPatch(mock sqlmock.Sqlmock, patched string, execErr error) {
@@ -442,6 +455,30 @@ func TestV42Migration_PropagatesErrors(t *testing.T) {
 		assert.Contains(t, err.Error(), "boom")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
+
+	for failing, stmt := range v42StatusChangeTriggerStmts {
+		t.Run("moving the complaint/bounce trigger: "+stmt, func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer db.Close()
+
+			mock.ExpectExec(exactly("SET LOCAL statement_timeout = 0")).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectExec(exactly(schema.TrackContactListChangesFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectExec(exactly(schema.WebhookContactListsTriggerFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
+			expectV42StatusChangeFunction(mock)
+			for _, done := range v42StatusChangeTriggerStmts[:failing] {
+				mock.ExpectExec(exactly(done)).WillReturnResult(sqlmock.NewResult(0, 0))
+			}
+			mock.ExpectExec(exactly(stmt)).WillReturnError(errors.New("boom"))
+
+			err = runV42(t, db)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "failed to install the complaint/bounce trigger for workspace")
+			assert.Contains(t, err.Error(), "boom")
+			// Nothing after the failing statement runs: sqlmock fails any unexpected call.
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
 
 	t.Run("patching segments", func(t *testing.T) {
 		db, mock, err := sqlmock.New()

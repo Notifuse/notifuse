@@ -1,8 +1,37 @@
 package schema
 
+// StatusChangeTrigger is the trigger that runs update_contact_lists_on_status_change after
+// every update of message_history. Its name sets when it fires: PostgreSQL fires the
+// AFTER triggers of one event in name order, and this one must come before
+// message_history_changes_trigger. That trigger writes the message's timeline entry, which
+// locks the contact's contact_segment_queue row. Every write to contact_lists locks the
+// contact_lists row first and the contact_segment_queue row second, through its own
+// timeline entry; this trigger, firing first, takes them in the same order. Under its
+// name before 42 it fired after message_history_changes_trigger and took them the other
+// way round, so a complaint or a bounce could deadlock with a subscribe or an import of
+// the same contact running at the same time: PostgreSQL aborted one of the two.
+//
+// Firing first also means that when the message's email.complained or email.bounced entry
+// reaches contact_timeline, the list status has already changed, and that the
+// list.complained or list.bounced entry is written before the email.* one.
+const StatusChangeTrigger = "message_history_bounce_complaint_trigger"
+
+// StatusChangeTriggerStatements returns the statements that attach
+// update_contact_lists_on_status_change to message_history under StatusChangeTrigger.
+// They drop the trigger's name before 42, message_history_status_trigger, which sorted
+// after message_history_changes_trigger. Both the new-workspace path and the v42 migration
+// run them.
+func StatusChangeTriggerStatements() []string {
+	return []string{
+		`DROP TRIGGER IF EXISTS message_history_status_trigger ON message_history`,
+		`DROP TRIGGER IF EXISTS ` + StatusChangeTrigger + ` ON message_history`,
+		`CREATE TRIGGER ` + StatusChangeTrigger + ` AFTER UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION update_contact_lists_on_status_change()`,
+	}
+}
+
 // UpdateContactListsOnStatusChangeFunction returns the trigger function that turns a
 // complaint or a hard bounce on a message into the contact's status on the list the
-// message was sent for. message_history_status_trigger runs it after every update of
+// message was sent for. StatusChangeTrigger runs it after every update of
 // message_history.
 //
 // Two paths install it: the new-workspace path (internal/database/init.go) and the v42
@@ -26,11 +55,10 @@ package schema
 //     deleted list.
 //   - A row the update didn't see, because a subscribe or an import committed it after
 //     the update began, takes the status through the insert's ON CONFLICT DO UPDATE,
-//     under the same guard as the update; DO NOTHING would drop the complaint. Today the
-//     contact_segment_queue row that both writes queue for the address keeps them from
-//     interleaving that way, but nothing here should depend on that side effect. A
-//     subscribe or import still uncommitted when the insert runs deadlocks with it, as an
-//     update of an existing row already could: Postgres aborts one of the two.
+//     under the same guard as the update; DO NOTHING would drop the complaint. A
+//     subscribe or an import still uncommitted on that row makes the update or the
+//     insert wait, and the status lands once it commits (see StatusChangeTrigger for why
+//     this wait cannot deadlock).
 //   - A complaint replaces any status; a bounce never replaces a complaint.
 func UpdateContactListsOnStatusChangeFunction() string {
 	return `CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()
