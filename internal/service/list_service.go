@@ -649,10 +649,14 @@ func (s *ListService) unsubscribeFromList(ctx context.Context, workspaceID, emai
 	}
 
 	// Nothing updated: either the row is bounced or complained and was kept, or the
-	// contact has no row on the list.
-	_, err = s.contactListRepo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
+	// contact has no row on the list. A row in any other status was committed by a
+	// subscribe after the update ran, and takes the opt-out.
+	row, err := s.contactListRepo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
 	if err == nil {
-		return true, nil
+		if row.Status == domain.ContactListStatusBounced || row.Status == domain.ContactListStatusComplained {
+			return true, nil
+		}
+		return s.contactListRepo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID)
 	}
 	var notOnList *domain.ErrContactListNotFound
 	if !errors.As(err, &notOnList) {

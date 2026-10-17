@@ -2013,6 +2013,22 @@ func TestListService_UnsubscribeFromLists_RowStates(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	// The update found no row, but a subscribe committed one before the read: the opt-out
+	// is recorded on that row rather than lost.
+	t.Run("row committed after the update: the opt-out is recorded on it", func(t *testing.T) {
+		f := setup(t)
+		gomock.InOrder(
+			f.contactListRepo.EXPECT().MarkContactListUnsubscribed(gomock.Any(), workspaceID, email, listID).Return(false, nil),
+			f.contactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, listID).
+				Return(&domain.ContactList{Email: email, ListID: listID, Status: domain.ContactListStatusActive}, nil),
+			f.contactListRepo.EXPECT().MarkContactListUnsubscribed(gomock.Any(), workspaceID, email, listID).Return(true, nil),
+		)
+		// No AddContactToList expectation: gomock fails the test if it is called
+
+		err := f.service.UnsubscribeFromLists(ctx, payload, false)
+		assert.NoError(t, err)
+	})
+
 	t.Run("error - the update fails", func(t *testing.T) {
 		f := setup(t)
 		f.contactListRepo.EXPECT().MarkContactListUnsubscribed(gomock.Any(), workspaceID, email, listID).
