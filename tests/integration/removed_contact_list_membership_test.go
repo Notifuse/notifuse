@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package integration
 
 import (
@@ -30,9 +33,11 @@ import (
 // TestRemovedContactListMembership checks, through the public API on a fresh workspace,
 // that a contact removed from a list (contactLists.removeContact, or an automation's
 // Remove from List node) is no longer a member of it anywhere: broadcasts, segments,
-// automation trigger conditions and filter nodes, webhooks, the notification center, the
-// API's contact_lists and Liquid's contact.contact_lists. It also checks that adding them
-// back makes them a member again, which needs the re-add to write a timeline event.
+// automation trigger conditions and filter nodes, webhooks, the API's contact_lists and
+// Liquid's contact.contact_lists. It also checks that adding them back makes them a member
+// again, which needs the re-add to write a timeline event. The notification center already
+// hid removed rows before this fix; its subtest keeps that pinned end to end now that the
+// contact it reads no longer carries them.
 func TestRemovedContactListMembership(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -413,6 +418,31 @@ func TestRemovedContactListMembership(t *testing.T) {
 		assert.Equal(t, 0, memberCount(t, db, toggled, notInSegment))
 	})
 
+	// Removing an already removed contact only moves deleted_at. It used to record
+	// list.removed again, which re-enrolled the contact in automations triggered by it.
+	t.Run("removing a contact who is already removed records nothing", func(t *testing.T) {
+		again := newContact(t, "again")
+		addTo(t, again, listX.ID)
+		removeViaAPI(t, again, listX.ID)
+		require.Equal(t, 1, timelineKindCount(t, db, again, "list.removed", listX.ID))
+
+		// Only contact_list rows: background workers write segment rows for this contact
+		// on their own schedule.
+		membershipRows := func() int {
+			var n int
+			require.NoError(t, db.QueryRowContext(context.Background(),
+				`SELECT COUNT(*) FROM contact_timeline WHERE email = $1 AND entity_type = 'contact_list'`,
+				again).Scan(&n))
+			return n
+		}
+		before := membershipRows()
+
+		removeViaAPI(t, again, listX.ID)
+		assert.Equal(t, 1, timelineKindCount(t, db, again, "list.removed", listX.ID),
+			"a second removal records no second list.removed")
+		assert.Equal(t, before, membershipRows(), "a second removal records no list event at all")
+	})
+
 	// --- 4. trigger condition --------------------------------------------------------
 
 	t.Run("an automation trigger condition on the list leaves removed contacts out", func(t *testing.T) {
@@ -535,11 +565,14 @@ func TestRemovedContactListMembership(t *testing.T) {
 
 	// --- 7. notification center ------------------------------------------------------
 
-	t.Run("the notification center doesn't show lists the contact was removed from", func(t *testing.T) {
+	// visibleContactLists dropped removed rows before this fix, so this passes without it.
+	// It stays as an end-to-end guard: fetchContact now leaves those rows out itself, and
+	// the page must still show only the lists the contact is on.
+	t.Run("the notification center still hides lists the contact was removed from", func(t *testing.T) {
 		template, err := factory.CreateTemplate(workspace.ID)
 		require.NoError(t, err)
 		broadcast, err := factory.CreateBroadcast(workspace.ID,
-			testutil.WithBroadcastABTesting([]string{template.ID}),
+			testutil.WithBroadcastTemplateID(template.ID),
 			testutil.WithBroadcastAudience(domain.AudienceSettings{List: listY.ID, ExcludeUnsubscribed: true}))
 		require.NoError(t, err)
 		resp, err := client.SendBroadcastToIndividual(map[string]interface{}{

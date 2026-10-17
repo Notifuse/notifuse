@@ -13,7 +13,10 @@ package schema
 //
 // The branches:
 //   - INSERT: the kind matching the initial status (list.subscribed, list.pending, …);
-//   - removal (deleted_at set): list.removed;
+//   - removal (deleted_at set on a row that had none): list.removed. Removing a
+//     contact who is already removed records nothing, as the webhook function
+//     reports nothing; it used to record list.removed again, which re-enrolled
+//     the contact in automations triggered by it;
 //   - status change: the transition kind (list.confirmed, list.resubscribed, …),
 //     including on a re-add that also changes the status;
 //   - re-add with the same status (deleted_at cleared): exactly what an INSERT of
@@ -50,8 +53,9 @@ func TrackContactListChangesFunction() string {
 			ELSIF TG_OP = 'UPDATE' THEN
 				op := 'update';
 
-				-- Handle soft delete
-				IF OLD.deleted_at IS DISTINCT FROM NEW.deleted_at AND NEW.deleted_at IS NOT NULL THEN
+				-- Handle a removal. Removing a contact who is already removed only moves
+				-- deleted_at, and falls through to record nothing
+				IF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN
 					kind_value := 'list.removed';
 					changes_json := jsonb_build_object(
 						'deleted_at', jsonb_build_object('old', OLD.deleted_at, 'new', NEW.deleted_at)
