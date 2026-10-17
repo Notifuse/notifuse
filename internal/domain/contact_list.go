@@ -371,6 +371,12 @@ type ContactListRepository interface {
 	// UpdateContactListStatus updates the status of a contact on a list
 	UpdateContactListStatus(ctx context.Context, workspaceID string, email, listID string, status ContactListStatus) error
 
+	// MarkContactListUnsubscribed records a contact's opt-out on their row on the list
+	// and reports whether a row took it. A bounced or complained row is kept, and a
+	// removed row stays removed: unlike UpdateContactListStatus it never adds the
+	// contact back. It reports false both for a kept row and for no row at all.
+	MarkContactListUnsubscribed(ctx context.Context, workspaceID string, email, listID string) (bool, error)
+
 	// RemoveContactFromList removes a contact from a list
 	RemoveContactFromList(ctx context.Context, workspaceID string, email, listID string) error
 

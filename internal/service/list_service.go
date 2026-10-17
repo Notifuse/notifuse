@@ -630,23 +630,24 @@ func (s *ListService) unsubscribeFromList(ctx context.Context, workspaceID, emai
 	// A bounced or complained address is never mailed, and its status says more than an
 	// opt-out, so it is kept. People who report spam often unsubscribe too: overwriting
 	// would turn the complaint into a plain "unsubscribed", which a broadcast set to
-	// include unsubscribed contacts mails again. That holds for a contact removed from
-	// the list too, whose row the update below would also restore. The read and the
-	// update are separate statements, so a complaint saved between them is still
-	// overwritten.
-	current, err := s.contactListRepo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
-	var notOnList *domain.ErrContactListNotFound
-	if err != nil && !errors.As(err, &notOnList) {
-		return false, err
-	}
-	if current != nil &&
-		(current.Status == domain.ContactListStatusBounced || current.Status == domain.ContactListStatusComplained) {
-		return true, nil
+	// include unsubscribed contacts mails again. The update keeps it in its own WHERE, so
+	// a complaint saved while this request runs is kept too. A contact removed from the
+	// list stays removed: an unsubscribe link from an email sent before the removal must
+	// not put them back on the list.
+	updated, err := s.contactListRepo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID)
+	if err != nil || updated {
+		return updated, err
 	}
 
-	err = s.contactListRepo.UpdateContactListStatus(ctx, workspaceID, email, listID, domain.ContactListStatusUnsubscribed)
+	// Nothing updated: either the row is bounced or complained and was kept, or the
+	// contact has no row on the list.
+	_, err = s.contactListRepo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
+	if err == nil {
+		return true, nil
+	}
+	var notOnList *domain.ErrContactListNotFound
 	if !errors.As(err, &notOnList) {
-		return err == nil, err
+		return false, err
 	}
 
 	// No row on the list: automations email contacts who aren't on their list, and those

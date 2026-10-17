@@ -273,6 +273,28 @@ func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 		expectSkipped(t, email, domain.ContactListStatusComplained)
 	})
 
+	// The opt-out used to clear the removal too, putting the contact back on the list as
+	// unsubscribed: in its "in list" segments, and in every broadcast that includes
+	// unsubscribed contacts.
+	t.Run("contact removed from the list: a one-click unsubscribe records the opt-out and keeps them removed", func(t *testing.T) {
+		email := newContact(t, "removed-unsubscribe", true)
+		msg, _ := deliver(t, email)
+		require.Equal(t, &listRow{status: domain.ContactListStatusActive, removed: true}, rowOf(t, email))
+
+		resp := requestListUnsubscribeURL(t, http.MethodPost, listUnsubscribeURL(t, msg),
+			"application/x-www-form-urlencoded", strings.NewReader("List-Unsubscribe=One-Click"))
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusUnsubscribed, removed: true}, rowOf(t, email),
+			"the opt-out is recorded, and the contact is not put back on the list")
+		assert.False(t, inBroadcastAudience(t, email),
+			"a broadcast that includes unsubscribed contacts doesn't email them")
+		ca := sendAgain(t, email)
+		require.NotNil(t, ca.ExitReason)
+		assert.Equal(t, string(domain.ContactListStatusUnsubscribed), *ca.ExitReason, "the next email is skipped, not sent")
+		assert.Equal(t, 1, deliveredCountTo(t, email), "only the first email was delivered")
+	})
+
 	t.Run("contact erased after delivery: a complaint stores nothing", func(t *testing.T) {
 		email := newContact(t, "erased", false)
 		_, messageID := deliver(t, email)

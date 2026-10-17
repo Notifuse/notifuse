@@ -137,6 +137,21 @@ func (mr *MockContactListRepositoryMockRecorder) GetListsByEmail(arg0, arg1, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetListsByEmail", reflect.TypeOf((*MockContactListRepository)(nil).GetListsByEmail), arg0, arg1, arg2)
 }
 
+// MarkContactListUnsubscribed mocks base method.
+func (m *MockContactListRepository) MarkContactListUnsubscribed(arg0 context.Context, arg1, arg2, arg3 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkContactListUnsubscribed", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MarkContactListUnsubscribed indicates an expected call of MarkContactListUnsubscribed.
+func (mr *MockContactListRepositoryMockRecorder) MarkContactListUnsubscribed(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkContactListUnsubscribed", reflect.TypeOf((*MockContactListRepository)(nil).MarkContactListUnsubscribed), arg0, arg1, arg2, arg3)
+}
+
 // RemoveContactFromList mocks base method.
 func (m *MockContactListRepository) RemoveContactFromList(arg0 context.Context, arg1, arg2, arg3 string) error {
 	m.ctrl.T.Helper()

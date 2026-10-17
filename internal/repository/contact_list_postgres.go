@@ -99,16 +99,16 @@ func (r *contactListRepository) BulkAddContactsToLists(ctx context.Context, work
 				first = false
 
 				qb.WriteString("($")
-			qb.WriteString(strconv.Itoa(argIndex))
-			qb.WriteString(", $")
-			qb.WriteString(strconv.Itoa(argIndex + 1))
-			qb.WriteString(", $")
-			qb.WriteString(strconv.Itoa(argIndex + 2))
-			qb.WriteString(", $")
-			qb.WriteString(strconv.Itoa(argIndex + 3))
-			qb.WriteString(", $")
-			qb.WriteString(strconv.Itoa(argIndex + 4))
-			qb.WriteString(", NULL)")
+				qb.WriteString(strconv.Itoa(argIndex))
+				qb.WriteString(", $")
+				qb.WriteString(strconv.Itoa(argIndex + 1))
+				qb.WriteString(", $")
+				qb.WriteString(strconv.Itoa(argIndex + 2))
+				qb.WriteString(", $")
+				qb.WriteString(strconv.Itoa(argIndex + 3))
+				qb.WriteString(", $")
+				qb.WriteString(strconv.Itoa(argIndex + 4))
+				qb.WriteString(", NULL)")
 				argIndex += 5
 
 				args = append(args, email, listID, status, now, now)
@@ -293,6 +293,36 @@ func (r *contactListRepository) UpdateContactListStatus(ctx context.Context, wor
 	}
 
 	return nil
+}
+
+// MarkContactListUnsubscribed records an opt-out without the read-then-write that would
+// let a complaint saved in between be overwritten: the statement's own WHERE keeps a
+// bounce or complaint. It leaves deleted_at alone, so an unsubscribe link in an email sent
+// before a contact's removal doesn't add them back to the list.
+func (r *contactListRepository) MarkContactListUnsubscribed(ctx context.Context, workspaceID string, email, listID string) (bool, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		UPDATE contact_lists
+		SET status = 'unsubscribed', updated_at = $1
+		WHERE email = $2 AND list_id = $3
+		AND status NOT IN ('bounced', 'complained')
+	`
+
+	result, err := workspaceDB.ExecContext(ctx, query, time.Now().UTC(), email, listID)
+	if err != nil {
+		return false, fmt.Errorf("failed to unsubscribe contact from list: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	return rows > 0, nil
 }
 
 func (r *contactListRepository) RemoveContactFromList(ctx context.Context, workspaceID string, email, listID string) error {
