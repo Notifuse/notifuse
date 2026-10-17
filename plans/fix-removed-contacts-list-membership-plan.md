@@ -191,7 +191,7 @@ Workspace only (`HasSystemUpdate` false), no restart. It runs in the per-workspa
 ### Part 6 — version, changelog, docs
 
 - **Version.** `config/config.go`: `VERSION = "42.0"`, in the same commit as `v42.go` (F10). Then run `make sdk-build` on Node 24, and commit `web_analytics_sdk/dist` and `package.json` with it.
-- **CHANGELOG.md.** Under `## [42.0] - WIP`, add these bullets after the entries already there. If the heading still reads `## [41.1] - WIP`, rename it first (P2). They fix behaviour that has shipped, so each one is a **Fix**. Drafts:
+- **CHANGELOG.md.** Under `## [42.0] - WIP`, add these bullets after the entries already there. If the heading still reads `## [41.1] - WIP`, rename it first (P2). They fix behaviour that has shipped, so each one is a **Fix** (the re-add one ended up an **Improvement**; see Implementation). Drafts:
   > - **Fix**: A contact removed from a list is now out of it everywhere. They no longer receive its broadcasts, and they no longer count as a member in segments, automation trigger conditions, filter and branch nodes, the notification center, the API's `contact_lists` or a template's `contact.contact_lists`. "Not in list" conditions now match them. Upgrading corrects existing segments and live automations, so removed contacts leave those segments, and their `segment.left` and `segment.joined` events fire once.
   >
   > - **Fix**: Adding a removed contact back to a list now records `list.subscribed` (`list.pending` with double opt-in) on their timeline and as a webhook event, as a first subscription does. Before, the re-add recorded nothing. Automations triggered by `list.subscribed` with "every time" frequency now enroll a re-added contact again, including contacts re-added in bulk by an import.
@@ -343,13 +343,13 @@ A separate reviewer re-checked every fact, searched the whole repo for other rea
 
 ## Implementation (2026-10-16)
 
-Built on `origin/dev` at `44880ee`, where B1 had landed. Every part above is done; the line numbers above are from `c974080a` and were re-located.
+Built on `origin/dev` at `44880ee`, where B1 had landed, then merged with `origin/dev` at `65b8f54`. Every part above is done; the line numbers above are from `c974080a` and were re-located.
 
 - **Part 1 and Part 4.** `cl.deleted_at IS NULL` follows `l.deleted_at IS NULL` in `GetContactsForBroadcast`, `CountContactsForBroadcast` and `fetchContact`.
 - **Part 2.** `parseContactListConditionsWithEmailRef` emits `cl.deleted_at IS NULL AND l.deleted_at IS NULL`. v42 patches by inserting the first before the second, so the builder keeps them adjacent.
-- **Part 3.** The timeline function lives in `internal/database/schema/contact_list_triggers.go`, and `init.go` installs it from there. The webhook function gained `restored` and `prev_status`.
-- **Part 5.** `internal/migrations/v42.go` follows the five steps. The automation functions are patched in place (D4), not regenerated as v38 does. A failed patch rolls back to its own savepoint.
-- **Part 6.** `VERSION = "42.0"`. The SDK bundle was rebuilt on Node 24, and only its version changed. `package-lock.json`'s root version moved with `package.json`, as it did for 41.1. The CHANGELOG heading is now `## [42.0] - WIP`, and the two **Fix** bullets were added as drafted.
+- **Part 3.** The timeline function lives in `internal/database/schema/contact_list_triggers.go`, and `init.go` installs it from there. The webhook function gained `restored` and `prev_status`. Found in review: removing a contact who was already removed rewrote `deleted_at` and recorded `list.removed` again, re-enrolling them in "every time" automations triggered by it. The timeline's removal branch now requires a row that had no `deleted_at`, as the webhook trigger already did, and v42 reinstalls it; `RemoveContactFromList` still moves `deleted_at`.
+- **Part 5.** `internal/migrations/v42.go` follows the five steps. The automation functions are patched in place (D4), not regenerated as v38 does. A failed patch rolls back to its own savepoint. The re-queue inserts into `contact_segment_queue` in email order, as the web analytics re-queue does, so the two take the queue's row locks in the same order; a writer that queues contacts out of email order, such as an import, can still deadlock with it.
+- **Part 6.** `VERSION = "42.0"`. The SDK bundle was rebuilt on Node 24, and only its version changed. `package-lock.json`'s root version moved with `package.json`, as it did for 41.1. The CHANGELOG heading is now `## [42.0] - WIP`, and the two drafted **Fix** bullets were added, then reworded in review, which also added a **Fix** for re-removal and a **Change** line for the v42 schema. The re-add bullet was later listed as an **Improvement** and took in the re-removal line.
 - **Deviation: webhook assertions.** Both integration tests read the queued `webhook_deliveries` rows rather than starting the delivery worker and an `httptest` receiver. The fix is in what the trigger queues; delivery is unchanged.
 - **Deviation: segments are patched in place, not recompiled (final review).** Recompiling from the tree, as Part 5 step 4 had it, did more than the fix:
   - It also applied every builder change made since the segment was saved, while only removed list members are re-queued, so the segment's other members keep results from the old SQL. For example, 39.0's `jsonb_typeof` guards on custom_json key checks have reached no segment saved before 39.0, because only v36 and v37 recompile.
@@ -357,8 +357,10 @@ Built on `origin/dev` at `44880ee`, where B1 had landed. Every part above is don
   - Its read-then-write could overwrite a segment saved concurrently with SQL from the tree it had read.
 
   Step 4 is now a single `UPDATE segments SET generated_sql = replace(generated_sql, …)`, selected the same way as the function patch. `generated_args`, `version` and `status` are untouched, and the list IDs still come from every non-deleted segment's tree. `TestV42Migration_PatchTurnsPre42OutputIntoTheCurrentOutput` pins that the old ending occurs only at the end of a list condition, in both segments and trigger functions; the same battery was checked against `origin/dev`'s real builder. The integration test now asserts that the patched SQL is byte-identical to the fixed builder's, that a pre-39 custom_json segment gains only the list predicate, and that the uncompilable segment is patched too.
+- **Moved in the changelog:** hiding removed lists in the notification center is credited to the private-lists bullet, not B24's. `visibleContactLists`, from the private-lists fix in the same release, already drops removed rows, so the integration subtest guards that behaviour end to end rather than testing this fix.
+- **Build tag.** Both new integration files are built only under the `integration` tag, since they use `createZapierSubscription` from an integration-tagged file.
 - **Not done here:** the `../docs` edits, which belong in a separate PR in that repository.
-- **Not run here:** the integration tests, since Docker wasn't available. Both new files pass `go vet -tags integration,licdev ./tests/integration/`.
+- **Integration tests:** not run locally, since Docker wasn't available; CI runs the whole integration package with `-tags integration,licdev` on every push to this PR, and it passed at `abbca9f`. Three of the new subtests could not pass as first written, and were fixed: a segment whose tree did not parse made `ProcessQueue` fail, a filter-node exit path added a contact to a second list, and the notification center subtest's broadcast had no template, so sending it failed with "variation not found".
 
 ## Probes
 
