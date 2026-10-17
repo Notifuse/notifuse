@@ -30,7 +30,8 @@ import (
 //
 // "Bound" means the request names a message that was sent to this contact for this list;
 // "unbound" names one sent to them for another list. A removed row is a soft-deleted
-// membership (contactLists.removeContact).
+// membership (contactLists.removeContact), and keeps the status it had: "removed
+// unsubscribed" is a contact who unsubscribed, then was removed, or the other way round.
 func TestSignedLinkMembershipStateMatrix(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -113,7 +114,8 @@ func TestSignedLinkMembershipStateMatrix(t *testing.T) {
 	private := newTarget("private", false)
 	other := newTarget("other", true)
 
-	// stateOf reads a contact's state on a list: "none", "removed" or the row's status
+	// stateOf reads a contact's state on a list: "none", the row's status, or "removed" and
+	// the status of a removed row
 	stateOf := func(t *testing.T, email, listID string) string {
 		t.Helper()
 		var status string
@@ -126,7 +128,7 @@ func TestSignedLinkMembershipStateMatrix(t *testing.T) {
 		}
 		require.NoError(t, err)
 		if removed {
-			return "removed"
+			return "removed " + status
 		}
 		return status
 	}
@@ -186,45 +188,64 @@ func TestSignedLinkMembershipStateMatrix(t *testing.T) {
 		return false
 	}
 
-	states := []string{"none", "active", "pending", "unsubscribed", "bounced", "complained", "removed"}
+	states := []string{"none", "active", "pending", "unsubscribed", "bounced", "complained",
+		"removed active", "removed pending", "removed unsubscribed", "removed bounced", "removed complained"}
 
 	// The outcome table. An unsubscribe leaves the contact unsubscribed, except that a
-	// bounced or complained row is kept: it says more than an opt-out, and is never mailed
+	// bounced or complained row is kept: it says more than an opt-out, and is never mailed.
+	// A removed contact stays removed, the opt-out recorded on their row: back on the list
+	// as unsubscribed, they would be in reach of broadcasts that include unsubscribed
+	// contacts.
 	afterUnsubscribe := func(before string) string {
-		if before == "bounced" || before == "complained" {
-			return before
+		status, removed := strings.CutPrefix(before, "removed ")
+		after := "unsubscribed"
+		if status == "bounced" || status == "complained" {
+			after = status
 		}
-		return "unsubscribed"
+		if removed {
+			return "removed " + after
+		}
+		return after
 	}
 	type subscribeOutcome struct {
 		code  int
 		after string
 	}
 	// Through a signature: a private list only confirms a pending row; a public one is
-	// open, a left list rejoining through the double opt-in (pending)
+	// open, a left list rejoining through the double opt-in (pending). A contact removed
+	// while active or pending subscribes as a new one; any other removed row is read as it
+	// would be on the list, so its opt-out, bounce or complaint still counts.
 	subscribeOutcomes := map[bool]map[string]subscribeOutcome{
 		false: { // private
-			"none":         {http.StatusBadRequest, "none"},
-			"active":       {http.StatusOK, "active"},
-			"pending":      {http.StatusOK, "active"},
-			"unsubscribed": {http.StatusBadRequest, "unsubscribed"},
-			"bounced":      {http.StatusOK, "bounced"},
-			"complained":   {http.StatusOK, "complained"},
-			"removed":      {http.StatusBadRequest, "removed"},
+			"none":                 {http.StatusBadRequest, "none"},
+			"active":               {http.StatusOK, "active"},
+			"pending":              {http.StatusOK, "active"},
+			"unsubscribed":         {http.StatusBadRequest, "unsubscribed"},
+			"bounced":              {http.StatusOK, "bounced"},
+			"complained":           {http.StatusOK, "complained"},
+			"removed active":       {http.StatusBadRequest, "removed active"},
+			"removed pending":      {http.StatusBadRequest, "removed pending"},
+			"removed unsubscribed": {http.StatusBadRequest, "removed unsubscribed"},
+			"removed bounced":      {http.StatusOK, "removed bounced"},
+			"removed complained":   {http.StatusOK, "removed complained"},
 		},
 		true: { // public
-			"none":         {http.StatusOK, "active"},
-			"active":       {http.StatusOK, "active"},
-			"pending":      {http.StatusOK, "active"},
-			"unsubscribed": {http.StatusOK, "pending"},
-			"bounced":      {http.StatusOK, "bounced"},
-			"complained":   {http.StatusOK, "complained"},
-			"removed":      {http.StatusOK, "active"},
+			"none":                 {http.StatusOK, "active"},
+			"active":               {http.StatusOK, "active"},
+			"pending":              {http.StatusOK, "active"},
+			"unsubscribed":         {http.StatusOK, "pending"},
+			"bounced":              {http.StatusOK, "bounced"},
+			"complained":           {http.StatusOK, "complained"},
+			"removed active":       {http.StatusOK, "active"},
+			"removed pending":      {http.StatusOK, "active"},
+			"removed unsubscribed": {http.StatusOK, "pending"},
+			"removed bounced":      {http.StatusOK, "removed bounced"},
+			"removed complained":   {http.StatusOK, "removed complained"},
 		},
 	}
 	// The preferences show public-list rows, and private-list rows the contact is on
 	shownFor := func(public bool, before string) bool {
-		if before == "none" || before == "removed" {
+		if before == "none" || strings.HasPrefix(before, "removed ") {
 			return false
 		}
 		return public || before == "active" || before == "pending"
@@ -241,28 +262,24 @@ func TestSignedLinkMembershipStateMatrix(t *testing.T) {
 					email := fmt.Sprintf("matrix-%s@example.com", uuid.New().String()[:12])
 					_, err := factory.CreateContact(workspace.ID, testutil.WithContactEmail(email))
 					require.NoError(t, err)
-					switch before {
-					case "none":
-					case "removed":
+					if before != "none" {
+						status, removed := strings.CutPrefix(before, "removed ")
 						_, err = factory.CreateContactList(workspace.ID, testutil.WithContactListEmail(email),
-							testutil.WithContactListListID(tgt.list.ID), testutil.WithContactListStatus(domain.ContactListStatusActive))
+							testutil.WithContactListListID(tgt.list.ID), testutil.WithContactListStatus(domain.ContactListStatus(status)))
 						require.NoError(t, err)
-						resp, err := client.Post("/api/contactLists.removeContact", map[string]interface{}{
-							"workspace_id": workspace.ID, "email": email, "list_id": tgt.list.ID,
-						})
-						require.NoError(t, err)
-						_ = resp.Body.Close()
-						require.Equal(t, http.StatusOK, resp.StatusCode)
-					default:
-						_, err = factory.CreateContactList(workspace.ID, testutil.WithContactListEmail(email),
-							testutil.WithContactListListID(tgt.list.ID), testutil.WithContactListStatus(domain.ContactListStatus(before)))
-						require.NoError(t, err)
+						if removed {
+							resp, err := client.Post("/api/contactLists.removeContact", map[string]interface{}{
+								"workspace_id": workspace.ID, "email": email, "list_id": tgt.list.ID,
+							})
+							require.NoError(t, err)
+							_ = resp.Body.Close()
+							require.Equal(t, http.StatusOK, resp.StatusCode)
+						}
 					}
 					require.Equal(t, before, stateOf(t, email, tgt.list.ID))
 
 					boundURL := listUnsubscribeURL(t, tgt.send(t, email))
 					bound := boundURL.Query()
-					unbound := listUnsubscribeURL(t, other.send(t, email)).Query()
 					require.Equal(t, tgt.list.ID, bound.Get("lids"))
 
 					switch action {
@@ -277,7 +294,7 @@ func TestSignedLinkMembershipStateMatrix(t *testing.T) {
 					case "bound unsubscribe", "unbound unsubscribe":
 						mid := bound.Get("mid")
 						if action == "unbound unsubscribe" {
-							mid = unbound.Get("mid")
+							mid = listUnsubscribeURL(t, other.send(t, email)).Query().Get("mid")
 						}
 						code, body := post(t, "/unsubscribe", map[string]interface{}{
 							"wid": bound.Get("wid"), "email": bound.Get("email"), "email_hmac": bound.Get("email_hmac"),

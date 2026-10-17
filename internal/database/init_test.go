@@ -368,6 +368,39 @@ func recordWorkspaceSchema(t *testing.T) *workspaceStatementRecorder {
 	return rec
 }
 
+// A fresh workspace must install the same contact_lists timeline function the
+// v42 migration installs on upgraded ones, so both record a re-add the same way.
+func TestInitializeWorkspaceDatabase_InstallsSharedContactListTimelineFunction(t *testing.T) {
+	rec := recordWorkspaceSchema(t)
+	issued := rec.statementContaining(t, "CREATE OR REPLACE FUNCTION track_contact_list_changes()")
+	assert.Equal(t, schema.TrackContactListChangesFunction(), issued)
+
+	count := 0
+	for _, stmt := range rec.issued {
+		if strings.Contains(stmt, "CREATE OR REPLACE FUNCTION track_contact_list_changes()") {
+			count++
+		}
+	}
+	assert.Equal(t, 1, count, "the function must be defined once, from the shared schema body")
+}
+
+// A fresh workspace must install the same complaint/bounce function the v42 migration
+// installs on upgraded ones, so both record a complaint on a list the same way.
+func TestInitializeWorkspaceDatabase_InstallsSharedStatusChangeFunction(t *testing.T) {
+	rec := recordWorkspaceSchema(t)
+	const header = "CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()"
+	issued := rec.statementContaining(t, header)
+	assert.Equal(t, schema.UpdateContactListsOnStatusChangeFunction(), issued)
+
+	count := 0
+	for _, stmt := range rec.issued {
+		if strings.Contains(stmt, header) {
+			count++
+		}
+	}
+	assert.Equal(t, 1, count, "the function must be defined once, from the shared schema body")
+}
+
 func TestInitializeWorkspaceDatabase_WebhookSubscriptionColumns(t *testing.T) {
 	subscriptions := recordWorkspaceSchema(t).statementContaining(t, "CREATE TABLE IF NOT EXISTS webhook_subscriptions")
 

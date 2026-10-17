@@ -1218,6 +1218,10 @@ func TestEmailNodeExecutor_Execute_GeneratesTemplateURLs(t *testing.T) {
 				"ListUnsubscribeURL should contain unsubscribe-oneclick path")
 			assert.Contains(t, entry.Payload.EmailOptions.ListUnsubscribeURL, "lids=list1",
 				"ListUnsubscribeURL should contain the list ID")
+			// The worker copies Payload.ListID into message_history.list_id, which the
+			// complaint/bounce trigger needs to record the status on the list.
+			assert.Equal(t, "list1", entry.Payload.ListID,
+				"automation entry must carry the automation's list")
 
 			return nil
 		})
@@ -1279,7 +1283,11 @@ func TestEmailNodeExecutor_Execute_NoListID_StillWorks(t *testing.T) {
 
 	mockEmailQueueRepo.EXPECT().
 		Enqueue(gomock.Any(), "ws1", gomock.Any()).
-		Return(nil)
+		DoAndReturn(func(ctx context.Context, workspaceID string, entries []*domain.EmailQueueEntry) error {
+			require.Len(t, entries, 1)
+			assert.Empty(t, entries[0].Payload.ListID, "an automation without a list sends for no list")
+			return nil
+		})
 
 	params := NodeExecutionParams{
 		WorkspaceID: "ws1",
@@ -1419,7 +1427,7 @@ func TestEmailNodeExecutor_Execute_MarketingEmail_UnsubscribedContact(t *testing
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "ws1").Return(workspace, nil)
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "ws1", "tpl123", int64(0)).Return(template, nil)
 	mockContactListRepo.EXPECT().
-		GetContactListByIDs(gomock.Any(), "ws1", "recipient@example.com", "list1").
+		GetContactListIncludingRemoved(gomock.Any(), "ws1", "recipient@example.com", "list1").
 		Return(&domain.ContactList{
 			Email:  "recipient@example.com",
 			ListID: "list1",
@@ -1469,7 +1477,7 @@ func TestEmailNodeExecutor_Execute_MarketingEmail_BouncedContact(t *testing.T) {
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "ws1").Return(workspace, nil)
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "ws1", "tpl123", int64(0)).Return(template, nil)
 	mockContactListRepo.EXPECT().
-		GetContactListByIDs(gomock.Any(), "ws1", "recipient@example.com", "list1").
+		GetContactListIncludingRemoved(gomock.Any(), "ws1", "recipient@example.com", "list1").
 		Return(&domain.ContactList{
 			Email:  "recipient@example.com",
 			ListID: "list1",
@@ -1516,7 +1524,7 @@ func TestEmailNodeExecutor_Execute_MarketingEmail_ComplainedContact(t *testing.T
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "ws1").Return(workspace, nil)
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "ws1", "tpl123", int64(0)).Return(template, nil)
 	mockContactListRepo.EXPECT().
-		GetContactListByIDs(gomock.Any(), "ws1", "recipient@example.com", "list1").
+		GetContactListIncludingRemoved(gomock.Any(), "ws1", "recipient@example.com", "list1").
 		Return(&domain.ContactList{
 			Email:  "recipient@example.com",
 			ListID: "list1",
@@ -1563,7 +1571,7 @@ func TestEmailNodeExecutor_Execute_MarketingEmail_ActiveContact(t *testing.T) {
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "ws1").Return(workspace, nil)
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "ws1", "tpl123", int64(0)).Return(template, nil)
 	mockContactListRepo.EXPECT().
-		GetContactListByIDs(gomock.Any(), "ws1", "recipient@example.com", "list1").
+		GetContactListIncludingRemoved(gomock.Any(), "ws1", "recipient@example.com", "list1").
 		Return(&domain.ContactList{
 			Email:  "recipient@example.com",
 			ListID: "list1",
@@ -1614,7 +1622,7 @@ func TestEmailNodeExecutor_Execute_MarketingEmail_ContactNotInList(t *testing.T)
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "ws1").Return(workspace, nil)
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "ws1", "tpl123", int64(0)).Return(template, nil)
 	mockContactListRepo.EXPECT().
-		GetContactListByIDs(gomock.Any(), "ws1", "recipient@example.com", "list1").
+		GetContactListIncludingRemoved(gomock.Any(), "ws1", "recipient@example.com", "list1").
 		Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
 	mockListRepo.EXPECT().GetListByID(gomock.Any(), "ws1", "list1").
 		Return(&domain.List{ID: "list1", Name: "Test List"}, nil)
@@ -1639,6 +1647,91 @@ func TestEmailNodeExecutor_Execute_MarketingEmail_ContactNotInList(t *testing.T)
 	assert.Equal(t, "next_node", *result.NextNodeID)
 	assert.Equal(t, domain.ContactAutomationStatusActive, result.Status)
 	assert.Equal(t, true, result.Output["queued"])
+}
+
+// A contact removed from the automation's list is a non-member, and non-members receive
+// its emails by design. A removal ends membership, though, not the opt-out, bounce or
+// complaint recorded on the row: those still stop the email, as they do for a member.
+// GetContactListByIDs hides removed rows, so the gate must read the row itself.
+func TestEmailNodeExecutor_Execute_MarketingEmail_RemovedContact(t *testing.T) {
+	removedAt := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	cases := []struct {
+		status   domain.ContactListStatus
+		skipped  bool
+		category string
+	}{
+		{domain.ContactListStatusComplained, true, "marketing"},
+		{domain.ContactListStatusBounced, true, "marketing"},
+		{domain.ContactListStatusUnsubscribed, true, "marketing"},
+		{domain.ContactListStatusComplained, true, "blog"},
+		// Removed while subscribed: a non-member like any other
+		{domain.ContactListStatusActive, false, "marketing"},
+		{domain.ContactListStatusPending, false, "marketing"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.category+" email, removed "+string(tc.status)+" row", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockEmailQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+			mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+			mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			mockListRepo := mocks.NewMockListRepository(ctrl)
+			mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
+			mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+
+			executor := NewEmailNodeExecutor(mockEmailQueueRepo, mockTemplateRepo, mockWorkspaceRepo, mockListRepo, mockContactListRepo, "https://api.example.com", mockLogger)
+
+			mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "ws1").Return(createTestWorkspaceWithEmailProvider(), nil)
+			mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "ws1", "tpl123", int64(0)).
+				Return(createTestTemplateWithCategory(tc.category), nil)
+			mockContactListRepo.EXPECT().
+				GetContactListIncludingRemoved(gomock.Any(), "ws1", "recipient@example.com", "list1").
+				Return(&domain.ContactList{
+					Email:     "recipient@example.com",
+					ListID:    "list1",
+					Status:    tc.status,
+					DeletedAt: &removedAt,
+				}, nil)
+			if !tc.skipped {
+				mockListRepo.EXPECT().GetListByID(gomock.Any(), "ws1", "list1").
+					Return(&domain.List{ID: "list1", Name: "Test List"}, nil)
+				mockEmailQueueRepo.EXPECT().Enqueue(gomock.Any(), "ws1", gomock.Any()).Return(nil)
+			}
+			// Otherwise no Enqueue expectation: gomock fails the test if the email is queued
+
+			params := NodeExecutionParams{
+				WorkspaceID: "ws1",
+				Node: &domain.AutomationNode{
+					ID:         "email_node1",
+					Type:       domain.NodeTypeEmail,
+					NextNodeID: strPtr("next_node"),
+					Config:     map[string]interface{}{"template_id": "tpl123"},
+				},
+				Contact:     &domain.ContactAutomation{ID: "ca1", ContactEmail: "recipient@example.com"},
+				ContactData: &domain.Contact{Email: "recipient@example.com"},
+				Automation:  &domain.Automation{ID: "auto1", Name: "Test Automation", ListID: "list1"},
+			}
+
+			result, err := executor.Execute(context.Background(), params)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			if tc.skipped {
+				assert.Nil(t, result.NextNodeID)
+				assert.Equal(t, domain.ContactAutomationStatusExited, result.Status)
+				require.NotNil(t, result.ExitReason)
+				assert.Equal(t, string(tc.status), *result.ExitReason)
+				assert.Equal(t, true, result.Output["skipped"])
+				assert.Equal(t, string(tc.status), result.Output["skip_reason"])
+			} else {
+				require.NotNil(t, result.NextNodeID)
+				assert.Equal(t, "next_node", *result.NextNodeID)
+				assert.Equal(t, domain.ContactAutomationStatusActive, result.Status)
+				assert.Equal(t, true, result.Output["queued"])
+			}
+		})
+	}
 }
 
 func TestEmailNodeExecutor_Execute_MarketingEmail_NoListID(t *testing.T) {
@@ -1788,7 +1881,7 @@ func TestEmailNodeExecutor_Execute_BlogEmail_UnsubscribedContact(t *testing.T) {
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "ws1").Return(workspace, nil)
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "ws1", "tpl123", int64(0)).Return(template, nil)
 	mockContactListRepo.EXPECT().
-		GetContactListByIDs(gomock.Any(), "ws1", "recipient@example.com", "list1").
+		GetContactListIncludingRemoved(gomock.Any(), "ws1", "recipient@example.com", "list1").
 		Return(&domain.ContactList{
 			Email:  "recipient@example.com",
 			ListID: "list1",
@@ -1835,7 +1928,7 @@ func TestEmailNodeExecutor_Execute_MarketingEmail_ContactListRepoError(t *testin
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "ws1").Return(workspace, nil)
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "ws1", "tpl123", int64(0)).Return(template, nil)
 	mockContactListRepo.EXPECT().
-		GetContactListByIDs(gomock.Any(), "ws1", "recipient@example.com", "list1").
+		GetContactListIncludingRemoved(gomock.Any(), "ws1", "recipient@example.com", "list1").
 		Return(nil, errors.New("database connection error"))
 
 	params := NodeExecutionParams{

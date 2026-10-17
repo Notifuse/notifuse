@@ -969,6 +969,72 @@ func TestQueryBuilder_ContactLists(t *testing.T) {
 	})
 }
 
+// A contact removed from a list (contact_lists.deleted_at set) is not a member of it:
+// segments and automation trigger conditions must both ignore the removed row, so that
+// "in list X" leaves them out and "not in list X" matches them.
+func TestQueryBuilder_ContactListConditionIgnoresRemovedRows(t *testing.T) {
+	qb := NewQueryBuilder()
+	active := "active"
+
+	leaf := func(operator string, status *string) *domain.TreeNode {
+		return &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contact_lists",
+				ContactList: &domain.ContactListCondition{
+					Operator: operator,
+					ListID:   "listX",
+					Status:   status,
+				},
+			},
+		}
+	}
+
+	cases := []struct {
+		name        string
+		tree        *domain.TreeNode
+		wantSegment string
+		wantTrigger string
+		wantArgs    []interface{}
+	}{
+		{
+			name:        "in with a status",
+			tree:        leaf("in", &active),
+			wantSegment: "SELECT email FROM contacts WHERE EXISTS (SELECT 1 FROM contact_lists cl JOIN lists l ON cl.list_id = l.id WHERE cl.email = contacts.email AND cl.list_id = $1 AND cl.status = $2 AND cl.deleted_at IS NULL AND l.deleted_at IS NULL)",
+			wantTrigger: "EXISTS (SELECT 1 FROM contact_lists cl JOIN lists l ON cl.list_id = l.id WHERE cl.email = NEW.email AND cl.list_id = $1 AND cl.status = $2 AND cl.deleted_at IS NULL AND l.deleted_at IS NULL)",
+			wantArgs:    []interface{}{"listX", "active"},
+		},
+		{
+			name:        "in without a status",
+			tree:        leaf("in", nil),
+			wantSegment: "SELECT email FROM contacts WHERE EXISTS (SELECT 1 FROM contact_lists cl JOIN lists l ON cl.list_id = l.id WHERE cl.email = contacts.email AND cl.list_id = $1 AND cl.deleted_at IS NULL AND l.deleted_at IS NULL)",
+			wantTrigger: "EXISTS (SELECT 1 FROM contact_lists cl JOIN lists l ON cl.list_id = l.id WHERE cl.email = NEW.email AND cl.list_id = $1 AND cl.deleted_at IS NULL AND l.deleted_at IS NULL)",
+			wantArgs:    []interface{}{"listX"},
+		},
+		{
+			name:        "not_in negates the whole membership test",
+			tree:        leaf("not_in", nil),
+			wantSegment: "SELECT email FROM contacts WHERE NOT EXISTS (SELECT 1 FROM contact_lists cl JOIN lists l ON cl.list_id = l.id WHERE cl.email = contacts.email AND cl.list_id = $1 AND cl.deleted_at IS NULL AND l.deleted_at IS NULL)",
+			wantTrigger: "NOT EXISTS (SELECT 1 FROM contact_lists cl JOIN lists l ON cl.list_id = l.id WHERE cl.email = NEW.email AND cl.list_id = $1 AND cl.deleted_at IS NULL AND l.deleted_at IS NULL)",
+			wantArgs:    []interface{}{"listX"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			sql, args, err := qb.BuildSQL(tc.tree)
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantSegment, sql)
+			assert.Equal(t, tc.wantArgs, args)
+
+			cond, condArgs, err := qb.BuildTriggerCondition(tc.tree, "NEW.email")
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantTrigger, cond)
+			assert.Equal(t, tc.wantArgs, condArgs)
+		})
+	}
+}
+
 func TestQueryBuilder_ContactTimeline(t *testing.T) {
 	qb := NewQueryBuilder()
 

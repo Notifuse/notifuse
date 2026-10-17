@@ -239,7 +239,8 @@ func membershipResult(contactList *domain.ContactList, listName string) *domain.
 // The resulting status is the part a caller cannot predict: a list in double
 // opt-in lands an unauthenticated subscriber on 'pending', a contact who had
 // unsubscribed is forced back through double opt-in whatever the list's setting,
-// and a bounced or complained address is refused outright. A caller told only
+// and a bounced or complained address is refused outright, both even once the
+// contact was removed from the list. A caller told only
 // that the request succeeded cannot tell any of those apart from a contact who is
 // now reachable.
 //
@@ -350,13 +351,21 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 			return nil, fmt.Errorf("list is not public")
 		}
 
-		// Check existing subscription status to prevent overwriting
-		existingCL, err := s.contactListRepo.GetContactListByIDs(ctx, workspace.ID, payload.Contact.Email, listID)
+		// Check existing subscription status to prevent overwriting. A contact removed from
+		// the list is read too: the removal ends their membership, not the opt-out, bounce or
+		// complaint on their row, which the guards below must still see.
+		existingCL, err := s.contactListRepo.GetContactListIncludingRemoved(ctx, workspace.ID, payload.Contact.Email, listID)
 		if err != nil {
 			if _, ok := err.(*domain.ErrContactListNotFound); !ok {
 				return nil, fmt.Errorf("failed to check existing subscription: %w", err)
 			}
 			// Not found — proceed as new subscription
+		}
+		// Removed while active or pending: not on the list, and nothing on the row to keep,
+		// so this is a new subscription
+		if existingCL != nil && existingCL.DeletedAt != nil &&
+			(existingCL.Status == domain.ContactListStatusActive || existingCL.Status == domain.ContactListStatusPending) {
+			existingCL = nil
 		}
 
 		// The workspace decides who is on a private list. A link's signature lets its contact
@@ -630,21 +639,29 @@ func (s *ListService) unsubscribeFromList(ctx context.Context, workspaceID, emai
 	// A bounced or complained address is never mailed, and its status says more than an
 	// opt-out, so it is kept. People who report spam often unsubscribe too: overwriting
 	// would turn the complaint into a plain "unsubscribed", which a broadcast set to
-	// include unsubscribed contacts mails again. The read and the update are separate
-	// statements, so a complaint saved between them is still overwritten.
-	current, err := s.contactListRepo.GetContactListByIDs(ctx, workspaceID, email, listID)
-	var notOnList *domain.ErrContactListNotFound
-	if err != nil && !errors.As(err, &notOnList) {
-		return false, err
-	}
-	if current != nil &&
-		(current.Status == domain.ContactListStatusBounced || current.Status == domain.ContactListStatusComplained) {
-		return true, nil
+	// include unsubscribed contacts mails again. The update keeps it in its own WHERE, so
+	// a complaint saved while this request runs is kept too. A contact removed from the
+	// list stays removed: an unsubscribe link from an email sent before the removal must
+	// not put them back on the list.
+	updated, err := s.contactListRepo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID)
+	if err != nil || updated {
+		return updated, err
 	}
 
-	err = s.contactListRepo.UpdateContactListStatus(ctx, workspaceID, email, listID, domain.ContactListStatusUnsubscribed)
+	// Nothing updated: either the row is bounced or complained and was kept, or the
+	// contact has no row on the list. A row in any other status was written after the
+	// update ran, by a subscribe or an import or by clearing its bounce, and takes the
+	// opt-out.
+	row, err := s.contactListRepo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
+	if err == nil {
+		if row.Status == domain.ContactListStatusBounced || row.Status == domain.ContactListStatusComplained {
+			return true, nil
+		}
+		return s.contactListRepo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID)
+	}
+	var notOnList *domain.ErrContactListNotFound
 	if !errors.As(err, &notOnList) {
-		return err == nil, err
+		return false, err
 	}
 
 	// No row on the list: automations email contacts who aren't on their list, and those
