@@ -316,7 +316,15 @@ func TestRemovedContactListMembership(t *testing.T) {
 	// --- 1. broadcasts ---------------------------------------------------------------
 
 	t.Run("broadcasts skip removed contacts, whatever exclude_unsubscribed says", func(t *testing.T) {
+		contactRepo := suite.ServerManager.GetApp().GetContactRepository()
 		for _, exclude := range []bool{true, false} {
+			// The recipient count sizes the broadcast's progress and its A/B test phases;
+			// it must leave removed contacts out as the recipient pages do.
+			count, err := contactRepo.CountContactsForBroadcast(ctx, workspace.ID,
+				domain.AudienceSettings{List: listX.ID, ExcludeUnsubscribed: exclude})
+			require.NoError(t, err)
+			assert.Equal(t, 1, count, "recipient count, exclude_unsubscribed=%t", exclude)
+
 			subject := fmt.Sprintf("b24-broadcast-%t-%s", exclude, uuid.New().String()[:8])
 			template, err := factory.CreateTemplate(workspace.ID, testutil.WithTemplateSubject(subject))
 			require.NoError(t, err)
