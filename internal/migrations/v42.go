@@ -246,6 +246,9 @@ func v42CollectListIDs(node *domain.TreeNode, ids map[string]struct{}) {
 
 // requeueRemovedListMembers queues for segment recomputation every contact removed from
 // one of the given (non-deleted) lists: only their segment results change with the fix.
+// Ordered by email, as the other bulk writers to contact_segment_queue are, so an instance
+// still writing during a rolling deploy takes the same row locks in the same order rather
+// than deadlock with the migration.
 func (m *V42Migration) requeueRemovedListMembers(ctx context.Context, db DBExecutor, listIDs []string) error {
 	if len(listIDs) == 0 {
 		return nil
@@ -258,6 +261,7 @@ func (m *V42Migration) requeueRemovedListMembers(ctx context.Context, db DBExecu
 		WHERE cl.deleted_at IS NOT NULL
 		  AND l.deleted_at IS NULL
 		  AND cl.list_id = ANY($1)
+		ORDER BY cl.email
 		ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at
 	`, pq.Array(listIDs)); err != nil {
 		return fmt.Errorf("failed to queue contacts: %w", err)

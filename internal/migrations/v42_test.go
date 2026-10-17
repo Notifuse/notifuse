@@ -122,7 +122,7 @@ const (
 	// SQL derived from the version read before it.
 	v42SegmentPatchStmt  = `UPDATE segments\s+SET generated_sql = replace\(generated_sql, \$1, \$2\)\s+WHERE status <> 'deleted'\s+AND strpos\(generated_sql, \$1\) > 0\s+AND strpos\(generated_sql, \$3\) > 0\s+AND strpos\(generated_sql, \$4\) = 0`
 	v42SegmentTreesQuery = `SELECT tree FROM segments\s+WHERE status <> 'deleted'`
-	v42RequeueStmt       = `INSERT INTO contact_segment_queue \(email, queued_at\)\s+SELECT DISTINCT cl.email, NOW\(\)\s+FROM contact_lists cl\s+JOIN lists l ON l.id = cl.list_id\s+WHERE cl.deleted_at IS NOT NULL\s+AND l.deleted_at IS NULL\s+AND cl.list_id = ANY\(\$1\)\s+ON CONFLICT \(email\) DO UPDATE SET queued_at = EXCLUDED.queued_at`
+	v42RequeueStmt       = `INSERT INTO contact_segment_queue \(email, queued_at\)\s+SELECT DISTINCT cl.email, NOW\(\)\s+FROM contact_lists cl\s+JOIN lists l ON l.id = cl.list_id\s+WHERE cl.deleted_at IS NOT NULL\s+AND l.deleted_at IS NULL\s+AND cl.list_id = ANY\(\$1\)\s+ORDER BY cl.email\s+ON CONFLICT \(email\) DO UPDATE SET queued_at = EXCLUDED.queued_at`
 )
 
 func expectNoFunctions(mock sqlmock.Sqlmock) {
@@ -392,6 +392,19 @@ func TestV42Migration_NoListConditionMeansNoRequeue(t *testing.T) {
 // A failure outside the per-function savepoints aborts the workspace migration, so the
 // transaction rolls back and the version is not recorded.
 func TestV42Migration_PropagatesErrors(t *testing.T) {
+	t.Run("disabling statement_timeout", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		mock.ExpectExec(exactly("SET LOCAL statement_timeout = 0")).WillReturnError(errors.New("boom"))
+
+		err = runV42(t, db)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to disable statement_timeout")
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
 	t.Run("installing a contact_lists trigger function", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
@@ -417,7 +430,7 @@ func TestV42Migration_PropagatesErrors(t *testing.T) {
 
 		err = runV42(t, db)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "segment")
+		assert.Contains(t, err.Error(), "failed to patch segment queries")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -433,7 +446,7 @@ func TestV42Migration_PropagatesErrors(t *testing.T) {
 
 		err = runV42(t, db)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "segment")
+		assert.Contains(t, err.Error(), "failed to query segment trees")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -453,4 +466,163 @@ func TestV42Migration_PropagatesErrors(t *testing.T) {
 		assert.Contains(t, err.Error(), "re-queue")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
+}
+
+// A list condition nested in a branch names its list as a top-level one does, and an
+// empty branch or a null leaf names none.
+func TestV42Migration_RequeuesListsNamedInsideBranches(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	expectV42Prelude(mock)
+	expectNoFunctions(mock)
+	expectSegmentPatch(mock).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(v42SegmentTreesQuery).WillReturnRows(treeRows(t,
+		v42Branch("and",
+			v42ContactsOnlyTree(),
+			v42Branch("or", v42ListLeaf("in", "listA", nil), v42ListLeaf("not_in", "listB", nil)),
+		),
+		v42Branch("and"),
+		[]byte(`{"kind":"branch","branch":{"operator":"and","leaves":[null]}}`),
+	))
+	mock.ExpectExec(v42RequeueStmt).
+		WithArgs(pq.Array([]string{"listA", "listB"})).
+		WillReturnResult(sqlmock.NewResult(0, 2))
+
+	require.NoError(t, runV42(t, db))
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// A selected function whose list condition does not end the way the old builder ended it
+// is left alone: no savepoint, no DDL.
+func TestV42Migration_FunctionWithoutTheOldEndingIsNotRewritten(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	active := "active"
+	_, oldFn := v42TriggerFunction(t, "auto1", v42ListLeaf("in", "listX", &active))
+	noOldEnding := strings.ReplaceAll(oldFn, " AND l.deleted_at IS NULL", "")
+	require.Contains(t, noOldEnding, "FROM contact_lists cl JOIN lists l")
+	require.NotContains(t, noOldEnding, " AND l.deleted_at IS NULL)")
+
+	expectV42Prelude(mock)
+	mock.ExpectQuery(v42FunctionsQuery).WillReturnRows(functionRows(noOldEnding))
+	expectNoSegments(mock)
+
+	require.NoError(t, runV42(t, db))
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// Failures reading the functions, managing a savepoint or reading segment trees abort the
+// workspace migration too; only a failed patch of one function is contained.
+func TestV42Migration_PropagatesReadAndSavepointErrors(t *testing.T) {
+	active := "active"
+	newFn, oldFn := v42TriggerFunction(t, "auto1", v42ListLeaf("in", "listX", &active))
+	boom := errors.New("boom")
+
+	tests := []struct {
+		name    string
+		expect  func(mock sqlmock.Sqlmock)
+		wantErr string
+	}{
+		{
+			name: "querying automation trigger functions",
+			expect: func(mock sqlmock.Sqlmock) {
+				expectV42Prelude(mock)
+				mock.ExpectQuery(v42FunctionsQuery).WillReturnError(boom)
+			},
+			wantErr: "failed to query automation trigger functions",
+		},
+		{
+			name: "scanning an automation trigger function",
+			expect: func(mock sqlmock.Sqlmock) {
+				expectV42Prelude(mock)
+				mock.ExpectQuery(v42FunctionsQuery).WillReturnRows(
+					sqlmock.NewRows([]string{"oid", "pg_get_functiondef"}).AddRow("not an oid", oldFn)).
+					RowsWillBeClosed()
+			},
+			wantErr: "failed to scan automation trigger function",
+		},
+		{
+			name: "iterating automation trigger functions",
+			expect: func(mock sqlmock.Sqlmock) {
+				expectV42Prelude(mock)
+				mock.ExpectQuery(v42FunctionsQuery).WillReturnRows(functionRows(oldFn).RowError(0, boom))
+			},
+			wantErr: "error iterating automation trigger functions",
+		},
+		{
+			name: "creating a savepoint",
+			expect: func(mock sqlmock.Sqlmock) {
+				expectV42Prelude(mock)
+				mock.ExpectQuery(v42FunctionsQuery).WillReturnRows(functionRows(oldFn))
+				mock.ExpectExec(exactly("SAVEPOINT v42_automation_trigger")).WillReturnError(boom)
+			},
+			wantErr: "failed to create savepoint",
+		},
+		{
+			name: "rolling back to a savepoint",
+			expect: func(mock sqlmock.Sqlmock) {
+				expectV42Prelude(mock)
+				mock.ExpectQuery(v42FunctionsQuery).WillReturnRows(functionRows(oldFn))
+				mock.ExpectExec(exactly("SAVEPOINT v42_automation_trigger")).WillReturnResult(sqlmock.NewResult(0, 0))
+				mock.ExpectExec(exactly(newFn)).WillReturnError(errors.New("syntax error"))
+				mock.ExpectExec(exactly("ROLLBACK TO SAVEPOINT v42_automation_trigger")).WillReturnError(boom)
+			},
+			wantErr: "failed to roll back savepoint",
+		},
+		{
+			name: "releasing a savepoint",
+			expect: func(mock sqlmock.Sqlmock) {
+				expectV42Prelude(mock)
+				mock.ExpectQuery(v42FunctionsQuery).WillReturnRows(functionRows(oldFn))
+				mock.ExpectExec(exactly("SAVEPOINT v42_automation_trigger")).WillReturnResult(sqlmock.NewResult(0, 0))
+				mock.ExpectExec(exactly(newFn)).WillReturnResult(sqlmock.NewResult(0, 0))
+				mock.ExpectExec(exactly("RELEASE SAVEPOINT v42_automation_trigger")).WillReturnError(boom)
+			},
+			wantErr: "failed to release savepoint",
+		},
+		{
+			name: "scanning a segment tree",
+			expect: func(mock sqlmock.Sqlmock) {
+				expectV42Prelude(mock)
+				expectNoFunctions(mock)
+				expectSegmentPatch(mock).WillReturnResult(sqlmock.NewResult(0, 0))
+				// A column count that doesn't match the destinations is what reliably
+				// fails a scan into *[]byte.
+				mock.ExpectQuery(v42SegmentTreesQuery).WillReturnRows(
+					sqlmock.NewRows([]string{"tree", "extra"}).AddRow([]byte("{}"), "x")).
+					RowsWillBeClosed()
+			},
+			wantErr: "failed to scan segment tree",
+		},
+		{
+			name: "iterating segment trees",
+			expect: func(mock sqlmock.Sqlmock) {
+				expectV42Prelude(mock)
+				expectNoFunctions(mock)
+				expectSegmentPatch(mock).WillReturnResult(sqlmock.NewResult(0, 0))
+				mock.ExpectQuery(v42SegmentTreesQuery).WillReturnRows(
+					treeRows(t, v42ListLeaf("in", "listW", nil)).RowError(0, boom))
+			},
+			wantErr: "error iterating segment trees",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer db.Close()
+
+			tt.expect(mock)
+
+			err = runV42(t, db)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErr)
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
 }
