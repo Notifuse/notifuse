@@ -58,6 +58,8 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Adding a removed contact back to a list with the status they had now records `list.subscribed` (or `list.pending` while awaiting double opt-in) on their timeline and as a webhook event, so "every time" automations triggered by it enroll them again, imports included. A re-add that moves them to awaiting double opt-in now sends `list.pending` as a webhook event too. Removing a contact who is already removed records nothing.
 
+- **Improvement**: Broadcasts to large lists no longer slow down as sending progresses. Each batch of recipients is now read from where the previous one stopped.
+
 - **Change**: The database schema moves to v42. Workspace databases get updated `contact_lists` and `message_history` trigger functions, and their stored segment queries and live automation triggers are updated in place; segments are re-evaluated for contacts removed from their lists. The system database is untouched.
 
 ## [41.0] - 2026-09-17

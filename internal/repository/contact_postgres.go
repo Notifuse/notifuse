@@ -1452,9 +1452,13 @@ func (r *contactRepository) GetContactsForBroadcast(
 			Limit(uint64(limit)).
 			OrderBy("c.email ASC") // Sort by email only (unique, deterministic)
 
-		// Cursor-based pagination: fetch contacts with email > afterEmail
+		// Cursor-based pagination: fetch contacts with email > afterEmail. The bound is
+		// repeated on cl.email, equal to c.email through the join, so the planner starts
+		// its contact_lists scan at the cursor. With c.email alone it read every row
+		// before the cursor on each page, and a broadcast to a large list slowed down as
+		// it went.
 		if afterEmail != "" {
-			query = query.Where(sq.Gt{"c.email": afterEmail})
+			query = query.Where(sq.Gt{"c.email": afterEmail}).Where(sq.Gt{"cl.email": afterEmail})
 		}
 
 		// Bounced and complained addresses are never mailed. Unsubscribed contacts are
