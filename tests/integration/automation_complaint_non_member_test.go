@@ -33,6 +33,10 @@ import (
 // trigger turning them into a list status only updated existing rows, so a non-member
 // got none, and the automation email gate read through GetContactListByIDs, which hides a
 // removed contact's row, so a removed contact's complaint was ignored.
+//
+// The other writes and reads of a removed contact's row are covered here too: a one-click
+// unsubscribe, the public subscribe form, and a hard bounce on an email that stores no
+// list.
 func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -173,12 +177,26 @@ func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 		return false
 	}
 
+	// expectSkipped checks the automation skips its next email, then adds the contact back
+	// to the list through the API, as a workspace might. The status survives it, so the
+	// list's broadcasts don't email them either; a contact with no status on the list
+	// would come back an active member. Until then, the contact is in no broadcast
+	// audience either way, being off the list.
 	expectSkipped := func(t *testing.T, email string, reason domain.ContactListStatus) {
 		t.Helper()
 		ca := sendAgain(t, email)
 		require.NotNil(t, ca.ExitReason)
 		assert.Equal(t, string(reason), *ca.ExitReason, "the next email is skipped, not sent")
 		assert.Equal(t, 1, deliveredCountTo(t, email), "only the first email was delivered")
+
+		post(t, "/api/lists.subscribe", map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"contact":      map[string]interface{}{"email": email},
+			"list_ids":     []string{list.ID},
+		})
+		row := rowOf(t, email)
+		require.NotNil(t, row)
+		assert.Equal(t, reason, row.status, "adding the contact back to the list keeps the status")
 		assert.False(t, inBroadcastAudience(t, email), "the list's broadcasts don't email them either")
 	}
 
