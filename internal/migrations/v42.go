@@ -25,7 +25,8 @@ import (
 //     contact added back now records what a first subscription records (list.subscribed,
 //     list.pending, …). Without it the re-add wrote no timeline row, so the segment queue
 //     never re-evaluated the contact, and the query fix alone would have kept every
-//     re-added contact out of their "in list" segments.
+//     re-added contact out of their "in list" segments. Removing a contact who is already
+//     removed no longer records list.removed again.
 //  2. Installed automation trigger functions are patched in place. Their conditions are
 //     compiled into the function body with values inlined, so the stored text is exactly
 //     the generator's old output; inserting the predicate gives exactly its new output.
@@ -246,9 +247,10 @@ func v42CollectListIDs(node *domain.TreeNode, ids map[string]struct{}) {
 
 // requeueRemovedListMembers queues for segment recomputation every contact removed from
 // one of the given (non-deleted) lists: only their segment results change with the fix.
-// Ordered by email, as the other bulk writers to contact_segment_queue are, so an instance
-// still writing during a rolling deploy takes the same row locks in the same order rather
-// than deadlock with the migration.
+// Ordered by email, in the database's collation as webNavigationRequeue is, so the two take
+// the queue's row locks in the same order. Any transaction that queues contacts out of email
+// order, such as an import, can still deadlock with it; Postgres then aborts one of them, and
+// an aborted migration runs again on the next start.
 func (m *V42Migration) requeueRemovedListMembers(ctx context.Context, db DBExecutor, listIDs []string) error {
 	if len(listIDs) == 0 {
 		return nil

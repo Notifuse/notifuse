@@ -426,9 +426,21 @@ func TestRemovedContactListMembership(t *testing.T) {
 		removeViaAPI(t, again, listX.ID)
 		require.Equal(t, 1, timelineKindCount(t, db, again, "list.removed", listX.ID))
 
+		// Only contact_list rows: background workers write segment rows for this contact
+		// on their own schedule.
+		membershipRows := func() int {
+			var n int
+			require.NoError(t, db.QueryRowContext(context.Background(),
+				`SELECT COUNT(*) FROM contact_timeline WHERE email = $1 AND entity_type = 'contact_list'`,
+				again).Scan(&n))
+			return n
+		}
+		before := membershipRows()
+
 		removeViaAPI(t, again, listX.ID)
 		assert.Equal(t, 1, timelineKindCount(t, db, again, "list.removed", listX.ID),
 			"a second removal records no second list.removed")
+		assert.Equal(t, before, membershipRows(), "a second removal records no list event at all")
 	})
 
 	// --- 4. trigger condition --------------------------------------------------------
