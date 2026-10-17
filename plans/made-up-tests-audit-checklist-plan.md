@@ -18,7 +18,7 @@ Verification levels used below:
 
 1. Write the "Test first" test. It must use the real artifact (delivered email, real handler, real SDK output), and it must fail for the reported reason.
 2. Fix, see it pass, run the layer tests (see "Running the tests").
-3. CHANGELOG: the top section is the unreleased 41.1 (`- WIP`), so don't bump `VERSION`. A defect in released behaviour gets a short **Fix** bullet; a rough edge that worked as designed is an **Improvement**. Keep entries to 2-4 sentences.
+3. CHANGELOG: the top section is the unreleased 42.0 (`- WIP`; B24 bumped `VERSION` to 42.0 with its v42 migration), so don't bump `VERSION` again. A schema change goes into the unreleased v42. A defect in released behaviour gets a short **Fix** bullet; a rough edge that worked as designed is an **Improvement**. Keep entries to 2-4 sentences.
 4. Tick the box and note the commit.
 
 ## High
@@ -51,13 +51,13 @@ Verification levels used below:
   - Fix direction, server: decode actions one by one (`[]json.RawMessage`) so one bad entry is dropped, or coerce numbers/booleans in `properties` and numeric strings in `value`.
   - Fix direction, SDK: validate or coerce in `trackGoal`, as `setDimension` already does (`src/core/session.ts:414`). Add a note in `../docs` goals page.
 
-- [ ] **B24 — Contacts removed from a list keep receiving its broadcasts**
+- [x] **B24 — Contacts removed from a list keep receiving its broadcasts** — fixed 2026-10-16 on branch `claude/made-up-tests-audit-high-ciyb05-b24`, see its PR.
   - Impact: the API's "remove from list" (`contactLists.removeContact`) and the automation "Remove from List" node both soft-delete the row, and the broadcast audience ignores that. A removed contact keeps getting every broadcast to the list, even with `exclude_unsubscribed: true`. Segments built on "is in list X with status active" also keep matching removed contacts.
   - Cause: `GetContactsForBroadcast` and `CountContactsForBroadcast` (`internal/repository/contact_postgres.go:1440-1462`, `:1730-1746`) and the segment `contact_list` condition (`internal/service/query_builder.go:1222-1250`) never filter `cl.deleted_at`. Other membership queries in the same repository do (`contact_postgres.go:297-305`, `:428`).
   - Verified: Reproduced. `removeContact` → 200; then a broadcast to the list with `exclude_unsubscribed: true` reported `recipient_count: 2`, and both the active and the removed contact received the real email in Mailpit. Probe: `/private/tmp/claude-501/-Users-pierre-Sites-notifuse3-code-notifuse/dea8a25b-947f-46a9-ad32-e4e84bbe0b2b/scratchpad/probe/src/tests/integration/zz_verify_removed_contact_broadcast_test.go`.
   - Test first: remove a contact through the API, send a broadcast to the list, and read Mailpit: the removed contact gets nothing and the count excludes them. Add a segment case: "is in list X with status active" no longer matches after removal.
   - Fix direction: add `cl.deleted_at IS NULL` to both audience queries and to the segment condition. Segment membership must be recomputed for affected segments. This touches the same two queries as B1's Part 2, so do it right after B1.
-  - Plan: `plans/fix-removed-contacts-list-membership-plan.md` (2026-10-15, independently reviewed, not implemented). The scope is wider than above:
+  - Plan: `plans/fix-removed-contacts-list-membership-plan.md` (2026-10-15, independently reviewed, implemented 2026-10-16). The scope is wider than above:
     - automation trigger conditions, filter nodes, the API's `contact_lists`, Liquid and the notification center are affected too;
     - a re-add writes no event, so the query fix alone would keep re-added contacts out of their segments;
     - a v42 migration patches the stored SQL. Decided 2026-10-16: a re-add records what a subscribe does (P1), and B24 ships in the current unreleased version, which becomes 42.0 (P2).

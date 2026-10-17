@@ -84,7 +84,7 @@ func TestGetContactByEmail(t *testing.T) {
 		"list1", "active", now, now, nil, "Marketing List",
 	)
 
-	mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1 AND l\.deleted_at IS NULL`).
+	mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL`).
 		WithArgs(email).
 		WillReturnRows(listRows)
 
@@ -167,7 +167,7 @@ func TestGetContactByExternalID(t *testing.T) {
 		"list1", "active", now, now, nil, "Marketing List",
 	)
 
-	mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1 AND l\.deleted_at IS NULL`).
+	mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL`).
 		WithArgs(email).
 		WillReturnRows(listRows)
 
@@ -232,7 +232,7 @@ func TestGetContactByExternalID(t *testing.T) {
 			"list_id", "status", "created_at", "updated_at", "deleted_at", "list_name",
 		})
 
-		mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1`).
+		mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL`).
 			WithArgs(email).
 			WillReturnRows(listRows)
 
@@ -311,7 +311,7 @@ func TestFetchContact(t *testing.T) {
 			"list2", "active", now, now, nil, "Newsletter",
 		)
 
-		mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1`).
+		mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL`).
 			WithArgs(email).
 			WillReturnRows(listRows)
 
@@ -370,7 +370,7 @@ func TestFetchContact(t *testing.T) {
 			WillReturnRows(rows)
 
 		// Set up expectations for contact lists query with error
-		mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1`).
+		mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL`).
 			WithArgs(email).
 			WillReturnError(errors.New("database error"))
 
@@ -1370,7 +1370,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			)
 
 			// Expect query with JOINS for list filtering, excludeUnsubscribed, and double opt-in guard (cursor-based pagination)
-		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) ORDER BY c\.email ASC LIMIT 10`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
@@ -1519,7 +1519,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		}
 
 		// Expect query with error (cursor-based pagination, includes double opt-in guard)
-		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) ORDER BY c\.email ASC LIMIT 10`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
@@ -1643,7 +1643,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		// (l.is_double_optin = $4 OR cl.status <> $5)
 		// This predicate, when evaluated by the DB, keeps only rows where either the list does
 		// NOT use double opt-in, or the contact's status is not 'pending'.
-		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND \(l\.is_double_optin = \$4 OR cl\.status <> \$5\) ORDER BY c\.email ASC LIMIT 10`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND \(l\.is_double_optin = \$4 OR cl\.status <> \$5\) ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list-doi", domain.ContactListStatusBounced, domain.ContactListStatusComplained, false, domain.ContactListStatusPending).
 			WillReturnRows(rows)
 
@@ -1675,7 +1675,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			ExcludeUnsubscribed: false,
 		}
 
-		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND \(l\.is_double_optin = \$4 OR cl\.status <> \$5\) ORDER BY c\.email ASC LIMIT 10`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND \(l\.is_double_optin = \$4 OR cl\.status <> \$5\) ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list1",
 				domain.ContactListStatusBounced,
 				domain.ContactListStatusComplained,
@@ -1717,7 +1717,7 @@ func TestCountContactsForBroadcast(t *testing.T) {
 
 		// Expect query with JOINS for list filtering, soft-deleted lists filtering, excludeUnsubscribed,
 		// and the double opt-in guard (l.is_double_optin = $5 OR cl.status <> $6).
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\)`).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\)`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
@@ -1894,7 +1894,7 @@ func TestCountContactsForBroadcast(t *testing.T) {
 
 		// Expect query with JOINs for both list, lists table (for soft-delete filter), segment filtering,
 		// and the double opt-in guard (l.is_double_optin = $5 OR cl.status <> $6).
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id JOIN contact_segments cs ON c\.email = cs\.email WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) AND cs\.segment_id IN \(\$7\)`).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id JOIN contact_segments cs ON c\.email = cs\.email WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) AND cs\.segment_id IN \(\$7\)`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
@@ -1935,7 +1935,7 @@ func TestCountContactsForBroadcast(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(3)
 
 		// Only confirmed contacts (status != 'pending') from a double opt-in list are counted.
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND \(l\.is_double_optin = \$4 OR cl\.status <> \$5\)`).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND \(l\.is_double_optin = \$4 OR cl\.status <> \$5\)`).
 			WithArgs("list-doi", domain.ContactListStatusBounced, domain.ContactListStatusComplained, false, domain.ContactListStatusPending).
 			WillReturnRows(rows)
 
@@ -1963,7 +1963,7 @@ func TestCountContactsForBroadcast(t *testing.T) {
 		}
 
 		// The same filters as GetContactsForBroadcast, so the count shown matches the send
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND \(l\.is_double_optin = \$4 OR cl\.status <> \$5\)`).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND \(l\.is_double_optin = \$4 OR cl\.status <> \$5\)`).
 			WithArgs("list1",
 				domain.ContactListStatusBounced,
 				domain.ContactListStatusComplained,

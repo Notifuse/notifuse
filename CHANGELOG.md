@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [41.1] - WIP
+## [42.0] - WIP
 
 - **Security**: Outgoing webhooks are no longer a server-side request forgery (SSRF) vector. Webhook subscriptions and automation webhook nodes posted to a member-supplied URL with a plain HTTP client, so anyone holding `webhook_subscriptions:write` or `automations:write` could aim them at the deployment's own network — the cloud metadata endpoint, an internal service — and read the response back through `webhookSubscriptions.test`, the delivery log or an automation's node executions. Both now refuse private, loopback, link-local and reserved addresses at dial time and on every redirect, and refuse to save a URL that names one; the automation editor marks such a webhook node and says why. Self-hosted deployments that deliberately deliver to their own network can opt out with `WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true`; until they do, a refused subscription delivery is retried without counting toward the automatic-disable threshold, and a refused automation step fails like any other webhook error.
 
@@ -18,7 +18,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: A broadcast created through the API without `exclude_unsubscribed` no longer emails the list's unsubscribed contacts: leaving the key out now means exclude, as in the console. Bounced and complained addresses are never emailed, even with `exclude_unsubscribed: false`, and unsubscribing no longer erases a bounce or complaint, which a mail client's one-click unsubscribe used to do right after a spam report. Broadcasts created before the upgrade keep the value they were saved with.
 
-- **Security**: The notification center no longer lets a contact join a private list. Anyone holding one of their emails could subscribe their address to any private list by guessing its ID, which the console derives from the list's name, then receive that list's broadcasts and see it named in their preferences. Contacts can now only leave the private lists they are on, the page no longer shows the ones they left or were removed from, and adding someone back is up to the workspace. Integrations that called `/subscribe` with an `email_hmac` to add contacts to private lists must use `lists.subscribe` instead.
+- **Security**: Contacts can no longer join a private list from the notification center: they can only leave the private lists they are on. The page no longer shows private lists they left or were removed from, nor a public list they were removed from as one they are on. Integrations that used `/subscribe` with an `email_hmac` to add contacts to private lists must use `lists.subscribe` instead.
 
 - **Fix**: Liquid typed in the visual editor is no longer broken by the editor's own formatting (#438). It curled typed quotes, turned `!=` into `≠` and stored `>` as `&gt;`, none of which Liquid reads: `{{ first_name | default: 'Valued User' }}` rendered `Hello !`, and a comparison only tested whether its left side was set. The editor now leaves `{{ }}` and `{% %}` as typed, and templates saved with these characters are repaired when they render, including in links, image titles and tags containing `%`. A comparison that now actually runs can show Liquid's type error, such as a number compared with a quoted value (`> "100"`): remove the quotes.
 
@@ -36,15 +36,21 @@ All notable changes to this project will be documented in this file.
 
 - **Security**: Cleared the two open Dependabot alerts, plus the newer advisories `npm audit` already reports. The console moves to `dompurify` 3.4.17, where an in-place sanitise could leave a removed node's event handlers armed, and to `seroval` 1.6.9, the serializer bundled with TanStack Router (a critical advisory in its JSON deserializer). `brace-expansion`, `source-map-js` and `proxy-addr` are build-time only, and the notification center and SDK now audit clean. Two console advisories stay open with no fix to take: `braces` has no patched release, and the patched `katex` 0.18 is not yet accepted by `mermaid` 11 or `@ant-design/x-markdown`.
 
-- **Improvement**: Signing in after moving an instance to a new domain now says why it fails (#435). The console sends every request to the configured `API_ENDPOINT`, so it kept calling the old address and showed only "Failed to fetch"; the sign-in page now names both addresses and says to set `API_ENDPOINT` to the new one and restart. The self-hosting docs gain a "Changing your domain" page listing everything else tied to that address.
+- **Improvement**: Signing in after moving an instance to a new domain now explains the fix: set `API_ENDPOINT` to the new address and restart (#435). The self-hosting docs gain a "Changing your domain" page.
 
-- **Fix**: `CORS_ALLOW_ORIGIN` now accepts the comma-separated list of origins the documentation describes. The list was sent to browsers as written, which they refuse, so restricting CORS to more than one origin blocked every cross-origin call, including the console and notification center opened on a workspace custom domain. A listed origin is now answered with itself, and any other origin gets no CORS header.
+- **Improvement**: `CORS_ALLOW_ORIGIN` now accepts a comma-separated list of origins, as documented.
 
-- **Fix**: `templates.update` on a deleted template now answers `404` instead of saving a new version, which put the deleted template back in the template list and every template picker (#442).
+- **Improvement**: `templates.update` on a deleted template now answers `404` and leaves it deleted (#442).
 
-- **Improvement**: Creating a template with the ID of a deleted template now says why it is refused (deleted templates keep their ID, so messages already sent with them can still be displayed) instead of a bare "Template id already exists", and `templates.get` returns `deleted_at` for them. The template editor also says up front that the editor mode can't be changed after creation, and an update in the other mode now explains how to switch (#442).
+- **Improvement**: Creating a template with the ID of a deleted template now says why it is refused, and `templates.get` returns `deleted_at`. The template editor says that the editor mode can't be changed after creation (#442).
 
-- **Fix**: "Detect from website URL" no longer fills the logo with the website's own address, or with an icon that doesn't exist (#432). It returned the first icon link it found without loading it, so an empty or placeholder link could beat a working SVG favicon. Each candidate is now loaded and must be an image, and links resolve against the page reached after redirects.
+- **Improvement**: "Detect from website URL" now only picks a logo that loads as an image (#432).
+
+- **Fix**: A contact removed from a list is now treated as off the list everywhere: broadcasts, segments, automation conditions and nodes, the API's `contact_lists` and a template's `contact.contact_lists`. Upgrading updates existing segments and live automations, and affected contacts get one `segment.left` or `segment.joined` event per segment.
+
+- **Improvement**: Adding a removed contact back to a list with the status they had now records `list.subscribed` (or `list.pending` while awaiting double opt-in) on their timeline and as a webhook event, so "every time" automations triggered by it enroll them again, imports included. A re-add that moves them to awaiting double opt-in now sends `list.pending` as a webhook event too. Removing a contact who is already removed records nothing.
+
+- **Change**: The database schema moves to v42. Workspace databases get updated `contact_lists` trigger functions, and their stored segment queries and live automation triggers are updated in place; segments are re-evaluated for contacts removed from their lists. The system database is untouched.
 
 ## [41.0] - 2026-09-17
 

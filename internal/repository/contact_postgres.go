@@ -169,6 +169,8 @@ func (r *contactRepository) fetchContact(ctx context.Context, workspaceID string
 		Join("lists l ON cl.list_id = l.id").
 		Where(sq.Eq{"cl.email": contact.Email}).
 		Where(sq.Eq{"l.deleted_at": nil}).
+		// A contact removed from a list is no longer a member of it.
+		Where(sq.Eq{"cl.deleted_at": nil}).
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build contact lists query: %w", err)
@@ -1445,7 +1447,8 @@ func (r *contactRepository) GetContactsForBroadcast(
 			Join("contact_lists cl ON c.email = cl.email").
 			Join("lists l ON cl.list_id = l.id"). // Join with lists table to get the name
 			Where(sq.Eq{"cl.list_id": audience.List}).
-			Where(sq.Eq{"l.deleted_at": nil}). // Filter out deleted lists
+			Where(sq.Eq{"l.deleted_at": nil}).  // Filter out deleted lists
+			Where(sq.Eq{"cl.deleted_at": nil}). // A contact removed from the list is not in the audience
 			Limit(uint64(limit)).
 			OrderBy("c.email ASC") // Sort by email only (unique, deterministic)
 
@@ -1738,6 +1741,8 @@ func (r *contactRepository) CountContactsForBroadcast(
 		query = query.Where(sq.Eq{"cl.list_id": audience.List})
 		// Filter out soft-deleted lists (matches GetContactsForBroadcast)
 		query = query.Where(sq.Eq{"l.deleted_at": nil})
+		// A contact removed from the list is not in the audience, whatever exclude_unsubscribed says
+		query = query.Where(sq.Eq{"cl.deleted_at": nil})
 
 		// Bounced and complained addresses are never mailed. Unsubscribed contacts are
 		// mailed only when the broadcast explicitly asks for it, e.g. for a legal notice.

@@ -631,69 +631,9 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
-		// Contact list changes trigger function - uses semantic event kinds (list.subscribed, list.confirmed, etc.)
-		`CREATE OR REPLACE FUNCTION track_contact_list_changes()
-		RETURNS TRIGGER AS $$
-		DECLARE
-			changes_json JSONB := '{}'::jsonb;
-			op VARCHAR(20);
-			kind_value VARCHAR(50);
-		BEGIN
-			IF TG_OP = 'INSERT' THEN
-				op := 'insert';
-
-				-- Map initial status to semantic event kind (dotted format)
-				kind_value := CASE NEW.status
-					WHEN 'active' THEN 'list.subscribed'
-					WHEN 'pending' THEN 'list.pending'
-					WHEN 'unsubscribed' THEN 'list.unsubscribed'
-					WHEN 'bounced' THEN 'list.bounced'
-					WHEN 'complained' THEN 'list.complained'
-					ELSE 'list.subscribed'
-				END;
-
-				changes_json := jsonb_build_object(
-					'list_id', jsonb_build_object('new', NEW.list_id),
-					'status', jsonb_build_object('new', NEW.status)
-				);
-
-			ELSIF TG_OP = 'UPDATE' THEN
-				op := 'update';
-
-				-- Handle soft delete
-				IF OLD.deleted_at IS DISTINCT FROM NEW.deleted_at AND NEW.deleted_at IS NOT NULL THEN
-					kind_value := 'list.removed';
-					changes_json := jsonb_build_object(
-						'deleted_at', jsonb_build_object('old', OLD.deleted_at, 'new', NEW.deleted_at)
-					);
-
-				-- Handle status transitions
-				ELSIF OLD.status IS DISTINCT FROM NEW.status THEN
-					kind_value := CASE
-						WHEN OLD.status = 'pending' AND NEW.status = 'active' THEN 'list.confirmed'
-						WHEN OLD.status IN ('unsubscribed', 'bounced', 'complained') AND NEW.status = 'active' THEN 'list.resubscribed'
-						WHEN NEW.status = 'unsubscribed' THEN 'list.unsubscribed'
-						WHEN NEW.status = 'bounced' THEN 'list.bounced'
-						WHEN NEW.status = 'complained' THEN 'list.complained'
-						WHEN NEW.status = 'pending' THEN 'list.pending'
-						WHEN NEW.status = 'active' THEN 'list.subscribed'
-						ELSE 'list.status_changed'
-					END;
-
-					changes_json := jsonb_build_object(
-						'status', jsonb_build_object('old', OLD.status, 'new', NEW.status)
-					);
-				ELSE
-					RETURN NEW;
-				END IF;
-			END IF;
-
-			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
-			VALUES (NEW.email, op, 'contact_list', kind_value, NEW.list_id, changes_json, CURRENT_TIMESTAMP);
-
-			RETURN NEW;
-		END;
-		$$ LANGUAGE plpgsql;`,
+		// Contact list changes trigger function - uses semantic event kinds (list.subscribed, list.confirmed, etc.),
+		// shared with the v42 migration so a fresh workspace and an upgraded one record the same events.
+		schema.TrackContactListChangesFunction(),
 		// Message history changes trigger function
 		`CREATE OR REPLACE FUNCTION track_message_history_changes()
 		RETURNS TRIGGER AS $$
