@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -1816,5 +1817,198 @@ func TestAutomationRepository_UpdateIfStatus(t *testing.T) {
 		assert.Error(t, err)
 		assert.False(t, updated)
 		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+// A write that leaves an automation live needs the lists it requires to exist. It locks them in
+// the transaction that writes the row, so a list deletion either finishes first and is seen
+// here, or waits for this write and then sees the automation live.
+func TestAutomationRepository_UpdateIfStatus_RequiredLists(t *testing.T) {
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+
+	const lockQuery = `SELECT id, name, deleted_at IS NOT NULL FROM lists WHERE id = ANY($1) ORDER BY id FOR SHARE`
+	lockColumns := []string{"id", "name", "deleted"}
+
+	// Live, sending email to its own list, triggered by another list's events, and adding
+	// contacts to a third: RequiredListIDs names them in that order.
+	liveAutomation := func() *domain.Automation {
+		listID := "list-watched"
+		automation := createTestAutomation("auto-123", workspaceID)
+		automation.Status = domain.AutomationStatusLive
+		automation.ListID = "list-own"
+		automation.Trigger = &domain.TimelineTriggerConfig{
+			EventKind: "list.subscribed", ListID: &listID, Frequency: domain.TriggerFrequencyEveryTime,
+		}
+		automation.Nodes = []*domain.AutomationNode{
+			{ID: "node-email", AutomationID: "auto-123", Type: domain.NodeTypeEmail, Config: map[string]interface{}{"template_id": "tpl"}},
+			{ID: "node-add", AutomationID: "auto-123", Type: domain.NodeTypeAddToList, Config: map[string]interface{}{"list_id": "list-target", "status": "active"}},
+		}
+		return automation
+	}
+	required := pq.Array([]string{"list-own", "list-watched", "list-target"})
+
+	t.Run("locks the lists it requires and writes in the same transaction", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(regexp.QuoteMeta(lockQuery)).WithArgs(required).
+			WillReturnRows(sqlmock.NewRows(lockColumns).
+				AddRow("list-own", "Own", false).AddRow("list-target", "Target", false).AddRow("list-watched", "Watched", false))
+		mock.ExpectExec(`UPDATE automations SET .* WHERE .*status`).
+			WithArgs(
+				sqlmock.AnyArg(),            // name
+				domain.AutomationStatusLive, // the status written
+				"list-own",
+				sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
+				"auto-123", workspaceID,
+				domain.AutomationStatusPaused, // the status expected
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		updated, err := repo.UpdateIfStatus(ctx, workspaceID, liveAutomation(), domain.AutomationStatusPaused)
+		require.NoError(t, err)
+		assert.True(t, updated)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("refuses when a list it requires is deleted, naming it, and writes nothing", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(regexp.QuoteMeta(lockQuery)).WithArgs(required).
+			WillReturnRows(sqlmock.NewRows(lockColumns).
+				AddRow("list-own", "Own", true).AddRow("list-target", "Target", false).AddRow("list-watched", "Watched", true))
+		mock.ExpectRollback()
+
+		updated, err := repo.UpdateIfStatus(ctx, workspaceID, liveAutomation(), domain.AutomationStatusPaused)
+		assert.False(t, updated)
+		var refusal *domain.AutomationDeletedListError
+		require.True(t, errors.As(err, &refusal), "got %v", err)
+		assert.Equal(t, "auto-123", refusal.AutomationID)
+		assert.Equal(t, []domain.ListRef{{ID: "list-own", Name: "Own"}, {ID: "list-watched", Name: "Watched"}}, refusal.Lists)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("refuses a list with no row, by its id", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(regexp.QuoteMeta(lockQuery)).WithArgs(required).
+			WillReturnRows(sqlmock.NewRows(lockColumns).AddRow("list-own", "Own", false).AddRow("list-watched", "Watched", false))
+		mock.ExpectRollback()
+
+		updated, err := repo.UpdateIfStatus(ctx, workspaceID, liveAutomation(), domain.AutomationStatusPaused)
+		assert.False(t, updated)
+		var refusal *domain.AutomationDeletedListError
+		require.True(t, errors.As(err, &refusal), "got %v", err)
+		assert.Equal(t, []domain.ListRef{{ID: "list-target"}}, refusal.Lists)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("reports false and commits nothing when another transition got there first", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(regexp.QuoteMeta(lockQuery)).WithArgs(required).
+			WillReturnRows(sqlmock.NewRows(lockColumns).
+				AddRow("list-own", "Own", false).AddRow("list-target", "Target", false).AddRow("list-watched", "Watched", false))
+		mock.ExpectExec(`UPDATE automations SET .* WHERE .*status`).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectRollback()
+
+		updated, err := repo.UpdateIfStatus(ctx, workspaceID, liveAutomation(), domain.AutomationStatusPaused)
+		require.NoError(t, err)
+		assert.False(t, updated)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("surfaces a failed lock and writes nothing", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(regexp.QuoteMeta(lockQuery)).WithArgs(required).WillReturnError(errors.New("lock timeout"))
+		mock.ExpectRollback()
+
+		updated, err := repo.UpdateIfStatus(ctx, workspaceID, liveAutomation(), domain.AutomationStatusPaused)
+		assert.False(t, updated)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "lock timeout")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("surfaces a failed write", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(regexp.QuoteMeta(lockQuery)).WithArgs(required).
+			WillReturnRows(sqlmock.NewRows(lockColumns).
+				AddRow("list-own", "Own", false).AddRow("list-target", "Target", false).AddRow("list-watched", "Watched", false))
+		mock.ExpectExec(`UPDATE automations SET`).WillReturnError(errors.New("connection reset"))
+		mock.ExpectRollback()
+
+		updated, err := repo.UpdateIfStatus(ctx, workspaceID, liveAutomation(), domain.AutomationStatusPaused)
+		assert.False(t, updated)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "connection reset")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("surfaces a failed begin and a failed commit", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectBegin().WillReturnError(errors.New("too many connections"))
+		updated, err := repo.UpdateIfStatus(ctx, workspaceID, liveAutomation(), domain.AutomationStatusPaused)
+		assert.False(t, updated)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "too many connections")
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(regexp.QuoteMeta(lockQuery)).WithArgs(required).
+			WillReturnRows(sqlmock.NewRows(lockColumns).
+				AddRow("list-own", "Own", false).AddRow("list-target", "Target", false).AddRow("list-watched", "Watched", false))
+		mock.ExpectExec(`UPDATE automations SET`).WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit().WillReturnError(errors.New("connection reset"))
+		updated, err = repo.UpdateIfStatus(ctx, workspaceID, liveAutomation(), domain.AutomationStatusPaused)
+		assert.False(t, updated)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to commit")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// Pausing, and any change to a paused or draft automation, may name a deleted list: it is
+	// going live again that is refused. Nor does a live automation that requires no list pay
+	// for a lock.
+	t.Run("takes no lock for a write that does not leave the automation live, or requires no list", func(t *testing.T) {
+		paused := liveAutomation()
+		paused.Status = domain.AutomationStatusPaused
+
+		noLists := createTestAutomation("auto-123", workspaceID)
+		noLists.Status = domain.AutomationStatusLive
+		noLists.Nodes = []*domain.AutomationNode{
+			{ID: "node-delay", AutomationID: "auto-123", Type: domain.NodeTypeDelay, Config: map[string]interface{}{"duration": 1, "unit": "days"}},
+		}
+
+		for name, automation := range map[string]*domain.Automation{"paused": paused, "live, requiring no list": noLists} {
+			t.Run(name, func(t *testing.T) {
+				db, mock, repo := setupAutomationMock(t)
+				defer func() { _ = db.Close() }()
+
+				// No Begin, no lock: the write alone.
+				mock.ExpectExec(`UPDATE automations SET .* WHERE .*status`).WillReturnResult(sqlmock.NewResult(0, 1))
+
+				updated, err := repo.UpdateIfStatus(ctx, workspaceID, automation, domain.AutomationStatusLive)
+				require.NoError(t, err)
+				assert.True(t, updated)
+				assert.NoError(t, mock.ExpectationsWereMet())
+			})
+		}
 	})
 }

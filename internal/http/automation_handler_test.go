@@ -752,3 +752,77 @@ func TestAutomationHandler_ConflictMapping(t *testing.T) {
 		})
 	}
 }
+
+// An activation, or a change to a live automation, refused because a list it requires is
+// deleted: a 400 carrying the message the console shows and the lists by id and name. Not the
+// 409 of a lost race, which a retry could fix, and not a 500.
+func TestAutomationHandler_DeletedListMapping(t *testing.T) {
+	_, automationSvc, mux, secretKey := setupAutomationTest(t)
+
+	refusal := domain.NewAutomationDeletedListError("auto-123", []domain.ListRef{
+		{ID: "news", Name: "Newsletter"},
+		{ID: "gone"},
+	})
+	wrapped := fmt.Errorf("failed to update automation status: %w", refusal)
+
+	testCases := []struct {
+		name     string
+		endpoint string
+		expect   func()
+		body     func(t *testing.T) []byte
+	}{
+		{
+			name:     "update",
+			endpoint: "/api/automations.update",
+			expect: func() {
+				automationSvc.EXPECT().Update(gomock.Any(), "workspace-123", gomock.Any()).Return(wrapped)
+			},
+			body: func(t *testing.T) []byte {
+				body, err := json.Marshal(domain.UpdateAutomationRequest{
+					WorkspaceID: "workspace-123",
+					Automation:  createTestAutomation("auto-123", "workspace-123"),
+				})
+				require.NoError(t, err)
+				return body
+			},
+		},
+		{
+			name:     "activate",
+			endpoint: "/api/automations.activate",
+			expect: func() {
+				automationSvc.EXPECT().Activate(gomock.Any(), "workspace-123", "auto-123").Return(wrapped)
+			},
+			body: func(t *testing.T) []byte {
+				body, err := json.Marshal(domain.ActivateAutomationRequest{
+					WorkspaceID:  "workspace-123",
+					AutomationID: "auto-123",
+				})
+				require.NoError(t, err)
+				return body
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.expect()
+
+			req := httptest.NewRequest(http.MethodPost, tc.endpoint, bytes.NewReader(tc.body(t)))
+			req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+
+			var response struct {
+				Error string           `json:"error"`
+				Lists []domain.ListRef `json:"lists"`
+			}
+			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+			assert.Equal(t, refusal.Error(), response.Error)
+			assert.Contains(t, response.Error, `"Newsletter" and "gone"`)
+			assert.Equal(t, refusal.Lists, response.Lists)
+		})
+	}
+}

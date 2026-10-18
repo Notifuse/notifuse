@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 )
@@ -450,6 +451,63 @@ func HasEmailNodes(nodes []*AutomationNode) bool {
 	return false
 }
 
+// RequiredListIDs returns the lists this automation cannot run on once they are deleted, in
+// the order it first names them. A list a live automation requires cannot be deleted, and an
+// automation cannot go live while a list it requires is deleted.
+//
+//   - Its own list, when it sends email: the email step reads that list for every message,
+//     and fails each contact that reaches it once the list is gone.
+//   - The list a list event triggers on: deleting the list removes every member, which fires
+//     a list.removed trigger for all of them at once, and a trigger on any other list event
+//     is left on a list that the subscribe API and the notification center refuse.
+//   - The list an add-to-list step writes to: the step would add contacts to a deleted list
+//     and send list webhooks for it.
+//
+// Deleting a list removes its members, and membership is all a list condition, a list-status
+// branch or a remove-from-list step asks about, so those keep working and are not required.
+// Nor is the own list of an automation that sends no email, since nothing else reads it.
+func (a *Automation) RequiredListIDs() []string {
+	var ids []string
+	add := func(id string) {
+		if id != "" && !slices.Contains(ids, id) {
+			ids = append(ids, id)
+		}
+	}
+
+	sendsEmail := false
+	for _, node := range a.Nodes {
+		if node != nil && node.Type == NodeTypeEmail {
+			sendsEmail = true
+			break
+		}
+	}
+	if sendsEmail {
+		add(a.ListID)
+	}
+
+	if a.Trigger != nil && a.Trigger.ListID != nil && strings.HasPrefix(a.Trigger.EventKind, "list.") {
+		add(*a.Trigger.ListID)
+	}
+
+	for _, node := range a.Nodes {
+		if node == nil || node.Type != NodeTypeAddToList {
+			continue
+		}
+		if listID, ok := node.Config["list_id"].(string); ok {
+			add(listID)
+		}
+	}
+
+	return ids
+}
+
+// AutomationRef names an automation in an answer that has to tell the caller which ones are
+// involved.
+type AutomationRef struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 // ContactAutomation tracks a contact's journey through an automation
 type ContactAutomation struct {
 	ID            string                  `json:"id"`
@@ -786,6 +844,10 @@ type AutomationRepository interface {
 	// another transition changed the status between the caller's read and this write — so a
 	// status transition can stop instead of overwriting it from a stale read, and before
 	// emitting the trigger DDL its stale read decided on.
+	//
+	// A write that leaves the automation live is refused with *AutomationDeletedListError
+	// when a list it requires (RequiredListIDs) is deleted. The check and the write share a
+	// transaction that holds those lists, so a list deletion cannot slip in between.
 	UpdateIfStatus(ctx context.Context, workspaceID string, automation *Automation, expectedStatus AutomationStatus) (bool, error)
 	Delete(ctx context.Context, workspaceID, id string) error
 	DeleteTx(ctx context.Context, tx *sql.Tx, workspaceID, id string) error

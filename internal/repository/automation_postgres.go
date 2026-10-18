@@ -398,6 +398,12 @@ func (r *AutomationRepository) UpdateTx(ctx context.Context, tx *sql.Tx, workspa
 // a moment earlier, so a Pause landing in between is silently reverted to live while the
 // trigger it dropped is never reinstalled — an automation showing Live that enrols nobody,
 // which nothing in the product detects or repairs.
+//
+// A write that leaves the automation live also requires the lists it cannot run without
+// (RequiredListIDs) to exist: it is refused with *domain.AutomationDeletedListError when one
+// is deleted. The lists are locked FOR SHARE in the write's transaction, which a list deletion
+// (listRepository.DeleteList) has to wait for and then sees as live, and which waits for a
+// deletion already under way and then sees the list deleted.
 func (r *AutomationRepository) UpdateIfStatus(ctx context.Context, workspaceID string, automation *domain.Automation, expectedStatus domain.AutomationStatus) (bool, error) {
 	builder, err := automationUpdateBuilder(workspaceID, automation)
 	if err != nil {
@@ -414,7 +420,43 @@ func (r *AutomationRepository) UpdateIfStatus(ctx context.Context, workspaceID s
 		return false, fmt.Errorf("failed to get database connection: %w", err)
 	}
 
-	result, err := db.ExecContext(ctx, query, args...)
+	listIDs := automation.RequiredListIDs()
+	if automation.Status != domain.AutomationStatusLive || len(listIDs) == 0 {
+		return execUpdateIfStatus(ctx, db, query, args)
+	}
+
+	// READ COMMITTED whatever the server's default: a stricter level fails the lock that
+	// waited for a deletion, instead of reading the list as the deletion left it.
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return false, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	deleted, err := lockRequiredLists(ctx, tx, listIDs)
+	if err != nil {
+		return false, err
+	}
+	if len(deleted) > 0 {
+		return false, domain.NewAutomationDeletedListError(automation.ID, deleted)
+	}
+
+	updated, err := execUpdateIfStatus(ctx, tx, query, args)
+	if err != nil || !updated {
+		return false, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return true, nil
+}
+
+// execUpdateIfStatus runs UpdateIfStatus's write and reports whether it matched the row.
+func execUpdateIfStatus(ctx context.Context, execer interface {
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+}, query string, args []interface{}) (bool, error) {
+	result, err := execer.ExecContext(ctx, query, args...)
 	if err != nil {
 		return false, fmt.Errorf("failed to update automation: %w", err)
 	}
@@ -428,6 +470,47 @@ func (r *AutomationRepository) UpdateIfStatus(ctx context.Context, workspaceID s
 	// 409, and "automation not found" — what the unconditional Update says for the same zero
 	// rows — would be a lie the caller cannot act on.
 	return rowsAffected > 0, nil
+}
+
+// lockRequiredLists locks the lists FOR SHARE until the transaction ends and returns those
+// that are deleted or have no row at all.
+//
+// FOR SHARE is the weakest lock that conflicts with the UPDATE a list deletion runs (FOR KEY
+// SHARE does not), and it does not conflict with itself, so activations sharing a list do not
+// queue behind each other. A row whose deletion committed while this waited is re-read in its
+// deleted form.
+func lockRequiredLists(ctx context.Context, tx *sql.Tx, listIDs []string) ([]domain.ListRef, error) {
+	rows, err := tx.QueryContext(ctx,
+		`SELECT id, name, deleted_at IS NOT NULL FROM lists WHERE id = ANY($1) ORDER BY id FOR SHARE`,
+		pq.Array(listIDs))
+	if err != nil {
+		return nil, fmt.Errorf("failed to lock the automation's lists: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var deleted []domain.ListRef
+	found := make(map[string]bool, len(listIDs))
+	for rows.Next() {
+		var list domain.ListRef
+		var isDeleted bool
+		if err := rows.Scan(&list.ID, &list.Name, &isDeleted); err != nil {
+			return nil, fmt.Errorf("failed to scan the automation's list: %w", err)
+		}
+		found[list.ID] = true
+		if isDeleted {
+			deleted = append(deleted, list)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to lock the automation's lists: %w", err)
+	}
+
+	for _, listID := range listIDs {
+		if !found[listID] {
+			deleted = append(deleted, domain.ListRef{ID: listID})
+		}
+	}
+	return deleted, nil
 }
 
 // UpdateContactAutomationIfActive persists the contact automation only while its

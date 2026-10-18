@@ -16,6 +16,7 @@ import {
 } from 'antd'
 import { useParams } from '@tanstack/react-router'
 import { listsApi } from '../services/api/list'
+import { ApiError } from '../services/api/errors'
 import { templatesApi } from '../services/api/template'
 import type { List, TemplateReference, Workspace } from '../services/api/types'
 import { CreateListDrawer } from '../components/lists/ListDrawer'
@@ -120,7 +121,11 @@ export function ListsPage() {
       setListToDelete(null)
       setConfirmationInput('')
     } catch (error) {
-      message.error(t`Failed to delete list`)
+      // A list that live automations use comes back as a 409 naming them. That message is
+      // the only thing that tells the user which automations to pause, so it is shown as
+      // sent rather than replaced by the generic one.
+      const reason = error instanceof ApiError && error.status === 409 ? error.message : ''
+      message.error(reason || t`Failed to delete list`)
       console.error(error)
     } finally {
       setIsDeleting(false)

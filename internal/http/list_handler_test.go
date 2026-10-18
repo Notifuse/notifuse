@@ -725,6 +725,40 @@ func TestListHandler_HandleDelete(t *testing.T) {
 	}
 }
 
+// A list that live automations require is refused with a 409 that names them, so the console
+// can say which automations to pause. The service wraps the refusal, so the handler has to
+// find it through %w; a 500 there would tell the user the server is broken.
+func TestListHandler_HandleDelete_ListInUse(t *testing.T) {
+	inUse := &domain.ErrListInUse{
+		ListID:   "list1",
+		ListName: "Newsletter",
+		Automations: []domain.AutomationRef{
+			{ID: "auto-1", Name: "Welcome series"},
+			{ID: "auto-2", Name: "Win-back"},
+		},
+	}
+
+	mockService, _, handler := setupListHandlerTest(t)
+	mockService.EXPECT().DeleteList(gomock.Any(), "workspace123", "list1").
+		Return(fmt.Errorf("failed to delete list: %w", inUse))
+
+	body, err := json.Marshal(domain.DeleteListRequest{WorkspaceID: "workspace123", ID: "list1"})
+	require.NoError(t, err)
+	rr := httptest.NewRecorder()
+	handler.handleDelete(rr, httptest.NewRequest(http.MethodPost, "/api/lists.delete", bytes.NewReader(body)))
+
+	assert.Equal(t, http.StatusConflict, rr.Code)
+
+	var response struct {
+		Error       string                 `json:"error"`
+		Automations []domain.AutomationRef `json:"automations"`
+	}
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&response))
+	assert.Equal(t, inUse.Error(), response.Error)
+	assert.Contains(t, response.Error, `"Welcome series" and "Win-back"`)
+	assert.Equal(t, inUse.Automations, response.Automations)
+}
+
 func TestListHandler_HandleStats(t *testing.T) {
 	testCases := []struct {
 		name           string

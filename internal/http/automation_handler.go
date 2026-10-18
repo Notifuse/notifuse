@@ -175,6 +175,10 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 			WriteJSONError(w, conditionErr.Error(), http.StatusBadRequest)
 			return
 		}
+		// A live automation changed to use a deleted list.
+		if writeDeletedListError(w, err) {
+			return
+		}
 		// A transition that lost a race to another admin: nothing is broken and nothing
 		// about the request was wrong, so this is a 409 the caller can retry after
 		// reloading — not a 500 and not a 400.
@@ -255,6 +259,9 @@ func (h *AutomationHandler) handleActivate(w http.ResponseWriter, r *http.Reques
 			WriteJSONError(w, conditionErr.Error(), http.StatusBadRequest)
 			return
 		}
+		if writeDeletedListError(w, err) {
+			return
+		}
 		// A transition that lost a race to another admin: nothing is broken and nothing
 		// about the request was wrong, so this is a 409 the caller can retry after
 		// reloading — not a 500 and not a 400.
@@ -270,6 +277,21 @@ func (h *AutomationHandler) handleActivate(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 	})
+}
+
+// writeDeletedListError answers a write that would leave an automation live on a deleted list,
+// reporting whether it wrote the response. A 400 like a trigger configuration that cannot be
+// installed — the automation is what has to change — carrying the lists by id and name.
+func writeDeletedListError(w http.ResponseWriter, err error) bool {
+	var deletedList *domain.AutomationDeletedListError
+	if !errors.As(err, &deletedList) {
+		return false
+	}
+	writeJSON(w, http.StatusBadRequest, map[string]interface{}{
+		"error": deletedList.Error(),
+		"lists": deletedList.Lists,
+	})
+	return true
 }
 
 func (h *AutomationHandler) handlePause(w http.ResponseWriter, r *http.Request) {

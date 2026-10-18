@@ -1588,6 +1588,83 @@ func TestAutomationService_TransitionsRejectStaleStatus(t *testing.T) {
 	})
 }
 
+// A write that would leave an automation live is refused by the repository when a list it
+// requires is deleted. The refusal reaches the handler as itself, and nothing that follows a
+// successful write runs: no trigger is installed or regenerated, and no compensating write
+// puts anything back, because nothing was written.
+func TestAutomationService_DeletedListRefusals(t *testing.T) {
+	workspaceID := "workspace-123"
+	automationID := "auto-123"
+
+	refusal := domain.NewAutomationDeletedListError(automationID, []domain.ListRef{{ID: "list-123", Name: "Newsletter"}})
+
+	sendsEmail := func(status domain.AutomationStatus) *domain.Automation {
+		automation := createTestAutomationService(automationID, workspaceID)
+		automation.Status = status
+		automation.RootNodeID = "node-email"
+		automation.Nodes = []*domain.AutomationNode{{
+			ID: "node-email", AutomationID: automationID, Type: domain.NodeTypeEmail,
+			Config: map[string]interface{}{"template_id": "tpl"},
+		}}
+		return automation
+	}
+
+	assertRefused := func(t *testing.T, err error) {
+		t.Helper()
+		var target *domain.AutomationDeletedListError
+		require.True(t, errors.As(err, &target), "the refusal must survive wrapping so the handler can answer 400: %v", err)
+		assert.Same(t, refusal, target)
+	}
+
+	for _, previous := range []domain.AutomationStatus{domain.AutomationStatusPaused, domain.AutomationStatusDraft} {
+		t.Run("activating a "+string(previous)+" automation installs no trigger", func(t *testing.T) {
+			svc, repo, auth, _ := newAutomationTransitionMocks(t)
+			ctx := context.Background()
+
+			stored := sendsEmail(previous)
+			auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+				Return(ctx, &domain.User{}, automationTransitionUserWorkspace(workspaceID), nil)
+			repo.EXPECT().GetByID(ctx, workspaceID, automationID).Return(stored, nil)
+			repo.EXPECT().UpdateIfStatus(ctx, workspaceID, gomock.Any(), previous).
+				DoAndReturn(func(_ context.Context, _ string, written *domain.Automation, _ domain.AutomationStatus) (bool, error) {
+					// The repository checks the lists of a write that leaves the automation
+					// live, so this one has to say live.
+					assert.Equal(t, domain.AutomationStatusLive, written.Status)
+					return false, refusal
+				})
+			repo.EXPECT().CreateAutomationTrigger(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			repo.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+			assertRefused(t, svc.Activate(ctx, workspaceID, automationID))
+		})
+	}
+
+	t.Run("changing a live automation regenerates no trigger and restores nothing", func(t *testing.T) {
+		svc, repo, auth, log := newAutomationTransitionMocks(t)
+		ctx := context.Background()
+
+		stored := sendsEmail(domain.AutomationStatusLive)
+		// A changed trigger: what makes a successful update regenerate the installed one.
+		changed := sendsEmail(domain.AutomationStatusDraft)
+		changed.Trigger.Conditions = testTriggerConditionsService("country", "US")
+
+		auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{}, automationTransitionUserWorkspace(workspaceID), nil)
+		repo.EXPECT().GetByID(ctx, workspaceID, automationID).Return(stored, nil)
+		repo.EXPECT().UpdateIfStatus(ctx, workspaceID, gomock.Any(), domain.AutomationStatusLive).
+			DoAndReturn(func(_ context.Context, _ string, written *domain.Automation, _ domain.AutomationStatus) (bool, error) {
+				assert.Equal(t, domain.AutomationStatusLive, written.Status, "an update keeps the stored status")
+				return false, refusal
+			})
+		log.EXPECT().WithField("automation_id", automationID).Return(log)
+		log.EXPECT().Error(gomock.Any())
+		repo.EXPECT().CreateAutomationTrigger(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		repo.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		assertRefused(t, svc.Update(ctx, workspaceID, changed))
+	})
+}
+
 // TestAutomationService_Update_OmittedExitOnReplyKeepsTheStoredSetting covers a body that
 // says nothing about exit_on_reply. The field is a plain bool and automations.update
 // rewrites the whole row, so an absent key decodes as false and switches the setting off —

@@ -194,3 +194,80 @@ func TestAutomationConflictError_As(t *testing.T) {
 		t.Error("errors.As() matched TriggerConditionError on a conflict error")
 	}
 }
+
+// The console shows this message when an activation or a save is refused, so it has to name
+// the deleted lists, including one with no row left to take a name from.
+func TestAutomationDeletedListError_Error(t *testing.T) {
+	tests := []struct {
+		name  string
+		lists []ListRef
+		want  string
+	}{
+		{
+			name:  "one list",
+			lists: []ListRef{{ID: "news", Name: "Newsletter"}},
+			want:  `this automation uses the deleted list "Newsletter": a live automation cannot use a deleted list`,
+		},
+		{
+			name:  "two lists",
+			lists: []ListRef{{ID: "news", Name: "Newsletter"}, {ID: "vip", Name: "VIP"}},
+			want:  `this automation uses the deleted lists "Newsletter" and "VIP": a live automation cannot use a deleted list`,
+		},
+		{
+			name:  "a list with no row, by its id",
+			lists: []ListRef{{ID: "gone"}},
+			want:  `this automation uses the deleted list "gone": a live automation cannot use a deleted list`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := NewAutomationDeletedListError("auto-123", tt.lists)
+			if err.Error() != tt.want {
+				t.Errorf("Expected error message '%s', got '%s'", tt.want, err.Error())
+			}
+		})
+	}
+}
+
+// The handlers answer 400 by matching this type with errors.As after the service has wrapped
+// it, and must not mistake it for the conflict they answer 409.
+func TestAutomationDeletedListError_As(t *testing.T) {
+	original := NewAutomationDeletedListError("auto-123", []ListRef{{ID: "news", Name: "Newsletter"}})
+	wrapped := fmt.Errorf("failed to update automation status: %w", original)
+
+	var target *AutomationDeletedListError
+	if !errors.As(wrapped, &target) {
+		t.Fatal("errors.As() failed to find AutomationDeletedListError through the wrapping")
+	}
+	if target != original {
+		t.Error("errors.As() should yield the original AutomationDeletedListError")
+	}
+
+	var conflictErr *AutomationConflictError
+	if errors.As(wrapped, &conflictErr) {
+		t.Error("errors.As() matched AutomationConflictError on a deleted list error")
+	}
+}
+
+func TestQuotedNames(t *testing.T) {
+	tests := []struct {
+		names []string
+		want  string
+	}{
+		{nil, ``},
+		{[]string{"A"}, `"A"`},
+		{[]string{"A", "B"}, `"A" and "B"`},
+		{[]string{"A", "B", "C"}, `"A", "B" and "C"`},
+		{[]string{"A", "B", "C", "D"}, `"A", "B", "C" and 1 more`},
+		{[]string{"A", "B", "C", "D", "E", "F"}, `"A", "B", "C" and 3 more`},
+		// Read by people: a quote or an accent in a name is not escaped.
+		{[]string{`Spring "sale"`, "Été"}, `"Spring "sale"" and "Été"`},
+	}
+
+	for _, tt := range tests {
+		if got := quotedNames(tt.names); got != tt.want {
+			t.Errorf("quotedNames(%q) = %s, want %s", tt.names, got, tt.want)
+		}
+	}
+}

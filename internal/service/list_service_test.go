@@ -491,6 +491,37 @@ func TestListService_DeleteList(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to delete list")
 	})
+
+	// The repository decides, in the deletion's own transaction, that live automations
+	// require the list. The refusal has to reach the handler as itself, naming them, and
+	// nothing that follows a deletion may run: the list is still there.
+	t.Run("list required by live automations", func(t *testing.T) {
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		inUse := &domain.ErrListInUse{
+			ListID:      listID,
+			ListName:    "Newsletter",
+			Automations: []domain.AutomationRef{{ID: "auto-1", Name: "Welcome series"}},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().DeleteList(ctx, workspaceID, listID).Return(inUse)
+		mockLogger.EXPECT().WithField("list_id", listID).Return(mockLogger)
+		mockLogger.EXPECT().Error(gomock.Any())
+		// The blog shows public lists; one that was not deleted keeps its cached pages.
+		mockCache.EXPECT().Clear().Times(0)
+
+		err := service.DeleteList(ctx, workspaceID, listID)
+
+		var refusal *domain.ErrListInUse
+		require.True(t, errors.As(err, &refusal), "got %v", err)
+		assert.Same(t, inUse, refusal)
+	})
 }
 
 func TestListService_GetListStats(t *testing.T) {

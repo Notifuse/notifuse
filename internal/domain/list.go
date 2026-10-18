@@ -501,3 +501,44 @@ type ErrListNotFound struct {
 func (e *ErrListNotFound) Error() string {
 	return e.Message
 }
+
+// ListRef names a list in an answer that has to tell the caller which ones are involved.
+type ListRef struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// label is how a message names the list: by name, or by id when there is no row to take a
+// name from.
+func (l ListRef) label() string {
+	if l.Name != "" {
+		return l.Name
+	}
+	return l.ID
+}
+
+// ErrListInUse refuses the deletion of a list that live automations require (see
+// Automation.RequiredListIDs). Paused and draft automations do not hold a list: they cannot go
+// live again while it is deleted.
+//
+// It answers 409: nothing is wrong with the request, the list is in use, and pausing the
+// automations named here is what lets the deletion through.
+type ErrListInUse struct {
+	ListID      string
+	ListName    string
+	Automations []AutomationRef
+}
+
+func (e *ErrListInUse) Error() string {
+	names := make([]string, len(e.Automations))
+	for i, automation := range e.Automations {
+		names[i] = automation.Name
+	}
+	list := quoted(ListRef{ID: e.ListID, Name: e.ListName}.label())
+	if len(names) == 1 {
+		return fmt.Sprintf("cannot delete list %s while the live automation %s uses it: pause the automation first, or change it to stop using the list",
+			list, quotedNames(names))
+	}
+	return fmt.Sprintf("cannot delete list %s while the live automations %s use it: pause the automations first, or change them to stop using the list",
+		list, quotedNames(names))
+}
