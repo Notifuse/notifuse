@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -382,6 +383,49 @@ func TestInitializeWorkspaceDatabase_InstallsSharedContactListTimelineFunction(t
 		}
 	}
 	assert.Equal(t, 1, count, "the function must be defined once, from the shared schema body")
+}
+
+// A fresh workspace must install the same message_history functions the v42 migration
+// installs on upgraded ones, so both record a complaint on a list the same way and set
+// the list status before the timeline entries.
+func TestInitializeWorkspaceDatabase_InstallsSharedMessageHistoryFunctions(t *testing.T) {
+	rec := recordWorkspaceSchema(t)
+	for header, body := range map[string]string{
+		"CREATE OR REPLACE FUNCTION apply_message_status_to_contact_lists(": schema.ApplyMessageStatusToContactListsFunction(),
+		"CREATE OR REPLACE FUNCTION track_message_history_changes()":        schema.TrackMessageHistoryChangesFunction(),
+	} {
+		assert.Equal(t, body, rec.statementContaining(t, header))
+
+		count := 0
+		for _, stmt := range rec.issued {
+			if strings.Contains(stmt, header) {
+				count++
+			}
+		}
+		assert.Equal(t, 1, count, "%s must be defined once, from the shared schema body", header)
+	}
+}
+
+// A fresh workspace has no trigger of its own for complaints and bounces: the timeline
+// trigger sets the list status itself, before it writes any timeline entry. A separate
+// trigger is what deadlocked with imports before 42 (see
+// schema.TrackMessageHistoryChangesFunction).
+func TestInitializeWorkspaceDatabase_TimelineTriggerSetsTheListStatus(t *testing.T) {
+	rec := recordWorkspaceSchema(t)
+
+	createTrigger := regexp.MustCompile(`^CREATE TRIGGER (\w+) AFTER [A-Z ]+ ON message_history FOR EACH ROW EXECUTE FUNCTION (\w+)\(\)$`)
+	functionByTrigger := map[string]string{}
+	for _, stmt := range rec.issued {
+		if m := createTrigger.FindStringSubmatch(stmt); m != nil {
+			functionByTrigger[m[1]] = m[2]
+		}
+		assert.NotContains(t, stmt, "update_contact_lists_on_status_change")
+		assert.NotContains(t, stmt, "message_history_status_trigger")
+	}
+	assert.Equal(t, map[string]string{
+		"message_history_changes_trigger": "track_message_history_changes",
+		"webhook_message_history":         "webhook_message_history_trigger",
+	}, functionByTrigger)
 }
 
 func TestInitializeWorkspaceDatabase_WebhookSubscriptionColumns(t *testing.T) {

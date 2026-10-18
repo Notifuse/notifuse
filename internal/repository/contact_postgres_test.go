@@ -2563,12 +2563,48 @@ func TestMarkEmailsAsBounced_FlipsActiveLists(t *testing.T) {
 	at := time.Date(2026, 5, 12, 10, 0, 0, 0, time.UTC)
 	emails := []string{"a@example.com", "b@example.com"}
 
-	// 4 list rows flipped from active → bounced across the two emails.
-	mock.ExpectExec(`UPDATE contact_lists\s+SET status = 'bounced',\s+updated_at = \$2\s+WHERE email = ANY\(\$1\)\s+AND status NOT IN \('complained', 'bounced'\)\s+AND deleted_at IS NULL`).
+	// Every row of the two emails flips to bounced, except a complained or bounced one
+	mock.ExpectExec(`^UPDATE contact_lists SET status = 'bounced', updated_at = \$2 WHERE email = ANY\(\$1\) AND status NOT IN \('complained', 'bounced'\)$`).
 		WithArgs(sqlmock.AnyArg(), at).
 		WillReturnResult(sqlmock.NewResult(0, 4))
 
 	err := repo.MarkEmailsAsBounced(context.Background(), "ws-123", emails, at)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// A removal ends membership, not a bounce: the row of a contact removed from a list takes
+// the bounce too, and stays removed. The automation email gate reads a removed row, so a
+// removed row left active would let the list's automations keep emailing the address.
+func TestMarkEmailsAsBounced_ReachesRemovedRowsAndKeepsThemRemoved(t *testing.T) {
+	// The statement must neither filter on deleted_at nor write it, wherever in the
+	// query either would appear; the complained-row guard stays.
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherFunc(func(_, actual string) error {
+		if strings.Contains(actual, "deleted_at") {
+			return fmt.Errorf("the bounce statement mentions deleted_at: %s", actual)
+		}
+		if !strings.Contains(actual, "status NOT IN ('complained', 'bounced')") {
+			return fmt.Errorf("the bounce statement lost its complained-row guard: %s", actual)
+		}
+		return nil
+	})))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	workspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+	repo := NewContactRepository(workspaceRepo)
+	at := time.Now().UTC()
+
+	mock.ExpectExec(`UPDATE contact_lists`).
+		WithArgs(sqlmock.AnyArg(), at).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = repo.MarkEmailsAsBounced(context.Background(), "ws-123", []string{"a@example.com"}, at)
 	require.NoError(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }

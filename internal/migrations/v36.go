@@ -124,10 +124,10 @@ const updateTimelineKindsSQL = `
 		'unsubscribe_email', 'insert_message_history', 'update_message_history'
 	)`
 
-// dottedTrackMessageHistoryChangesFn is the dot-notation writer trigger function. Keep it in
-// sync with track_message_history_changes() in internal/database/init.go (the statements must
-// match; indentation/whitespace need not) so a migrated database and a fresh install behave
-// identically.
+// dottedTrackMessageHistoryChangesFn is the dot-notation writer trigger function as v36
+// shipped it. It stays frozen: v42 replaces it on every workspace with
+// schema.TrackMessageHistoryChangesFunction, which a fresh install uses too and which adds
+// only the complaint and bounce list status step to this body.
 const dottedTrackMessageHistoryChangesFn = `CREATE OR REPLACE FUNCTION track_message_history_changes()
 	RETURNS TRIGGER AS $$
 	DECLARE

@@ -634,60 +634,11 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		// Contact list changes trigger function - uses semantic event kinds (list.subscribed, list.confirmed, etc.),
 		// shared with the v42 migration so a fresh workspace and an upgraded one record the same events.
 		schema.TrackContactListChangesFunction(),
-		// Message history changes trigger function
-		`CREATE OR REPLACE FUNCTION track_message_history_changes()
-		RETURNS TRIGGER AS $$
-		DECLARE
-			changes_json JSONB := '{}'::jsonb;
-			op VARCHAR(20);
-			kind_value VARCHAR(50);
-		BEGIN
-			IF TG_OP = 'INSERT' THEN
-				op := 'insert';
-				changes_json := jsonb_build_object('template_id', jsonb_build_object('new', NEW.template_id), 'template_version', jsonb_build_object('new', NEW.template_version), 'channel', jsonb_build_object('new', NEW.channel), 'broadcast_id', jsonb_build_object('new', NEW.broadcast_id), 'sent_at', jsonb_build_object('new', NEW.sent_at));
-				INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-				VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.sent', NEW.id, changes_json, NEW.updated_at);
-			ELSIF TG_OP = 'UPDATE' THEN
-				op := 'update';
-				-- Handle engagement events separately with specific kinds
-				IF OLD.opened_at IS DISTINCT FROM NEW.opened_at AND NEW.opened_at IS NOT NULL THEN
-					changes_json := jsonb_build_object('opened_at', jsonb_build_object('old', OLD.opened_at, 'new', NEW.opened_at));
-					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.opened', NEW.id, changes_json, NEW.updated_at);
-				END IF;
-				IF OLD.clicked_at IS DISTINCT FROM NEW.clicked_at AND NEW.clicked_at IS NOT NULL THEN
-					changes_json := jsonb_build_object('clicked_at', jsonb_build_object('old', OLD.clicked_at, 'new', NEW.clicked_at));
-					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.clicked', NEW.id, changes_json, NEW.updated_at);
-				END IF;
-				IF OLD.bounced_at IS DISTINCT FROM NEW.bounced_at AND NEW.bounced_at IS NOT NULL THEN
-					changes_json := jsonb_build_object('bounced_at', jsonb_build_object('old', OLD.bounced_at, 'new', NEW.bounced_at));
-					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.bounced', NEW.id, changes_json, NEW.updated_at);
-				END IF;
-				IF OLD.complained_at IS DISTINCT FROM NEW.complained_at AND NEW.complained_at IS NOT NULL THEN
-					changes_json := jsonb_build_object('complained_at', jsonb_build_object('old', OLD.complained_at, 'new', NEW.complained_at));
-					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.complained', NEW.id, changes_json, NEW.updated_at);
-				END IF;
-				IF OLD.unsubscribed_at IS DISTINCT FROM NEW.unsubscribed_at AND NEW.unsubscribed_at IS NOT NULL THEN
-					changes_json := jsonb_build_object('unsubscribed_at', jsonb_build_object('old', OLD.unsubscribed_at, 'new', NEW.unsubscribed_at));
-					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.unsubscribed', NEW.id, changes_json, NEW.updated_at);
-				END IF;
-				-- Handle other updates (delivered, failed, status_info) as generic updates
-				changes_json := '{}'::jsonb;
-				IF OLD.delivered_at IS DISTINCT FROM NEW.delivered_at THEN changes_json := changes_json || jsonb_build_object('delivered_at', jsonb_build_object('old', OLD.delivered_at, 'new', NEW.delivered_at)); END IF;
-				IF OLD.failed_at IS DISTINCT FROM NEW.failed_at THEN changes_json := changes_json || jsonb_build_object('failed_at', jsonb_build_object('old', OLD.failed_at, 'new', NEW.failed_at)); END IF;
-				IF OLD.status_info IS DISTINCT FROM NEW.status_info THEN changes_json := changes_json || jsonb_build_object('status_info', jsonb_build_object('old', OLD.status_info, 'new', NEW.status_info)); END IF;
-				IF changes_json != '{}'::jsonb THEN
-					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.updated', NEW.id, changes_json, NEW.updated_at);
-				END IF;
-			END IF;
-			RETURN NEW;
-		END;
-		$$ LANGUAGE plpgsql;`,
+		// Complaint and hard bounce list status, then the message history changes trigger
+		// function that applies it before writing the timeline. Both are shared with the v42
+		// migration so a fresh workspace and an upgraded one record the same statuses.
+		schema.ApplyMessageStatusToContactListsFunction(),
+		schema.TrackMessageHistoryChangesFunction(),
 		// Inbound webhook event changes trigger function
 		`CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes()
 		RETURNS TRIGGER AS $$
@@ -764,38 +715,6 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			INSERT INTO contact_segment_queue (email, queued_at)
 			VALUES (NEW.email, CURRENT_TIMESTAMP)
 			ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at;
-			RETURN NEW;
-		END;
-		$$ LANGUAGE plpgsql;`,
-		// Contact list status update on bounce/complaint trigger function
-		`CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()
-		RETURNS TRIGGER AS $$
-		BEGIN
-			-- Handle complaint events (worst status - can upgrade from any status)
-			IF NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL THEN
-				IF NEW.list_id IS NOT NULL THEN
-					UPDATE contact_lists
-					SET status = 'complained',
-						updated_at = NEW.complained_at
-					WHERE email = NEW.contact_email
-					AND list_id = NEW.list_id
-					AND status != 'complained';
-				END IF;
-			END IF;
-
-			-- Handle bounce events (ONLY HARD BOUNCES - can only update if not already complained or bounced)
-			-- Note: Application layer should only set bounced_at for hard/permanent bounces
-			IF NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL THEN
-				IF NEW.list_id IS NOT NULL THEN
-					UPDATE contact_lists
-					SET status = 'bounced',
-						updated_at = NEW.bounced_at
-					WHERE email = NEW.contact_email
-					AND list_id = NEW.list_id
-					AND status NOT IN ('complained', 'bounced');
-				END IF;
-			END IF;
-
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
@@ -888,8 +807,6 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE TRIGGER contact_segment_changes_trigger AFTER INSERT OR DELETE ON contact_segments FOR EACH ROW EXECUTE FUNCTION track_contact_segment_changes()`,
 		`DROP TRIGGER IF EXISTS contact_timeline_queue_trigger ON contact_timeline`,
 		`CREATE TRIGGER contact_timeline_queue_trigger AFTER INSERT ON contact_timeline FOR EACH ROW EXECUTE FUNCTION queue_contact_for_segment_recomputation()`,
-		`DROP TRIGGER IF EXISTS message_history_status_trigger ON message_history`,
-		`CREATE TRIGGER message_history_status_trigger AFTER UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION update_contact_lists_on_status_change()`,
 		`DROP TRIGGER IF EXISTS custom_event_timeline_trigger ON custom_events`,
 		`CREATE TRIGGER custom_event_timeline_trigger AFTER INSERT OR UPDATE ON custom_events FOR EACH ROW EXECUTE FUNCTION track_custom_event_timeline()`,
 		// Webhook trigger functions for outgoing webhooks
