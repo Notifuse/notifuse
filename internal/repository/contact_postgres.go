@@ -169,6 +169,8 @@ func (r *contactRepository) fetchContact(ctx context.Context, workspaceID string
 		Join("lists l ON cl.list_id = l.id").
 		Where(sq.Eq{"cl.email": contact.Email}).
 		Where(sq.Eq{"l.deleted_at": nil}).
+		// A contact removed from a list is no longer a member of it.
+		Where(sq.Eq{"cl.deleted_at": nil}).
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build contact lists query: %w", err)
@@ -1445,13 +1447,18 @@ func (r *contactRepository) GetContactsForBroadcast(
 			Join("contact_lists cl ON c.email = cl.email").
 			Join("lists l ON cl.list_id = l.id"). // Join with lists table to get the name
 			Where(sq.Eq{"cl.list_id": audience.List}).
-			Where(sq.Eq{"l.deleted_at": nil}). // Filter out deleted lists
+			Where(sq.Eq{"l.deleted_at": nil}).  // Filter out deleted lists
+			Where(sq.Eq{"cl.deleted_at": nil}). // A contact removed from the list is not in the audience
 			Limit(uint64(limit)).
 			OrderBy("c.email ASC") // Sort by email only (unique, deterministic)
 
-		// Cursor-based pagination: fetch contacts with email > afterEmail
+		// Cursor-based pagination: fetch contacts with email > afterEmail. The bound is
+		// repeated on cl.email, equal to c.email through the join, so the planner can
+		// start its contact_lists scan at the cursor. With c.email alone it read every row
+		// before the cursor on each page, and a broadcast to a large list slowed down as
+		// it went.
 		if afterEmail != "" {
-			query = query.Where(sq.Gt{"c.email": afterEmail})
+			query = query.Where(sq.Gt{"c.email": afterEmail}).Where(sq.Gt{"cl.email": afterEmail})
 		}
 
 		// Bounced and complained addresses are never mailed. Unsubscribed contacts are
@@ -1492,6 +1499,10 @@ func (r *contactRepository) GetContactsForBroadcast(
 			// Join with contact_segments table in addition to the existing list joins
 			query = query.Join("contact_segments cs ON c.email = cs.email")
 			query = query.Where(sq.Eq{"cs.segment_id": audience.Segments})
+			// The cursor bounds contact_segments too, for the reason given for cl.email
+			if afterEmail != "" {
+				query = query.Where(sq.Gt{"cs.email": afterEmail})
+			}
 		} else {
 			// No list filtering, so we're filtering by segments only
 			// We need to select from contacts and join with contact_segments
@@ -1738,6 +1749,8 @@ func (r *contactRepository) CountContactsForBroadcast(
 		query = query.Where(sq.Eq{"cl.list_id": audience.List})
 		// Filter out soft-deleted lists (matches GetContactsForBroadcast)
 		query = query.Where(sq.Eq{"l.deleted_at": nil})
+		// A contact removed from the list is not in the audience, whatever exclude_unsubscribed says
+		query = query.Where(sq.Eq{"cl.deleted_at": nil})
 
 		// Bounced and complained addresses are never mailed. Unsubscribed contacts are
 		// mailed only when the broadcast explicitly asks for it, e.g. for a legal notice.

@@ -131,9 +131,18 @@ func WebhookContactListsTriggerFunction() string {
 			list_name VARCHAR(255);
 			list_filter JSONB;
 			should_deliver BOOLEAN;
+			restored BOOLEAN := false;
+			prev_status TEXT;
 		BEGIN
 			-- Get list name for payload enrichment
 			SELECT name INTO list_name FROM lists WHERE id = NEW.list_id;
+
+			-- An update reports the status it replaced. A removed contact added back
+			-- (deleted_at cleared) is reported as a first subscription instead.
+			IF TG_OP = 'UPDATE' THEN
+				prev_status := OLD.status;
+				restored := OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NULL;
+			END IF;
 
 			-- Determine event kind based on status transitions
 			IF TG_OP = 'INSERT' THEN
@@ -158,11 +167,21 @@ func WebhookContactListsTriggerFunction() string {
 						event_kind := 'list.bounced';
 					ELSIF NEW.status = 'complained' THEN
 						event_kind := 'list.complained';
+					-- A re-add moved to another status (pending, under double opt-in)
+					ELSIF restored THEN
+						event_kind := CASE NEW.status WHEN 'active' THEN 'list.subscribed' WHEN 'pending' THEN 'list.pending' WHEN 'unsubscribed' THEN 'list.unsubscribed' WHEN 'bounced' THEN 'list.bounced' WHEN 'complained' THEN 'list.complained' ELSE NULL END;
+						prev_status := NULL;
+						IF event_kind IS NULL THEN RETURN NEW; END IF;
 					ELSE
 						RETURN NEW;
 					END IF;
 				ELSIF NEW.deleted_at IS NOT NULL AND OLD.deleted_at IS NULL THEN
 					event_kind := 'list.removed';
+				-- A re-add with the same status
+				ELSIF restored THEN
+					event_kind := CASE NEW.status WHEN 'active' THEN 'list.subscribed' WHEN 'pending' THEN 'list.pending' WHEN 'unsubscribed' THEN 'list.unsubscribed' WHEN 'bounced' THEN 'list.bounced' WHEN 'complained' THEN 'list.complained' ELSE NULL END;
+					prev_status := NULL;
+					IF event_kind IS NULL THEN RETURN NEW; END IF;
 				ELSE
 					RETURN NEW;
 				END IF;
@@ -176,7 +195,7 @@ func WebhookContactListsTriggerFunction() string {
 				'list_id', NEW.list_id,
 				'list_name', list_name,
 				'status', NEW.status,
-				'previous_status', CASE WHEN TG_OP = 'UPDATE' THEN OLD.status ELSE NULL END
+				'previous_status', prev_status
 			);
 
 			-- Insert webhook deliveries for matching subscriptions
