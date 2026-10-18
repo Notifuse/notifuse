@@ -1,6 +1,6 @@
 # Fix: contacts removed from a list still count as its members (B24)
 
-Created 2026-10-15. Checklist item B24 in `plans/made-up-tests-audit-checklist-plan.md`. Status: **plan only, not implemented**.
+Created 2026-10-15. Checklist item B24 in `plans/made-up-tests-audit-checklist-plan.md`. Status: **implemented** (2026-10-16, branch `claude/made-up-tests-audit-high-ciyb05-b24`); see "Implementation".
 - Pierre chose the scope on 2026-10-15: the full fix, with a v42 migration.
 - An independent review then checked every claim and the design against the code. Its corrections are folded in; see "Independent review".
 - Pierre settled the two remaining decisions on 2026-10-16:
@@ -191,7 +191,7 @@ Workspace only (`HasSystemUpdate` false), no restart. It runs in the per-workspa
 ### Part 6 — version, changelog, docs
 
 - **Version.** `config/config.go`: `VERSION = "42.0"`, in the same commit as `v42.go` (F10). Then run `make sdk-build` on Node 24, and commit `web_analytics_sdk/dist` and `package.json` with it.
-- **CHANGELOG.md.** Under `## [42.0] - WIP`, add these bullets after the entries already there. If the heading still reads `## [41.1] - WIP`, rename it first (P2). They fix behaviour that has shipped, so each one is a **Fix**. Drafts:
+- **CHANGELOG.md.** Under `## [42.0] - WIP`, add these bullets after the entries already there. If the heading still reads `## [41.1] - WIP`, rename it first (P2). They fix behaviour that has shipped, so each one is a **Fix** (the re-add one ended up an **Improvement**; see Implementation). Drafts:
   > - **Fix**: A contact removed from a list is now out of it everywhere. They no longer receive its broadcasts, and they no longer count as a member in segments, automation trigger conditions, filter and branch nodes, the notification center, the API's `contact_lists` or a template's `contact.contact_lists`. "Not in list" conditions now match them. Upgrading corrects existing segments and live automations, so removed contacts leave those segments, and their `segment.left` and `segment.joined` events fire once.
   >
   > - **Fix**: Adding a removed contact back to a list now records `list.subscribed` (`list.pending` with double opt-in) on their timeline and as a webhook event, as a first subscription does. Before, the re-add recorded nothing. Automations triggered by `list.subscribed` with "every time" frequency now enroll a re-added contact again, including contacts re-added in bulk by an import.
@@ -274,7 +274,7 @@ Pre-42 state:
 - `webhook_contact_lists_trigger` is replaced by a stub (`RETURN NEW`), so the assertion that v42 installs it means something. A subscription to `list.subscribed` exists.
 - Two segments ("in" and "not in") and a live automation whose trigger condition is "in list X, active" are created through the API. Their stored SQL and function body are then turned into the pre-42 fixtures (the function through `pg_get_functiondef`, as the probe did) and asserted equal to them. The `pg_trigger` OID is recorded.
 - A third segment with a list condition on list W keeps its new SQL. That stands for one v36 or v37 already recompiled, and `wRemoved` is removed from W.
-- A paused automation carries the same condition, and a segment has an unparseable tree and old SQL.
+- A paused automation carries the same condition, and a segment has old SQL and a tree that parses but no longer compiles (a list condition without a list). Not an unparseable tree: an active segment whose tree doesn't parse makes `GetSegments` fail, which stops the segment queue for the whole workspace; the unit test covers that v42 skips one.
 - `member` and `removed` are active on X. `removed` is removed through the API, and the queue is drained: they're still in "in", which is the old behaviour.
 
 Assertions:
@@ -283,7 +283,7 @@ Assertions:
 - after aging and `ProcessQueue`, `removed` has left "in" and joined "not in";
 - the live function's body is byte-identical to a freshly generated one, its `pg_trigger` OID is unchanged, and the event enrolls `member` but not `removed`;
 - the paused automation is still not armed;
-- the unparseable segment keeps its SQL;
+- the segment whose tree no longer compiles keeps its SQL;
 - a re-add through `lists.subscribe` writes `list.subscribed`, and queues a `list.subscribed` delivery with `previous_status` null;
 - re-running the migration changes no SQL or function body, and memberships stay the same after `ProcessQueue`.
 
@@ -325,6 +325,9 @@ Assertions:
 - *Resolved since:* a removed contact could come back to a private list by unsubscribing through an old link, then rejoining. B1's revised D6 ("leave only", 2026-10-16) closes this, because a signed request can no longer rejoin a private list the contact left.
 - **`list.removed` renders as "status changed → undefined" in the console.** Its `changes` has no `status` (`init.go:663-668`, `ContactTimeline.tsx:280-284`).
 - **v38's `changes ?` guard leaves stale triggers.** Automations it skipped keep a trigger narrower than their stored config. Pausing and re-activating one would widen it to every contact update; the repair is to restore `updated_fields` and save. v42 doesn't need this, because it patches functions in place (D4).
+- **Found in review on 2026-10-17, older than this PR:**
+  - A broadcast to a list narrowed to two or more segments returns a contact once per segment they belong to (the `contact_segments` join has no `DISTINCT`), and `SendBatch` queues one email per row, so such a contact receives the broadcast more than once.
+  - `GetBatchForSegment` pages with `LIMIT 100 OFFSET n`, so each batch costs time proportional to its offset and a segment build in a large workspace costs quadratic time.
 
 ## Independent review (2026-10-15)
 
@@ -340,6 +343,29 @@ A separate reviewer re-checked every fact, searched the whole repo for other rea
   - The not-enrolled checks use `FindContactAutomation`, events go through the API, and assertions name contacts rather than whole sets.
   - The migration test's webhook check is no longer vacuous, and its re-run check now tolerates a re-queue.
 - **Wording.** F7's restore paths, F9 and F11 are corrected, the docs line numbers are fixed, a stale out-of-scope docs item is dropped, `-timeout` is added, and `--exit-code` is dropped.
+
+## Implementation (2026-10-16)
+
+Built on `origin/dev` at `44880ee`, where B1 had landed, then merged with `origin/dev` at `65b8f54` and at `645e20d`. Every part above is done; the line numbers above are from `c974080a` and were re-located.
+
+- **Part 1 and Part 4.** `cl.deleted_at IS NULL` follows `l.deleted_at IS NULL` in `GetContactsForBroadcast`, `CountContactsForBroadcast` and `fetchContact`.
+- **Part 2.** `parseContactListConditionsWithEmailRef` emits `cl.deleted_at IS NULL AND l.deleted_at IS NULL`. v42 patches by inserting the first before the second, so the builder keeps them adjacent.
+- **Part 3.** The timeline function lives in `internal/database/schema/contact_list_triggers.go`, and `init.go` installs it from there. The webhook function gained `restored` and `prev_status`. Found in review: removing a contact who was already removed rewrote `deleted_at` and recorded `list.removed` again, re-enrolling them in "every time" automations triggered by it. The timeline's removal branch now requires a row that had no `deleted_at`, as the webhook trigger already did, and v42 reinstalls it; `RemoveContactFromList` still moves `deleted_at`.
+- **Part 5.** `internal/migrations/v42.go` follows the five steps. The automation functions are patched in place (D4), not regenerated as v38 does. A failed patch rolls back to its own savepoint. The re-queue inserts into `contact_segment_queue` in email order, as the web analytics re-queue does, so the two take the queue's row locks in the same order; a writer that queues contacts out of email order, such as an import, can still deadlock with it.
+- **Part 6.** `VERSION = "42.0"`. The SDK bundle was rebuilt on Node 24, and only its version changed. `package-lock.json`'s root version moved with `package.json`, as it did for 41.1. The CHANGELOG heading is now `## [42.0] - WIP`, and the two drafted **Fix** bullets were added, then reworded in review, which also added a **Fix** for re-removal and a **Change** line for the v42 schema. The re-add bullet was later listed as an **Improvement** and took in the re-removal line.
+- **Deviation: webhook assertions.** Both integration tests read the queued `webhook_deliveries` rows rather than starting the delivery worker and an `httptest` receiver. The fix is in what the trigger queues; delivery is unchanged.
+- **Deviation: segments are patched in place, not recompiled (final review).** Recompiling from the tree, as Part 5 step 4 had it, did more than the fix:
+  - It also applied every builder change made since the segment was saved, while only removed list members are re-queued, so the segment's other members keep results from the old SQL. For example, 39.0's `jsonb_typeof` guards on custom_json key checks have reached no segment saved before 39.0, because only v36 and v37 recompile.
+  - It left the bug in a tree that no longer compiles.
+  - Its read-then-write could overwrite a segment saved concurrently with SQL from the tree it had read.
+
+  Step 4 is now a single `UPDATE segments SET generated_sql = replace(generated_sql, …)`, selected the same way as the function patch. `generated_args`, `version` and `status` are untouched, and the list IDs still come from every non-deleted segment's tree. `TestV42Migration_PatchTurnsPre42OutputIntoTheCurrentOutput` pins that the old ending occurs only at the end of a list condition, in both segments and trigger functions; the same battery was checked against `origin/dev`'s real builder. The integration test now asserts that the patched SQL is byte-identical to the fixed builder's, that a pre-39 custom_json segment gains only the list predicate, and that the uncompilable segment is patched too.
+- **Moved in the changelog:** hiding removed lists in the notification center is credited to the private-lists bullet, not B24's. `visibleContactLists`, from the private-lists fix in the same release, already drops removed rows, so the integration subtest guards that behaviour end to end rather than testing this fix.
+- **Build tag.** Both new integration files are built only under the `integration` tag, since they use `createZapierSubscription` from an integration-tagged file. `broadcast_audience_pagination_test.go`, added later, uses only `testutil` and `appFactory`, which the untagged `api_test.go` defines, so it is untagged, as `broadcast_double_optin_test.go` is.
+- **Broadcast paging (decided by Pierre on 2026-10-17, after the SQL review).** `GetContactsForBroadcast` repeats the cursor on `cl.email`, and on `cs.email` when the audience is also narrowed to segments. With `c.email > $cursor` alone, the planner merge-joined `contacts` with `contact_lists` (and `contact_segments`) through their primary keys from the first email, so most pages read every row before the cursor. Measured on PostgreSQL 17 with a list of 1M contacts at 50 per page: a page halfway through took about 270 ms, and 0.3 ms with the bounds; narrowed to a segment holding half the list, 360 ms and 0.7 ms. The planner treats the repeated bounds as independent, so when the cursor sorts in the last few percent of the workspace's emails it can underestimate the rows left and switch to a hash join and a sort. Such pages can take tens of milliseconds on a large list, and a small list whose contacts all sort there pays a few milliseconds on every page. On a list of 300k contacts, a page 98% of the way through took 0.7 ms without the bounds and 30 ms with them. The slow paging itself predates this PR. Tests: `TestGetContactsForBroadcast` (sqlmock, the bound on each table) and `tests/integration/broadcast_audience_pagination_test.go` (paging a list, and a list narrowed to a segment, with unsubscribed contacts left out or kept, returns every recipient once, in email order, and nobody else).
+- **Recipient count.** `TestRemovedContactListMembership` also checks that `CountContactsForBroadcast` leaves removed contacts out, whatever `exclude_unsubscribed` says. Added in review: no integration test failed without its filter.
+- **Not done here:** the `../docs` edits, which belong in a separate PR in that repository.
+- **Integration tests:** `TestRemovedContactListMembership`, `TestV42RemovedListMembersMigration`, `TestSignedLinkMembershipStateMatrix`, `TestBroadcastAudienceStatusesAsDelivered` and every `TestWebhook*` passed locally against Postgres 16 and Mailpit. CI runs the whole integration package with `-tags integration,licdev` on every push to this PR, and it passed at `abbca9f`. The whole integration package also passed locally on PostgreSQL 18.6 at `354e6b32` and on PostgreSQL 17.11 at `de39f924`, where only the paging test and wording had changed, except one subtest that fails on `dev` too between 01:00 and 02:00 UTC: `TestWebAnalyticsConsoleQueryShapes`' goal series seeds goals one and two hours before now, so in that hour they fall on two different days. Three of the new subtests could not pass as first written, and were fixed: a segment whose tree did not parse made `ProcessQueue` fail, a filter-node exit path added a contact to a second list, and the notification center subtest's broadcast had no template, so sending it failed with "variation not found".
 
 ## Probes
 

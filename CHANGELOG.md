@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [41.1] - WIP
+## [42.0] - WIP
 
 - **Security**: Webhook subscriptions and automation webhook nodes now refuse private, loopback, link-local and reserved addresses, when the URL is saved and when it is called.
 
@@ -14,39 +14,51 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: An email's `List-Unsubscribe` link opened in a browser now leads to the notification center, which asks the contact to confirm (#450). One-click unsubscribe also accepts `multipart/form-data`.
 
-- **Fix**: A Custom Endpoint URL saved with a trailing slash no longer puts `//` in tracking, unsubscribe and notification center links, which made the one-click unsubscribe answer with a redirect RFC 8058 forbids.
+- **Improvement**: A Custom Endpoint URL saved with a trailing slash no longer adds `//` to tracking, unsubscribe and notification center links.
 
-- **Fix**: Unsubscribing from an automation email no longer fails for contacts who weren't on the automation's list. The unsubscribe link and the one-click unsubscribe answered with an error, and the contact kept receiving the automation's emails; the opt-out is now recorded on the list. Unsubscribing from an email sent before the contact or its list was deleted now succeeds too, without storing the address again.
+- **Improvement**: Links whose URL contains an apostrophe or a double quote, such as `…/blog/what's-new` or a link personalised with a name like O'Brien, now take recipients where they point, with or without click tracking, as do links that encode a character, such as the `&#038;` WordPress writes for `&`. A code-mode link whose URL holds `&quot;` or `&#X27;` no longer fails to compile.
 
-- **Fix**: A broadcast created through the API without `exclude_unsubscribed` no longer emails the list's unsubscribed contacts: leaving the key out now means exclude, as in the console. Bounced and complained addresses are never emailed, even with `exclude_unsubscribed: false`, and unsubscribing no longer erases a bounce or complaint, which a mail client's one-click unsubscribe used to do right after a spam report. Broadcasts created before the upgrade keep the value they were saved with.
+- **Fix**: Unsubscribing from an automation email now works for contacts who aren't on the automation's list, and for emails sent before the contact or its list was deleted.
 
-- **Security**: The notification center no longer lets a contact join a private list. Anyone holding one of their emails could subscribe their address to any private list by guessing its ID, which the console derives from the list's name, then receive that list's broadcasts and see it named in their preferences. Contacts can now only leave the private lists they are on, the page no longer shows the ones they left or were removed from, and adding someone back is up to the workspace. Integrations that called `/subscribe` with an `email_hmac` to add contacts to private lists must use `lists.subscribe` instead.
+- **Fix**: Spam complaints on automation emails are now recorded on the automation's list when the contact is on it, so the list's broadcasts and the marketing and blog emails of its automations skip that contact, and `list.complained` fires for the list. This covers automation emails queued from this version on, which carry their list in the message log and in `email.*` webhook events.
 
-- **Fix**: Liquid typed in the visual editor is no longer broken by the editor's own formatting (#438). It curled typed quotes, turned `!=` into `≠` and stored `>` as `&gt;`, none of which Liquid reads: `{{ first_name | default: 'Valued User' }}` rendered `Hello !`, and a comparison only tested whether its left side was set. The editor now leaves `{{ }}` and `{% %}` as typed, and templates saved with these characters are repaired when they render, including in links, image titles and tags containing `%`. A comparison that now actually runs can show Liquid's type error, such as a number compared with a quoted value (`> "100"`): remove the quotes.
+- **Fix**: Broadcasts created through the API without `exclude_unsubscribed` now leave out unsubscribed contacts, as in the console. Bounced and complained contacts are always left out, and unsubscribing keeps an existing bounce or complaint. Broadcasts created before the upgrade keep their saved setting.
 
-- **Fix**: An image's alt or title text, or any other block attribute, that contains a double quote, `<` or `>` no longer breaks the email. The value was escaped the ordinary XML way, which the MJML renderer decoded back to a raw character before parsing and then wrote into the attribute unescaped, so a single `"` in an alt text ended the attribute and failed the whole compile. Such values now render as written.
+- **Security**: Contacts can no longer join a private list from the notification center: they can only leave the private lists they are on. The page no longer shows private lists they left or were removed from, nor a public list they were removed from as one they are on. Integrations that used `/subscribe` with an `email_hmac` to add contacts to private lists must use `lists.subscribe` instead.
 
-- **Security**: Liquid stored in contact data, data-feed values or API-provided data is no longer executed when a visual-editor email is compiled. The compiler ran Liquid over the whole assembled template a second time, after per-block rendering, so any `{{ … }}` or `{% … %}` a data value contained was evaluated — and contact fields can be set by anyone through the public subscribe endpoint. Such values now render as literal text; ordinary personalization, `mj-liquid` loops over feeds, and `mj-liquid` conditional sections are unchanged. A single render's output is also capped at 10 MB, bounding a template that expands to an enormous size; a loop that produces little output is still bounded only by the render timeout.
+- **Fix**: Liquid typed in the visual editor is now kept as typed (#438), and templates saved with curled quotes, `≠` or `&gt;` in their Liquid are repaired when they render. A comparison that now runs may show Liquid's type error, such as a number compared with a quoted value (`> "100"`): remove the quotes.
 
-- **Fix**: Resending a workspace invitation now sends a working link (#436). The resent email, like a new invitation to an address whose earlier one had expired, pointed at an invitation that did not exist, so the invitee saw "Invitation not found"; one who never got the first email could only get in once the invitation was deleted and sent again. Inviting an address again — in any letter case, and even once the invitee has an account — now refreshes and resends its pending invitation, where it used to add a second invitation holding another seat or seat the account without asking; resending at the `MAX_USERS` limit is no longer refused. Accepting finds the invitee's existing account whatever the letter case, instead of creating a second one.
+- **Improvement**: In the visual editor, block attributes, such as an image's alt or title text, can now contain `"` and `<`.
 
-- **Improvement**: Invited users can sign in with SSO before opening their invitation (#436). Their first SSO sign-in creates the account, in invited-only mode and outside `OIDC_ALLOWED_DOMAINS`, and the workspace list shows their pending invitations with a **Join** button; nothing is accepted on their behalf. This needs an identity provider authoritative for the address — `email_verified` from most providers, `xms_edov` for a member of your Microsoft Entra ID tenant, and from Google only Gmail and Workspace addresses; otherwise SSO creates no account for an invited address, even with `OIDC_AUTO_CREATE_USERS`, and the invitee uses the emailed link. A sign-in refused by the domain allowlist now says so instead of showing a generic error.
+- **Security**: Liquid inside contact data, data-feed values or API-provided data is now rendered as plain text when a visual-editor email is compiled. A single render's output is capped at 10 MB.
 
-- **Fix**: Signed-in users who belong to no workspace — a member removed from their last one, or someone whose account single sign-on created — now see the workspace list instead of being sent to create a workspace, a form only the root user can submit.
+- **Fix**: Resending a workspace invitation now sends a working link (#436). Inviting an address again refreshes its pending invitation instead of adding a second one, and accepting finds the invitee's existing account whatever the letter case.
 
-- **Improvement**: The notification center now saves a contact's browser language and timezone after their first click, tap or key press instead of on page load. Email security scanners open links from emails in real browsers, and could overwrite a contact's timezone with their own, shifting broadcasts sent in the recipient's timezone.
+- **Improvement**: Invited users can sign in with SSO before opening their invitation (#436). Their first SSO sign-in creates the account, even in invited-only mode or outside `OIDC_ALLOWED_DOMAINS`, and the workspace list shows their pending invitations with a **Join** button. This needs an identity provider that vouches for the address (`email_verified`; from Google, only for a Gmail or Workspace address; from Microsoft Entra ID, `xms_edov` for a member of your tenant); otherwise SSO creates no account for an invited address, even with `OIDC_AUTO_CREATE_USERS`, and the invitee uses the emailed link. A sign-in refused by the domain allowlist now says so.
 
-- **Security**: Cleared the two open Dependabot alerts, plus the newer advisories `npm audit` already reports. The console moves to `dompurify` 3.4.17, where an in-place sanitise could leave a removed node's event handlers armed, and to `seroval` 1.6.9, the serializer bundled with TanStack Router (a critical advisory in its JSON deserializer). `brace-expansion`, `source-map-js` and `proxy-addr` are build-time only, and the notification center and SDK now audit clean. Two console advisories stay open with no fix to take: `braces` has no patched release, and the patched `katex` 0.18 is not yet accepted by `mermaid` 11 or `@ant-design/x-markdown`.
+- **Improvement**: Signed-in users other than the root user who belong to no workspace now see the workspace list instead of the workspace creation form.
 
-- **Improvement**: Signing in after moving an instance to a new domain now says why it fails (#435). The console sends every request to the configured `API_ENDPOINT`, so it kept calling the old address and showed only "Failed to fetch"; the sign-in page now names both addresses and says to set `API_ENDPOINT` to the new one and restart. The self-hosting docs gain a "Changing your domain" page listing everything else tied to that address.
+- **Improvement**: The notification center now saves a contact's browser language and timezone on their first interaction rather than on page load, so email security scanners that only open the page no longer change them.
 
-- **Fix**: `CORS_ALLOW_ORIGIN` now accepts the comma-separated list of origins the documentation describes. The list was sent to browsers as written, which they refuse, so restricting CORS to more than one origin blocked every cross-origin call, including the console and notification center opened on a workspace custom domain. A listed origin is now answered with itself, and any other origin gets no CORS header.
+- **Security**: Dependency updates clear the open Dependabot and `npm audit` advisories that have a fix, including `dompurify` 3.4.17 and `seroval` 1.6.9 in the console. `braces` and `katex` stay open until a usable fixed version exists.
 
-- **Fix**: `templates.update` on a deleted template now answers `404` instead of saving a new version, which put the deleted template back in the template list and every template picker (#442).
+- **Improvement**: Signing in after moving an instance to a new domain now explains the fix: set `API_ENDPOINT` to the new address and restart (#435). The self-hosting docs gain a "Changing your domain" page.
 
-- **Improvement**: Creating a template with the ID of a deleted template now says why it is refused (deleted templates keep their ID, so messages already sent with them can still be displayed) instead of a bare "Template id already exists", and `templates.get` returns `deleted_at` for them. The template editor also says up front that the editor mode can't be changed after creation, and an update in the other mode now explains how to switch (#442).
+- **Improvement**: `CORS_ALLOW_ORIGIN` now accepts a comma-separated list of origins, as documented.
 
-- **Fix**: "Detect from website URL" no longer fills the logo with the website's own address, or with an icon that doesn't exist (#432). It returned the first icon link it found without loading it, so an empty or placeholder link could beat a working SVG favicon. Each candidate is now loaded and must be an image, and links resolve against the page reached after redirects.
+- **Improvement**: `templates.update` on a deleted template now answers `404` and leaves it deleted (#442).
+
+- **Improvement**: Creating a template with the ID of a deleted template now says why it is refused, and `templates.get` returns `deleted_at`. The template editor says that the editor mode can't be changed after creation (#442).
+
+- **Improvement**: "Detect from website URL" now only picks a logo that loads as an image (#432).
+
+- **Fix**: A contact removed from a list is now treated as off the list everywhere: broadcasts, segments, automation conditions and nodes, the API's `contact_lists` and a template's `contact.contact_lists`. Upgrading updates existing segments and live automations, and affected contacts get one `segment.left` or `segment.joined` event per segment.
+
+- **Improvement**: Adding a removed contact back to a list with the status they had now records `list.subscribed` (or `list.pending` while awaiting double opt-in) on their timeline and as a webhook event, so "every time" automations triggered by it enroll them again, imports included. A re-add that moves them to awaiting double opt-in now sends `list.pending` as a webhook event too. Removing a contact who is already removed records nothing.
+
+- **Improvement**: Broadcasts to large lists are faster to send. Fetching each batch of recipients no longer rereads the part of the list already sent.
+
+- **Change**: The database schema moves to v42. Workspace databases get updated `contact_lists` trigger functions, and their stored segment queries and live automation triggers are updated in place; segments are re-evaluated for contacts removed from their lists. The system database is untouched.
 
 ## [41.0] - 2026-09-17
 

@@ -1231,8 +1231,10 @@ func (qb *QueryBuilder) parseContactListConditionsWithEmailRef(contactList *doma
 		argIndex++
 	}
 
-	// Add check for non-deleted lists
-	conditions = append(conditions, "l.deleted_at IS NULL")
+	// A contact removed from the list (soft-deleted row) is not a member of it, and a
+	// deleted list has no members. The v42 migration patches stored SQL by inserting
+	// "cl.deleted_at IS NULL AND " before "l.deleted_at IS NULL)": keep the two together.
+	conditions = append(conditions, "cl.deleted_at IS NULL", "l.deleted_at IS NULL")
 
 	// Build the EXISTS clause with custom email reference
 	whereClause := strings.Join(conditions, " AND ")
