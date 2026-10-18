@@ -20,13 +20,14 @@ import (
 // TestMessageHistoryRedactionFiresNoTriggerFanout pins the blast radius of the
 // erasure UPDATE on message_history.
 //
-// Three AFTER UPDATE triggers sit on that table — track_message_history_changes
-// (writes contact_timeline), update_contact_lists_on_status_change (rewrites
-// subscription status) and webhook_message_history_trigger (fans out to customer
-// webhooks). TestContactDeletionErasure cannot see what they do here: it probes
-// for the victim's address, and the redaction renames the row to DELETED_EMAIL
-// first, so anything a trigger writes afterwards is filed under a name no probe
-// looks for.
+// Two AFTER UPDATE triggers sit on that table — track_message_history_changes
+// (writes contact_timeline, and rewrites subscription status on a complaint or a
+// bounce) and webhook_message_history_trigger (fans out to customer webhooks). A
+// workspace upgraded from before 42 keeps a third, update_contact_lists_on_status_change,
+// which rewrites the status again. TestContactDeletionErasure cannot see what they
+// do here: it probes for the victim's address, and the redaction renames the row
+// to DELETED_EMAIL first, so anything a trigger writes afterwards is filed under a
+// name no probe looks for.
 func TestMessageHistoryRedactionFiresNoTriggerFanout(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -187,7 +188,7 @@ func TestMessageHistoryRedactionFiresNoTriggerFanout(t *testing.T) {
 		require.NoError(t, wsDB.QueryRow(
 			`SELECT status FROM contact_lists WHERE email = $1 AND list_id = 'list1'`, bystander).Scan(&status))
 		assert.Equal(t, "active", status,
-			"the redaction UPDATE fired update_contact_lists_on_status_change and re-graded a subscription")
+			"the redaction UPDATE looked like a complaint or a bounce and re-graded a subscription")
 	})
 
 	t.Run("messages.list still reads the redacted row", func(t *testing.T) {

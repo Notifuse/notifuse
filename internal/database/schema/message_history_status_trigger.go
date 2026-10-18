@@ -1,46 +1,20 @@
 package schema
 
-// StatusChangeTrigger is the trigger that runs update_contact_lists_on_status_change after
-// every update of message_history. Its name sets when it fires: PostgreSQL fires the
-// AFTER triggers of one event in name order, and this one must come before
-// message_history_changes_trigger. That trigger writes the message's timeline entry, which
-// locks the contact's contact_segment_queue row. Every write to contact_lists locks the
-// contact_lists row first and the contact_segment_queue row second, through its own
-// timeline entry; this trigger, firing first, takes them in the same order. Under its
-// name before 42 it fired after message_history_changes_trigger and took them the other
-// way round, so a complaint or a bounce could deadlock with a subscribe or an import of
-// the same contact running at the same time: PostgreSQL aborted one of the two.
-//
-// Firing first also means that when the message's email.complained or email.bounced entry
-// reaches contact_timeline, the list status has already changed, and that the
-// list.complained or list.bounced entry is written before the email.* one.
-const StatusChangeTrigger = "message_history_bounce_complaint_trigger"
-
-// StatusChangeTriggerStatements returns the statements that attach
-// update_contact_lists_on_status_change to message_history under StatusChangeTrigger.
-// They drop the trigger's name before 42, message_history_status_trigger, which sorted
-// after message_history_changes_trigger. Both the new-workspace path and the v42 migration
-// run them.
-func StatusChangeTriggerStatements() []string {
-	return []string{
-		`DROP TRIGGER IF EXISTS message_history_status_trigger ON message_history`,
-		`DROP TRIGGER IF EXISTS ` + StatusChangeTrigger + ` ON message_history`,
-		`CREATE TRIGGER ` + StatusChangeTrigger + ` AFTER UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION update_contact_lists_on_status_change()`,
-	}
-}
-
-// UpdateContactListsOnStatusChangeFunction returns the trigger function that turns a
-// complaint or a hard bounce on a message into the contact's status on the list the
-// message was sent for. StatusChangeTrigger runs it after every update of
-// message_history.
+// ApplyMessageStatusToContactListsFunction returns apply_message_status_to_contact_lists(),
+// the function that turns a complaint or a hard bounce on a message into the contact's
+// status on the list the message was sent for. track_message_history_changes() (see
+// TrackMessageHistoryChangesFunction) calls it when an update of message_history records a
+// new complaint or a new hard bounce, passing the new complained_at or bounced_at and NULL
+// for the other.
 //
 // Two paths install it: the new-workspace path (internal/database/init.go) and the v42
-// migration on every existing workspace. internal/migrations/v10.go and v17.go carry
-// the bodies this one replaced and must stay frozen: a historical migration keeps
-// reproducing what it shipped.
+// migration on every existing workspace. Before 42 this logic lived in
+// update_contact_lists_on_status_change(); internal/migrations/v10.go and v17.go carry the
+// bodies it replaced and must stay frozen: a historical migration keeps reproducing what it
+// shipped.
 //
-// What it does, for a new complaint (complained_at set) or a new hard bounce (bounced_at
-// set; the application sets it only for hard bounces):
+// What it does, for a complaint or a hard bounce (the application sets bounced_at only for
+// hard bounces):
 //   - The list is message_history.list_id, which broadcasts and automations store. A
 //     message without one (a transactional email, or an automation email sent before
 //     automations stored their list) changes no list status. The automation's current
@@ -57,35 +31,31 @@ func StatusChangeTriggerStatements() []string {
 //     the update began, takes the status through the insert's ON CONFLICT DO UPDATE,
 //     under the same guard as the update; DO NOTHING would drop the complaint. A
 //     subscribe or an import still uncommitted on that row makes the update or the
-//     insert wait, and the status lands once it commits (see StatusChangeTrigger for why
-//     this wait cannot deadlock).
-//   - A complaint replaces any status; a bounce never replaces a complaint.
-func UpdateContactListsOnStatusChangeFunction() string {
-	return `CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()
-		RETURNS TRIGGER AS $$
-		DECLARE
-			is_complaint BOOLEAN;
-			is_bounce BOOLEAN;
+//     insert wait, and the status lands once it commits.
+//   - A complaint replaces any status; a bounce never replaces a complaint. Applying the
+//     same status twice changes nothing the second time.
+func ApplyMessageStatusToContactListsFunction() string {
+	return `CREATE OR REPLACE FUNCTION apply_message_status_to_contact_lists(
+			p_email VARCHAR, p_list_id VARCHAR, p_complained_at TIMESTAMPTZ, p_bounced_at TIMESTAMPTZ)
+		RETURNS VOID AS $$
 		BEGIN
-			is_complaint := NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL;
-			is_bounce := NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL;
-			IF (NOT is_complaint AND NOT is_bounce) OR NEW.list_id IS NULL THEN
-				RETURN NEW;
+			IF p_list_id IS NULL THEN
+				RETURN;
 			END IF;
 
 			-- Complaint: the worst status, it replaces any other
-			IF is_complaint THEN
+			IF p_complained_at IS NOT NULL THEN
 				UPDATE contact_lists
 				SET status = 'complained',
-					updated_at = NEW.complained_at
-				WHERE email = NEW.contact_email
-				AND list_id = NEW.list_id
+					updated_at = p_complained_at
+				WHERE email = p_email
+				AND list_id = p_list_id
 				AND status != 'complained';
 				IF NOT FOUND THEN
 					INSERT INTO contact_lists (email, list_id, status, created_at, updated_at)
-					SELECT NEW.contact_email, NEW.list_id, 'complained', NEW.complained_at, NEW.complained_at
-					WHERE EXISTS (SELECT 1 FROM contacts c WHERE c.email = NEW.contact_email)
-					AND EXISTS (SELECT 1 FROM lists l WHERE l.id = NEW.list_id AND l.deleted_at IS NULL)
+					SELECT p_email, p_list_id, 'complained', p_complained_at, p_complained_at
+					WHERE EXISTS (SELECT 1 FROM contacts c WHERE c.email = p_email)
+					AND EXISTS (SELECT 1 FROM lists l WHERE l.id = p_list_id AND l.deleted_at IS NULL)
 					ON CONFLICT (email, list_id) DO UPDATE
 					SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at
 					WHERE contact_lists.status <> 'complained';
@@ -93,24 +63,140 @@ func UpdateContactListsOnStatusChangeFunction() string {
 			END IF;
 
 			-- Hard bounce: never replaces a complaint
-			IF is_bounce THEN
+			IF p_bounced_at IS NOT NULL THEN
 				UPDATE contact_lists
 				SET status = 'bounced',
-					updated_at = NEW.bounced_at
-				WHERE email = NEW.contact_email
-				AND list_id = NEW.list_id
+					updated_at = p_bounced_at
+				WHERE email = p_email
+				AND list_id = p_list_id
 				AND status NOT IN ('complained', 'bounced');
 				IF NOT FOUND THEN
 					INSERT INTO contact_lists (email, list_id, status, created_at, updated_at)
-					SELECT NEW.contact_email, NEW.list_id, 'bounced', NEW.bounced_at, NEW.bounced_at
-					WHERE EXISTS (SELECT 1 FROM contacts c WHERE c.email = NEW.contact_email)
-					AND EXISTS (SELECT 1 FROM lists l WHERE l.id = NEW.list_id AND l.deleted_at IS NULL)
+					SELECT p_email, p_list_id, 'bounced', p_bounced_at, p_bounced_at
+					WHERE EXISTS (SELECT 1 FROM contacts c WHERE c.email = p_email)
+					AND EXISTS (SELECT 1 FROM lists l WHERE l.id = p_list_id AND l.deleted_at IS NULL)
 					ON CONFLICT (email, list_id) DO UPDATE
 					SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at
 					WHERE contact_lists.status NOT IN ('complained', 'bounced');
 				END IF;
 			END IF;
+		END;
+		$$ LANGUAGE plpgsql;`
+}
 
+// TrackMessageHistoryChangesFunction returns track_message_history_changes(), the function
+// message_history_changes_trigger runs after every insert and update of message_history. It
+// writes the message's contact_timeline entries (email.sent, email.opened,
+// email.complained, …). For an update that records a new complaint or a new hard bounce,
+// it first sets the contact's status on the message's list through
+// apply_message_status_to_contact_lists().
+//
+// The status comes first because of locks. Every contact_timeline entry locks the
+// contact's contact_segment_queue row, and every write to contact_lists locks the
+// contact_lists row first and the contact_segment_queue row second, through its own
+// timeline entry. Setting the status before writing any timeline entry takes them in that
+// same order, so a complaint or a bounce that meets an uncommitted subscribe or import of
+// the same contact waits for it. Before 42 a separate trigger,
+// message_history_status_trigger, set the status after this function had written the
+// timeline entries: the complaint held the queue row while it waited for the contact_lists
+// row, the import held the contact_lists row while it waited for the queue row, and
+// PostgreSQL aborted one of the two. An update of several messages in one statement can
+// still deadlock with an import of several of their contacts, as any two writes of several
+// contact_lists rows in different orders can.
+//
+// Setting the status first also means that the list.complained or list.bounced entry is
+// written before the email.complained or email.bounced one, and that the conditions of an
+// automation triggered by the email.* entry see the new list status.
+//
+// Two paths install it: the new-workspace path (internal/database/init.go) and the v42
+// migration. internal/migrations/v7.go, v8.go and v36.go carry the bodies this one
+// replaced and stay frozen. Apart from the status step, this body is v36's.
+func TrackMessageHistoryChangesFunction() string {
+	return `CREATE OR REPLACE FUNCTION track_message_history_changes()
+		RETURNS TRIGGER AS $$
+		DECLARE
+			changes_json JSONB := '{}'::jsonb;
+			op VARCHAR(20);
+			kind_value VARCHAR(50);
+		BEGIN
+			IF TG_OP = 'INSERT' THEN
+				op := 'insert';
+				changes_json := jsonb_build_object('template_id', jsonb_build_object('new', NEW.template_id), 'template_version', jsonb_build_object('new', NEW.template_version), 'channel', jsonb_build_object('new', NEW.channel), 'broadcast_id', jsonb_build_object('new', NEW.broadcast_id), 'sent_at', jsonb_build_object('new', NEW.sent_at));
+				INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+				VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.sent', NEW.id, changes_json, NEW.updated_at);
+			ELSIF TG_OP = 'UPDATE' THEN
+				op := 'update';
+				-- A new complaint or hard bounce sets the list status before any timeline entry
+				-- is written: the contact_lists row is locked before the contact_segment_queue row,
+				-- in the order every write to contact_lists takes them.
+				IF NEW.list_id IS NOT NULL AND ((NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL) OR (NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL)) THEN
+					PERFORM apply_message_status_to_contact_lists(NEW.contact_email, NEW.list_id,
+						CASE WHEN NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL THEN NEW.complained_at END,
+						CASE WHEN NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL THEN NEW.bounced_at END);
+				END IF;
+				-- Handle engagement events separately with specific kinds
+				IF OLD.opened_at IS DISTINCT FROM NEW.opened_at AND NEW.opened_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('opened_at', jsonb_build_object('old', OLD.opened_at, 'new', NEW.opened_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.opened', NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				IF OLD.clicked_at IS DISTINCT FROM NEW.clicked_at AND NEW.clicked_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('clicked_at', jsonb_build_object('old', OLD.clicked_at, 'new', NEW.clicked_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.clicked', NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				IF OLD.bounced_at IS DISTINCT FROM NEW.bounced_at AND NEW.bounced_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('bounced_at', jsonb_build_object('old', OLD.bounced_at, 'new', NEW.bounced_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.bounced', NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				IF OLD.complained_at IS DISTINCT FROM NEW.complained_at AND NEW.complained_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('complained_at', jsonb_build_object('old', OLD.complained_at, 'new', NEW.complained_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.complained', NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				IF OLD.unsubscribed_at IS DISTINCT FROM NEW.unsubscribed_at AND NEW.unsubscribed_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('unsubscribed_at', jsonb_build_object('old', OLD.unsubscribed_at, 'new', NEW.unsubscribed_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.unsubscribed', NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				-- Handle other updates (delivered, failed, status_info) as generic updates
+				changes_json := '{}'::jsonb;
+				IF OLD.delivered_at IS DISTINCT FROM NEW.delivered_at THEN changes_json := changes_json || jsonb_build_object('delivered_at', jsonb_build_object('old', OLD.delivered_at, 'new', NEW.delivered_at)); END IF;
+				IF OLD.failed_at IS DISTINCT FROM NEW.failed_at THEN changes_json := changes_json || jsonb_build_object('failed_at', jsonb_build_object('old', OLD.failed_at, 'new', NEW.failed_at)); END IF;
+				IF OLD.status_info IS DISTINCT FROM NEW.status_info THEN changes_json := changes_json || jsonb_build_object('status_info', jsonb_build_object('old', OLD.status_info, 'new', NEW.status_info)); END IF;
+				IF changes_json != '{}'::jsonb THEN
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.updated', NEW.id, changes_json, NEW.updated_at);
+				END IF;
+			END IF;
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;`
+}
+
+// UpdateContactListsOnStatusChangeFunction returns the body the v42 migration gives
+// update_contact_lists_on_status_change(), the function message_history_status_trigger ran
+// after every update of message_history to set the list status before 42.
+//
+// A workspace created at 42 or later has neither the trigger nor this function:
+// track_message_history_changes() sets the status. A workspace upgraded to 42 keeps the
+// trigger, because dropping it would hold an ACCESS EXCLUSIVE lock on message_history until
+// the migration commits, blocking every send and every webhook in the meantime. Its function
+// applies the status again. That changes nothing once track_message_history_changes() has
+// applied it, which it does first: message_history_changes_trigger sorts before
+// message_history_status_trigger, and PostgreSQL fires the AFTER triggers of one event in
+// name order. It still applies the status for an update whose two trigger calls straddle
+// the v42 commit, the first one running the timeline function from before 42.
+func UpdateContactListsOnStatusChangeFunction() string {
+	return `CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()
+		RETURNS TRIGGER AS $$
+		BEGIN
+			IF NEW.list_id IS NOT NULL AND ((NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL) OR (NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL)) THEN
+				PERFORM apply_message_status_to_contact_lists(NEW.contact_email, NEW.list_id,
+					CASE WHEN NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL THEN NEW.complained_at END,
+					CASE WHEN NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL THEN NEW.bounced_at END);
+			END IF;
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`

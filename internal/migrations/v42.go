@@ -50,11 +50,11 @@ import (
 //     rather than on their next unrelated timeline write. This runs last, so the queue
 //     row locks are held for as short a time as possible.
 //
-// Right after step 1, the complaint/bounce function of message_history is reinstalled
-// too (installStatusChangeFunction): a complaint or hard bounce from a contact with no
-// row on the list stored on the message now records the status there. Its trigger is
-// renamed so that it fires before message_history_changes_trigger
-// (installStatusChangeTrigger).
+// Right after step 1, the message_history functions that record a complaint or a hard
+// bounce on the list are reinstalled too (installStatusChangeFunctions): a contact with no
+// row on the list stored on the message now gets one with the status, and the status is
+// set before the message's timeline entries are written, so it no longer deadlocks with a
+// subscribe or an import of the same contact. No trigger is created or dropped.
 //
 // Every step is idempotent: the selections no longer match a patched function or
 // segment, and re-queueing a contact again is harmless.
@@ -98,12 +98,8 @@ func (m *V42Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 		}
 	}
 
-	if err := m.installStatusChangeFunction(ctx, db); err != nil {
-		return fmt.Errorf("v42: failed to install the complaint/bounce trigger function for workspace %s: %w", workspace.ID, err)
-	}
-
-	if err := m.installStatusChangeTrigger(ctx, db); err != nil {
-		return fmt.Errorf("v42: failed to install the complaint/bounce trigger for workspace %s: %w", workspace.ID, err)
+	if err := m.installStatusChangeFunctions(ctx, db); err != nil {
+		return fmt.Errorf("v42: failed to install the complaint/bounce functions for workspace %s: %w", workspace.ID, err)
 	}
 
 	if err := m.patchAutomationTriggerFunctions(ctx, db); err != nil {
@@ -286,30 +282,27 @@ func (m *V42Migration) requeueRemovedListMembers(ctx context.Context, db DBExecu
 	return nil
 }
 
-// installStatusChangeFunction reinstalls the function message_history runs on a
-// complaint or hard bounce, so a fresh workspace and an upgraded one record them the same
-// way: on the list stored on the message, with a new row for a contact who has none
-// there. Automations email contacts who aren't on their list; before, a complaint or
-// bounce from one of them recorded nothing and the next email went out. A message stored
-// without a list still records nothing. Replacing a function body takes no table lock.
-func (m *V42Migration) installStatusChangeFunction(ctx context.Context, db DBExecutor) error {
-	_, err := db.ExecContext(ctx, schema.UpdateContactListsOnStatusChangeFunction())
-	return err
-}
-
-// installStatusChangeTrigger attaches that function under schema.StatusChangeTrigger in
-// place of message_history_status_trigger. The new name makes it fire before
-// message_history_changes_trigger, so a complaint or a bounce locks the contact's
-// contact_lists row before its contact_segment_queue row, as every other contact_lists
-// write does, and no longer deadlocks with a subscribe or an import of the same contact.
+// installStatusChangeFunctions reinstalls the functions message_history runs on a
+// complaint or a hard bounce, so a fresh workspace and an upgraded one record them the same
+// way: on the list stored on the message, with a new row for a contact who has none there.
+// Automations email contacts who aren't on their list; before, a complaint or bounce from
+// one of them recorded nothing and the next email went out. A message stored without a
+// list still records nothing.
 //
-// DROP TRIGGER holds ACCESS EXCLUSIVE on message_history until the migration commits. It
-// runs before the steps that lock rows (the automation functions, the segments and the
-// queue rows), so while it waits for the lock this transaction holds nothing a writer
-// to message_history could be waiting for, and no write to message_history in the
-// application runs in a transaction that has already locked one of those rows.
-func (m *V42Migration) installStatusChangeTrigger(ctx context.Context, db DBExecutor) error {
-	for _, query := range schema.StatusChangeTriggerStatements() {
+// track_message_history_changes() now sets the status before writing the message's
+// timeline entries; see schema.TrackMessageHistoryChangesFunction for why. The trigger
+// that set it before 42, message_history_status_trigger, stays attached: dropping it would
+// hold an ACCESS EXCLUSIVE lock on message_history until this migration commits. Its
+// function applies the status again, which changes nothing once the timeline function has
+// applied it; see schema.UpdateContactListsOnStatusChangeFunction.
+//
+// Replacing a function body takes no table lock.
+func (m *V42Migration) installStatusChangeFunctions(ctx context.Context, db DBExecutor) error {
+	for _, query := range []string{
+		schema.ApplyMessageStatusToContactListsFunction(),
+		schema.TrackMessageHistoryChangesFunction(),
+		schema.UpdateContactListsOnStatusChangeFunction(),
+	} {
 		if _, err := db.ExecContext(ctx, query); err != nil {
 			return err
 		}

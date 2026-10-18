@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// statusWrite is what a new complaint or hard bounce writes on the list stored on the
+// statusWrite is what a complaint or hard bounce writes on the list stored on the
 // message: the contact's existing row is updated, and a contact with no row gets one.
 // NOT FOUND also holds for a row whose status the update keeps, and for a row the update
 // didn't see because a subscribe or an import committed it after the update began. The
@@ -17,68 +17,57 @@ import (
 func statusWrite(status, at, updateGuard, conflictGuard string) string {
 	return `UPDATE contact_lists
 SET status = '` + status + `',
-updated_at = NEW.` + at + `
-WHERE email = NEW.contact_email
-AND list_id = NEW.list_id
+updated_at = ` + at + `
+WHERE email = p_email
+AND list_id = p_list_id
 AND ` + updateGuard + `;
 IF NOT FOUND THEN
 INSERT INTO contact_lists (email, list_id, status, created_at, updated_at)
-SELECT NEW.contact_email, NEW.list_id, '` + status + `', NEW.` + at + `, NEW.` + at + `
-WHERE EXISTS (SELECT 1 FROM contacts c WHERE c.email = NEW.contact_email)
-AND EXISTS (SELECT 1 FROM lists l WHERE l.id = NEW.list_id AND l.deleted_at IS NULL)
+SELECT p_email, p_list_id, '` + status + `', ` + at + `, ` + at + `
+WHERE EXISTS (SELECT 1 FROM contacts c WHERE c.email = p_email)
+AND EXISTS (SELECT 1 FROM lists l WHERE l.id = p_list_id AND l.deleted_at IS NULL)
 ON CONFLICT (email, list_id) DO UPDATE
 SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at
 WHERE ` + conflictGuard + `;
 END IF;`
 }
 
-const (
-	newComplaint = "is_complaint := NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL;"
-	newBounce    = "is_bounce := NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL;"
-	nothingToDo  = "IF (NOT is_complaint AND NOT is_bounce) OR NEW.list_id IS NULL THEN\nRETURN NEW;\nEND IF;"
-)
+// statusStep is how both message_history functions call the shared one: only for a new
+// complaint or a new hard bounce on a message that stores a list, passing the new
+// timestamp and NULL for the other. Opens, clicks and deliveries call nothing.
+const statusStep = `IF NEW.list_id IS NOT NULL AND ((NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL) OR (NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL)) THEN
+PERFORM apply_message_status_to_contact_lists(NEW.contact_email, NEW.list_id,
+CASE WHEN NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL THEN NEW.complained_at END,
+CASE WHEN NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL THEN NEW.bounced_at END);
+END IF;`
 
-func TestUpdateContactListsOnStatusChangeFunction_Header(t *testing.T) {
-	sql := UpdateContactListsOnStatusChangeFunction()
-	assert.True(t, strings.HasPrefix(sql, "CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()"),
-		"the function name is what message_history_bounce_complaint_trigger executes")
-	assert.True(t, strings.HasSuffix(sql, "$$ LANGUAGE plpgsql;"))
+// The signature is what track_message_history_changes() and
+// update_contact_lists_on_status_change() call: a changed one would create a second
+// function next to the first, which they would keep calling.
+func TestApplyMessageStatusToContactListsFunction_Header(t *testing.T) {
+	body := normalizeIndent(ApplyMessageStatusToContactListsFunction())
+	assert.True(t, strings.HasPrefix(body, `CREATE OR REPLACE FUNCTION apply_message_status_to_contact_lists(
+p_email VARCHAR, p_list_id VARCHAR, p_complained_at TIMESTAMPTZ, p_bounced_at TIMESTAMPTZ)
+RETURNS VOID AS $$`))
+	assert.True(t, strings.HasSuffix(body, "$$ LANGUAGE plpgsql;"))
 }
 
-// PostgreSQL fires the AFTER triggers of one event in name order, comparing names
-// byte by byte. The trigger must fire before message_history_changes_trigger, whose
-// timeline entry locks the contact's contact_segment_queue row: firing after it, a
-// complaint deadlocked with an import of the same contact.
-func TestStatusChangeTriggerStatements(t *testing.T) {
-	assert.Equal(t, []string{
-		"DROP TRIGGER IF EXISTS message_history_status_trigger ON message_history",
-		"DROP TRIGGER IF EXISTS message_history_bounce_complaint_trigger ON message_history",
-		"CREATE TRIGGER message_history_bounce_complaint_trigger AFTER UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION update_contact_lists_on_status_change()",
-	}, StatusChangeTriggerStatements(), "the name before 42 is dropped, then the trigger is attached under its new name")
-	assert.Less(t, StatusChangeTrigger, "message_history_changes_trigger")
-}
+// A message that stores no list changes no list status, and a complaint and a bounce
+// passed together end complained: the complaint is written first, and the bounce never
+// overwrites it.
+func TestApplyMessageStatusToContactListsFunction_WritesNothingWithoutAList(t *testing.T) {
+	body := normalizeIndent(ApplyMessageStatusToContactListsFunction())
 
-// The function runs after every message_history update, opens and clicks included, so
-// it writes nothing unless the update is a new complaint or hard bounce on a message
-// that stores a list.
-func TestUpdateContactListsOnStatusChangeFunction_ActsOnlyOnANewComplaintOrBounce(t *testing.T) {
-	body := normalizeIndent(UpdateContactListsOnStatusChangeFunction())
-
-	for _, part := range []string{newComplaint, newBounce, nothingToDo} {
-		assert.Contains(t, body, part)
-	}
-	guard := strings.Index(body, nothingToDo)
+	guard := strings.Index(body, "IF p_list_id IS NULL THEN\nRETURN;\nEND IF;")
 	firstWrite := strings.Index(body, "UPDATE contact_lists")
 	require.NotEqual(t, -1, guard)
 	require.NotEqual(t, -1, firstWrite)
 	assert.Less(t, guard, firstWrite)
 
-	complaint := strings.Index(body, "IF is_complaint THEN")
-	bounce := strings.Index(body, "IF is_bounce THEN")
+	complaint := strings.Index(body, "IF p_complained_at IS NOT NULL THEN")
+	bounce := strings.Index(body, "IF p_bounced_at IS NOT NULL THEN")
 	require.NotEqual(t, -1, complaint)
 	require.NotEqual(t, -1, bounce)
-	// A complaint and a bounce saved together end complained: the complaint is written
-	// first, and the bounce never overwrites it.
 	assert.Less(t, complaint, bounce)
 }
 
@@ -86,27 +75,27 @@ func TestUpdateContactListsOnStatusChangeFunction_ActsOnlyOnANewComplaintOrBounc
 // store it. An automation email sent before automations stored their list has none, and
 // the automation's current list is not used instead: it may have changed since the email
 // went out, and the complaint would land on a list it wasn't sent for.
-func TestUpdateContactListsOnStatusChangeFunction_UsesOnlyTheListStoredOnTheMessage(t *testing.T) {
-	sql := UpdateContactListsOnStatusChangeFunction()
+func TestApplyMessageStatusToContactListsFunction_UsesOnlyTheListStoredOnTheMessage(t *testing.T) {
+	sql := ApplyMessageStatusToContactListsFunction()
 	assert.NotContains(t, sql, "automations", "no fallback to the automation's current list")
 	assert.NotContains(t, sql, "automation_id")
-	assert.Equal(t, 2, strings.Count(sql, "AND list_id = NEW.list_id"),
+	assert.Equal(t, 2, strings.Count(sql, "AND list_id = p_list_id"),
 		"both updates target the stored list")
 }
 
 // A complaint or hard bounce must stop the next email whether or not the contact is on
 // the list: automations also email contacts with no row on theirs. Like an opt-out from a
 // non-member, it records a row on the list stored on the message.
-func TestUpdateContactListsOnStatusChangeFunction_RecordsARowForAContactWithNone(t *testing.T) {
-	body := normalizeIndent(UpdateContactListsOnStatusChangeFunction())
+func TestApplyMessageStatusToContactListsFunction_RecordsARowForAContactWithNone(t *testing.T) {
+	body := normalizeIndent(ApplyMessageStatusToContactListsFunction())
 
 	cases := []struct {
 		name, status, at, updateGuard, conflictGuard string
 	}{
 		// The worst status: it replaces any other
-		{"complaint", "complained", "complained_at", "status != 'complained'", "contact_lists.status <> 'complained'"},
+		{"complaint", "complained", "p_complained_at", "status != 'complained'", "contact_lists.status <> 'complained'"},
 		// It never replaces a complaint
-		{"hard bounce", "bounced", "bounced_at", "status NOT IN ('complained', 'bounced')",
+		{"hard bounce", "bounced", "p_bounced_at", "status NOT IN ('complained', 'bounced')",
 			"contact_lists.status NOT IN ('complained', 'bounced')"},
 	}
 	for _, tc := range cases {
@@ -118,17 +107,17 @@ func TestUpdateContactListsOnStatusChangeFunction_RecordsARowForAContactWithNone
 	// The inserts never store an address that is no longer a contact: an erased contact's
 	// messages are kept with the address redacted, and a provider can still report on
 	// them. Nor do they put anyone on a deleted list.
-	assert.Equal(t, 2, strings.Count(body, "WHERE EXISTS (SELECT 1 FROM contacts c WHERE c.email = NEW.contact_email)"))
-	assert.Equal(t, 2, strings.Count(body, "AND EXISTS (SELECT 1 FROM lists l WHERE l.id = NEW.list_id AND l.deleted_at IS NULL)"))
+	assert.Equal(t, 2, strings.Count(body, "WHERE EXISTS (SELECT 1 FROM contacts c WHERE c.email = p_email)"))
+	assert.Equal(t, 2, strings.Count(body, "AND EXISTS (SELECT 1 FROM lists l WHERE l.id = p_list_id AND l.deleted_at IS NULL)"))
 }
 
 // A row a subscribe or an import commits after the update began is invisible to the
 // update, and DO NOTHING on the insert's conflict would drop the complaint or bounce, so
-// the next automation email would go out. The segment queue happens to serialize those
-// writes today, so this pins the SQL the inserts use rather than a behaviour a test can
-// reach; the inserts must not rely on that side effect.
-func TestUpdateContactListsOnStatusChangeFunction_InsertsApplyTheStatusOnConflict(t *testing.T) {
-	sql := UpdateContactListsOnStatusChangeFunction()
+// the next automation email would go out. TestMessageStatusRecordsTheListRow
+// (tests/integration) races a complaint with an import that inserts the row; this pins
+// the conflict clause of the bounce's insert too.
+func TestApplyMessageStatusToContactListsFunction_InsertsApplyTheStatusOnConflict(t *testing.T) {
+	sql := ApplyMessageStatusToContactListsFunction()
 	assert.NotContains(t, sql, "DO NOTHING")
 	assert.Equal(t, 2, strings.Count(sql, "ON CONFLICT (email, list_id) DO UPDATE"),
 		"both inserts apply the status to a row they conflict with")
@@ -136,10 +125,45 @@ func TestUpdateContactListsOnStatusChangeFunction_InsertsApplyTheStatusOnConflic
 
 // A removed contact's row takes the complaint or bounce and stays removed: a removal is
 // not membership, and the automation email gate reads the status of a removed row.
-func TestUpdateContactListsOnStatusChangeFunction_NeverRestoresARemovedRow(t *testing.T) {
-	sql := UpdateContactListsOnStatusChangeFunction()
+func TestApplyMessageStatusToContactListsFunction_NeverRestoresARemovedRow(t *testing.T) {
+	sql := ApplyMessageStatusToContactListsFunction()
 	assert.NotContains(t, sql, "deleted_at =", "neither the updates nor the inserts' conflict updates write deleted_at")
 	assert.NotContains(t, sql, "SET deleted_at")
 	assert.NotContains(t, sql, "EXCLUDED.deleted_at")
 	assert.NotContains(t, sql, "AND deleted_at IS NULL", "the update reaches a removed row too")
+}
+
+// The timeline function sets the list status on an update, before the first timeline
+// entry of that branch: the entry locks the contact's contact_segment_queue row, and a
+// complaint that locked it before the contact_lists row deadlocked with an import of the
+// same contact. An insert of message_history (a send) sets no status.
+func TestTrackMessageHistoryChangesFunction_SetsTheListStatusBeforeTheTimeline(t *testing.T) {
+	body := normalizeIndent(TrackMessageHistoryChangesFunction())
+	require.True(t, strings.HasPrefix(body, "CREATE OR REPLACE FUNCTION track_message_history_changes()"),
+		"the function name is what message_history_changes_trigger executes")
+	assert.True(t, strings.HasSuffix(body, "$$ LANGUAGE plpgsql;"))
+
+	require.Equal(t, 1, strings.Count(body, statusStep))
+	step := strings.Index(body, statusStep)
+	updateBranch := strings.Index(body, "ELSIF TG_OP = 'UPDATE' THEN")
+	require.NotEqual(t, -1, updateBranch)
+	firstEntryOfTheUpdate := updateBranch + strings.Index(body[updateBranch:], "INSERT INTO contact_timeline")
+	assert.Less(t, updateBranch, step, "a send sets no status")
+	assert.Less(t, step, firstEntryOfTheUpdate)
+}
+
+// On a workspace upgraded to 42 the trigger that ran this function stays attached, and
+// the function applies the status again through the shared one. It writes contact_lists
+// only through that function, so its guards keep the second application from changing
+// anything.
+func TestUpdateContactListsOnStatusChangeFunction_CallsTheSharedFunction(t *testing.T) {
+	body := normalizeIndent(UpdateContactListsOnStatusChangeFunction())
+	require.True(t, strings.HasPrefix(body, "CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()\nRETURNS TRIGGER AS $$"),
+		"the function name is what message_history_status_trigger executes on workspaces older than 42")
+	assert.True(t, strings.HasSuffix(body, "RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;"))
+
+	assert.Equal(t, 1, strings.Count(body, statusStep))
+	assert.NotContains(t, body, "UPDATE contact_lists")
+	assert.NotContains(t, body, "INSERT INTO contact_lists")
+	assert.NotContains(t, body, "contact_timeline")
 }

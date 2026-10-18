@@ -438,12 +438,14 @@ func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 	})
 }
 
-// TestStatusChangeTriggerRecordsTheListRow drives update_contact_lists_on_status_change
-// with direct writes to message_history, as SetStatusesIfNotSet makes them, to pin which
-// list a complaint or hard bounce lands on, when a row is created, and that a complaint
-// racing an import of the same contact lands without a deadlock. The last subtest checks
-// that v42 installs the function and its trigger on a workspace that has older ones.
-func TestStatusChangeTriggerRecordsTheListRow(t *testing.T) {
+// TestMessageStatusRecordsTheListRow drives apply_message_status_to_contact_lists, which
+// track_message_history_changes runs, with direct writes to message_history, as
+// SetStatusesIfNotSet makes them. It pins which list a complaint or hard bounce lands on,
+// when a row is created, that an automation triggered by the email entry sees the new list
+// status, and that a complaint racing an import of the same contact lands without a
+// deadlock. The last subtest checks the same on a workspace upgraded by v42, which keeps the
+// trigger that set the status before 42.
+func TestMessageStatusRecordsTheListRow(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
 	defer testutil.CleanupTestEnvironment()
@@ -563,7 +565,158 @@ func TestStatusChangeTriggerRecordsTheListRow(t *testing.T) {
 		require.NoError(t, r.Err())
 		return names
 	}
-	firingOrder := []string{"message_history_bounce_complaint_trigger", "message_history_changes_trigger", "webhook_message_history"}
+
+	// The probe records, for each email.complained and email.bounced timeline entry, the
+	// contact's status on the message's list when the entry was written. An automation
+	// triggered by those entries evaluates its conditions at that moment: its trigger is an
+	// AFTER INSERT trigger on contact_timeline, as this one is.
+	exec(t, `CREATE TABLE status_seen_by_email_entries (email TEXT, kind TEXT, status TEXT)`)
+	exec(t, `CREATE FUNCTION record_status_seen_by_email_entry() RETURNS TRIGGER AS $$
+		BEGIN
+			INSERT INTO status_seen_by_email_entries (email, kind, status)
+			SELECT NEW.email, NEW.kind, (SELECT cl.status FROM message_history m
+				JOIN contact_lists cl ON cl.email = m.contact_email AND cl.list_id = m.list_id
+				WHERE m.id = NEW.entity_id);
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql`)
+	exec(t, `CREATE TRIGGER record_status_seen_by_email_entry AFTER INSERT ON contact_timeline FOR EACH ROW
+		WHEN (NEW.kind IN ('email.complained', 'email.bounced')) EXECUTE FUNCTION record_status_seen_by_email_entry()`)
+	t.Cleanup(func() {
+		_, _ = db.ExecContext(bg, `DROP TRIGGER IF EXISTS record_status_seen_by_email_entry ON contact_timeline`)
+		_, _ = db.ExecContext(bg, `DROP FUNCTION IF EXISTS record_status_seen_by_email_entry()`)
+		_, _ = db.ExecContext(bg, `DROP TABLE IF EXISTS status_seen_by_email_entries`)
+	})
+	statusSeenByEmailEntries := func(t *testing.T, email string) []string {
+		t.Helper()
+		r, err := db.QueryContext(bg, `SELECT kind || ': ' || COALESCE(status, 'no row')
+			FROM status_seen_by_email_entries WHERE email = $1 ORDER BY kind`, email)
+		require.NoError(t, err)
+		defer func() { _ = r.Close() }()
+		var seen []string
+		for r.Next() {
+			var s string
+			require.NoError(t, r.Scan(&s))
+			seen = append(seen, s)
+		}
+		require.NoError(t, r.Err())
+		return seen
+	}
+
+	// The gate holds an import between its two rows: status_trigger_test_gate takes an
+	// advisory lock the test holds when it reaches the contact named by its second argument.
+	exec(t, `CREATE OR REPLACE FUNCTION status_trigger_test_gate(email text, held text) RETURNS text AS $$
+		BEGIN
+			IF email = held THEN
+				PERFORM pg_advisory_xact_lock(hashtext('status_trigger_test_gate'));
+			END IF;
+			RETURN email;
+		END;
+		$$ LANGUAGE plpgsql VOLATILE`)
+	t.Cleanup(func() { _, _ = db.ExecContext(bg, `DROP FUNCTION IF EXISTS status_trigger_test_gate(text, text)`) })
+
+	// An import writes a batch of rows in one statement, and each row's triggers run at the
+	// end of it. The first inserts new rows; the second is BulkAddContactsToLists' upsert,
+	// which subscribes a contact who already has a row. $1 and $2 are the two contacts, $3
+	// the one the gate holds the import before, $4 the list.
+	const importNewRows = `INSERT INTO contact_lists (email, list_id, status)
+		SELECT status_trigger_test_gate(t.email, $3), $4, 'active'
+		FROM unnest(ARRAY[$1, $2]::text[]) WITH ORDINALITY AS t(email, n)
+		ORDER BY t.n`
+	const importUpsert = importNewRows + `
+		ON CONFLICT (email, list_id) DO UPDATE
+		SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, deleted_at = NULL
+		WHERE contact_lists.status NOT IN ('unsubscribed', 'bounced', 'complained')`
+
+	// raceWithImport runs a complaint on messageID, a message to importing, while an import
+	// of importing and then next is held between its two rows, so the import holds
+	// importing's row uncommitted while the complaint runs. Before 42 the complaint locked
+	// the contact's contact_segment_queue row (through the message's timeline entry) before
+	// its contact_lists row, the reverse of every contact_lists write: the import then waited
+	// for the queue row while the complaint waited for the list row, and PostgreSQL aborted
+	// one of the two. Now the complaint waits for the import, and both land.
+	raceWithImport := func(t *testing.T, importSQL, importing, next, messageID string) {
+		t.Helper()
+		ctx, cancel := context.WithTimeout(bg, 30*time.Second)
+		defer cancel()
+		conn := func() (*sql.Conn, int) {
+			c, err := db.Conn(ctx)
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = c.Close() })
+			var pid int
+			require.NoError(t, c.QueryRowContext(ctx, `SELECT pg_backend_pid()`).Scan(&pid))
+			return c, pid
+		}
+		gate, _ := conn()
+		importer, importerPID := conn()
+		complainer, complainerPID := conn()
+
+		_, err := gate.ExecContext(ctx, `SELECT pg_advisory_lock(hashtext('status_trigger_test_gate'))`)
+		require.NoError(t, err)
+		gateOpen := false
+		openGate := func() {
+			if !gateOpen {
+				gateOpen = true
+				_, err := gate.ExecContext(bg, `SELECT pg_advisory_unlock(hashtext('status_trigger_test_gate'))`)
+				require.NoError(t, err)
+			}
+		}
+		defer openGate()
+		waitsOn := func(pid int, event string) {
+			t.Helper()
+			require.Eventually(t, func() bool {
+				var waiting bool
+				err := gate.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM pg_stat_activity
+					WHERE pid = $1 AND wait_event_type = 'Lock' AND wait_event = $2)`, pid, event).Scan(&waiting)
+				return err == nil && waiting
+			}, 10*time.Second, 20*time.Millisecond, "backend %d waiting on %s", pid, event)
+		}
+
+		importDone := make(chan error, 1)
+		go func() {
+			tx, err := importer.BeginTx(ctx, nil)
+			if err != nil {
+				importDone <- err
+				return
+			}
+			if _, err := tx.ExecContext(ctx, importSQL, importing, next, next, list.ID); err != nil {
+				_ = tx.Rollback()
+				importDone <- err
+				return
+			}
+			importDone <- tx.Commit()
+		}()
+		waitsOn(importerPID, "advisory")
+
+		complaintDone := make(chan error, 1)
+		go func() {
+			_, err := complainer.ExecContext(ctx, `UPDATE message_history SET complained_at = NOW() WHERE id = $1`, messageID)
+			complaintDone <- err
+		}()
+		// The complaint waits for the import's transaction, on the contact's row.
+		waitsOn(complainerPID, "transactionid")
+
+		openGate()
+		require.NoError(t, <-importDone, "the import")
+		require.NoError(t, <-complaintDone, "the complaint")
+
+		assert.Equal(t, &listRow{status: "complained"}, rowOf(t, importing, list.ID),
+			"the complaint lands on the row the import committed")
+		assert.Equal(t, &listRow{status: "active"}, rowOf(t, next, list.ID))
+		assert.Equal(t, []string{"email.complained: complained"}, statusSeenByEmailEntries(t, importing))
+	}
+	// raceWithImportOfANewRow races a complaint with an import of a contact who has no row,
+	// raceWithImportOfAPendingRow with an import that subscribes a contact whose row is
+	// pending, as a double opt-in list leaves it.
+	raceWithImportOfANewRow := func(t *testing.T) {
+		importing, next := newContact(t), newContact(t)
+		raceWithImport(t, importNewRows, importing, next, message(t, importing, list.ID, nil))
+	}
+	raceWithImportOfAPendingRow := func(t *testing.T) {
+		importing, next := newContact(t), newContact(t)
+		addRow(t, importing, list.ID, domain.ContactListStatusPending)
+		raceWithImport(t, importUpsert, importing, next, message(t, importing, list.ID, nil))
+	}
 
 	t.Run("message stored with a list, no row: a complained row is created, with its timeline row and webhook", func(t *testing.T) {
 		email := newContact(t)
@@ -692,118 +845,45 @@ func TestStatusChangeTriggerRecordsTheListRow(t *testing.T) {
 		assert.Equal(t, &listRow{status: "bounced"}, rowOf(t, email, third.ID))
 	})
 
-	t.Run("the complaint/bounce trigger fires before the other message_history triggers", func(t *testing.T) {
-		assert.Equal(t, firingOrder, messageHistoryTriggers(t))
+	// A separate trigger set the status before 42, after the timeline entries; see
+	// schema.TrackMessageHistoryChangesFunction.
+	t.Run("a new workspace sets the status from the timeline trigger, with no trigger of its own", func(t *testing.T) {
+		assert.Equal(t, []string{"message_history_changes_trigger", "webhook_message_history"}, messageHistoryTriggers(t))
 	})
 
-	// Fired after message_history_changes_trigger, as before 42, a complaint locked the
-	// contact's contact_segment_queue row (through the message's timeline entry) before
-	// its contact_lists row, the reverse of every contact_lists write. An import holding
-	// the contact's new row while it inserted the next one then deadlocked with it, and
-	// PostgreSQL aborted one of the two. The gate holds the import between its two rows,
-	// so the complaint always runs while the first row is uncommitted.
-	t.Run("a complaint racing an import of the same contact waits for it, and both land", func(t *testing.T) {
-		importing := newContact(t)
-		next := newContact(t)
-		messageID := message(t, importing, list.ID, nil)
+	t.Run("an automation triggered by the email entry sees the new list status", func(t *testing.T) {
+		complainer := newContact(t)
+		addRow(t, complainer, list.ID, domain.ContactListStatusActive)
+		complain(t, message(t, complainer, list.ID, nil))
+		assert.Equal(t, []string{"email.complained: complained"}, statusSeenByEmailEntries(t, complainer))
 
-		exec(t, `CREATE OR REPLACE FUNCTION status_trigger_test_gate(email text, held text) RETURNS text AS $$
-			BEGIN
-				IF email = held THEN
-					PERFORM pg_advisory_xact_lock(hashtext('status_trigger_test_gate'));
-				END IF;
-				RETURN email;
-			END;
-			$$ LANGUAGE plpgsql VOLATILE`)
-		t.Cleanup(func() { _, _ = db.ExecContext(bg, `DROP FUNCTION IF EXISTS status_trigger_test_gate(text, text)`) })
-
-		ctx, cancel := context.WithTimeout(bg, 30*time.Second)
-		defer cancel()
-		conn := func() (*sql.Conn, int) {
-			c, err := db.Conn(ctx)
-			require.NoError(t, err)
-			t.Cleanup(func() { _ = c.Close() })
-			var pid int
-			require.NoError(t, c.QueryRowContext(ctx, `SELECT pg_backend_pid()`).Scan(&pid))
-			return c, pid
-		}
-		gate, _ := conn()
-		importer, importerPID := conn()
-		complainer, complainerPID := conn()
-
-		_, err := gate.ExecContext(ctx, `SELECT pg_advisory_lock(hashtext('status_trigger_test_gate'))`)
-		require.NoError(t, err)
-		gateOpen := false
-		openGate := func() {
-			if !gateOpen {
-				gateOpen = true
-				_, err := gate.ExecContext(bg, `SELECT pg_advisory_unlock(hashtext('status_trigger_test_gate'))`)
-				require.NoError(t, err)
-			}
-		}
-		defer openGate()
-		waitsOn := func(pid int, event string) {
-			t.Helper()
-			require.Eventually(t, func() bool {
-				var waiting bool
-				err := gate.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM pg_stat_activity
-					WHERE pid = $1 AND wait_event_type = 'Lock' AND wait_event = $2)`, pid, event).Scan(&waiting)
-				return err == nil && waiting
-			}, 10*time.Second, 20*time.Millisecond, "backend %d waiting on %s", pid, event)
-		}
-
-		importDone := make(chan error, 1)
-		go func() {
-			tx, err := importer.BeginTx(ctx, nil)
-			if err != nil {
-				importDone <- err
-				return
-			}
-			// One statement, as BulkAddContactsToLists writes a batch: each row's triggers
-			// run at the end of it.
-			if _, err := tx.ExecContext(ctx, `INSERT INTO contact_lists (email, list_id, status)
-				SELECT status_trigger_test_gate(t.email, $3), $4, 'active'
-				FROM unnest(ARRAY[$1, $2]::text[]) WITH ORDINALITY AS t(email, n)
-				ORDER BY t.n`, importing, next, next, list.ID); err != nil {
-				_ = tx.Rollback()
-				importDone <- err
-				return
-			}
-			importDone <- tx.Commit()
-		}()
-		waitsOn(importerPID, "advisory")
-
-		complaintDone := make(chan error, 1)
-		go func() {
-			_, err := complainer.ExecContext(ctx, `UPDATE message_history SET complained_at = NOW() WHERE id = $1`, messageID)
-			complaintDone <- err
-		}()
-		// The complaint waits for the import's transaction, on the contact's new row.
-		waitsOn(complainerPID, "transactionid")
-
-		openGate()
-		require.NoError(t, <-importDone, "the import")
-		require.NoError(t, <-complaintDone, "the complaint")
-
-		assert.Equal(t, &listRow{status: "complained"}, rowOf(t, importing, list.ID),
-			"the complaint lands on the row the import committed")
-		assert.Equal(t, &listRow{status: "active"}, rowOf(t, next, list.ID))
+		bouncer := newContact(t)
+		bounce(t, message(t, bouncer, list.ID, nil))
+		assert.Equal(t, []string{"email.bounced: bounced"}, statusSeenByEmailEntries(t, bouncer),
+			"a contact with no row has one by then")
 	})
 
-	// Last: it swaps the installed function for a stand-in.
-	t.Run("v42 installs the function and its trigger on an existing workspace", func(t *testing.T) {
-		// Stands for the pre-42 body, which never created a row, attached under the pre-42
-		// trigger name, which fired after message_history_changes_trigger
+	t.Run("a complaint racing an import of a contact with no row waits for it, and both land", raceWithImportOfANewRow)
+
+	t.Run("a complaint racing an import that subscribes a pending contact waits for it, and both land", raceWithImportOfAPendingRow)
+
+	// Last: it swaps the installed functions for stand-ins, and attaches the trigger that
+	// set the status before 42.
+	t.Run("v42 makes a workspace with the pre-42 trigger record the status the same way, keeping its triggers", func(t *testing.T) {
+		// Stand for the functions before 42: the timeline function set no status, and the
+		// status function created no row. The shared function did not exist.
+		exec(t, `CREATE OR REPLACE FUNCTION track_message_history_changes()
+			RETURNS TRIGGER AS $$ BEGIN RETURN NEW; END; $$ LANGUAGE plpgsql`)
+		exec(t, `DROP FUNCTION apply_message_status_to_contact_lists(VARCHAR, VARCHAR, TIMESTAMPTZ, TIMESTAMPTZ)`)
 		exec(t, `CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()
 			RETURNS TRIGGER AS $$ BEGIN RETURN NEW; END; $$ LANGUAGE plpgsql`)
-		exec(t, `DROP TRIGGER message_history_bounce_complaint_trigger ON message_history`)
 		exec(t, `CREATE TRIGGER message_history_status_trigger AFTER UPDATE ON message_history
 			FOR EACH ROW EXECUTE FUNCTION update_contact_lists_on_status_change()`)
-		require.Equal(t, []string{"message_history_changes_trigger", "message_history_status_trigger", "webhook_message_history"},
-			messageHistoryTriggers(t))
+		pre42 := []string{"message_history_changes_trigger", "message_history_status_trigger", "webhook_message_history"}
+		require.Equal(t, pre42, messageHistoryTriggers(t))
 		before := newContact(t)
 		complain(t, message(t, before, list.ID, nil))
-		require.Zero(t, rows(t, before), "the stand-in is installed")
+		require.Zero(t, rows(t, before), "the stand-ins are installed")
 
 		// Each workspace migration runs in its own transaction, which v42's savepoints need
 		tx, err := db.BeginTx(bg, nil)
@@ -814,9 +894,18 @@ func TestStatusChangeTriggerRecordsTheListRow(t *testing.T) {
 		}
 		require.NoError(t, tx.Commit())
 
-		assert.Equal(t, firingOrder, messageHistoryTriggers(t), "the pre-42 trigger is replaced, not doubled")
+		// Dropping the trigger would lock message_history for the whole migration
+		assert.Equal(t, pre42, messageHistoryTriggers(t), "v42 creates and drops no trigger")
+
+		// Both functions apply the status now; the second application changes nothing
 		after := newContact(t)
 		complain(t, message(t, after, list.ID, newAutomation(t, list.ID)))
 		assert.Equal(t, &listRow{status: "complained"}, rowOf(t, after, list.ID))
+		assert.Equal(t, 1, timelineKindCount(t, db, after, "list.complained", list.ID), "the status is recorded once")
+		require.Len(t, b24Deliveries(t, db, subscriptionID, after), 1, "and reported once")
+		assert.Equal(t, []string{"email.complained: complained"}, statusSeenByEmailEntries(t, after))
+
+		t.Run("a complaint racing an import of a contact with no row", raceWithImportOfANewRow)
+		t.Run("a complaint racing an import that subscribes a pending contact", raceWithImportOfAPendingRow)
 	})
 }

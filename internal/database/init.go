@@ -634,60 +634,11 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		// Contact list changes trigger function - uses semantic event kinds (list.subscribed, list.confirmed, etc.),
 		// shared with the v42 migration so a fresh workspace and an upgraded one record the same events.
 		schema.TrackContactListChangesFunction(),
-		// Message history changes trigger function
-		`CREATE OR REPLACE FUNCTION track_message_history_changes()
-		RETURNS TRIGGER AS $$
-		DECLARE
-			changes_json JSONB := '{}'::jsonb;
-			op VARCHAR(20);
-			kind_value VARCHAR(50);
-		BEGIN
-			IF TG_OP = 'INSERT' THEN
-				op := 'insert';
-				changes_json := jsonb_build_object('template_id', jsonb_build_object('new', NEW.template_id), 'template_version', jsonb_build_object('new', NEW.template_version), 'channel', jsonb_build_object('new', NEW.channel), 'broadcast_id', jsonb_build_object('new', NEW.broadcast_id), 'sent_at', jsonb_build_object('new', NEW.sent_at));
-				INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-				VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.sent', NEW.id, changes_json, NEW.updated_at);
-			ELSIF TG_OP = 'UPDATE' THEN
-				op := 'update';
-				-- Handle engagement events separately with specific kinds
-				IF OLD.opened_at IS DISTINCT FROM NEW.opened_at AND NEW.opened_at IS NOT NULL THEN
-					changes_json := jsonb_build_object('opened_at', jsonb_build_object('old', OLD.opened_at, 'new', NEW.opened_at));
-					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.opened', NEW.id, changes_json, NEW.updated_at);
-				END IF;
-				IF OLD.clicked_at IS DISTINCT FROM NEW.clicked_at AND NEW.clicked_at IS NOT NULL THEN
-					changes_json := jsonb_build_object('clicked_at', jsonb_build_object('old', OLD.clicked_at, 'new', NEW.clicked_at));
-					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.clicked', NEW.id, changes_json, NEW.updated_at);
-				END IF;
-				IF OLD.bounced_at IS DISTINCT FROM NEW.bounced_at AND NEW.bounced_at IS NOT NULL THEN
-					changes_json := jsonb_build_object('bounced_at', jsonb_build_object('old', OLD.bounced_at, 'new', NEW.bounced_at));
-					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.bounced', NEW.id, changes_json, NEW.updated_at);
-				END IF;
-				IF OLD.complained_at IS DISTINCT FROM NEW.complained_at AND NEW.complained_at IS NOT NULL THEN
-					changes_json := jsonb_build_object('complained_at', jsonb_build_object('old', OLD.complained_at, 'new', NEW.complained_at));
-					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.complained', NEW.id, changes_json, NEW.updated_at);
-				END IF;
-				IF OLD.unsubscribed_at IS DISTINCT FROM NEW.unsubscribed_at AND NEW.unsubscribed_at IS NOT NULL THEN
-					changes_json := jsonb_build_object('unsubscribed_at', jsonb_build_object('old', OLD.unsubscribed_at, 'new', NEW.unsubscribed_at));
-					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.unsubscribed', NEW.id, changes_json, NEW.updated_at);
-				END IF;
-				-- Handle other updates (delivered, failed, status_info) as generic updates
-				changes_json := '{}'::jsonb;
-				IF OLD.delivered_at IS DISTINCT FROM NEW.delivered_at THEN changes_json := changes_json || jsonb_build_object('delivered_at', jsonb_build_object('old', OLD.delivered_at, 'new', NEW.delivered_at)); END IF;
-				IF OLD.failed_at IS DISTINCT FROM NEW.failed_at THEN changes_json := changes_json || jsonb_build_object('failed_at', jsonb_build_object('old', OLD.failed_at, 'new', NEW.failed_at)); END IF;
-				IF OLD.status_info IS DISTINCT FROM NEW.status_info THEN changes_json := changes_json || jsonb_build_object('status_info', jsonb_build_object('old', OLD.status_info, 'new', NEW.status_info)); END IF;
-				IF changes_json != '{}'::jsonb THEN
-					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.updated', NEW.id, changes_json, NEW.updated_at);
-				END IF;
-			END IF;
-			RETURN NEW;
-		END;
-		$$ LANGUAGE plpgsql;`,
+		// Complaint and hard bounce list status, then the message history changes trigger
+		// function that applies it before writing the timeline. Both are shared with the v42
+		// migration so a fresh workspace and an upgraded one record the same statuses.
+		schema.ApplyMessageStatusToContactListsFunction(),
+		schema.TrackMessageHistoryChangesFunction(),
 		// Inbound webhook event changes trigger function
 		`CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes()
 		RETURNS TRIGGER AS $$
@@ -767,9 +718,6 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
-		// Contact list status update on bounce/complaint trigger function, shared with the
-		// v42 migration so a fresh workspace and an upgraded one record the same statuses.
-		schema.UpdateContactListsOnStatusChangeFunction(),
 		// Custom event changes trigger function
 		`CREATE OR REPLACE FUNCTION track_custom_event_timeline()
 		RETURNS TRIGGER AS $$
@@ -886,9 +834,6 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		// upgraded workspace and a fresh one enrol identically.
 		schema.AutomationEnrollContactFunction(),
 	}
-	// The bounce and complaint trigger, shared with the v42 migration: its name sets its
-	// firing order among the message_history triggers.
-	triggerQueries = append(triggerQueries, schema.StatusChangeTriggerStatements()...)
 
 	for _, query := range triggerQueries {
 		if _, err := db.Exec(query); err != nil {

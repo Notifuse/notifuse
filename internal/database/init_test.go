@@ -385,46 +385,47 @@ func TestInitializeWorkspaceDatabase_InstallsSharedContactListTimelineFunction(t
 	assert.Equal(t, 1, count, "the function must be defined once, from the shared schema body")
 }
 
-// A fresh workspace must install the same complaint/bounce function the v42 migration
-// installs on upgraded ones, so both record a complaint on a list the same way.
-func TestInitializeWorkspaceDatabase_InstallsSharedStatusChangeFunction(t *testing.T) {
+// A fresh workspace must install the same message_history functions the v42 migration
+// installs on upgraded ones, so both record a complaint on a list the same way and set
+// the list status before the timeline entries.
+func TestInitializeWorkspaceDatabase_InstallsSharedMessageHistoryFunctions(t *testing.T) {
 	rec := recordWorkspaceSchema(t)
-	const header = "CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()"
-	issued := rec.statementContaining(t, header)
-	assert.Equal(t, schema.UpdateContactListsOnStatusChangeFunction(), issued)
+	for header, body := range map[string]string{
+		"CREATE OR REPLACE FUNCTION apply_message_status_to_contact_lists(": schema.ApplyMessageStatusToContactListsFunction(),
+		"CREATE OR REPLACE FUNCTION track_message_history_changes()":        schema.TrackMessageHistoryChangesFunction(),
+	} {
+		assert.Equal(t, body, rec.statementContaining(t, header))
 
-	count := 0
-	for _, stmt := range rec.issued {
-		if strings.Contains(stmt, header) {
-			count++
+		count := 0
+		for _, stmt := range rec.issued {
+			if strings.Contains(stmt, header) {
+				count++
+			}
 		}
+		assert.Equal(t, 1, count, "%s must be defined once, from the shared schema body", header)
 	}
-	assert.Equal(t, 1, count, "the function must be defined once, from the shared schema body")
 }
 
-// A fresh workspace attaches the complaint/bounce function under the name v42 gives it,
-// once, after the function exists. PostgreSQL fires the AFTER triggers of one event in
-// name order, and this one must fire before message_history_changes_trigger (see
-// schema.StatusChangeTrigger).
-func TestInitializeWorkspaceDatabase_StatusChangeTriggerFiresBeforeTheTimelineTrigger(t *testing.T) {
+// A fresh workspace has no trigger of its own for complaints and bounces: the timeline
+// trigger sets the list status itself, before it writes any timeline entry. A separate
+// trigger is what deadlocked with imports before 42 (see
+// schema.TrackMessageHistoryChangesFunction).
+func TestInitializeWorkspaceDatabase_TimelineTriggerSetsTheListStatus(t *testing.T) {
 	rec := recordWorkspaceSchema(t)
 
 	createTrigger := regexp.MustCompile(`^CREATE TRIGGER (\w+) AFTER [A-Z ]+ ON message_history FOR EACH ROW EXECUTE FUNCTION (\w+)\(\)$`)
-	triggersByFunction := map[string][]string{}
+	functionByTrigger := map[string]string{}
 	for _, stmt := range rec.issued {
 		if m := createTrigger.FindStringSubmatch(stmt); m != nil {
-			triggersByFunction[m[2]] = append(triggersByFunction[m[2]], m[1])
+			functionByTrigger[m[1]] = m[2]
 		}
+		assert.NotContains(t, stmt, "update_contact_lists_on_status_change")
+		assert.NotContains(t, stmt, "message_history_status_trigger")
 	}
-	require.Equal(t, []string{"message_history_bounce_complaint_trigger"}, triggersByFunction["update_contact_lists_on_status_change"])
-	require.Equal(t, []string{"message_history_changes_trigger"}, triggersByFunction["track_message_history_changes"])
-	assert.Less(t, triggersByFunction["update_contact_lists_on_status_change"][0], triggersByFunction["track_message_history_changes"][0])
-
-	function := rec.indexOfStatementContaining(t, "CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()")
-	trigger := rec.indexOfStatementContaining(t, "CREATE TRIGGER message_history_bounce_complaint_trigger ")
-	assert.Less(t, function, trigger, "the trigger is attached after its function exists")
-	assert.Equal(t, schema.StatusChangeTriggerStatements(), rec.issued[trigger-2:trigger+1],
-		"the statements shared with v42, which drop the name before 42 first")
+	assert.Equal(t, map[string]string{
+		"message_history_changes_trigger": "track_message_history_changes",
+		"webhook_message_history":         "webhook_message_history_trigger",
+	}, functionByTrigger)
 }
 
 func TestInitializeWorkspaceDatabase_WebhookSubscriptionColumns(t *testing.T) {
