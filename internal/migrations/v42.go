@@ -54,8 +54,9 @@ import (
 // bounce on the list are reinstalled too (installStatusChangeFunctions): a contact with no
 // row on the list stored on the message now gets one with the status, and the status is
 // set before the message's timeline entries are written, so a complaint or a bounce on one
-// message no longer deadlocks with a subscribe or an import of the same contact. No trigger
-// is created or dropped.
+// message no longer deadlocks with a subscribe or an import of the same contact (except in
+// rarer cases schema.TrackMessageHistoryChangesFunction describes). No trigger is created or
+// dropped, and the function that set the status before 42 is left as it was.
 //
 // Every step is idempotent: the selections no longer match a patched function or
 // segment, and re-queueing a contact again is harmless.
@@ -291,18 +292,17 @@ func (m *V42Migration) requeueRemovedListMembers(ctx context.Context, db DBExecu
 // list still records nothing.
 //
 // track_message_history_changes() now sets the status before writing the message's
-// timeline entries; see schema.TrackMessageHistoryChangesFunction for why. The trigger
-// that set it before 42, message_history_status_trigger, stays attached: dropping it would
-// hold an ACCESS EXCLUSIVE lock on message_history until this migration commits. Its
-// function applies the status again, which changes nothing once the timeline function has
-// applied it; see schema.UpdateContactListsOnStatusChangeFunction.
+// timeline entries. The trigger that set it before 42, message_history_status_trigger,
+// stays attached, and its function keeps the body it has had since v17, which only updates
+// an existing row: dropping the trigger would hold an ACCESS EXCLUSIVE lock on
+// message_history until this migration commits, and an insert in its function can deadlock
+// with a subscribe. See schema.TrackMessageHistoryChangesFunction for both.
 //
 // Replacing a function body takes no table lock.
 func (m *V42Migration) installStatusChangeFunctions(ctx context.Context, db DBExecutor) error {
 	for _, query := range []string{
 		schema.ApplyMessageStatusToContactListsFunction(),
 		schema.TrackMessageHistoryChangesFunction(),
-		schema.UpdateContactListsOnStatusChangeFunction(),
 	} {
 		if _, err := db.ExecContext(ctx, query); err != nil {
 			return err

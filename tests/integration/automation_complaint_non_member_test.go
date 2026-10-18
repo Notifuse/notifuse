@@ -21,6 +21,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/migrations"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	shortuuid "github.com/lithammer/shortuuid/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -442,9 +443,10 @@ func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 // track_message_history_changes runs, with direct writes to message_history, as
 // SetStatusesIfNotSet makes them. It pins which list a complaint or hard bounce lands on,
 // when a row is created, that an automation triggered by the email entry sees the new list
-// status, and that a complaint racing an import of the same contact lands without a
-// deadlock. The last subtest checks the same on a workspace upgraded by v42, which keeps the
-// trigger that set the status before 42.
+// status, that a complaint racing an import of the same contact lands without a deadlock,
+// and that one racing the creation and the subscribe of its address deadlocks with neither.
+// The last subtest checks the same on a workspace upgraded by v42, which keeps the trigger
+// that set the status before 42.
 func TestMessageStatusRecordsTheListRow(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -609,6 +611,14 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 			RETURN email;
 		END;
 		$$ LANGUAGE plpgsql VOLATILE`)
+	// The same gate holds an update of message_history between two of its AFTER triggers,
+	// for the address named by the gate trigger's argument.
+	exec(t, `CREATE FUNCTION message_history_test_gate() RETURNS TRIGGER AS $$
+		BEGIN
+			PERFORM status_trigger_test_gate(NEW.contact_email, TG_ARGV[0]);
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql`)
 
 	// An import writes a batch of rows in one statement, and each row's triggers run at the
 	// end of it. The first inserts new rows; the second ends with the ON CONFLICT clause of
@@ -625,6 +635,64 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 		SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, deleted_at = NULL
 		WHERE contact_lists.status NOT IN ('unsubscribed', 'bounced', 'complained')`
 
+	// race holds the connections of one race, each on a backend of its own so the test can
+	// see which one waits on what, starting with the one that holds the gate. closeConns
+	// returns them to the pool, as the assertions after a race read from it; the gate opens
+	// and the connections close when the test ends, if not before.
+	type race struct {
+		ctx        context.Context
+		conn       func() (*sql.Conn, int)
+		waitsOn    func(pid int, event string)
+		openGate   func()
+		closeConns func()
+	}
+	newRace := func(t *testing.T) *race {
+		t.Helper()
+		ctx, cancel := context.WithTimeout(bg, 30*time.Second)
+		t.Cleanup(cancel)
+		r := &race{ctx: ctx}
+		var conns []*sql.Conn
+		r.closeConns = func() {
+			for _, c := range conns {
+				_ = c.Close()
+			}
+			conns = nil
+		}
+		t.Cleanup(r.closeConns)
+		r.conn = func() (*sql.Conn, int) {
+			c, err := db.Conn(ctx)
+			require.NoError(t, err)
+			conns = append(conns, c)
+			var pid int
+			require.NoError(t, c.QueryRowContext(ctx, `SELECT pg_backend_pid()`).Scan(&pid))
+			return c, pid
+		}
+
+		gate, _ := r.conn()
+		_, err := gate.ExecContext(ctx, `SELECT pg_advisory_lock(hashtext('status_trigger_test_gate'))`)
+		require.NoError(t, err)
+		gateOpen := false
+		r.openGate = func() {
+			if !gateOpen {
+				gateOpen = true
+				_, err := gate.ExecContext(bg, `SELECT pg_advisory_unlock(hashtext('status_trigger_test_gate'))`)
+				require.NoError(t, err)
+			}
+		}
+		// Cleanups run last added first: the gate opens before the connections close
+		t.Cleanup(r.openGate)
+		r.waitsOn = func(pid int, event string) {
+			t.Helper()
+			require.Eventually(t, func() bool {
+				var waiting bool
+				err := gate.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM pg_stat_activity
+					WHERE pid = $1 AND wait_event_type = 'Lock' AND wait_event = $2)`, pid, event).Scan(&waiting)
+				return err == nil && waiting
+			}, 10*time.Second, 20*time.Millisecond, "backend %d waiting on %s", pid, event)
+		}
+		return r
+	}
+
 	// raceWithImport records a complaint or a hard bounce (status is "complained" or
 	// "bounced") on messageID, a message to importing, while an import of importing and then
 	// next is held between its two rows, so the import holds importing's row uncommitted
@@ -635,49 +703,10 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 	// of the two. Now the complaint or bounce waits for the import, and both land.
 	raceWithImport := func(t *testing.T, importSQL, status, importing, next, messageID string) {
 		t.Helper()
-		ctx, cancel := context.WithTimeout(bg, 30*time.Second)
-		defer cancel()
-		// The connections go back to the pool before the assertions below read from it
-		var conns []*sql.Conn
-		closeConns := func() {
-			for _, c := range conns {
-				_ = c.Close()
-			}
-			conns = nil
-		}
-		defer closeConns()
-		conn := func() (*sql.Conn, int) {
-			c, err := db.Conn(ctx)
-			require.NoError(t, err)
-			conns = append(conns, c)
-			var pid int
-			require.NoError(t, c.QueryRowContext(ctx, `SELECT pg_backend_pid()`).Scan(&pid))
-			return c, pid
-		}
-		gate, _ := conn()
-		importer, importerPID := conn()
-		reporter, reporterPID := conn()
-
-		_, err := gate.ExecContext(ctx, `SELECT pg_advisory_lock(hashtext('status_trigger_test_gate'))`)
-		require.NoError(t, err)
-		gateOpen := false
-		openGate := func() {
-			if !gateOpen {
-				gateOpen = true
-				_, err := gate.ExecContext(bg, `SELECT pg_advisory_unlock(hashtext('status_trigger_test_gate'))`)
-				require.NoError(t, err)
-			}
-		}
-		defer openGate()
-		waitsOn := func(pid int, event string) {
-			t.Helper()
-			require.Eventually(t, func() bool {
-				var waiting bool
-				err := gate.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM pg_stat_activity
-					WHERE pid = $1 AND wait_event_type = 'Lock' AND wait_event = $2)`, pid, event).Scan(&waiting)
-				return err == nil && waiting
-			}, 10*time.Second, 20*time.Millisecond, "backend %d waiting on %s", pid, event)
-		}
+		r := newRace(t)
+		ctx := r.ctx
+		importer, importerPID := r.conn()
+		reporter, reporterPID := r.conn()
 
 		importDone := make(chan error, 1)
 		go func() {
@@ -693,7 +722,7 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 			}
 			importDone <- tx.Commit()
 		}()
-		waitsOn(importerPID, "advisory")
+		r.waitsOn(importerPID, "advisory")
 
 		column := map[string]string{"complained": "complained_at", "bounced": "bounced_at"}[status]
 		require.NotEmpty(t, column, "status is complained or bounced")
@@ -703,12 +732,12 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 			reportDone <- err
 		}()
 		// The complaint or bounce waits for the import's transaction, on the contact's row
-		waitsOn(reporterPID, "transactionid")
+		r.waitsOn(reporterPID, "transactionid")
 
-		openGate()
+		r.openGate()
 		require.NoError(t, <-importDone, "the import")
 		require.NoError(t, <-reportDone, "the "+status+" report")
-		closeConns()
+		r.closeConns()
 
 		assert.Equal(t, &listRow{status: status}, rowOf(t, importing, list.ID),
 			"the status lands on the row the import committed")
@@ -729,6 +758,77 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 		importing, next := newContact(t), newContact(t)
 		addRow(t, importing, list.ID, domain.ContactListStatusPending)
 		raceWithImport(t, importUpsert, "complained", importing, next, message(t, importing, list.ID, nil))
+	}
+
+	// raceWithContactCreation records a complaint on a message to an address that is not a
+	// contact yet, while a contact is being created for it, then subscribes the new contact
+	// before the complaint's transaction ends. The complaint finds no contact, and records
+	// nothing, as for any address that is not a contact; its timeline entry then waits for
+	// the creation on the contact's contact_segment_queue row, and the subscribe waits for
+	// the complaint on that row. The gate holds the complaint after the timeline trigger,
+	// where message_history_status_trigger fires on a workspace upgraded to 42: a function
+	// there that inserted the contact's row waited for the subscribe's row in turn, and
+	// PostgreSQL aborted one of the two.
+	raceWithContactCreation := func(t *testing.T) {
+		email := fmt.Sprintf("status-trigger-new-%s@example.com", uuid.New().String()[:8])
+		messageID := message(t, email, list.ID, nil)
+		// AFTER triggers of one event fire in name order: this one sorts between
+		// message_history_changes_trigger and message_history_status_trigger
+		exec(t, `CREATE TRIGGER message_history_gate_test AFTER UPDATE ON message_history FOR EACH ROW
+			EXECUTE FUNCTION message_history_test_gate(`+pq.QuoteLiteral(email)+`)`)
+		t.Cleanup(func() {
+			_, err := db.ExecContext(bg, `DROP TRIGGER message_history_gate_test ON message_history`)
+			assert.NoError(t, err)
+		})
+
+		r := newRace(t)
+		ctx := r.ctx
+		creator, _ := r.conn()
+		reporter, reporterPID := r.conn()
+		subscriber, subscriberPID := r.conn()
+
+		// The contact's creation, uncommitted, holds its contact_segment_queue row
+		creation, err := creator.BeginTx(ctx, nil)
+		require.NoError(t, err)
+		defer func() { _ = creation.Rollback() }()
+		_, err = creation.ExecContext(ctx, `INSERT INTO contacts (email) VALUES ($1)`, email)
+		require.NoError(t, err)
+
+		reportDone := make(chan error, 1)
+		go func() {
+			_, err := reporter.ExecContext(ctx, `UPDATE message_history SET complained_at = NOW() WHERE id = $1`, messageID)
+			reportDone <- err
+		}()
+		r.waitsOn(reporterPID, "transactionid")
+		require.NoError(t, creation.Commit())
+		// The complaint has written its timeline entries and holds the queue row
+		r.waitsOn(reporterPID, "advisory")
+
+		subscribeDone := make(chan error, 1)
+		go func() {
+			tx, err := subscriber.BeginTx(ctx, nil)
+			if err != nil {
+				subscribeDone <- err
+				return
+			}
+			if _, err := tx.ExecContext(ctx, `INSERT INTO contact_lists (email, list_id, status)
+				VALUES ($1, $2, 'active')`, email, list.ID); err != nil {
+				_ = tx.Rollback()
+				subscribeDone <- err
+				return
+			}
+			subscribeDone <- tx.Commit()
+		}()
+		// The subscribe has written its row and waits for the complaint on the queue row
+		r.waitsOn(subscriberPID, "transactionid")
+
+		r.openGate()
+		require.NoError(t, <-reportDone, "the complaint")
+		require.NoError(t, <-subscribeDone, "the subscribe")
+		r.closeConns()
+
+		assert.Equal(t, &listRow{status: "active"}, rowOf(t, email, list.ID),
+			"the complaint found no contact, and nothing after it saw the subscribe's row")
 	}
 
 	t.Run("message stored with a list, no row: a complained row is created, with its timeline row and webhook", func(t *testing.T) {
@@ -882,20 +982,55 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 
 	t.Run("a complaint racing an import that subscribes a pending contact waits for it, and both land", raceWithImportOfAPendingRow)
 
+	t.Run("a complaint racing the creation and the subscribe of its address waits for the creation, and the subscribe lands", raceWithContactCreation)
+
 	// Last: it swaps the installed functions for stand-ins, and attaches the trigger that
 	// set the status before 42.
 	t.Run("v42 makes a workspace with the pre-42 trigger record the status the same way, keeping its triggers", func(t *testing.T) {
 		// Stand for the functions before 42: the timeline function set no status, and the
-		// status function created no row. The shared function did not exist.
+		// shared function did not exist. The status function has the body it has had since
+		// v17 (internal/migrations/v17.go): it updated an existing row and created none.
 		exec(t, `CREATE OR REPLACE FUNCTION track_message_history_changes()
 			RETURNS TRIGGER AS $$ BEGIN RETURN NEW; END; $$ LANGUAGE plpgsql`)
 		exec(t, `DROP FUNCTION apply_message_status_to_contact_lists(VARCHAR, VARCHAR, TIMESTAMPTZ, TIMESTAMPTZ)`)
 		exec(t, `CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()
-			RETURNS TRIGGER AS $$ BEGIN RETURN NEW; END; $$ LANGUAGE plpgsql`)
+			RETURNS TRIGGER AS $$
+			BEGIN
+				IF NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL THEN
+					IF NEW.list_id IS NOT NULL THEN
+						UPDATE contact_lists
+						SET status = 'complained',
+							updated_at = NEW.complained_at
+						WHERE email = NEW.contact_email
+						AND list_id = NEW.list_id
+						AND status != 'complained';
+					END IF;
+				END IF;
+				IF NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL THEN
+					IF NEW.list_id IS NOT NULL THEN
+						UPDATE contact_lists
+						SET status = 'bounced',
+							updated_at = NEW.bounced_at
+						WHERE email = NEW.contact_email
+						AND list_id = NEW.list_id
+						AND status NOT IN ('complained', 'bounced');
+					END IF;
+				END IF;
+				RETURN NEW;
+			END;
+			$$ LANGUAGE plpgsql`)
 		exec(t, `CREATE TRIGGER message_history_status_trigger AFTER UPDATE ON message_history
 			FOR EACH ROW EXECUTE FUNCTION update_contact_lists_on_status_change()`)
 		pre42 := []string{"message_history_changes_trigger", "message_history_status_trigger", "webhook_message_history"}
 		require.Equal(t, pre42, messageHistoryTriggers(t))
+		statusFunction := func(t *testing.T) string {
+			t.Helper()
+			var body string
+			require.NoError(t, db.QueryRowContext(bg, `SELECT prosrc FROM pg_proc
+				WHERE proname = 'update_contact_lists_on_status_change'`).Scan(&body))
+			return body
+		}
+		pre42StatusFunction := statusFunction(t)
 		before := newContact(t)
 		complain(t, message(t, before, list.ID, nil))
 		require.Zero(t, rows(t, before), "the stand-ins are installed")
@@ -909,10 +1044,12 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 		}
 		require.NoError(t, tx.Commit())
 
-		// Dropping the trigger would lock message_history for the whole migration
+		// Dropping the trigger would lock message_history for the whole migration, and an
+		// insert in its function can deadlock with a subscribe (see raceWithContactCreation)
 		assert.Equal(t, pre42, messageHistoryTriggers(t), "v42 creates and drops no trigger")
+		assert.Equal(t, pre42StatusFunction, statusFunction(t), "v42 leaves the status function from before 42 as it was")
 
-		// Both functions apply the status now; the second application changes nothing
+		// The timeline function sets the status now; the status function then finds it set
 		after := newContact(t)
 		complain(t, message(t, after, list.ID, newAutomation(t, list.ID)))
 		assert.Equal(t, &listRow{status: "complained"}, rowOf(t, after, list.ID))
@@ -923,5 +1060,6 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 		t.Run("a complaint racing an import of a contact with no row", raceWithImportOfANewRow("complained"))
 		t.Run("a hard bounce racing an import of a contact with no row", raceWithImportOfANewRow("bounced"))
 		t.Run("a complaint racing an import that subscribes a pending contact", raceWithImportOfAPendingRow)
+		t.Run("a complaint racing the creation and the subscribe of its address", raceWithContactCreation)
 	})
 }

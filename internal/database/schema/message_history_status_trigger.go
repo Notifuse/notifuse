@@ -8,10 +8,11 @@ package schema
 // for the other.
 //
 // Two paths install it: the new-workspace path (internal/database/init.go) and the v42
-// migration on every existing workspace. Before 42 this logic lived in
-// update_contact_lists_on_status_change(); internal/migrations/v10.go and v17.go carry the
-// bodies it replaced and must stay frozen: a historical migration keeps reproducing what it
-// shipped.
+// migration on every existing workspace. Before 42 the status was set by
+// update_contact_lists_on_status_change(), which only updated an existing row;
+// internal/migrations/v10.go and v17.go carry its bodies and must stay frozen: a historical
+// migration keeps reproducing what it shipped. A workspace upgraded to 42 keeps that
+// function and its trigger as they were; see TrackMessageHistoryChangesFunction.
 //
 // What it does, for a complaint or a hard bounce (the application sets bounced_at only for
 // hard bounces):
@@ -112,6 +113,21 @@ func ApplyMessageStatusToContactListsFunction() string {
 // timeline shows does not change: it sorts by created_at, which the two entries take from
 // different clocks.
 //
+// A workspace created at 42 or later has no other trigger setting the status. One upgraded
+// to 42 keeps message_history_status_trigger, and the body its function has had since v17:
+// dropping the trigger would hold an ACCESS EXCLUSIVE lock on message_history until the
+// migration commits, blocking every send and every webhook in the meantime. That trigger
+// fires after this function's, as PostgreSQL fires the AFTER triggers of one event in name
+// order, and its function only updates a row whose status differs: once this function has
+// set the status, it changes nothing, unless a row for the contact was committed in between.
+// It updates that row as before 42, after the contact_segment_queue row, so it can deadlock
+// with another write of the row as before 42. It is deliberately not given the insert of
+// apply_message_status_to_contact_lists(): firing after the timeline entries, the insert
+// can wait for an uncommitted subscribe while holding the contact_segment_queue row the
+// subscribe waits for, when the address became a contact while the complaint ran. An update
+// that ran this function's body from before 42, around the v42 commit, sets the status as
+// before 42.
+//
 // Two paths install it: the new-workspace path (internal/database/init.go) and the v42
 // migration. internal/migrations/v7.go, v8.go and v36.go carry the bodies this one
 // replaced and stay frozen. Apart from the status step, this body is v36's.
@@ -173,34 +189,6 @@ func TrackMessageHistoryChangesFunction() string {
 					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
 					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.updated', NEW.id, changes_json, NEW.updated_at);
 				END IF;
-			END IF;
-			RETURN NEW;
-		END;
-		$$ LANGUAGE plpgsql;`
-}
-
-// UpdateContactListsOnStatusChangeFunction returns the body the v42 migration gives
-// update_contact_lists_on_status_change(), the function message_history_status_trigger ran
-// after every update of message_history to set the list status before 42.
-//
-// A workspace created at 42 or later has neither the trigger nor this function:
-// track_message_history_changes() sets the status. A workspace upgraded to 42 keeps the
-// trigger, because dropping it would hold an ACCESS EXCLUSIVE lock on message_history until
-// the migration commits, blocking every send and every webhook in the meantime. Its function
-// applies the status again. That changes nothing once track_message_history_changes() has
-// applied it, which it does first: message_history_changes_trigger sorts before
-// message_history_status_trigger, and PostgreSQL fires the AFTER triggers of one event in
-// name order. For an update whose first trigger call ran the timeline function from before
-// 42, around the v42 commit, it applies the status with this body once the backend has seen
-// the commit, and as before 42 until then.
-func UpdateContactListsOnStatusChangeFunction() string {
-	return `CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()
-		RETURNS TRIGGER AS $$
-		BEGIN
-			IF NEW.list_id IS NOT NULL AND ((NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL) OR (NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL)) THEN
-				PERFORM apply_message_status_to_contact_lists(NEW.contact_email, NEW.list_id,
-					CASE WHEN NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL THEN NEW.complained_at END,
-					CASE WHEN NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL THEN NEW.bounced_at END);
 			END IF;
 			RETURN NEW;
 		END;

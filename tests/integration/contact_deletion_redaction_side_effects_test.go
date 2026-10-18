@@ -23,8 +23,9 @@ import (
 // The AFTER UPDATE triggers on that table run track_message_history_changes
 // (writes contact_timeline, and rewrites subscription status on a complaint or a
 // bounce) and webhook_message_history_trigger (fans out to customer webhooks); a
-// workspace upgraded from before 42 also runs update_contact_lists_on_status_change,
-// which rewrites the status again. TestContactDeletionErasure cannot see what they
+// workspace upgraded from before 42 also runs
+// update_contact_lists_on_status_change, which updates the status of an
+// existing row. TestContactDeletionErasure cannot see what they
 // do here: it probes for the victim's address, and the redaction renames the row
 // to DELETED_EMAIL first, so anything a trigger writes afterwards is filed under a
 // name no probe looks for.

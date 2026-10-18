@@ -32,18 +32,17 @@ WHERE ` + conflictGuard + `;
 END IF;`
 }
 
-// statusStep is how both message_history functions call the shared one: only for a new
-// complaint or a new hard bounce on a message that stores a list, passing the new
-// timestamp and NULL for the other. Opens, clicks and deliveries call nothing.
+// statusStep is how the timeline function calls the shared one: only for a new complaint
+// or a new hard bounce on a message that stores a list, passing the new timestamp and NULL
+// for the other. Opens, clicks and deliveries call nothing.
 const statusStep = `IF NEW.list_id IS NOT NULL AND ((NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL) OR (NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL)) THEN
 PERFORM apply_message_status_to_contact_lists(NEW.contact_email, NEW.list_id,
 CASE WHEN NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL THEN NEW.complained_at END,
 CASE WHEN NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL THEN NEW.bounced_at END);
 END IF;`
 
-// The signature is what track_message_history_changes() and
-// update_contact_lists_on_status_change() call: a changed one would create a second
-// function next to the first, which they would keep calling.
+// The signature is what track_message_history_changes() calls: a changed one would create
+// a second function next to the first, which it would keep calling.
 func TestApplyMessageStatusToContactListsFunction_Header(t *testing.T) {
 	body := normalizeIndent(ApplyMessageStatusToContactListsFunction())
 	assert.True(t, strings.HasPrefix(body, `CREATE OR REPLACE FUNCTION apply_message_status_to_contact_lists(
@@ -150,20 +149,4 @@ func TestTrackMessageHistoryChangesFunction_SetsTheListStatusBeforeTheTimeline(t
 	firstEntryOfTheUpdate := updateBranch + strings.Index(body[updateBranch:], "INSERT INTO contact_timeline")
 	assert.Less(t, updateBranch, step, "a send sets no status")
 	assert.Less(t, step, firstEntryOfTheUpdate)
-}
-
-// On a workspace upgraded to 42 the trigger that ran this function stays attached, and
-// the function applies the status again through the shared one. It writes contact_lists
-// only through that function, so its guards keep the second application from changing
-// anything.
-func TestUpdateContactListsOnStatusChangeFunction_CallsTheSharedFunction(t *testing.T) {
-	body := normalizeIndent(UpdateContactListsOnStatusChangeFunction())
-	require.True(t, strings.HasPrefix(body, "CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()\nRETURNS TRIGGER AS $$"),
-		"the function name is what message_history_status_trigger executes on workspaces older than 42")
-	assert.True(t, strings.HasSuffix(body, "RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;"))
-
-	assert.Equal(t, 1, strings.Count(body, statusStep))
-	assert.NotContains(t, body, "UPDATE contact_lists")
-	assert.NotContains(t, body, "INSERT INTO contact_lists")
-	assert.NotContains(t, body, "contact_timeline")
 }

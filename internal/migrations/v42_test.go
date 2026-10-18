@@ -87,12 +87,13 @@ func expectV42Prelude(mock sqlmock.Sqlmock) {
 // v42StatusChangeFunctions are the message_history functions v42 installs right after the
 // contact_lists ones, exactly the bodies a fresh workspace gets. No trigger is dropped or
 // created: that would hold an ACCESS EXCLUSIVE lock on message_history until the migration
-// commits, and sqlmock fails any statement a test doesn't expect.
+// commits. Nor is update_contact_lists_on_status_change() replaced: the trigger that runs it
+// on an upgraded workspace fires after the timeline entries, and an insert there can
+// deadlock with a subscribe. sqlmock fails any statement a test doesn't expect.
 func v42StatusChangeFunctions() []string {
 	return []string{
 		schema.ApplyMessageStatusToContactListsFunction(),
 		schema.TrackMessageHistoryChangesFunction(),
-		schema.UpdateContactListsOnStatusChangeFunction(),
 	}
 }
 
