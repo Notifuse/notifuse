@@ -69,6 +69,15 @@ Add under `## [41.1] - WIP`, kept to 2-3 sentences:
 
 > **Fix**: A broadcast filtered by several segments no longer sends twice to a contact who belongs to more than one of them. Each extra segment the contact matched produced another copy of the email, and inflated the recipient count and A/B test results.
 
+### Implemented (2026-10-18)
+
+Phase 1 is implemented as planned, on top of the keyset bounds that "Broadcasts to large lists are faster to send" added (`cl.email > ?` next to `c.email > ?`). Deviations and notes:
+
+- **The cursor bounds `contact_segments` too.** `broadcastSegmentsFilter(segments, afterEmail)` adds `AND cs.email > ?` inside the EXISTS when a page has a cursor, and `CountContactsForBroadcast` passes none. Without it, on PostgreSQL 17 with 1M contacts and two overlapping segments of 500k and 333k members, a page of 50 past the middle of the list took 60-130 ms against under 1 ms with it, the same as the old join, and so did PostgreSQL 18. The count is about as fast as the old join's on both.
+- **The cursor follows the list conditions**, as step 3 says, so its arguments come after the statuses. A unit case pins the full argument order for a later page of a list and two segments; others pin a later page with segments and no list, and with neither.
+- **The changelog bullet** is under `## [42.0] - WIP`, which replaced 41.1, and is reworded: a contact could get a copy per segment, not only two.
+- **Tests.** `TestBroadcastSegmentAudienceSend_Integration` creates the broadcast through `broadcasts.create`, as `TestBroadcastAudienceStatusesAsDelivered` does, rather than the factory and an update. Besides `enqueued_count`, it asserts the send task's `total_recipients` and that `message_history` holds one message per recipient, which sees a duplicate that Mailpit's recipient set cannot. `TestBroadcastSegmentAudience_Integration` also covers segments without a list, in one page and in pages of one. `TestBroadcastAudiencePagination_Integration` pages through a list narrowed to two segments that share contacts, in pages of 2 and 50, and checks that each paged audience matches its count.
+
 ## Phase 2 — `broadcasts.estimateAudience` and the picker counts
 
 ### API

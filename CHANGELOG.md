@@ -54,6 +54,8 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Adding a removed contact back to a list with the status they had now records `list.subscribed` (or `list.pending` while awaiting double opt-in) on their timeline and as a webhook event, so "every time" automations triggered by it enroll them again, imports included. A re-add that moves them to awaiting double opt-in now sends `list.pending` as a webhook event too. Removing a contact who is already removed records nothing.
 
+- **Fix**: A broadcast filtered by several segments now sends one email to a contact who belongs to more than one of them, where it could send one per segment. Such a contact also counted as several recipients in the broadcast's totals and in its A/B test.
+
 - **Improvement**: Broadcasts to large lists are faster to send. Fetching each batch of recipients no longer rereads the part of the list already sent.
 
 - **Change**: The database schema moves to v42. Workspace databases get updated `contact_lists` trigger functions, and their stored segment queries and live automation triggers are updated in place; segments are re-evaluated for contacts removed from their lists. The system database is untouched.
