@@ -375,7 +375,8 @@ func TestWebhookContactListsTriggerFunction_ReAddIsReportedAsASubscription(t *te
 	require.Len(t, restoreLines, 2, "one re-add branch inside the status branch, one for a same-status re-add")
 
 	// Inside the status branch, after every transition kind and before its
-	// catch-all: only a change the transitions don't name (to pending) reaches it.
+	// catch-all: only a re-add whose change the transitions don't name (to
+	// pending) reaches it.
 	assert.Greater(t, restoreLines[0], complained)
 	assert.Less(t, restoreLines[0], removed)
 	assert.Greater(t, restoreLines[0], statusBranch)
@@ -394,6 +395,45 @@ func TestWebhookContactListsTriggerFunction_ReAddIsReportedAsASubscription(t *te
 	// The existing transition kinds are untouched.
 	assert.Contains(t, sql, "event_kind := 'list.confirmed';")
 	assert.Contains(t, sql, "event_kind := 'list.resubscribed';")
+}
+
+// A contact on the list moved to pending, such as one who unsubscribed and subscribes
+// again, which forces double opt-in, is reported as list.pending with the status it came
+// from, as the timeline records it. The status branch used to drop that change.
+// The branch takes only a row on the list before and after the write: a re-add moved to
+// pending stays a first subscription, and a removal records list.removed on the
+// timeline, not list.pending.
+func TestWebhookContactListsTriggerFunction_PendingOnTheListIsReported(t *testing.T) {
+	sql := WebhookContactListsTriggerFunction()
+	lines := strings.Split(normalizeIndent(sql), "\n")
+
+	const guard = "ELSIF NEW.status = 'pending' AND OLD.deleted_at IS NULL AND NEW.deleted_at IS NULL THEN"
+	var at []int
+	for i, line := range lines {
+		if line == guard {
+			at = append(at, i)
+		}
+	}
+	require.Len(t, at, 1, "one branch for a contact on the list moved to pending")
+	branch := at[0]
+
+	assert.Equal(t, "event_kind := 'list.pending';", lines[branch+1])
+	next := branch + 2
+	for strings.HasPrefix(lines[next], "--") {
+		next++
+	}
+	assert.True(t, strings.HasPrefix(lines[next], "ELSIF "),
+		"the branch only sets the kind, so previous_status keeps the status the update replaced, got %q", lines[next])
+
+	// Inside the status branch, after the other transitions and before the re-add branch,
+	// the catch-all and the removal branch.
+	assert.Greater(t, branch, lineContaining(t, sql, "IF NEW.status IS DISTINCT FROM OLD.status THEN"))
+	assert.Greater(t, branch, lineContaining(t, sql, "ELSIF NEW.status = 'complained' THEN"))
+	assert.Less(t, branch, lineContaining(t, sql, "ELSIF restored THEN"))
+	assert.Less(t, branch, lineContaining(t, sql, "ELSIF NEW.deleted_at IS NOT NULL AND OLD.deleted_at IS NULL THEN"))
+
+	// The timeline records list.pending for the same change.
+	assert.Contains(t, TrackContactListChangesFunction(), "WHEN NEW.status = 'pending' THEN 'list.pending'")
 }
 
 // A write to a row that stays removed, such as the status a bounce, complaint or
