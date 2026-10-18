@@ -20,7 +20,11 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Unsubscribing from an automation email now works for contacts who aren't on the automation's list, and for emails sent before the contact or its list was deleted.
 
-- **Fix**: Spam complaints on automation emails are now recorded on the automation's list when the contact is on it, so the list's broadcasts and the marketing and blog emails of its automations skip that contact, and `list.complained` fires for the list. This covers automation emails queued from this version on, which carry their list in the message log and in `email.*` webhook events.
+- **Fix**: Spam complaints on automation emails, and hard bounces from contacts who were never on the automation's list, are now recorded on that list, so the list's broadcasts and the marketing and blog emails of its automations no longer reach that address. This covers automation emails queued from this version on, which carry their list in the message log and in `email.*` webhook events. A `list.complained` or `list.bounced` event is recorded too, unless the contact was removed from the list. Contacts who were never on it now appear there as `complained` or `bounced`, and match its "in list" segment conditions that don't filter on status.
+
+- **Improvement**: Spam complaints and hard bounces are less likely to be lost, or to make part of an import fail, when they arrive while the same contacts are being imported or subscribed. The conditions of automations triggered by `email.complained` or `email.bounced` now see the list status the complaint or bounce set.
+
+- **Improvement**: A contact removed from a list now stays removed when they unsubscribe, and changes to their status no longer trigger `list.*` events. A hard bounce now also marks the lists a contact was removed from, so they can't be added back to them, as when the bounce came before the removal. Subscribing a removed contact again after an unsubscribe, from the subscribe form, the notification center or `lists.subscribe`, now asks for double opt-in, as for a contact on the list, and the subscribe form no longer sends a confirmation email to a removed contact who bounced or complained.
 
 - **Fix**: Broadcasts created through the API without `exclude_unsubscribed` now leave out unsubscribed contacts, as in the console. Bounced and complained contacts are always left out, and unsubscribing keeps an existing bounce or complaint. Broadcasts created before the upgrade keep their saved setting.
 
@@ -56,9 +60,11 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Adding a removed contact back to a list with the status they had now records `list.subscribed` (or `list.pending` while awaiting double opt-in) on their timeline and as a webhook event, so "every time" automations triggered by it enroll them again, imports included. A re-add that moves them to awaiting double opt-in now sends `list.pending` as a webhook event too. Removing a contact who is already removed records nothing.
 
+- **Fix**: A broadcast filtered by several segments now sends one email to a contact who belongs to more than one of them, where it could send one per segment. Such a contact also counted as several recipients in the broadcast's totals and in its A/B test.
+
 - **Improvement**: Broadcasts to large lists are faster to send. Fetching each batch of recipients no longer rereads the part of the list already sent.
 
-- **Change**: The database schema moves to v42. Workspace databases get updated `contact_lists` trigger functions, and their stored segment queries and live automation triggers are updated in place; segments are re-evaluated for contacts removed from their lists. The system database is untouched.
+- **Change**: The database schema moves to v42. Workspace databases get updated `contact_lists` and `message_history` trigger functions, and their stored segment queries and live automation triggers are updated in place; segments are re-evaluated for contacts removed from their lists. The system database is untouched.
 
 ## [41.0] - 2026-09-17
 

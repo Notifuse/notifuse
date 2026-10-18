@@ -79,6 +79,33 @@ func expectV42Prelude(mock sqlmock.Sqlmock) {
 	mock.ExpectExec(exactly("SET LOCAL statement_timeout = 0")).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec(exactly(schema.TrackContactListChangesFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec(exactly(schema.WebhookContactListsTriggerFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
+	for _, stmt := range v42StatusChangeFunctions() {
+		mock.ExpectExec(exactly(stmt)).WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+}
+
+// v42StatusChangeFunctions are the message_history functions v42 installs right after the
+// contact_lists ones, exactly the bodies a fresh workspace gets. No trigger is dropped or
+// created: that would hold an ACCESS EXCLUSIVE lock on message_history until the migration
+// commits. Nor is update_contact_lists_on_status_change() replaced: the trigger that runs it
+// on an upgraded workspace fires after the timeline entries, and an insert there can
+// deadlock with a subscribe. sqlmock fails any statement a test doesn't expect.
+func v42StatusChangeFunctions() []string {
+	return []string{
+		schema.ApplyMessageStatusToContactListsFunction(),
+		schema.TrackMessageHistoryChangesFunction(),
+	}
+}
+
+// The timeline function v42 installs is v36's with the list status step added, so an
+// upgraded workspace keeps writing the timeline entries it wrote before.
+func TestV42Migration_TimelineFunctionAddsOnlyTheStatusStepToV36s(t *testing.T) {
+	collapse := func(s string) string { return strings.Join(strings.Fields(s), " ") }
+	statusStep := regexp.MustCompile(`(?s)\n\s*-- A new complaint or hard bounce.*?PERFORM apply_message_status_to_contact_lists\(.*?\);\s*END IF;`)
+
+	v42 := schema.TrackMessageHistoryChangesFunction()
+	require.Len(t, statusStep.FindAllString(v42, -1), 1)
+	assert.Equal(t, collapse(dottedTrackMessageHistoryChangesFn), collapse(statusStep.ReplaceAllString(v42, "")))
 }
 
 func expectPatch(mock sqlmock.Sqlmock, patched string, execErr error) {
@@ -258,8 +285,8 @@ func TestV42Migration_PatchTurnsPre42OutputIntoTheCurrentOutput(t *testing.T) {
 	}
 }
 
-// Part 5's order: timeout, both contact_lists functions, the automation functions, the
-// segments, and the re-queue last.
+// Part 5's order: timeout, both contact_lists functions, the complaint/bounce function,
+// the automation functions, the segments, and the re-queue last.
 func TestV42Migration_RunsItsStepsInOrder(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
@@ -418,6 +445,29 @@ func TestV42Migration_PropagatesErrors(t *testing.T) {
 		assert.Contains(t, err.Error(), "contact_lists trigger function")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
+
+	for failing, stmt := range v42StatusChangeFunctions() {
+		t.Run("installing the complaint/bounce functions: "+strings.SplitN(stmt, "(", 2)[0], func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer db.Close()
+
+			mock.ExpectExec(exactly("SET LOCAL statement_timeout = 0")).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectExec(exactly(schema.TrackContactListChangesFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectExec(exactly(schema.WebhookContactListsTriggerFunction())).WillReturnResult(sqlmock.NewResult(0, 0))
+			for _, done := range v42StatusChangeFunctions()[:failing] {
+				mock.ExpectExec(exactly(done)).WillReturnResult(sqlmock.NewResult(0, 0))
+			}
+			mock.ExpectExec(exactly(stmt)).WillReturnError(errors.New("boom"))
+
+			err = runV42(t, db)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "failed to install the complaint/bounce functions for workspace")
+			assert.Contains(t, err.Error(), "boom")
+			// Nothing after the failing statement runs: sqlmock fails any unexpected call.
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
 
 	t.Run("patching segments", func(t *testing.T) {
 		db, mock, err := sqlmock.New()

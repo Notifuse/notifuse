@@ -13,10 +13,13 @@ package schema
 //
 // The branches:
 //   - INSERT: the kind matching the initial status (list.subscribed, list.pending, …);
-//   - removal (deleted_at set on a row that had none): list.removed. Removing a
-//     contact who is already removed records nothing, as the webhook function
-//     reports nothing; it used to record list.removed again, which re-enrolled
-//     the contact in automations triggered by it;
+//   - a write to a row that is removed before and after: nothing, as the webhook
+//     function reports nothing. A removed contact is not on the list, so neither
+//     the status a bounce, complaint or unsubscribe leaves on their row for the
+//     email gate, nor removing them again, is a change of membership. Removing
+//     them again used to record list.removed again, which re-enrolled them in
+//     automations triggered by it;
+//   - removal (deleted_at set on a row that had none): list.removed;
 //   - status change: the transition kind (list.confirmed, list.resubscribed, …),
 //     including on a re-add that also changes the status;
 //   - re-add with the same status (deleted_at cleared): exactly what an INSERT of
@@ -53,8 +56,14 @@ func TrackContactListChangesFunction() string {
 			ELSIF TG_OP = 'UPDATE' THEN
 				op := 'update';
 
-				-- Handle a removal. Removing a contact who is already removed only moves
-				-- deleted_at, and falls through to record nothing
+				-- A contact removed from the list is not on it: a write to their row, such as
+				-- the status a bounce, complaint or unsubscribe leaves for the email gate, or
+				-- removing them again, records nothing
+				IF OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NOT NULL THEN
+					RETURN NEW;
+				END IF;
+
+				-- Handle a removal
 				IF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN
 					kind_value := 'list.removed';
 					changes_json := jsonb_build_object(

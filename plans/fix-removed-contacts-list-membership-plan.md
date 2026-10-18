@@ -326,7 +326,7 @@ Assertions:
 - **`list.removed` renders as "status changed → undefined" in the console.** Its `changes` has no `status` (`init.go:663-668`, `ContactTimeline.tsx:280-284`).
 - **v38's `changes ?` guard leaves stale triggers.** Automations it skipped keep a trigger narrower than their stored config. Pausing and re-activating one would widen it to every contact update; the repair is to restore `updated_fields` and save. v42 doesn't need this, because it patches functions in place (D4).
 - **Found in review on 2026-10-17, older than this PR:**
-  - A broadcast to a list narrowed to two or more segments returns a contact once per segment they belong to (the `contact_segments` join has no `DISTINCT`), and `SendBatch` queues one email per row, so such a contact receives the broadcast more than once.
+  - A broadcast to a list narrowed to two or more segments returns a contact once per segment they belong to (the `contact_segments` join has no `DISTINCT`), and `SendBatch` queues one email per row, so such a contact receives the broadcast more than once. Fixed separately, by Phase 1 of `broadcast-audience-estimate-plan.md`.
   - `GetBatchForSegment` pages with `LIMIT 100 OFFSET n`, so each batch costs time proportional to its offset and a segment build in a large workspace costs quadratic time.
 
 ## Independent review (2026-10-15)

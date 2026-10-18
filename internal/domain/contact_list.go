@@ -357,6 +357,11 @@ type ContactListRepository interface {
 	// GetContactListByIDs retrieves a contact list by email and list ID
 	GetContactListByIDs(ctx context.Context, workspaceID string, email, listID string) (*ContactList, error)
 
+	// GetContactListIncludingRemoved retrieves the contact's row on the list even when
+	// they were removed from it (DeletedAt set), for checks that read the status a
+	// removal leaves in place: unsubscribed, bounced or complained
+	GetContactListIncludingRemoved(ctx context.Context, workspaceID string, email, listID string) (*ContactList, error)
+
 	// GetContactsByListID retrieves all contacts for a list
 	GetContactsByListID(ctx context.Context, workspaceID string, listID string) ([]*ContactList, error)
 
@@ -365,6 +370,12 @@ type ContactListRepository interface {
 
 	// UpdateContactListStatus updates the status of a contact on a list
 	UpdateContactListStatus(ctx context.Context, workspaceID string, email, listID string, status ContactListStatus) error
+
+	// MarkContactListUnsubscribed records a contact's opt-out on their row on the list
+	// and reports whether a row took it. A bounced or complained row is kept, and a
+	// removed row stays removed: unlike UpdateContactListStatus it never adds the
+	// contact back. It reports false both for a kept row and for no row at all.
+	MarkContactListUnsubscribed(ctx context.Context, workspaceID string, email, listID string) (bool, error)
 
 	// RemoveContactFromList removes a contact from a list
 	RemoveContactFromList(ctx context.Context, workspaceID string, email, listID string) error

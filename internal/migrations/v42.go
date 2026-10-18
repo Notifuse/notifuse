@@ -26,7 +26,8 @@ import (
 //     list.pending, …). Without it the re-add wrote no timeline row, so the segment queue
 //     never re-evaluated the contact, and the query fix alone would have kept every
 //     re-added contact out of their "in list" segments. Removing a contact who is already
-//     removed no longer records list.removed again.
+//     removed no longer records list.removed again, and a status recorded on a removed
+//     contact's row records nothing either.
 //  2. Installed automation trigger functions are patched in place. Their conditions are
 //     compiled into the function body with values inlined, so the stored text is exactly
 //     the generator's old output; inserting the predicate gives exactly its new output.
@@ -48,6 +49,14 @@ import (
 //     recomputation, so they leave "in list" segments and join "not in list" ones now
 //     rather than on their next unrelated timeline write. This runs last, so the queue
 //     row locks are held for as short a time as possible.
+//
+// Right after step 1, the message_history functions that record a complaint or a hard
+// bounce on the list are reinstalled too (installStatusChangeFunctions): a contact with no
+// row on the list stored on the message now gets one with the status, and the status is
+// set before the message's timeline entries are written, so a complaint or a bounce on one
+// message no longer deadlocks with a subscribe or an import of the same contact (except in
+// rarer cases schema.TrackMessageHistoryChangesFunction describes). No trigger is created or
+// dropped, and the function that set the status before 42 is left as it was.
 //
 // Every step is idempotent: the selections no longer match a patched function or
 // segment, and re-queueing a contact again is harmless.
@@ -89,6 +98,10 @@ func (m *V42Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 		if _, err := db.ExecContext(ctx, query); err != nil {
 			return fmt.Errorf("v42: failed to install contact_lists trigger function for workspace %s: %w", workspace.ID, err)
 		}
+	}
+
+	if err := m.installStatusChangeFunctions(ctx, db); err != nil {
+		return fmt.Errorf("v42: failed to install the complaint/bounce functions for workspace %s: %w", workspace.ID, err)
 	}
 
 	if err := m.patchAutomationTriggerFunctions(ctx, db); err != nil {
@@ -267,6 +280,33 @@ func (m *V42Migration) requeueRemovedListMembers(ctx context.Context, db DBExecu
 		ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at
 	`, pq.Array(listIDs)); err != nil {
 		return fmt.Errorf("failed to queue contacts: %w", err)
+	}
+	return nil
+}
+
+// installStatusChangeFunctions reinstalls the functions message_history runs on a
+// complaint or a hard bounce, so a fresh workspace and an upgraded one record them the same
+// way: on the list stored on the message, with a new row for a contact who has none there.
+// Automations email contacts who aren't on their list; before, a complaint or bounce from
+// one of them recorded nothing and the next email went out. A message stored without a
+// list still records nothing.
+//
+// track_message_history_changes() now sets the status before writing the message's
+// timeline entries. The trigger that set it before 42, message_history_status_trigger,
+// stays attached, and its function keeps the body it has had since v17, which only updates
+// an existing row: dropping the trigger would hold an ACCESS EXCLUSIVE lock on
+// message_history until this migration commits, and an insert in its function can deadlock
+// with a subscribe. See schema.TrackMessageHistoryChangesFunction for both.
+//
+// Replacing a function body takes no table lock.
+func (m *V42Migration) installStatusChangeFunctions(ctx context.Context, db DBExecutor) error {
+	for _, query := range []string{
+		schema.ApplyMessageStatusToContactListsFunction(),
+		schema.TrackMessageHistoryChangesFunction(),
+	} {
+		if _, err := db.ExecContext(ctx, query); err != nil {
+			return err
+		}
 	}
 	return nil
 }

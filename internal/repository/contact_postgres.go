@@ -1416,8 +1416,63 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 	return results, nil
 }
 
-// GetContactsForBroadcast retrieves contacts based on broadcast audience settings
-// It supports filtering by lists, handling unsubscribed contacts, and deduplication
+// withBroadcastListFilter narrows q, which selects FROM contacts c, to the members a
+// broadcast to audience.List sends to: live rows on a live list, never bounced or
+// complained, unsubscribed only when the broadcast keeps them, and confirmed on a double
+// opt-in list. It adds joins and conditions only, so each caller keeps its own select list
+// and the count and the send cannot drift apart. contact_lists has one row per contact
+// and list, so it adds no duplicates.
+func withBroadcastListFilter(q sq.SelectBuilder, audience domain.AudienceSettings) sq.SelectBuilder {
+	q = q.Join("contact_lists cl ON c.email = cl.email").
+		Join("lists l ON cl.list_id = l.id"). // Its deletion, its double opt-in setting and the name the send selects
+		Where(sq.Eq{"cl.list_id": audience.List}).
+		Where(sq.Eq{"l.deleted_at": nil}). // Filter out deleted lists
+		Where(sq.Eq{"cl.deleted_at": nil}) // A contact removed from the list is not in the audience
+
+	// Bounced and complained addresses are never mailed. Unsubscribed contacts are
+	// mailed only when the broadcast explicitly asks for it, e.g. for a legal notice.
+	if audience.ExcludeUnsubscribed {
+		q = q.Where(sq.NotEq{"cl.status": domain.ContactListStatusUnsubscribed})
+	}
+	q = q.Where(sq.NotEq{"cl.status": domain.ContactListStatusBounced})
+	q = q.Where(sq.NotEq{"cl.status": domain.ContactListStatusComplained})
+
+	// Exclude contacts that have not completed double opt-in when the list requires it.
+	// When l.is_double_optin is true, a contact_list row with status='pending' means the
+	// subscriber clicked the sign-up form but never confirmed via the confirmation email.
+	// Sending to them violates the double opt-in contract (issue #344).
+	return q.Where(sq.Or{
+		sq.Eq{"l.is_double_optin": false},
+		sq.NotEq{"cl.status": domain.ContactListStatusPending},
+	})
+}
+
+// broadcastSegmentsFilter keeps the contacts in at least one of segments, which must not be
+// empty: an audience that names no segment takes no segment filter. It is an EXISTS
+// rather than a join: contact_segments has one row per contact and segment, and a join
+// returned a contact in two of the segments twice, so the broadcast emailed them twice.
+// A later page passes its cursor, which bounds contact_segments too, for the reason given
+// for cl.email in GetContactsForBroadcast. The placeholders are ?, numbered by the outer
+// Dollar builder.
+func broadcastSegmentsFilter(segments []string, afterEmail string) sq.Sqlizer {
+	placeholders := make([]string, len(segments))
+	args := make([]interface{}, 0, len(segments)+1)
+	for i, segment := range segments {
+		placeholders[i] = "?"
+		args = append(args, segment)
+	}
+	clause := "EXISTS (SELECT 1 FROM contact_segments cs WHERE cs.email = c.email AND cs.segment_id IN (" +
+		strings.Join(placeholders, ",") + ")"
+	if afterEmail != "" {
+		clause += " AND cs.email > ?"
+		args = append(args, afterEmail)
+	}
+	return sq.Expr(clause+")", args...)
+}
+
+// GetContactsForBroadcast retrieves a page of a broadcast's recipients: the members of
+// audience.List the broadcast sends to (see withBroadcastListFilter), narrowed to those in
+// at least one of audience.Segments when it names any, each contact once.
 // Uses cursor-based pagination with afterEmail for deterministic ordering (fixes Issue #157)
 func (r *contactRepository) GetContactsForBroadcast(
 	ctx context.Context,
@@ -1433,93 +1488,37 @@ func (r *contactRepository) GetContactsForBroadcast(
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
-	// Start building the main query
-	var query sq.SelectBuilder
-	var includeListID bool
+	// If we're filtering by list, include list_id and list_name in the result. Only a
+	// broadcast stored before lists became required has no list.
+	includeListID := audience.List != ""
+	selectCols := contactColumnsWithPrefix("c")
+	if includeListID {
+		selectCols = append(selectCols, "cl.list_id", "l.name as list_name")
+	}
+	query := psql.Select(selectCols...).From("contacts c")
+	if includeListID {
+		query = withBroadcastListFilter(query, audience)
+	}
 
-	// If we're filtering by list, include list_id in the result
-	if audience.List != "" {
-		includeListID = true
-		// Build column list: all contact columns plus list_id and list_name
-		selectCols := append(contactColumnsWithPrefix("c"), "cl.list_id", "l.name as list_name")
-		query = psql.Select(selectCols...).
-			From("contacts c").
-			Join("contact_lists cl ON c.email = cl.email").
-			Join("lists l ON cl.list_id = l.id"). // Join with lists table to get the name
-			Where(sq.Eq{"cl.list_id": audience.List}).
-			Where(sq.Eq{"l.deleted_at": nil}).  // Filter out deleted lists
-			Where(sq.Eq{"cl.deleted_at": nil}). // A contact removed from the list is not in the audience
-			Limit(uint64(limit)).
-			OrderBy("c.email ASC") // Sort by email only (unique, deterministic)
-
-		// Cursor-based pagination: fetch contacts with email > afterEmail. The bound is
-		// repeated on cl.email, equal to c.email through the join, so the planner can
-		// start its contact_lists scan at the cursor. With c.email alone it read every row
-		// before the cursor on each page, and a broadcast to a large list slowed down as
-		// it went.
-		if afterEmail != "" {
-			query = query.Where(sq.Gt{"c.email": afterEmail}).Where(sq.Gt{"cl.email": afterEmail})
-		}
-
-		// Bounced and complained addresses are never mailed. Unsubscribed contacts are
-		// mailed only when the broadcast explicitly asks for it, e.g. for a legal notice.
-		if audience.ExcludeUnsubscribed {
-			query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusUnsubscribed})
-		}
-		query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusBounced})
-		query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusComplained})
-
-		// Exclude contacts that have not completed double opt-in when the list requires it.
-		// When l.is_double_optin is true, a contact_list row with status='pending' means the
-		// subscriber clicked the sign-up form but never confirmed via the confirmation email.
-		// Sending to them violates the double opt-in contract (issue #344).
-		query = query.Where(sq.Or{
-			sq.Eq{"l.is_double_optin": false},
-			sq.NotEq{"cl.status": domain.ContactListStatusPending},
-		})
-	} else {
-		// For non-list based audiences (e.g., segments in the future)
-		includeListID = false
-		query = psql.Select(contactColumnsWithPrefix("c")...).
-			From("contacts c").
-			Limit(uint64(limit)).
-			OrderBy("c.email ASC") // Sort by email only (unique, deterministic)
-
-		// Cursor-based pagination: fetch contacts with email > afterEmail
-		if afterEmail != "" {
-			query = query.Where(sq.Gt{"c.email": afterEmail})
+	// Cursor-based pagination: fetch contacts with email > afterEmail. The bound is
+	// repeated on cl.email, equal to c.email through the join, so the planner can
+	// start its contact_lists scan at the cursor. With c.email alone it read every row
+	// before the cursor on each page, and a broadcast to a large list slowed down as
+	// it went.
+	if afterEmail != "" {
+		query = query.Where(sq.Gt{"c.email": afterEmail})
+		if includeListID {
+			query = query.Where(sq.Gt{"cl.email": afterEmail})
 		}
 	}
 
-	// Handle segments filtering
 	if len(audience.Segments) > 0 {
-		// If we already have list filtering, we need to add segments as an additional filter
-		// This means contacts must be in BOTH the specified list AND segments
-		if audience.List != "" {
-			// Join with contact_segments table in addition to the existing list joins
-			query = query.Join("contact_segments cs ON c.email = cs.email")
-			query = query.Where(sq.Eq{"cs.segment_id": audience.Segments})
-			// The cursor bounds contact_segments too, for the reason given for cl.email
-			if afterEmail != "" {
-				query = query.Where(sq.Gt{"cs.email": afterEmail})
-			}
-		} else {
-			// No list filtering, so we're filtering by segments only
-			// We need to select from contacts and join with contact_segments
-			includeListID = false
-			query = psql.Select(contactColumnsWithPrefix("c")...).
-				From("contacts c").
-				Join("contact_segments cs ON c.email = cs.email").
-				Where(sq.Eq{"cs.segment_id": audience.Segments}).
-				Limit(uint64(limit)).
-				OrderBy("c.email ASC") // Sort by email only (unique, deterministic)
-
-			// Cursor-based pagination: fetch contacts with email > afterEmail
-			if afterEmail != "" {
-				query = query.Where(sq.Gt{"c.email": afterEmail})
-			}
-		}
+		query = query.Where(broadcastSegmentsFilter(audience.Segments, afterEmail))
 	}
+
+	query = query.
+		OrderBy("c.email ASC"). // Sort by email only (unique, deterministic)
+		Limit(uint64(limit))
 
 	// Build the final query
 	sqlQuery, args, err := query.ToSql()
@@ -1720,8 +1719,8 @@ func (r *contactRepository) GetContactsForBroadcast(
 	return contactsWithList, nil
 }
 
-// CountContactsForBroadcast counts how many contacts match broadcast audience settings
-// without retrieving all contact records
+// CountContactsForBroadcast counts the recipients GetContactsForBroadcast pages through,
+// without retrieving them
 func (r *contactRepository) CountContactsForBroadcast(
 	ctx context.Context,
 	workspaceID string,
@@ -1734,57 +1733,12 @@ func (r *contactRepository) CountContactsForBroadcast(
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
-	// Start building the count query
-	query := psql.Select("COUNT(*)").
-		From("contacts c")
-
-	// Handle list filtering
+	query := psql.Select("COUNT(*)").From("contacts c")
 	if audience.List != "" {
-		// Join with contact_lists table to filter by list membership and status
-		query = query.Join("contact_lists cl ON c.email = cl.email")
-		// Join with lists table to filter by list deletion status (matches GetContactsForBroadcast)
-		query = query.Join("lists l ON cl.list_id = l.id")
-
-		// Filter by the specified list
-		query = query.Where(sq.Eq{"cl.list_id": audience.List})
-		// Filter out soft-deleted lists (matches GetContactsForBroadcast)
-		query = query.Where(sq.Eq{"l.deleted_at": nil})
-		// A contact removed from the list is not in the audience, whatever exclude_unsubscribed says
-		query = query.Where(sq.Eq{"cl.deleted_at": nil})
-
-		// Bounced and complained addresses are never mailed. Unsubscribed contacts are
-		// mailed only when the broadcast explicitly asks for it, e.g. for a legal notice.
-		if audience.ExcludeUnsubscribed {
-			query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusUnsubscribed})
-		}
-		query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusBounced})
-		query = query.Where(sq.NotEq{"cl.status": domain.ContactListStatusComplained})
-
-		// Exclude contacts that have not completed double opt-in when the list requires it.
-		// When l.is_double_optin is true, a contact_list row with status='pending' means the
-		// subscriber clicked the sign-up form but never confirmed via the confirmation email.
-		// Sending to them violates the double opt-in contract (issue #344).
-		query = query.Where(sq.Or{
-			sq.Eq{"l.is_double_optin": false},
-			sq.NotEq{"cl.status": domain.ContactListStatusPending},
-		})
+		query = withBroadcastListFilter(query, audience)
 	}
-
-	// Handle segments filtering
 	if len(audience.Segments) > 0 {
-		// If we already have list filtering, we need to add segments as an additional filter
-		// This means contacts must be in BOTH the specified list AND segments
-		if audience.List != "" {
-			// Join with contact_segments table in addition to the existing list joins
-			query = query.Join("contact_segments cs ON c.email = cs.email")
-			query = query.Where(sq.Eq{"cs.segment_id": audience.Segments})
-		} else {
-			// No list filtering, so we're filtering by segments only
-			query = psql.Select("COUNT(*)").
-				From("contacts c").
-				Join("contact_segments cs ON c.email = cs.email").
-				Where(sq.Eq{"cs.segment_id": audience.Segments})
-		}
+		query = query.Where(broadcastSegmentsFilter(audience.Segments, ""))
 	}
 
 	// Build and execute the query
@@ -1864,10 +1818,13 @@ func (r *contactRepository) GetBatchForSegment(ctx context.Context, workspaceID 
 	return emails, nil
 }
 
-// MarkEmailsAsBounced flips contact_lists.status='bounced' for every list each
-// given email is on, except rows already in a terminal status ('complained' or
-// 'bounced') or soft-deleted. The track_contact_list_changes trigger emits the
-// matching list.bounced timeline rows for transitions.
+// MarkEmailsAsBounced flips contact_lists.status='bounced' on every row each
+// given email has, except rows already in a terminal status ('complained' or
+// 'bounced'). A row whose contact was removed from the list takes the bounce
+// too and stays removed: a removal doesn't end a bounce, and the automation
+// email gate reads a removed row's status. The track_contact_list_changes
+// trigger emits list.bounced for a row still on the list; a removed row's
+// bounce records nothing.
 func (r *contactRepository) MarkEmailsAsBounced(ctx context.Context, workspaceID string, emails []string, at time.Time) error {
 	if len(emails) == 0 {
 		return nil
@@ -1883,8 +1840,7 @@ UPDATE contact_lists
    SET status = 'bounced',
        updated_at = $2
  WHERE email = ANY($1)
-   AND status NOT IN ('complained', 'bounced')
-   AND deleted_at IS NULL`
+   AND status NOT IN ('complained', 'bounced')`
 
 	if _, err := workspaceDB.ExecContext(ctx, query, pq.Array(emails), at); err != nil {
 		return fmt.Errorf("failed to mark emails as bounced: %w", err)

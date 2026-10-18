@@ -1410,14 +1410,14 @@ func TestGetContactsForBroadcast(t *testing.T) {
 
 		repo := NewContactRepository(workspaceRepo)
 
-		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND c\.email > \$2 AND cl\.email > \$3 AND cl\.status <> \$4 AND cl\.status <> \$5 AND \(l\.is_double_optin = \$6 OR cl\.status <> \$7\) ORDER BY c\.email ASC LIMIT 10`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND \(l\.is_double_optin = \$4 OR cl\.status <> \$5\) AND c\.email > \$6 AND cl\.email > \$7 ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list1",
-				"previous@example.com",
-				"previous@example.com",
 				domain.ContactListStatusBounced,
 				domain.ContactListStatusComplained,
 				false,
-				domain.ContactListStatusPending).
+				domain.ContactListStatusPending,
+				"previous@example.com",
+				"previous@example.com").
 			WillReturnRows(sqlmock.NewRows([]string{"email"}))
 
 		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123",
@@ -1428,6 +1428,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
+	// The segments are an EXISTS, and the cursor bounds contact_segments inside it.
 	t.Run("a later page of a list and segments bounds contact_segments by the cursor too", func(t *testing.T) {
 		mockDB, mock, cleanup := setupMockDB(t)
 		defer cleanup()
@@ -1440,20 +1441,21 @@ func TestGetContactsForBroadcast(t *testing.T) {
 
 		repo := NewContactRepository(workspaceRepo)
 
-		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id JOIN contact_segments cs ON c\.email = cs\.email WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND c\.email > \$2 AND cl\.email > \$3 AND cl\.status <> \$4 AND cl\.status <> \$5 AND \(l\.is_double_optin = \$6 OR cl\.status <> \$7\) AND cs\.segment_id IN \(\$8\) AND cs\.email > \$9 ORDER BY c\.email ASC LIMIT 10`).
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND \(l\.is_double_optin = \$4 OR cl\.status <> \$5\) AND c\.email > \$6 AND cl\.email > \$7 AND EXISTS \(SELECT 1 FROM contact_segments cs WHERE cs\.email = c\.email AND cs\.segment_id IN \(\$8,\$9\) AND cs\.email > \$10\) ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list1",
-				"previous@example.com",
-				"previous@example.com",
 				domain.ContactListStatusBounced,
 				domain.ContactListStatusComplained,
 				false,
 				domain.ContactListStatusPending,
+				"previous@example.com",
+				"previous@example.com",
 				"segment1",
+				"segment2",
 				"previous@example.com").
 			WillReturnRows(sqlmock.NewRows([]string{"email"}))
 
 		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123",
-			domain.AudienceSettings{List: "list1", Segments: []string{"segment1"}}, 10, "previous@example.com")
+			domain.AudienceSettings{List: "list1", Segments: []string{"segment1", "segment2"}}, 10, "previous@example.com")
 
 		require.NoError(t, err)
 		assert.Empty(t, contacts)
@@ -1622,7 +1624,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		}
 
 		// Set up expectations for the query
-		// When selecting from contacts with segment filtering, we should see a JOIN with contact_segments
+		// When selecting from contacts with segment filtering, we should see an EXISTS on contact_segments
 		createdAt1 := time.Now().UTC().Add(-24 * time.Hour)
 		createdAt2 := time.Now().UTC()
 		rows := sqlmock.NewRows([]string{
@@ -1641,8 +1643,8 @@ func TestGetContactsForBroadcast(t *testing.T) {
 				nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil, createdAt2, createdAt2, createdAt2, createdAt2)
 
-		// Expect the query to join contacts with contact_segments (cursor-based pagination)
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c JOIN contact_segments cs ON c\.email = cs\.email WHERE cs\.segment_id IN \(\$1\) ORDER BY c\.email ASC LIMIT 10`).
+		// Expect the query to keep the contacts in the segment with an EXISTS, not a join
+		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_segments cs WHERE cs\.email = c\.email AND cs\.segment_id IN \(\$1\)\) ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("segment1").
 			WillReturnRows(rows)
 
@@ -1657,6 +1659,89 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		// When filtering by segments only, ListID and ListName should be empty
 		assert.Equal(t, "", contacts[0].ListID)
 		assert.Equal(t, "", contacts[0].ListName)
+	})
+
+	// Only a broadcast stored before lists became required has no list: there is no
+	// contact_lists row to bound.
+	t.Run("a later page without a list or segments bounds contacts only by the cursor", func(t *testing.T) {
+		mockDB, mock, cleanup := setupMockDB(t)
+		defer cleanup()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(mockDB, nil)
+
+		repo := NewContactRepository(workspaceRepo)
+
+		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email > \$1 ORDER BY c\.email ASC LIMIT 10`).
+			WithArgs("previous@example.com").
+			WillReturnRows(sqlmock.NewRows([]string{"email"}))
+
+		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123",
+			domain.AudienceSettings{}, 10, "previous@example.com")
+
+		require.NoError(t, err)
+		assert.Empty(t, contacts)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a later page of segments without a list bounds contacts and contact_segments by the cursor", func(t *testing.T) {
+		mockDB, mock, cleanup := setupMockDB(t)
+		defer cleanup()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(mockDB, nil)
+
+		repo := NewContactRepository(workspaceRepo)
+
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+` FROM contacts c WHERE c\.email > \$1 AND EXISTS \(SELECT 1 FROM contact_segments cs WHERE cs\.email = c\.email AND cs\.segment_id IN \(\$2,\$3\) AND cs\.email > \$4\) ORDER BY c\.email ASC LIMIT 10`).
+			WithArgs("previous@example.com", "segment1", "segment2", "previous@example.com").
+			WillReturnRows(sqlmock.NewRows([]string{"email"}))
+
+		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123",
+			domain.AudienceSettings{Segments: []string{"segment1", "segment2"}}, 10, "previous@example.com")
+
+		require.NoError(t, err)
+		assert.Empty(t, contacts)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// A join on contact_segments returned a contact in both segments once per segment;
+	// TestBroadcastSegmentAudience_Integration checks the EXISTS returns them once.
+	t.Run("a list and two segments filter with an EXISTS, segment ids last", func(t *testing.T) {
+		mockDB, mock, cleanup := setupMockDB(t)
+		defer cleanup()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(mockDB, nil)
+
+		repo := NewContactRepository(workspaceRepo)
+
+		mock.ExpectQuery(`SELECT `+contactColumnsPattern+`, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) AND EXISTS \(SELECT 1 FROM contact_segments cs WHERE cs\.email = c\.email AND cs\.segment_id IN \(\$7,\$8\)\) ORDER BY c\.email ASC LIMIT 10`).
+			WithArgs("list1",
+				domain.ContactListStatusUnsubscribed,
+				domain.ContactListStatusBounced,
+				domain.ContactListStatusComplained,
+				false,
+				domain.ContactListStatusPending,
+				"segment1",
+				"segment2").
+			WillReturnRows(sqlmock.NewRows([]string{"email"}))
+
+		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123",
+			domain.AudienceSettings{List: "list1", Segments: []string{"segment1", "segment2"}, ExcludeUnsubscribed: true}, 10, "")
+
+		require.NoError(t, err)
+		assert.Empty(t, contacts)
+		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
 	// Issue #344: contacts with status='pending' on a double opt-in list must be excluded.
@@ -1919,8 +2004,8 @@ func TestCountContactsForBroadcast(t *testing.T) {
 		// Set up expectations for the count query
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(42)
 
-		// Expect query with JOIN for segment filtering
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_segments cs ON c\.email = cs\.email WHERE cs\.segment_id IN \(\$1,\$2\)`).
+		// Expect an EXISTS for segment filtering, not a join
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_segments cs WHERE cs\.email = c\.email AND cs\.segment_id IN \(\$1,\$2\)\)`).
 			WithArgs("segment1", "segment2").
 			WillReturnRows(rows)
 
@@ -1956,9 +2041,10 @@ func TestCountContactsForBroadcast(t *testing.T) {
 		// Set up expectations for the count query
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(15)
 
-		// Expect query with JOINs for both list, lists table (for soft-delete filter), segment filtering,
-		// and the double opt-in guard (l.is_double_optin = $5 OR cl.status <> $6).
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id JOIN contact_segments cs ON c\.email = cs\.email WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) AND cs\.segment_id IN \(\$7\)`).
+		// Expect query with JOINs for the list and the lists table (for soft-delete filter),
+		// the double opt-in guard (l.is_double_optin = $5 OR cl.status <> $6), and an
+		// EXISTS for segment filtering.
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) AND EXISTS \(SELECT 1 FROM contact_segments cs WHERE cs\.email = c\.email AND cs\.segment_id IN \(\$7\)\)`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
@@ -1974,6 +2060,38 @@ func TestCountContactsForBroadcast(t *testing.T) {
 		// Assertions
 		require.NoError(t, err)
 		assert.Equal(t, 15, count)
+	})
+
+	// The count filters on the segments as the pages do
+	t.Run("a list and two segments count with an EXISTS, segment ids last", func(t *testing.T) {
+		mockDB, mock, cleanup := setupMockDB(t)
+		defer cleanup()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(mockDB, nil)
+
+		repo := NewContactRepository(workspaceRepo)
+
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND \(l\.is_double_optin = \$5 OR cl\.status <> \$6\) AND EXISTS \(SELECT 1 FROM contact_segments cs WHERE cs\.email = c\.email AND cs\.segment_id IN \(\$7,\$8\)\)`).
+			WithArgs("list1",
+				domain.ContactListStatusUnsubscribed,
+				domain.ContactListStatusBounced,
+				domain.ContactListStatusComplained,
+				false,
+				domain.ContactListStatusPending,
+				"segment1",
+				"segment2").
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(7))
+
+		count, err := repo.CountContactsForBroadcast(context.Background(), "workspace123",
+			domain.AudienceSettings{List: "list1", Segments: []string{"segment1", "segment2"}, ExcludeUnsubscribed: true})
+
+		require.NoError(t, err)
+		assert.Equal(t, 7, count, "the count is scanned from the row")
+		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
 	// Issue #344: pending contacts on a double opt-in list must not be counted.
@@ -2563,12 +2681,48 @@ func TestMarkEmailsAsBounced_FlipsActiveLists(t *testing.T) {
 	at := time.Date(2026, 5, 12, 10, 0, 0, 0, time.UTC)
 	emails := []string{"a@example.com", "b@example.com"}
 
-	// 4 list rows flipped from active → bounced across the two emails.
-	mock.ExpectExec(`UPDATE contact_lists\s+SET status = 'bounced',\s+updated_at = \$2\s+WHERE email = ANY\(\$1\)\s+AND status NOT IN \('complained', 'bounced'\)\s+AND deleted_at IS NULL`).
+	// Every row of the two emails flips to bounced, except a complained or bounced one
+	mock.ExpectExec(`^UPDATE contact_lists SET status = 'bounced', updated_at = \$2 WHERE email = ANY\(\$1\) AND status NOT IN \('complained', 'bounced'\)$`).
 		WithArgs(sqlmock.AnyArg(), at).
 		WillReturnResult(sqlmock.NewResult(0, 4))
 
 	err := repo.MarkEmailsAsBounced(context.Background(), "ws-123", emails, at)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// A removal ends membership, not a bounce: the row of a contact removed from a list takes
+// the bounce too, and stays removed. The automation email gate reads a removed row, so a
+// removed row left active would let the list's automations keep emailing the address.
+func TestMarkEmailsAsBounced_ReachesRemovedRowsAndKeepsThemRemoved(t *testing.T) {
+	// The statement must neither filter on deleted_at nor write it, wherever in the
+	// query either would appear; the complained-row guard stays.
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherFunc(func(_, actual string) error {
+		if strings.Contains(actual, "deleted_at") {
+			return fmt.Errorf("the bounce statement mentions deleted_at: %s", actual)
+		}
+		if !strings.Contains(actual, "status NOT IN ('complained', 'bounced')") {
+			return fmt.Errorf("the bounce statement lost its complained-row guard: %s", actual)
+		}
+		return nil
+	})))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	workspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+	repo := NewContactRepository(workspaceRepo)
+	at := time.Now().UTC()
+
+	mock.ExpectExec(`UPDATE contact_lists`).
+		WithArgs(sqlmock.AnyArg(), at).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = repo.MarkEmailsAsBounced(context.Background(), "ws-123", []string{"a@example.com"}, at)
 	require.NoError(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }

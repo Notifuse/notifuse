@@ -396,6 +396,24 @@ func TestWebhookContactListsTriggerFunction_ReAddIsReportedAsASubscription(t *te
 	assert.Contains(t, sql, "event_kind := 'list.resubscribed';")
 }
 
+// A write to a row that stays removed, such as the status a bounce, complaint or
+// unsubscribe leaves for the email gate, reports nothing: a consumer that mirrors the
+// list would otherwise put back a contact it was told was removed.
+func TestWebhookContactListsTriggerFunction_RemovedRowReportsNothing(t *testing.T) {
+	sql := normalizeIndent(WebhookContactListsTriggerFunction())
+
+	const guard = "IF OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NOT NULL THEN\nRETURN NEW;\nEND IF;"
+	require.Equal(t, 1, strings.Count(sql, guard))
+
+	update := strings.Index(sql, "IF TG_OP = 'UPDATE' THEN\nprev_status := OLD.status;")
+	at := strings.Index(sql, guard)
+	kinds := strings.Index(sql, "-- Determine event kind based on status transitions")
+	require.NotEqual(t, -1, update)
+	require.NotEqual(t, -1, kinds)
+	assert.Less(t, update, at, "the guard is part of the update path")
+	assert.Less(t, at, kinds, "it comes before any event kind is chosen")
+}
+
 func TestWebhookContactSegmentsTriggerFunction_HandlesTheDeletePath(t *testing.T) {
 	sql := WebhookContactSegmentsTriggerFunction()
 

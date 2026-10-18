@@ -120,7 +120,9 @@ func WebhookContactsTriggerFunction() string {
 
 // WebhookContactListsTriggerFunction returns the trigger function that fans
 // contact_lists rows out as list.* events, narrowed by the subscription's
-// optional list_ids filter.
+// optional list_ids filter. A write to a row that stays removed is reported to no
+// one, as the timeline records nothing for it: a removed contact is not on the
+// list, whatever status their row keeps for the email gate.
 func WebhookContactListsTriggerFunction() string {
 	return `CREATE OR REPLACE FUNCTION webhook_contact_lists_trigger()
 		RETURNS TRIGGER AS $$
@@ -138,10 +140,16 @@ func WebhookContactListsTriggerFunction() string {
 			SELECT name INTO list_name FROM lists WHERE id = NEW.list_id;
 
 			-- An update reports the status it replaced. A removed contact added back
-			-- (deleted_at cleared) is reported as a first subscription instead.
+			-- (deleted_at cleared) is reported as a first subscription instead. A write
+			-- to a row that stays removed, such as the status a bounce, complaint or
+			-- unsubscribe leaves for the email gate, reports nothing: a removed contact is
+			-- not on the list.
 			IF TG_OP = 'UPDATE' THEN
 				prev_status := OLD.status;
 				restored := OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NULL;
+				IF OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NOT NULL THEN
+					RETURN NEW;
+				END IF;
 			END IF;
 
 			-- Determine event kind based on status transitions
