@@ -4,13 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [42.0] - WIP
 
-- **Security**: Outgoing webhooks are no longer a server-side request forgery (SSRF) vector. Webhook subscriptions and automation webhook nodes posted to a member-supplied URL with a plain HTTP client, so anyone holding `webhook_subscriptions:write` or `automations:write` could aim them at the deployment's own network — the cloud metadata endpoint, an internal service — and read the response back through `webhookSubscriptions.test`, the delivery log or an automation's node executions. Both now refuse private, loopback, link-local and reserved addresses at dial time and on every redirect, and refuse to save a URL that names one; the automation editor marks such a webhook node and says why. Self-hosted deployments that deliberately deliver to their own network can opt out with `WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true`; until they do, a refused subscription delivery is retried without counting toward the automatic-disable threshold, and a refused automation step fails like any other webhook error.
+- **Security**: Webhook subscriptions and automation webhook nodes now refuse private, loopback, link-local and reserved addresses, when the URL is saved and when it is called.
 
-  **If your webhooks reach a service on your own network — n8n or another container on the same Docker network, an internal API — read this before upgrading.** Subscriptions and automation webhook nodes aimed at a private address stop delivering until `WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true` is set, so set it before you upgrade. A contact that reaches such a webhook node in the meantime fails that journey after its retries.
+  **If your webhooks reach a service on your own network — n8n or another container on the same Docker network, an internal API — set `WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true` before you upgrade.** Until it is set, those webhooks stop delivering, and a contact that reaches such a webhook node fails that journey after its retries.
 
-- **Fix**: The blog API — categories, posts and themes — is now in the API reference, and behaves as documented. `blogPosts.list` ignored its `offset` parameter and always returned the first page, so no API client could read past the first 100 posts; it now pages with `page` and `limit`, in a stable order. A missing blog permission now answers 403, where it used to be a 400 or a 500 that hid the cause.
+- **Improvement**: Web analytics goals tracked with numbers or booleans in `properties`, or a numeric string `value` such as `'49.90'`, are now recorded along with the rest of the visit. `trackGoal` converts these before sending, and skips, with a console warning, a goal it can't convert or that exceeds a limit.
 
-- **Fix**: Opening an email's `List-Unsubscribe` link no longer returns `{"error":"Method not allowed"}`, which is what contacts saw whenever their mail client opened the link instead of unsubscribing in one click (#450). They now land on the notification center, which asks them to confirm; loading the page alone unsubscribes nobody, since anti-spam scanners fetch these links on their own. The one-click request also accepts `multipart/form-data`, the encoding RFC 8058 recommends, which was rejected and left the contact subscribed.
+- **Improvement**: The blog API (categories, posts and themes) is now in the API reference. `blogPosts.list` pages with `page` and `limit` (not `offset`), and a missing blog permission answers 403.
+
+- **Fix**: An email's `List-Unsubscribe` link opened in a browser now leads to the notification center, which asks the contact to confirm (#450). One-click unsubscribe also accepts `multipart/form-data`.
 
 - **Improvement**: A Custom Endpoint URL saved with a trailing slash no longer adds `//` to tracking, unsubscribe and notification center links.
 

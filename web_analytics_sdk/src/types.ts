@@ -185,7 +185,16 @@ export const VALID_GOAL_TYPES = [
 
 export type GoalType = (typeof VALID_GOAL_TYPES)[number];
 
+/**
+ * A goal that can't be stored as described below is not recorded, and
+ * trackGoal logs a warning instead of throwing: a blank action or one over
+ * 100 bytes, a value that isn't a number or is below 0 or above 1e12, a
+ * nested object or array in properties, or properties over 50 keys, over 1024
+ * bytes in one value or over 8 KiB in all. A missing or unknown type still
+ * throws.
+ */
 export interface GoalData {
+  /** The goal's name, at most 100 bytes in UTF-8. */
   action: string;
   /**
    * What kind of conversion this is. Required: only your site knows whether a
@@ -198,15 +207,24 @@ export interface GoalData {
   // breaks every customer's site on their next bundle refresh. A new field must
   // be optional, with the server supplying the default.
   type: GoalType;
-  value?: number;
+  /**
+   * A non-negative amount. A numeric string ('49.90') is converted to a number.
+   * null, '' and NaN or Infinity mean no value: the goal is recorded without
+   * one.
+   */
+  value?: number | string;
   /**
    * Anything else the conversion carries — a currency, an order id, a plan
    * name. These reach the server and are stored on the goal, which is why
    * there are no dedicated fields for them: a declared field that nothing
    * forwards, sends or stores is worse than no field, because callers set it
    * and are never told it went nowhere.
+   *
+   * Stored as strings: numbers and booleans are converted, a Date is sent as
+   * its ISO string, null, NaN and Infinity entries are stored as '', and
+   * undefined entries are left out.
    */
-  properties?: Record<string, string>;
+  properties?: Record<string, string | number | boolean | null | undefined>;
 }
 
 // Public API

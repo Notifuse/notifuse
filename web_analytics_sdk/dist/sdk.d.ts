@@ -221,9 +221,8 @@ export declare class NotifuseAnalyticsSDK {
      * Resume tracking
      */
     resume(): Promise<void>;
-    /**
-     * Reset session
-     */
+    /** The SessionState for a session, built the same way at init, rotation and reset. */
+    private createSessionState;
     /**
      * Roll onto a fresh session id while keeping identity and custom dimensions.
      *
@@ -243,6 +242,9 @@ export declare class NotifuseAnalyticsSDK {
      * than time since page load.
      */
     private ensureFreshSession;
+    /**
+     * Reset session
+     */
     reset(): Promise<void>;
     /**
      * Get current configuration (defensive copy)

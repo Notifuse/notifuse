@@ -69,3 +69,68 @@ function payloadPage(st: SessionState, i: number) {
   if (action.type !== 'pageview') throw new Error('expected a pageview');
   return action;
 }
+
+// The cap and storage warnings say nothing a site's developer can act on, and
+// a full sessionStorage would repeat one on every beat in every visitor's
+// console, so they are logged only in debug mode.
+describe('SessionState - warnings', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  const failingStorage = () => {
+    vi.stubGlobal('sessionStorage', {
+      getItem: () => '{not json',
+      setItem: () => {
+        throw new DOMException('quota', 'QuotaExceededError');
+      },
+      removeItem: () => {},
+    });
+  };
+
+  it.each([
+    ['without debug', false, 0],
+    ['in debug mode', true, 2],
+  ])('logs storage failures only in debug mode: %s', (_label, debug, calls) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    failingStorage();
+    const st = new SessionState({ workspace_id: 'ws', session_id: 'sid', created_at: Date.now(), debug });
+
+    st.restore();
+    st.addPageview('/a');
+    st.persist();
+
+    expect(warn).toHaveBeenCalledTimes(calls);
+  });
+
+  it.each([
+    ['without debug', false],
+    ['in debug mode', true],
+  ])('logs the action cap only in debug mode: %s', (_label, debug) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const st = new SessionState({ workspace_id: 'ws', session_id: 'sid', created_at: Date.now(), debug });
+
+    // Goals and pageviews in turn, through the approach to the cap and past it.
+    while (st.addGoal('demo_request', 'lead')) {
+      st.addPageview('/a');
+    }
+    st.addPageview('/b');
+
+    const messages = warn.mock.calls.map((args) => String(args[0]));
+    if (!debug) {
+      expect(messages).toEqual([]);
+      return;
+    }
+    // Pageviews land on even counts and goals on odd ones, so the first two
+    // approach warnings come one from each.
+    expect(messages).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('Approaching MAX_ACTIONS limit (900/1000)'),
+        expect.stringContaining('Approaching MAX_ACTIONS limit (901/1000)'),
+        expect.stringContaining('pageview not added'),
+        expect.stringContaining('goal not added'),
+      ]),
+    );
+  });
+});

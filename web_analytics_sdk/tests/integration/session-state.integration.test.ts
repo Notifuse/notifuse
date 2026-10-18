@@ -441,8 +441,9 @@ describe('SessionState', () => {
   describe('MAX_ACTIONS limit', () => {
     const MAX_ACTIONS = 1000;
 
-    it('warns when approaching MAX_ACTIONS limit (90%)', () => {
+    it('warns when approaching MAX_ACTIONS limit (90%), in debug mode', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      sessionState = new SessionState({ ...mockConfig, debug: true });
 
       // Add actions up to 89% (899 actions, should not warn yet)
       for (let i = 0; i < 899; i++) {
@@ -451,21 +452,22 @@ describe('SessionState', () => {
 
       // Should not warn at 89%
       // The warning happens at >= 90%, so 900 is the first to trigger
-      consoleSpy.mockClear();
+      expect(consoleSpy).not.toHaveBeenCalled();
 
       // Add one more to reach exactly 90% threshold (900 actions)
       sessionState.addGoal('goal_900', 'other');
 
       // Should warn now (900 >= 1000 * 0.9)
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Approaching MAX_ACTIONS limit'),
+        expect.stringContaining('Approaching MAX_ACTIONS limit (900/1000)'),
       );
 
       consoleSpy.mockRestore();
     });
 
-    it('prevents adding actions beyond MAX_ACTIONS', () => {
+    it('prevents adding actions beyond MAX_ACTIONS, and warns in debug mode', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      sessionState = new SessionState({ ...mockConfig, debug: true });
 
       // Add MAX_ACTIONS goals
       for (let i = 0; i < MAX_ACTIONS; i++) {
