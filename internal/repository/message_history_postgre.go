@@ -373,6 +373,28 @@ func (r *MessageHistoryRepository) WasSentForList(ctx context.Context, workspace
 	return sent, nil
 }
 
+// GetRecipientAndList returns who message id was sent to and the list stored on it, which
+// is NULL for a transactional email and for an automation email sent before automations
+// recorded their list. Only id, contact_email and list_id are populated. Returns
+// (nil, nil) when there is no such message.
+func (r *MessageHistoryRepository) GetRecipientAndList(ctx context.Context, workspaceID, id string) (*domain.MessageHistory, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	message := &domain.MessageHistory{ID: id}
+	err = workspaceDB.QueryRowContext(ctx, `SELECT contact_email, list_id FROM message_history WHERE id = $1`, id).
+		Scan(&message.ContactEmail, &message.ListID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get the recipient and list of message %s: %w", id, err)
+	}
+	return message, nil
+}
+
 // SetStatusesIfNotSet updates multiple message statuses in a single batch operation
 // but only if the corresponding status timestamp is not already set
 func (r *MessageHistoryRepository) SetStatusesIfNotSet(ctx context.Context, workspaceID string, updates []domain.MessageEventUpdate) error {

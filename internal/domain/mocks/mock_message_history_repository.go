@@ -139,6 +139,21 @@ func (mr *MockMessageHistoryRepositoryMockRecorder) GetBySMTPMessageID(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBySMTPMessageID", reflect.TypeOf((*MockMessageHistoryRepository)(nil).GetBySMTPMessageID), arg0, arg1, arg2)
 }
 
+// GetRecipientAndList mocks base method.
+func (m *MockMessageHistoryRepository) GetRecipientAndList(arg0 context.Context, arg1, arg2 string) (*domain.MessageHistory, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRecipientAndList", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*domain.MessageHistory)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRecipientAndList indicates an expected call of GetRecipientAndList.
+func (mr *MockMessageHistoryRepositoryMockRecorder) GetRecipientAndList(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRecipientAndList", reflect.TypeOf((*MockMessageHistoryRepository)(nil).GetRecipientAndList), arg0, arg1, arg2)
+}
+
 // ListMessages mocks base method.
 func (m *MockMessageHistoryRepository) ListMessages(arg0 context.Context, arg1, arg2 string, arg3 domain.MessageListParams) ([]*domain.MessageHistory, string, error) {
 	m.ctrl.T.Helper()

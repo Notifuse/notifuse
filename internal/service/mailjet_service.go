@@ -266,7 +266,8 @@ func (s *MailjetService) RegisterWebhooks(
 			registeredEvents = append(registeredEvents, domain.EmailEventBounce)
 			registeredEvents = append(registeredEvents, domain.EmailEventBounce) // One entry for each webhook
 		case domain.EmailEventComplaint:
-			// Register both spam and unsubscribe events for complaint tracking
+			// Register both spam and unsub events: the webhook records spam as a complaint,
+			// and unsub as an unsubscribe
 			mailjetEvents = append(mailjetEvents, domain.MailjetEventSpam)
 			mailjetEvents = append(mailjetEvents, domain.MailjetEventUnsub)
 			registeredEvents = append(registeredEvents, domain.EmailEventComplaint)

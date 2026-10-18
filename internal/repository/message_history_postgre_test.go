@@ -2226,6 +2226,73 @@ func TestMessageHistoryRepository_WasSentForList(t *testing.T) {
 	})
 }
 
+func TestMessageHistoryRepository_GetRecipientAndList(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	query := regexp.QuoteMeta(`SELECT contact_email, list_id FROM message_history WHERE id = $1`)
+
+	t.Run("a message sent for a list", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs("msg-1").
+			WillReturnRows(sqlmock.NewRows([]string{"contact_email", "list_id"}).AddRow("test@example.com", "list-1"))
+
+		message, err := repo.GetRecipientAndList(ctx, workspaceID, "msg-1")
+		require.NoError(t, err)
+		require.NotNil(t, message)
+		assert.Equal(t, "msg-1", message.ID)
+		assert.Equal(t, "test@example.com", message.ContactEmail)
+		require.NotNil(t, message.ListID)
+		assert.Equal(t, "list-1", *message.ListID)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a message sent for no list", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs("msg-2").
+			WillReturnRows(sqlmock.NewRows([]string{"contact_email", "list_id"}).AddRow("test@example.com", nil))
+
+		message, err := repo.GetRecipientAndList(ctx, workspaceID, "msg-2")
+		require.NoError(t, err)
+		require.NotNil(t, message)
+		assert.Equal(t, "test@example.com", message.ContactEmail)
+		assert.Nil(t, message.ListID)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("no such message: nil, no error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs("missing").
+			WillReturnRows(sqlmock.NewRows([]string{"contact_email", "list_id"}))
+
+		message, err := repo.GetRecipientAndList(ctx, workspaceID, "missing")
+		require.NoError(t, err)
+		assert.Nil(t, message)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("query error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs("msg-1").WillReturnError(errors.New("connection reset"))
+
+		message, err := repo.GetRecipientAndList(ctx, workspaceID, "msg-1")
+		require.Error(t, err)
+		assert.Nil(t, message)
+		assert.Contains(t, err.Error(), "connection reset")
+	})
+
+	t.Run("workspace connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(nil, errors.New("connection error"))
+
+		message, err := repo.GetRecipientAndList(ctx, workspaceID, "msg-1")
+		require.Error(t, err)
+		assert.Nil(t, message)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+}
+
 // Helper function to create string pointers
 func stringPtr(s string) *string {
 	return &s

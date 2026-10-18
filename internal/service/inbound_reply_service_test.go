@@ -57,7 +57,7 @@ func newReplyTestDeps(t *testing.T, kind domain.EmailProviderKind) replyTestDeps
 	}
 	workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil).AnyTimes()
 
-	svc := NewInboundWebhookEventService(repo, authService, log, workspaceRepo, mhRepo, contactRepo, autoRepo)
+	svc := NewInboundWebhookEventService(repo, authService, log, workspaceRepo, mhRepo, contactRepo, autoRepo, &fakeListUnsubscriber{})
 
 	return replyTestDeps{svc, repo, contactRepo, mhRepo, autoRepo, workspaceID, integID}
 }

@@ -200,6 +200,11 @@ type MessageHistoryRepository interface {
 	// one, by the automation's current list
 	WasSentForList(ctx context.Context, workspaceID, messageID, email, listID string) (bool, error)
 
+	// GetRecipientAndList returns who message id was sent to and the list stored on it
+	// (nil for a transactional email). Only id, contact_email and list_id are populated.
+	// Returns (nil, nil) when there is no such message.
+	GetRecipientAndList(ctx context.Context, workspaceID, id string) (*MessageHistory, error)
+
 	// DeleteForEmail deletes all message history records for a specific email
 	DeleteForEmail(ctx context.Context, workspaceID, email string) error
 }
