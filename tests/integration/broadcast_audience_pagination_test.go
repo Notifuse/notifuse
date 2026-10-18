@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -20,8 +21,9 @@ import (
 // and, for an audience narrowed to segments, on contact_segments, so the planner can start
 // each scan at the cursor instead of reading every row before it. The extra bounds must not
 // change which contacts a page returns: every recipient comes back once, in email order,
-// and nobody else does, even with contacts of another list, removed members and bounced
-// members sorting between them.
+// and nobody else does, even with contacts of another list, removed members, bounced
+// members and, for a broadcast that leaves them out, unsubscribed members sorting between
+// them.
 func TestBroadcastAudiencePagination_Integration(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -62,17 +64,22 @@ func TestBroadcastAudiencePagination_Integration(t *testing.T) {
 	}
 
 	// Recipients have a row on each list; between them sort contacts of the other list
-	// only, members removed from the list and bounced members.
+	// only, a member removed from the list, a bounced member and an unsubscribed one,
+	// who is a recipient only of a broadcast that keeps unsubscribed contacts.
+	const unsubscribed = 10
 	var recipients []string
 	for i := 0; i < 12; i++ {
 		switch i % 4 {
 		case 1:
 			addContact(i, other.ID, domain.ContactListStatusActive)
 		case 2:
-			if i == 2 {
+			switch i {
+			case 2:
 				addContact(i, list.ID, domain.ContactListStatusActive)
 				require.NoError(t, contactListRepo.RemoveContactFromList(ctx, workspace.ID, email(i), list.ID))
-			} else {
+			case unsubscribed:
+				addContact(i, list.ID, domain.ContactListStatusUnsubscribed)
+			default:
 				addContact(i, list.ID, domain.ContactListStatusBounced)
 			}
 		default:
@@ -106,9 +113,20 @@ func TestBroadcastAudiencePagination_Integration(t *testing.T) {
 		return nil
 	}
 
+	// withUnsubscribed adds the unsubscribed member to want, in email order
+	withUnsubscribed := func(want []string) []string {
+		out := append([]string{}, want...)
+		out = append(out, email(unsubscribed))
+		sort.Strings(out)
+		return out
+	}
+
 	t.Run("a list", func(t *testing.T) {
 		got := pageThrough(t, domain.AudienceSettings{List: list.ID, ExcludeUnsubscribed: true})
 		assert.Equal(t, recipients, got, "every recipient once, in email order, and nobody else")
+
+		got = pageThrough(t, domain.AudienceSettings{List: list.ID, ExcludeUnsubscribed: false})
+		assert.Equal(t, withUnsubscribed(recipients), got, "the unsubscribed member too, in its place")
 	})
 
 	// The segment holds every other recipient and every contact that is not a recipient,
@@ -134,5 +152,8 @@ func TestBroadcastAudiencePagination_Integration(t *testing.T) {
 
 		got := pageThrough(t, domain.AudienceSettings{List: list.ID, Segments: []string{segmentID}, ExcludeUnsubscribed: true})
 		assert.Equal(t, inSegment, got, "every recipient in the segment once, in email order, and nobody else")
+
+		got = pageThrough(t, domain.AudienceSettings{List: list.ID, Segments: []string{segmentID}, ExcludeUnsubscribed: false})
+		assert.Equal(t, withUnsubscribed(inSegment), got, "the unsubscribed member, who is in the segment, too")
 	})
 }
