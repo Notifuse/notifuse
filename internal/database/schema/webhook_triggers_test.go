@@ -334,8 +334,8 @@ func TestWebhookContactListsTriggerFunction_EmitsTheKindsItShipped(t *testing.T)
 	assert.Contains(t, sql, "event_kind := 'list.resubscribed';")
 
 	// list.removed is a subordinate branch: it is only reached when the status
-	// did not change, so a soft delete that also changes status reports the
-	// status change and never the removal.
+	// did not change, so a soft delete that also changes status never reports the
+	// removal.
 	assert.Contains(t, sql, "ELSIF NEW.deleted_at IS NOT NULL AND OLD.deleted_at IS NULL THEN")
 	assert.Contains(t, sql, "event_kind := 'list.removed';")
 

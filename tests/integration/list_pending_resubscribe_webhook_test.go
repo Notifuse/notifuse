@@ -196,8 +196,8 @@ func TestListPendingWebhookOnResubscribe(t *testing.T) {
 		subscribeViaPublicEndpoint(t, email, false)
 		unsubscribe(t, email)
 		subscribeViaPublicEndpoint(t, email, false)
-		// Submitting the form again while pending resends the confirmation and writes
-		// nothing, so nothing is sent again.
+		// Submitting the form again while pending writes nothing, so nothing is sent
+		// again.
 		subscribeViaPublicEndpoint(t, email, false)
 
 		requireOnListAs(t, email, "pending")
@@ -246,7 +246,12 @@ func TestListPendingWebhookOnResubscribe(t *testing.T) {
 					require.NoError(t, err)
 					// An insert records list.pending on both for a pending row, and on neither for another.
 					seedTimeline, seedDeliveries := pendingEvents(t, email)
-					require.Len(t, seedDeliveries, seedTimeline, "%s: the insert", name)
+					wantSeed := 0
+					if from == "pending" {
+						wantSeed = 1
+					}
+					require.Equal(t, wantSeed, seedTimeline, "%s: the insert's timeline", name)
+					require.Len(t, seedDeliveries, wantSeed, "%s: the insert", name)
 
 					_, err = db.ExecContext(bg, `
 						UPDATE contact_lists

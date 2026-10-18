@@ -60,7 +60,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Adding a removed contact back to a list with the status they had now records `list.subscribed` (or `list.pending` while awaiting double opt-in) on their timeline and as a webhook event, so "every time" automations triggered by it enroll them again, imports included. A re-add that moves them to awaiting double opt-in now sends `list.pending` as a webhook event too. Removing a contact who is already removed records nothing.
 
-- **Improvement**: Webhooks now receive `list.pending` when a contact who unsubscribed from a list subscribes again and has to confirm, as their timeline already showed. Until now, no list event was sent before they confirmed. Other changes that set a contact on a list to pending send it too.
+- **Improvement**: Webhooks now receive `list.pending` when a contact who unsubscribed from a list subscribes again and has to confirm, as their timeline already showed. Until now, webhooks heard of them again only when they confirmed. A status change to pending from the console, the API or an automation's Add to List node sends it too, with the status the contact came from in `previous_status`.
 
 - **Fix**: A broadcast filtered by several segments now sends one email to a contact who belongs to more than one of them, where it could send one per segment. Such a contact also counted as several recipients in the broadcast's totals and in its A/B test.
 
