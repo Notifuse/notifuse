@@ -569,7 +569,8 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 	// The probe records, for each email.complained and email.bounced timeline entry, the
 	// contact's status on the message's list when the entry was written. An automation
 	// triggered by those entries evaluates its conditions at that moment: its trigger is an
-	// AFTER INSERT trigger on contact_timeline, as this one is.
+	// AFTER INSERT trigger on contact_timeline, as this one is. Like the gate below, it goes
+	// with the workspace database when the suite cleans up.
 	exec(t, `CREATE TABLE status_seen_by_email_entries (email TEXT, kind TEXT, status TEXT)`)
 	exec(t, `CREATE FUNCTION record_status_seen_by_email_entry() RETURNS TRIGGER AS $$
 		BEGIN
@@ -582,11 +583,6 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 		$$ LANGUAGE plpgsql`)
 	exec(t, `CREATE TRIGGER record_status_seen_by_email_entry AFTER INSERT ON contact_timeline FOR EACH ROW
 		WHEN (NEW.kind IN ('email.complained', 'email.bounced')) EXECUTE FUNCTION record_status_seen_by_email_entry()`)
-	t.Cleanup(func() {
-		_, _ = db.ExecContext(bg, `DROP TRIGGER IF EXISTS record_status_seen_by_email_entry ON contact_timeline`)
-		_, _ = db.ExecContext(bg, `DROP FUNCTION IF EXISTS record_status_seen_by_email_entry()`)
-		_, _ = db.ExecContext(bg, `DROP TABLE IF EXISTS status_seen_by_email_entries`)
-	})
 	statusSeenByEmailEntries := func(t *testing.T, email string) []string {
 		t.Helper()
 		r, err := db.QueryContext(bg, `SELECT kind || ': ' || COALESCE(status, 'no row')
@@ -613,12 +609,13 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 			RETURN email;
 		END;
 		$$ LANGUAGE plpgsql VOLATILE`)
-	t.Cleanup(func() { _, _ = db.ExecContext(bg, `DROP FUNCTION IF EXISTS status_trigger_test_gate(text, text)`) })
 
 	// An import writes a batch of rows in one statement, and each row's triggers run at the
-	// end of it. The first inserts new rows; the second is BulkAddContactsToLists' upsert,
-	// which subscribes a contact who already has a row. $1 and $2 are the two contacts, $3
-	// the one the gate holds the import before, $4 the list.
+	// end of it. The first inserts new rows; the second ends with the ON CONFLICT clause of
+	// BulkAddContactsToLists (internal/repository/contact_list_postgres.go), copied here to
+	// put the gate in, so it subscribes a contact who already has a row as an import does.
+	// $1 and $2 are the two contacts, $3 the one the gate holds the import before, $4 the
+	// list.
 	const importNewRows = `INSERT INTO contact_lists (email, list_id, status)
 		SELECT status_trigger_test_gate(t.email, $3), $4, 'active'
 		FROM unnest(ARRAY[$1, $2]::text[]) WITH ORDINALITY AS t(email, n)
@@ -628,28 +625,38 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 		SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, deleted_at = NULL
 		WHERE contact_lists.status NOT IN ('unsubscribed', 'bounced', 'complained')`
 
-	// raceWithImport runs a complaint on messageID, a message to importing, while an import
-	// of importing and then next is held between its two rows, so the import holds
-	// importing's row uncommitted while the complaint runs. Before 42 the complaint locked
-	// the contact's contact_segment_queue row (through the message's timeline entry) before
-	// its contact_lists row, the reverse of every contact_lists write: the import then waited
-	// for the queue row while the complaint waited for the list row, and PostgreSQL aborted
-	// one of the two. Now the complaint waits for the import, and both land.
-	raceWithImport := func(t *testing.T, importSQL, importing, next, messageID string) {
+	// raceWithImport records a complaint or a hard bounce (status is "complained" or
+	// "bounced") on messageID, a message to importing, while an import of importing and then
+	// next is held between its two rows, so the import holds importing's row uncommitted
+	// while the complaint or bounce runs. Before 42 the complaint or bounce locked the
+	// contact's contact_segment_queue row (through the message's timeline entry) before its
+	// contact_lists row, the reverse of every contact_lists write: the import then waited for
+	// the queue row while the complaint waited for the list row, and PostgreSQL aborted one
+	// of the two. Now the complaint or bounce waits for the import, and both land.
+	raceWithImport := func(t *testing.T, importSQL, status, importing, next, messageID string) {
 		t.Helper()
 		ctx, cancel := context.WithTimeout(bg, 30*time.Second)
 		defer cancel()
+		// The connections go back to the pool before the assertions below read from it
+		var conns []*sql.Conn
+		closeConns := func() {
+			for _, c := range conns {
+				_ = c.Close()
+			}
+			conns = nil
+		}
+		defer closeConns()
 		conn := func() (*sql.Conn, int) {
 			c, err := db.Conn(ctx)
 			require.NoError(t, err)
-			t.Cleanup(func() { _ = c.Close() })
+			conns = append(conns, c)
 			var pid int
 			require.NoError(t, c.QueryRowContext(ctx, `SELECT pg_backend_pid()`).Scan(&pid))
 			return c, pid
 		}
 		gate, _ := conn()
 		importer, importerPID := conn()
-		complainer, complainerPID := conn()
+		reporter, reporterPID := conn()
 
 		_, err := gate.ExecContext(ctx, `SELECT pg_advisory_lock(hashtext('status_trigger_test_gate'))`)
 		require.NoError(t, err)
@@ -688,34 +695,40 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 		}()
 		waitsOn(importerPID, "advisory")
 
-		complaintDone := make(chan error, 1)
+		column := map[string]string{"complained": "complained_at", "bounced": "bounced_at"}[status]
+		require.NotEmpty(t, column, "status is complained or bounced")
+		reportDone := make(chan error, 1)
 		go func() {
-			_, err := complainer.ExecContext(ctx, `UPDATE message_history SET complained_at = NOW() WHERE id = $1`, messageID)
-			complaintDone <- err
+			_, err := reporter.ExecContext(ctx, `UPDATE message_history SET `+column+` = NOW() WHERE id = $1`, messageID)
+			reportDone <- err
 		}()
-		// The complaint waits for the import's transaction, on the contact's row.
-		waitsOn(complainerPID, "transactionid")
+		// The complaint or bounce waits for the import's transaction, on the contact's row
+		waitsOn(reporterPID, "transactionid")
 
 		openGate()
 		require.NoError(t, <-importDone, "the import")
-		require.NoError(t, <-complaintDone, "the complaint")
+		require.NoError(t, <-reportDone, "the "+status+" report")
+		closeConns()
 
-		assert.Equal(t, &listRow{status: "complained"}, rowOf(t, importing, list.ID),
-			"the complaint lands on the row the import committed")
+		assert.Equal(t, &listRow{status: status}, rowOf(t, importing, list.ID),
+			"the status lands on the row the import committed")
 		assert.Equal(t, &listRow{status: "active"}, rowOf(t, next, list.ID))
-		assert.Equal(t, []string{"email.complained: complained"}, statusSeenByEmailEntries(t, importing))
+		kind := map[string]string{"complained": "email.complained", "bounced": "email.bounced"}[status]
+		assert.Equal(t, []string{kind + ": " + status}, statusSeenByEmailEntries(t, importing))
 	}
-	// raceWithImportOfANewRow races a complaint with an import of a contact who has no row,
-	// raceWithImportOfAPendingRow with an import that subscribes a contact whose row is
-	// pending, as a double opt-in list leaves it.
-	raceWithImportOfANewRow := func(t *testing.T) {
-		importing, next := newContact(t), newContact(t)
-		raceWithImport(t, importNewRows, importing, next, message(t, importing, list.ID, nil))
+	// raceWithImportOfANewRow races a complaint or a bounce with an import of a contact who
+	// has no row, raceWithImportOfAPendingRow a complaint with an import that subscribes a
+	// contact whose row is pending, as a double opt-in list leaves it.
+	raceWithImportOfANewRow := func(status string) func(t *testing.T) {
+		return func(t *testing.T) {
+			importing, next := newContact(t), newContact(t)
+			raceWithImport(t, importNewRows, status, importing, next, message(t, importing, list.ID, nil))
+		}
 	}
 	raceWithImportOfAPendingRow := func(t *testing.T) {
 		importing, next := newContact(t), newContact(t)
 		addRow(t, importing, list.ID, domain.ContactListStatusPending)
-		raceWithImport(t, importUpsert, importing, next, message(t, importing, list.ID, nil))
+		raceWithImport(t, importUpsert, "complained", importing, next, message(t, importing, list.ID, nil))
 	}
 
 	t.Run("message stored with a list, no row: a complained row is created, with its timeline row and webhook", func(t *testing.T) {
@@ -863,7 +876,9 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 			"a contact with no row has one by then")
 	})
 
-	t.Run("a complaint racing an import of a contact with no row waits for it, and both land", raceWithImportOfANewRow)
+	t.Run("a complaint racing an import of a contact with no row waits for it, and both land", raceWithImportOfANewRow("complained"))
+
+	t.Run("a hard bounce racing an import of a contact with no row waits for it, and both land", raceWithImportOfANewRow("bounced"))
 
 	t.Run("a complaint racing an import that subscribes a pending contact waits for it, and both land", raceWithImportOfAPendingRow)
 
@@ -905,7 +920,8 @@ func TestMessageStatusRecordsTheListRow(t *testing.T) {
 		require.Len(t, b24Deliveries(t, db, subscriptionID, after), 1, "and reported once")
 		assert.Equal(t, []string{"email.complained: complained"}, statusSeenByEmailEntries(t, after))
 
-		t.Run("a complaint racing an import of a contact with no row", raceWithImportOfANewRow)
+		t.Run("a complaint racing an import of a contact with no row", raceWithImportOfANewRow("complained"))
+		t.Run("a hard bounce racing an import of a contact with no row", raceWithImportOfANewRow("bounced"))
 		t.Run("a complaint racing an import that subscribes a pending contact", raceWithImportOfAPendingRow)
 	})
 }

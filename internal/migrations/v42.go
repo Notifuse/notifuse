@@ -53,8 +53,9 @@ import (
 // Right after step 1, the message_history functions that record a complaint or a hard
 // bounce on the list are reinstalled too (installStatusChangeFunctions): a contact with no
 // row on the list stored on the message now gets one with the status, and the status is
-// set before the message's timeline entries are written, so it no longer deadlocks with a
-// subscribe or an import of the same contact. No trigger is created or dropped.
+// set before the message's timeline entries are written, so a complaint or a bounce on one
+// message no longer deadlocks with a subscribe or an import of the same contact. No trigger
+// is created or dropped.
 //
 // Every step is idempotent: the selections no longer match a patched function or
 // segment, and re-queueing a contact again is harmless.

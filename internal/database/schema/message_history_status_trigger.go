@@ -105,8 +105,12 @@ func ApplyMessageStatusToContactListsFunction() string {
 // contact_lists rows in different orders can.
 //
 // Setting the status first also means that the list.complained or list.bounced entry is
-// written before the email.complained or email.bounced one, and that the conditions of an
-// automation triggered by the email.* entry see the new list status.
+// written before the email.complained or email.bounced one. The conditions of an automation
+// triggered by the email.* entry see the new list status, which they did not before 42; in
+// exchange, a timeline condition of an automation triggered by the list.* entry no longer
+// counts the email.* entry of the same complaint or bounce, which it did. The order the
+// timeline shows does not change: it sorts by created_at, which the two entries take from
+// different clocks.
 //
 // Two paths install it: the new-workspace path (internal/database/init.go) and the v42
 // migration. internal/migrations/v7.go, v8.go and v36.go carry the bodies this one
@@ -186,8 +190,9 @@ func TrackMessageHistoryChangesFunction() string {
 // applies the status again. That changes nothing once track_message_history_changes() has
 // applied it, which it does first: message_history_changes_trigger sorts before
 // message_history_status_trigger, and PostgreSQL fires the AFTER triggers of one event in
-// name order. It still applies the status for an update whose two trigger calls straddle
-// the v42 commit, the first one running the timeline function from before 42.
+// name order. For an update whose first trigger call ran the timeline function from before
+// 42, around the v42 commit, it applies the status with this body once the backend has seen
+// the commit, and as before 42 until then.
 func UpdateContactListsOnStatusChangeFunction() string {
 	return `CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()
 		RETURNS TRIGGER AS $$
