@@ -53,7 +53,7 @@ Why it shipped: the only test of these two queries with more than one segment (`
 
 ### Rollout notes
 
-- No migration, no `VERSION` bump (41.1 is WIP).
+- No migration, no `VERSION` bump (42.0 is WIP).
 - A broadcast mid-send at deploy finishes normally through the empty-fetch exit (`orchestrator.go:1103`). Its stored `total_recipients` stays inflated, so its progress stops short of 100% and its A/B split was computed from the larger total. This is a one-off with nothing to backfill.
 
 ### Tests — Phase 1
@@ -68,6 +68,16 @@ Why it shipped: the only test of these two queries with more than one segment (`
 Add under `## [41.1] - WIP`, kept to 2-3 sentences:
 
 > **Fix**: A broadcast filtered by several segments no longer sends twice to a contact who belongs to more than one of them. Each extra segment the contact matched produced another copy of the email, and inflated the recipient count and A/B test results.
+
+### Implemented (2026-10-18)
+
+Phase 1 is implemented as planned, on top of the keyset bounds that "Broadcasts to large lists are faster to send" added (`cl.email > ?` next to `c.email > ?`). Deviations and notes:
+
+- **The cursor bounds `contact_segments` too.** `broadcastSegmentsFilter(segments, afterEmail)` adds `AND cs.email > ?` inside the EXISTS when a page has a cursor, and `CountContactsForBroadcast` passes none. Without it, on PostgreSQL 17 with 1M contacts and two overlapping segments of 500k and 333k members, a page of 50 past the middle of the list took 60-130 ms against under 1 ms with it, the same as the old join, and so did PostgreSQL 18. The count is about as fast as the old join's on both.
+- **A known cost on PostgreSQL 18, kept.** When the cursor is in the last 5-10% of the workspace's emails, PostgreSQL 18 plans the EXISTS as a hash semi-join and a sort: those pages took 60-110 ms where the old join took about 10 ms. Over a whole broadcast it added 1 to 7 s in the measured cases (33k to 101k recipients); PostgreSQL 17 showed no slowdown. Dropping the `cs.email` bound, `OFFSET 0` inside the EXISTS, and `(segment_id, email)` / `(list_id, email)` indexes were all slower, so the query stays as is.
+- **The cursor follows the list conditions**, as step 3 says, so its arguments come after the statuses. A unit case pins the full argument order for a later page of a list and two segments; others pin a later page with segments and no list, and with neither.
+- **The changelog bullet** is under `## [42.0] - WIP`, which replaced 41.1, and is reworded: a contact could get a copy per segment, not only two.
+- **Tests.** `TestBroadcastSegmentAudienceSend_Integration` creates the broadcast through `broadcasts.create`, as `TestBroadcastAudienceStatusesAsDelivered` does, rather than the factory and an update. Besides `enqueued_count`, it asserts the send task's `total_recipients` and that `message_history` holds one message per recipient, which sees a duplicate that Mailpit's recipient set cannot. `TestBroadcastSegmentAudience_Integration` also covers segments without a list, in one page and in pages of one. `TestBroadcastAudiencePagination_Integration` pages through a list narrowed to two segments that share contacts, in pages of 2 and 50, and checks that each paged audience matches its count.
 
 ## Phase 2 — `broadcasts.estimateAudience` and the picker counts
 
