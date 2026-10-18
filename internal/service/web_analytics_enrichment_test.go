@@ -52,6 +52,15 @@ func TestWebURLParts(t *testing.T) {
 		{"   ", "", ""},
 		{"not a url", "", ""},
 		{"/relative/only", "", ""},
+		// The path is percent-decoded, so an ordinary URL holding %00 decodes to
+		// a NUL byte, which PostgreSQL cannot store. It stays written as the URL
+		// wrote it; the rest of the path is decoded as usual.
+		{"https://example.com/a%00b", "example.com", "/a%00b"},
+		{"https://example.com/caf%C3%A9%00", "example.com", "/café%00"},
+		// The host cannot carry one at all: url.Parse refuses %00 there, and a
+		// raw control character anywhere.
+		{"https://exa%00mple.com/", "", ""},
+		{"https://example.com/a\x00b", "", ""},
 	}
 	for _, tc := range cases {
 		domain, path := webURLParts(tc.raw)

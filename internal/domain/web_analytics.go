@@ -558,6 +558,9 @@ func (a *WebTrackAction) Validate() error {
 	if len(a.Path) > WebTrackMaxPathLength {
 		return fmt.Errorf("action path exceeds %d characters", WebTrackMaxPathLength)
 	}
+	if hasNUL(a.Path) {
+		return fmt.Errorf("action path contains a null character")
+	}
 	if a.PageNumber < 1 || a.PageNumber > WebTrackMaxActions {
 		return fmt.Errorf("action page_number must be between 1 and %d", WebTrackMaxActions)
 	}
@@ -584,6 +587,11 @@ func (a *WebTrackAction) Validate() error {
 		}
 		if len(a.Name) > WebTrackMaxGoalNameLength {
 			return fmt.Errorf("goal name exceeds %d characters", WebTrackMaxGoalNameLength)
+		}
+		// The goal type needs no such check: normalizeWebGoalType above maps
+		// anything off its fixed list, a NUL included, to "other".
+		if hasNUL(a.Name) {
+			return fmt.Errorf("goal name contains a null character")
 		}
 		if a.Timestamp <= 0 || a.Timestamp > webMaxEpochMs {
 			return fmt.Errorf("goal timestamp is required and must be a plausible epoch millisecond")
@@ -613,6 +621,9 @@ func validateGoalProperties(props map[string]string) error {
 	}
 	total := 0
 	for key, value := range props {
+		if hasNUL(key) || hasNUL(value) {
+			return fmt.Errorf("goal property %q contains a null character", key)
+		}
 		if len(value) > WebTrackMaxGoalPropertyValueLength {
 			return fmt.Errorf("goal property %q exceeds %d characters", key, WebTrackMaxGoalPropertyValueLength)
 		}
@@ -710,6 +721,13 @@ func (p *WebTrackPayload) Validate(now time.Time) error {
 	if _, _, err := SessionDateFromUUIDv7(p.SessionID, now); err != nil {
 		return fmt.Errorf("invalid session_id: %w", err)
 	}
+	// uuid.Parse never reads the first and last byte of an id in the braced
+	// form, where the braces go, and the session row stores the id as sent.
+	// Refused like any other malformed id: the SDK only ever sends the
+	// canonical form.
+	if hasNUL(p.SessionID) {
+		return fmt.Errorf("invalid session_id: contains a null character")
+	}
 	if len(p.Actions) > WebTrackMaxActions {
 		return fmt.Errorf("actions exceeds the maximum of %d", WebTrackMaxActions)
 	}
@@ -725,6 +743,8 @@ func (p *WebTrackPayload) Validate(now time.Time) error {
 	if err := validateEpochMsWindow("updated_at", p.UpdatedAt, now); err != nil {
 		return err
 	}
+	// Before the dimension bound, so that bound measures what would be stored.
+	p.removeNULs()
 	for key, value := range p.Dimensions {
 		if !IsCustomDimensionKey(key) {
 			// Unknown keys are ignored at build time; only bound their size so
@@ -740,6 +760,57 @@ func (p *WebTrackPayload) Validate(now time.Time) error {
 	}
 	p.dropInvalidActions()
 	return nil
+}
+
+// removeNULs deletes NUL characters from the beat's session-level text — its
+// attributes, SDK version and custom dimensions — and keeps the rest of each
+// value as sent.
+//
+// Removed, not rejected: the SDK keeps these values for the whole session and
+// resends them on every beat, and it reads a 400 as permanent, so refusing the
+// beat would lose every later beat of the visit too. A visitor gets such a
+// value just by following a link carrying utm_source=%00, which the SDK
+// decodes. And removed rather than blanked, since nothing else in the value is
+// wrong.
+//
+// The ids are left as sent: Validate refuses a session_id holding one, and
+// workspace_id is only ever a lookup key. So are the identity fields, which
+// are credentials: ResolveWebIdentity refuses one naming an address that holds
+// a NUL.
+func (p *WebTrackPayload) removeNULs() {
+	p.SDKVersion = withoutNUL(p.SDKVersion)
+	for key, value := range p.Dimensions {
+		p.Dimensions[key] = withoutNUL(value)
+	}
+	a := p.Attributes
+	if a == nil {
+		return
+	}
+	for _, field := range []*string{
+		&a.Referrer, &a.LandingPage,
+		&a.UTMSource, &a.UTMMedium, &a.UTMCampaign, &a.UTMTerm, &a.UTMContent, &a.UTMID, &a.UTMIDFrom,
+		&a.Device, &a.Browser, &a.BrowserType, &a.OS, &a.UserAgent, &a.ConnectionType, &a.Language, &a.Timezone,
+	} {
+		*field = withoutNUL(*field)
+	}
+}
+
+// hasNUL reports whether s holds a NUL character (U+0000).
+//
+// JSON carries one as \u0000 without complaint, and PostgreSQL stores it in
+// neither text nor jsonb. flushOnce writes a whole workspace batch in ONE
+// transaction, so a single string holding one would abort every other
+// visitor's rows with it, and once retrying had failed too the buffer would
+// drop those sessions. /track is public, so one beat from anyone could do
+// that. An action holding one is therefore invalid, and dropInvalidActions
+// costs it that action alone; session-level text loses the character instead
+// (see removeNULs).
+func hasNUL(s string) bool {
+	return strings.IndexByte(s, 0) >= 0
+}
+
+func withoutNUL(s string) string {
+	return strings.ReplaceAll(s, "\x00", "")
 }
 
 // dropInvalidActions removes actions that fail their own validation, in place.
@@ -944,8 +1015,10 @@ func ResolveWebIdentity(p *WebTrackPayload, secretKey string, now time.Time) (st
 func normalizedIdentity(email string) (string, bool) {
 	normalized := NormalizeEmail(email)
 	// Re-checked after normalization because lowercasing can change the length,
-	// and in characters for the same reason as the raw gate above.
-	if normalized == "" || utf8.RuneCountInString(normalized) > WebTrackMaxEmailLength {
+	// and in characters for the same reason as the raw gate above. An address
+	// holding a NUL is refused as well: PostgreSQL cannot store one, so it can
+	// name no contact, and refusing it here keeps it out of the contacts lookup.
+	if normalized == "" || hasNUL(normalized) || utf8.RuneCountInString(normalized) > WebTrackMaxEmailLength {
 		return "", false
 	}
 	return normalized, true

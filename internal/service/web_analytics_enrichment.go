@@ -49,6 +49,10 @@ func correctedMs(epochMs int64, skew time.Duration) time.Time {
 // webURLParts extracts the lowercase hostname and the path of a URL the way
 // the browser's URL API does (root path is "/"). Unparseable input yields
 // empty parts.
+//
+// The path comes back percent-decoded, except for a %00: decoded, that is a NUL
+// byte, which PostgreSQL cannot store, so it stays written as the URL wrote it.
+// The hostname cannot hold one, since url.Parse refuses %00 there.
 func webURLParts(raw string) (domain string, path string) {
 	if strings.TrimSpace(raw) == "" {
 		return "", ""
@@ -57,7 +61,7 @@ func webURLParts(raw string) (domain string, path string) {
 	if err != nil || u.Hostname() == "" {
 		return "", ""
 	}
-	path = u.Path
+	path = strings.ReplaceAll(u.Path, "\x00", "%00")
 	if path == "" {
 		path = "/"
 	}

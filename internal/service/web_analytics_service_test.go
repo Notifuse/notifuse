@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -480,5 +482,133 @@ func TestWebAnalyticsIdentityCreatesContact(t *testing.T) {
 
 		buffer.FlushAll(context.Background())
 		assert.Nil(t, stamped.only(t).ContactEmail, "a forged signature must not identify anyone")
+	})
+}
+
+// nulStrings returns the path of every string reachable from v that holds a NUL
+// byte: struct fields, pointers, slices, and map keys and values. It walks the
+// rows instead of naming their fields, so a column added later is checked too.
+func nulStrings(v reflect.Value, path string) []string {
+	var found []string
+	switch v.Kind() {
+	case reflect.String:
+		if strings.IndexByte(v.String(), 0) >= 0 {
+			found = append(found, path)
+		}
+	case reflect.Pointer, reflect.Interface:
+		if !v.IsNil() {
+			found = nulStrings(v.Elem(), path)
+		}
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			if field := v.Type().Field(i); field.IsExported() {
+				found = append(found, nulStrings(v.Field(i), path+"."+field.Name)...)
+			}
+		}
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < v.Len(); i++ {
+			found = append(found, nulStrings(v.Index(i), fmt.Sprintf("%s[%d]", path, i))...)
+		}
+	case reflect.Map:
+		iter := v.MapRange()
+		for iter.Next() {
+			entry := fmt.Sprintf("%s[%q]", path, iter.Key())
+			found = append(found, nulStrings(iter.Key(), entry+" key")...)
+			found = append(found, nulStrings(iter.Value(), entry)...)
+		}
+	}
+	return found
+}
+
+// TestWebAnalyticsServiceTrackKeepsNULOutOfTheBuffer sends a NUL in every kind
+// of string a beat can bring through the real Track, then checks every string of
+// every row the buffer hands the repository. PostgreSQL stores U+0000 in neither
+// text nor jsonb, and the flush writes the whole workspace batch in one
+// transaction, so one such string used to cost every other visitor in it.
+func TestWebAnalyticsServiceTrackKeepsNULOutOfTheBuffer(t *testing.T) {
+	receivedAt := time.Date(2026, 8, 8, 12, 0, 0, 0, time.UTC)
+
+	t.Run("the walker finds a NUL wherever a row can hold one", func(t *testing.T) {
+		// Without this the assertions below could pass on a walker that never
+		// looked.
+		email := "vis\x00itor@example.com"
+		for _, row := range []interface{}{
+			[]*domain.WebSession{{UTMSource: "goo\x00gle"}},
+			[]*domain.WebSession{{ContactEmail: &email}},
+			[]*domain.WebPage{{Path: "/\x00"}},
+			[]*domain.WebGoal{{Properties: map[string]string{"pl\x00an": "pro"}}},
+			[]*domain.WebGoal{{Properties: map[string]string{"plan": "pro\x00"}}},
+		} {
+			assert.NotEmpty(t, nulStrings(reflect.ValueOf(row), "rows"), "%#v", row)
+		}
+		assert.Empty(t, nulStrings(reflect.ValueOf([]*domain.WebGoal{{GoalName: "signup", Properties: map[string]string{"plan": "pro"}}}), "rows"))
+	})
+
+	t.Run("no string a beat carries reaches the repository with a NUL", func(t *testing.T) {
+		svc, _, webRepo, _ := newWebAnalyticsServiceForTest(t, &domain.WebAnalyticsSettings{Enabled: true, Filters: domain.DefaultWebFilters()})
+
+		payload := webTrackTestPayload(t, receivedAt)
+		attrs := reflect.ValueOf(payload.Attributes).Elem()
+		for i := 0; i < attrs.NumField(); i++ {
+			if attrs.Field(i).Kind() == reflect.String {
+				attrs.Field(i).SetString("a\x00b")
+			}
+		}
+		// A percent-encoded NUL is ordinary URL text that enrichment decodes to
+		// the byte, and an empty user_agent sends enrichment to the header.
+		payload.Attributes.LandingPage = "https://shop.example.com/sp%00ring\x00"
+		payload.Attributes.Referrer = "https://news.example.org/a%00b"
+		payload.Attributes.UserAgent = ""
+		payload.SDKVersion = "1.0\x00"
+		payload.Dimensions = map[string]string{"custom_1": "vari\x00ant"}
+		ts := receivedAt.UnixMilli()
+		goal := func(name, path string, tsOffset int64, props map[string]string) domain.WebTrackAction {
+			return domain.WebTrackAction{Type: domain.WebActionTypeGoal, Name: name, GoalType: domain.GoalTypeLead,
+				Path: path, PageNumber: 1, Timestamp: ts + tsOffset, Properties: props}
+		}
+		payload.Actions = append(payload.Actions,
+			domain.WebTrackAction{Type: domain.WebActionTypePageview, Path: "/pri\x00cing", PageNumber: 2},
+			goal("signup", "/", 0, map[string]string{"plan": "pro"}),
+			goal("sign\x00up", "/", 1, nil),
+			goal("lead", "/check\x00out", 2, nil),
+			goal("purchase", "/", 3, map[string]string{"plan": "pro\x00"}),
+			goal("trial", "/", 4, map[string]string{"pl\x00an": "pro"}),
+		)
+		meta := domain.WebRequestMeta{UserAgent: "Mozilla\x00/5.0", ReceivedAt: receivedAt}
+
+		require.NoError(t, svc.Track(context.Background(), payload, meta))
+
+		var sessions []*domain.WebSession
+		var pages []*domain.WebPage
+		var goals []*domain.WebGoal
+		webRepo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, s []*domain.WebSession, p []*domain.WebPage, g []*domain.WebGoal) error {
+				sessions, pages, goals = s, p, g
+				return nil
+			}).Times(1)
+		svc.buffer.FlushAll(context.Background())
+
+		assert.Empty(t, nulStrings(reflect.ValueOf(sessions), "sessions"))
+		assert.Empty(t, nulStrings(reflect.ValueOf(pages), "pages"))
+		assert.Empty(t, nulStrings(reflect.ValueOf(goals), "goals"))
+
+		require.Len(t, pages, 1, "the pageview carrying a NUL is dropped, the clean one kept")
+		assert.Equal(t, "/", pages[0].Path)
+		require.Len(t, goals, 1, "every goal carrying a NUL is dropped, the clean one kept")
+		assert.Equal(t, "signup", goals[0].GoalName)
+		assert.Equal(t, map[string]string{"plan": "pro"}, goals[0].Properties)
+
+		require.Len(t, sessions, 1)
+		session := sessions[0]
+		assert.Equal(t, "https://shop.example.com/sp%00ring", session.LandingPage)
+		assert.Equal(t, "/sp%00ring", session.LandingPath, "the decoded path keeps the NUL written as the URL wrote it")
+		assert.Equal(t, "/a%00b", session.ReferrerPath)
+		assert.Equal(t, "Mozilla/5.0", session.UserAgent, "a header value is held to the same rule as the body's")
+		assert.Equal(t, "1.0", session.SDKVersion)
+		assert.Equal(t, "variant", session.Custom1)
+		assert.Equal(t, "ab", session.UTMSource)
+		assert.Equal(t, "ab", session.Browser)
+		assert.Equal(t, 1, session.PageviewCount)
+		assert.Equal(t, 1, session.GoalCount)
 	})
 }
