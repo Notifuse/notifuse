@@ -1650,7 +1650,7 @@ msgstr "Automation"
 msgid "Automation activated successfully"
 msgstr "Automation activated successfully"
 
-#: src/components/automations/context/AutomationContext.tsx:257
+#: src/components/automations/context/AutomationContext.tsx:266
 msgid "Automation created successfully"
 msgstr "Automation created successfully"
 
@@ -1666,9 +1666,13 @@ msgstr "Automation flows — their triggers, nodes and per-contact execution his
 msgid "Automation paused successfully"
 msgstr "Automation paused successfully"
 
-#: src/components/automations/context/AutomationContext.tsx:272
+#: src/components/automations/context/AutomationContext.tsx:290
 msgid "Automation updated successfully"
 msgstr "Automation updated successfully"
+
+#: src/components/automations/context/AutomationContext.tsx:286
+msgid "Automation updated, but it is paused: activate it to run this version."
+msgstr "Automation updated, but it is paused: activate it to run this version."
 
 #: src/components/timeline/ContactTimeline.tsx:961
 msgid "Automation:"
@@ -2434,7 +2438,7 @@ msgstr "Cancelled"
 msgid "Cannot reach the configured API endpoint"
 msgstr "Cannot reach the configured API endpoint"
 
-#: src/components/automations/context/AutomationContext.tsx:131
+#: src/components/automations/context/AutomationContext.tsx:140
 msgid "Cannot remove list while email nodes exist. Delete email nodes first."
 msgstr "Cannot remove list while email nodes exist. Delete email nodes first."
 
@@ -5778,7 +5782,7 @@ msgid "Failed to create API key"
 msgstr "Failed to create API key"
 
 #. placeholder {0}: error.message
-#: src/components/automations/context/AutomationContext.tsx:262
+#: src/components/automations/context/AutomationContext.tsx:271
 msgid "Failed to create automation: {0}"
 msgstr "Failed to create automation: {0}"
 
@@ -6168,7 +6172,7 @@ msgid "Failed to unpublish post"
 msgstr "Failed to unpublish post"
 
 #. placeholder {0}: error.message
-#: src/components/automations/context/AutomationContext.tsx:277
+#: src/components/automations/context/AutomationContext.tsx:301
 msgid "Failed to update automation: {0}"
 msgstr "Failed to update automation: {0}"
 
@@ -10024,7 +10028,7 @@ msgstr "Please enter an API identifier"
 msgid "Please enter an API key name"
 msgstr "Please enter an API key name"
 
-#: src/components/automations/context/AutomationContext.tsx:289
+#: src/components/automations/context/AutomationContext.tsx:314
 #: src/components/automations/UpsertAutomationDrawer.tsx:115
 msgid "Please enter an automation name"
 msgstr "Please enter an automation name"

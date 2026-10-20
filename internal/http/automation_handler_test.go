@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -840,39 +841,76 @@ func TestAutomationHandler_DeletedListMapping(t *testing.T) {
 	}
 }
 
-// An update that failed once it was stored, and that was undone by pausing the automation. The
-// answer is the failure's own, its status and its message, and it says the automation was paused
-// and why: told only of the failure, the caller would save again and take the success for an
-// automation still live.
-func TestAutomationHandler_UpdatePausedMapping(t *testing.T) {
+// An update that failed once it was stored: undone by pausing the automation, or not undone at
+// all. The answer is the failure's own, its status and its message, and it says what became of
+// the automation, in the message and in fields a client reads without parsing it: told only of
+// the failure, the caller would save again and take the success for an automation still live,
+// and running what it stores.
+func TestAutomationHandler_UpdateFailedOnceStored(t *testing.T) {
 	_, automationSvc, mux, secretKey := setupAutomationTest(t)
 
 	lists := []domain.ListRef{{ID: "news", Name: "Newsletter"}, {ID: "gone", Missing: true}}
 	condition := domain.NewTriggerConditionError("invalid trigger conditions: operator does not exist")
+	conditionFailure := fmt.Errorf("failed to update automation trigger: %w", condition)
+	serverFailure := fmt.Errorf("failed to update automation trigger: %w", errors.New("lock timeout"))
+	undoNotice := "the automation is still live, storing this version but running the previous version's trigger: pause it and activate it again"
 
 	testCases := []struct {
-		name    string
-		err     *domain.AutomationPausedError
-		status  int
-		message string
+		name   string
+		err    error
+		status int
+		body   string
 	}{
 		{
-			name:    "a trigger configuration that cannot be installed, the previous version on lists it cannot use",
-			err:     domain.NewAutomationPausedError("auto-123", lists, fmt.Errorf("failed to update automation trigger: %w", condition)),
-			status:  http.StatusBadRequest,
-			message: condition.Error() + `; the automation was paused, because its previous version uses the deleted list "Newsletter", and the list "gone", which does not exist`,
+			name:   "a trigger configuration that cannot be installed, paused on lists its previous version cannot use",
+			err:    domain.NewAutomationPausedError("auto-123", lists, conditionFailure),
+			status: http.StatusBadRequest,
+			body: `{
+				"error": ` + strconv.Quote(condition.Error()+`; the automation was paused, because its previous version uses the deleted list "Newsletter", and the list "gone", which does not exist`) + `,
+				"paused": true,
+				"lists": [{"id": "news", "name": "Newsletter"}, {"id": "gone", "name": "", "missing": true}]
+			}`,
 		},
 		{
-			name:    "a failure of the server, the previous version not put back",
-			err:     domain.NewAutomationPausedError("auto-123", nil, fmt.Errorf("failed to update automation trigger: %w", errors.New("lock timeout"))),
-			status:  http.StatusInternalServerError,
-			message: "Failed to update automation; the automation was paused, because its previous version could not be put back",
+			name:   "a failure of the server, paused as the previous version could not be put back",
+			err:    domain.NewAutomationPausedError("auto-123", nil, serverFailure),
+			status: http.StatusInternalServerError,
+			body: `{
+				"error": "Failed to update automation; the automation was paused, because its previous version could not be put back",
+				"paused": true
+			}`,
+		},
+		{
+			name:   "a trigger configuration that cannot be installed, not undone",
+			err:    domain.NewAutomationUndoFailedError("auto-123", conditionFailure),
+			status: http.StatusBadRequest,
+			body: `{
+				"error": ` + strconv.Quote(condition.Error()+"; "+undoNotice) + `,
+				"running_previous_trigger": true
+			}`,
+		},
+		{
+			name:   "a failure of the server, not undone",
+			err:    domain.NewAutomationUndoFailedError("auto-123", serverFailure),
+			status: http.StatusInternalServerError,
+			body: `{
+				"error": ` + strconv.Quote("Failed to update automation; "+undoNotice) + `,
+				"running_previous_trigger": true
+			}`,
+		},
+		// Undone by putting the previous version back: the failure, and nothing else to say.
+		{
+			name:   "a failure of the server, undone",
+			err:    serverFailure,
+			status: http.StatusInternalServerError,
+			body:   `{"error": "Failed to update automation"}`,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			automationSvc.EXPECT().Update(gomock.Any(), "workspace-123", gomock.Any()).Return(tc.err)
+			automationSvc.EXPECT().Update(gomock.Any(), "workspace-123", gomock.Any()).
+				Return(fmt.Errorf("failed to update automation: %w", tc.err))
 
 			body, err := json.Marshal(domain.UpdateAutomationRequest{
 				WorkspaceID: "workspace-123",
@@ -886,11 +924,7 @@ func TestAutomationHandler_UpdatePausedMapping(t *testing.T) {
 			mux.ServeHTTP(w, req)
 
 			assert.Equal(t, tc.status, w.Code)
-			var response struct {
-				Error string `json:"error"`
-			}
-			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
-			assert.Equal(t, tc.message, response.Error)
+			assert.JSONEq(t, tc.body, w.Body.String())
 		})
 	}
 }

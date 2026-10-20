@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 
@@ -559,7 +560,7 @@ func TestAutomationService_Update(t *testing.T) {
 	// The one case the undo cannot fix: the previous version can be written back neither live
 	// nor paused. It leaves the stored configuration describing an automation the installed
 	// trigger does not implement, which nothing detects on its own — so it has to be logged
-	// rather than swallowed.
+	// rather than swallowed, and the caller told.
 	t.Run("a failed restore after a failed trigger install is reported", func(t *testing.T) {
 		automation := createTestAutomationService("auto-123", workspaceID)
 		automation.Status = domain.AutomationStatusLive
@@ -598,6 +599,8 @@ func TestAutomationService_Update(t *testing.T) {
 
 		var conditionErr *domain.TriggerConditionError
 		assert.True(t, errors.As(err, &conditionErr), "the condition error must survive wrapping so the handler can answer 400")
+		var undoFailed *domain.AutomationUndoFailedError
+		assert.True(t, errors.As(err, &undoFailed), "the caller must be told what the automation runs: got %v", err)
 	})
 }
 
@@ -1680,9 +1683,11 @@ func TestAutomationService_DeletedListRefusals(t *testing.T) {
 //
 // Put back through the checks of any write that leaves an automation live, the previous version
 // can be refused: a list it uses is deleted, meanwhile or from before the update, or does not
-// exist. Then, and when it cannot be written back at all, the automation goes back paused, its
-// trigger dropped, and the caller is told: answered with the failure alone, they would save
-// again and take the success for an automation still live.
+// exist. Then, and when it cannot be written back live for any other reason, the automation goes
+// back paused, its trigger dropped, and the caller is told: answered with the failure alone, they
+// would save again and take the success for an automation still live. When it cannot be written
+// back paused either, the caller is told what the automation runs instead, and the audit row of
+// the failed update records what it changed, either way.
 func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 	workspaceID := "workspace-123"
 	automationID := "auto-123"
@@ -1695,6 +1700,7 @@ func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 		repo       *mocks.MockAutomationRepository
 		log        *pkgmocks.MockLogger
 		ctx        context.Context
+		audit      *domain.AuditRecord
 		previous   *domain.Automation
 		changed    *domain.Automation
 		install    *gomock.Call
@@ -1708,15 +1714,27 @@ func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 		assert.NoError(t, ctx.Err(), "the undo must run on neither the request context nor one derived from it")
 	}
 
+	// budget checks that a step of the undo is given about d from when it starts, and returns the
+	// deadline.
+	budget := func(t *testing.T, ctx context.Context, d time.Duration) time.Time {
+		t.Helper()
+		deadline, ok := ctx.Deadline()
+		require.True(t, ok, "every step of the undo is bounded")
+		assert.WithinDuration(t, time.Now().Add(d), deadline, time.Second)
+		return deadline
+	}
+
 	// expectFailedUpdate expects the update itself, of a live automation that sends email to its
 	// own list: the row written with another list and another trigger, then the install of that
 	// trigger, which fails as the caller gives up waiting for it.
 	expectFailedUpdate := func(t *testing.T) *failedUpdate {
 		t.Helper()
 		svc, repo, auth, log := newAutomationTransitionMocks(t)
-		reqCtx, cancel := context.WithCancel(context.Background())
+		// The record the audit middleware puts on every request it logs.
+		audit := domain.NewAuditRecord("", "", "")
+		reqCtx, cancel := context.WithCancel(domain.WithAuditRecord(context.Background(), audit))
 		t.Cleanup(cancel)
-		u := &failedUpdate{svc: svc, repo: repo, log: log, ctx: reqCtx}
+		u := &failedUpdate{svc: svc, repo: repo, log: log, ctx: reqCtx, audit: audit}
 
 		emailNode := func() []*domain.AutomationNode {
 			return []*domain.AutomationNode{{
@@ -1754,6 +1772,7 @@ func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 		return u.repo.EXPECT().UpdateIfStatus(gomock.Any(), workspaceID, u.previous, domain.AutomationStatusLive).
 			DoAndReturn(func(ctx context.Context, _ string, _ *domain.Automation, _ domain.AutomationStatus) (bool, error) {
 				detached(t, ctx)
+				budget(t, ctx, 5*time.Second)
 				u.restoreCtx = ctx
 				return updated, err
 			}).After(u.install)
@@ -1766,7 +1785,10 @@ func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 		return u.repo.EXPECT().UpdateIfStatus(gomock.Any(), workspaceID, gomock.Not(gomock.Eq(u.previous)), domain.AutomationStatusLive).
 			DoAndReturn(func(ctx context.Context, _ string, written *domain.Automation, _ domain.AutomationStatus) (bool, error) {
 				detached(t, ctx)
-				assert.True(t, ctx != u.restoreCtx, "the paused write must not share the restore's budget")
+				// Counted from when the restore gave up, not cut short at its deadline.
+				restoreDeadline, _ := u.restoreCtx.Deadline()
+				assert.True(t, budget(t, ctx, 5*time.Second).After(restoreDeadline),
+					"the paused write must not share the restore's budget")
 				assert.Equal(t, domain.AutomationStatusPaused, written.Status)
 				assert.Equal(t, "list-old", written.ListID, "the previous version, not the one that failed")
 				assert.Equal(t, u.previous.Trigger, written.Trigger)
@@ -1775,11 +1797,13 @@ func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 	}
 
 	// expectDrop expects the trigger the failed install left in place to be dropped, waiting for
-	// contact_timeline no longer than that install did.
+	// contact_timeline no longer than that install did. Its budget outlasts that wait, so the lock
+	// timeout, not the context, is what ends it.
 	expectDrop := func(t *testing.T, u *failedUpdate, after *gomock.Call, err error) {
 		u.repo.EXPECT().DropAutomationTriggerWithLockTimeout(gomock.Any(), workspaceID, automationID).
 			DoAndReturn(func(ctx context.Context, _, _ string) error {
 				detached(t, ctx)
+				budget(t, ctx, 10*time.Second)
 				return err
 			}).After(after)
 	}
@@ -1799,21 +1823,56 @@ func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 		assert.False(t, errors.As(err, &listErr))
 	}
 
-	// assertPaused checks the caller is also told that the automation was paused, and why.
-	assertPaused := func(t *testing.T, err error, lists []domain.ListRef) {
+	// auditMetadata is what the audit row of the update records beyond the request itself. The
+	// audit middleware writes the row once the handler has answered, as this does.
+	auditMetadata := func(u *failedUpdate) map[string]any {
+		event, _ := u.audit.Finalize(http.StatusInternalServerError)
+		return event.Metadata
+	}
+
+	// assertPaused checks the caller is also told that the automation was paused, and why, and
+	// that the audit row of the failed update records the pause.
+	assertPaused := func(t *testing.T, u *failedUpdate, err error, lists []domain.ListRef) {
 		t.Helper()
 		assertInstallError(t, err)
 		var paused *domain.AutomationPausedError
 		require.True(t, errors.As(err, &paused), "the caller must be told of the pause: got %v", err)
 		assert.Equal(t, automationID, paused.AutomationID)
 		assert.Equal(t, lists, paused.Lists)
+		var undoFailed *domain.AutomationUndoFailedError
+		assert.False(t, errors.As(err, &undoFailed), "got %v", err)
+		metadata := auditMetadata(u)
+		assert.Equal(t, true, metadata["paused"])
+		assert.NotContains(t, metadata, "running_previous_trigger")
 	}
 
-	assertNotPaused := func(t *testing.T, err error) {
+	// assertNotPaused checks the caller is told of the failure alone, and nothing more is audited:
+	// the update changed nothing that lasts.
+	assertNotPaused := func(t *testing.T, u *failedUpdate, err error) {
 		t.Helper()
 		assertInstallError(t, err)
 		var paused *domain.AutomationPausedError
 		assert.False(t, errors.As(err, &paused), "got %v", err)
+		var undoFailed *domain.AutomationUndoFailedError
+		assert.False(t, errors.As(err, &undoFailed), "got %v", err)
+		metadata := auditMetadata(u)
+		assert.NotContains(t, metadata, "paused")
+		assert.NotContains(t, metadata, "running_previous_trigger")
+	}
+
+	// assertUndoFailed checks the caller is told that the automation is still live on the version
+	// the update stored, running the trigger of the previous one, and that the audit row records it.
+	assertUndoFailed := func(t *testing.T, u *failedUpdate, err error) {
+		t.Helper()
+		assertInstallError(t, err)
+		var undoFailed *domain.AutomationUndoFailedError
+		require.True(t, errors.As(err, &undoFailed), "the caller must be told what the automation runs: got %v", err)
+		assert.Equal(t, automationID, undoFailed.AutomationID)
+		var paused *domain.AutomationPausedError
+		assert.False(t, errors.As(err, &paused), "got %v", err)
+		metadata := auditMetadata(u)
+		assert.Equal(t, true, metadata["running_previous_trigger"])
+		assert.NotContains(t, metadata, "paused")
 	}
 
 	t.Run("a list the previous version uses is deleted: paused, its trigger dropped, the caller told", func(t *testing.T) {
@@ -1827,7 +1886,7 @@ func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 			assert.Contains(t, msg, deletedList.Error())
 		})
 
-		assertPaused(t, u.svc.Update(u.ctx, workspaceID, u.changed), deletedList.Lists)
+		assertPaused(t, u, u.svc.Update(u.ctx, workspaceID, u.changed), deletedList.Lists)
 	})
 
 	// The list check locks the previous version's lists, and a deletion in progress holds one
@@ -1844,14 +1903,14 @@ func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 			assert.Contains(t, msg, context.DeadlineExceeded.Error())
 		})
 
-		assertPaused(t, u.svc.Update(u.ctx, workspaceID, u.changed), nil)
+		assertPaused(t, u, u.svc.Update(u.ctx, workspaceID, u.changed), nil)
 	})
 
 	t.Run("the previous version is put back: nothing more to do", func(t *testing.T) {
 		u := expectFailedUpdate(t)
 		expectRestore(t, u, true, nil)
 
-		assertNotPaused(t, u.svc.Update(u.ctx, workspaceID, u.changed))
+		assertNotPaused(t, u, u.svc.Update(u.ctx, workspaceID, u.changed))
 	})
 
 	// Written unconditionally, the previous version would revert a pause to live, and the trigger
@@ -1860,7 +1919,7 @@ func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 		u := expectFailedUpdate(t)
 		expectRestore(t, u, false, nil)
 
-		assertNotPaused(t, u.svc.Update(u.ctx, workspaceID, u.changed))
+		assertNotPaused(t, u, u.svc.Update(u.ctx, workspaceID, u.changed))
 	})
 
 	// The transition that landed decides what becomes of the trigger: no warning, no drop, and
@@ -1869,16 +1928,19 @@ func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 		u := expectFailedUpdate(t)
 		expectPausedWrite(t, u, expectRestore(t, u, false, deletedList), false, nil)
 
-		assertNotPaused(t, u.svc.Update(u.ctx, workspaceID, u.changed))
+		assertNotPaused(t, u, u.svc.Update(u.ctx, workspaceID, u.changed))
 	})
 
-	t.Run("the previous version cannot be written back paused either: reported", func(t *testing.T) {
+	// The automation is left live on the version the update stored, running the trigger of the
+	// previous one, and saving that version again would not reinstall it: to that save, nothing
+	// the trigger compiles from has changed. Logged, and the caller told how to repair it.
+	t.Run("the previous version cannot be written back paused either: the caller told what the automation runs", func(t *testing.T) {
 		u := expectFailedUpdate(t)
 		expectPausedWrite(t, u, expectRestore(t, u, false, deletedList), false, errors.New("db gone"))
 		expectLogFields(u)
 		u.log.EXPECT().Error(gomock.Any())
 
-		assertNotPaused(t, u.svc.Update(u.ctx, workspaceID, u.changed))
+		assertUndoFailed(t, u, u.svc.Update(u.ctx, workspaceID, u.changed))
 	})
 
 	// Inert meanwhile — automation_enroll_contact enrols nobody into a paused automation — but
@@ -1891,7 +1953,7 @@ func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 		u.log.EXPECT().Warn(gomock.Any())
 		u.log.EXPECT().Error(gomock.Any())
 
-		assertPaused(t, u.svc.Update(u.ctx, workspaceID, u.changed), deletedList.Lists)
+		assertPaused(t, u, u.svc.Update(u.ctx, workspaceID, u.changed), deletedList.Lists)
 	})
 }
 

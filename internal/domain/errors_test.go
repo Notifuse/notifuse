@@ -325,6 +325,51 @@ func TestAutomationPausedError_As(t *testing.T) {
 	}
 }
 
+// The update was stored, and neither the previous version nor a pause could be written back: the
+// caller is told what the automation runs, and the one way to make it run what it stores.
+func TestAutomationUndoFailedError_Error(t *testing.T) {
+	failure := errors.New("failed to update automation trigger: failed to drop existing trigger: pq: canceling statement due to lock timeout")
+	notice := "the automation is still live, storing this version but running the previous version's trigger: pause it and activate it again"
+
+	err := NewAutomationUndoFailedError("auto-123", failure)
+	if err.Error() != failure.Error()+"; "+notice {
+		t.Errorf("Expected error message '%s', got '%s'", failure.Error()+"; "+notice, err.Error())
+	}
+	if err.UndoNotice() != notice {
+		t.Errorf("Expected undo notice '%s', got '%s'", notice, err.UndoNotice())
+	}
+	if err.AutomationID != "auto-123" {
+		t.Errorf("Expected automation id 'auto-123', got '%s'", err.AutomationID)
+	}
+}
+
+// As for a pause: the handler answers with the status of what failed, and the failure is neither
+// a pause nor a refusal of the update.
+func TestAutomationUndoFailedError_As(t *testing.T) {
+	condition := NewTriggerConditionError("invalid trigger conditions: operator does not exist")
+	undoFailed := NewAutomationUndoFailedError("auto-123", fmt.Errorf("failed to update automation trigger: %w", condition))
+	wrapped := fmt.Errorf("failed to update automation: %w", undoFailed)
+
+	var target *AutomationUndoFailedError
+	if !errors.As(wrapped, &target) || target != undoFailed {
+		t.Fatal("errors.As() should yield the original AutomationUndoFailedError through the wrapping")
+	}
+
+	var conditionErr *TriggerConditionError
+	if !errors.As(wrapped, &conditionErr) || conditionErr != condition {
+		t.Error("errors.As() should find the failure it wraps")
+	}
+
+	var paused *AutomationPausedError
+	if errors.As(wrapped, &paused) {
+		t.Error("errors.As() matched AutomationPausedError on an automation that was not paused")
+	}
+	var deletedList *AutomationDeletedListError
+	if errors.As(wrapped, &deletedList) {
+		t.Error("errors.As() matched AutomationDeletedListError on an update that was stored")
+	}
+}
+
 func TestQuotedNames(t *testing.T) {
 	tests := []struct {
 		names []string

@@ -261,9 +261,15 @@ func (s *AutomationService) Update(ctx context.Context, workspaceID string, auto
 	if err := s.repo.CreateAutomationTrigger(ctx, workspaceID, automation); err != nil {
 		err = fmt.Errorf("failed to update automation trigger: %w", err)
 		// Told only of the failure, the caller would take the automation for live, and the
-		// next save, which succeeds, for proof of it.
-		if paused, lists := s.undoFailedTriggerUpdate(ctx, workspaceID, existing); paused {
+		// next save, which succeeds, for proof of it. The audit row of the failed update says
+		// what it changed all the same.
+		switch undo, lists := s.undoFailedTriggerUpdate(ctx, workspaceID, existing); undo {
+		case undoPaused:
+			domain.AuditFromContext(ctx).AddMetadata("paused", true)
 			return domain.NewAutomationPausedError(automation.ID, lists, err)
+		case undoFailed:
+			domain.AuditFromContext(ctx).AddMetadata("running_previous_trigger", true)
+			return domain.NewAutomationUndoFailedError(automation.ID, err)
 		}
 		return err
 	}
@@ -271,10 +277,25 @@ func (s *AutomationService) Update(ctx context.Context, workspaceID string, auto
 	return nil
 }
 
+// triggerUpdateUndo is what undoFailedTriggerUpdate made of the automation.
+type triggerUpdateUndo int
+
+const (
+	// undoSettled: the previous version is back live, or a transition that landed meanwhile
+	// has the last word. The failure is all there is to tell.
+	undoSettled triggerUpdateUndo = iota
+	// undoPaused: the previous version went back paused instead.
+	undoPaused
+	// undoFailed: the previous version could be written back neither live nor paused, so the
+	// automation is left live on the version the update stored, running the previous version's
+	// trigger.
+	undoFailed
+)
+
 // undoFailedTriggerUpdate undoes an update to a live automation once the trigger compiled from
 // the new version failed to install: the trigger still installed is the previous version's,
-// and the row has to describe it again. It reports whether it paused the automation instead,
-// and the lists that kept the previous version from going back live, if that is why.
+// and the row has to describe it again. It reports what became of the automation, and the
+// lists that kept the previous version from going back live, if that is why it was paused.
 //
 // The previous version goes back through UpdateIfStatus, like any write that leaves an
 // automation live. Its status predicate leaves alone a transition that landed meanwhile: a
@@ -285,11 +306,12 @@ func (s *AutomationService) Update(ctx context.Context, workspaceID string, auto
 // Its list check refuses the previous version when a list it uses is deleted or does not exist:
 // deleted meanwhile, while only the new version was stored, or before the update, on an
 // automation left live on it. The previous version then goes back paused instead, and so it
-// does when it cannot be written back at all, since a deletion in progress holds its list for
-// as long as it takes to remove every member. The paused write takes no list lock and has a
-// budget of its own, and still yields to a transition that landed meanwhile. The trigger the
-// failed install left in place is then dropped.
-func (s *AutomationService) undoFailedTriggerUpdate(ctx context.Context, workspaceID string, previous *domain.Automation) (paused bool, lists []domain.ListRef) {
+// does when it cannot be written back live for another reason, such as a deletion in progress,
+// which holds its list for as long as it takes to remove every member. The paused write takes
+// no list lock and has a budget of its own, and still yields to a transition that landed
+// meanwhile. The trigger the failed install left installed is then dropped, or left in place
+// but inactive when it can't be. When the paused write fails too, nothing is undone.
+func (s *AutomationService) undoFailedTriggerUpdate(ctx context.Context, workspaceID string, previous *domain.Automation) (undo triggerUpdateUndo, lists []domain.ListRef) {
 	// Each step detached from the request context: a client disconnect is one of the ways the
 	// install fails, and the undo would then be cancelled by the very thing it exists to undo.
 	detached := func(timeout time.Duration) (context.Context, context.CancelFunc) {
@@ -302,7 +324,7 @@ func (s *AutomationService) undoFailedTriggerUpdate(ctx context.Context, workspa
 	// meanwhile decides what becomes of the trigger.
 	_, restoreErr := s.repo.UpdateIfStatus(restoreCtx, workspaceID, previous, domain.AutomationStatusLive)
 	if restoreErr == nil {
-		return false, nil
+		return undoSettled, nil
 	}
 	var deletedList *domain.AutomationDeletedListError
 	if errors.As(restoreErr, &deletedList) {
@@ -315,16 +337,17 @@ func (s *AutomationService) undoFailedTriggerUpdate(ctx context.Context, workspa
 	pausedVersion.Status = domain.AutomationStatusPaused
 	updated, err := s.repo.UpdateIfStatus(pauseCtx, workspaceID, &pausedVersion, domain.AutomationStatusLive)
 	if err == nil && !updated {
-		return false, nil
+		return undoSettled, nil
 	}
 
 	// With the workspace, since each one is its own database.
 	log := s.logger.WithField("automation_id", previous.ID).WithField("workspace_id", workspaceID)
 	if err != nil {
 		// The row now describes a configuration the installed trigger does not implement.
-		// Nothing detects that on its own, so it has to be said out loud.
+		// Nothing detects that on its own, so it has to be said out loud, here and to the
+		// caller.
 		log.Error(fmt.Sprintf("failed to restore automation after trigger update failed, stored config no longer matches the installed trigger: %v; pausing it failed too: %v", restoreErr, err))
-		return false, nil
+		return undoFailed, nil
 	}
 	log.Warn(fmt.Sprintf("automation paused after its update failed, since its previous version could not go back live: %v", restoreErr))
 
@@ -336,7 +359,7 @@ func (s *AutomationService) undoFailedTriggerUpdate(ctx context.Context, workspa
 		// Inert meanwhile: automation_enroll_contact enrols nobody into a paused automation.
 		log.Error(fmt.Sprintf("automation is paused but its trigger is still installed, pause it to drop it: %v", err))
 	}
-	return true, lists
+	return undoPaused, lists
 }
 
 // triggerInputsChanged reports whether anything the trigger generator reads has changed.

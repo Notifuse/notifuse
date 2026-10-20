@@ -9,6 +9,7 @@ import {
   type Automation,
   type AutomationNode
 } from '../../../services/api/automation'
+import { ApiError } from '../../../services/api/errors'
 import type { Workspace, Template } from '../../../services/api/types'
 import type { List } from '../../../services/api/list'
 import type { Segment } from '../../../services/api/segment'
@@ -29,6 +30,14 @@ import {
   type AutomationContextType,
   type CanvasState
 } from './automationContextValue'
+
+// Whether an update that failed still changed the automation, as its answer says: paused on its
+// previous version, or left live on this one running the previous version's trigger.
+const changedDespiteFailure = (error: Error): boolean => {
+  if (!(error instanceof ApiError) || !error.data || typeof error.data !== 'object') return false
+  const { paused, running_previous_trigger } = error.data as Record<string, unknown>
+  return paused === true || running_previous_trigger === true
+}
 
 // Provider props
 interface AutomationProviderProps {
@@ -268,13 +277,29 @@ export function AutomationProvider({
   const updateMutation = useMutation({
     mutationFn: (data: { workspace_id: string; automation: Automation }) =>
       automationApi.update(data),
-    onSuccess: () => {
-      message.success(t`Automation updated successfully`)
+    onSuccess: (data) => {
+      // Saving keeps the stored status, and the automation can have been paused since the editor
+      // loaded it live, by a save that failed among others: saved, but not running, which a plain
+      // success would hide.
+      if (automation?.status === 'live' && data.automation?.status === 'paused') {
+        message.warning({
+          content: t`Automation updated, but it is paused: activate it to run this version.`,
+          duration: 10
+        })
+      } else {
+        message.success(t`Automation updated successfully`)
+      }
       queryClient.invalidateQueries({ queryKey: ['automations', workspace.id] })
       onSaveSuccess?.()
     },
     onError: (error: Error) => {
-      message.error(t`Failed to update automation: ${error.message}`)
+      // An answer that says what became of the automation starts with the failure itself, and the
+      // rest is what the user has to act on: shown as sent, and long enough to read.
+      if (changedDespiteFailure(error)) {
+        message.error({ content: error.message, duration: 10 })
+      } else {
+        message.error(t`Failed to update automation: ${error.message}`)
+      }
       setLastError(error)
       // A failed update can still have changed the automation: one that could not go back to
       // its previous version is paused, and the list has to show it.

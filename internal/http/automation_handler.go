@@ -173,20 +173,11 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 			WriteJSONError(w, validationErr.Message, http.StatusBadRequest)
 			return
 		}
-		// An update that failed once stored, undone by pausing the automation: answered as the
-		// failure it is, and saying so, or the caller would take the automation for live.
-		withPause := func(message string) string {
-			var paused *domain.AutomationPausedError
-			if errors.As(err, &paused) {
-				return message + "; " + paused.PauseNotice()
-			}
-			return message
-		}
 		// An update to a live automation regenerates its trigger, so the same
 		// caller-supplied trigger configuration can fail here too.
 		var conditionErr *domain.TriggerConditionError
 		if errors.As(err, &conditionErr) {
-			WriteJSONError(w, withPause(conditionErr.Error()), http.StatusBadRequest)
+			writeUpdateFailure(w, err, conditionErr.Error(), http.StatusBadRequest)
 			return
 		}
 		// A transition that lost a race to another admin: nothing is broken and nothing
@@ -197,13 +188,42 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 			WriteJSONError(w, conflictErr.Error(), http.StatusConflict)
 			return
 		}
-		WriteJSONError(w, withPause("Failed to update automation"), http.StatusInternalServerError)
+		writeUpdateFailure(w, err, "Failed to update automation", http.StatusInternalServerError)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"automation": req.Automation,
 	})
+}
+
+// writeUpdateFailure answers an update that failed with message and status. An update that
+// failed once it was stored, then undone by pausing the automation or not undone at all, is
+// answered as the failure it is, and says what became of the automation, or the caller would
+// take it for live and running what it stores. It says so in the message, and in fields a client
+// reads without parsing it: paused, with the lists that kept the previous version from going
+// back live when that is why, or running_previous_trigger.
+func writeUpdateFailure(w http.ResponseWriter, err error, message string, status int) {
+	var paused *domain.AutomationPausedError
+	var undoFailed *domain.AutomationUndoFailedError
+	switch {
+	case errors.As(err, &paused):
+		body := map[string]interface{}{
+			"error":  message + "; " + paused.PauseNotice(),
+			"paused": true,
+		}
+		if len(paused.Lists) > 0 {
+			body["lists"] = paused.Lists
+		}
+		writeJSON(w, status, body)
+	case errors.As(err, &undoFailed):
+		writeJSON(w, status, map[string]interface{}{
+			"error":                    message + "; " + undoFailed.UndoNotice(),
+			"running_previous_trigger": true,
+		})
+	default:
+		WriteJSONError(w, message, status)
+	}
 }
 
 func (h *AutomationHandler) handleDelete(w http.ResponseWriter, r *http.Request) {

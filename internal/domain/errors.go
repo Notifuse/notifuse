@@ -230,6 +230,40 @@ func NewAutomationPausedError(automationID string, lists []ListRef, err error) *
 	return &AutomationPausedError{AutomationID: automationID, Lists: lists, Err: err}
 }
 
+// AutomationUndoFailedError reports an update to a live automation that failed once it was
+// stored, when its trigger could not be installed, and that could not be undone: its previous
+// version could be written back neither live nor paused. The automation is left live on the
+// version the update stored, running the trigger of the previous one.
+//
+// It wraps the update's own failure, which decides how it is answered, and adds what the caller
+// has to do about it: saving the same version again does not repair it, since nothing the trigger
+// is compiled from has changed for that save, while pausing and activating the automation
+// reinstalls its trigger from the stored version.
+type AutomationUndoFailedError struct {
+	AutomationID string
+	Err          error
+}
+
+// Error implements the error interface: the failure, then what the automation is left running.
+func (e *AutomationUndoFailedError) Error() string {
+	return fmt.Sprintf("%v; %s", e.Err, e.UndoNotice())
+}
+
+// Unwrap returns the update's own failure.
+func (e *AutomationUndoFailedError) Unwrap() error {
+	return e.Err
+}
+
+// UndoNotice says what the automation is left running, and how to make it run what it stores.
+func (e *AutomationUndoFailedError) UndoNotice() string {
+	return "the automation is still live, storing this version but running the previous version's trigger: pause it and activate it again"
+}
+
+// NewAutomationUndoFailedError creates a new automation undo failed error
+func NewAutomationUndoFailedError(automationID string, err error) *AutomationUndoFailedError {
+	return &AutomationUndoFailedError{AutomationID: automationID, Err: err}
+}
+
 // quotedNamesShown is how many names quotedNames spells out before it counts the rest.
 const quotedNamesShown = 3
 

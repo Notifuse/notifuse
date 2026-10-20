@@ -1650,7 +1650,7 @@ msgstr "オートメーション"
 msgid "Automation activated successfully"
 msgstr "オートメーションを有効化しました"
 
-#: src/components/automations/context/AutomationContext.tsx:257
+#: src/components/automations/context/AutomationContext.tsx:266
 msgid "Automation created successfully"
 msgstr "オートメーションを作成しました"
 
@@ -1666,9 +1666,13 @@ msgstr "オートメーションフロー — そのトリガー、ノード、�
 msgid "Automation paused successfully"
 msgstr "オートメーションを一時停止しました"
 
-#: src/components/automations/context/AutomationContext.tsx:272
+#: src/components/automations/context/AutomationContext.tsx:290
 msgid "Automation updated successfully"
 msgstr "オートメーションを更新しました"
+
+#: src/components/automations/context/AutomationContext.tsx:286
+msgid "Automation updated, but it is paused: activate it to run this version."
+msgstr "オートメーションを更新しましたが、一時停止中です。このバージョンを実行するには有効化してください。"
 
 #: src/components/timeline/ContactTimeline.tsx:961
 msgid "Automation:"
@@ -2434,7 +2438,7 @@ msgstr "キャンセル済み"
 msgid "Cannot reach the configured API endpoint"
 msgstr "設定されたAPIエンドポイントに接続できません"
 
-#: src/components/automations/context/AutomationContext.tsx:131
+#: src/components/automations/context/AutomationContext.tsx:140
 msgid "Cannot remove list while email nodes exist. Delete email nodes first."
 msgstr "メールノードが存在する間はリストを削除できません。先にメールノードを削除してください。"
 
@@ -5778,7 +5782,7 @@ msgid "Failed to create API key"
 msgstr "APIキーの作成に失敗しました"
 
 #. placeholder {0}: error.message
-#: src/components/automations/context/AutomationContext.tsx:262
+#: src/components/automations/context/AutomationContext.tsx:271
 msgid "Failed to create automation: {0}"
 msgstr "オートメーションの作成に失敗しました: {0}"
 
@@ -6168,7 +6172,7 @@ msgid "Failed to unpublish post"
 msgstr "投稿の非公開に失敗しました"
 
 #. placeholder {0}: error.message
-#: src/components/automations/context/AutomationContext.tsx:277
+#: src/components/automations/context/AutomationContext.tsx:301
 msgid "Failed to update automation: {0}"
 msgstr "オートメーションの更新に失敗しました: {0}"
 
@@ -10024,7 +10028,7 @@ msgstr "API識別子を入力してください"
 msgid "Please enter an API key name"
 msgstr "APIキー名を入力してください"
 
-#: src/components/automations/context/AutomationContext.tsx:289
+#: src/components/automations/context/AutomationContext.tsx:314
 #: src/components/automations/UpsertAutomationDrawer.tsx:115
 msgid "Please enter an automation name"
 msgstr "オートメーション名を入力してください"
