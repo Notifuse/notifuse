@@ -46,7 +46,7 @@ func TestWebAnalyticsHandlerTrackInvalidUTF8(t *testing.T) {
 		assert.Equal(t, "Mozilla/5.0 (%FF%FE) Chrome/126.0", p.sessions[0].UserAgent)
 	})
 
-	t.Run("URLs that decode to bytes that are not UTF-8 keep them written as %XX", func(t *testing.T) {
+	t.Run("URLs that decode to bytes that are not UTF-8 are stored as valid text", func(t *testing.T) {
 		p := newTrackPipeline(t)
 		rec := p.post(t, nulBeat(t, `"actions":[`+pageview+`],`+
 			`"attributes":{"landing_page":"https://shop.example.com/r%E9sum%E9","referrer":"https://%FF.example.org/caf%c3"}`), nil)
@@ -55,8 +55,8 @@ func TestWebAnalyticsHandlerTrackInvalidUTF8(t *testing.T) {
 		require.Len(t, p.sessions, 1)
 		session := p.sessions[0]
 		assert.Equal(t, "https://shop.example.com/r%E9sum%E9", session.LandingPage, "the URL itself is stored as sent")
-		assert.Equal(t, "/r%E9sum%E9", session.LandingPath)
-		assert.Equal(t, "%ff.example.org", session.ReferrerDomain)
+		assert.Equal(t, "/r%E9sum%E9", session.LandingPath, "a path keeps such bytes written as %XX")
+		assert.Equal(t, "�.example.org", session.ReferrerDomain, "lowercasing a host turns such a byte into U+FFFD")
 		assert.Equal(t, "/caf%C3", session.ReferrerPath)
 		for _, value := range []string{session.LandingDomain, session.LandingPath, session.ReferrerDomain, session.ReferrerPath} {
 			assert.True(t, utf8.ValidString(value), "%q", value)

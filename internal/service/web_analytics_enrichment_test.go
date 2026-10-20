@@ -69,9 +69,10 @@ func TestWebURLParts(t *testing.T) {
 		{"https://example.com/caf%c3", "example.com", "/caf%C3"},
 		{"https://example.com/caf%C3%A9/%ff", "example.com", "/café/%FF"},
 		{"https://example.com/%e2%82%ac%e2%82", "example.com", "/€%E2%82"},
-		// The host takes %80 to %FF, and is lowercased after the escaping.
-		{"https://%FF.example.com/", "%ff.example.com", "/"},
-		{"https://shop%c3.example.com/", "shop%c3.example.com", "/"},
+		// The host takes %80 to %FF as well, and is lowercased, which turns each
+		// byte that is not part of valid UTF-8 into U+FFFD: valid text already.
+		{"https://%FF.example.com/", "�.example.com", "/"},
+		{"https://shop%c3.example.com/", "shop�.example.com", "/"},
 		{"https://%C3%A9t%C3%A9.example.com/", "été.example.com", "/"},
 	}
 	for _, tc := range cases {

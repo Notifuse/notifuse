@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -134,4 +135,66 @@ func TestWebAnalyticsIngestCreatesMissingPartition(t *testing.T) {
 		`SELECT count(*) FROM web_pages WHERE session_date = $1`, sessionDate).Scan(&pageCount))
 	assert.Equal(t, 1, sessionCount, "the session must have landed")
 	assert.Equal(t, 1, pageCount, "and so must its pageview")
+}
+
+// TestWebAnalyticsFlushTellsAMissingPartitionFromRefusedRows pins what
+// PostgreSQL reports for a row no partition takes and for a row a CHECK
+// refuses. Both raise SQLSTATE 23514, and the message is in the server's
+// language (lc_messages), so the repository tells them apart by the routine
+// that raised the error, which is never translated: a missing partition is
+// created and the batch retried, while refused rows are left to the buffer,
+// which splits the batch around them.
+func TestWebAnalyticsFlushTellsAMissingPartitionFromRefusedRows(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer func() { suite.Cleanup() }()
+
+	workspace, err := suite.DataFactory.CreateWorkspace(func(w *domain.Workspace) {
+		w.Settings.WebAnalytics = &domain.WebAnalyticsSettings{Enabled: true, Filters: domain.DefaultWebFilters()}
+	})
+	require.NoError(t, err)
+
+	wsDB, err := suite.DBManager.GetWorkspaceDB(workspace.ID)
+	require.NoError(t, err)
+	repo := suite.ServerManager.GetApp().GetWebAnalyticsRepository()
+
+	t.Run("a row no partition takes", func(t *testing.T) {
+		// Two months back: outside every window anything bootstraps.
+		past := time.Now().UTC().AddDate(0, -2, 0)
+		sessionDate := time.Date(past.Year(), past.Month(), 15, 0, 0, 0, 0, time.UTC)
+		visitedAt := sessionDate.Add(12 * time.Hour)
+
+		_, err := wsDB.Exec(`INSERT INTO web_sessions (session_date, id, created_at, updated_at) VALUES ($1, $2, $3, $3)`,
+			sessionDate, waUUIDv7At(visitedAt, 0xE2), visitedAt)
+		var pqErr *pq.Error
+		require.ErrorAs(t, err, &pqErr)
+		assert.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+		assert.Equal(t, "ExecFindPartition", pqErr.Routine)
+		assert.Empty(t, pqErr.Constraint)
+	})
+
+	t.Run("a row a CHECK refuses", func(t *testing.T) {
+		const refused = "refused-by-the-database"
+		_, err := wsDB.Exec(`ALTER TABLE web_sessions ADD CONSTRAINT test_refused_utm_source CHECK (utm_source <> '` + refused + `')`)
+		require.NoError(t, err)
+		defer func() {
+			_, _ = wsDB.Exec(`ALTER TABLE web_sessions DROP CONSTRAINT IF EXISTS test_refused_utm_source`)
+		}()
+
+		now := time.Now().UTC()
+		err = repo.FlushBatch(context.Background(), workspace.ID, []*domain.WebSession{{
+			SessionDate: time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC),
+			ID:          waUUIDv7At(now, 0xE3), UTMSource: refused,
+			PageviewCount: 1, CreatedAt: now, UpdatedAt: now,
+		}}, nil, nil)
+		assert.ErrorIs(t, err, domain.ErrWebAnalyticsRowsRefused)
+		var pqErr *pq.Error
+		require.ErrorAs(t, err, &pqErr)
+		assert.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+		assert.Equal(t, "ExecConstraints", pqErr.Routine)
+		assert.Equal(t, "test_refused_utm_source", pqErr.Constraint)
+	})
 }

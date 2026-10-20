@@ -339,6 +339,53 @@ func TestFlushBatch(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
+	t.Run("a missing partition is recognised whatever language the server speaks", func(t *testing.T) {
+		// lc_messages translates the message, and SQLSTATE 23514 is also what a
+		// CHECK the rows break raises. Read as rows PostgreSQL refuses, a missing
+		// partition would get no partition created, and the buffer would split
+		// the batch into parts that all fail the same way. The routine raising
+		// it is reported untranslated (TestWebAnalyticsFlushTellsAMissingPartitionFromRefusedRows
+		// pins what PostgreSQL sends).
+		repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
+		defer cleanup()
+
+		sessions := []*domain.WebSession{waTestSession("aa0e8400-e29b-41d4-a716-446655440000", date)}
+		missing := &pq.Error{Code: "23514", Routine: "ExecFindPartition", Table: "web_sessions",
+			Message: `aucune partition de la relation « web_sessions » trouvée pour la ligne`}
+
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT INTO web_sessions").WillReturnError(missing)
+		mock.ExpectRollback()
+		for range schema.WebAnalyticsTableNames {
+			mock.ExpectExec("CREATE TABLE IF NOT EXISTS web_(sessions|pages|goals)_y2024m05 PARTITION OF").
+				WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT INTO web_sessions").WillReturnError(missing)
+		mock.ExpectRollback()
+
+		err := repo.FlushBatch(context.Background(), waTestWorkspace, sessions, nil, nil)
+		require.Error(t, err)
+		assert.NotErrorIs(t, err, domain.ErrWebAnalyticsRowsRefused)
+		assert.NoError(t, mock.ExpectationsWereMet(), "the partitions are created and the batch retried once")
+	})
+
+	t.Run("a CHECK the rows break is not taken for a missing partition", func(t *testing.T) {
+		repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
+		defer cleanup()
+
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT INTO web_sessions").WillReturnError(&pq.Error{Code: "23514", Routine: "ExecConstraints",
+			Table: "web_sessions_y2024m05", Constraint: "utm_source_check",
+			Message: `la nouvelle ligne de la relation « web_sessions_y2024m05 » viole la contrainte de vérification « utm_source_check »`})
+		mock.ExpectRollback()
+
+		err := repo.FlushBatch(context.Background(), waTestWorkspace,
+			[]*domain.WebSession{waTestSession("aa0e8400-e29b-41d4-a716-446655440000", date)}, nil, nil)
+		assert.ErrorIs(t, err, domain.ErrWebAnalyticsRowsRefused)
+		assert.NoError(t, mock.ExpectationsWereMet(), "no partition is created for it")
+	})
+
 	t.Run("non-partition errors do not retry", func(t *testing.T) {
 		repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
 		defer cleanup()

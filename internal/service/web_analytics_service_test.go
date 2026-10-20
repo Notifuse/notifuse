@@ -631,7 +631,8 @@ func TestWebAnalyticsServiceTrackKeepsInvalidUTF8OutOfTheBuffer(t *testing.T) {
 
 	payload := webTrackTestPayload(t, receivedAt)
 	// Ordinary URL text that decodes to bytes that are not UTF-8: an old link
-	// encoded in Latin-1, a character cut short, a host byte above 0x7F.
+	// encoded in Latin-1, a character cut short, a host byte above 0x7F (which
+	// lowercasing the host turns into U+FFFD).
 	payload.Attributes.LandingPage = "https://shop.example.com/r%E9sum%E9"
 	payload.Attributes.Referrer = "https://%FF.example.org/caf%c3"
 	// Longer than the cap, with a character across it.
@@ -663,7 +664,7 @@ func TestWebAnalyticsServiceTrackKeepsInvalidUTF8OutOfTheBuffer(t *testing.T) {
 	require.Len(t, sessions, 1)
 	session := sessions[0]
 	assert.Equal(t, "/r%E9sum%E9", session.LandingPath, "the bytes stay written as the URL wrote them")
-	assert.Equal(t, "%ff.example.org", session.ReferrerDomain)
+	assert.Equal(t, "�.example.org", session.ReferrerDomain)
 	assert.Equal(t, "/caf%C3", session.ReferrerPath)
 	assert.Equal(t, strings.Repeat("a", 199), session.Browser, "capped where the character starts")
 	assert.Equal(t, strings.Repeat("b", 197), session.OS)
@@ -672,6 +673,39 @@ func TestWebAnalyticsServiceTrackKeepsInvalidUTF8OutOfTheBuffer(t *testing.T) {
 	assert.Equal(t, "/r%E9sum%E9", goals[0].LandingPath, "the goal's attribution snapshot is the same text")
 	assert.Equal(t, strings.Repeat("a", 199), goals[0].Browser)
 	assert.Equal(t, "Mozilla/5.0 (%FF%FE)", goals[0].UserAgent)
+}
+
+// TestWebAnalyticsServiceTrackCapsAUserAgentHeader covers a user agent the body
+// limit does not bound: Track takes the user agent from the request header when
+// the body has none, a header can be as long as the server reads, and the value
+// is copied into the session and every goal row.
+func TestWebAnalyticsServiceTrackCapsAUserAgentHeader(t *testing.T) {
+	receivedAt := time.Date(2026, 8, 8, 12, 0, 0, 0, time.UTC)
+	svc, _, webRepo, _ := newWebAnalyticsServiceForTest(t, &domain.WebAnalyticsSettings{Enabled: true, Filters: domain.DefaultWebFilters()})
+
+	payload := webTrackTestPayload(t, receivedAt)
+	payload.Attributes.UserAgent = ""
+	payload.Actions = append(payload.Actions, domain.WebTrackAction{Type: domain.WebActionTypeGoal, Name: "signup",
+		GoalType: domain.GoalTypeLead, Path: "/", PageNumber: 1, Timestamp: receivedAt.UnixMilli()})
+	meta := domain.WebRequestMeta{UserAgent: "Mozilla/5.0 " + strings.Repeat("\xff", 1<<20), ReceivedAt: receivedAt}
+
+	require.NoError(t, svc.Track(context.Background(), payload, meta))
+
+	var sessions []*domain.WebSession
+	var goals []*domain.WebGoal
+	webRepo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, s []*domain.WebSession, _ []*domain.WebPage, g []*domain.WebGoal) error {
+			sessions, goals = s, g
+			return nil
+		}).Times(1)
+	svc.buffer.FlushAll(context.Background())
+
+	require.Len(t, sessions, 1)
+	userAgent := sessions[0].UserAgent
+	assert.LessOrEqual(t, len(userAgent), domain.WebTrackMaxUserAgentBytes)
+	assert.True(t, strings.HasPrefix(userAgent, "Mozilla/5.0 %FF%FF"), "%.24q", userAgent)
+	require.Len(t, goals, 1)
+	assert.Equal(t, userAgent, goals[0].UserAgent, "the goal's snapshot is the same capped text")
 }
 
 // TestWebAnalyticsServiceTrackBuffersEverySpellingOfASessionIDAsOne sends one

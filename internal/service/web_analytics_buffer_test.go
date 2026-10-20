@@ -185,6 +185,21 @@ func TestWebAnalyticsBufferFailureHandling(t *testing.T) {
 		buffer.flushDue(ctx) // nothing left: no further FlushBatch expected
 	})
 
+	t.Run("a new beat gives a writer that failed for another reason a fresh retry", func(t *testing.T) {
+		buffer, repo, _ := newBufferForTest(t)
+		allowProjection(repo)
+		s, p, g := bufSession("s1", 1, 0)
+		buffer.Add("ws1", 0, s, p, g)
+		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("db down"))
+		buffer.flushDue(ctx)
+
+		s2, p2, g2 := bufSession("s1", 2, 0)
+		buffer.Add("ws1", 0, s2, p2, g2)
+		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("db still down"))
+		buffer.flushDue(ctx)
+		assert.Equal(t, 1, buffer.PendingSessions("ws1"), "the beat started the count again, so that was a first failure")
+	})
+
 	t.Run("a newer beat during a failed flush resets the retry state", func(t *testing.T) {
 		buffer, repo, _ := newBufferForTest(t)
 		allowProjection(repo)
@@ -556,21 +571,202 @@ func TestWebAnalyticsBufferSalvagesARefusedBatch(t *testing.T) {
 		assert.Zero(t, buffer.PendingSessions("ws1"), "and dropped once it fails too, as before")
 	})
 
-	t.Run("the salvage spends no more flushes than its budget", func(t *testing.T) {
+	t.Run("the salvage spends no more flushes than its budget, and the writers it has not reached land later", func(t *testing.T) {
+		// Refused writers spread across the id space, as ids anyone can pick
+		// spread them: every part of the first splits holds one, so the first
+		// flushes run out of budget before a single part lands. The writers the
+		// split has not reached must not be charged for that, or they would be
+		// dropped with the refused ones.
 		buffer, repo, _ := newBufferForTest(t)
 		allowProjection(repo)
-		const budget = 3
+		const budget = 2
 		buffer.cfg.MaxSalvageFlushes = budget
+		var writers, cleanWriters, refused []string
+		for i := 0; i < 16; i++ {
+			id := fmt.Sprintf("s-%02d", i)
+			writers = append(writers, id)
+			if i%4 == 2 {
+				refused = append(refused, id)
+			} else {
+				cleanWriters = append(cleanWriters, id)
+			}
+		}
+		db := newBatchRecorder(t, refusing(refused...))
+		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(db.flush).AnyTimes()
+		addBufferedWriters(buffer, "ws1", writers...)
+		ws := buffer.workspaces["ws1"]
+
+		calls := 0
+		flush := func() {
+			buffer.FlushAll(ctx)
+			assert.LessOrEqual(t, len(db.batches)-calls, 1+budget, "a flush spends the run's own call and the budget, no more")
+			calls = len(db.batches)
+		}
+		flush()
+		assert.Len(t, db.batches, 1+budget, "the run itself, then the budget")
+		flush()
+		require.Empty(t, db.written, "precondition: two flushes, and still no part has landed")
+		for _, id := range cleanWriters {
+			entry := ws.sessions[webBufferKey(id, 0)]
+			require.NotNil(t, entry, "%s survives both flushes", id)
+			assert.Zero(t, entry.failedAttempts, "%s is not charged for what the budget left unresolved", id)
+			assert.True(t, entry.dirty, id)
+		}
+
+		dirty := func() int {
+			n := 0
+			for _, entry := range ws.sessions {
+				if entry.dirty {
+					n++
+				}
+			}
+			return n
+		}
+		for i := 0; i < 100 && dirty() > 0; i++ {
+			flush()
+		}
+		require.Zero(t, dirty(), "the split goes on from where each flush left it, until it is done")
+		for _, id := range cleanWriters {
+			assert.Equal(t, 1, db.written[id], "%s lands, once", id)
+		}
+		for _, id := range refused {
+			assert.Zero(t, db.written[id], id)
+			assert.NotContains(t, ws.sessions, webBufferKey(id, 0), "%s is dropped once its retry is refused too", id)
+		}
+	})
+
+	t.Run("a writer the salvage keeps deferring is dropped in the end", func(t *testing.T) {
+		// More refused writers than the salvage can single out in the flushes
+		// the bound allows: without the bound, the writers the split has not
+		// reached yet would stay buffered and dirty for as long as it took.
+		buffer, repo, _ := newBufferForTest(t)
+		allowProjection(repo)
+		buffer.cfg.MaxSalvageFlushes = 1
 		db := newBatchRecorder(t, func([]*domain.WebSession) bool { return true })
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(db.flush).AnyTimes()
-		addBufferedWriters(buffer, "ws1", clean...)
+		bound := webBufferMaxDeferredFlushes + webBufferMaxFlushAttempts
+		var writers []string
+		for i := 0; i < 4*bound; i++ {
+			writers = append(writers, fmt.Sprintf("s-%03d", i))
+		}
+		addBufferedWriters(buffer, "ws1", writers...)
 
 		buffer.FlushAll(ctx)
-		assert.Len(t, db.batches, 1+budget, "the run itself, then the budget")
-		assert.Equal(t, len(clean), buffer.PendingSessions("ws1"), "what the budget left unresolved keeps its retry")
+		ws := buffer.workspaces["ws1"]
+		require.Len(t, ws.sessions, len(writers), "a deferral drops nobody")
+		for key, entry := range ws.sessions {
+			assert.Zero(t, entry.failedAttempts, "%s is not charged for a deferral", key)
+		}
+
+		for i := 1; i < bound; i++ {
+			buffer.FlushAll(ctx)
+		}
+		assert.Zero(t, buffer.PendingSessions("ws1"),
+			"a writer is charged once it has been deferred for the bound, and dropped as any failing writer")
+		assert.Empty(t, db.written)
+	})
+
+	t.Run("a writer refused alone is dropped at its retry, however often it beats in between", func(t *testing.T) {
+		// A beat carries the writer's whole cumulative state, so the rows
+		// PostgreSQL refused are most likely still in the next one, as they are
+		// here. Were each beat to give the writer a fresh retry, a visitor who
+		// keeps beating would be retried forever.
+		for _, tc := range []struct {
+			name   string
+			others []string
+		}{
+			{"singled out of a run", clean},
+			{"alone in its run", nil},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				buffer, repo, _ := newBufferForTest(t)
+				allowProjection(repo)
+				db := newBatchRecorder(t, refusing("s-bad"))
+				repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(db.flush).AnyTimes()
+				addBufferedWriters(buffer, "ws1", append(append([]string{}, tc.others...), "s-bad")...)
+				ws := buffer.workspaces["ws1"]
+				key := webBufferKey("s-bad", 0)
+
+				buffer.FlushAll(ctx)
+				require.Contains(t, ws.sessions, key, "refused once, it keeps its retry")
+
+				s, p, g := bufSession("s-bad", 2, 0)
+				buffer.Add("ws1", 0, s, p, g)
+				buffer.FlushAll(ctx)
+				assert.NotContains(t, ws.sessions, key, "and is dropped once the retry is refused too")
+				assert.Zero(t, db.written["s-bad"])
+				for _, id := range tc.others {
+					assert.Equal(t, 1, db.written[id], id)
+				}
+			})
+		}
+	})
+
+	t.Run("a writer refused alone gets fresh retries again once its rows land", func(t *testing.T) {
+		buffer, repo, _ := newBufferForTest(t)
+		allowProjection(repo)
+		calls := 0
+		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, _ []*domain.WebSession, _ []*domain.WebPage, _ []*domain.WebGoal) error {
+				calls++
+				switch calls {
+				case 1:
+					return errTestRowsRefused
+				case 2:
+					return nil
+				default:
+					return errors.New("read tcp: connection reset by peer")
+				}
+			}).AnyTimes()
+		addBufferedWriters(buffer, "ws1", "s-bad")
 		buffer.FlushAll(ctx)
-		assert.Len(t, db.batches, 2*(1+budget))
-		assert.Zero(t, buffer.PendingSessions("ws1"))
+
+		// The next beat no longer holds what PostgreSQL refused, and lands.
+		s, p, g := bufSession("s-bad", 2, 0)
+		buffer.Add("ws1", 0, s, p, g)
+		buffer.FlushAll(ctx)
+		require.Equal(t, 2, calls)
+
+		// From then on, each beat starts the count again, whatever fails next.
+		for seq := int64(3); seq <= 4; seq++ {
+			s, p, g := bufSession("s-bad", seq, 0)
+			buffer.Add("ws1", 0, s, p, g)
+			buffer.FlushAll(ctx)
+			assert.Equal(t, 1, buffer.PendingSessions("ws1"), "beat %d: that failure was its first", seq)
+		}
+		assert.Equal(t, 4, calls)
+	})
+
+	t.Run("a beat that comes in while a writer refused alone lands gets a fresh retry", func(t *testing.T) {
+		// The beat comes in while the refusal still stands, so it leaves the
+		// count as it is; the rows that land then end the refusal.
+		buffer, repo, _ := newBufferForTest(t)
+		allowProjection(repo)
+		calls := 0
+		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, _ []*domain.WebSession, _ []*domain.WebPage, _ []*domain.WebGoal) error {
+				calls++
+				switch calls {
+				case 1:
+					return errTestRowsRefused
+				case 2:
+					s, p, g := bufSession("s-bad", 3, 0)
+					buffer.Add("ws1", 0, s, p, g)
+					return nil
+				default:
+					return errors.New("read tcp: connection reset by peer")
+				}
+			}).AnyTimes()
+		addBufferedWriters(buffer, "ws1", "s-bad")
+		buffer.FlushAll(ctx)
+
+		s, p, g := bufSession("s-bad", 2, 0)
+		buffer.Add("ws1", 0, s, p, g)
+		buffer.FlushAll(ctx) // beat 2 lands, and beat 3 comes in meanwhile
+
+		buffer.FlushAll(ctx)
+		assert.Equal(t, 3, calls)
+		assert.Equal(t, 1, buffer.PendingSessions("ws1"), "beat 3 failed for the first time, and keeps its retry")
 	})
 
 	t.Run("a failure that is not a refusal ends the salvage", func(t *testing.T) {

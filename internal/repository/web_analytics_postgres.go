@@ -556,17 +556,19 @@ func execBuilder(ctx context.Context, tx *sql.Tx, builder sq.InsertBuilder, tabl
 }
 
 // isMissingPartitionError detects an insert that found no partition for its
-// session_date. SQLSTATE 23514 is the generic check_violation, so the message
-// is matched too.
+// session_date. SQLSTATE 23514 is the generic check_violation, which a CHECK
+// the rows break raises too, so the routine that raised the error tells them
+// apart: unlike the message, which lc_messages translates, it is reported as
+// it is in PostgreSQL's source. The English message is kept as a fallback.
 func isMissingPartitionError(err error) bool {
 	if err == nil {
 		return false
 	}
 	var pqErr *pq.Error
-	if !errors.As(err, &pqErr) {
+	if !errors.As(err, &pqErr) || pqErr.Code != "23514" {
 		return false
 	}
-	return pqErr.Code == "23514" && strings.Contains(pqErr.Message, "no partition of relation")
+	return pqErr.Routine == "ExecFindPartition" || strings.Contains(pqErr.Message, "no partition of relation")
 }
 
 func collectMonths(sessions []*domain.WebSession, pages []*domain.WebPage, goals []*domain.WebGoal) []time.Time {

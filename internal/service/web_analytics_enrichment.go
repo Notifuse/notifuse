@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/geoip"
@@ -51,11 +50,12 @@ func correctedMs(epochMs int64, skew time.Duration) time.Time {
 // the browser's URL API does (root path is "/"). Unparseable input yields
 // empty parts.
 //
-// Both come back percent-decoded, except where decoding gives a byte
-// PostgreSQL cannot store: a NUL, or a byte that is not part of valid UTF-8,
-// such as a Latin-1 é sent as %E9. Such a byte is written as %XX instead (see
-// domain.EscapeUnstorableBytes), and the hostname is lowercased after, so its
-// escapes read %ff.
+// Both come back percent-decoded. In the path, a decoded byte PostgreSQL
+// cannot store — a NUL, or a byte that is not part of valid UTF-8, such as a
+// Latin-1 é sent as %E9 — is written as %XX instead (see
+// domain.EscapeUnstorableBytes). The hostname needs no such care: url.Parse
+// refuses a NUL there, and lowercasing it turns each byte that is not part of
+// valid UTF-8 into U+FFFD.
 func webURLParts(raw string) (host string, path string) {
 	if strings.TrimSpace(raw) == "" {
 		return "", ""
@@ -68,7 +68,7 @@ func webURLParts(raw string) (host string, path string) {
 	if path == "" {
 		path = "/"
 	}
-	return strings.ToLower(domain.EscapeUnstorableBytes(u.Hostname())), path
+	return strings.ToLower(u.Hostname()), path
 }
 
 // webHostname returns just the lowercase hostname of a URL (used for the
@@ -81,22 +81,14 @@ func webHostname(raw string) string {
 // boundDimension caps a client-supplied dimension value and applies a default
 // when the SDK omitted it.
 //
-// The cap counts bytes and cuts at the last character boundary within it: a
-// character cut in two is a byte sequence that is not UTF-8, which PostgreSQL
-// refuses to store.
+// The cap counts bytes and cuts at the last character boundary within it (see
+// domain.TruncateUTF8).
 func boundDimension(value, fallback string) string {
 	v := strings.TrimSpace(value)
 	if v == "" {
 		return fallback
 	}
-	if len(v) > 200 {
-		cut := 200
-		for cut > 0 && !utf8.RuneStart(v[cut]) {
-			cut--
-		}
-		return v[:cut]
-	}
-	return v
+	return domain.TruncateUTF8(v, 200)
 }
 
 // applyWebGeo maps a raw lookup through the workspace privacy knobs.

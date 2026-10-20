@@ -536,8 +536,9 @@ func TestWebAnalyticsTrackUnstorableText(t *testing.T) {
 		{"percent-encoded NUL in the referrer", actions("") + `,"attributes":{"landing_page":"https://shop.example.com/landing","referrer":"https://news.example.org/a%00b"}`,
 			stores("referrer_path", "/a%00b")},
 		// Decoding can also produce bytes that are not UTF-8: an old link encoded
-		// in Latin-1, a character cut short, a host byte above 0x7F. They stay
-		// written as %XX, as a %00 does.
+		// in Latin-1, a character cut short. In a path they stay written as %XX,
+		// as a %00 does. A host byte above 0x7F is stored as U+FFFD, which is
+		// what lowercasing the host makes of it.
 		{"Latin-1 bytes in the landing page", actions("") + `,"attributes":{"landing_page":"https://shop.example.com/r%E9sum%E9"}`,
 			func(t *testing.T, sessionID string) {
 				assert.Equal(t, "https://shop.example.com/r%E9sum%E9", sessionText(t, "landing_page", sessionID))
@@ -547,7 +548,7 @@ func TestWebAnalyticsTrackUnstorableText(t *testing.T) {
 		{"a character cut short in the referrer", actions("") + `,"attributes":{"landing_page":"https://shop.example.com/landing","referrer":"https://news.example.org/caf%c3"}`,
 			stores("referrer_path", "/caf%C3")},
 		{"a host byte above 0x7F in the referrer", actions("") + `,"attributes":{"landing_page":"https://shop.example.com/landing","referrer":"https://%FF.example.org/"}`,
-			stores("referrer_domain", "%ff.example.org")},
+			stores("referrer_domain", "�.example.org")},
 		// Browser details are capped, and the cap used to cut at a byte offset,
 		// through any character straddling it.
 		{"browser details longer than the cap", actions("") + `,"attributes":{"landing_page":"https://shop.example.com/landing",` +
@@ -620,6 +621,31 @@ func TestWebAnalyticsTrackUnstorableText(t *testing.T) {
 		require.NoError(t, wsDB.QueryRow(`SELECT properties::text FROM web_goals WHERE session_id = $1 AND goal_name = $2`,
 			badSession, "sign�up").Scan(&properties))
 		assert.JSONEq(t, `{"pl�an":"pro�"}`, properties)
+	})
+
+	t.Run("a goal value too close to zero for a REAL", func(t *testing.T) {
+		// Not text, but refused the same way: goal_value is a REAL, and
+		// PostgreSQL refuses a value so close to zero that it rounds to 0 there
+		// rather than store the 0, in the goal row and in the session row the
+		// value is summed into.
+		badSession := waUUIDv7At(now.Add(-time.Minute), 0x44)
+		cleanSession := waUUIDv7At(now.Add(-time.Minute), 0x45)
+		purchase := fmt.Sprintf(`{"type":"goal","name":"purchase","goal_type":"purchase","path":"/landing","page_number":1,"timestamp":%d,"value":1e-46}`, ts+1)
+
+		resp := waPostBeat(t, baseURL, beat(badSession, actions(","+purchase)+","+cleanAttributes), nil)
+		_ = waCloseAndDecode(t, resp)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		postCleanBeatAndFlush(t, cleanSession)
+
+		require.Equal(t, 1, count(t, `SELECT COUNT(*) FROM web_sessions WHERE id = $1`, badSession),
+			"the visitor whose beat carried the value keeps their session too")
+		var goalValue, sessionGoalValue float64
+		require.NoError(t, wsDB.QueryRow(`SELECT goal_value FROM web_goals WHERE session_id = $1 AND goal_name = 'purchase'`,
+			badSession).Scan(&goalValue))
+		assert.Zero(t, goalValue, "the goal is kept, with the 0 its value rounds to")
+		require.NoError(t, wsDB.QueryRow(`SELECT goal_value FROM web_sessions WHERE id = $1`, badSession).Scan(&sessionGoalValue))
+		assert.Zero(t, sessionGoalValue)
 	})
 
 	t.Run("session id", func(t *testing.T) {

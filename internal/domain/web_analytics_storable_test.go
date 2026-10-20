@@ -176,3 +176,105 @@ func TestWebTrackPayloadStoresTheCanonicalSessionID(t *testing.T) {
 		}
 	})
 }
+
+func TestWebTrackPayloadStoresAGoalValueTooCloseToZeroForARealAsZero(t *testing.T) {
+	// goal_value is a REAL, and PostgreSQL refuses a value so close to zero
+	// that it rounds to 0 there ("out of range for type real") rather than
+	// store the 0, and the whole visit would be refused with it. The goal is
+	// kept, with a value of 0.
+	now := time.Date(2026, 8, 8, 15, 0, 0, 0, time.UTC)
+	for _, tc := range []struct {
+		name  string
+		value string // as JSON text, the way a beat carries it
+		want  float64
+	}{
+		{"far below the smallest REAL", "1e-50", 0},
+		{"below it", "1e-46", 0},
+		{"sent as a string", `"1e-46"`, 0},
+		{"one that rounds to the smallest REAL, which PostgreSQL stores", "1e-45", 1e-45},
+		{"an ordinary value", "49.9", 49.9},
+		{"no value", "0", 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			body := nulBeatJSON(now, fmt.Sprintf(`"actions":[{"type":"goal","name":"purchase","goal_type":"purchase","path":"/","page_number":1,"timestamp":%d,"value":%s}]`,
+				now.UnixMilli(), tc.value))
+			var p WebTrackPayload
+			require.NoError(t, json.Unmarshal([]byte(body), &p))
+			require.NoError(t, p.Validate(now))
+			require.Len(t, p.Actions, 1, "the goal is kept")
+			assert.Equal(t, tc.want, p.Actions[0].Value)
+		})
+	}
+}
+
+func TestTruncateUTF8(t *testing.T) {
+	for _, tc := range []struct {
+		name, in string
+		max      int
+		want     string
+	}{
+		{"shorter than the bound", "Mozilla", 10, "Mozilla"},
+		{"exactly the bound", "Mozilla", 7, "Mozilla"},
+		{"longer, ASCII", "Mozilla/5.0", 7, "Mozilla"},
+		{"through a two-byte character", "abcé", 4, "abc"},
+		{"through a three-byte character", "ab€", 4, "ab"},
+		{"through a four-byte character", "a😀", 4, "a"},
+		{"just after a character", "abé", 4, "abé"},
+		{"a bound of zero", "abc", 0, ""},
+		{"a negative bound", "abc", -1, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := TruncateUTF8(tc.in, tc.max)
+			assert.Equal(t, tc.want, got)
+			assert.True(t, utf8.ValidString(got), "%q", got)
+		})
+	}
+}
+
+func TestWebTrackPayloadCapsTheUserAgent(t *testing.T) {
+	// Track takes the user agent from the request header when the body has
+	// none, and a header is bounded only by what the server reads, while the
+	// value is copied into the session and every goal row. The cap applies to
+	// the text as stored, after the escaping, and cuts where a character
+	// starts.
+	now := time.Date(2026, 8, 8, 15, 0, 0, 0, time.UTC)
+	stored := func(t *testing.T, userAgent string) string {
+		t.Helper()
+		p := &WebTrackPayload{
+			WorkspaceID: "ws1",
+			SessionID:   uuidV7At(now.Add(-time.Minute)),
+			UpdatedAt:   now.UnixMilli(),
+			Seq:         1,
+			Actions:     []WebTrackAction{{Type: WebActionTypePageview, Path: "/home", PageNumber: 1}},
+			Attributes:  &WebSessionAttributes{UserAgent: userAgent},
+		}
+		require.NoError(t, p.Validate(now))
+		require.Len(t, p.Actions, 1, "the beat is kept")
+		return p.Attributes.UserAgent
+	}
+
+	t.Run("a long real-world user agent is kept whole", func(t *testing.T) {
+		// An in-app browser, which appends its own details to the system's.
+		ua := "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 " +
+			"[FBAN/FBIOS;FBAV/470.0.0.43.109;FBBV/612345678;FBDV/iPhone15,3;FBMD/iPhone;FBSN/iOS;FBSV/17.5.1;FBSS/3;" +
+			"FBID/phone;FBLC/fr_FR;FBOP/5;FBRV/613456789;IABMV/1] Instagram 337.0.3.23.54 (iPhone15,3; iOS 17_5_1; fr_FR; fr; " +
+			"scale=3.00; 1290x2796; 612345678; IABMV/1)"
+		assert.Equal(t, ua, stored(t, ua))
+	})
+
+	t.Run("a longer one is cut to the cap", func(t *testing.T) {
+		assert.Equal(t, strings.Repeat("a", WebTrackMaxUserAgentBytes), stored(t, strings.Repeat("a", 1<<20)))
+	})
+
+	t.Run("the cut backs off to where a character starts", func(t *testing.T) {
+		assert.Equal(t, strings.Repeat("a", WebTrackMaxUserAgentBytes-1),
+			stored(t, strings.Repeat("a", WebTrackMaxUserAgentBytes-1)+"é"))
+	})
+
+	t.Run("bytes the escaping triples count as stored", func(t *testing.T) {
+		got := stored(t, strings.Repeat("\xff", WebTrackMaxUserAgentBytes))
+		assert.LessOrEqual(t, len(got), WebTrackMaxUserAgentBytes)
+		assert.True(t, strings.HasPrefix(got, "%FF%FF%FF"), "%.12q", got)
+		assert.True(t, utf8.ValidString(got))
+	})
+}

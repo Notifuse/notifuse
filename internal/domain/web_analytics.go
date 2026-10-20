@@ -109,6 +109,10 @@ const (
 	// aborted every other visitor's rows with it, and after two failed attempts
 	// the buffer deletes those sessions outright. Bounding here means the
 	// offending action is dropped by dropInvalidActions and costs only itself.
+	//
+	// An upper bound covers only the top of REAL's range. PostgreSQL refuses a
+	// goal value so close to zero that it rounds to 0 as a REAL as well, and
+	// such a value is stored as 0 instead (see WebTrackAction.Validate).
 	WebTrackMaxDurationMs = 24 * 60 * 60 * 1000 // a day of engaged time on one page
 	WebTrackMaxGoalValue  = 1e12
 
@@ -118,6 +122,14 @@ const (
 	webMaxEpochMs = 100000000000000
 	// WebTrackMaxDimensionValueLength caps custom dimension values (custom_1..custom_10).
 	WebTrackMaxDimensionValueLength = 256
+	// WebTrackMaxUserAgentBytes caps the user agent as stored, in bytes. Track
+	// takes it from the request header when the body has none, out of reach of
+	// the handler's body limit, and a header can be as long as the server reads
+	// (net/http allows a megabyte by default). Each byte the escaping rewrites
+	// then takes three (see makeSessionTextStorable), and the value is copied
+	// into the session and every goal row. Generous: a real user agent, an
+	// in-app browser's included, takes a few hundred bytes.
+	WebTrackMaxUserAgentBytes = 1024
 	// WebTrackTimeBounds is the accepted clock window for beat timestamps,
 	// applied on both sides of the server clock.
 	WebTrackTimeBounds = 24 * time.Hour
@@ -600,6 +612,12 @@ func (a *WebTrackAction) Validate() error {
 		if a.Value < 0 || a.Value > WebTrackMaxGoalValue {
 			return fmt.Errorf("goal value must be between 0 and %g", WebTrackMaxGoalValue)
 		}
+		// goal_value is a REAL, and PostgreSQL refuses a value so close to
+		// zero that it rounds to 0 there ("out of range for type real") rather
+		// than store the 0. The goal is kept, with that 0 as its value.
+		if a.Value != 0 && float32(a.Value) == 0 {
+			a.Value = 0
+		}
 		if err := validateGoalProperties(a.Properties); err != nil {
 			return err
 		}
@@ -746,6 +764,11 @@ func (p *WebTrackPayload) Validate(now time.Time) error {
 	}
 	// Before the dimension bound, so that bound measures what would be stored.
 	p.makeSessionTextStorable()
+	// After the escaping, for the same reason. Cut rather than refused: the
+	// value comes back on every beat of the visit.
+	if p.Attributes != nil {
+		p.Attributes.UserAgent = TruncateUTF8(p.Attributes.UserAgent, WebTrackMaxUserAgentBytes)
+	}
 	for key, value := range p.Dimensions {
 		if !IsCustomDimensionKey(key) {
 			// Unknown keys are ignored at build time; only bound their size so
@@ -803,7 +826,7 @@ func (p *WebTrackPayload) makeSessionTextStorable() {
 // written as %00 it would grow a custom dimension past the bound Validate
 // checks next, refusing the beat. A stray byte can carry a character, such as
 // a Latin-1 é, and only the user agent can hold one (see
-// makeSessionTextStorable), which has no bound to grow past.
+// makeSessionTextStorable), whose bound cuts it rather than refuse the beat.
 func storableSessionText(s string) string {
 	return EscapeUnstorableBytes(withoutNUL(s))
 }
@@ -824,6 +847,20 @@ func hasNUL(s string) bool {
 
 func withoutNUL(s string) string {
 	return strings.ReplaceAll(s, "\x00", "")
+}
+
+// TruncateUTF8 returns s cut to at most maxBytes bytes, at the last character
+// boundary within them: a character cut in two is a byte sequence that is not
+// UTF-8, which PostgreSQL refuses to store.
+func TruncateUTF8(s string, maxBytes int) string {
+	if len(s) <= maxBytes {
+		return s
+	}
+	cut := max(maxBytes, 0)
+	for cut > 0 && !utf8.RuneStart(s[cut]) {
+		cut--
+	}
+	return s[:cut]
 }
 
 // EscapeUnstorableBytes returns s with every byte PostgreSQL cannot store in
