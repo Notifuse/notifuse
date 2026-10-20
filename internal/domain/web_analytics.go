@@ -827,9 +827,10 @@ func (p *WebTrackPayload) makeSessionTextStorable() {
 // storableSessionText removes the NULs from s and writes each byte that is not
 // part of valid UTF-8 as %XX. A NUL carries nothing a report could use, and
 // written as %00 it would grow a custom dimension past the bound Validate
-// checks next, refusing the beat. A stray byte can carry a character, such as
-// a Latin-1 é, and only the user agent can hold one (see
-// makeSessionTextStorable), whose bound cuts it rather than refuse the beat.
+// checks next, refusing the beat. Its inputs all come from the JSON body,
+// where encoding/json has already replaced such bytes, so in practice it only
+// removes NULs. The user agent, the one value that can carry a stray byte, is
+// escaped within its cap instead (see makeSessionTextStorable).
 func storableSessionText(s string) string {
 	return EscapeUnstorableBytes(withoutNUL(s))
 }

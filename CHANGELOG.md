@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Web analytics goals tracked with numbers or booleans in `properties`, or a numeric string `value` such as `'49.90'`, are now recorded along with the rest of the visit. `trackGoal` converts these before sending, and skips, with a console warning, a goal it can't convert or that exceeds a limit.
 
-- **Security**: Web analytics no longer drops the visits it receives alongside a visit holding text, a goal value or a session id the database can't store. Such a visit is now kept, less any page view or goal that can't be stored, with its other details in a form the database accepts.
+- **Security**: Web analytics no longer drops the visits it receives alongside a visit holding text, a goal value or a session id a UTF-8 database can't store. Such a visit is now kept, less any page view or goal that can't be stored, with its other details in a form the database accepts.
 
 - **Fix**: On PostgreSQL servers that report errors in a language other than English, web analytics now creates a missing monthly partition, as it already did on English ones, instead of dropping the visits dated in that month along with the other visits written with them.
 
