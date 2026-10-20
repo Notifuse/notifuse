@@ -1,12 +1,16 @@
 import { api } from './client'
 import type { EmailProviderKind } from './workspace'
 
-export type EmailEventType = 'delivered' | 'bounce' | 'complaint' | 'unsubscribe' | 'click' | 'open'
+export type EmailEventType = 'delivered' | 'bounce' | 'complaint' | 'click' | 'open'
+
+// An endpoint is reported as the event it records. Mailjet's unsub webhook, registered
+// with 'complaint', records unsubscribes; no provider registers 'unsubscribe' itself.
+export type WebhookEndpointEventType = EmailEventType | 'unsubscribe'
 
 export interface WebhookEndpointStatus {
   webhook_id: string
   url: string
-  event_type: EmailEventType
+  event_type: WebhookEndpointEventType
   active: boolean
 }
 

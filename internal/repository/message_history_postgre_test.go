@@ -2226,13 +2226,18 @@ func TestMessageHistoryRepository_WasSentForList(t *testing.T) {
 	})
 }
 
+// GetRecipientAndList reads the list an email was sent for as WasSentForList does: the list
+// stored on the message, or, for an older automation message stored without one, the
+// automation's current list. The behaviour against real rows is covered by
+// TestMailjetUnsubscribeWebhook in tests/integration.
 func TestMessageHistoryRepository_GetRecipientAndList(t *testing.T) {
 	mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
 	defer cleanup()
 
 	ctx := context.Background()
 	workspaceID := "workspace-123"
-	query := regexp.QuoteMeta(`SELECT contact_email, list_id FROM message_history WHERE id = $1`)
+	query := regexp.QuoteMeta(`SELECT mh.contact_email, COALESCE(mh.list_id, a.list_id) FROM message_history mh ` +
+		`LEFT JOIN automations a ON a.id = mh.automation_id AND mh.list_id IS NULL WHERE mh.id = $1`)
 
 	t.Run("a message sent for a list", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)

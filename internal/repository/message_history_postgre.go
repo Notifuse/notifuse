@@ -349,6 +349,13 @@ func (r *MessageHistoryRepository) GetBySMTPMessageID(ctx context.Context, works
 	return message, nil
 }
 
+// sentForList is the list a message mh was sent for, read with sentForListJoin as
+// WasSentForList describes.
+const (
+	sentForList     = `COALESCE(mh.list_id, a.list_id)`
+	sentForListJoin = `LEFT JOIN automations a ON a.id = mh.automation_id AND mh.list_id IS NULL`
+)
+
 // WasSentForList reports whether a message was sent to email for listID. Broadcast and
 // automation sends record their list on the message, and that list decides, so an
 // automation later moved to another list keeps its earlier emails tied to the old one.
@@ -362,8 +369,8 @@ func (r *MessageHistoryRepository) WasSentForList(ctx context.Context, workspace
 
 	query := `SELECT EXISTS (
 		SELECT 1 FROM message_history mh
-		LEFT JOIN automations a ON a.id = mh.automation_id AND mh.list_id IS NULL
-		WHERE mh.id = $1 AND mh.contact_email = $2 AND COALESCE(mh.list_id, a.list_id) = $3
+		` + sentForListJoin + `
+		WHERE mh.id = $1 AND mh.contact_email = $2 AND ` + sentForList + ` = $3
 	)`
 
 	var sent bool
@@ -373,19 +380,24 @@ func (r *MessageHistoryRepository) WasSentForList(ctx context.Context, workspace
 	return sent, nil
 }
 
-// GetRecipientAndList returns who message id was sent to and the list stored on it, which
-// is NULL for a transactional email and for an automation email sent before automations
-// recorded their list. Only id, contact_email and list_id are populated. Returns
-// (nil, nil) when there is no such message.
+// GetRecipientAndList returns who message id was sent to and the list it was sent for, read
+// as WasSentForList reads it: for an automation message stored without its list, the
+// automation's current list. The list is NULL for a transactional email. Only id,
+// contact_email and list_id are populated. Returns (nil, nil) when there is no such
+// message.
 func (r *MessageHistoryRepository) GetRecipientAndList(ctx context.Context, workspaceID, id string) (*domain.MessageHistory, error) {
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
+	query := `SELECT mh.contact_email, ` + sentForList + `
+		FROM message_history mh
+		` + sentForListJoin + `
+		WHERE mh.id = $1`
+
 	message := &domain.MessageHistory{ID: id}
-	err = workspaceDB.QueryRowContext(ctx, `SELECT contact_email, list_id FROM message_history WHERE id = $1`, id).
-		Scan(&message.ContactEmail, &message.ListID)
+	err = workspaceDB.QueryRowContext(ctx, query, id).Scan(&message.ContactEmail, &message.ListID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil

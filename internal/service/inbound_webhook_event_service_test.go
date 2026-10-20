@@ -14,6 +14,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	servicemocks "github.com/Notifuse/notifuse/internal/service/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/safehttpclient"
 	"github.com/golang/mock/gomock"
@@ -333,7 +334,7 @@ func TestNewInboundWebhookEventService(t *testing.T) {
 	contactRepo := mocks.NewMockContactRepository(ctrl)
 	messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	automationRepo := mocks.NewMockAutomationRepository(ctrl)
-	unsubscriber := &fakeListUnsubscriber{}
+	unsubscriber := servicemocks.NewMockListUnsubscriber(ctrl)
 
 	service := NewInboundWebhookEventService(repo, authService, log, workspaceRepo, messageHistoryRepo, contactRepo, automationRepo, unsubscriber)
 
@@ -2950,30 +2951,10 @@ func TestProcessWebhook_BatchedMixedClassifications(t *testing.T) {
 	require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, rawPayload))
 }
 
-// fakeListUnsubscriber stands for the list service: it records each opt-out handed to it
-// and reports it recorded when recorded names its message, or fails with err.
-type fakeListUnsubscriber struct {
-	calls    []fakeUnsubscribeCall
-	recorded map[string]bool
-	err      error
-}
-
-type fakeUnsubscribeCall struct {
-	workspaceID, email, listID, messageID string
-}
-
-func (f *fakeListUnsubscriber) UnsubscribeFromMessageList(_ context.Context, workspaceID, email, listID, messageID string) (bool, error) {
-	f.calls = append(f.calls, fakeUnsubscribeCall{workspaceID, email, listID, messageID})
-	if f.err != nil {
-		return false, f.err
-	}
-	return f.recorded[messageID], nil
-}
-
 // TestProcessWebhook_MailjetUnsubscribe posts Mailjet "unsub" events through ProcessWebhook.
-// An unsubscribe is recorded on the list stored on the email, by the list service, and the
-// email is marked unsubscribed once the list service recorded something. It never becomes a
-// complaint.
+// An unsubscribe of the email's own recipient marks the email unsubscribed, after the list
+// service recorded the opt-out on the list the email was sent for, when there is one. It
+// never becomes a complaint.
 func TestProcessWebhook_MailjetUnsubscribe(t *testing.T) {
 	workspaceID, integrationID := "ws1", "int1"
 	listID := "list-1"
@@ -2992,17 +2973,25 @@ func TestProcessWebhook_MailjetUnsubscribe(t *testing.T) {
 	sentFor := func(email string, listID *string) *domain.MessageHistory {
 		return &domain.MessageHistory{ContactEmail: email, ListID: listID}
 	}
+	marked := func(messageIDs ...string) []domain.MessageEventUpdate {
+		updates := make([]domain.MessageEventUpdate, 0, len(messageIDs))
+		for _, id := range messageIDs {
+			updates = append(updates, domain.MessageEventUpdate{ID: id, Event: domain.MessageEventUnsubscribed, Timestamp: unsubscribedAt})
+		}
+		return updates
+	}
 
 	type fixture struct {
 		service      *InboundWebhookEventService
 		repo         *mocks.MockInboundWebhookEventRepository
 		history      *mocks.MockMessageHistoryRepository
-		unsubscriber *fakeListUnsubscriber
+		unsubscriber *servicemocks.MockListUnsubscriber
 	}
-	// setup returns a service whose controller finishes with the subtest
+	// setup returns a service whose controller finishes with the subtest. gomock fails the
+	// subtest on any call it did not expect, a call to the list service included.
 	setup := func(t *testing.T) fixture {
-		service, repo, workspaceRepo, history, _, _ := newClassificationTestService(t)
-		f := fixture{service: service, repo: repo, history: history, unsubscriber: &fakeListUnsubscriber{}}
+		service, repo, workspaceRepo, history, _, ctrl := newClassificationTestService(t)
+		f := fixture{service: service, repo: repo, history: history, unsubscriber: servicemocks.NewMockListUnsubscriber(ctrl)}
 		service.listUnsubscriber = f.unsubscriber
 		workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(mailjetWorkspace, nil)
 		return f
@@ -3023,9 +3012,8 @@ func TestProcessWebhook_MailjetUnsubscribe(t *testing.T) {
 		return f.service.ProcessWebhook(context.Background(), workspaceID, integrationID, raw)
 	}
 
-	t.Run("recorded on the email's list, and the email is marked unsubscribed", func(t *testing.T) {
+	t.Run("an email sent for a list: the opt-out is recorded on that list, then the email is marked unsubscribed", func(t *testing.T) {
 		f := setup(t)
-		f.unsubscriber.recorded = map[string]bool{"msg-1": true}
 		f.repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ string, events []*domain.InboundWebhookEvent) error {
 				require.Len(t, events, 1)
@@ -3035,85 +3023,82 @@ func TestProcessWebhook_MailjetUnsubscribe(t *testing.T) {
 		gomock.InOrder(
 			expectNoComplaint(t, f),
 			f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-1").Return(sentFor("jane@example.com", &listID), nil),
-			f.history.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, []domain.MessageEventUpdate{
-				{ID: "msg-1", Event: domain.MessageEventUnsubscribed, Timestamp: unsubscribedAt},
-			}).Return(nil),
+			f.unsubscriber.EXPECT().UnsubscribeFromMessageList(gomock.Any(), workspaceID, "jane@example.com", listID, "msg-1").Return(nil),
+			f.history.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, marked("msg-1")).Return(nil),
 		)
 
 		require.NoError(t, process(t, f, unsub("msg-1", "jane@example.com")))
-		assert.Equal(t, []fakeUnsubscribeCall{{workspaceID, "jane@example.com", listID, "msg-1"}}, f.unsubscriber.calls)
 	})
 
 	t.Run("the address as stored is unsubscribed, whatever its case in the event", func(t *testing.T) {
 		f := setup(t)
-		f.unsubscriber.recorded = map[string]bool{"msg-1": true}
 		f.repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 		expectNoComplaint(t, f)
 		f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-1").Return(sentFor("jane@example.com", &listID), nil)
-		f.history.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Len(1)).Return(nil)
+		f.unsubscriber.EXPECT().UnsubscribeFromMessageList(gomock.Any(), workspaceID, "jane@example.com", listID, "msg-1").Return(nil)
+		f.history.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, marked("msg-1")).Return(nil)
 
 		require.NoError(t, process(t, f, unsub("msg-1", "Jane@Example.com")))
-		assert.Equal(t, []fakeUnsubscribeCall{{workspaceID, "jane@example.com", listID, "msg-1"}}, f.unsubscriber.calls)
 	})
 
-	// The list service records nothing for a deleted list, an erased contact, or a contact
-	// with no row on a list the email was not sent for
-	t.Run("nothing recorded on the list: the email is not marked", func(t *testing.T) {
-		f := setup(t)
-		f.repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
-		// gomock fails the test on a second status update
-		expectNoComplaint(t, f)
-		f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-1").Return(sentFor("jane@example.com", &listID), nil)
-
-		require.NoError(t, process(t, f, unsub("msg-1", "jane@example.com")))
-		assert.Len(t, f.unsubscriber.calls, 1)
-	})
-
+	// Mailjet integrations send transactional email only, which is sent for no list
 	emptyList := ""
 	for name, message := range map[string]*domain.MessageHistory{
-		// Mailjet's webhooks cover the whole Mailjet account
-		"an email Notifuse did not send": nil,
-		// Nor the automation's current list: it may have changed since the email went out
 		"an email sent for no list, such as a transactional one": sentFor("jane@example.com", nil),
 		"an email stored with an empty list":                     sentFor("jane@example.com", &emptyList),
-		"an email to another address, such as a copy":            sentFor("john@example.com", &listID),
+	} {
+		message := message
+		t.Run(name+": the email is marked unsubscribed, and no list is touched", func(t *testing.T) {
+			f := setup(t)
+			f.repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+			// gomock fails the test on a call to the list service
+			gomock.InOrder(
+				expectNoComplaint(t, f),
+				f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-1").Return(message, nil),
+				f.history.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, marked("msg-1")).Return(nil),
+			)
+
+			require.NoError(t, process(t, f, unsub("msg-1", "jane@example.com")))
+		})
+	}
+
+	for name, message := range map[string]*domain.MessageHistory{
+		// Mailjet's webhooks cover the whole Mailjet account
+		"an email Notifuse did not send":              nil,
+		"an email to another address, such as a copy": sentFor("john@example.com", &listID),
 		// An erased contact's emails are kept with the address redacted
-		"an email to a contact erased since": sentFor("DELETED_EMAIL", &listID),
+		"an email to a contact erased since":                  sentFor("DELETED_EMAIL", &listID),
+		"an email sent for no list to a contact erased since": sentFor("DELETED_EMAIL", nil),
 	} {
 		message := message
 		t.Run(name+": nothing is recorded", func(t *testing.T) {
 			f := setup(t)
 			f.repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+			// gomock fails the test on a call to the list service, or on a second status update
 			expectNoComplaint(t, f)
 			f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-1").Return(message, nil)
 
 			require.NoError(t, process(t, f, unsub("msg-1", "jane@example.com")))
-			assert.Empty(t, f.unsubscriber.calls, "the list service is not called")
 		})
 	}
 
-	t.Run("one delivery: each email marked once the list service recorded its opt-out", func(t *testing.T) {
+	t.Run("one delivery: the emails of their own recipients are marked in one update", func(t *testing.T) {
 		f := setup(t)
-		f.unsubscriber.recorded = map[string]bool{"msg-1": true, "msg-3": true}
 		f.repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 		expectNoComplaint(t, f)
-		for _, id := range []string{"msg-1", "msg-2", "msg-3"} {
-			f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, id).Return(sentFor(id+"@example.com", &listID), nil)
-		}
-		f.history.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, []domain.MessageEventUpdate{
-			{ID: "msg-1", Event: domain.MessageEventUnsubscribed, Timestamp: unsubscribedAt},
-			{ID: "msg-3", Event: domain.MessageEventUnsubscribed, Timestamp: unsubscribedAt},
-		}).Return(nil)
+		f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-1").Return(sentFor("msg-1@example.com", &listID), nil)
+		f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-2").Return(sentFor("john@example.com", &listID), nil)
+		f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-3").Return(sentFor("msg-3@example.com", nil), nil)
+		f.unsubscriber.EXPECT().UnsubscribeFromMessageList(gomock.Any(), workspaceID, "msg-1@example.com", listID, "msg-1").Return(nil)
+		f.history.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, marked("msg-1", "msg-3")).Return(nil)
 
 		require.NoError(t, process(t, f,
 			unsub("msg-1", "msg-1@example.com"), unsub("msg-2", "msg-2@example.com"), unsub("msg-3", "msg-3@example.com")))
-		assert.Len(t, f.unsubscriber.calls, 3)
 	})
 
 	// People who report spam often unsubscribe too, and Mailjet can post both in one delivery
 	t.Run("a complaint and an unsubscribe in one delivery: the complaint first, the opt-out after", func(t *testing.T) {
 		f := setup(t)
-		f.unsubscriber.recorded = map[string]bool{"msg-2": true}
 		spam := domain.MailjetWebhookPayload{
 			Event: "spam", Time: unsubscribedAt.Unix(), Email: "john@example.com", MessageID: 12345, CustomID: "msg-1", Source: "JMRPP",
 		}
@@ -3127,9 +3112,8 @@ func TestProcessWebhook_MailjetUnsubscribe(t *testing.T) {
 					return nil
 				}),
 			f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-2").Return(sentFor("jane@example.com", &listID), nil),
-			f.history.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, []domain.MessageEventUpdate{
-				{ID: "msg-2", Event: domain.MessageEventUnsubscribed, Timestamp: unsubscribedAt},
-			}).Return(nil),
+			f.unsubscriber.EXPECT().UnsubscribeFromMessageList(gomock.Any(), workspaceID, "jane@example.com", listID, "msg-2").Return(nil),
+			f.history.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, marked("msg-2")).Return(nil),
 		)
 
 		require.NoError(t, process(t, f, spam, unsub("msg-2", "jane@example.com")))
@@ -3146,15 +3130,16 @@ func TestProcessWebhook_MailjetUnsubscribe(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to record unsubscribes")
 		assert.Contains(t, err.Error(), "connection refused")
-		assert.Empty(t, f.unsubscriber.calls)
 	})
 
-	t.Run("error - the list service fails: no email is marked", func(t *testing.T) {
+	t.Run("error - the list service fails: the email is not marked", func(t *testing.T) {
 		f := setup(t)
-		f.unsubscriber.err = errors.New("connection refused")
 		f.repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+		// gomock fails the test on a second status update
 		expectNoComplaint(t, f)
 		f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-1").Return(sentFor("jane@example.com", &listID), nil)
+		f.unsubscriber.EXPECT().UnsubscribeFromMessageList(gomock.Any(), workspaceID, "jane@example.com", listID, "msg-1").
+			Return(errors.New("connection refused"))
 
 		err := process(t, f, unsub("msg-1", "jane@example.com"))
 		require.Error(t, err)
@@ -3163,20 +3148,80 @@ func TestProcessWebhook_MailjetUnsubscribe(t *testing.T) {
 		assert.Contains(t, err.Error(), "connection refused")
 	})
 
-	t.Run("error - marking the email fails", func(t *testing.T) {
+	// The opt-outs recorded before the failure are committed: their emails are marked now,
+	// not on Mailjet's retry. The emails after it wait for the retry.
+	t.Run("error - a later email's list opt-out fails: the emails before it are marked", func(t *testing.T) {
 		f := setup(t)
-		f.unsubscriber.recorded = map[string]bool{"msg-1": true}
 		f.repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 		gomock.InOrder(
 			expectNoComplaint(t, f),
 			f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-1").Return(sentFor("jane@example.com", &listID), nil),
-			f.history.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Len(1)).Return(errors.New("connection refused")),
+			f.unsubscriber.EXPECT().UnsubscribeFromMessageList(gomock.Any(), workspaceID, "jane@example.com", listID, "msg-1").Return(nil),
+			f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-2").Return(sentFor("john@example.com", &listID), nil),
+			f.unsubscriber.EXPECT().UnsubscribeFromMessageList(gomock.Any(), workspaceID, "john@example.com", listID, "msg-2").
+				Return(errors.New("connection refused")),
+			f.history.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, marked("msg-1")).Return(nil),
+		)
+
+		err := process(t, f, unsub("msg-1", "jane@example.com"), unsub("msg-2", "john@example.com"), unsub("msg-3", "jim@example.com"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to record unsubscribes")
+		assert.Contains(t, err.Error(), "msg-2")
+		assert.Contains(t, err.Error(), "connection refused")
+	})
+
+	t.Run("error - a later email's lookup fails: the emails before it are marked", func(t *testing.T) {
+		f := setup(t)
+		f.repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+		gomock.InOrder(
+			expectNoComplaint(t, f),
+			f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-1").Return(sentFor("jane@example.com", nil), nil),
+			f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-2").Return(nil, errors.New("connection refused")),
+			f.history.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, marked("msg-1")).Return(nil),
+		)
+
+		err := process(t, f, unsub("msg-1", "jane@example.com"), unsub("msg-2", "john@example.com"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to record unsubscribes")
+		assert.Contains(t, err.Error(), "connection refused")
+	})
+
+	t.Run("error - a later email fails and marking the ones before it fails too: both errors are returned", func(t *testing.T) {
+		f := setup(t)
+		f.repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+		optOutErr := errors.New("list update: connection refused")
+		markErr := errors.New("status update: connection refused")
+		gomock.InOrder(
+			expectNoComplaint(t, f),
+			f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-1").Return(sentFor("jane@example.com", &listID), nil),
+			f.unsubscriber.EXPECT().UnsubscribeFromMessageList(gomock.Any(), workspaceID, "jane@example.com", listID, "msg-1").Return(nil),
+			f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-2").Return(sentFor("john@example.com", &listID), nil),
+			f.unsubscriber.EXPECT().UnsubscribeFromMessageList(gomock.Any(), workspaceID, "john@example.com", listID, "msg-2").Return(optOutErr),
+			f.history.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, marked("msg-1")).Return(markErr),
+		)
+
+		err := process(t, f, unsub("msg-1", "jane@example.com"), unsub("msg-2", "john@example.com"))
+		require.Error(t, err)
+		assert.ErrorIs(t, err, optOutErr)
+		assert.ErrorIs(t, err, markErr)
+		assert.Contains(t, err.Error(), "failed to record unsubscribes")
+	})
+
+	t.Run("error - marking the email fails", func(t *testing.T) {
+		f := setup(t)
+		f.repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+		markErr := errors.New("connection refused")
+		gomock.InOrder(
+			expectNoComplaint(t, f),
+			f.history.EXPECT().GetRecipientAndList(gomock.Any(), workspaceID, "msg-1").Return(sentFor("jane@example.com", &listID), nil),
+			f.unsubscriber.EXPECT().UnsubscribeFromMessageList(gomock.Any(), workspaceID, "jane@example.com", listID, "msg-1").Return(nil),
+			f.history.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, marked("msg-1")).Return(markErr),
 		)
 
 		err := process(t, f, unsub("msg-1", "jane@example.com"))
 		require.Error(t, err)
+		assert.ErrorIs(t, err, markErr)
 		assert.Contains(t, err.Error(), "failed to record unsubscribes")
-		assert.Contains(t, err.Error(), "connection refused")
 	})
 }
 
@@ -3185,17 +3230,15 @@ func TestProcessWebhook_MailjetUnsubscribe(t *testing.T) {
 func TestRecordUnsubscribes_SkipsEventsWithoutMessageID(t *testing.T) {
 	service, _, _, _, _, ctrl := newClassificationTestService(t)
 	defer ctrl.Finish()
-	unsubscriber := &fakeListUnsubscriber{}
-	service.listUnsubscriber = unsubscriber
+	service.listUnsubscriber = servicemocks.NewMockListUnsubscriber(ctrl)
 	empty := ""
 
-	// gomock fails the test on any call to the message history repository
+	// gomock fails the test on any call to the message history repository or the list service
 	err := service.recordUnsubscribes(context.Background(), "ws1", []*domain.InboundWebhookEvent{
 		{Type: domain.EmailEventUnsubscribe, RecipientEmail: "jane@example.com"},
 		{Type: domain.EmailEventUnsubscribe, RecipientEmail: "jane@example.com", MessageID: &empty},
 	})
 	require.NoError(t, err)
-	assert.Empty(t, unsubscriber.calls)
 }
 
 // TestListEvents tests the ListEvents method of WebhookEventService

@@ -18,11 +18,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// listUnsubscriber records an opt-out an email provider reported for an email, on the list
-// stored on the email, by the rules of the email's own unsubscribe link. ListService
+//go:generate mockgen -destination=./mocks/mock_list_unsubscriber.go -package=mocks github.com/Notifuse/notifuse/internal/service ListUnsubscriber
+
+// ListUnsubscriber records an opt-out an email provider reported for an email, on the list
+// the email was sent for, by the rules of the email's own unsubscribe link. ListService
 // implements it.
-type listUnsubscriber interface {
-	UnsubscribeFromMessageList(ctx context.Context, workspaceID, email, listID, messageID string) (bool, error)
+type ListUnsubscriber interface {
+	UnsubscribeFromMessageList(ctx context.Context, workspaceID, email, listID, messageID string) error
 }
 
 // InboundWebhookEventService implements the domain.InboundWebhookEventServiceInterface
@@ -34,7 +36,7 @@ type InboundWebhookEventService struct {
 	messageHistoryRepo domain.MessageHistoryRepository
 	contactRepo        domain.ContactRepository
 	automationRepo     domain.AutomationRepository
-	listUnsubscriber   listUnsubscriber
+	listUnsubscriber   ListUnsubscriber
 	replyParsers       map[domain.EmailProviderKind]domain.ReplyParser
 	// httpClient fetches the SNS SubscribeURL. It is SSRF-safe because that URL
 	// arrives in the request body of a public endpoint — see confirmSNSSubscription.
@@ -50,7 +52,7 @@ func NewInboundWebhookEventService(
 	messageHistoryRepo domain.MessageHistoryRepository,
 	contactRepo domain.ContactRepository,
 	automationRepo domain.AutomationRepository,
-	unsubscriber listUnsubscriber,
+	unsubscriber ListUnsubscriber,
 ) *InboundWebhookEventService {
 	return &InboundWebhookEventService{
 		repo:               repo,
@@ -452,16 +454,20 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 	return nil
 }
 
-// recordUnsubscribes records the opt-outs a provider reported as the email's own
-// unsubscribe link records one: the contact is unsubscribed from the list stored on the
-// email, and the email is marked unsubscribed once something was recorded, which fires its
-// email.unsubscribed events once. Nothing is recorded for an email Notifuse did not send,
-// for an email sent for no list (a transactional one, or an automation email sent before
-// automations stored their list), or for an opt-out of another address than the email's
-// recipient, such as someone the email was copied to. An erased contact's emails are kept
-// with the address redacted, so they fall in that last case.
+// recordUnsubscribes records the opt-outs a provider reported, as the email's own
+// unsubscribe link records one: the email is marked unsubscribed, which counts it in
+// statistics and fires its email.unsubscribed events once, and when it was sent for a list,
+// the list service first records the opt-out there, by the rules of that link. Nothing is
+// recorded for an email Notifuse did not send, or for an opt-out of another address than
+// the email's recipient, such as someone the email was copied to. An erased contact's
+// emails are kept with the address redacted, so they fall in that last case.
+//
+// It stops at the first failure, and still marks the emails whose opt-outs were recorded
+// before it: those are committed, so their emails are marked now rather than on the
+// provider's retry of the delivery.
 func (s *InboundWebhookEventService) recordUnsubscribes(ctx context.Context, workspaceID string, events []*domain.InboundWebhookEvent) error {
 	var updates []domain.MessageEventUpdate
+	var failed error
 	for _, event := range events {
 		if event.MessageID == nil || *event.MessageID == "" {
 			continue
@@ -470,7 +476,8 @@ func (s *InboundWebhookEventService) recordUnsubscribes(ctx context.Context, wor
 
 		message, err := s.messageHistoryRepo.GetRecipientAndList(ctx, workspaceID, messageID)
 		if err != nil {
-			return err
+			failed = err
+			break
 		}
 		if message == nil {
 			s.logger.WithField("message_id", messageID).Info("Unsubscribe skipped: unknown message")
@@ -480,28 +487,26 @@ func (s *InboundWebhookEventService) recordUnsubscribes(ctx context.Context, wor
 			s.logger.WithField("message_id", messageID).Warn("Unsubscribe skipped: reported for another address than the email's recipient")
 			continue
 		}
-		if message.ListID == nil || *message.ListID == "" {
-			s.logger.WithField("message_id", messageID).Info("Unsubscribe skipped: the email was sent for no list")
-			continue
+		// An email sent for no list, such as a transactional one, is only marked
+		if message.ListID != nil && *message.ListID != "" {
+			if err := s.listUnsubscriber.UnsubscribeFromMessageList(ctx, workspaceID, message.ContactEmail, *message.ListID, messageID); err != nil {
+				failed = fmt.Errorf("failed to unsubscribe from the list of message %s: %w", messageID, err)
+				break
+			}
 		}
-
-		recorded, err := s.listUnsubscriber.UnsubscribeFromMessageList(ctx, workspaceID, message.ContactEmail, *message.ListID, messageID)
-		if err != nil {
-			return fmt.Errorf("failed to unsubscribe from the list of message %s: %w", messageID, err)
-		}
-		if recorded {
-			updates = append(updates, domain.MessageEventUpdate{
-				ID:        messageID,
-				Event:     domain.MessageEventUnsubscribed,
-				Timestamp: event.Timestamp,
-			})
-		}
+		updates = append(updates, domain.MessageEventUpdate{
+			ID:        messageID,
+			Event:     domain.MessageEventUnsubscribed,
+			Timestamp: event.Timestamp,
+		})
 	}
 
-	if len(updates) == 0 {
-		return nil
+	if len(updates) > 0 {
+		if err := s.messageHistoryRepo.SetStatusesIfNotSet(ctx, workspaceID, updates); err != nil {
+			failed = errors.Join(failed, err)
+		}
 	}
-	return s.messageHistoryRepo.SetStatusesIfNotSet(ctx, workspaceID, updates)
+	return failed
 }
 
 // dedupeStrings returns a new slice with duplicates removed, preserving the
