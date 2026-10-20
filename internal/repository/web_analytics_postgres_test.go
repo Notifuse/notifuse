@@ -334,6 +334,8 @@ func TestFlushBatch(t *testing.T) {
 		err := repo.FlushBatch(context.Background(), waTestWorkspace, sessions, nil, nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "web_sessions")
+		assert.NotErrorIs(t, err, domain.ErrWebAnalyticsRowsRefused,
+			"a partition still missing is the schema's failure, not the rows': no part of the batch would fare better")
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -351,6 +353,119 @@ func TestFlushBatch(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "connection refused")
 		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// The buffer splits a batch PostgreSQL refused, to find the writers whose
+	// rows it refuses, and must not split one that failed for any other reason:
+	// every part would fail the same way. These pin which failures are the rows'.
+	t.Run("rows PostgreSQL refuses are reported as refused", func(t *testing.T) {
+		for _, tc := range []struct {
+			code    pq.ErrorCode
+			message string
+		}{
+			{"22021", `invalid byte sequence for encoding "UTF8": 0xff`},
+			{"22P05", "unsupported Unicode escape sequence"},
+			{"22P02", "invalid input syntax for type uuid"},
+			{"22001", "value too long for type character varying(255)"},
+			{"22003", "integer out of range"},
+			{"23502", `null value in column "session_date" violates not-null constraint`},
+			{"23505", "duplicate key value violates unique constraint"},
+			{"23514", `new row for relation "web_sessions_y2024m05" violates check constraint "test_refused"`},
+			{"21000", "ON CONFLICT DO UPDATE command cannot affect row a second time"},
+			{"54000", "index row size exceeds btree version 4 maximum"},
+		} {
+			t.Run(string(tc.code), func(t *testing.T) {
+				repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
+				defer cleanup()
+
+				mock.ExpectBegin()
+				mock.ExpectExec("INSERT INTO web_sessions").WillReturnError(&pq.Error{Code: tc.code, Message: tc.message})
+				mock.ExpectRollback()
+
+				err := repo.FlushBatch(context.Background(), waTestWorkspace,
+					[]*domain.WebSession{waTestSession("aa0e8400-e29b-41d4-a716-446655440000", date)}, nil, nil)
+				require.Error(t, err)
+				assert.ErrorIs(t, err, domain.ErrWebAnalyticsRowsRefused)
+				var pqErr *pq.Error
+				require.ErrorAs(t, err, &pqErr, "the database's own error is kept")
+				assert.Equal(t, tc.code, pqErr.Code)
+				assert.Contains(t, err.Error(), tc.message)
+				assert.NoError(t, mock.ExpectationsWereMet())
+			})
+		}
+	})
+
+	t.Run("a refusal raised at commit is reported as refused", func(t *testing.T) {
+		repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
+		defer cleanup()
+
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT INTO web_sessions").WillReturnResult(sqlmock.NewResult(0, 1))
+		expectRollups(mock)
+		mock.ExpectCommit().WillReturnError(&pq.Error{Code: "23505", Message: "duplicate key value violates unique constraint"})
+
+		err := repo.FlushBatch(context.Background(), waTestWorkspace,
+			[]*domain.WebSession{waTestSession("aa0e8400-e29b-41d4-a716-446655440000", date)}, nil, nil)
+		assert.ErrorIs(t, err, domain.ErrWebAnalyticsRowsRefused)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a refusal on the retry after creating partitions is reported as refused", func(t *testing.T) {
+		repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
+		defer cleanup()
+
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT INTO web_sessions").
+			WillReturnError(&pq.Error{Code: "23514", Message: `no partition of relation "web_sessions" found for row`})
+		mock.ExpectRollback()
+		for range schema.WebAnalyticsTableNames {
+			mock.ExpectExec("CREATE TABLE IF NOT EXISTS").WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT INTO web_sessions").
+			WillReturnError(&pq.Error{Code: "22021", Message: `invalid byte sequence for encoding "UTF8": 0xc3`})
+		mock.ExpectRollback()
+
+		err := repo.FlushBatch(context.Background(), waTestWorkspace,
+			[]*domain.WebSession{waTestSession("aa0e8400-e29b-41d4-a716-446655440000", date)}, nil, nil)
+		assert.ErrorIs(t, err, domain.ErrWebAnalyticsRowsRefused)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("failures of the server's own are not reported as refused", func(t *testing.T) {
+		for _, tc := range []struct {
+			name string
+			err  error
+		}{
+			{"driver error", errors.New("connection refused")},
+			{"bad connection", driver.ErrBadConn},
+			{"deadline", context.DeadlineExceeded},
+			{"serialization failure", &pq.Error{Code: "40001", Message: "could not serialize access"}},
+			{"deadlock", &pq.Error{Code: "40P01", Message: "deadlock detected"}},
+			{"statement timeout", &pq.Error{Code: "57014", Message: "canceling statement due to statement timeout"}},
+			{"shutdown", &pq.Error{Code: "57P01", Message: "terminating connection due to administrator command"}},
+			{"connection failure", &pq.Error{Code: "08006", Message: "connection failure"}},
+			{"too many connections", &pq.Error{Code: "53300", Message: "sorry, too many clients already"}},
+			{"disk full", &pq.Error{Code: "53100", Message: "could not extend file"}},
+			{"undefined column", &pq.Error{Code: "42703", Message: `column "x" does not exist`}},
+			{"internal error", &pq.Error{Code: "XX000", Message: "internal error"}},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				repo, mock, cleanup := newWebAnalyticsRepoForTest(t)
+				defer cleanup()
+
+				mock.ExpectBegin()
+				mock.ExpectExec("INSERT INTO web_sessions").WillReturnError(tc.err)
+				mock.ExpectRollback()
+
+				err := repo.FlushBatch(context.Background(), waTestWorkspace,
+					[]*domain.WebSession{waTestSession("aa0e8400-e29b-41d4-a716-446655440000", date)}, nil, nil)
+				require.Error(t, err)
+				assert.NotErrorIs(t, err, domain.ErrWebAnalyticsRowsRefused)
+				assert.ErrorIs(t, err, tc.err, "the error itself is passed on")
+				assert.NoError(t, mock.ExpectationsWereMet())
+			})
+		}
 	})
 }
 

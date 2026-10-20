@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -122,7 +123,7 @@ func TestWebAnalyticsBufferDebounce(t *testing.T) {
 		*now = now.Add(3 * time.Second)
 		s2, p2, g2 := bufSession("s1", 2, 0)
 		buffer.Add("ws1", 0, s2, p2, g2) // the visitor's last beat
-		buffer.flushDue(ctx)                    // not due yet
+		buffer.flushDue(ctx)             // not due yet
 
 		*now = now.Add(70 * time.Second)
 		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
@@ -405,5 +406,274 @@ func TestWebAnalyticsBufferProjectsNavigation(t *testing.T) {
 			buffer.Add("ws4", 0, identified(session, "her@example.com"), pages, goals)
 			buffer.FlushAll(ctx)
 		}
+	})
+}
+
+// errTestRowsRefused is FlushBatch's error for a batch holding rows PostgreSQL
+// refuses, as the repository reports it.
+var errTestRowsRefused = fmt.Errorf("%w: failed to upsert web_sessions: pq: invalid byte sequence for encoding \"UTF8\": 0xff",
+	domain.ErrWebAnalyticsRowsRefused)
+
+// batchRecorder stands in for PostgreSQL in the salvage tests: it refuses every
+// batch its refuses func objects to, commits every other one, and records the
+// session ids of each batch it is handed, in call order.
+type batchRecorder struct {
+	t       *testing.T
+	refuses func(sessions []*domain.WebSession) bool
+	batches [][]string
+	written map[string]int // session id -> batches committed with it
+}
+
+func newBatchRecorder(t *testing.T, refuses func(sessions []*domain.WebSession) bool) *batchRecorder {
+	return &batchRecorder{t: t, refuses: refuses, written: map[string]int{}}
+}
+
+// refusing objects to any batch holding one of the given sessions.
+func refusing(ids ...string) func(sessions []*domain.WebSession) bool {
+	return func(sessions []*domain.WebSession) bool {
+		for _, s := range sessions {
+			for _, id := range ids {
+				if s.ID == id {
+					return true
+				}
+			}
+		}
+		return false
+	}
+}
+
+func (r *batchRecorder) flush(_ context.Context, _ string, sessions []*domain.WebSession, pages []*domain.WebPage, goals []*domain.WebGoal) error {
+	ids := make([]string, 0, len(sessions))
+	in := map[string]bool{}
+	for _, s := range sessions {
+		ids = append(ids, s.ID)
+		in[s.ID] = true
+	}
+	// A writer's rows travel together, whichever part of a split they land in:
+	// bufSession gives every writer a page, and no row comes without its session.
+	assert.Len(r.t, pages, len(sessions))
+	for _, p := range pages {
+		assert.True(r.t, in[p.SessionID], "page of %s handed over without its session", p.SessionID)
+	}
+	for _, g := range goals {
+		assert.True(r.t, in[g.SessionID], "goal of %s handed over without its session", g.SessionID)
+	}
+	sort.Strings(ids)
+	r.batches = append(r.batches, ids)
+	if r.refuses(sessions) {
+		return errTestRowsRefused
+	}
+	for _, id := range ids {
+		r.written[id]++
+	}
+	return nil
+}
+
+func addBufferedWriters(buffer *WebAnalyticsBuffer, workspaceID string, ids ...string) {
+	for _, id := range ids {
+		s, p, g := bufSession(id, 1, 0)
+		buffer.Add(workspaceID, 0, s, p, g)
+	}
+}
+
+// TestWebAnalyticsBufferSalvagesARefusedBatch covers what happens when
+// PostgreSQL refuses rows of a workspace's batch: the flush writes the whole
+// batch in one transaction, so one writer's refused value would fail every
+// other writer's rows with it, and after the retry drop them all. The buffer
+// splits such a batch instead, so that only the writers whose own rows are
+// refused fail.
+func TestWebAnalyticsBufferSalvagesARefusedBatch(t *testing.T) {
+	ctx := context.Background()
+	clean := []string{"s-1", "s-2", "s-3", "s-4", "s-5", "s-6", "s-7"}
+
+	t.Run("a writer PostgreSQL refuses costs only itself", func(t *testing.T) {
+		buffer, repo, _ := newBufferForTest(t)
+		allowProjection(repo)
+		db := newBatchRecorder(t, refusing("s-bad"))
+		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(db.flush).AnyTimes()
+		addBufferedWriters(buffer, "ws1", append(append([]string{}, clean...), "s-bad")...)
+
+		buffer.FlushAll(ctx)
+		require.NotEmpty(t, db.batches)
+		assert.Len(t, db.batches[0], len(clean)+1, "the whole run is tried first, as one transaction")
+		for _, id := range clean {
+			assert.Equal(t, 1, db.written[id], "%s is written, once", id)
+		}
+		assert.Zero(t, db.written["s-bad"])
+		assert.Equal(t, len(clean)+1, buffer.PendingSessions("ws1"), "the refused writer keeps its retry")
+
+		calls := len(db.batches)
+		buffer.FlushAll(ctx)
+		require.Len(t, db.batches, calls+1, "the retry is that writer alone, which leaves nothing to split")
+		assert.Equal(t, []string{"s-bad"}, db.batches[calls])
+		assert.Equal(t, len(clean), buffer.PendingSessions("ws1"), "and it is dropped once the retry fails too")
+
+		buffer.FlushAll(ctx)
+		assert.Len(t, db.batches, calls+1, "nothing is left to write")
+		for _, id := range clean {
+			assert.Equal(t, 1, db.written[id])
+		}
+	})
+
+	t.Run("rows refused only in each other's company are all written", func(t *testing.T) {
+		// Writers PostgreSQL refuses only together, as it does the same key
+		// written twice in one statement. Apart, each is fine.
+		buffer, repo, _ := newBufferForTest(t)
+		allowProjection(repo)
+		db := newBatchRecorder(t, func(sessions []*domain.WebSession) bool {
+			return refusing("s-1")(sessions) && refusing("s-7")(sessions)
+		})
+		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(db.flush).AnyTimes()
+		addBufferedWriters(buffer, "ws1", clean...)
+
+		buffer.FlushAll(ctx)
+		for _, id := range clean {
+			assert.Equal(t, 1, db.written[id], id)
+		}
+		calls := len(db.batches)
+		buffer.FlushAll(ctx)
+		assert.Len(t, db.batches, calls, "every writer landed, so none is retried")
+	})
+
+	t.Run("a failure that is not a refusal is not split", func(t *testing.T) {
+		// Every part of a batch that failed for a reason of the server's own —
+		// the connection, a timeout — would fail the same way.
+		buffer, repo, _ := newBufferForTest(t)
+		allowProjection(repo)
+		calls := 0
+		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, _ []*domain.WebSession, _ []*domain.WebPage, _ []*domain.WebGoal) error {
+				calls++
+				return errors.New("dial tcp: connection refused")
+			}).AnyTimes()
+		addBufferedWriters(buffer, "ws1", clean...)
+
+		buffer.FlushAll(ctx)
+		assert.Equal(t, 1, calls)
+		assert.Equal(t, len(clean), buffer.PendingSessions("ws1"), "kept for their retry")
+		buffer.FlushAll(ctx)
+		assert.Equal(t, 2, calls)
+		assert.Zero(t, buffer.PendingSessions("ws1"), "and dropped once it fails too, as before")
+	})
+
+	t.Run("the salvage spends no more flushes than its budget", func(t *testing.T) {
+		buffer, repo, _ := newBufferForTest(t)
+		allowProjection(repo)
+		const budget = 3
+		buffer.cfg.MaxSalvageFlushes = budget
+		db := newBatchRecorder(t, func([]*domain.WebSession) bool { return true })
+		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(db.flush).AnyTimes()
+		addBufferedWriters(buffer, "ws1", clean...)
+
+		buffer.FlushAll(ctx)
+		assert.Len(t, db.batches, 1+budget, "the run itself, then the budget")
+		assert.Equal(t, len(clean), buffer.PendingSessions("ws1"), "what the budget left unresolved keeps its retry")
+		buffer.FlushAll(ctx)
+		assert.Len(t, db.batches, 2*(1+budget))
+		assert.Zero(t, buffer.PendingSessions("ws1"))
+	})
+
+	t.Run("a failure that is not a refusal ends the salvage", func(t *testing.T) {
+		buffer, repo, _ := newBufferForTest(t)
+		allowProjection(repo)
+		calls := 0
+		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, _ []*domain.WebSession, _ []*domain.WebPage, _ []*domain.WebGoal) error {
+				calls++
+				if calls == 1 {
+					return errTestRowsRefused
+				}
+				return errors.New("read tcp: connection reset by peer")
+			}).AnyTimes()
+		addBufferedWriters(buffer, "ws1", clean...)
+
+		buffer.FlushAll(ctx)
+		assert.Equal(t, 2, calls, "the server went away: no other part is tried")
+		assert.Equal(t, len(clean), buffer.PendingSessions("ws1"))
+	})
+
+	t.Run("a cancelled flush ends the salvage", func(t *testing.T) {
+		buffer, repo, _ := newBufferForTest(t)
+		allowProjection(repo)
+		flushCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		calls := 0
+		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, _ []*domain.WebSession, _ []*domain.WebPage, _ []*domain.WebGoal) error {
+				calls++
+				cancel()
+				return errTestRowsRefused
+			}).AnyTimes()
+		addBufferedWriters(buffer, "ws1", clean...)
+
+		buffer.FlushAll(flushCtx)
+		assert.Equal(t, 1, calls)
+		assert.Equal(t, len(clean), buffer.PendingSessions("ws1"))
+	})
+
+	t.Run("a writer replaced by a newer beat during the salvage is not charged", func(t *testing.T) {
+		buffer, repo, _ := newBufferForTest(t)
+		allowProjection(repo)
+		db := newBatchRecorder(t, func(sessions []*domain.WebSession) bool {
+			for _, s := range sessions {
+				if s.ID == "s-bad" && s.BeatSeq == 1 {
+					return true
+				}
+			}
+			return false
+		})
+		repo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, workspaceID string, sessions []*domain.WebSession, pages []*domain.WebPage, goals []*domain.WebGoal) error {
+				if len(db.batches) == 1 {
+					// The visitor beats again while the salvage runs, without
+					// what was refused.
+					s, p, g := bufSession("s-bad", 2, 0)
+					buffer.Add("ws1", 0, s, p, g)
+				}
+				return db.flush(ctx, workspaceID, sessions, pages, goals)
+			}).AnyTimes()
+		addBufferedWriters(buffer, "ws1", append(append([]string{}, clean...), "s-bad")...)
+
+		buffer.FlushAll(ctx)
+		entry := buffer.workspaces["ws1"].sessions[webBufferKey("s-bad", 0)]
+		require.NotNil(t, entry)
+		assert.Zero(t, entry.failedAttempts, "the failure was the old beat's")
+		assert.True(t, entry.dirty)
+
+		buffer.FlushAll(ctx)
+		assert.Equal(t, 1, db.written["s-bad"], "the newer beat is written")
+	})
+
+	t.Run("goals are bridged and navigation projected only for the writers that landed", func(t *testing.T) {
+		h := newBridgeForTest(t)
+		buffer, repo, _ := newBufferForTest(t)
+		buffer.SetContactBridge(h.bridge)
+		db := newBatchRecorder(t, refusing("s-bad"))
+		repo.EXPECT().FlushBatch(gomock.Any(), bridgeTestWorkspace, gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(db.flush).AnyTimes()
+		var projected []string
+		repo.EXPECT().ProjectContactNavigation(gomock.Any(), bridgeTestWorkspace, gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, sessions []*domain.WebSession) error {
+				for _, s := range sessions {
+					projected = append(projected, s.ID)
+				}
+				return nil
+			}).AnyTimes()
+		email := "her@example.com"
+		h.contactExists(email)
+		h.expectInsert(1, nil)
+
+		for _, id := range []string{"s-good", "s-bad"} {
+			session, pages, _ := bufSession(id, 1, 0)
+			session.ContactEmail = &email
+			goal := h.goalAt("signup", email, -time.Minute)
+			goal.SessionID = id
+			buffer.Add(bridgeTestWorkspace, 0, session, pages, []*domain.WebGoal{goal})
+		}
+
+		buffer.FlushAll(ctx)
+		buffer.FlushAll(ctx) // the refused writer's retry, which fails too
+		require.Len(t, h.inserted(), 1)
+		assert.Equal(t, "s-good", h.inserted()[0].Properties["session_id"])
+		assert.Equal(t, []string{"s-good"}, projected)
 	})
 }

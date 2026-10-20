@@ -225,43 +225,6 @@ func TestWebTrackPayloadRemovesNULFromSessionText(t *testing.T) {
 	})
 }
 
-func TestWebTrackPayloadRefusesNULSessionID(t *testing.T) {
-	// uuid.Parse never reads the first and last byte of an id in the braced
-	// form, where the braces go, and the session row stores the id as sent, so
-	// a NUL in either place would still parse and then reach PostgreSQL.
-	// Refused like any other malformed id: the SDK only ever sends the
-	// canonical form, so no visitor's beat is lost to it.
-	now := time.Date(2026, 8, 8, 15, 0, 0, 0, time.UTC)
-	id := uuidV7At(now.Add(-time.Minute))
-	beat := func(sessionIDJSON string) string {
-		return fmt.Sprintf(`{"workspace_id":"ws1","session_id":%s,"updated_at":%d,"seq":1,"actions":[]}`, sessionIDJSON, now.UnixMilli())
-	}
-
-	for _, tc := range []struct{ name, sessionIDJSON string }{
-		{"leading and trailing", `"\u0000` + id + `\u0000"`},
-		{"leading", `"\u0000` + id + `}"`},
-		{"trailing", `"{` + id + `\u0000"`},
-	} {
-		t.Run(tc.name+` \u0000`, func(t *testing.T) {
-			var p WebTrackPayload
-			require.NoError(t, json.Unmarshal([]byte(beat(tc.sessionIDJSON)), &p))
-			require.Contains(t, p.SessionID, "\x00")
-			assert.ErrorContains(t, p.Validate(now), "session_id: contains a null character")
-		})
-	}
-
-	t.Run("as a raw byte", func(t *testing.T) {
-		p := &WebTrackPayload{WorkspaceID: "ws1", SessionID: "\x00" + id + "\x00", UpdatedAt: now.UnixMilli(), Seq: 1}
-		assert.ErrorContains(t, p.Validate(now), "null character")
-	})
-
-	t.Run("the same id with its braces is accepted", func(t *testing.T) {
-		// The counterpart: the refusal above is the NUL's, not the id's shape.
-		p := &WebTrackPayload{WorkspaceID: "ws1", SessionID: "{" + id + "}", UpdatedAt: now.UnixMilli(), Seq: 1}
-		assert.NoError(t, p.Validate(now))
-	})
-}
-
 func TestWebTrackRawNULByteIsNotJSON(t *testing.T) {
 	// JSON allows U+0000 inside a string only escaped, and nowhere outside one,
 	// so a literal 0x00 byte makes the whole beat malformed: the handler answers

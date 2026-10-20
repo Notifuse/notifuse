@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -385,13 +386,16 @@ func TestWebAnalyticsTrackEndToEnd(t *testing.T) {
 	})
 }
 
-// TestWebAnalyticsTrackNullCharacter posts, for each kind of text a beat
-// stores, a beat holding a NUL and a clean beat from another visitor, so both
-// sit in the same buffer batch. PostgreSQL stores U+0000 in neither text nor
-// jsonb, and the flush writes a workspace's batch in one transaction, so the
-// NUL used to abort the clean visitor's rows too, and once retrying had failed
-// as well both sessions were dropped for good.
-func TestWebAnalyticsTrackNullCharacter(t *testing.T) {
+// TestWebAnalyticsTrackUnstorableText posts, for each kind of text a beat
+// stores, a beat holding text PostgreSQL cannot store as it stands, and a clean
+// beat from another visitor, so both sit in the same buffer batch. PostgreSQL
+// refuses a NUL, and any byte sequence that is not UTF-8, in text and jsonb
+// alike; a beat brings the first as \u0000, and the pipeline made the second
+// itself when it percent-decoded a URL, cut a long value or took a header.
+// The flush writes a workspace's batch in one transaction, so such a string
+// used to fail the clean visitor's rows too, and once retrying had failed as
+// well both sessions were dropped for good.
+func TestWebAnalyticsTrackUnstorableText(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
 	defer testutil.CleanupTestEnvironment()
@@ -414,11 +418,15 @@ func TestWebAnalyticsTrackNullCharacter(t *testing.T) {
 	ts := now.UnixMilli()
 
 	// Everything below is JSON text rather than Go values marshalled to JSON, so
-	// each \u0000 is exactly the escape that travels on the wire. beatAs takes
-	// the session id as JSON text too.
+	// each \u0000 is exactly the escape that travels on the wire, and a raw byte
+	// that is not UTF-8 reaches the server as it is. beatSeqAs takes the session
+	// id as JSON text too.
+	beatSeqAs := func(sessionIDJSON string, seq int, fields string) []byte {
+		return []byte(fmt.Sprintf(`{"workspace_id":%q,"session_id":%s,"created_at":%d,"updated_at":%d,"sent_at":%d,"seq":%d,%s}`,
+			workspace.ID, sessionIDJSON, ts-60000, ts, ts, seq, fields))
+	}
 	beatAs := func(sessionIDJSON, fields string) []byte {
-		return []byte(fmt.Sprintf(`{"workspace_id":%q,"session_id":%s,"created_at":%d,"updated_at":%d,"sent_at":%d,"seq":1,%s}`,
-			workspace.ID, sessionIDJSON, ts-60000, ts, ts, fields))
+		return beatSeqAs(sessionIDJSON, 1, fields)
 	}
 	beat := func(sessionID, fields string) []byte {
 		return beatAs(fmt.Sprintf("%q", sessionID), fields)
@@ -472,13 +480,13 @@ func TestWebAnalyticsTrackNullCharacter(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 
 		// The test server never starts the buffer's flush ticker, so both
-		// beats are in the next batch. Flushed again so that a failed batch
-		// is retried as well: a retry cannot help while the NUL is in it.
+		// beats are in the next batch. Flushed again so that a failed writer
+		// is retried as well: a retry cannot help while the text is in it.
 		buffer.FlushAll(context.Background())
 		buffer.FlushAll(context.Background())
 
 		assert.Equal(t, 1, count(t, `SELECT COUNT(*) FROM web_sessions WHERE id = $1`, cleanSession),
-			"the clean visitor's session must not be lost with another visitor's NUL")
+			"the clean visitor's session must not be lost with another visitor's text")
 		assert.Equal(t, 1, count(t, `SELECT COUNT(*) FROM web_pages WHERE session_id = $1`, cleanSession))
 		assert.Equal(t, 1, count(t, `SELECT COUNT(*) FROM web_goals WHERE session_id = $1 AND goal_name = 'newsletter'`, cleanSession))
 	}
@@ -527,43 +535,236 @@ func TestWebAnalyticsTrackNullCharacter(t *testing.T) {
 			}},
 		{"percent-encoded NUL in the referrer", actions("") + `,"attributes":{"landing_page":"https://shop.example.com/landing","referrer":"https://news.example.org/a%00b"}`,
 			stores("referrer_path", "/a%00b")},
+		// Decoding can also produce bytes that are not UTF-8: an old link encoded
+		// in Latin-1, a character cut short, a host byte above 0x7F. They stay
+		// written as %XX, as a %00 does.
+		{"Latin-1 bytes in the landing page", actions("") + `,"attributes":{"landing_page":"https://shop.example.com/r%E9sum%E9"}`,
+			func(t *testing.T, sessionID string) {
+				assert.Equal(t, "https://shop.example.com/r%E9sum%E9", sessionText(t, "landing_page", sessionID))
+				assert.Equal(t, "/r%E9sum%E9", sessionText(t, "landing_path", sessionID))
+				keepsOnlyTheCleanActions(t, sessionID)
+			}},
+		{"a character cut short in the referrer", actions("") + `,"attributes":{"landing_page":"https://shop.example.com/landing","referrer":"https://news.example.org/caf%c3"}`,
+			stores("referrer_path", "/caf%C3")},
+		{"a host byte above 0x7F in the referrer", actions("") + `,"attributes":{"landing_page":"https://shop.example.com/landing","referrer":"https://%FF.example.org/"}`,
+			stores("referrer_domain", "%ff.example.org")},
+		// Browser details are capped, and the cap used to cut at a byte offset,
+		// through any character straddling it.
+		{"browser details longer than the cap", actions("") + `,"attributes":{"landing_page":"https://shop.example.com/landing",` +
+			`"device":"` + strings.Repeat("d", 199) + `é","browser":"` + strings.Repeat("b", 198) + `€x",` +
+			`"os":"` + strings.Repeat("o", 197) + `😀","browser_type":"` + strings.Repeat("t", 200) + `é"}`,
+			func(t *testing.T, sessionID string) {
+				for column, want := range map[string]string{
+					"device": strings.Repeat("d", 199), "browser": strings.Repeat("b", 198),
+					"os": strings.Repeat("o", 197), "browser_type": strings.Repeat("t", 200),
+				} {
+					assert.Equal(t, want, sessionText(t, column, sessionID), column)
+				}
+				keepsOnlyTheCleanActions(t, sessionID)
+			}},
 	}
 
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			nulSession := waUUIDv7At(now.Add(-time.Minute), byte(0x10+2*i))
+			badSession := waUUIDv7At(now.Add(-time.Minute), byte(0x10+2*i))
 			cleanSession := waUUIDv7At(now.Add(-time.Minute), byte(0x11+2*i))
 
-			resp := waPostBeat(t, baseURL, beat(nulSession, tc.fields), nil)
+			resp := waPostBeat(t, baseURL, beat(badSession, tc.fields), nil)
 			body := waCloseAndDecode(t, resp)
 			require.Equal(t, http.StatusOK, resp.StatusCode, "the SDK reads a 400 as permanent and resends these fields on every beat")
 			assert.Equal(t, true, body["success"])
 
 			postCleanBeatAndFlush(t, cleanSession)
 
-			require.Equal(t, 1, count(t, `SELECT COUNT(*) FROM web_sessions WHERE id = $1`, nulSession),
-				"the visitor whose beat carried the NUL keeps their session too")
-			tc.check(t, nulSession)
+			require.Equal(t, 1, count(t, `SELECT COUNT(*) FROM web_sessions WHERE id = $1`, badSession),
+				"the visitor whose beat carried the text keeps their session too")
+			tc.check(t, badSession)
 		})
 	}
 
-	t.Run("session id", func(t *testing.T) {
-		// uuid.Parse never reads the first and last byte of an id in the braced
-		// form, where the braces go, and the session row stores the id as sent.
-		// The SDK only ever sends the canonical form, so refusing such an id
-		// costs no visitor their beat.
-		inner := waUUIDv7At(now.Add(-time.Minute), 0x7e)
-		cleanSession := waUUIDv7At(now.Add(-time.Minute), 0x7f)
+	t.Run("a user agent header holding bytes that are not UTF-8", func(t *testing.T) {
+		// Track takes the user agent from the header when the body has none, and
+		// a header, unlike a JSON body, can carry such bytes.
+		badSession := waUUIDv7At(now.Add(-time.Minute), 0x40)
+		cleanSession := waUUIDv7At(now.Add(-time.Minute), 0x41)
 
-		resp := waPostBeat(t, baseURL, beatAs(`"\u0000`+inner+`\u0000"`, actions("")+","+cleanAttributes), nil)
-		body := waCloseAndDecode(t, resp)
-		// Not a require: where the id is accepted, the checks below show what
-		// that costs the other visitor.
-		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-		assert.Contains(t, fmt.Sprint(body["error"]), "session_id")
+		resp := waPostBeat(t, baseURL, beat(badSession, actions("")+`,"attributes":{"landing_page":"https://shop.example.com/landing"}`),
+			map[string]string{"User-Agent": "Mozilla/5.0 (\xff\xfe) Chrome/126.0"})
+		_ = waCloseAndDecode(t, resp)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
 
 		postCleanBeatAndFlush(t, cleanSession)
 
-		assert.Zero(t, count(t, `SELECT COUNT(*) FROM web_sessions WHERE id = $1`, inner))
+		require.Equal(t, 1, count(t, `SELECT COUNT(*) FROM web_sessions WHERE id = $1`, badSession))
+		assert.Equal(t, "Mozilla/5.0 (%FF%FE) Chrome/126.0", sessionText(t, "user_agent", badSession))
+		keepsOnlyTheCleanActions(t, badSession)
 	})
+
+	t.Run("raw bytes that are not UTF-8 in the JSON body", func(t *testing.T) {
+		// encoding/json replaces each with U+FFFD, so what is stored is valid
+		// text, and the goal holding them is kept.
+		badSession := waUUIDv7At(now.Add(-time.Minute), 0x42)
+		cleanSession := waUUIDv7At(now.Add(-time.Minute), 0x43)
+
+		// Interpreted literals, so each \x is the byte itself.
+		resp := waPostBeat(t, baseURL, beat(badSession, actions(","+goal("sign\xffup", "/landing", "{\"pl\xffan\":\"pro\xc3\"}"))+
+			",\"attributes\":{\"landing_page\":\"https://shop.example.com/landing\",\"utm_source\":\"goo\xfegle\"}"), nil)
+		_ = waCloseAndDecode(t, resp)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		postCleanBeatAndFlush(t, cleanSession)
+
+		require.Equal(t, 1, count(t, `SELECT COUNT(*) FROM web_sessions WHERE id = $1`, badSession))
+		assert.Equal(t, "goo�gle", sessionText(t, "utm_source", badSession))
+		var properties string
+		require.NoError(t, wsDB.QueryRow(`SELECT properties::text FROM web_goals WHERE session_id = $1 AND goal_name = $2`,
+			badSession, "sign�up").Scan(&properties))
+		assert.JSONEq(t, `{"pl�an":"pro�"}`, properties)
+	})
+
+	t.Run("session id", func(t *testing.T) {
+		// uuid.Parse accepts more spellings of an id than the canonical one, and
+		// PostgreSQL's uuid type refuses some: urn:uuid:, and the braced form with
+		// anything in place of the braces, which uuid.Parse never reads. Whatever
+		// the spelling, the session is stored under the canonical id.
+		for i, tc := range []struct {
+			name  string
+			spell func(id string) string
+		}{
+			{`\u0000 in place of the braces`, func(id string) string { return `"\u0000` + id + `\u0000"` }},
+			{"letters in place of the braces", func(id string) string { return `"x` + id + `y"` }},
+			{"urn", func(id string) string { return `"urn:uuid:` + id + `"` }},
+			{"braces", func(id string) string { return `"{` + id + `}"` }},
+			{"upper case", func(id string) string { return `"` + strings.ToUpper(id) + `"` }},
+			{"bare hex", func(id string) string { return `"` + strings.ReplaceAll(id, "-", "") + `"` }},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				id := waUUIDv7At(now.Add(-time.Minute), byte(0x50+2*i))
+				cleanSession := waUUIDv7At(now.Add(-time.Minute), byte(0x51+2*i))
+
+				resp := waPostBeat(t, baseURL, beatAs(tc.spell(id), actions("")+","+cleanAttributes), nil)
+				body := waCloseAndDecode(t, resp)
+				require.Equal(t, http.StatusOK, resp.StatusCode, "%v", body)
+
+				postCleanBeatAndFlush(t, cleanSession)
+
+				require.Equal(t, 1, count(t, `SELECT COUNT(*) FROM web_sessions WHERE id = $1`, id))
+				keepsOnlyTheCleanActions(t, id)
+			})
+		}
+	})
+
+	t.Run("one session under two spellings of its id", func(t *testing.T) {
+		// Two spellings used to be two writers of the same rows, and PostgreSQL
+		// refuses an INSERT that would affect one row twice.
+		id := waUUIDv7At(now.Add(-time.Minute), 0x70)
+		cleanSession := waUUIDv7At(now.Add(-time.Minute), 0x71)
+		pending := buffer.PendingSessions(workspace.ID)
+		for i, spelling := range []string{`"` + id + `"`, `"{` + id + `}"`} {
+			resp := waPostBeat(t, baseURL, beatSeqAs(spelling, i+1, actions("")+","+cleanAttributes), nil)
+			_ = waCloseAndDecode(t, resp)
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+		}
+		assert.Equal(t, pending+1, buffer.PendingSessions(workspace.ID), "both beats are buffered as one writer")
+
+		postCleanBeatAndFlush(t, cleanSession)
+
+		var beatSeq int64
+		require.NoError(t, wsDB.QueryRow(`SELECT beat_seq FROM web_sessions WHERE id = $1`, id).Scan(&beatSeq))
+		assert.Equal(t, int64(2), beatSeq, "one session, written from its latest beat")
+		keepsOnlyTheCleanActions(t, id)
+	})
+}
+
+// TestWebAnalyticsFlushSalvagesRefusedRows stands in for the next value nobody
+// has foreseen: one every validation rule accepts and PostgreSQL refuses. The
+// constraints added below make PostgreSQL refuse a UTM tag and a goal name that
+// nothing else objects to. The flush writes a workspace's batch in one
+// transaction, so such a value fails the whole batch; the buffer then splits
+// the batch, so that only the visitors whose own rows are refused lose their
+// visit, after the usual retry.
+func TestWebAnalyticsFlushSalvagesRefusedRows(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer func() { suite.Cleanup() }()
+
+	workspace, err := suite.DataFactory.CreateWorkspace(func(w *domain.Workspace) {
+		w.Settings.WebAnalytics = &domain.WebAnalyticsSettings{Enabled: true, Filters: domain.DefaultWebFilters()}
+	})
+	require.NoError(t, err)
+
+	baseURL := suite.ServerManager.GetURL()
+	buffer := suite.ServerManager.GetApp().GetWebAnalyticsBuffer()
+	require.NotNil(t, buffer)
+	wsDB, err := suite.DBManager.GetWorkspaceDB(workspace.ID)
+	require.NoError(t, err)
+
+	const refused = "refused-by-the-database"
+	_, err = wsDB.Exec(`ALTER TABLE web_sessions ADD CONSTRAINT test_refused_utm_source CHECK (utm_source <> '` + refused + `')`)
+	require.NoError(t, err)
+	_, err = wsDB.Exec(`ALTER TABLE web_goals ADD CONSTRAINT test_refused_goal_name CHECK (goal_name <> '` + refused + `')`)
+	require.NoError(t, err)
+	defer func() {
+		_, _ = wsDB.Exec(`ALTER TABLE web_sessions DROP CONSTRAINT IF EXISTS test_refused_utm_source`)
+		_, _ = wsDB.Exec(`ALTER TABLE web_goals DROP CONSTRAINT IF EXISTS test_refused_goal_name`)
+	}()
+
+	now := time.Now().UTC()
+	ts := now.UnixMilli()
+	beat := func(sessionID, utmSource, goalName string) []byte {
+		return []byte(fmt.Sprintf(`{"workspace_id":%q,"session_id":%q,"created_at":%d,"updated_at":%d,"sent_at":%d,"seq":1,`+
+			`"actions":[{"type":"pageview","path":"/landing","page_number":1,"duration":1000,"scroll":10,"entered_at":%d,"exited_at":%d},`+
+			`{"type":"goal","name":%q,"goal_type":"lead","path":"/landing","page_number":1,"timestamp":%d}],`+
+			`"attributes":{"landing_page":"https://shop.example.com/landing","utm_source":%q},"sdk_version":"1.0.0"}`,
+			workspace.ID, sessionID, ts-60000, ts, ts, ts-60000, ts, goalName, ts, utmSource))
+	}
+	count := func(t *testing.T, query string, args ...interface{}) int {
+		t.Helper()
+		var n int
+		require.NoError(t, wsDB.QueryRow(query, args...).Scan(&n))
+		return n
+	}
+	post := func(t *testing.T, body []byte) {
+		t.Helper()
+		resp := waPostBeat(t, baseURL, body, nil)
+		_ = waCloseAndDecode(t, resp)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+	}
+
+	var clean []string
+	for salt := byte(0x10); salt < 0x16; salt++ {
+		id := waUUIDv7At(now.Add(-time.Minute), salt)
+		clean = append(clean, id)
+		post(t, beat(id, "google", "newsletter"))
+	}
+	refusedSession := waUUIDv7At(now.Add(-time.Minute), 0x20)
+	post(t, beat(refusedSession, refused, "newsletter"))
+	refusedGoal := waUUIDv7At(now.Add(-time.Minute), 0x21)
+	post(t, beat(refusedGoal, "google", refused))
+
+	// The test server never starts the flush ticker, so every beat above is in
+	// this one batch.
+	buffer.FlushAll(context.Background())
+
+	for _, id := range clean {
+		assert.Equal(t, 1, count(t, `SELECT COUNT(*) FROM web_sessions WHERE id = $1`, id),
+			"a clean visitor must not lose their session to another visitor's refused value")
+		assert.Equal(t, 1, count(t, `SELECT COUNT(*) FROM web_pages WHERE session_id = $1`, id))
+		assert.Equal(t, 1, count(t, `SELECT COUNT(*) FROM web_goals WHERE session_id = $1 AND goal_name = 'newsletter'`, id))
+	}
+	for _, id := range []string{refusedSession, refusedGoal} {
+		// A visitor's rows are written together or not at all.
+		assert.Zero(t, count(t, `SELECT COUNT(*) FROM web_sessions WHERE id = $1`, id))
+		assert.Zero(t, count(t, `SELECT COUNT(*) FROM web_pages WHERE session_id = $1`, id))
+		assert.Zero(t, count(t, `SELECT COUNT(*) FROM web_goals WHERE session_id = $1`, id))
+	}
+	assert.Equal(t, len(clean)+2, buffer.PendingSessions(workspace.ID), "the refused visitors keep their retry")
+
+	buffer.FlushAll(context.Background())
+	assert.Equal(t, len(clean), buffer.PendingSessions(workspace.ID), "and are dropped once it fails too")
+	assert.Equal(t, len(clean), count(t, `SELECT COUNT(*) FROM web_sessions`))
+	assert.Equal(t, len(clean), count(t, `SELECT COUNT(*) FROM web_goals`))
 }

@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"errors"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -45,6 +47,7 @@ type WebAnalyticsBufferConfig struct {
 	IdleFlushAfter          time.Duration // flush dirty sessions that stopped beating
 	EvictAfter              time.Duration // forget clean sessions after this idle time
 	MaxSessionsPerWorkspace int           // above this, the workspace force-flushes everything dirty
+	MaxSalvageFlushes       int           // extra FlushBatch calls a refused run may spend finding the refused writers
 }
 
 // DefaultWebAnalyticsBufferConfig returns the production tuning.
@@ -55,6 +58,9 @@ func DefaultWebAnalyticsBufferConfig() WebAnalyticsBufferConfig {
 		IdleFlushAfter:          70 * time.Second,
 		EvictAfter:              35 * time.Minute, // session timeout (30m) + slack
 		MaxSessionsPerWorkspace: 20000,
+		// Enough to single out a couple of refused writers even in a run of
+		// MaxSessionsPerWorkspace, which takes two flushes per halving.
+		MaxSalvageFlushes: 64,
 	}
 }
 
@@ -127,6 +133,9 @@ func NewWebAnalyticsBuffer(repo domain.WebAnalyticsRepository, log logger.Logger
 	}
 	if cfg.MaxSessionsPerWorkspace <= 0 {
 		cfg.MaxSessionsPerWorkspace = defaults.MaxSessionsPerWorkspace
+	}
+	if cfg.MaxSalvageFlushes <= 0 {
+		cfg.MaxSalvageFlushes = defaults.MaxSalvageFlushes
 	}
 	return &WebAnalyticsBuffer{
 		repo:       repo,
@@ -236,14 +245,16 @@ func (b *WebAnalyticsBuffer) flushDue(ctx context.Context) {
 	b.flush(ctx, false)
 }
 
-// webFlushedEntry pairs a session id with the exact row pointer that was handed
-// to the repository. They must travel together: FlushBatch sorts the slices it
-// receives in place (for deadlock-free lock ordering), so parallel id/row slices
-// would silently desync and the failure bookkeeping would retry and drop the
-// wrong sessions.
+// webFlushedEntry pairs a session id with the exact row pointers that were
+// handed to the repository. They must travel together: FlushBatch sorts the
+// slices it receives in place (for deadlock-free lock ordering), so parallel
+// id/row slices would silently desync and the failure bookkeeping would retry
+// and drop the wrong sessions. It holds all of the writer's rows, so that a
+// salvage (see writeRun) can hand them over again in a part of the batch.
 type webFlushedEntry struct {
 	id             string
 	session        *domain.WebSession
+	pages          []*domain.WebPage
 	goals          []*domain.WebGoal
 	everIdentified bool
 }
@@ -254,9 +265,6 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 	type workspaceFlush struct {
 		workspaceID string
 		entries     []webFlushedEntry
-		sessions    []*domain.WebSession
-		pages       []*domain.WebPage
-		goals       []*domain.WebGoal
 	}
 	var flushes []workspaceFlush
 
@@ -279,10 +287,9 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 			if !forceWorkspace && !b.isDue(entry, now) {
 				continue
 			}
-			flushRun.entries = append(flushRun.entries, webFlushedEntry{id: id, session: entry.session, goals: entry.goals, everIdentified: entry.everIdentified})
-			flushRun.sessions = append(flushRun.sessions, entry.session)
-			flushRun.pages = append(flushRun.pages, entry.pages...)
-			flushRun.goals = append(flushRun.goals, entry.goals...)
+			flushRun.entries = append(flushRun.entries, webFlushedEntry{
+				id: id, session: entry.session, pages: entry.pages, goals: entry.goals, everIdentified: entry.everIdentified,
+			})
 
 			// Optimistically mark clean; a failure re-marks dirty below.
 			entry.dirty = false
@@ -290,7 +297,7 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 			entry.lastFlushedAt = now
 			entry.flushedGoalCount = len(entry.goals)
 		}
-		if len(flushRun.sessions) == 0 {
+		if len(flushRun.entries) == 0 {
 			continue
 		}
 		flushRun.workspaceID = workspaceID
@@ -300,7 +307,7 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 	b.mu.Unlock()
 
 	for _, run := range flushes {
-		err := b.repo.FlushBatch(ctx, run.workspaceID, run.sessions, run.pages, run.goals)
+		landed, failed := b.writeRun(ctx, run.workspaceID, run.entries)
 
 		b.mu.Lock()
 		ws := b.workspaces[run.workspaceID]
@@ -312,8 +319,8 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 		// emitting under b.mu — or inside the flush transaction — would hold
 		// contact_segment_queue row locks across a batch spanning many contacts.
 		var candidates []webBridgeCandidate
-		if err == nil && b.bridge != nil {
-			for _, sent := range run.entries {
+		if b.bridge != nil {
+			for _, sent := range landed {
 				entry := ws.sessions[sent.id]
 				if entry == nil {
 					continue
@@ -328,35 +335,29 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 			}
 		}
 
-		if err != nil {
-			b.logger.WithField("workspace_id", run.workspaceID).
-				WithField("sessions", len(run.sessions)).
-				WithField("error", err.Error()).
-				Error("Web analytics flush failed")
-			for _, sent := range run.entries {
-				id := sent.id
-				entry := ws.sessions[id]
-				if entry == nil {
-					continue
-				}
-				// The write never landed: whatever entry is buffered now must
-				// not be debounced as if it had been persisted.
-				entry.everFlushed = false
-				if entry.session != sent.session {
-					// A newer beat replaced the entry mid-flush; it is dirty
-					// with a fresh retry budget and flushes on the next tick.
-					continue
-				}
-				entry.failedAttempts++
-				if entry.failedAttempts >= webBufferMaxFlushAttempts {
-					b.logger.WithField("workspace_id", run.workspaceID).
-						WithField("session_id", id).
-						Error("Dropping web analytics session after repeated flush failures")
-					delete(ws.sessions, id)
-					continue
-				}
-				entry.dirty = true
+		for _, sent := range failed {
+			id := sent.id
+			entry := ws.sessions[id]
+			if entry == nil {
+				continue
 			}
+			// The write never landed: whatever entry is buffered now must
+			// not be debounced as if it had been persisted.
+			entry.everFlushed = false
+			if entry.session != sent.session {
+				// A newer beat replaced the entry mid-flush; it is dirty
+				// with a fresh retry budget and flushes on the next tick.
+				continue
+			}
+			entry.failedAttempts++
+			if entry.failedAttempts >= webBufferMaxFlushAttempts {
+				b.logger.WithField("workspace_id", run.workspaceID).
+					WithField("session_id", id).
+					Error("Dropping web analytics session after repeated flush failures")
+				delete(ws.sessions, id)
+				continue
+			}
+			entry.dirty = true
 		}
 		b.mu.Unlock()
 
@@ -393,10 +394,95 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 			}
 		}
 
-		if err == nil {
-			b.projectNavigation(ctx, run.workspaceID, run.entries)
+		if len(landed) > 0 {
+			b.projectNavigation(ctx, run.workspaceID, landed)
 		}
 	}
+}
+
+// writeRun writes one workspace's run of writers and reports which of them
+// landed and which did not.
+//
+// The run goes to FlushBatch whole first: one batch, one transaction. When
+// PostgreSQL refuses rows in it — a value it cannot store, a constraint they
+// break — every writer of the run fails with the one it refuses, and is dropped
+// once its retry fails too: /track is public, so a beat holding such a value,
+// from anyone, would cost the workspace every visit flushed with it. So a
+// refused batch is split in two, each half written on its own, and every half
+// PostgreSQL refuses split again, until the writers it refuses stand alone: they
+// fail, and the others land. A writer's rows always travel together, so no
+// writer is ever half written, and a writer is written at most once.
+//
+// Bounded by MaxSalvageFlushes: the writers the budget leaves unresolved fail,
+// and are retried with the next flush like any other. A failure that is not a
+// refusal (the connection, a timeout) would fail every part alike, so it ends
+// the salvage, as does the end of the flush's context.
+func (b *WebAnalyticsBuffer) writeRun(ctx context.Context, workspaceID string, entries []webFlushedEntry) (landed, failed []webFlushedEntry) {
+	err := b.flushEntries(ctx, workspaceID, entries)
+	if err == nil {
+		return entries, nil
+	}
+	b.logger.WithField("workspace_id", workspaceID).
+		WithField("sessions", len(entries)).
+		WithField("error", err.Error()).
+		Error("Web analytics flush failed")
+	if !errors.Is(err, domain.ErrWebAnalyticsRowsRefused) || len(entries) < 2 {
+		return nil, entries
+	}
+
+	// Split in id order, so that the tabs of a session sit side by side and
+	// the same run splits the same way every time.
+	sorted := append([]webFlushedEntry(nil), entries...)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].id < sorted[j].id })
+	parts := [][]webFlushedEntry{sorted[:len(sorted)/2], sorted[len(sorted)/2:]}
+	budget := b.cfg.MaxSalvageFlushes
+	for len(parts) > 0 {
+		part := parts[0]
+		parts = parts[1:]
+		if budget == 0 || ctx.Err() != nil {
+			failed = append(failed, part...)
+			continue
+		}
+		budget--
+		err := b.flushEntries(ctx, workspaceID, part)
+		switch {
+		case err == nil:
+			landed = append(landed, part...)
+		case !errors.Is(err, domain.ErrWebAnalyticsRowsRefused):
+			b.logger.WithField("workspace_id", workspaceID).
+				WithField("error", err.Error()).
+				Error("Web analytics flush salvage stopped")
+			failed = append(failed, part...)
+			budget = 0
+		case len(part) > 1:
+			parts = append(parts, part[:len(part)/2], part[len(part)/2:])
+		default:
+			b.logger.WithField("workspace_id", workspaceID).
+				WithField("session_id", part[0].id).
+				WithField("error", err.Error()).
+				Error("Web analytics session refused by the database")
+			failed = append(failed, part...)
+		}
+	}
+	b.logger.WithField("workspace_id", workspaceID).
+		WithField("written", len(landed)).
+		WithField("failed", len(failed)).
+		Warn("Web analytics flush salvage finished")
+	return landed, failed
+}
+
+// flushEntries hands the writers' rows to FlushBatch, in slices of their own:
+// FlushBatch sorts what it is given in place.
+func (b *WebAnalyticsBuffer) flushEntries(ctx context.Context, workspaceID string, entries []webFlushedEntry) error {
+	sessions := make([]*domain.WebSession, 0, len(entries))
+	var pages []*domain.WebPage
+	var goals []*domain.WebGoal
+	for _, sent := range entries {
+		sessions = append(sessions, sent.session)
+		pages = append(pages, sent.pages...)
+		goals = append(goals, sent.goals...)
+	}
+	return b.repo.FlushBatch(ctx, workspaceID, sessions, pages, goals)
 }
 
 // projectNavigation refreshes the contact timeline from the rows this flush just

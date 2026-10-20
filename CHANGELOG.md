@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Web analytics goals tracked with numbers or booleans in `properties`, or a numeric string `value` such as `'49.90'`, are now recorded along with the rest of the visit. `trackGoal` converts these before sending, and skips, with a console warning, a goal it can't convert or that exceeds a limit.
 
-- **Security**: Web analytics no longer drops the visits it receives alongside a visit holding a character the database can't store. A page view or goal holding such a character is skipped, and the rest of its visit is kept. Details such as a UTM tag are kept without the character.
+- **Security**: Web analytics no longer drops the visits it receives alongside a visit holding text or a session id the database can't store. Such a visit is now kept, less any page view or goal that can't be stored, with its other details in a form the database accepts. Should the database still refuse a visit, web analytics now sets that visit aside so that the others can be kept.
 
 - **Improvement**: The blog API (categories, posts and themes) is now in the API reference. `blogPosts.list` pages with `page` and `limit` (not `offset`), and a missing blog permission answers 403.
 

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/geoip"
@@ -50,10 +51,12 @@ func correctedMs(epochMs int64, skew time.Duration) time.Time {
 // the browser's URL API does (root path is "/"). Unparseable input yields
 // empty parts.
 //
-// The path comes back percent-decoded, except for a %00: decoded, that is a NUL
-// byte, which PostgreSQL cannot store, so it stays written as the URL wrote it.
-// The hostname cannot hold one, since url.Parse refuses %00 there.
-func webURLParts(raw string) (domain string, path string) {
+// Both come back percent-decoded, except where decoding gives a byte
+// PostgreSQL cannot store: a NUL, or a byte that is not part of valid UTF-8,
+// such as a Latin-1 é sent as %E9. Such a byte is written as %XX instead (see
+// domain.EscapeUnstorableBytes), and the hostname is lowercased after, so its
+// escapes read %ff.
+func webURLParts(raw string) (host string, path string) {
 	if strings.TrimSpace(raw) == "" {
 		return "", ""
 	}
@@ -61,11 +64,11 @@ func webURLParts(raw string) (domain string, path string) {
 	if err != nil || u.Hostname() == "" {
 		return "", ""
 	}
-	path = strings.ReplaceAll(u.Path, "\x00", "%00")
+	path = domain.EscapeUnstorableBytes(u.Path)
 	if path == "" {
 		path = "/"
 	}
-	return strings.ToLower(u.Hostname()), path
+	return strings.ToLower(domain.EscapeUnstorableBytes(u.Hostname())), path
 }
 
 // webHostname returns just the lowercase hostname of a URL (used for the
@@ -77,13 +80,21 @@ func webHostname(raw string) string {
 
 // boundDimension caps a client-supplied dimension value and applies a default
 // when the SDK omitted it.
+//
+// The cap counts bytes and cuts at the last character boundary within it: a
+// character cut in two is a byte sequence that is not UTF-8, which PostgreSQL
+// refuses to store.
 func boundDimension(value, fallback string) string {
 	v := strings.TrimSpace(value)
 	if v == "" {
 		return fallback
 	}
 	if len(v) > 200 {
-		return v[:200]
+		cut := 200
+		for cut > 0 && !utf8.RuneStart(v[cut]) {
+			cut--
+		}
+		return v[:cut]
 	}
 	return v
 }

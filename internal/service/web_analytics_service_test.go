@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -485,36 +486,38 @@ func TestWebAnalyticsIdentityCreatesContact(t *testing.T) {
 	})
 }
 
-// nulStrings returns the path of every string reachable from v that holds a NUL
-// byte: struct fields, pointers, slices, and map keys and values. It walks the
-// rows instead of naming their fields, so a column added later is checked too.
-func nulStrings(v reflect.Value, path string) []string {
+// unstorableStrings returns the path of every string reachable from v that
+// PostgreSQL would refuse to store: one holding a NUL byte, or one that is not
+// valid UTF-8. It visits struct fields, pointers, slices, and map keys and
+// values, walking the rows instead of naming their fields, so a column added
+// later is checked too.
+func unstorableStrings(v reflect.Value, path string) []string {
 	var found []string
 	switch v.Kind() {
 	case reflect.String:
-		if strings.IndexByte(v.String(), 0) >= 0 {
+		if strings.IndexByte(v.String(), 0) >= 0 || !utf8.ValidString(v.String()) {
 			found = append(found, path)
 		}
 	case reflect.Pointer, reflect.Interface:
 		if !v.IsNil() {
-			found = nulStrings(v.Elem(), path)
+			found = unstorableStrings(v.Elem(), path)
 		}
 	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
 			if field := v.Type().Field(i); field.IsExported() {
-				found = append(found, nulStrings(v.Field(i), path+"."+field.Name)...)
+				found = append(found, unstorableStrings(v.Field(i), path+"."+field.Name)...)
 			}
 		}
 	case reflect.Slice, reflect.Array:
 		for i := 0; i < v.Len(); i++ {
-			found = append(found, nulStrings(v.Index(i), fmt.Sprintf("%s[%d]", path, i))...)
+			found = append(found, unstorableStrings(v.Index(i), fmt.Sprintf("%s[%d]", path, i))...)
 		}
 	case reflect.Map:
 		iter := v.MapRange()
 		for iter.Next() {
 			entry := fmt.Sprintf("%s[%q]", path, iter.Key())
-			found = append(found, nulStrings(iter.Key(), entry+" key")...)
-			found = append(found, nulStrings(iter.Value(), entry)...)
+			found = append(found, unstorableStrings(iter.Key(), entry+" key")...)
+			found = append(found, unstorableStrings(iter.Value(), entry)...)
 		}
 	}
 	return found
@@ -528,7 +531,7 @@ func nulStrings(v reflect.Value, path string) []string {
 func TestWebAnalyticsServiceTrackKeepsNULOutOfTheBuffer(t *testing.T) {
 	receivedAt := time.Date(2026, 8, 8, 12, 0, 0, 0, time.UTC)
 
-	t.Run("the walker finds a NUL wherever a row can hold one", func(t *testing.T) {
+	t.Run("the walker finds a NUL or a byte that is not UTF-8 wherever a row can hold one", func(t *testing.T) {
 		// Without this the assertions below could pass on a walker that never
 		// looked.
 		email := "vis\x00itor@example.com"
@@ -538,10 +541,13 @@ func TestWebAnalyticsServiceTrackKeepsNULOutOfTheBuffer(t *testing.T) {
 			[]*domain.WebPage{{Path: "/\x00"}},
 			[]*domain.WebGoal{{Properties: map[string]string{"pl\x00an": "pro"}}},
 			[]*domain.WebGoal{{Properties: map[string]string{"plan": "pro\x00"}}},
+			[]*domain.WebSession{{LandingPath: "/caf\xc3"}},
+			[]*domain.WebPage{{SessionID: "\xff"}},
+			[]*domain.WebGoal{{Properties: map[string]string{"pl\xffan": "pro"}}},
 		} {
-			assert.NotEmpty(t, nulStrings(reflect.ValueOf(row), "rows"), "%#v", row)
+			assert.NotEmpty(t, unstorableStrings(reflect.ValueOf(row), "rows"), "%#v", row)
 		}
-		assert.Empty(t, nulStrings(reflect.ValueOf([]*domain.WebGoal{{GoalName: "signup", Properties: map[string]string{"plan": "pro"}}}), "rows"))
+		assert.Empty(t, unstorableStrings(reflect.ValueOf([]*domain.WebGoal{{GoalName: "signup", Path: "/café", Properties: map[string]string{"plan": "pro"}}}), "rows"))
 	})
 
 	t.Run("no string a beat carries reaches the repository with a NUL", func(t *testing.T) {
@@ -588,9 +594,9 @@ func TestWebAnalyticsServiceTrackKeepsNULOutOfTheBuffer(t *testing.T) {
 			}).Times(1)
 		svc.buffer.FlushAll(context.Background())
 
-		assert.Empty(t, nulStrings(reflect.ValueOf(sessions), "sessions"))
-		assert.Empty(t, nulStrings(reflect.ValueOf(pages), "pages"))
-		assert.Empty(t, nulStrings(reflect.ValueOf(goals), "goals"))
+		assert.Empty(t, unstorableStrings(reflect.ValueOf(sessions), "sessions"))
+		assert.Empty(t, unstorableStrings(reflect.ValueOf(pages), "pages"))
+		assert.Empty(t, unstorableStrings(reflect.ValueOf(goals), "goals"))
 
 		require.Len(t, pages, 1, "the pageview carrying a NUL is dropped, the clean one kept")
 		assert.Equal(t, "/", pages[0].Path)
@@ -611,4 +617,91 @@ func TestWebAnalyticsServiceTrackKeepsNULOutOfTheBuffer(t *testing.T) {
 		assert.Equal(t, 1, session.PageviewCount)
 		assert.Equal(t, 1, session.GoalCount)
 	})
+}
+
+// TestWebAnalyticsServiceTrackKeepsInvalidUTF8OutOfTheBuffer covers the strings
+// a beat's JSON body cannot carry invalid but the pipeline produces itself: the
+// paths and hosts it percent-decodes, the dimensions it caps, and a user agent
+// it takes from the request header. PostgreSQL refuses a byte sequence that is
+// not UTF-8 in text and jsonb, and the flush writes the whole workspace batch
+// in one transaction.
+func TestWebAnalyticsServiceTrackKeepsInvalidUTF8OutOfTheBuffer(t *testing.T) {
+	receivedAt := time.Date(2026, 8, 8, 12, 0, 0, 0, time.UTC)
+	svc, _, webRepo, _ := newWebAnalyticsServiceForTest(t, &domain.WebAnalyticsSettings{Enabled: true, Filters: domain.DefaultWebFilters()})
+
+	payload := webTrackTestPayload(t, receivedAt)
+	// Ordinary URL text that decodes to bytes that are not UTF-8: an old link
+	// encoded in Latin-1, a character cut short, a host byte above 0x7F.
+	payload.Attributes.LandingPage = "https://shop.example.com/r%E9sum%E9"
+	payload.Attributes.Referrer = "https://%FF.example.org/caf%c3"
+	// Longer than the cap, with a character across it.
+	payload.Attributes.Browser = strings.Repeat("a", 199) + "é"
+	payload.Attributes.OS = strings.Repeat("b", 197) + "😀"
+	// An empty user_agent sends enrichment to the header, and a header can
+	// carry bytes a JSON body cannot.
+	payload.Attributes.UserAgent = ""
+	payload.Actions = append(payload.Actions, domain.WebTrackAction{Type: domain.WebActionTypeGoal, Name: "signup",
+		GoalType: domain.GoalTypeLead, Path: "/", PageNumber: 1, Timestamp: receivedAt.UnixMilli()})
+	meta := domain.WebRequestMeta{UserAgent: "Mozilla/5.0 (\xff\xfe)", ReceivedAt: receivedAt}
+
+	require.NoError(t, svc.Track(context.Background(), payload, meta))
+
+	var sessions []*domain.WebSession
+	var pages []*domain.WebPage
+	var goals []*domain.WebGoal
+	webRepo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, s []*domain.WebSession, p []*domain.WebPage, g []*domain.WebGoal) error {
+			sessions, pages, goals = s, p, g
+			return nil
+		}).Times(1)
+	svc.buffer.FlushAll(context.Background())
+
+	assert.Empty(t, unstorableStrings(reflect.ValueOf(sessions), "sessions"))
+	assert.Empty(t, unstorableStrings(reflect.ValueOf(pages), "pages"))
+	assert.Empty(t, unstorableStrings(reflect.ValueOf(goals), "goals"))
+
+	require.Len(t, sessions, 1)
+	session := sessions[0]
+	assert.Equal(t, "/r%E9sum%E9", session.LandingPath, "the bytes stay written as the URL wrote them")
+	assert.Equal(t, "%ff.example.org", session.ReferrerDomain)
+	assert.Equal(t, "/caf%C3", session.ReferrerPath)
+	assert.Equal(t, strings.Repeat("a", 199), session.Browser, "capped where the character starts")
+	assert.Equal(t, strings.Repeat("b", 197), session.OS)
+	assert.Equal(t, "Mozilla/5.0 (%FF%FE)", session.UserAgent, "a header value is held to the same rule as the body's")
+	require.Len(t, goals, 1)
+	assert.Equal(t, "/r%E9sum%E9", goals[0].LandingPath, "the goal's attribution snapshot is the same text")
+	assert.Equal(t, strings.Repeat("a", 199), goals[0].Browser)
+	assert.Equal(t, "Mozilla/5.0 (%FF%FE)", goals[0].UserAgent)
+}
+
+// TestWebAnalyticsServiceTrackBuffersEverySpellingOfASessionIDAsOne sends one
+// session's beats under spellings of its id that uuid.Parse accepts. They are
+// one session, so they must be one writer: two would put the same rows in one
+// statement of the flush, which PostgreSQL refuses for the whole batch.
+func TestWebAnalyticsServiceTrackBuffersEverySpellingOfASessionIDAsOne(t *testing.T) {
+	receivedAt := time.Date(2026, 8, 8, 12, 0, 0, 0, time.UTC)
+	meta := domain.WebRequestMeta{UserAgent: "Mozilla/5.0", ReceivedAt: receivedAt}
+	svc, _, webRepo, _ := newWebAnalyticsServiceForTest(t, &domain.WebAnalyticsSettings{Enabled: true})
+
+	canonical := webTrackTestPayload(t, receivedAt).SessionID
+	spellings := []string{canonical, "{" + canonical + "}", "urn:uuid:" + canonical,
+		strings.ToUpper(canonical), strings.ReplaceAll(canonical, "-", "")}
+	for i, spelling := range spellings {
+		payload := webTrackTestPayload(t, receivedAt)
+		payload.SessionID = spelling
+		payload.Seq = int64(i + 1)
+		require.NoError(t, svc.Track(context.Background(), payload, meta), spelling)
+	}
+	assert.Equal(t, 1, svc.buffer.PendingSessions("ws1"), "one session, one writer")
+
+	webRepo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, sessions []*domain.WebSession, pages []*domain.WebPage, _ []*domain.WebGoal) error {
+			require.Len(t, sessions, 1)
+			assert.Equal(t, canonical, sessions[0].ID, "stored in canonical form")
+			assert.Equal(t, int64(len(spellings)), sessions[0].BeatSeq, "the latest beat won, whatever its spelling")
+			require.Len(t, pages, 1)
+			assert.Equal(t, canonical, pages[0].SessionID)
+			return nil
+		}).Times(1)
+	svc.buffer.FlushAll(context.Background())
 }

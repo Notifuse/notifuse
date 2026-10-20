@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -721,13 +722,13 @@ func (p *WebTrackPayload) Validate(now time.Time) error {
 	if _, _, err := SessionDateFromUUIDv7(p.SessionID, now); err != nil {
 		return fmt.Errorf("invalid session_id: %w", err)
 	}
-	// uuid.Parse never reads the first and last byte of an id in the braced
-	// form, where the braces go, and the session row stores the id as sent.
-	// Refused like any other malformed id: the SDK only ever sends the
-	// canonical form.
-	if hasNUL(p.SessionID) {
-		return fmt.Errorf("invalid session_id: contains a null character")
-	}
+	// Stored, and buffered, under its canonical spelling. uuid.Parse also accepts
+	// either case, the braced form (whose braces it never reads), urn:uuid: and 32
+	// bare hex digits; PostgreSQL's uuid type refuses some of those, and two
+	// spellings of one id would be two writers of the same rows, which one INSERT
+	// cannot hold. The SDK sends the canonical spelling, which comes back unchanged.
+	id, _ := uuid.Parse(p.SessionID) // SessionDateFromUUIDv7 has just parsed it
+	p.SessionID = id.String()
 	if len(p.Actions) > WebTrackMaxActions {
 		return fmt.Errorf("actions exceeds the maximum of %d", WebTrackMaxActions)
 	}
@@ -744,7 +745,7 @@ func (p *WebTrackPayload) Validate(now time.Time) error {
 		return err
 	}
 	// Before the dimension bound, so that bound measures what would be stored.
-	p.removeNULs()
+	p.makeSessionTextStorable()
 	for key, value := range p.Dimensions {
 		if !IsCustomDimensionKey(key) {
 			// Unknown keys are ignored at build time; only bound their size so
@@ -762,25 +763,27 @@ func (p *WebTrackPayload) Validate(now time.Time) error {
 	return nil
 }
 
-// removeNULs deletes NUL characters from the beat's session-level text — its
-// attributes, SDK version and custom dimensions — and keeps the rest of each
-// value as sent.
+// makeSessionTextStorable rewrites the beat's session-level text — its
+// attributes, SDK version and custom dimensions — into text PostgreSQL can
+// store, keeping the rest of each value as sent (see storableSessionText).
 //
-// Removed, not rejected: the SDK keeps these values for the whole session and
+// Rewritten, not rejected: the SDK keeps these values for the whole session and
 // resends them on every beat, and it reads a 400 as permanent, so refusing the
-// beat would lose every later beat of the visit too. A visitor gets such a
-// value just by following a link carrying utm_source=%00, which the SDK
-// decodes. And removed rather than blanked, since nothing else in the value is
-// wrong.
+// beat would lose every later beat of the visit too. A visitor gets a NUL in
+// one just by following a link carrying utm_source=%00, which the SDK decodes.
+// Text from a JSON body is always valid UTF-8 by now (encoding/json writes
+// U+FFFD for each byte that is not), but the user agent need not be: Track
+// takes it from the request header when the body has none, before it calls
+// Validate.
 //
-// The ids are left as sent: Validate refuses a session_id holding one, and
-// workspace_id is only ever a lookup key. So are the identity fields, which
-// are credentials: ResolveWebIdentity refuses one naming an address that holds
-// a NUL.
-func (p *WebTrackPayload) removeNULs() {
-	p.SDKVersion = withoutNUL(p.SDKVersion)
+// The ids are not text: Validate has replaced session_id by its canonical
+// form, and workspace_id is only ever a lookup key. Nor are the identity
+// fields, which are credentials: ResolveWebIdentity refuses one naming an
+// address that holds a NUL.
+func (p *WebTrackPayload) makeSessionTextStorable() {
+	p.SDKVersion = storableSessionText(p.SDKVersion)
 	for key, value := range p.Dimensions {
-		p.Dimensions[key] = withoutNUL(value)
+		p.Dimensions[key] = storableSessionText(value)
 	}
 	a := p.Attributes
 	if a == nil {
@@ -791,26 +794,62 @@ func (p *WebTrackPayload) removeNULs() {
 		&a.UTMSource, &a.UTMMedium, &a.UTMCampaign, &a.UTMTerm, &a.UTMContent, &a.UTMID, &a.UTMIDFrom,
 		&a.Device, &a.Browser, &a.BrowserType, &a.OS, &a.UserAgent, &a.ConnectionType, &a.Language, &a.Timezone,
 	} {
-		*field = withoutNUL(*field)
+		*field = storableSessionText(*field)
 	}
+}
+
+// storableSessionText removes the NULs from s and writes each byte that is not
+// part of valid UTF-8 as %XX. A NUL carries nothing a report could use, and
+// written as %00 it would grow a custom dimension past the bound Validate
+// checks next, refusing the beat. A stray byte can carry a character, such as
+// a Latin-1 é, and only the user agent can hold one (see
+// makeSessionTextStorable), which has no bound to grow past.
+func storableSessionText(s string) string {
+	return EscapeUnstorableBytes(withoutNUL(s))
 }
 
 // hasNUL reports whether s holds a NUL character (U+0000).
 //
 // JSON carries one as \u0000 without complaint, and PostgreSQL stores it in
 // neither text nor jsonb. flushOnce writes a whole workspace batch in ONE
-// transaction, so a single string holding one would abort every other
-// visitor's rows with it, and once retrying had failed too the buffer would
-// drop those sessions. /track is public, so one beat from anyone could do
-// that. An action holding one is therefore invalid, and dropInvalidActions
-// costs it that action alone; session-level text loses the character instead
-// (see removeNULs).
+// transaction, so a single string holding one fails every other visitor's rows
+// with it, and the buffer then has to split the batch to find the writer whose
+// rows PostgreSQL refuses, who loses the visit. /track is public, so a beat
+// from anyone would do that. An action holding one is therefore invalid, and
+// dropInvalidActions costs it that action alone; session-level text loses the
+// character instead (see makeSessionTextStorable).
 func hasNUL(s string) bool {
 	return strings.IndexByte(s, 0) >= 0
 }
 
 func withoutNUL(s string) string {
 	return strings.ReplaceAll(s, "\x00", "")
+}
+
+// EscapeUnstorableBytes returns s with every byte PostgreSQL cannot store in
+// text or jsonb written as %XX instead: a NUL, and each byte that is not part
+// of a valid UTF-8 sequence. Everything else is kept as it is, so text that is
+// already storable comes back unchanged.
+func EscapeUnstorableBytes(s string) string {
+	if !hasNUL(s) && utf8.ValidString(s) {
+		return s
+	}
+	const hexDigits = "0123456789ABCDEF"
+	var b strings.Builder
+	b.Grow(len(s) + 8)
+	for i := 0; i < len(s); {
+		r, size := utf8.DecodeRuneInString(s[i:])
+		if r == 0 || (r == utf8.RuneError && size == 1) {
+			b.WriteByte('%')
+			b.WriteByte(hexDigits[s[i]>>4])
+			b.WriteByte(hexDigits[s[i]&0x0F])
+			i++
+			continue
+		}
+		b.WriteString(s[i : i+size])
+		i += size
+	}
+	return b.String()
 }
 
 // dropInvalidActions removes actions that fail their own validation, in place.
@@ -1303,11 +1342,21 @@ type GeoIPResolver interface {
 	Lookup(ip string) (*WebGeoResult, error)
 }
 
+// ErrWebAnalyticsRowsRefused marks a FlushBatch failure that PostgreSQL raised
+// over the rows themselves — a value it cannot store, a constraint they break —
+// rather than over the server or the connection, such as a timeout or a
+// deadlock. The same rows would only fail again, while a part of the batch
+// without the refused ones can land, which is what lets the buffer split a
+// refused batch.
+var ErrWebAnalyticsRowsRefused = errors.New("web analytics rows refused by the database")
+
 // WebAnalyticsRepository persists web analytics rows into a workspace database.
 type WebAnalyticsRepository interface {
 	// FlushBatch upserts the given rows in one transaction. Row slices may be
 	// empty. Implementations sort rows by primary key to keep concurrent
 	// flushes deadlock-free, and auto-create missing monthly partitions once.
+	// An error PostgreSQL raised over the rows themselves wraps
+	// ErrWebAnalyticsRowsRefused.
 	FlushBatch(ctx context.Context, workspaceID string, sessions []*WebSession, pages []*WebPage, goals []*WebGoal) error
 
 	// AnonymizeContact clears the stored identity for one address across all

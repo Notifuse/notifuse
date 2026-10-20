@@ -21,10 +21,10 @@ import (
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
-// nulTrackPipeline is /track wired to the real ingest service and buffer, with
+// trackPipeline is /track wired to the real ingest service and buffer, with
 // only the repositories mocked, so a beat takes the path it takes in production
 // from the mux to the rows the flush would write to PostgreSQL.
-type nulTrackPipeline struct {
+type trackPipeline struct {
 	mux      *http.ServeMux
 	buffer   *service.WebAnalyticsBuffer
 	flushes  int
@@ -33,7 +33,7 @@ type nulTrackPipeline struct {
 	goals    []*domain.WebGoal
 }
 
-func newNULTrackPipeline(t *testing.T) *nulTrackPipeline {
+func newTrackPipeline(t *testing.T) *trackPipeline {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
@@ -43,7 +43,7 @@ func newNULTrackPipeline(t *testing.T) *nulTrackPipeline {
 		WebAnalytics: &domain.WebAnalyticsSettings{Enabled: true, Filters: domain.DefaultWebFilters()},
 	}}, nil).AnyTimes()
 
-	p := &nulTrackPipeline{}
+	p := &trackPipeline{}
 	webRepo := mocks.NewMockWebAnalyticsRepository(ctrl)
 	webRepo.EXPECT().FlushBatch(gomock.Any(), "ws1", gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context, _ string, sessions []*domain.WebSession, pages []*domain.WebPage, goals []*domain.WebGoal) error {
@@ -62,7 +62,7 @@ func newNULTrackPipeline(t *testing.T) *nulTrackPipeline {
 	return p
 }
 
-func (p *nulTrackPipeline) post(t *testing.T, body string, headers map[string]string) *httptest.ResponseRecorder {
+func (p *trackPipeline) post(t *testing.T, body string, headers map[string]string) *httptest.ResponseRecorder {
 	t.Helper()
 	rec := httptest.NewRecorder()
 	p.mux.ServeHTTP(rec, trackRequest(t, body, headers))
@@ -73,7 +73,7 @@ func (p *nulTrackPipeline) post(t *testing.T, body string, headers map[string]st
 // rowsJSON is every row the flush received. encoding/json writes a NUL as
 // \u0000 in any string it meets, map keys included, and the row types hide no
 // field from it, so this is a complete search of what would reach PostgreSQL.
-func (p *nulTrackPipeline) rowsJSON(t *testing.T) string {
+func (p *trackPipeline) rowsJSON(t *testing.T) string {
 	t.Helper()
 	raw, err := json.Marshal(map[string]interface{}{"sessions": p.sessions, "pages": p.pages, "goals": p.goals})
 	require.NoError(t, err)
@@ -116,7 +116,7 @@ func TestWebAnalyticsHandlerTrackNULCharacter(t *testing.T) {
 	}
 
 	t.Run(`an action carrying a \u0000 costs that action alone`, func(t *testing.T) {
-		p := newNULTrackPipeline(t)
+		p := newTrackPipeline(t)
 		rec := p.post(t, nulBeat(t, `"actions":[`+strings.Join([]string{
 			pageview("/home", 1),
 			`{"type":"pageview","path":"/pri\u0000cing","page_number":2}`,
@@ -138,7 +138,7 @@ func TestWebAnalyticsHandlerTrackNULCharacter(t *testing.T) {
 	})
 
 	t.Run(`session-level text loses the \u0000 and keeps the beat`, func(t *testing.T) {
-		p := newNULTrackPipeline(t)
+		p := newTrackPipeline(t)
 		rec := p.post(t, nulBeat(t, `"actions":[`+pageview("/home", 1)+`,`+goal("newsletter", "/home", `{}`, 0)+`],`+
 			`"attributes":{"landing_page":"https://shop.example.com/sp%00ring\u0000","referrer":"https://news.example.org/a%00b",`+
 			`"utm_source":"goo\u0000gle","browser":"Chr\u0000ome","language":"en\u0000-US","user_agent":"Mozilla/5.0\u0000"},`+
@@ -162,22 +162,25 @@ func TestWebAnalyticsHandlerTrackNULCharacter(t *testing.T) {
 		require.Len(t, p.pages, 1)
 	})
 
-	t.Run("a session id holding one is refused before anything is buffered", func(t *testing.T) {
+	t.Run("a session id holding one in place of its braces is stored in canonical form", func(t *testing.T) {
 		// uuid.Parse never reads the bytes where the braces of a braced id go,
-		// so this id parses. The SDK only ever sends the canonical form, so the
-		// 400 costs no visitor's beat.
-		p := newNULTrackPipeline(t)
+		// so this id parses, and it names the same session as the canonical
+		// spelling, which is what reaches the rows.
+		p := newTrackPipeline(t)
 		id, err := uuid.NewV7()
 		require.NoError(t, err)
 		rec := p.post(t, nulBeatWithSessionID(`"\u0000`+id.String()+`\u0000"`, `"actions":[`+pageview("/home", 1)+`]`), nil)
 
-		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		assert.Contains(t, rec.Body.String(), "session_id")
-		assert.Zero(t, p.flushes)
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.NotContains(t, p.rowsJSON(t), `\u0000`)
+		require.Len(t, p.sessions, 1)
+		assert.Equal(t, id.String(), p.sessions[0].ID)
+		require.Len(t, p.pages, 1)
+		assert.Equal(t, id.String(), p.pages[0].SessionID)
 	})
 
 	t.Run("a raw NUL byte is not JSON: the beat is refused before anything is buffered", func(t *testing.T) {
-		p := newNULTrackPipeline(t)
+		p := newTrackPipeline(t)
 		body := strings.Replace(nulBeat(t, `"actions":[`+goal("signNULup", "/home", `{}`, 0)+`]`), "NUL", "\x00", 1)
 		require.Contains(t, body, "\x00")
 
@@ -190,7 +193,7 @@ func TestWebAnalyticsHandlerTrackNULCharacter(t *testing.T) {
 	t.Run("a user agent taken from the request header is held to the same rule", func(t *testing.T) {
 		// net/http's own server refuses a header holding a NUL before any
 		// handler runs; this covers whatever transport does not.
-		p := newNULTrackPipeline(t)
+		p := newTrackPipeline(t)
 		rec := p.post(t, nulBeat(t, `"actions":[`+pageview("/home", 1)+`],"attributes":{"landing_page":"https://shop.example.com/home"}`),
 			map[string]string{"User-Agent": "Mozilla/5.0 (Macintosh)\x00 Chrome/126.0"})
 
