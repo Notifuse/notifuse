@@ -266,11 +266,12 @@ func (s *MailjetService) RegisterWebhooks(
 			registeredEvents = append(registeredEvents, domain.EmailEventBounce)
 			registeredEvents = append(registeredEvents, domain.EmailEventBounce) // One entry for each webhook
 		case domain.EmailEventComplaint:
-			// Register both spam and unsubscribe events for complaint tracking
+			// Register both spam and unsub events: the webhook records spam as a complaint,
+			// and unsub as an unsubscribe, so each endpoint is reported as what it records
 			mailjetEvents = append(mailjetEvents, domain.MailjetEventSpam)
 			mailjetEvents = append(mailjetEvents, domain.MailjetEventUnsub)
 			registeredEvents = append(registeredEvents, domain.EmailEventComplaint)
-			registeredEvents = append(registeredEvents, domain.EmailEventComplaint) // One entry for each webhook
+			registeredEvents = append(registeredEvents, domain.EmailEventUnsubscribe)
 		}
 	}
 
@@ -399,11 +400,20 @@ func (s *MailjetService) GetWebhookStatus(
 					EventType: domain.EmailEventBounce,
 					Active:    webhook.Status == "alive",
 				})
-			case domain.MailjetEventSpam, domain.MailjetEventUnsub:
+			case domain.MailjetEventSpam:
 				status.Endpoints = append(status.Endpoints, domain.WebhookEndpointStatus{
 					WebhookID: strconv.FormatInt(webhook.ID, 10),
 					URL:       webhook.Endpoint,
 					EventType: domain.EmailEventComplaint,
+					Active:    webhook.Status == "alive",
+				})
+			case domain.MailjetEventUnsub:
+				// The webhook records an unsub event as an unsubscribe when it arrives,
+				// so this holds for webhooks registered by earlier versions too
+				status.Endpoints = append(status.Endpoints, domain.WebhookEndpointStatus{
+					WebhookID: strconv.FormatInt(webhook.ID, 10),
+					URL:       webhook.Endpoint,
+					EventType: domain.EmailEventUnsubscribe,
 					Active:    webhook.Status == "alive",
 				})
 			}

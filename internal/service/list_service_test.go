@@ -2202,6 +2202,143 @@ func TestListService_UnsubscribeFromLists_RowStates(t *testing.T) {
 	})
 }
 
+// TestListService_UnsubscribeFromMessageList covers an opt-out an email provider reports
+// for an email, such as Mailjet's "unsub" event. It is recorded on the list found for the
+// email by the rules of the email's own unsubscribe link, which
+// TestListService_UnsubscribeFromLists_RowStates covers in full; the method returns only an
+// error, and leaves marking the message to its caller.
+func TestListService_UnsubscribeFromMessageList(t *testing.T) {
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	email := "test@example.com"
+	listID := "list123"
+	messageID := "msg123"
+
+	type fixture struct {
+		service         *ListService
+		listRepo        *mocks.MockListRepository
+		contactListRepo *mocks.MockContactListRepository
+		contactRepo     *mocks.MockContactRepository
+		messageHistory  *mocks.MockMessageHistoryRepository
+		logger          *pkgmocks.MockLogger
+	}
+	// setup returns a service whose mocks expect nothing: gomock fails a test on any call
+	// it did not expect, a write included
+	setup := func(t *testing.T) fixture {
+		ctrl := gomock.NewController(t)
+		f := fixture{
+			listRepo:        mocks.NewMockListRepository(ctrl),
+			contactListRepo: mocks.NewMockContactListRepository(ctrl),
+			contactRepo:     mocks.NewMockContactRepository(ctrl),
+			messageHistory:  mocks.NewMockMessageHistoryRepository(ctrl),
+			logger:          pkgmocks.NewMockLogger(ctrl),
+		}
+		f.service = NewListService(f.listRepo, mocks.NewMockWorkspaceRepository(ctrl), f.contactListRepo, f.contactRepo, f.messageHistory,
+			mocks.NewMockAuthService(ctrl), mocks.NewMockEmailServiceInterface(ctrl), f.logger, "https://api.example.com", pkgmocks.NewMockCache(ctrl))
+		return f
+	}
+	listExists := func(f fixture) {
+		f.listRepo.EXPECT().GetListByID(gomock.Any(), workspaceID, listID).Return(&domain.List{ID: listID, Name: "Test List"}, nil)
+	}
+	noRow := &domain.ErrContactListNotFound{Message: "contact list not found"}
+
+	t.Run("member: unsubscribed", func(t *testing.T) {
+		f := setup(t)
+		listExists(f)
+		f.contactListRepo.EXPECT().MarkContactListUnsubscribed(gomock.Any(), workspaceID, email, listID).Return(true, nil)
+
+		require.NoError(t, f.service.UnsubscribeFromMessageList(ctx, workspaceID, email, listID, messageID))
+	})
+
+	t.Run("contact not on the list, email sent for it: an unsubscribed row is added", func(t *testing.T) {
+		f := setup(t)
+		listExists(f)
+		f.contactListRepo.EXPECT().MarkContactListUnsubscribed(gomock.Any(), workspaceID, email, listID).Return(false, nil)
+		f.contactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, listID).Return(nil, noRow)
+		f.contactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, email).Return(&domain.Contact{Email: email}, nil)
+		f.messageHistory.EXPECT().WasSentForList(gomock.Any(), workspaceID, messageID, email, listID).Return(true, nil)
+		f.contactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, contactList *domain.ContactList) error {
+				assert.Equal(t, email, contactList.Email)
+				assert.Equal(t, listID, contactList.ListID)
+				assert.Equal(t, domain.ContactListStatusUnsubscribed, contactList.Status)
+				return nil
+			})
+
+		require.NoError(t, f.service.UnsubscribeFromMessageList(ctx, workspaceID, email, listID, messageID))
+	})
+
+	for _, kept := range []domain.ContactListStatus{domain.ContactListStatusBounced, domain.ContactListStatusComplained} {
+		t.Run(string(kept)+" row: kept", func(t *testing.T) {
+			f := setup(t)
+			listExists(f)
+			f.contactListRepo.EXPECT().MarkContactListUnsubscribed(gomock.Any(), workspaceID, email, listID).Return(false, nil)
+			f.contactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, listID).
+				Return(&domain.ContactList{Email: email, ListID: listID, Status: kept}, nil)
+
+			require.NoError(t, f.service.UnsubscribeFromMessageList(ctx, workspaceID, email, listID, messageID))
+		})
+	}
+
+	t.Run("contact erased: nothing is written", func(t *testing.T) {
+		f := setup(t)
+		listExists(f)
+		f.contactListRepo.EXPECT().MarkContactListUnsubscribed(gomock.Any(), workspaceID, email, listID).Return(false, nil)
+		f.contactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, listID).Return(nil, noRow)
+		f.contactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, email).Return(nil, domain.ErrContactNotFound)
+		f.logger.EXPECT().WithField("list_id", listID).Return(f.logger)
+		f.logger.EXPECT().Info(gomock.Any())
+
+		require.NoError(t, f.service.UnsubscribeFromMessageList(ctx, workspaceID, email, listID, messageID))
+	})
+
+	t.Run("email not sent for this list: nothing is written", func(t *testing.T) {
+		f := setup(t)
+		listExists(f)
+		f.contactListRepo.EXPECT().MarkContactListUnsubscribed(gomock.Any(), workspaceID, email, listID).Return(false, nil)
+		f.contactListRepo.EXPECT().GetContactListIncludingRemoved(gomock.Any(), workspaceID, email, listID).Return(nil, noRow)
+		f.contactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, email).Return(&domain.Contact{Email: email}, nil)
+		f.messageHistory.EXPECT().WasSentForList(gomock.Any(), workspaceID, messageID, email, listID).Return(false, nil)
+		f.logger.EXPECT().WithField("list_id", listID).Return(f.logger)
+		f.logger.EXPECT().WithField("message_id", messageID).Return(f.logger)
+		f.logger.EXPECT().Warn(gomock.Any())
+
+		require.NoError(t, f.service.UnsubscribeFromMessageList(ctx, workspaceID, email, listID, messageID))
+	})
+
+	// The email's own unsubscribe link records nothing for a deleted list either
+	t.Run("deleted list: nothing is written", func(t *testing.T) {
+		f := setup(t)
+		f.listRepo.EXPECT().GetListByID(gomock.Any(), workspaceID, listID).
+			Return(nil, &domain.ErrListNotFound{Message: "list not found"})
+		f.logger.EXPECT().WithField("list_id", listID).Return(f.logger)
+		f.logger.EXPECT().Warn(gomock.Any())
+
+		require.NoError(t, f.service.UnsubscribeFromMessageList(ctx, workspaceID, email, listID, messageID))
+	})
+
+	t.Run("error - the list lookup fails: nothing is written", func(t *testing.T) {
+		f := setup(t)
+		f.listRepo.EXPECT().GetListByID(gomock.Any(), workspaceID, listID).Return(nil, errors.New("connection refused"))
+
+		err := f.service.UnsubscribeFromMessageList(ctx, workspaceID, email, listID, messageID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get list")
+		assert.Contains(t, err.Error(), "connection refused")
+	})
+
+	t.Run("error - the update fails", func(t *testing.T) {
+		f := setup(t)
+		listExists(f)
+		f.contactListRepo.EXPECT().MarkContactListUnsubscribed(gomock.Any(), workspaceID, email, listID).
+			Return(false, errors.New("connection refused"))
+
+		err := f.service.UnsubscribeFromMessageList(ctx, workspaceID, email, listID, messageID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "connection refused")
+	})
+}
+
 // removed flaky disposable email early-return test due to env-dependent dataset
 
 func TestListService_SubscribeToLists_UnauthExistingContactSkipsUpsert(t *testing.T) {

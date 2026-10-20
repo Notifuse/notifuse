@@ -38,6 +38,11 @@ const (
 	// EmailEventComplaint indicates a complaint was filed for the email
 	EmailEventComplaint EmailEventType = "complaint"
 
+	// EmailEventUnsubscribe indicates the recipient unsubscribed through the provider,
+	// as Mailjet's "unsub" event reports. It is recorded as the email's own unsubscribe
+	// link records an opt-out.
+	EmailEventUnsubscribe EmailEventType = "unsubscribe"
+
 	// EmailEventReply indicates the contact replied to an email we sent. Unlike the
 	// other (outbound-tracking) event types, a reply is an inbound message: the
 	// contact is the SENDER. It is surfaced on the contact timeline as kind
@@ -222,6 +227,7 @@ func (p *InboundWebhookEventListParams) Validate() error {
 			string(EmailEventDelivered),
 			string(EmailEventBounce),
 			string(EmailEventComplaint),
+			string(EmailEventUnsubscribe),
 			string(EmailEventReply),
 			string(EmailEventAutoReply),
 		}

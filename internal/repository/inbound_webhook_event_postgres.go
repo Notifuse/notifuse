@@ -465,7 +465,7 @@ func (r *inboundWebhookEventRepository) DeleteForEmail(ctx context.Context, work
 	// '{}' rather than '': the column is TEXT, but the console renders the tab
 	// with JSON.parse(raw_payload), and an empty string throws — so a redacted
 	// row would crash the inbound events tab for everyone.
-	redactedEmail := "DELETED_EMAIL"
+	redactedEmail := redactedContactEmail
 	query := `UPDATE inbound_webhook_events SET recipient_email = $1, raw_payload = '{}' WHERE recipient_email = $2`
 
 	result, err := workspaceDB.ExecContext(ctx, query, redactedEmail, email)

@@ -611,8 +611,12 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 
 	// Update message history with unsubscribe event if MessageID is provided
 	// This enables broadcast statistics to track unsubscribes via notification center.
-	// Only once an opt-out was recorded: an erased contact's messages are kept with the
-	// address redacted, and marking one would still fire its email.unsubscribed webhook.
+	// Only once one of the lists holds the opt-out, or kept a bounce or complaint in its
+	// place: a link that recorded nothing, such as one for a deleted list, or for a list the
+	// contact has no row on and the email was not sent for, leaves the email as it was. A
+	// message whose address an erasure redacted is left unmarked by SetStatusesIfNotSet
+	// itself, as marking it would fire an email.unsubscribed webhook with the redacted
+	// address.
 	if payload.MessageID != "" && recorded {
 		now := time.Now()
 		updates := []domain.MessageEventUpdate{
@@ -631,6 +635,24 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 	}
 
 	return nil
+}
+
+// UnsubscribeFromMessageList records an opt-out an email provider reported for an email,
+// such as Mailjet's "unsub" event, on listID, the list the caller found for the email. The
+// rules are those of the email's own unsubscribe link: nothing is recorded for a deleted
+// list, and the rest is unsubscribeFromList. Marking the email unsubscribed is left to the
+// caller.
+func (s *ListService) UnsubscribeFromMessageList(ctx context.Context, workspaceID, email, listID, messageID string) error {
+	if _, err := s.repo.GetListByID(ctx, workspaceID, listID); err != nil {
+		var notFound *domain.ErrListNotFound
+		if errors.As(err, &notFound) {
+			s.logger.WithField("list_id", listID).Warn("List opt-out skipped: list not found or deleted")
+			return nil
+		}
+		return fmt.Errorf("failed to get list: %w", err)
+	}
+	_, err := s.unsubscribeFromList(ctx, workspaceID, email, listID, messageID)
+	return err
 }
 
 // unsubscribeFromList records a contact's opt-out from one list and reports whether it

@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"net/http"
+	"strconv"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -149,4 +152,62 @@ func TestMailjetService_RegisterWebhooks_Success(t *testing.T) {
 
 	assert.True(t, hasDeliveredEndpoint, "Should have an endpoint for delivered events")
 	assert.True(t, hasBounceEndpoint, "Should have an endpoint for bounce events")
+}
+
+// A complaint registration creates a spam and an unsub webhook at Mailjet. The webhook records
+// an unsub event as an unsubscribe, so the status reports that webhook as an unsubscribe
+// endpoint, and the spam one as a complaint endpoint.
+func TestMailjetService_RegisterWebhooks_ReportsTheUnsubWebhookAsAnUnsubscribeEndpoint(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHTTPClient := mocks.NewMockHTTPClient(ctrl)
+	service := NewMailjetService(mockHTTPClient, mocks.NewMockAuthService(ctrl), logger.NewLogger())
+	providerConfig := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindMailjet,
+		Mailjet: &domain.MailjetSettings{
+			APIKey:    "test-api-key",
+			SecretKey: "test-secret-key",
+		},
+	}
+
+	// The Mailjet event type of each webhook the registration creates, and the ID Mailjet gives it
+	created := map[string]string{}
+	mockHTTPClient.EXPECT().
+		Do(gomock.Any()).
+		DoAndReturn(func(req *http.Request) (*http.Response, error) {
+			switch req.Method {
+			case http.MethodGet:
+				return mockHTTPResponse(t, http.StatusOK, domain.MailjetWebhookResponse{}), nil
+			case http.MethodPost:
+				var webhook domain.MailjetWebhook
+				if err := json.NewDecoder(req.Body).Decode(&webhook); err != nil {
+					t.Errorf("failed to decode the webhook creation request: %v", err)
+				}
+				webhook.ID = int64(301 + len(created))
+				created[webhook.EventType] = strconv.FormatInt(webhook.ID, 10)
+				return mockHTTPResponse(t, http.StatusCreated, webhook), nil
+			}
+			t.Errorf("unexpected request: %s %s", req.Method, req.URL)
+			return nil, errors.New("unexpected request")
+		}).
+		AnyTimes()
+
+	status, err := service.RegisterWebhooks(context.Background(), "workspace-123", "integration-456",
+		"https://api.notifuse.com", []domain.EmailEventType{domain.EmailEventComplaint}, providerConfig)
+
+	require.NoError(t, err)
+	require.NotNil(t, status)
+	require.Len(t, created, 2)
+	require.Contains(t, created, string(domain.MailjetEventSpam))
+	require.Contains(t, created, string(domain.MailjetEventUnsub))
+	require.Len(t, status.Endpoints, 2)
+	got := make(map[string]domain.EmailEventType, len(status.Endpoints))
+	for _, endpoint := range status.Endpoints {
+		got[endpoint.WebhookID] = endpoint.EventType
+	}
+	assert.Equal(t, map[string]domain.EmailEventType{
+		created[string(domain.MailjetEventSpam)]:  domain.EmailEventComplaint,
+		created[string(domain.MailjetEventUnsub)]: domain.EmailEventUnsubscribe,
+	}, got)
 }

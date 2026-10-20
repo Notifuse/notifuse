@@ -18,6 +18,15 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate mockgen -destination=./mocks/mock_list_unsubscriber.go -package=mocks github.com/Notifuse/notifuse/internal/service ListUnsubscriber
+
+// ListUnsubscriber records an opt-out an email provider reported for an email on the list
+// found for it, by the rules of the email's own unsubscribe link. ListService implements
+// it.
+type ListUnsubscriber interface {
+	UnsubscribeFromMessageList(ctx context.Context, workspaceID, email, listID, messageID string) error
+}
+
 // InboundWebhookEventService implements the domain.InboundWebhookEventServiceInterface
 type InboundWebhookEventService struct {
 	repo               domain.InboundWebhookEventRepository
@@ -27,6 +36,7 @@ type InboundWebhookEventService struct {
 	messageHistoryRepo domain.MessageHistoryRepository
 	contactRepo        domain.ContactRepository
 	automationRepo     domain.AutomationRepository
+	listUnsubscriber   ListUnsubscriber
 	replyParsers       map[domain.EmailProviderKind]domain.ReplyParser
 	// httpClient fetches the SNS SubscribeURL. It is SSRF-safe because that URL
 	// arrives in the request body of a public endpoint — see confirmSNSSubscription.
@@ -42,6 +52,7 @@ func NewInboundWebhookEventService(
 	messageHistoryRepo domain.MessageHistoryRepository,
 	contactRepo domain.ContactRepository,
 	automationRepo domain.AutomationRepository,
+	unsubscriber ListUnsubscriber,
 ) *InboundWebhookEventService {
 	return &InboundWebhookEventService{
 		repo:               repo,
@@ -51,6 +62,7 @@ func NewInboundWebhookEventService(
 		messageHistoryRepo: messageHistoryRepo,
 		contactRepo:        contactRepo,
 		automationRepo:     automationRepo,
+		listUnsubscriber:   unsubscriber,
 		httpClient:         safehttpclient.New(),
 		replyParsers: map[domain.EmailProviderKind]domain.ReplyParser{
 			domain.EmailProviderKindMailgun: &MailgunReplyParser{},
@@ -329,6 +341,7 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 	updates := []domain.MessageEventUpdate{}
 	var hardEmails []string
 	var softCountEmails []string
+	var unsubscribes []*domain.InboundWebhookEvent
 
 	for _, event := range events {
 		switch event.Type {
@@ -391,6 +404,9 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 					StatusInfo: &reason,
 				})
 			}
+
+		case domain.EmailEventUnsubscribe:
+			unsubscribes = append(unsubscribes, event)
 		}
 	}
 
@@ -426,7 +442,75 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 		}
 	}
 
+	// Last, so an unsubscribe in the same delivery as a complaint or a hard bounce finds
+	// it recorded, and keeps it
+	if err := s.recordUnsubscribes(ctx, workspaceID, unsubscribes); err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return fmt.Errorf("failed to record unsubscribes: %w", err)
+	}
+
 	return nil
+}
+
+// recordUnsubscribes records the opt-outs a provider reported. The email is marked
+// unsubscribed, which counts it in statistics and fires its email.unsubscribed events once.
+// When a list is found for the email, the list service first records the opt-out there, by
+// the rules of the email's own unsubscribe link. Unlike that link, which leaves the email
+// unmarked when its list was deleted since, this marks it then too, on purpose: its
+// recipient did unsubscribe from it. Nothing is recorded for an email Notifuse did not
+// send, or for an opt-out of another address than the email's recipient, such as someone
+// the email was copied to. An erased contact's emails are kept with the address redacted,
+// so they fall in that last case. When the erasure lands while this runs, the opt-out may
+// still be recorded on the list before it, but the email is not marked: the repository
+// does not mark a redacted email unsubscribed.
+//
+// It stops at the first failure, and still marks the emails handled before it, those sent
+// for no list included: the opt-outs recorded on their lists are committed, so they are
+// marked now rather than on the provider's retry of the delivery.
+func (s *InboundWebhookEventService) recordUnsubscribes(ctx context.Context, workspaceID string, events []*domain.InboundWebhookEvent) error {
+	var updates []domain.MessageEventUpdate
+	var failed error
+	for _, event := range events {
+		if event.MessageID == nil || *event.MessageID == "" {
+			continue
+		}
+		messageID := *event.MessageID
+
+		message, err := s.messageHistoryRepo.GetRecipientAndList(ctx, workspaceID, messageID)
+		if err != nil {
+			failed = err
+			break
+		}
+		if message == nil {
+			s.logger.WithField("message_id", messageID).Info("Unsubscribe skipped: unknown message")
+			continue
+		}
+		if !strings.EqualFold(message.ContactEmail, event.RecipientEmail) {
+			s.logger.WithField("message_id", messageID).Warn("Unsubscribe skipped: reported for another address than the email's recipient")
+			continue
+		}
+		// An email sent for no list, such as a transactional one, is only marked
+		if message.ListID != nil && *message.ListID != "" {
+			if err := s.listUnsubscriber.UnsubscribeFromMessageList(ctx, workspaceID, message.ContactEmail, *message.ListID, messageID); err != nil {
+				failed = fmt.Errorf("failed to unsubscribe from the list of message %s: %w", messageID, err)
+				break
+			}
+		}
+		updates = append(updates, domain.MessageEventUpdate{
+			ID:        messageID,
+			Event:     domain.MessageEventUnsubscribed,
+			Timestamp: event.Timestamp,
+		})
+	}
+
+	if len(updates) > 0 {
+		if err := s.messageHistoryRepo.SetStatusesIfNotSet(ctx, workspaceID, updates); err != nil {
+			failed = errors.Join(failed, err)
+		}
+	}
+	return failed
 }
 
 // dedupeStrings returns a new slice with duplicates removed, preserving the
@@ -1103,9 +1187,10 @@ func (s *InboundWebhookEventService) processSingleMailjetEvent(integrationID str
 			complaintFeedbackType = payload.Source
 		}
 	case "unsub":
-		// Unsubscribe events can be treated as complaints for tracking purposes
-		eventType = domain.EmailEventComplaint
-		complaintFeedbackType = "unsubscribe"
+		// The recipient unsubscribed through Mailjet, whose API overwrites the email's own
+		// unsubscribe links: an opt-out, not a spam complaint. mj_list_id names a Mailjet
+		// contact list, not a Notifuse one, so the list found for the email is used.
+		eventType = domain.EmailEventUnsubscribe
 	default:
 		return nil, fmt.Errorf("unsupported Mailjet event type: %s", payload.Event)
 	}

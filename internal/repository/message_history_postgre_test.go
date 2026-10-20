@@ -1099,6 +1099,51 @@ func TestMessageHistoryRepository_SetStatusesIfNotSet(t *testing.T) {
 		err := repo.SetStatusesIfNotSet(ctx, workspaceID, updatesWithStatusInfo)
 		require.NoError(t, err)
 	})
+
+	// An erased contact's messages are kept with the address redacted. An unsubscribe
+	// recorded on one after the erasure, such as a provider's report handled while it ran,
+	// would send the message's email.unsubscribed events with the redacted address.
+	t.Run("unsubscribed status adds the redacted-address guard to the update", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`UPDATE message_history SET unsubscribed_at = updates\.timestamp, status_info = COALESCE\(LEFT\(updates\.status_info, 255\), message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND unsubscribed_at IS NULL AND message_history\.contact_email <> \$5`).
+			WithArgs(
+				sqlmock.AnyArg(), // updated_at timestamp
+				"msg-123",
+				now,
+				nil, // status_info for msg-123
+				"DELETED_EMAIL",
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err := repo.SetStatusesIfNotSet(ctx, workspaceID, []domain.MessageEventUpdate{
+			{ID: "msg-123", Event: domain.MessageEventUnsubscribed, Timestamp: now},
+		})
+		require.NoError(t, err)
+	})
+
+	// Complaints are recorded on such messages as before, as are the other statuses above
+	t.Run("complained status does not check the address", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`UPDATE message_history SET complained_at = updates\.timestamp, status_info = COALESCE\(LEFT\(updates\.status_info, 255\), message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND complained_at IS NULL`).
+			WithArgs(
+				sqlmock.AnyArg(), // updated_at timestamp
+				"msg-123",
+				now,
+				nil, // status_info for msg-123
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err := repo.SetStatusesIfNotSet(ctx, workspaceID, []domain.MessageEventUpdate{
+			{ID: "msg-123", Event: domain.MessageEventComplained, Timestamp: now},
+		})
+		require.NoError(t, err)
+	})
 }
 
 func TestMessageHistoryRepository_ListMessages(t *testing.T) {
@@ -2222,6 +2267,78 @@ func TestMessageHistoryRepository_WasSentForList(t *testing.T) {
 		got, err := repo.WasSentForList(ctx, workspaceID, "msg-1", "test@example.com", "list-1")
 		require.Error(t, err)
 		assert.False(t, got)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+}
+
+// GetRecipientAndList reads the list an email was sent for as WasSentForList does: the list
+// stored on the message, or, for an older automation message stored without one, the
+// automation's current list. The behaviour against real rows is covered by
+// TestMailjetUnsubscribeWebhook in tests/integration.
+func TestMessageHistoryRepository_GetRecipientAndList(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	query := regexp.QuoteMeta(`SELECT mh.contact_email, COALESCE(mh.list_id, a.list_id) FROM message_history mh ` +
+		`LEFT JOIN automations a ON a.id = mh.automation_id AND mh.list_id IS NULL WHERE mh.id = $1`)
+
+	t.Run("a message sent for a list", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs("msg-1").
+			WillReturnRows(sqlmock.NewRows([]string{"contact_email", "list_id"}).AddRow("test@example.com", "list-1"))
+
+		message, err := repo.GetRecipientAndList(ctx, workspaceID, "msg-1")
+		require.NoError(t, err)
+		require.NotNil(t, message)
+		assert.Equal(t, "msg-1", message.ID)
+		assert.Equal(t, "test@example.com", message.ContactEmail)
+		require.NotNil(t, message.ListID)
+		assert.Equal(t, "list-1", *message.ListID)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a message sent for no list", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs("msg-2").
+			WillReturnRows(sqlmock.NewRows([]string{"contact_email", "list_id"}).AddRow("test@example.com", nil))
+
+		message, err := repo.GetRecipientAndList(ctx, workspaceID, "msg-2")
+		require.NoError(t, err)
+		require.NotNil(t, message)
+		assert.Equal(t, "test@example.com", message.ContactEmail)
+		assert.Nil(t, message.ListID)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("no such message: nil, no error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs("missing").
+			WillReturnRows(sqlmock.NewRows([]string{"contact_email", "list_id"}))
+
+		message, err := repo.GetRecipientAndList(ctx, workspaceID, "missing")
+		require.NoError(t, err)
+		assert.Nil(t, message)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("query error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs("msg-1").WillReturnError(errors.New("connection reset"))
+
+		message, err := repo.GetRecipientAndList(ctx, workspaceID, "msg-1")
+		require.Error(t, err)
+		assert.Nil(t, message)
+		assert.Contains(t, err.Error(), "connection reset")
+	})
+
+	t.Run("workspace connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(nil, errors.New("connection error"))
+
+		message, err := repo.GetRecipientAndList(ctx, workspaceID, "msg-1")
+		require.Error(t, err)
+		assert.Nil(t, message)
 		assert.Contains(t, err.Error(), "failed to get workspace connection")
 	})
 }
