@@ -70,12 +70,12 @@ const webBufferMaxFlushAttempts = 2
 
 // webBufferMaxDeferredFlushes bounds how many flushes may defer a writer, for
 // lack of salvage budget, without charging it a flush attempt (see writeRun),
-// counted since its last beat or write: past it, a deferral counts as a
-// failure. That is about a minute at the default FlushTick, the order of how
-// long the buffer holds a write back anyway (SessionFlushInterval,
-// IdleFlushAfter). Without it, a writer that has stopped beating, stuck behind
-// more refused writers than the salvage can single out — refused writers that
-// keep coming, say — would stay buffered and dirty for as long as they did.
+// counted since its last beat: past it, a deferral counts as a failure. That
+// is about a minute at the default FlushTick, the order of how long the buffer
+// holds a write back anyway (SessionFlushInterval, IdleFlushAfter). Without it,
+// a writer that has stopped beating, stuck behind more refused writers than the
+// salvage can single out — refused writers that keep coming, say — would stay
+// buffered and dirty for as long as they did.
 const webBufferMaxDeferredFlushes = 30
 
 type webBufferedSession struct {
@@ -85,18 +85,13 @@ type webBufferedSession struct {
 
 	dirty          bool
 	failedAttempts int
-	// refusedAlone records that PostgreSQL has refused this writer's rows on
-	// their own (see writeRun), so that a new beat leaves failedAttempts as it
-	// is (see Add). Cleared once the writer's rows land.
-	refusedAlone bool
 	// salvagePart is the part of a refused run's split this writer was left
 	// unwritten in, or 0 (see writeRun): the next flush writes the writer with
 	// that part rather than with the whole run, which takes the split on from
 	// where it stopped. Kept across beats; cleared once the writer's rows land.
 	salvagePart uint64
 	// deferredFlushes counts the flushes that deferred this writer for lack of
-	// salvage budget since its last beat or write, bounded by
-	// webBufferMaxDeferredFlushes.
+	// salvage budget since its last beat, bounded by webBufferMaxDeferredFlushes.
 	deferredFlushes int
 	// emittedGoals keys the goals already bridged to the contact timeline by
 	// their identity, never by an index into entry.goals: a later beat can carry
@@ -231,21 +226,13 @@ func (b *WebAnalyticsBuffer) Add(workspaceID string, tabID int64, session *domai
 		entry.everIdentified = true
 	}
 	entry.dirty = true
-	// A new beat gives the writer a fresh retry, unless PostgreSQL has refused
-	// the writer's rows on their own. A beat carries the writer's whole
-	// cumulative state, so what was refused is most likely still in it, and a
-	// writer that kept beating would be retried forever, a transaction each
-	// time on the flush goroutine every workspace shares. That writer keeps its
-	// count, and is dropped once its retry fails too.
-	if !entry.refusedAlone {
-		entry.failedAttempts = 0
-	}
+	entry.failedAttempts = 0
 	entry.deferredFlushes = 0
 	entry.lastArrival = now
 }
 
-// Start runs the flush scheduler until ctx is cancelled, then performs a
-// final flush on a detached context so shutdown drains the buffer.
+// Start runs the flush scheduler until ctx is cancelled, then drains the buffer
+// on a detached context (see drain).
 func (b *WebAnalyticsBuffer) Start(ctx context.Context) {
 	ticker := time.NewTicker(b.cfg.FlushTick)
 	defer ticker.Stop()
@@ -253,7 +240,7 @@ func (b *WebAnalyticsBuffer) Start(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
-			b.FlushAll(flushCtx)
+			b.drain(flushCtx)
 			cancel()
 			return
 		case <-ticker.C:
@@ -270,7 +257,18 @@ func (b *WebAnalyticsBuffer) Start(ctx context.Context) {
 func (b *WebAnalyticsBuffer) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	b.FlushAll(ctx)
+	b.drain(ctx)
+}
+
+// drain writes every dirty writer, as FlushAll does, and goes on while a pass
+// leaves writers deferred (see writeRun) and ctx has time left: at shutdown, no
+// tick comes after it to write them.
+func (b *WebAnalyticsBuffer) drain(ctx context.Context) {
+	for {
+		if deferred := b.flush(ctx, true); deferred == 0 || ctx.Err() != nil {
+			return
+		}
+	}
 }
 
 // FlushAll writes every dirty session regardless of debouncing. Also the test
@@ -298,12 +296,12 @@ type webFlushedEntry struct {
 	// salvagePart is the writer's salvagePart when the flush took it, and
 	// the part writeRun left it in when it comes back unwritten.
 	salvagePart uint64
-	// refusedAlone is set by writeRun on a writer whose rows PostgreSQL
-	// refused on their own.
-	refusedAlone bool
 }
 
-func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
+// flush writes the writers that are due, or every dirty one when force is set,
+// and returns how many writers it deferred (see writeRun): dirty again, and due
+// on the next tick.
+func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) (deferredWriters int) {
 	now := b.nowFn()
 
 	type workspaceFlush struct {
@@ -358,15 +356,10 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 		ws := b.workspaces[run.workspaceID]
 		ws.flushing = false
 
-		// Rows that land end whatever failed or was refused before them. That
-		// goes for a beat that came in meanwhile too, which left the count as
-		// it was if the writer still stood refused alone (see Add).
+		// Rows that land take their writer out of the split.
 		for _, sent := range landed {
 			if entry := ws.sessions[sent.id]; entry != nil {
-				entry.failedAttempts = 0
-				entry.refusedAlone = false
 				entry.salvagePart = 0
-				entry.deferredFlushes = 0
 			}
 		}
 
@@ -406,6 +399,7 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 			entry.salvagePart = sent.salvagePart
 			// Not written: due again on the next tick, as below.
 			entry.everFlushed = false
+			deferredWriters++
 			if entry.session != sent.session {
 				continue // replaced mid-flush by a newer beat, which is dirty already
 			}
@@ -424,13 +418,9 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 			// not be debounced as if it had been persisted.
 			entry.everFlushed = false
 			if entry.session != sent.session {
-				// A newer beat replaced the entry mid-flush; it is dirty,
-				// with the retry budget that beat left it (see Add), and
-				// flushes on the next tick.
+				// A newer beat replaced the entry mid-flush; it is dirty
+				// with a fresh retry budget and flushes on the next tick.
 				continue
-			}
-			if sent.refusedAlone {
-				entry.refusedAlone = true
 			}
 			entry.failedAttempts++
 			if entry.failedAttempts >= webBufferMaxFlushAttempts {
@@ -481,6 +471,7 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 			b.projectNavigation(ctx, run.workspaceID, landed)
 		}
 	}
+	return deferredWriters
 }
 
 // writeRun writes one workspace's run of writers and reports which of them
@@ -532,7 +523,6 @@ func (b *WebAnalyticsBuffer) writeRun(ctx context.Context, workspaceID string, e
 			return nil, entries, nil
 		}
 		if len(entries) == 1 {
-			parts[0][0].refusedAlone = true
 			return nil, b.leftUnwritten(parts[0]), nil
 		}
 		whole := parts[0]
@@ -569,7 +559,6 @@ func (b *WebAnalyticsBuffer) writeRun(ctx context.Context, workspaceID string, e
 				WithField("session_id", part[0].id).
 				WithField("error", err.Error()).
 				Error("Web analytics session refused by the database")
-			part[0].refusedAlone = true
 			failed = append(failed, b.leftUnwritten(part)...)
 		}
 	}

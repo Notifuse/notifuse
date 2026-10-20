@@ -3,6 +3,7 @@ package domain
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 	"strings"
 	"testing"
@@ -207,6 +208,36 @@ func TestWebTrackPayloadStoresAGoalValueTooCloseToZeroForARealAsZero(t *testing.
 	}
 }
 
+func TestWebTrackPayloadStoresANegativeZeroGoalValueAsZero(t *testing.T) {
+	// -0 passes the check that a goal value is not negative, and PostgreSQL
+	// keeps its sign in a REAL: a sum over such goals reads -0.
+	now := time.Date(2026, 8, 8, 15, 0, 0, 0, time.UTC)
+	for _, tc := range []struct {
+		name  string
+		value string // as JSON text, the way a beat carries it
+	}{
+		{"as a number", "-0"},
+		{"with a fraction", "-0.0"},
+		{"with an exponent", "-0e5"},
+		{"sent as a string", `"-0"`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			sent, err := decodeGoalValue(json.RawMessage(tc.value))
+			require.NoError(t, err)
+			require.True(t, math.Signbit(sent), "precondition: the beat carries -0")
+
+			body := nulBeatJSON(now, fmt.Sprintf(`"actions":[{"type":"goal","name":"purchase","goal_type":"purchase","path":"/","page_number":1,"timestamp":%d,"value":%s}]`,
+				now.UnixMilli(), tc.value))
+			var p WebTrackPayload
+			require.NoError(t, json.Unmarshal([]byte(body), &p))
+			require.NoError(t, p.Validate(now))
+			require.Len(t, p.Actions, 1, "the goal is kept")
+			assert.Zero(t, p.Actions[0].Value)
+			assert.False(t, math.Signbit(p.Actions[0].Value), "stored as 0, not -0")
+		})
+	}
+}
+
 func TestTruncateUTF8(t *testing.T) {
 	for _, tc := range []struct {
 		name, in string
@@ -236,7 +267,7 @@ func TestWebTrackPayloadCapsTheUserAgent(t *testing.T) {
 	// none, and a header is bounded only by what the server reads, while the
 	// value is copied into the session and every goal row. The cap applies to
 	// the text as stored, after the escaping, and cuts where a character
-	// starts.
+	// starts, never through an escape.
 	now := time.Date(2026, 8, 8, 15, 0, 0, 0, time.UTC)
 	stored := func(t *testing.T, userAgent string) string {
 		t.Helper()
@@ -272,9 +303,27 @@ func TestWebTrackPayloadCapsTheUserAgent(t *testing.T) {
 	})
 
 	t.Run("bytes the escaping triples count as stored", func(t *testing.T) {
-		got := stored(t, strings.Repeat("\xff", WebTrackMaxUserAgentBytes))
-		assert.LessOrEqual(t, len(got), WebTrackMaxUserAgentBytes)
-		assert.True(t, strings.HasPrefix(got, "%FF%FF%FF"), "%.12q", got)
-		assert.True(t, utf8.ValidString(got))
+		assert.Equal(t, strings.Repeat("%FF", WebTrackMaxUserAgentBytes/3),
+			stored(t, strings.Repeat("\xff", WebTrackMaxUserAgentBytes)))
+	})
+
+	t.Run("the cut never splits an escape", func(t *testing.T) {
+		// The last byte, written as %FF, crosses the cap: cut where the cap
+		// falls, it would leave half an escape behind.
+		for _, tc := range []struct {
+			name string
+			keep int
+		}{
+			{"after its %", WebTrackMaxUserAgentBytes - 1},
+			{"after its %F", WebTrackMaxUserAgentBytes - 2},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				assert.Equal(t, strings.Repeat("a", tc.keep), stored(t, strings.Repeat("a", tc.keep)+"\xff"))
+			})
+		}
+	})
+
+	t.Run("a user agent within the cap keeps the % it ends with", func(t *testing.T) {
+		assert.Equal(t, "Mozilla/5.0 (battery 100%", stored(t, "Mozilla/5.0 (battery 100%"))
 	})
 }

@@ -687,7 +687,8 @@ func TestWebAnalyticsServiceTrackCapsAUserAgentHeader(t *testing.T) {
 	payload.Attributes.UserAgent = ""
 	payload.Actions = append(payload.Actions, domain.WebTrackAction{Type: domain.WebActionTypeGoal, Name: "signup",
 		GoalType: domain.GoalTypeLead, Path: "/", PageNumber: 1, Timestamp: receivedAt.UnixMilli()})
-	meta := domain.WebRequestMeta{UserAgent: "Mozilla/5.0 " + strings.Repeat("\xff", 1<<20), ReceivedAt: receivedAt}
+	const product = "Mozilla/5.0 "
+	meta := domain.WebRequestMeta{UserAgent: product + strings.Repeat("\xff", 1<<20), ReceivedAt: receivedAt}
 
 	require.NoError(t, svc.Track(context.Background(), payload, meta))
 
@@ -702,8 +703,8 @@ func TestWebAnalyticsServiceTrackCapsAUserAgentHeader(t *testing.T) {
 
 	require.Len(t, sessions, 1)
 	userAgent := sessions[0].UserAgent
-	assert.LessOrEqual(t, len(userAgent), domain.WebTrackMaxUserAgentBytes)
-	assert.True(t, strings.HasPrefix(userAgent, "Mozilla/5.0 %FF%FF"), "%.24q", userAgent)
+	assert.Equal(t, product+strings.Repeat("%FF", (domain.WebTrackMaxUserAgentBytes-len(product))/3), userAgent,
+		"cut to the escapes that fit whole within the cap")
 	require.Len(t, goals, 1)
 	assert.Equal(t, userAgent, goals[0].UserAgent, "the goal's snapshot is the same capped text")
 }

@@ -612,10 +612,12 @@ func (a *WebTrackAction) Validate() error {
 		if a.Value < 0 || a.Value > WebTrackMaxGoalValue {
 			return fmt.Errorf("goal value must be between 0 and %g", WebTrackMaxGoalValue)
 		}
-		// goal_value is a REAL, and PostgreSQL refuses a value so close to
-		// zero that it rounds to 0 there ("out of range for type real") rather
-		// than store the 0. The goal is kept, with that 0 as its value.
-		if a.Value != 0 && float32(a.Value) == 0 {
+		// goal_value is a REAL. PostgreSQL refuses a value so close to zero
+		// that it rounds to 0 there ("out of range for type real") rather than
+		// store the 0, and it keeps the sign of a -0, which the check above
+		// lets through, so a sum over such goals reads -0. Either is stored as
+		// 0, and the goal kept.
+		if float32(a.Value) == 0 {
 			a.Value = 0
 		}
 		if err := validateGoalProperties(a.Properties); err != nil {
@@ -767,7 +769,7 @@ func (p *WebTrackPayload) Validate(now time.Time) error {
 	// After the escaping, for the same reason. Cut rather than refused: the
 	// value comes back on every beat of the visit.
 	if p.Attributes != nil {
-		p.Attributes.UserAgent = TruncateUTF8(p.Attributes.UserAgent, WebTrackMaxUserAgentBytes)
+		p.Attributes.UserAgent = truncateEscapedText(p.Attributes.UserAgent, WebTrackMaxUserAgentBytes)
 	}
 	for key, value := range p.Dimensions {
 		if !IsCustomDimensionKey(key) {
@@ -863,6 +865,27 @@ func TruncateUTF8(s string, maxBytes int) string {
 	return s[:cut]
 }
 
+// truncateEscapedText cuts s, text EscapeUnstorableBytes has written, as
+// TruncateUTF8 does, and further back rather than through one of its %XX
+// escapes, which would leave a % or a %X that no byte was written as.
+func truncateEscapedText(s string, maxBytes int) string {
+	cut := TruncateUTF8(s, maxBytes)
+	if len(cut) == len(s) {
+		return s
+	}
+	switch n := len(cut); {
+	case n >= 1 && cut[n-1] == '%':
+		return cut[:n-1]
+	case n >= 2 && cut[n-2] == '%' && strings.IndexByte(escapeHexDigits, cut[n-1]) >= 0:
+		return cut[:n-2]
+	}
+	return cut
+}
+
+// escapeHexDigits are the digits of the %XX escapes EscapeUnstorableBytes
+// writes.
+const escapeHexDigits = "0123456789ABCDEF"
+
 // EscapeUnstorableBytes returns s with every byte PostgreSQL cannot store in
 // text or jsonb written as %XX instead: a NUL, and each byte that is not part
 // of a valid UTF-8 sequence. Everything else is kept as it is, so text that is
@@ -871,15 +894,14 @@ func EscapeUnstorableBytes(s string) string {
 	if !hasNUL(s) && utf8.ValidString(s) {
 		return s
 	}
-	const hexDigits = "0123456789ABCDEF"
 	var b strings.Builder
 	b.Grow(len(s) + 8)
 	for i := 0; i < len(s); {
 		r, size := utf8.DecodeRuneInString(s[i:])
 		if r == 0 || (r == utf8.RuneError && size == 1) {
 			b.WriteByte('%')
-			b.WriteByte(hexDigits[s[i]>>4])
-			b.WriteByte(hexDigits[s[i]&0x0F])
+			b.WriteByte(escapeHexDigits[s[i]>>4])
+			b.WriteByte(escapeHexDigits[s[i]&0x0F])
 			i++
 			continue
 		}

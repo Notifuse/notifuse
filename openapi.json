@@ -11976,7 +11976,7 @@
           },
           "user_agent": {
             "type": "string",
-            "description": "Raw user agent, usable as an attribution filter dimension. Stored as sent, except that NUL characters are removed, bytes that are not valid UTF-8 are written as %XX, and the result is cut to 1024 bytes. It is NOT parsed into device/browser/os — those arrive already resolved in the fields above. Falls back to the request's User-Agent header when the attribute is absent."
+            "description": "Raw user agent, usable as an attribution filter dimension. Stored as sent, except that NUL characters are removed, bytes that are not valid UTF-8 are written as %XX, and the result is cut to at most 1024 bytes, between characters. It is NOT parsed into device/browser/os — those arrive already resolved in the fields above. Falls back to the request's User-Agent header when the attribute is absent."
           },
           "connection_type": {
             "type": "string"
