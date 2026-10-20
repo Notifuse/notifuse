@@ -462,8 +462,9 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 // recipient did unsubscribe from it. Nothing is recorded for an email Notifuse did not
 // send, or for an opt-out of another address than the email's recipient, such as someone
 // the email was copied to. An erased contact's emails are kept with the address redacted,
-// so they fall in that last case, even when the erasure lands while this runs: the
-// repository does not mark a redacted email unsubscribed.
+// so they fall in that last case. When the erasure lands while this runs, the opt-out may
+// still be recorded on the list before it, but the email is not marked: the repository
+// does not mark a redacted email unsubscribed.
 //
 // It stops at the first failure, and still marks the emails handled before it, those sent
 // for no list included: the opt-outs recorded on their lists are committed, so they are
@@ -1188,7 +1189,7 @@ func (s *InboundWebhookEventService) processSingleMailjetEvent(integrationID str
 	case "unsub":
 		// The recipient unsubscribed through Mailjet, whose API overwrites the email's own
 		// unsubscribe links: an opt-out, not a spam complaint. mj_list_id names a Mailjet
-		// contact list, not a Notifuse one, so the email's list is used.
+		// contact list, not a Notifuse one, so the list found for the email is used.
 		eventType = domain.EmailEventUnsubscribe
 	default:
 		return nil, fmt.Errorf("unsupported Mailjet event type: %s", payload.Event)

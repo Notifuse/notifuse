@@ -1103,7 +1103,7 @@ func TestMessageHistoryRepository_SetStatusesIfNotSet(t *testing.T) {
 	// An erased contact's messages are kept with the address redacted. An unsubscribe
 	// recorded on one after the erasure, such as a provider's report handled while it ran,
 	// would send the message's email.unsubscribed events with the redacted address.
-	t.Run("unsubscribed status skips messages whose address was redacted", func(t *testing.T) {
+	t.Run("unsubscribed status adds the redacted-address guard to the update", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
