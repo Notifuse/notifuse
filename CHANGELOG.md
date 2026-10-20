@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 
 - **Security**: Web analytics no longer drops the visits it receives alongside a visit holding text, a goal value or a session id the database can't store. Such a visit is now kept, less any page view or goal that can't be stored, with its other details in a form the database accepts.
 
-- **Fix**: On PostgreSQL servers that report errors in a language other than English, web analytics now creates a missing monthly partition, as it already did on English ones, instead of dropping the visits dated in that month along with the other visits written with them. The daily maintenance creates partitions ahead but skips a workspace upgraded from before 38.0 until its web analytics settings are first saved, so such a workspace that turned web analytics on in a later month than its upgrade could lose visits until the next maintenance pass.
+- **Fix**: On PostgreSQL servers that report errors in a language other than English, web analytics now creates a missing monthly partition, as it already did on English ones, instead of dropping the visits dated in that month along with the other visits written with them.
 
 - **Improvement**: The blog API (categories, posts and themes) is now in the API reference. `blogPosts.list` pages with `page` and `limit` (not `offset`), and a missing blog permission answers 403.
 
