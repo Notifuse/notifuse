@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"regexp"
 	"testing"
@@ -268,9 +269,14 @@ func TestListRepository(t *testing.T) {
 			sqlMock.ExpectBegin()
 
 			// Expect list update
-			sqlMock.ExpectExec(regexp.QuoteMeta(`UPDATE lists SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL`)).
+			sqlMock.ExpectQuery(regexp.QuoteMeta(`UPDATE lists SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING name`)).
 				WithArgs(sqlmock.AnyArg(), testList.ID).
-				WillReturnResult(sqlmock.NewResult(0, 1))
+				WillReturnRows(sqlmock.NewRows([]string{"name"}).AddRow(testList.Name))
+
+			// Expect the in-use check: no live automation
+			sqlMock.ExpectQuery(`SELECT id, name, COALESCE\(list_id, ''\), trigger_config, nodes\s+FROM automations`).
+				WithArgs("workspace123").
+				WillReturnRows(sqlmock.NewRows([]string{"id", "name", "list_id", "trigger_config", "nodes"}))
 
 			// Expect contact_list update
 			sqlMock.ExpectExec(regexp.QuoteMeta(`UPDATE contact_lists SET deleted_at = $1 WHERE list_id = $2 AND deleted_at IS NULL`)).
@@ -289,9 +295,9 @@ func TestListRepository(t *testing.T) {
 			sqlMock.ExpectBegin()
 
 			// Expect list update - no rows affected
-			sqlMock.ExpectExec(regexp.QuoteMeta(`UPDATE lists SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL`)).
+			sqlMock.ExpectQuery(regexp.QuoteMeta(`UPDATE lists SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING name`)).
 				WithArgs(sqlmock.AnyArg(), testList.ID).
-				WillReturnResult(sqlmock.NewResult(0, 0))
+				WillReturnRows(sqlmock.NewRows([]string{"name"}))
 
 			// Expect rollback since list not found
 			sqlMock.ExpectRollback()
@@ -306,7 +312,7 @@ func TestListRepository(t *testing.T) {
 			sqlMock.ExpectBegin()
 
 			// Expect list update - error
-			sqlMock.ExpectExec(regexp.QuoteMeta(`UPDATE lists SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL`)).
+			sqlMock.ExpectQuery(regexp.QuoteMeta(`UPDATE lists SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING name`)).
 				WithArgs(sqlmock.AnyArg(), testList.ID).
 				WillReturnError(errors.New("database error"))
 
@@ -323,9 +329,9 @@ func TestListRepository(t *testing.T) {
 			sqlMock.ExpectBegin()
 
 			// Expect list update - no rows affected
-			sqlMock.ExpectExec(regexp.QuoteMeta(`UPDATE lists SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL`)).
+			sqlMock.ExpectQuery(regexp.QuoteMeta(`UPDATE lists SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING name`)).
 				WithArgs(sqlmock.AnyArg(), testList.ID).
-				WillReturnResult(sqlmock.NewResult(0, 0))
+				WillReturnRows(sqlmock.NewRows([]string{"name"}))
 
 			// Expect rollback
 			sqlMock.ExpectRollback()
@@ -416,4 +422,153 @@ func setupListRepositoryTest(t *testing.T) (*listRepository, *mocks.MockWorkspac
 	repo := NewListRepository(mockWorkspaceRepo).(*listRepository)
 
 	return repo, mockWorkspaceRepo
+}
+
+// DeleteList refuses a list that live automations require. The check runs in the deletion's
+// transaction, after the update that locks the list row and before any membership is touched,
+// so a refusal leaves the list and its members exactly as they were.
+func TestListRepository_DeleteList_LiveAutomations(t *testing.T) {
+	const workspaceID = "workspace123"
+	const listID = "list123"
+
+	setup := func(t *testing.T) (*listRepository, sqlmock.Sqlmock) {
+		repo, mockWorkspaceRepo := setupListRepositoryTest(t)
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		return repo, mock
+	}
+
+	expectListLocked := func(mock sqlmock.Sqlmock) {
+		mock.ExpectBegin()
+		mock.ExpectQuery(regexp.QuoteMeta(`UPDATE lists SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING name`)).
+			WithArgs(sqlmock.AnyArg(), listID).
+			WillReturnRows(sqlmock.NewRows([]string{"name"}).AddRow("Newsletter"))
+	}
+
+	// Live, undeleted automations of the workspace, and nothing else.
+	const liveAutomationsQuery = `SELECT id, name, COALESCE\(list_id, ''\), trigger_config, nodes\s+` +
+		`FROM automations\s+WHERE workspace_id = \$1 AND status = 'live' AND deleted_at IS NULL`
+
+	columns := []string{"id", "name", "list_id", "trigger_config", "nodes"}
+	custom := `{"event_kind": "custom_event", "custom_event_name": "signed_up", "frequency": "every_time"}`
+
+	// What a live automation can hold the list with, and what it cannot.
+	sendsEmail := []driver.Value{"a-email", "Welcome series", listID, []byte(custom),
+		[]byte(`[{"id": "t", "type": "trigger", "config": {}}, {"id": "e", "type": "email", "config": {"template_id": "tpl"}}]`)}
+	listens := []driver.Value{"a-trigger", "Listener", "",
+		[]byte(`{"event_kind": "list.removed", "list_id": "` + listID + `", "frequency": "every_time"}`), []byte(`[]`)}
+	adds := []driver.Value{"a-adds", "Adder", "", []byte(custom),
+		[]byte(`[{"id": "a", "type": "add_to_list", "config": {"list_id": "` + listID + `", "status": "active"}}]`)}
+	reads := []driver.Value{"a-reader", "Reader", "", []byte(custom),
+		[]byte(`[{"id": "r", "type": "remove_from_list", "config": {"list_id": "` + listID + `"}},
+			{"id": "b", "type": "list_status_branch", "config": {"list_id": "` + listID + `", "active_node_id": "r"}}]`)}
+	sendsNoEmail := []driver.Value{"a-silent", "Silent", listID, []byte(custom),
+		[]byte(`[{"id": "d", "type": "delay", "config": {"duration": 1, "unit": "days"}}]`)}
+	otherList := []driver.Value{"a-other", "Other list", "other", []byte(custom),
+		[]byte(`[{"id": "e", "type": "email", "config": {"template_id": "tpl"}}]`)}
+
+	t.Run("refused while live automations require the list, naming each one", func(t *testing.T) {
+		repo, mock := setup(t)
+		expectListLocked(mock)
+		mock.ExpectQuery(liveAutomationsQuery).WithArgs(workspaceID).
+			WillReturnRows(sqlmock.NewRows(columns).
+				AddRow(sendsEmail...).AddRow(reads...).AddRow(listens...).
+				AddRow(sendsNoEmail...).AddRow(adds...).AddRow(otherList...))
+		// No membership is touched, and nothing is committed.
+		mock.ExpectRollback()
+
+		err := repo.DeleteList(context.Background(), workspaceID, listID)
+
+		var inUse *domain.ErrListInUse
+		require.True(t, errors.As(err, &inUse), "got %v", err)
+		assert.Equal(t, listID, inUse.ListID)
+		assert.Equal(t, "Newsletter", inUse.ListName)
+		assert.Equal(t, []domain.AutomationRef{
+			{ID: "a-email", Name: "Welcome series"},
+			{ID: "a-trigger", Name: "Listener"},
+			{ID: "a-adds", Name: "Adder"},
+		}, inUse.Automations)
+		assert.Equal(t, 3, inUse.AutomationCount)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("goes ahead when no live automation requires the list", func(t *testing.T) {
+		repo, mock := setup(t)
+		expectListLocked(mock)
+		mock.ExpectQuery(liveAutomationsQuery).WithArgs(workspaceID).
+			WillReturnRows(sqlmock.NewRows(columns).AddRow(reads...).AddRow(sendsNoEmail...).AddRow(otherList...))
+		mock.ExpectExec(regexp.QuoteMeta(`UPDATE contact_lists SET deleted_at = $1 WHERE list_id = $2 AND deleted_at IS NULL`)).
+			WithArgs(sqlmock.AnyArg(), listID).
+			WillReturnResult(sqlmock.NewResult(0, 3))
+		mock.ExpectCommit()
+
+		require.NoError(t, repo.DeleteList(context.Background(), workspaceID, listID))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a stored row it cannot read refuses the deletion", func(t *testing.T) {
+		cases := []struct {
+			name string
+			row  []driver.Value
+			want string
+		}{
+			{
+				name: "trigger",
+				row:  []driver.Value{"a-broken", "Broken", "", []byte(`["not", "a", "trigger"]`), []byte(`[]`)},
+				want: "failed to read the trigger of automation a-broken",
+			},
+			{
+				name: "nodes",
+				row:  []driver.Value{"a-broken", "Broken", "", []byte(custom), []byte(`{"not": "a list of nodes"}`)},
+				want: "failed to read the nodes of automation a-broken",
+			},
+			{
+				name: "columns",
+				row:  []driver.Value{"a-broken", nil, "", []byte(custom), []byte(`[]`)},
+				want: "failed to scan live automation",
+			},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				repo, mock := setup(t)
+				expectListLocked(mock)
+				mock.ExpectQuery(liveAutomationsQuery).WithArgs(workspaceID).
+					WillReturnRows(sqlmock.NewRows(columns).AddRow(tc.row...))
+				mock.ExpectRollback()
+
+				err := repo.DeleteList(context.Background(), workspaceID, listID)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.want)
+				assert.NoError(t, mock.ExpectationsWereMet())
+			})
+		}
+	})
+
+	t.Run("a failed read refuses the deletion", func(t *testing.T) {
+		repo, mock := setup(t)
+		expectListLocked(mock)
+		mock.ExpectQuery(liveAutomationsQuery).WithArgs(workspaceID).
+			WillReturnError(errors.New("connection reset"))
+		mock.ExpectRollback()
+
+		err := repo.DeleteList(context.Background(), workspaceID, listID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to read live automations")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a read that breaks off refuses the deletion", func(t *testing.T) {
+		repo, mock := setup(t)
+		expectListLocked(mock)
+		mock.ExpectQuery(liveAutomationsQuery).WithArgs(workspaceID).
+			WillReturnRows(sqlmock.NewRows(columns).AddRow(reads...).RowError(0, errors.New("connection reset")))
+		mock.ExpectRollback()
+
+		err := repo.DeleteList(context.Background(), workspaceID, listID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "error iterating live automations")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 }

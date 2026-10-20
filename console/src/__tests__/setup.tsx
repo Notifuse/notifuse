@@ -62,6 +62,13 @@ vi.mock('@lingui/core/macro', () => ({
     }, {})
     return { id: message, message, values }
   },
+  // The real macro folds a plural() written inside t`…` into that message as an ICU plural.
+  // Picking `one` for 1 and `other` otherwise, with `#` replaced by the value, renders what
+  // the English catalogue does.
+  plural: (value: number, options: { one?: string; other: string }) => {
+    const template = value === 1 && options.one ? options.one : options.other
+    return template.replace(/#/g, String(value))
+  },
 }))
 
 // Test wrapper with i18n support

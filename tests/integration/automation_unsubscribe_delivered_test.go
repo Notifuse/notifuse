@@ -362,11 +362,20 @@ func TestAutomationUnsubscribeAsDelivered(t *testing.T) {
 		assert.False(t, messageMarked(t, msg))
 	})
 
-	// Last, with its own list and automation: it deletes the list the automation sends for.
+	// Last, with its own list and automation: it deletes the list the automation sends for,
+	// which a live automation holds, so the automation is paused first.
 	t.Run("list deleted after delivery: one-click POST succeeds and stores nothing", func(t *testing.T) {
 		deleted := newAutomation(t)
 		email, msg := deliver(t, deleted, false)
-		resp, err := client.Post("/api/lists.delete", map[string]interface{}{
+		resp, err := client.PauseAutomation(map[string]interface{}{
+			"workspace_id":  workspace.ID,
+			"automation_id": deleted.id,
+		})
+		require.NoError(t, err)
+		pauseBody, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, "pause automation: %s", pauseBody)
+		resp, err = client.Post("/api/lists.delete", map[string]interface{}{
 			"workspace_id": workspace.ID,
 			"id":           deleted.listID,
 		})

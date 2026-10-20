@@ -16,6 +16,8 @@ import {
 } from 'antd'
 import { useParams } from '@tanstack/react-router'
 import { listsApi } from '../services/api/list'
+import type { AutomationRef, ListInUseError } from '../services/api/list'
+import { ApiError } from '../services/api/errors'
 import { templatesApi } from '../services/api/template'
 import type { List, TemplateReference, Workspace } from '../services/api/types'
 import { CreateListDrawer } from '../components/lists/ListDrawer'
@@ -31,8 +33,30 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ImportContactsToListButton } from '../components/lists/ImportContactsToListButton'
 import { ListStats } from '../components/lists/ListStats'
 import { useLingui } from '@lingui/react/macro'
+import { plural } from '@lingui/core/macro'
 
 const { Title, Paragraph, Text } = Typography
+
+// Reads the 409 lists.delete answers while live automations use the list. Null for a body
+// without the automations — from a server that does not send them — whose own sentence is
+// then shown instead.
+const listInUseError = (data: unknown): ListInUseError | null => {
+  if (!data || typeof data !== 'object') return null
+  const { error, automations, automations_count } = data as Record<string, unknown>
+  if (typeof automations_count !== 'number' || !Array.isArray(automations)) return null
+  const named = automations.every(
+    (automation: unknown) =>
+      !!automation &&
+      typeof automation === 'object' &&
+      typeof (automation as Partial<AutomationRef>).name === 'string'
+  )
+  if (!named) return null
+  return {
+    error: typeof error === 'string' ? error : '',
+    automations: automations as AutomationRef[],
+    automations_count
+  }
+}
 
 // Component to fetch template data and render the preview popover
 const TemplatePreviewButton = ({
@@ -104,6 +128,38 @@ export function ListsPage() {
     }
   })
 
+  // Why the list cannot be deleted: the live automations to pause, the first three by name and
+  // any others counted, or only how many for a member who may not read automations. Each case
+  // is one whole sentence in the catalogue, quotes and separators included, for a translation
+  // to word all of it. It is a string because the static message API renders outside the
+  // I18nProvider, where a <Plural> element would throw.
+  const listInUseMessage = (listName: string, refusal: ListInUseError): string => {
+    const names = refusal.automations.map(({ name }) => name)
+    if (names.length === 0) {
+      const count = refusal.automations_count
+      return t`${plural(count, {
+        one: `The list "${listName}" can't be deleted while a live automation uses it. Ask someone with access to automations to pause it.`,
+        other: `The list "${listName}" can't be deleted while # live automations use it. Ask someone with access to automations to pause them.`
+      })}`
+    }
+    if (names.length === 1) {
+      const [automationName] = names
+      return t`The list "${listName}" can't be deleted while the live automation "${automationName}" uses it. Pause it first, or change it to stop using the list.`
+    }
+    const [first, second, third] = names
+    if (names.length === 2) {
+      return t`The list "${listName}" can't be deleted while the live automations "${first}" and "${second}" use it. Pause them first, or change them to stop using the list.`
+    }
+    if (names.length === 3) {
+      return t`The list "${listName}" can't be deleted while the live automations "${first}", "${second}" and "${third}" use it. Pause them first, or change them to stop using the list.`
+    }
+    const more = names.length - 3
+    return t`${plural(more, {
+      one: `The list "${listName}" can't be deleted while the live automations "${first}", "${second}", "${third}" and # more use it. Pause them first, or change them to stop using the list.`,
+      other: `The list "${listName}" can't be deleted while the live automations "${first}", "${second}", "${third}" and # more use it. Pause them first, or change them to stop using the list.`
+    })}`
+  }
+
   const handleDelete = async () => {
     if (!listToDelete) return
 
@@ -120,7 +176,20 @@ export function ListsPage() {
       setListToDelete(null)
       setConfirmationInput('')
     } catch (error) {
-      message.error(t`Failed to delete list`)
+      if (error instanceof ApiError && error.status === 409) {
+        // Live automations use the list. This is the only thing that tells the user what to
+        // pause, so it stays on screen long enough to read, and a body the console cannot read
+        // keeps the server's own sentence rather than the generic one.
+        const refusal = listInUseError(error.data)
+        message.error({
+          content: refusal
+            ? listInUseMessage(listToDelete.name, refusal)
+            : error.message || t`Failed to delete list`,
+          duration: 10
+        })
+      } else {
+        message.error(t`Failed to delete list`)
+      }
       console.error(error)
     } finally {
       setIsDeleting(false)

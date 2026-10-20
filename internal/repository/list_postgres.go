@@ -3,7 +3,9 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -168,8 +170,9 @@ func (r *listRepository) DeleteList(ctx context.Context, workspaceID string, id 
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	// Start a transaction to ensure both list and contact_list entries are deleted together
-	tx, err := workspaceDB.BeginTx(ctx, nil)
+	// Start a transaction to ensure both list and contact_list entries are deleted together.
+	// READ COMMITTED whatever the server's default, which the in-use check below relies on.
+	tx, err := workspaceDB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
@@ -179,20 +182,30 @@ func (r *listRepository) DeleteList(ctx context.Context, workspaceID string, id 
 
 	now := time.Now().UTC()
 
-	// First soft delete the list
-	listQuery := `UPDATE lists SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL`
-	result, err := tx.ExecContext(ctx, listQuery, now, id)
+	// First soft delete the list. The row lock this takes, held until commit, is what makes
+	// the in-use check below sound: an activation locks the lists it requires FOR SHARE in the
+	// transaction that writes it live (AutomationRepository.UpdateIfStatus), so it either
+	// committed before this update got the row, or waits for this transaction to end and then
+	// reads the list as it left it.
+	var name string
+	listQuery := `UPDATE lists SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING name`
+	err = tx.QueryRowContext(ctx, listQuery, now, id).Scan(&name)
+	if err == sql.ErrNoRows {
+		return &domain.ErrListNotFound{Message: "list not found or already deleted"}
+	}
 	if err != nil {
 		return fmt.Errorf("failed to soft delete list: %w", err)
 	}
 
-	rows, err := result.RowsAffected()
+	// Its own statement, after the lock, not part of the update above: under READ COMMITTED
+	// each statement reads from a fresh snapshot, and only one taken once the lock is held
+	// sees an activation that committed while this transaction waited for the row.
+	users, err := liveAutomationsRequiringList(ctx, tx, workspaceID, id)
 	if err != nil {
-		return fmt.Errorf("failed to get affected rows: %w", err)
+		return err
 	}
-
-	if rows == 0 {
-		return &domain.ErrListNotFound{Message: "list not found or already deleted"}
+	if len(users) > 0 {
+		return domain.NewErrListInUse(id, name, users)
 	}
 
 	// Then soft delete all related contact_list entries
@@ -208,6 +221,55 @@ func (r *listRepository) DeleteList(ctx context.Context, workspaceID string, id 
 	}
 
 	return nil
+}
+
+// liveAutomationsRequiringList returns the live automations that require the list, by name.
+//
+// The automations are read here, in the deletion's own transaction, rather than by the
+// service through the automation repository beforehand: a check made outside the transaction
+// that holds the list could pass just before an activation commits. Which references count is
+// Automation.RequiredListIDs, decoded from the stored row, so this and the activation check
+// cannot disagree.
+func liveAutomationsRequiringList(ctx context.Context, tx *sql.Tx, workspaceID, listID string) ([]domain.AutomationRef, error) {
+	rows, err := tx.QueryContext(ctx, `
+		SELECT id, name, COALESCE(list_id, ''), trigger_config, nodes
+		FROM automations
+		WHERE workspace_id = $1 AND status = 'live' AND deleted_at IS NULL
+		ORDER BY name, id
+	`, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read live automations: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var users []domain.AutomationRef
+	for rows.Next() {
+		var automation domain.Automation
+		var triggerJSON, nodesJSON []byte
+		if err := rows.Scan(&automation.ID, &automation.Name, &automation.ListID, &triggerJSON, &nodesJSON); err != nil {
+			return nil, fmt.Errorf("failed to scan live automation: %w", err)
+		}
+		// A row that cannot be decoded cannot be cleared either: refusing is the only answer
+		// that cannot break an automation.
+		if len(triggerJSON) > 0 {
+			if err := json.Unmarshal(triggerJSON, &automation.Trigger); err != nil {
+				return nil, fmt.Errorf("failed to read the trigger of automation %s: %w", automation.ID, err)
+			}
+		}
+		if len(nodesJSON) > 0 {
+			if err := json.Unmarshal(nodesJSON, &automation.Nodes); err != nil {
+				return nil, fmt.Errorf("failed to read the nodes of automation %s: %w", automation.ID, err)
+			}
+		}
+		if slices.Contains(automation.RequiredListIDs(), listID) {
+			users = append(users, domain.AutomationRef{ID: automation.ID, Name: automation.Name})
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating live automations: %w", err)
+	}
+
+	return users, nil
 }
 
 func (r *listRepository) GetListStats(ctx context.Context, workspaceID string, id string) (*domain.ListStats, error) {

@@ -194,3 +194,216 @@ func TestAutomationConflictError_As(t *testing.T) {
 		t.Error("errors.As() matched TriggerConditionError on a conflict error")
 	}
 }
+
+// The console shows this message when an activation or a save is refused, so it has to name
+// the lists — and not call deleted a list that never existed: that one is named by the id the
+// automation gives, which is most likely a typo.
+func TestAutomationDeletedListError_Error(t *testing.T) {
+	tests := []struct {
+		name  string
+		lists []ListRef
+		want  string
+	}{
+		{
+			name:  "one deleted list",
+			lists: []ListRef{{ID: "news", Name: "Newsletter"}},
+			want:  `this automation uses the deleted list "Newsletter": a live automation cannot use a deleted list`,
+		},
+		{
+			name:  "two deleted lists",
+			lists: []ListRef{{ID: "news", Name: "Newsletter"}, {ID: "vip", Name: "VIP"}},
+			want:  `this automation uses the deleted lists "Newsletter" and "VIP": a live automation cannot use a deleted list`,
+		},
+		{
+			name:  "a list that does not exist, by its id",
+			lists: []ListRef{{ID: "newsltter", Missing: true}},
+			want:  `this automation uses the list "newsltter", which does not exist: a live automation cannot use a list that does not exist`,
+		},
+		{
+			name:  "two lists that do not exist",
+			lists: []ListRef{{ID: "a", Missing: true}, {ID: "b", Missing: true}},
+			want:  `this automation uses the lists "a" and "b", which do not exist: a live automation cannot use a list that does not exist`,
+		},
+		{
+			name:  "a deleted list and one that does not exist",
+			lists: []ListRef{{ID: "news", Name: "Newsletter"}, {ID: "newsltter", Missing: true}},
+			want:  `this automation uses the deleted list "Newsletter", and the list "newsltter", which does not exist: a live automation cannot use a deleted list or one that does not exist`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := NewAutomationDeletedListError("auto-123", tt.lists)
+			if err.Error() != tt.want {
+				t.Errorf("Expected error message '%s', got '%s'", tt.want, err.Error())
+			}
+		})
+	}
+}
+
+// The handlers answer 400 by matching this type with errors.As after the service has wrapped
+// it, and must not mistake it for the conflict they answer 409.
+func TestAutomationDeletedListError_As(t *testing.T) {
+	original := NewAutomationDeletedListError("auto-123", []ListRef{{ID: "news", Name: "Newsletter"}})
+	wrapped := fmt.Errorf("failed to update automation status: %w", original)
+
+	var target *AutomationDeletedListError
+	if !errors.As(wrapped, &target) {
+		t.Fatal("errors.As() failed to find AutomationDeletedListError through the wrapping")
+	}
+	if target != original {
+		t.Error("errors.As() should yield the original AutomationDeletedListError")
+	}
+
+	var conflictErr *AutomationConflictError
+	if errors.As(wrapped, &conflictErr) {
+		t.Error("errors.As() matched AutomationConflictError on a deleted list error")
+	}
+}
+
+// A failed update undone by pausing the automation. The caller is told what failed, as before,
+// and then that the automation is no longer live and why, naming the lists the way the refusal
+// to save does: told only of the failure, they would save again and take the success for live.
+func TestAutomationPausedError_Error(t *testing.T) {
+	failure := errors.New("failed to update automation trigger: invalid trigger conditions: operator does not exist")
+
+	tests := []struct {
+		name  string
+		lists []ListRef
+		want  string
+	}{
+		{
+			name:  "its previous version uses a deleted list",
+			lists: []ListRef{{ID: "news", Name: "Newsletter"}},
+			want:  failure.Error() + `; the automation was paused, because its previous version uses the deleted list "Newsletter"`,
+		},
+		{
+			name:  "its previous version uses a deleted list and one that does not exist",
+			lists: []ListRef{{ID: "news", Name: "Newsletter"}, {ID: "newsltter", Missing: true}},
+			want:  failure.Error() + `; the automation was paused, because its previous version uses the deleted list "Newsletter", and the list "newsltter", which does not exist`,
+		},
+		{
+			name: "its previous version could not be put back",
+			want: failure.Error() + "; the automation was paused, because its previous version could not be put back",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := NewAutomationPausedError("auto-123", tt.lists, failure)
+			if err.Error() != tt.want {
+				t.Errorf("Expected error message '%s', got '%s'", tt.want, err.Error())
+			}
+			if want := tt.want[len(failure.Error())+len("; "):]; err.PauseNotice() != want {
+				t.Errorf("Expected pause notice '%s', got '%s'", want, err.PauseNotice())
+			}
+		})
+	}
+}
+
+// The handler answers with the status of what failed, which it finds through the pause, and
+// must not take the pause for a refusal of the update itself: the update was stored.
+func TestAutomationPausedError_As(t *testing.T) {
+	condition := NewTriggerConditionError("invalid trigger conditions: operator does not exist")
+	paused := NewAutomationPausedError("auto-123", []ListRef{{ID: "news", Name: "Newsletter"}},
+		fmt.Errorf("failed to update automation trigger: %w", condition))
+	wrapped := fmt.Errorf("failed to update automation: %w", paused)
+
+	var target *AutomationPausedError
+	if !errors.As(wrapped, &target) || target != paused {
+		t.Fatal("errors.As() should yield the original AutomationPausedError through the wrapping")
+	}
+
+	var conditionErr *TriggerConditionError
+	if !errors.As(wrapped, &conditionErr) || conditionErr != condition {
+		t.Error("errors.As() should find the failure the pause wraps")
+	}
+
+	var deletedList *AutomationDeletedListError
+	if errors.As(wrapped, &deletedList) {
+		t.Error("errors.As() matched AutomationDeletedListError on an update that was stored")
+	}
+}
+
+// The update was stored, and neither the previous version nor a pause could be written back: the
+// caller is told what the automation runs, and the one way to make it run what it stores.
+func TestAutomationUndoFailedError_Error(t *testing.T) {
+	failure := errors.New("failed to update automation trigger: failed to drop existing trigger: pq: canceling statement due to lock timeout")
+	notice := "the automation is still live, storing this version but running the previous version's trigger: pause it and activate it again"
+
+	err := NewAutomationUndoFailedError("auto-123", failure)
+	if err.Error() != failure.Error()+"; "+notice {
+		t.Errorf("Expected error message '%s', got '%s'", failure.Error()+"; "+notice, err.Error())
+	}
+	if err.UndoNotice() != notice {
+		t.Errorf("Expected undo notice '%s', got '%s'", notice, err.UndoNotice())
+	}
+	if err.AutomationID != "auto-123" {
+		t.Errorf("Expected automation id 'auto-123', got '%s'", err.AutomationID)
+	}
+}
+
+// When the stored version's own trigger conditions are what failed, activating it would fail on
+// them again: the caller is told to correct them instead.
+func TestAutomationUndoFailedError_ConditionsFailed(t *testing.T) {
+	condition := NewTriggerConditionError("invalid trigger conditions: operator does not exist")
+	failure := fmt.Errorf("failed to update automation trigger: %w", condition)
+	notice := "the automation is still live, storing this version but running the previous version's trigger: correct its trigger conditions and save it again"
+
+	err := NewAutomationUndoFailedError("auto-123", failure)
+	if err.UndoNotice() != notice {
+		t.Errorf("Expected undo notice '%s', got '%s'", notice, err.UndoNotice())
+	}
+	if err.Error() != failure.Error()+"; "+notice {
+		t.Errorf("Expected error message '%s', got '%s'", failure.Error()+"; "+notice, err.Error())
+	}
+}
+
+// As for a pause: the handler answers with the status of what failed, and the failure is neither
+// a pause nor a refusal of the update.
+func TestAutomationUndoFailedError_As(t *testing.T) {
+	condition := NewTriggerConditionError("invalid trigger conditions: operator does not exist")
+	undoFailed := NewAutomationUndoFailedError("auto-123", fmt.Errorf("failed to update automation trigger: %w", condition))
+	wrapped := fmt.Errorf("failed to update automation: %w", undoFailed)
+
+	var target *AutomationUndoFailedError
+	if !errors.As(wrapped, &target) || target != undoFailed {
+		t.Fatal("errors.As() should yield the original AutomationUndoFailedError through the wrapping")
+	}
+
+	var conditionErr *TriggerConditionError
+	if !errors.As(wrapped, &conditionErr) || conditionErr != condition {
+		t.Error("errors.As() should find the failure it wraps")
+	}
+
+	var paused *AutomationPausedError
+	if errors.As(wrapped, &paused) {
+		t.Error("errors.As() matched AutomationPausedError on an automation that was not paused")
+	}
+	var deletedList *AutomationDeletedListError
+	if errors.As(wrapped, &deletedList) {
+		t.Error("errors.As() matched AutomationDeletedListError on an update that was stored")
+	}
+}
+
+func TestQuotedNames(t *testing.T) {
+	tests := []struct {
+		names []string
+		want  string
+	}{
+		{nil, ``},
+		{[]string{"A"}, `"A"`},
+		{[]string{"A", "B"}, `"A" and "B"`},
+		{[]string{"A", "B", "C"}, `"A", "B" and "C"`},
+		{[]string{"A", "B", "C", "D"}, `"A", "B", "C" and 1 more`},
+		{[]string{"A", "B", "C", "D", "E", "F"}, `"A", "B", "C" and 3 more`},
+		// Read by people: a quote or an accent in a name is not escaped.
+		{[]string{`Spring "sale"`, "Été"}, `"Spring "sale"" and "Été"`},
+	}
+
+	for _, tt := range tests {
+		if got := quotedNames(tt.names); got != tt.want {
+			t.Errorf("quotedNames(%q) = %s, want %s", tt.names, got, tt.want)
+		}
+	}
+}

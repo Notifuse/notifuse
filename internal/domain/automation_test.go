@@ -1418,6 +1418,126 @@ func TestHasEmailNodes(t *testing.T) {
 	}
 }
 
+// RequiredListIDs decides which list references hold a list while the automation is live, and
+// which lists must exist for it to go live. Each reference is in or out for what the step does
+// at run time once its list is deleted.
+func TestAutomation_RequiredListIDs(t *testing.T) {
+	listID := func(id string) *string { return &id }
+	node := func(nodeType NodeType, config map[string]interface{}) *AutomationNode {
+		return &AutomationNode{Type: nodeType, Config: config}
+	}
+	customTrigger := &TimelineTriggerConfig{EventKind: "custom_event", Frequency: TriggerFrequencyEveryTime}
+	inList := &TreeNode{Kind: "leaf", Leaf: &TreeNodeLeaf{
+		Source:      "contact_lists",
+		ContactList: &ContactListCondition{Operator: "in", ListID: "conditions"},
+	}}
+
+	tests := []struct {
+		name       string
+		automation Automation
+		want       []string
+	}{
+		{
+			name: "its own list, when it sends email",
+			automation: Automation{ListID: "own", Trigger: customTrigger, Nodes: []*AutomationNode{
+				node(NodeTypeTrigger, map[string]interface{}{}),
+				node(NodeTypeEmail, map[string]interface{}{"template_id": "tpl"}),
+			}},
+			want: []string{"own"},
+		},
+		{
+			name: "not its own list when it sends no email, since nothing reads it",
+			automation: Automation{ListID: "own", Trigger: customTrigger, Nodes: []*AutomationNode{
+				node(NodeTypeTrigger, map[string]interface{}{}),
+				node(NodeTypeDelay, map[string]interface{}{"duration": 1, "unit": "days"}),
+			}},
+		},
+		{
+			name: "the list a list event triggers on",
+			automation: Automation{Trigger: &TimelineTriggerConfig{
+				EventKind: "list.removed", ListID: listID("watched"), Frequency: TriggerFrequencyEveryTime,
+			}},
+			want: []string{"watched"},
+		},
+		{
+			name: "not a list id on a trigger that is not a list event, which the trigger ignores",
+			automation: Automation{Trigger: &TimelineTriggerConfig{
+				EventKind: "custom_event", ListID: listID("ignored"), Frequency: TriggerFrequencyEveryTime,
+			}},
+		},
+		{
+			name: "the list an add-to-list step writes to",
+			automation: Automation{Trigger: customTrigger, Nodes: []*AutomationNode{
+				node(NodeTypeAddToList, map[string]interface{}{"list_id": "target", "status": "active"}),
+			}},
+			want: []string{"target"},
+		},
+		{
+			name: "not the lists that are only read or removed from",
+			automation: Automation{Trigger: &TimelineTriggerConfig{
+				EventKind: "custom_event", Frequency: TriggerFrequencyEveryTime, Conditions: inList,
+			}, Nodes: []*AutomationNode{
+				node(NodeTypeRemoveFromList, map[string]interface{}{"list_id": "removed-from"}),
+				node(NodeTypeListStatusBranch, map[string]interface{}{"list_id": "branched-on", "active_node_id": "next"}),
+				node(NodeTypeFilter, map[string]interface{}{"conditions": inList}),
+				node(NodeTypeBranch, map[string]interface{}{"paths": []interface{}{map[string]interface{}{"conditions": inList}}}),
+			}},
+		},
+		{
+			name: "each list once, in the order the automation first names it",
+			automation: Automation{
+				ListID: "own",
+				Trigger: &TimelineTriggerConfig{
+					EventKind: "list.subscribed", ListID: listID("watched"), Frequency: TriggerFrequencyEveryTime,
+				},
+				Nodes: []*AutomationNode{
+					node(NodeTypeAddToList, map[string]interface{}{"list_id": "target", "status": "active"}),
+					node(NodeTypeEmail, map[string]interface{}{"template_id": "tpl"}),
+					node(NodeTypeAddToList, map[string]interface{}{"list_id": "own", "status": "active"}),
+					node(NodeTypeAddToList, map[string]interface{}{"list_id": "watched", "status": "pending"}),
+				},
+			},
+			want: []string{"own", "watched", "target"},
+		},
+		{
+			name: "nothing for an add-to-list step with no list picked, or a malformed one",
+			automation: Automation{Trigger: customTrigger, Nodes: []*AutomationNode{
+				node(NodeTypeAddToList, map[string]interface{}{"list_id": "", "status": "active"}),
+				node(NodeTypeAddToList, map[string]interface{}{"status": "active"}),
+				node(NodeTypeAddToList, map[string]interface{}{"list_id": 42, "status": "active"}),
+			}},
+		},
+		{
+			name: "nothing, without a panic, for a stored row with no trigger, a null node or no config",
+			automation: Automation{ListID: "own", Nodes: []*AutomationNode{
+				nil,
+				{Type: NodeTypeAddToList},
+			}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.automation.RequiredListIDs())
+		})
+	}
+
+	// The list deletion decodes the stored row the way the repository does, where a node's
+	// config comes back as a generic map.
+	t.Run("read from a stored row", func(t *testing.T) {
+		var nodes []*AutomationNode
+		require.NoError(t, json.Unmarshal([]byte(`[
+			{"id": "a", "type": "add_to_list", "config": {"list_id": "target", "status": "active"}},
+			{"id": "e", "type": "email", "config": {"template_id": "tpl"}}
+		]`), &nodes))
+		var trigger *TimelineTriggerConfig
+		require.NoError(t, json.Unmarshal([]byte(`{"event_kind": "list.confirmed", "list_id": "watched", "frequency": "once"}`), &trigger))
+
+		stored := Automation{ListID: "own", Trigger: trigger, Nodes: nodes}
+		assert.Equal(t, []string{"own", "watched", "target"}, stored.RequiredListIDs())
+	})
+}
+
 func validABTestVariant() ABTestVariant {
 	return ABTestVariant{
 		ID:         "A",

@@ -149,6 +149,20 @@ func (mr *MockAutomationRepositoryMockRecorder) DropAutomationTrigger(arg0, arg1
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DropAutomationTrigger", reflect.TypeOf((*MockAutomationRepository)(nil).DropAutomationTrigger), arg0, arg1, arg2)
 }
 
+// DropAutomationTriggerWithLockTimeout mocks base method.
+func (m *MockAutomationRepository) DropAutomationTriggerWithLockTimeout(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DropAutomationTriggerWithLockTimeout", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DropAutomationTriggerWithLockTimeout indicates an expected call of DropAutomationTriggerWithLockTimeout.
+func (mr *MockAutomationRepositoryMockRecorder) DropAutomationTriggerWithLockTimeout(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DropAutomationTriggerWithLockTimeout", reflect.TypeOf((*MockAutomationRepository)(nil).DropAutomationTriggerWithLockTimeout), arg0, arg1, arg2)
+}
+
 // ExitContactJourneysOnReply mocks base method.
 func (m *MockAutomationRepository) ExitContactJourneysOnReply(arg0 context.Context, arg1, arg2 string, arg3 *string, arg4 string, arg5 time.Time) (int, error) {
 	m.ctrl.T.Helper()

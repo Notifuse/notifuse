@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -749,6 +750,182 @@ func TestAutomationHandler_ConflictMapping(t *testing.T) {
 
 			assert.Equal(t, http.StatusConflict, w.Code)
 			assert.Equal(t, conflict.Error(), decodeErrorMessage(t, w))
+		})
+	}
+}
+
+// An activation, or a change to a live automation, refused because a list it requires is
+// deleted: a 400 carrying the message the console shows and the lists by id and name. Not the
+// 409 of a lost race, which a retry could fix, and not a 500.
+func TestAutomationHandler_DeletedListMapping(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	automationSvc := mocks.NewMockAutomationService(ctrl)
+	secretKey := []byte("test-jwt-secret-key-for-testing-32bytes")
+	// A refusal the caller acts on, not a failure of the server: nothing is logged as an error.
+	log := pkgmocks.NewMockLogger(ctrl)
+	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+	log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+	log.EXPECT().Debug(gomock.Any()).AnyTimes()
+	log.EXPECT().Info(gomock.Any()).AnyTimes()
+	log.EXPECT().Warn(gomock.Any()).AnyTimes()
+	log.EXPECT().Error(gomock.Any()).Times(0)
+	mux := http.NewServeMux()
+	NewAutomationHandler(automationSvc, func() ([]byte, error) { return secretKey, nil }, log).RegisterRoutes(mux)
+
+	refusal := domain.NewAutomationDeletedListError("auto-123", []domain.ListRef{
+		{ID: "news", Name: "Newsletter"},
+		{ID: "gone", Missing: true},
+	})
+	wrapped := fmt.Errorf("failed to update automation status: %w", refusal)
+
+	testCases := []struct {
+		name     string
+		endpoint string
+		expect   func()
+		body     func(t *testing.T) []byte
+	}{
+		{
+			name:     "update",
+			endpoint: "/api/automations.update",
+			expect: func() {
+				automationSvc.EXPECT().Update(gomock.Any(), "workspace-123", gomock.Any()).Return(wrapped)
+			},
+			body: func(t *testing.T) []byte {
+				body, err := json.Marshal(domain.UpdateAutomationRequest{
+					WorkspaceID: "workspace-123",
+					Automation:  createTestAutomation("auto-123", "workspace-123"),
+				})
+				require.NoError(t, err)
+				return body
+			},
+		},
+		{
+			name:     "activate",
+			endpoint: "/api/automations.activate",
+			expect: func() {
+				automationSvc.EXPECT().Activate(gomock.Any(), "workspace-123", "auto-123").Return(wrapped)
+			},
+			body: func(t *testing.T) []byte {
+				body, err := json.Marshal(domain.ActivateAutomationRequest{
+					WorkspaceID:  "workspace-123",
+					AutomationID: "auto-123",
+				})
+				require.NoError(t, err)
+				return body
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.expect()
+
+			req := httptest.NewRequest(http.MethodPost, tc.endpoint, bytes.NewReader(tc.body(t)))
+			req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+
+			var response struct {
+				Error string           `json:"error"`
+				Lists []domain.ListRef `json:"lists"`
+			}
+			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+			assert.Equal(t, refusal.Error(), response.Error)
+			assert.Contains(t, response.Error, `the deleted list "Newsletter", and the list "gone", which does not exist`)
+			// The list with no row is marked as such.
+			assert.Equal(t, refusal.Lists, response.Lists)
+		})
+	}
+}
+
+// An update that failed once it was stored: undone by pausing the automation, or not undone at
+// all. The answer is the failure's own, its status and its message, and it says what became of
+// the automation, in the message and in fields a client reads without parsing it: told only of
+// the failure, the caller would save again and take the success for an automation still live,
+// and running what it stores.
+func TestAutomationHandler_UpdateFailedOnceStored(t *testing.T) {
+	_, automationSvc, mux, secretKey := setupAutomationTest(t)
+
+	lists := []domain.ListRef{{ID: "news", Name: "Newsletter"}, {ID: "gone", Missing: true}}
+	condition := domain.NewTriggerConditionError("invalid trigger conditions: operator does not exist")
+	conditionFailure := fmt.Errorf("failed to update automation trigger: %w", condition)
+	serverFailure := fmt.Errorf("failed to update automation trigger: %w", errors.New("lock timeout"))
+	undoNotice := "the automation is still live, storing this version but running the previous version's trigger: pause it and activate it again"
+	conditionUndoNotice := "the automation is still live, storing this version but running the previous version's trigger: correct its trigger conditions and save it again"
+
+	testCases := []struct {
+		name   string
+		err    error
+		status int
+		body   string
+	}{
+		{
+			name:   "a trigger configuration that cannot be installed, paused on lists its previous version cannot use",
+			err:    domain.NewAutomationPausedError("auto-123", lists, conditionFailure),
+			status: http.StatusBadRequest,
+			body: `{
+				"error": ` + strconv.Quote(condition.Error()+`; the automation was paused, because its previous version uses the deleted list "Newsletter", and the list "gone", which does not exist`) + `,
+				"paused": true,
+				"lists": [{"id": "news", "name": "Newsletter"}, {"id": "gone", "name": "", "missing": true}]
+			}`,
+		},
+		{
+			name:   "a failure of the server, paused as the previous version could not be put back",
+			err:    domain.NewAutomationPausedError("auto-123", nil, serverFailure),
+			status: http.StatusInternalServerError,
+			body: `{
+				"error": "Failed to update automation; the automation was paused, because its previous version could not be put back",
+				"paused": true
+			}`,
+		},
+		{
+			name:   "a trigger configuration that cannot be installed, not undone",
+			err:    domain.NewAutomationUndoFailedError("auto-123", conditionFailure),
+			status: http.StatusBadRequest,
+			body: `{
+				"error": ` + strconv.Quote(condition.Error()+"; "+conditionUndoNotice) + `,
+				"running_previous_trigger": true
+			}`,
+		},
+		{
+			name:   "a failure of the server, not undone",
+			err:    domain.NewAutomationUndoFailedError("auto-123", serverFailure),
+			status: http.StatusInternalServerError,
+			body: `{
+				"error": ` + strconv.Quote("Failed to update automation; "+undoNotice) + `,
+				"running_previous_trigger": true
+			}`,
+		},
+		// Undone by putting the previous version back: the failure, and nothing else to say.
+		{
+			name:   "a failure of the server, undone",
+			err:    serverFailure,
+			status: http.StatusInternalServerError,
+			body:   `{"error": "Failed to update automation"}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			automationSvc.EXPECT().Update(gomock.Any(), "workspace-123", gomock.Any()).
+				Return(fmt.Errorf("failed to update automation: %w", tc.err))
+
+			body, err := json.Marshal(domain.UpdateAutomationRequest{
+				WorkspaceID: "workspace-123",
+				Automation:  createTestAutomation("auto-123", "workspace-123"),
+			})
+			require.NoError(t, err)
+			req := httptest.NewRequest(http.MethodPost, "/api/automations.update", bytes.NewReader(body))
+			req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.status, w.Code)
+			assert.JSONEq(t, tc.body, w.Body.String())
 		})
 	}
 }

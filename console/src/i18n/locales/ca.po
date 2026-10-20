@@ -292,6 +292,10 @@ msgstr ""
 msgid "{clicks} clicks out of {recipients} recipients"
 msgstr "{clicks} clics de {recipients} destinataris"
 
+#: src/pages/ListsPage.tsx:140
+msgid "{count, plural, one {The list \"{listName}\" can't be deleted while a live automation uses it. Ask someone with access to automations to pause it.} other {The list \"{listName}\" can't be deleted while # live automations use it. Ask someone with access to automations to pause them.}}"
+msgstr "{count, plural, one {La llista \"{listName}\" no es pot eliminar mentre una automatització en directe la utilitzi. Demaneu a algú amb accés a les automatitzacions que la pausi.} other {La llista \"{listName}\" no es pot eliminar mentre # automatitzacions en directe la utilitzin. Demaneu a algú amb accés a les automatitzacions que les pausi.}}"
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:335
 #~ msgid "{count} filters applied"
 #~ msgstr ""
@@ -344,6 +348,10 @@ msgstr "{minutes}m {remainingSeconds}s"
 #: src/components/timeline/ContactTimeline.tsx:231
 msgid "{minutes}m {seconds}s"
 msgstr "{minutes}m {seconds}s"
+
+#: src/pages/ListsPage.tsx:157
+msgid "{more, plural, one {The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\", \"{third}\" and # more use it. Pause them first, or change them to stop using the list.} other {The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\", \"{third}\" and # more use it. Pause them first, or change them to stop using the list.}}"
+msgstr "{more, plural, one {La llista \"{listName}\" no es pot eliminar mentre les automatitzacions en directe \"{first}\", \"{second}\", \"{third}\" i # més la utilitzin. Pauseu-les primer o modifiqueu-les perquè deixin d'utilitzar la llista.} other {La llista \"{listName}\" no es pot eliminar mentre les automatitzacions en directe \"{first}\", \"{second}\", \"{third}\" i # més la utilitzin. Pauseu-les primer o modifiqueu-les perquè deixin d'utilitzar la llista.}}"
 
 #: src/pages/BroadcastsPage.tsx:927
 msgid "{opens} opens out of {recipients} recipients"
@@ -1374,7 +1382,7 @@ msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "Esteu segur que voleu eliminar la invitació per a {0}?"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:334
+#: src/pages/ListsPage.tsx:403
 msgid "Are you sure you want to delete the list \"{0}\"?"
 msgstr "Esteu segur que voleu eliminar la llista \"{0}\"?"
 
@@ -1642,7 +1650,7 @@ msgstr "Automatització"
 msgid "Automation activated successfully"
 msgstr "Automatització activada correctament"
 
-#: src/components/automations/context/AutomationContext.tsx:257
+#: src/components/automations/context/AutomationContext.tsx:266
 msgid "Automation created successfully"
 msgstr "Automatització creada correctament"
 
@@ -1658,9 +1666,13 @@ msgstr "Fluxos d'automatització — els seus disparadors, nodes i historial d'e
 msgid "Automation paused successfully"
 msgstr "Automatització pausada correctament"
 
-#: src/components/automations/context/AutomationContext.tsx:272
+#: src/components/automations/context/AutomationContext.tsx:290
 msgid "Automation updated successfully"
 msgstr "Automatització actualitzada correctament"
+
+#: src/components/automations/context/AutomationContext.tsx:286
+msgid "Automation updated, but it is paused: activate it to run this version."
+msgstr "Automatització actualitzada, però està pausada: activeu-la per executar aquesta versió."
 
 #: src/components/timeline/ContactTimeline.tsx:963
 msgid "Automation:"
@@ -2382,7 +2394,7 @@ msgstr "Campanyes"
 #: src/pages/BroadcastsPage.tsx:688
 #: src/pages/BroadcastsPage.tsx:1054
 #: src/pages/BroadcastsPage.tsx:1789
-#: src/pages/ListsPage.tsx:318
+#: src/pages/ListsPage.tsx:387
 #: src/pages/TemplatesPage.tsx:366
 #: src/pages/TransactionalNotificationsPage.tsx:149
 msgid "Cancel"
@@ -2426,7 +2438,7 @@ msgstr "Cancel·lat"
 msgid "Cannot reach the configured API endpoint"
 msgstr "No es pot accedir al punt final API configurat"
 
-#: src/components/automations/context/AutomationContext.tsx:131
+#: src/components/automations/context/AutomationContext.tsx:140
 msgid "Cannot remove list while email nodes exist. Delete email nodes first."
 msgstr "No es pot treure la llista mentre existeixin nodes de correu. Elimineu primer els nodes de correu."
 
@@ -3613,7 +3625,7 @@ msgstr "Creeu la vostra primera difusió per començar"
 msgid "Create Your First Category"
 msgstr "Creeu la vostra primera categoria"
 
-#: src/pages/ListsPage.tsx:305
+#: src/pages/ListsPage.tsx:374
 msgid "Create your first list to get started"
 msgstr "Creeu la vostra primera llista per començar"
 
@@ -4085,7 +4097,7 @@ msgstr "Retard"
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
 #: src/pages/BroadcastsPage.tsx:1799
 #: src/pages/ContactsPage.tsx:946
-#: src/pages/ListsPage.tsx:328
+#: src/pages/ListsPage.tsx:397
 msgid "Delete"
 msgstr "Eliminar"
 
@@ -4228,8 +4240,8 @@ msgstr "Eliminar capçalera"
 msgid "Delete invitation"
 msgstr "Eliminar invitació"
 
-#: src/pages/ListsPage.tsx:208
-#: src/pages/ListsPage.tsx:313
+#: src/pages/ListsPage.tsx:277
+#: src/pages/ListsPage.tsx:382
 msgid "Delete List"
 msgstr "Eliminar llista"
 
@@ -4374,7 +4386,7 @@ msgstr "Descriviu aquesta imatge..."
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:308
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
-#: src/pages/ListsPage.tsx:269
+#: src/pages/ListsPage.tsx:338
 #: src/pages/TransactionalNotificationsPage.tsx:266
 msgid "Description"
 msgstr "Descripció"
@@ -4581,7 +4593,7 @@ msgid "Double Opt-in"
 msgstr "Doble opt-in"
 
 #: src/components/lists/ListDrawer.tsx:250
-#: src/pages/ListsPage.tsx:283
+#: src/pages/ListsPage.tsx:352
 msgid "Double Opt-in Template"
 msgstr "Plantilla de doble opt-in"
 
@@ -4734,7 +4746,7 @@ msgstr "Cada contacte entra a l'automatització només una vegada"
 #~ msgid "Each Zapier connection needs its own key, so give a second one a different name."
 #~ msgstr "Cada connexió de Zapier necessita la seva pròpia clau: doneu un nom diferent a la segona."
 
-#: src/pages/ListsPage.tsx:80
+#: src/pages/ListsPage.tsx:104
 msgid "edit"
 msgstr "Editar"
 
@@ -4845,7 +4857,7 @@ msgstr "Editar contingut Liquid"
 
 #: src/components/lists/ListDrawer.tsx:154
 #: src/components/lists/ListDrawer.tsx:157
-#: src/pages/ListsPage.tsx:224
+#: src/pages/ListsPage.tsx:293
 msgid "Edit List"
 msgstr "Editar llista"
 
@@ -5346,7 +5358,7 @@ msgstr "Introduïu URL de l'enllaç o {{ url }}"
 msgid "Enter list description"
 msgstr "Introduïu descripció de la llista"
 
-#: src/pages/ListsPage.tsx:340
+#: src/pages/ListsPage.tsx:409
 msgid "Enter list ID to confirm"
 msgstr "Introduïu l'ID de la llista per confirmar"
 
@@ -5770,7 +5782,7 @@ msgid "Failed to create API key"
 msgstr "No s'ha pogut crear la clau API"
 
 #. placeholder {0}: error.message
-#: src/components/automations/context/AutomationContext.tsx:262
+#: src/components/automations/context/AutomationContext.tsx:271
 msgid "Failed to create automation: {0}"
 msgstr "No s'ha pogut crear l'automatització: {0}"
 
@@ -5849,7 +5861,8 @@ msgstr "No s'ha pogut eliminar la integració"
 msgid "Failed to delete invitation"
 msgstr "No s'ha pogut eliminar la invitació"
 
-#: src/pages/ListsPage.tsx:123
+#: src/pages/ListsPage.tsx:187
+#: src/pages/ListsPage.tsx:191
 msgid "Failed to delete list"
 msgstr "No s'ha pogut eliminar la llista"
 
@@ -6159,7 +6172,7 @@ msgid "Failed to unpublish post"
 msgstr "No s'ha pogut despublicar la publicació"
 
 #. placeholder {0}: error.message
-#: src/components/automations/context/AutomationContext.tsx:277
+#: src/components/automations/context/AutomationContext.tsx:301
 msgid "Failed to update automation: {0}"
 msgstr "No s'ha pogut actualitzar l'automatització: {0}"
 
@@ -7004,7 +7017,7 @@ msgstr "URL d'icona/favicon"
 #: src/components/messages/MessageHistoryTable.tsx:273
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:149
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:360
-#: src/pages/ListsPage.tsx:267
+#: src/pages/ListsPage.tsx:336
 #: src/pages/TransactionalNotificationsPage.tsx:264
 msgid "ID"
 msgstr "ID"
@@ -7018,7 +7031,7 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "L'ID només pot contenir lletres minúscules, números i guions baixos"
 
 #: src/pages/BroadcastsPage.tsx:1830
-#: src/pages/ListsPage.tsx:346
+#: src/pages/ListsPage.tsx:415
 msgid "ID doesn't match"
 msgstr "L'ID no coincideix"
 
@@ -7870,7 +7883,7 @@ msgid "List"
 msgstr "Llista"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:117
+#: src/pages/ListsPage.tsx:173
 msgid "List \"{0}\" deleted successfully"
 msgstr "Llista \"{0}\" eliminada correctament"
 
@@ -8010,12 +8023,12 @@ msgstr "Llista:"
 #: src/layouts/WorkspaceLayout.tsx:393
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
-#: src/pages/ListsPage.tsx:155
+#: src/pages/ListsPage.tsx:224
 #: src/services/api/errors.ts:83
 msgid "Lists"
 msgstr "Llistes"
 
-#: src/pages/ListsPage.tsx:143
+#: src/pages/ListsPage.tsx:212
 msgid "Lists refreshed"
 msgstr "Llistes actualitzades"
 
@@ -8105,7 +8118,7 @@ msgstr "Carregant estat del webhook..."
 #: src/layouts/RootLayout.tsx:99
 #: src/pages/ContactsPage.tsx:531
 #: src/pages/ContactsPage.tsx:1161
-#: src/pages/ListsPage.tsx:149
+#: src/pages/ListsPage.tsx:218
 #: src/pages/LogsPage.tsx:29
 #: src/pages/TemplatesPage.tsx:203
 #: src/pages/TransactionalNotificationsPage.tsx:383
@@ -8966,7 +8979,7 @@ msgstr "Encara no s'ha registrat cap clic en enllaços per a aquesta variació"
 msgid "No list"
 msgstr "Sense llista"
 
-#: src/pages/ListsPage.tsx:303
+#: src/pages/ListsPage.tsx:372
 msgid "No lists found"
 msgstr "No s'han trobat llistes"
 
@@ -10015,7 +10028,7 @@ msgstr "Si us plau, introduïu un identificador API"
 msgid "Please enter an API key name"
 msgstr "Si us plau, introduïu un nom de clau API"
 
-#: src/components/automations/context/AutomationContext.tsx:286
+#: src/components/automations/context/AutomationContext.tsx:314
 #: src/components/automations/UpsertAutomationDrawer.tsx:115
 msgid "Please enter an automation name"
 msgstr "Si us plau, introduïu un nom d'automatització"
@@ -10251,8 +10264,8 @@ msgstr "Premeu Enter o feu clic a D'acord per confirmar, Escape per cancel·lar"
 msgid "Press Enter to confirm, Escape to cancel"
 msgstr "Premeu Enter per confirmar, Escape per cancel·lar"
 
-#: src/pages/ListsPage.tsx:64
-#: src/pages/ListsPage.tsx:73
+#: src/pages/ListsPage.tsx:88
+#: src/pages/ListsPage.tsx:97
 msgid "preview"
 msgstr "Previsualitzar"
 
@@ -10403,7 +10416,7 @@ msgstr "La prioritat és obligatòria"
 msgid "Priority:"
 msgstr "Prioritat:"
 
-#: src/pages/ListsPage.tsx:277
+#: src/pages/ListsPage.tsx:346
 msgid "Private"
 msgstr "Privat"
 
@@ -10463,7 +10476,7 @@ msgid "Provider"
 msgstr "Proveïdor"
 
 #: src/components/lists/ListDrawer.tsx:214
-#: src/pages/ListsPage.tsx:273
+#: src/pages/ListsPage.tsx:342
 msgid "Public"
 msgstr "Públic"
 
@@ -10859,7 +10872,7 @@ msgstr "Referents"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:434
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:429
 #: src/pages/ContactsPage.tsx:910
-#: src/pages/ListsPage.tsx:158
+#: src/pages/ListsPage.tsx:227
 msgid "Refresh"
 msgstr "Actualitzar"
 
@@ -13542,6 +13555,18 @@ msgstr "El darrer reompliment ha fallat"
 msgid "The licence covers this whole deployment rather than this workspace. Ask the person who runs this Notifuse instance."
 msgstr ""
 
+#: src/pages/ListsPage.tsx:147
+msgid "The list \"{listName}\" can't be deleted while the live automation \"{automationName}\" uses it. Pause it first, or change it to stop using the list."
+msgstr "La llista \"{listName}\" no es pot eliminar mentre l'automatització en directe \"{automationName}\" la utilitzi. Pauseu-la primer o modifiqueu-la perquè deixi d'utilitzar la llista."
+
+#: src/pages/ListsPage.tsx:151
+msgid "The list \"{listName}\" can't be deleted while the live automations \"{first}\" and \"{second}\" use it. Pause them first, or change them to stop using the list."
+msgstr "La llista \"{listName}\" no es pot eliminar mentre les automatitzacions en directe \"{first}\" i \"{second}\" la utilitzin. Pauseu-les primer o modifiqueu-les perquè deixin d'utilitzar la llista."
+
+#: src/pages/ListsPage.tsx:154
+msgid "The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\" and \"{third}\" use it. Pause them first, or change them to stop using the list."
+msgstr "La llista \"{listName}\" no es pot eliminar mentre les automatitzacions en directe \"{first}\", \"{second}\" i \"{third}\" la utilitzin. Pauseu-les primer o modifiqueu-les perquè deixin d'utilitzar la llista."
+
 #: src/services/api/permissions.ts:882
 msgid "The log names every member's email and IP address and records refused actions. Grant read to the people who need to answer \"who did this\", not to everyone."
 msgstr "El registre anomena el correu i la IP de cada membre i enregistra les accions rebutjades. Concediu lectura a les persones que han de respondre «qui ha fet això», no a tothom."
@@ -13713,7 +13738,7 @@ msgstr "Aquesta acció no es pot desfer."
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "Aquesta acció no es pot desfer. Per confirmar, si us plau introduïu l'ID de la difusió:"
 
-#: src/pages/ListsPage.tsx:336
+#: src/pages/ListsPage.tsx:405
 msgid "This action cannot be undone. To confirm, please enter the list ID:"
 msgstr "Aquesta acció no es pot desfer. Per confirmar, si us plau introduïu l'ID de la llista:"
 
@@ -15039,7 +15064,7 @@ msgstr "Veure el lloc web"
 #~ msgid "Views"
 #~ msgstr ""
 
-#: src/pages/ListsPage.tsx:270
+#: src/pages/ListsPage.tsx:339
 msgid "Visibility"
 msgstr "Visibilitat"
 
@@ -15643,10 +15668,10 @@ msgid "You don't have write permission for contacts"
 msgstr "No teniu permís d'escriptura per a contactes"
 
 #: src/components/contacts/BulkActionsBar.tsx:54
-#: src/pages/ListsPage.tsx:169
-#: src/pages/ListsPage.tsx:207
-#: src/pages/ListsPage.tsx:223
-#: src/pages/ListsPage.tsx:245
+#: src/pages/ListsPage.tsx:238
+#: src/pages/ListsPage.tsx:276
+#: src/pages/ListsPage.tsx:292
+#: src/pages/ListsPage.tsx:314
 msgid "You don't have write permission for lists"
 msgstr "No teniu permís d'escriptura per a llistes"
 

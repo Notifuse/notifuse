@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -205,6 +206,23 @@ func (h *ListHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	if err := h.service.DeleteList(r.Context(), workspaceID, req.ID); err != nil {
 		if _, ok := err.(*domain.ErrListNotFound); ok {
 			WriteJSONError(w, "List not found", http.StatusNotFound)
+			return
+		}
+		// Live automations require the list. A 409 naming them, the way a template version
+		// conflict carries its versions: the message for people, and the automations by id
+		// and name for a client. A caller who may not read automations gets none of them,
+		// only their count: an empty list, never null, so it reads the same way.
+		var inUse *domain.ErrListInUse
+		if errors.As(err, &inUse) {
+			automations := inUse.Automations
+			if automations == nil {
+				automations = []domain.AutomationRef{}
+			}
+			writeJSON(w, http.StatusConflict, map[string]interface{}{
+				"error":             inUse.Error(),
+				"automations":       automations,
+				"automations_count": inUse.AutomationCount,
+			})
 			return
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to delete list")

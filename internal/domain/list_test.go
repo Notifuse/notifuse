@@ -3,6 +3,8 @@ package domain
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/url"
 	"strings"
 	"testing"
@@ -211,6 +213,97 @@ func (m *listMockScanner) Scan(dest ...interface{}) error {
 func TestErrListNotFound_Error(t *testing.T) {
 	err := &ErrListNotFound{Message: "test error message"}
 	assert.Equal(t, "test error message", err.Error())
+}
+
+func listInUseAutomations(names ...string) []AutomationRef {
+	refs := make([]AutomationRef, len(names))
+	for i, name := range names {
+		refs[i] = AutomationRef{ID: "id-" + name, Name: name}
+	}
+	return refs
+}
+
+// The API answers with this message, so it has to name the automations holding the list and
+// stay one readable line however many there are — or, for a caller who may not read
+// automations, count them and name none.
+func TestErrListInUse_Error(t *testing.T) {
+	automations := listInUseAutomations
+
+	tests := []struct {
+		name string
+		err  *ErrListInUse
+		want string
+	}{
+		{
+			name: "one automation",
+			err:  NewErrListInUse("news", "Newsletter", automations("Welcome series")),
+			want: `cannot delete list "Newsletter" while the live automation "Welcome series" uses it: pause the automation first, or change it to stop using the list`,
+		},
+		{
+			name: "a few automations, each named",
+			err:  NewErrListInUse("news", "Newsletter", automations("A", "B", "C")),
+			want: `cannot delete list "Newsletter" while the live automations "A", "B" and "C" use it: pause the automations first, or change them to stop using the list`,
+		},
+		{
+			name: "many automations, the rest counted",
+			err:  NewErrListInUse("news", "Newsletter", automations("A", "B", "C", "D", "E")),
+			want: `cannot delete list "Newsletter" while the live automations "A", "B", "C" and 2 more use it: pause the automations first, or change them to stop using the list`,
+		},
+		{
+			name: "a list with no name, by its id",
+			err:  NewErrListInUse("news", "", automations("A", "B")),
+			want: `cannot delete list "news" while the live automations "A" and "B" use it: pause the automations first, or change them to stop using the list`,
+		},
+		{
+			name: "one automation, counted but not named",
+			err:  NewErrListInUse("news", "Newsletter", automations("Welcome series")).WithoutAutomations(),
+			want: `cannot delete list "Newsletter" while 1 live automation uses it: ask someone with access to automations to pause it`,
+		},
+		{
+			name: "several automations, counted but not named",
+			err:  NewErrListInUse("news", "Newsletter", automations("A", "B", "C", "D", "E")).WithoutAutomations(),
+			want: `cannot delete list "Newsletter" while 5 live automations use it: ask someone with access to automations to pause them`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.err.Error())
+		})
+	}
+}
+
+// A caller who may not read automations is told how many hold the list, and nothing that
+// identifies one: neither a name nor an id.
+func TestErrListInUse_WithoutAutomations(t *testing.T) {
+	named := NewErrListInUse("news", "Newsletter", listInUseAutomations("Welcome series", "Win-back"))
+	require.Equal(t, 2, named.AutomationCount)
+
+	counted := named.WithoutAutomations()
+	assert.Equal(t, "news", counted.ListID)
+	assert.Equal(t, "Newsletter", counted.ListName)
+	assert.Empty(t, counted.Automations)
+	assert.Equal(t, 2, counted.AutomationCount)
+	for _, automation := range named.Automations {
+		assert.NotContains(t, counted.Error(), automation.Name)
+		assert.NotContains(t, counted.Error(), automation.ID)
+	}
+
+	// The refusal it was made from keeps its names.
+	assert.Len(t, named.Automations, 2)
+}
+
+// The handler answers 409 by finding this type with errors.As after the service has wrapped it.
+func TestErrListInUse_As(t *testing.T) {
+	original := NewErrListInUse("news", "Newsletter", []AutomationRef{{ID: "a1", Name: "A"}})
+	wrapped := fmt.Errorf("failed to delete list: %w", original)
+
+	var target *ErrListInUse
+	require.True(t, errors.As(wrapped, &target))
+	assert.Same(t, original, target)
+
+	var notFound *ErrListNotFound
+	assert.False(t, errors.As(wrapped, &notFound), "a list in use must not read as a missing list")
 }
 
 func TestUnsubscribeFromListsRequest_FromURLParams_ExistingFile(t *testing.T) {

@@ -159,6 +159,11 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.service.Update(r.Context(), req.WorkspaceID, req.Automation); err != nil {
+		// A live automation changed to use a deleted list: a refusal the caller acts on, not
+		// a failure to log.
+		if writeDeletedListError(w, err) {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to update automation")
 		if writePermissionError(w, err) {
 			return
@@ -172,7 +177,7 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 		// caller-supplied trigger configuration can fail here too.
 		var conditionErr *domain.TriggerConditionError
 		if errors.As(err, &conditionErr) {
-			WriteJSONError(w, conditionErr.Error(), http.StatusBadRequest)
+			writeUpdateFailure(w, err, conditionErr.Error(), http.StatusBadRequest)
 			return
 		}
 		// A transition that lost a race to another admin: nothing is broken and nothing
@@ -183,13 +188,42 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 			WriteJSONError(w, conflictErr.Error(), http.StatusConflict)
 			return
 		}
-		WriteJSONError(w, "Failed to update automation", http.StatusInternalServerError)
+		writeUpdateFailure(w, err, "Failed to update automation", http.StatusInternalServerError)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"automation": req.Automation,
 	})
+}
+
+// writeUpdateFailure answers an update that failed with message and status. An update that
+// failed once it was stored, then undone by pausing the automation or not undone at all, is
+// answered as the failure it is, and says what became of the automation, or the caller would
+// take it for live and running what it stores. It says so in the message, and in fields a client
+// reads without parsing it: paused, with the lists that kept the previous version from going
+// back live when that is why, or running_previous_trigger.
+func writeUpdateFailure(w http.ResponseWriter, err error, message string, status int) {
+	var paused *domain.AutomationPausedError
+	var undoFailed *domain.AutomationUndoFailedError
+	switch {
+	case errors.As(err, &paused):
+		body := map[string]interface{}{
+			"error":  message + "; " + paused.PauseNotice(),
+			"paused": true,
+		}
+		if len(paused.Lists) > 0 {
+			body["lists"] = paused.Lists
+		}
+		writeJSON(w, status, body)
+	case errors.As(err, &undoFailed):
+		writeJSON(w, status, map[string]interface{}{
+			"error":                    message + "; " + undoFailed.UndoNotice(),
+			"running_previous_trigger": true,
+		})
+	default:
+		WriteJSONError(w, message, status)
+	}
 }
 
 func (h *AutomationHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
@@ -243,6 +277,11 @@ func (h *AutomationHandler) handleActivate(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := h.service.Activate(r.Context(), req.WorkspaceID, req.AutomationID); err != nil {
+		// An automation that uses a deleted list: a refusal the caller acts on, not a
+		// failure to log.
+		if writeDeletedListError(w, err) {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to activate automation")
 		if writePermissionError(w, err) {
 			return
@@ -270,6 +309,22 @@ func (h *AutomationHandler) handleActivate(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 	})
+}
+
+// writeDeletedListError answers a write that would leave an automation live on a deleted list,
+// or on one that does not exist, reporting whether it wrote the response. A 400 like a trigger
+// configuration that cannot be installed — the automation is what has to change — carrying the
+// lists by id and name, and marking missing the ones that do not exist.
+func writeDeletedListError(w http.ResponseWriter, err error) bool {
+	var deletedList *domain.AutomationDeletedListError
+	if !errors.As(err, &deletedList) {
+		return false
+	}
+	writeJSON(w, http.StatusBadRequest, map[string]interface{}{
+		"error": deletedList.Error(),
+		"lists": deletedList.Lists,
+	})
+	return true
 }
 
 func (h *AutomationHandler) handlePause(w http.ResponseWriter, r *http.Request) {

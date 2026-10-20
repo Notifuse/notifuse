@@ -74,6 +74,20 @@ export interface DeleteListResponse {
   status: string
 }
 
+export interface AutomationRef {
+  id: string
+  name: string
+}
+
+// The body of the 409 lists.delete answers while live automations use the list. `automations`
+// names them, and is empty for a caller who may not read automations; `automations_count`
+// counts them either way.
+export interface ListInUseError {
+  error: string
+  automations: AutomationRef[]
+  automations_count: number
+}
+
 export interface ListStats {
   total_active: number
   total_pending: number

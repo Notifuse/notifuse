@@ -491,6 +491,68 @@ func TestListService_DeleteList(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to delete list")
 	})
+
+	// The repository decides, in the deletion's own transaction, that live automations
+	// require the list. The refusal has to reach the handler as itself, and nothing that
+	// follows a deletion may run: the list is still there. Nor is it logged as an error:
+	// nothing failed.
+	inUse := func() *domain.ErrListInUse {
+		return domain.NewErrListInUse(listID, "Newsletter", []domain.AutomationRef{
+			{ID: "auto-1", Name: "Welcome series"},
+			{ID: "auto-2", Name: "Win-back"},
+		})
+	}
+	listsMember := func(automations domain.ResourcePermissions) *domain.UserWorkspace {
+		return &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists:       {Read: true, Write: true},
+				domain.PermissionResourceAutomations: automations,
+			},
+		}
+	}
+
+	t.Run("list required by live automations, named to a caller who may read automations", func(t *testing.T) {
+		refusal := inUse()
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{}, listsMember(domain.ResourcePermissions{Read: true}), nil)
+		mockRepo.EXPECT().DeleteList(ctx, workspaceID, listID).Return(refusal)
+		mockLogger.EXPECT().Error(gomock.Any()).Times(0)
+		// The blog shows public lists; one that was not deleted keeps its cached pages.
+		mockCache.EXPECT().Clear().Times(0)
+
+		err := service.DeleteList(ctx, workspaceID, listID)
+
+		var got *domain.ErrListInUse
+		require.True(t, errors.As(err, &got), "got %v", err)
+		assert.Same(t, refusal, got)
+	})
+
+	// Write access to lists is all a deletion asks for, and it does not let the caller see
+	// automations: they are told the list is in use and by how many, and not by which.
+	t.Run("list required by live automations, counted for a caller who may not read automations", func(t *testing.T) {
+		refusal := inUse()
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{}, listsMember(domain.ResourcePermissions{}), nil)
+		mockRepo.EXPECT().DeleteList(ctx, workspaceID, listID).Return(refusal)
+		mockLogger.EXPECT().Error(gomock.Any()).Times(0)
+		mockCache.EXPECT().Clear().Times(0)
+
+		err := service.DeleteList(ctx, workspaceID, listID)
+
+		var got *domain.ErrListInUse
+		require.True(t, errors.As(err, &got), "got %v", err)
+		assert.Equal(t, listID, got.ListID)
+		assert.Equal(t, "Newsletter", got.ListName)
+		assert.Empty(t, got.Automations)
+		assert.Equal(t, 2, got.AutomationCount)
+		for _, automation := range refusal.Automations {
+			assert.NotContains(t, err.Error(), automation.Name)
+			assert.NotContains(t, err.Error(), automation.ID)
+		}
+	})
 }
 
 func TestListService_GetListStats(t *testing.T) {
