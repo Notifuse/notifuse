@@ -634,14 +634,15 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 }
 
 // UnsubscribeFromMessageList records an opt-out an email provider reported for an email,
-// such as Mailjet's "unsub" event, on listID, the list the email was sent for. The rules are
-// those of the email's own unsubscribe link: nothing is recorded for a deleted list, and
-// the rest is unsubscribeFromList. Marking the email unsubscribed is left to the caller.
+// such as Mailjet's "unsub" event, on listID, the list the caller found for the email. The
+// rules are those of the email's own unsubscribe link: nothing is recorded for a deleted
+// list, and the rest is unsubscribeFromList. Marking the email unsubscribed is left to the
+// caller.
 func (s *ListService) UnsubscribeFromMessageList(ctx context.Context, workspaceID, email, listID, messageID string) error {
 	if _, err := s.repo.GetListByID(ctx, workspaceID, listID); err != nil {
 		var notFound *domain.ErrListNotFound
 		if errors.As(err, &notFound) {
-			s.logger.WithField("list_id", listID).Warn("Unsubscribe skipped: list not found or deleted")
+			s.logger.WithField("list_id", listID).Warn("List opt-out skipped: list not found or deleted")
 			return nil
 		}
 		return fmt.Errorf("failed to get list: %w", err)

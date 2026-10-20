@@ -2205,8 +2205,8 @@ func TestListService_UnsubscribeFromLists_RowStates(t *testing.T) {
 // TestListService_UnsubscribeFromMessageList covers an opt-out an email provider reports
 // for an email, such as Mailjet's "unsub" event. It is recorded on the email's list by the
 // rules of the email's own unsubscribe link, which TestListService_UnsubscribeFromLists_RowStates
-// covers in full; the method only reports whether anything was recorded, and leaves marking
-// the message to its caller.
+// covers in full; the method returns only an error, and leaves marking the message to its
+// caller.
 func TestListService_UnsubscribeFromMessageList(t *testing.T) {
 	ctx := context.Background()
 	workspaceID := "workspace123"

@@ -20,9 +20,9 @@ import (
 
 //go:generate mockgen -destination=./mocks/mock_list_unsubscriber.go -package=mocks github.com/Notifuse/notifuse/internal/service ListUnsubscriber
 
-// ListUnsubscriber records an opt-out an email provider reported for an email, on the list
-// the email was sent for, by the rules of the email's own unsubscribe link. ListService
-// implements it.
+// ListUnsubscriber records an opt-out an email provider reported for an email on the list
+// found for it, by the rules of the email's own unsubscribe link. ListService implements
+// it.
 type ListUnsubscriber interface {
 	UnsubscribeFromMessageList(ctx context.Context, workspaceID, email, listID, messageID string) error
 }
@@ -454,17 +454,20 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 	return nil
 }
 
-// recordUnsubscribes records the opt-outs a provider reported, as the email's own
-// unsubscribe link records one: the email is marked unsubscribed, which counts it in
-// statistics and fires its email.unsubscribed events once, and when it was sent for a list,
-// the list service first records the opt-out there, by the rules of that link. Nothing is
-// recorded for an email Notifuse did not send, or for an opt-out of another address than
-// the email's recipient, such as someone the email was copied to. An erased contact's
-// emails are kept with the address redacted, so they fall in that last case.
+// recordUnsubscribes records the opt-outs a provider reported. The email is marked
+// unsubscribed, which counts it in statistics and fires its email.unsubscribed events once.
+// When a list is found for the email, the list service first records the opt-out there, by
+// the rules of the email's own unsubscribe link. Unlike that link, which leaves the email
+// unmarked when its list was deleted since, this marks it then too, on purpose: its
+// recipient did unsubscribe from it. Nothing is recorded for an email Notifuse did not
+// send, or for an opt-out of another address than the email's recipient, such as someone
+// the email was copied to. An erased contact's emails are kept with the address redacted,
+// so they fall in that last case, even when the erasure lands while this runs: the
+// repository does not mark a redacted email unsubscribed.
 //
-// It stops at the first failure, and still marks the emails whose opt-outs were recorded
-// before it: those are committed, so their emails are marked now rather than on the
-// provider's retry of the delivery.
+// It stops at the first failure, and still marks the emails handled before it, those sent
+// for no list included: the opt-outs recorded on their lists are committed, so they are
+// marked now rather than on the provider's retry of the delivery.
 func (s *InboundWebhookEventService) recordUnsubscribes(ctx context.Context, workspaceID string, events []*domain.InboundWebhookEvent) error {
 	var updates []domain.MessageEventUpdate
 	var failed error

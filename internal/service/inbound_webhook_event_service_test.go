@@ -2953,8 +2953,8 @@ func TestProcessWebhook_BatchedMixedClassifications(t *testing.T) {
 
 // TestProcessWebhook_MailjetUnsubscribe posts Mailjet "unsub" events through ProcessWebhook.
 // An unsubscribe of the email's own recipient marks the email unsubscribed, after the list
-// service recorded the opt-out on the list the email was sent for, when there is one. It
-// never becomes a complaint.
+// service recorded the opt-out on the list found for the email, when there is one. It never
+// becomes a complaint.
 func TestProcessWebhook_MailjetUnsubscribe(t *testing.T) {
 	workspaceID, integrationID := "ws1", "int1"
 	listID := "list-1"
@@ -3041,7 +3041,7 @@ func TestProcessWebhook_MailjetUnsubscribe(t *testing.T) {
 		require.NoError(t, process(t, f, unsub("msg-1", "Jane@Example.com")))
 	})
 
-	// Mailjet integrations send transactional email only, which is sent for no list
+	// Transactional email, which Mailjet still sends, is sent for no list
 	emptyList := ""
 	for name, message := range map[string]*domain.MessageHistory{
 		"an email sent for no list, such as a transactional one": sentFor("jane@example.com", nil),

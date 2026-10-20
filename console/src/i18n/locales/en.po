@@ -296,15 +296,15 @@ msgstr "{clicks} clicks out of {recipients} recipients"
 #~ msgid "{count} filters applied"
 #~ msgstr "{count} filters applied"
 
-#: src/components/timeline/ContactTimeline.tsx:849
+#: src/components/timeline/ContactTimeline.tsx:846
 msgid "{goalCount} goals"
 msgstr "{goalCount} goals"
 
-#: src/components/timeline/ContactTimeline.tsx:242
+#: src/components/timeline/ContactTimeline.tsx:237
 msgid "{hours}h"
 msgstr "{hours}h"
 
-#: src/components/timeline/ContactTimeline.tsx:242
+#: src/components/timeline/ContactTimeline.tsx:237
 msgid "{hours}h {remainingMinutes}m"
 msgstr "{hours}h {remainingMinutes}m"
 
@@ -329,11 +329,11 @@ msgstr "{leafCount, plural, one {# condition} other {# conditions}}"
 msgid "{liveSessions} live now"
 msgstr "{liveSessions} live now"
 
-#: src/components/timeline/ContactTimeline.tsx:936
+#: src/components/timeline/ContactTimeline.tsx:933
 msgid "{maxScroll}% scrolled"
 msgstr "{maxScroll}% scrolled"
 
-#: src/components/timeline/ContactTimeline.tsx:236
+#: src/components/timeline/ContactTimeline.tsx:231
 msgid "{minutes}m"
 msgstr "{minutes}m"
 
@@ -341,7 +341,7 @@ msgstr "{minutes}m"
 msgid "{minutes}m {remainingSeconds}s"
 msgstr "{minutes}m {remainingSeconds}s"
 
-#: src/components/timeline/ContactTimeline.tsx:236
+#: src/components/timeline/ContactTimeline.tsx:231
 msgid "{minutes}m {seconds}s"
 msgstr "{minutes}m {seconds}s"
 
@@ -349,11 +349,11 @@ msgstr "{minutes}m {seconds}s"
 msgid "{opens} opens out of {recipients} recipients"
 msgstr "{opens} opens out of {recipients} recipients"
 
-#: src/components/timeline/ContactTimeline.tsx:841
+#: src/components/timeline/ContactTimeline.tsx:838
 msgid "{pageviews} pages"
 msgstr "{pageviews} pages"
 
-#: src/components/timeline/ContactTimeline.tsx:418
+#: src/components/timeline/ContactTimeline.tsx:413
 msgid "{propertyCount} properties"
 msgstr "{propertyCount} properties"
 
@@ -377,7 +377,7 @@ msgstr "{selectedCount, plural, one {This will permanently delete # contact. Thi
 #~ msgid "{selectedCount} contact(s) selected"
 #~ msgstr "{selectedCount} contact(s) selected"
 
-#: src/components/timeline/ContactTimeline.tsx:232
+#: src/components/timeline/ContactTimeline.tsx:227
 msgid "{totalSeconds}s"
 msgstr "{totalSeconds}s"
 
@@ -486,11 +486,11 @@ msgstr "0 contacts"
 msgid "0 opens out of 0 recipients"
 msgstr "0 opens out of 0 recipients"
 
-#: src/components/timeline/ContactTimeline.tsx:849
+#: src/components/timeline/ContactTimeline.tsx:846
 msgid "1 goal"
 msgstr "1 goal"
 
-#: src/components/timeline/ContactTimeline.tsx:841
+#: src/components/timeline/ContactTimeline.tsx:838
 msgid "1 page"
 msgstr "1 page"
 
@@ -1551,7 +1551,7 @@ msgstr "Audit Logs"
 msgid "Audit logs require a Notifuse {tier} licence."
 msgstr "Audit logs require a Notifuse {tier} licence."
 
-#: src/components/timeline/ContactTimeline.tsx:662
+#: src/components/timeline/ContactTimeline.tsx:658
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:87
 msgid "Auth Email"
 msgstr "Auth Email"
@@ -1569,7 +1569,7 @@ msgstr "Auth Email Hook Secret"
 msgid "Authentication"
 msgstr "Authentication"
 
-#: src/components/timeline/ContactTimeline.tsx:677
+#: src/components/timeline/ContactTimeline.tsx:674
 msgid "Authentication email sent via Supabase"
 msgstr "Authentication email sent via Supabase"
 
@@ -1614,7 +1614,7 @@ msgstr "Auto-create users"
 msgid "Auto-disabled"
 msgstr "Auto-disabled"
 
-#: src/components/timeline/ContactTimeline.tsx:661
+#: src/components/timeline/ContactTimeline.tsx:657
 msgid "Auto-reply"
 msgstr "Auto-reply"
 
@@ -1634,7 +1634,7 @@ msgstr "Automatically add new users to the selected lists"
 msgid "Automatically send winner"
 msgstr "Automatically send winner"
 
-#: src/components/timeline/ContactTimeline.tsx:964
+#: src/components/timeline/ContactTimeline.tsx:961
 msgid "Automation"
 msgstr "Automation"
 
@@ -1662,7 +1662,7 @@ msgstr "Automation paused successfully"
 msgid "Automation updated successfully"
 msgstr "Automation updated successfully"
 
-#: src/components/timeline/ContactTimeline.tsx:966
+#: src/components/timeline/ContactTimeline.tsx:963
 msgid "Automation:"
 msgstr "Automation:"
 
@@ -2001,7 +2001,7 @@ msgstr "Bottom Right"
 msgid "bounce"
 msgstr "bounce"
 
-#: src/components/timeline/ContactTimeline.tsx:657
+#: src/components/timeline/ContactTimeline.tsx:653
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:219
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:72
 #: src/pages/TemplatesPage.tsx:130
@@ -2478,7 +2478,7 @@ msgstr "Category deleted successfully"
 msgid "Category updated successfully"
 msgstr "Category updated successfully"
 
-#: src/components/timeline/ContactTimeline.tsx:707
+#: src/components/timeline/ContactTimeline.tsx:704
 msgid "Category:"
 msgstr "Category:"
 
@@ -2697,7 +2697,7 @@ msgstr "Click Resume to continue processing."
 msgid "Click to retry"
 msgstr "Click to retry"
 
-#: src/components/timeline/ContactTimeline.tsx:583
+#: src/components/timeline/ContactTimeline.tsx:578
 msgid "clicked"
 msgstr "clicked"
 
@@ -2895,7 +2895,7 @@ msgstr "Complained"
 msgid "complaint"
 msgstr "complaint"
 
-#: src/components/timeline/ContactTimeline.tsx:658
+#: src/components/timeline/ContactTimeline.tsx:654
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:77
 msgid "Complaint"
 msgstr "Complaint"
@@ -2923,7 +2923,7 @@ msgstr "Complete Setup"
 msgid "Complete the condition to refresh the count"
 msgstr "Complete the condition to refresh the count"
 
-#: src/components/timeline/ContactTimeline.tsx:959
+#: src/components/timeline/ContactTimeline.tsx:956
 msgid "completed"
 msgstr "completed"
 
@@ -3108,8 +3108,8 @@ msgstr "Consider using the same text as your subject line"
 #~ msgstr "Console"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:66
-#: src/components/timeline/ContactTimeline.tsx:464
-#: src/components/timeline/ContactTimeline.tsx:533
+#: src/components/timeline/ContactTimeline.tsx:459
+#: src/components/timeline/ContactTimeline.tsx:528
 msgid "Contact"
 msgstr "Contact"
 
@@ -3629,7 +3629,7 @@ msgstr "Create Your First Post"
 msgid "Create your first template to get started"
 msgstr "Create your first template to get started"
 
-#: src/components/timeline/ContactTimeline.tsx:455
+#: src/components/timeline/ContactTimeline.tsx:450
 msgid "created"
 msgstr "created"
 
@@ -4298,7 +4298,7 @@ msgstr "Delete this Zapier webhook?"
 msgid "Delete Workspace"
 msgstr "Delete Workspace"
 
-#: src/components/timeline/ContactTimeline.tsx:457
+#: src/components/timeline/ContactTimeline.tsx:452
 msgid "deleted"
 msgstr "deleted"
 
@@ -4324,7 +4324,7 @@ msgid "Deleting this webhook breaks the Zap that created it. The Zap stays switc
 msgstr "Deleting this webhook breaks the Zap that created it. The Zap stays switched on in Zapier and reports no error — it simply stops receiving events."
 
 #: src/components/settings/Integrations.tsx:263
-#: src/components/timeline/ContactTimeline.tsx:579
+#: src/components/timeline/ContactTimeline.tsx:574
 msgid "delivered"
 msgstr "delivered"
 
@@ -4335,7 +4335,7 @@ msgstr "delivered"
 #: src/components/messages/MessageHistoryTab.tsx:114
 #: src/components/messages/MessageHistoryTable.tsx:328
 #: src/components/settings/WebhookCard.tsx:391
-#: src/components/timeline/ContactTimeline.tsx:656
+#: src/components/timeline/ContactTimeline.tsx:652
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:67
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:84
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:239
@@ -4421,7 +4421,7 @@ msgstr "Devices"
 msgid "Devices and tech"
 msgstr "Devices and tech"
 
-#: src/components/timeline/ContactTimeline.tsx:714
+#: src/components/timeline/ContactTimeline.tsx:711
 msgid "Diagnostic:"
 msgstr "Diagnostic:"
 
@@ -4961,7 +4961,7 @@ msgstr "email"
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:122
 #: src/components/settings/Integrations.tsx:2702
 #: src/components/settings/WorkspaceMembers.tsx:104
-#: src/components/timeline/ContactTimeline.tsx:588
+#: src/components/timeline/ContactTimeline.tsx:583
 #: src/pages/ContactsPage.tsx:369
 #: src/pages/ContactsPage.tsx:536
 #: src/pages/SignInPage.tsx:276
@@ -5191,7 +5191,7 @@ msgstr "Enabled"
 msgid "End date must be after the start date"
 msgstr "End date must be after the start date"
 
-#: src/components/timeline/ContactTimeline.tsx:955
+#: src/components/timeline/ContactTimeline.tsx:952
 msgid "ended"
 msgstr "ended"
 
@@ -5398,7 +5398,7 @@ msgstr "Enter workspace ID"
 msgid "Enter workspace name"
 msgstr "Enter workspace name"
 
-#: src/components/timeline/ContactTimeline.tsx:990
+#: src/components/timeline/ContactTimeline.tsx:987
 msgid "Entity ID:"
 msgstr "Entity ID:"
 
@@ -5410,11 +5410,11 @@ msgstr "Entries older than this are deleted once a day. Leave it empty for the d
 msgid "Entry conditions"
 msgstr "Entry conditions"
 
-#: src/components/timeline/ContactTimeline.tsx:938
+#: src/components/timeline/ContactTimeline.tsx:935
 msgid "entry page"
 msgstr "entry page"
 
-#: src/components/timeline/ContactTimeline.tsx:868
+#: src/components/timeline/ContactTimeline.tsx:865
 msgid "Entry:"
 msgstr "Entry:"
 
@@ -5498,7 +5498,7 @@ msgstr "Errors ({0} of {1} shown)"
 msgid "event"
 msgstr "event"
 
-#: src/components/timeline/ContactTimeline.tsx:665
+#: src/components/timeline/ContactTimeline.tsx:662
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:362
 msgid "Event"
 msgstr "Event"
@@ -5588,7 +5588,7 @@ msgstr "Exclude unsubscribed recipients"
 msgid "Exit on reply"
 msgstr "Exit on reply"
 
-#: src/components/timeline/ContactTimeline.tsx:939
+#: src/components/timeline/ContactTimeline.tsx:936
 msgid "exit page"
 msgstr "exit page"
 
@@ -5596,11 +5596,11 @@ msgstr "exit page"
 msgid "Exit page"
 msgstr "Exit page"
 
-#: src/components/timeline/ContactTimeline.tsx:873
+#: src/components/timeline/ContactTimeline.tsx:870
 msgid "Exit:"
 msgstr "Exit:"
 
-#: src/components/timeline/ContactTimeline.tsx:958
+#: src/components/timeline/ContactTimeline.tsx:955
 msgid "exited"
 msgstr "exited"
 
@@ -5699,7 +5699,7 @@ msgstr "External ID"
 msgid "Extra high"
 msgstr "Extra high"
 
-#: src/components/timeline/ContactTimeline.tsx:957
+#: src/components/timeline/ContactTimeline.tsx:954
 msgid "failed"
 msgstr "failed"
 
@@ -6256,7 +6256,7 @@ msgstr "Features"
 msgid "Feedback Type"
 msgstr "Feedback Type"
 
-#: src/components/timeline/ContactTimeline.tsx:719
+#: src/components/timeline/ContactTimeline.tsx:716
 msgid "Feedback:"
 msgstr "Feedback:"
 
@@ -6730,7 +6730,7 @@ msgstr "goal type"
 msgid "Goal Types"
 msgstr "Goal Types"
 
-#: src/components/timeline/ContactTimeline.tsx:781
+#: src/components/timeline/ContactTimeline.tsx:778
 msgid "Goal:"
 msgstr "Goal:"
 
@@ -7042,27 +7042,27 @@ msgstr "ID must be less than 32 characters"
 msgid "ID must contain only lowercase letters, numbers, underscores, and hyphens"
 msgstr "ID must contain only lowercase letters, numbers, underscores, and hyphens"
 
-#: src/components/timeline/ContactTimeline.tsx:788
+#: src/components/timeline/ContactTimeline.tsx:785
 #: src/pages/DashboardPage.tsx:96
 msgid "ID:"
 msgstr "ID:"
 
 #. placeholder {0}: entry.entity_id
 #. placeholder {0}: messageData.template_id
-#: src/components/timeline/ContactTimeline.tsx:593
-#: src/components/timeline/ContactTimeline.tsx:968
+#: src/components/timeline/ContactTimeline.tsx:588
+#: src/components/timeline/ContactTimeline.tsx:965
 msgid "ID: {0}"
 msgstr "ID: {0}"
 
-#: src/components/timeline/ContactTimeline.tsx:295
+#: src/components/timeline/ContactTimeline.tsx:290
 msgid "ID: {listId}"
 msgstr "ID: {listId}"
 
-#: src/components/timeline/ContactTimeline.tsx:547
+#: src/components/timeline/ContactTimeline.tsx:542
 msgid "ID: {segmentId}"
 msgstr "ID: {segmentId}"
 
-#: src/components/timeline/ContactTimeline.tsx:686
+#: src/components/timeline/ContactTimeline.tsx:683
 msgid "ID: {webhookTemplateId}"
 msgstr "ID: {webhookTemplateId}"
 
@@ -7547,7 +7547,7 @@ msgstr "Job Title"
 msgid "Join"
 msgstr "Join"
 
-#: src/components/timeline/ContactTimeline.tsx:561
+#: src/components/timeline/ContactTimeline.tsx:556
 msgid "joined"
 msgstr "joined"
 
@@ -7564,7 +7564,7 @@ msgstr "JSON"
 msgid "JSON exported successfully"
 msgstr "JSON exported successfully"
 
-#: src/components/timeline/ContactTimeline.tsx:495
+#: src/components/timeline/ContactTimeline.tsx:490
 msgid "JSON Object"
 msgstr "JSON Object"
 
@@ -7730,7 +7730,7 @@ msgstr "Leave empty to use a random contact from the broadcast audience."
 msgid "Leave empty to use the one Notifuse manages for this integration."
 msgstr "Leave empty to use the one Notifuse manages for this integration."
 
-#: src/components/timeline/ContactTimeline.tsx:561
+#: src/components/timeline/ContactTimeline.tsx:556
 msgid "left"
 msgstr "left"
 
@@ -7999,9 +7999,9 @@ msgstr "List transactional notification definitions"
 msgid "List updated successfully"
 msgstr "List updated successfully"
 
-#: src/components/timeline/ContactTimeline.tsx:317
-#: src/components/timeline/ContactTimeline.tsx:330
-#: src/components/timeline/ContactTimeline.tsx:356
+#: src/components/timeline/ContactTimeline.tsx:312
+#: src/components/timeline/ContactTimeline.tsx:325
+#: src/components/timeline/ContactTimeline.tsx:351
 msgid "List:"
 msgstr "List:"
 
@@ -8047,7 +8047,7 @@ msgstr "LLM integration saved successfully"
 msgid "Load More"
 msgstr "Load More"
 
-#: src/components/timeline/ContactTimeline.tsx:1044
+#: src/components/timeline/ContactTimeline.tsx:1041
 msgid "Load More Events"
 msgstr "Load More Events"
 
@@ -8099,7 +8099,7 @@ msgstr "Loading webhook status..."
 #: src/components/blog_editor/NotifuseEditor.tsx:480
 #: src/components/messages/MessageHistoryTab.tsx:597
 #: src/components/templates/TemplateSelectorInput.tsx:145
-#: src/components/timeline/ContactTimeline.tsx:1044
+#: src/components/timeline/ContactTimeline.tsx:1041
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:504
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:455
 #: src/layouts/RootLayout.tsx:99
@@ -9030,7 +9030,7 @@ msgstr "No preview available or template is empty."
 #~ msgid "No preview available..."
 #~ msgstr "No preview available..."
 
-#: src/components/timeline/ContactTimeline.tsx:373
+#: src/components/timeline/ContactTimeline.tsx:368
 msgid "No properties"
 msgstr "No properties"
 
@@ -9112,7 +9112,7 @@ msgstr "No templates match your search"
 msgid "No themes yet"
 msgstr "No themes yet"
 
-#: src/components/timeline/ContactTimeline.tsx:1011
+#: src/components/timeline/ContactTimeline.tsx:1008
 msgid "No timeline events found for this contact"
 msgstr "No timeline events found for this contact"
 
@@ -9348,7 +9348,7 @@ msgstr "Oblique"
 msgid "Obtain this using the OAuth2 playground or your own OAuth flow"
 msgstr "Obtain this using the OAuth2 playground or your own OAuth flow"
 
-#: src/components/timeline/ContactTimeline.tsx:801
+#: src/components/timeline/ContactTimeline.tsx:798
 msgid "Occurred:"
 msgstr "Occurred:"
 
@@ -9488,7 +9488,7 @@ msgstr "Open the audit log"
 msgid "Open web analytics settings"
 msgstr "Open web analytics settings"
 
-#: src/components/timeline/ContactTimeline.tsx:581
+#: src/components/timeline/ContactTimeline.tsx:576
 msgid "opened"
 msgstr "opened"
 
@@ -9647,7 +9647,7 @@ msgstr "Padding Settings"
 msgid "Page"
 msgstr "Page"
 
-#: src/components/timeline/ContactTimeline.tsx:914
+#: src/components/timeline/ContactTimeline.tsx:911
 msgid "Page view"
 msgstr "Page view"
 
@@ -10275,7 +10275,7 @@ msgstr "Preview accepts any definition sent to it, not just a saved segment, so 
 msgid "Preview Coming Soon"
 msgstr "Preview Coming Soon"
 
-#: src/components/timeline/ContactTimeline.tsx:607
+#: src/components/timeline/ContactTimeline.tsx:602
 msgid "Preview email"
 msgstr "Preview email"
 
@@ -10542,7 +10542,7 @@ msgstr "Rate limit for marketing emails (emails per minute)"
 msgid "Raw entry"
 msgstr "Raw entry"
 
-#: src/components/timeline/ContactTimeline.tsx:1028
+#: src/components/timeline/ContactTimeline.tsx:1025
 msgid "Raw Entry Data"
 msgstr "Raw Entry Data"
 
@@ -10554,7 +10554,7 @@ msgstr "Raw HTML Block"
 msgid "Raw HTML block - Click to add custom HTML content"
 msgstr "Raw HTML block - Click to add custom HTML content"
 
-#: src/components/timeline/ContactTimeline.tsx:436
+#: src/components/timeline/ContactTimeline.tsx:431
 msgid "Raw JSON"
 msgstr "Raw JSON"
 
@@ -10841,7 +10841,7 @@ msgstr "Referral traffic"
 msgid "Referrer domain"
 msgstr "Referrer domain"
 
-#: src/components/timeline/ContactTimeline.tsx:878
+#: src/components/timeline/ContactTimeline.tsx:875
 msgid "Referrer:"
 msgstr "Referrer:"
 
@@ -10989,7 +10989,7 @@ msgstr "Remove this author?"
 msgid "Remove variation"
 msgstr "Remove variation"
 
-#: src/components/timeline/ContactTimeline.tsx:308
+#: src/components/timeline/ContactTimeline.tsx:303
 msgid "removed"
 msgstr "removed"
 
@@ -11037,7 +11037,7 @@ msgstr "Repeat X"
 msgid "Repeat Y"
 msgstr "Repeat Y"
 
-#: src/components/timeline/ContactTimeline.tsx:660
+#: src/components/timeline/ContactTimeline.tsx:656
 msgid "Replied"
 msgstr "Replied"
 
@@ -11687,7 +11687,7 @@ msgstr "See web analytics backfill tasks; a listing that names no type is narrow
 #: src/components/automations/config/TriggerConfigForm.tsx:294
 #: src/components/contacts/ExportContactsModal.tsx:89
 #: src/components/segment/button_upsert.tsx:74
-#: src/components/timeline/ContactTimeline.tsx:565
+#: src/components/timeline/ContactTimeline.tsx:560
 msgid "Segment"
 msgstr "Segment"
 
@@ -12172,7 +12172,7 @@ msgstr "Sending test webhook..."
 msgid "Sending through this integration is unaffected, and a tenant that already exists keeps being used. Switching isolation on needs a licence."
 msgstr "Sending through this integration is unaffected, and a tenant that already exists keeps being used. Switching isolation on needs a licence."
 
-#: src/components/timeline/ContactTimeline.tsx:577
+#: src/components/timeline/ContactTimeline.tsx:572
 msgid "sent"
 msgstr "sent"
 
@@ -12724,7 +12724,7 @@ msgstr "Something went wrong"
 msgid "source {0} not found"
 msgstr "source {0} not found"
 
-#: src/components/timeline/ContactTimeline.tsx:883
+#: src/components/timeline/ContactTimeline.tsx:880
 msgid "Source:"
 msgstr "Source:"
 
@@ -12807,7 +12807,7 @@ msgstr "Start writing your blog post..."
 msgid "Start writing..."
 msgstr "Start writing..."
 
-#: src/components/timeline/ContactTimeline.tsx:955
+#: src/components/timeline/ContactTimeline.tsx:952
 msgid "started"
 msgstr "started"
 
@@ -12841,7 +12841,7 @@ msgstr "State"
 msgid "Status"
 msgstr "Status"
 
-#: src/components/timeline/ContactTimeline.tsx:307
+#: src/components/timeline/ContactTimeline.tsx:302
 msgid "status changed"
 msgstr "status changed"
 
@@ -12949,7 +12949,7 @@ msgstr "Subscribe to the newsletter (new features...)"
 msgid "Subscribe users to these lists (Optional)"
 msgstr "Subscribe users to these lists (Optional)"
 
-#: src/components/timeline/ContactTimeline.tsx:306
+#: src/components/timeline/ContactTimeline.tsx:301
 msgid "subscribed"
 msgstr "subscribed"
 
@@ -12973,9 +12973,9 @@ msgid "Subscript"
 msgstr "Subscript"
 
 #: src/components/settings/WebhooksSettings.tsx:348
-#: src/components/timeline/ContactTimeline.tsx:315
-#: src/components/timeline/ContactTimeline.tsx:328
-#: src/components/timeline/ContactTimeline.tsx:354
+#: src/components/timeline/ContactTimeline.tsx:310
+#: src/components/timeline/ContactTimeline.tsx:323
+#: src/components/timeline/ContactTimeline.tsx:349
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:74
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:368
 msgid "Subscription"
@@ -13243,8 +13243,8 @@ msgstr "Template updated successfully"
 msgid "Template Variables:"
 msgstr "Template Variables:"
 
-#: src/components/timeline/ContactTimeline.tsx:591
-#: src/components/timeline/ContactTimeline.tsx:684
+#: src/components/timeline/ContactTimeline.tsx:586
+#: src/components/timeline/ContactTimeline.tsx:681
 msgid "Template:"
 msgstr "Template:"
 
@@ -14440,7 +14440,7 @@ msgid "Type {selectedCount} to confirm:"
 msgstr "Type {selectedCount} to confirm:"
 
 #: src/components/settings/GeneralSettings.tsx:288
-#: src/components/timeline/ContactTimeline.tsx:703
+#: src/components/timeline/ContactTimeline.tsx:700
 msgid "Type:"
 msgstr "Type:"
 
@@ -14490,7 +14490,7 @@ msgstr "Unique clicks counts each recipient once per link — someone who clicks
 
 #: src/components/blog/PostsTable.tsx:170
 #: src/components/contacts/SegmentsFilter.tsx:89
-#: src/components/timeline/ContactTimeline.tsx:974
+#: src/components/timeline/ContactTimeline.tsx:971
 #: src/components/web_analytics/LiveSessionMap.tsx:49
 #: src/pages/BroadcastsPage.tsx:1261
 #: src/pages/BroadcastsPage.tsx:1272
@@ -14513,11 +14513,11 @@ msgstr "Unknown error"
 msgid "Unknown list"
 msgstr "Unknown list"
 
-#: src/components/timeline/ContactTimeline.tsx:283
+#: src/components/timeline/ContactTimeline.tsx:278
 msgid "Unknown List"
 msgstr "Unknown List"
 
-#: src/components/timeline/ContactTimeline.tsx:917
+#: src/components/timeline/ContactTimeline.tsx:914
 msgid "Unknown page"
 msgstr "Unknown page"
 
@@ -14525,7 +14525,7 @@ msgstr "Unknown page"
 msgid "Unknown segment"
 msgstr "Unknown segment"
 
-#: src/components/timeline/ContactTimeline.tsx:541
+#: src/components/timeline/ContactTimeline.tsx:536
 msgid "Unknown Segment"
 msgstr "Unknown Segment"
 
@@ -14597,7 +14597,7 @@ msgstr "Unsubscribe from list"
 #: src/components/messages/MessageHistoryTab.tsx:193
 #: src/components/messages/MessageHistoryTab.tsx:198
 #: src/components/messages/MessageHistoryTable.tsx:376
-#: src/components/timeline/ContactTimeline.tsx:659
+#: src/components/timeline/ContactTimeline.tsx:655
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:82
 #: src/pages/ContactsPage.tsx:394
 msgid "Unsubscribed"
@@ -14648,8 +14648,8 @@ msgstr "Update segment"
 msgid "Update Status"
 msgstr "Update Status"
 
-#: src/components/timeline/ContactTimeline.tsx:456
-#: src/components/timeline/ContactTimeline.tsx:765
+#: src/components/timeline/ContactTimeline.tsx:451
+#: src/components/timeline/ContactTimeline.tsx:762
 msgid "updated"
 msgstr "updated"
 
@@ -14828,12 +14828,12 @@ msgstr "User"
 msgid "User agent"
 msgstr "User agent"
 
-#: src/components/timeline/ContactTimeline.tsx:663
+#: src/components/timeline/ContactTimeline.tsx:659
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:92
 msgid "User Created"
 msgstr "User Created"
 
-#: src/components/timeline/ContactTimeline.tsx:678
+#: src/components/timeline/ContactTimeline.tsx:675
 msgid "User created and synced from Supabase"
 msgstr "User created and synced from Supabase"
 
@@ -14868,7 +14868,7 @@ msgstr "Using {0}..."
 msgid "UTM"
 msgstr "UTM"
 
-#: src/components/timeline/ContactTimeline.tsx:828
+#: src/components/timeline/ContactTimeline.tsx:825
 msgid "UTM campaign"
 msgstr "UTM campaign"
 
@@ -14880,7 +14880,7 @@ msgstr "UTM Campaign"
 msgid "UTM campaigns"
 msgstr "UTM campaigns"
 
-#: src/components/timeline/ContactTimeline.tsx:829
+#: src/components/timeline/ContactTimeline.tsx:826
 msgid "UTM content"
 msgstr "UTM content"
 
@@ -14888,7 +14888,7 @@ msgstr "UTM content"
 msgid "UTM Content"
 msgstr "UTM Content"
 
-#: src/components/timeline/ContactTimeline.tsx:827
+#: src/components/timeline/ContactTimeline.tsx:824
 msgid "UTM medium"
 msgstr "UTM medium"
 
@@ -14896,7 +14896,7 @@ msgstr "UTM medium"
 msgid "UTM Medium"
 msgstr "UTM Medium"
 
-#: src/components/timeline/ContactTimeline.tsx:826
+#: src/components/timeline/ContactTimeline.tsx:823
 msgid "UTM source"
 msgstr "UTM source"
 
@@ -15004,7 +15004,7 @@ msgstr "View Logs"
 msgid "View more"
 msgstr "View more"
 
-#: src/components/timeline/ContactTimeline.tsx:442
+#: src/components/timeline/ContactTimeline.tsx:437
 msgid "View Raw JSON"
 msgstr "View Raw JSON"
 
@@ -15021,8 +15021,8 @@ msgstr "View snippet"
 msgid "View web page"
 msgstr "View web page"
 
-#: src/components/timeline/ContactTimeline.tsx:919
-#: src/components/timeline/ContactTimeline.tsx:924
+#: src/components/timeline/ContactTimeline.tsx:916
+#: src/components/timeline/ContactTimeline.tsx:921
 #: src/components/timeline/WebPageDrawer.tsx:54
 msgid "View website"
 msgstr "View website"
@@ -15134,14 +15134,14 @@ msgstr "Web analytics is turned off for this workspace. Turn it on in the worksp
 msgid "Web analytics settings updated successfully"
 msgstr "Web analytics settings updated successfully"
 
-#: src/components/timeline/ContactTimeline.tsx:857
+#: src/components/timeline/ContactTimeline.tsx:854
 msgid "Web session"
 msgstr "Web session"
 
 #: src/components/automations/AddNodeButton.tsx:83
 #: src/components/automations/nodes/StatNode.tsx:88
 #: src/components/automations/nodes/WebhookNode.tsx:47
-#: src/components/timeline/ContactTimeline.tsx:672
+#: src/components/timeline/ContactTimeline.tsx:669
 msgid "Webhook"
 msgstr "Webhook"
 
@@ -15396,7 +15396,7 @@ msgstr "with properties"
 
 #: src/components/segment/form_leaf.tsx:261
 #: src/components/segment/input.tsx:590
-#: src/components/timeline/ContactTimeline.tsx:318
+#: src/components/timeline/ContactTimeline.tsx:313
 msgid "with status"
 msgstr "with status"
 

@@ -382,9 +382,9 @@ func (r *MessageHistoryRepository) WasSentForList(ctx context.Context, workspace
 
 // GetRecipientAndList returns who message id was sent to and the list it was sent for, read
 // as WasSentForList reads it: for an automation message stored without its list, the
-// automation's current list. The list is NULL for a transactional email. Only id,
-// contact_email and list_id are populated. Returns (nil, nil) when there is no such
-// message.
+// automation's current list, which is not the email's when the automation was moved to
+// another list since. The list is NULL for a transactional email. Only id, contact_email
+// and list_id are populated. Returns (nil, nil) when there is no such message.
 func (r *MessageHistoryRepository) GetRecipientAndList(ctx context.Context, workspaceID, id string) (*domain.MessageHistory, error) {
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -408,7 +408,9 @@ func (r *MessageHistoryRepository) GetRecipientAndList(ctx context.Context, work
 }
 
 // SetStatusesIfNotSet updates multiple message statuses in a single batch operation
-// but only if the corresponding status timestamp is not already set
+// but only if the corresponding status timestamp is not already set. An unsubscribe is
+// not recorded on a message whose address an erasure redacted: it would fire the
+// message's email.unsubscribed events with the redacted address.
 func (r *MessageHistoryRepository) SetStatusesIfNotSet(ctx context.Context, workspaceID string, updates []domain.MessageEventUpdate) error {
 	// codecov:ignore:start
 	ctx, span := tracing.StartServiceSpan(ctx, "MessageHistoryRepository", "SetStatusesIfNotSet")
@@ -475,14 +477,23 @@ func (r *MessageHistoryRepository) SetStatusesIfNotSet(ctx context.Context, work
 
 		valuesClause := strings.Join(valuesParts, ", ")
 
+		// The contact can be erased after the caller read the message, such as while a
+		// provider's unsubscribe is handled. Complaints, bounces and the other statuses
+		// are recorded on such a message as before.
+		redactedGuard := ""
+		if messageEvent == domain.MessageEventUnsubscribed {
+			args = append(args, redactedContactEmail)
+			redactedGuard = fmt.Sprintf(" AND message_history.contact_email <> $%d", len(args))
+		}
+
 		query := fmt.Sprintf(`
 			UPDATE message_history 
 			SET %s = updates.timestamp, 
 				status_info = COALESCE(LEFT(updates.status_info, 255), message_history.status_info), 
 				updated_at = $1::TIMESTAMP WITH TIME ZONE
 			FROM (VALUES %s) AS updates(id, timestamp, status_info)
-			WHERE message_history.id = updates.id AND %s IS NULL
-		`, field, valuesClause, field)
+			WHERE message_history.id = updates.id AND %s IS NULL%s
+		`, field, valuesClause, field, redactedGuard)
 		_, err = workspaceDB.ExecContext(ctx, query, args...)
 		if err != nil {
 			// codecov:ignore:start
@@ -1191,6 +1202,9 @@ func (r *MessageHistoryRepository) GetBroadcastLinkStats(ctx context.Context, wo
 	return stats, nil
 }
 
+// redactedContactEmail replaces the address on the messages of an erased contact
+const redactedContactEmail = "DELETED_EMAIL"
+
 // DeleteForEmail redacts the email address in all message history records for a specific email
 func (r *MessageHistoryRepository) DeleteForEmail(ctx context.Context, workspaceID, email string) error {
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
@@ -1210,10 +1224,9 @@ func (r *MessageHistoryRepository) DeleteForEmail(ctx context.Context, workspace
 	// Emptied rather than deleted: GetBroadcastStats sums the *_at timestamp
 	// columns on these rows, so dropping them would rewrite every broadcast's
 	// history. '{}' rather than NULL because the column is NOT NULL.
-	redactedEmail := "DELETED_EMAIL"
 	query := `UPDATE message_history SET contact_email = $1, clicked_links = NULL, message_data = '{}'::jsonb WHERE contact_email = $2`
 
-	result, err := workspaceDB.ExecContext(ctx, query, redactedEmail, email)
+	result, err := workspaceDB.ExecContext(ctx, query, redactedContactEmail, email)
 	if err != nil {
 		return fmt.Errorf("failed to redact email in message history: %w", err)
 	}

@@ -1099,6 +1099,51 @@ func TestMessageHistoryRepository_SetStatusesIfNotSet(t *testing.T) {
 		err := repo.SetStatusesIfNotSet(ctx, workspaceID, updatesWithStatusInfo)
 		require.NoError(t, err)
 	})
+
+	// An erased contact's messages are kept with the address redacted. An unsubscribe
+	// recorded on one after the erasure, such as a provider's report handled while it ran,
+	// would send the message's email.unsubscribed events with the redacted address.
+	t.Run("unsubscribed status skips messages whose address was redacted", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`UPDATE message_history SET unsubscribed_at = updates\.timestamp, status_info = COALESCE\(LEFT\(updates\.status_info, 255\), message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND unsubscribed_at IS NULL AND message_history\.contact_email <> \$5`).
+			WithArgs(
+				sqlmock.AnyArg(), // updated_at timestamp
+				"msg-123",
+				now,
+				nil, // status_info for msg-123
+				"DELETED_EMAIL",
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err := repo.SetStatusesIfNotSet(ctx, workspaceID, []domain.MessageEventUpdate{
+			{ID: "msg-123", Event: domain.MessageEventUnsubscribed, Timestamp: now},
+		})
+		require.NoError(t, err)
+	})
+
+	// Complaints are recorded on such messages as before, as are the other statuses above
+	t.Run("complained status does not check the address", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`UPDATE message_history SET complained_at = updates\.timestamp, status_info = COALESCE\(LEFT\(updates\.status_info, 255\), message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND complained_at IS NULL`).
+			WithArgs(
+				sqlmock.AnyArg(), // updated_at timestamp
+				"msg-123",
+				now,
+				nil, // status_info for msg-123
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err := repo.SetStatusesIfNotSet(ctx, workspaceID, []domain.MessageEventUpdate{
+			{ID: "msg-123", Event: domain.MessageEventComplained, Timestamp: now},
+		})
+		require.NoError(t, err)
+	})
 }
 
 func TestMessageHistoryRepository_ListMessages(t *testing.T) {

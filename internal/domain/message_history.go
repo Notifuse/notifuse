@@ -173,7 +173,8 @@ type MessageHistoryRepository interface {
 	// ListMessages retrieves message history with cursor-based pagination and filtering
 	ListMessages(ctx context.Context, workspaceID string, secretKey string, params MessageListParams) ([]*MessageHistory, string, error)
 
-	// SetStatusesIfNotSet updates multiple message statuses in a batch if they haven't been set before
+	// SetStatusesIfNotSet updates multiple message statuses in a batch if they haven't been set before.
+	// An unsubscribe is not recorded on a message whose address an erasure redacted.
 	SetStatusesIfNotSet(ctx context.Context, workspaceID string, updates []MessageEventUpdate) error
 
 	// SetClicked sets the clicked_at timestamp and ensures opened_at is also set.
@@ -201,7 +202,8 @@ type MessageHistoryRepository interface {
 	WasSentForList(ctx context.Context, workspaceID, messageID, email, listID string) (bool, error)
 
 	// GetRecipientAndList returns who message id was sent to and the list it was sent for,
-	// read as WasSentForList reads it (nil for a transactional email). Only id,
+	// read as WasSentForList reads it, so the automation's current list for an older
+	// automation message stored without one (nil for a transactional email). Only id,
 	// contact_email and list_id are populated. Returns (nil, nil) when there is no such
 	// message.
 	GetRecipientAndList(ctx context.Context, workspaceID, id string) (*MessageHistory, error)
