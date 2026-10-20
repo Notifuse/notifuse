@@ -247,21 +247,23 @@ func (s *WebAnalyticsService) Track(ctx context.Context, payload *domain.WebTrac
 		}
 	}
 
-	if err := payload.Validate(receivedAt); err != nil {
-		return &ErrWebTrackInvalidPayload{Err: err}
-	}
-	if len(payload.Actions) == 0 {
-		return nil
-	}
-
 	// The SDK stopped sending a user agent inside attributes only when the
 	// request header carries one; prefer the explicit attribute, then the
-	// header, so enrichment always sees the best available signal.
+	// header, so enrichment always sees the best available signal. Filled in
+	// before Validate, so the header's value is held to the same rules as the
+	// body's.
 	if payload.Attributes == nil {
 		payload.Attributes = &domain.WebSessionAttributes{}
 	}
 	if payload.Attributes.UserAgent == "" {
 		payload.Attributes.UserAgent = meta.UserAgent
+	}
+
+	if err := payload.Validate(receivedAt); err != nil {
+		return &ErrWebTrackInvalidPayload{Err: err}
+	}
+	if len(payload.Actions) == 0 {
+		return nil
 	}
 
 	var geoResult geoip.Result

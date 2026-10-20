@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,6 +53,27 @@ func TestWebURLParts(t *testing.T) {
 		{"   ", "", ""},
 		{"not a url", "", ""},
 		{"/relative/only", "", ""},
+		// The path is percent-decoded, so an ordinary URL holding %00 decodes to
+		// a NUL byte, which PostgreSQL cannot store. It stays written as the URL
+		// wrote it; the rest of the path is decoded as usual.
+		{"https://example.com/a%00b", "example.com", "/a%00b"},
+		{"https://example.com/caf%C3%A9%00", "example.com", "/café%00"},
+		// The host cannot carry one at all: url.Parse refuses %00 there, and a
+		// raw control character anywhere.
+		{"https://exa%00mple.com/", "", ""},
+		{"https://example.com/a\x00b", "", ""},
+		// Decoding can also produce bytes that are not UTF-8, which PostgreSQL
+		// refuses as well: an old link encoded in Latin-1, a character cut short.
+		// Those bytes are written as %XX too, and the rest is decoded.
+		{"https://example.com/r%E9sum%E9", "example.com", "/r%E9sum%E9"},
+		{"https://example.com/caf%c3", "example.com", "/caf%C3"},
+		{"https://example.com/caf%C3%A9/%ff", "example.com", "/café/%FF"},
+		{"https://example.com/%e2%82%ac%e2%82", "example.com", "/€%E2%82"},
+		// The host takes %80 to %FF as well, and is lowercased, which turns each
+		// byte that is not part of valid UTF-8 into U+FFFD: valid text already.
+		{"https://%FF.example.com/", "�.example.com", "/"},
+		{"https://shop%c3.example.com/", "shop�.example.com", "/"},
+		{"https://%C3%A9t%C3%A9.example.com/", "été.example.com", "/"},
 	}
 	for _, tc := range cases {
 		domain, path := webURLParts(tc.raw)
@@ -69,6 +91,28 @@ func TestBoundDimension(t *testing.T) {
 	assert.Equal(t, "", boundDimension("", ""), "no fallback stays empty")
 	assert.Equal(t, "Chrome", boundDimension("Chrome", "Unknown"))
 	assert.Len(t, boundDimension(strings.Repeat("x", 5000), "Unknown"), 200, "hostile length is capped")
+
+	t.Run("the cap never splits a character", func(t *testing.T) {
+		// Cutting at a byte offset that falls inside a character leaves a byte
+		// that is not UTF-8, and PostgreSQL refuses it, failing every visitor
+		// batched with this one. The cap backs off to where the character starts.
+		for _, tc := range []struct {
+			name, value, want string
+		}{
+			{"two-byte character across the cap", strings.Repeat("a", 199) + "é", strings.Repeat("a", 199)},
+			{"three-byte character across the cap", strings.Repeat("a", 198) + "€x", strings.Repeat("a", 198)},
+			{"four-byte character across the cap", strings.Repeat("a", 197) + "😀", strings.Repeat("a", 197)},
+			{"character ending at the cap", strings.Repeat("a", 198) + "é" + "b", strings.Repeat("a", 198) + "é"},
+			{"multi-byte text throughout", strings.Repeat("é", 150), strings.Repeat("é", 100)},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				got := boundDimension(tc.value, "Unknown")
+				assert.Equal(t, tc.want, got)
+				assert.True(t, utf8.ValidString(got))
+				assert.LessOrEqual(t, len(got), 200)
+			})
+		}
+	})
 }
 
 func TestApplyWebGeo(t *testing.T) {

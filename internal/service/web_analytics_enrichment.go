@@ -49,7 +49,14 @@ func correctedMs(epochMs int64, skew time.Duration) time.Time {
 // webURLParts extracts the lowercase hostname and the path of a URL the way
 // the browser's URL API does (root path is "/"). Unparseable input yields
 // empty parts.
-func webURLParts(raw string) (domain string, path string) {
+//
+// Both come back percent-decoded. In the path, a decoded byte PostgreSQL
+// cannot store — a NUL, or a byte that is not part of valid UTF-8, such as a
+// Latin-1 é sent as %E9 — is written as %XX instead (see
+// domain.EscapeUnstorableBytes). The hostname needs no such care: url.Parse
+// refuses a NUL there, and lowercasing it turns each byte that is not part of
+// valid UTF-8 into U+FFFD.
+func webURLParts(raw string) (host string, path string) {
 	if strings.TrimSpace(raw) == "" {
 		return "", ""
 	}
@@ -57,7 +64,7 @@ func webURLParts(raw string) (domain string, path string) {
 	if err != nil || u.Hostname() == "" {
 		return "", ""
 	}
-	path = u.Path
+	path = domain.EscapeUnstorableBytes(u.Path)
 	if path == "" {
 		path = "/"
 	}
@@ -73,15 +80,15 @@ func webHostname(raw string) string {
 
 // boundDimension caps a client-supplied dimension value and applies a default
 // when the SDK omitted it.
+//
+// The cap counts bytes and cuts at the last character boundary within it (see
+// domain.TruncateUTF8).
 func boundDimension(value, fallback string) string {
 	v := strings.TrimSpace(value)
 	if v == "" {
 		return fallback
 	}
-	if len(v) > 200 {
-		return v[:200]
-	}
-	return v
+	return domain.TruncateUTF8(v, 200)
 }
 
 // applyWebGeo maps a raw lookup through the workspace privacy knobs.
