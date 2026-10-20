@@ -1696,15 +1696,17 @@ func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 	deletedList := domain.NewAutomationDeletedListError(automationID, []domain.ListRef{{ID: "list-old", Name: "Old"}})
 
 	type failedUpdate struct {
-		svc        *AutomationService
-		repo       *mocks.MockAutomationRepository
-		log        *pkgmocks.MockLogger
-		ctx        context.Context
-		audit      *domain.AuditRecord
-		previous   *domain.Automation
-		changed    *domain.Automation
-		install    *gomock.Call
-		restoreCtx context.Context
+		svc      *AutomationService
+		repo     *mocks.MockAutomationRepository
+		log      *pkgmocks.MockLogger
+		ctx      context.Context
+		audit    *domain.AuditRecord
+		previous *domain.Automation
+		changed  *domain.Automation
+		install  *gomock.Call
+		// restoreGaveUp is when the restore returned, the earliest the paused write's budget may
+		// start from.
+		restoreGaveUp time.Time
 	}
 
 	// detached checks the context a step of the undo runs on. The request context is cancelled
@@ -1773,7 +1775,9 @@ func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 			DoAndReturn(func(ctx context.Context, _ string, _ *domain.Automation, _ domain.AutomationStatus) (bool, error) {
 				detached(t, ctx)
 				budget(t, ctx, 5*time.Second)
-				u.restoreCtx = ctx
+				// Long enough for a budget started with the restore's to fall visibly short.
+				time.Sleep(20 * time.Millisecond)
+				u.restoreGaveUp = time.Now()
 				return updated, err
 			}).After(u.install)
 	}
@@ -1785,10 +1789,9 @@ func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 		return u.repo.EXPECT().UpdateIfStatus(gomock.Any(), workspaceID, gomock.Not(gomock.Eq(u.previous)), domain.AutomationStatusLive).
 			DoAndReturn(func(ctx context.Context, _ string, written *domain.Automation, _ domain.AutomationStatus) (bool, error) {
 				detached(t, ctx)
-				// Counted from when the restore gave up, not cut short at its deadline.
-				restoreDeadline, _ := u.restoreCtx.Deadline()
-				assert.True(t, budget(t, ctx, 5*time.Second).After(restoreDeadline),
-					"the paused write must not share the restore's budget")
+				// Counted from when the restore gave up, not from when it started.
+				assert.False(t, budget(t, ctx, 5*time.Second).Before(u.restoreGaveUp.Add(5*time.Second)),
+					"the paused write's budget must start once the restore has given up")
 				assert.Equal(t, domain.AutomationStatusPaused, written.Status)
 				assert.Equal(t, "list-old", written.ListID, "the previous version, not the one that failed")
 				assert.Equal(t, u.previous.Trigger, written.Trigger)
