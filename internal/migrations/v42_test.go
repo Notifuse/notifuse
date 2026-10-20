@@ -339,6 +339,42 @@ func TestV42Migration_PatchesEachFunctionInItsOwnSavepoint(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
+// The contact_lists webhook function v42 installs is the one a fresh workspace gets, so an
+// upgraded workspace also sends list.pending when a contact on the list moves to pending,
+// as when one who unsubscribed subscribes again, which forces double opt-in. It is a
+// CREATE OR REPLACE, so running v42 again reinstalls it.
+func TestV42Migration_InstallsListPendingForAContactOnTheList(t *testing.T) {
+	var executed []string
+	recordMatches := sqlmock.QueryMatcherFunc(func(expectedSQL, actualSQL string) error {
+		if err := sqlmock.QueryMatcherRegexp.Match(expectedSQL, actualSQL); err != nil {
+			return err
+		}
+		executed = append(executed, actualSQL)
+		return nil
+	})
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(recordMatches))
+	require.NoError(t, err)
+	defer db.Close()
+
+	expectV42Prelude(mock)
+	expectNoFunctions(mock)
+	expectNoSegments(mock)
+
+	require.NoError(t, runV42(t, db))
+	require.NoError(t, mock.ExpectationsWereMet())
+
+	var installed []string
+	for _, stmt := range executed {
+		if strings.HasPrefix(stmt, "CREATE OR REPLACE FUNCTION webhook_contact_lists_trigger()") {
+			installed = append(installed, stmt)
+		}
+	}
+	require.Len(t, installed, 1, "v42 installs the contact_lists webhook function once")
+	assert.Equal(t, schema.WebhookContactListsTriggerFunction(), installed[0], "the body a fresh workspace gets")
+	assert.Contains(t, strings.Join(strings.Fields(installed[0]), " "),
+		"ELSIF NEW.status = 'pending' AND OLD.deleted_at IS NULL AND NEW.deleted_at IS NULL THEN event_kind := 'list.pending';")
+}
+
 func TestV42Migration_NoSelectedFunctionMeansNoDDL(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)

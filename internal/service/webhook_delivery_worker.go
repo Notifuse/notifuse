@@ -1369,8 +1369,10 @@ func testListStatuses(action string) (string, interface{}) {
 		// A soft delete leaves the status alone and sets deleted_at.
 		return "active", "active"
 	default:
-		// subscribed → active, pending → pending, both written by an INSERT, so
-		// there is no previous status.
+		// subscribed → active, pending → pending, both as an INSERT writes them, so
+		// there is no previous status. list.pending also comes from a contact on
+		// the list moved to pending, with the status it came from; a first
+		// subscription awaiting confirmation is the common one.
 		if action == "subscribed" {
 			return "active", nil
 		}
