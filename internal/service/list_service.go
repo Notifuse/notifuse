@@ -611,10 +611,11 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 
 	// Update message history with unsubscribe event if MessageID is provided
 	// This enables broadcast statistics to track unsubscribes via notification center.
-	// Only once an opt-out was recorded: a link that changed nothing leaves the email as it
-	// was. A message whose address an erasure redacted is left unmarked by
-	// SetStatusesIfNotSet itself, as marking it would fire an email.unsubscribed webhook
-	// with the redacted address.
+	// Only once one of the lists holds the opt-out, or kept a bounce or complaint in its
+	// place: a link that recorded nothing, such as one for a deleted list or for a list the
+	// email was not sent for, leaves the email as it was. A message whose address an erasure
+	// redacted is left unmarked by SetStatusesIfNotSet itself, as marking it would fire an
+	// email.unsubscribed webhook with the redacted address.
 	if payload.MessageID != "" && recorded {
 		now := time.Now()
 		updates := []domain.MessageEventUpdate{

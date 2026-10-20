@@ -29,8 +29,9 @@ import (
 // the inbound webhook endpoint, as the JSON array Mailjet's Version 2 webhooks post. Mailjet
 // names the email by the CustomID Notifuse gives every email it sends through Mailjet
 // (internal/service/mailjet_service.go); the emails here go out through SMTP, whose
-// X-Message-ID header carries the same ID. One case unsubscribes with the email's own link
-// instead, which goes through the same redaction guard.
+// X-Message-ID header carries the same ID. The case of an erased address that is a contact
+// again unsubscribes with the email's own link instead, to show that SetStatusesIfNotSet
+// leaves an email whose address an erasure redacted unmarked on that path too.
 //
 // The Mailjet parser recorded an "unsub" event as a spam complaint: the contact became
 // complained on the email's list, could not subscribe to it again, and the email counted
@@ -185,7 +186,7 @@ func TestMailjetUnsubscribeWebhook(t *testing.T) {
 		return &listRow{status: domain.ContactListStatus(status), removed: deletedAt.Valid}
 	}
 
-	// marks reports which of the two events the email is marked with
+	// marks reports whether the email is marked unsubscribed and whether it is marked complained
 	type marks struct {
 		unsubscribed bool
 		complained   bool
