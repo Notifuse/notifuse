@@ -15,7 +15,8 @@ import {
   faFlagCheckered,
   faReply,
   faRobot,
-  faGlobe
+  faGlobe,
+  faBan
 } from '@fortawesome/free-solid-svg-icons'
 import { faUser, faFolderOpen, faPaperPlane, faEye } from '@fortawesome/free-regular-svg-icons'
 import {
@@ -95,19 +96,15 @@ export function ContactTimeline({
       updated: 'blue',
       sent: 'blue',
       'status changed': 'blue',
-      'auth email': 'blue',
       // Warning actions
       left: 'orange',
       pending: 'orange',
       // Negative actions
       deleted: 'red',
       removed: 'red',
-      bounce: 'volcano',
-      complaint: 'magenta',
       // Engagement actions
       opened: 'cyan',
       clicked: 'geekblue',
-      'user created': 'cyan',
       // Automation actions
       started: 'blue',
       ended: 'green',
@@ -150,6 +147,8 @@ export function ContactTimeline({
           return faCircleExclamation
         } else if (eventType === 'complaint') {
           return faTriangleExclamation
+        } else if (eventType === 'unsubscribe') {
+          return faBan
         } else if (eventType === 'delivered') {
           return faCheck
         } else if (eventType === 'reply') {
@@ -647,24 +646,27 @@ export function ContactTimeline({
 
         const isSupabase = source === 'supabase'
 
-        // Map event types to labels and colors
-        const webhookEventLabels: Record<string, string> = {
-          delivered: t`Delivered`,
-          bounce: t`Bounce`,
-          complaint: t`Complaint`,
-          reply: t`Replied`,
-          auto_reply: t`Auto-reply`,
-          auth_email: t`Auth Email`,
-          before_user_created: t`User Created`
+        // Map event types to labels and colors. The color is keyed on the type, not read
+        // from the label, which is translated.
+        const webhookEventTags: Record<string, { label: string; color?: string }> = {
+          delivered: { label: t`Delivered`, color: 'green' },
+          bounce: { label: t`Bounce`, color: 'volcano' },
+          complaint: { label: t`Complaint`, color: 'magenta' },
+          unsubscribe: { label: t`Unsubscribed`, color: 'red' },
+          reply: { label: t`Replied` },
+          auto_reply: { label: t`Auto-reply` },
+          auth_email: { label: t`Auth Email`, color: 'blue' },
+          before_user_created: { label: t`User Created`, color: 'cyan' }
         }
-        const webhookActionLabel = webhookEventLabels[eventType || ''] || eventType || t`Event`
+        const webhookEventTag = webhookEventTags[eventType || '']
+        const webhookActionLabel = webhookEventTag?.label || eventType || t`Event`
 
         // Provider icon as prefix content
         const providerPrefix = source ? getProviderIcon(source, 'small') : undefined
 
         return (
           <div>
-            {renderEventHeader(entry, t`Webhook`, webhookActionLabel, undefined, providerPrefix)}
+            {renderEventHeader(entry, t`Webhook`, webhookActionLabel, webhookEventTag?.color || 'default', providerPrefix)}
             <div className="space-y-1">
               {isSupabase && (
                 <div className="text-sm">

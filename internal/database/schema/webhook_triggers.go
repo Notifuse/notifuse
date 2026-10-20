@@ -122,7 +122,8 @@ func WebhookContactsTriggerFunction() string {
 // contact_lists rows out as list.* events, narrowed by the subscription's
 // optional list_ids filter. A write to a row that stays removed is reported to no
 // one, as the timeline records nothing for it: a removed contact is not on the
-// list, whatever status their row keeps for the email gate.
+// list, whatever status their row keeps for the email gate. A contact on the list
+// moved to pending is reported as list.pending, as the timeline records it.
 func WebhookContactListsTriggerFunction() string {
 	return `CREATE OR REPLACE FUNCTION webhook_contact_lists_trigger()
 		RETURNS TRIGGER AS $$
@@ -175,6 +176,10 @@ func WebhookContactListsTriggerFunction() string {
 						event_kind := 'list.bounced';
 					ELSIF NEW.status = 'complained' THEN
 						event_kind := 'list.complained';
+					-- A contact on the list moved to pending, such as one who unsubscribed and
+					-- subscribes again, which forces double opt-in
+					ELSIF NEW.status = 'pending' AND OLD.deleted_at IS NULL AND NEW.deleted_at IS NULL THEN
+						event_kind := 'list.pending';
 					-- A re-add moved to another status (pending, under double opt-in)
 					ELSIF restored THEN
 						event_kind := CASE NEW.status WHEN 'active' THEN 'list.subscribed' WHEN 'pending' THEN 'list.pending' WHEN 'unsubscribed' THEN 'list.unsubscribed' WHEN 'bounced' THEN 'list.bounced' WHEN 'complained' THEN 'list.complained' ELSE NULL END;

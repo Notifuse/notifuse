@@ -258,6 +258,14 @@ func TestInboundWebhookEventListParams_Validate(t *testing.T) {
 			errorMsg:    "limit cannot be negative",
 		},
 		{
+			name: "unsubscribe event type",
+			params: InboundWebhookEventListParams{
+				WorkspaceID: "workspace-123",
+				EventType:   EmailEventUnsubscribe,
+			},
+			expectError: false,
+		},
+		{
 			name: "invalid event type",
 			params: InboundWebhookEventListParams{
 				WorkspaceID: "workspace-123",
@@ -342,6 +350,7 @@ func TestEmailEventType_Constants(t *testing.T) {
 	assert.Equal(t, EmailEventType("delivered"), EmailEventDelivered)
 	assert.Equal(t, EmailEventType("bounce"), EmailEventBounce)
 	assert.Equal(t, EmailEventType("complaint"), EmailEventComplaint)
+	assert.Equal(t, EmailEventType("unsubscribe"), EmailEventUnsubscribe)
 	assert.Equal(t, EmailEventType("auth_email"), EmailEventAuthEmail)
 	assert.Equal(t, EmailEventType("before_user_created"), EmailEventBeforeUserCreated)
 }

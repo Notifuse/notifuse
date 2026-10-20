@@ -155,6 +155,52 @@ func TestMailjetService_GetWebhookStatus(t *testing.T) {
 		assert.Equal(t, "102", status.Endpoints[1].WebhookID)
 	})
 
+	// The webhook records an unsub event as an unsubscribe, not a complaint. These are the
+	// webhooks a registration creates, so the ones registered before that change are
+	// reported this way too, without registering again.
+	t.Run("an unsub webhook is reported as an unsubscribe endpoint, a spam one as a complaint endpoint", func(t *testing.T) {
+		ctrlRegistered := gomock.NewController(t)
+		defer ctrlRegistered.Finish()
+		mockRegisteredClient := mocks.NewMockHTTPClient(ctrlRegistered)
+		registeredService := NewMailjetService(mockRegisteredClient, mockAuthService, testLogger)
+		webhookURL := domain.GenerateWebhookCallbackURL("https://api.notifuse.com", domain.EmailProviderKindMailjet, workspaceID, integrationID)
+
+		registered := []domain.MailjetWebhookEventType{
+			domain.MailjetEventSent, domain.MailjetEventBounce, domain.MailjetEventBlocked,
+			domain.MailjetEventSpam, domain.MailjetEventUnsub,
+		}
+		webhooks := make([]domain.MailjetWebhook, 0, len(registered))
+		for i, eventType := range registered {
+			webhooks = append(webhooks, domain.MailjetWebhook{
+				ID: int64(201 + i), EventType: string(eventType), Endpoint: webhookURL, Status: "alive",
+			})
+		}
+		mockRegisteredClient.EXPECT().Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				return mockHTTPResponse(t, http.StatusOK, domain.MailjetWebhookResponse{
+					Count: len(webhooks), Data: webhooks, Total: len(webhooks),
+				}), nil
+			})
+
+		status, err := registeredService.GetWebhookStatus(ctx, workspaceID, integrationID, providerConfig)
+
+		require.NoError(t, err)
+		require.NotNil(t, status)
+		assert.True(t, status.IsRegistered)
+		require.Len(t, status.Endpoints, len(registered))
+		got := make(map[string]domain.EmailEventType, len(status.Endpoints))
+		for _, endpoint := range status.Endpoints {
+			got[endpoint.WebhookID] = endpoint.EventType
+		}
+		assert.Equal(t, map[string]domain.EmailEventType{
+			"201": domain.EmailEventDelivered,
+			"202": domain.EmailEventBounce,
+			"203": domain.EmailEventBounce,
+			"204": domain.EmailEventComplaint,
+			"205": domain.EmailEventUnsubscribe,
+		}, got)
+	})
+
 	t.Run("Missing provider configuration", func(t *testing.T) {
 		// Call with nil provider config
 		status, err := service.GetWebhookStatus(ctx, workspaceID, integrationID, nil)

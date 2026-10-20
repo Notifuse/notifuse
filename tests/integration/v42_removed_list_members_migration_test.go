@@ -452,6 +452,39 @@ func TestV42RemovedListMembersMigration(t *testing.T) {
 		drainQueue(t)
 	})
 
+	t.Run("a contact who unsubscribed and subscribes again sends list.pending", func(t *testing.T) {
+		resubList, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		pendingSubscription := createZapierSubscription(t, suite, workspace.ID, "V42 list.pending",
+			"https://hooks.example.com/v42-pending", []string{"list.pending"}, []string{resubList.ID}, nil)
+
+		resub := newContact(t, "resub")
+		addTo(t, resub, resubList.ID)
+		resp, err := postUnsubscribeJSON(suite.ServerManager.GetURL(), "/unsubscribe", domain.UnsubscribeFromListsRequest{
+			WorkspaceID: workspace.ID,
+			Email:       resub,
+			EmailHMAC:   domain.ComputeEmailHMAC(resub, workspace.Settings.SecretKey),
+			ListIDs:     []string{resubList.ID},
+		})
+		require.NoError(t, err)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, "/unsubscribe")
+
+		// Subscribing again after an unsubscribe asks for double opt-in.
+		status, body := post(t, "/api/lists.subscribe", map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"contact":      map[string]interface{}{"email": resub},
+			"list_ids":     []string{resubList.ID},
+		})
+		require.Equal(t, http.StatusOK, status, "lists.subscribe: %s", body)
+
+		deliveries := b24Deliveries(t, db, pendingSubscription, resub)
+		require.Len(t, deliveries, 1)
+		assert.Equal(t, "list.pending", deliveries[0].eventType)
+		assert.Equal(t, "pending", deliveries[0].payload["status"])
+		assert.Equal(t, "unsubscribed", deliveries[0].payload["previous_status"])
+	})
+
 	t.Run("re-running the migration changes nothing", func(t *testing.T) {
 		sqlBefore := map[string]string{}
 		for _, segmentID := range segments {

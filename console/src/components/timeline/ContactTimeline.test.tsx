@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { i18n } from '@lingui/core'
 import { ContactTimeline } from './ContactTimeline'
 import type { ContactTimelineEntry } from '../../services/api/contact_timeline'
 
@@ -174,6 +175,89 @@ describe('ContactTimeline custom event entries', () => {
     render(<ContactTimeline entries={[unprefixed]} />)
 
     expect(screen.getByText('Orders Fulfilled')).toBeInTheDocument()
+  })
+})
+
+describe('ContactTimeline inbound webhook event entries', () => {
+  // Mailjet reports an unsubscribe as an event of its own, which the webhook records as an
+  // unsubscribe rather than a complaint. Without a label of its own the row printed the raw
+  // type, beside the labelled delivered, bounce and complaint rows.
+  const unsubscribeEntry: ContactTimelineEntry = {
+    id: '44444444-4444-4444-4444-444444444444',
+    email: 'reader@example.com',
+    operation: 'insert',
+    entity_type: 'inbound_webhook_event',
+    kind: 'insert_inbound_webhook_event',
+    entity_id: 'msg-1',
+    changes: { type: webChange('unsubscribe'), source: webChange('mailjet') },
+    entity_data: {
+      id: '55555555-5555-5555-5555-555555555555',
+      type: 'unsubscribe',
+      source: 'mailjet',
+      message_id: 'msg-1',
+      timestamp: '2026-08-12T10:03:00Z'
+    },
+    created_at: '2026-08-12T10:03:00Z',
+    db_created_at: '2026-08-12T10:03:00Z'
+  }
+
+  it('labels an unsubscribe the provider reported, with the unsubscribe icon', () => {
+    const { container } = render(<ContactTimeline entries={[unsubscribeEntry]} />)
+
+    expect(screen.getByText('Unsubscribed').closest('.ant-tag')).toHaveClass('ant-tag-red')
+    expect(screen.queryByText('unsubscribe')).not.toBeInTheDocument()
+    // The ban icon the message history shows for an unsubscribe, not the generic bolt
+    expect(container.querySelector('svg[data-icon="ban"]')).not.toBeNull()
+    expect(container.querySelector('svg[data-icon="bolt"]')).toBeNull()
+  })
+
+  // The colour stands for what the provider reported, so it can't depend on the language
+  // the label is shown in. Picked from the translated label, it fell back to the default
+  // colour in every language but English.
+  it('colours each reported event by its type, whatever the language of its label', () => {
+    const reported = (type: string, source: string): ContactTimelineEntry => ({
+      ...unsubscribeEntry,
+      id: `webhook-${type}`,
+      changes: { type: webChange(type), source: webChange(source) },
+      entity_data: { id: `event-${type}`, type, source, message_id: 'msg-1', timestamp: '2026-08-12T10:03:00Z' }
+    })
+    i18n.loadAndActivate({
+      locale: 'fr',
+      messages: {
+        Delivered: 'Distribué',
+        Bounce: 'Rebond',
+        Complaint: 'Plainte',
+        Unsubscribed: 'Désabonné',
+        Replied: 'Répondu',
+        'Auth Email': "E-mail d'authentification",
+        'User Created': 'Utilisateur créé'
+      }
+    })
+    try {
+      render(
+        <ContactTimeline
+          entries={[
+            reported('delivered', 'mailjet'),
+            reported('bounce', 'mailjet'),
+            reported('complaint', 'mailjet'),
+            reported('unsubscribe', 'mailjet'),
+            reported('reply', 'mailgun'),
+            reported('auth_email', 'supabase'),
+            reported('before_user_created', 'supabase')
+          ]}
+        />
+      )
+
+      expect(screen.getByText('Distribué').closest('.ant-tag')).toHaveClass('ant-tag-green')
+      expect(screen.getByText('Rebond').closest('.ant-tag')).toHaveClass('ant-tag-volcano')
+      expect(screen.getByText('Plainte').closest('.ant-tag')).toHaveClass('ant-tag-magenta')
+      expect(screen.getByText('Désabonné').closest('.ant-tag')).toHaveClass('ant-tag-red')
+      expect(screen.getByText('Répondu').closest('.ant-tag')).toHaveClass('ant-tag-default')
+      expect(screen.getByText("E-mail d'authentification").closest('.ant-tag')).toHaveClass('ant-tag-blue')
+      expect(screen.getByText('Utilisateur créé').closest('.ant-tag')).toHaveClass('ant-tag-cyan')
+    } finally {
+      i18n.loadAndActivate({ locale: 'en', messages: {} })
+    }
   })
 })
 

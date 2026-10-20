@@ -271,9 +271,9 @@ func seedZapierSampleEvents(t *testing.T, db *sql.DB) {
 		VALUES ($1, $2, 'active', $3::timestamptz, $3::timestamptz)`,
 		zapierSampleEmail, zapierSampleListID, zapierSampleInstant)
 
-	// active -> pending matches none of the trigger's transitions and emits
-	// nothing; it exists only to set up the pending -> active move below, which is
-	// the single transition that produces list.confirmed.
+	// active -> pending emits list.pending, which no v1 trigger subscribes to, so
+	// it queues nothing here; it exists only to set up the pending -> active move
+	// below, which is the single transition that produces list.confirmed.
 	setListStatus("pending")
 	setListStatus("active")
 

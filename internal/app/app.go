@@ -839,6 +839,7 @@ func (a *App) InitServices() error {
 		a.messageHistoryRepo,
 		a.contactRepo,
 		a.automationRepo,
+		a.listService,
 	)
 
 	// Initialize Supabase service (before workspace service)

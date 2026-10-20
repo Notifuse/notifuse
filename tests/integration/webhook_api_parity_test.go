@@ -205,9 +205,9 @@ func TestWebhookAPIParity(t *testing.T) {
 		exec(`INSERT INTO contact_lists (email, list_id, status) VALUES ($1, $2, 'active')`, email, listID)
 		assertMembershipParity("list.subscribed", "active", nil)
 
-		// active -> pending matches none of the trigger's transitions and queues
-		// nothing; it exists only to set up the pending -> active move, which is
-		// the one transition that produces list.confirmed.
+		// active -> pending emits list.pending, which this subscription leaves out,
+		// so it queues nothing; it exists only to set up the pending -> active move,
+		// which is the one transition that produces list.confirmed.
 		setStatus("pending")
 		setStatus("active")
 		assertMembershipParity("list.confirmed", "active", "pending")

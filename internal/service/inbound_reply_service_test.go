@@ -7,6 +7,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	servicemocks "github.com/Notifuse/notifuse/internal/service/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -57,7 +58,7 @@ func newReplyTestDeps(t *testing.T, kind domain.EmailProviderKind) replyTestDeps
 	}
 	workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil).AnyTimes()
 
-	svc := NewInboundWebhookEventService(repo, authService, log, workspaceRepo, mhRepo, contactRepo, autoRepo)
+	svc := NewInboundWebhookEventService(repo, authService, log, workspaceRepo, mhRepo, contactRepo, autoRepo, servicemocks.NewMockListUnsubscriber(ctrl))
 
 	return replyTestDeps{svc, repo, contactRepo, mhRepo, autoRepo, workspaceID, integID}
 }

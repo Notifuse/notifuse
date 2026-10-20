@@ -2358,6 +2358,13 @@ func TestBuildTestPayload(t *testing.T) {
 		require.Contains(t, subscribed, "previous_status",
 			"the trigger always builds the key, null included")
 		assert.Nil(t, subscribed["previous_status"])
+
+		// list.pending also comes from a contact on the list moved to pending, but
+		// the sample is the common case: a first subscription awaiting confirmation.
+		pending := buildTestPayload("list.pending")
+		assert.Equal(t, "pending", pending["status"])
+		require.Contains(t, pending, "previous_status")
+		assert.Nil(t, pending["previous_status"])
 	})
 
 	t.Run("an unrecognised event type says so instead of inventing a shape", func(t *testing.T) {

@@ -1,0 +1,851 @@
+//go:build integration
+// +build integration
+
+package integration
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"sort"
+	"testing"
+	"time"
+
+	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/app"
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/tests/testutil"
+	"github.com/google/uuid"
+	shortuuid "github.com/lithammer/shortuuid/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// TestMailjetUnsubscribeWebhook sends real broadcast, transactional and automation emails
+// through Mailpit, then reports unsubscribes on them with Mailjet "unsub" events posted to
+// the inbound webhook endpoint, as the JSON array Mailjet's Version 2 webhooks post. Mailjet
+// names the email by the CustomID Notifuse gives every email it sends through Mailjet
+// (internal/service/mailjet_service.go); the emails here go out through SMTP, whose
+// X-Message-ID header carries the same ID. The case of an erased address that is a contact
+// again unsubscribes with the email's own link instead, to show that SetStatusesIfNotSet
+// leaves an email whose address an erasure redacted unmarked on that path too.
+//
+// The Mailjet parser recorded an "unsub" event as a spam complaint: the contact became
+// complained on the email's list, could not subscribe to it again, and the email counted
+// as a complaint, with the email.complained events of one. The email is now marked
+// unsubscribed, and when it was sent for a list, the contact is unsubscribed from that list
+// by the rules of the email's own unsubscribe link. For an automation email queued before
+// this version, the list is the automation's current one.
+func TestMailjetUnsubscribeWebhook(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		// The webhook subscription below targets a placeholder URL; nothing delivers it
+		// (the harness starts no delivery worker), the queued deliveries are read instead.
+		cfg.Webhook.AllowPrivateDeliveryHosts = true
+		return app.NewApp(cfg)
+	})
+	defer suite.Cleanup()
+
+	// Broadcasts and automation emails are sent by the email queue worker and the
+	// automation scheduler, which the harness only runs on request.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	require.NoError(t, suite.ServerManager.StartBackgroundWorkers(ctx))
+
+	client := suite.APIClient
+	factory := suite.DataFactory
+	bg := context.Background()
+
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	require.NoError(t, factory.AddUserToWorkspace(user.ID, workspace.ID, "owner"))
+	_, err = factory.SetupWorkspaceWithSMTPProvider(workspace.ID)
+	require.NoError(t, err)
+	require.NoError(t, client.Login(user.Email, "password"))
+	client.SetWorkspaceID(workspace.ID)
+
+	// Emails go out through SMTP to Mailpit; the Mailjet integration only receives the
+	// webhook events, which name the email, not the integration that sent it.
+	mailjet, err := factory.CreateIntegration(workspace.ID,
+		testutil.WithIntegrationName("Test Mailjet Integration"),
+		testutil.WithIntegrationEmailProvider(domain.EmailProvider{
+			Kind:    domain.EmailProviderKindMailjet,
+			Senders: []domain.EmailSender{domain.NewEmailSender("test@example.com", "Test Sender")},
+			Mailjet: &domain.MailjetSettings{APIKey: "test-api-key", SecretKey: "test-secret-key"},
+		}))
+	require.NoError(t, err)
+	webhookURL := fmt.Sprintf("/webhooks/email?provider=mailjet&workspace_id=%s&integration_id=%s", workspace.ID, mailjet.ID)
+
+	db, err := factory.GetWorkspaceDB(workspace.ID)
+	require.NoError(t, err)
+
+	subscriptionID := createZapierSubscription(t, suite, workspace.ID, "Unsubscribes and complaints",
+		"https://hooks.example.com/mailjet-unsub",
+		[]string{"email.unsubscribed", "email.complained", "list.unsubscribed", "list.complained"}, nil, nil)
+
+	post := func(t *testing.T, path string, body map[string]interface{}) []byte {
+		t.Helper()
+		resp, err := client.Post(path, body)
+		require.NoError(t, err)
+		raw, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, "%s: %s", path, raw)
+		return raw
+	}
+
+	// mailjetEvent builds an event with the fields Mailjet documents for its kind.
+	// mj_list_id names a Mailjet contact list, not a Notifuse one.
+	mailjetEvent := func(kind, messageID, email string) map[string]interface{} {
+		event := map[string]interface{}{
+			"event":          kind,
+			"time":           time.Now().Unix(),
+			"MessageID":      int64(288230376151711744),
+			"Message_GUID":   uuid.New().String(),
+			"email":          email,
+			"mj_campaign_id": 7173,
+			"mj_contact_id":  320,
+			"customcampaign": "",
+			"CustomID":       messageID,
+			"Payload":        "",
+		}
+		switch kind {
+		case "unsub":
+			event["mj_list_id"] = 1
+			event["ip"] = "127.0.0.1"
+			event["geo"] = "FR"
+			event["agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+		case "spam":
+			event["source"] = "JMRPP"
+		}
+		return event
+	}
+	// postMailjet posts one webhook delivery and expects 200: Mailjet posts a delivery
+	// again when it gets another answer.
+	postMailjet := func(t *testing.T, body []byte) {
+		t.Helper()
+		resp, err := client.PostRaw(webhookURL, string(body))
+		require.NoError(t, err)
+		raw, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, "Mailjet webhook POST: %s", raw)
+	}
+	postMailjetEvents := func(t *testing.T, events ...map[string]interface{}) {
+		t.Helper()
+		body, err := json.Marshal(events)
+		require.NoError(t, err)
+		postMailjet(t, body)
+	}
+	reportUnsub := func(t *testing.T, messageID, email string) {
+		t.Helper()
+		postMailjetEvents(t, mailjetEvent("unsub", messageID, email))
+	}
+	reportSpam := func(t *testing.T, messageID, email string) {
+		t.Helper()
+		postMailjetEvents(t, mailjetEvent("spam", messageID, email))
+	}
+
+	newContact := func(t *testing.T, name string) string {
+		t.Helper()
+		email := fmt.Sprintf("mailjet-unsub-%s-%s@example.com", name, uuid.New().String()[:8])
+		_, err := factory.CreateContact(workspace.ID, testutil.WithContactEmail(email))
+		require.NoError(t, err)
+		return email
+	}
+	addToList := func(t *testing.T, email, listID string) {
+		t.Helper()
+		_, err := factory.CreateContactList(workspace.ID,
+			testutil.WithContactListEmail(email),
+			testutil.WithContactListListID(listID),
+			testutil.WithContactListStatus(domain.ContactListStatusActive))
+		require.NoError(t, err)
+	}
+
+	type listRow struct {
+		status  domain.ContactListStatus
+		removed bool
+	}
+	rowOf := func(t *testing.T, email, listID string) *listRow {
+		t.Helper()
+		var status string
+		var deletedAt sql.NullTime
+		err := db.QueryRowContext(bg,
+			`SELECT status, deleted_at FROM contact_lists WHERE email = $1 AND list_id = $2`,
+			email, listID).Scan(&status, &deletedAt)
+		if err == sql.ErrNoRows {
+			return nil
+		}
+		require.NoError(t, err)
+		return &listRow{status: domain.ContactListStatus(status), removed: deletedAt.Valid}
+	}
+
+	// marks reports whether the email is marked unsubscribed and whether it is marked complained
+	type marks struct {
+		unsubscribed bool
+		complained   bool
+	}
+	marksOf := func(t *testing.T, messageID string) marks {
+		t.Helper()
+		var unsubscribedAt, complainedAt sql.NullTime
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT unsubscribed_at, complained_at FROM message_history WHERE id = $1`,
+			messageID).Scan(&unsubscribedAt, &complainedAt))
+		return marks{unsubscribed: unsubscribedAt.Valid, complained: complainedAt.Valid}
+	}
+
+	// queued returns the event types of the webhook deliveries queued about email, sorted
+	queued := func(t *testing.T, email string) []string {
+		t.Helper()
+		kinds := []string{}
+		for _, d := range b24Deliveries(t, db, subscriptionID, email) {
+			kinds = append(kinds, d.eventType)
+		}
+		sort.Strings(kinds)
+		return kinds
+	}
+	// unsubscribedDeliveries counts the email.unsubscribed deliveries queued about the email,
+	// whatever address they carry
+	unsubscribedDeliveries := func(t *testing.T, messageID string) int {
+		t.Helper()
+		var n int
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT COUNT(*) FROM webhook_deliveries
+			 WHERE subscription_id = $1 AND event_type = 'email.unsubscribed' AND payload->>'message_id' = $2`,
+			subscriptionID, messageID).Scan(&n))
+		return n
+	}
+
+	// An SMTP send records its message_history row only once the server accepted it
+	waitForMessageRow := func(t *testing.T, messageID string) {
+		t.Helper()
+		testutil.WaitForCondition(t, func() bool {
+			var n int
+			_ = db.QueryRowContext(bg, `SELECT COUNT(*) FROM message_history WHERE id = $1`, messageID).Scan(&n)
+			return n == 1
+		}, 10*time.Second, "waiting for the message_history row of "+messageID)
+	}
+
+	// sendBroadcast sends a broadcast to the list now, through the API, and returns its ID
+	// and the Notifuse message ID the email of each recipient carries.
+	sendBroadcast := func(t *testing.T, listID string, recipients ...string) (string, map[string]string) {
+		t.Helper()
+		subject := "mailjet-unsub-" + uuid.New().String()[:8]
+		template, err := factory.CreateTemplate(workspace.ID, testutil.WithTemplateSubject(subject))
+		require.NoError(t, err)
+
+		resp, err := client.CreateBroadcast(map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"name":         subject,
+			"audience":     map[string]interface{}{"list": listID},
+			"test_settings": map[string]interface{}{
+				"enabled":    false,
+				"variations": []map[string]interface{}{{"template_id": template.ID}},
+			},
+		})
+		require.NoError(t, err)
+		body, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusCreated, resp.StatusCode, "create broadcast: %s", body)
+		var created struct {
+			Broadcast struct {
+				ID string `json:"id"`
+			} `json:"broadcast"`
+		}
+		require.NoError(t, json.Unmarshal(body, &created))
+		broadcastID := created.Broadcast.ID
+
+		resp, err = client.ScheduleBroadcast(map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"id":           broadcastID,
+			"send_now":     true,
+		})
+		require.NoError(t, err)
+		body, _ = io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, "schedule broadcast: %s", body)
+		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcastID,
+			[]string{"processed", "completed"}, 60*time.Second)
+		require.NoError(t, err)
+
+		messageIDs := make(map[string]string, len(recipients))
+		for _, email := range recipients {
+			msg, err := waitForEmailAndGetMessage(t, email, 30*time.Second)
+			require.NoError(t, err, "the broadcast email should reach Mailpit")
+			messageIDs[email] = deliveredHeader(t, msg, "X-Message-ID")
+			waitForMessageRow(t, messageIDs[email])
+		}
+		return broadcastID, messageIDs
+	}
+
+	// subscribeAgain subscribes the contact to the list through the API, as an integration
+	// would, and returns the status the subscription left them in
+	subscribeAgain := func(t *testing.T, email, listID string) domain.ContactListStatus {
+		t.Helper()
+		raw := post(t, "/api/lists.subscribe", map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"contact":      map[string]interface{}{"email": email},
+			"list_ids":     []string{listID},
+		})
+		var subscribed struct {
+			ContactLists []struct {
+				Status string `json:"status"`
+			} `json:"contact_lists"`
+		}
+		require.NoError(t, json.Unmarshal(raw, &subscribed))
+		require.Len(t, subscribed.ContactLists, 1)
+		return domain.ContactListStatus(subscribed.ContactLists[0].Status)
+	}
+
+	broadcastStats := func(t *testing.T, broadcastID string) domain.MessageHistoryStatusSum {
+		t.Helper()
+		resp, err := client.Get("/api/messages.broadcastStats", map[string]string{
+			"workspace_id": workspace.ID,
+			"broadcast_id": broadcastID,
+		})
+		require.NoError(t, err)
+		body, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, "broadcast stats: %s", body)
+		var got struct {
+			Stats domain.MessageHistoryStatusSum `json:"stats"`
+		}
+		require.NoError(t, json.Unmarshal(body, &got))
+		return got.Stats
+	}
+
+	t.Run("broadcast email: an unsubscribe is recorded as the email's unsubscribe link records it, not as a complaint", func(t *testing.T) {
+		list, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		email := newContact(t, "broadcast")
+		addToList(t, email, list.ID)
+		broadcastID, messageIDs := sendBroadcast(t, list.ID, email)
+		messageID := messageIDs[email]
+
+		reportUnsub(t, messageID, email)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusUnsubscribed}, rowOf(t, email, list.ID))
+		assert.Equal(t, marks{unsubscribed: true}, marksOf(t, messageID), "the email is marked unsubscribed, not complained")
+		assert.Equal(t, 1, timelineKindCount(t, db, email, "email.unsubscribed", messageID))
+		assert.Equal(t, 1, timelineKindCount(t, db, email, "list.unsubscribed", list.ID))
+		assert.Zero(t, timelineKindCount(t, db, email, "email.complained", messageID))
+		assert.Zero(t, timelineKindCount(t, db, email, "list.complained", list.ID))
+		assert.Equal(t, []string{"email.unsubscribed", "list.unsubscribed"}, queued(t, email))
+
+		stats := broadcastStats(t, broadcastID)
+		assert.Equal(t, 1, stats.TotalUnsubscribed)
+		assert.Zero(t, stats.TotalComplained)
+
+		var storedType string
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT type FROM inbound_webhook_events WHERE message_id = $1`, messageID).Scan(&storedType))
+		assert.Equal(t, "unsubscribe", storedType, "the Mailjet event is stored as an unsubscribe")
+
+		// The webhook event log lists it under its own type, which its filter asks the API for
+		resp, err := client.Get("/api/inboundWebhookEvents.list", map[string]string{
+			"workspace_id":    workspace.ID,
+			"event_type":      string(domain.EmailEventUnsubscribe),
+			"recipient_email": email,
+		})
+		require.NoError(t, err)
+		body, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, "list the unsubscribe events: %s", body)
+		var listed domain.InboundWebhookEventListResult
+		require.NoError(t, json.Unmarshal(body, &listed))
+		require.Len(t, listed.Events, 1)
+		assert.Equal(t, domain.EmailEventUnsubscribe, listed.Events[0].Type)
+		require.NotNil(t, listed.Events[0].MessageID)
+		assert.Equal(t, messageID, *listed.Events[0].MessageID)
+
+		// An unsubscribed contact can subscribe again, confirming by double opt-in
+		assert.Equal(t, domain.ContactListStatusPending, subscribeAgain(t, email, list.ID))
+	})
+
+	// A broadcast for the cases below, each with a recipient of its own. Mailjet can't send
+	// broadcasts since 36.0, but still reports unsubscribes from the broadcasts it sent
+	// before, and nothing below depends on what sent the email: the same code checks its
+	// recipient and records the opt-out on its list for a broadcast and for an automation
+	// email. Transactional and automation emails follow.
+	edgeList, err := factory.CreateList(workspace.ID)
+	require.NoError(t, err)
+	names := []string{"twice", "complained-first", "unsubscribed-first", "bounced", "other-recipient", "erased"}
+	recipient := make(map[string]string, len(names))
+	recipients := make([]string, 0, len(names))
+	for _, name := range names {
+		recipient[name] = newContact(t, name)
+		addToList(t, recipient[name], edgeList.ID)
+		recipients = append(recipients, recipient[name])
+	}
+	_, edgeMessageIDs := sendBroadcast(t, edgeList.ID, recipients...)
+
+	t.Run("the same delivery posted twice: the contact is unsubscribed and the email marked once", func(t *testing.T) {
+		email := recipient["twice"]
+		messageID := edgeMessageIDs[email]
+		body, err := json.Marshal([]map[string]interface{}{mailjetEvent("unsub", messageID, email)})
+		require.NoError(t, err)
+
+		// As when Mailjet did not get the answer to the first one
+		postMailjet(t, body)
+		postMailjet(t, body)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusUnsubscribed}, rowOf(t, email, edgeList.ID))
+		assert.Equal(t, marks{unsubscribed: true}, marksOf(t, messageID))
+		assert.Equal(t, 1, timelineKindCount(t, db, email, "email.unsubscribed", messageID))
+		assert.Equal(t, 1, timelineKindCount(t, db, email, "list.unsubscribed", edgeList.ID))
+		assert.Equal(t, []string{"email.unsubscribed", "list.unsubscribed"}, queued(t, email))
+	})
+
+	// People who report spam often unsubscribe too
+	t.Run("a complaint, then an unsubscribe: the complaint is kept", func(t *testing.T) {
+		email := recipient["complained-first"]
+		messageID := edgeMessageIDs[email]
+
+		reportSpam(t, messageID, email)
+		reportUnsub(t, messageID, email)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusComplained}, rowOf(t, email, edgeList.ID),
+			"an unsubscribe does not turn a complaint into an opt-out")
+		assert.Equal(t, marks{unsubscribed: true, complained: true}, marksOf(t, messageID))
+		assert.Zero(t, timelineKindCount(t, db, email, "list.unsubscribed", edgeList.ID))
+		assert.Equal(t, []string{"email.complained", "email.unsubscribed", "list.complained"}, queued(t, email))
+
+		// A complained contact cannot subscribe again
+		assert.Equal(t, domain.ContactListStatusComplained, subscribeAgain(t, email, edgeList.ID))
+		assert.Equal(t, &listRow{status: domain.ContactListStatusComplained}, rowOf(t, email, edgeList.ID))
+	})
+
+	t.Run("an unsubscribe, then a complaint: the complaint replaces it", func(t *testing.T) {
+		email := recipient["unsubscribed-first"]
+		messageID := edgeMessageIDs[email]
+
+		reportUnsub(t, messageID, email)
+		require.Equal(t, &listRow{status: domain.ContactListStatusUnsubscribed}, rowOf(t, email, edgeList.ID))
+		reportSpam(t, messageID, email)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusComplained}, rowOf(t, email, edgeList.ID))
+		assert.Equal(t, marks{unsubscribed: true, complained: true}, marksOf(t, messageID))
+		assert.Equal(t, []string{"email.complained", "email.unsubscribed", "list.complained", "list.unsubscribed"}, queued(t, email))
+	})
+
+	t.Run("a contact whose address bounced since the email: the bounce is kept", func(t *testing.T) {
+		email := recipient["bounced"]
+		messageID := edgeMessageIDs[email]
+		// A hard bounce on another email marks the address bounced
+		require.NoError(t, suite.ServerManager.GetApp().GetContactRepository().
+			MarkEmailsAsBounced(bg, workspace.ID, []string{email}, time.Now().UTC()))
+		require.Equal(t, &listRow{status: domain.ContactListStatusBounced}, rowOf(t, email, edgeList.ID))
+
+		reportUnsub(t, messageID, email)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusBounced}, rowOf(t, email, edgeList.ID))
+		assert.Equal(t, marks{unsubscribed: true}, marksOf(t, messageID))
+	})
+
+	// Such as someone the email was copied to
+	t.Run("an unsubscribe of another address than the email's recipient records nothing", func(t *testing.T) {
+		email := recipient["other-recipient"]
+		messageID := edgeMessageIDs[email]
+
+		reportUnsub(t, messageID, fmt.Sprintf("someone-else-%s@example.com", uuid.New().String()[:8]))
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusActive}, rowOf(t, email, edgeList.ID))
+		assert.Equal(t, marks{}, marksOf(t, messageID))
+		assert.Empty(t, queued(t, email))
+	})
+
+	t.Run("a contact erased since the email: no list row is stored, and the email is not marked", func(t *testing.T) {
+		email := recipient["erased"]
+		messageID := edgeMessageIDs[email]
+		post(t, "/api/contacts.delete", map[string]interface{}{"workspace_id": workspace.ID, "email": email})
+
+		reportUnsub(t, messageID, email)
+
+		var n int
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT COUNT(*) FROM contact_lists WHERE email = $1 OR email = 'DELETED_EMAIL'`, email).Scan(&n))
+		assert.Zero(t, n, "neither the erased address nor its redacted stand-in has a list row")
+		assert.Equal(t, marks{}, marksOf(t, messageID))
+	})
+
+	t.Run("a list deleted since the email: the email is marked unsubscribed, the removed row is left as it was", func(t *testing.T) {
+		list, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		email := newContact(t, "deleted-list")
+		addToList(t, email, list.ID)
+		broadcastID, messageIDs := sendBroadcast(t, list.ID, email)
+		messageID := messageIDs[email]
+		post(t, "/api/lists.delete", map[string]interface{}{"workspace_id": workspace.ID, "id": list.ID})
+
+		reportUnsub(t, messageID, email)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusActive, removed: true}, rowOf(t, email, list.ID),
+			"the row the deletion removed is left as it was")
+		assert.Equal(t, marks{unsubscribed: true}, marksOf(t, messageID), "the email is marked unsubscribed, not complained")
+		assert.Equal(t, 1, timelineKindCount(t, db, email, "email.unsubscribed", messageID))
+		assert.Equal(t, []string{"email.unsubscribed"}, queued(t, email))
+		assert.Equal(t, 1, broadcastStats(t, broadcastID).TotalUnsubscribed)
+	})
+
+	// Transactional email, which Mailjet still sends, is sent for no list
+	transactionalTemplate, err := factory.CreateTemplate(workspace.ID,
+		testutil.WithTemplateCategory(string(domain.TemplateCategoryTransactional)))
+	require.NoError(t, err)
+	notification, err := factory.CreateTransactionalNotification(workspace.ID,
+		testutil.WithTransactionalNotificationChannels(domain.ChannelTemplates{
+			domain.TransactionalChannelEmail: domain.ChannelTemplate{TemplateID: transactionalTemplate.ID, Settings: map[string]interface{}{}},
+		}))
+	require.NoError(t, err)
+
+	// sendTransactional sends the notification to the contact through the API and returns
+	// the Notifuse message ID of its email, which transactional.send answers with
+	sendTransactional := func(t *testing.T, email string) string {
+		t.Helper()
+		resp, err := client.SendTransactionalNotification(map[string]interface{}{
+			"id":       notification.ID,
+			"contact":  map[string]interface{}{"email": email},
+			"channels": []string{"email"},
+		})
+		require.NoError(t, err)
+		body, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, "transactional.send: %s", body)
+		var sent struct {
+			MessageID string `json:"message_id"`
+		}
+		require.NoError(t, json.Unmarshal(body, &sent))
+		require.NotEmpty(t, sent.MessageID)
+		waitForMessageRow(t, sent.MessageID)
+
+		var storedList sql.NullString
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT list_id FROM message_history WHERE id = $1`, sent.MessageID).Scan(&storedList))
+		require.False(t, storedList.Valid, "a transactional email is sent for no list")
+		return sent.MessageID
+	}
+
+	t.Run("transactional email: the email is marked unsubscribed, the contact's lists are left as they were", func(t *testing.T) {
+		list, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		email := newContact(t, "transactional")
+		addToList(t, email, list.ID)
+		messageID := sendTransactional(t, email)
+
+		reportUnsub(t, messageID, email)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusActive}, rowOf(t, email, list.ID),
+			"the contact's lists are left as they were")
+		assert.Equal(t, marks{unsubscribed: true}, marksOf(t, messageID), "the email is marked unsubscribed, not complained")
+		assert.Equal(t, 1, timelineKindCount(t, db, email, "email.unsubscribed", messageID))
+		assert.Zero(t, timelineKindCount(t, db, email, "list.unsubscribed", list.ID))
+		assert.Equal(t, []string{"email.unsubscribed"}, queued(t, email))
+	})
+
+	// As when the recipient unsubscribes from the same email again
+	t.Run("two unsubscribes from one email at different times: the first time is kept, and the email is marked once", func(t *testing.T) {
+		email := newContact(t, "unsubscribed-twice")
+		messageID := sendTransactional(t, email)
+		first := time.Now().Truncate(time.Second)
+
+		for _, at := range []time.Time{first, first.Add(time.Hour)} {
+			event := mailjetEvent("unsub", messageID, email)
+			event["time"] = at.Unix()
+			postMailjetEvents(t, event)
+		}
+
+		var unsubscribedAt time.Time
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT unsubscribed_at FROM message_history WHERE id = $1`, messageID).Scan(&unsubscribedAt))
+		assert.Equal(t, first.Unix(), unsubscribedAt.Unix(), "the first unsubscribe's time is kept")
+		assert.Equal(t, 1, timelineKindCount(t, db, email, "email.unsubscribed", messageID))
+		assert.Equal(t, []string{"email.unsubscribed"}, queued(t, email))
+	})
+
+	// The contact can be erased while a delivery is handled, after the email's recipient was
+	// checked. The erasure keeps the email with the address redacted, and marking it then
+	// would send its email.unsubscribed events with the redacted address. That moment can't
+	// be timed through the endpoint, so the marking step runs on its own, after the erasure.
+	// Complaints and bounces are recorded on such an email as before.
+	t.Run("a contact erased while the unsubscribe is handled: the email is not marked unsubscribed, a complaint and a bounce still are", func(t *testing.T) {
+		email := newContact(t, "erased-while-handled")
+		messageID := sendTransactional(t, email)
+		post(t, "/api/contacts.delete", map[string]interface{}{"workspace_id": workspace.ID, "email": email})
+		var storedEmail string
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT contact_email FROM message_history WHERE id = $1`, messageID).Scan(&storedEmail))
+		require.Equal(t, "DELETED_EMAIL", storedEmail, "the erasure keeps the email with the address redacted")
+		messageHistoryRepo := suite.ServerManager.GetApp().GetMessageHistoryRepository()
+
+		require.NoError(t, messageHistoryRepo.SetStatusesIfNotSet(bg, workspace.ID,
+			[]domain.MessageEventUpdate{{ID: messageID, Event: domain.MessageEventUnsubscribed, Timestamp: time.Now()}}))
+
+		assert.Equal(t, marks{}, marksOf(t, messageID))
+		assert.Zero(t, timelineKindCount(t, db, "DELETED_EMAIL", "email.unsubscribed", messageID))
+		assert.Zero(t, unsubscribedDeliveries(t, messageID), "no email.unsubscribed goes out with the redacted address")
+
+		require.NoError(t, messageHistoryRepo.SetStatusesIfNotSet(bg, workspace.ID, []domain.MessageEventUpdate{
+			{ID: messageID, Event: domain.MessageEventComplained, Timestamp: time.Now()},
+			{ID: messageID, Event: domain.MessageEventBounced, Timestamp: time.Now()},
+		}))
+
+		var complained, bounced bool
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT complained_at IS NOT NULL, bounced_at IS NOT NULL FROM message_history WHERE id = $1`,
+			messageID).Scan(&complained, &bounced))
+		assert.True(t, complained, "the complaint is recorded on the redacted email")
+		assert.True(t, bounced, "the bounce is recorded on the redacted email")
+	})
+
+	// The email's own unsubscribe link reaches the same marking with no race: the erased
+	// address can become a contact again, back on the list, and unsubscribe with the link of
+	// an email sent before the erasure. The opt-out is recorded on the new contact's row,
+	// and the email, which names no one now, is left unmarked.
+	t.Run("an erased address, a contact again, unsubscribes with the link of an email sent before the erasure: the new contact is unsubscribed, the email is not marked", func(t *testing.T) {
+		list, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		email := newContact(t, "erased-then-back")
+		addToList(t, email, list.ID)
+		broadcastID, messageIDs := sendBroadcast(t, list.ID, email)
+		messageID := messageIDs[email]
+		post(t, "/api/contacts.delete", map[string]interface{}{"workspace_id": workspace.ID, "email": email})
+		_, err = factory.CreateContact(workspace.ID, testutil.WithContactEmail(email))
+		require.NoError(t, err)
+		addToList(t, email, list.ID)
+
+		// Posted as the notification center posts it, with the parameters of the email's
+		// unsubscribe link
+		resp, err := postUnsubscribeJSON(suite.ServerManager.GetURL(), "/unsubscribe", domain.UnsubscribeFromListsRequest{
+			WorkspaceID: workspace.ID,
+			Email:       email,
+			EmailHMAC:   domain.ComputeEmailHMAC(email, workspace.Settings.SecretKey),
+			ListIDs:     []string{list.ID},
+			MessageID:   messageID,
+		})
+		require.NoError(t, err)
+		body, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, "unsubscribe: %s", body)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusUnsubscribed}, rowOf(t, email, list.ID),
+			"the opt-out is recorded on the new contact's row")
+		assert.Equal(t, []string{"list.unsubscribed"}, queued(t, email))
+		assert.Equal(t, marks{}, marksOf(t, messageID), "the email sent before the erasure is not marked")
+		assert.Zero(t, timelineKindCount(t, db, "DELETED_EMAIL", "email.unsubscribed", messageID))
+		assert.Zero(t, unsubscribedDeliveries(t, messageID), "no email.unsubscribed goes out with the redacted address")
+		assert.Zero(t, broadcastStats(t, broadcastID).TotalUnsubscribed, "the broadcast counts no unsubscribe")
+	})
+
+	// Mailjet's webhooks cover the whole Mailjet account, so they report emails Notifuse
+	// did not send too
+	t.Run("an email Notifuse did not send: answered with 200, nothing is recorded", func(t *testing.T) {
+		list, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		email := newContact(t, "unknown-message")
+		addToList(t, email, list.ID)
+		withoutCustomID := mailjetEvent("unsub", "", email)
+		delete(withoutCustomID, "CustomID")
+
+		postMailjetEvents(t, mailjetEvent("unsub", uuid.New().String(), email), withoutCustomID)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusActive}, rowOf(t, email, list.ID))
+		assert.Empty(t, queued(t, email))
+	})
+
+	automationList, err := factory.CreateList(workspace.ID)
+	require.NoError(t, err)
+	template, err := factory.CreateTemplate(workspace.ID)
+	require.NoError(t, err)
+	require.Equal(t, "marketing", template.Category, "only marketing and blog emails check the list status")
+	// newAutomation creates and activates an automation on the list, triggered by an event of
+	// its own, and returns its ID and its event
+	newAutomation := func(t *testing.T, listID string) (string, string) {
+		t.Helper()
+		id := shortuuid.New()
+		event := "mailjet_unsub_" + uuid.New().String()[:8]
+		createActiveAutomation(t, client, workspace.ID, id, listID, event, template.ID)
+		return id, event
+	}
+	automationID, eventName := newAutomation(t, automationList.ID)
+
+	// sendAutomationEmailFor fires event, the trigger of an automation on the list, for the
+	// contact and returns the Notifuse message ID the delivered email carries.
+	sendAutomationEmailFor := func(t *testing.T, event, listID, email string) string {
+		t.Helper()
+		require.NoError(t, factory.CreateCustomEvent(workspace.ID, email, event, map[string]interface{}{}))
+		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+		require.NoError(t, err, "the automation email should reach Mailpit")
+		messageID := deliveredHeader(t, msg, "X-Message-ID")
+		waitForMessageRow(t, messageID)
+
+		var storedList sql.NullString
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT list_id FROM message_history WHERE id = $1`, messageID).Scan(&storedList))
+		require.Equal(t, listID, storedList.String, "the automation email records its list")
+		return messageID
+	}
+	sendAutomationEmail := func(t *testing.T, email string) string {
+		t.Helper()
+		return sendAutomationEmailFor(t, eventName, automationList.ID, email)
+	}
+	// storeWithoutList removes the list from the stored email, as automation emails queued
+	// before this version were stored
+	storeWithoutList := func(t *testing.T, messageID string) {
+		t.Helper()
+		_, err := db.ExecContext(bg, `UPDATE message_history SET list_id = NULL WHERE id = $1`, messageID)
+		require.NoError(t, err)
+	}
+	// expectNextEmailSkipped fires the event again and checks the automation skips its email.
+	expectNextEmailSkipped := func(t *testing.T, email string) {
+		t.Helper()
+		require.NoError(t, factory.CreateCustomEvent(workspace.ID, email, eventName, map[string]interface{}{}))
+		// The first enrolment completed, so only the new one can report exited
+		ca := waitForAutomationStatus(t, factory, workspace.ID, automationID, email, domain.ContactAutomationStatusExited, 15*time.Second)
+		require.NotNil(t, ca.ExitReason)
+		assert.Equal(t, string(domain.ContactListStatusUnsubscribed), *ca.ExitReason, "the next email is skipped, not sent")
+		assert.Equal(t, 1, deliveredCountTo(t, email), "only the first email was delivered")
+	}
+
+	t.Run("automation email to a member of its list: unsubscribed there, and the next email is skipped", func(t *testing.T) {
+		email := newContact(t, "automation-member")
+		addToList(t, email, automationList.ID)
+		messageID := sendAutomationEmail(t, email)
+
+		reportUnsub(t, messageID, email)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusUnsubscribed}, rowOf(t, email, automationList.ID))
+		assert.Equal(t, marks{unsubscribed: true}, marksOf(t, messageID))
+		assert.Equal(t, []string{"email.unsubscribed", "list.unsubscribed"}, queued(t, email))
+		expectNextEmailSkipped(t, email)
+	})
+
+	t.Run("automation email to a contact not on its list: an unsubscribed row is recorded there", func(t *testing.T) {
+		email := newContact(t, "automation-non-member")
+		messageID := sendAutomationEmail(t, email)
+		require.Nil(t, rowOf(t, email, automationList.ID), "a non-member has no row before the unsubscribe")
+
+		reportUnsub(t, messageID, email)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusUnsubscribed}, rowOf(t, email, automationList.ID))
+		assert.Equal(t, 1, b24TimelineInserts(t, db, email, "list.unsubscribed", automationList.ID))
+		assert.Equal(t, marks{unsubscribed: true}, marksOf(t, messageID))
+		assert.Equal(t, []string{"email.unsubscribed", "list.unsubscribed"}, queued(t, email))
+		expectNextEmailSkipped(t, email)
+	})
+
+	t.Run("automation email to a contact removed from its list: the opt-out is kept on the removed row", func(t *testing.T) {
+		email := newContact(t, "automation-removed")
+		addToList(t, email, automationList.ID)
+		post(t, "/api/contactLists.removeContact", map[string]interface{}{
+			"workspace_id": workspace.ID, "email": email, "list_id": automationList.ID,
+		})
+		messageID := sendAutomationEmail(t, email)
+
+		reportUnsub(t, messageID, email)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusUnsubscribed, removed: true}, rowOf(t, email, automationList.ID),
+			"the opt-out is recorded, and the contact is not put back on the list")
+		assert.Zero(t, timelineKindCount(t, db, email, "list.unsubscribed", automationList.ID),
+			"a removed contact is not on the list, so the status on their row is no list event")
+		assert.Equal(t, marks{unsubscribed: true}, marksOf(t, messageID))
+		assert.Equal(t, []string{"email.unsubscribed"}, queued(t, email))
+		expectNextEmailSkipped(t, email)
+	})
+
+	// Automation emails queued before this version have no list stored: the automation's
+	// current list is read instead. Unlike the email's own unsubscribe link, which names its
+	// list, that is not the email's list when the automation was moved to another list since.
+	// To a contact not on the list, so the list service's check that the email was sent for
+	// the list has to read it the same way.
+	t.Run("automation email stored without its list, as before this version: an unsubscribed row is recorded on the automation's list", func(t *testing.T) {
+		email := newContact(t, "automation-no-stored-list")
+		messageID := sendAutomationEmail(t, email)
+		storeWithoutList(t, messageID)
+		require.Nil(t, rowOf(t, email, automationList.ID), "a non-member has no row before the unsubscribe")
+
+		reportUnsub(t, messageID, email)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusUnsubscribed}, rowOf(t, email, automationList.ID))
+		assert.Equal(t, marks{unsubscribed: true}, marksOf(t, messageID))
+		assert.Equal(t, []string{"email.unsubscribed", "list.unsubscribed"}, queued(t, email))
+		expectNextEmailSkipped(t, email)
+	})
+
+	// The cases below change their automation, so each has one of its own.
+	//
+	// sendThenMove sends the email of an automation on a list to a contact active on that list
+	// and on another one, stores the email without its list when withoutList is set, then
+	// moves the automation to the other list. It returns the contact, the email, the list the
+	// email was sent for and the list the automation was moved to.
+	sendThenMove := func(t *testing.T, name string, withoutList bool) (string, string, string, string) {
+		t.Helper()
+		sentFor, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		movedTo, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		id, event := newAutomation(t, sentFor.ID)
+		email := newContact(t, name)
+		addToList(t, email, sentFor.ID)
+		addToList(t, email, movedTo.ID)
+		messageID := sendAutomationEmailFor(t, event, sentFor.ID, email)
+		if withoutList {
+			storeWithoutList(t, messageID)
+		}
+		_, err = db.ExecContext(bg, `UPDATE automations SET list_id = $1 WHERE id = $2`, movedTo.ID, id)
+		require.NoError(t, err)
+		return email, messageID, sentFor.ID, movedTo.ID
+	}
+
+	t.Run("automation email, the automation moved to another list since: unsubscribed from the list the email was sent for", func(t *testing.T) {
+		email, messageID, sentFor, movedTo := sendThenMove(t, "automation-moved", false)
+
+		reportUnsub(t, messageID, email)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusUnsubscribed}, rowOf(t, email, sentFor),
+			"the list the email was sent for, which its own unsubscribe link names")
+		assert.Equal(t, &listRow{status: domain.ContactListStatusActive}, rowOf(t, email, movedTo),
+			"not the automation's current list")
+		assert.Equal(t, marks{unsubscribed: true}, marksOf(t, messageID))
+		assert.Equal(t, []string{"email.unsubscribed", "list.unsubscribed"}, queued(t, email))
+	})
+
+	// The case the automation's current list gets wrong: the email's own unsubscribe link
+	// names the list the email was sent for, and records the opt-out there instead
+	t.Run("automation email stored without its list, the automation moved to another list since: unsubscribed from the automation's current list", func(t *testing.T) {
+		email, messageID, sentFor, movedTo := sendThenMove(t, "automation-moved-no-stored-list", true)
+
+		reportUnsub(t, messageID, email)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusUnsubscribed}, rowOf(t, email, movedTo))
+		assert.Equal(t, &listRow{status: domain.ContactListStatusActive}, rowOf(t, email, sentFor))
+		assert.Equal(t, marks{unsubscribed: true}, marksOf(t, messageID))
+		assert.Equal(t, []string{"email.unsubscribed", "list.unsubscribed"}, queued(t, email))
+	})
+
+	t.Run("automation email stored without its list, the automation deleted since: unsubscribed from the deleted automation's list", func(t *testing.T) {
+		list, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		id, event := newAutomation(t, list.ID)
+		email := newContact(t, "automation-deleted")
+		addToList(t, email, list.ID)
+		messageID := sendAutomationEmailFor(t, event, list.ID, email)
+		storeWithoutList(t, messageID)
+		post(t, "/api/automations.delete", map[string]interface{}{"workspace_id": workspace.ID, "automation_id": id})
+		var deleted bool
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT deleted_at IS NOT NULL FROM automations WHERE id = $1`, id).Scan(&deleted))
+		require.True(t, deleted, "a deleted automation is kept, marked deleted")
+
+		reportUnsub(t, messageID, email)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusUnsubscribed}, rowOf(t, email, list.ID),
+			"the deleted automation's list, which the email's own unsubscribe link names")
+		assert.Equal(t, marks{unsubscribed: true}, marksOf(t, messageID))
+		assert.Equal(t, []string{"email.unsubscribed", "list.unsubscribed"}, queued(t, email))
+	})
+}

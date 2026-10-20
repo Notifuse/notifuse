@@ -27,7 +27,9 @@ import (
 //     never re-evaluated the contact, and the query fix alone would have kept every
 //     re-added contact out of their "in list" segments. Removing a contact who is already
 //     removed no longer records list.removed again, and a status recorded on a removed
-//     contact's row records nothing either.
+//     contact's row records nothing either. A contact on the list moved to pending, such
+//     as one who unsubscribed and subscribes again, now sends list.pending as a webhook
+//     event, as the timeline already recorded.
 //  2. Installed automation trigger functions are patched in place. Their conditions are
 //     compiled into the function body with values inlined, so the stored text is exactly
 //     the generator's old output; inserting the predicate gives exactly its new output.
