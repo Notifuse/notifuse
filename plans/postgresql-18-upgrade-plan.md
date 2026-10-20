@@ -250,6 +250,8 @@ Draft changelog bullet:
 
 ### W5 — Fold in the partition-error locale bug
 
+**Status: done** with the web analytics NUL follow-up: the check is `Code == "23514"` and `Routine == "ExecFindPartition"`, keeping the English message as a fallback.
+
 `internal/repository/web_analytics_postgres.go:543` — replace `strings.Contains(pqErr.Message, "no partition of relation")` with a locale-proof test. `pq.Error.Routine` is populated and never translated; on both 17.11 and 18.6 the error carries `LOCATION: ExecFindPartition, execPartition.c`. Use `pqErr.Code == "23514" && pqErr.Routine == "ExecFindPartition"`.
 
 **Tests**: `internal/repository/web_analytics_postgres_test.go` — auto-create-and-retry fires for a `23514`/`ExecFindPartition` error whose message is the French translation; does **not** fire for an unrelated `23514` check violation; does not fire for a different SQLSTATE.
