@@ -148,8 +148,28 @@ type AutomationDeletedListError struct {
 
 // Error implements the error interface
 func (e *AutomationDeletedListError) Error() string {
+	uses, anyDeleted, anyMissing := unusableLists(e.Lists)
+
+	rule := "a live automation cannot use a deleted list"
+	if anyMissing && !anyDeleted {
+		rule = "a live automation cannot use a list that does not exist"
+	} else if anyMissing {
+		rule = "a live automation cannot use a deleted list or one that does not exist"
+	}
+
+	return fmt.Sprintf("this automation uses %s: %s", uses, rule)
+}
+
+// NewAutomationDeletedListError creates a new automation deleted list error
+func NewAutomationDeletedListError(automationID string, lists []ListRef) *AutomationDeletedListError {
+	return &AutomationDeletedListError{AutomationID: automationID, Lists: lists}
+}
+
+// unusableLists names, for a message, lists an automation cannot run on: the deleted ones, then
+// the ones that do not exist. It also reports which of the two kinds there are.
+func unusableLists(lists []ListRef) (uses string, anyDeleted, anyMissing bool) {
 	var deleted, missing []string
-	for _, list := range e.Lists {
+	for _, list := range lists {
 		if list.Missing {
 			missing = append(missing, list.label())
 		} else {
@@ -157,31 +177,57 @@ func (e *AutomationDeletedListError) Error() string {
 		}
 	}
 
-	var uses []string
+	var phrases []string
 	if len(deleted) == 1 {
-		uses = append(uses, "the deleted list "+quotedNames(deleted))
+		phrases = append(phrases, "the deleted list "+quotedNames(deleted))
 	} else if len(deleted) > 1 {
-		uses = append(uses, "the deleted lists "+quotedNames(deleted))
+		phrases = append(phrases, "the deleted lists "+quotedNames(deleted))
 	}
 	if len(missing) == 1 {
-		uses = append(uses, "the list "+quotedNames(missing)+", which does not exist")
+		phrases = append(phrases, "the list "+quotedNames(missing)+", which does not exist")
 	} else if len(missing) > 1 {
-		uses = append(uses, "the lists "+quotedNames(missing)+", which do not exist")
+		phrases = append(phrases, "the lists "+quotedNames(missing)+", which do not exist")
 	}
 
-	rule := "a live automation cannot use a deleted list"
-	if len(missing) > 0 && len(deleted) == 0 {
-		rule = "a live automation cannot use a list that does not exist"
-	} else if len(missing) > 0 {
-		rule = "a live automation cannot use a deleted list or one that does not exist"
-	}
-
-	return fmt.Sprintf("this automation uses %s: %s", strings.Join(uses, ", and "), rule)
+	return strings.Join(phrases, ", and "), len(deleted) > 0, len(missing) > 0
 }
 
-// NewAutomationDeletedListError creates a new automation deleted list error
-func NewAutomationDeletedListError(automationID string, lists []ListRef) *AutomationDeletedListError {
-	return &AutomationDeletedListError{AutomationID: automationID, Lists: lists}
+// AutomationPausedError reports an update to a live automation that failed once it was stored,
+// when its trigger could not be installed, and that could not be undone by putting the previous
+// version back live: the automation was paused instead, on its previous version.
+//
+// It wraps the update's own failure, which decides how it is answered, and adds the pause:
+// told only of the failure, the caller would save again and take the success for an automation
+// still live. Lists names the deleted or missing lists the previous version uses, when they are
+// what kept it from going back live; it is empty when putting it back failed for another reason.
+type AutomationPausedError struct {
+	AutomationID string
+	Lists        []ListRef
+	Err          error
+}
+
+// Error implements the error interface: the failure, then the pause.
+func (e *AutomationPausedError) Error() string {
+	return fmt.Sprintf("%v; %s", e.Err, e.PauseNotice())
+}
+
+// Unwrap returns the update's own failure.
+func (e *AutomationPausedError) Unwrap() error {
+	return e.Err
+}
+
+// PauseNotice says that the automation was paused, and why.
+func (e *AutomationPausedError) PauseNotice() string {
+	if len(e.Lists) == 0 {
+		return "the automation was paused, because its previous version could not be put back"
+	}
+	uses, _, _ := unusableLists(e.Lists)
+	return "the automation was paused, because its previous version uses " + uses
+}
+
+// NewAutomationPausedError creates a new automation paused error
+func NewAutomationPausedError(automationID string, lists []ListRef, err error) *AutomationPausedError {
+	return &AutomationPausedError{AutomationID: automationID, Lists: lists, Err: err}
 }
 
 // quotedNamesShown is how many names quotedNames spells out before it counts the rest.

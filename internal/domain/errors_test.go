@@ -261,6 +261,70 @@ func TestAutomationDeletedListError_As(t *testing.T) {
 	}
 }
 
+// A failed update undone by pausing the automation. The caller is told what failed, as before,
+// and then that the automation is no longer live and why, naming the lists the way the refusal
+// to save does: told only of the failure, they would save again and take the success for live.
+func TestAutomationPausedError_Error(t *testing.T) {
+	failure := errors.New("failed to update automation trigger: invalid trigger conditions: operator does not exist")
+
+	tests := []struct {
+		name  string
+		lists []ListRef
+		want  string
+	}{
+		{
+			name:  "its previous version uses a deleted list",
+			lists: []ListRef{{ID: "news", Name: "Newsletter"}},
+			want:  failure.Error() + `; the automation was paused, because its previous version uses the deleted list "Newsletter"`,
+		},
+		{
+			name:  "its previous version uses a deleted list and one that does not exist",
+			lists: []ListRef{{ID: "news", Name: "Newsletter"}, {ID: "newsltter", Missing: true}},
+			want:  failure.Error() + `; the automation was paused, because its previous version uses the deleted list "Newsletter", and the list "newsltter", which does not exist`,
+		},
+		{
+			name: "its previous version could not be put back",
+			want: failure.Error() + "; the automation was paused, because its previous version could not be put back",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := NewAutomationPausedError("auto-123", tt.lists, failure)
+			if err.Error() != tt.want {
+				t.Errorf("Expected error message '%s', got '%s'", tt.want, err.Error())
+			}
+			if want := tt.want[len(failure.Error())+len("; "):]; err.PauseNotice() != want {
+				t.Errorf("Expected pause notice '%s', got '%s'", want, err.PauseNotice())
+			}
+		})
+	}
+}
+
+// The handler answers with the status of what failed, which it finds through the pause, and
+// must not take the pause for a refusal of the update itself: the update was stored.
+func TestAutomationPausedError_As(t *testing.T) {
+	condition := NewTriggerConditionError("invalid trigger conditions: operator does not exist")
+	paused := NewAutomationPausedError("auto-123", []ListRef{{ID: "news", Name: "Newsletter"}},
+		fmt.Errorf("failed to update automation trigger: %w", condition))
+	wrapped := fmt.Errorf("failed to update automation: %w", paused)
+
+	var target *AutomationPausedError
+	if !errors.As(wrapped, &target) || target != paused {
+		t.Fatal("errors.As() should yield the original AutomationPausedError through the wrapping")
+	}
+
+	var conditionErr *TriggerConditionError
+	if !errors.As(wrapped, &conditionErr) || conditionErr != condition {
+		t.Error("errors.As() should find the failure the pause wraps")
+	}
+
+	var deletedList *AutomationDeletedListError
+	if errors.As(wrapped, &deletedList) {
+		t.Error("errors.As() matched AutomationDeletedListError on an update that was stored")
+	}
+}
+
 func TestQuotedNames(t *testing.T) {
 	tests := []struct {
 		names []string

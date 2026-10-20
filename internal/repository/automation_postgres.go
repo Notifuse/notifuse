@@ -662,6 +662,10 @@ func (r *AutomationRepository) DeleteTx(ctx context.Context, tx *sql.Tx, workspa
 
 // Trigger management
 
+// setTriggerLockTimeout bounds how long trigger DDL waits for its ACCESS EXCLUSIVE lock on
+// contact_timeline. While it waits, every write to contact_timeline queues behind it.
+const setTriggerLockTimeout = "SET LOCAL lock_timeout = '5s'"
+
 // CreateAutomationTrigger creates a database trigger for an automation
 func (r *AutomationRepository) CreateAutomationTrigger(ctx context.Context, workspaceID string, automation *domain.Automation) error {
 	db, err := r.getDB(ctx, workspaceID)
@@ -689,7 +693,7 @@ func (r *AutomationRepository) CreateAutomationTrigger(ctx context.Context, work
 	// DROP/CREATE TRIGGER take ACCESS EXCLUSIVE on contact_timeline, and one
 	// transaction now holds it across the whole sequence instead of four short locks.
 	// Bound the wait rather than blocking event ingestion behind it.
-	if _, err := tx.ExecContext(ctx, "SET LOCAL lock_timeout = '5s'"); err != nil {
+	if _, err := tx.ExecContext(ctx, setTriggerLockTimeout); err != nil {
 		return fmt.Errorf("failed to set lock_timeout: %w", err)
 	}
 
@@ -804,6 +808,45 @@ func (r *AutomationRepository) DropAutomationTrigger(ctx context.Context, worksp
 		return fmt.Errorf("failed to drop trigger function: %w", err)
 	}
 
+	return nil
+}
+
+// DropAutomationTriggerWithLockTimeout drops the automation's trigger and its function in one
+// transaction, which waits for contact_timeline no longer than CreateAutomationTrigger does and
+// then fails, dropping nothing. DropAutomationTrigger waits as long as its context allows,
+// which suits a pause; this suits undoing a failed install, which was bounded the same way.
+func (r *AutomationRepository) DropAutomationTriggerWithLockTimeout(ctx context.Context, workspaceID, automationID string) error {
+	// Validated before any statement is sent, as in DropAutomationTrigger: the name is
+	// concatenated into DDL as a bare identifier.
+	triggerName, err := service.AutomationTriggerName(automationID)
+	if err != nil {
+		return domain.NewTriggerConditionError(err.Error())
+	}
+
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin trigger transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(ctx, setTriggerLockTimeout); err != nil {
+		return fmt.Errorf("failed to set lock_timeout: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, fmt.Sprintf("DROP TRIGGER IF EXISTS %s ON contact_timeline", triggerName)); err != nil {
+		return fmt.Errorf("failed to drop trigger: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %s()", triggerName)); err != nil {
+		return fmt.Errorf("failed to drop trigger function: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit trigger drop: %w", err)
+	}
 	return nil
 }
 

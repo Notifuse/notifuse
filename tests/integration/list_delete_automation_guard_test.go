@@ -763,22 +763,61 @@ func TestListDeletionGuardedByLiveAutomations(t *testing.T) {
 	// An update to a live automation stores the new version, then installs its trigger, and puts
 	// the previous version back when the install fails. A list only the previous version uses is
 	// held by nothing live in between, so it can be deleted then: the previous version goes back
-	// paused, its trigger dropped, never live on the deleted list.
+	// paused, its trigger dropped, never live on the deleted list, and the caller is told.
 	type undoneUpdate struct {
 		automationID string
 		oldListID    string
+		oldListName  string
 		hold         *sql.Tx
 		holdPID      int
 		result       chan apiResult
 	}
 
-	// startUndoneUpdate makes a live automation that emails the members of a list, and holds a
-	// write to contact_timeline open. It then sends an update moving the automation to another
-	// list, with the trigger newTrigger builds: the update stores the new version, and its trigger
-	// install waits for the write. Meanwhile it deletes the first list.
-	startUndoneUpdate := func(t *testing.T, newTrigger func(eventName string) map[string]interface{}) undoneUpdate {
+	// sendUpdate sends an update and answers on the channel, for a test that has to act while
+	// the update waits.
+	sendUpdate := func(body map[string]interface{}) chan apiResult {
+		answer := make(chan apiResult, 1)
+		go func() {
+			resp, err := client.UpdateAutomation(map[string]interface{}{"workspace_id": workspaceID, "automation": body})
+			if err != nil {
+				answer <- apiResult{raw: err.Error()}
+				return
+			}
+			raw, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			result := apiResult{status: resp.StatusCode, raw: string(raw)}
+			_ = json.Unmarshal(raw, &result.body)
+			answer <- result
+		}()
+		return answer
+	}
+
+	// refusedConditions is a trigger whose condition PostgreSQL has no operator for: "country" is
+	// text, read here as a date. The install finds that out only once it has replaced the
+	// trigger, and rolls back.
+	refusedConditions := func(eventName string) map[string]interface{} {
+		trigger := customTrigger(eventName)
+		trigger["conditions"] = map[string]interface{}{
+			"kind": "leaf",
+			"leaf": map[string]interface{}{
+				"source": "contacts",
+				"contact": map[string]interface{}{"filters": []map[string]interface{}{{
+					"field_name":    "country",
+					"field_type":    "time",
+					"operator":      "equals",
+					"string_values": []string{"2020-01-01T00:00:00Z"},
+				}}},
+			},
+		}
+		return trigger
+	}
+
+	// liveOnOldList makes a live automation that emails the members of a list of its own, and
+	// the update that would move it to another list with the trigger newTrigger builds.
+	liveOnOldList := func(t *testing.T, newTrigger func(eventName string) map[string]interface{}) (undoneUpdate, map[string]interface{}) {
 		t.Helper()
-		u := undoneUpdate{automationID: shortuuid.New(), oldListID: createList(t, "Old list "+shortuuid.New()[:6])}
+		u := undoneUpdate{automationID: shortuuid.New(), oldListName: "Old list " + shortuuid.New()[:6]}
+		u.oldListID = createList(t, u.oldListName)
 		newListID := createList(t, "New list "+shortuuid.New()[:6])
 
 		eventName := "undone_" + shortuuid.New()[:8]
@@ -788,6 +827,16 @@ func TestListDeletionGuardedByLiveAutomations(t *testing.T) {
 		createLive(t, automation(u.automationID, "Undone "+shortuuid.New()[:6], u.oldListID, customTrigger(eventName), trigger, email))
 		require.True(t, triggerInstalled(t, u.automationID))
 
+		return u, automation(u.automationID, "Undone, moved", newListID, newTrigger(eventName), trigger, email)
+	}
+
+	// startUndoneUpdate holds a write to contact_timeline open, then sends the update: it stores
+	// the new version, and its trigger install waits for the write. Meanwhile it deletes the
+	// first list.
+	startUndoneUpdate := func(t *testing.T, newTrigger func(eventName string) map[string]interface{}) undoneUpdate {
+		t.Helper()
+		u, body := liveOnOldList(t, newTrigger)
+
 		var err error
 		u.hold, err = db.BeginTx(bg, nil)
 		require.NoError(t, err)
@@ -796,20 +845,7 @@ func TestListDeletionGuardedByLiveAutomations(t *testing.T) {
 		require.NoError(t, err)
 		u.holdPID = backendPID(t, u.hold)
 
-		body := automation(u.automationID, "Undone, moved", newListID, newTrigger(eventName), trigger, email)
-		u.result = make(chan apiResult, 1)
-		go func() {
-			resp, err := client.UpdateAutomation(map[string]interface{}{"workspace_id": workspaceID, "automation": body})
-			if err != nil {
-				u.result <- apiResult{raw: err.Error()}
-				return
-			}
-			raw, _ := io.ReadAll(resp.Body)
-			_ = resp.Body.Close()
-			result := apiResult{status: resp.StatusCode, raw: string(raw)}
-			_ = json.Unmarshal(raw, &result.body)
-			u.result <- result
-		}()
+		u.result = sendUpdate(body)
 
 		// The install waits while the stored version uses the new list only: nothing live holds
 		// the old one, and its deletion goes through.
@@ -819,7 +855,7 @@ func TestListDeletionGuardedByLiveAutomations(t *testing.T) {
 		return u
 	}
 
-	assertPausedOnItsDeletedList := func(t *testing.T, u undoneUpdate) {
+	assertPausedOnOldList := func(t *testing.T, u undoneUpdate) {
 		t.Helper()
 		status, storedListID := storedAutomation(t, u.automationID)
 		assert.Equal(t, string(domain.AutomationStatusPaused), status, "never back live on the deleted list")
@@ -829,32 +865,17 @@ func TestListDeletionGuardedByLiveAutomations(t *testing.T) {
 	}
 
 	t.Run("an update undone after its trigger was refused does not leave the automation live on a list deleted meanwhile", func(t *testing.T) {
-		// A condition PostgreSQL has no operator for: "country" is text, read here as a date. The
-		// install finds that out only once it has replaced the trigger, and rolls back.
-		u := startUndoneUpdate(t, func(eventName string) map[string]interface{} {
-			trigger := customTrigger(eventName)
-			trigger["conditions"] = map[string]interface{}{
-				"kind": "leaf",
-				"leaf": map[string]interface{}{
-					"source": "contacts",
-					"contact": map[string]interface{}{"filters": []map[string]interface{}{{
-						"field_name":    "country",
-						"field_type":    "time",
-						"operator":      "equals",
-						"string_values": []string{"2020-01-01T00:00:00Z"},
-					}}},
-				},
-			}
-			return trigger
-		})
+		u := startUndoneUpdate(t, refusedConditions)
 		// Released well within the install's lock timeout.
 		require.NoError(t, u.hold.Rollback())
 
-		// The caller is told why the update failed.
+		// The caller is told why the update failed, and that the automation is no longer live.
 		result := <-u.result
 		require.Equalf(t, http.StatusBadRequest, result.status, "%s", result.raw)
 		assert.Contains(t, errorMessage(result), "invalid trigger conditions")
-		assertPausedOnItsDeletedList(t, u)
+		assert.Contains(t, errorMessage(result),
+			`; the automation was paused, because its previous version uses the deleted list "`+u.oldListName+`"`)
+		assertPausedOnOldList(t, u)
 	})
 
 	t.Run("an update undone after its trigger install timed out does not leave the automation live on a list deleted meanwhile", func(t *testing.T) {
@@ -863,7 +884,7 @@ func TestListDeletionGuardedByLiveAutomations(t *testing.T) {
 		})
 
 		// Held through the install's lock timeout. The automation goes back paused, and dropping
-		// its trigger then waits for the write in turn.
+		// its trigger then waits for the write in turn, within the same timeout.
 		testutil.WaitForCondition(t, func() bool {
 			status, _ := storedAutomation(t, u.automationID)
 			return status == string(domain.AutomationStatusPaused)
@@ -873,7 +894,37 @@ func TestListDeletionGuardedByLiveAutomations(t *testing.T) {
 
 		result := <-u.result
 		require.Equalf(t, http.StatusInternalServerError, result.status, "%s", result.raw)
-		assertPausedOnItsDeletedList(t, u)
+		assert.Equal(t,
+			`Failed to update automation; the automation was paused, because its previous version uses the deleted list "`+u.oldListName+`"`,
+			errorMessage(result))
+		assertPausedOnOldList(t, u)
+	})
+
+	// Putting the previous version back locks its lists, and a deletion in progress holds its
+	// list for as long as it takes to remove every member: longer than the undo may wait.
+	// Giving up there left the automation live on the version that failed, with the previous
+	// version's trigger installed, and no later save reinstalled it.
+	t.Run("an update whose undo waits out a deletion in progress goes back paused all the same", func(t *testing.T) {
+		u, body := liveOnOldList(t, refusedConditions)
+
+		deletion, err := db.BeginTx(bg, nil)
+		require.NoError(t, err)
+		defer func() { _ = deletion.Rollback() }()
+		_, err = deletion.ExecContext(bg, `UPDATE lists SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`, u.oldListID)
+		require.NoError(t, err)
+		deletionPID := backendPID(t, deletion)
+
+		// The install fails at once; putting the previous version back waits for the deletion.
+		answer := sendUpdate(body)
+		waitUntilBlockedBy(t, deletionPID)
+		result := <-answer
+		require.NoError(t, deletion.Commit())
+
+		require.Equalf(t, http.StatusBadRequest, result.status, "%s", result.raw)
+		assert.Contains(t, errorMessage(result), "invalid trigger conditions")
+		assert.Contains(t, errorMessage(result),
+			"; the automation was paused, because its previous version could not be put back")
+		assertPausedOnOldList(t, u)
 	})
 
 	// Each side reads what the transaction it waited for committed, which READ COMMITTED gives

@@ -292,6 +292,10 @@ msgstr "{capability} nécessite une licence Notifuse."
 msgid "{clicks} clicks out of {recipients} recipients"
 msgstr "{clicks} clics sur {recipients} destinataires"
 
+#: src/pages/ListsPage.tsx:140
+msgid "{count, plural, one {The list \"{listName}\" can't be deleted while a live automation uses it. Ask someone with access to automations to pause it.} other {The list \"{listName}\" can't be deleted while # live automations use it. Ask someone with access to automations to pause them.}}"
+msgstr "{count, plural, one {La liste \"{listName}\" ne peut pas être supprimée tant qu'une automation active l'utilise. Demandez à une personne ayant accès aux automations de la mettre en pause.} other {La liste \"{listName}\" ne peut pas être supprimée tant que # automations actives l'utilisent. Demandez à une personne ayant accès aux automations de les mettre en pause.}}"
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:335
 #~ msgid "{count} filters applied"
 #~ msgstr ""
@@ -344,6 +348,10 @@ msgstr "{minutes}m {remainingSeconds}s"
 #: src/components/timeline/ContactTimeline.tsx:232
 msgid "{minutes}m {seconds}s"
 msgstr "{minutes}m {seconds}s"
+
+#: src/pages/ListsPage.tsx:157
+msgid "{more, plural, one {The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\", \"{third}\" and # more use it. Pause them first, or change them to stop using the list.} other {The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\", \"{third}\" and # more use it. Pause them first, or change them to stop using the list.}}"
+msgstr "{more, plural, one {La liste \"{listName}\" ne peut pas être supprimée tant que les automations actives \"{first}\", \"{second}\", \"{third}\" et # autre l'utilisent. Mettez-les d'abord en pause ou modifiez-les pour qu'elles n'utilisent plus la liste.} other {La liste \"{listName}\" ne peut pas être supprimée tant que les automations actives \"{first}\", \"{second}\", \"{third}\" et # autres l'utilisent. Mettez-les d'abord en pause ou modifiez-les pour qu'elles n'utilisent plus la liste.}}"
 
 #: src/pages/BroadcastsPage.tsx:927
 msgid "{opens} opens out of {recipients} recipients"
@@ -1374,7 +1382,7 @@ msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "Êtes-vous sûr de vouloir supprimer l invitation pour {0} ?"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:393
+#: src/pages/ListsPage.tsx:403
 msgid "Are you sure you want to delete the list \"{0}\"?"
 msgstr "Êtes-vous sûr de vouloir supprimer la liste \"{0}\" ?"
 
@@ -2382,7 +2390,7 @@ msgstr "Campagnes"
 #: src/pages/BroadcastsPage.tsx:688
 #: src/pages/BroadcastsPage.tsx:1054
 #: src/pages/BroadcastsPage.tsx:1789
-#: src/pages/ListsPage.tsx:377
+#: src/pages/ListsPage.tsx:387
 #: src/pages/TemplatesPage.tsx:366
 #: src/pages/TransactionalNotificationsPage.tsx:149
 msgid "Cancel"
@@ -3613,7 +3621,7 @@ msgstr "Créez votre première diffusion pour commencer"
 msgid "Create Your First Category"
 msgstr "Créer votre première catégorie"
 
-#: src/pages/ListsPage.tsx:364
+#: src/pages/ListsPage.tsx:374
 msgid "Create your first list to get started"
 msgstr "Créez votre première liste pour commencer"
 
@@ -4085,7 +4093,7 @@ msgstr "Délai"
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
 #: src/pages/BroadcastsPage.tsx:1799
 #: src/pages/ContactsPage.tsx:946
-#: src/pages/ListsPage.tsx:387
+#: src/pages/ListsPage.tsx:397
 msgid "Delete"
 msgstr "Supprimer"
 
@@ -4228,8 +4236,8 @@ msgstr "Supprimer le header"
 msgid "Delete invitation"
 msgstr "Supprimer l invitation"
 
-#: src/pages/ListsPage.tsx:267
-#: src/pages/ListsPage.tsx:372
+#: src/pages/ListsPage.tsx:277
+#: src/pages/ListsPage.tsx:382
 msgid "Delete List"
 msgstr "Supprimer la liste"
 
@@ -4374,7 +4382,7 @@ msgstr "Décrivez cette image..."
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:308
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
-#: src/pages/ListsPage.tsx:328
+#: src/pages/ListsPage.tsx:338
 #: src/pages/TransactionalNotificationsPage.tsx:266
 msgid "Description"
 msgstr "Description"
@@ -4581,7 +4589,7 @@ msgid "Double Opt-in"
 msgstr "Double opt-in"
 
 #: src/components/lists/ListDrawer.tsx:250
-#: src/pages/ListsPage.tsx:342
+#: src/pages/ListsPage.tsx:352
 msgid "Double Opt-in Template"
 msgstr "Modèle de double opt-in"
 
@@ -4734,7 +4742,7 @@ msgstr "Chaque contact entre dans l automation une seule fois"
 #~ msgid "Each Zapier connection needs its own key, so give a second one a different name."
 #~ msgstr "Chaque connexion Zapier nécessite sa propre clé : donnez un nom différent à la seconde."
 
-#: src/pages/ListsPage.tsx:106
+#: src/pages/ListsPage.tsx:104
 msgid "edit"
 msgstr "modifier"
 
@@ -4845,7 +4853,7 @@ msgstr "Modifier le contenu Liquid"
 
 #: src/components/lists/ListDrawer.tsx:154
 #: src/components/lists/ListDrawer.tsx:157
-#: src/pages/ListsPage.tsx:283
+#: src/pages/ListsPage.tsx:293
 msgid "Edit List"
 msgstr "Modifier la liste"
 
@@ -5346,7 +5354,7 @@ msgstr "Entrez l URL du lien ou {{ url }}"
 msgid "Enter list description"
 msgstr "Entrez la description de la liste"
 
-#: src/pages/ListsPage.tsx:399
+#: src/pages/ListsPage.tsx:409
 msgid "Enter list ID to confirm"
 msgstr "Entrez l ID de liste pour confirmer"
 
@@ -5849,8 +5857,8 @@ msgstr "Échec de la suppression de l intégration"
 msgid "Failed to delete invitation"
 msgstr "Échec de la suppression de l invitation"
 
-#: src/pages/ListsPage.tsx:177
-#: src/pages/ListsPage.tsx:181
+#: src/pages/ListsPage.tsx:187
+#: src/pages/ListsPage.tsx:191
 msgid "Failed to delete list"
 msgstr "Échec de la suppression de la liste"
 
@@ -7005,7 +7013,7 @@ msgstr "URL de l icône/Favicon"
 #: src/components/messages/MessageHistoryTable.tsx:273
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:149
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:355
-#: src/pages/ListsPage.tsx:326
+#: src/pages/ListsPage.tsx:336
 #: src/pages/TransactionalNotificationsPage.tsx:264
 msgid "ID"
 msgstr "ID"
@@ -7019,7 +7027,7 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "L ID ne peut contenir que des lettres minuscules, des chiffres et des tirets bas"
 
 #: src/pages/BroadcastsPage.tsx:1830
-#: src/pages/ListsPage.tsx:405
+#: src/pages/ListsPage.tsx:415
 msgid "ID doesn't match"
 msgstr "L ID ne correspond pas"
 
@@ -7871,7 +7879,7 @@ msgid "List"
 msgstr "Liste"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:163
+#: src/pages/ListsPage.tsx:173
 msgid "List \"{0}\" deleted successfully"
 msgstr "Liste \"{0}\" supprimée avec succès"
 
@@ -8011,12 +8019,12 @@ msgstr "Liste :"
 #: src/layouts/WorkspaceLayout.tsx:393
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
-#: src/pages/ListsPage.tsx:214
+#: src/pages/ListsPage.tsx:224
 #: src/services/api/errors.ts:83
 msgid "Lists"
 msgstr "Listes"
 
-#: src/pages/ListsPage.tsx:202
+#: src/pages/ListsPage.tsx:212
 msgid "Lists refreshed"
 msgstr "Listes actualisées"
 
@@ -8106,7 +8114,7 @@ msgstr "Chargement du statut webhook..."
 #: src/layouts/RootLayout.tsx:99
 #: src/pages/ContactsPage.tsx:531
 #: src/pages/ContactsPage.tsx:1161
-#: src/pages/ListsPage.tsx:208
+#: src/pages/ListsPage.tsx:218
 #: src/pages/LogsPage.tsx:29
 #: src/pages/TemplatesPage.tsx:203
 #: src/pages/TransactionalNotificationsPage.tsx:383
@@ -8967,7 +8975,7 @@ msgstr "Aucun clic sur un lien enregistré pour cette variation pour le moment"
 msgid "No list"
 msgstr "Pas de liste"
 
-#: src/pages/ListsPage.tsx:362
+#: src/pages/ListsPage.tsx:372
 msgid "No lists found"
 msgstr "Aucune liste trouvée"
 
@@ -10016,7 +10024,7 @@ msgstr "Veuillez entrer un identifiant API"
 msgid "Please enter an API key name"
 msgstr "Veuillez entrer un nom de clé API"
 
-#: src/components/automations/context/AutomationContext.tsx:286
+#: src/components/automations/context/AutomationContext.tsx:289
 #: src/components/automations/UpsertAutomationDrawer.tsx:115
 msgid "Please enter an automation name"
 msgstr "Veuillez entrer un nom d automation"
@@ -10252,8 +10260,8 @@ msgstr "Appuyez sur Entrée ou cliquez sur OK pour confirmer, Échap pour annule
 msgid "Press Enter to confirm, Escape to cancel"
 msgstr "Appuyez sur Entrée pour confirmer, Échap pour annuler"
 
-#: src/pages/ListsPage.tsx:90
-#: src/pages/ListsPage.tsx:99
+#: src/pages/ListsPage.tsx:88
+#: src/pages/ListsPage.tsx:97
 msgid "preview"
 msgstr "aperçu"
 
@@ -10404,7 +10412,7 @@ msgstr "La priorité est requise"
 msgid "Priority:"
 msgstr "Priorité :"
 
-#: src/pages/ListsPage.tsx:336
+#: src/pages/ListsPage.tsx:346
 msgid "Private"
 msgstr "Privé"
 
@@ -10464,7 +10472,7 @@ msgid "Provider"
 msgstr "Fournisseur"
 
 #: src/components/lists/ListDrawer.tsx:214
-#: src/pages/ListsPage.tsx:332
+#: src/pages/ListsPage.tsx:342
 msgid "Public"
 msgstr "Publique"
 
@@ -10860,7 +10868,7 @@ msgstr "Référents"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:429
 #: src/pages/ContactsPage.tsx:910
-#: src/pages/ListsPage.tsx:217
+#: src/pages/ListsPage.tsx:227
 msgid "Refresh"
 msgstr "Actualiser"
 
@@ -13543,21 +13551,17 @@ msgstr "Le dernier recalcul historique a échoué"
 msgid "The licence covers this whole deployment rather than this workspace. Ask the person who runs this Notifuse instance."
 msgstr "La licence couvre l'ensemble du déploiement et non cet espace de travail. Adressez-vous à la personne qui administre cette instance Notifuse."
 
-#: src/pages/ListsPage.tsx:150
-msgid "The list \"{listName}\" can't be deleted while {count} live automations ({names}) use it. Pause them first, or change them to stop using the list."
-msgstr "La liste \"{listName}\" ne peut pas être supprimée tant que {count} automations actives ({names}) l'utilisent. Mettez-les d'abord en pause ou modifiez-les pour qu'elles n'utilisent plus la liste."
-
-#: src/pages/ListsPage.tsx:141
-msgid "The list \"{listName}\" can't be deleted while {count} live automations use it. Ask someone with access to automations to pause them."
-msgstr "La liste \"{listName}\" ne peut pas être supprimée tant que {count} automations actives l'utilisent. Demandez à une personne ayant accès aux automations de les mettre en pause."
-
-#: src/pages/ListsPage.tsx:140
-msgid "The list \"{listName}\" can't be deleted while a live automation uses it. Ask someone with access to automations to pause it."
-msgstr "La liste \"{listName}\" ne peut pas être supprimée tant qu'une automation active l'utilise. Demandez à une personne ayant accès aux automations de la mettre en pause."
-
-#: src/pages/ListsPage.tsx:145
+#: src/pages/ListsPage.tsx:147
 msgid "The list \"{listName}\" can't be deleted while the live automation \"{automationName}\" uses it. Pause it first, or change it to stop using the list."
 msgstr "La liste \"{listName}\" ne peut pas être supprimée tant que l'automation active \"{automationName}\" l'utilise. Mettez-la d'abord en pause ou modifiez-la pour qu'elle n'utilise plus la liste."
+
+#: src/pages/ListsPage.tsx:151
+msgid "The list \"{listName}\" can't be deleted while the live automations \"{first}\" and \"{second}\" use it. Pause them first, or change them to stop using the list."
+msgstr "La liste \"{listName}\" ne peut pas être supprimée tant que les automations actives \"{first}\" et \"{second}\" l'utilisent. Mettez-les d'abord en pause ou modifiez-les pour qu'elles n'utilisent plus la liste."
+
+#: src/pages/ListsPage.tsx:154
+msgid "The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\" and \"{third}\" use it. Pause them first, or change them to stop using the list."
+msgstr "La liste \"{listName}\" ne peut pas être supprimée tant que les automations actives \"{first}\", \"{second}\" et \"{third}\" l'utilisent. Mettez-les d'abord en pause ou modifiez-les pour qu'elles n'utilisent plus la liste."
 
 #: src/services/api/permissions.ts:882
 msgid "The log names every member's email and IP address and records refused actions. Grant read to the people who need to answer \"who did this\", not to everyone."
@@ -13730,7 +13734,7 @@ msgstr "Cette action est irréversible."
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "Cette action est irréversible. Pour confirmer, veuillez entrer l'ID de la diffusion :"
 
-#: src/pages/ListsPage.tsx:395
+#: src/pages/ListsPage.tsx:405
 msgid "This action cannot be undone. To confirm, please enter the list ID:"
 msgstr "Cette action est irréversible. Pour confirmer, veuillez entrer l'ID de la liste :"
 
@@ -15054,7 +15058,7 @@ msgstr "Voir le site web"
 #~ msgid "Views"
 #~ msgstr ""
 
-#: src/pages/ListsPage.tsx:329
+#: src/pages/ListsPage.tsx:339
 msgid "Visibility"
 msgstr "Visibilité"
 
@@ -15658,10 +15662,10 @@ msgid "You don't have write permission for contacts"
 msgstr "Vous n'avez pas la permission d'écriture pour les contacts"
 
 #: src/components/contacts/BulkActionsBar.tsx:54
-#: src/pages/ListsPage.tsx:228
-#: src/pages/ListsPage.tsx:266
-#: src/pages/ListsPage.tsx:282
-#: src/pages/ListsPage.tsx:304
+#: src/pages/ListsPage.tsx:238
+#: src/pages/ListsPage.tsx:276
+#: src/pages/ListsPage.tsx:292
+#: src/pages/ListsPage.tsx:314
 msgid "You don't have write permission for lists"
 msgstr "Vous n'avez pas la permission d'écriture pour les listes"
 

@@ -105,16 +105,29 @@ describe('ListsPage list deletion', () => {
         'The list "Newsletter" can\'t be deleted while the live automation "Welcome series" uses it. Pause it first, or change it to stop using the list.'
     },
     {
-      case: 'a few automations, each named',
+      case: 'two automations, both named',
       refusal: refusedWith(['Welcome series', 'Win-back']),
       shown:
-        'The list "Newsletter" can\'t be deleted while 2 live automations ("Welcome series", "Win-back") use it. Pause them first, or change them to stop using the list.'
+        'The list "Newsletter" can\'t be deleted while the live automations "Welcome series" and "Win-back" use it. Pause them first, or change them to stop using the list.'
     },
     {
-      case: 'many automations, the first ones named',
+      case: 'three automations, all named',
+      refusal: refusedWith(['A', 'B', 'C']),
+      shown:
+        'The list "Newsletter" can\'t be deleted while the live automations "A", "B" and "C" use it. Pause them first, or change them to stop using the list.'
+    },
+    // Past three, the others are counted rather than named.
+    {
+      case: 'four automations, three named and one counted',
+      refusal: refusedWith(['A', 'B', 'C', 'D']),
+      shown:
+        'The list "Newsletter" can\'t be deleted while the live automations "A", "B", "C" and 1 more use it. Pause them first, or change them to stop using the list.'
+    },
+    {
+      case: 'five automations, three named and two counted',
       refusal: refusedWith(['A', 'B', 'C', 'D', 'E']),
       shown:
-        'The list "Newsletter" can\'t be deleted while 5 live automations ("A", "B", "C"…) use it. Pause them first, or change them to stop using the list.'
+        'The list "Newsletter" can\'t be deleted while the live automations "A", "B", "C" and 2 more use it. Pause them first, or change them to stop using the list.'
     },
     // A member who may not read automations is told how many, and not which.
     {

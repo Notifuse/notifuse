@@ -839,3 +839,58 @@ func TestAutomationHandler_DeletedListMapping(t *testing.T) {
 		})
 	}
 }
+
+// An update that failed once it was stored, and that was undone by pausing the automation. The
+// answer is the failure's own, its status and its message, and it says the automation was paused
+// and why: told only of the failure, the caller would save again and take the success for an
+// automation still live.
+func TestAutomationHandler_UpdatePausedMapping(t *testing.T) {
+	_, automationSvc, mux, secretKey := setupAutomationTest(t)
+
+	lists := []domain.ListRef{{ID: "news", Name: "Newsletter"}, {ID: "gone", Missing: true}}
+	condition := domain.NewTriggerConditionError("invalid trigger conditions: operator does not exist")
+
+	testCases := []struct {
+		name    string
+		err     *domain.AutomationPausedError
+		status  int
+		message string
+	}{
+		{
+			name:    "a trigger configuration that cannot be installed, the previous version on lists it cannot use",
+			err:     domain.NewAutomationPausedError("auto-123", lists, fmt.Errorf("failed to update automation trigger: %w", condition)),
+			status:  http.StatusBadRequest,
+			message: condition.Error() + `; the automation was paused, because its previous version uses the deleted list "Newsletter", and the list "gone", which does not exist`,
+		},
+		{
+			name:    "a failure of the server, the previous version not put back",
+			err:     domain.NewAutomationPausedError("auto-123", nil, fmt.Errorf("failed to update automation trigger: %w", errors.New("lock timeout"))),
+			status:  http.StatusInternalServerError,
+			message: "Failed to update automation; the automation was paused, because its previous version could not be put back",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			automationSvc.EXPECT().Update(gomock.Any(), "workspace-123", gomock.Any()).Return(tc.err)
+
+			body, err := json.Marshal(domain.UpdateAutomationRequest{
+				WorkspaceID: "workspace-123",
+				Automation:  createTestAutomation("auto-123", "workspace-123"),
+			})
+			require.NoError(t, err)
+			req := httptest.NewRequest(http.MethodPost, "/api/automations.update", bytes.NewReader(body))
+			req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.status, w.Code)
+			var response struct {
+				Error string `json:"error"`
+			}
+			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+			assert.Equal(t, tc.message, response.Error)
+		})
+	}
+}

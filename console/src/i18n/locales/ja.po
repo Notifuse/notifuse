@@ -292,6 +292,10 @@ msgstr ""
 msgid "{clicks} clicks out of {recipients} recipients"
 msgstr "{recipients}人中{clicks}クリック"
 
+#: src/pages/ListsPage.tsx:140
+msgid "{count, plural, one {The list \"{listName}\" can't be deleted while a live automation uses it. Ask someone with access to automations to pause it.} other {The list \"{listName}\" can't be deleted while # live automations use it. Ask someone with access to automations to pause them.}}"
+msgstr "{count, plural, one {ライブ状態のオートメーションが使用しているため、リスト\"{listName}\"は削除できません。オートメーションへのアクセス権を持つユーザーに一時停止を依頼してください。} other {ライブ状態のオートメーション#件が使用しているため、リスト\"{listName}\"は削除できません。オートメーションへのアクセス権を持つユーザーに一時停止を依頼してください。}}"
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:335
 #~ msgid "{count} filters applied"
 #~ msgstr ""
@@ -344,6 +348,10 @@ msgstr "{minutes}分{remainingSeconds}秒"
 #: src/components/timeline/ContactTimeline.tsx:232
 msgid "{minutes}m {seconds}s"
 msgstr "{minutes}分{seconds}秒"
+
+#: src/pages/ListsPage.tsx:157
+msgid "{more, plural, one {The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\", \"{third}\" and # more use it. Pause them first, or change them to stop using the list.} other {The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\", \"{third}\" and # more use it. Pause them first, or change them to stop using the list.}}"
+msgstr "{more, plural, one {ライブ状態のオートメーション\"{first}\"、\"{second}\"、\"{third}\"ほか#件が使用しているため、リスト\"{listName}\"は削除できません。先にそれらを一時停止するか、このリストを使用しないように変更してください。} other {ライブ状態のオートメーション\"{first}\"、\"{second}\"、\"{third}\"ほか#件が使用しているため、リスト\"{listName}\"は削除できません。先にそれらを一時停止するか、このリストを使用しないように変更してください。}}"
 
 #: src/pages/BroadcastsPage.tsx:927
 msgid "{opens} opens out of {recipients} recipients"
@@ -1374,7 +1382,7 @@ msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "{0}への招待を削除してもよろしいですか?"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:393
+#: src/pages/ListsPage.tsx:403
 msgid "Are you sure you want to delete the list \"{0}\"?"
 msgstr "リスト\"{0}\"を削除してもよろしいですか?"
 
@@ -2382,7 +2390,7 @@ msgstr "キャンペーン"
 #: src/pages/BroadcastsPage.tsx:688
 #: src/pages/BroadcastsPage.tsx:1054
 #: src/pages/BroadcastsPage.tsx:1789
-#: src/pages/ListsPage.tsx:377
+#: src/pages/ListsPage.tsx:387
 #: src/pages/TemplatesPage.tsx:366
 #: src/pages/TransactionalNotificationsPage.tsx:149
 msgid "Cancel"
@@ -3613,7 +3621,7 @@ msgstr "最初のブロードキャストを作成して始めましょう"
 msgid "Create Your First Category"
 msgstr "最初のカテゴリを作成"
 
-#: src/pages/ListsPage.tsx:364
+#: src/pages/ListsPage.tsx:374
 msgid "Create your first list to get started"
 msgstr "最初のリストを作成して始めましょう"
 
@@ -4085,7 +4093,7 @@ msgstr "遅延"
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
 #: src/pages/BroadcastsPage.tsx:1799
 #: src/pages/ContactsPage.tsx:946
-#: src/pages/ListsPage.tsx:387
+#: src/pages/ListsPage.tsx:397
 msgid "Delete"
 msgstr "削除"
 
@@ -4228,8 +4236,8 @@ msgstr "ヘッダーを削除"
 msgid "Delete invitation"
 msgstr "招待を削除"
 
-#: src/pages/ListsPage.tsx:267
-#: src/pages/ListsPage.tsx:372
+#: src/pages/ListsPage.tsx:277
+#: src/pages/ListsPage.tsx:382
 msgid "Delete List"
 msgstr "リストを削除"
 
@@ -4374,7 +4382,7 @@ msgstr "この画像を説明..."
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:308
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
-#: src/pages/ListsPage.tsx:328
+#: src/pages/ListsPage.tsx:338
 #: src/pages/TransactionalNotificationsPage.tsx:266
 msgid "Description"
 msgstr "説明"
@@ -4581,7 +4589,7 @@ msgid "Double Opt-in"
 msgstr "ダブルオプトイン"
 
 #: src/components/lists/ListDrawer.tsx:250
-#: src/pages/ListsPage.tsx:342
+#: src/pages/ListsPage.tsx:352
 msgid "Double Opt-in Template"
 msgstr "ダブルオプトインテンプレート"
 
@@ -4734,7 +4742,7 @@ msgstr "各コンタクトはオートメーションに一度だけ入ります
 #~ msgid "Each Zapier connection needs its own key, so give a second one a different name."
 #~ msgstr "Zapierの接続ごとに専用のキーが必要です。2つ目には別の名前を付けてください。"
 
-#: src/pages/ListsPage.tsx:106
+#: src/pages/ListsPage.tsx:104
 msgid "edit"
 msgstr "編集"
 
@@ -4845,7 +4853,7 @@ msgstr "Liquidコンテンツを編集"
 
 #: src/components/lists/ListDrawer.tsx:154
 #: src/components/lists/ListDrawer.tsx:157
-#: src/pages/ListsPage.tsx:283
+#: src/pages/ListsPage.tsx:293
 msgid "Edit List"
 msgstr "リストを編集"
 
@@ -5346,7 +5354,7 @@ msgstr "リンクURLまたは{{ url }}を入力"
 msgid "Enter list description"
 msgstr "リストの説明を入力"
 
-#: src/pages/ListsPage.tsx:399
+#: src/pages/ListsPage.tsx:409
 msgid "Enter list ID to confirm"
 msgstr "確認のためリストIDを入力"
 
@@ -5849,8 +5857,8 @@ msgstr "連携の削除に失敗しました"
 msgid "Failed to delete invitation"
 msgstr "招待の削除に失敗しました"
 
-#: src/pages/ListsPage.tsx:177
-#: src/pages/ListsPage.tsx:181
+#: src/pages/ListsPage.tsx:187
+#: src/pages/ListsPage.tsx:191
 msgid "Failed to delete list"
 msgstr "リストの削除に失敗しました"
 
@@ -7005,7 +7013,7 @@ msgstr "アイコン/ファビコンURL"
 #: src/components/messages/MessageHistoryTable.tsx:273
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:149
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:355
-#: src/pages/ListsPage.tsx:326
+#: src/pages/ListsPage.tsx:336
 #: src/pages/TransactionalNotificationsPage.tsx:264
 msgid "ID"
 msgstr "ID"
@@ -7019,7 +7027,7 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "IDは小文字の英字、数字、アンダースコアのみ使用できます"
 
 #: src/pages/BroadcastsPage.tsx:1830
-#: src/pages/ListsPage.tsx:405
+#: src/pages/ListsPage.tsx:415
 msgid "ID doesn't match"
 msgstr "IDが一致しません"
 
@@ -7871,7 +7879,7 @@ msgid "List"
 msgstr "リスト"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:163
+#: src/pages/ListsPage.tsx:173
 msgid "List \"{0}\" deleted successfully"
 msgstr "リスト\"{0}\"を削除しました"
 
@@ -8011,12 +8019,12 @@ msgstr "リスト:"
 #: src/layouts/WorkspaceLayout.tsx:393
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
-#: src/pages/ListsPage.tsx:214
+#: src/pages/ListsPage.tsx:224
 #: src/services/api/errors.ts:83
 msgid "Lists"
 msgstr "リスト"
 
-#: src/pages/ListsPage.tsx:202
+#: src/pages/ListsPage.tsx:212
 msgid "Lists refreshed"
 msgstr "リストを更新しました"
 
@@ -8106,7 +8114,7 @@ msgstr "Webhookステータスを読み込み中..."
 #: src/layouts/RootLayout.tsx:99
 #: src/pages/ContactsPage.tsx:531
 #: src/pages/ContactsPage.tsx:1161
-#: src/pages/ListsPage.tsx:208
+#: src/pages/ListsPage.tsx:218
 #: src/pages/LogsPage.tsx:29
 #: src/pages/TemplatesPage.tsx:203
 #: src/pages/TransactionalNotificationsPage.tsx:383
@@ -8967,7 +8975,7 @@ msgstr "このバリエーションではまだリンクのクリックが記録
 msgid "No list"
 msgstr "リストなし"
 
-#: src/pages/ListsPage.tsx:362
+#: src/pages/ListsPage.tsx:372
 msgid "No lists found"
 msgstr "リストが見つかりません"
 
@@ -10016,7 +10024,7 @@ msgstr "API識別子を入力してください"
 msgid "Please enter an API key name"
 msgstr "APIキー名を入力してください"
 
-#: src/components/automations/context/AutomationContext.tsx:286
+#: src/components/automations/context/AutomationContext.tsx:289
 #: src/components/automations/UpsertAutomationDrawer.tsx:115
 msgid "Please enter an automation name"
 msgstr "オートメーション名を入力してください"
@@ -10252,8 +10260,8 @@ msgstr "EnterまたはOKをクリックで確定、Escapeでキャンセル"
 msgid "Press Enter to confirm, Escape to cancel"
 msgstr "Enterで確定、Escapeでキャンセル"
 
-#: src/pages/ListsPage.tsx:90
-#: src/pages/ListsPage.tsx:99
+#: src/pages/ListsPage.tsx:88
+#: src/pages/ListsPage.tsx:97
 msgid "preview"
 msgstr "プレビュー"
 
@@ -10404,7 +10412,7 @@ msgstr "優先度は必須です"
 msgid "Priority:"
 msgstr "優先度:"
 
-#: src/pages/ListsPage.tsx:336
+#: src/pages/ListsPage.tsx:346
 msgid "Private"
 msgstr "非公開"
 
@@ -10464,7 +10472,7 @@ msgid "Provider"
 msgstr "プロバイダー"
 
 #: src/components/lists/ListDrawer.tsx:214
-#: src/pages/ListsPage.tsx:332
+#: src/pages/ListsPage.tsx:342
 msgid "Public"
 msgstr "公開"
 
@@ -10860,7 +10868,7 @@ msgstr "リファラー"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:429
 #: src/pages/ContactsPage.tsx:910
-#: src/pages/ListsPage.tsx:217
+#: src/pages/ListsPage.tsx:227
 msgid "Refresh"
 msgstr "更新"
 
@@ -13543,21 +13551,17 @@ msgstr "前回のバックフィルは失敗しました"
 msgid "The licence covers this whole deployment rather than this workspace. Ask the person who runs this Notifuse instance."
 msgstr ""
 
-#: src/pages/ListsPage.tsx:150
-msgid "The list \"{listName}\" can't be deleted while {count} live automations ({names}) use it. Pause them first, or change them to stop using the list."
-msgstr "ライブ状態のオートメーション{count}件({names})が使用しているため、リスト\"{listName}\"は削除できません。先にそれらを一時停止するか、このリストを使用しないように変更してください。"
-
-#: src/pages/ListsPage.tsx:141
-msgid "The list \"{listName}\" can't be deleted while {count} live automations use it. Ask someone with access to automations to pause them."
-msgstr "ライブ状態のオートメーション{count}件が使用しているため、リスト\"{listName}\"は削除できません。オートメーションへのアクセス権を持つユーザーに一時停止を依頼してください。"
-
-#: src/pages/ListsPage.tsx:140
-msgid "The list \"{listName}\" can't be deleted while a live automation uses it. Ask someone with access to automations to pause it."
-msgstr "ライブ状態のオートメーションが使用しているため、リスト\"{listName}\"は削除できません。オートメーションへのアクセス権を持つユーザーに一時停止を依頼してください。"
-
-#: src/pages/ListsPage.tsx:145
+#: src/pages/ListsPage.tsx:147
 msgid "The list \"{listName}\" can't be deleted while the live automation \"{automationName}\" uses it. Pause it first, or change it to stop using the list."
 msgstr "ライブ状態のオートメーション\"{automationName}\"が使用しているため、リスト\"{listName}\"は削除できません。先にオートメーションを一時停止するか、このリストを使用しないように変更してください。"
+
+#: src/pages/ListsPage.tsx:151
+msgid "The list \"{listName}\" can't be deleted while the live automations \"{first}\" and \"{second}\" use it. Pause them first, or change them to stop using the list."
+msgstr "ライブ状態のオートメーション\"{first}\"と\"{second}\"が使用しているため、リスト\"{listName}\"は削除できません。先にそれらを一時停止するか、このリストを使用しないように変更してください。"
+
+#: src/pages/ListsPage.tsx:154
+msgid "The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\" and \"{third}\" use it. Pause them first, or change them to stop using the list."
+msgstr "ライブ状態のオートメーション\"{first}\"、\"{second}\"、\"{third}\"が使用しているため、リスト\"{listName}\"は削除できません。先にそれらを一時停止するか、このリストを使用しないように変更してください。"
 
 #: src/services/api/permissions.ts:882
 msgid "The log names every member's email and IP address and records refused actions. Grant read to the people who need to answer \"who did this\", not to everyone."
@@ -13730,7 +13734,7 @@ msgstr "この操作は元に戻せません。"
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "この操作は元に戻せません。確認のため、ブロードキャストIDを入力してください:"
 
-#: src/pages/ListsPage.tsx:395
+#: src/pages/ListsPage.tsx:405
 msgid "This action cannot be undone. To confirm, please enter the list ID:"
 msgstr "この操作は元に戻せません。確認のため、リストIDを入力してください:"
 
@@ -15054,7 +15058,7 @@ msgstr "Webサイトを表示"
 #~ msgid "Views"
 #~ msgstr ""
 
-#: src/pages/ListsPage.tsx:329
+#: src/pages/ListsPage.tsx:339
 msgid "Visibility"
 msgstr "表示設定"
 
@@ -15658,10 +15662,10 @@ msgid "You don't have write permission for contacts"
 msgstr "コンタクトの書き込み権限がありません"
 
 #: src/components/contacts/BulkActionsBar.tsx:54
-#: src/pages/ListsPage.tsx:228
-#: src/pages/ListsPage.tsx:266
-#: src/pages/ListsPage.tsx:282
-#: src/pages/ListsPage.tsx:304
+#: src/pages/ListsPage.tsx:238
+#: src/pages/ListsPage.tsx:276
+#: src/pages/ListsPage.tsx:292
+#: src/pages/ListsPage.tsx:314
 msgid "You don't have write permission for lists"
 msgstr "リストの書き込み権限がありません"
 

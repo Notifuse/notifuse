@@ -276,6 +276,9 @@ export function AutomationProvider({
     onError: (error: Error) => {
       message.error(t`Failed to update automation: ${error.message}`)
       setLastError(error)
+      // A failed update can still have changed the automation: one that could not go back to
+      // its previous version is paused, and the list has to show it.
+      queryClient.invalidateQueries({ queryKey: ['automations', workspace.id] })
     }
   })
 

@@ -173,11 +173,20 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 			WriteJSONError(w, validationErr.Message, http.StatusBadRequest)
 			return
 		}
+		// An update that failed once stored, undone by pausing the automation: answered as the
+		// failure it is, and saying so, or the caller would take the automation for live.
+		withPause := func(message string) string {
+			var paused *domain.AutomationPausedError
+			if errors.As(err, &paused) {
+				return message + "; " + paused.PauseNotice()
+			}
+			return message
+		}
 		// An update to a live automation regenerates its trigger, so the same
 		// caller-supplied trigger configuration can fail here too.
 		var conditionErr *domain.TriggerConditionError
 		if errors.As(err, &conditionErr) {
-			WriteJSONError(w, conditionErr.Error(), http.StatusBadRequest)
+			WriteJSONError(w, withPause(conditionErr.Error()), http.StatusBadRequest)
 			return
 		}
 		// A transition that lost a race to another admin: nothing is broken and nothing
@@ -188,7 +197,7 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 			WriteJSONError(w, conflictErr.Error(), http.StatusConflict)
 			return
 		}
-		WriteJSONError(w, "Failed to update automation", http.StatusInternalServerError)
+		WriteJSONError(w, withPause("Failed to update automation"), http.StatusInternalServerError)
 		return
 	}
 

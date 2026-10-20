@@ -846,8 +846,12 @@ type AutomationRepository interface {
 	// emitting the trigger DDL its stale read decided on.
 	//
 	// A write that leaves the automation live is refused with *AutomationDeletedListError
-	// when a list it requires (RequiredListIDs) is deleted. The check and the write share a
-	// transaction that holds those lists, so a list deletion cannot slip in between.
+	// when a list it requires (RequiredListIDs) is deleted or does not exist. The check and
+	// the write share a transaction that holds those lists, so a list deletion cannot slip in
+	// between.
+	//
+	// The status is all it compares: another update that left the automation live in between
+	// is not noticed, and is overwritten.
 	UpdateIfStatus(ctx context.Context, workspaceID string, automation *Automation, expectedStatus AutomationStatus) (bool, error)
 	Delete(ctx context.Context, workspaceID, id string) error
 	DeleteTx(ctx context.Context, tx *sql.Tx, workspaceID, id string) error
@@ -855,6 +859,10 @@ type AutomationRepository interface {
 	// Trigger management (dynamic SQL execution)
 	CreateAutomationTrigger(ctx context.Context, workspaceID string, automation *Automation) error
 	DropAutomationTrigger(ctx context.Context, workspaceID, automationID string) error
+	// DropAutomationTriggerWithLockTimeout drops the trigger like DropAutomationTrigger, but
+	// waits for the lock on contact_timeline no longer than CreateAutomationTrigger does, and
+	// fails instead: every write to contact_timeline queues behind a DROP TRIGGER waiting there.
+	DropAutomationTriggerWithLockTimeout(ctx context.Context, workspaceID, automationID string) error
 
 	// Contact automation operations
 	GetContactAutomation(ctx context.Context, workspaceID, id string) (*ContactAutomation, error)

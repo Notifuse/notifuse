@@ -556,9 +556,10 @@ func TestAutomationService_Update(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	// The one case the compensating write cannot fix. It leaves the stored configuration
-	// describing an automation the installed trigger does not implement, which nothing
-	// detects on its own — so it has to be logged rather than swallowed.
+	// The one case the undo cannot fix: the previous version can be written back neither live
+	// nor paused. It leaves the stored configuration describing an automation the installed
+	// trigger does not implement, which nothing detects on its own — so it has to be logged
+	// rather than swallowed.
 	t.Run("a failed restore after a failed trigger install is reported", func(t *testing.T) {
 		automation := createTestAutomationService("auto-123", workspaceID)
 		automation.Status = domain.AutomationStatusLive
@@ -580,6 +581,9 @@ func TestAutomationService_Update(t *testing.T) {
 			mockRepo.EXPECT().CreateAutomationTrigger(ctx, workspaceID, automation).
 				Return(domain.NewTriggerConditionError("invalid trigger conditions: column does not exist")),
 			mockRepo.EXPECT().UpdateIfStatus(gomock.Not(gomock.Eq(ctx)), workspaceID, stored, domain.AutomationStatusLive).
+				Return(false, errors.New("db gone")),
+			// Then paused instead, which fails the same way.
+			mockRepo.EXPECT().UpdateIfStatus(gomock.Not(gomock.Eq(ctx)), workspaceID, gomock.Not(gomock.Eq(stored)), domain.AutomationStatusLive).
 				Return(false, errors.New("db gone")),
 		)
 		// Both fields: with one database per workspace, the automation id alone does not
@@ -1674,11 +1678,12 @@ func TestAutomationService_DeletedListRefusals(t *testing.T) {
 // When the install fails, the previous trigger is still the one installed, and the row is put
 // back to the version that trigger implements.
 //
-// The new version is stored meanwhile, and it need not use the lists the previous one did: one
-// of those can be deleted in that moment, with nothing live holding it. Restored as it was, the
-// previous version would be live on a deleted list, so the restore goes through the same checks
-// as any write that leaves an automation live.
-func TestAutomationService_Update_RestoreAfterFailedTrigger(t *testing.T) {
+// Put back through the checks of any write that leaves an automation live, the previous version
+// can be refused: a list it uses is deleted, meanwhile or from before the update, or does not
+// exist. Then, and when it cannot be written back at all, the automation goes back paused, its
+// trigger dropped, and the caller is told: answered with the failure alone, they would save
+// again and take the success for an automation still live.
+func TestAutomationService_Update_UndoAfterFailedTrigger(t *testing.T) {
 	workspaceID := "workspace-123"
 	automationID := "auto-123"
 
@@ -1686,22 +1691,32 @@ func TestAutomationService_Update_RestoreAfterFailedTrigger(t *testing.T) {
 	deletedList := domain.NewAutomationDeletedListError(automationID, []domain.ListRef{{ID: "list-old", Name: "Old"}})
 
 	type failedUpdate struct {
-		svc      *AutomationService
-		repo     *mocks.MockAutomationRepository
-		log      *pkgmocks.MockLogger
-		ctx      context.Context
-		previous *domain.Automation
-		changed  *domain.Automation
-		install  *gomock.Call
+		svc        *AutomationService
+		repo       *mocks.MockAutomationRepository
+		log        *pkgmocks.MockLogger
+		ctx        context.Context
+		previous   *domain.Automation
+		changed    *domain.Automation
+		install    *gomock.Call
+		restoreCtx context.Context
+	}
+
+	// detached checks the context a step of the undo runs on. The request context is cancelled
+	// by then, and so would be any context derived from it.
+	detached := func(t *testing.T, ctx context.Context) {
+		t.Helper()
+		assert.NoError(t, ctx.Err(), "the undo must run on neither the request context nor one derived from it")
 	}
 
 	// expectFailedUpdate expects the update itself, of a live automation that sends email to its
 	// own list: the row written with another list and another trigger, then the install of that
-	// trigger, which fails.
-	expectFailedUpdate := func(t *testing.T) failedUpdate {
+	// trigger, which fails as the caller gives up waiting for it.
+	expectFailedUpdate := func(t *testing.T) *failedUpdate {
 		t.Helper()
 		svc, repo, auth, log := newAutomationTransitionMocks(t)
-		u := failedUpdate{svc: svc, repo: repo, log: log, ctx: context.Background()}
+		reqCtx, cancel := context.WithCancel(context.Background())
+		t.Cleanup(cancel)
+		u := &failedUpdate{svc: svc, repo: repo, log: log, ctx: reqCtx}
 
 		emailNode := func() []*domain.AutomationNode {
 			return []*domain.AutomationNode{{
@@ -1725,27 +1740,54 @@ func TestAutomationService_Update_RestoreAfterFailedTrigger(t *testing.T) {
 			Return(u.ctx, &domain.User{}, automationTransitionUserWorkspace(workspaceID), nil)
 		repo.EXPECT().GetByID(u.ctx, workspaceID, automationID).Return(u.previous, nil)
 		written := repo.EXPECT().UpdateIfStatus(u.ctx, workspaceID, u.changed, domain.AutomationStatusLive).Return(true, nil)
-		u.install = repo.EXPECT().CreateAutomationTrigger(u.ctx, workspaceID, u.changed).Return(installErr).After(written)
+		u.install = repo.EXPECT().CreateAutomationTrigger(u.ctx, workspaceID, u.changed).
+			DoAndReturn(func(context.Context, string, *domain.Automation) error {
+				cancel()
+				return installErr
+			}).After(written)
 		return u
 	}
 
-	// expectRestoreRefused expects the previous version written back live, detached from the
-	// request, and refused for the deleted list.
-	expectRestoreRefused := func(u failedUpdate) *gomock.Call {
-		return u.repo.EXPECT().UpdateIfStatus(gomock.Not(gomock.Eq(u.ctx)), workspaceID, u.previous, domain.AutomationStatusLive).
-			Return(false, deletedList).After(u.install)
+	// expectRestore expects the previous version written back live, through the status predicate
+	// and the list check.
+	expectRestore := func(t *testing.T, u *failedUpdate, updated bool, err error) *gomock.Call {
+		return u.repo.EXPECT().UpdateIfStatus(gomock.Any(), workspaceID, u.previous, domain.AutomationStatusLive).
+			DoAndReturn(func(ctx context.Context, _ string, _ *domain.Automation, _ domain.AutomationStatus) (bool, error) {
+				detached(t, ctx)
+				u.restoreCtx = ctx
+				return updated, err
+			}).After(u.install)
 	}
 
-	// expectPausedWrite expects the previous version written back paused instead, still through
-	// the status predicate, so a pause that landed meanwhile is left alone.
-	expectPausedWrite := func(t *testing.T, u failedUpdate, after *gomock.Call, updated bool, err error) *gomock.Call {
-		return u.repo.EXPECT().UpdateIfStatus(gomock.Not(gomock.Eq(u.ctx)), workspaceID, gomock.Not(gomock.Eq(u.previous)), domain.AutomationStatusLive).
-			DoAndReturn(func(_ context.Context, _ string, written *domain.Automation, _ domain.AutomationStatus) (bool, error) {
+	// expectPausedWrite expects the previous version written back paused instead: still through
+	// the status predicate, so a transition that landed meanwhile is left alone, and on a budget
+	// of its own, since the restore can have spent all of its own waiting for a list.
+	expectPausedWrite := func(t *testing.T, u *failedUpdate, after *gomock.Call, updated bool, err error) *gomock.Call {
+		return u.repo.EXPECT().UpdateIfStatus(gomock.Any(), workspaceID, gomock.Not(gomock.Eq(u.previous)), domain.AutomationStatusLive).
+			DoAndReturn(func(ctx context.Context, _ string, written *domain.Automation, _ domain.AutomationStatus) (bool, error) {
+				detached(t, ctx)
+				assert.True(t, ctx != u.restoreCtx, "the paused write must not share the restore's budget")
 				assert.Equal(t, domain.AutomationStatusPaused, written.Status)
 				assert.Equal(t, "list-old", written.ListID, "the previous version, not the one that failed")
 				assert.Equal(t, u.previous.Trigger, written.Trigger)
 				return updated, err
 			}).After(after)
+	}
+
+	// expectDrop expects the trigger the failed install left in place to be dropped, waiting for
+	// contact_timeline no longer than that install did.
+	expectDrop := func(t *testing.T, u *failedUpdate, after *gomock.Call, err error) {
+		u.repo.EXPECT().DropAutomationTriggerWithLockTimeout(gomock.Any(), workspaceID, automationID).
+			DoAndReturn(func(ctx context.Context, _, _ string) error {
+				detached(t, ctx)
+				return err
+			}).After(after)
+	}
+
+	// With the workspace, since each one is its own database.
+	expectLogFields := func(u *failedUpdate) {
+		u.log.EXPECT().WithField("automation_id", automationID).Return(u.log)
+		u.log.EXPECT().WithField("workspace_id", workspaceID).Return(u.log)
 	}
 
 	// The caller is told why their change failed, which is not the list.
@@ -1757,59 +1799,99 @@ func TestAutomationService_Update_RestoreAfterFailedTrigger(t *testing.T) {
 		assert.False(t, errors.As(err, &listErr))
 	}
 
-	t.Run("a list the previous version uses was deleted meanwhile: it goes back paused, its trigger dropped", func(t *testing.T) {
+	// assertPaused checks the caller is also told that the automation was paused, and why.
+	assertPaused := func(t *testing.T, err error, lists []domain.ListRef) {
+		t.Helper()
+		assertInstallError(t, err)
+		var paused *domain.AutomationPausedError
+		require.True(t, errors.As(err, &paused), "the caller must be told of the pause: got %v", err)
+		assert.Equal(t, automationID, paused.AutomationID)
+		assert.Equal(t, lists, paused.Lists)
+	}
+
+	assertNotPaused := func(t *testing.T, err error) {
+		t.Helper()
+		assertInstallError(t, err)
+		var paused *domain.AutomationPausedError
+		assert.False(t, errors.As(err, &paused), "got %v", err)
+	}
+
+	t.Run("a list the previous version uses is deleted: paused, its trigger dropped, the caller told", func(t *testing.T) {
 		u := expectFailedUpdate(t)
-		paused := expectPausedWrite(t, u, expectRestoreRefused(u), true, nil)
-		// The trigger the failed install left in place, which would otherwise outlive the pause.
-		u.repo.EXPECT().DropAutomationTrigger(gomock.Not(gomock.Eq(u.ctx)), workspaceID, automationID).Return(nil).After(paused)
-		u.log.EXPECT().WithField("automation_id", automationID).Return(u.log)
-		u.log.EXPECT().WithField("workspace_id", workspaceID).Return(u.log)
+		paused := expectPausedWrite(t, u, expectRestore(t, u, false, deletedList), true, nil)
+		expectDrop(t, u, paused, nil)
+		expectLogFields(u)
 		// In the refusal's own words, which name the list and tell a deleted one from one that
 		// does not exist.
 		u.log.EXPECT().Warn(gomock.Any()).Do(func(msg string) {
 			assert.Contains(t, msg, deletedList.Error())
 		})
-		u.log.EXPECT().Error(gomock.Any()).Times(0)
 
-		assertInstallError(t, u.svc.Update(u.ctx, workspaceID, u.changed))
+		assertPaused(t, u.svc.Update(u.ctx, workspaceID, u.changed), deletedList.Lists)
+	})
+
+	// The list check locks the previous version's lists, and a deletion in progress holds one
+	// for as long as it takes to remove every member, so the restore can spend its whole budget
+	// waiting. Left at that, the row would describe the failed version, live, on the previous
+	// version's trigger, and the next save would not reinstall it: to that save, nothing it
+	// compiles from has changed.
+	t.Run("the previous version cannot be written back: paused all the same, the caller told", func(t *testing.T) {
+		u := expectFailedUpdate(t)
+		paused := expectPausedWrite(t, u, expectRestore(t, u, false, context.DeadlineExceeded), true, nil)
+		expectDrop(t, u, paused, nil)
+		expectLogFields(u)
+		u.log.EXPECT().Warn(gomock.Any()).Do(func(msg string) {
+			assert.Contains(t, msg, context.DeadlineExceeded.Error())
+		})
+
+		assertPaused(t, u.svc.Update(u.ctx, workspaceID, u.changed), nil)
+	})
+
+	t.Run("the previous version is put back: nothing more to do", func(t *testing.T) {
+		u := expectFailedUpdate(t)
+		expectRestore(t, u, true, nil)
+
+		assertNotPaused(t, u.svc.Update(u.ctx, workspaceID, u.changed))
 	})
 
 	// Written unconditionally, the previous version would revert a pause to live, and the trigger
 	// that pause dropped would never come back: a live automation that enrols nobody.
 	t.Run("another transition got there first: the automation is left as it left it", func(t *testing.T) {
 		u := expectFailedUpdate(t)
-		u.repo.EXPECT().UpdateIfStatus(gomock.Not(gomock.Eq(u.ctx)), workspaceID, u.previous, domain.AutomationStatusLive).
-			Return(false, nil).After(u.install)
-		u.repo.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-		u.repo.EXPECT().DropAutomationTrigger(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		expectRestore(t, u, false, nil)
 
-		assertInstallError(t, u.svc.Update(u.ctx, workspaceID, u.changed))
+		assertNotPaused(t, u.svc.Update(u.ctx, workspaceID, u.changed))
 	})
 
-	t.Run("the previous version cannot be written back paused: reported", func(t *testing.T) {
+	// The transition that landed decides what becomes of the trigger: no warning, no drop, and
+	// no pause to report.
+	t.Run("another transition got there before the paused write: the automation is left as it left it", func(t *testing.T) {
 		u := expectFailedUpdate(t)
-		expectPausedWrite(t, u, expectRestoreRefused(u), false, errors.New("db gone"))
-		u.repo.EXPECT().DropAutomationTrigger(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-		u.log.EXPECT().WithField("automation_id", automationID).Return(u.log)
-		u.log.EXPECT().WithField("workspace_id", workspaceID).Return(u.log)
+		expectPausedWrite(t, u, expectRestore(t, u, false, deletedList), false, nil)
+
+		assertNotPaused(t, u.svc.Update(u.ctx, workspaceID, u.changed))
+	})
+
+	t.Run("the previous version cannot be written back paused either: reported", func(t *testing.T) {
+		u := expectFailedUpdate(t)
+		expectPausedWrite(t, u, expectRestore(t, u, false, deletedList), false, errors.New("db gone"))
+		expectLogFields(u)
 		u.log.EXPECT().Error(gomock.Any())
 
-		assertInstallError(t, u.svc.Update(u.ctx, workspaceID, u.changed))
+		assertNotPaused(t, u.svc.Update(u.ctx, workspaceID, u.changed))
 	})
 
 	// Inert meanwhile — automation_enroll_contact enrols nobody into a paused automation — but
-	// left installed, so it has to be said.
+	// left installed, so it has to be said. The automation is paused all the same.
 	t.Run("the trigger left in place cannot be dropped: reported", func(t *testing.T) {
 		u := expectFailedUpdate(t)
-		paused := expectPausedWrite(t, u, expectRestoreRefused(u), true, nil)
-		u.repo.EXPECT().DropAutomationTrigger(gomock.Not(gomock.Eq(u.ctx)), workspaceID, automationID).
-			Return(errors.New("lock timeout")).After(paused)
-		u.log.EXPECT().WithField("automation_id", automationID).Return(u.log)
-		u.log.EXPECT().WithField("workspace_id", workspaceID).Return(u.log)
+		paused := expectPausedWrite(t, u, expectRestore(t, u, false, deletedList), true, nil)
+		expectDrop(t, u, paused, errors.New("lock timeout"))
+		expectLogFields(u)
 		u.log.EXPECT().Warn(gomock.Any())
 		u.log.EXPECT().Error(gomock.Any())
 
-		assertInstallError(t, u.svc.Update(u.ctx, workspaceID, u.changed))
+		assertPaused(t, u.svc.Update(u.ctx, workspaceID, u.changed), deletedList.Lists)
 	})
 }
 

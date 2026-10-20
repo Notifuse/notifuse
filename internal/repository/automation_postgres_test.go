@@ -661,6 +661,60 @@ func TestAutomationRepository_DropAutomationTrigger(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+// The undo of a failed update drops the trigger the failed install left in place, and needs the
+// lock that install needed. DROP TRIGGER queues for ACCESS EXCLUSIVE on contact_timeline and
+// every write to contact_timeline queues behind it, so this drop waits no longer than the
+// install does, and gives up instead.
+func TestAutomationRepository_DropAutomationTriggerWithLockTimeout(t *testing.T) {
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	automationID := "auto-123"
+
+	t.Run("waits for its lock no longer than the install, and drops trigger and function together", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectBegin()
+		mock.ExpectExec(regexp.QuoteMeta("SET LOCAL lock_timeout = '5s'")).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec(regexp.QuoteMeta("DROP TRIGGER IF EXISTS automation_trigger_auto123 ON contact_timeline")).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec(regexp.QuoteMeta("DROP FUNCTION IF EXISTS automation_trigger_auto123()")).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectCommit()
+
+		require.NoError(t, repo.DropAutomationTriggerWithLockTimeout(ctx, workspaceID, automationID))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a lock it waited out drops nothing and is reported", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectBegin()
+		mock.ExpectExec(regexp.QuoteMeta("SET LOCAL lock_timeout = '5s'")).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS").
+			WillReturnError(&pq.Error{Code: "55P03", Message: "canceling statement due to lock timeout"})
+		mock.ExpectRollback()
+
+		err := repo.DropAutomationTriggerWithLockTimeout(ctx, workspaceID, automationID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to drop trigger")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("an id that cannot name a trigger reaches no DDL", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		err := repo.DropAutomationTriggerWithLockTimeout(ctx, workspaceID, "x ON contact_timeline; DROP TABLE contacts; DROP TRIGGER IF EXISTS z")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot be used in a trigger name")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
 // This id reaches DDL having passed through nothing: automations.delete checks only that
 // it is non-empty and never loads the row, so unlike the install path there is no length
 // cap and no format check behind it. The name is concatenated in as a bare identifier, and
