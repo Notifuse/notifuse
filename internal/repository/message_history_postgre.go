@@ -481,9 +481,9 @@ func (r *MessageHistoryRepository) SetStatusesIfNotSet(ctx context.Context, work
 		// the contact is erased after the caller read the message, such as while a
 		// provider's unsubscribe is handled; or with none, when the erased address becomes
 		// a contact again, back on the list, and unsubscribes with the link of an email sent
-		// before the erasure, where the opt-out is recorded on the new contact's row and the
-		// email stays unmarked. Complaints, bounces and the other statuses are recorded on such a
-		// message as before.
+		// before the erasure, where the opt-out is recorded on the new contact's row, or its
+		// bounce or complaint kept, and the email stays unmarked. Complaints, bounces and the
+		// other statuses are recorded on such a message as before.
 		redactedGuard := ""
 		if messageEvent == domain.MessageEventUnsubscribed {
 			args = append(args, redactedContactEmail)
