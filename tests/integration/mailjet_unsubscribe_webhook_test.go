@@ -30,7 +30,7 @@ import (
 // names the email by the CustomID Notifuse gives every email it sends through Mailjet
 // (internal/service/mailjet_service.go); the emails here go out through SMTP, whose
 // X-Message-ID header carries the same ID. One case unsubscribes with the email's own link
-// instead, which marks the email the same way.
+// instead, which goes through the same redaction guard.
 //
 // The Mailjet parser recorded an "unsub" event as a spam complaint: the contact became
 // complained on the email's list, could not subscribe to it again, and the email counted

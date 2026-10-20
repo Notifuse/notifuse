@@ -477,13 +477,13 @@ func (r *MessageHistoryRepository) SetStatusesIfNotSet(ctx context.Context, work
 
 		valuesClause := strings.Join(valuesParts, ", ")
 
-		// A caller can reach a message whose address an erasure redacted in two ways. In a
-		// race: the contact is erased after the caller read the message, such as while a
-		// provider's unsubscribe is handled. And with none: the erased address becomes a
-		// contact again and unsubscribes with the link of an email sent before the erasure;
-		// the opt-out is recorded on the new contact's list, and the email stays unmarked.
-		// Complaints, bounces and the other statuses are recorded on such a message as
-		// before.
+		// A caller can reach a message whose address an erasure redacted: in a race, when
+		// the contact is erased after the caller read the message, such as while a
+		// provider's unsubscribe is handled; or with none, when the erased address becomes
+		// a contact again and unsubscribes with the link of an email sent before the
+		// erasure, where the opt-out is recorded on the new contact's list and the email
+		// stays unmarked. Complaints, bounces and the other statuses are recorded on such a
+		// message as before.
 		redactedGuard := ""
 		if messageEvent == domain.MessageEventUnsubscribed {
 			args = append(args, redactedContactEmail)
