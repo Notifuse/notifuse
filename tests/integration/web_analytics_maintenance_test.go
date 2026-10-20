@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -134,4 +135,39 @@ func TestWebAnalyticsIngestCreatesMissingPartition(t *testing.T) {
 		`SELECT count(*) FROM web_pages WHERE session_date = $1`, sessionDate).Scan(&pageCount))
 	assert.Equal(t, 1, sessionCount, "the session must have landed")
 	assert.Equal(t, 1, pageCount, "and so must its pageview")
+}
+
+// TestWebAnalyticsMissingPartitionErrorNamesExecFindPartition pins what
+// PostgreSQL reports for a row no partition takes. Its message is in the
+// server's language (lc_messages), so the repository recognises a missing
+// partition by the routine that raised the error, which is never translated,
+// before it creates the partition and retries the batch.
+func TestWebAnalyticsMissingPartitionErrorNamesExecFindPartition(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer func() { suite.Cleanup() }()
+
+	workspace, err := suite.DataFactory.CreateWorkspace(func(w *domain.Workspace) {
+		w.Settings.WebAnalytics = &domain.WebAnalyticsSettings{Enabled: true, Filters: domain.DefaultWebFilters()}
+	})
+	require.NoError(t, err)
+
+	wsDB, err := suite.DBManager.GetWorkspaceDB(workspace.ID)
+	require.NoError(t, err)
+
+	// Two months back: outside every window anything bootstraps.
+	past := time.Now().UTC().AddDate(0, -2, 0)
+	sessionDate := time.Date(past.Year(), past.Month(), 15, 0, 0, 0, 0, time.UTC)
+	visitedAt := sessionDate.Add(12 * time.Hour)
+
+	_, err = wsDB.Exec(`INSERT INTO web_sessions (session_date, id, created_at, updated_at) VALUES ($1, $2, $3, $3)`,
+		sessionDate, waUUIDv7At(visitedAt, 0xE2), visitedAt)
+	var pqErr *pq.Error
+	require.ErrorAs(t, err, &pqErr)
+	assert.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+	assert.Equal(t, "ExecFindPartition", pqErr.Routine)
+	assert.Empty(t, pqErr.Constraint)
 }

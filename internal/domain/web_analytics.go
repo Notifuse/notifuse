@@ -108,6 +108,10 @@ const (
 	// aborted every other visitor's rows with it, and after two failed attempts
 	// the buffer deletes those sessions outright. Bounding here means the
 	// offending action is dropped by dropInvalidActions and costs only itself.
+	//
+	// An upper bound covers only the top of REAL's range. PostgreSQL refuses a
+	// goal value so close to zero that it rounds to 0 as a REAL as well, and
+	// such a value is stored as 0 instead (see WebTrackAction.Validate).
 	WebTrackMaxDurationMs = 24 * 60 * 60 * 1000 // a day of engaged time on one page
 	WebTrackMaxGoalValue  = 1e12
 
@@ -117,6 +121,15 @@ const (
 	webMaxEpochMs = 100000000000000
 	// WebTrackMaxDimensionValueLength caps custom dimension values (custom_1..custom_10).
 	WebTrackMaxDimensionValueLength = 256
+	// WebTrackMaxUserAgentBytes caps the user agent as stored, in bytes. Track
+	// takes it from the request header when the body has none, out of reach of
+	// the handler's body limit, and a header can be as long as the server reads
+	// (net/http allows a megabyte by default), while the value is copied into
+	// the session and every goal row. The escaping, which writes each byte it
+	// rewrites as three, stops at the cap too (see makeSessionTextStorable).
+	// Generous: a real user agent, an in-app browser's included, takes a few
+	// hundred bytes.
+	WebTrackMaxUserAgentBytes = 1024
 	// WebTrackTimeBounds is the accepted clock window for beat timestamps,
 	// applied on both sides of the server clock.
 	WebTrackTimeBounds = 24 * time.Hour
@@ -558,6 +571,9 @@ func (a *WebTrackAction) Validate() error {
 	if len(a.Path) > WebTrackMaxPathLength {
 		return fmt.Errorf("action path exceeds %d characters", WebTrackMaxPathLength)
 	}
+	if hasNUL(a.Path) {
+		return fmt.Errorf("action path contains a null character")
+	}
 	if a.PageNumber < 1 || a.PageNumber > WebTrackMaxActions {
 		return fmt.Errorf("action page_number must be between 1 and %d", WebTrackMaxActions)
 	}
@@ -585,11 +601,24 @@ func (a *WebTrackAction) Validate() error {
 		if len(a.Name) > WebTrackMaxGoalNameLength {
 			return fmt.Errorf("goal name exceeds %d characters", WebTrackMaxGoalNameLength)
 		}
+		// The goal type needs no such check: normalizeWebGoalType above maps
+		// anything off its fixed list, a NUL included, to "other".
+		if hasNUL(a.Name) {
+			return fmt.Errorf("goal name contains a null character")
+		}
 		if a.Timestamp <= 0 || a.Timestamp > webMaxEpochMs {
 			return fmt.Errorf("goal timestamp is required and must be a plausible epoch millisecond")
 		}
 		if a.Value < 0 || a.Value > WebTrackMaxGoalValue {
 			return fmt.Errorf("goal value must be between 0 and %g", WebTrackMaxGoalValue)
+		}
+		// goal_value is a REAL. PostgreSQL refuses a value so close to zero
+		// that it rounds to 0 there ("out of range for type real") rather than
+		// store the 0, and it keeps the sign of a -0, which the check above
+		// lets through, so a sum over such goals reads -0. Either is stored as
+		// 0, and the goal kept.
+		if float32(a.Value) == 0 {
+			a.Value = 0
 		}
 		if err := validateGoalProperties(a.Properties); err != nil {
 			return err
@@ -613,6 +642,9 @@ func validateGoalProperties(props map[string]string) error {
 	}
 	total := 0
 	for key, value := range props {
+		if hasNUL(key) || hasNUL(value) {
+			return fmt.Errorf("goal property %q contains a null character", key)
+		}
 		if len(value) > WebTrackMaxGoalPropertyValueLength {
 			return fmt.Errorf("goal property %q exceeds %d characters", key, WebTrackMaxGoalPropertyValueLength)
 		}
@@ -710,6 +742,13 @@ func (p *WebTrackPayload) Validate(now time.Time) error {
 	if _, _, err := SessionDateFromUUIDv7(p.SessionID, now); err != nil {
 		return fmt.Errorf("invalid session_id: %w", err)
 	}
+	// Stored, and buffered, under its canonical spelling. uuid.Parse also accepts
+	// either case, the braced form (whose braces it never reads), urn:uuid: and 32
+	// bare hex digits; PostgreSQL's uuid type refuses some of those, and two
+	// spellings of one id would be two writers of the same rows, which one INSERT
+	// cannot hold. The SDK sends the canonical spelling, which comes back unchanged.
+	id, _ := uuid.Parse(p.SessionID) // SessionDateFromUUIDv7 has just parsed it
+	p.SessionID = id.String()
 	if len(p.Actions) > WebTrackMaxActions {
 		return fmt.Errorf("actions exceeds the maximum of %d", WebTrackMaxActions)
 	}
@@ -725,6 +764,8 @@ func (p *WebTrackPayload) Validate(now time.Time) error {
 	if err := validateEpochMsWindow("updated_at", p.UpdatedAt, now); err != nil {
 		return err
 	}
+	// Before the dimension bound, so that bound measures what would be stored.
+	p.makeSessionTextStorable()
 	for key, value := range p.Dimensions {
 		if !IsCustomDimensionKey(key) {
 			// Unknown keys are ignored at build time; only bound their size so
@@ -740,6 +781,132 @@ func (p *WebTrackPayload) Validate(now time.Time) error {
 	}
 	p.dropInvalidActions()
 	return nil
+}
+
+// makeSessionTextStorable rewrites the beat's session-level text — its
+// attributes, SDK version and custom dimensions — into text PostgreSQL can
+// store, keeping the rest of each value as sent (see storableSessionText).
+//
+// Rewritten, not rejected: the SDK keeps these values for the whole session and
+// resends them on every beat, and it reads a 400 as permanent, so refusing the
+// beat would lose every later beat of the visit too. A visitor gets a NUL in
+// one just by following a link carrying utm_source=%00, which the SDK decodes.
+// Text from a JSON body is always valid UTF-8 by now (encoding/json writes
+// U+FFFD for each byte that is not), but the user agent need not be: Track
+// takes it from the request header when the body has none, before it calls
+// Validate.
+//
+// The ids are not text: Validate has replaced session_id by its canonical
+// form, and workspace_id is only ever a lookup key. Nor are the identity
+// fields, which are credentials: ResolveWebIdentity refuses one naming an
+// address that holds a NUL.
+func (p *WebTrackPayload) makeSessionTextStorable() {
+	p.SDKVersion = storableSessionText(p.SDKVersion)
+	for key, value := range p.Dimensions {
+		p.Dimensions[key] = storableSessionText(value)
+	}
+	a := p.Attributes
+	if a == nil {
+		return
+	}
+	for _, field := range []*string{
+		&a.Referrer, &a.LandingPage,
+		&a.UTMSource, &a.UTMMedium, &a.UTMCampaign, &a.UTMTerm, &a.UTMContent, &a.UTMID, &a.UTMIDFrom,
+		&a.Device, &a.Browser, &a.BrowserType, &a.OS, &a.ConnectionType, &a.Language, &a.Timezone,
+	} {
+		*field = storableSessionText(*field)
+	}
+	// The user agent is also cut to WebTrackMaxUserAgentBytes as stored, and
+	// escaped no further: from a header, it can be as long as the server reads.
+	// Cut rather than refused, since it comes back on every beat of the visit.
+	// (withoutNUL copies only text holding a NUL, which net/http refuses in a
+	// header.)
+	a.UserAgent = escapeUnstorableBytesWithin(withoutNUL(a.UserAgent), WebTrackMaxUserAgentBytes)
+}
+
+// storableSessionText removes the NULs from s and writes each byte that is not
+// part of valid UTF-8 as %XX. A NUL carries nothing a report could use, and
+// written as %00 it would grow a custom dimension past the bound Validate
+// checks next, refusing the beat. Its inputs all come from the JSON body,
+// where encoding/json has already replaced such bytes, so in practice it only
+// removes NULs. The user agent, the one value that can carry a stray byte, is
+// escaped within its cap instead (see makeSessionTextStorable).
+func storableSessionText(s string) string {
+	return EscapeUnstorableBytes(withoutNUL(s))
+}
+
+// hasNUL reports whether s holds a NUL character (U+0000).
+//
+// JSON carries one as \u0000 without complaint, and PostgreSQL stores it in
+// neither text nor jsonb. flushOnce writes a whole workspace batch in ONE
+// transaction, so a single string holding one would abort every other
+// visitor's rows with it, and once retrying had failed too the buffer would
+// drop those sessions. /track is public, so one beat from anyone could do
+// that. An action holding one is therefore invalid, and dropInvalidActions
+// costs it that action alone; session-level text loses the character instead
+// (see makeSessionTextStorable).
+func hasNUL(s string) bool {
+	return strings.IndexByte(s, 0) >= 0
+}
+
+func withoutNUL(s string) string {
+	return strings.ReplaceAll(s, "\x00", "")
+}
+
+// TruncateUTF8 returns s cut to at most maxBytes bytes, at the last character
+// boundary within them: a character cut in two is a byte sequence that is not
+// UTF-8, which PostgreSQL refuses to store. s must be valid UTF-8: the cut
+// backs off over continuation bytes to the byte their character starts with,
+// which in other text can be far back, or missing.
+func TruncateUTF8(s string, maxBytes int) string {
+	if len(s) <= maxBytes {
+		return s
+	}
+	cut := max(maxBytes, 0)
+	for cut > 0 && !utf8.RuneStart(s[cut]) {
+		cut--
+	}
+	return s[:cut]
+}
+
+// EscapeUnstorableBytes returns s with every byte PostgreSQL cannot store in
+// text or jsonb written as %XX instead: a NUL, and each byte that is not part
+// of a valid UTF-8 sequence. Everything else is kept as it is, so text that is
+// already storable comes back unchanged.
+func EscapeUnstorableBytes(s string) string {
+	// No byte is written as more than three.
+	return escapeUnstorableBytesWithin(s, 3*len(s))
+}
+
+// escapeUnstorableBytesWithin is EscapeUnstorableBytes cut to at most maxBytes
+// bytes, before the first character or escape that would cross them, so that
+// neither is left in part. It writes no more than that, however long s is.
+func escapeUnstorableBytesWithin(s string, maxBytes int) string {
+	if !hasNUL(s) && utf8.ValidString(s) {
+		return TruncateUTF8(s, maxBytes)
+	}
+	const hexDigits = "0123456789ABCDEF"
+	var b strings.Builder
+	b.Grow(min(len(s)+8, max(maxBytes, 0)))
+	for i := 0; i < len(s); {
+		r, size := utf8.DecodeRuneInString(s[i:])
+		if r == 0 || (r == utf8.RuneError && size == 1) {
+			if b.Len()+3 > maxBytes {
+				break
+			}
+			b.WriteByte('%')
+			b.WriteByte(hexDigits[s[i]>>4])
+			b.WriteByte(hexDigits[s[i]&0x0F])
+			i++
+			continue
+		}
+		if b.Len()+size > maxBytes {
+			break
+		}
+		b.WriteString(s[i : i+size])
+		i += size
+	}
+	return b.String()
 }
 
 // dropInvalidActions removes actions that fail their own validation, in place.
@@ -944,8 +1111,10 @@ func ResolveWebIdentity(p *WebTrackPayload, secretKey string, now time.Time) (st
 func normalizedIdentity(email string) (string, bool) {
 	normalized := NormalizeEmail(email)
 	// Re-checked after normalization because lowercasing can change the length,
-	// and in characters for the same reason as the raw gate above.
-	if normalized == "" || utf8.RuneCountInString(normalized) > WebTrackMaxEmailLength {
+	// and in characters for the same reason as the raw gate above. An address
+	// holding a NUL is refused as well: PostgreSQL cannot store one, so it can
+	// name no contact, and refusing it here keeps it out of the contacts lookup.
+	if normalized == "" || hasNUL(normalized) || utf8.RuneCountInString(normalized) > WebTrackMaxEmailLength {
 		return "", false
 	}
 	return normalized, true
