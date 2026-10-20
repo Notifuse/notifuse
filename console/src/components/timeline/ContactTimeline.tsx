@@ -15,7 +15,8 @@ import {
   faFlagCheckered,
   faReply,
   faRobot,
-  faGlobe
+  faGlobe,
+  faBan
 } from '@fortawesome/free-solid-svg-icons'
 import { faUser, faFolderOpen, faPaperPlane, faEye } from '@fortawesome/free-regular-svg-icons'
 import {
@@ -104,6 +105,7 @@ export function ContactTimeline({
       removed: 'red',
       bounce: 'volcano',
       complaint: 'magenta',
+      unsubscribed: 'red',
       // Engagement actions
       opened: 'cyan',
       clicked: 'geekblue',
@@ -150,6 +152,8 @@ export function ContactTimeline({
           return faCircleExclamation
         } else if (eventType === 'complaint') {
           return faTriangleExclamation
+        } else if (eventType === 'unsubscribe') {
+          return faBan
         } else if (eventType === 'delivered') {
           return faCheck
         } else if (eventType === 'reply') {
@@ -652,6 +656,7 @@ export function ContactTimeline({
           delivered: t`Delivered`,
           bounce: t`Bounce`,
           complaint: t`Complaint`,
+          unsubscribe: t`Unsubscribed`,
           reply: t`Replied`,
           auto_reply: t`Auto-reply`,
           auth_email: t`Auth Email`,

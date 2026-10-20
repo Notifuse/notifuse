@@ -313,6 +313,23 @@ func TestMailjetUnsubscribeWebhook(t *testing.T) {
 			`SELECT type FROM inbound_webhook_events WHERE message_id = $1`, messageID).Scan(&storedType))
 		assert.Equal(t, "unsubscribe", storedType, "the Mailjet event is stored as an unsubscribe")
 
+		// The webhook event log lists it under its own type, which its filter asks the API for
+		resp, err := client.Get("/api/inboundWebhookEvents.list", map[string]string{
+			"workspace_id":    workspace.ID,
+			"event_type":      string(domain.EmailEventUnsubscribe),
+			"recipient_email": email,
+		})
+		require.NoError(t, err)
+		body, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, "list the unsubscribe events: %s", body)
+		var listed domain.InboundWebhookEventListResult
+		require.NoError(t, json.Unmarshal(body, &listed))
+		require.Len(t, listed.Events, 1)
+		assert.Equal(t, domain.EmailEventUnsubscribe, listed.Events[0].Type)
+		require.NotNil(t, listed.Events[0].MessageID)
+		assert.Equal(t, messageID, *listed.Events[0].MessageID)
+
 		// An unsubscribed contact can subscribe again, confirming by double opt-in; a
 		// complained one is refused
 		raw := post(t, "/api/lists.subscribe", map[string]interface{}{

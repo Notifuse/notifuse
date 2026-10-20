@@ -1,7 +1,7 @@
 import { api } from './client'
 import type { EmailProviderKind } from './workspace'
 
-export type EmailEventType = 'delivered' | 'bounce' | 'complaint' | 'click' | 'open'
+export type EmailEventType = 'delivered' | 'bounce' | 'complaint' | 'unsubscribe' | 'click' | 'open'
 
 export interface WebhookEndpointStatus {
   webhook_id: string

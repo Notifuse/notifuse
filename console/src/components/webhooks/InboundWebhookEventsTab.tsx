@@ -17,7 +17,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import React, { useState, useMemo, useEffect } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleCheck, faCircleXmark } from '@fortawesome/free-regular-svg-icons'
-import { faTriangleExclamation, faRefresh } from '@fortawesome/free-solid-svg-icons'
+import { faTriangleExclamation, faRefresh, faBan } from '@fortawesome/free-solid-svg-icons'
 import dayjs from '../../lib/dayjs'
 import { getProviderIcon, getProviderName } from '../integrations/EmailProviders'
 import { useLingui } from '@lingui/react/macro'
@@ -75,6 +75,11 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
       icon: <FontAwesomeIcon className="!mr-1 opacity-70" icon={faCircleXmark} />,
       color: 'red',
       label: t`Complaint`
+    },
+    unsubscribe: {
+      icon: <FontAwesomeIcon className="!mr-1 opacity-70" icon={faBan} />,
+      color: 'red',
+      label: t`Unsubscribed`
     },
     auth_email: {
       icon: null,
