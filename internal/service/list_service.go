@@ -180,6 +180,16 @@ func (s *ListService) DeleteList(ctx context.Context, workspaceID string, id str
 	}
 
 	if err := s.repo.DeleteList(ctx, workspaceID, id); err != nil {
+		// Live automations use the list: a refusal, not a failure, so it is not logged as one.
+		var inUse *domain.ErrListInUse
+		if errors.As(err, &inUse) {
+			// Write access to lists does not let the caller see automations, so only one who
+			// may read them is told which: anyone else is told how many.
+			if !userWorkspace.HasPermission(domain.PermissionResourceAutomations, domain.PermissionTypeRead) {
+				err = inUse.WithoutAutomations()
+			}
+			return fmt.Errorf("failed to delete list: %w", err)
+		}
 		s.logger.WithField("list_id", id).Error(fmt.Sprintf("Failed to delete list: %v", err))
 		return fmt.Errorf("failed to delete list: %w", err)
 	}

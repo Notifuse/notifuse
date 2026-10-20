@@ -1374,7 +1374,7 @@ msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "Sei sicuro di voler eliminare l'invito per {0}?"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:334
+#: src/pages/ListsPage.tsx:393
 msgid "Are you sure you want to delete the list \"{0}\"?"
 msgstr "Sei sicuro di voler eliminare la lista \"{0}\"?"
 
@@ -2382,7 +2382,7 @@ msgstr "Campagne"
 #: src/pages/BroadcastsPage.tsx:688
 #: src/pages/BroadcastsPage.tsx:1054
 #: src/pages/BroadcastsPage.tsx:1789
-#: src/pages/ListsPage.tsx:318
+#: src/pages/ListsPage.tsx:377
 #: src/pages/TemplatesPage.tsx:366
 #: src/pages/TransactionalNotificationsPage.tsx:149
 msgid "Cancel"
@@ -3613,7 +3613,7 @@ msgstr "Crea il tuo primo broadcast per iniziare"
 msgid "Create Your First Category"
 msgstr "Crea la tua prima categoria"
 
-#: src/pages/ListsPage.tsx:305
+#: src/pages/ListsPage.tsx:364
 msgid "Create your first list to get started"
 msgstr "Crea la tua prima lista per iniziare"
 
@@ -4085,7 +4085,7 @@ msgstr "Ritardo"
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
 #: src/pages/BroadcastsPage.tsx:1799
 #: src/pages/ContactsPage.tsx:946
-#: src/pages/ListsPage.tsx:328
+#: src/pages/ListsPage.tsx:387
 msgid "Delete"
 msgstr "Elimina"
 
@@ -4228,8 +4228,8 @@ msgstr "Elimina header"
 msgid "Delete invitation"
 msgstr "Elimina invito"
 
-#: src/pages/ListsPage.tsx:208
-#: src/pages/ListsPage.tsx:313
+#: src/pages/ListsPage.tsx:267
+#: src/pages/ListsPage.tsx:372
 msgid "Delete List"
 msgstr "Elimina lista"
 
@@ -4374,7 +4374,7 @@ msgstr "Descrivi questa immagine..."
 #: src/components/lists/ListDrawer.tsx:206
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:308
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
-#: src/pages/ListsPage.tsx:269
+#: src/pages/ListsPage.tsx:328
 #: src/pages/TransactionalNotificationsPage.tsx:266
 msgid "Description"
 msgstr "Descrizione"
@@ -4581,7 +4581,7 @@ msgid "Double Opt-in"
 msgstr "Double opt-in"
 
 #: src/components/lists/ListDrawer.tsx:250
-#: src/pages/ListsPage.tsx:283
+#: src/pages/ListsPage.tsx:342
 msgid "Double Opt-in Template"
 msgstr "Template double opt-in"
 
@@ -4734,7 +4734,7 @@ msgstr "Ogni contatto entra nell'automation una sola volta"
 #~ msgid "Each Zapier connection needs its own key, so give a second one a different name."
 #~ msgstr "Ogni connessione Zapier richiede la propria chiave: assegna un nome diverso alla seconda."
 
-#: src/pages/ListsPage.tsx:80
+#: src/pages/ListsPage.tsx:106
 msgid "edit"
 msgstr "modifica"
 
@@ -4845,7 +4845,7 @@ msgstr "Modifica contenuto Liquid"
 
 #: src/components/lists/ListDrawer.tsx:154
 #: src/components/lists/ListDrawer.tsx:157
-#: src/pages/ListsPage.tsx:224
+#: src/pages/ListsPage.tsx:283
 msgid "Edit List"
 msgstr "Modifica lista"
 
@@ -5346,7 +5346,7 @@ msgstr "Inserisci URL link o {{ url }}"
 msgid "Enter list description"
 msgstr "Inserisci descrizione lista"
 
-#: src/pages/ListsPage.tsx:340
+#: src/pages/ListsPage.tsx:399
 msgid "Enter list ID to confirm"
 msgstr "Inserisci ID lista per confermare"
 
@@ -5849,7 +5849,8 @@ msgstr "Impossibile eliminare l'integrazione"
 msgid "Failed to delete invitation"
 msgstr "Impossibile eliminare l'invito"
 
-#: src/pages/ListsPage.tsx:123
+#: src/pages/ListsPage.tsx:177
+#: src/pages/ListsPage.tsx:181
 msgid "Failed to delete list"
 msgstr "Impossibile eliminare la lista"
 
@@ -7004,7 +7005,7 @@ msgstr "URL Icona/Favicon"
 #: src/components/messages/MessageHistoryTable.tsx:273
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:149
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:355
-#: src/pages/ListsPage.tsx:267
+#: src/pages/ListsPage.tsx:326
 #: src/pages/TransactionalNotificationsPage.tsx:264
 msgid "ID"
 msgstr "ID"
@@ -7018,7 +7019,7 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "L'ID può contenere solo lettere minuscole, numeri e underscore"
 
 #: src/pages/BroadcastsPage.tsx:1830
-#: src/pages/ListsPage.tsx:346
+#: src/pages/ListsPage.tsx:405
 msgid "ID doesn't match"
 msgstr "L'ID non corrisponde"
 
@@ -7870,7 +7871,7 @@ msgid "List"
 msgstr "Lista"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:117
+#: src/pages/ListsPage.tsx:163
 msgid "List \"{0}\" deleted successfully"
 msgstr "Lista \"{0}\" eliminata con successo"
 
@@ -8010,12 +8011,12 @@ msgstr "Lista:"
 #: src/layouts/WorkspaceLayout.tsx:393
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
-#: src/pages/ListsPage.tsx:155
+#: src/pages/ListsPage.tsx:214
 #: src/services/api/errors.ts:83
 msgid "Lists"
 msgstr "Liste"
 
-#: src/pages/ListsPage.tsx:143
+#: src/pages/ListsPage.tsx:202
 msgid "Lists refreshed"
 msgstr "Liste aggiornate"
 
@@ -8105,7 +8106,7 @@ msgstr "Caricamento stato webhook..."
 #: src/layouts/RootLayout.tsx:99
 #: src/pages/ContactsPage.tsx:531
 #: src/pages/ContactsPage.tsx:1161
-#: src/pages/ListsPage.tsx:149
+#: src/pages/ListsPage.tsx:208
 #: src/pages/LogsPage.tsx:29
 #: src/pages/TemplatesPage.tsx:203
 #: src/pages/TransactionalNotificationsPage.tsx:383
@@ -8966,7 +8967,7 @@ msgstr "Ancora nessun click sui link registrato per questa variazione"
 msgid "No list"
 msgstr "Nessuna lista"
 
-#: src/pages/ListsPage.tsx:303
+#: src/pages/ListsPage.tsx:362
 msgid "No lists found"
 msgstr "Nessuna lista trovata"
 
@@ -10251,8 +10252,8 @@ msgstr "Premi Invio o clicca OK per confermare, Esc per annullare"
 msgid "Press Enter to confirm, Escape to cancel"
 msgstr "Premi Invio per confermare, Esc per annullare"
 
-#: src/pages/ListsPage.tsx:64
-#: src/pages/ListsPage.tsx:73
+#: src/pages/ListsPage.tsx:90
+#: src/pages/ListsPage.tsx:99
 msgid "preview"
 msgstr "anteprima"
 
@@ -10403,7 +10404,7 @@ msgstr "La priorità è obbligatoria"
 msgid "Priority:"
 msgstr "Priorità:"
 
-#: src/pages/ListsPage.tsx:277
+#: src/pages/ListsPage.tsx:336
 msgid "Private"
 msgstr "Privato"
 
@@ -10463,7 +10464,7 @@ msgid "Provider"
 msgstr "Provider"
 
 #: src/components/lists/ListDrawer.tsx:214
-#: src/pages/ListsPage.tsx:273
+#: src/pages/ListsPage.tsx:332
 msgid "Public"
 msgstr "Pubblico"
 
@@ -10859,7 +10860,7 @@ msgstr "Referrer"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:429
 #: src/pages/ContactsPage.tsx:910
-#: src/pages/ListsPage.tsx:158
+#: src/pages/ListsPage.tsx:217
 msgid "Refresh"
 msgstr "Aggiorna"
 
@@ -13542,6 +13543,22 @@ msgstr "L'ultimo backfill è fallito"
 msgid "The licence covers this whole deployment rather than this workspace. Ask the person who runs this Notifuse instance."
 msgstr ""
 
+#: src/pages/ListsPage.tsx:150
+msgid "The list \"{listName}\" can't be deleted while {count} live automations ({names}) use it. Pause them first, or change them to stop using the list."
+msgstr "La lista \"{listName}\" non può essere eliminata finché {count} automazioni attive ({names}) la usano. Mettile prima in pausa oppure modificale perché smettano di usare la lista."
+
+#: src/pages/ListsPage.tsx:141
+msgid "The list \"{listName}\" can't be deleted while {count} live automations use it. Ask someone with access to automations to pause them."
+msgstr "La lista \"{listName}\" non può essere eliminata finché {count} automazioni attive la usano. Chiedi a qualcuno con accesso alle automazioni di metterle in pausa."
+
+#: src/pages/ListsPage.tsx:140
+msgid "The list \"{listName}\" can't be deleted while a live automation uses it. Ask someone with access to automations to pause it."
+msgstr "La lista \"{listName}\" non può essere eliminata finché un'automazione attiva la usa. Chiedi a qualcuno con accesso alle automazioni di metterla in pausa."
+
+#: src/pages/ListsPage.tsx:145
+msgid "The list \"{listName}\" can't be deleted while the live automation \"{automationName}\" uses it. Pause it first, or change it to stop using the list."
+msgstr "La lista \"{listName}\" non può essere eliminata finché l'automazione attiva \"{automationName}\" la usa. Mettila prima in pausa oppure modificala perché smetta di usare la lista."
+
 #: src/services/api/permissions.ts:882
 msgid "The log names every member's email and IP address and records refused actions. Grant read to the people who need to answer \"who did this\", not to everyone."
 msgstr "Il registro riporta email e IP di ogni membro e annota le azioni rifiutate. Concedi la lettura a chi deve rispondere a «chi l'ha fatto», non a tutti."
@@ -13713,7 +13730,7 @@ msgstr "Questa azione non può essere annullata."
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "Questa azione non può essere annullata. Per confermare, inserisci l'ID del broadcast:"
 
-#: src/pages/ListsPage.tsx:336
+#: src/pages/ListsPage.tsx:395
 msgid "This action cannot be undone. To confirm, please enter the list ID:"
 msgstr "Questa azione non può essere annullata. Per confermare, inserisci l'ID della lista:"
 
@@ -15037,7 +15054,7 @@ msgstr "Visualizza sito web"
 #~ msgid "Views"
 #~ msgstr ""
 
-#: src/pages/ListsPage.tsx:270
+#: src/pages/ListsPage.tsx:329
 msgid "Visibility"
 msgstr "Visibilità"
 
@@ -15641,10 +15658,10 @@ msgid "You don't have write permission for contacts"
 msgstr "Non hai i permessi di scrittura per i contatti"
 
 #: src/components/contacts/BulkActionsBar.tsx:54
-#: src/pages/ListsPage.tsx:169
-#: src/pages/ListsPage.tsx:207
-#: src/pages/ListsPage.tsx:223
-#: src/pages/ListsPage.tsx:245
+#: src/pages/ListsPage.tsx:228
+#: src/pages/ListsPage.tsx:266
+#: src/pages/ListsPage.tsx:282
+#: src/pages/ListsPage.tsx:304
 msgid "You don't have write permission for lists"
 msgstr "Non hai i permessi di scrittura per le liste"
 

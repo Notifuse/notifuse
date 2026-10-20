@@ -196,7 +196,8 @@ func TestAutomationConflictError_As(t *testing.T) {
 }
 
 // The console shows this message when an activation or a save is refused, so it has to name
-// the deleted lists, including one with no row left to take a name from.
+// the lists — and not call deleted a list that never existed: that one is named by the id the
+// automation gives, which is most likely a typo.
 func TestAutomationDeletedListError_Error(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -204,19 +205,29 @@ func TestAutomationDeletedListError_Error(t *testing.T) {
 		want  string
 	}{
 		{
-			name:  "one list",
+			name:  "one deleted list",
 			lists: []ListRef{{ID: "news", Name: "Newsletter"}},
 			want:  `this automation uses the deleted list "Newsletter": a live automation cannot use a deleted list`,
 		},
 		{
-			name:  "two lists",
+			name:  "two deleted lists",
 			lists: []ListRef{{ID: "news", Name: "Newsletter"}, {ID: "vip", Name: "VIP"}},
 			want:  `this automation uses the deleted lists "Newsletter" and "VIP": a live automation cannot use a deleted list`,
 		},
 		{
-			name:  "a list with no row, by its id",
-			lists: []ListRef{{ID: "gone"}},
-			want:  `this automation uses the deleted list "gone": a live automation cannot use a deleted list`,
+			name:  "a list that does not exist, by its id",
+			lists: []ListRef{{ID: "newsltter", Missing: true}},
+			want:  `this automation uses the list "newsltter", which does not exist: a live automation cannot use a list that does not exist`,
+		},
+		{
+			name:  "two lists that do not exist",
+			lists: []ListRef{{ID: "a", Missing: true}, {ID: "b", Missing: true}},
+			want:  `this automation uses the lists "a" and "b", which do not exist: a live automation cannot use a list that does not exist`,
+		},
+		{
+			name:  "a deleted list and one that does not exist",
+			lists: []ListRef{{ID: "news", Name: "Newsletter"}, {ID: "newsltter", Missing: true}},
+			want:  `this automation uses the deleted list "Newsletter", and the list "newsltter", which does not exist: a live automation cannot use a deleted list or one that does not exist`,
 		},
 	}
 

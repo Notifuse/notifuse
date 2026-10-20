@@ -210,12 +210,18 @@ func (h *ListHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 		}
 		// Live automations require the list. A 409 naming them, the way a template version
 		// conflict carries its versions: the message for people, and the automations by id
-		// and name for a client.
+		// and name for a client. A caller who may not read automations gets none of them,
+		// only their count: an empty list, never null, so it reads the same way.
 		var inUse *domain.ErrListInUse
 		if errors.As(err, &inUse) {
+			automations := inUse.Automations
+			if automations == nil {
+				automations = []domain.AutomationRef{}
+			}
 			writeJSON(w, http.StatusConflict, map[string]interface{}{
-				"error":       inUse.Error(),
-				"automations": inUse.Automations,
+				"error":             inUse.Error(),
+				"automations":       automations,
+				"automations_count": inUse.AutomationCount,
 			})
 			return
 		}

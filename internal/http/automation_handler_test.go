@@ -757,11 +757,23 @@ func TestAutomationHandler_ConflictMapping(t *testing.T) {
 // deleted: a 400 carrying the message the console shows and the lists by id and name. Not the
 // 409 of a lost race, which a retry could fix, and not a 500.
 func TestAutomationHandler_DeletedListMapping(t *testing.T) {
-	_, automationSvc, mux, secretKey := setupAutomationTest(t)
+	ctrl := gomock.NewController(t)
+	automationSvc := mocks.NewMockAutomationService(ctrl)
+	secretKey := []byte("test-jwt-secret-key-for-testing-32bytes")
+	// A refusal the caller acts on, not a failure of the server: nothing is logged as an error.
+	log := pkgmocks.NewMockLogger(ctrl)
+	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+	log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+	log.EXPECT().Debug(gomock.Any()).AnyTimes()
+	log.EXPECT().Info(gomock.Any()).AnyTimes()
+	log.EXPECT().Warn(gomock.Any()).AnyTimes()
+	log.EXPECT().Error(gomock.Any()).Times(0)
+	mux := http.NewServeMux()
+	NewAutomationHandler(automationSvc, func() ([]byte, error) { return secretKey, nil }, log).RegisterRoutes(mux)
 
 	refusal := domain.NewAutomationDeletedListError("auto-123", []domain.ListRef{
 		{ID: "news", Name: "Newsletter"},
-		{ID: "gone"},
+		{ID: "gone", Missing: true},
 	})
 	wrapped := fmt.Errorf("failed to update automation status: %w", refusal)
 
@@ -821,7 +833,8 @@ func TestAutomationHandler_DeletedListMapping(t *testing.T) {
 			}
 			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
 			assert.Equal(t, refusal.Error(), response.Error)
-			assert.Contains(t, response.Error, `"Newsletter" and "gone"`)
+			assert.Contains(t, response.Error, `the deleted list "Newsletter", and the list "gone", which does not exist`)
+			// The list with no row is marked as such.
 			assert.Equal(t, refusal.Lists, response.Lists)
 		})
 	}

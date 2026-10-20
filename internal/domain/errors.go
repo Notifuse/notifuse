@@ -136,7 +136,8 @@ func NewAutomationConflictError(automationID string, expectedStatus AutomationSt
 // AutomationDeletedListError refuses a write that would leave an automation live while a list
 // it requires (Automation.RequiredListIDs) is deleted: an activation, or a change to a live
 // automation. Live, it would fail or misbehave on every contact that reached the step using
-// that list. A list with no row at all is reported the same way, by its id.
+// that list. A list with no row at all is refused too, by its id, as one that does not exist
+// (ListRef.Missing).
 //
 // It answers 400 rather than 409, like a trigger configuration that cannot be installed: the
 // automation's own configuration is what has to change, and retrying as it is cannot work.
@@ -147,14 +148,35 @@ type AutomationDeletedListError struct {
 
 // Error implements the error interface
 func (e *AutomationDeletedListError) Error() string {
-	names := make([]string, len(e.Lists))
-	for i, list := range e.Lists {
-		names[i] = list.label()
+	var deleted, missing []string
+	for _, list := range e.Lists {
+		if list.Missing {
+			missing = append(missing, list.label())
+		} else {
+			deleted = append(deleted, list.label())
+		}
 	}
-	if len(names) == 1 {
-		return fmt.Sprintf("this automation uses the deleted list %s: a live automation cannot use a deleted list", quotedNames(names))
+
+	var uses []string
+	if len(deleted) == 1 {
+		uses = append(uses, "the deleted list "+quotedNames(deleted))
+	} else if len(deleted) > 1 {
+		uses = append(uses, "the deleted lists "+quotedNames(deleted))
 	}
-	return fmt.Sprintf("this automation uses the deleted lists %s: a live automation cannot use a deleted list", quotedNames(names))
+	if len(missing) == 1 {
+		uses = append(uses, "the list "+quotedNames(missing)+", which does not exist")
+	} else if len(missing) > 1 {
+		uses = append(uses, "the lists "+quotedNames(missing)+", which do not exist")
+	}
+
+	rule := "a live automation cannot use a deleted list"
+	if len(missing) > 0 && len(deleted) == 0 {
+		rule = "a live automation cannot use a list that does not exist"
+	} else if len(missing) > 0 {
+		rule = "a live automation cannot use a deleted list or one that does not exist"
+	}
+
+	return fmt.Sprintf("this automation uses %s: %s", strings.Join(uses, ", and "), rule)
 }
 
 // NewAutomationDeletedListError creates a new automation deleted list error

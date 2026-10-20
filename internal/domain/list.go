@@ -468,7 +468,8 @@ type ListService interface {
 	// UpdateList updates an existing list
 	UpdateList(ctx context.Context, workspaceID string, list *List) error
 
-	// DeleteList deletes a list by ID
+	// DeleteList deletes a list by ID. While live automations use the list it deletes nothing
+	// and returns *ErrListInUse, which names them only to a caller who may read automations.
 	DeleteList(ctx context.Context, workspaceID string, id string) error
 
 	GetListStats(ctx context.Context, workspaceID string, id string) (*ListStats, error)
@@ -487,7 +488,9 @@ type ListRepository interface {
 	// UpdateList updates an existing list
 	UpdateList(ctx context.Context, workspaceID string, list *List) error
 
-	// DeleteList deletes a list
+	// DeleteList deletes a list and removes its members. While live automations use the list
+	// (Automation.RequiredListIDs) it deletes nothing and returns *ErrListInUse naming them,
+	// checked in the deletion's own transaction.
 	DeleteList(ctx context.Context, workspaceID string, id string) error
 
 	GetListStats(ctx context.Context, workspaceID string, id string) (*ListStats, error)
@@ -506,6 +509,9 @@ func (e *ErrListNotFound) Error() string {
 type ListRef struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
+	// Missing marks a list with no row at all, named by its id: one that does not exist,
+	// rather than one that was deleted.
+	Missing bool `json:"missing,omitempty"`
 }
 
 // label is how a message names the list: by name, or by id when there is no row to take a
@@ -522,19 +528,49 @@ func (l ListRef) label() string {
 // live again while it is deleted.
 //
 // It answers 409: nothing is wrong with the request, the list is in use, and pausing the
-// automations named here is what lets the deletion through.
+// automations it names, or counts, is what lets the deletion through.
 type ErrListInUse struct {
-	ListID      string
-	ListName    string
+	ListID   string
+	ListName string
+	// Automations names the live automations that use the list. It is empty in the refusal
+	// given to a caller who may not read automations (WithoutAutomations), which counts them
+	// instead.
 	Automations []AutomationRef
+	// AutomationCount is how many live automations use the list, whether or not they are named.
+	AutomationCount int
+}
+
+// NewErrListInUse refuses the deletion of a list, naming the live automations that use it.
+func NewErrListInUse(listID, listName string, automations []AutomationRef) *ErrListInUse {
+	return &ErrListInUse{
+		ListID:          listID,
+		ListName:        listName,
+		Automations:     automations,
+		AutomationCount: len(automations),
+	}
+}
+
+// WithoutAutomations is the same refusal for a caller who may not read automations: it says how
+// many use the list and names none of them, since a name or an id would disclose an automation
+// across a permission the caller does not have.
+func (e *ErrListInUse) WithoutAutomations() *ErrListInUse {
+	return &ErrListInUse{ListID: e.ListID, ListName: e.ListName, AutomationCount: e.AutomationCount}
 }
 
 func (e *ErrListInUse) Error() string {
+	list := quoted(ListRef{ID: e.ListID, Name: e.ListName}.label())
+	if len(e.Automations) == 0 {
+		if e.AutomationCount == 1 {
+			return fmt.Sprintf("cannot delete list %s while 1 live automation uses it: ask someone with access to automations to pause it", list)
+		}
+		return fmt.Sprintf("cannot delete list %s while %d live automations use it: ask someone with access to automations to pause them",
+			list, e.AutomationCount)
+	}
+
 	names := make([]string, len(e.Automations))
 	for i, automation := range e.Automations {
 		names[i] = automation.Name
 	}
-	list := quoted(ListRef{ID: e.ListID, Name: e.ListName}.label())
 	if len(names) == 1 {
 		return fmt.Sprintf("cannot delete list %s while the live automation %s uses it: pause the automation first, or change it to stop using the list",
 			list, quotedNames(names))

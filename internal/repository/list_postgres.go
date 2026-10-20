@@ -205,7 +205,7 @@ func (r *listRepository) DeleteList(ctx context.Context, workspaceID string, id 
 		return err
 	}
 	if len(users) > 0 {
-		return &domain.ErrListInUse{ListID: id, ListName: name, Automations: users}
+		return domain.NewErrListInUse(id, name, users)
 	}
 
 	// Then soft delete all related contact_list entries

@@ -490,6 +490,7 @@ func TestListRepository_DeleteList_LiveAutomations(t *testing.T) {
 			{ID: "a-trigger", Name: "Listener"},
 			{ID: "a-adds", Name: "Adder"},
 		}, inUse.Automations)
+		assert.Equal(t, 3, inUse.AutomationCount)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 

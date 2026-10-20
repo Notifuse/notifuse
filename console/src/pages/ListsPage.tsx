@@ -16,6 +16,7 @@ import {
 } from 'antd'
 import { useParams } from '@tanstack/react-router'
 import { listsApi } from '../services/api/list'
+import type { AutomationRef, ListInUseError } from '../services/api/list'
 import { ApiError } from '../services/api/errors'
 import { templatesApi } from '../services/api/template'
 import type { List, TemplateReference, Workspace } from '../services/api/types'
@@ -34,6 +35,30 @@ import { ListStats } from '../components/lists/ListStats'
 import { useLingui } from '@lingui/react/macro'
 
 const { Title, Paragraph, Text } = Typography
+
+// How many automations the refusal of a list deletion names before it only counts them.
+const NAMED_AUTOMATIONS_SHOWN = 3
+
+// Reads the 409 lists.delete answers while live automations use the list. Null for a body
+// without the automations — from a server that does not send them — whose own sentence is
+// then shown instead.
+const listInUseError = (data: unknown): ListInUseError | null => {
+  if (!data || typeof data !== 'object') return null
+  const { error, automations, automations_count } = data as Record<string, unknown>
+  if (typeof automations_count !== 'number' || !Array.isArray(automations)) return null
+  const named = automations.every(
+    (automation: unknown) =>
+      !!automation &&
+      typeof automation === 'object' &&
+      typeof (automation as Partial<AutomationRef>).name === 'string'
+  )
+  if (!named) return null
+  return {
+    error: typeof error === 'string' ? error : '',
+    automations: automations as AutomationRef[],
+    automations_count
+  }
+}
 
 // Component to fetch template data and render the preview popover
 const TemplatePreviewButton = ({
@@ -105,6 +130,26 @@ export function ListsPage() {
     }
   })
 
+  // Why the list cannot be deleted: the live automations to pause, by name, or only how many
+  // for a member who may not read automations.
+  const listInUseMessage = (listName: string, refusal: ListInUseError): string => {
+    const { automations } = refusal
+    if (automations.length === 0) {
+      const count = refusal.automations_count
+      return count === 1
+        ? t`The list "${listName}" can't be deleted while a live automation uses it. Ask someone with access to automations to pause it.`
+        : t`The list "${listName}" can't be deleted while ${count} live automations use it. Ask someone with access to automations to pause them.`
+    }
+    if (automations.length === 1) {
+      const automationName = automations[0].name
+      return t`The list "${listName}" can't be deleted while the live automation "${automationName}" uses it. Pause it first, or change it to stop using the list.`
+    }
+    const count = automations.length
+    const shown = automations.slice(0, NAMED_AUTOMATIONS_SHOWN).map(({ name }) => `"${name}"`)
+    const names = shown.join(', ') + (count > shown.length ? '…' : '')
+    return t`The list "${listName}" can't be deleted while ${count} live automations (${names}) use it. Pause them first, or change them to stop using the list.`
+  }
+
   const handleDelete = async () => {
     if (!listToDelete) return
 
@@ -121,11 +166,20 @@ export function ListsPage() {
       setListToDelete(null)
       setConfirmationInput('')
     } catch (error) {
-      // A list that live automations use comes back as a 409 naming them. That message is
-      // the only thing that tells the user which automations to pause, so it is shown as
-      // sent rather than replaced by the generic one.
-      const reason = error instanceof ApiError && error.status === 409 ? error.message : ''
-      message.error(reason || t`Failed to delete list`)
+      if (error instanceof ApiError && error.status === 409) {
+        // Live automations use the list. This is the only thing that tells the user what to
+        // pause, so it stays on screen long enough to read, and a body the console cannot read
+        // keeps the server's own sentence rather than the generic one.
+        const refusal = listInUseError(error.data)
+        message.error({
+          content: refusal
+            ? listInUseMessage(listToDelete.name, refusal)
+            : error.message || t`Failed to delete list`,
+          duration: 10
+        })
+      } else {
+        message.error(t`Failed to delete list`)
+      }
       console.error(error)
     } finally {
       setIsDeleting(false)

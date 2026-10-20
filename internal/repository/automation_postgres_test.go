@@ -1893,7 +1893,7 @@ func TestAutomationRepository_UpdateIfStatus_RequiredLists(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("refuses a list with no row, by its id", func(t *testing.T) {
+	t.Run("refuses a list with no row, by its id, as one that does not exist", func(t *testing.T) {
 		db, mock, repo := setupAutomationMock(t)
 		defer func() { _ = db.Close() }()
 
@@ -1906,7 +1906,27 @@ func TestAutomationRepository_UpdateIfStatus_RequiredLists(t *testing.T) {
 		assert.False(t, updated)
 		var refusal *domain.AutomationDeletedListError
 		require.True(t, errors.As(err, &refusal), "got %v", err)
-		assert.Equal(t, []domain.ListRef{{ID: "list-target"}}, refusal.Lists)
+		assert.Equal(t, []domain.ListRef{{ID: "list-target", Missing: true}}, refusal.Lists)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// The rows come back in id order, the order the locks are taken in; the refusal names the
+	// lists in the order the automation uses them, whether deleted or missing.
+	t.Run("names the lists it refuses in the order the automation uses them", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(regexp.QuoteMeta(lockQuery)).WithArgs(required).
+			WillReturnRows(sqlmock.NewRows(lockColumns).
+				AddRow("list-target", "Target", true).AddRow("list-watched", "Watched", false))
+		mock.ExpectRollback()
+
+		updated, err := repo.UpdateIfStatus(ctx, workspaceID, liveAutomation(), domain.AutomationStatusPaused)
+		assert.False(t, updated)
+		var refusal *domain.AutomationDeletedListError
+		require.True(t, errors.As(err, &refusal), "got %v", err)
+		assert.Equal(t, []domain.ListRef{{ID: "list-own", Missing: true}, {ID: "list-target", Name: "Target"}}, refusal.Lists)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 

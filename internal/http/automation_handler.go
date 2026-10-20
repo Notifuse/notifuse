@@ -159,6 +159,11 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.service.Update(r.Context(), req.WorkspaceID, req.Automation); err != nil {
+		// A live automation changed to use a deleted list: a refusal the caller acts on, not
+		// a failure to log.
+		if writeDeletedListError(w, err) {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to update automation")
 		if writePermissionError(w, err) {
 			return
@@ -173,10 +178,6 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 		var conditionErr *domain.TriggerConditionError
 		if errors.As(err, &conditionErr) {
 			WriteJSONError(w, conditionErr.Error(), http.StatusBadRequest)
-			return
-		}
-		// A live automation changed to use a deleted list.
-		if writeDeletedListError(w, err) {
 			return
 		}
 		// A transition that lost a race to another admin: nothing is broken and nothing
@@ -247,6 +248,11 @@ func (h *AutomationHandler) handleActivate(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := h.service.Activate(r.Context(), req.WorkspaceID, req.AutomationID); err != nil {
+		// An automation that uses a deleted list: a refusal the caller acts on, not a
+		// failure to log.
+		if writeDeletedListError(w, err) {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to activate automation")
 		if writePermissionError(w, err) {
 			return
@@ -257,9 +263,6 @@ func (h *AutomationHandler) handleActivate(w http.ResponseWriter, r *http.Reques
 		var conditionErr *domain.TriggerConditionError
 		if errors.As(err, &conditionErr) {
 			WriteJSONError(w, conditionErr.Error(), http.StatusBadRequest)
-			return
-		}
-		if writeDeletedListError(w, err) {
 			return
 		}
 		// A transition that lost a race to another admin: nothing is broken and nothing
@@ -280,8 +283,9 @@ func (h *AutomationHandler) handleActivate(w http.ResponseWriter, r *http.Reques
 }
 
 // writeDeletedListError answers a write that would leave an automation live on a deleted list,
-// reporting whether it wrote the response. A 400 like a trigger configuration that cannot be
-// installed — the automation is what has to change — carrying the lists by id and name.
+// or on one that does not exist, reporting whether it wrote the response. A 400 like a trigger
+// configuration that cannot be installed — the automation is what has to change — carrying the
+// lists by id and name, and marking missing the ones that do not exist.
 func writeDeletedListError(w http.ResponseWriter, err error) bool {
 	var deletedList *domain.AutomationDeletedListError
 	if !errors.As(err, &deletedList) {

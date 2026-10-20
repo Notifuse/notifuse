@@ -401,9 +401,9 @@ func (r *AutomationRepository) UpdateTx(ctx context.Context, tx *sql.Tx, workspa
 //
 // A write that leaves the automation live also requires the lists it cannot run without
 // (RequiredListIDs) to exist: it is refused with *domain.AutomationDeletedListError when one
-// is deleted. The lists are locked FOR SHARE in the write's transaction, which a list deletion
-// (listRepository.DeleteList) has to wait for and then sees as live, and which waits for a
-// deletion already under way and then sees the list deleted.
+// is deleted or has no row. The lists are locked FOR SHARE in the write's transaction, which a
+// list deletion (listRepository.DeleteList) has to wait for and then sees as live, and which
+// waits for a deletion already under way and then sees the list deleted.
 func (r *AutomationRepository) UpdateIfStatus(ctx context.Context, workspaceID string, automation *domain.Automation, expectedStatus domain.AutomationStatus) (bool, error) {
 	builder, err := automationUpdateBuilder(workspaceID, automation)
 	if err != nil {
@@ -433,12 +433,12 @@ func (r *AutomationRepository) UpdateIfStatus(ctx context.Context, workspaceID s
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	deleted, err := lockRequiredLists(ctx, tx, listIDs)
+	unusable, err := lockRequiredLists(ctx, tx, listIDs)
 	if err != nil {
 		return false, err
 	}
-	if len(deleted) > 0 {
-		return false, domain.NewAutomationDeletedListError(automation.ID, deleted)
+	if len(unusable) > 0 {
+		return false, domain.NewAutomationDeletedListError(automation.ID, unusable)
 	}
 
 	updated, err := execUpdateIfStatus(ctx, tx, query, args)
@@ -473,12 +473,12 @@ func execUpdateIfStatus(ctx context.Context, execer interface {
 }
 
 // lockRequiredLists locks the lists FOR SHARE until the transaction ends and returns those
-// that are deleted or have no row at all.
+// that are deleted or have no row at all (marked Missing), in the order of listIDs.
 //
 // FOR SHARE is the weakest lock that conflicts with the UPDATE a list deletion runs (FOR KEY
 // SHARE does not), and it does not conflict with itself, so activations sharing a list do not
-// queue behind each other. A row whose deletion committed while this waited is re-read in its
-// deleted form.
+// queue behind each other. The rows are locked in id order, the same in every transaction. A
+// row whose deletion committed while this waited is re-read in its deleted form.
 func lockRequiredLists(ctx context.Context, tx *sql.Tx, listIDs []string) ([]domain.ListRef, error) {
 	rows, err := tx.QueryContext(ctx,
 		`SELECT id, name, deleted_at IS NOT NULL FROM lists WHERE id = ANY($1) ORDER BY id FOR SHARE`,
@@ -488,29 +488,34 @@ func lockRequiredLists(ctx context.Context, tx *sql.Tx, listIDs []string) ([]dom
 	}
 	defer func() { _ = rows.Close() }()
 
-	var deleted []domain.ListRef
-	found := make(map[string]bool, len(listIDs))
+	type lockedList struct {
+		name    string
+		deleted bool
+	}
+	locked := make(map[string]lockedList, len(listIDs))
 	for rows.Next() {
-		var list domain.ListRef
-		var isDeleted bool
-		if err := rows.Scan(&list.ID, &list.Name, &isDeleted); err != nil {
+		var id string
+		var list lockedList
+		if err := rows.Scan(&id, &list.name, &list.deleted); err != nil {
 			return nil, fmt.Errorf("failed to scan the automation's list: %w", err)
 		}
-		found[list.ID] = true
-		if isDeleted {
-			deleted = append(deleted, list)
-		}
+		locked[id] = list
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to lock the automation's lists: %w", err)
 	}
 
+	var unusable []domain.ListRef
 	for _, listID := range listIDs {
-		if !found[listID] {
-			deleted = append(deleted, domain.ListRef{ID: listID})
+		list, found := locked[listID]
+		switch {
+		case !found:
+			unusable = append(unusable, domain.ListRef{ID: listID, Missing: true})
+		case list.deleted:
+			unusable = append(unusable, domain.ListRef{ID: listID, Name: list.name})
 		}
 	}
-	return deleted, nil
+	return unusable, nil
 }
 
 // UpdateContactAutomationIfActive persists the contact automation only while its
