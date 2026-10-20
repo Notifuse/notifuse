@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/hmac"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -125,10 +124,11 @@ const (
 	// WebTrackMaxUserAgentBytes caps the user agent as stored, in bytes. Track
 	// takes it from the request header when the body has none, out of reach of
 	// the handler's body limit, and a header can be as long as the server reads
-	// (net/http allows a megabyte by default). Each byte the escaping rewrites
-	// then takes three (see makeSessionTextStorable), and the value is copied
-	// into the session and every goal row. Generous: a real user agent, an
-	// in-app browser's included, takes a few hundred bytes.
+	// (net/http allows a megabyte by default), while the value is copied into
+	// the session and every goal row. The escaping, which writes each byte it
+	// rewrites as three, stops at the cap too (see makeSessionTextStorable).
+	// Generous: a real user agent, an in-app browser's included, takes a few
+	// hundred bytes.
 	WebTrackMaxUserAgentBytes = 1024
 	// WebTrackTimeBounds is the accepted clock window for beat timestamps,
 	// applied on both sides of the server clock.
@@ -766,11 +766,6 @@ func (p *WebTrackPayload) Validate(now time.Time) error {
 	}
 	// Before the dimension bound, so that bound measures what would be stored.
 	p.makeSessionTextStorable()
-	// After the escaping, for the same reason. Cut rather than refused: the
-	// value comes back on every beat of the visit.
-	if p.Attributes != nil {
-		p.Attributes.UserAgent = truncateEscapedText(p.Attributes.UserAgent, WebTrackMaxUserAgentBytes)
-	}
 	for key, value := range p.Dimensions {
 		if !IsCustomDimensionKey(key) {
 			// Unknown keys are ignored at build time; only bound their size so
@@ -817,10 +812,16 @@ func (p *WebTrackPayload) makeSessionTextStorable() {
 	for _, field := range []*string{
 		&a.Referrer, &a.LandingPage,
 		&a.UTMSource, &a.UTMMedium, &a.UTMCampaign, &a.UTMTerm, &a.UTMContent, &a.UTMID, &a.UTMIDFrom,
-		&a.Device, &a.Browser, &a.BrowserType, &a.OS, &a.UserAgent, &a.ConnectionType, &a.Language, &a.Timezone,
+		&a.Device, &a.Browser, &a.BrowserType, &a.OS, &a.ConnectionType, &a.Language, &a.Timezone,
 	} {
 		*field = storableSessionText(*field)
 	}
+	// The user agent is also cut to WebTrackMaxUserAgentBytes as stored, and
+	// escaped no further: from a header, it can be as long as the server reads.
+	// Cut rather than refused, since it comes back on every beat of the visit.
+	// (withoutNUL copies only text holding a NUL, which net/http refuses in a
+	// header.)
+	a.UserAgent = escapeUnstorableBytesWithin(withoutNUL(a.UserAgent), WebTrackMaxUserAgentBytes)
 }
 
 // storableSessionText removes the NULs from s and writes each byte that is not
@@ -837,12 +838,12 @@ func storableSessionText(s string) string {
 //
 // JSON carries one as \u0000 without complaint, and PostgreSQL stores it in
 // neither text nor jsonb. flushOnce writes a whole workspace batch in ONE
-// transaction, so a single string holding one fails every other visitor's rows
-// with it, and the buffer then has to split the batch to find the writer whose
-// rows PostgreSQL refuses, who loses the visit. /track is public, so a beat
-// from anyone would do that. An action holding one is therefore invalid, and
-// dropInvalidActions costs it that action alone; session-level text loses the
-// character instead (see makeSessionTextStorable).
+// transaction, so a single string holding one would abort every other
+// visitor's rows with it, and once retrying had failed too the buffer would
+// drop those sessions. /track is public, so one beat from anyone could do
+// that. An action holding one is therefore invalid, and dropInvalidActions
+// costs it that action alone; session-level text loses the character instead
+// (see makeSessionTextStorable).
 func hasNUL(s string) bool {
 	return strings.IndexByte(s, 0) >= 0
 }
@@ -853,7 +854,9 @@ func withoutNUL(s string) string {
 
 // TruncateUTF8 returns s cut to at most maxBytes bytes, at the last character
 // boundary within them: a character cut in two is a byte sequence that is not
-// UTF-8, which PostgreSQL refuses to store.
+// UTF-8, which PostgreSQL refuses to store. s must be valid UTF-8: the cut
+// backs off over continuation bytes to the byte their character starts with,
+// which in other text can be far back, or missing.
 func TruncateUTF8(s string, maxBytes int) string {
 	if len(s) <= maxBytes {
 		return s
@@ -865,45 +868,39 @@ func TruncateUTF8(s string, maxBytes int) string {
 	return s[:cut]
 }
 
-// truncateEscapedText cuts s, text EscapeUnstorableBytes has written, as
-// TruncateUTF8 does, and further back rather than through one of its %XX
-// escapes, which would leave a % or a %X that no byte was written as.
-func truncateEscapedText(s string, maxBytes int) string {
-	cut := TruncateUTF8(s, maxBytes)
-	if len(cut) == len(s) {
-		return s
-	}
-	switch n := len(cut); {
-	case n >= 1 && cut[n-1] == '%':
-		return cut[:n-1]
-	case n >= 2 && cut[n-2] == '%' && strings.IndexByte(escapeHexDigits, cut[n-1]) >= 0:
-		return cut[:n-2]
-	}
-	return cut
-}
-
-// escapeHexDigits are the digits of the %XX escapes EscapeUnstorableBytes
-// writes.
-const escapeHexDigits = "0123456789ABCDEF"
-
 // EscapeUnstorableBytes returns s with every byte PostgreSQL cannot store in
 // text or jsonb written as %XX instead: a NUL, and each byte that is not part
 // of a valid UTF-8 sequence. Everything else is kept as it is, so text that is
 // already storable comes back unchanged.
 func EscapeUnstorableBytes(s string) string {
+	// No byte is written as more than three.
+	return escapeUnstorableBytesWithin(s, 3*len(s))
+}
+
+// escapeUnstorableBytesWithin is EscapeUnstorableBytes cut to at most maxBytes
+// bytes, before the first character or escape that would cross them, so that
+// neither is left in part. It writes no more than that, however long s is.
+func escapeUnstorableBytesWithin(s string, maxBytes int) string {
 	if !hasNUL(s) && utf8.ValidString(s) {
-		return s
+		return TruncateUTF8(s, maxBytes)
 	}
+	const hexDigits = "0123456789ABCDEF"
 	var b strings.Builder
-	b.Grow(len(s) + 8)
+	b.Grow(min(len(s)+8, max(maxBytes, 0)))
 	for i := 0; i < len(s); {
 		r, size := utf8.DecodeRuneInString(s[i:])
 		if r == 0 || (r == utf8.RuneError && size == 1) {
+			if b.Len()+3 > maxBytes {
+				break
+			}
 			b.WriteByte('%')
-			b.WriteByte(escapeHexDigits[s[i]>>4])
-			b.WriteByte(escapeHexDigits[s[i]&0x0F])
+			b.WriteByte(hexDigits[s[i]>>4])
+			b.WriteByte(hexDigits[s[i]&0x0F])
 			i++
 			continue
+		}
+		if b.Len()+size > maxBytes {
+			break
 		}
 		b.WriteString(s[i : i+size])
 		i += size
@@ -1401,21 +1398,11 @@ type GeoIPResolver interface {
 	Lookup(ip string) (*WebGeoResult, error)
 }
 
-// ErrWebAnalyticsRowsRefused marks a FlushBatch failure that PostgreSQL raised
-// over the rows themselves — a value it cannot store, a constraint they break —
-// rather than over the server or the connection, such as a timeout or a
-// deadlock. The same rows would only fail again, while a part of the batch
-// without the refused ones can land, which is what lets the buffer split a
-// refused batch.
-var ErrWebAnalyticsRowsRefused = errors.New("web analytics rows refused by the database")
-
 // WebAnalyticsRepository persists web analytics rows into a workspace database.
 type WebAnalyticsRepository interface {
 	// FlushBatch upserts the given rows in one transaction. Row slices may be
 	// empty. Implementations sort rows by primary key to keep concurrent
 	// flushes deadlock-free, and auto-create missing monthly partitions once.
-	// An error PostgreSQL raised over the rows themselves wraps
-	// ErrWebAnalyticsRowsRefused.
 	FlushBatch(ctx context.Context, workspaceID string, sessions []*WebSession, pages []*WebPage, goals []*WebGoal) error
 
 	// AnonymizeContact clears the stored identity for one address across all

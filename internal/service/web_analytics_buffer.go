@@ -2,11 +2,8 @@ package service
 
 import (
 	"context"
-	"errors"
-	"sort"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -48,7 +45,6 @@ type WebAnalyticsBufferConfig struct {
 	IdleFlushAfter          time.Duration // flush dirty sessions that stopped beating
 	EvictAfter              time.Duration // forget clean sessions after this idle time
 	MaxSessionsPerWorkspace int           // above this, the workspace force-flushes everything dirty
-	MaxSalvageFlushes       int           // FlushBatch calls a flush may spend on a refused run beyond the run's own (see writeRun)
 }
 
 // DefaultWebAnalyticsBufferConfig returns the production tuning.
@@ -59,24 +55,10 @@ func DefaultWebAnalyticsBufferConfig() WebAnalyticsBufferConfig {
 		IdleFlushAfter:          70 * time.Second,
 		EvictAfter:              35 * time.Minute, // session timeout (30m) + slack
 		MaxSessionsPerWorkspace: 20000,
-		// Enough to single out a couple of refused writers even in a run of
-		// MaxSessionsPerWorkspace, which takes two flushes per halving. A split
-		// that needs more goes on at the next flush.
-		MaxSalvageFlushes: 64,
 	}
 }
 
 const webBufferMaxFlushAttempts = 2
-
-// webBufferMaxDeferredFlushes bounds how many flushes may defer a writer, for
-// lack of salvage budget, without charging it a flush attempt (see writeRun),
-// counted since its last beat: past it, a deferral counts as a failure. That
-// is about a minute at the default FlushTick, the order of how long the buffer
-// holds a write back anyway (SessionFlushInterval, IdleFlushAfter). Without it,
-// a writer that has stopped beating, stuck behind more refused writers than the
-// salvage can single out — refused writers that keep coming, say — would stay
-// buffered and dirty for as long as they did.
-const webBufferMaxDeferredFlushes = 30
 
 type webBufferedSession struct {
 	session *domain.WebSession
@@ -85,14 +67,6 @@ type webBufferedSession struct {
 
 	dirty          bool
 	failedAttempts int
-	// salvagePart is the part of a refused run's split this writer was left
-	// unwritten in, or 0 (see writeRun): the next flush writes the writer with
-	// that part rather than with the whole run, which takes the split on from
-	// where it stopped. Kept across beats; cleared once the writer's rows land.
-	salvagePart uint64
-	// deferredFlushes counts the flushes that deferred this writer for lack of
-	// salvage budget since its last beat, bounded by webBufferMaxDeferredFlushes.
-	deferredFlushes int
 	// emittedGoals keys the goals already bridged to the contact timeline by
 	// their identity, never by an index into entry.goals: a later beat can carry
 	// FEWER goals than an earlier one (two tabs, an offline replay), so an
@@ -133,10 +107,6 @@ type WebAnalyticsBuffer struct {
 
 	mu         sync.Mutex
 	workspaces map[string]*webWorkspaceBuffer
-
-	// salvageParts numbers the parts a split leaves unwritten (salvagePart),
-	// in the order it leaves them.
-	salvageParts atomic.Uint64
 }
 
 // NewWebAnalyticsBuffer creates the buffer. Zero-valued config fields fall
@@ -157,9 +127,6 @@ func NewWebAnalyticsBuffer(repo domain.WebAnalyticsRepository, log logger.Logger
 	}
 	if cfg.MaxSessionsPerWorkspace <= 0 {
 		cfg.MaxSessionsPerWorkspace = defaults.MaxSessionsPerWorkspace
-	}
-	if cfg.MaxSalvageFlushes <= 0 {
-		cfg.MaxSalvageFlushes = defaults.MaxSalvageFlushes
 	}
 	return &WebAnalyticsBuffer{
 		repo:       repo,
@@ -227,12 +194,11 @@ func (b *WebAnalyticsBuffer) Add(workspaceID string, tabID int64, session *domai
 	}
 	entry.dirty = true
 	entry.failedAttempts = 0
-	entry.deferredFlushes = 0
 	entry.lastArrival = now
 }
 
-// Start runs the flush scheduler until ctx is cancelled, then drains the buffer
-// on a detached context (see drain).
+// Start runs the flush scheduler until ctx is cancelled, then performs a
+// final flush on a detached context so shutdown drains the buffer.
 func (b *WebAnalyticsBuffer) Start(ctx context.Context) {
 	ticker := time.NewTicker(b.cfg.FlushTick)
 	defer ticker.Stop()
@@ -240,7 +206,7 @@ func (b *WebAnalyticsBuffer) Start(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
-			b.drain(flushCtx)
+			b.FlushAll(flushCtx)
 			cancel()
 			return
 		case <-ticker.C:
@@ -257,18 +223,7 @@ func (b *WebAnalyticsBuffer) Start(ctx context.Context) {
 func (b *WebAnalyticsBuffer) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	b.drain(ctx)
-}
-
-// drain writes every dirty writer, as FlushAll does, and goes on while a pass
-// leaves writers deferred (see writeRun) and ctx has time left: at shutdown, no
-// tick comes after it to write them.
-func (b *WebAnalyticsBuffer) drain(ctx context.Context) {
-	for {
-		if deferred := b.flush(ctx, true); deferred == 0 || ctx.Err() != nil {
-			return
-		}
-	}
+	b.FlushAll(ctx)
 }
 
 // FlushAll writes every dirty session regardless of debouncing. Also the test
@@ -281,32 +236,27 @@ func (b *WebAnalyticsBuffer) flushDue(ctx context.Context) {
 	b.flush(ctx, false)
 }
 
-// webFlushedEntry pairs a session id with the exact row pointers that were
-// handed to the repository. They must travel together: FlushBatch sorts the
-// slices it receives in place (for deadlock-free lock ordering), so parallel
-// id/row slices would silently desync and the failure bookkeeping would retry
-// and drop the wrong sessions. It holds all of the writer's rows, so that a
-// salvage (see writeRun) can hand them over again in a part of the batch.
+// webFlushedEntry pairs a session id with the exact row pointer that was handed
+// to the repository. They must travel together: FlushBatch sorts the slices it
+// receives in place (for deadlock-free lock ordering), so parallel id/row slices
+// would silently desync and the failure bookkeeping would retry and drop the
+// wrong sessions.
 type webFlushedEntry struct {
 	id             string
 	session        *domain.WebSession
-	pages          []*domain.WebPage
 	goals          []*domain.WebGoal
 	everIdentified bool
-	// salvagePart is the writer's salvagePart when the flush took it, and
-	// the part writeRun left it in when it comes back unwritten.
-	salvagePart uint64
 }
 
-// flush writes the writers that are due, or every dirty one when force is set,
-// and returns how many writers it deferred (see writeRun): dirty again, and due
-// on the next tick.
-func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) (deferredWriters int) {
+func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) {
 	now := b.nowFn()
 
 	type workspaceFlush struct {
 		workspaceID string
 		entries     []webFlushedEntry
+		sessions    []*domain.WebSession
+		pages       []*domain.WebPage
+		goals       []*domain.WebGoal
 	}
 	var flushes []workspaceFlush
 
@@ -329,10 +279,10 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) (deferredWri
 			if !forceWorkspace && !b.isDue(entry, now) {
 				continue
 			}
-			flushRun.entries = append(flushRun.entries, webFlushedEntry{
-				id: id, session: entry.session, pages: entry.pages, goals: entry.goals, everIdentified: entry.everIdentified,
-				salvagePart: entry.salvagePart,
-			})
+			flushRun.entries = append(flushRun.entries, webFlushedEntry{id: id, session: entry.session, goals: entry.goals, everIdentified: entry.everIdentified})
+			flushRun.sessions = append(flushRun.sessions, entry.session)
+			flushRun.pages = append(flushRun.pages, entry.pages...)
+			flushRun.goals = append(flushRun.goals, entry.goals...)
 
 			// Optimistically mark clean; a failure re-marks dirty below.
 			entry.dirty = false
@@ -340,7 +290,7 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) (deferredWri
 			entry.lastFlushedAt = now
 			entry.flushedGoalCount = len(entry.goals)
 		}
-		if len(flushRun.entries) == 0 {
+		if len(flushRun.sessions) == 0 {
 			continue
 		}
 		flushRun.workspaceID = workspaceID
@@ -350,18 +300,11 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) (deferredWri
 	b.mu.Unlock()
 
 	for _, run := range flushes {
-		landed, failed, deferred := b.writeRun(ctx, run.workspaceID, run.entries)
+		err := b.repo.FlushBatch(ctx, run.workspaceID, run.sessions, run.pages, run.goals)
 
 		b.mu.Lock()
 		ws := b.workspaces[run.workspaceID]
 		ws.flushing = false
-
-		// Rows that land take their writer out of the split.
-		for _, sent := range landed {
-			if entry := ws.sessions[sent.id]; entry != nil {
-				entry.salvagePart = 0
-			}
-		}
 
 		// Select the goals this writer has not bridged yet, while holding the
 		// lock; emit them after releasing it. Emitting before the flush had
@@ -369,8 +312,8 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) (deferredWri
 		// emitting under b.mu — or inside the flush transaction — would hold
 		// contact_segment_queue row locks across a batch spanning many contacts.
 		var candidates []webBridgeCandidate
-		if b.bridge != nil {
-			for _, sent := range landed {
+		if err == nil && b.bridge != nil {
+			for _, sent := range run.entries {
 				entry := ws.sessions[sent.id]
 				if entry == nil {
 					continue
@@ -385,52 +328,35 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) (deferredWri
 			}
 		}
 
-		// The split did not single these writers out, so their deferral costs
-		// them no flush attempt, up to the bound.
-		for _, sent := range deferred {
-			entry := ws.sessions[sent.id]
-			if entry == nil {
-				continue
+		if err != nil {
+			b.logger.WithField("workspace_id", run.workspaceID).
+				WithField("sessions", len(run.sessions)).
+				WithField("error", err.Error()).
+				Error("Web analytics flush failed")
+			for _, sent := range run.entries {
+				id := sent.id
+				entry := ws.sessions[id]
+				if entry == nil {
+					continue
+				}
+				// The write never landed: whatever entry is buffered now must
+				// not be debounced as if it had been persisted.
+				entry.everFlushed = false
+				if entry.session != sent.session {
+					// A newer beat replaced the entry mid-flush; it is dirty
+					// with a fresh retry budget and flushes on the next tick.
+					continue
+				}
+				entry.failedAttempts++
+				if entry.failedAttempts >= webBufferMaxFlushAttempts {
+					b.logger.WithField("workspace_id", run.workspaceID).
+						WithField("session_id", id).
+						Error("Dropping web analytics session after repeated flush failures")
+					delete(ws.sessions, id)
+					continue
+				}
+				entry.dirty = true
 			}
-			if entry.session == sent.session && entry.deferredFlushes >= webBufferMaxDeferredFlushes {
-				failed = append(failed, sent)
-				continue
-			}
-			entry.salvagePart = sent.salvagePart
-			// Not written: due again on the next tick, as below.
-			entry.everFlushed = false
-			deferredWriters++
-			if entry.session != sent.session {
-				continue // replaced mid-flush by a newer beat, which is dirty already
-			}
-			entry.deferredFlushes++
-			entry.dirty = true
-		}
-
-		for _, sent := range failed {
-			id := sent.id
-			entry := ws.sessions[id]
-			if entry == nil {
-				continue
-			}
-			entry.salvagePart = sent.salvagePart
-			// The write never landed: whatever entry is buffered now must
-			// not be debounced as if it had been persisted.
-			entry.everFlushed = false
-			if entry.session != sent.session {
-				// A newer beat replaced the entry mid-flush; it is dirty
-				// with a fresh retry budget and flushes on the next tick.
-				continue
-			}
-			entry.failedAttempts++
-			if entry.failedAttempts >= webBufferMaxFlushAttempts {
-				b.logger.WithField("workspace_id", run.workspaceID).
-					WithField("session_id", id).
-					Error("Dropping web analytics session after repeated flush failures")
-				delete(ws.sessions, id)
-				continue
-			}
-			entry.dirty = true
 		}
 		b.mu.Unlock()
 
@@ -467,160 +393,10 @@ func (b *WebAnalyticsBuffer) flush(ctx context.Context, force bool) (deferredWri
 			}
 		}
 
-		if len(landed) > 0 {
-			b.projectNavigation(ctx, run.workspaceID, landed)
-		}
-	}
-	return deferredWriters
-}
-
-// writeRun writes one workspace's run of writers and reports which of them
-// landed, which failed, and which it deferred.
-//
-// The run goes to FlushBatch whole first: one batch, one transaction. When
-// PostgreSQL refuses rows in it — a value it cannot store, a constraint they
-// break — every writer of the run fails with the one it refuses, and is dropped
-// once its retry fails too: /track is public, so a beat holding such a value,
-// from anyone, would cost the workspace every visit flushed with it. So a
-// refused batch is split in two, each half written on its own, and every half
-// PostgreSQL refuses split again, until the writers it refuses stand alone: they
-// fail, and the others land. A writer's rows always travel together, so no
-// writer is ever half written, and a writer is written at most once.
-//
-// A flush makes at most MaxSalvageFlushes calls beyond the run's own. The
-// parts the split has not reached by then are deferred rather than failed:
-// the split has not singled their writers out, so none is charged a flush
-// attempt for it, for up to webBufferMaxDeferredFlushes flushes. Each writer
-// the split leaves unwritten, deferred or failed, keeps the part it was left
-// in, and the next flush resumes the split from those parts, oldest first,
-// then writes the writers that joined since: starting again from the whole
-// run would only split it the same way, and get no further. The run's own
-// call goes to those parts too.
-//
-// A failure that is not a refusal (the connection, a timeout) would fail every
-// part alike, so it ends the split, failing the parts not yet written, as does
-// the end of the flush's context.
-func (b *WebAnalyticsBuffer) writeRun(ctx context.Context, workspaceID string, entries []webFlushedEntry) (landed, failed, deferred []webFlushedEntry) {
-	if len(entries) == 0 {
-		return nil, nil, nil
-	}
-	parts := webRunParts(entries)
-	budget := b.cfg.MaxSalvageFlushes
-	if parts[0][0].salvagePart != 0 {
-		budget++
-	} else {
-		// No writer of the run was left in a part, or it would sort first:
-		// the whole run, one batch.
-		err := b.flushEntries(ctx, workspaceID, entries)
 		if err == nil {
-			return entries, nil, nil
-		}
-		b.logger.WithField("workspace_id", workspaceID).
-			WithField("sessions", len(entries)).
-			WithField("error", err.Error()).
-			Error("Web analytics flush failed")
-		if !errors.Is(err, domain.ErrWebAnalyticsRowsRefused) {
-			return nil, entries, nil
-		}
-		if len(entries) == 1 {
-			return nil, b.leftUnwritten(parts[0]), nil
-		}
-		whole := parts[0]
-		parts = [][]webFlushedEntry{whole[:len(whole)/2], whole[len(whole)/2:]}
-	}
-
-	stopped := false
-	for len(parts) > 0 {
-		part := parts[0]
-		parts = parts[1:]
-		if stopped || ctx.Err() != nil {
-			failed = append(failed, b.leftUnwritten(part)...)
-			continue
-		}
-		if budget == 0 {
-			deferred = append(deferred, b.leftUnwritten(part)...)
-			continue
-		}
-		budget--
-		err := b.flushEntries(ctx, workspaceID, part)
-		switch {
-		case err == nil:
-			landed = append(landed, part...)
-		case !errors.Is(err, domain.ErrWebAnalyticsRowsRefused):
-			b.logger.WithField("workspace_id", workspaceID).
-				WithField("error", err.Error()).
-				Error("Web analytics flush salvage stopped")
-			failed = append(failed, b.leftUnwritten(part)...)
-			stopped = true
-		case len(part) > 1:
-			parts = append(parts, part[:len(part)/2], part[len(part)/2:])
-		default:
-			b.logger.WithField("workspace_id", workspaceID).
-				WithField("session_id", part[0].id).
-				WithField("error", err.Error()).
-				Error("Web analytics session refused by the database")
-			failed = append(failed, b.leftUnwritten(part)...)
+			b.projectNavigation(ctx, run.workspaceID, run.entries)
 		}
 	}
-	b.logger.WithField("workspace_id", workspaceID).
-		WithField("written", len(landed)).
-		WithField("failed", len(failed)).
-		WithField("deferred", len(deferred)).
-		Warn("Web analytics flush salvage finished")
-	return landed, failed, deferred
-}
-
-// webRunParts sorts a run into the parts earlier splits left its writers in,
-// oldest first, followed by the writers left in none, each part in id order:
-// the tabs of a session sit side by side, and the same run splits the same way
-// every time.
-func webRunParts(entries []webFlushedEntry) [][]webFlushedEntry {
-	sorted := append([]webFlushedEntry(nil), entries...)
-	sort.Slice(sorted, func(i, j int) bool {
-		pi, pj := sorted[i].salvagePart, sorted[j].salvagePart
-		switch {
-		case pi == pj:
-			return sorted[i].id < sorted[j].id
-		case pi == 0 || pj == 0:
-			return pj == 0
-		default:
-			return pi < pj
-		}
-	})
-	var parts [][]webFlushedEntry
-	for start := 0; start < len(sorted); {
-		end := start + 1
-		for end < len(sorted) && sorted[end].salvagePart == sorted[start].salvagePart {
-			end++
-		}
-		parts = append(parts, sorted[start:end])
-		start = end
-	}
-	return parts
-}
-
-// leftUnwritten numbers a part the split leaves unwritten, so that the next
-// flush writes its writers together, in turn (see writeRun).
-func (b *WebAnalyticsBuffer) leftUnwritten(part []webFlushedEntry) []webFlushedEntry {
-	salvagePart := b.salvageParts.Add(1)
-	for i := range part {
-		part[i].salvagePart = salvagePart
-	}
-	return part
-}
-
-// flushEntries hands the writers' rows to FlushBatch, in slices of their own:
-// FlushBatch sorts what it is given in place.
-func (b *WebAnalyticsBuffer) flushEntries(ctx context.Context, workspaceID string, entries []webFlushedEntry) error {
-	sessions := make([]*domain.WebSession, 0, len(entries))
-	var pages []*domain.WebPage
-	var goals []*domain.WebGoal
-	for _, sent := range entries {
-		sessions = append(sessions, sent.session)
-		pages = append(pages, sent.pages...)
-		goals = append(goals, sent.goals...)
-	}
-	return b.repo.FlushBatch(ctx, workspaceID, sessions, pages, goals)
 }
 
 // projectNavigation refreshes the contact timeline from the rows this flush just

@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/http"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -43,6 +45,30 @@ func TestEscapeUnstorableBytes(t *testing.T) {
 			assert.Equal(t, tc.want, got)
 			assert.True(t, utf8.ValidString(got), "%q", got)
 			assert.NotContains(t, got, "\x00")
+		})
+	}
+}
+
+func TestEscapeUnstorableBytesWithin(t *testing.T) {
+	for _, tc := range []struct {
+		name, in string
+		max      int
+		want     string
+	}{
+		{"within the bound", "a\xffb", 5, "a%FFb"},
+		{"storable text is cut between characters", "abé", 3, "ab"},
+		{"an escape ending on the bound", "ab\xff", 5, "ab%FF"},
+		{"an escape crossing the bound is left out", "ab\xff", 4, "ab"},
+		{"a NUL's escape too", "ab\x00", 4, "ab"},
+		{"a character ending on the bound after an escape", "\xffé", 5, "%FFé"},
+		{"a character crossing the bound after an escape is left out", "\xffé", 4, "%FF"},
+		{"nothing after what is left out, even what would fit", "\xff😀a", 4, "%FF"},
+		{"a bound of zero", "\xff", 0, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := escapeUnstorableBytesWithin(tc.in, tc.max)
+			assert.Equal(t, tc.want, got)
+			assert.True(t, utf8.ValidString(got), "%q", got)
 		})
 	}
 }
@@ -297,9 +323,18 @@ func TestWebTrackPayloadCapsTheUserAgent(t *testing.T) {
 		assert.Equal(t, strings.Repeat("a", WebTrackMaxUserAgentBytes), stored(t, strings.Repeat("a", 1<<20)))
 	})
 
-	t.Run("the cut backs off to where a character starts", func(t *testing.T) {
-		assert.Equal(t, strings.Repeat("a", WebTrackMaxUserAgentBytes-1),
-			stored(t, strings.Repeat("a", WebTrackMaxUserAgentBytes-1)+"é"))
+	t.Run("a character crossing the cap is left out whole", func(t *testing.T) {
+		for _, c := range []string{"é", "€", "😀"} {
+			t.Run(c, func(t *testing.T) {
+				// Its last byte is the first past the cap.
+				kept := strings.Repeat("a", WebTrackMaxUserAgentBytes-len(c)+1)
+				assert.Equal(t, kept, stored(t, kept+c+" Safari/605.1.15"))
+			})
+			t.Run(c+" after an escape", func(t *testing.T) {
+				kept := "\xff" + strings.Repeat("a", WebTrackMaxUserAgentBytes-len("%FF")-len(c)+1)
+				assert.Equal(t, "%FF"+kept[1:], stored(t, kept+c+" Safari/605.1.15"))
+			})
+		}
 	})
 
 	t.Run("bytes the escaping triples count as stored", func(t *testing.T) {
@@ -325,5 +360,31 @@ func TestWebTrackPayloadCapsTheUserAgent(t *testing.T) {
 
 	t.Run("a user agent within the cap keeps the % it ends with", func(t *testing.T) {
 		assert.Equal(t, "Mozilla/5.0 (battery 100%", stored(t, "Mozilla/5.0 (battery 100%"))
+	})
+
+	t.Run("a % sent as such is kept at the cut, as any character", func(t *testing.T) {
+		// Only an escape the server wrote is left out whole.
+		kept := strings.Repeat("a", WebTrackMaxUserAgentBytes-len("%4")) + "%4"
+		assert.Equal(t, kept, stored(t, kept+"2 Safari/605.1.15"))
+	})
+
+	t.Run("a header far longer than the cap is escaped only as far as the cap", func(t *testing.T) {
+		// As long as net/http reads by default, in bytes the escaping writes
+		// as three each: escaped whole, it would take three times its length.
+		p := &WebTrackPayload{
+			WorkspaceID: "ws1",
+			SessionID:   uuidV7At(now.Add(-time.Minute)),
+			UpdatedAt:   now.UnixMilli(),
+			Seq:         1,
+			Actions:     []WebTrackAction{{Type: WebActionTypePageview, Path: "/home", PageNumber: 1}},
+			Attributes:  &WebSessionAttributes{UserAgent: strings.Repeat("\xff", http.DefaultMaxHeaderBytes)},
+		}
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		err := p.Validate(now)
+		runtime.ReadMemStats(&after)
+		require.NoError(t, err)
+		assert.Equal(t, strings.Repeat("%FF", WebTrackMaxUserAgentBytes/3), p.Attributes.UserAgent)
+		assert.Less(t, after.TotalAlloc-before.TotalAlloc, uint64(64<<10), "bytes Validate allocated")
 	})
 }

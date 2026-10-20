@@ -456,33 +456,7 @@ func (r *webAnalyticsRepository) FlushBatch(ctx context.Context, workspaceID str
 		}
 		err = r.flushOnce(ctx, db, sessions, pages, goals)
 	}
-	if isRowsRefusedError(err) {
-		return fmt.Errorf("%w: %w", domain.ErrWebAnalyticsRowsRefused, err)
-	}
 	return err
-}
-
-// isRowsRefusedError reports whether PostgreSQL failed the flush over the rows
-// it was given: a cardinality violation (class 21, one statement writing a row
-// twice), a value it cannot take (class 22, such as text that is not UTF-8), a
-// constraint the rows break (class 23), or a limit of its own they exceed
-// (class 54, such as an index entry too large). The same rows would fail
-// again, but the rest of the batch can land without them. Anything else — the
-// connection, a timeout, a deadlock, the server itself — would fail every part
-// of the batch alike, and a missing partition is handled above.
-func isRowsRefusedError(err error) bool {
-	if err == nil || isMissingPartitionError(err) {
-		return false
-	}
-	var pqErr *pq.Error
-	if !errors.As(err, &pqErr) {
-		return false
-	}
-	switch pqErr.Code.Class() {
-	case "21", "22", "23", "54":
-		return true
-	}
-	return false
 }
 
 func (r *webAnalyticsRepository) flushOnce(ctx context.Context, db *sql.DB, sessions []*domain.WebSession, pages []*domain.WebPage, goals []*domain.WebGoal) error {
