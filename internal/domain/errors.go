@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -238,7 +239,8 @@ func NewAutomationPausedError(automationID string, lists []ListRef, err error) *
 // It wraps the update's own failure, which decides how it is answered, and adds what the caller
 // has to do about it: saving the same version again does not repair it, since nothing the trigger
 // is compiled from has changed for that save, while pausing and activating the automation
-// reinstalls its trigger from the stored version.
+// reinstalls its trigger from the stored version. When that version's own trigger conditions are
+// what failed, activating it would fail on them again: saving corrected ones reinstalls it.
 type AutomationUndoFailedError struct {
 	AutomationID string
 	Err          error
@@ -256,7 +258,12 @@ func (e *AutomationUndoFailedError) Unwrap() error {
 
 // UndoNotice says what the automation is left running, and how to make it run what it stores.
 func (e *AutomationUndoFailedError) UndoNotice() string {
-	return "the automation is still live, storing this version but running the previous version's trigger: pause it and activate it again"
+	const left = "the automation is still live, storing this version but running the previous version's trigger"
+	var conditionErr *TriggerConditionError
+	if errors.As(e.Err, &conditionErr) {
+		return left + ": correct its trigger conditions and save it again"
+	}
+	return left + ": pause it and activate it again"
 }
 
 // NewAutomationUndoFailedError creates a new automation undo failed error

@@ -854,6 +854,7 @@ func TestAutomationHandler_UpdateFailedOnceStored(t *testing.T) {
 	conditionFailure := fmt.Errorf("failed to update automation trigger: %w", condition)
 	serverFailure := fmt.Errorf("failed to update automation trigger: %w", errors.New("lock timeout"))
 	undoNotice := "the automation is still live, storing this version but running the previous version's trigger: pause it and activate it again"
+	conditionUndoNotice := "the automation is still live, storing this version but running the previous version's trigger: correct its trigger conditions and save it again"
 
 	testCases := []struct {
 		name   string
@@ -885,7 +886,7 @@ func TestAutomationHandler_UpdateFailedOnceStored(t *testing.T) {
 			err:    domain.NewAutomationUndoFailedError("auto-123", conditionFailure),
 			status: http.StatusBadRequest,
 			body: `{
-				"error": ` + strconv.Quote(condition.Error()+"; "+undoNotice) + `,
+				"error": ` + strconv.Quote(condition.Error()+"; "+conditionUndoNotice) + `,
 				"running_previous_trigger": true
 			}`,
 		},

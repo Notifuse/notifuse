@@ -343,6 +343,22 @@ func TestAutomationUndoFailedError_Error(t *testing.T) {
 	}
 }
 
+// When the stored version's own trigger conditions are what failed, activating it would fail on
+// them again: the caller is told to correct them instead.
+func TestAutomationUndoFailedError_ConditionsFailed(t *testing.T) {
+	condition := NewTriggerConditionError("invalid trigger conditions: operator does not exist")
+	failure := fmt.Errorf("failed to update automation trigger: %w", condition)
+	notice := "the automation is still live, storing this version but running the previous version's trigger: correct its trigger conditions and save it again"
+
+	err := NewAutomationUndoFailedError("auto-123", failure)
+	if err.UndoNotice() != notice {
+		t.Errorf("Expected undo notice '%s', got '%s'", notice, err.UndoNotice())
+	}
+	if err.Error() != failure.Error()+"; "+notice {
+		t.Errorf("Expected error message '%s', got '%s'", failure.Error()+"; "+notice, err.Error())
+	}
+}
+
 // As for a pause: the handler answers with the status of what failed, and the failure is neither
 // a pause nor a refusal of the update.
 func TestAutomationUndoFailedError_As(t *testing.T) {
