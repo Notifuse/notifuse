@@ -29,7 +29,8 @@ import (
 // the inbound webhook endpoint, as the JSON array Mailjet's Version 2 webhooks post. Mailjet
 // names the email by the CustomID Notifuse gives every email it sends through Mailjet
 // (internal/service/mailjet_service.go); the emails here go out through SMTP, whose
-// X-Message-ID header carries the same ID.
+// X-Message-ID header carries the same ID. One case unsubscribes with the email's own link
+// instead, which marks the email the same way.
 //
 // The Mailjet parser recorded an "unsub" event as a spam complaint: the contact became
 // complained on the email's list, could not subscribe to it again, and the email counted
@@ -207,6 +208,17 @@ func TestMailjetUnsubscribeWebhook(t *testing.T) {
 		}
 		sort.Strings(kinds)
 		return kinds
+	}
+	// unsubscribedDeliveries counts the email.unsubscribed deliveries queued about the email,
+	// whatever address they carry
+	unsubscribedDeliveries := func(t *testing.T, messageID string) int {
+		t.Helper()
+		var n int
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT COUNT(*) FROM webhook_deliveries
+			 WHERE subscription_id = $1 AND event_type = 'email.unsubscribed' AND payload->>'message_id' = $2`,
+			subscriptionID, messageID).Scan(&n))
+		return n
 	}
 
 	// An SMTP send records its message_history row only once the server accepted it
@@ -558,7 +570,8 @@ func TestMailjetUnsubscribeWebhook(t *testing.T) {
 	// checked. The erasure keeps the email with the address redacted, and marking it then
 	// would send its email.unsubscribed events with the redacted address. That moment can't
 	// be timed through the endpoint, so the marking step runs on its own, after the erasure.
-	t.Run("a contact erased while the unsubscribe is handled: the email is not marked", func(t *testing.T) {
+	// Complaints and bounces are recorded on such an email as before.
+	t.Run("a contact erased while the unsubscribe is handled: the email is not marked unsubscribed, a complaint and a bounce still are", func(t *testing.T) {
 		email := newContact(t, "erased-while-handled")
 		messageID := sendTransactional(t, email)
 		post(t, "/api/contacts.delete", map[string]interface{}{"workspace_id": workspace.ID, "email": email})
@@ -566,17 +579,65 @@ func TestMailjetUnsubscribeWebhook(t *testing.T) {
 		require.NoError(t, db.QueryRowContext(bg,
 			`SELECT contact_email FROM message_history WHERE id = $1`, messageID).Scan(&storedEmail))
 		require.Equal(t, "DELETED_EMAIL", storedEmail, "the erasure keeps the email with the address redacted")
+		messageHistoryRepo := suite.ServerManager.GetApp().GetMessageHistoryRepository()
 
-		require.NoError(t, suite.ServerManager.GetApp().GetMessageHistoryRepository().SetStatusesIfNotSet(bg, workspace.ID,
+		require.NoError(t, messageHistoryRepo.SetStatusesIfNotSet(bg, workspace.ID,
 			[]domain.MessageEventUpdate{{ID: messageID, Event: domain.MessageEventUnsubscribed, Timestamp: time.Now()}}))
 
 		assert.Equal(t, marks{}, marksOf(t, messageID))
 		assert.Zero(t, timelineKindCount(t, db, "DELETED_EMAIL", "email.unsubscribed", messageID))
-		var deliveries int
+		assert.Zero(t, unsubscribedDeliveries(t, messageID), "no email.unsubscribed goes out with the redacted address")
+
+		require.NoError(t, messageHistoryRepo.SetStatusesIfNotSet(bg, workspace.ID, []domain.MessageEventUpdate{
+			{ID: messageID, Event: domain.MessageEventComplained, Timestamp: time.Now()},
+			{ID: messageID, Event: domain.MessageEventBounced, Timestamp: time.Now()},
+		}))
+
+		var complained, bounced bool
 		require.NoError(t, db.QueryRowContext(bg,
-			`SELECT COUNT(*) FROM webhook_deliveries WHERE subscription_id = $1 AND payload->>'message_id' = $2`,
-			subscriptionID, messageID).Scan(&deliveries))
-		assert.Zero(t, deliveries, "no email.unsubscribed goes out with the redacted address")
+			`SELECT complained_at IS NOT NULL, bounced_at IS NOT NULL FROM message_history WHERE id = $1`,
+			messageID).Scan(&complained, &bounced))
+		assert.True(t, complained, "the complaint is recorded on the redacted email")
+		assert.True(t, bounced, "the bounce is recorded on the redacted email")
+	})
+
+	// The email's own unsubscribe link reaches the same marking with no race: the erased
+	// address can become a contact again, back on the list, and unsubscribe with the link of
+	// an email sent before the erasure. The opt-out is recorded on the new contact's row,
+	// and the email, which names no one now, is left unmarked.
+	t.Run("an erased address, a contact again, unsubscribes with the link of an email sent before the erasure: the new contact is unsubscribed, the email is not marked", func(t *testing.T) {
+		list, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		email := newContact(t, "erased-then-back")
+		addToList(t, email, list.ID)
+		broadcastID, messageIDs := sendBroadcast(t, list.ID, email)
+		messageID := messageIDs[email]
+		post(t, "/api/contacts.delete", map[string]interface{}{"workspace_id": workspace.ID, "email": email})
+		_, err = factory.CreateContact(workspace.ID, testutil.WithContactEmail(email))
+		require.NoError(t, err)
+		addToList(t, email, list.ID)
+
+		// Posted as the notification center posts it, with the parameters of the email's
+		// unsubscribe link
+		resp, err := postUnsubscribeJSON(suite.ServerManager.GetURL(), "/unsubscribe", domain.UnsubscribeFromListsRequest{
+			WorkspaceID: workspace.ID,
+			Email:       email,
+			EmailHMAC:   domain.ComputeEmailHMAC(email, workspace.Settings.SecretKey),
+			ListIDs:     []string{list.ID},
+			MessageID:   messageID,
+		})
+		require.NoError(t, err)
+		body, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, "unsubscribe: %s", body)
+
+		assert.Equal(t, &listRow{status: domain.ContactListStatusUnsubscribed}, rowOf(t, email, list.ID),
+			"the opt-out is recorded on the new contact's row")
+		assert.Equal(t, []string{"list.unsubscribed"}, queued(t, email))
+		assert.Equal(t, marks{}, marksOf(t, messageID), "the email sent before the erasure is not marked")
+		assert.Zero(t, timelineKindCount(t, db, "DELETED_EMAIL", "email.unsubscribed", messageID))
+		assert.Zero(t, unsubscribedDeliveries(t, messageID), "no email.unsubscribed goes out with the redacted address")
+		assert.Zero(t, broadcastStats(t, broadcastID).TotalUnsubscribed, "the broadcast counts no unsubscribe")
 	})
 
 	// Mailjet's webhooks cover the whole Mailjet account, so they report emails Notifuse
