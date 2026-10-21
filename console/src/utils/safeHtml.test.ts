@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { sanitizeHtml, parseHtmlInert, safeExternalUrl, isSafeHref, textToHtml } from './safeHtml'
+import {
+  sanitizeHtml,
+  parseHtmlInert,
+  safeExternalUrl,
+  isSafeHref,
+  isOpenableUrl,
+  textOnlyHtml
+} from './safeHtml'
 
 describe('sanitizeHtml', () => {
   it('drops event handlers, scripts, frames, styles and javascript: links', () => {
@@ -55,6 +62,15 @@ describe('sanitizeHtml', () => {
     expect(out).toContain('href="sms:+33100000000"')
   })
 
+  it('drops image maps, whose areas are links of their own', () => {
+    const out = sanitizeHtml(
+      '<img src="https://example.com/b.png" usemap="#m">' +
+        '<map name="m"><area shape="default" href="https://example.com/x"></map>'
+    )
+    expect(out).not.toMatch(/<map|<area|example\.com\/x/i)
+    expect(out).toContain('<img src="https://example.com/b.png"')
+  })
+
   it('drops form controls and keeps their text', () => {
     const out = sanitizeHtml(
       '<form action="https://example.com/x" method="post">Sign in' +
@@ -94,12 +110,18 @@ describe('parseHtmlInert', () => {
   })
 })
 
-describe('textToHtml', () => {
-  it('turns text into HTML that shows that same text', () => {
-    const text = 'a <a href="javascript:x()">go</a> & b'
-    const html = textToHtml(text)
+describe('textOnlyHtml', () => {
+  it('keeps only the text of some HTML, escaped so that it shows as text', () => {
+    const html = textOnlyHtml(
+      '<p onclick="window.__probe = 1">a &lt;a href="javascript:x()"&gt;go&lt;/a&gt; &amp; ' +
+        '<strong>b</strong><img src="x" onerror="window.__probe = 1"></p>'
+    )
     expect(html).toBe('a &lt;a href="javascript:x()"&gt;go&lt;/a&gt; &amp; b')
-    expect(parseHtmlInert(html).textContent).toBe(text)
+    expect(parseHtmlInert(html).textContent).toBe('a <a href="javascript:x()">go</a> & b')
+  })
+
+  it('returns an empty string for empty input', () => {
+    expect(textOnlyHtml('')).toBe('')
   })
 })
 
@@ -124,6 +146,32 @@ describe('safeExternalUrl', () => {
     [undefined, null]
   ])('%s -> %s', (input, expected) => {
     expect(safeExternalUrl(input)).toBe(expected)
+  })
+})
+
+describe('isOpenableUrl', () => {
+  it.each([
+    'https://example.com/a',
+    'http://example.com',
+    'mailto:team@example.com',
+    'tel:+33100000000'
+  ])('accepts %s', (url) => {
+    expect(isOpenableUrl(url)).toBe(true)
+  })
+
+  it.each([
+    'javascript:window.__probe=1',
+    'data:text/html,<p>x</p>',
+    'search-ms:query=invoice',
+    'webcal://example.com/cal.ics',
+    'file:///etc/hosts',
+    '/relative',
+    '{{ cta_url }}',
+    '',
+    null,
+    undefined
+  ])('refuses %j', (url) => {
+    expect(isOpenableUrl(url)).toBe(false)
   })
 })
 

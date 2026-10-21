@@ -6,7 +6,7 @@ import { createRichExtensions } from './shared/extensions'
 import { injectTiptapStyles } from './shared/styles'
 import { TiptapToolbar } from './components/TiptapToolbar'
 import { sanitizeRichContent } from './shared/utils'
-import { parseHtmlInert, textToHtml } from '../../../../utils/safeHtml'
+import { textOnlyHtml } from '../../../../utils/safeHtml'
 
 export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
   content = '',
@@ -70,9 +70,9 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
 
         // Fallback: try to extract just the text content
         try {
-          const tempDiv = parseHtmlInert(sanitizedContent)
-          const textOnly = tempDiv.textContent || tempDiv.innerText || ''
-          editor.commands.setContent(`<p>${textToHtml(textOnly)}</p>`, { emitUpdate: false })
+          editor.commands.setContent(`<p>${textOnlyHtml(sanitizedContent)}</p>`, {
+            emitUpdate: false
+          })
           console.warn('Fell back to text-only content due to parsing error')
         } catch (fallbackError) {
           console.error('Fallback content extraction also failed:', fallbackError)

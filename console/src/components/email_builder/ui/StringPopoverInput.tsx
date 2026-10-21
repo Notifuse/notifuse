@@ -3,7 +3,7 @@ import { Input, Popover, Button } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons'
 import { useLingui } from '@lingui/react/macro'
-import { isSafeHref } from '../../../utils/safeHtml'
+import { isOpenableUrl } from '../../../utils/safeHtml'
 
 interface StringPopoverInputProps {
   value?: string
@@ -111,7 +111,7 @@ const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
     const isValueValid = isValidUri(value)
     const isLiquid = isLiquidExpression(value)
     const shouldRenderAsLink =
-      validateUri && isValueValid && value.trim() && !isLiquid && isSafeHref(value)
+      validateUri && isValueValid && value.trim() && !isLiquid && isOpenableUrl(value)
 
     return (
       <div className="space-y-2">

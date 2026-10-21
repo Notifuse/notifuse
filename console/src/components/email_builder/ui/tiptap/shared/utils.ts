@@ -1,6 +1,6 @@
 import { getMarkRange, type Editor } from '@tiptap/react'
 import type { Mark, Node } from '@tiptap/pm/model'
-import { parseHtmlInert, sanitizeHtml, textToHtml } from '../../../../../utils/safeHtml'
+import { parseHtmlInert, sanitizeHtml, textOnlyHtml } from '../../../../../utils/safeHtml'
 
 // Extend the ChainedCommands type to include our custom command
 declare module '@tiptap/core' {
@@ -391,9 +391,7 @@ export const getInitialInlineContent = (rawContent: string): string => {
 
     // Ultimate fallback: extract just the text content
     try {
-      const tempDiv = parseHtmlInert(content)
-      const textOnly = tempDiv.textContent || tempDiv.innerText || ''
-      return `<span data-inline-doc="">${textToHtml(textOnly)}</span>`
+      return `<span data-inline-doc="">${textOnlyHtml(content)}</span>`
     } catch (fallbackError) {
       console.error('Text extraction fallback failed:', fallbackError)
       return '<span data-inline-doc=""></span>' // Ultimate safe fallback

@@ -6,7 +6,8 @@ import DOMPurify from 'dompurify'
  *
  * Event handlers, `<script>`, frames and `javascript:`, `vbscript:` and `data:`
  * links are removed, and so are `<style>`, which would restyle the console
- * around it, and form controls, which have no place in an email. Formatting,
+ * around it, and form controls and image maps, which have no place in it: an
+ * image map's areas are links the canvas would follow. Formatting,
  * inline styles, classes, `data-*` attributes, link targets, links that open
  * another app (`webcal:`, `whatsapp:`…) and Liquid (`{{ url }}` in an `href`
  * included) are kept. An editor saves what it loaded, so anything dropped here
@@ -17,7 +18,17 @@ export function sanitizeHtml(html: string): string {
   return DOMPurify.sanitize(html, {
     ADD_ATTR: ['target'],
     ALLOW_UNKNOWN_PROTOCOLS: true,
-    FORBID_TAGS: ['style', 'form', 'input', 'button', 'select', 'option', 'textarea']
+    FORBID_TAGS: [
+      'style',
+      'form',
+      'input',
+      'button',
+      'select',
+      'option',
+      'textarea',
+      'map',
+      'area'
+    ]
   })
 }
 
@@ -42,11 +53,12 @@ export function parseHtmlInert(html: string): HTMLDivElement {
 }
 
 /**
- * HTML that shows `text` as it is: what would read as markup is escaped.
+ * The text of some HTML, as HTML that shows only that text: the markup is
+ * dropped, and whatever in the text reads as markup is escaped.
  */
-export function textToHtml(text: string): string {
-  const container = parseHtmlInert('')
-  container.textContent = text
+export function textOnlyHtml(html: string): string {
+  const container = parseHtmlInert(html)
+  container.textContent = container.textContent ?? ''
   return container.innerHTML
 }
 
@@ -64,6 +76,22 @@ export function safeExternalUrl(url: string | null | undefined): string | null {
     return parsed.toString()
   } catch {
     return null
+  }
+}
+
+const OPENABLE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:'])
+
+/**
+ * Whether the console offers a URL as a link to follow, as the editor's side
+ * panel does for a link target: an absolute web, mail or phone address. Any
+ * other scheme would hand the click to an app on the member's computer.
+ */
+export function isOpenableUrl(url: string | null | undefined): boolean {
+  if (!url) return false
+  try {
+    return OPENABLE_PROTOCOLS.has(new URL(url).protocol)
+  } catch {
+    return false
   }
 }
 
