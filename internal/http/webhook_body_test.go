@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -299,4 +300,23 @@ func TestReadWebhookBody_HTTP2ConnectionOutlivesARefusedBody(t *testing.T) {
 	next, reused := post([]byte("{}"))
 	assert.Equal(t, http.StatusOK, next.StatusCode)
 	assert.True(t, reused, "the next request reuses the connection")
+}
+
+func TestReadWebhookBody_ChunkedBodyOverTheLimitIsAnsweredBehindTracing(t *testing.T) {
+	// Tracing hides the server's writer. net/http must still learn the body
+	// passed the limit, or it closes the connection on the unread rest of the
+	// body at once and the client gets a reset instead of the 413.
+	srv := httptest.NewServer(middleware.KeepServerWriter(middleware.TracingMiddleware(webhookBodyHandler(1024, 2*time.Second, nil))))
+	t.Cleanup(srv.Close)
+
+	for i := 0; i < 5; i++ {
+		req, err := http.NewRequest(http.MethodPost, srv.URL, io.MultiReader(bytes.NewReader(bytes.Repeat([]byte("a"), 4<<20))))
+		require.NoError(t, err)
+		req.ContentLength = -1
+		resp, err := srv.Client().Do(req)
+		require.NoError(t, err)
+		_ = resp.Body.Close()
+
+		assert.Equal(t, http.StatusRequestEntityTooLarge, resp.StatusCode)
+	}
 }

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -55,14 +56,14 @@ func stalledBodyRead(t *testing.T, wrap func(http.Handler) http.Handler) (setErr
 
 func TestSetReadDeadline_ReachesTheConnectionBehindAWrapper(t *testing.T) {
 	setErr, readErr := stalledBodyRead(t, func(h http.Handler) http.Handler {
-		return KeepResponseController(hideWriter(h))
+		return KeepServerWriter(hideWriter(h))
 	})
 
 	assert.NoError(t, setErr)
 	assert.True(t, errors.Is(readErr, os.ErrDeadlineExceeded), "the body read stops at the deadline, got %v", readErr)
 }
 
-func TestSetReadDeadline_WithoutKeepResponseControllerUsesTheWriter(t *testing.T) {
+func TestSetReadDeadline_WithoutKeepServerWriterUsesTheHandlerWriter(t *testing.T) {
 	t.Run("hidden writer", func(t *testing.T) {
 		setErr, _ := stalledBodyRead(t, hideWriter)
 
@@ -75,4 +76,35 @@ func TestSetReadDeadline_WithoutKeepResponseControllerUsesTheWriter(t *testing.T
 		assert.NoError(t, setErr)
 		assert.True(t, errors.Is(readErr, os.ErrDeadlineExceeded), "the body read stops at the deadline, got %v", readErr)
 	})
+}
+
+func TestMaxBytesReader_TellsTheServerWriterBehindAWrapper(t *testing.T) {
+	// net/http closes the connection after the answer, waiting a moment so the
+	// client reads it, only when its own writer learns the body passed the
+	// limit. Here the whole body has arrived, so without that net/http would
+	// drain it and keep the connection open.
+	for name, wrap := range map[string]func(http.Handler) http.Handler{
+		"kept behind a wrapper": func(h http.Handler) http.Handler { return KeepServerWriter(hideWriter(h)) },
+		"server writer":         func(h http.Handler) http.Handler { return h },
+	} {
+		t.Run(name, func(t *testing.T) {
+			var readErr error
+			srv := httptest.NewServer(wrap(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_, readErr = io.ReadAll(MaxBytesReader(w, r, 1024))
+				w.WriteHeader(http.StatusRequestEntityTooLarge)
+			})))
+			t.Cleanup(srv.Close)
+
+			req, err := http.NewRequest(http.MethodPost, srv.URL, io.MultiReader(strings.NewReader(strings.Repeat("a", 2048))))
+			require.NoError(t, err)
+			req.ContentLength = -1
+			resp, err := srv.Client().Do(req)
+			require.NoError(t, err)
+			_ = resp.Body.Close()
+
+			var tooLarge *http.MaxBytesError
+			assert.ErrorAs(t, readErr, &tooLarge)
+			assert.True(t, resp.Close, "net/http closes the connection after a body over the limit")
+		})
+	}
 }

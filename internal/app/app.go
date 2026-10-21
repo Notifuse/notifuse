@@ -1575,7 +1575,7 @@ func (a *App) InitHandlers() error {
 func (a *App) serverHandler() http.Handler {
 	var handler http.Handler = a.GetHandler()
 
-	// Apply graceful shutdown middleware first (outermost)
+	// Apply graceful shutdown middleware first (innermost)
 	handler = a.gracefulShutdownMiddleware(handler)
 	a.logger.Info("Graceful shutdown middleware enabled")
 
@@ -1588,9 +1588,9 @@ func (a *App) serverHandler() http.Handler {
 	// Apply CORS middleware
 	handler = middleware.CORSMiddleware(handler)
 
-	// Outermost, so the webhooks reach the server's own writer for their read
-	// deadline whatever wraps it further in
-	return middleware.KeepResponseController(handler)
+	// Outermost, so the webhooks reach the server's own writer for their body
+	// limits whatever wraps it further in
+	return middleware.KeepServerWriter(handler)
 }
 
 // newHTTPServer builds the HTTP server with its connection time limits.

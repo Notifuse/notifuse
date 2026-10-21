@@ -1,6 +1,6 @@
 # Webhook request limits plan
 
-**Status**: plan reviewed by Gemini (three rounds), implemented
+**Status**: plan reviewed by Gemini (four rounds), implemented
 **Date**: 2026-10-21
 **Target**: 42.0 (unreleased). No migration, no version bump.
 **Base**: `origin/dev` at `5af5221`.
@@ -92,10 +92,14 @@ deadline only closes the body pipe and does not cancel the context.
 The deadline goes through the server's own `ResponseWriter`. With `TRACING_ENABLED=true`, OpenCensus'
 `ochttp` hands the handler a writer without `Unwrap`, so `http.NewResponseController(w)` there returns
 `http.ErrNotSupported` (adding `Unwrap` to `traceResponseWriter` would not help: `ochttp`'s writer sits
-between it and the handler). A middleware outermost in the server chain,
-`middleware.KeepResponseController`, saves a controller for the server's writer in the request
-context, and `middleware.SetReadDeadline(w, r, deadline)` uses it, or `w`'s when there is none. Only
-the read deadline is reachable this way, so no inner wrapper that buffers or counts writes is bypassed.
+between it and the handler). The body limit needs it too: net/http only learns that a body passed
+the limit through its own writer, and otherwise closes the connection on the unread rest of a chunked
+body at once, so the client usually gets a reset instead of the 413. A middleware outermost in the
+server chain, `middleware.KeepServerWriter`, saves the server's writer in the request context;
+`middleware.SetReadDeadline(w, r, deadline)` and `middleware.MaxBytesReader(w, r, n)` use it, or `w`
+when there is none. Only these two operations reach it, so no inner wrapper that buffers or counts
+writes is bypassed. It costs a context value and a shallow copy of the request on every request, as
+tracing and the auth middleware already do, and keeps working whatever wrapper is added later.
 
 ### Server: `ReadHeaderTimeout` 20 s, `IdleTimeout` 16 min
 
@@ -136,7 +140,7 @@ the read deadline is reachable this way, so no inner wrapper that buffers or cou
      `middleware.SetReadDeadline` when `timeout > 0` (ignores `ErrNotSupported`).
    - `readWebhookBody(w http.ResponseWriter, r *http.Request, maxBytes int64) ([]byte, error)`:
      Content-Length above `maxBytes` → `&http.MaxBytesError{Limit: maxBytes}` without reading;
-     `io.ReadAll(http.MaxBytesReader(w, r.Body, maxBytes))`; on error move the deadline to the past and
+     `io.ReadAll(middleware.MaxBytesReader(w, r, maxBytes))`; on error move the deadline to the past and
      return the error; on success clear the deadline.
    - `writeWebhookBodyError(w http.ResponseWriter, r *http.Request, err error)`: sets
      `Connection: close` when `r.ProtoMajor == 1`, then 413 for `*http.MaxBytesError` (also wrapped),
@@ -163,23 +167,25 @@ the read deadline is reachable this way, so no inner wrapper that buffers or cou
      `IdleTimeout`, with the comments above; `Start` uses it.
    - `(a *App) serverHandler() http.Handler`: the middleware chain `Start` builds today (graceful
      shutdown, tracing when enabled, CORS) moved into a method, so a test can check it, with
-     `middleware.KeepResponseController` added outermost.
-6. **`internal/http/middleware/response_controller.go`** (new): `KeepResponseController(next)` and
-   `SetReadDeadline(w, r, deadline)`, as described above.
+     `middleware.KeepServerWriter` added outermost.
+6. **`internal/http/middleware/server_writer.go`** (new): `KeepServerWriter(next)`,
+   `SetReadDeadline(w, r, deadline)` and `MaxBytesReader(w, r, n)`, as described above.
 7. **`CHANGELOG.md`**: one `**Security**:` bullet under 42.0 saying what is now refused and that a
    batched event keeps its own payload. Nothing for operators to do.
-8. **`../docs`**: no change (no setting, no documented limit to update).
+8. **`../docs`** (own PR): `features/logs.mdx` says the webhook event log stores "the complete,
+   unmodified webhook data"; it now says each event keeps its data as the provider sent it, a batched
+   event its own entry of the batch. No setting or documented limit to update.
 
 ## Tests (written first, seen red, then green)
 
 | Implementation file | Test file | Cases |
 |---|---|---|
-| `internal/http/webhook_body.go` | `internal/http/webhook_body_test.go` | body of exactly `maxBytes` returned whole; `maxBytes+1` with Content-Length → `*http.MaxBytesError` and 0 bytes read from the body; `maxBytes+1` chunked (ContentLength -1) → `*http.MaxBytesError`; read error passed through; `writeWebhookBodyError` → 413 + JSON + `Connection: close` for `MaxBytesError` (also wrapped), 400 + `Connection: close` otherwise, and no `Connection` header for an HTTP/2 request. Over a real `httptest.Server` with a raw `net.Conn` client: a stalled body (Content-Length 1024, 10 bytes sent) gets its 400 within the deadline and the server then closes the connection while the client keeps it open; a chunked body that passes the limit and then stalls (no final chunk) gets 413 and the connection closed well before the 30 s deadline; a declared Content-Length above the limit gets 413 and the connection closed with no body byte sent; a handler that sleeps past the deadline after reading an empty body, or a non-empty one, still has a live `r.Context()`; a handler that sets the deadline and refuses the request without reading a stalled body answers within the deadline and the connection is closed. Over HTTP/2 (TLS `httptest` server): after a 413 the next request reuses the same connection |
+| `internal/http/webhook_body.go` | `internal/http/webhook_body_test.go` | body of exactly `maxBytes` returned whole; `maxBytes+1` with Content-Length → `*http.MaxBytesError` and 0 bytes read from the body; `maxBytes+1` chunked (ContentLength -1) → `*http.MaxBytesError`; read error passed through; `writeWebhookBodyError` → 413 + JSON + `Connection: close` for `MaxBytesError` (also wrapped), 400 + `Connection: close` otherwise, and no `Connection` header for an HTTP/2 request. Over a real `httptest.Server` with a raw `net.Conn` client: a stalled body (Content-Length 1024, 10 bytes sent) gets its 400 within the deadline and the server then closes the connection while the client keeps it open; a chunked body that passes the limit and then stalls (no final chunk) gets 413 and the connection closed well before the 30 s deadline; a declared Content-Length above the limit gets 413 and the connection closed with no body byte sent; a handler that sleeps past the deadline after reading an empty body, or a non-empty one, still has a live `r.Context()`; a handler that sets the deadline and refuses the request without reading a stalled body answers within the deadline and the connection is closed. Over HTTP/2 (TLS `httptest` server): after a 413 the next request reuses the same connection. Behind `KeepServerWriter` and the real `TracingMiddleware`, chunked bodies over the limit are answered 413, repeatedly, without a connection reset |
 | `internal/http/inbound_webhook_event_handler.go` | `internal/http/inbound_webhook_event_handler_test.go` | body of exactly `10 << 20` bytes reaches `ProcessWebhook` unchanged; `10<<20 + 1` → 413, `ProcessWebhook` not called (Content-Length and chunked); existing `BodyReadError` still 400; over a real server with a short `bodyReadTimeout`: stalled body → 400 without calling the service; a stalled body on a request refused for its method or a missing `provider` → answered and closed within the deadline; `ProcessWebhook` slower than the deadline still sees a live context and answers 200 |
 | `internal/http/supabase_webhook_handler.go` | `internal/http/supabase_webhook_handler_test.go` | both routes: `1<<20 + 1` → 413 (Content-Length and chunked) before the service is used; stalled body → 400; a stalled body on a request without the `webhook-*` headers → answered and closed within the deadline |
 | `internal/service/inbound_webhook_event_service.go` | `internal/service/inbound_webhook_event_service_test.go` | SendGrid, SparkPost and grouped Mailjet batches of two events: each event's `RawPayload` is its own element (equal to the element's JSON, not containing the other recipient); a single Mailjet object still stores the whole body; a malformed element still fails the batch as today |
 | `internal/app/app.go` | `internal/app/app_test.go` | `newHTTPServer` sets `ReadHeaderTimeout == 20*time.Second`, `IdleTimeout == 16*time.Minute`, `ReadTimeout == 0`, `WriteTimeout == 0`, and keeps `Addr`/`Handler`; `serverHandler()` on a real server, around the audit middleware and a probe route, lets the probe's `middleware.SetReadDeadline` succeed, with tracing off and on |
-| `internal/http/middleware/response_controller.go` | `internal/http/middleware/response_controller_test.go` | behind a wrapper that hides the writer's controller, `SetReadDeadline` succeeds under `KeepResponseController` and the deadline applies to the connection (a stalled body read fails); without it, it falls back to the writer's controller (`ErrNotSupported` behind the wrapper, success on a bare writer) |
+| `internal/http/middleware/server_writer.go` | `internal/http/middleware/server_writer_test.go` | behind a wrapper that hides the server's writer, `SetReadDeadline` succeeds under `KeepServerWriter` and the deadline applies to the connection (a stalled body read fails); without it, it falls back to the handler's writer (`ErrNotSupported` behind the wrapper, success on the server's writer); `MaxBytesReader` past its limit behind the wrapper under `KeepServerWriter`, and on the server's writer, makes net/http close the connection after the answer although the whole body arrived |
 | full stack | `tests/integration/webhook_request_limits_test.go` (new) | SendGrid integration: a body of exactly 10 MiB (one real delivered event, padded with JSON whitespace) → 200 and the message is marked delivered; 10 MiB + 1 → 413 and another message stays untouched, with and without Content-Length; a two-event batch stores each event's own payload. Supabase `before-user-created`: a signed payload of exactly 1 MiB (whitespace padding) → 204 and the contact is created; 1 MiB + 1 → 413 and no contact; `auth-email` 1 MiB + 1 → 413 |
 
 Sizes in tests are literals (`10 << 20`), not the constants they protect.

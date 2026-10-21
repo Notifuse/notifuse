@@ -19,7 +19,7 @@ const webhookBodyReadTimeout = 30 * time.Second
 // handler: net/http drains the body of a request refused without reading it
 // before sending the answer, and the deadline bounds that drain too. The
 // deadline is set through the server's own writer (see
-// middleware.KeepResponseController); readWebhookBody lifts it.
+// middleware.KeepServerWriter); readWebhookBody lifts it.
 func setWebhookBodyDeadline(w http.ResponseWriter, r *http.Request, timeout time.Duration) {
 	if timeout > 0 {
 		_ = middleware.SetReadDeadline(w, r, time.Now().Add(timeout))
@@ -29,7 +29,9 @@ func setWebhookBodyDeadline(w http.ResponseWriter, r *http.Request, timeout time
 // readWebhookBody reads the body of a public webhook request, refusing one
 // larger than maxBytes with an *http.MaxBytesError: from its Content-Length
 // before reading anything when the sender declares one, otherwise as soon as
-// the body passes the limit.
+// the body passes the limit. maxBytes must be above the 256 KiB net/http drains
+// after a handler: it then gives up on a declared body over the limit without
+// reading it, and leaves the client time to read the answer before closing.
 //
 // Once the body is read the deadline setWebhookBodyDeadline set is lifted.
 // net/http watches the connection with a background read once a body is
@@ -48,7 +50,7 @@ func readWebhookBody(w http.ResponseWriter, r *http.Request, maxBytes int64) ([]
 		return nil, &http.MaxBytesError{Limit: maxBytes}
 	}
 
-	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBytes))
+	body, err := io.ReadAll(middleware.MaxBytesReader(w, r, maxBytes))
 	if err != nil {
 		_ = middleware.SetReadDeadline(w, r, time.Unix(1, 0))
 		return nil, err
