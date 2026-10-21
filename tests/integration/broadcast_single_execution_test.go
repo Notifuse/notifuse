@@ -165,10 +165,38 @@ func (h *singleExecHarness) task(broadcastID string) *domain.Task {
 // execute asks for one execution of the task, as a scheduler tick does, and
 // returns the HTTP status.
 func (h *singleExecHarness) execute(taskID string) int {
-	resp, err := h.client.ExecuteTask(map[string]interface{}{"workspace_id": h.workspaceID, "id": taskID})
-	require.NoError(h.t, err)
-	_ = resp.Body.Close()
-	return resp.StatusCode
+	h.t.Helper()
+	return h.answer(h.start(taskID))
+}
+
+// execution is what one tasks.execute call answered.
+type execution struct {
+	code int
+	err  error
+}
+
+// start asks for an execution in the background. Only the test goroutine may
+// fail the test, so the answer, error included, comes back on the channel.
+func (h *singleExecHarness) start(taskID string) <-chan execution {
+	done := make(chan execution, 1)
+	go func() {
+		resp, err := h.client.ExecuteTask(map[string]interface{}{"workspace_id": h.workspaceID, "id": taskID})
+		if err != nil {
+			done <- execution{err: err}
+			return
+		}
+		_ = resp.Body.Close()
+		done <- execution{code: resp.StatusCode}
+	}()
+	return done
+}
+
+// answer waits for an execution started with start and returns its HTTP status.
+func (h *singleExecHarness) answer(done <-chan execution) int {
+	h.t.Helper()
+	result := <-done
+	require.NoError(h.t, result.err)
+	return result.code
 }
 
 func (h *singleExecHarness) status(broadcastID string) domain.BroadcastStatus {
@@ -268,24 +296,25 @@ func (h *singleExecHarness) waitUntil(what string, cond func() bool) {
 // lock, and waits until it either returned or is held by the same lock, as the
 // first one is.
 func (h *singleExecHarness) secondExecution(taskID, blockedLike string) (wait func() int) {
-	done := make(chan int, 1)
-	go func() { done <- h.execute(taskID) }()
-	var code int
-	returned := false
+	done := h.start(taskID)
+	var returned *execution
 	h.waitUntil("the second execution to return or block", func() bool {
 		select {
-		case code = <-done:
-			returned = true
+		case result := <-done:
+			returned = &result
 			return true
 		default:
 			return h.blockedOn(blockedLike) == 2
 		}
 	})
 	return func() int {
-		if !returned {
-			code = <-done
+		h.t.Helper()
+		if returned == nil {
+			result := <-done
+			returned = &result
 		}
-		return code
+		require.NoError(h.t, returned.err)
+		return returned.code
 	}
 }
 
@@ -331,8 +360,7 @@ func TestBroadcastSingleExecution_WinnerPickedThroughTheAPIMidRun(t *testing.T) 
 
 	// The first run enqueues its first test batch and is held there.
 	release := h.holdLock(`LOCK TABLE email_queue IN SHARE ROW EXCLUSIVE MODE`)
-	firstDone := make(chan int, 1)
-	go func() { firstDone <- h.execute(task.ID) }()
+	first := h.start(task.ID)
 	h.waitUntil("the first run to block in its enqueue", func() bool { return h.blockedOn(enqueueLike) == 1 })
 	require.Equal(t, domain.BroadcastStatusTesting, h.status(broadcastID))
 
@@ -341,7 +369,7 @@ func TestBroadcastSingleExecution_WinnerPickedThroughTheAPIMidRun(t *testing.T) 
 
 	second := h.secondExecution(task.ID, enqueueLike)
 	release()
-	assert.Equal(t, http.StatusOK, <-firstDone)
+	assert.Equal(t, http.StatusOK, h.answer(first))
 	assert.Equal(t, http.StatusConflict, second(), "a second execution is refused while the first holds the task")
 
 	h.executeUntil(task.ID, broadcastID, domain.BroadcastStatusProcessed)
@@ -368,8 +396,7 @@ func TestBroadcastSingleExecution_PauseAndResumeMidBatch(t *testing.T) {
 	// resume both land before it reads the broadcast again.
 	const fetchLike = "SELECT c.email%FROM contacts c%"
 	release := h.holdLock(`LOCK TABLE contacts IN ACCESS EXCLUSIVE MODE`)
-	firstDone := make(chan int, 1)
-	go func() { firstDone <- h.execute(task.ID) }()
+	first := h.start(task.ID)
 	h.waitUntil("the first run to block in its page fetch", func() bool { return h.blockedOn(fetchLike) == 1 })
 
 	h.post(h.client.PauseBroadcast, map[string]interface{}{"workspace_id": h.workspaceID, "id": broadcastID})
@@ -380,7 +407,7 @@ func TestBroadcastSingleExecution_PauseAndResumeMidBatch(t *testing.T) {
 
 	second := h.secondExecution(task.ID, fetchLike)
 	release()
-	assert.Equal(t, http.StatusOK, <-firstDone)
+	assert.Equal(t, http.StatusOK, h.answer(first))
 	assert.Equal(t, http.StatusConflict, second(), "a second execution is refused while the first holds the task")
 
 	h.executeUntil(task.ID, broadcastID, domain.BroadcastStatusProcessed)

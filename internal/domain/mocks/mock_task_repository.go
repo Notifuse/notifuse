@@ -271,31 +271,31 @@ func (mr *MockTaskRepositoryMockRecorder) MarkAsFailedTx(arg0, arg1, arg2, arg3,
 }
 
 // MarkAsPaused mocks base method.
-func (m *MockTaskRepository) MarkAsPaused(arg0 context.Context, arg1, arg2 string, arg3 time.Time, arg4 float64, arg5 *domain.TaskState) error {
+func (m *MockTaskRepository) MarkAsPaused(arg0 context.Context, arg1, arg2 string, arg3 time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkAsPaused", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret := m.ctrl.Call(m, "MarkAsPaused", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // MarkAsPaused indicates an expected call of MarkAsPaused.
-func (mr *MockTaskRepositoryMockRecorder) MarkAsPaused(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
+func (mr *MockTaskRepositoryMockRecorder) MarkAsPaused(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsPaused", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsPaused), arg0, arg1, arg2, arg3, arg4, arg5)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsPaused", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsPaused), arg0, arg1, arg2, arg3)
 }
 
 // MarkAsPausedTx mocks base method.
-func (m *MockTaskRepository) MarkAsPausedTx(arg0 context.Context, arg1 *sql.Tx, arg2, arg3 string, arg4 time.Time, arg5 float64, arg6 *domain.TaskState) error {
+func (m *MockTaskRepository) MarkAsPausedTx(arg0 context.Context, arg1 *sql.Tx, arg2, arg3 string, arg4 time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkAsPausedTx", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	ret := m.ctrl.Call(m, "MarkAsPausedTx", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // MarkAsPausedTx indicates an expected call of MarkAsPausedTx.
-func (mr *MockTaskRepositoryMockRecorder) MarkAsPausedTx(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
+func (mr *MockTaskRepositoryMockRecorder) MarkAsPausedTx(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsPausedTx", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsPausedTx), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsPausedTx", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsPausedTx), arg0, arg1, arg2, arg3, arg4)
 }
 
 // MarkAsPending mocks base method.

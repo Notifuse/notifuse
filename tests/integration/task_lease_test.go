@@ -122,7 +122,7 @@ func TestTaskLease_HeldTaskIsNeitherWokenNorPausedNorTakenAgain(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, woken, "a task whose run holds it must not be woken")
 
-	err = h.repo.MarkAsPaused(ctx, h.workspaceID, id, time.Now().UTC().Add(24*time.Hour), 0, claimed.State)
+	err = h.repo.MarkAsPaused(ctx, h.workspaceID, id, time.Now().UTC().Add(24*time.Hour))
 	var alreadyRunning *domain.ErrTaskAlreadyRunning
 	assert.ErrorAs(t, err, &alreadyRunning, "a task whose run holds it must not be paused")
 
@@ -144,7 +144,7 @@ func TestTaskLease_HeldTaskIsNeitherWokenNorPausedNorTakenAgain(t *testing.T) {
 	assert.Equal(t, domain.TaskStatusPending, h.get(t, id).Status)
 
 	h.set(t, id, domain.TaskStatusRunning, expiredLease())
-	require.NoError(t, h.repo.MarkAsPaused(ctx, h.workspaceID, id, time.Now().UTC().Add(24*time.Hour), 0, claimed.State))
+	require.NoError(t, h.repo.MarkAsPaused(ctx, h.workspaceID, id, time.Now().UTC().Add(24*time.Hour)))
 	paused := h.get(t, id)
 	assert.Equal(t, domain.TaskStatusPaused, paused.Status)
 	assert.Nil(t, paused.TimeoutAfter)
@@ -160,7 +160,7 @@ func TestTaskLease_RunningTaskWithoutALeaseCountsAsHeld(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, woken, "with no lease there is no proof the run has ended")
 
-	err = h.repo.MarkAsPaused(ctx, h.workspaceID, id, time.Now().UTC().Add(24*time.Hour), 0, &domain.TaskState{})
+	err = h.repo.MarkAsPaused(ctx, h.workspaceID, id, time.Now().UTC().Add(24*time.Hour))
 	var alreadyRunning *domain.ErrTaskAlreadyRunning
 	assert.ErrorAs(t, err, &alreadyRunning)
 	assert.Equal(t, domain.TaskStatusRunning, h.get(t, id).Status)
@@ -168,8 +168,9 @@ func TestTaskLease_RunningTaskWithoutALeaseCountsAsHeld(t *testing.T) {
 
 // TestTaskLease_WaitingTaskWithALiveLeaseIsNotLaunched covers a write that puts
 // a running task back to pending or paused and copies the lease it read, as
-// Update does: the scheduler must neither pick nor launch it until the run's
-// own end clears the lease.
+// Update does: the run still holds the task, so the scheduler must neither pick
+// nor launch it, and a wake or a pause must not clear the lease, until the
+// run's own end clears it.
 func TestTaskLease_WaitingTaskWithALiveLeaseIsNotLaunched(t *testing.T) {
 	h := setupTaskLease(t)
 	ctx := context.Background()
@@ -183,6 +184,12 @@ func TestTaskLease_WaitingTaskWithALiveLeaseIsNotLaunched(t *testing.T) {
 			err := h.repo.MarkAsRunning(ctx, h.workspaceID, id, *liveLease())
 			var alreadyRunning *domain.ErrTaskAlreadyRunning
 			assert.ErrorAs(t, err, &alreadyRunning, "the launch gate must refuse a task whose lease is live")
+			woken, err := h.repo.WakeTask(ctx, h.workspaceID, id, time.Now().UTC())
+			require.NoError(t, err)
+			assert.False(t, woken, "a wake must leave the lease to the run")
+			err = h.repo.MarkAsPaused(ctx, h.workspaceID, id, time.Now().UTC().Add(24*time.Hour))
+			assert.ErrorAs(t, err, &alreadyRunning, "a pause must leave the lease to the run")
+			assert.NotNil(t, h.get(t, id).TimeoutAfter)
 
 			// The run that held it ends its slice: its MarkAsPending clears the lease.
 			require.NoError(t, h.repo.MarkAsPending(ctx, h.workspaceID, id, time.Now().UTC().Add(-time.Second), 0, h.get(t, id).State))
@@ -197,6 +204,31 @@ func TestTaskLease_WaitingTaskWithALiveLeaseIsNotLaunched(t *testing.T) {
 		assert.True(t, h.selected(t, id))
 		require.NoError(t, h.repo.MarkAsRunning(ctx, h.workspaceID, id, *liveLease()))
 	})
+}
+
+// TestTaskLease_PauseKeepsTheStateARunSaved covers a pause whose handler read
+// the task just before its run ended a slice: the cursor that run saved must
+// survive the pause, or the next run resends the batch it enqueued last.
+func TestTaskLease_PauseKeepsTheStateARunSaved(t *testing.T) {
+	h := setupTaskLease(t)
+	ctx := context.Background()
+	id := h.newTask(t)
+
+	require.NoError(t, h.repo.MarkAsRunning(ctx, h.workspaceID, id, *liveLease()))
+	saved := &domain.TaskState{
+		SendBroadcast: &domain.SendBroadcastState{LastProcessedEmail: "reached@example.com"},
+	}
+	require.NoError(t, h.repo.MarkAsPending(ctx, h.workspaceID, id, time.Now().UTC(), 42, saved))
+
+	require.NoError(t, h.repo.MarkAsPaused(ctx, h.workspaceID, id, time.Now().UTC().Add(24*time.Hour)))
+
+	task := h.get(t, id)
+	assert.Equal(t, domain.TaskStatusPaused, task.Status)
+	assert.Equal(t, float64(42), task.Progress)
+	require.NotNil(t, task.State)
+	require.NotNil(t, task.State.SendBroadcast)
+	assert.Equal(t, "reached@example.com", task.State.SendBroadcast.LastProcessedEmail,
+		"a pause must not rewind the cursor the run saved")
 }
 
 func TestTaskLease_WakeTask(t *testing.T) {

@@ -958,8 +958,8 @@ func TestTaskService_BroadcastEventHandlers(t *testing.T) {
 
 		// Expect task to be paused
 		mockRepo.EXPECT().
-			MarkAsPaused(gomock.Any(), workspaceID, task.ID, gomock.Any(), task.Progress, task.State).
-			DoAndReturn(func(_ context.Context, _, _ string, nextRun time.Time, progress float64, state *domain.TaskState) error {
+			MarkAsPaused(gomock.Any(), workspaceID, task.ID, gomock.Any()).
+			DoAndReturn(func(_ context.Context, _, _ string, nextRun time.Time) error {
 				// Just verify next run is in the future, with more lenient timing check
 				future := time.Now().Add(23 * time.Hour) // Just under 24 hours
 				assert.True(t, nextRun.After(future), "Next run time should be at least 23 hours in the future")
@@ -3507,7 +3507,7 @@ func TestTaskService_BroadcastPauseResume_LeaveAHeldTaskToItsRun(t *testing.T) {
 	t.Run("pause", func(t *testing.T) {
 		mockRepo.EXPECT().GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).Return(task, nil)
 		mockRepo.EXPECT().
-			MarkAsPaused(gomock.Any(), workspaceID, task.ID, gomock.Any(), task.Progress, task.State).
+			MarkAsPaused(gomock.Any(), workspaceID, task.ID, gomock.Any()).
 			Return(&domain.ErrTaskAlreadyRunning{TaskID: task.ID})
 
 		taskService.handleBroadcastPaused(ctx, domain.EventPayload{

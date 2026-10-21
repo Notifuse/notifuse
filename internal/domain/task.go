@@ -242,9 +242,13 @@ type TaskRepository interface {
 	MarkAsFailed(ctx context.Context, workspace, id string, errorMsg string) error
 	MarkAsFailedTx(ctx context.Context, tx *sql.Tx, workspace, id string, errorMsg string) error
 
-	// MarkAsPaused marks a task as paused (e.g., due to timeout)
-	MarkAsPaused(ctx context.Context, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
-	MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
+	// MarkAsPaused marks a task as paused until nextRunAfter. It returns
+	// ErrTaskAlreadyRunning, and changes nothing, for a task an execution holds
+	// (running, or waiting with a live lease, unless the lease has expired). It
+	// writes neither the state nor the progress: they belong to the execution
+	// that saves them.
+	MarkAsPaused(ctx context.Context, workspace, id string, nextRunAfter time.Time) error
+	MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspace, id string, nextRunAfter time.Time) error
 
 	// MarkAsPending marks a task as pending (e.g., for recurring tasks)
 	MarkAsPending(ctx context.Context, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
@@ -258,8 +262,8 @@ type TaskRepository interface {
 
 	// WakeTask puts a waiting task back in the queue: pending, due at nextRunAfter,
 	// with a fresh retry budget and no error message. It returns false, and changes
-	// nothing, for a task an execution holds (running, unless its lease has
-	// expired) and for a completed one. It writes neither the state nor the
+	// nothing, for a task an execution holds (running, or waiting with a live
+	// lease, unless the lease has expired) and for a completed one. It writes neither the state nor the
 	// progress: they belong to the execution that saves them.
 	WakeTask(ctx context.Context, workspace, id string, nextRunAfter time.Time) (bool, error)
 

@@ -504,18 +504,14 @@ func testTaskStateManagement(t *testing.T, client *testutil.APIClient, factory *
 		// (task_lease_test.go covers that refusal).
 		pauseTask, err := factory.CreateTask(workspaceID,
 			testutil.WithTaskType("send_broadcast"),
-			testutil.WithTaskStatus(domain.TaskStatusPending))
+			testutil.WithTaskStatus(domain.TaskStatusPending),
+			testutil.WithTaskProgress(50.0))
 		require.NoError(t, err)
 
 		t.Run("should pause and resume task", func(t *testing.T) {
-			// Pause task
+			// Pause task; the progress its runs saved is kept
 			nextRunTime := time.Now().Add(10 * time.Minute)
-			state := &domain.TaskState{
-				Progress: 50.0,
-				Message:  "Task paused",
-			}
-
-			err := factory.MarkTaskAsPaused(workspaceID, pauseTask.ID, nextRunTime, 50.0, state)
+			err := factory.MarkTaskAsPaused(workspaceID, pauseTask.ID, nextRunTime)
 			require.NoError(t, err)
 
 			// Verify paused status

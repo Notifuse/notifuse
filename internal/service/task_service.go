@@ -1275,7 +1275,7 @@ func (s *TaskService) handleBroadcastPaused(ctx context.Context, payload domain.
 	tracing.AddAttribute(ctx, "next_run_after", nextRunAfter.Format(time.RFC3339))
 
 	var alreadyRunning *domain.ErrTaskAlreadyRunning
-	if err := s.repo.MarkAsPaused(ctx, payload.WorkspaceID, task.ID, nextRunAfter, task.Progress, task.State); errors.As(err, &alreadyRunning) {
+	if err := s.repo.MarkAsPaused(ctx, payload.WorkspaceID, task.ID, nextRunAfter); errors.As(err, &alreadyRunning) {
 		// The run that holds the task reads the broadcast's status before each
 		// batch: it pauses the rows it enqueued and stops by itself. Taking the
 		// task from it let a resume start a second execution alongside it.

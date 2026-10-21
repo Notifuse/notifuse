@@ -911,33 +911,26 @@ func TestTaskRepository_MarkAsPaused(t *testing.T) {
 	workspace := "test-workspace"
 	taskID := uuid.New().String()
 	nextRunAfter := time.Now().UTC().Add(5 * time.Minute)
-	progress := float64(50)
-	state := &domain.TaskState{
-		SendBroadcast: &domain.SendBroadcastState{
-			BroadcastID:     "test-broadcast",
-			RecipientOffset: 100,
-		},
-	}
 
 	// Test successful mark as paused
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE tasks SET").
 		WithArgs(
 			string(domain.TaskStatusPaused),
-			progress,
-			sqlmock.AnyArg(), // state JSON
 			sqlmock.AnyArg(), // updated_at
 			nextRunAfter,
 			nil, // timeout_after
 			taskID,
 			workspace,
-			string(domain.TaskStatusRunning), // a running task is held...
-			sqlmock.AnyArg(),                 // ...until its lease expires
+			string(domain.TaskStatusRunning), // a waiting task...
+			sqlmock.AnyArg(),                 // ...with no live lease,
+			string(domain.TaskStatusRunning), // or a running one...
+			sqlmock.AnyArg(),                 // ...whose lease has expired
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	err := repo.MarkAsPaused(ctx, workspace, taskID, nextRunAfter, progress, state)
+	err := repo.MarkAsPaused(ctx, workspace, taskID, nextRunAfter)
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
@@ -946,15 +939,15 @@ func TestTaskRepository_MarkAsPaused(t *testing.T) {
 	mock.ExpectExec("UPDATE tasks SET").
 		WithArgs(
 			string(domain.TaskStatusPaused),
-			progress,
-			sqlmock.AnyArg(), // state JSON
 			sqlmock.AnyArg(), // updated_at
 			nextRunAfter,
 			nil, // timeout_after
 			taskID,
 			workspace,
-			string(domain.TaskStatusRunning), // a running task is held...
-			sqlmock.AnyArg(),                 // ...until its lease expires
+			string(domain.TaskStatusRunning), // a waiting task...
+			sqlmock.AnyArg(),                 // ...with no live lease,
+			string(domain.TaskStatusRunning), // or a running one...
+			sqlmock.AnyArg(),                 // ...whose lease has expired
 		).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectQuery("SELECT 1 FROM tasks").
@@ -962,7 +955,7 @@ func TestTaskRepository_MarkAsPaused(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"exists"}))
 	mock.ExpectRollback()
 
-	err = repo.MarkAsPaused(ctx, workspace, taskID, nextRunAfter, progress, state)
+	err = repo.MarkAsPaused(ctx, workspace, taskID, nextRunAfter)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "task not found")
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -972,20 +965,20 @@ func TestTaskRepository_MarkAsPaused(t *testing.T) {
 	mock.ExpectExec("UPDATE tasks SET").
 		WithArgs(
 			string(domain.TaskStatusPaused),
-			progress,
-			sqlmock.AnyArg(), // state JSON
 			sqlmock.AnyArg(), // updated_at
 			nextRunAfter,
 			nil, // timeout_after
 			taskID,
 			workspace,
-			string(domain.TaskStatusRunning), // a running task is held...
-			sqlmock.AnyArg(),                 // ...until its lease expires
+			string(domain.TaskStatusRunning), // a waiting task...
+			sqlmock.AnyArg(),                 // ...with no live lease,
+			string(domain.TaskStatusRunning), // or a running one...
+			sqlmock.AnyArg(),                 // ...whose lease has expired
 		).
 		WillReturnError(fmt.Errorf("database error"))
 	mock.ExpectRollback()
 
-	err = repo.MarkAsPaused(ctx, workspace, taskID, nextRunAfter, progress, state)
+	err = repo.MarkAsPaused(ctx, workspace, taskID, nextRunAfter)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to mark task as paused")
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -1669,41 +1662,6 @@ func TestTaskRepository_SaveStateTx_MarshalError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-// TestTaskRepository_MarkAsPausedTx_MarshalError tests JSON marshal error in MarkAsPausedTx
-func TestTaskRepository_MarkAsPausedTx_MarshalError(t *testing.T) {
-	db, mock, repo := setupTaskMock(t)
-	defer func() { _ = db.Close() }()
-
-	ctx := context.Background()
-	workspace := "test-workspace"
-	taskID := uuid.New().String()
-	nextRunAfter := time.Now().UTC().Add(5 * time.Minute)
-	progress := float64(50)
-	state := &domain.TaskState{} // This should marshal fine
-
-	// Test successful path to ensure the marshal works
-	mock.ExpectBegin()
-	mock.ExpectExec("UPDATE tasks SET").
-		WithArgs(
-			string(domain.TaskStatusPaused),
-			progress,
-			sqlmock.AnyArg(), // state JSON
-			sqlmock.AnyArg(), // updated_at
-			nextRunAfter,
-			nil, // timeout_after
-			taskID,
-			workspace,
-			string(domain.TaskStatusRunning), // a running task is held...
-			sqlmock.AnyArg(),                 // ...until its lease expires
-		).
-		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectCommit()
-
-	err := repo.MarkAsPaused(ctx, workspace, taskID, nextRunAfter, progress, state)
-	assert.NoError(t, err)
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
-
 // TestTaskRepository_DeleteAll_QueryBuildError tests query build error in DeleteAll
 func TestTaskRepository_DeleteAll_QueryBuildError(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
@@ -1950,20 +1908,20 @@ func TestTaskRepository_MarkAsPaused_DoesNotTouchRetryCount(t *testing.T) {
 	mock.ExpectExec("UPDATE tasks SET").
 		WithArgs(
 			string(domain.TaskStatusPaused),
-			float64(25),
-			sqlmock.AnyArg(), // state JSON
 			sqlmock.AnyArg(), // updated_at
 			nextRunAfter,
 			nil, // timeout_after
 			taskID,
 			workspace,
-			string(domain.TaskStatusRunning), // a running task is held...
-			sqlmock.AnyArg(),                 // ...until its lease expires
+			string(domain.TaskStatusRunning), // a waiting task...
+			sqlmock.AnyArg(),                 // ...with no live lease,
+			string(domain.TaskStatusRunning), // or a running one...
+			sqlmock.AnyArg(),                 // ...whose lease has expired
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	err := repo.MarkAsPaused(ctx, workspace, taskID, nextRunAfter, 25, &domain.TaskState{})
+	err := repo.MarkAsPaused(ctx, workspace, taskID, nextRunAfter)
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 	require.Len(t, executed, 1)
@@ -2082,8 +2040,9 @@ func TestTaskRepository_WakeTask(t *testing.T) {
 				string(domain.TaskStatusPending),
 				string(domain.TaskStatusPaused),
 				string(domain.TaskStatusFailed),
-				string(domain.TaskStatusRunning), // a running task only once...
-				sqlmock.AnyArg(),                 // ...its lease has expired
+				sqlmock.AnyArg(),                 // a waiting task with no live lease,
+				string(domain.TaskStatusRunning), // or a running one...
+				sqlmock.AnyArg(),                 // ...whose lease has expired
 			)
 	}
 
@@ -2109,6 +2068,8 @@ func TestTaskRepository_WakeTask(t *testing.T) {
 		whereClause := executed[0][strings.Index(executed[0], " WHERE "):]
 		assert.Contains(t, whereClause, "timeout_after <=",
 			"a running task may only be woken once its lease has expired")
+		assert.Contains(t, whereClause, "timeout_after IS NULL",
+			"a waiting task that still carries a live lease is held by its run too")
 	})
 
 	t.Run("leaves a held or completed task alone", func(t *testing.T) {
@@ -2197,13 +2158,13 @@ func TestTaskRepository_MarkAsPaused_LeavesAHeldTaskAlone(t *testing.T) {
 	mock.ExpectExec("UPDATE tasks SET").
 		WithArgs(
 			string(domain.TaskStatusPaused),
-			float64(0),
-			sqlmock.AnyArg(), // state JSON
 			sqlmock.AnyArg(), // updated_at
 			nextRunAfter,
 			nil, // timeout_after
 			taskID,
 			workspace,
+			string(domain.TaskStatusRunning),
+			sqlmock.AnyArg(),
 			string(domain.TaskStatusRunning),
 			sqlmock.AnyArg(),
 		).
@@ -2213,7 +2174,7 @@ func TestTaskRepository_MarkAsPaused_LeavesAHeldTaskAlone(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(1))
 	mock.ExpectRollback()
 
-	err := repo.MarkAsPaused(ctx, workspace, taskID, nextRunAfter, 0, &domain.TaskState{})
+	err := repo.MarkAsPaused(ctx, workspace, taskID, nextRunAfter)
 	var alreadyRunningErr *domain.ErrTaskAlreadyRunning
 	require.ErrorAs(t, err, &alreadyRunningErr)
 	assert.Equal(t, taskID, alreadyRunningErr.TaskID)
@@ -2223,6 +2184,30 @@ func TestTaskRepository_MarkAsPaused_LeavesAHeldTaskAlone(t *testing.T) {
 	whereClause := executed[0][strings.Index(executed[0], " WHERE "):]
 	assert.Contains(t, whereClause, "timeout_after <=",
 		"a running task may only be paused once its lease has expired")
+	assert.Contains(t, whereClause, "timeout_after IS NULL",
+		"a waiting task that still carries a live lease is held by its run too")
+}
+
+// TestTaskRepository_MarkAsPaused_KeepsTheStateARunSaved pins that pausing
+// writes neither the state nor the progress. The pause handler reads the task
+// first, so the state it would write back can be older than the one the run
+// saved when its slice ended in between, and the next run would then resend
+// the batch the run enqueued last.
+func TestTaskRepository_MarkAsPaused_KeepsTheStateARunSaved(t *testing.T) {
+	var executed []string
+	db, mock, repo := setupTaskMockCapturingSQL(t, &executed)
+	defer func() { _ = db.Close() }()
+
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE tasks SET").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	require.NoError(t, repo.MarkAsPaused(context.Background(), "test-workspace", uuid.New().String(),
+		time.Now().UTC().Add(24*time.Hour)))
+	require.Len(t, executed, 1)
+	for _, forbidden := range []string{"state", "progress"} {
+		assert.NotContains(t, executed[0], forbidden, "MarkAsPaused must not write %s", forbidden)
+	}
 }
 
 // TestTaskRepository_MarkAsRunning_RequiresAnExpiredLeaseOnWaitingTasks pins the
