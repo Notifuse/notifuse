@@ -1601,11 +1601,11 @@ func newHTTPServer(addr string, handler http.Handler) *http.Server {
 		// Bounds the TLS handshake and the request headers. net/http lifts it
 		// once the headers are read, so it never limits a body or a handler.
 		ReadHeaderTimeout: 20 * time.Second,
-		// Longer than the idle reuse of the proxies Notifuse runs behind
-		// (Cloudflare reuses an origin connection for up to 900 s, Google Cloud
-		// load balancers 600 s), so the proxy always closes an idle connection
-		// first and never sends a request on one being closed here.
-		IdleTimeout: 16 * time.Minute,
+		// Longer than the idle reuse of the proxies Notifuse runs behind, up to
+		// the largest an AWS load balancer accepts (4000 s) and Envoy's default
+		// (1 h), so the proxy always closes an idle connection first and never
+		// sends a request on one being closed here.
+		IdleTimeout: 70 * time.Minute,
 		// No ReadTimeout or WriteTimeout: they would cut streamed responses (LLM
 		// chat, setup wizard, audit export) and large request bodies on slow
 		// links. The public webhooks bound their own bodies.

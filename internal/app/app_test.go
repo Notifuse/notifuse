@@ -1569,7 +1569,7 @@ func TestNewHTTPServer_LimitsHeaderReadingAndIdleConnections(t *testing.T) {
 	assert.Equal(t, "127.0.0.1:8080", srv.Addr)
 	assert.Equal(t, http.Handler(handler), srv.Handler)
 	assert.Equal(t, 20*time.Second, srv.ReadHeaderTimeout)
-	assert.Equal(t, 16*time.Minute, srv.IdleTimeout)
+	assert.Equal(t, 70*time.Minute, srv.IdleTimeout)
 	// Not limited server-wide: streamed responses and large API bodies on slow
 	// links must not be cut. Public webhooks bound their own bodies.
 	assert.Zero(t, srv.ReadTimeout)

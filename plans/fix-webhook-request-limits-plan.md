@@ -1,6 +1,6 @@
 # Webhook request limits plan
 
-**Status**: plan reviewed by Gemini (four rounds), implemented
+**Status**: plan reviewed by Gemini (five rounds), implemented
 **Date**: 2026-10-21
 **Target**: 42.0 (unreleased). No migration, no version bump.
 **Base**: `origin/dev` at `5af5221`.
@@ -101,16 +101,19 @@ when there is none. Only these two operations reach it, so no inner wrapper that
 writes is bypassed. It costs a context value and a shallow copy of the request on every request, as
 tracing and the auth middleware already do, and keeps working whatever wrapper is added later.
 
-### Server: `ReadHeaderTimeout` 20 s, `IdleTimeout` 16 min
+### Server: `ReadHeaderTimeout` 20 s, `IdleTimeout` 70 min
 
 - `ReadHeaderTimeout: 20 * time.Second`. Also bounds the TLS handshake (net/http uses the smallest
   non-zero timeout for it) and is reset by net/http once the headers are read, so it never limits a
   body or a handler. On a keep-alive connection it only starts at the first byte of the next request.
-- `IdleTimeout: 16 * time.Minute`. Longer than the idle reuse of the proxies Notifuse usually sits
-  behind (Cloudflare reuses an origin connection for up to 900 s, Google Cloud load balancers 600 s
-  and recommend 620 s on the backend, nginx and AWS ALB 60 s), so the proxy always closes an idle
-  connection first and never sends a request on one the server is closing. Today idle keep-alive
-  connections are never closed.
+- `IdleTimeout: 70 * time.Minute`. Longer than the idle reuse of the proxies Notifuse sits behind,
+  up to the longest an operator can configure: Cloudflare reuses an origin connection for up to
+  900 s, Google Cloud load balancers 600 s (620 s recommended on the backend), nginx 60 s, AWS ALB
+  60 s by default and up to 4000 s, Envoy and Istio 1 h by default. The proxy then always closes an
+  idle connection first and never sends a request on one the server is closing (AWS answers 502
+  when it does). A shorter value would race with an ALB whose idle timeout was raised, or with a
+  service mesh. Today idle keep-alive connections are never closed; a new connection already has
+  20 s to send its first request (`ReadHeaderTimeout`).
 - `ReadTimeout` and `WriteTimeout` stay unset, on purpose: `WriteTimeout` would cut streamed
   responses (LLM chat, setup wizard, SMTP test, audit export), and `ReadTimeout` would put one time
   limit on every request body of every route, including large API calls (contact imports, emails
@@ -184,7 +187,7 @@ tracing and the auth middleware already do, and keeps working whatever wrapper i
 | `internal/http/inbound_webhook_event_handler.go` | `internal/http/inbound_webhook_event_handler_test.go` | body of exactly `10 << 20` bytes reaches `ProcessWebhook` unchanged; `10<<20 + 1` → 413, `ProcessWebhook` not called (Content-Length and chunked); existing `BodyReadError` still 400; over a real server with a short `bodyReadTimeout`: stalled body → 400 without calling the service; a stalled body on a request refused for its method or a missing `provider` → answered and closed within the deadline; `ProcessWebhook` slower than the deadline still sees a live context and answers 200 |
 | `internal/http/supabase_webhook_handler.go` | `internal/http/supabase_webhook_handler_test.go` | both routes: `1<<20 + 1` → 413 (Content-Length and chunked) before the service is used; stalled body → 400; a stalled body on a request without the `webhook-*` headers → answered and closed within the deadline |
 | `internal/service/inbound_webhook_event_service.go` | `internal/service/inbound_webhook_event_service_test.go` | SendGrid, SparkPost and grouped Mailjet batches of two events: each event's `RawPayload` is its own element (equal to the element's JSON, not containing the other recipient); a single Mailjet object still stores the whole body; a malformed element still fails the batch as today |
-| `internal/app/app.go` | `internal/app/app_test.go` | `newHTTPServer` sets `ReadHeaderTimeout == 20*time.Second`, `IdleTimeout == 16*time.Minute`, `ReadTimeout == 0`, `WriteTimeout == 0`, and keeps `Addr`/`Handler`; `serverHandler()` on a real server, around the audit middleware and a probe route, lets the probe's `middleware.SetReadDeadline` succeed, with tracing off and on |
+| `internal/app/app.go` | `internal/app/app_test.go` | `newHTTPServer` sets `ReadHeaderTimeout == 20*time.Second`, `IdleTimeout == 70*time.Minute`, `ReadTimeout == 0`, `WriteTimeout == 0`, and keeps `Addr`/`Handler`; `serverHandler()` on a real server, around the audit middleware and a probe route, lets the probe's `middleware.SetReadDeadline` succeed, with tracing off and on |
 | `internal/http/middleware/server_writer.go` | `internal/http/middleware/server_writer_test.go` | behind a wrapper that hides the server's writer, `SetReadDeadline` succeeds under `KeepServerWriter` and the deadline applies to the connection (a stalled body read fails); without it, it falls back to the handler's writer (`ErrNotSupported` behind the wrapper, success on the server's writer); `MaxBytesReader` past its limit behind the wrapper under `KeepServerWriter`, and on the server's writer, makes net/http close the connection after the answer although the whole body arrived |
 | full stack | `tests/integration/webhook_request_limits_test.go` (new) | SendGrid integration: a body of exactly 10 MiB (one real delivered event, padded with JSON whitespace) → 200 and the message is marked delivered; 10 MiB + 1 → 413 and another message stays untouched, with and without Content-Length; a two-event batch stores each event's own payload. Supabase `before-user-created`: a signed payload of exactly 1 MiB (whitespace padding) → 204 and the contact is created; 1 MiB + 1 → 413 and no contact; `auth-email` 1 MiB + 1 → 413 |
 
@@ -211,6 +214,8 @@ past those 500 ms, which lets `-race` see it.
 - The three batch parsers repeat a four-line decode (array of `json.RawMessage`, then each element); a
   generic helper would save little and they differ in error wording and Mailjet's fallback.
 - Provider authentication on `/webhooks/email`: separate change.
+- `/webhooks/email` answers 400 to any processing failure, transient ones included, and SNS does not
+  retry a 4xx: separate change, since it changes how every provider retries.
 
 ## Final step
 
