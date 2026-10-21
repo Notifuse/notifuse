@@ -1,6 +1,6 @@
 # Fix: contacts removed from a list still count as its members (B24)
 
-Created 2026-10-15. Checklist item B24 in `plans/made-up-tests-audit-checklist-plan.md`. Status: **implemented** (2026-10-16, branch `claude/made-up-tests-audit-high-ciyb05-b24`); see "Implementation".
+Created 2026-10-15. Checklist item B24 in `plans/made-up-tests-audit-checklist-plan.md`. Status: **implemented** (2026-10-16, PR #455); see "Implementation".
 - Pierre chose the scope on 2026-10-15: the full fix, with a v42 migration.
 - An independent review then checked every claim and the design against the code. Its corrections are folded in; see "Independent review".
 - Pierre settled the two remaining decisions on 2026-10-16:
