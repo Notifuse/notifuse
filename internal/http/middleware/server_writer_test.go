@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"io"
 	"net"
@@ -107,4 +108,46 @@ func TestMaxBytesReader_TellsTheServerWriterBehindAWrapper(t *testing.T) {
 			assert.True(t, resp.Close, "net/http closes the connection after a body over the limit")
 		})
 	}
+}
+
+func TestReportBodyTooLarge_TellsTheServerWriterWithoutReadingTheBody(t *testing.T) {
+	// The body is never read. Reported over the limit, net/http closes the
+	// connection after the answer instead of draining the body and keeping it.
+	for name, wrap := range map[string]func(http.Handler) http.Handler{
+		"kept behind a wrapper": func(h http.Handler) http.Handler { return KeepServerWriter(hideWriter(h)) },
+		"server writer":         func(h http.Handler) http.Handler { return h },
+	} {
+		t.Run(name, func(t *testing.T) {
+			srv := httptest.NewServer(wrap(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				ReportBodyTooLarge(w, r)
+				w.WriteHeader(http.StatusRequestEntityTooLarge)
+			})))
+			t.Cleanup(srv.Close)
+
+			resp, err := srv.Client().Post(srv.URL, "application/json", strings.NewReader("0123456789"))
+			require.NoError(t, err)
+			_ = resp.Body.Close()
+
+			assert.Equal(t, http.StatusRequestEntityTooLarge, resp.StatusCode)
+			assert.True(t, resp.Close, "net/http closes the connection after a body reported over the limit")
+		})
+	}
+}
+
+func TestKeepServerWriter_ReleasesTheWriterWhenTheRequestEnds(t *testing.T) {
+	// Background work keeps contexts derived from the request's; once the
+	// request is answered they must not reach its connection.
+	kept := make(chan context.Context, 1)
+	srv := httptest.NewServer(KeepServerWriter(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		kept <- context.WithoutCancel(r.Context())
+	})))
+	t.Cleanup(srv.Close)
+
+	resp, err := srv.Client().Get(srv.URL)
+	require.NoError(t, err)
+	_ = resp.Body.Close()
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(<-kept)
+	assert.ErrorIs(t, SetReadDeadline(hidingWriter{}, req, time.Now()), http.ErrNotSupported,
+		"falls back to the given writer")
 }

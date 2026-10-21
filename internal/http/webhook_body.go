@@ -29,9 +29,9 @@ func setWebhookBodyDeadline(w http.ResponseWriter, r *http.Request, timeout time
 // readWebhookBody reads the body of a public webhook request, refusing one
 // larger than maxBytes with an *http.MaxBytesError: from its Content-Length
 // before reading anything when the sender declares one, otherwise as soon as
-// the body passes the limit. maxBytes must be above the 256 KiB net/http drains
-// after a handler: it then gives up on a declared body over the limit without
-// reading it, and leaves the client time to read the answer before closing.
+// the body passes the limit. Either way net/http learns the body is over the
+// limit, so it closes the connection after the answer without reading the
+// rest, once the client has had time to read the answer.
 //
 // Once the body is read the deadline setWebhookBodyDeadline set is lifted.
 // net/http watches the connection with a background read once a body is
@@ -46,6 +46,7 @@ func setWebhookBodyDeadline(w http.ResponseWriter, r *http.Request, timeout time
 // writeWebhookBodyError.
 func readWebhookBody(w http.ResponseWriter, r *http.Request, maxBytes int64) ([]byte, error) {
 	if r.ContentLength > maxBytes {
+		middleware.ReportBodyTooLarge(w, r)
 		_ = middleware.SetReadDeadline(w, r, time.Unix(1, 0))
 		return nil, &http.MaxBytesError{Limit: maxBytes}
 	}

@@ -320,3 +320,30 @@ func TestReadWebhookBody_ChunkedBodyOverTheLimitIsAnsweredBehindTracing(t *testi
 		assert.Equal(t, http.StatusRequestEntityTooLarge, resp.StatusCode)
 	}
 }
+
+func TestReadWebhookBody_DeclaredLengthOverTheLimitIsAnsweredBeforeClosing(t *testing.T) {
+	// The body is refused unread. A client sending it anyway must still read
+	// the 413 before the server closes on the unread body, also when the
+	// request says Connection: close or expects a 100 Continue it does not
+	// wait for (the transport's ExpectContinueTimeout is 0).
+	srv := httptest.NewServer(middleware.KeepServerWriter(middleware.TracingMiddleware(webhookBodyHandler(1<<20, 2*time.Second, nil))))
+	t.Cleanup(srv.Close)
+
+	for name, prepare := range map[string]func(req *http.Request){
+		"Connection: close":    func(req *http.Request) { req.Close = true },
+		"Expect: 100-continue": func(req *http.Request) { req.Header.Set("Expect", "100-continue") },
+	} {
+		t.Run(name, func(t *testing.T) {
+			for i := 0; i < 5; i++ {
+				req, err := http.NewRequest(http.MethodPost, srv.URL, bytes.NewReader(bytes.Repeat([]byte("a"), (1<<20)+1)))
+				require.NoError(t, err)
+				prepare(req)
+				resp, err := srv.Client().Do(req)
+				require.NoError(t, err)
+				_ = resp.Body.Close()
+
+				assert.Equal(t, http.StatusRequestEntityTooLarge, resp.StatusCode)
+			}
+		})
+	}
+}
