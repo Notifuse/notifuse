@@ -175,6 +175,83 @@ func TestInboundWebhookEventHandler_handleIncomingWebhook_Success(t *testing.T) 
 	assert.Equal(t, true, response["success"])
 }
 
+func TestInboundWebhookEventHandler_handleIncomingWebhook_BodyOfTenMiBIsProcessed(t *testing.T) {
+	handler, mockService, _ := setupInboundWebhookEventHandlerTest(t)
+
+	payload := bytes.Repeat([]byte(" "), 10<<20)
+	copy(payload, `[{"event":"delivered"}]`)
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/email?provider=sendgrid&workspace_id=ws123&integration_id=int123", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	mockService.EXPECT().
+		ProcessWebhook(gomock.Any(), "ws123", "int123", payload).
+		Return(nil)
+
+	handler.handleIncomingWebhook(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestInboundWebhookEventHandler_handleIncomingWebhook_BodyOverTenMiBIsRefused(t *testing.T) {
+	for name, declared := range map[string]bool{"with Content-Length": true, "chunked": false} {
+		t.Run(name, func(t *testing.T) {
+			// No ProcessWebhook expectation: the mock fails the test if it is called.
+			handler, _, _ := setupInboundWebhookEventHandlerTest(t)
+
+			req := httptest.NewRequest(http.MethodPost, "/webhooks/email?provider=sendgrid&workspace_id=ws123&integration_id=int123",
+				bytes.NewReader(bytes.Repeat([]byte(" "), (10<<20)+1)))
+			if !declared {
+				req.ContentLength = -1
+			}
+			w := httptest.NewRecorder()
+
+			handler.handleIncomingWebhook(w, req)
+
+			assert.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
+			var response map[string]string
+			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+			assert.Equal(t, "Request body too large", response["error"])
+		})
+	}
+}
+
+func TestInboundWebhookEventHandler_handleIncomingWebhook_StalledBodyIsRefused(t *testing.T) {
+	// No ProcessWebhook expectation: the mock fails the test if it is called.
+	handler, _, _ := setupInboundWebhookEventHandlerTest(t)
+	assert.Equal(t, 30*time.Second, handler.bodyReadTimeout)
+	handler.bodyReadTimeout = 200 * time.Millisecond
+	srv := httptest.NewServer(http.HandlerFunc(handler.handleIncomingWebhook))
+	t.Cleanup(srv.Close)
+
+	resp, _, closeErr := rawRequest(t, srv,
+		"POST /webhooks/email?provider=sendgrid&workspace_id=ws123&integration_id=int123 HTTP/1.1\r\nHost: test\r\nContent-Length: 1024\r\n\r\n[{\"event\"", nil)
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.ErrorIs(t, closeErr, io.EOF)
+}
+
+func TestInboundWebhookEventHandler_handleIncomingWebhook_ProcessingMayOutlastTheBodyDeadline(t *testing.T) {
+	handler, mockService, _ := setupInboundWebhookEventHandlerTest(t)
+	handler.bodyReadTimeout = 100 * time.Millisecond
+	srv := httptest.NewServer(http.HandlerFunc(handler.handleIncomingWebhook))
+	t.Cleanup(srv.Close)
+
+	payload := []byte(`[{"event":"delivered"}]`)
+	mockService.EXPECT().
+		ProcessWebhook(gomock.Any(), "ws123", "int123", payload).
+		DoAndReturn(func(ctx context.Context, _, _ string, _ []byte) error {
+			time.Sleep(400 * time.Millisecond)
+			return ctx.Err()
+		})
+
+	resp, err := srv.Client().Post(srv.URL+"/webhooks/email?provider=sendgrid&workspace_id=ws123&integration_id=int123",
+		"application/json", bytes.NewReader(payload))
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
 // Tests for handleList
 
 func TestInboundWebhookEventHandler_handleList_MethodNotAllowed(t *testing.T) {

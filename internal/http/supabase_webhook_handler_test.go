@@ -1,9 +1,12 @@
 package http
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -212,6 +215,66 @@ func TestHandleUserCreatedWebhook_MissingHeaders(t *testing.T) {
 			handler.handleUserCreatedWebhook(rr, req)
 
 			assert.Equal(t, http.StatusBadRequest, rr.Code)
+		})
+	}
+}
+
+// newSupabaseBodyTestHandler returns a handler with no service: every case below
+// must be answered before the service would be used.
+func newSupabaseBodyTestHandler(t *testing.T) *SupabaseWebhookHandler {
+	ctrl := gomock.NewController(t)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	return NewSupabaseWebhookHandler(nil, mockLogger)
+}
+
+func supabaseWebhookRoutes(h *SupabaseWebhookHandler) map[string]http.HandlerFunc {
+	return map[string]http.HandlerFunc{
+		"/webhooks/supabase/auth-email":          h.handleAuthEmailWebhook,
+		"/webhooks/supabase/before-user-created": h.handleUserCreatedWebhook,
+	}
+}
+
+func TestSupabaseWebhooks_BodyOverOneMiBIsRefused(t *testing.T) {
+	handler := newSupabaseBodyTestHandler(t)
+	for path, handle := range supabaseWebhookRoutes(handler) {
+		for name, declared := range map[string]bool{"with Content-Length": true, "chunked": false} {
+			t.Run(path+" "+name, func(t *testing.T) {
+				req := httptest.NewRequest(http.MethodPost, path+"?workspace_id=workspace-123&integration_id=integration-456",
+					bytes.NewReader(bytes.Repeat([]byte(" "), (1<<20)+1)))
+				if !declared {
+					req.ContentLength = -1
+				}
+				req.Header.Set("webhook-id", "webhook-id-123")
+				req.Header.Set("webhook-timestamp", "1234567890")
+				req.Header.Set("webhook-signature", "v1,signature123")
+				rr := httptest.NewRecorder()
+
+				handle(rr, req)
+
+				assert.Equal(t, http.StatusRequestEntityTooLarge, rr.Code)
+			})
+		}
+	}
+}
+
+func TestSupabaseWebhooks_StalledBodyIsRefused(t *testing.T) {
+	handler := newSupabaseBodyTestHandler(t)
+	assert.Equal(t, 30*time.Second, handler.bodyReadTimeout)
+	handler.bodyReadTimeout = 200 * time.Millisecond
+	for path, handle := range supabaseWebhookRoutes(handler) {
+		t.Run(path, func(t *testing.T) {
+			srv := httptest.NewServer(handle)
+			t.Cleanup(srv.Close)
+
+			resp, _, closeErr := rawRequest(t, srv, "POST "+path+"?workspace_id=workspace-123&integration_id=integration-456 HTTP/1.1\r\n"+
+				"Host: test\r\nwebhook-id: webhook-id-123\r\nwebhook-timestamp: 1234567890\r\nwebhook-signature: v1,signature123\r\n"+
+				"Content-Length: 1024\r\n\r\n{\"user\"", nil)
+
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			assert.ErrorIs(t, closeErr, io.EOF)
 		})
 	}
 }

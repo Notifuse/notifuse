@@ -1,0 +1,192 @@
+# Webhook request limits plan
+
+**Status**: plan reviewed by Gemini (two rounds), implemented
+**Date**: 2026-10-21
+**Target**: 42.0 (unreleased). No migration, no version bump.
+**Base**: `origin/dev` at `5af5221`.
+
+## Goal
+
+Keep the resources one request can take on the public webhook endpoints bounded, and give the HTTP
+server limits on how long a connection may take to send its headers or stay idle.
+
+Today:
+
+- `/webhooks/email` reads the whole body with `io.ReadAll` before anything else
+  (`internal/http/inbound_webhook_event_handler.go`, `handleIncomingWebhook`).
+- `/webhooks/supabase/auth-email` and `/webhooks/supabase/before-user-created` do the same before the
+  signature is checked (`internal/http/supabase_webhook_handler.go`).
+- The `http.Server` built in `App.Start` (`internal/app/app.go`) sets no timeout at all.
+- For the three providers that batch events (SendGrid, SparkPost, Mailjet with grouped events),
+  every event of a batch gets the **whole batch** as its `raw_payload`
+  (`string(rawPayload)` inside the per-event loop of `processSendGridWebhook`,
+  `processSparkPostWebhook` and `processMailjetWebhook` → `processSingleMailjetEvent`,
+  `internal/service/inbound_webhook_event_service.go`). A batch of N events therefore allocates N
+  copies of the batch (`string([]byte)` copies) and stores N copies: memory and storage grow with
+  N × batch size, so a body limit alone does not bound what one request costs. It also means an
+  event's row holds the other recipients of its batch, so erasing a contact
+  (`DeleteForEmail` clears `raw_payload` only on that contact's rows) leaves their address in the
+  rows of the other events of the same batch.
+
+`/webhooks/email/inbound` (replies) already caps its body at 25 MiB and is rate-limited; it is left as
+is (see Out of scope).
+
+## Limits and why these values
+
+### `/webhooks/email`: 10 MiB
+
+Real payloads, by provider:
+
+| Provider | Shape | Largest documented size |
+|---|---|---|
+| SendGrid | JSON array, batched | posts every ~30 s or when the batch reaches 768 KB |
+| Amazon SES | one SNS notification | SNS messages to HTTP/S endpoints are capped at 256 KiB; SES truncates mail headers above 10 KB |
+| SparkPost | JSON array, batched | no published cap; SparkPost describes batches of "1 to 350 or more" events and asks receivers not to set an "excessively small" maximum. Notifuse sets one metadata key, so an event is about 2 KB |
+| Mailjet | JSON array (event API version 2, grouped) | no published cap; events are about 1 KB |
+| Postmark, Mailgun, SMTP relays | one event per request | a few KB (Notifuse does not ask Postmark to include bounce content) |
+
+10 MiB is 13 times SendGrid's batch, 40 times the SNS cap, and about 5,000 SparkPost events, so
+no legitimate delivery comes near it, while one request can no longer hold more than 10 MiB.
+
+### `/webhooks/supabase/*`: 1 MiB
+
+Both hooks carry one user object (metadata, identities) and, for the email hook, the email data:
+a few KB. 1 MiB leaves two orders of magnitude.
+
+### Per-event raw payload
+
+Each event of a batch keeps its own element of the JSON array as `raw_payload`: the parsers decode the
+body into `[]json.RawMessage`, then each element into the provider struct. Memory per request is then
+proportional to the body (each element copied once), and storage per event to the event. Single-event
+providers (SES, Postmark, Mailgun, SMTP, Mailjet's ungrouped object) are unchanged. The console renders
+`JSON.parse(raw_payload)` per event, which an element still satisfies.
+
+### Body read deadline: 30 s, on the same three routes
+
+Without a server `ReadTimeout`, a body has no time limit. The three handlers give the body 30 s to
+arrive, through `http.ResponseController.SetReadDeadline`.
+
+- **On success the deadline is lifted.** Once a body is consumed, net/http watches the connection
+  with a background read, and a read error there cancels the request context
+  (`connReader.backgroundRead` → `handleReadErrorLocked` → `cancelCtx`). When the body ends during the
+  handler, net/http clears the deadline itself as it starts that read (`startBackgroundRead`). For an
+  empty body, though, the read started before the handler ran, and the deadline set by the handler
+  applies to it: left in place, it would cancel the context of a handler still working 30 s later.
+  (Checked by experiment, and pinned by a test.)
+- **On error the deadline is moved to the past, and the response says `Connection: close`.** net/http
+  drains up to 256 KiB of an unread body when it writes the response (`chunkWriter.writeHeader`) and
+  again in `body.Close`, which runs whatever the response says. With the deadline cleared, that drain
+  would wait on a stalled client with no limit; with the rest of the 30 s kept, a chunked body refused
+  for its size after a few milliseconds would still hold the handler for the remaining time. A past
+  deadline makes the drain fail at once, and `Connection: close` skips the first drain entirely.
+
+Providers time out well before 30 s themselves (SparkPost 10 s, Supabase hooks a few seconds), so the
+deadline never cuts a delivery the provider would have completed. On HTTP/2 (direct TLS), the stream
+deadline only closes the body pipe and does not cancel the context.
+
+When `TRACING_ENABLED=true`, OpenCensus' `ochttp` hands the handler a writer without `Unwrap`, so
+`SetReadDeadline` returns `http.ErrNotSupported`; the helper then reads without a deadline, as today.
+Tracing is off by default. (Adding `Unwrap` to `traceResponseWriter` would not help: `ochttp`'s
+writer sits between it and the handler.)
+
+### Server: `ReadHeaderTimeout` 20 s, `IdleTimeout` 16 min
+
+- `ReadHeaderTimeout: 20 * time.Second`. Also bounds the TLS handshake (net/http uses the smallest
+  non-zero timeout for it) and is reset by net/http once the headers are read, so it never limits a
+  body or a handler. On a keep-alive connection it only starts at the first byte of the next request.
+- `IdleTimeout: 16 * time.Minute`. Longer than the idle reuse of the proxies Notifuse usually sits
+  behind (Cloudflare reuses an origin connection for up to 900 s, Google Cloud load balancers 600 s
+  and recommend 620 s on the backend, nginx and AWS ALB 60 s), so the proxy always closes an idle
+  connection first and never sends a request on one the server is closing. Today idle keep-alive
+  connections are never closed.
+- `ReadTimeout` and `WriteTimeout` stay unset, on purpose: `WriteTimeout` would cut streamed
+  responses (LLM chat, setup wizard, SMTP test, audit export), and `ReadTimeout` would put one time
+  limit on every request body of every route, including large API calls (contact imports, emails
+  with attachments) sent over slow links.
+- `MaxHeaderBytes` keeps net/http's 1 MiB default.
+
+## Behaviour
+
+- A declared `Content-Length` above the limit is refused with **413** before any byte is read
+  (net/http then closes the connection without reading the body: more than 256 KiB unread).
+- A body without `Content-Length` (chunked) is read through `http.MaxBytesReader`; going past the limit
+  answers **413**.
+- Any other read error (including the 30 s deadline) keeps today's **400** "Failed to read request body".
+- Both error answers carry `Connection: close`.
+- 413 body: `{"error": "Request body too large"}` via `WriteJSONError`.
+- For `before-user-created`, a 413 blocks the signup, like today's 400 on a read error; real payloads
+  are far below 1 MiB.
+
+## Implementation
+
+1. **`internal/http/webhook_body.go`** (new)
+   - `const webhookBodyReadTimeout = 30 * time.Second`
+   - `readWebhookBody(w http.ResponseWriter, r *http.Request, maxBytes int64, timeout time.Duration) ([]byte, error)`:
+     Content-Length above `maxBytes` → `&http.MaxBytesError{Limit: maxBytes}` without reading; when
+     `timeout > 0`, set the read deadline (ignore `ErrNotSupported`); `io.ReadAll(http.MaxBytesReader(w, r.Body, maxBytes))`;
+     on error move the deadline to the past and return the error; on success clear the deadline.
+   - `writeWebhookBodyError(w http.ResponseWriter, err error)`: sets `Connection: close`, then 413
+     for `*http.MaxBytesError` (also wrapped), else 400.
+2. **`internal/http/inbound_webhook_event_handler.go`**
+   - `const maxEmailWebhookBodyBytes = 10 << 20` with the provider sizes in its comment.
+   - `bodyReadTimeout time.Duration` field, set to `webhookBodyReadTimeout` by the constructor
+     (tests shorten it).
+   - `handleIncomingWebhook` uses `readWebhookBody` / `writeWebhookBodyError`, at the place of today's
+     `io.ReadAll` (query validation stays first).
+3. **`internal/http/supabase_webhook_handler.go`**
+   - `const maxSupabaseWebhookBodyBytes = 1 << 20`, `bodyReadTimeout` field, both handlers use the helpers.
+4. **`internal/service/inbound_webhook_event_service.go`**
+   - `processSendGridWebhook`, `processSparkPostWebhook`: decode into `[]json.RawMessage`, then each
+     element; the event's raw payload is `string(element)`. SparkPost decodes each element into a value,
+     not a pointer, so a `null` element is refused like any element without `message_event` instead of
+     dereferencing a nil pointer as today.
+   - `processMailjetWebhook`: the array branch decodes into `[]json.RawMessage` and passes each element
+     to `processSingleMailjetEvent` (its logic unchanged). A non-array body keeps the single-object path.
+   - `ProcessWebhook` and the other parsers are not touched (the provider-event thread works there).
+5. **`internal/app/app.go`**
+   - `newHTTPServer(addr string, handler http.Handler) *http.Server` sets `ReadHeaderTimeout` and
+     `IdleTimeout`, with the comments above; `Start` uses it.
+   - `(a *App) serverHandler() http.Handler`: the middleware chain `Start` builds today (graceful
+     shutdown, tracing when enabled, CORS) moved into a method, so a test can check it.
+6. **`CHANGELOG.md`**: one `**Security**:` bullet under 42.0 saying what is now refused and that a
+   batched event keeps its own payload. Nothing for operators to do.
+7. **`../docs`**: no change (no setting, no documented limit to update).
+
+## Tests (written first, seen red, then green)
+
+| Implementation file | Test file | Cases |
+|---|---|---|
+| `internal/http/webhook_body.go` | `internal/http/webhook_body_test.go` | body of exactly `maxBytes` returned whole; `maxBytes+1` with Content-Length → `*http.MaxBytesError` and 0 bytes read from the body; `maxBytes+1` chunked (ContentLength -1) → `*http.MaxBytesError`; read error passed through; `writeWebhookBodyError` → 413 + JSON + `Connection: close` for `MaxBytesError` (also wrapped), 400 + `Connection: close` otherwise. Over a real `httptest.Server` with a raw `net.Conn` client: a stalled body (Content-Length 1024, 10 bytes sent) gets its 400 within the deadline and the server then closes the connection while the client keeps it open; a chunked body that passes the limit and then stalls (no final chunk) gets 413 and the connection closed well before the 30 s deadline; a declared Content-Length above the limit gets 413 and the connection closed with no body byte sent; a handler that sleeps past the deadline after reading an empty body, or a non-empty one, still has a live `r.Context()` |
+| `internal/http/inbound_webhook_event_handler.go` | `internal/http/inbound_webhook_event_handler_test.go` | body of exactly `10 << 20` bytes reaches `ProcessWebhook` unchanged; `10<<20 + 1` → 413, `ProcessWebhook` not called (Content-Length and chunked); existing `BodyReadError` still 400; over a real server with a short `bodyReadTimeout`: stalled body → 400 without calling the service; `ProcessWebhook` slower than the deadline still sees a live context and answers 200 |
+| `internal/http/supabase_webhook_handler.go` | `internal/http/supabase_webhook_handler_test.go` | both routes: `1<<20 + 1` → 413 (Content-Length and chunked) before the service is used; stalled body → 400 |
+| `internal/service/inbound_webhook_event_service.go` | `internal/service/inbound_webhook_event_service_test.go` | SendGrid, SparkPost and grouped Mailjet batches of two events: each event's `RawPayload` is its own element (equal to the element's JSON, not containing the other recipient); a single Mailjet object still stores the whole body; a malformed element still fails the batch as today |
+| `internal/app/app.go` | `internal/app/app_test.go` | `newHTTPServer` sets `ReadHeaderTimeout == 20*time.Second`, `IdleTimeout == 16*time.Minute`, `ReadTimeout == 0`, `WriteTimeout == 0`, and keeps `Addr`/`Handler`; `serverHandler()` with tracing off, around the audit middleware and a probe route, lets the probe's `http.NewResponseController(w).SetReadDeadline` succeed |
+| full stack | `tests/integration/webhook_request_limits_test.go` (new) | SendGrid integration: a body of exactly 10 MiB (one real delivered event, padded with JSON whitespace) → 200 and the message is marked delivered; 10 MiB + 1 → 413 and another message stays untouched, with and without Content-Length; a two-event batch stores each event's own payload. Supabase `before-user-created`: a signed payload of exactly 1 MiB (whitespace padding) → 204 and the contact is created; 1 MiB + 1 → 413 and no contact; `auth-email` 1 MiB + 1 → 413 |
+
+Sizes in tests are literals (`10 << 20`), not the constants they protect.
+
+`internal/http/setup_handler_test.go`: the shutdown mock's flag becomes an `atomic.Bool`. The settings
+handler calls it from a goroutine 500 ms after answering, and a settings test answers twice, so two
+of those goroutines write the flag together. The new tests in the package keep the test binary alive
+past those 500 ms, which lets `-race` see it.
+
+## Out of scope
+
+- `/webhooks/email/inbound`: already capped at 25 MiB and rate-limited per IP and per workspace. A body
+  deadline there needs a longer value than 30 s for 25 MiB bodies; separate change.
+- Per-IP rate limiting on `/webhooks/email`: providers send bursts from a few addresses during a
+  broadcast, and a 429 would delay or drop real bounces.
+- Size caps and body deadlines on the other public endpoints (sign-in, notification center): separate change.
+- A request any handler refuses before reading its body (missing query parameters or headers here, a
+  missing token on `/api/*`) still lets net/http drain up to 256 KiB of it with no deadline. That is
+  common to every route and needs a server-wide mechanism, not a per-route one.
+- Provider authentication on `/webhooks/email`: separate change.
+
+## Final step
+
+```
+go test ./internal/http/... ./internal/service/ ./internal/app/...
+make test-unit
+INTEGRATION_TESTS=true go test -tags integration,licdev ./tests/integration -run 'TestWebhookRequestLimits|TestSESBounceHandling|TestSupabaseIntegrationE2E|TestMailjetUnsubscribeWebhook|TestContactDeletion' -v
+make test-integration
+```

@@ -1,18 +1,24 @@
 package http
 
 import (
-	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
+// maxSupabaseWebhookBodyBytes caps a Supabase hook body. Both hooks carry one
+// user (metadata and identities) and, for the email hook, the email data: a
+// few KB.
+const maxSupabaseWebhookBodyBytes = 1 << 20
+
 // SupabaseWebhookHandler handles HTTP requests for Supabase webhooks
 type SupabaseWebhookHandler struct {
 	supabaseService *service.SupabaseService
 	logger          logger.Logger
+	bodyReadTimeout time.Duration
 }
 
 // NewSupabaseWebhookHandler creates a new Supabase webhook handler
@@ -20,6 +26,7 @@ func NewSupabaseWebhookHandler(supabaseService *service.SupabaseService, logger 
 	return &SupabaseWebhookHandler{
 		supabaseService: supabaseService,
 		logger:          logger,
+		bodyReadTimeout: webhookBodyReadTimeout,
 	}
 }
 
@@ -63,10 +70,10 @@ func (h *SupabaseWebhookHandler) handleAuthEmailWebhook(w http.ResponseWriter, r
 		Info("Received Supabase auth email webhook")
 
 	// Read the request body
-	body, err := io.ReadAll(r.Body)
+	body, err := readWebhookBody(w, r, maxSupabaseWebhookBodyBytes, h.bodyReadTimeout)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to read webhook request body")
-		WriteJSONError(w, "Failed to read request body", http.StatusBadRequest)
+		writeWebhookBodyError(w, err)
 		return
 	}
 
@@ -120,10 +127,10 @@ func (h *SupabaseWebhookHandler) handleUserCreatedWebhook(w http.ResponseWriter,
 		Info("Received Supabase user created webhook")
 
 	// Read the request body
-	body, err := io.ReadAll(r.Body)
+	body, err := readWebhookBody(w, r, maxSupabaseWebhookBodyBytes, h.bodyReadTimeout)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to read webhook request body")
-		WriteJSONError(w, "Failed to read request body", http.StatusBadRequest)
+		writeWebhookBodyError(w, err)
 		return
 	}
 

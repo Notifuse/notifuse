@@ -1570,9 +1570,9 @@ func (a *App) InitHandlers() error {
 	return nil
 }
 
-// Start starts the HTTP server
-func (a *App) Start() error {
-	// Create server with wrapped handler for CORS and tracing
+// serverHandler wraps the app's routes in the middleware every request goes
+// through: graceful shutdown, tracing when enabled, and CORS.
+func (a *App) serverHandler() http.Handler {
 	var handler http.Handler = a.GetHandler()
 
 	// Apply graceful shutdown middleware first (outermost)
@@ -1586,7 +1586,32 @@ func (a *App) Start() error {
 	}
 
 	// Apply CORS middleware
-	handler = middleware.CORSMiddleware(handler)
+	return middleware.CORSMiddleware(handler)
+}
+
+// newHTTPServer builds the HTTP server with its connection time limits.
+func newHTTPServer(addr string, handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:    addr,
+		Handler: handler,
+		// Bounds the TLS handshake and the request headers. net/http lifts it
+		// once the headers are read, so it never limits a body or a handler.
+		ReadHeaderTimeout: 20 * time.Second,
+		// Longer than the idle reuse of the proxies Notifuse runs behind
+		// (Cloudflare reuses an origin connection for up to 900 s, Google Cloud
+		// load balancers 600 s), so the proxy always closes an idle connection
+		// first and never sends a request on one being closed here.
+		IdleTimeout: 16 * time.Minute,
+		// No ReadTimeout or WriteTimeout: they would cut streamed responses (LLM
+		// chat, setup wizard, audit export) and large request bodies on slow
+		// links. The public webhooks bound their own bodies.
+	}
+}
+
+// Start starts the HTTP server
+func (a *App) Start() error {
+	// Create server with wrapped handler for CORS and tracing
+	handler := a.serverHandler()
 
 	addr := fmt.Sprintf("%s:%d", a.config.Server.Host, a.config.Server.Port)
 	a.logger.WithField("address", addr).
@@ -1603,10 +1628,7 @@ func (a *App) Start() error {
 	a.serverStarted = make(chan struct{})
 
 	// Create the server
-	a.server = &http.Server{
-		Addr:    addr,
-		Handler: handler,
-	}
+	a.server = newHTTPServer(addr, handler)
 
 	// Get a reference to the channel before unlocking
 	serverStarted := a.serverStarted
