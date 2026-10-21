@@ -52,7 +52,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: The notification center now saves a contact's browser language and timezone on their first interaction rather than on page load, so email security scanners that only open the page no longer change them.
 
-- **Security**: Dependency updates clear the open Dependabot and `npm audit` advisories that have a fix, including `dompurify` 3.4.17 and `seroval` 1.6.9 in the console. `braces` and `katex` stay open until a usable fixed version exists.
+- **Security**: Dependency updates clear the open Dependabot and `npm audit` advisories that have a fix, including `dompurify` 3.4.17 and `seroval` 1.6.9 in the console, and `vite` 7.3.7 and 8.3.3 for advisories in its development server. `braces` and `katex` stay open until a usable fixed version exists.
 
 - **Improvement**: Signing in after moving an instance to a new domain now explains the fix: set `API_ENDPOINT` to the new address and restart (#435). The self-hosting docs gain a "Changing your domain" page.
 
