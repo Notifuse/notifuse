@@ -744,17 +744,33 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 	var timestamp time.Time
 	var notifuseMessageID string
 	// A notification lists every recipient of the email it reports on, an address the email
-	// was copied to among them. Each gets its own event, so the email's own recipient is
-	// found whatever its place in the list.
+	// was copied to among them. Each gets its own event, so the email's own recipient is found
+	// whatever its place in the list. One listed twice gets one, so a bounce is not counted
+	// twice, and no more are read than an SES email can have. An email sent to one address has
+	// no other recipient, though SES can report another: a bounce's Final-Recipient, the
+	// address a forward or an alias led to. Its event takes the address the email was sent to.
 	type sesRecipient struct{ email, diagnostic string }
 	var recipients []sesRecipient
+	seen := map[string]bool{}
+	addRecipient := func(mail domain.SESMail, email, diagnostic string) {
+		if len(mail.Destination) == 1 && mail.Destination[0] != "" {
+			email = mail.Destination[0]
+		}
+		if email == "" {
+			return
+		}
+		if key := strings.ToLower(email); !seen[key] && len(recipients) < sesMaxRecipients {
+			seen[key] = true
+			recipients = append(recipients, sesRecipient{email: email, diagnostic: diagnostic})
+		}
+	}
 
 	// Try to unmarshal as bounce notification
 	var bounceNotification domain.SESBounceNotification
 	if err := json.Unmarshal(messageBytes, &bounceNotification); err == nil && bounceNotification.EventType == "Bounce" {
 		eventType = domain.EmailEventBounce
 		for _, recipient := range bounceNotification.Bounce.BouncedRecipients {
-			recipients = append(recipients, sesRecipient{email: recipient.EmailAddress, diagnostic: recipient.DiagnosticCode})
+			addRecipient(bounceNotification.Mail, recipient.EmailAddress, recipient.DiagnosticCode)
 		}
 		messageID = bounceNotification.Mail.MessageID
 		bounceType = bounceNotification.Bounce.BounceType
@@ -783,7 +799,7 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 		if err := json.Unmarshal(messageBytes, &complaintNotification); err == nil && complaintNotification.EventType == "Complaint" {
 			eventType = domain.EmailEventComplaint
 			for _, recipient := range complaintNotification.Complaint.ComplainedRecipients {
-				recipients = append(recipients, sesRecipient{email: recipient.EmailAddress})
+				addRecipient(complaintNotification.Mail, recipient.EmailAddress, "")
 			}
 			messageID = complaintNotification.Mail.MessageID
 			complaintFeedbackType = complaintNotification.Complaint.ComplaintFeedbackType
@@ -811,7 +827,7 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 			if err := json.Unmarshal(messageBytes, &deliveryNotification); err == nil && deliveryNotification.EventType == "Delivery" {
 				eventType = domain.EmailEventDelivered
 				for _, recipient := range deliveryNotification.Delivery.Recipients {
-					recipients = append(recipients, sesRecipient{email: recipient})
+					addRecipient(deliveryNotification.Mail, recipient, "")
 				}
 				messageID = deliveryNotification.Mail.MessageID
 
@@ -847,24 +863,10 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 		messageID = notifuseMessageID
 	}
 
-	// A recipient listed twice gets one event, so a bounce is not counted twice, and no more
-	// recipients are read than an SES email can have
-	listed := make([]sesRecipient, 0, min(len(recipients), sesMaxRecipients))
-	seen := make(map[string]bool, cap(listed))
-	for _, recipient := range recipients {
-		if len(listed) == sesMaxRecipients {
-			break
-		}
-		if key := strings.ToLower(recipient.email); !seen[key] {
-			seen[key] = true
-			listed = append(listed, recipient)
-		}
-	}
-
 	// The events share one copy of the payload
 	payload := string(rawPayload)
-	events = make([]*domain.InboundWebhookEvent, 0, len(listed))
-	for _, recipient := range listed {
+	events = make([]*domain.InboundWebhookEvent, 0, len(recipients))
+	for _, recipient := range recipients {
 		eventMessageID := messageID
 		event := domain.NewInboundWebhookEvent(
 			uuid.New().String(),

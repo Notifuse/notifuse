@@ -240,20 +240,32 @@ func sesBouncePayload(messageID, recipientEmail, bounceType, subtype, diagnostic
 
 // sesBouncePayloadAt is sesBouncePayload dated at.
 func sesBouncePayloadAt(messageID, recipientEmail, bounceType, subtype, diagnostic string, at time.Time) string {
+	return sesBounceOf(messageID, bounceType, subtype, diagnostic, at, nil, recipientEmail)
+}
+
+// sesBounceOf builds an SNS-wrapped SES bounce notification listing these bounced
+// recipients, with the addresses the email was sent to as its destination when given.
+func sesBounceOf(messageID, bounceType, subtype, diagnostic string, at time.Time, destination []string, recipientEmails ...string) string {
+	recipients := make([]map[string]interface{}, 0, len(recipientEmails))
+	for _, email := range recipientEmails {
+		recipients = append(recipients, map[string]interface{}{"emailAddress": email, "diagnosticCode": diagnostic})
+	}
+	mail := map[string]interface{}{
+		"messageId": "ses-" + messageID,
+		"tags":      map[string][]string{"notifuse_message_id": {messageID}},
+	}
+	if destination != nil {
+		mail["destination"] = destination
+	}
 	message := map[string]interface{}{
 		"eventType": "Bounce",
 		"bounce": map[string]interface{}{
-			"bounceType":    bounceType,
-			"bounceSubType": subtype,
-			"bouncedRecipients": []map[string]interface{}{
-				{"emailAddress": recipientEmail, "diagnosticCode": diagnostic},
-			},
-			"timestamp": at.UTC().Format(time.RFC3339),
+			"bounceType":        bounceType,
+			"bounceSubType":     subtype,
+			"bouncedRecipients": recipients,
+			"timestamp":         at.UTC().Format(time.RFC3339),
 		},
-		"mail": map[string]interface{}{
-			"messageId": "ses-" + messageID,
-			"tags":      map[string][]string{"notifuse_message_id": {messageID}},
-		},
+		"mail": mail,
 	}
 	messageBytes, _ := json.Marshal(message)
 

@@ -181,10 +181,22 @@ func TestEmailEventMessageMatch(t *testing.T) {
 		copied := newContact(t, "copy")
 		messageID := sendTo(t, email)
 
-		postSESBounce(t, client, sesURL, sesBounceListing(messageID, copied, email))
+		postSESBounce(t, client, sesURL, sesBounceOf(messageID, "Permanent", "General", "smtp; 550 5.1.1 user unknown", time.Now(), nil, copied, email))
 
 		assert.Equal(t, domain.ContactListStatusBounced, statusOf(t, email))
 		assert.Equal(t, domain.ContactListStatusActive, statusOf(t, copied))
+		assert.Equal(t, marks{bounced: true}, marksOf(t, messageID))
+		assert.Equal(t, []string{email}, storedFor(t, messageID))
+	})
+
+	t.Run("an SES bounce of an email sent to the contact alone, reporting the address it was forwarded to: the contact is bounced", func(t *testing.T) {
+		email := newContact(t, "forwarding")
+		messageID := sendTo(t, email)
+
+		postSESBounce(t, client, sesURL, sesBounceOf(messageID, "Permanent", "General", "smtp; 550 5.1.1 user unknown", time.Now(),
+			[]string{email}, "forwarded-"+uuid.New().String()[:8]+"@elsewhere.example"))
+
+		assert.Equal(t, domain.ContactListStatusBounced, statusOf(t, email))
 		assert.Equal(t, marks{bounced: true}, marksOf(t, messageID))
 		assert.Equal(t, []string{email}, storedFor(t, messageID))
 	})
@@ -221,13 +233,13 @@ func TestEmailEventMessageMatch(t *testing.T) {
 
 	t.Run("soft bounces stored without an email sent to the address are not counted", func(t *testing.T) {
 		email := newContact(t, "soft-stored")
-		// As stored before events were checked: one names no email, and the others, which
-		// would reach the threshold with the one counted bounce, another contact's email
+		// As stored before events were checked: as many naming no email as naming another
+		// contact's email, each kind enough to reach the threshold with the one counted bounce
 		otherMessageID := sendTo(t, newContact(t, "soft-stored-other"))
 		future := time.Now().UTC().Add(24 * time.Hour)
-		for i := 0; i < domain.DefaultSoftBounceThreshold; i++ {
+		for i := 0; i < 2*(domain.DefaultSoftBounceThreshold-1); i++ {
 			messageID := otherMessageID
-			if i == 0 {
+			if i%2 == 0 {
 				messageID = uuid.New().String()
 			}
 			_, err := db.ExecContext(bg, `INSERT INTO inbound_webhook_events
@@ -238,7 +250,7 @@ func TestEmailEventMessageMatch(t *testing.T) {
 		}
 
 		// The one counted bounce: under the threshold with the others left out, at it if either
-		// those naming no email or those naming another contact's were counted
+		// kind were counted
 		postSESBounce(t, client, sesURL, softBounce(sendTo(t, email), email))
 
 		assert.Equal(t, domain.ContactListStatusActive, statusOf(t, email))
@@ -334,37 +346,6 @@ func sesDeliveryPayload(notifuseMessageID, recipientEmail string) string {
 		},
 		"mail": map[string]interface{}{
 			"timestamp": now,
-			"messageId": "ses-" + uuid.New().String(),
-			"tags":      map[string][]string{"notifuse_message_id": {notifuseMessageID}},
-		},
-	}
-	messageBytes, _ := json.Marshal(message)
-	envelope := map[string]interface{}{
-		"Type":      "Notification",
-		"MessageId": "sns-" + uuid.New().String(),
-		"TopicArn":  "arn:aws:sns:us-east-1:123456789012:test-topic",
-		"Message":   string(messageBytes),
-	}
-	envelopeBytes, _ := json.Marshal(envelope)
-	return string(envelopeBytes)
-}
-
-// sesBounceListing builds an SNS-wrapped SES hard bounce of the Notifuse message listing
-// these recipients, as SES does for an email sent to several addresses.
-func sesBounceListing(notifuseMessageID string, recipientEmails ...string) string {
-	recipients := make([]map[string]interface{}, 0, len(recipientEmails))
-	for _, email := range recipientEmails {
-		recipients = append(recipients, map[string]interface{}{"emailAddress": email, "diagnosticCode": "smtp; 550 5.1.1 user unknown"})
-	}
-	message := map[string]interface{}{
-		"eventType": "Bounce",
-		"bounce": map[string]interface{}{
-			"bounceType":        "Permanent",
-			"bounceSubType":     "General",
-			"bouncedRecipients": recipients,
-			"timestamp":         time.Now().UTC().Format(time.RFC3339),
-		},
-		"mail": map[string]interface{}{
 			"messageId": "ses-" + uuid.New().String(),
 			"tags":      map[string][]string{"notifuse_message_id": {notifuseMessageID}},
 		},
