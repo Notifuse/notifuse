@@ -80,10 +80,11 @@ stored under a provider's lowercase spelling starts its count again from zero.
 
 SES is sent the address as `encodeEmailAddress` writes it, an international domain in Punycode and a
 non-ASCII local part RFC 2047-encoded, and reports that form; other providers may report either
-spelling of a domain. `sameAddress(stored, reported)` is true when the two are equal case aside, or
-when both have the same `addressForm`: an encoded local part decoded, the whole lowercased, then
-written as `encodeEmailAddress` sends it. A value with no `@`, or an empty local part or domain, has no
-form.
+spelling of a domain. `sameAddress(stored, reported)` is true when the two are equal case aside, when
+`reported` is `stored` as SES is sent it, or when both have the same `addressForm`: the local part
+decoded when encoded and lowercased, the domain as DNS looks it up (`idna.Lookup`: Punycode, case and
+Unicode composition aside), or lowercased as is when DNS refuses it. A value with no `@`, or an empty
+local part or domain, has no form.
 
 ### D4. One SES event per listed recipient
 
@@ -92,8 +93,7 @@ to among them, and the parser used only the first. It now gives one event per li
 bounce keeps each recipient's own diagnostic), so the email's own recipient is found whatever its place
 in the list. An address listed twice, case aside, gets one event, so a bounce counts once. At most
 50 recipients are read, the most an SES email can have, and the events share one copy of the payload. A
-notification listing none still gives one event with no address. The other providers already send one
-event per recipient.
+notification listing none gives no event. The other providers already send one event per recipient.
 
 ### D5. The queue worker records the email before marking its entry sent
 
@@ -108,11 +108,11 @@ when the mark failed. The upsert now comes first, right after the provider accep
 | `internal/repository/message_history_postgre.go` (`GetRecipients`) | `internal/repository/message_history_postgre_test.go`, `TestMessageHistoryRepository_GetRecipients` | found rows mapped, ids passed as one array with the redacted address; no ids, no connection; connection, query, scan and row errors returned |
 | `internal/repository/inbound_webhook_event_postgres.go` (`countConsecutiveSoftBouncesSQL`) | `internal/repository/inbound_webhook_event_postgres_test.go`, `TestCountConsecutiveSoftBounces_OnlyCountsBouncesOfEmailsSentToTheAddress`; the no-prior-delivery regex follows the join | the join is in the query |
 | `internal/service/inbound_webhook_event_service.go` (`ProcessWebhook`, `eventsOfSentEmails`) | `internal/service/inbound_webhook_event_service_test.go`, `TestProcessWebhook_ActsOnlyOnEmailsSentToTheEventAddress` | hard bounce of an unknown email; of another address's email; soft bounce of an unknown email not counted; event carrying only the provider's ID; no ID or no address, no lookup; address in another case kept under the stored address, for a hard and a soft bounce; complaint and delivery of another address's email; SendGrid batch: one lookup with deduplicated IDs, only the matching event acted on; SES bounce, complaint and delivery listing a copied address first: only the recipient's event stored and applied; SES complaint giving the stored international domain in Punycode: kept under the stored address; Mailjet unsubscribe of an unknown email; lookup error returned, nothing stored; the Info log line's fields |
-| same file (`sameAddress`, `addressForm`) | same file, `TestSameAddress` | same address; case; Punycode reported for a Unicode domain and the reverse; Unicode domain in capitals; non-ASCII local part as SES is sent it, in capitals, reported lowercase, reported encoded in lowercase; another non-ASCII local part; another domain; another local part; no address; no domain |
-| same file (`processSESWebhook`) | same file, `TestProcessSESWebhook` | a bounce, a complaint and a delivery listing two recipients give two events in order, each with its address, the Notifuse ID and, for a bounce, its own diagnostic; an address listed twice gives one event, the first; 60 listed recipients give 50 events sharing the payload |
+| same file (`sameAddress`, `addressForm`) | same file, `TestSameAddress` | same address; case; Punycode reported for a Unicode domain and the reverse; Unicode domain in capitals; non-ASCII local part as SES is sent it, in capitals, reported lowercase, reported encoded in lowercase; another non-ASCII local part; another domain; another local part; no address; no domain; a decomposed domain reported composed, in Punycode, and as SES is sent it; a domain DNS refuses, in another case; `straße.de` and `strasse.de` apart |
+| same file (`processSESWebhook`) | same file, `TestProcessSESWebhook` | a bounce, a complaint and a delivery listing two recipients give two events in order, each with its address, the Notifuse ID and, for a bounce, its own diagnostic; an address listed twice gives one event, the first; 60 listed recipients give 50 events sharing the payload; none listed gives no event |
 | `internal/service/queue/worker.go` (`processEntry`) | `internal/service/queue/worker_test.go`, `TestEmailQueueWorker_ProcessEntry_RecordsTheEmailBeforeMarkingTheEntry` | the row is upserted before `MarkAsSent`, and still when the mark fails; the sent callback runs only when the entry is marked |
 | | same file, existing tests | each test that reaches storage expects `GetRecipients`; "events without message ID" now stores nothing; `TestProcessWebhook_MailjetUnsubscribe` adds an unknown email and a copied address, and its race cases cover an email gone, readdressed or erased by the time the opt-out is recorded |
-| full stack | `tests/integration/email_event_message_match_test.go`, `TestEmailEventMessageMatch` (SES and SparkPost) | hard bounce for a contact with no email; naming another contact's email; naming an erased contact's email; address upper-cased: bounced and stored under the contact's address; soft bounces of unknown emails never reach the threshold; rows stored earlier that name no email, or another contact's, are not counted; genuine soft bounces reach it; complaint and delivery with another address change nothing; delivery with the right address marks the email delivered; SES bounce listing a copied contact first bounces the recipient only; SES bounce giving a contact's international domain in Punycode bounces the contact; SparkPost batch with a mixed-case contact |
+| full stack | `tests/integration/email_event_message_match_test.go`, `TestEmailEventMessageMatch` (SES and SparkPost) | hard bounce for a contact with no email; naming another contact's email; naming an erased contact's email; address upper-cased: bounced and stored under the contact's address; soft bounces of unknown emails never reach the threshold; rows stored earlier that name no email, or another contact's, are not counted (either kind would reach the threshold); genuine soft bounces reach it; complaint and delivery with another address change nothing; delivery with the right address marks the email delivered; SES bounce listing a copied contact first bounces the recipient only; SES bounce giving a contact's international domain in Punycode bounces the contact; SparkPost batch with a mixed-case contact |
 | | `tests/integration/bounce_test.go` | every posted bounce names an email sent to the contact; the delivery-reset case dates its bounces around a delivered email |
 
 `CHANGELOG.md`: one **Security** bullet under 42.0 with the SMTP relay action in bold.

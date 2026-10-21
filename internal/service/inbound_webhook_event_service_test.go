@@ -763,6 +763,18 @@ func TestProcessSESWebhook(t *testing.T) {
 		}
 	})
 
+	t.Run("A notification listing no recipient gives no event", func(t *testing.T) {
+		rawPayload, err := json.Marshal(domain.SESWebhookPayload{
+			Message: `{"eventType":"Bounce","bounce":{"bounceType":"Permanent","bounceSubType":"General","bouncedRecipients":[],"timestamp":"2023-01-01T12:00:00Z"},"mail":{"messageId":"provider-msg-id","tags":{"notifuse_message_id":["msg-1"]}}}`,
+		})
+		require.NoError(t, err)
+
+		events, err := service.processSESWebhook(integrationID, rawPayload)
+
+		require.NoError(t, err)
+		assert.Empty(t, events)
+	})
+
 	t.Run("A notification listing the same recipient twice gives one event for it", func(t *testing.T) {
 		rawPayload, err := json.Marshal(domain.SESWebhookPayload{
 			Message: `{"eventType":"Bounce","bounce":{"bounceType":"Transient","bounceSubType":"MailboxFull","bouncedRecipients":[{"emailAddress":"test@example.com","diagnosticCode":"452 first"},{"emailAddress":"copy@example.com","diagnosticCode":"452 copy"},{"emailAddress":"Test@Example.com","diagnosticCode":"452 again"}],"timestamp":"2023-01-01T12:00:00Z"},"mail":{"messageId":"provider-msg-id","tags":{"notifuse_message_id":["msg-1"]}}}`,
@@ -799,6 +811,11 @@ func TestSameAddress(t *testing.T) {
 		{"another local part", "jane@example.com", "john@example.com", false},
 		{"no address", "jane@example.com", "", false},
 		{"no domain", "jane@example.com", "jane", false},
+		{"an international domain stored decomposed, reported composed", "user@mu\u0308nchen.de", "user@münchen.de", true},
+		{"an international domain stored decomposed, reported in Punycode", "user@mu\u0308nchen.de", "user@xn--mnchen-3ya.de", true},
+		{"an international domain stored decomposed, reported as SES is sent it", "user@mu\u0308nchen.de", "user@xn--munchen-gie.de", true},
+		{"a domain DNS refuses, in another case", "jane@My_Domain.com", "jane@my_domain.COM", true},
+		{"two domains DNS tells apart", "user@straße.de", "user@strasse.de", false},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			assert.Equal(t, c.same, sameAddress(c.stored, c.reported))

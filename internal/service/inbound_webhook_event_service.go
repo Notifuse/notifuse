@@ -17,6 +17,7 @@ import (
 	"github.com/Notifuse/notifuse/pkg/safehttpclient"
 	"github.com/Notifuse/notifuse/pkg/tracing"
 	"github.com/google/uuid"
+	"golang.org/x/net/idna"
 )
 
 //go:generate mockgen -destination=./mocks/mock_list_unsubscriber.go -package=mocks github.com/Notifuse/notifuse/internal/service ListUnsubscriber
@@ -528,14 +529,18 @@ func sameAddress(stored, reported string) bool {
 	if strings.EqualFold(stored, reported) {
 		return true
 	}
+	if sent, err := encodeEmailAddress(stored); err == nil && strings.EqualFold(sent, reported) {
+		return true
+	}
 	storedForm, storedOK := addressForm(stored)
 	reportedForm, reportedOK := addressForm(reported)
 	return storedOK && reportedOK && storedForm == reportedForm
 }
 
-// addressForm spells an address one way whatever the spelling it comes in: its local part
-// decoded when encoded, then lowercased and written as encodeEmailAddress sends it. ok is
-// false for what is no address.
+// addressForm spells an address one way whatever the spelling it comes in: the local part
+// decoded when encoded, and lowercased, the domain as DNS looks it up (Punycode, the letter
+// case and the Unicode composition aside), or lowercased when DNS refuses it. ok is false
+// for what is no address.
 func addressForm(address string) (string, bool) {
 	at := strings.LastIndex(address, "@")
 	if at <= 0 || at == len(address)-1 {
@@ -545,8 +550,11 @@ func addressForm(address string) (string, bool) {
 	if decoded, err := new(mime.WordDecoder).DecodeHeader(local); err == nil {
 		local = decoded
 	}
-	form, err := encodeEmailAddress(strings.ToLower(local + address[at:]))
-	return form, err == nil
+	domain, err := idna.Lookup.ToASCII(address[at+1:])
+	if err != nil {
+		domain = address[at+1:]
+	}
+	return strings.ToLower(local) + "@" + strings.ToLower(domain), true
 }
 
 // recordUnsubscribes records the opt-outs a provider reported. The email is marked
@@ -839,9 +847,8 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 		messageID = notifuseMessageID
 	}
 
-	// A notification listing no recipient still gives one event, with no address. One listing
-	// a recipient twice gives it one event, so a bounce is not counted twice, and no more
-	// recipients are read than an SES email can have.
+	// A recipient listed twice gets one event, so a bounce is not counted twice, and no more
+	// recipients are read than an SES email can have
 	listed := make([]sesRecipient, 0, min(len(recipients), sesMaxRecipients))
 	seen := make(map[string]bool, cap(listed))
 	for _, recipient := range recipients {
@@ -853,15 +860,11 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 			listed = append(listed, recipient)
 		}
 	}
-	recipients = listed
-	if len(recipients) == 0 {
-		recipients = []sesRecipient{{}}
-	}
 
 	// The events share one copy of the payload
 	payload := string(rawPayload)
-	events = make([]*domain.InboundWebhookEvent, 0, len(recipients))
-	for _, recipient := range recipients {
+	events = make([]*domain.InboundWebhookEvent, 0, len(listed))
+	for _, recipient := range listed {
 		eventMessageID := messageID
 		event := domain.NewInboundWebhookEvent(
 			uuid.New().String(),

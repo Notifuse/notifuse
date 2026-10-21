@@ -221,11 +221,11 @@ func TestEmailEventMessageMatch(t *testing.T) {
 
 	t.Run("soft bounces stored without an email sent to the address are not counted", func(t *testing.T) {
 		email := newContact(t, "soft-stored")
-		// As stored before events were checked: one names no email, the others another
-		// contact's email
+		// As stored before events were checked: one names no email, and the others, which
+		// would reach the threshold with the one counted bounce, another contact's email
 		otherMessageID := sendTo(t, newContact(t, "soft-stored-other"))
 		future := time.Now().UTC().Add(24 * time.Hour)
-		for i := 0; i < domain.DefaultSoftBounceThreshold-1; i++ {
+		for i := 0; i < domain.DefaultSoftBounceThreshold; i++ {
 			messageID := otherMessageID
 			if i == 0 {
 				messageID = uuid.New().String()
@@ -237,7 +237,8 @@ func TestEmailEventMessageMatch(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		// The one counted bounce: under the threshold with the others left out
+		// The one counted bounce: under the threshold with the others left out, at it if either
+		// those naming no email or those naming another contact's were counted
 		postSESBounce(t, client, sesURL, softBounce(sendTo(t, email), email))
 
 		assert.Equal(t, domain.ContactListStatusActive, statusOf(t, email))
