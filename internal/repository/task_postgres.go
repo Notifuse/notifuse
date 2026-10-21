@@ -1283,6 +1283,29 @@ func (r *TaskRepository) WakeTask(ctx context.Context, workspace, id string, nex
 	return woken, nil
 }
 
+// ResetRetryBudget gives a task a fresh retry budget without touching anything
+// its run owns; see domain.TaskRepository.
+func (r *TaskRepository) ResetRetryBudget(ctx context.Context, workspace, id string) error {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	sqlQuery, args, err := psql.Update("tasks").
+		Set("retry_count", 0).
+		Set("updated_at", time.Now().UTC()).
+		Where(sq.And{
+			sq.Eq{"id": id},
+			sq.Eq{"workspace_id": workspace},
+			sq.NotEq{"status": string(domain.TaskStatusCompleted)},
+		}).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build retry budget query: %w", err)
+	}
+
+	if _, err := r.systemDB.ExecContext(ctx, sqlQuery, args...); err != nil {
+		return fmt.Errorf("failed to reset retry budget: %w", err)
+	}
+	return nil
+}
+
 // taskExistsTx tells a missing task from one a conditional write left alone
 // because of its status.
 func (r *TaskRepository) taskExistsTx(ctx context.Context, tx *sql.Tx, workspace, id string) (bool, error) {

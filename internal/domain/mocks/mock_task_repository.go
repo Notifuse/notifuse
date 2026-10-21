@@ -382,6 +382,20 @@ func (mr *MockTaskRepositoryMockRecorder) ReleaseTaskTx(arg0, arg1, arg2, arg3, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseTaskTx", reflect.TypeOf((*MockTaskRepository)(nil).ReleaseTaskTx), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
+// ResetRetryBudget mocks base method.
+func (m *MockTaskRepository) ResetRetryBudget(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetRetryBudget", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResetRetryBudget indicates an expected call of ResetRetryBudget.
+func (mr *MockTaskRepositoryMockRecorder) ResetRetryBudget(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetRetryBudget", reflect.TypeOf((*MockTaskRepository)(nil).ResetRetryBudget), arg0, arg1, arg2)
+}
+
 // SaveState mocks base method.
 func (m *MockTaskRepository) SaveState(arg0 context.Context, arg1, arg2 string, arg3 float64, arg4 *domain.TaskState) error {
 	m.ctrl.T.Helper()

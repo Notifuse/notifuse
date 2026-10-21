@@ -2149,6 +2149,68 @@ func TestTaskRepository_WakeTask(t *testing.T) {
 	})
 }
 
+// TestTaskRepository_ResetRetryBudget pins that a resume refused by WakeTask
+// still hands the task a fresh retry budget without taking anything else from
+// the run that holds it.
+func TestTaskRepository_ResetRetryBudget(t *testing.T) {
+	ctx := context.Background()
+	workspace := "test-workspace"
+	taskID := uuid.New().String()
+
+	expectReset := func(mock sqlmock.Sqlmock) *sqlmock.ExpectedExec {
+		return mock.ExpectExec("UPDATE tasks SET").
+			WithArgs(
+				0,                // retry_count
+				sqlmock.AnyArg(), // updated_at
+				taskID,
+				workspace,
+				string(domain.TaskStatusCompleted),
+			)
+	}
+
+	t.Run("writes the retry count only", func(t *testing.T) {
+		var executed []string
+		db, mock, repo := setupTaskMockCapturingSQL(t, &executed)
+		defer func() { _ = db.Close() }()
+
+		expectReset(mock).WillReturnResult(sqlmock.NewResult(0, 1))
+
+		require.NoError(t, repo.ResetRetryBudget(ctx, workspace, taskID))
+		assert.NoError(t, mock.ExpectationsWereMet())
+		require.Len(t, executed, 1)
+		setClause := executed[0][:strings.Index(executed[0], " WHERE ")]
+		// The run that holds the task owns its status, lease, schedule, state
+		// and progress.
+		for _, forbidden := range []string{"status", "timeout_after", "next_run_after", "state", "progress"} {
+			assert.NotContains(t, setClause, forbidden, "ResetRetryBudget must not write %s", forbidden)
+		}
+		assert.Contains(t, executed[0][strings.Index(executed[0], " WHERE "):], "status <>",
+			"a completed task keeps the retry count it finished with")
+	})
+
+	t.Run("does nothing for a completed or missing task", func(t *testing.T) {
+		db, mock, repo := setupTaskMock(t)
+		defer func() { _ = db.Close() }()
+
+		expectReset(mock).WillReturnResult(sqlmock.NewResult(0, 0))
+
+		require.NoError(t, repo.ResetRetryBudget(ctx, workspace, taskID))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns an update error", func(t *testing.T) {
+		db, mock, repo := setupTaskMock(t)
+		defer func() { _ = db.Close() }()
+
+		expectReset(mock).WillReturnError(fmt.Errorf("database error"))
+
+		err := repo.ResetRetryBudget(ctx, workspace, taskID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to reset retry budget")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
 // TestTaskRepository_MarkAsPaused_LeavesAHeldTaskAlone pins that pausing does not
 // take a task away from the execution holding it. Writing paused and clearing
 // the lease let a resume a moment later hand the task to a second execution

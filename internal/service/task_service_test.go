@@ -1025,8 +1025,10 @@ func TestTaskService_BroadcastEventHandlers(t *testing.T) {
 		mockRepo.EXPECT().
 			GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).
 			Return(task, nil)
-		// CRITICAL: Update must NOT be called, otherwise task.Status would be
-		// reset to Pending and orchestrator would re-enqueue every recipient.
+		// CRITICAL: the task must not be woken, otherwise it would be put back
+		// to Pending and the orchestrator would re-enqueue every recipient.
+		mockRepo.EXPECT().WakeTask(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		mockRepo.EXPECT().ResetRetryBudget(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 		taskService.handleBroadcastResumed(ctx, payload)
 	})
@@ -1532,6 +1534,40 @@ func TestTaskService_HandleBroadcastResumed(t *testing.T) {
 		// Call the event handler
 		taskService.handleBroadcastResumed(ctx, payload)
 		// No assertions needed - if no panic, the test passes
+	})
+
+	t.Run("Handles a retry budget reset error", func(t *testing.T) {
+		ctx := context.Background()
+		workspaceID := "workspace1"
+		broadcastID := "broadcast123"
+
+		payload := domain.EventPayload{
+			Type:        domain.EventBroadcastResumed,
+			WorkspaceID: workspaceID,
+			Data: map[string]interface{}{
+				"broadcast_id": broadcastID,
+			},
+		}
+
+		task := &domain.Task{
+			ID:          "task456",
+			WorkspaceID: workspaceID,
+			Type:        "send_broadcast",
+			Status:      domain.TaskStatusRunning,
+			BroadcastID: &broadcastID,
+		}
+
+		mockRepo.EXPECT().
+			GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).
+			Return(task, nil)
+		mockRepo.EXPECT().
+			WakeTask(gomock.Any(), workspaceID, task.ID, gomock.Any()).
+			Return(false, nil)
+		mockRepo.EXPECT().
+			ResetRetryBudget(gomock.Any(), workspaceID, task.ID).
+			Return(errors.New("update failed"))
+
+		taskService.handleBroadcastResumed(ctx, payload)
 	})
 }
 
@@ -3520,6 +3556,9 @@ func TestTaskService_BroadcastPauseResume_LeaveAHeldTaskToItsRun(t *testing.T) {
 	t.Run("resume", func(t *testing.T) {
 		mockRepo.EXPECT().GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).Return(task, nil)
 		mockRepo.EXPECT().WakeTask(gomock.Any(), workspaceID, task.ID, gomock.Any()).Return(false, nil)
+		// The run keeps the task, but a failure after the resume must still get
+		// the fresh retry budget the resume promises.
+		mockRepo.EXPECT().ResetRetryBudget(gomock.Any(), workspaceID, task.ID).Return(nil)
 		// No immediate execution: the run that holds the task carries on.
 		mockRepo.EXPECT().GetNextBatch(gomock.Any(), gomock.Any()).Times(0)
 
@@ -3538,6 +3577,8 @@ func TestTaskService_BroadcastPauseResume_LeaveAHeldTaskToItsRun(t *testing.T) {
 		executed := make(chan struct{})
 		mockRepo.EXPECT().GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).Return(&waiting, nil)
 		mockRepo.EXPECT().WakeTask(gomock.Any(), workspaceID, task.ID, gomock.Any()).Return(true, nil)
+		// The wake itself resets the retry budget.
+		mockRepo.EXPECT().ResetRetryBudget(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		mockRepo.EXPECT().GetNextBatch(gomock.Any(), 1).DoAndReturn(
 			func(context.Context, int) ([]*domain.Task, error) { close(executed); return nil, nil })
 

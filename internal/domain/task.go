@@ -267,6 +267,12 @@ type TaskRepository interface {
 	// progress: they belong to the execution that saves them.
 	WakeTask(ctx context.Context, workspace, id string, nextRunAfter time.Time) (bool, error)
 
+	// ResetRetryBudget gives a task a fresh retry budget and changes nothing else:
+	// not its status, schedule, lease, state or progress, so it leaves a task an
+	// execution holds to that execution. It leaves a completed task alone, and
+	// does nothing for a missing one.
+	ResetRetryBudget(ctx context.Context, workspace, id string) error
+
 	// GetTaskByIntegrationID retrieves the active task for a specific integration
 	GetTaskByIntegrationID(ctx context.Context, workspace, integrationID string) (*Task, error)
 	GetTaskByIntegrationIDTx(ctx context.Context, tx *sql.Tx, workspace, integrationID string) (*Task, error)

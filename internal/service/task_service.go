@@ -1349,8 +1349,9 @@ func (s *TaskService) handleBroadcastResumed(ctx context.Context, payload domain
 	// was paused after burning retries on transient failures came back one
 	// failure from being marked failed for good — and the console offers no
 	// other way to clear it. A task its run still holds is left to that run,
-	// which sees the resume on its next refresh: handing the task to a second
-	// execution enqueued everyone past the cursor it read a second time.
+	// which sees the resume on its next refresh, and only gets the fresh retry
+	// budget: handing the task to a second execution enqueued everyone past
+	// the cursor it read a second time.
 	nextRunAfter := time.Now().UTC()
 	tracing.AddAttribute(ctx, "next_run_after", nextRunAfter.Format(time.RFC3339))
 
@@ -1367,6 +1368,14 @@ func (s *TaskService) handleBroadcastResumed(ctx context.Context, payload domain
 			"broadcast_id": broadcastID,
 			"task_id":      task.ID,
 		}).Info("Broadcast resumed while its run holds the task - leaving the task to that run")
+		if err := s.repo.ResetRetryBudget(ctx, payload.WorkspaceID, task.ID); err != nil {
+			tracing.MarkSpanError(ctx, err)
+			s.logger.WithFields(map[string]interface{}{
+				"broadcast_id": broadcastID,
+				"task_id":      task.ID,
+				"error":        err.Error(),
+			}).Error("Failed to reset the retry budget of the resumed broadcast's task")
+		}
 	} else {
 		tracing.AddAttribute(ctx, "new_status", string(domain.TaskStatusPending))
 		s.logger.WithFields(map[string]interface{}{

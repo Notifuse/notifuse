@@ -285,11 +285,9 @@ func (h *singleExecHarness) blockedOn(queryLike string) int {
 
 func (h *singleExecHarness) waitUntil(what string, cond func() bool) {
 	h.t.Helper()
-	deadline := time.Now().Add(statusFlipTimeout)
-	for !cond() {
-		require.True(h.t, time.Now().Before(deadline), "timed out waiting for "+what)
-		time.Sleep(20 * time.Millisecond)
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), statusFlipTimeout)
+	defer cancel()
+	require.NoError(h.t, testutil.WaitForConditionWithContext(ctx, h.t, cond, 20*time.Millisecond, what))
 }
 
 // secondExecution asks for an execution while the first one is held by the

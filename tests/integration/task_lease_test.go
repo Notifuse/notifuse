@@ -312,3 +312,52 @@ func TestTaskLease_WakeTask(t *testing.T) {
 		assert.False(t, woken)
 	})
 }
+
+// TestTaskLease_ResetRetryBudget covers a resume that WakeTask refused because
+// the broadcast's run holds the task: the run keeps the task, and a failure
+// after the resume still gets the retries the resume promised.
+func TestTaskLease_ResetRetryBudget(t *testing.T) {
+	h := setupTaskLease(t)
+	ctx := context.Background()
+
+	t.Run("gives a held task its retries back and leaves it to its run", func(t *testing.T) {
+		id := h.newTask(t)
+		require.NoError(t, h.repo.MarkAsRunning(ctx, h.workspaceID, id, *liveLease()))
+		claimed := h.get(t, id)
+		require.NotNil(t, claimed.TimeoutAfter)
+		_, err := h.suite.DBManager.GetDB().Exec(
+			`UPDATE tasks SET retry_count = max_retries WHERE id = $1`, id)
+		require.NoError(t, err)
+
+		require.NoError(t, h.repo.ResetRetryBudget(ctx, h.workspaceID, id))
+
+		task := h.get(t, id)
+		assert.Zero(t, task.RetryCount)
+		assert.Equal(t, domain.TaskStatusRunning, task.Status)
+		require.NotNil(t, task.TimeoutAfter)
+		assert.WithinDuration(t, *claimed.TimeoutAfter, *task.TimeoutAfter, time.Millisecond,
+			"the run's lease must be left as it was")
+		require.NotNil(t, task.State)
+		require.NotNil(t, task.State.SendBroadcast)
+		assert.Equal(t, "start@example.com", task.State.SendBroadcast.LastProcessedEmail)
+
+		// Without the reset the budget was spent and this failure was final.
+		require.NoError(t, h.repo.MarkAsFailed(ctx, h.workspaceID, id, "transient"))
+		assert.Equal(t, domain.TaskStatusPending, h.get(t, id).Status,
+			"a failure after the resume must be retried")
+	})
+
+	t.Run("leaves a completed task as it finished", func(t *testing.T) {
+		id := h.newTask(t)
+		h.set(t, id, domain.TaskStatusCompleted, nil)
+		_, err := h.suite.DBManager.GetDB().Exec(
+			`UPDATE tasks SET retry_count = 2 WHERE id = $1`, id)
+		require.NoError(t, err)
+
+		require.NoError(t, h.repo.ResetRetryBudget(ctx, h.workspaceID, id))
+
+		task := h.get(t, id)
+		assert.Equal(t, domain.TaskStatusCompleted, task.Status)
+		assert.Equal(t, 2, task.RetryCount)
+	})
+}
