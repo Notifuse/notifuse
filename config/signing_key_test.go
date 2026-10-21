@@ -66,6 +66,14 @@ func TestLoad_SigningKey(t *testing.T) {
 		assert.Contains(t, err.Error(), "SIGNING_KEY")
 	})
 
+	t.Run("former compose default kept in quotes is refused", func(t *testing.T) {
+		setKeyEnv(t, `"`+formerComposeDefault+`"`, "", "")
+
+		_, err := LoadWithOptions(LoadOptions{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "SIGNING_KEY must be set")
+	})
+
 	t.Run("former env.example placeholder as SECRET_KEY without SIGNING_KEY is refused", func(t *testing.T) {
 		setKeyEnv(t, formerEnvExamplePlaceholder, "", "")
 
@@ -154,6 +162,11 @@ func TestIsPublishedKey(t *testing.T) {
 		"wrapped over lines":      wrapped,
 		"raw decoded bytes":       string(decoded),
 		"env.example placeholder": formerEnvExamplePlaceholder,
+		// docker --env-file keeps quotes as part of the value.
+		"double-quoted":                  `"` + formerComposeDefault + `"`,
+		"single-quoted":                  "'" + formerComposeDefault + "'",
+		"quoted with whitespace":         ` " ` + formerComposeDefault + ` " `,
+		"quoted env.example placeholder": `"` + formerEnvExamplePlaceholder + `"`,
 	}
 	for name, key := range recognised {
 		t.Run("recognises "+name, func(t *testing.T) {
@@ -169,6 +182,8 @@ func TestIsPublishedKey(t *testing.T) {
 		"fresh base64 key":      freshBase64Key(t),
 		"one character changed": altered,
 		"raw string key":        "another-secret-key-0123456789abcdef",
+		"mismatched quotes":     `"` + formerComposeDefault + "'",
+		"lone quote":            `"`,
 	}
 	for name, key := range others {
 		t.Run("ignores "+name, func(t *testing.T) {

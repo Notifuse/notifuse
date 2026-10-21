@@ -514,7 +514,7 @@ func (a *App) InitServices() error {
 			// Return current JWT secret from config
 			// This will be nil before setup, or loaded from env/database after setup
 			if len(a.config.Security.JWTSecret) == 0 {
-				return nil, fmt.Errorf("system setup not completed or SECRET_KEY not configured")
+				return nil, fmt.Errorf("system setup not completed or signing key not configured (SIGNING_KEY, or SECRET_KEY when SIGNING_KEY is not set)")
 			}
 			return a.config.Security.JWTSecret, nil
 		},

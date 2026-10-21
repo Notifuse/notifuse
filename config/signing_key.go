@@ -27,8 +27,21 @@ func sha256Hex(b []byte) string {
 }
 
 // isPublishedKey reports whether key is one of the key values Notifuse has
-// published, in any of the spellings that decode to it.
+// published, in any of the spellings that decode to it, quoted or not: an env file
+// read by docker --env-file keeps the quotes, so a quoted published key is just as
+// easy to sign with.
 func isPublishedKey(key string) bool {
+	if isPublishedValue(key) {
+		return true
+	}
+	trimmed := strings.TrimSpace(key)
+	if len(trimmed) >= 2 && (trimmed[0] == '"' || trimmed[0] == '\'') && trimmed[len(trimmed)-1] == trimmed[0] {
+		return isPublishedValue(trimmed[1 : len(trimmed)-1])
+	}
+	return false
+}
+
+func isPublishedValue(key string) bool {
 	trimmed := strings.TrimSpace(key)
 	switch sha256Hex([]byte(trimmed)) {
 	case formerComposeDefaultDigest, formerEnvExamplePlaceholderDigest:

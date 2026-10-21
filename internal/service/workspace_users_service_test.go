@@ -1090,6 +1090,34 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 		assert.Empty(t, token)
 		assert.Contains(t, err.Error(), "user is already a member of the workspace")
 	})
+
+	// An API key account has an address of its own, under the API domain. Inviting that
+	// address must not seat another workspace's key here: the strict mocks refuse the
+	// membership check and every write.
+	t.Run("address of an API key account is refused", func(t *testing.T) {
+		mockAuthSvc.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: inviterID}, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
+		mockRepo.EXPECT().
+			GetByID(ctx, workspaceID).
+			Return(&domain.Workspace{ID: workspaceID, Name: "Test Workspace"}, nil)
+		mockUserSvc.EXPECT().
+			GetUserByID(ctx, inviterID).
+			Return(&domain.User{ID: inviterID, Email: "inviter@example.com"}, nil)
+		mockRepo.EXPECT().
+			GetInvitationByEmail(ctx, workspaceID, email).
+			Return(nil, domain.ErrInvitationNotFound)
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(ctx, email).
+			Return(&domain.User{ID: "key-of-another-workspace", Email: email, Type: domain.UserTypeAPIKey}, nil)
+
+		invitation, token, err := service.InviteMember(ctx, workspaceID, email, domain.NewFullPermissions())
+		require.Error(t, err)
+		assert.Nil(t, invitation)
+		assert.Empty(t, token)
+		var unauthorized *domain.ErrUnauthorized
+		require.ErrorAs(t, err, &unauthorized)
+	})
 }
 
 func TestWorkspaceService_CreateAPIKey(t *testing.T) {

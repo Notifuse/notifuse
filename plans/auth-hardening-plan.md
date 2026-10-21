@@ -36,7 +36,8 @@ key needs none: stored data stays readable, and only signatures change.
     the operator to generate one with `openssl rand -base64 32`, to keep `SECRET_KEY` as it is because it
     decrypts stored data, and that existing sessions and API keys stop working. This covers `SECRET_KEY`,
     `PASETO_PRIVATE_KEY` and `SIGNING_KEY` set to that value.
-- "Is a published value" means either:
+- "Is a published value" means, for the value as given or with one pair of matching surrounding quotes
+  removed (an env file read by `docker --env-file` keeps them), either:
   - the trimmed string has the SHA-256 digest of the compose default or of the `env.example` placeholder
     (`your-secret-key-here`); or
   - the key's bytes, or the bytes any standard base64 alphabet (padded or not, whitespace removed) decodes
@@ -102,7 +103,8 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
   any 401).
 - The demo seed acted as root by labelling it an API key, which the rule above refuses. It now opens a
   session for root through `UserService.startSession`, as a sign-in does, and closes it with
-  `UserService.endSession` when the seed is done. Right after creating the demo workspace it authenticates
+  `UserService.endSession` when the seed is done (a session signed out meanwhile counts as closed). Root
+  sign-in opens its session through the same `startSession`. Right after creating the demo workspace it authenticates
   once for it (`AuthenticateUserForWorkspace`, whose result later checks reuse), so a demo visitor signing
   root out mid-seed, which ends every root session, does not stop the seed. A sign-out during the few
   seconds of workspace creation itself still fails that reset, which then answers 500 and can be run
@@ -116,7 +118,11 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
   `handleVerifyInvitationToken` already makes) and `invitation.ExpiresAt` in the future. A mismatch returns
   `domain.ErrInvitationUnavailable`; nothing is created. An invitation already accepted or cancelled
   (`ErrInvitationNotFound`) gives the same error instead of a 500, and so does an invitee found already
-  seated, typically the same link accepted twice at once.
+  seated, or whose account the other request just created (`ErrUserExists`), typically the same link
+  accepted twice at once.
+- `InviteMember` refuses an address that belongs to an API key account (`ErrUnauthorized`, 403). API key
+  addresses are `<prefix>@<API domain>`, so a colleague's address can coincide with one, and the
+  existing-account branch would have seated that other workspace's key directly.
 - As `JoinInvitation` does, the audit record is given the invitation's workspace and target before any
   check, and each refusal a reason (`invitation_mismatch`, `invitation_expired`, `api_key_identity`,
   `already_member`), so
@@ -144,7 +150,7 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
   failing with an error.
 - The upgrade note, `env.example`, the startup error and the docs say a new `SIGNING_KEY` also
   invalidates pending invitation links, and that a compose file of one's own must pass `SIGNING_KEY` to
-  the container. `make docker-run` forwards `SIGNING_KEY`. The startup messages name the variable the
+  the container. The app's JWT secret error names the signing key. `make docker-run` forwards `SIGNING_KEY`. The startup messages name the variable the
   key came from (`SECRET_KEY`, `PASETO_PRIVATE_KEY` or `SIGNING_KEY`).
 - `make docker-compose-up` runs `docker compose up -d`, so it now needs `SECRET_KEY` in the environment or
   in `.env`, as the documented quick start will say. Compose checks a required variable for every
@@ -159,7 +165,7 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
 
 | Implementation file | Test file | Cases |
 | --- | --- | --- |
-| `config/config.go`, `config/signing_key.go` | `config/signing_key_test.go` | default as `SECRET_KEY` without `SIGNING_KEY` refused, error names `SIGNING_KEY`; same through `PASETO_PRIVATE_KEY`; same with surrounding spaces; default as `SIGNING_KEY` refused; default without padding, in the URL alphabet, with embedded newlines, and as raw decoded bytes each refused; `env.example` placeholder refused; default `SECRET_KEY` with a fresh `SIGNING_KEY` loads, `SecretKey` keeps the default, `SigningKey` and `JWTSecret` come from `SIGNING_KEY`; `SIGNING_KEY` with a trailing newline is trimmed; whitespace-only `SIGNING_KEY` counts as unset; no `SIGNING_KEY` and another `SECRET_KEY` gives `SigningKey == SecretKey` and the same `JWTSecret` as before |
+| `config/config.go`, `config/signing_key.go` | `config/signing_key_test.go` | default as `SECRET_KEY` without `SIGNING_KEY` refused, error names `SIGNING_KEY`; same through `PASETO_PRIVATE_KEY`; same with surrounding spaces; default as `SIGNING_KEY` refused; default without padding, in the URL alphabet, with embedded newlines, and as raw decoded bytes each refused; `env.example` placeholder refused; default in single or double quotes refused, mismatched quotes not stripped; default `SECRET_KEY` with a fresh `SIGNING_KEY` loads, `SecretKey` keeps the default, `SigningKey` and `JWTSecret` come from `SIGNING_KEY`; `SIGNING_KEY` with a trailing newline is trimmed; whitespace-only `SIGNING_KEY` counts as unset; no `SIGNING_KEY` and another `SECRET_KEY` gives `SigningKey == SecretKey` and the same `JWTSecret` as before |
 | `internal/repository/auth_repository.go` | `auth_repository_test.go` | query selects `name` and `type`, both are scanned |
 | `internal/service/auth_service.go` | `auth_service_test.go` | API key token naming a regular user refused; naming an API key user accepted; revoked key still answers `ErrAPIKeyRevoked`; session token whose user is an API key user refused; invitation token without `exp` refused |
 | `internal/service/user_service.go` (sessions) | `user_service_test.go` | `VerifyUserSession` for an API key user refused with `ErrSessionAuthFailed`; regular user accepted |
@@ -167,16 +173,17 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
 | `internal/service/oidc_service.go` | `oidc_service_test.go` | flow state sealed with the signing key opens; sealed with the encryption key does not |
 | `internal/service/task_service.go` | `task_service_test.go` | `SetSigningKey` sets the key dispatches are signed with (renamed from `SetSecretKey`) |
 | `internal/http/task_handler.go`, `usage_handler.go` | their `_test.go` | existing cases on the renamed `signingKey` field; which key the app hands them is proven end to end by `signing_key_test.go` |
-| `internal/service/workspace_service.go` | `workspace_service_test.go` | workspace mismatch, email mismatch (including letter case) and expired invitation each refused with `ErrInvitationUnavailable`, recorded in the invitation's workspace audit log with the refusal reason, and no user lookup, creation, membership or session; existing account of type `api_key` refused with no membership or session; existing fixtures carry a stored expiry and account type |
+| `internal/service/workspace_service.go` | `workspace_service_test.go` | workspace mismatch, email mismatch (including letter case), expired invitation, already-seated invitee and account created meanwhile each refused with `ErrInvitationUnavailable`, recorded in the invitation's workspace audit log with the refusal reason, and no user lookup, creation, membership or session; existing account of type `api_key` refused with no membership or session; existing fixtures carry a stored expiry and account type |
+| `internal/service/workspace_service.go` (invite) | `workspace_users_service_test.go` | address of an API key account refused with `ErrUnauthorized`, no membership check or write |
 | `internal/http/workspace_handler.go` | `workspace_handler_test.go` | accept: `ErrInvitationUnavailable` answers 404; verify: expired stored invitation answers 401 |
-| `internal/http/settings_handler.go` | `settings_handler_test.go` | API key token naming root answers 401; signed-out root session 401; failed session check 500; live root session 200; existing guards run on a session context |
+| `internal/http/settings_handler.go` | `settings_handler_test.go` | API key token naming root answers 403; any API key answers 403; session token without a session id 401; signed-out root session 401; failed session check 500; live root session 200; existing guards run on a session context |
 | `internal/service/smtp_bridge_handler.go` | `smtp_bridge_handler_test.go` | token naming a regular account refused; token naming a missing account refused; account lookup failure not read as a revoked key; API key account accepted |
 | `internal/domain/contact.go` | `contact_test.go` | existing `VerifyEmailHMAC` cases still pass with the constant-time comparison |
-| `internal/service/demo_service.go` | `demo_service_test.go` | demo reset HMAC verifies under `SigningKey`, not `SecretKey`; a root person gets a session of its own whose context `AuthService` accepts, closed at the end; a session that cannot be closed only logs; a root API key account keeps its type and opens no session; a session that cannot be opened stops the seed; after `seedContext` workspace checks no longer look the session up; a refused check stops the seed |
+| `internal/service/demo_service.go` | `demo_service_test.go` | demo reset HMAC verifies under `SigningKey`, not `SecretKey`; a root person gets a session of its own whose context `AuthService` accepts, closed at the end; a session that cannot be closed only logs; a root API key account keeps its type and opens no session; a session that cannot be opened stops the seed; a session signed out meanwhile counts as closed; after `seedContext` workspace checks no longer look the session up; a refused check stops the seed |
 | demo reset, full stack | none kept | a full `/api/demo.reset` seeds for more than two minutes, too slow for the suite; run once by hand on the harness, it created the demo workspace as root through the seed's session |
 | `cmd/hmac/main.go` | `cmd/hmac/main_test.go` | prints the HMAC and reset URL the server verifies; missing arguments print the usage and exit 1 |
 | `internal/app/app.go` | `app_test.go` and the integration suite | test config carries a distinct `SigningKey`; the OIDC flow state opens with the signing key and not the encryption key; the rest of the wiring is exercised end to end by the harness running on distinct keys |
-| full stack | `tests/integration/signing_key_test.go` | harness on distinct keys: root sign-in, `/api/tasks.execute` and `/api/usage.get` signed with `SECRET_KEY` refused, with `SIGNING_KEY` accepted; an API key token naming the owner refused while a real API key works; invitation tokens naming another email or workspace refused, seating nobody and creating no account, while the issued token is accepted once and answers 404 after; `/api/settings.get` answers a root session, refuses an API key token naming root and the root session once signed out |
+| full stack | `tests/integration/signing_key_test.go` | harness on distinct keys: root sign-in, `/api/tasks.execute` and `/api/usage.get` signed with `SECRET_KEY` refused, with `SIGNING_KEY` accepted; an API key token naming the owner refused while a real API key works; invitation tokens naming another email or workspace refused, seating nobody and creating no account, while the issued token is accepted once and answers 404 after; inviting the address of an API key answers 403 and seats nothing; `/api/settings.get` answers a root session, refuses an API key token naming root and the root session once signed out |
 
 ## Test run
 

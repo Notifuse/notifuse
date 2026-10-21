@@ -239,6 +239,16 @@ func TestDemoService_RootContext(t *testing.T) {
 		end()
 	})
 
+	t.Run("a session signed out meanwhile counts as closed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		userRepo := domainmocks.NewMockUserRepository(ctrl)
+		userRepo.EXPECT().DeleteSession(gomock.Any(), "seed-session").Return(&domain.ErrSessionNotFound{Message: "session not found"})
+
+		require.NoError(t, newDemoService(userRepo).userService.endSession(context.Background(), "seed-session"))
+	})
+
 	t.Run("a session that cannot be closed only logs", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()

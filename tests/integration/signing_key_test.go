@@ -108,9 +108,10 @@ func TestSigningKeySeparation(t *testing.T) {
 		return resp.StatusCode
 	}
 
+	apiUser, err := factory.CreateAPIKey(workspace.ID)
+	require.NoError(t, err)
+
 	t.Run("an API key token authenticates only an API key account", func(t *testing.T) {
-		apiUser, err := factory.CreateAPIKey(workspace.ID)
-		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, listLists(t, authService.GenerateAPIAuthToken(apiUser)))
 
 		// Same signature, same claims shape, but naming the workspace owner.
@@ -133,6 +134,20 @@ func TestSigningKeySeparation(t *testing.T) {
 			Permissions: domain.NewFullPermissions(),
 		}, &invited))
 		require.NotEmpty(t, invited.Token)
+
+		// The address of another workspace's API key is not a person to invite.
+		resp, err := inviter.Post("/api/workspaces.inviteMember", domain.InviteMemberRequest{
+			WorkspaceID: workspaceID,
+			Email:       apiUser.Email,
+			Permissions: domain.NewFullPermissions(),
+		})
+		require.NoError(t, err)
+		_ = resp.Body.Close()
+		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+		var keyMemberships int
+		require.NoError(t, suite.DBManager.GetDB().QueryRow(
+			`SELECT count(*) FROM user_workspaces WHERE user_id = $1 AND workspace_id = $2`, apiUser.ID, workspaceID).Scan(&keyMemberships))
+		assert.Equal(t, 0, keyMemberships, "the key was not seated")
 
 		accept := func(t *testing.T, token string) int {
 			t.Helper()

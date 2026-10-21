@@ -871,6 +871,11 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 	// Check if user already exists with this email. Case-insensitive: single sign-on creates
 	// accounts under the provider's lower-cased address, and invitations keep the owner's typing.
 	existingUser, err := s.userRepo.GetUserByEmailInsensitive(ctx, email)
+	if err == nil && existingUser != nil && existingUser.Type == domain.UserTypeAPIKey {
+		// An API key account has an address of its own, under the API domain. Seating it
+		// here would hand another workspace's key access to this one.
+		return nil, "", &domain.ErrUnauthorized{Message: "this address belongs to an API key and cannot be invited"}
+	}
 	if err == nil && existingUser != nil {
 		// User exists, check if they're already a member
 		isMember, err := s.repo.IsUserWorkspaceMember(ctx, existingUser.ID, workspaceID)
@@ -1646,6 +1651,12 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 		}
 
 		err = s.userRepo.CreateUser(ctx, user)
+		var userExists *domain.ErrUserExists
+		if errors.As(err, &userExists) {
+			// Created a moment ago by the same link accepted twice at once.
+			audit.Fail("already_member")
+			return nil, domain.ErrInvitationUnavailable
+		}
 		if err != nil {
 			s.logger.WithField("email", invitation.Email).WithField("error", err.Error()).Error("Failed to create user for invitation acceptance")
 			return nil, fmt.Errorf("failed to create user: %w", err)

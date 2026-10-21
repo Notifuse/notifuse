@@ -4890,6 +4890,24 @@ func TestWorkspaceService_AcceptInvitation_RefusesTokenNotMatchingInvitation(t *
 		assertAudited(t, record, "api_key_identity")
 	})
 
+	// The same link accepted twice at once: the other request created the account
+	// between this one's lookup and its insert.
+	t.Run("account created meanwhile by the same link", func(t *testing.T) {
+		service, mockRepo, mockUserRepo := setupService(t)
+		mockRepo.EXPECT().GetInvitationByID(gomock.Any(), invitationID).Return(stored(), nil)
+		mockUserRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), email).
+			Return(nil, &domain.ErrUserNotFound{Message: "user not found"})
+		mockUserRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).
+			Return(&domain.ErrUserExists{Message: "user already exists"})
+		record := domain.NewAuditRecord("203.0.113.1", "test", "req-1")
+
+		resp, err := service.AcceptInvitation(domain.WithAuditRecord(context.Background(), record), invitationID, workspaceID, email)
+
+		require.ErrorIs(t, err, domain.ErrInvitationUnavailable)
+		assert.Nil(t, resp)
+		assertAudited(t, record, "already_member")
+	})
+
 	t.Run("invitation already accepted or cancelled", func(t *testing.T) {
 		service, mockRepo, _ := setupService(t)
 		mockRepo.EXPECT().GetInvitationByID(gomock.Any(), invitationID).Return(nil, domain.ErrInvitationNotFound)
