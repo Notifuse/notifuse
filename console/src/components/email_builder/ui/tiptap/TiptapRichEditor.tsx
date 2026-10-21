@@ -37,7 +37,7 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
   )
 
   // Read only when the editor is created; the effect below loads later content
-  const [initialContent] = useState(() => sanitizeRichContent(sanitizeHtml(content)))
+  const [initialContent] = useState(() => sanitizeRichContent(content))
 
   const editor = useEditor(
     {
@@ -61,7 +61,7 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
       isUpdatingFromProps.current = true
-      const sanitizedContent = sanitizeRichContent(sanitizeHtml(content))
+      const sanitizedContent = sanitizeRichContent(content)
 
       try {
         editor.commands.setContent(sanitizedContent, { emitUpdate: false })
@@ -117,7 +117,10 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
         editor={editor}
         style={{
           border: 'none',
-          outline: 'none'
+          outline: 'none',
+          // Keeps what the content draws inside the editing area, which the
+          // toolbar above is not part of
+          contain: 'paint'
         }}
       />
     </div>

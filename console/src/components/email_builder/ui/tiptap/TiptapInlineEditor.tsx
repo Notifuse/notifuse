@@ -38,7 +38,7 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
   )
 
   // Read only when the editor is created; the effect below loads later content
-  const [initialContent] = useState(() => getInitialInlineContent(sanitizeHtml(content)))
+  const [initialContent] = useState(() => getInitialInlineContent(content))
 
   const editor = useEditor(
     {
@@ -71,7 +71,7 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
       if (shouldUpdate) {
         isUpdatingFromProps.current = true
 
-        const contentForEditor = prepareInlineContent(sanitizeHtml(content))
+        const contentForEditor = prepareInlineContent(content)
 
         try {
           editor.commands.setContent(contentForEditor, { emitUpdate: false })
@@ -129,7 +129,10 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
         editor={editor}
         style={{
           border: 'none',
-          outline: 'none'
+          outline: 'none',
+          // Keeps what the content draws inside the editing area, which the
+          // toolbar above is not part of
+          contain: 'paint'
         }}
       />
     </div>

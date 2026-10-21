@@ -626,7 +626,10 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
       data-block-id={block.id}
     >
       <div style={buttonWrapperStyle}>
-        <div style={buttonStyle}>
+        {/* Paint containment keeps what the button text draws, fixed positioning
+            included, inside the button; the open editor contains its own
+            editing area, so that its toolbar is not clipped */}
+        <div style={isSelected ? buttonStyle : { ...buttonStyle, contain: 'paint' }}>
           {isSelected ? (
             <span
               style={{

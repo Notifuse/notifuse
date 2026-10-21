@@ -3,6 +3,8 @@ import {
   stripPlainSpans,
   convertBlockToInline,
   processInlineContent,
+  prepareInlineContent,
+  sanitizeRichContent,
   getInitialInlineContent
 } from './utils'
 
@@ -107,5 +109,21 @@ describe('convertBlockToInline', () => {
     expect(convertBlockToInline('<p class="a" style="color: red" data-x="1">x</p>')).toBe(
       '<span class="a" style="color: red" data-x="1">x</span>'
     )
+  })
+})
+
+describe.each([
+  ['sanitizeRichContent', sanitizeRichContent],
+  ['prepareInlineContent', prepareInlineContent],
+  ['getInitialInlineContent', getInitialInlineContent]
+])('%s', (_name, load) => {
+  it('drops handlers and script links from the content it loads', () => {
+    const out = load(
+      '<p onclick="window.__probe = 1">Hi <img src="x" onerror="window.__probe = 1">' +
+        '<a href="javascript:window.__probe = 1">x</a> <a href="{{ cta_url }}">go</a></p>'
+    )
+    expect(out).not.toMatch(/onclick|onerror|javascript:/i)
+    expect(out).toContain('Hi')
+    expect(out).toContain('href="{{ cta_url }}"')
   })
 })

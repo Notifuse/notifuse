@@ -491,7 +491,9 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
         </div>
       ) : (
         <div
-          style={textStyle}
+          // Paint containment keeps what the content draws, fixed positioning
+          // included, inside the block rather than over the console
+          style={{ ...textStyle, contain: 'paint' }}
           dangerouslySetInnerHTML={{ __html: canvasHtml }}
           onClick={(e) => {
             // Check if the clicked element is an anchor tag

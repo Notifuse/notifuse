@@ -39,13 +39,16 @@ import { safeExternalUrl } from '../../utils/safeHtml'
 const { Text } = Typography
 
 // Whether a hostname is one of the web analytics allowed domains, read the way
-// the server reads them for incoming visits: case and spaces ignored, a numeric
-// port dropped, and `*.example.com` covering example.com and its subdomains but
+// the server reads them for incoming visits: case and spaces ignored, an IPv6
+// address compared without its brackets, a numeric port dropped (`[::1]:8080`
+// is `::1`), and `*.example.com` covering example.com and its subdomains but
 // never a bare TLD.
 const isTrackedHost = (hostname: string, allowedDomains: string[]): boolean => {
-  const host = hostname.toLowerCase()
+  const host = hostname.toLowerCase().replace(/^\[(.*)\]$/, '$1')
   return allowedDomains.some((entry) => {
-    const allowed = entry.trim().toLowerCase().replace(/^(\[.*\]|[^:]*):\d+$/, '$1')
+    const trimmed = entry.trim().toLowerCase()
+    const withPort = /^\[(.*)\]:\d+$/.exec(trimmed) ?? /^([^:]*):\d+$/.exec(trimmed)
+    const allowed = withPort ? withPort[1] : trimmed
     if (!allowed) return false
     if (allowed.startsWith('*.')) {
       const wild = allowed.slice(2)

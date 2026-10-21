@@ -372,7 +372,9 @@ describe('ContactTimeline page view header and preview', () => {
     [['www.apple.com:443'], 'www.apple.com'],
     [['*.apple.com'], 'www.apple.com'],
     [['*.apple.com'], 'apple.com'],
-    [['other.example', 'www.apple.com'], 'www.apple.com']
+    [['other.example', 'www.apple.com'], 'www.apple.com'],
+    [['::1'], '[::1]'],
+    [['[::1]:8443'], '[::1]']
   ])('offers a page of a domain the workspace tracks: %j, %s', (allowedDomains, domain) => {
     render(
       <ContactTimeline entries={[pageAt('/pricing', domain)]} workspace={tracking(allowedDomains)} />
@@ -388,7 +390,9 @@ describe('ContactTimeline page view header and preview', () => {
     [['www.apple.com'], 'other.example'],
     [['www.apple.com'], 'apple.com'],
     [['*.apple.com'], 'notapple.com'],
-    [['*.com'], 'other.com']
+    [['*.com'], 'other.com'],
+    // The server never matches a bracketed entry without a port either
+    [['[::1]'], '[::1]']
   ])('offers no preview of a domain the workspace does not track: %j, %s', (allowed, domain) => {
     render(<ContactTimeline entries={[pageAt('/pricing', domain)]} workspace={tracking(allowed)} />)
 

@@ -1,4 +1,4 @@
-import type { Page, Route } from '@playwright/test'
+import type { Locator, Page, Route } from '@playwright/test'
 import { test, expect } from '../fixtures/auth'
 import { waitForLoading } from '../fixtures/test-utils'
 import {
@@ -33,7 +33,26 @@ const mockApi = async (page: Page, path: string, data: unknown) => {
 const textContent =
   '<p>Hello {{ contact.first_name }}' +
   `<img src="x" onerror="${probe('canvas-text')}">` +
-  `<a href="javascript:${probe('text-link')}">link</a></p>`
+  `<a href="javascript:${probe('text-link')}">link</a>` +
+  '<span style="position: fixed; inset: 0; z-index: 2147483647">cover</span></p>'
+
+// Whether everything a block draws at a fixed position lies within the block
+const fixedContentInside = async (block: Locator) => {
+  const area = await block.boundingBox()
+  const boxes = await block.locator('[style*="position: fixed"]').evaluateAll((elements) =>
+    elements.map((element) => element.getBoundingClientRect().toJSON() as DOMRect)
+  )
+  expect(area).not.toBeNull()
+  expect(boxes).not.toEqual([])
+  return boxes.every(
+    (box) =>
+      area !== null &&
+      box.left >= area.x - 1 &&
+      box.top >= area.y - 1 &&
+      box.right <= area.x + area.width + 1 &&
+      box.bottom <= area.y + area.height + 1
+  )
+}
 
 const buttonContent =
   `<p onmouseover="${probe('button-block')}">Buy now` +
@@ -119,10 +138,14 @@ test.describe('Template content in the email editor', () => {
     const buttonBlock = drawer.locator('[data-block-id="button-x"]')
     await expect(textBlock).toContainText('Hello {{ contact.first_name }}')
     await expect(buttonBlock).toContainText('Buy now')
+    // Content positioned over the page stays inside its block, on the canvas...
+    expect(await fixedContentInside(textBlock)).toBe(true)
 
     // Selected, each block opens in its editor
     await textBlock.click()
     await expect(textBlock.locator('.ProseMirror')).toContainText('Hello')
+    // ...and in the editor
+    expect(await fixedContentInside(textBlock)).toBe(true)
     await buttonBlock.click()
     await expect(buttonBlock.locator('.ProseMirror')).toContainText('Buy now')
     await buttonBlock.locator('.ProseMirror').hover()
@@ -173,9 +196,13 @@ test.describe('Blog theme preview', () => {
       'footer.liquid': '',
       'shared.liquid': '',
       'styles.css': '',
-      // Runs inside the preview; marks the page it can reach, then tries the console
+      // Runs inside the preview, using storage and cookies as a theme may; marks
+      // the page it can reach, then tries the console
       'scripts.js':
-        "document.body.setAttribute('data-theme-script', 'ran');" +
+        "localStorage.setItem('mode', 'dark'); sessionStorage.setItem('seen', '1');" +
+        "document.cookie = 'consent=yes; path=/'; localStorage.theme = 'light';" +
+        "document.body.setAttribute('data-theme-script', [localStorage.getItem('mode')," +
+        " sessionStorage.getItem('seen'), document.cookie, localStorage.getItem('theme')].join(' '));" +
         `try { ${probe('theme-script')} } catch (e) {}`
     }
     const theme = {
@@ -198,7 +225,10 @@ test.describe('Blog theme preview', () => {
     await expect.soft(frame).toHaveAttribute('sandbox', 'allow-scripts')
     const preview = frame.contentFrame()
     await expect(preview.locator('#theme-home')).toHaveText('Theme home')
-    await expect(preview.locator('body')).toHaveAttribute('data-theme-script', 'ran')
+    await expect(preview.locator('body')).toHaveAttribute(
+      'data-theme-script',
+      'dark 1 consent=yes light'
+    )
 
     expect(await firedProbes(page)).toBeUndefined()
   })

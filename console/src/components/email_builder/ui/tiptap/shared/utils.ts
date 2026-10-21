@@ -1,6 +1,6 @@
 import { getMarkRange, type Editor } from '@tiptap/react'
 import type { Mark, Node } from '@tiptap/pm/model'
-import { parseHtmlInert } from '../../../../../utils/safeHtml'
+import { parseHtmlInert, sanitizeHtml } from '../../../../../utils/safeHtml'
 
 // Extend the ChainedCommands type to include our custom command
 declare module '@tiptap/core' {
@@ -300,11 +300,13 @@ export const processInlineContent = (htmlContent: string): string => {
   }
 }
 
-// Helper function to prepare content for inline editor
-export const prepareInlineContent = (content: string): string => {
-  if (!content) {
-    return content
+// Helper function to prepare content for inline editor. The content is
+// sanitized first: it is saved by members and shown in the console.
+export const prepareInlineContent = (rawContent: string): string => {
+  if (!rawContent) {
+    return rawContent
   }
+  const content = sanitizeHtml(rawContent)
 
   try {
     // First, strip plain spans to avoid TipTap errors
@@ -328,11 +330,13 @@ export const prepareInlineContent = (content: string): string => {
   }
 }
 
-// Helper function to sanitize content for rich text editor (strips plain spans, preserves styled content)
-export const sanitizeRichContent = (htmlContent: string): string => {
-  if (!htmlContent || htmlContent.trim() === '') {
-    return htmlContent
+// Helper function to sanitize content for rich text editor (sanitizes it for the
+// console, strips plain spans, preserves styled content)
+export const sanitizeRichContent = (rawContent: string): string => {
+  if (!rawContent || rawContent.trim() === '') {
+    return rawContent
   }
+  const htmlContent = sanitizeHtml(rawContent)
 
   try {
     // Strip plain spans while preserving styled spans and other valid HTML
@@ -344,11 +348,13 @@ export const sanitizeRichContent = (htmlContent: string): string => {
   }
 }
 
-// Helper function to get initial content for inline editor
-export const getInitialInlineContent = (content: string): string => {
-  if (!content) {
+// Helper function to get initial content for inline editor, sanitized like
+// prepareInlineContent's
+export const getInitialInlineContent = (rawContent: string): string => {
+  if (!rawContent) {
     return '<span data-inline-doc=""></span>'
   }
+  const content = sanitizeHtml(rawContent)
 
   try {
     // First, strip plain spans to avoid TipTap errors

@@ -82,6 +82,16 @@ describe('parseHtmlInert', () => {
     expect(container.textContent).toBe('a  b')
     expect(container.innerHTML).toBe('<p>a <img src="x" onerror="window.__probe = 1"> b</p>')
   })
+
+  it('gives a fresh container on every call, from one detached document', () => {
+    const first = parseHtmlInert('<p>a</p>')
+    const second = parseHtmlInert('<p>b</p>')
+    expect(second).not.toBe(first)
+    expect(first.innerHTML).toBe('<p>a</p>')
+    expect(second.innerHTML).toBe('<p>b</p>')
+    expect(first.parentNode).toBeNull()
+    expect(second.ownerDocument).toBe(first.ownerDocument)
+  })
 })
 
 describe('safeExternalUrl', () => {
@@ -118,7 +128,11 @@ describe('isSafeHref', () => {
     'relative',
     '#section',
     '{{ unsubscribe_url }}',
-    'https://example.com/?u={{ contact.email }}'
+    'https://example.com/?u={{ contact.email }}',
+    'https://{{ shop_domain }}/sale',
+    'sms:+33100000000',
+    'webcal://example.com/cal.ics',
+    'whatsapp://send?text=hi'
   ])('accepts %s', (href) => {
     expect(isSafeHref(href)).toBe(true)
   })
@@ -130,7 +144,9 @@ describe('isSafeHref', () => {
     'java\tscript:window.__probe=1',
     'java\nscript:window.__probe=1',
     'data:text/html,<p>x</p>',
+    ' DATA:text/html,<p>x</p>',
     'vbscript:x',
+    '\u0000javascript:window.__probe=1',
     '',
     null,
     undefined

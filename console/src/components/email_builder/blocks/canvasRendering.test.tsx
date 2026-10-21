@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, createEvent, fireEvent } from '@testing-library/react'
+import { render, createEvent, fireEvent, waitFor } from '@testing-library/react'
 import { MjTextBlock } from './MjTextBlock'
 import { MjButtonBlock } from './MjButtonBlock'
 import { MjImageBlock } from './MjImageBlock'
@@ -43,6 +43,45 @@ describe('editor canvas renders block HTML without handlers or script links', ()
     // Only the rendering is cleaned: the block keeps its content as saved.
     expect((block as unknown as { content: string }).content).toBe(content)
     expect(props.onUpdateBlock).not.toHaveBeenCalled()
+  })
+})
+
+describe('editor canvas keeps block content inside its block', () => {
+  it.each([
+    ['mj-text', MjTextBlock],
+    ['mj-button', MjButtonBlock]
+  ])('%s', (type, Block) => {
+    const overlay =
+      '<p>Hi <span data-overlay="" style="position: fixed; inset: 0; z-index: 2147483647">x</span></p>'
+    const block = { id: `b-${type}`, type, attributes: {}, content: overlay } as unknown as EmailBlock
+    const { container } = render(<>{new Block(block).getEdit(previewProps())}</>)
+
+    // Paint containment clips the content to the block and makes the block the
+    // box a fixed element is laid out against, so nothing covers the console
+    const contained = container.querySelector('[data-overlay]')?.closest('[style*="contain"]')
+    expect((contained as HTMLElement | null)?.style.contain).toBe('paint')
+    expect(contained?.closest(`[data-block-id="b-${type}"]`)).not.toBeNull()
+  })
+
+  it.each([
+    ['mj-text', MjTextBlock],
+    ['mj-button', MjButtonBlock]
+  ])('%s open in its editor: contains the editing area, not the toolbar', async (type, Block) => {
+    const block = { id: `b-${type}`, type, attributes: {}, content } as unknown as EmailBlock
+    const props = { ...previewProps(), selectedBlockId: `b-${type}` } as PreviewProps
+    const { container } = render(<>{new Block(block).getEdit(props)}</>)
+
+    const editing = await waitFor(() => {
+      const element = container.querySelector('.ProseMirror')
+      expect(element).not.toBeNull()
+      return element as HTMLElement
+    })
+    const contained = editing.closest('[style*="contain"]') as HTMLElement | null
+    expect(contained?.style.contain).toBe('paint')
+    expect(contained?.closest(`[data-block-id="b-${type}"]`)).not.toBeNull()
+    const toolbar = container.querySelector('.tiptap-toolbar')
+    expect(toolbar).not.toBeNull()
+    expect(toolbar?.closest('[style*="contain"]')).toBeNull()
   })
 })
 

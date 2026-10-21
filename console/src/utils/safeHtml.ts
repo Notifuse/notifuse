@@ -21,6 +21,8 @@ export function sanitizeHtml(html: string): string {
   })
 }
 
+let inertDocument: Document | null = null
+
 /**
  * Parses HTML in a document that has no browsing context, for code that reads
  * or rewrites markup without rendering it.
@@ -29,11 +31,12 @@ export function sanitizeHtml(html: string): string {
  * `document.createElement`, which belongs to the page even while detached. Any
  * node added to the result must come from `container.ownerDocument`: a node of
  * the page's document, a fragment included, takes what is moved into it back
- * into the page.
+ * into the page. The document is created once; every call gets a container of
+ * its own, which is never attached to it.
  */
 export function parseHtmlInert(html: string): HTMLDivElement {
-  const doc = document.implementation.createHTMLDocument('')
-  const container = doc.createElement('div')
+  inertDocument ??= document.implementation.createHTMLDocument('')
+  const container = inertDocument.createElement('div')
   container.innerHTML = html
   return container
 }
@@ -55,21 +58,19 @@ export function safeExternalUrl(url: string | null | undefined): string | null {
   }
 }
 
-const SAFE_HREF_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:'])
+// What DOMPurify removes before reading a link's scheme. A browser ignores some
+// of these around or inside a scheme; refusing on all of them costs nothing.
+// eslint-disable-next-line no-control-regex -- control characters are the point
+const URL_WHITESPACE = /[\u0000-\u0020\u00A0\u1680\u180E\u2000-\u2029\u205F\u3000]/g
+const SCRIPT_OR_DATA_URL = /^(?:\w+script|data):/i
 
 /**
- * Whether a saved link target can be put in an `href` in the console: a web,
- * mail or phone link, or a relative one, which covers anchors and Liquid
- * (`{{ url }}`).
- *
- * The value is resolved the way the browser would resolve it, so case,
- * whitespace and control characters around or inside the scheme change nothing.
+ * Whether a saved link target can be put in an `href` in the console: anything
+ * but a script (`javascript:`, `vbscript:`…) or `data:` URL, the rule
+ * `sanitizeHtml` applies to links in content. Web, mail, phone and app links,
+ * relative ones and Liquid (`{{ url }}`, `https://{{ host }}/x`) all pass.
  */
 export function isSafeHref(href: string | null | undefined): boolean {
   if (!href) return false
-  try {
-    return SAFE_HREF_PROTOCOLS.has(new URL(href, 'https://relative.invalid/').protocol)
-  } catch {
-    return false
-  }
+  return !SCRIPT_OR_DATA_URL.test(href.replace(URL_WHITESPACE, ''))
 }
