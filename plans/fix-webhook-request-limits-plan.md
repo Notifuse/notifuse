@@ -1,6 +1,6 @@
 # Webhook request limits plan
 
-**Status**: plan reviewed by Gemini (two rounds), implemented
+**Status**: plan reviewed by Gemini (three rounds), implemented
 **Date**: 2026-10-21
 **Target**: 42.0 (unreleased). No migration, no version bump.
 **Base**: `origin/dev` at `5af5221`.
@@ -64,7 +64,9 @@ providers (SES, Postmark, Mailgun, SMTP, Mailjet's ungrouped object) are unchang
 ### Body read deadline: 30 s, on the same three routes
 
 Without a server `ReadTimeout`, a body has no time limit. The three handlers give the body 30 s to
-arrive, through `http.ResponseController.SetReadDeadline`.
+arrive, through `http.ResponseController.SetReadDeadline`, counted from the start of the handler,
+before any validation. net/http drains the body of a request the handler refuses without reading it
+(wrong method, missing query parameter or Supabase header), and the deadline bounds that drain too.
 
 - **On success the deadline is lifted.** Once a body is consumed, net/http watches the connection
   with a background read, and a read error there cancels the request context
@@ -73,21 +75,27 @@ arrive, through `http.ResponseController.SetReadDeadline`.
   empty body, though, the read started before the handler ran, and the deadline set by the handler
   applies to it: left in place, it would cancel the context of a handler still working 30 s later.
   (Checked by experiment, and pinned by a test.)
-- **On error the deadline is moved to the past, and the response says `Connection: close`.** net/http
+- **On error the deadline is moved to the past, and on HTTP/1.x the response says `Connection: close`.** net/http
   drains up to 256 KiB of an unread body when it writes the response (`chunkWriter.writeHeader`) and
   again in `body.Close`, which runs whatever the response says. With the deadline cleared, that drain
   would wait on a stalled client with no limit; with the rest of the 30 s kept, a chunked body refused
   for its size after a few milliseconds would still hold the handler for the remaining time. A past
   deadline makes the drain fail at once, and `Connection: close` skips the first drain entirely.
+  HTTP/2 turns a `Connection: close` response header into a GOAWAY for the whole connection, which a
+  proxy may share among many clients, so it is not sent there; the past deadline already ends the
+  stream's body.
 
 Providers time out well before 30 s themselves (SparkPost 10 s, Supabase hooks a few seconds), so the
 deadline never cuts a delivery the provider would have completed. On HTTP/2 (direct TLS), the stream
 deadline only closes the body pipe and does not cancel the context.
 
-When `TRACING_ENABLED=true`, OpenCensus' `ochttp` hands the handler a writer without `Unwrap`, so
-`SetReadDeadline` returns `http.ErrNotSupported`; the helper then reads without a deadline, as today.
-Tracing is off by default. (Adding `Unwrap` to `traceResponseWriter` would not help: `ochttp`'s
-writer sits between it and the handler.)
+The deadline goes through the server's own `ResponseWriter`. With `TRACING_ENABLED=true`, OpenCensus'
+`ochttp` hands the handler a writer without `Unwrap`, so `http.NewResponseController(w)` there returns
+`http.ErrNotSupported` (adding `Unwrap` to `traceResponseWriter` would not help: `ochttp`'s writer sits
+between it and the handler). A middleware outermost in the server chain,
+`middleware.KeepResponseController`, saves a controller for the server's writer in the request
+context, and `middleware.SetReadDeadline(w, r, deadline)` uses it, or `w`'s when there is none. Only
+the read deadline is reachable this way, so no inner wrapper that buffers or counts writes is bypassed.
 
 ### Server: `ReadHeaderTimeout` 20 s, `IdleTimeout` 16 min
 
@@ -112,7 +120,9 @@ writer sits between it and the handler.)
 - A body without `Content-Length` (chunked) is read through `http.MaxBytesReader`; going past the limit
   answers **413**.
 - Any other read error (including the 30 s deadline) keeps today's **400** "Failed to read request body".
-- Both error answers carry `Connection: close`.
+- Both error answers carry `Connection: close` on HTTP/1.x, and none on HTTP/2.
+- A request refused before its body is read (method, query parameters, Supabase headers) gets its
+  answer once the body has arrived, or once the 30 s have passed, and the connection is then closed.
 - 413 body: `{"error": "Request body too large"}` via `WriteJSONError`.
 - For `before-user-created`, a 413 blocks the signup, like today's 400 on a read error; real payloads
   are far below 1 MiB.
@@ -121,20 +131,25 @@ writer sits between it and the handler.)
 
 1. **`internal/http/webhook_body.go`** (new)
    - `const webhookBodyReadTimeout = 30 * time.Second`
-   - `readWebhookBody(w http.ResponseWriter, r *http.Request, maxBytes int64, timeout time.Duration) ([]byte, error)`:
-     Content-Length above `maxBytes` → `&http.MaxBytesError{Limit: maxBytes}` without reading; when
-     `timeout > 0`, set the read deadline (ignore `ErrNotSupported`); `io.ReadAll(http.MaxBytesReader(w, r.Body, maxBytes))`;
-     on error move the deadline to the past and return the error; on success clear the deadline.
-   - `writeWebhookBodyError(w http.ResponseWriter, err error)`: sets `Connection: close`, then 413
-     for `*http.MaxBytesError` (also wrapped), else 400.
+   - `setWebhookBodyDeadline(w http.ResponseWriter, r *http.Request, timeout time.Duration)`: the
+     first statement of each handler; sets the read deadline `timeout` from now through
+     `middleware.SetReadDeadline` when `timeout > 0` (ignores `ErrNotSupported`).
+   - `readWebhookBody(w http.ResponseWriter, r *http.Request, maxBytes int64) ([]byte, error)`:
+     Content-Length above `maxBytes` → `&http.MaxBytesError{Limit: maxBytes}` without reading;
+     `io.ReadAll(http.MaxBytesReader(w, r.Body, maxBytes))`; on error move the deadline to the past and
+     return the error; on success clear the deadline.
+   - `writeWebhookBodyError(w http.ResponseWriter, r *http.Request, err error)`: sets
+     `Connection: close` when `r.ProtoMajor == 1`, then 413 for `*http.MaxBytesError` (also wrapped),
+     else 400.
 2. **`internal/http/inbound_webhook_event_handler.go`**
    - `const maxEmailWebhookBodyBytes = 10 << 20` with the provider sizes in its comment.
    - `bodyReadTimeout time.Duration` field, set to `webhookBodyReadTimeout` by the constructor
      (tests shorten it).
-   - `handleIncomingWebhook` uses `readWebhookBody` / `writeWebhookBodyError`, at the place of today's
-     `io.ReadAll` (query validation stays first).
+   - `handleIncomingWebhook` starts with `setWebhookBodyDeadline`, and uses `readWebhookBody` /
+     `writeWebhookBodyError` at the place of today's `io.ReadAll`.
 3. **`internal/http/supabase_webhook_handler.go`**
-   - `const maxSupabaseWebhookBodyBytes = 1 << 20`, `bodyReadTimeout` field, both handlers use the helpers.
+   - `const maxSupabaseWebhookBodyBytes = 1 << 20`, `bodyReadTimeout` field, both handlers start with
+     `setWebhookBodyDeadline` and use the helpers.
 4. **`internal/service/inbound_webhook_event_service.go`**
    - `processSendGridWebhook`, `processSparkPostWebhook`: decode into `[]json.RawMessage`, then each
      element; the event's raw payload is `string(element)`. SparkPost decodes each element into a value,
@@ -147,20 +162,24 @@ writer sits between it and the handler.)
    - `newHTTPServer(addr string, handler http.Handler) *http.Server` sets `ReadHeaderTimeout` and
      `IdleTimeout`, with the comments above; `Start` uses it.
    - `(a *App) serverHandler() http.Handler`: the middleware chain `Start` builds today (graceful
-     shutdown, tracing when enabled, CORS) moved into a method, so a test can check it.
-6. **`CHANGELOG.md`**: one `**Security**:` bullet under 42.0 saying what is now refused and that a
+     shutdown, tracing when enabled, CORS) moved into a method, so a test can check it, with
+     `middleware.KeepResponseController` added outermost.
+6. **`internal/http/middleware/response_controller.go`** (new): `KeepResponseController(next)` and
+   `SetReadDeadline(w, r, deadline)`, as described above.
+7. **`CHANGELOG.md`**: one `**Security**:` bullet under 42.0 saying what is now refused and that a
    batched event keeps its own payload. Nothing for operators to do.
-7. **`../docs`**: no change (no setting, no documented limit to update).
+8. **`../docs`**: no change (no setting, no documented limit to update).
 
 ## Tests (written first, seen red, then green)
 
 | Implementation file | Test file | Cases |
 |---|---|---|
-| `internal/http/webhook_body.go` | `internal/http/webhook_body_test.go` | body of exactly `maxBytes` returned whole; `maxBytes+1` with Content-Length → `*http.MaxBytesError` and 0 bytes read from the body; `maxBytes+1` chunked (ContentLength -1) → `*http.MaxBytesError`; read error passed through; `writeWebhookBodyError` → 413 + JSON + `Connection: close` for `MaxBytesError` (also wrapped), 400 + `Connection: close` otherwise. Over a real `httptest.Server` with a raw `net.Conn` client: a stalled body (Content-Length 1024, 10 bytes sent) gets its 400 within the deadline and the server then closes the connection while the client keeps it open; a chunked body that passes the limit and then stalls (no final chunk) gets 413 and the connection closed well before the 30 s deadline; a declared Content-Length above the limit gets 413 and the connection closed with no body byte sent; a handler that sleeps past the deadline after reading an empty body, or a non-empty one, still has a live `r.Context()` |
-| `internal/http/inbound_webhook_event_handler.go` | `internal/http/inbound_webhook_event_handler_test.go` | body of exactly `10 << 20` bytes reaches `ProcessWebhook` unchanged; `10<<20 + 1` → 413, `ProcessWebhook` not called (Content-Length and chunked); existing `BodyReadError` still 400; over a real server with a short `bodyReadTimeout`: stalled body → 400 without calling the service; `ProcessWebhook` slower than the deadline still sees a live context and answers 200 |
-| `internal/http/supabase_webhook_handler.go` | `internal/http/supabase_webhook_handler_test.go` | both routes: `1<<20 + 1` → 413 (Content-Length and chunked) before the service is used; stalled body → 400 |
+| `internal/http/webhook_body.go` | `internal/http/webhook_body_test.go` | body of exactly `maxBytes` returned whole; `maxBytes+1` with Content-Length → `*http.MaxBytesError` and 0 bytes read from the body; `maxBytes+1` chunked (ContentLength -1) → `*http.MaxBytesError`; read error passed through; `writeWebhookBodyError` → 413 + JSON + `Connection: close` for `MaxBytesError` (also wrapped), 400 + `Connection: close` otherwise, and no `Connection` header for an HTTP/2 request. Over a real `httptest.Server` with a raw `net.Conn` client: a stalled body (Content-Length 1024, 10 bytes sent) gets its 400 within the deadline and the server then closes the connection while the client keeps it open; a chunked body that passes the limit and then stalls (no final chunk) gets 413 and the connection closed well before the 30 s deadline; a declared Content-Length above the limit gets 413 and the connection closed with no body byte sent; a handler that sleeps past the deadline after reading an empty body, or a non-empty one, still has a live `r.Context()`; a handler that sets the deadline and refuses the request without reading a stalled body answers within the deadline and the connection is closed. Over HTTP/2 (TLS `httptest` server): after a 413 the next request reuses the same connection |
+| `internal/http/inbound_webhook_event_handler.go` | `internal/http/inbound_webhook_event_handler_test.go` | body of exactly `10 << 20` bytes reaches `ProcessWebhook` unchanged; `10<<20 + 1` → 413, `ProcessWebhook` not called (Content-Length and chunked); existing `BodyReadError` still 400; over a real server with a short `bodyReadTimeout`: stalled body → 400 without calling the service; a stalled body on a request refused for its method or a missing `provider` → answered and closed within the deadline; `ProcessWebhook` slower than the deadline still sees a live context and answers 200 |
+| `internal/http/supabase_webhook_handler.go` | `internal/http/supabase_webhook_handler_test.go` | both routes: `1<<20 + 1` → 413 (Content-Length and chunked) before the service is used; stalled body → 400; a stalled body on a request without the `webhook-*` headers → answered and closed within the deadline |
 | `internal/service/inbound_webhook_event_service.go` | `internal/service/inbound_webhook_event_service_test.go` | SendGrid, SparkPost and grouped Mailjet batches of two events: each event's `RawPayload` is its own element (equal to the element's JSON, not containing the other recipient); a single Mailjet object still stores the whole body; a malformed element still fails the batch as today |
-| `internal/app/app.go` | `internal/app/app_test.go` | `newHTTPServer` sets `ReadHeaderTimeout == 20*time.Second`, `IdleTimeout == 16*time.Minute`, `ReadTimeout == 0`, `WriteTimeout == 0`, and keeps `Addr`/`Handler`; `serverHandler()` with tracing off, around the audit middleware and a probe route, lets the probe's `http.NewResponseController(w).SetReadDeadline` succeed |
+| `internal/app/app.go` | `internal/app/app_test.go` | `newHTTPServer` sets `ReadHeaderTimeout == 20*time.Second`, `IdleTimeout == 16*time.Minute`, `ReadTimeout == 0`, `WriteTimeout == 0`, and keeps `Addr`/`Handler`; `serverHandler()` on a real server, around the audit middleware and a probe route, lets the probe's `middleware.SetReadDeadline` succeed, with tracing off and on |
+| `internal/http/middleware/response_controller.go` | `internal/http/middleware/response_controller_test.go` | behind a wrapper that hides the writer's controller, `SetReadDeadline` succeeds under `KeepResponseController` and the deadline applies to the connection (a stalled body read fails); without it, it falls back to the writer's controller (`ErrNotSupported` behind the wrapper, success on a bare writer) |
 | full stack | `tests/integration/webhook_request_limits_test.go` (new) | SendGrid integration: a body of exactly 10 MiB (one real delivered event, padded with JSON whitespace) → 200 and the message is marked delivered; 10 MiB + 1 → 413 and another message stays untouched, with and without Content-Length; a two-event batch stores each event's own payload. Supabase `before-user-created`: a signed payload of exactly 1 MiB (whitespace padding) → 204 and the contact is created; 1 MiB + 1 → 413 and no contact; `auth-email` 1 MiB + 1 → 413 |
 
 Sizes in tests are literals (`10 << 20`), not the constants they protect.
@@ -177,9 +196,14 @@ past those 500 ms, which lets `-race` see it.
 - Per-IP rate limiting on `/webhooks/email`: providers send bursts from a few addresses during a
   broadcast, and a 429 would delay or drop real bounces.
 - Size caps and body deadlines on the other public endpoints (sign-in, notification center): separate change.
-- A request any handler refuses before reading its body (missing query parameters or headers here, a
-  missing token on `/api/*`) still lets net/http drain up to 256 KiB of it with no deadline. That is
-  common to every route and needs a server-wide mechanism, not a per-route one.
+- Other routes: a request their handler refuses before reading its body (a missing token on `/api/*`)
+  still lets net/http drain up to 256 KiB of it with no deadline. That is common to every route and
+  needs a server-wide mechanism.
+- Webhook events stored before this version keep the whole batch as `raw_payload`. Contact erasure
+  clears rows by `recipient_email`, so an erased address can remain in another recipient's older row.
+  Rewriting stored payloads is a separate change.
+- The three batch parsers repeat a four-line decode (array of `json.RawMessage`, then each element); a
+  generic helper would save little and they differ in error wording and Mailjet's fallback.
 - Provider authentication on `/webhooks/email`: separate change.
 
 ## Final step

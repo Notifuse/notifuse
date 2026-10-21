@@ -1586,7 +1586,11 @@ func (a *App) serverHandler() http.Handler {
 	}
 
 	// Apply CORS middleware
-	return middleware.CORSMiddleware(handler)
+	handler = middleware.CORSMiddleware(handler)
+
+	// Outermost, so the webhooks reach the server's own writer for their read
+	// deadline whatever wraps it further in
+	return middleware.KeepResponseController(handler)
 }
 
 // newHTTPServer builds the HTTP server with its connection time limits.

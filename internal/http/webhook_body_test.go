@@ -3,6 +3,7 @@ package http
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httptrace"
 	"os"
 	"strings"
 	"testing"
@@ -35,7 +37,7 @@ func TestReadWebhookBody_ReturnsABodyOfExactlyTheLimit(t *testing.T) {
 	body := bytes.Repeat([]byte("a"), 64)
 	req := httptest.NewRequest(http.MethodPost, "/webhooks/email", bytes.NewReader(body))
 
-	got, err := readWebhookBody(httptest.NewRecorder(), req, 64, 0)
+	got, err := readWebhookBody(httptest.NewRecorder(), req, 64)
 
 	require.NoError(t, err)
 	assert.Equal(t, body, got)
@@ -46,7 +48,7 @@ func TestReadWebhookBody_RefusesADeclaredLengthOverTheLimitWithoutReading(t *tes
 	req := httptest.NewRequest(http.MethodPost, "/webhooks/email", src)
 	req.ContentLength = 65
 
-	got, err := readWebhookBody(httptest.NewRecorder(), req, 64, 0)
+	got, err := readWebhookBody(httptest.NewRecorder(), req, 64)
 
 	var tooLarge *http.MaxBytesError
 	require.ErrorAs(t, err, &tooLarge)
@@ -59,7 +61,7 @@ func TestReadWebhookBody_RefusesAnUndeclaredBodyOverTheLimit(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/webhooks/email", bytes.NewReader(bytes.Repeat([]byte("a"), 65)))
 	req.ContentLength = -1 // chunked: the size is only known by reading
 
-	got, err := readWebhookBody(httptest.NewRecorder(), req, 64, 0)
+	got, err := readWebhookBody(httptest.NewRecorder(), req, 64)
 
 	var tooLarge *http.MaxBytesError
 	require.ErrorAs(t, err, &tooLarge)
@@ -70,7 +72,7 @@ func TestReadWebhookBody_PassesReadErrorsThrough(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/webhooks/email", nil)
 	req.Body = io.NopCloser(&errorReader{})
 
-	_, err := readWebhookBody(httptest.NewRecorder(), req, 64, 0)
+	_, err := readWebhookBody(httptest.NewRecorder(), req, 64)
 
 	require.Error(t, err)
 	var tooLarge *http.MaxBytesError
@@ -93,7 +95,7 @@ func TestWriteWebhookBodyError(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 
-			writeWebhookBodyError(w, tc.err)
+			writeWebhookBodyError(w, httptest.NewRequest(http.MethodPost, "/webhooks/email", nil), tc.err)
 
 			assert.Equal(t, tc.status, w.Code)
 			assert.Equal(t, "close", w.Header().Get("Connection"))
@@ -102,16 +104,28 @@ func TestWriteWebhookBodyError(t *testing.T) {
 			assert.Equal(t, tc.message, response["error"])
 		})
 	}
+
+	t.Run("HTTP/2", func(t *testing.T) {
+		// HTTP/2 turns Connection: close into a GOAWAY for the whole connection.
+		req := httptest.NewRequest(http.MethodPost, "/webhooks/email", nil)
+		req.Proto, req.ProtoMajor, req.ProtoMinor = "HTTP/2.0", 2, 0
+		w := httptest.NewRecorder()
+
+		writeWebhookBodyError(w, req, &http.MaxBytesError{Limit: 64})
+
+		assert.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
+		assert.Empty(t, w.Header().Get("Connection"))
+	})
 }
 
-// webhookBodyServer serves readWebhookBody on a real connection, where the read
-// deadline applies, answering 200 with the body length or the body error.
-func webhookBodyServer(t *testing.T, maxBytes int64, timeout time.Duration, afterRead func(r *http.Request) int) *httptest.Server {
-	t.Helper()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := readWebhookBody(w, r, maxBytes, timeout)
+// webhookBodyHandler sets the body deadline and reads the body as the webhook
+// handlers do, answering 200 with the body length or the body error.
+func webhookBodyHandler(maxBytes int64, timeout time.Duration, afterRead func(r *http.Request) int) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		setWebhookBodyDeadline(w, r, timeout)
+		body, err := readWebhookBody(w, r, maxBytes)
 		if err != nil {
-			writeWebhookBodyError(w, err)
+			writeWebhookBodyError(w, r, err)
 			return
 		}
 		status := http.StatusOK
@@ -120,7 +134,14 @@ func webhookBodyServer(t *testing.T, maxBytes int64, timeout time.Duration, afte
 		}
 		w.WriteHeader(status)
 		_, _ = fmt.Fprintf(w, "%d", len(body))
-	}))
+	}
+}
+
+// webhookBodyServer serves webhookBodyHandler on a real connection, where the
+// read deadline applies.
+func webhookBodyServer(t *testing.T, maxBytes int64, timeout time.Duration, afterRead func(r *http.Request) int) *httptest.Server {
+	t.Helper()
+	srv := httptest.NewServer(webhookBodyHandler(maxBytes, timeout, afterRead))
 	t.Cleanup(srv.Close)
 	return srv
 }
@@ -229,4 +250,53 @@ func TestReadWebhookBody_DeadlineIsLiftedOnceTheBodyIsRead(t *testing.T) {
 			assert.NoError(t, ctxErr)
 		})
 	}
+}
+
+func TestSetWebhookBodyDeadline_BoundsTheBodyOfARequestRefusedBeforeReadingIt(t *testing.T) {
+	// net/http drains the unread body of a refused request before sending the
+	// answer, so the deadline set at the start of the handler must bound it.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setWebhookBodyDeadline(w, r, 200*time.Millisecond)
+		WriteJSONError(w, "Provider is required", http.StatusBadRequest)
+	}))
+	t.Cleanup(srv.Close)
+
+	start := time.Now()
+	resp, closedAfter, closeErr := rawRequest(t, srv,
+		"POST / HTTP/1.1\r\nHost: test\r\nContent-Length: 1024\r\n\r\n", []byte("0123456789"))
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Less(t, time.Since(start), 2*time.Second)
+	assert.ErrorIs(t, closeErr, io.EOF, "the server closes the connection instead of waiting for the rest of the body")
+	assert.Less(t, closedAfter, 2*time.Second)
+}
+
+func TestReadWebhookBody_HTTP2ConnectionOutlivesARefusedBody(t *testing.T) {
+	srv := httptest.NewUnstartedServer(webhookBodyHandler(64, 2*time.Second, nil))
+	srv.EnableHTTP2 = true
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+	client := srv.Client()
+
+	post := func(body []byte) (*http.Response, bool) {
+		t.Helper()
+		var reused bool
+		trace := &httptrace.ClientTrace{GotConn: func(info httptrace.GotConnInfo) { reused = info.Reused }}
+		req, err := http.NewRequestWithContext(httptrace.WithClientTrace(context.Background(), trace),
+			http.MethodPost, srv.URL, bytes.NewReader(body))
+		require.NoError(t, err)
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		_, _ = io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		return resp, reused
+	}
+
+	refused, _ := post(bytes.Repeat([]byte("a"), 65))
+	require.Equal(t, 2, refused.ProtoMajor)
+	assert.Equal(t, http.StatusRequestEntityTooLarge, refused.StatusCode)
+
+	next, reused := post([]byte("{}"))
+	assert.Equal(t, http.StatusOK, next.StatusCode)
+	assert.True(t, reused, "the next request reuses the connection")
 }

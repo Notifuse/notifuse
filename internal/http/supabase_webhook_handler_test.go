@@ -278,3 +278,24 @@ func TestSupabaseWebhooks_StalledBodyIsRefused(t *testing.T) {
 		})
 	}
 }
+
+func TestSupabaseWebhooks_RefusedRequestWithAStalledBodyIsClosed(t *testing.T) {
+	// The request is refused before its body is read; net/http drains the body
+	// before answering, within the deadline set when the handler starts.
+	handler := newSupabaseBodyTestHandler(t)
+	handler.bodyReadTimeout = 200 * time.Millisecond
+	for path, handle := range supabaseWebhookRoutes(handler) {
+		t.Run(path, func(t *testing.T) {
+			srv := httptest.NewServer(handle)
+			t.Cleanup(srv.Close)
+
+			start := time.Now()
+			resp, _, closeErr := rawRequest(t, srv, "POST "+path+"?workspace_id=workspace-123&integration_id=integration-456 HTTP/1.1\r\n"+
+				"Host: test\r\nContent-Length: 1024\r\n\r\n{\"user\"", nil)
+
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "the webhook-* headers are missing")
+			assert.ErrorIs(t, closeErr, io.EOF)
+			assert.Less(t, time.Since(start), 2*time.Second)
+		})
+	}
+}

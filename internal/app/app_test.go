@@ -1580,30 +1580,34 @@ func TestNewHTTPServer_LimitsHeaderReadingAndIdleConnections(t *testing.T) {
 // http.ResponseController; the middleware every request goes through must keep
 // that reachable.
 func TestServerHandler_LetsWebhookHandlersSetAReadDeadline(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	mockLogger := pkgmocks.NewMockLogger(ctrl)
-	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
-	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
-	mockDB, _, err := sqlmock.New()
-	require.NoError(t, err)
-	defer func() { _ = mockDB.Close() }()
+	for _, tracing := range []bool{false, true} {
+		t.Run(fmt.Sprintf("tracing %v", tracing), func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockLogger := pkgmocks.NewMockLogger(ctrl)
+			mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+			mockDB, _, err := sqlmock.New()
+			require.NoError(t, err)
+			defer func() { _ = mockDB.Close() }()
 
-	cfg := createTestConfig()
-	require.False(t, cfg.Tracing.Enabled)
-	app := NewApp(cfg, WithLogger(mockLogger), WithMockDB(mockDB)).(*App)
+			cfg := createTestConfig()
+			cfg.Tracing.Enabled = tracing
+			app := NewApp(cfg, WithLogger(mockLogger), WithMockDB(mockDB)).(*App)
 
-	deadlineErr := errors.New("probe not reached")
-	probe := http.NewServeMux()
-	probe.HandleFunc("/webhooks/email", func(w http.ResponseWriter, r *http.Request) {
-		deadlineErr = http.NewResponseController(w).SetReadDeadline(time.Now().Add(time.Second))
-	})
-	app.handler = middleware.NewAuditMiddleware(nil)(probe)
+			deadlineErr := errors.New("probe not reached")
+			probe := http.NewServeMux()
+			probe.HandleFunc("/webhooks/email", func(w http.ResponseWriter, r *http.Request) {
+				deadlineErr = middleware.SetReadDeadline(w, r, time.Now().Add(time.Second))
+			})
+			app.handler = middleware.NewAuditMiddleware(nil)(probe)
 
-	srv := httptest.NewServer(app.serverHandler())
-	defer srv.Close()
-	resp, err := srv.Client().Post(srv.URL+"/webhooks/email", "application/json", strings.NewReader("{}"))
-	require.NoError(t, err)
-	_ = resp.Body.Close()
+			srv := httptest.NewServer(app.serverHandler())
+			defer srv.Close()
+			resp, err := srv.Client().Post(srv.URL+"/webhooks/email", "application/json", strings.NewReader("{}"))
+			require.NoError(t, err)
+			_ = resp.Body.Close()
 
-	assert.NoError(t, deadlineErr)
+			assert.NoError(t, deadlineErr)
+		})
+	}
 }

@@ -158,6 +158,9 @@ func (h *InboundWebhookEventHandler) handleIncomingReply(w http.ResponseWriter, 
 
 // handleIncomingWebhook handles incoming webhook events from email providers
 func (h *InboundWebhookEventHandler) handleIncomingWebhook(w http.ResponseWriter, r *http.Request) {
+	// Before any check: a refused request's body is drained within it too
+	setWebhookBodyDeadline(w, r, h.bodyReadTimeout)
+
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -186,10 +189,10 @@ func (h *InboundWebhookEventHandler) handleIncomingWebhook(w http.ResponseWriter
 		Info("Received webhook event")
 
 	// Read and parse the request body
-	body, err := readWebhookBody(w, r, maxEmailWebhookBodyBytes, h.bodyReadTimeout)
+	body, err := readWebhookBody(w, r, maxEmailWebhookBodyBytes)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to read webhook request body")
-		writeWebhookBodyError(w, err)
+		writeWebhookBodyError(w, r, err)
 		return
 	}
 

@@ -230,6 +230,33 @@ func TestInboundWebhookEventHandler_handleIncomingWebhook_StalledBodyIsRefused(t
 	assert.ErrorIs(t, closeErr, io.EOF)
 }
 
+func TestInboundWebhookEventHandler_handleIncomingWebhook_RefusedRequestWithAStalledBodyIsClosed(t *testing.T) {
+	// The request is refused before its body is read; net/http drains the body
+	// before answering, within the deadline set when the handler starts.
+	handler, _, _ := setupInboundWebhookEventHandlerTest(t)
+	handler.bodyReadTimeout = 200 * time.Millisecond
+	srv := httptest.NewServer(http.HandlerFunc(handler.handleIncomingWebhook))
+	t.Cleanup(srv.Close)
+
+	cases := map[string]struct {
+		requestLine string
+		status      int
+	}{
+		"wrong method":     {"PUT /webhooks/email?provider=sendgrid&workspace_id=ws123&integration_id=int123 HTTP/1.1", http.StatusMethodNotAllowed},
+		"missing provider": {"POST /webhooks/email?workspace_id=ws123&integration_id=int123 HTTP/1.1", http.StatusBadRequest},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			start := time.Now()
+			resp, _, closeErr := rawRequest(t, srv, tc.requestLine+"\r\nHost: test\r\nContent-Length: 1024\r\n\r\n[{\"event\"", nil)
+
+			assert.Equal(t, tc.status, resp.StatusCode)
+			assert.ErrorIs(t, closeErr, io.EOF)
+			assert.Less(t, time.Since(start), 2*time.Second)
+		})
+	}
+}
+
 func TestInboundWebhookEventHandler_handleIncomingWebhook_ProcessingMayOutlastTheBodyDeadline(t *testing.T) {
 	handler, mockService, _ := setupInboundWebhookEventHandlerTest(t)
 	handler.bodyReadTimeout = 100 * time.Millisecond

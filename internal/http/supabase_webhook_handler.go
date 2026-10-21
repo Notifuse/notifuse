@@ -39,6 +39,9 @@ func (h *SupabaseWebhookHandler) RegisterRoutes(mux *http.ServeMux) {
 
 // handleAuthEmailWebhook handles incoming Supabase Send Email Hook webhooks
 func (h *SupabaseWebhookHandler) handleAuthEmailWebhook(w http.ResponseWriter, r *http.Request) {
+	// Before any check: a refused request's body is drained within it too
+	setWebhookBodyDeadline(w, r, h.bodyReadTimeout)
+
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -70,10 +73,10 @@ func (h *SupabaseWebhookHandler) handleAuthEmailWebhook(w http.ResponseWriter, r
 		Info("Received Supabase auth email webhook")
 
 	// Read the request body
-	body, err := readWebhookBody(w, r, maxSupabaseWebhookBodyBytes, h.bodyReadTimeout)
+	body, err := readWebhookBody(w, r, maxSupabaseWebhookBodyBytes)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to read webhook request body")
-		writeWebhookBodyError(w, err)
+		writeWebhookBodyError(w, r, err)
 		return
 	}
 
@@ -96,6 +99,9 @@ func (h *SupabaseWebhookHandler) handleAuthEmailWebhook(w http.ResponseWriter, r
 
 // handleUserCreatedWebhook handles incoming Supabase Before User Created Hook webhooks
 func (h *SupabaseWebhookHandler) handleUserCreatedWebhook(w http.ResponseWriter, r *http.Request) {
+	// Before any check: a refused request's body is drained within it too
+	setWebhookBodyDeadline(w, r, h.bodyReadTimeout)
+
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -127,10 +133,10 @@ func (h *SupabaseWebhookHandler) handleUserCreatedWebhook(w http.ResponseWriter,
 		Info("Received Supabase user created webhook")
 
 	// Read the request body
-	body, err := readWebhookBody(w, r, maxSupabaseWebhookBodyBytes, h.bodyReadTimeout)
+	body, err := readWebhookBody(w, r, maxSupabaseWebhookBodyBytes)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to read webhook request body")
-		writeWebhookBodyError(w, err)
+		writeWebhookBodyError(w, r, err)
 		return
 	}
 
