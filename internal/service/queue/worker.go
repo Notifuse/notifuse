@@ -456,12 +456,6 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 	// Record success to reset circuit breaker
 	w.circuitBreaker.RecordSuccess(entry.IntegrationID)
 
-	// Upsert message history (success - clears any previous failure). capturedMessageID
-	// carries the SES-returned Message-ID for the reply-matching row (empty for others).
-	// The email has left, so it is recorded first: the provider's events about it only act
-	// on an email they find, and it is found even when the entry cannot be marked sent.
-	w.upsertMessageHistory(w.ctx, workspace.ID, workspace.Settings.SecretKey, entry, capturedMessageID, nil)
-
 	// Mark as sent
 	if err := w.queueRepo.MarkAsSent(w.ctx, workspace.ID, entry.ID); err != nil {
 		w.logger.WithFields(map[string]interface{}{
@@ -470,6 +464,10 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 		}).Error("Failed to mark email as sent")
 		return
 	}
+
+	// Upsert message history (success - clears any previous failure). capturedMessageID
+	// carries the SES-returned Message-ID for the reply-matching row (empty for others).
+	w.upsertMessageHistory(w.ctx, workspace.ID, workspace.Settings.SecretKey, entry, capturedMessageID, nil)
 
 	w.logger.WithFields(map[string]interface{}{
 		"entry_id":     entry.ID,

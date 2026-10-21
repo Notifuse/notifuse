@@ -189,16 +189,16 @@ func TestEmailEventMessageMatch(t *testing.T) {
 		assert.Equal(t, []string{email}, storedFor(t, messageID))
 	})
 
-	t.Run("an SES bounce of an email sent to the contact alone, reporting the address it was forwarded to: the contact is bounced", func(t *testing.T) {
+	t.Run("an SES bounce reporting the address the contact's email was forwarded to: nothing is stored or changed", func(t *testing.T) {
 		email := newContact(t, "forwarding")
 		messageID := sendTo(t, email)
 
 		postSESBounce(t, client, sesURL, sesBounceOf(messageID, "Permanent", "General", "smtp; 550 5.1.1 user unknown", time.Now(),
 			[]string{email}, "forwarded-"+uuid.New().String()[:8]+"@elsewhere.example"))
 
-		assert.Equal(t, domain.ContactListStatusBounced, statusOf(t, email))
-		assert.Equal(t, marks{bounced: true}, marksOf(t, messageID))
-		assert.Equal(t, []string{email}, storedFor(t, messageID))
+		assert.Equal(t, domain.ContactListStatusActive, statusOf(t, email))
+		assert.Equal(t, marks{}, marksOf(t, messageID))
+		assert.Empty(t, storedFor(t, messageID))
 	})
 
 	t.Run("an SES bounce giving the contact's international domain in Punycode, as SES is sent it: the contact is bounced", func(t *testing.T) {

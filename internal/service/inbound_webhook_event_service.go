@@ -746,16 +746,11 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 	// A notification lists every recipient of the email it reports on, an address the email
 	// was copied to among them. Each gets its own event, so the email's own recipient is found
 	// whatever its place in the list. One listed twice gets one, so a bounce is not counted
-	// twice, and no more are read than an SES email can have. An email sent to one address has
-	// no other recipient, though SES can report another: a bounce's Final-Recipient, the
-	// address a forward or an alias led to. Its event takes the address the email was sent to.
+	// twice, and no more are read than an SES email can have.
 	type sesRecipient struct{ email, diagnostic string }
 	var recipients []sesRecipient
 	seen := map[string]bool{}
-	addRecipient := func(mail domain.SESMail, email, diagnostic string) {
-		if len(mail.Destination) == 1 && mail.Destination[0] != "" {
-			email = mail.Destination[0]
-		}
+	addRecipient := func(email, diagnostic string) {
 		if email == "" {
 			return
 		}
@@ -770,7 +765,7 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 	if err := json.Unmarshal(messageBytes, &bounceNotification); err == nil && bounceNotification.EventType == "Bounce" {
 		eventType = domain.EmailEventBounce
 		for _, recipient := range bounceNotification.Bounce.BouncedRecipients {
-			addRecipient(bounceNotification.Mail, recipient.EmailAddress, recipient.DiagnosticCode)
+			addRecipient(recipient.EmailAddress, recipient.DiagnosticCode)
 		}
 		messageID = bounceNotification.Mail.MessageID
 		bounceType = bounceNotification.Bounce.BounceType
@@ -799,7 +794,7 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 		if err := json.Unmarshal(messageBytes, &complaintNotification); err == nil && complaintNotification.EventType == "Complaint" {
 			eventType = domain.EmailEventComplaint
 			for _, recipient := range complaintNotification.Complaint.ComplainedRecipients {
-				addRecipient(complaintNotification.Mail, recipient.EmailAddress, "")
+				addRecipient(recipient.EmailAddress, "")
 			}
 			messageID = complaintNotification.Mail.MessageID
 			complaintFeedbackType = complaintNotification.Complaint.ComplaintFeedbackType
@@ -827,7 +822,7 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 			if err := json.Unmarshal(messageBytes, &deliveryNotification); err == nil && deliveryNotification.EventType == "Delivery" {
 				eventType = domain.EmailEventDelivered
 				for _, recipient := range deliveryNotification.Delivery.Recipients {
-					addRecipient(deliveryNotification.Mail, recipient, "")
+					addRecipient(recipient, "")
 				}
 				messageID = deliveryNotification.Mail.MessageID
 

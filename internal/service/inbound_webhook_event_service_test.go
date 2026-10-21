@@ -765,7 +765,7 @@ func TestProcessSESWebhook(t *testing.T) {
 
 	// SES reports a bounced recipient as the DSN's Final-Recipient, which is the address a
 	// forward or an alias led to rather than the one the email was sent to
-	t.Run("A notification about an email sent to one address gives its event that address, whatever address SES reports", func(t *testing.T) {
+	t.Run("A notification keeps the address SES reports, even for an email sent to one other address", func(t *testing.T) {
 		rawPayload, err := json.Marshal(domain.SESWebhookPayload{
 			Message: `{"eventType":"Bounce","bounce":{"bounceType":"Permanent","bounceSubType":"General","bouncedRecipients":[{"emailAddress":"forwarded@elsewhere.example","diagnosticCode":"550 forwarded"}],"timestamp":"2023-01-01T12:00:00Z"},"mail":{"messageId":"provider-msg-id","destination":["test@example.com"],"tags":{"notifuse_message_id":["msg-1"]}}}`,
 		})
@@ -775,22 +775,8 @@ func TestProcessSESWebhook(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Len(t, events, 1)
-		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+		assert.Equal(t, "forwarded@elsewhere.example", events[0].RecipientEmail)
 		assert.Equal(t, "550 forwarded", events[0].BounceDiagnostic)
-	})
-
-	t.Run("A notification about an email sent to one address reporting two forwarded addresses gives one event", func(t *testing.T) {
-		rawPayload, err := json.Marshal(domain.SESWebhookPayload{
-			Message: `{"eventType":"Bounce","bounce":{"bounceType":"Permanent","bounceSubType":"General","bouncedRecipients":[{"emailAddress":"first@elsewhere.example","diagnosticCode":"550 first"},{"emailAddress":"second@elsewhere.example","diagnosticCode":"550 second"}],"timestamp":"2023-01-01T12:00:00Z"},"mail":{"messageId":"provider-msg-id","destination":["test@example.com"],"tags":{"notifuse_message_id":["msg-1"]}}}`,
-		})
-		require.NoError(t, err)
-
-		events, err := service.processSESWebhook(integrationID, rawPayload)
-
-		require.NoError(t, err)
-		require.Len(t, events, 1)
-		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
-		assert.Equal(t, "550 first", events[0].BounceDiagnostic)
 	})
 
 	t.Run("A notification about an email sent to several addresses reporting a forwarded address keeps it", func(t *testing.T) {
@@ -806,9 +792,9 @@ func TestProcessSESWebhook(t *testing.T) {
 		assert.Equal(t, "forwarded@elsewhere.example", events[0].RecipientEmail)
 	})
 
-	t.Run("A notification with an empty destination or an empty recipient address gives no event for it", func(t *testing.T) {
+	t.Run("A notification listing an empty address gives no event for it", func(t *testing.T) {
 		rawPayload, err := json.Marshal(domain.SESWebhookPayload{
-			Message: `{"eventType":"Delivery","delivery":{"recipients":["","test@example.com"],"timestamp":"2023-01-01T12:00:00Z"},"mail":{"messageId":"provider-msg-id","destination":[""],"tags":{"notifuse_message_id":["msg-1"]}}}`,
+			Message: `{"eventType":"Delivery","delivery":{"recipients":["","test@example.com"],"timestamp":"2023-01-01T12:00:00Z"},"mail":{"messageId":"provider-msg-id","tags":{"notifuse_message_id":["msg-1"]}}}`,
 		})
 		require.NoError(t, err)
 
@@ -3443,31 +3429,7 @@ func TestProcessWebhook_ActsOnlyOnEmailsSentToTheEventAddress(t *testing.T) {
 		})
 	}
 
-	t.Run("an SES bounce of an email sent to its recipient alone, reporting the address it was forwarded to: the recipient's bounce is recorded and applied", func(t *testing.T) {
-		service, repo, workspaceRepo, messageHistoryRepo, contactRepo, ctrl := newClassificationTestService(t)
-		defer ctrl.Finish()
-		workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspaceOf(domain.EmailProviderKindSES), nil)
-		messageHistoryRepo.EXPECT().GetRecipients(gomock.Any(), workspaceID, []string{"msg-1"}).
-			Return(map[string]string{"msg-1": "recipient@example.com"}, nil)
-		repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).DoAndReturn(
-			func(_ context.Context, _ string, events []*domain.InboundWebhookEvent) error {
-				require.Len(t, events, 1)
-				assert.Equal(t, "recipient@example.com", events[0].RecipientEmail)
-				return nil
-			})
-		messageHistoryRepo.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).DoAndReturn(
-			func(_ context.Context, _ string, updates []domain.MessageEventUpdate) error {
-				require.Len(t, updates, 1)
-				assert.Equal(t, domain.MessageEventBounced, updates[0].Event)
-				return nil
-			})
-		contactRepo.EXPECT().MarkEmailsAsBounced(gomock.Any(), workspaceID, []string{"recipient@example.com"}, gomock.Any()).Return(nil)
-
-		require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, sesNotification(t,
-			`{"eventType":"Bounce","bounce":{"bounceType":"Permanent","bounceSubType":"General","bouncedRecipients":[{"emailAddress":"forwarded@elsewhere.example","diagnosticCode":"smtp; 550 forwarded"}],"timestamp":"2026-10-21T10:00:00Z"},"mail":{"messageId":"0100018f-ses-own-id","destination":["recipient@example.com"],"tags":{"notifuse_message_id":["msg-1"]}}}`)))
-	})
-
-	t.Run("an SES bounce of an email sent to another address alone: nothing is stored or changed", func(t *testing.T) {
+	t.Run("an SES bounce reporting the address an email sent to its recipient alone was forwarded to: nothing is stored or changed", func(t *testing.T) {
 		service, _, workspaceRepo, messageHistoryRepo, _, ctrl := newClassificationTestService(t)
 		defer ctrl.Finish()
 		workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspaceOf(domain.EmailProviderKindSES), nil)
@@ -3475,7 +3437,7 @@ func TestProcessWebhook_ActsOnlyOnEmailsSentToTheEventAddress(t *testing.T) {
 			Return(map[string]string{"msg-1": "recipient@example.com"}, nil)
 
 		require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, sesNotification(t,
-			`{"eventType":"Bounce","bounce":{"bounceType":"Permanent","bounceSubType":"General","bouncedRecipients":[{"emailAddress":"recipient@example.com","diagnosticCode":"smtp; 550"}],"timestamp":"2026-10-21T10:00:00Z"},"mail":{"messageId":"0100018f-ses-own-id","destination":["someone-else@example.com"],"tags":{"notifuse_message_id":["msg-1"]}}}`)))
+			`{"eventType":"Bounce","bounce":{"bounceType":"Permanent","bounceSubType":"General","bouncedRecipients":[{"emailAddress":"forwarded@elsewhere.example","diagnosticCode":"smtp; 550 forwarded"}],"timestamp":"2026-10-21T10:00:00Z"},"mail":{"messageId":"0100018f-ses-own-id","destination":["recipient@example.com"],"tags":{"notifuse_message_id":["msg-1"]}}}`)))
 	})
 
 	t.Run("an SES complaint giving the international domain of the email's address in Punycode, as SES is sent it: recorded with the address stored on the email", func(t *testing.T) {
