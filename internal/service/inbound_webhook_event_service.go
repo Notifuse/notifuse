@@ -840,10 +840,14 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 	}
 
 	// A notification listing no recipient still gives one event, with no address. One listing
-	// a recipient twice gives it one event, so a bounce is not counted twice.
-	listed := make([]sesRecipient, 0, len(recipients))
-	seen := make(map[string]bool, len(recipients))
+	// a recipient twice gives it one event, so a bounce is not counted twice, and no more
+	// recipients are read than an SES email can have.
+	listed := make([]sesRecipient, 0, min(len(recipients), sesMaxRecipients))
+	seen := make(map[string]bool, cap(listed))
 	for _, recipient := range recipients {
+		if len(listed) == sesMaxRecipients {
+			break
+		}
 		if key := strings.ToLower(recipient.email); !seen[key] {
 			seen[key] = true
 			listed = append(listed, recipient)
@@ -854,6 +858,8 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 		recipients = []sesRecipient{{}}
 	}
 
+	// The events share one copy of the payload
+	payload := string(rawPayload)
 	events = make([]*domain.InboundWebhookEvent, 0, len(recipients))
 	for _, recipient := range recipients {
 		eventMessageID := messageID
@@ -865,7 +871,7 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 			recipient.email,
 			&eventMessageID,
 			timestamp,
-			string(rawPayload),
+			payload,
 		)
 
 		// Set event-specific information
@@ -882,6 +888,9 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 
 	return events, nil
 }
+
+// sesMaxRecipients is the most recipients an SES email can have, To, CC and BCC together
+const sesMaxRecipients = 50
 
 // processPostmarkWebhook processes a webhook event from Postmark
 func (s *InboundWebhookEventService) processPostmarkWebhook(integrationID string, rawPayload []byte) (events []*domain.InboundWebhookEvent, err error) {

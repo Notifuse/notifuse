@@ -740,6 +740,29 @@ func TestProcessSESWebhook(t *testing.T) {
 		}
 	})
 
+	t.Run("A notification listing more recipients than an SES email can have gives events for the first 50", func(t *testing.T) {
+		recipients := make([]map[string]string, 0, 60)
+		for i := 0; i < 60; i++ {
+			recipients = append(recipients, map[string]string{"emailAddress": fmt.Sprintf("r%d@example.com", i)})
+		}
+		listed, err := json.Marshal(recipients)
+		require.NoError(t, err)
+		rawPayload, err := json.Marshal(domain.SESWebhookPayload{
+			Message: `{"eventType":"Complaint","complaint":{"complainedRecipients":` + string(listed) + `,"timestamp":"2023-01-01T12:00:00Z","complaintFeedbackType":"abuse"},"mail":{"messageId":"provider-msg-id","tags":{"notifuse_message_id":["msg-1"]}}}`,
+		})
+		require.NoError(t, err)
+
+		events, err := service.processSESWebhook(integrationID, rawPayload)
+
+		require.NoError(t, err)
+		require.Len(t, events, 50)
+		assert.Equal(t, "r0@example.com", events[0].RecipientEmail)
+		assert.Equal(t, "r49@example.com", events[49].RecipientEmail)
+		for _, event := range events {
+			assert.Equal(t, string(rawPayload), event.RawPayload)
+		}
+	})
+
 	t.Run("A notification listing the same recipient twice gives one event for it", func(t *testing.T) {
 		rawPayload, err := json.Marshal(domain.SESWebhookPayload{
 			Message: `{"eventType":"Bounce","bounce":{"bounceType":"Transient","bounceSubType":"MailboxFull","bouncedRecipients":[{"emailAddress":"test@example.com","diagnosticCode":"452 first"},{"emailAddress":"copy@example.com","diagnosticCode":"452 copy"},{"emailAddress":"Test@Example.com","diagnosticCode":"452 again"}],"timestamp":"2023-01-01T12:00:00Z"},"mail":{"messageId":"provider-msg-id","tags":{"notifuse_message_id":["msg-1"]}}}`,
