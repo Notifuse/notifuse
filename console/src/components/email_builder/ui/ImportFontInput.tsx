@@ -1,16 +1,7 @@
 import React, { useState } from 'react'
 import { Input, Popover, Button, Select } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-
-// A stylesheet address worth opening: an absolute web one
-const isWebAddress = (href?: string): boolean => {
-  try {
-    const { protocol } = new URL(href ?? '')
-    return protocol === 'http:' || protocol === 'https:'
-  } catch {
-    return false
-  }
-}
+import { safeExternalUrl } from '../../../utils/safeHtml'
 
 interface ImportFontInputProps {
   value?: {
@@ -197,7 +188,8 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
       <div className="flex flex-col gap-2">
         <div className="flex-1">
           <div className="text-xs font-medium text-gray-700">{value.name}</div>
-          {isWebAddress(value.href) ? (
+          {/* A stylesheet is only ever a web address */}
+          {safeExternalUrl(value.href) ? (
             <a
               href={value.href}
               target="_blank"

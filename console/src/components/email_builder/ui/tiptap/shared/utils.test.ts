@@ -127,3 +127,21 @@ describe.each([
     expect(out).toContain('href="{{ cta_url }}"')
   })
 })
+
+describe('getInitialInlineContent text-only fallback', () => {
+  it('keeps the text as text when the markup cannot be processed', () => {
+    const querySelectorAll = Element.prototype.querySelectorAll
+    vi.spyOn(Element.prototype, 'querySelectorAll').mockImplementation(function (
+      this: Element,
+      selectors: string
+    ) {
+      if (selectors.startsWith('p, div')) throw new Error('unexpected markup')
+      return querySelectorAll.call(this, selectors)
+    } as never)
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    expect(getInitialInlineContent('<p>a &lt;a href="javascript:x()"&gt;go&lt;/a&gt; b</p>')).toBe(
+      '<span data-inline-doc="">a &lt;a href="javascript:x()"&gt;go&lt;/a&gt; b</span>'
+    )
+  })
+})

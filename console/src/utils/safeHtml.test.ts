@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sanitizeHtml, parseHtmlInert, safeExternalUrl, isSafeHref } from './safeHtml'
+import { sanitizeHtml, parseHtmlInert, safeExternalUrl, isSafeHref, textToHtml } from './safeHtml'
 
 describe('sanitizeHtml', () => {
   it('drops event handlers, scripts, frames, styles and javascript: links', () => {
@@ -91,6 +91,15 @@ describe('parseHtmlInert', () => {
     expect(second.innerHTML).toBe('<p>b</p>')
     expect(first.parentNode).toBeNull()
     expect(second.ownerDocument).toBe(first.ownerDocument)
+  })
+})
+
+describe('textToHtml', () => {
+  it('turns text into HTML that shows that same text', () => {
+    const text = 'a <a href="javascript:x()">go</a> & b'
+    const html = textToHtml(text)
+    expect(html).toBe('a &lt;a href="javascript:x()"&gt;go&lt;/a&gt; &amp; b')
+    expect(parseHtmlInert(html).textContent).toBe(text)
   })
 })
 

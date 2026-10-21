@@ -34,7 +34,7 @@ describe.each(['localStorage', 'sessionStorage'])('%s in the theme preview', (na
     expect(s.getItem('mode')).toBe('dark')
     expect(s.getItem('count')).toBe('2')
     expect(s.length).toBe(2)
-    expect([s.key(0), s.key(1), s.key(2)]).toEqual(['mode', 'count', null])
+    expect([s.key(0), s.key(1), s.key(2), s.key(-1)]).toEqual(['mode', 'count', null, null])
     s.removeItem('mode')
     expect(s.getItem('mode')).toBeNull()
     s.clear()
@@ -74,6 +74,17 @@ describe('document.cookie in the theme preview', () => {
     document.cookie = 'mode=dark'
     document.cookie = 'consent=no'
     expect(document.cookie).toBe('consent=no; mode=dark')
+  })
+
+  it('removes a cookie set to expire now or in the past', () => {
+    const { document } = runScript()
+    for (const name of ['a', 'b', 'c', 'd', 'e']) document.cookie = `${name}=1`
+    document.cookie = 'a=; max-age=0'
+    document.cookie = 'b=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
+    document.cookie = 'c=2; max-age=60; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    document.cookie = 'd=2; expires=Fri, 01 Jan 2100 00:00:00 GMT'
+    document.cookie = 'e=2; max-age='
+    expect(document.cookie).toBe('c=2; d=2; e=2')
   })
 })
 

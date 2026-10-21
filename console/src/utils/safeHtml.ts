@@ -42,6 +42,15 @@ export function parseHtmlInert(html: string): HTMLDivElement {
 }
 
 /**
+ * HTML that shows `text` as it is: what would read as markup is escaped.
+ */
+export function textToHtml(text: string): string {
+  const container = parseHtmlInert('')
+  container.textContent = text
+  return container.innerHTML
+}
+
+/**
  * A URL the console may open in a new tab or show in a frame: an absolute
  * http(s) URL on another origin than the console's. Returns it normalised, or
  * null.

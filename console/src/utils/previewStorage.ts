@@ -3,13 +3,14 @@
  * cookies throws and stops the theme script that tried. This script gives it
  * in-memory ones instead, which last as long as the preview does. Items can be
  * read and written as properties too (`localStorage.theme`), as on a real
- * Storage; cookie attributes such as `path` or `max-age` are ignored.
+ * Storage. A cookie set to expire now or earlier is removed; its other
+ * attributes are ignored. IndexedDB and the Cache API stay unavailable there.
  */
 export const PREVIEW_STORAGE_SCRIPT = `<script>(function () {
   function memoryStorage() {
     var items = new Map();
     var methods = {
-      key: function (i) { var keys = Array.from(items.keys()); return i < keys.length ? keys[i] : null; },
+      key: function (i) { var key = Array.from(items.keys())[i >>> 0]; return key === undefined ? null : key; },
       getItem: function (k) { k = String(k); return items.has(k) ? items.get(k) : null; },
       setItem: function (k, v) { items.set(String(k), String(v)); },
       removeItem: function (k) { items.delete(String(k)); },
@@ -42,17 +43,30 @@ export const PREVIEW_STORAGE_SCRIPT = `<script>(function () {
       return Array.from(cookies, function (entry) { return entry[0] + '=' + entry[1]; }).join('; ');
     },
     set: function (value) {
-      var pair = String(value).split(';')[0];
-      var at = pair.indexOf('=');
-      if (at > 0) cookies.set(pair.slice(0, at).trim(), pair.slice(at + 1).trim());
+      var parts = String(value).split(';');
+      var at = parts[0].indexOf('=');
+      if (at <= 0) return;
+      var name = parts[0].slice(0, at).trim();
+      var maxAge = null;
+      var expires = null;
+      parts.slice(1).forEach(function (part) {
+        var eq = part.indexOf('=');
+        var key = (eq < 0 ? part : part.slice(0, eq)).trim().toLowerCase();
+        var val = eq < 0 ? '' : part.slice(eq + 1).trim();
+        if (key === 'max-age' && /^-?\\d+$/.test(val)) maxAge = Number(val);
+        if (key === 'expires' && !isNaN(Date.parse(val))) expires = Date.parse(val);
+      });
+      // Max-Age wins over Expires, as in a browser
+      var expired = maxAge !== null ? maxAge <= 0 : expires !== null && expires <= Date.now();
+      if (expired) cookies.delete(name);
+      else cookies.set(name, parts[0].slice(at + 1).trim());
     }
   });
 })();</script>`
 
 /**
  * The preview document with that script first, so it runs before anything the
- * theme does: right after the doctype, which must stay first for the page to
- * render in standards mode.
+ * theme does: right after the doctype, so the document still has one.
  */
 export function withPreviewStorage(html: string): string {
   const doctype = /^\s*<!doctype[^>]*>/i.exec(html)?.[0] ?? ''

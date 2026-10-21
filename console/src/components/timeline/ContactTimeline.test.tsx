@@ -373,16 +373,27 @@ describe('ContactTimeline page view header and preview', () => {
     [['*.apple.com'], 'www.apple.com'],
     [['*.apple.com'], 'apple.com'],
     [['other.example', 'www.apple.com'], 'www.apple.com'],
-    [['::1'], '[::1]'],
-    [['[::1]:8443'], '[::1]']
+    // An IPv6 address is recorded without its brackets
+    [['::1'], '::1'],
+    [['[::1]:8443'], '::1']
   ])('offers a page of a domain the workspace tracks: %j, %s', (allowedDomains, domain) => {
     render(
       <ContactTimeline entries={[pageAt('/pricing', domain)]} workspace={tracking(allowedDomains)} />
     )
 
     openPreview()
+    const host = domain.includes(':') ? `[${domain}]` : domain
     expect(
-      within(screen.getByRole('dialog')).getByText(`https://${domain}/pricing`)
+      within(screen.getByRole('dialog')).getByText(`https://${host}/pricing`)
+    ).toBeInTheDocument()
+  })
+
+  it('offers a page of an IPv6 site when the workspace lists no domain', () => {
+    render(<ContactTimeline entries={[pageAt('/pricing', '2001:db8::1')]} />)
+
+    openPreview()
+    expect(
+      within(screen.getByRole('dialog')).getByText('https://[2001:db8::1]/pricing')
     ).toBeInTheDocument()
   })
 
@@ -392,7 +403,7 @@ describe('ContactTimeline page view header and preview', () => {
     [['*.apple.com'], 'notapple.com'],
     [['*.com'], 'other.com'],
     // The server never matches a bracketed entry without a port either
-    [['[::1]'], '[::1]']
+    [['[::1]'], '::1']
   ])('offers no preview of a domain the workspace does not track: %j, %s', (allowed, domain) => {
     render(<ContactTimeline entries={[pageAt('/pricing', domain)]} workspace={tracking(allowed)} />)
 

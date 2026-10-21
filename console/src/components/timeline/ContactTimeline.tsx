@@ -238,7 +238,8 @@ export function ContactTimeline({
     const path = webChange<string>(entry, 'path')
     if (!path) return null
 
-    const domain = webChange<string>(entry, 'landing_domain')
+    // An IPv6 address is recorded without the brackets a URL needs
+    const domain = webChange<string>(entry, 'landing_domain')?.replace(/^([^[].*:.*)$/, '[$1]')
     const origin = domain ? `https://${domain}` : workspace?.settings?.website_url
     if (!origin) return null
 
