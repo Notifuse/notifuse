@@ -468,6 +468,8 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
                     border: 'none'
                   }}
                   title={t`Email Preview`}
+                  // No script and an origin of its own; links still open in a new tab.
+                  sandbox="allow-popups allow-popups-to-escape-sandbox"
                 />
               </div>
             </div>

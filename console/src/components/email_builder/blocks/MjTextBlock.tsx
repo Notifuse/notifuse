@@ -10,6 +10,7 @@ import {
   type PreviewProps
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
+import { sanitizeHtml } from '../../../utils/safeHtml'
 import { EmailBlockClass } from '../EmailBlockClass'
 import PanelLayout from '../panels/PanelLayout'
 import InputLayout from '../ui/InputLayout'
@@ -457,6 +458,8 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
     prevSelectedRef.current = isSelected
   }, [isSelected, handleSave])
 
+  const canvasHtml = React.useMemo(() => sanitizeHtml(localContent), [localContent])
+
   return (
     <div
       key={key}
@@ -485,7 +488,7 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
       ) : (
         <div
           style={textStyle}
-          dangerouslySetInnerHTML={{ __html: localContent }}
+          dangerouslySetInnerHTML={{ __html: canvasHtml }}
           onClick={(e) => {
             // Check if the clicked element is an anchor tag
             const target = e.target as HTMLElement

@@ -107,7 +107,8 @@ export function ThemePreview({ files, workspace, view }: ThemePreviewProps) {
             background: '#ffffff'
           }}
           title="Blog Preview"
-          sandbox="allow-same-origin allow-scripts"
+          // Theme scripts run, in an origin of their own rather than the console's.
+          sandbox="allow-scripts"
         />
       )}
     </div>

@@ -4,6 +4,7 @@ import { Select, InputNumber, Row, Col, Input, Switch } from 'antd'
 import type { MJMLComponentType, MJSocialElementAttributes } from '../types'
 import { BaseEmailBlock, type OnUpdateAttributesFunction, type PreviewProps } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
+import { isSafeHref } from '../../../utils/safeHtml'
 import { EmailBlockClass } from '../EmailBlockClass'
 import InputLayout from '../ui/InputLayout'
 import ColorPickerWithPresets from '../ui/ColorPickerWithPresets'
@@ -760,7 +761,7 @@ export class MjSocialElementBlock extends BaseEmailBlock {
     // Link wrapper for icon
     const iconLink = (
       <a
-        href={attrs.href || '#'}
+        href={isSafeHref(attrs.href) ? attrs.href : '#'}
         target={attrs.target || '_blank'}
         rel={attrs.rel}
         title={attrs.title}
@@ -774,7 +775,7 @@ export class MjSocialElementBlock extends BaseEmailBlock {
     // Text link (if content exists)
     const textLink = content ? (
       <a
-        href={attrs.href || '#'}
+        href={isSafeHref(attrs.href) ? attrs.href : '#'}
         target={attrs.target || '_blank'}
         rel={attrs.rel}
         title={attrs.title}

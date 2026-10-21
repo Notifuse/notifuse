@@ -3,6 +3,7 @@ import { useLingui } from '@lingui/react/macro'
 import { Drawer, Button, Typography, Alert, Spin, Tooltip } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowUpRightFromSquare } from '@fortawesome/free-solid-svg-icons'
+import { safeExternalUrl } from '../../utils/safeHtml'
 
 const { Text } = Typography
 
@@ -34,8 +35,10 @@ interface WebPageDrawerProps {
  * the address and a way out to a real tab come first, and the preview is a bonus
  * underneath.
  */
-export function WebPageDrawer({ open, url, onClose }: WebPageDrawerProps) {
+export function WebPageDrawer({ open, url: requestedUrl, onClose }: WebPageDrawerProps) {
   const { t } = useLingui()
+  // Checked here as well as by the caller: the frame below runs the page's scripts.
+  const url = safeExternalUrl(requestedUrl)
   const [state, setState] = React.useState<'loading' | 'loaded' | 'blocked'>('loading')
 
   React.useEffect(() => {

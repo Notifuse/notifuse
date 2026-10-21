@@ -8,6 +8,7 @@ import {
   type PreviewProps
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
+import { sanitizeHtml } from '../../../utils/safeHtml'
 import { EmailBlockClass } from '../EmailBlockClass'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import PaddingInput from '../ui/PaddingInput'
@@ -591,6 +592,8 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
     prevSelectedRef.current = isSelected
   }, [isSelected, handleSave])
 
+  const canvasHtml = React.useMemo(() => sanitizeHtml(localContent), [localContent])
+
   // Text content style for TiptapComponent
   const textStyle: React.CSSProperties = {
     color: attrs.color,
@@ -653,7 +656,7 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
           ) : (
             <span
               style={{ color: attrs.color }}
-              dangerouslySetInnerHTML={{ __html: localContent }}
+              dangerouslySetInnerHTML={{ __html: canvasHtml }}
             />
           )}
         </div>

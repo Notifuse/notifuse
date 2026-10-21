@@ -6,6 +6,7 @@ import { createInlineExtensions } from './shared/extensions'
 import { injectTiptapStyles } from './shared/styles'
 import { TiptapToolbar } from './components/TiptapToolbar'
 import { processInlineContent, prepareInlineContent, getInitialInlineContent } from './shared/utils'
+import { parseHtmlInert, sanitizeHtml } from '../../../../utils/safeHtml'
 
 export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
   content = '',
@@ -39,7 +40,7 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
   const editor = useEditor(
     {
       extensions: createInlineExtensions(),
-      content: getInitialInlineContent(content),
+      content: getInitialInlineContent(sanitizeHtml(content)),
       editable: !readOnly,
       editorProps: {
         attributes: {
@@ -67,7 +68,7 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
       if (shouldUpdate) {
         isUpdatingFromProps.current = true
 
-        const contentForEditor = prepareInlineContent(content)
+        const contentForEditor = prepareInlineContent(sanitizeHtml(content))
 
         try {
           editor.commands.setContent(contentForEditor, { emitUpdate: false })
@@ -76,10 +77,9 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
 
           // Fallback: try to extract just the text content
           try {
-            const tempDiv = document.createElement('div')
-            tempDiv.innerHTML = content
+            const tempDiv = parseHtmlInert(content)
             const textOnly = tempDiv.textContent || tempDiv.innerText || ''
-            const fallbackContent = `<span data-inline-doc="">${textOnly}</span>`
+            const fallbackContent = sanitizeHtml(`<span data-inline-doc="">${textOnly}</span>`)
             editor.commands.setContent(fallbackContent, { emitUpdate: false })
             console.warn('Fell back to text-only content due to parsing error')
           } catch (fallbackError) {

@@ -63,8 +63,9 @@ export interface MockConfig {
 async function setupApiMocks(page: Page, config: MockConfig = {}) {
   const { withData = false } = config
 
-  // Mock config.js to provide app configuration
-  await page.route('**/config.js', (route: Route) =>
+  // Mock config.js to provide app configuration. index.html loads it with a
+  // cache-busting query (/config.js?_t=…), which a pattern ending in .js misses.
+  await page.route('**/config.js*', (route: Route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/javascript',

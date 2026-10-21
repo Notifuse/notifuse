@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Input, Popover, Button, Select } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { isSafeHref } from '../../../utils/safeHtml'
 
 interface ImportFontInputProps {
   value?: {
@@ -187,14 +188,20 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
       <div className="flex flex-col gap-2">
         <div className="flex-1">
           <div className="text-xs font-medium text-gray-700">{value.name}</div>
-          <a
-            href={value.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-blue-600 hover:text-blue-800 underline break-all block leading-relaxed"
-          >
-            {value.href}
-          </a>
+          {isSafeHref(value.href) ? (
+            <a
+              href={value.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 hover:text-blue-800 underline break-all block leading-relaxed"
+            >
+              {value.href}
+            </a>
+          ) : (
+            <span className="text-xs text-slate-600 break-all block leading-relaxed">
+              {value.href}
+            </span>
+          )}
         </div>
 
         <Popover

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { ContactTimeline } from './ContactTimeline'
 import type { ContactTimelineEntry } from '../../services/api/contact_timeline'
@@ -300,6 +300,58 @@ describe('ContactTimeline page view header and preview', () => {
   it('offers no preview when there is no domain to be had', () => {
     // Guessing a host would send someone to a page that was never visited.
     render(<ContactTimeline entries={[pageEntry]} />)
+
+    expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
+  })
+
+  // The path and the domain are whatever the visitor's browser reported.
+  const pageAt = (path: string, landingDomain?: string): ContactTimelineEntry => ({
+    ...pageEntry,
+    changes: {
+      ...pageEntry.changes,
+      path: webChange(path),
+      ...(landingDomain ? { landing_domain: webChange(landingDomain) } : {})
+    }
+  })
+
+  const openPreview = () => fireEvent.click(screen.getByRole('button', { name: 'View website' }))
+
+  it('keeps a path that starts with two slashes on the visited site', () => {
+    render(<ContactTimeline entries={[pageAt('//other.example/x', 'www.apple.com')]} />)
+
+    openPreview()
+    expect(
+      within(screen.getByRole('dialog')).getByText('https://www.apple.com//other.example/x')
+    ).toBeInTheDocument()
+  })
+
+  it('keeps a full URL path on the visited site', () => {
+    render(
+      <ContactTimeline entries={[pageAt('https://www.apple.com/pricing?a=1', 'www.apple.com')]} />
+    )
+
+    openPreview()
+    expect(
+      within(screen.getByRole('dialog')).getByText('https://www.apple.com/pricing?a=1')
+    ).toBeInTheDocument()
+  })
+
+  it.each([
+    'javascript:window.__probe=1',
+    ' javascript:window.__probe=1',
+    'data:text/html,<p>x</p>',
+    'https://other.example/x',
+    '\\\\other.example/x',
+    ' //other.example/x'
+  ])('offers no preview for a path that leaves the visited site: %j', (path) => {
+    render(<ContactTimeline entries={[pageAt(path, 'www.apple.com')]} />)
+
+    expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
+  })
+
+  it('offers no preview for a page on the console itself', () => {
+    const workspace = { settings: { website_url: window.location.origin } } as never
+    render(<ContactTimeline entries={[pageAt('/console/workspace')]} workspace={workspace} />)
 
     expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
   })
