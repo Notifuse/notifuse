@@ -500,9 +500,11 @@ func testTaskStateManagement(t *testing.T, client *testutil.APIClient, factory *
 	})
 
 	t.Run("Task Pause and Resume", func(t *testing.T) {
+		// A waiting task: pausing leaves a task its run holds to that run
+		// (task_lease_test.go covers that refusal).
 		pauseTask, err := factory.CreateTask(workspaceID,
 			testutil.WithTaskType("send_broadcast"),
-			testutil.WithTaskStatus(domain.TaskStatusRunning))
+			testutil.WithTaskStatus(domain.TaskStatusPending))
 		require.NoError(t, err)
 
 		t.Run("should pause and resume task", func(t *testing.T) {

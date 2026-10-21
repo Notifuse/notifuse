@@ -256,6 +256,13 @@ type TaskRepository interface {
 	ReleaseTask(ctx context.Context, workspace, id string, reason string, nextRunAfter time.Time) error
 	ReleaseTaskTx(ctx context.Context, tx *sql.Tx, workspace, id string, reason string, nextRunAfter time.Time) error
 
+	// WakeTask puts a waiting task back in the queue: pending, due at nextRunAfter,
+	// with a fresh retry budget and no error message. It returns false, and changes
+	// nothing, for a task an execution holds (running, unless its lease has
+	// expired) and for a completed one. It writes neither the state nor the
+	// progress: they belong to the execution that saves them.
+	WakeTask(ctx context.Context, workspace, id string, nextRunAfter time.Time) (bool, error)
+
 	// GetTaskByIntegrationID retrieves the active task for a specific integration
 	GetTaskByIntegrationID(ctx context.Context, workspace, integrationID string) (*Task, error)
 	GetTaskByIntegrationIDTx(ctx context.Context, tx *sql.Tx, workspace, integrationID string) (*Task, error)

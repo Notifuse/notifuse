@@ -468,20 +468,106 @@ func TestBroadcastService_SelectWinner_SetsWinnerAndResumesTask(t *testing.T) {
 	d.repo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 	d.repo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).Return(nil)
 
-	// Task repo: resume task if present
+	// Task repo: wake the task if present. Never Update: writing back the task it
+	// read would hand a running task to a second execution.
 	task := &domain.Task{ID: "task1", WorkspaceID: workspaceID, Status: domain.TaskStatusPaused}
 	d.taskRepo.EXPECT().GetTaskByBroadcastID(ctx, workspaceID, broadcastID).Return(task, nil)
-	d.taskRepo.EXPECT().Update(ctx, workspaceID, gomock.Any()).Return(nil)
+	d.taskRepo.EXPECT().WakeTask(ctx, workspaceID, task.ID, gomock.Any()).Return(true, nil)
 
-	// Expect IsAutoExecuteEnabled check and ExecutePendingTasks to be called in goroutine (may happen after test completes)
+	// A woken task is run straight away when auto-execution is on.
+	executed := make(chan struct{})
 	d.taskService.EXPECT().IsAutoExecuteEnabled().Return(true).AnyTimes()
-	d.taskService.EXPECT().ExecutePendingTasks(gomock.Any(), 1).Return(nil).AnyTimes()
+	d.taskService.EXPECT().ExecutePendingTasks(gomock.Any(), 1).DoAndReturn(
+		func(context.Context, int) error { close(executed); return nil })
 
 	err := d.svc.SelectWinner(ctx, workspaceID, broadcastID, winner)
 	require.NoError(t, err)
 
-	// Give goroutine time to complete
-	time.Sleep(200 * time.Millisecond)
+	select {
+	case <-executed:
+	case <-time.After(2 * time.Second):
+		t.Fatal("a woken task must be executed straight away")
+	}
+}
+
+// TestBroadcastService_SelectWinner_LeavesAHeldTaskToItsRun covers a pick made
+// while the broadcast's run holds its task: the run switches to the winner on
+// its next refresh, so the pick must neither wake the task nor start a second
+// execution.
+func TestBroadcastService_SelectWinner_LeavesAHeldTaskToItsRun(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	workspaceID := "w1"
+	broadcastID := "b1"
+	winner := "tplA"
+	authOK(d.authService, ctx, workspaceID)
+
+	d.repo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
+	)
+
+	b := testBroadcast(workspaceID, broadcastID)
+	b.Status = domain.BroadcastStatusTesting
+	b.TestSettings.Enabled = true
+	b.TestSettings.AutoSendWinner = false
+	b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: winner}, {VariationName: "B", TemplateID: "tplB"}}
+
+	d.repo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
+	d.repo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ *sql.Tx, saved *domain.Broadcast) error {
+			require.NotNil(t, saved.WinningTemplate)
+			assert.Equal(t, winner, *saved.WinningTemplate)
+			assert.Equal(t, domain.BroadcastStatusWinnerSelected, saved.Status)
+			return nil
+		})
+
+	task := &domain.Task{ID: "task1", WorkspaceID: workspaceID, Status: domain.TaskStatusRunning}
+	d.taskRepo.EXPECT().GetTaskByBroadcastID(ctx, workspaceID, broadcastID).Return(task, nil)
+	d.taskRepo.EXPECT().WakeTask(ctx, workspaceID, task.ID, gomock.Any()).Return(false, nil)
+
+	d.taskService.EXPECT().IsAutoExecuteEnabled().Return(true).AnyTimes()
+	d.taskService.EXPECT().ExecutePendingTasks(gomock.Any(), gomock.Any()).Times(0)
+
+	err := d.svc.SelectWinner(ctx, workspaceID, broadcastID, winner)
+	require.NoError(t, err)
+
+	// Leave room for the delayed execution a woken task would get, so the
+	// Times(0) above has something to catch.
+	time.Sleep(300 * time.Millisecond)
+}
+
+// TestBroadcastService_SelectWinner_TaskGoneBeforeWake keeps the "no task"
+// answer when the task disappears between the lookup and the wake.
+func TestBroadcastService_SelectWinner_TaskGoneBeforeWake(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	workspaceID := "w1"
+	broadcastID := "b1"
+	templateID := "tplA"
+	authOK(d.authService, ctx, workspaceID)
+
+	d.repo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
+			b := testBroadcast(workspaceID, broadcastID)
+			b.Status = domain.BroadcastStatusTestCompleted
+			b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: templateID}}
+			d.repo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
+			d.repo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).Return(nil)
+
+			task := &domain.Task{ID: "task1", WorkspaceID: workspaceID, Status: domain.TaskStatusPending}
+			d.taskRepo.EXPECT().GetTaskByBroadcastID(ctx, workspaceID, broadcastID).Return(task, nil)
+			d.taskRepo.EXPECT().WakeTask(ctx, workspaceID, task.ID, gomock.Any()).Return(false, domain.ErrTaskNotFound)
+			return fn(nil)
+		},
+	)
+	d.taskService.EXPECT().ExecutePendingTasks(gomock.Any(), gomock.Any()).Times(0)
+
+	err := d.svc.SelectWinner(ctx, workspaceID, broadcastID, templateID)
+	require.NoError(t, err)
 }
 
 func TestBroadcastService_SetTaskService_SetsField(t *testing.T) {
@@ -2284,7 +2370,7 @@ func TestBroadcastService_SelectWinner_TaskUpdateFailure(t *testing.T) {
 
 			task := &domain.Task{ID: "task1", WorkspaceID: workspaceID, Status: domain.TaskStatusPaused}
 			d.taskRepo.EXPECT().GetTaskByBroadcastID(ctx, workspaceID, broadcastID).Return(task, nil)
-			d.taskRepo.EXPECT().Update(ctx, workspaceID, gomock.Any()).Return(errors.New("task update failed"))
+			d.taskRepo.EXPECT().WakeTask(ctx, workspaceID, task.ID, gomock.Any()).Return(false, errors.New("task update failed"))
 			return fn(nil)
 		},
 	)

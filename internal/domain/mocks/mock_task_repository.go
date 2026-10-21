@@ -438,6 +438,21 @@ func (mr *MockTaskRepositoryMockRecorder) UpdateTx(arg0, arg1, arg2, arg3 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTx", reflect.TypeOf((*MockTaskRepository)(nil).UpdateTx), arg0, arg1, arg2, arg3)
 }
 
+// WakeTask mocks base method.
+func (m *MockTaskRepository) WakeTask(arg0 context.Context, arg1, arg2 string, arg3 time.Time) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WakeTask", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WakeTask indicates an expected call of WakeTask.
+func (mr *MockTaskRepositoryMockRecorder) WakeTask(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WakeTask", reflect.TypeOf((*MockTaskRepository)(nil).WakeTask), arg0, arg1, arg2, arg3)
+}
+
 // WithTransaction mocks base method.
 func (m *MockTaskRepository) WithTransaction(arg0 context.Context, arg1 func(*sql.Tx) error) error {
 	m.ctrl.T.Helper()

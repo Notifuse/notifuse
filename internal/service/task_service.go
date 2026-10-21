@@ -1274,7 +1274,16 @@ func (s *TaskService) handleBroadcastPaused(ctx context.Context, payload domain.
 	nextRunAfter := time.Now().UTC().Add(24 * time.Hour) // Pause for 24 hours
 	tracing.AddAttribute(ctx, "next_run_after", nextRunAfter.Format(time.RFC3339))
 
-	if err := s.repo.MarkAsPaused(ctx, payload.WorkspaceID, task.ID, nextRunAfter, task.Progress, task.State); err != nil {
+	var alreadyRunning *domain.ErrTaskAlreadyRunning
+	if err := s.repo.MarkAsPaused(ctx, payload.WorkspaceID, task.ID, nextRunAfter, task.Progress, task.State); errors.As(err, &alreadyRunning) {
+		// The run that holds the task reads the broadcast's status before each
+		// batch: it pauses the rows it enqueued and stops by itself. Taking the
+		// task from it let a resume start a second execution alongside it.
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Broadcast paused while its run holds the task - the run stops before its next batch")
+	} else if err != nil {
 		tracing.MarkSpanError(ctx, err)
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcastID,
@@ -1334,27 +1343,30 @@ func (s *TaskService) handleBroadcastResumed(ctx context.Context, payload domain
 		return
 	}
 
-	// Resume the task with a fresh retry budget. repo.Update writes retry_count
-	// verbatim, so without this a broadcast that was paused after burning
-	// retries on transient failures came back one failure from being marked
-	// failed for good — and the console offers no other way to clear it.
+	// Resume the task with a fresh retry budget: without it a broadcast that
+	// was paused after burning retries on transient failures came back one
+	// failure from being marked failed for good — and the console offers no
+	// other way to clear it. A task its run still holds is left to that run,
+	// which sees the resume on its next refresh: handing the task to a second
+	// execution enqueued everyone past the cursor it read a second time.
 	nextRunAfter := time.Now().UTC()
-	task.NextRunAfter = &nextRunAfter
-	task.Status = domain.TaskStatusPending
-	task.RetryCount = 0
-	task.ErrorMessage = nil
-
 	tracing.AddAttribute(ctx, "next_run_after", nextRunAfter.Format(time.RFC3339))
-	tracing.AddAttribute(ctx, "new_status", string(task.Status))
 
-	if err := s.repo.Update(ctx, payload.WorkspaceID, task); err != nil {
+	woken, err := s.repo.WakeTask(ctx, payload.WorkspaceID, task.ID, nextRunAfter)
+	if err != nil {
 		tracing.MarkSpanError(ctx, err)
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcastID,
 			"task_id":      task.ID,
 			"error":        err.Error(),
 		}).Error("Failed to resume task for resumed broadcast")
+	} else if !woken {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Broadcast resumed while its run holds the task - leaving the task to that run")
 	} else {
+		tracing.AddAttribute(ctx, "new_status", string(domain.TaskStatusPending))
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcastID,
 			"task_id":      task.ID,
@@ -1630,10 +1642,13 @@ func (s *TaskService) TriggerTask(ctx context.Context, workspace, taskID string)
 		return fmt.Errorf("task cannot be triggered in current status: %s", task.Status)
 	}
 
-	// Schedule for immediate execution
+	// Schedule for immediate execution. The wake re-checks the status where it
+	// writes, so a run that took the task since it was read keeps it, and the
+	// state that run saves is not overwritten with the one read above.
 	nextRun := time.Now().UTC()
 
-	if err := s.repo.MarkAsPending(ctx, workspace, taskID, nextRun, task.Progress, task.State); err != nil {
+	woken, err := s.repo.WakeTask(ctx, workspace, taskID, nextRun)
+	if err != nil {
 		tracing.MarkSpanError(ctx, err)
 		s.logger.WithFields(map[string]interface{}{
 			"task_id":      taskID,
@@ -1641,6 +1656,9 @@ func (s *TaskService) TriggerTask(ctx context.Context, workspace, taskID string)
 			"error":        err.Error(),
 		}).Error("Failed to trigger task")
 		return fmt.Errorf("failed to trigger task: %w", err)
+	}
+	if !woken {
+		return &domain.ErrTaskAlreadyRunning{TaskID: taskID}
 	}
 
 	s.logger.WithFields(map[string]interface{}{

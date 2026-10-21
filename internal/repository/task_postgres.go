@@ -552,6 +552,8 @@ func (r *TaskRepository) GetNextBatch(ctx context.Context, limit int) ([]*domain
 	// 1. Pending and ready to run (next_run_after is null or in the past)
 	// 2. Paused but ready to resume (next_run_after in the past)
 	// 3. Running but have timed out (timeout_after in the past)
+	// A pending or paused task with a live lease is left out, as MarkAsRunningTx
+	// would refuse it.
 	query := psql.Select(
 		"id", "workspace_id", "type", "status", "progress", "state",
 		"error_message", "created_at", "updated_at", "last_run_at",
@@ -567,10 +569,12 @@ func (r *TaskRepository) GetNextBatch(ctx context.Context, limit int) ([]*domain
 					sq.Eq{"next_run_after": nil},
 					sq.LtOrEq{"next_run_after": now},
 				},
+				leaseFree(now),
 			},
 			sq.And{
 				sq.Eq{"status": string(domain.TaskStatusPaused)},
 				sq.LtOrEq{"next_run_after": now},
+				leaseFree(now),
 			},
 			sq.And{
 				sq.Eq{"status": string(domain.TaskStatusRunning)},
@@ -732,7 +736,7 @@ func (r *TaskRepository) MarkAsRunning(ctx context.Context, workspace, id string
 }
 
 // MarkAsRunningTx marks a task as running and sets timeout within a transaction.
-// Accepts tasks in pending/paused status, OR running status whose timeout has
+// Accepts tasks in pending/paused status with no live lease, OR running status whose timeout has
 // already elapsed (stale-running reap — if a prior execution died without
 // calling MarkAsPending/Completed/Failed, the row stays "running" forever.
 // GetNextBatch would keep re-dispatching it, but MarkAsRunningTx used to only
@@ -761,8 +765,16 @@ func (r *TaskRepository) MarkAsRunningTx(ctx context.Context, tx *sql.Tx, worksp
 			sq.Eq{"id": id},
 			sq.Eq{"workspace_id": workspace},
 			sq.Or{
-				sq.Eq{"status": string(domain.TaskStatusPending)},
-				sq.Eq{"status": string(domain.TaskStatusPaused)},
+				sq.And{
+					sq.Or{
+						sq.Eq{"status": string(domain.TaskStatusPending)},
+						sq.Eq{"status": string(domain.TaskStatusPaused)},
+					},
+					// A waiting task that still carries a live lease was set
+					// back to waiting by a write made during its run, which is
+					// still going: wait for the run's own end to clear it.
+					leaseFree(now),
+				},
 				sq.And{
 					sq.Eq{"status": string(domain.TaskStatusRunning)},
 					sq.LtOrEq{"timeout_after": now},
@@ -915,7 +927,9 @@ func (r *TaskRepository) MarkAsPaused(ctx context.Context, workspace, id string,
 	})
 }
 
-// MarkAsPausedTx marks a task as paused and sets the next run time within a transaction
+// MarkAsPausedTx marks a task as paused and sets the next run time within a transaction.
+// It returns ErrTaskAlreadyRunning, and changes nothing, for a running task
+// whose lease has not expired.
 func (r *TaskRepository) MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspace, id string, nextRunAfter time.Time, progress float64, state *domain.TaskState) error {
 	now := time.Now().UTC()
 
@@ -941,9 +955,18 @@ func (r *TaskRepository) MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspa
 		Set("updated_at", now).
 		Set("next_run_after", nextRunAfter).
 		Set("timeout_after", nil).
-		Where(sq.Eq{
-			"id":           id,
-			"workspace_id": workspace,
+		Where(sq.And{
+			sq.Eq{
+				"id":           id,
+				"workspace_id": workspace,
+			},
+			// A task its run holds is left to that run, which sees the pause
+			// before its next batch. Clearing its lease here let a resume a
+			// moment later hand the task to a second execution.
+			sq.Or{
+				sq.NotEq{"status": string(domain.TaskStatusRunning)},
+				sq.LtOrEq{"timeout_after": now},
+			},
 		})
 
 	sqlQuery, args, err := query.ToSql()
@@ -962,7 +985,14 @@ func (r *TaskRepository) MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspa
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("task not found")
+		exists, err := r.taskExistsTx(ctx, tx, workspace, id)
+		if err != nil {
+			return fmt.Errorf("failed to look up task: %w", err)
+		}
+		if !exists {
+			return fmt.Errorf("task not found")
+		}
+		return &domain.ErrTaskAlreadyRunning{TaskID: id}
 	}
 
 	return nil
@@ -1206,6 +1236,107 @@ func (r *TaskRepository) ReleaseTaskTx(ctx context.Context, tx *sql.Tx, workspac
 	}
 
 	return nil
+}
+
+// WakeTask puts a waiting task back in the queue without overtaking an execution
+// that holds it; see domain.TaskRepository. PostgreSQL re-evaluates the WHERE of
+// an UPDATE that waited on the row lock, so a wake and a launch never both win.
+func (r *TaskRepository) WakeTask(ctx context.Context, workspace, id string, nextRunAfter time.Time) (bool, error) {
+	woken := false
+	err := r.WithTransaction(ctx, func(tx *sql.Tx) error {
+		now := time.Now().UTC()
+		psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+		query := psql.Update("tasks").
+			Set("status", domain.TaskStatusPending).
+			Set("next_run_after", nextRunAfter.UTC()).
+			Set("retry_count", 0).
+			Set("error_message", nil).
+			Set("timeout_after", nil).
+			Set("updated_at", now).
+			Where(sq.And{
+				sq.Eq{"id": id},
+				sq.Eq{"workspace_id": workspace},
+				sq.Or{
+					sq.Eq{"status": []string{
+						string(domain.TaskStatusPending),
+						string(domain.TaskStatusPaused),
+						string(domain.TaskStatusFailed),
+					}},
+					// The reap rule of MarkAsRunningTx: a running task whose run
+					// is presumed dead. A running row with no lease stays held.
+					sq.And{
+						sq.Eq{"status": string(domain.TaskStatusRunning)},
+						sq.LtOrEq{"timeout_after": now},
+					},
+				},
+			})
+
+		sqlQuery, args, err := query.ToSql()
+		if err != nil {
+			return fmt.Errorf("failed to build wake query: %w", err)
+		}
+
+		result, err := tx.ExecContext(ctx, sqlQuery, args...)
+		if err != nil {
+			return fmt.Errorf("failed to wake task: %w", err)
+		}
+
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("failed to get rows affected: %w", err)
+		}
+		if rowsAffected > 0 {
+			woken = true
+			return nil
+		}
+
+		exists, err := r.taskExistsTx(ctx, tx, workspace, id)
+		if err != nil {
+			return fmt.Errorf("failed to look up task: %w", err)
+		}
+		if !exists {
+			return domain.ErrTaskNotFound
+		}
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	return woken, nil
+}
+
+// taskExistsTx tells a missing task from one a conditional write left alone
+// because of its status.
+func (r *TaskRepository) taskExistsTx(ctx context.Context, tx *sql.Tx, workspace, id string) (bool, error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	sqlQuery, args, err := psql.Select("1").
+		From("tasks").
+		Where(sq.Eq{"id": id, "workspace_id": workspace}).
+		ToSql()
+	if err != nil {
+		return false, fmt.Errorf("failed to build lookup query: %w", err)
+	}
+
+	var found int
+	err = tx.QueryRowContext(ctx, sqlQuery, args...).Scan(&found)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// leaseFree matches a task no execution holds a lease on: none was set, or it
+// has expired. Every end-of-run write clears the lease, so only a write made
+// during a run leaves a live one on a pending or paused task.
+func leaseFree(now time.Time) sq.Or {
+	return sq.Or{
+		sq.Eq{"timeout_after": nil},
+		sq.LtOrEq{"timeout_after": now},
+	}
 }
 
 // GetTaskByIntegrationID retrieves an active task by integration ID
