@@ -244,9 +244,9 @@ type TaskRepository interface {
 
 	// MarkAsPaused marks a task as paused until nextRunAfter. It returns
 	// ErrTaskAlreadyRunning, and changes nothing, for a task an execution holds
-	// (running, or waiting with a live lease, unless the lease has expired). It
-	// writes neither the state nor the progress: they belong to the execution
-	// that saves them.
+	// (running, or waiting with a live lease, unless the lease has expired) and
+	// for a completed one. It writes neither the state nor the progress: they
+	// belong to the execution that saves them.
 	MarkAsPaused(ctx context.Context, workspace, id string, nextRunAfter time.Time) error
 	MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspace, id string, nextRunAfter time.Time) error
 

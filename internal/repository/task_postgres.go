@@ -917,7 +917,7 @@ func (r *TaskRepository) MarkAsPaused(ctx context.Context, workspace, id string,
 
 // MarkAsPausedTx marks a task as paused and sets the next run time within a transaction.
 // It returns ErrTaskAlreadyRunning, and changes nothing, for a task an
-// execution holds.
+// execution holds and for a completed one.
 func (r *TaskRepository) MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspace, id string, nextRunAfter time.Time) error {
 	now := time.Now().UTC()
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
@@ -944,8 +944,14 @@ func (r *TaskRepository) MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspa
 			},
 			// A task its run holds is left to that run, which sees the pause
 			// before its next batch. Clearing its lease here let a resume a
-			// moment later hand the task to a second execution.
-			notHeld(now, sq.NotEq{"status": string(domain.TaskStatusRunning)}),
+			// moment later hand the task to a second execution. A completed
+			// task stays completed: its run may have finished since the caller
+			// read it, and a resume would otherwise run the broadcast again.
+			notHeld(now, sq.Eq{"status": []string{
+				string(domain.TaskStatusPending),
+				string(domain.TaskStatusPaused),
+				string(domain.TaskStatusFailed),
+			}}),
 		})
 
 	sqlQuery, args, err := query.ToSql()

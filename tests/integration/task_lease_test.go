@@ -206,6 +206,24 @@ func TestTaskLease_WaitingTaskWithALiveLeaseIsNotLaunched(t *testing.T) {
 	})
 }
 
+// TestTaskLease_PauseLeavesACompletedTaskCompleted covers a pause whose handler
+// read the task while its run was ending its last slice: a task that run has
+// since marked completed must stay completed, or a resume would wake it and
+// run the finished broadcast again.
+func TestTaskLease_PauseLeavesACompletedTaskCompleted(t *testing.T) {
+	h := setupTaskLease(t)
+	ctx := context.Background()
+	id := h.newTask(t)
+
+	require.NoError(t, h.repo.MarkAsRunning(ctx, h.workspaceID, id, *liveLease()))
+	require.NoError(t, h.repo.MarkAsCompleted(ctx, h.workspaceID, id, h.get(t, id).State))
+
+	err := h.repo.MarkAsPaused(ctx, h.workspaceID, id, time.Now().UTC().Add(24*time.Hour))
+	var alreadyRunning *domain.ErrTaskAlreadyRunning
+	assert.ErrorAs(t, err, &alreadyRunning, "a completed task is left as it is")
+	assert.Equal(t, domain.TaskStatusCompleted, h.get(t, id).Status)
+}
+
 // TestTaskLease_PauseKeepsTheStateARunSaved covers a pause whose handler read
 // the task just before its run ended a slice: the cursor that run saved must
 // survive the pause, or the next run resends the batch it enqueued last.

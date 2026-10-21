@@ -1278,11 +1278,13 @@ func (s *TaskService) handleBroadcastPaused(ctx context.Context, payload domain.
 	if err := s.repo.MarkAsPaused(ctx, payload.WorkspaceID, task.ID, nextRunAfter); errors.As(err, &alreadyRunning) {
 		// The run that holds the task reads the broadcast's status before each
 		// batch: it pauses the rows it enqueued and stops by itself. Taking the
-		// task from it let a resume start a second execution alongside it.
+		// task from it let a resume start a second execution alongside it. A
+		// run that has completed the task since it was read above leaves it
+		// completed, as the check above does.
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcastID,
 			"task_id":      task.ID,
-		}).Info("Broadcast paused while its run holds the task - the run stops before its next batch")
+		}).Info("Broadcast paused while its run holds the task or has just completed it - leaving the task to that run")
 	} else if err != nil {
 		tracing.MarkSpanError(ctx, err)
 		s.logger.WithFields(map[string]interface{}{
