@@ -329,8 +329,20 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 		return fmt.Errorf("failed to process webhook: %w", err)
 	}
 
+	// Only the events of emails sent to their address go further, so everything below,
+	// storing included, acts on those alone
+	events, err = s.eventsOfSentEmails(ctx, workspaceID, integrationID, events)
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return err
+	}
+	if len(events) == 0 {
+		return nil
+	}
+
 	// Store the event
-	// No authentication needed for webhook events as they come from external providers
 	if err := s.repo.StoreEvents(ctx, workspaceID, events); err != nil {
 		// codecov:ignore:start
 		tracing.MarkSpanError(ctx, err)
@@ -454,6 +466,58 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 	return nil
 }
 
+// eventsOfSentEmails keeps the events that name an email of the workspace sent to the
+// address they report, the letter case aside, and gives each the address stored on its
+// email, which is the contact's. The others are left out: an event about an email Notifuse
+// did not send, which carries only the provider's own id, or about someone the email was
+// copied to, changes nothing and is not stored. The emails are looked up in one query.
+func (s *InboundWebhookEventService) eventsOfSentEmails(ctx context.Context, workspaceID, integrationID string, events []*domain.InboundWebhookEvent) ([]*domain.InboundWebhookEvent, error) {
+	named := func(event *domain.InboundWebhookEvent) bool {
+		return event.MessageID != nil && *event.MessageID != "" && event.RecipientEmail != ""
+	}
+
+	var ids []string
+	for _, event := range events {
+		if named(event) {
+			ids = append(ids, *event.MessageID)
+		}
+	}
+	var recipients map[string]string
+	if len(ids) > 0 {
+		var err error
+		recipients, err = s.messageHistoryRepo.GetRecipients(ctx, workspaceID, dedupeStrings(ids))
+		if err != nil {
+			return nil, fmt.Errorf("failed to look up the emails the events name: %w", err)
+		}
+	}
+
+	kept := make([]*domain.InboundWebhookEvent, 0, len(events))
+	ignored := 0
+	firstIgnoredID := ""
+	for _, event := range events {
+		if named(event) {
+			if recipient, ok := recipients[*event.MessageID]; ok && strings.EqualFold(recipient, event.RecipientEmail) {
+				event.RecipientEmail = recipient
+				kept = append(kept, event)
+				continue
+			}
+		}
+		if firstIgnoredID == "" && event.MessageID != nil {
+			firstIgnoredID = *event.MessageID
+		}
+		ignored++
+	}
+
+	if ignored > 0 {
+		s.logger.WithField("workspace_id", workspaceID).
+			WithField("integration_id", integrationID).
+			WithField("ignored", ignored).
+			WithField("first_message_id", firstIgnoredID).
+			Info("Ignored provider events that name no email sent to their address")
+	}
+	return kept, nil
+}
+
 // recordUnsubscribes records the opt-outs a provider reported. The email is marked
 // unsubscribed, which counts it in statistics and fires its email.unsubscribed events once.
 // When a list is found for the email, the list service first records the opt-out there, by
@@ -461,8 +525,10 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 // unmarked when its list was deleted since, this marks it then too, on purpose: its
 // recipient did unsubscribe from it. Nothing is recorded for an email Notifuse did not
 // send, or for an opt-out of another address than the email's recipient, such as someone
-// the email was copied to. An erased contact's emails are kept with the address redacted,
-// so they fall in that last case. When the erasure lands while this runs, the opt-out may
+// the email was copied to. eventsOfSentEmails already left those out; the email is read
+// again here for its list, and checked again, as its contact may have been erased since.
+// An erased contact's emails are kept with the address redacted, so they fall in that
+// last case. When the erasure lands while this runs, the opt-out may
 // still be recorded on the list before it, but the email is not marked: the repository
 // does not mark a redacted email unsubscribed.
 //
