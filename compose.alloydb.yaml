@@ -40,6 +40,7 @@ services:
       - DB_SSLMODE=${DB_SSLMODE:-disable}
 
       - SECRET_KEY=${SECRET_KEY:?set SECRET_KEY in your environment}
+      - SIGNING_KEY=${SIGNING_KEY:-}
 
       # Notifuse licence key (Optional). Leaving it unset is the ordinary state
       # of a self-hosted installation and means the free tier. It overrides any

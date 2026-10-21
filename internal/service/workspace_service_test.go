@@ -3588,6 +3588,7 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 		mockRepo.EXPECT().
 			GetInvitationByID(context.Background(), invitationID).
 			Return(&domain.WorkspaceInvitation{
+				ExpiresAt:   time.Now().Add(24 * time.Hour),
 				ID:          invitationID,
 				Email:       email,
 				WorkspaceID: workspaceID,
@@ -3675,12 +3676,14 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 		existingUser := &domain.User{
 			ID:    "existing-user-123",
 			Email: email,
+			Type:  domain.UserTypeUser,
 		}
 
 		// Mock invitation retrieval
 		mockRepo.EXPECT().
 			GetInvitationByID(context.Background(), invitationID).
 			Return(&domain.WorkspaceInvitation{
+				ExpiresAt:   time.Now().Add(24 * time.Hour),
 				ID:          invitationID,
 				Email:       email,
 				WorkspaceID: workspaceID,
@@ -3756,12 +3759,14 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 		existingUser := &domain.User{
 			ID:    "existing-user-123",
 			Email: email,
+			Type:  domain.UserTypeUser,
 		}
 
 		// Mock invitation retrieval
 		mockRepo.EXPECT().
 			GetInvitationByID(context.Background(), invitationID).
 			Return(&domain.WorkspaceInvitation{
+				ExpiresAt:   time.Now().Add(24 * time.Hour),
 				ID:          invitationID,
 				Email:       email,
 				WorkspaceID: workspaceID,
@@ -3808,6 +3813,7 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 		mockRepo.EXPECT().
 			GetInvitationByID(context.Background(), invitationID).
 			Return(&domain.WorkspaceInvitation{
+				ExpiresAt:   time.Now().Add(24 * time.Hour),
 				ID:          invitationID,
 				Email:       email,
 				WorkspaceID: workspaceID,
@@ -3848,12 +3854,14 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 		existingUser := &domain.User{
 			ID:    "existing-user-123",
 			Email: email,
+			Type:  domain.UserTypeUser,
 		}
 
 		// Mock invitation retrieval
 		mockRepo.EXPECT().
 			GetInvitationByID(context.Background(), invitationID).
 			Return(&domain.WorkspaceInvitation{
+				ExpiresAt:   time.Now().Add(24 * time.Hour),
 				ID:          invitationID,
 				Email:       email,
 				WorkspaceID: workspaceID,
@@ -3902,12 +3910,14 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 		existingUser := &domain.User{
 			ID:    "existing-user-123",
 			Email: email,
+			Type:  domain.UserTypeUser,
 		}
 
 		// Mock invitation retrieval
 		mockRepo.EXPECT().
 			GetInvitationByID(context.Background(), invitationID).
 			Return(&domain.WorkspaceInvitation{
+				ExpiresAt:   time.Now().Add(24 * time.Hour),
 				ID:          invitationID,
 				Email:       email,
 				WorkspaceID: workspaceID,
@@ -4753,6 +4763,111 @@ func TestWorkspaceService_InviteMember_TeamMemberLimit(t *testing.T) {
 	})
 }
 
+// The token's claims are only a pointer to the stored invitation, which alone says
+// which workspace and which address it admits. Nothing may be looked up, created or
+// joined for a token that disagrees with it, or for an invitation past its expiry.
+func TestWorkspaceService_AcceptInvitation_RefusesTokenNotMatchingInvitation(t *testing.T) {
+	invitationID := "invitation-123"
+	workspaceID := "ws-123"
+	email := "invitee@example.com"
+
+	setupService := func(t *testing.T) (*WorkspaceService, *mocks.MockWorkspaceRepository, *mocks.MockUserRepository) {
+		ctrl := gomock.NewController(t)
+		mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockUserRepo := mocks.NewMockUserRepository(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+
+		// The user service, auth service and every other collaborator are strict
+		// mocks with no expectations: any session, token or write fails the test.
+		service := NewWorkspaceService(
+			mockRepo, mockUserRepo, mocks.NewMockTaskRepository(ctrl),
+			mockLogger, mocks.NewMockUserServiceInterface(ctrl), mocks.NewMockAuthService(ctrl),
+			pkgmocks.NewMockMailer(ctrl), &config.Config{RootEmail: "root@example.com"},
+			mocks.NewMockContactService(ctrl), mocks.NewMockListService(ctrl),
+			mocks.NewMockContactListService(ctrl), mocks.NewMockTemplateService(ctrl),
+			mocks.NewMockWebhookRegistrationService(ctrl), "secret_key",
+			&SupabaseService{}, &DNSVerificationService{}, &BlogService{},
+			fullyLicensedProvider(ctrl),
+		)
+		return service, mockRepo, mockUserRepo
+	}
+
+	stored := func() *domain.WorkspaceInvitation {
+		return &domain.WorkspaceInvitation{
+			ID:          invitationID,
+			WorkspaceID: workspaceID,
+			Email:       email,
+			ExpiresAt:   time.Now().Add(24 * time.Hour),
+		}
+	}
+
+	cases := []struct {
+		name        string
+		invitation  func() *domain.WorkspaceInvitation
+		workspaceID string
+		email       string
+	}{
+		{
+			name:        "token names another workspace",
+			invitation:  stored,
+			workspaceID: "ws-other",
+			email:       email,
+		},
+		{
+			name:        "token names another email",
+			invitation:  stored,
+			workspaceID: workspaceID,
+			email:       "owner@example.com",
+		},
+		{
+			name:        "token names the same email in another case",
+			invitation:  stored,
+			workspaceID: workspaceID,
+			email:       "Invitee@example.com",
+		},
+		{
+			name: "stored invitation has expired",
+			invitation: func() *domain.WorkspaceInvitation {
+				inv := stored()
+				inv.ExpiresAt = time.Now().Add(-time.Minute)
+				return inv
+			},
+			workspaceID: workspaceID,
+			email:       email,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			service, mockRepo, _ := setupService(t)
+			mockRepo.EXPECT().GetInvitationByID(gomock.Any(), invitationID).Return(tc.invitation(), nil)
+
+			resp, err := service.AcceptInvitation(context.Background(), invitationID, tc.workspaceID, tc.email)
+
+			require.ErrorIs(t, err, domain.ErrInvalidInvitation)
+			assert.Nil(t, resp)
+		})
+	}
+
+	// API key accounts are rows of the users table with an email of their own. An
+	// invitation addressed to one must not open a session for it.
+	t.Run("address belongs to an API key account", func(t *testing.T) {
+		service, mockRepo, mockUserRepo := setupService(t)
+		mockRepo.EXPECT().GetInvitationByID(gomock.Any(), invitationID).Return(stored(), nil)
+		mockUserRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), email).
+			Return(&domain.User{ID: "key-user", Email: email, Type: domain.UserTypeAPIKey}, nil)
+
+		resp, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
+
+		require.ErrorIs(t, err, domain.ErrInvalidInvitation)
+		assert.Nil(t, resp)
+	})
+}
+
 func TestWorkspaceService_AcceptInvitation_TeamMemberLimit(t *testing.T) {
 	invitationID := "invitation-123"
 	workspaceID := "ws-123"
@@ -4803,6 +4918,7 @@ func TestWorkspaceService_AcceptInvitation_TeamMemberLimit(t *testing.T) {
 		mockRepo.EXPECT().
 			GetInvitationByID(gomock.Any(), invitationID).
 			Return(&domain.WorkspaceInvitation{
+				ExpiresAt:   time.Now().Add(24 * time.Hour),
 				ID:          invitationID,
 				Email:       email,
 				WorkspaceID: workspaceID,
@@ -4812,7 +4928,7 @@ func TestWorkspaceService_AcceptInvitation_TeamMemberLimit(t *testing.T) {
 		// Existing user
 		mockUserRepo.EXPECT().
 			GetUserByEmailInsensitive(gomock.Any(), email).
-			Return(&domain.User{ID: "user-123", Email: email}, nil)
+			Return(&domain.User{ID: "user-123", Email: email, Type: domain.UserTypeUser}, nil)
 		mockRepo.EXPECT().
 			IsUserWorkspaceMember(gomock.Any(), "user-123", workspaceID).
 			Return(false, nil)
@@ -4837,6 +4953,7 @@ func TestWorkspaceService_AcceptInvitation_TeamMemberLimit(t *testing.T) {
 		mockRepo.EXPECT().
 			GetInvitationByID(gomock.Any(), invitationID).
 			Return(&domain.WorkspaceInvitation{
+				ExpiresAt:   time.Now().Add(24 * time.Hour),
 				ID:          invitationID,
 				Email:       email,
 				WorkspaceID: workspaceID,
@@ -4876,6 +4993,7 @@ func TestWorkspaceService_AcceptInvitation_TeamMemberLimit(t *testing.T) {
 		mockRepo.EXPECT().
 			GetInvitationByID(gomock.Any(), invitationID).
 			Return(&domain.WorkspaceInvitation{
+				ExpiresAt:   time.Now().Add(24 * time.Hour),
 				ID:          invitationID,
 				Email:       email,
 				WorkspaceID: workspaceID,
@@ -6597,6 +6715,7 @@ func TestWorkspaceService_RBACLicenceNonRegressions(t *testing.T) {
 		deps.repo.EXPECT().
 			GetInvitationByID(gomock.Any(), invitationID).
 			Return(&domain.WorkspaceInvitation{
+				ExpiresAt:   time.Now().Add(24 * time.Hour),
 				ID:          invitationID,
 				WorkspaceID: workspaceID,
 				Email:       inviteEmail,

@@ -580,7 +580,7 @@ func (a *App) InitServices() error {
 		Logger:        a.logger,
 		Tracer:        tracing.GetTracer(),
 		RateLimiter:   a.rateLimiter, // Pass global rate limiter
-		SecretKey:     a.config.Security.SecretKey,
+		SigningKey:    a.config.Security.SigningKey,
 		RootEmail:     a.config.RootEmail,
 	}
 
@@ -646,7 +646,7 @@ func (a *App) InitServices() error {
 		SessionExpiry:         30 * 24 * time.Hour, // match UserService session lifetime
 		RateLimiter:           a.rateLimiter,
 		ExchangeCache:         a.oidcExchangeCache,
-		SecretKey:             a.config.Security.SecretKey,
+		SigningKey:            a.config.Security.SigningKey,
 		// Case-INSENSITIVE root matcher: the IdP-asserted email casing may differ from
 		// the configured ROOT_EMAIL, and a case-sensitive miss would silently disable
 		// the root-account privilege-escalation guard in resolveOrProvisionUser.
@@ -816,7 +816,7 @@ func (a *App) InitServices() error {
 
 	// The dispatcher signs its calls to /api/tasks.execute, which the handler
 	// verifies with the same key — the endpoint has no session to authenticate.
-	a.taskService.SetSecretKey(a.config.Security.SecretKey)
+	a.taskService.SetSigningKey(a.config.Security.SigningKey)
 
 	// Initialize transactional notification service
 	a.transactionalNotificationService = service.NewTransactionalNotificationService(
@@ -1441,7 +1441,7 @@ func (a *App) InitHandlers() error {
 		a.authService,
 		getJWTSecret,
 		a.logger,
-		a.config.Security.SecretKey,
+		a.config.Security.SigningKey,
 		// /api/tasks.execute only executes on an instance that dispatches over
 		// HTTP, i.e. one whose internal scheduler is off; elsewhere it answers
 		// 404. The same flag drives SetDirectExecution above, so the endpoint
@@ -1478,7 +1478,7 @@ func (a *App) InitHandlers() error {
 	)
 	usageHandler := httpHandler.NewUsageHandler(
 		a.usageService,
-		a.config.Security.SecretKey,
+		a.config.Security.SigningKey,
 		a.logger,
 	)
 	contactTimelineHandler := httpHandler.NewContactTimelineHandler(

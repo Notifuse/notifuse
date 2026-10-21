@@ -24,22 +24,22 @@ const (
 //
 // The route is registered on the bare mux with no JWT middleware, because the
 // caller is a machine with no user session. It is authenticated by signature
-// instead, and the signing key is derived from SECRET_KEY (see
+// instead, and the key is derived from the installation's signing key (see
 // domain.UsageSigningKey), so nothing new has to be generated or distributed.
 // It is reachable from the internet like every other route on this mux, so the
 // signature is what protects it — never its network position.
 type UsageHandler struct {
 	usageService domain.UsageService
-	secretKey    string
+	signingKey   string
 	logger       logger.Logger
 	nowFn        func() time.Time
 }
 
 // NewUsageHandler creates the usage handler.
-func NewUsageHandler(usageService domain.UsageService, secretKey string, log logger.Logger) *UsageHandler {
+func NewUsageHandler(usageService domain.UsageService, signingKey string, log logger.Logger) *UsageHandler {
 	return &UsageHandler{
 		usageService: usageService,
-		secretKey:    secretKey,
+		signingKey:   signingKey,
 		logger:       log,
 		nowFn:        time.Now,
 	}
@@ -56,10 +56,10 @@ func (h *UsageHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// An installation with no SECRET_KEY cannot verify anything, so it must refuse
+	// An installation with no signing key cannot verify anything, so it must refuse
 	// rather than derive a key from the empty string and accept whatever matches
-	// it. Config makes SECRET_KEY mandatory, so this is defence in depth.
-	if h.secretKey == "" {
+	// it. Config always resolves one, so this is defence in depth.
+	if h.signingKey == "" {
 		WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -70,7 +70,7 @@ func (h *UsageHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := domain.UsageSigningKey(h.secretKey)
+	key := domain.UsageSigningKey(h.signingKey)
 	if err := domain.VerifyUsageSignature(key, timestamp, r.URL.Path,
 		r.Header.Get(UsageSignatureHeader), h.nowFn()); err != nil {
 		WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)

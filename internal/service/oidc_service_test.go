@@ -182,7 +182,7 @@ func TestOIDCService_SealOpenFlowState_RoundTrip(t *testing.T) {
 	defer ctrl.Finish()
 	cfg := enabledCfg()
 	svc, _ := newTestOIDCService(t, ctrl, cfg, nil)
-	svc.secretKey = "test-secret-key-1234567890123456"
+	svc.signingKey = "test-signing-key-1234567890123456"
 
 	fs := domain.OIDCFlowState{State: "s-val", Nonce: "n-val", Verifier: "v-val"}
 	enc, err := svc.SealFlowState(fs)
@@ -203,7 +203,7 @@ func TestOIDCService_OpenFlowState_RejectsTamperedCiphertext(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	svc, _ := newTestOIDCService(t, ctrl, enabledCfg(), nil)
-	svc.secretKey = "test-secret-key-1234567890123456"
+	svc.signingKey = "test-signing-key-1234567890123456"
 
 	sealed, err := svc.SealFlowState(domain.OIDCFlowState{State: "s-val", Nonce: "n-val", Verifier: "v-val"})
 	require.NoError(t, err)
@@ -219,6 +219,23 @@ func TestOIDCService_OpenFlowState_RejectsTamperedCiphertext(t *testing.T) {
 
 	_, err = svc.OpenFlowState(tampered)
 	assert.Error(t, err, "AES-GCM must reject a flipped ciphertext byte (authenticated encryption)")
+}
+
+// The flow-state cookie is sealed with the signing key, so an installation that
+// replaces its signing key also stops honouring cookies sealed under the old one.
+func TestOIDCService_OpenFlowState_RejectsAnotherSigningKey(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	sealer, _ := newTestOIDCService(t, ctrl, enabledCfg(), nil)
+	sealer.signingKey = "old-signing-key-1234567890123456"
+	opener, _ := newTestOIDCService(t, ctrl, enabledCfg(), nil)
+	opener.signingKey = "new-signing-key-1234567890123456"
+
+	sealed, err := sealer.SealFlowState(domain.OIDCFlowState{State: "s-val", Nonce: "n-val", Verifier: "v-val"})
+	require.NoError(t, err)
+
+	_, err = opener.OpenFlowState(sealed)
+	assert.Error(t, err)
 }
 
 // --- mintSession ------------------------------------------------------------

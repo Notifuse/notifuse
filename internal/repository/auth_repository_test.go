@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/repository/testutil"
 )
 
@@ -66,10 +67,10 @@ func TestAuthRepository_GetUserByID(t *testing.T) {
 	email := "test@example.com"
 	createdAt := time.Now().UTC().Truncate(time.Second)
 
-	rows := sqlmock.NewRows([]string{"id", "email", "created_at"}).
-		AddRow(userID, email, createdAt)
+	rows := sqlmock.NewRows([]string{"id", "email", "type", "created_at"}).
+		AddRow(userID, email, "api_key", createdAt)
 
-	mock.ExpectQuery(`SELECT id, email, created_at FROM users WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, email, type, created_at FROM users WHERE id = \$1`).
 		WithArgs(userID).
 		WillReturnRows(rows)
 
@@ -78,10 +79,12 @@ func TestAuthRepository_GetUserByID(t *testing.T) {
 	assert.NotNil(t, user)
 	assert.Equal(t, userID, user.ID)
 	assert.Equal(t, email, user.Email)
+	// The caller decides from the stored type which kind of token may name this user.
+	assert.Equal(t, domain.UserTypeAPIKey, user.Type)
 	assert.Equal(t, createdAt.Unix(), user.CreatedAt.Unix())
 
 	// Test case 2: User not found
-	mock.ExpectQuery(`SELECT id, email, created_at FROM users WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, email, type, created_at FROM users WHERE id = \$1`).
 		WithArgs("nonexistent").
 		WillReturnError(sql.ErrNoRows)
 
@@ -91,7 +94,7 @@ func TestAuthRepository_GetUserByID(t *testing.T) {
 	assert.Equal(t, sql.ErrNoRows, err)
 
 	// Test case 3: Database error
-	mock.ExpectQuery(`SELECT id, email, created_at FROM users WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, email, type, created_at FROM users WHERE id = \$1`).
 		WithArgs("error-id").
 		WillReturnError(errors.New("database error"))
 

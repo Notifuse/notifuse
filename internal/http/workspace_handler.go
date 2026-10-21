@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
@@ -962,6 +963,12 @@ func (h *WorkspaceHandler) handleVerifyInvitationToken(w http.ResponseWriter, r 
 		return
 	}
 
+	// The stored expiry is authoritative, as it is when the invitation is accepted.
+	if !time.Now().Before(invitation.ExpiresAt) {
+		WriteJSONError(w, "Invalid or expired invitation token", http.StatusUnauthorized)
+		return
+	}
+
 	// Get workspace details using system context to bypass authentication for invitation verification
 	systemCtx := context.WithValue(r.Context(), domain.SystemCallKey, true)
 	workspace, err := h.workspaceService.GetWorkspace(systemCtx, workspaceID)
@@ -1024,6 +1031,10 @@ func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http
 		var limitErr *domain.ErrTeamMemberLimitReached
 		if errors.As(err, &limitErr) {
 			WriteJSONError(w, limitErr.Error(), http.StatusForbidden)
+			return
+		}
+		if errors.Is(err, domain.ErrInvalidInvitation) {
+			WriteJSONError(w, "Invalid or expired invitation token", http.StatusUnauthorized)
 			return
 		}
 		h.logger.WithField("invitation_id", invitationID).WithField("workspace_id", workspaceID).WithField("email", email).WithField("error", err.Error()).Error("Failed to accept invitation")

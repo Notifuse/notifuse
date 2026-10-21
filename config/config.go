@@ -3,7 +3,6 @@ package config
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
@@ -133,11 +132,17 @@ type DatabaseConfig struct {
 }
 
 type SecurityConfig struct {
-	// JWTSecret for token signing (derived from SecretKey)
+	// JWTSecret for token signing (derived from SigningKey)
 	JWTSecret []byte
 
-	// SecretKey for DB encryption AND JWT signing
+	// SecretKey encrypts stored data: workspace secret keys, integration
+	// credentials and system settings
 	SecretKey string
+
+	// SigningKey signs and verifies everything that is not stored: JWTs, magic
+	// codes, root sign-in and task signatures, sealed cookies. It is SIGNING_KEY
+	// when set, else SecretKey.
+	SigningKey string
 }
 
 type SSLConfig struct {
@@ -615,6 +620,15 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		return nil, fmt.Errorf("SECRET_KEY (or PASETO_PRIVATE_KEY for backward compatibility) must be set")
 	}
 
+	signingKey, err := resolveSigningKey(secretKey, v.GetString("SIGNING_KEY"))
+	if err != nil {
+		return nil, err
+	}
+	signingKeyVar := "SECRET_KEY"
+	if signingKey != secretKey {
+		signingKeyVar = "SIGNING_KEY"
+	}
+
 	// Try to load system settings from database
 	var systemSettings *SystemSettings
 	var isInstalled bool
@@ -713,21 +727,11 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		OIDCAllowUnverifiedEmail: v.GetBool("OIDC_ALLOW_UNVERIFIED_EMAIL"),
 	}
 
-	// Derive JWT secret from SECRET_KEY
-	// Try base64 decode first (for PASETO_PRIVATE_KEY compatibility), otherwise use raw bytes
-	var jwtSecret []byte
-	decoded, err := base64.StdEncoding.DecodeString(secretKey)
-	if err == nil && len(decoded) >= 32 {
-		// Valid base64-encoded key (likely from PASETO_PRIVATE_KEY backward compatibility)
-		jwtSecret = decoded
-	} else {
-		// Use raw string bytes
-		jwtSecret = []byte(secretKey)
-	}
+	jwtSecret := deriveJWTSecret(signingKey)
 
 	// Warn if secret is less than recommended length
 	if len(jwtSecret) < 32 {
-		fmt.Fprintf(os.Stderr, "⚠️  WARNING: SECRET_KEY is only %d bytes. For production use, it should be at least 32 bytes (256 bits) for secure JWT signing.\n", len(jwtSecret))
+		fmt.Fprintf(os.Stderr, "⚠️  WARNING: %s is only %d bytes. For production use, it should be at least 32 bytes (256 bits) for secure JWT signing.\n", signingKeyVar, len(jwtSecret))
 		fmt.Fprintf(os.Stderr, "   Generate a secure key with: openssl rand -base64 32\n")
 	}
 
@@ -954,8 +958,9 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		SMTPBridge: smtpBridgeConfig,
 		OIDC:       oidcConfig,
 		Security: SecurityConfig{
-			JWTSecret: jwtSecret,
-			SecretKey: secretKey,
+			JWTSecret:  jwtSecret,
+			SecretKey:  secretKey,
+			SigningKey: signingKey,
 		},
 		Demo: DemoConfig{
 			FileManagerEndpoint:  v.GetString("DEMO_FILE_MANAGER_ENDPOINT"),

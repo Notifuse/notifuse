@@ -27,7 +27,7 @@ type UserService struct {
 	isProduction  bool
 	tracer        tracing.Tracer
 	rateLimiter   *ratelimiter.RateLimiter // Global rate limiter with namespace support
-	secretKey     string
+	signingKey    string                   // hashes magic codes and verifies root sign-in signatures
 	rootEmail     string
 }
 
@@ -44,7 +44,7 @@ type UserServiceConfig struct {
 	IsProduction  bool
 	Tracer        tracing.Tracer
 	RateLimiter   *ratelimiter.RateLimiter // Global rate limiter
-	SecretKey     string
+	SigningKey    string
 	RootEmail     string
 }
 
@@ -64,7 +64,7 @@ func NewUserService(cfg UserServiceConfig) (*UserService, error) {
 		isProduction:  cfg.IsProduction,
 		tracer:        tracer,
 		rateLimiter:   cfg.RateLimiter, // Global rate limiter
-		secretKey:     cfg.SecretKey,
+		signingKey:    cfg.SigningKey,
 		rootEmail:     cfg.RootEmail,
 	}, nil
 }
@@ -135,7 +135,7 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 	codeExpiresAt := time.Now().Add(15 * time.Minute)
 
 	// Hash the magic code before storing (security: prevent plain-text exposure in database)
-	hashedCode := crypto.HashMagicCode(plainCode, s.secretKey)
+	hashedCode := crypto.HashMagicCode(plainCode, s.signingKey)
 
 	// Create new session
 	session := &domain.Session{
@@ -217,7 +217,7 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 			continue
 		}
 		// Use constant-time HMAC comparison to prevent timing attacks
-		if crypto.VerifyMagicCode(input.Code, *session.MagicCode, s.secretKey) {
+		if crypto.VerifyMagicCode(input.Code, *session.MagicCode, s.signingKey) {
 			matchingSession = session
 			break
 		}
@@ -311,7 +311,7 @@ func (s *UserService) RootSignin(ctx context.Context, input domain.RootSigninInp
 
 	// Verify HMAC signature using constant-time comparison
 	message := fmt.Sprintf("%s:%d", input.Email, input.Timestamp)
-	expectedSig := crypto.ComputeHMAC256([]byte(message), s.secretKey)
+	expectedSig := crypto.ComputeHMAC256([]byte(message), s.signingKey)
 	if !hmac.Equal([]byte(input.Signature), []byte(expectedSig)) {
 		s.logger.WithField("email", input.Email).Warn("Root signin invalid signature")
 		s.tracer.AddAttribute(ctx, "error", "invalid_signature")
@@ -437,6 +437,13 @@ func (s *UserService) VerifyUserSession(ctx context.Context, userID string, sess
 				return nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, err)
 			}
 			return nil, err
+		}
+
+		// Sessions belong to people. An API key account never signs in, so a
+		// session token naming one was not issued by this installation.
+		if user.Type != domain.UserTypeUser {
+			s.logger.WithField("user_id", userID).WithField("session_id", sessionID).Error("Session token names an account that is not a user")
+			return nil, fmt.Errorf("%w: session token names an account that is not a user", domain.ErrSessionAuthFailed)
 		}
 
 		// Add user email to span

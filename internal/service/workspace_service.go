@@ -1591,22 +1591,36 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 		return nil, fmt.Errorf("invitation not found: %w", err)
 	}
 
+	// The token only points at the invitation; the stored row says which workspace and
+	// which address it admits, and until when. Every token Notifuse issues copies those
+	// values exactly, so any difference means the token was not issued for this row.
+	if invitation.WorkspaceID != workspaceID || invitation.Email != email || !time.Now().Before(invitation.ExpiresAt) {
+		s.logger.WithField("invitation_id", invitationID).WithField("workspace_id", workspaceID).Warn("Invitation token does not match a live invitation")
+		return nil, domain.ErrInvalidInvitation
+	}
+
 	// Check if user already exists. Case-insensitive: an invitee who signed in with SSO first
 	// has an account under the provider's lower-cased address, and this link carries the
 	// owner's typing — an exact match would give them a second account.
-	existingUser, err := s.userRepo.GetUserByEmailInsensitive(ctx, email)
+	existingUser, err := s.userRepo.GetUserByEmailInsensitive(ctx, invitation.Email)
 	var user *domain.User
 
 	var userNotFound *domain.ErrUserNotFound
 	if err != nil && !errors.As(err, &userNotFound) {
-		s.logger.WithField("email", email).WithField("error", err.Error()).Error("Failed to look up the invitee's account")
+		s.logger.WithField("email", invitation.Email).WithField("error", err.Error()).Error("Failed to look up the invitee's account")
 		return nil, fmt.Errorf("failed to look up user: %w", err)
+	}
+	if err == nil && existingUser.Type != domain.UserTypeUser {
+		// API key accounts carry an email of their own but are not people: an
+		// invitation must not open a session for one.
+		s.logger.WithField("invitation_id", invitationID).WithField("user_id", existingUser.ID).Warn("Invitation addressed to an account that is not a user")
+		return nil, domain.ErrInvalidInvitation
 	}
 	if err != nil {
 		// User doesn't exist, create a new one
 		user = &domain.User{
 			ID:        uuid.New().String(),
-			Email:     email,
+			Email:     invitation.Email,
 			Name:      "", // User can update this later
 			Type:      domain.UserTypeUser,
 			CreatedAt: time.Now().UTC(),
@@ -1615,11 +1629,11 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 
 		err = s.userRepo.CreateUser(ctx, user)
 		if err != nil {
-			s.logger.WithField("email", email).WithField("error", err.Error()).Error("Failed to create user for invitation acceptance")
+			s.logger.WithField("email", invitation.Email).WithField("error", err.Error()).Error("Failed to create user for invitation acceptance")
 			return nil, fmt.Errorf("failed to create user: %w", err)
 		}
 
-		s.logger.WithField("user_id", user.ID).WithField("email", email).Info("Created new user from invitation acceptance")
+		s.logger.WithField("user_id", user.ID).WithField("email", invitation.Email).Info("Created new user from invitation acceptance")
 	} else {
 		user = existingUser
 
@@ -1695,7 +1709,7 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 	if audit := domain.AuditFromContext(ctx); audit != nil {
 		audit.SetActor(user, nil, false)
 		audit.SetWorkspace(workspaceID)
-		audit.SetTarget(domain.AuditTargetInvitation, invitationID, email)
+		audit.SetTarget(domain.AuditTargetInvitation, invitationID, invitation.Email)
 	}
 
 	return &domain.AuthResponse{

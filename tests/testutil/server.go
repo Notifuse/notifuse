@@ -74,9 +74,13 @@ type AppInterface interface {
 }
 
 // TestSecretKey is the installation SECRET_KEY every test server runs with. It
-// encrypts workspace settings and derives the key that signs /api/tasks.execute,
-// so the client and the database seeder both have to agree with it.
+// encrypts workspace settings, so the database seeder has to agree with it.
 const TestSecretKey = "test-secret-key-for-integration-tests-only"
+
+// TestSigningKey is the installation SIGNING_KEY every test server runs with. It
+// differs from TestSecretKey, so the suite proves that everything signed (root
+// sign-in, /api/tasks.execute dispatches, magic codes) answers to it alone.
+const TestSigningKey = "test-signing-key-for-integration-tests-only"
 
 // NewServerManager creates a new server manager for testing
 func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *DatabaseManager) *ServerManager {
@@ -101,8 +105,9 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 		},
 		Database: *dbManager.GetConfig(),
 		Security: config.SecurityConfig{
-			SecretKey: TestSecretKey,
-			JWTSecret: jwtSecret,
+			SecretKey:  TestSecretKey,
+			SigningKey: TestSigningKey,
+			JWTSecret:  jwtSecret,
 		},
 		SMTP: config.SMTPConfig{
 			Host:      "localhost",

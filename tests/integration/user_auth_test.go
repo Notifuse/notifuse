@@ -249,9 +249,9 @@ func TestUserVerifyCodeFlow(t *testing.T) {
 		// Create session with expired magic code using repository
 		expiredTime := time.Now().UTC().Add(-1 * time.Hour) // 1 hour ago
 
-		// Get secret key from app config to hash the magic code
-		secretKey := app.GetConfig().Security.SecretKey
-		hashedCode := crypto.HashMagicCode("123456", secretKey)
+		// Magic codes are hashed with the signing key
+		signingKey := app.GetConfig().Security.SigningKey
+		hashedCode := crypto.HashMagicCode("123456", signingKey)
 
 		session := &domain.Session{
 			ID:               "550e8400-e29b-41d4-a716-446655440002",
@@ -591,10 +591,10 @@ func TestRootSigninFlow(t *testing.T) {
 	client := suite.APIClient
 
 	t.Run("successful root signin with valid HMAC", func(t *testing.T) {
-		// Get root email and secret from config
+		// Get root email and signing key from config
 		app := suite.ServerManager.GetApp()
 		rootEmail := app.GetConfig().RootEmail
-		secretKey := app.GetConfig().Security.SecretKey
+		signingKey := app.GetConfig().Security.SigningKey
 
 		// Skip test if root email is not configured
 		if rootEmail == "" {
@@ -604,7 +604,7 @@ func TestRootSigninFlow(t *testing.T) {
 		// Generate valid signature
 		timestamp := time.Now().Unix()
 		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
-		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
+		signature := crypto.ComputeHMAC256([]byte(message), signingKey)
 
 		req := domain.RootSigninInput{
 			Email:     rootEmail,
@@ -627,12 +627,12 @@ func TestRootSigninFlow(t *testing.T) {
 
 	t.Run("fails with wrong email", func(t *testing.T) {
 		app := suite.ServerManager.GetApp()
-		secretKey := app.GetConfig().Security.SecretKey
+		signingKey := app.GetConfig().Security.SigningKey
 
 		wrongEmail := "wrongemail@example.com"
 		timestamp := time.Now().Unix()
 		message := fmt.Sprintf("%s:%d", wrongEmail, timestamp)
-		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
+		signature := crypto.ComputeHMAC256([]byte(message), signingKey)
 
 		req := domain.RootSigninInput{
 			Email:     wrongEmail,
@@ -655,7 +655,7 @@ func TestRootSigninFlow(t *testing.T) {
 	t.Run("fails with expired timestamp", func(t *testing.T) {
 		app := suite.ServerManager.GetApp()
 		rootEmail := app.GetConfig().RootEmail
-		secretKey := app.GetConfig().Security.SecretKey
+		signingKey := app.GetConfig().Security.SigningKey
 
 		if rootEmail == "" {
 			t.Skip("RootEmail not configured in test environment")
@@ -664,7 +664,7 @@ func TestRootSigninFlow(t *testing.T) {
 		// Timestamp more than 60 seconds ago
 		timestamp := time.Now().Unix() - 120
 		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
-		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
+		signature := crypto.ComputeHMAC256([]byte(message), signingKey)
 
 		req := domain.RootSigninInput{
 			Email:     rootEmail,
@@ -705,7 +705,7 @@ func TestRootSigninFlow(t *testing.T) {
 	t.Run("token can be used for authenticated requests", func(t *testing.T) {
 		app := suite.ServerManager.GetApp()
 		rootEmail := app.GetConfig().RootEmail
-		secretKey := app.GetConfig().Security.SecretKey
+		signingKey := app.GetConfig().Security.SigningKey
 
 		if rootEmail == "" {
 			t.Skip("RootEmail not configured in test environment")
@@ -714,7 +714,7 @@ func TestRootSigninFlow(t *testing.T) {
 		// Generate valid signature and get token
 		timestamp := time.Now().Unix()
 		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
-		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
+		signature := crypto.ComputeHMAC256([]byte(message), signingKey)
 
 		signinReq := domain.RootSigninInput{
 			Email:     rootEmail,

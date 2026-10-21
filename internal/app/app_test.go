@@ -48,8 +48,9 @@ func createTestConfig() *config.Config {
 			Port: 8080,
 		},
 		Security: config.SecurityConfig{
-			JWTSecret: jwtSecret,
-			SecretKey: "test-secret-key-for-encryption",
+			JWTSecret:  jwtSecret,
+			SecretKey:  "test-secret-key-for-encryption",
+			SigningKey: "test-signing-key-for-signatures",
 		},
 		AutomationScheduler: config.AutomationSchedulerConfig{
 			Delay:     0,                      // No delay for tests

@@ -3392,7 +3392,7 @@ func TestNewDispatchRequest_IsSigned(t *testing.T) {
 
 	t.Run("the signature verifies against the path and the body", func(t *testing.T) {
 		svc := newService()
-		svc.SetSecretKey("installation-secret")
+		svc.SetSigningKey("installation-secret")
 
 		req, cancel, err := svc.newDispatchRequest(context.Background(), task, body)
 		require.NoError(t, err)

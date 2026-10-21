@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
   **If your webhooks reach a service on your own network — n8n or another container on the same Docker network, an internal API — set `WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true` before you upgrade.** Until it is set, those webhooks stop delivering, and a contact that reaches such a webhook node fails that journey after its retries.
 
+- **Security**: Sessions, API keys, magic codes and root sign-in can now be signed with their own key, `SIGNING_KEY`, while `SECRET_KEY` keeps encrypting stored data. Notifuse no longer starts when it would sign with the `SECRET_KEY` value `compose.yaml` used to provide by default, and `compose.yaml` now requires `SECRET_KEY`. Tokens are also checked against the kind of account they were issued for, and an invitation link only opens the workspace and address it was sent for, until it expires.
+
+  **If your `SECRET_KEY` is the value `compose.yaml` used to provide by default, including when a tool such as Coolify copied it into your settings: before you upgrade, keep that `SECRET_KEY` (if you never set it, copy it from the `compose.yaml` you are replacing into `.env`) and add a `SIGNING_KEY` generated with `openssl rand -base64 32`.** Everyone then signs in again, and API keys must be recreated. Replacing `SECRET_KEY` instead would leave your stored data unreadable.
+
 - **Improvement**: Web analytics goals tracked with numbers or booleans in `properties`, or a numeric string `value` such as `'49.90'`, are now recorded along with the rest of the visit. `trackGoal` converts these before sending, and skips, with a console warning, a goal it can't convert or that exceeds a limit.
 
 - **Security**: On a UTF-8 database, web analytics no longer drops the visits it receives alongside a visit holding text, a goal value or a session id the database can't store. Such a visit is now kept, less any page view or goal that can't be stored, with its other details in a form the database accepts.

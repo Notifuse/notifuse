@@ -9,18 +9,18 @@
       authentication is impractical.
 
       **Security Features:**
-      - HMAC-SHA256 signature verification using the application's secret key
+      - HMAC-SHA256 signature verification using the installation's signing key (SIGNING_KEY, or SECRET_KEY when SIGNING_KEY is not set)
       - 60-second timestamp window to prevent replay attacks
       - Rate limited to 5 attempts per 5 minutes per email
       - Only works for a configured root email address (ROOT_EMAIL may list several, comma/semicolon-separated)
 
       **How to generate the signature:**
       ```bash
-      SECRET_KEY="your-notifuse-secret-key"
+      SIGNING_KEY="your-notifuse-signing-key"  # SECRET_KEY when SIGNING_KEY is not set
       ROOT_EMAIL="admin@example.com"
       TIMESTAMP=$(date +%s)
       MESSAGE="${ROOT_EMAIL}:${TIMESTAMP}"
-      SIGNATURE=$(echo -n "$MESSAGE" | openssl dgst -sha256 -hmac "$SECRET_KEY" | awk '{print $2}')
+      SIGNATURE=$(echo -n "$MESSAGE" | openssl dgst -sha256 -hmac "$SIGNING_KEY" | awk '{print $2}')
       ```
     operationId: rootSignin
     tags:

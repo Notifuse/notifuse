@@ -2858,6 +2858,30 @@ func TestWorkspaceHandler_HandleVerifyInvitationToken(t *testing.T) {
 		assert.Equal(t, "Invalid invitation token", response["error"])
 	})
 
+	t.Run("stored invitation has expired", func(t *testing.T) {
+		expired := *invitation
+		expired.ExpiresAt = time.Now().Add(-time.Minute)
+
+		authSvc.EXPECT().
+			ValidateInvitationToken("valid-token").
+			Return(invitationID, workspaceID, email, nil)
+		workspaceSvc.EXPECT().
+			GetInvitationByID(gomock.Any(), invitationID).
+			Return(&expired, nil)
+
+		body, err := json.Marshal(VerifyInvitationTokenRequest{Token: "valid-token"})
+		require.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.verifyInvitationToken", bytes.NewReader(body))
+
+		w := httptest.NewRecorder()
+		handler.handleVerifyInvitationToken(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		var response map[string]string
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+		assert.Equal(t, "Invalid or expired invitation token", response["error"])
+	})
+
 	t.Run("method not allowed", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/workspaces.verifyInvitationToken", nil)
 
@@ -3070,6 +3094,29 @@ func TestWorkspaceHandler_HandleAcceptInvitation(t *testing.T) {
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
 		assert.Equal(t, "Failed to accept invitation", response["error"])
+	})
+
+	// A token that does not match its stored invitation is a dead credential, not a
+	// server fault: 401, like a token that fails its signature.
+	t.Run("invitation refused by the service", func(t *testing.T) {
+		authSvc.EXPECT().
+			ValidateInvitationToken("valid-token").
+			Return(invitationID, workspaceID, email, nil)
+		workspaceSvc.EXPECT().
+			AcceptInvitation(gomock.Any(), invitationID, workspaceID, email).
+			Return(nil, fmt.Errorf("accept: %w", domain.ErrInvalidInvitation))
+
+		body, err := json.Marshal(AcceptInvitationRequest{Token: "valid-token"})
+		require.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.acceptInvitation", bytes.NewReader(body))
+
+		w := httptest.NewRecorder()
+		handler.handleAcceptInvitation(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		var response map[string]string
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+		assert.Equal(t, "Invalid or expired invitation token", response["error"])
 	})
 
 	t.Run("method not allowed", func(t *testing.T) {

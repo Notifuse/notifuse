@@ -25,8 +25,13 @@ services:
       - DB_NAME=${DB_NAME:-notifuse_system}
       - DB_SSLMODE=${DB_SSLMODE:-disable}
 
-      # Secret Key (Required) - Generate a secure random string for production
-      - SECRET_KEY=${SECRET_KEY:-d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA==}
+      # Secret Key (Required) - encrypts stored credentials and, unless SIGNING_KEY
+      # is set, signs sessions and API keys. Set it in .env; generate one with
+      # openssl rand -base64 32, and never change it once data is stored.
+      - SECRET_KEY=${SECRET_KEY:?set SECRET_KEY in .env (generate one with openssl rand -base64 32)}
+      # Signing Key (Optional) - signs sessions, API keys and root sign-in instead
+      # of SECRET_KEY. Empty means SECRET_KEY signs.
+      - SIGNING_KEY=${SIGNING_KEY:-}
 
       # Notifuse licence key (Optional). Leaving it unset is the ordinary state
       # of a self-hosted installation and means the free tier. It overrides any

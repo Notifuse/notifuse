@@ -49,7 +49,7 @@ type OIDCServiceConfig struct {
 	RateLimiter           *ratelimiter.RateLimiter
 	ExchangeCache         cache.Cache   // app wires an InMemoryCache
 	HTTPTimeout           time.Duration // bounds discovery/JWKS/token-exchange HTTP calls (default 10s)
-	SecretKey             string        // AEAD passphrase for sealing the flow-state cookie
+	SigningKey            string        // AEAD passphrase for sealing the flow-state cookie
 	// IsRootEmail guards both provisioning paths against a ROOT_EMAIL account. It is
 	// injected and nil-tolerant, so leaving it unset silently removes the guard — no
 	// compile error, no failing unit test. The app wires the case-INSENSITIVE matcher
@@ -94,7 +94,7 @@ type OIDCService struct {
 	rateLimiter   *ratelimiter.RateLimiter
 	exchangeCache cache.Cache
 	httpTimeout   time.Duration
-	secretKey     string
+	signingKey    string
 	isRootEmail   func(string) bool
 	isProduction  bool
 	entitlements  domain.EntitlementProvider
@@ -129,7 +129,7 @@ func NewOIDCService(cfg OIDCServiceConfig) *OIDCService {
 		rateLimiter:   cfg.RateLimiter,
 		exchangeCache: cfg.ExchangeCache,
 		httpTimeout:   httpTimeout,
-		secretKey:     cfg.SecretKey,
+		signingKey:    cfg.SigningKey,
 		isRootEmail:   cfg.IsRootEmail,
 		isProduction:  cfg.IsProduction,
 		entitlements:  cfg.Entitlements,
@@ -791,14 +791,14 @@ func (s *OIDCService) ExchangeCode(ctx context.Context, oneTimeCode string) (*do
 
 // SealFlowState AEAD-encrypts the per-login flow state into an opaque hex blob for
 // the __Host- flow cookie. The PKCE verifier inside is a secret, so this uses
-// authenticated encryption (not HMAC-signing alone). The AES key (SecretKey) stays
+// authenticated encryption (not HMAC-signing alone). The AES key (SigningKey) stays
 // in the service layer; the handler only ever sees ciphertext.
 func (s *OIDCService) SealFlowState(fs domain.OIDCFlowState) (string, error) {
 	b, err := json.Marshal(fs)
 	if err != nil {
 		return "", fmt.Errorf("oidc seal flow-state marshal: %w", err)
 	}
-	enc, err := crypto.EncryptString(string(b), s.secretKey)
+	enc, err := crypto.EncryptString(string(b), s.signingKey)
 	if err != nil {
 		return "", fmt.Errorf("oidc seal flow-state encrypt: %w", err)
 	}
@@ -812,7 +812,7 @@ func (s *OIDCService) OpenFlowState(enc string) (domain.OIDCFlowState, error) {
 	if enc == "" {
 		return fs, fmt.Errorf("oidc open flow-state: empty")
 	}
-	dec, err := crypto.DecryptFromHexString(enc, s.secretKey)
+	dec, err := crypto.DecryptFromHexString(enc, s.signingKey)
 	if err != nil {
 		return fs, fmt.Errorf("oidc open flow-state decrypt: %w", err)
 	}

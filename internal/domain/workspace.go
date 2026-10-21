@@ -1175,6 +1175,11 @@ func (e *ErrWorkspaceNotFound) Error() string {
 	return fmt.Sprintf("workspace not found: %s", e.WorkspaceID)
 }
 
+// ErrInvalidInvitation is returned when an invitation cannot be accepted: the token
+// names another workspace or email than the stored invitation, the invitation has
+// expired, or its address belongs to an API key account.
+var ErrInvalidInvitation = errors.New("invalid or expired invitation")
+
 // ErrTeamMemberLimitReached is returned when a workspace has reached its team member limit
 type ErrTeamMemberLimitReached struct {
 	Limit   int

@@ -185,15 +185,17 @@ openapi-preview:
 	@npx @redocly/cli preview-docs openapi/openapi.yaml
 
 # Generate HMAC for demo reset endpoint
-# Usage: make demo-hmac ROOT_EMAIL=your@email.com SECRET_KEY=your-secret-key
+# Usage: make demo-hmac ROOT_EMAIL=your@email.com SIGNING_KEY=your-signing-key
+# (or SECRET_KEY=your-secret-key on an installation that does not set SIGNING_KEY)
 demo-hmac:
-	@if [ -z "$(ROOT_EMAIL)" ] || [ -z "$(SECRET_KEY)" ]; then \
-		echo "Usage: make demo-hmac ROOT_EMAIL=your@email.com SECRET_KEY=your-secret-key"; \
+	@if [ -z "$(ROOT_EMAIL)" ] || [ -z "$(or $(SIGNING_KEY),$(SECRET_KEY))" ]; then \
+		echo "Usage: make demo-hmac ROOT_EMAIL=your@email.com SIGNING_KEY=your-signing-key"; \
+		echo "       (SECRET_KEY=... when the installation does not set SIGNING_KEY)"; \
 		echo ""; \
 		echo "This generates the HMAC needed to call the /api/demo.reset endpoint."; \
 		exit 1; \
 	fi
 	@echo "Generating HMAC for demo reset..."
-	@go run -exec "" cmd/hmac/main.go "$(ROOT_EMAIL)" "$(SECRET_KEY)"
+	@go run -exec "" cmd/hmac/main.go "$(ROOT_EMAIL)" "$(or $(SIGNING_KEY),$(SECRET_KEY))"
 
 .DEFAULT_GOAL := build

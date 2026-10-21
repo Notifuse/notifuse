@@ -54,7 +54,7 @@ func callWithClientTimeout(t *testing.T, method, url, body string, timeout time.
 	// The dispatch endpoint has no session to authenticate against: it is
 	// signed with the installation's SECRET_KEY, the way the scheduler signs it.
 	if strings.HasSuffix(url, taskExecutePath) {
-		for name, value := range testutil.TaskExecuteHeaders(taskExecutePath, []byte(body), testutil.TestSecretKey) {
+		for name, value := range testutil.TaskExecuteHeaders(taskExecutePath, []byte(body), testutil.TestSigningKey) {
 			req.Header.Set(name, value)
 		}
 	}

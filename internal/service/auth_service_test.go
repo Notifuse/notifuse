@@ -51,6 +51,7 @@ func TestAuthService_AuthenticateUserFromContext(t *testing.T) {
 		user := &domain.User{
 			ID:    userID,
 			Email: "test@example.com",
+			Type:  domain.UserTypeUser,
 		}
 
 		expiresAt := time.Now().Add(1 * time.Hour)
@@ -88,6 +89,7 @@ func TestAuthService_AuthenticateUserFromContext(t *testing.T) {
 		user := &domain.User{
 			ID:    userID,
 			Email: "test@example.com",
+			Type:  domain.UserTypeAPIKey,
 		}
 
 		ctx := context.WithValue(
@@ -170,6 +172,66 @@ func TestAuthService_AuthenticateUserFromContext(t *testing.T) {
 		require.NotErrorIs(t, err, domain.ErrAPIKeyRevoked)
 	})
 
+	// An API key token is a bearer credential with no session behind it, so it may
+	// only ever stand for an API key account. Naming a regular user must not make it
+	// that user's session.
+	t.Run("an API key token naming a regular user is refused", func(t *testing.T) {
+		ctx := context.WithValue(
+			context.WithValue(
+				context.Background(),
+				domain.UserIDKey,
+				userID,
+			),
+			domain.UserTypeKey,
+			string(domain.UserTypeAPIKey),
+		)
+
+		mockAuthRepo.EXPECT().
+			GetUserByID(ctx, userID).
+			Return(&domain.User{ID: userID, Email: "owner@example.com", Type: domain.UserTypeUser}, nil)
+
+		result, err := service.AuthenticateUserFromContext(ctx)
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		// Answered like a key whose account is gone: the credential is dead.
+		require.ErrorIs(t, err, domain.ErrAPIKeyRevoked)
+		require.ErrorIs(t, err, ErrUserNotFound)
+	})
+
+	t.Run("a session token naming an API key user is refused", func(t *testing.T) {
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		expiresAt := time.Now().Add(1 * time.Hour)
+		ctx := context.WithValue(
+			context.WithValue(
+				context.WithValue(
+					context.Background(),
+					domain.UserIDKey,
+					userID,
+				),
+				domain.SessionIDKey,
+				sessionID,
+			),
+			domain.UserTypeKey,
+			string(domain.UserTypeUser),
+		)
+
+		mockAuthRepo.EXPECT().
+			GetSessionByID(ctx, sessionID, userID).
+			Return(&expiresAt, nil)
+		mockAuthRepo.EXPECT().
+			GetUserByID(ctx, userID).
+			Return(&domain.User{ID: userID, Email: "key@example.com", Type: domain.UserTypeAPIKey}, nil)
+
+		result, err := service.AuthenticateUserFromContext(ctx)
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.ErrorIs(t, err, ErrUserNotFound)
+	})
+
 	t.Run("missing user_id in context", func(t *testing.T) {
 		ctx := context.WithValue(
 			context.WithValue(
@@ -250,6 +312,7 @@ func TestAuthService_AuthenticateUserForWorkspace(t *testing.T) {
 		user := &domain.User{
 			ID:    userID,
 			Email: "test@example.com",
+			Type:  domain.UserTypeUser,
 		}
 
 		workspace := &domain.Workspace{
@@ -312,6 +375,7 @@ func TestAuthService_AuthenticateUserForWorkspace(t *testing.T) {
 		user := &domain.User{
 			ID:    userID,
 			Email: "test@example.com",
+			Type:  domain.UserTypeAPIKey,
 		}
 
 		workspace := &domain.Workspace{
@@ -394,6 +458,7 @@ func TestAuthService_AuthenticateUserForWorkspace(t *testing.T) {
 		user := &domain.User{
 			ID:    userID,
 			Email: "test@example.com",
+			Type:  domain.UserTypeUser,
 		}
 
 		workspace := &domain.Workspace{
@@ -452,6 +517,7 @@ func TestAuthService_VerifyUserSession(t *testing.T) {
 		user := &domain.User{
 			ID:    userID,
 			Email: "test@example.com",
+			Type:  domain.UserTypeUser,
 		}
 
 		expiresAt := time.Now().Add(1 * time.Hour)
@@ -540,6 +606,26 @@ func TestAuthService_VerifyUserSession(t *testing.T) {
 
 		mockLogger.EXPECT().
 			Error("User not found")
+
+		result, err := service.VerifyUserSession(context.Background(), userID, sessionID)
+
+		require.Error(t, err)
+		require.Equal(t, ErrUserNotFound, err)
+		require.Nil(t, result)
+	})
+
+	t.Run("a session never authenticates an API key account", func(t *testing.T) {
+		expiresAt := time.Now().Add(1 * time.Hour)
+
+		mockAuthRepo.EXPECT().
+			GetSessionByID(context.Background(), sessionID, userID).
+			Return(&expiresAt, nil)
+		mockAuthRepo.EXPECT().
+			GetUserByID(context.Background(), userID).
+			Return(&domain.User{ID: userID, Email: "key@example.com", Type: domain.UserTypeAPIKey}, nil)
+
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
 
 		result, err := service.VerifyUserSession(context.Background(), userID, sessionID)
 
@@ -836,6 +922,31 @@ func TestAuthService_ValidateInvitationToken(t *testing.T) {
 		require.Empty(t, parsedEmail)
 	})
 
+	// Every invitation token Notifuse issues carries the invitation's expiry, so a
+	// token without one was not issued by it.
+	t.Run("token without an expiry is refused", func(t *testing.T) {
+		claims := InvitationClaims{
+			InvitationID: invitationID,
+			WorkspaceID:  workspaceID,
+			Email:        email,
+			RegisteredClaims: jwt.RegisteredClaims{
+				IssuedAt: jwt.NewNumericDate(time.Now()),
+			},
+		}
+
+		signedToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
+			SignedString([]byte("test-jwt-secret-key-1234567890123456"))
+		require.NoError(t, err)
+
+		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(signedToken)
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid invitation token")
+		require.Empty(t, parsedInvitationID)
+		require.Empty(t, parsedWorkspaceID)
+		require.Empty(t, parsedEmail)
+	})
+
 	t.Run("token signed with wrong secret", func(t *testing.T) {
 		// Create a token signed with a different secret
 		wrongSecret := []byte("wrong-secret-key-0987654321098765")
@@ -923,7 +1034,7 @@ func TestAuthService_AuthenticateUserForWorkspace_PlatformAdmin(t *testing.T) {
 		)
 		expiresAt := time.Now().Add(1 * time.Hour)
 		mockAuthRepo.EXPECT().GetSessionByID(ctx, sessionID, userID).Return(&expiresAt, nil)
-		mockAuthRepo.EXPECT().GetUserByID(ctx, userID).Return(&domain.User{ID: userID, Email: email}, nil)
+		mockAuthRepo.EXPECT().GetUserByID(ctx, userID).Return(&domain.User{ID: userID, Email: email, Type: domain.UserTypeUser}, nil)
 		return ctx
 	}
 
