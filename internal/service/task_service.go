@@ -1367,7 +1367,7 @@ func (s *TaskService) handleBroadcastResumed(ctx context.Context, payload domain
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcastID,
 			"task_id":      task.ID,
-		}).Info("Broadcast resumed while its run holds the task - leaving the task to that run")
+		}).Info("Broadcast resumed while its run holds the task or has just completed it - leaving the task to that run")
 		if err := s.repo.ResetRetryBudget(ctx, payload.WorkspaceID, task.ID); err != nil {
 			tracing.MarkSpanError(ctx, err)
 			s.logger.WithFields(map[string]interface{}{

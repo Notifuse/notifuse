@@ -209,13 +209,13 @@ func (h *singleExecHarness) status(broadcastID string) domain.BroadcastStatus {
 // execution (another one holds the task) is retried after a pause.
 func (h *singleExecHarness) executeUntil(taskID, broadcastID string, want domain.BroadcastStatus) {
 	h.t.Helper()
-	deadline := time.Now().Add(statusFlipTimeout)
-	for h.status(broadcastID) != want {
-		require.True(h.t, time.Now().Before(deadline), "broadcast still %s, waiting for %s", h.status(broadcastID), want)
-		if h.execute(taskID) == http.StatusConflict {
-			time.Sleep(100 * time.Millisecond)
+	h.waitFor(statusFlipTimeout, 100*time.Millisecond, "the broadcast to reach "+string(want), func() bool {
+		if h.status(broadcastID) == want {
+			return true
 		}
-	}
+		h.execute(taskID)
+		return false
+	})
 }
 
 // enqueued returns, for each contact, the variation of every email the
@@ -285,9 +285,16 @@ func (h *singleExecHarness) blockedOn(queryLike string) int {
 
 func (h *singleExecHarness) waitUntil(what string, cond func() bool) {
 	h.t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), statusFlipTimeout)
+	h.waitFor(statusFlipTimeout, 20*time.Millisecond, what, cond)
+}
+
+// waitFor checks cond every interval until it holds, and fails the test after
+// timeout.
+func (h *singleExecHarness) waitFor(timeout, interval time.Duration, what string, cond func() bool) {
+	h.t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	require.NoError(h.t, testutil.WaitForConditionWithContext(ctx, h.t, cond, 20*time.Millisecond, what))
+	require.NoError(h.t, testutil.WaitForConditionWithContext(ctx, h.t, cond, interval, what))
 }
 
 // secondExecution asks for an execution while the first one is held by the
@@ -484,15 +491,14 @@ func (h *singleExecHarness) received() map[string][]string {
 // stop receiving, then returns what Mailpit received.
 func (h *singleExecHarness) delivered(broadcastID string) map[string][]string {
 	h.t.Helper()
-	deadline := time.Now().Add(4 * time.Minute)
-	for status := h.status(broadcastID); status != domain.BroadcastStatusProcessed; status = h.status(broadcastID) {
+	h.waitFor(4*time.Minute, 200*time.Millisecond, "the broadcast to be processed", func() bool {
+		status := h.status(broadcastID)
 		require.NotContains(h.t, []domain.BroadcastStatus{domain.BroadcastStatusFailed, domain.BroadcastStatusCancelled}, status)
-		require.True(h.t, time.Now().Before(deadline), "broadcast still %s", status)
-		time.Sleep(200 * time.Millisecond)
-	}
+		return status == domain.BroadcastStatusProcessed
+	})
 	require.NoError(h.t, testutil.WaitForQueueEmpty(h.t, h.suite.ServerManager.GetApp().GetEmailQueueRepository(), h.workspaceID, 4*time.Minute))
 	last, stableSince := -1, time.Now()
-	for time.Since(stableSince) < 3*time.Second {
+	h.waitFor(time.Minute, 500*time.Millisecond, "Mailpit to stop receiving", func() bool {
 		n := 0
 		for _, variations := range h.received() {
 			n += len(variations)
@@ -500,7 +506,7 @@ func (h *singleExecHarness) delivered(broadcastID string) map[string][]string {
 		if n != last {
 			last, stableSince = n, time.Now()
 		}
-		time.Sleep(500 * time.Millisecond)
-	}
+		return time.Since(stableSince) >= 3*time.Second
+	})
 	return h.received()
 }

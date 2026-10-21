@@ -947,11 +947,7 @@ func (r *TaskRepository) MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspa
 			// moment later hand the task to a second execution. A completed
 			// task stays completed: its run may have finished since the caller
 			// read it, and a resume would otherwise run the broadcast again.
-			notHeld(now, sq.Eq{"status": []string{
-				string(domain.TaskStatusPending),
-				string(domain.TaskStatusPaused),
-				string(domain.TaskStatusFailed),
-			}}),
+			notHeld(now, wakeableStatuses()),
 		})
 
 	sqlQuery, args, err := query.ToSql()
@@ -1242,11 +1238,7 @@ func (r *TaskRepository) WakeTask(ctx context.Context, workspace, id string, nex
 			Where(sq.And{
 				sq.Eq{"id": id},
 				sq.Eq{"workspace_id": workspace},
-				notHeld(now, sq.Eq{"status": []string{
-					string(domain.TaskStatusPending),
-					string(domain.TaskStatusPaused),
-					string(domain.TaskStatusFailed),
-				}}),
+				notHeld(now, wakeableStatuses()),
 			})
 
 		sqlQuery, args, err := query.ToSql()
@@ -1337,6 +1329,18 @@ func leaseFree(now time.Time) sq.Or {
 		sq.Eq{"timeout_after": nil},
 		sq.LtOrEq{"timeout_after": now},
 	}
+}
+
+// wakeableStatuses are the waiting statuses a wake and a pause may take a task
+// from. A completed task is not one of them: its run may have finished since
+// the caller read it. The wake and the pause share them so that they agree on
+// which tasks they leave alone.
+func wakeableStatuses() sq.Eq {
+	return sq.Eq{"status": []string{
+		string(domain.TaskStatusPending),
+		string(domain.TaskStatusPaused),
+		string(domain.TaskStatusFailed),
+	}}
 }
 
 // notHeld matches a task no execution holds: one in a status that waiting

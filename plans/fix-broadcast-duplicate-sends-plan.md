@@ -1,6 +1,6 @@
 # Fix: broadcasts sent twice to the same contacts, and the losing A/B variation sent after a manual pick
 
-Created 2026-10-20 on `dev` @ `c6a0a9c7`; line numbers are from that commit. Status: **implemented** (2026-10-21). Amended after two self-reviews and Gemini's counter-review (raw answer `reviews/fix-broadcast-duplicate-sends-gemini-brut-plan.md`, each remark checked in `reviews/fix-broadcast-duplicate-sends-gemini-verif-plan.md`, both in the project files).
+Created 2026-10-20 on `dev` @ `c6a0a9c7`; line numbers are from that commit. Status: **implemented** (2026-10-21). Amended after two self-reviews and Gemini's counter-review (raw answer `reviews/fix-broadcast-duplicate-sends-gemini-brut-plan.md`, each remark checked in `reviews/fix-broadcast-duplicate-sends-gemini-verif-plan.md`, both in the project files), then after the code reviews below and Gemini's second counter-review of those amendments (`reviews/fix-broadcast-duplicate-sends-gemini-brut-plan-v2.md`, checked in `reviews/fix-broadcast-duplicate-sends-gemini-verif-plan-v2.md`).
 
 - Decided with Pierre on 2026-10-20: no new table and no migration. A second execution of the same broadcast task is prevented where tasks change status, rather than duplicates being filtered at enqueue time.
 - Review of the 42.0 recipient query, with the e2e evidence: `audits/broadcast-unicite-destinataires.md` in the project files.
@@ -82,10 +82,10 @@ A `MarkRunAsPending` conditioned on `status = 'running'` was in the first draft.
 - **An execution stuck past its lease plus grace** is cancelled and marked failed (`task_service.go:812-842`); `SaveStateTx` still ignores a row it no longer holds (`task_postgres.go:710`) instead of telling the run to stop, and the orchestrator saves with `context.Background()` (`orchestrator.go:427`), so a goroutine still unwinding could write an older cursor over a later run's while that run holds the task.
 - **A paused broadcast's task runs again on every tick** until resumed, once one execution has run while it was paused: that execution ends with `pending` due now (F4, `task_service.go:941-945`). Today a pause that lands during a run already ends this way, since the run's end overwrites `MarkAsPaused`; a pause between two slices still parks the task for 24 hours (`:1274-1277`). Unchanged by this fix; ending such a run with `paused` needs the processor to report why it stopped.
 - **`handleTestPhaseCompletion` can overwrite a winner picked between its re-read and its update** (`orchestrator.go:1495-1533`, `UpdateBroadcastTx` writes `winning_template`). So can the first sending run's switch to `testing` (`orchestrator.go:772-813`) for a pick that lands between its read and its write. Both write a whole broadcast row the run read; both predate this fix, and the pick then has to be made again at `test_completed`.
-- **`TriggerTask`'s read-then-write race** (F5): recurring tasks only.
 - **An end-of-run write racing a run that took the task at the lease's expiry.** The execution's deadline is its lease (`task_service.go:608`, `:671`), so it would take a run that overran its slice by the whole grace and finished in the same instant. Closing it needs an execution token, which is a schema change.
 - **Queue rows paused after a resume.** A run that saw the pause just before a resume committed calls `pauseQueueEntries` (`orchestrator.go:980`), which pauses every queued row of the broadcast, after the resume resumed them. They stay paused until the broadcast is paused and resumed again. Unchanged by this fix, and no duplicate.
 - **A wake during the re-dispatch gap of an interrupted run.** `ReleaseTask` (shutdown) and `MarkAsFailed` (deadline) put the task back to `pending` with no lease and `next_run_after` a grace or a retry interval ahead, while the interrupted run's goroutine may still be unwinding. `WakeTask` sees no lease, so a pick or a resume in that window makes the task due now, as their `Update` does today. The unwinding run can then save an older cursor over the new run's, the one-batch resend of the first item. Covering it means giving those writes a lease until `next_run_after`, which would also hold back a resume after an ordinary failure.
+- **A broadcast marked failed while its task still retries.** The orchestrator decides that a run is the last attempt when the run starts (`isLastRetry`, `orchestrator.go:482`), one attempt before `MarkAsFailedTx` stops retrying (`task_postgres.go:870`), and on a failure its deferred finalizer marks the broadcast failed (`:490-568`); the retry then resumes at the saved cursor and ends the broadcast `processed`. A resume during a held run that `ResetRetryBudget` gives a fresh budget adds the same outcome for the rest of that run, since the run keeps the decision it made at its start; the resume's `Update` on `dev` reset the count the same way. No duplicate within the broadcast. Aligning the two rules changes the retry semantics of every broadcast and belongs in its own fix.
 - **A resume whose task lookup fails** is logged at debug as "no task" (`task_service.go:1326-1331`), so a task paused between two slices waits out its 24 hours. Unchanged by this fix.
 - **A run that ends after a cancellation marked its task failed** puts it back to `pending` or `completed` (`MarkAsPendingTx` and `MarkAsCompletedTx` have no status condition); the run has stopped enqueueing by then, and a later run stops on its first refresh (`orchestrator.go:958-968`).
 
@@ -120,6 +120,21 @@ Max-effort review of `779ac089`:
 | 3 | A resume treats a failed task lookup as "no task" | Pre-existing, added to "Not in scope" |
 | 4 | The single-execution harness had its own polling loop | Fixed: it uses `testutil.WaitForConditionWithContext` |
 | 5 | The completed-task resume test still named `Update` as the forbidden write | Fixed: it names and forbids `WakeTask` |
+
+Gemini's second counter-review (above) found nothing more to change; the log line of a resume refused by `WakeTask` now names a just-completed task too.
+
+Max-effort review of `06510b6b` with the held-resume log line on top (a commit since folded into the next one):
+
+| # | Finding | Outcome |
+|---|---|---|
+| 1 | `isLastRetry` is one attempt earlier than `MarkAsFailedTx`'s rule, so a broadcast is marked failed on an attempt that is retried | Pre-existing, added to "Not in scope" |
+| 2 | `ResetRetryBudget` cannot change the decision a held run made at its start, so the window above spans the whole run | Same as `dev`; the "Not in scope" item now says so |
+| 3 | Two harness helpers still had their own polling loops | Fixed: every wait goes through `testutil.WaitForConditionWithContext` |
+| 4 | A commit message named the counter-review's model | Reworded before pushing |
+| 5 | "Not in scope" still listed `TriggerTask`'s read-then-write race, which `WakeTask` closes | Removed |
+| 6 | A recurring-task test comment said `TriggerTask` calls `MarkAsPending` | Fixed: it names `WakeTask` |
+| 7 | The wake and the pause each spelled out their status list | Fixed: one `wakeableStatuses` |
+| 8 | `winnerTemplates` builds a one-entry map per batch | Kept: one map per batch of recipients, and the filter next to the send covers every way into the winner phase |
 
 ## Tests
 
