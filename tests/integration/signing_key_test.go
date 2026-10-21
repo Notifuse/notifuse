@@ -179,7 +179,7 @@ func TestSigningKeySeparation(t *testing.T) {
 
 		root, err := suite.ServerManager.GetApp().GetUserRepository().GetUserByEmail(context.Background(), cfg.RootEmail)
 		require.NoError(t, err)
-		assert.Equal(t, http.StatusUnauthorized, settingsGet(t, authService.GenerateAPIAuthToken(root)),
+		assert.Equal(t, http.StatusForbidden, settingsGet(t, authService.GenerateAPIAuthToken(root)),
 			"an API key token naming root is not root's session")
 
 		signedIn := testutil.NewAPIClient(suite.ServerManager.GetURL())

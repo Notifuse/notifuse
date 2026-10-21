@@ -1668,7 +1668,9 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 			if err := s.repo.DeleteInvitationByEmail(ctx, workspaceID, invitation.Email); err != nil {
 				s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Warn("Failed to delete invitation after finding user is already a member")
 			}
-			return nil, fmt.Errorf("user is already a member of the workspace")
+			// Typically the same link accepted twice at once: it has nothing left to open.
+			audit.Fail("already_member")
+			return nil, domain.ErrInvitationUnavailable
 		}
 	}
 

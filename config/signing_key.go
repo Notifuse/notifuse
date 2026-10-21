@@ -50,28 +50,29 @@ func isPublishedKey(key string) bool {
 	return false
 }
 
-// resolveSigningKey returns the key the installation signs with: SIGNING_KEY,
-// trimmed, when it is set, else secretKey unchanged, so an installation that never
-// set SIGNING_KEY keeps every signature it has issued. It refuses a published key,
-// which anyone can sign with.
-func resolveSigningKey(secretKey, signingKeyEnv string) (string, error) {
+// resolveSigningKey returns the key the installation signs with and the variable it
+// came from: SIGNING_KEY, trimmed, when it is set, else secretKey unchanged, read from
+// secretKeyVar, so an installation that never set SIGNING_KEY keeps every signature it
+// has issued. It refuses a published key, which anyone can sign with.
+func resolveSigningKey(secretKey, secretKeyVar, signingKeyEnv string) (string, string, error) {
 	if signingKey := strings.TrimSpace(signingKeyEnv); signingKey != "" {
 		if isPublishedKey(signingKey) {
-			return "", fmt.Errorf("SIGNING_KEY is a value published with Notifuse (the former compose.yaml " +
+			return "", "", fmt.Errorf("SIGNING_KEY is a value published with Notifuse (the former compose.yaml " +
 				"default SECRET_KEY or the env.example placeholder), which Notifuse does not accept for signing. " +
 				"Generate a new one with: openssl rand -base64 32")
 		}
-		return signingKey, nil
+		return signingKey, "SIGNING_KEY", nil
 	}
 
 	if isPublishedKey(secretKey) {
-		return "", fmt.Errorf("SIGNING_KEY must be set: SECRET_KEY is a value published with Notifuse (the former " +
-			"compose.yaml default or the env.example placeholder), which Notifuse does not accept for signing. " +
-			"Generate a signing key with: openssl rand -base64 32, set it as SIGNING_KEY, and keep SECRET_KEY " +
-			"unchanged because it decrypts your stored data. Users will have to sign in again, API keys " +
-			"must be recreated, and pending invitations sent again")
+		return "", "", fmt.Errorf("SIGNING_KEY must be set: %[1]s is a value published with Notifuse (the former "+
+			"compose.yaml default or the env.example placeholder), which Notifuse does not accept for signing. "+
+			"Generate a signing key with: openssl rand -base64 32, pass it to the container as SIGNING_KEY "+
+			"(the compose.yaml of 42.0 does; a compose file of your own needs the line too), and keep %[1]s "+
+			"unchanged because it decrypts your stored data. Users will have to sign in again, API keys "+
+			"must be recreated, and pending invitations sent again", secretKeyVar)
 	}
-	return secretKey, nil
+	return secretKey, secretKeyVar, nil
 }
 
 // deriveJWTSecret turns the signing key into the HMAC secret for JWTs: its decoded

@@ -55,6 +55,9 @@ Signing or integrity uses, moved:
 | OIDC flow-state cookie seal | `OIDCServiceConfig.SecretKey` (`oidc_service.go`) |
 | `/api/tasks.execute` signatures | `TaskService.SetSecretKey`, `NewTaskHandler` |
 | Usage read signatures | `NewUsageHandler` |
+
+The control plane, outside this repository, derives the usage key from the key it holds for each tenant.
+It must use the tenant's `SIGNING_KEY` once one is set, or that tenant's usage reads answer 401.
 | Demo root email HMAC | `DemoService.VerifyRootEmailHMAC` |
 
 `domain.VerifyEmailHMAC`, which the demo HMAC and the notification center use, compares in constant time.
@@ -94,13 +97,17 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
   revoked or mismatched account answers "invalid API key"; a lookup failure does not read as one.
 - The root-only routes (`/api/settings.*`, `/api/licence.*`) checked only that the token's user id was a
   root email. Root is a person, so `requireRootUser` now requires a user token with a session and checks
-  it through `UserService.VerifyUserSession`: an API key token naming root and a signed-out root session
-  answer 401, a failed check 500 (the console signs out on any 401).
+  it through `UserService.VerifyUserSession`. An API key token answers 403 (a working key that lacks the
+  access, not a dead one), a signed-out root session 401, a failed check 500 (the console signs out on
+  any 401).
 - The demo seed acted as root by labelling it an API key, which the rule above refuses. It now opens a
   session for root through `UserService.startSession`, as a sign-in does, and closes it with
   `UserService.endSession` when the seed is done. Right after creating the demo workspace it authenticates
   once for it (`AuthenticateUserForWorkspace`, whose result later checks reuse), so a demo visitor signing
-  root out mid-seed, which ends every root session, does not stop the seed.
+  root out mid-seed, which ends every root session, does not stop the seed. A sign-out during the few
+  seconds of workspace creation itself still fails that reset, which then answers 500 and can be run
+  again; closing that window too would need an authentication path that skips the session, which is
+  not worth it for the demo.
 
 ## 5. Invitation acceptance (`workspace_service.go`, `workspace_handler.go`)
 
@@ -108,9 +115,11 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
   lookup or write: `invitation.WorkspaceID == workspaceID`, `invitation.Email == email` (the comparison
   `handleVerifyInvitationToken` already makes) and `invitation.ExpiresAt` in the future. A mismatch returns
   `domain.ErrInvitationUnavailable`; nothing is created. An invitation already accepted or cancelled
-  (`ErrInvitationNotFound`) gives the same error instead of a 500.
+  (`ErrInvitationNotFound`) gives the same error instead of a 500, and so does an invitee found already
+  seated, typically the same link accepted twice at once.
 - As `JoinInvitation` does, the audit record is given the invitation's workspace and target before any
-  check, and each refusal a reason (`invitation_mismatch`, `invitation_expired`, `api_key_identity`), so
+  check, and each refusal a reason (`invitation_mismatch`, `invitation_expired`, `api_key_identity`,
+  `already_member`), so
   a refused attempt lands in that workspace's audit log.
 - The account lookup and creation use the stored invitation's email. An existing account found by that
   email whose type is not `user` (an API key account) is refused with the same error, as the OIDC sign-in
@@ -134,9 +143,13 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
 - One `**Improvement**` bullet: an invitation link already accepted or cancelled says so instead of
   failing with an error.
 - The upgrade note, `env.example`, the startup error and the docs say a new `SIGNING_KEY` also
-  invalidates pending invitation links. `make docker-run` forwards `SIGNING_KEY`.
+  invalidates pending invitation links, and that a compose file of one's own must pass `SIGNING_KEY` to
+  the container. `make docker-run` forwards `SIGNING_KEY`. The startup messages name the variable the
+  key came from (`SECRET_KEY`, `PASETO_PRIVATE_KEY` or `SIGNING_KEY`).
 - `make docker-compose-up` runs `docker compose up -d`, so it now needs `SECRET_KEY` in the environment or
-  in `.env`, as the documented quick start will say. No CI job runs `compose.yaml`; the integration
+  in `.env`, as the documented quick start will say. Compose checks a required variable for every
+  command, `down`, `ps` and `logs` included, as it already does for `compose.alloydb.yaml`; the message
+  tells an existing installation which value to keep. No CI job runs `compose.yaml`; the integration
   environment uses `tests/compose.test.yaml`.
 - Docs (Notifuse/docs, separate PR to `dev`): installation page (compose quick start writes `.env` with a
   generated `SECRET_KEY`; `SIGNING_KEY` in the variables table; root sign-in example signs with
@@ -152,7 +165,8 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
 | `internal/service/user_service.go` (sessions) | `user_service_test.go` | `VerifyUserSession` for an API key user refused with `ErrSessionAuthFailed`; regular user accepted |
 | `internal/service/user_service.go` | `user_service_test.go` | root sign-in HMAC under the signing key accepted, under a different `SecretKey` refused; magic codes hashed and verified with the signing key |
 | `internal/service/oidc_service.go` | `oidc_service_test.go` | flow state sealed with the signing key opens; sealed with the encryption key does not |
-| `internal/http/task_handler.go`, `usage_handler.go` | their `_test.go` | signature from the signing key accepted, from a different `SecretKey` refused |
+| `internal/service/task_service.go` | `task_service_test.go` | `SetSigningKey` sets the key dispatches are signed with (renamed from `SetSecretKey`) |
+| `internal/http/task_handler.go`, `usage_handler.go` | their `_test.go` | existing cases on the renamed `signingKey` field; which key the app hands them is proven end to end by `signing_key_test.go` |
 | `internal/service/workspace_service.go` | `workspace_service_test.go` | workspace mismatch, email mismatch (including letter case) and expired invitation each refused with `ErrInvitationUnavailable`, recorded in the invitation's workspace audit log with the refusal reason, and no user lookup, creation, membership or session; existing account of type `api_key` refused with no membership or session; existing fixtures carry a stored expiry and account type |
 | `internal/http/workspace_handler.go` | `workspace_handler_test.go` | accept: `ErrInvitationUnavailable` answers 404; verify: expired stored invitation answers 401 |
 | `internal/http/settings_handler.go` | `settings_handler_test.go` | API key token naming root answers 401; signed-out root session 401; failed session check 500; live root session 200; existing guards run on a session context |

@@ -176,7 +176,20 @@ func TestSettingsHandler_RequireRootUser_LiveSessionOnly(t *testing.T) {
 
 	t.Run("an API key token naming root is refused", func(t *testing.T) {
 		handler, _, _, _ := setupSettingsHandler(t)
-		assert.Equal(t, http.StatusUnauthorized, get(handler, rootCtx(string(domain.UserTypeAPIKey), "")))
+		assert.Equal(t, http.StatusForbidden, get(handler, rootCtx(string(domain.UserTypeAPIKey), "")))
+	})
+
+	// A working key that lacks the access: 401 would tell its client the key is dead.
+	t.Run("an API key is refused as lacking access, not as revoked", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+		ctx := context.WithValue(context.Background(), domain.UserIDKey, "key-user-id")
+		ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeAPIKey))
+		assert.Equal(t, http.StatusForbidden, get(handler, ctx))
+	})
+
+	t.Run("a session token without a session id is refused", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+		assert.Equal(t, http.StatusUnauthorized, get(handler, rootCtx(string(domain.UserTypeUser), "")))
 	})
 
 	t.Run("a root session that was signed out is refused", func(t *testing.T) {

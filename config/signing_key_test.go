@@ -44,6 +44,7 @@ func TestLoad_SigningKey(t *testing.T) {
 		assert.Contains(t, err.Error(), "SIGNING_KEY")
 		assert.Contains(t, err.Error(), "openssl rand -base64 32")
 		assert.Contains(t, err.Error(), "keep SECRET_KEY")
+		assert.Contains(t, err.Error(), "pass it to the container as SIGNING_KEY")
 	})
 
 	t.Run("former compose default through PASETO_PRIVATE_KEY is refused", func(t *testing.T) {
@@ -51,7 +52,10 @@ func TestLoad_SigningKey(t *testing.T) {
 
 		_, err := LoadWithOptions(LoadOptions{})
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "SIGNING_KEY")
+		assert.Contains(t, err.Error(), "SIGNING_KEY must be set")
+		// Names the variable the operator actually set.
+		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY is a value published")
+		assert.Contains(t, err.Error(), "keep PASETO_PRIVATE_KEY unchanged")
 	})
 
 	t.Run("former compose default with surrounding whitespace is refused", func(t *testing.T) {

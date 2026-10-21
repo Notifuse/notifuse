@@ -609,24 +609,20 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		return nil, fmt.Errorf("DB_MAX_CONNECTIONS_PER_DB cannot exceed 50 (got %d)", dbConfig.MaxConnectionsPerDB)
 	}
 
-	// SECRET_KEY resolution (CRITICAL for decryption and JWT signing)
-	secretKey := v.GetString("SECRET_KEY")
+	// SECRET_KEY resolution (CRITICAL for decryption, and for signing unless SIGNING_KEY is set)
+	secretKey, secretKeyVar := v.GetString("SECRET_KEY"), "SECRET_KEY"
 	if secretKey == "" {
 		// Fallback for backward compatibility
-		secretKey = v.GetString("PASETO_PRIVATE_KEY")
+		secretKey, secretKeyVar = v.GetString("PASETO_PRIVATE_KEY"), "PASETO_PRIVATE_KEY"
 	}
 	if secretKey == "" {
 		// REQUIRED - fail fast if both are empty
 		return nil, fmt.Errorf("SECRET_KEY (or PASETO_PRIVATE_KEY for backward compatibility) must be set")
 	}
 
-	signingKey, err := resolveSigningKey(secretKey, v.GetString("SIGNING_KEY"))
+	signingKey, signingKeyVar, err := resolveSigningKey(secretKey, secretKeyVar, v.GetString("SIGNING_KEY"))
 	if err != nil {
 		return nil, err
-	}
-	signingKeyVar := "SECRET_KEY"
-	if signingKey != secretKey {
-		signingKeyVar = "SIGNING_KEY"
 	}
 
 	// Try to load system settings from database

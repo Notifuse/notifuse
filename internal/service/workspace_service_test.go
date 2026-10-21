@@ -3804,9 +3804,9 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 
 		authResponse, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
 
-		require.Error(t, err)
+		// Typically the same link accepted twice at once: answered like a used link.
+		require.ErrorIs(t, err, domain.ErrInvitationUnavailable)
 		assert.Nil(t, authResponse)
-		assert.Contains(t, err.Error(), "user is already a member of the workspace")
 	})
 
 	t.Run("failed user creation", func(t *testing.T) {
