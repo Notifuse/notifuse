@@ -115,6 +115,50 @@ func TestLoad_SigningKey(t *testing.T) {
 		assert.Equal(t, signingKey, cfg.Security.SigningKey)
 	})
 
+	// docker --env-file keeps quotes as part of the value; SIGNING_KEY is new, so it can
+	// read them as the quoting they are.
+	t.Run("SIGNING_KEY loses one pair of surrounding quotes", func(t *testing.T) {
+		signingKey := freshBase64Key(t)
+		for _, quoted := range []string{`"` + signingKey + `"`, "'" + signingKey + "'"} {
+			setKeyEnv(t, "another-secret-key-0123456789abcdef", "", quoted)
+
+			cfg, err := LoadWithOptions(LoadOptions{})
+			require.NoError(t, err)
+			assert.Equal(t, signingKey, cfg.Security.SigningKey)
+		}
+	})
+
+	t.Run("quoted empty SIGNING_KEY counts as unset", func(t *testing.T) {
+		for _, empty := range []string{`""`, "''", `" "`} {
+			setKeyEnv(t, "another-secret-key-0123456789abcdef", "", empty)
+
+			cfg, err := LoadWithOptions(LoadOptions{})
+			require.NoError(t, err, "SIGNING_KEY=%s", empty)
+			assert.Equal(t, "another-secret-key-0123456789abcdef", cfg.Security.SigningKey)
+		}
+	})
+
+	// SIGNING_KEY is new, so it can be held to the length every key Notifuse documents
+	// has. Short values are placeholders, such as the ones in the docs' examples.
+	t.Run("SIGNING_KEY with less than 32 bytes of key material is refused", func(t *testing.T) {
+		for _, key := range []string{"your-signing-key", "your-notifuse-signing-key", strings.Repeat("k", 31)} {
+			setKeyEnv(t, "another-secret-key-0123456789abcdef", "", key)
+
+			_, err := LoadWithOptions(LoadOptions{})
+			require.Error(t, err, "SIGNING_KEY=%s", key)
+			assert.Contains(t, err.Error(), "SIGNING_KEY is too short")
+			assert.Contains(t, err.Error(), "openssl rand -base64 32")
+		}
+	})
+
+	t.Run("SIGNING_KEY of exactly 32 bytes loads", func(t *testing.T) {
+		setKeyEnv(t, "another-secret-key-0123456789abcdef", "", strings.Repeat("k", 32))
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.Equal(t, strings.Repeat("k", 32), cfg.Security.SigningKey)
+	})
+
 	t.Run("whitespace-only SIGNING_KEY counts as unset", func(t *testing.T) {
 		setKeyEnv(t, "another-secret-key-0123456789abcdef", "", " \n\t")
 

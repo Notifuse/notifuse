@@ -27,8 +27,12 @@ key needs none: stored data stays readable, and only signatures change.
 - `SecurityConfig` gains `SigningKey string`. `JWTSecret` is derived from `SigningKey` with today's rule
   (base64 that decodes to 32 bytes or more, else the raw bytes), and the short-key warning applies to it.
 - Resolution, after `SECRET_KEY` / `PASETO_PRIVATE_KEY` resolution:
-  - `SIGNING_KEY` set (non-empty after trimming) → `SigningKey` is the trimmed `SIGNING_KEY`. Surrounding
-    whitespace is never part of a key, and secret files often end with a newline.
+  - `SIGNING_KEY` set (non-empty after trimming and removing one pair of matching surrounding quotes) →
+    `SigningKey` is that value. Surrounding whitespace is never part of a key, secret files often end
+    with a newline, and `docker --env-file` keeps quotes; `SIGNING_KEY=""` there means unset. Being new,
+    `SIGNING_KEY` must give at least 32 bytes of key material (`deriveJWTSecret`), what
+    `openssl rand -base64 32` gives: shorter values are placeholders, such as the examples in the docs
+    and the API reference, and are refused at startup.
   - Unset → `SigningKey = SecretKey`, byte for byte. Nothing changes for an installation that never set it:
     its sessions, API keys and signatures stay valid. `SecretKey` itself is never modified, since it
     decrypts stored data.
@@ -165,7 +169,7 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
 
 | Implementation file | Test file | Cases |
 | --- | --- | --- |
-| `config/config.go`, `config/signing_key.go` | `config/signing_key_test.go` | default as `SECRET_KEY` without `SIGNING_KEY` refused, error names `SIGNING_KEY`; same through `PASETO_PRIVATE_KEY`; same with surrounding spaces; default as `SIGNING_KEY` refused; default without padding, in the URL alphabet, with embedded newlines, and as raw decoded bytes each refused; `env.example` placeholder refused; default in single or double quotes refused, mismatched quotes not stripped; default `SECRET_KEY` with a fresh `SIGNING_KEY` loads, `SecretKey` keeps the default, `SigningKey` and `JWTSecret` come from `SIGNING_KEY`; `SIGNING_KEY` with a trailing newline is trimmed; whitespace-only `SIGNING_KEY` counts as unset; no `SIGNING_KEY` and another `SECRET_KEY` gives `SigningKey == SecretKey` and the same `JWTSecret` as before |
+| `config/config.go`, `config/signing_key.go` | `config/signing_key_test.go` | default as `SECRET_KEY` without `SIGNING_KEY` refused, error names `SIGNING_KEY`; same through `PASETO_PRIVATE_KEY`; same with surrounding spaces; default as `SIGNING_KEY` refused; default without padding, in the URL alphabet, with embedded newlines, and as raw decoded bytes each refused; `env.example` placeholder refused; default in single or double quotes refused, mismatched quotes not stripped; default `SECRET_KEY` with a fresh `SIGNING_KEY` loads, `SecretKey` keeps the default, `SigningKey` and `JWTSecret` come from `SIGNING_KEY`; `SIGNING_KEY` with a trailing newline is trimmed; `SIGNING_KEY` in quotes loses them; quoted empty `SIGNING_KEY` counts as unset; `SIGNING_KEY` under 32 bytes of key material refused, at 32 accepted; whitespace-only `SIGNING_KEY` counts as unset; no `SIGNING_KEY` and another `SECRET_KEY` gives `SigningKey == SecretKey` and the same `JWTSecret` as before |
 | `internal/repository/auth_repository.go` | `auth_repository_test.go` | query selects `name` and `type`, both are scanned |
 | `internal/service/auth_service.go` | `auth_service_test.go` | API key token naming a regular user refused; naming an API key user accepted; revoked key still answers `ErrAPIKeyRevoked`; session token whose user is an API key user refused; invitation token without `exp` refused |
 | `internal/service/user_service.go` (sessions) | `user_service_test.go` | `VerifyUserSession` for an API key user refused with `ErrSessionAuthFailed`; regular user accepted |

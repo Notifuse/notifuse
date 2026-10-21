@@ -31,14 +31,17 @@ func sha256Hex(b []byte) string {
 // read by docker --env-file keeps the quotes, so a quoted published key is just as
 // easy to sign with.
 func isPublishedKey(key string) bool {
-	if isPublishedValue(key) {
-		return true
-	}
-	trimmed := strings.TrimSpace(key)
+	return isPublishedValue(key) || isPublishedValue(unquoted(key))
+}
+
+// unquoted returns value trimmed and, when it is wrapped in one pair of matching
+// quotes, without them, trimmed again.
+func unquoted(value string) string {
+	trimmed := strings.TrimSpace(value)
 	if len(trimmed) >= 2 && (trimmed[0] == '"' || trimmed[0] == '\'') && trimmed[len(trimmed)-1] == trimmed[0] {
-		return isPublishedValue(trimmed[1 : len(trimmed)-1])
+		return strings.TrimSpace(trimmed[1 : len(trimmed)-1])
 	}
-	return false
+	return trimmed
 }
 
 func isPublishedValue(key string) bool {
@@ -63,16 +66,29 @@ func isPublishedValue(key string) bool {
 	return false
 }
 
+// minSigningKeyBytes is the key material SIGNING_KEY must give: what openssl rand
+// -base64 32, the documented way to make one, does.
+const minSigningKeyBytes = 32
+
 // resolveSigningKey returns the key the installation signs with and the variable it
-// came from: SIGNING_KEY, trimmed, when it is set, else secretKey unchanged, read from
+// came from: SIGNING_KEY when it is set, else secretKey unchanged, read from
 // secretKeyVar, so an installation that never set SIGNING_KEY keeps every signature it
 // has issued. It refuses a published key, which anyone can sign with.
+//
+// SIGNING_KEY is new, so it is read strictly: trimmed and stripped of one pair of
+// surrounding quotes (docker --env-file keeps them), empty after that meaning unset,
+// and refused when it gives less key material than a generated key, as a placeholder
+// such as those in the documentation's examples does.
 func resolveSigningKey(secretKey, secretKeyVar, signingKeyEnv string) (string, string, error) {
-	if signingKey := strings.TrimSpace(signingKeyEnv); signingKey != "" {
+	if signingKey := unquoted(signingKeyEnv); signingKey != "" {
 		if isPublishedKey(signingKey) {
 			return "", "", fmt.Errorf("SIGNING_KEY is a value published with Notifuse (the former compose.yaml " +
 				"default SECRET_KEY or the env.example placeholder), which Notifuse does not accept for signing. " +
 				"Generate a new one with: openssl rand -base64 32")
+		}
+		if len(deriveJWTSecret(signingKey)) < minSigningKeyBytes {
+			return "", "", fmt.Errorf("SIGNING_KEY is too short: it must give at least %d bytes of key material. "+
+				"Generate one with: openssl rand -base64 32", minSigningKeyBytes)
 		}
 		return signingKey, "SIGNING_KEY", nil
 	}
