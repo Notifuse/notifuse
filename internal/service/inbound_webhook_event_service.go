@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"mime"
 	"net/http"
 	"strconv"
 	"strings"
@@ -467,10 +468,11 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 }
 
 // eventsOfSentEmails keeps the events that name an email of the workspace sent to the
-// address they report, the letter case aside, and gives each the address stored on its
-// email, which is the contact's. The others are left out: an event about an email Notifuse
-// did not send, which carries only the provider's own id, or about someone the email was
-// copied to, changes nothing and is not stored. The emails are looked up in one query.
+// address they report, as sameAddress compares them, and gives each the address stored on
+// its email, which is the contact's. The others are left out: an event about an email
+// Notifuse did not send, which carries only the provider's own id, or about someone the
+// email was copied to, changes nothing and is not stored. The emails are looked up in one
+// query.
 func (s *InboundWebhookEventService) eventsOfSentEmails(ctx context.Context, workspaceID, integrationID string, events []*domain.InboundWebhookEvent) ([]*domain.InboundWebhookEvent, error) {
 	named := func(event *domain.InboundWebhookEvent) bool {
 		return event.MessageID != nil && *event.MessageID != "" && event.RecipientEmail != ""
@@ -496,7 +498,7 @@ func (s *InboundWebhookEventService) eventsOfSentEmails(ctx context.Context, wor
 	firstIgnoredID := ""
 	for _, event := range events {
 		if named(event) {
-			if recipient, ok := recipients[*event.MessageID]; ok && strings.EqualFold(recipient, event.RecipientEmail) {
+			if recipient, ok := recipients[*event.MessageID]; ok && sameAddress(recipient, event.RecipientEmail) {
 				event.RecipientEmail = recipient
 				kept = append(kept, event)
 				continue
@@ -516,6 +518,35 @@ func (s *InboundWebhookEventService) eventsOfSentEmails(ctx context.Context, wor
 			Info("Ignored provider events that name no email sent to their address")
 	}
 	return kept, nil
+}
+
+// sameAddress reports whether reported, the address a provider gives in an event, is stored,
+// the address the email was sent to. The letter case aside, an international domain can come
+// back in Unicode or in Punycode, and SES reports the address in the form it is sent
+// (encodeEmailAddress), a non-ASCII local part encoded.
+func sameAddress(stored, reported string) bool {
+	if strings.EqualFold(stored, reported) {
+		return true
+	}
+	storedForm, storedOK := addressForm(stored)
+	reportedForm, reportedOK := addressForm(reported)
+	return storedOK && reportedOK && storedForm == reportedForm
+}
+
+// addressForm spells an address one way whatever the spelling it comes in: its local part
+// decoded when encoded, then lowercased and written as encodeEmailAddress sends it. ok is
+// false for what is no address.
+func addressForm(address string) (string, bool) {
+	at := strings.LastIndex(address, "@")
+	if at <= 0 || at == len(address)-1 {
+		return "", false
+	}
+	local := address[:at]
+	if decoded, err := new(mime.WordDecoder).DecodeHeader(local); err == nil {
+		local = decoded
+	}
+	form, err := encodeEmailAddress(strings.ToLower(local + address[at:]))
+	return form, err == nil
 }
 
 // recordUnsubscribes records the opt-outs a provider reported. The email is marked
@@ -700,18 +731,22 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 
 	// Determine the type of notification
 	var eventType domain.EmailEventType
-	var recipientEmail, messageID string
-	var bounceType, bounceCategory, bounceDiagnostic, complaintFeedbackType string
+	var messageID string
+	var bounceType, bounceCategory, complaintFeedbackType string
 	var timestamp time.Time
 	var notifuseMessageID string
+	// A notification lists every recipient of the email it reports on, an address the email
+	// was copied to among them. Each gets its own event, so the email's own recipient is
+	// found whatever its place in the list.
+	type sesRecipient struct{ email, diagnostic string }
+	var recipients []sesRecipient
 
 	// Try to unmarshal as bounce notification
 	var bounceNotification domain.SESBounceNotification
 	if err := json.Unmarshal(messageBytes, &bounceNotification); err == nil && bounceNotification.EventType == "Bounce" {
 		eventType = domain.EmailEventBounce
-		if len(bounceNotification.Bounce.BouncedRecipients) > 0 {
-			recipientEmail = bounceNotification.Bounce.BouncedRecipients[0].EmailAddress
-			bounceDiagnostic = bounceNotification.Bounce.BouncedRecipients[0].DiagnosticCode
+		for _, recipient := range bounceNotification.Bounce.BouncedRecipients {
+			recipients = append(recipients, sesRecipient{email: recipient.EmailAddress, diagnostic: recipient.DiagnosticCode})
 		}
 		messageID = bounceNotification.Mail.MessageID
 		bounceType = bounceNotification.Bounce.BounceType
@@ -739,8 +774,8 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 		var complaintNotification domain.SESComplaintNotification
 		if err := json.Unmarshal(messageBytes, &complaintNotification); err == nil && complaintNotification.EventType == "Complaint" {
 			eventType = domain.EmailEventComplaint
-			if len(complaintNotification.Complaint.ComplainedRecipients) > 0 {
-				recipientEmail = complaintNotification.Complaint.ComplainedRecipients[0].EmailAddress
+			for _, recipient := range complaintNotification.Complaint.ComplainedRecipients {
+				recipients = append(recipients, sesRecipient{email: recipient.EmailAddress})
 			}
 			messageID = complaintNotification.Mail.MessageID
 			complaintFeedbackType = complaintNotification.Complaint.ComplaintFeedbackType
@@ -767,8 +802,8 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 			var deliveryNotification domain.SESDeliveryNotification
 			if err := json.Unmarshal(messageBytes, &deliveryNotification); err == nil && deliveryNotification.EventType == "Delivery" {
 				eventType = domain.EmailEventDelivered
-				if len(deliveryNotification.Delivery.Recipients) > 0 {
-					recipientEmail = deliveryNotification.Delivery.Recipients[0]
+				for _, recipient := range deliveryNotification.Delivery.Recipients {
+					recipients = append(recipients, sesRecipient{email: recipient})
 				}
 				messageID = deliveryNotification.Mail.MessageID
 
@@ -804,29 +839,48 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 		messageID = notifuseMessageID
 	}
 
-	// Create the webhook event
-	event := domain.NewInboundWebhookEvent(
-		uuid.New().String(),
-		eventType,
-		domain.WebhookSourceSES,
-		integrationID,
-		recipientEmail,
-		&messageID,
-		timestamp,
-		string(rawPayload),
-	)
-
-	// Set event-specific information
-	switch eventType {
-	case domain.EmailEventBounce:
-		event.BounceType = bounceType
-		event.BounceCategory = bounceCategory
-		event.BounceDiagnostic = bounceDiagnostic
-	case domain.EmailEventComplaint:
-		event.ComplaintFeedbackType = complaintFeedbackType
+	// A notification listing no recipient still gives one event, with no address. One listing
+	// a recipient twice gives it one event, so a bounce is not counted twice.
+	listed := make([]sesRecipient, 0, len(recipients))
+	seen := make(map[string]bool, len(recipients))
+	for _, recipient := range recipients {
+		if key := strings.ToLower(recipient.email); !seen[key] {
+			seen[key] = true
+			listed = append(listed, recipient)
+		}
+	}
+	recipients = listed
+	if len(recipients) == 0 {
+		recipients = []sesRecipient{{}}
 	}
 
-	return []*domain.InboundWebhookEvent{event}, nil
+	events = make([]*domain.InboundWebhookEvent, 0, len(recipients))
+	for _, recipient := range recipients {
+		eventMessageID := messageID
+		event := domain.NewInboundWebhookEvent(
+			uuid.New().String(),
+			eventType,
+			domain.WebhookSourceSES,
+			integrationID,
+			recipient.email,
+			&eventMessageID,
+			timestamp,
+			string(rawPayload),
+		)
+
+		// Set event-specific information
+		switch eventType {
+		case domain.EmailEventBounce:
+			event.BounceType = bounceType
+			event.BounceCategory = bounceCategory
+			event.BounceDiagnostic = recipient.diagnostic
+		case domain.EmailEventComplaint:
+			event.ComplaintFeedbackType = complaintFeedbackType
+		}
+		events = append(events, event)
+	}
+
+	return events, nil
 }
 
 // processPostmarkWebhook processes a webhook event from Postmark

@@ -176,6 +176,38 @@ func TestEmailEventMessageMatch(t *testing.T) {
 		assert.Equal(t, 1, timelineEventsOf(t, email))
 	})
 
+	t.Run("an SES bounce listing an address the email was copied to before the contact: the contact is bounced", func(t *testing.T) {
+		email := newContact(t, "copied")
+		copied := newContact(t, "copy")
+		messageID := sendTo(t, email)
+
+		postSESBounce(t, client, sesURL, sesBounceListing(messageID, copied, email))
+
+		assert.Equal(t, domain.ContactListStatusBounced, statusOf(t, email))
+		assert.Equal(t, domain.ContactListStatusActive, statusOf(t, copied))
+		assert.Equal(t, marks{bounced: true}, marksOf(t, messageID))
+		assert.Equal(t, []string{email}, storedFor(t, messageID))
+	})
+
+	t.Run("an SES bounce giving the contact's international domain in Punycode, as SES is sent it: the contact is bounced", func(t *testing.T) {
+		local := "idn-" + uuid.New().String()[:8]
+		email := local + "@münchen.de"
+		_, err := factory.CreateContact(workspace.ID, testutil.WithContactEmail(email))
+		require.NoError(t, err)
+		_, err = factory.CreateContactList(workspace.ID,
+			testutil.WithContactListEmail(email),
+			testutil.WithContactListListID(list.ID),
+			testutil.WithContactListStatus(domain.ContactListStatusActive))
+		require.NoError(t, err)
+		messageID := sendTo(t, email)
+
+		postSESBounce(t, client, sesURL, hardBounce(messageID, local+"@xn--mnchen-3ya.de"))
+
+		assert.Equal(t, domain.ContactListStatusBounced, statusOf(t, email))
+		assert.Equal(t, marks{bounced: true}, marksOf(t, messageID))
+		assert.Equal(t, []string{email}, storedFor(t, messageID))
+	})
+
 	t.Run("soft bounces for an address no email was sent to never reach the threshold", func(t *testing.T) {
 		email := newContact(t, "soft-no-email")
 
@@ -301,6 +333,37 @@ func sesDeliveryPayload(notifuseMessageID, recipientEmail string) string {
 		},
 		"mail": map[string]interface{}{
 			"timestamp": now,
+			"messageId": "ses-" + uuid.New().String(),
+			"tags":      map[string][]string{"notifuse_message_id": {notifuseMessageID}},
+		},
+	}
+	messageBytes, _ := json.Marshal(message)
+	envelope := map[string]interface{}{
+		"Type":      "Notification",
+		"MessageId": "sns-" + uuid.New().String(),
+		"TopicArn":  "arn:aws:sns:us-east-1:123456789012:test-topic",
+		"Message":   string(messageBytes),
+	}
+	envelopeBytes, _ := json.Marshal(envelope)
+	return string(envelopeBytes)
+}
+
+// sesBounceListing builds an SNS-wrapped SES hard bounce of the Notifuse message listing
+// these recipients, as SES does for an email sent to several addresses.
+func sesBounceListing(notifuseMessageID string, recipientEmails ...string) string {
+	recipients := make([]map[string]interface{}, 0, len(recipientEmails))
+	for _, email := range recipientEmails {
+		recipients = append(recipients, map[string]interface{}{"emailAddress": email, "diagnosticCode": "smtp; 550 5.1.1 user unknown"})
+	}
+	message := map[string]interface{}{
+		"eventType": "Bounce",
+		"bounce": map[string]interface{}{
+			"bounceType":        "Permanent",
+			"bounceSubType":     "General",
+			"bouncedRecipients": recipients,
+			"timestamp":         time.Now().UTC().Format(time.RFC3339),
+		},
+		"mail": map[string]interface{}{
 			"messageId": "ses-" + uuid.New().String(),
 			"tags":      map[string][]string{"notifuse_message_id": {notifuseMessageID}},
 		},

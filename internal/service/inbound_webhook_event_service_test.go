@@ -700,6 +700,87 @@ func TestProcessSESWebhook(t *testing.T) {
 		assert.NotNil(t, events[0].MessageID)
 		assert.Equal(t, "tag-message-id", *events[0].MessageID) // Tags have priority
 	})
+
+	// A notification lists every recipient of the email it reports on, such as an address the
+	// email was copied to
+	t.Run("A notification listing several recipients gives one event per recipient", func(t *testing.T) {
+		for name, c := range map[string]struct {
+			message     string
+			diagnostics []string
+		}{
+			"bounce": {
+				message:     `{"eventType":"Bounce","bounce":{"bounceType":"Permanent","bounceSubType":"General","bouncedRecipients":[{"emailAddress":"copy@example.com","diagnosticCode":"550 copy"},{"emailAddress":"test@example.com","diagnosticCode":"550 test"}],"timestamp":"2023-01-01T12:00:00Z"},"mail":{"messageId":"provider-msg-id","tags":{"notifuse_message_id":["msg-1"]}}}`,
+				diagnostics: []string{"550 copy", "550 test"},
+			},
+			"complaint": {
+				message:     `{"eventType":"Complaint","complaint":{"complainedRecipients":[{"emailAddress":"copy@example.com"},{"emailAddress":"test@example.com"}],"timestamp":"2023-01-01T12:00:00Z","complaintFeedbackType":"abuse"},"mail":{"messageId":"provider-msg-id","tags":{"notifuse_message_id":["msg-1"]}}}`,
+				diagnostics: []string{"", ""},
+			},
+			"delivery": {
+				message:     `{"eventType":"Delivery","delivery":{"recipients":["copy@example.com","test@example.com"],"timestamp":"2023-01-01T12:00:00Z"},"mail":{"messageId":"provider-msg-id","tags":{"notifuse_message_id":["msg-1"]}}}`,
+				diagnostics: []string{"", ""},
+			},
+		} {
+			t.Run(name, func(t *testing.T) {
+				rawPayload, err := json.Marshal(domain.SESWebhookPayload{Message: c.message})
+				require.NoError(t, err)
+
+				events, err := service.processSESWebhook(integrationID, rawPayload)
+
+				require.NoError(t, err)
+				require.Len(t, events, 2)
+				for i, email := range []string{"copy@example.com", "test@example.com"} {
+					assert.Equal(t, email, events[i].RecipientEmail)
+					require.NotNil(t, events[i].MessageID)
+					assert.Equal(t, "msg-1", *events[i].MessageID)
+					assert.Equal(t, c.diagnostics[i], events[i].BounceDiagnostic)
+				}
+				assert.NotEqual(t, events[0].ID, events[1].ID)
+			})
+		}
+	})
+
+	t.Run("A notification listing the same recipient twice gives one event for it", func(t *testing.T) {
+		rawPayload, err := json.Marshal(domain.SESWebhookPayload{
+			Message: `{"eventType":"Bounce","bounce":{"bounceType":"Transient","bounceSubType":"MailboxFull","bouncedRecipients":[{"emailAddress":"test@example.com","diagnosticCode":"452 first"},{"emailAddress":"copy@example.com","diagnosticCode":"452 copy"},{"emailAddress":"Test@Example.com","diagnosticCode":"452 again"}],"timestamp":"2023-01-01T12:00:00Z"},"mail":{"messageId":"provider-msg-id","tags":{"notifuse_message_id":["msg-1"]}}}`,
+		})
+		require.NoError(t, err)
+
+		events, err := service.processSESWebhook(integrationID, rawPayload)
+
+		require.NoError(t, err)
+		require.Len(t, events, 2)
+		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+		assert.Equal(t, "452 first", events[0].BounceDiagnostic)
+		assert.Equal(t, "copy@example.com", events[1].RecipientEmail)
+	})
+}
+
+func TestSameAddress(t *testing.T) {
+	for _, c := range []struct {
+		name             string
+		stored, reported string
+		same             bool
+	}{
+		{"the same address", "jane@example.com", "jane@example.com", true},
+		{"another letter case", "Jane@Example.com", "jane@EXAMPLE.com", true},
+		{"an international domain reported in Punycode", "user@münchen.de", "user@xn--mnchen-3ya.de", true},
+		{"an international domain reported in Unicode", "user@xn--mnchen-3ya.de", "user@münchen.de", true},
+		{"an international domain in capitals reported in Punycode", "User@MÜNCHEN.de", "user@xn--mnchen-3ya.de", true},
+		{"a non-ASCII local part reported as SES is sent it", "jürgen@example.com", "=?UTF-8?b?asO8cmdlbg==?=@example.com", true},
+		{"a non-ASCII local part in capitals reported as SES is sent it", "Üser@münchen.de", "=?UTF-8?b?w5xzZXI=?=@xn--mnchen-3ya.de", true},
+		{"a non-ASCII local part in capitals reported in lowercase", "Üser@münchen.de", "üser@xn--mnchen-3ya.de", true},
+		{"a non-ASCII local part in capitals reported encoded in lowercase", "Üser@münchen.de", "=?UTF-8?B?w7xzZXI=?=@xn--mnchen-3ya.de", true},
+		{"another non-ASCII local part", "Üser@münchen.de", "=?UTF-8?b?w7Z0aGVy?=@xn--mnchen-3ya.de", false},
+		{"another domain", "user@münchen.de", "user@munchen.de", false},
+		{"another local part", "jane@example.com", "john@example.com", false},
+		{"no address", "jane@example.com", "", false},
+		{"no domain", "jane@example.com", "jane", false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			assert.Equal(t, c.same, sameAddress(c.stored, c.reported))
+		})
+	}
 }
 
 func TestExtractXMessageIDFromHeaders(t *testing.T) {
@@ -3177,6 +3258,101 @@ func TestProcessWebhook_ActsOnlyOnEmailsSentToTheEventAddress(t *testing.T) {
 		require.NoError(t, err)
 
 		require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, raw))
+	})
+
+	// sesNotification wraps an SES notification of the email msg-1 names
+	sesNotification := func(t *testing.T, message string) []byte {
+		t.Helper()
+		raw, err := json.Marshal(domain.SESWebhookPayload{Type: "Notification", Message: message})
+		require.NoError(t, err)
+		return raw
+	}
+	sesMail := `"mail":{"messageId":"0100018f-ses-own-id","tags":{"notifuse_message_id":["msg-1"]}}`
+
+	t.Run("an SES bounce listing an address the email was copied to before its recipient: the recipient's bounce is recorded and applied", func(t *testing.T) {
+		service, repo, workspaceRepo, messageHistoryRepo, contactRepo, ctrl := newClassificationTestService(t)
+		defer ctrl.Finish()
+		workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspaceOf(domain.EmailProviderKindSES), nil)
+		messageHistoryRepo.EXPECT().GetRecipients(gomock.Any(), workspaceID, []string{"msg-1"}).
+			Return(map[string]string{"msg-1": "recipient@example.com"}, nil)
+		repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, events []*domain.InboundWebhookEvent) error {
+				require.Len(t, events, 1)
+				assert.Equal(t, "recipient@example.com", events[0].RecipientEmail)
+				assert.Equal(t, "smtp; 550 recipient", events[0].BounceDiagnostic)
+				return nil
+			})
+		messageHistoryRepo.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, updates []domain.MessageEventUpdate) error {
+				require.Len(t, updates, 1)
+				assert.Equal(t, "msg-1", updates[0].ID)
+				assert.Equal(t, domain.MessageEventBounced, updates[0].Event)
+				return nil
+			})
+		contactRepo.EXPECT().MarkEmailsAsBounced(gomock.Any(), workspaceID, []string{"recipient@example.com"}, gomock.Any()).Return(nil)
+
+		require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, sesNotification(t,
+			`{"eventType":"Bounce","bounce":{"bounceType":"Permanent","bounceSubType":"General","bouncedRecipients":[{"emailAddress":"copy@example.com","diagnosticCode":"smtp; 550 copy"},{"emailAddress":"recipient@example.com","diagnosticCode":"smtp; 550 recipient"}],"timestamp":"2026-10-21T10:00:00Z"},`+sesMail+`}`)))
+	})
+
+	for name, c := range map[string]struct {
+		message string
+		event   domain.MessageEvent
+	}{
+		"complaint": {
+			message: `{"eventType":"Complaint","complaint":{"complainedRecipients":[{"emailAddress":"copy@example.com"},{"emailAddress":"recipient@example.com"}],"timestamp":"2026-10-21T10:00:00Z","complaintFeedbackType":"abuse"},` + sesMail + `}`,
+			event:   domain.MessageEventComplained,
+		},
+		"delivery": {
+			message: `{"eventType":"Delivery","delivery":{"recipients":["copy@example.com","recipient@example.com"],"timestamp":"2026-10-21T10:00:00Z"},` + sesMail + `}`,
+			event:   domain.MessageEventDelivered,
+		},
+	} {
+		t.Run("an SES "+name+" listing an address the email was copied to before its recipient: the recipient's "+name+" is recorded", func(t *testing.T) {
+			service, repo, workspaceRepo, messageHistoryRepo, _, ctrl := newClassificationTestService(t)
+			defer ctrl.Finish()
+			workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspaceOf(domain.EmailProviderKindSES), nil)
+			messageHistoryRepo.EXPECT().GetRecipients(gomock.Any(), workspaceID, []string{"msg-1"}).
+				Return(map[string]string{"msg-1": "recipient@example.com"}, nil)
+			repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).DoAndReturn(
+				func(_ context.Context, _ string, events []*domain.InboundWebhookEvent) error {
+					require.Len(t, events, 1)
+					assert.Equal(t, "recipient@example.com", events[0].RecipientEmail)
+					return nil
+				})
+			messageHistoryRepo.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).DoAndReturn(
+				func(_ context.Context, _ string, updates []domain.MessageEventUpdate) error {
+					require.Len(t, updates, 1)
+					assert.Equal(t, "msg-1", updates[0].ID)
+					assert.Equal(t, c.event, updates[0].Event)
+					return nil
+				})
+
+			require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, sesNotification(t, c.message)))
+		})
+	}
+
+	t.Run("an SES complaint giving the international domain of the email's address in Punycode, as SES is sent it: recorded with the address stored on the email", func(t *testing.T) {
+		service, repo, workspaceRepo, messageHistoryRepo, _, ctrl := newClassificationTestService(t)
+		defer ctrl.Finish()
+		workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspaceOf(domain.EmailProviderKindSES), nil)
+		messageHistoryRepo.EXPECT().GetRecipients(gomock.Any(), workspaceID, []string{"msg-1"}).
+			Return(map[string]string{"msg-1": "user@münchen.de"}, nil)
+		repo.EXPECT().StoreEvents(gomock.Any(), workspaceID, gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, events []*domain.InboundWebhookEvent) error {
+				require.Len(t, events, 1)
+				assert.Equal(t, "user@münchen.de", events[0].RecipientEmail)
+				return nil
+			})
+		messageHistoryRepo.EXPECT().SetStatusesIfNotSet(gomock.Any(), workspaceID, gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, updates []domain.MessageEventUpdate) error {
+				require.Len(t, updates, 1)
+				assert.Equal(t, domain.MessageEventComplained, updates[0].Event)
+				return nil
+			})
+
+		require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, sesNotification(t,
+			`{"eventType":"Complaint","complaint":{"complainedRecipients":[{"emailAddress":"user@xn--mnchen-3ya.de"}],"timestamp":"2026-10-21T10:00:00Z","complaintFeedbackType":"abuse"},`+sesMail+`}`)))
 	})
 
 	t.Run("the lookup fails: the error is returned and nothing is stored", func(t *testing.T) {
