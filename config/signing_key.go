@@ -66,42 +66,53 @@ func isPublishedValue(key string) bool {
 	return false
 }
 
-// minSigningKeyBytes is the key material SIGNING_KEY must give: what openssl rand
-// -base64 32, the documented way to make one, does.
+// minSigningKeyBytes is the key material the signing key must give: what openssl
+// rand -base64 32, the documented way to make one, does.
 const minSigningKeyBytes = 32
 
-// resolveSigningKey returns the key the installation signs with and the variable it
-// came from: SIGNING_KEY when it is set, else secretKey unchanged, read from
-// secretKeyVar, so an installation that never set SIGNING_KEY keeps every signature it
-// has issued. It refuses a published key, which anyone can sign with.
+// resolveSigningKey returns the key the installation signs with: SIGNING_KEY when it
+// is set, else secretKey unchanged, read from secretKeyVar, so an installation that
+// never set SIGNING_KEY keeps every signature it has issued. It refuses a published key, which anyone can sign with, and a key that
+// gives less key material than a generated one, as a placeholder such as those in
+// the documentation's examples does.
 //
 // SIGNING_KEY is new, so it is read strictly: trimmed and stripped of one pair of
-// surrounding quotes (docker --env-file keeps them), empty after that meaning unset,
-// and refused when it gives less key material than a generated key, as a placeholder
-// such as those in the documentation's examples does.
-func resolveSigningKey(secretKey, secretKeyVar, signingKeyEnv string) (string, string, error) {
+// surrounding quotes (docker --env-file keeps them), empty after that meaning unset.
+// secretKey is refused for signing only: it keeps decrypting stored data, so the
+// installation is told to add SIGNING_KEY beside it.
+func resolveSigningKey(secretKey, secretKeyVar, signingKeyEnv string) (string, error) {
 	if signingKey := unquoted(signingKeyEnv); signingKey != "" {
 		if isPublishedKey(signingKey) {
-			return "", "", fmt.Errorf("SIGNING_KEY is a value published with Notifuse (the former compose.yaml " +
+			return "", fmt.Errorf("SIGNING_KEY is a value published with Notifuse (the former compose.yaml " +
 				"default SECRET_KEY or the env.example placeholder), which Notifuse does not accept for signing. " +
 				"Generate a new one with: openssl rand -base64 32")
 		}
 		if len(deriveJWTSecret(signingKey)) < minSigningKeyBytes {
-			return "", "", fmt.Errorf("SIGNING_KEY is too short: it must give at least %d bytes of key material. "+
+			return "", fmt.Errorf("SIGNING_KEY is too short: it must give at least %d bytes of key material. "+
 				"Generate one with: openssl rand -base64 32", minSigningKeyBytes)
 		}
-		return signingKey, "SIGNING_KEY", nil
+		return signingKey, nil
 	}
 
 	if isPublishedKey(secretKey) {
-		return "", "", fmt.Errorf("SIGNING_KEY must be set: %[1]s is a value published with Notifuse (the former "+
-			"compose.yaml default or the env.example placeholder), which Notifuse does not accept for signing. "+
-			"Generate a signing key with: openssl rand -base64 32, pass it to the container as SIGNING_KEY "+
-			"(the compose.yaml of 42.0 does; a compose file of your own needs the line too), and keep %[1]s "+
-			"unchanged because it decrypts your stored data. Users will have to sign in again, API keys "+
-			"must be recreated, and pending invitations sent again", secretKeyVar)
+		return "", signingKeyRequired(secretKeyVar, fmt.Sprintf("%s is a value published with Notifuse (the "+
+			"former compose.yaml default or the env.example placeholder), which Notifuse does not accept for "+
+			"signing", secretKeyVar))
 	}
-	return secretKey, secretKeyVar, nil
+	if len(deriveJWTSecret(secretKey)) < minSigningKeyBytes {
+		return "", signingKeyRequired(secretKeyVar, fmt.Sprintf("%s is too short to sign with: it must give "+
+			"at least %d bytes of key material", secretKeyVar, minSigningKeyBytes))
+	}
+	return secretKey, nil
+}
+
+// signingKeyRequired is the refusal for a secretKey that cannot sign: why, then how
+// to add SIGNING_KEY without touching the key that decrypts stored data.
+func signingKeyRequired(secretKeyVar, reason string) error {
+	return fmt.Errorf("SIGNING_KEY must be set: %[2]s. Generate a signing key with: openssl rand -base64 32, "+
+		"pass it to the container as SIGNING_KEY (the compose.yaml of 42.0 does; a compose file of your own "+
+		"needs the line too), and keep %[1]s unchanged because it decrypts your stored data. Users will have "+
+		"to sign in again, API keys must be recreated, and pending invitations sent again", secretKeyVar, reason)
 }
 
 // deriveJWTSecret turns the signing key into the HMAC secret for JWTs: its decoded

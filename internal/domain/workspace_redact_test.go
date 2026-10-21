@@ -151,11 +151,11 @@ func TestWorkspaceRedact_IsSafeOnEmptyAndNil(t *testing.T) {
 	})
 }
 
-// TestWorkspaceRedact_LeavesCiphertext documents a deliberate limit: the
-// encrypted forms still go out, because the console uses their presence to show
-// whether a credential is configured. They are useless without the instance
-// secret key, which is never served.
-func TestWorkspaceRedact_LeavesCiphertext(t *testing.T) {
+// TestWorkspaceRedact_LeavesIntegrationCiphertext documents a deliberate limit:
+// an integration's encrypted forms still go out. The console echoes them back
+// when an owner edits the integration, and request validation accepts the
+// encrypted form in place of a credential it was never served.
+func TestWorkspaceRedact_LeavesIntegrationCiphertext(t *testing.T) {
 	w := &Workspace{
 		Integrations: Integrations{{
 			ID: "int-smtp",
@@ -174,7 +174,24 @@ func TestWorkspaceRedact_LeavesCiphertext(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotContains(t, string(out), secretSMTPPassword)
 	assert.True(t, strings.Contains(string(out), "ciphertext-blob"),
-		"the console needs a way to tell a configured credential from an unset one")
+		"editing the integration sends it back")
+}
+
+// TestWorkspaceRedact_RemovesWorkspaceSecretKeyCiphertext: the workspace's own
+// secret key signs every notification center link and encrypts message data.
+// Its encrypted form is only as safe as the instance secret key, no client reads
+// it, and a settings save never takes it from the request, so it does not go out.
+func TestWorkspaceRedact_RemovesWorkspaceSecretKeyCiphertext(t *testing.T) {
+	w := workspaceWithEverySecret()
+	w.Settings.SecretKey = "SENTINEL-workspace-secret-key"
+	w.Settings.EncryptedSecretKey = "SENTINEL-workspace-secret-key-ciphertext"
+
+	w.Redact()
+
+	out, err := json.Marshal(w)
+	require.NoError(t, err)
+	assert.Empty(t, w.Settings.EncryptedSecretKey)
+	assert.NotContains(t, string(out), "SENTINEL-workspace-secret-key")
 }
 
 // --- Masked hints -----------------------------------------------------------
@@ -325,6 +342,9 @@ func TestWorkspaceBeforeSave_ClearsCredentialHints(t *testing.T) {
 
 func TestWorkspaceRedactForPublic_KeepsOnlyWhatAnInviteeNeeds(t *testing.T) {
 	w := workspaceWithEverySecret()
+	w.Settings.EncryptedSecretKey = "SENTINEL-workspace-secret-key-ciphertext"
+	w.Settings.FileManager.EncryptedSecretKey = "SENTINEL-file-manager-ciphertext"
+	w.Integrations[0].EmailProvider.SMTP.EncryptedPassword = "SENTINEL-smtp-ciphertext"
 	w.RedactForPublic()
 
 	out, err := json.Marshal(w)
@@ -336,7 +356,8 @@ func TestWorkspaceRedactForPublic_KeepsOnlyWhatAnInviteeNeeds(t *testing.T) {
 		"the file manager exemption is for a member's browser, not an unauthenticated invitee")
 	assert.NotContains(t, s, "credential_hints",
 		"a hint is a fragment of a credential; an invitee has no claim to one")
-	assert.NotContains(t, s, "ciphertext")
+	assert.NotContains(t, s, "ciphertext",
+		"the workspace's encrypted secret key decrypts with the instance key alone")
 	assert.NotContains(t, s, "encrypted_")
 
 	for _, secret := range append(allSecretSentinels(), secretFileManagerKey) {

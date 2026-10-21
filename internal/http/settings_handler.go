@@ -189,9 +189,7 @@ func (h *SettingsHandler) requireRootUser(w http.ResponseWriter, r *http.Request
 
 	user, err := h.userService.VerifyUserSession(ctx, userID, sessionID)
 	if err != nil {
-		// Only a genuine authentication failure answers 401: the console signs the
-		// user out on any 401.
-		if !errors.Is(err, domain.ErrSessionAuthFailed) {
+		if sessionCheckStatus(err) != http.StatusUnauthorized {
 			h.logger.WithField("error", err.Error()).Error("Failed to verify session")
 			WriteJSONError(w, "Failed to verify session", http.StatusInternalServerError)
 			return nil

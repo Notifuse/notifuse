@@ -2876,10 +2876,12 @@ func TestWorkspaceHandler_HandleVerifyInvitationToken(t *testing.T) {
 		w := httptest.NewRecorder()
 		handler.handleVerifyInvitationToken(w, req)
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		// 404 as on accept: the console signs out on any 401, and whoever opens the
+		// link may be signed in.
+		assert.Equal(t, http.StatusNotFound, w.Code)
 		var response map[string]string
 		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
-		assert.Equal(t, "Invalid or expired invitation token", response["error"])
+		assert.Equal(t, "Invitation not found or no longer valid", response["error"])
 	})
 
 	t.Run("method not allowed", func(t *testing.T) {

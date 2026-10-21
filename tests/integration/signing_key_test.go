@@ -135,6 +135,26 @@ func TestSigningKeySeparation(t *testing.T) {
 		}, &invited))
 		require.NotEmpty(t, invited.Token)
 
+		// The workspace's encrypted secret key reaches neither the invitee, who may
+		// never join, nor a member.
+		var verified struct {
+			Workspace struct {
+				Settings map[string]interface{} `json:"settings"`
+			} `json:"workspace"`
+		}
+		require.NoError(t, client.PostJSON("/api/workspaces.verifyInvitationToken",
+			map[string]string{"token": invited.Token}, &verified))
+		require.NotEmpty(t, verified.Workspace.Settings)
+		assert.NotContains(t, verified.Workspace.Settings, "encrypted_secret_key")
+		var got struct {
+			Workspace struct {
+				Settings map[string]interface{} `json:"settings"`
+			} `json:"workspace"`
+		}
+		require.NoError(t, inviter.GetJSON("/api/workspaces.get", &got, map[string]string{"id": workspaceID}))
+		require.NotEmpty(t, got.Workspace.Settings)
+		assert.NotContains(t, got.Workspace.Settings, "encrypted_secret_key")
+
 		// The address of another workspace's API key is not a person to invite.
 		resp, err := inviter.Post("/api/workspaces.inviteMember", domain.InviteMemberRequest{
 			WorkspaceID: workspaceID,

@@ -20,7 +20,7 @@ func TestTaskExecuteSigningKey(t *testing.T) {
 	})
 
 	t.Run("is domain-separated from the usage key", func(t *testing.T) {
-		// Both derive from SECRET_KEY. A leaked usage key must not sign dispatches.
+		// Both derive from the signing key. A leaked usage key must not sign dispatches.
 		assert.NotEqual(t, UsageSigningKey("installation-secret"), TaskExecuteSigningKey("installation-secret"))
 	})
 

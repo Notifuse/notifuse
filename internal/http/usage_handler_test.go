@@ -94,15 +94,15 @@ func TestUsageHandler_Get(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, rec.Code)
 	})
 
-	t.Run("an installation with no SECRET_KEY refuses rather than deriving from empty", func(t *testing.T) {
+	t.Run("an installation with no signing key refuses rather than deriving from empty", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		h := NewUsageHandler(mocks.NewMockUsageService(ctrl), "", logger.NewLogger())
 		h.nowFn = func() time.Time { return now }
 
 		// Signed with the key an empty secret would derive — it must still refuse,
-		// or every installation missing SECRET_KEY would accept a key anyone can
-		// compute.
+		// or every installation missing its signing key would accept a key anyone
+		// can compute.
 		rec := httptest.NewRecorder()
 		h.handleGet(rec, usageRequest(t, "", now.Unix()))
 		assert.Equal(t, http.StatusUnauthorized, rec.Code)

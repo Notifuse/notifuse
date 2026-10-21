@@ -167,6 +167,48 @@ func TestLoad_SigningKey(t *testing.T) {
 		assert.Equal(t, "another-secret-key-0123456789abcdef", cfg.Security.SigningKey)
 	})
 
+	// Without SIGNING_KEY, SECRET_KEY signs, so it is held to the same length. It
+	// keeps decrypting stored data whatever its length, so a short one is kept and
+	// joined by a SIGNING_KEY rather than replaced.
+	t.Run("SECRET_KEY with less than 32 bytes of key material needs SIGNING_KEY", func(t *testing.T) {
+		for _, key := range []string{"your-secret-key", "abc123#xyz789", strings.Repeat("k", 31)} {
+			setKeyEnv(t, key, "", "")
+
+			_, err := LoadWithOptions(LoadOptions{})
+			require.Error(t, err, "SECRET_KEY=%s", key)
+			assert.Contains(t, err.Error(), "SIGNING_KEY must be set: SECRET_KEY is too short to sign with")
+			assert.Contains(t, err.Error(), "openssl rand -base64 32")
+			assert.Contains(t, err.Error(), "keep SECRET_KEY unchanged")
+		}
+	})
+
+	t.Run("short PASETO_PRIVATE_KEY names the variable", func(t *testing.T) {
+		setKeyEnv(t, "", "short-paseto-key", "")
+
+		_, err := LoadWithOptions(LoadOptions{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY is too short to sign with")
+		assert.Contains(t, err.Error(), "keep PASETO_PRIVATE_KEY unchanged")
+	})
+
+	t.Run("short SECRET_KEY with a SIGNING_KEY loads", func(t *testing.T) {
+		signingKey := freshBase64Key(t)
+		setKeyEnv(t, "abc123#xyz789", "", signingKey)
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.Equal(t, "abc123#xyz789", cfg.Security.SecretKey, "it still decrypts stored data")
+		assert.Equal(t, signingKey, cfg.Security.SigningKey)
+	})
+
+	t.Run("SECRET_KEY of exactly 32 bytes signs without SIGNING_KEY", func(t *testing.T) {
+		setKeyEnv(t, strings.Repeat("k", 32), "", "")
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.Equal(t, strings.Repeat("k", 32), cfg.Security.SigningKey)
+	})
+
 	t.Run("without SIGNING_KEY a raw SECRET_KEY signs exactly as before", func(t *testing.T) {
 		secretKey := " raw-secret-key-0123456789abcdefghij "
 		setKeyEnv(t, secretKey, "", "")

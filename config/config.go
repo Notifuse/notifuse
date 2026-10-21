@@ -620,7 +620,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		return nil, fmt.Errorf("SECRET_KEY (or PASETO_PRIVATE_KEY for backward compatibility) must be set")
 	}
 
-	signingKey, signingKeyVar, err := resolveSigningKey(secretKey, secretKeyVar, v.GetString("SIGNING_KEY"))
+	signingKey, err := resolveSigningKey(secretKey, secretKeyVar, v.GetString("SIGNING_KEY"))
 	if err != nil {
 		return nil, err
 	}
@@ -724,12 +724,6 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	}
 
 	jwtSecret := deriveJWTSecret(signingKey)
-
-	// Warn if secret is less than recommended length
-	if len(jwtSecret) < 32 {
-		fmt.Fprintf(os.Stderr, "⚠️  WARNING: %s is only %d bytes. For production use, it should be at least 32 bytes (256 bits) for secure JWT signing.\n", signingKeyVar, len(jwtSecret))
-		fmt.Fprintf(os.Stderr, "   Generate a secure key with: openssl rand -base64 32\n")
-	}
 
 	// Load config values with database override logic
 	var rootEmail, apiEndpoint string

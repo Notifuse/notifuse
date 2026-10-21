@@ -250,3 +250,15 @@ func isConsoleSession(ctx context.Context) bool {
 	userType, _ := ctx.Value(domain.UserTypeKey).(string)
 	return userType == string(domain.UserTypeUser)
 }
+
+// sessionCheckStatus is the answer to a session that failed verification. Only a
+// genuine authentication failure answers 401: the console treats any 401 as "your
+// session is gone", deletes the stored token and redirects to the sign-in page,
+// discarding the current URL. A database blip must not have that effect, so it
+// answers 500 and leaves the caller signed in.
+func sessionCheckStatus(err error) int {
+	if errors.Is(err, domain.ErrSessionAuthFailed) {
+		return http.StatusUnauthorized
+	}
+	return http.StatusInternalServerError
+}

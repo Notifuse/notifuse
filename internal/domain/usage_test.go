@@ -11,13 +11,14 @@ import (
 )
 
 func TestUsageSigningKey(t *testing.T) {
-	t.Run("is derived from SECRET_KEY, never equal to it", func(t *testing.T) {
+	t.Run("is derived from the signing key, never equal to it", func(t *testing.T) {
 		secret := "s3cr3t-key-value"
 		key := UsageSigningKey(secret)
 
 		require.Len(t, key, 32, "HMAC-SHA256 output")
-		// The point of deriving: SECRET_KEY also signs JWTs and encrypts the
-		// database, so a leaked usage key must not be that value.
+		// The point of deriving: the signing key also signs JWTs (and, when it is
+		// SECRET_KEY, encrypts the database), so a leaked usage key must not be that
+		// value.
 		assert.NotEqual(t, secret, string(key))
 		assert.NotContains(t, string(key), secret)
 	})

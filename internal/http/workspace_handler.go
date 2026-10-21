@@ -963,9 +963,10 @@ func (h *WorkspaceHandler) handleVerifyInvitationToken(w http.ResponseWriter, r 
 		return
 	}
 
-	// The stored expiry is authoritative, as it is when the invitation is accepted.
+	// The stored expiry is authoritative, as it is when the invitation is accepted,
+	// and answered the same way: 404, because the console signs out on any 401.
 	if !time.Now().Before(invitation.ExpiresAt) {
-		WriteJSONError(w, "Invalid or expired invitation token", http.StatusUnauthorized)
+		WriteJSONError(w, "Invitation not found or no longer valid", http.StatusNotFound)
 		return
 	}
 
