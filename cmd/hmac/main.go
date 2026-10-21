@@ -1,10 +1,10 @@
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
 	"fmt"
 	"os"
+
+	"github.com/Notifuse/notifuse/internal/domain"
 )
 
 func main() {
@@ -17,19 +17,12 @@ func main() {
 	email := os.Args[1]
 	signingKey := os.Args[2]
 
-	result := emailHMAC(email, signingKey)
+	// The same HMAC /api/demo.reset verifies.
+	result := domain.ComputeEmailHMAC(email, signingKey)
 
 	fmt.Println()
 	fmt.Printf("Root Email: %s\n", email)
 	fmt.Printf("HMAC: %s\n", result)
 	fmt.Println()
 	fmt.Printf("Reset URL: /api/demo.reset?hmac=%s\n", result)
-}
-
-// emailHMAC is the hex HMAC-SHA256 of email under signingKey, as /api/demo.reset
-// verifies it.
-func emailHMAC(email, signingKey string) string {
-	h := hmac.New(sha256.New, []byte(signingKey))
-	h.Write([]byte(email))
-	return fmt.Sprintf("%x", h.Sum(nil))
 }

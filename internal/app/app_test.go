@@ -20,6 +20,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
+	pkgCrypto "github.com/Notifuse/notifuse/pkg/crypto"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/mailer"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
@@ -597,6 +598,50 @@ func TestAppInitServicesSubscribesAnnotationServiceToEventBus(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("annotation service is not subscribed to broadcast.sending_started")
 	}
+}
+
+// TestAppInitServicesSealsOIDCFlowStateWithSigningKey pins the OIDC flow-state
+// cookie to the signing key. The cookie is sealed and opened by the same service,
+// so a wiring that handed it SECRET_KEY instead would pass every round trip.
+func TestAppInitServicesSealsOIDCFlowStateWithSigningKey(t *testing.T) {
+	mockDB, _, err := setupTestDBMock()
+	require.NoError(t, err)
+	defer func() { _ = mockDB.Close() }()
+
+	cfg := createTestConfig()
+	require.NotEqual(t, cfg.Security.SecretKey, cfg.Security.SigningKey)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Fatal(gomock.Any()).AnyTimes()
+
+	app := NewApp(cfg, WithLogger(mockLogger), WithMockDB(mockDB))
+
+	err = pkgDatabase.InitializeConnectionManager(cfg, mockDB)
+	require.NoError(t, err)
+	defer pkgDatabase.ResetConnectionManager()
+
+	require.NoError(t, app.InitRepositories())
+	require.NoError(t, app.InitServices())
+
+	appImpl, ok := app.(*App)
+	require.True(t, ok, "app should be *App")
+
+	sealed, err := appImpl.oidcService.SealFlowState(domain.OIDCFlowState{Nonce: "nonce"})
+	require.NoError(t, err)
+
+	_, err = pkgCrypto.DecryptFromHexString(sealed, cfg.Security.SigningKey)
+	assert.NoError(t, err, "the flow state must open with the signing key")
+	_, err = pkgCrypto.DecryptFromHexString(sealed, cfg.Security.SecretKey)
+	assert.Error(t, err, "the flow state must not open with the encryption key")
 }
 
 // TestAppInitSupabaseService tests that the Supabase service is properly initialized and linked

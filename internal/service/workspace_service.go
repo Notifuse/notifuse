@@ -1596,7 +1596,7 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 	// values exactly, so any difference means the token was not issued for this row.
 	if invitation.WorkspaceID != workspaceID || invitation.Email != email || !time.Now().Before(invitation.ExpiresAt) {
 		s.logger.WithField("invitation_id", invitationID).WithField("workspace_id", workspaceID).Warn("Invitation token does not match a live invitation")
-		return nil, domain.ErrInvalidInvitation
+		return nil, domain.ErrInvitationUnavailable
 	}
 
 	// Check if user already exists. Case-insensitive: an invitee who signed in with SSO first
@@ -1614,7 +1614,7 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 		// API key accounts carry an email of their own but are not people: an
 		// invitation must not open a session for one.
 		s.logger.WithField("invitation_id", invitationID).WithField("user_id", existingUser.ID).Warn("Invitation addressed to an account that is not a user")
-		return nil, domain.ErrInvalidInvitation
+		return nil, domain.ErrInvitationUnavailable
 	}
 	if err != nil {
 		// User doesn't exist, create a new one
@@ -1742,8 +1742,8 @@ func (s *WorkspaceService) ensureSeat(ctx context.Context, workspaceID, email st
 }
 
 // isSessionUser reports whether the request is a person's console session rather than an
-// API key. It reads the token's type claim, which the auth middleware puts in the context:
-// the users row AuthenticateUserFromContext loads does not carry the type.
+// API key. It reads the token's type claim, which the auth middleware puts in the context
+// and AuthenticateUserFromContext holds to the account's own type.
 func isSessionUser(ctx context.Context) bool {
 	userType, _ := ctx.Value(domain.UserTypeKey).(string)
 	return userType == string(domain.UserTypeUser)

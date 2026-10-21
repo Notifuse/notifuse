@@ -1033,8 +1033,10 @@ func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http
 			WriteJSONError(w, limitErr.Error(), http.StatusForbidden)
 			return
 		}
-		if errors.Is(err, domain.ErrInvalidInvitation) {
-			WriteJSONError(w, "Invalid or expired invitation token", http.StatusUnauthorized)
+		// 404 like joinInvitation, not 401: the console treats any 401 as a lost
+		// session and would sign out a user who opened the link while signed in.
+		if errors.Is(err, domain.ErrInvitationUnavailable) {
+			WriteJSONError(w, "Invitation not found or no longer valid", http.StatusNotFound)
 			return
 		}
 		h.logger.WithField("invitation_id", invitationID).WithField("workspace_id", workspaceID).WithField("email", email).WithField("error", err.Error()).Error("Failed to accept invitation")

@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"net/mail"
 	"testing"
 	"time"
@@ -47,12 +48,68 @@ func TestSMTPBridgeHandlerService_Authenticate_Success(t *testing.T) {
 	rl.SetPolicy("smtp", 5, 1*time.Minute)
 	defer rl.Stop()
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	service := NewSMTPBridgeHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
+	authService := newBridgeAuthService(ctrl, &domain.User{ID: "api-user-123", Email: apiEmail, Type: domain.UserTypeAPIKey}, nil)
+	service := NewSMTPBridgeHandlerService(authService, nil, mockRepo, log, jwtSecret, rl)
 
 	userID, err := service.Authenticate(apiEmail, apiKey)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "api-user-123", userID)
+}
+
+// newBridgeAuthService returns an auth service whose repository answers the account
+// lookup for the bridge's token with user, or with err.
+func newBridgeAuthService(ctrl *gomock.Controller, user *domain.User, err error) *AuthService {
+	authRepo := mocks.NewMockAuthRepository(ctrl)
+	authRepo.EXPECT().GetUserByID(gomock.Any(), gomock.Any()).Return(user, err)
+	return NewAuthService(AuthServiceConfig{
+		Repository: authRepo,
+		GetSecret:  func() ([]byte, error) { return []byte("test-secret-key-for-jwt-signing-minimum-32-chars"), nil },
+		Logger:     logger.NewLogger(),
+	})
+}
+
+// An API key token only authenticates the API key account it names, as on the HTTP
+// API: not a person's account it names instead, and not an account that is gone.
+func TestSMTPBridgeHandlerService_Authenticate_AccountMustBeAnAPIKey(t *testing.T) {
+	jwtSecret := []byte("test-secret-key-for-jwt-signing-minimum-32-chars")
+	apiEmail := "owner@example.com"
+	claims := UserClaims{
+		UserID: "owner-123",
+		Email:  apiEmail,
+		Type:   string(domain.UserTypeAPIKey),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	apiKey, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(jwtSecret)
+	require.NoError(t, err)
+
+	cases := []struct {
+		name string
+		user *domain.User
+		err  error
+	}{
+		{name: "token names a user account", user: &domain.User{ID: "owner-123", Email: apiEmail, Type: domain.UserTypeUser}},
+		{name: "account no longer exists", err: sql.ErrNoRows},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			rl := ratelimiter.NewRateLimiter()
+			rl.SetPolicy("smtp", 5, 1*time.Minute)
+			defer rl.Stop()
+			service := NewSMTPBridgeHandlerService(newBridgeAuthService(ctrl, tc.user, tc.err), nil,
+				mocks.NewMockWorkspaceRepository(ctrl), logger.NewLogger(), jwtSecret, rl)
+
+			userID, err := service.Authenticate(apiEmail, apiKey)
+
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "invalid API key")
+			assert.Empty(t, userID)
+		})
+	}
 }
 
 func TestSMTPBridgeHandlerService_Authenticate_InvalidToken(t *testing.T) {
@@ -133,7 +190,8 @@ func TestSMTPBridgeHandlerService_Authenticate_NoWorkspaceAccess(t *testing.T) {
 	rl.SetPolicy("smtp", 5, 1*time.Minute)
 	defer rl.Stop()
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	service := NewSMTPBridgeHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
+	authService := newBridgeAuthService(ctrl, &domain.User{ID: "api-user-123", Email: apiEmail, Type: domain.UserTypeAPIKey}, nil)
+	service := NewSMTPBridgeHandlerService(authService, nil, mockRepo, log, jwtSecret, rl)
 
 	userID, err := service.Authenticate(apiEmail, apiKey)
 

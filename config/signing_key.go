@@ -8,13 +8,17 @@ import (
 	"strings"
 )
 
-// The SECRET_KEY value compose.yaml shipped as its default before 42.0, recognised
-// by digest so this file carries no copy of it: the SHA-256 of the string, and of
-// the 64 bytes it base64-decodes to. The second catches the same key written another
-// way (unpadded, URL alphabet, wrapped, raw), all of which derive the same JWT secret.
+// Key values Notifuse itself has published, recognised by digest so this file
+// carries no copy of them:
+//   - the SECRET_KEY compose.yaml provided by default before 42.0, by the SHA-256 of
+//     the string and of the 64 bytes it base64-decodes to. The second catches the
+//     same key written another way: unpadded, in the URL alphabet, wrapped over
+//     lines, or as its raw bytes;
+//   - the SECRET_KEY placeholder env.example carried before 42.0.
 const (
-	formerComposeDefaultDigest      = "1a792822151257d08abb381ce0a056f9525c48f87ecd6eda5124e4be116958d1"
-	formerComposeDefaultBytesDigest = "c7bb0efe1226741284609648323b4a4e824ce34a5f2467ab359fec0632c0bf61"
+	formerComposeDefaultDigest        = "1a792822151257d08abb381ce0a056f9525c48f87ecd6eda5124e4be116958d1"
+	formerComposeDefaultBytesDigest   = "c7bb0efe1226741284609648323b4a4e824ce34a5f2467ab359fec0632c0bf61"
+	formerEnvExamplePlaceholderDigest = "55a2aa619c852bbc2a756b83696b60ab1b91ab7163f3e0d8463da815fb93a268"
 )
 
 func sha256Hex(b []byte) string {
@@ -22,11 +26,12 @@ func sha256Hex(b []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// isFormerComposeDefault reports whether key is the SECRET_KEY value compose.yaml
-// used to ship as its default, in any of the spellings that decode to it.
-func isFormerComposeDefault(key string) bool {
+// isPublishedKey reports whether key is one of the key values Notifuse has
+// published, in any of the spellings that decode to it.
+func isPublishedKey(key string) bool {
 	trimmed := strings.TrimSpace(key)
-	if sha256Hex([]byte(trimmed)) == formerComposeDefaultDigest {
+	switch sha256Hex([]byte(trimmed)) {
+	case formerComposeDefaultDigest, formerEnvExamplePlaceholderDigest:
 		return true
 	}
 
@@ -47,22 +52,24 @@ func isFormerComposeDefault(key string) bool {
 
 // resolveSigningKey returns the key the installation signs with: SIGNING_KEY,
 // trimmed, when it is set, else secretKey unchanged, so an installation that never
-// set SIGNING_KEY keeps every signature it has issued. It refuses the former compose
-// default, which is public.
+// set SIGNING_KEY keeps every signature it has issued. It refuses a published key,
+// which anyone can sign with.
 func resolveSigningKey(secretKey, signingKeyEnv string) (string, error) {
 	if signingKey := strings.TrimSpace(signingKeyEnv); signingKey != "" {
-		if isFormerComposeDefault(signingKey) {
-			return "", fmt.Errorf("SIGNING_KEY is the SECRET_KEY value compose.yaml used to ship as its default, " +
-				"which Notifuse no longer accepts for signing. Generate a new one with: openssl rand -base64 32")
+		if isPublishedKey(signingKey) {
+			return "", fmt.Errorf("SIGNING_KEY is a value published with Notifuse (the former compose.yaml " +
+				"default SECRET_KEY or the env.example placeholder), which Notifuse does not accept for signing. " +
+				"Generate a new one with: openssl rand -base64 32")
 		}
 		return signingKey, nil
 	}
 
-	if isFormerComposeDefault(secretKey) {
-		return "", fmt.Errorf("SIGNING_KEY must be set: SECRET_KEY is the value compose.yaml used to ship as its default, " +
-			"which Notifuse no longer accepts for signing. Generate a signing key with: openssl rand -base64 32, " +
-			"set it as SIGNING_KEY, and keep SECRET_KEY unchanged because it decrypts your stored data. " +
-			"Users will have to sign in again, and API keys must be recreated")
+	if isPublishedKey(secretKey) {
+		return "", fmt.Errorf("SIGNING_KEY must be set: SECRET_KEY is a value published with Notifuse (the former " +
+			"compose.yaml default or the env.example placeholder), which Notifuse does not accept for signing. " +
+			"Generate a signing key with: openssl rand -base64 32, set it as SIGNING_KEY, and keep SECRET_KEY " +
+			"unchanged because it decrypts your stored data. Users will have to sign in again, and API keys " +
+			"must be recreated")
 	}
 	return secretKey, nil
 }

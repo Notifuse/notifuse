@@ -393,6 +393,29 @@ func generateID() string {
 	return uuid.New().String()
 }
 
+// startSession opens a session for userID that lasts expiry, as a sign-in does, without
+// issuing a token for it: for server-side work that acts as that user.
+func (s *UserService) startSession(ctx context.Context, userID string, expiry time.Duration) (*domain.Session, error) {
+	session := &domain.Session{
+		ID:        generateID(),
+		UserID:    userID,
+		ExpiresAt: time.Now().Add(expiry),
+		CreatedAt: time.Now(),
+	}
+	if err := s.repo.CreateSession(ctx, session); err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+	return session, nil
+}
+
+// endSession closes a session startSession opened, once the work it served is done.
+func (s *UserService) endSession(ctx context.Context, sessionID string) error {
+	if err := s.repo.DeleteSession(ctx, sessionID); err != nil {
+		return fmt.Errorf("failed to delete session: %w", err)
+	}
+	return nil
+}
+
 // VerifyUserSession verifies a user session and returns the associated user
 func (s *UserService) VerifyUserSession(ctx context.Context, userID string, sessionID string) (*domain.User, error) {
 	result, err := s.tracer.TraceMethodWithResultAny(ctx, "UserService", "VerifyUserSession", func(ctx context.Context) (interface{}, error) {

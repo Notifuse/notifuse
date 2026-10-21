@@ -191,6 +191,94 @@ func TestNewDemoService_Constructs(t *testing.T) {
 	assert.NotNil(t, svc)
 }
 
+func TestDemoService_RootContext(t *testing.T) {
+	newDemoService := func(userRepo domain.UserRepository) *DemoService {
+		userService, err := NewUserService(UserServiceConfig{
+			Repository: userRepo,
+			Logger:     logger.NewLoggerWithLevel("disabled"),
+		})
+		require.NoError(t, err)
+		return &DemoService{logger: logger.NewLoggerWithLevel("disabled"), userService: userService}
+	}
+
+	t.Run("a root person acts through a session of its own, closed at the end", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		userRepo := domainmocks.NewMockUserRepository(ctrl)
+		root := &domain.User{ID: "root-id", Email: "root@example.com", Type: domain.UserTypeUser}
+
+		var session *domain.Session
+		userRepo.EXPECT().CreateSession(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, s *domain.Session) error {
+				session = s
+				return nil
+			})
+
+		ctx, end, err := newDemoService(userRepo).rootContext(context.Background(), root)
+		require.NoError(t, err)
+		require.NotNil(t, session)
+		assert.Equal(t, root.ID, session.UserID)
+		assert.True(t, session.ExpiresAt.After(time.Now()))
+		assert.Equal(t, root.ID, ctx.Value(domain.UserIDKey))
+		assert.Equal(t, string(domain.UserTypeUser), ctx.Value(domain.UserTypeKey))
+		assert.Equal(t, session.ID, ctx.Value(domain.SessionIDKey))
+
+		// The context authenticates the way a signed-in console does.
+		authRepo := domainmocks.NewMockAuthRepository(ctrl)
+		authRepo.EXPECT().GetSessionByID(gomock.Any(), session.ID, root.ID).Return(&session.ExpiresAt, nil)
+		authRepo.EXPECT().GetUserByID(gomock.Any(), root.ID).Return(root, nil)
+		authService := NewAuthService(AuthServiceConfig{Repository: authRepo, Logger: logger.NewLoggerWithLevel("disabled")})
+
+		user, err := authService.AuthenticateUserFromContext(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, root.ID, user.ID)
+
+		userRepo.EXPECT().DeleteSession(gomock.Any(), session.ID).Return(nil)
+		end()
+	})
+
+	t.Run("a session that cannot be closed only logs", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		userRepo := domainmocks.NewMockUserRepository(ctrl)
+		userRepo.EXPECT().CreateSession(gomock.Any(), gomock.Any()).Return(nil)
+		userRepo.EXPECT().DeleteSession(gomock.Any(), gomock.Any()).Return(assert.AnError)
+
+		_, end, err := newDemoService(userRepo).rootContext(context.Background(),
+			&domain.User{ID: "root-id", Type: domain.UserTypeUser})
+		require.NoError(t, err)
+		assert.NotPanics(t, end)
+	})
+
+	t.Run("a root API key account keeps its own type and opens no session", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		userRepo := domainmocks.NewMockUserRepository(ctrl)
+		root := &domain.User{ID: "root-key-id", Type: domain.UserTypeAPIKey}
+
+		ctx, end, err := newDemoService(userRepo).rootContext(context.Background(), root)
+		require.NoError(t, err)
+		assert.Equal(t, string(domain.UserTypeAPIKey), ctx.Value(domain.UserTypeKey))
+		assert.Nil(t, ctx.Value(domain.SessionIDKey))
+		end() // no session to close: the strict mock refuses any call
+	})
+
+	t.Run("a session that cannot be opened stops the seed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		userRepo := domainmocks.NewMockUserRepository(ctrl)
+		userRepo.EXPECT().CreateSession(gomock.Any(), gomock.Any()).Return(assert.AnError)
+
+		_, _, err := newDemoService(userRepo).rootContext(context.Background(),
+			&domain.User{ID: "root-id", Type: domain.UserTypeUser})
+		require.ErrorIs(t, err, assert.AnError)
+	})
+}
+
 func TestDemoService_ResetDemo_DeleteAllError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

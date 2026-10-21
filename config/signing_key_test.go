@@ -11,8 +11,12 @@ import (
 )
 
 // formerComposeDefault is the SECRET_KEY value compose.yaml shipped as its default
-// before 42.0. Notifuse must refuse to sign with it.
-const formerComposeDefault = "d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA=="
+// before 42.0, and formerEnvExamplePlaceholder the one env.example carried. Notifuse
+// must refuse to sign with either.
+const (
+	formerComposeDefault        = "d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA=="
+	formerEnvExamplePlaceholder = "your-secret-key-here"
+)
 
 func freshBase64Key(t *testing.T) string {
 	t.Helper()
@@ -22,8 +26,8 @@ func freshBase64Key(t *testing.T) string {
 	return base64.StdEncoding.EncodeToString(b)
 }
 
-// setKeyEnv sets the three key variables for one test; an empty value leaves the
-// variable effectively unset.
+// setKeyEnv sets the key variables for one test; an empty value leaves a variable
+// effectively unset.
 func setKeyEnv(t *testing.T, secretKey, pasetoKey, signingKey string) {
 	t.Helper()
 	t.Setenv("SECRET_KEY", secretKey)
@@ -56,6 +60,14 @@ func TestLoad_SigningKey(t *testing.T) {
 		_, err := LoadWithOptions(LoadOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "SIGNING_KEY")
+	})
+
+	t.Run("former env.example placeholder as SECRET_KEY without SIGNING_KEY is refused", func(t *testing.T) {
+		setKeyEnv(t, formerEnvExamplePlaceholder, "", "")
+
+		_, err := LoadWithOptions(LoadOptions{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "SIGNING_KEY must be set")
 	})
 
 	t.Run("former compose default as SIGNING_KEY is refused", func(t *testing.T) {
@@ -123,24 +135,25 @@ func TestLoad_SigningKey(t *testing.T) {
 	})
 }
 
-func TestIsFormerComposeDefault(t *testing.T) {
+func TestIsPublishedKey(t *testing.T) {
 	decoded, err := base64.StdEncoding.DecodeString(formerComposeDefault)
 	require.NoError(t, err)
 
 	wrapped := formerComposeDefault[:40] + "\n" + formerComposeDefault[40:76] + "\r\n" + formerComposeDefault[76:]
 
 	recognised := map[string]string{
-		"as shipped":             formerComposeDefault,
-		"surrounding whitespace": "\t" + formerComposeDefault + " \n",
-		"without padding":        strings.TrimRight(formerComposeDefault, "="),
-		"url alphabet":           base64.URLEncoding.EncodeToString(decoded),
-		"url alphabet unpadded":  base64.RawURLEncoding.EncodeToString(decoded),
-		"wrapped over lines":     wrapped,
-		"raw decoded bytes":      string(decoded),
+		"as shipped":              formerComposeDefault,
+		"surrounding whitespace":  "\t" + formerComposeDefault + " \n",
+		"without padding":         strings.TrimRight(formerComposeDefault, "="),
+		"url alphabet":            base64.URLEncoding.EncodeToString(decoded),
+		"url alphabet unpadded":   base64.RawURLEncoding.EncodeToString(decoded),
+		"wrapped over lines":      wrapped,
+		"raw decoded bytes":       string(decoded),
+		"env.example placeholder": formerEnvExamplePlaceholder,
 	}
 	for name, key := range recognised {
 		t.Run("recognises "+name, func(t *testing.T) {
-			assert.True(t, isFormerComposeDefault(key))
+			assert.True(t, isPublishedKey(key))
 		})
 	}
 
@@ -155,7 +168,7 @@ func TestIsFormerComposeDefault(t *testing.T) {
 	}
 	for name, key := range others {
 		t.Run("ignores "+name, func(t *testing.T) {
-			assert.False(t, isFormerComposeDefault(key))
+			assert.False(t, isPublishedKey(key))
 		})
 	}
 }

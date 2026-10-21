@@ -6,8 +6,8 @@ Target: 42.0 (unreleased). No database migration.
 
 1. Signing gets its own key, `SIGNING_KEY`, separate from `SECRET_KEY`, which keeps encrypting stored data.
    An installation can then stop signing with a key without re-encrypting anything.
-2. Notifuse refuses to start when it would sign with the `SECRET_KEY` value that `compose.yaml` used to
-   ship as a default.
+2. Notifuse refuses to start when it would sign with a key value Notifuse itself published: the
+   `SECRET_KEY` that `compose.yaml` used to ship as a default, or the `env.example` placeholder.
 3. `compose.yaml` requires `SECRET_KEY`, as `compose.alloydb.yaml` already does.
 4. A token authenticates only the kind of user it was issued for: an API key token an API key user, a
    session token a regular user.
@@ -32,16 +32,17 @@ key needs none: stored data stays readable, and only signatures change.
   - Unset → `SigningKey = SecretKey`, byte for byte. Nothing changes for an installation that never set it:
     its sessions, API keys and signatures stay valid. `SecretKey` itself is never modified, since it
     decrypts stored data.
-  - The resolved `SigningKey` is the compose default → `Load` returns an error naming `SIGNING_KEY`, telling
+  - The resolved `SigningKey` is a published value → `Load` returns an error naming `SIGNING_KEY`, telling
     the operator to generate one with `openssl rand -base64 32`, to keep `SECRET_KEY` as it is because it
     decrypts stored data, and that existing sessions and API keys stop working. This covers `SECRET_KEY`,
     `PASETO_PRIVATE_KEY` and `SIGNING_KEY` set to that value.
-- "Is the compose default" means either:
-  - the trimmed string has the default's SHA-256 digest; or
+- "Is a published value" means either:
+  - the trimmed string has the SHA-256 digest of the compose default or of the `env.example` placeholder
+    (`your-secret-key-here`); or
   - the key's bytes, or the bytes any standard base64 alphabet (padded or not, whitespace removed) decodes
     it to, have the SHA-256 digest of the default's decoded bytes. This catches the same key re-encoded,
     stripped of its padding, or given raw, all of which would derive the same `JWTSecret`.
-- Both digests are kept as hex constants, so the code carries no key literal.
+- The digests are kept as hex constants, so the code carries no key literal.
 
 ## 2. Signing consumers move to `SigningKey`
 
@@ -56,6 +57,8 @@ Signing or integrity uses, moved:
 | Usage read signatures | `NewUsageHandler` |
 | Demo root email HMAC | `DemoService.VerifyRootEmailHMAC` |
 
+`domain.VerifyEmailHMAC`, which the demo HMAC and the notification center use, compares in constant time.
+
 Encryption uses, unchanged on `SecretKey`: `WorkspaceRepository`, `SettingService` / `SetupService` /
 `SettingsHandler`, `WorkspaceService` and `WorkspaceHandler` validation (integration secrets),
 migrations v11 and v15, `loadSystemSettings`.
@@ -69,10 +72,12 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
 
 ## 3. Compose
 
-- `compose.yaml`: `SECRET_KEY` becomes `${SECRET_KEY:?…}` with a message that gives the generation command,
-  quoted so YAML does not read the colon.
+- `compose.yaml`: `SECRET_KEY` becomes `${SECRET_KEY:?…}`, quoted so YAML does not read the colon. The
+  message tells an existing installation to keep the value it runs with (pointing to the CHANGELOG) and a
+  new one to generate a key with `openssl rand -base64 32`.
 - Both compose files pass `SIGNING_KEY=${SIGNING_KEY:-}` through. An empty value means unset.
-- `env.example` documents `SIGNING_KEY`.
+- `env.example` leaves `SECRET_KEY` empty with the generation command beside it, and documents
+  `SIGNING_KEY`.
 
 ## 4. Token type check (`auth_repository.go`, `auth_service.go`)
 
@@ -83,20 +88,27 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
   the same answer as for a session naming a user that does not exist.
 - `UserService.VerifyUserSession` (used by `/api/user.me`) applies the same session rule and wraps the
   refusal in `ErrSessionAuthFailed`, so it answers 401. Its repository already selects `type`.
-- `AuthService.GetUserByID` has no other caller; the console handlers go through `UserService`.
+- The SMTP bridge authenticates with an API key token without going through `AuthenticateUserFromContext`,
+  so it applies the same rule: after the email match, the account the token names must exist and be of
+  type `api_key`.
+- The demo seed acted as root by labelling it an API key, which the rule above refuses. It now opens a
+  session for root through `UserService.startSession`, as a sign-in does, acts through it, and closes it
+  with `UserService.endSession` when the seed is done.
 
 ## 5. Invitation acceptance (`workspace_service.go`, `workspace_handler.go`)
 
 - `WorkspaceService.AcceptInvitation` checks, right after loading the invitation and before any user
   lookup or write: `invitation.WorkspaceID == workspaceID`, `invitation.Email == email` (the comparison
   `handleVerifyInvitationToken` already makes) and `invitation.ExpiresAt` in the future. A mismatch returns
-  a new `domain.ErrInvalidInvitation`; nothing is created.
+  `domain.ErrInvitationUnavailable`; nothing is created.
 - The account lookup and creation use the stored invitation's email. An existing account found by that
   email whose type is not `user` (an API key account) is refused with the same error, as the OIDC sign-in
   and magic code paths already refuse API key accounts.
 - The audit target uses the stored email.
-- `handleAcceptInvitation` answers 401 "Invalid or expired invitation token" for that error, instead of 500.
-  Its response keeps the token's email, which the check above makes equal to the stored one.
+- `handleAcceptInvitation` answers 404 "Invitation not found or no longer valid" for that error, instead of
+  500. Not 401: the console signs the user out on any 401, which would drop a signed-in user who opened a
+  link meant for someone else. Its response keeps the token's email, which the check above makes equal to
+  the stored one.
 - `handleVerifyInvitationToken` also refuses an invitation whose stored `ExpiresAt` has passed (401).
 - `ValidateInvitationToken` parses with `jwt.WithExpirationRequired()`: every invitation token Notifuse
   issues carries `exp`, so a token without one is refused.
@@ -104,10 +116,13 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
 ## 6. CHANGELOG and docs
 
 - One `**Security**` bullet under 42.0 saying what is now refused and checked, with the operator action in
-  bold: an installation whose `SECRET_KEY` is the old compose default sets `SIGNING_KEY` before upgrading.
+  bold: an installation whose `SECRET_KEY` is a published value sets `SIGNING_KEY` before upgrading, and
+  scripts calling `user.rootSignin` or `demo.reset` sign with `SIGNING_KEY`.
+- One `**Fix**` bullet: actions taken with an API key are recorded in the audit log (shipped in 41.0) with
+  the `api_key` actor type, since the auth repository now loads the account type.
 - `make docker-compose-up` runs `docker compose up -d`, so it now needs `SECRET_KEY` in the environment or
   in `.env`, as the documented quick start will say. No CI job runs `compose.yaml`; the integration
-  environment uses `tests/compose.test.yaml`. `env.example` carries a placeholder, not the default.
+  environment uses `tests/compose.test.yaml`.
 - Docs (Notifuse/docs, separate PR to `dev`): installation page (compose quick start writes `.env` with a
   generated `SECRET_KEY`; `SIGNING_KEY` in the variables table; root sign-in example signs with
   `SIGNING_KEY` when set).
@@ -116,19 +131,22 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
 
 | Implementation file | Test file | Cases |
 | --- | --- | --- |
-| `config/config.go` | `config/config_test.go` | default as `SECRET_KEY` without `SIGNING_KEY` refused, error names `SIGNING_KEY`; same through `PASETO_PRIVATE_KEY`; same with surrounding spaces; default as `SIGNING_KEY` refused; default without padding, in the URL alphabet, with embedded newlines, and as raw decoded bytes each refused; default `SECRET_KEY` with a fresh `SIGNING_KEY` loads, `SecretKey` keeps the default, `SigningKey` and `JWTSecret` come from `SIGNING_KEY`; `SIGNING_KEY` with a trailing newline is trimmed; whitespace-only `SIGNING_KEY` counts as unset; no `SIGNING_KEY` and another `SECRET_KEY` gives `SigningKey == SecretKey` and the same `JWTSecret` as before |
+| `config/config.go`, `config/signing_key.go` | `config/signing_key_test.go` | default as `SECRET_KEY` without `SIGNING_KEY` refused, error names `SIGNING_KEY`; same through `PASETO_PRIVATE_KEY`; same with surrounding spaces; default as `SIGNING_KEY` refused; default without padding, in the URL alphabet, with embedded newlines, and as raw decoded bytes each refused; `env.example` placeholder refused; default `SECRET_KEY` with a fresh `SIGNING_KEY` loads, `SecretKey` keeps the default, `SigningKey` and `JWTSecret` come from `SIGNING_KEY`; `SIGNING_KEY` with a trailing newline is trimmed; whitespace-only `SIGNING_KEY` counts as unset; no `SIGNING_KEY` and another `SECRET_KEY` gives `SigningKey == SecretKey` and the same `JWTSecret` as before |
 | `internal/repository/auth_repository.go` | `auth_repository_test.go` | query selects `type`, `Type` is scanned |
 | `internal/service/auth_service.go` | `auth_service_test.go` | API key token naming a regular user refused; naming an API key user accepted; revoked key still answers `ErrAPIKeyRevoked`; session token whose user is an API key user refused; invitation token without `exp` refused |
 | `internal/service/user_service.go` (sessions) | `user_service_test.go` | `VerifyUserSession` for an API key user refused with `ErrSessionAuthFailed`; regular user accepted |
 | `internal/service/user_service.go` | `user_service_test.go` | root sign-in HMAC under the signing key accepted, under a different `SecretKey` refused; magic codes hashed and verified with the signing key |
 | `internal/service/oidc_service.go` | `oidc_service_test.go` | flow state sealed with the signing key opens; sealed with the encryption key does not |
 | `internal/http/task_handler.go`, `usage_handler.go` | their `_test.go` | signature from the signing key accepted, from a different `SecretKey` refused |
-| `internal/service/workspace_service.go` | `workspace_service_test.go` | workspace mismatch, email mismatch (including letter case) and expired invitation each refused with `ErrInvalidInvitation` and no user lookup, creation, membership or session; existing account of type `api_key` refused with no membership or session; existing fixtures carry a stored expiry and account type |
-| `internal/http/workspace_handler.go` | `workspace_handler_test.go` | accept: `ErrInvalidInvitation` answers 401; verify: expired stored invitation answers 401 |
-| `internal/service/demo_service.go` | `demo_service_test.go` | demo reset HMAC verifies under `SigningKey`, not `SecretKey` |
-| `cmd/hmac/main.go` | `cmd/hmac/main_test.go` | helper output verifies under the key it was given and not another |
-| `internal/app/app.go` | `app_test.go` and the integration suite | test config carries a distinct `SigningKey`; the wiring itself is exercised end to end by the harness running on distinct keys |
-| full stack | `tests/integration/signing_key_test.go` | harness on distinct keys: root sign-in and `/api/tasks.execute` signed with `SECRET_KEY` refused, with `SIGNING_KEY` accepted; an API key token naming the owner refused while a real API key works; invitation tokens naming another email or workspace refused, seating nobody and creating no account, while the issued token is accepted |
+| `internal/service/workspace_service.go` | `workspace_service_test.go` | workspace mismatch, email mismatch (including letter case) and expired invitation each refused with `ErrInvitationUnavailable` and no user lookup, creation, membership or session; existing account of type `api_key` refused with no membership or session; existing fixtures carry a stored expiry and account type |
+| `internal/http/workspace_handler.go` | `workspace_handler_test.go` | accept: `ErrInvitationUnavailable` answers 404; verify: expired stored invitation answers 401 |
+| `internal/service/smtp_bridge_handler.go` | `smtp_bridge_handler_test.go` | token naming a regular account refused; token naming a missing account refused; API key account accepted |
+| `internal/domain/contact.go` | `contact_test.go` | existing `VerifyEmailHMAC` cases still pass with the constant-time comparison |
+| `internal/service/demo_service.go` | `demo_service_test.go` | demo reset HMAC verifies under `SigningKey`, not `SecretKey`; a root person gets a session of its own whose context `AuthService` accepts, closed at the end; a session that cannot be closed only logs; a root API key account keeps its type and opens no session; a session that cannot be opened stops the seed |
+| demo reset, full stack | none kept | a full `/api/demo.reset` seeds for more than two minutes, too slow for the suite; run once by hand on the harness, it created the demo workspace as root through the seed's session |
+| `cmd/hmac/main.go` | covered by `domain.ComputeEmailHMAC` tests | the tool calls the same function the server verifies with |
+| `internal/app/app.go` | `app_test.go` and the integration suite | test config carries a distinct `SigningKey`; the OIDC flow state opens with the signing key and not the encryption key; the rest of the wiring is exercised end to end by the harness running on distinct keys |
+| full stack | `tests/integration/signing_key_test.go` | harness on distinct keys: root sign-in, `/api/tasks.execute` and `/api/usage.get` signed with `SECRET_KEY` refused, with `SIGNING_KEY` accepted; an API key token naming the owner refused while a real API key works; invitation tokens naming another email or workspace refused, seating nobody and creating no account, while the issued token is accepted |
 
 ## Test run
 

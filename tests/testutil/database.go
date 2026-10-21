@@ -404,7 +404,7 @@ func (dm *DatabaseManager) runMigrations() error {
 func (dm *DatabaseManager) seedInstallationSettings() error {
 	// Insert or update system settings
 	// Note: api_endpoint is kept empty to trigger direct task execution (no HTTP callbacks)
-	// Note: JWT tokens are signed using SECRET_KEY from environment (not stored in database)
+	// Note: JWT tokens are signed with the signing key from the server config (not stored in database)
 	settingsToInsert := []struct {
 		key   string
 		value string

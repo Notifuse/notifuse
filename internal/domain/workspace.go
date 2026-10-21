@@ -1152,8 +1152,8 @@ var ErrUserNotInWorkspace = errors.New("user is not a member of the workspace")
 // ErrInvitationNotFound is returned (errors.Is-able) when no invitation has the id asked for.
 var ErrInvitationNotFound = errors.New("invitation not found")
 
-// ErrInvitationUnavailable is what a signed-in user is told about an invitation they cannot
-// join: missing, expired, addressed to someone else or offered to an API key all read the
+// ErrInvitationUnavailable is what a user is told about an invitation they cannot join or
+// accept: missing, expired, addressed to someone else or offered to an API key all read the
 // same, so an invitation id is not something to probe with.
 var ErrInvitationUnavailable = errors.New("invitation not found or no longer valid")
 
@@ -1174,11 +1174,6 @@ type ErrWorkspaceNotFound struct {
 func (e *ErrWorkspaceNotFound) Error() string {
 	return fmt.Sprintf("workspace not found: %s", e.WorkspaceID)
 }
-
-// ErrInvalidInvitation is returned when an invitation cannot be accepted: the token
-// names another workspace or email than the stored invitation, the invitation has
-// expired, or its address belongs to an API key account.
-var ErrInvalidInvitation = errors.New("invalid or expired invitation")
 
 // ErrTeamMemberLimitReached is returned when a workspace has reached its team member limit
 type ErrTeamMemberLimitReached struct {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	httpHandler "github.com/Notifuse/notifuse/internal/http"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/tests/testutil"
@@ -67,6 +68,26 @@ func TestSigningKeySeparation(t *testing.T) {
 		assert.NotEqual(t, http.StatusUnauthorized, resp.StatusCode)
 	})
 
+	t.Run("usage reads verify with the signing key only", func(t *testing.T) {
+		readUsage := func(t *testing.T, key string) int {
+			t.Helper()
+			const path = "/api/usage.get"
+			timestamp := time.Now().Unix()
+			req, err := http.NewRequest(http.MethodGet, suite.ServerManager.GetURL()+path, nil)
+			require.NoError(t, err)
+			req.Header.Set(httpHandler.UsageTimestampHeader, fmt.Sprintf("%d", timestamp))
+			req.Header.Set(httpHandler.UsageSignatureHeader,
+				domain.SignUsageRequest(domain.UsageSigningKey(key), timestamp, path))
+			resp, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+			return resp.StatusCode
+		}
+
+		assert.Equal(t, http.StatusUnauthorized, readUsage(t, cfg.Security.SecretKey))
+		assert.Equal(t, http.StatusOK, readUsage(t, cfg.Security.SigningKey))
+	})
+
 	authService := suite.ServerManager.GetApp().GetAuthService().(*service.AuthService)
 	factory := suite.DataFactory
 
@@ -123,11 +144,11 @@ func TestSigningKeySeparation(t *testing.T) {
 		// A validly signed token for the same invitation, but naming an existing account.
 		otherEmail := invited.Invitation
 		otherEmail.Email = owner.Email
-		assert.Equal(t, http.StatusUnauthorized, accept(t, authService.GenerateInvitationToken(&otherEmail)))
+		assert.Equal(t, http.StatusNotFound, accept(t, authService.GenerateInvitationToken(&otherEmail)))
 
 		otherWorkspace := invited.Invitation
 		otherWorkspace.WorkspaceID = workspace.ID
-		assert.Equal(t, http.StatusUnauthorized, accept(t, authService.GenerateInvitationToken(&otherWorkspace)))
+		assert.Equal(t, http.StatusNotFound, accept(t, authService.GenerateInvitationToken(&otherWorkspace)))
 
 		db := suite.DBManager.GetDB()
 		var ownerMemberships, inviteeAccounts int

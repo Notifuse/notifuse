@@ -3096,15 +3096,15 @@ func TestWorkspaceHandler_HandleAcceptInvitation(t *testing.T) {
 		assert.Equal(t, "Failed to accept invitation", response["error"])
 	})
 
-	// A token that does not match its stored invitation is a dead credential, not a
-	// server fault: 401, like a token that fails its signature.
+	// A token that does not match a live invitation is not a server fault. It answers
+	// 404 like joinInvitation: a 401 would sign out a console user who opened the link.
 	t.Run("invitation refused by the service", func(t *testing.T) {
 		authSvc.EXPECT().
 			ValidateInvitationToken("valid-token").
 			Return(invitationID, workspaceID, email, nil)
 		workspaceSvc.EXPECT().
 			AcceptInvitation(gomock.Any(), invitationID, workspaceID, email).
-			Return(nil, fmt.Errorf("accept: %w", domain.ErrInvalidInvitation))
+			Return(nil, fmt.Errorf("accept: %w", domain.ErrInvitationUnavailable))
 
 		body, err := json.Marshal(AcceptInvitationRequest{Token: "valid-token"})
 		require.NoError(t, err)
@@ -3113,10 +3113,10 @@ func TestWorkspaceHandler_HandleAcceptInvitation(t *testing.T) {
 		w := httptest.NewRecorder()
 		handler.handleAcceptInvitation(w, req)
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, http.StatusNotFound, w.Code)
 		var response map[string]string
 		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
-		assert.Equal(t, "Invalid or expired invitation token", response["error"])
+		assert.Equal(t, "Invitation not found or no longer valid", response["error"])
 	})
 
 	t.Run("method not allowed", func(t *testing.T) {

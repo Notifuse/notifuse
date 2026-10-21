@@ -4848,7 +4848,7 @@ func TestWorkspaceService_AcceptInvitation_RefusesTokenNotMatchingInvitation(t *
 
 			resp, err := service.AcceptInvitation(context.Background(), invitationID, tc.workspaceID, tc.email)
 
-			require.ErrorIs(t, err, domain.ErrInvalidInvitation)
+			require.ErrorIs(t, err, domain.ErrInvitationUnavailable)
 			assert.Nil(t, resp)
 		})
 	}
@@ -4863,7 +4863,7 @@ func TestWorkspaceService_AcceptInvitation_RefusesTokenNotMatchingInvitation(t *
 
 		resp, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
 
-		require.ErrorIs(t, err, domain.ErrInvalidInvitation)
+		require.ErrorIs(t, err, domain.ErrInvitationUnavailable)
 		assert.Nil(t, resp)
 	})
 }

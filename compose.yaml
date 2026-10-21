@@ -26,9 +26,11 @@ services:
       - DB_SSLMODE=${DB_SSLMODE:-disable}
 
       # Secret Key (Required) - encrypts stored credentials and, unless SIGNING_KEY
-      # is set, signs sessions and API keys. Set it in .env; generate one with
-      # openssl rand -base64 32, and never change it once data is stored.
-      - SECRET_KEY=${SECRET_KEY:?set SECRET_KEY in .env (generate one with openssl rand -base64 32)}
+      # is set, signs sessions and API keys. Set it in .env and never change it once
+      # data is stored. A new installation generates one with openssl rand -base64 32;
+      # an installation that relied on the default this file provided before 42.0
+      # keeps that value (see the 42.0 entry of CHANGELOG.md).
+      - 'SECRET_KEY=${SECRET_KEY:?set SECRET_KEY in .env. Existing installation, keep the value it runs with (before 42.0 compose.yaml provided one, see CHANGELOG.md). New installation, generate one with openssl rand -base64 32}'
       # Signing Key (Optional) - signs sessions, API keys and root sign-in instead
       # of SECRET_KEY. Empty means SECRET_KEY signs.
       - SIGNING_KEY=${SIGNING_KEY:-}
