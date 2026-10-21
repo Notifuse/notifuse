@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react'
+import React, { useEffect, useCallback, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { useLingui } from '@lingui/react/macro'
 import type { TiptapInlineEditorProps } from './shared/types'
@@ -37,10 +37,13 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
     [onChange, readOnly]
   )
 
+  // Read only when the editor is created; the effect below loads later content
+  const [initialContent] = useState(() => getInitialInlineContent(sanitizeHtml(content)))
+
   const editor = useEditor(
     {
       extensions: createInlineExtensions(),
-      content: getInitialInlineContent(sanitizeHtml(content)),
+      content: initialContent,
       editable: !readOnly,
       editorProps: {
         attributes: {

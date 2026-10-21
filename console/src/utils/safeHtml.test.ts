@@ -9,10 +9,14 @@ describe('sanitizeHtml', () => {
         '<a href="javascript:window.__probe = 1">a</a>' +
         '<a href=" JaVaScRiPt:window.__probe = 1">b</a>' +
         '<a href="&#106;avascript:window.__probe = 1">c</a>' +
+        '<a href="vbscript:x">d</a>' +
+        '<a href="data:text/html,<p>x</p>">e</a>' +
         '<iframe src="https://example.com"></iframe>' +
         '<style>body { display: none }</style></p>'
     )
-    expect(out).not.toMatch(/onclick|onerror|<script|javascript:|<iframe|<style|display: none/i)
+    expect(out).not.toMatch(
+      /onclick|onerror|<script|javascript:|vbscript:|data:|<iframe|<style|display: none/i
+    )
     expect(out).toContain('Hi')
     expect(out).toContain('<img src="x">')
   })
@@ -36,6 +40,32 @@ describe('sanitizeHtml', () => {
     expect(out).toContain('href="mailto:team@example.com"')
     expect(out).toContain('data-inline-doc=""')
     expect(out).toContain('{% if x %}x{% endif %}')
+  })
+
+  it('keeps links that open another app, such as a calendar or a messenger', () => {
+    const out = sanitizeHtml(
+      '<a href="webcal://example.com/cal.ics">cal</a>' +
+        '<a href="whatsapp://send?text=hi">wa</a>' +
+        '<a href="tg://resolve?domain=example">tg</a>' +
+        '<a href="sms:+33100000000">sms</a>'
+    )
+    expect(out).toContain('href="webcal://example.com/cal.ics"')
+    expect(out).toContain('href="whatsapp://send?text=hi"')
+    expect(out).toContain('href="tg://resolve?domain=example"')
+    expect(out).toContain('href="sms:+33100000000"')
+  })
+
+  it('drops form controls and keeps their text', () => {
+    const out = sanitizeHtml(
+      '<form action="https://example.com/x" method="post">Sign in' +
+        '<input name="password" type="password">' +
+        '<select name="s"><option>One</option></select>' +
+        '<textarea name="t">Note</textarea>' +
+        '<button type="submit">Go</button></form>'
+    )
+    expect(out).not.toMatch(/<form|<input|<select|<option|<textarea|<button|action=|password/i)
+    expect(out).toContain('Sign in')
+    expect(out).toContain('Go')
   })
 
   it('returns an empty string for empty input', () => {

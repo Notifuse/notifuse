@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { render, createEvent, fireEvent } from '@testing-library/react'
 import { MjTextBlock } from './MjTextBlock'
 import { MjButtonBlock } from './MjButtonBlock'
 import { MjImageBlock } from './MjImageBlock'
@@ -43,6 +43,29 @@ describe('editor canvas renders block HTML without handlers or script links', ()
     // Only the rendering is cleaned: the block keeps its content as saved.
     expect((block as unknown as { content: string }).content).toBe(content)
     expect(props.onUpdateBlock).not.toHaveBeenCalled()
+  })
+})
+
+describe('a link click on the editor canvas selects the block instead of following the link', () => {
+  it.each([
+    ['mj-text', MjTextBlock],
+    ['mj-button', MjButtonBlock]
+  ])('%s', (type, Block) => {
+    const block = {
+      id: `b-${type}`,
+      type,
+      attributes: {},
+      content: '<p>Buy <a href="https://example.com/x"><strong>now</strong></a></p>'
+    } as unknown as EmailBlock
+    const props = previewProps()
+    const { container } = render(<>{new Block(block).getEdit(props)}</>)
+
+    const target = container.querySelector('a strong') as HTMLElement
+    const click = createEvent.click(target)
+    fireEvent(target, click)
+
+    expect(click.defaultPrevented).toBe(true)
+    expect(props.onSelectBlock).toHaveBeenCalledWith(`b-${type}`)
   })
 })
 

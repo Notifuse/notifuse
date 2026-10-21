@@ -38,6 +38,23 @@ import { safeExternalUrl } from '../../utils/safeHtml'
 
 const { Text } = Typography
 
+// Whether a hostname is one of the web analytics allowed domains, read the way
+// the server reads them for incoming visits: case and spaces ignored, a numeric
+// port dropped, and `*.example.com` covering example.com and its subdomains but
+// never a bare TLD.
+const isTrackedHost = (hostname: string, allowedDomains: string[]): boolean => {
+  const host = hostname.toLowerCase()
+  return allowedDomains.some((entry) => {
+    const allowed = entry.trim().toLowerCase().replace(/^(\[.*\]|[^:]*):\d+$/, '$1')
+    if (!allowed) return false
+    if (allowed.startsWith('*.')) {
+      const wild = allowed.slice(2)
+      return wild.includes('.') && (host === wild || host.endsWith(`.${wild}`))
+    }
+    return host === allowed
+  })
+}
+
 interface ContactTimelineProps {
   entries: ContactTimelineEntry[]
   loading?: boolean
@@ -210,6 +227,10 @@ export function ContactTimeline({
   // the site's origin rather than resolved against it, so `//x/y` is a page of the
   // site as it is for the browser that reported it; anything else the SDK may have
   // been given, a full URL included, is resolved and kept only if it lands there.
+  //
+  // The domain is reported by the visitor's browser too. A workspace that lists
+  // the domains it tracks receives visits from those only, so a domain off the
+  // list names no page of its own and gets no preview.
   const webPageURL = (entry: ContactTimelineEntry): string | null => {
     const path = webChange<string>(entry, 'path')
     if (!path) return null
@@ -220,6 +241,10 @@ export function ContactTimeline({
 
     try {
       const site = new URL(origin)
+      const trackedDomains = workspace?.settings?.web_analytics?.allowed_domains ?? []
+      if (domain && trackedDomains.length > 0 && !isTrackedHost(site.hostname, trackedDomains)) {
+        return null
+      }
       const page = path.startsWith('/') ? new URL(site.origin + path) : new URL(path, site)
       if (page.origin !== site.origin) return null
       return safeExternalUrl(page.toString())

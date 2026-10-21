@@ -355,6 +355,59 @@ describe('ContactTimeline page view header and preview', () => {
 
     expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
   })
+
+  // A workspace that lists the domains it tracks only receives visits from them,
+  // so a domain off that list was never one of its pages.
+  const tracking = (allowedDomains: string[], websiteURL?: string) =>
+    ({
+      settings: {
+        website_url: websiteURL,
+        web_analytics: { enabled: true, allowed_domains: allowedDomains }
+      }
+    }) as never
+
+  it.each([
+    [['www.apple.com'], 'www.apple.com'],
+    [[' WWW.Apple.com '], 'www.apple.com'],
+    [['www.apple.com:443'], 'www.apple.com'],
+    [['*.apple.com'], 'www.apple.com'],
+    [['*.apple.com'], 'apple.com'],
+    [['other.example', 'www.apple.com'], 'www.apple.com']
+  ])('offers a page of a domain the workspace tracks: %j, %s', (allowedDomains, domain) => {
+    render(
+      <ContactTimeline entries={[pageAt('/pricing', domain)]} workspace={tracking(allowedDomains)} />
+    )
+
+    openPreview()
+    expect(
+      within(screen.getByRole('dialog')).getByText(`https://${domain}/pricing`)
+    ).toBeInTheDocument()
+  })
+
+  it.each([
+    [['www.apple.com'], 'other.example'],
+    [['www.apple.com'], 'apple.com'],
+    [['*.apple.com'], 'notapple.com'],
+    [['*.com'], 'other.com']
+  ])('offers no preview of a domain the workspace does not track: %j, %s', (allowed, domain) => {
+    render(<ContactTimeline entries={[pageAt('/pricing', domain)]} workspace={tracking(allowed)} />)
+
+    expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
+  })
+
+  it('still falls back to the workspace website, which its members set', () => {
+    render(
+      <ContactTimeline
+        entries={[pageEntry]}
+        workspace={tracking(['www.apple.com'], 'https://shop.example.com')}
+      />
+    )
+
+    openPreview()
+    expect(
+      within(screen.getByRole('dialog')).getByText('https://shop.example.com/docs/api')
+    ).toBeInTheDocument()
+  })
 })
 
 describe('ContactTimeline web session layout', () => {

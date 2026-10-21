@@ -592,7 +592,11 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
     prevSelectedRef.current = isSelected
   }, [isSelected, handleSave])
 
-  const canvasHtml = React.useMemo(() => sanitizeHtml(localContent), [localContent])
+  // Only shown while the block is not open in its editor, which has its own copy
+  const canvasHtml = React.useMemo(
+    () => (isSelected ? '' : sanitizeHtml(localContent)),
+    [isSelected, localContent]
+  )
 
   // Text content style for TiptapComponent
   const textStyle: React.CSSProperties = {
@@ -657,6 +661,13 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
             <span
               style={{ color: attrs.color }}
               dangerouslySetInnerHTML={{ __html: canvasHtml }}
+              onClick={(e) => {
+                // A link in the button text selects the block, as a click
+                // anywhere else on it does, rather than leaving the editor
+                if ((e.target as HTMLElement).closest('a')) {
+                  e.preventDefault()
+                }
+              }}
             />
           )}
         </div>

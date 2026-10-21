@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react'
+import React, { useEffect, useCallback, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { useLingui } from '@lingui/react/macro'
 import type { TiptapRichEditorProps } from './shared/types'
@@ -36,10 +36,13 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
     [onChange, readOnly]
   )
 
+  // Read only when the editor is created; the effect below loads later content
+  const [initialContent] = useState(() => sanitizeRichContent(sanitizeHtml(content)))
+
   const editor = useEditor(
     {
       extensions: createRichExtensions(),
-      content: sanitizeRichContent(sanitizeHtml(content)),
+      content: initialContent,
       editable: !readOnly,
       editorProps: {
         attributes: {

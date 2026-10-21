@@ -4,15 +4,21 @@ import DOMPurify from 'dompurify'
  * HTML for display in the console page itself, such as a template block on the
  * editor canvas or the content an editor loads.
  *
- * Event handlers, `<script>`, frames and `javascript:` URLs are removed, and so
- * is `<style>`, which would restyle the console around it. Formatting, inline
- * styles, classes, `data-*` attributes, link targets and Liquid (`{{ url }}` in
- * an `href` included) are kept. The saved content is never rewritten: only what
- * is put on screen goes through here.
+ * Event handlers, `<script>`, frames and `javascript:`, `vbscript:` and `data:`
+ * links are removed, and so are `<style>`, which would restyle the console
+ * around it, and form controls, which have no place in an email. Formatting,
+ * inline styles, classes, `data-*` attributes, link targets, links that open
+ * another app (`webcal:`, `whatsapp:`…) and Liquid (`{{ url }}` in an `href`
+ * included) are kept. An editor saves what it loaded, so anything dropped here
+ * that an email may legitimately carry would be lost on the next edit.
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return ''
-  return DOMPurify.sanitize(html, { ADD_ATTR: ['target'], FORBID_TAGS: ['style'] })
+  return DOMPurify.sanitize(html, {
+    ADD_ATTR: ['target'],
+    ALLOW_UNKNOWN_PROTOCOLS: true,
+    FORBID_TAGS: ['style', 'form', 'input', 'button', 'select', 'option', 'textarea']
+  })
 }
 
 /**

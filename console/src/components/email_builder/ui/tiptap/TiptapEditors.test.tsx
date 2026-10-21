@@ -25,14 +25,38 @@ describe('TiptapRichEditor', () => {
       'Hi {{ contact.first_name }} ' +
       '<img src="x" onerror="window.__probe = 1">' +
       '<a href="javascript:window.__probe = 1">bad</a> ' +
-      '<a href="{{ cta_url }}">good</a></p>'
+      '<a href="{{ cta_url }}">good</a> ' +
+      '<a href="webcal://example.com/cal.ics">calendar</a></p>'
     const { container } = render(<TiptapRichEditor content={content} onChange={onChange} />)
 
     const root = await waitFor(() => editorRoot(container))
     await waitFor(() => expect(root.textContent).toContain('Hi {{ contact.first_name }}'))
     expect(handlerAttributes(root)).toEqual([])
-    expect(hrefs(root)).toEqual(['{{ cta_url }}'])
+    expect(hrefs(root)).toEqual(['{{ cta_url }}', 'webcal://example.com/cal.ics'])
     expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('loads content it is given later the same way', async () => {
+    const onChange = vi.fn()
+    const { container, rerender } = render(
+      <TiptapRichEditor content="<p>First</p>" onChange={onChange} />
+    )
+    const root = await waitFor(() => editorRoot(container))
+    await waitFor(() => expect(root.textContent).toBe('First'))
+
+    rerender(
+      <TiptapRichEditor
+        content={
+          '<p onmouseover="window.__probe = 1">Second ' +
+          '<a href="javascript:window.__probe = 1">bad</a></p>'
+        }
+        onChange={onChange}
+      />
+    )
+    await waitFor(() => expect(root.textContent).toContain('Second'))
+    expect(handlerAttributes(root)).toEqual([])
+    expect(hrefs(root)).toEqual([])
+    expect(onChange).not.toHaveBeenCalledWith(expect.stringContaining('Second'))
   })
 })
 
@@ -60,5 +84,28 @@ describe('TiptapInlineEditor', () => {
     expect(hrefs(root).filter((href) => href?.toLowerCase().includes('javascript'))).toEqual([])
     expect(root.querySelector('span[style*="color: red"]')).not.toBeNull()
     expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('loads content it is given later the same way', async () => {
+    const onChange = vi.fn()
+    const { container, rerender } = render(
+      <TiptapInlineEditor content="First" onChange={onChange} />
+    )
+    const root = await waitFor(() => editorRoot(container))
+    await waitFor(() => expect(root.textContent).toBe('First'))
+
+    rerender(
+      <TiptapInlineEditor
+        content={
+          '<span style="color: red" onclick="window.__probe = 1">Second</span> ' +
+          '<img src="x" onerror="window.__probe = 1">'
+        }
+        onChange={onChange}
+      />
+    )
+    await waitFor(() => expect(root.textContent).toContain('Second'))
+    expect(handlerAttributes(root)).toEqual([])
+    expect(root.querySelector('span[style*="color: red"]')).not.toBeNull()
+    expect(onChange).not.toHaveBeenCalledWith(expect.stringContaining('Second'))
   })
 })

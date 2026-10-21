@@ -186,7 +186,6 @@ test.describe('Blog theme preview', () => {
       updated_at: '2024-01-10T00:00:00Z'
     }
     await mockApi(page, 'user.me', { ...mockUserMeResponse, workspaces: [blogWorkspace] })
-    await mockApi(page, 'workspace.get', { workspace: blogWorkspace })
     await mockApi(page, 'blogThemes.list', { themes: [theme], total: 1 })
     await mockApi(page, 'blogThemes.get', { theme })
 

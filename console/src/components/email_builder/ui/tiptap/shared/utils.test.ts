@@ -15,6 +15,21 @@ const spyOnLiveDocument = () => [
   vi.spyOn(document, 'createTextNode')
 ]
 
+// The parent of every node a helper inserts, whichever way it inserts it.
+const spyOnInsertions = () => {
+  const parents: Node[] = []
+  for (const method of ['appendChild', 'insertBefore', 'replaceChild'] as const) {
+    const original = Node.prototype[method] as (this: Node, ...args: Node[]) => Node
+    vi.spyOn(Node.prototype, method).mockImplementation(function (this: Node, ...args: Node[]) {
+      parents.push(this)
+      return original.apply(this, args)
+    } as never)
+  }
+  return parents
+}
+
+const inPage = (node: Node) => (node.ownerDocument ?? node) === document
+
 afterEach(() => {
   vi.restoreAllMocks()
 })
@@ -22,6 +37,7 @@ afterEach(() => {
 describe.each([
   {
     name: 'stripPlainSpans',
+    rewrites: true,
     run: stripPlainSpans,
     input:
       '<p>Hi <span>plain</span> <span style="color: red">red</span> <span class="x"><span>in</span></span> <img src="x"></p>',
@@ -30,6 +46,7 @@ describe.each([
   },
   {
     name: 'convertBlockToInline',
+    rewrites: true,
     run: convertBlockToInline,
     input: '<h1 style="color: red">Title</h1><p>One<br>two</p><div data-x="1">Three</div>',
     expected:
@@ -37,29 +54,33 @@ describe.each([
   },
   {
     name: 'processInlineContent (wrapped)',
+    rewrites: false,
     run: processInlineContent,
     input: '<span data-inline-doc="">Click <strong>here</strong></span>',
     expected: 'Click <strong>here</strong>'
   },
   {
     name: 'processInlineContent (blocks)',
+    rewrites: true,
     run: processInlineContent,
     input: '<p style="text-align: center">Buy</p><p>now</p>',
     expected: '<span style="text-align: center">Buy</span><span>now</span>'
   },
   {
     name: 'getInitialInlineContent (blocks)',
+    rewrites: true,
     run: getInitialInlineContent,
     input: '<p>Hi <span>there</span></p><p><strong>Bold</strong></p>',
     expected: '<span data-inline-doc="">Hi there <strong>Bold</strong></span>'
   },
   {
     name: 'getInitialInlineContent (inline)',
+    rewrites: false,
     run: getInitialInlineContent,
     input: 'Hi <span style="color: red">there</span>',
     expected: '<span data-inline-doc="">Hi <span style="color: red">there</span></span>'
   }
-])('$name', ({ run, input, expected }) => {
+])('$name', ({ run, input, expected, rewrites }) => {
   it('returns the same HTML as before', () => {
     expect(run(input)).toBe(expected)
   })
@@ -70,6 +91,14 @@ describe.each([
     for (const spy of spies) {
       expect(spy).not.toHaveBeenCalled()
     }
+  })
+
+  it('inserts nodes only into a document of its own', () => {
+    const parents = spyOnInsertions()
+    run(input)
+    // A helper that rewrites the markup is seen inserting, so the check below bites
+    expect(parents.length > 0).toBe(rewrites)
+    expect(parents.filter(inPage)).toEqual([])
   })
 })
 

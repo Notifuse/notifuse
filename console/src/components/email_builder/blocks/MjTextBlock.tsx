@@ -458,7 +458,11 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
     prevSelectedRef.current = isSelected
   }, [isSelected, handleSave])
 
-  const canvasHtml = React.useMemo(() => sanitizeHtml(localContent), [localContent])
+  // Only shown while the block is not open in its editor, which has its own copy
+  const canvasHtml = React.useMemo(
+    () => (isSelected ? '' : sanitizeHtml(localContent)),
+    [isSelected, localContent]
+  )
 
   return (
     <div
