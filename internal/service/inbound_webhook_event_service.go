@@ -522,11 +522,13 @@ func (s *InboundWebhookEventService) eventsOfSentEmails(ctx context.Context, wor
 }
 
 // sameAddress reports whether reported, the address a provider gives in an event, is stored,
-// the address the email was sent to. The letter case aside, an international domain can come
-// back in Unicode or in Punycode, and SES reports the address in the form it is sent
-// (encodeEmailAddress), a non-ASCII local part encoded.
+// the address the email was sent to. The letter case and surrounding spaces aside, an
+// international domain can come back in Unicode or in Punycode, and a provider reports the
+// address in the form it was sent: SES's (encodeEmailAddress), a non-ASCII local part
+// encoded, and SparkPost's in sandbox mode, its sink domain appended.
 func sameAddress(stored, reported string) bool {
-	if strings.EqualFold(stored, reported) {
+	stored, reported = strings.TrimSpace(stored), strings.TrimSpace(reported)
+	if strings.EqualFold(stored, reported) || strings.EqualFold(stored+sparkPostSinkSuffix, reported) {
 		return true
 	}
 	if sent, err := encodeEmailAddress(stored); err == nil && strings.EqualFold(sent, reported) {
@@ -754,7 +756,7 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 		if email == "" {
 			return
 		}
-		if key := strings.ToLower(email); !seen[key] && len(recipients) < sesMaxRecipients {
+		if key := strings.ToLower(strings.TrimSpace(email)); !seen[key] && len(recipients) < sesMaxRecipients {
 			seen[key] = true
 			recipients = append(recipients, sesRecipient{email: email, diagnostic: diagnostic})
 		}

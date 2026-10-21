@@ -873,6 +873,9 @@ func TestSameAddress(t *testing.T) {
 		{"a non-ASCII local part encoded, on a domain DNS refuses", "jürgen@my_domain.com", "=?utf-8?q?j=C3=BCrgen?=@My_Domain.com", true},
 		{"another local part on a domain DNS refuses", "jürgen@my_domain.com", "=?utf-8?q?j=C3=BCrg?=@my_domain.com", false},
 		{"two domains DNS tells apart", "user@straße.de", "user@strasse.de", false},
+		{"reported as SparkPost's sandbox sends it", "Jane@Example.com", "jane@example.com.sink.sparkpostmail.com", true},
+		{"another address as SparkPost's sandbox sends it", "jane@example.com", "john@example.com.sink.sparkpostmail.com", false},
+		{"reported with spaces around it", "jane@example.com", " jane@example.com\u00a0", true},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			assert.Equal(t, c.same, sameAddress(c.stored, c.reported))

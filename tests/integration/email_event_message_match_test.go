@@ -332,6 +332,16 @@ func TestEmailEventMessageMatch(t *testing.T) {
 		assert.Empty(t, storedFor(t, unknownID))
 		assert.Zero(t, timelineEventsOf(t, victim))
 	})
+
+	t.Run("a SparkPost bounce of an email sent in sandbox mode, to the address with the sink domain: the contact is bounced", func(t *testing.T) {
+		recipient := newContact(t, "sparkpost-sandbox")
+		messageID := sendTo(t, recipient)
+
+		postSESNotification(t, client, sparkPostURL, sparkPostBatch(sparkPostBounce(messageID, recipient+".sink.sparkpostmail.com")))
+
+		assert.Equal(t, domain.ContactListStatusBounced, statusOf(t, recipient))
+		assert.Equal(t, []string{recipient}, storedFor(t, messageID))
+	})
 }
 
 // sesDeliveryPayload builds an SNS-wrapped SES delivery notification naming the Notifuse
