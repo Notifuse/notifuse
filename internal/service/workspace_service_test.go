@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"regexp"
 	"testing"
 	"time"
@@ -4805,29 +4806,46 @@ func TestWorkspaceService_AcceptInvitation_RefusesTokenNotMatchingInvitation(t *
 		}
 	}
 
+	// A refused attempt is recorded in the invitation's own workspace, with the reason
+	// the response does not give.
+	assertAudited := func(t *testing.T, record *domain.AuditRecord, reason string) {
+		t.Helper()
+		event, skipped := record.Finalize(http.StatusNotFound)
+		require.False(t, skipped)
+		assert.Equal(t, workspaceID, event.WorkspaceID)
+		assert.Equal(t, domain.AuditTargetInvitation, event.TargetType)
+		assert.Equal(t, invitationID, event.TargetID)
+		assert.Equal(t, domain.AuditOutcomeFailure, event.Outcome)
+		assert.Equal(t, reason, event.Metadata["reason"])
+	}
+
 	cases := []struct {
 		name        string
 		invitation  func() *domain.WorkspaceInvitation
 		workspaceID string
 		email       string
+		reason      string
 	}{
 		{
 			name:        "token names another workspace",
 			invitation:  stored,
 			workspaceID: "ws-other",
 			email:       email,
+			reason:      "invitation_mismatch",
 		},
 		{
 			name:        "token names another email",
 			invitation:  stored,
 			workspaceID: workspaceID,
 			email:       "owner@example.com",
+			reason:      "invitation_mismatch",
 		},
 		{
 			name:        "token names the same email in another case",
 			invitation:  stored,
 			workspaceID: workspaceID,
 			email:       "Invitee@example.com",
+			reason:      "invitation_mismatch",
 		},
 		{
 			name: "stored invitation has expired",
@@ -4838,6 +4856,7 @@ func TestWorkspaceService_AcceptInvitation_RefusesTokenNotMatchingInvitation(t *
 			},
 			workspaceID: workspaceID,
 			email:       email,
+			reason:      "invitation_expired",
 		},
 	}
 
@@ -4845,11 +4864,13 @@ func TestWorkspaceService_AcceptInvitation_RefusesTokenNotMatchingInvitation(t *
 		t.Run(tc.name, func(t *testing.T) {
 			service, mockRepo, _ := setupService(t)
 			mockRepo.EXPECT().GetInvitationByID(gomock.Any(), invitationID).Return(tc.invitation(), nil)
+			record := domain.NewAuditRecord("203.0.113.1", "test", "req-1")
 
-			resp, err := service.AcceptInvitation(context.Background(), invitationID, tc.workspaceID, tc.email)
+			resp, err := service.AcceptInvitation(domain.WithAuditRecord(context.Background(), record), invitationID, tc.workspaceID, tc.email)
 
 			require.ErrorIs(t, err, domain.ErrInvitationUnavailable)
 			assert.Nil(t, resp)
+			assertAudited(t, record, tc.reason)
 		})
 	}
 
@@ -4860,6 +4881,18 @@ func TestWorkspaceService_AcceptInvitation_RefusesTokenNotMatchingInvitation(t *
 		mockRepo.EXPECT().GetInvitationByID(gomock.Any(), invitationID).Return(stored(), nil)
 		mockUserRepo.EXPECT().GetUserByEmailInsensitive(gomock.Any(), email).
 			Return(&domain.User{ID: "key-user", Email: email, Type: domain.UserTypeAPIKey}, nil)
+		record := domain.NewAuditRecord("203.0.113.1", "test", "req-1")
+
+		resp, err := service.AcceptInvitation(domain.WithAuditRecord(context.Background(), record), invitationID, workspaceID, email)
+
+		require.ErrorIs(t, err, domain.ErrInvitationUnavailable)
+		assert.Nil(t, resp)
+		assertAudited(t, record, "api_key_identity")
+	})
+
+	t.Run("invitation already accepted or cancelled", func(t *testing.T) {
+		service, mockRepo, _ := setupService(t)
+		mockRepo.EXPECT().GetInvitationByID(gomock.Any(), invitationID).Return(nil, domain.ErrInvitationNotFound)
 
 		resp, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
 

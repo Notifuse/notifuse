@@ -118,6 +118,7 @@ docker-run:
 	docker run -d --name notifuse \
 		-p 8080:8080 \
 		-e SECRET_KEY=$${SECRET_KEY} \
+		-e SIGNING_KEY=$${SIGNING_KEY} \
 		-e ROOT_EMAIL=$${ROOT_EMAIL:-admin@example.com} \
 		-e API_ENDPOINT=$${API_ENDPOINT:-http://localhost:8080} \
 		-e WEBHOOK_ENDPOINT=$${WEBHOOK_ENDPOINT:-http://localhost:8080} \

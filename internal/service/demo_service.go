@@ -243,6 +243,19 @@ func (s *DemoService) rootContext(ctx context.Context, rootUser *domain.User) (a
 	return context.WithValue(authenticatedCtx, domain.SessionIDKey, session.ID), end, nil
 }
 
+// seedContext authenticates the seed for the demo workspace once, as a request is,
+// and returns the context the rest of the seed acts through. Later checks read that
+// result rather than the session, so the seed does not depend on the session staying
+// open: on the demo every visitor shares the root account, and one of them signing
+// out ends all of its sessions.
+func (s *DemoService) seedContext(ctx context.Context, workspaceID string) (context.Context, error) {
+	seedCtx, _, _, err := s.workspaceService.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate the demo seed: %w", err)
+	}
+	return seedCtx, nil
+}
+
 // createDemoWorkspace creates a new demo workspace with sample data
 func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 	s.logger.Info("Creating demo workspace")
@@ -293,6 +306,11 @@ func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 	}
 
 	s.logger.WithField("workspace_id", workspace.ID).Info("Demo workspace created successfully")
+
+	authenticatedCtx, err = s.seedContext(authenticatedCtx, workspace.ID)
+	if err != nil {
+		return err
+	}
 
 	// Create SMTP integration for demo emails
 	if err := s.createDemoSMTPIntegration(authenticatedCtx, workspace.ID); err != nil {

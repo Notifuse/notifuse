@@ -81,26 +81,37 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
 
 ## 4. Token type check (`auth_repository.go`, `auth_service.go`)
 
-- `SQLAuthRepository.GetUserByID` also selects `type`.
+- `SQLAuthRepository.GetUserByID` also selects `type`, and `name` while at it: the audit log names the
+  actor from this row, and both were missing (shipped in 41.0, hence a `Fix` line).
 - `AuthService.AuthenticateUserFromContext`: the API key branch treats a loaded user whose type is not
   `api_key` like a missing one, so it surfaces as `ErrAPIKeyRevoked` (401 through `writePermissionError`).
   The session branch (`AuthService.VerifyUserSession`) returns `ErrUserNotFound` unless the type is `user`,
   the same answer as for a session naming a user that does not exist.
 - `UserService.VerifyUserSession` (used by `/api/user.me`) applies the same session rule and wraps the
   refusal in `ErrSessionAuthFailed`, so it answers 401. Its repository already selects `type`.
-- The SMTP bridge authenticates with an API key token without going through `AuthenticateUserFromContext`,
-  so it applies the same rule: after the email match, the account the token names must exist and be of
-  type `api_key`.
+- The SMTP bridge authenticates with an API key token outside the HTTP middleware, so after the email
+  match it builds the same context and calls `AuthenticateUserFromContext`: one copy of the rule. A
+  revoked or mismatched account answers "invalid API key"; a lookup failure does not read as one.
+- The root-only routes (`/api/settings.*`, `/api/licence.*`) checked only that the token's user id was a
+  root email. Root is a person, so `requireRootUser` now requires a user token with a session and checks
+  it through `UserService.VerifyUserSession`: an API key token naming root and a signed-out root session
+  answer 401, a failed check 500 (the console signs out on any 401).
 - The demo seed acted as root by labelling it an API key, which the rule above refuses. It now opens a
-  session for root through `UserService.startSession`, as a sign-in does, acts through it, and closes it
-  with `UserService.endSession` when the seed is done.
+  session for root through `UserService.startSession`, as a sign-in does, and closes it with
+  `UserService.endSession` when the seed is done. Right after creating the demo workspace it authenticates
+  once for it (`AuthenticateUserForWorkspace`, whose result later checks reuse), so a demo visitor signing
+  root out mid-seed, which ends every root session, does not stop the seed.
 
 ## 5. Invitation acceptance (`workspace_service.go`, `workspace_handler.go`)
 
 - `WorkspaceService.AcceptInvitation` checks, right after loading the invitation and before any user
   lookup or write: `invitation.WorkspaceID == workspaceID`, `invitation.Email == email` (the comparison
   `handleVerifyInvitationToken` already makes) and `invitation.ExpiresAt` in the future. A mismatch returns
-  `domain.ErrInvitationUnavailable`; nothing is created.
+  `domain.ErrInvitationUnavailable`; nothing is created. An invitation already accepted or cancelled
+  (`ErrInvitationNotFound`) gives the same error instead of a 500.
+- As `JoinInvitation` does, the audit record is given the invitation's workspace and target before any
+  check, and each refusal a reason (`invitation_mismatch`, `invitation_expired`, `api_key_identity`), so
+  a refused attempt lands in that workspace's audit log.
 - The account lookup and creation use the stored invitation's email. An existing account found by that
   email whose type is not `user` (an API key account) is refused with the same error, as the OIDC sign-in
   and magic code paths already refuse API key accounts.
@@ -118,8 +129,12 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
 - One `**Security**` bullet under 42.0 saying what is now refused and checked, with the operator action in
   bold: an installation whose `SECRET_KEY` is a published value sets `SIGNING_KEY` before upgrading, and
   scripts calling `user.rootSignin` or `demo.reset` sign with `SIGNING_KEY`.
-- One `**Fix**` bullet: actions taken with an API key are recorded in the audit log (shipped in 41.0) with
-  the `api_key` actor type, since the auth repository now loads the account type.
+- One `**Fix**` bullet: audit log entries (shipped in 41.0) for workspace actions carry the actor's name,
+  and actions taken with an API key the `api_key` actor type, since the auth repository now loads both.
+- One `**Improvement**` bullet: an invitation link already accepted or cancelled says so instead of
+  failing with an error.
+- The upgrade note, `env.example`, the startup error and the docs say a new `SIGNING_KEY` also
+  invalidates pending invitation links. `make docker-run` forwards `SIGNING_KEY`.
 - `make docker-compose-up` runs `docker compose up -d`, so it now needs `SECRET_KEY` in the environment or
   in `.env`, as the documented quick start will say. No CI job runs `compose.yaml`; the integration
   environment uses `tests/compose.test.yaml`.
@@ -132,21 +147,22 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
 | Implementation file | Test file | Cases |
 | --- | --- | --- |
 | `config/config.go`, `config/signing_key.go` | `config/signing_key_test.go` | default as `SECRET_KEY` without `SIGNING_KEY` refused, error names `SIGNING_KEY`; same through `PASETO_PRIVATE_KEY`; same with surrounding spaces; default as `SIGNING_KEY` refused; default without padding, in the URL alphabet, with embedded newlines, and as raw decoded bytes each refused; `env.example` placeholder refused; default `SECRET_KEY` with a fresh `SIGNING_KEY` loads, `SecretKey` keeps the default, `SigningKey` and `JWTSecret` come from `SIGNING_KEY`; `SIGNING_KEY` with a trailing newline is trimmed; whitespace-only `SIGNING_KEY` counts as unset; no `SIGNING_KEY` and another `SECRET_KEY` gives `SigningKey == SecretKey` and the same `JWTSecret` as before |
-| `internal/repository/auth_repository.go` | `auth_repository_test.go` | query selects `type`, `Type` is scanned |
+| `internal/repository/auth_repository.go` | `auth_repository_test.go` | query selects `name` and `type`, both are scanned |
 | `internal/service/auth_service.go` | `auth_service_test.go` | API key token naming a regular user refused; naming an API key user accepted; revoked key still answers `ErrAPIKeyRevoked`; session token whose user is an API key user refused; invitation token without `exp` refused |
 | `internal/service/user_service.go` (sessions) | `user_service_test.go` | `VerifyUserSession` for an API key user refused with `ErrSessionAuthFailed`; regular user accepted |
 | `internal/service/user_service.go` | `user_service_test.go` | root sign-in HMAC under the signing key accepted, under a different `SecretKey` refused; magic codes hashed and verified with the signing key |
 | `internal/service/oidc_service.go` | `oidc_service_test.go` | flow state sealed with the signing key opens; sealed with the encryption key does not |
 | `internal/http/task_handler.go`, `usage_handler.go` | their `_test.go` | signature from the signing key accepted, from a different `SecretKey` refused |
-| `internal/service/workspace_service.go` | `workspace_service_test.go` | workspace mismatch, email mismatch (including letter case) and expired invitation each refused with `ErrInvitationUnavailable` and no user lookup, creation, membership or session; existing account of type `api_key` refused with no membership or session; existing fixtures carry a stored expiry and account type |
+| `internal/service/workspace_service.go` | `workspace_service_test.go` | workspace mismatch, email mismatch (including letter case) and expired invitation each refused with `ErrInvitationUnavailable`, recorded in the invitation's workspace audit log with the refusal reason, and no user lookup, creation, membership or session; existing account of type `api_key` refused with no membership or session; existing fixtures carry a stored expiry and account type |
 | `internal/http/workspace_handler.go` | `workspace_handler_test.go` | accept: `ErrInvitationUnavailable` answers 404; verify: expired stored invitation answers 401 |
-| `internal/service/smtp_bridge_handler.go` | `smtp_bridge_handler_test.go` | token naming a regular account refused; token naming a missing account refused; API key account accepted |
+| `internal/http/settings_handler.go` | `settings_handler_test.go` | API key token naming root answers 401; signed-out root session 401; failed session check 500; live root session 200; existing guards run on a session context |
+| `internal/service/smtp_bridge_handler.go` | `smtp_bridge_handler_test.go` | token naming a regular account refused; token naming a missing account refused; account lookup failure not read as a revoked key; API key account accepted |
 | `internal/domain/contact.go` | `contact_test.go` | existing `VerifyEmailHMAC` cases still pass with the constant-time comparison |
-| `internal/service/demo_service.go` | `demo_service_test.go` | demo reset HMAC verifies under `SigningKey`, not `SecretKey`; a root person gets a session of its own whose context `AuthService` accepts, closed at the end; a session that cannot be closed only logs; a root API key account keeps its type and opens no session; a session that cannot be opened stops the seed |
+| `internal/service/demo_service.go` | `demo_service_test.go` | demo reset HMAC verifies under `SigningKey`, not `SecretKey`; a root person gets a session of its own whose context `AuthService` accepts, closed at the end; a session that cannot be closed only logs; a root API key account keeps its type and opens no session; a session that cannot be opened stops the seed; after `seedContext` workspace checks no longer look the session up; a refused check stops the seed |
 | demo reset, full stack | none kept | a full `/api/demo.reset` seeds for more than two minutes, too slow for the suite; run once by hand on the harness, it created the demo workspace as root through the seed's session |
-| `cmd/hmac/main.go` | covered by `domain.ComputeEmailHMAC` tests | the tool calls the same function the server verifies with |
+| `cmd/hmac/main.go` | `cmd/hmac/main_test.go` | prints the HMAC and reset URL the server verifies; missing arguments print the usage and exit 1 |
 | `internal/app/app.go` | `app_test.go` and the integration suite | test config carries a distinct `SigningKey`; the OIDC flow state opens with the signing key and not the encryption key; the rest of the wiring is exercised end to end by the harness running on distinct keys |
-| full stack | `tests/integration/signing_key_test.go` | harness on distinct keys: root sign-in, `/api/tasks.execute` and `/api/usage.get` signed with `SECRET_KEY` refused, with `SIGNING_KEY` accepted; an API key token naming the owner refused while a real API key works; invitation tokens naming another email or workspace refused, seating nobody and creating no account, while the issued token is accepted |
+| full stack | `tests/integration/signing_key_test.go` | harness on distinct keys: root sign-in, `/api/tasks.execute` and `/api/usage.get` signed with `SECRET_KEY` refused, with `SIGNING_KEY` accepted; an API key token naming the owner refused while a real API key works; invitation tokens naming another email or workspace refused, seating nobody and creating no account, while the issued token is accepted once and answers 404 after; `/api/settings.get` answers a root session, refuses an API key token naming root and the root session once signed out |
 
 ## Test run
 

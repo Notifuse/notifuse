@@ -68,8 +68,8 @@ func resolveSigningKey(secretKey, signingKeyEnv string) (string, error) {
 		return "", fmt.Errorf("SIGNING_KEY must be set: SECRET_KEY is a value published with Notifuse (the former " +
 			"compose.yaml default or the env.example placeholder), which Notifuse does not accept for signing. " +
 			"Generate a signing key with: openssl rand -base64 32, set it as SIGNING_KEY, and keep SECRET_KEY " +
-			"unchanged because it decrypts your stored data. Users will have to sign in again, and API keys " +
-			"must be recreated")
+			"unchanged because it decrypts your stored data. Users will have to sign in again, API keys " +
+			"must be recreated, and pending invitations sent again")
 	}
 	return secretKey, nil
 }

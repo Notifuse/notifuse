@@ -2,27 +2,34 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 )
 
 func main() {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: go run cmd/hmac/main.go <email> <signing_key>")
-		fmt.Println("The signing key is SIGNING_KEY, or SECRET_KEY when SIGNING_KEY is not set.")
-		os.Exit(1)
+	os.Exit(run(os.Args[1:], os.Stdout))
+}
+
+// run prints the HMAC /api/demo.reset verifies for args[0] under args[1], the
+// signing key, and returns the exit code.
+func run(args []string, out io.Writer) int {
+	if len(args) < 2 {
+		fmt.Fprintln(out, "Usage: go run cmd/hmac/main.go <email> <signing_key>")
+		fmt.Fprintln(out, "The signing key is SIGNING_KEY, or SECRET_KEY when SIGNING_KEY is not set.")
+		return 1
 	}
 
-	email := os.Args[1]
-	signingKey := os.Args[2]
+	email := args[0]
+	signingKey := args[1]
 
-	// The same HMAC /api/demo.reset verifies.
 	result := domain.ComputeEmailHMAC(email, signingKey)
 
-	fmt.Println()
-	fmt.Printf("Root Email: %s\n", email)
-	fmt.Printf("HMAC: %s\n", result)
-	fmt.Println()
-	fmt.Printf("Reset URL: /api/demo.reset?hmac=%s\n", result)
+	fmt.Fprintln(out)
+	fmt.Fprintf(out, "Root Email: %s\n", email)
+	fmt.Fprintf(out, "HMAC: %s\n", result)
+	fmt.Fprintln(out)
+	fmt.Fprintf(out, "Reset URL: /api/demo.reset?hmac=%s\n", result)
+	return 0
 }

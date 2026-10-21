@@ -1587,15 +1587,32 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 	// Get the invitation to retrieve permissions
 	invitation, err := s.repo.GetInvitationByID(ctx, invitationID)
 	if err != nil {
+		if errors.Is(err, domain.ErrInvitationNotFound) {
+			// Accepted already, or cancelled: the link has nothing left to open.
+			return nil, domain.ErrInvitationUnavailable
+		}
 		s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Error("Failed to get invitation")
-		return nil, fmt.Errorf("invitation not found: %w", err)
+		return nil, fmt.Errorf("failed to get invitation: %w", err)
+	}
+
+	// Named before any check, as JoinInvitation does: a refused attempt belongs in the
+	// invitation's workspace audit log too.
+	audit := domain.AuditFromContext(ctx)
+	if audit != nil {
+		audit.SetWorkspace(invitation.WorkspaceID)
+		audit.SetTarget(domain.AuditTargetInvitation, invitation.ID, invitation.Email)
 	}
 
 	// The token only points at the invitation; the stored row says which workspace and
 	// which address it admits, and until when. Every token Notifuse issues copies those
 	// values exactly, so any difference means the token was not issued for this row.
-	if invitation.WorkspaceID != workspaceID || invitation.Email != email || !time.Now().Before(invitation.ExpiresAt) {
-		s.logger.WithField("invitation_id", invitationID).WithField("workspace_id", workspaceID).Warn("Invitation token does not match a live invitation")
+	if invitation.WorkspaceID != workspaceID || invitation.Email != email {
+		s.logger.WithField("invitation_id", invitationID).WithField("workspace_id", workspaceID).Warn("Invitation token does not match its invitation")
+		audit.Fail("invitation_mismatch")
+		return nil, domain.ErrInvitationUnavailable
+	}
+	if !time.Now().Before(invitation.ExpiresAt) {
+		audit.Fail("invitation_expired")
 		return nil, domain.ErrInvitationUnavailable
 	}
 
@@ -1614,6 +1631,7 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 		// API key accounts carry an email of their own but are not people: an
 		// invitation must not open a session for one.
 		s.logger.WithField("invitation_id", invitationID).WithField("user_id", existingUser.ID).Warn("Invitation addressed to an account that is not a user")
+		audit.Fail("api_key_identity")
 		return nil, domain.ErrInvitationUnavailable
 	}
 	if err != nil {
@@ -1706,11 +1724,7 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 	s.logger.WithField("user_id", user.ID).WithField("workspace_id", workspaceID).WithField("invitation_id", invitationID).Info("Successfully accepted invitation and created session")
 
 	// The invitee is the actor: this request carries no session yet.
-	if audit := domain.AuditFromContext(ctx); audit != nil {
-		audit.SetActor(user, nil, false)
-		audit.SetWorkspace(workspaceID)
-		audit.SetTarget(domain.AuditTargetInvitation, invitationID, invitation.Email)
-	}
+	audit.SetActor(user, nil, false)
 
 	return &domain.AuthResponse{
 		Token:     token,

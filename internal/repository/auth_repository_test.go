@@ -67,10 +67,10 @@ func TestAuthRepository_GetUserByID(t *testing.T) {
 	email := "test@example.com"
 	createdAt := time.Now().UTC().Truncate(time.Second)
 
-	rows := sqlmock.NewRows([]string{"id", "email", "type", "created_at"}).
-		AddRow(userID, email, "api_key", createdAt)
+	rows := sqlmock.NewRows([]string{"id", "email", "name", "type", "created_at"}).
+		AddRow(userID, email, "Billing key", "api_key", createdAt)
 
-	mock.ExpectQuery(`SELECT id, email, type, created_at FROM users WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, email, COALESCE\(name, ''\), type, created_at FROM users WHERE id = \$1`).
 		WithArgs(userID).
 		WillReturnRows(rows)
 
@@ -79,12 +79,14 @@ func TestAuthRepository_GetUserByID(t *testing.T) {
 	assert.NotNil(t, user)
 	assert.Equal(t, userID, user.ID)
 	assert.Equal(t, email, user.Email)
-	// The caller decides from the stored type which kind of token may name this user.
+	// The caller decides from the stored type which kind of token may name this user,
+	// and the audit log names the actor.
 	assert.Equal(t, domain.UserTypeAPIKey, user.Type)
+	assert.Equal(t, "Billing key", user.Name)
 	assert.Equal(t, createdAt.Unix(), user.CreatedAt.Unix())
 
 	// Test case 2: User not found
-	mock.ExpectQuery(`SELECT id, email, type, created_at FROM users WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, email, COALESCE\(name, ''\), type, created_at FROM users WHERE id = \$1`).
 		WithArgs("nonexistent").
 		WillReturnError(sql.ErrNoRows)
 
@@ -94,7 +96,7 @@ func TestAuthRepository_GetUserByID(t *testing.T) {
 	assert.Equal(t, sql.ErrNoRows, err)
 
 	// Test case 3: Database error
-	mock.ExpectQuery(`SELECT id, email, type, created_at FROM users WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT id, email, COALESCE\(name, ''\), type, created_at FROM users WHERE id = \$1`).
 		WithArgs("error-id").
 		WillReturnError(errors.New("database error"))
 

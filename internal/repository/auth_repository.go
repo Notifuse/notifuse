@@ -39,9 +39,9 @@ func (r *SQLAuthRepository) GetSessionByID(ctx context.Context, sessionID string
 func (r *SQLAuthRepository) GetUserByID(ctx context.Context, userID string) (*domain.User, error) {
 	var user domain.User
 	err := r.systemDB.QueryRowContext(ctx,
-		"SELECT id, email, type, created_at FROM users WHERE id = $1",
+		"SELECT id, email, COALESCE(name, ''), type, created_at FROM users WHERE id = $1",
 		userID,
-	).Scan(&user.ID, &user.Email, &user.Type, &user.CreatedAt)
+	).Scan(&user.ID, &user.Email, &user.Name, &user.Type, &user.CreatedAt)
 
 	if err != nil {
 		return nil, err

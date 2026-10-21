@@ -24,11 +24,16 @@ import (
 // mockUserServiceForSettings implements UserServiceInterface for settings handler tests
 type mockUserServiceForSettings struct {
 	users map[string]*domain.User
+	// signedOut lists the users whose sessions are gone; verifyErr, when set, is what
+	// every session check answers.
+	signedOut map[string]bool
+	verifyErr error
 }
 
 func newMockUserServiceForSettings() *mockUserServiceForSettings {
 	return &mockUserServiceForSettings{
-		users: make(map[string]*domain.User),
+		users:     make(map[string]*domain.User),
+		signedOut: make(map[string]bool),
 	}
 }
 
@@ -44,8 +49,21 @@ func (m *mockUserServiceForSettings) RootSignin(ctx context.Context, input domai
 	return nil, nil
 }
 
+// VerifyUserSession accepts the session reqWithUserContext names for a known person's
+// account, as UserService.VerifyUserSession does for a live one.
 func (m *mockUserServiceForSettings) VerifyUserSession(ctx context.Context, userID string, sessionID string) (*domain.User, error) {
-	return nil, nil
+	if m.verifyErr != nil {
+		return nil, m.verifyErr
+	}
+	user, ok := m.users[userID]
+	if !ok || m.signedOut[userID] || sessionID != testSessionID(userID) || user.Type != domain.UserTypeUser {
+		return nil, fmt.Errorf("%w: session not found", domain.ErrSessionAuthFailed)
+	}
+	return user, nil
+}
+
+func testSessionID(userID string) string {
+	return "session-" + userID
 }
 
 func (m *mockUserServiceForSettings) GetUserByID(ctx context.Context, userID string) (*domain.User, error) {
@@ -116,20 +134,67 @@ func setupSettingsHandlerWithRootEmail(t *testing.T, rootEmail string) (*Setting
 	userSvc.users["root-user-id"] = &domain.User{
 		ID:    "root-user-id",
 		Email: testRootEmail,
+		Type:  domain.UserTypeUser,
 	}
 
 	// Add non-root user
 	userSvc.users["other-user-id"] = &domain.User{
 		ID:    "other-user-id",
 		Email: "other@example.com",
+		Type:  domain.UserTypeUser,
 	}
 
 	return handler, settingRepo, userSvc, shutdowner
 }
 
+// reqWithUserContext authenticates the request as the auth middleware does for a
+// signed-in person: user id, token type and session id from the token.
 func reqWithUserContext(req *http.Request, userID string) *http.Request {
 	ctx := context.WithValue(req.Context(), domain.UserIDKey, userID)
+	ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeUser))
+	ctx = context.WithValue(ctx, domain.SessionIDKey, testSessionID(userID))
 	return req.WithContext(ctx)
+}
+
+// Root is a person: the root-only routes answer a live session of root's account and
+// nothing else, whatever account the token names.
+func TestSettingsHandler_RequireRootUser_LiveSessionOnly(t *testing.T) {
+	get := func(handler *SettingsHandler, ctx context.Context) int {
+		req := httptest.NewRequest(http.MethodGet, "/api/settings.get", nil).WithContext(ctx)
+		w := httptest.NewRecorder()
+		handler.handleGet(w, req)
+		return w.Code
+	}
+	rootCtx := func(userType, sessionID string) context.Context {
+		ctx := context.WithValue(context.Background(), domain.UserIDKey, "root-user-id")
+		ctx = context.WithValue(ctx, domain.UserTypeKey, userType)
+		if sessionID != "" {
+			ctx = context.WithValue(ctx, domain.SessionIDKey, sessionID)
+		}
+		return ctx
+	}
+
+	t.Run("an API key token naming root is refused", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+		assert.Equal(t, http.StatusUnauthorized, get(handler, rootCtx(string(domain.UserTypeAPIKey), "")))
+	})
+
+	t.Run("a root session that was signed out is refused", func(t *testing.T) {
+		handler, _, userSvc, _ := setupSettingsHandler(t)
+		userSvc.signedOut["root-user-id"] = true
+		assert.Equal(t, http.StatusUnauthorized, get(handler, rootCtx(string(domain.UserTypeUser), testSessionID("root-user-id"))))
+	})
+
+	t.Run("a session check that fails is not a sign-out", func(t *testing.T) {
+		handler, _, userSvc, _ := setupSettingsHandler(t)
+		userSvc.verifyErr = errors.New("connection reset")
+		assert.Equal(t, http.StatusInternalServerError, get(handler, rootCtx(string(domain.UserTypeUser), testSessionID("root-user-id"))))
+	})
+
+	t.Run("a live root session is let through", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+		assert.Equal(t, http.StatusOK, get(handler, rootCtx(string(domain.UserTypeUser), testSessionID("root-user-id"))))
+	})
 }
 
 // ============================================================
@@ -180,6 +245,7 @@ func TestSettingsHandler_Get_MultipleRootEmails(t *testing.T) {
 	userSvc.users["second-root-id"] = &domain.User{
 		ID:    "second-root-id",
 		Email: "second@example.com",
+		Type:  domain.UserTypeUser,
 	}
 
 	t.Run("second listed root is allowed", func(t *testing.T) {
@@ -315,6 +381,7 @@ func TestSettingsHandler_Get_EnvOverrides(t *testing.T) {
 	userSvc.users["root-user-id"] = &domain.User{
 		ID:    "root-user-id",
 		Email: testRootEmail,
+		Type:  domain.UserTypeUser,
 	}
 
 	ctx := context.Background()
@@ -377,7 +444,7 @@ func TestSettingsHandler_Get_EnvOverride_UsesLiveRootEmail(t *testing.T) {
 		newMockLicenseService(),
 	)
 
-	userSvc.users["root-user-id"] = &domain.User{ID: "root-user-id", Email: testRootEmail}
+	userSvc.users["root-user-id"] = &domain.User{ID: "root-user-id", Email: testRootEmail, Type: domain.UserTypeUser}
 
 	ctx := context.Background()
 	_ = settingRepo.Set(ctx, "is_installed", "true")
@@ -447,7 +514,7 @@ func TestSettingsHandler_Get_EnvOverride_AllFieldsUseLiveValues(t *testing.T) {
 		newMockLicenseService(),
 	)
 	// Root user's email must match the env-configured root for authorization.
-	userSvc.users["root-user-id"] = &domain.User{ID: "root-user-id", Email: "env-root@example.com"}
+	userSvc.users["root-user-id"] = &domain.User{ID: "root-user-id", Email: "env-root@example.com", Type: domain.UserTypeUser}
 
 	ctx := context.Background()
 	_ = settingRepo.Set(ctx, "is_installed", "true")

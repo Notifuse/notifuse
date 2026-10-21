@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 	"testing"
@@ -277,6 +278,73 @@ func TestDemoService_RootContext(t *testing.T) {
 			&domain.User{ID: "root-id", Type: domain.UserTypeUser})
 		require.ErrorIs(t, err, assert.AnError)
 	})
+}
+
+// The seed checks its session once, for the demo workspace, and from then on acts on
+// that check: a visitor signing root out mid-seed must not stop it.
+func TestDemoService_SeedContext_OutlivesTheSession(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	root := &domain.User{ID: "root-id", Email: "root@example.com", Type: domain.UserTypeUser}
+	expiresAt := time.Now().Add(time.Hour)
+
+	authRepo := domainmocks.NewMockAuthRepository(ctrl)
+	workspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	authService := NewAuthService(AuthServiceConfig{
+		Repository:          authRepo,
+		WorkspaceRepository: workspaceRepo,
+		Logger:              logger.NewLoggerWithLevel("disabled"),
+	})
+	svc := &DemoService{
+		logger:           logger.NewLoggerWithLevel("disabled"),
+		workspaceService: &WorkspaceService{authService: authService},
+	}
+
+	ctx := context.WithValue(context.Background(), domain.UserIDKey, root.ID)
+	ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeUser))
+	ctx = context.WithValue(ctx, domain.SessionIDKey, "seed-session")
+
+	// The one check, while the session is open.
+	authRepo.EXPECT().GetSessionByID(gomock.Any(), "seed-session", root.ID).Return(&expiresAt, nil).Times(1)
+	authRepo.EXPECT().GetUserByID(gomock.Any(), root.ID).Return(root, nil).Times(1)
+	workspaceRepo.EXPECT().GetByID(gomock.Any(), "demo").Return(&domain.Workspace{ID: "demo"}, nil).Times(1)
+	workspaceRepo.EXPECT().GetUserWorkspace(gomock.Any(), root.ID, "demo").
+		Return(&domain.UserWorkspace{UserID: root.ID, WorkspaceID: "demo", Role: "owner"}, nil).Times(1)
+
+	seedCtx, err := svc.seedContext(ctx, "demo")
+	require.NoError(t, err)
+
+	// Every later step: no session lookup at all, so a signed-out session changes nothing.
+	_, user, membership, err := authService.AuthenticateUserForWorkspace(seedCtx, "demo")
+	require.NoError(t, err)
+	assert.Equal(t, root.ID, user.ID)
+	assert.Equal(t, "owner", membership.Role)
+}
+
+func TestDemoService_SeedContext_RefusedCheckStopsTheSeed(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	authRepo := domainmocks.NewMockAuthRepository(ctrl)
+	authService := NewAuthService(AuthServiceConfig{
+		Repository:          authRepo,
+		WorkspaceRepository: domainmocks.NewMockWorkspaceRepository(ctrl),
+		Logger:              logger.NewLoggerWithLevel("disabled"),
+	})
+	svc := &DemoService{
+		logger:           logger.NewLoggerWithLevel("disabled"),
+		workspaceService: &WorkspaceService{authService: authService},
+	}
+
+	ctx := context.WithValue(context.Background(), domain.UserIDKey, "root-id")
+	ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeUser))
+	ctx = context.WithValue(ctx, domain.SessionIDKey, "seed-session")
+	authRepo.EXPECT().GetSessionByID(gomock.Any(), "seed-session", "root-id").Return(nil, sql.ErrNoRows)
+
+	_, err := svc.seedContext(ctx, "demo")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to authenticate the demo seed")
 }
 
 func TestDemoService_ResetDemo_DeleteAllError(t *testing.T) {

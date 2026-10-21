@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -158,5 +159,35 @@ func TestSigningKeySeparation(t *testing.T) {
 		assert.Equal(t, 0, inviteeAccounts, "the refused tokens created no account")
 
 		assert.Equal(t, http.StatusOK, accept(t, invited.Token))
+		// Accepted: the link has nothing left to open.
+		assert.Equal(t, http.StatusNotFound, accept(t, invited.Token))
+	})
+
+	// Runs last: signing root out ends every root session.
+	t.Run("root-only routes answer a live root session only", func(t *testing.T) {
+		rootToken := performCompleteSignInFlow(t, client, cfg.RootEmail)
+		settingsGet := func(t *testing.T, token string) int {
+			t.Helper()
+			apiClient := testutil.NewAPIClient(suite.ServerManager.GetURL())
+			apiClient.SetToken(token)
+			resp, err := apiClient.Get("/api/settings.get")
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+			return resp.StatusCode
+		}
+		assert.Equal(t, http.StatusOK, settingsGet(t, rootToken))
+
+		root, err := suite.ServerManager.GetApp().GetUserRepository().GetUserByEmail(context.Background(), cfg.RootEmail)
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusUnauthorized, settingsGet(t, authService.GenerateAPIAuthToken(root)),
+			"an API key token naming root is not root's session")
+
+		signedIn := testutil.NewAPIClient(suite.ServerManager.GetURL())
+		signedIn.SetToken(rootToken)
+		resp, err := signedIn.Post("/api/user.logout", nil)
+		require.NoError(t, err)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, http.StatusUnauthorized, settingsGet(t, rootToken), "a signed-out session is refused")
 	})
 }

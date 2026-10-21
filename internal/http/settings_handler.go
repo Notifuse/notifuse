@@ -168,14 +168,25 @@ func NewSettingsHandler(
 func (h *SettingsHandler) requireRootUser(w http.ResponseWriter, r *http.Request) *domain.User {
 	ctx := r.Context()
 
-	userID, ok := ctx.Value(domain.UserIDKey).(string)
-	if !ok || userID == "" {
+	// Root is a person, so only a live session of a person's account gets through: not
+	// an API key token, whatever account it names, and not a session signed out since.
+	userID, _ := ctx.Value(domain.UserIDKey).(string)
+	userType, _ := ctx.Value(domain.UserTypeKey).(string)
+	sessionID, _ := ctx.Value(domain.SessionIDKey).(string)
+	if userID == "" || userType != string(domain.UserTypeUser) || sessionID == "" {
 		WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return nil
 	}
 
-	user, err := h.userService.GetUserByID(ctx, userID)
+	user, err := h.userService.VerifyUserSession(ctx, userID, sessionID)
 	if err != nil {
+		// Only a genuine authentication failure answers 401: the console signs the
+		// user out on any 401.
+		if !errors.Is(err, domain.ErrSessionAuthFailed) {
+			h.logger.WithField("error", err.Error()).Error("Failed to verify session")
+			WriteJSONError(w, "Failed to verify session", http.StatusInternalServerError)
+			return nil
+		}
 		WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return nil
 	}

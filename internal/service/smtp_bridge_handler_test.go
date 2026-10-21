@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"errors"
 	"net/mail"
 	"testing"
 	"time"
@@ -110,6 +111,22 @@ func TestSMTPBridgeHandlerService_Authenticate_AccountMustBeAnAPIKey(t *testing.
 			assert.Empty(t, userID)
 		})
 	}
+
+	// A database failure is not a revoked key: it must not read as one.
+	t.Run("account lookup fails", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		rl := ratelimiter.NewRateLimiter()
+		rl.SetPolicy("smtp", 5, 1*time.Minute)
+		defer rl.Stop()
+		service := NewSMTPBridgeHandlerService(newBridgeAuthService(ctrl, nil, errors.New("connection refused")), nil,
+			mocks.NewMockWorkspaceRepository(ctrl), logger.NewLogger(), jwtSecret, rl)
+
+		userID, err := service.Authenticate(apiEmail, apiKey)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to verify API key")
+		assert.Empty(t, userID)
+	})
 }
 
 func TestSMTPBridgeHandlerService_Authenticate_InvalidToken(t *testing.T) {
