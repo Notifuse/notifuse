@@ -26,7 +26,9 @@ const CONFIG: Config = {
 // through it, isSafeHref's included, and to nothing else on the page that uses
 // DOMPurify.
 const purify = DOMPurify(window)
-purify.setConfig(CONFIG)
+// Ids and names get a prefix, so that content shown in the page never names
+// one of its globals (`window.monaco`) or another of its elements
+purify.setConfig({ ...CONFIG, SANITIZE_NAMED_PROPS: true })
 
 // For editors, an attribute value that reads as the end of a comment or of a
 // CDATA section (`-->`, `]>`) is kept: DOMPurify drops it because markup
@@ -49,10 +51,10 @@ purifyForEditor.setConfig({
  * links are removed, and so are `<style>`, which would restyle the console
  * around it, form controls, image maps, whose areas are links the canvas would
  * follow, audio and video, which would play in it, and the email builder's own
- * `data-block-id`, which locates blocks on the canvas. Formatting,
- * inline styles, classes, `data-*` attributes, link targets, links that open
- * another app (`webcal:`, `whatsapp:`…) and Liquid (`{{ url }}` in an `href`
- * included) are kept.
+ * `data-block-id`, which locates blocks on the canvas. Ids and names are
+ * prefixed with `user-content-`. Formatting, inline styles, classes, `data-*`
+ * attributes, link targets, links that open another app (`webcal:`,
+ * `whatsapp:`…) and Liquid (`{{ url }}` in an `href` included) are kept.
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return ''
@@ -60,11 +62,12 @@ export function sanitizeHtml(html: string): string {
 }
 
 /**
- * HTML for a block editor to load: what `sanitizeHtml` keeps, and also
- * attribute values it drops because they contain `-->` or `]>`, such as a link
- * to `https://example.com/?q=a]>b`. An editor saves what it loaded, so anything
- * dropped here that an email may legitimately carry would be lost on the next
- * edit. SVG and MathML are left out, along with what they contain.
+ * HTML for a block editor to load: what `sanitizeHtml` keeps, with ids and
+ * names as written, and also attribute values it drops because they contain
+ * `-->` or `]>`, such as a link to `https://example.com/?q=a]>b`. An editor
+ * saves what it loaded, so anything changed or dropped here that an email may
+ * legitimately carry would be lost on the next edit. SVG and MathML are left
+ * out, along with what they contain.
  */
 export function sanitizeEditorHtml(html: string): string {
   if (!html) return ''

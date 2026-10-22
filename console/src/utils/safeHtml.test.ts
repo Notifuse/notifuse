@@ -96,6 +96,13 @@ describe('sanitizeHtml', () => {
     expect(out).toContain('Go')
   })
 
+  it("keeps the content's ids and names apart from the console page's own", () => {
+    const out = sanitizeHtml('<p id="monaco"><a name="editor" href="#intro">x</a></p>')
+    expect(out).toBe(
+      '<p id="user-content-monaco"><a href="#intro" name="user-content-editor">x</a></p>'
+    )
+  })
+
   it('returns an empty string for empty input', () => {
     expect(sanitizeHtml('')).toBe('')
   })
@@ -149,6 +156,11 @@ describe('sanitizeEditorHtml', () => {
     ]
   ])('treats %s as sanitizeHtml does', (_kind, html) => {
     expect(sanitizeEditorHtml(html)).toBe(sanitizeHtml(html))
+  })
+
+  it('keeps ids and names as written, since an editor saves what it loaded', () => {
+    const html = '<p id="intro"><a name="top" href="#intro">x</a></p>'
+    expect(sanitizeEditorHtml(html)).toBe(html)
   })
 
   it('leaves out SVG and MathML, which an editor has no place for', () => {

@@ -494,7 +494,8 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
           <div
             // Keeps what the content draws to the block. On a box of its own,
             // sized by the content, so a fixed block height cuts off no text the
-            // email would show.
+            // email would show. Content wider than the block, an image or a
+            // table the email would let overflow, is cut 25px past it.
             style={containedContentStyle}
             dangerouslySetInnerHTML={{ __html: canvasHtml }}
             // Nothing in the content acts on a click here, a link or a label

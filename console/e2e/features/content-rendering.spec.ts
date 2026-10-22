@@ -34,6 +34,7 @@ const textContent =
   '<p>Hello {{ contact.first_name }}' +
   `<img src="x" onerror="${probe('canvas-text')}">` +
   `<a href="javascript:${probe('text-link')}">link</a>` +
+  '<a id="notifuse_named_probe" name="notifuse_named_probe">anchor</a>' +
   '<span style="position: fixed; inset: 0; z-index: 2147483647">cover</span></p>'
 
 // Whether everything a block draws at a fixed position lies within the block
@@ -179,6 +180,8 @@ test.describe('Template content in the email editor', () => {
     await expect(buttonBlock).toContainText('Buy now')
     // Content positioned over the page stays inside its block, on the canvas...
     expect(await fixedContentInside(textBlock)).toBe(true)
+    // An id or a name in the content names nothing on the console's window
+    expect(await page.evaluate(() => 'notifuse_named_probe' in window)).toBe(false)
 
     // Selected, each block opens in its editor
     await textBlock.click()
