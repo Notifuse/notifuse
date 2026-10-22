@@ -38,7 +38,7 @@ func postJSON(url, body string) (int, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	if strings.HasSuffix(url, taskExecutePath) {
-		for name, value := range testutil.TaskExecuteHeaders(taskExecutePath, []byte(body), testutil.TestSigningKey) {
+		for name, value := range testutil.TaskExecuteHeaders(taskExecutePath, []byte(body), testutil.TestSecretKey) {
 			req.Header.Set(name, value)
 		}
 	}

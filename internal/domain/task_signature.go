@@ -13,7 +13,7 @@ import (
 
 // /api/tasks.execute is the scheduler's own dispatch target: a machine calling a
 // machine, with no user session to authenticate against. It is authenticated by
-// signature instead, derived from the signing key, which both sides already hold — the
+// signature instead, derived from SECRET_KEY, which both sides already hold — the
 // same arrangement the usage read uses (see usage.go).
 //
 // It matters that this endpoint is authenticated at all: MarkAsRunningTx accepts a
@@ -23,7 +23,7 @@ import (
 
 const (
 	// taskExecuteKeyLabel domain-separates the dispatch key from every other use
-	// of the signing key, including the usage key.
+	// of SECRET_KEY, including the usage key.
 	taskExecuteKeyLabel = "notifuse.task-execute.v1"
 
 	// TaskExecuteSignatureMaxSkew bounds how long a signed dispatch stays valid.
@@ -40,11 +40,10 @@ const (
 )
 
 // TaskExecuteSigningKey derives the key that authenticates task dispatches from
-// the installation's signing key: SIGNING_KEY, or SECRET_KEY when that is unset.
-// HMAC is one-way, so this key reveals nothing about the one it came from — which
-// also signs JWTs.
-func TaskExecuteSigningKey(signingKey string) []byte {
-	h := hmac.New(sha256.New, []byte(signingKey))
+// the installation's SECRET_KEY. HMAC is one-way, so this key reveals nothing
+// about the one it came from — which also signs JWTs and encrypts the database.
+func TaskExecuteSigningKey(secretKey string) []byte {
+	h := hmac.New(sha256.New, []byte(secretKey))
 	h.Write([]byte(taskExecuteKeyLabel))
 	return h.Sum(nil)
 }

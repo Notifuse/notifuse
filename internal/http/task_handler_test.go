@@ -1794,12 +1794,12 @@ func TestTaskHandler_ExecuteTaskSignature(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, rec.Code)
 	})
 
-	t.Run("an installation with no signing key refuses every dispatch", func(t *testing.T) {
+	t.Run("an installation with no secret key refuses every dispatch", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
 		handler, _, _ := newTaskHandlerForAuth(t, ctrl)
-		handler.signingKey = ""
+		handler.secretKey = ""
 
 		rec := httptest.NewRecorder()
 		handler.ExecuteTask(rec, newSignedExecuteRequest("", body))

@@ -132,17 +132,20 @@ type DatabaseConfig struct {
 }
 
 type SecurityConfig struct {
-	// JWTSecret for token signing (derived from SigningKey)
+	// JWTSecret for token signing (derived from SecretKey)
 	JWTSecret []byte
 
-	// SecretKey encrypts stored data: workspace secret keys, integration
-	// credentials and system settings
+	// SecretKey for DB encryption AND JWT signing: the first key of SECRET_KEY
 	SecretKey string
 
-	// SigningKey signs and verifies everything that is not stored: JWTs, magic
-	// codes, root sign-in and task signatures, sealed cookies. It is SIGNING_KEY
-	// when set, else SecretKey.
-	SigningKey string
+	// PreviousSecretKeys are the other keys of SECRET_KEY. They only decrypt, so
+	// the stored data can be re-encrypted with SecretKey at startup; nothing that
+	// signs or verifies receives them.
+	PreviousSecretKeys []string
+
+	// SecretKeyIsList records that SECRET_KEY had a comma, so the startup check
+	// confirms the keys open the stored data before anything uses it.
+	SecretKeyIsList bool
 }
 
 type SSLConfig struct {
@@ -329,8 +332,10 @@ func getSystemDSN(cfg *DatabaseConfig) string {
 	return dsn
 }
 
-// loadSystemSettings loads configuration from the database settings table
-func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
+// loadSystemSettings loads configuration from the database settings table. Encrypted
+// settings open with the first of keys that opens them: before the startup
+// re-encryption, they may still be under a previous key.
+func loadSystemSettings(db *sql.DB, keys []string) (*SystemSettings, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -388,14 +393,14 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 
 		// Decrypt SMTP username if present
 		if encryptedUsername, ok := settingsMap["encrypted_smtp_username"]; ok && encryptedUsername != "" {
-			if decrypted, err := crypto.DecryptFromHexString(encryptedUsername, secretKey); err == nil {
+			if decrypted, _, err := crypto.DecryptWithKeys(encryptedUsername, keys); err == nil {
 				settings.SMTPUsername = decrypted
 			}
 		}
 
 		// Decrypt SMTP password if present
 		if encryptedPassword, ok := settingsMap["encrypted_smtp_password"]; ok && encryptedPassword != "" {
-			if decrypted, err := crypto.DecryptFromHexString(encryptedPassword, secretKey); err == nil {
+			if decrypted, _, err := crypto.DecryptWithKeys(encryptedPassword, keys); err == nil {
 				settings.SMTPPassword = decrypted
 			}
 		}
@@ -422,14 +427,14 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 
 		// Decrypt SMTP Bridge TLS certificate if present
 		if encryptedCert, ok := settingsMap["encrypted_smtp_bridge_tls_cert_base64"]; ok && encryptedCert != "" {
-			if decrypted, err := crypto.DecryptFromHexString(encryptedCert, secretKey); err == nil {
+			if decrypted, _, err := crypto.DecryptWithKeys(encryptedCert, keys); err == nil {
 				settings.SMTPBridgeTLSCertBase64 = decrypted
 			}
 		}
 
 		// Decrypt SMTP Bridge TLS key if present
 		if encryptedKey, ok := settingsMap["encrypted_smtp_bridge_tls_key_base64"]; ok && encryptedKey != "" {
-			if decrypted, err := crypto.DecryptFromHexString(encryptedKey, secretKey); err == nil {
+			if decrypted, _, err := crypto.DecryptWithKeys(encryptedKey, keys); err == nil {
 				settings.SMTPBridgeTLSKeyBase64 = decrypted
 			}
 		}
@@ -450,7 +455,7 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 
 		// Decrypt OIDC client secret if present (mirror encrypted_smtp_password)
 		if enc, ok := settingsMap["encrypted_oidc_client_secret"]; ok && enc != "" {
-			if dec, err := crypto.DecryptFromHexString(enc, secretKey); err == nil {
+			if dec, _, err := crypto.DecryptWithKeys(enc, keys); err == nil {
 				settings.OIDCClientSecret = dec
 			}
 		}
@@ -609,7 +614,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		return nil, fmt.Errorf("DB_MAX_CONNECTIONS_PER_DB cannot exceed 50 (got %d)", dbConfig.MaxConnectionsPerDB)
 	}
 
-	// SECRET_KEY resolution (CRITICAL for decryption, and for signing unless SIGNING_KEY is set)
+	// SECRET_KEY resolution (CRITICAL for decryption and JWT signing)
 	secretKey, secretKeyVar := v.GetString("SECRET_KEY"), "SECRET_KEY"
 	if secretKey == "" {
 		// Fallback for backward compatibility
@@ -620,7 +625,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		return nil, fmt.Errorf("SECRET_KEY (or PASETO_PRIVATE_KEY for backward compatibility) must be set")
 	}
 
-	signingKey, err := resolveSigningKey(secretKey, secretKeyVar, v.GetString("SIGNING_KEY"))
+	security, err := NewSecurityConfig(secretKey, secretKeyVar)
 	if err != nil {
 		return nil, err
 	}
@@ -634,7 +639,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		defer func() { _ = db.Close() }()
 		if err := db.Ping(); err == nil {
 			// Database is accessible, try to load settings
-			systemSettings, err = loadSystemSettings(db, secretKey)
+			systemSettings, err = loadSystemSettings(db, security.DecryptionKeys())
 			if err == nil && systemSettings != nil {
 				isInstalled = systemSettings.IsInstalled
 			}
@@ -722,8 +727,6 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 
 		OIDCAllowUnverifiedEmail: v.GetBool("OIDC_ALLOW_UNVERIFIED_EMAIL"),
 	}
-
-	jwtSecret := deriveJWTSecret(signingKey)
 
 	// Load config values with database override logic
 	var rootEmail, apiEndpoint string
@@ -947,11 +950,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		SMTP:       smtpConfig,
 		SMTPBridge: smtpBridgeConfig,
 		OIDC:       oidcConfig,
-		Security: SecurityConfig{
-			JWTSecret:  jwtSecret,
-			SecretKey:  secretKey,
-			SigningKey: signingKey,
-		},
+		Security:   security,
 		Demo: DemoConfig{
 			FileManagerEndpoint:  v.GetString("DEMO_FILE_MANAGER_ENDPOINT"),
 			FileManagerBucket:    v.GetString("DEMO_FILE_MANAGER_BUCKET"),

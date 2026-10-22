@@ -24,7 +24,7 @@ func TestDemoService_VerifyRootEmailHMAC(t *testing.T) {
 	t.Run("returns false when root email is empty", func(t *testing.T) {
 		svc := &DemoService{
 			logger: logger.NewLoggerWithLevel("disabled"),
-			config: &config.Config{RootEmail: "", Security: config.SecurityConfig{SigningKey: "secret"}},
+			config: &config.Config{RootEmail: "", Security: config.SecurityConfig{SecretKey: "secret"}},
 		}
 		assert.False(t, svc.VerifyRootEmailHMAC("anything"))
 	})
@@ -32,7 +32,7 @@ func TestDemoService_VerifyRootEmailHMAC(t *testing.T) {
 	t.Run("returns true for valid HMAC and false for invalid", func(t *testing.T) {
 		rootEmail := "root@example.com"
 		secret := "supersecretkey"
-		cfg := &config.Config{RootEmail: rootEmail, Security: config.SecurityConfig{SigningKey: secret}}
+		cfg := &config.Config{RootEmail: rootEmail, Security: config.SecurityConfig{SecretKey: secret}}
 		svc := &DemoService{logger: logger.NewLoggerWithLevel("disabled"), config: cfg}
 
 		valid := domain.ComputeEmailHMAC(rootEmail, secret)
@@ -40,21 +40,9 @@ func TestDemoService_VerifyRootEmailHMAC(t *testing.T) {
 		assert.False(t, svc.VerifyRootEmailHMAC(valid+"x"))
 	})
 
-	t.Run("verifies with the signing key, not the encryption key", func(t *testing.T) {
-		rootEmail := "root@example.com"
-		cfg := &config.Config{RootEmail: rootEmail, Security: config.SecurityConfig{
-			SecretKey:  "encryption-key",
-			SigningKey: "signing-key",
-		}}
-		svc := &DemoService{logger: logger.NewLoggerWithLevel("disabled"), config: cfg}
-
-		assert.True(t, svc.VerifyRootEmailHMAC(domain.ComputeEmailHMAC(rootEmail, "signing-key")))
-		assert.False(t, svc.VerifyRootEmailHMAC(domain.ComputeEmailHMAC(rootEmail, "encryption-key")))
-	})
-
 	t.Run("uses the primary email when ROOT_EMAIL is a list", func(t *testing.T) {
 		secret := "supersecretkey"
-		cfg := &config.Config{RootEmail: "primary@example.com,second@example.com", Security: config.SecurityConfig{SigningKey: secret}}
+		cfg := &config.Config{RootEmail: "primary@example.com,second@example.com", Security: config.SecurityConfig{SecretKey: secret}}
 		svc := &DemoService{logger: logger.NewLoggerWithLevel("disabled"), config: cfg}
 
 		// HMAC over the primary (first) email is accepted.

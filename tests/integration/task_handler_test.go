@@ -820,7 +820,7 @@ func TestTaskAuthentication(t *testing.T) {
 
 		t.Run("execute endpoint refuses another installation's key", func(t *testing.T) {
 			client.SetSigningSecret("some-other-installations-secret")
-			defer client.SetSigningSecret(testutil.TestSigningKey)
+			defer client.SetSigningSecret(testutil.TestSecretKey)
 
 			resp, err := client.ExecuteTask(map[string]interface{}{"workspace_id": workspace.ID, "id": testTaskID})
 			require.NoError(t, err)

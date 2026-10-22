@@ -20,8 +20,8 @@ import (
 // signature.
 
 const (
-	// usageKeyLabel domain-separates the usage key from every other use of the
-	// signing key.
+	// usageKeyLabel domain-separates the usage key from every other use of
+	// SECRET_KEY.
 	usageKeyLabel = "notifuse.usage.v1"
 
 	// UsageSignatureMaxSkew bounds how long a signed request stays valid. Short,
@@ -35,17 +35,17 @@ const (
 )
 
 // UsageSigningKey derives the key that authenticates usage reads from the
-// installation's signing key: SIGNING_KEY, or SECRET_KEY when that is unset.
+// installation's SECRET_KEY.
 //
 // Derived, rather than a separate configured secret, because the control plane
-// already holds every tenant's signing key: there is nothing new to generate,
+// already holds every tenant's SECRET_KEY: there is nothing new to generate,
 // distribute, store or rotate, and both sides recompute the same key from what
-// they already have. Derived, rather than the signing key used directly, because
-// that key also signs JWTs — a usage key that leaked would otherwise be a full
-// compromise, whereas HMAC is one-way, so this key reveals nothing about the one
-// it came from.
-func UsageSigningKey(signingKey string) []byte {
-	h := hmac.New(sha256.New, []byte(signingKey))
+// they already have. Derived, rather than SECRET_KEY used directly, because
+// SECRET_KEY also signs JWTs and encrypts the database — a usage key that leaked
+// would otherwise be a full compromise, whereas HMAC is one-way, so this key
+// reveals nothing about the one it came from.
+func UsageSigningKey(secretKey string) []byte {
+	h := hmac.New(sha256.New, []byte(secretKey))
 	h.Write([]byte(usageKeyLabel))
 	return h.Sum(nil)
 }

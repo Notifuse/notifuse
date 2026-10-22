@@ -1,0 +1,356 @@
+package config
+
+import (
+	"crypto/rand"
+	"encoding/base64"
+	"strings"
+	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// formerComposeDefault is the SECRET_KEY value compose.yaml shipped as its default
+// before 42.0, and formerEnvExamplePlaceholder the one env.example carried. Notifuse
+// must refuse to sign with either.
+const (
+	formerComposeDefault        = "d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA=="
+	formerEnvExamplePlaceholder = "your-secret-key-here"
+)
+
+func freshBase64Key(t *testing.T) string {
+	t.Helper()
+	b := make([]byte, 32)
+	_, err := rand.Read(b)
+	require.NoError(t, err)
+	return base64.StdEncoding.EncodeToString(b)
+}
+
+// setKeyEnv sets the key variables for one test; an empty value leaves a variable
+// effectively unset.
+func setKeyEnv(t *testing.T, secretKey, pasetoKey string) {
+	t.Helper()
+	t.Setenv("SECRET_KEY", secretKey)
+	t.Setenv("PASETO_PRIVATE_KEY", pasetoKey)
+}
+
+func TestParseSecretKeys(t *testing.T) {
+	newKey := freshBase64Key(t)
+	oldKey := freshBase64Key(t)
+
+	t.Run("one key without a comma is read byte for byte and is not a list", func(t *testing.T) {
+		raw := ` "` + newKey + `" `
+
+		keys, err := parseSecretKeys(raw, "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Equal(t, raw, keys.current, "quotes and spaces stay part of a single key, as before")
+		assert.Empty(t, keys.previous)
+		assert.False(t, keys.isList)
+	})
+
+	t.Run("a list gives the first key and the previous ones with their quoted forms", func(t *testing.T) {
+		keys, err := parseSecretKeys(newKey+","+oldKey, "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Equal(t, newKey, keys.current)
+		assert.Equal(t, []string{oldKey, `"` + oldKey + `"`, "'" + oldKey + "'"}, keys.previous)
+		assert.True(t, keys.isList)
+	})
+
+	t.Run("quotes around the whole list are removed", func(t *testing.T) {
+		keys, err := parseSecretKeys(`"`+newKey+","+oldKey+`"`, "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Equal(t, newKey, keys.current)
+		assert.Contains(t, keys.previous, oldKey)
+	})
+
+	t.Run("spaces around each key are trimmed", func(t *testing.T) {
+		keys, err := parseSecretKeys(" "+newKey+" ,\t"+oldKey+" \n", "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Equal(t, newKey, keys.current)
+		assert.Contains(t, keys.previous, oldKey)
+	})
+
+	t.Run("two commas stand for one comma inside a key", func(t *testing.T) {
+		keys, err := parseSecretKeys(newKey+",legacy,,pass,,phrase", "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Equal(t, newKey, keys.current)
+		assert.Contains(t, keys.previous, "legacy,pass,phrase")
+	})
+
+	t.Run("a single key whose commas are doubled is a list of one", func(t *testing.T) {
+		keys, err := parseSecretKeys(newKey+",,suffix", "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Equal(t, newKey+",suffix", keys.current)
+		assert.Empty(t, keys.previous)
+		assert.True(t, keys.isList, "a list of one still gets the startup check")
+	})
+
+	t.Run("a previous key given in quotes is also tried without them", func(t *testing.T) {
+		keys, err := parseSecretKeys(newKey+`,"`+oldKey+`"`, "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Contains(t, keys.previous, `"`+oldKey+`"`)
+		assert.Contains(t, keys.previous, oldKey)
+		assert.Contains(t, keys.previous, "'"+oldKey+"'")
+	})
+
+	t.Run("a repeated key is listed once and the current key is never a previous one", func(t *testing.T) {
+		keys, err := parseSecretKeys(newKey+","+oldKey+","+oldKey+","+newKey, "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Equal(t, []string{oldKey, `"` + oldKey + `"`, "'" + oldKey + "'"}, keys.previous)
+	})
+
+	for name, raw := range map[string]string{
+		"an empty key between two others": newKey + ", ," + oldKey,
+		"a trailing comma":                newKey + "," + oldKey + ",",
+		"a leading comma":                 "," + newKey,
+	} {
+		t.Run(name+" is refused", func(t *testing.T) {
+			_, err := parseSecretKeys(raw, "SECRET_KEY")
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "empty key")
+		})
+	}
+
+	for name, raw := range map[string]string{
+		"each key in its own quotes": `"` + newKey + `","` + oldKey + `"`,
+		"a stray quote":              newKey + `',` + oldKey,
+	} {
+		t.Run("a first key starting or ending with a quote is refused: "+name, func(t *testing.T) {
+			_, err := parseSecretKeys(raw, "SECRET_KEY")
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "quote")
+		})
+	}
+
+	t.Run("a published first key is refused with the rotation to apply", func(t *testing.T) {
+		for _, raw := range []string{formerComposeDefault, formerComposeDefault + "," + oldKey, formerEnvExamplePlaceholder} {
+			_, err := parseSecretKeys(raw, "SECRET_KEY")
+
+			require.Error(t, err, raw)
+			assert.Contains(t, err.Error(), "published with Notifuse")
+			assert.Contains(t, err.Error(), "openssl rand -base64 32")
+			assert.Contains(t, err.Error(), "SECRET_KEY=<new key>,<current key>")
+			assert.Contains(t, err.Error(), "API keys must be deleted and created again")
+		}
+	})
+
+	t.Run("a published previous key is accepted: that is how an installation leaves it", func(t *testing.T) {
+		keys, err := parseSecretKeys(newKey+","+formerComposeDefault, "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Equal(t, newKey, keys.current)
+		assert.Contains(t, keys.previous, formerComposeDefault)
+	})
+
+	t.Run("a first key under 32 bytes of key material is refused with the rotation to apply", func(t *testing.T) {
+		for _, raw := range []string{"your-secret-key", "abc123#xyz789", strings.Repeat("k", 31), strings.Repeat("k", 31) + "," + oldKey} {
+			_, err := parseSecretKeys(raw, "SECRET_KEY")
+
+			require.Error(t, err, raw)
+			assert.Contains(t, err.Error(), "at least 32 bytes")
+			assert.Contains(t, err.Error(), "SECRET_KEY=<new key>,<current key>")
+		}
+	})
+
+	t.Run("a first key of exactly 32 bytes is accepted", func(t *testing.T) {
+		keys, err := parseSecretKeys(strings.Repeat("k", 32), "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Equal(t, strings.Repeat("k", 32), keys.current)
+	})
+
+	t.Run("a legacy key containing a comma is refused, with how to write its commas", func(t *testing.T) {
+		_, err := parseSecretKeys("my passphrase, with a comma, long enough overall", "SECRET_KEY")
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "twice")
+	})
+
+	t.Run("errors name the variable the value came from", func(t *testing.T) {
+		_, err := parseSecretKeys("short", "PASETO_PRIVATE_KEY")
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY=<new key>,<current key>")
+	})
+}
+
+func TestNewSecurityConfig(t *testing.T) {
+	newKey, oldKey := "a-new-raw-key-giving-32-bytes-of-material", freshBase64Key(t)
+
+	t.Run("signs and encrypts with the first key of a list, and decrypts with all of them", func(t *testing.T) {
+		security, err := NewSecurityConfig(`"`+newKey+","+oldKey+`"`, "SECRET_KEY")
+		require.NoError(t, err)
+		assert.Equal(t, newKey, security.SecretKey)
+		assert.Equal(t, []byte(newKey), security.JWTSecret)
+		assert.True(t, security.SecretKeyIsList)
+		assert.Contains(t, security.PreviousSecretKeys, oldKey)
+		assert.Equal(t, security.SecretKey, security.DecryptionKeys()[0])
+		assert.Equal(t, security.PreviousSecretKeys, security.DecryptionKeys()[1:])
+	})
+
+	t.Run("a single key is used byte for byte", func(t *testing.T) {
+		security, err := NewSecurityConfig(" "+newKey, "SECRET_KEY")
+		require.NoError(t, err)
+		assert.Equal(t, " "+newKey, security.SecretKey)
+		assert.Equal(t, []string{" " + newKey}, security.DecryptionKeys())
+		assert.False(t, security.SecretKeyIsList)
+	})
+
+	t.Run("refuses what the server refuses, naming the variable", func(t *testing.T) {
+		_, err := NewSecurityConfig(formerComposeDefault, "PASETO_PRIVATE_KEY")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY")
+	})
+}
+
+func TestLoad_SecretKeys(t *testing.T) {
+	t.Run("former compose default as SECRET_KEY is refused with the rotation to apply", func(t *testing.T) {
+		setKeyEnv(t, formerComposeDefault, "")
+
+		_, err := LoadWithOptions(LoadOptions{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "SECRET_KEY=<new key>,<current key>")
+	})
+
+	t.Run("former compose default through PASETO_PRIVATE_KEY names that variable", func(t *testing.T) {
+		setKeyEnv(t, "", formerComposeDefault)
+
+		_, err := LoadWithOptions(LoadOptions{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY=<new key>,<current key>")
+	})
+
+	t.Run("former compose default with surrounding whitespace or in quotes is refused", func(t *testing.T) {
+		for _, raw := range []string{"  " + formerComposeDefault + "\n", `"` + formerComposeDefault + `"`} {
+			setKeyEnv(t, raw, "")
+
+			_, err := LoadWithOptions(LoadOptions{})
+			require.Error(t, err, raw)
+			assert.Contains(t, err.Error(), "published with Notifuse")
+		}
+	})
+
+	t.Run("rotating off the former compose default loads, and only the new key signs", func(t *testing.T) {
+		newKey := freshBase64Key(t)
+		setKeyEnv(t, newKey+","+formerComposeDefault, "")
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.Equal(t, newKey, cfg.Security.SecretKey)
+		assert.Contains(t, cfg.Security.PreviousSecretKeys, formerComposeDefault)
+		assert.True(t, cfg.Security.SecretKeyIsList)
+		decoded, err := base64.StdEncoding.DecodeString(newKey)
+		require.NoError(t, err)
+		assert.Equal(t, decoded, cfg.Security.JWTSecret)
+	})
+
+	t.Run("a raw SECRET_KEY signs exactly as before", func(t *testing.T) {
+		secretKey := " raw-secret-key-0123456789abcdefghij "
+		setKeyEnv(t, secretKey, "")
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.Equal(t, secretKey, cfg.Security.SecretKey)
+		assert.Empty(t, cfg.Security.PreviousSecretKeys)
+		assert.False(t, cfg.Security.SecretKeyIsList)
+		assert.Equal(t, []byte(secretKey), cfg.Security.JWTSecret)
+	})
+
+	t.Run("a base64 SECRET_KEY signs exactly as before", func(t *testing.T) {
+		secretKey := freshBase64Key(t)
+		setKeyEnv(t, secretKey, "")
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		decoded, err := base64.StdEncoding.DecodeString(secretKey)
+		require.NoError(t, err)
+		assert.Equal(t, decoded, cfg.Security.JWTSecret)
+	})
+
+	t.Run("a short SECRET_KEY is refused", func(t *testing.T) {
+		setKeyEnv(t, "your-secret-key", "")
+
+		_, err := LoadWithOptions(LoadOptions{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "at least 32 bytes")
+	})
+}
+
+func TestIsPublishedKey(t *testing.T) {
+	decoded, err := base64.StdEncoding.DecodeString(formerComposeDefault)
+	require.NoError(t, err)
+
+	wrapped := formerComposeDefault[:40] + "\n" + formerComposeDefault[40:76] + "\r\n" + formerComposeDefault[76:]
+
+	recognised := map[string]string{
+		"as shipped":              formerComposeDefault,
+		"surrounding whitespace":  "\t" + formerComposeDefault + " \n",
+		"without padding":         strings.TrimRight(formerComposeDefault, "="),
+		"url alphabet":            base64.URLEncoding.EncodeToString(decoded),
+		"url alphabet unpadded":   base64.RawURLEncoding.EncodeToString(decoded),
+		"wrapped over lines":      wrapped,
+		"raw decoded bytes":       string(decoded),
+		"env.example placeholder": formerEnvExamplePlaceholder,
+		// docker --env-file keeps quotes as part of the value.
+		"double-quoted":                  `"` + formerComposeDefault + `"`,
+		"single-quoted":                  "'" + formerComposeDefault + "'",
+		"quoted with whitespace":         ` " ` + formerComposeDefault + ` " `,
+		"quoted env.example placeholder": `"` + formerEnvExamplePlaceholder + `"`,
+	}
+	for name, key := range recognised {
+		t.Run("recognises "+name, func(t *testing.T) {
+			assert.True(t, isPublishedKey(key))
+		})
+	}
+
+	// One character changed decodes to different bytes.
+	altered := "e" + formerComposeDefault[1:]
+
+	others := map[string]string{
+		"empty":                 "",
+		"fresh base64 key":      freshBase64Key(t),
+		"one character changed": altered,
+		"raw string key":        "another-secret-key-0123456789abcdef",
+		"mismatched quotes":     `"` + formerComposeDefault + "'",
+		"lone quote":            `"`,
+	}
+	for name, key := range others {
+		t.Run("ignores "+name, func(t *testing.T) {
+			assert.False(t, isPublishedKey(key))
+		})
+	}
+}
+
+func TestLoadSystemSettings_OpensSettingsUnderAPreviousKey(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	newKey, oldKey := freshBase64Key(t), freshBase64Key(t)
+	password, err := crypto.EncryptString("smtp-password", oldKey)
+	require.NoError(t, err)
+	username, err := crypto.EncryptString("smtp-user", newKey)
+	require.NoError(t, err)
+	mock.ExpectQuery("SELECT key, value FROM settings").WillReturnRows(sqlmock.NewRows([]string{"key", "value"}).
+		AddRow("is_installed", "true").
+		AddRow("encrypted_smtp_password", password).
+		AddRow("encrypted_smtp_username", username))
+
+	settings, err := loadSystemSettings(db, []string{newKey, oldKey})
+
+	require.NoError(t, err)
+	assert.Equal(t, "smtp-password", settings.SMTPPassword)
+	assert.Equal(t, "smtp-user", settings.SMTPUsername)
+}

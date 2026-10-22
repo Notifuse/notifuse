@@ -16,26 +16,34 @@ var ErrUndecryptable = errors.New("no key opens the value")
 // instance secret key.
 const encryptedFieldPrefix = "encrypted_"
 
+// DecryptWithKeys opens a value produced by EncryptString with the first of keys that
+// opens it, and says which one. AES-GCM authenticates, so a wrong key fails instead of
+// yielding garbage, and the key that opens a value is never in doubt.
+func DecryptWithKeys(value string, keys []string) (string, int, error) {
+	for i, key := range keys {
+		if plaintext, err := DecryptFromHexString(value, key); err == nil {
+			return plaintext, i, nil
+		}
+	}
+	return "", -1, ErrUndecryptable
+}
+
 // ReencryptValue makes a value produced by EncryptString open with current. A value
 // current already opens comes back unchanged; one that a previous key opens comes back
-// encrypted with current. AES-GCM authenticates, so a wrong key fails instead of
-// yielding garbage, and the key that opens a value is never in doubt.
+// encrypted with current.
 func ReencryptValue(value, current string, previous []string) (string, bool, error) {
-	if _, err := DecryptFromHexString(value, current); err == nil {
+	plaintext, index, err := DecryptWithKeys(value, append([]string{current}, previous...))
+	if err != nil {
+		return "", false, err
+	}
+	if index == 0 {
 		return value, false, nil
 	}
-	for _, key := range previous {
-		plaintext, err := DecryptFromHexString(value, key)
-		if err != nil {
-			continue
-		}
-		reencrypted, err := EncryptString(plaintext, current)
-		if err != nil {
-			return "", false, err
-		}
-		return reencrypted, true, nil
+	reencrypted, err := EncryptString(plaintext, current)
+	if err != nil {
+		return "", false, err
 	}
-	return "", false, ErrUndecryptable
+	return reencrypted, true, nil
 }
 
 // ReencryptFields applies ReencryptValue to every non-empty string held under a key

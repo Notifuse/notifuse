@@ -2774,7 +2774,7 @@ func TestWorkspaceHandler_HandleVerifyInvitationToken(t *testing.T) {
 		handler.handleVerifyInvitationToken(w, req)
 
 		// 404, not 401: the console signs out on any 401, and an expired link, or
-		// one signed before SIGNING_KEY was set, is opened by members too.
+		// one signed with a key the installation has since replaced, is opened by members too.
 		assert.Equal(t, http.StatusNotFound, w.Code)
 
 		var response map[string]string

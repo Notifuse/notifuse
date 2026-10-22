@@ -20,7 +20,7 @@ type APIClient struct {
 	client      *http.Client
 	token       string
 	workspaceID string
-	// signingSecret is the installation signing key the server was configured
+	// signingSecret is the installation SECRET_KEY the server was configured
 	// with. /api/tasks.execute is authenticated by signature rather than by a
 	// session, so the client signs it the way the scheduler does.
 	signingSecret string
@@ -33,7 +33,7 @@ func NewAPIClient(baseURL string) *APIClient {
 		client: &http.Client{
 			Timeout: 120 * time.Second, // Increased for long-running operations like task execution with rate limiting
 		},
-		signingSecret: TestSigningKey,
+		signingSecret: TestSecretKey,
 	}
 }
 
@@ -48,7 +48,7 @@ func NewAPIClientNoRedirect(baseURL string) *APIClient {
 				return http.ErrUseLastResponse // Don't follow redirects
 			},
 		},
-		signingSecret: TestSigningKey,
+		signingSecret: TestSecretKey,
 	}
 }
 
@@ -596,7 +596,7 @@ func (c *APIClient) DeleteTask(workspaceID, taskID string) (*http.Response, erro
 // ExecuteTask executes a specific task.
 //
 // The dispatch endpoint has no session to authenticate against, so it is signed
-// with the installation's signing key the way TaskService signs it: over
+// with the installation's SECRET_KEY the way TaskService signs it: over
 // {timestamp}.{path}.{sha256(body)}, which is why the body is marshalled here
 // rather than left to the request builder.
 func (c *APIClient) ExecuteTask(request map[string]interface{}) (*http.Response, error) {

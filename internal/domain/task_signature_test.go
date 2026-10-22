@@ -13,14 +13,14 @@ import (
 )
 
 func TestTaskExecuteSigningKey(t *testing.T) {
-	t.Run("is derived from the signing key, never equal to it", func(t *testing.T) {
+	t.Run("is not the secret key itself", func(t *testing.T) {
 		key := TaskExecuteSigningKey("installation-secret")
 		assert.NotEqual(t, []byte("installation-secret"), key)
 		assert.Len(t, key, sha256.Size)
 	})
 
 	t.Run("is domain-separated from the usage key", func(t *testing.T) {
-		// Both derive from the signing key. A leaked usage key must not sign dispatches.
+		// Both derive from SECRET_KEY. A leaked usage key must not sign dispatches.
 		assert.NotEqual(t, UsageSigningKey("installation-secret"), TaskExecuteSigningKey("installation-secret"))
 	})
 

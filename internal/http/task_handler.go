@@ -95,7 +95,7 @@ type TaskHandler struct {
 	authService  domain.AuthService
 	getJWTSecret func() ([]byte, error)
 	logger       logger.Logger
-	signingKey   string
+	secretKey    string
 	// httpDispatchEnabled mirrors "the internal scheduler is off". Only then does
 	// TaskService dispatch executions over HTTP, and only then does
 	// /api/tasks.execute do anything — a default install runs its scheduler
@@ -116,7 +116,7 @@ func NewTaskHandler(
 	authService domain.AuthService,
 	getJWTSecret func() ([]byte, error),
 	logger logger.Logger,
-	signingKey string,
+	secretKey string,
 	httpDispatchEnabled bool,
 ) *TaskHandler {
 	return &TaskHandler{
@@ -124,7 +124,7 @@ func NewTaskHandler(
 		authService:         authService,
 		getJWTSecret:        getJWTSecret,
 		logger:              logger,
-		signingKey:          signingKey,
+		secretKey:           secretKey,
 		httpDispatchEnabled: httpDispatchEnabled,
 		nowFn:               time.Now,
 	}
@@ -444,11 +444,11 @@ func (h *TaskHandler) verifyExecuteSignature(w http.ResponseWriter, r *http.Requ
 		return false
 	}
 
-	// An installation with no signing key cannot verify anything, so it must
+	// An installation with no SECRET_KEY cannot verify anything, so it must
 	// refuse rather than derive a key from the empty string and accept whatever
-	// matches it. Config always resolves one, so this is defence in depth.
-	if h.signingKey == "" {
-		return reject("no signing key configured")
+	// matches it. Config makes SECRET_KEY mandatory, so this is defence in depth.
+	if h.secretKey == "" {
+		return reject("no secret key configured")
 	}
 
 	timestamp, err := domain.ParseTaskExecuteTimestamp(rawTimestamp)
@@ -456,7 +456,7 @@ func (h *TaskHandler) verifyExecuteSignature(w http.ResponseWriter, r *http.Requ
 		return reject("malformed timestamp")
 	}
 
-	key := domain.TaskExecuteSigningKey(h.signingKey)
+	key := domain.TaskExecuteSigningKey(h.secretKey)
 	if err := domain.VerifyTaskExecuteSignature(key, timestamp, r.URL.Path, body, rawSignature, h.nowFn()); err != nil {
 		return reject("signature mismatch or stale timestamp")
 	}

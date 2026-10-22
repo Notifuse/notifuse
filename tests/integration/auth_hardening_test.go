@@ -2,25 +2,21 @@ package integration
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
-	httpHandler "github.com/Notifuse/notifuse/internal/http"
 	"github.com/Notifuse/notifuse/internal/service"
-	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// The harness runs with SECRET_KEY and SIGNING_KEY set to different values, as an
-// installation that moved off a shared SECRET_KEY does. Everything that signs must
-// answer to the signing key alone, while stored data keeps decrypting with SECRET_KEY.
-func TestSigningKeySeparation(t *testing.T) {
+// Tokens authenticate only what they were issued for, invitations only their own
+// invitee, and the workspace's encrypted secret key is served to no one.
+func TestAuthHardening(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
 	defer testutil.CleanupTestEnvironment()
@@ -30,65 +26,6 @@ func TestSigningKeySeparation(t *testing.T) {
 
 	client := suite.APIClient
 	cfg := suite.ServerManager.GetApp().GetConfig()
-	require.NotEqual(t, cfg.Security.SecretKey, cfg.Security.SigningKey,
-		"the harness must run with distinct keys for these checks to mean anything")
-
-	rootSignin := func(t *testing.T, key string) int {
-		t.Helper()
-		timestamp := time.Now().Unix()
-		signature := crypto.ComputeHMAC256([]byte(fmt.Sprintf("%s:%d", cfg.RootEmail, timestamp)), key)
-		resp, err := client.Post("/api/user.rootSignin", domain.RootSigninInput{
-			Email:     cfg.RootEmail,
-			Timestamp: timestamp,
-			Signature: signature,
-		})
-		require.NoError(t, err)
-		defer func() { _ = resp.Body.Close() }()
-		return resp.StatusCode
-	}
-
-	t.Run("root sign-in verifies with the signing key only", func(t *testing.T) {
-		assert.Equal(t, http.StatusUnauthorized, rootSignin(t, cfg.Security.SecretKey))
-		assert.Equal(t, http.StatusOK, rootSignin(t, cfg.Security.SigningKey))
-	})
-
-	t.Run("task dispatch verifies with the signing key only", func(t *testing.T) {
-		request := map[string]interface{}{"workspace_id": "no-such-workspace", "id": "no-such-task"}
-
-		client.SetSigningSecret(cfg.Security.SecretKey)
-		defer client.SetSigningSecret(testutil.TestSigningKey)
-		resp, err := client.ExecuteTask(request)
-		require.NoError(t, err)
-		_ = resp.Body.Close()
-		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
-
-		client.SetSigningSecret(cfg.Security.SigningKey)
-		resp, err = client.ExecuteTask(request)
-		require.NoError(t, err)
-		_ = resp.Body.Close()
-		// Past the signature check: the task simply does not exist.
-		assert.NotEqual(t, http.StatusUnauthorized, resp.StatusCode)
-	})
-
-	t.Run("usage reads verify with the signing key only", func(t *testing.T) {
-		readUsage := func(t *testing.T, key string) int {
-			t.Helper()
-			const path = "/api/usage.get"
-			timestamp := time.Now().Unix()
-			req, err := http.NewRequest(http.MethodGet, suite.ServerManager.GetURL()+path, nil)
-			require.NoError(t, err)
-			req.Header.Set(httpHandler.UsageTimestampHeader, fmt.Sprintf("%d", timestamp))
-			req.Header.Set(httpHandler.UsageSignatureHeader,
-				domain.SignUsageRequest(domain.UsageSigningKey(key), timestamp, path))
-			resp, err := http.DefaultClient.Do(req)
-			require.NoError(t, err)
-			defer func() { _ = resp.Body.Close() }()
-			return resp.StatusCode
-		}
-
-		assert.Equal(t, http.StatusUnauthorized, readUsage(t, cfg.Security.SecretKey))
-		assert.Equal(t, http.StatusOK, readUsage(t, cfg.Security.SigningKey))
-	})
 
 	authService := suite.ServerManager.GetApp().GetAuthService().(*service.AuthService)
 	factory := suite.DataFactory
@@ -179,8 +116,8 @@ func TestSigningKeySeparation(t *testing.T) {
 		}
 
 		// A link that no longer opens answers 404, not 401, which would sign out a
-		// member who opens it: one that expired, one signed before SIGNING_KEY was
-		// set, and a token that is not an invitation's at all.
+		// member who opens it: one that expired, one signed with another key, and a
+		// token that is not an invitation's at all.
 		verify := func(t *testing.T, token string) int {
 			t.Helper()
 			resp, err := client.Post("/api/workspaces.verifyInvitationToken", map[string]string{"token": token})
@@ -190,7 +127,7 @@ func TestSigningKeySeparation(t *testing.T) {
 		}
 		expired := invited.Invitation
 		expired.ExpiresAt = time.Now().Add(-time.Hour)
-		signedWithSecretKey, err := jwt.NewWithClaims(jwt.SigningMethodHS256, service.InvitationClaims{
+		signedWithAnotherKey, err := jwt.NewWithClaims(jwt.SigningMethodHS256, service.InvitationClaims{
 			InvitationID: invited.Invitation.ID,
 			WorkspaceID:  invited.Invitation.WorkspaceID,
 			Email:        invited.Invitation.Email,
@@ -198,12 +135,12 @@ func TestSigningKeySeparation(t *testing.T) {
 				ExpiresAt: jwt.NewNumericDate(invited.Invitation.ExpiresAt),
 				IssuedAt:  jwt.NewNumericDate(time.Now()),
 			},
-		}).SignedString([]byte(cfg.Security.SecretKey))
+		}).SignedString([]byte("another-installations-secret-key-32-bytes"))
 		require.NoError(t, err)
 		for name, token := range map[string]string{
-			"expired":                authService.GenerateInvitationToken(&expired),
-			"signed with SECRET_KEY": signedWithSecretKey,
-			"a session token":        rootToken,
+			"expired":                 authService.GenerateInvitationToken(&expired),
+			"signed with another key": signedWithAnotherKey,
+			"a session token":         rootToken,
 		} {
 			assert.Equal(t, http.StatusNotFound, verify(t, token), name)
 			assert.Equal(t, http.StatusNotFound, accept(t, token), name)

@@ -74,21 +74,18 @@ type AppInterface interface {
 }
 
 // TestSecretKey is the installation SECRET_KEY every test server runs with. It
-// encrypts workspace settings, so the database seeder has to agree with it.
+// encrypts workspace settings and derives the key that signs /api/tasks.execute,
+// so the client and the database seeder both have to agree with it.
 const TestSecretKey = "test-secret-key-for-integration-tests-only"
-
-// TestSigningKey is the installation SIGNING_KEY every test server runs with. It
-// differs from TestSecretKey, so the suite proves that everything signed (root
-// sign-in, /api/tasks.execute dispatches, magic codes) answers to it alone.
-const TestSigningKey = "test-signing-key-for-integration-tests-only"
 
 // NewServerManager creates a new server manager for testing
 func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *DatabaseManager) *ServerManager {
-	// The JWT secret config derives from TestSigningKey: its raw bytes, as it is not
-	// base64. A token signed with TestSecretKey, as the installation issued them before
-	// SIGNING_KEY was set, is then refused. The suite never loads config, so which key
-	// the secret comes from is pinned by config's unit tests.
-	jwtSecret := []byte(TestSigningKey)
+	// The keys an installation with SECRET_KEY=TestSecretKey runs with, the JWT secret
+	// included, so a token signed with any other key is refused as it would be there.
+	security, err := config.NewSecurityConfig(TestSecretKey, "SECRET_KEY")
+	if err != nil {
+		panic(fmt.Sprintf("TestSecretKey is refused: %v", err))
+	}
 
 	// The suite runs on an enterprise licence — see license.go for what it carries and
 	// why. A licence the binary does not trust is recorded and reported from Start.
@@ -107,11 +104,7 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 			Port: 0, // Use random available port
 		},
 		Database: *dbManager.GetConfig(),
-		Security: config.SecurityConfig{
-			SecretKey:  TestSecretKey,
-			SigningKey: TestSigningKey,
-			JWTSecret:  jwtSecret,
-		},
+		Security: security,
 		SMTP: config.SMTPConfig{
 			Host:      "localhost",
 			Port:      1025,
@@ -472,6 +465,18 @@ func (sm *ServerManager) WaitForReady(timeout time.Duration) error {
 		return fmt.Errorf("server not started")
 	}
 	return sm.waitForReady(timeout)
+}
+
+// SetSecretKey gives the server the keys an installation reads from SECRET_KEY=raw,
+// from its next start. The data factory and the seeder keep encrypting with
+// TestSecretKey.
+func (sm *ServerManager) SetSecretKey(raw string) error {
+	security, err := config.NewSecurityConfig(raw, "SECRET_KEY")
+	if err != nil {
+		return err
+	}
+	sm.config.Security = security
+	return nil
 }
 
 // Restart stops and starts the server

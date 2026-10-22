@@ -142,9 +142,9 @@ type TaskService struct {
 	// Wired from TaskScheduler.Enabled — an instance running its own scheduler executes its
 	// own tasks directly (no self-call); see SetDirectExecution.
 	directExecution bool
-	// signingKey signs HTTP dispatches to /api/tasks.execute. Set through
-	// SetSigningKey rather than taken by the constructor, which has 37 call sites.
-	signingKey string
+	// secretKey signs HTTP dispatches to /api/tasks.execute. Set through
+	// SetSecretKey rather than taken by the constructor, which has 37 call sites.
+	secretKey string
 }
 
 // WithTransaction executes a function within a transaction
@@ -201,14 +201,14 @@ func (s *TaskService) SetDirectExecution(enabled bool) {
 	s.directExecution = enabled
 }
 
-// SetSigningKey sets the installation's signing key, from which the key that signs
+// SetSecretKey sets the installation's SECRET_KEY, from which the key that signs
 // HTTP dispatches to /api/tasks.execute is derived. A service left without one
 // dispatches unsigned, which the handler rejects — that is the intended failure:
 // an unsigned dispatch is indistinguishable from anyone else's.
-func (s *TaskService) SetSigningKey(signingKey string) {
+func (s *TaskService) SetSecretKey(secretKey string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	s.signingKey = signingKey
+	s.secretKey = secretKey
 }
 
 // signingSecret reads the dispatch signing secret. Dispatches are built from
@@ -216,7 +216,7 @@ func (s *TaskService) SetSigningKey(signingKey string) {
 func (s *TaskService) signingSecret() string {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	return s.signingKey
+	return s.secretKey
 }
 
 // IsDirectExecution returns whether in-process (direct) task execution is enabled.

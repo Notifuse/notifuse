@@ -27,7 +27,7 @@ type UserService struct {
 	isProduction  bool
 	tracer        tracing.Tracer
 	rateLimiter   *ratelimiter.RateLimiter // Global rate limiter with namespace support
-	signingKey    string                   // hashes magic codes and verifies root sign-in signatures
+	secretKey     string
 	rootEmail     string
 }
 
@@ -44,7 +44,7 @@ type UserServiceConfig struct {
 	IsProduction  bool
 	Tracer        tracing.Tracer
 	RateLimiter   *ratelimiter.RateLimiter // Global rate limiter
-	SigningKey    string
+	SecretKey     string
 	RootEmail     string
 }
 
@@ -64,7 +64,7 @@ func NewUserService(cfg UserServiceConfig) (*UserService, error) {
 		isProduction:  cfg.IsProduction,
 		tracer:        tracer,
 		rateLimiter:   cfg.RateLimiter, // Global rate limiter
-		signingKey:    cfg.SigningKey,
+		secretKey:     cfg.SecretKey,
 		rootEmail:     cfg.RootEmail,
 	}, nil
 }
@@ -135,7 +135,7 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 	codeExpiresAt := time.Now().Add(15 * time.Minute)
 
 	// Hash the magic code before storing (security: prevent plain-text exposure in database)
-	hashedCode := crypto.HashMagicCode(plainCode, s.signingKey)
+	hashedCode := crypto.HashMagicCode(plainCode, s.secretKey)
 
 	// Create new session
 	session := &domain.Session{
@@ -217,7 +217,7 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 			continue
 		}
 		// Use constant-time HMAC comparison to prevent timing attacks
-		if crypto.VerifyMagicCode(input.Code, *session.MagicCode, s.signingKey) {
+		if crypto.VerifyMagicCode(input.Code, *session.MagicCode, s.secretKey) {
 			matchingSession = session
 			break
 		}
@@ -311,7 +311,7 @@ func (s *UserService) RootSignin(ctx context.Context, input domain.RootSigninInp
 
 	// Verify HMAC signature using constant-time comparison
 	message := fmt.Sprintf("%s:%d", input.Email, input.Timestamp)
-	expectedSig := crypto.ComputeHMAC256([]byte(message), s.signingKey)
+	expectedSig := crypto.ComputeHMAC256([]byte(message), s.secretKey)
 	if !hmac.Equal([]byte(input.Signature), []byte(expectedSig)) {
 		s.logger.WithField("email", input.Email).Warn("Root signin invalid signature")
 		s.tracer.AddAttribute(ctx, "error", "invalid_signature")

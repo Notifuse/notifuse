@@ -33,7 +33,7 @@ func createTestDemoService(cfg *config.Config, serviceLogger logger.Logger) *ser
 }
 
 func TestNewDemoHandler(t *testing.T) {
-	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SigningKey: "test-secret"}}
+	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SecretKey: "test-secret"}}
 	mockLogger := logger.NewLoggerWithLevel("disabled")
 	svc := createTestDemoService(cfg, mockLogger)
 
@@ -46,7 +46,7 @@ func TestNewDemoHandler(t *testing.T) {
 }
 
 func TestDemoHandler_RegisterRoutes(t *testing.T) {
-	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SigningKey: "test-secret"}}
+	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SecretKey: "test-secret"}}
 	mockLogger := logger.NewLoggerWithLevel("disabled")
 	svc := createTestDemoService(cfg, mockLogger)
 	handler := NewDemoHandler(svc, mockLogger)
@@ -65,7 +65,7 @@ func TestDemoHandler_RegisterRoutes(t *testing.T) {
 }
 
 func TestDemoHandler_MethodNotAllowed(t *testing.T) {
-	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SigningKey: "test-secret"}}
+	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SecretKey: "test-secret"}}
 	mockLogger := logger.NewLoggerWithLevel("disabled")
 	svc := createTestDemoService(cfg, mockLogger)
 	h := NewDemoHandler(svc, mockLogger)
@@ -89,7 +89,7 @@ func TestDemoHandler_MethodNotAllowed(t *testing.T) {
 }
 
 func TestDemoHandler_MissingHMAC(t *testing.T) {
-	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SigningKey: "test-secret"}}
+	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SecretKey: "test-secret"}}
 	mockLogger := logger.NewLoggerWithLevel("disabled")
 	svc := createTestDemoService(cfg, mockLogger)
 	h := NewDemoHandler(svc, mockLogger)
@@ -115,7 +115,7 @@ func TestDemoHandler_InvalidHMAC(t *testing.T) {
 	mockLogger.EXPECT().WithField("provided_hmac", "invalid_hmac").Return(mockLogger)
 	mockLogger.EXPECT().Warn("Invalid HMAC provided for demo reset")
 
-	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SigningKey: "test-secret"}}
+	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SecretKey: "test-secret"}}
 	svc := createTestDemoService(cfg, mockLogger)
 	h := NewDemoHandler(svc, mockLogger)
 
@@ -142,7 +142,7 @@ func TestDemoHandler_RecentResetIsSkippedNotRejected(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockLogger.EXPECT().Warn("Demo reset skipped, previous reset was too recent")
 
-	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SigningKey: "test-secret"}}
+	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SecretKey: "test-secret"}}
 	svc := createTestDemoService(cfg, mockLogger)
 	h := NewDemoHandler(svc, mockLogger)
 
@@ -173,7 +173,7 @@ func TestDemoHandler_RecentResetIsSkippedNotRejected(t *testing.T) {
 // A duplicate dispatch landing while a reset is in flight must be answered
 // immediately, not held on the mutex for the length of the reset.
 func TestDemoHandler_ResetInProgressAnswersImmediately(t *testing.T) {
-	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SigningKey: "test-secret"}}
+	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SecretKey: "test-secret"}}
 	mockLogger := logger.NewLoggerWithLevel("disabled")
 	svc := createTestDemoService(cfg, mockLogger)
 	h := NewDemoHandler(svc, mockLogger)
@@ -210,7 +210,7 @@ func TestDemoHandler_ResetInProgressAnswersImmediately(t *testing.T) {
 // Authentication is checked before the reset lock, so an unauthenticated
 // request arriving mid-reset cannot park on it.
 func TestDemoHandler_AuthCheckedBeforeResetLock(t *testing.T) {
-	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SigningKey: "test-secret"}}
+	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SecretKey: "test-secret"}}
 
 	testCases := []struct {
 		name         string
@@ -260,7 +260,7 @@ func TestDemoHandler_AuthCheckedBeforeResetLock(t *testing.T) {
 // Test to improve coverage - test that lastReset is updated on successful HMAC validation
 // We can't test full success without complex mocking, but we can test the time update logic
 func TestDemoHandler_LastResetTimeUpdate(t *testing.T) {
-	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SigningKey: "test-secret"}}
+	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SecretKey: "test-secret"}}
 	mockLogger := logger.NewLoggerWithLevel("disabled")
 	svc := createTestDemoService(cfg, mockLogger)
 	h := NewDemoHandler(svc, mockLogger)
@@ -278,7 +278,7 @@ func TestDemoHandler_LastResetTimeUpdate(t *testing.T) {
 
 func TestDemoHandler_DirectLastResetUpdate(t *testing.T) {
 	// Test the lastReset field directly to increase coverage
-	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SigningKey: "test-secret"}}
+	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SecretKey: "test-secret"}}
 	mockLogger := logger.NewLoggerWithLevel("disabled")
 	svc := createTestDemoService(cfg, mockLogger)
 	h := NewDemoHandler(svc, mockLogger)

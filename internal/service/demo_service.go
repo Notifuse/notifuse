@@ -170,7 +170,7 @@ func (s *DemoService) VerifyRootEmailHMAC(providedHMAC string) bool {
 	}
 
 	// Use the domain function to verify HMAC with constant-time comparison
-	return domain.VerifyEmailHMAC(rootEmail, providedHMAC, s.config.Security.SigningKey)
+	return domain.VerifyEmailHMAC(rootEmail, providedHMAC, s.config.Security.SecretKey)
 }
 
 // ResetDemo deletes all existing workspaces and tasks, then creates a new demo workspace

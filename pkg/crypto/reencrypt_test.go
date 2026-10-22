@@ -29,6 +29,26 @@ func opensWith(value, key string) (string, bool) {
 	return plain, err == nil
 }
 
+func TestDecryptWithKeys(t *testing.T) {
+	t.Run("returns the plaintext and the position of the key that opens the value", func(t *testing.T) {
+		value := mustEncrypt(t, "secret", reencryptOldKey)
+
+		plaintext, index, err := DecryptWithKeys(value, []string{reencryptCurrentKey, reencryptOldKey})
+
+		require.NoError(t, err)
+		assert.Equal(t, "secret", plaintext)
+		assert.Equal(t, 1, index)
+	})
+
+	t.Run("refuses a value none of the keys opens", func(t *testing.T) {
+		value := mustEncrypt(t, "secret", reencryptOlderKey)
+
+		_, _, err := DecryptWithKeys(value, []string{reencryptCurrentKey, reencryptOldKey})
+
+		assert.True(t, errors.Is(err, ErrUndecryptable))
+	})
+}
+
 func TestReencryptValue(t *testing.T) {
 	t.Run("a value under the current key is left as it is", func(t *testing.T) {
 		value := mustEncrypt(t, "secret", reencryptCurrentKey)

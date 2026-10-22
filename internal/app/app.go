@@ -514,7 +514,7 @@ func (a *App) InitServices() error {
 			// Return current JWT secret from config
 			// This will be nil before setup, or loaded from env/database after setup
 			if len(a.config.Security.JWTSecret) == 0 {
-				return nil, fmt.Errorf("system setup not completed or signing key not configured (SIGNING_KEY, or SECRET_KEY when SIGNING_KEY is not set)")
+				return nil, fmt.Errorf("system setup not completed or SECRET_KEY not configured")
 			}
 			return a.config.Security.JWTSecret, nil
 		},
@@ -580,7 +580,7 @@ func (a *App) InitServices() error {
 		Logger:        a.logger,
 		Tracer:        tracing.GetTracer(),
 		RateLimiter:   a.rateLimiter, // Pass global rate limiter
-		SigningKey:    a.config.Security.SigningKey,
+		SecretKey:     a.config.Security.SecretKey,
 		RootEmail:     a.config.RootEmail,
 	}
 
@@ -646,7 +646,7 @@ func (a *App) InitServices() error {
 		SessionExpiry:         30 * 24 * time.Hour, // match UserService session lifetime
 		RateLimiter:           a.rateLimiter,
 		ExchangeCache:         a.oidcExchangeCache,
-		SigningKey:            a.config.Security.SigningKey,
+		SecretKey:             a.config.Security.SecretKey,
 		// Case-INSENSITIVE root matcher: the IdP-asserted email casing may differ from
 		// the configured ROOT_EMAIL, and a case-sensitive miss would silently disable
 		// the root-account privilege-escalation guard in resolveOrProvisionUser.
@@ -816,7 +816,7 @@ func (a *App) InitServices() error {
 
 	// The dispatcher signs its calls to /api/tasks.execute, which the handler
 	// verifies with the same key — the endpoint has no session to authenticate.
-	a.taskService.SetSigningKey(a.config.Security.SigningKey)
+	a.taskService.SetSecretKey(a.config.Security.SecretKey)
 
 	// Initialize transactional notification service
 	a.transactionalNotificationService = service.NewTransactionalNotificationService(
@@ -1442,7 +1442,7 @@ func (a *App) InitHandlers() error {
 		a.authService,
 		getJWTSecret,
 		a.logger,
-		a.config.Security.SigningKey,
+		a.config.Security.SecretKey,
 		// /api/tasks.execute only executes on an instance that dispatches over
 		// HTTP, i.e. one whose internal scheduler is off; elsewhere it answers
 		// 404. The same flag drives SetDirectExecution above, so the endpoint
@@ -1479,7 +1479,7 @@ func (a *App) InitHandlers() error {
 	)
 	usageHandler := httpHandler.NewUsageHandler(
 		a.usageService,
-		a.config.Security.SigningKey,
+		a.config.Security.SecretKey,
 		a.logger,
 	)
 	contactTimelineHandler := httpHandler.NewContactTimelineHandler(

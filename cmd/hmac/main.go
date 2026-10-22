@@ -5,7 +5,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/domain"
 )
 
 func main() {
@@ -13,20 +14,22 @@ func main() {
 }
 
 // run prints the HMAC /api/demo.reset verifies for args[0] under args[1], the
-// signing key, and returns the exit code.
+// SECRET_KEY value, and returns the exit code.
 func run(args []string, out io.Writer) int {
 	if len(args) < 2 {
-		fmt.Fprintln(out, "Usage: go run cmd/hmac/main.go <email> <signing_key>")
-		fmt.Fprintln(out, "The signing key is SIGNING_KEY, or SECRET_KEY when SIGNING_KEY is not set.")
+		fmt.Fprintln(out, "Usage: go run cmd/hmac/main.go <email> <secret_key>")
 		return 1
 	}
 
 	email := args[0]
-	signingKey := args[1]
+	// A SECRET_KEY listing several keys signs with its first one.
+	security, err := config.NewSecurityConfig(args[1], "SECRET_KEY")
+	if err != nil {
+		fmt.Fprintln(out, err)
+		return 1
+	}
 
-	// What domain.ComputeEmailHMAC computes, without importing the domain package
-	// and its dependencies into a one-shot tool.
-	result := crypto.ComputeHMAC256([]byte(email), signingKey)
+	result := domain.ComputeEmailHMAC(email, security.SecretKey)
 
 	fmt.Fprintln(out)
 	fmt.Fprintf(out, "Root Email: %s\n", email)

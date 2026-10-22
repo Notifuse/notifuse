@@ -101,7 +101,7 @@ func setupUserTestWithRootEmail(t *testing.T, rootEmail string) (
 		IsProduction:  true,
 		Tracer:        mockTracer,
 		RateLimiter:   rl,
-		SigningKey:    "test-signing-key-for-hmac-verification",
+		SecretKey:     "test-secret-key-for-hmac-verification",
 		RootEmail:     rootEmail,
 	})
 	require.NoError(t, err)
@@ -262,7 +262,7 @@ func TestUserService_VerifyCode(t *testing.T) {
 		}
 
 		// Use the secret key from the service to hash the magic code
-		hashedCode := crypto.HashMagicCode(code, "test-signing-key-for-hmac-verification")
+		hashedCode := crypto.HashMagicCode(code, "test-secret-key-for-hmac-verification")
 		magicCodeExpires := time.Now().Add(15 * time.Minute)
 
 		session := &domain.Session{
@@ -341,7 +341,7 @@ func TestUserService_VerifyCode(t *testing.T) {
 		}
 
 		// Use the secret key from the service to hash the magic code
-		hashedCode := crypto.HashMagicCode(code, "test-signing-key-for-hmac-verification")
+		hashedCode := crypto.HashMagicCode(code, "test-secret-key-for-hmac-verification")
 		expiredTime := time.Now().Add(-1 * time.Minute)
 
 		session := &domain.Session{
@@ -610,12 +610,12 @@ func TestUserService_RootSignin(t *testing.T) {
 	mockRepo, mockAuthService, service, _ := setupUserTest(t)
 
 	rootEmail := "root@example.com"
-	signingKey := "test-signing-key-for-hmac-verification"
+	secretKey := "test-secret-key-for-hmac-verification"
 
 	t.Run("successful root signin with valid HMAC", func(t *testing.T) {
 		timestamp := time.Now().Unix()
 		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
-		signature := crypto.ComputeHMAC256([]byte(message), signingKey)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
 
 		user := &domain.User{
 			ID:    "root-user-id",
@@ -650,7 +650,7 @@ func TestUserService_RootSignin(t *testing.T) {
 		timestamp := time.Now().Unix()
 		wrongEmail := "notroot@example.com"
 		message := fmt.Sprintf("%s:%d", wrongEmail, timestamp)
-		signature := crypto.ComputeHMAC256([]byte(message), signingKey)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
 
 		result, err := service.RootSignin(context.Background(), domain.RootSigninInput{
 			Email:     wrongEmail,
@@ -667,7 +667,7 @@ func TestUserService_RootSignin(t *testing.T) {
 		// Timestamp more than 60 seconds ago
 		timestamp := time.Now().Unix() - 120
 		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
-		signature := crypto.ComputeHMAC256([]byte(message), signingKey)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
 
 		result, err := service.RootSignin(context.Background(), domain.RootSigninInput{
 			Email:     rootEmail,
@@ -684,7 +684,7 @@ func TestUserService_RootSignin(t *testing.T) {
 		// Timestamp more than 60 seconds in the future
 		timestamp := time.Now().Unix() + 120
 		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
-		signature := crypto.ComputeHMAC256([]byte(message), signingKey)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
 
 		result, err := service.RootSignin(context.Background(), domain.RootSigninInput{
 			Email:     rootEmail,
@@ -714,7 +714,7 @@ func TestUserService_RootSignin(t *testing.T) {
 	t.Run("fails when root user not found in database", func(t *testing.T) {
 		timestamp := time.Now().Unix()
 		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
-		signature := crypto.ComputeHMAC256([]byte(message), signingKey)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
 
 		mockRepo.EXPECT().
 			GetUserByEmail(gomock.Any(), rootEmail).
@@ -734,7 +734,7 @@ func TestUserService_RootSignin(t *testing.T) {
 	t.Run("fails when session creation fails", func(t *testing.T) {
 		timestamp := time.Now().Unix()
 		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
-		signature := crypto.ComputeHMAC256([]byte(message), signingKey)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
 
 		user := &domain.User{
 			ID:    "root-user-id",
@@ -763,13 +763,13 @@ func TestUserService_RootSignin(t *testing.T) {
 
 func TestUserService_RootSignin_MultipleRootEmails(t *testing.T) {
 	mockRepo, mockAuthService, service, _ := setupUserTestWithRootEmail(t, "root1@example.com,root2@example.com")
-	signingKey := "test-signing-key-for-hmac-verification"
+	secretKey := "test-secret-key-for-hmac-verification"
 
 	t.Run("second listed root can sign in", func(t *testing.T) {
 		secondRoot := "root2@example.com"
 		timestamp := time.Now().Unix()
 		message := fmt.Sprintf("%s:%d", secondRoot, timestamp)
-		signature := crypto.ComputeHMAC256([]byte(message), signingKey)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
 
 		user := &domain.User{ID: "root2-id", Email: secondRoot}
 
@@ -792,7 +792,7 @@ func TestUserService_RootSignin_MultipleRootEmails(t *testing.T) {
 		outsider := "outsider@example.com"
 		timestamp := time.Now().Unix()
 		message := fmt.Sprintf("%s:%d", outsider, timestamp)
-		signature := crypto.ComputeHMAC256([]byte(message), signingKey)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
 
 		result, err := service.RootSignin(context.Background(), domain.RootSigninInput{
 			Email:     outsider,
@@ -809,7 +809,7 @@ func TestUserService_RootSignin_MultipleRootEmails(t *testing.T) {
 		mixedCase := "Root1@example.com" // configured as lowercase root1@example.com
 		timestamp := time.Now().Unix()
 		message := fmt.Sprintf("%s:%d", mixedCase, timestamp)
-		signature := crypto.ComputeHMAC256([]byte(message), signingKey)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
 
 		result, err := service.RootSignin(context.Background(), domain.RootSigninInput{
 			Email:     mixedCase,
