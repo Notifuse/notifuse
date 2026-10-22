@@ -513,7 +513,7 @@ func (s *InboundWebhookEventService) eventsOfSentEmails(ctx context.Context, wor
 	}
 	// The id comes from the request, so a long one is cut, where it can name no email anyway
 	if len(firstIgnoredID) > maxLoggedMessageIDLength {
-		firstIgnoredID = strings.ToValidUTF8(firstIgnoredID[:maxLoggedMessageIDLength], "") + "…(truncated)"
+		firstIgnoredID = domain.TruncateUTF8(firstIgnoredID, maxLoggedMessageIDLength) + "…(truncated)"
 	}
 
 	if ignored > 0 {
