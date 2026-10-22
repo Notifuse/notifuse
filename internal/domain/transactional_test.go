@@ -1830,6 +1830,71 @@ func TestUpdateTransactionalRequest_Validate_TrackingModeOnlyUpdate(t *testing.T
 	assert.Contains(t, err.Error(), "at least one field")
 }
 
+// The id and name columns hold 32 and 255 characters; a longer value is refused here
+// rather than by the insert, which would surface as a server error.
+func TestCreateTransactionalRequest_Validate_Lengths(t *testing.T) {
+	newRequest := func(id, name string) CreateTransactionalRequest {
+		return CreateTransactionalRequest{
+			WorkspaceID: "workspace-123",
+			Notification: TransactionalNotificationCreateParams{
+				ID:   id,
+				Name: name,
+				Channels: ChannelTemplates{
+					TransactionalChannelEmail: ChannelTemplate{TemplateID: "template-789"},
+				},
+			},
+		}
+	}
+
+	tests := []struct {
+		name    string
+		id      string
+		value   string
+		wantErr string
+	}{
+		{name: "id of 32 characters", id: strings.Repeat("a", 32), value: "Welcome", wantErr: ""},
+		{name: "id of 32 accented characters", id: strings.Repeat("é", 32), value: "Welcome", wantErr: ""},
+		{name: "id of 33 characters", id: strings.Repeat("a", 33), value: "Welcome", wantErr: "notification.id length must be between 1 and 32"},
+		{name: "name of 255 accented characters", id: "welcome", value: strings.Repeat("é", 255), wantErr: ""},
+		{name: "name of 256 characters", id: "welcome", value: strings.Repeat("a", 256), wantErr: "notification.name length must be between 1 and 255"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := newRequest(tt.id, tt.value)
+			err := req.Validate()
+			if tt.wantErr == "" {
+				assert.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			var validationErr ValidationError
+			require.ErrorAs(t, err, &validationErr, "a length error must be a validation error, answered with 400")
+			assert.Equal(t, tt.wantErr, validationErr.Message)
+		})
+	}
+}
+
+func TestUpdateTransactionalRequest_Validate_NameLength(t *testing.T) {
+	newRequest := func(name string) UpdateTransactionalRequest {
+		return UpdateTransactionalRequest{
+			WorkspaceID: "ws1",
+			ID:          "notif-1",
+			Updates:     TransactionalNotificationUpdateParams{Name: name},
+		}
+	}
+
+	ok := newRequest(strings.Repeat("é", 255))
+	assert.NoError(t, ok.Validate())
+
+	tooLong := newRequest(strings.Repeat("a", 256))
+	err := tooLong.Validate()
+	require.Error(t, err)
+	var validationErr ValidationError
+	require.ErrorAs(t, err, &validationErr)
+	assert.Equal(t, "updates.name length must be between 1 and 255", validationErr.Message)
+}
+
 func TestUpdateTransactionalRequest_Validate_IdentityOnlyTrackingSettings(t *testing.T) {
 	// The at-least-one-field gate turns on whether the body named tracking_settings,
 	// not on what the block contains, so a request assembled in Go always carries an

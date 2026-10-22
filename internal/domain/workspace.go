@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/asaskevich/govalidator"
@@ -1480,7 +1481,8 @@ func (r *CreateWorkspaceRequest) Validate(passphrase string) error {
 	if r.Name == "" {
 		return fmt.Errorf("invalid create workspace request: name is required")
 	}
-	if len(r.Name) > 32 {
+	// Counted in characters, like the console's counter on this field.
+	if utf8.RuneCountInString(r.Name) > 32 {
 		return fmt.Errorf("invalid create workspace request: name length must be between 1 and 32")
 	}
 
@@ -1604,7 +1606,7 @@ func (r *UpdateWorkspaceRequest) Validate(passphrase string) error {
 	if r.Name == "" {
 		return fmt.Errorf("invalid update workspace request: name is required")
 	}
-	if len(r.Name) > 32 {
+	if utf8.RuneCountInString(r.Name) > 32 {
 		return fmt.Errorf("invalid update workspace request: name length must be between 1 and 32")
 	}
 

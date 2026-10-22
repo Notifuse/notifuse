@@ -131,6 +131,45 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 			assert.Contains(t, errorResp["error"], "already exists")
 		})
 
+		// The name limit counts characters, as the console's counter does: 32 accented
+		// characters (64 bytes) are accepted on create and update, a 33rd is refused.
+		t.Run("name length counted in characters", func(t *testing.T) {
+			workspaceID := "namelen" + uuid.New().String()[:8]
+			settings := domain.WorkspaceSettings{
+				Timezone:        "UTC",
+				DefaultLanguage: "en",
+				Languages:       []string{"en"},
+			}
+			storedName := func() string {
+				var name string
+				require.NoError(t, suite.DBManager.GetDB().QueryRow("SELECT name FROM workspaces WHERE id = $1", workspaceID).Scan(&name))
+				return name
+			}
+
+			name := strings.Repeat("é", 32)
+			resp, err := client.Post("/api/workspaces.create", domain.CreateWorkspaceRequest{ID: workspaceID, Name: name, Settings: settings})
+			require.NoError(t, err)
+			resp.Body.Close()
+			require.Equal(t, http.StatusCreated, resp.StatusCode)
+			assert.Equal(t, name, storedName())
+
+			renamed := strings.Repeat("à", 32)
+			resp, err = client.Post("/api/workspaces.update", domain.UpdateWorkspaceRequest{ID: workspaceID, Name: renamed, Settings: settings})
+			require.NoError(t, err)
+			resp.Body.Close()
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+			assert.Equal(t, renamed, storedName())
+
+			resp, err = client.Post("/api/workspaces.update", domain.UpdateWorkspaceRequest{ID: workspaceID, Name: strings.Repeat("é", 33), Settings: settings})
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			var errorResp map[string]string
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&errorResp))
+			assert.Equal(t, "invalid update workspace request: name length must be between 1 and 32", errorResp["error"])
+			assert.Equal(t, renamed, storedName(), "a refused rename leaves the name as it was")
+		})
+
 		t.Run("invalid workspace data", func(t *testing.T) {
 			// Missing required fields
 			createReq := domain.CreateWorkspaceRequest{

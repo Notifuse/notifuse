@@ -1816,3 +1816,75 @@ func TestTransactionalNotificationHandler_HandleTestTemplate_WrappedTemplateNotF
 	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
 	assert.Equal(t, "Template not found", response["error"])
 }
+
+// An id or name longer than its column is refused before the service runs, with the
+// reason, instead of failing in the insert as a server error.
+func TestTransactionalNotificationHandler_LengthLimits(t *testing.T) {
+	channels := domain.ChannelTemplates{
+		domain.TransactionalChannelEmail: {TemplateID: "template-123"},
+	}
+
+	testCases := []struct {
+		name    string
+		path    string
+		body    interface{}
+		handle  func(h *TransactionalNotificationHandler, w http.ResponseWriter, r *http.Request)
+		wantErr string
+	}{
+		{
+			name: "create with an id over 32 characters",
+			path: "/api/transactional.create",
+			body: domain.CreateTransactionalRequest{
+				WorkspaceID: "workspace1",
+				Notification: domain.TransactionalNotificationCreateParams{
+					ID: strings.Repeat("a", 33), Name: "Password reset", Channels: channels,
+				},
+			},
+			handle:  (*TransactionalNotificationHandler).handleCreate,
+			wantErr: "validation error: notification.id length must be between 1 and 32",
+		},
+		{
+			name: "create with a name over 255 characters",
+			path: "/api/transactional.create",
+			body: domain.CreateTransactionalRequest{
+				WorkspaceID: "workspace1",
+				Notification: domain.TransactionalNotificationCreateParams{
+					ID: "password_reset", Name: strings.Repeat("a", 256), Channels: channels,
+				},
+			},
+			handle:  (*TransactionalNotificationHandler).handleCreate,
+			wantErr: "validation error: notification.name length must be between 1 and 255",
+		},
+		{
+			name: "update with a name over 255 characters",
+			path: "/api/transactional.update",
+			body: domain.UpdateTransactionalRequest{
+				WorkspaceID: "workspace1",
+				ID:          "password_reset",
+				Updates:     domain.TransactionalNotificationUpdateParams{Name: strings.Repeat("a", 256)},
+			},
+			handle:  (*TransactionalNotificationHandler).handleUpdate,
+			wantErr: "validation error: updates.name length must be between 1 and 255",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// No expectation is set on the service: reaching it fails the test.
+			_, _, handler := setupTransactionalHandlerTest(t)
+
+			reqBody, err := json.Marshal(tc.body)
+			require.NoError(t, err)
+			req := httptest.NewRequest(http.MethodPost, tc.path, bytes.NewBuffer(reqBody))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			tc.handle(handler, w, req)
+
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+			var response map[string]string
+			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+			assert.Equal(t, tc.wantErr, response["error"])
+		})
+	}
+}

@@ -19,7 +19,7 @@ import (
 // Two traps are load-bearing here, because CreateTemplate failures are only
 // Warn-logged and a template that silently never exists leaves the automation
 // referencing it with a dangling template_id:
-//   - Template.Name is capped at 32 characters (much tighter than a list's 255).
+//   - Template.Name is capped at 255 characters and Template.ID at 32.
 //   - buildEmailTranslations must be handed only fr and es. "en" is the top-level
 //     Email field, so including it would create a duplicate translation.
 

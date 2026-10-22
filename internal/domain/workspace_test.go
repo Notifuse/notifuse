@@ -1001,6 +1001,55 @@ func TestCreateWorkspaceRequest_Validate_FirstValidationFails(t *testing.T) {
 	assert.Contains(t, err.Error(), "invalid create workspace request")
 }
 
+// The workspace name limit counts characters, as the console's counter does, so an
+// accented name that fits the counter is not refused for its byte length.
+func TestWorkspaceRequests_Validate_NameLength(t *testing.T) {
+	passphrase := "test-passphrase"
+	settings := WorkspaceSettings{
+		WebsiteURL:      "https://example.com",
+		Timezone:        "UTC",
+		DefaultLanguage: "en",
+		Languages:       []string{"en"},
+	}
+	validators := []struct {
+		name   string
+		prefix string
+		check  func(name string) error
+	}{
+		{
+			name:   "CreateWorkspaceRequest",
+			prefix: "invalid create workspace request: ",
+			check: func(name string) error {
+				req := CreateWorkspaceRequest{ID: "test123", Name: name, Settings: settings}
+				return req.Validate(passphrase)
+			},
+		},
+		{
+			name:   "UpdateWorkspaceRequest",
+			prefix: "invalid update workspace request: ",
+			check: func(name string) error {
+				req := UpdateWorkspaceRequest{ID: "test123", Name: name, Settings: settings}
+				return req.Validate(passphrase)
+			},
+		},
+	}
+
+	for _, v := range validators {
+		t.Run(v.name, func(t *testing.T) {
+			assert.NoError(t, v.check(strings.Repeat("a", 32)))
+			assert.NoError(t, v.check(strings.Repeat("é", 32)), "32 accented characters (64 bytes) fit")
+
+			err := v.check(strings.Repeat("a", 33))
+			require.Error(t, err)
+			assert.Equal(t, v.prefix+"name length must be between 1 and 32", err.Error())
+
+			err = v.check(strings.Repeat("é", 33))
+			require.Error(t, err)
+			assert.Equal(t, v.prefix+"name length must be between 1 and 32", err.Error())
+		})
+	}
+}
+
 func TestFileManagerSettings_Validate(t *testing.T) {
 	passphrase := "test-passphrase"
 	testCases := []struct {

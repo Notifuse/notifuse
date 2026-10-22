@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -110,6 +111,101 @@ func TestValidateTemplateID(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestValidateTemplateName(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   string
+		wantErr string
+	}{
+		{name: "empty", value: "", wantErr: "name is required"},
+		{name: "longer than the former 32-byte cap", value: "Welcome email for our new customers", wantErr: ""},
+		{name: "255 characters", value: strings.Repeat("a", 255), wantErr: ""},
+		{name: "256 characters", value: strings.Repeat("a", 256), wantErr: "name length must be between 1 and 255"},
+		{name: "255 accented characters (510 bytes)", value: strings.Repeat("é", 255), wantErr: ""},
+		{name: "256 accented characters", value: strings.Repeat("é", 256), wantErr: "name length must be between 1 and 255"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateTemplateName(tt.value)
+			if tt.wantErr == "" {
+				assert.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Equal(t, tt.wantErr, err.Error())
+		})
+	}
+}
+
+// The three entry points that accept a template name share one rule, each under its own prefix.
+func TestTemplateNameLength_AcrossValidators(t *testing.T) {
+	email := func() *EmailTemplate {
+		return &EmailTemplate{
+			SenderID:         "test123",
+			Subject:          "Test Subject",
+			CompiledPreview:  "<html>Test content</html>",
+			VisualEditorTree: createValidMJMLBlock(),
+		}
+	}
+	validators := []struct {
+		name   string
+		prefix string
+		check  func(name string) error
+	}{
+		{
+			name:   "Template.Validate",
+			prefix: "invalid template: ",
+			check: func(name string) error {
+				tmpl := &Template{
+					ID: "test123", Name: name, Version: 1, Channel: "email", Email: email(),
+					Category: string(TemplateCategoryMarketing),
+				}
+				return tmpl.Validate()
+			},
+		},
+		{
+			name:   "CreateTemplateRequest.Validate",
+			prefix: "invalid create template request: ",
+			check: func(name string) error {
+				req := &CreateTemplateRequest{
+					WorkspaceID: "workspace123", ID: "template123", Name: name, Channel: "email", Email: email(),
+					Category: string(TemplateCategoryMarketing),
+				}
+				_, _, err := req.Validate()
+				return err
+			},
+		},
+		{
+			name:   "UpdateTemplateRequest.Validate",
+			prefix: "invalid update template request: ",
+			check: func(name string) error {
+				req := &UpdateTemplateRequest{
+					WorkspaceID: "workspace123", ID: "template123", Name: name, Channel: "email", Email: email(),
+					Category: string(TemplateCategoryMarketing),
+				}
+				_, _, err := req.Validate()
+				return err
+			},
+		},
+	}
+
+	for _, v := range validators {
+		t.Run(v.name, func(t *testing.T) {
+			assert.NoError(t, v.check(strings.Repeat("a", 255)))
+			assert.NoError(t, v.check(strings.Repeat("é", 255)))
+
+			err := v.check(strings.Repeat("a", 256))
+			require.Error(t, err)
+			assert.Equal(t, v.prefix+"name length must be between 1 and 255", err.Error())
+
+			err = v.check("")
+			require.Error(t, err)
+			assert.Equal(t, v.prefix+"name is required", err.Error())
 		})
 	}
 }
