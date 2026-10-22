@@ -227,7 +227,7 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 			assert.Equal(t, 0, count)
 
 			// Compared without case: the database must not exist under any form of its name.
-			workspaceDBName := "notifuse_test_ws_" + workspaceID
+			workspaceDBName := wsDBName(suite.DBManager.GetConfig().Prefix, workspaceID)
 			require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM pg_database WHERE lower(datname) = lower($1)", workspaceDBName).Scan(&count))
 			assert.Equal(t, 0, count, "no workspace database may be left behind")
 		})
