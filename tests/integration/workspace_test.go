@@ -11,6 +11,7 @@ import (
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/app"
+	intdb "github.com/Notifuse/notifuse/internal/database"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/google/uuid"
@@ -229,6 +230,19 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 			// Compared without case: the database must not exist under any form of its name.
 			workspaceDBName := wsDBName(suite.DBManager.GetConfig().Prefix, workspaceID)
 			require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM pg_database WHERE lower(datname) = lower($1)", workspaceDBName).Scan(&count))
+			assert.Equal(t, 0, count, "no workspace database may be left behind")
+		})
+
+		t.Run("workspace database name with uppercase letters", func(t *testing.T) {
+			workspaceID := "Upper" + strings.ReplaceAll(uuid.New().String(), "-", "")[:10]
+			cfg := suite.DBManager.GetConfig()
+			workspaceDBName := wsDBName(cfg.Prefix, workspaceID)
+
+			err := intdb.EnsureWorkspaceDatabaseExists(cfg, workspaceID)
+			require.EqualError(t, err, "workspace database name must be lowercase: "+workspaceDBName)
+
+			var count int
+			require.NoError(t, suite.DBManager.GetDB().QueryRow("SELECT COUNT(*) FROM pg_database WHERE lower(datname) = lower($1)", workspaceDBName).Scan(&count))
 			assert.Equal(t, 0, count, "no workspace database may be left behind")
 		})
 

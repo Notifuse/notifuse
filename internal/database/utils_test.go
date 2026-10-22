@@ -279,6 +279,26 @@ func TestEnsureWorkspaceDatabaseExists(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to ping PostgreSQL server")
 	})
+
+	// PostgreSQL would create the lowercase name and every connection uses the name as
+	// written, so a name with uppercase letters is refused before any connection is tried.
+	t.Run("Name with uppercase letters", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "invalid",
+			Password: "invalid",
+			Host:     "nonexistent-host",
+			Port:     9999,
+			Prefix:   "test",
+			SSLMode:  "disable",
+		}
+
+		err := EnsureWorkspaceDatabaseExists(cfg, "AcmeCo")
+		assert.EqualError(t, err, "workspace database name must be lowercase: test_ws_AcmeCo")
+
+		cfg.Prefix = "Notifuse"
+		err = EnsureWorkspaceDatabaseExists(cfg, "acmeco")
+		assert.EqualError(t, err, "workspace database name must be lowercase: Notifuse_ws_acmeco")
+	})
 }
 
 func TestEnsureSystemDatabaseExists(t *testing.T) {

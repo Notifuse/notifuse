@@ -97,6 +97,13 @@ func EnsureWorkspaceDatabaseExists(cfg *config.DatabaseConfig, workspaceID strin
 	safeID := strings.ReplaceAll(workspaceID, "-", "_")
 	dbName := fmt.Sprintf("%s_ws_%s", cfg.Prefix, safeID)
 
+	// PostgreSQL folds the name of the database it creates to lowercase, while every
+	// connection uses the name as written: a name with uppercase letters would leave a
+	// database that never opens.
+	if dbName != strings.ToLower(dbName) {
+		return fmt.Errorf("workspace database name must be lowercase: %s", dbName)
+	}
+
 	// Connect to PostgreSQL server without specifying a database
 	pgDSN := GetPostgresDSN(cfg)
 	db, err := sql.Open("postgres", pgDSN)
