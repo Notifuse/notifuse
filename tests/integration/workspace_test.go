@@ -231,7 +231,9 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 
 			// Compared without case: the database must not exist under any form of its name.
 			workspaceDBName := wsDBName(suite.DBManager.GetConfig().Prefix, workspaceID)
-			assert.Equal(t, 0, countDatabasesAnyCase(t, db, workspaceDBName), "no workspace database may be left behind")
+			leftovers, err := databasesAnyCase(db, workspaceDBName)
+			require.NoError(t, err)
+			assert.Empty(t, leftovers, "no workspace database may be left behind")
 		})
 
 		t.Run("workspace database name with uppercase letters", func(t *testing.T) {
@@ -243,7 +245,9 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 			err := intdb.EnsureWorkspaceDatabaseExists(cfg, workspaceID)
 			require.EqualError(t, err, "workspace database name must be lowercase: "+workspaceDBName)
 
-			assert.Equal(t, 0, countDatabasesAnyCase(t, suite.DBManager.GetDB(), workspaceDBName), "no workspace database may be left behind")
+			leftovers, err := databasesAnyCase(suite.DBManager.GetDB(), workspaceDBName)
+			require.NoError(t, err)
+			assert.Empty(t, leftovers, "no workspace database may be left behind")
 		})
 
 		t.Run("invalid workspace data", func(t *testing.T) {
@@ -2095,12 +2099,18 @@ func createTestWorkspaceWithWebsite(t *testing.T, client *testutil.APIClient, na
 }
 
 // dropLeftoverDatabase drops, after the test, every database a regression would leave for
-// name: the ones countDatabasesAnyCase finds, so what a subtest detects is what it removes.
+// name: the ones databasesAnyCase finds, so what a subtest detects is what it removes.
+// Errors are logged, so a cleanup problem never fails a subtest that passed.
 func dropLeftoverDatabase(t *testing.T, suite *testutil.IntegrationTestSuite, name string) {
 	t.Helper()
 	t.Cleanup(func() {
 		db := suite.DBManager.GetDB()
-		for _, datname := range databasesAnyCase(t, db, name) {
+		leftovers, err := databasesAnyCase(db, name)
+		if err != nil {
+			t.Logf("listing databases named %s: %v", name, err)
+			return
+		}
+		for _, datname := range leftovers {
 			if _, err := db.Exec("DROP DATABASE IF EXISTS " + pq.QuoteIdentifier(datname) + " WITH (FORCE)"); err != nil {
 				t.Logf("dropping database %s: %v", datname, err)
 			}
@@ -2108,27 +2118,22 @@ func dropLeftoverDatabase(t *testing.T, suite *testutil.IntegrationTestSuite, na
 	})
 }
 
-// countDatabasesAnyCase counts the databases whose name is name, whatever the case of its
-// ASCII letters.
-func countDatabasesAnyCase(t *testing.T, db *sql.DB, name string) int {
-	t.Helper()
-	return len(databasesAnyCase(t, db, name))
-}
-
 // databasesAnyCase lists the databases whose name is name, whatever the case of its ASCII
 // letters. Both sides use the "C" collation, the one pg_database names have, which folds
 // ASCII only, as PostgreSQL does for unquoted names.
-func databasesAnyCase(t *testing.T, db *sql.DB, name string) []string {
-	t.Helper()
+func databasesAnyCase(db *sql.DB, name string) ([]string, error) {
 	rows, err := db.Query(`SELECT datname FROM pg_database WHERE lower(datname) = lower($1 COLLATE "C")`, name)
-	require.NoError(t, err)
+	if err != nil {
+		return nil, err
+	}
 	defer func() { _ = rows.Close() }()
 	var names []string
 	for rows.Next() {
 		var datname string
-		require.NoError(t, rows.Scan(&datname))
+		if err := rows.Scan(&datname); err != nil {
+			return nil, err
+		}
 		names = append(names, datname)
 	}
-	require.NoError(t, rows.Err())
-	return names
+	return names, rows.Err()
 }
