@@ -7,18 +7,17 @@ import { Highlight, themes } from 'prism-react-renderer'
 import { Editor } from '@monaco-editor/react'
 import { faDesktop, faMobileAlt } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { insertAfterDoctype } from '../../../utils/previewDocument'
 
 /**
  * The email with every link opening in a new tab rather than in the preview
  * frame, which runs no script. A link to an anchor of the email (`#offer`)
  * opens one too: a srcdoc document resolves it against the console's own URL,
- * so it never scrolls the preview. The base target comes first, right after the
- * doctype so the document still has one, and so before any base element of the
- * email's own.
+ * so it never scrolls the preview. The base target comes first, before any base
+ * element of the email's own.
  */
 function withLinksInNewTab(html: string): string {
-  const doctype = /^\s*<!doctype[^>]*>/i.exec(html)?.[0] ?? ''
-  return doctype + '<base target="_blank">' + html.slice(doctype.length)
+  return insertAfterDoctype(html, '<base target="_blank">')
 }
 
 interface PreviewProps {

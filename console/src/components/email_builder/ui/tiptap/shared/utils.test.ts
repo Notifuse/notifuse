@@ -37,6 +37,9 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+// Each case pins the output the helper gave before it parsed away from the page,
+// adjacent blocks running together (`Buy` + `now`) included: spacing them is a
+// change of its own.
 describe.each([
   {
     name: 'stripPlainSpans',

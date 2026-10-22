@@ -92,6 +92,7 @@ describe('withPreviewStorage', () => {
   it.each([
     ['<!DOCTYPE html><html><head></head><body>x</body></html>', '<!DOCTYPE html>'],
     ['  <!doctype html>\n<html><body>x</body></html>', '  <!doctype html>'],
+    ['<!-- theme v2 --><!DOCTYPE html><html><body>x</body></html>', '<!-- theme v2 --><!DOCTYPE html>'],
     ['<p>x</p>', '']
   ])('puts the script first, after any doctype: %j', (html, doctype) => {
     expect(withPreviewStorage(html)).toBe(

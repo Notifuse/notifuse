@@ -1,3 +1,5 @@
+import { insertAfterDoctype } from './previewDocument'
+
 /**
  * The blog theme preview runs in an origin of its own, where reading storage or
  * cookies throws and stops the theme script that tried. This script gives it
@@ -66,9 +68,8 @@ export const PREVIEW_STORAGE_SCRIPT = `<script>(function () {
 
 /**
  * The preview document with that script first, so it runs before anything the
- * theme does: right after the doctype, so the document still has one.
+ * theme does.
  */
 export function withPreviewStorage(html: string): string {
-  const doctype = /^\s*<!doctype[^>]*>/i.exec(html)?.[0] ?? ''
-  return doctype + PREVIEW_STORAGE_SCRIPT + html.slice(doctype.length)
+  return insertAfterDoctype(html, PREVIEW_STORAGE_SCRIPT)
 }
