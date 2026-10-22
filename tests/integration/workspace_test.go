@@ -204,7 +204,7 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 
 		t.Run("workspace ID with uppercase letters", func(t *testing.T) {
 			workspaceID := "Upper" + strings.ReplaceAll(uuid.New().String(), "-", "")[:10]
-			dropLowercaseDatabase(t, suite, wsDBName(suite.DBManager.GetConfig().Prefix, workspaceID))
+			dropLeftoverDatabase(t, suite, wsDBName(suite.DBManager.GetConfig().Prefix, workspaceID))
 			createReq := domain.CreateWorkspaceRequest{
 				ID:   workspaceID,
 				Name: "Uppercase ID Workspace",
@@ -231,22 +231,19 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 
 			// Compared without case: the database must not exist under any form of its name.
 			workspaceDBName := wsDBName(suite.DBManager.GetConfig().Prefix, workspaceID)
-			require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM pg_database WHERE lower(datname) = lower($1)", workspaceDBName).Scan(&count))
-			assert.Equal(t, 0, count, "no workspace database may be left behind")
+			assert.Equal(t, 0, countDatabasesAnyCase(t, db, workspaceDBName), "no workspace database may be left behind")
 		})
 
 		t.Run("workspace database name with uppercase letters", func(t *testing.T) {
 			workspaceID := "Upper" + strings.ReplaceAll(uuid.New().String(), "-", "")[:10]
 			cfg := suite.DBManager.GetConfig()
 			workspaceDBName := wsDBName(cfg.Prefix, workspaceID)
-			dropLowercaseDatabase(t, suite, workspaceDBName)
+			dropLeftoverDatabase(t, suite, workspaceDBName)
 
 			err := intdb.EnsureWorkspaceDatabaseExists(cfg, workspaceID)
 			require.EqualError(t, err, "workspace database name must be lowercase: "+workspaceDBName)
 
-			var count int
-			require.NoError(t, suite.DBManager.GetDB().QueryRow("SELECT COUNT(*) FROM pg_database WHERE lower(datname) = lower($1)", workspaceDBName).Scan(&count))
-			assert.Equal(t, 0, count, "no workspace database may be left behind")
+			assert.Equal(t, 0, countDatabasesAnyCase(t, suite.DBManager.GetDB(), workspaceDBName), "no workspace database may be left behind")
 		})
 
 		t.Run("invalid workspace data", func(t *testing.T) {
@@ -2097,29 +2094,34 @@ func createTestWorkspaceWithWebsite(t *testing.T, client *testutil.APIClient, na
 	return workspaceID
 }
 
-// dropLowercaseDatabase drops, after the test, any database a regression would leave under
-// name, whatever its case: it has no workspace row, so the suite's cleanup never sees it.
-func dropLowercaseDatabase(t *testing.T, suite *testutil.IntegrationTestSuite, name string) {
+// dropLeftoverDatabase drops, after the test, the database a regression would leave for
+// name: as written if it was created quoted, or with its ASCII capitals folded to lowercase
+// if it was created unquoted, as PostgreSQL does.
+func dropLeftoverDatabase(t *testing.T, suite *testutil.IntegrationTestSuite, name string) {
 	t.Helper()
 	t.Cleanup(func() {
-		db := suite.DBManager.GetDB()
-		rows, err := db.Query("SELECT datname FROM pg_database WHERE lower(datname) = lower($1)", name)
-		if err != nil {
-			t.Logf("listing databases named %s: %v", name, err)
-			return
-		}
-		var leftovers []string
-		for rows.Next() {
-			var datname string
-			if err := rows.Scan(&datname); err == nil {
-				leftovers = append(leftovers, datname)
-			}
-		}
-		_ = rows.Close()
-		for _, datname := range leftovers {
-			if _, err := db.Exec("DROP DATABASE IF EXISTS " + pq.QuoteIdentifier(datname) + " WITH (FORCE)"); err != nil {
+		for _, datname := range []string{name, asciiLower(name)} {
+			if _, err := suite.DBManager.GetDB().Exec("DROP DATABASE IF EXISTS " + pq.QuoteIdentifier(datname) + " WITH (FORCE)"); err != nil {
 				t.Logf("dropping database %s: %v", datname, err)
 			}
 		}
 	})
+}
+
+// countDatabasesAnyCase counts the databases named name, its ASCII capitals folded or not.
+// Both sides use the "C" collation, the one pg_database names have, which folds ASCII only.
+func countDatabasesAnyCase(t *testing.T, db *sql.DB, name string) int {
+	t.Helper()
+	var count int
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM pg_database WHERE lower(datname) = lower($1 COLLATE "C")`, name).Scan(&count))
+	return count
+}
+
+func asciiLower(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r >= 'A' && r <= 'Z' {
+			return r + ('a' - 'A')
+		}
+		return r
+	}, s)
 }
