@@ -10,6 +10,9 @@ import { getBrowserTimezone } from '../lib/timezoneNormalizer'
 import { getBrowserLanguage } from '../lib/languages'
 import { useLingui } from '@lingui/react/macro'
 
+// Length the API accepts for a workspace name.
+const WORKSPACE_NAME_MAX_LENGTH = 32
+
 export function CreateWorkspacePage() {
   const { t } = useLingui()
   const navigate = useNavigate()
@@ -125,10 +128,19 @@ export function CreateWorkspacePage() {
             name="name"
             rules={[
               { required: true, message: t`Please enter a workspace name` },
-              { min: 3, message: t`Workspace name must be at least 3 characters long` }
+              { min: 3, message: t`Workspace name must be at least 3 characters long` },
+              {
+                max: WORKSPACE_NAME_MAX_LENGTH,
+                message: t`Workspace name must be at most ${WORKSPACE_NAME_MAX_LENGTH} characters long`
+              }
             ]}
           >
-            <Input placeholder={t`Enter a name for your workspace`} onChange={handleNameChange} />
+            <Input
+              placeholder={t`Enter a name for your workspace`}
+              onChange={handleNameChange}
+              maxLength={WORKSPACE_NAME_MAX_LENGTH}
+              showCount
+            />
           </Form.Item>
 
           <Form.Item
