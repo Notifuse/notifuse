@@ -49,6 +49,10 @@ type Config struct {
 	MaxUsers            int  // 0 = unlimited (backward compat for self-hosted)
 	MaxWorkspaces       int  // 0 = unlimited (backward compat for self-hosted)
 
+	// UnopenedSettings names the encrypted system settings no key of SECRET_KEY opened
+	// when the configuration loaded; Notifuse runs without them.
+	UnopenedSettings []string
+
 	// LicenseKey is the raw NOTIFUSE_LICENSE_KEY envelope, unverified. It is carried
 	// verbatim because verifying it needs the public key compiled into the binary, which
 	// this package must not import: config is imported by pkg/database and pkg/tracing, so
@@ -303,8 +307,10 @@ type SystemSettings struct {
 	OIDCAutoCreateUsers bool
 	OIDCAllowedDomains  string
 
-	// UnopenedSettings names the encrypted settings no key opened, left empty above.
+	// UnopenedSettings names the encrypted settings no key opened, left empty above;
+	// unopened keeps their stored values, to tell what would open them.
 	UnopenedSettings []string
+	unopened         map[string]string
 }
 
 // getSystemDSN constructs the database connection string for the system database
@@ -462,42 +468,80 @@ func (s *SystemSettings) decrypt(settingsMap map[string]string, name string, key
 	decrypted, _, err := crypto.DecryptWithKeys(value, keys)
 	if err != nil {
 		s.UnopenedSettings = append(s.UnopenedSettings, name)
+		if s.unopened == nil {
+			s.unopened = map[string]string{}
+		}
+		s.unopened[name] = value
 		return ""
 	}
 	return decrypted
 }
 
-// checkUnopenedSettings refuses the start when a feature that is on needs a stored
-// setting no key of variable opens: the feature would otherwise fail on its own terms
-// (OIDC_CLIENT_SECRET is empty) or, for the SMTP bridge outside production, run without
-// TLS.
-func checkUnopenedSettings(settings *SystemSettings, oidc OIDCConfig, bridge SMTPBridgeConfig, variable string) error {
+func unopenedSettings(settings *SystemSettings) []string {
 	if settings == nil {
 		return nil
 	}
-	unopened := func(names ...string) []string {
-		var found []string
-		for _, name := range names {
+	return settings.UnopenedSettings
+}
+
+// checkUnopenedSettings refuses the start when a feature that is on needs a stored
+// setting no key of security opens: the feature would otherwise fail on its own terms
+// (OIDC_CLIENT_SECRET is empty) or, for the SMTP bridge outside production, run without
+// TLS. A value the environment gives needs nothing stored.
+func checkUnopenedSettings(settings *SystemSettings, oidc OIDCConfig, bridge SMTPBridgeConfig, security SecurityConfig) error {
+	if settings == nil || len(settings.UnopenedSettings) == 0 {
+		return nil
+	}
+	variable := security.KeyVariable
+	if variable == "" {
+		variable = "SECRET_KEY"
+	}
+	refuse := func(feature, alternative string, needed ...string) error {
+		var names []string
+		for _, name := range needed {
 			if slices.Contains(settings.UnopenedSettings, name) {
-				found = append(found, name)
+				names = append(names, name)
 			}
 		}
-		return found
-	}
-	refuse := func(names []string, feature string) error {
-		return fmt.Errorf("no key in %[1]s opens the stored settings %[2]s, which %[3]s needs. Set %[1]s to "+
-			"the key they are encrypted with, written as it was, or put a new key first and that key after a "+
-			"comma to replace it", variable, strings.Join(names, ", "), feature)
+		if len(names) == 0 {
+			return nil
+		}
+		refusal := fmt.Sprintf("no key in %s opens the stored settings %s, which %s needs",
+			variable, strings.Join(names, ", "), feature)
+		if !security.SecretKeyIsList {
+			opens := func(candidate string) bool {
+				for _, name := range names {
+					if _, _, err := crypto.DecryptWithKeys(settings.unopened[name], []string{candidate}); err == nil {
+						return true
+					}
+				}
+				return false
+			}
+			if hint := KeyHint(security.SecretKey, variable, opens); hint != "" {
+				return fmt.Errorf("%s, but %s", refusal, hint)
+			}
+		}
+		return fmt.Errorf("%s. %s. Or %s", refusal, StoredDataRemedy(variable), alternative)
 	}
 
 	if oidc.Enabled && oidc.ClientSecret == "" {
-		if names := unopened("encrypted_oidc_client_secret"); len(names) > 0 {
-			return refuse(names, "single sign-on (OIDC)")
+		if err := refuse("single sign-on (OIDC)", "give the secret in OIDC_CLIENT_SECRET",
+			"encrypted_oidc_client_secret"); err != nil {
+			return err
 		}
 	}
-	if bridge.Enabled && bridge.TLSMode != smtp_bridge.ModeOff && (bridge.TLSCertBase64 == "" || bridge.TLSKeyBase64 == "") {
-		if names := unopened("encrypted_smtp_bridge_tls_cert_base64", "encrypted_smtp_bridge_tls_key_base64"); len(names) > 0 {
-			return refuse(names, "the SMTP bridge")
+	if bridge.Enabled && bridge.TLSMode != smtp_bridge.ModeOff {
+		var needed []string
+		if bridge.TLSCertBase64 == "" {
+			needed = append(needed, "encrypted_smtp_bridge_tls_cert_base64")
+		}
+		if bridge.TLSKeyBase64 == "" {
+			needed = append(needed, "encrypted_smtp_bridge_tls_key_base64")
+		}
+		if err := refuse("the SMTP bridge", "give the certificate and key in SMTP_BRIDGE_TLS_CERT_BASE64 and "+
+			"SMTP_BRIDGE_TLS_KEY_BASE64, or set SMTP_BRIDGE_TLS=off behind a proxy that terminates TLS",
+			needed...); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -931,7 +975,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	// on static misconfiguration (issuer reachability is a runtime concern).
 	oidcConfig := resolveOIDCConfig(envVals, systemSettings, isInstalled, apiEndpoint)
 	// Before either feature's own check, which would blame its settings rather than the key.
-	if err := checkUnopenedSettings(systemSettings, oidcConfig, smtpBridgeConfig, security.KeyVariable); err != nil {
+	if err := checkUnopenedSettings(systemSettings, oidcConfig, smtpBridgeConfig, security); err != nil {
 		return nil, err
 	}
 	if err := oidcConfig.Validate(); err != nil {
@@ -1064,6 +1108,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		AnalyticsWorkMem: v.GetString("ANALYTICS_WORK_MEM"),
 		Version:          v.GetString("VERSION"),
 		IsInstalled:      isInstalled,
+		UnopenedSettings: unopenedSettings(systemSettings),
 		MaxUsers:         v.GetInt("MAX_USERS"),
 		MaxWorkspaces:    v.GetInt("MAX_WORKSPACES"),
 		// Read with no viper default and no validation. A default would make the key

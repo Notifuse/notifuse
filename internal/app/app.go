@@ -400,15 +400,19 @@ func (a *App) InitDB() error {
 
 // storedDataOpens reports whether key opens the data stored under the instance key: the
 // key of at least one workspace or, when none is stored, at least one encrypted setting.
-// Nothing stored opens with any key. what names the data it tried, for an error.
-func (a *App) storedDataOpens(ctx context.Context, key string) (opens bool, what string, err error) {
+// Nothing stored opens with any key. refusal says what the key does not open, for an
+// error that starts with the variable.
+func (a *App) storedDataOpens(ctx context.Context, key string) (opens bool, refusal string, err error) {
 	opens, examined, err := repository.SecretKeyOpensAWorkspace(ctx, a.db, key)
-	if err != nil || examined > 0 {
-		return opens, fmt.Sprintf("the %d workspaces stored in the database", examined), err
+	if err != nil || examined > 1 {
+		return opens, fmt.Sprintf("opens none of the %d workspaces stored in the database", examined), err
+	}
+	if examined == 1 {
+		return opens, "does not open the workspace stored in the database", nil
 	}
 	opens, tried, err := repository.SecretKeyOpensASetting(ctx, a.db, key)
-	return opens, fmt.Sprintf("the system settings stored in the database (%s), and no workspace is stored",
-		strings.Join(tried, ", ")), err
+	return opens, fmt.Sprintf("opens none of the system settings stored in the database (%s), and no "+
+		"workspace is stored", strings.Join(tried, ", ")), err
 }
 
 // checkSingleSecretKey refuses a single key that opens none of the stored workspace
@@ -417,41 +421,39 @@ func (a *App) storedDataOpens(ctx context.Context, key string) (opens bool, what
 // is also where quotes or a newline kept around the key show.
 func (a *App) checkSingleSecretKey(key, variable string) error {
 	ctx := context.Background()
-	opens, what, err := a.storedDataOpens(ctx, key)
+	opens, refusal, err := a.storedDataOpens(ctx, key)
 	if err != nil {
 		return fmt.Errorf("failed to check %s against the stored data: %w", variable, err)
 	}
 	if opens {
 		return nil
 	}
-	if trimmed := config.TrimmedKey(key); trimmed != key {
-		if opens, _, err := a.storedDataOpens(ctx, trimmed); err == nil && opens {
-			return fmt.Errorf("%[1]s opens none of %[2]s, but does without the quotes or spaces around it: "+
-				"remove them from %[1]s", variable, what)
-		}
-	} else {
-		// The other way round: docker --env-file kept the quotes of SECRET_KEY="..." before
-		// 42.0, and compose or -e now pass the key without them. Listed after itself, the
-		// key is also tried in quotes, so the start re-encrypts the data under it as written.
-		for _, quoted := range []string{`"` + key + `"`, "'" + key + "'"} {
-			if opens, _, err := a.storedDataOpens(ctx, quoted); err == nil && opens {
-				return fmt.Errorf("%[1]s opens none of %[2]s, but the same key in quotes does: the data was "+
-					"encrypted with the quotes a tool kept around it. Set %[1]s=<key>,<key>, the key twice, and "+
-					"start every instance with it: Notifuse re-encrypts the data with the key as written. Once "+
-					"they all run, set the key alone again", variable, what)
-			}
-		}
+	hint := config.KeyHint(key, variable, func(candidate string) bool {
+		opens, _, err := a.storedDataOpens(ctx, candidate)
+		return err == nil && opens
+	})
+	if hint != "" {
+		return fmt.Errorf("%s %s, but %s", variable, refusal, hint)
 	}
-	return fmt.Errorf("%[1]s opens none of %[2]s, so Notifuse cannot read them. Set %[1]s to the key the "+
-		"data is encrypted with, written as it was, or put a new key first and that key after a comma to "+
-		"replace it", variable, what)
+	return fmt.Errorf("%s %s, so Notifuse cannot read its data. %s", variable, refusal,
+		config.StoredDataRemedy(variable))
+}
+
+// warnUnopenedSettings names the system settings no key of variable opens: loading the
+// settings skips them, so Notifuse starts without them.
+func (a *App) warnUnopenedSettings(settings []string, variable string) {
+	if len(settings) == 0 {
+		return
+	}
+	a.logger.WithField("settings", settings).Warn(fmt.Sprintf("These system settings were left as they are: "+
+		"no key in %s opens them, so Notifuse starts without them. To keep them, set %s to the key they are "+
+		"encrypted with, or list that key after the first one", variable, variable))
 }
 
 // InitSecretKey brings the stored data under the first key of a SECRET_KEY that is a
 // list: what the other keys open is re-encrypted with it. A single key is only checked
-// against the stored workspace keys. It runs after the migrations, before the services
-// start, so keys that cannot open the data stop the start rather than every later
-// workspace load.
+// against the stored data. It runs after the migrations, before the services start, so
+// keys that cannot open the data stop the start rather than every later workspace load.
 func (a *App) InitSecretKey() error {
 	security := a.config.Security
 	variable := security.KeyVariable
@@ -459,9 +461,17 @@ func (a *App) InitSecretKey() error {
 		variable = "SECRET_KEY"
 	}
 	if !security.SecretKeyIsList {
-		return a.checkSingleSecretKey(security.SecretKey, variable)
+		if err := a.checkSingleSecretKey(security.SecretKey, variable); err != nil {
+			return err
+		}
+		a.warnUnopenedSettings(a.config.UnopenedSettings, variable)
+		return nil
 	}
 
+	// One instance re-encrypts at a time, and rows other sessions hold are waited for:
+	// said first, so a start that waits shows what for.
+	a.logger.Info(fmt.Sprintf("Bringing the stored data under the first key of %s; this waits for any other "+
+		"instance doing the same and for open transactions on workspaces and settings", variable))
 	result, err := repository.RotateSecretKey(context.Background(), a.db, security.SecretKey, security.PreviousSecretKeys)
 	if err != nil && !errors.Is(err, pkgCrypto.ErrUndecryptable) {
 		return fmt.Errorf("failed to bring the stored data under the first key of %s: %w", variable, err)
@@ -472,13 +482,9 @@ func (a *App) InitSecretKey() error {
 			"key twice", variable, err)
 	}
 
-	if len(result.UnopenedSettings) > 0 {
-		a.logger.WithField("settings", result.UnopenedSettings).Warn(fmt.Sprintf("These system settings were "+
-			"left as they are: no key listed in %s opens them, so Notifuse starts without them. To keep "+
-			"them, list the key they are encrypted with", variable))
-	}
+	a.warnUnopenedSettings(result.UnopenedSettings, variable)
 	if len(security.PreviousSecretKeys) == 0 {
-		a.logger.Info("Every workspace opens with " + variable)
+		a.logger.Info("The stored data opens with " + variable)
 		return nil
 	}
 	// A later start with the same list, or an instance that waited for the one that

@@ -160,11 +160,14 @@ func lockWorkspaceDocuments(ctx context.Context, tx *sql.Tx) ([]rotationWorkspac
 	return workspaces, nil
 }
 
+// encryptedSettingsQuery reads the non-empty encrypted_ settings in key order: the
+// settings both the startup pass and the single-key check take as the data under the key.
+const encryptedSettingsQuery = `SELECT key, value FROM settings WHERE key LIKE 'encrypted\_%' AND value <> '' ORDER BY key`
+
 // lockEncryptedSettings reads the non-empty encrypted_ settings, locking the rows in
 // key order.
 func lockEncryptedSettings(ctx context.Context, tx *sql.Tx) ([]rotationSettingRow, error) {
-	rows, err := tx.QueryContext(ctx,
-		`SELECT key, value FROM settings WHERE key LIKE 'encrypted\_%' AND value <> '' ORDER BY key FOR UPDATE`)
+	rows, err := tx.QueryContext(ctx, encryptedSettingsQuery+` FOR UPDATE`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read settings: %w", err)
 	}
@@ -217,8 +220,7 @@ func SecretKeyOpensAWorkspace(ctx context.Context, db *sql.DB, key string) (bool
 // setting, or there is none, and which it tried. It reads without locks and stops at the
 // first that opens: with no workspace stored, these settings are the data under the key.
 func SecretKeyOpensASetting(ctx context.Context, db *sql.DB, key string) (bool, []string, error) {
-	rows, err := db.QueryContext(ctx,
-		`SELECT key, value FROM settings WHERE key LIKE 'encrypted\_%' AND value <> '' ORDER BY key`)
+	rows, err := db.QueryContext(ctx, encryptedSettingsQuery)
 	if err != nil {
 		return false, nil, fmt.Errorf("failed to read settings: %w", err)
 	}

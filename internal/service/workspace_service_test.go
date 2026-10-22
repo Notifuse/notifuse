@@ -4908,14 +4908,22 @@ func TestWorkspaceService_AcceptInvitation_RefusesTokenNotMatchingInvitation(t *
 		assertAudited(t, record, "already_member")
 	})
 
+	// The row goes to the workspace the signed token names, never the one the request
+	// body claims: an anonymous client holding an old link cannot write into another log.
 	t.Run("invitation already accepted or cancelled", func(t *testing.T) {
 		service, mockRepo, _ := setupService(t)
 		mockRepo.EXPECT().GetInvitationByID(gomock.Any(), invitationID).Return(nil, domain.ErrInvitationNotFound)
+		record := domain.NewAuditRecord("203.0.113.1", "test", "req-1")
+		record.SetWorkspace("workspace-named-by-the-body")
 
-		resp, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
+		resp, err := service.AcceptInvitation(domain.WithAuditRecord(context.Background(), record), invitationID, workspaceID, email)
 
 		require.ErrorIs(t, err, domain.ErrInvitationUnavailable)
 		assert.Nil(t, resp)
+		event, skipped := record.Finalize(http.StatusNotFound)
+		require.False(t, skipped)
+		assert.Equal(t, workspaceID, event.WorkspaceID)
+		assert.Equal(t, invitationID, event.TargetID)
 	})
 }
 

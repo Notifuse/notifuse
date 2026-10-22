@@ -451,40 +451,104 @@ func TestCheckUnopenedSettings(t *testing.T) {
 	unopened := &SystemSettings{UnopenedSettings: []string{
 		"encrypted_oidc_client_secret", "encrypted_smtp_bridge_tls_cert_base64", "encrypted_smtp_bridge_tls_key_base64",
 	}}
+	secretKey := SecurityConfig{SecretKey: freshBase64Key(t), KeyVariable: "SECRET_KEY"}
 
 	t.Run("single sign-on without its stored client secret is refused, naming it", func(t *testing.T) {
-		err := checkUnopenedSettings(unopened, OIDCConfig{Enabled: true}, SMTPBridgeConfig{}, "PASETO_PRIVATE_KEY")
+		err := checkUnopenedSettings(unopened, OIDCConfig{Enabled: true}, SMTPBridgeConfig{},
+			SecurityConfig{SecretKey: freshBase64Key(t), KeyVariable: "PASETO_PRIVATE_KEY"})
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "encrypted_oidc_client_secret")
 		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY")
+		assert.Contains(t, err.Error(), "OIDC_CLIENT_SECRET")
+		assert.Contains(t, err.Error(), "former compose.yaml default")
 		assert.NotContains(t, err.Error(), "smtp_bridge")
 	})
 
 	t.Run("the SMTP bridge without its stored TLS certificate and key is refused, naming them", func(t *testing.T) {
-		err := checkUnopenedSettings(unopened, OIDCConfig{}, SMTPBridgeConfig{Enabled: true}, "SECRET_KEY")
+		err := checkUnopenedSettings(unopened, OIDCConfig{}, SMTPBridgeConfig{Enabled: true}, secretKey)
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "encrypted_smtp_bridge_tls_cert_base64, encrypted_smtp_bridge_tls_key_base64")
-		assert.Contains(t, err.Error(), "SECRET_KEY")
+		assert.Contains(t, err.Error(), "SMTP_BRIDGE_TLS=off")
+	})
+
+	t.Run("a part the environment gives is not named", func(t *testing.T) {
+		err := checkUnopenedSettings(unopened, OIDCConfig{}, SMTPBridgeConfig{Enabled: true, TLSCertBase64: "cert"}, secretKey)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "encrypted_smtp_bridge_tls_key_base64")
+		assert.NotContains(t, err.Error(), "encrypted_smtp_bridge_tls_cert_base64")
 	})
 
 	t.Run("values given in the environment need nothing stored", func(t *testing.T) {
 		require.NoError(t, checkUnopenedSettings(unopened,
 			OIDCConfig{Enabled: true, ClientSecret: "from-env"},
-			SMTPBridgeConfig{Enabled: true, TLSCertBase64: "cert", TLSKeyBase64: "key"}, "SECRET_KEY"))
+			SMTPBridgeConfig{Enabled: true, TLSCertBase64: "cert", TLSKeyBase64: "key"}, secretKey))
 	})
 
 	t.Run("an SMTP bridge with TLS set off needs no certificate", func(t *testing.T) {
-		require.NoError(t, checkUnopenedSettings(unopened, OIDCConfig{}, SMTPBridgeConfig{Enabled: true, TLSMode: "off"}, "SECRET_KEY"))
+		require.NoError(t, checkUnopenedSettings(unopened, OIDCConfig{}, SMTPBridgeConfig{Enabled: true, TLSMode: "off"}, secretKey))
 	})
 
 	t.Run("features that are off need nothing", func(t *testing.T) {
-		require.NoError(t, checkUnopenedSettings(unopened, OIDCConfig{}, SMTPBridgeConfig{}, "SECRET_KEY"))
+		require.NoError(t, checkUnopenedSettings(unopened, OIDCConfig{}, SMTPBridgeConfig{}, secretKey))
 	})
 
 	t.Run("settings that opened stop nothing", func(t *testing.T) {
-		require.NoError(t, checkUnopenedSettings(&SystemSettings{}, OIDCConfig{Enabled: true}, SMTPBridgeConfig{Enabled: true}, "SECRET_KEY"))
-		require.NoError(t, checkUnopenedSettings(nil, OIDCConfig{Enabled: true}, SMTPBridgeConfig{Enabled: true}, "SECRET_KEY"))
+		require.NoError(t, checkUnopenedSettings(&SystemSettings{}, OIDCConfig{Enabled: true}, SMTPBridgeConfig{Enabled: true}, secretKey))
+		require.NoError(t, checkUnopenedSettings(nil, OIDCConfig{Enabled: true}, SMTPBridgeConfig{Enabled: true}, secretKey))
+	})
+
+	// Loading the settings ran before the startup check that gives these hints.
+	t.Run("a single key whose stored setting opens with it in quotes says so", func(t *testing.T) {
+		key := freshBase64Key(t)
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		secret, err := crypto.EncryptString("oidc-secret", `"`+key+`"`)
+		require.NoError(t, err)
+		mock.ExpectQuery("SELECT key, value FROM settings").WillReturnRows(sqlmock.NewRows([]string{"key", "value"}).
+			AddRow("is_installed", "true").
+			AddRow("encrypted_oidc_client_secret", secret))
+		settings, err := loadSystemSettings(db, []string{key})
+		require.NoError(t, err)
+
+		err = checkUnopenedSettings(settings, OIDCConfig{Enabled: true}, SMTPBridgeConfig{},
+			SecurityConfig{SecretKey: key, KeyVariable: "SECRET_KEY"})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "in quotes")
+		assert.Contains(t, err.Error(), "SECRET_KEY=<key>,<key>")
+
+		listed := SecurityConfig{SecretKey: key, KeyVariable: "SECRET_KEY", SecretKeyIsList: true}
+		err = checkUnopenedSettings(settings, OIDCConfig{Enabled: true}, SMTPBridgeConfig{}, listed)
+		require.Error(t, err)
+		assert.NotContains(t, err.Error(), "in quotes", "a list already tries its keys in quotes")
+	})
+}
+
+func TestKeyHint(t *testing.T) {
+	const key = "the-key-as-the-environment-gives-it"
+	opensOnly := func(want string) func(string) bool {
+		return func(candidate string) bool { return candidate == want }
+	}
+
+	t.Run("a key in quotes that opens without them says to remove them", func(t *testing.T) {
+		hint := KeyHint(`"`+key+"\"\n", "SECRET_KEY", opensOnly(key))
+		assert.Contains(t, hint, "remove them from SECRET_KEY")
+	})
+
+	for name, quoted := range map[string]string{"double": `"` + key + `"`, "single": "'" + key + "'"} {
+		t.Run("a key whose data is under it in "+name+" quotes says to list it twice", func(t *testing.T) {
+			hint := KeyHint(key, "PASETO_PRIVATE_KEY", opensOnly(quoted))
+			assert.Contains(t, hint, "the same key in quotes does")
+			assert.Contains(t, hint, "PASETO_PRIVATE_KEY=<key>,<key>")
+		})
+	}
+
+	t.Run("no hint when no form opens", func(t *testing.T) {
+		assert.Empty(t, KeyHint(key, "SECRET_KEY", opensOnly("another-key")))
+		assert.Empty(t, KeyHint(`"`+key+`"`, "SECRET_KEY", opensOnly("another-key")))
 	})
 }

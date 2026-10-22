@@ -103,11 +103,9 @@ func parseSecretKeys(raw, variable string) (secretKeys, error) {
 
 	items := splitKeyList(unquoted(raw))
 	// The keys exactly as written: the spaces and quotes around the whole value belong
-	// to the first and last of them.
+	// to the first and last of them. unquoted removes no comma, so both have the same
+	// number of keys.
 	written := splitKeyList(raw)
-	if len(written) != len(items) {
-		written = items
-	}
 	for _, item := range items {
 		if strings.TrimSpace(item) == "" {
 			return secretKeys{}, fmt.Errorf("%s lists an empty key. A comma separates two keys; write a comma "+
@@ -210,6 +208,39 @@ func rotationRemedy(variable string) string {
 		"with the new key when it starts. Once they all run, set the new key alone in %[1]s, without "+
 		"quotes or spaces around it. Users will have to sign in again, API keys must be deleted and "+
 		"created again, and pending invitations sent again", variable)
+}
+
+// StoredDataRemedy tells an installation whose key opens none of its stored data what
+// to set, including the case the upgrade to 42.0 makes common: an installation that
+// never set the variable ran on the former compose.yaml default.
+func StoredDataRemedy(variable string) string {
+	return fmt.Sprintf("Set %[1]s to the key the data is encrypted with, written as it was, or put a new key "+
+		"first and that key after a comma to replace it. An installation that never set %[1]s ran on the "+
+		"former compose.yaml default, which the installation guide gives", variable)
+}
+
+// KeyHint says what to change when a single key opens none of the stored data but
+// another form of it does, completing "<variable> opens none of it, but ": the key
+// without the quotes or spaces around it, or, for a key without any, the key in quotes,
+// which docker --env-file kept before 42.0. opens tries a form. Empty when none opens.
+func KeyHint(key, variable string, opens func(candidate string) bool) string {
+	if trimmed := unquoted(key); trimmed != key {
+		if opens(trimmed) {
+			return fmt.Sprintf("does without the quotes or spaces around it: remove them from %s", variable)
+		}
+		return ""
+	}
+	// Listed after itself, the key is also tried in quotes, so a start with the key twice
+	// re-encrypts the data under it as written.
+	for _, quoted := range []string{`"` + key + `"`, "'" + key + "'"} {
+		if opens(quoted) {
+			return fmt.Sprintf("the same key in quotes does: the data was encrypted with the quotes a tool "+
+				"kept around it. Set %[1]s=<key>,<key>, the key twice, and start every instance with it: "+
+				"Notifuse re-encrypts the data with the key as written. Once they all run, set the key alone "+
+				"again", variable)
+		}
+	}
+	return ""
 }
 
 // deriveJWTSecret turns the key that signs into the HMAC secret for JWTs: its decoded

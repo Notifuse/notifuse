@@ -1595,6 +1595,14 @@ func (s *WorkspaceService) GetInvitationByID(ctx context.Context, invitationID s
 
 // AcceptInvitation processes an invitation acceptance by creating a user if needed and adding them to the workspace
 func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, workspaceID, email string) (*domain.AuthResponse, error) {
+	// Until the invitation is loaded, the signed token says where the attempt belongs,
+	// not the workspace the request body claims.
+	audit := domain.AuditFromContext(ctx)
+	if audit != nil {
+		audit.SetWorkspace(workspaceID)
+		audit.SetTarget(domain.AuditTargetInvitation, invitationID, email)
+	}
+
 	// Get the invitation to retrieve permissions
 	invitation, err := s.repo.GetInvitationByID(ctx, invitationID)
 	if err != nil {
@@ -1608,7 +1616,6 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 
 	// Named before any check, as JoinInvitation does: a refused attempt belongs in the
 	// invitation's workspace audit log too.
-	audit := domain.AuditFromContext(ctx)
 	if audit != nil {
 		audit.SetWorkspace(invitation.WorkspaceID)
 		audit.SetTarget(domain.AuditTargetInvitation, invitation.ID, invitation.Email)

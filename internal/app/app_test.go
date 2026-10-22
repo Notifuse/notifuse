@@ -695,7 +695,51 @@ func TestAppInitSecretKey(t *testing.T) {
 		err := app.InitSecretKey()
 
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY opens none of the 1 workspaces")
+		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY does not open the workspace stored in the database")
+		assert.Contains(t, err.Error(), "former compose.yaml default")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a single key that opens none of several workspace keys names how many", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: current})
+		twoKeys := func() *sqlmock.Rows {
+			first, err := pkgCrypto.EncryptString("workspace-key", previous)
+			require.NoError(t, err)
+			return sqlmock.NewRows([]string{"key"}).AddRow(first).AddRow(first)
+		}
+		for range 3 { // the key, then in double and single quotes
+			mock.ExpectQuery(workspaceKeys).WillReturnRows(twoKeys())
+		}
+
+		err := app.InitSecretKey()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "SECRET_KEY opens none of the 2 workspaces stored in the database")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// The workspaces open, but settings saved under another key are skipped when the
+	// settings load: the operator learns which, as with a list.
+	t.Run("a single key names the system settings no key opened when the configuration loaded", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		ctrl := gomock.NewController(t)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().WithField("settings", []string{"encrypted_smtp_password"}).Return(mockLogger)
+		mockLogger.EXPECT().Warn(gomock.Any()).Do(func(message string) {
+			assert.Contains(t, message, "no key in SECRET_KEY opens them")
+		})
+		cfg := createTestConfig()
+		cfg.Security = config.SecurityConfig{SecretKey: current}
+		cfg.UnopenedSettings = []string{"encrypted_smtp_password"}
+		app, ok := NewApp(cfg, WithLogger(mockLogger), WithMockDB(db)).(*App)
+		require.True(t, ok)
+		mock.ExpectQuery(workspaceKeys).WillReturnRows(workspaceKey(t, current))
+
+		require.NoError(t, app.InitSecretKey())
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -767,7 +811,7 @@ func TestAppInitSecretKey(t *testing.T) {
 		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
 		mockLogger.EXPECT().WithField("settings", []string{"encrypted_smtp_password"}).Return(mockLogger)
 		mockLogger.EXPECT().Warn(gomock.Any()).Do(func(message string) {
-			assert.Contains(t, message, "no key listed in SECRET_KEY opens")
+			assert.Contains(t, message, "no key in SECRET_KEY opens them")
 		})
 		cfg := createTestConfig()
 		cfg.Security = config.SecurityConfig{SecretKey: current, SecretKeyIsList: true}
@@ -818,6 +862,8 @@ func TestAppInitSecretKey(t *testing.T) {
 
 		require.NoError(t, app.InitSecretKey())
 		require.NotEmpty(t, messages)
+		assert.Contains(t, messages[0], "Bringing the stored data under the first key of SECRET_KEY",
+			"a start that waits on another instance shows what for")
 		last := messages[len(messages)-1]
 		assert.Contains(t, last, "already opens with the first key of SECRET_KEY")
 		assert.NotContains(t, last, "re-encrypted")

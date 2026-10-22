@@ -165,6 +165,21 @@ func TestAuthHardening(t *testing.T) {
 		assert.Equal(t, http.StatusOK, accept(t, invited.Token))
 		// Accepted: the link has nothing left to open.
 		assert.Equal(t, http.StatusNotFound, accept(t, invited.Token))
+
+		// Used again with another workspace in the body, the old link is audited under
+		// the workspace it was signed for, never the one the body names.
+		resp, err = client.Post("/api/workspaces.acceptInvitation", map[string]string{
+			"token": invited.Token, "workspace_id": workspace.ID,
+		})
+		require.NoError(t, err)
+		_ = resp.Body.Close()
+		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+		named := listAuditLogs(t, inviter, map[string]string{"workspace_id": workspace.ID, "actions": "workspaces.acceptInvitation"})
+		assert.Empty(t, named.Logs, "nothing lands in the workspace the body names")
+		signedFor := listAuditLogs(t, inviter, map[string]string{
+			"workspace_id": workspaceID, "actions": "workspaces.acceptInvitation", "outcome": domain.AuditOutcomeFailure,
+		})
+		assert.NotEmpty(t, signedFor.Logs, "the refused attempts are in the invitation's workspace")
 	})
 
 	// Runs last: signing root out ends every root session.
