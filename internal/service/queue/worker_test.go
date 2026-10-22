@@ -1746,6 +1746,9 @@ func queuedRows(integrationID string, n int) []*domain.EmailQueueEntry {
 // throttled is what SES answers above the account's sending rate: a provider error.
 var throttled = errors.New("ThrottlingException: Maximum sending rate exceeded")
 
+// accessDenied is a provider error SES gives as permanent: the account must be fixed.
+var accessDenied = errors.New("AccessDeniedException: User is not authorized to perform ses:SendEmail")
+
 // fakeQueue keeps queue rows in memory behind the repository mock. Claims are
 // exclusive, as MarkAsProcessing's conditional update makes them, and every call is
 // counted per row.
@@ -1756,7 +1759,8 @@ type fakeQueue struct {
 	claims   map[string]int
 	sent     map[string]int
 	failed   map[string]int
-	ctxErrs  []error // the context error of every outcome written
+	given    map[string]int // MarkAsPermanentlyFailed calls, also counted in failed
+	ctxErrs  []error        // the context error of every outcome written
 	takenBy  map[string]bool
 	onFailed func(id string)
 }
@@ -1768,6 +1772,7 @@ func newFakeQueue(rows ...*domain.EmailQueueEntry) *fakeQueue {
 		claims:  map[string]int{},
 		sent:    map[string]int{},
 		failed:  map[string]int{},
+		given:   map[string]int{},
 		takenBy: map[string]bool{},
 	}
 }
@@ -1824,6 +1829,9 @@ func (q *fakeQueue) wire(m *mocks.MockEmailQueueRepository) {
 		}).AnyTimes()
 	m.EXPECT().MarkAsPermanentlyFailed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, _ string, id string, _ string) error {
+			q.mu.Lock()
+			q.given[id]++
+			q.mu.Unlock()
 			return q.fail(ctx, id)
 		}).AnyTimes()
 }
@@ -2171,7 +2179,7 @@ func TestEmailQueueWorker_Lane(t *testing.T) {
 
 		require.NoError(t, lt.w.Start(context.Background()))
 		<-started
-		time.Sleep(200 * time.Millisecond) // twenty poll intervals
+		time.Sleep(200 * time.Millisecond) // many poll intervals
 		assert.Len(t, lt.queue.fetchLimits("ses-1"), 1)
 		close(release)
 		require.Eventually(t, func() bool { return lt.queue.sentCount("") == 1 }, 2*time.Second, 5*time.Millisecond)
@@ -2207,6 +2215,21 @@ func TestEmailQueueWorker_Lane(t *testing.T) {
 				emailIntegration("smtp-1", domain.EmailProviderKindSMTP, 50),
 			}})
 		})
+	})
+
+	t.Run("a lane whose next token falls after the round does not fetch", func(t *testing.T) {
+		lt := newLaneTest(t, DefaultWorkerConfig(), queuedRows("ses-1", 3)...)
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil).AnyTimes()
+		// 10/min: tokens further apart than the round window.
+		workspace := &domain.Workspace{ID: "ws-1", Integrations: []domain.Integration{
+			emailIntegration("ses-1", domain.EmailProviderKindSES, 10),
+		}}
+
+		within(t, 5*time.Second, func() { lt.w.processWorkspace(workspace) })
+		within(t, 5*time.Second, func() { lt.w.processWorkspace(workspace) })
+
+		assert.Equal(t, []int{1}, lt.queue.fetchLimits("ses-1"), "only the round with a token fetched")
+		assert.Equal(t, 1, lt.queue.sentCount("ses-1"))
 	})
 
 	t.Run("stops dispatching at the deadline when sends are slower than the rate", func(t *testing.T) {
@@ -2305,7 +2328,7 @@ func TestEmailQueueWorker_Lane(t *testing.T) {
 		took := time.Since(start)
 		lt.w.Stop()
 
-		// One at a time, 100 sends of 50 ms take 5 s.
+		// One at a time, these sends add up to well over this bound.
 		assert.Less(t, took, 3*time.Second)
 	})
 }
@@ -2534,6 +2557,42 @@ func TestEmailQueueWorker_LaneCircuit(t *testing.T) {
 		assert.Equal(t, 1, lt.queue.sentCount("ses-1"))
 		assert.Equal(t, 3, lt.queue.failedCount("ses-1"))
 	})
+
+	t.Run("a send in flight that fails after the opening is kept for a retry, even when the provider calls it permanent", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.CircuitBreakerThreshold = 3
+		cfg.SendConcurrency = 4
+		rows := queuedRows("ses-1", 4)
+		lt := newLaneTest(t, cfg, rows...)
+
+		// All four are refused for the same permanent reason. The first three open the
+		// circuit and are given up, as before; the fourth is refused after the opening,
+		// so the pause must be able to hold it: it is scheduled for a retry.
+		flight := newInFlight()
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+				flight.enter(req.IntegrationID)
+				for flight.max(req.IntegrationID) < 4 {
+					time.Sleep(time.Millisecond)
+				}
+				if req.MessageID == rows[3].MessageID {
+					for !lt.w.circuitBreaker.IsOpen("ses-1") {
+						time.Sleep(time.Millisecond)
+					}
+				}
+				return accessDenied
+			}).AnyTimes()
+
+		within(t, 5*time.Second, func() { lt.w.processWorkspace(sesWorkspace("ses-1")) })
+
+		require.True(t, lt.w.circuitBreaker.IsOpen("ses-1"))
+		assert.Equal(t, 4, lt.queue.failedCount("ses-1"))
+		for _, row := range rows[:3] {
+			assert.Equal(t, 1, lt.queue.perRow(func(q *fakeQueue) map[string]int { return q.given }, row.ID), row.ID)
+		}
+		assert.Zero(t, lt.queue.perRow(func(q *fakeQueue) map[string]int { return q.given }, rows[3].ID),
+			"refused after the opening, it is not given up")
+	})
 }
 
 func TestEmailQueueWorker_Stop(t *testing.T) {
@@ -2736,6 +2795,36 @@ func TestEmailQueueWorker_Stop(t *testing.T) {
 		}
 		require.Eventually(t, func() bool { return len(lt.historyErrs()) == 1 }, time.Second, 5*time.Millisecond)
 		assert.NoError(t, lt.historyErrs()[0])
+	})
+
+	t.Run("Start refuses to run beside a previous run still finishing a send", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.PollInterval = 10 * time.Millisecond
+		cfg.ShutdownGrace = 50 * time.Millisecond
+		cfg.AbortWait = 50 * time.Millisecond
+		lt := newLaneTest(t, cfg, queuedRows("smtp-1", 1)...)
+		lt.workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{smtpWorkspace("ws-1", "smtp-1")}, nil).AnyTimes()
+
+		started := make(chan struct{})
+		release := make(chan struct{})
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(context.Context, domain.SendEmailProviderRequest, bool) error {
+				close(started)
+				<-release
+				return nil
+			})
+
+		require.NoError(t, lt.w.Start(context.Background()))
+		<-started
+		lt.w.Stop()
+
+		assert.Error(t, lt.w.Start(context.Background()), "the previous run is still sending")
+		assert.False(t, lt.w.IsRunning())
+
+		close(release)
+		require.Eventually(t, func() bool { return lt.w.Start(context.Background()) == nil }, 2*time.Second, 5*time.Millisecond)
+		lt.w.Stop()
+		assert.Equal(t, 1, lt.queue.sentCount("smtp-1"))
 	})
 
 	t.Run("no retention sweep runs after Stop", func(t *testing.T) {

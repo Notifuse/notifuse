@@ -1,7 +1,6 @@
 package queue
 
 import (
-	"context"
 	"sync"
 	"time"
 
@@ -47,25 +46,11 @@ func (irl *IntegrationRateLimiter) GetOrCreateLimiter(integrationID string, rate
 	return actual.(*rate.Limiter)
 }
 
-// Wait blocks until the integration's rate limiter allows an event
-// Returns an error if the context is cancelled
-func (irl *IntegrationRateLimiter) Wait(ctx context.Context, integrationID string, ratePerMinute int) error {
-	limiter := irl.GetOrCreateLimiter(integrationID, ratePerMinute)
-	return limiter.Wait(ctx)
-}
-
 // Allow checks if sending is allowed immediately without blocking
 // Returns true if allowed, false if rate limited
 func (irl *IntegrationRateLimiter) Allow(integrationID string, ratePerMinute int) bool {
 	limiter := irl.GetOrCreateLimiter(integrationID, ratePerMinute)
 	return limiter.Allow()
-}
-
-// Reserve reserves a token without blocking and returns the delay needed
-// The caller should wait for the returned duration before sending
-func (irl *IntegrationRateLimiter) Reserve(integrationID string, ratePerMinute int) *rate.Reservation {
-	limiter := irl.GetOrCreateLimiter(integrationID, ratePerMinute)
-	return limiter.Reserve()
 }
 
 // ReserveBefore reserves the integration's next token if it falls due by deadline, and
@@ -85,6 +70,12 @@ func (irl *IntegrationRateLimiter) ReserveBefore(integrationID string, ratePerMi
 		return nil, 0, false
 	}
 	return r, delay, true
+}
+
+// TokenDueBy reports whether the integration's next token falls due by t. It takes
+// nothing, so a caller can skip work that would find no token to send with.
+func (irl *IntegrationRateLimiter) TokenDueBy(integrationID string, ratePerMinute int, t time.Time) bool {
+	return irl.GetOrCreateLimiter(integrationID, ratePerMinute).TokensAt(t) >= 1
 }
 
 // GetCurrentRate returns the current rate limit for an integration in emails per second

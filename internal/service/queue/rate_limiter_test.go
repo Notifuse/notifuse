@@ -1,7 +1,6 @@
 package queue
 
 import (
-	"context"
 	"sort"
 	"sync"
 	"testing"
@@ -91,56 +90,6 @@ func TestIntegrationRateLimiter_GetOrCreateLimiter(t *testing.T) {
 	})
 }
 
-func TestIntegrationRateLimiter_Wait(t *testing.T) {
-	t.Run("allows immediate execution when under limit", func(t *testing.T) {
-		irl := NewIntegrationRateLimiter()
-		ctx := context.Background()
-
-		// High rate to ensure we're under limit
-		start := time.Now()
-		err := irl.Wait(ctx, "integration-1", 6000)
-		elapsed := time.Since(start)
-
-		assert.NoError(t, err)
-		// Should complete almost immediately (< 100ms)
-		assert.Less(t, elapsed, 100*time.Millisecond)
-	})
-
-	t.Run("returns error on context cancellation", func(t *testing.T) {
-		irl := NewIntegrationRateLimiter()
-
-		// Very low rate - 1 per minute
-		// First call should succeed
-		ctx1 := context.Background()
-		err := irl.Wait(ctx1, "integration-1", 1)
-		assert.NoError(t, err)
-
-		// Second call should block, but context will be cancelled
-		ctx2, cancel := context.WithCancel(context.Background())
-		cancel() // Cancel immediately
-
-		err = irl.Wait(ctx2, "integration-1", 1)
-		assert.Error(t, err)
-	})
-
-	t.Run("returns error on context timeout", func(t *testing.T) {
-		irl := NewIntegrationRateLimiter()
-
-		// Very low rate - 1 per minute
-		// First call consumes the burst
-		ctx1 := context.Background()
-		err := irl.Wait(ctx1, "integration-1", 1)
-		assert.NoError(t, err)
-
-		// Second call with short timeout
-		ctx2, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-		defer cancel()
-
-		err = irl.Wait(ctx2, "integration-1", 1)
-		assert.Error(t, err)
-	})
-}
-
 func TestIntegrationRateLimiter_Allow(t *testing.T) {
 	t.Run("returns true when under limit", func(t *testing.T) {
 		irl := NewIntegrationRateLimiter()
@@ -178,33 +127,19 @@ func TestIntegrationRateLimiter_Allow(t *testing.T) {
 	})
 }
 
-func TestIntegrationRateLimiter_Reserve(t *testing.T) {
-	t.Run("returns zero delay when under limit", func(t *testing.T) {
-		irl := NewIntegrationRateLimiter()
+func TestIntegrationRateLimiter_TokenDueBy(t *testing.T) {
+	irl := NewIntegrationRateLimiter()
+	now := time.Now()
+	assert.True(t, irl.TokenDueBy("integ", 60, now), "a new limiter has its token now")
 
-		reservation := irl.Reserve("integration-1", 60)
+	_, _, ok := irl.ReserveBefore("integ", 60, now.Add(time.Second))
+	require.True(t, ok)
+	// 60/min: the next token is a second after the one just taken.
+	assert.False(t, irl.TokenDueBy("integ", 60, now.Add(500*time.Millisecond)))
+	assert.True(t, irl.TokenDueBy("integ", 60, now.Add(1100*time.Millisecond)))
 
-		require.NotNil(t, reservation)
-		assert.True(t, reservation.OK())
-		// First reservation should have zero or near-zero delay
-		assert.Less(t, reservation.Delay(), 100*time.Millisecond)
-	})
-
-	t.Run("returns positive delay when at limit", func(t *testing.T) {
-		irl := NewIntegrationRateLimiter()
-
-		// First reservation consumes burst
-		reservation1 := irl.Reserve("integration-1", 60) // 1 per second
-		require.NotNil(t, reservation1)
-		assert.True(t, reservation1.OK())
-
-		// Second reservation should have a delay
-		reservation2 := irl.Reserve("integration-1", 60)
-		require.NotNil(t, reservation2)
-		assert.True(t, reservation2.OK())
-		// Should have approximately 1 second delay (1 per second rate)
-		assert.Greater(t, reservation2.Delay(), 500*time.Millisecond)
-	})
+	_, _, ok = irl.ReserveBefore("integ", 60, now.Add(time.Minute))
+	require.True(t, ok, "the check took nothing")
 }
 
 func TestIntegrationRateLimiter_ReserveBefore(t *testing.T) {
@@ -431,39 +366,6 @@ func TestIntegrationRateLimiter_ConcurrentAccess(t *testing.T) {
 		stats := irl.GetStats()
 		assert.LessOrEqual(t, len(stats), 26)
 		assert.Greater(t, len(stats), 0)
-	})
-
-	t.Run("concurrent Wait calls complete without deadlock", func(t *testing.T) {
-		irl := NewIntegrationRateLimiter()
-
-		var wg sync.WaitGroup
-		numGoroutines := 10
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		wg.Add(numGoroutines)
-		for i := 0; i < numGoroutines; i++ {
-			go func() {
-				defer wg.Done()
-				// High rate to ensure quick completion
-				err := irl.Wait(ctx, "integration-1", 60000)
-				// May succeed or fail based on context, but should not hang
-				_ = err
-			}()
-		}
-
-		done := make(chan struct{})
-		go func() {
-			wg.Wait()
-			close(done)
-		}()
-
-		select {
-		case <-done:
-			// Test passed - all goroutines completed
-		case <-time.After(6 * time.Second):
-			t.Fatal("test timed out - possible deadlock")
-		}
 	})
 
 	t.Run("concurrent Allow calls return consistent results", func(t *testing.T) {

@@ -19,7 +19,7 @@ import (
 )
 
 // TestEmailQueueConcurrentSending runs the real worker against PostgreSQL and an SMTP
-// server (Mailpit), with four emails sent at once per SMTP integration.
+// server (Mailpit), with several emails sent at once per SMTP integration.
 func TestEmailQueueConcurrentSending(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -119,7 +119,7 @@ func TestEmailQueueConcurrentSending(t *testing.T) {
 	})
 
 	t.Run("a stop in the middle of a broadcast neither loses nor repeats an email", func(t *testing.T) {
-		// 1,200/min: the 120 emails take about six seconds.
+		// Slow enough for Stop to come in the middle of the broadcast.
 		workspace, integrations := newWorkspace(t, 1200, 1)
 		broadcastID := "restart-" + strings.ToLower(testutil.GenerateRandomString(8))
 		subject := "Restart " + broadcastID

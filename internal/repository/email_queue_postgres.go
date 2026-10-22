@@ -157,48 +157,42 @@ const emailQueueEntryColumns = `id, status, priority, source_type, source_id, in
 		       contact_email, message_id, template_id, payload, attempts, max_attempts,
 		       last_error, next_retry_at, created_at, updated_at, processed_at`
 
+// dueRowsSQL selects up to $2 due rows that match filter, oldest first within
+// priority. Each branch reads its own index in order and stops at its limit.
+//
 // The inner limits pick candidates before the outer SKIP LOCKED, so rows another
 // instance's statement has locked at that instant shorten the round. Fetches and
 // claims lock for one statement only, so that costs one short round at most.
-const fetchPendingForIntegrationSQL = `
+func dueRowsSQL(filter string) string {
+	branch := func(due string) string {
+		return `(SELECT id FROM email_queue
+		 WHERE ` + filter + ` AND ` + due + `
+		 ORDER BY priority ASC, created_at ASC
+		 LIMIT $2)`
+	}
+	return `
 	SELECT ` + emailQueueEntryColumns + `
 	FROM email_queue
 	WHERE id IN (
-		(SELECT id FROM email_queue
-		 WHERE integration_id = $1 AND ` + emailQueueDuePending + `
-		 ORDER BY priority ASC, created_at ASC
-		 LIMIT $2)
+		` + branch(emailQueueDuePending) + `
 		UNION ALL
-		(SELECT id FROM email_queue
-		 WHERE integration_id = $1 AND ` + emailQueueDueRetry + `
-		 ORDER BY priority ASC, created_at ASC
-		 LIMIT $2)
+		` + branch(emailQueueDueRetry) + `
 		UNION ALL
-		(SELECT id FROM email_queue
-		 WHERE integration_id = $1 AND ` + emailQueueStuckProcessing + `
-		 ORDER BY priority ASC, created_at ASC
-		 LIMIT $2)
+		` + branch(emailQueueStuckProcessing) + `
 	)
 	ORDER BY priority ASC, created_at ASC
 	LIMIT $2
 	FOR UPDATE SKIP LOCKED
 `
+}
 
-// A sequential scan, which is why the worker runs it about once a minute per
-// workspace rather than on every round.
-const fetchPendingOrphansSQL = `
-	SELECT ` + emailQueueEntryColumns + `
-	FROM email_queue
-	WHERE integration_id <> ALL($1)
-	  AND (
-		(` + emailQueueDuePending + `)
-		OR (` + emailQueueDueRetry + `)
-		OR (` + emailQueueStuckProcessing + `)
-	  )
-	ORDER BY priority ASC, created_at ASC
-	LIMIT $2
-	FOR UPDATE SKIP LOCKED
-`
+var (
+	fetchPendingForIntegrationSQL = dueRowsSQL(`integration_id = $1`)
+	// Without rows of unknown integrations, each branch reads its whole status, which
+	// is why the worker runs it about once a minute per workspace rather than on every
+	// round.
+	fetchPendingOrphansSQL = dueRowsSQL(`integration_id <> ALL($1)`)
+)
 
 // FetchPendingForIntegration returns up to limit due rows of one integration, ordered
 // by priority (lower = higher priority), then creation time

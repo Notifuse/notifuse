@@ -2,6 +2,7 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -182,9 +183,12 @@ type EmailQueueWorker struct {
 	sendCtx    context.Context
 	abortSends context.CancelFunc
 	writeCtx   context.Context
-	wg         sync.WaitGroup
 	running    bool
 	mu         sync.RWMutex
+
+	// loopDone is closed when the loop of the latest Start returns, which can be after
+	// Stop does: Stop gives up on a send that ignores its cancellation.
+	loopDone chan struct{}
 
 	// inFlight counts the rows dispatched and not yet done, for the shutdown log.
 	inFlight atomic.Int64
@@ -269,8 +273,20 @@ func (w *EmailQueueWorker) Start(ctx context.Context) error {
 		w.mu.Unlock()
 		return nil
 	}
+	if w.loopDone != nil {
+		select {
+		case <-w.loopDone:
+		default:
+			// The previous run's loop still reads the contexts Start would replace, and
+			// two loops would fetch the rows the other is sending.
+			w.mu.Unlock()
+			return errors.New("email queue worker is still finishing a send of its previous run")
+		}
+	}
 	w.initContexts(ctx)
 	w.running = true
+	loopDone := make(chan struct{})
+	w.loopDone = loopDone
 	w.mu.Unlock()
 
 	w.logger.WithFields(map[string]interface{}{
@@ -283,8 +299,10 @@ func (w *EmailQueueWorker) Start(ctx context.Context) error {
 	}).Info("Starting email queue worker")
 
 	// Start the main processing loop
-	w.wg.Add(1)
-	go w.processLoop()
+	go func() {
+		defer close(loopDone)
+		w.processLoop()
+	}()
 
 	return nil
 }
@@ -300,15 +318,10 @@ func (w *EmailQueueWorker) Stop() {
 	}
 	w.running = false
 	w.cancel()
+	done := w.loopDone
 	w.mu.Unlock()
 
 	w.logger.Info("Stopping email queue worker...")
-
-	done := make(chan struct{})
-	go func() {
-		w.wg.Wait()
-		close(done)
-	}()
 
 	select {
 	case <-done:
@@ -342,7 +355,6 @@ func (w *EmailQueueWorker) IsRunning() bool {
 
 // processLoop is the main processing loop that polls for work
 func (w *EmailQueueWorker) processLoop() {
-	defer w.wg.Done()
 
 	ticker := time.NewTicker(w.config.PollInterval)
 	defer ticker.Stop()
@@ -425,13 +437,19 @@ func (w *EmailQueueWorker) processWorkspace(workspace *domain.Workspace) {
 // rows in order, at most K at a time and each when its token falls due, until the next
 // token falls after the round's deadline. It returns once every send it started is done.
 func (w *EmailQueueWorker) processLane(workspace *domain.Workspace, integration *domain.Integration) {
+	ratePerMinute := integrationRate(integration)
+	// A lane whose next token falls after this round would fetch only to send nothing.
+	// Checked before Allow, so that no probe is taken for a round that cannot send it.
+	if !w.rateLimiter.TokenDueBy(integration.ID, ratePerMinute, time.Now().Add(w.config.RoundWindow)) {
+		return
+	}
+
 	ticket, allowed := w.circuitBreaker.Allow(integration.ID)
 	if !allowed {
 		// Open within its cooldown, or a probe is already out: the rows stay as they are.
 		return
 	}
 
-	ratePerMinute := integrationRate(integration)
 	limit := laneBatchSize(ratePerMinute, w.config.RoundWindow, w.config.BatchSize)
 	if ticket.Probe {
 		// After the cooldown, one email tells whether the provider is back.
@@ -774,7 +792,17 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration
 
 		// Record failure to circuit breaker (only counts provider errors)
 		settled = true
-		_, opened := w.circuitBreaker.RecordFailure(integration.ID, ticket, classifiedErr)
+		counted, opened := w.circuitBreaker.RecordFailure(integration.ID, ticket, classifiedErr)
+
+		// A send allowed before the circuit opened and refused after it shares the
+		// outage of the sends that opened it. It is scheduled for a retry even when the
+		// provider calls the refusal permanent, so the pause that follows the opening
+		// holds it with the rest instead of giving the recipient up.
+		if !counted && classifiedErr.IsProviderError() && w.circuitBreaker.IsOpen(integration.ID) {
+			held := *classifiedErr
+			held.Retryable = true
+			classifiedErr = &held
+		}
 
 		w.handleError(workspace, entry, err, classifiedErr)
 		if opened {

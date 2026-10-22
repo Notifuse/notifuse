@@ -227,10 +227,10 @@ func TestEmailQueueRepository_FetchPendingForIntegration(t *testing.T) {
 
 		// One ORDER BY ... LIMIT per branch is what lets each branch walk its own
 		// index; ORed together the three made PostgreSQL sort the whole backlog.
-		mock.ExpectQuery(`(?s)WHERE id IN \(` +
-			`\s*\(SELECT id FROM email_queue\s+WHERE integration_id = \$1 AND status = 'pending' AND attempts < max_attempts AND \(next_retry_at IS NULL OR next_retry_at <= NOW\(\)\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)` +
-			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE integration_id = \$1 AND status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW\(\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)` +
-			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE integration_id = \$1 AND status = 'processing' AND updated_at < NOW\(\) - INTERVAL '2 minutes'\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)` +
+		mock.ExpectQuery(`(?s)WHERE id IN \(`+
+			`\s*\(SELECT id FROM email_queue\s+WHERE integration_id = \$1 AND status = 'pending' AND attempts < max_attempts AND \(next_retry_at IS NULL OR next_retry_at <= NOW\(\)\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
+			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE integration_id = \$1 AND status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW\(\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
+			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE integration_id = \$1 AND status = 'processing' AND updated_at < NOW\(\) - INTERVAL '2 minutes'\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
 			`\s*\)\s*ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\s+FOR UPDATE SKIP LOCKED`).
 			WithArgs("integ-1", 120).
 			WillReturnRows(sqlmock.NewRows(emailQueueRowColumns))
@@ -336,11 +336,13 @@ func TestEmailQueueRepository_FetchPendingOrphans(t *testing.T) {
 		now := time.Now().UTC()
 		payloadJSON, _ := json.Marshal(domain.EmailQueuePayload{})
 
-		mock.ExpectQuery(`(?s)FROM email_queue\s+WHERE integration_id <> ALL\(\$1\)\s+AND \(` +
-			`\s*\(status = 'pending' AND attempts < max_attempts AND \(next_retry_at IS NULL OR next_retry_at <= NOW\(\)\)\)` +
-			`\s+OR \(status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW\(\)\)` +
-			`\s+OR \(status = 'processing' AND updated_at < NOW\(\) - INTERVAL '2 minutes'\)\s*\)` +
-			`\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\s+FOR UPDATE SKIP LOCKED`).
+		// The same branches as a lane's fetch: ORed in one WHERE, a large backlog of a
+		// deleted integration made PostgreSQL sort all of it on every pass.
+		mock.ExpectQuery(`(?s)FROM email_queue\s+WHERE id IN \(`+
+			`\s*\(SELECT id FROM email_queue\s+WHERE integration_id <> ALL\(\$1\) AND status = 'pending' AND attempts < max_attempts AND \(next_retry_at IS NULL OR next_retry_at <= NOW\(\)\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
+			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE integration_id <> ALL\(\$1\) AND status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW\(\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
+			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE integration_id <> ALL\(\$1\) AND status = 'processing' AND updated_at < NOW\(\) - INTERVAL '2 minutes'\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
+			`\s*\)\s*ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\s+FOR UPDATE SKIP LOCKED`).
 			WithArgs(`{"integ-1","integ-2"}`, 50).
 			WillReturnRows(sqlmock.NewRows(emailQueueRowColumns).AddRow(
 				"orphan-1", "pending", 5, "broadcast", "bcast-1", "deleted-integ", "ses",
