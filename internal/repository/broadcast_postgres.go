@@ -380,12 +380,6 @@ func (r *broadcastRepository) UpdateBroadcastStatusUnless(ctx context.Context, b
 
 	broadcast.UpdatedAt = time.Now().UTC()
 
-	// pq.Array takes plain strings only, not domain.BroadcastStatus.
-	kept := make([]string, len(unless))
-	for i, status := range unless {
-		kept[i] = string(status)
-	}
-
 	query := `
 		UPDATE broadcasts SET status = $3, paused_at = $4, pause_reason = $5, updated_at = $6
 		WHERE id = $1 AND workspace_id = $2 AND status <> ALL($7)`
@@ -397,7 +391,7 @@ func (r *broadcastRepository) UpdateBroadcastStatusUnless(ctx context.Context, b
 		broadcast.PausedAt,
 		broadcast.PauseReason,
 		broadcast.UpdatedAt,
-		pq.Array(kept),
+		pq.Array(unless),
 	)
 	if err != nil {
 		return false, fmt.Errorf("failed to update broadcast status: %w", err)

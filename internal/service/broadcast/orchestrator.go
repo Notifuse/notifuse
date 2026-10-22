@@ -513,7 +513,9 @@ func (o *BroadcastOrchestrator) stillLastAttempt(ctx context.Context, task *doma
 }
 
 // Process executes or continues a broadcast sending task
-func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, timeoutAt time.Time) (bool, error) {
+// Its results are named so the deferred finalizer sees whatever error it
+// returns: a return that left a local err unset used to skip it.
+func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, timeoutAt time.Time) (allDone bool, err error) {
 	o.logger.WithField("task_id", task.ID).Info("Processing send_broadcast task")
 
 	// Store initial state for use in the defer function
@@ -523,10 +525,6 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// Deciding one attempt earlier marked the broadcast failed while its retry
 	// went on to send the rest of the list and flip it back to processed.
 	isLastAttempt := !task.HasRetriesLeft()
-
-	// Create a deferred function to update broadcast status to failed if we're returning an error on the last attempt
-	var err error
-	var allDone bool
 
 	// Defer function to mark broadcast as failed if we're returning an error on the last attempt
 	defer func() {
@@ -551,24 +549,6 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					"error":        err.Error(),
 				}).Info("Task failed due to recipient feed - broadcast already paused, not marking as failed")
 				return
-			}
-
-			// An interruption is not the broadcast's fault, so it ends up paused
-			// (with the reason on the row) rather than failed: paused is
-			// resumable from the console and picks up at the saved cursor,
-			// while failed is terminal. Already-enqueued rows are deliberately
-			// left alone — those emails are committed and should keep going out.
-			// Ask the context, not just the error. A cancellation that lands
-			// inside the enqueue transaction surfaces as sql.ErrTxDone — the
-			// database/sql watchdog has already rolled back, so Commit reports
-			// "transaction has already been committed or rolled back" and the
-			// chain carries no context error at all. That is the single most
-			// likely shape of a real interruption, and classifying it off the
-			// error alone marks the broadcast failed instead of resumable.
-			interrupted := IsInterrupted(err) || ctx.Err() != nil
-			targetStatus := domain.BroadcastStatusFailed
-			if interrupted {
-				targetStatus = domain.BroadcastStatusPaused
 			}
 
 			// These reads and writes must not ride on ctx: the most common way
@@ -607,6 +587,27 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					"error":        err.Error(),
 				}).Info("Task got a fresh retry budget during its last attempt - leaving the broadcast to the retry")
 				return
+			}
+
+			// An interruption is not the broadcast's fault, so it ends up paused
+			// (with the reason on the row) rather than failed: paused is
+			// resumable from the console and picks up at the saved cursor,
+			// while failed is terminal. Already-enqueued rows are deliberately
+			// left alone — those emails are committed and should keep going out.
+			// Ask the context, not just the error. A cancellation that lands
+			// inside the enqueue transaction surfaces as sql.ErrTxDone — the
+			// database/sql watchdog has already rolled back, so Commit reports
+			// "transaction has already been committed or rolled back" and the
+			// chain carries no context error at all. That is the single most
+			// likely shape of a real interruption, and classifying it off the
+			// error alone marks the broadcast failed instead of resumable.
+			// Asked after the reads above: a cancellation landing during them
+			// makes the task service release the task without spending its
+			// budget, so the broadcast must stay resumable.
+			interrupted := IsInterrupted(err) || ctx.Err() != nil
+			targetStatus := domain.BroadcastStatusFailed
+			if interrupted {
+				targetStatus = domain.BroadcastStatusPaused
 			}
 
 			o.logger.WithFields(map[string]interface{}{
@@ -712,9 +713,6 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	startTime := o.timeProvider.Now()
 	lastSaveTime := o.timeProvider.Now()
 	lastLogTime := o.timeProvider.Now()
-
-	// Track if circuit breaker was triggered during this processing cycle
-	circuitBreakerTriggered := false
 
 	// Track if broadcast was cancelled during processing
 	broadcastCancelledDuringProcessing := false
@@ -1521,15 +1519,6 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				"broadcast_id": broadcastState.BroadcastID,
 			}).Info("Broadcast was cancelled during processing - task completed without status update")
 			return true, nil
-		}
-
-		// Don't mark as sent if circuit breaker was triggered during processing
-		if circuitBreakerTriggered {
-			o.logger.WithFields(map[string]interface{}{
-				"task_id":      task.ID,
-				"broadcast_id": broadcastState.BroadcastID,
-			}).Warn("Circuit breaker was triggered - not marking broadcast as sent despite completion")
-			return false, fmt.Errorf("circuit breaker triggered during processing")
 		}
 
 		var statusMessage string

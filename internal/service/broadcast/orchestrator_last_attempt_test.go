@@ -40,9 +40,11 @@ type lastAttemptRun struct {
 	refusedByRow bool
 
 	// ctx and countErr shape the failure: the recipient count, the first thing
-	// a run does, fails with countErr.
-	ctx      context.Context
-	countErr error
+	// a run does, fails with countErr. cancelWhileFinalizing cancels ctx while
+	// the finalizer reads the task back.
+	ctx                   context.Context
+	countErr              error
+	cancelWhileFinalizing bool
 
 	// abTest runs an A/B broadcast past the recipient count instead, with
 	// phase in its state; testingWriteErr fails its move to testing. wantErr,
@@ -71,6 +73,13 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 	defer ctrl.Finish()
 
 	mockTimeProvider.EXPECT().Now().Return(time.Now()).AnyTimes()
+
+	ctx := run.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	broadcastID := "broadcast-last-attempt"
 	var write broadcastWrite
@@ -130,6 +139,9 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 			DoAndReturn(func(ctx context.Context, _, _ string) (*domain.Task, error) {
 				assert.NoError(t, ctx.Err(), "the re-read must not ride on the run's context")
 				write.reads = append(write.reads, "task")
+				if run.cancelWhileFinalizing {
+					cancel()
+				}
 				return run.storedTask, run.storedErr
 			}).
 			Times(1)
@@ -172,10 +184,6 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 		},
 	}
 
-	ctx := run.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	completed, err := orchestrator.Process(ctx, task, time.Now().Add(30*time.Second))
 	require.Error(t, err)
 	assert.False(t, completed)
@@ -355,6 +363,22 @@ func TestProcess_InterruptedRunPausesOnlyTheLastAttempt(t *testing.T) {
 		})
 		require.True(t, write.called)
 		assert.Equal(t, domain.BroadcastStatusPaused, write.status)
+	})
+
+	t.Run("a cancellation landing while the finalizer reads pauses", func(t *testing.T) {
+		// The task service releases a run whose context was cancelled before
+		// it returned, without spending its budget: the broadcast must stay
+		// resumable, whatever error the run ended on.
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedTask:            &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3},
+			statusAtEnd:           domain.BroadcastStatusProcessing,
+			countErr:              errors.New("database is down"),
+			cancelWhileFinalizing: true,
+		})
+		require.True(t, write.called)
+		assert.Equal(t, domain.BroadcastStatusPaused, write.status,
+			"a released task's broadcast was marked failed")
 	})
 
 	t.Run("an interrupted last attempt leaves a cancelled broadcast cancelled", func(t *testing.T) {
