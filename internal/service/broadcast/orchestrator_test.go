@@ -1558,10 +1558,18 @@ func TestBroadcastOrchestrator_Process_WinnerPhaseMissingTemplate_Error(t *testi
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace-123").Return(workspace, nil)
 
 	bcast := &domain.Broadcast{ID: "broadcast-123", WorkspaceID: "workspace-123", Audience: domain.AudienceSettings{}, Status: domain.BroadcastStatusWinnerSelected, TestSettings: domain.BroadcastTestSettings{Enabled: true}}
-	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(bcast, nil)
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(bcast, nil).Times(2)
 
-	// Expect the UpdateBroadcast call when the error occurs and status is set to failed
-	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	// The task allows no retries, so this attempt is its last: the finalizer
+	// reads the task back, then marks the broadcast failed
+	mockTaskRepo.EXPECT().Get(gomock.Any(), "workspace-123", "task-123").
+		Return(&domain.Task{ID: "task-123", WorkspaceID: "workspace-123"}, nil)
+	mockBroadcastRepo.EXPECT().
+		UpdateBroadcastStatusUnless(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, b *domain.Broadcast, _ []domain.BroadcastStatus) (bool, error) {
+			assert.Equal(t, domain.BroadcastStatusFailed, b.Status)
+			return true, nil
+		})
 
 	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second}
 	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)

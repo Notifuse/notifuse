@@ -11,6 +11,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/golang/mock/gomock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1683,13 +1684,13 @@ func TestBroadcastRepository_UpdateBroadcastStatusUnless(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil).AnyTimes()
 		return NewBroadcastRepository(mockWorkspaceRepo).(*broadcastRepository), mockWorkspaceRepo, mock
 	}
-	const statusOnlyUpdate = `UPDATE broadcasts SET status = \$3, paused_at = \$4, pause_reason = \$5, updated_at = \$6\s+WHERE id = \$1 AND workspace_id = \$2 AND status NOT IN \(\$7, \$8, \$9\)`
+	const statusOnlyUpdate = `UPDATE broadcasts SET status = \$3, paused_at = \$4, pause_reason = \$5, updated_at = \$6\s+WHERE id = \$1 AND workspace_id = \$2 AND status <> ALL\(\$7\)`
 
 	t.Run("writes the status fields when the stored status is not excluded", func(t *testing.T) {
 		repo, _, mock := setup(t)
 		mock.ExpectExec(statusOnlyUpdate).
 			WithArgs("bc123", workspaceID, "paused", &pausedAt, &reason, sqlmock.AnyArg(),
-				"cancelled", "paused", "processed").
+				pq.Array([]string{"cancelled", "paused", "processed"})).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
 		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)

@@ -119,6 +119,77 @@ func TestBroadcastFailureOnLastAttempt_FailsWithItsTask(t *testing.T) {
 	assert.Equal(t, "failed", bd["status"], "the broadcast fails with its task")
 }
 
+// TestBroadcastABStartFailureOnLastAttempt_FailsWithItsTask covers an error
+// the last attempt returned without handing it to its finalizer: the A/B run
+// that cannot move its broadcast to testing. The task fails for good, so the
+// broadcast must fail with it rather than stay sending with nothing left to
+// run it.
+func TestBroadcastABStartFailureOnLastAttempt_FailsWithItsTask(t *testing.T) {
+	const contacts = 60
+
+	h := setupPhase2(t, contacts, 6000)
+	defer h.Cleanup()
+
+	variationB, err := h.factory.CreateTemplate(h.workspaceID,
+		testutil.WithTemplateName("Variation B"),
+		testutil.WithTemplateSubject(h.subject))
+	require.NoError(t, err)
+	existing := h.getBroadcast(t)
+	updateResp, err := h.client.UpdateBroadcast(map[string]interface{}{
+		"workspace_id": h.workspaceID,
+		"id":           h.broadcastID,
+		"name":         existing["name"],
+		"audience":     existing["audience"],
+		"schedule":     existing["schedule"],
+		"test_settings": map[string]interface{}{
+			"enabled":                 true,
+			"sample_percentage":       50,
+			"auto_send_winner":        false,
+			"auto_send_winner_metric": "open_rate",
+			"test_duration_hours":     0,
+			"variations": []map[string]interface{}{
+				{"variation_name": "Version A", "template_id": h.templateID},
+				{"variation_name": "Version B", "template_id": variationB.ID},
+			},
+		},
+	})
+	require.NoError(t, err)
+	updateResp.Body.Close()
+	require.Equal(t, http.StatusOK, updateResp.StatusCode)
+
+	h.scheduleAsync(t)
+	initTick(t, h)
+
+	// The move to testing fails; any other status write goes through.
+	wsDB, err := h.suite.DBManager.GetWorkspaceDB(h.workspaceID)
+	require.NoError(t, err)
+	_, err = wsDB.Exec(`CREATE OR REPLACE FUNCTION notifuse_test_refuse_testing() RETURNS trigger AS $$
+		BEGIN RAISE EXCEPTION 'injected status write failure'; END;
+		$$ LANGUAGE plpgsql`)
+	require.NoError(t, err)
+	_, err = wsDB.Exec(`CREATE TRIGGER notifuse_test_refuse_testing
+		BEFORE UPDATE ON broadcasts
+		FOR EACH ROW WHEN (NEW.status = 'testing') EXECUTE FUNCTION notifuse_test_refuse_testing()`)
+	require.NoError(t, err)
+	defer func() {
+		_, _ = wsDB.Exec(`DROP TRIGGER IF EXISTS notifuse_test_refuse_testing ON broadcasts`)
+	}()
+	setRetryCount(t, h, 3)
+
+	assert.Equal(t, http.StatusInternalServerError, runTask(t, h),
+		"the failed move to testing must fail the run")
+
+	status, retries, errMsg := taskRow(t, h)
+	bd := h.getBroadcast(t)
+	t.Logf("after the A/B start failed on the last attempt: task_status=%s retry_count=%d broadcast_status=%v error=%q",
+		status, retries, bd["status"], errMsg)
+
+	assert.Contains(t, errMsg, "failed to update broadcast status to testing")
+	assert.Equal(t, "failed", status, "the task service gives up after its last attempt")
+	assert.Equal(t, 4, retries)
+	assert.Equal(t, "failed", bd["status"], "the broadcast fails with its task")
+}
+
 // heldRun is a last attempt held inside its enqueue: a trigger on email_queue
 // waits on an advisory lock the test holds, then raises once it is released.
 // The lock is taken and released on one dedicated connection, since a session
@@ -143,6 +214,17 @@ func holdLastAttempt(t *testing.T, h *phase2Harness) *heldRun {
 	t.Helper()
 	ctx := context.Background()
 
+	// A failed check below ends the test before the caller defers cleanup,
+	// so the helper undoes its own setup: a run left waiting on the lock
+	// would hold up the teardown.
+	run := &heldRun{t: t, h: h, done: make(chan heldRunResult, 1)}
+	held := false
+	defer func() {
+		if !held {
+			run.cleanup()
+		}
+	}()
+
 	wsDB, err := h.suite.DBManager.GetWorkspaceDB(h.workspaceID)
 	require.NoError(t, err)
 
@@ -155,10 +237,9 @@ func holdLastAttempt(t *testing.T, h *phase2Harness) *heldRun {
 		FOR EACH STATEMENT EXECUTE FUNCTION notifuse_test_held_enqueue()`)
 	require.NoError(t, err)
 
-	conn, err := wsDB.Conn(ctx)
+	run.conn, err = wsDB.Conn(ctx)
 	require.NoError(t, err)
-	run := &heldRun{t: t, h: h, conn: conn, done: make(chan heldRunResult, 1)}
-	_, err = conn.ExecContext(ctx, `SELECT pg_advisory_lock($1)`, heldEnqueueLock)
+	_, err = run.conn.ExecContext(ctx, `SELECT pg_advisory_lock($1)`, heldEnqueueLock)
 	require.NoError(t, err)
 	run.locked = true
 
@@ -181,6 +262,7 @@ func holdLastAttempt(t *testing.T, h *phase2Harness) *heldRun {
 
 	waitForUngrantedLock(t, h, fmt.Sprintf("locktype = 'advisory' AND objid = %d", heldEnqueueLock),
 		"the last attempt never reached its enqueue")
+	held = true
 	return run
 }
 
@@ -215,7 +297,9 @@ func (r *heldRun) cleanup() {
 		_, _ = r.conn.ExecContext(context.Background(), `SELECT pg_advisory_unlock($1)`, heldEnqueueLock)
 		r.locked = false
 	}
-	_ = r.conn.Close()
+	if r.conn != nil {
+		_ = r.conn.Close()
+	}
 	r.dropTrigger()
 }
 

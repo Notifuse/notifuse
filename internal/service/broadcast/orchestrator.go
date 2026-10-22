@@ -880,12 +880,13 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					if broadcast.Status != domain.BroadcastStatusTesting {
 						broadcast.Status = domain.BroadcastStatusTesting
 						broadcast.UpdatedAt = time.Now().UTC()
-						if err := o.broadcastRepo.UpdateBroadcast(ctx, broadcast); err != nil {
+						if updateErr := o.broadcastRepo.UpdateBroadcast(ctx, broadcast); updateErr != nil {
 							o.logger.WithFields(map[string]interface{}{
 								"broadcast_id": broadcast.ID,
-								"error":        err.Error(),
+								"error":        updateErr.Error(),
 							}).Error("Failed to update broadcast status to testing")
-							return false, fmt.Errorf("failed to update broadcast status to testing: %w", err)
+							err = fmt.Errorf("failed to update broadcast status to testing: %w", updateErr)
+							return false, err
 						}
 						o.logger.WithField("broadcast_id", broadcast.ID).Info("A/B test phase started - broadcast status updated to testing")
 					}
@@ -955,7 +956,8 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 		if broadcast.WinningTemplate != nil {
 			templateIDs = []string{*broadcast.WinningTemplate}
 		} else {
-			return false, fmt.Errorf("winner phase but no winning template selected")
+			err = fmt.Errorf("winner phase but no winning template selected")
+			return false, err
 		}
 	default:
 		// Single template broadcast

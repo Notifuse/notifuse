@@ -43,6 +43,14 @@ type lastAttemptRun struct {
 	// a run does, fails with countErr.
 	ctx      context.Context
 	countErr error
+
+	// abTest runs an A/B broadcast past the recipient count instead, with
+	// phase in its state; testingWriteErr fails its move to testing. wantErr,
+	// when set, is part of the error the run must return.
+	abTest          bool
+	phase           string
+	testingWriteErr error
+	wantErr         string
 }
 
 // broadcastWrite records what the finalizer wrote to the broadcast, and the
@@ -72,6 +80,10 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 		DoAndReturn(func(ctx context.Context, _, _ string) (*domain.Broadcast, error) {
 			reads++
 			b := createMockBroadcast(broadcastID, []string{"template-1"})
+			if run.abTest {
+				b.TestSettings.Enabled = true
+				b.TestSettings.SamplePercentage = 10
+			}
 			if reads > 1 {
 				assert.NoError(t, ctx.Err(), "the finalizer's read must not ride on the run's context")
 				write.reads = append(write.reads, "broadcast")
@@ -81,10 +93,36 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 		}).
 		AnyTimes()
 
-	mockContactRepo.EXPECT().
-		CountContactsForBroadcast(gomock.Any(), "workspace-123", gomock.Any()).
-		Return(0, run.countErr).
-		Times(1)
+	totalRecipients := 0 // forces the recipient count
+	if run.abTest {
+		totalRecipients = 100
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace-123").Return(&domain.Workspace{
+			ID: "workspace-123",
+			Settings: domain.WorkspaceSettings{
+				SecretKey:                "k",
+				MarketingEmailProviderID: "marketing-provider-id",
+			},
+			Integrations: []domain.Integration{{
+				ID:   "marketing-provider-id",
+				Type: domain.IntegrationTypeEmail,
+				EmailProvider: domain.EmailProvider{
+					Kind: domain.EmailProviderKindSES,
+					SES:  &domain.AmazonSESSettings{AccessKey: "a", SecretKey: "b", Region: "us-east-1"},
+				},
+			}},
+		}, nil)
+		if run.testingWriteErr != nil {
+			mockBroadcastRepository.EXPECT().
+				UpdateBroadcast(gomock.Any(), gomock.Any()).
+				Return(run.testingWriteErr).
+				Times(1)
+		}
+	} else {
+		mockContactRepo.EXPECT().
+			CountContactsForBroadcast(gomock.Any(), "workspace-123", gomock.Any()).
+			Return(0, run.countErr).
+			Times(1)
+	}
 
 	if run.storedTask != nil || run.storedErr != nil {
 		mockTaskRepo.EXPECT().
@@ -128,7 +166,8 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 		State: &domain.TaskState{
 			SendBroadcast: &domain.SendBroadcastState{
 				BroadcastID:     broadcastID,
-				TotalRecipients: 0, // forces the recipient count
+				TotalRecipients: totalRecipients,
+				Phase:           run.phase,
 			},
 		},
 	}
@@ -140,6 +179,9 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 	completed, err := orchestrator.Process(ctx, task, time.Now().Add(30*time.Second))
 	require.Error(t, err)
 	assert.False(t, completed)
+	if run.wantErr != "" {
+		assert.Contains(t, err.Error(), run.wantErr)
+	}
 
 	return write
 }
@@ -240,6 +282,37 @@ func TestProcess_FailedRunFinalizesOnlyTheLastAttempt(t *testing.T) {
 			countErr:     genuine,
 		})
 		assert.True(t, write.called, "the write must be attempted, and refused by the row")
+	})
+}
+
+func TestProcess_EveryErrorOfTheLastAttemptFinalizes(t *testing.T) {
+	// The finalizer reads the error Process returns through its own err, so an
+	// error returned without it left the broadcast sending under a task that
+	// failed for good.
+	lastAttempt := func(run lastAttemptRun) lastAttemptRun {
+		run.retryCount, run.maxRetries = 3, 3
+		run.storedTask = &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3}
+		run.statusAtEnd = domain.BroadcastStatusProcessing
+		run.abTest = true
+		return run
+	}
+
+	t.Run("an A/B broadcast whose move to testing fails", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttempt(lastAttemptRun{
+			testingWriteErr: errors.New("database is down"),
+			wantErr:         "failed to update broadcast status to testing",
+		}))
+		require.True(t, write.called, "the broadcast was left sending")
+		assert.Equal(t, domain.BroadcastStatusFailed, write.status)
+	})
+
+	t.Run("a winner phase with no winner picked", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttempt(lastAttemptRun{
+			phase:   "winner",
+			wantErr: "no winning template selected",
+		}))
+		require.True(t, write.called, "the broadcast was left sending")
+		assert.Equal(t, domain.BroadcastStatusFailed, write.status)
 	})
 }
 

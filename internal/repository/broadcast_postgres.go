@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/lib/pq"
 )
 
 // broadcastListColumns is the ordered column list selected when listing
@@ -370,7 +371,7 @@ func (r *broadcastRepository) UpdateBroadcastStatusTx(ctx context.Context, tx *s
 // UpdateBroadcastStatusUnless writes the status, pause time and pause reason,
 // unless the stored status is one of unless. The condition sits in the UPDATE
 // itself: a write waiting on the row lock re-checks it once the holder
-// commits, so a status committed after the caller's read is kept.
+// commits, so one of those statuses committed after the caller's read is kept.
 func (r *broadcastRepository) UpdateBroadcastStatusUnless(ctx context.Context, broadcast *domain.Broadcast, unless []domain.BroadcastStatus) (bool, error) {
 	db, err := r.workspaceRepo.GetConnection(ctx, broadcast.WorkspaceID)
 	if err != nil {
@@ -379,27 +380,25 @@ func (r *broadcastRepository) UpdateBroadcastStatusUnless(ctx context.Context, b
 
 	broadcast.UpdatedAt = time.Now().UTC()
 
-	args := []interface{}{
+	// pq.Array takes plain strings only, not domain.BroadcastStatus.
+	kept := make([]string, len(unless))
+	for i, status := range unless {
+		kept[i] = string(status)
+	}
+
+	query := `
+		UPDATE broadcasts SET status = $3, paused_at = $4, pause_reason = $5, updated_at = $6
+		WHERE id = $1 AND workspace_id = $2 AND status <> ALL($7)`
+
+	result, err := db.ExecContext(ctx, query,
 		broadcast.ID,
 		broadcast.WorkspaceID,
 		string(broadcast.Status),
 		broadcast.PausedAt,
 		broadcast.PauseReason,
 		broadcast.UpdatedAt,
-	}
-	query := `
-		UPDATE broadcasts SET status = $3, paused_at = $4, pause_reason = $5, updated_at = $6
-		WHERE id = $1 AND workspace_id = $2`
-	if len(unless) > 0 {
-		placeholders := make([]string, len(unless))
-		for i, status := range unless {
-			args = append(args, string(status))
-			placeholders[i] = fmt.Sprintf("$%d", len(args))
-		}
-		query += " AND status NOT IN (" + strings.Join(placeholders, ", ") + ")"
-	}
-
-	result, err := db.ExecContext(ctx, query, args...)
+		pq.Array(kept),
+	)
 	if err != nil {
 		return false, fmt.Errorf("failed to update broadcast status: %w", err)
 	}

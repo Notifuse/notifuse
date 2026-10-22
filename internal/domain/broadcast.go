@@ -1294,8 +1294,8 @@ type BroadcastRepository interface {
 	UpdateBroadcastStatusTx(ctx context.Context, tx *sql.Tx, broadcast *Broadcast) error
 	// UpdateBroadcastStatusUnless writes the broadcast's status, pause time and
 	// pause reason, unless its stored status is one of unless. It decides on the
-	// row it writes, so a status another transaction committed after the
-	// caller's read is never overwritten. It reports whether it wrote.
+	// row it writes, so one of those statuses committed after the caller's read
+	// is kept. It reports whether it wrote.
 	UpdateBroadcastStatusUnless(ctx context.Context, broadcast *Broadcast, unless []BroadcastStatus) (bool, error)
 	DeleteBroadcastTx(ctx context.Context, tx *sql.Tx, workspaceID, broadcastID string) error
 	ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params ListBroadcastsParams) (*BroadcastListResponse, error)
