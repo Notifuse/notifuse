@@ -862,6 +862,32 @@ func TestTaskRepository_MarkAsFailed(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
+	// An attempt that started just below the limit is still retried: the
+	// broadcast orchestrator used to call it the last one.
+	task.RetryCount = 2
+
+	mock.ExpectBegin()
+	mockRows = taskToMockRows(t, task)
+	mock.ExpectQuery("SELECT .* FROM tasks WHERE id = .* AND workspace_id = .*").
+		WithArgs(taskID, workspace).
+		WillReturnRows(mockRows)
+	mock.ExpectExec("UPDATE tasks SET").
+		WithArgs(
+			string(domain.TaskStatusPending),
+			errorMsg,
+			sqlmock.AnyArg(), // updated_at
+			sqlmock.AnyArg(), // next_run_after
+			nil,              // timeout_after
+			taskID,
+			workspace,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err = repo.MarkAsFailed(ctx, workspace, taskID, errorMsg)
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+
 	// Test mark as failed for task that exceeds max retries
 	task.RetryCount = 3 // Equal to MaxRetries
 

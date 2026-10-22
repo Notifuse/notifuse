@@ -11,6 +11,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/golang/mock/gomock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1650,4 +1651,148 @@ func TestBroadcastRepository_UpdateBroadcast_WithDataFeed(t *testing.T) {
 	err = repo.UpdateBroadcast(ctx, testBroadcast)
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestBroadcastRepository_UpdateBroadcastStatusUnless covers the status write a
+// failed broadcast run ends with: it decides on the row it writes, so a status
+// another transaction committed after the caller's read is kept.
+func TestBroadcastRepository_UpdateBroadcastStatusUnless(t *testing.T) {
+	workspaceID := "ws123"
+	pausedAt := time.Date(2026, 10, 22, 9, 0, 0, 0, time.UTC)
+	reason := "Sending was interrupted"
+	unless := []domain.BroadcastStatus{
+		domain.BroadcastStatusCancelled,
+		domain.BroadcastStatusPaused,
+		domain.BroadcastStatusProcessed,
+	}
+	newBroadcast := func() *domain.Broadcast {
+		return &domain.Broadcast{
+			ID:          "bc123",
+			WorkspaceID: workspaceID,
+			Status:      domain.BroadcastStatusPaused,
+			PausedAt:    &pausedAt,
+			PauseReason: &reason,
+		}
+	}
+	setup := func(t *testing.T) (*broadcastRepository, *mocks.MockWorkspaceRepository, sqlmock.Sqlmock) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil).AnyTimes()
+		return NewBroadcastRepository(mockWorkspaceRepo).(*broadcastRepository), mockWorkspaceRepo, mock
+	}
+	const statusOnlyUpdate = `UPDATE broadcasts SET status = \$3, paused_at = \$4, pause_reason = \$5, updated_at = \$6\s+WHERE id = \$1 AND workspace_id = \$2 AND status <> ALL\(\$7\)`
+
+	t.Run("writes the status fields in a transaction when the stored status is not excluded", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectExec(statusOnlyUpdate).
+			WithArgs("bc123", workspaceID, "paused", &pausedAt, &reason, sqlmock.AnyArg(),
+				pq.Array([]string{"cancelled", "paused", "processed"})).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
+		require.NoError(t, err)
+		assert.True(t, written)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("reports no write when the stored status is excluded or the broadcast is gone", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectExec(statusOnlyUpdate).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectRollback()
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
+		require.NoError(t, err)
+		assert.False(t, written)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("binds no excluded status as an empty list, not NULL", func(t *testing.T) {
+		// status <> ALL(NULL) matches no row, so a nil list would never write.
+		repo, _, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectExec(statusOnlyUpdate).
+			WithArgs("bc123", workspaceID, "paused", &pausedAt, &reason, sqlmock.AnyArg(),
+				pq.Array([]string{})).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), nil)
+		require.NoError(t, err)
+		assert.True(t, written)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns the error of a failed write and rolls back", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectExec(statusOnlyUpdate).
+			WillReturnError(errors.New("deadlock detected"))
+		mock.ExpectRollback()
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "deadlock detected")
+		assert.False(t, written)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns the error of a failed row count and rolls back", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectExec(statusOnlyUpdate).
+			WillReturnResult(sqlmock.NewErrorResult(errors.New("driver lost the count")))
+		mock.ExpectRollback()
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get rows affected")
+		assert.False(t, written)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns the error of a failed begin", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectBegin().WillReturnError(errors.New("too many connections"))
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to begin transaction")
+		assert.False(t, written)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("reports no write when the commit fails", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectExec(statusOnlyUpdate).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit().WillReturnError(errors.New("connection reset"))
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to commit transaction")
+		assert.False(t, written)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns the error of a failed connection", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(nil, errors.New("connection error"))
+		repo := NewBroadcastRepository(mockWorkspaceRepo)
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+		assert.False(t, written)
+	})
 }

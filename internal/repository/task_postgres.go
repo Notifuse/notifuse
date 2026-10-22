@@ -867,7 +867,7 @@ func (r *TaskRepository) MarkAsFailedTx(ctx context.Context, tx *sql.Tx, workspa
 
 	// Handle retries if applicable
 	var nextRunAfter *time.Time
-	if task.RetryCount < task.MaxRetries {
+	if task.HasRetriesLeft() {
 		// Calculate next retry time
 		retryTime := now.Add(time.Duration(task.RetryInterval) * time.Second)
 		nextRunAfter = &retryTime
