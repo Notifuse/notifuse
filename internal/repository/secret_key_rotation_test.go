@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/repository/testutil"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 )
@@ -54,19 +55,21 @@ func (m opensWithOnly) Match(v driver.Value) bool {
 	return err != nil
 }
 
-// documentOpensWithCurrentOnly matches a JSON document whose encrypted_ values the
-// current key opens and the previous key does not.
-type documentOpensWithCurrentOnly struct{}
+// documentOpensWithCurrentOnly matches a JSON document whose encrypted values, at
+// paths, the current key opens and the previous key does not.
+type documentOpensWithCurrentOnly struct {
+	paths []string
+}
 
-func (documentOpensWithCurrentOnly) Match(v driver.Value) bool {
+func (m documentOpensWithCurrentOnly) Match(v driver.Value) bool {
 	b, ok := v.([]byte)
 	if !ok {
 		return false
 	}
-	if _, changed, err := crypto.ReencryptFields(b, rotationCurrentKey, nil); err != nil || changed {
+	if _, changed, err := crypto.ReencryptFields(b, m.paths, rotationCurrentKey, nil); err != nil || changed {
 		return false
 	}
-	_, _, err := crypto.ReencryptFields(b, rotationPreviousKey, nil)
+	_, _, err := crypto.ReencryptFields(b, m.paths, rotationPreviousKey, nil)
 	return errors.Is(err, crypto.ErrUndecryptable)
 }
 
@@ -77,8 +80,11 @@ func TestRotateSecretKey(t *testing.T) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
 
+		settingsPaths, integrationsPaths := domain.EncryptedFieldPaths()
 		rotated := fmt.Sprintf(`{"timezone": "UTC", "encrypted_secret_key": %q}`, encryptFor(t, "ws-key", rotationPreviousKey))
-		untouched := fmt.Sprintf(`{"timezone": "UTC", "encrypted_secret_key": %q}`, encryptFor(t, "ws-key", rotationCurrentKey))
+		// Free-form content is never taken for a credential, whatever its key is named.
+		untouched := fmt.Sprintf(`{"timezone": "UTC", "encrypted_secret_key": %q, "custom_field_labels": {"encrypted_note": "Note"}}`,
+			encryptFor(t, "ws-key", rotationCurrentKey))
 		integrations := fmt.Sprintf(`[{"id": "smtp", "email_provider": {"smtp": {"encrypted_password": %q}}}]`,
 			encryptFor(t, "pass", rotationPreviousKey))
 
@@ -89,7 +95,7 @@ func TestRotateSecretKey(t *testing.T) {
 				AddRow("aaa", []byte(rotated), []byte(integrations)).
 				AddRow("bbb", []byte(untouched), nil))
 		mock.ExpectExec(rotationWorkspaceWrite).
-			WithArgs(documentOpensWithCurrentOnly{}, documentOpensWithCurrentOnly{}, "aaa").
+			WithArgs(documentOpensWithCurrentOnly{settingsPaths}, documentOpensWithCurrentOnly{integrationsPaths}, "aaa").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectQuery(rotationSettingsQuery).WillReturnRows(
 			sqlmock.NewRows([]string{"key", "value"}).

@@ -97,19 +97,29 @@ func TestReencryptValue(t *testing.T) {
 	})
 }
 
+// The paths a test document's encrypted values sit at, as the domain gives them.
+var (
+	settingsTestPaths     = []string{"encrypted_secret_key", "file_manager.encrypted_secret_key"}
+	integrationsTestPaths = []string{
+		"[].email_provider.smtp.encrypted_username",
+		"[].email_provider.smtp.encrypted_password",
+		"[].llm_provider.anthropic.encrypted_api_key",
+	}
+)
+
 func TestReencryptFields(t *testing.T) {
 	t.Run("a document whose values open with the current key comes back byte for byte", func(t *testing.T) {
 		doc := []byte(fmt.Sprintf(`{"name": "x",  "encrypted_secret_key": %q}`,
 			mustEncrypt(t, "workspace-key", reencryptCurrentKey)))
 
-		got, changed, err := ReencryptFields(doc, reencryptCurrentKey, []string{reencryptOldKey})
+		got, changed, err := ReencryptFields(doc, settingsTestPaths, reencryptCurrentKey, []string{reencryptOldKey})
 
 		require.NoError(t, err)
 		assert.False(t, changed)
 		assert.Equal(t, doc, got)
 	})
 
-	t.Run("values under a previous key are re-encrypted wherever they are nested", func(t *testing.T) {
+	t.Run("values under a previous key are re-encrypted at every listed path", func(t *testing.T) {
 		doc := []byte(fmt.Sprintf(`[
 			{"id": "smtp", "email_provider": {"kind": "smtp", "smtp": {
 				"host": "smtp.example.com",
@@ -121,7 +131,7 @@ func TestReencryptFields(t *testing.T) {
 			mustEncrypt(t, "pass", reencryptOldKey),
 			mustEncrypt(t, "sk-ant", reencryptCurrentKey)))
 
-		got, changed, err := ReencryptFields(doc, reencryptCurrentKey, []string{reencryptOldKey})
+		got, changed, err := ReencryptFields(doc, integrationsTestPaths, reencryptCurrentKey, []string{reencryptOldKey})
 
 		require.NoError(t, err)
 		assert.True(t, changed)
@@ -142,32 +152,66 @@ func TestReencryptFields(t *testing.T) {
 		assert.Equal(t, "sk-ant", plain)
 	})
 
-	t.Run("other keys, empty strings and values that are not strings are left alone", func(t *testing.T) {
+	t.Run("an array inside an object is walked element by element", func(t *testing.T) {
+		doc := []byte(fmt.Sprintf(`{"items": [{"encrypted_api_key": %q}, {"encrypted_api_key": ""}]}`,
+			mustEncrypt(t, "k", reencryptOldKey)))
+
+		got, changed, err := ReencryptFields(doc, []string{"items.[].encrypted_api_key"}, reencryptCurrentKey, []string{reencryptOldKey})
+
+		require.NoError(t, err)
+		assert.True(t, changed)
+		var out struct {
+			Items []map[string]string `json:"items"`
+		}
+		require.NoError(t, json.Unmarshal(got, &out))
+		plain, ok := opensWith(out.Items[0]["encrypted_api_key"], reencryptCurrentKey)
+		require.True(t, ok)
+		assert.Equal(t, "k", plain)
+		assert.Equal(t, "", out.Items[1]["encrypted_api_key"])
+	})
+
+	t.Run("values off the listed paths are left alone, whatever their key is named", func(t *testing.T) {
 		doc := []byte(fmt.Sprintf(`{
-			"secret_key": "plain-not-ours",
-			"encrypted_password": "",
-			"encrypted_flag": true,
-			"encrypted_count": 3,
-			"nested": {"encrypted_api_key": %q}
+			"encrypted_secret_key": %q,
+			"custom_field_labels": {"encrypted_note": "My label"},
+			"template_blocks": [{"block": {"attributes": {"encrypted_ref": "abc"}}}],
+			"file_manager": {"bucket": "b", "encrypted_other": "not ours"}
+		}`, mustEncrypt(t, "k", reencryptCurrentKey)))
+
+		got, changed, err := ReencryptFields(doc, settingsTestPaths, reencryptCurrentKey, nil)
+
+		require.NoError(t, err)
+		assert.False(t, changed)
+		assert.Equal(t, doc, got)
+	})
+
+	t.Run("empty strings and values that are not strings are left alone", func(t *testing.T) {
+		doc := []byte(fmt.Sprintf(`{
+			"encrypted_secret_key": "",
+			"file_manager": {"encrypted_secret_key": %q}
 		}`, mustEncrypt(t, "k", reencryptOldKey)))
 
-		got, changed, err := ReencryptFields(doc, reencryptCurrentKey, []string{reencryptOldKey})
+		got, changed, err := ReencryptFields(doc, settingsTestPaths, reencryptCurrentKey, []string{reencryptOldKey})
 
 		require.NoError(t, err)
 		assert.True(t, changed)
 		var out map[string]any
 		require.NoError(t, json.Unmarshal(got, &out))
-		assert.Equal(t, "plain-not-ours", out["secret_key"])
-		assert.Equal(t, "", out["encrypted_password"])
-		assert.Equal(t, true, out["encrypted_flag"])
-		assert.Equal(t, float64(3), out["encrypted_count"])
+		assert.Equal(t, "", out["encrypted_secret_key"])
+
+		for _, doc := range []string{`{"encrypted_secret_key": true}`, `{"encrypted_secret_key": 3}`, `{"file_manager": null}`} {
+			got, changed, err := ReencryptFields([]byte(doc), settingsTestPaths, reencryptCurrentKey, nil)
+			require.NoError(t, err, doc)
+			assert.False(t, changed, doc)
+			assert.Equal(t, []byte(doc), got, doc)
+		}
 	})
 
 	t.Run("numbers are kept as written", func(t *testing.T) {
 		doc := []byte(fmt.Sprintf(`{"big": 12345678901234567890, "ratio": 0.1, "encrypted_secret_key": %q}`,
 			mustEncrypt(t, "k", reencryptOldKey)))
 
-		got, changed, err := ReencryptFields(doc, reencryptCurrentKey, []string{reencryptOldKey})
+		got, changed, err := ReencryptFields(doc, settingsTestPaths, reencryptCurrentKey, []string{reencryptOldKey})
 
 		require.NoError(t, err)
 		assert.True(t, changed)
@@ -179,7 +223,7 @@ func TestReencryptFields(t *testing.T) {
 		doc := []byte(fmt.Sprintf(`[{"email_provider": {"smtp": {"encrypted_password": %q}}}]`,
 			mustEncrypt(t, "pass", "a-key-nobody-listed-for-this-test-32b")))
 
-		got, _, err := ReencryptFields(doc, reencryptCurrentKey, []string{reencryptOldKey})
+		got, _, err := ReencryptFields(doc, integrationsTestPaths, reencryptCurrentKey, []string{reencryptOldKey})
 
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, ErrUndecryptable))
@@ -190,14 +234,14 @@ func TestReencryptFields(t *testing.T) {
 	t.Run("without previous keys it only checks: a value under another key fails", func(t *testing.T) {
 		doc := []byte(fmt.Sprintf(`{"encrypted_secret_key": %q}`, mustEncrypt(t, "k", reencryptOldKey)))
 
-		_, _, err := ReencryptFields(doc, reencryptCurrentKey, nil)
+		_, _, err := ReencryptFields(doc, settingsTestPaths, reencryptCurrentKey, nil)
 
 		assert.True(t, errors.Is(err, ErrUndecryptable))
 	})
 
 	t.Run("an empty or null document is left alone", func(t *testing.T) {
 		for _, doc := range [][]byte{nil, []byte("null"), []byte("[]")} {
-			got, changed, err := ReencryptFields(doc, reencryptCurrentKey, []string{reencryptOldKey})
+			got, changed, err := ReencryptFields(doc, integrationsTestPaths, reencryptCurrentKey, []string{reencryptOldKey})
 
 			require.NoError(t, err, string(doc))
 			assert.False(t, changed, string(doc))
@@ -206,7 +250,7 @@ func TestReencryptFields(t *testing.T) {
 	})
 
 	t.Run("a document that is not JSON is refused", func(t *testing.T) {
-		_, _, err := ReencryptFields([]byte("{not json"), reencryptCurrentKey, nil)
+		_, _, err := ReencryptFields([]byte("{not json"), settingsTestPaths, reencryptCurrentKey, nil)
 
 		assert.Error(t, err)
 	})

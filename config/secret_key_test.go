@@ -106,7 +106,39 @@ func TestParseSecretKeys(t *testing.T) {
 		keys, err := parseSecretKeys(newKey+","+oldKey+","+oldKey+","+newKey, "SECRET_KEY")
 
 		require.NoError(t, err)
-		assert.Equal(t, []string{oldKey, `"` + oldKey + `"`, "'" + oldKey + "'"}, keys.previous)
+		assert.NotContains(t, keys.previous, newKey)
+		assert.Contains(t, keys.previous, oldKey)
+		seen := map[string]bool{}
+		for _, key := range keys.previous {
+			assert.False(t, seen[key], "%q listed twice", key)
+			seen[key] = true
+		}
+	})
+
+	// docker --env-file kept the quotes of SECRET_KEY="K", so data may be under "K" with
+	// its quotes, while the same K now comes through without them.
+	t.Run("the current key in quotes, listed after it, is tried as a previous key", func(t *testing.T) {
+		keys, err := parseSecretKeys(newKey+`,"`+newKey+`"`, "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Equal(t, newKey, keys.current)
+		assert.Contains(t, keys.previous, `"`+newKey+`"`)
+		assert.NotContains(t, keys.previous, newKey)
+	})
+
+	// A key read from a file often ends with a newline, and its data was encrypted with
+	// it: a previous key is also tried exactly as written.
+	t.Run("a previous key is also tried with the spaces written around it", func(t *testing.T) {
+		keys, err := parseSecretKeys(newKey+","+oldKey+"\n", "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Equal(t, oldKey, keys.previous[0], "the trimmed key is tried first")
+		assert.Contains(t, keys.previous, oldKey+"\n")
+
+		keys, err = parseSecretKeys(newKey+", "+oldKey+" ,"+freshBase64Key(t), "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Contains(t, keys.previous, " "+oldKey+" ")
 	})
 
 	for name, raw := range map[string]string{

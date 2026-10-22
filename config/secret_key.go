@@ -83,8 +83,9 @@ type secretKeys struct {
 // for byte as before 42.0. With one, it is a list: one pair of quotes around the whole
 // value is removed (docker --env-file keeps them, and no stored data depends on a list),
 // a comma separates two keys, two commas stand for a comma inside a key, and spaces
-// around each key are trimmed. Each previous key is also tried with and without one
-// pair of quotes: a single key read through docker --env-file kept its quotes, and its
+// around each key are trimmed. Each previous key is also tried as written, spaces
+// included, and with and without one pair of quotes: a key read from a file may end
+// with a newline, a single key read through docker --env-file kept its quotes, and the
 // data was encrypted with them.
 //
 // It refuses a first key anyone can sign with: a published one, or one giving less key
@@ -95,13 +96,19 @@ func parseSecretKeys(raw, variable string) (secretKeys, error) {
 	}
 
 	items := splitKeyList(unquoted(raw))
+	// The keys exactly as written: the spaces and quotes around the whole value belong
+	// to the first and last of them.
+	written := splitKeyList(raw)
+	if len(written) != len(items) {
+		written = items
+	}
 	for _, item := range items {
-		if item == "" {
+		if strings.TrimSpace(item) == "" {
 			return secretKeys{}, fmt.Errorf("%s lists an empty key. A comma separates two keys; write a comma "+
 				"inside a key twice", variable)
 		}
 	}
-	current := items[0]
+	current := strings.TrimSpace(items[0])
 	if strings.ContainsAny(current[:1], `"'`) || strings.ContainsAny(current[len(current)-1:], `"'`) {
 		return secretKeys{}, fmt.Errorf("the first key of %s starts or ends with a quote. Quote the whole "+
 			"list or none of it", variable)
@@ -112,12 +119,11 @@ func parseSecretKeys(raw, variable string) (secretKeys, error) {
 
 	keys := secretKeys{current: current, isList: true}
 	seen := map[string]bool{current: true}
-	for _, item := range items[1:] {
-		bare := unquoted(item)
-		if bare == current {
-			continue
-		}
-		for _, candidate := range []string{item, bare, `"` + bare + `"`, "'" + bare + "'"} {
+	for i := 1; i < len(items); i++ {
+		bare := unquoted(items[i])
+		for _, candidate := range []string{
+			bare, strings.TrimSpace(items[i]), items[i], written[i], `"` + bare + `"`, "'" + bare + "'",
+		} {
 			if !seen[candidate] {
 				seen[candidate] = true
 				keys.previous = append(keys.previous, candidate)
@@ -149,8 +155,8 @@ func (s SecurityConfig) DecryptionKeys() []string {
 	return append([]string{s.SecretKey}, s.PreviousSecretKeys...)
 }
 
-// splitKeyList splits a list on single commas; two commas in a row are a comma
-// inside a key.
+// splitKeyList splits a list on single commas, keeping the spaces around each key; two
+// commas in a row are a comma inside a key.
 func splitKeyList(list string) []string {
 	var items []string
 	var item strings.Builder
@@ -164,10 +170,10 @@ func splitKeyList(list string) []string {
 			i++
 			continue
 		}
-		items = append(items, strings.TrimSpace(item.String()))
+		items = append(items, item.String())
 		item.Reset()
 	}
-	return append(items, strings.TrimSpace(item.String()))
+	return append(items, item.String())
 }
 
 // checkCurrentKey refuses a key that would encrypt and sign while anyone can sign
@@ -193,8 +199,8 @@ func checkCurrentKey(key, variable string, isList bool) error {
 func rotationRemedy(variable string) string {
 	return fmt.Sprintf("Generate a new key with: openssl rand -base64 32, and put it first, keeping your "+
 		"current key after a comma: %[1]s=<new key>,<current key> (write each comma inside a key twice). "+
-		"Notifuse re-encrypts your stored data with the new key when it starts; you can then remove the "+
-		"current key from %[1]s. Users will have to sign in again, API keys must be deleted and created "+
+		"Notifuse re-encrypts your stored data with the new key when it starts; once every instance runs "+
+		"with that value, you can remove the current key from %[1]s. Users will have to sign in again, API keys must be deleted and created "+
 		"again, and pending invitations sent again", variable)
 }
 

@@ -65,7 +65,12 @@ func opensWith(name, value, key string) error {
 		_, _, err := crypto.DecryptWithKeys(value, []string{key})
 		return err
 	}
-	_, _, err := crypto.ReencryptFields([]byte(value), key, nil)
+	settingsPaths, integrationsPaths := domain.EncryptedFieldPaths()
+	paths := settingsPaths
+	if strings.HasSuffix(name, " integrations") {
+		paths = integrationsPaths
+	}
+	_, _, err := crypto.ReencryptFields([]byte(value), paths, key, nil)
 	return err
 }
 

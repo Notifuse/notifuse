@@ -44,9 +44,11 @@ value Notifuse can tell which listed key opens it.
     separates two keys; two commas in a row stand for one comma inside a key, so a hand-written key that
     contains commas can still be listed. Whitespace around each key is trimmed. An empty key is refused,
     and so is a first key that starts or ends with a quote. A duplicate of an earlier key is dropped.
-  - Each previous key is also tried without one pair of matching quotes and wrapped in double or single
-    quotes: a single key read through `docker --env-file` kept its quotes, and its data was encrypted with
-    them. These candidates only decrypt, so trying them costs nothing.
+  - Each previous key is also tried exactly as written (spaces and a trailing newline kept, as a key read
+    from a file may carry), without one pair of matching quotes, and wrapped in double or single quotes: a
+    single key read through `docker --env-file` kept its quotes, and its data was encrypted with them. The
+    current key in quotes, listed after it, is tried the same way. These candidates only decrypt, so
+    trying them costs nothing.
   - A legacy key that contains a comma is read as a list after the upgrade. It cannot slip through: the
     refusals below and the startup check (section 2), which also runs whenever the value contains a
     comma, stop it before any write, and their message says to write each comma of such a key twice.
@@ -73,12 +75,16 @@ value Notifuse can tell which listed key opens it.
 
 ## 2. Re-encryption at startup (`pkg/crypto`, `internal/repository/secret_key_rotation.go`, `internal/app/app.go`)
 
-- Every value Notifuse encrypts with `SECRET_KEY` sits in the system database, in a JSON field named
-  `encrypted_*` (the workspace key, the file storage key, each integration's credentials) or in a
-  `settings` row named `encrypted_*`. A domain test walks the structs a workspace marshals and fails if a
-  field named `Encrypted*` has another JSON name, so a later credential cannot escape the rotation.
-- `crypto.ReencryptFields(doc, current, previous)` walks a JSON document (numbers kept as written) and,
-  for every non-empty string under a key starting with `encrypted_`, opens it with `current`, then each
+- Every value Notifuse encrypts with `SECRET_KEY` sits in the system database, in a typed `Encrypted*`
+  field of a workspace's settings or integrations (the workspace key, the file storage key, each
+  integration's credentials) or in a `settings` row named `encrypted_*`.
+  `domain.EncryptedFieldPaths()` derives, by reflection over `WorkspaceSettings` and `Integrations`, the
+  JSON path of every `Encrypted*` string field, through pointers, structs and slices but never into a map
+  or an interface: those hold free-form content (custom field labels, template block attributes) whose
+  keys a user chooses, so a label named `encrypted_note` is never taken for a credential. A later
+  credential is included without anyone listing it.
+- `crypto.ReencryptFields(doc, paths, current, previous)` walks a JSON document (numbers kept as written)
+  and, for every non-empty string at one of `paths`, opens it with `current`, then each
   previous key in order; a value a previous key opened is re-encrypted with `current`. It returns the
   document, whether it changed, and an error naming the JSON path of a value no key opens. It never
   decrypts into the document, so nothing plain is written. The workspace's `AfterLoad`/`BeforeSave` are
@@ -91,7 +97,7 @@ value Notifuse can tell which listed key opens it.
   nothing at startup.
 - One transaction on the system database, holding `pg_advisory_xact_lock` on a fixed id, so instances
   starting together rotate once; the next one finds nothing left to do.
-- `workspaces`: `SELECT id, settings, integrations ... ORDER BY id FOR UPDATE`; both columns go through
+- `workspaces`: `SELECT id, settings, integrations ... ORDER BY id FOR UPDATE`; both columns go, each with its paths, through
   `ReencryptFields`, and a row is updated (those two columns only) when one changed.
 - `settings`: every row whose key starts with `encrypted_` and whose value is not empty (SMTP username
   and password, SMTP bridge TLS certificate and key, OIDC client secret), read `ORDER BY key FOR UPDATE`,
@@ -113,7 +119,7 @@ integration; validation accepts an echoed form in place of the credential. A pag
 rotation echoes a form under the old key, `BeforeSave` keeps it as is, and after the write every load of
 that workspace fails. `workspaceRepository.Update` already opens the saved row with `AfterLoad`, but
 after the `UPDATE`. `Create` and `Update` now pass the marshalled `settings` and `integrations` through
-`ReencryptFields(doc, current, nil)` before writing, and on failure write nothing and return
+`ReencryptFields(doc, paths, current, nil)` before writing, and on failure write nothing and return
 `domain.ErrStaleCredential`, which the workspace and integration handlers answer 400 ("The saved
 credentials of this workspace changed. Reload the page and save again."). This also stops a member from
 storing a value that is no ciphertext at all.
@@ -225,12 +231,12 @@ storing a value that is no ciphertext at all.
 
 | Implementation file | Test file | Cases |
 | --- | --- | --- |
-| `config/secret_key.go`, `config/config.go` | `config/secret_key_test.go`, `config/config_test.go` | `NewSecurityConfig` signs with the first key of a list and decrypts with all of them, uses a single key byte for byte, and refuses what `Load` refuses naming the variable; one key without a comma read byte for byte, quotes included, not marked as a list; `new,old` gives `SecretKey` new and `PreviousSecretKeys` old with its quoted forms, marked as a list; quotes around the whole list removed; two commas read as one inside a key, alone or among others; spaces around keys trimmed; an empty key refused; a first key starting or ending with a quote refused; a duplicate dropped; a legacy key with a comma refused when its first piece is short, with the doubled-comma hint; first value the compose default refused in every encoding and in quotes, through `PASETO_PRIVATE_KEY` naming it; placeholder refused; first value under 32 bytes refused with the rotation remedy, at 32 accepted; the compose default as a previous value accepted; `JWTSecret` derived from the first value only; `loadSystemSettings` opens a setting under a previous value |
-| `pkg/crypto/reencrypt.go` (`ReencryptValue`, `ReencryptFields`) | `pkg/crypto/reencrypt_test.go` | value under `current` untouched and not reported as changed; value under a previous key re-encrypted and opening with `current` only; nested objects and arrays walked; keys not starting with `encrypted_`, empty strings and non-strings untouched; large numbers kept as written; a value no key opens fails with its JSON path; with no previous key, a value under another key fails |
-| `internal/domain` (encrypted field names) | `workspace_encrypted_fields_test.go` | every `Encrypted*` field reachable from `Workspace` and `Integration` has a JSON name starting with `encrypted_` |
-| `internal/repository/secret_key_rotation.go` | `secret_key_rotation_test.go` | the advisory lock is taken first; rows read in id and key order; a workspace row under a previous key updated (settings and integrations only), one under the first value not updated; with no previous key, values are only checked and nothing is updated; settings `encrypted_*` rows re-encrypted, other settings untouched; a value no key opens rolls back with the workspace id or setting key in the error |
-| `internal/repository/workspace_postgres.go` | `workspace_core_test.go` | `Update` and `Create` with an integration echoing a form under another key, or a value that is no ciphertext, write nothing and return `ErrStaleCredential`; a form under the current key saves |
-| `internal/http/workspace_handler.go` | `workspace_handler_test.go` | `ErrStaleCredential` answers 400 on workspace update and integration create and update; existing invitation cases (404 for every dead link) |
+| `config/secret_key.go`, `config/config.go` | `config/secret_key_test.go`, `config/config_test.go` | `NewSecurityConfig` signs with the first key of a list and decrypts with all of them, uses a single key byte for byte, and refuses what `Load` refuses naming the variable; one key without a comma read byte for byte, quotes included, not marked as a list; `new,old` gives `SecretKey` new and `PreviousSecretKeys` old with its quoted forms, marked as a list; quotes around the whole list removed; two commas read as one inside a key, alone or among others; spaces around keys trimmed; an empty key refused; a first key starting or ending with a quote refused; a duplicate dropped; a legacy key with a comma refused when its first piece is short, with the doubled-comma hint; a previous key also tried exactly as written (a trailing newline kept) and the current key in quotes, listed after it, tried as a previous key; first value the compose default refused in every encoding and in quotes, through `PASETO_PRIVATE_KEY` naming it; placeholder refused; first value under 32 bytes refused with the rotation remedy, at 32 accepted; the compose default as a previous value accepted; `JWTSecret` derived from the first value only; `loadSystemSettings` opens a setting under a previous value |
+| `pkg/crypto/reencrypt.go` (`ReencryptValue`, `ReencryptFields`) | `pkg/crypto/reencrypt_test.go` | value under `current` untouched and not reported as changed; value under a previous key re-encrypted and opening with `current` only; values at the listed paths walked through nested objects and arrays; values off the paths untouched whatever their key is named; empty strings and non-strings untouched; large numbers kept as written; a value no key opens fails with its JSON path; with no previous key, a value under another key fails |
+| `internal/domain/workspace_encrypted_fields.go` | `workspace_encrypted_fields_test.go` | the paths reach the workspace key, the file storage key and nested integration credentials; no path enters a map or a template block; no map of either type holds a struct with an `Encrypted*` field; every `Encrypted*` field is a string, and the only interface reachable is a template block's; every `Encrypted*` field of a filled workspace, once marshalled, sits at one of the paths |
+| `internal/repository/secret_key_rotation.go` | `secret_key_rotation_test.go` | the advisory lock is taken first; rows read in id and key order; a workspace row under a previous key updated (settings and integrations only), one under the first value not updated, free-form content named like a credential ignored; with no previous key, values are only checked and nothing is updated; settings `encrypted_*` rows re-encrypted, other settings untouched; a value no key opens rolls back with the workspace id or setting key in the error |
+| `internal/repository/workspace_postgres.go` | `workspace_core_test.go` | `Update` and `Create` with an integration echoing a form under another key, or a value that is no ciphertext, write nothing and return `ErrStaleCredential`; a form under the current key saves; free-form content named like a credential (`custom_field_labels.encrypted_note`) saves |
+| `internal/http/workspace_handler.go` | `workspace_handler_test.go` | `ErrStaleCredential` answers 400 on workspace create and update and integration create and update; existing invitation cases (404 for every dead link) |
 | `internal/app/app.go` | `app_test.go` | `InitSecretKey` reads nothing for a single key; with a list it re-encrypts under the first key; a value no listed key opens stops the start naming the setting or workspace and the doubled-comma rule; a database failure stops it as a database failure |
 | `internal/repository/auth_repository.go` | `auth_repository_test.go` | query selects `name` and `type`, both are scanned |
 | `internal/service/auth_service.go` | `auth_service_test.go` | API key token naming a regular user refused; naming an API key user accepted; revoked key still answers `ErrAPIKeyRevoked`; session token whose user is an API key user refused; invitation token without `exp` refused; a session token refused as an invitation token |

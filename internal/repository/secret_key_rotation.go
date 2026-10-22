@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 )
 
@@ -31,8 +32,8 @@ type rotationSettingRow struct {
 }
 
 // RotateSecretKey makes every value Notifuse encrypted with SECRET_KEY open with
-// current: the encrypted_ fields of each workspace's settings and integrations, and
-// the encrypted_ rows of the settings table. A value a previous key opens is
+// current: the encrypted fields of each workspace's settings and integrations
+// (domain.EncryptedFieldPaths), and the encrypted_ rows of the settings table. A value a previous key opens is
 // re-encrypted with current; with no previous key, the values are only checked.
 //
 // It runs in one transaction: a value no key opens rolls everything back, and the
@@ -54,12 +55,13 @@ func RotateSecretKey(ctx context.Context, db *sql.DB, current string, previous [
 	if err != nil {
 		return result, err
 	}
+	settingsPaths, integrationsPaths := domain.EncryptedFieldPaths()
 	for _, w := range workspaces {
-		settings, settingsChanged, err := crypto.ReencryptFields(w.settings, current, previous)
+		settings, settingsChanged, err := crypto.ReencryptFields(w.settings, settingsPaths, current, previous)
 		if err != nil {
 			return result, fmt.Errorf("workspace %s, settings %w", w.id, err)
 		}
-		integrations, integrationsChanged, err := crypto.ReencryptFields(w.integrations, current, previous)
+		integrations, integrationsChanged, err := crypto.ReencryptFields(w.integrations, integrationsPaths, current, previous)
 		if err != nil {
 			return result, fmt.Errorf("workspace %s, integrations %w", w.id, err)
 		}

@@ -12,10 +12,6 @@ import (
 // ErrUndecryptable is returned for a stored value that none of the given keys opens.
 var ErrUndecryptable = errors.New("no key opens the value")
 
-// encryptedFieldPrefix names the JSON fields that hold a value encrypted with the
-// instance secret key.
-const encryptedFieldPrefix = "encrypted_"
-
 // DecryptWithKeys opens a value produced by EncryptString with the first of keys that
 // opens it, and says which one. AES-GCM authenticates, so a wrong key fails instead of
 // yielding garbage, and the key that opens a value is never in doubt.
@@ -46,13 +42,15 @@ func ReencryptValue(value, current string, previous []string) (string, bool, err
 	return reencrypted, true, nil
 }
 
-// ReencryptFields applies ReencryptValue to every non-empty string held under a key
-// starting with "encrypted_", at any depth of a JSON document. With no previous key it
-// only checks that current opens them all. It never decrypts into the document.
+// ReencryptFields applies ReencryptValue to the non-empty string at each of paths in a
+// JSON document. A path lists its segments separated by ".", each an object key or "[]"
+// for every element of an array: "[].email_provider.smtp.encrypted_password". Values
+// elsewhere are left alone, whatever their key is named. With no previous key it only checks that current
+// opens them all. It never decrypts into the document.
 //
 // The document comes back as given when nothing changed; otherwise it is re-encoded,
 // numbers as written. An error names the path of the value no key opens.
-func ReencryptFields(doc []byte, current string, previous []string) ([]byte, bool, error) {
+func ReencryptFields(doc []byte, paths []string, current string, previous []string) ([]byte, bool, error) {
 	if len(bytes.TrimSpace(doc)) == 0 {
 		return doc, false, nil
 	}
@@ -64,7 +62,7 @@ func ReencryptFields(doc []byte, current string, previous []string) ([]byte, boo
 		return nil, false, fmt.Errorf("failed to decode document: %w", err)
 	}
 
-	changed, err := reencryptNode(tree, "", current, previous)
+	changed, err := reencryptNode(tree, newPathTree(paths), "", current, previous)
 	if err != nil {
 		return nil, false, err
 	}
@@ -81,22 +79,56 @@ func ReencryptFields(doc []byte, current string, previous []string) ([]byte, boo
 	return bytes.TrimSuffix(out.Bytes(), []byte("\n")), true, nil
 }
 
-func reencryptNode(node any, path, current string, previous []string) (bool, error) {
+// pathTree holds paths segment by segment; a leaf marks the end of a path.
+type pathTree struct {
+	children map[string]*pathTree
+	leaf     bool
+}
+
+const arraySegment = "[]"
+
+func newPathTree(paths []string) *pathTree {
+	root := &pathTree{}
+	for _, path := range paths {
+		node := root
+		for _, segment := range strings.Split(path, ".") {
+			if node.children == nil {
+				node.children = map[string]*pathTree{}
+			}
+			child, ok := node.children[segment]
+			if !ok {
+				child = &pathTree{}
+				node.children[segment] = child
+			}
+			node = child
+		}
+		node.leaf = true
+	}
+	return root
+}
+
+func reencryptNode(node any, paths *pathTree, path, current string, previous []string) (bool, error) {
 	changed := false
 	switch n := node.(type) {
 	case map[string]any:
 		// Sorted, so the path in an error does not depend on map order.
 		keys := make([]string, 0, len(n))
 		for k := range n {
-			keys = append(keys, k)
+			if paths.children[k] != nil {
+				keys = append(keys, k)
+			}
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
+			child := paths.children[k]
 			childPath := k
 			if path != "" {
 				childPath = path + "." + k
 			}
-			if value, ok := n[k].(string); ok && value != "" && strings.HasPrefix(k, encryptedFieldPrefix) {
+			if value, ok := n[k].(string); ok && child.leaf {
+				if value == "" {
+					continue
+				}
 				reencrypted, c, err := ReencryptValue(value, current, previous)
 				if err != nil {
 					return false, fmt.Errorf("%s: %w", childPath, err)
@@ -107,15 +139,19 @@ func reencryptNode(node any, path, current string, previous []string) (bool, err
 				}
 				continue
 			}
-			c, err := reencryptNode(n[k], childPath, current, previous)
+			c, err := reencryptNode(n[k], child, childPath, current, previous)
 			if err != nil {
 				return false, err
 			}
 			changed = changed || c
 		}
 	case []any:
-		for i, child := range n {
-			c, err := reencryptNode(child, fmt.Sprintf("%s[%d]", path, i), current, previous)
+		child := paths.children[arraySegment]
+		if child == nil {
+			return false, nil
+		}
+		for i, element := range n {
+			c, err := reencryptNode(element, child, fmt.Sprintf("%s[%d]", path, i), current, previous)
 			if err != nil {
 				return false, err
 			}

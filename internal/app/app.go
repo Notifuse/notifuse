@@ -425,7 +425,8 @@ func (a *App) InitSecretKey() error {
 	a.logger.WithFields(map[string]interface{}{
 		"workspaces": result.Workspaces,
 		"settings":   result.Settings,
-	}).Info("Stored data re-encrypted with the first key of SECRET_KEY; the other keys can now be removed from it")
+	}).Info("Stored data re-encrypted with the first key of SECRET_KEY; once every instance runs with this " +
+		"SECRET_KEY, the other keys can be removed from it")
 	return nil
 }
 

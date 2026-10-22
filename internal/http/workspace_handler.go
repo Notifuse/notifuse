@@ -211,6 +211,9 @@ func (h *WorkspaceHandler) handleCreate(w http.ResponseWriter, r *http.Request) 
 			WriteJSONError(w, limitErr.Error(), http.StatusForbidden)
 			return
 		}
+		if writeStaleCredential(w, err) {
+			return
+		}
 		if err.Error() == "workspace already exists" {
 			WriteJSONError(w, "Workspace already exists", http.StatusConflict)
 		} else {

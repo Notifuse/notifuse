@@ -2336,6 +2336,23 @@ func TestWorkspaceHandler_StaleCredentialAsksForAReload(t *testing.T) {
 		assert.Equal(t, reloadMessage, response["error"])
 	}
 
+	t.Run("workspace creation", func(t *testing.T) {
+		_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+		workspaceSvc.EXPECT().CreateWorkspace(gomock.Any(), "testworkspace1", "Test Workspace", gomock.Any(), gomock.Any(),
+			gomock.Any(), "UTC", gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil, staleErr)
+
+		assertReload(t, post(t, mux, secretKey, "/api/workspaces.create", domain.CreateWorkspaceRequest{
+			ID:   "testworkspace1",
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone:        "UTC",
+				DefaultLanguage: "en",
+				Languages:       []string{"en"},
+			},
+		}))
+	})
+
 	t.Run("workspace update", func(t *testing.T) {
 		_, workspaceSvc, mux, secretKey, _ := setupTest(t)
 		workspaceSvc.EXPECT().UpdateWorkspace(gomock.Any(), "testworkspace1", "Updated Workspace", gomock.Any()).

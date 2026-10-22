@@ -144,15 +144,24 @@ func (r *workspaceRepository) workspaceDocuments(workspace *domain.Workspace) ([
 	if err != nil {
 		return nil, nil, err
 	}
-	for _, doc := range [][]byte{settings, integrations} {
-		if _, _, err := crypto.ReencryptFields(doc, r.secretKey, nil); err != nil {
-			if errors.Is(err, crypto.ErrUndecryptable) {
-				return nil, nil, fmt.Errorf("%w: %v", domain.ErrStaleCredential, err)
-			}
-			return nil, nil, err
-		}
+	settingsPaths, integrationsPaths := domain.EncryptedFieldPaths()
+	if err := r.checkCredentials(settings, settingsPaths); err != nil {
+		return nil, nil, err
+	}
+	if err := r.checkCredentials(integrations, integrationsPaths); err != nil {
+		return nil, nil, err
 	}
 	return settings, integrations, nil
+}
+
+// checkCredentials refuses a document holding, at one of paths, a value the secret key
+// does not open.
+func (r *workspaceRepository) checkCredentials(doc []byte, paths []string) error {
+	_, _, err := crypto.ReencryptFields(doc, paths, r.secretKey, nil)
+	if errors.Is(err, crypto.ErrUndecryptable) {
+		return fmt.Errorf("%w: %v", domain.ErrStaleCredential, err)
+	}
+	return err
 }
 
 func (r *workspaceRepository) GetByID(ctx context.Context, id string) (*domain.Workspace, error) {
