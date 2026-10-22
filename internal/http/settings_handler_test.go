@@ -872,7 +872,7 @@ func TestSettingsHandler_Update_InvalidOIDCConfigRejected(t *testing.T) {
 	handler.handleUpdate(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code, "invalid OIDC config must be rejected, not persisted")
-	assert.False(t, shutdowner.shutdownCalled, "no restart may be triggered for a rejected config")
+	assert.False(t, shutdowner.shutdownCalled.Load(), "no restart may be triggered for a rejected config")
 	assert.Empty(t, settingRepo.settings["oidc_enabled"], "nothing may be persisted for a rejected config")
 
 	// Auto-create with no allowlist must also be rejected.

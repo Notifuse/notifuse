@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
   **If your webhooks reach a service on your own network — n8n or another container on the same Docker network, an internal API — set `WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true` before you upgrade.** Until it is set, those webhooks stop delivering, and a contact that reaches such a webhook node fails that journey after its retries.
 
+- **Security**: Email provider event webhooks (`/webhooks/email`) and the Supabase hooks now refuse bodies over 10 MiB and 1 MiB, far above what providers send, or that take more than 30 seconds to arrive, and the server now closes connections that take more than 20 seconds to send their headers or stay idle for 70 minutes. Each event of a SendGrid, SparkPost or Mailjet batch now keeps only its own payload in the webhook event log.
+
 - **Security**: `SECRET_KEY` can now list several keys separated by commas, to replace it: the first key encrypts and signs, and when Notifuse starts it re-encrypts with that key the stored data the other keys open. Notifuse no longer starts when that first key is the `SECRET_KEY` value `compose.yaml` used to provide by default, the `env.example` placeholder or shorter than 32 bytes, and `compose.yaml` now requires `SECRET_KEY`. Tokens are also checked against the kind of account they were issued for, the system settings answer only a session that is still signed in, and an invitation link only opens the workspace and address it was sent for, until it expires. The address of an API key can no longer be invited, and API responses no longer include a workspace's encrypted secret key.
 
   **If your `SECRET_KEY` is one of those values or shorter than 32 bytes, including when a tool such as Coolify copied the `compose.yaml` default into your settings: before you upgrade, generate a key with `openssl rand -base64 32` and set `SECRET_KEY=<new key>,<current key>`, writing twice any comma your current key contains.** Restart every instance with it; once Notifuse has started, you can keep the new key alone. If you never set `SECRET_KEY`, your current key is the former default, which the installation guide gives. Setting the new key without your current key after it would leave your stored data unreadable. Everyone then signs in again, API keys must be deleted and created again, pending invitations must be sent again, and scripts that call `user.rootSignin` or `demo.reset` sign with the new key.
@@ -60,7 +62,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: The notification center now saves a contact's browser language and timezone on their first interaction rather than on page load, so email security scanners that only open the page no longer change them.
 
-- **Security**: Dependency updates clear the open Dependabot and `npm audit` advisories that have a fix, including `dompurify` 3.4.17 and `seroval` 1.6.9 in the console. `braces` and `katex` stay open until a usable fixed version exists.
+- **Security**: Dependency updates clear the open Dependabot and `npm audit` advisories that have a fix, including `dompurify` 3.4.17 and `seroval` 1.6.9 in the console, and `vite` 7.3.7 and 8.3.3 for advisories in its development server. `braces` and `katex` stay open until a usable fixed version exists.
 
 - **Improvement**: Signing in after moving an instance to a new domain now explains the fix: set `API_ENDPOINT` to the new address and restart (#435). The self-hosting docs gain a "Changing your domain" page.
 
@@ -81,6 +83,10 @@ All notable changes to this project will be documented in this file.
 - **Fix**: A broadcast filtered by several segments now sends one email to a contact who belongs to more than one of them, where it could send one per segment. Such a contact also counted as several recipients in the broadcast's totals and in its A/B test.
 
 - **Improvement**: Broadcasts to large lists are faster to send. Fetching each batch of recipients no longer rereads the part of the list already sent.
+
+- **Fix**: When an A/B test's winner is picked by hand, the rest of the list now receives only the winning variation.
+
+- **Improvement**: A broadcast now reaches each contact once when its A/B winner is picked through the API during the test phase, or when it is paused and resumed while a batch is being prepared.
 
 - **Change**: The database schema moves to v42. Workspace databases get updated `contact_lists` and `message_history` trigger functions, and their stored segment queries and live automation triggers are updated in place; segments are re-evaluated for contacts removed from their lists. The system database is untouched.
 

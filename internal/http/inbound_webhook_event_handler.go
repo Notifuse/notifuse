@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
@@ -16,21 +17,29 @@ import (
 // inbound message limits) to bound memory/disk use.
 const maxInboundReplyBytes = 25 << 20
 
+// maxEmailWebhookBodyBytes caps a provider event webhook body. The largest
+// deliveries are batches: SendGrid posts once its batch reaches 768 KB, SNS
+// (SES) caps a message to an HTTP endpoint at 256 KiB, and SparkPost and
+// Mailjet publish no limit but send events of 1-2 KB in batches of hundreds.
+const maxEmailWebhookBodyBytes = 10 << 20
+
 // InboundWebhookEventHandler handles HTTP requests for inbound webhook events
 type InboundWebhookEventHandler struct {
-	service      domain.InboundWebhookEventServiceInterface
-	logger       logger.Logger
-	getJWTSecret func() ([]byte, error)
-	rateLimiter  *ratelimiter.RateLimiter
+	service         domain.InboundWebhookEventServiceInterface
+	logger          logger.Logger
+	getJWTSecret    func() ([]byte, error)
+	rateLimiter     *ratelimiter.RateLimiter
+	bodyReadTimeout time.Duration
 }
 
 // NewInboundWebhookEventHandler creates a new inbound webhook event handler
 func NewInboundWebhookEventHandler(service domain.InboundWebhookEventServiceInterface, getJWTSecret func() ([]byte, error), rateLimiter *ratelimiter.RateLimiter, logger logger.Logger) *InboundWebhookEventHandler {
 	return &InboundWebhookEventHandler{
-		service:      service,
-		logger:       logger,
-		getJWTSecret: getJWTSecret,
-		rateLimiter:  rateLimiter,
+		service:         service,
+		logger:          logger,
+		getJWTSecret:    getJWTSecret,
+		rateLimiter:     rateLimiter,
+		bodyReadTimeout: webhookBodyReadTimeout,
 	}
 }
 
@@ -149,6 +158,9 @@ func (h *InboundWebhookEventHandler) handleIncomingReply(w http.ResponseWriter, 
 
 // handleIncomingWebhook handles incoming webhook events from email providers
 func (h *InboundWebhookEventHandler) handleIncomingWebhook(w http.ResponseWriter, r *http.Request) {
+	// Before any check: a refused request's body is drained within it too
+	setWebhookBodyDeadline(w, r, h.bodyReadTimeout)
+
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -177,10 +189,10 @@ func (h *InboundWebhookEventHandler) handleIncomingWebhook(w http.ResponseWriter
 		Info("Received webhook event")
 
 	// Read and parse the request body
-	body, err := io.ReadAll(r.Body)
+	body, err := readWebhookBody(w, r, maxEmailWebhookBodyBytes)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to read webhook request body")
-		WriteJSONError(w, "Failed to read request body", http.StatusBadRequest)
+		writeWebhookBodyError(w, r, err)
 		return
 	}
 
