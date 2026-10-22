@@ -126,6 +126,18 @@ func TestParseSecretKeys(t *testing.T) {
 		assert.NotContains(t, keys.previous, newKey)
 	})
 
+	// What the startup error says to set when the data opens only with the key in quotes.
+	t.Run("the current key listed twice is tried in quotes as a previous key", func(t *testing.T) {
+		keys, err := parseSecretKeys(newKey+","+newKey, "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.True(t, keys.isList)
+		assert.Equal(t, newKey, keys.current)
+		assert.Contains(t, keys.previous, `"`+newKey+`"`)
+		assert.Contains(t, keys.previous, "'"+newKey+"'")
+		assert.NotContains(t, keys.previous, newKey)
+	})
+
 	// A key read from a file often ends with a newline, and its data was encrypted with
 	// it: a previous key is also tried exactly as written.
 	t.Run("a previous key is also tried with the spaces written around it", func(t *testing.T) {

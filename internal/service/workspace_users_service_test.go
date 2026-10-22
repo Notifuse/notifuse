@@ -1118,6 +1118,31 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 		var unauthorized *domain.ErrUnauthorized
 		require.ErrorAs(t, err, &unauthorized)
 	})
+
+	// A failed lookup does not say the address has no account: it may be an API key's,
+	// so nothing is created or sent.
+	t.Run("a failed account lookup stops the invitation", func(t *testing.T) {
+		mockAuthSvc.EXPECT().
+			AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: inviterID}, &domain.UserWorkspace{UserID: inviterID, WorkspaceID: workspaceID, Role: "owner"}, nil)
+		mockRepo.EXPECT().
+			GetByID(ctx, workspaceID).
+			Return(&domain.Workspace{ID: workspaceID, Name: "Test Workspace"}, nil)
+		mockUserSvc.EXPECT().
+			GetUserByID(ctx, inviterID).
+			Return(&domain.User{ID: inviterID, Email: "inviter@example.com"}, nil)
+		mockRepo.EXPECT().
+			GetInvitationByEmail(ctx, workspaceID, email).
+			Return(nil, domain.ErrInvitationNotFound)
+		mockUserRepo.EXPECT().
+			GetUserByEmailInsensitive(ctx, email).
+			Return(nil, assert.AnError)
+
+		invitation, token, err := service.InviteMember(ctx, workspaceID, email, domain.NewFullPermissions())
+		require.ErrorIs(t, err, assert.AnError)
+		assert.Nil(t, invitation)
+		assert.Empty(t, token)
+	})
 }
 
 func TestWorkspaceService_CreateAPIKey(t *testing.T) {

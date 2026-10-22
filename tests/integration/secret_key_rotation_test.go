@@ -71,6 +71,51 @@ func opensWith(rows encryptedRows, name, key string) error {
 	return domain.CheckStoredWorkspace([]byte(rows[workspace+" settings"]), []byte(rows[workspace+" integrations"]), key)
 }
 
+// reencryptStored puts every stored value that one of from opens under key, as an
+// installation running with key would have written it, without going through the server.
+func reencryptStored(t *testing.T, suite *testutil.IntegrationTestSuite, key string, from []string) {
+	t.Helper()
+	db := suite.DBManager.GetDB()
+	settingsPaths, integrationsPaths := domain.EncryptedFieldPaths()
+
+	type document struct {
+		id                     string
+		settings, integrations []byte
+	}
+	var workspaces []document
+	rows, err := db.Query(`SELECT id, settings, integrations FROM workspaces`)
+	require.NoError(t, err)
+	for rows.Next() {
+		var w document
+		require.NoError(t, rows.Scan(&w.id, &w.settings, &w.integrations))
+		workspaces = append(workspaces, w)
+	}
+	require.NoError(t, rows.Err())
+	_ = rows.Close()
+	for _, w := range workspaces {
+		settings, _, err := crypto.ReencryptFields(w.settings, settingsPaths, key, from)
+		require.NoError(t, err)
+		integrations, _, err := crypto.ReencryptFields(w.integrations, integrationsPaths, key, from)
+		require.NoError(t, err)
+		var integrationsArg any
+		if integrations != nil {
+			integrationsArg = integrations
+		}
+		_, err = db.Exec(`UPDATE workspaces SET settings = $1, integrations = $2 WHERE id = $3`, settings, integrationsArg, w.id)
+		require.NoError(t, err)
+	}
+
+	for name, value := range readEncryptedRows(t, suite) {
+		if !strings.HasPrefix(name, "setting ") {
+			continue
+		}
+		reencrypted, _, err := crypto.ReencryptValue(value, key, from)
+		require.NoError(t, err)
+		_, err = db.Exec(`UPDATE settings SET value = $1 WHERE key = $2`, reencrypted, strings.TrimPrefix(name, "setting "))
+		require.NoError(t, err)
+	}
+}
+
 // startWithSecretKey restarts the server as an installation with SECRET_KEY=raw does.
 func startWithSecretKey(t *testing.T, suite *testutil.IntegrationTestSuite, raw string) error {
 	t.Helper()
@@ -276,4 +321,58 @@ func TestSecretKeyRotation(t *testing.T) {
 		require.NoError(t, startWithSecretKey(t, suite, escaped))
 		assert.Equal(t, before, readEncryptedRows(t, suite))
 	})
+
+	// docker --env-file kept the quotes of SECRET_KEY="C" before 42.0, so the data is under
+	// the key in quotes, while compose passes C without them.
+	t.Run("data under the key in quotes is brought under the key as written by listing it twice", func(t *testing.T) {
+		quoted := `"` + rotationKeyC + `"`
+		reencryptStored(t, suite, quoted, []string{rotationLegacyKey})
+		before := readEncryptedRows(t, suite)
+		for name := range before {
+			require.NoError(t, opensWith(before, name, quoted), "%s is under C in quotes", name)
+		}
+
+		err := startWithSecretKey(t, suite, rotationKeyC)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "in quotes")
+		assert.Equal(t, before, readEncryptedRows(t, suite))
+
+		require.NoError(t, startWithSecretKey(t, suite, rotationKeyC+","+rotationKeyC))
+		rotated := readEncryptedRows(t, suite)
+		for name := range rotated {
+			assert.NoError(t, opensWith(rotated, name, rotationKeyC), "%s opens with C as written", name)
+		}
+		require.NoError(t, startWithSecretKey(t, suite, rotationKeyC))
+	})
+}
+
+// An installation with no workspace yet, upgraded with a key from before 42.0 that holds
+// a single comma: only its encrypted settings show that the key is read wrong.
+func TestSecretKeyRotationWithoutWorkspace(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer func() { suite.Cleanup() }()
+
+	db := suite.DBManager.GetDB()
+	_, err := db.Exec(`DELETE FROM workspaces`)
+	require.NoError(t, err)
+	smtpPassword, err := crypto.EncryptString("system-smtp-pass", rotationLegacyKey)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO settings (key, value, created_at, updated_at)
+		VALUES ('encrypted_smtp_password', $1, NOW(), NOW())
+		ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, smtpPassword)
+	require.NoError(t, err)
+	before := readEncryptedRows(t, suite)
+
+	err = startWithSecretKey(t, suite, rotationLegacyKey)
+	require.Error(t, err, "written once, the key reads as two keys that open no stored setting")
+	assert.Contains(t, err.Error(), "encrypted_smtp_password")
+	assert.Contains(t, err.Error(), "twice")
+	assert.Equal(t, before, readEncryptedRows(t, suite))
+
+	require.NoError(t, startWithSecretKey(t, suite, strings.ReplaceAll(rotationLegacyKey, ",", ",,")))
+	assert.Equal(t, before, readEncryptedRows(t, suite))
 }

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/crypto"
@@ -45,9 +46,10 @@ type rotationSettingRow struct {
 // Settings rows a previous key opens are re-encrypted too. One no key opens is left as
 // it is and named in the result: loading the settings at startup skips it, as before
 // 42.0, and rows nothing reads any more stay behind (v29 left encrypted_smtp_relay_*).
+// With no workspace stored, at least one of the rows must open.
 //
-// It runs in one transaction: a workspace no key opens rolls everything back, and the
-// error names it.
+// It runs in one transaction: a workspace no key opens, or settings none of which opens
+// when there is no workspace, roll everything back, and the error names them.
 func RotateSecretKey(ctx context.Context, db *sql.DB, current string, previous []string) (SecretKeyRotationResult, error) {
 	var result SecretKeyRotationResult
 
@@ -110,6 +112,13 @@ func RotateSecretKey(ctx context.Context, db *sql.DB, current string, previous [
 			return result, fmt.Errorf("failed to update setting %s: %w", setting.key, err)
 		}
 		result.Settings++
+	}
+	// With a workspace stored, one that opens shows the keys are right. Without one, a
+	// setting must: otherwise the keys are not the ones the data is under, as when a key
+	// from before 42.0 with a single comma in it is read as a list.
+	if len(workspaces) == 0 && len(settings) > 0 && len(result.UnopenedSettings) == len(settings) {
+		return result, fmt.Errorf("%w: settings %s, and no workspace is stored", crypto.ErrUndecryptable,
+			strings.Join(result.UnopenedSettings, ", "))
 	}
 
 	if err := tx.Commit(); err != nil {

@@ -264,6 +264,51 @@ func TestRotateSecretKey(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
+	// A key from before 42.0 with a single comma in it is read as a list: with no workspace
+	// to refuse it, the settings are what show that its pieces open nothing.
+	t.Run("with no workspace, settings none of which opens roll back, naming them", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		mock.ExpectBegin()
+		mock.ExpectExec(rotationLockQuery).WithArgs(secretKeyRotationLockID).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(rotationWorkspaceQuery).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "settings", "integrations"}))
+		mock.ExpectQuery(rotationSettingsQuery).WillReturnRows(
+			sqlmock.NewRows([]string{"key", "value"}).
+				AddRow("encrypted_smtp_password", encryptFor(t, "smtp-pass", rotationCurrentKey+","+rotationPreviousKey)).
+				AddRow("encrypted_smtp_username", encryptFor(t, "smtp-user", rotationCurrentKey+","+rotationPreviousKey)))
+		mock.ExpectRollback()
+
+		_, err := RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
+
+		require.Error(t, err)
+		assert.True(t, errors.Is(err, crypto.ErrUndecryptable))
+		assert.Contains(t, err.Error(), "encrypted_smtp_password, encrypted_smtp_username")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("with no workspace, a setting the current key opens is enough", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		mock.ExpectBegin()
+		mock.ExpectExec(rotationLockQuery).WithArgs(secretKeyRotationLockID).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(rotationWorkspaceQuery).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "settings", "integrations"}))
+		mock.ExpectQuery(rotationSettingsQuery).WillReturnRows(
+			sqlmock.NewRows([]string{"key", "value"}).
+				AddRow("encrypted_smtp_password", encryptFor(t, "smtp-pass", rotationCurrentKey)).
+				AddRow("encrypted_smtp_relay_password", encryptFor(t, "relay", "a-key-nobody-listed-giving-32-bytes")))
+		mock.ExpectCommit()
+
+		result, err := RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
+
+		require.NoError(t, err)
+		assert.Equal(t, SecretKeyRotationResult{UnopenedSettings: []string{"encrypted_smtp_relay_password"}}, result)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
 	t.Run("the lock is taken before anything is read", func(t *testing.T) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()

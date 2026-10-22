@@ -871,6 +871,12 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 	// Check if user already exists with this email. Case-insensitive: single sign-on creates
 	// accounts under the provider's lower-cased address, and invitations keep the owner's typing.
 	existingUser, err := s.userRepo.GetUserByEmailInsensitive(ctx, email)
+	var userNotFound *domain.ErrUserNotFound
+	if err != nil && !errors.As(err, &userNotFound) {
+		// Not knowing the account is not knowing it is no API key's.
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to look up the invitee's account")
+		return nil, "", fmt.Errorf("failed to look up user: %w", err)
+	}
 	if err == nil && existingUser != nil && existingUser.Type == domain.UserTypeAPIKey {
 		// An API key account has an address of its own, under the API domain. Seating it
 		// here would hand another workspace's key access to this one.

@@ -414,6 +414,18 @@ func (a *App) checkSingleSecretKey(key, variable string) error {
 			return fmt.Errorf("%[1]s opens none of the %[2]d workspaces stored in the database, but does without "+
 				"the quotes or spaces around it: remove them from %[1]s", variable, examined)
 		}
+	} else {
+		// The other way round: docker --env-file kept the quotes of SECRET_KEY="..." before
+		// 42.0, and compose or -e now pass the key without them. Listed after itself, the
+		// key is also tried in quotes, so the start re-encrypts the data under it as written.
+		for _, quoted := range []string{`"` + key + `"`, "'" + key + "'"} {
+			if opens, _, err := repository.SecretKeyOpensAWorkspace(ctx, a.db, quoted); err == nil && opens {
+				return fmt.Errorf("%[1]s opens none of the %[2]d workspaces stored in the database, but the same "+
+					"key in quotes does: the data was encrypted with the quotes a tool kept around it. Set "+
+					"%[1]s=<key>,<key>, the key twice, and start every instance with it: Notifuse re-encrypts the "+
+					"data with the key as written. Once they all run, set the key alone again", variable, examined)
+			}
+		}
 	}
 	return fmt.Errorf("%[1]s opens none of the %[2]d workspaces stored in the database, so none of them "+
 		"would load. Set %[1]s to the key the data is encrypted with, written as it was, or put a new key "+
@@ -454,11 +466,18 @@ func (a *App) InitSecretKey() error {
 		a.logger.Info("Every workspace opens with " + variable)
 		return nil
 	}
+	// A later start with the same list, or an instance that waited for the one that
+	// re-encrypted, finds nothing left to do.
+	message := "Stored data re-encrypted with the first key of %[1]s; once every instance runs with this %[1]s, " +
+		"set the first key alone"
+	if result.Workspaces == 0 && result.Settings == 0 {
+		message = "Nothing left to re-encrypt: the stored data already opens with the first key of %[1]s; once " +
+			"every instance runs with this %[1]s, set the first key alone"
+	}
 	a.logger.WithFields(map[string]interface{}{
 		"workspaces": result.Workspaces,
 		"settings":   result.Settings,
-	}).Info(fmt.Sprintf("Stored data re-encrypted with the first key of %[1]s; once every instance runs with "+
-		"this %[1]s, set the first key alone", variable))
+	}).Info(fmt.Sprintf(message, variable))
 	return nil
 }
 
