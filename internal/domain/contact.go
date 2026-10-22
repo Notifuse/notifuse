@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"crypto/hmac"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -103,9 +104,9 @@ func (c *Contact) Validate() error {
 
 // VerifyEmailHMAC verifies if the provided HMAC for an email is valid
 func VerifyEmailHMAC(email string, providedHMAC string, secretKey string) bool {
-	// Use the crypto package to verify the HMAC
 	computedHMAC := ComputeEmailHMAC(email, secretKey)
-	return computedHMAC == providedHMAC
+	// Constant time, so the comparison does not reveal how much of a guess matches.
+	return hmac.Equal([]byte(computedHMAC), []byte(providedHMAC))
 }
 
 // ComputeEmailHMAC computes an HMAC for an email address using the workspace secret key

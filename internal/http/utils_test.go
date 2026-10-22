@@ -735,3 +735,11 @@ func TestLicenseRefusalOrdering(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
 }
+
+// The console signs the user out on any 401, so only a genuine authentication
+// failure may answer one. user.me and the root-only routes share this mapping.
+func TestSessionCheckStatus(t *testing.T) {
+	assert.Equal(t, http.StatusUnauthorized, sessionCheckStatus(domain.ErrSessionAuthFailed))
+	assert.Equal(t, http.StatusUnauthorized, sessionCheckStatus(fmt.Errorf("verify: %w", domain.ErrSessionAuthFailed)))
+	assert.Equal(t, http.StatusInternalServerError, sessionCheckStatus(errors.New("connection refused")))
+}

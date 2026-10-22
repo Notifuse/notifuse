@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/asaskevich/govalidator"
 	"github.com/stretchr/testify/assert"
@@ -6044,5 +6045,88 @@ func TestOptInPermissionResources(t *testing.T) {
 
 		owner := &UserWorkspace{Role: "owner"}
 		assert.True(t, owner.HasPermission(PermissionResourceAuditLogs, PermissionTypeRead))
+	})
+}
+
+// CheckStoredWorkspace opens stored documents as a load does, so what it refuses is
+// exactly what would make every load of the workspace fail.
+func TestCheckStoredWorkspace(t *testing.T) {
+	const key = "key-the-workspace-is-stored-under-32b"
+	const otherKey = "another-key-nothing-was-stored-under"
+
+	encrypt := func(t *testing.T, plaintext, passphrase string) string {
+		t.Helper()
+		value, err := crypto.EncryptString(plaintext, passphrase)
+		require.NoError(t, err)
+		return value
+	}
+	// stored returns the documents a workspace saved under key holds: an SES
+	// integration whose SMTP settings, which it does not use, carry inactiveSMTPPassword.
+	stored := func(t *testing.T, sesSecret, inactiveSMTPPassword string) ([]byte, []byte) {
+		t.Helper()
+		settings, err := json.Marshal(WorkspaceSettings{
+			EncryptedSecretKey: encrypt(t, "workspace-key", key),
+			Timezone:           "UTC",
+		})
+		require.NoError(t, err)
+		integrations, err := json.Marshal(Integrations{{
+			ID:   "ses-1",
+			Type: IntegrationTypeEmail,
+			EmailProvider: EmailProvider{
+				Kind: EmailProviderKindSES,
+				SES:  &AmazonSESSettings{Region: "eu-west-1", AccessKey: "AK", EncryptedSecretKey: sesSecret},
+				SMTP: &SMTPSettings{Host: "smtp.example.com", Port: 587, EncryptedPassword: inactiveSMTPPassword},
+			},
+		}})
+		require.NoError(t, err)
+		return settings, integrations
+	}
+
+	t.Run("documents a workspace saved under the key opens", func(t *testing.T) {
+		settings, integrations := stored(t, encrypt(t, "ses-secret", key), "")
+
+		assert.NoError(t, CheckStoredWorkspace(settings, integrations, key))
+	})
+
+	t.Run("a workspace key under another key fails", func(t *testing.T) {
+		settings, integrations := stored(t, encrypt(t, "ses-secret", key), "")
+
+		err := CheckStoredWorkspace(settings, integrations, otherKey)
+
+		assert.ErrorIs(t, err, crypto.ErrUndecryptable)
+	})
+
+	t.Run("a credential of the active provider under another key fails, naming the integration", func(t *testing.T) {
+		settings, integrations := stored(t, encrypt(t, "ses-secret", otherKey), "")
+
+		err := CheckStoredWorkspace(settings, integrations, key)
+
+		assert.ErrorIs(t, err, crypto.ErrUndecryptable)
+		assert.Contains(t, err.Error(), "ses-1")
+	})
+
+	t.Run("a value no key opens under a provider the integration does not use passes", func(t *testing.T) {
+		settings, integrations := stored(t, encrypt(t, "ses-secret", key), "not a ciphertext")
+
+		assert.NoError(t, CheckStoredWorkspace(settings, integrations, key))
+	})
+
+	t.Run("documents that do not decode fail as such", func(t *testing.T) {
+		settings, integrations := stored(t, encrypt(t, "ses-secret", key), "")
+
+		for name, docs := range map[string][2][]byte{
+			"settings":     {[]byte(`{"encrypted_secret_key": 3}`), integrations},
+			"integrations": {settings, []byte(`{"not": "a list"}`)},
+		} {
+			err := CheckStoredWorkspace(docs[0], docs[1], key)
+			require.Error(t, err, name)
+			assert.NotErrorIs(t, err, crypto.ErrUndecryptable, name)
+		}
+	})
+
+	t.Run("a workspace without integrations opens", func(t *testing.T) {
+		settings, _ := stored(t, "", "")
+
+		assert.NoError(t, CheckStoredWorkspace(settings, nil, key))
 	})
 }

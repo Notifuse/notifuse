@@ -331,22 +331,16 @@ func (s *UserService) RootSignin(ctx context.Context, input domain.RootSigninInp
 	s.tracer.AddAttribute(ctx, "user.id", user.ID)
 
 	// Create session (no magic code needed for root signin)
-	expiresAt := time.Now().Add(s.sessionExpiry)
-	session := &domain.Session{
-		ID:        generateID(),
-		UserID:    user.ID,
-		ExpiresAt: expiresAt,
-		CreatedAt: time.Now(),
+	session, err := s.startSession(ctx, user.ID, s.sessionExpiry)
+	if err != nil {
+		s.logger.WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to create session for root signin")
+		s.tracer.MarkSpanError(ctx, err)
+		return nil, err
 	}
+	expiresAt := session.ExpiresAt
 
 	s.tracer.AddAttribute(ctx, "session.id", session.ID)
 	s.tracer.AddAttribute(ctx, "session.expires_at", expiresAt.String())
-
-	if err := s.repo.CreateSession(ctx, session); err != nil {
-		s.logger.WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to create session for root signin")
-		s.tracer.MarkSpanError(ctx, err)
-		return nil, fmt.Errorf("failed to create session: %w", err)
-	}
 
 	// Generate JWT token
 	token := s.authService.GenerateUserAuthToken(user, session.ID, expiresAt)
@@ -393,6 +387,32 @@ func generateID() string {
 	return uuid.New().String()
 }
 
+// startSession opens a session for userID that lasts expiry, as a sign-in does, without
+// issuing a token for it: for server-side work that acts as that user.
+func (s *UserService) startSession(ctx context.Context, userID string, expiry time.Duration) (*domain.Session, error) {
+	session := &domain.Session{
+		ID:        generateID(),
+		UserID:    userID,
+		ExpiresAt: time.Now().Add(expiry),
+		CreatedAt: time.Now(),
+	}
+	if err := s.repo.CreateSession(ctx, session); err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+	return session, nil
+}
+
+// endSession closes a session startSession opened, once the work it served is done. A
+// session already gone, signed out meanwhile, is closed all the same.
+func (s *UserService) endSession(ctx context.Context, sessionID string) error {
+	err := s.repo.DeleteSession(ctx, sessionID)
+	var notFound *domain.ErrSessionNotFound
+	if err != nil && !errors.As(err, &notFound) {
+		return fmt.Errorf("failed to delete session: %w", err)
+	}
+	return nil
+}
+
 // VerifyUserSession verifies a user session and returns the associated user
 func (s *UserService) VerifyUserSession(ctx context.Context, userID string, sessionID string) (*domain.User, error) {
 	result, err := s.tracer.TraceMethodWithResultAny(ctx, "UserService", "VerifyUserSession", func(ctx context.Context) (interface{}, error) {
@@ -437,6 +457,13 @@ func (s *UserService) VerifyUserSession(ctx context.Context, userID string, sess
 				return nil, fmt.Errorf("%w: %w", domain.ErrSessionAuthFailed, err)
 			}
 			return nil, err
+		}
+
+		// Sessions belong to people. An API key account never signs in, so a
+		// session token naming one was not issued by this installation.
+		if user.Type != domain.UserTypeUser {
+			s.logger.WithField("user_id", userID).WithField("session_id", sessionID).Error("Session token names an account that is not a user")
+			return nil, fmt.Errorf("%w: session token names an account that is not a user", domain.ErrSessionAuthFailed)
 		}
 
 		// Add user email to span

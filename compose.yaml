@@ -25,8 +25,12 @@ services:
       - DB_NAME=${DB_NAME:-notifuse_system}
       - DB_SSLMODE=${DB_SSLMODE:-disable}
 
-      # Secret Key (Required) - Generate a secure random string for production
-      - SECRET_KEY=${SECRET_KEY:-d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA==}
+      # Secret Key (Required) - encrypts stored credentials and signs sessions and
+      # API keys. Set it in .env; a new installation generates one with
+      # openssl rand -base64 32. To replace it, list the new key first and the
+      # current one after a comma: Notifuse re-encrypts the stored data with the new
+      # key when it starts (see the 42.0 entry of CHANGELOG.md).
+      - 'SECRET_KEY=${SECRET_KEY:?set SECRET_KEY in .env. New installation, generate one with openssl rand -base64 32. Before 42.0 compose.yaml provided a default, see the 42.0 entry of CHANGELOG.md}'
 
       # Notifuse licence key (Optional). Leaving it unset is the ordinary state
       # of a self-hosted installation and means the free tier. It overrides any
