@@ -924,8 +924,8 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 		return nil, "", nil
 	}
 
-	// No account, an account with its invitation still pending, or a lookup error (treated as
-	// no account for security): create or refresh the invitation.
+	// No account, or an account with its invitation still pending: create or refresh the
+	// invitation.
 	// Create an invitation. CreateInvitation may replace this id with the one of an existing
 	// invitation for the address, so read it back from invitation.ID afterwards.
 	expiresAt := time.Now().UTC().Add(15 * 24 * time.Hour) // 15 days

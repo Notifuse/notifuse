@@ -347,7 +347,8 @@ func TestSecretKeyRotation(t *testing.T) {
 }
 
 // An installation with no workspace yet, upgraded with a key from before 42.0 that holds
-// a single comma: only its encrypted settings show that the key is read wrong.
+// a single comma, or given another key: only its encrypted settings show that the key
+// is wrong.
 func TestSecretKeyRotationWithoutWorkspace(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -371,6 +372,12 @@ func TestSecretKeyRotationWithoutWorkspace(t *testing.T) {
 	require.Error(t, err, "written once, the key reads as two keys that open no stored setting")
 	assert.Contains(t, err.Error(), "encrypted_smtp_password")
 	assert.Contains(t, err.Error(), "twice")
+	assert.Equal(t, before, readEncryptedRows(t, suite))
+
+	// The same holds for another single key: the settings would be dropped.
+	err = startWithSecretKey(t, suite, rotationKeyB)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "opens none of the system settings stored in the database (encrypted_smtp_password)")
 	assert.Equal(t, before, readEncryptedRows(t, suite))
 
 	require.NoError(t, startWithSecretKey(t, suite, strings.ReplaceAll(rotationLegacyKey, ",", ",,")))

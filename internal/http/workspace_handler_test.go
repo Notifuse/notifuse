@@ -3108,6 +3108,11 @@ func TestWorkspaceHandler_HandleAcceptInvitation(t *testing.T) {
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.acceptInvitation", bytes.NewReader(body))
+		// A token that names nothing is no action: as the 401 it used to answer, it
+		// writes no audit row, whatever workspace the body names.
+		record := domain.NewAuditRecord("203.0.113.1", "test", "req-1")
+		record.SetWorkspace(workspaceID)
+		req = req.WithContext(domain.WithAuditRecord(req.Context(), record))
 
 		// Execute request
 		w := httptest.NewRecorder()
@@ -3119,6 +3124,8 @@ func TestWorkspaceHandler_HandleAcceptInvitation(t *testing.T) {
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
 		assert.Equal(t, "Invitation not found or no longer valid", response["error"])
+		_, skipped := record.Finalize(w.Code)
+		assert.True(t, skipped)
 	})
 
 	t.Run("invitation not found", func(t *testing.T) {

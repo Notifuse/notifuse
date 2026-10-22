@@ -212,3 +212,31 @@ func SecretKeyOpensAWorkspace(ctx context.Context, db *sql.DB, key string) (bool
 	}
 	return examined == 0, examined, nil
 }
+
+// SecretKeyOpensASetting reports whether key opens at least one stored encrypted_
+// setting, or there is none, and which it tried. It reads without locks and stops at the
+// first that opens: with no workspace stored, these settings are the data under the key.
+func SecretKeyOpensASetting(ctx context.Context, db *sql.DB, key string) (bool, []string, error) {
+	rows, err := db.QueryContext(ctx,
+		`SELECT key, value FROM settings WHERE key LIKE 'encrypted\_%' AND value <> '' ORDER BY key`)
+	if err != nil {
+		return false, nil, fmt.Errorf("failed to read settings: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var tried []string
+	for rows.Next() {
+		var name, value string
+		if err := rows.Scan(&name, &value); err != nil {
+			return false, tried, fmt.Errorf("failed to scan setting: %w", err)
+		}
+		tried = append(tried, name)
+		if _, err := crypto.DecryptFromHexString(value, key); err == nil {
+			return true, tried, nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, tried, fmt.Errorf("failed to read settings: %w", err)
+	}
+	return len(tried) == 0, tried, nil
+}

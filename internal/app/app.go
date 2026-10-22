@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -397,39 +398,53 @@ func (a *App) InitDB() error {
 	return nil
 }
 
+// storedDataOpens reports whether key opens the data stored under the instance key: the
+// key of at least one workspace or, when none is stored, at least one encrypted setting.
+// Nothing stored opens with any key. what names the data it tried, for an error.
+func (a *App) storedDataOpens(ctx context.Context, key string) (opens bool, what string, err error) {
+	opens, examined, err := repository.SecretKeyOpensAWorkspace(ctx, a.db, key)
+	if err != nil || examined > 0 {
+		return opens, fmt.Sprintf("the %d workspaces stored in the database", examined), err
+	}
+	opens, tried, err := repository.SecretKeyOpensASetting(ctx, a.db, key)
+	return opens, fmt.Sprintf("the system settings stored in the database (%s), and no workspace is stored",
+		strings.Join(tried, ", ")), err
+}
+
 // checkSingleSecretKey refuses a single key that opens none of the stored workspace
-// keys: every workspace load would fail on it. A single key is used as written, so this
+// keys, as every workspace load would fail on it, or, with no workspace, none of the
+// encrypted settings, which would be dropped. A single key is used as written, so this
 // is also where quotes or a newline kept around the key show.
 func (a *App) checkSingleSecretKey(key, variable string) error {
 	ctx := context.Background()
-	opens, examined, err := repository.SecretKeyOpensAWorkspace(ctx, a.db, key)
+	opens, what, err := a.storedDataOpens(ctx, key)
 	if err != nil {
-		return fmt.Errorf("failed to check %s against the stored workspaces: %w", variable, err)
+		return fmt.Errorf("failed to check %s against the stored data: %w", variable, err)
 	}
 	if opens {
 		return nil
 	}
 	if trimmed := config.TrimmedKey(key); trimmed != key {
-		if opens, _, err := repository.SecretKeyOpensAWorkspace(ctx, a.db, trimmed); err == nil && opens {
-			return fmt.Errorf("%[1]s opens none of the %[2]d workspaces stored in the database, but does without "+
-				"the quotes or spaces around it: remove them from %[1]s", variable, examined)
+		if opens, _, err := a.storedDataOpens(ctx, trimmed); err == nil && opens {
+			return fmt.Errorf("%[1]s opens none of %[2]s, but does without the quotes or spaces around it: "+
+				"remove them from %[1]s", variable, what)
 		}
 	} else {
 		// The other way round: docker --env-file kept the quotes of SECRET_KEY="..." before
 		// 42.0, and compose or -e now pass the key without them. Listed after itself, the
 		// key is also tried in quotes, so the start re-encrypts the data under it as written.
 		for _, quoted := range []string{`"` + key + `"`, "'" + key + "'"} {
-			if opens, _, err := repository.SecretKeyOpensAWorkspace(ctx, a.db, quoted); err == nil && opens {
-				return fmt.Errorf("%[1]s opens none of the %[2]d workspaces stored in the database, but the same "+
-					"key in quotes does: the data was encrypted with the quotes a tool kept around it. Set "+
-					"%[1]s=<key>,<key>, the key twice, and start every instance with it: Notifuse re-encrypts the "+
-					"data with the key as written. Once they all run, set the key alone again", variable, examined)
+			if opens, _, err := a.storedDataOpens(ctx, quoted); err == nil && opens {
+				return fmt.Errorf("%[1]s opens none of %[2]s, but the same key in quotes does: the data was "+
+					"encrypted with the quotes a tool kept around it. Set %[1]s=<key>,<key>, the key twice, and "+
+					"start every instance with it: Notifuse re-encrypts the data with the key as written. Once "+
+					"they all run, set the key alone again", variable, what)
 			}
 		}
 	}
-	return fmt.Errorf("%[1]s opens none of the %[2]d workspaces stored in the database, so none of them "+
-		"would load. Set %[1]s to the key the data is encrypted with, written as it was, or put a new key "+
-		"first and that key after a comma to replace it", variable, examined)
+	return fmt.Errorf("%[1]s opens none of %[2]s, so Notifuse cannot read them. Set %[1]s to the key the "+
+		"data is encrypted with, written as it was, or put a new key first and that key after a comma to "+
+		"replace it", variable, what)
 }
 
 // InitSecretKey brings the stored data under the first key of a SECRET_KEY that is a

@@ -420,3 +420,71 @@ func TestLoadSystemSettings_OpensSettingsUnderAPreviousKey(t *testing.T) {
 	assert.Equal(t, "smtp-password", settings.SMTPPassword)
 	assert.Equal(t, "smtp-user", settings.SMTPUsername)
 }
+
+func TestLoadSystemSettings_NamesTheSettingsNoKeyOpens(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	key, other := freshBase64Key(t), freshBase64Key(t)
+	password, err := crypto.EncryptString("smtp-password", key)
+	require.NoError(t, err)
+	secret, err := crypto.EncryptString("oidc-secret", other)
+	require.NoError(t, err)
+	mock.ExpectQuery("SELECT key, value FROM settings").WillReturnRows(sqlmock.NewRows([]string{"key", "value"}).
+		AddRow("is_installed", "true").
+		AddRow("encrypted_smtp_password", password).
+		AddRow("encrypted_oidc_client_secret", secret).
+		AddRow("encrypted_smtp_bridge_tls_key_base64", "not-a-ciphertext"))
+
+	settings, err := loadSystemSettings(db, []string{key})
+
+	require.NoError(t, err)
+	assert.Equal(t, "smtp-password", settings.SMTPPassword)
+	assert.Empty(t, settings.OIDCClientSecret)
+	assert.ElementsMatch(t, []string{"encrypted_oidc_client_secret", "encrypted_smtp_bridge_tls_key_base64"}, settings.UnopenedSettings)
+}
+
+// A feature that is on and needs a stored setting no key opens would otherwise fail on
+// its own terms, or, for the SMTP bridge outside production, start without TLS.
+func TestCheckUnopenedSettings(t *testing.T) {
+	unopened := &SystemSettings{UnopenedSettings: []string{
+		"encrypted_oidc_client_secret", "encrypted_smtp_bridge_tls_cert_base64", "encrypted_smtp_bridge_tls_key_base64",
+	}}
+
+	t.Run("single sign-on without its stored client secret is refused, naming it", func(t *testing.T) {
+		err := checkUnopenedSettings(unopened, OIDCConfig{Enabled: true}, SMTPBridgeConfig{}, "PASETO_PRIVATE_KEY")
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "encrypted_oidc_client_secret")
+		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY")
+		assert.NotContains(t, err.Error(), "smtp_bridge")
+	})
+
+	t.Run("the SMTP bridge without its stored TLS certificate and key is refused, naming them", func(t *testing.T) {
+		err := checkUnopenedSettings(unopened, OIDCConfig{}, SMTPBridgeConfig{Enabled: true}, "SECRET_KEY")
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "encrypted_smtp_bridge_tls_cert_base64, encrypted_smtp_bridge_tls_key_base64")
+		assert.Contains(t, err.Error(), "SECRET_KEY")
+	})
+
+	t.Run("values given in the environment need nothing stored", func(t *testing.T) {
+		require.NoError(t, checkUnopenedSettings(unopened,
+			OIDCConfig{Enabled: true, ClientSecret: "from-env"},
+			SMTPBridgeConfig{Enabled: true, TLSCertBase64: "cert", TLSKeyBase64: "key"}, "SECRET_KEY"))
+	})
+
+	t.Run("an SMTP bridge with TLS set off needs no certificate", func(t *testing.T) {
+		require.NoError(t, checkUnopenedSettings(unopened, OIDCConfig{}, SMTPBridgeConfig{Enabled: true, TLSMode: "off"}, "SECRET_KEY"))
+	})
+
+	t.Run("features that are off need nothing", func(t *testing.T) {
+		require.NoError(t, checkUnopenedSettings(unopened, OIDCConfig{}, SMTPBridgeConfig{}, "SECRET_KEY"))
+	})
+
+	t.Run("settings that opened stop nothing", func(t *testing.T) {
+		require.NoError(t, checkUnopenedSettings(&SystemSettings{}, OIDCConfig{Enabled: true}, SMTPBridgeConfig{Enabled: true}, "SECRET_KEY"))
+		require.NoError(t, checkUnopenedSettings(nil, OIDCConfig{Enabled: true}, SMTPBridgeConfig{Enabled: true}, "SECRET_KEY"))
+	})
+}

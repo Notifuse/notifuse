@@ -380,3 +380,59 @@ func TestSecretKeyOpensAWorkspace(t *testing.T) {
 		require.ErrorIs(t, err, assert.AnError)
 	})
 }
+
+func TestSecretKeyOpensASetting(t *testing.T) {
+	ctx := context.Background()
+	const query = `SELECT key, value FROM settings WHERE key LIKE 'encrypted\\_%' AND value <> '' ORDER BY key`
+	unknown := "a-key-nobody-listed-giving-32-bytes"
+
+	t.Run("true when no encrypted setting is stored", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"key", "value"}))
+
+		opens, tried, err := SecretKeyOpensASetting(ctx, db, rotationCurrentKey)
+
+		require.NoError(t, err)
+		assert.True(t, opens)
+		assert.Empty(t, tried)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("true when one setting of several opens", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"key", "value"}).
+			AddRow("encrypted_smtp_password", encryptFor(t, "pass", rotationCurrentKey)).
+			AddRow("encrypted_smtp_relay_password", encryptFor(t, "relay", unknown)))
+
+		opens, _, err := SecretKeyOpensASetting(ctx, db, rotationCurrentKey)
+
+		require.NoError(t, err)
+		assert.True(t, opens)
+	})
+
+	t.Run("false, naming the settings it tried, when none opens", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"key", "value"}).
+			AddRow("encrypted_smtp_password", encryptFor(t, "pass", unknown)).
+			AddRow("encrypted_smtp_username", encryptFor(t, "user", rotationPreviousKey)))
+
+		opens, tried, err := SecretKeyOpensASetting(ctx, db, rotationCurrentKey)
+
+		require.NoError(t, err)
+		assert.False(t, opens)
+		assert.Equal(t, []string{"encrypted_smtp_password", "encrypted_smtp_username"}, tried)
+	})
+
+	t.Run("a database failure is returned", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		mock.ExpectQuery(query).WillReturnError(assert.AnError)
+
+		_, _, err := SecretKeyOpensASetting(ctx, db, rotationCurrentKey)
+
+		require.ErrorIs(t, err, assert.AnError)
+	})
+}

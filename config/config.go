@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -301,6 +302,9 @@ type SystemSettings struct {
 	OIDCButtonLabel     string
 	OIDCAutoCreateUsers bool
 	OIDCAllowedDomains  string
+
+	// UnopenedSettings names the encrypted settings no key opened, left empty above.
+	UnopenedSettings []string
 }
 
 // getSystemDSN constructs the database connection string for the system database
@@ -396,18 +400,10 @@ func loadSystemSettings(db *sql.DB, keys []string) (*SystemSettings, error) {
 		settings.SMTPEHLOHostname = settingsMap["smtp_ehlo_hostname"]
 
 		// Decrypt SMTP username if present
-		if encryptedUsername, ok := settingsMap["encrypted_smtp_username"]; ok && encryptedUsername != "" {
-			if decrypted, _, err := crypto.DecryptWithKeys(encryptedUsername, keys); err == nil {
-				settings.SMTPUsername = decrypted
-			}
-		}
+		settings.SMTPUsername = settings.decrypt(settingsMap, "encrypted_smtp_username", keys)
 
 		// Decrypt SMTP password if present
-		if encryptedPassword, ok := settingsMap["encrypted_smtp_password"]; ok && encryptedPassword != "" {
-			if decrypted, _, err := crypto.DecryptWithKeys(encryptedPassword, keys); err == nil {
-				settings.SMTPPassword = decrypted
-			}
-		}
+		settings.SMTPPassword = settings.decrypt(settingsMap, "encrypted_smtp_password", keys)
 
 		// Load telemetry setting
 		if telemetry, ok := settingsMap["telemetry_enabled"]; ok {
@@ -430,18 +426,10 @@ func loadSystemSettings(db *sql.DB, keys []string) (*SystemSettings, error) {
 		}
 
 		// Decrypt SMTP Bridge TLS certificate if present
-		if encryptedCert, ok := settingsMap["encrypted_smtp_bridge_tls_cert_base64"]; ok && encryptedCert != "" {
-			if decrypted, _, err := crypto.DecryptWithKeys(encryptedCert, keys); err == nil {
-				settings.SMTPBridgeTLSCertBase64 = decrypted
-			}
-		}
+		settings.SMTPBridgeTLSCertBase64 = settings.decrypt(settingsMap, "encrypted_smtp_bridge_tls_cert_base64", keys)
 
 		// Decrypt SMTP Bridge TLS key if present
-		if encryptedKey, ok := settingsMap["encrypted_smtp_bridge_tls_key_base64"]; ok && encryptedKey != "" {
-			if decrypted, _, err := crypto.DecryptWithKeys(encryptedKey, keys); err == nil {
-				settings.SMTPBridgeTLSKeyBase64 = decrypted
-			}
-		}
+		settings.SMTPBridgeTLSKeyBase64 = settings.decrypt(settingsMap, "encrypted_smtp_bridge_tls_key_base64", keys)
 
 		// OIDC settings
 		if v, ok := settingsMap["oidc_enabled"]; ok {
@@ -458,14 +446,61 @@ func loadSystemSettings(db *sql.DB, keys []string) (*SystemSettings, error) {
 		settings.OIDCAllowedDomains = settingsMap["oidc_allowed_domains"]
 
 		// Decrypt OIDC client secret if present (mirror encrypted_smtp_password)
-		if enc, ok := settingsMap["encrypted_oidc_client_secret"]; ok && enc != "" {
-			if dec, _, err := crypto.DecryptWithKeys(enc, keys); err == nil {
-				settings.OIDCClientSecret = dec
-			}
-		}
+		settings.OIDCClientSecret = settings.decrypt(settingsMap, "encrypted_oidc_client_secret", keys)
 	}
 
 	return settings, nil
+}
+
+// decrypt returns the stored setting called name, opened with keys. A setting no key
+// opens is empty and named in UnopenedSettings.
+func (s *SystemSettings) decrypt(settingsMap map[string]string, name string, keys []string) string {
+	value := settingsMap[name]
+	if value == "" {
+		return ""
+	}
+	decrypted, _, err := crypto.DecryptWithKeys(value, keys)
+	if err != nil {
+		s.UnopenedSettings = append(s.UnopenedSettings, name)
+		return ""
+	}
+	return decrypted
+}
+
+// checkUnopenedSettings refuses the start when a feature that is on needs a stored
+// setting no key of variable opens: the feature would otherwise fail on its own terms
+// (OIDC_CLIENT_SECRET is empty) or, for the SMTP bridge outside production, run without
+// TLS.
+func checkUnopenedSettings(settings *SystemSettings, oidc OIDCConfig, bridge SMTPBridgeConfig, variable string) error {
+	if settings == nil {
+		return nil
+	}
+	unopened := func(names ...string) []string {
+		var found []string
+		for _, name := range names {
+			if slices.Contains(settings.UnopenedSettings, name) {
+				found = append(found, name)
+			}
+		}
+		return found
+	}
+	refuse := func(names []string, feature string) error {
+		return fmt.Errorf("no key in %[1]s opens the stored settings %[2]s, which %[3]s needs. Set %[1]s to "+
+			"the key they are encrypted with, written as it was, or put a new key first and that key after a "+
+			"comma to replace it", variable, strings.Join(names, ", "), feature)
+	}
+
+	if oidc.Enabled && oidc.ClientSecret == "" {
+		if names := unopened("encrypted_oidc_client_secret"); len(names) > 0 {
+			return refuse(names, "single sign-on (OIDC)")
+		}
+	}
+	if bridge.Enabled && bridge.TLSMode != smtp_bridge.ModeOff && (bridge.TLSCertBase64 == "" || bridge.TLSKeyBase64 == "") {
+		if names := unopened("encrypted_smtp_bridge_tls_cert_base64", "encrypted_smtp_bridge_tls_key_base64"); len(names) > 0 {
+			return refuse(names, "the SMTP bridge")
+		}
+	}
+	return nil
 }
 
 // Load loads the configuration with default options
@@ -867,18 +902,6 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		}
 	}
 
-	// Resolve + validate SMTP bridge TLS mode (only when bridge is enabled).
-	// This replaces the runtime "TLS required in production" check that used to
-	// live in pkg/smtp_bridge/server.go, moved up so startup fails early with
-	// a clear message.
-	if smtpBridgeConfig.Enabled {
-		resolved, err := resolveSMTPBridgeTLSMode(smtpBridgeConfig, v.GetString("ENVIRONMENT"))
-		if err != nil {
-			return nil, err
-		}
-		smtpBridgeConfig.TLSMode = resolved
-	}
-
 	// Telemetry and check for updates settings - env var overrides database
 	var telemetryEnabled, checkForUpdates bool
 	if isInstalled && systemSettings != nil {
@@ -907,8 +930,24 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	// derived redirect URI uses the final endpoint, and validated to fail boot fast
 	// on static misconfiguration (issuer reachability is a runtime concern).
 	oidcConfig := resolveOIDCConfig(envVals, systemSettings, isInstalled, apiEndpoint)
+	// Before either feature's own check, which would blame its settings rather than the key.
+	if err := checkUnopenedSettings(systemSettings, oidcConfig, smtpBridgeConfig, security.KeyVariable); err != nil {
+		return nil, err
+	}
 	if err := oidcConfig.Validate(); err != nil {
 		return nil, err
+	}
+
+	// Resolve + validate SMTP bridge TLS mode (only when bridge is enabled).
+	// This replaces the runtime "TLS required in production" check that used to
+	// live in pkg/smtp_bridge/server.go, moved up so startup fails early with
+	// a clear message.
+	if smtpBridgeConfig.Enabled {
+		resolved, err := resolveSMTPBridgeTLSMode(smtpBridgeConfig, v.GetString("ENVIRONMENT"))
+		if err != nil {
+			return nil, err
+		}
+		smtpBridgeConfig.TLSMode = resolved
 	}
 
 	// Plan limits, as pushed by the Notifuse Cloud control plane. Unset means 0,

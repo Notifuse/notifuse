@@ -1056,6 +1056,10 @@ func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http
 	invitationID, workspaceID, email, err := h.authService.ValidateInvitationToken(req.Token)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to validate invitation token")
+		// A token that names nothing is no action, only the workspace the body claims: as
+		// the 401 this answered before, it stays out of the audit log, so an anonymous
+		// client cannot write rows into a workspace's log.
+		domain.AuditFromContext(r.Context()).Skip()
 		writeInvitationUnavailable(w)
 		return
 	}

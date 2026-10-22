@@ -641,11 +641,48 @@ func TestAppInitSecretKey(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("a single key starts when there is no workspace", func(t *testing.T) {
+	const encryptedSettings = `SELECT key, value FROM settings WHERE key LIKE 'encrypted`
+	setting := func(t *testing.T, name, key string) *sqlmock.Rows {
+		t.Helper()
+		value, err := pkgCrypto.EncryptString("setting-value", key)
+		require.NoError(t, err)
+		return sqlmock.NewRows([]string{"key", "value"}).AddRow(name, value)
+	}
+
+	t.Run("a single key starts when nothing is stored", func(t *testing.T) {
 		app, mock := newApp(t, config.SecurityConfig{SecretKey: current})
 		mock.ExpectQuery(workspaceKeys).WillReturnRows(sqlmock.NewRows([]string{"key"}))
+		mock.ExpectQuery(encryptedSettings).WillReturnRows(sqlmock.NewRows([]string{"key", "value"}))
 
 		require.NoError(t, app.InitSecretKey())
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("with no workspace, a single key starts when it opens an encrypted setting", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: current})
+		mock.ExpectQuery(workspaceKeys).WillReturnRows(sqlmock.NewRows([]string{"key"}))
+		mock.ExpectQuery(encryptedSettings).WillReturnRows(setting(t, "encrypted_smtp_password", current))
+
+		require.NoError(t, app.InitSecretKey())
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// The settings are then the only data under the key: the wizard's SMTP credentials
+	// would be dropped and system emails fail.
+	t.Run("with no workspace, a single key that opens no encrypted setting stops the start, naming them", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: current})
+		mock.ExpectQuery(workspaceKeys).WillReturnRows(sqlmock.NewRows([]string{"key"}))
+		mock.ExpectQuery(encryptedSettings).WillReturnRows(setting(t, "encrypted_smtp_password", previous))
+		// The same key in quotes is tried too.
+		for range 2 {
+			mock.ExpectQuery(workspaceKeys).WillReturnRows(sqlmock.NewRows([]string{"key"}))
+			mock.ExpectQuery(encryptedSettings).WillReturnRows(setting(t, "encrypted_smtp_password", previous))
+		}
+
+		err := app.InitSecretKey()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "SECRET_KEY opens none of the system settings stored in the database (encrypted_smtp_password)")
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
