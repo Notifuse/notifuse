@@ -961,8 +961,7 @@ func TestTaskRepository_MarkAsPaused(t *testing.T) {
 	mock.ExpectRollback()
 
 	err = repo.MarkAsPaused(ctx, workspace, taskID, nextRunAfter)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "task not found")
+	assert.ErrorIs(t, err, domain.ErrTaskNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
 	// Test database error

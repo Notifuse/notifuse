@@ -971,7 +971,7 @@ func (r *TaskRepository) MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspa
 			return fmt.Errorf("failed to look up task: %w", err)
 		}
 		if !exists {
-			return fmt.Errorf("task not found")
+			return domain.ErrTaskNotFound
 		}
 		return &domain.ErrTaskAlreadyRunning{TaskID: id}
 	}
