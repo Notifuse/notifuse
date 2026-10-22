@@ -3,6 +3,7 @@ package broadcast_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -84,12 +85,11 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	expire := func() {}
 	if run.deadlineWhileFinalizing {
-		var cancelDeadline context.CancelFunc
-		ctx, cancelDeadline = context.WithTimeout(ctx, 200*time.Millisecond)
-		defer cancelDeadline()
+		deadline := &expiringContext{Context: ctx, done: make(chan struct{})}
+		ctx, expire = deadline, deadline.expire
 	}
-	runCtx := ctx // the mocks' own ctx parameter is the finalizer's detached one
 
 	broadcastID := "broadcast-last-attempt"
 	var write broadcastWrite
@@ -153,7 +153,7 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 					cancel()
 				}
 				if run.deadlineWhileFinalizing {
-					<-runCtx.Done()
+					expire()
 				}
 				return run.storedTask, run.storedErr
 			}).
@@ -209,6 +209,27 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 	}
 
 	return write
+}
+
+// expiringContext is a run context whose deadline passes when expire is
+// called, so a test decides the moment rather than the clock.
+type expiringContext struct {
+	context.Context
+	once sync.Once
+	done chan struct{}
+}
+
+func (c *expiringContext) expire() { c.once.Do(func() { close(c.done) }) }
+
+func (c *expiringContext) Done() <-chan struct{} { return c.done }
+
+func (c *expiringContext) Err() error {
+	select {
+	case <-c.done:
+		return context.DeadlineExceeded
+	default:
+		return nil
+	}
 }
 
 func cancelledContext() context.Context {
