@@ -2094,34 +2094,41 @@ func createTestWorkspaceWithWebsite(t *testing.T, client *testutil.APIClient, na
 	return workspaceID
 }
 
-// dropLeftoverDatabase drops, after the test, the database a regression would leave for
-// name: as written if it was created quoted, or with its ASCII capitals folded to lowercase
-// if it was created unquoted, as PostgreSQL does.
+// dropLeftoverDatabase drops, after the test, every database a regression would leave for
+// name: the ones countDatabasesAnyCase finds, so what a subtest detects is what it removes.
 func dropLeftoverDatabase(t *testing.T, suite *testutil.IntegrationTestSuite, name string) {
 	t.Helper()
 	t.Cleanup(func() {
-		for _, datname := range []string{name, asciiLower(name)} {
-			if _, err := suite.DBManager.GetDB().Exec("DROP DATABASE IF EXISTS " + pq.QuoteIdentifier(datname) + " WITH (FORCE)"); err != nil {
+		db := suite.DBManager.GetDB()
+		for _, datname := range databasesAnyCase(t, db, name) {
+			if _, err := db.Exec("DROP DATABASE IF EXISTS " + pq.QuoteIdentifier(datname) + " WITH (FORCE)"); err != nil {
 				t.Logf("dropping database %s: %v", datname, err)
 			}
 		}
 	})
 }
 
-// countDatabasesAnyCase counts the databases named name, its ASCII capitals folded or not.
-// Both sides use the "C" collation, the one pg_database names have, which folds ASCII only.
+// countDatabasesAnyCase counts the databases whose name is name, whatever the case of its
+// ASCII letters.
 func countDatabasesAnyCase(t *testing.T, db *sql.DB, name string) int {
 	t.Helper()
-	var count int
-	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM pg_database WHERE lower(datname) = lower($1 COLLATE "C")`, name).Scan(&count))
-	return count
+	return len(databasesAnyCase(t, db, name))
 }
 
-func asciiLower(s string) string {
-	return strings.Map(func(r rune) rune {
-		if r >= 'A' && r <= 'Z' {
-			return r + ('a' - 'A')
-		}
-		return r
-	}, s)
+// databasesAnyCase lists the databases whose name is name, whatever the case of its ASCII
+// letters. Both sides use the "C" collation, the one pg_database names have, which folds
+// ASCII only, as PostgreSQL does for unquoted names.
+func databasesAnyCase(t *testing.T, db *sql.DB, name string) []string {
+	t.Helper()
+	rows, err := db.Query(`SELECT datname FROM pg_database WHERE lower(datname) = lower($1 COLLATE "C")`, name)
+	require.NoError(t, err)
+	defer func() { _ = rows.Close() }()
+	var names []string
+	for rows.Next() {
+		var datname string
+		require.NoError(t, rows.Scan(&datname))
+		names = append(names, datname)
+	}
+	require.NoError(t, rows.Err())
+	return names
 }
