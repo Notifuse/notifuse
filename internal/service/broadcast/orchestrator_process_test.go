@@ -737,14 +737,14 @@ func TestProcess_LastRetryError(t *testing.T) {
 		Return(&domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3}, nil).
 		Times(1)
 
-	// Mock broadcast update to verify broadcast is marked as failed
+	// Mock the finalizer's status write to verify broadcast is marked as failed
 	updatedBroadcast := gomock.AssignableToTypeOf(&domain.Broadcast{})
 	mockBroadcastRepository.EXPECT().
-		UpdateBroadcast(gomock.Any(), updatedBroadcast).
-		DoAndReturn(func(_ context.Context, broadcast *domain.Broadcast) error {
+		UpdateBroadcastStatusUnless(gomock.Any(), updatedBroadcast, gomock.Any()).
+		DoAndReturn(func(_ context.Context, broadcast *domain.Broadcast, _ []domain.BroadcastStatus) (bool, error) {
 			// Verify the broadcast is marked as failed
 			assert.Equal(t, domain.BroadcastStatusFailed, broadcast.Status)
-			return nil
+			return true, nil
 		}).
 		Times(1)
 

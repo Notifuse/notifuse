@@ -60,8 +60,8 @@ func TestProcess_LastRetryInterrupted_PausesBroadcastAndWritesOnALiveContext(t *
 
 	var update terminalUpdate
 	mockBroadcastRepository.EXPECT().
-		UpdateBroadcast(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, b *domain.Broadcast) error {
+		UpdateBroadcastStatusUnless(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, b *domain.Broadcast, _ []domain.BroadcastStatus) (bool, error) {
 			update.called = true
 			update.status = b.Status
 			update.pausedAt = b.PausedAt
@@ -69,7 +69,7 @@ func TestProcess_LastRetryInterrupted_PausesBroadcastAndWritesOnALiveContext(t *
 				update.reason = *b.PauseReason
 			}
 			update.ctxErrSet = ctx.Err() != nil
-			return nil
+			return true, nil
 		}).
 		Times(1)
 
@@ -150,11 +150,11 @@ func TestProcess_LastRetryGenuineError_StillMarksFailed(t *testing.T) {
 
 	var update terminalUpdate
 	mockBroadcastRepository.EXPECT().
-		UpdateBroadcast(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+		UpdateBroadcastStatusUnless(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, b *domain.Broadcast, _ []domain.BroadcastStatus) (bool, error) {
 			update.called = true
 			update.status = b.Status
-			return nil
+			return true, nil
 		}).
 		Times(1)
 
@@ -271,14 +271,14 @@ func TestProcess_InterruptionMaskedByTxDone_StillPauses(t *testing.T) {
 
 	var update terminalUpdate
 	mockBroadcastRepository.EXPECT().
-		UpdateBroadcast(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+		UpdateBroadcastStatusUnless(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, b *domain.Broadcast, _ []domain.BroadcastStatus) (bool, error) {
 			update.called = true
 			update.status = b.Status
 			if b.PauseReason != nil {
 				update.reason = *b.PauseReason
 			}
-			return nil
+			return true, nil
 		}).
 		Times(1)
 

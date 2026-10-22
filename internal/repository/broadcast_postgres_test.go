@@ -1651,3 +1651,85 @@ func TestBroadcastRepository_UpdateBroadcast_WithDataFeed(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+// TestBroadcastRepository_UpdateBroadcastStatusUnless covers the status write a
+// failed broadcast run ends with: it decides on the row it writes, so a status
+// another transaction committed after the caller's read is kept.
+func TestBroadcastRepository_UpdateBroadcastStatusUnless(t *testing.T) {
+	workspaceID := "ws123"
+	pausedAt := time.Date(2026, 10, 22, 9, 0, 0, 0, time.UTC)
+	reason := "Sending was interrupted"
+	unless := []domain.BroadcastStatus{
+		domain.BroadcastStatusCancelled,
+		domain.BroadcastStatusPaused,
+		domain.BroadcastStatusProcessed,
+	}
+	newBroadcast := func() *domain.Broadcast {
+		return &domain.Broadcast{
+			ID:          "bc123",
+			WorkspaceID: workspaceID,
+			Status:      domain.BroadcastStatusPaused,
+			PausedAt:    &pausedAt,
+			PauseReason: &reason,
+		}
+	}
+	setup := func(t *testing.T) (*broadcastRepository, *mocks.MockWorkspaceRepository, sqlmock.Sqlmock) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil).AnyTimes()
+		return NewBroadcastRepository(mockWorkspaceRepo).(*broadcastRepository), mockWorkspaceRepo, mock
+	}
+	const statusOnlyUpdate = `UPDATE broadcasts SET status = \$3, paused_at = \$4, pause_reason = \$5, updated_at = \$6\s+WHERE id = \$1 AND workspace_id = \$2 AND status NOT IN \(\$7, \$8, \$9\)`
+
+	t.Run("writes the status fields when the stored status is not excluded", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectExec(statusOnlyUpdate).
+			WithArgs("bc123", workspaceID, "paused", &pausedAt, &reason, sqlmock.AnyArg(),
+				"cancelled", "paused", "processed").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
+		require.NoError(t, err)
+		assert.True(t, written)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("reports no write when the stored status is excluded or the broadcast is gone", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectExec(statusOnlyUpdate).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
+		require.NoError(t, err)
+		assert.False(t, written)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns the error of a failed write", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectExec(statusOnlyUpdate).
+			WillReturnError(errors.New("deadlock detected"))
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "deadlock detected")
+		assert.False(t, written)
+	})
+
+	t.Run("returns the error of a failed connection", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(nil, errors.New("connection error"))
+		repo := NewBroadcastRepository(mockWorkspaceRepo)
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+		assert.False(t, written)
+	})
+}

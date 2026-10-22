@@ -367,6 +367,49 @@ func (r *broadcastRepository) UpdateBroadcastStatusTx(ctx context.Context, tx *s
 	return nil
 }
 
+// UpdateBroadcastStatusUnless writes the status, pause time and pause reason,
+// unless the stored status is one of unless. The condition sits in the UPDATE
+// itself: a write waiting on the row lock re-checks it once the holder
+// commits, so a status committed after the caller's read is kept.
+func (r *broadcastRepository) UpdateBroadcastStatusUnless(ctx context.Context, broadcast *domain.Broadcast, unless []domain.BroadcastStatus) (bool, error) {
+	db, err := r.workspaceRepo.GetConnection(ctx, broadcast.WorkspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	broadcast.UpdatedAt = time.Now().UTC()
+
+	args := []interface{}{
+		broadcast.ID,
+		broadcast.WorkspaceID,
+		string(broadcast.Status),
+		broadcast.PausedAt,
+		broadcast.PauseReason,
+		broadcast.UpdatedAt,
+	}
+	query := `
+		UPDATE broadcasts SET status = $3, paused_at = $4, pause_reason = $5, updated_at = $6
+		WHERE id = $1 AND workspace_id = $2`
+	if len(unless) > 0 {
+		placeholders := make([]string, len(unless))
+		for i, status := range unless {
+			args = append(args, string(status))
+			placeholders[i] = fmt.Sprintf("$%d", len(args))
+		}
+		query += " AND status NOT IN (" + strings.Join(placeholders, ", ") + ")"
+	}
+
+	result, err := db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return false, fmt.Errorf("failed to update broadcast status: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	return rowsAffected > 0, nil
+}
+
 // ListBroadcastsTx retrieves a list of broadcasts within a transaction
 func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params domain.ListBroadcastsParams) (*domain.BroadcastListResponse, error) {
 	// Build the WHERE clause dynamically from the provided filters so status

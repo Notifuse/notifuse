@@ -35,17 +35,24 @@ type lastAttemptRun struct {
 	// statusAtEnd is the broadcast's status when the finalizer reads it back.
 	statusAtEnd domain.BroadcastStatus
 
+	// refusedByRow makes the conditional write find an excluded status on the
+	// row, as when a pause commits after the finalizer's read.
+	refusedByRow bool
+
 	// ctx and countErr shape the failure: the recipient count, the first thing
 	// a run does, fails with countErr.
 	ctx      context.Context
 	countErr error
 }
 
-// broadcastWrite records what the finalizer wrote to the broadcast.
+// broadcastWrite records what the finalizer wrote to the broadcast, and the
+// order of its reads.
 type broadcastWrite struct {
 	called bool
 	status domain.BroadcastStatus
 	reason string
+	unless []domain.BroadcastStatus
+	reads  []string
 }
 
 func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
@@ -58,13 +65,16 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 	mockTimeProvider.EXPECT().Now().Return(time.Now()).AnyTimes()
 
 	broadcastID := "broadcast-last-attempt"
+	var write broadcastWrite
 	reads := 0
 	mockBroadcastRepository.EXPECT().
 		GetBroadcast(gomock.Any(), "workspace-123", broadcastID).
-		DoAndReturn(func(_ context.Context, _, _ string) (*domain.Broadcast, error) {
+		DoAndReturn(func(ctx context.Context, _, _ string) (*domain.Broadcast, error) {
 			reads++
 			b := createMockBroadcast(broadcastID, []string{"template-1"})
 			if reads > 1 {
+				assert.NoError(t, ctx.Err(), "the finalizer's read must not ride on the run's context")
+				write.reads = append(write.reads, "broadcast")
 				b.Status = run.statusAtEnd
 			}
 			return b, nil
@@ -81,21 +91,25 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 			Get(gomock.Any(), "workspace-123", "task-123").
 			DoAndReturn(func(ctx context.Context, _, _ string) (*domain.Task, error) {
 				assert.NoError(t, ctx.Err(), "the re-read must not ride on the run's context")
+				write.reads = append(write.reads, "task")
 				return run.storedTask, run.storedErr
 			}).
 			Times(1)
 	}
 
-	var write broadcastWrite
+	// The finalizer writes through the conditional status write only: the
+	// whole-row UpdateBroadcast decided on its read, and is not expected.
 	mockBroadcastRepository.EXPECT().
-		UpdateBroadcast(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+		UpdateBroadcastStatusUnless(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, b *domain.Broadcast, unless []domain.BroadcastStatus) (bool, error) {
+			assert.NoError(t, ctx.Err(), "the write must not ride on the run's context")
 			write.called = true
 			write.status = b.Status
+			write.unless = unless
 			if b.PauseReason != nil {
 				write.reason = *b.PauseReason
 			}
-			return nil
+			return !run.refusedByRow, nil
 		}).
 		AnyTimes()
 
@@ -158,6 +172,11 @@ func TestProcess_FailedRunFinalizesOnlyTheLastAttempt(t *testing.T) {
 		})
 		require.True(t, write.called)
 		assert.Equal(t, domain.BroadcastStatusFailed, write.status)
+		assert.ElementsMatch(t, []domain.BroadcastStatus{
+			domain.BroadcastStatusCancelled, domain.BroadcastStatusPaused, domain.BroadcastStatusProcessed,
+		}, write.unless, "the write must keep a cancel, a pause or a completion committed after the read")
+		assert.Equal(t, []string{"broadcast", "task"}, write.reads,
+			"the broadcast is read first: a read past a pause then implies the resume, and its fresh budget, committed")
 	})
 
 	t.Run("a task with no retries allowed fails on its first attempt", func(t *testing.T) {
@@ -194,24 +213,33 @@ func TestProcess_FailedRunFinalizesOnlyTheLastAttempt(t *testing.T) {
 		assert.Equal(t, domain.BroadcastStatusFailed, write.status)
 	})
 
-	t.Run("a broadcast cancelled during the last attempt stays cancelled", func(t *testing.T) {
-		write := runFailingAttempt(t, lastAttemptRun{
-			retryCount: 3, maxRetries: 3,
-			storedTask:  &domain.Task{ID: "task-123", RetryCount: 4, MaxRetries: 3},
-			statusAtEnd: domain.BroadcastStatusCancelled,
-			countErr:    genuine,
+	for _, kept := range []domain.BroadcastStatus{
+		domain.BroadcastStatusCancelled,
+		domain.BroadcastStatusPaused,
+		domain.BroadcastStatusProcessed,
+	} {
+		t.Run("a broadcast read back "+string(kept)+" keeps its status", func(t *testing.T) {
+			// No task read either: the decision does not depend on it.
+			write := runFailingAttempt(t, lastAttemptRun{
+				retryCount: 3, maxRetries: 3,
+				statusAtEnd: kept,
+				countErr:    genuine,
+			})
+			assert.False(t, write.called, "a status committed during the last attempt was overwritten")
 		})
-		assert.False(t, write.called, "the user's cancel was overwritten")
-	})
+	}
 
-	t.Run("a broadcast paused during the last attempt stays resumable", func(t *testing.T) {
+	t.Run("a status the row holds by the time of the write is kept", func(t *testing.T) {
+		// A pause committing after the finalizer's read: the write finds it on
+		// the row and leaves it, and the run's own error is what it returns.
 		write := runFailingAttempt(t, lastAttemptRun{
 			retryCount: 3, maxRetries: 3,
-			storedTask:  &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3},
-			statusAtEnd: domain.BroadcastStatusPaused,
-			countErr:    genuine,
+			storedTask:   &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3},
+			statusAtEnd:  domain.BroadcastStatusProcessing,
+			refusedByRow: true,
+			countErr:     genuine,
 		})
-		assert.False(t, write.called, "a paused broadcast was turned into a failed one, which cannot be resumed")
+		assert.True(t, write.called, "the write must be attempted, and refused by the row")
 	})
 }
 
@@ -259,7 +287,6 @@ func TestProcess_InterruptedRunPausesOnlyTheLastAttempt(t *testing.T) {
 	t.Run("an interrupted last attempt leaves a cancelled broadcast cancelled", func(t *testing.T) {
 		write := runFailingAttempt(t, lastAttemptRun{
 			retryCount: 3, maxRetries: 3,
-			storedTask:  &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3},
 			statusAtEnd: domain.BroadcastStatusCancelled,
 			ctx:         cancelledContext(),
 			countErr:    context.Canceled,

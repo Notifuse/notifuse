@@ -1619,7 +1619,12 @@ func TestBroadcastOrchestrator_Process_ValidateTemplatesFailure(t *testing.T) {
 	// reads the task back, then marks the broadcast failed
 	mockTaskRepo.EXPECT().Get(gomock.Any(), "workspace-123", "task-123").
 		Return(&domain.Task{ID: "task-123", WorkspaceID: "workspace-123"}, nil)
-	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockBroadcastRepo.EXPECT().
+		UpdateBroadcastStatusUnless(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, b *domain.Broadcast, _ []domain.BroadcastStatus) (bool, error) {
+			assert.Equal(t, domain.BroadcastStatusFailed, b.Status)
+			return true, nil
+		})
 
 	// Load template that will fail validation (missing subject)
 	badTpl := &domain.Template{ID: "tpl1", Email: &domain.EmailTemplate{SenderID: "s", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)}}}
