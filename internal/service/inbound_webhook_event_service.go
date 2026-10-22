@@ -542,22 +542,38 @@ func sameAddress(stored, reported string) bool {
 	if sink := len(reported) - len(sparkPostSinkSuffix); sink > 0 && strings.EqualFold(reported[sink:], sparkPostSinkSuffix) {
 		reported = reported[:sink]
 	}
-	reportedForm, ok := addressForm(reported)
+	storedForm, storedOK := addressForm(stored, maxDomainLength)
+	// SES is sent the domain converted to Punycode as stored, not composed or lowercased first
+	// as a DNS lookup does
+	sentForm, sentOK := "", false
+	if sent, err := encodeEmailAddress(stored); err == nil {
+		sentForm, sentOK = addressForm(sent, maxDomainLength)
+	}
+	if !storedOK && !sentOK {
+		return false
+	}
+	// A reported domain longer than both forms of the stored one, by more than characters DNS
+	// ignores, names another domain, so it is not looked up
+	limit := max(domainLength(storedForm), domainLength(sentForm)) + maxIgnoredDomainCharacters
+	reportedForm, ok := addressForm(reported, limit)
 	if !ok {
 		return false
 	}
-	if storedForm, ok := addressForm(stored); ok && storedForm == reportedForm {
-		return true
-	}
-	// SES is sent the domain converted to Punycode as stored, not composed or lowercased first
-	// as a DNS lookup does
-	sent, err := encodeEmailAddress(stored)
-	if err != nil {
-		return false
-	}
-	sentForm, ok := addressForm(sent)
-	return ok && sentForm == reportedForm
+	return (storedOK && storedForm == reportedForm) || (sentOK && sentForm == reportedForm)
 }
+
+// domainLength is the length in bytes of the domain of an address form, 0 for none.
+func domainLength(form string) int {
+	if form == "" {
+		return 0
+	}
+	return len(form) - strings.LastIndex(form, "@") - 1
+}
+
+// maxIgnoredDomainCharacters is how many more characters than the stored domain's forms a
+// reported domain may hold and still be looked up: room for characters DNS drops, such as a
+// soft hyphen.
+const maxIgnoredDomainCharacters = 8
 
 // maxDomainLength is the most characters a domain DNS holds has in its ASCII form. A domain
 // reported in Unicode has no more, unless written with characters DNS drops or composes.
@@ -571,9 +587,9 @@ const maxAddressLength = 2048
 // decoded when encoded, and lowercased, the domain as DNS looks it up (Punycode, the letter
 // case and the Unicode composition aside), or lowercased when DNS refuses it. Decoding and
 // encoding take time growing with the square of the length, so a domain longer than DNS
-// holds is refused unread, and a longer address than any spelling of one has no form. ok is
-// false for what is no address.
-func addressForm(address string) (string, bool) {
+// holds, or than maxDomain characters, is lowercased unread, and a longer address than any
+// spelling of one has no form. ok is false for what is no address.
+func addressForm(address string, maxDomain int) (string, bool) {
 	at := strings.LastIndex(address, "@")
 	if at <= 0 || at == len(address)-1 || len(address) > maxAddressLength {
 		return "", false
@@ -583,7 +599,7 @@ func addressForm(address string) (string, bool) {
 		local = decoded
 	}
 	domain := address[at+1:]
-	if utf8.RuneCountInString(domain) <= maxDomainLength {
+	if utf8.RuneCountInString(domain) <= min(maxDomain, maxDomainLength) {
 		if ascii, err := idna.Lookup.ToASCII(domain); err == nil {
 			domain = ascii
 		}

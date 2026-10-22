@@ -880,6 +880,8 @@ func TestSameAddress(t *testing.T) {
 		{"reported with spaces around it", "jane@example.com", " jane@example.com\u00a0", true},
 		{"a domain reported with a character DNS ignores", "user@example.com", "user@ex\u00adample.com", true},
 		{"a domain longer than DNS holds is not looked up", "user@example.com", "user@" + strings.Repeat("\u00ad", 300) + "example.com", false},
+		{"as many characters DNS ignores as room is left for", "user@example.com", "user@ex" + strings.Repeat("\u00ad", 8) + "ample.com", true},
+		{"one character DNS ignores more than room is left for: not looked up", "user@example.com", "user@ex" + strings.Repeat("\u00ad", 9) + "ample.com", false},
 		{"a local part encoded in two words", "jane@example.com", "=?utf-8?q?ja?= =?utf-8?q?ne?=@example.com", true},
 		{"an address longer than any spelling of one is not decoded", "jane@example.com", "=?utf-8?q?ja?=" + strings.Repeat(" ", 3000) + "=?utf-8?q?ne?=@example.com", false},
 	} {
@@ -909,6 +911,19 @@ func TestSameAddress_ALongAddressIsComparedQuickly(t *testing.T) {
 			assert.Less(t, time.Since(start), time.Second)
 		})
 	}
+
+	// One delivery can hold thousands of events naming one email, each with its own address
+	t.Run("many domains as long as DNS holds, against a short one", func(t *testing.T) {
+		start := time.Now()
+		for i := 0; i < 10000; i++ {
+			var domain strings.Builder
+			for j := 0; j < 253; j++ {
+				domain.WriteRune(rune(0x4e00 + (i+j)%20000))
+			}
+			require.False(t, sameAddress("user@example.com", "user@"+domain.String()))
+		}
+		assert.Less(t, time.Since(start), time.Second)
+	})
 }
 
 func TestExtractXMessageIDFromHeaders(t *testing.T) {
@@ -3540,34 +3555,42 @@ func TestProcessWebhook_ActsOnlyOnEmailsSentToTheEventAddress(t *testing.T) {
 		}, fields)
 	})
 
-	t.Run("a long ignored id is logged cut to its first 255 bytes, on a character boundary", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-		messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
-		log := pkgmocks.NewMockLogger(ctrl)
-		fields := map[string]interface{}{}
-		log.EXPECT().WithField(gomock.Any(), gomock.Any()).DoAndReturn(func(key string, value interface{}) logger.Logger {
-			fields[key] = value
-			return log
-		}).AnyTimes()
-		log.EXPECT().Info("Ignored provider events that name no email sent to their address").Times(1)
-		service := &InboundWebhookEventService{
-			logger:             log,
-			workspaceRepo:      workspaceRepo,
-			messageHistoryRepo: messageHistoryRepo,
-		}
+	for name, tc := range map[string]struct{ id, logged string }{
+		"a long ignored id is logged cut to its first 255 bytes": {
+			id: strings.Repeat("a", 300), logged: strings.Repeat("a", 255) + "…(truncated)",
+		},
 		// Two bytes a character, so byte 255 falls inside the 128th
-		longID := strings.Repeat("é", 200)
-		workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspaceOf(domain.EmailProviderKindSendGrid), nil)
-		messageHistoryRepo.EXPECT().GetRecipients(gomock.Any(), workspaceID, []string{longID}).
-			Return(map[string]string{}, nil)
+		"a long ignored id is cut on a character boundary": {
+			id: strings.Repeat("é", 200), logged: strings.Repeat("é", 127) + "…(truncated)",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+			log := pkgmocks.NewMockLogger(ctrl)
+			fields := map[string]interface{}{}
+			log.EXPECT().WithField(gomock.Any(), gomock.Any()).DoAndReturn(func(key string, value interface{}) logger.Logger {
+				fields[key] = value
+				return log
+			}).AnyTimes()
+			log.EXPECT().Info("Ignored provider events that name no email sent to their address").Times(1)
+			service := &InboundWebhookEventService{
+				logger:             log,
+				workspaceRepo:      workspaceRepo,
+				messageHistoryRepo: messageHistoryRepo,
+			}
+			workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspaceOf(domain.EmailProviderKindSendGrid), nil)
+			messageHistoryRepo.EXPECT().GetRecipients(gomock.Any(), workspaceID, []string{tc.id}).
+				Return(map[string]string{}, nil)
 
-		require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, sendGridBatch(t,
-			sendGridEvent("bounce", longID, "victim@example.com"))))
+			require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, sendGridBatch(t,
+				sendGridEvent("bounce", tc.id, "victim@example.com"))))
 
-		assert.Equal(t, strings.Repeat("é", 127)+"…(truncated)", fields["first_message_id"])
-	})
+			assert.Equal(t, tc.logged, fields["first_message_id"])
+		})
+	}
 }
 
 // TestProcessWebhook_MailjetUnsubscribe posts Mailjet "unsub" events through ProcessWebhook.
