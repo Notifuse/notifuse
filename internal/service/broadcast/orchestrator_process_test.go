@@ -698,14 +698,15 @@ func TestProcess_LastRetryError(t *testing.T) {
 	}
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace-123").Return(mockWorkspace, nil).AnyTimes()
 
-	// Create a task with RetryCount = MaxRetries-1 (last retry)
+	// Create a task on its last attempt: MarkAsFailedTx retries while
+	// RetryCount < MaxRetries, so the run that starts at MaxRetries is the last
 	broadcastID := "broadcast-123"
 	task := &domain.Task{
 		ID:          "task-123",
 		WorkspaceID: "workspace-123",
 		Type:        "send_broadcast",
 		Status:      domain.TaskStatusRunning,
-		RetryCount:  2, // Last retry (MaxRetries-1)
+		RetryCount:  3,
 		MaxRetries:  3,
 		BroadcastID: &broadcastID,
 		State: &domain.TaskState{
@@ -728,6 +729,12 @@ func TestProcess_LastRetryError(t *testing.T) {
 	mockContactRepo.EXPECT().
 		CountContactsForBroadcast(gomock.Any(), "workspace-123", mockBroadcast.Audience).
 		Return(0, expectedErr).
+		Times(1)
+
+	// The finalizer reads the task back before marking the broadcast failed
+	mockTaskRepo.EXPECT().
+		Get(gomock.Any(), "workspace-123", "task-123").
+		Return(&domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3}, nil).
 		Times(1)
 
 	// Mock broadcast update to verify broadcast is marked as failed

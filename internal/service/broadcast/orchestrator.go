@@ -473,21 +473,49 @@ func (o *BroadcastOrchestrator) SaveProgressState(
 	return currentTime, nil
 }
 
+// stillLastAttempt reads the task back before a run that started as its last
+// attempt finalizes the broadcast. A resume while the run held the task gave it
+// a fresh retry budget (ResetRetryBudget), and the task service then retries the
+// failure. The stored count is right in every other case too: an interrupted run
+// is released without consuming the budget, and a run whose failure the task
+// service recorded first started with none left, so the count is still past the
+// limit. A failed read keeps the decision the run started with: a broadcast left
+// sending under a task that failed for good would be stranded.
+func (o *BroadcastOrchestrator) stillLastAttempt(ctx context.Context, task *domain.Task) bool {
+	stored, err := o.taskRepo.Get(ctx, task.WorkspaceID, task.ID)
+	if err != nil || stored == nil {
+		fields := map[string]interface{}{
+			"task_id":      task.ID,
+			"workspace_id": task.WorkspaceID,
+		}
+		if err != nil {
+			fields["error"] = err.Error()
+		}
+		o.logger.WithFields(fields).Warn("Failed to read the task back on its last attempt - finalizing the broadcast")
+		return true
+	}
+	return !stored.HasRetriesLeft()
+}
+
 // Process executes or continues a broadcast sending task
 func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, timeoutAt time.Time) (bool, error) {
 	o.logger.WithField("task_id", task.ID).Info("Processing send_broadcast task")
 
 	// Store initial state for use in the defer function
 	var broadcastID string
-	isLastRetry := task.RetryCount >= task.MaxRetries-1 // Current attempt is the last one before max
+	// The task service retries a failed run while the task has retries left
+	// (MarkAsFailedTx), so only a run that starts with none can be the last one.
+	// Deciding one attempt earlier marked the broadcast failed while its retry
+	// went on to send the rest of the list and flip it back to processed.
+	isLastAttempt := !task.HasRetriesLeft()
 
-	// Create a deferred function to update broadcast status to failed if we're returning an error on the last retry
+	// Create a deferred function to update broadcast status to failed if we're returning an error on the last attempt
 	var err error
 	var allDone bool
 
-	// Defer function to mark broadcast as failed if we're returning an error on the last retry
+	// Defer function to mark broadcast as failed if we're returning an error on the last attempt
 	defer func() {
-		if err != nil && isLastRetry && broadcastID != "" {
+		if err != nil && isLastAttempt && broadcastID != "" {
 			// Check if the error is a circuit breaker error - don't mark as failed in that case
 			if broadcastErr, ok := err.(*BroadcastError); ok && broadcastErr.Code == ErrCodeCircuitOpen {
 				o.logger.WithFields(map[string]interface{}{
@@ -528,6 +556,21 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				targetStatus = domain.BroadcastStatusPaused
 			}
 
+			// These reads and writes must not ride on ctx: the most common way
+			// to get here is that very context being cancelled, and the failed
+			// write left the broadcast stranded in "processing" for good, with
+			// its task dead and no way back.
+			finalizeCtx := context.WithoutCancel(ctx)
+
+			if !o.stillLastAttempt(finalizeCtx, task) {
+				o.logger.WithFields(map[string]interface{}{
+					"task_id":      task.ID,
+					"broadcast_id": broadcastID,
+					"error":        err.Error(),
+				}).Info("Task got a fresh retry budget during its last attempt - leaving the broadcast to the retry")
+				return
+			}
+
 			o.logger.WithFields(map[string]interface{}{
 				"task_id":       task.ID,
 				"broadcast_id":  broadcastID,
@@ -537,12 +580,6 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				"target_status": string(targetStatus),
 			}).Info("Task failed on last retry attempt, finalizing broadcast status")
 
-			// These writes must not ride on ctx: the most common way to get
-			// here is that very context being cancelled, and the failed write
-			// left the broadcast stranded in "processing" for good, with its
-			// task dead and no way back.
-			finalizeCtx := context.WithoutCancel(ctx)
-
 			// Get the broadcast
 			broadcast, getBroadcastErr := o.broadcastRepo.GetBroadcast(finalizeCtx, task.WorkspaceID, broadcastID)
 			if getBroadcastErr != nil {
@@ -551,6 +588,20 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					"broadcast_id": broadcastID,
 					"error":        getBroadcastErr.Error(),
 				}).Error("Failed to get broadcast for status update on last retry")
+				return
+			}
+
+			// A cancel or a pause that landed during the run is only seen by
+			// the send loop on its next refresh, so a run that failed before
+			// then must not overwrite it: cancelled is the user's final word,
+			// and a paused broadcast is resumed with its task, failed or not,
+			// where a failed one is never resumed.
+			if broadcast.Status == domain.BroadcastStatusCancelled || broadcast.Status == domain.BroadcastStatusPaused {
+				o.logger.WithFields(map[string]interface{}{
+					"task_id":      task.ID,
+					"broadcast_id": broadcastID,
+					"status":       string(broadcast.Status),
+				}).Info("Broadcast was cancelled or paused during its last attempt - leaving its status")
 				return
 			}
 

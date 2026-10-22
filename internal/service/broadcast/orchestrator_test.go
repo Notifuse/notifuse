@@ -1615,7 +1615,10 @@ func TestBroadcastOrchestrator_Process_ValidateTemplatesFailure(t *testing.T) {
 	bcast := &domain.Broadcast{ID: "broadcast-123", WorkspaceID: "workspace-123", Audience: domain.AudienceSettings{}, Status: domain.BroadcastStatusProcessing, TestSettings: domain.BroadcastTestSettings{Variations: []domain.BroadcastVariation{{TemplateID: "tpl1"}}}}
 	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(bcast, nil).AnyTimes()
 
-	// Expect the UpdateBroadcast call when the error occurs and status is set to failed
+	// The task allows no retries, so this attempt is its last: the finalizer
+	// reads the task back, then marks the broadcast failed
+	mockTaskRepo.EXPECT().Get(gomock.Any(), "workspace-123", "task-123").
+		Return(&domain.Task{ID: "task-123", WorkspaceID: "workspace-123"}, nil)
 	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	// Load template that will fail validation (missing subject)
@@ -3139,7 +3142,7 @@ func TestProcessBroadcastTask_RecipientFeedFailure_PausesBroadcast(t *testing.T)
 }
 
 func TestProcessBroadcastTask_RecipientFeedFailure_NotMarkedAsFailed(t *testing.T) {
-	// When isLastRetry is true, the defer block should skip marking as failed
+	// On the last attempt, the defer block should skip marking as failed
 	// because the broadcast was already paused due to recipient feed failure.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -3232,7 +3235,7 @@ func TestProcessBroadcastTask_RecipientFeedFailure_NotMarkedAsFailed(t *testing.
 		Type:        "send_broadcast",
 		BroadcastID: stringPtr("broadcast-123"),
 		State:       &domain.TaskState{Progress: 0, Message: "Starting", SendBroadcast: &domain.SendBroadcastState{BroadcastID: "broadcast-123", TotalRecipients: 1, RecipientOffset: 0}},
-		RetryCount:  2, // isLastRetry = true (2 >= 3-1)
+		RetryCount:  3, // last attempt (no retries left)
 		MaxRetries:  3,
 	}
 

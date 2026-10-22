@@ -1,0 +1,269 @@
+package broadcast_test
+
+import (
+	"context"
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/service/broadcast"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// Which failed run finalizes its broadcast. The task service retries a failed
+// run while the task has retries left (MarkAsFailedTx), so only the run it gives
+// up on may mark the broadcast failed, or paused when it was interrupted: a
+// broadcast marked failed one attempt early was then sent to the rest of its
+// list by the retry and flipped back to processed.
+//
+// Plan: plans/fix-broadcast-last-attempt-plan.md
+
+// lastAttemptRun describes one failing run: the counts it starts with, what the
+// finalizer reads back, and how the run fails.
+type lastAttemptRun struct {
+	retryCount int
+	maxRetries int
+
+	// storedTask and storedErr answer the finalizer's re-read of the task. When
+	// both are nil the run must not read the task at all.
+	storedTask *domain.Task
+	storedErr  error
+
+	// statusAtEnd is the broadcast's status when the finalizer reads it back.
+	statusAtEnd domain.BroadcastStatus
+
+	// ctx and countErr shape the failure: the recipient count, the first thing
+	// a run does, fails with countErr.
+	ctx      context.Context
+	countErr error
+}
+
+// broadcastWrite records what the finalizer wrote to the broadcast.
+type broadcastWrite struct {
+	called bool
+	status domain.BroadcastStatus
+	reason string
+}
+
+func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
+	t.Helper()
+
+	ctrl, mockMessageSender, mockBroadcastRepository, mockTemplateRepo,
+		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider, mockEventBus := setupTestEnvironment(t)
+	defer ctrl.Finish()
+
+	mockTimeProvider.EXPECT().Now().Return(time.Now()).AnyTimes()
+
+	broadcastID := "broadcast-last-attempt"
+	reads := 0
+	mockBroadcastRepository.EXPECT().
+		GetBroadcast(gomock.Any(), "workspace-123", broadcastID).
+		DoAndReturn(func(_ context.Context, _, _ string) (*domain.Broadcast, error) {
+			reads++
+			b := createMockBroadcast(broadcastID, []string{"template-1"})
+			if reads > 1 {
+				b.Status = run.statusAtEnd
+			}
+			return b, nil
+		}).
+		AnyTimes()
+
+	mockContactRepo.EXPECT().
+		CountContactsForBroadcast(gomock.Any(), "workspace-123", gomock.Any()).
+		Return(0, run.countErr).
+		Times(1)
+
+	if run.storedTask != nil || run.storedErr != nil {
+		mockTaskRepo.EXPECT().
+			Get(gomock.Any(), "workspace-123", "task-123").
+			DoAndReturn(func(ctx context.Context, _, _ string) (*domain.Task, error) {
+				assert.NoError(t, ctx.Err(), "the re-read must not ride on the run's context")
+				return run.storedTask, run.storedErr
+			}).
+			Times(1)
+	}
+
+	var write broadcastWrite
+	mockBroadcastRepository.EXPECT().
+		UpdateBroadcast(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+			write.called = true
+			write.status = b.Status
+			if b.PauseReason != nil {
+				write.reason = *b.PauseReason
+			}
+			return nil
+		}).
+		AnyTimes()
+
+	orchestrator := broadcast.NewBroadcastOrchestrator(
+		mockMessageSender, mockBroadcastRepository, mockTemplateRepo, mockContactRepo,
+		mockTaskRepo, mockWorkspaceRepo, nil, nil, mockLogger, createTestConfig(),
+		mockTimeProvider, "https://api.example.com", mockEventBus,
+	)
+
+	task := &domain.Task{
+		ID:          "task-123",
+		WorkspaceID: "workspace-123",
+		BroadcastID: &broadcastID,
+		RetryCount:  run.retryCount,
+		MaxRetries:  run.maxRetries,
+		State: &domain.TaskState{
+			SendBroadcast: &domain.SendBroadcastState{
+				BroadcastID:     broadcastID,
+				TotalRecipients: 0, // forces the recipient count
+			},
+		},
+	}
+
+	ctx := run.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	completed, err := orchestrator.Process(ctx, task, time.Now().Add(30*time.Second))
+	require.Error(t, err)
+	assert.False(t, completed)
+
+	return write
+}
+
+func cancelledContext() context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	return ctx
+}
+
+func TestProcess_FailedRunFinalizesOnlyTheLastAttempt(t *testing.T) {
+	genuine := errors.New("database is down")
+
+	t.Run("a failure with a retry left leaves the broadcast to that retry", func(t *testing.T) {
+		// 2 of 3: MarkAsFailedTx retries it, so the broadcast must not be
+		// marked failed, and the task need not be read back.
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 2, maxRetries: 3,
+			countErr: genuine,
+		})
+		assert.False(t, write.called, "the broadcast was finalized on an attempt the task service retries")
+	})
+
+	t.Run("the last attempt marks the broadcast failed", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedTask:  &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3},
+			statusAtEnd: domain.BroadcastStatusProcessing,
+			countErr:    genuine,
+		})
+		require.True(t, write.called)
+		assert.Equal(t, domain.BroadcastStatusFailed, write.status)
+	})
+
+	t.Run("a task with no retries allowed fails on its first attempt", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 0, maxRetries: 0,
+			storedTask:  &domain.Task{ID: "task-123", RetryCount: 0, MaxRetries: 0},
+			statusAtEnd: domain.BroadcastStatusProcessing,
+			countErr:    genuine,
+		})
+		require.True(t, write.called)
+		assert.Equal(t, domain.BroadcastStatusFailed, write.status)
+	})
+
+	t.Run("a resume during the last attempt gives it a fresh budget", func(t *testing.T) {
+		// ResetRetryBudget ran while the run held the task: the failure is
+		// retried, so the broadcast stays as the resume left it.
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedTask:  &domain.Task{ID: "task-123", RetryCount: 0, MaxRetries: 3},
+			statusAtEnd: domain.BroadcastStatusProcessing,
+			countErr:    genuine,
+		})
+		assert.False(t, write.called, "the broadcast was marked failed although its task will be retried")
+	})
+
+	t.Run("a failed re-read keeps the decision the run started with", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedErr:   errors.New("connection refused"),
+			statusAtEnd: domain.BroadcastStatusProcessing,
+			countErr:    genuine,
+		})
+		require.True(t, write.called, "a broadcast left sending under a failed task is stranded")
+		assert.Equal(t, domain.BroadcastStatusFailed, write.status)
+	})
+
+	t.Run("a broadcast cancelled during the last attempt stays cancelled", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedTask:  &domain.Task{ID: "task-123", RetryCount: 4, MaxRetries: 3},
+			statusAtEnd: domain.BroadcastStatusCancelled,
+			countErr:    genuine,
+		})
+		assert.False(t, write.called, "the user's cancel was overwritten")
+	})
+
+	t.Run("a broadcast paused during the last attempt stays resumable", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedTask:  &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3},
+			statusAtEnd: domain.BroadcastStatusPaused,
+			countErr:    genuine,
+		})
+		assert.False(t, write.called, "a paused broadcast was turned into a failed one, which cannot be resumed")
+	})
+}
+
+func TestProcess_InterruptedRunPausesOnlyTheLastAttempt(t *testing.T) {
+	t.Run("an interruption with a retry left does not pause", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 2, maxRetries: 3,
+			ctx:      cancelledContext(),
+			countErr: context.Canceled,
+		})
+		assert.False(t, write.called, "the broadcast was paused on an attempt the task service runs again")
+	})
+
+	t.Run("an interruption on the last attempt pauses, counting every attempt", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedTask:  &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3},
+			statusAtEnd: domain.BroadcastStatusProcessing,
+			ctx:         cancelledContext(),
+			countErr:    context.Canceled,
+		})
+		require.True(t, write.called)
+		assert.Equal(t, domain.BroadcastStatusPaused, write.status)
+		assert.Contains(t, write.reason, "after 4 attempts",
+			"the first attempt and its three retries")
+	})
+
+	t.Run("a stuck run whose failure the task service recorded first still pauses", func(t *testing.T) {
+		// Past its lease, the task service marks the task failed while the
+		// processor unwinds: the finalizer then reads the count already raised.
+		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+		defer cancel()
+
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedTask:  &domain.Task{ID: "task-123", RetryCount: 4, MaxRetries: 3, Status: domain.TaskStatusFailed},
+			statusAtEnd: domain.BroadcastStatusProcessing,
+			ctx:         ctx,
+			countErr:    context.DeadlineExceeded,
+		})
+		require.True(t, write.called)
+		assert.Equal(t, domain.BroadcastStatusPaused, write.status)
+	})
+
+	t.Run("an interrupted last attempt leaves a cancelled broadcast cancelled", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedTask:  &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3},
+			statusAtEnd: domain.BroadcastStatusCancelled,
+			ctx:         cancelledContext(),
+			countErr:    context.Canceled,
+		})
+		assert.False(t, write.called, "the user's cancel was overwritten with a pause")
+	})
+}

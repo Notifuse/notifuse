@@ -177,6 +177,13 @@ func (t *Task) IsRecurring() bool {
 	return t.RecurringInterval != nil && *t.RecurringInterval > 0
 }
 
+// HasRetriesLeft reports whether a failure of the current attempt is retried:
+// MarkAsFailed schedules another attempt while the count of failed attempts in a
+// row is below MaxRetries, and marks the task failed otherwise.
+func (t *Task) HasRetriesLeft() bool {
+	return t.RetryCount < t.MaxRetries
+}
+
 type TaskService interface {
 	RegisterProcessor(processor TaskProcessor)
 	GetProcessor(taskType string) (TaskProcessor, error)

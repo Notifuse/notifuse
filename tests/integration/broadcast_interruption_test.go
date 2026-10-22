@@ -694,10 +694,11 @@ func TestBroadcastInterruptedOnLastRetry_PausesWithReason(t *testing.T) {
 
 	h.scheduleAsync(t)
 
-	// Make every attempt the last one. Pausing first keeps the scheduler off the
-	// task while we edit it — max_retries is read into memory when a run starts,
-	// so it has to be set before the run we interrupt, and unlike retry_count it
-	// survives MarkAsPending.
+	// Make every attempt the last one: with max_retries = 0 no failure is
+	// retried. Pausing first keeps the scheduler off the task while we edit it —
+	// max_retries is read into memory when a run starts, so it has to be set
+	// before the run we interrupt, and unlike retry_count it survives
+	// MarkAsPending.
 	pauseResp, err := h.client.PauseBroadcast(map[string]interface{}{
 		"workspace_id": h.workspaceID, "id": h.broadcastID})
 	require.NoError(t, err)
@@ -705,7 +706,7 @@ func TestBroadcastInterruptedOnLastRetry_PausesWithReason(t *testing.T) {
 	h.waitForBroadcastStatus(t, []string{"paused"}, 15*time.Second)
 
 	_, err = h.suite.DBManager.GetDB().Exec(
-		`UPDATE tasks SET max_retries = 1 WHERE id = $1`, h.taskID)
+		`UPDATE tasks SET max_retries = 0 WHERE id = $1`, h.taskID)
 	require.NoError(t, err)
 
 	// Restart it through the database rather than the resume endpoint: resuming

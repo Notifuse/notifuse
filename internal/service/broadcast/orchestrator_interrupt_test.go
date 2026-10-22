@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	domainmocks "github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/Notifuse/notifuse/internal/service/broadcast"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -72,6 +73,9 @@ func TestProcess_LastRetryInterrupted_PausesBroadcastAndWritesOnALiveContext(t *
 		}).
 		Times(1)
 
+	// The finalizer reads the task back: still no retries left.
+	expectLastAttemptReread(t, mockTaskRepo)
+
 	orchestrator := broadcast.NewBroadcastOrchestrator(
 		mockMessageSender,
 		mockBroadcastRepository,
@@ -92,8 +96,8 @@ func TestProcess_LastRetryInterrupted_PausesBroadcastAndWritesOnALiveContext(t *
 		ID:          "task-123",
 		WorkspaceID: "workspace-123",
 		BroadcastID: &broadcastID,
-		// Last attempt: 2 >= MaxRetries-1.
-		RetryCount: 2,
+		// Last attempt: no retries left.
+		RetryCount: 3,
 		MaxRetries: 3,
 		State: &domain.TaskState{
 			SendBroadcast: &domain.SendBroadcastState{
@@ -154,6 +158,9 @@ func TestProcess_LastRetryGenuineError_StillMarksFailed(t *testing.T) {
 		}).
 		Times(1)
 
+	// The finalizer reads the task back: still no retries left.
+	expectLastAttemptReread(t, mockTaskRepo)
+
 	orchestrator := broadcast.NewBroadcastOrchestrator(
 		mockMessageSender, mockBroadcastRepository, mockTemplateRepo, mockContactRepo,
 		mockTaskRepo, mockWorkspaceRepo, nil, nil, mockLogger, createTestConfig(),
@@ -164,7 +171,7 @@ func TestProcess_LastRetryGenuineError_StillMarksFailed(t *testing.T) {
 		ID:          "task-123",
 		WorkspaceID: "workspace-123",
 		BroadcastID: &broadcastID,
-		RetryCount:  2,
+		RetryCount:  3,
 		MaxRetries:  3,
 		State: &domain.TaskState{
 			SendBroadcast: &domain.SendBroadcastState{
@@ -275,6 +282,9 @@ func TestProcess_InterruptionMaskedByTxDone_StillPauses(t *testing.T) {
 		}).
 		Times(1)
 
+	// The finalizer reads the task back: still no retries left.
+	expectLastAttemptReread(t, mockTaskRepo)
+
 	orchestrator := broadcast.NewBroadcastOrchestrator(
 		mockMessageSender, mockBroadcastRepository, mockTemplateRepo, mockContactRepo,
 		mockTaskRepo, mockWorkspaceRepo, nil, nil, mockLogger, createTestConfig(),
@@ -283,7 +293,7 @@ func TestProcess_InterruptionMaskedByTxDone_StillPauses(t *testing.T) {
 
 	task := &domain.Task{
 		ID: "task-123", WorkspaceID: "workspace-123", BroadcastID: &broadcastID,
-		RetryCount: 2, MaxRetries: 3,
+		RetryCount: 3, MaxRetries: 3,
 		State: &domain.TaskState{
 			SendBroadcast: &domain.SendBroadcastState{BroadcastID: broadcastID, TotalRecipients: 0},
 		},
@@ -300,4 +310,18 @@ func TestProcess_InterruptionMaskedByTxDone_StillPauses(t *testing.T) {
 	assert.Equal(t, domain.BroadcastStatusPaused, update.status,
 		"the run was interrupted — ask the context, not just the error")
 	assert.NotEmpty(t, update.reason)
+}
+
+// expectLastAttemptReread answers the finalizer's re-read of the task with a
+// task that still has no retries left, and checks the read does not ride on a
+// context the interruption may have cancelled.
+func expectLastAttemptReread(t *testing.T, mockTaskRepo *domainmocks.MockTaskRepository) {
+	t.Helper()
+	mockTaskRepo.EXPECT().
+		Get(gomock.Any(), "workspace-123", "task-123").
+		DoAndReturn(func(ctx context.Context, _, id string) (*domain.Task, error) {
+			assert.NoError(t, ctx.Err(), "the re-read must not ride on the cancelled context")
+			return &domain.Task{ID: id, WorkspaceID: "workspace-123", RetryCount: 3, MaxRetries: 3}, nil
+		}).
+		Times(1)
 }
