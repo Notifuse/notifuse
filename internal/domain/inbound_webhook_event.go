@@ -296,6 +296,8 @@ type InboundWebhookEventRepository interface {
 	// CountConsecutiveSoftBounces returns, for each given recipient email, the
 	// number of countable soft-bounce events recorded since that email's last
 	// successful delivery (or all-time if it has never been delivered to).
+	// Only bounces of emails sent to that address count: an event's message ID
+	// must name a message_history row whose contact_email is the address.
 	// Events whose bounce subtype describes a message-level rejection
 	// (MessageTooLarge, ContentRejected, AttachmentRejected) are excluded.
 	// The returned map only contains entries with a positive count.

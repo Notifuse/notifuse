@@ -1183,10 +1183,26 @@ func TestSparkPostService_SendEmail(t *testing.T) {
 			},
 		}
 
-		// Expect HTTP request and return success response
+		// Expect HTTP request and return success response. The email goes to the address on
+		// SparkPost's sink domain, which is the address its events report.
 		mockHTTPClient.EXPECT().
 			Do(gomock.Any()).
-			Return(mockHTTPResponse(http.StatusOK, `{"results":{"id":"test-transmission-id"}}`), nil)
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				var payload struct {
+					Recipients []struct {
+						Address struct {
+							Email string `json:"email"`
+						} `json:"address"`
+					} `json:"recipients"`
+				}
+				body, err := io.ReadAll(req.Body)
+				assert.NoError(t, err)
+				assert.NoError(t, json.Unmarshal(body, &payload))
+				if assert.Len(t, payload.Recipients, 1) {
+					assert.Equal(t, to+".sink.sparkpostmail.com", payload.Recipients[0].Address.Email)
+				}
+				return mockHTTPResponse(http.StatusOK, `{"results":{"id":"test-transmission-id"}}`), nil
+			})
 
 		// Call the service method
 		request := domain.SendEmailProviderRequest{

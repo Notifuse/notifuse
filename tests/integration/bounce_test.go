@@ -18,7 +18,8 @@ import (
 
 // TestSESBounceHandling exercises the consecutive-soft-bounce threshold and
 // the 4.4.7 retry-exhaustion path introduced for issue #323. Each subtest
-// creates an isolated contact + list so they can run independently.
+// creates an isolated contact + list so they can run independently. Every
+// bounce names an email sent to the contact: the others change nothing.
 func TestSESBounceHandling(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -69,6 +70,8 @@ func TestSESBounceHandling(t *testing.T) {
 func testSESSoftBounceThresholdEscalation(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, contactListRepo domain.ContactListRepository, workspaceID, webhookURL string) {
 	list, err := factory.CreateList(workspaceID)
 	require.NoError(t, err)
+	template, err := factory.CreateTemplate(workspaceID)
+	require.NoError(t, err)
 
 	email := fmt.Sprintf("threshold-%d@example.com", time.Now().UnixNano())
 	contact, err := factory.CreateContact(workspaceID, testutil.WithContactEmail(email))
@@ -82,7 +85,7 @@ func testSESSoftBounceThresholdEscalation(t *testing.T, client *testutil.APIClie
 
 	// Bounces 1..4 — each must leave the contact list active.
 	for i := 1; i <= domain.DefaultSoftBounceThreshold-1; i++ {
-		postSESBounce(t, client, webhookURL, sesBouncePayload(fmt.Sprintf("msg-%d-%d", time.Now().UnixNano(), i), contact.Email, "Transient", "MailboxFull", "smtp; 452 4.2.2 mailbox full"))
+		postSESBounce(t, client, webhookURL, sesBouncePayload(sentEmailID(t, factory, workspaceID, template.ID, contact.Email), contact.Email, "Transient", "MailboxFull", "smtp; 452 4.2.2 mailbox full"))
 		got, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list.ID)
 		require.NoError(t, err)
 		assert.Equalf(t, domain.ContactListStatusActive, got.Status,
@@ -90,7 +93,7 @@ func testSESSoftBounceThresholdEscalation(t *testing.T, client *testutil.APIClie
 	}
 
 	// Bounce #5 (== threshold) must escalate.
-	postSESBounce(t, client, webhookURL, sesBouncePayload(fmt.Sprintf("msg-%d-final", time.Now().UnixNano()), contact.Email, "Transient", "MailboxFull", "smtp; 452 4.2.2 mailbox full"))
+	postSESBounce(t, client, webhookURL, sesBouncePayload(sentEmailID(t, factory, workspaceID, template.ID, contact.Email), contact.Email, "Transient", "MailboxFull", "smtp; 452 4.2.2 mailbox full"))
 	got, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list.ID)
 	require.NoError(t, err)
 	assert.Equal(t, domain.ContactListStatusBounced, got.Status, "the %dth consecutive soft bounce must escalate to 'bounced'", domain.DefaultSoftBounceThreshold)
@@ -102,6 +105,8 @@ func testSESSoftBounceThresholdEscalation(t *testing.T, client *testutil.APIClie
 // repeated bounces.
 func testSES447MessageExpiredImmediateHard(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, contactListRepo domain.ContactListRepository, workspaceID, webhookURL string) {
 	list, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	template, err := factory.CreateTemplate(workspaceID)
 	require.NoError(t, err)
 
 	email := fmt.Sprintf("447-%d@example.com", time.Now().UnixNano())
@@ -116,7 +121,7 @@ func testSES447MessageExpiredImmediateHard(t *testing.T, client *testutil.APICli
 
 	// The exact diagnostic from the original issue.
 	diagnostic := "smtp; 550 4.4.7 Message expired: unable to deliver in 840 minutes. <421 4.4.1 Failed to establish connection>"
-	postSESBounce(t, client, webhookURL, sesBouncePayload(fmt.Sprintf("msg-%d", time.Now().UnixNano()), contact.Email, "Transient", "General", diagnostic))
+	postSESBounce(t, client, webhookURL, sesBouncePayload(sentEmailID(t, factory, workspaceID, template.ID, contact.Email), contact.Email, "Transient", "General", diagnostic))
 
 	got, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list.ID)
 	require.NoError(t, err)
@@ -125,9 +130,13 @@ func testSES447MessageExpiredImmediateHard(t *testing.T, client *testutil.APICli
 
 // testSESSoftBouncesAfterDelivery verifies the count window reset: 4 soft
 // bounces + a successful delivery + 4 more soft bounces should NOT escalate,
-// because the delivery resets the counter.
+// because the delivery resets the counter, and a 5th after the delivery does.
+// Payload timestamps have second precision, so each step is dated apart rather
+// than in the order the requests happen to land.
 func testSESSoftBouncesAfterDelivery(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, contactListRepo domain.ContactListRepository, workspaceID, webhookURL string) {
 	list, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	template, err := factory.CreateTemplate(workspaceID)
 	require.NoError(t, err)
 
 	email := fmt.Sprintf("reset-%d@example.com", time.Now().UnixNano())
@@ -140,29 +149,36 @@ func testSESSoftBouncesAfterDelivery(t *testing.T, client *testutil.APIClient, f
 		testutil.WithContactListStatus(domain.ContactListStatusActive))
 	require.NoError(t, err)
 
+	beforeDelivery := time.Now().UTC().Add(-2 * time.Hour)
+	deliveredAt := time.Now().UTC().Add(-1 * time.Hour)
+
 	// First batch: 4 soft bounces (below threshold).
 	for i := 1; i <= 4; i++ {
-		postSESBounce(t, client, webhookURL, sesBouncePayload(fmt.Sprintf("pre-%d-%d", time.Now().UnixNano(), i), contact.Email, "Transient", "MailboxFull", "smtp; 452 mailbox full"))
+		postSESBounce(t, client, webhookURL, sesBouncePayloadAt(sentEmailID(t, factory, workspaceID, template.ID, contact.Email), contact.Email, "Transient", "MailboxFull", "smtp; 452 mailbox full", beforeDelivery))
 	}
 
 	// Successful delivery → resets the count via MAX(delivered_at).
-	template, err := factory.CreateTemplate(workspaceID)
-	require.NoError(t, err)
 	_, err = factory.CreateMessageHistory(workspaceID,
 		testutil.WithMessageHistoryContactEmail(contact.Email),
 		testutil.WithMessageTemplate(template.ID),
-		testutil.WithMessageDelivered(true))
+		func(m *domain.MessageHistory) { m.DeliveredAt = &deliveredAt })
 	require.NoError(t, err)
 
 	// Second batch: 4 more soft bounces. Counter window starts after the
 	// delivery, so it's at 4 — still under threshold.
 	for i := 1; i <= 4; i++ {
-		postSESBounce(t, client, webhookURL, sesBouncePayload(fmt.Sprintf("post-%d-%d", time.Now().UnixNano(), i), contact.Email, "Transient", "MailboxFull", "smtp; 452 mailbox full"))
+		postSESBounce(t, client, webhookURL, sesBouncePayload(sentEmailID(t, factory, workspaceID, template.ID, contact.Email), contact.Email, "Transient", "MailboxFull", "smtp; 452 mailbox full"))
 	}
 
 	got, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list.ID)
 	require.NoError(t, err)
 	assert.Equal(t, domain.ContactListStatusActive, got.Status, "delivery between two batches of soft bounces must reset the consecutive-bounce counter")
+
+	// The 5th after the delivery reaches the threshold: the counter still counts.
+	postSESBounce(t, client, webhookURL, sesBouncePayload(sentEmailID(t, factory, workspaceID, template.ID, contact.Email), contact.Email, "Transient", "MailboxFull", "smtp; 452 mailbox full"))
+	got, err = contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.ContactListStatusBounced, got.Status, "the %dth soft bounce after the delivery must escalate", domain.DefaultSoftBounceThreshold)
 }
 
 // testSESMessageTooLargeIgnored verifies that MessageTooLarge bounces never
@@ -170,6 +186,8 @@ func testSESSoftBouncesAfterDelivery(t *testing.T, client *testutil.APIClient, f
 // with the message, not the recipient.
 func testSESMessageTooLargeIgnored(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, contactListRepo domain.ContactListRepository, workspaceID, webhookURL string) {
 	list, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	template, err := factory.CreateTemplate(workspaceID)
 	require.NoError(t, err)
 
 	email := fmt.Sprintf("toolarge-%d@example.com", time.Now().UnixNano())
@@ -184,12 +202,23 @@ func testSESMessageTooLargeIgnored(t *testing.T, client *testutil.APIClient, fac
 
 	// 10 MessageTooLarge events — twice the threshold.
 	for i := 1; i <= 10; i++ {
-		postSESBounce(t, client, webhookURL, sesBouncePayload(fmt.Sprintf("big-%d-%d", time.Now().UnixNano(), i), contact.Email, "Transient", "MessageTooLarge", "552 5.3.4 message too big"))
+		postSESBounce(t, client, webhookURL, sesBouncePayload(sentEmailID(t, factory, workspaceID, template.ID, contact.Email), contact.Email, "Transient", "MessageTooLarge", "552 5.3.4 message too big"))
 	}
 
 	got, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list.ID)
 	require.NoError(t, err)
 	assert.Equal(t, domain.ContactListStatusActive, got.Status, "MessageTooLarge is a message-level rejection and must not count toward the recipient's soft-bounce ledger")
+}
+
+// sentEmailID records an email sent to the address and returns its id, for a
+// bounce to name.
+func sentEmailID(t *testing.T, factory *testutil.TestDataFactory, workspaceID, templateID, email string) string {
+	t.Helper()
+	message, err := factory.CreateMessageHistory(workspaceID,
+		testutil.WithMessageHistoryContactEmail(email),
+		testutil.WithMessageTemplate(templateID))
+	require.NoError(t, err)
+	return message.ID
 }
 
 // postSESBounce POSTs an SES SNS bounce payload to the webhook endpoint and
@@ -206,20 +235,37 @@ func postSESBounce(t *testing.T, client *testutil.APIClient, webhookURL, payload
 // given bounceType, subtype, and diagnostic. Mirrors the format produced by
 // AWS SNS for SES bounce events.
 func sesBouncePayload(messageID, recipientEmail, bounceType, subtype, diagnostic string) string {
+	return sesBouncePayloadAt(messageID, recipientEmail, bounceType, subtype, diagnostic, time.Now())
+}
+
+// sesBouncePayloadAt is sesBouncePayload dated at.
+func sesBouncePayloadAt(messageID, recipientEmail, bounceType, subtype, diagnostic string, at time.Time) string {
+	return sesBounceOf(messageID, bounceType, subtype, diagnostic, at, nil, recipientEmail)
+}
+
+// sesBounceOf builds an SNS-wrapped SES bounce notification listing these bounced
+// recipients, with the addresses the email was sent to as its destination when given.
+func sesBounceOf(messageID, bounceType, subtype, diagnostic string, at time.Time, destination []string, recipientEmails ...string) string {
+	recipients := make([]map[string]interface{}, 0, len(recipientEmails))
+	for _, email := range recipientEmails {
+		recipients = append(recipients, map[string]interface{}{"emailAddress": email, "diagnosticCode": diagnostic})
+	}
+	mail := map[string]interface{}{
+		"messageId": "ses-" + messageID,
+		"tags":      map[string][]string{"notifuse_message_id": {messageID}},
+	}
+	if destination != nil {
+		mail["destination"] = destination
+	}
 	message := map[string]interface{}{
 		"eventType": "Bounce",
 		"bounce": map[string]interface{}{
-			"bounceType":    bounceType,
-			"bounceSubType": subtype,
-			"bouncedRecipients": []map[string]interface{}{
-				{"emailAddress": recipientEmail, "diagnosticCode": diagnostic},
-			},
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
+			"bounceType":        bounceType,
+			"bounceSubType":     subtype,
+			"bouncedRecipients": recipients,
+			"timestamp":         at.UTC().Format(time.RFC3339),
 		},
-		"mail": map[string]interface{}{
-			"messageId": "ses-" + messageID,
-			"tags":      map[string][]string{"notifuse_message_id": {messageID}},
-		},
+		"mail": mail,
 	}
 	messageBytes, _ := json.Marshal(message)
 
