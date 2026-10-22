@@ -33,7 +33,7 @@ tests/
 ### 1. Prerequisites
 
 - Docker and Docker Compose
-- Go 1.21+
+- Go 1.26.10 or later
 - Make (optional, but recommended)
 
 ### 2. Run Integration Tests

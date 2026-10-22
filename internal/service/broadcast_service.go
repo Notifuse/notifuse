@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -1507,20 +1508,31 @@ func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadc
 			return err
 		}
 
-		// Resume the associated task by finding it and updating its status
+		// Resume the associated task by finding it and waking it
 		task, err := s.taskRepo.GetTaskByBroadcastID(ctx, workspaceID, broadcastID)
 		if err != nil {
 			s.logger.WithField("broadcast_id", broadcastID).Debug("No task found for broadcast")
 			return nil // Not an error if no task exists
 		}
 
-		// Resume the task
-		nextRunAfter := time.Now().UTC()
-		task.NextRunAfter = &nextRunAfter
-		task.Status = domain.TaskStatusPending
-
-		if updateErr := s.taskRepo.Update(ctx, workspaceID, task); updateErr != nil {
-			return updateErr
+		// A task its run still holds is left to that run, which switches to the
+		// winner on its next refresh. Writing the task back as pending handed it
+		// to a second execution that enqueued everyone past the cursor it read
+		// a second time.
+		woken, wakeErr := s.taskRepo.WakeTask(ctx, workspaceID, task.ID, time.Now().UTC())
+		if errors.Is(wakeErr, domain.ErrTaskNotFound) {
+			s.logger.WithField("broadcast_id", broadcastID).Debug("No task found for broadcast")
+			return nil
+		}
+		if wakeErr != nil {
+			return wakeErr
+		}
+		if !woken {
+			s.logger.WithFields(map[string]interface{}{
+				"broadcast_id": broadcastID,
+				"task_id":      task.ID,
+			}).Info("Winner selected while the broadcast's run holds its task - the run switches to the winner")
+			return nil
 		}
 
 		// Immediately trigger task execution after winner selection (if auto-execution is enabled)

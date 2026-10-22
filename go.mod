@@ -1,6 +1,13 @@
 module github.com/Notifuse/notifuse
 
-go 1.25.4
+go 1.26.10
+
+// Keep Go 1.25's URL host parsing. Go 1.26 refuses colons outside brackets in a
+// host, which breaks webhook, data feed and automation webhook URLs saved with an
+// IPv6 address written without brackets and a port (http://fd12:3456::10:9000/),
+// which Go 1.25 parsed and delivered to. Pinned by TestValidateURL,
+// TestValidateFeedURL_ValidPublicIPs and TestValidateFeedURL_PrivateIPs.
+godebug urlstrictcolons=0
 
 require (
 	contrib.go.opencensus.io/exporter/aws v0.0.0-20230502192102-15967c811cec
@@ -41,10 +48,10 @@ require (
 	github.com/tidwall/gjson v1.18.0
 	github.com/wneessen/go-mail v0.7.2
 	go.opencensus.io v0.24.0
-	golang.org/x/crypto v0.55.0
-	golang.org/x/net v0.58.0
+	golang.org/x/crypto v0.57.0
+	golang.org/x/net v0.60.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sync v0.22.0
+	golang.org/x/sync v0.23.0
 	golang.org/x/time v0.15.0
 	google.golang.org/genai v1.61.0
 )
@@ -122,8 +129,8 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	google.golang.org/api v0.272.0 // indirect
 	google.golang.org/genproto v0.0.0-20260217215200-42d3e9bedb6d // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect

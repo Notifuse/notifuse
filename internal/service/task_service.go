@@ -792,8 +792,8 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 				time.Now().UTC().Add(taskExecutionGrace)); relErr != nil {
 				if errors.Is(relErr, domain.ErrTaskNotRunning) {
 					// Something else already moved the task on while we were
-					// being cancelled — a cancelled broadcast, a pause. Their
-					// decision wins.
+					// being cancelled — a cancelled broadcast, or a wake or a
+					// pause once its lease expired. Their decision wins.
 					s.logger.WithFields(map[string]interface{}{
 						"task_id":      taskID,
 						"workspace_id": workspace,
@@ -1274,7 +1274,18 @@ func (s *TaskService) handleBroadcastPaused(ctx context.Context, payload domain.
 	nextRunAfter := time.Now().UTC().Add(24 * time.Hour) // Pause for 24 hours
 	tracing.AddAttribute(ctx, "next_run_after", nextRunAfter.Format(time.RFC3339))
 
-	if err := s.repo.MarkAsPaused(ctx, payload.WorkspaceID, task.ID, nextRunAfter, task.Progress, task.State); err != nil {
+	var alreadyRunning *domain.ErrTaskAlreadyRunning
+	if err := s.repo.MarkAsPaused(ctx, payload.WorkspaceID, task.ID, nextRunAfter); errors.As(err, &alreadyRunning) {
+		// The run that holds the task reads the broadcast's status before each
+		// batch: it pauses the rows it enqueued and stops by itself. Taking the
+		// task from it let a resume start a second execution alongside it. A
+		// run that has completed the task since it was read above leaves it
+		// completed, as the check above does.
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Broadcast paused while its run holds the task or has just completed it - leaving the task to that run")
+	} else if err != nil {
 		tracing.MarkSpanError(ctx, err)
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcastID,
@@ -1334,27 +1345,42 @@ func (s *TaskService) handleBroadcastResumed(ctx context.Context, payload domain
 		return
 	}
 
-	// Resume the task with a fresh retry budget. repo.Update writes retry_count
-	// verbatim, so without this a broadcast that was paused after burning
-	// retries on transient failures came back one failure from being marked
-	// failed for good — and the console offers no other way to clear it.
+	// Resume the task with a fresh retry budget: without it a broadcast that
+	// was paused after burning retries on transient failures came back one
+	// failure from being marked failed for good — and the console offers no
+	// other way to clear it. A task its run still holds is left to that run,
+	// which sees the resume on its next refresh: handing the task to a second
+	// execution enqueued everyone past the cursor it read a second time. The
+	// budget is reset before the wake, so that whichever comes first, the
+	// resume or that run's failure, the task ends up queued: a run that
+	// failed for good after a refused wake left a failed task nothing woke.
+	if err := s.repo.ResetRetryBudget(ctx, payload.WorkspaceID, task.ID); err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+			"error":        err.Error(),
+		}).Error("Failed to reset the retry budget of the resumed broadcast's task")
+	}
+
 	nextRunAfter := time.Now().UTC()
-	task.NextRunAfter = &nextRunAfter
-	task.Status = domain.TaskStatusPending
-	task.RetryCount = 0
-	task.ErrorMessage = nil
-
 	tracing.AddAttribute(ctx, "next_run_after", nextRunAfter.Format(time.RFC3339))
-	tracing.AddAttribute(ctx, "new_status", string(task.Status))
 
-	if err := s.repo.Update(ctx, payload.WorkspaceID, task); err != nil {
+	woken, err := s.repo.WakeTask(ctx, payload.WorkspaceID, task.ID, nextRunAfter)
+	if err != nil {
 		tracing.MarkSpanError(ctx, err)
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcastID,
 			"task_id":      task.ID,
 			"error":        err.Error(),
 		}).Error("Failed to resume task for resumed broadcast")
+	} else if !woken {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Broadcast resumed while its run holds the task or has just completed it - leaving the task to that run")
 	} else {
+		tracing.AddAttribute(ctx, "new_status", string(domain.TaskStatusPending))
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcastID,
 			"task_id":      task.ID,
@@ -1630,10 +1656,13 @@ func (s *TaskService) TriggerTask(ctx context.Context, workspace, taskID string)
 		return fmt.Errorf("task cannot be triggered in current status: %s", task.Status)
 	}
 
-	// Schedule for immediate execution
+	// Schedule for immediate execution. The wake re-checks the status where it
+	// writes, so a run that took the task since it was read keeps it, and the
+	// state that run saves is not overwritten with the one read above.
 	nextRun := time.Now().UTC()
 
-	if err := s.repo.MarkAsPending(ctx, workspace, taskID, nextRun, task.Progress, task.State); err != nil {
+	woken, err := s.repo.WakeTask(ctx, workspace, taskID, nextRun)
+	if err != nil {
 		tracing.MarkSpanError(ctx, err)
 		s.logger.WithFields(map[string]interface{}{
 			"task_id":      taskID,
@@ -1641,6 +1670,9 @@ func (s *TaskService) TriggerTask(ctx context.Context, workspace, taskID string)
 			"error":        err.Error(),
 		}).Error("Failed to trigger task")
 		return fmt.Errorf("failed to trigger task: %w", err)
+	}
+	if !woken {
+		return &domain.ErrTaskAlreadyRunning{TaskID: taskID}
 	}
 
 	s.logger.WithFields(map[string]interface{}{

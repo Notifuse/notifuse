@@ -14,12 +14,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/http/middleware"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/mailer"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
@@ -1557,4 +1559,55 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 			t.Fatal("Timed out waiting for server to stop")
 		}
 	})
+}
+
+func TestNewHTTPServer_LimitsHeaderReadingAndIdleConnections(t *testing.T) {
+	handler := http.NewServeMux()
+
+	srv := newHTTPServer("127.0.0.1:8080", handler)
+
+	assert.Equal(t, "127.0.0.1:8080", srv.Addr)
+	assert.Equal(t, http.Handler(handler), srv.Handler)
+	assert.Equal(t, 20*time.Second, srv.ReadHeaderTimeout)
+	assert.Equal(t, 70*time.Minute, srv.IdleTimeout)
+	// Not limited server-wide: streamed responses and large API bodies on slow
+	// links must not be cut. Public webhooks bound their own bodies.
+	assert.Zero(t, srv.ReadTimeout)
+	assert.Zero(t, srv.WriteTimeout)
+}
+
+// The webhook handlers bound how long their body may take through
+// http.ResponseController; the middleware every request goes through must keep
+// that reachable.
+func TestServerHandler_LetsWebhookHandlersSetAReadDeadline(t *testing.T) {
+	for _, tracing := range []bool{false, true} {
+		t.Run(fmt.Sprintf("tracing %v", tracing), func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockLogger := pkgmocks.NewMockLogger(ctrl)
+			mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+			mockDB, _, err := sqlmock.New()
+			require.NoError(t, err)
+			defer func() { _ = mockDB.Close() }()
+
+			cfg := createTestConfig()
+			cfg.Tracing.Enabled = tracing
+			app := NewApp(cfg, WithLogger(mockLogger), WithMockDB(mockDB)).(*App)
+
+			deadlineErr := errors.New("probe not reached")
+			probe := http.NewServeMux()
+			probe.HandleFunc("/webhooks/email", func(w http.ResponseWriter, r *http.Request) {
+				deadlineErr = middleware.SetReadDeadline(w, r, time.Now().Add(time.Second))
+			})
+			app.handler = middleware.NewAuditMiddleware(nil)(probe)
+
+			srv := httptest.NewServer(app.serverHandler())
+			defer srv.Close()
+			resp, err := srv.Client().Post(srv.URL+"/webhooks/email", "application/json", strings.NewReader("{}"))
+			require.NoError(t, err)
+			_ = resp.Body.Close()
+
+			assert.NoError(t, deadlineErr)
+		})
+	}
 }

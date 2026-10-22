@@ -177,6 +177,30 @@ func (o *BroadcastOrchestrator) LoadTemplates(ctx context.Context, workspaceID s
 	return templates, nil
 }
 
+// winnerTemplates returns the templates a winner-phase batch is sent with: the
+// winning template alone. A run that loaded every variation for the test phase
+// has it already, unless it failed to load then; it is loaded and validated here
+// in that case, and kept in loaded for the batches that follow.
+func (o *BroadcastOrchestrator) winnerTemplates(ctx context.Context, workspaceID string, broadcast *domain.Broadcast, loaded map[string]*domain.Template) (map[string]*domain.Template, error) {
+	if broadcast.WinningTemplate == nil {
+		return nil, fmt.Errorf("winner phase but no winning template selected")
+	}
+	winnerID := *broadcast.WinningTemplate
+	if template, ok := loaded[winnerID]; ok {
+		return map[string]*domain.Template{winnerID: template}, nil
+	}
+
+	templates, err := o.LoadTemplates(ctx, workspaceID, []string{winnerID})
+	if err != nil {
+		return nil, err
+	}
+	if err := o.ValidateTemplates(templates); err != nil {
+		return nil, err
+	}
+	loaded[winnerID] = templates[winnerID]
+	return templates, nil
+}
+
 // ValidateTemplates validates that the required templates are loaded and valid
 func (o *BroadcastOrchestrator) ValidateTemplates(templates map[string]*domain.Template) error {
 	if len(templates) == 0 {
@@ -837,6 +861,15 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 		broadcastState.WinnerPhaseRecipientCount = winnerRecipientCount
 	}
 
+	// A winner selected manually after the test phase started moves this run to
+	// the winner phase before the templates load, so the losing variations are
+	// not loaded: the queue sender picks at random among the templates it holds.
+	if broadcastState.Phase == "test" {
+		if broadcast.WinningTemplate != nil || broadcast.Status == domain.BroadcastStatusWinnerSelected {
+			broadcastState.Phase = "winner"
+		}
+	}
+
 	// Determine which templates to load based on phase
 	var templateIDs []string
 
@@ -928,13 +961,6 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	currentOffset = int(broadcastState.RecipientOffset)
 	// Cursor for keyset pagination - tracks the last processed email
 	cursor := broadcastState.LastProcessedEmail
-
-	// If a winner has already been selected manually while test is running, transition immediately
-	if broadcastState.Phase == "test" {
-		if broadcast.WinningTemplate != nil || broadcast.Status == domain.BroadcastStatusWinnerSelected {
-			broadcastState.Phase = "winner"
-		}
-	}
 
 	// Set recipient limit based on current phase (after potential transition)
 	switch broadcastState.Phase {
@@ -1075,6 +1101,18 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			break
 		}
 
+		// A run that moved to the winner phase after loading every variation
+		// sends its batches with the winner alone.
+		batchTemplates := templates
+		if broadcastState.Phase == "winner" {
+			var winnerErr error
+			batchTemplates, winnerErr = o.winnerTemplates(ctx, task.WorkspaceID, broadcast, templates)
+			if winnerErr != nil {
+				err = winnerErr
+				return false, err
+			}
+		}
+
 		// Fetch the next batch of recipients using cursor-based pagination
 		recipients, batchErr := o.FetchBatch(
 			ctx,
@@ -1155,7 +1193,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			workspace.Settings.WebAnalytics,
 			broadcastState.BroadcastID,
 			recipients,
-			templates,
+			batchTemplates,
 			emailProvider,
 			processTimeoutAt,
 			workspace.Settings.DefaultLanguage,

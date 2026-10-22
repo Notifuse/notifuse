@@ -242,9 +242,14 @@ type TaskRepository interface {
 	MarkAsFailed(ctx context.Context, workspace, id string, errorMsg string) error
 	MarkAsFailedTx(ctx context.Context, tx *sql.Tx, workspace, id string, errorMsg string) error
 
-	// MarkAsPaused marks a task as paused (e.g., due to timeout)
-	MarkAsPaused(ctx context.Context, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
-	MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
+	// MarkAsPaused marks a task as paused until nextRunAfter. It returns
+	// ErrTaskAlreadyRunning, and changes nothing, for a task an execution holds
+	// (running, or waiting with a live lease, unless the lease has expired) and
+	// for a completed one, and ErrTaskNotFound for a missing one. It writes
+	// neither the state nor the progress: they belong to the execution that
+	// saves them.
+	MarkAsPaused(ctx context.Context, workspace, id string, nextRunAfter time.Time) error
+	MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspace, id string, nextRunAfter time.Time) error
 
 	// MarkAsPending marks a task as pending (e.g., for recurring tasks)
 	MarkAsPending(ctx context.Context, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
@@ -255,6 +260,19 @@ type TaskRepository interface {
 	// its retry budget or touching its saved progress.
 	ReleaseTask(ctx context.Context, workspace, id string, reason string, nextRunAfter time.Time) error
 	ReleaseTaskTx(ctx context.Context, tx *sql.Tx, workspace, id string, reason string, nextRunAfter time.Time) error
+
+	// WakeTask puts a waiting task back in the queue: pending, due at nextRunAfter,
+	// with a fresh retry budget and no error message. It returns false, and changes
+	// nothing, for a task an execution holds (running, or waiting with a live
+	// lease, unless the lease has expired) and for a completed one. It writes neither the state nor the
+	// progress: they belong to the execution that saves them.
+	WakeTask(ctx context.Context, workspace, id string, nextRunAfter time.Time) (bool, error)
+
+	// ResetRetryBudget gives a task a fresh retry budget and changes nothing else:
+	// not its status, schedule, lease, state or progress, so it leaves a task an
+	// execution holds to that execution. It leaves a completed task alone, and
+	// does nothing for a missing one.
+	ResetRetryBudget(ctx context.Context, workspace, id string) error
 
 	// GetTaskByIntegrationID retrieves the active task for a specific integration
 	GetTaskByIntegrationID(ctx context.Context, workspace, integrationID string) (*Task, error)

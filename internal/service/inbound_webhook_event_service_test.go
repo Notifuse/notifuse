@@ -4171,3 +4171,76 @@ func TestInboundWebhookEventService_PermissionEnforcement(t *testing.T) {
 		assert.IsType(t, &domain.PermissionError{}, err)
 	})
 }
+
+// Providers that batch events must give each event its own element of the
+// batch as raw payload, never the whole batch: storing the batch on every event
+// grows with the square of its size, and puts every recipient of the batch on
+// each event's row.
+func TestBatchedProviderEventsKeepTheirOwnPayload(t *testing.T) {
+	service := &InboundWebhookEventService{}
+	integrationID := "integration1"
+
+	sendGridFirst := `{"email":"first@example.com","timestamp":1706097600,"event":"delivered","sg_message_id":"sg1","notifuse_message_id":"msg_1"}`
+	sendGridSecond := `{"email":"second@example.com","timestamp":1706097600,"event":"bounce","type":"bounce","reason":"unknown user","sg_message_id":"sg2"}`
+	sparkPostFirst := `{"msys":{"message_event":{"type":"delivery","rcpt_to":"first@example.com","message_id":"sp1","timestamp":"2023-01-01T12:00:00Z","rcpt_meta":{"notifuse_message_id":"msg_1"}}}}`
+	sparkPostSecond := `{"msys":{"message_event":{"type":"bounce","rcpt_to":"second@example.com","message_id":"sp2","timestamp":"2023-01-01T12:00:00Z","bounce_class":"10"}}}`
+	mailjetFirst := `{"event":"sent","time":1672574400,"MessageID":1,"email":"first@example.com"}`
+	mailjetSecond := `{"event":"bounce","time":1672574400,"MessageID":2,"email":"second@example.com","hard_bounce":true}`
+
+	cases := []struct {
+		name    string
+		process func(string, []byte) ([]*domain.InboundWebhookEvent, error)
+		first   string
+		second  string
+	}{
+		{"SendGrid", service.processSendGridWebhook, sendGridFirst, sendGridSecond},
+		{"SparkPost", service.processSparkPostWebhook, sparkPostFirst, sparkPostSecond},
+		{"Mailjet grouped events", service.processMailjetWebhook, mailjetFirst, mailjetSecond},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			batch := []byte("[\n  " + tc.first + ",\n  " + tc.second + "\n]")
+
+			events, err := tc.process(integrationID, batch)
+
+			require.NoError(t, err)
+			require.Len(t, events, 2)
+			assert.Equal(t, "first@example.com", events[0].RecipientEmail)
+			assert.JSONEq(t, tc.first, events[0].RawPayload)
+			assert.NotContains(t, events[0].RawPayload, "second@example.com")
+			assert.Equal(t, "second@example.com", events[1].RecipientEmail)
+			assert.JSONEq(t, tc.second, events[1].RawPayload)
+			assert.NotContains(t, events[1].RawPayload, "first@example.com")
+		})
+	}
+
+	t.Run("a single Mailjet event keeps the whole body", func(t *testing.T) {
+		events, err := service.processMailjetWebhook(integrationID, []byte(mailjetFirst))
+
+		require.NoError(t, err)
+		require.Len(t, events, 1)
+		assert.Equal(t, mailjetFirst, events[0].RawPayload)
+	})
+
+	t.Run("a null SparkPost element fails the batch without a panic", func(t *testing.T) {
+		events, err := service.processSparkPostWebhook(integrationID, []byte("["+sparkPostFirst+",null]"))
+
+		require.Error(t, err)
+		assert.Nil(t, events)
+	})
+
+	t.Run("a malformed element fails the batch", func(t *testing.T) {
+		for name, process := range map[string]func(string, []byte) ([]*domain.InboundWebhookEvent, error){
+			"SendGrid":  service.processSendGridWebhook,
+			"SparkPost": service.processSparkPostWebhook,
+			"Mailjet":   service.processMailjetWebhook,
+		} {
+			t.Run(name, func(t *testing.T) {
+				events, err := process(integrationID, []byte(`[{"timestamp":"not a number","time":"not a number","msys":"not an object"}]`))
+
+				require.Error(t, err)
+				assert.Nil(t, events)
+			})
+		}
+	})
+}

@@ -431,8 +431,9 @@ func ptrString(s string) *string {
 // repaid by any run that makes progress.
 //
 // Two traps this test has to avoid, either of which would make it worthless:
-//   - It must not be driven with TriggerTask. That endpoint calls MarkAsPending
-//     itself, so the assertion would pass without the task ever executing.
+//   - It must not be driven with TriggerTask. That endpoint resets the retry
+//     count itself (WakeTask), so the assertion would pass without the task
+//     ever executing.
 //   - It must not use sync_integration. That processor talks to an external
 //     provider; in this environment the run is as likely to fail as to succeed,
 //     and a failed run increments the counter instead of clearing it.
