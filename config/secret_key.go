@@ -44,12 +44,6 @@ func unquoted(value string) string {
 	return trimmed
 }
 
-// TrimmedKey returns key without the spaces and the pair of matching quotes around it:
-// the form the first key of a list is read in, where a single key keeps them.
-func TrimmedKey(key string) string {
-	return unquoted(key)
-}
-
 func isPublishedValue(key string) bool {
 	trimmed := strings.TrimSpace(key)
 	switch sha256Hex([]byte(trimmed)) {

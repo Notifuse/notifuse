@@ -1608,6 +1608,7 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 	if err != nil {
 		if errors.Is(err, domain.ErrInvitationNotFound) {
 			// Accepted already, or cancelled: the link has nothing left to open.
+			audit.Fail("invitation_not_found")
 			return nil, domain.ErrInvitationUnavailable
 		}
 		s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Error("Failed to get invitation")

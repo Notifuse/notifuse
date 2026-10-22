@@ -232,7 +232,7 @@ func TestParseSecretKeys(t *testing.T) {
 
 // A list reads its first key without the quotes and spaces around it, where a single
 // key keeps them: TrimmedKey gives the form a list would read.
-func TestTrimmedKey(t *testing.T) {
+func TestUnquoted(t *testing.T) {
 	for raw, want := range map[string]string{
 		"key":              "key",
 		" key\n":           "key",
@@ -241,7 +241,7 @@ func TestTrimmedKey(t *testing.T) {
 		` " key " ` + "\n": "key",
 		`"key`:             `"key`,
 	} {
-		assert.Equal(t, want, TrimmedKey(raw), "%q", raw)
+		assert.Equal(t, want, unquoted(raw), "%q", raw)
 	}
 }
 
@@ -518,6 +518,7 @@ func TestCheckUnopenedSettings(t *testing.T) {
 			SecurityConfig{SecretKey: key, KeyVariable: "SECRET_KEY"})
 
 		require.Error(t, err)
+		assert.Contains(t, err.Error(), "SECRET_KEY opens none of the stored settings encrypted_oidc_client_secret")
 		assert.Contains(t, err.Error(), "in quotes")
 		assert.Contains(t, err.Error(), "SECRET_KEY=<key>,<key>")
 
@@ -526,6 +527,28 @@ func TestCheckUnopenedSettings(t *testing.T) {
 		require.Error(t, err)
 		assert.NotContains(t, err.Error(), "in quotes", "a list already tries its keys in quotes")
 	})
+}
+
+func TestCheckUnopenedSettings_KeyWrittenWithQuotes(t *testing.T) {
+	key := freshBase64Key(t)
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	secret, err := crypto.EncryptString("oidc-secret", key)
+	require.NoError(t, err)
+	mock.ExpectQuery("SELECT key, value FROM settings").WillReturnRows(sqlmock.NewRows([]string{"key", "value"}).
+		AddRow("is_installed", "true").
+		AddRow("encrypted_oidc_client_secret", secret))
+	quoted := `"` + key + `"`
+	settings, err := loadSystemSettings(db, []string{quoted})
+	require.NoError(t, err)
+
+	err = checkUnopenedSettings(settings, OIDCConfig{Enabled: true}, SMTPBridgeConfig{},
+		SecurityConfig{SecretKey: quoted, KeyVariable: "SECRET_KEY"})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "SECRET_KEY opens none of the stored settings encrypted_oidc_client_secret, "+
+		"which single sign-on (OIDC) needs, but does without the quotes or spaces around it: remove them from SECRET_KEY")
 }
 
 func TestKeyHint(t *testing.T) {

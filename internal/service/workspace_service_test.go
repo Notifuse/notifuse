@@ -4920,10 +4920,7 @@ func TestWorkspaceService_AcceptInvitation_RefusesTokenNotMatchingInvitation(t *
 
 		require.ErrorIs(t, err, domain.ErrInvitationUnavailable)
 		assert.Nil(t, resp)
-		event, skipped := record.Finalize(http.StatusNotFound)
-		require.False(t, skipped)
-		assert.Equal(t, workspaceID, event.WorkspaceID)
-		assert.Equal(t, invitationID, event.TargetID)
+		assertAudited(t, record, "invitation_not_found")
 	})
 }
 

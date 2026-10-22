@@ -506,8 +506,7 @@ func checkUnopenedSettings(settings *SystemSettings, oidc OIDCConfig, bridge SMT
 		if len(names) == 0 {
 			return nil
 		}
-		refusal := fmt.Sprintf("no key in %s opens the stored settings %s, which %s needs",
-			variable, strings.Join(names, ", "), feature)
+		needs := fmt.Sprintf("the stored settings %s, which %s needs", strings.Join(names, ", "), feature)
 		if !security.SecretKeyIsList {
 			opens := func(candidate string) bool {
 				for _, name := range names {
@@ -518,10 +517,10 @@ func checkUnopenedSettings(settings *SystemSettings, oidc OIDCConfig, bridge SMT
 				return false
 			}
 			if hint := KeyHint(security.SecretKey, variable, opens); hint != "" {
-				return fmt.Errorf("%s, but %s", refusal, hint)
+				return fmt.Errorf("%s opens none of %s, but %s", variable, needs, hint)
 			}
 		}
-		return fmt.Errorf("%s. %s. Or %s", refusal, StoredDataRemedy(variable), alternative)
+		return fmt.Errorf("no key in %s opens %s. %s. Or %s", variable, needs, StoredDataRemedy(variable), alternative)
 	}
 
 	if oidc.Enabled && oidc.ClientSecret == "" {

@@ -318,6 +318,7 @@ func (sm *ServerManager) StartLiveDirect(ctx context.Context) error {
 	if sm.licenseErr != nil {
 		return sm.licenseErr
 	}
+	sm.applyPendingSecretKey()
 
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:0", sm.config.Server.Host))
 	if err != nil {

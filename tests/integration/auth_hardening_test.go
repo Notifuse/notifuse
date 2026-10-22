@@ -179,7 +179,13 @@ func TestAuthHardening(t *testing.T) {
 		signedFor := listAuditLogs(t, inviter, map[string]string{
 			"workspace_id": workspaceID, "actions": "workspaces.acceptInvitation", "outcome": domain.AuditOutcomeFailure,
 		})
-		assert.NotEmpty(t, signedFor.Logs, "the refused attempts are in the invitation's workspace")
+		var replays int
+		for _, row := range signedFor.Logs {
+			if row.Metadata["reason"] == "invitation_not_found" {
+				replays++
+			}
+		}
+		assert.Equal(t, 2, replays, "both uses of the accepted link are in the invitation's workspace")
 	})
 
 	// Runs last: signing root out ends every root session.
