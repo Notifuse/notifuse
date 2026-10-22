@@ -189,6 +189,27 @@ describe('isOpenableUrl', () => {
 describe('isSafeHref', () => {
   it.each([
     'https://example.com/a',
+    'mailto:team@example.com',
+    'webcal://example.com/cal.ics',
+    'search-ms:query=x',
+    '{{ unsubscribe_url }}',
+    'https://{{ shop_domain }}/sale',
+    '#section',
+    'javascript:window.__probe=1',
+    ' JaVaScRiPt:window.__probe=1',
+    'java\tscript:window.__probe=1',
+    'vbscript:x',
+    'data:text/html,<p>x</p>',
+    'livescript:x'
+  ])('judges %j as sanitizeHtml does a link in content', (href) => {
+    const link = document.createElement('a')
+    link.setAttribute('href', href)
+    const kept = parseHtmlInert(sanitizeHtml(link.outerHTML)).querySelector('a')?.hasAttribute('href')
+    expect(isSafeHref(href)).toBe(kept)
+  })
+
+  it.each([
+    'https://example.com/a',
     'http://example.com',
     'mailto:team@example.com',
     'tel:+33100000000',

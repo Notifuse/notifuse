@@ -498,6 +498,7 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
           // Nothing in the content acts on a click here, a link or a label
           // included: the click goes on to select the block
           onClick={(e) => e.preventDefault()}
+          onAuxClick={(e) => e.preventDefault()}
         />
       )}
     </div>

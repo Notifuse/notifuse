@@ -27,8 +27,8 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
   })
 
   const isLiquidExpression = (value: string): boolean => {
-    // Check if the value contains liquid template syntax like {{ var }}
-    return /\{\{[^}]+\}\}/.test(value)
+    // Check if the value contains liquid template syntax like {{ var }} or {% tag %}
+    return /\{\{[^}]+\}\}|\{%.*?%\}/.test(value)
   }
 
   const isValidUrl = (url: string): boolean => {
@@ -190,7 +190,7 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
           <div className="text-xs font-medium text-gray-700">{value.name}</div>
           {/* A stylesheet is only ever a web address, and a Liquid one has no
               address until the email is sent */}
-          {!/\{\{|\{%/.test(value.href ?? '') && safeExternalUrl(value.href) ? (
+          {!isLiquidExpression(value.href ?? '') && safeExternalUrl(value.href) ? (
             <a
               href={value.href}
               target="_blank"

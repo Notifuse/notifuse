@@ -113,6 +113,32 @@ describe('a click on editor canvas content only selects the block', () => {
   })
 })
 
+describe('a middle click on an editor canvas link opens nothing', () => {
+  it.each([
+    ['mj-text', MjTextBlock],
+    ['mj-button', MjButtonBlock],
+    ['mj-image', MjImageBlock],
+    ['mj-social-element', MjSocialElementBlock]
+  ])('%s', (type, Block) => {
+    const href = 'https://example.com/x'
+    const block = {
+      id: `b-${type}`,
+      type,
+      attributes: { href, src: 'https://example.com/i.png', name: 'facebook' },
+      content: type === 'mj-image' ? undefined : `<p>Buy <a href="${href}">now</a></p>`
+    } as unknown as EmailBlock
+    const { container } = render(<>{new Block(block).getEdit(previewProps())}</>)
+
+    const links = Array.from(container.querySelectorAll<HTMLElement>(`a[href="${href}"]`))
+    expect(links).not.toEqual([])
+    for (const link of links) {
+      const middleClick = new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 })
+      link.dispatchEvent(middleClick)
+      expect(middleClick.defaultPrevented).toBe(true)
+    }
+  })
+})
+
 describe('editor canvas links keep only navigable targets', () => {
   const renderLink = (type: 'mj-image' | 'mj-social-element', href: string) => {
     const block = {

@@ -766,6 +766,7 @@ export class MjSocialElementBlock extends BaseEmailBlock {
         rel={attrs.rel}
         title={attrs.title}
         onClick={(e) => e.preventDefault()} // Prevent navigation in preview
+        onAuxClick={(e) => e.preventDefault()}
         style={{ textDecoration: 'none' }}
       >
         {iconElement}
@@ -781,6 +782,7 @@ export class MjSocialElementBlock extends BaseEmailBlock {
         title={attrs.title}
         style={textLinkStyle}
         onClick={(e) => e.preventDefault()} // Prevent navigation in preview
+        onAuxClick={(e) => e.preventDefault()}
       >
         {content}
       </a>

@@ -2,7 +2,8 @@
 export const injectTiptapStyles = () => {
   const styleId = 'tiptap-shared-styles'
 
-  if (!document.getElementById(styleId)) {
+  // Looked up in the head: content shown on the page may carry any id
+  if (!document.head.querySelector(`style#${styleId}`)) {
     const style = document.createElement('style')
     style.id = styleId
     style.textContent = `

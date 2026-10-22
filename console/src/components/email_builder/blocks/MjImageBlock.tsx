@@ -348,6 +348,7 @@ export class MjImageBlock extends BaseEmailBlock {
           overflow: 'hidden'
         }}
         onClick={(e) => e.preventDefault()}
+        onAuxClick={(e) => e.preventDefault()}
       >
         {imageElement}
       </a>

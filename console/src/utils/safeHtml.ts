@@ -1,5 +1,30 @@
 import DOMPurify from 'dompurify'
 
+// An instance of its own, so that the configuration below applies to every
+// call here, isSafeHref's included, and to nothing else on the page that uses
+// DOMPurify.
+const purify = DOMPurify(window)
+purify.setConfig({
+  ADD_ATTR: ['target'],
+  ALLOW_UNKNOWN_PROTOCOLS: true,
+  FORBID_TAGS: [
+    'style',
+    'form',
+    'input',
+    'button',
+    'select',
+    'option',
+    'textarea',
+    'map',
+    'area',
+    'audio',
+    'video',
+    'source',
+    'track'
+  ],
+  FORBID_ATTR: ['data-block-id']
+})
+
 /**
  * HTML for display in the console page itself, such as a template block on the
  * editor canvas or the content an editor loads.
@@ -16,26 +41,7 @@ import DOMPurify from 'dompurify'
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return ''
-  return DOMPurify.sanitize(html, {
-    ADD_ATTR: ['target'],
-    ALLOW_UNKNOWN_PROTOCOLS: true,
-    FORBID_TAGS: [
-      'style',
-      'form',
-      'input',
-      'button',
-      'select',
-      'option',
-      'textarea',
-      'map',
-      'area',
-      'audio',
-      'video',
-      'source',
-      'track'
-    ],
-    FORBID_ATTR: ['data-block-id']
-  })
+  return purify.sanitize(html)
 }
 
 let inertDocument: Document | null = null
@@ -101,19 +107,13 @@ export function isOpenableUrl(url: string | null | undefined): boolean {
   }
 }
 
-// What DOMPurify removes before reading a link's scheme. A browser ignores some
-// of these around or inside a scheme; refusing on all of them costs nothing.
-// eslint-disable-next-line no-control-regex -- control characters are the point
-const URL_WHITESPACE = /[\u0000-\u0020\u00A0\u1680\u180E\u2000-\u2029\u205F\u3000]/g
-const SCRIPT_OR_DATA_URL = /^(?:\w+script|data):/i
-
 /**
- * Whether a saved link target can be put in an `href` in the console: anything
- * but a script (`javascript:`, `vbscript:`…) or `data:` URL, the rule
- * `sanitizeHtml` applies to links in content. Web, mail, phone and app links,
+ * Whether a saved link target can be put in an `href` in the console: the same
+ * verdict `sanitizeHtml` gives a link in content, so anything but a script
+ * (`javascript:`, `vbscript:`…) or `data:` URL. Web, mail, phone and app links,
  * relative ones and Liquid (`{{ url }}`, `https://{{ host }}/x`) all pass.
  */
 export function isSafeHref(href: string | null | undefined): boolean {
   if (!href) return false
-  return !SCRIPT_OR_DATA_URL.test(href.replace(URL_WHITESPACE, ''))
+  return purify.isValidAttribute('a', 'href', href)
 }

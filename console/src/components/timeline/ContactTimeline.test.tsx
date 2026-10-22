@@ -388,12 +388,32 @@ describe('ContactTimeline page view header and preview', () => {
     ).toBeInTheDocument()
   })
 
-  it('offers a page of an IPv6 site when the workspace lists no domain', () => {
-    render(<ContactTimeline entries={[pageAt('/pricing', '2001:db8::1')]} />)
+  // With no list, the domain is whatever the visitor reported; an address that
+  // names a machine rather than a site could be one on the member's own network
+  it.each([
+    '127.0.0.1',
+    '10.0.0.5',
+    '192.168.1.2',
+    '203.0.113.5',
+    '::1',
+    'fe80::1',
+    '2001:db8::1',
+    'localhost',
+    'app.localhost'
+  ])('offers no preview of a machine address the workspace does not list: %s', (domain) => {
+    render(<ContactTimeline entries={[pageAt('/pricing', domain)]} />)
+
+    expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
+  })
+
+  it('offers a page of a machine address the workspace lists', () => {
+    render(
+      <ContactTimeline entries={[pageAt('/pricing', '10.0.0.5')]} workspace={tracking(['10.0.0.5'])} />
+    )
 
     openPreview()
     expect(
-      within(screen.getByRole('dialog')).getByText('https://[2001:db8::1]/pricing')
+      within(screen.getByRole('dialog')).getByText('https://10.0.0.5/pricing')
     ).toBeInTheDocument()
   })
 

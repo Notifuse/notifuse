@@ -58,6 +58,15 @@ const isTrackedHost = (hostname: string, allowedDomains: string[]): boolean => {
   })
 }
 
+// An IP address or localhost: it names a machine, possibly one on the member's
+// own network, rather than a site. URL has already normalised an IPv4 address
+// written any other way.
+const isMachineHost = (hostname: string): boolean =>
+  hostname.startsWith('[') ||
+  /^\d+\.\d+\.\d+\.\d+$/.test(hostname) ||
+  hostname === 'localhost' ||
+  hostname.endsWith('.localhost')
+
 interface ContactTimelineProps {
   entries: ContactTimelineEntry[]
   loading?: boolean
@@ -247,6 +256,9 @@ export function ContactTimeline({
       const site = new URL(origin)
       const trackedDomains = workspace?.settings?.web_analytics?.allowed_domains ?? []
       if (domain && trackedDomains.length > 0 && !isTrackedHost(site.hostname, trackedDomains)) {
+        return null
+      }
+      if (domain && trackedDomains.length === 0 && isMachineHost(site.hostname)) {
         return null
       }
       const page = path.startsWith('/') ? new URL(site.origin + path) : new URL(path, site)
