@@ -807,7 +807,7 @@ func TestTask_HasRetriesLeft(t *testing.T) {
 		want       bool
 	}{
 		{name: "no failed attempt yet", retryCount: 0, maxRetries: 3, want: true},
-		{name: "one retry left", retryCount: 2, maxRetries: 3, want: true},
+		{name: "the last retry still to come", retryCount: 2, maxRetries: 3, want: true},
 		{name: "budget spent", retryCount: 3, maxRetries: 3, want: false},
 		{name: "past the budget", retryCount: 4, maxRetries: 3, want: false},
 		{name: "no retries allowed", retryCount: 0, maxRetries: 0, want: false},

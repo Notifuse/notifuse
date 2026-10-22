@@ -103,6 +103,8 @@ Under 42.0 (WIP), one line:
 - **The circuit-breaker and recipient-feed skips trust the pause their own path wrote** (third review), as on `dev`. If that write failed on the last attempt, the broadcast stays sending under a failed task. It takes a database failure in that one write.
 - **The completion write overwrites a pause committed while it waits** (fourth review), as on `dev`. The run's last write when it finishes sending, and its move to `testing`, are whole-row `UpdateBroadcast` calls, which only refuse `cancelled` and `processed` rows: a pause whose transaction commits while that write waits on the row lock becomes `processed`. Same pattern as Part 3, on another write; a follow-up.
 - **The finalizer's detached context has no deadline** (fourth review), as on `dev`: a hung database blocks the processor goroutine after `ExecuteTask` has given up.
+- **An interruption on the last attempt pauses its broadcast while the task service re-queues the task without spending its budget** (sixth review), as on `dev`, where `TestBroadcastInterruptedOnLastRetry_PausesWithReason` pins it and a shipped changelog line promises it. Step 6 only extends it to a cancellation landing during the finalizer. Leaving the broadcast to the re-queued run instead changes that shipped behaviour; a follow-up, with the next item.
+- **A run that finds its broadcast paused returns without an error, and the task service sets the task pending again** (sixth review; Gemini's sixth counter-review), as on `dev`: the task then runs on every scheduler tick until the broadcast is resumed.
 - **The task re-read locks the row.** `TaskRepository.Get` reads `FOR UPDATE` in a short transaction (`task_postgres.go:153-176`), as every caller of it does; the finalizer reads it only on a last-attempt failure, and a concurrent `ReleaseTask` or `MarkAsFailed` waits for that one read.
 
 ## Code review
@@ -162,6 +164,15 @@ Fifth max-effort review, of `a34693d`:
 | 1 | The checks after the reads and after the write count the run's deadline as an interruption, but `ExecuteTask` releases only on a cancellation: past its deadline the task is failed, and a genuine failure was shown as a resumable pause | Fixed: Part 2 step 6, those checks ask for `context.Canceled` only; the first check stays as on `dev` |
 | 2 | Root cause: the finalizer still predicts the task service's decision, and windows remain | Kept: see "Rejected alternatives" and "Not in scope" |
 | 3 | `stillLastAttempt`'s nil-task branch cannot run | Fixed: Part 2 step 2, the read's error alone decides |
+
+Sixth max-effort review, of `1faaa46` (no new correctness bug in the change):
+
+| # | Finding | Outcome |
+|---|---|---|
+| 1 | A cancelled last attempt is re-queued by the task service, yet its broadcast is paused | Kept: as on `dev`, see "Not in scope", a follow-up |
+| 2 | A run that finds its broadcast paused leaves its task pending, run again on every tick | Kept: as on `dev`, see "Not in scope", a follow-up |
+| 3 | Root cause: finalize from the task service | Kept: see "Rejected alternatives" |
+| 4 | A test name and two comments stated a count no assertion pins (CLAUDE.md) | Fixed: reworded |
 
 ## Steps
 

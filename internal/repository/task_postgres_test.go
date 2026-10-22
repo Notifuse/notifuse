@@ -862,7 +862,7 @@ func TestTaskRepository_MarkAsFailed(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
-	// The attempt that started one below the limit is still retried: the
+	// An attempt that started just below the limit is still retried: the
 	// broadcast orchestrator used to call it the last one.
 	task.RetryCount = 2
 

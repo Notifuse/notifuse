@@ -59,7 +59,7 @@ func finishBroadcast(t *testing.T, h *phase2Harness, contacts int) {
 }
 
 // TestBroadcastFailureWithRetriesLeft_StaysInFlight pins the defect itself: the
-// attempt that starts with one retry left (count 2 of 3) fails, the task
+// attempt that starts with a retry left (count 2 of 3) fails, the task
 // service schedules the retry, and the broadcast must stay in flight rather
 // than read failed until that retry flips it back.
 func TestBroadcastFailureWithRetriesLeft_StaysInFlight(t *testing.T) {
