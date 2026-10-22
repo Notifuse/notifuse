@@ -39,13 +39,17 @@ value Notifuse can tell which listed key opens it.
   published key included, is refused.
 - The value comes from `SECRET_KEY`, else `PASETO_PRIVATE_KEY`, as today, and both read the same way:
   - No comma: one key, byte for byte as today. An installation that changes nothing reads the same key.
-  - A comma: split on commas, trim whitespace around each item. An empty item is refused at startup.
-    Duplicates of an earlier item are dropped.
-  - A hand-written key may already contain a comma. When the first item gives fewer than 32 bytes of key
-    material, the value cannot be a rotation (whose first item is a fresh key) and is read as one key, as
-    today, with a startup warning that says so. A legacy key with 32 bytes or more before its first comma
-    would be split; the re-encryption below then finds stored data that no item opens and refuses to
-    start, without writing anything.
+  - A comma: the value is a list. One pair of matching quotes around the whole value is removed first
+    (`docker --env-file` keeps them; a list is new, so no stored data depends on them). A single comma
+    separates two keys; two commas in a row stand for one comma inside a key, so a hand-written key that
+    contains commas can still be listed. Whitespace around each key is trimmed. An empty key is refused,
+    and so is a first key that starts or ends with a quote. A duplicate of an earlier key is dropped.
+  - Each previous key is also tried without one pair of matching quotes and wrapped in double or single
+    quotes: a single key read through `docker --env-file` kept its quotes, and its data was encrypted with
+    them. These candidates only decrypt, so trying them costs nothing.
+  - A legacy key that contains a comma is read as a list after the upgrade. It cannot slip through: the
+    refusals below and the startup check (section 2), which also runs whenever the value contains a
+    comma, stop it before any write, and their message says to write each comma of such a key twice.
 - Refusals, all at startup before any write, each naming the variable the value came from:
   - The first value is a published value: the compose default in any encoding (padded or not, standard
     or URL alphabet, raw decoded bytes, whitespace removed), the `env.example` placeholder, either in one
@@ -54,13 +58,15 @@ value Notifuse can tell which listed key opens it.
   - The first value gives fewer than 32 bytes of key material (`deriveJWTSecret`), as `abc123#xyz789` or
     `your-secret-key` do. A legacy `PASETO_PRIVATE_KEY` decodes to 64 bytes and is unaffected.
   - Both refusals give the same remedy: generate a key with `openssl rand -base64 32` and put it first,
-    keeping the current key after a comma (`SECRET_KEY=<new key>,<current key>`); Notifuse re-encrypts
-    stored data with the new key when it starts, after which the old value can be removed; users sign in
-    again, API keys must be deleted and created again, pending invitations sent again.
+    keeping the current key after a comma (`SECRET_KEY=<new key>,<current key>`, each comma inside the
+    current key written twice); Notifuse re-encrypts stored data with the new key when it starts, after
+    which the old value can be removed; users sign in again, API keys must be deleted and created again,
+    pending invitations sent again.
   - A published value later in the list is accepted: that is how an installation leaves it.
-- `loadSystemSettings` decrypts each `encrypted_*` setting with the first value, then each previous one.
-  A setting no key opens is skipped as today; with previous values, the re-encryption below then refuses
-  to start.
+- `loadSystemSettings` decrypts each of the five `encrypted_*` settings it reads with the first value,
+  then each previous one. A setting no key opens is skipped as today; with a list, the startup check
+  below then refuses to start.
+- `SecurityConfig.SecretKeyIsList` records that the value contained a comma, for the startup check.
 
 ## 2. Re-encryption at startup (`pkg/crypto`, `internal/repository/secret_key_rotation.go`, `internal/app/app.go`)
 
@@ -75,17 +81,21 @@ value Notifuse can tell which listed key opens it.
   decrypts into the document, so nothing plain is written. The workspace's `AfterLoad`/`BeforeSave` are
   not used: `BeforeSave` re-encrypts only the credentials it has in clear, and leaves an SMTP username
   as it was loaded, so a round trip would keep that value under the old key.
-- `App.Initialize` runs the rotation right after `InitDB` (migrations done) and before
-  `InitRepositories`, only when `PreviousSecretKeys` is not empty. A single key changes nothing at startup.
+- `App.Initialize` runs it right after `InitDB` (migrations done), before anything else reads the
+  database, when the value was a list: with previous keys it re-encrypts; with none (a single key whose
+  commas were doubled) it only checks that the key opens every stored value, so a legacy key read
+  differently fails at startup and not at the first workspace load. A value without a comma changes
+  nothing at startup.
 - One transaction on the system database, holding `pg_advisory_xact_lock` on a fixed id, so instances
   starting together rotate once; the next one finds nothing left to do.
-- `workspaces`: `SELECT id, settings, integrations ... FOR UPDATE`; both columns go through
+- `workspaces`: `SELECT id, settings, integrations ... ORDER BY id FOR UPDATE`; both columns go through
   `ReencryptFields`, and a row is updated (those two columns only) when one changed.
 - `settings`: every row whose key starts with `encrypted_` and whose value is not empty (SMTP username
-  and password, SMTP bridge TLS certificate and key, OIDC client secret) is opened the same way and
-  re-encrypted when a previous key opened it.
+  and password, SMTP bridge TLS certificate and key, OIDC client secret), read `ORDER BY key FOR UPDATE`,
+  is opened the same way and re-encrypted when a previous key opened it.
 - A value no listed key opens rolls the transaction back and fails startup, naming the workspace id and
-  JSON path, or the setting key, and saying no value of the variable opens it. Nothing is half-rotated.
+  JSON path, or the setting key, saying no value of the variable opens it and that each comma inside a
+  key is written twice. Nothing is half-rotated.
 - It logs how many workspaces and settings it re-encrypted and that the previous values can now be
   removed from `SECRET_KEY`.
 - Out of reach, said in the docs: workspace databases hold nothing under `SECRET_KEY` (message data and
@@ -207,13 +217,13 @@ storing a value that is no ciphertext at all.
 
 | Implementation file | Test file | Cases |
 | --- | --- | --- |
-| `config/secret_key.go`, `config/config.go` | `config/secret_key_test.go`, `config/config_test.go` | one key without a comma read byte for byte; `new,old` gives `SecretKey` new and `PreviousSecretKeys` [old]; spaces around items trimmed; an empty item refused; a duplicate dropped; a value with a comma whose first item is under 32 bytes read as one key; first value the compose default refused in every encoding and in quotes, through `PASETO_PRIVATE_KEY` naming it; placeholder refused; first value under 32 bytes refused with the rotation remedy, at 32 accepted; the compose default as a previous value accepted; `JWTSecret` derived from the first value only; `loadSystemSettings` opens a setting under a previous value |
-| `pkg/crypto/crypto.go` (`ReencryptFields`) | `pkg/crypto/crypto_test.go` | value under `current` untouched and not reported as changed; value under a previous key re-encrypted and opening with `current` only; nested objects and arrays walked; keys not starting with `encrypted_`, empty strings and non-strings untouched; large numbers kept as written; a value no key opens fails with its JSON path; with no previous key, a value under another key fails |
+| `config/secret_key.go`, `config/config.go` | `config/secret_key_test.go`, `config/config_test.go` | one key without a comma read byte for byte, quotes included, not marked as a list; `new,old` gives `SecretKey` new and `PreviousSecretKeys` old with its quoted forms, marked as a list; quotes around the whole list removed; two commas read as one inside a key, alone or among others; spaces around keys trimmed; an empty key refused; a first key starting or ending with a quote refused; a duplicate dropped; a legacy key with a comma refused when its first piece is short, with the doubled-comma hint; first value the compose default refused in every encoding and in quotes, through `PASETO_PRIVATE_KEY` naming it; placeholder refused; first value under 32 bytes refused with the rotation remedy, at 32 accepted; the compose default as a previous value accepted; `JWTSecret` derived from the first value only; `loadSystemSettings` opens a setting under a previous value |
+| `pkg/crypto/reencrypt.go` (`ReencryptValue`, `ReencryptFields`) | `pkg/crypto/reencrypt_test.go` | value under `current` untouched and not reported as changed; value under a previous key re-encrypted and opening with `current` only; nested objects and arrays walked; keys not starting with `encrypted_`, empty strings and non-strings untouched; large numbers kept as written; a value no key opens fails with its JSON path; with no previous key, a value under another key fails |
 | `internal/domain` (encrypted field names) | `workspace_encrypted_fields_test.go` | every `Encrypted*` field reachable from `Workspace` and `Integration` has a JSON name starting with `encrypted_` |
-| `internal/repository/secret_key_rotation.go` | `secret_key_rotation_test.go` | the advisory lock is taken first; a workspace row under a previous key updated (settings and integrations only), one under the first value not updated; settings `encrypted_*` rows re-encrypted, other settings untouched; a value no key opens rolls back with the workspace id or setting key in the error; nothing runs with no previous value |
+| `internal/repository/secret_key_rotation.go` | `secret_key_rotation_test.go` | the advisory lock is taken first; rows read in id and key order; a workspace row under a previous key updated (settings and integrations only), one under the first value not updated; with no previous key, values are only checked and nothing is updated; settings `encrypted_*` rows re-encrypted, other settings untouched; a value no key opens rolls back with the workspace id or setting key in the error |
 | `internal/repository/workspace_postgres.go` | `workspace_postgres_test.go` | `Update` and `Create` with an integration echoing a form under another key, or a value that is no ciphertext, write nothing and return `ErrStaleCredential`; a form under the current key saves |
 | `internal/http/workspace_handler.go` | `workspace_handler_test.go` | `ErrStaleCredential` answers 400 on workspace update and integration create and update; existing invitation cases (404 for every dead link) |
-| `internal/app/app.go` | `app_test.go` | re-encryption runs before the repositories when previous values exist, not otherwise |
+| `internal/app/app.go` | `app_test.go` | the startup check runs right after the database is ready when the value was a list, not otherwise |
 | `internal/repository/auth_repository.go` | `auth_repository_test.go` | query selects `name` and `type`, both are scanned |
 | `internal/service/auth_service.go` | `auth_service_test.go` | API key token naming a regular user refused; naming an API key user accepted; revoked key still answers `ErrAPIKeyRevoked`; session token whose user is an API key user refused; invitation token without `exp` refused; a session token refused as an invitation token |
 | `internal/service/user_service.go` | `user_service_test.go` | `VerifyUserSession` for an API key user refused with `ErrSessionAuthFailed`; regular user accepted |
@@ -224,7 +234,7 @@ storing a value that is no ciphertext at all.
 | `internal/domain/contact.go` | `contact_test.go` | existing `VerifyEmailHMAC` cases pass with the constant-time comparison |
 | `internal/service/demo_service.go` | `demo_service_test.go` | root person gets a session of its own whose context `AuthService` accepts, closed at the end; a session that cannot be closed only logs; a root API key account opens no session; a session that cannot be opened stops the seed; a session signed out meanwhile counts as closed; a refused workspace check stops the seed |
 | `cmd/hmac/main.go` | `cmd/hmac/main_test.go` | prints the HMAC and reset URL the server verifies; given a list, signs with its first value; missing arguments print the usage and exit 1 |
-| full stack | `tests/integration/secret_key_rotation_test.go` | a workspace with integration credentials (an SMTP integration with username and password among them) and encrypted system settings stored under key A; an app started with `B,A` re-encrypts them: every raw `encrypted_*` value opens with B and not A, credentials unchanged through the API; a second start with `B,A` changes nothing; a start with `C,D` fails and leaves every row as it was; root sign-in and a JWT signed with A refused, with B accepted; an integration save echoing a form under A answers 400 and writes nothing |
+| full stack | `tests/integration/secret_key_rotation_test.go` | a workspace with integration credentials (an SMTP integration with username and password among them) and encrypted system settings stored under key A; an app started with `B,A` re-encrypts them: every raw `encrypted_*` value opens with B and not A, credentials unchanged through the API; a second start with `B,A` changes nothing; a start with `C,D` fails and leaves every row as it was; a start with a legacy key containing a comma, written once, fails, and written twice starts; root sign-in and a JWT signed with A refused, with B accepted; an integration save echoing a form under A answers 400 and writes nothing |
 | full stack | `tests/integration/auth_hardening_test.go` (from `signing_key_test.go`) | an API key token naming the owner refused while a real API key works; invitation tokens naming another email or workspace refused, seating nobody; the issued token accepted once and 404 after; an expired link and one signed with another key answer 404 on verify and accept; inviting an API key address answers 403; no `settings.encrypted_secret_key` in `verifyInvitationToken` or `workspaces.get`; `/api/settings.get` answers a root session only |
 
 ## Test run

@@ -1,0 +1,193 @@
+package crypto
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+const (
+	reencryptCurrentKey = "current-key-for-reencrypt-tests-32+"
+	reencryptOldKey     = "old-key-for-reencrypt-tests-32-bytes"
+	reencryptOlderKey   = "older-key-for-reencrypt-tests-32bytes"
+)
+
+func mustEncrypt(t *testing.T, plaintext, key string) string {
+	t.Helper()
+	enc, err := EncryptString(plaintext, key)
+	require.NoError(t, err)
+	return enc
+}
+
+// opensWith returns the plaintext under key, or "" and false.
+func opensWith(value, key string) (string, bool) {
+	plain, err := DecryptFromHexString(value, key)
+	return plain, err == nil
+}
+
+func TestReencryptValue(t *testing.T) {
+	t.Run("a value under the current key is left as it is", func(t *testing.T) {
+		value := mustEncrypt(t, "secret", reencryptCurrentKey)
+
+		got, changed, err := ReencryptValue(value, reencryptCurrentKey, []string{reencryptOldKey})
+
+		require.NoError(t, err)
+		assert.False(t, changed)
+		assert.Equal(t, value, got)
+	})
+
+	t.Run("a value under a previous key comes back under the current key only", func(t *testing.T) {
+		value := mustEncrypt(t, "secret", reencryptOlderKey)
+
+		got, changed, err := ReencryptValue(value, reencryptCurrentKey, []string{reencryptOldKey, reencryptOlderKey})
+
+		require.NoError(t, err)
+		assert.True(t, changed)
+		plain, ok := opensWith(got, reencryptCurrentKey)
+		require.True(t, ok)
+		assert.Equal(t, "secret", plain)
+		_, ok = opensWith(got, reencryptOlderKey)
+		assert.False(t, ok)
+	})
+
+	t.Run("a value no key opens is refused", func(t *testing.T) {
+		value := mustEncrypt(t, "secret", "some-other-key-nobody-listed-32bytes")
+
+		_, _, err := ReencryptValue(value, reencryptCurrentKey, []string{reencryptOldKey})
+
+		assert.True(t, errors.Is(err, ErrUndecryptable))
+	})
+
+	t.Run("without previous keys, a value under another key is refused", func(t *testing.T) {
+		value := mustEncrypt(t, "secret", reencryptOldKey)
+
+		_, _, err := ReencryptValue(value, reencryptCurrentKey, nil)
+
+		assert.True(t, errors.Is(err, ErrUndecryptable))
+	})
+
+	t.Run("a value that is no ciphertext is refused", func(t *testing.T) {
+		_, _, err := ReencryptValue("not-hex-at-all", reencryptCurrentKey, []string{reencryptOldKey})
+
+		assert.True(t, errors.Is(err, ErrUndecryptable))
+	})
+}
+
+func TestReencryptFields(t *testing.T) {
+	t.Run("a document whose values open with the current key comes back byte for byte", func(t *testing.T) {
+		doc := []byte(fmt.Sprintf(`{"name": "x",  "encrypted_secret_key": %q}`,
+			mustEncrypt(t, "workspace-key", reencryptCurrentKey)))
+
+		got, changed, err := ReencryptFields(doc, reencryptCurrentKey, []string{reencryptOldKey})
+
+		require.NoError(t, err)
+		assert.False(t, changed)
+		assert.Equal(t, doc, got)
+	})
+
+	t.Run("values under a previous key are re-encrypted wherever they are nested", func(t *testing.T) {
+		doc := []byte(fmt.Sprintf(`[
+			{"id": "smtp", "email_provider": {"kind": "smtp", "smtp": {
+				"host": "smtp.example.com",
+				"encrypted_username": %q,
+				"encrypted_password": %q}}},
+			{"id": "llm", "llm_provider": {"anthropic": {"encrypted_api_key": %q}}}
+		]`,
+			mustEncrypt(t, "user", reencryptOldKey),
+			mustEncrypt(t, "pass", reencryptOldKey),
+			mustEncrypt(t, "sk-ant", reencryptCurrentKey)))
+
+		got, changed, err := ReencryptFields(doc, reencryptCurrentKey, []string{reencryptOldKey})
+
+		require.NoError(t, err)
+		assert.True(t, changed)
+		var out []map[string]any
+		require.NoError(t, json.Unmarshal(got, &out))
+		smtp := out[0]["email_provider"].(map[string]any)["smtp"].(map[string]any)
+		assert.Equal(t, "smtp.example.com", smtp["host"])
+		for field, want := range map[string]string{"encrypted_username": "user", "encrypted_password": "pass"} {
+			plain, ok := opensWith(smtp[field].(string), reencryptCurrentKey)
+			require.True(t, ok, field)
+			assert.Equal(t, want, plain, field)
+			_, ok = opensWith(smtp[field].(string), reencryptOldKey)
+			assert.False(t, ok, field)
+		}
+		apiKey := out[1]["llm_provider"].(map[string]any)["anthropic"].(map[string]any)["encrypted_api_key"].(string)
+		plain, ok := opensWith(apiKey, reencryptCurrentKey)
+		require.True(t, ok)
+		assert.Equal(t, "sk-ant", plain)
+	})
+
+	t.Run("other keys, empty strings and values that are not strings are left alone", func(t *testing.T) {
+		doc := []byte(fmt.Sprintf(`{
+			"secret_key": "plain-not-ours",
+			"encrypted_password": "",
+			"encrypted_flag": true,
+			"encrypted_count": 3,
+			"nested": {"encrypted_api_key": %q}
+		}`, mustEncrypt(t, "k", reencryptOldKey)))
+
+		got, changed, err := ReencryptFields(doc, reencryptCurrentKey, []string{reencryptOldKey})
+
+		require.NoError(t, err)
+		assert.True(t, changed)
+		var out map[string]any
+		require.NoError(t, json.Unmarshal(got, &out))
+		assert.Equal(t, "plain-not-ours", out["secret_key"])
+		assert.Equal(t, "", out["encrypted_password"])
+		assert.Equal(t, true, out["encrypted_flag"])
+		assert.Equal(t, float64(3), out["encrypted_count"])
+	})
+
+	t.Run("numbers are kept as written", func(t *testing.T) {
+		doc := []byte(fmt.Sprintf(`{"big": 12345678901234567890, "ratio": 0.1, "encrypted_secret_key": %q}`,
+			mustEncrypt(t, "k", reencryptOldKey)))
+
+		got, changed, err := ReencryptFields(doc, reencryptCurrentKey, []string{reencryptOldKey})
+
+		require.NoError(t, err)
+		assert.True(t, changed)
+		assert.Contains(t, string(got), `"big":12345678901234567890`)
+		assert.Contains(t, string(got), `"ratio":0.1`)
+	})
+
+	t.Run("a value no key opens fails with its path and changes nothing", func(t *testing.T) {
+		doc := []byte(fmt.Sprintf(`[{"email_provider": {"smtp": {"encrypted_password": %q}}}]`,
+			mustEncrypt(t, "pass", "a-key-nobody-listed-for-this-test-32b")))
+
+		got, _, err := ReencryptFields(doc, reencryptCurrentKey, []string{reencryptOldKey})
+
+		require.Error(t, err)
+		assert.True(t, errors.Is(err, ErrUndecryptable))
+		assert.Contains(t, err.Error(), "[0].email_provider.smtp.encrypted_password")
+		assert.Nil(t, got)
+	})
+
+	t.Run("without previous keys it only checks: a value under another key fails", func(t *testing.T) {
+		doc := []byte(fmt.Sprintf(`{"encrypted_secret_key": %q}`, mustEncrypt(t, "k", reencryptOldKey)))
+
+		_, _, err := ReencryptFields(doc, reencryptCurrentKey, nil)
+
+		assert.True(t, errors.Is(err, ErrUndecryptable))
+	})
+
+	t.Run("an empty or null document is left alone", func(t *testing.T) {
+		for _, doc := range [][]byte{nil, []byte("null"), []byte("[]")} {
+			got, changed, err := ReencryptFields(doc, reencryptCurrentKey, []string{reencryptOldKey})
+
+			require.NoError(t, err, string(doc))
+			assert.False(t, changed, string(doc))
+			assert.Equal(t, doc, got, string(doc))
+		}
+	})
+
+	t.Run("a document that is not JSON is refused", func(t *testing.T) {
+		_, _, err := ReencryptFields([]byte("{not json"), reencryptCurrentKey, nil)
+
+		assert.Error(t, err)
+	})
+}
