@@ -15,7 +15,7 @@ RootSigninRequest:
     signature:
       type: string
       description: |
-        HMAC-SHA256 signature computed as: HMAC-SHA256(email + ":" + timestamp, SECRET_KEY)
+        HMAC-SHA256 signature computed as: HMAC-SHA256(email + ":" + timestamp, SECRET_KEY), with the first key when SECRET_KEY lists several.
         The signature should be hex-encoded.
       example: a1b2c3d4e5f6...
   required:

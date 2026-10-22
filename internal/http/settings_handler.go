@@ -168,14 +168,32 @@ func NewSettingsHandler(
 func (h *SettingsHandler) requireRootUser(w http.ResponseWriter, r *http.Request) *domain.User {
 	ctx := r.Context()
 
-	userID, ok := ctx.Value(domain.UserIDKey).(string)
-	if !ok || userID == "" {
+	userID, _ := ctx.Value(domain.UserIDKey).(string)
+	if userID == "" {
 		WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return nil
 	}
 
-	user, err := h.userService.GetUserByID(ctx, userID)
+	// Root is a person, so only a live session of a person's account gets through. An
+	// API key is never root, whatever account it names: refused as a credential that
+	// lacks the access, not as a dead one.
+	if !isConsoleSession(ctx) {
+		WriteJSONError(w, "Forbidden: root user access required", http.StatusForbidden)
+		return nil
+	}
+	sessionID, _ := ctx.Value(domain.SessionIDKey).(string)
+	if sessionID == "" {
+		WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return nil
+	}
+
+	user, err := h.userService.VerifyUserSession(ctx, userID, sessionID)
 	if err != nil {
+		if sessionCheckStatus(err) != http.StatusUnauthorized {
+			h.logger.WithField("error", err.Error()).Error("Failed to verify session")
+			WriteJSONError(w, "Failed to verify session", http.StatusInternalServerError)
+			return nil
+		}
 		WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return nil
 	}

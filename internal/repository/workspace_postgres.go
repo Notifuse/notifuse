@@ -14,6 +14,7 @@ import (
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/crypto"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 )
 
@@ -94,6 +95,11 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 		return err
 	}
 
+	settings, integrations, err := r.workspaceDocuments(workspace)
+	if err != nil {
+		return err
+	}
+
 	// STEP 1: Create the workspace database FIRST
 	// If this fails (e.g., due to permissions), no system record is created
 	if err := r.CreateDatabase(ctx, workspace.ID); err != nil {
@@ -101,22 +107,6 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 	}
 
 	// STEP 2: Now insert the workspace record into system database
-	// Marshal settings to JSON
-	settings, err := json.Marshal(workspace.Settings)
-	if err != nil {
-		// Clean up: delete the database we just created
-		_ = r.DeleteDatabase(ctx, workspace.ID)
-		return err
-	}
-
-	// Marshal integrations to JSON
-	integrations, err := json.Marshal(workspace.Integrations)
-	if err != nil {
-		// Clean up: delete the database we just created
-		_ = r.DeleteDatabase(ctx, workspace.ID)
-		return err
-	}
-
 	query := `
 		INSERT INTO workspaces (id, name, settings, integrations, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6)
@@ -140,6 +130,27 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 	}
 
 	return nil
+}
+
+// workspaceDocuments marshals the settings and integrations of a workspace that went
+// through BeforeSave, refusing a credential the workspace uses that the secret key does
+// not open: once written, every load of the workspace would fail on it.
+func (r *workspaceRepository) workspaceDocuments(workspace *domain.Workspace) ([]byte, []byte, error) {
+	settings, err := json.Marshal(workspace.Settings)
+	if err != nil {
+		return nil, nil, err
+	}
+	integrations, err := json.Marshal(workspace.Integrations)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := domain.CheckStoredWorkspace(settings, integrations, r.secretKey); err != nil {
+		if errors.Is(err, crypto.ErrUndecryptable) {
+			return nil, nil, fmt.Errorf("%w: %v", domain.ErrStaleCredential, err)
+		}
+		return nil, nil, err
+	}
+	return settings, integrations, nil
 }
 
 func (r *workspaceRepository) GetByID(ctx context.Context, id string) (*domain.Workspace, error) {
@@ -289,14 +300,7 @@ func (r *workspaceRepository) Update(ctx context.Context, workspace *domain.Work
 		return err
 	}
 
-	// Marshal settings to JSON
-	settings, err := json.Marshal(workspace.Settings)
-	if err != nil {
-		return err
-	}
-
-	// Marshal integrations to JSON
-	integrations, err := json.Marshal(workspace.Integrations)
+	settings, integrations, err := r.workspaceDocuments(workspace)
 	if err != nil {
 		return err
 	}

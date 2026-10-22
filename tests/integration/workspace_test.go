@@ -880,7 +880,8 @@ func TestWorkspaceMembershipSuite(t *testing.T) {
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
-			assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+			// 404, not 401: the console signs out on any 401.
+			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 
 			// Restore owner token
 			client.SetToken(ownerToken)
@@ -895,7 +896,8 @@ func TestWorkspaceMembershipSuite(t *testing.T) {
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
-			assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+			// 404, not 401: the console signs out on any 401.
+			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 
 			// Restore owner token
 			client.SetToken(ownerToken)

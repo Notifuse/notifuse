@@ -871,6 +871,17 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 	// Check if user already exists with this email. Case-insensitive: single sign-on creates
 	// accounts under the provider's lower-cased address, and invitations keep the owner's typing.
 	existingUser, err := s.userRepo.GetUserByEmailInsensitive(ctx, email)
+	var userNotFound *domain.ErrUserNotFound
+	if err != nil && !errors.As(err, &userNotFound) {
+		// Not knowing the account is not knowing it is no API key's.
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to look up the invitee's account")
+		return nil, "", fmt.Errorf("failed to look up user: %w", err)
+	}
+	if err == nil && existingUser != nil && existingUser.Type == domain.UserTypeAPIKey {
+		// An API key account has an address of its own, under the API domain. Seating it
+		// here would hand another workspace's key access to this one.
+		return nil, "", &domain.ErrUnauthorized{Message: "this address belongs to an API key and cannot be invited"}
+	}
 	if err == nil && existingUser != nil {
 		// User exists, check if they're already a member
 		isMember, err := s.repo.IsUserWorkspaceMember(ctx, existingUser.ID, workspaceID)
@@ -913,8 +924,8 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 		return nil, "", nil
 	}
 
-	// No account, an account with its invitation still pending, or a lookup error (treated as
-	// no account for security): create or refresh the invitation.
+	// No account, or an account with its invitation still pending: create or refresh the
+	// invitation.
 	// Create an invitation. CreateInvitation may replace this id with the one of an existing
 	// invitation for the address, so read it back from invitation.ID afterwards.
 	expiresAt := time.Now().UTC().Add(15 * 24 * time.Hour) // 15 days
@@ -1584,29 +1595,69 @@ func (s *WorkspaceService) GetInvitationByID(ctx context.Context, invitationID s
 
 // AcceptInvitation processes an invitation acceptance by creating a user if needed and adding them to the workspace
 func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, workspaceID, email string) (*domain.AuthResponse, error) {
+	// Until the invitation is loaded, the signed token says where the attempt belongs,
+	// not the workspace the request body claims.
+	audit := domain.AuditFromContext(ctx)
+	if audit != nil {
+		audit.SetWorkspace(workspaceID)
+		audit.SetTarget(domain.AuditTargetInvitation, invitationID, email)
+	}
+
 	// Get the invitation to retrieve permissions
 	invitation, err := s.repo.GetInvitationByID(ctx, invitationID)
 	if err != nil {
+		if errors.Is(err, domain.ErrInvitationNotFound) {
+			// Accepted already, or cancelled: the link has nothing left to open.
+			audit.Fail("invitation_not_found")
+			return nil, domain.ErrInvitationUnavailable
+		}
 		s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Error("Failed to get invitation")
-		return nil, fmt.Errorf("invitation not found: %w", err)
+		return nil, fmt.Errorf("failed to get invitation: %w", err)
+	}
+
+	// Named before any check, as JoinInvitation does: a refused attempt belongs in the
+	// invitation's workspace audit log too.
+	if audit != nil {
+		audit.SetWorkspace(invitation.WorkspaceID)
+		audit.SetTarget(domain.AuditTargetInvitation, invitation.ID, invitation.Email)
+	}
+
+	// The token only points at the invitation; the stored row says which workspace and
+	// which address it admits, and until when. Every token Notifuse issues copies those
+	// values exactly, so any difference means the token was not issued for this row.
+	if invitation.WorkspaceID != workspaceID || invitation.Email != email {
+		s.logger.WithField("invitation_id", invitationID).WithField("workspace_id", workspaceID).Warn("Invitation token does not match its invitation")
+		audit.Fail("invitation_mismatch")
+		return nil, domain.ErrInvitationUnavailable
+	}
+	if !time.Now().Before(invitation.ExpiresAt) {
+		audit.Fail("invitation_expired")
+		return nil, domain.ErrInvitationUnavailable
 	}
 
 	// Check if user already exists. Case-insensitive: an invitee who signed in with SSO first
 	// has an account under the provider's lower-cased address, and this link carries the
 	// owner's typing — an exact match would give them a second account.
-	existingUser, err := s.userRepo.GetUserByEmailInsensitive(ctx, email)
+	existingUser, err := s.userRepo.GetUserByEmailInsensitive(ctx, invitation.Email)
 	var user *domain.User
 
 	var userNotFound *domain.ErrUserNotFound
 	if err != nil && !errors.As(err, &userNotFound) {
-		s.logger.WithField("email", email).WithField("error", err.Error()).Error("Failed to look up the invitee's account")
+		s.logger.WithField("email", invitation.Email).WithField("error", err.Error()).Error("Failed to look up the invitee's account")
 		return nil, fmt.Errorf("failed to look up user: %w", err)
+	}
+	if err == nil && existingUser.Type != domain.UserTypeUser {
+		// API key accounts carry an email of their own but are not people: an
+		// invitation must not open a session for one.
+		s.logger.WithField("invitation_id", invitationID).WithField("user_id", existingUser.ID).Warn("Invitation addressed to an account that is not a user")
+		audit.Fail("api_key_identity")
+		return nil, domain.ErrInvitationUnavailable
 	}
 	if err != nil {
 		// User doesn't exist, create a new one
 		user = &domain.User{
 			ID:        uuid.New().String(),
-			Email:     email,
+			Email:     invitation.Email,
 			Name:      "", // User can update this later
 			Type:      domain.UserTypeUser,
 			CreatedAt: time.Now().UTC(),
@@ -1614,12 +1665,18 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 		}
 
 		err = s.userRepo.CreateUser(ctx, user)
+		var userExists *domain.ErrUserExists
+		if errors.As(err, &userExists) {
+			// Created a moment ago by the same link accepted twice at once.
+			audit.Fail("already_member")
+			return nil, domain.ErrInvitationUnavailable
+		}
 		if err != nil {
-			s.logger.WithField("email", email).WithField("error", err.Error()).Error("Failed to create user for invitation acceptance")
+			s.logger.WithField("email", invitation.Email).WithField("error", err.Error()).Error("Failed to create user for invitation acceptance")
 			return nil, fmt.Errorf("failed to create user: %w", err)
 		}
 
-		s.logger.WithField("user_id", user.ID).WithField("email", email).Info("Created new user from invitation acceptance")
+		s.logger.WithField("user_id", user.ID).WithField("email", invitation.Email).Info("Created new user from invitation acceptance")
 	} else {
 		user = existingUser
 
@@ -1636,7 +1693,9 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 			if err := s.repo.DeleteInvitationByEmail(ctx, workspaceID, invitation.Email); err != nil {
 				s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Warn("Failed to delete invitation after finding user is already a member")
 			}
-			return nil, fmt.Errorf("user is already a member of the workspace")
+			// Typically the same link accepted twice at once: it has nothing left to open.
+			audit.Fail("already_member")
+			return nil, domain.ErrInvitationUnavailable
 		}
 	}
 
@@ -1692,11 +1751,7 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 	s.logger.WithField("user_id", user.ID).WithField("workspace_id", workspaceID).WithField("invitation_id", invitationID).Info("Successfully accepted invitation and created session")
 
 	// The invitee is the actor: this request carries no session yet.
-	if audit := domain.AuditFromContext(ctx); audit != nil {
-		audit.SetActor(user, nil, false)
-		audit.SetWorkspace(workspaceID)
-		audit.SetTarget(domain.AuditTargetInvitation, invitationID, email)
-	}
+	audit.SetActor(user, nil, false)
 
 	return &domain.AuthResponse{
 		Token:     token,
@@ -1728,8 +1783,8 @@ func (s *WorkspaceService) ensureSeat(ctx context.Context, workspaceID, email st
 }
 
 // isSessionUser reports whether the request is a person's console session rather than an
-// API key. It reads the token's type claim, which the auth middleware puts in the context:
-// the users row AuthenticateUserFromContext loads does not carry the type.
+// API key. It reads the token's type claim, which the auth middleware puts in the context
+// and AuthenticateUserFromContext holds to the account's own type.
 func isSessionUser(ctx context.Context) bool {
 	userType, _ := ctx.Value(domain.UserTypeKey).(string)
 	return userType == string(domain.UserTypeUser)

@@ -16,7 +16,7 @@
 
       **How to generate the signature:**
       ```bash
-      SECRET_KEY="your-notifuse-secret-key"
+      SECRET_KEY="your-notifuse-secret-key"  # the first key when SECRET_KEY lists several
       ROOT_EMAIL="admin@example.com"
       TIMESTAMP=$(date +%s)
       MESSAGE="${ROOT_EMAIL}:${TIMESTAMP}"
