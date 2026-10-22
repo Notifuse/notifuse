@@ -18,8 +18,9 @@ import CodePreview from '../ui/CodePreview'
  * Iframe component with sandbox security and auto-height adjustment
  *
  * Security Features:
- * - Uses iframe sandbox with "allow-same-origin" to prevent script execution
- * - Removes direct DOM access from the parent document
+ * - Uses iframe sandbox with "allow-same-origin" only: no script, no new window
+ * - Inert: no click or key reaches the frame, or a frame within it, so no link in
+ *   the HTML is followed, whatever key is held
  * - Isolates the HTML content in a separate browsing context
  *
  * Auto-Height Features:
@@ -33,12 +34,6 @@ import CodePreview from '../ui/CodePreview'
  * @param style - Optional inline styles for the iframe
  * @param emailTree - The email template tree to extract mj-style and mj-font content
  */
-
-// A click in the frame does nothing but what the pointer does there (select text,
-// scroll): a link opens no tab, no app, and leaves the frame on the block's HTML,
-// as on the rest of the canvas. The same listener is added once per document.
-const preventDefault = (event: Event) => event.preventDefault()
-
 const SandboxedIframe: React.FC<{
   htmlContent: string
   className?: string
@@ -182,23 +177,11 @@ const SandboxedIframe: React.FC<{
       }, 50) // 50ms debounce
     }
 
-    const preventLinks = () => {
-      const iframeDoc = iframe.contentDocument
-      if (!iframeDoc) return
-      iframeDoc.addEventListener('click', preventDefault, true)
-      iframeDoc.addEventListener('auxclick', preventDefault, true)
-    }
+    // Set up height adjustment after iframe loads
+    iframe.onload = adjustHeight
 
-    const settle = () => {
-      preventLinks()
-      adjustHeight()
-    }
-
-    // Set up link prevention and height adjustment after iframe loads
-    iframe.onload = settle
-
-    // Single fallback, for a document parsed before it has loaded
-    const fallbackTimeout = setTimeout(settle, 200)
+    // Single fallback adjustment
+    const fallbackTimeout = setTimeout(adjustHeight, 200)
 
     // Cleanup function
     return () => {
@@ -224,9 +207,11 @@ const SandboxedIframe: React.FC<{
         ...style
       }}
       className={className}
-      // No script and no new window. Same origin only, for the canvas to size the
-      // frame and keep its links from being followed.
+      // No script and no new window. Same origin only, for the canvas to size the frame.
       sandbox="allow-same-origin"
+      // React 18's typings predate `inert`, and a boolean `true` is dropped with a
+      // DOM warning, so it is spread as the empty string.
+      {...({ inert: '' } as unknown as { inert?: string })}
       title="Raw HTML Content Preview"
       loading="lazy"
       referrerPolicy="no-referrer"
@@ -446,7 +431,7 @@ export class MjRawBlock extends BaseEmailBlock {
           ...selectionStyle
         }}
       >
-        {/* Overlay div to capture clicks when iframe is present */}
+        {/* Overlay div to capture clicks over the iframe, which takes none */}
         <div
           style={{
             position: 'absolute',
@@ -454,20 +439,13 @@ export class MjRawBlock extends BaseEmailBlock {
             left: 0,
             right: 0,
             bottom: 0,
-            zIndex: isSelected ? -1 : 1, // Lower z-index when selected to allow iframe interaction
+            zIndex: 1,
             backgroundColor: 'transparent',
             cursor: 'pointer'
           }}
           onClick={handleClick}
         />
-        <SandboxedIframe
-          htmlContent={content}
-          className={attrs.cssClass}
-          style={{
-            pointerEvents: isSelected ? 'auto' : 'none' // Enable iframe interaction when selected
-          }}
-          emailTree={emailTree}
-        />
+        <SandboxedIframe htmlContent={content} className={attrs.cssClass} emailTree={emailTree} />
         {/* Selection indicator */}
         {isSelected && (
           <div

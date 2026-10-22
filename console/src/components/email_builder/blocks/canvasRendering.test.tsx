@@ -200,49 +200,23 @@ describe('editor canvas links keep only navigable targets', () => {
 })
 
 describe('editor canvas raw HTML', () => {
-  it('shows it in a frame that opens no window and runs nothing', () => {
+  it.each([
+    ['not selected', null],
+    ['selected', 'b-raw']
+  ])('shows it, %s, in a frame that opens no window and takes no click or key', (_, selected) => {
     const block = {
       id: 'b-raw',
       type: 'mj-raw',
       attributes: {},
       content: '<a href="https://example.com" target="_blank">x</a>'
     } as unknown as EmailBlock
-    const { container } = render(<>{new MjRawBlock(block).getEdit(previewProps())}</>)
+    const props = { ...previewProps(), selectedBlockId: selected } as PreviewProps
+    const { container } = render(<>{new MjRawBlock(block).getEdit(props)}</>)
+    const iframe = container.querySelector('iframe')
 
     // Same origin only, for the canvas to size the frame to its content
-    expect(container.querySelector('iframe')?.getAttribute('sandbox')).toBe('allow-same-origin')
-  })
-
-  it('lets no click in its frame follow a link, once the frame has loaded', () => {
-    const block = {
-      id: 'b-raw',
-      type: 'mj-raw',
-      attributes: {},
-      content: '<a href="https://example.com">x</a>'
-    } as unknown as EmailBlock
-    const props = { ...previewProps(), selectedBlockId: 'b-raw' } as PreviewProps
-    const { container } = render(<>{new MjRawBlock(block).getEdit(props)}</>)
-    const iframe = container.querySelector('iframe') as HTMLIFrameElement
-    const frameDocument = iframe.contentDocument as Document
-    frameDocument.body.innerHTML =
-      '<a href="https://example.com/x" target="_blank">blank</a>' +
-      '<a href="#top">anchor</a><map name="m"><area href="https://example.com/y"></map>'
-    fireEvent.load(iframe)
-
-    const view = frameDocument.defaultView as Window & typeof globalThis
-    const clicks: [string, MouseEventInit][] = [
-      ['click', { button: 0 }],
-      ['click', { button: 0, ctrlKey: true }],
-      ['click', { button: 0, shiftKey: true }],
-      ['click', { button: 0, metaKey: true }],
-      ['auxclick', { button: 1 }]
-    ]
-    for (const element of frameDocument.querySelectorAll('a, area')) {
-      for (const [type, init] of clicks) {
-        const event = new view.MouseEvent(type, { ...init, bubbles: true, cancelable: true })
-        element.dispatchEvent(event)
-        expect(event.defaultPrevented, `${type} ${JSON.stringify(init)}`).toBe(true)
-      }
-    }
+    expect(iframe?.getAttribute('sandbox')).toBe('allow-same-origin')
+    // Inert: no pointer or key reaches the frame, or a frame within it
+    expect(iframe).toHaveAttribute('inert', '')
   })
 })

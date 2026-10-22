@@ -146,8 +146,8 @@ const template = templateWith([
 ])
 
 // Raw HTML whose links would each leave the canvas their own way: a new tab, the
-// block's own frame, and an anchor, which a srcdoc frame resolves against the
-// console's URL
+// block's own frame, an anchor, which a srcdoc frame resolves against the
+// console's URL, and a frame of the content's own
 const rawTemplate = templateWith([
   {
     id: 'raw-x',
@@ -156,7 +156,8 @@ const rawTemplate = templateWith([
       '<p id="top">Raw block</p>' +
       '<a href="https://example.com/raw-tab" target="_blank">new tab</a> ' +
       '<a href="https://example.com/raw-frame">same frame</a> ' +
-      '<a href="#top">anchor</a>'
+      '<a href="#top">anchor</a>' +
+      `<iframe srcdoc="<a href='https://example.com/raw-nested'>nested</a>"></iframe>`
   }
 ])
 
@@ -297,7 +298,9 @@ test.describe('Template content in the email editor', () => {
     await expect(frame.contentFrame().getByText('Compiled')).toBeVisible()
   })
 
-  test('raw HTML block follows none of its links', async ({ authenticatedPageWithData: page }) => {
+  test('raw HTML block takes no click or key, and so follows none of its links', async ({
+    authenticatedPageWithData: page
+  }) => {
     await page.context().route('https://example.com/**', (route) =>
       route.fulfill({ contentType: 'text/html', body: '<p>Away</p>' })
     )
@@ -307,31 +310,50 @@ test.describe('Template content in the email editor', () => {
 
     const block = drawer.locator('[data-block-id="raw-x"]')
     const frame = block.locator('iframe').contentFrame()
+    const nestedFrame = frame.locator('iframe').contentFrame()
     await expect(frame.getByText('Raw block')).toBeVisible()
-    // Selected, the block lets the pointer into its frame
+    await expect(nestedFrame.getByText('nested')).toBeVisible()
+    // Selected, the block still keeps the pointer and the keyboard out of its frame
     await block.click()
-    const frameLocation = () =>
-      block
-        .locator('iframe')
-        .evaluate((element: HTMLIFrameElement) => element.contentDocument?.location.href)
+    const links = [
+      frame.locator('a', { hasText: 'new tab' }),
+      frame.locator('a', { hasText: 'same frame' }),
+      frame.locator('a', { hasText: 'anchor' }),
+      nestedFrame.locator('a', { hasText: 'nested' })
+    ]
 
-    const newTab = frame.getByRole('link', { name: 'new tab' })
-    await newTab.click()
-    await newTab.click({ button: 'middle' })
-    await newTab.click({ modifiers: ['ControlOrMeta'] })
-    await newTab.click({ modifiers: ['Shift'] })
+    for (const link of links) {
+      const box = await link.boundingBox()
+      expect(box).not.toBeNull()
+      if (box === null) continue
+      const [x, y] = [box.x + box.width / 2, box.y + box.height / 2]
+      await page.mouse.click(x, y)
+      await page.mouse.click(x, y, { button: 'middle' })
+      for (const key of ['Control', 'Meta', 'Shift']) {
+        await page.keyboard.down(key)
+        await page.mouse.click(x, y)
+        await page.keyboard.up(key)
+      }
+    }
     await page.waitForTimeout(1000)
     expect(opened).toEqual([])
-
-    for (const name of ['same frame', 'anchor']) {
-      await frame.getByRole('link', { name }).click()
-      await page.waitForTimeout(500)
-      expect(await frameLocation(), name).toBe('about:srcdoc')
-    }
-    await frame.getByRole('link', { name: 'same frame' }).press('Enter')
-    await page.waitForTimeout(500)
-    expect(await frameLocation()).toBe('about:srcdoc')
+    // The frame, and the frame within it, still show the block's HTML
+    const location = (frameElement: Locator) =>
+      frameElement.evaluate((element: HTMLIFrameElement) => element.contentDocument?.location.href)
+    expect(await location(block.locator('iframe'))).toBe('about:srcdoc')
+    expect(await location(frame.locator('iframe'))).toBe('about:srcdoc')
     await expect(frame.getByText('Raw block')).toBeVisible()
+
+    // Nor does Tab, from just before the frame, take the focus into it, for Enter to
+    // follow a link there
+    await block.locator('iframe').evaluate((element) => {
+      const before = element.ownerDocument.createElement('button')
+      before.id = 'before-raw-frame'
+      element.before(before)
+    })
+    await page.locator('#before-raw-frame').focus()
+    await page.keyboard.press('Tab')
+    expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe('IFRAME')
   })
 })
 
