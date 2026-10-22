@@ -171,6 +171,35 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 			assert.Equal(t, renamed, storedName(), "a refused rename leaves the name as it was")
 		})
 
+		// The ID is stored in VARCHAR(20) columns: a longer one is refused with the reason
+		// instead of failing in the insert as a server error.
+		t.Run("workspace ID over 20 characters", func(t *testing.T) {
+			workspaceID := "toolong" + strings.ReplaceAll(uuid.New().String(), "-", "")[:14]
+			require.Len(t, workspaceID, 21)
+			createReq := domain.CreateWorkspaceRequest{
+				ID:   workspaceID,
+				Name: "Long ID Workspace",
+				Settings: domain.WorkspaceSettings{
+					Timezone:        "UTC",
+					DefaultLanguage: "en",
+					Languages:       []string{"en"},
+				},
+			}
+
+			resp, err := client.Post("/api/workspaces.create", createReq)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			var errorResp map[string]string
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&errorResp))
+			assert.Equal(t, "invalid create workspace request: id length must be between 1 and 20", errorResp["error"])
+
+			var count int
+			require.NoError(t, suite.DBManager.GetDB().QueryRow("SELECT COUNT(*) FROM workspaces WHERE id = $1", workspaceID).Scan(&count))
+			assert.Equal(t, 0, count)
+		})
+
 		t.Run("invalid workspace data", func(t *testing.T) {
 			// Missing required fields
 			createReq := domain.CreateWorkspaceRequest{

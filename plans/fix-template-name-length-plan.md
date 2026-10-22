@@ -3,7 +3,7 @@
 Created 2026-10-22 on `dev` @ `5499619`. `VERSION` is `42.0`, unreleased.
 Branch `fix/template-name-length`, one PR to `dev`; a second PR to `dev` on the docs repository for the API reference.
 Amended after Gemini's counter-review (raw answer `reviews/fix-template-name-length-gemini-brut-plan.md` in the project files, each remark checked in `reviews/fix-template-name-length-gemini-verif-plan.md`).
-Amended again after the first max review of `db4912a` (v2): the blog post drawer's template name (C6), the console limits in one module (C7), the workspace ID (B5, C8, pending Pierre's answer), and two "Not in scope" entries. Gemini's second counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v2.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v2.md`.
+Amended again after the first max review of `db4912a` (v2): the blog post drawer's template name (C6), the console limits in one module (C7), the workspace ID (B5, C8, decision 5), and two "Not in scope" entries. Gemini's second counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v2.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v2.md`.
 
 ## Problem
 
@@ -17,11 +17,11 @@ Amended again after the first max review of `db4912a` (v2): the blog post drawer
 
 ## Decisions (Pierre, 2026-10-22)
 
-1. Template name limit raised to 255. *(recommended, awaiting the answer; the alternative keeps 32 and changes only the console)*
+1. Template name limit raised to 255.
 2. IDs stay at 32, no migration: the console cuts generated IDs to 32 and limits the fields; the API answers a clear 400 for a transactional ID over 32 instead of the 500. Length only, no format check added to the API.
 3. Workspace name: the console limits the field to 32 with a counter.
 4. No comment on the issue; the PR closes it.
-5. Workspace ID limited to its column's 20 characters in the API and the console. *(recommended after the max review, awaiting the answer; the alternative leaves it to a later PR and drops B5 and C8)*
+5. Workspace ID limited to its column's 20 characters in the API and the console (asked after the first max review).
 
 No table, column or environment variable changes.
 
@@ -111,7 +111,6 @@ Tests, `pages/CreateWorkspacePage.test.tsx`: the ID input's `maxlength` is 20; a
 
 > - **Improvement**: Template names can now be up to 255 characters (#463), and an accented letter in a template or workspace name counts as one character. The console shows the limit of the name and ID fields of templates, transactional notifications and workspaces as you type, and an ID filled in from a long name now fits its limit. The API now refuses with the reason (400) a transactional notification whose ID is over 32 characters or whose name is over 255, and a new workspace whose ID is over 20 characters.
 
-(Without decision 5, the workspace ID is left out of both sentences.)
 
 ## Not in scope
 

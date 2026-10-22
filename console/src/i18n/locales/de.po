@@ -3609,7 +3609,7 @@ msgstr "Dringlichkeit oder Neugier erzeugen"
 msgid "Create Webhook"
 msgstr "Webhook erstellen"
 
-#: src/pages/CreateWorkspacePage.tsx:194
+#: src/pages/CreateWorkspacePage.tsx:203
 msgid "Create Workspace"
 msgstr "Arbeitsbereich erstellen"
 
@@ -5250,7 +5250,7 @@ msgstr "Namen für diesen Block eingeben"
 msgid "Enter a name for this integration"
 msgstr "Namen für diese Integration eingeben"
 
-#: src/pages/CreateWorkspacePage.tsx:137
+#: src/pages/CreateWorkspacePage.tsx:140
 msgid "Enter a name for your workspace"
 msgstr "Namen für Ihren Arbeitsbereich eingeben"
 
@@ -5832,7 +5832,7 @@ msgstr "Erstellen der Vorlage fehlgeschlagen: {0}"
 #~ msgid "Failed to create the Zapier API key"
 #~ msgstr "Der Zapier-API-Schlüssel konnte nicht erstellt werden"
 
-#: src/pages/CreateWorkspacePage.tsx:92
+#: src/pages/CreateWorkspacePage.tsx:95
 msgid "Failed to create workspace"
 msgstr "Erstellen des Arbeitsbereichs fehlgeschlagen"
 
@@ -7026,7 +7026,7 @@ msgstr "Symbol/Favicon-URL"
 msgid "ID"
 msgstr "ID"
 
-#: src/pages/CreateWorkspacePage.tsx:158
+#: src/pages/CreateWorkspacePage.tsx:161
 msgid "ID can only contain lowercase letters and numbers"
 msgstr "ID kann nur Kleinbuchstaben und Zahlen enthalten"
 
@@ -7043,7 +7043,7 @@ msgstr "ID stimmt nicht überein"
 msgid "ID for API:"
 msgstr "ID für API:"
 
-#: src/pages/CreateWorkspacePage.tsx:165
+#: src/pages/CreateWorkspacePage.tsx:174
 msgid "ID is automatically generated but can be modified if needed"
 msgstr "ID wird automatisch generiert, kann aber bei Bedarf geändert werden"
 
@@ -8723,7 +8723,7 @@ msgid "New Window"
 msgstr "Neues Fenster"
 
 #: src/layouts/WorkspaceLayout.tsx:633
-#: src/pages/CreateWorkspacePage.tsx:105
+#: src/pages/CreateWorkspacePage.tsx:108
 msgid "New workspace"
 msgstr "Neuer Arbeitsbereich"
 
@@ -10011,7 +10011,7 @@ msgstr "Bitte geben Sie eine gültige Bild-URL ein"
 #: src/components/settings/GeneralSettings.tsx:281
 #: src/components/settings/LogoInput.tsx:27
 #: src/components/settings/WebhooksSettings.tsx:283
-#: src/pages/CreateWorkspacePage.tsx:178
+#: src/pages/CreateWorkspacePage.tsx:187
 msgid "Please enter a valid URL"
 msgstr "Bitte geben Sie eine gültige URL ein"
 
@@ -10023,7 +10023,7 @@ msgstr "Bitte geben Sie eine gültige YouTube-URL ein"
 msgid "Please enter a website URL first"
 msgstr "Bitte geben Sie zuerst eine Website-URL ein"
 
-#: src/pages/CreateWorkspacePage.tsx:128
+#: src/pages/CreateWorkspacePage.tsx:131
 msgid "Please enter a workspace name"
 msgstr "Bitte geben Sie einen Arbeitsbereichsnamen ein"
 
@@ -13849,7 +13849,7 @@ msgstr "Dieser Hook blockiert niemals die Supabase-Benutzererstellung bei Fehler
 msgid "This ID belongs to a deleted template and can't be reused"
 msgstr "Diese ID gehört zu einer gelöschten Vorlage und kann nicht wiederverwendet werden"
 
-#: src/pages/CreateWorkspacePage.tsx:148
+#: src/pages/CreateWorkspacePage.tsx:151
 msgid "This ID will be used in URLs and API requests. It can only contain lowercase letters and numbers."
 msgstr "Diese ID wird in URLs und API-Anfragen verwendet. Sie darf nur Kleinbuchstaben und Zahlen enthalten."
 
@@ -15130,7 +15130,7 @@ msgstr "Warnung"
 msgid "Watch out"
 msgstr "Achtung"
 
-#: src/pages/CreateWorkspacePage.tsx:182
+#: src/pages/CreateWorkspacePage.tsx:191
 msgid "We'll automatically detect and use your website's favicon"
 msgstr "Wir erkennen automatisch das Favicon Ihrer Website und verwenden es"
 
@@ -15276,7 +15276,7 @@ msgstr "Einstellungen für die Erfassung des Website-Traffics"
 
 #: src/components/settings/GeneralSettings.tsx:138
 #: src/components/settings/GeneralSettings.tsx:216
-#: src/pages/CreateWorkspacePage.tsx:173
+#: src/pages/CreateWorkspacePage.tsx:182
 msgid "Website URL"
 msgstr "Website-URL"
 
@@ -15453,7 +15453,7 @@ msgid "Workspace"
 msgstr "Arbeitsbereich"
 
 #. placeholder {0}: values.name
-#: src/pages/CreateWorkspacePage.tsx:79
+#: src/pages/CreateWorkspacePage.tsx:82
 msgid "Workspace \"{0}\" created successfully!"
 msgstr "Arbeitsbereich \\\"{0}\\\" erfolgreich erstellt!"
 
@@ -15461,7 +15461,7 @@ msgstr "Arbeitsbereich \\\"{0}\\\" erfolgreich erstellt!"
 msgid "Workspace deleted successfully"
 msgstr "Arbeitsbereich erfolgreich gelöscht"
 
-#: src/pages/CreateWorkspacePage.tsx:147
+#: src/pages/CreateWorkspacePage.tsx:150
 msgid "Workspace ID"
 msgstr "Arbeitsbereich-ID"
 
@@ -15469,15 +15469,19 @@ msgstr "Arbeitsbereich-ID"
 msgid "Workspace ID does not match"
 msgstr "Arbeitsbereich-ID stimmt nicht überein"
 
-#: src/pages/CreateWorkspacePage.tsx:155
+#: src/pages/CreateWorkspacePage.tsx:158
 msgid "Workspace ID is required"
 msgstr "Arbeitsbereich-ID ist erforderlich"
+
+#: src/pages/CreateWorkspacePage.tsx:165
+msgid "Workspace ID must be at most {WORKSPACE_ID_MAX_LENGTH} characters long"
+msgstr "Arbeitsbereich-ID darf höchstens {WORKSPACE_ID_MAX_LENGTH} Zeichen lang sein"
 
 #: src/pages/AcceptInvitationPage.tsx:139
 msgid "Workspace Invitation"
 msgstr "Arbeitsbereich-Einladung"
 
-#: src/pages/CreateWorkspacePage.tsx:90
+#: src/pages/CreateWorkspacePage.tsx:93
 msgid "Workspace limit reached. Please upgrade your plan to create more workspaces."
 msgstr "Die Grenze für Arbeitsbereiche ist erreicht. Bitte aktualisieren Sie Ihren Tarif, um weitere Arbeitsbereiche zu erstellen."
 
@@ -15487,16 +15491,16 @@ msgstr "Arbeitsbereich-Logo"
 
 #: src/components/settings/GeneralSettings.tsx:134
 #: src/components/settings/GeneralSettings.tsx:198
-#: src/pages/CreateWorkspacePage.tsx:125
+#: src/pages/CreateWorkspacePage.tsx:128
 msgid "Workspace Name"
 msgstr "Arbeitsbereichsname"
 
-#: src/pages/CreateWorkspacePage.tsx:129
+#: src/pages/CreateWorkspacePage.tsx:132
 msgid "Workspace name must be at least 3 characters long"
 msgstr "Arbeitsbereichsname muss mindestens 3 Zeichen lang sein"
 
 #: src/components/settings/GeneralSettings.tsx:203
-#: src/pages/CreateWorkspacePage.tsx:132
+#: src/pages/CreateWorkspacePage.tsx:135
 msgid "Workspace name must be at most {WORKSPACE_NAME_MAX_LENGTH} characters long"
 msgstr "Arbeitsbereichsname darf höchstens {WORKSPACE_NAME_MAX_LENGTH} Zeichen lang sein"
 

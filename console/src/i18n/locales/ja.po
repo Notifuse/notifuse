@@ -3609,7 +3609,7 @@ msgstr "緊急性や好奇心を喚起"
 msgid "Create Webhook"
 msgstr "Webhookを作成"
 
-#: src/pages/CreateWorkspacePage.tsx:194
+#: src/pages/CreateWorkspacePage.tsx:203
 msgid "Create Workspace"
 msgstr "ワークスペースを作成"
 
@@ -5250,7 +5250,7 @@ msgstr "このブロックの名前を入力"
 msgid "Enter a name for this integration"
 msgstr "この連携の名前を入力"
 
-#: src/pages/CreateWorkspacePage.tsx:137
+#: src/pages/CreateWorkspacePage.tsx:140
 msgid "Enter a name for your workspace"
 msgstr "ワークスペース名を入力"
 
@@ -5832,7 +5832,7 @@ msgstr "テンプレートの作成に失敗しました: {0}"
 #~ msgid "Failed to create the Zapier API key"
 #~ msgstr "ZapierのAPIキーを作成できませんでした"
 
-#: src/pages/CreateWorkspacePage.tsx:92
+#: src/pages/CreateWorkspacePage.tsx:95
 msgid "Failed to create workspace"
 msgstr "ワークスペースの作成に失敗しました"
 
@@ -7026,7 +7026,7 @@ msgstr "アイコン/ファビコンURL"
 msgid "ID"
 msgstr "ID"
 
-#: src/pages/CreateWorkspacePage.tsx:158
+#: src/pages/CreateWorkspacePage.tsx:161
 msgid "ID can only contain lowercase letters and numbers"
 msgstr "IDは小文字の英字と数字のみ使用できます"
 
@@ -7043,7 +7043,7 @@ msgstr "IDが一致しません"
 msgid "ID for API:"
 msgstr "API用ID:"
 
-#: src/pages/CreateWorkspacePage.tsx:165
+#: src/pages/CreateWorkspacePage.tsx:174
 msgid "ID is automatically generated but can be modified if needed"
 msgstr "IDは自動生成されますが、必要に応じて変更できます"
 
@@ -8723,7 +8723,7 @@ msgid "New Window"
 msgstr "新しいウィンドウ"
 
 #: src/layouts/WorkspaceLayout.tsx:633
-#: src/pages/CreateWorkspacePage.tsx:105
+#: src/pages/CreateWorkspacePage.tsx:108
 msgid "New workspace"
 msgstr "新規ワークスペース"
 
@@ -10011,7 +10011,7 @@ msgstr "有効な画像URLを入力してください"
 #: src/components/settings/GeneralSettings.tsx:281
 #: src/components/settings/LogoInput.tsx:27
 #: src/components/settings/WebhooksSettings.tsx:283
-#: src/pages/CreateWorkspacePage.tsx:178
+#: src/pages/CreateWorkspacePage.tsx:187
 msgid "Please enter a valid URL"
 msgstr "有効なURLを入力してください"
 
@@ -10023,7 +10023,7 @@ msgstr "有効なYouTube URLを入力してください"
 msgid "Please enter a website URL first"
 msgstr "最初にウェブサイトURLを入力してください"
 
-#: src/pages/CreateWorkspacePage.tsx:128
+#: src/pages/CreateWorkspacePage.tsx:131
 msgid "Please enter a workspace name"
 msgstr "ワークスペース名を入力してください"
 
@@ -13849,7 +13849,7 @@ msgstr "このフックはエラー時にSupabaseユーザー作成をブロッ�
 msgid "This ID belongs to a deleted template and can't be reused"
 msgstr "このIDは削除されたテンプレートのものであり、再利用できません"
 
-#: src/pages/CreateWorkspacePage.tsx:148
+#: src/pages/CreateWorkspacePage.tsx:151
 msgid "This ID will be used in URLs and API requests. It can only contain lowercase letters and numbers."
 msgstr "このIDはURLとAPIリクエストで使用されます。小文字と数字のみ使用できます。"
 
@@ -15130,7 +15130,7 @@ msgstr "警告"
 msgid "Watch out"
 msgstr "注意"
 
-#: src/pages/CreateWorkspacePage.tsx:182
+#: src/pages/CreateWorkspacePage.tsx:191
 msgid "We'll automatically detect and use your website's favicon"
 msgstr "ウェブサイトのファビコンを自動検出して使用します"
 
@@ -15276,7 +15276,7 @@ msgstr "Webサイトのトラフィック計測設定"
 
 #: src/components/settings/GeneralSettings.tsx:138
 #: src/components/settings/GeneralSettings.tsx:216
-#: src/pages/CreateWorkspacePage.tsx:173
+#: src/pages/CreateWorkspacePage.tsx:182
 msgid "Website URL"
 msgstr "ウェブサイトURL"
 
@@ -15453,7 +15453,7 @@ msgid "Workspace"
 msgstr "ワークスペース"
 
 #. placeholder {0}: values.name
-#: src/pages/CreateWorkspacePage.tsx:79
+#: src/pages/CreateWorkspacePage.tsx:82
 msgid "Workspace \"{0}\" created successfully!"
 msgstr "ワークスペース「{0}」が正常に作成されました！"
 
@@ -15461,7 +15461,7 @@ msgstr "ワークスペース「{0}」が正常に作成されました！"
 msgid "Workspace deleted successfully"
 msgstr "ワークスペースが正常に削除されました"
 
-#: src/pages/CreateWorkspacePage.tsx:147
+#: src/pages/CreateWorkspacePage.tsx:150
 msgid "Workspace ID"
 msgstr "ワークスペースID"
 
@@ -15469,15 +15469,19 @@ msgstr "ワークスペースID"
 msgid "Workspace ID does not match"
 msgstr "ワークスペースIDが一致しません"
 
-#: src/pages/CreateWorkspacePage.tsx:155
+#: src/pages/CreateWorkspacePage.tsx:158
 msgid "Workspace ID is required"
 msgstr "ワークスペースIDは必須です"
+
+#: src/pages/CreateWorkspacePage.tsx:165
+msgid "Workspace ID must be at most {WORKSPACE_ID_MAX_LENGTH} characters long"
+msgstr "ワークスペースIDは{WORKSPACE_ID_MAX_LENGTH}文字以内にしてください"
 
 #: src/pages/AcceptInvitationPage.tsx:139
 msgid "Workspace Invitation"
 msgstr "ワークスペースへの招待"
 
-#: src/pages/CreateWorkspacePage.tsx:90
+#: src/pages/CreateWorkspacePage.tsx:93
 msgid "Workspace limit reached. Please upgrade your plan to create more workspaces."
 msgstr "ワークスペースの上限に達しました。さらにワークスペースを作成するにはプランをアップグレードしてください。"
 
@@ -15487,16 +15491,16 @@ msgstr "ワークスペースロゴ"
 
 #: src/components/settings/GeneralSettings.tsx:134
 #: src/components/settings/GeneralSettings.tsx:198
-#: src/pages/CreateWorkspacePage.tsx:125
+#: src/pages/CreateWorkspacePage.tsx:128
 msgid "Workspace Name"
 msgstr "ワークスペース名"
 
-#: src/pages/CreateWorkspacePage.tsx:129
+#: src/pages/CreateWorkspacePage.tsx:132
 msgid "Workspace name must be at least 3 characters long"
 msgstr "ワークスペース名は3文字以上必要です"
 
 #: src/components/settings/GeneralSettings.tsx:203
-#: src/pages/CreateWorkspacePage.tsx:132
+#: src/pages/CreateWorkspacePage.tsx:135
 msgid "Workspace name must be at most {WORKSPACE_NAME_MAX_LENGTH} characters long"
 msgstr "ワークスペース名は{WORKSPACE_NAME_MAX_LENGTH}文字以内にしてください"
 

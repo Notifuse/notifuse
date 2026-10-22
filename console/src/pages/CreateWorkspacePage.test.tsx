@@ -66,3 +66,33 @@ describe('CreateWorkspacePage workspace name', () => {
     expect(workspaceService.create).not.toHaveBeenCalled()
   })
 })
+
+// A workspace ID is stored in 20 characters: the field says so, and a longer one is refused.
+describe('CreateWorkspacePage workspace ID', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('limits the workspace ID to 20 characters', () => {
+    renderPage()
+    expect(screen.getByPlaceholderText('workspaceid')).toHaveAttribute('maxlength', '20')
+  })
+
+  it('does not create a workspace whose ID is over 20 characters', async () => {
+    renderPage()
+
+    fireEvent.change(screen.getByPlaceholderText('Enter a name for your workspace'), {
+      target: { value: 'Acme' }
+    })
+    // A change event sets the value past the input's maxlength, as a paste can.
+    fireEvent.change(screen.getByPlaceholderText('workspaceid'), {
+      target: { value: 'a'.repeat(21) }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Create Workspace/i }))
+
+    expect(
+      await screen.findByText('Workspace ID must be at most 20 characters long')
+    ).toBeInTheDocument()
+    expect(workspaceService.create).not.toHaveBeenCalled()
+  })
+})

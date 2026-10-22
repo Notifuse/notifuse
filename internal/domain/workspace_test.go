@@ -1051,6 +1051,30 @@ func TestWorkspaceRequests_Validate_NameLength(t *testing.T) {
 	}
 }
 
+// A new workspace's ID is stored in VARCHAR(20) columns, so a longer one is refused here
+// rather than by the insert. Update and delete look an existing ID up and keep their limit.
+func TestWorkspaceRequests_Validate_IDLength(t *testing.T) {
+	passphrase := "test-passphrase"
+	settings := WorkspaceSettings{
+		WebsiteURL:      "https://example.com",
+		Timezone:        "UTC",
+		DefaultLanguage: "en",
+		Languages:       []string{"en"},
+	}
+
+	create := func(id string) error {
+		req := CreateWorkspaceRequest{ID: id, Name: "Test Workspace", Settings: settings}
+		return req.Validate(passphrase)
+	}
+	assert.NoError(t, create(strings.Repeat("a", 20)))
+	err := create(strings.Repeat("a", 21))
+	require.Error(t, err)
+	assert.Equal(t, "invalid create workspace request: id length must be between 1 and 20", err.Error())
+
+	update := UpdateWorkspaceRequest{ID: strings.Repeat("a", 21), Name: "Test Workspace", Settings: settings}
+	assert.NoError(t, update.Validate(passphrase), "an update names an existing workspace and keeps its ID check")
+}
+
 func TestFileManagerSettings_Validate(t *testing.T) {
 	passphrase := "test-passphrase"
 	testCases := []struct {

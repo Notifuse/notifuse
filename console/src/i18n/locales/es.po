@@ -3609,7 +3609,7 @@ msgstr "Crear urgencia o curiosidad"
 msgid "Create Webhook"
 msgstr "Crear webhook"
 
-#: src/pages/CreateWorkspacePage.tsx:194
+#: src/pages/CreateWorkspacePage.tsx:203
 msgid "Create Workspace"
 msgstr "Crear espacio de trabajo"
 
@@ -5250,7 +5250,7 @@ msgstr "Introduce un nombre para este bloque"
 msgid "Enter a name for this integration"
 msgstr "Introduce un nombre para esta integración"
 
-#: src/pages/CreateWorkspacePage.tsx:137
+#: src/pages/CreateWorkspacePage.tsx:140
 msgid "Enter a name for your workspace"
 msgstr "Introduce un nombre para tu espacio de trabajo"
 
@@ -5832,7 +5832,7 @@ msgstr "Error al crear plantilla: {0}"
 #~ msgid "Failed to create the Zapier API key"
 #~ msgstr "No se ha podido crear la clave API de Zapier"
 
-#: src/pages/CreateWorkspacePage.tsx:92
+#: src/pages/CreateWorkspacePage.tsx:95
 msgid "Failed to create workspace"
 msgstr "Error al crear espacio de trabajo"
 
@@ -7026,7 +7026,7 @@ msgstr "URL del icono/favicon"
 msgid "ID"
 msgstr "ID"
 
-#: src/pages/CreateWorkspacePage.tsx:158
+#: src/pages/CreateWorkspacePage.tsx:161
 msgid "ID can only contain lowercase letters and numbers"
 msgstr "El ID solo puede contener letras minúsculas y números"
 
@@ -7043,7 +7043,7 @@ msgstr "El ID no coincide"
 msgid "ID for API:"
 msgstr "ID para API:"
 
-#: src/pages/CreateWorkspacePage.tsx:165
+#: src/pages/CreateWorkspacePage.tsx:174
 msgid "ID is automatically generated but can be modified if needed"
 msgstr "El ID se genera automáticamente pero puede modificarse si es necesario"
 
@@ -8723,7 +8723,7 @@ msgid "New Window"
 msgstr "Nueva ventana"
 
 #: src/layouts/WorkspaceLayout.tsx:633
-#: src/pages/CreateWorkspacePage.tsx:105
+#: src/pages/CreateWorkspacePage.tsx:108
 msgid "New workspace"
 msgstr "Nuevo espacio de trabajo"
 
@@ -10011,7 +10011,7 @@ msgstr "Por favor, introduce una URL de imagen válida"
 #: src/components/settings/GeneralSettings.tsx:281
 #: src/components/settings/LogoInput.tsx:27
 #: src/components/settings/WebhooksSettings.tsx:283
-#: src/pages/CreateWorkspacePage.tsx:178
+#: src/pages/CreateWorkspacePage.tsx:187
 msgid "Please enter a valid URL"
 msgstr "Por favor, introduce una URL válida"
 
@@ -10023,7 +10023,7 @@ msgstr "Por favor, introduce una URL de YouTube válida"
 msgid "Please enter a website URL first"
 msgstr "Por favor, introduce primero una URL del sitio web"
 
-#: src/pages/CreateWorkspacePage.tsx:128
+#: src/pages/CreateWorkspacePage.tsx:131
 msgid "Please enter a workspace name"
 msgstr "Por favor, introduce un nombre de espacio de trabajo"
 
@@ -13849,7 +13849,7 @@ msgstr "Este hook nunca bloquea la creación de usuarios de Supabase por errores
 msgid "This ID belongs to a deleted template and can't be reused"
 msgstr "Este ID pertenece a una plantilla eliminada y no se puede reutilizar"
 
-#: src/pages/CreateWorkspacePage.tsx:148
+#: src/pages/CreateWorkspacePage.tsx:151
 msgid "This ID will be used in URLs and API requests. It can only contain lowercase letters and numbers."
 msgstr "Este ID se usará en URLs y solicitudes API. Solo puede contener letras minúsculas y números."
 
@@ -15130,7 +15130,7 @@ msgstr "Advertencia"
 msgid "Watch out"
 msgstr "Ten cuidado"
 
-#: src/pages/CreateWorkspacePage.tsx:182
+#: src/pages/CreateWorkspacePage.tsx:191
 msgid "We'll automatically detect and use your website's favicon"
 msgstr "Detectaremos y usaremos automáticamente el favicon de tu sitio web"
 
@@ -15276,7 +15276,7 @@ msgstr "Configuración del seguimiento del tráfico del sitio web"
 
 #: src/components/settings/GeneralSettings.tsx:138
 #: src/components/settings/GeneralSettings.tsx:216
-#: src/pages/CreateWorkspacePage.tsx:173
+#: src/pages/CreateWorkspacePage.tsx:182
 msgid "Website URL"
 msgstr "URL del sitio web"
 
@@ -15453,7 +15453,7 @@ msgid "Workspace"
 msgstr "Espacio de trabajo"
 
 #. placeholder {0}: values.name
-#: src/pages/CreateWorkspacePage.tsx:79
+#: src/pages/CreateWorkspacePage.tsx:82
 msgid "Workspace \"{0}\" created successfully!"
 msgstr "¡Espacio de trabajo \"{0}\" creado exitosamente!"
 
@@ -15461,7 +15461,7 @@ msgstr "¡Espacio de trabajo \"{0}\" creado exitosamente!"
 msgid "Workspace deleted successfully"
 msgstr "Espacio de trabajo eliminado exitosamente"
 
-#: src/pages/CreateWorkspacePage.tsx:147
+#: src/pages/CreateWorkspacePage.tsx:150
 msgid "Workspace ID"
 msgstr "ID del espacio de trabajo"
 
@@ -15469,15 +15469,19 @@ msgstr "ID del espacio de trabajo"
 msgid "Workspace ID does not match"
 msgstr "El ID del espacio de trabajo no coincide"
 
-#: src/pages/CreateWorkspacePage.tsx:155
+#: src/pages/CreateWorkspacePage.tsx:158
 msgid "Workspace ID is required"
 msgstr "El ID del espacio de trabajo es requerido"
+
+#: src/pages/CreateWorkspacePage.tsx:165
+msgid "Workspace ID must be at most {WORKSPACE_ID_MAX_LENGTH} characters long"
+msgstr "El ID del espacio de trabajo debe tener como máximo {WORKSPACE_ID_MAX_LENGTH} caracteres"
 
 #: src/pages/AcceptInvitationPage.tsx:139
 msgid "Workspace Invitation"
 msgstr "Invitación al espacio de trabajo"
 
-#: src/pages/CreateWorkspacePage.tsx:90
+#: src/pages/CreateWorkspacePage.tsx:93
 msgid "Workspace limit reached. Please upgrade your plan to create more workspaces."
 msgstr "Se ha alcanzado el límite de espacios de trabajo. Mejora tu plan para crear más espacios de trabajo."
 
@@ -15487,16 +15491,16 @@ msgstr "Logo del espacio de trabajo"
 
 #: src/components/settings/GeneralSettings.tsx:134
 #: src/components/settings/GeneralSettings.tsx:198
-#: src/pages/CreateWorkspacePage.tsx:125
+#: src/pages/CreateWorkspacePage.tsx:128
 msgid "Workspace Name"
 msgstr "Nombre del espacio de trabajo"
 
-#: src/pages/CreateWorkspacePage.tsx:129
+#: src/pages/CreateWorkspacePage.tsx:132
 msgid "Workspace name must be at least 3 characters long"
 msgstr "El nombre del espacio de trabajo debe tener al menos 3 caracteres"
 
 #: src/components/settings/GeneralSettings.tsx:203
-#: src/pages/CreateWorkspacePage.tsx:132
+#: src/pages/CreateWorkspacePage.tsx:135
 msgid "Workspace name must be at most {WORKSPACE_NAME_MAX_LENGTH} characters long"
 msgstr "El nombre del espacio de trabajo debe tener como máximo {WORKSPACE_NAME_MAX_LENGTH} caracteres"
 

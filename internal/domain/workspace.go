@@ -1473,8 +1473,9 @@ func (r *CreateWorkspaceRequest) Validate(passphrase string) error {
 	if !govalidator.IsAlphanumeric(r.ID) {
 		return fmt.Errorf("invalid create workspace request: id must be alphanumeric")
 	}
-	if len(r.ID) > 32 {
-		return fmt.Errorf("invalid create workspace request: id length must be between 1 and 32")
+	// The workspace ID columns are VARCHAR(20).
+	if len(r.ID) > 20 {
+		return fmt.Errorf("invalid create workspace request: id length must be between 1 and 20")
 	}
 
 	// Validate Name

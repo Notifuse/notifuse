@@ -11,3 +11,6 @@ export const TRANSACTIONAL_ID_MAX_LENGTH = 32
 
 // Workspace name (workspace.go: CreateWorkspaceRequest, UpdateWorkspaceRequest).
 export const WORKSPACE_NAME_MAX_LENGTH = 32
+
+// Workspace ID of a new workspace (workspace.go: CreateWorkspaceRequest).
+export const WORKSPACE_ID_MAX_LENGTH = 20
