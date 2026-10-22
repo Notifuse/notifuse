@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Audit log entries for workspace actions now carry the actor's name, and actions taken with an API key are recorded with the `api_key` actor type. Entries recorded before the upgrade are unchanged.
 
-- **Improvement**: An invitation link that was already accepted or cancelled now says the invitation is no longer valid, instead of failing with an error.
+- **Improvement**: An invitation link that was already accepted, cancelled or has expired now says the invitation is no longer valid, instead of failing with an error or signing out the person who opened it.
 
 - **Improvement**: Web analytics goals tracked with numbers or booleans in `properties`, or a numeric string `value` such as `'49.90'`, are now recorded along with the rest of the visit. `trackGoal` converts these before sending, and skips, with a console warning, a goal it can't convert or that exceeds a limit.
 

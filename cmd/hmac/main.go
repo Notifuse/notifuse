@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/crypto"
 )
 
 func main() {
@@ -24,7 +24,9 @@ func run(args []string, out io.Writer) int {
 	email := args[0]
 	signingKey := args[1]
 
-	result := domain.ComputeEmailHMAC(email, signingKey)
+	// What domain.ComputeEmailHMAC computes, without importing the domain package
+	// and its dependencies into a one-shot tool.
+	result := crypto.ComputeHMAC256([]byte(email), signingKey)
 
 	fmt.Fprintln(out)
 	fmt.Fprintf(out, "Root Email: %s\n", email)

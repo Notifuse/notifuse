@@ -67,10 +67,10 @@ Signing or integrity uses, moved:
 | OIDC flow-state cookie seal | `OIDCServiceConfig.SecretKey` (`oidc_service.go`) |
 | `/api/tasks.execute` signatures | `TaskService.SetSecretKey`, `NewTaskHandler` |
 | Usage read signatures | `NewUsageHandler` |
+| Demo root email HMAC | `DemoService.VerifyRootEmailHMAC` |
 
 The control plane, outside this repository, derives the usage key from the key it holds for each tenant.
 It must use the tenant's `SIGNING_KEY` once one is set, or that tenant's usage reads answer 401.
-| Demo root email HMAC | `DemoService.VerifyRootEmailHMAC` |
 
 `domain.VerifyEmailHMAC`, which the demo HMAC and the notification center use, compares in constant time.
 
@@ -146,9 +146,14 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
   500. Not 401: the console signs the user out on any 401, which would drop a signed-in user who opened a
   link meant for someone else. Its response keeps the token's email, which the check above makes equal to
   the stored one.
-- `handleVerifyInvitationToken` also refuses an invitation whose stored `ExpiresAt` has passed, with the
-  same 404 as accept rather than 401, for the same reason. The token's `exp` is the stored expiry and a
-  resend only moves it later, so this only answers an expiry shortened in the database.
+- `handleVerifyInvitationToken` also refuses an invitation whose stored `ExpiresAt` has passed. The
+  token's `exp` is the stored expiry and a resend only moves it later, so this only answers an expiry
+  shortened in the database.
+- Both public invitation routes answer every link that does not open an invitation with that same 404
+  (`writeInvitationUnavailable`): a token that is expired, malformed or signed with another key, and on
+  verify a stored invitation that no longer matches. They answered 401, which signed out a member who
+  opened an expired link, and setting `SIGNING_KEY` turns every pending link into one signed with
+  another key.
 - `ValidateInvitationToken` parses with `jwt.WithExpirationRequired()`: every invitation token Notifuse
   issues carries `exp`, so a token without one is refused.
 
@@ -176,8 +181,8 @@ under that key readable by anyone who obtains it, and the API served some:
   with `SIGNING_KEY`.
 - One `**Fix**` bullet: audit log entries (shipped in 41.0) for workspace actions carry the actor's name,
   and actions taken with an API key the `api_key` actor type, since the auth repository now loads both.
-- One `**Improvement**` bullet: an invitation link already accepted or cancelled says so instead of
-  failing with an error.
+- One `**Improvement**` bullet: an invitation link already accepted, cancelled or expired says so instead
+  of failing with an error or signing out the person who opened it.
 - The upgrade note, `env.example`, the startup error and the docs say a new `SIGNING_KEY` also
   invalidates pending invitation links, and that a compose file of one's own must pass `SIGNING_KEY` to
   the container. The app's JWT secret error names the signing key. `make docker-run` forwards `SIGNING_KEY`. The startup messages name the variable the
@@ -187,9 +192,10 @@ under that key readable by anyone who obtains it, and the API served some:
   command, `down`, `ps` and `logs` included, as it already does for `compose.alloydb.yaml`; the message
   tells an existing installation which value to keep. No CI job runs `compose.yaml`; the integration
   environment uses `tests/compose.test.yaml`.
-- Docs (Notifuse/docs, separate PR to `dev`): installation page (compose quick start adds a generated
-  `SECRET_KEY` to `.env` unless one is there, so rerunning it cannot replace the key that decrypts the
-  data; the standalone `docker run` passes `SECRET_KEY`, without which Notifuse does not start; the `#`
+- Docs (Notifuse/docs, separate PR to `dev`): installation page (compose quick start, introduced as
+  steps for a new installation with a warning that sends upgraders to the signing key section, adds a
+  generated `SECRET_KEY` to `.env` on a line of its own unless `.env` already sets one, `export` and
+  indented forms included, so rerunning it cannot replace the key that decrypts the data; the standalone `docker run` passes `SECRET_KEY`, without which Notifuse does not start; the `#`
   quoting example no longer uses a `SECRET_KEY` value; `SIGNING_KEY` in the variables table, and a short
   `SECRET_KEY` needs it; root sign-in example signs with `SIGNING_KEY` when set).
 
@@ -197,7 +203,7 @@ under that key readable by anyone who obtains it, and the API served some:
 
 | Implementation file | Test file | Cases |
 | --- | --- | --- |
-| `config/config.go`, `config/signing_key.go` | `config/signing_key_test.go`, `config/config_test.go` | default as `SECRET_KEY` without `SIGNING_KEY` refused, error names `SIGNING_KEY`; same through `PASETO_PRIVATE_KEY`; same with surrounding spaces; default as `SIGNING_KEY` refused; default without padding, in the URL alphabet, with embedded newlines, and as raw decoded bytes each refused; `env.example` placeholder refused; default in single or double quotes refused, mismatched quotes not stripped; default `SECRET_KEY` with a fresh `SIGNING_KEY` loads, `SecretKey` keeps the default, `SigningKey` and `JWTSecret` come from `SIGNING_KEY`; `SIGNING_KEY` with a trailing newline is trimmed; `SIGNING_KEY` in quotes loses them; quoted empty `SIGNING_KEY` counts as unset; `SIGNING_KEY` under 32 bytes of key material refused, at 32 accepted; whitespace-only `SIGNING_KEY` counts as unset; `SECRET_KEY` under 32 bytes without `SIGNING_KEY` refused with the add-`SIGNING_KEY` remedy, through `PASETO_PRIVATE_KEY` naming it, accepted beside a `SIGNING_KEY`, at 32 bytes signing alone; no `SIGNING_KEY` and another `SECRET_KEY` gives `SigningKey == SecretKey` and the same `JWTSecret` as before; the other config tests run on a 32-byte `SECRET_KEY` |
+| `config/config.go`, `config/signing_key.go` | `config/signing_key_test.go`, `config/config_test.go` | default as `SECRET_KEY` without `SIGNING_KEY` refused, error names `SIGNING_KEY`; same through `PASETO_PRIVATE_KEY`; same with surrounding spaces; default as `SIGNING_KEY` refused; default without padding, in the URL alphabet, with embedded newlines, and as raw decoded bytes each refused; `env.example` placeholder refused; default in single or double quotes refused, mismatched quotes not stripped; default `SECRET_KEY` with a fresh `SIGNING_KEY` loads, `SecretKey` keeps the default, `SigningKey` and `JWTSecret` come from `SIGNING_KEY`; `SIGNING_KEY` with a trailing newline is trimmed; `SIGNING_KEY` in quotes loses them; quoted empty `SIGNING_KEY` counts as unset; `SIGNING_KEY` under 32 bytes of key material refused, at 32 accepted; whitespace-only `SIGNING_KEY` counts as unset; `SECRET_KEY` under 32 bytes without `SIGNING_KEY` refused with the add-`SIGNING_KEY` remedy, through `PASETO_PRIVATE_KEY` naming it, accepted beside a `SIGNING_KEY`, at 32 bytes signing alone; no `SIGNING_KEY` and another `SECRET_KEY` gives `SigningKey == SecretKey` and the same `JWTSecret` as before; the other config tests run on a `SECRET_KEY` long enough to sign |
 | `internal/repository/auth_repository.go` | `auth_repository_test.go` | query selects `name` and `type`, both are scanned |
 | `internal/service/auth_service.go` | `auth_service_test.go` | API key token naming a regular user refused; naming an API key user accepted; revoked key still answers `ErrAPIKeyRevoked`; session token whose user is an API key user refused; invitation token without `exp` refused |
 | `internal/service/user_service.go` (sessions) | `user_service_test.go` | `VerifyUserSession` for an API key user refused with `ErrSessionAuthFailed`; regular user accepted |
@@ -207,7 +213,7 @@ under that key readable by anyone who obtains it, and the API served some:
 | `internal/http/task_handler.go`, `usage_handler.go` | their `_test.go` | existing cases on the renamed `signingKey` field; which key the app hands them is proven end to end by `signing_key_test.go` |
 | `internal/service/workspace_service.go` | `workspace_service_test.go` | workspace mismatch, email mismatch (including letter case), expired invitation, already-seated invitee and account created meanwhile each refused with `ErrInvitationUnavailable`, recorded in the invitation's workspace audit log with the refusal reason, and no user lookup, creation, membership or session; existing account of type `api_key` refused with no membership or session; existing fixtures carry a stored expiry and account type |
 | `internal/service/workspace_service.go` (invite) | `workspace_users_service_test.go` | address of an API key account refused with `ErrUnauthorized`, no membership check or write |
-| `internal/http/workspace_handler.go` | `workspace_handler_test.go` | accept: `ErrInvitationUnavailable` answers 404; verify: expired stored invitation answers 404 |
+| `internal/http/workspace_handler.go` | `workspace_handler_test.go` | accept: `ErrInvitationUnavailable` and an invalid token answer 404; verify: an invalid token, a mismatched invitation and an expired stored invitation answer 404 |
 | `internal/domain/workspace_redact.go` | `workspace_redact_test.go` | `Redact` clears the workspace's encrypted secret key; `RedactForPublic` serves no encrypted form (workspace key, file manager, integrations); integration encrypted forms still served to members |
 | `internal/http/utils.go`, `user_handler.go` | `utils_test.go`, `user_handler_test.go` | `sessionCheckStatus`: `ErrSessionAuthFailed`, wrapped or not, answers 401, any other error 500; existing `user.me` 401 and 500 cases |
 | `internal/http/settings_handler.go` | `settings_handler_test.go` | API key token naming root answers 403; any API key answers 403; session token without a session id 401; signed-out root session 401; failed session check 500; live root session 200; existing guards run on a session context |
@@ -215,12 +221,12 @@ under that key readable by anyone who obtains it, and the API served some:
 | `internal/domain/contact.go` | `contact_test.go` | existing `VerifyEmailHMAC` cases still pass with the constant-time comparison |
 | `internal/service/demo_service.go` | `demo_service_test.go` | demo reset HMAC verifies under `SigningKey`, not `SecretKey`; a root person gets a session of its own whose context `AuthService` accepts, closed at the end; a session that cannot be closed only logs; a root API key account keeps its type and opens no session; a session that cannot be opened stops the seed; a session signed out meanwhile counts as closed; after `seedContext` workspace checks no longer look the session up; a refused check stops the seed |
 | demo reset, full stack | none kept | a full `/api/demo.reset` seeds for more than two minutes, too slow for the suite; run once by hand on the harness, it created the demo workspace as root through the seed's session |
-| `cmd/hmac/main.go` | `cmd/hmac/main_test.go` | prints the HMAC and reset URL the server verifies; missing arguments print the usage and exit 1 |
+| `cmd/hmac/main.go` | `cmd/hmac/main_test.go` | prints the HMAC and reset URL the server verifies (computed with `pkg/crypto`, so the tool does not build the domain package); missing arguments print the usage and exit 1 |
 | `internal/app/app.go` | `app_test.go` and the integration suite | test config carries a distinct `SigningKey`; the OIDC flow state opens with the signing key and not the encryption key; the rest of the wiring is exercised end to end by the harness running on distinct keys |
-| full stack | `tests/integration/signing_key_test.go` | harness on distinct keys: root sign-in, `/api/tasks.execute` and `/api/usage.get` signed with `SECRET_KEY` refused, with `SIGNING_KEY` accepted; an API key token naming the owner refused while a real API key works; invitation tokens naming another email or workspace refused, seating nobody and creating no account, while the issued token is accepted once and answers 404 after; inviting the address of an API key answers 403 and seats nothing; neither `workspaces.verifyInvitationToken` nor `workspaces.get` serves `settings.encrypted_secret_key`; `/api/settings.get` answers a root session, refuses an API key token naming root and the root session once signed out |
+| full stack | `tests/integration/signing_key_test.go` | harness on distinct keys: root sign-in, `/api/tasks.execute` and `/api/usage.get` signed with `SECRET_KEY` refused, with `SIGNING_KEY` accepted; an API key token naming the owner refused while a real API key works; invitation tokens naming another email or workspace refused, seating nobody and creating no account, while the issued token is accepted once and answers 404 after; an expired link and one signed with `SECRET_KEY` answer 404 on verify and accept; inviting the address of an API key answers 403 and seats nothing; neither `workspaces.verifyInvitationToken` nor `workspaces.get` serves `settings.encrypted_secret_key`; `/api/settings.get` answers a root session, refuses an API key token naming root and the root session once signed out |
 
 ## Test run
 
 `make test-domain test-service test-repo test-http test-migrations test-pkg`, `go test ./config/...`,
-`go test ./internal/app/...`, then the integration suite (`make test-integration`), plus
+`go test ./cmd/hmac/...`, `go test ./internal/app/...`, then the integration suite (`make test-integration`), plus
 `docker compose config` on both compose files with and without `SECRET_KEY`.

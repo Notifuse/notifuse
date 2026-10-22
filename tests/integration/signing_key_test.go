@@ -12,6 +12,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/tests/testutil"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -175,6 +176,36 @@ func TestSigningKeySeparation(t *testing.T) {
 			require.NoError(t, err)
 			defer func() { _ = resp.Body.Close() }()
 			return resp.StatusCode
+		}
+
+		// A link that no longer opens answers 404, not 401, which would sign out a
+		// member who opens it: one that expired, and one signed before SIGNING_KEY
+		// was set.
+		verify := func(t *testing.T, token string) int {
+			t.Helper()
+			resp, err := client.Post("/api/workspaces.verifyInvitationToken", map[string]string{"token": token})
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+			return resp.StatusCode
+		}
+		expired := invited.Invitation
+		expired.ExpiresAt = time.Now().Add(-time.Hour)
+		signedWithSecretKey, err := jwt.NewWithClaims(jwt.SigningMethodHS256, service.InvitationClaims{
+			InvitationID: invited.Invitation.ID,
+			WorkspaceID:  invited.Invitation.WorkspaceID,
+			Email:        invited.Invitation.Email,
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(invited.Invitation.ExpiresAt),
+				IssuedAt:  jwt.NewNumericDate(time.Now()),
+			},
+		}).SignedString([]byte(cfg.Security.SecretKey))
+		require.NoError(t, err)
+		for name, token := range map[string]string{
+			"expired":                authService.GenerateInvitationToken(&expired),
+			"signed with SECRET_KEY": signedWithSecretKey,
+		} {
+			assert.Equal(t, http.StatusNotFound, verify(t, token), name)
+			assert.Equal(t, http.StatusNotFound, accept(t, token), name)
 		}
 
 		// A validly signed token for the same invitation, but naming an existing account.

@@ -2773,13 +2773,14 @@ func TestWorkspaceHandler_HandleVerifyInvitationToken(t *testing.T) {
 		w := httptest.NewRecorder()
 		handler.handleVerifyInvitationToken(w, req)
 
-		// Assert response
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		// 404, not 401: the console signs out on any 401, and an expired link, or
+		// one signed before SIGNING_KEY was set, is opened by members too.
+		assert.Equal(t, http.StatusNotFound, w.Code)
 
 		var response map[string]string
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
-		assert.Equal(t, "Invalid or expired invitation token", response["error"])
+		assert.Equal(t, "Invitation not found or no longer valid", response["error"])
 	})
 
 	t.Run("invitation not found", func(t *testing.T) {
@@ -2849,13 +2850,12 @@ func TestWorkspaceHandler_HandleVerifyInvitationToken(t *testing.T) {
 		w := httptest.NewRecorder()
 		handler.handleVerifyInvitationToken(w, req)
 
-		// Assert response
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, http.StatusNotFound, w.Code)
 
 		var response map[string]string
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
-		assert.Equal(t, "Invalid invitation token", response["error"])
+		assert.Equal(t, "Invitation not found or no longer valid", response["error"])
 	})
 
 	t.Run("stored invitation has expired", func(t *testing.T) {
@@ -3023,13 +3023,12 @@ func TestWorkspaceHandler_HandleAcceptInvitation(t *testing.T) {
 		w := httptest.NewRecorder()
 		handler.handleAcceptInvitation(w, req)
 
-		// Assert response
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Equal(t, http.StatusNotFound, w.Code)
 
 		var response map[string]string
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
-		assert.Equal(t, "Invalid or expired invitation token", response["error"])
+		assert.Equal(t, "Invitation not found or no longer valid", response["error"])
 	})
 
 	t.Run("invitation not found", func(t *testing.T) {

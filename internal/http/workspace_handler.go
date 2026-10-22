@@ -922,6 +922,14 @@ func (h *WorkspaceHandler) handleConnectZapier(w http.ResponseWriter, r *http.Re
 	})
 }
 
+// writeInvitationUnavailable answers a link that does not open an invitation: a
+// token that is expired, malformed or signed with another key, or an invitation
+// that is gone or no longer matches. 404, never 401: the console treats any 401 as
+// a lost session and would sign out a member who opened the link while signed in.
+func writeInvitationUnavailable(w http.ResponseWriter) {
+	WriteJSONError(w, "Invitation not found or no longer valid", http.StatusNotFound)
+}
+
 // handleVerifyInvitationToken verifies an invitation token and returns invitation details
 func (h *WorkspaceHandler) handleVerifyInvitationToken(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -944,7 +952,7 @@ func (h *WorkspaceHandler) handleVerifyInvitationToken(w http.ResponseWriter, r 
 	invitationID, workspaceID, email, err := h.authService.ValidateInvitationToken(req.Token)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to validate invitation token")
-		WriteJSONError(w, "Invalid or expired invitation token", http.StatusUnauthorized)
+		writeInvitationUnavailable(w)
 		return
 	}
 
@@ -959,14 +967,15 @@ func (h *WorkspaceHandler) handleVerifyInvitationToken(w http.ResponseWriter, r 
 	// Verify that the invitation details match the token
 	if invitation.WorkspaceID != workspaceID || invitation.Email != email {
 		h.logger.WithField("invitation_id", invitationID).Error("Invitation details mismatch")
-		WriteJSONError(w, "Invalid invitation token", http.StatusUnauthorized)
+		writeInvitationUnavailable(w)
 		return
 	}
 
-	// The stored expiry is authoritative, as it is when the invitation is accepted,
-	// and answered the same way: 404, because the console signs out on any 401.
+	// The stored expiry is authoritative, as it is when the invitation is accepted.
+	// The token's own expiry is the stored one, so this only answers an expiry
+	// shortened in the database.
 	if !time.Now().Before(invitation.ExpiresAt) {
-		WriteJSONError(w, "Invitation not found or no longer valid", http.StatusNotFound)
+		writeInvitationUnavailable(w)
 		return
 	}
 
@@ -1022,7 +1031,7 @@ func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http
 	invitationID, workspaceID, email, err := h.authService.ValidateInvitationToken(req.Token)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to validate invitation token")
-		WriteJSONError(w, "Invalid or expired invitation token", http.StatusUnauthorized)
+		writeInvitationUnavailable(w)
 		return
 	}
 
@@ -1034,10 +1043,8 @@ func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http
 			WriteJSONError(w, limitErr.Error(), http.StatusForbidden)
 			return
 		}
-		// 404 like joinInvitation, not 401: the console treats any 401 as a lost
-		// session and would sign out a user who opened the link while signed in.
 		if errors.Is(err, domain.ErrInvitationUnavailable) {
-			WriteJSONError(w, "Invitation not found or no longer valid", http.StatusNotFound)
+			writeInvitationUnavailable(w)
 			return
 		}
 		h.logger.WithField("invitation_id", invitationID).WithField("workspace_id", workspaceID).WithField("email", email).WithField("error", err.Error()).Error("Failed to accept invitation")
@@ -1101,7 +1108,7 @@ func (h *WorkspaceHandler) handleJoinInvitation(w http.ResponseWriter, r *http.R
 	workspaceID, err := h.workspaceService.JoinInvitation(r.Context(), req.InvitationID)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvitationUnavailable) {
-			WriteJSONError(w, "Invitation not found or no longer valid", http.StatusNotFound)
+			writeInvitationUnavailable(w)
 			return
 		}
 		var limitErr *domain.ErrTeamMemberLimitReached
