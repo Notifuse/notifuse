@@ -2308,7 +2308,7 @@ func TestWorkspaceHandler_HandleUpdateIntegration_ServiceError(t *testing.T) {
 // former key. The save is refused before anything is written, and the owner is told to
 // reload, not shown a server error.
 func TestWorkspaceHandler_StaleCredentialAsksForAReload(t *testing.T) {
-	const reloadMessage = "The saved credentials of this workspace changed. Reload the page and save again."
+	const reloadMessage = "A saved credential of this workspace changed or can no longer be read. Reload the page and save again, or enter the credential again."
 	staleErr := fmt.Errorf("%w: [0].email_provider.smtp.encrypted_password: no key opens the value", domain.ErrStaleCredential)
 
 	mailgun := domain.EmailProvider{

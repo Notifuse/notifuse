@@ -94,11 +94,19 @@ value Notifuse can tell which listed key opens it.
   not used: `BeforeSave` re-encrypts only the credentials it has in clear, and leaves an SMTP username
   as it was loaded, so a round trip would keep that value under the old key.
 - `App.Initialize` runs it (`App.InitSecretKey`, calling `repository.RotateSecretKey`) right after
-  `InitDB` (migrations done), before anything else reads the database, when the value was a list: it
+  `InitDB` (migrations done), before the services start, when the value was a list: it
   re-encrypts what a previous key opens and checks the rest, so a legacy key read differently fails at
   startup and not at the first workspace load. A single key whose commas were doubled is a list of
-  one: it only checks. A value without a comma changes
-  nothing at startup.
+  one: it only checks.
+- A value without a comma is one key, used byte for byte, so quotes or a trailing newline around it are
+  part of it. At startup Notifuse checks that it opens the key of at least one stored workspace
+  (`repository.SecretKeyOpensAWorkspace`: one small field per workspace, read without locks, stopping at
+  the first that opens). When there are workspaces and it opens none, every workspace load would fail:
+  the start is refused, naming the variable, and when the key without its quotes or surrounding spaces
+  opens one, the message says to remove them. This catches the last step of a replacement written
+  differently from the first key of the list (`SECRET_KEY="<new>"` through `docker --env-file`, or a
+  secret file ending with a newline), and a new key set alone without the list. A single workspace that
+  does not open while others do starts as before.
 - One transaction on the system database, holding `pg_advisory_xact_lock` on a fixed id, so instances
   starting together rotate once; the next one finds nothing left to do.
 - `workspaces`: `SELECT id, settings, integrations ... ORDER BY id FOR UPDATE`; both columns go, each
@@ -112,12 +120,15 @@ value Notifuse can tell which listed key opens it.
   version before 42.0 kept it as sent and never read it) does not stop the start; one the workspace
   uses does, as every load of that workspace would fail on it.
 - `settings`: every row whose key starts with `encrypted_` and whose value is not empty (SMTP username
-  and password, SMTP bridge TLS certificate and key, OIDC client secret), read `ORDER BY key FOR UPDATE`,
-  is opened the same way and re-encrypted when a previous key opened it (its `value` only).
-- A value the workspace uses or a setting that no listed key opens rolls the transaction back and fails
-  startup, naming the workspace id and the failing credential, or the setting key, saying no key of the
-  variable (`KeyVariable`) opens it and that each comma inside a key is written twice. Nothing is
-  half-rotated.
+  and password, SMTP bridge TLS certificate and key, OIDC client secret, and rows nothing reads any more,
+  such as the `encrypted_smtp_relay_*` rows v29 copied to their `smtp_bridge` names), read
+  `ORDER BY key FOR UPDATE`, is re-encrypted when a previous key opens it (its `value` only). A setting
+  no key opens is left as it is: the server skips such a setting when it loads the settings, as before
+  42.0, so it would not fail on it either.
+- A value a workspace uses that no listed key opens rolls the transaction back and fails startup,
+  naming the workspace id and the failing credential, saying no key of the variable (`KeyVariable`)
+  opens it and that each comma inside a key is written twice. Nothing is half-rotated. A wrong previous
+  key is caught this way, as it opens no workspace key.
 - It logs how many workspaces and settings it re-encrypted and that, once every instance runs with the
   list, the first key is set alone.
 - Out of reach, said in the docs: workspace databases hold nothing under `SECRET_KEY` (message data and
@@ -137,7 +148,7 @@ that workspace fails. `workspaceRepository.Update` already opens the saved row w
 after the `UPDATE`. `Create` and `Update` now open the marshalled `settings` and `integrations` with
 `domain.CheckStoredWorkspace(settings, integrations, current)` before writing, and on failure write
 nothing and return `domain.ErrStaleCredential`, which the workspace and integration handlers answer 400
-("The saved credentials of this workspace changed. Reload the page and save again."). This also stops a
+("A saved credential of this workspace changed or can no longer be read. Reload the page and save again, or enter the credential again."). This also stops a
 member from storing a value that is no ciphertext at all where the workspace reads it. A value under a
 provider the integration does not use is saved as before 42.0, as nothing reads it.
 
@@ -252,10 +263,10 @@ provider the integration does not use is saved as before 42.0, as nothing reads 
 | `pkg/crypto/reencrypt.go` (`ReencryptValue`, `ReencryptFields`) | `pkg/crypto/reencrypt_test.go` | value under `current` untouched and not reported as changed; value under a previous key re-encrypted and opening with `current` only; values at the listed paths walked through nested objects and arrays; values off the paths untouched whatever their key is named; empty strings and non-strings untouched; large numbers kept as written; a value no key opens left as it is; with no previous key nothing changes |
 | `internal/domain/workspace_encrypted_fields.go` | `workspace_encrypted_fields_test.go` | the paths reach the workspace key, the file storage key and nested integration credentials; no path enters a map or a template block; no map of either type holds a struct with an `Encrypted*` field; every `Encrypted*` field is a string, and the only interface reachable is a template block's; every `Encrypted*` field of a filled workspace, once marshalled, sits at one of the paths |
 | `internal/domain/workspace.go` (`CheckStoredWorkspace`) | `workspace_test.go` | documents a workspace saved under the key opens; the workspace key, or the active provider's credential, under another key fails with `crypto.ErrUndecryptable` naming the integration; a value no key opens under a provider the integration does not use passes; documents that do not decode fail without `ErrUndecryptable` |
-| `internal/repository/secret_key_rotation.go` | `secret_key_rotation_test.go` | the advisory lock is taken first; rows read in id and key order; a workspace row under a previous key updated (settings and integrations only), one under the first value not updated, free-form content named like a credential ignored; a value no key opens under a provider the integration does not use left as it is without stopping; with no previous key, values are only checked and nothing is updated; settings `encrypted_*` rows re-encrypted, other settings untouched; a workspace key or active credential no key opens, or a setting no key opens, rolls back with the workspace id or setting key in the error |
+| `internal/repository/secret_key_rotation.go` | `secret_key_rotation_test.go` | the advisory lock is taken first; rows read in id and key order; a workspace row under a previous key updated (settings and integrations only), one under the first value not updated, free-form content named like a credential ignored; a value no key opens under a provider the integration does not use left as it is without stopping; with no previous key, values are only checked and nothing is updated; settings `encrypted_*` rows re-encrypted, other settings untouched, a setting no key opens left as it is; a workspace key or active credential no key opens rolls back with the workspace id in the error; `SecretKeyOpensAWorkspace` is true with no workspace, true when one of several opens, false when none does, and reads without locks |
 | `internal/repository/workspace_postgres.go` | `workspace_core_test.go` | `Update` and `Create` with an integration echoing a form under another key, or a value that is no ciphertext, write nothing and return `ErrStaleCredential`; a form under the current key saves; free-form content named like a credential (`custom_field_labels.encrypted_note`) saves; a value no key opens under a provider the integration does not use saves |
-| `internal/http/workspace_handler.go` | `workspace_handler_test.go` | `ErrStaleCredential` answers 400 on workspace create and update and integration create and update; existing invitation cases (404 for every dead link) |
-| `internal/app/app.go` | `app_test.go` | `InitSecretKey` reads nothing for a single key; with a list it re-encrypts under the first key; a value no listed key opens stops the start naming the setting or workspace, the variable the keys came from and the doubled-comma rule; a database failure stops it as a database failure; the startup telemetry goroutine keeps its own reference to the service, as a restart in the same process sets the field again (the rotation integration test restarts under `-race`) |
+| `internal/http/workspace_handler.go` | `workspace_handler_test.go` | `ErrStaleCredential` answers 400 on workspace create and update and integration create and update, saying to reload the page or enter the credentials again; existing invitation cases (404 for every dead link) |
+| `internal/app/app.go` | `app_test.go` | `InitSecretKey` with a single key starts when it opens a stored workspace key or there is none, and refuses naming the variable when it opens none, saying to remove the quotes or spaces when the key without them opens one; with a list it re-encrypts under the first key; a value no listed key opens stops the start naming the workspace, the variable the keys came from and the doubled-comma rule; a database failure stops it as a database failure; the startup telemetry goroutine keeps its own reference to the service, as a restart in the same process sets the field again (the rotation integration test restarts under `-race`) |
 | `internal/repository/auth_repository.go` | `auth_repository_test.go` | query selects `name` and `type`, both are scanned |
 | `internal/service/auth_service.go` | `auth_service_test.go` | API key token naming a regular user refused; naming an API key user accepted; revoked key still answers `ErrAPIKeyRevoked`; session token whose user is an API key user refused; invitation token without `exp` refused; a session token refused as an invitation token |
 | `internal/service/user_service.go` | `user_service_test.go` | `VerifyUserSession` for an API key user refused with `ErrSessionAuthFailed`; regular user accepted |
@@ -265,8 +276,8 @@ provider the integration does not use is saved as before 42.0, as nothing reads 
 | `internal/service/smtp_bridge_handler.go` | `smtp_bridge_handler_test.go` | token naming a regular account refused; missing account refused; lookup failure not read as a revoked key; API key account accepted |
 | `internal/domain/contact.go` | `contact_test.go` | existing `VerifyEmailHMAC` cases pass with the constant-time comparison |
 | `internal/service/demo_service.go` | `demo_service_test.go` | root person gets a session of its own whose context `AuthService` accepts, closed at the end; a session that cannot be closed only logs; a root API key account opens no session; a session that cannot be opened stops the seed; a session signed out meanwhile counts as closed; a refused workspace check stops the seed |
-| `cmd/hmac/main.go` | `cmd/hmac/main_test.go` | prints the HMAC and reset URL the server verifies; given a list, signs with its first value; a key the server refuses prints the refusal and exits 1; missing arguments print the usage and exit 1 |
-| full stack | `tests/integration/secret_key_rotation_test.go` | a workspace with integration credentials (an SMTP integration with username and password among them) and encrypted system settings stored under key A; an app started with `B,A` re-encrypts them: every raw `encrypted_*` value opens with B and not A, credentials unchanged through the API; a value no key opens under a provider the integration does not use, written straight to the row, is left as it is and stops nothing; a second start with `B,A` changes nothing; a start with `C,D` fails and leaves every row as it was; a start with a legacy key containing a comma, written once, fails, and written twice starts; root sign-in and a JWT signed with A refused, with B accepted; an integration save echoing a form under A answers 400 and writes nothing |
+| `cmd/hmac/main.go` | `cmd/hmac/main_test.go` | prints the HMAC and reset URL the server verifies; given a list, signs with its first value; a key the server refuses prints the refusal on stderr and exits 1; missing arguments print the usage and exit 1 |
+| full stack | `tests/integration/secret_key_rotation_test.go` | a workspace with integration credentials (an SMTP integration with username and password among them) and encrypted system settings stored under key A; an app started with `B,A` re-encrypts them: every raw `encrypted_*` value opens with B and not A, credentials unchanged through the API; a value no key opens under a provider the integration does not use, written straight to the row, is left as it is and stops nothing; a second start with `B,A` changes nothing; a start with `C,D` fails and leaves every row as it was; a start with a legacy key containing a comma, written once, fails, and written twice starts; after the rotation, the new key alone in quotes is refused at startup and the new key alone starts; root sign-in and a JWT signed with A refused, with B accepted; an integration save echoing a form under A answers 400 and writes nothing |
 | full stack | `tests/integration/auth_hardening_test.go` (from `signing_key_test.go`) | an API key token naming the owner refused while a real API key works; invitation tokens naming another email or workspace refused, seating nobody; the issued token accepted once and 404 after; an expired link and one signed with another key answer 404 on verify and accept; inviting an API key address answers 403; no `settings.encrypted_secret_key` in `verifyInvitationToken` or `workspaces.get`; `/api/settings.get` answers a root session only |
 
 ## Test run

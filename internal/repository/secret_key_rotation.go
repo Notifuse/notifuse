@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -39,8 +40,11 @@ type rotationSettingRow struct {
 // (domain.CheckStoredWorkspace), so a value nothing reads, such as one under a provider
 // an integration does not use, is left as it is even when no key opens it.
 //
-// It runs in one transaction: a workspace or a setting no key opens rolls everything
-// back, and the error names it.
+// Settings rows a previous key opens are re-encrypted too; one no key opens is left as
+// it is, as the server skips it when it loads the settings.
+//
+// It runs in one transaction: a workspace no key opens rolls everything back, and the
+// error names it.
 func RotateSecretKey(ctx context.Context, db *sql.DB, current string, previous []string) (SecretKeyRotationResult, error) {
 	var result SecretKeyRotationResult
 
@@ -89,6 +93,9 @@ func RotateSecretKey(ctx context.Context, db *sql.DB, current string, previous [
 	}
 	for _, setting := range settings {
 		value, changed, err := crypto.ReencryptValue(setting.value, current, previous)
+		if errors.Is(err, crypto.ErrUndecryptable) {
+			continue
+		}
 		if err != nil {
 			return result, fmt.Errorf("setting %s: %w", setting.key, err)
 		}
@@ -153,4 +160,33 @@ func lockEncryptedSettings(ctx context.Context, tx *sql.Tx) ([]rotationSettingRo
 		return nil, fmt.Errorf("failed to read settings: %w", err)
 	}
 	return settings, nil
+}
+
+// SecretKeyOpensAWorkspace reports whether key opens the key of at least one stored
+// workspace, or there is none, and how many it tried. It reads one small field per
+// workspace, without locks, and stops at the first that opens: with a single key, a
+// key that opens none means every workspace load would fail.
+func SecretKeyOpensAWorkspace(ctx context.Context, db *sql.DB, key string) (bool, int, error) {
+	rows, err := db.QueryContext(ctx,
+		`SELECT settings->>'encrypted_secret_key' FROM workspaces WHERE COALESCE(settings->>'encrypted_secret_key', '') <> ''`)
+	if err != nil {
+		return false, 0, fmt.Errorf("failed to read workspace keys: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	examined := 0
+	for rows.Next() {
+		var value string
+		if err := rows.Scan(&value); err != nil {
+			return false, examined, fmt.Errorf("failed to scan workspace key: %w", err)
+		}
+		examined++
+		if _, err := crypto.DecryptFromHexString(value, key); err == nil {
+			return true, examined, nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, examined, fmt.Errorf("failed to read workspace keys: %w", err)
+	}
+	return examined == 0, examined, nil
 }

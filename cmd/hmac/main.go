@@ -10,12 +10,13 @@ import (
 )
 
 func main() {
-	os.Exit(run(os.Args[1:], os.Stdout))
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
 }
 
 // run prints the HMAC /api/demo.reset verifies for args[0] under args[1], the
-// SECRET_KEY value, and returns the exit code.
-func run(args []string, out io.Writer) int {
+// SECRET_KEY value, and returns the exit code. A key the server refuses is reported on
+// errOut.
+func run(args []string, out, errOut io.Writer) int {
 	if len(args) < 2 {
 		fmt.Fprintln(out, "Usage: go run cmd/hmac/main.go <email> <secret_key>")
 		return 1
@@ -25,7 +26,7 @@ func run(args []string, out io.Writer) int {
 	// A SECRET_KEY listing several keys signs with its first one.
 	security, err := config.NewSecurityConfig(args[1], "SECRET_KEY")
 	if err != nil {
-		fmt.Fprintln(out, err)
+		fmt.Fprintln(errOut, err)
 		return 1
 	}
 

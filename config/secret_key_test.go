@@ -218,6 +218,21 @@ func TestParseSecretKeys(t *testing.T) {
 	})
 }
 
+// A list reads its first key without the quotes and spaces around it, where a single
+// key keeps them: TrimmedKey gives the form a list would read.
+func TestTrimmedKey(t *testing.T) {
+	for raw, want := range map[string]string{
+		"key":              "key",
+		" key\n":           "key",
+		`"key"`:            "key",
+		"'key'":            "key",
+		` " key " ` + "\n": "key",
+		`"key`:             `"key`,
+	} {
+		assert.Equal(t, want, TrimmedKey(raw), "%q", raw)
+	}
+}
+
 func TestNewSecurityConfig(t *testing.T) {
 	newKey, oldKey := "a-new-raw-key-giving-32-bytes-of-material", freshBase64Key(t)
 

@@ -397,18 +397,42 @@ func (a *App) InitDB() error {
 	return nil
 }
 
-// InitSecretKey brings the stored data under the first key of a SECRET_KEY that is a
-// list: what the other keys open is re-encrypted with it. It runs before anything reads
-// the database, so a value no listed key opens stops the start rather than a later
-// workspace load. A SECRET_KEY without a comma reads nothing.
-func (a *App) InitSecretKey() error {
-	security := a.config.Security
-	if !security.SecretKeyIsList {
+// checkSingleSecretKey refuses a single key that opens none of the stored workspace
+// keys: every workspace load would fail on it. A single key is used as written, so this
+// is also where quotes or a newline kept around the key show.
+func (a *App) checkSingleSecretKey(key, variable string) error {
+	ctx := context.Background()
+	opens, examined, err := repository.SecretKeyOpensAWorkspace(ctx, a.db, key)
+	if err != nil {
+		return fmt.Errorf("failed to check %s against the stored workspaces: %w", variable, err)
+	}
+	if opens {
 		return nil
 	}
+	if trimmed := config.TrimmedKey(key); trimmed != key {
+		if opens, _, err := repository.SecretKeyOpensAWorkspace(ctx, a.db, trimmed); err == nil && opens {
+			return fmt.Errorf("%[1]s opens none of the %[2]d workspaces stored in the database, but does without "+
+				"the quotes or spaces around it: remove them from %[1]s", variable, examined)
+		}
+	}
+	return fmt.Errorf("%[1]s opens none of the %[2]d workspaces stored in the database, so none of them "+
+		"would load. Set %[1]s to the key the data is encrypted with, written as it was, or put a new key "+
+		"first and that key after a comma to replace it", variable, examined)
+}
+
+// InitSecretKey brings the stored data under the first key of a SECRET_KEY that is a
+// list: what the other keys open is re-encrypted with it. A single key is only checked
+// against the stored workspace keys. It runs after the migrations, before the services
+// start, so keys that cannot open the data stop the start rather than every later
+// workspace load.
+func (a *App) InitSecretKey() error {
+	security := a.config.Security
 	variable := security.KeyVariable
 	if variable == "" {
 		variable = "SECRET_KEY"
+	}
+	if !security.SecretKeyIsList {
+		return a.checkSingleSecretKey(security.SecretKey, variable)
 	}
 
 	result, err := repository.RotateSecretKey(context.Background(), a.db, security.SecretKey, security.PreviousSecretKeys)

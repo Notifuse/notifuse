@@ -625,11 +625,60 @@ func TestAppInitSecretKey(t *testing.T) {
 		return appImpl, mock
 	}
 
-	t.Run("a single key reads nothing", func(t *testing.T) {
+	const workspaceKeys = `SELECT settings->>'encrypted_secret_key' FROM workspaces`
+	workspaceKey := func(t *testing.T, key string) *sqlmock.Rows {
+		t.Helper()
+		value, err := pkgCrypto.EncryptString("workspace-key", key)
+		require.NoError(t, err)
+		return sqlmock.NewRows([]string{"key"}).AddRow(value)
+	}
+
+	t.Run("a single key starts when it opens a stored workspace key", func(t *testing.T) {
 		app, mock := newApp(t, config.SecurityConfig{SecretKey: current})
+		mock.ExpectQuery(workspaceKeys).WillReturnRows(workspaceKey(t, current))
 
 		require.NoError(t, app.InitSecretKey())
 		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a single key starts when there is no workspace", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: current})
+		mock.ExpectQuery(workspaceKeys).WillReturnRows(sqlmock.NewRows([]string{"key"}))
+
+		require.NoError(t, app.InitSecretKey())
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// Every workspace load would fail: a new key set alone, or the last step of a
+	// replacement written in another form than the first key of the list.
+	t.Run("a single key that opens no workspace key stops the start", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: current, KeyVariable: "PASETO_PRIVATE_KEY"})
+		mock.ExpectQuery(workspaceKeys).WillReturnRows(workspaceKey(t, previous))
+
+		err := app.InitSecretKey()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY opens none of the 1 workspaces")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a single key in quotes that opens nothing says to remove them when that helps", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: `"` + current + "\"\n"})
+		mock.ExpectQuery(workspaceKeys).WillReturnRows(workspaceKey(t, current))
+		mock.ExpectQuery(workspaceKeys).WillReturnRows(workspaceKey(t, current))
+
+		err := app.InitSecretKey()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "remove them")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a failure to read the workspace keys stops the start", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: current})
+		mock.ExpectQuery(workspaceKeys).WillReturnError(assert.AnError)
+
+		require.ErrorIs(t, app.InitSecretKey(), assert.AnError)
 	})
 
 	t.Run("a list re-encrypts the stored data under its first key", func(t *testing.T) {
@@ -670,19 +719,18 @@ func TestAppInitSecretKey(t *testing.T) {
 			SecretKeyIsList:    true,
 			KeyVariable:        "PASETO_PRIVATE_KEY",
 		})
-		lost, err := pkgCrypto.EncryptString("smtp-pass", "a-key-nobody-listed-giving-32-bytes")
+		lost, err := pkgCrypto.EncryptString("workspace-key", "a-key-nobody-listed-giving-32-bytes")
 		require.NoError(t, err)
 
 		mock.ExpectBegin()
 		mock.ExpectExec(`SELECT pg_advisory_xact_lock`).WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectQuery(`FROM workspaces`).WillReturnRows(sqlmock.NewRows([]string{"id", "settings", "integrations"}))
-		mock.ExpectQuery(`FROM settings`).WillReturnRows(
-			sqlmock.NewRows([]string{"key", "value"}).AddRow("encrypted_smtp_password", lost))
+		mock.ExpectQuery(`FROM workspaces`).WillReturnRows(sqlmock.NewRows([]string{"id", "settings", "integrations"}).
+			AddRow("ws-lost", []byte(`{"encrypted_secret_key": "`+lost+`"}`), nil))
 		mock.ExpectRollback()
 
 		err = app.InitSecretKey()
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "setting encrypted_smtp_password")
+		assert.Contains(t, err.Error(), "workspace ws-lost")
 		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY", "names the variable the keys came from")
 		assert.NotContains(t, err.Error(), "SECRET_KEY")
 		assert.Contains(t, err.Error(), "twice")

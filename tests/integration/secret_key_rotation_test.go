@@ -195,6 +195,12 @@ func TestSecretKeyRotation(t *testing.T) {
 	})
 
 	t.Run("once rotated, B alone runs the installation and A signs nothing", func(t *testing.T) {
+		// A single key is used as written: in quotes, as docker --env-file keeps them,
+		// B is another key, which opens no workspace.
+		err := startWithSecretKey(t, suite, `"`+rotationKeyB+`"`)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "remove them")
+
 		require.NoError(t, startWithSecretKey(t, suite, rotationKeyB))
 		client := testutil.NewAPIClient(suite.ServerManager.GetURL())
 

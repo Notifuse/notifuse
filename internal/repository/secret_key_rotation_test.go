@@ -212,7 +212,9 @@ func TestRotateSecretKey(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("a setting no key opens rolls back, naming the setting", func(t *testing.T) {
+	// The server skips a setting it cannot open when it loads them, and v29 left
+	// encrypted_smtp_relay_* rows that nothing reads any more.
+	t.Run("a setting no key opens is left as it is", func(t *testing.T) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
 
@@ -222,14 +224,17 @@ func TestRotateSecretKey(t *testing.T) {
 			sqlmock.NewRows([]string{"id", "settings", "integrations"}))
 		mock.ExpectQuery(rotationSettingsQuery).WillReturnRows(
 			sqlmock.NewRows([]string{"key", "value"}).
-				AddRow("encrypted_smtp_password", encryptFor(t, "smtp-pass", "a-key-nobody-listed-giving-32-bytes")))
-		mock.ExpectRollback()
+				AddRow("encrypted_smtp_password", encryptFor(t, "smtp-pass", rotationPreviousKey)).
+				AddRow("encrypted_smtp_relay_tls_cert_base64", encryptFor(t, "cert", "a-key-nobody-listed-giving-32-bytes")))
+		mock.ExpectExec(rotationSettingWrite).
+			WithArgs(opensWithOnly{want: "smtp-pass"}, "encrypted_smtp_password").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
 
-		_, err := RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
+		result, err := RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
 
-		require.Error(t, err)
-		assert.True(t, errors.Is(err, crypto.ErrUndecryptable))
-		assert.Contains(t, err.Error(), "setting encrypted_smtp_password")
+		require.NoError(t, err)
+		assert.Equal(t, SecretKeyRotationResult{Settings: 1}, result)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -245,5 +250,62 @@ func TestRotateSecretKey(t *testing.T) {
 
 		require.ErrorIs(t, err, assert.AnError)
 		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+func TestSecretKeyOpensAWorkspace(t *testing.T) {
+	ctx := context.Background()
+	const query = `SELECT settings->>'encrypted_secret_key' FROM workspaces WHERE COALESCE\(settings->>'encrypted_secret_key', ''\) <> ''`
+	unknown := "a-key-nobody-listed-giving-32-bytes"
+
+	t.Run("true when there is no workspace", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"key"}))
+
+		opens, examined, err := SecretKeyOpensAWorkspace(ctx, db, rotationCurrentKey)
+
+		require.NoError(t, err)
+		assert.True(t, opens)
+		assert.Zero(t, examined)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("true when one workspace key of several opens", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"key"}).
+			AddRow(encryptFor(t, "ws-1", unknown)).
+			AddRow(encryptFor(t, "ws-2", rotationCurrentKey)).
+			AddRow(encryptFor(t, "ws-3", unknown)))
+
+		opens, _, err := SecretKeyOpensAWorkspace(ctx, db, rotationCurrentKey)
+
+		require.NoError(t, err)
+		assert.True(t, opens)
+	})
+
+	t.Run("false, with how many it tried, when none opens", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"key"}).
+			AddRow(encryptFor(t, "ws-1", unknown)).
+			AddRow(encryptFor(t, "ws-2", rotationPreviousKey)))
+
+		opens, examined, err := SecretKeyOpensAWorkspace(ctx, db, rotationCurrentKey)
+
+		require.NoError(t, err)
+		assert.False(t, opens)
+		assert.Equal(t, 2, examined)
+	})
+
+	t.Run("a database failure is returned", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		mock.ExpectQuery(query).WillReturnError(assert.AnError)
+
+		_, _, err := SecretKeyOpensAWorkspace(ctx, db, rotationCurrentKey)
+
+		require.ErrorIs(t, err, assert.AnError)
 	})
 }
