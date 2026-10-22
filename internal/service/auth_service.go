@@ -364,6 +364,11 @@ func (s *AuthService) ValidateInvitationToken(tokenString string) (invitationID,
 	if !token.Valid {
 		return "", "", "", fmt.Errorf("invalid invitation token: token not valid")
 	}
+	// Every token this installation issues is signed with the same key, and a session
+	// token parses here too, naming no invitation.
+	if claims.InvitationID == "" || claims.WorkspaceID == "" || claims.Email == "" {
+		return "", "", "", fmt.Errorf("invalid invitation token: no invitation named")
+	}
 
 	return claims.InvitationID, claims.WorkspaceID, claims.Email, nil
 }

@@ -179,8 +179,8 @@ func TestSigningKeySeparation(t *testing.T) {
 		}
 
 		// A link that no longer opens answers 404, not 401, which would sign out a
-		// member who opens it: one that expired, and one signed before SIGNING_KEY
-		// was set.
+		// member who opens it: one that expired, one signed before SIGNING_KEY was
+		// set, and a token that is not an invitation's at all.
 		verify := func(t *testing.T, token string) int {
 			t.Helper()
 			resp, err := client.Post("/api/workspaces.verifyInvitationToken", map[string]string{"token": token})
@@ -203,6 +203,7 @@ func TestSigningKeySeparation(t *testing.T) {
 		for name, token := range map[string]string{
 			"expired":                authService.GenerateInvitationToken(&expired),
 			"signed with SECRET_KEY": signedWithSecretKey,
+			"a session token":        rootToken,
 		} {
 			assert.Equal(t, http.StatusNotFound, verify(t, token), name)
 			assert.Equal(t, http.StatusNotFound, accept(t, token), name)

@@ -13,7 +13,7 @@ import (
 )
 
 func TestTaskExecuteSigningKey(t *testing.T) {
-	t.Run("is not the secret key itself", func(t *testing.T) {
+	t.Run("is derived from the signing key, never equal to it", func(t *testing.T) {
 		key := TaskExecuteSigningKey("installation-secret")
 		assert.NotEqual(t, []byte("installation-secret"), key)
 		assert.Len(t, key, sha256.Size)

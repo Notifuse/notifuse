@@ -947,6 +947,23 @@ func TestAuthService_ValidateInvitationToken(t *testing.T) {
 		require.Empty(t, parsedEmail)
 	})
 
+	// Every token this installation signs shares the key, and a session token
+	// carries an exp and an email too: it must not pass for an invitation that
+	// names nothing.
+	t.Run("a session token is not an invitation token", func(t *testing.T) {
+		sessionToken := service.GenerateUserAuthToken(
+			&domain.User{ID: "user-1", Email: email, Type: domain.UserTypeUser}, "session-1", time.Now().Add(time.Hour))
+		require.NotEmpty(t, sessionToken)
+
+		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(sessionToken)
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid invitation token")
+		require.Empty(t, parsedInvitationID)
+		require.Empty(t, parsedWorkspaceID)
+		require.Empty(t, parsedEmail)
+	})
+
 	t.Run("token signed with wrong secret", func(t *testing.T) {
 		// Create a token signed with a different secret
 		wrongSecret := []byte("wrong-secret-key-0987654321098765")

@@ -155,7 +155,9 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
   opened an expired link, and setting `SIGNING_KEY` turns every pending link into one signed with
   another key.
 - `ValidateInvitationToken` parses with `jwt.WithExpirationRequired()`: every invitation token Notifuse
-  issues carries `exp`, so a token without one is refused.
+  issues carries `exp`, so a token without one is refused. It also refuses a token that names no
+  invitation, workspace or email: a session token is signed with the same key and carries `exp` and an
+  email, and reached the invitation lookup with an empty id, which answered 500.
 
 ## 6. Served ciphertexts (`workspace_redact.go`)
 
@@ -194,8 +196,9 @@ under that key readable by anyone who obtains it, and the API served some:
   environment uses `tests/compose.test.yaml`.
 - Docs (Notifuse/docs, separate PR to `dev`): installation page (compose quick start, introduced as
   steps for a new installation with a warning that sends upgraders to the signing key section, adds a
-  generated `SECRET_KEY` to `.env` on a line of its own unless `.env` already sets one, `export` and
-  indented forms included, so rerunning it cannot replace the key that decrypts the data; the standalone `docker run` passes `SECRET_KEY`, without which Notifuse does not start; the `#`
+  generated `SECRET_KEY` to `.env` on a line of its own only when `.env` has no `SECRET_KEY` line at all,
+  in any spelling compose reads, so rerunning it never adds a second definition, which compose would
+  take over the key that decrypts the data; an empty one is left for compose's required-variable check; the standalone `docker run` passes `SECRET_KEY`, without which Notifuse does not start; the `#`
   quoting example no longer uses a `SECRET_KEY` value; `SIGNING_KEY` in the variables table, and a short
   `SECRET_KEY` needs it; root sign-in example signs with `SIGNING_KEY` when set).
 
@@ -205,7 +208,7 @@ under that key readable by anyone who obtains it, and the API served some:
 | --- | --- | --- |
 | `config/config.go`, `config/signing_key.go` | `config/signing_key_test.go`, `config/config_test.go` | default as `SECRET_KEY` without `SIGNING_KEY` refused, error names `SIGNING_KEY`; same through `PASETO_PRIVATE_KEY`; same with surrounding spaces; default as `SIGNING_KEY` refused; default without padding, in the URL alphabet, with embedded newlines, and as raw decoded bytes each refused; `env.example` placeholder refused; default in single or double quotes refused, mismatched quotes not stripped; default `SECRET_KEY` with a fresh `SIGNING_KEY` loads, `SecretKey` keeps the default, `SigningKey` and `JWTSecret` come from `SIGNING_KEY`; `SIGNING_KEY` with a trailing newline is trimmed; `SIGNING_KEY` in quotes loses them; quoted empty `SIGNING_KEY` counts as unset; `SIGNING_KEY` under 32 bytes of key material refused, at 32 accepted; whitespace-only `SIGNING_KEY` counts as unset; `SECRET_KEY` under 32 bytes without `SIGNING_KEY` refused with the add-`SIGNING_KEY` remedy, through `PASETO_PRIVATE_KEY` naming it, accepted beside a `SIGNING_KEY`, at 32 bytes signing alone; no `SIGNING_KEY` and another `SECRET_KEY` gives `SigningKey == SecretKey` and the same `JWTSecret` as before; the other config tests run on a `SECRET_KEY` long enough to sign |
 | `internal/repository/auth_repository.go` | `auth_repository_test.go` | query selects `name` and `type`, both are scanned |
-| `internal/service/auth_service.go` | `auth_service_test.go` | API key token naming a regular user refused; naming an API key user accepted; revoked key still answers `ErrAPIKeyRevoked`; session token whose user is an API key user refused; invitation token without `exp` refused |
+| `internal/service/auth_service.go` | `auth_service_test.go` | API key token naming a regular user refused; naming an API key user accepted; revoked key still answers `ErrAPIKeyRevoked`; session token whose user is an API key user refused; invitation token without `exp` refused; a session token refused as an invitation token |
 | `internal/service/user_service.go` (sessions) | `user_service_test.go` | `VerifyUserSession` for an API key user refused with `ErrSessionAuthFailed`; regular user accepted |
 | `internal/service/user_service.go` | `user_service_test.go` | existing root sign-in and magic code cases, on the renamed `SigningKey` config field (the service has no other key to use); which key the app hands it is proven end to end by `signing_key_test.go` |
 | `internal/service/oidc_service.go` | `oidc_service_test.go` | flow state sealed with the signing key opens; sealed with the encryption key does not |
