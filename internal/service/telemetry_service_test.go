@@ -283,16 +283,12 @@ func TestTelemetryService_SetIntegrationFlags_NilLLMProviderDoesNotPanic(t *test
 	assert.True(t, metrics.Firecrawl, "a nil LLMProvider must not abort the loop")
 }
 
-func TestTelemetryService_SendGridIsNotReported(t *testing.T) {
+func TestTelemetryService_SetIntegrationFlags_SendGrid(t *testing.T) {
 	service := NewTelemetryService(TelemetryServiceConfig{
 		Enabled: true, Logger: logger.NewLoggerWithLevel("debug"),
 	})
 
-	// SendGrid is still a supported email provider but was deliberately
-	// removed from the telemetry payload in October 2025. A SendGrid
-	// integration must raise no flag at all, and must not be mistaken for
-	// another provider.
-	workspace := &domain.Workspace{
+	sendGridOnly := &domain.Workspace{
 		ID: "test-workspace",
 		Integrations: domain.Integrations{
 			{ID: "sendgrid-1", Type: domain.IntegrationTypeEmail,
@@ -301,9 +297,85 @@ func TestTelemetryService_SendGridIsNotReported(t *testing.T) {
 	}
 
 	metrics := TelemetryMetrics{}
-	service.setIntegrationFlagsFromWorkspace(workspace, &metrics)
+	service.setIntegrationFlagsFromWorkspace(sendGridOnly, &metrics)
 
-	assert.Equal(t, TelemetryMetrics{}, metrics, "a SendGrid-only workspace reports no integration flag")
+	// The whole struct is compared so a SendGrid integration raising another
+	// provider's flag as well fails here.
+	assert.Equal(t, TelemetryMetrics{SendGrid: true}, metrics,
+		"a SendGrid-only workspace reports SendGrid and nothing else")
+
+	// The sendgrid key once carried SparkPost, so the two must stay apart.
+	sparkPostOnly := &domain.Workspace{
+		ID: "test-workspace",
+		Integrations: domain.Integrations{
+			{ID: "sparkpost-1", Type: domain.IntegrationTypeEmail,
+				EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSparkPost}},
+		},
+	}
+
+	metrics = TelemetryMetrics{}
+	service.setIntegrationFlagsFromWorkspace(sparkPostOnly, &metrics)
+
+	assert.Equal(t, TelemetryMetrics{SparkPost: true}, metrics,
+		"a SparkPost-only workspace does not report SendGrid")
+}
+
+func TestTelemetryService_SendGridFlagReachesTheWire(t *testing.T) {
+	// The json tag is the contract with the receiving function. The flag must
+	// also travel when false: the receiver tells a v42 sender without SendGrid
+	// from an older one that never reports it by the key being present.
+	tests := []struct {
+		name         string
+		integrations domain.Integrations
+		want         bool
+	}{
+		{
+			name: "a workspace with a SendGrid integration",
+			integrations: domain.Integrations{
+				{ID: "sendgrid-1", Type: domain.IntegrationTypeEmail,
+					EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSendGrid}},
+			},
+			want: true,
+		},
+		{
+			name: "a workspace without one",
+			integrations: domain.Integrations{
+				{ID: "mailgun-1", Type: domain.IntegrationTypeEmail,
+					EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindMailgun}},
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			mockTelemetryRepo := mocks.NewMockTelemetryRepository(ctrl)
+
+			mockWorkspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{
+				{ID: "workspace1", Integrations: tt.integrations},
+			}, nil)
+			mockWorkspaceRepo.EXPECT().GetWorkspaceUsersWithEmail(gomock.Any(), "workspace1").
+				Return([]*domain.UserWorkspaceWithEmail{}, nil)
+			mockTelemetryRepo.EXPECT().GetWorkspaceMetrics(gomock.Any(), "workspace1").
+				Return(&domain.TelemetryMetrics{}, nil)
+
+			capture := newTelemetryCapture(t, TelemetryServiceConfig{
+				APIEndpoint:   "https://api.example.com",
+				WorkspaceRepo: mockWorkspaceRepo,
+				TelemetryRepo: mockTelemetryRepo,
+			})
+
+			require.NoError(t, capture.service.SendMetricsForAllWorkspaces(context.Background()))
+
+			payload := capture.onlyPayload(t)
+			require.Contains(t, payload, "sendgrid")
+			assert.Equal(t, tt.want, payload["sendgrid"])
+		})
+	}
 }
 
 func TestIsWebAnalyticsActive(t *testing.T) {
@@ -407,6 +479,7 @@ func TestTelemetryService_SetIntegrationFlags(t *testing.T) {
 	assert.True(t, metrics.AmazonSES, "AmazonSES flag should be true")
 	assert.True(t, metrics.SMTP, "SMTP flag should be true")
 	assert.False(t, metrics.Mailjet, "Mailjet flag should be false")
+	assert.False(t, metrics.SendGrid, "SendGrid flag should be false")
 	assert.False(t, metrics.SparkPost, "SparkPost flag should be false")
 	assert.False(t, metrics.Postmark, "Postmark flag should be false")
 
@@ -425,6 +498,7 @@ func TestTelemetryService_SetIntegrationFlags(t *testing.T) {
 	assert.False(t, emptyMetrics.AmazonSES, "All flags should be false for empty workspace")
 	assert.False(t, emptyMetrics.SMTP, "All flags should be false for empty workspace")
 	assert.False(t, emptyMetrics.Mailjet, "All flags should be false for empty workspace")
+	assert.False(t, emptyMetrics.SendGrid, "All flags should be false for empty workspace")
 	assert.False(t, emptyMetrics.SparkPost, "All flags should be false for empty workspace")
 	assert.False(t, emptyMetrics.Postmark, "All flags should be false for empty workspace")
 }

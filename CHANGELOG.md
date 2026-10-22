@@ -84,6 +84,8 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: A broadcast whose sending keeps failing is now marked failed once its last retry has failed, instead of one attempt early while that retry went on to send to the rest of the list. A pause made during that last attempt is kept.
 
+- **Improvement**: Telemetry, when switched on, now also reports whether a workspace uses SendGrid.
+
 - **Change**: The database schema moves to v42. Workspace databases get updated `contact_lists` and `message_history` trigger functions, and their stored segment queries and live automation triggers are updated in place; segments are re-evaluated for contacts removed from their lists. The system database is untouched.
 
 ## [41.0] - 2026-09-17

@@ -40,12 +40,14 @@ type TelemetryMetrics struct {
 	SMTP      bool `json:"smtp"`
 	S3        bool `json:"s3"`
 
+	// SendGrid is reported from v42. Until October 2025 the sendgrid key carried
+	// the SparkPost flag, before SendGrid was a provider, so a row that reports
+	// it without a version was sent by an old build and means SparkPost.
+	SendGrid bool `json:"sendgrid"`
+
 	// Non-email integrations. The LLM integration is reported per provider,
 	// like email, because which model vendor a workspace connects is the
 	// actionable part; the other two have nothing to sub-divide.
-	//
-	// SendGrid is deliberately absent: it was dropped from this payload in
-	// October 2025 and stays dropped.
 	Anthropic bool `json:"anthropic"`
 	OpenAI    bool `json:"openai"`
 	Gemini    bool `json:"gemini"`
@@ -268,9 +270,7 @@ func (t *TelemetryService) sendMetricsForWorkspace(ctx context.Context, workspac
 // setIntegrationFlagsFromWorkspace sets boolean flags for each integration type from workspace integrations
 func (t *TelemetryService) setIntegrationFlagsFromWorkspace(workspace *domain.Workspace, metrics *TelemetryMetrics) {
 	// Iterate through workspace integrations and set a flag per configured
-	// provider. EmailProviderKindSendGrid is intentionally unhandled: SendGrid
-	// is still a supported provider, but it was removed from the telemetry
-	// payload in October 2025 and is not reported.
+	// provider.
 	for _, integration := range workspace.Integrations {
 		switch integration.Type {
 		case domain.IntegrationTypeEmail:
@@ -296,6 +296,8 @@ func (t *TelemetryService) setIntegrationFlagsFromWorkspace(workspace *domain.Wo
 				metrics.SMTP = true
 			case domain.EmailProviderKindSparkPost:
 				metrics.SparkPost = true
+			case domain.EmailProviderKindSendGrid:
+				metrics.SendGrid = true
 			}
 
 		case domain.IntegrationTypeLLM:
