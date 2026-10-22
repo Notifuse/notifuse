@@ -89,6 +89,9 @@ func TestValidateFeedURL_PrivateIPs(t *testing.T) {
 		// IPv6 unique local (fc00::/7)
 		{"ipv6 unique local fc00::1", "https://[fc00::1]/feed"},
 		{"ipv6 unique local fd00::1", "https://[fd00::1]/feed"},
+		// Without brackets, then a port: kept parseable by go.mod's
+		// `godebug urlstrictcolons=0`, so it must still be read as an address.
+		{"ipv6 unique local without brackets, with a port", "https://fd12:3456::10:9000/feed"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -220,6 +223,9 @@ func TestValidateFeedURL_ValidPublicIPs(t *testing.T) {
 		"https://192.169.0.1/feed",            // Just after 192.168.x.x
 		"https://169.253.255.255/feed",        // Just before link-local
 		"https://169.255.0.1/feed",            // Just after link-local
+		// IPv6 without brackets, then a port: parsed up to Go 1.25, and on Go
+		// 1.26 only while go.mod keeps `godebug urlstrictcolons=0`.
+		"https://2606:4700::6810:84e5:8443/feed",
 	}
 	for _, url := range validURLs {
 		t.Run(url, func(t *testing.T) {
