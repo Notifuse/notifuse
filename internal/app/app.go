@@ -23,6 +23,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/service/broadcast"
 	"github.com/Notifuse/notifuse/internal/service/queue"
 	"github.com/Notifuse/notifuse/pkg/cache"
+	pkgCrypto "github.com/Notifuse/notifuse/pkg/crypto"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/emailerror"
 	"github.com/Notifuse/notifuse/pkg/geoip"
@@ -393,6 +394,38 @@ func (a *App) InitDB() error {
 		WithField("max_connections_per_db", a.config.Database.MaxConnectionsPerDB).
 		Info("Connection manager initialized")
 
+	return nil
+}
+
+// InitSecretKey brings the stored data under the first key of a SECRET_KEY that lists
+// several: what the other keys open is re-encrypted with it. A list of one, a key whose
+// commas are doubled, is only checked against the data. It runs before anything reads
+// the database, so a value no listed key opens stops the start rather than a later
+// workspace load. A SECRET_KEY without a comma reads nothing.
+func (a *App) InitSecretKey() error {
+	security := a.config.Security
+	if !security.SecretKeyIsList {
+		return nil
+	}
+
+	result, err := repository.RotateSecretKey(context.Background(), a.db, security.SecretKey, security.PreviousSecretKeys)
+	if err != nil && !errors.Is(err, pkgCrypto.ErrUndecryptable) {
+		return fmt.Errorf("failed to bring the stored data under the first key of SECRET_KEY: %w", err)
+	}
+	if err != nil {
+		return fmt.Errorf("no key listed in SECRET_KEY opens a value stored in the database (%w). Nothing was "+
+			"changed. List the key the data is encrypted with after the new one, and write each comma inside a "+
+			"key twice", err)
+	}
+
+	if len(security.PreviousSecretKeys) == 0 {
+		a.logger.Info("Every stored value opens with SECRET_KEY")
+		return nil
+	}
+	a.logger.WithFields(map[string]interface{}{
+		"workspaces": result.Workspaces,
+		"settings":   result.Settings,
+	}).Info("Stored data re-encrypted with the first key of SECRET_KEY; the other keys can now be removed from it")
 	return nil
 }
 
@@ -2035,6 +2068,10 @@ func (a *App) Initialize() error {
 	}
 
 	if err := a.InitDB(); err != nil {
+		return err
+	}
+
+	if err := a.InitSecretKey(); err != nil {
 		return err
 	}
 

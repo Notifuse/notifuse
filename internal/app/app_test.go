@@ -20,6 +20,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
+	pkgCrypto "github.com/Notifuse/notifuse/pkg/crypto"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/mailer"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
@@ -596,6 +597,93 @@ func TestAppInitServicesSubscribesAnnotationServiceToEventBus(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("annotation service is not subscribed to broadcast.sending_started")
 	}
+}
+
+// TestAppInitSecretKey covers the startup pass over the stored data: only a SECRET_KEY
+// that lists keys triggers it, and a value none of them opens stops the start.
+func TestAppInitSecretKey(t *testing.T) {
+	const current = "current-key-giving-32-bytes-of-material"
+	const previous = "previous-key-giving-32-bytes-of-material"
+
+	newApp := func(t *testing.T, security config.SecurityConfig) (*App, sqlmock.Sqlmock) {
+		t.Helper()
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+
+		ctrl := gomock.NewController(t)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+		cfg := createTestConfig()
+		cfg.Security = security
+		appImpl, ok := NewApp(cfg, WithLogger(mockLogger), WithMockDB(db)).(*App)
+		require.True(t, ok)
+		return appImpl, mock
+	}
+
+	t.Run("a single key reads nothing", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: current})
+
+		require.NoError(t, app.InitSecretKey())
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a list re-encrypts the stored data under its first key", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{
+			SecretKey:          current,
+			PreviousSecretKeys: []string{previous},
+			SecretKeyIsList:    true,
+		})
+		old, err := pkgCrypto.EncryptString("smtp-pass", previous)
+		require.NoError(t, err)
+
+		mock.ExpectBegin()
+		mock.ExpectExec(`SELECT pg_advisory_xact_lock`).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(`FROM workspaces`).WillReturnRows(sqlmock.NewRows([]string{"id", "settings", "integrations"}))
+		mock.ExpectQuery(`FROM settings`).WillReturnRows(
+			sqlmock.NewRows([]string{"key", "value"}).AddRow("encrypted_smtp_password", old))
+		mock.ExpectExec(`UPDATE settings`).WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		require.NoError(t, app.InitSecretKey())
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a database failure stops the start as one", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: current, SecretKeyIsList: true})
+
+		mock.ExpectBegin().WillReturnError(assert.AnError)
+
+		err := app.InitSecretKey()
+		require.ErrorIs(t, err, assert.AnError)
+		assert.NotContains(t, err.Error(), "no key listed")
+	})
+
+	t.Run("a value no listed key opens stops the start and says why", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{
+			SecretKey:          current,
+			PreviousSecretKeys: []string{previous},
+			SecretKeyIsList:    true,
+		})
+		lost, err := pkgCrypto.EncryptString("smtp-pass", "a-key-nobody-listed-giving-32-bytes")
+		require.NoError(t, err)
+
+		mock.ExpectBegin()
+		mock.ExpectExec(`SELECT pg_advisory_xact_lock`).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(`FROM workspaces`).WillReturnRows(sqlmock.NewRows([]string{"id", "settings", "integrations"}))
+		mock.ExpectQuery(`FROM settings`).WillReturnRows(
+			sqlmock.NewRows([]string{"key", "value"}).AddRow("encrypted_smtp_password", lost))
+		mock.ExpectRollback()
+
+		err = app.InitSecretKey()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "setting encrypted_smtp_password")
+		assert.Contains(t, err.Error(), "SECRET_KEY")
+		assert.Contains(t, err.Error(), "twice")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 }
 
 // TestAppInitSupabaseService tests that the Supabase service is properly initialized and linked

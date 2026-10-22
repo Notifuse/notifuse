@@ -2304,6 +2304,79 @@ func TestWorkspaceHandler_HandleUpdateIntegration_ServiceError(t *testing.T) {
 	assert.Equal(t, "Failed to update integration", response["error"])
 }
 
+// A page loaded before a SECRET_KEY rotation echoes credentials encrypted with the
+// former key. The save is refused before anything is written, and the owner is told to
+// reload, not shown a server error.
+func TestWorkspaceHandler_StaleCredentialAsksForAReload(t *testing.T) {
+	const reloadMessage = "The saved credentials of this workspace changed. Reload the page and save again."
+	staleErr := fmt.Errorf("%w: [0].email_provider.smtp.encrypted_password: no key opens the value", domain.ErrStaleCredential)
+
+	mailgun := domain.EmailProvider{
+		Kind:               domain.EmailProviderKindMailgun,
+		RateLimitPerMinute: 25,
+		Senders:            []domain.EmailSender{domain.NewEmailSender("test@example.com", "Test Sender")},
+		Mailgun:            &domain.MailgunSettings{Domain: "test.com", APIKey: "api-key-example"},
+	}
+
+	post := func(t *testing.T, mux *http.ServeMux, secretKey []byte, path string, payload interface{}) *httptest.ResponseRecorder {
+		t.Helper()
+		body, err := json.Marshal(payload)
+		require.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+		return w
+	}
+	assertReload := func(t *testing.T, w *httptest.ResponseRecorder) {
+		t.Helper()
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var response map[string]string
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+		assert.Equal(t, reloadMessage, response["error"])
+	}
+
+	t.Run("workspace update", func(t *testing.T) {
+		_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+		workspaceSvc.EXPECT().UpdateWorkspace(gomock.Any(), "testworkspace1", "Updated Workspace", gomock.Any()).
+			Return(nil, staleErr)
+
+		assertReload(t, post(t, mux, secretKey, "/api/workspaces.update", domain.UpdateWorkspaceRequest{
+			ID:   "testworkspace1",
+			Name: "Updated Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone:        "UTC",
+				DefaultLanguage: "en",
+				Languages:       []string{"en"},
+			},
+		}))
+	})
+
+	t.Run("integration creation", func(t *testing.T) {
+		_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+		workspaceSvc.EXPECT().CreateIntegration(gomock.Any(), gomock.Any()).Return("", staleErr)
+
+		assertReload(t, post(t, mux, secretKey, "/api/workspaces.createIntegration", domain.CreateIntegrationRequest{
+			WorkspaceID: "workspace-123",
+			Name:        "Test Integration",
+			Type:        domain.IntegrationTypeEmail,
+			Provider:    mailgun,
+		}))
+	})
+
+	t.Run("integration update", func(t *testing.T) {
+		_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+		workspaceSvc.EXPECT().UpdateIntegration(gomock.Any(), gomock.Any()).Return(staleErr)
+
+		assertReload(t, post(t, mux, secretKey, "/api/workspaces.updateIntegration", domain.UpdateIntegrationRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-123",
+			Name:          "Updated Integration",
+			Provider:      mailgun,
+		}))
+	})
+}
+
 func TestWorkspaceHandler_HandleDeleteIntegration(t *testing.T) {
 	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
 

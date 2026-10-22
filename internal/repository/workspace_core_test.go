@@ -713,6 +713,88 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 	assert.Contains(t, err.Error(), "secret key")
 }
 
+// A console page loaded before a SECRET_KEY rotation echoes the credentials it loaded,
+// encrypted with the former key. Written as is, every load of the workspace would then
+// fail, so the repository refuses a credential its key does not open, before writing.
+func TestWorkspaceRepository_RefusesCredentialsItsKeyDoesNotOpen(t *testing.T) {
+	const repoKey = "secret-key"
+
+	smtpWorkspace := func(t *testing.T, id, encryptedPassword string) *domain.Workspace {
+		t.Helper()
+		return &domain.Workspace{
+			ID:   id,
+			Name: "Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone:  "UTC",
+				SecretKey: "supersecret",
+			},
+			Integrations: []domain.Integration{{
+				ID:   "smtp",
+				Name: "SMTP",
+				Type: domain.IntegrationTypeEmail,
+				EmailProvider: domain.EmailProvider{
+					Kind: domain.EmailProviderKindSMTP,
+					SMTP: &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, EncryptedPassword: encryptedPassword},
+				},
+			}},
+		}
+	}
+	underAnotherKey, err := crypto.EncryptString("pass", "the-key-before-the-rotation")
+	require.NoError(t, err)
+	underRepoKey, err := crypto.EncryptString("pass", repoKey)
+	require.NoError(t, err)
+
+	t.Run("an update echoing a credential under another key writes nothing", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, repoKey, newMockConnectionManager(db))
+
+		err := repo.Update(context.Background(), smtpWorkspace(t, "ws1", underAnotherKey))
+
+		require.ErrorIs(t, err, domain.ErrStaleCredential)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("an update carrying a value that is no ciphertext writes nothing", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, repoKey, newMockConnectionManager(db))
+
+		err := repo.Update(context.Background(), smtpWorkspace(t, "ws1", "not-a-ciphertext"))
+
+		require.ErrorIs(t, err, domain.ErrStaleCredential)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("an update echoing a credential under its key is written", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, repoKey, newMockConnectionManager(db))
+
+		mock.ExpectExec(`UPDATE workspaces\s+SET name = \$1, settings = \$2, integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+			WithArgs("Workspace", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "ws1").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		require.NoError(t, repo.Update(context.Background(), smtpWorkspace(t, "ws1", underRepoKey)))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a creation carrying a credential under another key creates no database", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, repoKey, newMockConnectionManager(db))
+
+		mock.ExpectQuery(`SELECT EXISTS\(SELECT 1 FROM workspaces WHERE id = \$1\)`).
+			WithArgs("ws2").
+			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+
+		err := repo.Create(context.Background(), smtpWorkspace(t, "ws2", underAnotherKey))
+
+		require.ErrorIs(t, err, domain.ErrStaleCredential)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
 func TestWorkspaceRepository_checkWorkspaceIDExists_Postgres(t *testing.T) {
 	db, mock, cleanup := testutil.SetupMockDB(t)
 	defer cleanup()

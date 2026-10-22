@@ -257,6 +257,9 @@ func (h *WorkspaceHandler) handleUpdate(w http.ResponseWriter, r *http.Request) 
 		if writeServiceError(w, err, "You are not allowed to update this workspace") {
 			return
 		}
+		if writeStaleCredential(w, err) {
+			return
+		}
 		// Check if it's a validation error (e.g., DNS verification failed)
 		var validationErr domain.ValidationError
 		if errors.As(err, &validationErr) {
@@ -717,6 +720,17 @@ func (h *WorkspaceHandler) handleRemoveMember(w http.ResponseWriter, r *http.Req
 	})
 }
 
+// writeStaleCredential answers a save refused because it carries a credential the
+// instance key does not open, as a page loaded before a SECRET_KEY rotation sends:
+// reloading the page fetches the credentials under the new key.
+func writeStaleCredential(w http.ResponseWriter, err error) bool {
+	if !errors.Is(err, domain.ErrStaleCredential) {
+		return false
+	}
+	WriteJSONError(w, "The saved credentials of this workspace changed. Reload the page and save again.", http.StatusBadRequest)
+	return true
+}
+
 // handleCreateIntegration handles the request to create a new integration
 func (h *WorkspaceHandler) handleCreateIntegration(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -742,6 +756,9 @@ func (h *WorkspaceHandler) handleCreateIntegration(w http.ResponseWriter, r *htt
 		var unauthorized *domain.ErrUnauthorized
 		if errors.As(err, &unauthorized) {
 			WriteJSONError(w, unauthorized.Message, http.StatusForbidden)
+			return
+		}
+		if writeStaleCredential(w, err) {
 			return
 		}
 
@@ -780,6 +797,9 @@ func (h *WorkspaceHandler) handleUpdateIntegration(w http.ResponseWriter, r *htt
 		var unauthorized *domain.ErrUnauthorized
 		if errors.As(err, &unauthorized) {
 			WriteJSONError(w, unauthorized.Message, http.StatusForbidden)
+			return
+		}
+		if writeStaleCredential(w, err) {
 			return
 		}
 
