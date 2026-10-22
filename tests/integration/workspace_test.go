@@ -226,9 +226,9 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 			require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM workspaces WHERE id = $1", workspaceID).Scan(&count))
 			assert.Equal(t, 0, count)
 
-			// The database would be created under the lowercase form of its name.
-			workspaceDBName := "notifuse_test_ws_" + strings.ToLower(workspaceID)
-			require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM pg_database WHERE datname = $1", workspaceDBName).Scan(&count))
+			// Compared without case: the database must not exist under any form of its name.
+			workspaceDBName := "notifuse_test_ws_" + workspaceID
+			require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM pg_database WHERE lower(datname) = lower($1)", workspaceDBName).Scan(&count))
 			assert.Equal(t, 0, count, "no workspace database may be left behind")
 		})
 

@@ -439,7 +439,10 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 		}
 
 		mockAuthService.EXPECT().AuthenticateUserFromContext(ctx).Return(expectedUser, nil)
-		// No repository expectation: the workspace database must not be created for this ID.
+		// A workspace cap makes the service count workspaces; with no repository expectation at
+		// all, the ID must be refused before that count and before the database is created.
+		mockConfig.MaxWorkspaces = 5
+		defer func() { mockConfig.MaxWorkspaces = 0 }()
 
 		workspace, err := service.CreateWorkspace(ctx, "AcmeCo", "Test Workspace", "https://example.com", "", "", "UTC", domain.FileManagerSettings{}, "en", []string{"en"})
 		require.Error(t, err)
