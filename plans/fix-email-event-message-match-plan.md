@@ -67,8 +67,8 @@ An erased contact's emails name no one, so they are left out. No ids, no query.
 (deduplicated), calls `GetRecipients` once, keeps an event when its address is non-empty, its ID is
 found and `sameAddress(recipient, event.RecipientEmail)` (D3), and rewrites the kept event's address to
 the stored one. It logs one Info line per delivery when it leaves events out: workspace, integration,
-how many, the first ignored message ID (cut to 255 bytes, the length of `message_history.id`, on a
-character boundary), no address. A lookup error is returned before anything is stored. When no event is left, `ProcessWebhook` returns nil.
+how many, the first ignored message ID (cut to 255 bytes on a character boundary, since it comes from
+the request), no address. A lookup error is returned before anything is stored. When no event is left, `ProcessWebhook` returns nil.
 
 The rest of `ProcessWebhook` is unchanged and only sees kept events. `recordUnsubscribes` keeps its own
 lookup, which it needs for the list and for a contact erased in between.

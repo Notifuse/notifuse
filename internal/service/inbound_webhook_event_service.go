@@ -511,7 +511,7 @@ func (s *InboundWebhookEventService) eventsOfSentEmails(ctx context.Context, wor
 		}
 		ignored++
 	}
-	// The id comes from the request, so a long one is cut, where it can name no email anyway
+	// The id comes from the request, so a long one is cut to keep the line short
 	if len(firstIgnoredID) > maxLoggedMessageIDLength {
 		firstIgnoredID = domain.TruncateUTF8(firstIgnoredID, maxLoggedMessageIDLength) + "…(truncated)"
 	}
@@ -526,7 +526,7 @@ func (s *InboundWebhookEventService) eventsOfSentEmails(ctx context.Context, wor
 	return kept, nil
 }
 
-// maxLoggedMessageIDLength, in bytes, is the length of message_history.id, VARCHAR(255).
+// maxLoggedMessageIDLength is the most bytes of a message ID the ignored-events line carries.
 const maxLoggedMessageIDLength = 255
 
 // sameAddress reports whether reported, the address a provider gives in an event, is stored,
