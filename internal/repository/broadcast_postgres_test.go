@@ -1686,12 +1686,14 @@ func TestBroadcastRepository_UpdateBroadcastStatusUnless(t *testing.T) {
 	}
 	const statusOnlyUpdate = `UPDATE broadcasts SET status = \$3, paused_at = \$4, pause_reason = \$5, updated_at = \$6\s+WHERE id = \$1 AND workspace_id = \$2 AND status <> ALL\(\$7\)`
 
-	t.Run("writes the status fields when the stored status is not excluded", func(t *testing.T) {
+	t.Run("writes the status fields in a transaction when the stored status is not excluded", func(t *testing.T) {
 		repo, _, mock := setup(t)
+		mock.ExpectBegin()
 		mock.ExpectExec(statusOnlyUpdate).
 			WithArgs("bc123", workspaceID, "paused", &pausedAt, &reason, sqlmock.AnyArg(),
 				pq.Array([]string{"cancelled", "paused", "processed"})).
 			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
 
 		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
 		require.NoError(t, err)
@@ -1701,8 +1703,10 @@ func TestBroadcastRepository_UpdateBroadcastStatusUnless(t *testing.T) {
 
 	t.Run("reports no write when the stored status is excluded or the broadcast is gone", func(t *testing.T) {
 		repo, _, mock := setup(t)
+		mock.ExpectBegin()
 		mock.ExpectExec(statusOnlyUpdate).
 			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectRollback()
 
 		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
 		require.NoError(t, err)
@@ -1713,10 +1717,12 @@ func TestBroadcastRepository_UpdateBroadcastStatusUnless(t *testing.T) {
 	t.Run("binds no excluded status as an empty list, not NULL", func(t *testing.T) {
 		// status <> ALL(NULL) matches no row, so a nil list would never write.
 		repo, _, mock := setup(t)
+		mock.ExpectBegin()
 		mock.ExpectExec(statusOnlyUpdate).
 			WithArgs("bc123", workspaceID, "paused", &pausedAt, &reason, sqlmock.AnyArg(),
 				pq.Array([]string{})).
 			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
 
 		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), nil)
 		require.NoError(t, err)
@@ -1724,15 +1730,57 @@ func TestBroadcastRepository_UpdateBroadcastStatusUnless(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("returns the error of a failed write", func(t *testing.T) {
+	t.Run("returns the error of a failed write and rolls back", func(t *testing.T) {
 		repo, _, mock := setup(t)
+		mock.ExpectBegin()
 		mock.ExpectExec(statusOnlyUpdate).
 			WillReturnError(errors.New("deadlock detected"))
+		mock.ExpectRollback()
 
 		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "deadlock detected")
 		assert.False(t, written)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns the error of a failed row count and rolls back", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectExec(statusOnlyUpdate).
+			WillReturnResult(sqlmock.NewErrorResult(errors.New("driver lost the count")))
+		mock.ExpectRollback()
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get rows affected")
+		assert.False(t, written)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns the error of a failed begin", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectBegin().WillReturnError(errors.New("too many connections"))
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to begin transaction")
+		assert.False(t, written)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("reports no write when the commit fails", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectExec(statusOnlyUpdate).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit().WillReturnError(errors.New("connection reset"))
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), unless)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to commit transaction")
+		assert.False(t, written)
+		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
 	t.Run("returns the error of a failed connection", func(t *testing.T) {

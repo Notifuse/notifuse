@@ -8,7 +8,9 @@ import (
 	"testing"
 	"time"
 
+	pgdb "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/tests/testutil"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -449,4 +451,87 @@ func TestBroadcastPauseDuringLastAttemptFailure_IsKept(t *testing.T) {
 	resumeResp.Body.Close()
 	require.Equal(t, http.StatusOK, resumeResp.StatusCode)
 	finishBroadcast(t, h, contacts)
+}
+
+// setWorkspaceDefaultIsolation sets or resets the workspace database's default
+// isolation, then closes the app's pool for it: a session takes the default
+// when it opens.
+func setWorkspaceDefaultIsolation(t *testing.T, h *phase2Harness, clause string) {
+	t.Helper()
+	wsDB, err := h.suite.DBManager.GetWorkspaceDB(h.workspaceID)
+	require.NoError(t, err)
+	var database string
+	require.NoError(t, wsDB.QueryRow(`SELECT current_database()`).Scan(&database))
+	_, err = wsDB.Exec(`ALTER DATABASE ` + pq.QuoteIdentifier(database) + ` ` + clause)
+	require.NoError(t, err)
+	manager, err := pgdb.GetConnectionManager()
+	require.NoError(t, err)
+	require.NoError(t, manager.CloseWorkspaceConnection(h.workspaceID))
+}
+
+// TestBroadcastLastAttemptFailureAfterAnotherWrite_IsWritten covers another
+// write to the broadcast's row, one that leaves a status the finalizer does not
+// keep, in flight when the last attempt fails: the finalizer's write waits on
+// its row lock, checks the row again once it commits, and still writes failed.
+// That check after the wait is READ COMMITTED's; a stricter level fails the
+// waiting write instead, so the write runs at READ COMMITTED whatever the
+// server's default.
+func TestBroadcastLastAttemptFailureAfterAnotherWrite_IsWritten(t *testing.T) {
+	for _, tc := range []struct {
+		name           string
+		repeatableRead bool
+	}{
+		{name: "at the server's default isolation"},
+		{name: "on a database whose default isolation is repeatable read", repeatableRead: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := setupPhase2(t, 60, 6000)
+			defer h.Cleanup()
+
+			if tc.repeatableRead {
+				setWorkspaceDefaultIsolation(t, h, `SET default_transaction_isolation = 'repeatable read'`)
+				t.Cleanup(func() { setWorkspaceDefaultIsolation(t, h, `RESET default_transaction_isolation`) })
+				appDB, err := h.factory.GetWorkspaceDB(h.workspaceID)
+				require.NoError(t, err)
+				var isolation string
+				require.NoError(t, appDB.QueryRow(`SHOW default_transaction_isolation`).Scan(&isolation))
+				require.Equal(t, "repeatable read", isolation, "the app's sessions must now default to it")
+			}
+
+			h.scheduleAsync(t)
+			initTick(t, h)
+
+			run := holdLastAttempt(t, h)
+			defer run.cleanup()
+
+			wsDB, err := h.suite.DBManager.GetWorkspaceDB(h.workspaceID)
+			require.NoError(t, err)
+			other, err := wsDB.BeginTx(context.Background(), nil)
+			require.NoError(t, err)
+			defer func() { _ = other.Rollback() }()
+			_, err = other.Exec(`UPDATE broadcasts SET updated_at = now() WHERE id = $1`, h.broadcastID)
+			require.NoError(t, err)
+
+			run.release()
+
+			waitForUngrantedLock(t, h, "locktype IN ('transactionid', 'tuple')",
+				"the finalizer's write never waited on the other write's row lock")
+			require.NoError(t, other.Commit())
+
+			res := run.result()
+			require.NoError(t, res.err)
+			assert.Equal(t, http.StatusInternalServerError, res.status,
+				"the injected enqueue failure must fail the run")
+
+			status, retries, _ := taskRow(t, h)
+			bd := h.getBroadcast(t)
+			t.Logf("after the last attempt failed behind another write: task_status=%s retry_count=%d broadcast_status=%v",
+				status, retries, bd["status"])
+
+			assert.Equal(t, "failed", status, "the last attempt failed for good")
+			assert.Equal(t, 4, retries)
+			assert.Equal(t, "failed", bd["status"],
+				"the broadcast fails with its task once the write it waited for commits")
+		})
+	}
 }
