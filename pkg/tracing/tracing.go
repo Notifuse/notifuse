@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"contrib.go.opencensus.io/exporter/aws"
 	"contrib.go.opencensus.io/exporter/jaeger"
@@ -363,6 +364,18 @@ func initXRayExporter(cfg *config.TracingConfig) error {
 	return nil
 }
 
+// newMetricsServer builds the Prometheus metrics server with the connection time
+// limits of the main server: 20 s to send the request headers, and idle
+// connections kept longer than a scraper or proxy reuses them.
+func newMetricsServer(port int, handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:              fmt.Sprintf(":%d", port),
+		Handler:           handler,
+		ReadHeaderTimeout: 20 * time.Second,
+		IdleTimeout:       70 * time.Minute,
+	}
+}
+
 // initPrometheusExporter initializes the Prometheus exporter
 func initPrometheusExporter(cfg *config.TracingConfig) error {
 	// Create the Prometheus exporter with service name as namespace
@@ -391,10 +404,7 @@ func initPrometheusExporter(cfg *config.TracingConfig) error {
 				_, _ = w.Write([]byte("OK"))
 			})
 
-			server := &http.Server{
-				Addr:    fmt.Sprintf(":%d", cfg.PrometheusPort),
-				Handler: mux,
-			}
+			server := newMetricsServer(cfg.PrometheusPort, mux)
 
 			log.Printf("Starting Prometheus metrics server on :%d", cfg.PrometheusPort)
 			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

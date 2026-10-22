@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -20,14 +21,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// mockAppShutdowner implements AppShutdowner for testing
+// mockAppShutdowner implements AppShutdowner for testing. Handlers call it from
+// a goroutine after responding, so the flag is atomic.
 type mockAppShutdowner struct {
-	shutdownCalled bool
+	shutdownCalled atomic.Bool
 	shutdownError  error
 }
 
 func (m *mockAppShutdowner) Shutdown(ctx context.Context) error {
-	m.shutdownCalled = true
+	m.shutdownCalled.Store(true)
 	return m.shutdownError
 }
 

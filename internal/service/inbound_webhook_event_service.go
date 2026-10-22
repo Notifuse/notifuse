@@ -992,14 +992,18 @@ func (s *InboundWebhookEventService) processMailgunWebhook(integrationID string,
 func (s *InboundWebhookEventService) processSparkPostWebhook(integrationID string, rawPayload []byte) (events []*domain.InboundWebhookEvent, err error) {
 	events = []*domain.InboundWebhookEvent{}
 
-	// payload can contain multiple events
-	var payload []*domain.SparkPostWebhookPayload
-
-	if err := json.Unmarshal(rawPayload, &payload); err != nil {
+	// payload can contain multiple events; each keeps its own element as raw payload
+	var rawEvents []json.RawMessage
+	if err := json.Unmarshal(rawPayload, &rawEvents); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal SparkPost webhook payload: %w", err)
 	}
 
-	for _, payload := range payload {
+	for _, rawEvent := range rawEvents {
+		var payload domain.SparkPostWebhookPayload
+		if err := json.Unmarshal(rawEvent, &payload); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal SparkPost webhook payload: %w", err)
+		}
+
 		var eventType domain.EmailEventType
 		var recipientEmail, messageID string
 		var bounceType, bounceCategory, bounceDiagnostic, complaintFeedbackType string
@@ -1073,7 +1077,7 @@ func (s *InboundWebhookEventService) processSparkPostWebhook(integrationID strin
 			recipientEmail,
 			&messageID,
 			timestamp,
-			string(rawPayload),
+			string(rawEvent),
 		)
 
 		// Set event-specific information
@@ -1095,13 +1099,17 @@ func (s *InboundWebhookEventService) processSparkPostWebhook(integrationID strin
 // processMailjetWebhook processes a webhook event from Mailjet
 func (s *InboundWebhookEventService) processMailjetWebhook(integrationID string, rawPayload []byte) (events []*domain.InboundWebhookEvent, err error) {
 	// Mailjet can send either a single object or an array of events
-	// First try to unmarshal as an array
-	var payloadArray []domain.MailjetWebhookPayload
-	if err := json.Unmarshal(rawPayload, &payloadArray); err == nil {
+	// First try to unmarshal as an array; each event keeps its own element as raw payload
+	var rawEvents []json.RawMessage
+	if err := json.Unmarshal(rawPayload, &rawEvents); err == nil {
 		// Successfully unmarshaled as array, process each event
 		var allEvents []*domain.InboundWebhookEvent
-		for _, payload := range payloadArray {
-			event, err := s.processSingleMailjetEvent(integrationID, payload, rawPayload)
+		for _, rawEvent := range rawEvents {
+			var payload domain.MailjetWebhookPayload
+			if err := json.Unmarshal(rawEvent, &payload); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal Mailjet webhook event: %w", err)
+			}
+			event, err := s.processSingleMailjetEvent(integrationID, payload, rawEvent)
 			if err != nil {
 				return nil, err
 			}
@@ -1283,15 +1291,20 @@ func (s *InboundWebhookEventService) processSMTPWebhook(integrationID string, ra
 // processSendGridWebhook processes webhook events from SendGrid
 // SendGrid sends events as a JSON array with custom_args flattened into top-level fields
 func (s *InboundWebhookEventService) processSendGridWebhook(integrationID string, rawPayload []byte) (events []*domain.InboundWebhookEvent, err error) {
-	// SendGrid sends webhooks as a JSON array of events
-	var payload []domain.SendGridWebhookEvent
-	if err := json.Unmarshal(rawPayload, &payload); err != nil {
+	// SendGrid sends webhooks as a JSON array of events; each keeps its own element as raw payload
+	var rawEvents []json.RawMessage
+	if err := json.Unmarshal(rawPayload, &rawEvents); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal SendGrid webhook payload: %w", err)
 	}
 
 	events = []*domain.InboundWebhookEvent{}
 
-	for _, sgEvent := range payload {
+	for _, rawEvent := range rawEvents {
+		var sgEvent domain.SendGridWebhookEvent
+		if err := json.Unmarshal(rawEvent, &sgEvent); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal SendGrid webhook payload: %w", err)
+		}
+
 		var eventType domain.EmailEventType
 		var bounceType, bounceCategory, bounceDiagnostic, complaintFeedbackType string
 
@@ -1356,7 +1369,7 @@ func (s *InboundWebhookEventService) processSendGridWebhook(integrationID string
 			recipientEmail,
 			&messageID,
 			timestamp,
-			string(rawPayload),
+			string(rawEvent),
 		)
 
 		// Set event-specific information
