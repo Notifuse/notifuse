@@ -529,7 +529,9 @@ func checkUnopenedSettings(settings *SystemSettings, oidc OIDCConfig, bridge SMT
 			return err
 		}
 	}
-	if bridge.Enabled && bridge.TLSMode != smtp_bridge.ModeOff {
+	// A mode that is not valid is resolveSMTPBridgeTLSMode's to report.
+	if bridge.Enabled && bridge.TLSMode != smtp_bridge.ModeOff &&
+		(bridge.TLSMode == "" || smtp_bridge.ValidateMode(bridge.TLSMode) == nil) {
 		var needed []string
 		if bridge.TLSCertBase64 == "" {
 			needed = append(needed, "encrypted_smtp_bridge_tls_cert_base64")

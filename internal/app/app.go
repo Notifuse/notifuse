@@ -428,10 +428,17 @@ func (a *App) checkSingleSecretKey(key, variable string) error {
 	if opens {
 		return nil
 	}
+	var probeErr error
 	hint := config.KeyHint(key, variable, func(candidate string) bool {
 		opens, _, err := a.storedDataOpens(ctx, candidate)
+		if err != nil && probeErr == nil {
+			probeErr = err
+		}
 		return err == nil && opens
 	})
+	if probeErr != nil {
+		return fmt.Errorf("failed to check %s against the stored data: %w", variable, probeErr)
+	}
 	if hint != "" {
 		return fmt.Errorf("%s %s, but %s", variable, refusal, hint)
 	}

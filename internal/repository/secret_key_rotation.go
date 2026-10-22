@@ -192,37 +192,33 @@ func lockEncryptedSettings(ctx context.Context, tx *sql.Tx) ([]rotationSettingRo
 // workspace, without locks, and stops at the first that opens: with a single key, a
 // key that opens none means every workspace load would fail.
 func SecretKeyOpensAWorkspace(ctx context.Context, db *sql.DB, key string) (bool, int, error) {
-	rows, err := db.QueryContext(ctx,
-		`SELECT settings->>'encrypted_secret_key' FROM workspaces WHERE COALESCE(settings->>'encrypted_secret_key', '') <> ''`)
+	opens, tried, err := keyOpensAStoredValue(ctx, db,
+		`SELECT id, settings->>'encrypted_secret_key' FROM workspaces WHERE COALESCE(settings->>'encrypted_secret_key', '') <> ''`,
+		key)
 	if err != nil {
-		return false, 0, fmt.Errorf("failed to read workspace keys: %w", err)
+		return false, len(tried), fmt.Errorf("failed to read workspace keys: %w", err)
 	}
-	defer func() { _ = rows.Close() }()
-
-	examined := 0
-	for rows.Next() {
-		var value string
-		if err := rows.Scan(&value); err != nil {
-			return false, examined, fmt.Errorf("failed to scan workspace key: %w", err)
-		}
-		examined++
-		if _, err := crypto.DecryptFromHexString(value, key); err == nil {
-			return true, examined, nil
-		}
-	}
-	if err := rows.Err(); err != nil {
-		return false, examined, fmt.Errorf("failed to read workspace keys: %w", err)
-	}
-	return examined == 0, examined, nil
+	return opens, len(tried), nil
 }
 
 // SecretKeyOpensASetting reports whether key opens at least one stored encrypted_
 // setting, or there is none, and which it tried. It reads without locks and stops at the
 // first that opens: with no workspace stored, these settings are the data under the key.
 func SecretKeyOpensASetting(ctx context.Context, db *sql.DB, key string) (bool, []string, error) {
-	rows, err := db.QueryContext(ctx, encryptedSettingsQuery)
+	opens, tried, err := keyOpensAStoredValue(ctx, db, encryptedSettingsQuery, key)
 	if err != nil {
-		return false, nil, fmt.Errorf("failed to read settings: %w", err)
+		return false, tried, fmt.Errorf("failed to read settings: %w", err)
+	}
+	return opens, tried, nil
+}
+
+// keyOpensAStoredValue runs query, which selects a name and an encrypted value, and
+// reports whether key opens one of the values, stopping at the first that opens, or
+// there is none; and the names it tried.
+func keyOpensAStoredValue(ctx context.Context, db *sql.DB, query, key string) (bool, []string, error) {
+	rows, err := db.QueryContext(ctx, query)
+	if err != nil {
+		return false, nil, err
 	}
 	defer func() { _ = rows.Close() }()
 
@@ -230,7 +226,7 @@ func SecretKeyOpensASetting(ctx context.Context, db *sql.DB, key string) (bool, 
 	for rows.Next() {
 		var name, value string
 		if err := rows.Scan(&name, &value); err != nil {
-			return false, tried, fmt.Errorf("failed to scan setting: %w", err)
+			return false, tried, err
 		}
 		tried = append(tried, name)
 		if _, err := crypto.DecryptFromHexString(value, key); err == nil {
@@ -238,7 +234,7 @@ func SecretKeyOpensASetting(ctx context.Context, db *sql.DB, key string) (bool, 
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return false, tried, fmt.Errorf("failed to read settings: %w", err)
+		return false, tried, err
 	}
 	return len(tried) == 0, tried, nil
 }

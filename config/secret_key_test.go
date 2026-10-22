@@ -231,7 +231,7 @@ func TestParseSecretKeys(t *testing.T) {
 }
 
 // A list reads its first key without the quotes and spaces around it, where a single
-// key keeps them: TrimmedKey gives the form a list would read.
+// key keeps them: unquoted gives the form a list would read.
 func TestUnquoted(t *testing.T) {
 	for raw, want := range map[string]string{
 		"key":              "key",
@@ -489,6 +489,12 @@ func TestCheckUnopenedSettings(t *testing.T) {
 
 	t.Run("an SMTP bridge with TLS set off needs no certificate", func(t *testing.T) {
 		require.NoError(t, checkUnopenedSettings(unopened, OIDCConfig{}, SMTPBridgeConfig{Enabled: true, TLSMode: "off"}, secretKey))
+	})
+
+	t.Run("an SMTP bridge TLS mode that is not valid is left to its own check", func(t *testing.T) {
+		require.NoError(t, checkUnopenedSettings(unopened, OIDCConfig{}, SMTPBridgeConfig{Enabled: true, TLSMode: "OFF"}, secretKey))
+		require.Error(t, checkUnopenedSettings(unopened, OIDCConfig{}, SMTPBridgeConfig{Enabled: true, TLSMode: "starttls"}, secretKey),
+			"a valid mode that needs TLS still needs the stored certificate and key")
 	})
 
 	t.Run("features that are off need nothing", func(t *testing.T) {

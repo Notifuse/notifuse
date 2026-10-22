@@ -326,13 +326,13 @@ func TestRotateSecretKey(t *testing.T) {
 
 func TestSecretKeyOpensAWorkspace(t *testing.T) {
 	ctx := context.Background()
-	const query = `SELECT settings->>'encrypted_secret_key' FROM workspaces WHERE COALESCE\(settings->>'encrypted_secret_key', ''\) <> ''`
+	const query = `SELECT id, settings->>'encrypted_secret_key' FROM workspaces WHERE COALESCE\(settings->>'encrypted_secret_key', ''\) <> ''`
 	unknown := "a-key-nobody-listed-giving-32-bytes"
 
 	t.Run("true when there is no workspace", func(t *testing.T) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
-		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"key"}))
+		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"id", "key"}))
 
 		opens, examined, err := SecretKeyOpensAWorkspace(ctx, db, rotationCurrentKey)
 
@@ -345,10 +345,10 @@ func TestSecretKeyOpensAWorkspace(t *testing.T) {
 	t.Run("true when one workspace key of several opens", func(t *testing.T) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
-		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"key"}).
-			AddRow(encryptFor(t, "ws-1", unknown)).
-			AddRow(encryptFor(t, "ws-2", rotationCurrentKey)).
-			AddRow(encryptFor(t, "ws-3", unknown)))
+		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"id", "key"}).
+			AddRow("ws-1", encryptFor(t, "ws-1", unknown)).
+			AddRow("ws-2", encryptFor(t, "ws-2", rotationCurrentKey)).
+			AddRow("ws-3", encryptFor(t, "ws-3", unknown)))
 
 		opens, _, err := SecretKeyOpensAWorkspace(ctx, db, rotationCurrentKey)
 
@@ -359,9 +359,9 @@ func TestSecretKeyOpensAWorkspace(t *testing.T) {
 	t.Run("false, with how many it tried, when none opens", func(t *testing.T) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
-		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"key"}).
-			AddRow(encryptFor(t, "ws-1", unknown)).
-			AddRow(encryptFor(t, "ws-2", rotationPreviousKey)))
+		mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"id", "key"}).
+			AddRow("ws-4", encryptFor(t, "ws-1", unknown)).
+			AddRow("ws-5", encryptFor(t, "ws-2", rotationPreviousKey)))
 
 		opens, examined, err := SecretKeyOpensAWorkspace(ctx, db, rotationCurrentKey)
 
