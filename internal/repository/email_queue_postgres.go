@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -151,12 +152,15 @@ const (
 	emailQueueDuePending      = `status = 'pending' AND attempts < max_attempts AND (next_retry_at IS NULL OR next_retry_at <= NOW())`
 	emailQueueDueRetry        = `status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW()`
 	emailQueueStuckProcessing = `status = 'processing' AND updated_at < NOW() - INTERVAL '2 minutes'`
+)
 
-	// emailQueueDue is any of the three: what the fetches recheck under the lock and
-	// what a claim requires, so the two cannot drift apart.
-	emailQueueDue = `((` + emailQueueDuePending + `)
-		OR (` + emailQueueDueRetry + `)
-		OR (` + emailQueueStuckProcessing + `))`
+var (
+	// emailQueueDueKinds are the ways a row can be due: one fetch branch each.
+	emailQueueDueKinds = []string{emailQueueDuePending, emailQueueDueRetry, emailQueueStuckProcessing}
+
+	// emailQueueDue is any of them: what the fetches recheck under the lock and what
+	// a claim requires, so the branches, the recheck and the claim cannot drift apart.
+	emailQueueDue = `((` + strings.Join(emailQueueDueKinds, `) OR (`) + `))`
 )
 
 const emailQueueEntryColumns = `id, status, priority, source_type, source_id, integration_id, provider_kind,
@@ -175,8 +179,9 @@ const emailQueueEntryColumns = `id, status, priority, source_type, source_id, in
 // instance's statement has locked at that instant shorten the round. Fetches and
 // claims lock for one statement only, so that costs one short round at most.
 func dueRowsSQL(filter string) string {
-	branch := func(due string) string {
-		return `(SELECT id FROM email_queue
+	branches := make([]string, len(emailQueueDueKinds))
+	for i, due := range emailQueueDueKinds {
+		branches[i] = `(SELECT id FROM email_queue
 		 WHERE (` + filter + `) AND (` + due + `)
 		 ORDER BY priority ASC, created_at ASC
 		 LIMIT $2)`
@@ -185,11 +190,9 @@ func dueRowsSQL(filter string) string {
 	SELECT ` + emailQueueEntryColumns + `
 	FROM email_queue
 	WHERE id IN (
-		` + branch(emailQueueDuePending) + `
+		` + strings.Join(branches, `
 		UNION ALL
-		` + branch(emailQueueDueRetry) + `
-		UNION ALL
-		` + branch(emailQueueStuckProcessing) + `
+		`) + `
 	)
 	AND (` + filter + `) AND ` + emailQueueDue + `
 	ORDER BY priority ASC, created_at ASC
