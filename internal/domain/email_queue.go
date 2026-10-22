@@ -161,7 +161,9 @@ type EmailQueueRepository interface {
 	// state. An empty list matches every due row.
 	FetchPendingOrphans(ctx context.Context, workspaceID string, integrationIDs []string, limit int) ([]*EmailQueueEntry, error)
 
-	// MarkAsProcessing atomically marks an entry as processing
+	// MarkAsProcessing atomically claims an entry for sending: it marks it processing
+	// and counts the attempt, but only while the fetches would return it (due pending or
+	// failed, or stuck in processing). Otherwise it returns an error and changes nothing.
 	MarkAsProcessing(ctx context.Context, workspaceID string, id string) error
 
 	// MarkAsSent deletes the entry after successful send

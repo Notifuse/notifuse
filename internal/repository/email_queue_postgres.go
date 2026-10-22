@@ -151,6 +151,12 @@ const (
 	emailQueueDuePending      = `status = 'pending' AND attempts < max_attempts AND (next_retry_at IS NULL OR next_retry_at <= NOW())`
 	emailQueueDueRetry        = `status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW()`
 	emailQueueStuckProcessing = `status = 'processing' AND updated_at < NOW() - INTERVAL '2 minutes'`
+
+	// emailQueueDue is any of the three: what the fetches recheck under the lock and
+	// what a claim requires, so the two cannot drift apart.
+	emailQueueDue = `((` + emailQueueDuePending + `)
+		OR (` + emailQueueDueRetry + `)
+		OR (` + emailQueueStuckProcessing + `))`
 )
 
 const emailQueueEntryColumns = `id, status, priority, source_type, source_id, integration_id, provider_kind,
@@ -185,9 +191,7 @@ func dueRowsSQL(filter string) string {
 		UNION ALL
 		` + branch(emailQueueStuckProcessing) + `
 	)
-	AND (` + filter + `) AND ((` + emailQueueDuePending + `)
-		OR (` + emailQueueDueRetry + `)
-		OR (` + emailQueueStuckProcessing + `))
+	AND (` + filter + `) AND ` + emailQueueDue + `
 	ORDER BY priority ASC, created_at ASC
 	LIMIT $2
 	FOR UPDATE SKIP LOCKED
@@ -271,9 +275,7 @@ func (r *EmailQueueRepository) MarkAsProcessing(ctx context.Context, workspaceID
 	query := `
 		UPDATE email_queue
 		SET status = 'processing', updated_at = NOW(), attempts = attempts + 1
-		WHERE id = $1 AND ((` + emailQueueDuePending + `)
-			OR (` + emailQueueDueRetry + `)
-			OR (` + emailQueueStuckProcessing + `))
+		WHERE id = $1 AND ` + emailQueueDue + `
 	`
 
 	result, err := db.ExecContext(ctx, query, id)
@@ -287,7 +289,7 @@ func (r *EmailQueueRepository) MarkAsProcessing(ctx context.Context, workspaceID
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("email not found or already processing: %s", id)
+		return fmt.Errorf("email not found, already processing, or not due: %s", id)
 	}
 
 	return nil

@@ -431,7 +431,7 @@ func TestEmailQueueRepository_MarkAsProcessing(t *testing.T) {
 
 		err := repo.MarkAsProcessing(ctx, "workspace-123", "nonexistent")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "email not found or already processing")
+		assert.Contains(t, err.Error(), "email not found, already processing, or not due")
 	})
 
 	t.Run("handles database error", func(t *testing.T) {
@@ -772,7 +772,7 @@ func TestEmailQueueRepository_MarkAsProcessing_StuckRecovery(t *testing.T) {
 
 		err := repo.MarkAsProcessing(ctx, "workspace-123", "recent-processing-entry")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "not found or already processing")
+		assert.Contains(t, err.Error(), "not found, already processing, or not due")
 	})
 }
 

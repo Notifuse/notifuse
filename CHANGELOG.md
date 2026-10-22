@@ -92,6 +92,8 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Restarting Notifuse during a broadcast now lets the emails being sent finish instead of sending them again after the restart. When a provider failure pauses broadcasts, the emails being sent at that moment are paused with the rest, and the integration's other queued emails, such as automation emails, go out again after the cooldown, starting with a single test email. An integration with a low rate limit no longer holds up the sends of other workspaces.
 
+- **Improvement**: With several Notifuse instances on the same database, an email that one instance has just failed or given up on is no longer sent again straight away by another.
+
 - **Change**: The database schema moves to v42. Workspace databases get updated `contact_lists` and `message_history` trigger functions, and their stored segment queries and live automation triggers are updated in place; segments are re-evaluated for contacts removed from their lists. The system database is untouched.
 
 ## [41.0] - 2026-09-17

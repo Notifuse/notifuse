@@ -688,6 +688,9 @@ func TestEmailQueueFetchEligibility(t *testing.T) {
 	failedDue := row(t, integration.ID, "failed-due", 5, `status = 'failed', attempts = 1, next_retry_at = NOW() - INTERVAL '1 minute'`)
 	failedNotYet := row(t, integration.ID, "failed-not-yet", 5, `status = 'failed', attempts = 1, next_retry_at = NOW() + INTERVAL '1 hour'`)
 	failedTerminal := row(t, integration.ID, "failed-terminal", 5, `status = 'failed', attempts = max_attempts, next_retry_at = NULL`)
+	// Given up on its first attempt, as after a hard bounce: attempts are left, the
+	// missing retry date alone keeps it out.
+	failedGivenUp := row(t, integration.ID, "failed-given-up", 5, `status = 'failed', attempts = 1, next_retry_at = NULL`)
 	processingStuck := row(t, integration.ID, "processing-stuck", 5, `status = 'processing', updated_at = NOW() - INTERVAL '3 minutes'`)
 	processingFresh := row(t, integration.ID, "processing-fresh", 5, `status = 'processing', updated_at = NOW()`)
 	paused := row(t, integration.ID, "paused", 5, `status = 'paused'`)
@@ -747,6 +750,7 @@ func TestEmailQueueFetchEligibility(t *testing.T) {
 			"pending, out of attempts":  pendingOutOfAttempts,
 			"failed, retry not yet due": failedNotYet,
 			"failed for good":           failedTerminal,
+			"given up, attempts left":   failedGivenUp,
 			"processing, not yet stuck": processingFresh,
 			"paused":                    paused,
 		} {
