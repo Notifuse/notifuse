@@ -758,10 +758,12 @@ export class MjSocialElementBlock extends BaseEmailBlock {
       />
     )
 
+    const href = isSafeHref(attrs.href) ? attrs.href : '#'
+
     // Link wrapper for icon
     const iconLink = (
       <a
-        href={isSafeHref(attrs.href) ? attrs.href : '#'}
+        href={href}
         target={attrs.target || '_blank'}
         rel={attrs.rel}
         title={attrs.title}
@@ -776,7 +778,7 @@ export class MjSocialElementBlock extends BaseEmailBlock {
     // Text link (if content exists)
     const textLink = content ? (
       <a
-        href={isSafeHref(attrs.href) ? attrs.href : '#'}
+        href={href}
         target={attrs.target || '_blank'}
         rel={attrs.rel}
         title={attrs.title}

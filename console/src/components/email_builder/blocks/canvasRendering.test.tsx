@@ -193,5 +193,7 @@ describe('editor canvas links keep only navigable targets', () => {
 
     expect(renderLink(type, 'https://example.com/a')).toContain('https://example.com/a')
     expect(renderLink(type, '{{ profile_url }}')).toContain('{{ profile_url }}')
+    // A link that would hand the member's click to an app on their computer
+    expect(renderLink(type, 'search-ms:query=invoice')).not.toContain('search-ms:query=invoice')
   })
 })

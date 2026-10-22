@@ -1,9 +1,12 @@
 import type { CSSProperties } from 'react'
 import DOMPurify, { type Config } from 'dompurify'
 
+// The schemes of the links the console offers to follow: web, mail and phone.
+// Any other would hand the member's click to an app on their computer.
+const OPENABLE_SCHEMES = ['http', 'https', 'mailto', 'tel']
+
 const CONFIG: Config = {
   ADD_ATTR: ['target'],
-  ALLOW_UNKNOWN_PROTOCOLS: true,
   FORBID_TAGS: [
     'style',
     'form',
@@ -27,8 +30,18 @@ const CONFIG: Config = {
 // DOMPurify.
 const purify = DOMPurify(window)
 // Ids and names get a prefix, so that content shown in the page never names
-// one of its globals (`window.monaco`) or another of its elements
-purify.setConfig({ ...CONFIG, SANITIZE_NAMED_PROPS: true })
+// one of its globals (`window.monaco`) or another of its elements. A link or
+// image URL is kept only with one of the openable schemes, or with none, as a
+// relative URL or Liquid (`{{ url }}`) has: DOMPurify's own test, with its list
+// of schemes narrowed.
+purify.setConfig({
+  ...CONFIG,
+  SANITIZE_NAMED_PROPS: true,
+  ALLOWED_URI_REGEXP: new RegExp(
+    `^(?:(?:${OPENABLE_SCHEMES.join('|')}):|[^a-z]|[a-z+.\\-]+(?:[^a-z+.\\-:]|$))`,
+    'i'
+  )
+})
 
 // For editors, an attribute value that reads as the end of a comment or of a
 // CDATA section (`-->`, `]>`) is kept: DOMPurify drops it because markup
@@ -39,6 +52,7 @@ purify.setConfig({ ...CONFIG, SANITIZE_NAMED_PROPS: true })
 const purifyForEditor = DOMPurify(window)
 purifyForEditor.setConfig({
   ...CONFIG,
+  ALLOW_UNKNOWN_PROTOCOLS: true,
   USE_PROFILES: { html: true },
   SAFE_FOR_XML: false
 })
@@ -47,14 +61,16 @@ purifyForEditor.setConfig({
  * HTML for display in the console page itself, such as a template block on the
  * editor canvas. Shown in an element styled with `containedContentStyle`.
  *
- * Event handlers, `<script>`, frames and `javascript:`, `vbscript:` and `data:`
- * links are removed, and so are `<style>`, which would restyle the console
- * around it, form controls, image maps, whose areas are links the canvas would
- * follow, audio and video, which would play in it, and the email builder's own
- * `data-block-id`, which locates blocks on the canvas. Ids and names are
- * prefixed with `user-content-`. Formatting, inline styles, classes, `data-*`
- * attributes, link targets, links that open another app (`webcal:`,
- * `whatsapp:`…) and Liquid (`{{ url }}` in an `href` included) are kept.
+ * Event handlers, `<script>` and frames are removed, and so are `<style>`,
+ * which would restyle the console around it, form controls, image maps, whose
+ * areas are links the canvas would follow, audio and video, which would play in
+ * it, and the email builder's own `data-block-id`, which locates blocks on the
+ * canvas. A link or image keeps its URL only if it is a web, mail or phone
+ * address, a relative URL or Liquid, or, for an image, a `data:` URL: a link
+ * that opens another app (`webcal:`, `whatsapp:`…) is shown without its target.
+ * Ids and names are prefixed with `user-content-`. Formatting, inline styles,
+ * classes, `data-*` attributes, link targets and Liquid (`{{ url }}` in an
+ * `href` included) are kept.
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return ''
@@ -63,8 +79,9 @@ export function sanitizeHtml(html: string): string {
 
 /**
  * HTML for a block editor to load: what `sanitizeHtml` keeps, with ids and
- * names as written, and also attribute values `sanitizeHtml` drops because
- * they contain `-->` or `]>`, such as a link to `https://example.com/?q=a]>b`.
+ * names as written, links that open another app (anything but a script or a
+ * `data:` URL), and also attribute values `sanitizeHtml` drops because they
+ * contain `-->` or `]>`, such as a link to `https://example.com/?q=a]>b`.
  * An editor saves what it loaded, so anything changed or dropped here that an
  * email may legitimately carry would be lost on the next edit. Still dropped:
  * an id or a name that is also a property of the document or of a form, such
@@ -137,27 +154,24 @@ export function safeExternalUrl(url: string | null | undefined): string | null {
   }
 }
 
-const OPENABLE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:'])
-
 /**
  * Whether the console offers a URL as a link to follow, as the editor's side
- * panel does for a link target: an absolute web, mail or phone address. Any
- * other scheme would hand the click to an app on the member's computer.
+ * panel does for a link target: an absolute web, mail or phone address.
  */
 export function isOpenableUrl(url: string | null | undefined): boolean {
   if (!url) return false
   try {
-    return OPENABLE_PROTOCOLS.has(new URL(url).protocol)
+    return OPENABLE_SCHEMES.includes(new URL(url).protocol.slice(0, -1))
   } catch {
     return false
   }
 }
 
 /**
- * Whether a saved link target can be put in an `href` in the console: the same
- * verdict `sanitizeHtml` gives a link in content, so anything but a script
- * (`javascript:`, `vbscript:`…) or `data:` URL. Web, mail, phone and app links,
- * relative ones and Liquid (`{{ url }}`, `https://{{ host }}/x`) all pass.
+ * Whether a saved link target can be put in an `href` on the canvas: the same
+ * verdict `sanitizeHtml` gives a link in content. Web, mail and phone
+ * addresses, relative URLs and Liquid (`{{ url }}`, `https://{{ host }}/x`)
+ * pass; scripts, `data:` URLs and links that open another app do not.
  */
 export function isSafeHref(href: string | null | undefined): boolean {
   if (!href) return false

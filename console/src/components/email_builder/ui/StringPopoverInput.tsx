@@ -105,8 +105,10 @@ const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
 
   if (value) {
     const isValueValid = isValidUri(value)
-    const isLiquid = isLiquidExpression(value)
-    const shouldRenderAsLink = validateUri && !isLiquid && isOpenableUrl(value)
+    // Marked as Liquid only when Liquid stands in for the URL, as the check
+    // above accepts; a Liquid tag alone is enough not to offer it as a link
+    const isLiquid = hasLiquidOutput(value)
+    const shouldRenderAsLink = validateUri && !isLiquidExpression(value) && isOpenableUrl(value)
 
     return (
       <div className="space-y-2">

@@ -50,17 +50,25 @@ describe('sanitizeHtml', () => {
     expect(out).toContain('{% if x %}x{% endif %}')
   })
 
-  it('keeps links that open another app, such as a calendar or a messenger', () => {
+  it('drops the target of a link that opens another app, which the canvas never follows', () => {
     const out = sanitizeHtml(
       '<a href="webcal://example.com/cal.ics">cal</a>' +
         '<a href="whatsapp://send?text=hi">wa</a>' +
-        '<a href="tg://resolve?domain=example">tg</a>' +
-        '<a href="sms:+33100000000">sms</a>'
+        '<a href="sms:+33100000000">sms</a>' +
+        '<a href="search-ms:query=invoice">find</a>' +
+        '<a href="file:///C:/x">file</a>' +
+        '<img src="smb://10.0.0.1/share/x.png">'
     )
-    expect(out).toContain('href="webcal://example.com/cal.ics"')
-    expect(out).toContain('href="whatsapp://send?text=hi"')
-    expect(out).toContain('href="tg://resolve?domain=example"')
-    expect(out).toContain('href="sms:+33100000000"')
+    expect(out).toBe('<a>cal</a><a>wa</a><a>sms</a><a>find</a><a>file</a><img>')
+  })
+
+  it('keeps web, mail, phone, relative and Liquid link targets', () => {
+    const html =
+      '<a href="https://example.com/a">a</a><a href="http://example.com">b</a>' +
+      '<a href="mailto:team@example.com">c</a><a href="tel:+33100000000">d</a>' +
+      '<a href="/pricing">e</a><a href="#intro">f</a><a href="{{ cta_url }}">g</a>' +
+      '<a href="https://{{ shop_domain }}/sale">h</a><img src="//cdn.example.com/i.png">'
+    expect(sanitizeHtml(html)).toBe(html)
   })
 
   it('drops image maps, whose areas are links of their own', () => {
@@ -131,10 +139,10 @@ describe('sanitizeEditorHtml', () => {
         '<style>body { display: none }</style></p>'
     ],
     [
-      'formatting, Liquid and app links',
+      'formatting, Liquid, mail and phone links',
       '<p style="color: red" class="lead"><strong>Hi {{ contact.first_name }}</strong> ' +
         '<a href="{{ cta_url }}" target="_blank" rel="noopener">open</a> ' +
-        '<a href="webcal://example.com/cal.ics">cal</a>' +
+        '<a href="mailto:team@example.com">mail</a><a href="tel:+33100000000">call</a>' +
         '<span data-inline-doc="" style="font-size: 14px">{% if x %}x{% endif %}</span></p>'
     ],
     [
@@ -156,6 +164,13 @@ describe('sanitizeEditorHtml', () => {
     ]
   ])('treats %s as sanitizeHtml does', (_kind, html) => {
     expect(sanitizeEditorHtml(html)).toBe(sanitizeHtml(html))
+  })
+
+  it('keeps links that open another app, which an email may carry', () => {
+    const html =
+      '<a href="webcal://example.com/cal.ics">cal</a><a href="whatsapp://send?text=hi">wa</a>' +
+      '<a href="sms:+33100000000">sms</a>'
+    expect(sanitizeEditorHtml(html)).toBe(html)
   })
 
   it('keeps ids and names as written, since an editor saves what it loaded', () => {
@@ -299,10 +314,7 @@ describe('isSafeHref', () => {
     '#section',
     '{{ unsubscribe_url }}',
     'https://example.com/?u={{ contact.email }}',
-    'https://{{ shop_domain }}/sale',
-    'sms:+33100000000',
-    'webcal://example.com/cal.ics',
-    'whatsapp://send?text=hi'
+    'https://{{ shop_domain }}/sale'
   ])('accepts %s', (href) => {
     expect(isSafeHref(href)).toBe(true)
   })
@@ -317,6 +329,11 @@ describe('isSafeHref', () => {
     ' DATA:text/html,<p>x</p>',
     'vbscript:x',
     '\u0000javascript:window.__probe=1',
+    'sms:+33100000000',
+    'webcal://example.com/cal.ics',
+    'whatsapp://send?text=hi',
+    'search-ms:query=invoice',
+    'file:///C:/x',
     '',
     null,
     undefined

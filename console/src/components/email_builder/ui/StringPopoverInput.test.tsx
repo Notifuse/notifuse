@@ -29,7 +29,22 @@ describe('StringPopoverInput', () => {
     }
   )
 
-  it('shows a link with a Liquid tag as Liquid, not as a link', () => {
+  it('marks a value holding a Liquid output as Liquid', () => {
+    render(<StringPopoverInput value="{{ cta_url }}" onChange={vi.fn()} validateUri />)
+
+    expect(screen.getByText('(liquid)')).toBeInTheDocument()
+  })
+
+  it('does not mark a value holding only Liquid tags as Liquid, which its editor refuses', () => {
+    const value = '{% if vip %}https://vip.example.com{% else %}https://example.com{% endif %}'
+    render(<StringPopoverInput value={value} onChange={vi.fn()} validateUri />)
+
+    expect(screen.getByText(value)).toBeInTheDocument()
+    expect(screen.queryByText('(liquid)')).toBeNull()
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+
+  it('shows an address holding a Liquid tag as text, not as a link', () => {
     const value = 'https://x.example/{% if vip %}vip{% endif %}'
     render(<StringPopoverInput value={value} onChange={vi.fn()} validateUri />)
 
