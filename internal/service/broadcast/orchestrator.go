@@ -632,33 +632,32 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				}
 				return o.broadcastRepo.UpdateBroadcastStatusUnless(finalizeCtx, broadcast, statusesKeptOnLastAttempt)
 			}
+			// Each write is logged as it ends, so a failed status committed
+			// before the pause below stays in the log whatever the pause does.
+			logWrite := func(written bool, updateErr error) {
+				fields := map[string]interface{}{
+					"task_id":      task.ID,
+					"broadcast_id": broadcastID,
+					"status":       string(broadcast.Status),
+				}
+				switch {
+				case updateErr != nil:
+					fields["error"] = updateErr.Error()
+					o.logger.WithFields(fields).Error("Failed to update broadcast status after max retries")
+				case !written:
+					o.logger.WithFields(fields).Info("Broadcast was cancelled, paused, completed or deleted before its last attempt finalized it - leaving it")
+				default:
+					o.logger.WithFields(fields).Info("Broadcast finalized after max retries reached")
+				}
+			}
 			written, updateErr := writeStatus(interrupted)
+			logWrite(written, updateErr)
 			// A cancellation landing while that write ran, or waited on the row
 			// lock, makes the task service release the task too: the broadcast
 			// written failed is then paused. Failed is not a kept status, so
 			// this write goes through.
 			if updateErr == nil && written && !interrupted && errors.Is(ctx.Err(), context.Canceled) {
-				written, updateErr = writeStatus(true)
-			}
-
-			switch {
-			case updateErr != nil:
-				o.logger.WithFields(map[string]interface{}{
-					"task_id":      task.ID,
-					"broadcast_id": broadcastID,
-					"error":        updateErr.Error(),
-				}).Error("Failed to update broadcast status after max retries")
-			case !written:
-				o.logger.WithFields(map[string]interface{}{
-					"task_id":      task.ID,
-					"broadcast_id": broadcastID,
-				}).Info("Broadcast was cancelled, paused, completed or deleted before its last attempt finalized it - leaving it")
-			default:
-				o.logger.WithFields(map[string]interface{}{
-					"task_id":      task.ID,
-					"broadcast_id": broadcastID,
-					"status":       string(broadcast.Status),
-				}).Info("Broadcast finalized after max retries reached")
+				logWrite(writeStatus(true))
 			}
 		}
 	}()

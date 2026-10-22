@@ -3,12 +3,14 @@ package broadcast_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/service/broadcast"
+	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,8 +39,10 @@ type lastAttemptRun struct {
 	statusAtEnd domain.BroadcastStatus
 
 	// refusedByRow makes the conditional write find an excluded status on the
-	// row, as when a pause commits after the finalizer's read.
+	// row, as when a pause commits after the finalizer's read. writeErrs fails
+	// the finalizer's writes in turn; a write past its end succeeds.
 	refusedByRow bool
+	writeErrs    []error
 
 	// ctx and countErr shape the failure: the recipient count, the first thing
 	// a run does, fails with countErr. cancelWhileFinalizing cancels ctx while
@@ -60,7 +64,7 @@ type lastAttemptRun struct {
 }
 
 // broadcastWrite records what the finalizer wrote to the broadcast last, every
-// status it wrote, and the order of its reads.
+// status it wrote, the order of its reads, and the lines it logged.
 type broadcastWrite struct {
 	called   bool
 	status   domain.BroadcastStatus
@@ -68,14 +72,65 @@ type broadcastWrite struct {
 	reason   string
 	unless   []domain.BroadcastStatus
 	reads    []string
+	logs     []string
+}
+
+// recordingLogger keeps each line as "level: message", followed by the status
+// field when the line has one.
+type recordingLogger struct {
+	mu     *sync.Mutex
+	lines  *[]string
+	fields map[string]interface{}
+}
+
+func newRecordingLogger() *recordingLogger {
+	return &recordingLogger{mu: &sync.Mutex{}, lines: &[]string{}}
+}
+
+func (l *recordingLogger) record(level, msg string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	line := level + ": " + msg
+	if status, ok := l.fields["status"]; ok {
+		line += fmt.Sprintf(" [status=%v]", status)
+	}
+	*l.lines = append(*l.lines, line)
+}
+
+func (l *recordingLogger) Debug(msg string) { l.record("debug", msg) }
+func (l *recordingLogger) Info(msg string)  { l.record("info", msg) }
+func (l *recordingLogger) Warn(msg string)  { l.record("warn", msg) }
+func (l *recordingLogger) Error(msg string) { l.record("error", msg) }
+func (l *recordingLogger) Fatal(msg string) { l.record("fatal", msg) }
+
+func (l *recordingLogger) WithField(key string, value interface{}) logger.Logger {
+	return l.WithFields(map[string]interface{}{key: value})
+}
+
+func (l *recordingLogger) WithFields(fields map[string]interface{}) logger.Logger {
+	merged := make(map[string]interface{}, len(l.fields)+len(fields))
+	for k, v := range l.fields {
+		merged[k] = v
+	}
+	for k, v := range fields {
+		merged[k] = v
+	}
+	return &recordingLogger{mu: l.mu, lines: l.lines, fields: merged}
+}
+
+func (l *recordingLogger) recorded() []string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return append([]string(nil), *l.lines...)
 }
 
 func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 	t.Helper()
 
 	ctrl, mockMessageSender, mockBroadcastRepository, mockTemplateRepo,
-		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider, mockEventBus := setupTestEnvironment(t)
+		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, _, mockTimeProvider, mockEventBus := setupTestEnvironment(t)
 	defer ctrl.Finish()
+	log := newRecordingLogger()
 
 	mockTimeProvider.EXPECT().Now().Return(time.Now()).AnyTimes()
 
@@ -176,13 +231,16 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 			if b.PauseReason != nil {
 				write.reason = *b.PauseReason
 			}
+			if n := len(write.statuses); n <= len(run.writeErrs) && run.writeErrs[n-1] != nil {
+				return false, run.writeErrs[n-1]
+			}
 			return !run.refusedByRow, nil
 		}).
 		AnyTimes()
 
 	orchestrator := broadcast.NewBroadcastOrchestrator(
 		mockMessageSender, mockBroadcastRepository, mockTemplateRepo, mockContactRepo,
-		mockTaskRepo, mockWorkspaceRepo, nil, nil, mockLogger, createTestConfig(),
+		mockTaskRepo, mockWorkspaceRepo, nil, nil, log, createTestConfig(),
 		mockTimeProvider, "https://api.example.com", mockEventBus,
 	)
 
@@ -208,6 +266,7 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 		assert.Contains(t, err.Error(), run.wantErr)
 	}
 
+	write.logs = log.recorded()
 	return write
 }
 
@@ -430,6 +489,36 @@ func TestProcess_InterruptedRunPausesOnlyTheLastAttempt(t *testing.T) {
 		assert.Equal(t, []domain.BroadcastStatus{domain.BroadcastStatusFailed, domain.BroadcastStatusPaused}, write.statuses,
 			"a released task's broadcast was left failed")
 		assert.Contains(t, write.reason, "interrupted")
+	})
+
+	t.Run("a failed write is logged and not followed by a pause", func(t *testing.T) {
+		// The row still holds what the run left, so there is nothing to pause
+		// over: the released task runs again from there.
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedTask:         &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3},
+			statusAtEnd:        domain.BroadcastStatusProcessing,
+			countErr:           errors.New("database is down"),
+			cancelWhileWriting: true,
+			writeErrs:          []error{errors.New("connection reset")},
+		})
+		assert.Equal(t, []domain.BroadcastStatus{domain.BroadcastStatusFailed}, write.statuses)
+		assert.Contains(t, write.logs, "error: Failed to update broadcast status after max retries [status=failed]")
+	})
+
+	t.Run("a failed pause after the failed status committed logs both writes", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedTask:         &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3},
+			statusAtEnd:        domain.BroadcastStatusProcessing,
+			countErr:           errors.New("database is down"),
+			cancelWhileWriting: true,
+			writeErrs:          []error{nil, errors.New("connection reset")},
+		})
+		assert.Equal(t, []domain.BroadcastStatus{domain.BroadcastStatusFailed, domain.BroadcastStatusPaused}, write.statuses)
+		assert.Contains(t, write.logs, "info: Broadcast finalized after max retries reached [status=failed]",
+			"the committed failed status must be in the log")
+		assert.Contains(t, write.logs, "error: Failed to update broadcast status after max retries [status=paused]")
 	})
 
 	t.Run("the run's deadline passing while the finalizer reads still fails", func(t *testing.T) {
