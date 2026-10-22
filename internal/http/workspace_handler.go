@@ -960,7 +960,7 @@ func (h *WorkspaceHandler) handleVerifyInvitationToken(w http.ResponseWriter, r 
 	invitation, err := h.workspaceService.GetInvitationByID(r.Context(), invitationID)
 	if err != nil {
 		h.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Error("Failed to get invitation")
-		WriteJSONError(w, "Invitation not found", http.StatusNotFound)
+		writeInvitationUnavailable(w)
 		return
 	}
 

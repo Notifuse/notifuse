@@ -226,7 +226,7 @@ func TestLoad(t *testing.T) {
 
 func TestDatabaseConnectionConfig_Defaults(t *testing.T) {
 	// Set minimal required env vars
-	_ = os.Setenv("SECRET_KEY", "test-secret-key-for-testing-32-bytes")
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-long-enough-to-sign")
 	_ = os.Setenv("DB_PASSWORD", "testpass")
 	defer func() { _ = os.Unsetenv("SECRET_KEY") }()
 	defer func() { _ = os.Unsetenv("DB_PASSWORD") }()
@@ -243,7 +243,7 @@ func TestDatabaseConnectionConfig_Defaults(t *testing.T) {
 
 func TestDatabaseConnectionConfig_CustomValues(t *testing.T) {
 	// Set custom connection configuration
-	_ = os.Setenv("SECRET_KEY", "test-secret-key-for-testing-32-bytes")
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-long-enough-to-sign")
 	_ = os.Setenv("DB_PASSWORD", "testpass")
 	_ = os.Setenv("DB_MAX_CONNECTIONS", "200")
 	_ = os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "5")
@@ -269,7 +269,7 @@ func TestDatabaseConnectionConfig_CustomValues(t *testing.T) {
 
 func TestDatabaseConnectionConfig_ValidationMinimum(t *testing.T) {
 	// Test that MaxConnections below minimum fails
-	_ = os.Setenv("SECRET_KEY", "test-secret-key-for-testing-32-bytes")
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-long-enough-to-sign")
 	_ = os.Setenv("DB_PASSWORD", "testpass")
 	_ = os.Setenv("DB_MAX_CONNECTIONS", "10") // Below minimum of 20
 
@@ -284,7 +284,7 @@ func TestDatabaseConnectionConfig_ValidationMinimum(t *testing.T) {
 
 func TestDatabaseConnectionConfig_ValidationMaximum(t *testing.T) {
 	// Test that MaxConnections above maximum fails
-	_ = os.Setenv("SECRET_KEY", "test-secret-key-for-testing-32-bytes")
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-long-enough-to-sign")
 	_ = os.Setenv("DB_PASSWORD", "testpass")
 	_ = os.Setenv("DB_MAX_CONNECTIONS", "15000") // Above maximum of 10000
 
@@ -299,7 +299,7 @@ func TestDatabaseConnectionConfig_ValidationMaximum(t *testing.T) {
 
 func TestDatabaseConnectionConfig_ValidationPerDBMinimum(t *testing.T) {
 	// Test that MaxConnectionsPerDB below minimum fails
-	_ = os.Setenv("SECRET_KEY", "test-secret-key-for-testing-32-bytes")
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-long-enough-to-sign")
 	_ = os.Setenv("DB_PASSWORD", "testpass")
 	_ = os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "0") // Below minimum of 1
 
@@ -314,7 +314,7 @@ func TestDatabaseConnectionConfig_ValidationPerDBMinimum(t *testing.T) {
 
 func TestDatabaseConnectionConfig_ValidationPerDBMaximum(t *testing.T) {
 	// Test that MaxConnectionsPerDB above maximum fails
-	_ = os.Setenv("SECRET_KEY", "test-secret-key-for-testing-32-bytes")
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-long-enough-to-sign")
 	_ = os.Setenv("DB_PASSWORD", "testpass")
 	_ = os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "60") // Above maximum of 50
 

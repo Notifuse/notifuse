@@ -2813,7 +2813,7 @@ func TestWorkspaceHandler_HandleVerifyInvitationToken(t *testing.T) {
 		var response map[string]string
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
-		assert.Equal(t, "Invitation not found", response["error"])
+		assert.Equal(t, "Invitation not found or no longer valid", response["error"])
 	})
 
 	t.Run("invitation details mismatch", func(t *testing.T) {
