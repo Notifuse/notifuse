@@ -15,6 +15,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -203,6 +204,7 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 
 		t.Run("workspace ID with uppercase letters", func(t *testing.T) {
 			workspaceID := "Upper" + strings.ReplaceAll(uuid.New().String(), "-", "")[:10]
+			dropLowercaseDatabase(t, suite, wsDBName(suite.DBManager.GetConfig().Prefix, workspaceID))
 			createReq := domain.CreateWorkspaceRequest{
 				ID:   workspaceID,
 				Name: "Uppercase ID Workspace",
@@ -237,6 +239,7 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 			workspaceID := "Upper" + strings.ReplaceAll(uuid.New().String(), "-", "")[:10]
 			cfg := suite.DBManager.GetConfig()
 			workspaceDBName := wsDBName(cfg.Prefix, workspaceID)
+			dropLowercaseDatabase(t, suite, workspaceDBName)
 
 			err := intdb.EnsureWorkspaceDatabaseExists(cfg, workspaceID)
 			require.EqualError(t, err, "workspace database name must be lowercase: "+workspaceDBName)
@@ -2092,4 +2095,13 @@ func createTestWorkspaceWithWebsite(t *testing.T, client *testutil.APIClient, na
 	client.SetToken(currentToken)
 
 	return workspaceID
+}
+
+// dropLowercaseDatabase drops, after the test, the database a regression would leave under
+// the lowercase form of name: it has no workspace row, so the suite's cleanup never sees it.
+func dropLowercaseDatabase(t *testing.T, suite *testutil.IntegrationTestSuite, name string) {
+	t.Helper()
+	t.Cleanup(func() {
+		_, _ = suite.DBManager.GetDB().Exec("DROP DATABASE IF EXISTS " + pq.QuoteIdentifier(strings.ToLower(name)) + " WITH (FORCE)")
+	})
 }

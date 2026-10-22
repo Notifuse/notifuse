@@ -8,6 +8,7 @@ Amended after the second max review, of the changes since `db4912a` (v3): B5 als
 Amended after the third and fourth max reviews (v4): B5's checks go through one `validateWorkspaceID`, and a "Not in scope" entry covers uppercase workspace IDs. Gemini's fourth counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v4.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v4.md`.
 Amended after Pierre's answer on uppercase workspace IDs (v5): decision 6, B6. Gemini's fifth counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v5.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v5.md`.
 Amended after the seventh to tenth max reviews (v6): B7 refuses, at its source, a workspace database name with uppercase letters. Gemini's sixth counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v6.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v6.md`.
+Amended after the eleventh max review (v7): B7 refuses only ASCII capitals, the ones PostgreSQL folds; its tests clean up after a regression; the test step runs the database layer. Gemini's seventh counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v7.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v7.md`.
 
 ## Problem
 
@@ -74,9 +75,9 @@ Tests: `internal/domain/workspace_test.go`: `validateWorkspaceID`, 20 letters �
 
 Tests: `internal/domain/workspace_test.go`: `ValidateNewWorkspaceID`, `acmeco` → ok, `AcmeCo` → the lowercase error, 21 lowercase letters → the length error; the create request with `AcmeCo` → `invalid create workspace request: id must contain only lowercase letters and digits`; the entity check with `AcmeCo` → no error (stored workspaces keep working). `internal/service/workspace_service_test.go`, in the workspace limit test with its own controller: `CreateWorkspace` with `AcmeCo` and a workspace cap → `invalid workspace: id must contain only lowercase letters and digits`, the repository never called (not even the workspace count). Integration, `tests/integration/workspace_test.go`: create with an ID that has uppercase letters → 400 with the reason (was 500), no row saved and no workspace database left, whatever the case of its name.
 
-**B7. No workspace database under a name with uppercase letters (decision 6, at its source).** B6 covers workspace create, but the database itself is created by `EnsureWorkspaceDatabaseExists` (`internal/database/utils.go:95`), which other code reaches too, and a mixed-case `DB_PREFIX` puts uppercase in every name. Before it connects to the server, it now refuses a database name that is not all lowercase: `workspace database name must be lowercase: <name>`. PostgreSQL would create the lowercase name while every connection uses the name as written (`GetWorkspaceDSN`, the connection manager, the migrations), so such a name has never given a working workspace database; refusing it leaves nothing behind. Lowercase names are unchanged.
+**B7. No workspace database under a name with uppercase letters (decision 6, at its source).** B6 covers workspace create, but the database itself is created by `EnsureWorkspaceDatabaseExists` (`internal/database/utils.go:95`), which other code reaches too, and a mixed-case `DB_PREFIX` puts uppercase in every name. Before it connects to the server, it now refuses a database name with an ASCII capital letter: `workspace database name must be lowercase: <name>`. PostgreSQL would create the name with those letters folded to lowercase while every connection uses the name as written (`GetWorkspaceDSN`, the connection manager, the migrations), so such a name has never given a working workspace database; refusing it leaves nothing behind. PostgreSQL folds only ASCII letters, so other names are unchanged, a non-ASCII capital in `DB_PREFIX` included.
 
-Tests: `internal/database/utils_test.go`: `EnsureWorkspaceDatabaseExists` on a configuration whose server cannot be reached, with an uppercase ID and with a mixed-case prefix → the lowercase error, not the connection error, so no connection is tried. Integration, `tests/integration/workspace_test.go`: `EnsureWorkspaceDatabaseExists` on the test server with an ID that has uppercase letters → the lowercase error, and no database under any case of its name.
+Tests: `internal/database/utils_test.go`: `EnsureWorkspaceDatabaseExists` on a configuration whose server cannot be reached, with an uppercase ID and with a mixed-case prefix → the lowercase error, not the connection error, so no connection is tried; with a non-ASCII capital in the prefix → the connection error (not refused). Integration, `tests/integration/workspace_test.go`: `EnsureWorkspaceDatabaseExists` on the test server with an ID that has uppercase letters → the lowercase error, and no database under any case of its name. Both uppercase subtests drop, after the test, the lowercase database a regression would leave, which the suite's cleanup would not see.
 
 ### Console
 
@@ -142,6 +143,7 @@ Tests, `pages/CreateWorkspacePage.test.tsx`: the ID input's `maxlength` is 20; a
 ```
 make test-domain
 make test-service
+make test-database
 make test-http
 INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestTemplate|TestTransactional|TestWorkspace' -v
 make test-integration
