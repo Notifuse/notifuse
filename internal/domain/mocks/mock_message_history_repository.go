@@ -154,6 +154,21 @@ func (mr *MockMessageHistoryRepositoryMockRecorder) GetRecipientAndList(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRecipientAndList", reflect.TypeOf((*MockMessageHistoryRepository)(nil).GetRecipientAndList), arg0, arg1, arg2)
 }
 
+// GetRecipients mocks base method.
+func (m *MockMessageHistoryRepository) GetRecipients(arg0 context.Context, arg1 string, arg2 []string) (map[string]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRecipients", arg0, arg1, arg2)
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRecipients indicates an expected call of GetRecipients.
+func (mr *MockMessageHistoryRepositoryMockRecorder) GetRecipients(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRecipients", reflect.TypeOf((*MockMessageHistoryRepository)(nil).GetRecipients), arg0, arg1, arg2)
+}
+
 // ListMessages mocks base method.
 func (m *MockMessageHistoryRepository) ListMessages(arg0 context.Context, arg1, arg2 string, arg3 domain.MessageListParams) ([]*domain.MessageHistory, string, error) {
 	m.ctrl.T.Helper()

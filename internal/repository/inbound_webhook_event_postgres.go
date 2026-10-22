@@ -374,6 +374,10 @@ func (r *inboundWebhookEventRepository) ListEvents(ctx context.Context, workspac
 // hard bounce already flipped contact_lists.status='bounced', so the eventual
 // MarkEmailsAsBounced UPDATE is a no-op via its status guard.
 //
+// A bounce counts only when it names an email sent to that address. The service
+// stores no other event, so this only leaves out what was stored before it checked
+// that. Its addresses are the ones stored on the emails, so the match is exact.
+//
 // The ignored-subtype filter must stay in sync with the SoftIgnore branch of
 // ClassifyBounce.
 const countConsecutiveSoftBouncesSQL = `
@@ -386,6 +390,7 @@ WITH last_delivery AS (
 )
 SELECT e.recipient_email, COUNT(*)::int
   FROM inbound_webhook_events e
+  JOIN message_history mh ON mh.id = e.message_id AND mh.contact_email = e.recipient_email
   LEFT JOIN last_delivery d ON d.email = e.recipient_email
  WHERE e.recipient_email = ANY($1)
    AND e.type = 'bounce'

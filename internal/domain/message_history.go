@@ -208,6 +208,11 @@ type MessageHistoryRepository interface {
 	// message.
 	GetRecipientAndList(ctx context.Context, workspaceID, id string) (*MessageHistory, error)
 
+	// GetRecipients returns, for each of ids that names a message, the address it was sent
+	// to. Ids that name no message are absent from the map, as are the messages whose
+	// address an erasure redacted: they name no one.
+	GetRecipients(ctx context.Context, workspaceID string, ids []string) (map[string]string, error)
+
 	// DeleteForEmail deletes all message history records for a specific email
 	DeleteForEmail(ctx context.Context, workspaceID, email string) error
 }

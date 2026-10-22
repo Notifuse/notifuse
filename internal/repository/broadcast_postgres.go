@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/lib/pq"
 )
 
 // broadcastListColumns is the ordered column list selected when listing
@@ -365,6 +366,62 @@ func (r *broadcastRepository) UpdateBroadcastStatusTx(ctx context.Context, tx *s
 		return &domain.ErrBroadcastNotFound{ID: broadcast.ID}
 	}
 	return nil
+}
+
+// UpdateBroadcastStatusUnless writes the status, pause time and pause reason,
+// unless the stored status is one of unless. The condition sits in the UPDATE
+// itself: at READ COMMITTED, a write waiting on the row lock re-checks it once
+// the holder commits, so one of those statuses committed after the caller's
+// read is kept.
+func (r *broadcastRepository) UpdateBroadcastStatusUnless(ctx context.Context, broadcast *domain.Broadcast, unless []domain.BroadcastStatus) (bool, error) {
+	db, err := r.workspaceRepo.GetConnection(ctx, broadcast.WorkspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	broadcast.UpdatedAt = time.Now().UTC()
+
+	// pq.Array binds a nil slice as NULL, and status <> ALL(NULL) matches no row.
+	if unless == nil {
+		unless = []domain.BroadcastStatus{}
+	}
+
+	// READ COMMITTED whatever the server's default: a stricter level fails the
+	// write that waited on the row lock, instead of re-checking the row.
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return false, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	query := `
+		UPDATE broadcasts SET status = $3, paused_at = $4, pause_reason = $5, updated_at = $6
+		WHERE id = $1 AND workspace_id = $2 AND status <> ALL($7)`
+
+	result, err := tx.ExecContext(ctx, query,
+		broadcast.ID,
+		broadcast.WorkspaceID,
+		string(broadcast.Status),
+		broadcast.PausedAt,
+		broadcast.PauseReason,
+		broadcast.UpdatedAt,
+		pq.Array(unless),
+	)
+	if err != nil {
+		return false, fmt.Errorf("failed to update broadcast status: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return false, nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return true, nil
 }
 
 // ListBroadcastsTx retrieves a list of broadcasts within a transaction

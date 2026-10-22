@@ -1558,10 +1558,18 @@ func TestBroadcastOrchestrator_Process_WinnerPhaseMissingTemplate_Error(t *testi
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace-123").Return(workspace, nil)
 
 	bcast := &domain.Broadcast{ID: "broadcast-123", WorkspaceID: "workspace-123", Audience: domain.AudienceSettings{}, Status: domain.BroadcastStatusWinnerSelected, TestSettings: domain.BroadcastTestSettings{Enabled: true}}
-	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(bcast, nil)
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(bcast, nil).Times(2)
 
-	// Expect the UpdateBroadcast call when the error occurs and status is set to failed
-	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	// The task allows no retries, so this attempt is its last: the finalizer
+	// reads the task back, then marks the broadcast failed
+	mockTaskRepo.EXPECT().Get(gomock.Any(), "workspace-123", "task-123").
+		Return(&domain.Task{ID: "task-123", WorkspaceID: "workspace-123"}, nil)
+	mockBroadcastRepo.EXPECT().
+		UpdateBroadcastStatusUnless(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, b *domain.Broadcast, _ []domain.BroadcastStatus) (bool, error) {
+			assert.Equal(t, domain.BroadcastStatusFailed, b.Status)
+			return true, nil
+		})
 
 	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second}
 	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
@@ -1615,8 +1623,16 @@ func TestBroadcastOrchestrator_Process_ValidateTemplatesFailure(t *testing.T) {
 	bcast := &domain.Broadcast{ID: "broadcast-123", WorkspaceID: "workspace-123", Audience: domain.AudienceSettings{}, Status: domain.BroadcastStatusProcessing, TestSettings: domain.BroadcastTestSettings{Variations: []domain.BroadcastVariation{{TemplateID: "tpl1"}}}}
 	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(bcast, nil).AnyTimes()
 
-	// Expect the UpdateBroadcast call when the error occurs and status is set to failed
-	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	// The task allows no retries, so this attempt is its last: the finalizer
+	// reads the task back, then marks the broadcast failed
+	mockTaskRepo.EXPECT().Get(gomock.Any(), "workspace-123", "task-123").
+		Return(&domain.Task{ID: "task-123", WorkspaceID: "workspace-123"}, nil)
+	mockBroadcastRepo.EXPECT().
+		UpdateBroadcastStatusUnless(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, b *domain.Broadcast, _ []domain.BroadcastStatus) (bool, error) {
+			assert.Equal(t, domain.BroadcastStatusFailed, b.Status)
+			return true, nil
+		})
 
 	// Load template that will fail validation (missing subject)
 	badTpl := &domain.Template{ID: "tpl1", Email: &domain.EmailTemplate{SenderID: "s", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)}}}
@@ -3139,7 +3155,7 @@ func TestProcessBroadcastTask_RecipientFeedFailure_PausesBroadcast(t *testing.T)
 }
 
 func TestProcessBroadcastTask_RecipientFeedFailure_NotMarkedAsFailed(t *testing.T) {
-	// When isLastRetry is true, the defer block should skip marking as failed
+	// On the last attempt, the defer block should skip marking as failed
 	// because the broadcast was already paused due to recipient feed failure.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -3232,7 +3248,7 @@ func TestProcessBroadcastTask_RecipientFeedFailure_NotMarkedAsFailed(t *testing.
 		Type:        "send_broadcast",
 		BroadcastID: stringPtr("broadcast-123"),
 		State:       &domain.TaskState{Progress: 0, Message: "Starting", SendBroadcast: &domain.SendBroadcastState{BroadcastID: "broadcast-123", TotalRecipients: 1, RecipientOffset: 0}},
-		RetryCount:  2, // isLastRetry = true (2 >= 3-1)
+		RetryCount:  3, // last attempt (no retries left)
 		MaxRetries:  3,
 	}
 

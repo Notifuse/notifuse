@@ -799,6 +799,28 @@ func TestTask_IsRecurring(t *testing.T) {
 	})
 }
 
+func TestTask_HasRetriesLeft(t *testing.T) {
+	tests := []struct {
+		name       string
+		retryCount int
+		maxRetries int
+		want       bool
+	}{
+		{name: "no failed attempt yet", retryCount: 0, maxRetries: 3, want: true},
+		{name: "the last retry still to come", retryCount: 2, maxRetries: 3, want: true},
+		{name: "budget spent", retryCount: 3, maxRetries: 3, want: false},
+		{name: "past the budget", retryCount: 4, maxRetries: 3, want: false},
+		{name: "no retries allowed", retryCount: 0, maxRetries: 0, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			task := &Task{RetryCount: tt.retryCount, MaxRetries: tt.maxRetries}
+			assert.Equal(t, tt.want, task.HasRetriesLeft())
+		})
+	}
+}
+
 func TestIntegrationSyncState_JSON(t *testing.T) {
 	t.Run("marshal and unmarshal", func(t *testing.T) {
 		now := time.Now().UTC().Truncate(time.Second)

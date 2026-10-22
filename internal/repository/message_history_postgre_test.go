@@ -2343,6 +2343,80 @@ func TestMessageHistoryRepository_GetRecipientAndList(t *testing.T) {
 	})
 }
 
+func TestMessageHistoryRepository_GetRecipients(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	query := regexp.QuoteMeta(`SELECT id, contact_email FROM message_history WHERE id = ANY($1) AND contact_email <> $2`)
+	ids := []string{"msg-1", "msg-2", "missing"}
+
+	t.Run("the address of each message found, in one query; ids that name no message are absent", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs(pq.Array(ids), "DELETED_EMAIL").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "contact_email"}).
+				AddRow("msg-1", "First@example.com").
+				AddRow("msg-2", "second@example.com"))
+
+		recipients, err := repo.GetRecipients(ctx, workspaceID, ids)
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"msg-1": "First@example.com", "msg-2": "second@example.com"}, recipients)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("no ids: an empty map, without reaching the database", func(t *testing.T) {
+		recipients, err := repo.GetRecipients(ctx, workspaceID, nil)
+		require.NoError(t, err)
+		assert.Empty(t, recipients)
+	})
+
+	t.Run("workspace connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(nil, errors.New("connection error"))
+
+		recipients, err := repo.GetRecipients(ctx, workspaceID, ids)
+		require.Error(t, err)
+		assert.Nil(t, recipients)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+
+	t.Run("query error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs(pq.Array(ids), "DELETED_EMAIL").WillReturnError(errors.New("connection reset"))
+
+		recipients, err := repo.GetRecipients(ctx, workspaceID, ids)
+		require.Error(t, err)
+		assert.Nil(t, recipients)
+		assert.Contains(t, err.Error(), "connection reset")
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("scan error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs(pq.Array(ids), "DELETED_EMAIL").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "contact_email"}).AddRow("msg-1", nil))
+
+		recipients, err := repo.GetRecipients(ctx, workspaceID, ids)
+		require.Error(t, err)
+		assert.Nil(t, recipients)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("an error while reading the rows", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		mock.ExpectQuery(query).WithArgs(pq.Array(ids), "DELETED_EMAIL").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "contact_email"}).
+				AddRow("msg-1", "first@example.com").
+				RowError(0, errors.New("row read failed")))
+
+		recipients, err := repo.GetRecipients(ctx, workspaceID, ids)
+		require.Error(t, err)
+		assert.Nil(t, recipients)
+		assert.Contains(t, err.Error(), "row read failed")
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
 // Helper function to create string pointers
 func stringPtr(s string) *string {
 	return &s
