@@ -11,7 +11,7 @@ describe('isLiquidExpression', () => {
     expect(isLiquidExpression(value)).toBe(true)
   })
 
-  it.each(['https://example.com/a', '{ not liquid }', '{{}}', '100%', ''])(
+  it.each(['https://example.com/a', '{ not liquid }', '{{}}', '{{ }}', '100%', ''])(
     'does not mistake %j for Liquid',
     (value) => {
       expect(isLiquidExpression(value)).toBe(false)
@@ -31,6 +31,7 @@ describe('hasLiquidOutput', () => {
     '{% if vip %}https://a.example{% endif %}',
     'https://example.com/a',
     '{{}}',
+    '{{  }}',
     ''
   ])('finds none in %j', (value) => {
     expect(hasLiquidOutput(value)).toBe(false)

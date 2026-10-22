@@ -96,6 +96,24 @@ describe('sanitizeHtml', () => {
     expect(out).toContain('Hi')
   })
 
+  it('shows what media hold in their place, as a mail client without media support does', () => {
+    const out = sanitizeHtml(
+      '<p>Intro</p><video src="https://a.example/v.mp4"><a href="https://a.example/watch">' +
+        '<img src="https://a.example/p.png" alt="Watch"></a> Watch it here</video>' +
+        '<audio><source src="https://a.example/a.mp3"><img src="x" onerror="alert(1)">Listen</audio>'
+    )
+    expect(out).toBe(
+      '<p>Intro</p><a href="https://a.example/watch"><img src="https://a.example/p.png" alt="Watch"></a>' +
+        ' Watch it here<img src="x">Listen'
+    )
+  })
+
+  it("drops an image's srcset, whose candidates would not be checked one by one", () => {
+    expect(
+      sanitizeHtml('<img src="https://a.example/x.png" srcset="https://a.example/x.png 1x, smb://h/y.png 2x">')
+    ).toBe('<img src="https://a.example/x.png">')
+  })
+
   it('drops form controls and keeps their text', () => {
     const out = sanitizeHtml(
       '<form action="https://example.com/x" method="post">Sign in' +
@@ -204,6 +222,11 @@ describe('sanitizeEditorHtml', () => {
         '<video autoplay><source src="https://example.com/v.mp4"></video></p>'
     ],
     [
+      'media holding fallback content',
+      '<p>Intro</p><video src="https://a.example/v.mp4"><a href="https://a.example/watch">' +
+        'Watch</a> it here</video><audio><source src="https://a.example/a.mp3">Listen</audio>'
+    ],
+    [
       'form controls',
       '<form action="https://example.com/x">Sign in<input name="password" type="password">' +
         '<select name="s"><option>One</option></select><textarea name="t">Note</textarea>' +
@@ -211,6 +234,11 @@ describe('sanitizeEditorHtml', () => {
     ]
   ])('treats %s as sanitizeHtml does', (_kind, html) => {
     expect(sanitizeEditorHtml(html)).toBe(sanitizeHtml(html))
+  })
+
+  it("keeps an image's srcset", () => {
+    const html = '<img src="https://a.example/x.png" srcset="https://a.example/x2.png 2x">'
+    expect(sanitizeEditorHtml(html)).toBe(html)
   })
 
   it('keeps links that open another app, which an email may carry', () => {

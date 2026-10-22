@@ -57,6 +57,17 @@ const URL_REFERENCES = new Set([
   'marker-end'
 ])
 
+// Audio and video give way to what they hold, the fallback a mail client that
+// cannot play them shows, which DOMPurify would otherwise drop with them: it is
+// moved out before DOMPurify removes the element, and sanitized where it lands.
+const unwrapMedia = (node: Node, data: { tagName: string }) => {
+  const parent = node.parentNode
+  if ((data.tagName !== 'audio' && data.tagName !== 'video') || !parent) return
+  for (let child = node.lastChild; child; child = node.lastChild) {
+    parent.insertBefore(child, node.nextSibling)
+  }
+}
+
 // Instances of their own, so that each configuration applies to every call
 // through it, isSafeHref's included, and to nothing else on the page that uses
 // DOMPurify.
@@ -67,16 +78,18 @@ const purify = DOMPurify(window)
 // through the page (`tabindex`). A link or image URL is kept only with one of
 // the openable schemes, or with none, as a relative URL or Liquid (`{{ url }}`)
 // has: DOMPurify's own test, with its list of schemes narrowed and digits read
-// as part of a scheme (`ts3server:`), as browsers read them.
+// as part of a scheme (`ts3server:`), as browsers read them. That test reads a
+// `srcset` as one URL, the first of its candidates, so an image shows its `src`.
 purify.setConfig({
   ...CONFIG,
   SANITIZE_NAMED_PROPS: true,
-  FORBID_ATTR: [...(CONFIG.FORBID_ATTR ?? []), 'tabindex'],
+  FORBID_ATTR: [...(CONFIG.FORBID_ATTR ?? []), 'tabindex', 'srcset'],
   ALLOWED_URI_REGEXP: new RegExp(
     `^(?:(?:${OPENABLE_SCHEMES.join('|')}):|[^a-z]|[a-z0-9+.\\-]+(?:[^a-z0-9+.\\-:]|$))`,
     'i'
   )
 })
+purify.addHook('uponSanitizeElement', unwrapMedia)
 purify.addHook('uponSanitizeAttribute', (_node, data) => {
   const { attrName, attrValue } = data
   if (ID_REFERENCES.has(attrName)) {
@@ -104,6 +117,7 @@ purifyForEditor.setConfig({
   USE_PROFILES: { html: true },
   SAFE_FOR_XML: false
 })
+purifyForEditor.addHook('uponSanitizeElement', unwrapMedia)
 
 /**
  * HTML for display in the console page itself, such as a template block on the
@@ -112,14 +126,16 @@ purifyForEditor.setConfig({
  * Event handlers, `<script>` and frames are removed, and so are `<style>`,
  * which would restyle the console around it, form controls, image maps, whose
  * areas are links the canvas would follow, audio and video, which would play in
- * it, and the email builder's own `data-block-id`, which locates blocks on the
- * canvas. A link or image keeps its URL only if it is a web, mail or phone
- * address, a relative URL or Liquid, or, for an image, a `data:` URL: a link
- * that opens another app (`webcal:`, `whatsapp:`…) is shown without its target.
- * Ids and names, and what refers to them (`for`, `headers`,
+ * it and give way to the fallback content they hold, and the email builder's
+ * own `data-block-id`, which locates blocks on the canvas. A link or image
+ * keeps its URL only if it is a web, mail or phone address, a relative URL or
+ * Liquid, or, for an image, a `data:` URL: a link that opens another app
+ * (`webcal:`, `whatsapp:`…) is shown without its target, and an image without
+ * its `srcset`. Ids and names, and what refers to them (`for`, `headers`,
  * `aria-labelledby`…, `#id` links, SVG's `url(#id)`), are prefixed with
- * `user-content-`, and `tabindex` is dropped. Formatting, inline styles, classes, `data-*` attributes, link
- * targets and Liquid (`{{ url }}` in an `href` included) are kept.
+ * `user-content-`, and `tabindex` is dropped. Formatting, inline styles,
+ * classes, `data-*` attributes, link targets and Liquid (`{{ url }}` in an
+ * `href` included) are kept.
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return ''
@@ -128,15 +144,15 @@ export function sanitizeHtml(html: string): string {
 
 /**
  * HTML for a block editor to load: what `sanitizeHtml` keeps, with ids, names
- * and what refers to them as written, `tabindex`, links that open another app
- * (anything but a script or a `data:` URL), and also attribute values
- * `sanitizeHtml` drops because they contain `-->` or `]>`, such as a link to
- * `https://example.com/?q=a]>b`.
- * An editor saves what it loaded, so anything changed or dropped here that an
- * email may legitimately carry would be lost on the next edit. Still dropped:
- * an id or a name that is also a property of the document or of a form, such
- * as `title` or `links`, so that it cannot stand in for that property, and SVG
- * and MathML, along with what they contain.
+ * and what refers to them as written, `tabindex`, `srcset`, links that open
+ * another app (anything but a script or a `data:` URL), and also attribute
+ * values `sanitizeHtml` drops because they contain `-->` or `]>`, such as a
+ * link to `https://example.com/?q=a]>b`. An editor saves what it loaded, so
+ * anything changed or dropped here that an email may legitimately carry would
+ * be lost on the next edit. Still dropped: an id or a name that is also a
+ * property of the document or of a form, such as `title` or `links`, so that it
+ * cannot stand in for that property, and SVG and MathML, along with what they
+ * contain.
  */
 export function sanitizeEditorHtml(html: string): string {
   if (!html) return ''

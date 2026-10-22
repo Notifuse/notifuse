@@ -4,7 +4,7 @@
  * email is sent.
  */
 export function hasLiquidOutput(value: string): boolean {
-  return /\{\{[^}]+\}\}/.test(value)
+  return /\{\{\s*[^}\s][^}]*\}\}/.test(value)
 }
 
 /** Whether a value holds Liquid: an output (`{{ var }}`) or a tag (`{% if x %}`). */

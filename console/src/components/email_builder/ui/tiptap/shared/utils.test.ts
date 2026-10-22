@@ -144,6 +144,15 @@ describe.each([
       'https://x.example/{{ campaign | append: "-->" }}'
     ])
   })
+
+  it('keeps what a video holds for mail clients that cannot play it', () => {
+    const out = load(
+      '<p>Intro <video src="https://a.example/v.mp4"><a href="https://a.example/watch">Watch</a>' +
+        ' it here</video></p>'
+    )
+    expect(out).not.toContain('<video')
+    expect(out).toContain('<a href="https://a.example/watch">Watch</a> it here')
+  })
 })
 
 describe('getInitialInlineContent text-only fallback', () => {
