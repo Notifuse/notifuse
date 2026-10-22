@@ -889,24 +889,26 @@ func TestSameAddress(t *testing.T) {
 	}
 }
 
-// Encoding a domain to Punycode takes time growing with the square of its length, so an
-// event naming a domain far longer than DNS holds must not hold up the request.
-func TestSameAddress_ALongDomainIsComparedQuickly(t *testing.T) {
+// Encoding a domain to Punycode and decoding a crafted encoded local part take time growing
+// with the square of their length, so an event naming an address far longer than any
+// spelling of one must not hold up the request. The shorter bound on the domain alone is
+// pinned in TestSameAddress, "a domain longer than DNS holds is not looked up".
+func TestSameAddress_ALongAddressIsComparedQuickly(t *testing.T) {
 	var label strings.Builder
 	for i := 0; i < 20000; i++ {
 		label.WriteRune(rune(0x4e00 + i))
 	}
 
-	start := time.Now()
-	assert.False(t, sameAddress("user@example.com", "user@"+label.String()))
-	assert.Less(t, time.Since(start), time.Second)
-}
-
-// Decoding a crafted encoded local part takes time growing with the square of its length too.
-func TestSameAddress_ALongLocalPartIsComparedQuickly(t *testing.T) {
-	start := time.Now()
-	assert.False(t, sameAddress("user@example.com", strings.Repeat("=?c?q?x", 64000)+"?=@example.com"))
-	assert.Less(t, time.Since(start), time.Second)
+	for name, reported := range map[string]string{
+		"a long domain":             "user@" + label.String(),
+		"a long encoded local part": strings.Repeat("=?c?q?x", 64000) + "?=@example.com",
+	} {
+		t.Run(name, func(t *testing.T) {
+			start := time.Now()
+			assert.False(t, sameAddress("user@example.com", reported))
+			assert.Less(t, time.Since(start), time.Second)
+		})
+	}
 }
 
 func TestExtractXMessageIDFromHeaders(t *testing.T) {
