@@ -25,7 +25,12 @@ const CONFIG: Config = {
   FORBID_ATTR: ['data-block-id']
 }
 
-// Attributes that refer to elements by id
+// The prefix DOMPurify gives ids and names (SANITIZE_NAMED_PROPS), which it
+// leaves off one that already has it
+const ID_PREFIX = 'user-content-'
+const prefixId = (id: string) => (id.startsWith(ID_PREFIX) ? id : ID_PREFIX + id)
+
+// Attributes that refer to elements by id, as a list of ids
 const ID_REFERENCES = new Set([
   'for',
   'headers',
@@ -37,6 +42,19 @@ const ID_REFERENCES = new Set([
   'aria-flowto',
   'aria-labelledby',
   'aria-owns'
+])
+// Attributes that may refer to an SVG paint server, clip, mask, filter or
+// marker by id, as `url(#id)`
+const URL_REFERENCES = new Set([
+  'style',
+  'fill',
+  'stroke',
+  'clip-path',
+  'mask',
+  'filter',
+  'marker-start',
+  'marker-mid',
+  'marker-end'
 ])
 
 // Instances of their own, so that each configuration applies to every call
@@ -59,12 +77,17 @@ purify.setConfig({
   )
 })
 purify.addHook('uponSanitizeAttribute', (_node, data) => {
-  if (!ID_REFERENCES.has(data.attrName)) return
-  data.attrValue = data.attrValue
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((id) => `user-content-${id}`)
-    .join(' ')
+  const { attrName, attrValue } = data
+  if (ID_REFERENCES.has(attrName)) {
+    data.attrValue = attrValue.split(/\s+/).filter(Boolean).map(prefixId).join(' ')
+  } else if ((attrName === 'href' || attrName === 'xlink:href') && /^#./.test(attrValue)) {
+    data.attrValue = '#' + prefixId(attrValue.slice(1))
+  } else if (URL_REFERENCES.has(attrName)) {
+    data.attrValue = attrValue.replace(
+      /url\((\s*['"]?)#([^'")\s]+)/gi,
+      (_match, opening: string, id: string) => `url(${opening}#${prefixId(id)}`
+    )
+  }
 })
 
 // For editors, an attribute value that reads as the end of a comment or of a
@@ -93,8 +116,8 @@ purifyForEditor.setConfig({
  * address, a relative URL or Liquid, or, for an image, a `data:` URL: a link
  * that opens another app (`webcal:`, `whatsapp:`…) is shown without its target.
  * Ids and names, and what refers to them (`for`, `headers`,
- * `aria-labelledby`…), are prefixed with `user-content-`, and `tabindex` is
- * dropped. Formatting, inline styles, classes, `data-*` attributes, link
+ * `aria-labelledby`…, `#id` links, SVG's `url(#id)`), are prefixed with
+ * `user-content-`, and `tabindex` is dropped. Formatting, inline styles, classes, `data-*` attributes, link
  * targets and Liquid (`{{ url }}` in an `href` included) are kept.
  */
 export function sanitizeHtml(html: string): string {

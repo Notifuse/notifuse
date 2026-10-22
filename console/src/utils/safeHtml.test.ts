@@ -66,7 +66,7 @@ describe('sanitizeHtml', () => {
     const html =
       '<a href="https://example.com/a">a</a><a href="http://example.com">b</a>' +
       '<a href="mailto:team@example.com">c</a><a href="tel:+33100000000">d</a>' +
-      '<a href="/pricing">e</a><a href="#intro">f</a><a href="{{ cta_url }}">g</a>' +
+      '<a href="/pricing">e</a><a href="pricing#plans">f</a><a href="{{ cta_url }}">g</a>' +
       '<a href="https://{{ shop_domain }}/sale">h</a><img src="//cdn.example.com/i.png">'
     expect(sanitizeHtml(html)).toBe(html)
   })
@@ -107,8 +107,30 @@ describe('sanitizeHtml', () => {
   it("keeps the content's ids and names apart from the console page's own", () => {
     const out = sanitizeHtml('<p id="monaco"><a name="editor" href="#intro">x</a></p>')
     expect(out).toBe(
-      '<p id="user-content-monaco"><a href="#intro" name="user-content-editor">x</a></p>'
+      '<p id="user-content-monaco"><a href="#user-content-intro" name="user-content-editor">x</a></p>'
     )
+  })
+
+  it('keeps the references between SVG elements of the content', () => {
+    const out = sanitizeHtml(
+      '<svg><defs><linearGradient id="g"></linearGradient><clipPath id="c"></clipPath></defs>' +
+        '<rect fill="url(#g)" clip-path="url(\'#c\')" style="stroke: url( &quot;#g&quot; )"></rect>' +
+        '<text><textPath href="#c" xlink:href="#c">t</textPath></text></svg>'
+    )
+    expect(out).toBe(
+      '<svg><defs><linearGradient id="user-content-g"></linearGradient>' +
+        '<clipPath id="user-content-c"></clipPath></defs>' +
+        '<rect fill="url(#user-content-g)" clip-path="url(\'#user-content-c\')" ' +
+        'style="stroke: url( &quot;#user-content-g&quot; )"></rect>' +
+        '<text><textPath href="#user-content-c" xlink:href="#user-content-c">t</textPath></text></svg>'
+    )
+  })
+
+  it('leaves an id that already has the prefix, and what refers to it, as written', () => {
+    const html =
+      '<h2 id="user-content-faq">FAQ</h2><span aria-describedby="user-content-faq">x</span>' +
+      '<a href="#user-content-faq">top</a><a href="#">here</a>'
+    expect(sanitizeHtml(html)).toBe(html)
   })
 
   it('gives what refers to an id the same prefix, so that it points at no element of the page', () => {
@@ -126,8 +148,8 @@ describe('sanitizeHtml', () => {
   })
 
   it("leaves the console's keyboard order alone", () => {
-    expect(sanitizeHtml('<span tabindex="1">a</span><a href="#x" tabindex="0">b</a>')).toBe(
-      '<span>a</span><a href="#x">b</a>'
+    expect(sanitizeHtml('<span tabindex="1">a</span><a href="/x" tabindex="0">b</a>')).toBe(
+      '<span>a</span><a href="/x">b</a>'
     )
   })
 
