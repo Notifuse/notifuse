@@ -149,7 +149,7 @@ const openTemplateEditor = async (page: Page) => {
   await mockApi(page, 'templates.get', { template })
   await mockApi(page, 'templates.compile', {
     html:
-      '<html><body><p>Compiled</p>' +
+      '<html><body><p>Compiled</p><a href="https://example.com/offer">Offer</a>' +
       `<script>${probe('preview-script')}</script>` +
       `<img src="x" onerror="${probe('preview-image')}">` +
       '</body></html>'
@@ -269,6 +269,15 @@ test.describe('Template content in the email editor', () => {
 
     await page.waitForTimeout(1500)
     expect(await firedProbes(page)).toBeUndefined()
+
+    // A link of the email opens in a new tab, leaving the preview on the email
+    await page.context().route('https://example.com/**', (route) =>
+      route.fulfill({ contentType: 'text/html', body: '<p>Offer page</p>' })
+    )
+    const popup = page.waitForEvent('popup')
+    await frame.contentFrame().getByRole('link', { name: 'Offer' }).click()
+    await expect(await popup).toHaveURL('https://example.com/offer')
+    await expect(frame.contentFrame().getByText('Compiled')).toBeVisible()
   })
 })
 

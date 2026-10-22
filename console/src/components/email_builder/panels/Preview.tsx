@@ -8,6 +8,17 @@ import { Editor } from '@monaco-editor/react'
 import { faDesktop, faMobileAlt } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
+/**
+ * The email with every link opening in a new tab, as a mail client opens it,
+ * rather than in the preview frame, which runs no script. The base target comes
+ * first, right after the doctype so the document still has one, and so before
+ * any base element of the email's own.
+ */
+function withLinksInNewTab(html: string): string {
+  const doctype = /^\s*<!doctype[^>]*>/i.exec(html)?.[0] ?? ''
+  return doctype + '<base target="_blank">' + html.slice(doctype.length)
+}
+
 interface PreviewProps {
   html: string
   mjml: string
@@ -461,7 +472,7 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
                 }}
               >
                 <iframe
-                  srcDoc={html}
+                  srcDoc={withLinksInNewTab(html)}
                   style={{
                     width: '100%',
                     height: '100%',

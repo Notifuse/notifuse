@@ -111,6 +111,26 @@ describe('sanitizeHtml', () => {
     )
   })
 
+  it('gives what refers to an id the same prefix, so that it points at no element of the page', () => {
+    const out = sanitizeHtml(
+      '<label for="subject">s</label>' +
+        '<table><tbody><tr><td headers="name total">c</td></tr></tbody></table>' +
+        '<span aria-labelledby="title" aria-owns="sidebar" aria-describedby=" d1  d2 ">t</span>'
+    )
+    expect(out).toBe(
+      '<label for="user-content-subject">s</label>' +
+        '<table><tbody><tr><td headers="user-content-name user-content-total">c</td></tr></tbody></table>' +
+        '<span aria-labelledby="user-content-title" aria-owns="user-content-sidebar" ' +
+        'aria-describedby="user-content-d1 user-content-d2">t</span>'
+    )
+  })
+
+  it("leaves the console's keyboard order alone", () => {
+    expect(sanitizeHtml('<span tabindex="1">a</span><a href="#x" tabindex="0">b</a>')).toBe(
+      '<span>a</span><a href="#x">b</a>'
+    )
+  })
+
   it('returns an empty string for empty input', () => {
     expect(sanitizeHtml('')).toBe('')
   })
@@ -175,6 +195,12 @@ describe('sanitizeEditorHtml', () => {
 
   it('keeps ids and names as written, since an editor saves what it loaded', () => {
     const html = '<p id="intro"><a name="top" href="#intro">x</a></p>'
+    expect(sanitizeEditorHtml(html)).toBe(html)
+  })
+
+  it('keeps what refers to an id, and tabindex, as written', () => {
+    const html =
+      '<label for="subject">s</label><span aria-labelledby="title" tabindex="1">t</span>'
     expect(sanitizeEditorHtml(html)).toBe(html)
   })
 

@@ -25,22 +25,46 @@ const CONFIG: Config = {
   FORBID_ATTR: ['data-block-id']
 }
 
+// Attributes that refer to elements by id
+const ID_REFERENCES = new Set([
+  'for',
+  'headers',
+  'aria-activedescendant',
+  'aria-controls',
+  'aria-describedby',
+  'aria-details',
+  'aria-errormessage',
+  'aria-flowto',
+  'aria-labelledby',
+  'aria-owns'
+])
+
 // Instances of their own, so that each configuration applies to every call
 // through it, isSafeHref's included, and to nothing else on the page that uses
 // DOMPurify.
 const purify = DOMPurify(window)
-// Ids and names get a prefix, so that content shown in the page never names
-// one of its globals (`window.monaco`) or another of its elements. A link or
-// image URL is kept only with one of the openable schemes, or with none, as a
-// relative URL or Liquid (`{{ url }}`) has: DOMPurify's own test, with its list
-// of schemes narrowed.
+// Ids and names get a prefix, and so does what refers to them, so that content
+// shown in the page never names one of its globals (`window.monaco`) or another
+// of its elements; nor does it change the order in which the keyboard moves
+// through the page (`tabindex`). A link or image URL is kept only with one of
+// the openable schemes, or with none, as a relative URL or Liquid (`{{ url }}`)
+// has: DOMPurify's own test, with its list of schemes narrowed.
 purify.setConfig({
   ...CONFIG,
   SANITIZE_NAMED_PROPS: true,
+  FORBID_ATTR: [...(CONFIG.FORBID_ATTR ?? []), 'tabindex'],
   ALLOWED_URI_REGEXP: new RegExp(
     `^(?:(?:${OPENABLE_SCHEMES.join('|')}):|[^a-z]|[a-z+.\\-]+(?:[^a-z+.\\-:]|$))`,
     'i'
   )
+})
+purify.addHook('uponSanitizeAttribute', (_node, data) => {
+  if (!ID_REFERENCES.has(data.attrName)) return
+  data.attrValue = data.attrValue
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((id) => `user-content-${id}`)
+    .join(' ')
 })
 
 // For editors, an attribute value that reads as the end of a comment or of a
@@ -68,9 +92,10 @@ purifyForEditor.setConfig({
  * canvas. A link or image keeps its URL only if it is a web, mail or phone
  * address, a relative URL or Liquid, or, for an image, a `data:` URL: a link
  * that opens another app (`webcal:`, `whatsapp:`…) is shown without its target.
- * Ids and names are prefixed with `user-content-`. Formatting, inline styles,
- * classes, `data-*` attributes, link targets and Liquid (`{{ url }}` in an
- * `href` included) are kept.
+ * Ids and names, and what refers to them (`for`, `headers`,
+ * `aria-labelledby`…), are prefixed with `user-content-`, and `tabindex` is
+ * dropped. Formatting, inline styles, classes, `data-*` attributes, link
+ * targets and Liquid (`{{ url }}` in an `href` included) are kept.
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return ''
@@ -78,10 +103,11 @@ export function sanitizeHtml(html: string): string {
 }
 
 /**
- * HTML for a block editor to load: what `sanitizeHtml` keeps, with ids and
- * names as written, links that open another app (anything but a script or a
- * `data:` URL), and also attribute values `sanitizeHtml` drops because they
- * contain `-->` or `]>`, such as a link to `https://example.com/?q=a]>b`.
+ * HTML for a block editor to load: what `sanitizeHtml` keeps, with ids, names
+ * and what refers to them as written, `tabindex`, links that open another app
+ * (anything but a script or a `data:` URL), and also attribute values
+ * `sanitizeHtml` drops because they contain `-->` or `]>`, such as a link to
+ * `https://example.com/?q=a]>b`.
  * An editor saves what it loaded, so anything changed or dropped here that an
  * email may legitimately carry would be lost on the next edit. Still dropped:
  * an id or a name that is also a property of the document or of a form, such
