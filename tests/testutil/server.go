@@ -84,8 +84,11 @@ const TestSigningKey = "test-signing-key-for-integration-tests-only"
 
 // NewServerManager creates a new server manager for testing
 func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *DatabaseManager) *ServerManager {
-	// Create test JWT secret (32+ bytes for HS256)
-	jwtSecret := []byte("test-jwt-secret-key-for-integration-tests-only-32bytes")
+	// The JWT secret config derives from TestSigningKey: its raw bytes, as it is not
+	// base64. A token signed with TestSecretKey, as the installation issued them before
+	// SIGNING_KEY was set, is then refused. The suite never loads config, so which key
+	// the secret comes from is pinned by config's unit tests.
+	jwtSecret := []byte(TestSigningKey)
 
 	// The suite runs on an enterprise licence — see license.go for what it carries and
 	// why. A licence the binary does not trust is recorded and reported from Start.
