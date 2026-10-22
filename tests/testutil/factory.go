@@ -1699,9 +1699,9 @@ func (tdf *TestDataFactory) MarkTaskAsFailed(workspaceID, taskID string, errorMs
 }
 
 // MarkTaskAsPaused marks a task as paused with next run time
-func (tdf *TestDataFactory) MarkTaskAsPaused(workspaceID, taskID string, nextRunAfter time.Time, progress float64, state *domain.TaskState) error {
+func (tdf *TestDataFactory) MarkTaskAsPaused(workspaceID, taskID string, nextRunAfter time.Time) error {
 	taskRepo := repository.NewTaskRepository(tdf.db)
-	return taskRepo.MarkAsPaused(context.Background(), workspaceID, taskID, nextRunAfter, progress, state)
+	return taskRepo.MarkAsPaused(context.Background(), workspaceID, taskID, nextRunAfter)
 }
 
 // UpdateTaskMaxRuntime updates a task's max_runtime value for testing timeout behavior

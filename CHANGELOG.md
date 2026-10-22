@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 
 - **Security**: The email editor now displays template content without running its scripts, email and blog theme previews run in a sandbox, and a contact's page views only open pages of a domain listed in web analytics settings, or of the workspace website when none are listed.
 
+- **Security**: Email provider event webhooks (`/webhooks/email`) and the Supabase hooks now refuse bodies over 10 MiB and 1 MiB, far above what providers send, or that take more than 30 seconds to arrive, and the server now closes connections that take more than 20 seconds to send their headers or stay idle for 70 minutes. Each event of a SendGrid, SparkPost or Mailjet batch now keeps only its own payload in the webhook event log.
+
 - **Improvement**: Web analytics goals tracked with numbers or booleans in `properties`, or a numeric string `value` such as `'49.90'`, are now recorded along with the rest of the visit. `trackGoal` converts these before sending, and skips, with a console warning, a goal it can't convert or that exceeds a limit.
 
 - **Security**: On a UTF-8 database, web analytics no longer drops the visits it receives alongside a visit holding text, a goal value or a session id the database can't store. Such a visit is now kept, less any page view or goal that can't be stored, with its other details in a form the database accepts.
@@ -54,7 +56,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: The notification center now saves a contact's browser language and timezone on their first interaction rather than on page load, so email security scanners that only open the page no longer change them.
 
-- **Security**: Dependency updates clear the open Dependabot and `npm audit` advisories that have a fix, including `dompurify` 3.4.17 and `seroval` 1.6.9 in the console. `braces` and `katex` stay open until a usable fixed version exists.
+- **Security**: Dependency updates clear the open Dependabot and `npm audit` advisories that have a fix, including `dompurify` 3.4.17 and `seroval` 1.6.9 in the console, and `vite` 7.3.7 and 8.3.3 for advisories in its development server. `braces` and `katex` stay open until a usable fixed version exists.
 
 - **Improvement**: Signing in after moving an instance to a new domain now explains the fix: set `API_ENDPOINT` to the new address and restart (#435). The self-hosting docs gain a "Changing your domain" page.
 
@@ -75,6 +77,10 @@ All notable changes to this project will be documented in this file.
 - **Fix**: A broadcast filtered by several segments now sends one email to a contact who belongs to more than one of them, where it could send one per segment. Such a contact also counted as several recipients in the broadcast's totals and in its A/B test.
 
 - **Improvement**: Broadcasts to large lists are faster to send. Fetching each batch of recipients no longer rereads the part of the list already sent.
+
+- **Fix**: When an A/B test's winner is picked by hand, the rest of the list now receives only the winning variation.
+
+- **Improvement**: A broadcast now reaches each contact once when its A/B winner is picked through the API during the test phase, or when it is paused and resumed while a batch is being prepared.
 
 - **Change**: The database schema moves to v42. Workspace databases get updated `contact_lists` and `message_history` trigger functions, and their stored segment queries and live automation triggers are updated in place; segments are re-evaluated for contacts removed from their lists. The system database is untouched.
 

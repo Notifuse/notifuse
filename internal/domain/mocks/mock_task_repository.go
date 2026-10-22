@@ -271,31 +271,31 @@ func (mr *MockTaskRepositoryMockRecorder) MarkAsFailedTx(arg0, arg1, arg2, arg3,
 }
 
 // MarkAsPaused mocks base method.
-func (m *MockTaskRepository) MarkAsPaused(arg0 context.Context, arg1, arg2 string, arg3 time.Time, arg4 float64, arg5 *domain.TaskState) error {
+func (m *MockTaskRepository) MarkAsPaused(arg0 context.Context, arg1, arg2 string, arg3 time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkAsPaused", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret := m.ctrl.Call(m, "MarkAsPaused", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // MarkAsPaused indicates an expected call of MarkAsPaused.
-func (mr *MockTaskRepositoryMockRecorder) MarkAsPaused(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
+func (mr *MockTaskRepositoryMockRecorder) MarkAsPaused(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsPaused", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsPaused), arg0, arg1, arg2, arg3, arg4, arg5)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsPaused", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsPaused), arg0, arg1, arg2, arg3)
 }
 
 // MarkAsPausedTx mocks base method.
-func (m *MockTaskRepository) MarkAsPausedTx(arg0 context.Context, arg1 *sql.Tx, arg2, arg3 string, arg4 time.Time, arg5 float64, arg6 *domain.TaskState) error {
+func (m *MockTaskRepository) MarkAsPausedTx(arg0 context.Context, arg1 *sql.Tx, arg2, arg3 string, arg4 time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkAsPausedTx", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	ret := m.ctrl.Call(m, "MarkAsPausedTx", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // MarkAsPausedTx indicates an expected call of MarkAsPausedTx.
-func (mr *MockTaskRepositoryMockRecorder) MarkAsPausedTx(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
+func (mr *MockTaskRepositoryMockRecorder) MarkAsPausedTx(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsPausedTx", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsPausedTx), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsPausedTx", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsPausedTx), arg0, arg1, arg2, arg3, arg4)
 }
 
 // MarkAsPending mocks base method.
@@ -382,6 +382,20 @@ func (mr *MockTaskRepositoryMockRecorder) ReleaseTaskTx(arg0, arg1, arg2, arg3, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseTaskTx", reflect.TypeOf((*MockTaskRepository)(nil).ReleaseTaskTx), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
+// ResetRetryBudget mocks base method.
+func (m *MockTaskRepository) ResetRetryBudget(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetRetryBudget", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResetRetryBudget indicates an expected call of ResetRetryBudget.
+func (mr *MockTaskRepositoryMockRecorder) ResetRetryBudget(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetRetryBudget", reflect.TypeOf((*MockTaskRepository)(nil).ResetRetryBudget), arg0, arg1, arg2)
+}
+
 // SaveState mocks base method.
 func (m *MockTaskRepository) SaveState(arg0 context.Context, arg1, arg2 string, arg3 float64, arg4 *domain.TaskState) error {
 	m.ctrl.T.Helper()
@@ -436,6 +450,21 @@ func (m *MockTaskRepository) UpdateTx(arg0 context.Context, arg1 *sql.Tx, arg2 s
 func (mr *MockTaskRepositoryMockRecorder) UpdateTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTx", reflect.TypeOf((*MockTaskRepository)(nil).UpdateTx), arg0, arg1, arg2, arg3)
+}
+
+// WakeTask mocks base method.
+func (m *MockTaskRepository) WakeTask(arg0 context.Context, arg1, arg2 string, arg3 time.Time) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WakeTask", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WakeTask indicates an expected call of WakeTask.
+func (mr *MockTaskRepositoryMockRecorder) WakeTask(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WakeTask", reflect.TypeOf((*MockTaskRepository)(nil).WakeTask), arg0, arg1, arg2, arg3)
 }
 
 // WithTransaction mocks base method.

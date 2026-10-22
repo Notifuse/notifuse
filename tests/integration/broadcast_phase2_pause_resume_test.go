@@ -794,13 +794,15 @@ func TestBroadcastPhase1_PauseResume_CompletesEnqueue(t *testing.T) {
 	close(stopPump)
 	<-pumpDone
 
-	// Task ended in a non-running state. Preferred: "paused" (from the event
-	// handler). Fallback: "pending" if the orchestrator's executor return
-	// raced with the handler. Either way, downstream resume will work.
-	task := h.getTask(t)
-	taskStatus, _ := task["status"].(string)
-	assert.Contains(t, []string{"paused", "pending"}, taskStatus,
-		"task stopped running after pause")
+	// The task stops running once its run sees the pause, before its next
+	// batch: the pause leaves a task its run holds to that run rather than
+	// flipping it while the run goes on. It ends "pending" (the run's own end)
+	// or "paused" (a pause that landed between runs). Either way, downstream
+	// resume will work.
+	waitForCondition(t, func() bool {
+		taskStatus, _ := h.getTask(t)["status"].(string)
+		return taskStatus == "paused" || taskStatus == "pending"
+	}, statusFlipTimeout, "task stopped running after pause")
 
 	// Key invariant: no pending rows (service-tx PauseBySourceTx + orchestrator's
 	// cooperative pauseQueueEntries both ran; no late stragglers).

@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"go.opencensus.io/trace"
 
@@ -643,5 +644,24 @@ func TestInitTracing_FullConfiguration(t *testing.T) {
 	err := InitTracing(cfg)
 	if err != nil {
 		t.Errorf("Expected no error with full configuration, got %v", err)
+	}
+}
+
+func TestNewMetricsServer_LimitsHeaderReadingAndIdleConnections(t *testing.T) {
+	handler := http.NewServeMux()
+
+	srv := newMetricsServer(9464, handler)
+
+	if srv.Addr != ":9464" {
+		t.Errorf("Expected Addr :9464, got %s", srv.Addr)
+	}
+	if srv.Handler != handler {
+		t.Error("Expected the given handler")
+	}
+	if srv.ReadHeaderTimeout != 20*time.Second {
+		t.Errorf("Expected ReadHeaderTimeout 20s, got %s", srv.ReadHeaderTimeout)
+	}
+	if srv.IdleTimeout != 70*time.Minute {
+		t.Errorf("Expected IdleTimeout 70m, got %s", srv.IdleTimeout)
 	}
 }
