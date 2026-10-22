@@ -702,6 +702,38 @@ func TestAppInitSecretKey(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
+	// Loading the settings skips them, so the start goes on, but the operator learns
+	// which ones no listed key opens.
+	t.Run("a list names the settings no listed key opens", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		ctrl := gomock.NewController(t)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().WithField("settings", []string{"encrypted_smtp_password"}).Return(mockLogger)
+		mockLogger.EXPECT().Warn(gomock.Any()).Do(func(message string) {
+			assert.Contains(t, message, "no key listed in SECRET_KEY opens")
+		})
+		cfg := createTestConfig()
+		cfg.Security = config.SecurityConfig{SecretKey: current, SecretKeyIsList: true}
+		app, ok := NewApp(cfg, WithLogger(mockLogger), WithMockDB(db)).(*App)
+		require.True(t, ok)
+		lost, err := pkgCrypto.EncryptString("smtp-pass", "a-key-nobody-listed-giving-32-bytes")
+		require.NoError(t, err)
+
+		mock.ExpectBegin()
+		mock.ExpectExec(`SELECT pg_advisory_xact_lock`).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(`FROM workspaces`).WillReturnRows(sqlmock.NewRows([]string{"id", "settings", "integrations"}))
+		mock.ExpectQuery(`FROM settings`).WillReturnRows(
+			sqlmock.NewRows([]string{"key", "value"}).AddRow("encrypted_smtp_password", lost))
+		mock.ExpectCommit()
+
+		require.NoError(t, app.InitSecretKey())
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
 	t.Run("a database failure stops the start as one", func(t *testing.T) {
 		app, mock := newApp(t, config.SecurityConfig{SecretKey: current, SecretKeyIsList: true})
 

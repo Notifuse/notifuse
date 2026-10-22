@@ -15,10 +15,12 @@ import (
 // to do. An arbitrary id that nothing else locks.
 const secretKeyRotationLockID int64 = 4_242_000_001
 
-// SecretKeyRotationResult counts the rows RotateSecretKey re-encrypted.
+// SecretKeyRotationResult counts the rows RotateSecretKey re-encrypted, and names the
+// settings it left because no key opens them.
 type SecretKeyRotationResult struct {
-	Workspaces int
-	Settings   int
+	Workspaces       int
+	Settings         int
+	UnopenedSettings []string
 }
 
 type rotationWorkspaceRow struct {
@@ -40,8 +42,9 @@ type rotationSettingRow struct {
 // (domain.CheckStoredWorkspace), so a value nothing reads, such as one under a provider
 // an integration does not use, is left as it is even when no key opens it.
 //
-// Settings rows a previous key opens are re-encrypted too; one no key opens is left as
-// it is, as the server skips it when it loads the settings.
+// Settings rows a previous key opens are re-encrypted too. One no key opens is left as
+// it is and named in the result: loading the settings at startup skips it, as before
+// 42.0, and rows nothing reads any more stay behind (v29 left encrypted_smtp_relay_*).
 //
 // It runs in one transaction: a workspace no key opens rolls everything back, and the
 // error names it.
@@ -94,6 +97,7 @@ func RotateSecretKey(ctx context.Context, db *sql.DB, current string, previous [
 	for _, setting := range settings {
 		value, changed, err := crypto.ReencryptValue(setting.value, current, previous)
 		if errors.Is(err, crypto.ErrUndecryptable) {
+			result.UnopenedSettings = append(result.UnopenedSettings, setting.key)
 			continue
 		}
 		if err != nil {

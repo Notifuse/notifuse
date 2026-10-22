@@ -445,8 +445,13 @@ func (a *App) InitSecretKey() error {
 			"key twice", variable, err)
 	}
 
+	if len(result.UnopenedSettings) > 0 {
+		a.logger.WithField("settings", result.UnopenedSettings).Warn(fmt.Sprintf("These system settings were "+
+			"left as they are: no key listed in %s opens them, so Notifuse starts without them. To keep "+
+			"them, list the key they are encrypted with", variable))
+	}
 	if len(security.PreviousSecretKeys) == 0 {
-		a.logger.Info("Every stored value opens with " + variable)
+		a.logger.Info("Every workspace opens with " + variable)
 		return nil
 	}
 	a.logger.WithFields(map[string]interface{}{

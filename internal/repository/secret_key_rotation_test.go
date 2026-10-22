@@ -234,7 +234,7 @@ func TestRotateSecretKey(t *testing.T) {
 		result, err := RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
 
 		require.NoError(t, err)
-		assert.Equal(t, SecretKeyRotationResult{Settings: 1}, result)
+		assert.Equal(t, SecretKeyRotationResult{Settings: 1, UnopenedSettings: []string{"encrypted_smtp_relay_tls_cert_base64"}}, result)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
