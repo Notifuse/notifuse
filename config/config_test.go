@@ -331,6 +331,9 @@ func TestEmailQueueConfig(t *testing.T) {
 	setRequired := func(t *testing.T) {
 		t.Setenv("SECRET_KEY", "test-secret-key-long-enough-to-sign")
 		t.Setenv("DB_PASSWORD", "testpass")
+		// Empty counts as unset, so values exported in the runner's shell do not leak in.
+		t.Setenv("EMAIL_QUEUE_CONCURRENCY", "")
+		t.Setenv("EMAIL_QUEUE_SMTP_CONCURRENCY", "")
 	}
 
 	t.Run("defaults", func(t *testing.T) {
