@@ -1234,6 +1234,24 @@ func TestValidateURL(t *testing.T) {
 			url:         "http://intranet-ish.example.com/hook",
 			expectError: false,
 		},
+		// An IPv6 address written without brackets, followed by a port. Go up to
+		// 1.25 parsed it (host fd12:3456::10, port 9000) and delivered to it; Go
+		// 1.26 refuses it unless go.mod keeps `godebug urlstrictcolons=0`. Without
+		// that line, subscriptions saved like this stop delivering on upgrade.
+		{
+			name:              "unbracketed IPv6 with a port still parses",
+			url:               "http://fd12:3456::10:9000/hook",
+			allowPrivateHosts: true,
+			expectError:       false,
+		},
+		// The refusal names the host it checked, which pins the split: read as
+		// one address with no port, fd12:3456::10:9000 would be refused too.
+		{
+			name:        "unbracketed IPv6 with a port is still checked as an address",
+			url:         "http://fd12:3456::10:9000/hook",
+			expectError: true,
+			errorMsg:    "private or internal address (fd12:3456::10);",
+		},
 	}
 
 	for _, tc := range testCases {
