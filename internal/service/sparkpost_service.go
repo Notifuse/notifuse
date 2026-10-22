@@ -760,6 +760,10 @@ func (s *SparkPostService) directDeleteWebhook(ctx context.Context, settings *do
 	return nil
 }
 
+// sparkPostSinkSuffix is appended to the recipient's address in sandbox mode: SparkPost
+// accepts mail for its sink domain without delivering it, and reports events for it
+const sparkPostSinkSuffix = ".sink.sparkpostmail.com"
+
 // SendEmail sends an email using SparkPost
 func (s *SparkPostService) SendEmail(ctx context.Context, request domain.SendEmailProviderRequest) error {
 	// Validate the request
@@ -775,7 +779,7 @@ func (s *SparkPostService) SendEmail(ctx context.Context, request domain.SendEma
 	to := request.To
 	if request.Provider.SparkPost.SandboxMode {
 		s.logger.Info("SparkPost is in sandbox mode, email will be accepted but not delivered")
-		to = to + ".sink.sparkpostmail.com"
+		to = to + sparkPostSinkSuffix
 	}
 
 	// Prepare the request payload

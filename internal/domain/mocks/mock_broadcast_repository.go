@@ -180,6 +180,21 @@ func (mr *MockBroadcastRepositoryMockRecorder) UpdateBroadcastStatusTx(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBroadcastStatusTx", reflect.TypeOf((*MockBroadcastRepository)(nil).UpdateBroadcastStatusTx), arg0, arg1, arg2)
 }
 
+// UpdateBroadcastStatusUnless mocks base method.
+func (m *MockBroadcastRepository) UpdateBroadcastStatusUnless(arg0 context.Context, arg1 *domain.Broadcast, arg2 []domain.BroadcastStatus) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateBroadcastStatusUnless", arg0, arg1, arg2)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateBroadcastStatusUnless indicates an expected call of UpdateBroadcastStatusUnless.
+func (mr *MockBroadcastRepositoryMockRecorder) UpdateBroadcastStatusUnless(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBroadcastStatusUnless", reflect.TypeOf((*MockBroadcastRepository)(nil).UpdateBroadcastStatusUnless), arg0, arg1, arg2)
+}
+
 // UpdateBroadcastTx mocks base method.
 func (m *MockBroadcastRepository) UpdateBroadcastTx(arg0 context.Context, arg1 *sql.Tx, arg2 *domain.Broadcast) error {
 	m.ctrl.T.Helper()

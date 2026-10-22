@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
   **If your webhooks reach a service on your own network — n8n or another container on the same Docker network, an internal API — set `WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true` before you upgrade.** Until it is set, those webhooks stop delivering, and a contact that reaches such a webhook node fails that journey after its retries.
 
+- **Security**: Email provider webhooks now only act on emails Notifuse sent to the address each event names. Other events are ignored and no longer listed in the Email Provider Webhooks logs, and soft bounces already recorded count towards the bounce threshold on the same terms. **If a relay of yours posts events for an SMTP integration to `/webhooks/email`, set each event's `message_id` to the email's `X-Message-ID` header and its `recipient` to the address the email was sent to.**
+
 - **Security**: The email editor now displays template content without running its scripts, email and blog theme previews run in a sandbox, and a contact's page views only open pages of a domain listed in web analytics settings, or of the workspace website when none are listed.
 
 - **Security**: Email provider event webhooks (`/webhooks/email`) and the Supabase hooks now refuse bodies over 10 MiB and 1 MiB, far above what providers send, or that take more than 30 seconds to arrive, and the server now closes connections that take more than 20 seconds to send their headers or stay idle for 70 minutes. Each event of a SendGrid, SparkPost or Mailjet batch now keeps only its own payload in the webhook event log.
@@ -83,6 +85,8 @@ All notable changes to this project will be documented in this file.
 - **Fix**: When an A/B test's winner is picked by hand, the rest of the list now receives only the winning variation.
 
 - **Improvement**: A broadcast now reaches each contact once when its A/B winner is picked through the API during the test phase, or when it is paused and resumed while a batch is being prepared.
+
+- **Improvement**: A broadcast whose sending keeps failing is now marked failed once its last retry has failed, instead of one attempt early while that retry went on to send to the rest of the list. A pause made during that last attempt is kept.
 
 - **Improvement**: Telemetry, when switched on, now also reports whether a workspace uses SendGrid.
 

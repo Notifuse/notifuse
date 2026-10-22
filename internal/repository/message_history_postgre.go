@@ -13,6 +13,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/pkg/tracing"
+	"github.com/lib/pq"
 )
 
 // MessageHistoryRepository implements domain.MessageHistoryRepository
@@ -405,6 +406,41 @@ func (r *MessageHistoryRepository) GetRecipientAndList(ctx context.Context, work
 		return nil, fmt.Errorf("failed to get the recipient and list of message %s: %w", id, err)
 	}
 	return message, nil
+}
+
+// GetRecipients returns, for each of ids that names a message, the address it was sent to,
+// in one query. Ids that name no message are absent from the map, as are the messages
+// whose address an erasure redacted: they name no one.
+func (r *MessageHistoryRepository) GetRecipients(ctx context.Context, workspaceID string, ids []string) (map[string]string, error) {
+	recipients := map[string]string{}
+	if len(ids) == 0 {
+		return recipients, nil
+	}
+
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	rows, err := workspaceDB.QueryContext(ctx,
+		`SELECT id, contact_email FROM message_history WHERE id = ANY($1) AND contact_email <> $2`,
+		pq.Array(ids), redactedContactEmail)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the recipients of messages: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	for rows.Next() {
+		var id, email string
+		if err := rows.Scan(&id, &email); err != nil {
+			return nil, fmt.Errorf("failed to scan the recipient of a message: %w", err)
+		}
+		recipients[id] = email
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read the recipients of messages: %w", err)
+	}
+	return recipients, nil
 }
 
 // SetStatusesIfNotSet updates multiple message statuses in a single batch operation

@@ -620,7 +620,7 @@ func TestCountConsecutiveSoftBounces_NoPriorDelivery(t *testing.T) {
 
 	// No prior delivery row exists in message_history → LEFT JOIN yields NULL ts
 	// → window is the full event history (timestamp > epoch).
-	mock.ExpectQuery(`WITH last_delivery .* FROM inbound_webhook_events e\s+LEFT JOIN last_delivery d`).
+	mock.ExpectQuery(`WITH last_delivery .* FROM inbound_webhook_events e\s+JOIN message_history mh .* LEFT JOIN last_delivery d`).
 		WillReturnRows(rows)
 
 	got, err := repo.CountConsecutiveSoftBounces(ctx, workspaceID, emails)
@@ -717,6 +717,30 @@ func TestCountConsecutiveSoftBounces_ExcludesIgnoredSubtypes(t *testing.T) {
 		WillReturnRows(rows)
 
 	got, err := repo.CountConsecutiveSoftBounces(ctx, workspaceID, emails)
+	require.NoError(t, err)
+	assert.Empty(t, got)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCountConsecutiveSoftBounces_OnlyCountsBouncesOfEmailsSentToTheAddress(t *testing.T) {
+	// A stored bounce counts only when it names an email sent to that address. Pins the
+	// query text; the behaviour is proven against Postgres in tests/integration.
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewInboundWebhookEventRepository(mockWorkspaceRepo)
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+	mock.ExpectQuery(`FROM inbound_webhook_events e\s+JOIN message_history mh ON mh\.id = e\.message_id AND mh\.contact_email = e\.recipient_email\s+LEFT JOIN last_delivery d`).
+		WillReturnRows(sqlmock.NewRows([]string{"recipient_email", "count"}))
+
+	got, err := repo.CountConsecutiveSoftBounces(context.Background(), "ws-123", []string{"a@example.com"})
 	require.NoError(t, err)
 	assert.Empty(t, got)
 	assert.NoError(t, mock.ExpectationsWereMet())
