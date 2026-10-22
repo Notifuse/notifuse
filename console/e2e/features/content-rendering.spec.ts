@@ -11,12 +11,16 @@ import {
 const WORKSPACE_ID = 'test-workspace'
 
 // Content saved by one member, or reported by a visitor, and opened by another
-// member. Every snippet that could run records itself in the console's
-// window.__probes (through `parent`, which is the console itself at the top level
-// and from any frame it holds); the console must never run any of them, so the
-// list stays undefined. Each probe is named after where it sits, so a failure
-// says which surface ran it.
-const probe = (name: string) => `(parent.__probes = parent.__probes || []).push('${name}')`
+// member. Every snippet that could run records itself in the document it runs in
+// (`data-ran` on its root element), then in the console's window.__probes,
+// through `parent`, which is the console itself at the top level and from a frame
+// of the console's origin; the console must never run any of them, so the list
+// stays undefined. A frame of an origin of its own cannot reach the console, so
+// its check reads the frame's document instead. Each probe is named after where
+// it sits, so a failure says which surface ran it.
+const probe = (name: string) =>
+  `document.documentElement.dataset.ran = '${name}';` +
+  `(parent.__probes = parent.__probes || []).push('${name}')`
 
 const firedProbes = (page: Page) =>
   page.evaluate(() => (window as unknown as { __probes?: string[] }).__probes)
@@ -269,6 +273,7 @@ test.describe('Template content in the email editor', () => {
 
     await page.waitForTimeout(1500)
     expect(await firedProbes(page)).toBeUndefined()
+    expect(await frame.contentFrame().locator('html').getAttribute('data-ran')).toBeNull()
 
     // A link of the email opens in a new tab, leaving the preview on the email
     await page.context().route('https://example.com/**', (route) =>
