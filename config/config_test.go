@@ -358,32 +358,33 @@ func TestEmailQueueConfig(t *testing.T) {
 		assert.Equal(t, 4, cfg.EmailQueue.SMTPConcurrency)
 	})
 
-	for _, name := range []string{"EMAIL_QUEUE_CONCURRENCY", "EMAIL_QUEUE_SMTP_CONCURRENCY"} {
-		t.Run(name+" below 1", func(t *testing.T) {
-			setRequired(t)
-			t.Setenv(name, "0")
-
-			_, err := LoadWithOptions(LoadOptions{})
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), name+" must be at least 1 (got 0)")
-		})
-
-		t.Run(name+" above 50", func(t *testing.T) {
-			setRequired(t)
-			t.Setenv(name, "51")
-
-			_, err := LoadWithOptions(LoadOptions{})
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), name+" cannot exceed 50 (got 51)")
-		})
-
-		for _, bound := range []string{"1", "50"} {
-			t.Run(name+" at "+bound, func(t *testing.T) {
+	fields := map[string]func(*Config) int{
+		"EMAIL_QUEUE_CONCURRENCY":      func(c *Config) int { return c.EmailQueue.Concurrency },
+		"EMAIL_QUEUE_SMTP_CONCURRENCY": func(c *Config) int { return c.EmailQueue.SMTPConcurrency },
+	}
+	for name, field := range fields {
+		for _, tc := range []struct {
+			value   string
+			want    int
+			wantErr string
+		}{
+			{value: "0", wantErr: name + " must be at least 1 (got 0)"},
+			{value: "1", want: 1},
+			{value: "50", want: 50},
+			{value: "51", wantErr: name + " cannot exceed 50 (got 51)"},
+		} {
+			t.Run(name+"="+tc.value, func(t *testing.T) {
 				setRequired(t)
-				t.Setenv(name, bound)
+				t.Setenv(name, tc.value)
 
-				_, err := LoadWithOptions(LoadOptions{})
+				cfg, err := LoadWithOptions(LoadOptions{})
+				if tc.wantErr != "" {
+					require.Error(t, err)
+					assert.Contains(t, err.Error(), tc.wantErr)
+					return
+				}
 				require.NoError(t, err)
+				assert.Equal(t, tc.want, field(cfg))
 			})
 		}
 	}
