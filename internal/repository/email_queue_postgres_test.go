@@ -226,12 +226,19 @@ func TestEmailQueueRepository_FetchPendingForIntegration(t *testing.T) {
 		repo := NewEmailQueueRepositoryWithDB(db)
 
 		// One ORDER BY ... LIMIT per branch is what lets each branch walk its own
-		// index; ORed together the three made PostgreSQL sort the whole backlog.
+		// index; ORed together the three made PostgreSQL sort the whole backlog. The
+		// outer WHERE repeats the conditions: a row another instance changed after the
+		// statement began is locked in its new version, and PostgreSQL rechecks only the
+		// outer conditions against it.
 		mock.ExpectQuery(`(?s)WHERE id IN \(`+
-			`\s*\(SELECT id FROM email_queue\s+WHERE integration_id = \$1 AND status = 'pending' AND attempts < max_attempts AND \(next_retry_at IS NULL OR next_retry_at <= NOW\(\)\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
-			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE integration_id = \$1 AND status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW\(\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
-			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE integration_id = \$1 AND status = 'processing' AND updated_at < NOW\(\) - INTERVAL '2 minutes'\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
-			`\s*\)\s*ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\s+FOR UPDATE SKIP LOCKED`).
+			`\s*\(SELECT id FROM email_queue\s+WHERE \(integration_id = \$1\) AND \(status = 'pending' AND attempts < max_attempts AND \(next_retry_at IS NULL OR next_retry_at <= NOW\(\)\)\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
+			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE \(integration_id = \$1\) AND \(status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW\(\)\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
+			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE \(integration_id = \$1\) AND \(status = 'processing' AND updated_at < NOW\(\) - INTERVAL '2 minutes'\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
+			`\s*\)\s*AND \(integration_id = \$1\) AND \(`+
+			`\(status = 'pending' AND attempts < max_attempts AND \(next_retry_at IS NULL OR next_retry_at <= NOW\(\)\)\)`+
+			`\s+OR \(status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW\(\)\)`+
+			`\s+OR \(status = 'processing' AND updated_at < NOW\(\) - INTERVAL '2 minutes'\)\)`+
+			`\s*ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\s+FOR UPDATE SKIP LOCKED`).
 			WithArgs("integ-1", 120).
 			WillReturnRows(sqlmock.NewRows(emailQueueRowColumns))
 
@@ -339,10 +346,14 @@ func TestEmailQueueRepository_FetchPendingOrphans(t *testing.T) {
 		// The same branches as a lane's fetch: ORed in one WHERE, a large backlog of a
 		// deleted integration made PostgreSQL sort all of it on every pass.
 		mock.ExpectQuery(`(?s)FROM email_queue\s+WHERE id IN \(`+
-			`\s*\(SELECT id FROM email_queue\s+WHERE integration_id <> ALL\(\$1\) AND status = 'pending' AND attempts < max_attempts AND \(next_retry_at IS NULL OR next_retry_at <= NOW\(\)\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
-			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE integration_id <> ALL\(\$1\) AND status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW\(\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
-			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE integration_id <> ALL\(\$1\) AND status = 'processing' AND updated_at < NOW\(\) - INTERVAL '2 minutes'\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
-			`\s*\)\s*ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\s+FOR UPDATE SKIP LOCKED`).
+			`\s*\(SELECT id FROM email_queue\s+WHERE \(integration_id <> ALL\(\$1\)\) AND \(status = 'pending' AND attempts < max_attempts AND \(next_retry_at IS NULL OR next_retry_at <= NOW\(\)\)\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
+			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE \(integration_id <> ALL\(\$1\)\) AND \(status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW\(\)\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
+			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE \(integration_id <> ALL\(\$1\)\) AND \(status = 'processing' AND updated_at < NOW\(\) - INTERVAL '2 minutes'\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
+			`\s*\)\s*AND \(integration_id <> ALL\(\$1\)\) AND \(`+
+			`\(status = 'pending' AND attempts < max_attempts AND \(next_retry_at IS NULL OR next_retry_at <= NOW\(\)\)\)`+
+			`\s+OR \(status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW\(\)\)`+
+			`\s+OR \(status = 'processing' AND updated_at < NOW\(\) - INTERVAL '2 minutes'\)\)`+
+			`\s*ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\s+FOR UPDATE SKIP LOCKED`).
 			WithArgs(`{"integ-1","integ-2"}`, 50).
 			WillReturnRows(sqlmock.NewRows(emailQueueRowColumns).AddRow(
 				"orphan-1", "pending", 5, "broadcast", "bcast-1", "deleted-integ", "ses",
@@ -366,7 +377,7 @@ func TestEmailQueueRepository_FetchPendingOrphans(t *testing.T) {
 
 		repo := NewEmailQueueRepositoryWithDB(db)
 
-		mock.ExpectQuery(`WHERE integration_id <> ALL\(\$1\)`).
+		mock.ExpectQuery(`WHERE \(integration_id <> ALL\(\$1\)\)`).
 			WithArgs(`{}`, 50).
 			WillReturnRows(sqlmock.NewRows(emailQueueRowColumns))
 
@@ -381,7 +392,7 @@ func TestEmailQueueRepository_FetchPendingOrphans(t *testing.T) {
 
 		repo := NewEmailQueueRepositoryWithDB(db)
 
-		mock.ExpectQuery(`WHERE integration_id <> ALL`).
+		mock.ExpectQuery(`WHERE \(integration_id <> ALL\(\$1\)\)`).
 			WillReturnError(errors.New("database error"))
 
 		entries, err := repo.FetchPendingOrphans(ctx, "workspace-123", []string{"integ-1"}, 50)

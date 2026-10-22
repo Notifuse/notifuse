@@ -318,7 +318,8 @@ func (w *EmailQueueWorker) Stop() {
 	}
 	w.running = false
 	w.cancel()
-	done := w.loopDone
+	// Read under the lock: once the loop is done, a Start can replace them.
+	done, abortSends := w.loopDone, w.abortSends
 	w.mu.Unlock()
 
 	w.logger.Info("Stopping email queue worker...")
@@ -334,7 +335,7 @@ func (w *EmailQueueWorker) Stop() {
 		"in_flight":      w.inFlight.Load(),
 		"shutdown_grace": w.config.ShutdownGrace.String(),
 	}).Warn("Emails still sending after the shutdown grace; cancelling them")
-	w.abortSends()
+	abortSends()
 
 	select {
 	case <-done:
@@ -432,9 +433,10 @@ func (w *EmailQueueWorker) processWorkspace(workspace *domain.Workspace) {
 	lanes.Wait()
 }
 
-// processLane sends one round of an integration's queue. It asks the circuit breaker
-// first, fetches what the integration's rate allows in a round, then dispatches the
-// rows in order, at most K at a time and each when its token falls due, until the next
+// processLane sends one round of an integration's queue. It returns at once when the
+// integration's next token falls after the round, then asks the circuit breaker,
+// fetches what the integration's rate allows in a round, and dispatches the rows in
+// order, at most K at a time and each when its token falls due, until the next
 // token falls after the round's deadline. It returns once every send it started is done.
 func (w *EmailQueueWorker) processLane(workspace *domain.Workspace, integration *domain.Integration) {
 	ratePerMinute := integrationRate(integration)

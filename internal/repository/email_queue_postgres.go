@@ -160,13 +160,18 @@ const emailQueueEntryColumns = `id, status, priority, source_type, source_id, in
 // dueRowsSQL selects up to $2 due rows that match filter, oldest first within
 // priority. Each branch reads its own index in order and stops at its limit.
 //
+// The outer WHERE repeats the conditions. A row another instance changed after the
+// statement began is locked in its new version, and PostgreSQL rechecks only the outer
+// conditions against it: without them, a row another instance had just failed, with a
+// retry date or for good, would come back and be claimed and sent again at once.
+//
 // The inner limits pick candidates before the outer SKIP LOCKED, so rows another
 // instance's statement has locked at that instant shorten the round. Fetches and
 // claims lock for one statement only, so that costs one short round at most.
 func dueRowsSQL(filter string) string {
 	branch := func(due string) string {
 		return `(SELECT id FROM email_queue
-		 WHERE ` + filter + ` AND ` + due + `
+		 WHERE (` + filter + `) AND (` + due + `)
 		 ORDER BY priority ASC, created_at ASC
 		 LIMIT $2)`
 	}
@@ -180,6 +185,9 @@ func dueRowsSQL(filter string) string {
 		UNION ALL
 		` + branch(emailQueueStuckProcessing) + `
 	)
+	AND (` + filter + `) AND ((` + emailQueueDuePending + `)
+		OR (` + emailQueueDueRetry + `)
+		OR (` + emailQueueStuckProcessing + `))
 	ORDER BY priority ASC, created_at ASC
 	LIMIT $2
 	FOR UPDATE SKIP LOCKED

@@ -46,13 +46,6 @@ func (irl *IntegrationRateLimiter) GetOrCreateLimiter(integrationID string, rate
 	return actual.(*rate.Limiter)
 }
 
-// Allow checks if sending is allowed immediately without blocking
-// Returns true if allowed, false if rate limited
-func (irl *IntegrationRateLimiter) Allow(integrationID string, ratePerMinute int) bool {
-	limiter := irl.GetOrCreateLimiter(integrationID, ratePerMinute)
-	return limiter.Allow()
-}
-
 // ReserveBefore reserves the integration's next token if it falls due by deadline, and
 // returns the reservation and how long to wait for it. A token due after the deadline is
 // not taken: its reservation is cancelled at once, so the next caller is offered the same

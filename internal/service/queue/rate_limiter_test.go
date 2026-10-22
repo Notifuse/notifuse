@@ -90,43 +90,6 @@ func TestIntegrationRateLimiter_GetOrCreateLimiter(t *testing.T) {
 	})
 }
 
-func TestIntegrationRateLimiter_Allow(t *testing.T) {
-	t.Run("returns true when under limit", func(t *testing.T) {
-		irl := NewIntegrationRateLimiter()
-
-		// First request should be allowed (burst = 1)
-		allowed := irl.Allow("integration-1", 60)
-		assert.True(t, allowed)
-	})
-
-	t.Run("returns false when at limit", func(t *testing.T) {
-		irl := NewIntegrationRateLimiter()
-
-		// First request consumes the burst
-		allowed1 := irl.Allow("integration-1", 60)
-		assert.True(t, allowed1)
-
-		// Second immediate request should be rate limited
-		allowed2 := irl.Allow("integration-1", 60)
-		assert.False(t, allowed2)
-	})
-
-	t.Run("allows again after rate period", func(t *testing.T) {
-		irl := NewIntegrationRateLimiter()
-
-		// High rate for quick test - 6000 per minute = 100 per second
-		// Token replenishes every 10ms
-		allowed1 := irl.Allow("integration-1", 6000)
-		assert.True(t, allowed1)
-
-		// Wait for token to replenish
-		time.Sleep(15 * time.Millisecond)
-
-		allowed2 := irl.Allow("integration-1", 6000)
-		assert.True(t, allowed2)
-	})
-}
-
 func TestIntegrationRateLimiter_TokenDueBy(t *testing.T) {
 	irl := NewIntegrationRateLimiter()
 	now := time.Now()
@@ -138,8 +101,10 @@ func TestIntegrationRateLimiter_TokenDueBy(t *testing.T) {
 	assert.False(t, irl.TokenDueBy("integ", 60, now.Add(500*time.Millisecond)))
 	assert.True(t, irl.TokenDueBy("integ", 60, now.Add(1100*time.Millisecond)))
 
-	_, _, ok = irl.ReserveBefore("integ", 60, now.Add(time.Minute))
-	require.True(t, ok, "the check took nothing")
+	// Had a check taken the next token, the one after would be two seconds away.
+	_, delay, ok := irl.ReserveBefore("integ", 60, now.Add(1500*time.Millisecond))
+	require.True(t, ok, "the checks took nothing")
+	assert.LessOrEqual(t, delay, 1100*time.Millisecond)
 }
 
 func TestIntegrationRateLimiter_ReserveBefore(t *testing.T) {
@@ -366,33 +331,6 @@ func TestIntegrationRateLimiter_ConcurrentAccess(t *testing.T) {
 		stats := irl.GetStats()
 		assert.LessOrEqual(t, len(stats), 26)
 		assert.Greater(t, len(stats), 0)
-	})
-
-	t.Run("concurrent Allow calls return consistent results", func(t *testing.T) {
-		irl := NewIntegrationRateLimiter()
-
-		var wg sync.WaitGroup
-		var allowedCount int64
-		var mu sync.Mutex
-		numGoroutines := 100
-
-		wg.Add(numGoroutines)
-		for i := 0; i < numGoroutines; i++ {
-			go func() {
-				defer wg.Done()
-				if irl.Allow("integration-1", 60) {
-					mu.Lock()
-					allowedCount++
-					mu.Unlock()
-				}
-			}()
-		}
-		wg.Wait()
-
-		// With burst of 1, at most a few should be allowed in immediate succession
-		// The exact number depends on timing, but should be much less than 100
-		assert.Less(t, allowedCount, int64(numGoroutines))
-		assert.Greater(t, allowedCount, int64(0))
 	})
 }
 
