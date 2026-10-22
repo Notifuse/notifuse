@@ -2097,11 +2097,29 @@ func createTestWorkspaceWithWebsite(t *testing.T, client *testutil.APIClient, na
 	return workspaceID
 }
 
-// dropLowercaseDatabase drops, after the test, the database a regression would leave under
-// the lowercase form of name: it has no workspace row, so the suite's cleanup never sees it.
+// dropLowercaseDatabase drops, after the test, any database a regression would leave under
+// name, whatever its case: it has no workspace row, so the suite's cleanup never sees it.
 func dropLowercaseDatabase(t *testing.T, suite *testutil.IntegrationTestSuite, name string) {
 	t.Helper()
 	t.Cleanup(func() {
-		_, _ = suite.DBManager.GetDB().Exec("DROP DATABASE IF EXISTS " + pq.QuoteIdentifier(strings.ToLower(name)) + " WITH (FORCE)")
+		db := suite.DBManager.GetDB()
+		rows, err := db.Query("SELECT datname FROM pg_database WHERE lower(datname) = lower($1)", name)
+		if err != nil {
+			t.Logf("listing databases named %s: %v", name, err)
+			return
+		}
+		var leftovers []string
+		for rows.Next() {
+			var datname string
+			if err := rows.Scan(&datname); err == nil {
+				leftovers = append(leftovers, datname)
+			}
+		}
+		_ = rows.Close()
+		for _, datname := range leftovers {
+			if _, err := db.Exec("DROP DATABASE IF EXISTS " + pq.QuoteIdentifier(datname) + " WITH (FORCE)"); err != nil {
+				t.Logf("dropping database %s: %v", datname, err)
+			}
+		}
 	})
 }
