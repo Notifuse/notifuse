@@ -66,13 +66,14 @@ const purify = DOMPurify(window)
 // of its elements; nor does it change the order in which the keyboard moves
 // through the page (`tabindex`). A link or image URL is kept only with one of
 // the openable schemes, or with none, as a relative URL or Liquid (`{{ url }}`)
-// has: DOMPurify's own test, with its list of schemes narrowed.
+// has: DOMPurify's own test, with its list of schemes narrowed and digits read
+// as part of a scheme (`ts3server:`), as browsers read them.
 purify.setConfig({
   ...CONFIG,
   SANITIZE_NAMED_PROPS: true,
   FORBID_ATTR: [...(CONFIG.FORBID_ATTR ?? []), 'tabindex'],
   ALLOWED_URI_REGEXP: new RegExp(
-    `^(?:(?:${OPENABLE_SCHEMES.join('|')}):|[^a-z]|[a-z+.\\-]+(?:[^a-z+.\\-:]|$))`,
+    `^(?:(?:${OPENABLE_SCHEMES.join('|')}):|[^a-z]|[a-z0-9+.\\-]+(?:[^a-z0-9+.\\-:]|$))`,
     'i'
   )
 })

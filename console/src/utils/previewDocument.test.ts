@@ -15,8 +15,12 @@ describe('insertAfterDoctype', () => {
     )
   })
 
-  it('does not take markup between two comments for a comment', () => {
-    const html = '<!-- a --><script>localStorage.x = 1</script><!-- b --><!doctype html><p>x</p>'
+  it.each([
+    '<!-- a --><script>localStorage.x = 1</script><!-- b --><!doctype html><p>x</p>',
+    '<!--><script>localStorage.x = 1</script><!-- b --><!doctype html><p>x</p>',
+    '<!---><script>localStorage.x = 1</script><!-- b --><!doctype html><p>x</p>',
+    '<!-- a --!><script>localStorage.x = 1</script><!-- b --><!doctype html><p>x</p>'
+  ])('does not take markup after a comment for a comment: %j', (html) => {
     expect(insertAfterDoctype(html, '<base>')).toBe('<base>' + html)
   })
 

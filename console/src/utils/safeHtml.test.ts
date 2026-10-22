@@ -57,9 +57,13 @@ describe('sanitizeHtml', () => {
         '<a href="sms:+33100000000">sms</a>' +
         '<a href="search-ms:query=invoice">find</a>' +
         '<a href="file:///C:/x">file</a>' +
+        '<a href="ts3server://example.com/?port=9987">voice</a>' +
+        '<a href="z39.50r://example.com/db">catalog</a>' +
         '<img src="smb://10.0.0.1/share/x.png">'
     )
-    expect(out).toBe('<a>cal</a><a>wa</a><a>sms</a><a>find</a><a>file</a><img>')
+    expect(out).toBe(
+      '<a>cal</a><a>wa</a><a>sms</a><a>find</a><a>file</a><a>voice</a><a>catalog</a><img>'
+    )
   })
 
   it('keeps web, mail, phone, relative and Liquid link targets', () => {
@@ -67,6 +71,7 @@ describe('sanitizeHtml', () => {
       '<a href="https://example.com/a">a</a><a href="http://example.com">b</a>' +
       '<a href="mailto:team@example.com">c</a><a href="tel:+33100000000">d</a>' +
       '<a href="/pricing">e</a><a href="pricing#plans">f</a><a href="{{ cta_url }}">g</a>' +
+      '<a href="2024/report.html">i</a>' +
       '<a href="https://{{ shop_domain }}/sale">h</a><img src="//cdn.example.com/i.png">'
     expect(sanitizeHtml(html)).toBe(html)
   })
@@ -382,6 +387,8 @@ describe('isSafeHref', () => {
     'whatsapp://send?text=hi',
     'search-ms:query=invoice',
     'file:///C:/x',
+    'ts3server://example.com/?port=9987',
+    'z39.50r://example.com/db',
     '',
     null,
     undefined
