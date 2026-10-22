@@ -511,6 +511,10 @@ func (s *InboundWebhookEventService) eventsOfSentEmails(ctx context.Context, wor
 		}
 		ignored++
 	}
+	// The id comes from the request, so a long one is cut, where it can name no email anyway
+	if len(firstIgnoredID) > maxLoggedMessageIDLength {
+		firstIgnoredID = strings.ToValidUTF8(firstIgnoredID[:maxLoggedMessageIDLength], "") + "…(truncated)"
+	}
 
 	if ignored > 0 {
 		s.logger.WithField("workspace_id", workspaceID).
@@ -521,6 +525,9 @@ func (s *InboundWebhookEventService) eventsOfSentEmails(ctx context.Context, wor
 	}
 	return kept, nil
 }
+
+// maxLoggedMessageIDLength, in bytes, is the length of message_history.id, VARCHAR(255).
+const maxLoggedMessageIDLength = 255
 
 // sameAddress reports whether reported, the address a provider gives in an event, is stored,
 // the address the email was sent to. The letter case and surrounding spaces aside, an

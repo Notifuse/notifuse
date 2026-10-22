@@ -3539,6 +3539,35 @@ func TestProcessWebhook_ActsOnlyOnEmailsSentToTheEventAddress(t *testing.T) {
 			"first_message_id": "msg-unknown",
 		}, fields)
 	})
+
+	t.Run("a long ignored id is logged cut to its first 255 bytes, on a character boundary", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		log := pkgmocks.NewMockLogger(ctrl)
+		fields := map[string]interface{}{}
+		log.EXPECT().WithField(gomock.Any(), gomock.Any()).DoAndReturn(func(key string, value interface{}) logger.Logger {
+			fields[key] = value
+			return log
+		}).AnyTimes()
+		log.EXPECT().Info("Ignored provider events that name no email sent to their address").Times(1)
+		service := &InboundWebhookEventService{
+			logger:             log,
+			workspaceRepo:      workspaceRepo,
+			messageHistoryRepo: messageHistoryRepo,
+		}
+		// Two bytes a character, so byte 255 falls inside the 128th
+		longID := strings.Repeat("é", 200)
+		workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspaceOf(domain.EmailProviderKindSendGrid), nil)
+		messageHistoryRepo.EXPECT().GetRecipients(gomock.Any(), workspaceID, []string{longID}).
+			Return(map[string]string{}, nil)
+
+		require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, sendGridBatch(t,
+			sendGridEvent("bounce", longID, "victim@example.com"))))
+
+		assert.Equal(t, strings.Repeat("é", 127)+"…(truncated)", fields["first_message_id"])
+	})
 }
 
 // TestProcessWebhook_MailjetUnsubscribe posts Mailjet "unsub" events through ProcessWebhook.
