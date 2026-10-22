@@ -160,10 +160,10 @@ const emailQueueEntryColumns = `id, status, priority, source_type, source_id, in
 // dueRowsSQL selects up to $2 due rows that match filter, oldest first within
 // priority. Each branch reads its own index in order and stops at its limit.
 //
-// The outer WHERE repeats the conditions. A row another instance changed after the
-// statement began is locked in its new version, and PostgreSQL rechecks only the outer
-// conditions against it: without them, a row another instance had just failed, with a
-// retry date or for good, would come back and be claimed and sent again at once.
+// The outer WHERE repeats the conditions. Depending on the plan, PostgreSQL can lock
+// a row another instance changed after the statement began in its new version and
+// recheck only the outer conditions against it, returning a row that is no longer
+// due. MarkAsProcessing would refuse it; the recheck saves the wasted claim.
 //
 // The inner limits pick candidates before the outer SKIP LOCKED, so rows another
 // instance's statement has locked at that instant shorten the round. Fetches and
@@ -265,13 +265,15 @@ func (r *EmailQueueRepository) MarkAsProcessing(ctx context.Context, workspaceID
 		return fmt.Errorf("failed to get database connection: %w", err)
 	}
 
+	// A row is claimed only while the fetch would return it. Another instance can fail
+	// a row between this instance's fetch and its claim; without the conditions, the
+	// row would be sent again at once, before its retry date or after it was given up.
 	query := `
 		UPDATE email_queue
 		SET status = 'processing', updated_at = NOW(), attempts = attempts + 1
-		WHERE id = $1 AND (
-			status IN ('pending', 'failed')
-			OR (status = 'processing' AND updated_at < NOW() - INTERVAL '2 minutes')
-		)
+		WHERE id = $1 AND ((` + emailQueueDuePending + `)
+			OR (` + emailQueueDueRetry + `)
+			OR (` + emailQueueStuckProcessing + `))
 	`
 
 	result, err := db.ExecContext(ctx, query, id)

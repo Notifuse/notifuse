@@ -227,9 +227,8 @@ func TestEmailQueueRepository_FetchPendingForIntegration(t *testing.T) {
 
 		// One ORDER BY ... LIMIT per branch is what lets each branch walk its own
 		// index; ORed together the three made PostgreSQL sort the whole backlog. The
-		// outer WHERE repeats the conditions: a row another instance changed after the
-		// statement began is locked in its new version, and PostgreSQL rechecks only the
-		// outer conditions against it.
+		// outer WHERE repeats the conditions, which PostgreSQL rechecks against a row
+		// another instance changed while the statement ran.
 		mock.ExpectQuery(`(?s)WHERE id IN \(`+
 			`\s*\(SELECT id FROM email_queue\s+WHERE \(integration_id = \$1\) AND \(status = 'pending' AND attempts < max_attempts AND \(next_retry_at IS NULL OR next_retry_at <= NOW\(\)\)\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
 			`\s*UNION ALL\s*\(SELECT id FROM email_queue\s+WHERE \(integration_id = \$1\) AND \(status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW\(\)\)\s+ORDER BY priority ASC, created_at ASC\s+LIMIT \$2\)`+
@@ -746,8 +745,12 @@ func TestEmailQueueRepository_MarkAsProcessing_StuckRecovery(t *testing.T) {
 
 		repo := NewEmailQueueRepositoryWithDB(db)
 
-		// The query should include the stuck processing condition in WHERE clause
-		mock.ExpectExec(`UPDATE email_queue SET status = 'processing'.+ WHERE id = \$1 AND \( status IN \('pending', 'failed'\) OR \(status = 'processing' AND updated_at < NOW\(\) - INTERVAL '2 minutes'\) \)`).
+		// The claim takes a row only while the fetch would return it: due pending or
+		// failed rows, and processing rows stuck for over two minutes.
+		mock.ExpectExec(`UPDATE email_queue SET status = 'processing'.+ WHERE id = \$1 AND \(` +
+			`\(status = 'pending' AND attempts < max_attempts AND \(next_retry_at IS NULL OR next_retry_at <= NOW\(\)\)\)` +
+			` OR \(status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW\(\)\)` +
+			` OR \(status = 'processing' AND updated_at < NOW\(\) - INTERVAL '2 minutes'\)\)`).
 			WithArgs("stuck-entry").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 

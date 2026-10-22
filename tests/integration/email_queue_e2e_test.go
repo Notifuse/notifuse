@@ -683,14 +683,14 @@ func TestEmailQueueFetchEligibility(t *testing.T) {
 	}
 
 	pendingDue := row(t, integration.ID, "pending-due", 5, "")
-	row(t, integration.ID, "pending-not-yet", 5, `next_retry_at = NOW() + INTERVAL '1 hour'`)
-	row(t, integration.ID, "pending-out-of-attempts", 5, `attempts = max_attempts`)
+	pendingNotYet := row(t, integration.ID, "pending-not-yet", 5, `next_retry_at = NOW() + INTERVAL '1 hour'`)
+	pendingOutOfAttempts := row(t, integration.ID, "pending-out-of-attempts", 5, `attempts = max_attempts`)
 	failedDue := row(t, integration.ID, "failed-due", 5, `status = 'failed', attempts = 1, next_retry_at = NOW() - INTERVAL '1 minute'`)
-	row(t, integration.ID, "failed-not-yet", 5, `status = 'failed', attempts = 1, next_retry_at = NOW() + INTERVAL '1 hour'`)
-	row(t, integration.ID, "failed-terminal", 5, `status = 'failed', attempts = max_attempts, next_retry_at = NULL`)
+	failedNotYet := row(t, integration.ID, "failed-not-yet", 5, `status = 'failed', attempts = 1, next_retry_at = NOW() + INTERVAL '1 hour'`)
+	failedTerminal := row(t, integration.ID, "failed-terminal", 5, `status = 'failed', attempts = max_attempts, next_retry_at = NULL`)
 	processingStuck := row(t, integration.ID, "processing-stuck", 5, `status = 'processing', updated_at = NOW() - INTERVAL '3 minutes'`)
-	row(t, integration.ID, "processing-fresh", 5, `status = 'processing', updated_at = NOW()`)
-	row(t, integration.ID, "paused", 5, `status = 'paused'`)
+	processingFresh := row(t, integration.ID, "processing-fresh", 5, `status = 'processing', updated_at = NOW()`)
+	paused := row(t, integration.ID, "paused", 5, `status = 'paused'`)
 	urgent := row(t, integration.ID, "urgent", 1, "")
 	otherDue := row(t, other.ID, "other-integration", 5, "")
 	orphan := row(t, "deleted-integration", "orphan", 5, "")
@@ -731,5 +731,35 @@ func TestEmailQueueFetchEligibility(t *testing.T) {
 		entries, err = queueRepo.FetchPendingOrphans(ctx, workspace.ID, nil, 100)
 		require.NoError(t, err)
 		assert.Equal(t, want, ids(entries))
+	})
+
+	// Runs last: it claims rows. Another instance can fail a row between this
+	// instance's fetch and its claim, so the claim checks the same conditions.
+	t.Run("a row is claimed only while it is due", func(t *testing.T) {
+		attempts := func(id string) int {
+			var n int
+			require.NoError(t, db.QueryRowContext(ctx, `SELECT attempts FROM email_queue WHERE id = $1`, id).Scan(&n))
+			return n
+		}
+
+		for name, id := range map[string]string{
+			"pending, not yet due":      pendingNotYet,
+			"pending, out of attempts":  pendingOutOfAttempts,
+			"failed, retry not yet due": failedNotYet,
+			"failed for good":           failedTerminal,
+			"processing, not yet stuck": processingFresh,
+			"paused":                    paused,
+		} {
+			before := attempts(id)
+			assert.Error(t, queueRepo.MarkAsProcessing(ctx, workspace.ID, id), name)
+			assert.Equal(t, before, attempts(id), name)
+		}
+
+		// A send cut by a crash on its last attempt is still recovered.
+		lastAttemptStuck := row(t, integration.ID, "processing-stuck-last-attempt", 5,
+			`status = 'processing', attempts = max_attempts, updated_at = NOW() - INTERVAL '3 minutes'`)
+		for _, id := range []string{pendingDue, failedDue, processingStuck, lastAttemptStuck} {
+			assert.NoError(t, queueRepo.MarkAsProcessing(ctx, workspace.ID, id), id)
+		}
 	})
 }
