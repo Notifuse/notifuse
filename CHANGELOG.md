@@ -74,6 +74,10 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Broadcasts to large lists are faster to send. Fetching each batch of recipients no longer rereads the part of the list already sent.
 
+- **Fix**: When an A/B test's winner is picked by hand, the rest of the list now receives only the winning variation.
+
+- **Improvement**: A broadcast now reaches each contact once when its A/B winner is picked through the API during the test phase, or when it is paused and resumed while a batch is being prepared.
+
 - **Change**: The database schema moves to v42. Workspace databases get updated `contact_lists` and `message_history` trigger functions, and their stored segment queries and live automation triggers are updated in place; segments are re-evaluated for contacts removed from their lists. The system database is untouched.
 
 ## [41.0] - 2026-09-17
