@@ -4,6 +4,7 @@ import { MjTextBlock } from './MjTextBlock'
 import { MjButtonBlock } from './MjButtonBlock'
 import { MjImageBlock } from './MjImageBlock'
 import { MjSocialElementBlock } from './MjSocialElementBlock'
+import { MjRawBlock } from './MjRawBlock'
 import type { EmailBlock } from '../types'
 import type { PreviewProps } from './BaseEmailBlock'
 
@@ -195,5 +196,20 @@ describe('editor canvas links keep only navigable targets', () => {
     expect(renderLink(type, '{{ profile_url }}')).toContain('{{ profile_url }}')
     // A link that would hand the member's click to an app on their computer
     expect(renderLink(type, 'search-ms:query=invoice')).not.toContain('search-ms:query=invoice')
+  })
+})
+
+describe('editor canvas raw HTML', () => {
+  it('shows it in a frame that opens no window and runs nothing', () => {
+    const block = {
+      id: 'b-raw',
+      type: 'mj-raw',
+      attributes: {},
+      content: '<a href="https://example.com" target="_blank">x</a>'
+    } as unknown as EmailBlock
+    const { container } = render(<>{new MjRawBlock(block).getEdit(previewProps())}</>)
+
+    // Same origin only, for the canvas to size the frame to its content
+    expect(container.querySelector('iframe')?.getAttribute('sandbox')).toBe('allow-same-origin')
   })
 })

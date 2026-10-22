@@ -9,5 +9,5 @@ export function hasLiquidOutput(value: string): boolean {
 
 /** Whether a value holds Liquid: an output (`{{ var }}`) or a tag (`{% if x %}`). */
 export function isLiquidExpression(value: string): boolean {
-  return hasLiquidOutput(value) || /\{%.*?%\}/.test(value)
+  return hasLiquidOutput(value) || /\{%[\s\S]*?%\}/.test(value)
 }

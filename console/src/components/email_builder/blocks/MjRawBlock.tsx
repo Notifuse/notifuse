@@ -207,7 +207,9 @@ const SandboxedIframe: React.FC<{
         ...style
       }}
       className={className}
-      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      // No script, and no new window: a link in it opens no tab and no app, as on
+      // the rest of the canvas. Same origin only, for the canvas to size the frame.
+      sandbox="allow-same-origin"
       title="Raw HTML Content Preview"
       loading="lazy"
       referrerPolicy="no-referrer"

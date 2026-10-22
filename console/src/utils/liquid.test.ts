@@ -6,8 +6,9 @@ describe('isLiquidExpression', () => {
     '{{ unsubscribe_url }}',
     'https://{{cdn_host}}/fonts.css',
     '{% if vip %}https://a.example{% else %}https://b.example{% endif %}',
-    'https://x.example/{% if vip %}vip{% endif %}'
-  ])('recognises %s', (value) => {
+    'https://x.example/{% if vip %}vip{% endif %}',
+    'https://x.example/{% if vip\n %}vip{%\n endif %}'
+  ])('recognises %j', (value) => {
     expect(isLiquidExpression(value)).toBe(true)
   })
 
