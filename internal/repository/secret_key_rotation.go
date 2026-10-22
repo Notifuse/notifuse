@@ -53,7 +53,9 @@ type rotationSettingRow struct {
 func RotateSecretKey(ctx context.Context, db *sql.DB, current string, previous []string) (SecretKeyRotationResult, error) {
 	var result SecretKeyRotationResult
 
-	tx, err := db.BeginTx(ctx, nil)
+	// READ COMMITTED whatever the server's default: an instance that waited on the lock
+	// reads the rows as the one before it left them, where a stricter level fails on them.
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return result, fmt.Errorf("failed to begin transaction: %w", err)
 	}

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/repository"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/stretchr/testify/assert"
@@ -382,4 +383,59 @@ func TestSecretKeyRotationWithoutWorkspace(t *testing.T) {
 
 	require.NoError(t, startWithSecretKey(t, suite, strings.ReplaceAll(rotationLegacyKey, ",", ",,")))
 	assert.Equal(t, before, readEncryptedRows(t, suite))
+}
+
+// A database whose default isolation is stricter than READ COMMITTED: an instance that
+// waited on the rotation lock while another changed the rows must go on, not fail on
+// them as a serialization error.
+func TestSecretKeyRotationUnderStricterIsolation(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer func() { suite.Cleanup() }()
+
+	dbConfig := suite.DBManager.GetConfig()
+	strict, err := sql.Open("postgres", fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s default_transaction_isolation='repeatable read'",
+		dbConfig.Host, dbConfig.Port, dbConfig.User, dbConfig.Password, dbConfig.DBName, dbConfig.SSLMode))
+	require.NoError(t, err)
+	defer func() { _ = strict.Close() }()
+	var isolation string
+	require.NoError(t, strict.QueryRow(`SHOW default_transaction_isolation`).Scan(&isolation))
+	require.Equal(t, "repeatable read", isolation)
+
+	// Another instance holds the lock RotateSecretKey takes, and changes the rows.
+	ctx := context.Background()
+	holder, err := suite.DBManager.GetDB().BeginTx(ctx, nil)
+	require.NoError(t, err)
+	defer func() { _ = holder.Rollback() }()
+	_, err = holder.Exec(`SELECT pg_advisory_xact_lock(4242000001)`)
+	require.NoError(t, err)
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := repository.RotateSecretKey(ctx, strict, testutil.TestSecretKey, nil)
+		done <- err
+	}()
+	require.Eventually(t, func() bool {
+		var waiting int
+		_ = suite.DBManager.GetDB().QueryRow(
+			`SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' AND NOT granted`).Scan(&waiting)
+		return waiting > 0
+	}, 10*time.Second, 20*time.Millisecond, "the rotation waits on the lock")
+
+	_, err = holder.Exec(`UPDATE workspaces SET settings = settings`)
+	require.NoError(t, err)
+	_, err = holder.Exec(`UPDATE settings SET value = value WHERE key LIKE 'encrypted\_%'`)
+	require.NoError(t, err)
+	require.NoError(t, holder.Commit())
+
+	select {
+	case err := <-done:
+		assert.NoError(t, err)
+	case <-time.After(30 * time.Second):
+		t.Fatal("the rotation did not finish")
+	}
 }

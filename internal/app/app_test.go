@@ -779,12 +779,12 @@ func TestAppInitSecretKey(t *testing.T) {
 		app, mock := newApp(t, config.SecurityConfig{SecretKey: current})
 		mock.ExpectQuery(workspaceKeys).WillReturnRows(workspaceKey(t, previous))
 		mock.ExpectQuery(workspaceKeys).WillReturnError(assert.AnError)
-		mock.ExpectQuery(workspaceKeys).WillReturnRows(workspaceKey(t, previous))
 
 		err := app.InitSecretKey()
 
 		require.ErrorIs(t, err, assert.AnError)
 		assert.NotContains(t, err.Error(), "former compose.yaml default")
+		assert.NoError(t, mock.ExpectationsWereMet(), "no form is tried after a failure")
 	})
 
 	t.Run("a failure to read the workspace keys stops the start", func(t *testing.T) {

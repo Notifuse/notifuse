@@ -430,10 +430,11 @@ func (a *App) checkSingleSecretKey(key, variable string) error {
 	}
 	var probeErr error
 	hint := config.KeyHint(key, variable, func(candidate string) bool {
-		opens, _, err := a.storedDataOpens(ctx, candidate)
-		if err != nil && probeErr == nil {
-			probeErr = err
+		if probeErr != nil {
+			return false
 		}
+		opens, _, err := a.storedDataOpens(ctx, candidate)
+		probeErr = err
 		return err == nil && opens
 	})
 	if probeErr != nil {
