@@ -879,7 +879,7 @@ func TestSameAddress(t *testing.T) {
 		{"a local part as SES is sent it, in another letter case, decodes to another", "jürgen@example.com", "=?UTF-8?b?AsO8cmdlbg==?=@example.com", false},
 		{"reported with spaces around it", "jane@example.com", " jane@example.com\u00a0", true},
 		{"a domain reported with a character DNS ignores", "user@example.com", "user@ex\u00adample.com", true},
-		{"a domain longer than DNS holds is not looked up", "user@example.com", "user@" + strings.Repeat("\u00ad", 300) + "example.com", false},
+		{"a stored domain longer than DNS holds is not looked up", "user@" + strings.Repeat("\u00ad", 300) + "example.com", "user@example.com", false},
 		{"as many characters DNS ignores as room is left for", "user@example.com", "user@ex" + strings.Repeat("\u00ad", 8) + "ample.com", true},
 		{"one character DNS ignores more than room is left for: not looked up", "user@example.com", "user@ex" + strings.Repeat("\u00ad", 9) + "ample.com", false},
 		{"a local part encoded in two words", "jane@example.com", "=?utf-8?q?ja?= =?utf-8?q?ne?=@example.com", true},
@@ -894,7 +894,8 @@ func TestSameAddress(t *testing.T) {
 // Encoding a domain to Punycode and decoding a crafted encoded local part take time growing
 // with the square of their length, so an event naming an address far longer than any
 // spelling of one must not hold up the request. The shorter bound on the domain alone is
-// pinned in TestSameAddress, "a domain longer than DNS holds is not looked up".
+// pinned in TestSameAddress, "a stored domain longer than DNS holds is not looked up", and in
+// TestAddressForm_ADomainLongerThanDNSHoldsIsNotLookedUp.
 func TestSameAddress_ALongAddressIsComparedQuickly(t *testing.T) {
 	var label strings.Builder
 	for i := 0; i < 20000; i++ {
@@ -930,6 +931,17 @@ func TestSameAddress_ALongAddressIsComparedQuickly(t *testing.T) {
 		}
 		assert.Less(t, time.Since(start), time.Second)
 	})
+}
+
+// sameAddress gives a reported domain as much room as the stored one's forms take, but one
+// longer than DNS holds is still not looked up.
+func TestAddressForm_ADomainLongerThanDNSHoldsIsNotLookedUp(t *testing.T) {
+	address := "user@" + strings.Repeat("\u00ad", 300) + "example.com"
+
+	form, ok := addressForm(address, 1000)
+
+	assert.True(t, ok)
+	assert.Equal(t, address, form)
 }
 
 func TestExtractXMessageIDFromHeaders(t *testing.T) {
