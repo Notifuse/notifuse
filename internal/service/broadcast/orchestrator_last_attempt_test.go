@@ -41,11 +41,13 @@ type lastAttemptRun struct {
 
 	// ctx and countErr shape the failure: the recipient count, the first thing
 	// a run does, fails with countErr. cancelWhileFinalizing cancels ctx while
-	// the finalizer reads the task back, cancelWhileWriting while it writes.
-	ctx                   context.Context
-	countErr              error
-	cancelWhileFinalizing bool
-	cancelWhileWriting    bool
+	// the finalizer reads the task back, cancelWhileWriting while it writes;
+	// deadlineWhileFinalizing lets ctx's deadline pass during that read.
+	ctx                     context.Context
+	countErr                error
+	cancelWhileFinalizing   bool
+	cancelWhileWriting      bool
+	deadlineWhileFinalizing bool
 
 	// abTest runs an A/B broadcast past the recipient count instead, with
 	// phase in its state; testingWriteErr fails its move to testing. wantErr,
@@ -82,6 +84,12 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	if run.deadlineWhileFinalizing {
+		var cancelDeadline context.CancelFunc
+		ctx, cancelDeadline = context.WithTimeout(ctx, 200*time.Millisecond)
+		defer cancelDeadline()
+	}
+	runCtx := ctx // the mocks' own ctx parameter is the finalizer's detached one
 
 	broadcastID := "broadcast-last-attempt"
 	var write broadcastWrite
@@ -143,6 +151,9 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 				write.reads = append(write.reads, "task")
 				if run.cancelWhileFinalizing {
 					cancel()
+				}
+				if run.deadlineWhileFinalizing {
+					<-runCtx.Done()
 				}
 				return run.storedTask, run.storedErr
 			}).
@@ -398,6 +409,20 @@ func TestProcess_InterruptedRunPausesOnlyTheLastAttempt(t *testing.T) {
 		assert.Equal(t, []domain.BroadcastStatus{domain.BroadcastStatusFailed, domain.BroadcastStatusPaused}, write.statuses,
 			"a released task's broadcast was left failed")
 		assert.Contains(t, write.reason, "interrupted")
+	})
+
+	t.Run("the run's deadline passing while the finalizer reads still fails", func(t *testing.T) {
+		// The task service releases a task only on a cancellation: past its
+		// deadline it marks it failed, so a genuine error stays a failure.
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedTask:              &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3},
+			statusAtEnd:             domain.BroadcastStatusProcessing,
+			countErr:                errors.New("database is down"),
+			deadlineWhileFinalizing: true,
+		})
+		assert.Equal(t, []domain.BroadcastStatus{domain.BroadcastStatusFailed}, write.statuses,
+			"a failure the task service records as final was shown as a resumable pause")
 	})
 
 	t.Run("an interrupted last attempt leaves a cancelled broadcast cancelled", func(t *testing.T) {

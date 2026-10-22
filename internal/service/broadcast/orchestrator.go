@@ -498,15 +498,12 @@ var statusesKeptOnLastAttempt = []domain.BroadcastStatus{
 // sending under a task that failed for good would be stranded.
 func (o *BroadcastOrchestrator) stillLastAttempt(ctx context.Context, task *domain.Task) bool {
 	stored, err := o.taskRepo.Get(ctx, task.WorkspaceID, task.ID)
-	if err != nil || stored == nil {
-		fields := map[string]interface{}{
+	if err != nil {
+		o.logger.WithFields(map[string]interface{}{
 			"task_id":      task.ID,
 			"workspace_id": task.WorkspaceID,
-		}
-		if err != nil {
-			fields["error"] = err.Error()
-		}
-		o.logger.WithFields(fields).Warn("Failed to read the task back on its last attempt - finalizing the broadcast")
+			"error":        err.Error(),
+		}).Warn("Failed to read the task back on its last attempt - finalizing the broadcast")
 		return true
 	}
 	return !stored.HasRetriesLeft()
@@ -551,6 +548,20 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				return
 			}
 
+			// An interruption is not the broadcast's fault, so it ends up paused
+			// (with the reason on the row) rather than failed: paused is
+			// resumable from the console and picks up at the saved cursor,
+			// while failed is terminal. Already-enqueued rows are deliberately
+			// left alone — those emails are committed and should keep going out.
+			// Ask the context, not just the error. A cancellation that lands
+			// inside the enqueue transaction surfaces as sql.ErrTxDone — the
+			// database/sql watchdog has already rolled back, so Commit reports
+			// "transaction has already been committed or rolled back" and the
+			// chain carries no context error at all. That is the single most
+			// likely shape of a real interruption, and classifying it off the
+			// error alone marks the broadcast failed instead of resumable.
+			interrupted := IsInterrupted(err) || ctx.Err() != nil
+
 			// These reads and writes must not ride on ctx: the most common way
 			// to get here is that very context being cancelled, and the failed
 			// write left the broadcast stranded in "processing" for good, with
@@ -589,22 +600,13 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				return
 			}
 
-			// An interruption is not the broadcast's fault, so it ends up paused
-			// (with the reason on the row) rather than failed: paused is
-			// resumable from the console and picks up at the saved cursor,
-			// while failed is terminal. Already-enqueued rows are deliberately
-			// left alone — those emails are committed and should keep going out.
-			// Ask the context, not just the error. A cancellation that lands
-			// inside the enqueue transaction surfaces as sql.ErrTxDone — the
-			// database/sql watchdog has already rolled back, so Commit reports
-			// "transaction has already been committed or rolled back" and the
-			// chain carries no context error at all. That is the single most
-			// likely shape of a real interruption, and classifying it off the
-			// error alone marks the broadcast failed instead of resumable.
-			// Asked after the reads above: a cancellation landing during them
-			// makes the task service release the task without spending its
-			// budget, so the broadcast must stay resumable.
-			interrupted := IsInterrupted(err) || ctx.Err() != nil
+			// A cancellation landing during the reads above makes the task
+			// service release the task without spending its budget, so the
+			// broadcast must stay resumable. Only a cancellation: past its
+			// deadline the task service marks the task failed.
+			if errors.Is(ctx.Err(), context.Canceled) {
+				interrupted = true
+			}
 
 			o.logger.WithFields(map[string]interface{}{
 				"task_id":      task.ID,
@@ -635,7 +637,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			// lock, makes the task service release the task too: the broadcast
 			// written failed is then paused. Failed is not a kept status, so
 			// this write goes through.
-			if updateErr == nil && written && !interrupted && ctx.Err() != nil {
+			if updateErr == nil && written && !interrupted && errors.Is(ctx.Err(), context.Canceled) {
 				written, updateErr = writeStatus(true)
 			}
 
