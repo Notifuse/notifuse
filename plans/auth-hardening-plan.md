@@ -1,100 +1,131 @@
 # Auth hardening plan
 
-Target: 42.0 (unreleased). No database migration.
+Target: 42.0 (unreleased). No schema migration: the re-encryption below rewrites values in place.
 
 ## Goals
 
-1. Signing gets its own key, `SIGNING_KEY`, separate from `SECRET_KEY`, which keeps encrypting stored data.
-   An installation can then stop signing with a key without re-encrypting anything.
-2. Notifuse refuses to start when it would sign with a key value Notifuse itself published (the
-   `SECRET_KEY` that `compose.yaml` used to ship as a default, or the `env.example` placeholder) or with
-   a key shorter than a generated one, as the documentation's placeholders are.
+1. `SECRET_KEY` accepts several values, comma-separated. The first encrypts and signs everything; the
+   others only decrypt. At startup Notifuse re-encrypts with the first value whatever is stored under
+   another one, so an installation can replace its key without losing its data and without a new variable.
+2. Notifuse refuses to start when the first value is a key Notifuse itself published (the `SECRET_KEY`
+   that `compose.yaml` used to ship as a default, or the `env.example` placeholder) or is shorter than a
+   generated key, as the documentation's placeholders are. The error gives the rotation to apply.
 3. `compose.yaml` requires `SECRET_KEY`, as `compose.alloydb.yaml` already does.
 4. A token authenticates only the kind of user it was issued for: an API key token an API key user, a
    session token a regular user.
 5. Accepting an invitation requires the token to name the stored invitation's workspace and email, and
    the invitation to be unexpired.
-6. The API no longer serves a workspace's encrypted secret key, which the published `SECRET_KEY`
-   decrypts.
+6. The API no longer serves a workspace's encrypted secret key.
 
-## Why a separate signing key rather than a new SECRET_KEY
+## Why a key list rather than a second variable
 
 `SECRET_KEY` encrypts each workspace's own secret key, its integrations' credentials and the system
-settings. `Workspace.AfterLoad` fails when it cannot decrypt the workspace secret key, and
-`WorkspaceRepository.List` returns that error, so after a `SECRET_KEY` change no workspace loads. Asking an
-installation to replace `SECRET_KEY` would therefore need a re-encryption step. Moving signing to its own
-key needs none: stored data stays readable, and only signatures change.
+settings, and signs every token. `Workspace.AfterLoad` fails when it cannot decrypt the workspace secret
+key, and `WorkspaceRepository.List` returns that error, so after a plain `SECRET_KEY` change no
+workspace loads. A second variable for signing (the previous version of this plan) avoided that, but left
+stored data under the published key and added a variable. Giving the old value after the new one lets
+Notifuse open the old data once, re-encrypt it, and sign with the new key only.
 
-## 1. Signing key resolution (`config/config.go`)
+Encryption is AES-256-GCM (`pkg/crypto`), which authenticates: a wrong key fails to open a value instead
+of producing garbage, and every integration's `DecryptSecretKeys` returns that error. So for each stored
+value Notifuse can tell which listed key opens it.
 
-- `SecurityConfig` gains `SigningKey string`. `JWTSecret` is derived from `SigningKey` with today's rule
-  (base64 that decodes to 32 bytes or more, else the raw bytes). The startup warning for a short key
-  goes: a short key is now refused, as below.
-- Resolution, after `SECRET_KEY` / `PASETO_PRIVATE_KEY` resolution:
-  - `SIGNING_KEY` set (non-empty after trimming and removing one pair of matching surrounding quotes) →
-    `SigningKey` is that value. Surrounding whitespace is never part of a key, secret files often end
-    with a newline, and `docker --env-file` keeps quotes; `SIGNING_KEY=""` there means unset. Being new,
-    `SIGNING_KEY` must give at least 32 bytes of key material (`deriveJWTSecret`), what
-    `openssl rand -base64 32` gives: shorter values are placeholders, such as the examples in the docs
-    and the API reference, and are refused at startup.
-  - Unset → `SigningKey = SecretKey`, byte for byte. Nothing changes for an installation that never set it:
-    its sessions, API keys and signatures stay valid. `SecretKey` itself is never modified, since it
-    decrypts stored data. It is held to the same 32 bytes of key material when it signs: a shorter one,
-    such as the docs' `abc123#xyz789` quoting example or a `your-secret-key` placeholder, is refused with
-    the published-value message's remedy (add `SIGNING_KEY`, keep `SECRET_KEY`). A legacy
-    `PASETO_PRIVATE_KEY` decodes to 64 bytes and is unaffected.
-  - The resolved `SigningKey` is a published value → `Load` returns an error naming `SIGNING_KEY`, telling
-    the operator to generate one with `openssl rand -base64 32`, to keep `SECRET_KEY` as it is because it
-    decrypts stored data, and that existing sessions and API keys stop working. This covers `SECRET_KEY`,
-    `PASETO_PRIVATE_KEY` and `SIGNING_KEY` set to that value.
-- "Is a published value" means, for the value as given or with one pair of matching surrounding quotes
-  removed (an env file read by `docker --env-file` keeps them), either:
-  - the trimmed string has the SHA-256 digest of the compose default or of the `env.example` placeholder
-    (`your-secret-key-here`); or
-  - the key's bytes, or the bytes any standard base64 alphabet (padded or not, whitespace removed) decodes
-    it to, have the SHA-256 digest of the default's decoded bytes. This catches the same key re-encoded,
-    stripped of its padding, or given raw, all of which would derive the same `JWTSecret`.
-- The digests are kept as hex constants, so the code carries no key literal.
+## 1. Reading SECRET_KEY (`config/config.go`, `config/secret_key.go`)
 
-## 2. Signing consumers move to `SigningKey`
+- `SecurityConfig` keeps `SecretKey` (the first value: it encrypts, signs, and `JWTSecret` is derived
+  from it as today) and gains `PreviousSecretKeys []string` (the other values). The field name says the
+  previous keys never sign; they are handed to exactly two places, `loadSystemSettings` and the startup
+  re-encryption. Nothing that signs or verifies receives them, so a token signed with an old value, the
+  published key included, is refused.
+- The value comes from `SECRET_KEY`, else `PASETO_PRIVATE_KEY`, as today, and both read the same way:
+  - No comma: one key, byte for byte as today. An installation that changes nothing reads the same key.
+  - A comma: split on commas, trim whitespace around each item. An empty item is refused at startup.
+    Duplicates of an earlier item are dropped.
+  - A hand-written key may already contain a comma. When the first item gives fewer than 32 bytes of key
+    material, the value cannot be a rotation (whose first item is a fresh key) and is read as one key, as
+    today, with a startup warning that says so. A legacy key with 32 bytes or more before its first comma
+    would be split; the re-encryption below then finds stored data that no item opens and refuses to
+    start, without writing anything.
+- Refusals, all at startup before any write, each naming the variable the value came from:
+  - The first value is a published value: the compose default in any encoding (padded or not, standard
+    or URL alphabet, raw decoded bytes, whitespace removed), the `env.example` placeholder, either in one
+    pair of matching quotes. Checked against SHA-256 digests kept as hex constants, so the code carries no
+    key literal.
+  - The first value gives fewer than 32 bytes of key material (`deriveJWTSecret`), as `abc123#xyz789` or
+    `your-secret-key` do. A legacy `PASETO_PRIVATE_KEY` decodes to 64 bytes and is unaffected.
+  - Both refusals give the same remedy: generate a key with `openssl rand -base64 32` and put it first,
+    keeping the current key after a comma (`SECRET_KEY=<new key>,<current key>`); Notifuse re-encrypts
+    stored data with the new key when it starts, after which the old value can be removed; users sign in
+    again, API keys must be deleted and created again, pending invitations sent again.
+  - A published value later in the list is accepted: that is how an installation leaves it.
+- `loadSystemSettings` decrypts each `encrypted_*` setting with the first value, then each previous one.
+  A setting no key opens is skipped as today; with previous values, the re-encryption below then refuses
+  to start.
 
-Signing or integrity uses, moved:
+## 2. Re-encryption at startup (`pkg/crypto`, `internal/repository/secret_key_rotation.go`, `internal/app/app.go`)
 
-| Consumer | Wiring today |
-| --- | --- |
-| JWTs (sessions, API keys, invitations) | `Security.JWTSecret` via `getJWTSecret` and `AuthService` |
-| Magic code hashes and root sign-in HMAC | `UserServiceConfig.SecretKey` (`user_service.go`) |
-| OIDC flow-state cookie seal | `OIDCServiceConfig.SecretKey` (`oidc_service.go`) |
-| `/api/tasks.execute` signatures | `TaskService.SetSecretKey`, `NewTaskHandler` |
-| Usage read signatures | `NewUsageHandler` |
-| Demo root email HMAC | `DemoService.VerifyRootEmailHMAC` |
+- Every value Notifuse encrypts with `SECRET_KEY` sits in the system database, in a JSON field named
+  `encrypted_*` (the workspace key, the file storage key, each integration's credentials) or in a
+  `settings` row named `encrypted_*`. A domain test walks the structs a workspace marshals and fails if a
+  field named `Encrypted*` has another JSON name, so a later credential cannot escape the rotation.
+- `crypto.ReencryptFields(doc, current, previous)` walks a JSON document (numbers kept as written) and,
+  for every non-empty string under a key starting with `encrypted_`, opens it with `current`, then each
+  previous key in order; a value a previous key opened is re-encrypted with `current`. It returns the
+  document, whether it changed, and an error naming the JSON path of a value no key opens. It never
+  decrypts into the document, so nothing plain is written. The workspace's `AfterLoad`/`BeforeSave` are
+  not used: `BeforeSave` re-encrypts only the credentials it has in clear, and leaves an SMTP username
+  as it was loaded, so a round trip would keep that value under the old key.
+- `App.Initialize` runs the rotation right after `InitDB` (migrations done) and before
+  `InitRepositories`, only when `PreviousSecretKeys` is not empty. A single key changes nothing at startup.
+- One transaction on the system database, holding `pg_advisory_xact_lock` on a fixed id, so instances
+  starting together rotate once; the next one finds nothing left to do.
+- `workspaces`: `SELECT id, settings, integrations ... FOR UPDATE`; both columns go through
+  `ReencryptFields`, and a row is updated (those two columns only) when one changed.
+- `settings`: every row whose key starts with `encrypted_` and whose value is not empty (SMTP username
+  and password, SMTP bridge TLS certificate and key, OIDC client secret) is opened the same way and
+  re-encrypted when a previous key opened it.
+- A value no listed key opens rolls the transaction back and fails startup, naming the workspace id and
+  JSON path, or the setting key, and saying no value of the variable opens it. Nothing is half-rotated.
+- It logs how many workspaces and settings it re-encrypted and that the previous values can now be
+  removed from `SECRET_KEY`.
+- Out of reach, said in the docs: workspace databases hold nothing under `SECRET_KEY` (message data and
+  web identify tokens use each workspace's own key, which keeps its value); database backups taken
+  before the rotation stay readable with the old key; an instance still running with the old key alone
+  cannot read rotated rows, so every instance restarts with the list.
 
-The control plane, outside this repository, derives the usage key from the key it holds for each tenant.
-It must use the tenant's `SIGNING_KEY` once one is set, or that tenant's usage reads answer 401.
+## 3. No row written that the current key cannot open (`workspace_postgres.go`)
 
-`domain.VerifyEmailHMAC`, which the demo HMAC and the notification center use, compares in constant time.
+The console keeps the encrypted forms it loaded and echoes them back when an owner saves an
+integration; validation accepts an echoed form in place of the credential. A page loaded before a
+rotation echoes a form under the old key, `BeforeSave` keeps it as is, and after the write every load of
+that workspace fails. `workspaceRepository.Update` already opens the saved row with `AfterLoad`, but
+after the `UPDATE`. `Create` and `Update` now pass the marshalled `settings` and `integrations` through
+`ReencryptFields(doc, current, nil)` before writing, and on failure write nothing and return
+`domain.ErrStaleCredential`, which the workspace and integration handlers answer 400 ("The saved
+credentials of this workspace changed. Reload the page and save again."). This also stops a member from
+storing a value that is no ciphertext at all.
 
-Encryption uses, unchanged on `SecretKey`: `WorkspaceRepository`, `SettingService` / `SetupService` /
-`SettingsHandler`, `WorkspaceService` and `WorkspaceHandler` validation (integration secrets),
-migrations v11 and v15, `loadSystemSettings`.
+## 4. Signing stays on the first value (`SIGNING_KEY` removed)
 
-The field names say which key each consumer gets (`SigningKey` beside `SecretKey`), so a later consumer
-cannot pick the wrong one by accident. `cmd/hmac` and `make demo-hmac` take the signing key, and the
-root sign-in API reference (`openapi/`, `openapi.json`) signs with `SIGNING_KEY`.
+- Every signer uses `SecretKey`, the first value, as on `dev`: JWTs (sessions, API keys, invitations),
+  magic code hashes, root sign-in HMAC, the OIDC flow-state cookie, `/api/tasks.execute` and usage read
+  signatures, the demo reset HMAC. `SIGNING_KEY` leaves config, both compose files, the Makefile,
+  `env.example`, the API reference and the docs. The consumer renames made for it are reverted to their
+  `dev` names, so the diff carries behaviour changes only. Kept: `domain.VerifyEmailHMAC` compares in
+  constant time.
+- `cmd/hmac` and `make demo-hmac` sign with the first value of the key they are given.
+- The control plane, outside this repository, derives the usage key from the tenant's key. After a
+  rotation it must use the new first value, or that tenant's usage reads answer 401.
 
-The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to different values
-(`testutil.TestSigningKey`), so the whole suite exercises the wiring in `app.go`.
-
-## 3. Compose
+## 5. Compose and env.example
 
 - `compose.yaml`: `SECRET_KEY` becomes `${SECRET_KEY:?…}`, quoted so YAML does not read the colon. The
   message tells an existing installation to keep the value it runs with (pointing to the CHANGELOG) and a
-  new one to generate a key with `openssl rand -base64 32`.
-- Both compose files pass `SIGNING_KEY=${SIGNING_KEY:-}` through. An empty value means unset.
-- `env.example` leaves `SECRET_KEY` empty with the generation command beside it, and documents
-  `SIGNING_KEY`.
+  new one to generate a key with `openssl rand -base64 32`. Compose checks a required variable for every
+  command, `down`, `ps` and `logs` included, as it already does for `compose.alloydb.yaml`.
+- `env.example` leaves `SECRET_KEY` empty with the generation command beside it, and says how to rotate.
 
-## 4. Token type check (`auth_repository.go`, `auth_service.go`)
+## 6. Token type check (`auth_repository.go`, `auth_service.go`)
 
 - `SQLAuthRepository.GetUserByID` also selects `type`, and `name` while at it: the audit log names the
   actor from this row, and both were missing (shipped in 41.0, hence a `Fix` line).
@@ -111,123 +142,90 @@ The integration harness runs with `SECRET_KEY` and `SIGNING_KEY` set to differen
   root email. Root is a person, so `requireRootUser` now requires a user token with a session and checks
   it through `UserService.VerifyUserSession`. An API key token answers 403 (a working key that lacks the
   access, not a dead one), a signed-out root session 401, a failed check 500 (the console signs out on
-  any 401). That last mapping is `user.me`'s; both now take it from one helper, `sessionCheckStatus`.
+  any 401). That last mapping is `user.me`'s; both take it from one helper, `sessionCheckStatus`.
 - The demo seed acted as root by labelling it an API key, which the rule above refuses. It now opens a
   session for root through `UserService.startSession`, as a sign-in does, and closes it with
   `UserService.endSession` when the seed is done (a session signed out meanwhile counts as closed). Root
-  sign-in opens its session through the same `startSession`. Right after creating the demo workspace it authenticates
-  once for it (`AuthenticateUserForWorkspace`, whose result later checks reuse), so a demo visitor signing
-  root out mid-seed, which ends every root session, does not stop the seed. A sign-out during the few
-  seconds of workspace creation itself still fails that reset, which then answers 500 and can be run
-  again; closing that window too would need an authentication path that skips the session, which is
-  not worth it for the demo.
+  sign-in opens its session through the same `startSession`. Right after creating the demo workspace it
+  authenticates once for it (`AuthenticateUserForWorkspace`, through the `AuthService` its constructor
+  receives), so a demo visitor signing root out mid-seed, which ends every root session, does not stop
+  the seed. A sign-out during the few seconds of workspace creation itself still fails that reset, which
+  then answers 500 and can be run again.
 
-## 5. Invitation acceptance (`workspace_service.go`, `workspace_handler.go`)
+## 7. Invitation acceptance (`workspace_service.go`, `workspace_handler.go`)
 
 - `WorkspaceService.AcceptInvitation` checks, right after loading the invitation and before any user
   lookup or write: `invitation.WorkspaceID == workspaceID`, `invitation.Email == email` (the comparison
   `handleVerifyInvitationToken` already makes) and `invitation.ExpiresAt` in the future. A mismatch returns
   `domain.ErrInvitationUnavailable`; nothing is created. An invitation already accepted or cancelled
   (`ErrInvitationNotFound`) gives the same error instead of a 500, and so does an invitee found already
-  seated, or whose account the other request just created (`ErrUserExists`), typically the same link
-  accepted twice at once.
-- `InviteMember` refuses an address that belongs to an API key account (`ErrUnauthorized`, 403). API key
-  addresses are `<prefix>@<API domain>`, so a colleague's address can coincide with one, and the
-  existing-account branch would have seated that other workspace's key directly.
+  seated, or whose account the other request just created (`ErrUserExists`).
+- `InviteMember` refuses an address that belongs to an API key account (`ErrUnauthorized`, 403).
 - As `JoinInvitation` does, the audit record is given the invitation's workspace and target before any
   check, and each refusal a reason (`invitation_mismatch`, `invitation_expired`, `api_key_identity`,
-  `already_member`), so
-  a refused attempt lands in that workspace's audit log.
+  `already_member`), so a refused attempt lands in that workspace's audit log.
 - The account lookup and creation use the stored invitation's email. An existing account found by that
-  email whose type is not `user` (an API key account) is refused with the same error, as the OIDC sign-in
-  and magic code paths already refuse API key accounts.
-- The audit target uses the stored email.
-- `handleAcceptInvitation` answers 404 "Invitation not found or no longer valid" for that error, instead of
-  500. Not 401: the console signs the user out on any 401, which would drop a signed-in user who opened a
-  link meant for someone else. Its response keeps the token's email, which the check above makes equal to
-  the stored one.
-- `handleVerifyInvitationToken` also refuses an invitation whose stored `ExpiresAt` has passed. The
-  token's `exp` is the stored expiry and a resend only moves it later, so this only answers an expiry
-  shortened in the database.
-- Both public invitation routes answer every link that does not open an invitation with that same 404
-  (`writeInvitationUnavailable`): a token that is expired, malformed or signed with another key, and on
-  verify a stored invitation that no longer matches. They answered 401, which signed out a member who
-  opened an expired link, and setting `SIGNING_KEY` turns every pending link into one signed with
-  another key.
-- `ValidateInvitationToken` parses with `jwt.WithExpirationRequired()`: every invitation token Notifuse
-  issues carries `exp`, so a token without one is refused. It also refuses a token that names no
-  invitation, workspace or email: a session token is signed with the same key and carries `exp` and an
-  email, and reached the invitation lookup with an empty id, which answered 500.
+  email whose type is not `user` is refused with the same error.
+- Both public invitation routes answer every link that does not open an invitation with 404 "Invitation
+  not found or no longer valid" (`writeInvitationUnavailable`): a token that is expired, malformed or
+  signed with another key, a stored invitation that no longer matches or has expired, and
+  `ErrInvitationUnavailable`. Not 401: the console signs the user out on any 401, and a new first value
+  turns every pending link into one signed with another key.
+- `ValidateInvitationToken` parses with `jwt.WithExpirationRequired()` and refuses a token that names no
+  invitation, workspace or email (a session token, signed with the same key, reached the lookup with an
+  empty id and answered 500).
 
-## 6. Served ciphertexts (`workspace_redact.go`)
+## 8. Served ciphertexts (`workspace_redact.go`)
 
-An installation that keeps a published `SECRET_KEY`, as section 1 tells it to, has every encrypted form
-under that key readable by anyone who obtains it, and the API served some:
+- `Workspace.Redact` clears `settings.encrypted_secret_key`, the workspace's own key, which members, API
+  keys and, through the public `workspaces.verifyInvitationToken`, holders of an invitation link were
+  served. Nothing reads it from a client.
+- The integrations' `encrypted_*` fields stay served: the console echoes them back (section 3). After a
+  rotation they are under the new key, which the published one does not open.
 
-- `settings.encrypted_secret_key`, the workspace's own secret key, to members, API keys and, through the
-  public `workspaces.verifyInvitationToken`, anyone holding an invitation link. That key signs every
-  notification center link (`email_hmac`) and encrypts message data. `Workspace.Redact` now clears it, so
-  no response carries it. Nothing reads it from a client: the console never uses it, `UpdateWorkspace`
-  copies an allowlist that does not include it, and `BeforeSave` re-encrypts it from the decrypted key.
-- The integrations' `encrypted_*` fields, to members and API keys. These stay for now: the console
-  echoes them back when an owner edits an integration, and request validation accepts the encrypted form
-  in place of a credential it never served (`TestOAuth2SMTPSurvivesRedactAndEcho`). Removing them means
-  reworking that flow, and fully closing the published key means re-encrypting under a new one; both are
-  a separate decision and a separate change.
+## 9. CHANGELOG and docs
 
-## 7. CHANGELOG and docs
-
-- One `**Security**` bullet under 42.0 saying what is now refused, checked and no longer served, with the
-  operator action in bold: an installation whose `SECRET_KEY` is a published value or shorter than 32
-  bytes sets `SIGNING_KEY` before upgrading, and scripts calling `user.rootSignin` or `demo.reset` sign
-  with `SIGNING_KEY`.
+- One `**Security**` bullet under 42.0: `SECRET_KEY` accepts a list and re-encrypts stored data under its
+  first value at startup; Notifuse refuses to start with a published or short first value; `compose.yaml`
+  requires `SECRET_KEY`; what is now checked and no longer served. The operator action in bold: an
+  installation whose `SECRET_KEY` is a published value or shorter than 32 bytes sets
+  `SECRET_KEY=<new key>,<current key>` before upgrading and removes the old value once Notifuse has
+  started; everyone signs in again, API keys are deleted and created again, pending invitations sent
+  again; scripts calling `user.rootSignin` or `demo.reset` sign with the new key. An installation that
+  never set `SECRET_KEY` runs on the former compose default, which the installation guide gives.
 - One `**Fix**` bullet: audit log entries (shipped in 41.0) for workspace actions carry the actor's name,
-  and actions taken with an API key the `api_key` actor type, since the auth repository now loads both.
+  and actions taken with an API key the `api_key` actor type.
 - One `**Improvement**` bullet: an invitation link already accepted, cancelled or expired says so instead
   of failing with an error or signing out the person who opened it.
-- The upgrade note, `env.example`, the startup error and the docs say a new `SIGNING_KEY` also
-  invalidates pending invitation links, and that a compose file of one's own must pass `SIGNING_KEY` to
-  the container. The app's JWT secret error names the signing key. `make docker-run` forwards `SIGNING_KEY`. The startup messages name the variable the
-  key came from (`SECRET_KEY`, `PASETO_PRIVATE_KEY` or `SIGNING_KEY`).
-- `make docker-compose-up` runs `docker compose up -d`, so it now needs `SECRET_KEY` in the environment or
-  in `.env`, as the documented quick start will say. Compose checks a required variable for every
-  command, `down`, `ps` and `logs` included, as it already does for `compose.alloydb.yaml`; the message
-  tells an existing installation which value to keep. No CI job runs `compose.yaml`; the integration
-  environment uses `tests/compose.test.yaml`.
-- Docs (Notifuse/docs, separate PR to `dev`): installation page (compose quick start, introduced as
-  steps for a new installation with a warning that sends upgraders to the signing key section, adds a
-  generated `SECRET_KEY` to `.env` on a line of its own only when `.env` has no `SECRET_KEY` line at all,
-  in any spelling compose reads, so rerunning it never adds a second definition, which compose would
-  take over the key that decrypts the data; an empty one is left for compose's required-variable check; the standalone `docker run` passes `SECRET_KEY`, without which Notifuse does not start; the `#`
-  quoting example no longer uses a `SECRET_KEY` value; `SIGNING_KEY` in the variables table, and a short
-  `SECRET_KEY` needs it; root sign-in example signs with `SIGNING_KEY` when set).
+- Docs (Notifuse/docs, a new branch from `dev`, PR to `dev`): installation page (quick start for a new
+  installation with a warning for upgraders, generating `SECRET_KEY` only when `.env` has no
+  `SECRET_KEY` line; `docker run` passes `SECRET_KEY`; a "Rotating SECRET_KEY" section with the list
+  syntax, the restart of every instance, removing the old value afterwards, and what stays readable with
+  the old key); root sign-in example signs with the first value.
 
 ## Tests, written first
 
 | Implementation file | Test file | Cases |
 | --- | --- | --- |
-| `config/config.go`, `config/signing_key.go` | `config/signing_key_test.go`, `config/config_test.go` | default as `SECRET_KEY` without `SIGNING_KEY` refused, error names `SIGNING_KEY`; same through `PASETO_PRIVATE_KEY`; same with surrounding spaces; default as `SIGNING_KEY` refused; default without padding, in the URL alphabet, with embedded newlines, and as raw decoded bytes each refused; `env.example` placeholder refused; default in single or double quotes refused, mismatched quotes not stripped; default `SECRET_KEY` with a fresh `SIGNING_KEY` loads, `SecretKey` keeps the default, `SigningKey` and `JWTSecret` come from `SIGNING_KEY`; `SIGNING_KEY` with a trailing newline is trimmed; `SIGNING_KEY` in quotes loses them; quoted empty `SIGNING_KEY` counts as unset; `SIGNING_KEY` under 32 bytes of key material refused, at 32 accepted; whitespace-only `SIGNING_KEY` counts as unset; `SECRET_KEY` under 32 bytes without `SIGNING_KEY` refused with the add-`SIGNING_KEY` remedy, through `PASETO_PRIVATE_KEY` naming it, accepted beside a `SIGNING_KEY`, at 32 bytes signing alone; no `SIGNING_KEY` and another `SECRET_KEY` gives `SigningKey == SecretKey` and the same `JWTSecret` as before; the other config tests run on a `SECRET_KEY` long enough to sign |
+| `config/secret_key.go`, `config/config.go` | `config/secret_key_test.go`, `config/config_test.go` | one key without a comma read byte for byte; `new,old` gives `SecretKey` new and `PreviousSecretKeys` [old]; spaces around items trimmed; an empty item refused; a duplicate dropped; a value with a comma whose first item is under 32 bytes read as one key; first value the compose default refused in every encoding and in quotes, through `PASETO_PRIVATE_KEY` naming it; placeholder refused; first value under 32 bytes refused with the rotation remedy, at 32 accepted; the compose default as a previous value accepted; `JWTSecret` derived from the first value only; `loadSystemSettings` opens a setting under a previous value |
+| `pkg/crypto/crypto.go` (`ReencryptFields`) | `pkg/crypto/crypto_test.go` | value under `current` untouched and not reported as changed; value under a previous key re-encrypted and opening with `current` only; nested objects and arrays walked; keys not starting with `encrypted_`, empty strings and non-strings untouched; large numbers kept as written; a value no key opens fails with its JSON path; with no previous key, a value under another key fails |
+| `internal/domain` (encrypted field names) | `workspace_encrypted_fields_test.go` | every `Encrypted*` field reachable from `Workspace` and `Integration` has a JSON name starting with `encrypted_` |
+| `internal/repository/secret_key_rotation.go` | `secret_key_rotation_test.go` | the advisory lock is taken first; a workspace row under a previous key updated (settings and integrations only), one under the first value not updated; settings `encrypted_*` rows re-encrypted, other settings untouched; a value no key opens rolls back with the workspace id or setting key in the error; nothing runs with no previous value |
+| `internal/repository/workspace_postgres.go` | `workspace_postgres_test.go` | `Update` and `Create` with an integration echoing a form under another key, or a value that is no ciphertext, write nothing and return `ErrStaleCredential`; a form under the current key saves |
+| `internal/http/workspace_handler.go` | `workspace_handler_test.go` | `ErrStaleCredential` answers 400 on workspace update and integration create and update; existing invitation cases (404 for every dead link) |
+| `internal/app/app.go` | `app_test.go` | re-encryption runs before the repositories when previous values exist, not otherwise |
 | `internal/repository/auth_repository.go` | `auth_repository_test.go` | query selects `name` and `type`, both are scanned |
 | `internal/service/auth_service.go` | `auth_service_test.go` | API key token naming a regular user refused; naming an API key user accepted; revoked key still answers `ErrAPIKeyRevoked`; session token whose user is an API key user refused; invitation token without `exp` refused; a session token refused as an invitation token |
-| `internal/service/user_service.go` (sessions) | `user_service_test.go` | `VerifyUserSession` for an API key user refused with `ErrSessionAuthFailed`; regular user accepted |
-| `internal/service/user_service.go` | `user_service_test.go` | existing root sign-in and magic code cases, on the renamed `SigningKey` config field (the service has no other key to use); which key the app hands it is proven end to end by `signing_key_test.go` |
-| `internal/service/oidc_service.go` | `oidc_service_test.go` | flow state sealed with the signing key opens; sealed with the encryption key does not |
-| `internal/service/task_service.go` | `task_service_test.go` | `SetSigningKey` sets the key dispatches are signed with (renamed from `SetSecretKey`) |
-| `internal/domain/task_signature.go`, `usage.go` | `task_signature_test.go`, `usage_test.go` | existing derivation cases (the dispatch and usage keys derive from the key passed, never equal it, and differ from each other), now named for the signing key; the parameter is renamed `signingKey` |
-| `internal/http/task_handler.go`, `usage_handler.go` | their `_test.go` | existing cases on the renamed `signingKey` field; which key the app hands them is proven end to end by `signing_key_test.go` |
-| `internal/service/workspace_service.go` | `workspace_service_test.go` | workspace mismatch, email mismatch (including letter case), expired invitation, already-seated invitee and account created meanwhile each refused with `ErrInvitationUnavailable`, recorded in the invitation's workspace audit log with the refusal reason, and no user lookup, creation, membership or session; existing account of type `api_key` refused with no membership or session; existing fixtures carry a stored expiry and account type |
-| `internal/service/workspace_service.go` (invite) | `workspace_users_service_test.go` | address of an API key account refused with `ErrUnauthorized`, no membership check or write |
-| `internal/http/workspace_handler.go` | `workspace_handler_test.go` | accept: `ErrInvitationUnavailable` and an invalid token answer 404; verify: an invalid token, a mismatched invitation and an expired stored invitation answer 404 |
-| `internal/domain/workspace_redact.go` | `workspace_redact_test.go` | `Redact` clears the workspace's encrypted secret key; `RedactForPublic` serves no encrypted form (workspace key, file manager, integrations); integration encrypted forms still served to members |
-| `internal/http/utils.go`, `user_handler.go` | `utils_test.go`, `user_handler_test.go` | `sessionCheckStatus`: `ErrSessionAuthFailed`, wrapped or not, answers 401, any other error 500; existing `user.me` 401 and 500 cases |
-| `internal/http/settings_handler.go` | `settings_handler_test.go` | API key token naming root answers 403; any API key answers 403; session token without a session id 401; signed-out root session 401; failed session check 500; live root session 200; existing guards run on a session context |
-| `internal/service/smtp_bridge_handler.go` | `smtp_bridge_handler_test.go` | token naming a regular account refused; token naming a missing account refused; account lookup failure not read as a revoked key; API key account accepted |
-| `internal/domain/contact.go` | `contact_test.go` | existing `VerifyEmailHMAC` cases still pass with the constant-time comparison |
-| `internal/service/demo_service.go` | `demo_service_test.go` | demo reset HMAC verifies under `SigningKey`, not `SecretKey`; a root person gets a session of its own whose context `AuthService` accepts, closed at the end; a session that cannot be closed only logs; a root API key account keeps its type and opens no session; a session that cannot be opened stops the seed; a session signed out meanwhile counts as closed; after `seedContext` workspace checks no longer look the session up; a refused check stops the seed |
-| demo reset, full stack | none kept | a full `/api/demo.reset` seeds for more than two minutes, too slow for the suite; run once by hand on the harness, it created the demo workspace as root through the seed's session |
-| `cmd/hmac/main.go` | `cmd/hmac/main_test.go` | prints the HMAC and reset URL the server verifies (computed with `pkg/crypto`, so the tool does not build the domain package); missing arguments print the usage and exit 1 |
-| `internal/app/app.go` | `app_test.go` and the integration suite | test config carries a distinct `SigningKey`; the OIDC flow state opens with the signing key and not the encryption key; the rest of the wiring is exercised end to end by the harness running on distinct keys |
-| full stack | `tests/integration/signing_key_test.go` | harness on distinct keys: root sign-in, `/api/tasks.execute` and `/api/usage.get` signed with `SECRET_KEY` refused, with `SIGNING_KEY` accepted; an API key token naming the owner refused while a real API key works; invitation tokens naming another email or workspace refused, seating nobody and creating no account, while the issued token is accepted once and answers 404 after; an expired link and one signed with `SECRET_KEY` answer 404 on verify and accept; inviting the address of an API key answers 403 and seats nothing; neither `workspaces.verifyInvitationToken` nor `workspaces.get` serves `settings.encrypted_secret_key`; `/api/settings.get` answers a root session, refuses an API key token naming root and the root session once signed out |
+| `internal/service/user_service.go` | `user_service_test.go` | `VerifyUserSession` for an API key user refused with `ErrSessionAuthFailed`; regular user accepted |
+| `internal/service/workspace_service.go` | `workspace_service_test.go`, `workspace_users_service_test.go` | workspace mismatch, email mismatch, expired invitation, already-seated invitee and account created meanwhile each refused with `ErrInvitationUnavailable`, audited with the reason, nothing created; existing `api_key` account refused; inviting an API key address refused with `ErrUnauthorized` |
+| `internal/domain/workspace_redact.go` | `workspace_redact_test.go` | `Redact` clears the workspace's encrypted secret key; `RedactForPublic` serves no encrypted form; integration encrypted forms still served to members |
+| `internal/http/utils.go`, `user_handler.go`, `settings_handler.go` | their `_test.go` | `sessionCheckStatus` 401 for `ErrSessionAuthFailed`, 500 otherwise; root-only routes: API key 403, signed-out session 401, failed check 500, live root session 200 |
+| `internal/service/smtp_bridge_handler.go` | `smtp_bridge_handler_test.go` | token naming a regular account refused; missing account refused; lookup failure not read as a revoked key; API key account accepted |
+| `internal/domain/contact.go` | `contact_test.go` | existing `VerifyEmailHMAC` cases pass with the constant-time comparison |
+| `internal/service/demo_service.go` | `demo_service_test.go` | root person gets a session of its own whose context `AuthService` accepts, closed at the end; a session that cannot be closed only logs; a root API key account opens no session; a session that cannot be opened stops the seed; a session signed out meanwhile counts as closed; a refused workspace check stops the seed |
+| `cmd/hmac/main.go` | `cmd/hmac/main_test.go` | prints the HMAC and reset URL the server verifies; given a list, signs with its first value; missing arguments print the usage and exit 1 |
+| full stack | `tests/integration/secret_key_rotation_test.go` | a workspace with integration credentials (an SMTP integration with username and password among them) and encrypted system settings stored under key A; an app started with `B,A` re-encrypts them: every raw `encrypted_*` value opens with B and not A, credentials unchanged through the API; a second start with `B,A` changes nothing; a start with `C,D` fails and leaves every row as it was; root sign-in and a JWT signed with A refused, with B accepted; an integration save echoing a form under A answers 400 and writes nothing |
+| full stack | `tests/integration/auth_hardening_test.go` (from `signing_key_test.go`) | an API key token naming the owner refused while a real API key works; invitation tokens naming another email or workspace refused, seating nobody; the issued token accepted once and 404 after; an expired link and one signed with another key answer 404 on verify and accept; inviting an API key address answers 403; no `settings.encrypted_secret_key` in `verifyInvitationToken` or `workspaces.get`; `/api/settings.get` answers a root session only |
 
 ## Test run
 
