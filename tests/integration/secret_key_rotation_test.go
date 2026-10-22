@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -145,6 +146,11 @@ func TestSecretKeyRotation(t *testing.T) {
 		WHERE id = $1`, workspaceID)
 	require.NoError(t, err)
 
+	// A workspace written before integrations existed holds NULL in that column.
+	legacyID := createTestWorkspaceWithToken(t, client, rootToken, "Rotation legacy WS")
+	_, err = suite.DBManager.GetDB().Exec(`UPDATE workspaces SET integrations = NULL WHERE id = $1`, legacyID)
+	require.NoError(t, err)
+
 	underA := readEncryptedRows(t, suite)
 	for name := range underA {
 		require.NoError(t, opensWith(underA, name, keyA), "%s is under A before the rotation", name)
@@ -167,6 +173,10 @@ func TestSecretKeyRotation(t *testing.T) {
 		}
 		assert.Contains(t, rotated["workspace "+workspaceID+" integrations"], `"encrypted_secret_key": "not-a-ciphertext"`,
 			"a value nothing reads is left as it is")
+		var legacyIntegrations sql.NullString
+		require.NoError(t, suite.DBManager.GetDB().QueryRow(
+			`SELECT integrations::text FROM workspaces WHERE id = $1`, legacyID).Scan(&legacyIntegrations))
+		assert.False(t, legacyIntegrations.Valid, "integrations that were NULL stay NULL")
 
 		workspace, err := suite.ServerManager.GetApp().GetWorkspaceRepository().GetByID(context.Background(), workspaceID)
 		require.NoError(t, err)

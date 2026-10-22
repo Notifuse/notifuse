@@ -143,6 +143,32 @@ func TestRotateSecretKey(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
+	// The column is nullable, and rows written before integrations existed hold NULL:
+	// an empty value instead would not be valid JSON.
+	t.Run("integrations that are NULL stay NULL when the settings are re-encrypted", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		settings := fmt.Sprintf(`{"encrypted_secret_key": %q}`, encryptFor(t, "ws-key", rotationPreviousKey))
+
+		mock.ExpectBegin()
+		mock.ExpectExec(rotationLockQuery).WithArgs(secretKeyRotationLockID).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(rotationWorkspaceQuery).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "settings", "integrations"}).AddRow("aaa", []byte(settings), nil))
+		mock.ExpectExec(rotationWorkspaceWrite).
+			WithArgs(document(func(tree any) bool {
+				return opensWithOnly{want: "ws-key"}.Match(at(tree, "encrypted_secret_key"))
+			}), nil, "aaa").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectQuery(rotationSettingsQuery).WillReturnRows(sqlmock.NewRows([]string{"key", "value"}))
+		mock.ExpectCommit()
+
+		_, err := RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
+
+		require.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
 	t.Run("without previous keys, values are only checked", func(t *testing.T) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()

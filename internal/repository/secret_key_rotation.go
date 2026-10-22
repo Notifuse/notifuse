@@ -83,7 +83,7 @@ func RotateSecretKey(ctx context.Context, db *sql.DB, current string, previous [
 		}
 		if _, err := tx.ExecContext(ctx,
 			`UPDATE workspaces SET settings = $1, integrations = $2 WHERE id = $3`,
-			settings, integrations, w.id,
+			nullableDocument(settings), nullableDocument(integrations), w.id,
 		); err != nil {
 			return result, fmt.Errorf("failed to update workspace %s: %w", w.id, err)
 		}
@@ -116,6 +116,15 @@ func RotateSecretKey(ctx context.Context, db *sql.DB, current string, previous [
 		return SecretKeyRotationResult{}, fmt.Errorf("failed to commit the rotation: %w", err)
 	}
 	return result, nil
+}
+
+// nullableDocument writes back a column read as NULL as NULL: the driver would send an
+// empty slice as an empty string, which is not JSON.
+func nullableDocument(doc []byte) any {
+	if doc == nil {
+		return nil
+	}
+	return doc
 }
 
 // lockWorkspaceDocuments reads every workspace's settings and integrations, locking
