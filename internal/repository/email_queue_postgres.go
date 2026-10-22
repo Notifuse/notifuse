@@ -207,6 +207,15 @@ var (
 	// is why the worker runs it about once a minute per workspace rather than on every
 	// round.
 	fetchPendingOrphansSQL = dueRowsSQL(`integration_id <> ALL($1)`)
+
+	// A row is claimed only while the fetch would return it. Another instance can fail
+	// a row between this instance's fetch and its claim; without the conditions, the
+	// row would be sent again at once, before its retry date or after it was given up.
+	markAsProcessingSQL = `
+		UPDATE email_queue
+		SET status = 'processing', updated_at = NOW(), attempts = attempts + 1
+		WHERE id = $1 AND ` + emailQueueDue + `
+	`
 )
 
 // FetchPendingForIntegration returns up to limit due rows of one integration, ordered
@@ -272,16 +281,7 @@ func (r *EmailQueueRepository) MarkAsProcessing(ctx context.Context, workspaceID
 		return fmt.Errorf("failed to get database connection: %w", err)
 	}
 
-	// A row is claimed only while the fetch would return it. Another instance can fail
-	// a row between this instance's fetch and its claim; without the conditions, the
-	// row would be sent again at once, before its retry date or after it was given up.
-	query := `
-		UPDATE email_queue
-		SET status = 'processing', updated_at = NOW(), attempts = attempts + 1
-		WHERE id = $1 AND ` + emailQueueDue + `
-	`
-
-	result, err := db.ExecContext(ctx, query, id)
+	result, err := db.ExecContext(ctx, markAsProcessingSQL, id)
 	if err != nil {
 		return fmt.Errorf("failed to mark email as processing: %w", err)
 	}
