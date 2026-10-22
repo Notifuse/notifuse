@@ -529,15 +529,27 @@ func (s *InboundWebhookEventService) eventsOfSentEmails(ctx context.Context, wor
 // encoded, and SparkPost's in sandbox mode, its sink domain appended.
 func sameAddress(stored, reported string) bool {
 	stored, reported = strings.TrimSpace(stored), strings.TrimSpace(reported)
-	if strings.EqualFold(stored, reported) || strings.EqualFold(stored+sparkPostSinkSuffix, reported) {
+	if strings.EqualFold(stored, reported) {
 		return true
 	}
-	if sent, err := encodeEmailAddress(stored); err == nil && strings.EqualFold(sent, reported) {
+	if sink := len(reported) - len(sparkPostSinkSuffix); sink > 0 && strings.EqualFold(reported[sink:], sparkPostSinkSuffix) {
+		reported = reported[:sink]
+	}
+	reportedForm, ok := addressForm(reported)
+	if !ok {
+		return false
+	}
+	if storedForm, ok := addressForm(stored); ok && storedForm == reportedForm {
 		return true
 	}
-	storedForm, storedOK := addressForm(stored)
-	reportedForm, reportedOK := addressForm(reported)
-	return storedOK && reportedOK && storedForm == reportedForm
+	// SES is sent the domain converted to Punycode as stored, not composed or lowercased first
+	// as a DNS lookup does
+	sent, err := encodeEmailAddress(stored)
+	if err != nil {
+		return false
+	}
+	sentForm, ok := addressForm(sent)
+	return ok && sentForm == reportedForm
 }
 
 // maxDomainLength is the most characters a domain DNS holds has in its ASCII form. A domain

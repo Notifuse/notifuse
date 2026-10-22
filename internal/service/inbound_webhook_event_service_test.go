@@ -875,6 +875,8 @@ func TestSameAddress(t *testing.T) {
 		{"two domains DNS tells apart", "user@straße.de", "user@strasse.de", false},
 		{"reported as SparkPost's sandbox sends it", "Jane@Example.com", "jane@example.com.sink.sparkpostmail.com", true},
 		{"another address as SparkPost's sandbox sends it", "jane@example.com", "john@example.com.sink.sparkpostmail.com", false},
+		{"an international domain in Punycode as SparkPost's sandbox sends it", "user@münchen.de", "user@xn--mnchen-3ya.de.SINK.sparkpostmail.com", true},
+		{"a local part as SES is sent it, in another letter case, decodes to another", "jürgen@example.com", "=?UTF-8?b?AsO8cmdlbg==?=@example.com", false},
 		{"reported with spaces around it", "jane@example.com", " jane@example.com\u00a0", true},
 		{"a domain reported with a character DNS ignores", "user@example.com", "user@ex\u00adample.com", true},
 		{"a domain longer than DNS holds is not looked up", "user@example.com", "user@" + strings.Repeat("\u00ad", 300) + "example.com", false},
