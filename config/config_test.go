@@ -376,6 +376,16 @@ func TestEmailQueueConfig(t *testing.T) {
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), name+" cannot exceed 50 (got 51)")
 		})
+
+		for _, bound := range []string{"1", "50"} {
+			t.Run(name+" at "+bound, func(t *testing.T) {
+				setRequired(t)
+				t.Setenv(name, bound)
+
+				_, err := LoadWithOptions(LoadOptions{})
+				require.NoError(t, err)
+			})
+		}
 	}
 }
 
