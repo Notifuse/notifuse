@@ -453,7 +453,7 @@ func TestBroadcastPauseDuringLastAttemptFailure_IsKept(t *testing.T) {
 	finishBroadcast(t, h, contacts)
 }
 
-// setWorkspaceDefaultIsolation sets or resets the workspace database's default
+// setWorkspaceDefaultIsolation changes the workspace database's default
 // isolation, then closes the app's pool for it: a session takes the default
 // when it opens.
 func setWorkspaceDefaultIsolation(t *testing.T, h *phase2Harness, clause string) {
@@ -489,8 +489,9 @@ func TestBroadcastLastAttemptFailureAfterAnotherWrite_IsWritten(t *testing.T) {
 			defer h.Cleanup()
 
 			if tc.repeatableRead {
+				// Not reset afterwards: the harness drops the workspace database,
+				// and a reset after that would create it again.
 				setWorkspaceDefaultIsolation(t, h, `SET default_transaction_isolation = 'repeatable read'`)
-				t.Cleanup(func() { setWorkspaceDefaultIsolation(t, h, `RESET default_transaction_isolation`) })
 				appDB, err := h.factory.GetWorkspaceDB(h.workspaceID)
 				require.NoError(t, err)
 				var isolation string
