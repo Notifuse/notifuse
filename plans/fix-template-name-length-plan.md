@@ -4,6 +4,7 @@ Created 2026-10-22 on `dev` @ `5499619`. `VERSION` is `42.0`, unreleased.
 Branch `fix/template-name-length`, one PR to `dev`; a second PR to `dev` on the docs repository for the API reference.
 Amended after Gemini's counter-review (raw answer `reviews/fix-template-name-length-gemini-brut-plan.md` in the project files, each remark checked in `reviews/fix-template-name-length-gemini-verif-plan.md`).
 Amended again after the first max review of `db4912a` (v2): the blog post drawer's template name (C6), the console limits in one module (C7), the workspace ID (B5, C8, decision 5), and two "Not in scope" entries. Gemini's second counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v2.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v2.md`.
+Amended after the second max review, of the changes since `db4912a` (v3): B5 also lowers the entity check `Workspace.Validate` to 20. Gemini's third counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v3.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v3.md`.
 
 ## Problem
 
@@ -60,9 +61,9 @@ Tests, `internal/domain/workspace_test.go`: for both requests, 32 × `é` → ok
 
 **B4. `internal/service/demo_automation_templates.go` / `_test.go`.** The comment "Template.Name is capped at 32 characters (much tighter than a list's 255)" and the test asserting demo template names fit 32 are updated to the new rule (255, counted in characters), so the demo keeps guarding against a name the API would refuse.
 
-**B5. Workspace ID (decision 5).** `CreateWorkspaceRequest.Validate`: `id length must be between 1 and 20`. Update and delete requests keep 32: they look an existing workspace up, and none can have a longer ID than its column, so a long one already ends as "not found".
+**B5. Workspace ID (decision 5).** `CreateWorkspaceRequest.Validate`: `id length must be between 1 and 20`. The entity check `Workspace.Validate` (`workspace.go:687`), which `WorkspaceService.CreateWorkspace` runs on every create whatever the caller, gets the same 20 (`invalid workspace: id length must be between 1 and 20`); `UpdateWorkspace` runs it too, on a workspace read from its `VARCHAR(20)` column, so no stored workspace can fail it. Update and delete requests keep 32: they look an existing workspace up, and none can have a longer ID than its column, so a long one already ends as "not found".
 
-Tests: `internal/domain/workspace_test.go`: create with a 20-character ID → ok, 21 → the length error; update with a 21-character ID still passes the ID check. Integration, `tests/integration/workspace_test.go`: create with a 21-character ID → 400 with the reason (was 500).
+Tests: `internal/domain/workspace_test.go`: create with a 20-character ID → ok, 21 → the length error; the entity check, 20 → ok, 21 → its length error; update and delete with a 21-character ID still pass their ID check. Integration, `tests/integration/workspace_test.go`: create with a 21-character ID → 400 with the reason (was 500).
 
 ### Console
 

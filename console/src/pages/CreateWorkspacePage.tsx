@@ -19,7 +19,7 @@ export function CreateWorkspacePage() {
   const { refreshWorkspaces } = useAuth()
   const { message } = App.useApp()
 
-  // Generate workspace ID from name (alphanumeric only, max 20 chars)
+  // Generate workspace ID from name (alphanumeric only, cut to WORKSPACE_ID_MAX_LENGTH)
   const generateWorkspaceId = (name: string) => {
     if (!name) return ''
     // remove spaces and remove non-alphanumeric characters

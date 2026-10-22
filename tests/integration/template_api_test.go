@@ -987,7 +987,7 @@ func TestTemplateNameLength(t *testing.T) {
 		return name
 	}
 
-	// Accented letters take two bytes each: the limit counts characters, as the column does.
+	// An accented letter takes more than one byte: the limit counts characters, as the column does.
 	longName := strings.Repeat("é", 255)
 	require.Greater(t, len(longName), 255, "the name must be over the limit in bytes")
 

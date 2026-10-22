@@ -692,8 +692,9 @@ func (w *Workspace) Validate(passphrase string) error {
 	if !govalidator.IsAlphanumeric(w.ID) {
 		return fmt.Errorf("invalid workspace: id must be alphanumeric")
 	}
-	if len(w.ID) > 32 {
-		return fmt.Errorf("invalid workspace: id length must be between 1 and 32")
+	// The workspace ID columns are VARCHAR(20).
+	if len(w.ID) > 20 {
+		return fmt.Errorf("invalid workspace: id length must be between 1 and 20")
 	}
 
 	// Validate Name
