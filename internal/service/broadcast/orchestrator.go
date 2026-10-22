@@ -605,33 +605,40 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			// makes the task service release the task without spending its
 			// budget, so the broadcast must stay resumable.
 			interrupted := IsInterrupted(err) || ctx.Err() != nil
-			targetStatus := domain.BroadcastStatusFailed
-			if interrupted {
-				targetStatus = domain.BroadcastStatusPaused
-			}
 
 			o.logger.WithFields(map[string]interface{}{
-				"task_id":       task.ID,
-				"broadcast_id":  broadcastID,
-				"retry_count":   task.RetryCount,
-				"max_retries":   task.MaxRetries,
-				"error":         err.Error(),
-				"target_status": string(targetStatus),
+				"task_id":      task.ID,
+				"broadcast_id": broadcastID,
+				"retry_count":  task.RetryCount,
+				"max_retries":  task.MaxRetries,
+				"error":        err.Error(),
+				"interrupted":  interrupted,
 			}).Info("Task failed on last retry attempt, finalizing broadcast status")
-
-			broadcast.Status = targetStatus
-			if interrupted {
-				pausedAt := time.Now().UTC()
-				broadcast.PausedAt = &pausedAt
-				reason := fmt.Sprintf("Sending was interrupted and stopped after %d attempts: %v. Resume to continue where it left off.",
-					task.RetryCount+1, err)
-				broadcast.PauseReason = &reason
-			}
 
 			// Only the status fields, and only if the row still holds none of
 			// the kept statuses: a pause committing after the read above is
 			// kept, as are the other columns (a winner picked meanwhile).
-			written, updateErr := o.broadcastRepo.UpdateBroadcastStatusUnless(finalizeCtx, broadcast, statusesKeptOnLastAttempt)
+			writeStatus := func(interrupted bool) (bool, error) {
+				broadcast.Status = domain.BroadcastStatusFailed
+				if interrupted {
+					broadcast.Status = domain.BroadcastStatusPaused
+					pausedAt := time.Now().UTC()
+					broadcast.PausedAt = &pausedAt
+					reason := fmt.Sprintf("Sending was interrupted and stopped after %d attempts: %v. Resume to continue where it left off.",
+						task.RetryCount+1, err)
+					broadcast.PauseReason = &reason
+				}
+				return o.broadcastRepo.UpdateBroadcastStatusUnless(finalizeCtx, broadcast, statusesKeptOnLastAttempt)
+			}
+			written, updateErr := writeStatus(interrupted)
+			// A cancellation landing while that write ran, or waited on the row
+			// lock, makes the task service release the task too: the broadcast
+			// written failed is then paused. Failed is not a kept status, so
+			// this write goes through.
+			if updateErr == nil && written && !interrupted && ctx.Err() != nil {
+				written, updateErr = writeStatus(true)
+			}
+
 			switch {
 			case updateErr != nil:
 				o.logger.WithFields(map[string]interface{}{
@@ -648,7 +655,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				o.logger.WithFields(map[string]interface{}{
 					"task_id":      task.ID,
 					"broadcast_id": broadcastID,
-					"status":       string(targetStatus),
+					"status":       string(broadcast.Status),
 				}).Info("Broadcast finalized after max retries reached")
 			}
 		}
@@ -878,13 +885,12 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					if broadcast.Status != domain.BroadcastStatusTesting {
 						broadcast.Status = domain.BroadcastStatusTesting
 						broadcast.UpdatedAt = time.Now().UTC()
-						if updateErr := o.broadcastRepo.UpdateBroadcast(ctx, broadcast); updateErr != nil {
+						if err := o.broadcastRepo.UpdateBroadcast(ctx, broadcast); err != nil {
 							o.logger.WithFields(map[string]interface{}{
 								"broadcast_id": broadcast.ID,
-								"error":        updateErr.Error(),
+								"error":        err.Error(),
 							}).Error("Failed to update broadcast status to testing")
-							err = fmt.Errorf("failed to update broadcast status to testing: %w", updateErr)
-							return false, err
+							return false, fmt.Errorf("failed to update broadcast status to testing: %w", err)
 						}
 						o.logger.WithField("broadcast_id", broadcast.ID).Info("A/B test phase started - broadcast status updated to testing")
 					}
@@ -954,8 +960,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 		if broadcast.WinningTemplate != nil {
 			templateIDs = []string{*broadcast.WinningTemplate}
 		} else {
-			err = fmt.Errorf("winner phase but no winning template selected")
-			return false, err
+			return false, fmt.Errorf("winner phase but no winning template selected")
 		}
 	default:
 		// Single template broadcast

@@ -41,10 +41,11 @@ type lastAttemptRun struct {
 
 	// ctx and countErr shape the failure: the recipient count, the first thing
 	// a run does, fails with countErr. cancelWhileFinalizing cancels ctx while
-	// the finalizer reads the task back.
+	// the finalizer reads the task back, cancelWhileWriting while it writes.
 	ctx                   context.Context
 	countErr              error
 	cancelWhileFinalizing bool
+	cancelWhileWriting    bool
 
 	// abTest runs an A/B broadcast past the recipient count instead, with
 	// phase in its state; testingWriteErr fails its move to testing. wantErr,
@@ -55,14 +56,15 @@ type lastAttemptRun struct {
 	wantErr         string
 }
 
-// broadcastWrite records what the finalizer wrote to the broadcast, and the
-// order of its reads.
+// broadcastWrite records what the finalizer wrote to the broadcast last, every
+// status it wrote, and the order of its reads.
 type broadcastWrite struct {
-	called bool
-	status domain.BroadcastStatus
-	reason string
-	unless []domain.BroadcastStatus
-	reads  []string
+	called   bool
+	status   domain.BroadcastStatus
+	statuses []domain.BroadcastStatus
+	reason   string
+	unless   []domain.BroadcastStatus
+	reads    []string
 }
 
 func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
@@ -155,7 +157,11 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 			assert.NoError(t, ctx.Err(), "the write must not ride on the run's context")
 			write.called = true
 			write.status = b.Status
+			write.statuses = append(write.statuses, b.Status)
 			write.unless = unless
+			if run.cancelWhileWriting {
+				cancel()
+			}
 			if b.PauseReason != nil {
 				write.reason = *b.PauseReason
 			}
@@ -379,6 +385,19 @@ func TestProcess_InterruptedRunPausesOnlyTheLastAttempt(t *testing.T) {
 		require.True(t, write.called)
 		assert.Equal(t, domain.BroadcastStatusPaused, write.status,
 			"a released task's broadcast was marked failed")
+	})
+
+	t.Run("a cancellation landing while the failed status is written pauses", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedTask:         &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3},
+			statusAtEnd:        domain.BroadcastStatusProcessing,
+			countErr:           errors.New("database is down"),
+			cancelWhileWriting: true,
+		})
+		assert.Equal(t, []domain.BroadcastStatus{domain.BroadcastStatusFailed, domain.BroadcastStatusPaused}, write.statuses,
+			"a released task's broadcast was left failed")
+		assert.Contains(t, write.reason, "interrupted")
 	})
 
 	t.Run("an interrupted last attempt leaves a cancelled broadcast cancelled", func(t *testing.T) {

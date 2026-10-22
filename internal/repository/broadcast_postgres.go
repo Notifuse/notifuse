@@ -380,6 +380,11 @@ func (r *broadcastRepository) UpdateBroadcastStatusUnless(ctx context.Context, b
 
 	broadcast.UpdatedAt = time.Now().UTC()
 
+	// pq.Array binds a nil slice as NULL, and status <> ALL(NULL) matches no row.
+	if unless == nil {
+		unless = []domain.BroadcastStatus{}
+	}
+
 	query := `
 		UPDATE broadcasts SET status = $3, paused_at = $4, pause_reason = $5, updated_at = $6
 		WHERE id = $1 AND workspace_id = $2 AND status <> ALL($7)`

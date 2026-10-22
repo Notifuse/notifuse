@@ -1710,6 +1710,20 @@ func TestBroadcastRepository_UpdateBroadcastStatusUnless(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
+	t.Run("binds no excluded status as an empty list, not NULL", func(t *testing.T) {
+		// status <> ALL(NULL) matches no row, so a nil list would never write.
+		repo, _, mock := setup(t)
+		mock.ExpectExec(statusOnlyUpdate).
+			WithArgs("bc123", workspaceID, "paused", &pausedAt, &reason, sqlmock.AnyArg(),
+				pq.Array([]string{})).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		written, err := repo.UpdateBroadcastStatusUnless(context.Background(), newBroadcast(), nil)
+		require.NoError(t, err)
+		assert.True(t, written)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
 	t.Run("returns the error of a failed write", func(t *testing.T) {
 		repo, _, mock := setup(t)
 		mock.ExpectExec(statusOnlyUpdate).
