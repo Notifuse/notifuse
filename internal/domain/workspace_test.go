@@ -1037,7 +1037,8 @@ func TestWorkspaceRequests_Validate_NameLength(t *testing.T) {
 	for _, v := range validators {
 		t.Run(v.name, func(t *testing.T) {
 			assert.NoError(t, v.check(strings.Repeat("a", 32)))
-			assert.NoError(t, v.check(strings.Repeat("é", 32)), "32 accented characters (64 bytes) fit")
+			require.Greater(t, len(strings.Repeat("é", 32)), 32, "the accented name must be over the limit in bytes")
+			assert.NoError(t, v.check(strings.Repeat("é", 32)), "accented characters count as one each")
 
 			err := v.check(strings.Repeat("a", 33))
 			require.Error(t, err)

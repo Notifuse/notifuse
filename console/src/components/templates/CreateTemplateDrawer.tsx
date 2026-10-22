@@ -27,6 +27,7 @@ import type { EmailBlock } from '../email_builder/types'
 import type { PreviewRef } from '../email_builder/panels/Preview'
 import { kebabCase } from 'lodash'
 import { truncateIdentifier } from '../../utils/identifiers'
+import { TEMPLATE_ID_MAX_LENGTH, TEMPLATE_NAME_MAX_LENGTH } from '../../constants/limits'
 import IphoneEmailPreview from './PhonePreview'
 import defaultTemplateData from './email-template.json'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -97,9 +98,6 @@ const validateLiquidTags = (text: string): { isValid: boolean; error?: string } 
   return { isValid: true }
 }
 
-// Lengths the API accepts for a template's name and ID.
-const TEMPLATE_NAME_MAX_LENGTH = 255
-const TEMPLATE_ID_MAX_LENGTH = 32
 const COPY_ID_SUFFIX = '-copy'
 
 const templateIdFromName = (name: string) =>

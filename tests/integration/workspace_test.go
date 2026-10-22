@@ -132,7 +132,7 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 		})
 
 		// The name limit counts characters, as the console's counter does: 32 accented
-		// characters (64 bytes) are accepted on create and update, a 33rd is refused.
+		// characters, over the limit in bytes, are accepted on create and update, a 33rd is refused.
 		t.Run("name length counted in characters", func(t *testing.T) {
 			workspaceID := "namelen" + uuid.New().String()[:8]
 			settings := domain.WorkspaceSettings{
@@ -147,6 +147,7 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 			}
 
 			name := strings.Repeat("é", 32)
+			require.Greater(t, len(name), 32, "the name must be over the limit in bytes")
 			resp, err := client.Post("/api/workspaces.create", domain.CreateWorkspaceRequest{ID: workspaceID, Name: name, Settings: settings})
 			require.NoError(t, err)
 			resp.Body.Close()

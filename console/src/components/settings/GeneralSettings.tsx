@@ -9,9 +9,7 @@ import { LANGUAGE_OPTIONS } from '../../lib/languages'
 import { LogoInput } from './LogoInput'
 import { SettingsSaveBar } from './SettingsSaveBar'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
-
-// Length the API accepts for a workspace name.
-const WORKSPACE_NAME_MAX_LENGTH = 32
+import { WORKSPACE_NAME_MAX_LENGTH } from '../../constants/limits'
 
 interface GeneralSettingsProps {
   workspace: Workspace | null

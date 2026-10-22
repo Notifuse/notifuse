@@ -987,8 +987,9 @@ func TestTemplateNameLength(t *testing.T) {
 		return name
 	}
 
-	// 255 accented characters are 510 bytes: the limit counts characters, as the column does.
+	// Accented letters take two bytes each: the limit counts characters, as the column does.
 	longName := strings.Repeat("é", 255)
+	require.Greater(t, len(longName), 255, "the name must be over the limit in bytes")
 
 	createResp, err := client.CreateTemplate(payload(longName))
 	require.NoError(t, err)

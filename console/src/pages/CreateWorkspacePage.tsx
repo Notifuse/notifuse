@@ -9,9 +9,7 @@ import { MainLayout, MainLayoutSidebar } from '../layouts/MainLayout'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
 import { getBrowserLanguage } from '../lib/languages'
 import { useLingui } from '@lingui/react/macro'
-
-// Length the API accepts for a workspace name.
-const WORKSPACE_NAME_MAX_LENGTH = 32
+import { WORKSPACE_NAME_MAX_LENGTH } from '../constants/limits'
 
 export function CreateWorkspacePage() {
   const { t } = useLingui()

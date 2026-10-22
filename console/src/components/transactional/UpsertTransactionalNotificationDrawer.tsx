@@ -13,10 +13,7 @@ import TemplateSelectorInput from '../templates/TemplateSelectorInput'
 import React from 'react'
 import extractTLD from '../../lib/tld'
 import { truncateIdentifier } from '../../utils/identifiers'
-
-// Lengths the API accepts for a notification's name and API identifier.
-const NOTIFICATION_NAME_MAX_LENGTH = 255
-const API_ID_MAX_LENGTH = 32
+import { TRANSACTIONAL_ID_MAX_LENGTH, TRANSACTIONAL_NAME_MAX_LENGTH } from '../../constants/limits'
 
 // Helper function to generate a valid API ID from a name
 const generateApiId = (name: string): string => {
@@ -28,7 +25,7 @@ const generateApiId = (name: string): string => {
     .replace(/[^\w\s]/g, '')
     .replace(/\s+/g, '_')
     .replace(/_+/g, '_')
-  return truncateIdentifier(id, API_ID_MAX_LENGTH)
+  return truncateIdentifier(id, TRANSACTIONAL_ID_MAX_LENGTH)
 }
 
 interface UpsertTransactionalNotificationDrawerProps {
@@ -271,8 +268,8 @@ export function UpsertTransactionalNotificationDrawer({
                 rules={[
                   { required: true, message: t`Please enter a notification name` },
                   {
-                    max: NOTIFICATION_NAME_MAX_LENGTH,
-                    message: t`Notification name must be at most ${NOTIFICATION_NAME_MAX_LENGTH} characters long`
+                    max: TRANSACTIONAL_NAME_MAX_LENGTH,
+                    message: t`Notification name must be at most ${TRANSACTIONAL_NAME_MAX_LENGTH} characters long`
                   }
                 ]}
                 tooltip={
@@ -284,7 +281,7 @@ export function UpsertTransactionalNotificationDrawer({
                 <Input
                   placeholder={t`E.g. Password Reset Email`}
                   disabled={isIntegrationManaged}
-                  maxLength={NOTIFICATION_NAME_MAX_LENGTH}
+                  maxLength={TRANSACTIONAL_NAME_MAX_LENGTH}
                   showCount
                 />
               </Form.Item>
@@ -300,15 +297,15 @@ export function UpsertTransactionalNotificationDrawer({
                     message: t`ID can only contain lowercase letters, numbers, and underscores`
                   },
                   {
-                    max: API_ID_MAX_LENGTH,
-                    message: t`API identifier must be at most ${API_ID_MAX_LENGTH} characters long`
+                    max: TRANSACTIONAL_ID_MAX_LENGTH,
+                    message: t`API identifier must be at most ${TRANSACTIONAL_ID_MAX_LENGTH} characters long`
                   }
                 ]}
               >
                 <Input
                   placeholder={t`E.g. password_reset`}
                   disabled={!!notification}
-                  maxLength={API_ID_MAX_LENGTH}
+                  maxLength={TRANSACTIONAL_ID_MAX_LENGTH}
                   showCount
                 />
               </Form.Item>

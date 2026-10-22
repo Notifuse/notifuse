@@ -3,6 +3,7 @@
 Created 2026-10-22 on `dev` @ `5499619`. `VERSION` is `42.0`, unreleased.
 Branch `fix/template-name-length`, one PR to `dev`; a second PR to `dev` on the docs repository for the API reference.
 Amended after Gemini's counter-review (raw answer `reviews/fix-template-name-length-gemini-brut-plan.md` in the project files, each remark checked in `reviews/fix-template-name-length-gemini-verif-plan.md`).
+Amended again after the first max review of `db4912a` (v2): the blog post drawer's template name (C6), the console limits in one module (C7), the workspace ID (B5, C8, pending Pierre's answer), and two "Not in scope" entries. Gemini's second counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v2.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v2.md`.
 
 ## Problem
 
@@ -11,6 +12,8 @@ Amended after Gemini's counter-review (raw answer `reviews/fix-template-name-len
 - **Transactional notification API identifier.** The console fills it with `generateApiId(name)` (`UpsertTransactionalNotificationDrawer.tsx:17`), no length cap. `CreateTransactionalRequest.Validate` (`internal/domain/transactional.go:317`) checks no length, so the insert into `transactional_notifications.id VARCHAR(32)` fails and the handler answers **500 "Failed to create notification"** (`internal/http/transactional_handler.go:152`).
 - **Transactional notification name.** Neither `CreateTransactionalRequest.Validate` nor `UpdateTransactionalRequest.Validate` (`transactional.go:375`) bounds it, and the console field has no maximum, so a name over the column's 255 (`init.go:234`) ends in the same 500 on create and on update (`transactional_handler.go:193`).
 - **Workspace name.** `CreateWorkspaceRequest.Validate` and `UpdateWorkspaceRequest.Validate` (`internal/domain/workspace.go:1483`, `:1607`) refuse a name over 32 bytes; the console's create page and General settings have no maximum. Bytes, not characters: a 30-character name with three accented letters is refused.
+- **Blog post template name.** `PostDrawer.tsx:388`, `:441` cut the name of a post's template, `Blog: <title>`, to 32 UTF-16 units to fit the old limit. Titles go up to 500 characters (`blog.go:451`), so the cut is still needed, at 255; `substring` can also split an emoji's surrogate pair, which the server decodes as U+FFFD.
+- **Workspace ID.** `workspaces.id` is `VARCHAR(20)` (`internal/database/schema/system_tables.go:26`) but `CreateWorkspaceRequest.Validate` accepts 32 (`workspace.go:1476`): an ID of 21 to 32 characters fails in the insert and the handler answers 500. In the console (`CreateWorkspacePage.tsx`), the ID field has no maximum; on submit `generateWorkspaceId` silently cuts the typed ID to 20 (`:65`), then the page navigates to the uncut `values.id` (`:78`) and shows a missing workspace.
 
 ## Decisions (Pierre, 2026-10-22)
 
@@ -18,6 +21,7 @@ Amended after Gemini's counter-review (raw answer `reviews/fix-template-name-len
 2. IDs stay at 32, no migration: the console cuts generated IDs to 32 and limits the fields; the API answers a clear 400 for a transactional ID over 32 instead of the 500. Length only, no format check added to the API.
 3. Workspace name: the console limits the field to 32 with a counter.
 4. No comment on the issue; the PR closes it.
+5. Workspace ID limited to its column's 20 characters in the API and the console. *(recommended after the max review, awaiting the answer; the alternative leaves it to a later PR and drops B5 and C8)*
 
 No table, column or environment variable changes.
 
@@ -56,6 +60,10 @@ Tests, `internal/domain/workspace_test.go`: for both requests, 32 × `é` → ok
 
 **B4. `internal/service/demo_automation_templates.go` / `_test.go`.** The comment "Template.Name is capped at 32 characters (much tighter than a list's 255)" and the test asserting demo template names fit 32 are updated to the new rule (255, counted in characters), so the demo keeps guarding against a name the API would refuse.
 
+**B5. Workspace ID (decision 5).** `CreateWorkspaceRequest.Validate`: `id length must be between 1 and 20`. Update and delete requests keep 32: they look an existing workspace up, and none can have a longer ID than its column, so a long one already ends as "not found".
+
+Tests: `internal/domain/workspace_test.go`: create with a 20-character ID → ok, 21 → the length error; update with a 21-character ID still passes the ID check. Integration, `tests/integration/workspace_test.go`: create with a 21-character ID → 400 with the reason (was 500).
+
 ### Console
 
 **C1. `console/src/utils/identifiers.ts` (new).** `truncateIdentifier(id, maxLength)`: an id within the limit is returned unchanged (so short generated IDs stay exactly as today, a lone `_` included); a longer one is cut to `maxLength` and the `-` and `_` left at the end of the cut are removed, so it never ends as `welcome-email-for-`.
@@ -82,6 +90,16 @@ Tests, `UpsertTransactionalNotificationDrawer.test.tsx`: typing a long name fill
 
 Tests: `GeneralSettings.test.tsx`: the name input refuses input beyond 32 characters (its `maxlength` attribute is 32) and a stored name over 32 (set as the form's initial value) blocks the save with the message. `CreateWorkspacePage`: a new `pages/CreateWorkspacePage.test.tsx` checking the name input's `maxlength` is 32, if the page renders in isolation with the existing test helpers; otherwise covered by the smoke test only, and said so in the PR.
 
+**C6. Blog post template name, `components/blog/PostDrawer.tsx`.** New `components/blog/blogTemplateName.ts`: `blogTemplateName(title)` returns `Blog: <title>` cut to 255 code points (`Array.from`), which is how the API counts (runes), so a long title fits and an emoji is never split. Both mutations use it.
+
+Tests, `components/blog/blogTemplateName.test.ts`: a short title is kept whole; a 500-character title gives a 255-character name; an emoji that is the 255th code point is kept whole (`substring` would have left half of it), one that is the 256th is dropped whole; accented letters count as one. A ZWJ emoji sequence can still be cut between its code points: valid UTF-8, accepted by the API, and only for titles over 249 characters.
+
+**C7. Limits in one module, `console/src/constants/limits.ts` (new).** `TEMPLATE_NAME_MAX_LENGTH`, `TEMPLATE_ID_MAX_LENGTH`, `TRANSACTIONAL_NAME_MAX_LENGTH`, `TRANSACTIONAL_ID_MAX_LENGTH`, `WORKSPACE_NAME_MAX_LENGTH`, `WORKSPACE_ID_MAX_LENGTH`, each saying which API check it mirrors. The drawers, the workspace forms and `blogTemplateName` import them, so the workspace name limit is no longer written in two files. Not a mocked module, so the tests see the real values.
+
+**C8. Workspace ID field, `pages/CreateWorkspacePage.tsx` (decision 5).** `maxLength={20}`, `showCount`, `max: 20` rule with a translated message. `onFinish` computes the ID once and uses it both to create and to navigate: with the field's rules a submitted ID already equals `generateWorkspaceId(id)`, so this only guards against the two drifting apart again.
+
+Tests, `pages/CreateWorkspacePage.test.tsx`: the ID input's `maxlength` is 20; an ID of 21 characters set by a change event is refused with the message and nothing is created. (A navigation test would pass without the `onFinish` change, see the Gemini v2 check, so there is none.)
+
 **C5. i18n.** `npm run lingui:extract` for the new messages; French and other locale entries filled as the existing ones are.
 
 ### API reference
@@ -91,7 +109,9 @@ Tests: `GeneralSettings.test.tsx`: the name input refuses input beyond 32 charac
 
 ### CHANGELOG (42.0)
 
-> - **Improvement**: Template names can now be up to 255 characters (#463). The console counts characters in the names and IDs of templates and transactional notifications and in workspace names, and an ID filled in from a long name now fits the 32-character limit. A transactional notification sent to the API with an ID over 32 characters or a name over 255 is now refused with the reason (400).
+> - **Improvement**: Template names can now be up to 255 characters (#463), and an accented letter in a template or workspace name counts as one character. The console shows the limit of the name and ID fields of templates, transactional notifications and workspaces as you type, and an ID filled in from a long name now fits its limit. The API now refuses with the reason (400) a transactional notification whose ID is over 32 characters or whose name is over 255, and a new workspace whose ID is over 20 characters.
+
+(Without decision 5, the workspace ID is left out of both sentences.)
 
 ## Not in scope
 
@@ -99,6 +119,8 @@ Tests: `GeneralSettings.test.tsx`: the name input refuses input beyond 32 charac
 - A format check on transactional IDs in the API (the console's `^[a-z0-9_]+$`): would refuse IDs integrations may already send.
 - The template name is stamped into the email's `mj-title`, and into `mj-preview` when the subject preview is empty (`template_service.go:46`). Unchanged; a longer name only makes that fallback preheader longer, and inbox clients cut it.
 - `generateApiId` drops accented letters (`\w` is ASCII in JS) where `kebabCase` transliterates them, and keeps a leading `_` from a leading space. Unchanged.
+- Databases whose encoding is not UTF-8 (`SQL_ASCII`): there `VARCHAR(n)` counts bytes, so a long accented name that passes the rune count can still fail in the insert. Notifuse already assumes UTF-8 elsewhere (web analytics, 42.0 changelog); these checks follow the default and documented setup.
+- Two transactional notifications whose names share their first 32 characters get the same generated ID, and the second create fails on the primary key with the generic 500, as any duplicate ID does today (before this change both names failed). A uniqueness check in the drawer, as the template drawer has, and a 409 for a duplicate ID are a separate change.
 - API reference for transactional notification and workspace limits: `transactional.create/update` and `workspaces.create/update` are not in the OpenAPI spec (`openapi/openapi.yaml` documents `transactional.send` only).
 
 ## Test commands
