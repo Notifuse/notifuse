@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/Notifuse/notifuse/pkg/emailerror"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/Notifuse/notifuse/pkg/emailerror"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
@@ -23,8 +26,14 @@ func TestDefaultWorkerConfig(t *testing.T) {
 	require.NotNil(t, config)
 	assert.Equal(t, 5, config.WorkerCount)
 	assert.Equal(t, 1*time.Second, config.PollInterval)
-	assert.Equal(t, 50, config.BatchSize)
+	assert.Equal(t, 200, config.BatchSize)
 	assert.Equal(t, 3, config.MaxRetries)
+	assert.Equal(t, 10, config.SendConcurrency)
+	assert.Equal(t, 1, config.SMTPSendConcurrency)
+	assert.Equal(t, 2*time.Second, config.RoundWindow)
+	assert.Equal(t, 10*time.Second, config.ShutdownGrace)
+	assert.Equal(t, 5*time.Second, config.AbortWait)
+	assert.Equal(t, time.Minute, config.OrphanCheckInterval)
 }
 
 func TestNewEmailQueueWorker(t *testing.T) {
@@ -55,8 +64,40 @@ func TestNewEmailQueueWorker(t *testing.T) {
 		)
 
 		require.NotNil(t, worker)
-		assert.Equal(t, config, worker.config)
+		assert.Equal(t, 3, worker.config.WorkerCount)
+		assert.Equal(t, 2*time.Second, worker.config.PollInterval)
+		assert.Equal(t, 25, worker.config.BatchSize)
+		assert.Equal(t, 5, worker.config.MaxRetries)
 		assert.NotNil(t, worker.rateLimiter)
+	})
+
+	t.Run("fills the sending settings left at zero, without changing the caller's config", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		config := &EmailQueueWorkerConfig{WorkerCount: 3, PollInterval: time.Second}
+		worker := NewEmailQueueWorker(
+			mocks.NewMockEmailQueueRepository(ctrl),
+			mocks.NewMockWorkspaceRepository(ctrl),
+			mocks.NewMockEmailServiceInterface(ctrl),
+			mocks.NewMockMessageHistoryRepository(ctrl),
+			config,
+			pkgmocks.NewMockLogger(ctrl),
+		)
+
+		defaults := DefaultWorkerConfig()
+		got := worker.GetConfig()
+		assert.Equal(t, 3, got.WorkerCount)
+		assert.Equal(t, defaults.BatchSize, got.BatchSize)
+		assert.Equal(t, defaults.SendConcurrency, got.SendConcurrency)
+		assert.Equal(t, defaults.SMTPSendConcurrency, got.SMTPSendConcurrency)
+		assert.Equal(t, defaults.RoundWindow, got.RoundWindow)
+		assert.Equal(t, defaults.ShutdownGrace, got.ShutdownGrace)
+		assert.Equal(t, defaults.AbortWait, got.AbortWait)
+		assert.Equal(t, defaults.OrphanCheckInterval, got.OrphanCheckInterval)
+
+		assert.Zero(t, config.BatchSize)
+		assert.Zero(t, config.SendConcurrency)
 	})
 
 	t.Run("uses default config when nil provided", func(t *testing.T) {
@@ -311,10 +352,10 @@ func TestEmailQueueWorker_ProcessEntry_Success(t *testing.T) {
 		DefaultWorkerConfig(),
 		mockLogger,
 	)
-	worker.ctx = context.Background()
+	worker.initContexts(context.Background())
 
 	// Process the entry
-	worker.processEntry(workspace, entry)
+	processOne(worker, workspace, entry)
 }
 
 func TestEmailQueueWorker_ProcessEntry_SendFailure(t *testing.T) {
@@ -386,10 +427,10 @@ func TestEmailQueueWorker_ProcessEntry_SendFailure(t *testing.T) {
 		DefaultWorkerConfig(),
 		mockLogger,
 	)
-	worker.ctx = context.Background()
+	worker.initContexts(context.Background())
 
 	// Process the entry
-	worker.processEntry(workspace, entry)
+	processOne(worker, workspace, entry)
 }
 
 func TestEmailQueueWorker_ProcessEntry_MaxAttemptsExceeded(t *testing.T) {
@@ -464,13 +505,15 @@ func TestEmailQueueWorker_ProcessEntry_MaxAttemptsExceeded(t *testing.T) {
 		DefaultWorkerConfig(),
 		mockLogger,
 	)
-	worker.ctx = context.Background()
+	worker.initContexts(context.Background())
 
 	// Process the entry
-	worker.processEntry(workspace, entry)
+	processOne(worker, workspace, entry)
 }
 
-func TestEmailQueueWorker_ProcessEntry_IntegrationNotFound(t *testing.T) {
+// TestEmailQueueWorker_FailOrphan covers a row whose email integration was deleted: it
+// spends an attempt like any failure, so it ends in a terminal state instead of waiting.
+func TestEmailQueueWorker_FailOrphan(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -522,9 +565,9 @@ func TestEmailQueueWorker_ProcessEntry_IntegrationNotFound(t *testing.T) {
 		DefaultWorkerConfig(),
 		mockLogger,
 	)
-	worker.ctx = context.Background()
+	worker.initContexts(context.Background())
 
-	worker.processEntry(workspace, entry)
+	worker.failOrphan(workspace, entry)
 }
 
 func TestEmailQueueWorker_ProcessEntry_MarkAsProcessingFails(t *testing.T) {
@@ -547,6 +590,11 @@ func TestEmailQueueWorker_ProcessEntry_MarkAsProcessingFails(t *testing.T) {
 
 	workspace := &domain.Workspace{
 		ID: workspaceID,
+		Integrations: []domain.Integration{{
+			ID:            "integration-1",
+			Type:          domain.IntegrationTypeEmail,
+			EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSMTP, RateLimitPerMinute: 100},
+		}},
 	}
 
 	entry := &domain.EmailQueueEntry{
@@ -567,10 +615,10 @@ func TestEmailQueueWorker_ProcessEntry_MarkAsProcessingFails(t *testing.T) {
 		DefaultWorkerConfig(),
 		mockLogger,
 	)
-	worker.ctx = context.Background()
+	worker.initContexts(context.Background())
 
 	// Should return early without sending
-	worker.processEntry(workspace, entry)
+	processOne(worker, workspace, entry)
 	// No further expectations means the test passes if it doesn't try to send
 }
 
@@ -634,7 +682,6 @@ func TestEmailQueueWorker_GetConfig(t *testing.T) {
 
 	config := worker.GetConfig()
 
-	assert.Equal(t, customConfig, config)
 	assert.Equal(t, 10, config.WorkerCount)
 	assert.Equal(t, 5*time.Second, config.PollInterval)
 	assert.Equal(t, 100, config.BatchSize)
@@ -660,16 +707,8 @@ func TestEmailQueueWorker_ProcessWorkspace(t *testing.T) {
 		workspaceID := "workspace-1"
 
 		workspace := &domain.Workspace{
-			ID: workspaceID,
-			Integrations: []domain.Integration{
-				{
-					ID: integrationID,
-					EmailProvider: domain.EmailProvider{
-						Kind:               domain.EmailProviderKindSMTP,
-						RateLimitPerMinute: 6000, // High rate for test
-					},
-				},
-			},
+			ID:           workspaceID,
+			Integrations: []domain.Integration{emailIntegration(integrationID, domain.EmailProviderKindSMTP, 6000)},
 		}
 
 		entries := []*domain.EmailQueueEntry{
@@ -689,7 +728,9 @@ func TestEmailQueueWorker_ProcessWorkspace(t *testing.T) {
 			},
 		}
 
-		mockQueueRepo.EXPECT().FetchPending(gomock.Any(), workspaceID, gomock.Any()).Return(entries, nil)
+		// 6,000/min fills a 2 s round with 200 rows, the per-lane maximum.
+		mockQueueRepo.EXPECT().FetchPendingForIntegration(gomock.Any(), workspaceID, integrationID, 200).Return(entries, nil)
+		mockQueueRepo.EXPECT().FetchPendingOrphans(gomock.Any(), workspaceID, []string{integrationID}, orphanBatchSize).Return(nil, nil)
 		mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), workspaceID, "entry-1").Return(nil)
 		mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
 		mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
@@ -704,7 +745,7 @@ func TestEmailQueueWorker_ProcessWorkspace(t *testing.T) {
 			mockLogger,
 		)
 
-		worker.ctx = context.Background()
+		worker.initContexts(context.Background())
 		worker.processWorkspace(workspace)
 	})
 
@@ -719,10 +760,14 @@ func TestEmailQueueWorker_ProcessWorkspace(t *testing.T) {
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 		workspaceID := "workspace-1"
-		workspace := &domain.Workspace{ID: workspaceID}
+		workspace := &domain.Workspace{
+			ID:           workspaceID,
+			Integrations: []domain.Integration{emailIntegration("integration-1", domain.EmailProviderKindSMTP, 100)},
+		}
 
 		// Return empty entries
-		mockQueueRepo.EXPECT().FetchPending(gomock.Any(), workspaceID, gomock.Any()).Return([]*domain.EmailQueueEntry{}, nil)
+		mockQueueRepo.EXPECT().FetchPendingForIntegration(gomock.Any(), workspaceID, "integration-1", gomock.Any()).Return([]*domain.EmailQueueEntry{}, nil)
+		mockQueueRepo.EXPECT().FetchPendingOrphans(gomock.Any(), workspaceID, []string{"integration-1"}, orphanBatchSize).Return(nil, nil)
 
 		worker := NewEmailQueueWorker(
 			mockQueueRepo,
@@ -733,7 +778,7 @@ func TestEmailQueueWorker_ProcessWorkspace(t *testing.T) {
 			mockLogger,
 		)
 
-		worker.ctx = context.Background()
+		worker.initContexts(context.Background())
 		worker.processWorkspace(workspace)
 		// Should complete without processing anything
 	})
@@ -749,14 +794,18 @@ func TestEmailQueueWorker_ProcessWorkspace(t *testing.T) {
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
-		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).Times(1)
 
 		workspaceID := "workspace-1"
-		workspace := &domain.Workspace{ID: workspaceID}
+		workspace := &domain.Workspace{
+			ID:           workspaceID,
+			Integrations: []domain.Integration{emailIntegration("integration-1", domain.EmailProviderKindSMTP, 100)},
+		}
 
 		// Return error
-		mockQueueRepo.EXPECT().FetchPending(gomock.Any(), workspaceID, gomock.Any()).
+		mockQueueRepo.EXPECT().FetchPendingForIntegration(gomock.Any(), workspaceID, "integration-1", gomock.Any()).
 			Return(nil, errors.New("database error"))
+		mockQueueRepo.EXPECT().FetchPendingOrphans(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil, nil)
 
 		worker := NewEmailQueueWorker(
 			mockQueueRepo,
@@ -767,9 +816,54 @@ func TestEmailQueueWorker_ProcessWorkspace(t *testing.T) {
 			mockLogger,
 		)
 
-		worker.ctx = context.Background()
+		worker.initContexts(context.Background())
 		worker.processWorkspace(workspace)
 		// Should log error and return
+	})
+
+	t.Run("fetches once per email integration, sized to its rate, and not for other integrations", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		queueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+		workspace := &domain.Workspace{
+			ID: "ws-1",
+			Integrations: []domain.Integration{
+				emailIntegration("ses-1", domain.EmailProviderKindSES, 3600),
+				// Left at the console default: one row per round, without holding up
+				// the integration above.
+				emailIntegration("smtp-1", domain.EmailProviderKindSMTP, 25),
+				{ID: "supabase-1", Type: domain.IntegrationTypeSupabase},
+			},
+		}
+
+		queueRepo.EXPECT().FetchPendingForIntegration(gomock.Any(), "ws-1", "ses-1", 120).Return(nil, nil)
+		queueRepo.EXPECT().FetchPendingForIntegration(gomock.Any(), "ws-1", "smtp-1", 1).Return(nil, nil)
+		queueRepo.EXPECT().FetchPendingOrphans(gomock.Any(), "ws-1", gomock.Any(), orphanBatchSize).
+			DoAndReturn(func(_ context.Context, _ string, ids []string, _ int) ([]*domain.EmailQueueEntry, error) {
+				assert.ElementsMatch(t, []string{"ses-1", "smtp-1"}, ids)
+				return nil, nil
+			})
+
+		worker := NewEmailQueueWorker(queueRepo, mocks.NewMockWorkspaceRepository(ctrl),
+			mocks.NewMockEmailServiceInterface(ctrl), mocks.NewMockMessageHistoryRepository(ctrl),
+			DefaultWorkerConfig(), quietLogger(ctrl))
+		worker.initContexts(context.Background())
+		worker.processWorkspace(workspace)
+	})
+
+	t.Run("a workspace without email integrations only looks for orphans", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		queueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+		queueRepo.EXPECT().FetchPendingOrphans(gomock.Any(), "ws-1", []string{}, orphanBatchSize).Return(nil, nil)
+
+		worker := NewEmailQueueWorker(queueRepo, mocks.NewMockWorkspaceRepository(ctrl),
+			mocks.NewMockEmailServiceInterface(ctrl), mocks.NewMockMessageHistoryRepository(ctrl),
+			DefaultWorkerConfig(), quietLogger(ctrl))
+		worker.initContexts(context.Background())
+		worker.processWorkspace(&domain.Workspace{ID: "ws-1"})
 	})
 }
 
@@ -785,15 +879,17 @@ func TestEmailQueueWorker_ProcessAllWorkspaces(t *testing.T) {
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 		workspaces := []*domain.Workspace{
-			{ID: "workspace-1"},
-			{ID: "workspace-2"},
+			{ID: "workspace-1", Integrations: []domain.Integration{emailIntegration("integration-1", domain.EmailProviderKindSMTP, 100)}},
+			{ID: "workspace-2", Integrations: []domain.Integration{emailIntegration("integration-2", domain.EmailProviderKindSMTP, 100)}},
 		}
 
 		mockWorkspaceRepo.EXPECT().List(gomock.Any()).Return(workspaces, nil)
 
 		// Each workspace will fetch (and return empty)
-		mockQueueRepo.EXPECT().FetchPending(gomock.Any(), "workspace-1", gomock.Any()).Return([]*domain.EmailQueueEntry{}, nil)
-		mockQueueRepo.EXPECT().FetchPending(gomock.Any(), "workspace-2", gomock.Any()).Return([]*domain.EmailQueueEntry{}, nil)
+		mockQueueRepo.EXPECT().FetchPendingForIntegration(gomock.Any(), "workspace-1", "integration-1", gomock.Any()).Return([]*domain.EmailQueueEntry{}, nil)
+		mockQueueRepo.EXPECT().FetchPendingForIntegration(gomock.Any(), "workspace-2", "integration-2", gomock.Any()).Return([]*domain.EmailQueueEntry{}, nil)
+		mockQueueRepo.EXPECT().FetchPendingOrphans(gomock.Any(), "workspace-1", gomock.Any(), gomock.Any()).Return(nil, nil)
+		mockQueueRepo.EXPECT().FetchPendingOrphans(gomock.Any(), "workspace-2", gomock.Any(), gomock.Any()).Return(nil, nil)
 
 		worker := NewEmailQueueWorker(
 			mockQueueRepo,
@@ -804,7 +900,7 @@ func TestEmailQueueWorker_ProcessAllWorkspaces(t *testing.T) {
 			mockLogger,
 		)
 
-		worker.ctx = context.Background()
+		worker.initContexts(context.Background())
 		worker.processAllWorkspaces()
 	})
 
@@ -832,9 +928,27 @@ func TestEmailQueueWorker_ProcessAllWorkspaces(t *testing.T) {
 			mockLogger,
 		)
 
-		worker.ctx = context.Background()
+		worker.initContexts(context.Background())
 		worker.processAllWorkspaces()
 		// Should log error and return
+	})
+
+	t.Run("a large queue in one workspace does not add fetches elsewhere", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.RoundWindow = 200 * time.Millisecond
+		lt := newLaneTest(t, cfg, append(queuedRows("ses-1", 50), queuedRows("ses-2", 1)...)...)
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil).AnyTimes()
+		lt.workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{
+			{ID: "ws-1", Integrations: []domain.Integration{emailIntegration("ses-1", domain.EmailProviderKindSES, 6000)}},
+			{ID: "ws-2", Integrations: []domain.Integration{emailIntegration("ses-2", domain.EmailProviderKindSES, 6000)}},
+		}, nil)
+
+		within(t, 5*time.Second, lt.w.processAllWorkspaces)
+
+		// 6,000/min over a 200 ms round is 20 rows: one fetch each, whatever is left.
+		assert.Equal(t, []int{20}, lt.queue.fetchLimits("ses-1"))
+		assert.Equal(t, []int{20}, lt.queue.fetchLimits("ses-2"))
+		assert.Equal(t, 1, lt.queue.sentCount("ses-2"))
 	})
 }
 
@@ -896,172 +1010,10 @@ func TestEmailQueueWorker_ProcessWithoutCallbacks(t *testing.T) {
 		DefaultWorkerConfig(),
 		mockLogger,
 	)
-	worker.ctx = context.Background()
+	worker.initContexts(context.Background())
 
 	// Should work without panicking (no callbacks needed anymore)
-	worker.processEntry(workspace, entry)
-}
-
-func TestEmailQueueWorker_RateLimiting(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
-	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
-	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
-	mockLogger := pkgmocks.NewMockLogger(ctrl)
-
-	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
-	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
-	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
-
-	integrationID := "integration-1"
-	workspaceID := "workspace-1"
-
-	workspace := &domain.Workspace{
-		ID: workspaceID,
-		Integrations: []domain.Integration{
-			{
-				ID: integrationID,
-				EmailProvider: domain.EmailProvider{
-					Kind:               domain.EmailProviderKindSMTP,
-					RateLimitPerMinute: 6000, // 100 per second
-				},
-			},
-		},
-	}
-
-	// Process multiple entries to exercise rate limiting
-	var processedCount int32
-
-	for i := 0; i < 3; i++ {
-		entry := &domain.EmailQueueEntry{
-			ID:            "entry-" + string(rune('1'+i)),
-			Status:        domain.EmailQueueStatusPending,
-			SourceType:    domain.EmailQueueSourceBroadcast,
-			SourceID:      "broadcast-1",
-			IntegrationID: integrationID,
-			ContactEmail:  "test@example.com",
-			MessageID:     "msg-" + string(rune('1'+i)),
-			Payload: domain.EmailQueuePayload{
-				RateLimitPerMinute: 6000,
-			},
-			Attempts:    0,
-			MaxAttempts: 3,
-		}
-
-		mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), workspaceID, entry.ID).Return(nil)
-		mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).DoAndReturn(
-			func(ctx context.Context, req domain.SendEmailProviderRequest, isMarketing bool) error {
-				atomic.AddInt32(&processedCount, 1)
-				return nil
-			},
-		)
-		mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
-		mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), workspaceID, entry.ID).Return(nil)
-	}
-
-	worker := NewEmailQueueWorker(
-		mockQueueRepo,
-		mockWorkspaceRepo,
-		mockEmailService,
-		mockMessageHistoryRepo,
-		DefaultWorkerConfig(),
-		mockLogger,
-	)
-	worker.ctx = context.Background()
-
-	// Process entries
-	for i := 0; i < 3; i++ {
-		entry := &domain.EmailQueueEntry{
-			ID:            "entry-" + string(rune('1'+i)),
-			Status:        domain.EmailQueueStatusPending,
-			SourceType:    domain.EmailQueueSourceBroadcast,
-			SourceID:      "broadcast-1",
-			IntegrationID: integrationID,
-			ContactEmail:  "test@example.com",
-			MessageID:     "msg-" + string(rune('1'+i)),
-			Payload: domain.EmailQueuePayload{
-				RateLimitPerMinute: 6000,
-			},
-			Attempts:    0,
-			MaxAttempts: 3,
-		}
-		worker.processEntry(workspace, entry)
-	}
-
-	assert.Equal(t, int32(3), processedCount)
-}
-
-func TestEmailQueueWorker_DefaultRateLimit(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
-	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
-	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
-	mockLogger := pkgmocks.NewMockLogger(ctrl)
-
-	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
-	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
-	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
-
-	integrationID := "integration-1"
-	workspaceID := "workspace-1"
-
-	// Workspace with no rate limit configured
-	workspace := &domain.Workspace{
-		ID: workspaceID,
-		Integrations: []domain.Integration{
-			{
-				ID: integrationID,
-				EmailProvider: domain.EmailProvider{
-					Kind:               domain.EmailProviderKindSMTP,
-					RateLimitPerMinute: 0, // No rate limit configured
-				},
-			},
-		},
-	}
-
-	entry := &domain.EmailQueueEntry{
-		ID:            "entry-1",
-		Status:        domain.EmailQueueStatusPending,
-		SourceType:    domain.EmailQueueSourceBroadcast,
-		SourceID:      "broadcast-1",
-		IntegrationID: integrationID,
-		ContactEmail:  "test@example.com",
-		MessageID:     "msg-1",
-		Payload: domain.EmailQueuePayload{
-			RateLimitPerMinute: 0, // No rate limit in payload either
-		},
-		Attempts:    0,
-		MaxAttempts: 3,
-	}
-
-	mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), workspaceID, "entry-1").Return(nil)
-	mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
-	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
-	mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), workspaceID, "entry-1").Return(nil)
-
-	worker := NewEmailQueueWorker(
-		mockQueueRepo,
-		mockWorkspaceRepo,
-		mockEmailService,
-		mockMessageHistoryRepo,
-		DefaultWorkerConfig(),
-		mockLogger,
-	)
-	worker.ctx = context.Background()
-
-	// Should use default rate limit of 60 (1 per second)
-	worker.processEntry(workspace, entry)
-
-	// Check the rate limiter has the integration with default rate
-	rate := worker.rateLimiter.GetCurrentRate(integrationID)
-	// Default is 60/min = 1/sec
-	assert.InDelta(t, 1.0, rate, 0.001)
+	processOne(worker, workspace, entry)
 }
 
 func TestEmailQueueWorker_ProcessEntry_StoresTemplateDataInMessageHistory(t *testing.T) {
@@ -1170,10 +1122,10 @@ func TestEmailQueueWorker_ProcessEntry_StoresTemplateDataInMessageHistory(t *tes
 		DefaultWorkerConfig(),
 		mockLogger,
 	)
-	worker.ctx = context.Background()
+	worker.initContexts(context.Background())
 
 	// Process the entry
-	worker.processEntry(workspace, entry)
+	processOne(worker, workspace, entry)
 }
 
 // An automation email is sent for the automation's list. Its message_history row must
@@ -1249,8 +1201,8 @@ func TestEmailQueueWorker_ProcessEntry_AutomationListIDInMessageHistory(t *testi
 
 			worker := NewEmailQueueWorker(mockQueueRepo, mockWorkspaceRepo, mockEmailService,
 				mockMessageHistoryRepo, DefaultWorkerConfig(), mockLogger)
-			worker.ctx = context.Background()
-			worker.processEntry(workspace, entry)
+			worker.initContexts(context.Background())
+			processOne(worker, workspace, entry)
 		})
 	}
 }
@@ -1347,8 +1299,8 @@ func TestEmailQueueWorker_ProcessEntry_SMTPMessageIDForReplyMatching(t *testing.
 				DefaultWorkerConfig(),
 				mockLogger,
 			)
-			worker.ctx = context.Background()
-			worker.processEntry(workspace, entry)
+			worker.initContexts(context.Background())
+			processOne(worker, workspace, entry)
 		})
 	}
 }
@@ -1408,154 +1360,14 @@ func TestEmailQueueWorker_ProcessEntry_SESCapturesMessageID(t *testing.T) {
 	mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), workspaceID, entryID).Return(nil)
 
 	worker := NewEmailQueueWorker(mockQueueRepo, mockWorkspaceRepo, mockEmailService, mockMessageHistoryRepo, DefaultWorkerConfig(), mockLogger)
-	worker.ctx = context.Background()
-	worker.processEntry(workspace, entry)
+	worker.initContexts(context.Background())
+	processOne(worker, workspace, entry)
 
 	if assert.NotNil(t, stored, "SES automation send must store smtp_message_id post-send") {
 		// Stored bare (host-independent): SES does not contractually pin the Message-ID host,
 		// so we key matching off the unique local part SES returns.
 		assert.Equal(t, "ses-returned-id", *stored)
 	}
-}
-
-func TestEmailQueueWorker_GetMinEmailRateLimit(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
-	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
-	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
-	mockLogger := pkgmocks.NewMockLogger(ctrl)
-
-	worker := NewEmailQueueWorker(
-		mockQueueRepo,
-		mockWorkspaceRepo,
-		mockEmailService,
-		mockMessageHistoryRepo,
-		nil,
-		mockLogger,
-	)
-
-	t.Run("returns default when no email integrations", func(t *testing.T) {
-		workspace := &domain.Workspace{
-			ID:           "workspace-1",
-			Integrations: []domain.Integration{},
-		}
-
-		rate := worker.getMinEmailRateLimit(workspace)
-		assert.Equal(t, 60, rate)
-	})
-
-	t.Run("returns single integration rate", func(t *testing.T) {
-		workspace := &domain.Workspace{
-			ID: "workspace-1",
-			Integrations: []domain.Integration{
-				{
-					ID:   "integration-1",
-					Type: domain.IntegrationTypeEmail,
-					EmailProvider: domain.EmailProvider{
-						Kind:               domain.EmailProviderKindSMTP,
-						RateLimitPerMinute: 20,
-					},
-				},
-			},
-		}
-
-		rate := worker.getMinEmailRateLimit(workspace)
-		assert.Equal(t, 20, rate)
-	})
-
-	t.Run("returns minimum across multiple integrations", func(t *testing.T) {
-		workspace := &domain.Workspace{
-			ID: "workspace-1",
-			Integrations: []domain.Integration{
-				{
-					ID:   "integration-1",
-					Type: domain.IntegrationTypeEmail,
-					EmailProvider: domain.EmailProvider{
-						Kind:               domain.EmailProviderKindSMTP,
-						RateLimitPerMinute: 100,
-					},
-				},
-				{
-					ID:   "integration-2",
-					Type: domain.IntegrationTypeEmail,
-					EmailProvider: domain.EmailProvider{
-						Kind:               domain.EmailProviderKindSES,
-						RateLimitPerMinute: 20, // This is the minimum
-					},
-				},
-				{
-					ID:   "integration-3",
-					Type: domain.IntegrationTypeEmail,
-					EmailProvider: domain.EmailProvider{
-						Kind:               domain.EmailProviderKindSMTP,
-						RateLimitPerMinute: 50,
-					},
-				},
-			},
-		}
-
-		rate := worker.getMinEmailRateLimit(workspace)
-		assert.Equal(t, 20, rate)
-	})
-
-	t.Run("ignores non-email integrations", func(t *testing.T) {
-		workspace := &domain.Workspace{
-			ID: "workspace-1",
-			Integrations: []domain.Integration{
-				{
-					ID:   "integration-1",
-					Type: domain.IntegrationTypeSupabase,
-				},
-				{
-					ID:   "integration-2",
-					Type: domain.IntegrationTypeEmail,
-					EmailProvider: domain.EmailProvider{
-						Kind:               domain.EmailProviderKindSMTP,
-						RateLimitPerMinute: 30,
-					},
-				},
-			},
-		}
-
-		rate := worker.getMinEmailRateLimit(workspace)
-		assert.Equal(t, 30, rate)
-	})
-}
-
-func TestEmailQueueWorker_DynamicBatchSize(t *testing.T) {
-	t.Run("calculates effective batch size based on rate limit", func(t *testing.T) {
-		// Test the formula: (minRate * 45) / 60
-		testCases := []struct {
-			name              string
-			minRate           int
-			configBatchSize   int
-			expectedBatchSize int
-		}{
-			{"low rate 20/min", 20, 50, 15},      // (20*45)/60 = 15
-			{"medium rate 60/min", 60, 50, 45},   // (60*45)/60 = 45
-			{"high rate 1000/min", 1000, 50, 50}, // (1000*45)/60 = 750, capped at 50
-			{"very low rate 10/min", 10, 50, 7},  // (10*45)/60 = 7
-			{"rate 1/min", 1, 50, 1},             // (1*45)/60 = 0, min is 1
-		}
-
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				// Apply the same formula as in processWorkspace
-				effectiveBatchSize := (tc.minRate * 45) / 60
-				if effectiveBatchSize < 1 {
-					effectiveBatchSize = 1
-				}
-				if effectiveBatchSize > tc.configBatchSize {
-					effectiveBatchSize = tc.configBatchSize
-				}
-
-				assert.Equal(t, tc.expectedBatchSize, effectiveBatchSize)
-			})
-		}
-	})
 }
 
 func TestEmailQueueWorker_ProcessEntry_JITGuardCancelsExitedJourney(t *testing.T) {
@@ -1609,8 +1421,8 @@ func TestEmailQueueWorker_ProcessEntry_JITGuardCancelsExitedJourney(t *testing.T
 
 	worker := NewEmailQueueWorker(mockQueueRepo, mockWorkspaceRepo, mockEmailService, mockMessageHistoryRepo, DefaultWorkerConfig(), mockLogger)
 	worker.automationRepo = mockAutomationRepo
-	worker.ctx = context.Background()
-	worker.processEntry(workspace, entry)
+	worker.initContexts(context.Background())
+	processOne(worker, workspace, entry)
 }
 
 // jitGuardWorker builds a worker + entry flagged with a contact_automation_id, returning
@@ -1655,7 +1467,7 @@ func jitGuardWorker(t *testing.T) (*EmailQueueWorker, *mocks.MockEmailQueueRepos
 
 	worker := NewEmailQueueWorker(mockQueueRepo, mockWorkspaceRepo, mockEmailService, mockMessageHistoryRepo, DefaultWorkerConfig(), mockLogger)
 	worker.automationRepo = mockAutomationRepo
-	worker.ctx = context.Background()
+	worker.initContexts(context.Background())
 	return worker, mockQueueRepo, mockEmailService, mockMessageHistoryRepo, mockAutomationRepo, workspace, entry
 }
 
@@ -1672,7 +1484,7 @@ func TestEmailQueueWorker_ProcessEntry_JITGuardActiveJourneyProceeds(t *testing.
 	mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), workspace.ID, entry.ID).Return(nil)
 	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	worker.processEntry(workspace, entry)
+	processOne(worker, workspace, entry)
 }
 
 // TestEmailQueueWorker_ProcessEntry_JITGuardLookupErrorFailsOpen documents the fail-open
@@ -1688,7 +1500,7 @@ func TestEmailQueueWorker_ProcessEntry_JITGuardLookupErrorFailsOpen(t *testing.T
 	mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), workspace.ID, entry.ID).Return(nil)
 	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	worker.processEntry(workspace, entry)
+	processOne(worker, workspace, entry)
 }
 
 // TestEmailQueueWorker_DeadMailboxIsTerminalOnTheFirstAttempt joins the classifier to
@@ -1743,9 +1555,9 @@ func TestEmailQueueWorker_DeadMailboxIsTerminalOnTheFirstAttempt(t *testing.T) {
 
 	worker := NewEmailQueueWorker(mockQueueRepo, mockWorkspaceRepo, mockEmailService,
 		mockMessageHistoryRepo, DefaultWorkerConfig(), mockLogger)
-	worker.ctx = context.Background()
+	worker.initContexts(context.Background())
 
-	worker.processEntry(workspace, entry)
+	processOne(worker, workspace, entry)
 
 	// A recipient rejection is the recipient's problem, not the provider's, so it must
 	// leave the breaker alone: five dead addresses in a row must not throttle a whole
@@ -1773,7 +1585,7 @@ func TestEmailQueueWorker_RetentionSweep(t *testing.T) {
 		w := NewEmailQueueWorker(queueRepo, workspaceRepo,
 			mocks.NewMockEmailServiceInterface(ctrl), mocks.NewMockMessageHistoryRepository(ctrl),
 			cfg, log)
-		w.ctx = context.Background()
+		w.initContexts(context.Background())
 		// The worker seeds lastCleanupTime so the sweep does not fire during startup;
 		// wind it back so these cases can exercise the sweep itself.
 		w.lastCleanupTime = time.Time{}
@@ -1825,86 +1637,1196 @@ func TestEmailQueueWorker_RetentionSweep(t *testing.T) {
 
 // TestEmailQueueWorker_CircuitOpenCallback covers the signal that stops a campaign when
 // a provider starts refusing everything. It has to fire on the transition, not on the
-// state: the breaker is consulted once per entry, so a large queue would otherwise
-// trigger a pause storm for a single outage.
+// state: every send in flight sees one outage, so a large queue would otherwise trigger
+// a pause storm for it.
 func TestEmailQueueWorker_CircuitOpenCallback(t *testing.T) {
-	newWorker := func(t *testing.T, threshold int) (*EmailQueueWorker, *[]string) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		log := pkgmocks.NewMockLogger(ctrl)
-		log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
-		log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
-		log.EXPECT().Debug(gomock.Any()).AnyTimes()
-		log.EXPECT().Info(gomock.Any()).AnyTimes()
-		log.EXPECT().Warn(gomock.Any()).AnyTimes()
-		log.EXPECT().Error(gomock.Any()).AnyTimes()
-
+	newLane := func(t *testing.T, threshold, rows int) (*laneTest, *recorder, *atomic.Int32) {
 		cfg := DefaultWorkerConfig()
 		cfg.CircuitBreakerThreshold = threshold
+		cfg.CircuitBreakerCooldown = 50 * time.Millisecond
+		lt := newLaneTest(t, cfg, queuedRows("intg-1", rows)...)
 
-		queueRepo := mocks.NewMockEmailQueueRepository(ctrl)
-		queueRepo.EXPECT().MarkAsProcessing(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		queueRepo.EXPECT().MarkAsFailed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		queueRepo.EXPECT().MarkAsPermanentlyFailed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		queueRepo.EXPECT().SetNextRetry(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		sends := &atomic.Int32{}
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(context.Context, domain.SendEmailProviderRequest, bool) error {
+				sends.Add(1)
+				return errors.New("message rejected with code 452: 4.3.1 quota exceeded")
+			}).AnyTimes()
 
-		emailSvc := mocks.NewMockEmailServiceInterface(ctrl)
-		emailSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
-			Return(errors.New("message rejected with code 452: 4.3.1 quota exceeded")).AnyTimes()
-
-		historyRepo := mocks.NewMockMessageHistoryRepository(ctrl)
-		historyRepo.EXPECT().Upsert(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-
-		w := NewEmailQueueWorker(queueRepo, mocks.NewMockWorkspaceRepository(ctrl), emailSvc, historyRepo, cfg, log)
-		w.ctx = context.Background()
-
-		var opened []string
-		w.SetCircuitOpenCallback(func(workspaceID, integrationID string, _ *emailerror.ClassifiedError) {
-			opened = append(opened, workspaceID+"/"+integrationID)
+		opened := &recorder{}
+		lt.w.SetCircuitOpenCallback(func(workspaceID, integrationID string, _ *emailerror.ClassifiedError) {
+			opened.add(workspaceID + "/" + integrationID)
 		})
-		return w, &opened
+		return lt, opened, sends
 	}
 
-	workspace := &domain.Workspace{
-		ID: "ws-1",
-		Integrations: []domain.Integration{{
-			ID: "intg-1",
-			EmailProvider: domain.EmailProvider{
-				Kind:               domain.EmailProviderKindSMTP,
-				RateLimitPerMinute: 6000,
-			},
-		}},
-	}
-	entry := func(id string) *domain.EmailQueueEntry {
-		return &domain.EmailQueueEntry{
-			ID: id, Status: domain.EmailQueueStatusPending,
-			SourceType: domain.EmailQueueSourceBroadcast, SourceID: "bc-1",
-			IntegrationID: "intg-1", ContactEmail: "a@b.com", MessageID: "m-" + id,
-			Attempts: 0, MaxAttempts: 3,
-		}
+	workspace := &domain.Workspace{ID: "ws-1", Integrations: []domain.Integration{
+		emailIntegration("intg-1", domain.EmailProviderKindSMTP, 6000),
+	}}
+	round := func(t *testing.T, lt *laneTest) {
+		within(t, 5*time.Second, func() { lt.w.processWorkspace(workspace) })
 	}
 
 	t.Run("fires once when the circuit opens, not per entry", func(t *testing.T) {
-		w, opened := newWorker(t, 3)
+		lt, opened, sends := newLane(t, 3, 8)
 
-		for i := 0; i < 8; i++ {
-			w.processEntry(workspace, entry(fmt.Sprintf("e-%d", i)))
-		}
+		round(t, lt)
 
-		// Entries after the third are skipped by the open breaker, so they never
+		// Entries after the third are left queued by the open breaker, so they never
 		// reach the provider and never record another failure.
-		assert.Equal(t, []string{"ws-1/intg-1"}, *opened)
+		assert.Equal(t, []string{"ws-1/intg-1"}, opened.list())
+		assert.Equal(t, int32(3), sends.Load())
+	})
+
+	t.Run("fires again when the probe fails after the cooldown", func(t *testing.T) {
+		lt, opened, sends := newLane(t, 3, 8)
+
+		round(t, lt)
+		time.Sleep(60 * time.Millisecond)
+		round(t, lt)
+
+		assert.Equal(t, []string{"ws-1/intg-1", "ws-1/intg-1"}, opened.list())
+		assert.Equal(t, int32(4), sends.Load(), "one probe after the cooldown")
 	})
 
 	t.Run("an unset callback leaves the breaker throttling silently", func(t *testing.T) {
-		w, _ := newWorker(t, 2)
-		w.SetCircuitOpenCallback(nil)
+		lt, _, _ := newLane(t, 2, 4)
+		lt.w.SetCircuitOpenCallback(nil)
 
-		for i := 0; i < 4; i++ {
-			w.processEntry(workspace, entry(fmt.Sprintf("e-%d", i)))
+		round(t, lt)
+
+		assert.True(t, lt.w.circuitBreaker.IsOpen("intg-1"))
+	})
+}
+
+// processOne sends one row the way a lane does once the row's token is due.
+func processOne(w *EmailQueueWorker, workspace *domain.Workspace, entry *domain.EmailQueueEntry) *emailerror.ClassifiedError {
+	return w.processEntry(workspace, workspace.GetIntegrationByID(entry.IntegrationID), entry, nil)
+}
+
+// quietLogger accepts every log call.
+func quietLogger(ctrl *gomock.Controller) *pkgmocks.MockLogger {
+	log := pkgmocks.NewMockLogger(ctrl)
+	log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+	log.EXPECT().Debug(gomock.Any()).AnyTimes()
+	log.EXPECT().Info(gomock.Any()).AnyTimes()
+	log.EXPECT().Warn(gomock.Any()).AnyTimes()
+	log.EXPECT().Error(gomock.Any()).AnyTimes()
+	return log
+}
+
+func emailIntegration(id string, kind domain.EmailProviderKind, ratePerMinute int) domain.Integration {
+	return domain.Integration{
+		ID:            id,
+		Type:          domain.IntegrationTypeEmail,
+		EmailProvider: domain.EmailProvider{Kind: kind, RateLimitPerMinute: ratePerMinute},
+	}
+}
+
+// queuedRows returns n pending broadcast rows of one integration, oldest first.
+func queuedRows(integrationID string, n int) []*domain.EmailQueueEntry {
+	rows := make([]*domain.EmailQueueEntry, n)
+	for i := range rows {
+		id := fmt.Sprintf("%s-row-%03d", integrationID, i)
+		rows[i] = &domain.EmailQueueEntry{
+			ID:            id,
+			Status:        domain.EmailQueueStatusPending,
+			SourceType:    domain.EmailQueueSourceBroadcast,
+			SourceID:      "bc-1",
+			IntegrationID: integrationID,
+			ContactEmail:  id + "@example.com",
+			MessageID:     "msg-" + id,
+			MaxAttempts:   3,
+		}
+	}
+	return rows
+}
+
+// throttled is what SES answers above the account's sending rate: a provider error.
+var throttled = errors.New("ThrottlingException: Maximum sending rate exceeded")
+
+// fakeQueue keeps queue rows in memory behind the repository mock. Claims are
+// exclusive, as MarkAsProcessing's conditional update makes them, and every call is
+// counted per row.
+type fakeQueue struct {
+	mu       sync.Mutex
+	rows     []*domain.EmailQueueEntry
+	fetches  map[string][]int // integration ID -> the limit of each fetch
+	claims   map[string]int
+	sent     map[string]int
+	failed   map[string]int
+	ctxErrs  []error // the context error of every outcome written
+	takenBy  map[string]bool
+	onFailed func(id string)
+}
+
+func newFakeQueue(rows ...*domain.EmailQueueEntry) *fakeQueue {
+	return &fakeQueue{
+		rows:    rows,
+		fetches: map[string][]int{},
+		claims:  map[string]int{},
+		sent:    map[string]int{},
+		failed:  map[string]int{},
+		takenBy: map[string]bool{},
+	}
+}
+
+func (q *fakeQueue) wire(m *mocks.MockEmailQueueRepository) {
+	m.EXPECT().FetchPendingForIntegration(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, integrationID string, limit int) ([]*domain.EmailQueueEntry, error) {
+			q.mu.Lock()
+			defer q.mu.Unlock()
+			q.fetches[integrationID] = append(q.fetches[integrationID], limit)
+			var due []*domain.EmailQueueEntry
+			for _, row := range q.rows {
+				if len(due) == limit {
+					break
+				}
+				if row.IntegrationID == integrationID && row.Status == domain.EmailQueueStatusPending {
+					copied := *row
+					due = append(due, &copied)
+				}
+			}
+			return due, nil
+		}).AnyTimes()
+	m.EXPECT().FetchPendingOrphans(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+	m.EXPECT().MarkAsProcessing(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, id string) error {
+			q.mu.Lock()
+			defer q.mu.Unlock()
+			row := q.find(id)
+			if row == nil || row.Status != domain.EmailQueueStatusPending || q.takenBy[id] {
+				return fmt.Errorf("entry %s is not claimable", id)
+			}
+			row.Status = domain.EmailQueueStatusProcessing
+			row.Attempts++
+			q.claims[id]++
+			return nil
+		}).AnyTimes()
+	m.EXPECT().MarkAsSent(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ string, id string) error {
+			q.mu.Lock()
+			defer q.mu.Unlock()
+			q.sent[id]++
+			q.ctxErrs = append(q.ctxErrs, ctx.Err())
+			for i, row := range q.rows {
+				if row.ID == id {
+					q.rows = append(q.rows[:i], q.rows[i+1:]...)
+					break
+				}
+			}
+			return nil
+		}).AnyTimes()
+	m.EXPECT().MarkAsFailed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ string, id string, _ string, _ *time.Time) error {
+			return q.fail(ctx, id)
+		}).AnyTimes()
+	m.EXPECT().MarkAsPermanentlyFailed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ string, id string, _ string) error {
+			return q.fail(ctx, id)
+		}).AnyTimes()
+}
+
+// find returns the row with that ID. Callers hold q.mu.
+func (q *fakeQueue) find(id string) *domain.EmailQueueEntry {
+	for _, row := range q.rows {
+		if row.ID == id {
+			return row
+		}
+	}
+	return nil
+}
+
+func (q *fakeQueue) fail(ctx context.Context, id string) error {
+	if q.onFailed != nil {
+		q.onFailed(id)
+	}
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if row := q.find(id); row != nil {
+		row.Status = domain.EmailQueueStatusFailed
+	}
+	q.failed[id]++
+	q.ctxErrs = append(q.ctxErrs, ctx.Err())
+	return nil
+}
+
+func (q *fakeQueue) fetchLimits(integrationID string) []int {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return append([]int(nil), q.fetches[integrationID]...)
+}
+
+// count sums a counter over the rows of one integration ("" for all).
+func (q *fakeQueue) count(counter func(*fakeQueue) map[string]int, integrationID string) int {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	total := 0
+	for id, n := range counter(q) {
+		if integrationID == "" || strings.HasPrefix(id, integrationID+"-row-") {
+			total += n
+		}
+	}
+	return total
+}
+
+func (q *fakeQueue) claimCount(integrationID string) int {
+	return q.count(func(q *fakeQueue) map[string]int { return q.claims }, integrationID)
+}
+
+func (q *fakeQueue) sentCount(integrationID string) int {
+	return q.count(func(q *fakeQueue) map[string]int { return q.sent }, integrationID)
+}
+
+func (q *fakeQueue) failedCount(integrationID string) int {
+	return q.count(func(q *fakeQueue) map[string]int { return q.failed }, integrationID)
+}
+
+func (q *fakeQueue) perRow(counter func(*fakeQueue) map[string]int, id string) int {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return counter(q)[id]
+}
+
+// pending counts the rows still waiting to be sent.
+func (q *fakeQueue) pending() int {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	n := 0
+	for _, row := range q.rows {
+		if row.Status == domain.EmailQueueStatusPending {
+			n++
+		}
+	}
+	return n
+}
+
+func (q *fakeQueue) writeCtxErrs() []error {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return append([]error(nil), q.ctxErrs...)
+}
+
+type laneTest struct {
+	w             *EmailQueueWorker
+	queue         *fakeQueue
+	workspaceRepo *mocks.MockWorkspaceRepository
+	email         *mocks.MockEmailServiceInterface
+	automation    *mocks.MockAutomationRepository
+
+	historyMu      sync.Mutex
+	historyCtxErrs []error
+}
+
+// newLaneTest builds a worker over a fake queue, with the contexts Start sets but no
+// loop running, so that a test can drive rounds itself or call Start.
+func newLaneTest(t *testing.T, cfg *EmailQueueWorkerConfig, rows ...*domain.EmailQueueEntry) *laneTest {
+	t.Helper()
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	lt := &laneTest{
+		queue:         newFakeQueue(rows...),
+		workspaceRepo: mocks.NewMockWorkspaceRepository(ctrl),
+		email:         mocks.NewMockEmailServiceInterface(ctrl),
+		automation:    mocks.NewMockAutomationRepository(ctrl),
+	}
+	queueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	lt.queue.wire(queueRepo)
+	history := mocks.NewMockMessageHistoryRepository(ctrl)
+	history.EXPECT().Upsert(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _, _ string, _ *domain.MessageHistory) error {
+			lt.historyMu.Lock()
+			defer lt.historyMu.Unlock()
+			lt.historyCtxErrs = append(lt.historyCtxErrs, ctx.Err())
+			return nil
+		}).AnyTimes()
+
+	lt.w = NewEmailQueueWorker(queueRepo, lt.workspaceRepo, lt.email, history, cfg, quietLogger(ctrl))
+	lt.w.initContexts(context.Background())
+	return lt
+}
+
+func (lt *laneTest) historyErrs() []error {
+	lt.historyMu.Lock()
+	defer lt.historyMu.Unlock()
+	return append([]error(nil), lt.historyCtxErrs...)
+}
+
+// within runs fn, fails the test if it takes longer than limit, and returns how long it took.
+func within(t *testing.T, limit time.Duration, fn func()) time.Duration {
+	t.Helper()
+	start := time.Now()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		fn()
+	}()
+	select {
+	case <-done:
+	case <-time.After(limit):
+		t.Fatalf("still running after %s", limit)
+	}
+	return time.Since(start)
+}
+
+// openCircuit records provider failures until the integration's circuit opens.
+func openCircuit(t *testing.T, w *EmailQueueWorker, integrationID string) {
+	t.Helper()
+	for i := 0; i < 100 && !w.circuitBreaker.IsOpen(integrationID); i++ {
+		ticket, ok := w.circuitBreaker.Allow(integrationID)
+		require.True(t, ok)
+		w.circuitBreaker.RecordFailure(integrationID, ticket, providerErr)
+	}
+	require.True(t, w.circuitBreaker.IsOpen(integrationID))
+}
+
+// inFlight tracks the sends in progress per integration, and the most seen at once.
+type inFlight struct {
+	mu   sync.Mutex
+	now  map[string]int
+	peak map[string]int
+}
+
+func newInFlight() *inFlight {
+	return &inFlight{now: map[string]int{}, peak: map[string]int{}}
+}
+
+func (f *inFlight) enter(integrationID string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.now[integrationID]++
+	if f.now[integrationID] > f.peak[integrationID] {
+		f.peak[integrationID] = f.now[integrationID]
+	}
+}
+
+func (f *inFlight) leave(integrationID string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.now[integrationID]--
+}
+
+func (f *inFlight) current(integrationID string) int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.now[integrationID]
+}
+
+func (f *inFlight) max(integrationID string) int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.peak[integrationID]
+}
+
+// recorder keeps the order in which things happened across goroutines.
+type recorder struct {
+	mu     sync.Mutex
+	events []string
+}
+
+func (r *recorder) add(event string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.events = append(r.events, event)
+}
+
+func (r *recorder) list() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.events...)
+}
+
+func TestLaneBatchSize(t *testing.T) {
+	cases := []struct {
+		name string
+		rate int
+		want int
+	}{
+		{"3,600/min fills two seconds", 3600, 120},
+		{"25/min still fetches one row", 25, 1},
+		{"6,000/min reaches the cap", 6000, 200},
+		{"above 6,000/min stays at the cap", 50000, 200},
+		{"rounds up", 61, 3},
+		{"unset means 60/min", 0, 2},
+		{"negative means 60/min", -5, 2},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, laneBatchSize(tc.rate, 2*time.Second, 200))
+		})
+	}
+
+	t.Run("follows the round window", func(t *testing.T) {
+		assert.Equal(t, 30, laneBatchSize(3600, 500*time.Millisecond, 200))
+	})
+}
+
+func TestEmailQueueWorker_Lane(t *testing.T) {
+	t.Run("each row is claimed and sent exactly once across rounds", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.PollInterval = 10 * time.Millisecond
+		cfg.RoundWindow = 200 * time.Millisecond
+		rows := queuedRows("ses-1", 50)
+		lt := newLaneTest(t, cfg, rows...)
+		workspace := &domain.Workspace{ID: "ws-1", Integrations: []domain.Integration{
+			emailIntegration("ses-1", domain.EmailProviderKindSES, 6000),
+		}}
+		lt.workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{workspace}, nil).AnyTimes()
+
+		var sendsMu sync.Mutex
+		sends := map[string]int{}
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+				time.Sleep(5 * time.Millisecond)
+				sendsMu.Lock()
+				defer sendsMu.Unlock()
+				sends[req.MessageID]++
+				return nil
+			}).AnyTimes()
+
+		require.NoError(t, lt.w.Start(context.Background()))
+		require.Eventually(t, func() bool { return lt.queue.sentCount("") == len(rows) }, 10*time.Second, 10*time.Millisecond)
+		lt.w.Stop()
+
+		sendsMu.Lock()
+		defer sendsMu.Unlock()
+		for _, row := range rows {
+			assert.Equal(t, 1, lt.queue.perRow(func(q *fakeQueue) map[string]int { return q.claims }, row.ID), row.ID)
+			assert.Equal(t, 1, lt.queue.perRow(func(q *fakeQueue) map[string]int { return q.sent }, row.ID), row.ID)
+			assert.Equal(t, 1, sends[row.MessageID], row.ID)
+		}
+		// 6,000/min over a 200 ms round is 20 rows per fetch, so the queue took
+		// several rounds.
+		limits := lt.queue.fetchLimits("ses-1")
+		assert.GreaterOrEqual(t, len(limits), 3)
+		for _, limit := range limits {
+			assert.Equal(t, 20, limit)
+		}
+	})
+
+	t.Run("sends at most the integration's concurrency at once, and reaches it", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.SendConcurrency = 4
+		lt := newLaneTest(t, cfg, append(queuedRows("ses-1", 8), queuedRows("smtp-1", 8)...)...)
+		workspace := &domain.Workspace{ID: "ws-1", Integrations: []domain.Integration{
+			emailIntegration("ses-1", domain.EmailProviderKindSES, 6000),
+			emailIntegration("smtp-1", domain.EmailProviderKindSMTP, 6000),
+		}}
+
+		flight := newInFlight()
+		release := make(chan struct{})
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+				flight.enter(req.IntegrationID)
+				defer flight.leave(req.IntegrationID)
+				<-release
+				return nil
+			}).AnyTimes()
+
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			lt.w.processWorkspace(workspace)
+		}()
+
+		require.Eventually(t, func() bool {
+			return flight.current("ses-1") == 4 && flight.current("smtp-1") == 1
+		}, 2*time.Second, 5*time.Millisecond)
+		// Long enough for a fifth send to start if the bound leaked.
+		time.Sleep(100 * time.Millisecond)
+		assert.Equal(t, 4, flight.current("ses-1"))
+		assert.Equal(t, 1, flight.current("smtp-1"))
+
+		close(release)
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatal("round did not end")
+		}
+		assert.Equal(t, 4, flight.max("ses-1"))
+		assert.Equal(t, 1, flight.max("smtp-1"))
+		assert.Equal(t, 8, lt.queue.sentCount("ses-1"))
+		assert.Equal(t, 8, lt.queue.sentCount("smtp-1"))
+	})
+
+	t.Run("no second fetch while a send of the round is in flight", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.PollInterval = 10 * time.Millisecond
+		lt := newLaneTest(t, cfg, queuedRows("ses-1", 1)...)
+		workspace := &domain.Workspace{ID: "ws-1", Integrations: []domain.Integration{
+			emailIntegration("ses-1", domain.EmailProviderKindSES, 6000),
+		}}
+		lt.workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{workspace}, nil).AnyTimes()
+
+		started := make(chan struct{})
+		release := make(chan struct{})
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(context.Context, domain.SendEmailProviderRequest, bool) error {
+				close(started)
+				<-release
+				return nil
+			})
+
+		require.NoError(t, lt.w.Start(context.Background()))
+		<-started
+		time.Sleep(200 * time.Millisecond) // twenty poll intervals
+		assert.Len(t, lt.queue.fetchLimits("ses-1"), 1)
+		close(release)
+		require.Eventually(t, func() bool { return lt.queue.sentCount("") == 1 }, 2*time.Second, 5*time.Millisecond)
+		lt.w.Stop()
+	})
+
+	t.Run("claims only the rows whose token falls within the round", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		queueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+		emailSvc := mocks.NewMockEmailServiceInterface(ctrl)
+		history := mocks.NewMockMessageHistoryRepository(ctrl)
+		history.EXPECT().Upsert(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+		// 50/min: tokens 1.2 s apart, so two fall within a 2 s round. The fetch returns
+		// more rows than asked for, to show the rate, not the fetch, bounds the claims.
+		rows := queuedRows("smtp-1", 5)
+		queueRepo.EXPECT().FetchPendingForIntegration(gomock.Any(), "ws-1", "smtp-1", 2).Return(rows, nil)
+		queueRepo.EXPECT().FetchPendingOrphans(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+		for _, row := range rows[:2] {
+			queueRepo.EXPECT().MarkAsProcessing(gomock.Any(), "ws-1", row.ID).Return(nil)
+			queueRepo.EXPECT().MarkAsSent(gomock.Any(), "ws-1", row.ID).Return(nil)
+		}
+		// No MarkAsProcessing is expected for the other rows: gomock fails on any.
+		emailSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil).Times(2)
+
+		w := NewEmailQueueWorker(queueRepo, mocks.NewMockWorkspaceRepository(ctrl), emailSvc, history,
+			DefaultWorkerConfig(), quietLogger(ctrl))
+		w.initContexts(context.Background())
+		within(t, 5*time.Second, func() {
+			w.processWorkspace(&domain.Workspace{ID: "ws-1", Integrations: []domain.Integration{
+				emailIntegration("smtp-1", domain.EmailProviderKindSMTP, 50),
+			}})
+		})
+	})
+
+	t.Run("stops dispatching at the deadline when sends are slower than the rate", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.RoundWindow = 500 * time.Millisecond
+		lt := newLaneTest(t, cfg, queuedRows("smtp-1", 20)...)
+		const sendTime = 100 * time.Millisecond
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(context.Context, domain.SendEmailProviderRequest, bool) error {
+				time.Sleep(sendTime)
+				return nil
+			}).AnyTimes()
+
+		// 2,400/min allows 20 rows in a 500 ms round, but one SMTP connection at
+		// 100 ms per email can only send about five.
+		took := within(t, 5*time.Second, func() {
+			lt.w.processWorkspace(&domain.Workspace{ID: "ws-1", Integrations: []domain.Integration{
+				emailIntegration("smtp-1", domain.EmailProviderKindSMTP, 2400),
+			}})
+		})
+
+		assert.Equal(t, []int{20}, lt.queue.fetchLimits("smtp-1"))
+		claimed := lt.queue.claimCount("smtp-1")
+		assert.GreaterOrEqual(t, claimed, 3)
+		assert.LessOrEqual(t, claimed, 6)
+		assert.Equal(t, 20-claimed, lt.queue.pending(), "the rows not dispatched are left untouched")
+		assert.Less(t, took, cfg.RoundWindow+sendTime+200*time.Millisecond)
+	})
+
+	t.Run("a fetch slower than the round window still sends what it fetched", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		queueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+		emailSvc := mocks.NewMockEmailServiceInterface(ctrl)
+		history := mocks.NewMockMessageHistoryRepository(ctrl)
+		history.EXPECT().Upsert(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+		rows := queuedRows("ses-1", 3)
+		queueRepo.EXPECT().FetchPendingForIntegration(gomock.Any(), "ws-1", "ses-1", gomock.Any()).
+			DoAndReturn(func(context.Context, string, string, int) ([]*domain.EmailQueueEntry, error) {
+				time.Sleep(300 * time.Millisecond)
+				return rows, nil
+			})
+		queueRepo.EXPECT().FetchPendingOrphans(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+		for _, row := range rows {
+			queueRepo.EXPECT().MarkAsProcessing(gomock.Any(), "ws-1", row.ID).Return(nil)
+			queueRepo.EXPECT().MarkAsSent(gomock.Any(), "ws-1", row.ID).Return(nil)
+		}
+		emailSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil).Times(len(rows))
+
+		cfg := DefaultWorkerConfig()
+		cfg.RoundWindow = 200 * time.Millisecond
+		w := NewEmailQueueWorker(queueRepo, mocks.NewMockWorkspaceRepository(ctrl), emailSvc, history, cfg, quietLogger(ctrl))
+		w.initContexts(context.Background())
+		within(t, 5*time.Second, func() {
+			w.processWorkspace(&domain.Workspace{ID: "ws-1", Integrations: []domain.Integration{
+				emailIntegration("ses-1", domain.EmailProviderKindSES, 6000),
+			}})
+		})
+	})
+
+	t.Run("an integration without a rate limit sends at 60 per minute", func(t *testing.T) {
+		lt := newLaneTest(t, DefaultWorkerConfig(), queuedRows("smtp-1", 1)...)
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
+
+		within(t, 5*time.Second, func() {
+			lt.w.processWorkspace(&domain.Workspace{ID: "ws-1", Integrations: []domain.Integration{
+				emailIntegration("smtp-1", domain.EmailProviderKindSMTP, 0),
+			}})
+		})
+
+		assert.Equal(t, []int{2}, lt.queue.fetchLimits("smtp-1"))
+		assert.InDelta(t, 1.0, lt.w.rateLimiter.GetCurrentRate("smtp-1"), 0.001)
+		assert.Equal(t, 1, lt.queue.sentCount("smtp-1"))
+	})
+
+	t.Run("sends concurrently", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.PollInterval = 10 * time.Millisecond
+		rows := queuedRows("ses-1", 100)
+		lt := newLaneTest(t, cfg, rows...)
+		workspace := &domain.Workspace{ID: "ws-1", Integrations: []domain.Integration{
+			emailIntegration("ses-1", domain.EmailProviderKindSES, 6000),
+		}}
+		lt.workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{workspace}, nil).AnyTimes()
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(context.Context, domain.SendEmailProviderRequest, bool) error {
+				time.Sleep(50 * time.Millisecond)
+				return nil
+			}).AnyTimes()
+
+		start := time.Now()
+		require.NoError(t, lt.w.Start(context.Background()))
+		require.Eventually(t, func() bool { return lt.queue.sentCount("") == len(rows) }, 10*time.Second, 10*time.Millisecond)
+		took := time.Since(start)
+		lt.w.Stop()
+
+		// One at a time, 100 sends of 50 ms take 5 s.
+		assert.Less(t, took, 3*time.Second)
+	})
+}
+
+func TestEmailQueueWorker_LaneCircuit(t *testing.T) {
+	sesWorkspace := func(integrationIDs ...string) *domain.Workspace {
+		ws := &domain.Workspace{ID: "ws-1"}
+		for _, id := range integrationIDs {
+			ws.Integrations = append(ws.Integrations, emailIntegration(id, domain.EmailProviderKindSES, 6000))
+		}
+		return ws
+	}
+
+	t.Run("an open circuit leaves its rows alone while another integration sends", func(t *testing.T) {
+		lt := newLaneTest(t, DefaultWorkerConfig(), append(queuedRows("ses-1", 3), queuedRows("ses-2", 3)...)...)
+		openCircuit(t, lt.w, "ses-1")
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+				assert.Equal(t, "ses-2", req.IntegrationID)
+				return nil
+			}).AnyTimes()
+
+		within(t, 5*time.Second, func() { lt.w.processWorkspace(sesWorkspace("ses-1", "ses-2")) })
+
+		assert.Empty(t, lt.queue.fetchLimits("ses-1"), "no fetch while the circuit is open")
+		assert.Zero(t, lt.queue.claimCount("ses-1"))
+		assert.Zero(t, lt.queue.failedCount("ses-1"))
+		assert.Equal(t, 3, lt.queue.sentCount("ses-2"))
+	})
+
+	t.Run("after the cooldown one row is sent as the probe, then the lane resumes", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.CircuitBreakerCooldown = 50 * time.Millisecond
+		lt := newLaneTest(t, cfg, queuedRows("ses-1", 3)...)
+		openCircuit(t, lt.w, "ses-1")
+		time.Sleep(60 * time.Millisecond)
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil).AnyTimes()
+
+		within(t, 5*time.Second, func() { lt.w.processWorkspace(sesWorkspace("ses-1")) })
+		assert.Equal(t, []int{1}, lt.queue.fetchLimits("ses-1"))
+		assert.Equal(t, 1, lt.queue.sentCount("ses-1"))
+		assert.False(t, lt.w.circuitBreaker.IsOpen("ses-1"), "the probe's success closes the circuit")
+
+		within(t, 5*time.Second, func() { lt.w.processWorkspace(sesWorkspace("ses-1")) })
+		assert.Equal(t, []int{1, 200}, lt.queue.fetchLimits("ses-1"))
+		assert.Equal(t, 3, lt.queue.sentCount("ses-1"))
+	})
+
+	t.Run("a probe that is not sent is given back", func(t *testing.T) {
+		caID := "ca-1"
+		automationRow := func() *domain.EmailQueueEntry {
+			row := queuedRows("ses-1", 1)[0]
+			row.SourceType = domain.EmailQueueSourceAutomation
+			row.Payload.ContactAutomationID = &caID
+			return row
 		}
 
-		assert.True(t, w.circuitBreaker.IsOpen("intg-1"))
+		cases := []struct {
+			name  string
+			rows  []*domain.EmailQueueEntry
+			setup func(t *testing.T, lt *laneTest)
+		}{
+			{
+				name: "the fetch finds nothing",
+			},
+			{
+				name: "another instance claimed the row",
+				rows: queuedRows("ses-1", 1),
+				setup: func(_ *testing.T, lt *laneTest) {
+					lt.queue.takenBy["ses-1-row-000"] = true
+				},
+			},
+			{
+				name: "the stop-on-reply guard removes the row",
+				rows: []*domain.EmailQueueEntry{automationRow()},
+				setup: func(_ *testing.T, lt *laneTest) {
+					lt.w.SetAutomationRepo(lt.automation)
+					lt.automation.EXPECT().GetContactAutomation(gomock.Any(), "ws-1", caID).
+						Return(&domain.ContactAutomation{ID: caID, Status: domain.ContactAutomationStatusExited}, nil)
+				},
+			},
+			{
+				name: "a stop ends the wait for its token",
+				rows: queuedRows("ses-1", 1),
+				setup: func(t *testing.T, lt *laneTest) {
+					// Spend the banked token so that the probe's is a second away.
+					_, _, ok := lt.w.rateLimiter.ReserveBefore("ses-1", 60, time.Now().Add(time.Minute))
+					require.True(t, ok)
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						lt.w.cancel()
+					}()
+				},
+			},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				cfg := DefaultWorkerConfig()
+				cfg.CircuitBreakerCooldown = 50 * time.Millisecond
+				lt := newLaneTest(t, cfg, tc.rows...)
+				if tc.setup != nil {
+					tc.setup(t, lt)
+				}
+				openCircuit(t, lt.w, "ses-1")
+				time.Sleep(60 * time.Millisecond)
+
+				workspace := &domain.Workspace{ID: "ws-1", Integrations: []domain.Integration{
+					emailIntegration("ses-1", domain.EmailProviderKindSES, 60),
+				}}
+				within(t, 5*time.Second, func() { lt.w.processWorkspace(workspace) })
+
+				assert.Equal(t, []int{1}, lt.queue.fetchLimits("ses-1"))
+				assert.True(t, lt.w.circuitBreaker.IsOpen("ses-1"), "nothing reached the provider")
+				assert.False(t, lt.w.GetCircuitBreakerStats()["ses-1"].ProbeInFlight)
+				ticket, ok := lt.w.circuitBreaker.Allow("ses-1")
+				assert.True(t, ok, "the next round probes without another cooldown")
+				assert.True(t, ticket.Probe)
+			})
+		}
+	})
+
+	t.Run("failures that open the circuit end the round, and rows waiting for their token are not claimed", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.CircuitBreakerThreshold = 3
+		lt := newLaneTest(t, cfg, queuedRows("ses-1", 30)...)
+
+		var sends atomic.Int32
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(context.Context, domain.SendEmailProviderRequest, bool) error {
+				sends.Add(1)
+				return throttled
+			}).AnyTimes()
+		var opened atomic.Int32
+		lt.w.SetCircuitOpenCallback(func(string, string, *emailerror.ClassifiedError) { opened.Add(1) })
+
+		// 3,000/min: one token every 20 ms, so the rows dispatched after the first
+		// three are still waiting for theirs when the third failure opens the circuit.
+		workspace := &domain.Workspace{ID: "ws-1", Integrations: []domain.Integration{
+			emailIntegration("ses-1", domain.EmailProviderKindSES, 3000),
+		}}
+		within(t, 5*time.Second, func() { lt.w.processWorkspace(workspace) })
+
+		assert.Equal(t, int32(3), sends.Load())
+		assert.Equal(t, 3, lt.queue.claimCount("ses-1"))
+		assert.Equal(t, 27, lt.queue.pending())
+		assert.Equal(t, int32(1), opened.Load())
+	})
+
+	t.Run("the pause comes after the outcome of every send that was in flight", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.CircuitBreakerThreshold = 3
+		cfg.SendConcurrency = 4
+		rows := queuedRows("ses-1", 10)
+		lt := newLaneTest(t, cfg, rows...)
+
+		// The four sends in flight fail 10 ms apart, so the third opens the circuit,
+		// and the fourth is the slowest to record its outcome. A pause called by the
+		// send that opened the circuit would come before that outcome. Every outcome
+		// takes long enough that no slot frees up before the circuit opens.
+		order := map[string]int{}
+		for i, row := range rows {
+			order[row.MessageID] = i
+		}
+		events := &recorder{}
+		lt.queue.onFailed = func(id string) {
+			time.Sleep(40 * time.Millisecond)
+			if id == rows[3].ID {
+				time.Sleep(60 * time.Millisecond)
+			}
+			events.add("failed " + id)
+		}
+		lt.w.SetCircuitOpenCallback(func(string, string, *emailerror.ClassifiedError) { events.add("pause") })
+
+		flight := newInFlight()
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+				flight.enter(req.IntegrationID)
+				for flight.max(req.IntegrationID) < 4 {
+					time.Sleep(time.Millisecond)
+				}
+				time.Sleep(time.Duration(order[req.MessageID]) * 10 * time.Millisecond)
+				return throttled
+			}).AnyTimes()
+
+		within(t, 5*time.Second, func() { lt.w.processWorkspace(sesWorkspace("ses-1")) })
+
+		got := events.list()
+		require.Len(t, got, 5)
+		for _, event := range got[:4] {
+			assert.True(t, strings.HasPrefix(event, "failed "), event)
+		}
+		assert.Equal(t, "pause", got[4])
+		assert.Equal(t, 4, lt.queue.claimCount("ses-1"), "nothing is dispatched after the opening")
+	})
+
+	t.Run("a send allowed before the opening that succeeds after it leaves the circuit open", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.CircuitBreakerThreshold = 3
+		cfg.SendConcurrency = 4
+		rows := queuedRows("ses-1", 4)
+		lt := newLaneTest(t, cfg, rows...)
+		var opened atomic.Int32
+		lt.w.SetCircuitOpenCallback(func(string, string, *emailerror.ClassifiedError) { opened.Add(1) })
+
+		flight := newInFlight()
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+				flight.enter(req.IntegrationID)
+				for flight.max(req.IntegrationID) < 4 {
+					time.Sleep(time.Millisecond)
+				}
+				if req.MessageID != rows[3].MessageID {
+					return throttled
+				}
+				for !lt.w.circuitBreaker.IsOpen("ses-1") {
+					time.Sleep(time.Millisecond)
+				}
+				return nil
+			}).AnyTimes()
+
+		within(t, 5*time.Second, func() { lt.w.processWorkspace(sesWorkspace("ses-1")) })
+
+		assert.True(t, lt.w.circuitBreaker.IsOpen("ses-1"))
+		assert.Equal(t, int32(1), opened.Load())
+		assert.Equal(t, 1, lt.queue.sentCount("ses-1"))
+		assert.Equal(t, 3, lt.queue.failedCount("ses-1"))
+	})
+}
+
+func TestEmailQueueWorker_Stop(t *testing.T) {
+	smtpWorkspace := func(id, integrationID string) *domain.Workspace {
+		return &domain.Workspace{ID: id, Integrations: []domain.Integration{
+			emailIntegration(integrationID, domain.EmailProviderKindSMTP, 6000),
+		}}
+	}
+	waitForStop := func(w *EmailQueueWorker) {
+		for w.IsRunning() {
+			time.Sleep(time.Millisecond)
+		}
+	}
+
+	t.Run("a send in flight finishes and is recorded, and no other row is claimed", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.PollInterval = 10 * time.Millisecond
+		lt := newLaneTest(t, cfg, queuedRows("smtp-1", 3)...)
+		lt.workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{smtpWorkspace("ws-1", "smtp-1")}, nil).AnyTimes()
+
+		started := make(chan struct{})
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(ctx context.Context, _ domain.SendEmailProviderRequest, _ bool) error {
+				close(started)
+				waitForStop(lt.w)
+				time.Sleep(50 * time.Millisecond)
+				assert.NoError(t, ctx.Err(), "the stop does not cancel a send")
+				return nil
+			})
+
+		require.NoError(t, lt.w.Start(context.Background()))
+		<-started
+		within(t, 5*time.Second, lt.w.Stop)
+
+		assert.Equal(t, 1, lt.queue.claimCount("smtp-1"))
+		assert.Equal(t, 1, lt.queue.sentCount("smtp-1"))
+		assert.Equal(t, 2, lt.queue.pending())
+		for _, err := range lt.queue.writeCtxErrs() {
+			assert.NoError(t, err)
+		}
+		for _, err := range lt.historyErrs() {
+			assert.NoError(t, err)
+		}
+	})
+
+	t.Run("waits for the workspaces in progress and starts no other", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.PollInterval = 10 * time.Millisecond
+		cfg.WorkerCount = 2
+		var rows []*domain.EmailQueueEntry
+		for _, id := range []string{"smtp-1", "smtp-2", "smtp-3", "smtp-4"} {
+			rows = append(rows, queuedRows(id, 1)...)
+		}
+		lt := newLaneTest(t, cfg, rows...)
+		lt.workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{
+			smtpWorkspace("ws-1", "smtp-1"),
+			smtpWorkspace("ws-2", "smtp-2"),
+			smtpWorkspace("ws-3", "smtp-3"),
+			smtpWorkspace("ws-4", "smtp-4"),
+		}, nil).AnyTimes()
+
+		var started sync.WaitGroup
+		started.Add(2)
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+				started.Done()
+				waitForStop(lt.w)
+				if req.IntegrationID == "smtp-1" {
+					// Still sending well after the other workspace has finished.
+					time.Sleep(200 * time.Millisecond)
+				}
+				return nil
+			}).Times(2)
+
+		require.NoError(t, lt.w.Start(context.Background()))
+		started.Wait()
+		within(t, 5*time.Second, lt.w.Stop)
+
+		assert.Equal(t, 1, lt.queue.sentCount("smtp-1"), "Stop returned before the workspace's send was recorded")
+		assert.Equal(t, 1, lt.queue.sentCount("smtp-2"))
+		assert.Empty(t, lt.queue.fetchLimits("smtp-3"))
+		assert.Empty(t, lt.queue.fetchLimits("smtp-4"))
+	})
+
+	t.Run("a wait for a token ended by Stop claims nothing", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.PollInterval = 10 * time.Millisecond
+		lt := newLaneTest(t, cfg, queuedRows("ses-1", 2)...)
+		lt.workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{{ID: "ws-1", Integrations: []domain.Integration{
+			emailIntegration("ses-1", domain.EmailProviderKindSES, 60),
+		}}}, nil).AnyTimes()
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
+
+		require.NoError(t, lt.w.Start(context.Background()))
+		require.Eventually(t, func() bool { return lt.queue.sentCount("") == 1 }, 2*time.Second, 5*time.Millisecond)
+		// The second row's token is a second away.
+		took := within(t, 5*time.Second, lt.w.Stop)
+
+		assert.Less(t, took, 500*time.Millisecond)
+		assert.Equal(t, 1, lt.queue.claimCount("ses-1"))
+		assert.Equal(t, 1, lt.queue.pending())
+	})
+
+	t.Run("past the grace, sends are cancelled without counting against the provider", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.PollInterval = 10 * time.Millisecond
+		cfg.ShutdownGrace = 100 * time.Millisecond
+		cfg.AbortWait = time.Second
+		cfg.CircuitBreakerThreshold = 3
+		lt := newLaneTest(t, cfg, queuedRows("ses-1", 10)...)
+		lt.workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{{ID: "ws-1", Integrations: []domain.Integration{
+			emailIntegration("ses-1", domain.EmailProviderKindSES, 6000),
+		}}}, nil).AnyTimes()
+		var opened atomic.Int32
+		lt.w.SetCircuitOpenCallback(func(string, string, *emailerror.ClassifiedError) { opened.Add(1) })
+
+		flight := newInFlight()
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(ctx context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+				flight.enter(req.IntegrationID)
+				defer flight.leave(req.IntegrationID)
+				<-ctx.Done()
+				return fmt.Errorf("operation error SES: SendEmail, %w", ctx.Err())
+			}).AnyTimes()
+
+		require.NoError(t, lt.w.Start(context.Background()))
+		require.Eventually(t, func() bool { return flight.current("ses-1") == 10 }, 2*time.Second, 5*time.Millisecond)
+		took := within(t, 5*time.Second, lt.w.Stop)
+
+		assert.Less(t, took, cfg.ShutdownGrace+cfg.AbortWait)
+		assert.Equal(t, 10, lt.queue.claimCount("ses-1"))
+		assert.Zero(t, lt.queue.failedCount("ses-1"), "an aborted send is not a failure")
+		assert.Zero(t, lt.queue.sentCount("ses-1"))
+		assert.False(t, lt.w.circuitBreaker.IsOpen("ses-1"))
+		assert.Zero(t, lt.w.GetCircuitBreakerStats()["ses-1"].Failures)
+		assert.Zero(t, opened.Load())
+	})
+
+	t.Run("a send that ignores cancellation and succeeds is recorded", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.PollInterval = 10 * time.Millisecond
+		cfg.ShutdownGrace = 100 * time.Millisecond
+		cfg.AbortWait = 2 * time.Second
+		lt := newLaneTest(t, cfg, queuedRows("smtp-1", 1)...)
+		lt.workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{smtpWorkspace("ws-1", "smtp-1")}, nil).AnyTimes()
+
+		started := make(chan struct{})
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(context.Context, domain.SendEmailProviderRequest, bool) error {
+				close(started)
+				time.Sleep(300 * time.Millisecond) // like SMTP, deaf to its context
+				return nil
+			})
+
+		require.NoError(t, lt.w.Start(context.Background()))
+		<-started
+		took := within(t, 5*time.Second, lt.w.Stop)
+
+		assert.GreaterOrEqual(t, took, 250*time.Millisecond)
+		assert.Less(t, took, cfg.ShutdownGrace+cfg.AbortWait)
+		assert.Equal(t, 1, lt.queue.sentCount("smtp-1"))
+		require.NotEmpty(t, lt.queue.writeCtxErrs())
+		for _, err := range lt.queue.writeCtxErrs() {
+			assert.NoError(t, err, "the outcome is written on a live context")
+		}
+		require.NotEmpty(t, lt.historyErrs())
+		for _, err := range lt.historyErrs() {
+			assert.NoError(t, err)
+		}
+	})
+
+	t.Run("Stop returns after the grace and AbortWait when a send never ends", func(t *testing.T) {
+		cfg := DefaultWorkerConfig()
+		cfg.PollInterval = 10 * time.Millisecond
+		cfg.ShutdownGrace = 100 * time.Millisecond
+		cfg.AbortWait = 200 * time.Millisecond
+		lt := newLaneTest(t, cfg, queuedRows("smtp-1", 1)...)
+		lt.workspaceRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{smtpWorkspace("ws-1", "smtp-1")}, nil).AnyTimes()
+
+		started := make(chan struct{})
+		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+			DoAndReturn(func(context.Context, domain.SendEmailProviderRequest, bool) error {
+				close(started)
+				time.Sleep(800 * time.Millisecond)
+				return nil
+			})
+
+		require.NoError(t, lt.w.Start(context.Background()))
+		<-started
+		took := within(t, 5*time.Second, lt.w.Stop)
+
+		assert.GreaterOrEqual(t, took, cfg.ShutdownGrace+cfg.AbortWait)
+		assert.Less(t, took, 700*time.Millisecond)
+		assert.Zero(t, lt.queue.sentCount("smtp-1"), "Stop did not wait for the send")
+
+		// When the send does end, its outcome is still written on a live context.
+		require.Eventually(t, func() bool { return lt.queue.sentCount("smtp-1") == 1 }, 2*time.Second, 5*time.Millisecond)
+		for _, err := range lt.queue.writeCtxErrs() {
+			assert.NoError(t, err)
+		}
+		require.Eventually(t, func() bool { return len(lt.historyErrs()) == 1 }, time.Second, 5*time.Millisecond)
+		assert.NoError(t, lt.historyErrs()[0])
+	})
+
+	t.Run("no retention sweep runs after Stop", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		cfg := DefaultWorkerConfig()
+		cfg.PollInterval = 10 * time.Millisecond
+		cfg.CleanupInterval = time.Nanosecond
+
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		listing := make(chan struct{})
+		// The round's listing is still running when Stop is called. A sweep would
+		// list the workspaces a second time.
+		workspaceRepo.EXPECT().List(gomock.Any()).
+			DoAndReturn(func(ctx context.Context) ([]*domain.Workspace, error) {
+				close(listing)
+				<-ctx.Done()
+				return nil, ctx.Err()
+			}).Times(1)
+
+		w := NewEmailQueueWorker(mocks.NewMockEmailQueueRepository(ctrl), workspaceRepo,
+			mocks.NewMockEmailServiceInterface(ctrl), mocks.NewMockMessageHistoryRepository(ctrl),
+			cfg, quietLogger(ctrl))
+		w.lastCleanupTime = time.Time{}
+
+		require.NoError(t, w.Start(context.Background()))
+		<-listing
+		within(t, 5*time.Second, w.Stop)
+	})
+}
+
+func TestEmailQueueWorker_Orphans(t *testing.T) {
+	t.Run("fails rows of unknown and non-email integrations, once per interval", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		queueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+		history := mocks.NewMockMessageHistoryRepository(ctrl)
+		history.EXPECT().Upsert(gomock.Any(), "ws-1", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+		workspace := &domain.Workspace{ID: "ws-1", Integrations: []domain.Integration{
+			emailIntegration("ses-1", domain.EmailProviderKindSES, 6000),
+			{ID: "supabase-1", Type: domain.IntegrationTypeSupabase},
+		}}
+		orphans := []*domain.EmailQueueEntry{
+			{ID: "o-1", Status: domain.EmailQueueStatusPending, IntegrationID: "deleted-1", MaxAttempts: 3},
+			{ID: "o-2", Status: domain.EmailQueueStatusPending, IntegrationID: "supabase-1", MaxAttempts: 3},
+		}
+
+		queueRepo.EXPECT().FetchPendingForIntegration(gomock.Any(), "ws-1", "ses-1", gomock.Any()).Return(nil, nil).Times(3)
+		queueRepo.EXPECT().FetchPendingOrphans(gomock.Any(), "ws-1", []string{"ses-1"}, orphanBatchSize).Return(orphans, nil)
+		queueRepo.EXPECT().FetchPendingOrphans(gomock.Any(), "ws-1", []string{"ses-1"}, orphanBatchSize).Return(nil, nil)
+		for _, orphan := range orphans {
+			queueRepo.EXPECT().MarkAsProcessing(gomock.Any(), "ws-1", orphan.ID).Return(nil)
+			queueRepo.EXPECT().MarkAsFailed(gomock.Any(), "ws-1", orphan.ID, "integration not found: "+orphan.IntegrationID, gomock.Any()).Return(nil)
+		}
+
+		w := NewEmailQueueWorker(queueRepo, mocks.NewMockWorkspaceRepository(ctrl), mocks.NewMockEmailServiceInterface(ctrl),
+			history, DefaultWorkerConfig(), quietLogger(ctrl))
+		w.initContexts(context.Background())
+
+		w.processWorkspace(workspace)
+		w.processWorkspace(workspace) // within the interval: no orphan pass
+
+		w.orphanMu.Lock()
+		w.lastOrphanCheck["ws-1"] = time.Now().Add(-w.config.OrphanCheckInterval)
+		w.orphanMu.Unlock()
+		w.processWorkspace(workspace)
+	})
+
+	t.Run("a full batch is looked at again next round", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		queueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+		history := mocks.NewMockMessageHistoryRepository(ctrl)
+		history.EXPECT().Upsert(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+		full := queuedRows("deleted-1", orphanBatchSize)
+		queueRepo.EXPECT().FetchPendingOrphans(gomock.Any(), "ws-1", []string{}, orphanBatchSize).Return(full, nil)
+		queueRepo.EXPECT().FetchPendingOrphans(gomock.Any(), "ws-1", []string{}, orphanBatchSize).Return(nil, nil)
+		queueRepo.EXPECT().MarkAsProcessing(gomock.Any(), "ws-1", gomock.Any()).Return(nil).Times(len(full))
+		queueRepo.EXPECT().MarkAsFailed(gomock.Any(), "ws-1", gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(len(full))
+
+		w := NewEmailQueueWorker(queueRepo, mocks.NewMockWorkspaceRepository(ctrl), mocks.NewMockEmailServiceInterface(ctrl),
+			history, DefaultWorkerConfig(), quietLogger(ctrl))
+		w.initContexts(context.Background())
+
+		w.processWorkspace(&domain.Workspace{ID: "ws-1"})
+		w.processWorkspace(&domain.Workspace{ID: "ws-1"})
+		w.processWorkspace(&domain.Workspace{ID: "ws-1"}) // the second pass found less than a batch
 	})
 }

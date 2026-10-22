@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -78,7 +79,7 @@ func TestEmailQueue(t *testing.T) {
 func testRepositoryOperations(t *testing.T, queueRepo domain.EmailQueueRepository, workspaceID, integrationID string) {
 	ctx := context.Background()
 
-	t.Run("Enqueue and FetchPending", func(t *testing.T) {
+	t.Run("Enqueue and FetchPendingForIntegration", func(t *testing.T) {
 		// Create test entries
 		entry1 := testutil.CreateTestEmailQueueEntry(integrationID, "test1@example.com", "broadcast-1", domain.EmailQueueSourceBroadcast)
 		entry1.Priority = 1 // Higher priority
@@ -90,7 +91,7 @@ func testRepositoryOperations(t *testing.T, queueRepo domain.EmailQueueRepositor
 		require.NoError(t, err)
 
 		// Fetch pending entries
-		entries, err := queueRepo.FetchPending(ctx, workspaceID, 10)
+		entries, err := queueRepo.FetchPendingForIntegration(ctx, workspaceID, integrationID, 10)
 		require.NoError(t, err)
 		assert.GreaterOrEqual(t, len(entries), 2, "Should fetch at least 2 pending entries")
 
@@ -112,7 +113,7 @@ func testRepositoryOperations(t *testing.T, queueRepo domain.EmailQueueRepositor
 		require.NoError(t, err)
 
 		// Fetch to get the ID
-		entries, err := queueRepo.FetchPending(ctx, workspaceID, 10)
+		entries, err := queueRepo.FetchPendingForIntegration(ctx, workspaceID, integrationID, 10)
 		require.NoError(t, err)
 		require.GreaterOrEqual(t, len(entries), 1)
 
@@ -128,7 +129,7 @@ func testRepositoryOperations(t *testing.T, queueRepo domain.EmailQueueRepositor
 		require.NoError(t, err)
 
 		// Verify entry is deleted by checking it's no longer in the queue
-		entriesAfter, err := queueRepo.FetchPending(ctx, workspaceID, 100)
+		entriesAfter, err := queueRepo.FetchPendingForIntegration(ctx, workspaceID, integrationID, 100)
 		require.NoError(t, err)
 		for _, e := range entriesAfter {
 			assert.NotEqual(t, testEntryID, e.ID, "Sent entry should be deleted from queue")
@@ -142,7 +143,7 @@ func testRepositoryOperations(t *testing.T, queueRepo domain.EmailQueueRepositor
 		require.NoError(t, err)
 
 		// Fetch to get the ID
-		entries, err := queueRepo.FetchPending(ctx, workspaceID, 10)
+		entries, err := queueRepo.FetchPendingForIntegration(ctx, workspaceID, integrationID, 10)
 		require.NoError(t, err)
 		require.GreaterOrEqual(t, len(entries), 1)
 
@@ -215,7 +216,7 @@ func testRepositoryOperations(t *testing.T, queueRepo domain.EmailQueueRepositor
 		require.NoError(t, err)
 
 		// Fetch and mark as sent
-		entries, err := queueRepo.FetchPending(ctx, workspaceID, 10)
+		entries, err := queueRepo.FetchPendingForIntegration(ctx, workspaceID, integrationID, 10)
 		require.NoError(t, err)
 
 		var deletedID string
@@ -229,7 +230,7 @@ func testRepositoryOperations(t *testing.T, queueRepo domain.EmailQueueRepositor
 
 		// Verify the entry no longer exists (sent entries are deleted immediately)
 		if deletedID != "" {
-			entriesAfterSend, err := queueRepo.FetchPending(ctx, workspaceID, 100)
+			entriesAfterSend, err := queueRepo.FetchPendingForIntegration(ctx, workspaceID, integrationID, 100)
 			require.NoError(t, err)
 			for _, e := range entriesAfterSend {
 				assert.NotEqual(t, deletedID, e.ID, "Sent entry should be deleted immediately")
@@ -371,50 +372,6 @@ func testCircuitBreaker(t *testing.T, suite *testutil.IntegrationTestSuite, queu
 			_ = queueRepo.Delete(ctx, workspaceID, e.ID)
 		}
 	})
-
-	t.Run("SetNextRetry Without Incrementing Attempts", func(t *testing.T) {
-		ctx := context.Background()
-
-		// Create test entry using the good integration
-		entry := testutil.CreateTestEmailQueueEntry(integrationID, "circuit-test@example.com", "circuit-breaker-test", domain.EmailQueueSourceBroadcast)
-		err := queueRepo.Enqueue(ctx, workspaceID, []*domain.EmailQueueEntry{entry})
-		require.NoError(t, err)
-
-		// Fetch to get the entry with ID and verify initial attempts
-		entries, err := queueRepo.FetchPending(ctx, workspaceID, 10)
-		require.NoError(t, err)
-
-		var testEntry *domain.EmailQueueEntry
-		for _, e := range entries {
-			if e.ContactEmail == "circuit-test@example.com" {
-				testEntry = e
-				break
-			}
-		}
-		require.NotNil(t, testEntry, "Should find the test entry")
-
-		initialAttempts := testEntry.Attempts
-
-		// Use SetNextRetry (simulating circuit breaker deferral)
-		nextRetry := time.Now().Add(1 * time.Minute)
-		err = queueRepo.SetNextRetry(ctx, workspaceID, testEntry.ID, nextRetry)
-		require.NoError(t, err)
-
-		// Verify attempts was NOT incremented
-		entriesAfter, err := queueRepo.GetBySourceID(ctx, workspaceID, domain.EmailQueueSourceBroadcast, "circuit-breaker-test")
-		require.NoError(t, err)
-
-		for _, e := range entriesAfter {
-			if e.ID == testEntry.ID {
-				assert.Equal(t, initialAttempts, e.Attempts, "SetNextRetry should NOT increment attempts")
-				assert.Equal(t, domain.EmailQueueStatusPending, e.Status, "Entry should be back to pending status")
-				break
-			}
-		}
-
-		// Clean up
-		_ = queueRepo.Delete(ctx, workspaceID, testEntry.ID)
-	})
 }
 
 func testRateLimiting(t *testing.T, suite *testutil.IntegrationTestSuite, queueRepo domain.EmailQueueRepository, workspaceID, integrationID string) {
@@ -491,7 +448,7 @@ func TestEmailQueueStuckProcessingRecovery(t *testing.T) {
 	queueRepo := app.GetEmailQueueRepository()
 	ctx := context.Background()
 
-	t.Run("FetchPending includes entries stuck in processing for over 2 minutes", func(t *testing.T) {
+	t.Run("the fetch skips an entry processing for less than 2 minutes", func(t *testing.T) {
 		// Create a test entry
 		entry := testutil.CreateTestEmailQueueEntry(
 			integration.ID,
@@ -504,7 +461,7 @@ func TestEmailQueueStuckProcessingRecovery(t *testing.T) {
 		require.NoError(t, err)
 
 		// Fetch and mark as processing
-		entries, err := queueRepo.FetchPending(ctx, workspace.ID, 10)
+		entries, err := queueRepo.FetchPendingForIntegration(ctx, workspace.ID, integration.ID, 10)
 		require.NoError(t, err)
 
 		var testEntry *domain.EmailQueueEntry
@@ -522,7 +479,7 @@ func TestEmailQueueStuckProcessingRecovery(t *testing.T) {
 
 		// Immediately after marking as processing, entry should NOT be fetchable
 		// (because updated_at is now, not 2+ minutes ago)
-		entriesAfter, err := queueRepo.FetchPending(ctx, workspace.ID, 100)
+		entriesAfter, err := queueRepo.FetchPendingForIntegration(ctx, workspace.ID, integration.ID, 100)
 		require.NoError(t, err)
 
 		foundStuckEntry := false
@@ -555,7 +512,7 @@ func TestEmailQueueStuckProcessingRecovery(t *testing.T) {
 		err := queueRepo.Enqueue(ctx, workspace.ID, []*domain.EmailQueueEntry{entry})
 		require.NoError(t, err)
 
-		entries, err := queueRepo.FetchPending(ctx, workspace.ID, 10)
+		entries, err := queueRepo.FetchPendingForIntegration(ctx, workspace.ID, integration.ID, 10)
 		require.NoError(t, err)
 
 		var testEntry *domain.EmailQueueEntry
@@ -636,7 +593,7 @@ func TestEmailQueueConcurrency(t *testing.T) {
 		assert.GreaterOrEqual(t, actualTotal, expectedTotal, "Should have at least %d entries", expectedTotal)
 	})
 
-	t.Run("Concurrent FetchPending", func(t *testing.T) {
+	t.Run("Concurrent FetchPendingForIntegration", func(t *testing.T) {
 		// Multiple workers fetching concurrently should not get the same entries
 		// due to FOR UPDATE SKIP LOCKED
 		numWorkers := 3
@@ -646,7 +603,7 @@ func TestEmailQueueConcurrency(t *testing.T) {
 		for i := 0; i < numWorkers; i++ {
 			fetchedEntries[i] = make(map[string]bool)
 			go func(workerID int) {
-				entries, err := queueRepo.FetchPending(ctx, workspace.ID, 10)
+				entries, err := queueRepo.FetchPendingForIntegration(ctx, workspace.ID, integration.ID, 10)
 				if err != nil {
 					results <- 0
 					return
@@ -679,4 +636,100 @@ func TestEmailQueueConcurrency(t *testing.T) {
 		}
 	})
 
+}
+
+// TestEmailQueueFetchEligibility runs the worker's two fetches against PostgreSQL: which
+// rows are due, in which order, and the orphan query with a real array parameter.
+func TestEmailQueueFetchEligibility(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer suite.Cleanup()
+
+	// The worker is not started, so nothing but this test touches the queue.
+	factory := suite.DataFactory
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	integration, err := factory.SetupWorkspaceWithSMTPProvider(workspace.ID)
+	require.NoError(t, err)
+	other, err := factory.CreateMailpitSMTPIntegration(workspace.ID)
+	require.NoError(t, err)
+
+	queueRepo := suite.ServerManager.GetApp().GetEmailQueueRepository()
+	db, err := factory.GetWorkspaceDB(workspace.ID)
+	require.NoError(t, err)
+	ctx := context.Background()
+
+	// Each row is created a second after the previous one, so the order within a
+	// priority is known.
+	created := 0
+	row := func(t *testing.T, integrationID, name string, priority int, state string) string {
+		t.Helper()
+		entry := testutil.CreateTestEmailQueueEntry(integrationID, name+"@example.com", "eligibility", domain.EmailQueueSourceBroadcast)
+		entry.Priority = priority
+		require.NoError(t, queueRepo.Enqueue(ctx, workspace.ID, []*domain.EmailQueueEntry{entry}))
+		created++
+		_, err := db.ExecContext(ctx,
+			fmt.Sprintf(`UPDATE email_queue SET created_at = NOW() - make_interval(secs => %d) WHERE id = $1`, 1000-created),
+			entry.ID)
+		require.NoError(t, err)
+		if state != "" {
+			_, err = db.ExecContext(ctx, `UPDATE email_queue SET `+state+` WHERE id = $1`, entry.ID)
+			require.NoError(t, err)
+		}
+		return entry.ID
+	}
+
+	pendingDue := row(t, integration.ID, "pending-due", 5, "")
+	row(t, integration.ID, "pending-not-yet", 5, `next_retry_at = NOW() + INTERVAL '1 hour'`)
+	row(t, integration.ID, "pending-out-of-attempts", 5, `attempts = max_attempts`)
+	failedDue := row(t, integration.ID, "failed-due", 5, `status = 'failed', attempts = 1, next_retry_at = NOW() - INTERVAL '1 minute'`)
+	row(t, integration.ID, "failed-not-yet", 5, `status = 'failed', attempts = 1, next_retry_at = NOW() + INTERVAL '1 hour'`)
+	row(t, integration.ID, "failed-terminal", 5, `status = 'failed', attempts = max_attempts, next_retry_at = NULL`)
+	processingStuck := row(t, integration.ID, "processing-stuck", 5, `status = 'processing', updated_at = NOW() - INTERVAL '3 minutes'`)
+	row(t, integration.ID, "processing-fresh", 5, `status = 'processing', updated_at = NOW()`)
+	row(t, integration.ID, "paused", 5, `status = 'paused'`)
+	urgent := row(t, integration.ID, "urgent", 1, "")
+	otherDue := row(t, other.ID, "other-integration", 5, "")
+	orphan := row(t, "deleted-integration", "orphan", 5, "")
+
+	ids := func(entries []*domain.EmailQueueEntry) []string {
+		out := make([]string, 0, len(entries))
+		for _, e := range entries {
+			out = append(out, e.ID)
+		}
+		return out
+	}
+
+	t.Run("only the integration's due rows, by priority then age", func(t *testing.T) {
+		entries, err := queueRepo.FetchPendingForIntegration(ctx, workspace.ID, integration.ID, 100)
+		require.NoError(t, err)
+		assert.Equal(t, []string{urgent, pendingDue, failedDue, processingStuck}, ids(entries))
+	})
+
+	t.Run("the limit applies across the three kinds of due rows", func(t *testing.T) {
+		entries, err := queueRepo.FetchPendingForIntegration(ctx, workspace.ID, integration.ID, 2)
+		require.NoError(t, err)
+		assert.Equal(t, []string{urgent, pendingDue}, ids(entries))
+	})
+
+	t.Run("orphans are the due rows of integrations outside the list", func(t *testing.T) {
+		entries, err := queueRepo.FetchPendingOrphans(ctx, workspace.ID, []string{integration.ID, other.ID}, 100)
+		require.NoError(t, err)
+		assert.Equal(t, []string{orphan}, ids(entries))
+	})
+
+	t.Run("an empty list makes every due row an orphan", func(t *testing.T) {
+		want := []string{urgent, pendingDue, failedDue, processingStuck, otherDue, orphan}
+
+		entries, err := queueRepo.FetchPendingOrphans(ctx, workspace.ID, []string{}, 100)
+		require.NoError(t, err)
+		assert.Equal(t, want, ids(entries))
+
+		entries, err = queueRepo.FetchPendingOrphans(ctx, workspace.ID, nil, 100)
+		require.NoError(t, err)
+		assert.Equal(t, want, ids(entries))
+	})
 }

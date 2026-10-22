@@ -1227,9 +1227,9 @@ func (s *SESService) resolveConfigurationSet(ctx context.Context, cfg domain.Ama
 		return name
 	}
 
-	// singleflight collapses the cold-start stampede: the queue runs several workers per
-	// workspace and processes workspaces concurrently, so without it a restart would fire
-	// hundreds of concurrent calls at a once-per-second API.
+	// singleflight collapses the cold-start stampede: the queue sends several emails at once
+	// per integration and processes workspaces concurrently, so without it a restart would
+	// fire hundreds of concurrent calls at a once-per-second API.
 	v, _, _ := s.configSetGroup.Do(key, func() (interface{}, error) {
 		// Re-read the cache now that this goroutine owns the flight. A sender that missed the
 		// cache just before the previous flight stored its answer arrives here once that flight

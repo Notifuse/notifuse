@@ -3,6 +3,7 @@ package queue
 import (
 	"context"
 	"sync"
+	"time"
 
 	"golang.org/x/time/rate"
 )
@@ -65,6 +66,25 @@ func (irl *IntegrationRateLimiter) Allow(integrationID string, ratePerMinute int
 func (irl *IntegrationRateLimiter) Reserve(integrationID string, ratePerMinute int) *rate.Reservation {
 	limiter := irl.GetOrCreateLimiter(integrationID, ratePerMinute)
 	return limiter.Reserve()
+}
+
+// ReserveBefore reserves the integration's next token if it falls due by deadline, and
+// returns the reservation and how long to wait for it. A token due after the deadline is
+// not taken: its reservation is cancelled at once, so the next caller is offered the same
+// token instead of the one after it.
+func (irl *IntegrationRateLimiter) ReserveBefore(integrationID string, ratePerMinute int, deadline time.Time) (*rate.Reservation, time.Duration, bool) {
+	limiter := irl.GetOrCreateLimiter(integrationID, ratePerMinute)
+	now := time.Now()
+	r := limiter.ReserveN(now, 1)
+	if !r.OK() {
+		return nil, 0, false
+	}
+	delay := r.DelayFrom(now)
+	if now.Add(delay).After(deadline) {
+		r.CancelAt(now)
+		return nil, 0, false
+	}
+	return r, delay, true
 }
 
 // GetCurrentRate returns the current rate limit for an integration in emails per second

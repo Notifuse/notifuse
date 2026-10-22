@@ -753,80 +753,66 @@ func TestBroadcastESPFailure_CircuitBreaker(t *testing.T) {
 	// Step 2: Start the email queue worker and wait for it to process emails
 	t.Log("Step 2: Starting email queue worker to process emails...")
 
-	// Get the email queue repository from the app
-	queueRepo := suite.ServerManager.GetApp().GetEmailQueueRepository()
-
 	// Start the background workers (email queue worker)
 	ctx := context.Background()
 	err = suite.ServerManager.StartBackgroundWorkers(ctx)
 	require.NoError(t, err, "Should be able to start background workers")
 
-	// Wait for either:
-	// 1. Circuit breaker to open (some emails fail, rest pending due to circuit open)
-	// 2. Or queue to be fully processed (all fail without circuit breaker triggering)
-	// The circuit breaker opens after ~5 consecutive failures (default threshold)
-	t.Log("Waiting for circuit breaker to trigger or queue to process...")
+	// Every send fails, so the circuit opens after a few attempts and pauses the broadcast.
+	// The pause must hold every email of the broadcast, the ones that just failed included:
+	// a failed email left out of it would be retried while the broadcast is paused.
+	t.Log("Waiting for the circuit breaker to pause the broadcast...")
+	db, err := factory.GetWorkspaceDB(workspace.ID)
+	require.NoError(t, err)
 
-	// Wait for some failures to be recorded (circuit breaker should trigger after threshold)
-	timeout = 2 * time.Minute
-	deadline = time.Now().Add(timeout)
-	var finalQueueStats *domain.EmailQueueStats
-
-	for time.Now().Before(deadline) {
-		stats, err := queueRepo.GetStats(ctx, workspace.ID)
+	var paused, notPaused, attempted int
+	require.Eventually(t, func() bool {
+		err := db.QueryRowContext(ctx, `
+			SELECT COUNT(*) FILTER (WHERE status = 'paused'),
+			       COUNT(*) FILTER (WHERE status <> 'paused'),
+			       COUNT(*) FILTER (WHERE attempts > 0)
+			FROM email_queue WHERE source_type = 'broadcast' AND source_id = $1`,
+			broadcast.ID).Scan(&paused, &notPaused, &attempted)
 		if err != nil {
-			t.Logf("Warning: failed to get queue stats: %v", err)
-			time.Sleep(500 * time.Millisecond)
-			continue
+			t.Logf("Warning: failed to read the queue: %v", err)
+			return false
 		}
+		t.Logf("Queue status - paused: %d, other: %d, attempted: %d", paused, notPaused, attempted)
+		return paused == contactCount
+	}, 2*time.Minute, 500*time.Millisecond, "every email of the broadcast should end up paused")
 
-		t.Logf("Queue status - pending: %d, processing: %d, failed: %d",
-			stats.Pending, stats.Processing, stats.Failed)
-
-		finalQueueStats = stats
-
-		// Circuit breaker should have triggered - we should see:
-		// - Some failures (at least circuit breaker threshold)
-		// - And some pending emails (circuit is open, not processing)
-		if stats.Failed > 0 && stats.Pending > 0 && stats.Processing == 0 {
-			t.Log("Circuit breaker appears to have triggered - queue has failures and pending items")
-			break
-		}
-
-		// Or if all emails are processed (either sent or failed)
-		if stats.Pending == 0 && stats.Processing == 0 {
-			t.Log("All queue items processed")
-			break
-		}
-
-		time.Sleep(500 * time.Millisecond)
-	}
-
-	require.NotNil(t, finalQueueStats, "Should have queue stats")
+	// The worker may still be writing the outcome of a send when the pause lands; give a
+	// straggler time to show up before checking nothing escaped the pause.
+	time.Sleep(2 * time.Second)
+	require.NoError(t, db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FILTER (WHERE status = 'paused'),
+		       COUNT(*) FILTER (WHERE status <> 'paused'),
+		       COUNT(*) FILTER (WHERE attempts > 0)
+		FROM email_queue WHERE source_type = 'broadcast' AND source_id = $1`,
+		broadcast.ID).Scan(&paused, &notPaused, &attempted))
 
 	t.Log("=== CIRCUIT BREAKER TEST RESULTS ===")
-	t.Logf("Final Broadcast Status: %s", finalStatus)
 	t.Logf("Enqueued Count: %d", enqueuedCount)
-	t.Logf("Queue Pending: %d", finalQueueStats.Pending)
-	t.Logf("Queue Failed: %d", finalQueueStats.Failed)
+	t.Logf("Queue Paused: %d, other: %d, attempted: %d", paused, notPaused, attempted)
 
-	// With the email queue system and circuit breaker:
-	// - Some emails should have failed (at least the threshold count)
-	// - The circuit breaker should have opened, stopping further processing
-	assert.Greater(t, finalQueueStats.Failed, int64(0),
-		"Should have recorded some failures in email queue")
+	assert.Equal(t, contactCount, paused, "every email of the broadcast is held by the pause")
+	assert.Zero(t, notPaused, "no email escaped the pause")
+	assert.Positive(t, attempted, "the circuit opened on failed sends")
+	assert.Less(t, attempted, contactCount, "the circuit stopped the broadcast before it went through the list")
 
-	// If circuit breaker triggered, there should be pending emails that weren't processed
-	// (The circuit breaker stops processing when too many consecutive failures occur)
-	if finalQueueStats.Pending > 0 {
-		t.Logf("Circuit breaker successfully stopped processing! %d emails still pending", finalQueueStats.Pending)
-		assert.Greater(t, finalQueueStats.Failed, int64(0),
-			"Should have some failures that triggered circuit breaker")
-	} else {
-		t.Log("All emails processed (circuit breaker may not have triggered or all retried)")
+	broadcastResp, err := client.GetBroadcast(broadcast.ID)
+	require.NoError(t, err)
+	body, err := io.ReadAll(broadcastResp.Body)
+	_ = broadcastResp.Body.Close()
+	require.NoError(t, err)
+	var result struct {
+		Broadcast struct {
+			Status string `json:"status"`
+		} `json:"broadcast"`
 	}
+	require.NoError(t, json.Unmarshal(body, &result))
+	assert.Equal(t, "paused", result.Broadcast.Status)
 
-	t.Logf("Email queue: %d failed, %d still pending", finalQueueStats.Failed, finalQueueStats.Pending)
 	t.Log("=== Test completed ===")
 }
 

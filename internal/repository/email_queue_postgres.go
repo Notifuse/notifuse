@@ -10,6 +10,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 // EmailQueueRepository implements domain.EmailQueueRepository
@@ -135,39 +136,108 @@ func (r *EmailQueueRepository) EnqueueTx(ctx context.Context, tx *sql.Tx, entrie
 	return nil
 }
 
-// FetchPending retrieves pending emails for processing
-// Uses FOR UPDATE SKIP LOCKED for safe concurrent worker access
-func (r *EmailQueueRepository) FetchPending(ctx context.Context, workspaceID string, limit int) ([]*domain.EmailQueueEntry, error) {
+// The three ways a row is due for the worker. Each matches one index
+// (idx_email_queue_pending, idx_email_queue_retry, idx_email_queue_integration), so a
+// branch can be read in order and stop at its limit; ORed in one WHERE, they made
+// PostgreSQL sort the whole backlog on every fetch.
+//
+// The attempt guard on the pending branch is a backstop. An entry that has spent
+// its budget should never be 'pending', but anything that put it there would
+// otherwise hand it straight back to the worker and mail someone the campaign has
+// already reported as failed.
+//
+// Stuck processing rows (over 2 minutes) are recovered after a worker crash.
+const (
+	emailQueueDuePending      = `status = 'pending' AND attempts < max_attempts AND (next_retry_at IS NULL OR next_retry_at <= NOW())`
+	emailQueueDueRetry        = `status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW()`
+	emailQueueStuckProcessing = `status = 'processing' AND updated_at < NOW() - INTERVAL '2 minutes'`
+)
+
+const emailQueueEntryColumns = `id, status, priority, source_type, source_id, integration_id, provider_kind,
+		       contact_email, message_id, template_id, payload, attempts, max_attempts,
+		       last_error, next_retry_at, created_at, updated_at, processed_at`
+
+// The inner limits pick candidates before the outer SKIP LOCKED, so rows another
+// instance's statement has locked at that instant shorten the round. Fetches and
+// claims lock for one statement only, so that costs one short round at most.
+const fetchPendingForIntegrationSQL = `
+	SELECT ` + emailQueueEntryColumns + `
+	FROM email_queue
+	WHERE id IN (
+		(SELECT id FROM email_queue
+		 WHERE integration_id = $1 AND ` + emailQueueDuePending + `
+		 ORDER BY priority ASC, created_at ASC
+		 LIMIT $2)
+		UNION ALL
+		(SELECT id FROM email_queue
+		 WHERE integration_id = $1 AND ` + emailQueueDueRetry + `
+		 ORDER BY priority ASC, created_at ASC
+		 LIMIT $2)
+		UNION ALL
+		(SELECT id FROM email_queue
+		 WHERE integration_id = $1 AND ` + emailQueueStuckProcessing + `
+		 ORDER BY priority ASC, created_at ASC
+		 LIMIT $2)
+	)
+	ORDER BY priority ASC, created_at ASC
+	LIMIT $2
+	FOR UPDATE SKIP LOCKED
+`
+
+// A sequential scan, which is why the worker runs it about once a minute per
+// workspace rather than on every round.
+const fetchPendingOrphansSQL = `
+	SELECT ` + emailQueueEntryColumns + `
+	FROM email_queue
+	WHERE integration_id <> ALL($1)
+	  AND (
+		(` + emailQueueDuePending + `)
+		OR (` + emailQueueDueRetry + `)
+		OR (` + emailQueueStuckProcessing + `)
+	  )
+	ORDER BY priority ASC, created_at ASC
+	LIMIT $2
+	FOR UPDATE SKIP LOCKED
+`
+
+// FetchPendingForIntegration returns up to limit due rows of one integration, ordered
+// by priority (lower = higher priority), then creation time
+func (r *EmailQueueRepository) FetchPendingForIntegration(ctx context.Context, workspaceID string, integrationID string, limit int) ([]*domain.EmailQueueEntry, error) {
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get database connection: %w", err)
 	}
 
-	// Fetch pending emails ordered by priority (lower = higher priority), then by creation time
-	// Include failed emails that are ready for retry
-	// Include stuck processing entries (>2 minutes old) for recovery after worker crash
-	//
-	// The attempt guard on the pending branch is a backstop. An entry that has spent
-	// its budget should never be 'pending', but anything that put it there would
-	// otherwise hand it straight back to the worker and mail someone the campaign has
-	// already reported as failed.
-	query := `
-		SELECT id, status, priority, source_type, source_id, integration_id, provider_kind,
-		       contact_email, message_id, template_id, payload, attempts, max_attempts,
-		       last_error, next_retry_at, created_at, updated_at, processed_at
-		FROM email_queue
-		WHERE (status = 'pending' AND attempts < max_attempts AND (next_retry_at IS NULL OR next_retry_at <= NOW()))
-		   OR (status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW())
-		   OR (status = 'processing' AND updated_at < NOW() - INTERVAL '2 minutes')
-		ORDER BY priority ASC, created_at ASC
-		LIMIT $1
-		FOR UPDATE SKIP LOCKED
-	`
-
-	rows, err := db.QueryContext(ctx, query, limit)
+	rows, err := db.QueryContext(ctx, fetchPendingForIntegrationSQL, integrationID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query pending emails: %w", err)
 	}
+	return scanEmailQueueEntries(rows)
+}
+
+// FetchPendingOrphans returns up to limit due rows whose integration is not in
+// integrationIDs
+func (r *EmailQueueRepository) FetchPendingOrphans(ctx context.Context, workspaceID string, integrationIDs []string, limit int) ([]*domain.EmailQueueEntry, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	// pq.Array(nil) is NULL, and integration_id <> ALL(NULL) matches nothing: a
+	// workspace whose email integrations were all deleted would keep its rows forever.
+	if integrationIDs == nil {
+		integrationIDs = []string{}
+	}
+
+	rows, err := db.QueryContext(ctx, fetchPendingOrphansSQL, pq.Array(integrationIDs), limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query orphaned emails: %w", err)
+	}
+	return scanEmailQueueEntries(rows)
+}
+
+// scanEmailQueueEntries reads every row and closes rows
+func scanEmailQueueEntries(rows *sql.Rows) ([]*domain.EmailQueueEntry, error) {
 	defer rows.Close()
 
 	var entries []*domain.EmailQueueEntry
@@ -389,33 +459,6 @@ func (r *EmailQueueRepository) DeleteTerminallyFailedOlderThan(ctx context.Conte
 	}
 
 	return result.RowsAffected()
-}
-
-// SetNextRetry updates next_retry_at WITHOUT incrementing attempts
-// Used by circuit breaker to schedule retry without burning retry attempts
-func (r *EmailQueueRepository) SetNextRetry(ctx context.Context, workspaceID string, entryID string, nextRetry time.Time) error {
-	db, err := r.getDB(ctx, workspaceID)
-	if err != nil {
-		return fmt.Errorf("failed to get database connection: %w", err)
-	}
-
-	// Never resurrect a paused entry. This runs when the circuit breaker skips a row
-	// the worker had already fetched, and the broadcast may have been paused in the
-	// meantime — by that same open circuit. Without the guard the skip writes the row
-	// back as 'pending' and it escapes the pause, spending on its own the attempts the
-	// pause exists to protect.
-	query := `
-		UPDATE email_queue
-		SET next_retry_at = $1, status = 'pending', updated_at = NOW()
-		WHERE id = $2 AND status <> 'paused'
-	`
-
-	_, err = db.ExecContext(ctx, query, nextRetry, entryID)
-	if err != nil {
-		return fmt.Errorf("failed to set next retry: %w", err)
-	}
-
-	return nil
 }
 
 // GetStats returns queue statistics for a workspace

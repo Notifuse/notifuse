@@ -327,6 +327,55 @@ func TestDatabaseConnectionConfig_ValidationPerDBMaximum(t *testing.T) {
 	assert.Contains(t, err.Error(), "DB_MAX_CONNECTIONS_PER_DB cannot exceed 50")
 }
 
+func TestEmailQueueConfig(t *testing.T) {
+	setRequired := func(t *testing.T) {
+		t.Setenv("SECRET_KEY", "test-secret-key-for-testing")
+		t.Setenv("DB_PASSWORD", "testpass")
+	}
+
+	t.Run("defaults", func(t *testing.T) {
+		setRequired(t)
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+
+		assert.Equal(t, 10, cfg.EmailQueue.Concurrency)
+		assert.Equal(t, 1, cfg.EmailQueue.SMTPConcurrency)
+	})
+
+	t.Run("environment overrides", func(t *testing.T) {
+		setRequired(t)
+		t.Setenv("EMAIL_QUEUE_CONCURRENCY", "25")
+		t.Setenv("EMAIL_QUEUE_SMTP_CONCURRENCY", "4")
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+
+		assert.Equal(t, 25, cfg.EmailQueue.Concurrency)
+		assert.Equal(t, 4, cfg.EmailQueue.SMTPConcurrency)
+	})
+
+	for _, name := range []string{"EMAIL_QUEUE_CONCURRENCY", "EMAIL_QUEUE_SMTP_CONCURRENCY"} {
+		t.Run(name+" below 1", func(t *testing.T) {
+			setRequired(t)
+			t.Setenv(name, "0")
+
+			_, err := LoadWithOptions(LoadOptions{})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), name+" must be at least 1 (got 0)")
+		})
+
+		t.Run(name+" above 50", func(t *testing.T) {
+			setRequired(t)
+			t.Setenv(name, "51")
+
+			_, err := LoadWithOptions(LoadOptions{})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), name+" cannot exceed 50 (got 51)")
+		})
+	}
+}
+
 func TestLoadWithOptions_PlanLimits(t *testing.T) {
 	// SECRET_KEY is required for the config to load successfully.
 	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")

@@ -2,6 +2,7 @@ package queue
 
 import (
 	"context"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -203,6 +204,60 @@ func TestIntegrationRateLimiter_Reserve(t *testing.T) {
 		assert.True(t, reservation2.OK())
 		// Should have approximately 1 second delay (1 per second rate)
 		assert.Greater(t, reservation2.Delay(), 500*time.Millisecond)
+	})
+}
+
+func TestIntegrationRateLimiter_ReserveBefore(t *testing.T) {
+	t.Run("concurrent callers get tokens spaced by the rate", func(t *testing.T) {
+		irl := NewIntegrationRateLimiter()
+		deadline := time.Now().Add(time.Minute)
+
+		const callers = 10
+		delays := make([]time.Duration, callers)
+		var wg sync.WaitGroup
+		for i := 0; i < callers; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				r, delay, ok := irl.ReserveBefore("integration-1", 600, deadline) // one every 100ms
+				assert.True(t, ok)
+				assert.NotNil(t, r)
+				delays[i] = delay
+			}(i)
+		}
+		wg.Wait()
+
+		sorted := append([]time.Duration(nil), delays...)
+		sort.Slice(sorted, func(i, j int) bool { return sorted[i] < sorted[j] })
+		assert.Less(t, sorted[0], 10*time.Millisecond, "the first caller gets the banked token")
+		for i := 1; i < callers; i++ {
+			assert.InDelta(t, float64(100*time.Millisecond), float64(sorted[i]-sorted[i-1]), float64(10*time.Millisecond),
+				"each token comes one interval after the previous one")
+		}
+	})
+
+	t.Run("a token due after the deadline is refused and given back", func(t *testing.T) {
+		irl := NewIntegrationRateLimiter()
+		deadline := time.Now().Add(1500 * time.Millisecond)
+
+		// 60/min: tokens at 0s and 1s fall within the deadline, the one at 2s does not.
+		_, first, ok := irl.ReserveBefore("integration-1", 60, deadline)
+		require.True(t, ok)
+		_, second, ok := irl.ReserveBefore("integration-1", 60, deadline)
+		require.True(t, ok)
+		assert.Less(t, first, 10*time.Millisecond)
+		assert.InDelta(t, float64(time.Second), float64(second), float64(20*time.Millisecond))
+
+		r, delay, ok := irl.ReserveBefore("integration-1", 60, deadline)
+		assert.False(t, ok)
+		assert.Nil(t, r)
+		assert.Zero(t, delay)
+
+		// The refused token was cancelled, so the next caller is offered the same one
+		// rather than the one after it.
+		_, next, ok := irl.ReserveBefore("integration-1", 60, time.Now().Add(time.Minute))
+		require.True(t, ok)
+		assert.InDelta(t, float64(2*time.Second), float64(next), float64(50*time.Millisecond))
 	})
 }
 

@@ -22,6 +22,7 @@ import (
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
+	"github.com/Notifuse/notifuse/internal/service/queue"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/mailer"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
@@ -76,6 +77,19 @@ func setupTestDBMock() (*sql.DB, sqlmock.Sqlmock, error) {
 	mock.ExpectClose()
 
 	return db, mock, nil
+}
+
+// The two settings reach the worker, and every other setting keeps the worker's default.
+func TestNewEmailQueueWorkerConfig(t *testing.T) {
+	cfg := createTestConfig()
+	cfg.EmailQueue = config.EmailQueueConfig{Concurrency: 25, SMTPConcurrency: 4}
+
+	got := newEmailQueueWorkerConfig(cfg)
+
+	want := queue.DefaultWorkerConfig()
+	want.SendConcurrency = 25
+	want.SMTPSendConcurrency = 4
+	assert.Equal(t, want, got)
 }
 
 func TestNewApp(t *testing.T) {

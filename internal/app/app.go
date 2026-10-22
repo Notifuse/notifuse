@@ -67,6 +67,7 @@ type AppInterface interface {
 	GetAuthService() interface{} // Returns *service.AuthService but defined as interface{} to avoid import cycle
 	GetTransactionalNotificationService() domain.TransactionalNotificationService
 	GetEmailQueueWorker() *queue.EmailQueueWorker
+	GetEmailService() domain.EmailServiceInterface
 	GetAutomationScheduler() *service.AutomationScheduler
 	GetTaskScheduler() *service.TaskScheduler
 	GetWebAnalyticsBuffer() *service.WebAnalyticsBuffer
@@ -1202,7 +1203,7 @@ func (a *App) InitServices() error {
 		a.workspaceRepo,
 		a.emailService,
 		a.messageHistoryRepo,
-		queue.DefaultWorkerConfig(),
+		newEmailQueueWorkerConfig(a.config),
 		a.logger,
 	)
 	// Enable the stop-on-reply just-in-time guard for automation sends.
@@ -1324,6 +1325,15 @@ func (a *App) InitServices() error {
 	}
 
 	return nil
+}
+
+// newEmailQueueWorkerConfig is the email queue worker's default configuration with the
+// deployment's sending concurrency.
+func newEmailQueueWorkerConfig(cfg *config.Config) *queue.EmailQueueWorkerConfig {
+	workerConfig := queue.DefaultWorkerConfig()
+	workerConfig.SendConcurrency = cfg.EmailQueue.Concurrency
+	workerConfig.SMTPSendConcurrency = cfg.EmailQueue.SMTPConcurrency
+	return workerConfig
 }
 
 // newOutgoingWebhookClient builds the client for requests to a URL a workspace
@@ -2206,6 +2216,10 @@ func (a *App) GetTaskRepository() domain.TaskRepository {
 
 func (a *App) GetEmailQueueWorker() *queue.EmailQueueWorker {
 	return a.emailQueueWorker
+}
+
+func (a *App) GetEmailService() domain.EmailServiceInterface {
+	return a.emailService
 }
 
 func (a *App) GetAuthService() interface{} {

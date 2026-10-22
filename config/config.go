@@ -34,6 +34,7 @@ type Config struct {
 	Webhook             WebhookConfig
 	TaskScheduler       TaskSchedulerConfig
 	AutomationScheduler AutomationSchedulerConfig
+	EmailQueue          EmailQueueConfig
 	Plan                PlanLimitsConfig
 	Telemetry           bool
 	CheckForUpdates     bool
@@ -240,6 +241,14 @@ type AutomationSchedulerConfig struct {
 	Delay     time.Duration // Delay before scheduler starts (default: 30s)
 	Interval  time.Duration // Polling interval (default: 10s)
 	BatchSize int           // Contacts per batch (default: 50)
+}
+
+// EmailQueueConfig sets how many broadcast and automation emails each email
+// integration sends at once. SMTP has its own setting because every email opens its own
+// connection, and relays often limit how many they accept at once.
+type EmailQueueConfig struct {
+	Concurrency     int // EMAIL_QUEUE_CONCURRENCY (default: 10)
+	SMTPConcurrency int // EMAIL_QUEUE_SMTP_CONCURRENCY (default: 1)
 }
 
 // PlanLimitsConfig holds the quotas of the subscribed plan. Notifuse Cloud sets
@@ -542,6 +551,10 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("AUTOMATION_SCHEDULER_INTERVAL", "10s")
 	v.SetDefault("AUTOMATION_SCHEDULER_BATCH_SIZE", 50)
 
+	// Email queue defaults
+	v.SetDefault("EMAIL_QUEUE_CONCURRENCY", 10)
+	v.SetDefault("EMAIL_QUEUE_SMTP_CONCURRENCY", 1)
+
 	// Plan limit defaults: 0 = unlimited, so a self-hosted install that sets none
 	// of them is unaffected. Unlike SMTP_BRIDGE_ENABLED/OIDC_*, these have no
 	// database fallback, so a viper default shadows nothing.
@@ -602,6 +615,25 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	}
 	if dbConfig.MaxConnectionsPerDB > 50 {
 		return nil, fmt.Errorf("DB_MAX_CONNECTIONS_PER_DB cannot exceed 50 (got %d)", dbConfig.MaxConnectionsPerDB)
+	}
+
+	emailQueueConfig := EmailQueueConfig{
+		Concurrency:     v.GetInt("EMAIL_QUEUE_CONCURRENCY"),
+		SMTPConcurrency: v.GetInt("EMAIL_QUEUE_SMTP_CONCURRENCY"),
+	}
+	for _, setting := range []struct {
+		name  string
+		value int
+	}{
+		{"EMAIL_QUEUE_CONCURRENCY", emailQueueConfig.Concurrency},
+		{"EMAIL_QUEUE_SMTP_CONCURRENCY", emailQueueConfig.SMTPConcurrency},
+	} {
+		if setting.value < 1 {
+			return nil, fmt.Errorf("%s must be at least 1 (got %d)", setting.name, setting.value)
+		}
+		if setting.value > 50 {
+			return nil, fmt.Errorf("%s cannot exceed 50 (got %d)", setting.name, setting.value)
+		}
 	}
 
 	// SECRET_KEY resolution (CRITICAL for decryption and JWT signing)
@@ -1016,7 +1048,8 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			Interval:  v.GetDuration("AUTOMATION_SCHEDULER_INTERVAL"),
 			BatchSize: v.GetInt("AUTOMATION_SCHEDULER_BATCH_SIZE"),
 		},
-		Plan: planConfig,
+		EmailQueue: emailQueueConfig,
+		Plan:       planConfig,
 
 		RootEmail:        rootEmail,
 		Environment:      v.GetString("ENVIRONMENT"),
