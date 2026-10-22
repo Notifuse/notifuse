@@ -495,18 +495,9 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
           // included, inside the block rather than over the console
           style={{ ...textStyle, contain: 'paint' }}
           dangerouslySetInnerHTML={{ __html: canvasHtml }}
-          onClick={(e) => {
-            // Check if the clicked element is an anchor tag
-            const target = e.target as HTMLElement
-            if (target.tagName === 'A' || target.closest('a')) {
-              e.preventDefault()
-              e.stopPropagation()
-              // Select the block for editing when clicking on a link
-              if (onSelectBlock) {
-                onSelectBlock(block.id)
-              }
-            }
-          }}
+          // Nothing in the content acts on a click here, a link or a label
+          // included: the click goes on to select the block
+          onClick={(e) => e.preventDefault()}
         />
       )}
     </div>

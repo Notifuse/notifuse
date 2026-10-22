@@ -14,7 +14,8 @@ describe('ImportFontInput', () => {
     'javascript:window.__probe=1',
     'data:text/css,body{}',
     'webcal://example.com/fonts.css',
-    'https://{{ cdn_host }}/fonts.css'
+    'https://{{ cdn_host }}/fonts.css',
+    'https://{{cdn_host}}/fonts.css'
   ])('shows any other address as text, not as a link: %s', (href) => {
     render(<ImportFontInput value={{ name: 'Inter', href }} onChange={vi.fn()} />)
 

@@ -6,8 +6,9 @@ import DOMPurify from 'dompurify'
  *
  * Event handlers, `<script>`, frames and `javascript:`, `vbscript:` and `data:`
  * links are removed, and so are `<style>`, which would restyle the console
- * around it, and form controls and image maps, which have no place in it: an
- * image map's areas are links the canvas would follow. Formatting,
+ * around it, form controls, image maps, whose areas are links the canvas would
+ * follow, audio and video, which would play in it, and the email builder's own
+ * `data-block-id`, which locates blocks on the canvas. Formatting,
  * inline styles, classes, `data-*` attributes, link targets, links that open
  * another app (`webcal:`, `whatsapp:`…) and Liquid (`{{ url }}` in an `href`
  * included) are kept. An editor saves what it loaded, so anything dropped here
@@ -27,8 +28,13 @@ export function sanitizeHtml(html: string): string {
       'option',
       'textarea',
       'map',
-      'area'
-    ]
+      'area',
+      'audio',
+      'video',
+      'source',
+      'track'
+    ],
+    FORBID_ATTR: ['data-block-id']
   })
 }
 

@@ -110,8 +110,7 @@ const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
   if (value) {
     const isValueValid = isValidUri(value)
     const isLiquid = isLiquidExpression(value)
-    const shouldRenderAsLink =
-      validateUri && isValueValid && value.trim() && !isLiquid && isOpenableUrl(value)
+    const shouldRenderAsLink = validateUri && !isLiquid && isOpenableUrl(value)
 
     return (
       <div className="space-y-2">

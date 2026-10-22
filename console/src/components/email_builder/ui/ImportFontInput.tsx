@@ -188,8 +188,9 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
       <div className="flex flex-col gap-2">
         <div className="flex-1">
           <div className="text-xs font-medium text-gray-700">{value.name}</div>
-          {/* A stylesheet is only ever a web address */}
-          {safeExternalUrl(value.href) ? (
+          {/* A stylesheet is only ever a web address, and a Liquid one has no
+              address until the email is sent */}
+          {!/\{\{|\{%/.test(value.href ?? '') && safeExternalUrl(value.href) ? (
             <a
               href={value.href}
               target="_blank"

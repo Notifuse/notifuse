@@ -85,21 +85,26 @@ describe('editor canvas keeps block content inside its block', () => {
   })
 })
 
-describe('a link click on the editor canvas selects the block instead of following the link', () => {
+describe('a click on editor canvas content only selects the block', () => {
+  // A link, or a label that would click a console field of the same id
   it.each([
-    ['mj-text', MjTextBlock],
-    ['mj-button', MjButtonBlock]
-  ])('%s', (type, Block) => {
+    ['mj-text', 'a strong', MjTextBlock],
+    ['mj-button', 'a strong', MjButtonBlock],
+    ['mj-text', 'label', MjTextBlock],
+    ['mj-button', 'label', MjButtonBlock]
+  ])('%s, click on %s', (type, selector, Block) => {
     const block = {
       id: `b-${type}`,
       type,
       attributes: {},
-      content: '<p>Buy <a href="https://example.com/x"><strong>now</strong></a></p>'
+      content:
+        '<p>Buy <a href="https://example.com/x"><strong>now</strong></a> ' +
+        '<label for="email_sender_id">here</label></p>'
     } as unknown as EmailBlock
     const props = previewProps()
     const { container } = render(<>{new Block(block).getEdit(props)}</>)
 
-    const target = container.querySelector('a strong') as HTMLElement
+    const target = container.querySelector(selector) as HTMLElement
     const click = createEvent.click(target)
     fireEvent(target, click)
 

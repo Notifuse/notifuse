@@ -664,13 +664,9 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
             <span
               style={{ color: attrs.color }}
               dangerouslySetInnerHTML={{ __html: canvasHtml }}
-              onClick={(e) => {
-                // A link in the button text selects the block, as a click
-                // anywhere else on it does, rather than leaving the editor
-                if ((e.target as HTMLElement).closest('a')) {
-                  e.preventDefault()
-                }
-              }}
+              // Nothing in the button text acts on a click, a link or a label
+              // included: the click goes on to select the block
+              onClick={(e) => e.preventDefault()}
             />
           )}
         </div>

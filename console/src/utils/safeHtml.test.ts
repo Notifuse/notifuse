@@ -71,6 +71,17 @@ describe('sanitizeHtml', () => {
     expect(out).toContain('<img src="https://example.com/b.png"')
   })
 
+  it('drops media, which would play in the console, and the builder\'s own block ids', () => {
+    const out = sanitizeHtml(
+      '<p data-x="1" data-block-id="b-1">Hi' +
+        '<audio src="https://example.com/a.mp3" autoplay loop></audio>' +
+        '<video autoplay><source src="https://example.com/v.mp4"></video></p>'
+    )
+    expect(out).not.toMatch(/<audio|<video|<source|autoplay|data-block-id/i)
+    expect(out).toContain('data-x="1"')
+    expect(out).toContain('Hi')
+  })
+
   it('drops form controls and keeps their text', () => {
     const out = sanitizeHtml(
       '<form action="https://example.com/x" method="post">Sign in' +
