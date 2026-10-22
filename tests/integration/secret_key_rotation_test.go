@@ -362,7 +362,7 @@ func TestSecretKeyRotation(t *testing.T) {
 		err := startWithSecretKey(t, suite, `"`+escaped+`"`)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "in quotes")
-		assert.Contains(t, err.Error(), "SECRET_KEY=<key>,<key>")
+		assert.Contains(t, err.Error(), "SECRET_KEY=<key>,<key>, the key twice, each comma inside it written twice")
 		assert.Equal(t, before, readEncryptedRows(t, suite))
 
 		require.NoError(t, startWithSecretKey(t, suite, escaped+","+escaped))

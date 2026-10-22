@@ -502,8 +502,8 @@ func (a *App) InitSecretKey() error {
 			return probeErr
 		}
 		if hint != "" {
-			return fmt.Errorf("%s opens no value stored in the database (%w). Nothing was changed. But %s, "+
-				"writing each comma inside the key twice", variable, err, hint)
+			return fmt.Errorf("%s opens no value stored in the database (%w). Nothing was changed. But %s",
+				variable, err, hint)
 		}
 	}
 	if err != nil {

@@ -698,7 +698,8 @@ func TestAppInitSecretKey(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY does not open the workspace stored in the database")
-		assert.Contains(t, err.Error(), "former compose.yaml default")
+		assert.NotContains(t, err.Error(), "former compose.yaml default",
+			"the former compose.yaml set SECRET_KEY, never PASETO_PRIVATE_KEY")
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -717,6 +718,7 @@ func TestAppInitSecretKey(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "SECRET_KEY opens none of the 2 workspaces stored in the database")
+		assert.Contains(t, err.Error(), "An installation that never set SECRET_KEY ran on the former compose.yaml default")
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -923,9 +925,10 @@ func TestAppInitSecretKey(t *testing.T) {
 
 	// A key containing a comma, kept in quotes by docker --env-file before 42.0, then
 	// written with its commas doubled: a list of one, whose data is under it in quotes.
+	const withComma = "listed-key-with,a-comma-and-32-bytes-of-material"
 	listOfOneUnderQuotes := func(t *testing.T, mock sqlmock.Sqlmock) {
 		t.Helper()
-		quoted, err := pkgCrypto.EncryptString("workspace-key", `"`+current+`"`)
+		quoted, err := pkgCrypto.EncryptString("workspace-key", `"`+withComma+`"`)
 		require.NoError(t, err)
 		mock.ExpectBegin()
 		mock.ExpectExec(`SELECT pg_advisory_xact_lock`).WillReturnResult(sqlmock.NewResult(0, 0))
@@ -935,21 +938,21 @@ func TestAppInitSecretKey(t *testing.T) {
 	}
 
 	t.Run("a list of one key whose data is under it in quotes says to list it twice", func(t *testing.T) {
-		app, mock := newApp(t, config.SecurityConfig{SecretKey: current, SecretKeyIsList: true})
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: withComma, SecretKeyIsList: true})
 		listOfOneUnderQuotes(t, mock)
-		mock.ExpectQuery(workspaceKeys).WillReturnRows(workspaceKey(t, `"`+current+`"`))
+		mock.ExpectQuery(workspaceKeys).WillReturnRows(workspaceKey(t, `"`+withComma+`"`))
 
 		err := app.InitSecretKey()
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "in quotes")
 		assert.Contains(t, err.Error(), "SECRET_KEY=<key>,<key>")
-		assert.Contains(t, err.Error(), "each comma inside the key twice")
+		assert.Contains(t, err.Error(), "each comma inside it written twice")
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
 	t.Run("a failure while trying a list of one key in quotes stops the start as one", func(t *testing.T) {
-		app, mock := newApp(t, config.SecurityConfig{SecretKey: current, SecretKeyIsList: true})
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: withComma, SecretKeyIsList: true})
 		listOfOneUnderQuotes(t, mock)
 		mock.ExpectQuery(workspaceKeys).WillReturnError(assert.AnError)
 

@@ -99,14 +99,34 @@ func TestParseSecretKeys(t *testing.T) {
 		"five commas":                      newKey + ",,,,,legacy-passphrase",
 		"three commas in a quoted list":    `"` + newKey + `,,,legacy-passphrase"`,
 	} {
-		t.Run("an odd run of three or more commas is refused, saying to quote the key: "+name, func(t *testing.T) {
+		t.Run("an odd run of three or more commas is refused, saying to put a space beside the separator: "+name, func(t *testing.T) {
 			_, err := parseSecretKeys(raw, "SECRET_KEY")
 
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "SECRET_KEY has three or more commas in a row")
-			assert.Contains(t, err.Error(), `<new key>,",,<key>"`)
+			assert.Contains(t, err.Error(), "SECRET_KEY=<new key>, ,,<rest of the key>")
 		})
 	}
+
+	t.Run("a space beside the comma that separates keys reads a key that starts with a comma", func(t *testing.T) {
+		keys, err := parseSecretKeys(newKey+", ,,legacy-passphrase", "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Equal(t, newKey, keys.current)
+		assert.Contains(t, keys.previous, ",legacy-passphrase")
+	})
+
+	// A list of one key ending with a comma, listed twice as the quoted-key hint says.
+	t.Run("a space beside the comma that separates keys reads a key that ends with a comma", func(t *testing.T) {
+		endsWithComma := newKey + ","
+		doubled := newKey + ",,"
+
+		keys, err := parseSecretKeys(doubled+" ,"+doubled, "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Equal(t, endsWithComma, keys.current)
+		assert.Contains(t, keys.previous, `"`+endsWithComma+`"`)
+	})
 
 	t.Run("a previous key that starts with a comma is read with it when given in quotes", func(t *testing.T) {
 		keys, err := parseSecretKeys(newKey+`,",,legacy-passphrase"`, "SECRET_KEY")
@@ -493,8 +513,13 @@ func TestCheckUnopenedSettings(t *testing.T) {
 		assert.Contains(t, err.Error(), "encrypted_oidc_client_secret")
 		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY")
 		assert.Contains(t, err.Error(), "OIDC_CLIENT_SECRET")
-		assert.Contains(t, err.Error(), "former compose.yaml default")
+		assert.NotContains(t, err.Error(), "former compose.yaml default",
+			"the former compose.yaml set SECRET_KEY, never PASETO_PRIVATE_KEY")
 		assert.NotContains(t, err.Error(), "smtp_bridge")
+
+		err = checkUnopenedSettings(unopened, OIDCConfig{Enabled: true}, SMTPBridgeConfig{}, secretKey)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "An installation that never set SECRET_KEY ran on the former compose.yaml default")
 	})
 
 	t.Run("the SMTP bridge without its stored TLS certificate and key is refused, naming them", func(t *testing.T) {
@@ -560,10 +585,34 @@ func TestCheckUnopenedSettings(t *testing.T) {
 		assert.Contains(t, err.Error(), "in quotes")
 		assert.Contains(t, err.Error(), "SECRET_KEY=<key>,<key>")
 
-		listed := SecurityConfig{SecretKey: key, KeyVariable: "SECRET_KEY", SecretKeyIsList: true}
+		listed := SecurityConfig{SecretKey: key, PreviousSecretKeys: []string{freshBase64Key(t)}, KeyVariable: "SECRET_KEY", SecretKeyIsList: true}
 		err = checkUnopenedSettings(settings, OIDCConfig{Enabled: true}, SMTPBridgeConfig{}, listed)
 		require.Error(t, err)
-		assert.NotContains(t, err.Error(), "in quotes", "a list already tries its keys in quotes")
+		assert.NotContains(t, err.Error(), "in quotes", "a list with previous keys is a replacement, not a key in another form")
+	})
+
+	// A key containing a comma that docker --env-file kept in quotes before 42.0, written
+	// with its comma doubled: a list of one key, whose stored setting opens with it in quotes.
+	t.Run("a list of one key whose stored setting opens with it in quotes says so", func(t *testing.T) {
+		key := "a-key-containing,a-comma-and-32-bytes-or-more"
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		secret, err := crypto.EncryptString("oidc-secret", `"`+key+`"`)
+		require.NoError(t, err)
+		mock.ExpectQuery("SELECT key, value FROM settings").WillReturnRows(sqlmock.NewRows([]string{"key", "value"}).
+			AddRow("is_installed", "true").
+			AddRow("encrypted_oidc_client_secret", secret))
+		settings, err := loadSystemSettings(db, []string{key})
+		require.NoError(t, err)
+
+		err = checkUnopenedSettings(settings, OIDCConfig{Enabled: true}, SMTPBridgeConfig{},
+			SecurityConfig{SecretKey: key, KeyVariable: "SECRET_KEY", SecretKeyIsList: true})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "SECRET_KEY opens none of the stored settings encrypted_oidc_client_secret")
+		assert.Contains(t, err.Error(), "in quotes")
+		assert.Contains(t, err.Error(), "each comma inside it written twice")
 	})
 }
 
@@ -607,6 +656,14 @@ func TestKeyHint(t *testing.T) {
 			assert.Contains(t, hint, "PASETO_PRIVATE_KEY=<key>,<key>")
 		})
 	}
+
+	t.Run("a key containing a comma is listed twice with its commas written twice", func(t *testing.T) {
+		withComma := "the-key,as-the-environment-gives-it"
+		hint := KeyHint(withComma, "SECRET_KEY", opensOnly(`"`+withComma+`"`))
+		assert.Contains(t, hint, "SECRET_KEY=<key>,<key>, the key twice, each comma inside it written twice")
+
+		assert.NotContains(t, KeyHint(key, "SECRET_KEY", opensOnly(`"`+key+`"`)), "comma inside")
+	})
 
 	t.Run("no hint when no form opens", func(t *testing.T) {
 		assert.Empty(t, KeyHint(key, "SECRET_KEY", opensOnly("another-key")))

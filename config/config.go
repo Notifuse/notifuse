@@ -507,7 +507,9 @@ func checkUnopenedSettings(settings *SystemSettings, oidc OIDCConfig, bridge SMT
 			return nil
 		}
 		needs := fmt.Sprintf("the stored settings %s, which %s needs", strings.Join(names, ", "), feature)
-		if !security.SecretKeyIsList {
+		// A list with previous keys replaces the key; a list of one is a key whose commas
+		// were doubled, which may have been kept in quotes as a single key was.
+		if len(security.PreviousSecretKeys) == 0 {
 			opens := func(candidate string) bool {
 				for _, name := range names {
 					if _, _, err := crypto.DecryptWithKeys(settings.unopened[name], []string{candidate}); err == nil {

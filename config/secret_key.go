@@ -84,7 +84,8 @@ type secretKeys struct {
 // value is removed (docker --env-file keeps them, and no stored data depends on a list),
 // a comma separates two keys, two commas stand for a comma inside a key, and spaces
 // around each key are trimmed. An odd run of three or more commas is refused: it puts a
-// separator beside a comma inside a key, and reads two ways. Each previous key is also tried as written, spaces
+// separator beside a comma inside a key, and reads two ways, which a space beside the
+// separator settles. Each previous key is also tried as written, spaces
 // included, and with and without one pair of quotes: a key read from a file may end
 // with a newline, a single key read through docker --env-file kept its quotes, and the
 // data was encrypted with them.
@@ -98,8 +99,9 @@ func parseSecretKeys(raw, variable string) (secretKeys, error) {
 
 	if hasAmbiguousCommas(unquoted(raw)) {
 		return secretKeys{}, fmt.Errorf("%[1]s has three or more commas in a row, which can be read as a "+
-			"comma ending a key or one starting the next. Put the key that starts or ends with a comma in "+
-			`quotes, its commas written twice: %[1]s=<new key>,",,<key>"`, variable)
+			"comma ending a key or one starting the next. Put a space between the comma that separates two "+
+			"keys and a comma that starts or ends a key, as in %[1]s=<new key>, ,,<rest of the key> for a key "+
+			"that starts with a comma", variable)
 	}
 	items := splitKeyList(unquoted(raw))
 	// The keys exactly as written: the spaces and quotes around the whole value belong
@@ -228,18 +230,24 @@ func rotationRemedy(variable string) string {
 }
 
 // StoredDataRemedy tells an installation whose key opens none of its stored data what
-// to set, including the case the upgrade to 42.0 makes common: an installation that
-// never set the variable ran on the former compose.yaml default.
+// to set, including, for SECRET_KEY, the case the upgrade to 42.0 makes common: an
+// installation that never set it ran on the former compose.yaml default. That file set
+// SECRET_KEY, never PASETO_PRIVATE_KEY.
 func StoredDataRemedy(variable string) string {
-	return fmt.Sprintf("Set %[1]s to the key the data is encrypted with, written as it was, or put a new key "+
-		"first and that key after a comma to replace it. An installation that never set %[1]s ran on the "+
-		"former compose.yaml default, which the installation guide gives", variable)
+	remedy := fmt.Sprintf("Set %[1]s to the key the data is encrypted with, written as it was, or put a new "+
+		"key first and that key after a comma to replace it", variable)
+	if variable != "SECRET_KEY" {
+		return remedy
+	}
+	return remedy + ". An installation that never set SECRET_KEY ran on the former compose.yaml default, " +
+		"which the installation guide gives"
 }
 
 // KeyHint says what to change when a single key opens none of the stored data but
 // another form of it does, completing "<variable> opens none of it, but ": the key
 // without the quotes or spaces around it, or, for a key without any, the key in quotes,
-// which docker --env-file kept before 42.0. opens tries a form. Empty when none opens.
+// which docker --env-file kept before 42.0. A key containing a comma is a list of one,
+// whose commas stay written twice. opens tries a form. Empty when none opens.
 func KeyHint(key, variable string, opens func(candidate string) bool) string {
 	if trimmed := unquoted(key); trimmed != key {
 		if opens(trimmed) {
@@ -249,12 +257,16 @@ func KeyHint(key, variable string, opens func(candidate string) bool) string {
 	}
 	// Listed after itself, the key is also tried in quotes, so a start with the key twice
 	// re-encrypts the data under it as written.
+	twice := "the key twice"
+	if strings.Contains(key, ",") {
+		twice += ", each comma inside it written twice"
+	}
 	for _, quoted := range []string{`"` + key + `"`, "'" + key + "'"} {
 		if opens(quoted) {
 			return fmt.Sprintf("the same key in quotes does: the data was encrypted with the quotes a tool "+
-				"kept around it. Set %[1]s=<key>,<key>, the key twice, and start every instance with it: "+
+				"kept around it. Set %[1]s=<key>,<key>, %[2]s, and start every instance with it: "+
 				"Notifuse re-encrypts the data with the key as written. Once they all run, set the key alone "+
-				"again", variable)
+				"again", variable, twice)
 		}
 	}
 	return ""
