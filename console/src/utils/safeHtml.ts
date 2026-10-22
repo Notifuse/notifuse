@@ -63,11 +63,13 @@ export function sanitizeHtml(html: string): string {
 
 /**
  * HTML for a block editor to load: what `sanitizeHtml` keeps, with ids and
- * names as written, and also attribute values it drops because they contain
- * `-->` or `]>`, such as a link to `https://example.com/?q=a]>b`. An editor
- * saves what it loaded, so anything changed or dropped here that an email may
- * legitimately carry would be lost on the next edit. SVG and MathML are left
- * out, along with what they contain.
+ * names as written, and also attribute values `sanitizeHtml` drops because
+ * they contain `-->` or `]>`, such as a link to `https://example.com/?q=a]>b`.
+ * An editor saves what it loaded, so anything changed or dropped here that an
+ * email may legitimately carry would be lost on the next edit. Still dropped:
+ * an id or a name that is also a property of the document or of a form, such
+ * as `title` or `links`, so that it cannot stand in for that property, and SVG
+ * and MathML, along with what they contain.
  */
 export function sanitizeEditorHtml(html: string): string {
   if (!html) return ''

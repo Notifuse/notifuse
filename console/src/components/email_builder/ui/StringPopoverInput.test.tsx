@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import StringPopoverInput from './StringPopoverInput'
 
 describe('StringPopoverInput', () => {
@@ -37,3 +37,24 @@ describe('StringPopoverInput', () => {
     expect(screen.queryByRole('link')).toBeNull()
   })
 })
+
+describe('StringPopoverInput link value', () => {
+  const enter = async (typed: string) => {
+    const onChange = vi.fn()
+    render(<StringPopoverInput onChange={onChange} validateUri />)
+    fireEvent.click(screen.getByRole('button', { name: 'Set value' }))
+    fireEvent.change(await screen.findByRole('textbox'), { target: { value: typed } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    return onChange
+  }
+
+  it('saves a Liquid output in place of an address', async () => {
+    expect(await enter('{{ cta_url }}')).toHaveBeenCalledWith('{{ cta_url }}')
+  })
+
+  it('refuses a malformed address even when it holds a Liquid tag', async () => {
+    const onChange = await enter('https//shop.example.com/{% if vip %}vip{% endif %}')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+})
+

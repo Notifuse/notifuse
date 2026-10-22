@@ -163,6 +163,10 @@ describe('sanitizeEditorHtml', () => {
     expect(sanitizeEditorHtml(html)).toBe(html)
   })
 
+  it('drops an id or a name that would stand in for a property of the document', () => {
+    expect(sanitizeEditorHtml('<p id="links">x</p><a name="title">y</a>')).toBe('<p>x</p><a>y</a>')
+  })
+
   it('leaves out SVG and MathML, which an editor has no place for', () => {
     const out = sanitizeEditorHtml(
       '<p>a<svg><a href="https://x.example/">x</a></svg><math><mi>y</mi></math>b</p>'

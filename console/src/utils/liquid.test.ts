@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isLiquidExpression } from './liquid'
+import { hasLiquidOutput, isLiquidExpression } from './liquid'
 
 describe('isLiquidExpression', () => {
   it.each([
@@ -17,4 +17,22 @@ describe('isLiquidExpression', () => {
       expect(isLiquidExpression(value)).toBe(false)
     }
   )
+})
+
+describe('hasLiquidOutput', () => {
+  it.each(['{{ unsubscribe_url }}', 'https://{{cdn_host}}/fonts.css'])(
+    'finds an output in %s',
+    (value) => {
+      expect(hasLiquidOutput(value)).toBe(true)
+    }
+  )
+
+  it.each([
+    '{% if vip %}https://a.example{% endif %}',
+    'https://example.com/a',
+    '{{}}',
+    ''
+  ])('finds none in %j', (value) => {
+    expect(hasLiquidOutput(value)).toBe(false)
+  })
 })

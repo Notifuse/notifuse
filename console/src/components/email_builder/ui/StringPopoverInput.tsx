@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons'
 import { useLingui } from '@lingui/react/macro'
 import { isOpenableUrl } from '../../../utils/safeHtml'
-import { isLiquidExpression } from '../../../utils/liquid'
+import { hasLiquidOutput, isLiquidExpression } from '../../../utils/liquid'
 
 interface StringPopoverInputProps {
   value?: string
@@ -31,7 +31,7 @@ const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
     if (!validateUri || !uri.trim()) return true
 
     // Allow liquid expressions to bypass URL validation
-    if (isLiquidExpression(uri)) return true
+    if (hasLiquidOutput(uri)) return true
 
     try {
       new URL(uri)

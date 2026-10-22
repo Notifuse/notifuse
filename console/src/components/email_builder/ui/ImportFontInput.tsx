@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Input, Popover, Button, Select } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { safeExternalUrl } from '../../../utils/safeHtml'
-import { isLiquidExpression } from '../../../utils/liquid'
+import { hasLiquidOutput, isLiquidExpression } from '../../../utils/liquid'
 
 interface ImportFontInputProps {
   value?: {
@@ -31,7 +31,7 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
     if (!url.trim()) return false
 
     // Allow liquid expressions to bypass URL validation
-    if (isLiquidExpression(url)) return true
+    if (hasLiquidOutput(url)) return true
 
     try {
       new URL(url)
