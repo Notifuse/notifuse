@@ -31,15 +31,13 @@ import CodePreview from '../ui/CodePreview'
  *
  * @param htmlContent - The raw HTML content to render safely
  * @param className - Optional CSS class for styling
- * @param style - Optional inline styles for the iframe
  * @param emailTree - The email template tree to extract mj-style and mj-font content
  */
 const SandboxedIframe: React.FC<{
   htmlContent: string
   className?: string
-  style?: React.CSSProperties
   emailTree?: EmailBlock
-}> = ({ htmlContent, className, style, emailTree }) => {
+}> = ({ htmlContent, className, emailTree }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [iframeHeight, setIframeHeight] = useState<number>(100)
 
@@ -203,8 +201,7 @@ const SandboxedIframe: React.FC<{
         background: 'transparent',
         backgroundColor: 'transparent', // more explicit for cross-browser compatibility
         // transition: 'height 0.2s ease',
-        display: 'block',
-        ...style
+        display: 'block'
       }}
       className={className}
       // No script and no new window. Same origin only, for the canvas to size the frame.
