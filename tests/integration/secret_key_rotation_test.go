@@ -419,10 +419,13 @@ func TestSecretKeyRotationUnderStricterIsolation(t *testing.T) {
 		_, err := repository.RotateSecretKey(ctx, strict, testutil.TestSecretKey, nil)
 		done <- err
 	}()
+	// Waiting on that lock in this database, and no other: another suite on the cluster
+	// may wait on advisory locks of its own.
 	require.Eventually(t, func() bool {
 		var waiting int
-		_ = suite.DBManager.GetDB().QueryRow(
-			`SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' AND NOT granted`).Scan(&waiting)
+		_ = suite.DBManager.GetDB().QueryRow(`SELECT count(*) FROM pg_locks
+			WHERE locktype = 'advisory' AND NOT granted AND classid = 0 AND objid = 4242000001 AND objsubid = 1
+			AND database = (SELECT oid FROM pg_database WHERE datname = current_database())`).Scan(&waiting)
 		return waiting > 0
 	}, 10*time.Second, 20*time.Millisecond, "the rotation waits on the lock")
 
