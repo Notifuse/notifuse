@@ -66,6 +66,8 @@ All notable changes to this project will be documented in this file.
 
 - **Security**: Dependency updates clear the open Dependabot and `npm audit` advisories that have a fix, including `dompurify` 3.4.17 and `seroval` 1.6.9 in the console, and `vite` 7.3.7 and 8.3.3 for advisories in its development server. `braces` and `katex` stay open until a usable fixed version exists.
 
+- **Security**: The server is now built with Go 1.26.10, which fixes vulnerabilities in its HTTP/1 and HTTP/2 handling, MIME parsing, TLS, certificate verification and HTML templates. Building from source now requires Go 1.26.10 or later; if a Docker build stops with “go.mod requires go >= 1.26.10”, run it again with `--pull` (for example `docker compose build --pull`).
+
 - **Improvement**: Signing in after moving an instance to a new domain now explains the fix: set `API_ENDPOINT` to the new address and restart (#435). The self-hosting docs gain a "Changing your domain" page.
 
 - **Improvement**: `CORS_ALLOW_ORIGIN` now accepts a comma-separated list of origins, as documented.
@@ -89,6 +91,8 @@ All notable changes to this project will be documented in this file.
 - **Fix**: When an A/B test's winner is picked by hand, the rest of the list now receives only the winning variation.
 
 - **Improvement**: A broadcast now reaches each contact once when its A/B winner is picked through the API during the test phase, or when it is paused and resumed while a batch is being prepared.
+
+- **Improvement**: Telemetry, when switched on, now also reports whether a workspace uses SendGrid.
 
 - **Change**: The database schema moves to v42. Workspace databases get updated `contact_lists` and `message_history` trigger functions, and their stored segment queries and live automation triggers are updated in place; segments are re-evaluated for contacts removed from their lists. The system database is untouched.
 

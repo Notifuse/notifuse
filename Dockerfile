@@ -61,7 +61,7 @@ COPY config/config.go /build/config/config.go
 RUN npm run build
 
 # Stage 3: Build the Go binary (pure Go, no CGO needed)
-FROM golang:1.25-alpine AS backend-builder
+FROM golang:1.26-alpine AS backend-builder
 
 # Set working directory
 WORKDIR /build
