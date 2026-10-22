@@ -329,7 +329,7 @@ func TestDatabaseConnectionConfig_ValidationPerDBMaximum(t *testing.T) {
 
 func TestEmailQueueConfig(t *testing.T) {
 	setRequired := func(t *testing.T) {
-		t.Setenv("SECRET_KEY", "test-secret-key-for-testing")
+		t.Setenv("SECRET_KEY", "test-secret-key-long-enough-to-sign")
 		t.Setenv("DB_PASSWORD", "testpass")
 	}
 
