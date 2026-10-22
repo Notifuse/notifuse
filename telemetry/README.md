@@ -77,7 +77,7 @@ A new field added later inherits the same rule: pointer, `omitempty`, both struc
 ### Prerequisites
 
 1. Google Cloud SDK (`gcloud`) installed and configured
-2. Go 1.21 or later for local development
+2. Go 1.26 or later for local development
 3. Appropriate Google Cloud permissions for Cloud Functions and Logging
 
 ### Using the Deploy Script
@@ -93,21 +93,24 @@ chmod +x deploy.sh
 ./deploy.sh
 ```
 
+The `go126` runtime builds the function with its own Go 1.26 patch release, which `go.mod` does not pin. After a deploy, open the build log in the region you deployed to (`deploy.sh` defaults to `europe-west1`): `gcloud functions describe notifuse-telemetry --region=REGION --project=YOUR_PROJECT_ID --format='value(buildConfig.build)'` names the build, and `gcloud builds log BUILD_ID --region=REGION --project=YOUR_PROJECT_ID` prints it, `BUILD_ID` being the last part of that name. Check that the Go version it reports is 1.26.10 or later, the first release with the standard-library security fixes this module needs. If it is older, deploy again once the runtime has been updated.
+
 ### Manual Deployment
 
 ```bash
 gcloud functions deploy notifuse-telemetry \
   --gen2 \
-  --runtime=go121 \
+  --runtime=go126 \
   --region=us-central1 \
   --source=. \
   --entry-point=ReceiveTelemetry \
-  --trigger=http \
+  --trigger-http \
   --allow-unauthenticated \
   --memory=256MB \
   --timeout=30s \
   --max-instances=10 \
-  --project=YOUR_PROJECT_ID
+  --project=YOUR_PROJECT_ID \
+  --set-env-vars=GCP_PROJECT=YOUR_PROJECT_ID
 ```
 
 ## Testing
@@ -229,11 +232,11 @@ jsonPayload.web_analytics=true
 
 ### Environment Variables
 
-- `GCP_PROJECT`: Set automatically during deployment
+- `GCP_PROJECT`: the project the logs are written to. Cloud Functions does not set it: `deploy.sh` and the manual command above pass it with `--set-env-vars`, and without it every payload is answered 500.
 
 ### Function Settings
 
-- **Runtime**: Go 1.21
+- **Runtime**: Go 1.26
 - **Memory**: 256MB
 - **Timeout**: 30 seconds
 - **Max Instances**: 10

@@ -3,7 +3,7 @@
 
 name: notifuse-telemetry
 description: 'Receives anonymous telemetry data from Notifuse platform and logs it to Google Cloud Logging'
-runtime: go124
+runtime: go126
 entry_point: ReceiveTelemetry
 trigger:
   type: http

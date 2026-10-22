@@ -56,6 +56,8 @@ All notable changes to this project will be documented in this file.
 
 - **Security**: Dependency updates clear the open Dependabot and `npm audit` advisories that have a fix, including `dompurify` 3.4.17 and `seroval` 1.6.9 in the console, and `vite` 7.3.7 and 8.3.3 for advisories in its development server. `braces` and `katex` stay open until a usable fixed version exists.
 
+- **Security**: The server is now built with Go 1.26.10, which fixes vulnerabilities in its HTTP/1 and HTTP/2 handling, MIME parsing, TLS, certificate verification and HTML templates. Building from source now requires Go 1.26.10 or later; if a Docker build stops with “go.mod requires go >= 1.26.10”, run it again with `--pull` (for example `docker compose build --pull`).
+
 - **Improvement**: Signing in after moving an instance to a new domain now explains the fix: set `API_ENDPOINT` to the new address and restart (#435). The self-hosting docs gain a "Changing your domain" page.
 
 - **Improvement**: `CORS_ALLOW_ORIGIN` now accepts a comma-separated list of origins, as documented.
