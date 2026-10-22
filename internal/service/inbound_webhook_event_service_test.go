@@ -876,11 +876,26 @@ func TestSameAddress(t *testing.T) {
 		{"reported as SparkPost's sandbox sends it", "Jane@Example.com", "jane@example.com.sink.sparkpostmail.com", true},
 		{"another address as SparkPost's sandbox sends it", "jane@example.com", "john@example.com.sink.sparkpostmail.com", false},
 		{"reported with spaces around it", "jane@example.com", " jane@example.com\u00a0", true},
+		{"a domain reported with a character DNS ignores", "user@example.com", "user@ex\u00adample.com", true},
+		{"a domain longer than DNS holds is not looked up", "user@example.com", "user@" + strings.Repeat("\u00ad", 300) + "example.com", false},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			assert.Equal(t, c.same, sameAddress(c.stored, c.reported))
 		})
 	}
+}
+
+// Encoding a domain to Punycode takes time growing with the square of its length, so an
+// event naming a domain far longer than DNS holds must not hold up the request.
+func TestSameAddress_ALongDomainIsComparedQuickly(t *testing.T) {
+	var label strings.Builder
+	for i := 0; i < 20000; i++ {
+		label.WriteRune(rune(0x4e00 + i))
+	}
+
+	start := time.Now()
+	assert.False(t, sameAddress("user@example.com", "user@"+label.String()))
+	assert.Less(t, time.Since(start), time.Second)
 }
 
 func TestExtractXMessageIDFromHeaders(t *testing.T) {

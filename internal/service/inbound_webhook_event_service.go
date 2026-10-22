@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -539,10 +540,15 @@ func sameAddress(stored, reported string) bool {
 	return storedOK && reportedOK && storedForm == reportedForm
 }
 
+// maxDomainLength is the most characters a domain DNS holds has in its ASCII form. A domain
+// reported in Unicode has no more, unless written with characters DNS drops or composes.
+const maxDomainLength = 253
+
 // addressForm spells an address one way whatever the spelling it comes in: the local part
 // decoded when encoded, and lowercased, the domain as DNS looks it up (Punycode, the letter
-// case and the Unicode composition aside), or lowercased when DNS refuses it. ok is false
-// for what is no address.
+// case and the Unicode composition aside), or lowercased when DNS refuses it. A domain longer
+// than DNS holds is refused unread, since encoding one takes time growing with the square of
+// its length. ok is false for what is no address.
 func addressForm(address string) (string, bool) {
 	at := strings.LastIndex(address, "@")
 	if at <= 0 || at == len(address)-1 {
@@ -552,9 +558,11 @@ func addressForm(address string) (string, bool) {
 	if decoded, err := new(mime.WordDecoder).DecodeHeader(local); err == nil {
 		local = decoded
 	}
-	domain, err := idna.Lookup.ToASCII(address[at+1:])
-	if err != nil {
-		domain = address[at+1:]
+	domain := address[at+1:]
+	if utf8.RuneCountInString(domain) <= maxDomainLength {
+		if ascii, err := idna.Lookup.ToASCII(domain); err == nil {
+			domain = ascii
+		}
 	}
 	return strings.ToLower(local) + "@" + strings.ToLower(domain), true
 }
@@ -756,7 +764,7 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 		if email == "" {
 			return
 		}
-		if key := strings.ToLower(strings.TrimSpace(email)); !seen[key] && len(recipients) < sesMaxRecipients {
+		if key := domain.NormalizeEmail(email); !seen[key] && len(recipients) < sesMaxRecipients {
 			seen[key] = true
 			recipients = append(recipients, sesRecipient{email: email, diagnostic: diagnostic})
 		}
