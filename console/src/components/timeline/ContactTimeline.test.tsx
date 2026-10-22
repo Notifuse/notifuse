@@ -297,6 +297,14 @@ describe('ContactTimeline page view header and preview', () => {
     expect(screen.getByText('https://shop.example.com/docs/api')).toBeInTheDocument()
   })
 
+  it('falls back to a workspace website saved without its scheme', () => {
+    const workspace = { settings: { website_url: 'shop.example.com' } } as never
+    render(<ContactTimeline entries={[pageEntry]} workspace={workspace} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'View website' }))
+    expect(screen.getByText('https://shop.example.com/docs/api')).toBeInTheDocument()
+  })
+
   it('offers no preview when there is no domain to be had', () => {
     // Guessing a host would send someone to a page that was never visited.
     render(<ContactTimeline entries={[pageEntry]} />)
@@ -406,7 +414,10 @@ describe('ContactTimeline page view header and preview', () => {
   it.each([
     ['https://WWW.apple.com/', 'www.apple.com'],
     ['https://apple.com', 'www.apple.com'],
-    ['https://www.apple.com', 'apple.com']
+    ['https://www.apple.com', 'apple.com'],
+    // The settings accept a website address without its scheme
+    ['apple.com', 'apple.com'],
+    ['www.apple.com', 'apple.com']
   ])(
     'offers a page of the workspace website when the workspace lists no domain: %s, %s',
     (websiteURL, domain) => {

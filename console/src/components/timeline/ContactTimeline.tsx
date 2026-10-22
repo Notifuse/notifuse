@@ -58,16 +58,23 @@ const isTrackedHost = (hostname: string, allowedDomains: string[]): boolean => {
   })
 }
 
-// Whether a hostname is the workspace website's, with or without `www.`
-const isWebsiteHost = (hostname: string, websiteURL?: string): boolean => {
-  let website: string
+// The workspace website, whose address the settings accept with or without
+// its scheme (`example.com`)
+const parseWebsiteURL = (websiteURL?: string): URL | null => {
+  const address = websiteURL?.trim()
+  if (!address) return null
   try {
-    if (!websiteURL) return false
-    website = new URL(websiteURL).hostname
+    return new URL(/^https?:\/\//i.test(address) ? address : `https://${address}`)
   } catch {
-    return false
+    return null
   }
-  return hostname === website || hostname === `www.${website}` || `www.${hostname}` === website
+}
+
+// Whether a hostname is the workspace website's, with or without `www.`
+const isWebsiteHost = (hostname: string, website: URL | null): boolean => {
+  if (!website) return false
+  const host = website.hostname
+  return hostname === host || hostname === `www.${host}` || `www.${hostname}` === host
 }
 
 interface ContactTimelineProps {
@@ -254,7 +261,8 @@ export function ContactTimeline({
 
     // An IPv6 address is recorded without the brackets a URL needs
     const domain = webChange<string>(entry, 'landing_domain')?.replace(/^([^[].*:.*)$/, '[$1]')
-    const origin = domain ? `https://${domain}` : workspace?.settings?.website_url
+    const website = parseWebsiteURL(workspace?.settings?.website_url)
+    const origin = domain ? `https://${domain}` : website?.href
     if (!origin) return null
 
     try {
@@ -263,7 +271,7 @@ export function ContactTimeline({
       const vouched =
         trackedDomains.length > 0
           ? isTrackedHost(site.hostname, trackedDomains)
-          : isWebsiteHost(site.hostname, workspace?.settings?.website_url)
+          : isWebsiteHost(site.hostname, website)
       if (domain && !vouched) return null
       const page = path.startsWith('/') ? new URL(site.origin + path) : new URL(path, site)
       if (page.origin !== site.origin) return null
