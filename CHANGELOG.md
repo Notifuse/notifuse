@@ -84,6 +84,8 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: A broadcast now reaches each contact once when its A/B winner is picked through the API during the test phase, or when it is paused and resumed while a batch is being prepared.
 
+- **Improvement**: Telemetry, when switched on, now also reports whether a workspace uses SendGrid.
+
 - **Change**: The database schema moves to v42. Workspace databases get updated `contact_lists` and `message_history` trigger functions, and their stored segment queries and live automation triggers are updated in place; segments are re-evaluated for contacts removed from their lists. The system database is untouched.
 
 ## [41.0] - 2026-09-17
