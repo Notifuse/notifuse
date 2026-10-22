@@ -100,7 +100,8 @@ const buttonContent =
   `<p onmouseover="${probe('button-block')}">Buy now` +
   `<span><img src="x" onerror="${probe('button-span')}"></span></p>`
 
-const template = {
+// A template whose email holds these blocks, in one column
+const templateWith = (blocks: object[]) => ({
   ...mockTemplates[0],
   email: {
     ...mockTemplates[0].email,
@@ -115,42 +116,53 @@ const template = {
             {
               id: 'section-x',
               type: 'mj-section',
-              children: [
-                {
-                  id: 'column-x',
-                  type: 'mj-column',
-                  children: [
-                    { id: 'text-x', type: 'mj-text', content: textContent },
-                    { id: 'text-shadow', type: 'mj-text', content: shadowedContent },
-                    { id: 'text-band', type: 'mj-text', content: bandedContent },
-                    {
-                      id: 'button-x',
-                      type: 'mj-button',
-                      attributes: { href: `javascript:${probe('button-href')}` },
-                      content: buttonContent
-                    },
-                    {
-                      id: 'image-x',
-                      type: 'mj-image',
-                      attributes: {
-                        src: 'https://localapi.notifuse.com:4000/i.png',
-                        href: `javascript:${probe('image-href')}`
-                      }
-                    }
-                  ]
-                }
-              ]
+              children: [{ id: 'column-x', type: 'mj-column', children: blocks }]
             }
           ]
         }
       ]
     }
   }
-}
+})
 
-const openTemplateEditor = async (page: Page) => {
-  await mockApi(page, 'templates.list', { templates: [template], total: 1 })
-  await mockApi(page, 'templates.get', { template })
+const template = templateWith([
+  { id: 'text-x', type: 'mj-text', content: textContent },
+  { id: 'text-shadow', type: 'mj-text', content: shadowedContent },
+  { id: 'text-band', type: 'mj-text', content: bandedContent },
+  {
+    id: 'button-x',
+    type: 'mj-button',
+    attributes: { href: `javascript:${probe('button-href')}` },
+    content: buttonContent
+  },
+  {
+    id: 'image-x',
+    type: 'mj-image',
+    attributes: {
+      src: 'https://localapi.notifuse.com:4000/i.png',
+      href: `javascript:${probe('image-href')}`
+    }
+  }
+])
+
+// Raw HTML whose links would each leave the canvas their own way: a new tab, the
+// block's own frame, and an anchor, which a srcdoc frame resolves against the
+// console's URL
+const rawTemplate = templateWith([
+  {
+    id: 'raw-x',
+    type: 'mj-raw',
+    content:
+      '<p id="top">Raw block</p>' +
+      '<a href="https://example.com/raw-tab" target="_blank">new tab</a> ' +
+      '<a href="https://example.com/raw-frame">same frame</a> ' +
+      '<a href="#top">anchor</a>'
+  }
+])
+
+const openTemplateEditor = async (page: Page, shown = template) => {
+  await mockApi(page, 'templates.list', { templates: [shown], total: 1 })
+  await mockApi(page, 'templates.get', { template: shown })
   await mockApi(page, 'templates.compile', {
     html:
       '<html><body><p>Compiled</p><a href="https://example.com/offer">Offer</a>' +
@@ -283,6 +295,43 @@ test.describe('Template content in the email editor', () => {
     await frame.contentFrame().getByRole('link', { name: 'Offer' }).click()
     await expect(await popup).toHaveURL('https://example.com/offer')
     await expect(frame.contentFrame().getByText('Compiled')).toBeVisible()
+  })
+
+  test('raw HTML block follows none of its links', async ({ authenticatedPageWithData: page }) => {
+    await page.context().route('https://example.com/**', (route) =>
+      route.fulfill({ contentType: 'text/html', body: '<p>Away</p>' })
+    )
+    const opened: string[] = []
+    page.context().on('page', (other) => opened.push(other.url()))
+    const drawer = await openTemplateEditor(page, rawTemplate)
+
+    const block = drawer.locator('[data-block-id="raw-x"]')
+    const frame = block.locator('iframe').contentFrame()
+    await expect(frame.getByText('Raw block')).toBeVisible()
+    // Selected, the block lets the pointer into its frame
+    await block.click()
+    const frameLocation = () =>
+      block
+        .locator('iframe')
+        .evaluate((element: HTMLIFrameElement) => element.contentDocument?.location.href)
+
+    const newTab = frame.getByRole('link', { name: 'new tab' })
+    await newTab.click()
+    await newTab.click({ button: 'middle' })
+    await newTab.click({ modifiers: ['ControlOrMeta'] })
+    await newTab.click({ modifiers: ['Shift'] })
+    await page.waitForTimeout(1000)
+    expect(opened).toEqual([])
+
+    for (const name of ['same frame', 'anchor']) {
+      await frame.getByRole('link', { name }).click()
+      await page.waitForTimeout(500)
+      expect(await frameLocation(), name).toBe('about:srcdoc')
+    }
+    await frame.getByRole('link', { name: 'same frame' }).press('Enter')
+    await page.waitForTimeout(500)
+    expect(await frameLocation()).toBe('about:srcdoc')
+    await expect(frame.getByText('Raw block')).toBeVisible()
   })
 })
 

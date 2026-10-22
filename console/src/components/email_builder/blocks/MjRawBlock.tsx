@@ -33,7 +33,12 @@ import CodePreview from '../ui/CodePreview'
  * @param style - Optional inline styles for the iframe
  * @param emailTree - The email template tree to extract mj-style and mj-font content
  */
- 
+
+// A click in the frame does nothing but what the pointer does there (select text,
+// scroll): a link opens no tab, no app, and leaves the frame on the block's HTML,
+// as on the rest of the canvas. The same listener is added once per document.
+const preventDefault = (event: Event) => event.preventDefault()
+
 const SandboxedIframe: React.FC<{
   htmlContent: string
   className?: string
@@ -177,11 +182,23 @@ const SandboxedIframe: React.FC<{
       }, 50) // 50ms debounce
     }
 
-    // Set up height adjustment after iframe loads
-    iframe.onload = adjustHeight
+    const preventLinks = () => {
+      const iframeDoc = iframe.contentDocument
+      if (!iframeDoc) return
+      iframeDoc.addEventListener('click', preventDefault, true)
+      iframeDoc.addEventListener('auxclick', preventDefault, true)
+    }
 
-    // Single fallback adjustment
-    const fallbackTimeout = setTimeout(adjustHeight, 200)
+    const settle = () => {
+      preventLinks()
+      adjustHeight()
+    }
+
+    // Set up link prevention and height adjustment after iframe loads
+    iframe.onload = settle
+
+    // Single fallback, for a document parsed before it has loaded
+    const fallbackTimeout = setTimeout(settle, 200)
 
     // Cleanup function
     return () => {
@@ -207,8 +224,8 @@ const SandboxedIframe: React.FC<{
         ...style
       }}
       className={className}
-      // No script, and no new window: a link in it opens no tab and no app, as on
-      // the rest of the canvas. Same origin only, for the canvas to size the frame.
+      // No script and no new window. Same origin only, for the canvas to size the
+      // frame and keep its links from being followed.
       sandbox="allow-same-origin"
       title="Raw HTML Content Preview"
       loading="lazy"
