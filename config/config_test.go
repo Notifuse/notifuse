@@ -358,11 +358,14 @@ func TestEmailQueueConfig(t *testing.T) {
 		assert.Equal(t, 4, cfg.EmailQueue.SMTPConcurrency)
 	})
 
-	fields := map[string]func(*Config) int{
-		"EMAIL_QUEUE_CONCURRENCY":      func(c *Config) int { return c.EmailQueue.Concurrency },
-		"EMAIL_QUEUE_SMTP_CONCURRENCY": func(c *Config) int { return c.EmailQueue.SMTPConcurrency },
-	}
-	for name, field := range fields {
+	for _, setting := range []struct {
+		name  string
+		field func(*Config) int
+	}{
+		{"EMAIL_QUEUE_CONCURRENCY", func(c *Config) int { return c.EmailQueue.Concurrency }},
+		{"EMAIL_QUEUE_SMTP_CONCURRENCY", func(c *Config) int { return c.EmailQueue.SMTPConcurrency }},
+	} {
+		name, field := setting.name, setting.field
 		for _, tc := range []struct {
 			value   string
 			want    int
