@@ -661,8 +661,14 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
             <span
               // Keeps what the button text draws to the button. On the text's
               // own box, made a block of its own for containment to apply, so a
-              // fixed button size cuts off none of the text.
-              style={{ color: attrs.color, display: 'inline-block', ...containedContentStyle }}
+              // fixed button size cuts off none of the text. Such a box takes no
+              // text decoration from the button, so it carries the button's own.
+              style={{
+                color: attrs.color,
+                display: 'inline-block',
+                textDecoration: 'inherit',
+                ...containedContentStyle
+              }}
               dangerouslySetInnerHTML={{ __html: canvasHtml }}
               // Nothing in the button text acts on a click, a link or a label
               // included: the click goes on to select the block

@@ -98,6 +98,25 @@ describe('editor canvas keeps block content inside its block', () => {
   })
 })
 
+describe('editor canvas button text', () => {
+  it('carries the button text decoration into its contained box', () => {
+    const block = {
+      id: 'b-decorated',
+      type: 'mj-button',
+      attributes: { textDecoration: 'underline' },
+      content: '<p>Buy now</p>'
+    } as unknown as EmailBlock
+    const { container } = render(<>{new MjButtonBlock(block).getEdit(previewProps())}</>)
+
+    // An inline-block takes no decoration from its parent, so it carries the
+    // button's own
+    const text = container.querySelector('[style*="contain"]') as HTMLElement | null
+    expect(text?.style.display).toBe('inline-block')
+    expect(text?.style.textDecoration).toBe('inherit')
+    expect((text?.parentElement as HTMLElement).style.textDecoration).toBe('underline')
+  })
+})
+
 describe('a click on editor canvas content only selects the block', () => {
   // A link, or a label that would click a console field of the same id
   it.each([
