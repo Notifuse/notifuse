@@ -227,7 +227,7 @@ func TestWorkspace_Validate(t *testing.T) {
 		{
 			name: "ID too long",
 			workspace: Workspace{
-				ID:   string(make([]byte, 21)), // 21 chars
+				ID:   strings.Repeat("a", 21),
 				Name: "Test Workspace",
 				Settings: WorkspaceSettings{
 					WebsiteURL:      "https://example.com",
@@ -1049,6 +1049,24 @@ func TestWorkspaceRequests_Validate_NameLength(t *testing.T) {
 			require.Error(t, err)
 			assert.Equal(t, v.prefix+"name length must be between 1 and 32", err.Error())
 		})
+	}
+}
+
+func TestValidateWorkspaceID(t *testing.T) {
+	assert.NoError(t, validateWorkspaceID(strings.Repeat("a", 20)))
+
+	tests := []struct {
+		id      string
+		wantErr string
+	}{
+		{id: "", wantErr: "id is required"},
+		{id: "acme-co", wantErr: "id must be alphanumeric"},
+		{id: strings.Repeat("a", 21), wantErr: "id length must be between 1 and 20"},
+	}
+	for _, tt := range tests {
+		err := validateWorkspaceID(tt.id)
+		require.Error(t, err, tt.id)
+		assert.Equal(t, tt.wantErr, err.Error())
 	}
 }
 

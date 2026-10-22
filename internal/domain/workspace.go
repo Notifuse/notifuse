@@ -683,18 +683,25 @@ type Workspace struct {
 	UpdatedAt    time.Time         `json:"updated_at"`
 }
 
+// validateWorkspaceID checks the ID of a workspace being created or saved against the
+// workspace ID columns, VARCHAR(20).
+func validateWorkspaceID(id string) error {
+	if id == "" {
+		return fmt.Errorf("id is required")
+	}
+	if !govalidator.IsAlphanumeric(id) {
+		return fmt.Errorf("id must be alphanumeric")
+	}
+	if len(id) > 20 {
+		return fmt.Errorf("id length must be between 1 and 20")
+	}
+	return nil
+}
+
 // Validate performs validation on the workspace fields
 func (w *Workspace) Validate(passphrase string) error {
-	// Validate ID
-	if w.ID == "" {
-		return fmt.Errorf("invalid workspace: id is required")
-	}
-	if !govalidator.IsAlphanumeric(w.ID) {
-		return fmt.Errorf("invalid workspace: id must be alphanumeric")
-	}
-	// The workspace ID columns are VARCHAR(20).
-	if len(w.ID) > 20 {
-		return fmt.Errorf("invalid workspace: id length must be between 1 and 20")
+	if err := validateWorkspaceID(w.ID); err != nil {
+		return fmt.Errorf("invalid workspace: %w", err)
 	}
 
 	// Validate Name
@@ -1494,16 +1501,8 @@ type CreateWorkspaceRequest struct {
 }
 
 func (r *CreateWorkspaceRequest) Validate(passphrase string) error {
-	// Validate ID
-	if r.ID == "" {
-		return fmt.Errorf("invalid create workspace request: id is required")
-	}
-	if !govalidator.IsAlphanumeric(r.ID) {
-		return fmt.Errorf("invalid create workspace request: id must be alphanumeric")
-	}
-	// The workspace ID columns are VARCHAR(20).
-	if len(r.ID) > 20 {
-		return fmt.Errorf("invalid create workspace request: id length must be between 1 and 20")
+	if err := validateWorkspaceID(r.ID); err != nil {
+		return fmt.Errorf("invalid create workspace request: %w", err)
 	}
 
 	// Validate Name

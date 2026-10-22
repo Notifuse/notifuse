@@ -4,7 +4,7 @@ Created 2026-10-22 on `dev` @ `5499619`. `VERSION` is `42.0`, unreleased.
 Branch `fix/template-name-length`, one PR to `dev`; a second PR to `dev` on the docs repository for the API reference.
 Amended after Gemini's counter-review (raw answer `reviews/fix-template-name-length-gemini-brut-plan.md` in the project files, each remark checked in `reviews/fix-template-name-length-gemini-verif-plan.md`).
 Amended again after the first max review of `db4912a` (v2): the blog post drawer's template name (C6), the console limits in one module (C7), the workspace ID (B5, C8, decision 5), and two "Not in scope" entries. Gemini's second counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v2.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v2.md`.
-Amended after the second max review, of the changes since `db4912a` (v3): B5 also lowers the entity check `Workspace.Validate` to 20. Gemini's third counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v3.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v3.md`.
+Amended after the second max review, of the changes since `db4912a` (v3): B5 also lowers the entity check `Workspace.Validate` to 20, through one `validateWorkspaceID` shared with the create request; the third max review added a "Not in scope" entry (uppercase workspace IDs). Gemini's third counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v3.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v3.md`.
 
 ## Problem
 
@@ -121,6 +121,7 @@ Tests, `pages/CreateWorkspacePage.test.tsx`: the ID input's `maxlength` is 20; a
 - `generateApiId` drops accented letters (`\w` is ASCII in JS) where `kebabCase` transliterates them, and keeps a leading `_` from a leading space. Unchanged.
 - Databases whose encoding is not UTF-8 (`SQL_ASCII`): there `VARCHAR(n)` counts bytes, so a long accented name that passes the rune count can still fail in the insert. Notifuse already assumes UTF-8 elsewhere (web analytics, 42.0 changelog); these checks follow the default and documented setup.
 - Two transactional notifications whose names share their first 32 characters get the same generated ID, and the second create fails on the primary key with the generic 500, as any duplicate ID does today (before this change both names failed). A uniqueness check in the drawer, as the template drawer has, and a 409 for a duplicate ID are a separate change.
+- A new workspace ID with uppercase letters (`AcmeCo`): both ID checks accept it (`govalidator.IsAlphanumeric`), but `EnsureWorkspaceDatabaseExists` (`internal/database/utils.go:95`) creates the database unquoted, so PostgreSQL folds its name to lowercase, and the case-sensitive check and connection that follow fail: a 500, and an empty database left behind. Found by the third max review; not a length limit, and refusing uppercase in `Workspace.Validate` also runs on updates, so it needs its own look at stored IDs. Separate change.
 - API reference for transactional notification and workspace limits: `transactional.create/update` and `workspaces.create/update` are not in the OpenAPI spec (`openapi/openapi.yaml` documents `transactional.send` only).
 
 ## Test commands
@@ -137,4 +138,4 @@ cd console && npm test -- --run && npm run lint && npx tsc --noEmit && npm run l
 Integration tests added:
 - `tests/integration/template_api_test.go`: create a template whose name is 255 × `é` → created, read back unchanged; update it (same name, new version) → saved; update it to 256 characters → 400 with the length message.
 - `tests/integration/transactional_handler_test.go`: create with a 33-character ID → 400 with the message (was 500); with 32 characters → created; create with a 256-character name → 400 (was 500); update to a 256-character name → 400 (was 500); 255 × `é` → saved.
-- `tests/integration/workspace_test.go`: create a workspace named with 32 accented characters → created, read back unchanged.
+- `tests/integration/workspace_test.go`: create a workspace named with 32 accented characters → created, read back unchanged; create one with a 21-character ID → 400 with the reason (was 500), no row saved.
