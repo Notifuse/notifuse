@@ -46,6 +46,8 @@ type DemoService struct {
 	// Interface-typed, like segmentService above, so the seeded-automation guard tests can build a
 	// DemoService with a generated mock. *AutomationService satisfies it, so app.go passes its own.
 	automationService domain.AutomationService
+	// Authenticates the seed for the demo workspace once; see seedContext.
+	authService domain.AuthService
 }
 
 // Sample data arrays for contact generation
@@ -124,6 +126,7 @@ func NewDemoService(
 	annotationRepo domain.AnnotationRepository,
 	webhookSubscriptionService *WebhookSubscriptionService,
 	automationService domain.AutomationService,
+	authService domain.AuthService,
 ) *DemoService {
 	return &DemoService{
 		logger:                           logger,
@@ -153,6 +156,7 @@ func NewDemoService(
 		annotationRepo:                   annotationRepo,
 		webhookSubscriptionService:       webhookSubscriptionService,
 		automationService:                automationService,
+		authService:                      authService,
 	}
 }
 
@@ -214,6 +218,48 @@ func (s *DemoService) deleteAllWorkspaces(ctx context.Context) error {
 	return nil
 }
 
+// demoSessionExpiry bounds the session the demo seed acts through. The seed finishes
+// well within it, sample data included, and nobody ever holds a token for it.
+const demoSessionExpiry = 24 * time.Hour
+
+// rootContext authenticates the demo seed as the root account. Root is a person, so it
+// acts through a session of its own, as after a sign-in: a context without a session
+// only ever authenticates an API key account. The caller runs end once the seed is
+// done, which closes that session.
+func (s *DemoService) rootContext(ctx context.Context, rootUser *domain.User) (authenticatedCtx context.Context, end func(), err error) {
+	authenticatedCtx = context.WithValue(ctx, domain.UserIDKey, rootUser.ID)
+	if rootUser.Type != domain.UserTypeUser {
+		return context.WithValue(authenticatedCtx, domain.UserTypeKey, string(rootUser.Type)), func() {}, nil
+	}
+
+	session, err := s.userService.startSession(ctx, rootUser.ID, demoSessionExpiry)
+	if err != nil {
+		s.logger.WithField("root_user_id", rootUser.ID).WithField("error", err.Error()).Error("Failed to open a session for the demo seed")
+		return nil, nil, err
+	}
+	end = func() {
+		if err := s.userService.endSession(context.WithoutCancel(ctx), session.ID); err != nil {
+			// It expires on its own; nobody holds a token for it.
+			s.logger.WithField("root_user_id", rootUser.ID).WithField("error", err.Error()).Warn("Failed to close the demo seed session")
+		}
+	}
+	authenticatedCtx = context.WithValue(authenticatedCtx, domain.UserTypeKey, string(domain.UserTypeUser))
+	return context.WithValue(authenticatedCtx, domain.SessionIDKey, session.ID), end, nil
+}
+
+// seedContext authenticates the seed for the demo workspace once, as a request is,
+// and returns the context the rest of the seed acts through. Later checks read that
+// result rather than the session, so the seed does not depend on the session staying
+// open: on the demo every visitor shares the root account, and one of them signing
+// out ends all of its sessions.
+func (s *DemoService) seedContext(ctx context.Context, workspaceID string) (context.Context, error) {
+	seedCtx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate the demo seed: %w", err)
+	}
+	return seedCtx, nil
+}
+
 // createDemoWorkspace creates a new demo workspace with sample data
 func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 	s.logger.Info("Creating demo workspace")
@@ -230,15 +276,11 @@ func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 
 	s.logger.WithField("root_user_id", rootUser.ID).WithField("root_user_type", rootUser.Type).Info("Found root user for demo workspace creation")
 
-	// Create authenticated context with root user
-	// For UserTypeUser, we need to create a temporary session or use API key approach
-	authenticatedCtx := context.WithValue(ctx, domain.UserIDKey, rootUser.ID)
-	if rootUser.Type == domain.UserTypeUser {
-		// For demo purposes, treat root user as API key to avoid session complexity
-		authenticatedCtx = context.WithValue(authenticatedCtx, domain.UserTypeKey, string(domain.UserTypeAPIKey))
-	} else {
-		authenticatedCtx = context.WithValue(authenticatedCtx, domain.UserTypeKey, string(rootUser.Type))
+	authenticatedCtx, endRootSession, err := s.rootContext(ctx, rootUser)
+	if err != nil {
+		return err
 	}
+	defer endRootSession()
 
 	// Use hardcoded demo workspace ID
 	workspaceID := "demo"
@@ -268,6 +310,11 @@ func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 	}
 
 	s.logger.WithField("workspace_id", workspace.ID).Info("Demo workspace created successfully")
+
+	authenticatedCtx, err = s.seedContext(authenticatedCtx, workspace.ID)
+	if err != nil {
+		return err
+	}
 
 	// Create SMTP integration for demo emails
 	if err := s.createDemoSMTPIntegration(authenticatedCtx, workspace.ID); err != nil {

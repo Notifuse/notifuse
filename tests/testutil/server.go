@@ -31,6 +31,10 @@ type ServerManager struct {
 	// variant so the suite stops at setup with the tag to add instead of running on
 	// the free tier and failing deep inside a workspace or SSO test on a 402.
 	licenseErr error
+
+	// pendingSecurity holds the keys SetSecretKey gave, until the next start: the running
+	// server reads its configuration on every request.
+	pendingSecurity *config.SecurityConfig
 }
 
 // AppInterface defines the interface for the App (to avoid circular imports)
@@ -82,8 +86,12 @@ const TestSecretKey = "test-secret-key-for-integration-tests-only"
 
 // NewServerManager creates a new server manager for testing
 func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *DatabaseManager) *ServerManager {
-	// Create test JWT secret (32+ bytes for HS256)
-	jwtSecret := []byte("test-jwt-secret-key-for-integration-tests-only-32bytes")
+	// The keys an installation with SECRET_KEY=TestSecretKey runs with, the JWT secret
+	// included, so a token signed with any other key is refused as it would be there.
+	security, err := config.NewSecurityConfig(TestSecretKey, "SECRET_KEY")
+	if err != nil {
+		panic(fmt.Sprintf("TestSecretKey is refused: %v", err))
+	}
 
 	// The suite runs on an enterprise licence — see license.go for what it carries and
 	// why. A licence the binary does not trust is recorded and reported from Start.
@@ -102,10 +110,7 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 			Port: 0, // Use random available port
 		},
 		Database: *dbManager.GetConfig(),
-		Security: config.SecurityConfig{
-			SecretKey: TestSecretKey,
-			JWTSecret: jwtSecret,
-		},
+		Security: security,
 		SMTP: config.SMTPConfig{
 			Host:      "localhost",
 			Port:      1025,
@@ -167,6 +172,7 @@ func (sm *ServerManager) Start() error {
 	if sm.licenseErr != nil {
 		return sm.licenseErr
 	}
+	sm.applyPendingSecretKey()
 
 	// Initialize the app
 	if err := sm.app.Initialize(); err != nil {
@@ -230,6 +236,7 @@ func (sm *ServerManager) StartLive(ctx context.Context) error {
 	if sm.licenseErr != nil {
 		return sm.licenseErr
 	}
+	sm.applyPendingSecretKey()
 
 	// 1. Bind the listener first to know the port.
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:0", sm.config.Server.Host))
@@ -313,6 +320,7 @@ func (sm *ServerManager) StartLiveDirect(ctx context.Context) error {
 	if sm.licenseErr != nil {
 		return sm.licenseErr
 	}
+	sm.applyPendingSecretKey()
 
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:0", sm.config.Server.Host))
 	if err != nil {
@@ -466,6 +474,25 @@ func (sm *ServerManager) WaitForReady(timeout time.Duration) error {
 		return fmt.Errorf("server not started")
 	}
 	return sm.waitForReady(timeout)
+}
+
+// SetSecretKey gives the server the keys an installation reads from SECRET_KEY=raw,
+// from its next start. The data factory and the seeder keep encrypting with
+// TestSecretKey.
+func (sm *ServerManager) SetSecretKey(raw string) error {
+	security, err := config.NewSecurityConfig(raw, "SECRET_KEY")
+	if err != nil {
+		return err
+	}
+	sm.pendingSecurity = &security
+	return nil
+}
+
+func (sm *ServerManager) applyPendingSecretKey() {
+	if sm.pendingSecurity != nil {
+		sm.config.Security = *sm.pendingSecurity
+		sm.pendingSecurity = nil
+	}
 }
 
 // Restart stops and starts the server

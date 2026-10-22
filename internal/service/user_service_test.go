@@ -386,6 +386,7 @@ func TestUserService_VerifyUserSession(t *testing.T) {
 		user := &domain.User{
 			ID:    userID,
 			Email: "test@example.com",
+			Type:  domain.UserTypeUser,
 		}
 
 		mockRepo.EXPECT().
@@ -440,6 +441,25 @@ func TestUserService_VerifyUserSession(t *testing.T) {
 		mockRepo.EXPECT().
 			GetSessionByID(gomock.Any(), sessionID).
 			Return(nil, &domain.ErrSessionNotFound{Message: "session not found"})
+
+		result, err := service.VerifyUserSession(context.Background(), userID, sessionID)
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.ErrorIs(t, err, domain.ErrSessionAuthFailed)
+	})
+
+	t.Run("a session never authenticates an API key account", func(t *testing.T) {
+		mockRepo.EXPECT().
+			GetSessionByID(gomock.Any(), sessionID).
+			Return(&domain.Session{
+				ID:        sessionID,
+				UserID:    userID,
+				ExpiresAt: time.Now().Add(1 * time.Hour),
+			}, nil)
+		mockRepo.EXPECT().
+			GetUserByID(gomock.Any(), userID).
+			Return(&domain.User{ID: userID, Email: "key@example.com", Type: domain.UserTypeAPIKey}, nil)
 
 		result, err := service.VerifyUserSession(context.Background(), userID, sessionID)
 

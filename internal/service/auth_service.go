@@ -114,6 +114,12 @@ func (s *AuthService) AuthenticateUserFromContext(ctx context.Context) (*domain.
 		return s.VerifyUserSession(ctx, userID, sessionID)
 	} else if userType == string(domain.UserTypeAPIKey) {
 		user, err := s.GetUserByID(ctx, userID)
+		if err == nil && user.Type != domain.UserTypeAPIKey {
+			// An API key token stands for an API key account and nothing else: it
+			// has no session behind it, so naming a person's account must not make
+			// it that person's session. Answered like a key whose account is gone.
+			err = ErrUserNotFound
+		}
 		if errors.Is(err, ErrUserNotFound) {
 			// Revoking an API key deletes its user row, and that delete is the
 			// whole of the revocation — the token itself stays signed and valid
@@ -231,6 +237,15 @@ func (s *AuthService) VerifyUserSession(ctx context.Context, userID, sessionID s
 		return nil, err
 	}
 
+	// Sessions belong to people. An API key account never signs in, so a session
+	// token naming one was not issued by this installation.
+	if user.Type != domain.UserTypeUser {
+		if s.logger != nil {
+			s.logger.WithField("user_id", userID).Error("Session token names an account that is not a user")
+		}
+		return nil, ErrUserNotFound
+	}
+
 	return user, nil
 }
 
@@ -331,6 +346,8 @@ func (s *AuthService) ValidateInvitationToken(tokenString string) (invitationID,
 		return "", "", "", fmt.Errorf("secret not available: %w", err)
 	}
 
+	// Every invitation token carries its invitation's expiry, so one without was
+	// not issued here: WithExpirationRequired refuses it.
 	claims := &InvitationClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		// CRITICAL: Verify signing method to prevent algorithm confusion attacks
@@ -338,7 +355,7 @@ func (s *AuthService) ValidateInvitationToken(tokenString string) (invitationID,
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return s.cachedSecret, nil
-	})
+	}, jwt.WithExpirationRequired())
 
 	// CRITICAL: Check both error AND token.Valid
 	if err != nil {
@@ -346,6 +363,11 @@ func (s *AuthService) ValidateInvitationToken(tokenString string) (invitationID,
 	}
 	if !token.Valid {
 		return "", "", "", fmt.Errorf("invalid invitation token: token not valid")
+	}
+	// Every token this installation issues is signed with the same key, and a session
+	// token parses here too, naming no invitation.
+	if claims.InvitationID == "" || claims.WorkspaceID == "" || claims.Email == "" {
+		return "", "", "", fmt.Errorf("invalid invitation token: no invitation named")
 	}
 
 	return claims.InvitationID, claims.WorkspaceID, claims.Email, nil

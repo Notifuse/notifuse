@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
@@ -210,6 +211,9 @@ func (h *WorkspaceHandler) handleCreate(w http.ResponseWriter, r *http.Request) 
 			WriteJSONError(w, limitErr.Error(), http.StatusForbidden)
 			return
 		}
+		if writeStaleCredential(w, err) {
+			return
+		}
 		if err.Error() == "workspace already exists" {
 			WriteJSONError(w, "Workspace already exists", http.StatusConflict)
 		} else {
@@ -254,6 +258,9 @@ func (h *WorkspaceHandler) handleUpdate(w http.ResponseWriter, r *http.Request) 
 	)
 	if err != nil {
 		if writeServiceError(w, err, "You are not allowed to update this workspace") {
+			return
+		}
+		if writeStaleCredential(w, err) {
 			return
 		}
 		// Check if it's a validation error (e.g., DNS verification failed)
@@ -716,6 +723,20 @@ func (h *WorkspaceHandler) handleRemoveMember(w http.ResponseWriter, r *http.Req
 	})
 }
 
+// writeStaleCredential answers a save refused because it carries a credential the
+// instance key does not open. An API client that read the workspace before a SECRET_KEY
+// rotation and sends back the encrypted forms it read sends one, and reading the
+// workspace again gives them under the new key; a stored value that no longer opens,
+// kept when an integration switches provider, has to be entered again.
+func writeStaleCredential(w http.ResponseWriter, err error) bool {
+	if !errors.Is(err, domain.ErrStaleCredential) {
+		return false
+	}
+	WriteJSONError(w, "A saved credential of this workspace changed or can no longer be read. "+
+		"Read the workspace again before saving, or enter the credential again.", http.StatusBadRequest)
+	return true
+}
+
 // handleCreateIntegration handles the request to create a new integration
 func (h *WorkspaceHandler) handleCreateIntegration(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -741,6 +762,9 @@ func (h *WorkspaceHandler) handleCreateIntegration(w http.ResponseWriter, r *htt
 		var unauthorized *domain.ErrUnauthorized
 		if errors.As(err, &unauthorized) {
 			WriteJSONError(w, unauthorized.Message, http.StatusForbidden)
+			return
+		}
+		if writeStaleCredential(w, err) {
 			return
 		}
 
@@ -779,6 +803,9 @@ func (h *WorkspaceHandler) handleUpdateIntegration(w http.ResponseWriter, r *htt
 		var unauthorized *domain.ErrUnauthorized
 		if errors.As(err, &unauthorized) {
 			WriteJSONError(w, unauthorized.Message, http.StatusForbidden)
+			return
+		}
+		if writeStaleCredential(w, err) {
 			return
 		}
 
@@ -921,6 +948,14 @@ func (h *WorkspaceHandler) handleConnectZapier(w http.ResponseWriter, r *http.Re
 	})
 }
 
+// writeInvitationUnavailable answers a link that does not open an invitation: a
+// token that is expired, malformed or signed with another key, or an invitation
+// that is gone or no longer matches. 404, never 401: the console treats any 401 as
+// a lost session and would sign out a member who opened the link while signed in.
+func writeInvitationUnavailable(w http.ResponseWriter) {
+	WriteJSONError(w, "Invitation not found or no longer valid", http.StatusNotFound)
+}
+
 // handleVerifyInvitationToken verifies an invitation token and returns invitation details
 func (h *WorkspaceHandler) handleVerifyInvitationToken(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -943,7 +978,7 @@ func (h *WorkspaceHandler) handleVerifyInvitationToken(w http.ResponseWriter, r 
 	invitationID, workspaceID, email, err := h.authService.ValidateInvitationToken(req.Token)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to validate invitation token")
-		WriteJSONError(w, "Invalid or expired invitation token", http.StatusUnauthorized)
+		writeInvitationUnavailable(w)
 		return
 	}
 
@@ -951,14 +986,22 @@ func (h *WorkspaceHandler) handleVerifyInvitationToken(w http.ResponseWriter, r 
 	invitation, err := h.workspaceService.GetInvitationByID(r.Context(), invitationID)
 	if err != nil {
 		h.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Error("Failed to get invitation")
-		WriteJSONError(w, "Invitation not found", http.StatusNotFound)
+		writeInvitationUnavailable(w)
 		return
 	}
 
 	// Verify that the invitation details match the token
 	if invitation.WorkspaceID != workspaceID || invitation.Email != email {
 		h.logger.WithField("invitation_id", invitationID).Error("Invitation details mismatch")
-		WriteJSONError(w, "Invalid invitation token", http.StatusUnauthorized)
+		writeInvitationUnavailable(w)
+		return
+	}
+
+	// The stored expiry is authoritative, as it is when the invitation is accepted.
+	// The token's own expiry is the stored one, so this only answers an expiry
+	// shortened in the database.
+	if !time.Now().Before(invitation.ExpiresAt) {
+		writeInvitationUnavailable(w)
 		return
 	}
 
@@ -1014,7 +1057,11 @@ func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http
 	invitationID, workspaceID, email, err := h.authService.ValidateInvitationToken(req.Token)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to validate invitation token")
-		WriteJSONError(w, "Invalid or expired invitation token", http.StatusUnauthorized)
+		// A token that names nothing is no action, only the workspace the body claims: as
+		// the 401 this answered before, it stays out of the audit log, so an anonymous
+		// client cannot write rows into a workspace's log.
+		domain.AuditFromContext(r.Context()).Skip()
+		writeInvitationUnavailable(w)
 		return
 	}
 
@@ -1024,6 +1071,10 @@ func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http
 		var limitErr *domain.ErrTeamMemberLimitReached
 		if errors.As(err, &limitErr) {
 			WriteJSONError(w, limitErr.Error(), http.StatusForbidden)
+			return
+		}
+		if errors.Is(err, domain.ErrInvitationUnavailable) {
+			writeInvitationUnavailable(w)
 			return
 		}
 		h.logger.WithField("invitation_id", invitationID).WithField("workspace_id", workspaceID).WithField("email", email).WithField("error", err.Error()).Error("Failed to accept invitation")
@@ -1087,7 +1138,7 @@ func (h *WorkspaceHandler) handleJoinInvitation(w http.ResponseWriter, r *http.R
 	workspaceID, err := h.workspaceService.JoinInvitation(r.Context(), req.InvitationID)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvitationUnavailable) {
-			WriteJSONError(w, "Invitation not found or no longer valid", http.StatusNotFound)
+			writeInvitationUnavailable(w)
 			return
 		}
 		var limitErr *domain.ErrTeamMemberLimitReached
