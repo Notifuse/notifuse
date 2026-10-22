@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -23,6 +24,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/service/broadcast"
 	"github.com/Notifuse/notifuse/internal/service/queue"
 	"github.com/Notifuse/notifuse/pkg/cache"
+	pkgCrypto "github.com/Notifuse/notifuse/pkg/crypto"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/emailerror"
 	"github.com/Notifuse/notifuse/pkg/geoip"
@@ -393,6 +395,140 @@ func (a *App) InitDB() error {
 		WithField("max_connections_per_db", a.config.Database.MaxConnectionsPerDB).
 		Info("Connection manager initialized")
 
+	return nil
+}
+
+// storedDataOpens reports whether key opens the data stored under the instance key: the
+// key of at least one workspace or, when none is stored, at least one encrypted setting.
+// Nothing stored opens with any key. refusal says what the key does not open, for an
+// error that starts with the variable.
+func (a *App) storedDataOpens(ctx context.Context, key string) (opens bool, refusal string, err error) {
+	opens, examined, err := repository.SecretKeyOpensAWorkspace(ctx, a.db, key)
+	if err != nil || examined > 1 {
+		return opens, fmt.Sprintf("opens none of the %d workspaces stored in the database", examined), err
+	}
+	if examined == 1 {
+		return opens, "does not open the workspace stored in the database", nil
+	}
+	opens, tried, err := repository.SecretKeyOpensASetting(ctx, a.db, key)
+	return opens, fmt.Sprintf("opens none of the system settings stored in the database (%s), and no "+
+		"workspace is stored", strings.Join(tried, ", ")), err
+}
+
+// checkSingleSecretKey refuses a single key that opens none of the stored workspace
+// keys, as every workspace load would fail on it, or, with no workspace, none of the
+// encrypted settings, which would be dropped. A single key is used as written, so this
+// is also where quotes or a newline kept around the key show.
+func (a *App) checkSingleSecretKey(key, variable string) error {
+	ctx := context.Background()
+	opens, refusal, err := a.storedDataOpens(ctx, key)
+	if err != nil {
+		return fmt.Errorf("failed to check %s against the stored data: %w", variable, err)
+	}
+	if opens {
+		return nil
+	}
+	hint, err := a.keyHint(ctx, key, variable)
+	if err != nil {
+		return err
+	}
+	if hint != "" {
+		return fmt.Errorf("%s %s, but %s", variable, refusal, hint)
+	}
+	return fmt.Errorf("%s %s, so Notifuse cannot read its data. %s", variable, refusal,
+		config.StoredDataRemedy(variable))
+}
+
+// keyHint tries the other forms config.KeyHint names for key against the stored data,
+// stopping at the first database failure, which it returns as one.
+func (a *App) keyHint(ctx context.Context, key, variable string) (string, error) {
+	var probeErr error
+	hint := config.KeyHint(key, variable, func(candidate string) bool {
+		if probeErr != nil {
+			return false
+		}
+		opens, _, err := a.storedDataOpens(ctx, candidate)
+		probeErr = err
+		return err == nil && opens
+	})
+	if probeErr != nil {
+		return "", fmt.Errorf("failed to check %s against the stored data: %w", variable, probeErr)
+	}
+	return hint, nil
+}
+
+// warnUnopenedSettings names the system settings no key of variable opens: loading the
+// settings skips them, so Notifuse starts without them.
+func (a *App) warnUnopenedSettings(settings []string, variable string) {
+	if len(settings) == 0 {
+		return
+	}
+	a.logger.WithField("settings", settings).Warn(fmt.Sprintf("These system settings were left as they are: "+
+		"no key in %s opens them, so Notifuse starts without them. To keep them, set %s to the key they are "+
+		"encrypted with, or list that key after the first one", variable, variable))
+}
+
+// InitSecretKey brings the stored data under the first key of a SECRET_KEY that is a
+// list: what the other keys open is re-encrypted with it. A single key is only checked
+// against the stored data. It runs after the migrations, before the services start, so
+// keys that cannot open the data stop the start rather than every later workspace load.
+func (a *App) InitSecretKey() error {
+	security := a.config.Security
+	variable := security.KeyVariable
+	if variable == "" {
+		variable = "SECRET_KEY"
+	}
+	if !security.SecretKeyIsList {
+		if err := a.checkSingleSecretKey(security.SecretKey, variable); err != nil {
+			return err
+		}
+		a.warnUnopenedSettings(a.config.UnopenedSettings, variable)
+		return nil
+	}
+
+	// One instance re-encrypts at a time, and rows other sessions hold are waited for:
+	// said first, so a start that waits shows what for.
+	a.logger.Info(fmt.Sprintf("Bringing the stored data under the first key of %s; this waits for any other "+
+		"instance doing the same and for open transactions on workspaces and settings", variable))
+	result, err := repository.RotateSecretKey(context.Background(), a.db, security.SecretKey, security.PreviousSecretKeys)
+	if err != nil && !errors.Is(err, pkgCrypto.ErrUndecryptable) {
+		return fmt.Errorf("failed to bring the stored data under the first key of %s: %w", variable, err)
+	}
+	if err != nil && len(security.PreviousSecretKeys) == 0 {
+		// A list of one is a key whose commas were doubled, which docker --env-file may
+		// have kept in quotes before 42.0, as for a single key.
+		hint, probeErr := a.keyHint(context.Background(), security.SecretKey, variable)
+		if probeErr != nil {
+			return probeErr
+		}
+		if hint != "" {
+			return fmt.Errorf("%s opens no value stored in the database (%w). Nothing was changed. But %s",
+				variable, err, hint)
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("no key listed in %s opens a value stored in the database (%w). Nothing was "+
+			"changed. List the key the data is encrypted with after the new one, and write each comma inside a "+
+			"key twice", variable, err)
+	}
+
+	a.warnUnopenedSettings(result.UnopenedSettings, variable)
+	if len(security.PreviousSecretKeys) == 0 {
+		a.logger.Info("The stored data opens with " + variable)
+		return nil
+	}
+	// A later start with the same list, or an instance that waited for the one that
+	// re-encrypted, finds nothing left to do.
+	message := "Stored data re-encrypted with the first key of %[1]s; once every instance runs with this %[1]s, " +
+		"set the first key alone"
+	if result.Workspaces == 0 && result.Settings == 0 {
+		message = "Nothing left to re-encrypt: the stored data already opens with the first key of %[1]s; once " +
+			"every instance runs with this %[1]s, set the first key alone"
+	}
+	a.logger.WithFields(map[string]interface{}{
+		"workspaces": result.Workspaces,
+		"settings":   result.Settings,
+	}).Info(fmt.Sprintf(message, variable))
 	return nil
 }
 
@@ -1085,6 +1221,7 @@ func (a *App) InitServices() error {
 		a.annotationRepo,
 		a.webhookSubscriptionService,
 		a.automationService,
+		a.authService,
 	)
 
 	// Initialize telemetry service
@@ -2063,6 +2200,10 @@ func (a *App) Initialize() error {
 		return err
 	}
 
+	if err := a.InitSecretKey(); err != nil {
+		return err
+	}
+
 	// Check if setup wizard is required (after migrations have run)
 	var installedValue string
 	err := a.db.QueryRow("SELECT value FROM settings WHERE key = 'is_installed'").Scan(&installedValue)
@@ -2097,11 +2238,12 @@ func (a *App) Initialize() error {
 
 	a.logger.Info("Application successfully initialized")
 
-	// Send startup telemetry metrics
-	if a.telemetryService != nil {
+	// Send startup telemetry metrics. The goroutine keeps its own reference: a restart
+	// in the same process sets the field again while it may still run.
+	if telemetry := a.telemetryService; telemetry != nil {
 		go func() {
 			ctx := context.Background()
-			if err := a.telemetryService.SendMetricsForAllWorkspaces(ctx); err != nil {
+			if err := telemetry.SendMetricsForAllWorkspaces(ctx); err != nil {
 				a.logger.WithField("error", err).Error("Failed to send startup telemetry metrics")
 			}
 		}()

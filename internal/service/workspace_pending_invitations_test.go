@@ -50,9 +50,10 @@ func newPendingInvitationService(t *testing.T, maxUsers int) (*WorkspaceService,
 	return svc, m
 }
 
-// As AuthenticateUserFromContext returns it: the users row it loads carries no type, so
-// whether the caller is a person or an API key comes from the token, in the context.
-var invitee = &domain.User{ID: "user-1", Email: "invitee@example.com"}
+// As AuthenticateUserFromContext returns it for a session: a person's account. Whether the
+// caller is a person or an API key is read from the token, in the context, which
+// AuthenticateUserFromContext holds to the account's own type.
+var invitee = &domain.User{ID: "user-1", Email: "invitee@example.com", Type: domain.UserTypeUser}
 
 func sessionCtx() context.Context {
 	return context.WithValue(context.Background(), domain.UserTypeKey, string(domain.UserTypeUser))
@@ -107,7 +108,7 @@ func TestWorkspaceService_ListPendingInvitations(t *testing.T) {
 	t.Run("an API key has none", func(t *testing.T) {
 		svc, m := newPendingInvitationService(t, 0)
 		m.auth.EXPECT().AuthenticateUserFromContext(gomock.Any()).
-			Return(&domain.User{ID: "key-1", Email: "invitee@example.com"}, nil)
+			Return(&domain.User{ID: "key-1", Email: "invitee@example.com", Type: domain.UserTypeAPIKey}, nil)
 
 		invitations, err := svc.ListPendingInvitations(apiKeyCtx())
 		require.NoError(t, err)

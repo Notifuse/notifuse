@@ -14,11 +14,13 @@ import "unicode/utf8"
 // the same loaded workspace is what the email path signs and sends with. Any new
 // endpoint that returns a Workspace must call it.
 //
-// The encrypted forms are deliberately left in place: the console distinguishes
-// "configured" from "not set" by their presence, and they are inert without the
-// instance secret key, which is never served. Non-secret context — hostnames,
-// usernames, access key ids — is left alone too, so the settings UI can still say
-// which account an integration is connected as.
+// An integration's encrypted forms are left in place: the console distinguishes
+// "configured" from "not set" by their presence. They are only as safe as the
+// instance secret key.
+// The workspace's own encrypted secret key is not left in place: no client reads
+// it, and a settings save never takes it from the request. Non-secret context —
+// hostnames, usernames, access key ids — is left alone, so the settings UI can
+// still say which account an integration is connected as.
 
 // credentialHintMinLength is the shortest secret that earns a hint. Four
 // characters of a six-character secret is most of it; below this threshold the
@@ -87,6 +89,11 @@ func (w *Workspace) Redact() {
 	if w == nil {
 		return
 	}
+
+	// Signs every notification center link and encrypts message data. Its
+	// encrypted form needs only the instance secret key, which an installation may
+	// have taken from a published example.
+	w.Settings.EncryptedSecretKey = ""
 
 	// Settings.FileManager.SecretKey is deliberately NOT redacted, and it is the
 	// one exception here.

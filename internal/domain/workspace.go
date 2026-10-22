@@ -980,19 +980,41 @@ func ScanWorkspace(scanner interface {
 		CreatedAt: dbw.CreatedAt,
 		UpdatedAt: dbw.UpdatedAt,
 	}
+	if err := w.decodeStored(dbw.Settings, dbw.Integrations); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
 
-	if err := json.Unmarshal(dbw.Settings, &w.Settings); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal settings: %w", err)
+// decodeStored reads the settings and integrations columns of a workspace row.
+func (w *Workspace) decodeStored(settings, integrations []byte) error {
+	if err := json.Unmarshal(settings, &w.Settings); err != nil {
+		return fmt.Errorf("failed to unmarshal settings: %w", err)
 	}
 
 	// Unmarshal integrations if present
-	if len(dbw.Integrations) > 0 {
-		if err := json.Unmarshal(dbw.Integrations, &w.Integrations); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal integrations: %w", err)
+	if len(integrations) > 0 {
+		if err := json.Unmarshal(integrations, &w.Integrations); err != nil {
+			return fmt.Errorf("failed to unmarshal integrations: %w", err)
 		}
 	}
+	return nil
+}
 
-	return w, nil
+// CheckStoredWorkspace opens the settings and integrations a workspace row holds as
+// loading it does, with AfterLoad under globalSecretKey. It fails with
+// crypto.ErrUndecryptable when the key does not open a value the workspace uses (its
+// key, its file storage key, the credentials of each integration's active provider), so
+// every load of the row would fail; values nothing reads are not checked.
+func CheckStoredWorkspace(settings, integrations []byte, globalSecretKey string) error {
+	var w Workspace
+	if err := w.decodeStored(settings, integrations); err != nil {
+		return err
+	}
+	if err := w.AfterLoad(globalSecretKey); err != nil {
+		return fmt.Errorf("%w: %v", crypto.ErrUndecryptable, err)
+	}
+	return nil
 }
 
 // UserWorkspace represents the relationship between a user and a workspace
@@ -1152,10 +1174,15 @@ var ErrUserNotInWorkspace = errors.New("user is not a member of the workspace")
 // ErrInvitationNotFound is returned (errors.Is-able) when no invitation has the id asked for.
 var ErrInvitationNotFound = errors.New("invitation not found")
 
-// ErrInvitationUnavailable is what a signed-in user is told about an invitation they cannot
-// join: missing, expired, addressed to someone else or offered to an API key all read the
+// ErrInvitationUnavailable is what a user is told about an invitation they cannot join or
+// accept: missing, expired, addressed to someone else or offered to an API key all read the
 // same, so an invitation id is not something to probe with.
 var ErrInvitationUnavailable = errors.New("invitation not found or no longer valid")
+
+// ErrStaleCredential is returned when a workspace would be saved with a credential the
+// instance secret key does not open: an API client that read the workspace before a
+// SECRET_KEY rotation may send back the encrypted forms it read, under the former key.
+var ErrStaleCredential = errors.New("the saved credentials of this workspace changed")
 
 // ErrUnauthorized is returned when a user is not authorized to perform an action
 type ErrUnauthorized struct {

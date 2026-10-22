@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mime"
 	"mime/multipart"
@@ -99,6 +100,24 @@ func (s *SMTPBridgeHandlerService) Authenticate(username, password string) (stri
 			"user_id":     claims.UserID,
 		}).Warn("SMTP bridge: Email mismatch")
 		return "", fmt.Errorf("email does not match token")
+	}
+
+	// The claims say API key; the account they name must be one too. Checked by the
+	// same rule as the HTTP API: a revoked key's account is gone, and a person's
+	// account is not a key.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	ctx = context.WithValue(ctx, domain.UserIDKey, claims.UserID)
+	ctx = context.WithValue(ctx, domain.UserTypeKey, claims.Type)
+	if _, err := s.authService.AuthenticateUserFromContext(ctx); err != nil {
+		if !errors.Is(err, domain.ErrAPIKeyRevoked) {
+			return "", fmt.Errorf("failed to verify API key: %w", err)
+		}
+		s.logger.WithFields(map[string]interface{}{
+			"api_email": apiEmail,
+			"user_id":   claims.UserID,
+		}).Warn("SMTP bridge: Token does not name an API key account")
+		return "", fmt.Errorf("invalid API key")
 	}
 
 	s.logger.WithFields(map[string]interface{}{

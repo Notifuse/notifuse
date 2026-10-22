@@ -86,8 +86,18 @@ func TestAuditLogs(t *testing.T) {
 		client.SetToken(rootToken)
 		workspaceID := createTestWorkspaceWithToken(t, client, rootToken, "Audit WS")
 
+		// An anonymous accept with a token that names nothing writes no row into the
+		// workspace its body claims.
+		anonymous := testutil.NewAPIClient(suite.ServerManager.GetURL())
+		resp, err := anonymous.Post("/api/workspaces.acceptInvitation", map[string]string{
+			"token": "not-a-token", "workspace_id": workspaceID,
+		})
+		require.NoError(t, err)
+		resp.Body.Close()
+		require.Equal(t, http.StatusNotFound, resp.StatusCode)
+
 		// A control-plane action with a target and a permission scope.
-		resp, err := client.Post("/api/workspaces.inviteMember", domain.InviteMemberRequest{
+		resp, err = client.Post("/api/workspaces.inviteMember", domain.InviteMemberRequest{
 			WorkspaceID: workspaceID, Email: "bob@example.com", Permissions: domain.NewFullPermissions(),
 		})
 		require.NoError(t, err)
@@ -108,6 +118,7 @@ func TestAuditLogs(t *testing.T) {
 		assert.Contains(t, actions, "workspaces.create")
 		assert.Contains(t, actions, "workspaces.inviteMember")
 		assert.NotContains(t, actions, "contacts.upsert")
+		assert.NotContains(t, actions, "workspaces.acceptInvitation")
 
 		invite := findAuditRow(page, "workspaces.inviteMember")
 		require.NotNil(t, invite)
