@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   sanitizeHtml,
+  sanitizeEditorHtml,
   parseHtmlInert,
   safeExternalUrl,
   isSafeHref,
@@ -97,6 +98,68 @@ describe('sanitizeHtml', () => {
 
   it('returns an empty string for empty input', () => {
     expect(sanitizeHtml('')).toBe('')
+  })
+})
+
+describe('sanitizeEditorHtml', () => {
+  it('keeps link targets that contain ]> or -->', () => {
+    const container = parseHtmlInert(
+      sanitizeEditorHtml(
+        '<p><a href="https://x.example/?q=a]>b">a</a> ' +
+          '<a href=\'https://x.example/{{ campaign | append: "-->" }}\'>b</a></p>'
+      )
+    )
+    expect(Array.from(container.querySelectorAll('a')).map((a) => a.getAttribute('href'))).toEqual([
+      'https://x.example/?q=a]>b',
+      'https://x.example/{{ campaign | append: "-->" }}'
+    ])
+  })
+
+  it.each([
+    [
+      'scripts and handlers',
+      '<p onclick="window.__probe = 1">Hi<img src="x" onerror="window.__probe = 1">' +
+        '<script>window.__probe = 1</script><a href=" JaVaScRiPt:window.__probe = 1">a</a>' +
+        '<a href="data:text/html,<p>x</p>">b</a><iframe src="https://example.com"></iframe>' +
+        '<style>body { display: none }</style></p>'
+    ],
+    [
+      'formatting, Liquid and app links',
+      '<p style="color: red" class="lead"><strong>Hi {{ contact.first_name }}</strong> ' +
+        '<a href="{{ cta_url }}" target="_blank" rel="noopener">open</a> ' +
+        '<a href="webcal://example.com/cal.ics">cal</a>' +
+        '<span data-inline-doc="" style="font-size: 14px">{% if x %}x{% endif %}</span></p>'
+    ],
+    [
+      'image maps',
+      '<img src="https://example.com/b.png" usemap="#m">' +
+        '<map name="m"><area shape="default" href="https://example.com/x"></map>'
+    ],
+    [
+      'media and block ids',
+      '<p data-x="1" data-block-id="b-1">Hi' +
+        '<audio src="https://example.com/a.mp3" autoplay></audio>' +
+        '<video autoplay><source src="https://example.com/v.mp4"></video></p>'
+    ],
+    [
+      'form controls',
+      '<form action="https://example.com/x">Sign in<input name="password" type="password">' +
+        '<select name="s"><option>One</option></select><textarea name="t">Note</textarea>' +
+        '<button type="submit">Go</button></form>'
+    ]
+  ])('treats %s as sanitizeHtml does', (_kind, html) => {
+    expect(sanitizeEditorHtml(html)).toBe(sanitizeHtml(html))
+  })
+
+  it('leaves out SVG and MathML, which an editor has no place for', () => {
+    const out = sanitizeEditorHtml(
+      '<p>a<svg><a href="https://x.example/">x</a></svg><math><mi>y</mi></math>b</p>'
+    )
+    expect(out).toBe('<p>ab</p>')
+  })
+
+  it('returns an empty string for empty input', () => {
+    expect(sanitizeEditorHtml('')).toBe('')
   })
 })
 
@@ -200,7 +263,9 @@ describe('isSafeHref', () => {
     'java\tscript:window.__probe=1',
     'vbscript:x',
     'data:text/html,<p>x</p>',
-    'livescript:x'
+    'livescript:x',
+    'https://x.example/?q=a]>b',
+    'https://x.example/{{ campaign | append: "-->" }}'
   ])('judges %j as sanitizeHtml does a link in content', (href) => {
     const link = document.createElement('a')
     link.setAttribute('href', href)

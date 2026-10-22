@@ -54,6 +54,43 @@ const fixedContentInside = async (block: Locator) => {
   )
 }
 
+// Text whose shadow falls outside the text's own box, to the left and below. The
+// email shows it in the block's padding.
+const shadowedContent =
+  '<p style="margin: 0"><span style="text-shadow: -12px 20px 0 red">Buy now</span></p>'
+
+// A band drawn over the text and as far past its box as the containment lets it,
+// on top of anything else the content could be stacked with
+const bandedContent =
+  '<p style="margin: 0">Banded <span style="position: fixed; top: -25px; left: -25px; ' +
+  'right: -25px; height: 50px; z-index: 2147483647; background: rgba(255, 0, 0, 0.5)">' +
+  'band</span></p>'
+
+// Whether a block draws anything in the strip just past its content's box on one
+// side: the strip as drawn, compared with the strip once the content is hidden.
+const drawsPast = async (block: Locator, side: 'left' | 'bottom') => {
+  const content = block.locator('[style*="contain"]')
+  await expect(content).toHaveCount(1)
+  await content.scrollIntoViewIfNeeded()
+  const box = await content.boundingBox()
+  expect(box).not.toBeNull()
+  if (box === null) return false
+  const clip =
+    side === 'left'
+      ? { x: box.x - 16, y: box.y, width: 16, height: box.height + 16 }
+      : { x: box.x, y: box.y + box.height, width: box.width, height: 16 }
+  const strip = () => block.page().screenshot({ clip, animations: 'disabled' })
+  const drawn = await strip()
+  await content.evaluate((element: HTMLElement) => {
+    element.style.visibility = 'hidden'
+  })
+  const blank = await strip()
+  await content.evaluate((element: HTMLElement) => {
+    element.style.removeProperty('visibility')
+  })
+  return !drawn.equals(blank)
+}
+
 const buttonContent =
   `<p onmouseover="${probe('button-block')}">Buy now` +
   `<span><img src="x" onerror="${probe('button-span')}"></span></p>`
@@ -79,6 +116,8 @@ const template = {
                   type: 'mj-column',
                   children: [
                     { id: 'text-x', type: 'mj-text', content: textContent },
+                    { id: 'text-shadow', type: 'mj-text', content: shadowedContent },
+                    { id: 'text-band', type: 'mj-text', content: bandedContent },
                     {
                       id: 'button-x',
                       type: 'mj-button',
@@ -157,6 +196,60 @@ test.describe('Template content in the email editor', () => {
     // Give image loads time to fail and fire whatever they would fire
     await page.waitForTimeout(1500)
     expect(await firedProbes(page)).toBeUndefined()
+  })
+
+  test('canvas and block editors draw what spills past the text, as the email does', async ({
+    authenticatedPageWithData: page
+  }) => {
+    const drawer = await openTemplateEditor(page)
+    const block = drawer.locator('[data-block-id="text-shadow"]')
+    await expect(block).toContainText('Buy now')
+    expect(await drawsPast(block, 'left')).toBe(true)
+    expect(await drawsPast(block, 'bottom')).toBe(true)
+
+    // Selected, the block shows its action buttons over its left padding
+    await block.click()
+    await expect(block.locator('.ProseMirror')).toContainText('Buy now')
+    await expect(block.locator('.ProseMirror span[style*="text-shadow"]')).toHaveCount(1)
+    expect(await drawsPast(block, 'bottom')).toBe(true)
+  })
+
+  test('block toolbars stay above what a block draws past its text', async ({
+    authenticatedPageWithData: page
+  }) => {
+    const drawer = await openTemplateEditor(page)
+    const block = drawer.locator('[data-block-id="text-band"]')
+    await block.click()
+    await expect(block.locator('.ProseMirror')).toContainText('Banded')
+
+    const content = block.locator('[style*="contain"]')
+    const formatting = block.locator('.tiptap-toolbar')
+    const clone = drawer.locator('button:has(svg[data-icon="clone"])')
+    const [area, formattingBox, cloneBox] = await Promise.all(
+      [content, formatting, clone].map((locator) => locator.boundingBox())
+    )
+    if (area === null || formattingBox === null || cloneBox === null) {
+      throw new Error('the block, its formatting toolbar or its clone button is not laid out')
+    }
+    const hit = (x: number, y: number) =>
+      page.evaluate(([px, py]) => {
+        const element = document.elementFromPoint(px, py)
+        if (element?.closest('.tiptap-toolbar')) return 'formatting toolbar'
+        if (element?.closest('button')?.querySelector('svg[data-icon="clone"]')) return 'clone'
+        if (element?.closest('.ProseMirror')) return 'content'
+        return element?.tagName ?? null
+      }, [x, y] as const)
+
+    // The band reaches past the text, right beside the formatting toolbar...
+    const formattingBottom = formattingBox.y + formattingBox.height - 2
+    expect(formattingBottom).toBeLessThan(area.y)
+    expect(await hit(formattingBox.x + formattingBox.width + 8, formattingBottom)).toBe('content')
+    // ...and not over either toolbar
+    expect(await hit(formattingBox.x + formattingBox.width / 2, formattingBottom)).toBe(
+      'formatting toolbar'
+    )
+    const cloneCenter = [cloneBox.x + cloneBox.width / 2, cloneBox.y + cloneBox.height / 2] as const
+    expect(await hit(...cloneCenter)).toBe('clone')
   })
 
   test('preview shows the compiled email without running it', async ({

@@ -11,6 +11,13 @@ const handlerAttributes = (root: HTMLElement) =>
 const hrefs = (root: HTMLElement) =>
   Array.from(root.querySelectorAll('a')).map((a) => a.getAttribute('href'))
 
+const markupLikeTargets = [
+  'https://x.example/?q=a]>b',
+  'https://x.example/{{ campaign | append: "-->" }}'
+]
+const linksWithMarkupLikeTargets =
+  `<a href="${markupLikeTargets[0]}">a</a> <a href='${markupLikeTargets[1]}'>b</a>`
+
 const editorRoot = (container: HTMLElement) => {
   const root = container.querySelector<HTMLElement>('.ProseMirror')
   expect(root).not.toBeNull()
@@ -57,6 +64,21 @@ describe('TiptapRichEditor', () => {
     expect(handlerAttributes(root)).toEqual([])
     expect(hrefs(root)).toEqual([])
     expect(onChange).not.toHaveBeenCalledWith(expect.stringContaining('Second'))
+  })
+
+  it('keeps link targets that contain ]> or -->, as loaded and as given later', async () => {
+    const content = `<p>${linksWithMarkupLikeTargets}</p>`
+    const onChange = vi.fn()
+    const { container, rerender } = render(
+      <TiptapRichEditor content={content} onChange={onChange} />
+    )
+    const root = await waitFor(() => editorRoot(container))
+    await waitFor(() => expect(hrefs(root)).toEqual(markupLikeTargets))
+
+    rerender(<TiptapRichEditor content="<p>Other</p>" onChange={onChange} />)
+    await waitFor(() => expect(root.textContent).toBe('Other'))
+    rerender(<TiptapRichEditor content={content} onChange={onChange} />)
+    await waitFor(() => expect(hrefs(root)).toEqual(markupLikeTargets))
   })
 })
 
@@ -107,5 +129,20 @@ describe('TiptapInlineEditor', () => {
     expect(handlerAttributes(root)).toEqual([])
     expect(root.querySelector('span[style*="color: red"]')).not.toBeNull()
     expect(onChange).not.toHaveBeenCalledWith(expect.stringContaining('Second'))
+  })
+
+  it('keeps link targets that contain ]> or -->, as loaded and as given later', async () => {
+    const content = `<p>Buy ${linksWithMarkupLikeTargets}</p>`
+    const onChange = vi.fn()
+    const { container, rerender } = render(
+      <TiptapInlineEditor content={content} onChange={onChange} />
+    )
+    const root = await waitFor(() => editorRoot(container))
+    await waitFor(() => expect(hrefs(root)).toEqual(markupLikeTargets))
+
+    rerender(<TiptapInlineEditor content="Other" onChange={onChange} />)
+    await waitFor(() => expect(root.textContent).toBe('Other'))
+    rerender(<TiptapInlineEditor content={content} onChange={onChange} />)
+    await waitFor(() => expect(hrefs(root)).toEqual(markupLikeTargets))
   })
 })

@@ -1,10 +1,7 @@
-import DOMPurify from 'dompurify'
+import type { CSSProperties } from 'react'
+import DOMPurify, { type Config } from 'dompurify'
 
-// An instance of its own, so that the configuration below applies to every
-// call here, isSafeHref's included, and to nothing else on the page that uses
-// DOMPurify.
-const purify = DOMPurify(window)
-purify.setConfig({
+const CONFIG: Config = {
   ADD_ATTR: ['target'],
   ALLOW_UNKNOWN_PROTOCOLS: true,
   FORBID_TAGS: [
@@ -23,11 +20,30 @@ purify.setConfig({
     'track'
   ],
   FORBID_ATTR: ['data-block-id']
+}
+
+// Instances of their own, so that each configuration applies to every call
+// through it, isSafeHref's included, and to nothing else on the page that uses
+// DOMPurify.
+const purify = DOMPurify(window)
+purify.setConfig(CONFIG)
+
+// For editors, an attribute value that reads as the end of a comment or of a
+// CDATA section (`-->`, `]>`) is kept: DOMPurify drops it because markup
+// carrying it can parse differently once inserted elsewhere, while an editor
+// parses what it loads in a document that runs nothing and builds its own DOM
+// from the result, node by node. As DOMPurify requires for that, the content is
+// HTML only, without SVG or MathML, which the editors have no place for anyway.
+const purifyForEditor = DOMPurify(window)
+purifyForEditor.setConfig({
+  ...CONFIG,
+  USE_PROFILES: { html: true },
+  SAFE_FOR_XML: false
 })
 
 /**
  * HTML for display in the console page itself, such as a template block on the
- * editor canvas or the content an editor loads.
+ * editor canvas. Shown in an element styled with `containedContentStyle`.
  *
  * Event handlers, `<script>`, frames and `javascript:`, `vbscript:` and `data:`
  * links are removed, and so are `<style>`, which would restyle the console
@@ -36,12 +52,37 @@ purify.setConfig({
  * `data-block-id`, which locates blocks on the canvas. Formatting,
  * inline styles, classes, `data-*` attributes, link targets, links that open
  * another app (`webcal:`, `whatsapp:`…) and Liquid (`{{ url }}` in an `href`
- * included) are kept. An editor saves what it loaded, so anything dropped here
- * that an email may legitimately carry would be lost on the next edit.
+ * included) are kept.
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return ''
   return purify.sanitize(html)
+}
+
+/**
+ * HTML for a block editor to load: what `sanitizeHtml` keeps, and also
+ * attribute values it drops because they contain `-->` or `]>`, such as a link
+ * to `https://example.com/?q=a]>b`. An editor saves what it loaded, so anything
+ * dropped here that an email may legitimately carry would be lost on the next
+ * edit. SVG and MathML are left out, along with what they contain.
+ */
+export function sanitizeEditorHtml(html: string): string {
+  if (!html) return ''
+  return purifyForEditor.sanitize(html)
+}
+
+/**
+ * Style for the element that shows content in the console page, on the canvas
+ * or in an editor. Paint containment keeps what the content draws, fixed
+ * positioning included, on that element rather than over the console around
+ * it, and below the toolbars stacked above a block, whatever its `z-index`.
+ * What the content draws just past the element's edges, such as a shadow or a
+ * list marker, is still shown up to 25px out, into the padding an email gives
+ * its text by default, where the browser supports it.
+ */
+export const containedContentStyle: CSSProperties = {
+  contain: 'paint',
+  overflowClipMargin: '25px'
 }
 
 let inertDocument: Document | null = null

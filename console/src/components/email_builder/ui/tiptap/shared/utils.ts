@@ -1,6 +1,6 @@
 import { getMarkRange, type Editor } from '@tiptap/react'
 import type { Mark, Node } from '@tiptap/pm/model'
-import { parseHtmlInert, sanitizeHtml, textOnlyHtml } from '../../../../../utils/safeHtml'
+import { parseHtmlInert, sanitizeEditorHtml, textOnlyHtml } from '../../../../../utils/safeHtml'
 
 // Extend the ChainedCommands type to include our custom command
 declare module '@tiptap/core' {
@@ -306,7 +306,7 @@ export const prepareInlineContent = (rawContent: string): string => {
   if (!rawContent) {
     return rawContent
   }
-  const content = sanitizeHtml(rawContent)
+  const content = sanitizeEditorHtml(rawContent)
 
   try {
     // First, strip plain spans to avoid TipTap errors
@@ -336,7 +336,7 @@ export const sanitizeRichContent = (rawContent: string): string => {
   if (!rawContent || rawContent.trim() === '') {
     return rawContent
   }
-  const htmlContent = sanitizeHtml(rawContent)
+  const htmlContent = sanitizeEditorHtml(rawContent)
 
   try {
     // Strip plain spans while preserving styled spans and other valid HTML
@@ -354,7 +354,7 @@ export const getInitialInlineContent = (rawContent: string): string => {
   if (!rawContent) {
     return '<span data-inline-doc=""></span>'
   }
-  const content = sanitizeHtml(rawContent)
+  const content = sanitizeEditorHtml(rawContent)
 
   try {
     // First, strip plain spans to avoid TipTap errors

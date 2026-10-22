@@ -10,7 +10,7 @@ import {
   type PreviewProps
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
-import { sanitizeHtml } from '../../../utils/safeHtml'
+import { containedContentStyle, sanitizeHtml } from '../../../utils/safeHtml'
 import { EmailBlockClass } from '../EmailBlockClass'
 import PanelLayout from '../panels/PanelLayout'
 import InputLayout from '../ui/InputLayout'
@@ -492,11 +492,10 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
       ) : (
         <div style={textStyle}>
           <div
-            // Paint containment keeps what the content draws, fixed positioning
-            // included, inside the block rather than over the console. On a box
-            // of its own, sized by the content, so a fixed block height clips
-            // nothing the email would show.
-            style={{ contain: 'paint' }}
+            // Keeps what the content draws to the block. On a box of its own,
+            // sized by the content, so a fixed block height cuts off no text the
+            // email would show.
+            style={containedContentStyle}
             dangerouslySetInnerHTML={{ __html: canvasHtml }}
             // Nothing in the content acts on a click here, a link or a label
             // included: the click goes on to select the block

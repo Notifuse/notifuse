@@ -7,6 +7,7 @@ import {
   sanitizeRichContent,
   getInitialInlineContent
 } from './utils'
+import { parseHtmlInert } from '../../../../../utils/safeHtml'
 
 // The helpers below read and rewrite template HTML. They must do it away from the
 // page: a node created by, or moved into, the live document is a node the page
@@ -125,6 +126,20 @@ describe.each([
     expect(out).not.toMatch(/onclick|onerror|javascript:/i)
     expect(out).toContain('Hi')
     expect(out).toContain('href="{{ cta_url }}"')
+  })
+
+  it('keeps link targets that contain ]> or -->', () => {
+    const out = load(
+      '<p><a href="https://x.example/?q=a]>b">a</a> ' +
+        '<a href=\'https://x.example/{{ campaign | append: "-->" }}\'>b</a></p>'
+    )
+    const hrefs = Array.from(parseHtmlInert(out).querySelectorAll('a')).map((a) =>
+      a.getAttribute('href')
+    )
+    expect(hrefs).toEqual([
+      'https://x.example/?q=a]>b',
+      'https://x.example/{{ campaign | append: "-->" }}'
+    ])
   })
 })
 

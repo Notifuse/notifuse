@@ -6,7 +6,7 @@ import { createRichExtensions } from './shared/extensions'
 import { injectTiptapStyles } from './shared/styles'
 import { TiptapToolbar } from './components/TiptapToolbar'
 import { sanitizeRichContent } from './shared/utils'
-import { textOnlyHtml } from '../../../../utils/safeHtml'
+import { containedContentStyle, textOnlyHtml } from '../../../../utils/safeHtml'
 
 export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
   content = '',
@@ -118,9 +118,9 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
         style={{
           border: 'none',
           outline: 'none',
-          // Keeps what the content draws inside the editing area, which the
-          // toolbar above is not part of
-          contain: 'paint'
+          // Keeps what the content draws to the editing area, which the toolbar
+          // above is not part of
+          ...containedContentStyle
         }}
       />
     </div>

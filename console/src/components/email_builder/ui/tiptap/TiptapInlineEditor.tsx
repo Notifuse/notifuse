@@ -6,7 +6,7 @@ import { createInlineExtensions } from './shared/extensions'
 import { injectTiptapStyles } from './shared/styles'
 import { TiptapToolbar } from './components/TiptapToolbar'
 import { processInlineContent, prepareInlineContent, getInitialInlineContent } from './shared/utils'
-import { sanitizeHtml, textOnlyHtml } from '../../../../utils/safeHtml'
+import { containedContentStyle, sanitizeEditorHtml, textOnlyHtml } from '../../../../utils/safeHtml'
 
 export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
   content = '',
@@ -80,7 +80,7 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
 
           // Fallback: try to extract just the text content
           try {
-            const text = textOnlyHtml(sanitizeHtml(content))
+            const text = textOnlyHtml(sanitizeEditorHtml(content))
             const fallbackContent = `<span data-inline-doc="">${text}</span>`
             editor.commands.setContent(fallbackContent, { emitUpdate: false })
             console.warn('Fell back to text-only content due to parsing error')
@@ -129,9 +129,9 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
         style={{
           border: 'none',
           outline: 'none',
-          // Keeps what the content draws inside the editing area, which the
-          // toolbar above is not part of
-          contain: 'paint'
+          // Keeps what the content draws to the editing area, which the toolbar
+          // above is not part of
+          ...containedContentStyle
         }}
       />
     </div>

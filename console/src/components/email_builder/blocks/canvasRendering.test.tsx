@@ -66,6 +66,9 @@ describe('editor canvas keeps block content inside its block', () => {
     const contained = container.querySelector('[data-overlay]')?.closest('[style*="contain"]')
     expect((contained as HTMLElement | null)?.style.contain).toBe('paint')
     expect(contained?.closest(`[data-block-id="b-${type}"]`)).not.toBeNull()
+    // What the content draws just past its box, a shadow or a list marker, still
+    // shows in the block's padding, as in the email
+    expect((contained as HTMLElement).style.overflowClipMargin).toBe('25px')
     // It sizes to its content, so a block given a fixed size still shows all of
     // its text, as the email does
     expect((contained as HTMLElement).style.height).toBe('')
@@ -87,6 +90,7 @@ describe('editor canvas keeps block content inside its block', () => {
     })
     const contained = editing.closest('[style*="contain"]') as HTMLElement | null
     expect(contained?.style.contain).toBe('paint')
+    expect(contained?.style.overflowClipMargin).toBe('25px')
     expect(contained?.closest(`[data-block-id="b-${type}"]`)).not.toBeNull()
     const toolbar = container.querySelector('.tiptap-toolbar')
     expect(toolbar).not.toBeNull()

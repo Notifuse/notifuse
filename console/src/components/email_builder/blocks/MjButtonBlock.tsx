@@ -8,7 +8,7 @@ import {
   type PreviewProps
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
-import { sanitizeHtml } from '../../../utils/safeHtml'
+import { containedContentStyle, sanitizeHtml } from '../../../utils/safeHtml'
 import { EmailBlockClass } from '../EmailBlockClass'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import PaddingInput from '../ui/PaddingInput'
@@ -659,10 +659,10 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
             </span>
           ) : (
             <span
-              // Paint containment keeps what the button text draws, fixed
-              // positioning included, inside it rather than over the console. On
-              // the text's own box, so a fixed button size clips nothing.
-              style={{ color: attrs.color, display: 'inline-block', contain: 'paint' }}
+              // Keeps what the button text draws to the button. On the text's
+              // own box, made a block of its own for containment to apply, so a
+              // fixed button size cuts off none of the text.
+              style={{ color: attrs.color, display: 'inline-block', ...containedContentStyle }}
               dangerouslySetInnerHTML={{ __html: canvasHtml }}
               // Nothing in the button text acts on a click, a link or a label
               // included: the click goes on to select the block
