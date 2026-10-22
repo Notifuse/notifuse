@@ -918,7 +918,46 @@ func TestAppInitSecretKey(t *testing.T) {
 		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY", "names the variable the keys came from")
 		assert.NotContains(t, err.Error(), "SECRET_KEY")
 		assert.Contains(t, err.Error(), "twice")
+		assert.NoError(t, mock.ExpectationsWereMet(), "a list with previous keys tries no other form")
+	})
+
+	// A key containing a comma, kept in quotes by docker --env-file before 42.0, then
+	// written with its commas doubled: a list of one, whose data is under it in quotes.
+	listOfOneUnderQuotes := func(t *testing.T, mock sqlmock.Sqlmock) {
+		t.Helper()
+		quoted, err := pkgCrypto.EncryptString("workspace-key", `"`+current+`"`)
+		require.NoError(t, err)
+		mock.ExpectBegin()
+		mock.ExpectExec(`SELECT pg_advisory_xact_lock`).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(`FROM workspaces`).WillReturnRows(sqlmock.NewRows([]string{"id", "settings", "integrations"}).
+			AddRow("ws-1", []byte(`{"encrypted_secret_key": "`+quoted+`"}`), nil))
+		mock.ExpectRollback()
+	}
+
+	t.Run("a list of one key whose data is under it in quotes says to list it twice", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: current, SecretKeyIsList: true})
+		listOfOneUnderQuotes(t, mock)
+		mock.ExpectQuery(workspaceKeys).WillReturnRows(workspaceKey(t, `"`+current+`"`))
+
+		err := app.InitSecretKey()
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "in quotes")
+		assert.Contains(t, err.Error(), "SECRET_KEY=<key>,<key>")
+		assert.Contains(t, err.Error(), "each comma inside the key twice")
 		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a failure while trying a list of one key in quotes stops the start as one", func(t *testing.T) {
+		app, mock := newApp(t, config.SecurityConfig{SecretKey: current, SecretKeyIsList: true})
+		listOfOneUnderQuotes(t, mock)
+		mock.ExpectQuery(workspaceKeys).WillReturnError(assert.AnError)
+
+		err := app.InitSecretKey()
+
+		require.ErrorIs(t, err, assert.AnError)
+		assert.NotContains(t, err.Error(), "no key listed")
+		assert.NoError(t, mock.ExpectationsWereMet(), "no form is tried after a failure")
 	})
 }
 

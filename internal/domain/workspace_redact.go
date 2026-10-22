@@ -15,8 +15,8 @@ import "unicode/utf8"
 // endpoint that returns a Workspace must call it.
 //
 // An integration's encrypted forms are left in place: the console distinguishes
-// "configured" from "not set" by their presence, and echoes them back when an
-// owner edits the integration. They are only as safe as the instance secret key.
+// "configured" from "not set" by their presence. They are only as safe as the
+// instance secret key.
 // The workspace's own encrypted secret key is not left in place: no client reads
 // it, and a settings save never takes it from the request. Non-secret context —
 // hostnames, usernames, access key ids — is left alone, so the settings UI can

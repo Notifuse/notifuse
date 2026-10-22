@@ -428,6 +428,20 @@ func (a *App) checkSingleSecretKey(key, variable string) error {
 	if opens {
 		return nil
 	}
+	hint, err := a.keyHint(ctx, key, variable)
+	if err != nil {
+		return err
+	}
+	if hint != "" {
+		return fmt.Errorf("%s %s, but %s", variable, refusal, hint)
+	}
+	return fmt.Errorf("%s %s, so Notifuse cannot read its data. %s", variable, refusal,
+		config.StoredDataRemedy(variable))
+}
+
+// keyHint tries the other forms config.KeyHint names for key against the stored data,
+// stopping at the first database failure, which it returns as one.
+func (a *App) keyHint(ctx context.Context, key, variable string) (string, error) {
 	var probeErr error
 	hint := config.KeyHint(key, variable, func(candidate string) bool {
 		if probeErr != nil {
@@ -438,13 +452,9 @@ func (a *App) checkSingleSecretKey(key, variable string) error {
 		return err == nil && opens
 	})
 	if probeErr != nil {
-		return fmt.Errorf("failed to check %s against the stored data: %w", variable, probeErr)
+		return "", fmt.Errorf("failed to check %s against the stored data: %w", variable, probeErr)
 	}
-	if hint != "" {
-		return fmt.Errorf("%s %s, but %s", variable, refusal, hint)
-	}
-	return fmt.Errorf("%s %s, so Notifuse cannot read its data. %s", variable, refusal,
-		config.StoredDataRemedy(variable))
+	return hint, nil
 }
 
 // warnUnopenedSettings names the system settings no key of variable opens: loading the
@@ -483,6 +493,18 @@ func (a *App) InitSecretKey() error {
 	result, err := repository.RotateSecretKey(context.Background(), a.db, security.SecretKey, security.PreviousSecretKeys)
 	if err != nil && !errors.Is(err, pkgCrypto.ErrUndecryptable) {
 		return fmt.Errorf("failed to bring the stored data under the first key of %s: %w", variable, err)
+	}
+	if err != nil && len(security.PreviousSecretKeys) == 0 {
+		// A list of one is a key whose commas were doubled, which docker --env-file may
+		// have kept in quotes before 42.0, as for a single key.
+		hint, probeErr := a.keyHint(context.Background(), security.SecretKey, variable)
+		if probeErr != nil {
+			return probeErr
+		}
+		if hint != "" {
+			return fmt.Errorf("%s opens no value stored in the database (%w). Nothing was changed. But %s, "+
+				"writing each comma inside the key twice", variable, err, hint)
+		}
 	}
 	if err != nil {
 		return fmt.Errorf("no key listed in %s opens a value stored in the database (%w). Nothing was "+

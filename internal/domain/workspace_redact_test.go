@@ -152,9 +152,9 @@ func TestWorkspaceRedact_IsSafeOnEmptyAndNil(t *testing.T) {
 }
 
 // TestWorkspaceRedact_LeavesIntegrationCiphertext documents a deliberate limit:
-// an integration's encrypted forms still go out. The console echoes them back
-// when an owner edits the integration, and request validation accepts the
-// encrypted form in place of a credential it was never served.
+// an integration's encrypted forms still go out. The console tells a configured
+// credential from an unset one by their presence, and request validation accepts
+// the encrypted form in place of a credential it was never served.
 func TestWorkspaceRedact_LeavesIntegrationCiphertext(t *testing.T) {
 	w := &Workspace{
 		Integrations: Integrations{{

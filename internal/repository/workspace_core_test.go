@@ -713,8 +713,8 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 	assert.Contains(t, err.Error(), "secret key")
 }
 
-// A console page loaded before a SECRET_KEY rotation echoes the credentials it loaded,
-// encrypted with the former key. Written as is, every load of the workspace would then
+// An API client that read a workspace before a SECRET_KEY rotation may send back the
+// encrypted credentials it read, under the former key. Written as is, every load of the workspace would then
 // fail, so the repository refuses a credential its key does not open, before writing.
 func TestWorkspaceRepository_RefusesCredentialsItsKeyDoesNotOpen(t *testing.T) {
 	const repoKey = "secret-key"

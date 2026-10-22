@@ -161,8 +161,8 @@ func TestSecretKeyRotation(t *testing.T) {
 	}, &created))
 	require.NotEmpty(t, created.IntegrationID)
 
-	// What the console holds for the integration: the encrypted forms, which it echoes
-	// back on save.
+	// What an API client that reads the workspace holds for the integration: the
+	// encrypted forms, which it may send back when it saves.
 	var loaded struct {
 		Workspace domain.Workspace `json:"workspace"`
 	}
@@ -289,7 +289,8 @@ func TestSecretKeyRotation(t *testing.T) {
 		_ = resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "a session signed with B is accepted")
 
-		// A page loaded before the rotation saves the integration with what it loaded.
+		// An API client that read the workspace before the rotation saves the integration
+		// with what it read.
 		before := readEncryptedRows(t, suite)
 		resp, err = newOwner.Post("/api/workspaces.updateIntegration", domain.UpdateIntegrationRequest{
 			WorkspaceID:   workspaceID,
@@ -302,7 +303,7 @@ func TestSecretKeyRotation(t *testing.T) {
 		require.NoError(t, json.NewDecoder(resp.Body).Decode(&refused))
 		_ = resp.Body.Close()
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-		assert.Contains(t, refused["error"], "Reload the page")
+		assert.Contains(t, refused["error"], "Read the workspace again")
 		assert.Equal(t, before, readEncryptedRows(t, suite), "the refused save wrote nothing")
 	})
 
@@ -344,6 +345,32 @@ func TestSecretKeyRotation(t *testing.T) {
 			assert.NoError(t, opensWith(rotated, name, rotationKeyC), "%s opens with C as written", name)
 		}
 		require.NoError(t, startWithSecretKey(t, suite, rotationKeyC))
+	})
+
+	// A key containing a comma that docker --env-file kept in quotes before 42.0, written
+	// with its comma doubled as the upgrade says: a list of one, whose data is under the
+	// key in quotes.
+	t.Run("data under a key containing a comma, in quotes, is brought under it by listing it twice", func(t *testing.T) {
+		quoted := `"` + rotationLegacyKey + `"`
+		reencryptStored(t, suite, quoted, []string{rotationKeyC})
+		before := readEncryptedRows(t, suite)
+		for name := range before {
+			require.NoError(t, opensWith(before, name, quoted), "%s is under the legacy key in quotes", name)
+		}
+		escaped := strings.ReplaceAll(rotationLegacyKey, ",", ",,")
+
+		err := startWithSecretKey(t, suite, `"`+escaped+`"`)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "in quotes")
+		assert.Contains(t, err.Error(), "SECRET_KEY=<key>,<key>")
+		assert.Equal(t, before, readEncryptedRows(t, suite))
+
+		require.NoError(t, startWithSecretKey(t, suite, escaped+","+escaped))
+		rotated := readEncryptedRows(t, suite)
+		for name := range rotated {
+			assert.NoError(t, opensWith(rotated, name, rotationLegacyKey), "%s opens with the legacy key as written", name)
+		}
+		require.NoError(t, startWithSecretKey(t, suite, escaped))
 	})
 }
 

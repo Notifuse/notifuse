@@ -724,15 +724,16 @@ func (h *WorkspaceHandler) handleRemoveMember(w http.ResponseWriter, r *http.Req
 }
 
 // writeStaleCredential answers a save refused because it carries a credential the
-// instance key does not open. A page loaded before a SECRET_KEY rotation sends one, and
-// reloading it fetches the credentials under the new key; a stored value that no longer
-// opens, kept when an integration switches provider, has to be entered again.
+// instance key does not open. An API client that read the workspace before a SECRET_KEY
+// rotation and sends back the encrypted forms it read sends one, and reading the
+// workspace again gives them under the new key; a stored value that no longer opens,
+// kept when an integration switches provider, has to be entered again.
 func writeStaleCredential(w http.ResponseWriter, err error) bool {
 	if !errors.Is(err, domain.ErrStaleCredential) {
 		return false
 	}
 	WriteJSONError(w, "A saved credential of this workspace changed or can no longer be read. "+
-		"Reload the page and save again, or enter the credential again.", http.StatusBadRequest)
+		"Read the workspace again before saving, or enter the credential again.", http.StatusBadRequest)
 	return true
 }
 

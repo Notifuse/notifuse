@@ -84,6 +84,38 @@ func TestParseSecretKeys(t *testing.T) {
 		assert.Contains(t, keys.previous, "legacy,pass,phrase")
 	})
 
+	t.Run("four commas stand for two commas inside a key", func(t *testing.T) {
+		keys, err := parseSecretKeys(newKey+",legacy,,,,pass", "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Contains(t, keys.previous, "legacy,,pass")
+	})
+
+	// <new>,,,legacy is <new>, then legacy, or <new> then ,legacy: a key that starts or
+	// ends with a comma beside a separator cannot be told from the other reading.
+	for name, raw := range map[string]string{
+		"three commas after the first key": newKey + ",,,legacy-passphrase",
+		"three commas between previous":    newKey + ",legacy,,," + oldKey,
+		"five commas":                      newKey + ",,,,,legacy-passphrase",
+		"three commas in a quoted list":    `"` + newKey + `,,,legacy-passphrase"`,
+	} {
+		t.Run("an odd run of three or more commas is refused, saying to quote the key: "+name, func(t *testing.T) {
+			_, err := parseSecretKeys(raw, "SECRET_KEY")
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "SECRET_KEY has three or more commas in a row")
+			assert.Contains(t, err.Error(), `<new key>,",,<key>"`)
+		})
+	}
+
+	t.Run("a previous key that starts with a comma is read with it when given in quotes", func(t *testing.T) {
+		keys, err := parseSecretKeys(newKey+`,",,legacy-passphrase"`, "SECRET_KEY")
+
+		require.NoError(t, err)
+		assert.Equal(t, newKey, keys.current)
+		assert.Contains(t, keys.previous, ",legacy-passphrase")
+	})
+
 	t.Run("a single key whose commas are doubled is a list of one", func(t *testing.T) {
 		keys, err := parseSecretKeys(newKey+",,suffix", "SECRET_KEY")
 

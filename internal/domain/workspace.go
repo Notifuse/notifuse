@@ -1180,8 +1180,8 @@ var ErrInvitationNotFound = errors.New("invitation not found")
 var ErrInvitationUnavailable = errors.New("invitation not found or no longer valid")
 
 // ErrStaleCredential is returned when a workspace would be saved with a credential the
-// instance secret key does not open: a page loaded before a SECRET_KEY rotation echoes
-// the credentials it loaded, encrypted with the former key.
+// instance secret key does not open: an API client that read the workspace before a
+// SECRET_KEY rotation may send back the encrypted forms it read, under the former key.
 var ErrStaleCredential = errors.New("the saved credentials of this workspace changed")
 
 // ErrUnauthorized is returned when a user is not authorized to perform an action

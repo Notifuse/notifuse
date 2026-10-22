@@ -2304,11 +2304,11 @@ func TestWorkspaceHandler_HandleUpdateIntegration_ServiceError(t *testing.T) {
 	assert.Equal(t, "Failed to update integration", response["error"])
 }
 
-// A page loaded before a SECRET_KEY rotation echoes credentials encrypted with the
-// former key. The save is refused before anything is written, and the owner is told to
-// reload, not shown a server error.
-func TestWorkspaceHandler_StaleCredentialAsksForAReload(t *testing.T) {
-	const reloadMessage = "A saved credential of this workspace changed or can no longer be read. Reload the page and save again, or enter the credential again."
+// An API client that read the workspace before a SECRET_KEY rotation may send back
+// credentials encrypted with the former key. The save is refused before anything is
+// written, and the client is told to read the workspace again, not shown a server error.
+func TestWorkspaceHandler_StaleCredentialAsksToReadAgain(t *testing.T) {
+	const staleMessage = "A saved credential of this workspace changed or can no longer be read. Read the workspace again before saving, or enter the credential again."
 	staleErr := fmt.Errorf("%w: [0].email_provider.smtp.encrypted_password: no key opens the value", domain.ErrStaleCredential)
 
 	mailgun := domain.EmailProvider{
@@ -2333,7 +2333,7 @@ func TestWorkspaceHandler_StaleCredentialAsksForAReload(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		var response map[string]string
 		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
-		assert.Equal(t, reloadMessage, response["error"])
+		assert.Equal(t, staleMessage, response["error"])
 	}
 
 	t.Run("workspace creation", func(t *testing.T) {

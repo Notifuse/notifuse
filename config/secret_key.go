@@ -83,7 +83,8 @@ type secretKeys struct {
 // for byte as before 42.0. With one, it is a list: one pair of quotes around the whole
 // value is removed (docker --env-file keeps them, and no stored data depends on a list),
 // a comma separates two keys, two commas stand for a comma inside a key, and spaces
-// around each key are trimmed. Each previous key is also tried as written, spaces
+// around each key are trimmed. An odd run of three or more commas is refused: it puts a
+// separator beside a comma inside a key, and reads two ways. Each previous key is also tried as written, spaces
 // included, and with and without one pair of quotes: a key read from a file may end
 // with a newline, a single key read through docker --env-file kept its quotes, and the
 // data was encrypted with them.
@@ -95,6 +96,11 @@ func parseSecretKeys(raw, variable string) (secretKeys, error) {
 		return secretKeys{current: raw}, checkCurrentKey(raw, variable, false)
 	}
 
+	if hasAmbiguousCommas(unquoted(raw)) {
+		return secretKeys{}, fmt.Errorf("%[1]s has three or more commas in a row, which can be read as a "+
+			"comma ending a key or one starting the next. Put the key that starts or ends with a comma in "+
+			`quotes, its commas written twice: %[1]s=<new key>,",,<key>"`, variable)
+	}
 	items := splitKeyList(unquoted(raw))
 	// The keys exactly as written: the spaces and quotes around the whole value belong
 	// to the first and last of them. unquoted removes no comma, so both have the same
@@ -173,6 +179,23 @@ func splitKeyList(list string) []string {
 		item.Reset()
 	}
 	return append(items, item.String())
+}
+
+// hasAmbiguousCommas reports whether list holds an odd run of three or more commas:
+// <a>,,,<b> is <a>, then <b>, or <a> then ,<b>. An even run is commas inside a key.
+func hasAmbiguousCommas(list string) bool {
+	run := 0
+	for i := 0; i <= len(list); i++ {
+		if i < len(list) && list[i] == ',' {
+			run++
+			continue
+		}
+		if run >= 3 && run%2 == 1 {
+			return true
+		}
+		run = 0
+	}
+	return false
 }
 
 // checkCurrentKey refuses a key that would encrypt and sign while anyone can sign
