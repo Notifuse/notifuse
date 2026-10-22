@@ -1,7 +1,8 @@
 // The start of a document up to its doctype: what may come before the doctype
 // without the browser ignoring it is whitespace and comments, an XML
-// declaration (`<?xml …?>`) included
-const UP_TO_DOCTYPE = /^(?:\s|<!--[\s\S]*?-->|<\?[^>]*>)*<!doctype[^>]*>/i
+// declaration (`<?xml …?>`) included. A comment ends at its first `-->`, so
+// that each part matches in one way only, however many comments there are.
+const UP_TO_DOCTYPE = /^(?:\s|<!--(?:(?!-->)[\s\S])*-->|<\?[^>]*>)*<!doctype[^>]*>/i
 
 /**
  * A preview document with some markup first, before anything of the

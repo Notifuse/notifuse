@@ -15,6 +15,19 @@ describe('insertAfterDoctype', () => {
     )
   })
 
+  it('does not take markup between two comments for a comment', () => {
+    const html = '<!-- a --><script>localStorage.x = 1</script><!-- b --><!doctype html><p>x</p>'
+    expect(insertAfterDoctype(html, '<base>')).toBe('<base>' + html)
+  })
+
+  it('looks past a run of comments without a doctype at once', () => {
+    const banner = Array.from({ length: 28 }, (_, line) => `<!-- theme, line ${line} -->\n`)
+    const html = banner.join('') + '<p>x</p>'
+    const started = performance.now()
+    expect(insertAfterDoctype(html, '<base>')).toBe('<base>' + html)
+    expect(performance.now() - started).toBeLessThan(1000)
+  })
+
   it('leaves the document its doctype when a comment comes before it', () => {
     const html = insertAfterDoctype('<!-- theme v2 --><!DOCTYPE html><p>x</p>', '<script></script>')
     const doc = new DOMParser().parseFromString(html, 'text/html')
