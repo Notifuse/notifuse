@@ -878,6 +878,8 @@ func TestSameAddress(t *testing.T) {
 		{"reported with spaces around it", "jane@example.com", " jane@example.com\u00a0", true},
 		{"a domain reported with a character DNS ignores", "user@example.com", "user@ex\u00adample.com", true},
 		{"a domain longer than DNS holds is not looked up", "user@example.com", "user@" + strings.Repeat("\u00ad", 300) + "example.com", false},
+		{"a local part encoded in two words", "jane@example.com", "=?utf-8?q?ja?= =?utf-8?q?ne?=@example.com", true},
+		{"an address longer than any spelling of one is not decoded", "jane@example.com", "=?utf-8?q?ja?=" + strings.Repeat(" ", 3000) + "=?utf-8?q?ne?=@example.com", false},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			assert.Equal(t, c.same, sameAddress(c.stored, c.reported))
@@ -895,6 +897,13 @@ func TestSameAddress_ALongDomainIsComparedQuickly(t *testing.T) {
 
 	start := time.Now()
 	assert.False(t, sameAddress("user@example.com", "user@"+label.String()))
+	assert.Less(t, time.Since(start), time.Second)
+}
+
+// Decoding a crafted encoded local part takes time growing with the square of its length too.
+func TestSameAddress_ALongLocalPartIsComparedQuickly(t *testing.T) {
+	start := time.Now()
+	assert.False(t, sameAddress("user@example.com", strings.Repeat("=?c?q?x", 64000)+"?=@example.com"))
 	assert.Less(t, time.Since(start), time.Second)
 }
 

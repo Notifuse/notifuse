@@ -37,7 +37,8 @@ Only the SES parser changes (D4).
 | SMTP | `X-Message-ID` header | `message_id` of the posted payload |
 
 SMTP has no provider webhook; a relay of the operator's own that posts events must send the email's
-`X-Message-ID` header as `message_id`. The CHANGELOG says so.
+`X-Message-ID` header as `message_id`, and the address it was sent to as `recipient`. The CHANGELOG
+says so.
 
 ### Consequences
 
@@ -90,8 +91,9 @@ when both have the same `addressForm`: the local part
 decoded when encoded and lowercased, the domain as DNS looks it up (`idna.Lookup`: Punycode, case and
 Unicode composition aside), or lowercased as is when DNS refuses it. A domain longer than DNS holds,
 253 characters (`maxDomainLength`), is refused before the lookup, whose Punycode encoding takes time
-growing with the square of a label's length. A value with no `@`, or an empty local part or domain, has
-no form.
+growing with the square of a label's length; decoding an encoded local part does too, so an address of
+more than 2048 bytes (`maxAddressLength`, beyond any spelling of an address SMTP carries) has no form.
+A value with no `@`, or an empty local part or domain, has no form.
 
 ### D4. One SES event per listed recipient
 
@@ -112,7 +114,7 @@ is not taken for the email's own (see Consequences).
 | `internal/repository/message_history_postgre.go` (`GetRecipients`) | `internal/repository/message_history_postgre_test.go`, `TestMessageHistoryRepository_GetRecipients` | found rows mapped, ids passed as one array with the redacted address; no ids, no connection; connection, query, scan and row errors returned |
 | `internal/repository/inbound_webhook_event_postgres.go` (`countConsecutiveSoftBouncesSQL`) | `internal/repository/inbound_webhook_event_postgres_test.go`, `TestCountConsecutiveSoftBounces_OnlyCountsBouncesOfEmailsSentToTheAddress`; the no-prior-delivery regex follows the join | the join is in the query |
 | `internal/service/inbound_webhook_event_service.go` (`ProcessWebhook`, `eventsOfSentEmails`) | `internal/service/inbound_webhook_event_service_test.go`, `TestProcessWebhook_ActsOnlyOnEmailsSentToTheEventAddress` | hard bounce of an unknown email; of another address's email; soft bounce of an unknown email not counted; event carrying only the provider's ID; no ID or no address, no lookup; address in another case kept under the stored address, for a hard and a soft bounce; complaint and delivery of another address's email; SendGrid batch: one lookup with deduplicated IDs, only the matching event acted on; SES bounce, complaint and delivery listing a copied address first: only the recipient's event stored and applied; SES bounce reporting the address an email sent to its recipient alone was forwarded to: ignored; SES complaint giving the stored international domain in Punycode: kept under the stored address; Mailjet unsubscribe of an unknown email; lookup error returned, nothing stored; the Info log line's fields |
-| same file (`sameAddress`, `addressForm`) | same file, `TestSameAddress` | same address; case; Punycode reported for a Unicode domain and the reverse; Unicode domain in capitals; non-ASCII local part as SES is sent it, in capitals, reported lowercase, reported encoded in lowercase; another non-ASCII local part; another domain; another local part; no address; no domain; a decomposed domain reported composed, in Punycode, and as SES is sent it; a domain DNS refuses, in another case, with an encoded local part, with another local part; `straße.de` and `strasse.de` apart; the SparkPost sandbox form, and another address in it; spaces around the reported address; a character DNS ignores; a domain longer than DNS holds not looked up; `TestSameAddress_ALongDomainIsComparedQuickly`: a very long domain compared in under a second |
+| same file (`sameAddress`, `addressForm`) | same file, `TestSameAddress` | same address; case; Punycode reported for a Unicode domain and the reverse; Unicode domain in capitals; non-ASCII local part as SES is sent it, in capitals, reported lowercase, reported encoded in lowercase; another non-ASCII local part; another domain; another local part; no address; no domain; a decomposed domain reported composed, in Punycode, and as SES is sent it; a domain DNS refuses, in another case, with an encoded local part, with another local part; `straße.de` and `strasse.de` apart; the SparkPost sandbox form, and another address in it; spaces around the reported address; a character DNS ignores; a domain longer than DNS holds not looked up; a local part encoded in two words; an address longer than any spelling of one not decoded; `TestSameAddress_ALongDomainIsComparedQuickly` and `TestSameAddress_ALongLocalPartIsComparedQuickly`: a very long domain, and a very long encoded local part, compared in under a second |
 | `internal/service/sparkpost_service.go` (`sparkPostSinkSuffix`) | `internal/service/sparkpost_service_test.go`, `TestSparkPostService_SendEmail` "Sandbox mode" | the email goes to the address on the sink domain |
 | same file (`processSESWebhook`) | same file, `TestProcessSESWebhook` | a bounce, a complaint and a delivery listing two recipients give two events in order, each with its address, the Notifuse ID and, for a bounce, its own diagnostic; an address listed twice gives one event, the first; 60 listed recipients give 50 events sharing the payload; none listed gives no event; a forwarded address is kept as reported, for an email sent to one address or to several; an empty address gives no event |
 | | same file, existing tests | each test that reaches storage expects `GetRecipients`; "events without message ID" now stores nothing; `TestProcessWebhook_MailjetUnsubscribe` adds an unknown email and a copied address, and its race cases cover an email gone, readdressed or erased by the time the opt-out is recorded |

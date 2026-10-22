@@ -544,14 +544,19 @@ func sameAddress(stored, reported string) bool {
 // reported in Unicode has no more, unless written with characters DNS drops or composes.
 const maxDomainLength = 253
 
+// maxAddressLength, in bytes, is beyond any spelling of an address SMTP carries: its local
+// part of at most 64 bytes encoded, its domain in Unicode.
+const maxAddressLength = 2048
+
 // addressForm spells an address one way whatever the spelling it comes in: the local part
 // decoded when encoded, and lowercased, the domain as DNS looks it up (Punycode, the letter
-// case and the Unicode composition aside), or lowercased when DNS refuses it. A domain longer
-// than DNS holds is refused unread, since encoding one takes time growing with the square of
-// its length. ok is false for what is no address.
+// case and the Unicode composition aside), or lowercased when DNS refuses it. Decoding and
+// encoding take time growing with the square of the length, so a domain longer than DNS
+// holds is refused unread, and a longer address than any spelling of one has no form. ok is
+// false for what is no address.
 func addressForm(address string) (string, bool) {
 	at := strings.LastIndex(address, "@")
-	if at <= 0 || at == len(address)-1 {
+	if at <= 0 || at == len(address)-1 || len(address) > maxAddressLength {
 		return "", false
 	}
 	local := address[:at]
