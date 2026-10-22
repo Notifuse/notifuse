@@ -46,6 +46,8 @@ type DemoService struct {
 	// Interface-typed, like segmentService above, so the seeded-automation guard tests can build a
 	// DemoService with a generated mock. *AutomationService satisfies it, so app.go passes its own.
 	automationService domain.AutomationService
+	// Authenticates the seed for the demo workspace once; see seedContext.
+	authService domain.AuthService
 }
 
 // Sample data arrays for contact generation
@@ -124,6 +126,7 @@ func NewDemoService(
 	annotationRepo domain.AnnotationRepository,
 	webhookSubscriptionService *WebhookSubscriptionService,
 	automationService domain.AutomationService,
+	authService domain.AuthService,
 ) *DemoService {
 	return &DemoService{
 		logger:                           logger,
@@ -153,6 +156,7 @@ func NewDemoService(
 		annotationRepo:                   annotationRepo,
 		webhookSubscriptionService:       webhookSubscriptionService,
 		automationService:                automationService,
+		authService:                      authService,
 	}
 }
 
@@ -249,7 +253,7 @@ func (s *DemoService) rootContext(ctx context.Context, rootUser *domain.User) (a
 // open: on the demo every visitor shares the root account, and one of them signing
 // out ends all of its sessions.
 func (s *DemoService) seedContext(ctx context.Context, workspaceID string) (context.Context, error) {
-	seedCtx, _, _, err := s.workspaceService.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	seedCtx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate the demo seed: %w", err)
 	}

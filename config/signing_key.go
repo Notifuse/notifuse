@@ -112,7 +112,7 @@ func signingKeyRequired(secretKeyVar, reason string) error {
 	return fmt.Errorf("SIGNING_KEY must be set: %[2]s. Generate a signing key with: openssl rand -base64 32, "+
 		"pass it to the container as SIGNING_KEY (the compose.yaml of 42.0 does; a compose file of your own "+
 		"needs the line too), and keep %[1]s unchanged because it decrypts your stored data. Users will have "+
-		"to sign in again, API keys must be recreated, and pending invitations sent again", secretKeyVar, reason)
+		"to sign in again, API keys must be deleted and created again, and pending invitations sent again", secretKeyVar, reason)
 }
 
 // deriveJWTSecret turns the signing key into the HMAC secret for JWTs: its decoded

@@ -188,6 +188,7 @@ func TestNewDemoService_Constructs(t *testing.T) {
 		nil, // annotationRepo
 		nil, // webhookSubscriptionService
 		nil, // automationService
+		nil, // authService
 	)
 	assert.NotNil(t, svc)
 }
@@ -307,8 +308,8 @@ func TestDemoService_SeedContext_OutlivesTheSession(t *testing.T) {
 		Logger:              logger.NewLoggerWithLevel("disabled"),
 	})
 	svc := &DemoService{
-		logger:           logger.NewLoggerWithLevel("disabled"),
-		workspaceService: &WorkspaceService{authService: authService},
+		logger:      logger.NewLoggerWithLevel("disabled"),
+		authService: authService,
 	}
 
 	ctx := context.WithValue(context.Background(), domain.UserIDKey, root.ID)
@@ -343,8 +344,8 @@ func TestDemoService_SeedContext_RefusedCheckStopsTheSeed(t *testing.T) {
 		Logger:              logger.NewLoggerWithLevel("disabled"),
 	})
 	svc := &DemoService{
-		logger:           logger.NewLoggerWithLevel("disabled"),
-		workspaceService: &WorkspaceService{authService: authService},
+		logger:      logger.NewLoggerWithLevel("disabled"),
+		authService: authService,
 	}
 
 	ctx := context.WithValue(context.Background(), domain.UserIDKey, "root-id")
@@ -847,6 +848,7 @@ func TestDemoService_GenerateMessagesPerContact_EmptyContacts(t *testing.T) {
 func TestNewDemoService_AllFields(t *testing.T) {
 	logger := logger.NewLoggerWithLevel("disabled")
 	config := &config.Config{}
+	authService := domainmocks.NewMockAuthService(gomock.NewController(t))
 
 	svc := NewDemoService(
 		logger,
@@ -876,11 +878,13 @@ func TestNewDemoService_AllFields(t *testing.T) {
 		nil, // annotationRepo
 		nil, // webhookSubscriptionService
 		nil, // automationService
+		authService,
 	)
 
 	assert.NotNil(t, svc)
 	assert.Equal(t, logger, svc.logger)
 	assert.Equal(t, config, svc.config)
+	assert.Equal(t, authService, svc.authService, "the seed authenticates through it")
 }
 
 func TestDemoService_GenerateWebhookEvents_ErrorGettingWorkspace(t *testing.T) {

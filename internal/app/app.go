@@ -1085,6 +1085,7 @@ func (a *App) InitServices() error {
 		a.annotationRepo,
 		a.webhookSubscriptionService,
 		a.automationService,
+		a.authService,
 	)
 
 	// Initialize telemetry service
