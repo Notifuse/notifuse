@@ -146,6 +146,10 @@ type SecurityConfig struct {
 	// SecretKeyIsList records that SECRET_KEY had a comma, so the startup check
 	// confirms the keys open the stored data before anything uses it.
 	SecretKeyIsList bool
+
+	// KeyVariable is the variable the keys came from, SECRET_KEY or
+	// PASETO_PRIVATE_KEY, for the messages that name it.
+	KeyVariable string
 }
 
 type SSLConfig struct {

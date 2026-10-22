@@ -219,24 +219,35 @@ func TestReencryptFields(t *testing.T) {
 		assert.Contains(t, string(got), `"ratio":0.1`)
 	})
 
-	t.Run("a value no key opens fails with its path and changes nothing", func(t *testing.T) {
-		doc := []byte(fmt.Sprintf(`[{"email_provider": {"smtp": {"encrypted_password": %q}}}]`,
-			mustEncrypt(t, "pass", "a-key-nobody-listed-for-this-test-32b")))
+	// Which values must open is for the code that reads them to say: a value under a
+	// provider an integration does not use is never decrypted.
+	t.Run("a value no key opens is left as it is, and the others are still re-encrypted", func(t *testing.T) {
+		unopened := mustEncrypt(t, "pass", "a-key-nobody-listed-for-this-test-32b")
+		doc := []byte(fmt.Sprintf(`[{"email_provider": {"smtp": {"encrypted_username": %q, "encrypted_password": %q}}}]`,
+			mustEncrypt(t, "user", reencryptOldKey), unopened))
 
-		got, _, err := ReencryptFields(doc, integrationsTestPaths, reencryptCurrentKey, []string{reencryptOldKey})
+		got, changed, err := ReencryptFields(doc, integrationsTestPaths, reencryptCurrentKey, []string{reencryptOldKey})
 
-		require.Error(t, err)
-		assert.True(t, errors.Is(err, ErrUndecryptable))
-		assert.Contains(t, err.Error(), "[0].email_provider.smtp.encrypted_password")
-		assert.Nil(t, got)
+		require.NoError(t, err)
+		assert.True(t, changed)
+		var out []map[string]map[string]map[string]string
+		require.NoError(t, json.Unmarshal(got, &out))
+		smtp := out[0]["email_provider"]["smtp"]
+		assert.Equal(t, unopened, smtp["encrypted_password"])
+		plain, ok := opensWith(smtp["encrypted_username"], reencryptCurrentKey)
+		require.True(t, ok)
+		assert.Equal(t, "user", plain)
 	})
 
-	t.Run("without previous keys it only checks: a value under another key fails", func(t *testing.T) {
-		doc := []byte(fmt.Sprintf(`{"encrypted_secret_key": %q}`, mustEncrypt(t, "k", reencryptOldKey)))
+	t.Run("without previous keys nothing changes", func(t *testing.T) {
+		doc := []byte(fmt.Sprintf(`{"encrypted_secret_key": %q, "file_manager": {"encrypted_secret_key": "not a ciphertext"}}`,
+			mustEncrypt(t, "k", reencryptOldKey)))
 
-		_, _, err := ReencryptFields(doc, settingsTestPaths, reencryptCurrentKey, nil)
+		got, changed, err := ReencryptFields(doc, settingsTestPaths, reencryptCurrentKey, nil)
 
-		assert.True(t, errors.Is(err, ErrUndecryptable))
+		require.NoError(t, err)
+		assert.False(t, changed)
+		assert.Equal(t, doc, got)
 	})
 
 	t.Run("an empty or null document is left alone", func(t *testing.T) {

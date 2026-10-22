@@ -230,6 +230,13 @@ func TestNewSecurityConfig(t *testing.T) {
 		assert.Contains(t, security.PreviousSecretKeys, oldKey)
 		assert.Equal(t, security.SecretKey, security.DecryptionKeys()[0])
 		assert.Equal(t, security.PreviousSecretKeys, security.DecryptionKeys()[1:])
+		assert.Equal(t, "SECRET_KEY", security.KeyVariable)
+	})
+
+	t.Run("records the variable the keys came from", func(t *testing.T) {
+		security, err := NewSecurityConfig(newKey+","+oldKey, "PASETO_PRIVATE_KEY")
+		require.NoError(t, err)
+		assert.Equal(t, "PASETO_PRIVATE_KEY", security.KeyVariable)
 	})
 
 	t.Run("a single key is used byte for byte", func(t *testing.T) {

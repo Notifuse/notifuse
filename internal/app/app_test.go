@@ -668,6 +668,7 @@ func TestAppInitSecretKey(t *testing.T) {
 			SecretKey:          current,
 			PreviousSecretKeys: []string{previous},
 			SecretKeyIsList:    true,
+			KeyVariable:        "PASETO_PRIVATE_KEY",
 		})
 		lost, err := pkgCrypto.EncryptString("smtp-pass", "a-key-nobody-listed-giving-32-bytes")
 		require.NoError(t, err)
@@ -682,7 +683,8 @@ func TestAppInitSecretKey(t *testing.T) {
 		err = app.InitSecretKey()
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "setting encrypted_smtp_password")
-		assert.Contains(t, err.Error(), "SECRET_KEY")
+		assert.Contains(t, err.Error(), "PASETO_PRIVATE_KEY", "names the variable the keys came from")
+		assert.NotContains(t, err.Error(), "SECRET_KEY")
 		assert.Contains(t, err.Error(), "twice")
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})

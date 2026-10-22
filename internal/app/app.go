@@ -397,9 +397,8 @@ func (a *App) InitDB() error {
 	return nil
 }
 
-// InitSecretKey brings the stored data under the first key of a SECRET_KEY that lists
-// several: what the other keys open is re-encrypted with it. A list of one, a key whose
-// commas are doubled, is only checked against the data. It runs before anything reads
+// InitSecretKey brings the stored data under the first key of a SECRET_KEY that is a
+// list: what the other keys open is re-encrypted with it. It runs before anything reads
 // the database, so a value no listed key opens stops the start rather than a later
 // workspace load. A SECRET_KEY without a comma reads nothing.
 func (a *App) InitSecretKey() error {
@@ -407,26 +406,30 @@ func (a *App) InitSecretKey() error {
 	if !security.SecretKeyIsList {
 		return nil
 	}
+	variable := security.KeyVariable
+	if variable == "" {
+		variable = "SECRET_KEY"
+	}
 
 	result, err := repository.RotateSecretKey(context.Background(), a.db, security.SecretKey, security.PreviousSecretKeys)
 	if err != nil && !errors.Is(err, pkgCrypto.ErrUndecryptable) {
-		return fmt.Errorf("failed to bring the stored data under the first key of SECRET_KEY: %w", err)
+		return fmt.Errorf("failed to bring the stored data under the first key of %s: %w", variable, err)
 	}
 	if err != nil {
-		return fmt.Errorf("no key listed in SECRET_KEY opens a value stored in the database (%w). Nothing was "+
+		return fmt.Errorf("no key listed in %s opens a value stored in the database (%w). Nothing was "+
 			"changed. List the key the data is encrypted with after the new one, and write each comma inside a "+
-			"key twice", err)
+			"key twice", variable, err)
 	}
 
 	if len(security.PreviousSecretKeys) == 0 {
-		a.logger.Info("Every stored value opens with SECRET_KEY")
+		a.logger.Info("Every stored value opens with " + variable)
 		return nil
 	}
 	a.logger.WithFields(map[string]interface{}{
 		"workspaces": result.Workspaces,
 		"settings":   result.Settings,
-	}).Info("Stored data re-encrypted with the first key of SECRET_KEY; once every instance runs with this " +
-		"SECRET_KEY, the other keys can be removed from it")
+	}).Info(fmt.Sprintf("Stored data re-encrypted with the first key of %[1]s; once every instance runs with "+
+		"this %[1]s, set the first key alone", variable))
 	return nil
 }
 
@@ -2136,11 +2139,12 @@ func (a *App) Initialize() error {
 
 	a.logger.Info("Application successfully initialized")
 
-	// Send startup telemetry metrics
-	if a.telemetryService != nil {
+	// Send startup telemetry metrics. The goroutine keeps its own reference: a restart
+	// in the same process sets the field again while it may still run.
+	if telemetry := a.telemetryService; telemetry != nil {
 		go func() {
 			ctx := context.Background()
-			if err := a.telemetryService.SendMetricsForAllWorkspaces(ctx); err != nil {
+			if err := telemetry.SendMetricsForAllWorkspaces(ctx); err != nil {
 				a.logger.WithField("error", err).Error("Failed to send startup telemetry metrics")
 			}
 		}()

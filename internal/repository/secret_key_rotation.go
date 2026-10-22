@@ -33,11 +33,14 @@ type rotationSettingRow struct {
 
 // RotateSecretKey makes every value Notifuse encrypted with SECRET_KEY open with
 // current: the encrypted fields of each workspace's settings and integrations
-// (domain.EncryptedFieldPaths), and the encrypted_ rows of the settings table. A value a previous key opens is
-// re-encrypted with current; with no previous key, the values are only checked.
+// (domain.EncryptedFieldPaths), and the encrypted_ rows of the settings table. A value a
+// previous key opens is re-encrypted with current; with no previous key, the values are
+// only checked. Each workspace is then opened as loading it does
+// (domain.CheckStoredWorkspace), so a value nothing reads, such as one under a provider
+// an integration does not use, is left as it is even when no key opens it.
 //
-// It runs in one transaction: a value no key opens rolls everything back, and the
-// error names where it is.
+// It runs in one transaction: a workspace or a setting no key opens rolls everything
+// back, and the error names it.
 func RotateSecretKey(ctx context.Context, db *sql.DB, current string, previous []string) (SecretKeyRotationResult, error) {
 	var result SecretKeyRotationResult
 
@@ -59,11 +62,14 @@ func RotateSecretKey(ctx context.Context, db *sql.DB, current string, previous [
 	for _, w := range workspaces {
 		settings, settingsChanged, err := crypto.ReencryptFields(w.settings, settingsPaths, current, previous)
 		if err != nil {
-			return result, fmt.Errorf("workspace %s, settings %w", w.id, err)
+			return result, fmt.Errorf("workspace %s, settings: %w", w.id, err)
 		}
 		integrations, integrationsChanged, err := crypto.ReencryptFields(w.integrations, integrationsPaths, current, previous)
 		if err != nil {
-			return result, fmt.Errorf("workspace %s, integrations %w", w.id, err)
+			return result, fmt.Errorf("workspace %s, integrations: %w", w.id, err)
+		}
+		if err := domain.CheckStoredWorkspace(settings, integrations, current); err != nil {
+			return result, fmt.Errorf("workspace %s: %w", w.id, err)
 		}
 		if !settingsChanged && !integrationsChanged {
 			continue

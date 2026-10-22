@@ -146,6 +146,7 @@ func NewSecurityConfig(raw, variable string) (SecurityConfig, error) {
 		SecretKey:          keys.current,
 		PreviousSecretKeys: keys.previous,
 		SecretKeyIsList:    keys.isList,
+		KeyVariable:        variable,
 	}, nil
 }
 
@@ -199,9 +200,10 @@ func checkCurrentKey(key, variable string, isList bool) error {
 func rotationRemedy(variable string) string {
 	return fmt.Sprintf("Generate a new key with: openssl rand -base64 32, and put it first, keeping your "+
 		"current key after a comma: %[1]s=<new key>,<current key> (write each comma inside a key twice). "+
-		"Notifuse re-encrypts your stored data with the new key when it starts; once every instance runs "+
-		"with that value, you can remove the current key from %[1]s. Users will have to sign in again, API keys must be deleted and created "+
-		"again, and pending invitations sent again", variable)
+		"Stop every instance and start them all with that value: Notifuse re-encrypts your stored data "+
+		"with the new key when it starts. Once they all run, set the new key alone in %[1]s. Users will "+
+		"have to sign in again, API keys must be deleted and created again, and pending invitations sent "+
+		"again", variable)
 }
 
 // deriveJWTSecret turns the key that signs into the HMAC secret for JWTs: its decoded

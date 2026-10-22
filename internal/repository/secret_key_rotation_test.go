@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -11,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/repository/testutil"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 )
@@ -55,22 +55,46 @@ func (m opensWithOnly) Match(v driver.Value) bool {
 	return err != nil
 }
 
-// documentOpensWithCurrentOnly matches a JSON document whose encrypted values, at
-// paths, the current key opens and the previous key does not.
-type documentOpensWithCurrentOnly struct {
-	paths []string
-}
+// document is an argument matcher for a JSON document the function accepts.
+type document func(tree any) bool
 
-func (m documentOpensWithCurrentOnly) Match(v driver.Value) bool {
+func (m document) Match(v driver.Value) bool {
 	b, ok := v.([]byte)
 	if !ok {
 		return false
 	}
-	if _, changed, err := crypto.ReencryptFields(b, m.paths, rotationCurrentKey, nil); err != nil || changed {
-		return false
+	var tree any
+	return json.Unmarshal(b, &tree) == nil && m(tree)
+}
+
+// at returns the string at path, object keys and array indexes, in a decoded document.
+func at(tree any, path ...any) string {
+	for _, step := range path {
+		switch s := step.(type) {
+		case string:
+			object, ok := tree.(map[string]any)
+			if !ok {
+				return ""
+			}
+			tree = object[s]
+		case int:
+			array, ok := tree.([]any)
+			if !ok || s >= len(array) {
+				return ""
+			}
+			tree = array[s]
+		}
 	}
-	_, _, err := crypto.ReencryptFields(b, m.paths, rotationPreviousKey, nil)
-	return errors.Is(err, crypto.ErrUndecryptable)
+	value, _ := tree.(string)
+	return value
+}
+
+// rotationIntegrations is an SMTP integration whose password is smtpPassword, and whose
+// SES settings, which it does not use, hold a value no key opens.
+func rotationIntegrations(id, smtpPassword string) string {
+	return fmt.Sprintf(`[{"id": %q, "type": "email", "email_provider": {"kind": "smtp",
+		"smtp": {"host": "smtp.example.com", "port": 587, "encrypted_password": %q},
+		"ses": {"region": "eu-west-1", "encrypted_secret_key": "not-a-ciphertext"}}}]`, id, smtpPassword)
 }
 
 func TestRotateSecretKey(t *testing.T) {
@@ -80,13 +104,11 @@ func TestRotateSecretKey(t *testing.T) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
 
-		settingsPaths, integrationsPaths := domain.EncryptedFieldPaths()
 		rotated := fmt.Sprintf(`{"timezone": "UTC", "encrypted_secret_key": %q}`, encryptFor(t, "ws-key", rotationPreviousKey))
 		// Free-form content is never taken for a credential, whatever its key is named.
 		untouched := fmt.Sprintf(`{"timezone": "UTC", "encrypted_secret_key": %q, "custom_field_labels": {"encrypted_note": "Note"}}`,
 			encryptFor(t, "ws-key", rotationCurrentKey))
-		integrations := fmt.Sprintf(`[{"id": "smtp", "email_provider": {"smtp": {"encrypted_password": %q}}}]`,
-			encryptFor(t, "pass", rotationPreviousKey))
+		integrations := rotationIntegrations("smtp", encryptFor(t, "pass", rotationPreviousKey))
 
 		mock.ExpectBegin()
 		mock.ExpectExec(rotationLockQuery).WithArgs(secretKeyRotationLockID).WillReturnResult(sqlmock.NewResult(0, 0))
@@ -95,7 +117,15 @@ func TestRotateSecretKey(t *testing.T) {
 				AddRow("aaa", []byte(rotated), []byte(integrations)).
 				AddRow("bbb", []byte(untouched), nil))
 		mock.ExpectExec(rotationWorkspaceWrite).
-			WithArgs(documentOpensWithCurrentOnly{settingsPaths}, documentOpensWithCurrentOnly{integrationsPaths}, "aaa").
+			WithArgs(
+				document(func(tree any) bool {
+					return opensWithOnly{want: "ws-key"}.Match(at(tree, "encrypted_secret_key"))
+				}),
+				document(func(tree any) bool {
+					return opensWithOnly{want: "pass"}.Match(at(tree, 0, "email_provider", "smtp", "encrypted_password")) &&
+						at(tree, 0, "email_provider", "ses", "encrypted_secret_key") == "not-a-ciphertext"
+				}),
+				"aaa").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectQuery(rotationSettingsQuery).WillReturnRows(
 			sqlmock.NewRows([]string{"key", "value"}).
@@ -135,20 +165,20 @@ func TestRotateSecretKey(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("a workspace value no key opens rolls back, naming the workspace and the path", func(t *testing.T) {
+	t.Run("a credential the workspace uses that no key opens rolls back, naming the workspace", func(t *testing.T) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
 
 		first := fmt.Sprintf(`{"encrypted_secret_key": %q}`, encryptFor(t, "ws-key", rotationPreviousKey))
-		lost := fmt.Sprintf(`[{"email_provider": {"smtp": {"encrypted_password": %q}}}]`,
-			encryptFor(t, "pass", "a-key-nobody-listed-giving-32-bytes"))
+		second := fmt.Sprintf(`{"encrypted_secret_key": %q}`, encryptFor(t, "ws-key", rotationCurrentKey))
+		lost := rotationIntegrations("lost-smtp", encryptFor(t, "pass", "a-key-nobody-listed-giving-32-bytes"))
 
 		mock.ExpectBegin()
 		mock.ExpectExec(rotationLockQuery).WithArgs(secretKeyRotationLockID).WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectQuery(rotationWorkspaceQuery).WillReturnRows(
 			sqlmock.NewRows([]string{"id", "settings", "integrations"}).
 				AddRow("aaa", []byte(first), nil).
-				AddRow("bbb", []byte(`{}`), []byte(lost)))
+				AddRow("bbb", []byte(second), []byte(lost)))
 		mock.ExpectExec(rotationWorkspaceWrite).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "aaa").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectRollback()
@@ -158,7 +188,27 @@ func TestRotateSecretKey(t *testing.T) {
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, crypto.ErrUndecryptable))
 		assert.Contains(t, err.Error(), "workspace bbb")
-		assert.Contains(t, err.Error(), "integrations [0].email_provider.smtp.encrypted_password")
+		assert.Contains(t, err.Error(), "lost-smtp")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a workspace key no key opens rolls back", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		lost := fmt.Sprintf(`{"encrypted_secret_key": %q}`, encryptFor(t, "ws-key", "a-key-nobody-listed-giving-32-bytes"))
+
+		mock.ExpectBegin()
+		mock.ExpectExec(rotationLockQuery).WithArgs(secretKeyRotationLockID).WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(rotationWorkspaceQuery).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "settings", "integrations"}).AddRow("aaa", []byte(lost), nil))
+		mock.ExpectRollback()
+
+		_, err := RotateSecretKey(ctx, db, rotationCurrentKey, []string{rotationPreviousKey})
+
+		require.Error(t, err)
+		assert.True(t, errors.Is(err, crypto.ErrUndecryptable))
+		assert.Contains(t, err.Error(), "workspace aaa")
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 

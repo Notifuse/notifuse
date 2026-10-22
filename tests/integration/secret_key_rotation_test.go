@@ -59,19 +59,15 @@ func readEncryptedRows(t *testing.T, suite *testutil.IntegrationTestSuite) encry
 	return rows
 }
 
-// opensWith reports whether key opens every encrypted value of a stored row.
-func opensWith(name, value, key string) error {
+// opensWith reports whether key opens the setting called name, or, for a workspace row,
+// every value the server decrypts when it loads that workspace.
+func opensWith(rows encryptedRows, name, key string) error {
 	if strings.HasPrefix(name, "setting ") {
-		_, _, err := crypto.DecryptWithKeys(value, []string{key})
+		_, _, err := crypto.DecryptWithKeys(rows[name], []string{key})
 		return err
 	}
-	settingsPaths, integrationsPaths := domain.EncryptedFieldPaths()
-	paths := settingsPaths
-	if strings.HasSuffix(name, " integrations") {
-		paths = integrationsPaths
-	}
-	_, _, err := crypto.ReencryptFields([]byte(value), paths, key, nil)
-	return err
+	workspace := strings.TrimSuffix(strings.TrimSuffix(name, " settings"), " integrations")
+	return domain.CheckStoredWorkspace([]byte(rows[workspace+" settings"]), []byte(rows[workspace+" integrations"]), key)
 }
 
 // startWithSecretKey restarts the server as an installation with SECRET_KEY=raw does.
@@ -141,9 +137,17 @@ func TestSecretKeyRotation(t *testing.T) {
 		ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, smtpPassword)
 	require.NoError(t, err)
 
+	// SES settings the SMTP integration does not use, holding a value no key opens, as an
+	// API client could store before 42.0: nothing reads them, so they stop nothing.
+	_, err = suite.DBManager.GetDB().Exec(`UPDATE workspaces
+		SET integrations = jsonb_set(integrations, '{0,email_provider,ses}',
+			'{"region": "eu-west-1", "encrypted_secret_key": "not-a-ciphertext"}')
+		WHERE id = $1`, workspaceID)
+	require.NoError(t, err)
+
 	underA := readEncryptedRows(t, suite)
-	for name, value := range underA {
-		require.NoError(t, opensWith(name, value, keyA), "%s is under A before the rotation", name)
+	for name := range underA {
+		require.NoError(t, opensWith(underA, name, keyA), "%s is under A before the rotation", name)
 	}
 
 	t.Run("listing B,A re-encrypts every stored value under B", func(t *testing.T) {
@@ -151,17 +155,18 @@ func TestSecretKeyRotation(t *testing.T) {
 
 		rotated := readEncryptedRows(t, suite)
 		require.Equal(t, len(underA), len(rotated))
-		for name, value := range rotated {
-			assert.NoError(t, opensWith(name, value, rotationKeyB), "%s opens with B", name)
+		for name := range rotated {
+			assert.NoError(t, opensWith(rotated, name, rotationKeyB), "%s opens with B", name)
 		}
 		for _, name := range []string{
 			"workspace " + workspaceID + " settings",
-			"workspace " + workspaceID + " integrations",
 			"setting encrypted_smtp_password",
 		} {
-			assert.True(t, errors.Is(opensWith(name, rotated[name], keyA), crypto.ErrUndecryptable),
+			assert.True(t, errors.Is(opensWith(rotated, name, keyA), crypto.ErrUndecryptable),
 				"%s no longer opens with A", name)
 		}
+		assert.Contains(t, rotated["workspace "+workspaceID+" integrations"], `"encrypted_secret_key": "not-a-ciphertext"`,
+			"a value nothing reads is left as it is")
 
 		workspace, err := suite.ServerManager.GetApp().GetWorkspaceRepository().GetByID(context.Background(), workspaceID)
 		require.NoError(t, err)
@@ -243,8 +248,8 @@ func TestSecretKeyRotation(t *testing.T) {
 		escaped := strings.ReplaceAll(rotationLegacyKey, ",", ",,")
 		require.NoError(t, startWithSecretKey(t, suite, escaped+","+rotationKeyB))
 		before := readEncryptedRows(t, suite)
-		for name, value := range before {
-			require.NoError(t, opensWith(name, value, rotationLegacyKey), "%s is under the legacy key", name)
+		for name := range before {
+			require.NoError(t, opensWith(before, name, rotationLegacyKey), "%s is under the legacy key", name)
 		}
 
 		err := startWithSecretKey(t, suite, rotationLegacyKey)

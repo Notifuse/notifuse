@@ -42,14 +42,15 @@ func ReencryptValue(value, current string, previous []string) (string, bool, err
 	return reencrypted, true, nil
 }
 
-// ReencryptFields applies ReencryptValue to the non-empty string at each of paths in a
-// JSON document. A path lists its segments separated by ".", each an object key or "[]"
-// for every element of an array: "[].email_provider.smtp.encrypted_password". Values
-// elsewhere are left alone, whatever their key is named. With no previous key it only checks that current
-// opens them all. It never decrypts into the document.
+// ReencryptFields re-encrypts with current the non-empty string at each of paths in a
+// JSON document that a previous key opens. A path lists its segments separated by ".",
+// each an object key or "[]" for every element of an array:
+// "[].email_provider.smtp.encrypted_password". Values elsewhere are left alone, whatever
+// their key is named, and so are values that current or no key opens: which ones must
+// open is for the code that reads them to say. It never decrypts into the document.
 //
 // The document comes back as given when nothing changed; otherwise it is re-encoded,
-// numbers as written. An error names the path of the value no key opens.
+// numbers as written.
 func ReencryptFields(doc []byte, paths []string, current string, previous []string) ([]byte, bool, error) {
 	if len(bytes.TrimSpace(doc)) == 0 {
 		return doc, false, nil
@@ -130,6 +131,9 @@ func reencryptNode(node any, paths *pathTree, path, current string, previous []s
 					continue
 				}
 				reencrypted, c, err := ReencryptValue(value, current, previous)
+				if errors.Is(err, ErrUndecryptable) {
+					continue
+				}
 				if err != nil {
 					return false, fmt.Errorf("%s: %w", childPath, err)
 				}

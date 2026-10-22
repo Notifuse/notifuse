@@ -133,8 +133,8 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 }
 
 // workspaceDocuments marshals the settings and integrations of a workspace that went
-// through BeforeSave, refusing a credential the secret key does not open: once written,
-// every load of the workspace would fail on it.
+// through BeforeSave, refusing a credential the workspace uses that the secret key does
+// not open: once written, every load of the workspace would fail on it.
 func (r *workspaceRepository) workspaceDocuments(workspace *domain.Workspace) ([]byte, []byte, error) {
 	settings, err := json.Marshal(workspace.Settings)
 	if err != nil {
@@ -144,24 +144,13 @@ func (r *workspaceRepository) workspaceDocuments(workspace *domain.Workspace) ([
 	if err != nil {
 		return nil, nil, err
 	}
-	settingsPaths, integrationsPaths := domain.EncryptedFieldPaths()
-	if err := r.checkCredentials(settings, settingsPaths); err != nil {
-		return nil, nil, err
-	}
-	if err := r.checkCredentials(integrations, integrationsPaths); err != nil {
+	if err := domain.CheckStoredWorkspace(settings, integrations, r.secretKey); err != nil {
+		if errors.Is(err, crypto.ErrUndecryptable) {
+			return nil, nil, fmt.Errorf("%w: %v", domain.ErrStaleCredential, err)
+		}
 		return nil, nil, err
 	}
 	return settings, integrations, nil
-}
-
-// checkCredentials refuses a document holding, at one of paths, a value the secret key
-// does not open.
-func (r *workspaceRepository) checkCredentials(doc []byte, paths []string) error {
-	_, _, err := crypto.ReencryptFields(doc, paths, r.secretKey, nil)
-	if errors.Is(err, crypto.ErrUndecryptable) {
-		return fmt.Errorf("%w: %v", domain.ErrStaleCredential, err)
-	}
-	return err
 }
 
 func (r *workspaceRepository) GetByID(ctx context.Context, id string) (*domain.Workspace, error) {

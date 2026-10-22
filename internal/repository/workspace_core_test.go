@@ -794,6 +794,23 @@ func TestWorkspaceRepository_RefusesCredentialsItsKeyDoesNotOpen(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
+	// Nothing reads a provider the integration does not use, and every version before
+	// 42.0 stored it as sent.
+	t.Run("a value no key opens under a provider the integration does not use is written", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+		repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, repoKey, newMockConnectionManager(db))
+
+		mock.ExpectExec(`UPDATE workspaces\s+SET name = \$1, settings = \$2, integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
+			WithArgs("Workspace", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "ws1").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		w := smtpWorkspace(t, "ws1", underRepoKey)
+		w.Integrations[0].EmailProvider.SES = &domain.AmazonSESSettings{Region: "eu-west-1", EncryptedSecretKey: "not-a-ciphertext"}
+		require.NoError(t, repo.Update(context.Background(), w))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
 	t.Run("a creation carrying a credential under another key creates no database", func(t *testing.T) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
