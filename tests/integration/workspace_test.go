@@ -200,6 +200,38 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 			assert.Equal(t, 0, count)
 		})
 
+		t.Run("workspace ID with uppercase letters", func(t *testing.T) {
+			workspaceID := "Upper" + strings.ReplaceAll(uuid.New().String(), "-", "")[:10]
+			createReq := domain.CreateWorkspaceRequest{
+				ID:   workspaceID,
+				Name: "Uppercase ID Workspace",
+				Settings: domain.WorkspaceSettings{
+					Timezone:        "UTC",
+					DefaultLanguage: "en",
+					Languages:       []string{"en"},
+				},
+			}
+
+			resp, err := client.Post("/api/workspaces.create", createReq)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			var errorResp map[string]string
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&errorResp))
+			assert.Equal(t, "invalid create workspace request: id must contain only lowercase letters and digits", errorResp["error"])
+
+			db := suite.DBManager.GetDB()
+			var count int
+			require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM workspaces WHERE id = $1", workspaceID).Scan(&count))
+			assert.Equal(t, 0, count)
+
+			// The database would be created under the lowercase form of its name.
+			workspaceDBName := "notifuse_test_ws_" + strings.ToLower(workspaceID)
+			require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM pg_database WHERE datname = $1", workspaceDBName).Scan(&count))
+			assert.Equal(t, 0, count, "no workspace database may be left behind")
+		})
+
 		t.Run("invalid workspace data", func(t *testing.T) {
 			// Missing required fields
 			createReq := domain.CreateWorkspaceRequest{

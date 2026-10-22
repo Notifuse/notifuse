@@ -698,6 +698,20 @@ func validateWorkspaceID(id string) error {
 	return nil
 }
 
+// ValidateNewWorkspaceID checks the ID of a workspace about to be created. On top of
+// validateWorkspaceID it requires lowercase: the workspace database is created under the
+// lowercase form of its name, so an ID with an uppercase letter names a database that does
+// not exist. Workspace.Validate leaves case alone, as it also runs on every update.
+func ValidateNewWorkspaceID(id string) error {
+	if err := validateWorkspaceID(id); err != nil {
+		return err
+	}
+	if id != strings.ToLower(id) {
+		return fmt.Errorf("id must contain only lowercase letters and digits")
+	}
+	return nil
+}
+
 // Validate performs validation on the workspace fields
 func (w *Workspace) Validate(passphrase string) error {
 	if err := validateWorkspaceID(w.ID); err != nil {
@@ -1501,7 +1515,7 @@ type CreateWorkspaceRequest struct {
 }
 
 func (r *CreateWorkspaceRequest) Validate(passphrase string) error {
-	if err := validateWorkspaceID(r.ID); err != nil {
+	if err := ValidateNewWorkspaceID(r.ID); err != nil {
 		return fmt.Errorf("invalid create workspace request: %w", err)
 	}
 

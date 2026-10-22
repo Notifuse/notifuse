@@ -6,6 +6,7 @@ Amended after Gemini's counter-review (raw answer `reviews/fix-template-name-len
 Amended again after the first max review of `db4912a` (v2): the blog post drawer's template name (C6), the console limits in one module (C7), the workspace ID (B5, C8, decision 5), and two "Not in scope" entries. Gemini's second counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v2.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v2.md`.
 Amended after the second max review, of the changes since `db4912a` (v3): B5 also lowers the entity check `Workspace.Validate` to 20. Gemini's third counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v3.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v3.md`.
 Amended after the third and fourth max reviews (v4): B5's checks go through one `validateWorkspaceID`, and a "Not in scope" entry covers uppercase workspace IDs. Gemini's fourth counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v4.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v4.md`.
+Amended after Pierre's answer on uppercase workspace IDs (v5): decision 6, B6. Gemini's fifth counter-review: `reviews/fix-template-name-length-gemini-brut-plan-v5.md`, checked in `reviews/fix-template-name-length-gemini-verif-plan-v5.md`.
 
 ## Problem
 
@@ -16,6 +17,7 @@ Amended after the third and fourth max reviews (v4): B5's checks go through one 
 - **Workspace name.** `CreateWorkspaceRequest.Validate` and `UpdateWorkspaceRequest.Validate` (`internal/domain/workspace.go:1483`, `:1607`) refuse a name over 32 bytes; the console's create page and General settings have no maximum. Bytes, not characters: a 30-character name with three accented letters is refused.
 - **Blog post template name.** `PostDrawer.tsx:388`, `:441` cut the name of a post's template, `Blog: <title>`, to 32 UTF-16 units to fit the old limit. Titles go up to 500 characters (`blog.go:451`), so the cut is still needed, at 255; `substring` can also split an emoji's surrogate pair, which the server decodes as U+FFFD.
 - **Workspace ID.** `workspaces.id` is `VARCHAR(20)` (`internal/database/schema/system_tables.go:26`) but `CreateWorkspaceRequest.Validate` accepts 32 (`workspace.go:1476`): an ID of 21 to 32 characters fails in the insert and the handler answers 500. In the console (`CreateWorkspacePage.tsx`), the ID field has no maximum; on submit `generateWorkspaceId` silently cuts the typed ID to 20 (`:65`), then the page navigates to the uncut `values.id` (`:78`) and shows a missing workspace.
+- **Uppercase workspace ID.** `IsAlphanumeric` accepts `AcmeCo`, but the workspace database is created under the lowercase form of its name and then opened under the mixed-case one, which does not exist: the create answers 500 before the workspace is saved, and leaves the lowercase database behind. A later create of `acmeco` finds that database, does not initialise it, saves the workspace and fails again (500); that workspace without tables stops the server at its next workspace migration (42.0 has one). The console only generates and accepts lowercase IDs, so only an API client can send one.
 
 ## Decisions (Pierre, 2026-10-22)
 
@@ -24,6 +26,7 @@ Amended after the third and fourth max reviews (v4): B5's checks go through one 
 3. Workspace name: the console limits the field to 32 with a counter.
 4. No comment on the issue; the PR closes it.
 5. Workspace ID limited to its column's 20 characters in the API and the console (asked after the first max review).
+6. A new workspace ID with uppercase letters is refused in this change (asked after the third max review).
 
 No table, column or environment variable changes.
 
@@ -65,6 +68,10 @@ Tests, `internal/domain/workspace_test.go`: for both requests, 32 × `é` → ok
 **B5. Workspace ID (decision 5).** A new `validateWorkspaceID` (`workspace.go:688`) holds the ID rule, required, alphanumeric, at most 20 (`id length must be between 1 and 20`), and both callers wrap it with their own prefix: `CreateWorkspaceRequest.Validate`, and the entity check `Workspace.Validate` (`workspace.go:702`), which `WorkspaceService.CreateWorkspace` runs on every create whatever the caller; `UpdateWorkspace` runs it too, on a workspace read from its `VARCHAR(20)` column, so no stored workspace can fail it. Update and delete requests keep 32: they look an existing workspace up, and none can have a longer ID than its column, so a long one already ends as "not found".
 
 Tests: `internal/domain/workspace_test.go`: `validateWorkspaceID`, 20 letters → ok, empty → `id is required`, `acme-co` → `id must be alphanumeric`, 21 → the length error; create with a 20-character ID → ok, 21 → the length error; the entity check, 20 → ok, 21 → its length error, and the "ID too long" table case built from letters so it fails on its length; update and delete with a 21-character ID still pass their ID check. Integration, `tests/integration/workspace_test.go`: create with a 21-character ID → 400 with the reason (was 500).
+
+**B6. Uppercase in a new workspace ID (decision 6).** A new `domain.ValidateNewWorkspaceID` (exported, for the service) runs `validateWorkspaceID`, then refuses an ID that is not all lowercase: `id must contain only lowercase letters and digits`. `CreateWorkspaceRequest.Validate` uses it (400 with the reason), and so does `WorkspaceService.CreateWorkspace`, right after the root check and before the workspace count and anything else, as `invalid workspace: …`, so every create is covered whatever the caller and invalid input costs no query. It is not added to `validateWorkspaceID`: `Workspace.Validate` also runs on every update, and a rule for new IDs must not lock a stored workspace out of its settings. The console already generates and accepts only `^[a-z0-9]+$` (`CreateWorkspacePage.tsx:27`, `:160`); unchanged.
+
+Tests: `internal/domain/workspace_test.go`: `ValidateNewWorkspaceID`, `acmeco` → ok, `AcmeCo` → the lowercase error, 21 lowercase letters → the length error; the create request with `AcmeCo` → `invalid create workspace request: id must contain only lowercase letters and digits`; the entity check with `AcmeCo` → no error (stored workspaces keep working). `internal/service/workspace_service_test.go`: `CreateWorkspace` with `AcmeCo` → `invalid workspace: id must contain only lowercase letters and digits`, the repository never called. Integration, `tests/integration/workspace_test.go`: create with an ID that has uppercase letters → 400 with the reason (was 500), no row saved and no workspace database left.
 
 ### Console
 
@@ -111,7 +118,7 @@ Tests, `pages/CreateWorkspacePage.test.tsx`: the ID input's `maxlength` is 20; a
 
 ### CHANGELOG (42.0)
 
-> - **Improvement**: Template names can now be up to 255 characters (#463), and an accented letter in a template or workspace name counts as one character. The console shows the limit of the name and ID fields of templates, transactional notifications and workspaces as you type, and an ID filled in from a long name now fits its limit. The API now refuses with the reason (400) a transactional notification whose ID is over 32 characters or whose name is over 255, and a new workspace whose ID is over 20 characters.
+> - **Improvement**: Template names can now be up to 255 characters (#463), and an accented letter in a template or workspace name counts as one character. The console shows the limit of the name and ID fields of templates, transactional notifications and workspaces as you type, and an ID filled in from a long name now fits its limit. The API now refuses with the reason (400) a transactional notification whose ID is over 32 characters or whose name is over 255, and a new workspace whose ID is over 20 characters or has uppercase letters.
 
 
 ## Not in scope
@@ -122,7 +129,7 @@ Tests, `pages/CreateWorkspacePage.test.tsx`: the ID input's `maxlength` is 20; a
 - `generateApiId` drops accented letters (`\w` is ASCII in JS) where `kebabCase` transliterates them, and keeps a leading `_` from a leading space. Unchanged.
 - Databases whose encoding is not UTF-8 (`SQL_ASCII`): there `VARCHAR(n)` counts bytes, so a long accented name that passes the rune count can still fail in the insert. Notifuse already assumes UTF-8 elsewhere (web analytics, 42.0 changelog); these checks follow the default and documented setup.
 - Two transactional notifications whose names share their first 32 characters get the same generated ID, and the second create fails on the primary key with the generic 500, as any duplicate ID does today (before this change both names failed). A uniqueness check in the drawer, as the template drawer has, and a 409 for a duplicate ID are a separate change.
-- A new workspace ID with uppercase letters (`AcmeCo`): both ID checks accept it, but PostgreSQL creates the workspace database under the lowercase name, so the create fails (500) before the workspace is saved and leaves that database behind. A later create of the lowercase ID then fails too, after saving the workspace and its owner, and that workspace without tables stops the server at its next workspace migration (42.0 has one). Found by the third max review; not a length limit. Its fix, and what to do with what failed creates left behind, is a separate change.
+- Workspace databases that a create with an uppercase ID left behind before this change: a later create of the same ID in lowercase still finds such a database and does not initialise it. B6 stops new ones; finding the existing ones is a separate change on how workspace databases are created.
 - API reference for transactional notification and workspace limits: `transactional.create/update` and `workspaces.create/update` are not in the OpenAPI spec (`openapi/openapi.yaml` documents `transactional.send` only).
 
 ## Test commands
@@ -139,4 +146,4 @@ cd console && npm test -- --run && npm run lint && npx tsc --noEmit && npm run l
 Integration tests added:
 - `tests/integration/template_api_test.go`: create a template whose name is 255 × `é` → created, read back unchanged; update it (same name, new version) → saved; update it to 256 characters → 400 with the length message.
 - `tests/integration/transactional_handler_test.go`: create with a 33-character ID → 400 with the message (was 500); with 32 characters → created; create with a 256-character name → 400 (was 500); update to a 256-character name → 400 (was 500); 255 × `é` → saved.
-- `tests/integration/workspace_test.go`: create a workspace named with 32 accented characters → created, read back unchanged; create one with a 21-character ID → 400 with the reason (was 500), no row saved.
+- `tests/integration/workspace_test.go`: create a workspace named with 32 accented characters → created, read back unchanged; create one with a 21-character ID → 400 with the reason (was 500), no row saved; create one whose ID has uppercase letters → 400 with the reason (was 500), no row saved, no workspace database left.

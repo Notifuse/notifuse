@@ -200,6 +200,10 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 		return nil, &domain.ErrUnauthorized{Message: "only root user can create workspaces"}
 	}
 
+	if err := domain.ValidateNewWorkspaceID(id); err != nil {
+		return nil, fmt.Errorf("invalid workspace: %w", err)
+	}
+
 	// Two independent ceilings, and the tighter one wins.
 	//
 	// s.config.MaxWorkspaces is the operator's own limit, pushed by the Notifuse Cloud control

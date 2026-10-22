@@ -431,6 +431,22 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 		assert.Contains(t, err.Error(), "invalid timezone: INVALID_TIMEZONE")
 	})
 
+	t.Run("uppercase ID refused before the repository is called", func(t *testing.T) {
+		expectedUser := &domain.User{
+			ID:    "testowner",
+			Email: "test@example.com",
+			Name:  "Test User",
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserFromContext(ctx).Return(expectedUser, nil)
+		// No repository expectation: the workspace database must not be created for this ID.
+
+		workspace, err := service.CreateWorkspace(ctx, "AcmeCo", "Test Workspace", "https://example.com", "", "", "UTC", domain.FileManagerSettings{}, "en", []string{"en"})
+		require.Error(t, err)
+		assert.Nil(t, workspace)
+		assert.Equal(t, "invalid workspace: id must contain only lowercase letters and digits", err.Error())
+	})
+
 	t.Run("repository error", func(t *testing.T) {
 		expectedUser := &domain.User{
 			ID:    "testowner",

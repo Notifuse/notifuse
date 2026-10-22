@@ -1107,6 +1107,39 @@ func TestWorkspaceRequests_Validate_IDLength(t *testing.T) {
 	assert.Equal(t, "invalid workspace: id length must be between 1 and 20", err.Error())
 }
 
+func TestValidateNewWorkspaceID(t *testing.T) {
+	assert.NoError(t, ValidateNewWorkspaceID("acmeco"))
+
+	err := ValidateNewWorkspaceID("AcmeCo")
+	require.Error(t, err)
+	assert.Equal(t, "id must contain only lowercase letters and digits", err.Error())
+
+	err = ValidateNewWorkspaceID(strings.Repeat("a", 21))
+	require.Error(t, err)
+	assert.Equal(t, "id length must be between 1 and 20", err.Error())
+}
+
+// The workspace database is created under the lowercase form of its name, so a new ID with
+// an uppercase letter is refused. The entity check also runs on every update, so it leaves
+// the case of a stored workspace's ID alone.
+func TestWorkspaceRequests_Validate_IDCase(t *testing.T) {
+	passphrase := "test-passphrase"
+	settings := WorkspaceSettings{
+		WebsiteURL:      "https://example.com",
+		Timezone:        "UTC",
+		DefaultLanguage: "en",
+		Languages:       []string{"en"},
+	}
+
+	create := CreateWorkspaceRequest{ID: "AcmeCo", Name: "Test Workspace", Settings: settings}
+	err := create.Validate(passphrase)
+	require.Error(t, err)
+	assert.Equal(t, "invalid create workspace request: id must contain only lowercase letters and digits", err.Error())
+
+	stored := Workspace{ID: "AcmeCo", Name: "Test Workspace", Settings: settings}
+	assert.NoError(t, stored.Validate(passphrase))
+}
+
 func TestFileManagerSettings_Validate(t *testing.T) {
 	passphrase := "test-passphrase"
 	testCases := []struct {
