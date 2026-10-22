@@ -626,10 +626,7 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
       data-block-id={block.id}
     >
       <div style={buttonWrapperStyle}>
-        {/* Paint containment keeps what the button text draws, fixed positioning
-            included, inside the button; the open editor contains its own
-            editing area, so that its toolbar is not clipped */}
-        <div style={isSelected ? buttonStyle : { ...buttonStyle, contain: 'paint' }}>
+        <div style={buttonStyle}>
           {isSelected ? (
             <span
               style={{
@@ -662,7 +659,10 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
             </span>
           ) : (
             <span
-              style={{ color: attrs.color }}
+              // Paint containment keeps what the button text draws, fixed
+              // positioning included, inside it rather than over the console. On
+              // the text's own box, so a fixed button size clips nothing.
+              style={{ color: attrs.color, display: 'inline-block', contain: 'paint' }}
               dangerouslySetInnerHTML={{ __html: canvasHtml }}
               // Nothing in the button text acts on a click, a link or a label
               // included: the click goes on to select the block

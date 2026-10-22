@@ -28,4 +28,12 @@ describe('StringPopoverInput', () => {
       expect(screen.queryByRole('link')).toBeNull()
     }
   )
+
+  it('shows a link with a Liquid tag as Liquid, not as a link', () => {
+    const value = 'https://x.example/{% if vip %}vip{% endif %}'
+    render(<StringPopoverInput value={value} onChange={vi.fn()} validateUri />)
+
+    expect(screen.getByText(value)).toBeInTheDocument()
+    expect(screen.queryByRole('link')).toBeNull()
+  })
 })

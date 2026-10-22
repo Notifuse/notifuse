@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
   **If your webhooks reach a service on your own network — n8n or another container on the same Docker network, an internal API — set `WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS=true` before you upgrade.** Until it is set, those webhooks stop delivering, and a contact that reaches such a webhook node fails that journey after its retries.
 
-- **Security**: The email editor now displays template content without running its scripts, email and blog theme previews run in a sandbox, and a contact's page views only open web pages of the site visited.
+- **Security**: The email editor now displays template content without running its scripts, email and blog theme previews run in a sandbox, and a contact's page views only open pages of a domain listed in web analytics settings, or of the workspace website when none are listed.
 
 - **Improvement**: Web analytics goals tracked with numbers or booleans in `properties`, or a numeric string `value` such as `'49.90'`, are now recorded along with the rest of the visit. `trackGoal` converts these before sending, and skips, with a console warning, a goal it can't convert or that exceeds a limit.
 

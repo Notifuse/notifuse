@@ -58,14 +58,17 @@ const isTrackedHost = (hostname: string, allowedDomains: string[]): boolean => {
   })
 }
 
-// An IP address or localhost: it names a machine, possibly one on the member's
-// own network, rather than a site. URL has already normalised an IPv4 address
-// written any other way.
-const isMachineHost = (hostname: string): boolean =>
-  hostname.startsWith('[') ||
-  /^\d+\.\d+\.\d+\.\d+$/.test(hostname) ||
-  hostname === 'localhost' ||
-  hostname.endsWith('.localhost')
+// Whether a hostname is the workspace website's, with or without `www.`
+const isWebsiteHost = (hostname: string, websiteURL?: string): boolean => {
+  let website: string
+  try {
+    if (!websiteURL) return false
+    website = new URL(websiteURL).hostname
+  } catch {
+    return false
+  }
+  return hostname === website || hostname === `www.${website}` || `www.${hostname}` === website
+}
 
 interface ContactTimelineProps {
   entries: ContactTimelineEntry[]
@@ -240,9 +243,11 @@ export function ContactTimeline({
   // site as it is for the browser that reported it; anything else the SDK may have
   // been given, a full URL included, is resolved and kept only if it lands there.
   //
-  // The domain is reported by the visitor's browser too. A workspace that lists
-  // the domains it tracks receives visits from those only, so a domain off the
-  // list names no page of its own and gets no preview.
+  // The domain is reported by the visitor's browser too, so it is trusted only
+  // as far as the workspace vouches for it: one of its web analytics allowed
+  // domains, the only ones a workspace that lists any receives visits from, or,
+  // with none listed, the host of its website, `www.` or not. A domain taken off the list takes
+  // the previews of its earlier visits with it.
   const webPageURL = (entry: ContactTimelineEntry): string | null => {
     const path = webChange<string>(entry, 'path')
     if (!path) return null
@@ -255,12 +260,11 @@ export function ContactTimeline({
     try {
       const site = new URL(origin)
       const trackedDomains = workspace?.settings?.web_analytics?.allowed_domains ?? []
-      if (domain && trackedDomains.length > 0 && !isTrackedHost(site.hostname, trackedDomains)) {
-        return null
-      }
-      if (domain && trackedDomains.length === 0 && isMachineHost(site.hostname)) {
-        return null
-      }
+      const vouched =
+        trackedDomains.length > 0
+          ? isTrackedHost(site.hostname, trackedDomains)
+          : isWebsiteHost(site.hostname, workspace?.settings?.website_url)
+      if (domain && !vouched) return null
       const page = path.startsWith('/') ? new URL(site.origin + path) : new URL(path, site)
       if (page.origin !== site.origin) return null
       return safeExternalUrl(page.toString())

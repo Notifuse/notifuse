@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons'
 import { useLingui } from '@lingui/react/macro'
 import { isOpenableUrl } from '../../../utils/safeHtml'
+import { isLiquidExpression } from '../../../utils/liquid'
 
 interface StringPopoverInputProps {
   value?: string
@@ -25,11 +26,6 @@ const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
   const resolvedPlaceholder = placeholder || t`Enter value`
   const resolvedButtonText = buttonText || t`Set value`
   const [inputValue, setInputValue] = useState(value || '')
-
-  const isLiquidExpression = (value: string): boolean => {
-    // Check if the value contains liquid template syntax like {{ var }}
-    return /\{\{[^}]+\}\}/.test(value)
-  }
 
   const isValidUri = (uri: string): boolean => {
     if (!validateUri || !uri.trim()) return true

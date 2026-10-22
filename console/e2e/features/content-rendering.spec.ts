@@ -251,6 +251,12 @@ test.describe('Contact timeline page views', () => {
       created_at: '2026-08-12T10:01:00Z',
       db_created_at: '2026-08-12T10:01:00Z'
     })
+    // The workspace website vouches for the visit domain
+    const siteWorkspace = {
+      ...mockWorkspace,
+      settings: { ...mockWorkspace.settings, website_url: 'https://www.example.com' }
+    }
+    await mockApi(page, 'user.me', { ...mockUserMeResponse, workspaces: [siteWorkspace] })
     await page.route('https://www.example.com/**', (route) =>
       route.fulfill({ status: 200, contentType: 'text/html', body: '<p>Visited site</p>' })
     )

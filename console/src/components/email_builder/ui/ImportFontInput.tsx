@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Input, Popover, Button, Select } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { safeExternalUrl } from '../../../utils/safeHtml'
+import { isLiquidExpression } from '../../../utils/liquid'
 
 interface ImportFontInputProps {
   value?: {
@@ -25,11 +26,6 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
     name: value?.name || '',
     href: value?.href || ''
   })
-
-  const isLiquidExpression = (value: string): boolean => {
-    // Check if the value contains liquid template syntax like {{ var }} or {% tag %}
-    return /\{\{[^}]+\}\}|\{%.*?%\}/.test(value)
-  }
 
   const isValidUrl = (url: string): boolean => {
     if (!url.trim()) return false

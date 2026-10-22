@@ -280,7 +280,7 @@ describe('ContactTimeline page view header and preview', () => {
   })
 
   it('offers the page it recorded, built from the visit domain', () => {
-    render(<ContactTimeline entries={[pageWithDomain]} />)
+    render(<ContactTimeline entries={[pageWithDomain]} workspace={tracking(['www.apple.com'])} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'View website' }))
     expect(screen.getByText('https://www.apple.com/docs/api')).toBeInTheDocument()
@@ -317,7 +317,12 @@ describe('ContactTimeline page view header and preview', () => {
   const openPreview = () => fireEvent.click(screen.getByRole('button', { name: 'View website' }))
 
   it('keeps a path that starts with two slashes on the visited site', () => {
-    render(<ContactTimeline entries={[pageAt('//other.example/x', 'www.apple.com')]} />)
+    render(
+      <ContactTimeline
+        entries={[pageAt('//other.example/x', 'www.apple.com')]}
+        workspace={tracking(['www.apple.com'])}
+      />
+    )
 
     openPreview()
     expect(
@@ -327,7 +332,10 @@ describe('ContactTimeline page view header and preview', () => {
 
   it('keeps a full URL path on the visited site', () => {
     render(
-      <ContactTimeline entries={[pageAt('https://www.apple.com/pricing?a=1', 'www.apple.com')]} />
+      <ContactTimeline
+        entries={[pageAt('https://www.apple.com/pricing?a=1', 'www.apple.com')]}
+        workspace={tracking(['www.apple.com'])}
+      />
     )
 
     openPreview()
@@ -344,7 +352,12 @@ describe('ContactTimeline page view header and preview', () => {
     '\\\\other.example/x',
     ' //other.example/x'
   ])('offers no preview for a path that leaves the visited site: %j', (path) => {
-    render(<ContactTimeline entries={[pageAt(path, 'www.apple.com')]} />)
+    render(
+      <ContactTimeline
+        entries={[pageAt(path, 'www.apple.com')]}
+        workspace={tracking(['www.apple.com'])}
+      />
+    )
 
     expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
   })
@@ -388,20 +401,51 @@ describe('ContactTimeline page view header and preview', () => {
     ).toBeInTheDocument()
   })
 
-  // With no list, the domain is whatever the visitor reported; an address that
-  // names a machine rather than a site could be one on the member's own network
+  // With no list, the visitor's domain is vouched for by nothing but the
+  // workspace website
   it.each([
-    '127.0.0.1',
-    '10.0.0.5',
-    '192.168.1.2',
-    '203.0.113.5',
-    '::1',
-    'fe80::1',
-    '2001:db8::1',
+    ['https://WWW.apple.com/', 'www.apple.com'],
+    ['https://apple.com', 'www.apple.com'],
+    ['https://www.apple.com', 'apple.com']
+  ])(
+    'offers a page of the workspace website when the workspace lists no domain: %s, %s',
+    (websiteURL, domain) => {
+      render(
+        <ContactTimeline
+          entries={[pageAt('/pricing', domain)]}
+          workspace={tracking([], websiteURL)}
+        />
+      )
+
+      openPreview()
+      expect(
+        within(screen.getByRole('dialog')).getByText(`https://${domain}/pricing`)
+      ).toBeInTheDocument()
+    }
+  )
+
+  it.each([
+    'other.example',
+    'shop.apple.com',
     'localhost',
-    'app.localhost'
-  ])('offers no preview of a machine address the workspace does not list: %s', (domain) => {
-    render(<ContactTimeline entries={[pageAt('/pricing', domain)]} />)
+    'localhost.',
+    '127.0.0.1',
+    '::1',
+    'intranet',
+    'nas.local'
+  ])('offers no preview of any other domain when the workspace lists none: %s', (domain) => {
+    render(
+      <ContactTimeline
+        entries={[pageAt('/pricing', domain)]}
+        workspace={tracking([], 'https://www.apple.com')}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
+  })
+
+  it('offers no preview of a visit domain when the workspace has neither list nor website', () => {
+    render(<ContactTimeline entries={[pageAt('/pricing', 'www.apple.com')]} />)
 
     expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
   })

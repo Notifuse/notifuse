@@ -490,16 +490,20 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
           />
         </div>
       ) : (
-        <div
-          // Paint containment keeps what the content draws, fixed positioning
-          // included, inside the block rather than over the console
-          style={{ ...textStyle, contain: 'paint' }}
-          dangerouslySetInnerHTML={{ __html: canvasHtml }}
-          // Nothing in the content acts on a click here, a link or a label
-          // included: the click goes on to select the block
-          onClick={(e) => e.preventDefault()}
-          onAuxClick={(e) => e.preventDefault()}
-        />
+        <div style={textStyle}>
+          <div
+            // Paint containment keeps what the content draws, fixed positioning
+            // included, inside the block rather than over the console. On a box
+            // of its own, sized by the content, so a fixed block height clips
+            // nothing the email would show.
+            style={{ contain: 'paint' }}
+            dangerouslySetInnerHTML={{ __html: canvasHtml }}
+            // Nothing in the content acts on a click here, a link or a label
+            // included: the click goes on to select the block
+            onClick={(e) => e.preventDefault()}
+            onAuxClick={(e) => e.preventDefault()}
+          />
+        </div>
       )}
     </div>
   )

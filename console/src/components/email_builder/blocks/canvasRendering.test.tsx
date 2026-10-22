@@ -53,7 +53,12 @@ describe('editor canvas keeps block content inside its block', () => {
   ])('%s', (type, Block) => {
     const overlay =
       '<p>Hi <span data-overlay="" style="position: fixed; inset: 0; z-index: 2147483647">x</span></p>'
-    const block = { id: `b-${type}`, type, attributes: {}, content: overlay } as unknown as EmailBlock
+    const block = {
+      id: `b-${type}`,
+      type,
+      attributes: { height: '40px', width: '200px' },
+      content: overlay
+    } as unknown as EmailBlock
     const { container } = render(<>{new Block(block).getEdit(previewProps())}</>)
 
     // Paint containment clips the content to the block and makes the block the
@@ -61,6 +66,10 @@ describe('editor canvas keeps block content inside its block', () => {
     const contained = container.querySelector('[data-overlay]')?.closest('[style*="contain"]')
     expect((contained as HTMLElement | null)?.style.contain).toBe('paint')
     expect(contained?.closest(`[data-block-id="b-${type}"]`)).not.toBeNull()
+    // It sizes to its content, so a block given a fixed size still shows all of
+    // its text, as the email does
+    expect((contained as HTMLElement).style.height).toBe('')
+    expect((contained as HTMLElement).style.width).toBe('')
   })
 
   it.each([
