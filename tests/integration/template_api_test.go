@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -935,4 +936,82 @@ func TestTemplateIDReuseAndModeLock(t *testing.T) {
 		assert.Contains(t, body["error"], "cannot change editor mode")
 		assert.Contains(t, body["error"], "create a new template in 'visual' mode")
 	})
+}
+
+// TestTemplateNameLength verifies a template name is limited to 255 characters, counted
+// as characters rather than bytes, on create and update (issue #463: names over 32
+// characters were refused).
+func TestTemplateNameLength(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	token := performCompleteSignInFlow(t, client, "test@example.com")
+	client.SetToken(token)
+	workspaceID := createTestWorkspace(t, client, "Template Name Length Workspace")
+
+	templateID := fmt.Sprintf("long-name-%d", time.Now().UnixNano())
+	payload := func(name string) map[string]interface{} {
+		return map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           templateID,
+			"name":         name,
+			"channel":      "email",
+			"category":     "marketing",
+			"email": map[string]interface{}{
+				"editor_mode": "code",
+				"mjml_source": "<mjml><mj-body><mj-section><mj-column><mj-text>Hi</mj-text></mj-column></mj-section></mj-body></mjml>",
+				"subject":     "Hello",
+			},
+		}
+	}
+	decode := func(resp *http.Response) map[string]interface{} {
+		defer func() { _ = resp.Body.Close() }()
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		return body
+	}
+	storedName := func() string {
+		resp, err := client.Get("/api/templates.get", map[string]string{"workspace_id": workspaceID, "id": templateID})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		tpl, ok := decode(resp)["template"].(map[string]interface{})
+		require.True(t, ok, "templates.get must return the template")
+		name, _ := tpl["name"].(string)
+		return name
+	}
+
+	// An accented letter takes more than one byte: the limit counts characters, as the column does.
+	longName := strings.Repeat("é", 255)
+	require.Greater(t, len(longName), 255, "the name must be over the limit in bytes")
+
+	createResp, err := client.CreateTemplate(payload(longName))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, createResp.StatusCode, "create: %v", decode(createResp))
+	_ = createResp.Body.Close()
+	assert.Equal(t, longName, storedName())
+
+	updateResp, err := client.UpdateTemplate(payload(longName))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, updateResp.StatusCode, "update keeping the name: %v", decode(updateResp))
+	_ = updateResp.Body.Close()
+
+	tooLongResp, err := client.UpdateTemplate(payload(strings.Repeat("a", 256)))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusBadRequest, tooLongResp.StatusCode)
+	assert.Equal(t, "invalid update template request: name length must be between 1 and 255", decode(tooLongResp)["error"])
+	assert.Equal(t, longName, storedName(), "a refused update leaves the name as it was")
+
+	tooLongCreate := payload(strings.Repeat("a", 256))
+	tooLongCreate["id"] = templateID + "-b"
+	tooLongCreateResp, err := client.CreateTemplate(tooLongCreate)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusBadRequest, tooLongCreateResp.StatusCode)
+	assert.Equal(t, "invalid create template request: name length must be between 1 and 255", decode(tooLongCreateResp)["error"])
 }

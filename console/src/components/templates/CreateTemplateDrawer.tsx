@@ -26,6 +26,8 @@ import EmailBuilder from '../email_builder/EmailBuilder'
 import type { EmailBlock } from '../email_builder/types'
 import type { PreviewRef } from '../email_builder/panels/Preview'
 import { kebabCase } from 'lodash'
+import { truncateIdentifier } from '../../utils/identifiers'
+import { TEMPLATE_ID_MAX_LENGTH, TEMPLATE_NAME_MAX_LENGTH } from '../../constants/limits'
 import IphoneEmailPreview from './PhonePreview'
 import defaultTemplateData from './email-template.json'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -95,6 +97,11 @@ const validateLiquidTags = (text: string): { isValid: boolean; error?: string } 
 
   return { isValid: true }
 }
+
+const COPY_ID_SUFFIX = '-copy'
+
+const templateIdFromName = (name: string) =>
+  truncateIdentifier(kebabCase(name), TEMPLATE_ID_MAX_LENGTH)
 
 interface CreateTemplateDrawerProps {
   workspace: Workspace
@@ -390,7 +397,7 @@ export function CreateTemplateDrawer({
     }
     form.setFieldsValue({
       name: latest.name,
-      id: latest.id || kebabCase(latest.name),
+      id: latest.id || templateIdFromName(latest.name),
       category: latest.category || undefined,
       email: {
         sender_id: latest.email?.sender_id || undefined,
@@ -455,7 +462,7 @@ export function CreateTemplateDrawer({
       }
       form.setFieldsValue({
         name: template.name,
-        id: template.id || kebabCase(template.name),
+        id: template.id || templateIdFromName(template.name),
         category: template.category || undefined,
         email: {
           sender_id: template.email?.sender_id || undefined,
@@ -479,10 +486,15 @@ export function CreateTemplateDrawer({
       if (fromTemplate.email?.editor_mode === 'code' && fromTemplate.email?.mjml_source) {
         setMjmlSource(fromTemplate.email.mjml_source)
       }
-      // Append "copy" as suffix instead of "Copy of" prefix
+      // Append "copy" as suffix instead of "Copy of" prefix. The ID's base is cut so the
+      // suffix fits the limit, and a copy never takes the original's (cut) ID.
+      const copyIdBase = truncateIdentifier(
+        kebabCase(fromTemplate.name),
+        TEMPLATE_ID_MAX_LENGTH - COPY_ID_SUFFIX.length
+      )
       form.setFieldsValue({
         name: `${fromTemplate.name} copy`,
-        id: kebabCase(`${fromTemplate.name}-copy`),
+        id: copyIdBase ? `${copyIdBase}${COPY_ID_SUFFIX}` : 'copy',
         category: fromTemplate.category || forceCategory || undefined,
         email: {
           sender_id: fromTemplate.email?.sender_id || undefined,
@@ -798,12 +810,24 @@ export function CreateTemplateDrawer({
                 <div className="p-8">
                   <Row gutter={24}>
                     <Col span={6}>
-                      <Form.Item name="name" label={t`Template name`} rules={[{ required: true }]}>
+                      <Form.Item
+                        name="name"
+                        label={t`Template name`}
+                        rules={[
+                          { required: true },
+                          {
+                            max: TEMPLATE_NAME_MAX_LENGTH,
+                            message: t`Template name must be at most ${TEMPLATE_NAME_MAX_LENGTH} characters long`
+                          }
+                        ]}
+                      >
                         <Input
                           placeholder={t`i.e: Welcome Email`}
+                          maxLength={TEMPLATE_NAME_MAX_LENGTH}
+                          showCount
                           onChange={(e) => {
                             if (!template) {
-                              const id = kebabCase(e.target.value)
+                              const id = templateIdFromName(e.target.value)
                               form.setFieldsValue({ id: id })
                               form.validateFields(['id'])
                             }
@@ -823,6 +847,10 @@ export function CreateTemplateDrawer({
                             pattern: /^[a-z0-9_-]+$/,
                             message:
                               t`ID must contain only lowercase letters, numbers, underscores, and hyphens`
+                          },
+                          {
+                            max: TEMPLATE_ID_MAX_LENGTH,
+                            message: t`Template ID must be at most ${TEMPLATE_ID_MAX_LENGTH} characters long`
                           },
                           {
                             validator: async (_rule, value) => {
@@ -849,6 +877,8 @@ export function CreateTemplateDrawer({
                         <Input
                           disabled={template ? true : false}
                           placeholder={t`i.e: welcome-email`}
+                          maxLength={TEMPLATE_ID_MAX_LENGTH}
+                          showCount
                         />
                       </Form.Item>
                     </Col>

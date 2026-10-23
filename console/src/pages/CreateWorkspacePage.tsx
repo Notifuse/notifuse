@@ -9,6 +9,7 @@ import { MainLayout, MainLayoutSidebar } from '../layouts/MainLayout'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
 import { getBrowserLanguage } from '../lib/languages'
 import { useLingui } from '@lingui/react/macro'
+import { WORKSPACE_ID_MAX_LENGTH, WORKSPACE_NAME_MAX_LENGTH } from '../constants/limits'
 
 export function CreateWorkspacePage() {
   const { t } = useLingui()
@@ -18,14 +19,14 @@ export function CreateWorkspacePage() {
   const { refreshWorkspaces } = useAuth()
   const { message } = App.useApp()
 
-  // Generate workspace ID from name (alphanumeric only, max 20 chars)
+  // Generate workspace ID from name (alphanumeric only, cut to WORKSPACE_ID_MAX_LENGTH)
   const generateWorkspaceId = (name: string) => {
     if (!name) return ''
     // remove spaces and remove non-alphanumeric characters
     return name
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '')
-      .substring(0, 20)
+      .substring(0, WORKSPACE_ID_MAX_LENGTH)
   }
 
   // Update generated ID when name changes
@@ -57,9 +58,12 @@ export function CreateWorkspacePage() {
       const timezone = getBrowserTimezone()
       const detectedLang = getBrowserLanguage()
 
+      // The same ID is created and then opened.
+      const workspaceId = generateWorkspaceId(values.id)
+
       // Create workspace with API
       await workspaceService.create({
-        id: generateWorkspaceId(values.id),
+        id: workspaceId,
         name: values.name,
         settings: {
           website_url: values.website_url || '',
@@ -80,7 +84,7 @@ export function CreateWorkspacePage() {
       window.setTimeout(() => {
         navigate({
           to: '/console/workspace/$workspaceId',
-          params: { workspaceId: values.id }
+          params: { workspaceId }
         })
       }, 100)
     } catch (error) {
@@ -125,10 +129,19 @@ export function CreateWorkspacePage() {
             name="name"
             rules={[
               { required: true, message: t`Please enter a workspace name` },
-              { min: 3, message: t`Workspace name must be at least 3 characters long` }
+              { min: 3, message: t`Workspace name must be at least 3 characters long` },
+              {
+                max: WORKSPACE_NAME_MAX_LENGTH,
+                message: t`Workspace name must be at most ${WORKSPACE_NAME_MAX_LENGTH} characters long`
+              }
             ]}
           >
-            <Input placeholder={t`Enter a name for your workspace`} onChange={handleNameChange} />
+            <Input
+              placeholder={t`Enter a name for your workspace`}
+              onChange={handleNameChange}
+              maxLength={WORKSPACE_NAME_MAX_LENGTH}
+              showCount
+            />
           </Form.Item>
 
           <Form.Item
@@ -146,11 +159,17 @@ export function CreateWorkspacePage() {
               {
                 pattern: /^[a-z0-9]+$/,
                 message: t`ID can only contain lowercase letters and numbers`
+              },
+              {
+                max: WORKSPACE_ID_MAX_LENGTH,
+                message: t`Workspace ID must be at most ${WORKSPACE_ID_MAX_LENGTH} characters long`
               }
             ]}
           >
             <Input
               placeholder="workspaceid"
+              maxLength={WORKSPACE_ID_MAX_LENGTH}
+              showCount
               suffix={
                 <Tooltip title={t`ID is automatically generated but can be modified if needed`}>
                   <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />

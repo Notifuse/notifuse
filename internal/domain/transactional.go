@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/asaskevich/govalidator"
@@ -322,9 +323,16 @@ func (req *CreateTransactionalRequest) Validate() error {
 	if req.Notification.ID == "" {
 		return NewValidationError("notification.id is required")
 	}
+	// The id and name columns are VARCHAR(32) and VARCHAR(255), which count characters.
+	if utf8.RuneCountInString(req.Notification.ID) > 32 {
+		return NewValidationError("notification.id length must be between 1 and 32")
+	}
 
 	if req.Notification.Name == "" {
 		return NewValidationError("notification.name is required")
+	}
+	if utf8.RuneCountInString(req.Notification.Name) > 255 {
+		return NewValidationError("notification.name length must be between 1 and 255")
 	}
 
 	if len(req.Notification.Channels) == 0 {
@@ -379,6 +387,11 @@ func (req *UpdateTransactionalRequest) Validate() error {
 
 	if req.ID == "" {
 		return NewValidationError("id is required")
+	}
+
+	// An empty name leaves the name as it is.
+	if utf8.RuneCountInString(req.Updates.Name) > 255 {
+		return NewValidationError("updates.name length must be between 1 and 255")
 	}
 
 	if err := notifuse_mjml.ValidateTrackingMode(req.Updates.TrackingSettings.TrackingMode); err != nil {

@@ -1,5 +1,6 @@
 import { getMarkRange, type Editor } from '@tiptap/react'
 import type { Mark, Node } from '@tiptap/pm/model'
+import { parseHtmlInert, sanitizeEditorHtml, textOnlyHtml } from '../../../../../utils/safeHtml'
 
 // Extend the ChainedCommands type to include our custom command
 declare module '@tiptap/core' {
@@ -135,8 +136,7 @@ export const stripPlainSpans = (htmlContent: string): string => {
 
   try {
     // Use DOM parsing for accurate manipulation
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = htmlContent
+    const tempDiv = parseHtmlInert(htmlContent)
 
     // Recursively process all span elements
     const processSpans = (element: Element) => {
@@ -153,7 +153,7 @@ export const stripPlainSpans = (htmlContent: string): string => {
         // Strip the span if it has no styling attributes
         if (!hasStyle && !hasDataInlineDoc && !hasClass) {
           // Create a document fragment with the span's children
-          const fragment = document.createDocumentFragment()
+          const fragment = tempDiv.ownerDocument.createDocumentFragment()
           while (span.firstChild) {
             fragment.appendChild(span.firstChild)
           }
@@ -181,8 +181,7 @@ export const convertBlockToInline = (htmlContent: string): string => {
 
   try {
     // Use DOM parsing for accurate conversion
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = htmlContent
+    const tempDiv = parseHtmlInert(htmlContent)
 
     // List of block-level tags to convert to spans
     const blockTags = [
@@ -212,7 +211,7 @@ export const convertBlockToInline = (htmlContent: string): string => {
         .reverse()
         .forEach((element) => {
           // Create a new span element
-          const span = document.createElement('span')
+          const span = tempDiv.ownerDocument.createElement('span')
 
           // Copy all attributes (including styles)
           Array.from(element.attributes).forEach((attr) => {
@@ -237,7 +236,7 @@ export const convertBlockToInline = (htmlContent: string): string => {
     // Convert <br> tags to spaces (since we're inline now)
     const brElements = tempDiv.querySelectorAll('br')
     brElements.forEach((br) => {
-      const textNode = document.createTextNode(' ')
+      const textNode = tempDiv.ownerDocument.createTextNode(' ')
       br.parentNode?.replaceChild(textNode, br)
     })
 
@@ -261,8 +260,7 @@ export const processInlineContent = (htmlContent: string): string => {
 
   try {
     // Use DOM parsing for more accurate content extraction
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = htmlContent
+    const tempDiv = parseHtmlInert(htmlContent)
 
     let processed = htmlContent
 
@@ -302,11 +300,13 @@ export const processInlineContent = (htmlContent: string): string => {
   }
 }
 
-// Helper function to prepare content for inline editor
-export const prepareInlineContent = (content: string): string => {
-  if (!content) {
-    return content
+// Helper function to prepare content for inline editor. The content is
+// sanitized first: it is saved by members and shown in the console.
+export const prepareInlineContent = (rawContent: string): string => {
+  if (!rawContent) {
+    return rawContent
   }
+  const content = sanitizeEditorHtml(rawContent)
 
   try {
     // First, strip plain spans to avoid TipTap errors
@@ -330,11 +330,13 @@ export const prepareInlineContent = (content: string): string => {
   }
 }
 
-// Helper function to sanitize content for rich text editor (strips plain spans, preserves styled content)
-export const sanitizeRichContent = (htmlContent: string): string => {
-  if (!htmlContent || htmlContent.trim() === '') {
-    return htmlContent
+// Helper function to sanitize content for rich text editor (sanitizes it for the
+// console, strips plain spans, preserves styled content)
+export const sanitizeRichContent = (rawContent: string): string => {
+  if (!rawContent || rawContent.trim() === '') {
+    return rawContent
   }
+  const htmlContent = sanitizeEditorHtml(rawContent)
 
   try {
     // Strip plain spans while preserving styled spans and other valid HTML
@@ -346,19 +348,20 @@ export const sanitizeRichContent = (htmlContent: string): string => {
   }
 }
 
-// Helper function to get initial content for inline editor
-export const getInitialInlineContent = (content: string): string => {
-  if (!content) {
+// Helper function to get initial content for inline editor, sanitized like
+// prepareInlineContent's
+export const getInitialInlineContent = (rawContent: string): string => {
+  if (!rawContent) {
     return '<span data-inline-doc=""></span>'
   }
+  const content = sanitizeEditorHtml(rawContent)
 
   try {
     // First, strip plain spans to avoid TipTap errors
     const processedContent = stripPlainSpans(content)
 
     // Parse the content to check for block elements
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = processedContent
+    const tempDiv = parseHtmlInert(processedContent)
 
     // Check if we have block elements that need conversion
     const blockElements = tempDiv.querySelectorAll(
@@ -388,10 +391,7 @@ export const getInitialInlineContent = (content: string): string => {
 
     // Ultimate fallback: extract just the text content
     try {
-      const tempDiv = document.createElement('div')
-      tempDiv.innerHTML = content
-      const textOnly = tempDiv.textContent || tempDiv.innerText || ''
-      return `<span data-inline-doc="">${textOnly}</span>`
+      return `<span data-inline-doc="">${textOnlyHtml(content)}</span>`
     } catch (fallbackError) {
       console.error('Text extraction fallback failed:', fallbackError)
       return '<span data-inline-doc=""></span>' // Ultimate safe fallback

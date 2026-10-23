@@ -11,9 +11,11 @@ import (
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/app"
+	intdb "github.com/Notifuse/notifuse/internal/database"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -129,6 +131,123 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 			err = json.NewDecoder(resp2.Body).Decode(&errorResp)
 			require.NoError(t, err)
 			assert.Contains(t, errorResp["error"], "already exists")
+		})
+
+		// The name limit counts characters, as the console's counter does: 32 accented
+		// characters, over the limit in bytes, are accepted on create and update, a 33rd is refused.
+		t.Run("name length counted in characters", func(t *testing.T) {
+			workspaceID := "namelen" + uuid.New().String()[:8]
+			settings := domain.WorkspaceSettings{
+				Timezone:        "UTC",
+				DefaultLanguage: "en",
+				Languages:       []string{"en"},
+			}
+			storedName := func() string {
+				var name string
+				require.NoError(t, suite.DBManager.GetDB().QueryRow("SELECT name FROM workspaces WHERE id = $1", workspaceID).Scan(&name))
+				return name
+			}
+
+			name := strings.Repeat("é", 32)
+			require.Greater(t, len(name), 32, "the name must be over the limit in bytes")
+			resp, err := client.Post("/api/workspaces.create", domain.CreateWorkspaceRequest{ID: workspaceID, Name: name, Settings: settings})
+			require.NoError(t, err)
+			resp.Body.Close()
+			require.Equal(t, http.StatusCreated, resp.StatusCode)
+			assert.Equal(t, name, storedName())
+
+			renamed := strings.Repeat("à", 32)
+			resp, err = client.Post("/api/workspaces.update", domain.UpdateWorkspaceRequest{ID: workspaceID, Name: renamed, Settings: settings})
+			require.NoError(t, err)
+			resp.Body.Close()
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+			assert.Equal(t, renamed, storedName())
+
+			resp, err = client.Post("/api/workspaces.update", domain.UpdateWorkspaceRequest{ID: workspaceID, Name: strings.Repeat("é", 33), Settings: settings})
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			var errorResp map[string]string
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&errorResp))
+			assert.Equal(t, "invalid update workspace request: name length must be between 1 and 32", errorResp["error"])
+			assert.Equal(t, renamed, storedName(), "a refused rename leaves the name as it was")
+		})
+
+		// The ID is stored in VARCHAR(20) columns: a longer one is refused with the reason
+		// instead of failing in the insert as a server error.
+		t.Run("workspace ID over 20 characters", func(t *testing.T) {
+			workspaceID := "toolong" + strings.ReplaceAll(uuid.New().String(), "-", "")[:14]
+			require.Len(t, workspaceID, 21)
+			createReq := domain.CreateWorkspaceRequest{
+				ID:   workspaceID,
+				Name: "Long ID Workspace",
+				Settings: domain.WorkspaceSettings{
+					Timezone:        "UTC",
+					DefaultLanguage: "en",
+					Languages:       []string{"en"},
+				},
+			}
+
+			resp, err := client.Post("/api/workspaces.create", createReq)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			var errorResp map[string]string
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&errorResp))
+			assert.Equal(t, "invalid create workspace request: id length must be between 1 and 20", errorResp["error"])
+
+			var count int
+			require.NoError(t, suite.DBManager.GetDB().QueryRow("SELECT COUNT(*) FROM workspaces WHERE id = $1", workspaceID).Scan(&count))
+			assert.Equal(t, 0, count)
+		})
+
+		t.Run("workspace ID with uppercase letters", func(t *testing.T) {
+			workspaceID := "Upper" + strings.ReplaceAll(uuid.New().String(), "-", "")[:10]
+			dropLeftoverDatabase(t, suite, wsDBName(suite.DBManager.GetConfig().Prefix, workspaceID))
+			createReq := domain.CreateWorkspaceRequest{
+				ID:   workspaceID,
+				Name: "Uppercase ID Workspace",
+				Settings: domain.WorkspaceSettings{
+					Timezone:        "UTC",
+					DefaultLanguage: "en",
+					Languages:       []string{"en"},
+				},
+			}
+
+			resp, err := client.Post("/api/workspaces.create", createReq)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			var errorResp map[string]string
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&errorResp))
+			assert.Equal(t, "invalid create workspace request: id must contain only lowercase letters and digits", errorResp["error"])
+
+			db := suite.DBManager.GetDB()
+			var count int
+			require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM workspaces WHERE id = $1", workspaceID).Scan(&count))
+			assert.Equal(t, 0, count)
+
+			// Compared without case: the database must not exist under any form of its name.
+			workspaceDBName := wsDBName(suite.DBManager.GetConfig().Prefix, workspaceID)
+			leftovers, err := databasesAnyCase(db, workspaceDBName)
+			require.NoError(t, err)
+			assert.Empty(t, leftovers, "no workspace database may be left behind")
+		})
+
+		t.Run("workspace database name with uppercase letters", func(t *testing.T) {
+			workspaceID := "Upper" + strings.ReplaceAll(uuid.New().String(), "-", "")[:10]
+			cfg := suite.DBManager.GetConfig()
+			workspaceDBName := wsDBName(cfg.Prefix, workspaceID)
+			dropLeftoverDatabase(t, suite, workspaceDBName)
+
+			err := intdb.EnsureWorkspaceDatabaseExists(cfg, workspaceID)
+			require.EqualError(t, err, "workspace database name must be lowercase: "+workspaceDBName)
+
+			leftovers, err := databasesAnyCase(suite.DBManager.GetDB(), workspaceDBName)
+			require.NoError(t, err)
+			assert.Empty(t, leftovers, "no workspace database may be left behind")
 		})
 
 		t.Run("invalid workspace data", func(t *testing.T) {
@@ -1977,4 +2096,44 @@ func createTestWorkspaceWithWebsite(t *testing.T, client *testutil.APIClient, na
 	client.SetToken(currentToken)
 
 	return workspaceID
+}
+
+// dropLeftoverDatabase drops, after the test, every database a regression would leave for
+// name: the ones databasesAnyCase finds, so what a subtest detects is what it removes.
+// Errors are logged, so a cleanup problem never fails a subtest that passed.
+func dropLeftoverDatabase(t *testing.T, suite *testutil.IntegrationTestSuite, name string) {
+	t.Helper()
+	t.Cleanup(func() {
+		db := suite.DBManager.GetDB()
+		leftovers, err := databasesAnyCase(db, name)
+		if err != nil {
+			t.Logf("listing databases named %s: %v", name, err)
+			return
+		}
+		for _, datname := range leftovers {
+			if _, err := db.Exec("DROP DATABASE IF EXISTS " + pq.QuoteIdentifier(datname) + " WITH (FORCE)"); err != nil {
+				t.Logf("dropping database %s: %v", datname, err)
+			}
+		}
+	})
+}
+
+// databasesAnyCase lists the databases whose name is name, whatever the case of its ASCII
+// letters. Both sides use the "C" collation, the one pg_database names have, which folds
+// ASCII only, as PostgreSQL does for unquoted names.
+func databasesAnyCase(db *sql.DB, name string) ([]string, error) {
+	rows, err := db.Query(`SELECT datname FROM pg_database WHERE lower(datname) = lower($1 COLLATE "C")`, name)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var names []string
+	for rows.Next() {
+		var datname string
+		if err := rows.Scan(&datname); err != nil {
+			return nil, err
+		}
+		names = append(names, datname)
+	}
+	return names, rows.Err()
 }

@@ -227,7 +227,7 @@ func TestWorkspace_Validate(t *testing.T) {
 		{
 			name: "ID too long",
 			workspace: Workspace{
-				ID:   string(make([]byte, 21)), // 21 chars
+				ID:   strings.Repeat("a", 21),
 				Name: "Test Workspace",
 				Settings: WorkspaceSettings{
 					WebsiteURL:      "https://example.com",
@@ -1000,6 +1000,144 @@ func TestCreateWorkspaceRequest_Validate_FirstValidationFails(t *testing.T) {
 	err := request.Validate(passphrase)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid create workspace request")
+}
+
+// The workspace name limit counts characters, as the console's counter does, so an
+// accented name that fits the counter is not refused for its byte length.
+func TestWorkspaceRequests_Validate_NameLength(t *testing.T) {
+	passphrase := "test-passphrase"
+	settings := WorkspaceSettings{
+		WebsiteURL:      "https://example.com",
+		Timezone:        "UTC",
+		DefaultLanguage: "en",
+		Languages:       []string{"en"},
+	}
+	validators := []struct {
+		name   string
+		prefix string
+		check  func(name string) error
+	}{
+		{
+			name:   "CreateWorkspaceRequest",
+			prefix: "invalid create workspace request: ",
+			check: func(name string) error {
+				req := CreateWorkspaceRequest{ID: "test123", Name: name, Settings: settings}
+				return req.Validate(passphrase)
+			},
+		},
+		{
+			name:   "UpdateWorkspaceRequest",
+			prefix: "invalid update workspace request: ",
+			check: func(name string) error {
+				req := UpdateWorkspaceRequest{ID: "test123", Name: name, Settings: settings}
+				return req.Validate(passphrase)
+			},
+		},
+	}
+
+	for _, v := range validators {
+		t.Run(v.name, func(t *testing.T) {
+			assert.NoError(t, v.check(strings.Repeat("a", 32)))
+			require.Greater(t, len(strings.Repeat("é", 32)), 32, "the accented name must be over the limit in bytes")
+			assert.NoError(t, v.check(strings.Repeat("é", 32)), "accented characters count as one each")
+
+			err := v.check(strings.Repeat("a", 33))
+			require.Error(t, err)
+			assert.Equal(t, v.prefix+"name length must be between 1 and 32", err.Error())
+
+			err = v.check(strings.Repeat("é", 33))
+			require.Error(t, err)
+			assert.Equal(t, v.prefix+"name length must be between 1 and 32", err.Error())
+		})
+	}
+}
+
+func TestValidateWorkspaceID(t *testing.T) {
+	assert.NoError(t, validateWorkspaceID(strings.Repeat("a", 20)))
+
+	tests := []struct {
+		id      string
+		wantErr string
+	}{
+		{id: "", wantErr: "id is required"},
+		{id: "acme-co", wantErr: "id must be alphanumeric"},
+		{id: strings.Repeat("a", 21), wantErr: "id length must be between 1 and 20"},
+	}
+	for _, tt := range tests {
+		err := validateWorkspaceID(tt.id)
+		require.Error(t, err, tt.id)
+		assert.Equal(t, tt.wantErr, err.Error())
+	}
+}
+
+// A new workspace's ID is stored in VARCHAR(20) columns, so a longer one is refused here
+// rather than by the insert: by the create request and by the entity check the service runs
+// on every create. Update and delete look an existing ID up and keep their limit.
+func TestWorkspaceRequests_Validate_IDLength(t *testing.T) {
+	passphrase := "test-passphrase"
+	settings := WorkspaceSettings{
+		WebsiteURL:      "https://example.com",
+		Timezone:        "UTC",
+		DefaultLanguage: "en",
+		Languages:       []string{"en"},
+	}
+
+	create := func(id string) error {
+		req := CreateWorkspaceRequest{ID: id, Name: "Test Workspace", Settings: settings}
+		return req.Validate(passphrase)
+	}
+	assert.NoError(t, create(strings.Repeat("a", 20)))
+	err := create(strings.Repeat("a", 21))
+	require.Error(t, err)
+	assert.Equal(t, "invalid create workspace request: id length must be between 1 and 20", err.Error())
+
+	update := UpdateWorkspaceRequest{ID: strings.Repeat("a", 21), Name: "Test Workspace", Settings: settings}
+	assert.NoError(t, update.Validate(passphrase), "an update names an existing workspace and keeps its ID check")
+
+	del := DeleteWorkspaceRequest{ID: strings.Repeat("a", 21)}
+	assert.NoError(t, del.Validate(), "a delete names an existing workspace and keeps its ID check")
+
+	entity := func(id string) error {
+		w := Workspace{ID: id, Name: "Test Workspace", Settings: settings}
+		return w.Validate(passphrase)
+	}
+	assert.NoError(t, entity(strings.Repeat("a", 20)))
+	err = entity(strings.Repeat("a", 21))
+	require.Error(t, err)
+	assert.Equal(t, "invalid workspace: id length must be between 1 and 20", err.Error())
+}
+
+func TestValidateNewWorkspaceID(t *testing.T) {
+	assert.NoError(t, ValidateNewWorkspaceID("acmeco"))
+
+	err := ValidateNewWorkspaceID("AcmeCo")
+	require.Error(t, err)
+	assert.Equal(t, "id must contain only lowercase letters and digits", err.Error())
+
+	err = ValidateNewWorkspaceID(strings.Repeat("a", 21))
+	require.Error(t, err)
+	assert.Equal(t, "id length must be between 1 and 20", err.Error())
+}
+
+// The workspace database is created under the lowercase form of its name, so a new ID with
+// an uppercase letter is refused. The entity check also runs on every update, so it leaves
+// the case of a stored workspace's ID alone.
+func TestWorkspaceRequests_Validate_IDCase(t *testing.T) {
+	passphrase := "test-passphrase"
+	settings := WorkspaceSettings{
+		WebsiteURL:      "https://example.com",
+		Timezone:        "UTC",
+		DefaultLanguage: "en",
+		Languages:       []string{"en"},
+	}
+
+	create := CreateWorkspaceRequest{ID: "AcmeCo", Name: "Test Workspace", Settings: settings}
+	err := create.Validate(passphrase)
+	require.Error(t, err)
+	assert.Equal(t, "invalid create workspace request: id must contain only lowercase letters and digits", err.Error())
+
+	stored := Workspace{ID: "AcmeCo", Name: "Test Workspace", Settings: settings}
+	assert.NoError(t, stored.Validate(passphrase))
 }
 
 func TestFileManagerSettings_Validate(t *testing.T) {

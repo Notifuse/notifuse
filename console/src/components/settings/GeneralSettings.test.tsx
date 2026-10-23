@@ -54,6 +54,27 @@ describe('GeneralSettings', () => {
     vi.clearAllMocks()
   })
 
+  // The API refuses a workspace name over 32 characters: the field says so as it is typed.
+  it('limits the workspace name to 32 characters', () => {
+    renderComponent(true)
+    expect(screen.getByLabelText(/Workspace Name/i)).toHaveAttribute('maxlength', '32')
+  })
+
+  it('does not save a workspace name over 32 characters', async () => {
+    renderComponent(true)
+
+    // A change event sets the value past the input's maxlength, as a paste can.
+    fireEvent.change(screen.getByLabelText(/Workspace Name/i), {
+      target: { value: 'a'.repeat(33) }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    expect(
+      await screen.findByText('Workspace name must be at most 32 characters long')
+    ).toBeInTheDocument()
+    expect(workspaceService.update).not.toHaveBeenCalled()
+  })
+
   it('renders a read-only view (no editor) when the user is not an owner', () => {
     renderComponent(false)
     expect(screen.queryByRole('button', { name: /Save Changes/i })).toBeNull()

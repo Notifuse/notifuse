@@ -5121,6 +5121,21 @@ func TestWorkspaceService_CreateWorkspace_WorkspaceLimit(t *testing.T) {
 		return service, mockRepo, mockAuthService, mockLogger
 	}
 
+	t.Run("uppercase ID refused before the workspace count", func(t *testing.T) {
+		service, _, mockAuthService, _ := setupService(t, 3)
+
+		rootUser := &domain.User{ID: "root-user", Email: "test@example.com"}
+		mockAuthService.EXPECT().
+			AuthenticateUserFromContext(gomock.Any()).
+			Return(rootUser, nil)
+		// No repository expectation: with a cap set, the count would be the first call.
+
+		workspace, err := service.CreateWorkspace(context.Background(), "AcmeCo", "New Workspace", "", "", "", "UTC", domain.FileManagerSettings{}, "en", []string{"en"})
+		require.Error(t, err)
+		assert.Nil(t, workspace)
+		assert.Equal(t, "invalid workspace: id must contain only lowercase letters and digits", err.Error())
+	})
+
 	t.Run("limit reached", func(t *testing.T) {
 		service, mockRepo, mockAuthService, _ := setupService(t, 3)
 

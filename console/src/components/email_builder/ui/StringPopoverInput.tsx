@@ -3,6 +3,8 @@ import { Input, Popover, Button } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons'
 import { useLingui } from '@lingui/react/macro'
+import { isOpenableUrl } from '../../../utils/safeHtml'
+import { hasLiquidOutput, isLiquidExpression } from '../../../utils/liquid'
 
 interface StringPopoverInputProps {
   value?: string
@@ -25,16 +27,11 @@ const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
   const resolvedButtonText = buttonText || t`Set value`
   const [inputValue, setInputValue] = useState(value || '')
 
-  const isLiquidExpression = (value: string): boolean => {
-    // Check if the value contains liquid template syntax like {{ var }}
-    return /\{\{[^}]+\}\}/.test(value)
-  }
-
   const isValidUri = (uri: string): boolean => {
     if (!validateUri || !uri.trim()) return true
 
     // Allow liquid expressions to bypass URL validation
-    if (isLiquidExpression(uri)) return true
+    if (hasLiquidOutput(uri)) return true
 
     try {
       new URL(uri)
@@ -108,8 +105,10 @@ const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
 
   if (value) {
     const isValueValid = isValidUri(value)
-    const isLiquid = isLiquidExpression(value)
-    const shouldRenderAsLink = validateUri && isValueValid && value.trim() && !isLiquid
+    // Marked as Liquid only when Liquid stands in for the URL, as the check
+    // above accepts; a Liquid tag alone is enough not to offer it as a link
+    const isLiquid = hasLiquidOutput(value)
+    const shouldRenderAsLink = validateUri && !isLiquidExpression(value) && isOpenableUrl(value)
 
     return (
       <div className="space-y-2">

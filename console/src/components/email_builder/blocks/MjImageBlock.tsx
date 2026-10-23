@@ -10,6 +10,7 @@ import {
   type PreviewProps
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
+import { isSafeHref } from '../../../utils/safeHtml'
 import { EmailBlockClass } from '../EmailBlockClass'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import AlignSelector from '../ui/AlignSelector'
@@ -337,7 +338,7 @@ export class MjImageBlock extends BaseEmailBlock {
 
     const contentElement = attrs.href ? (
       <a
-        href={attrs.href}
+        href={isSafeHref(attrs.href) ? attrs.href : undefined}
         target={attrs.target || '_blank'}
         rel={attrs.rel}
         style={{
@@ -347,6 +348,7 @@ export class MjImageBlock extends BaseEmailBlock {
           overflow: 'hidden'
         }}
         onClick={(e) => e.preventDefault()}
+        onAuxClick={(e) => e.preventDefault()}
       >
         {imageElement}
       </a>

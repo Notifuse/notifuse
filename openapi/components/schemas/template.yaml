@@ -11,7 +11,7 @@ Template:
       type: string
       description: Name of the template
       example: Welcome Email
-      maxLength: 32
+      maxLength: 255
     version:
       type: integer
       format: int64
@@ -203,7 +203,7 @@ CreateTemplateRequest:
       type: string
       description: Name of the template
       example: Welcome Email
-      maxLength: 32
+      maxLength: 255
     channel:
       type: string
       enum:
@@ -275,7 +275,7 @@ UpdateTemplateRequest:
       type: string
       description: Name of the template
       example: Welcome Email
-      maxLength: 32
+      maxLength: 255
     channel:
       type: string
       enum:

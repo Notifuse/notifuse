@@ -39,6 +39,7 @@ import {
 import { jsonToHtml, extractTextContent } from './utils'
 import type { Workspace } from '../../services/api/types'
 import { BlogAIAssistant } from './BlogAIAssistant'
+import { blogTemplateName } from './blogTemplateName'
 
 // TiptapNode shape matching the structure expected by utils.
 // Declared as a type alias rather than an interface on purpose: the editor and the AI
@@ -384,8 +385,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       const plainText = extractTextContent(blogContent)
 
       // First, create the template
-      // Template name is limited to 32 characters, so truncate if needed
-      const templateName = `Blog: ${values.title}`.substring(0, 32)
+      const templateName = blogTemplateName(values.title)
       const templateCreateResponse = await templatesApi.create({
         workspace_id: workspace.id,
         id: newTemplateId,
@@ -437,8 +437,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       const plainText = extractTextContent(blogContent)
 
       // First, update the template (backend creates new version)
-      // Template name is limited to 32 characters, so truncate if needed
-      const templateName = `Blog: ${values.title}`.substring(0, 32)
+      const templateName = blogTemplateName(values.title)
       await templatesApi.update({
         workspace_id: workspace.id,
         id: post!.settings.template.template_id,

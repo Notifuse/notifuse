@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/asaskevich/govalidator"
@@ -682,17 +683,39 @@ type Workspace struct {
 	UpdatedAt    time.Time         `json:"updated_at"`
 }
 
+// validateWorkspaceID checks the ID of a workspace being created or saved against the
+// workspace ID columns, VARCHAR(20).
+func validateWorkspaceID(id string) error {
+	if id == "" {
+		return fmt.Errorf("id is required")
+	}
+	if !govalidator.IsAlphanumeric(id) {
+		return fmt.Errorf("id must be alphanumeric")
+	}
+	if len(id) > 20 {
+		return fmt.Errorf("id length must be between 1 and 20")
+	}
+	return nil
+}
+
+// ValidateNewWorkspaceID checks the ID of a workspace about to be created. On top of
+// validateWorkspaceID it requires lowercase: the workspace database is created under the
+// lowercase form of its name, so an ID with an uppercase letter names a database that does
+// not exist. Workspace.Validate leaves case alone, as it also runs on every update.
+func ValidateNewWorkspaceID(id string) error {
+	if err := validateWorkspaceID(id); err != nil {
+		return err
+	}
+	if id != strings.ToLower(id) {
+		return fmt.Errorf("id must contain only lowercase letters and digits")
+	}
+	return nil
+}
+
 // Validate performs validation on the workspace fields
 func (w *Workspace) Validate(passphrase string) error {
-	// Validate ID
-	if w.ID == "" {
-		return fmt.Errorf("invalid workspace: id is required")
-	}
-	if !govalidator.IsAlphanumeric(w.ID) {
-		return fmt.Errorf("invalid workspace: id must be alphanumeric")
-	}
-	if len(w.ID) > 32 {
-		return fmt.Errorf("invalid workspace: id length must be between 1 and 32")
+	if err := validateWorkspaceID(w.ID); err != nil {
+		return fmt.Errorf("invalid workspace: %w", err)
 	}
 
 	// Validate Name
@@ -1492,22 +1515,16 @@ type CreateWorkspaceRequest struct {
 }
 
 func (r *CreateWorkspaceRequest) Validate(passphrase string) error {
-	// Validate ID
-	if r.ID == "" {
-		return fmt.Errorf("invalid create workspace request: id is required")
-	}
-	if !govalidator.IsAlphanumeric(r.ID) {
-		return fmt.Errorf("invalid create workspace request: id must be alphanumeric")
-	}
-	if len(r.ID) > 32 {
-		return fmt.Errorf("invalid create workspace request: id length must be between 1 and 32")
+	if err := ValidateNewWorkspaceID(r.ID); err != nil {
+		return fmt.Errorf("invalid create workspace request: %w", err)
 	}
 
 	// Validate Name
 	if r.Name == "" {
 		return fmt.Errorf("invalid create workspace request: name is required")
 	}
-	if len(r.Name) > 32 {
+	// Counted in characters, like the console's counter on this field.
+	if utf8.RuneCountInString(r.Name) > 32 {
 		return fmt.Errorf("invalid create workspace request: name length must be between 1 and 32")
 	}
 
@@ -1631,7 +1648,7 @@ func (r *UpdateWorkspaceRequest) Validate(passphrase string) error {
 	if r.Name == "" {
 		return fmt.Errorf("invalid update workspace request: name is required")
 	}
-	if len(r.Name) > 32 {
+	if utf8.RuneCountInString(r.Name) > 32 {
 		return fmt.Errorf("invalid update workspace request: name length must be between 1 and 32")
 	}
 

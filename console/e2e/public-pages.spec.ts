@@ -28,8 +28,9 @@ function setupConsoleErrorTracking(page: Page): string[] {
 
 test.describe('Public Pages Load', () => {
   test.beforeEach(async ({ page }) => {
-    // Mock config.js - system is installed so we can access signin
-    await page.route('**/config.js', (route: Route) =>
+    // Mock config.js - system is installed so we can access signin. index.html
+    // loads it with a cache-busting query (/config.js?_t=…).
+    await page.route('**/config.js*', (route: Route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/javascript',

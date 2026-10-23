@@ -10,6 +10,7 @@ import {
   type PreviewProps
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
+import { containedContentStyle, sanitizeHtml } from '../../../utils/safeHtml'
 import { EmailBlockClass } from '../EmailBlockClass'
 import PanelLayout from '../panels/PanelLayout'
 import InputLayout from '../ui/InputLayout'
@@ -457,6 +458,12 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
     prevSelectedRef.current = isSelected
   }, [isSelected, handleSave])
 
+  // Only shown while the block is not open in its editor, which has its own copy
+  const canvasHtml = React.useMemo(
+    () => (isSelected ? '' : sanitizeHtml(localContent)),
+    [isSelected, localContent]
+  )
+
   return (
     <div
       key={key}
@@ -483,22 +490,20 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
           />
         </div>
       ) : (
-        <div
-          style={textStyle}
-          dangerouslySetInnerHTML={{ __html: localContent }}
-          onClick={(e) => {
-            // Check if the clicked element is an anchor tag
-            const target = e.target as HTMLElement
-            if (target.tagName === 'A' || target.closest('a')) {
-              e.preventDefault()
-              e.stopPropagation()
-              // Select the block for editing when clicking on a link
-              if (onSelectBlock) {
-                onSelectBlock(block.id)
-              }
-            }
-          }}
-        />
+        <div style={textStyle}>
+          <div
+            // Keeps what the content draws to the block. On a box of its own,
+            // sized by the content, so a fixed block height cuts off no text the
+            // email would show. Content wider than the block, an image or a
+            // table the email would let overflow, is cut 25px past it.
+            style={containedContentStyle}
+            dangerouslySetInnerHTML={{ __html: canvasHtml }}
+            // Nothing in the content acts on a click here, a link or a label
+            // included: the click goes on to select the block
+            onClick={(e) => e.preventDefault()}
+            onAuxClick={(e) => e.preventDefault()}
+          />
+        </div>
       )}
     </div>
   )

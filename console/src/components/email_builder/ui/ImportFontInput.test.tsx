@@ -1,0 +1,56 @@
+import { describe, it, expect, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import ImportFontInput from './ImportFontInput'
+
+describe('ImportFontInput', () => {
+  it('links a font stylesheet address', () => {
+    const href = 'https://fonts.googleapis.com/css2?family=Inter'
+    render(<ImportFontInput value={{ name: 'Inter', href }} onChange={vi.fn()} />)
+
+    expect(screen.getByRole('link', { name: href })).toHaveAttribute('href', href)
+  })
+
+  it.each([
+    'javascript:window.__probe=1',
+    'data:text/css,body{}',
+    'webcal://example.com/fonts.css',
+    'https://{{ cdn_host }}/fonts.css',
+    'https://{{cdn_host}}/fonts.css',
+    '{% if dark %}https://example.com/dark.css{% endif %}'
+  ])('shows any other address as text, not as a link: %s', (href) => {
+    render(<ImportFontInput value={{ name: 'Inter', href }} onChange={vi.fn()} />)
+
+    expect(screen.getByText(href)).toBeInTheDocument()
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+})
+
+describe('ImportFontInput stylesheet address', () => {
+  const enter = async (href: string) => {
+    const onChange = vi.fn()
+    render(<ImportFontInput onChange={onChange} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Import Font' }))
+    fireEvent.change(await screen.findByPlaceholderText('e.g., Raleway, Open Sans'), {
+      target: { value: 'Inter' }
+    })
+    fireEvent.change(screen.getByPlaceholderText(/^https:\/\/fonts\.googleapis\.com/), {
+      target: { value: href }
+    })
+    const buttons = screen.getAllByRole('button', { name: 'Import Font' })
+    fireEvent.click(buttons[buttons.length - 1])
+    return onChange
+  }
+
+  it('imports a Liquid output in place of an address', async () => {
+    expect(await enter('{{ font_url }}')).toHaveBeenCalledWith({
+      name: 'Inter',
+      href: '{{ font_url }}'
+    })
+  })
+
+  it('refuses a malformed address even when it holds a Liquid tag', async () => {
+    const onChange = await enter('https//example.com/{% if dark %}dark{% endif %}.css')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+})
+

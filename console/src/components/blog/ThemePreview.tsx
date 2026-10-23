@@ -4,6 +4,7 @@ import { Spin, Alert } from 'antd'
 import { BlogThemeFiles } from '../../services/api/blog'
 import { renderBlogPage, RenderResult } from '../../utils/liquidRenderer'
 import { getMockDataForView } from '../../utils/mockBlogData'
+import { withPreviewStorage } from '../../utils/previewStorage'
 import { Workspace } from '../../services/api/types'
 
 interface ThemePreviewProps {
@@ -99,7 +100,7 @@ export function ThemePreview({ files, workspace, view }: ThemePreviewProps) {
 
       {!isRendering && renderResult && renderResult.success && renderResult.html && (
         <iframe
-          srcDoc={renderResult.html}
+          srcDoc={withPreviewStorage(renderResult.html)}
           style={{
             width: '100%',
             height: '100%',
@@ -107,7 +108,8 @@ export function ThemePreview({ files, workspace, view }: ThemePreviewProps) {
             background: '#ffffff'
           }}
           title="Blog Preview"
-          sandbox="allow-same-origin allow-scripts"
+          // Theme scripts run, in an origin of their own rather than the console's.
+          sandbox="allow-scripts"
         />
       )}
     </div>
