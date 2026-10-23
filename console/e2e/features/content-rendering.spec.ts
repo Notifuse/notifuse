@@ -1,15 +1,17 @@
 import type { Locator, Page } from '@playwright/test'
 import { test, expect } from '../fixtures/auth'
 import { waitForLoading } from '../fixtures/test-utils'
-import { mockApi, openTemplateEditor as openEditor } from '../fixtures/template-editor'
+import {
+  WORKSPACE_ID,
+  mockApi,
+  openTemplateEditor as openEditor
+} from '../fixtures/template-editor'
 import {
   mockTemplates,
   mockWorkspace,
   mockUserMeResponse,
   mockContacts
 } from '../fixtures/mock-data'
-
-const WORKSPACE_ID = 'test-workspace'
 
 // Content saved by one member, or reported by a visitor, and opened by another
 // member. Every snippet that could run records itself in the document it runs in

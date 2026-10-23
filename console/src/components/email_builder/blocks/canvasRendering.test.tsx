@@ -322,7 +322,7 @@ describe('editor canvas raw HTML frame document', () => {
     expect(styles.slice(0, -1).join('\n')).toContain('font-family: Arial')
   })
 
-  it('hides the scrollbars of a frame sized to its content, whatever the template asks', () => {
+  it("hides the scrollbars of a frame sized to its content, over the template's own rules", () => {
     const base = Array.from(parse(frameSource([])).querySelectorAll('style'))
       .map((style) => style.textContent ?? '')
       .join('\n')

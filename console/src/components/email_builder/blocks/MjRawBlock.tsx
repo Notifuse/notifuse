@@ -140,7 +140,8 @@ const SandboxedIframe: React.FC<{
         background: transparent !important;
         /* The frame is sized to its content and takes no input: a scrollbar could not
            be used, and would take room from the content, all of it while the frame
-           is measured collapsed, so the content would wrap narrower than shown */
+           is measured collapsed, so the content would wrap narrower than shown.
+           !important, over a template's own scrollbar-width. */
         scrollbar-width: none !important;
       }
 

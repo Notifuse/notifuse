@@ -2,7 +2,7 @@ import type { Page, Route } from '@playwright/test'
 import { expect } from './auth'
 import { waitForLoading } from './test-utils'
 
-const WORKSPACE_ID = 'test-workspace'
+export const WORKSPACE_ID = 'test-workspace'
 
 const json = (route: Route, data: unknown) =>
   route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data) })

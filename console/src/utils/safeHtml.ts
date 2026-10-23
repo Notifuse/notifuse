@@ -240,11 +240,12 @@ export function fontStylesheetAddress(href: string | null | undefined): URL | nu
 
 /**
  * The stylesheet an `mj-font` imports, as the console may link it or load it: its
- * address (see `fontStylesheetAddress`) on another origin, normalised.
+ * address (see `fontStylesheetAddress`) on another origin than the console's,
+ * normalised.
  */
 export function fontStylesheetUrl(href: string | null | undefined): string | null {
   const address = fontStylesheetAddress(href)
-  return address ? safeExternalUrl(address.toString()) : null
+  return address && address.origin !== window.location.origin ? address.toString() : null
 }
 
 /**
