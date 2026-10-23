@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import DOMPurify, { type Config } from 'dompurify'
-import { hasLiquidOutput, isLiquidExpression } from './liquid'
+import { isLiquidExpression } from './liquid'
 
 // The schemes of the links the console offers to follow: web, mail and phone.
 // Any other would hand the member's click to an app on their computer.
@@ -231,7 +231,7 @@ const trimAsciiWhitespace = (value: string): string =>
  * no address until the email is sent, so it gives null.
  */
 export function fontStylesheetAddress(href: string | null | undefined): URL | null {
-  const url = href === null || href === undefined ? '' : trimAsciiWhitespace(href)
+  const url = trimAsciiWhitespace(href ?? '')
   if (!url || isLiquidExpression(url)) return null
   try {
     const parsed = new URL(url.startsWith('//') ? `https:${url}` : url)
@@ -239,18 +239,6 @@ export function fontStylesheetAddress(href: string | null | undefined): URL | nu
   } catch {
     return null
   }
-}
-
-/**
- * Whether an `mj-font` may name this stylesheet address: a web address (see
- * `fontStylesheetAddress`) once its Liquid is read as text, or one a Liquid output
- * starts, which stands for its scheme and host until the email is sent.
- */
-export function isFontStylesheetAddress(href: string | null | undefined): boolean {
-  const url = href === null || href === undefined ? '' : trimAsciiWhitespace(href)
-  if (!url) return false
-  if (url.startsWith('{{') && hasLiquidOutput(url)) return true
-  return fontStylesheetAddress(url.replace(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}/g, 'x')) !== null
 }
 
 /**

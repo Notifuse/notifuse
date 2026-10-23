@@ -6,7 +6,6 @@ import {
   safeExternalUrl,
   fontStylesheetUrl,
   fontStylesheetAddress,
-  isFontStylesheetAddress,
   isSafeHref,
   isOpenableUrl,
   textOnlyHtml
@@ -364,13 +363,14 @@ describe('fontStylesheetUrl', () => {
 })
 
 describe('fontStylesheetAddress', () => {
-
   it.each([
     ['https://fonts.googleapis.com/css?family=Lato', 'https://fonts.googleapis.com/css?family=Lato'],
     ['//fonts.googleapis.com/css?family=Lato', 'https://fonts.googleapis.com/css?family=Lato'],
     // A stylesheet on the console's own origin is a font address all the same
     [`${window.location.origin}/fonts/a.css`, `${window.location.origin}/fonts/a.css`],
     ['{{ font_url }}', null],
+    // No address until the email is sent
+    ['//cdn.example.com/{% if dark %}dark{% endif %}.css', null],
     ['javascript:window.__probe=1', null],
     ['data:text/css,body{}', null],
     ['webcal://example.com/a.css', null],
@@ -378,33 +378,6 @@ describe('fontStylesheetAddress', () => {
     [undefined, null]
   ])('%s -> %s', (input, expected) => {
     expect(fontStylesheetAddress(input)?.toString() ?? null).toBe(expected)
-  })
-})
-
-describe('isFontStylesheetAddress', () => {
-  it.each([
-    ['https://fonts.googleapis.com/css?family=Lato', true],
-    ['//fonts.googleapis.com/css?family=Lato', true],
-    [`${window.location.origin}/fonts/a.css`, true],
-    // Liquid read as text inside a web address
-    ['https://example.com/{% if dark %}dark{% endif %}.css', true],
-    ['//cdn.example.com/{% if dark %}dark{% endif %}.css', true],
-    ['https://{{ cdn_host }}/fonts.css', true],
-    // A Liquid output standing for the start of the address, scheme included
-    ['{{ font_url }}', true],
-    ['{{ cdn }}/fonts.css', true],
-    ['javascript:{{ code }}', false],
-    ['javascript://{{ x }}/%0aalert(1)', false],
-    ['webcal://{{ host }}/f.css', false],
-    ['data:text/css,{{ css }}', false],
-    ['javascript:{% if x %}y{% endif %}', false],
-    ['fonts/{{ name }}.css', false],
-    ['https//example.com/{% if dark %}dark{% endif %}.css', false],
-    ['/fonts/a.css', false],
-    ['', false],
-    [undefined, false]
-  ])('%s -> %s', (input, expected) => {
-    expect(isFontStylesheetAddress(input)).toBe(expected)
   })
 })
 

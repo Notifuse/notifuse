@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { Input, Popover, Button, Select } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { fontStylesheetUrl, isFontStylesheetAddress } from '../../../utils/safeHtml'
+import { fontStylesheetUrl } from '../../../utils/safeHtml'
+import { hasLiquidOutput } from '../../../utils/liquid'
 
 interface ImportFontInputProps {
   value?: {
@@ -26,9 +27,22 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
     href: value?.href || ''
   })
 
-  // A web address, Liquid in it included, or a Liquid output standing for it
-  const isValidUrl = (url: string): boolean => isFontStylesheetAddress(url.trim())
+  const isValidUrl = (url: string): boolean => {
+    // What is saved: the address trimmed
+    const href = url.trim()
+    if (!href) return false
 
+    // Allow liquid expressions to bypass URL validation
+    if (hasLiquidOutput(href)) return true
+
+    // A protocol-relative address is a web address, as the panel and the email read it
+    try {
+      new URL(href.startsWith('//') ? `https:${href}` : href)
+      return true
+    } catch {
+      return false
+    }
+  }
 
   const isFormValid =
     inputValues.name.trim() && inputValues.href.trim() && isValidUrl(inputValues.href)
