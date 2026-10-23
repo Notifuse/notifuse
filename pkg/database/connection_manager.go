@@ -176,8 +176,8 @@ func (cm *connectionManager) GetWorkspaceConnection(ctx context.Context, workspa
 		return pool, nil
 	}
 
-	// Checked before any capacity is taken (or an idle pool evicted) for an ID that names
-	// no database. A cached pool was checked when it was created.
+	// An ID that cannot name a database takes no capacity, evicts no idle pool and opens
+	// no connection. A cached pool was checked when it was created.
 	if _, err := database.WorkspaceDatabaseName(cm.config.Database.Prefix, workspaceID); err != nil {
 		return nil, err
 	}
