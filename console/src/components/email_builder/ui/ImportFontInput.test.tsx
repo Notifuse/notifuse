@@ -10,6 +10,16 @@ describe('ImportFontInput', () => {
     expect(screen.getByRole('link', { name: href })).toHaveAttribute('href', href)
   })
 
+  it('links a protocol-relative address, as a web address', () => {
+    const href = '//fonts.googleapis.com/css?family=Lato'
+    render(<ImportFontInput value={{ name: 'Lato', href }} onChange={vi.fn()} />)
+
+    expect(screen.getByRole('link', { name: href })).toHaveAttribute(
+      'href',
+      'https://fonts.googleapis.com/css?family=Lato'
+    )
+  })
+
   it.each([
     'javascript:window.__probe=1',
     'data:text/css,body{}',

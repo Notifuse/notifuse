@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import DOMPurify, { type Config } from 'dompurify'
+import { isLiquidExpression } from './liquid'
 
 // The schemes of the links the console offers to follow: web, mail and phone.
 // Any other would hand the member's click to an app on their computer.
@@ -218,6 +219,17 @@ export function safeExternalUrl(url: string | null | undefined): string | null {
   } catch {
     return null
   }
+}
+
+/**
+ * The stylesheet an `mj-font` imports, as the console may link it: a web address
+ * on another origin (see `safeExternalUrl`), normalised. A protocol-relative one
+ * (`//fonts.googleapis.com/…`) is read as https. Liquid has no address until the
+ * email is sent, so it gives null.
+ */
+export function fontStylesheetUrl(href: string | null | undefined): string | null {
+  if (!href || isLiquidExpression(href)) return null
+  return safeExternalUrl(href.startsWith('//') ? `https:${href}` : href)
 }
 
 /**

@@ -372,8 +372,9 @@ const paragraphs = Array.from(
   (_, index) => `<p>Paragraph ${index + 1} of the raw block, long enough to wrap in a narrow column.</p>`
 ).join('')
 
-// Raw HTML in a font the template imports, with CSS that makes the body follow the
-// frame's own height; and raw HTML a stray end tag lets out of the canvas's wrapper
+// Raw HTML in a font the template imports, under CSS that makes the body follow the
+// frame's own height and drops the body's padding; then raw HTML sized on the frame's
+// viewport, with a stray end tag, and with margins that collapse through the body
 const rawFontTemplate = {
   ...mockTemplates[0],
   email: {
@@ -391,7 +392,11 @@ const rawFontTemplate = {
               type: 'mj-font',
               attributes: { name: 'Probe Sans', href: 'https://fonts.example.com/probe.css' }
             },
-            { id: 'style-x', type: 'mj-style', content: 'html, body { height: 100%; }' }
+            {
+              id: 'style-x',
+              type: 'mj-style',
+              content: 'html, body { height: 100%; } body { padding: 0; }'
+            }
           ]
         },
         {
@@ -414,9 +419,19 @@ const rawFontTemplate = {
                         '<p id="end">Last paragraph</p></div>'
                     },
                     {
+                      id: 'raw-vh',
+                      type: 'mj-raw',
+                      content: `<div style="min-height: 50vh">${paragraphs}</div><p id="end">Last vh</p>`
+                    },
+                    {
                       id: 'raw-escaped',
                       type: 'mj-raw',
-                      content: '<p>Inside</p></div><p>Outside</p><p id="end">Last escaped</p>'
+                      content: `<p>Inside</p></div>${paragraphs}<p id="end">Last escaped</p>`
+                    },
+                    {
+                      id: 'raw-margins',
+                      type: 'mj-raw',
+                      content: `<div style="margin: 80px 0">${paragraphs}<p id="end">Last margined</p></div>`
                     }
                   ]
                 }
@@ -450,6 +465,7 @@ test.describe('Raw HTML block on the canvas', () => {
     authenticatedPageWithData: page
   }) => {
     const requested: string[] = []
+    const referrers: (string | undefined)[] = []
     let releaseFont = () => {}
     const fontReleased = new Promise<void>((resolve) => {
       releaseFont = resolve
@@ -457,6 +473,7 @@ test.describe('Raw HTML block on the canvas', () => {
     await page.context().route('https://fonts.example.com/**', async (route) => {
       const url = route.request().url()
       requested.push(url)
+      referrers.push(route.request().headers()['referer'])
       if (url.endsWith('/probe.css')) {
         // Three times the size, so the font's arrival makes the text taller
         return route.fulfill({
@@ -479,6 +496,8 @@ test.describe('Raw HTML block on the canvas', () => {
     await expect
       .poll(() => [...new Set(requested)])
       .toEqual(['https://fonts.example.com/probe.css', 'https://fonts.example.com/probe.woff2'])
+    // The console's address goes to neither (the font file names its stylesheet)
+    expect(referrers.filter((referrer) => referrer?.includes(new URL(page.url()).host))).toEqual([])
     await expect.poll(() => frameFit(frameElement).then((fit) => fit.covers)).toBe(true)
     const beforeFont = (await frameFit(frameElement)).height
 
@@ -494,6 +513,18 @@ test.describe('Raw HTML block on the canvas', () => {
       .toBe(true)
     await expect.poll(() => grownAndCovering(frameElement, beforeFont)).toBe(true)
     const wide = (await frameFit(frameElement)).height
+    const others = ['raw-vh', 'raw-escaped', 'raw-margins'].map((id) =>
+      drawer.locator(`[data-block-id="${id}"] iframe`)
+    )
+    const [vh, escaped, margined] = others
+    // Content let out of the canvas's markup, or whose margins collapse through the
+    // body, still shows down to its last line
+    await expect(escaped.contentFrame().getByText('Last escaped')).toBeAttached()
+    await expect.poll(() => frameFit(escaped).then((fit) => fit.covers)).toBe(true)
+    await expect(margined.contentFrame().getByText('Last margined')).toBeAttached()
+    await expect.poll(() => frameFit(margined).then((fit) => fit.covers)).toBe(true)
+    await expect(vh.contentFrame().getByText('Last vh')).toBeAttached()
+    const othersWide = await Promise.all(others.map((frame) => frameFit(frame)))
 
     // A narrower column rewraps the text: the frame grows to keep showing all of it
     const column = drawer.locator('[data-block-id="column-x"]')
@@ -504,16 +535,15 @@ test.describe('Raw HTML block on the canvas', () => {
     })
     await expect.poll(() => grownAndCovering(frameElement, wide)).toBe(true)
 
-    // Back to its width, it shrinks back, although the body follows the frame's height
+    // Back to its width, each frame is back to its height, although the body follows
+    // the frame's height, and content sized on the frame's viewport did not grow
     await column.evaluate((element: HTMLElement, width) => {
       element.style.width = width
     }, columnWidth)
     await expect.poll(() => frameFit(frameElement).then((fit) => fit.height)).toBe(wide)
-
-    // Content a stray end tag let out of the wrapper still shows
-    const escaped = drawer.locator('[data-block-id="raw-escaped"] iframe')
-    await expect(escaped.contentFrame().getByText('Last escaped')).toBeAttached()
-    expect((await frameFit(escaped)).covers).toBe(true)
+    await expect
+      .poll(() => Promise.all(others.map((frame) => frameFit(frame))))
+      .toEqual(othersWide)
   })
 })
 

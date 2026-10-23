@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { Input, Popover, Button, Select } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { safeExternalUrl } from '../../../utils/safeHtml'
-import { hasLiquidOutput, isLiquidExpression } from '../../../utils/liquid'
+import { fontStylesheetUrl } from '../../../utils/safeHtml'
+import { hasLiquidOutput } from '../../../utils/liquid'
 
 interface ImportFontInputProps {
   value?: {
@@ -178,6 +178,7 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
   )
 
   const hasFont = value?.name && value?.href
+  const stylesheetUrl = fontStylesheetUrl(value?.href)
 
   if (hasFont) {
     return (
@@ -186,9 +187,9 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
           <div className="text-xs font-medium text-gray-700">{value.name}</div>
           {/* A stylesheet is only ever a web address, and a Liquid one has no
               address until the email is sent */}
-          {!isLiquidExpression(value.href ?? '') && safeExternalUrl(value.href) ? (
+          {stylesheetUrl ? (
             <a
-              href={value.href}
+              href={stylesheetUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-blue-600 hover:text-blue-800 underline break-all block leading-relaxed"

@@ -13,34 +13,42 @@ import StringPopoverInput from '../ui/StringPopoverInput'
 import CodeDrawerInput from '../ui/CodeDrawerInput'
 import PanelLayout from '../panels/PanelLayout'
 import CodePreview from '../ui/CodePreview'
-import { safeExternalUrl } from '../../../utils/safeHtml'
-import { isLiquidExpression } from '../../../utils/liquid'
+import { fontStylesheetUrl } from '../../../utils/safeHtml'
 
 const escapeHtmlAttribute = (value: string): string =>
   value.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
 
 /**
- * The height of the frame's content: the bottom of the wrapper the content sits
- * in. Unlike the body, the wrapper does not follow the frame's own height when
- * the content's CSS sets `html, body { height: 100% }`, so the frame can shrink.
- * If content left the wrapper (a stray `</div>` closed it), the body is measured.
+ * The height of the frame's content, measured with the frame collapsed: read at
+ * the frame's current height, content sized on its viewport (`html, body { height:
+ * 100% }`, a common email reset, or `vh` units) would measure that height, so the
+ * frame could never shrink and would grow with each measurement. Its parent holds
+ * its height meanwhile, so nothing around it moves or scrolls; all of it happens
+ * in one task, so nothing is painted collapsed.
  */
-const measureContentHeight = (doc: Document): number => {
-  const body = doc.body
-  const wrapper = body.firstChild as HTMLElement | null
-  if (
-    wrapper !== null &&
-    wrapper === body.lastChild &&
-    wrapper.nodeType === Node.ELEMENT_NODE &&
-    wrapper.hasAttribute('data-raw-content')
-  ) {
-    const top =
-      wrapper.getBoundingClientRect().top - doc.documentElement.getBoundingClientRect().top
-    const paddingBottom =
-      parseFloat(doc.defaultView?.getComputedStyle(body).paddingBottom ?? '') || 0
-    return top + Math.max(wrapper.scrollHeight, wrapper.offsetHeight) + paddingBottom
+const measureContentHeight = (iframe: HTMLIFrameElement, doc: Document): number => {
+  const parent = iframe.parentElement
+  const { height, minHeight } = iframe.style
+  const parentMinHeight = parent?.style.minHeight ?? ''
+  try {
+    if (parent) parent.style.minHeight = `${parent.offsetHeight}px`
+    iframe.style.height = '0px'
+    iframe.style.minHeight = '0px'
+    const { body, documentElement: root } = doc
+    // The root element also counts margins that collapse through a body that a
+    // template's styles left without padding
+    return Math.max(
+      body.scrollHeight,
+      body.offsetHeight,
+      body.clientHeight,
+      root.scrollHeight,
+      root.offsetHeight
+    )
+  } finally {
+    iframe.style.height = height
+    iframe.style.minHeight = minHeight
+    if (parent) parent.style.minHeight = parentMinHeight
   }
-  return Math.max(body.scrollHeight, body.offsetHeight, body.clientHeight)
 }
 
 /**
@@ -69,9 +77,7 @@ const SandboxedIframe: React.FC<{
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [iframeHeight, setIframeHeight] = useState<number>(100)
 
-  // Stylesheet links for the mj-font blocks of the email tree, as the email has
-  // them. Only a web address on another origin: a Liquid one has none until the
-  // email is sent.
+  // Stylesheet links for the mj-font blocks of the email tree, as the email has them
   const extractFontLinks = (): string => {
     if (!emailTree) return ''
 
@@ -79,8 +85,7 @@ const SandboxedIframe: React.FC<{
     return fontBlocks
       .map((fontBlock) => {
         const attrs = fontBlock.attributes as { name?: string; href?: string }
-        if (!attrs?.name || !attrs?.href || isLiquidExpression(attrs.href)) return ''
-        const href = safeExternalUrl(attrs.href)
+        const href = attrs?.name ? fontStylesheetUrl(attrs.href) : null
         return href ? `<link rel="stylesheet" href="${escapeHtmlAttribute(href)}">` : ''
       })
       .filter(Boolean)
@@ -110,6 +115,9 @@ const SandboxedIframe: React.FC<{
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- The iframe's referrerPolicy covers only its own navigation, not the fonts
+         and images its document loads -->
+    <meta name="referrer" content="no-referrer">
     ${fontLinks}
     <style>
       /* CSS Reset - Remove default browser styles */
@@ -164,7 +172,10 @@ const SandboxedIframe: React.FC<{
       ${customStyles}
     </style>
   </head>
-  <body><div data-raw-content style="display: flow-root !important">${htmlContent}</div></body></html>`
+  <body>
+    ${htmlContent}
+  </body>
+</html>`
 
   useEffect(() => {
     const iframe = iframeRef.current
@@ -181,10 +192,10 @@ const SandboxedIframe: React.FC<{
           if (!iframeDoc) return
 
           if (iframeDoc.body) {
-            const height = measureContentHeight(iframeDoc)
+            const height = measureContentHeight(iframe, iframeDoc)
 
-            // Add minimal padding - the measure already includes the body's padding
-            const finalHeight = Math.max(Math.ceil(height) + 10, 100)
+            // Add minimal padding - the body already includes the 10px padding from CSS
+            const finalHeight = Math.max(height + 10, 100)
 
             setIframeHeight(finalHeight)
           }

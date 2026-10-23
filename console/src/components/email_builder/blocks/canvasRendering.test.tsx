@@ -322,13 +322,18 @@ describe('editor canvas raw HTML frame document', () => {
     expect(styles.slice(0, -1).join('\n')).toContain('font-family: Arial')
   })
 
-  it('wraps the content in an element the canvas measures, the only child of the body', () => {
-    const body = parse(frameSource([])).body
+  it('links a protocol-relative font address as a web address', () => {
+    expect(frameSource([font('Lato', '//fonts.googleapis.com/css?family=Lato')])).toContain(
+      '<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">'
+    )
+  })
 
-    expect(body.childNodes).toHaveLength(1)
-    const wrapper = body.firstElementChild as HTMLElement
-    expect(wrapper.hasAttribute('data-raw-content')).toBe(true)
-    expect(wrapper.innerHTML).toBe('<p>Raw <b>block</b></p>')
+  it("sends no Referer from the frame, for its fonts as for the content's images", () => {
+    const source = frameSource([font('Inter', 'https://fonts.example.com/b.css')])
+
+    const meta = '<meta name="referrer" content="no-referrer">'
+    expect(source).toContain(meta)
+    expect(source.indexOf(meta)).toBeLessThan(source.indexOf('<link'))
   })
 })
 
@@ -418,6 +423,32 @@ describe('editor canvas raw HTML frame height', () => {
 
     unmount()
     expect(observer.disconnected).toBe(true)
+  })
+
+  it('measures it collapsed, its block holding its height, then restores it', () => {
+    const { iframe } = renderFrame()
+    const parent = iframe.parentElement as HTMLElement
+    Object.defineProperty(parent, 'offsetHeight', { configurable: true, get: () => 250 })
+    const seen: string[][] = []
+    Object.defineProperty((iframe.contentDocument as Document).body, 'scrollHeight', {
+      configurable: true,
+      get: () => {
+        seen.push([iframe.style.height, iframe.style.minHeight, parent.style.minHeight])
+        return 120
+      }
+    })
+
+    act(() => {
+      RecordingResizeObserver.last?.resize(600)
+    })
+    settle()
+
+    // Content sized on the frame's viewport is measured without it: the measure
+    // does not depend on the height the canvas gave the frame
+    expect(seen).toEqual([['0px', '0px', '250px']])
+    expect(iframe.style.height).toBe('130px')
+    expect(iframe.style.minHeight).toBe('100px')
+    expect(parent.style.minHeight).toBe('')
   })
 
   it('measures it again when fonts of its current document arrive', () => {
