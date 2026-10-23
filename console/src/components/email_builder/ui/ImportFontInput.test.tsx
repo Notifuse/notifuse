@@ -10,6 +10,16 @@ describe('ImportFontInput', () => {
     expect(screen.getByRole('link', { name: href })).toHaveAttribute('href', href)
   })
 
+  it('links a protocol-relative address, as a web address', () => {
+    const href = '//fonts.googleapis.com/css?family=Lato'
+    render(<ImportFontInput value={{ name: 'Lato', href }} onChange={vi.fn()} />)
+
+    expect(screen.getByRole('link', { name: href })).toHaveAttribute(
+      'href',
+      'https://fonts.googleapis.com/css?family=Lato'
+    )
+  })
+
   it.each([
     'javascript:window.__probe=1',
     'data:text/css,body{}',
@@ -47,6 +57,40 @@ describe('ImportFontInput stylesheet address', () => {
       href: '{{ font_url }}'
     })
   })
+
+  it('imports a protocol-relative address, which the panel links', async () => {
+    expect(await enter('//fonts.googleapis.com/css?family=Lato')).toHaveBeenCalledWith({
+      name: 'Inter',
+      href: '//fonts.googleapis.com/css?family=Lato'
+    })
+  })
+
+  it.each([
+    'https://example.com/{% if dark %}dark{% endif %}.css',
+    '//cdn.example.com/{% if dark %}dark{% endif %}.css',
+    'https://{{ cdn_host }}/fonts.css'
+  ])('imports a web address holding Liquid: %s', async (href) => {
+    expect(await enter(href)).toHaveBeenCalledWith({ name: 'Inter', href })
+  })
+
+  it('imports an address pasted after a no-break space, as it saves it', async () => {
+    expect(await enter('\u00a0https://fonts.googleapis.com/css?family=Lato')).toHaveBeenCalledWith({
+      name: 'Inter',
+      href: 'https://fonts.googleapis.com/css?family=Lato'
+    })
+  })
+
+  it("imports an address on the console's own origin", async () => {
+    const href = `${window.location.origin}/fonts/brand.css`
+    expect(await enter(href)).toHaveBeenCalledWith({ name: 'Inter', href })
+  })
+
+  it.each(['/fonts/inter.css', 'fonts/inter.css'])(
+    'refuses a relative address: %s',
+    async (href) => {
+      expect(await enter(href)).not.toHaveBeenCalled()
+    }
+  )
 
   it('refuses a malformed address even when it holds a Liquid tag', async () => {
     const onChange = await enter('https//example.com/{% if dark %}dark{% endif %}.css')

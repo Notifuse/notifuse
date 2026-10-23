@@ -4,6 +4,8 @@ import {
   sanitizeEditorHtml,
   parseHtmlInert,
   safeExternalUrl,
+  fontStylesheetUrl,
+  withHttpsScheme,
   isSafeHref,
   isOpenableUrl,
   textOnlyHtml
@@ -332,6 +334,46 @@ describe('safeExternalUrl', () => {
     [undefined, null]
   ])('%s -> %s', (input, expected) => {
     expect(safeExternalUrl(input)).toBe(expected)
+  })
+})
+
+describe('fontStylesheetUrl', () => {
+  it.each([
+    [
+      'https://fonts.googleapis.com/css2?family=Inter&display=swap',
+      'https://fonts.googleapis.com/css2?family=Inter&display=swap'
+    ],
+    // The form older Google Fonts snippets use; the email resolves it too
+    ['//fonts.googleapis.com/css?family=Lato', 'https://fonts.googleapis.com/css?family=Lato'],
+    [' //fonts.googleapis.com/css?family=Lato ', 'https://fonts.googleapis.com/css?family=Lato'],
+    // A no-break space is no whitespace to a link, which reads the address as relative
+    ['\u00a0https://fonts.googleapis.com/css?family=Lato', null],
+    ['{{ font_url }}', null],
+    ['https://{{ cdn_host }}/fonts.css', null],
+    ['{% if dark %}https://example.com/dark.css{% endif %}', null],
+    // No address until the email is sent
+    ['//cdn.example.com/{% if dark %}dark{% endif %}.css', null],
+    ['javascript:window.__probe=1', null],
+    ['data:text/css,body{}', null],
+    ['webcal://example.com/a.css', null],
+    ['/fonts/a.css', null],
+    [`${window.location.origin}/fonts/a.css`, null],
+    ['', null],
+    [undefined, null]
+  ])('%s -> %s', (input, expected) => {
+    expect(fontStylesheetUrl(input)).toBe(expected)
+  })
+})
+
+describe('withHttpsScheme', () => {
+  it.each([
+    ['//fonts.googleapis.com/css?family=Lato', 'https://fonts.googleapis.com/css?family=Lato'],
+    ['https://fonts.googleapis.com/css', 'https://fonts.googleapis.com/css'],
+    ['http://example.com/a.css', 'http://example.com/a.css'],
+    ['/fonts/a.css', '/fonts/a.css'],
+    ['{{ font_url }}', '{{ font_url }}']
+  ])('%s -> %s', (input, expected) => {
+    expect(withHttpsScheme(input)).toBe(expected)
   })
 })
 
