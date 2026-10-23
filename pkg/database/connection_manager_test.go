@@ -3,11 +3,13 @@ package database
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -776,4 +778,73 @@ func TestConnectionManager_CallerContextDoesNotEvictPool(t *testing.T) {
 	cm.mu.Unlock()
 
 	require.NoError(t, poolMock.ExpectationsWereMet())
+}
+
+// A workspace ID that cannot name a database is refused before the manager takes
+// capacity, evicts an idle pool or opens a connection.
+func TestConnectionManager_RefusesWorkspaceIDThatCannotNameADatabase(t *testing.T) {
+	defer ResetConnectionManager()
+
+	cfg := createTestConfig()
+	systemDB, systemMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = systemDB.Close() }()
+
+	require.NoError(t, InitializeConnectionManager(cfg, systemDB))
+	cm := instance
+
+	// An idle pool and no spare capacity: reserving capacity would evict it.
+	idlePool, idleMock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	require.NoError(t, err)
+	defer func() { _ = idlePool.Close() }()
+	idleMock.ExpectPing()
+	require.NoError(t, idlePool.Ping())
+
+	cm.mu.Lock()
+	cm.workspacePools["idle_ws"] = idlePool
+	cm.poolAccessTimes["idle_ws"] = time.Now()
+	cm.maxConnections = 0
+	cm.mu.Unlock()
+
+	pool, err := cm.GetWorkspaceConnection(context.Background(), "a?b=c&d=")
+
+	assert.Nil(t, pool)
+	assert.EqualError(t, err, `invalid workspace ID for a database name: "a?b=c&d="`)
+
+	cm.mu.RLock()
+	_, idleKept := cm.workspacePools["idle_ws"]
+	inflight := cm.inflightPools
+	cm.mu.RUnlock()
+	assert.True(t, idleKept, "no idle pool may be evicted for a refused ID")
+	assert.Zero(t, inflight)
+	assert.NoError(t, systemMock.ExpectationsWereMet())
+}
+
+func TestConnectionManager_CheckWorkspaceRegistered(t *testing.T) {
+	defer ResetConnectionManager()
+
+	cfg := createTestConfig()
+	systemDB, systemMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = systemDB.Close() }()
+
+	require.NoError(t, InitializeConnectionManager(cfg, systemDB))
+	cm := instance
+	query := regexp.QuoteMeta(`SELECT EXISTS(SELECT 1 FROM workspaces WHERE id = $1)`)
+
+	systemMock.ExpectQuery(query).WithArgs("acmeco").
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+	assert.NoError(t, cm.checkWorkspaceRegistered(context.Background(), "acmeco"))
+
+	systemMock.ExpectQuery(query).WithArgs("unknown").
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+	err = cm.checkWorkspaceRegistered(context.Background(), "unknown")
+	var notFound *domain.ErrWorkspaceNotFound
+	require.ErrorAs(t, err, &notFound)
+	assert.Equal(t, "unknown", notFound.WorkspaceID)
+
+	systemMock.ExpectQuery(query).WithArgs("acmeco").WillReturnError(fmt.Errorf("connection refused"))
+	assert.EqualError(t, cm.checkWorkspaceRegistered(context.Background(), "acmeco"), "failed to check workspace acmeco: connection refused")
+
+	assert.NoError(t, systemMock.ExpectationsWereMet())
 }

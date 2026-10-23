@@ -492,6 +492,24 @@ func TestDefaultConnector_ConnectToWorkspace(t *testing.T) {
 		assert.Nil(t, db)
 		assert.Contains(t, err.Error(), "failed to ping workspace database")
 	})
+
+	// Refused before any connection: the host does not exist, so reaching it would
+	// fail with a ping error instead.
+	t.Run("Workspace ID that cannot name a database", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "invalid",
+			Password: "invalid",
+			Host:     "nonexistent-host",
+			Port:     9999,
+			Prefix:   "test",
+			SSLMode:  "disable",
+		}
+
+		db, err := connector.connectToWorkspace(cfg, "a?b=c&d=")
+
+		assert.Nil(t, db)
+		assert.EqualError(t, err, `invalid workspace ID for a database name: "a?b=c&d="`)
+	})
 }
 
 func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {

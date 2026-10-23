@@ -6,12 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database"
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/lib/pq"
 	"golang.org/x/sync/singleflight"
 )
@@ -176,6 +176,12 @@ func (cm *connectionManager) GetWorkspaceConnection(ctx context.Context, workspa
 		return pool, nil
 	}
 
+	// Checked before any capacity is taken or connection opened, as the ID is written
+	// into the DSN. A cached pool was checked when it was created.
+	if _, err := database.WorkspaceDatabaseName(cm.config.Database.Prefix, workspaceID); err != nil {
+		return nil, err
+	}
+
 	// Slow path: create the pool. singleflight coalesces concurrent creators for
 	// the SAME workspace into a single creation, and — crucially — no global
 	// lock is held across the network I/O of pool creation, so creating one
@@ -270,24 +276,21 @@ func (cm *connectionManager) releasePoolReservation() {
 // that admin-DB round-trip on every pool creation caused a storm of admin
 // connections whenever pools were recreated.
 func (cm *connectionManager) createWorkspacePool(ctx context.Context, workspaceID string) (*sql.DB, error) {
-	safeID := strings.ReplaceAll(workspaceID, "-", "_")
-	dbName := fmt.Sprintf("%s_ws_%s", cm.config.Database.Prefix, safeID)
-
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
-		cm.config.Database.User,
-		cm.config.Database.Password,
-		cm.config.Database.Host,
-		cm.config.Database.Port,
-		dbName,
-		cm.config.Database.SSLMode,
-	)
+	dsn, err := database.GetWorkspaceDSN(&cm.config.Database, workspaceID)
+	if err != nil {
+		return nil, err
+	}
 
 	db, err := cm.openAndVerifyPool(ctx, dsn, workspaceID)
 	if err != nil {
 		// If the workspace database does not exist yet (e.g. first touch by a
 		// fresh process), create it once and retry — instead of paying an
-		// admin-DB round-trip on every pool creation.
+		// admin-DB round-trip on every pool creation. Only a registered workspace
+		// gets one.
 		if isDatabaseDoesNotExistErr(err) {
+			if regErr := cm.checkWorkspaceRegistered(ctx, workspaceID); regErr != nil {
+				return nil, regErr
+			}
 			if ensureErr := database.EnsureWorkspaceDatabaseExists(&cm.config.Database, workspaceID); ensureErr != nil {
 				return nil, ensureErr
 			}
@@ -306,6 +309,20 @@ func (cm *connectionManager) createWorkspacePool(ctx context.Context, workspaceI
 	db.SetConnMaxIdleTime(cm.config.Database.ConnectionMaxIdleTime)
 
 	return db, nil
+}
+
+// checkWorkspaceRegistered returns an error unless the system database has a
+// workspace with this ID.
+func (cm *connectionManager) checkWorkspaceRegistered(ctx context.Context, workspaceID string) error {
+	var exists bool
+	err := cm.systemDB.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM workspaces WHERE id = $1)`, workspaceID).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("failed to check workspace %s: %w", workspaceID, err)
+	}
+	if !exists {
+		return &domain.ErrWorkspaceNotFound{WorkspaceID: workspaceID}
+	}
+	return nil
 }
 
 // openAndVerifyPool opens a connection pool for the given DSN and verifies it is
