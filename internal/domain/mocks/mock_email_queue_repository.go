@@ -154,19 +154,34 @@ func (mr *MockEmailQueueRepositoryMockRecorder) EnqueueTx(arg0, arg1, arg2 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnqueueTx", reflect.TypeOf((*MockEmailQueueRepository)(nil).EnqueueTx), arg0, arg1, arg2)
 }
 
-// FetchPending mocks base method.
-func (m *MockEmailQueueRepository) FetchPending(arg0 context.Context, arg1 string, arg2 int) ([]*domain.EmailQueueEntry, error) {
+// FetchPendingForIntegration mocks base method.
+func (m *MockEmailQueueRepository) FetchPendingForIntegration(arg0 context.Context, arg1, arg2 string, arg3 int) ([]*domain.EmailQueueEntry, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FetchPending", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "FetchPendingForIntegration", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].([]*domain.EmailQueueEntry)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FetchPending indicates an expected call of FetchPending.
-func (mr *MockEmailQueueRepositoryMockRecorder) FetchPending(arg0, arg1, arg2 interface{}) *gomock.Call {
+// FetchPendingForIntegration indicates an expected call of FetchPendingForIntegration.
+func (mr *MockEmailQueueRepositoryMockRecorder) FetchPendingForIntegration(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchPending", reflect.TypeOf((*MockEmailQueueRepository)(nil).FetchPending), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchPendingForIntegration", reflect.TypeOf((*MockEmailQueueRepository)(nil).FetchPendingForIntegration), arg0, arg1, arg2, arg3)
+}
+
+// FetchPendingOrphans mocks base method.
+func (m *MockEmailQueueRepository) FetchPendingOrphans(arg0 context.Context, arg1 string, arg2 []string, arg3 int) ([]*domain.EmailQueueEntry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchPendingOrphans", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].([]*domain.EmailQueueEntry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FetchPendingOrphans indicates an expected call of FetchPendingOrphans.
+func (mr *MockEmailQueueRepositoryMockRecorder) FetchPendingOrphans(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchPendingOrphans", reflect.TypeOf((*MockEmailQueueRepository)(nil).FetchPendingOrphans), arg0, arg1, arg2, arg3)
 }
 
 // GetBySourceID mocks base method.
@@ -358,18 +373,4 @@ func (m *MockEmailQueueRepository) ResumeBySourceTx(arg0 context.Context, arg1 *
 func (mr *MockEmailQueueRepositoryMockRecorder) ResumeBySourceTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResumeBySourceTx", reflect.TypeOf((*MockEmailQueueRepository)(nil).ResumeBySourceTx), arg0, arg1, arg2, arg3)
-}
-
-// SetNextRetry mocks base method.
-func (m *MockEmailQueueRepository) SetNextRetry(arg0 context.Context, arg1, arg2 string, arg3 time.Time) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetNextRetry", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetNextRetry indicates an expected call of SetNextRetry.
-func (mr *MockEmailQueueRepositoryMockRecorder) SetNextRetry(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetNextRetry", reflect.TypeOf((*MockEmailQueueRepository)(nil).SetNextRetry), arg0, arg1, arg2, arg3)
 }

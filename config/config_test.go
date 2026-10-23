@@ -327,6 +327,72 @@ func TestDatabaseConnectionConfig_ValidationPerDBMaximum(t *testing.T) {
 	assert.Contains(t, err.Error(), "DB_MAX_CONNECTIONS_PER_DB cannot exceed 50")
 }
 
+func TestEmailQueueConfig(t *testing.T) {
+	setRequired := func(t *testing.T) {
+		t.Setenv("SECRET_KEY", "test-secret-key-long-enough-to-sign")
+		t.Setenv("DB_PASSWORD", "testpass")
+		// Empty counts as unset, so values exported in the runner's shell do not leak in.
+		t.Setenv("EMAIL_QUEUE_CONCURRENCY", "")
+		t.Setenv("EMAIL_QUEUE_SMTP_CONCURRENCY", "")
+	}
+
+	t.Run("defaults", func(t *testing.T) {
+		setRequired(t)
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+
+		assert.Equal(t, 10, cfg.EmailQueue.Concurrency)
+		assert.Equal(t, 1, cfg.EmailQueue.SMTPConcurrency)
+	})
+
+	t.Run("environment overrides", func(t *testing.T) {
+		setRequired(t)
+		t.Setenv("EMAIL_QUEUE_CONCURRENCY", "25")
+		t.Setenv("EMAIL_QUEUE_SMTP_CONCURRENCY", "4")
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+
+		assert.Equal(t, 25, cfg.EmailQueue.Concurrency)
+		assert.Equal(t, 4, cfg.EmailQueue.SMTPConcurrency)
+	})
+
+	for _, setting := range []struct {
+		name  string
+		field func(*Config) int
+	}{
+		{"EMAIL_QUEUE_CONCURRENCY", func(c *Config) int { return c.EmailQueue.Concurrency }},
+		{"EMAIL_QUEUE_SMTP_CONCURRENCY", func(c *Config) int { return c.EmailQueue.SMTPConcurrency }},
+	} {
+		name, field := setting.name, setting.field
+		for _, tc := range []struct {
+			value   string
+			want    int
+			wantErr string
+		}{
+			{value: "0", wantErr: name + " must be at least 1 (got 0)"},
+			{value: "1", want: 1},
+			{value: "50", want: 50},
+			{value: "51", wantErr: name + " cannot exceed 50 (got 51)"},
+		} {
+			t.Run(name+"="+tc.value, func(t *testing.T) {
+				setRequired(t)
+				t.Setenv(name, tc.value)
+
+				cfg, err := LoadWithOptions(LoadOptions{})
+				if tc.wantErr != "" {
+					require.Error(t, err)
+					assert.Contains(t, err.Error(), tc.wantErr)
+					return
+				}
+				require.NoError(t, err)
+				assert.Equal(t, tc.want, field(cfg))
+			})
+		}
+	}
+}
+
 func TestLoadWithOptions_PlanLimits(t *testing.T) {
 	// SECRET_KEY is required for the config to load successfully.
 	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")

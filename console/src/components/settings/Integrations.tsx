@@ -2191,6 +2191,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         <Form.Item
           name="rate_limit_per_minute"
           label={t`Rate limit for marketing emails (emails per minute)`}
+          extra={t`Broadcasts and automation emails are sent at up to this rate. Keep it at or below your provider's sending limit, minus your transactional traffic.`}
           rules={[
             { required: true, message: 'Please enter a rate limit' },
             { type: 'number', min: 1, message: 'Rate limit must be at least 1' }

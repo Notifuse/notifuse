@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -163,8 +164,9 @@ func TestGetWorkspaceDSN(t *testing.T) {
 		workspaceID := "workspace123"
 
 		expected := "postgres://testuser:testpass@localhost:5432/notifuse_ws_workspace123?sslmode=disable"
-		result := GetWorkspaceDSN(cfg, workspaceID)
+		result, err := GetWorkspaceDSN(cfg, workspaceID)
 
+		require.NoError(t, err)
 		assert.Equal(t, expected, result)
 	})
 
@@ -180,8 +182,9 @@ func TestGetWorkspaceDSN(t *testing.T) {
 		workspaceID := "workspace-with-hyphens-123"
 
 		expected := "postgres://user:pass@host:5432/app_ws_workspace_with_hyphens_123?sslmode=require"
-		result := GetWorkspaceDSN(cfg, workspaceID)
+		result, err := GetWorkspaceDSN(cfg, workspaceID)
 
+		require.NoError(t, err)
 		assert.Equal(t, expected, result)
 	})
 
@@ -197,8 +200,9 @@ func TestGetWorkspaceDSN(t *testing.T) {
 		workspaceID := "test-workspace-abc-123-def"
 
 		expected := "postgres://dbuser:dbpass@localhost:5432/myapp_ws_test_workspace_abc_123_def?sslmode=disable"
-		result := GetWorkspaceDSN(cfg, workspaceID)
+		result, err := GetWorkspaceDSN(cfg, workspaceID)
 
+		require.NoError(t, err)
 		assert.Equal(t, expected, result)
 	})
 
@@ -214,9 +218,81 @@ func TestGetWorkspaceDSN(t *testing.T) {
 		workspaceID := "workspace-id"
 
 		expected := "postgres://user:pass@host:5432/_ws_workspace_id?sslmode=disable"
-		result := GetWorkspaceDSN(cfg, workspaceID)
+		result, err := GetWorkspaceDSN(cfg, workspaceID)
 
+		require.NoError(t, err)
 		assert.Equal(t, expected, result)
+	})
+	// The workspace ID is written into the URL path, so it may only hold plain characters.
+	t.Run("Workspace ID that cannot name a database", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "user",
+			Password: "pass",
+			Host:     "localhost",
+			Port:     5432,
+			Prefix:   "notifuse",
+			SSLMode:  "require",
+		}
+
+		result, err := GetWorkspaceDSN(cfg, "a?b=c&d=")
+
+		assert.EqualError(t, err, `invalid workspace ID for a database name: "a?b=c&d="`)
+		assert.Empty(t, result)
+	})
+}
+
+func TestWorkspaceDatabaseName(t *testing.T) {
+	t.Run("Accepted names", func(t *testing.T) {
+		tests := []struct {
+			prefix      string
+			workspaceID string
+			expected    string
+		}{
+			{"notifuse", "acmeco", "notifuse_ws_acmeco"},
+			{"app", "test-workspace-123", "app_ws_test_workspace_123"},
+			{"", "x", "_ws_x"},
+			{"notifuse", strings.Repeat("a", 63), "notifuse_ws_" + strings.Repeat("a", 63)},
+			// PostgreSQL folds only ASCII letters, so another capital letter in the
+			// prefix names the database as written.
+			{"notifuseÜ", "acmeco", "notifuseÜ_ws_acmeco"},
+		}
+		for _, tt := range tests {
+			name, err := WorkspaceDatabaseName(tt.prefix, tt.workspaceID)
+			require.NoError(t, err, tt.workspaceID)
+			assert.Equal(t, tt.expected, name)
+		}
+	})
+
+	t.Run("Names with ASCII capitals", func(t *testing.T) {
+		_, err := WorkspaceDatabaseName("test", "AcmeCo")
+		assert.EqualError(t, err, "workspace database name must be lowercase: test_ws_AcmeCo")
+
+		_, err = WorkspaceDatabaseName("Notifuse", "acmeco")
+		assert.EqualError(t, err, "workspace database name must be lowercase: Notifuse_ws_acmeco")
+	})
+
+	t.Run("Workspace IDs that cannot name a database", func(t *testing.T) {
+		for _, workspaceID := range []string{
+			"",
+			"a b",
+			"x template template0",
+			"a?b",
+			"a&b",
+			"a;b",
+			`a"b`,
+			"a/b",
+			"a%20b",
+			"a#b",
+			"é",
+			"\u212a", // Kelvin sign: a case-insensitive class, (?i), would match it as k
+			"A?b",
+			"Acme\nCo",
+			strings.Repeat("a", 64),
+		} {
+			name, err := WorkspaceDatabaseName("notifuse", workspaceID)
+			assert.EqualError(t, err, fmt.Sprintf("invalid workspace ID for a database name: %q", workspaceID))
+			assert.Empty(t, name)
+		}
 	})
 }
 
@@ -237,6 +313,22 @@ func TestConnectToWorkspace(t *testing.T) {
 		assert.Error(t, err, "Should fail with invalid database configuration")
 		assert.Nil(t, db, "Database connection should be nil on failure")
 		assert.Contains(t, err.Error(), "failed to ensure workspace database exists")
+	})
+
+	t.Run("Workspace ID that cannot name a database", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "invalid",
+			Password: "invalid",
+			Host:     "nonexistent-host",
+			Port:     9999,
+			Prefix:   "test",
+			SSLMode:  "disable",
+		}
+
+		db, err := ConnectToWorkspace(cfg, "a?b=c&d=")
+
+		assert.Nil(t, db)
+		assert.EqualError(t, err, `failed to ensure workspace database exists: invalid workspace ID for a database name: "a?b=c&d="`)
 	})
 
 	// Note: Full integration tests would require a real database
@@ -307,6 +399,22 @@ func TestEnsureWorkspaceDatabaseExists(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to ping PostgreSQL server")
 	})
+
+	// Refused before any connection: the host does not exist, so reaching the server
+	// would fail with a ping error instead.
+	t.Run("Workspace ID that cannot name a database", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "invalid",
+			Password: "invalid",
+			Host:     "nonexistent-host",
+			Port:     9999,
+			Prefix:   "test",
+			SSLMode:  "disable",
+		}
+
+		err := EnsureWorkspaceDatabaseExists(cfg, "x template template0")
+		assert.EqualError(t, err, `invalid workspace ID for a database name: "x template template0"`)
+	})
 }
 
 func TestEnsureSystemDatabaseExists(t *testing.T) {
@@ -361,7 +469,8 @@ func TestDSNGeneration_Integration(t *testing.T) {
 		// Test all DSN generation functions
 		systemDSN := GetSystemDSN(cfg)
 		postgresDSN := GetPostgresDSN(cfg)
-		workspaceDSN := GetWorkspaceDSN(cfg, "test-workspace")
+		workspaceDSN, err := GetWorkspaceDSN(cfg, "test-workspace")
+		require.NoError(t, err)
 
 		// Verify DSN format is valid (starts with postgres://)
 		assert.True(t, len(systemDSN) > 0 && systemDSN[:11] == "postgres://")

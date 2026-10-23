@@ -16,6 +16,7 @@ import (
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/Notifuse/notifuse/tests/testutil"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -47,6 +48,83 @@ func TestEmailHandler_Integration(t *testing.T) {
 	t.Run("HandleTestEmailProvider", func(t *testing.T) {
 		testEmailHandlerTestProvider(t, suite)
 	})
+
+	t.Run("TrackingForUnknownWorkspace", func(t *testing.T) {
+		testTrackingForUnknownWorkspace(t, suite)
+	})
+}
+
+// testTrackingForUnknownWorkspace checks that the legacy tracking URLs, which carry the
+// workspace ID in their query string, still answer for a workspace that does not exist
+// but leave no database behind.
+func testTrackingForUnknownWorkspace(t *testing.T, suite *testutil.IntegrationTestSuite) {
+	baseURL := suite.ServerManager.GetURL()
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	prefix := suite.DBManager.GetConfig().Prefix
+	browser := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"
+
+	// Names of the databases a request for this token could have created.
+	databasesFor := func(t *testing.T, token string) []string {
+		t.Helper()
+		rows, err := suite.DBManager.GetDB().Query(
+			`SELECT datname FROM pg_database WHERE starts_with(lower(datname), lower($1 COLLATE "C"))`,
+			prefix+"_ws_"+token)
+		require.NoError(t, err)
+		defer func() { _ = rows.Close() }()
+		var names []string
+		for rows.Next() {
+			var name string
+			require.NoError(t, rows.Scan(&name))
+			names = append(names, name)
+		}
+		require.NoError(t, rows.Err())
+		return names
+	}
+
+	for _, tc := range []struct {
+		name string
+		wid  func(token string) string
+	}{
+		{"unknown workspace ID", func(token string) string { return token }},
+		{"workspace ID with words after it", func(token string) string { return token + " template template0" }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			token := fmt.Sprintf("trk%d", time.Now().UnixNano())
+			wid := tc.wid(token)
+			t.Cleanup(func() {
+				for _, name := range databasesFor(t, token) {
+					_, _ = suite.DBManager.GetDB().Exec("DROP DATABASE IF EXISTS " + pq.QuoteIdentifier(name) + " WITH (FORCE)")
+				}
+			})
+
+			openURL := fmt.Sprintf("%s/opens?mid=msg-1&wid=%s", baseURL, url.QueryEscape(wid))
+			req, err := http.NewRequest(http.MethodGet, openURL, nil)
+			require.NoError(t, err)
+			req.Header.Set("User-Agent", browser)
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+			_ = resp.Body.Close()
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			assert.Equal(t, "image/png", resp.Header.Get("Content-Type"))
+
+			visitURL := fmt.Sprintf("%s/visit?url=%s&mid=msg-1&wid=%s",
+				baseURL, url.QueryEscape("https://example.com/"), url.QueryEscape(wid))
+			req, err = http.NewRequest(http.MethodGet, visitURL, nil)
+			require.NoError(t, err)
+			req.Header.Set("User-Agent", browser)
+			resp, err = client.Do(req)
+			require.NoError(t, err)
+			_ = resp.Body.Close()
+			assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
+			assert.Equal(t, "https://example.com/", resp.Header.Get("Location"))
+
+			assert.Empty(t, databasesFor(t, token))
+		})
+	}
 }
 
 func testEmailHandlerClickRedirection(t *testing.T, suite *testutil.IntegrationTestSuite) {

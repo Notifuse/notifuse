@@ -12,6 +12,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/internal/service/queue"
+	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
@@ -70,6 +71,8 @@ type AppInterface interface {
 	GetAuthService() interface{} // Returns *service.AuthService but defined as interface{} to avoid import cycle
 	GetTransactionalNotificationService() domain.TransactionalNotificationService
 	GetEmailQueueWorker() *queue.EmailQueueWorker
+	// GetEmailService lets a test build a second queue worker on the same database.
+	GetEmailService() domain.EmailServiceInterface
 	GetAutomationScheduler() *service.AutomationScheduler
 	GetTaskScheduler() *service.TaskScheduler
 	GetWebAnalyticsBuffer() *service.WebAnalyticsBuffer
@@ -162,6 +165,14 @@ func NewServerManagerWithLiveScheduler(appFactory func(*config.Config) AppInterf
 	return sm
 }
 
+// initializeApp initializes the app with a connection manager of its own. The manager is
+// a process-wide singleton set up once: without a reset, every app after the first would
+// keep the closed system database of the first.
+func (sm *ServerManager) initializeApp() error {
+	pkgDatabase.ResetConnectionManager()
+	return sm.app.Initialize()
+}
+
 // Start starts the test server
 func (sm *ServerManager) Start() error {
 	if sm.isStarted {
@@ -173,7 +184,7 @@ func (sm *ServerManager) Start() error {
 	sm.applyPendingSecretKey()
 
 	// Initialize the app
-	if err := sm.app.Initialize(); err != nil {
+	if err := sm.initializeApp(); err != nil {
 		return fmt.Errorf("failed to initialize app: %w", err)
 	}
 
@@ -251,7 +262,7 @@ func (sm *ServerManager) StartLive(ctx context.Context) error {
 	sm.config.APIEndpoint = sm.url
 
 	// 3. Initialize app (reads APIEndpoint during InitServices).
-	if err := sm.app.Initialize(); err != nil {
+	if err := sm.initializeApp(); err != nil {
 		_ = listener.Close()
 		return fmt.Errorf("failed to initialize app: %w", err)
 	}
@@ -333,7 +344,7 @@ func (sm *ServerManager) StartLiveDirect(ctx context.Context) error {
 	sm.config.TaskScheduler.Enabled = true
 	sm.config.APIEndpoint = "http://127.0.0.1:1"
 
-	if err := sm.app.Initialize(); err != nil {
+	if err := sm.initializeApp(); err != nil {
 		_ = listener.Close()
 		return fmt.Errorf("failed to initialize app: %w", err)
 	}

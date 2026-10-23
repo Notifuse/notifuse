@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -444,13 +443,11 @@ func (r *workspaceRepository) CreateDatabase(ctx context.Context, workspaceID st
 }
 
 func (r *workspaceRepository) DeleteDatabase(ctx context.Context, workspaceID string) error {
-	// Replace hyphens with underscores for PostgreSQL compatibility
-	safeID := strings.ReplaceAll(workspaceID, "-", "_")
-	// The database was created through an unquoted CREATE DATABASE, so PostgreSQL
-	// folded its name to lower case. Fold here too: a quoted mixed-case name would
-	// not match the database that actually exists, and IF EXISTS would turn that
-	// miss into a silent success, orphaning the database.
-	dbName := strings.ToLower(fmt.Sprintf("%s_ws_%s", r.dbConfig.Prefix, safeID))
+	// The name the database was created under, as written: it is created quoted.
+	dbName, err := database.WorkspaceDatabaseName(r.dbConfig.Prefix, workspaceID)
+	if err != nil {
+		return err
+	}
 	quotedDBName := pq.QuoteIdentifier(dbName)
 
 	// Close the workspace connection pool
@@ -470,7 +467,7 @@ func (r *workspaceRepository) DeleteDatabase(ctx context.Context, workspaceID st
 	// operation, which closes the race where a connection is re-established between
 	// terminating backends and dropping.
 	dropQuery := fmt.Sprintf("DROP DATABASE IF EXISTS %s WITH (FORCE)", quotedDBName)
-	_, err := r.systemDB.ExecContext(dropCtx, dropQuery)
+	_, err = r.systemDB.ExecContext(dropCtx, dropQuery)
 	if err == nil {
 		return nil
 	}

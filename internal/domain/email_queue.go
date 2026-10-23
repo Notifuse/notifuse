@@ -150,12 +150,20 @@ type EmailQueueRepository interface {
 	// EnqueueTx adds emails to the queue within an existing transaction
 	EnqueueTx(ctx context.Context, tx *sql.Tx, entries []*EmailQueueEntry) error
 
-	// FetchPending retrieves pending emails for processing
-	// Uses FOR UPDATE SKIP LOCKED to allow concurrent workers
-	// Orders by priority ASC (lower = higher priority), then created_at ASC
-	FetchPending(ctx context.Context, workspaceID string, limit int) ([]*EmailQueueEntry, error)
+	// FetchPendingForIntegration returns up to limit rows of one integration that are
+	// due: pending and not out of attempts, failed with a retry date in the past, or
+	// stuck in processing for over two minutes. Ordered by priority ASC (lower =
+	// higher priority), then created_at ASC.
+	FetchPendingForIntegration(ctx context.Context, workspaceID string, integrationID string, limit int) ([]*EmailQueueEntry, error)
 
-	// MarkAsProcessing atomically marks an entry as processing
+	// FetchPendingOrphans returns up to limit due rows whose integration is not in
+	// integrationIDs, so that rows of a deleted integration still reach a terminal
+	// state. An empty list matches every due row.
+	FetchPendingOrphans(ctx context.Context, workspaceID string, integrationIDs []string, limit int) ([]*EmailQueueEntry, error)
+
+	// MarkAsProcessing atomically claims an entry for sending: it marks it processing
+	// and counts the attempt, but only while the fetches would return it (due pending or
+	// failed, or stuck in processing). Otherwise it returns an error and changes nothing.
 	MarkAsProcessing(ctx context.Context, workspaceID string, id string) error
 
 	// MarkAsSent deletes the entry after successful send
@@ -188,10 +196,6 @@ type EmailQueueRepository interface {
 	// window. They hold one recipient's compiled email, so they cannot be kept
 	// forever; the window is what a retry has to be used within.
 	DeleteTerminallyFailedOlderThan(ctx context.Context, workspaceID string, days int) (int64, error)
-
-	// SetNextRetry updates next_retry_at WITHOUT incrementing attempts
-	// Used by circuit breaker to schedule retry without burning retry attempts
-	SetNextRetry(ctx context.Context, workspaceID string, entryID string, nextRetry time.Time) error
 
 	// GetStats returns queue statistics for a workspace
 	GetStats(ctx context.Context, workspaceID string) (*EmailQueueStats, error)
@@ -243,7 +247,7 @@ type EmailQueueRepository interface {
 	// Unlike DeleteBySource this does NOT spare 'processing' entries. There the
 	// exclusion is right — the row is mid-send and will resolve itself. Here it
 	// would not: a worker that dies mid-send leaves the row in 'processing', and
-	// FetchPending reclaims anything stuck there for more than two minutes, which
+	// the worker's fetch reclaims anything stuck there for more than two minutes, which
 	// would then send to the address we were asked to erase.
 	DeleteForEmail(ctx context.Context, workspaceID string, email string) (int64, error)
 }

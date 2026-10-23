@@ -147,6 +147,22 @@ const isolationSwitch = () =>
     'switch'
   )
 
+describe('Integrations — marketing rate limit', () => {
+  // The queue now sends at this rate, so the field has to say what it governs and what it
+  // must stay under: a limit above the provider's leads to throttling, which pauses broadcasts.
+  it('says what the rate applies to and what it must stay under', async () => {
+    await openSESDrawer()
+
+    const field = screen.getByLabelText('Rate limit for marketing emails (emails per minute)')
+    const item = field.closest('.ant-form-item') as HTMLElement
+    expect(
+      within(item).getByText(
+        "Broadcasts and automation emails are sent at up to this rate. Keep it at or below your provider's sending limit, minus your transactional traffic."
+      )
+    ).toBeInTheDocument()
+  })
+})
+
 describe('Integrations — SES tenant isolation', () => {
   // The gate is EnsureTenantIsolation's, and it still answers 402. What this pins is the order
   // of events: an owner on an unlicensed deployment meets a locked switch that names the plan,
