@@ -152,7 +152,7 @@ FetchPendingOrphans(ctx context.Context, workspaceID string, integrationIDs []st
 
 - The configured rate becomes the real rate, to about 96 % in sustained sending: each 2 s round spends some 80 ms fetching and settling, and the limiter banks no unused time (F10). Measured 3,475 of 3,600/min.
 - A limit above what the provider accepts, net of transactional traffic, now leads to throttling. Throttling opens the circuit, and on 42.0 the circuit pauses the integration's broadcasts. After the cooldown, the integration sends one test email and resumes at full rate if it goes through.
-- One lane tops out at about 6,000/min (200 rows per 2 s round). Above that, raise `BatchSize`, which is not exposed. That is acceptable for 42.0 and is stated in the docs.
+- One lane sends at most 200 rows per round, and a round that ends early waits for the next 1 s poll tick: at most about 12,000/min, and less with a slow provider (10 sends at once at 60 ms each: about 10,000/min, measured). The docs say limits above about 10,000/min may not be reached.
 - A lane also tops out at K divided by the time one email takes: with SMTP at K = 1 and 300 ms per email, about 200/min whatever the limit, as today. The docs say to raise `EMAIL_QUEUE_SMTP_CONCURRENCY` when the relay accepts several connections.
 - Rounds still cover at most `WorkerCount` (5) workspaces at a time. When more than five workspaces have emails queued at once, they take turns, as today, and each sends below its limit. The reporter's case (one workspace) is not affected.
 - Each send makes about three queries on the workspace's pool, 3 connections by default and shared with the API. With a remote database, `DB_MAX_CONNECTIONS_PER_DB` may need raising to reach high rates.
