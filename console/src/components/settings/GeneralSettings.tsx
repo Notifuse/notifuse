@@ -9,6 +9,7 @@ import { LANGUAGE_OPTIONS } from '../../lib/languages'
 import { LogoInput } from './LogoInput'
 import { SettingsSaveBar } from './SettingsSaveBar'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
+import { WORKSPACE_NAME_MAX_LENGTH } from '../../constants/limits'
 
 interface GeneralSettingsProps {
   workspace: Workspace | null
@@ -195,9 +196,19 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
         <Form.Item
           name="name"
           label={t`Workspace Name`}
-          rules={[{ required: true, message: t`Please enter workspace name` }]}
+          rules={[
+            { required: true, message: t`Please enter workspace name` },
+            {
+              max: WORKSPACE_NAME_MAX_LENGTH,
+              message: t`Workspace name must be at most ${WORKSPACE_NAME_MAX_LENGTH} characters long`
+            }
+          ]}
         >
-          <Input placeholder={t`Enter workspace name`} />
+          <Input
+            placeholder={t`Enter workspace name`}
+            maxLength={WORKSPACE_NAME_MAX_LENGTH}
+            showCount
+          />
         </Form.Item>
 
         <Form.Item

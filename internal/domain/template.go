@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	// Import the notifuse_mjml package
 
@@ -34,6 +35,18 @@ func validateTemplateID(id string) error {
 	}
 	if !templateIDPattern.MatchString(id) {
 		return fmt.Errorf("id must contain only letters, numbers, underscores, and hyphens")
+	}
+	return nil
+}
+
+// validateTemplateName checks a template name against the templates.name column,
+// VARCHAR(255), which counts characters rather than bytes.
+func validateTemplateName(name string) error {
+	if name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if utf8.RuneCountInString(name) > 255 {
+		return fmt.Errorf("name length must be between 1 and 255")
 	}
 	return nil
 }
@@ -269,11 +282,8 @@ func (t *Template) Validate() error {
 		return fmt.Errorf("invalid template: %w", err)
 	}
 
-	if t.Name == "" {
-		return fmt.Errorf("invalid template: name is required")
-	}
-	if len(t.Name) > 32 {
-		return fmt.Errorf("invalid template: name length must be between 1 and 32")
+	if err := validateTemplateName(t.Name); err != nil {
+		return fmt.Errorf("invalid template: %w", err)
 	}
 
 	if t.Version <= 0 {
@@ -617,11 +627,8 @@ func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID stri
 		return nil, "", fmt.Errorf("invalid create template request: %w", err)
 	}
 
-	if r.Name == "" {
-		return nil, "", fmt.Errorf("invalid create template request: name is required")
-	}
-	if len(r.Name) > 32 {
-		return nil, "", fmt.Errorf("invalid create template request: name length must be between 1 and 32")
+	if err := validateTemplateName(r.Name); err != nil {
+		return nil, "", fmt.Errorf("invalid create template request: %w", err)
 	}
 
 	if r.Channel == "" {
@@ -774,11 +781,8 @@ func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID stri
 		return nil, "", fmt.Errorf("invalid update template request: %w", err)
 	}
 
-	if r.Name == "" {
-		return nil, "", fmt.Errorf("invalid update template request: name is required")
-	}
-	if len(r.Name) > 32 {
-		return nil, "", fmt.Errorf("invalid update template request: name length must be between 1 and 32")
+	if err := validateTemplateName(r.Name); err != nil {
+		return nil, "", fmt.Errorf("invalid update template request: %w", err)
 	}
 
 	if r.Channel == "" {

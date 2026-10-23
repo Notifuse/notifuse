@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	domainmocks "github.com/Notifuse/notifuse/internal/domain/mocks"
@@ -43,9 +44,9 @@ func TestDemoAutomationTemplates_AreCreatable(t *testing.T) {
 		// The whole point: every template must pass the same validation CreateTemplate runs.
 		require.NoError(t, tmpl.Validate(), "template %s does not validate", tmpl.ID)
 
-		// Asserted directly rather than through the domain's own limit, because it is the limit
-		// itself that is the trap: templates are capped far tighter than lists or automations.
-		assert.LessOrEqual(t, len(tmpl.Name), 32, "template %s has a name longer than 32 characters", tmpl.ID)
+		// Asserted directly rather than through the domain's own limit, so a loosening of the
+		// domain rule does not silently loosen this guard.
+		assert.LessOrEqual(t, utf8.RuneCountInString(tmpl.Name), 255, "template %s has a name longer than 255 characters", tmpl.ID)
 		assert.NotEmpty(t, tmpl.Name, "template %s has no name", tmpl.ID)
 
 		assert.LessOrEqual(t, len(tmpl.ID), 32, "template id %s is longer than 32 characters", tmpl.ID)

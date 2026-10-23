@@ -1833,3 +1833,98 @@ func testTransactionalSendWithCustomSubjectPreview(t *testing.T, client *testuti
 		t.Logf("Message history created with subject_preview in channel_options")
 	})
 }
+
+// TestTransactionalNotificationLengthLimits verifies an id over 32 characters or a name
+// over 255 is refused with the reason (400), not left to fail in the insert as a server
+// error, and that values at the limits are stored, counted in characters (issue #463).
+func TestTransactionalNotificationLengthLimits(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	factory := suite.DataFactory
+
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	require.NoError(t, factory.AddUserToWorkspace(user.ID, workspace.ID, "owner"))
+	require.NoError(t, client.Login(user.Email, "password"))
+	client.SetWorkspaceID(workspace.ID)
+
+	template, err := factory.CreateTemplate(workspace.ID)
+	require.NoError(t, err)
+
+	createPayload := func(id, name string) map[string]interface{} {
+		return map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"notification": map[string]interface{}{
+				"id":   id,
+				"name": name,
+				"channels": map[string]interface{}{
+					"email": map[string]interface{}{"template_id": template.ID},
+				},
+			},
+		}
+	}
+	decode := func(resp *http.Response) map[string]interface{} {
+		defer func() { _ = resp.Body.Close() }()
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		return body
+	}
+
+	t.Run("id over 32 characters is refused with the reason", func(t *testing.T) {
+		resp, err := client.CreateTransactionalNotification(createPayload(strings.Repeat("a", 33), "Password reset"))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		assert.Equal(t, "validation error: notification.id length must be between 1 and 32", decode(resp)["error"])
+	})
+
+	t.Run("name over 255 characters is refused with the reason", func(t *testing.T) {
+		resp, err := client.CreateTransactionalNotification(createPayload("name_too_long", strings.Repeat("a", 256)))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		assert.Equal(t, "validation error: notification.name length must be between 1 and 255", decode(resp)["error"])
+	})
+
+	t.Run("values at the limits are stored, and a longer rename is refused", func(t *testing.T) {
+		id := strings.Repeat("b", 32)
+		name := strings.Repeat("é", 255)
+
+		resp, err := client.CreateTransactionalNotification(createPayload(id, name))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode, "create: %v", decode(resp))
+		_ = resp.Body.Close()
+
+		storedName := func() string {
+			getResp, err := client.GetTransactionalNotification(id)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, getResp.StatusCode)
+			notification, ok := decode(getResp)["notification"].(map[string]interface{})
+			require.True(t, ok, "transactional.get must return the notification")
+			stored, _ := notification["name"].(string)
+			return stored
+		}
+		assert.Equal(t, name, storedName())
+
+		renameResp, err := client.UpdateTransactionalNotification(id, map[string]interface{}{"name": strings.Repeat("a", 256)})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, renameResp.StatusCode)
+		assert.Equal(t, "validation error: updates.name length must be between 1 and 255", decode(renameResp)["error"])
+		assert.Equal(t, name, storedName(), "a refused rename leaves the name as it was")
+
+		renamed := strings.Repeat("à", 255)
+		okResp, err := client.UpdateTransactionalNotification(id, map[string]interface{}{"name": renamed})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, okResp.StatusCode, "rename: %v", decode(okResp))
+		_ = okResp.Body.Close()
+		assert.Equal(t, renamed, storedName())
+	})
+}

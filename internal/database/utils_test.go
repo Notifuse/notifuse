@@ -8,6 +8,7 @@ import (
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetConnectionPoolSettings(t *testing.T) {
@@ -277,6 +278,33 @@ func TestEnsureWorkspaceDatabaseExists(t *testing.T) {
 
 		// Should fail due to invalid host, but we can verify the error message structure
 		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to ping PostgreSQL server")
+	})
+
+	// PostgreSQL would create the lowercase name and every connection uses the name as
+	// written, so a name with uppercase letters is refused before any connection is tried.
+	t.Run("Name with uppercase letters", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "invalid",
+			Password: "invalid",
+			Host:     "nonexistent-host",
+			Port:     9999,
+			Prefix:   "test",
+			SSLMode:  "disable",
+		}
+
+		err := EnsureWorkspaceDatabaseExists(cfg, "AcmeCo")
+		assert.EqualError(t, err, "workspace database name must be lowercase: test_ws_AcmeCo")
+
+		cfg.Prefix = "Notifuse"
+		err = EnsureWorkspaceDatabaseExists(cfg, "acmeco")
+		assert.EqualError(t, err, "workspace database name must be lowercase: Notifuse_ws_acmeco")
+
+		// PostgreSQL folds only ASCII letters, so a name with another capital letter is
+		// created and opened as written, and goes on to the connection.
+		cfg.Prefix = "notifuseÜ"
+		err = EnsureWorkspaceDatabaseExists(cfg, "acmeco")
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to ping PostgreSQL server")
 	})
 }

@@ -9686,7 +9686,7 @@
             "type": "string",
             "description": "Name of the template",
             "example": "Welcome Email",
-            "maxLength": 32
+            "maxLength": 255
           },
           "version": {
             "type": "integer",
@@ -9898,7 +9898,7 @@
             "type": "string",
             "description": "Name of the template",
             "example": "Welcome Email",
-            "maxLength": 32
+            "maxLength": 255
           },
           "channel": {
             "type": "string",
@@ -9981,7 +9981,7 @@
             "type": "string",
             "description": "Name of the template",
             "example": "Welcome Email",
-            "maxLength": 32
+            "maxLength": 255
           },
           "channel": {
             "type": "string",

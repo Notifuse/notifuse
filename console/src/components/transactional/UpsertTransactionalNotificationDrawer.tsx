@@ -12,17 +12,20 @@ import type { Workspace } from '../../services/api/types'
 import TemplateSelectorInput from '../templates/TemplateSelectorInput'
 import React from 'react'
 import extractTLD from '../../lib/tld'
+import { truncateIdentifier } from '../../utils/identifiers'
+import { TRANSACTIONAL_ID_MAX_LENGTH, TRANSACTIONAL_NAME_MAX_LENGTH } from '../../constants/limits'
 
 // Helper function to generate a valid API ID from a name
 const generateApiId = (name: string): string => {
   if (!name) return ''
 
   // Remove special characters, replace spaces with underscores, and convert to lowercase
-  return name
+  const id = name
     .toLowerCase()
     .replace(/[^\w\s]/g, '')
     .replace(/\s+/g, '_')
     .replace(/_+/g, '_')
+  return truncateIdentifier(id, TRANSACTIONAL_ID_MAX_LENGTH)
 }
 
 interface UpsertTransactionalNotificationDrawerProps {
@@ -262,14 +265,25 @@ export function UpsertTransactionalNotificationDrawer({
               <Form.Item
                 name="name"
                 label={t`Notification name`}
-                rules={[{ required: true, message: t`Please enter a notification name` }]}
+                rules={[
+                  { required: true, message: t`Please enter a notification name` },
+                  {
+                    max: TRANSACTIONAL_NAME_MAX_LENGTH,
+                    message: t`Notification name must be at most ${TRANSACTIONAL_NAME_MAX_LENGTH} characters long`
+                  }
+                ]}
                 tooltip={
                   isIntegrationManaged
                     ? t`This notification is managed by an integration and cannot be renamed`
                     : undefined
                 }
               >
-                <Input placeholder={t`E.g. Password Reset Email`} disabled={isIntegrationManaged} />
+                <Input
+                  placeholder={t`E.g. Password Reset Email`}
+                  disabled={isIntegrationManaged}
+                  maxLength={TRANSACTIONAL_NAME_MAX_LENGTH}
+                  showCount
+                />
               </Form.Item>
 
               <Form.Item
@@ -281,10 +295,19 @@ export function UpsertTransactionalNotificationDrawer({
                   {
                     pattern: /^[a-z0-9_]+$/,
                     message: t`ID can only contain lowercase letters, numbers, and underscores`
+                  },
+                  {
+                    max: TRANSACTIONAL_ID_MAX_LENGTH,
+                    message: t`API identifier must be at most ${TRANSACTIONAL_ID_MAX_LENGTH} characters long`
                   }
                 ]}
               >
-                <Input placeholder={t`E.g. password_reset`} disabled={!!notification} />
+                <Input
+                  placeholder={t`E.g. password_reset`}
+                  disabled={!!notification}
+                  maxLength={TRANSACTIONAL_ID_MAX_LENGTH}
+                  showCount
+                />
               </Form.Item>
 
               <Form.Item

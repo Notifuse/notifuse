@@ -269,3 +269,43 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     expect(payload.updates.tracking_settings.tracking_mode).toBe('disabled')
   })
 })
+
+// The API identifier is stored in 32 characters and the name in 255 (issue #463): the
+// fields say so, and an identifier filled in from a long name fits instead of failing on save.
+describe('UpsertTransactionalNotificationDrawer name and API identifier length', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(transactionalNotificationsApi.create as Mock).mockResolvedValue({ notification: {} })
+  })
+
+  const idInput = () => screen.getByPlaceholderText('E.g. password_reset') as HTMLInputElement
+  const nameInput = () =>
+    screen.getByPlaceholderText('E.g. Password Reset Email') as HTMLInputElement
+
+  it('limits the name to 255 characters and the API identifier to 32', async () => {
+    await openCreateDrawer()
+
+    expect(nameInput()).toHaveAttribute('maxlength', '255')
+    expect(idInput()).toHaveAttribute('maxlength', '32')
+  })
+
+  it('cuts the identifier and utm_content filled in from a long name to 32 characters', async () => {
+    await openCreateDrawer()
+
+    // its generated identifier's first 32 characters end on an underscore
+    await userEvent.type(nameInput(), 'Password reset email for a user list')
+    await userEvent.type(screen.getByTestId('template-selector'), 'tmpl1')
+
+    expect(idInput().value).toBe('password_reset_email_for_a_user')
+    expect((screen.getByPlaceholderText('e.g. cta_button') as HTMLInputElement).value).toBe(
+      'password_reset_email_for_a_user'
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(transactionalNotificationsApi.create).toHaveBeenCalled())
+    const payload = (transactionalNotificationsApi.create as Mock).mock.calls[0][0]
+    expect(payload.notification.id).toBe('password_reset_email_for_a_user')
+    expect(payload.notification.name).toBe('Password reset email for a user list')
+  })
+})
