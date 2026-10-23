@@ -2,6 +2,8 @@ package queue
 
 import (
 	"os"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -10,204 +12,409 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	providerErr  = &emailerror.ClassifiedError{Type: emailerror.ErrorTypeProvider}
+	recipientErr = &emailerror.ClassifiedError{Type: emailerror.ErrorTypeRecipient}
+)
+
+// openBreaker returns a breaker opened by threshold failures, and the ticket a send
+// took while it was still closed.
+func openBreaker(t *testing.T, threshold int, cooldown time.Duration) (*CircuitBreaker, Ticket) {
+	t.Helper()
+	cb := NewCircuitBreaker(threshold, cooldown)
+	ticket, ok := cb.Allow()
+	require.True(t, ok)
+	for i := 0; i < threshold; i++ {
+		cb.RecordFailure(ticket, providerErr)
+	}
+	require.True(t, cb.IsOpen())
+	return cb, ticket
+}
+
 func TestCircuitBreaker_OpenAfterThreshold(t *testing.T) {
 	cb := NewCircuitBreaker(3, 1*time.Minute)
-
-	// Should start closed
 	assert.False(t, cb.IsOpen())
 
-	// Record failures
-	providerErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeProvider}
+	ticket, ok := cb.Allow()
+	require.True(t, ok)
+	assert.False(t, ticket.Probe)
 
-	cb.RecordFailure(providerErr)
-	assert.False(t, cb.IsOpen())
+	counted, opened := cb.RecordFailure(ticket, providerErr)
+	assert.True(t, counted)
+	assert.False(t, opened)
 	assert.Equal(t, 1, cb.GetFailures())
 
-	cb.RecordFailure(providerErr)
+	cb.RecordFailure(ticket, providerErr)
 	assert.False(t, cb.IsOpen())
-	assert.Equal(t, 2, cb.GetFailures())
 
-	// Third failure should open the circuit
-	cb.RecordFailure(providerErr)
+	counted, opened = cb.RecordFailure(ticket, providerErr)
+	assert.True(t, counted)
+	assert.True(t, opened, "the failure that reaches the threshold opens the circuit")
 	assert.True(t, cb.IsOpen())
-	assert.Equal(t, 3, cb.GetFailures())
 }
 
 func TestCircuitBreaker_ResetOnSuccess(t *testing.T) {
 	cb := NewCircuitBreaker(3, 1*time.Minute)
-	providerErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeProvider}
+	ticket, _ := cb.Allow()
 
-	// Record some failures
-	cb.RecordFailure(providerErr)
-	cb.RecordFailure(providerErr)
+	cb.RecordFailure(ticket, providerErr)
+	cb.RecordFailure(ticket, providerErr)
 	assert.Equal(t, 2, cb.GetFailures())
 
-	// Success should reset
-	cb.RecordSuccess()
+	cb.RecordSuccess(ticket)
 	assert.Equal(t, 0, cb.GetFailures())
+	assert.Nil(t, cb.GetLastError())
 	assert.False(t, cb.IsOpen())
-}
-
-func TestCircuitBreaker_AutoResetAfterCooldown(t *testing.T) {
-	// Use a very short cooldown for testing
-	cb := NewCircuitBreaker(2, 10*time.Millisecond)
-	providerErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeProvider}
-
-	// Open the circuit
-	cb.RecordFailure(providerErr)
-	cb.RecordFailure(providerErr)
-	assert.True(t, cb.IsOpen())
-
-	// Wait for cooldown
-	time.Sleep(20 * time.Millisecond)
-
-	// Should auto-reset
-	assert.False(t, cb.IsOpen())
-	assert.Equal(t, 0, cb.GetFailures())
 }
 
 func TestCircuitBreaker_GetLastError(t *testing.T) {
 	cb := NewCircuitBreaker(3, 1*time.Minute)
-
-	// Initially nil
 	assert.Nil(t, cb.GetLastError())
 
-	// After failure, should have last error
-	providerErr := &emailerror.ClassifiedError{
-		Type:     emailerror.ErrorTypeProvider,
-		Provider: "ses",
-	}
-	cb.RecordFailure(providerErr)
-	assert.Equal(t, providerErr, cb.GetLastError())
+	sesErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeProvider, Provider: "ses"}
+	ticket, _ := cb.Allow()
+	cb.RecordFailure(ticket, sesErr)
+	assert.Equal(t, sesErr, cb.GetLastError())
 
-	// After success, should be cleared
-	cb.RecordSuccess()
+	cb.RecordSuccess(ticket)
 	assert.Nil(t, cb.GetLastError())
 }
 
-func TestIntegrationCircuitBreaker_PerIntegration(t *testing.T) {
-	config := CircuitBreakerConfig{
-		Threshold:      2,
-		CooldownPeriod: 1 * time.Minute,
+func TestCircuitBreaker_Allow(t *testing.T) {
+	t.Run("a closed circuit allows every send, with the current epoch", func(t *testing.T) {
+		cb := NewCircuitBreaker(2, time.Minute)
+		first, ok := cb.Allow()
+		require.True(t, ok)
+		second, ok := cb.Allow()
+		require.True(t, ok)
+		assert.Equal(t, first, second)
+		assert.False(t, first.Probe)
+	})
+
+	t.Run("an open circuit refuses within its cooldown", func(t *testing.T) {
+		cb, _ := openBreaker(t, 2, time.Minute)
+		_, ok := cb.Allow()
+		assert.False(t, ok)
+	})
+
+	t.Run("after the cooldown, one concurrent caller gets the probe and the others are refused", func(t *testing.T) {
+		cb, _ := openBreaker(t, 2, 20*time.Millisecond)
+		time.Sleep(30 * time.Millisecond)
+
+		var probes atomic.Int32
+		var wg sync.WaitGroup
+		start := make(chan struct{})
+		for i := 0; i < 20; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-start
+				if ticket, ok := cb.Allow(); ok {
+					assert.True(t, ticket.Probe)
+					probes.Add(1)
+				}
+			}()
+		}
+		close(start)
+		wg.Wait()
+		assert.Equal(t, int32(1), probes.Load())
+
+		_, ok := cb.Allow()
+		assert.False(t, ok, "no second probe while the first is out")
+	})
+
+	t.Run("IsOpen changes nothing, even past the cooldown", func(t *testing.T) {
+		cb, _ := openBreaker(t, 2, 10*time.Millisecond)
+		time.Sleep(20 * time.Millisecond)
+
+		assert.True(t, cb.IsOpen())
+		assert.True(t, cb.IsOpen())
+		ticket, ok := cb.Allow()
+		require.True(t, ok)
+		assert.True(t, ticket.Probe, "reading the state did not close the circuit")
+	})
+}
+
+func TestCircuitBreaker_Probe(t *testing.T) {
+	probe := func(t *testing.T, cb *CircuitBreaker) Ticket {
+		t.Helper()
+		ticket, ok := cb.Allow()
+		require.True(t, ok)
+		require.True(t, ticket.Probe)
+		return ticket
 	}
-	icb := NewIntegrationCircuitBreaker(config)
 
-	providerErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeProvider}
+	t.Run("a cancelled probe can be granted again at once", func(t *testing.T) {
+		cb, _ := openBreaker(t, 2, 10*time.Millisecond)
+		time.Sleep(20 * time.Millisecond)
 
-	// Open circuit for integration1
-	icb.RecordFailure("integration1", providerErr)
-	icb.RecordFailure("integration1", providerErr)
+		cb.CancelProbe(probe(t, cb))
+		probe(t, cb)
+	})
+
+	t.Run("a cancel from an earlier epoch frees nothing", func(t *testing.T) {
+		cb, closedTicket := openBreaker(t, 2, 10*time.Millisecond)
+		time.Sleep(20 * time.Millisecond)
+		probe(t, cb)
+
+		cb.CancelProbe(Ticket{Epoch: closedTicket.Epoch, Probe: true})
+		_, ok := cb.Allow()
+		assert.False(t, ok)
+	})
+
+	t.Run("the probe's success closes the circuit", func(t *testing.T) {
+		cb, _ := openBreaker(t, 2, 10*time.Millisecond)
+		time.Sleep(20 * time.Millisecond)
+
+		cb.RecordSuccess(probe(t, cb))
+		assert.False(t, cb.IsOpen())
+		assert.Equal(t, 0, cb.GetFailures())
+		assert.Nil(t, cb.GetLastError())
+	})
+
+	t.Run("the probe's recipient error closes the circuit: the provider answered", func(t *testing.T) {
+		cb, _ := openBreaker(t, 2, 10*time.Millisecond)
+		time.Sleep(20 * time.Millisecond)
+
+		counted, opened := cb.RecordFailure(probe(t, cb), recipientErr)
+		assert.False(t, counted)
+		assert.False(t, opened)
+		assert.False(t, cb.IsOpen())
+	})
+
+	t.Run("the probe's provider failure re-opens the circuit, reports it and restarts the cooldown", func(t *testing.T) {
+		cb, _ := openBreaker(t, 2, 30*time.Millisecond)
+		time.Sleep(40 * time.Millisecond)
+
+		counted, opened := cb.RecordFailure(probe(t, cb), providerErr)
+		assert.True(t, counted)
+		assert.True(t, opened, "the pause hangs on this, and has to fire again for each failed probe")
+		assert.True(t, cb.IsOpen())
+
+		_, ok := cb.Allow()
+		assert.False(t, ok, "a new cooldown starts at the re-opening")
+		time.Sleep(40 * time.Millisecond)
+		probe(t, cb)
+	})
+
+	t.Run("after a probe closes the circuit, the next opening grants a probe after its own cooldown", func(t *testing.T) {
+		cb, _ := openBreaker(t, 1, 10*time.Millisecond)
+		time.Sleep(20 * time.Millisecond)
+		cb.RecordSuccess(probe(t, cb))
+
+		ticket, ok := cb.Allow()
+		require.True(t, ok)
+		_, opened := cb.RecordFailure(ticket, providerErr)
+		require.True(t, opened)
+
+		time.Sleep(20 * time.Millisecond)
+		probe(t, cb)
+	})
+}
+
+func TestCircuitBreaker_LateResults(t *testing.T) {
+	t.Run("a success allowed before the opening does not close it", func(t *testing.T) {
+		// The send was allowed while the circuit was closed but got to the provider
+		// after five others had failed: one success then says nothing about the
+		// provider now, and closing on it would end the cooldown at once.
+		cb, closedTicket := openBreaker(t, 2, time.Minute)
+
+		cb.RecordSuccess(closedTicket)
+		assert.True(t, cb.IsOpen())
+	})
+
+	t.Run("a failure allowed before the opening neither counts nor extends the cooldown", func(t *testing.T) {
+		cb, closedTicket := openBreaker(t, 2, 40*time.Millisecond)
+		time.Sleep(20 * time.Millisecond)
+
+		counted, opened := cb.RecordFailure(closedTicket, providerErr)
+		assert.False(t, counted)
+		assert.False(t, opened)
+
+		time.Sleep(30 * time.Millisecond)
+		ticket, ok := cb.Allow()
+		require.True(t, ok, "the cooldown runs from the opening, not from the late failure")
+		assert.True(t, ticket.Probe)
+	})
+
+	t.Run("a failure allowed before an opening does not count once a probe has closed it", func(t *testing.T) {
+		cb, closedTicket := openBreaker(t, 2, 10*time.Millisecond)
+		time.Sleep(20 * time.Millisecond)
+		probeTicket, ok := cb.Allow()
+		require.True(t, ok)
+		cb.RecordSuccess(probeTicket)
+
+		counted, _ := cb.RecordFailure(closedTicket, providerErr)
+		assert.False(t, counted)
+		assert.Equal(t, 0, cb.GetFailures())
+	})
+
+	t.Run("concurrent failures report the opening once", func(t *testing.T) {
+		cb := NewCircuitBreaker(5, time.Minute)
+
+		var opened atomic.Int32
+		var wg sync.WaitGroup
+		start := make(chan struct{})
+		for i := 0; i < 20; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				ticket, ok := cb.Allow()
+				<-start
+				if !ok {
+					return
+				}
+				if _, o := cb.RecordFailure(ticket, providerErr); o {
+					opened.Add(1)
+				}
+			}()
+		}
+		close(start)
+		wg.Wait()
+		assert.Equal(t, int32(1), opened.Load())
+	})
+}
+
+func TestIntegrationCircuitBreaker_PerIntegration(t *testing.T) {
+	icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{Threshold: 2, CooldownPeriod: 10 * time.Millisecond})
+
+	ticket, ok := icb.Allow("integration1")
+	require.True(t, ok)
+	icb.RecordFailure("integration1", ticket, providerErr)
+	icb.RecordFailure("integration1", ticket, providerErr)
 	assert.True(t, icb.IsOpen("integration1"))
 
-	// integration2 should still be closed
+	_, ok = icb.Allow("integration2")
+	assert.True(t, ok, "another integration is unaffected")
 	assert.False(t, icb.IsOpen("integration2"))
 
-	// Success on integration1 should close it
-	icb.RecordSuccess("integration1")
+	time.Sleep(20 * time.Millisecond)
+	probe, ok := icb.Allow("integration1")
+	require.True(t, ok)
+	require.True(t, probe.Probe)
+	icb.RecordSuccess("integration1", probe)
 	assert.False(t, icb.IsOpen("integration1"))
 }
 
 func TestIntegrationCircuitBreaker_IgnoresRecipientErrors(t *testing.T) {
-	config := CircuitBreakerConfig{
-		Threshold:      2,
-		CooldownPeriod: 1 * time.Minute,
-	}
-	icb := NewIntegrationCircuitBreaker(config)
+	icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{Threshold: 2, CooldownPeriod: time.Minute})
+	ticket, _ := icb.Allow("integration1")
 
-	recipientErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeRecipient}
-	providerErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeProvider}
-
-	// Recipient errors should not count
-	counted, _ := icb.RecordFailure("integration1", recipientErr)
+	counted, opened := icb.RecordFailure("integration1", ticket, recipientErr)
 	assert.False(t, counted)
-
-	counted, _ = icb.RecordFailure("integration1", recipientErr)
+	assert.False(t, opened)
+	counted, _ = icb.RecordFailure("integration1", ticket, recipientErr)
 	assert.False(t, counted)
-
-	// Circuit should still be closed
 	assert.False(t, icb.IsOpen("integration1"))
 
-	// But provider errors should count
-	counted, _ = icb.RecordFailure("integration1", providerErr)
+	counted, _ = icb.RecordFailure("integration1", ticket, providerErr)
 	assert.True(t, counted)
-
-	counted, _ = icb.RecordFailure("integration1", providerErr)
+	counted, opened = icb.RecordFailure("integration1", ticket, providerErr)
 	assert.True(t, counted)
-
-	// Now circuit should be open
+	assert.True(t, opened)
 	assert.True(t, icb.IsOpen("integration1"))
 }
 
-func TestIntegrationCircuitBreaker_NilError(t *testing.T) {
-	config := CircuitBreakerConfig{
-		Threshold:      2,
-		CooldownPeriod: 1 * time.Minute,
-	}
-	icb := NewIntegrationCircuitBreaker(config)
+func TestIntegrationCircuitBreaker_ProbeRecipientErrorReachesTheBreaker(t *testing.T) {
+	// The manager used to drop recipient errors before the breaker. A probe needs
+	// one to get through: it is the provider answering.
+	icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{Threshold: 1, CooldownPeriod: 10 * time.Millisecond})
+	ticket, _ := icb.Allow("integration1")
+	icb.RecordFailure("integration1", ticket, providerErr)
+	time.Sleep(20 * time.Millisecond)
 
-	// Nil error should not count
-	counted, _ := icb.RecordFailure("integration1", nil)
-	assert.False(t, counted)
-
-	// Circuit should still be closed
+	probe, ok := icb.Allow("integration1")
+	require.True(t, ok)
+	icb.RecordFailure("integration1", probe, recipientErr)
 	assert.False(t, icb.IsOpen("integration1"))
 }
 
+func TestIntegrationCircuitBreaker_NilError(t *testing.T) {
+	icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{Threshold: 2, CooldownPeriod: time.Minute})
+	ticket, _ := icb.Allow("integration1")
+
+	counted, _ := icb.RecordFailure("integration1", ticket, nil)
+	assert.False(t, counted)
+	assert.False(t, icb.IsOpen("integration1"))
+
+	t.Run("a probe recorded with no error is released, not left out", func(t *testing.T) {
+		icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{Threshold: 1, CooldownPeriod: 10 * time.Millisecond})
+		ticket, _ := icb.Allow("integration1")
+		icb.RecordFailure("integration1", ticket, providerErr)
+		time.Sleep(20 * time.Millisecond)
+
+		probe, _ := icb.Allow("integration1")
+		require.True(t, probe.Probe)
+		icb.RecordFailure("integration1", probe, nil)
+		again, ok := icb.Allow("integration1")
+		require.True(t, ok)
+		assert.True(t, again.Probe)
+	})
+}
+
+func TestIntegrationCircuitBreaker_CancelProbe(t *testing.T) {
+	icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{Threshold: 1, CooldownPeriod: 10 * time.Millisecond})
+
+	icb.CancelProbe("unknown", Ticket{Probe: true}) // no breaker: nothing to do
+
+	ticket, _ := icb.Allow("integration1")
+	icb.RecordFailure("integration1", ticket, providerErr)
+	time.Sleep(20 * time.Millisecond)
+
+	probe, ok := icb.Allow("integration1")
+	require.True(t, ok)
+	icb.CancelProbe("integration1", probe)
+	again, ok := icb.Allow("integration1")
+	require.True(t, ok)
+	assert.True(t, again.Probe)
+}
+
 func TestIntegrationCircuitBreaker_GetStats(t *testing.T) {
-	config := CircuitBreakerConfig{
-		Threshold:      3,
-		CooldownPeriod: 1 * time.Minute,
-	}
-	icb := NewIntegrationCircuitBreaker(config)
+	icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{Threshold: 3, CooldownPeriod: 100 * time.Millisecond})
 
-	providerErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeProvider}
+	t1, _ := icb.Allow("integration1")
+	icb.RecordFailure("integration1", t1, providerErr)
+	icb.RecordFailure("integration1", t1, providerErr)
 
-	// Record failures for integration1
-	icb.RecordFailure("integration1", providerErr)
-	icb.RecordFailure("integration1", providerErr)
+	t2, _ := icb.Allow("integration2")
+	icb.RecordFailure("integration2", t2, providerErr)
+	icb.RecordFailure("integration2", t2, providerErr)
+	icb.RecordFailure("integration2", t2, providerErr)
 
-	// Open circuit for integration2
-	icb.RecordFailure("integration2", providerErr)
-	icb.RecordFailure("integration2", providerErr)
-	icb.RecordFailure("integration2", providerErr)
+	time.Sleep(40 * time.Millisecond)
+	// A late failure: it must not move the cooldown the stats report.
+	icb.RecordFailure("integration2", t2, providerErr)
 
 	stats := icb.GetStats()
 
-	// Check integration1 stats
 	stat1, ok := stats["integration1"]
-	assert.True(t, ok)
+	require.True(t, ok)
 	assert.False(t, stat1.IsOpen)
 	assert.Equal(t, 2, stat1.Failures)
 	assert.Equal(t, 3, stat1.Threshold)
 
-	// Check integration2 stats
 	stat2, ok := stats["integration2"]
-	assert.True(t, ok)
+	require.True(t, ok)
 	assert.True(t, stat2.IsOpen)
-	assert.Equal(t, 3, stat2.Failures)
 	assert.Equal(t, 3, stat2.Threshold)
-	assert.True(t, stat2.CooldownLeft > 0)
+	assert.Greater(t, stat2.CooldownLeft, time.Duration(0))
+	assert.LessOrEqual(t, stat2.CooldownLeft, 60*time.Millisecond, "counted from the opening")
+	assert.False(t, stat2.ProbeInFlight)
+
+	time.Sleep(70 * time.Millisecond)
+	_, ok = icb.Allow("integration2")
+	require.True(t, ok)
+	assert.True(t, icb.GetStats()["integration2"].ProbeInFlight)
 }
 
 func TestIntegrationCircuitBreaker_GetLastError(t *testing.T) {
-	config := CircuitBreakerConfig{
-		Threshold:      3,
-		CooldownPeriod: 1 * time.Minute,
-	}
-	icb := NewIntegrationCircuitBreaker(config)
-
-	// Initially nil
+	icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{Threshold: 3, CooldownPeriod: time.Minute})
 	assert.Nil(t, icb.GetLastError("integration1"))
 
-	// After failure
-	providerErr := &emailerror.ClassifiedError{
-		Type:     emailerror.ErrorTypeProvider,
-		Provider: "ses",
-	}
-	icb.RecordFailure("integration1", providerErr)
-	assert.Equal(t, providerErr, icb.GetLastError("integration1"))
-
-	// Different integration should still be nil
+	sesErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeProvider, Provider: "ses"}
+	ticket, _ := icb.Allow("integration1")
+	icb.RecordFailure("integration1", ticket, sesErr)
+	assert.Equal(t, sesErr, icb.GetLastError("integration1"))
 	assert.Nil(t, icb.GetLastError("integration2"))
 }
 
@@ -224,53 +431,31 @@ func TestIntegrationCircuitBreaker_GetConfig(t *testing.T) {
 }
 
 func TestIntegrationCircuitBreaker_Clear(t *testing.T) {
-	config := CircuitBreakerConfig{
-		Threshold:      2,
-		CooldownPeriod: 1 * time.Minute,
+	icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{Threshold: 2, CooldownPeriod: time.Minute})
+
+	for _, id := range []string{"integration1", "integration2"} {
+		ticket, _ := icb.Allow(id)
+		icb.RecordFailure(id, ticket, providerErr)
+		icb.RecordFailure(id, ticket, providerErr)
+		require.True(t, icb.IsOpen(id))
 	}
-	icb := NewIntegrationCircuitBreaker(config)
 
-	providerErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeProvider}
-
-	// Open some circuits
-	icb.RecordFailure("integration1", providerErr)
-	icb.RecordFailure("integration1", providerErr)
-	icb.RecordFailure("integration2", providerErr)
-	icb.RecordFailure("integration2", providerErr)
-
-	assert.True(t, icb.IsOpen("integration1"))
-	assert.True(t, icb.IsOpen("integration2"))
-
-	// Clear all
 	icb.Clear()
 
-	// Stats should be empty
-	stats := icb.GetStats()
-	assert.Empty(t, stats)
-
-	// New checks should not be open
+	assert.Empty(t, icb.GetStats())
 	assert.False(t, icb.IsOpen("integration1"))
 	assert.False(t, icb.IsOpen("integration2"))
 }
 
 func TestIntegrationCircuitBreaker_Remove(t *testing.T) {
-	config := CircuitBreakerConfig{
-		Threshold:      2,
-		CooldownPeriod: 1 * time.Minute,
-	}
-	icb := NewIntegrationCircuitBreaker(config)
+	icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{Threshold: 2, CooldownPeriod: time.Minute})
 
-	providerErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeProvider}
+	ticket, _ := icb.Allow("integration1")
+	icb.RecordFailure("integration1", ticket, providerErr)
+	icb.RecordFailure("integration1", ticket, providerErr)
+	require.True(t, icb.IsOpen("integration1"))
 
-	// Open circuit for integration1
-	icb.RecordFailure("integration1", providerErr)
-	icb.RecordFailure("integration1", providerErr)
-	assert.True(t, icb.IsOpen("integration1"))
-
-	// Remove integration1
 	icb.Remove("integration1")
-
-	// Should be closed again (no breaker)
 	assert.False(t, icb.IsOpen("integration1"))
 }
 
@@ -324,69 +509,5 @@ func TestGetCircuitBreakerCooldown(t *testing.T) {
 		os.Setenv("CIRCUIT_BREAKER_COOLDOWN", "")
 		defer os.Unsetenv("CIRCUIT_BREAKER_COOLDOWN")
 		assert.Equal(t, 1*time.Minute, getCircuitBreakerCooldown())
-	})
-}
-
-// TestCircuitBreaker_ReportsTheOpenTransition covers the signal the broadcast pause
-// hangs on. The breaker is checked per entry and a large queue can skip thousands of
-// them while it is open, so "the circuit is open" is not usable as a trigger — only
-// the moment it flips is. And it flips more than once per outage: the breaker does not
-// latch, so it resets after its cooldown and opens again, which is why whatever acts
-// on this has to be idempotent.
-func TestCircuitBreaker_ReportsTheOpenTransition(t *testing.T) {
-	providerErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeProvider}
-
-	t.Run("only the failure that reaches the threshold reports it", func(t *testing.T) {
-		cb := NewCircuitBreaker(5, time.Minute)
-
-		for i := 1; i < 5; i++ {
-			assert.False(t, cb.RecordFailure(providerErr), "failure %d is below the threshold", i)
-		}
-		assert.True(t, cb.RecordFailure(providerErr), "the fifth failure opens the circuit")
-	})
-
-	t.Run("does not report again while already open", func(t *testing.T) {
-		cb := NewCircuitBreaker(2, time.Minute)
-
-		cb.RecordFailure(providerErr)
-		assert.True(t, cb.RecordFailure(providerErr))
-		assert.False(t, cb.RecordFailure(providerErr), "already open is not a transition")
-	})
-
-	t.Run("reports again after a cooldown reset", func(t *testing.T) {
-		// The breaker restores a full failure budget once its cooldown elapses, so a
-		// provider that stays down opens it once per cooldown period, not once.
-		cb := NewCircuitBreaker(2, 20*time.Millisecond)
-
-		cb.RecordFailure(providerErr)
-		require.True(t, cb.RecordFailure(providerErr))
-
-		time.Sleep(30 * time.Millisecond)
-		require.False(t, cb.IsOpen(), "the cooldown resets it rather than latching")
-
-		cb.RecordFailure(providerErr)
-		assert.True(t, cb.RecordFailure(providerErr), "it opens again on the next run of failures")
-	})
-
-	t.Run("a recipient error neither counts nor reports", func(t *testing.T) {
-		icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{Threshold: 1, CooldownPeriod: time.Minute})
-		recipientErr := &emailerror.ClassifiedError{Type: emailerror.ErrorTypeRecipient}
-
-		counted, opened := icb.RecordFailure("integration1", recipientErr)
-		assert.False(t, counted)
-		assert.False(t, opened)
-		assert.False(t, icb.IsOpen("integration1"))
-	})
-
-	t.Run("the per-integration wrapper passes the transition through", func(t *testing.T) {
-		icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{Threshold: 2, CooldownPeriod: time.Minute})
-
-		counted, opened := icb.RecordFailure("integration1", providerErr)
-		assert.True(t, counted)
-		assert.False(t, opened)
-
-		counted, opened = icb.RecordFailure("integration1", providerErr)
-		assert.True(t, counted)
-		assert.True(t, opened)
 	})
 }

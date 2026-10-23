@@ -2,25 +2,57 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"golang.org/x/time/rate"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/emailerror"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
+// defaultRatePerMinute is the rate of an email integration whose limit is not set.
+const defaultRatePerMinute = 60
+
+// orphanBatchSize is how many rows of unknown integrations one orphan pass handles.
+const orphanBatchSize = 50
+
 // EmailQueueWorkerConfig holds configuration for the worker pool
 type EmailQueueWorkerConfig struct {
-	WorkerCount  int           // Number of concurrent workers per workspace (default: 5)
+	WorkerCount  int           // Number of workspaces processed in parallel (default: 5)
 	PollInterval time.Duration // How often to poll for new work (default: 1s)
-	BatchSize    int           // How many emails to fetch per poll (default: 50)
+	BatchSize    int           // Most rows one email integration fetches per round (default: 200)
 	MaxRetries   int           // Max retry attempts before permanent failure (default: 3)
+
+	// Emails sent at once per email integration. SMTP has its own setting because each
+	// email opens its own connection, and relays often limit how many they accept.
+	SendConcurrency     int // default: 10
+	SMTPSendConcurrency int // default: 1
+
+	// RoundWindow is how far ahead a round dispatches. An integration fetches what its
+	// rate allows in this window, up to BatchSize, and stops dispatching once its next
+	// token falls due after it. The round ends when every lane's sends are done, so
+	// slow sends, workspaces beyond WorkerCount and a full orphan pass lengthen it, and
+	// a lane that reaches BatchSize first waits for the rest of the round and the next
+	// poll tick.
+	RoundWindow time.Duration // default: 2s
+
+	// Stop lets the sends in flight finish for ShutdownGrace, then cancels them and
+	// waits at most AbortWait more for those that ignore cancellation (SMTP).
+	ShutdownGrace time.Duration // default: 10s
+	AbortWait     time.Duration // default: 5s
+
+	// OrphanCheckInterval is how often each workspace is checked for rows whose email
+	// integration no longer exists.
+	OrphanCheckInterval time.Duration // default: 1 minute
 
 	// Circuit breaker settings
 	CircuitBreakerThreshold int           // Provider errors before opening circuit (default: 5)
-	CircuitBreakerCooldown  time.Duration // Time before auto-reset attempt (default: 1 minute)
+	CircuitBreakerCooldown  time.Duration // Time before a probe send is let through (default: 1 minute)
 
 	// Retention for entries that spent every attempt. They are kept so the
 	// recipients they name can be retried, and they hold one compiled email each,
@@ -36,8 +68,14 @@ func DefaultWorkerConfig() *EmailQueueWorkerConfig {
 	return &EmailQueueWorkerConfig{
 		WorkerCount:             5,
 		PollInterval:            1 * time.Second,
-		BatchSize:               50,
+		BatchSize:               200,
 		MaxRetries:              3,
+		SendConcurrency:         10,
+		SMTPSendConcurrency:     1,
+		RoundWindow:             2 * time.Second,
+		ShutdownGrace:           10 * time.Second,
+		AbortWait:               5 * time.Second,
+		OrphanCheckInterval:     time.Minute,
 		CircuitBreakerThreshold: 5,
 		CircuitBreakerCooldown:  getCircuitBreakerCooldown(),
 		TerminalRetentionDays:   7,
@@ -45,14 +83,69 @@ func DefaultWorkerConfig() *EmailQueueWorkerConfig {
 	}
 }
 
+// withSendDefaults returns a copy of c whose sending settings left at zero take their
+// default, so a partial configuration cannot fetch nothing or send nothing.
+func (c EmailQueueWorkerConfig) withSendDefaults() *EmailQueueWorkerConfig {
+	d := DefaultWorkerConfig()
+	if c.BatchSize <= 0 {
+		c.BatchSize = d.BatchSize
+	}
+	if c.SendConcurrency <= 0 {
+		c.SendConcurrency = d.SendConcurrency
+	}
+	if c.SMTPSendConcurrency <= 0 {
+		c.SMTPSendConcurrency = d.SMTPSendConcurrency
+	}
+	if c.RoundWindow <= 0 {
+		c.RoundWindow = d.RoundWindow
+	}
+	if c.ShutdownGrace <= 0 {
+		c.ShutdownGrace = d.ShutdownGrace
+	}
+	if c.AbortWait <= 0 {
+		c.AbortWait = d.AbortWait
+	}
+	if c.OrphanCheckInterval <= 0 {
+		c.OrphanCheckInterval = d.OrphanCheckInterval
+	}
+	return &c
+}
+
+// laneBatchSize is how many rows an email integration fetches for one round: what its
+// rate allows within the round window, at least one and at most maxBatch.
+func laneBatchSize(ratePerMinute int, window time.Duration, maxBatch int) int {
+	if ratePerMinute <= 0 {
+		ratePerMinute = defaultRatePerMinute
+	}
+	const minuteMs = int64(time.Minute / time.Millisecond)
+	n := (int64(ratePerMinute)*window.Milliseconds() + minuteMs - 1) / minuteMs
+	if n < 1 {
+		n = 1
+	}
+	if n > int64(maxBatch) {
+		n = int64(maxBatch)
+	}
+	return int(n)
+}
+
+// integrationRate is the integration's rate limit, with the default when it is not set.
+// It is read from the integration on every round, never from the queued payload, so an
+// edited limit applies at once.
+func integrationRate(integration *domain.Integration) int {
+	if rate := integration.EmailProvider.RateLimitPerMinute; rate > 0 {
+		return rate
+	}
+	return defaultRatePerMinute
+}
+
 // EmailSentCallback is called when an email is successfully sent
 type EmailSentCallback func(workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string, messageID string)
 
 // CircuitOpenCallback is called the moment an integration's circuit breaker opens.
-// The transition is the signal, not the state: the breaker is consulted once per queue
-// entry, so an open circuit is observed thousands of times for one outage. It fires
-// again each time the breaker re-opens after a cooldown, so whatever it triggers has
-// to be idempotent.
+// The transition is the signal, not the state: one outage is observed by every send in
+// flight. It is called once per opening, after the sends that were in flight have
+// recorded their outcome, so whatever it pauses includes them. It fires again each time
+// a probe fails after a cooldown, so whatever it triggers has to be idempotent.
 type CircuitOpenCallback func(workspaceID string, integrationID string, lastErr *emailerror.ClassifiedError)
 
 // EmailFailedCallback is called when an email fails to send
@@ -78,12 +171,30 @@ type EmailQueueWorker struct {
 	// lastCleanupTime throttles the retention sweep, which walks every workspace.
 	lastCleanupTime time.Time
 
-	// Control
-	ctx     context.Context
-	cancel  context.CancelFunc
-	wg      sync.WaitGroup
-	running bool
-	mu      sync.RWMutex
+	// lastOrphanCheck throttles, per workspace, the search for rows whose email
+	// integration no longer exists.
+	orphanMu        sync.Mutex
+	lastOrphanCheck map[string]time.Time
+
+	// Control. Stop cancels ctx: no new round, token or claim. A send already claimed
+	// runs on contexts the stop does not cancel. sendCtx carries what leads up to the
+	// email leaving and is cancelled only once the shutdown grace runs out; writeCtx
+	// records the outcome and is never cancelled, since a lost MarkAsSent means the
+	// email is sent again after the restart.
+	ctx        context.Context
+	cancel     context.CancelFunc
+	sendCtx    context.Context
+	abortSends context.CancelFunc
+	writeCtx   context.Context
+	running    bool
+	mu         sync.RWMutex
+
+	// loopDone is closed when the loop of the latest Start returns, which can be after
+	// Stop does: Stop gives up on a send that ignores its cancellation.
+	loopDone chan struct{}
+
+	// inFlight counts the rows dispatched and not yet done, for the shutdown log.
+	inFlight atomic.Int64
 
 	// Callbacks for progress tracking
 	onEmailSent   EmailSentCallback
@@ -105,6 +216,7 @@ func NewEmailQueueWorker(
 	if config == nil {
 		config = DefaultWorkerConfig()
 	}
+	config = config.withSendDefaults()
 
 	// Setup circuit breaker config with defaults
 	cbConfig := CircuitBreakerConfig{
@@ -127,6 +239,7 @@ func NewEmailQueueWorker(
 		// time it would DELETE across every workspace database on the first poll tick,
 		// during startup, for no reason — nothing has aged out in the meantime.
 		lastCleanupTime: time.Now(),
+		lastOrphanCheck: make(map[string]time.Time),
 		rateLimiter:     NewIntegrationRateLimiter(),
 		circuitBreaker:  NewIntegrationCircuitBreaker(cbConfig),
 		errorClassifier: emailerror.NewClassifier(),
@@ -135,7 +248,8 @@ func NewEmailQueueWorker(
 	}
 }
 
-// SetCallbacks sets callback functions for progress tracking
+// SetCallbacks sets callback functions for progress tracking. They are called from
+// concurrent sends, so they must be safe for concurrent use.
 func (w *EmailQueueWorker) SetCallbacks(onSent EmailSentCallback, onFailed EmailFailedCallback) {
 	w.onEmailSent = onSent
 	w.onEmailFailed = onFailed
@@ -148,6 +262,13 @@ func (w *EmailQueueWorker) SetCircuitOpenCallback(cb CircuitOpenCallback) {
 	w.onCircuitOpen = cb
 }
 
+// initContexts derives the worker's contexts from the one it is started with.
+func (w *EmailQueueWorker) initContexts(ctx context.Context) {
+	w.ctx, w.cancel = context.WithCancel(ctx)
+	w.sendCtx, w.abortSends = context.WithCancel(context.WithoutCancel(ctx))
+	w.writeCtx = context.WithoutCancel(ctx)
+}
+
 // Start begins processing queued emails
 func (w *EmailQueueWorker) Start(ctx context.Context) error {
 	w.mu.Lock()
@@ -155,24 +276,43 @@ func (w *EmailQueueWorker) Start(ctx context.Context) error {
 		w.mu.Unlock()
 		return nil
 	}
-	w.ctx, w.cancel = context.WithCancel(ctx)
+	if w.loopDone != nil {
+		select {
+		case <-w.loopDone:
+		default:
+			// The previous run's loop still reads the contexts Start would replace, and
+			// two loops would fetch the rows the other is sending.
+			w.mu.Unlock()
+			return errors.New("email queue worker is still finishing a send of its previous run")
+		}
+	}
+	w.initContexts(ctx)
 	w.running = true
+	loopDone := make(chan struct{})
+	w.loopDone = loopDone
 	w.mu.Unlock()
 
 	w.logger.WithFields(map[string]interface{}{
-		"worker_count":  w.config.WorkerCount,
-		"poll_interval": w.config.PollInterval.String(),
-		"batch_size":    w.config.BatchSize,
+		"worker_count":          w.config.WorkerCount,
+		"poll_interval":         w.config.PollInterval.String(),
+		"batch_size":            w.config.BatchSize,
+		"send_concurrency":      w.config.SendConcurrency,
+		"smtp_send_concurrency": w.config.SMTPSendConcurrency,
+		"round_window":          w.config.RoundWindow.String(),
 	}).Info("Starting email queue worker")
 
 	// Start the main processing loop
-	w.wg.Add(1)
-	go w.processLoop()
+	go func() {
+		defer close(loopDone)
+		w.processLoop()
+	}()
 
 	return nil
 }
 
-// Stop gracefully stops all workers
+// Stop stops taking new work and waits for the sends in flight. Those still running
+// after ShutdownGrace are cancelled; Stop then waits at most AbortWait for them, since
+// an SMTP send cannot be interrupted, and returns.
 func (w *EmailQueueWorker) Stop() {
 	w.mu.Lock()
 	if !w.running {
@@ -181,11 +321,33 @@ func (w *EmailQueueWorker) Stop() {
 	}
 	w.running = false
 	w.cancel()
+	// Read under the lock: once the loop is done, a Start can replace them.
+	done, abortSends := w.loopDone, w.abortSends
 	w.mu.Unlock()
 
 	w.logger.Info("Stopping email queue worker...")
-	w.wg.Wait()
-	w.logger.Info("Email queue worker stopped")
+
+	select {
+	case <-done:
+		w.logger.Info("Email queue worker stopped")
+		return
+	case <-time.After(w.config.ShutdownGrace):
+	}
+
+	w.logger.WithFields(map[string]interface{}{
+		"in_flight":      w.inFlight.Load(),
+		"shutdown_grace": w.config.ShutdownGrace.String(),
+	}).Warn("Emails still sending after the shutdown grace; cancelling them")
+	abortSends()
+
+	select {
+	case <-done:
+		w.logger.Info("Email queue worker stopped")
+	case <-time.After(w.config.AbortWait):
+		// Their rows stay in processing and are sent again two minutes after the restart.
+		w.logger.WithField("in_flight", w.inFlight.Load()).
+			Error("Email queue worker stopped with sends still running")
+	}
 }
 
 // IsRunning returns whether the worker is currently running
@@ -197,7 +359,6 @@ func (w *EmailQueueWorker) IsRunning() bool {
 
 // processLoop is the main processing loop that polls for work
 func (w *EmailQueueWorker) processLoop() {
-	defer w.wg.Done()
 
 	ticker := time.NewTicker(w.config.PollInterval)
 	defer ticker.Stop()
@@ -208,17 +369,24 @@ func (w *EmailQueueWorker) processLoop() {
 			return
 		case <-ticker.C:
 			w.processAllWorkspaces()
+			if w.ctx.Err() != nil {
+				return
+			}
 			w.cleanupTerminallyFailed()
 		}
 	}
 }
 
-// processAllWorkspaces processes pending emails from all workspaces
+// processAllWorkspaces runs one round: every workspace, WorkerCount at a time. It
+// returns once every workspace it started is done, including after a stop, so no send
+// it started outlives it.
 func (w *EmailQueueWorker) processAllWorkspaces() {
 	// Get list of all workspaces
 	workspaces, err := w.workspaceRepo.List(w.ctx)
 	if err != nil {
-		w.logger.WithField("error", err.Error()).Error("Failed to list workspaces")
+		if w.ctx.Err() == nil {
+			w.logger.WithField("error", err.Error()).Error("Failed to list workspaces")
+		}
 		return
 	}
 
@@ -229,13 +397,13 @@ func (w *EmailQueueWorker) processAllWorkspaces() {
 	for _, workspace := range workspaces {
 		select {
 		case <-w.ctx.Done():
-			return
-		default:
+		case semaphore <- struct{}{}:
+		}
+		if w.ctx.Err() != nil {
+			break
 		}
 
-		semaphore <- struct{}{}
 		processWg.Add(1)
-
 		go func(ws *domain.Workspace) {
 			defer processWg.Done()
 			defer func() { <-semaphore }()
@@ -247,89 +415,280 @@ func (w *EmailQueueWorker) processAllWorkspaces() {
 	processWg.Wait()
 }
 
-// processWorkspace processes pending emails for a single workspace
+// processWorkspace runs one lane per email integration of the workspace, concurrently,
+// plus the orphan pass when it is due, and returns when they are all done.
 func (w *EmailQueueWorker) processWorkspace(workspace *domain.Workspace) {
-	// Calculate dynamic batch size based on rate limit
-	// Use 45 seconds as time budget (leave 15s buffer for shutdown)
-	minRate := w.getMinEmailRateLimit(workspace)
-	effectiveBatchSize := (minRate * 45) / 60 // 75% of what we can send in 1 minute
-	if effectiveBatchSize < 1 {
-		effectiveBatchSize = 1
-	}
-	if effectiveBatchSize > w.config.BatchSize {
-		effectiveBatchSize = w.config.BatchSize
+	integrations := workspace.GetIntegrationsByType(domain.IntegrationTypeEmail)
+
+	var lanes sync.WaitGroup
+	for _, integration := range integrations {
+		lanes.Add(1)
+		go func(integration *domain.Integration) {
+			defer lanes.Done()
+			w.processLane(workspace, integration)
+		}(integration)
 	}
 
-	// Fetch pending emails
-	entries, err := w.queueRepo.FetchPending(w.ctx, workspace.ID, effectiveBatchSize)
-	if err != nil {
-		w.logger.WithFields(map[string]interface{}{
-			"workspace_id": workspace.ID,
-			"error":        err.Error(),
-		}).Error("Failed to fetch pending emails")
+	// The pass runs against the integrations of this round, so no row a lane of this
+	// round is sending can be taken for an orphan.
+	w.processOrphans(workspace, integrations)
+
+	lanes.Wait()
+}
+
+// processLane sends one round of an integration's queue. It returns at once when the
+// integration's next token falls after the round, then asks the circuit breaker,
+// fetches what the integration's rate allows in a round, and dispatches the rows in
+// order, at most K at a time and each when its token falls due, until the next
+// token falls after the round's deadline. It returns once every send it started is done.
+func (w *EmailQueueWorker) processLane(workspace *domain.Workspace, integration *domain.Integration) {
+	ratePerMinute := integrationRate(integration)
+	// A lane whose next token falls after this round would fetch only to send nothing.
+	// Checked before Allow, so that no probe is taken for a round that cannot send it.
+	if !w.rateLimiter.TokenDueBy(integration.ID, ratePerMinute, time.Now().Add(w.config.RoundWindow)) {
 		return
 	}
 
+	ticket, allowed := w.circuitBreaker.Allow(integration.ID)
+	if !allowed {
+		// Open within its cooldown, or a probe is already out: the rows stay as they are.
+		return
+	}
+
+	limit := laneBatchSize(ratePerMinute, w.config.RoundWindow, w.config.BatchSize)
+	if ticket.Probe {
+		// After the cooldown, one email tells whether the provider is back.
+		limit = 1
+	}
+
+	probeSent := false
+	defer func() {
+		if ticket.Probe && !probeSent {
+			w.circuitBreaker.CancelProbe(integration.ID, ticket)
+		}
+	}()
+
+	entries, err := w.queueRepo.FetchPendingForIntegration(w.ctx, workspace.ID, integration.ID, limit)
+	if err != nil {
+		if w.ctx.Err() == nil {
+			w.logger.WithFields(map[string]interface{}{
+				"workspace_id":   workspace.ID,
+				"integration_id": integration.ID,
+				"error":          err.Error(),
+			}).Error("Failed to fetch pending emails")
+		}
+		return
+	}
 	if len(entries) == 0 {
 		return
 	}
 
+	// Counted from the end of the fetch, so a slow database delays the round instead
+	// of leaving no time to send.
+	deadline := time.Now().Add(w.config.RoundWindow)
+
 	w.logger.WithFields(map[string]interface{}{
-		"workspace_id": workspace.ID,
-		"count":        len(entries),
+		"workspace_id":   workspace.ID,
+		"integration_id": integration.ID,
+		"count":          len(entries),
+		"probe":          ticket.Probe,
 	}).Debug("Processing queued emails")
 
-	// Process each entry
+	concurrency := w.config.SendConcurrency
+	if integration.EmailProvider.Kind == domain.EmailProviderKindSMTP {
+		concurrency = w.config.SMTPSendConcurrency
+	}
+	slots := make(chan struct{}, concurrency)
+
+	var sends sync.WaitGroup
+	var openedMu sync.Mutex
+	var openedErr *emailerror.ClassifiedError
+
 	for _, entry := range entries {
 		select {
 		case <-w.ctx.Done():
-			return
-		default:
+		case slots <- struct{}{}:
+		}
+		if w.ctx.Err() != nil {
+			break
+		}
+		// Nothing is dispatched once a send of this round has opened the circuit.
+		if !ticket.Probe && w.circuitBreaker.IsOpen(integration.ID) {
+			break
+		}
+		reservation, delay, ok := w.rateLimiter.ReserveBefore(integration.ID, ratePerMinute, deadline)
+		if !ok {
+			// The next token falls in the next round; so do the rows left.
+			break
 		}
 
-		w.processEntry(workspace, entry)
+		var probe *Ticket
+		if ticket.Probe {
+			probe = &ticket
+			probeSent = true
+		}
+
+		sends.Add(1)
+		w.inFlight.Add(1)
+		go func(entry *domain.EmailQueueEntry) {
+			defer sends.Done()
+			defer w.inFlight.Add(-1)
+			defer func() { <-slots }()
+
+			if !w.waitForToken(reservation, delay) {
+				if probe != nil {
+					w.circuitBreaker.CancelProbe(integration.ID, *probe)
+				}
+				return
+			}
+			if opened := w.processEntry(workspace, integration, entry, probe); opened != nil {
+				openedMu.Lock()
+				if openedErr == nil {
+					openedErr = opened
+				}
+				openedMu.Unlock()
+			}
+		}(entry)
+	}
+
+	sends.Wait()
+
+	// Every send that was in flight when the circuit opened has recorded its outcome by
+	// now, so a pause triggered here holds the rows that failed alongside the one that
+	// opened it, instead of leaving them to be retried.
+	if openedErr != nil {
+		w.logger.WithFields(map[string]interface{}{
+			"integration_id": integration.ID,
+			"workspace_id":   workspace.ID,
+			"error":          openedErr.Error(),
+		}).Warn("Circuit breaker opened for integration")
+		if w.onCircuitOpen != nil {
+			w.onCircuitOpen(workspace.ID, integration.ID, openedErr)
+		}
 	}
 }
 
-// processEntry processes a single queue entry
+// waitForToken waits until the reserved token is due. A stop ends the wait, gives the
+// token back and reports false: the row has not been claimed and stays as it is.
+func (w *EmailQueueWorker) waitForToken(reservation *rate.Reservation, delay time.Duration) bool {
+	if delay > 0 {
+		timer := time.NewTimer(delay)
+		defer timer.Stop()
+		select {
+		case <-timer.C:
+		case <-w.ctx.Done():
+		}
+	}
+	if w.ctx.Err() != nil {
+		reservation.Cancel()
+		return false
+	}
+	return true
+}
+
+// processOrphans fails the rows whose email integration no longer exists, so that they
+// still reach a terminal state. It runs at most once per OrphanCheckInterval per
+// workspace, sooner while a pass finds a full batch.
+func (w *EmailQueueWorker) processOrphans(workspace *domain.Workspace, integrations []*domain.Integration) {
+	if !w.orphanCheckDue(workspace.ID) {
+		return
+	}
+
+	integrationIDs := make([]string, 0, len(integrations))
+	for _, integration := range integrations {
+		integrationIDs = append(integrationIDs, integration.ID)
+	}
+
+	entries, err := w.queueRepo.FetchPendingOrphans(w.ctx, workspace.ID, integrationIDs, orphanBatchSize)
+	if err != nil {
+		if w.ctx.Err() == nil {
+			w.logger.WithFields(map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"error":        err.Error(),
+			}).Error("Failed to fetch emails of unknown integrations")
+		}
+		return
+	}
+	if len(entries) == orphanBatchSize {
+		// More are probably waiting: look again next round rather than in a minute.
+		w.orphanMu.Lock()
+		delete(w.lastOrphanCheck, workspace.ID)
+		w.orphanMu.Unlock()
+	}
+
+	for _, entry := range entries {
+		if w.ctx.Err() != nil {
+			return
+		}
+		w.failOrphan(workspace, entry)
+	}
+}
+
+// orphanCheckDue reports whether the workspace's orphan pass is due, and if so records
+// that it runs now.
+func (w *EmailQueueWorker) orphanCheckDue(workspaceID string) bool {
+	w.orphanMu.Lock()
+	defer w.orphanMu.Unlock()
+
+	if last, ok := w.lastOrphanCheck[workspaceID]; ok && time.Since(last) < w.config.OrphanCheckInterval {
+		return false
+	}
+	w.lastOrphanCheck[workspaceID] = time.Now()
+	return true
+}
+
+// failOrphan records a failed attempt for a row whose email integration is gone. It
+// spends the row's attempts like any failure, so the row ends in a terminal state
+// instead of waiting forever.
+func (w *EmailQueueWorker) failOrphan(workspace *domain.Workspace, entry *domain.EmailQueueEntry) {
+	// Mark as processing first to increment attempts, then handle error
+	if err := w.queueRepo.MarkAsProcessing(w.ctx, workspace.ID, entry.ID); err != nil {
+		w.logger.WithFields(map[string]interface{}{
+			"entry_id": entry.ID,
+			"error":    err.Error(),
+		}).Warn("Failed to mark entry as processing")
+		return
+	}
+	w.handleError(workspace, entry, fmt.Errorf("integration not found: %s", entry.IntegrationID), nil)
+}
+
 // SetAutomationRepo injects the automation repository used by the stop-on-reply
 // just-in-time guard. Optional; when unset the guard is skipped.
 func (w *EmailQueueWorker) SetAutomationRepo(repo domain.AutomationRepository) {
 	w.automationRepo = repo
 }
 
-func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *domain.EmailQueueEntry) {
-	// Get the integration to retrieve the email provider (needed for circuit breaker check)
-	integration := workspace.GetIntegrationByID(entry.IntegrationID)
-	if integration == nil {
-		// Mark as processing first to increment attempts, then handle error
-		if err := w.queueRepo.MarkAsProcessing(w.ctx, workspace.ID, entry.ID); err != nil {
+// processEntry claims and sends one row whose token is due. A probe row carries the
+// ticket its lane was granted; any other row asks the breaker now, since the circuit
+// may have opened while it waited for its token. It returns the classified error when
+// this send's failure opened the circuit, for the lane to act on once its sends are done.
+func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration *domain.Integration, entry *domain.EmailQueueEntry, probe *Ticket) *emailerror.ClassifiedError {
+	var ticket Ticket
+	if probe != nil {
+		ticket = *probe
+	} else {
+		var allowed bool
+		ticket, allowed = w.circuitBreaker.Allow(integration.ID)
+		if !allowed {
 			w.logger.WithFields(map[string]interface{}{
-				"entry_id": entry.ID,
-				"error":    err.Error(),
-			}).Warn("Failed to mark entry as processing")
-			return
+				"entry_id":       entry.ID,
+				"integration_id": integration.ID,
+			}).Debug("Circuit breaker open, leaving the email queued")
+			return nil
 		}
-		w.handleError(workspace, entry, fmt.Errorf("integration not found: %s", entry.IntegrationID), nil)
-		return
 	}
 
-	// Check circuit breaker BEFORE MarkAsProcessing to avoid incrementing attempts
-	if w.circuitBreaker.IsOpen(entry.IntegrationID) {
-		w.logger.WithFields(map[string]interface{}{
-			"entry_id":       entry.ID,
-			"integration_id": entry.IntegrationID,
-		}).Debug("Circuit breaker open, scheduling retry without incrementing attempts")
-
-		// Schedule for retry after cooldown WITHOUT incrementing attempts
-		nextRetry := time.Now().Add(w.circuitBreaker.GetConfig().CooldownPeriod)
-		if err := w.queueRepo.SetNextRetry(w.ctx, workspace.ID, entry.ID, nextRetry); err != nil {
-			w.logger.WithFields(map[string]interface{}{
-				"entry_id": entry.ID,
-				"error":    err.Error(),
-			}).Warn("Failed to set next retry for circuit breaker skip")
+	// A probe that never reaches the provider is given back, so the next round can
+	// probe at once instead of after another cooldown.
+	settled := false
+	defer func() {
+		if ticket.Probe && !settled {
+			w.circuitBreaker.CancelProbe(integration.ID, ticket)
 		}
-		return
+	}()
+
+	if w.ctx.Err() != nil {
+		return nil
 	}
 
 	// Mark as processing (this increments attempts)
@@ -338,22 +697,7 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 			"entry_id": entry.ID,
 			"error":    err.Error(),
 		}).Warn("Failed to mark entry as processing, may be processed by another worker")
-		return
-	}
-
-	// Wait for rate limiter - always use current integration rate limit (not stale payload value)
-	ratePerMinute := integration.EmailProvider.RateLimitPerMinute
-	if ratePerMinute <= 0 {
-		ratePerMinute = 60 // Default to 1 per second if not configured
-	}
-
-	if err := w.rateLimiter.Wait(w.ctx, entry.IntegrationID, ratePerMinute); err != nil {
-		// Context cancelled, don't mark as failed
-		w.logger.WithFields(map[string]interface{}{
-			"entry_id": entry.ID,
-			"error":    err.Error(),
-		}).Debug("Rate limit wait cancelled")
-		return
+		return nil
 	}
 
 	// Build the send request
@@ -387,7 +731,7 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 	// executor writing over an exit that landed mid-tick. Remove any one and
 	// "exited" stops meaning no further mail goes out.
 	if w.automationRepo != nil && entry.Payload.ContactAutomationID != nil {
-		ca, lookupErr := w.automationRepo.GetContactAutomation(w.ctx, workspace.ID, *entry.Payload.ContactAutomationID)
+		ca, lookupErr := w.automationRepo.GetContactAutomation(w.sendCtx, workspace.ID, *entry.Payload.ContactAutomationID)
 		if lookupErr != nil {
 			// Fail open (send) but make it observable — a silent allow could mask a
 			// systematically broken guard.
@@ -403,13 +747,13 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 				"status":                string(ca.Status),
 			}).Info("Skipping automation email: journey no longer active (stop-on-reply)")
 			// Remove the entry from the queue without sending.
-			if delErr := w.queueRepo.MarkAsSent(w.ctx, workspace.ID, entry.ID); delErr != nil {
+			if delErr := w.queueRepo.MarkAsSent(w.writeCtx, workspace.ID, entry.ID); delErr != nil {
 				w.logger.WithFields(map[string]interface{}{
 					"entry_id": entry.ID,
 					"error":    delErr.Error(),
 				}).Warn("Failed to remove cancelled (stop-on-reply) entry")
 			}
-			return
+			return nil
 		}
 	}
 
@@ -419,12 +763,25 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 	// window before the post-send upsert. The post-send upsert below preserves the value
 	// (ON CONFLICT COALESCE). Only matters for automation sends where we set the Message-ID.
 	if entry.SourceType == domain.EmailQueueSourceAutomation && domain.ProviderSetsOwnMessageID(entry.ProviderKind) {
-		w.upsertMessageHistory(w.ctx, workspace.ID, workspace.Settings.SecretKey, entry, "", nil)
+		w.upsertMessageHistory(w.sendCtx, workspace.ID, workspace.Settings.SecretKey, entry, "", nil)
 	}
 
 	// Send the email
-	err := w.emailService.SendEmail(w.ctx, *request, true) // isMarketing = true
+	err := w.emailService.SendEmail(w.sendCtx, *request, true) // isMarketing = true
 	if err != nil {
+		if w.sendCtx.Err() != nil {
+			// Cancelled because the shutdown grace ran out: the provider did not refuse
+			// the email, and may even have accepted it. Recording a failure would count
+			// against the provider and schedule a retry on top of the possible send, so
+			// the row stays in processing, as a send cut by a crash would, and is
+			// retried two minutes after the restart.
+			w.logger.WithFields(map[string]interface{}{
+				"entry_id": entry.ID,
+				"error":    err.Error(),
+			}).Warn("Send aborted at shutdown; the email will be retried after the restart")
+			return nil
+		}
+
 		// Classify the error
 		classifiedErr := w.errorClassifier.Classify(err, integration.EmailProvider.Kind)
 
@@ -439,35 +796,41 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 		}).Debug("Classified send error")
 
 		// Record failure to circuit breaker (only counts provider errors)
-		_, opened := w.circuitBreaker.RecordFailure(entry.IntegrationID, classifiedErr)
-		if opened && w.onCircuitOpen != nil {
-			w.logger.WithFields(map[string]interface{}{
-				"integration_id": entry.IntegrationID,
-				"workspace_id":   workspace.ID,
-				"error":          err.Error(),
-			}).Warn("Circuit breaker opened for integration")
-			w.onCircuitOpen(workspace.ID, entry.IntegrationID, classifiedErr)
+		settled = true
+		counted, opened := w.circuitBreaker.RecordFailure(integration.ID, ticket, classifiedErr)
+
+		// A send allowed before the circuit opened and refused after it shares the
+		// outage of the sends that opened it. It is scheduled for a retry even when the
+		// provider calls the refusal permanent, so the pause that follows the opening
+		// holds it with the rest instead of giving the recipient up.
+		if !counted && classifiedErr.IsProviderError() && w.circuitBreaker.IsOpen(integration.ID) {
+			held := *classifiedErr
+			held.Retryable = true
+			classifiedErr = &held
 		}
 
 		w.handleError(workspace, entry, err, classifiedErr)
-		return
+		if opened {
+			return classifiedErr
+		}
+		return nil
 	}
 
-	// Record success to reset circuit breaker
-	w.circuitBreaker.RecordSuccess(entry.IntegrationID)
+	settled = true
+	w.circuitBreaker.RecordSuccess(integration.ID, ticket)
 
 	// Mark as sent
-	if err := w.queueRepo.MarkAsSent(w.ctx, workspace.ID, entry.ID); err != nil {
+	if err := w.queueRepo.MarkAsSent(w.writeCtx, workspace.ID, entry.ID); err != nil {
 		w.logger.WithFields(map[string]interface{}{
 			"entry_id": entry.ID,
 			"error":    err.Error(),
 		}).Error("Failed to mark email as sent")
-		return
+		return nil
 	}
 
 	// Upsert message history (success - clears any previous failure). capturedMessageID
 	// carries the SES-returned Message-ID for the reply-matching row (empty for others).
-	w.upsertMessageHistory(w.ctx, workspace.ID, workspace.Settings.SecretKey, entry, capturedMessageID, nil)
+	w.upsertMessageHistory(w.writeCtx, workspace.ID, workspace.Settings.SecretKey, entry, capturedMessageID, nil)
 
 	w.logger.WithFields(map[string]interface{}{
 		"entry_id":     entry.ID,
@@ -482,6 +845,7 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 	if w.onEmailSent != nil {
 		w.onEmailSent(workspace.ID, entry.SourceType, entry.SourceID, entry.MessageID)
 	}
+	return nil
 }
 
 // handleError handles a send error, scheduling retry or deleting permanently failed entries
@@ -510,13 +874,13 @@ func (w *EmailQueueWorker) handleError(workspace *domain.Workspace, entry *domai
 	w.logger.WithFields(logFields).Warn("Failed to send email")
 
 	// Upsert message history with failure info (no captured Message-ID on a failed send).
-	w.upsertMessageHistory(w.ctx, workspace.ID, workspace.Settings.SecretKey, entry, "", sendErr)
+	w.upsertMessageHistory(w.writeCtx, workspace.ID, workspace.Settings.SecretKey, entry, "", sendErr)
 
 	if isPermanent {
 		// The entry is kept, not deleted. Deleting it was what made the recipient
 		// unrecoverable: nothing downstream knew the campaign had given up on anyone,
 		// and there was nothing left to retry. Held in a terminal state it is inert —
-		// FetchPending skips a row with no attempts left — until a retry revives it or
+		// the fetch skips a row with no attempts left — until a retry revives it or
 		// the retention sweep collects it.
 		w.logger.WithFields(map[string]interface{}{
 			"entry_id":   entry.ID,
@@ -524,7 +888,7 @@ func (w *EmailQueueWorker) handleError(workspace *domain.Workspace, entry *domai
 			"attempts":   entry.Attempts,
 		}).Warn("Email permanently failed")
 
-		if err := w.queueRepo.MarkAsPermanentlyFailed(w.ctx, workspace.ID, entry.ID, sendErr.Error()); err != nil {
+		if err := w.queueRepo.MarkAsPermanentlyFailed(w.writeCtx, workspace.ID, entry.ID, sendErr.Error()); err != nil {
 			w.logger.WithFields(map[string]interface{}{
 				"entry_id": entry.ID,
 				"error":    err.Error(),
@@ -540,7 +904,7 @@ func (w *EmailQueueWorker) handleError(workspace *domain.Workspace, entry *domai
 
 	// Schedule retry with exponential backoff
 	nextRetry := domain.CalculateNextRetryTime(entry.Attempts)
-	if err := w.queueRepo.MarkAsFailed(w.ctx, workspace.ID, entry.ID, sendErr.Error(), &nextRetry); err != nil {
+	if err := w.queueRepo.MarkAsFailed(w.writeCtx, workspace.ID, entry.ID, sendErr.Error(), &nextRetry); err != nil {
 		w.logger.WithFields(map[string]interface{}{
 			"entry_id": entry.ID,
 			"error":    err.Error(),
@@ -683,21 +1047,4 @@ func (w *EmailQueueWorker) GetConfig() *EmailQueueWorkerConfig {
 // GetCircuitBreakerStats returns statistics about all circuit breakers
 func (w *EmailQueueWorker) GetCircuitBreakerStats() map[string]CircuitBreakerStats {
 	return w.circuitBreaker.GetStats()
-}
-
-// getMinEmailRateLimit returns the minimum rate limit across all email integrations
-// Returns default of 60 if no email integrations found
-func (w *EmailQueueWorker) getMinEmailRateLimit(workspace *domain.Workspace) int {
-	emailIntegrations := workspace.GetIntegrationsByType(domain.IntegrationTypeEmail)
-	if len(emailIntegrations) == 0 {
-		return 60 // Default: 1 per second
-	}
-
-	minRate := emailIntegrations[0].EmailProvider.RateLimitPerMinute
-	for _, integration := range emailIntegrations[1:] {
-		if integration.EmailProvider.RateLimitPerMinute < minRate {
-			minRate = integration.EmailProvider.RateLimitPerMinute
-		}
-	}
-	return minRate
 }

@@ -37,6 +37,17 @@ func DefaultCircuitBreakerConfig() CircuitBreakerConfig {
 	}
 }
 
+// Ticket is what a send carries from Allow to the result it records. Sends run
+// concurrently, so a result can arrive after the circuit changed state: the ticket
+// says which opening the send predates, however late it actually reached the provider.
+type Ticket struct {
+	// Epoch is the number of times the circuit had opened when the send was allowed.
+	Epoch uint64
+	// Probe marks the single send let through an open circuit once its cooldown is
+	// over. Only its result can close the circuit.
+	Probe bool
+}
+
 // CircuitBreaker represents a single integration's circuit state
 type CircuitBreaker struct {
 	failures       int
@@ -45,6 +56,9 @@ type CircuitBreaker struct {
 	lastFailure    time.Time
 	lastError      *emailerror.ClassifiedError
 	isOpen         bool
+	openedAt       time.Time
+	epoch          uint64
+	probeInFlight  bool
 	mutex          sync.RWMutex
 }
 
@@ -56,66 +70,134 @@ func NewCircuitBreaker(threshold int, cooldownPeriod time.Duration) *CircuitBrea
 	}
 }
 
-// IsOpen checks if the circuit is open (preventing further calls)
-// If the circuit is open and the cooldown period has passed, it automatically resets
+// IsOpen reports whether the circuit is open. It changes nothing: only a probe's
+// result closes an open circuit.
 func (cb *CircuitBreaker) IsOpen() bool {
 	cb.mutex.RLock()
 	defer cb.mutex.RUnlock()
-
-	if !cb.isOpen {
-		return false
-	}
-
-	// Check if cooldown period has passed
-	if time.Since(cb.lastFailure) > cb.cooldownPeriod {
-		// Need to upgrade to write lock to reset
-		cb.mutex.RUnlock()
-		cb.mutex.Lock()
-		// Double-check after acquiring write lock
-		if cb.isOpen && time.Since(cb.lastFailure) > cb.cooldownPeriod {
-			cb.isOpen = false
-			cb.failures = 0
-			cb.lastError = nil
-		}
-		cb.mutex.Unlock()
-		cb.mutex.RLock()
-	}
-
 	return cb.isOpen
 }
 
-// RecordSuccess records a successful call and resets the circuit breaker
-func (cb *CircuitBreaker) RecordSuccess() {
+// Allow asks to send. A closed circuit allows every send. An open one refuses until
+// its cooldown is over, then allows one send, the probe, and refuses the others until
+// that probe reports or is cancelled.
+func (cb *CircuitBreaker) Allow() (Ticket, bool) {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
 
-	cb.failures = 0
-	cb.lastError = nil
-	cb.isOpen = false
+	if !cb.isOpen {
+		return Ticket{Epoch: cb.epoch}, true
+	}
+	if cb.probeInFlight || time.Since(cb.openedAt) < cb.cooldownPeriod {
+		return Ticket{}, false
+	}
+	cb.probeInFlight = true
+	return Ticket{Epoch: cb.epoch, Probe: true}, true
 }
 
-// RecordFailure records a failed call and opens the circuit if threshold is reached.
-// It returns true only on the failure that opens it — the transition, not the state.
-//
-// The distinction matters to anything acting on an open circuit. The breaker is
-// checked once per queue entry, so a large queue observes "open" thousands of times
-// for one outage. And because the breaker does not latch — it restores a full failure
-// budget once the cooldown elapses — a provider that stays down produces one of these
-// transitions per cooldown period, so acting on it has to be idempotent.
-func (cb *CircuitBreaker) RecordFailure(classifiedErr *emailerror.ClassifiedError) bool {
+// CancelProbe gives back a probe that was never sent, so the next Allow can probe at
+// once instead of after another cooldown. Any other ticket is ignored.
+func (cb *CircuitBreaker) CancelProbe(ticket Ticket) {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
+
+	if cb.isCurrentProbe(ticket) {
+		cb.probeInFlight = false
+	}
+}
+
+// RecordSuccess records a send the provider accepted. On an open circuit only the
+// probe closes it; a send allowed before the latest opening says nothing about the
+// provider now and changes nothing.
+func (cb *CircuitBreaker) RecordSuccess(ticket Ticket) {
+	cb.mutex.Lock()
+	defer cb.mutex.Unlock()
+
+	if ticket.Epoch != cb.epoch {
+		return
+	}
+	if cb.isOpen {
+		if ticket.Probe {
+			cb.close()
+		}
+		return
+	}
+	cb.failures = 0
+	cb.lastError = nil
+}
+
+// RecordFailure records a failed send and reports whether it counted against the
+// provider, and whether it opened the circuit — the transition, not the state.
+//
+// The distinction matters to anything acting on an open circuit. The breaker is
+// consulted per send, so a large queue observes "open" many times for one outage.
+// And a provider that stays down fails each probe, which opens the circuit again once
+// per cooldown period, so acting on it has to be idempotent.
+//
+// Only provider errors count: a rejection that blames the recipient says nothing about
+// the provider's health. On a probe, though, it shows the provider answered, and
+// closes the circuit. Results from sends allowed before the latest opening are ignored.
+func (cb *CircuitBreaker) RecordFailure(ticket Ticket, classifiedErr *emailerror.ClassifiedError) (counted bool, opened bool) {
+	cb.mutex.Lock()
+	defer cb.mutex.Unlock()
+
+	if classifiedErr == nil || classifiedErr.IsRecipientError() {
+		if cb.isCurrentProbe(ticket) {
+			if classifiedErr == nil {
+				// No verdict either way: release the probe rather than hold it out.
+				cb.probeInFlight = false
+			} else {
+				cb.close()
+			}
+		}
+		return false, false
+	}
+
+	if ticket.Epoch != cb.epoch {
+		return false, false
+	}
+	if cb.isOpen {
+		if !ticket.Probe {
+			return false, false
+		}
+		cb.open(classifiedErr)
+		return true, true
+	}
 
 	cb.failures++
 	cb.lastFailure = time.Now()
 	cb.lastError = classifiedErr
-
-	wasOpen := cb.isOpen
 	if cb.failures >= cb.threshold {
-		cb.isOpen = true
+		cb.open(classifiedErr)
+		return true, true
 	}
+	return true, false
+}
 
-	return cb.isOpen && !wasOpen
+// isCurrentProbe reports whether ticket is the probe out on the current opening.
+// Callers hold the mutex.
+func (cb *CircuitBreaker) isCurrentProbe(ticket Ticket) bool {
+	return cb.isOpen && ticket.Probe && ticket.Epoch == cb.epoch
+}
+
+// open starts a new epoch, which voids every ticket handed out before it. Callers
+// hold the mutex.
+func (cb *CircuitBreaker) open(classifiedErr *emailerror.ClassifiedError) {
+	now := time.Now()
+	cb.isOpen = true
+	cb.epoch++
+	cb.openedAt = now
+	cb.probeInFlight = false
+	cb.lastFailure = now
+	cb.lastError = classifiedErr
+}
+
+// close is called on a probe's verdict. Callers hold the mutex.
+func (cb *CircuitBreaker) close() {
+	cb.isOpen = false
+	cb.probeInFlight = false
+	cb.failures = 0
+	cb.lastError = nil
 }
 
 // GetLastError returns the last error that caused a failure
@@ -163,7 +245,7 @@ func (icb *IntegrationCircuitBreaker) getOrCreateBreaker(integrationID string) *
 	return actual.(*CircuitBreaker)
 }
 
-// IsOpen checks if the circuit for an integration is open
+// IsOpen reports whether the circuit for an integration is open
 func (icb *IntegrationCircuitBreaker) IsOpen(integrationID string) bool {
 	if cb, ok := icb.breakers.Load(integrationID); ok {
 		return cb.(*CircuitBreaker).IsOpen()
@@ -171,27 +253,45 @@ func (icb *IntegrationCircuitBreaker) IsOpen(integrationID string) bool {
 	return false
 }
 
+// Allow asks to send through an integration (see CircuitBreaker.Allow)
+func (icb *IntegrationCircuitBreaker) Allow(integrationID string) (Ticket, bool) {
+	if cb, ok := icb.breakers.Load(integrationID); ok {
+		return cb.(*CircuitBreaker).Allow()
+	}
+	// No failure recorded yet: closed, at the first epoch.
+	return Ticket{}, true
+}
+
+// CancelProbe gives back a probe that was never sent
+func (icb *IntegrationCircuitBreaker) CancelProbe(integrationID string, ticket Ticket) {
+	if cb, ok := icb.breakers.Load(integrationID); ok {
+		cb.(*CircuitBreaker).CancelProbe(ticket)
+	}
+}
+
 // RecordSuccess records a successful send for an integration
-func (icb *IntegrationCircuitBreaker) RecordSuccess(integrationID string) {
-	cb := icb.getOrCreateBreaker(integrationID)
-	cb.RecordSuccess()
+func (icb *IntegrationCircuitBreaker) RecordSuccess(integrationID string, ticket Ticket) {
+	if cb, ok := icb.breakers.Load(integrationID); ok {
+		cb.(*CircuitBreaker).RecordSuccess(ticket)
+	}
 }
 
 // RecordFailure records a failure for an integration.
 // Only provider errors count toward the threshold: a rejection that blames the
 // recipient says nothing about the provider's health, and letting those open the
-// circuit would let a handful of dead addresses throttle a whole workspace.
+// circuit would let a handful of dead addresses throttle a whole workspace. A probe's
+// result always reaches the breaker, since any answer from the provider settles it.
 //
 // counted reports whether the error was attributed to the provider at all; opened
 // reports the moment the circuit flipped, which is the only usable trigger for acting
 // on an outage.
-func (icb *IntegrationCircuitBreaker) RecordFailure(integrationID string, classifiedErr *emailerror.ClassifiedError) (counted bool, opened bool) {
-	if classifiedErr == nil || classifiedErr.IsRecipientError() {
+func (icb *IntegrationCircuitBreaker) RecordFailure(integrationID string, ticket Ticket, classifiedErr *emailerror.ClassifiedError) (counted bool, opened bool) {
+	if !ticket.Probe && (classifiedErr == nil || classifiedErr.IsRecipientError()) {
 		return false, false
 	}
 
 	cb := icb.getOrCreateBreaker(integrationID)
-	return true, cb.RecordFailure(classifiedErr)
+	return cb.RecordFailure(ticket, classifiedErr)
 }
 
 // GetLastError returns the last error for an integration
@@ -214,6 +314,8 @@ type CircuitBreakerStats struct {
 	Threshold    int           `json:"threshold"`
 	LastFailure  time.Time     `json:"last_failure,omitempty"`
 	CooldownLeft time.Duration `json:"cooldown_left,omitempty"`
+	// ProbeInFlight is set while the one send let through after the cooldown is out.
+	ProbeInFlight bool `json:"probe_in_flight,omitempty"`
 }
 
 // GetStats returns statistics for all circuit breakers
@@ -225,17 +327,18 @@ func (icb *IntegrationCircuitBreaker) GetStats() map[string]CircuitBreakerStats 
 
 		cb.mutex.RLock()
 		stat := CircuitBreakerStats{
-			IsOpen:    cb.isOpen,
-			Failures:  cb.failures,
-			Threshold: cb.threshold,
+			IsOpen:        cb.isOpen,
+			Failures:      cb.failures,
+			Threshold:     cb.threshold,
+			ProbeInFlight: cb.probeInFlight,
 		}
 		if !cb.lastFailure.IsZero() {
 			stat.LastFailure = cb.lastFailure
-			if cb.isOpen {
-				cooldownLeft := cb.cooldownPeriod - time.Since(cb.lastFailure)
-				if cooldownLeft > 0 {
-					stat.CooldownLeft = cooldownLeft
-				}
+		}
+		if cb.isOpen {
+			cooldownLeft := cb.cooldownPeriod - time.Since(cb.openedAt)
+			if cooldownLeft > 0 {
+				stat.CooldownLeft = cooldownLeft
 			}
 		}
 		cb.mutex.RUnlock()
