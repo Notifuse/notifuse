@@ -34,8 +34,10 @@ type EmailQueueWorkerConfig struct {
 	SMTPSendConcurrency int // default: 1
 
 	// RoundWindow is how far ahead a round dispatches. An integration fetches what its
-	// rate allows in this window, and stops dispatching once its next token falls due
-	// after it, so one round lasts about this long whatever the rate.
+	// rate allows in this window, up to BatchSize, and stops dispatching once its next
+	// token falls due after it, so a round lasts at most about this long plus one send.
+	// A lane that reaches BatchSize first ends its round early and waits for the next
+	// poll tick, which caps an integration at about BatchSize per PollInterval.
 	RoundWindow time.Duration // default: 2s
 
 	// Stop lets the sends in flight finish for ShutdownGrace, then cancels them and
