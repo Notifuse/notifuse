@@ -5,7 +5,7 @@ import {
   parseHtmlInert,
   safeExternalUrl,
   fontStylesheetUrl,
-  fontStylesheetAddress,
+  withHttpsScheme,
   isSafeHref,
   isOpenableUrl,
   textOnlyHtml
@@ -351,8 +351,11 @@ describe('fontStylesheetUrl', () => {
     ['{{ font_url }}', null],
     ['https://{{ cdn_host }}/fonts.css', null],
     ['{% if dark %}https://example.com/dark.css{% endif %}', null],
+    // No address until the email is sent
+    ['//cdn.example.com/{% if dark %}dark{% endif %}.css', null],
     ['javascript:window.__probe=1', null],
     ['data:text/css,body{}', null],
+    ['webcal://example.com/a.css', null],
     ['/fonts/a.css', null],
     [`${window.location.origin}/fonts/a.css`, null],
     ['', null],
@@ -362,22 +365,15 @@ describe('fontStylesheetUrl', () => {
   })
 })
 
-describe('fontStylesheetAddress', () => {
+describe('withHttpsScheme', () => {
   it.each([
-    ['https://fonts.googleapis.com/css?family=Lato', 'https://fonts.googleapis.com/css?family=Lato'],
     ['//fonts.googleapis.com/css?family=Lato', 'https://fonts.googleapis.com/css?family=Lato'],
-    // A stylesheet on the console's own origin is a font address all the same
-    [`${window.location.origin}/fonts/a.css`, `${window.location.origin}/fonts/a.css`],
-    ['{{ font_url }}', null],
-    // No address until the email is sent
-    ['//cdn.example.com/{% if dark %}dark{% endif %}.css', null],
-    ['javascript:window.__probe=1', null],
-    ['data:text/css,body{}', null],
-    ['webcal://example.com/a.css', null],
-    ['/fonts/a.css', null],
-    [undefined, null]
+    ['https://fonts.googleapis.com/css', 'https://fonts.googleapis.com/css'],
+    ['http://example.com/a.css', 'http://example.com/a.css'],
+    ['/fonts/a.css', '/fonts/a.css'],
+    ['{{ font_url }}', '{{ font_url }}']
   ])('%s -> %s', (input, expected) => {
-    expect(fontStylesheetAddress(input)?.toString() ?? null).toBe(expected)
+    expect(withHttpsScheme(input)).toBe(expected)
   })
 })
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Input, Popover, Button, Select } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { fontStylesheetUrl } from '../../../utils/safeHtml'
+import { fontStylesheetUrl, withHttpsScheme } from '../../../utils/safeHtml'
 import { hasLiquidOutput } from '../../../utils/liquid'
 
 interface ImportFontInputProps {
@@ -37,7 +37,7 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
 
     // A protocol-relative address is a web address, as the panel and the email read it
     try {
-      new URL(href.startsWith('//') ? `https:${href}` : href)
+      new URL(withHttpsScheme(href))
       return true
     } catch {
       return false
