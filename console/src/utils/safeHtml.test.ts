@@ -363,6 +363,13 @@ describe('fontStylesheetUrl', () => {
 })
 
 describe('fontStylesheetAddress', () => {
+  it('reads an address holding a Liquid tag when asked to', () => {
+    const href = '//cdn.example.com/{% if dark %}dark{% endif %}.css'
+    expect(fontStylesheetAddress(href)).toBeNull()
+    expect(fontStylesheetAddress(href, { liquidTags: true })?.host).toBe('cdn.example.com')
+    expect(fontStylesheetAddress('javascript:{% if x %}y{% endif %}', { liquidTags: true })).toBeNull()
+  })
+
   it.each([
     ['https://fonts.googleapis.com/css?family=Lato', 'https://fonts.googleapis.com/css?family=Lato'],
     ['//fonts.googleapis.com/css?family=Lato', 'https://fonts.googleapis.com/css?family=Lato'],

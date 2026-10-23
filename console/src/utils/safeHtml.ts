@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import DOMPurify, { type Config } from 'dompurify'
-import { isLiquidExpression } from './liquid'
+import { hasLiquidOutput, isLiquidExpression } from './liquid'
 
 // The schemes of the links the console offers to follow: web, mail and phone.
 // Any other would hand the member's click to an app on their computer.
@@ -224,12 +224,16 @@ export function safeExternalUrl(url: string | null | undefined): string | null {
 /**
  * The web address an `mj-font` names for its stylesheet: an absolute http(s) URL,
  * a protocol-relative one (`//fonts.googleapis.com/…`) read as https. Liquid has
- * no address until the email is sent, so it gives null.
+ * no address until the email is sent, so it gives null, unless `liquidTags` asks
+ * to read an address that holds Liquid tags (`{% if %}`) as it is written.
  */
-export function fontStylesheetAddress(href: string | null | undefined): URL | null {
+export function fontStylesheetAddress(
+  href: string | null | undefined,
+  { liquidTags = false }: { liquidTags?: boolean } = {}
+): URL | null {
   // Only ASCII whitespace, as a link's address is trimmed
   const url = href?.replace(/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g, '')
-  if (!url || isLiquidExpression(url)) return null
+  if (!url || hasLiquidOutput(url) || (!liquidTags && isLiquidExpression(url))) return null
   try {
     const parsed = new URL(url.startsWith('//') ? `https:${url}` : url)
     return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed : null
@@ -245,7 +249,7 @@ export function fontStylesheetAddress(href: string | null | undefined): URL | nu
  */
 export function fontStylesheetUrl(href: string | null | undefined): string | null {
   const address = fontStylesheetAddress(href)
-  return address && address.origin !== window.location.origin ? address.toString() : null
+  return address ? safeExternalUrl(address.toString()) : null
 }
 
 /**

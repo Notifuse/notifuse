@@ -65,10 +65,20 @@ describe('ImportFontInput stylesheet address', () => {
     })
   })
 
-  it('imports a web address holding a Liquid tag', async () => {
-    const href = 'https://example.com/{% if dark %}dark{% endif %}.css'
+  it.each([
+    'https://example.com/{% if dark %}dark{% endif %}.css',
+    '//cdn.example.com/{% if dark %}dark{% endif %}.css',
+    'https://{{ cdn_host }}/fonts.css'
+  ])('imports a web address holding Liquid: %s', async (href) => {
     expect(await enter(href)).toHaveBeenCalledWith({ name: 'Inter', href })
   })
+
+  it.each(['javascript:{{ code }}', 'javascript:{% if x %}y{% endif %}', 'data:text/css,{{ css }}'])(
+    'refuses an address of another scheme, Liquid or not: %s',
+    async (href) => {
+      expect(await enter(href)).not.toHaveBeenCalled()
+    }
+  )
 
   it('imports an address pasted after a no-break space, as it saves it', async () => {
     expect(await enter('\u00a0https://fonts.googleapis.com/css?family=Lato')).toHaveBeenCalledWith({
