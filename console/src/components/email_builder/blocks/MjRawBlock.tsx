@@ -18,8 +18,9 @@ import CodePreview from '../ui/CodePreview'
  * Iframe component with sandbox security and auto-height adjustment
  *
  * Security Features:
- * - Uses iframe sandbox with "allow-same-origin" to prevent script execution
- * - Removes direct DOM access from the parent document
+ * - Uses iframe sandbox with "allow-same-origin" only: no script, no new window
+ * - Inert: no click or key reaches the frame, or a frame within it, so no link in
+ *   the HTML is followed, whatever key is held
  * - Isolates the HTML content in a separate browsing context
  *
  * Auto-Height Features:
@@ -30,16 +31,13 @@ import CodePreview from '../ui/CodePreview'
  *
  * @param htmlContent - The raw HTML content to render safely
  * @param className - Optional CSS class for styling
- * @param style - Optional inline styles for the iframe
  * @param emailTree - The email template tree to extract mj-style and mj-font content
  */
- 
 const SandboxedIframe: React.FC<{
   htmlContent: string
   className?: string
-  style?: React.CSSProperties
   emailTree?: EmailBlock
-}> = ({ htmlContent, className, style, emailTree }) => {
+}> = ({ htmlContent, className, emailTree }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [iframeHeight, setIframeHeight] = useState<number>(100)
 
@@ -203,11 +201,14 @@ const SandboxedIframe: React.FC<{
         background: 'transparent',
         backgroundColor: 'transparent', // more explicit for cross-browser compatibility
         // transition: 'height 0.2s ease',
-        display: 'block',
-        ...style
+        display: 'block'
       }}
       className={className}
-      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      // No script and no new window. Same origin only, for the canvas to size the frame.
+      sandbox="allow-same-origin"
+      // React 18's typings predate `inert`, and a boolean `true` is dropped with a
+      // DOM warning, so it is spread as the empty string.
+      {...({ inert: '' } as unknown as { inert?: string })}
       title="Raw HTML Content Preview"
       loading="lazy"
       referrerPolicy="no-referrer"
@@ -427,7 +428,7 @@ export class MjRawBlock extends BaseEmailBlock {
           ...selectionStyle
         }}
       >
-        {/* Overlay div to capture clicks when iframe is present */}
+        {/* Overlay div to capture clicks over the iframe, which takes none */}
         <div
           style={{
             position: 'absolute',
@@ -435,20 +436,13 @@ export class MjRawBlock extends BaseEmailBlock {
             left: 0,
             right: 0,
             bottom: 0,
-            zIndex: isSelected ? -1 : 1, // Lower z-index when selected to allow iframe interaction
+            zIndex: 1,
             backgroundColor: 'transparent',
             cursor: 'pointer'
           }}
           onClick={handleClick}
         />
-        <SandboxedIframe
-          htmlContent={content}
-          className={attrs.cssClass}
-          style={{
-            pointerEvents: isSelected ? 'auto' : 'none' // Enable iframe interaction when selected
-          }}
-          emailTree={emailTree}
-        />
+        <SandboxedIframe htmlContent={content} className={attrs.cssClass} emailTree={emailTree} />
         {/* Selection indicator */}
         {isSelected && (
           <div

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { ContactTimeline } from './ContactTimeline'
 import type { ContactTimelineEntry } from '../../services/api/contact_timeline'
@@ -280,7 +280,7 @@ describe('ContactTimeline page view header and preview', () => {
   })
 
   it('offers the page it recorded, built from the visit domain', () => {
-    render(<ContactTimeline entries={[pageWithDomain]} />)
+    render(<ContactTimeline entries={[pageWithDomain]} workspace={tracking(['www.apple.com'])} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'View website' }))
     expect(screen.getByText('https://www.apple.com/docs/api')).toBeInTheDocument()
@@ -297,11 +297,206 @@ describe('ContactTimeline page view header and preview', () => {
     expect(screen.getByText('https://shop.example.com/docs/api')).toBeInTheDocument()
   })
 
+  it('falls back to a workspace website saved without its scheme', () => {
+    const workspace = { settings: { website_url: 'shop.example.com' } } as never
+    render(<ContactTimeline entries={[pageEntry]} workspace={workspace} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'View website' }))
+    expect(screen.getByText('https://shop.example.com/docs/api')).toBeInTheDocument()
+  })
+
   it('offers no preview when there is no domain to be had', () => {
     // Guessing a host would send someone to a page that was never visited.
     render(<ContactTimeline entries={[pageEntry]} />)
 
     expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
+  })
+
+  // The path and the domain are whatever the visitor's browser reported.
+  const pageAt = (path: string, landingDomain?: string): ContactTimelineEntry => ({
+    ...pageEntry,
+    changes: {
+      ...pageEntry.changes,
+      path: webChange(path),
+      ...(landingDomain ? { landing_domain: webChange(landingDomain) } : {})
+    }
+  })
+
+  const openPreview = () => fireEvent.click(screen.getByRole('button', { name: 'View website' }))
+
+  it('keeps a path that starts with two slashes on the visited site', () => {
+    render(
+      <ContactTimeline
+        entries={[pageAt('//other.example/x', 'www.apple.com')]}
+        workspace={tracking(['www.apple.com'])}
+      />
+    )
+
+    openPreview()
+    expect(
+      within(screen.getByRole('dialog')).getByText('https://www.apple.com//other.example/x')
+    ).toBeInTheDocument()
+  })
+
+  it('keeps a full URL path on the visited site', () => {
+    render(
+      <ContactTimeline
+        entries={[pageAt('https://www.apple.com/pricing?a=1', 'www.apple.com')]}
+        workspace={tracking(['www.apple.com'])}
+      />
+    )
+
+    openPreview()
+    expect(
+      within(screen.getByRole('dialog')).getByText('https://www.apple.com/pricing?a=1')
+    ).toBeInTheDocument()
+  })
+
+  it.each([
+    'javascript:window.__probe=1',
+    ' javascript:window.__probe=1',
+    'data:text/html,<p>x</p>',
+    'https://other.example/x',
+    '\\\\other.example/x',
+    ' //other.example/x'
+  ])('offers no preview for a path that leaves the visited site: %j', (path) => {
+    render(
+      <ContactTimeline
+        entries={[pageAt(path, 'www.apple.com')]}
+        workspace={tracking(['www.apple.com'])}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
+  })
+
+  it('offers no preview for a page on the console itself', () => {
+    const workspace = { settings: { website_url: window.location.origin } } as never
+    render(<ContactTimeline entries={[pageAt('/console/workspace')]} workspace={workspace} />)
+
+    expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
+  })
+
+  // A workspace that lists the domains it tracks only receives visits from them,
+  // so a domain off that list was never one of its pages.
+  const tracking = (allowedDomains: string[], websiteURL?: string) =>
+    ({
+      settings: {
+        website_url: websiteURL,
+        web_analytics: { enabled: true, allowed_domains: allowedDomains }
+      }
+    }) as never
+
+  it.each([
+    [['www.apple.com'], 'www.apple.com'],
+    [[' WWW.Apple.com '], 'www.apple.com'],
+    [['www.apple.com:443'], 'www.apple.com'],
+    [['*.apple.com'], 'www.apple.com'],
+    [['*.apple.com'], 'apple.com'],
+    [['other.example', 'www.apple.com'], 'www.apple.com'],
+    // An IPv6 address is recorded without its brackets
+    [['::1'], '::1'],
+    [['[::1]:8443'], '::1']
+  ])('offers a page of a domain the workspace tracks: %j, %s', (allowedDomains, domain) => {
+    render(
+      <ContactTimeline entries={[pageAt('/pricing', domain)]} workspace={tracking(allowedDomains)} />
+    )
+
+    openPreview()
+    const host = domain.includes(':') ? `[${domain}]` : domain
+    expect(
+      within(screen.getByRole('dialog')).getByText(`https://${host}/pricing`)
+    ).toBeInTheDocument()
+  })
+
+  // With no list, the visitor's domain is vouched for by nothing but the
+  // workspace website
+  it.each([
+    ['https://WWW.apple.com/', 'www.apple.com'],
+    ['https://apple.com', 'www.apple.com'],
+    ['https://www.apple.com', 'apple.com'],
+    // The settings accept a website address without its scheme
+    ['apple.com', 'apple.com'],
+    ['www.apple.com', 'apple.com']
+  ])(
+    'offers a page of the workspace website when the workspace lists no domain: %s, %s',
+    (websiteURL, domain) => {
+      render(
+        <ContactTimeline
+          entries={[pageAt('/pricing', domain)]}
+          workspace={tracking([], websiteURL)}
+        />
+      )
+
+      openPreview()
+      expect(
+        within(screen.getByRole('dialog')).getByText(`https://${domain}/pricing`)
+      ).toBeInTheDocument()
+    }
+  )
+
+  it.each([
+    'other.example',
+    'shop.apple.com',
+    'localhost',
+    'localhost.',
+    '127.0.0.1',
+    '::1',
+    'intranet',
+    'nas.local'
+  ])('offers no preview of any other domain when the workspace lists none: %s', (domain) => {
+    render(
+      <ContactTimeline
+        entries={[pageAt('/pricing', domain)]}
+        workspace={tracking([], 'https://www.apple.com')}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
+  })
+
+  it('offers no preview of a visit domain when the workspace has neither list nor website', () => {
+    render(<ContactTimeline entries={[pageAt('/pricing', 'www.apple.com')]} />)
+
+    expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
+  })
+
+  it('offers a page of a machine address the workspace lists', () => {
+    render(
+      <ContactTimeline entries={[pageAt('/pricing', '10.0.0.5')]} workspace={tracking(['10.0.0.5'])} />
+    )
+
+    openPreview()
+    expect(
+      within(screen.getByRole('dialog')).getByText('https://10.0.0.5/pricing')
+    ).toBeInTheDocument()
+  })
+
+  it.each([
+    [['www.apple.com'], 'other.example'],
+    [['www.apple.com'], 'apple.com'],
+    [['*.apple.com'], 'notapple.com'],
+    [['*.com'], 'other.com'],
+    // The server never matches a bracketed entry without a port either
+    [['[::1]'], '::1']
+  ])('offers no preview of a domain the workspace does not track: %j, %s', (allowed, domain) => {
+    render(<ContactTimeline entries={[pageAt('/pricing', domain)]} workspace={tracking(allowed)} />)
+
+    expect(screen.queryByRole('button', { name: 'View website' })).not.toBeInTheDocument()
+  })
+
+  it('still falls back to the workspace website, which its members set', () => {
+    render(
+      <ContactTimeline
+        entries={[pageEntry]}
+        workspace={tracking(['www.apple.com'], 'https://shop.example.com')}
+      />
+    )
+
+    openPreview()
+    expect(
+      within(screen.getByRole('dialog')).getByText('https://shop.example.com/docs/api')
+    ).toBeInTheDocument()
   })
 })
 

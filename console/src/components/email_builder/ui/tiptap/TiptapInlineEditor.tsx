@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react'
+import React, { useEffect, useCallback, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { useLingui } from '@lingui/react/macro'
 import type { TiptapInlineEditorProps } from './shared/types'
@@ -6,6 +6,7 @@ import { createInlineExtensions } from './shared/extensions'
 import { injectTiptapStyles } from './shared/styles'
 import { TiptapToolbar } from './components/TiptapToolbar'
 import { processInlineContent, prepareInlineContent, getInitialInlineContent } from './shared/utils'
+import { containedContentStyle, sanitizeEditorHtml, textOnlyHtml } from '../../../../utils/safeHtml'
 
 export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
   content = '',
@@ -36,10 +37,13 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
     [onChange, readOnly]
   )
 
+  // Read only when the editor is created; the effect below loads later content
+  const [initialContent] = useState(() => getInitialInlineContent(content))
+
   const editor = useEditor(
     {
       extensions: createInlineExtensions(),
-      content: getInitialInlineContent(content),
+      content: initialContent,
       editable: !readOnly,
       editorProps: {
         attributes: {
@@ -76,10 +80,8 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
 
           // Fallback: try to extract just the text content
           try {
-            const tempDiv = document.createElement('div')
-            tempDiv.innerHTML = content
-            const textOnly = tempDiv.textContent || tempDiv.innerText || ''
-            const fallbackContent = `<span data-inline-doc="">${textOnly}</span>`
+            const text = textOnlyHtml(sanitizeEditorHtml(content))
+            const fallbackContent = `<span data-inline-doc="">${text}</span>`
             editor.commands.setContent(fallbackContent, { emitUpdate: false })
             console.warn('Fell back to text-only content due to parsing error')
           } catch (fallbackError) {
@@ -126,7 +128,10 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
         editor={editor}
         style={{
           border: 'none',
-          outline: 'none'
+          outline: 'none',
+          // Keeps what the content draws to the editing area, which the toolbar
+          // above is not part of
+          ...containedContentStyle
         }}
       />
     </div>

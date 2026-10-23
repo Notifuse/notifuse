@@ -4,6 +4,7 @@ import { Select, InputNumber, Row, Col, Input, Switch } from 'antd'
 import type { MJMLComponentType, MJSocialElementAttributes } from '../types'
 import { BaseEmailBlock, type OnUpdateAttributesFunction, type PreviewProps } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
+import { isSafeHref } from '../../../utils/safeHtml'
 import { EmailBlockClass } from '../EmailBlockClass'
 import InputLayout from '../ui/InputLayout'
 import ColorPickerWithPresets from '../ui/ColorPickerWithPresets'
@@ -757,14 +758,17 @@ export class MjSocialElementBlock extends BaseEmailBlock {
       />
     )
 
+    const href = isSafeHref(attrs.href) ? attrs.href : '#'
+
     // Link wrapper for icon
     const iconLink = (
       <a
-        href={attrs.href || '#'}
+        href={href}
         target={attrs.target || '_blank'}
         rel={attrs.rel}
         title={attrs.title}
         onClick={(e) => e.preventDefault()} // Prevent navigation in preview
+        onAuxClick={(e) => e.preventDefault()}
         style={{ textDecoration: 'none' }}
       >
         {iconElement}
@@ -774,12 +778,13 @@ export class MjSocialElementBlock extends BaseEmailBlock {
     // Text link (if content exists)
     const textLink = content ? (
       <a
-        href={attrs.href || '#'}
+        href={href}
         target={attrs.target || '_blank'}
         rel={attrs.rel}
         title={attrs.title}
         style={textLinkStyle}
         onClick={(e) => e.preventDefault()} // Prevent navigation in preview
+        onAuxClick={(e) => e.preventDefault()}
       >
         {content}
       </a>

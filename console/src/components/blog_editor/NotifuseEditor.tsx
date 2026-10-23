@@ -30,6 +30,7 @@ import sql from 'highlight.js/lib/languages/sql'
 import bash from 'highlight.js/lib/languages/bash'
 import yaml from 'highlight.js/lib/languages/yaml'
 import markdown from 'highlight.js/lib/languages/markdown'
+import { parseHtmlInert } from '../../utils/safeHtml'
 
 // --- Hooks ---
 import { useControls } from './core/state/useControls'
@@ -167,9 +168,8 @@ function hastToHtml(node: HastNode): string {
  * Post-process HTML to add syntax highlighting to code blocks
  */
 function addSyntaxHighlightingToHTML(html: string, lowlightInstance: LowlightInstance): string {
-  // Create a temporary DOM element to parse the HTML
-  const tempDiv = document.createElement('div')
-  tempDiv.innerHTML = html
+  // Parse the HTML in a detached document
+  const tempDiv = parseHtmlInert(html)
 
   // Find all code blocks with language classes
   const codeBlocks = tempDiv.querySelectorAll('pre code[class*="language-"]')

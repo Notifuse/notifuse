@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react'
+import React, { useEffect, useCallback, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { useLingui } from '@lingui/react/macro'
 import type { TiptapRichEditorProps } from './shared/types'
@@ -6,6 +6,7 @@ import { createRichExtensions } from './shared/extensions'
 import { injectTiptapStyles } from './shared/styles'
 import { TiptapToolbar } from './components/TiptapToolbar'
 import { sanitizeRichContent } from './shared/utils'
+import { containedContentStyle, textOnlyHtml } from '../../../../utils/safeHtml'
 
 export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
   content = '',
@@ -35,10 +36,13 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
     [onChange, readOnly]
   )
 
+  // Read only when the editor is created; the effect below loads later content
+  const [initialContent] = useState(() => sanitizeRichContent(content))
+
   const editor = useEditor(
     {
       extensions: createRichExtensions(),
-      content: sanitizeRichContent(content),
+      content: initialContent,
       editable: !readOnly,
       editorProps: {
         attributes: {
@@ -66,10 +70,9 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
 
         // Fallback: try to extract just the text content
         try {
-          const tempDiv = document.createElement('div')
-          tempDiv.innerHTML = sanitizedContent
-          const textOnly = tempDiv.textContent || tempDiv.innerText || ''
-          editor.commands.setContent(`<p>${textOnly}</p>`, { emitUpdate: false })
+          editor.commands.setContent(`<p>${textOnlyHtml(sanitizedContent)}</p>`, {
+            emitUpdate: false
+          })
           console.warn('Fell back to text-only content due to parsing error')
         } catch (fallbackError) {
           console.error('Fallback content extraction also failed:', fallbackError)
@@ -114,7 +117,10 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
         editor={editor}
         style={{
           border: 'none',
-          outline: 'none'
+          outline: 'none',
+          // Keeps what the content draws to the editing area, which the toolbar
+          // above is not part of
+          ...containedContentStyle
         }}
       />
     </div>
