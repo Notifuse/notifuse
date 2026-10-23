@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/database"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	_ "github.com/lib/pq" // PostgreSQL driver
@@ -36,17 +36,10 @@ type Manager struct {
 type defaultConnector struct{}
 
 func (c *defaultConnector) connectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error) {
-	// Replace hyphens with underscores for PostgreSQL compatibility
-	safeID := strings.ReplaceAll(workspaceID, "-", "_")
-	dbName := fmt.Sprintf("%s_ws_%s", cfg.Prefix, safeID)
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
-		cfg.User,
-		cfg.Password,
-		cfg.Host,
-		cfg.Port,
-		dbName,
-		cfg.SSLMode,
-	)
+	dsn, err := database.GetWorkspaceDSN(cfg, workspaceID)
+	if err != nil {
+		return nil, err
+	}
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {

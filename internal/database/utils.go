@@ -4,12 +4,41 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/config"
-	_ "github.com/lib/pq" // PostgreSQL driver
+	"github.com/lib/pq"
 )
+
+// workspaceIDInDatabaseName matches the characters allowed in the workspace ID part of a
+// database name, capitals included (refused next, with their own message). The ID is
+// written into DSNs and SQL as is. Workspace IDs have at most 20 characters; the bound only
+// keeps an arbitrary input from going further.
+var workspaceIDInDatabaseName = regexp.MustCompile(`^[A-Za-z0-9_]{1,63}$`)
+
+// WorkspaceDatabaseName returns the name of a workspace's database, or an error when the
+// workspace ID cannot be part of one. Every place that names a workspace database goes
+// through it, so the name a database is created under is the one it is opened and
+// dropped under.
+func WorkspaceDatabaseName(prefix, workspaceID string) (string, error) {
+	// Replace hyphens with underscores for PostgreSQL compatibility
+	safeID := strings.ReplaceAll(workspaceID, "-", "_")
+	// Characters first, case aside, so that an ID refused for its characters is reported
+	// quoted whatever its case.
+	if !workspaceIDInDatabaseName.MatchString(safeID) {
+		return "", fmt.Errorf("invalid workspace ID for a database name: %q", workspaceID)
+	}
+	dbName := fmt.Sprintf("%s_ws_%s", prefix, safeID)
+
+	// PostgreSQL folds the ASCII capitals of an unquoted name to lowercase, so a name with
+	// one would be created and opened under different names by tools that do not quote it.
+	if strings.ContainsAny(dbName, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
+		return "", fmt.Errorf("workspace database name must be lowercase: %s", dbName)
+	}
+	return dbName, nil
+}
 
 // GetConnectionPoolSettings returns connection pool settings based on environment
 func GetConnectionPoolSettings() (maxOpen, maxIdle int, maxLifetime time.Duration) {
@@ -48,10 +77,16 @@ func GetPostgresDSN(cfg *config.DatabaseConfig) string {
 }
 
 // GetWorkspaceDSN returns the DSN for a workspace database
-func GetWorkspaceDSN(cfg *config.DatabaseConfig, workspaceID string) string {
-	// Replace hyphens with underscores for PostgreSQL compatibility
-	safeID := strings.ReplaceAll(workspaceID, "-", "_")
-	dbName := fmt.Sprintf("%s_ws_%s", cfg.Prefix, safeID)
+func GetWorkspaceDSN(cfg *config.DatabaseConfig, workspaceID string) (string, error) {
+	dbName, err := WorkspaceDatabaseName(cfg.Prefix, workspaceID)
+	if err != nil {
+		return "", err
+	}
+	return workspaceDSNForName(cfg, dbName), nil
+}
+
+// workspaceDSNForName returns the DSN for a database name WorkspaceDatabaseName returned.
+func workspaceDSNForName(cfg *config.DatabaseConfig, dbName string) string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		cfg.User,
 		cfg.Password,
@@ -69,7 +104,10 @@ func ConnectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB
 		return nil, fmt.Errorf("failed to ensure workspace database exists: %w", err)
 	}
 
-	dsn := GetWorkspaceDSN(cfg, workspaceID)
+	dsn, err := GetWorkspaceDSN(cfg, workspaceID)
+	if err != nil {
+		return nil, err
+	}
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to workspace database: %w", err)
@@ -93,15 +131,9 @@ func ConnectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB
 
 // EnsureWorkspaceDatabaseExists creates the workspace database if it doesn't exist
 func EnsureWorkspaceDatabaseExists(cfg *config.DatabaseConfig, workspaceID string) error {
-	// Replace hyphens with underscores for PostgreSQL compatibility
-	safeID := strings.ReplaceAll(workspaceID, "-", "_")
-	dbName := fmt.Sprintf("%s_ws_%s", cfg.Prefix, safeID)
-
-	// PostgreSQL folds the ASCII capitals in the name of the database it creates to
-	// lowercase, while every connection uses the name as written: a name with one would
-	// leave a database that never opens.
-	if strings.ContainsAny(dbName, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
-		return fmt.Errorf("workspace database name must be lowercase: %s", dbName)
+	dbName, err := WorkspaceDatabaseName(cfg.Prefix, workspaceID)
+	if err != nil {
+		return err
 	}
 
 	// Connect to PostgreSQL server without specifying a database
@@ -127,18 +159,13 @@ func EnsureWorkspaceDatabaseExists(cfg *config.DatabaseConfig, workspaceID strin
 
 	// Create database if it doesn't exist
 	if !exists {
-		// Use fmt.Sprintf for proper quoting of identifiers in SQL
-		createDBQuery := fmt.Sprintf("CREATE DATABASE %s",
-			// Proper quoting to prevent SQL injection
-			strings.ReplaceAll(dbName, `"`, `""`))
-
-		_, err = db.Exec(createDBQuery)
+		_, err = db.Exec("CREATE DATABASE " + pq.QuoteIdentifier(dbName))
 		if err != nil {
 			return fmt.Errorf("failed to create workspace database: %w", err)
 		}
 
 		// Connect to the new database to initialize schema
-		wsDB, err := sql.Open("postgres", GetWorkspaceDSN(cfg, workspaceID))
+		wsDB, err := sql.Open("postgres", workspaceDSNForName(cfg, dbName))
 		if err != nil {
 			return fmt.Errorf("failed to connect to new workspace database: %w", err)
 		}

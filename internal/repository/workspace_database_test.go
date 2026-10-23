@@ -319,18 +319,37 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	// EnsureWorkspaceDatabaseExists creates the database with an unquoted identifier,
-	// so PostgreSQL stores it lower-cased. The drop has to target that same name.
-	t.Run("lower-cases the database name to match unquoted creation", func(t *testing.T) {
-		repo, mock, cleanup := newRepo(t, "Notifuse")
+	// The database is created under the name as written, so the drop targets that same
+	// name: lowering it with Unicode rules would miss a prefix with a non-ASCII capital.
+	t.Run("drops the database under the name as written", func(t *testing.T) {
+		repo, mock, cleanup := newRepo(t, "notifuseÜ")
 		defer cleanup()
 
-		lowered := fmt.Sprintf(`DROP DATABASE IF EXISTS %s WITH (FORCE)`, pq.QuoteIdentifier("notifuse_ws_testworkspace"))
-		mock.ExpectExec(regexp.QuoteMeta(lowered)).
+		asWritten := fmt.Sprintf(`DROP DATABASE IF EXISTS %s WITH (FORCE)`, pq.QuoteIdentifier("notifuseÜ_ws_testworkspace"))
+		mock.ExpectExec(regexp.QuoteMeta(asWritten)).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		require.NoError(t, repo.DeleteDatabase(context.Background(), workspaceID))
 		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// No database can exist under a name the create refuses, so nothing is dropped.
+	t.Run("refuses a name no database can have", func(t *testing.T) {
+		for _, tc := range []struct {
+			prefix      string
+			workspaceID string
+			expected    string
+		}{
+			{"Notifuse", workspaceID, "workspace database name must be lowercase: Notifuse_ws_testworkspace"},
+			{"notifuse", "x template template0", `invalid workspace ID for a database name: "x template template0"`},
+		} {
+			repo, mock, cleanup := newRepo(t, tc.prefix)
+
+			err := repo.DeleteDatabase(context.Background(), tc.workspaceID)
+			assert.EqualError(t, err, tc.expected)
+			require.NoError(t, mock.ExpectationsWereMet())
+			cleanup()
+		}
 	})
 
 	t.Run("replaces hyphens in the workspace ID", func(t *testing.T) {
