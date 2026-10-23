@@ -13,6 +13,35 @@ import StringPopoverInput from '../ui/StringPopoverInput'
 import CodeDrawerInput from '../ui/CodeDrawerInput'
 import PanelLayout from '../panels/PanelLayout'
 import CodePreview from '../ui/CodePreview'
+import { safeExternalUrl } from '../../../utils/safeHtml'
+import { isLiquidExpression } from '../../../utils/liquid'
+
+const escapeHtmlAttribute = (value: string): string =>
+  value.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+
+/**
+ * The height of the frame's content: the bottom of the wrapper the content sits
+ * in. Unlike the body, the wrapper does not follow the frame's own height when
+ * the content's CSS sets `html, body { height: 100% }`, so the frame can shrink.
+ * If content left the wrapper (a stray `</div>` closed it), the body is measured.
+ */
+const measureContentHeight = (doc: Document): number => {
+  const body = doc.body
+  const wrapper = body.firstChild as HTMLElement | null
+  if (
+    wrapper !== null &&
+    wrapper === body.lastChild &&
+    wrapper.nodeType === Node.ELEMENT_NODE &&
+    wrapper.hasAttribute('data-raw-content')
+  ) {
+    const top =
+      wrapper.getBoundingClientRect().top - doc.documentElement.getBoundingClientRect().top
+    const paddingBottom =
+      parseFloat(doc.defaultView?.getComputedStyle(body).paddingBottom ?? '') || 0
+    return top + Math.max(wrapper.scrollHeight, wrapper.offsetHeight) + paddingBottom
+  }
+  return Math.max(body.scrollHeight, body.offsetHeight, body.clientHeight)
+}
 
 /**
  * Iframe component with sandbox security and auto-height adjustment
@@ -25,8 +54,7 @@ import CodePreview from '../ui/CodePreview'
  *
  * Auto-Height Features:
  * - Dynamically adjusts iframe height based on content
- * - Uses multiple measurement techniques for cross-browser compatibility
- * - Provides smooth transitions with CSS animations
+ * - Measures again when the frame's width changes or its fonts arrive
  * - Includes fallback height for error scenarios
  *
  * @param htmlContent - The raw HTML content to render safely
@@ -41,18 +69,19 @@ const SandboxedIframe: React.FC<{
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [iframeHeight, setIframeHeight] = useState<number>(100)
 
-  // Extract mj-font imports from email tree
-  const extractFontImports = (): string => {
+  // Stylesheet links for the mj-font blocks of the email tree, as the email has
+  // them. Only a web address on another origin: a Liquid one has none until the
+  // email is sent.
+  const extractFontLinks = (): string => {
     if (!emailTree) return ''
 
     const fontBlocks = EmailBlockClass.findAllBlocksByType(emailTree, 'mj-font')
     return fontBlocks
       .map((fontBlock) => {
         const attrs = fontBlock.attributes as { name?: string; href?: string }
-        if (attrs?.name && attrs?.href) {
-          return `@import url('${attrs.href}');`
-        }
-        return ''
+        if (!attrs?.name || !attrs?.href || isLiquidExpression(attrs.href)) return ''
+        const href = safeExternalUrl(attrs.href)
+        return href ? `<link rel="stylesheet" href="${escapeHtmlAttribute(href)}">` : ''
       })
       .filter(Boolean)
       .join('\n')
@@ -72,7 +101,7 @@ const SandboxedIframe: React.FC<{
       .join('\n\n')
   }
 
-  const fontImports = extractFontImports()
+  const fontLinks = extractFontLinks()
   const customStyles = extractCustomStyles()
 
   // Create the HTML document content with injected styles and fonts
@@ -81,6 +110,7 @@ const SandboxedIframe: React.FC<{
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    ${fontLinks}
     <style>
       /* CSS Reset - Remove default browser styles */
       * {
@@ -101,9 +131,6 @@ const SandboxedIframe: React.FC<{
         outline: 0;
         background: transparent !important;
       }
-      
-      /* Font imports from mj-font blocks */
-      ${fontImports}
       
       /* Base iframe styles */
       body {
@@ -130,21 +157,20 @@ const SandboxedIframe: React.FC<{
         font-family: 'Monaco', 'Consolas', monospace;
         font-size: 12px;
       }
-      
-      /* Custom styles from mj-style blocks */
+    </style>
+    <style>
+      /* Custom styles from mj-style blocks, in an element of their own as in the
+         email, so that an @import at their top applies */
       ${customStyles}
     </style>
   </head>
-  <body>
-    ${htmlContent}
-  </body>
-</html>`
+  <body><div data-raw-content style="display: flow-root !important">${htmlContent}</div></body></html>`
 
   useEffect(() => {
     const iframe = iframeRef.current
     if (!iframe) return
 
-    let adjustTimeout: number
+    let adjustTimeout: number | undefined
 
     const adjustHeight = () => {
       // Debounce multiple calls
@@ -154,18 +180,12 @@ const SandboxedIframe: React.FC<{
           const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
           if (!iframeDoc) return
 
-          const body = iframeDoc.body
+          if (iframeDoc.body) {
+            const height = measureContentHeight(iframeDoc)
 
-          if (body) {
-            // Use only body measurements for more accurate content height
-            const height = Math.max(body.scrollHeight, body.offsetHeight, body.clientHeight)
+            // Add minimal padding - the measure already includes the body's padding
+            const finalHeight = Math.max(Math.ceil(height) + 10, 100)
 
-            // Add minimal padding - the body already includes the 10px padding from CSS
-            const finalHeight = Math.max(height + 10, 100)
-
-            // console.log(
-            //   `SandboxedIframe - Body height: ${height}px, Final height: ${finalHeight}px`
-            // )
             setIframeHeight(finalHeight)
           }
         } catch (error) {
@@ -175,16 +195,37 @@ const SandboxedIframe: React.FC<{
       }, 50) // 50ms debounce
     }
 
-    // Set up height adjustment after iframe loads
-    iframe.onload = adjustHeight
+    // Fonts can arrive after the frame's load and change the content's height.
+    // Each load brings a new document, so the listener moves to its fonts.
+    let fonts: FontFaceSet | undefined
+    const handleLoad = () => {
+      fonts?.removeEventListener('loadingdone', adjustHeight)
+      fonts = iframe.contentDocument?.fonts
+      fonts?.addEventListener('loadingdone', adjustHeight)
+      adjustHeight()
+    }
+    iframe.addEventListener('load', handleLoad)
+    // The frame may have loaded before this effect ran
+    handleLoad()
 
-    // Single fallback adjustment
-    const fallbackTimeout = setTimeout(adjustHeight, 200)
+    // A change of the frame's width, such as its column's, rewraps the content.
+    // A height change is the canvas's own: measuring again on it would grow the
+    // frame on each measurement for content sized on the frame's viewport.
+    let measuredWidth: number | undefined
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[entries.length - 1]?.contentRect.width
+      if (width === undefined || width === measuredWidth) return
+      measuredWidth = width
+      adjustHeight()
+    })
+    observer.observe(iframe)
 
     // Cleanup function
     return () => {
+      observer.disconnect()
+      iframe.removeEventListener('load', handleLoad)
+      fonts?.removeEventListener('loadingdone', adjustHeight)
       clearTimeout(adjustTimeout)
-      clearTimeout(fallbackTimeout)
     }
   }, [fullHtmlContent])
 
