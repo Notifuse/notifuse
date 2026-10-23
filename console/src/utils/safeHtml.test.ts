@@ -5,6 +5,7 @@ import {
   parseHtmlInert,
   safeExternalUrl,
   fontStylesheetUrl,
+  fontStylesheetAddress,
   isSafeHref,
   isOpenableUrl,
   textOnlyHtml
@@ -345,6 +346,8 @@ describe('fontStylesheetUrl', () => {
     // The form older Google Fonts snippets use; the email resolves it too
     ['//fonts.googleapis.com/css?family=Lato', 'https://fonts.googleapis.com/css?family=Lato'],
     [' //fonts.googleapis.com/css?family=Lato ', 'https://fonts.googleapis.com/css?family=Lato'],
+    // A no-break space is no whitespace to a link, which reads the address as relative
+    ['\u00a0https://fonts.googleapis.com/css?family=Lato', null],
     ['{{ font_url }}', null],
     ['https://{{ cdn_host }}/fonts.css', null],
     ['{% if dark %}https://example.com/dark.css{% endif %}', null],
@@ -356,6 +359,23 @@ describe('fontStylesheetUrl', () => {
     [undefined, null]
   ])('%s -> %s', (input, expected) => {
     expect(fontStylesheetUrl(input)).toBe(expected)
+  })
+})
+
+describe('fontStylesheetAddress', () => {
+  it.each([
+    ['https://fonts.googleapis.com/css?family=Lato', 'https://fonts.googleapis.com/css?family=Lato'],
+    ['//fonts.googleapis.com/css?family=Lato', 'https://fonts.googleapis.com/css?family=Lato'],
+    // A stylesheet on the console's own origin is a font address all the same
+    [`${window.location.origin}/fonts/a.css`, `${window.location.origin}/fonts/a.css`],
+    ['{{ font_url }}', null],
+    ['javascript:window.__probe=1', null],
+    ['data:text/css,body{}', null],
+    ['webcal://example.com/a.css', null],
+    ['/fonts/a.css', null],
+    [undefined, null]
+  ])('%s -> %s', (input, expected) => {
+    expect(fontStylesheetAddress(input)?.toString() ?? null).toBe(expected)
   })
 })
 

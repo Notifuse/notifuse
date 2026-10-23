@@ -1,6 +1,7 @@
-import type { Locator, Page, Route } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { test, expect } from '../fixtures/auth'
 import { waitForLoading } from '../fixtures/test-utils'
+import { mockApi, openTemplateEditor as openEditor } from '../fixtures/template-editor'
 import {
   mockTemplates,
   mockWorkspace,
@@ -24,15 +25,6 @@ const probe = (name: string) =>
 
 const firedProbes = (page: Page) =>
   page.evaluate(() => (window as unknown as { __probes?: string[] }).__probes)
-
-const json = (route: Route, data: unknown) =>
-  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data) })
-
-// The fixtures route every API call through one handler; a route added here is
-// registered later, so Playwright tries it first.
-const mockApi = async (page: Page, path: string, data: unknown) => {
-  await page.route(`https://localapi.notifuse.com:4000/api/${path}*`, (route) => json(route, data))
-}
 
 const textContent =
   '<p>Hello {{ contact.first_name }}' +
@@ -162,8 +154,6 @@ const rawTemplate = templateWith([
 ])
 
 const openTemplateEditor = async (page: Page, shown = template) => {
-  await mockApi(page, 'templates.list', { templates: [shown], total: 1 })
-  await mockApi(page, 'templates.get', { template: shown })
   await mockApi(page, 'templates.compile', {
     html:
       '<html><body><p>Compiled</p><a href="https://example.com/offer">Offer</a>' +
@@ -171,18 +161,7 @@ const openTemplateEditor = async (page: Page, shown = template) => {
       `<img src="x" onerror="${probe('preview-image')}">` +
       '</body></html>'
   })
-
-  await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
-  await waitForLoading(page)
-  await page
-    .locator('.ant-table-row')
-    .first()
-    .locator('button:has(svg[data-icon="pen-to-square"])')
-    .click()
-  const drawer = page.getByRole('dialog', { name: 'Edit email template', exact: true })
-  await expect(drawer).toBeVisible()
-  await drawer.getByRole('tab', { name: '2. Template' }).click()
-  return drawer
+  return openEditor(page, shown)
 }
 
 test.describe('Template content in the email editor', () => {

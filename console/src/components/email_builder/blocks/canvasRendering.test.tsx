@@ -322,13 +322,15 @@ describe('editor canvas raw HTML frame document', () => {
     expect(styles.slice(0, -1).join('\n')).toContain('font-family: Arial')
   })
 
-  it('hides the scrollbars of a frame sized to its content, which would narrow it while measured', () => {
+  it('hides the scrollbars of a frame sized to its content, whatever the template asks', () => {
     const base = Array.from(parse(frameSource([])).querySelectorAll('style'))
       .map((style) => style.textContent ?? '')
       .join('\n')
 
-    expect(base).toMatch(/html,\s*body\s*\{[^}]*scrollbar-width:\s*none/)
-    expect(base).toMatch(/html::-webkit-scrollbar,\s*body::-webkit-scrollbar\s*\{[^}]*display:\s*none/)
+    expect(base).toMatch(/html,\s*body\s*\{[^}]*scrollbar-width:\s*none\s*!important/)
+    expect(base).toMatch(
+      /html::-webkit-scrollbar,\s*body::-webkit-scrollbar\s*\{[^}]*display:\s*none\s*!important/
+    )
   })
 
   it('links a protocol-relative font address as a web address', () => {

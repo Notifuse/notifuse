@@ -138,13 +138,14 @@ const SandboxedIframe: React.FC<{
         border: 0;
         outline: 0;
         background: transparent !important;
-        /* The frame is sized to its content and takes no input. A scrollbar would
-           narrow the content while the frame is measured collapsed. */
-        scrollbar-width: none;
+        /* The frame is sized to its content and takes no input: a scrollbar could not
+           be used, and would take room from the content, all of it while the frame
+           is measured collapsed, so the content would wrap narrower than shown */
+        scrollbar-width: none !important;
       }
 
       html::-webkit-scrollbar, body::-webkit-scrollbar {
-        display: none;
+        display: none !important;
       }
       
       /* Base iframe styles */

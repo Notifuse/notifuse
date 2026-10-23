@@ -65,9 +65,17 @@ describe('ImportFontInput stylesheet address', () => {
     })
   })
 
-  it('refuses a relative address', async () => {
-    expect(await enter('/fonts/inter.css')).not.toHaveBeenCalled()
+  it("imports an address on the console's own origin", async () => {
+    const href = `${window.location.origin}/fonts/brand.css`
+    expect(await enter(href)).toHaveBeenCalledWith({ name: 'Inter', href })
   })
+
+  it.each(['/fonts/inter.css', 'javascript:alert(1)', 'data:text/css,body{}', 'webcal://example.com/a.css'])(
+    'refuses an address that is no web address: %s',
+    async (href) => {
+      expect(await enter(href)).not.toHaveBeenCalled()
+    }
+  )
 
   it('refuses a malformed address even when it holds a Liquid tag', async () => {
     const onChange = await enter('https//example.com/{% if dark %}dark{% endif %}.css')

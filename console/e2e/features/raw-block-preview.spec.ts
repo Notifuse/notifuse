@@ -1,11 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import type { Locator, Page } from '@playwright/test'
+import type { Locator } from '@playwright/test'
 import { test, expect } from '../fixtures/auth'
-import { waitForLoading } from '../fixtures/test-utils'
 import { mockTemplates } from '../fixtures/mock-data'
-
-const WORKSPACE_ID = 'test-workspace'
+import { openTemplateEditor } from '../fixtures/template-editor'
 
 // Scrollbars that take room, as on Windows and Linux, rather than the hidden ones
 // headless Chromium has by default
@@ -14,30 +12,6 @@ test.use({
     await provide({ ...launchOptions, ignoreDefaultArgs: ['--hide-scrollbars'] })
   }
 })
-
-// Opens the template's visual editor, the API answering with this template
-const openTemplateEditor = async (page: Page, shown: object) => {
-  for (const [path, data] of [
-    ['templates.list', { templates: [shown], total: 1 }],
-    ['templates.get', { template: shown }]
-  ] as const) {
-    await page.route(`https://localapi.notifuse.com:4000/api/${path}*`, (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data) })
-    )
-  }
-
-  await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
-  await waitForLoading(page)
-  await page
-    .locator('.ant-table-row')
-    .first()
-    .locator('button:has(svg[data-icon="pen-to-square"])')
-    .click()
-  const drawer = page.getByRole('dialog', { name: 'Edit email template', exact: true })
-  await expect(drawer).toBeVisible()
-  await drawer.getByRole('tab', { name: '2. Template' }).click()
-  return drawer
-}
 
 // A real font with Latin glyphs, from the package that installs KaTeX
 const fontFile = () =>
@@ -75,7 +49,8 @@ const rawFontTemplate = {
             {
               id: 'style-x',
               type: 'mj-style',
-              content: 'html, body { height: 100%; } body { padding: 0; }'
+              // The scrollbar a template asks for still takes nothing from the measurement
+              content: 'html, body { height: 100%; } body { padding: 0; } html { scrollbar-width: thin; }'
             }
           ]
         },
@@ -209,9 +184,9 @@ test.describe('Raw HTML block on the canvas', () => {
     await expect.poll(() => frameFit(escaped).then((fit) => fit.covers)).toBe(true)
     // Measured at the width it is shown at, the scrollbar a collapsed frame would
     // have taking none of it: the content and the 10px below it, no more, no less
-    const escapedRoom = (await frameFit(escaped)).room
-    expect(escapedRoom).toBeGreaterThanOrEqual(9)
-    expect(escapedRoom).toBeLessThanOrEqual(11)
+    await expect
+      .poll(() => frameFit(escaped).then((fit) => fit.room >= 9 && fit.room <= 11))
+      .toBe(true)
     await expect(margined.contentFrame().getByText('Last margined')).toBeAttached()
     await expect.poll(() => frameFit(margined).then((fit) => fit.covers)).toBe(true)
     await expect(vh.contentFrame().getByText('Last vh')).toBeAttached()

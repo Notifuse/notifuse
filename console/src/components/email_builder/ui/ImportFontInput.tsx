@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Input, Popover, Button, Select } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { fontStylesheetUrl } from '../../../utils/safeHtml'
+import { fontStylesheetAddress, fontStylesheetUrl } from '../../../utils/safeHtml'
 import { hasLiquidOutput } from '../../../utils/liquid'
 
 interface ImportFontInputProps {
@@ -33,14 +33,8 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
     // Allow liquid expressions to bypass URL validation
     if (hasLiquidOutput(url)) return true
 
-    // A protocol-relative address is a web address, as the email reads it
-    const trimmed = url.trim()
-    try {
-      new URL(trimmed.startsWith('//') ? `https:${trimmed}` : trimmed)
-      return true
-    } catch {
-      return false
-    }
+    // A web address, a protocol-relative one included, as the email reads it
+    return fontStylesheetAddress(url) !== null
   }
 
   const isFormValid =

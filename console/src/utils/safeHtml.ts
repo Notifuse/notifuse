@@ -222,15 +222,29 @@ export function safeExternalUrl(url: string | null | undefined): string | null {
 }
 
 /**
- * The stylesheet an `mj-font` imports, as the console may link it: a web address
- * on another origin (see `safeExternalUrl`), normalised. A protocol-relative one
- * (`//fonts.googleapis.com/…`) is read as https. Liquid has no address until the
- * email is sent, so it gives null.
+ * The web address an `mj-font` names for its stylesheet: an absolute http(s) URL,
+ * a protocol-relative one (`//fonts.googleapis.com/…`) read as https. Liquid has
+ * no address until the email is sent, so it gives null.
+ */
+export function fontStylesheetAddress(href: string | null | undefined): URL | null {
+  // Only ASCII whitespace, as a link's address is trimmed
+  const url = href?.replace(/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g, '')
+  if (!url || isLiquidExpression(url)) return null
+  try {
+    const parsed = new URL(url.startsWith('//') ? `https:${url}` : url)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The stylesheet an `mj-font` imports, as the console may link it or load it: its
+ * address (see `fontStylesheetAddress`) on another origin, normalised.
  */
 export function fontStylesheetUrl(href: string | null | undefined): string | null {
-  const url = href?.trim()
-  if (!url || isLiquidExpression(url)) return null
-  return safeExternalUrl(url.startsWith('//') ? `https:${url}` : url)
+  const address = fontStylesheetAddress(href)
+  return address ? safeExternalUrl(address.toString()) : null
 }
 
 /**
