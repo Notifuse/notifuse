@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [42.0] - WIP
+## [42.0] - 2026-10-23
 
 - **Security**: Webhook subscriptions and automation webhook nodes now refuse private, loopback, link-local and reserved addresses, when the URL is saved and when it is called.
 
