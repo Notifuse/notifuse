@@ -176,8 +176,8 @@ func (cm *connectionManager) GetWorkspaceConnection(ctx context.Context, workspa
 		return pool, nil
 	}
 
-	// Checked before any capacity is taken or connection opened, and before the DSN is
-	// built: the ID goes into its URL as is. A cached pool was checked when it was created.
+	// Checked before any capacity is taken (or an idle pool evicted) for an ID that names
+	// no database. A cached pool was checked when it was created.
 	if _, err := database.WorkspaceDatabaseName(cm.config.Database.Prefix, workspaceID); err != nil {
 		return nil, err
 	}
