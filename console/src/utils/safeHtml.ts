@@ -221,25 +221,36 @@ export function safeExternalUrl(url: string | null | undefined): string | null {
   }
 }
 
+// Only ASCII whitespace, as a link's address is trimmed
+const trimAsciiWhitespace = (value: string): string =>
+  value.replace(/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g, '')
+
 /**
  * The web address an `mj-font` names for its stylesheet: an absolute http(s) URL,
  * a protocol-relative one (`//fonts.googleapis.com/…`) read as https. Liquid has
- * no address until the email is sent, so it gives null, unless `liquidTags` asks
- * to read an address that holds Liquid tags (`{% if %}`) as it is written.
+ * no address until the email is sent, so it gives null.
  */
-export function fontStylesheetAddress(
-  href: string | null | undefined,
-  { liquidTags = false }: { liquidTags?: boolean } = {}
-): URL | null {
-  // Only ASCII whitespace, as a link's address is trimmed
-  const url = href?.replace(/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g, '')
-  if (!url || hasLiquidOutput(url) || (!liquidTags && isLiquidExpression(url))) return null
+export function fontStylesheetAddress(href: string | null | undefined): URL | null {
+  const url = href === null || href === undefined ? '' : trimAsciiWhitespace(href)
+  if (!url || isLiquidExpression(url)) return null
   try {
     const parsed = new URL(url.startsWith('//') ? `https:${url}` : url)
     return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed : null
   } catch {
     return null
   }
+}
+
+/**
+ * Whether an `mj-font` may name this stylesheet address: a web address (see
+ * `fontStylesheetAddress`) once its Liquid is read as text, or one a Liquid output
+ * starts, which stands for its scheme and host until the email is sent.
+ */
+export function isFontStylesheetAddress(href: string | null | undefined): boolean {
+  const url = href === null || href === undefined ? '' : trimAsciiWhitespace(href)
+  if (!url) return false
+  if (url.startsWith('{{') && hasLiquidOutput(url)) return true
+  return fontStylesheetAddress(url.replace(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}/g, 'x')) !== null
 }
 
 /**

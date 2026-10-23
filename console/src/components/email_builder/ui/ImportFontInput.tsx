@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
 import { Input, Popover, Button, Select } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { fontStylesheetAddress, fontStylesheetUrl } from '../../../utils/safeHtml'
-import { hasLiquidOutput } from '../../../utils/liquid'
+import { fontStylesheetUrl, isFontStylesheetAddress } from '../../../utils/safeHtml'
 
 interface ImportFontInputProps {
   value?: {
@@ -27,24 +26,9 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
     href: value?.href || ''
   })
 
-  const isValidUrl = (url: string): boolean => {
-    // What is saved: the address trimmed
-    const href = url.trim()
-    if (!href) return false
+  // A web address, Liquid in it included, or a Liquid output standing for it
+  const isValidUrl = (url: string): boolean => isFontStylesheetAddress(url.trim())
 
-    // A Liquid output may stand for the whole address or for part of it: only a
-    // scheme other than the web's is refused
-    if (hasLiquidOutput(href)) {
-      try {
-        return ['http:', 'https:'].includes(new URL(href).protocol)
-      } catch {
-        return true
-      }
-    }
-
-    // A web address, a protocol-relative one or one holding Liquid tags included
-    return fontStylesheetAddress(href, { liquidTags: true }) !== null
-  }
 
   const isFormValid =
     inputValues.name.trim() && inputValues.href.trim() && isValidUrl(inputValues.href)

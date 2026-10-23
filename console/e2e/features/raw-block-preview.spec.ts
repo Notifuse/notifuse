@@ -184,9 +184,12 @@ test.describe('Raw HTML block on the canvas', () => {
     await expect.poll(() => frameFit(escaped).then((fit) => fit.covers)).toBe(true)
     // Measured at the width it is shown at, the scrollbar a collapsed frame would
     // have taking none of it: the content and the 10px below it, no more, no less
-    const escapedRoom = () => frameFit(escaped).then((fit) => fit.room)
-    await expect.poll(escapedRoom).toBeGreaterThanOrEqual(9)
-    await expect.poll(escapedRoom).toBeLessThanOrEqual(11)
+    await expect
+      .poll(async () => {
+        const { room } = await frameFit(escaped)
+        return room >= 9 && room <= 11 ? 'from 9 to 11' : room
+      })
+      .toBe('from 9 to 11')
     await expect(margined.contentFrame().getByText('Last margined')).toBeAttached()
     await expect.poll(() => frameFit(margined).then((fit) => fit.covers)).toBe(true)
     await expect(vh.contentFrame().getByText('Last vh')).toBeAttached()

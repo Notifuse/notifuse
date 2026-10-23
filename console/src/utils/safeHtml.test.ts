@@ -6,6 +6,7 @@ import {
   safeExternalUrl,
   fontStylesheetUrl,
   fontStylesheetAddress,
+  isFontStylesheetAddress,
   isSafeHref,
   isOpenableUrl,
   textOnlyHtml
@@ -363,12 +364,6 @@ describe('fontStylesheetUrl', () => {
 })
 
 describe('fontStylesheetAddress', () => {
-  it('reads an address holding a Liquid tag when asked to', () => {
-    const href = '//cdn.example.com/{% if dark %}dark{% endif %}.css'
-    expect(fontStylesheetAddress(href)).toBeNull()
-    expect(fontStylesheetAddress(href, { liquidTags: true })?.host).toBe('cdn.example.com')
-    expect(fontStylesheetAddress('javascript:{% if x %}y{% endif %}', { liquidTags: true })).toBeNull()
-  })
 
   it.each([
     ['https://fonts.googleapis.com/css?family=Lato', 'https://fonts.googleapis.com/css?family=Lato'],
@@ -383,6 +378,33 @@ describe('fontStylesheetAddress', () => {
     [undefined, null]
   ])('%s -> %s', (input, expected) => {
     expect(fontStylesheetAddress(input)?.toString() ?? null).toBe(expected)
+  })
+})
+
+describe('isFontStylesheetAddress', () => {
+  it.each([
+    ['https://fonts.googleapis.com/css?family=Lato', true],
+    ['//fonts.googleapis.com/css?family=Lato', true],
+    [`${window.location.origin}/fonts/a.css`, true],
+    // Liquid read as text inside a web address
+    ['https://example.com/{% if dark %}dark{% endif %}.css', true],
+    ['//cdn.example.com/{% if dark %}dark{% endif %}.css', true],
+    ['https://{{ cdn_host }}/fonts.css', true],
+    // A Liquid output standing for the start of the address, scheme included
+    ['{{ font_url }}', true],
+    ['{{ cdn }}/fonts.css', true],
+    ['javascript:{{ code }}', false],
+    ['javascript://{{ x }}/%0aalert(1)', false],
+    ['webcal://{{ host }}/f.css', false],
+    ['data:text/css,{{ css }}', false],
+    ['javascript:{% if x %}y{% endif %}', false],
+    ['fonts/{{ name }}.css', false],
+    ['https//example.com/{% if dark %}dark{% endif %}.css', false],
+    ['/fonts/a.css', false],
+    ['', false],
+    [undefined, false]
+  ])('%s -> %s', (input, expected) => {
+    expect(isFontStylesheetAddress(input)).toBe(expected)
   })
 })
 

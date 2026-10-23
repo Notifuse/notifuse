@@ -73,7 +73,12 @@ describe('ImportFontInput stylesheet address', () => {
     expect(await enter(href)).toHaveBeenCalledWith({ name: 'Inter', href })
   })
 
-  it.each(['javascript:{{ code }}', 'javascript:{% if x %}y{% endif %}', 'data:text/css,{{ css }}'])(
+  it.each([
+    'javascript:{{ code }}',
+    'javascript://{{ x }}/%0aalert(1)',
+    'javascript:{% if x %}y{% endif %}',
+    'data:text/css,{{ css }}'
+  ])(
     'refuses an address of another scheme, Liquid or not: %s',
     async (href) => {
       expect(await enter(href)).not.toHaveBeenCalled()
