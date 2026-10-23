@@ -138,6 +138,13 @@ const SandboxedIframe: React.FC<{
         border: 0;
         outline: 0;
         background: transparent !important;
+        /* The frame is sized to its content and takes no input. A scrollbar would
+           narrow the content while the frame is measured collapsed. */
+        scrollbar-width: none;
+      }
+
+      html::-webkit-scrollbar, body::-webkit-scrollbar {
+        display: none;
       }
       
       /* Base iframe styles */
@@ -194,7 +201,7 @@ const SandboxedIframe: React.FC<{
           if (iframeDoc.body) {
             const height = measureContentHeight(iframe, iframeDoc)
 
-            // Add minimal padding - the body already includes the 10px padding from CSS
+            // 10px of room below the content, on top of the body's own padding
             const finalHeight = Math.max(height + 10, 100)
 
             setIframeHeight(finalHeight)

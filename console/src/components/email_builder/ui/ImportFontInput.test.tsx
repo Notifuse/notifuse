@@ -58,6 +58,17 @@ describe('ImportFontInput stylesheet address', () => {
     })
   })
 
+  it('imports a protocol-relative address, which the panel links', async () => {
+    expect(await enter('//fonts.googleapis.com/css?family=Lato')).toHaveBeenCalledWith({
+      name: 'Inter',
+      href: '//fonts.googleapis.com/css?family=Lato'
+    })
+  })
+
+  it('refuses a relative address', async () => {
+    expect(await enter('/fonts/inter.css')).not.toHaveBeenCalled()
+  })
+
   it('refuses a malformed address even when it holds a Liquid tag', async () => {
     const onChange = await enter('https//example.com/{% if dark %}dark{% endif %}.css')
     expect(onChange).not.toHaveBeenCalled()

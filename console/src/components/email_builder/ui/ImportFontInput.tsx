@@ -33,8 +33,10 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
     // Allow liquid expressions to bypass URL validation
     if (hasLiquidOutput(url)) return true
 
+    // A protocol-relative address is a web address, as the email reads it
+    const trimmed = url.trim()
     try {
-      new URL(url)
+      new URL(trimmed.startsWith('//') ? `https:${trimmed}` : trimmed)
       return true
     } catch {
       return false

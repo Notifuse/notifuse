@@ -344,6 +344,7 @@ describe('fontStylesheetUrl', () => {
     ],
     // The form older Google Fonts snippets use; the email resolves it too
     ['//fonts.googleapis.com/css?family=Lato', 'https://fonts.googleapis.com/css?family=Lato'],
+    [' //fonts.googleapis.com/css?family=Lato ', 'https://fonts.googleapis.com/css?family=Lato'],
     ['{{ font_url }}', null],
     ['https://{{ cdn_host }}/fonts.css', null],
     ['{% if dark %}https://example.com/dark.css{% endif %}', null],

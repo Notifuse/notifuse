@@ -228,8 +228,9 @@ export function safeExternalUrl(url: string | null | undefined): string | null {
  * email is sent, so it gives null.
  */
 export function fontStylesheetUrl(href: string | null | undefined): string | null {
-  if (!href || isLiquidExpression(href)) return null
-  return safeExternalUrl(href.startsWith('//') ? `https:${href}` : href)
+  const url = href?.trim()
+  if (!url || isLiquidExpression(url)) return null
+  return safeExternalUrl(url.startsWith('//') ? `https:${url}` : url)
 }
 
 /**

@@ -322,6 +322,15 @@ describe('editor canvas raw HTML frame document', () => {
     expect(styles.slice(0, -1).join('\n')).toContain('font-family: Arial')
   })
 
+  it('hides the scrollbars of a frame sized to its content, which would narrow it while measured', () => {
+    const base = Array.from(parse(frameSource([])).querySelectorAll('style'))
+      .map((style) => style.textContent ?? '')
+      .join('\n')
+
+    expect(base).toMatch(/html,\s*body\s*\{[^}]*scrollbar-width:\s*none/)
+    expect(base).toMatch(/html::-webkit-scrollbar,\s*body::-webkit-scrollbar\s*\{[^}]*display:\s*none/)
+  })
+
   it('links a protocol-relative font address as a web address', () => {
     expect(frameSource([font('Lato', '//fonts.googleapis.com/css?family=Lato')])).toContain(
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">'
