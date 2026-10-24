@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -997,24 +998,19 @@ func (r *GetBroadcastsRequest) FromURLParams(values url.Values) error {
 	return nil
 }
 
-// parseIntParam parses a string to an integer
+// ParseIntParam parses a string to an integer. The whole string must be the
+// number: fmt.Sscanf("%d") would silently accept "10x" as 10, so a typo'd
+// pagination param paged wrong instead of failing.
 func ParseIntParam(s string) (int, error) {
-	var result int
-	_, err := fmt.Sscanf(s, "%d", &result)
-	if err != nil {
-		return 0, err
-	}
-	return result, nil
+	return strconv.Atoi(s)
 }
 
-// parseBoolParam parses a string to a boolean
+// ParseBoolParam parses a string to a boolean. fmt.Sscanf("%t") accepts any
+// token (everything that is not true-ish scans as false, with no error), so
+// it could never reject a garbage with_templates value; strconv.ParseBool
+// only accepts the usual boolean spellings and errors on the rest.
 func ParseBoolParam(s string) (bool, error) {
-	var result bool
-	_, err := fmt.Sscanf(s, "%t", &result)
-	if err != nil {
-		return false, err
-	}
-	return result, nil
+	return strconv.ParseBool(s)
 }
 
 // GetBroadcastRequest represents the request to get a single broadcast

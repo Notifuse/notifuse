@@ -22,3 +22,6 @@ coverage:
     - '**/tests/**'
     - '**/tests/**'
     - '**/testutil/**'
+    # Third-party Go code vendored inside frontend node_modules (flatted);
+    # swept into the profile by `go list ./...` but not code this repo owns.
+    - '**/node_modules/**'

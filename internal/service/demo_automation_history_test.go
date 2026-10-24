@@ -1,15 +1,23 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
+	"regexp"
 	"testing"
 	"time"
 
-	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
 // demoTestCohort builds a cohort with a mix of newsletter statuses, so both the ordinary paths and
@@ -335,8 +343,210 @@ func TestDemoJourneyListChanges(t *testing.T) {
 		assert.Empty(t, removals)
 	})
 }
+
 // The insert has to fill every column it names, or Postgres rejects the statement outright.
 func TestDemoContactAutomationArgs_MatchTheColumnList(t *testing.T) {
 	journeys := demoTestJourneys(t, demoAutomations("ws1")[0], 10)
 	assert.Len(t, demoContactAutomationArgs(journeys[0]), demoContactAutomationColumns)
+}
+
+func TestDemoAutomationCohortSQL(t *testing.T) {
+	t.Run("welcome draws from the newsletter list itself", func(t *testing.T) {
+		query, args := demoAutomationCohortSQL(demoAutomationWelcome)
+		assert.Contains(t, query, "FROM contact_lists")
+		assert.Contains(t, query, "status = 'active'")
+		assert.Equal(t, []interface{}{demoListNewsletter}, args)
+	})
+
+	t.Run("goal automations draw from custom events with their own goal", func(t *testing.T) {
+		_, cartArgs := demoAutomationCohortSQL(demoAutomationCartRecovery)
+		assert.Equal(t, []interface{}{demoGoalAddToCart}, cartArgs)
+
+		query, purchaseArgs := demoAutomationCohortSQL(demoAutomationPostPurchase)
+		assert.Contains(t, query, "FROM custom_events")
+		assert.Equal(t, []interface{}{demoGoalPurchase}, purchaseArgs)
+
+		_, vipArgs := demoAutomationCohortSQL(demoAutomationVIPConcierge)
+		assert.Equal(t, []interface{}{demoGoalPurchase}, vipArgs)
+	})
+
+	t.Run("winback requires the last purchase to be stale", func(t *testing.T) {
+		query, args := demoAutomationCohortSQL(demoAutomationWinback)
+		assert.Contains(t, query, "HAVING MAX(occurred_at) < NOW() - INTERVAL '90 days'")
+		assert.Equal(t, []interface{}{demoGoalPurchase}, args)
+	})
+
+	t.Run("unknown automation has no cohort query", func(t *testing.T) {
+		query, args := demoAutomationCohortSQL("no-such-automation")
+		assert.Equal(t, "", query)
+		assert.Nil(t, args)
+	})
+}
+
+func TestDemoAutomationOutcomesAndShares(t *testing.T) {
+	ids := []string{
+		demoAutomationWelcome, demoAutomationCartRecovery, demoAutomationPostPurchase,
+		demoAutomationVIPConcierge, demoAutomationWinback,
+	}
+	t.Run("weights are percentages summing to 100 per automation", func(t *testing.T) {
+		for _, id := range ids {
+			total := 0
+			for _, o := range demoAutomationOutcomes(id) {
+				total += o.Weight
+				assert.NotEmpty(t, o.Path, "%s has an empty journey path", id)
+				assert.True(t, o.Status == domain.ContactAutomationStatusCompleted ||
+					o.Status == domain.ContactAutomationStatusFailed,
+					"%s outcome has non-terminal status %s", id, o.Status)
+			}
+			assert.Equal(t, 100, total, "%s outcome weights must sum to 100", id)
+		}
+		assert.Nil(t, demoAutomationOutcomes("no-such-automation"))
+	})
+
+	t.Run("only flows with a guarded marketing email have an exit path", func(t *testing.T) {
+		assert.NotNil(t, demoAutomationExitPath(demoAutomationWelcome))
+		assert.NotNil(t, demoAutomationExitPath(demoAutomationCartRecovery))
+		assert.NotNil(t, demoAutomationExitPath(demoAutomationWinback))
+		// Transactional thank-you and the no-email concierge flow can never
+		// produce 'exited'; seeding exits there would fabricate a counter
+		// a real workspace cannot have.
+		assert.Nil(t, demoAutomationExitPath(demoAutomationPostPurchase))
+		assert.Nil(t, demoAutomationExitPath(demoAutomationVIPConcierge))
+	})
+
+	t.Run("cohort shares cap enrolment except for goal-driven flows", func(t *testing.T) {
+		assert.Equal(t, 0.42, demoAutomationCohortShare(demoAutomationWelcome))
+		assert.Equal(t, 0.55, demoAutomationCohortShare(demoAutomationVIPConcierge))
+		assert.Equal(t, 1.0, demoAutomationCohortShare(demoAutomationCartRecovery))
+		assert.Equal(t, 1.0, demoAutomationCohortShare("no-such-automation"))
+	})
+}
+
+func TestDemoDelayDuration(t *testing.T) {
+	assert.Equal(t, 15*time.Minute, demoDelayDuration(map[string]interface{}{"duration": 15, "unit": "minutes"}))
+	assert.Equal(t, 4*time.Hour, demoDelayDuration(map[string]interface{}{"duration": 4, "unit": "hours"}))
+	assert.Equal(t, 3*24*time.Hour, demoDelayDuration(map[string]interface{}{"duration": 3, "unit": "days"}))
+	// Missing or malformed config falls back to a minute, never to zero
+	// (a zero-length delay would put later nodes before their trigger).
+	assert.Equal(t, time.Minute, demoDelayDuration(map[string]interface{}{}))
+	assert.Equal(t, time.Minute, demoDelayDuration(map[string]interface{}{"duration": 0, "unit": "days"}))
+	assert.Equal(t, 5*time.Minute, demoDelayDuration(map[string]interface{}{"duration": 5, "unit": "fortnights"}))
+}
+
+func TestBuildDemoNodeVisits(t *testing.T) {
+	automations := DemoAutomations("ws-demo")
+	var welcome *domain.Automation
+	for _, a := range automations {
+		if a.ID == demoAutomationWelcome {
+			welcome = a
+		}
+	}
+	require.NotNil(t, welcome)
+	rng := rand.New(rand.NewSource(1))
+	entered := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	t.Run("a path through a missing node yields nothing rather than partial rows", func(t *testing.T) {
+		assert.Nil(t, buildDemoNodeVisits(welcome,
+			[]string{"ws-trigger", "ghost-node"}, entered, false,
+			domain.ContactAutomationStatusCompleted, rng))
+	})
+
+	t.Run("delay nodes take their configured duration", func(t *testing.T) {
+		visits := buildDemoNodeVisits(welcome,
+			[]string{"ws-trigger", "ws-delay-15m"}, entered, false,
+			domain.ContactAutomationStatusCompleted, rng)
+		require.Len(t, visits, 3) // entered + trigger visit + delay visit
+		delay := visits[2]
+		assert.Equal(t, "ws-delay-15m", delay.NodeID)
+		assert.Equal(t, 15*time.Minute, delay.CompletedAt.Sub(delay.EnteredAt),
+			"a delay node's elapsed time is the delay itself, not processing time")
+		assert.Equal(t, 15*60*1000, delay.DurationMs)
+		// Visits are contiguous: each node starts when the previous finished.
+		assert.Equal(t, visits[1].CompletedAt, delay.EnteredAt)
+		assert.Equal(t, entered, visits[0].EnteredAt)
+	})
+
+	t.Run("only the last visit can fail", func(t *testing.T) {
+		visits := buildDemoNodeVisits(welcome,
+			[]string{"ws-trigger", "ws-delay-15m", "ws-email-welcome"}, entered, true,
+			domain.ContactAutomationStatusFailed, rng)
+		require.Len(t, visits, 4)
+		for _, v := range visits[:len(visits)-1] {
+			assert.NotEqual(t, domain.NodeActionFailed, v.Action)
+		}
+		assert.Equal(t, domain.NodeActionFailed, visits[len(visits)-1].Action)
+		assert.Equal(t, "ws-email-welcome", visits[len(visits)-1].NodeID)
+	})
+}
+
+func TestDemoAutomationStats(t *testing.T) {
+	stats := demoAutomationStats([]demoJourney{
+		{Status: domain.ContactAutomationStatusCompleted},
+		{Status: domain.ContactAutomationStatusCompleted},
+		{Status: domain.ContactAutomationStatusFailed},
+		{Status: domain.ContactAutomationStatusExited},
+	})
+	assert.Equal(t, domain.AutomationStats{
+		Enrolled: 4, Completed: 2, Exited: 1, Failed: 1,
+	}, stats)
+}
+
+func TestSeedDemoAutomationHistory_Orchestration(t *testing.T) {
+	ctx := context.Background()
+	newSvc := func(wsRepo *mocks.MockWorkspaceRepository) *DemoService {
+		return &DemoService{
+			logger:        logger.NewLoggerWithLevel("disabled"),
+			workspaceRepo: wsRepo,
+		}
+	}
+
+	t.Run("no automations means no database work", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		svc := newSvc(mocks.NewMockWorkspaceRepository(ctrl))
+		require.NoError(t, svc.seedDemoAutomationHistory(ctx, "ws-1", nil))
+	})
+
+	t.Run("connection failure is wrapped", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		wsRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		sentinel := errors.New("no pool")
+		wsRepo.EXPECT().GetConnection(gomock.Any(), "ws-1").Return(nil, sentinel).Times(1)
+		err := newSvc(wsRepo).seedDemoAutomationHistory(ctx, "ws-1", DemoAutomations("ws-1"))
+		require.ErrorContains(t, err, "failed to get workspace connection:")
+		assert.ErrorIs(t, err, sentinel)
+	})
+
+	t.Run("a failing cohort query skips that automation, not the whole seed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		wsRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		wsRepo.EXPECT().GetConnection(gomock.Any(), "ws-1").Return(db, nil).Times(1)
+		mock.ExpectQuery(regexp.QuoteMeta("FROM contact_lists")).
+			WillReturnError(errors.New("table missing"))
+
+		welcomeOnly := []*domain.Automation{{ID: demoAutomationWelcome}}
+		require.NoError(t, newSvc(wsRepo).seedDemoAutomationHistory(ctx, "ws-1", welcomeOnly),
+			"cohort failures are per-automation warnings")
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("loadDemoCohort scans members in order", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mock.ExpectQuery(regexp.QuoteMeta("FROM contact_lists")).
+			WillReturnRows(sqlmock.NewRows([]string{"email", "status"}).
+				AddRow("a@example.com", "active").
+				AddRow("b@example.com", "unsubscribed"))
+
+		svc := &DemoService{logger: logger.NewLoggerWithLevel("disabled")}
+		cohort, err := svc.loadDemoCohort(ctx, db, demoAutomationWelcome)
+		require.NoError(t, err)
+		assert.Equal(t, []demoCohortMember{
+			{Email: "a@example.com", ListStatus: "active"},
+			{Email: "b@example.com", ListStatus: "unsubscribed"},
+		}, cohort)
+	})
 }

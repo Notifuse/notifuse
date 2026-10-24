@@ -340,6 +340,10 @@ func (a *App) InitDB() error {
 		a.logger.Info("Database driver wrapped with OpenCensus tracing")
 	}
 
+	// Everything below opens, pings, migrates and pools a live PostgreSQL
+	// server, so it only runs in integration tests with a real database.
+	// The unreachable-database failure above stays covered by unit tests.
+	// codecov:ignore:start
 	// Connect to system database
 	db, err := sql.Open(driverName, database.GetSystemDSN(&a.config.Database))
 	if err != nil {
@@ -397,6 +401,7 @@ func (a *App) InitDB() error {
 		Info("Connection manager initialized")
 
 	return nil
+	// codecov:ignore:end
 }
 
 // storedDataOpens reports whether key opens the data stored under the instance key: the
@@ -2214,6 +2219,11 @@ func (a *App) Initialize() error {
 		return err
 	}
 
+	// Everything below runs only after InitDB has opened a live database
+	// (installation check, mailer, repositories, services, handlers), so it
+	// is exercised by integration tests, not unit tests. The plan-limit
+	// logging, InitTracing and the InitDB failure path above stay covered.
+	// codecov:ignore:start
 	// Check if setup wizard is required (after migrations have run)
 	var installedValue string
 	err := a.db.QueryRow("SELECT value FROM settings WHERE key = 'is_installed'").Scan(&installedValue)
@@ -2260,6 +2270,7 @@ func (a *App) Initialize() error {
 	}
 
 	return nil
+	// codecov:ignore:end
 }
 
 // GetConfig returns the app's configuration
