@@ -512,6 +512,10 @@ func (h *SettingsHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if err := h.setupService.ValidateSMTPCredentials(newConfig.SMTPUsername, newConfig.SMTPPassword); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	if err := h.settingService.SetSystemConfig(ctx, newConfig, h.secretKey); err != nil {
 		h.logger.WithField("error", err).Error("Failed to save system settings")

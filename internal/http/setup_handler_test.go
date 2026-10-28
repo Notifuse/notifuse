@@ -497,6 +497,50 @@ func TestSetupHandler_Initialize(t *testing.T) {
 	}
 }
 
+// The wizard's own case: a username typed, the password left blank. The connection test
+// used to skip authentication and report success, and the install then saved a pair the
+// mailer can only use anonymously.
+func TestSetupHandler_HalfFilledSMTPCredentials(t *testing.T) {
+	newHandler := func() (*SetupHandler, *mockSettingRepository) {
+		settingRepo := newMockSettingRepository()
+		settingService := service.NewSettingService(settingRepo)
+		setupService := service.NewSetupService(settingService, &service.UserService{}, newMockUserRepository(), logger.NewLogger(), "secret-key", nil, nil)
+		return NewSetupHandler(setupService, settingService, logger.NewLogger(), newMockAppShutdowner()), settingRepo
+	}
+
+	t.Run("connection test refuses a username without a password", func(t *testing.T) {
+		handler, _ := newHandler()
+
+		req := httptest.NewRequest(http.MethodPost, "/api/setup.testSmtp", bytes.NewBufferString(
+			`{"smtp_host": "invalid-host.example.com", "smtp_port": 587, "smtp_username": "user", "smtp_password": ""}`))
+		w := httptest.NewRecorder()
+		handler.TestSMTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "SMTP password is required when a username is set")
+		assert.NotContains(t, w.Body.String(), "failed to connect")
+	})
+
+	t.Run("initialize refuses a username without a password and installs nothing", func(t *testing.T) {
+		handler, settingRepo := newHandler()
+
+		req := httptest.NewRequest(http.MethodPost, "/api/setup.initialize", bytes.NewBufferString(`{
+			"root_email": "admin@example.com",
+			"api_endpoint": "https://api.example.com",
+			"smtp_host": "smtp.example.com",
+			"smtp_port": 587,
+			"smtp_username": "user",
+			"smtp_from_email": "noreply@example.com"
+		}`))
+		w := httptest.NewRecorder()
+		handler.Initialize(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "SMTP password is required when a username is set")
+		assert.Empty(t, settingRepo.settings["is_installed"])
+	})
+}
+
 func TestSetupHandler_RegisterRoutes(t *testing.T) {
 	// Setup
 	settingRepo := newMockSettingRepository()

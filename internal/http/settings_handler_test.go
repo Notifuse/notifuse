@@ -673,6 +673,7 @@ func TestSettingsHandler_Update_MaskedPasswordRetainsExisting(t *testing.T) {
 		RootEmail:     testRootEmail,
 		SMTPHost:      "smtp.example.com",
 		SMTPPort:      587,
+		SMTPUsername:  "smtp-user",
 		SMTPPassword:  "real-secret-password",
 		SMTPFromEmail: "noreply@example.com",
 	}
@@ -692,6 +693,7 @@ func TestSettingsHandler_Update_MaskedPasswordRetainsExisting(t *testing.T) {
 		RootEmail:     testRootEmail,
 		SMTPHost:      "smtp.example.com",
 		SMTPPort:      587,
+		SMTPUsername:  "smtp-user",
 		SMTPPassword:  passwordMask, // sentinel value - should retain existing
 		SMTPFromEmail: "noreply@example.com",
 	}
@@ -819,6 +821,104 @@ func TestSettingsHandler_TestSMTP_ConnectionFails(t *testing.T) {
 
 	handler.handleTestSMTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// withSMTPEnv swaps in a setup service carrying env overrides, sharing the handler's store.
+func withSMTPEnv(handler *SettingsHandler, env *service.EnvironmentConfig) {
+	handler.setupService = service.NewSetupService(
+		handler.settingService, &service.UserService{}, newMockUserRepository(),
+		logger.NewLogger(), testSecretKey, nil, env,
+	)
+}
+
+func postSettingsTestSMTP(t *testing.T, handler *SettingsHandler, body string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, "/api/settings.testSmtp", bytes.NewBufferString(body))
+	req = reqWithUserContext(req, "root-user-id")
+	w := httptest.NewRecorder()
+	handler.handleTestSMTP(w, req)
+	return w
+}
+
+// A username without a password used to skip authentication entirely, so the test only
+// proved the server answered and reported success for credentials that cannot send.
+func TestSettingsHandler_TestSMTP_HalfFilledCredentials(t *testing.T) {
+	t.Run("username without password is refused before dialing", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+
+		w := postSettingsTestSMTP(t, handler, `{"smtp_host": "invalid-host.example.com", "smtp_port": 587, "smtp_username": "user", "smtp_password": ""}`)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "SMTP password is required when a username is set")
+		assert.NotContains(t, w.Body.String(), "failed to connect")
+	})
+
+	t.Run("password without username is refused before dialing", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+
+		w := postSettingsTestSMTP(t, handler, `{"smtp_host": "invalid-host.example.com", "smtp_port": 587, "smtp_password": "secret"}`)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "SMTP username is required when a password is set")
+	})
+
+	// The drawer shows an env-provided password as the mask and stores none in the DB, so
+	// the mask resolves to "". The env value is what the mailer uses, so it completes the pair.
+	t.Run("env password completes a typed username", func(t *testing.T) {
+		handler, _, _, _ := setupSettingsHandler(t)
+		withSMTPEnv(handler, &service.EnvironmentConfig{SMTPPassword: "env-secret"})
+
+		w := postSettingsTestSMTP(t, handler, `{"smtp_host": "invalid-host.example.com", "smtp_port": 587, "smtp_username": "user", "smtp_password": "`+passwordMask+`"}`)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "failed to connect", "the pair is complete, so the test must get as far as dialing")
+	})
+}
+
+func TestSettingsHandler_Update_HalfFilledSMTPCredentials(t *testing.T) {
+	seed := func(settingRepo *mockSettingRepository) {
+		ctx := context.Background()
+		_ = settingRepo.Set(ctx, "is_installed", "true")
+		_ = settingRepo.Set(ctx, "root_email", testRootEmail)
+	}
+
+	t.Run("username without password is refused and nothing is saved", func(t *testing.T) {
+		handler, settingRepo, _, shutdowner := setupSettingsHandler(t)
+		seed(settingRepo)
+
+		w := postSettingsUpdate(t, handler, `{"smtp_host": "smtp.example.com", "smtp_username": "user", "smtp_password": ""}`)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "SMTP password is required when a username is set")
+
+		assert.Empty(t, settingRepo.settings["smtp_host"], "a refused save must not persist anything")
+		assert.Empty(t, settingRepo.settings["encrypted_smtp_username"])
+		assert.False(t, shutdowner.shutdownCalled.Load())
+	})
+
+	t.Run("masked password with none stored is refused", func(t *testing.T) {
+		handler, settingRepo, _, _ := setupSettingsHandler(t)
+		seed(settingRepo)
+
+		w := postSettingsUpdate(t, handler, `{"smtp_host": "smtp.example.com", "smtp_username": "user", "smtp_password": "`+passwordMask+`"}`)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "SMTP password is required when a username is set")
+	})
+
+	t.Run("env password completes a typed username", func(t *testing.T) {
+		handler, settingRepo, _, _ := setupSettingsHandler(t)
+		seed(settingRepo)
+		withSMTPEnv(handler, &service.EnvironmentConfig{SMTPPassword: "env-secret"})
+
+		w := postSettingsUpdate(t, handler, `{"smtp_host": "smtp.example.com", "smtp_username": "user", "smtp_password": "`+passwordMask+`"}`)
+		require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+		assert.Equal(t, "smtp.example.com", settingRepo.settings["smtp_host"])
+	})
+
+	t.Run("both empty stays valid for a relay that needs no login", func(t *testing.T) {
+		handler, settingRepo, _, _ := setupSettingsHandler(t)
+		seed(settingRepo)
+
+		w := postSettingsUpdate(t, handler, `{"smtp_host": "relay.internal", "smtp_port": 25, "smtp_username": "", "smtp_password": ""}`)
+		require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+		assert.Equal(t, "relay.internal", settingRepo.settings["smtp_host"])
+	})
 }
 
 // ============================================================
@@ -1039,6 +1139,14 @@ func seedOIDCSettings(t *testing.T, settingRepo *mockSettingRepository) {
 
 	encryptedSecret, err := crypto.EncryptString("real-oidc-secret", testSecretKey)
 	require.NoError(t, err)
+	// A complete SMTP pair: consoleSettingsSaveBody posts the username with a masked
+	// password, which only passes the credential-pair check when a password is stored.
+	encryptedSMTPUsername, err := crypto.EncryptString("smtp-user", testSecretKey)
+	require.NoError(t, err)
+	_ = settingRepo.Set(ctx, "encrypted_smtp_username", encryptedSMTPUsername)
+	encryptedSMTPPassword, err := crypto.EncryptString("real-smtp-password", testSecretKey)
+	require.NoError(t, err)
+	_ = settingRepo.Set(ctx, "encrypted_smtp_password", encryptedSMTPPassword)
 
 	_ = settingRepo.Set(ctx, "is_installed", "true")
 	_ = settingRepo.Set(ctx, "root_email", testRootEmail)

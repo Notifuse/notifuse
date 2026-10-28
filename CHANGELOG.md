@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: `gomjml` now comes from the Notifuse fork, which carries [gomjml PR#59](https://github.com/preslavrachev/gomjml/pull/59) until it is released upstream: a font declared in an email template with `mj-font` under the name of a font Notifuse otherwise loads from Google Fonts (Lato, Open Sans, Roboto, Ubuntu or Montserrat) now replaces Google's stylesheet instead of being loaded alongside it, so emails use your own font files.
 
+- **Improvement**: The SMTP settings of the setup wizard and system settings now require a password when a username is entered, and a username when a password is entered, before testing or saving the connection. Leave both empty for a server that needs no login.
+
 ## [42.0] - 2026-10-23
 
 - **Security**: Webhook subscriptions and automation webhook nodes now refuse private, loopback, link-local and reserved addresses, when the URL is saved and when it is called.

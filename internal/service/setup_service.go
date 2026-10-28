@@ -284,6 +284,10 @@ func (s *SetupService) ValidateSetupConfig(config *SetupConfig) error {
 		if config.SMTPFromEmail == "" {
 			return fmt.Errorf("smtp_from_email is required")
 		}
+
+		if err := s.ValidateSMTPCredentials(config.SMTPUsername, config.SMTPPassword); err != nil {
+			return err
+		}
 	}
 
 	// Validate OIDC when the user enables it in the wizard (and it's not env-configured).
@@ -494,6 +498,13 @@ func (s *SetupService) TestSMTPConnection(ctx context.Context, config *SMTPTestC
 		return fmt.Errorf("SMTP port is required")
 	}
 
+	// Test the credentials the mailer will use, not just the ones typed: an env-provided
+	// password the form cannot show would otherwise make a working pair look half-filled.
+	username, password := s.effectiveSMTPCredentials(config.Username, config.Password)
+	if err := ValidateSMTPCredentialPair(username, password); err != nil {
+		return err
+	}
+
 	// Determine TLS policy based on config
 	tlsPolicy := mail.TLSMandatory
 	if !config.UseTLS {
@@ -514,10 +525,10 @@ func (s *SetupService) TestSMTPConnection(ctx context.Context, config *SMTPTestC
 
 	// Only add authentication if username and password are provided
 	// This allows for unauthenticated SMTP servers (e.g., local relays, port 25)
-	if config.Username != "" && config.Password != "" {
+	if username != "" && password != "" {
 		clientOptions = append(clientOptions,
-			mail.WithUsername(config.Username),
-			mail.WithPassword(config.Password),
+			mail.WithUsername(username),
+			mail.WithPassword(password),
 			mail.WithSMTPAuth(mail.SMTPAuthAutoDiscover),
 		)
 	}
@@ -543,5 +554,41 @@ func (s *SetupService) TestSMTPConnection(ctx context.Context, config *SMTPTestC
 		s.logger.WithField("error", err).Warn("Failed to close SMTP connection gracefully")
 	}
 
+	return nil
+}
+
+// ValidateSMTPCredentials rejects a half-filled SMTP username/password pair, judged on the
+// credentials the mailer will actually use once env overrides are applied.
+func (s *SetupService) ValidateSMTPCredentials(username, password string) error {
+	return ValidateSMTPCredentialPair(s.effectiveSMTPCredentials(username, password))
+}
+
+// effectiveSMTPCredentials applies env overrides field by field, as config.go does when it
+// builds the runtime SMTP config: a non-empty env var wins over the stored or typed value.
+func (s *SetupService) effectiveSMTPCredentials(username, password string) (string, string) {
+	if s.envConfig == nil {
+		return username, password
+	}
+	if s.envConfig.SMTPUsername != "" {
+		username = s.envConfig.SMTPUsername
+	}
+	if s.envConfig.SMTPPassword != "" {
+		password = s.envConfig.SMTPPassword
+	}
+	return username, password
+}
+
+// ValidateSMTPCredentialPair rejects a username without a password, or the reverse.
+//
+// The mailer only authenticates when both are set, so a half-filled pair silently connects
+// anonymously: a connection test passes, then the server refuses the first real send.
+// Both empty stays valid — that is how a relay that needs no login is configured.
+func ValidateSMTPCredentialPair(username, password string) error {
+	if username != "" && password == "" {
+		return fmt.Errorf("SMTP password is required when a username is set: without it, Notifuse connects without logging in and the server can refuse to send. Leave both empty only if your server needs no login")
+	}
+	if username == "" && password != "" {
+		return fmt.Errorf("SMTP username is required when a password is set: without it, Notifuse connects without logging in and the server can refuse to send")
+	}
 	return nil
 }

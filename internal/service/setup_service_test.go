@@ -291,6 +291,55 @@ func TestSetupService_TestSMTPConnection(t *testing.T) {
 	// For coverage purposes, we test the validation logic
 }
 
+// The mailer and the connection test only authenticate when both credentials are set, so a
+// half-filled pair connects anonymously: the test passed and real sends were refused.
+func TestSetupService_SMTPCredentialPair(t *testing.T) {
+	newSvc := func(env *service.EnvironmentConfig) *service.SetupService {
+		return service.NewSetupService(&service.SettingService{}, &service.UserService{}, nil, &mockLogger{}, "k", nil, env)
+	}
+	const usernameOnly = "SMTP password is required when a username is set"
+	const passwordOnly = "SMTP username is required when a password is set"
+
+	t.Run("pair rule", func(t *testing.T) {
+		assert.NoError(t, service.ValidateSMTPCredentialPair("", ""), "both empty is a relay that needs no login")
+		assert.NoError(t, service.ValidateSMTPCredentialPair("user", "pass"))
+		assert.ErrorContains(t, service.ValidateSMTPCredentialPair("user", ""), usernameOnly)
+		assert.ErrorContains(t, service.ValidateSMTPCredentialPair("", "pass"), passwordOnly)
+	})
+
+	t.Run("env overrides are applied field by field before judging the pair", func(t *testing.T) {
+		assert.NoError(t, newSvc(&service.EnvironmentConfig{SMTPPassword: "env-pass"}).ValidateSMTPCredentials("user", ""))
+		assert.NoError(t, newSvc(&service.EnvironmentConfig{SMTPUsername: "env-user"}).ValidateSMTPCredentials("", "pass"))
+		assert.ErrorContains(t, newSvc(&service.EnvironmentConfig{SMTPUsername: "env-user"}).ValidateSMTPCredentials("", ""), usernameOnly)
+		assert.ErrorContains(t, newSvc(nil).ValidateSMTPCredentials("user", ""), usernameOnly)
+	})
+
+	t.Run("setup wizard validation refuses a half-filled pair", func(t *testing.T) {
+		base := func() *service.SetupConfig {
+			return &service.SetupConfig{RootEmail: "a@b.com", SMTPHost: "h", SMTPFromEmail: "f@b.com", SMTPUsername: "user"}
+		}
+		assert.ErrorContains(t, newSvc(&service.EnvironmentConfig{}).ValidateSetupConfig(base()), usernameOnly)
+		assert.NoError(t, newSvc(&service.EnvironmentConfig{SMTPPassword: "env-pass"}).ValidateSetupConfig(base()))
+	})
+
+	t.Run("connection test refuses a half-filled pair before dialing", func(t *testing.T) {
+		err := newSvc(nil).TestSMTPConnection(context.Background(), &service.SMTPTestConfig{
+			Host: "invalid-host.example.com", Port: 587, Username: "user", UseTLS: true,
+		})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), usernameOnly)
+		assert.NotContains(t, err.Error(), "failed to connect")
+	})
+
+	t.Run("connection test completes the pair from env and dials", func(t *testing.T) {
+		err := newSvc(&service.EnvironmentConfig{SMTPPassword: "env-pass"}).TestSMTPConnection(context.Background(), &service.SMTPTestConfig{
+			Host: "invalid-host.example.com", Port: 587, Username: "user", UseTLS: true,
+		})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to connect to SMTP server")
+	})
+}
+
 func TestSetupService_OIDC_StatusAndValidation(t *testing.T) {
 	newSvc := func(env *service.EnvironmentConfig) *service.SetupService {
 		return service.NewSetupService(&service.SettingService{}, &service.UserService{}, nil, &mockLogger{}, "k", nil, env)
