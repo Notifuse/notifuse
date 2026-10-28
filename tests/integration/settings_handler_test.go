@@ -115,16 +115,16 @@ func TestSettingsHandler_UpdateAndGet(t *testing.T) {
 
 	// Step 2: Update some settings
 	updateReq := map[string]interface{}{
-		"root_email":        rootEmail,
-		"api_endpoint":      settings["api_endpoint"], // keep existing
-		"smtp_host":         "updated-smtp.example.com",
-		"smtp_port":         465,
-		"smtp_from_email":   "updated@example.com",
-		"smtp_from_name":    "Updated Name",
-		"smtp_use_tls":      true,
-		"smtp_ehlo_hostname": "updated-ehlo.example.com",
-		"telemetry_enabled":  true,
-		"check_for_updates":  false,
+		"root_email":          rootEmail,
+		"api_endpoint":        settings["api_endpoint"], // keep existing
+		"smtp_host":           "updated-smtp.example.com",
+		"smtp_port":           465,
+		"smtp_from_email":     "updated@example.com",
+		"smtp_from_name":      "Updated Name",
+		"smtp_use_tls":        true,
+		"smtp_ehlo_hostname":  "updated-ehlo.example.com",
+		"telemetry_enabled":   true,
+		"check_for_updates":   false,
 		"smtp_bridge_enabled": false,
 	}
 
@@ -220,12 +220,13 @@ func TestSettingsHandler_MaskedPasswordRoundTrip(t *testing.T) {
 	rootToken := tokenCache.GetOrCreate(t, rootEmail)
 	suite.APIClient.SetToken(rootToken)
 
-	// Step 1: Set a password
+	// Step 1: Set a password (with a username: a password alone is a half-filled pair and is rejected)
 	updateReq := map[string]interface{}{
-		"root_email":     rootEmail,
-		"smtp_host":      "smtp.example.com",
-		"smtp_port":      587,
-		"smtp_password":  "my-secret-password",
+		"root_email":      rootEmail,
+		"smtp_host":       "smtp.example.com",
+		"smtp_port":       587,
+		"smtp_username":   "smtp-user",
+		"smtp_password":   "my-secret-password",
 		"smtp_from_email": "test@example.com",
 	}
 
@@ -250,10 +251,11 @@ func TestSettingsHandler_MaskedPasswordRoundTrip(t *testing.T) {
 
 	// Step 3: Send update with the masked value
 	updateReq2 := map[string]interface{}{
-		"root_email":     rootEmail,
-		"smtp_host":      "smtp.example.com",
-		"smtp_port":      587,
-		"smtp_password":  maskedPassword, // sending back the mask
+		"root_email":      rootEmail,
+		"smtp_host":       "smtp.example.com",
+		"smtp_port":       587,
+		"smtp_username":   "smtp-user",
+		"smtp_password":   maskedPassword, // sending back the mask
 		"smtp_from_email": "test@example.com",
 	}
 
