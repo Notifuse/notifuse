@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [42.1] - 2026-10-28
 
+- **Security**: Single sign-on now uses `go-jose` 4.1.6, which fixes a denial of service where a crafted RSA key in the signing keys published by the identity provider could use excessive CPU ([GHSA-mgcc-cww5-fp2q](https://github.com/advisories/GHSA-mgcc-cww5-fp2q)).
+
 - **Fix**: `gomjml` now comes from the Notifuse fork, which carries [gomjml PR#59](https://github.com/preslavrachev/gomjml/pull/59) until it is released upstream: a font declared in an email template with `mj-font` under the name of a font Notifuse otherwise loads from Google Fonts (Lato, Open Sans, Roboto, Ubuntu or Montserrat) now replaces Google's stylesheet instead of being loaded alongside it, so emails use your own font files.
 
 - **Improvement**: The SMTP settings of the setup wizard and system settings now require a password when a username is entered, and a username when a password is entered, before testing or saving the connection. Leave both empty for a server that needs no login.
