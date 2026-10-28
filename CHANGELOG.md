@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [42.1] - 2026-10-28
+
+- **Fix**: `gomjml` now comes from the Notifuse fork, which carries [gomjml PR#59](https://github.com/preslavrachev/gomjml/pull/59) until it is released upstream: a font declared in an email template with `mj-font` under the name of a font Notifuse otherwise loads from Google Fonts (Lato, Open Sans, Roboto, Ubuntu or Montserrat) now replaces Google's stylesheet instead of being loaded alongside it, so emails use your own font files.
+
 ## [42.0] - 2026-10-23
 
 - **Security**: Webhook subscriptions and automation webhook nodes now refuse private, loopback, link-local and reserved addresses, when the URL is saved and when it is called.

@@ -142,3 +142,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/preslavrachev/gomjml => github.com/Notifuse/gomjml v0.10.1-0.20261028150808-425c7167ec50
