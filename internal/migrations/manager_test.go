@@ -32,8 +32,15 @@ type mockWorkspaceConnector struct {
 	db *sql.DB
 }
 
-func (m *mockWorkspaceConnector) connectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error) {
+func (m *mockWorkspaceConnector) connectToWorkspace(ctx context.Context, cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error) {
 	return m.db, nil
+}
+
+// expectWorkspaceHoldsTables queues the emptiness check run on each workspace database
+// before it is migrated.
+func expectWorkspaceHoldsTables(mock sqlmock.Sqlmock, holds bool) {
+	mock.ExpectQuery(`SELECT EXISTS \(\s*SELECT 1\s*FROM pg_class c`).
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(holds))
 }
 
 func TestNewManager(t *testing.T) {
@@ -275,6 +282,7 @@ func TestManager_executeMigration_WorkspaceOnly(t *testing.T) {
 		WillReturnRows(rows)
 
 	// Mock workspace transaction expectations
+	expectWorkspaceHoldsTables(workspaceMock, true)
 	workspaceMock.ExpectBegin()
 	workspaceMock.ExpectCommit()
 
@@ -385,6 +393,7 @@ func TestManager_RunMigrations_FirstRun(t *testing.T) {
 	cfg := &config.Config{}
 
 	// Mock no version found (first run)
+	expectMigrationLockGranted(mock)
 	mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").WillReturnError(sql.ErrNoRows)
 
 	// Mock version initialization
@@ -392,6 +401,7 @@ func TestManager_RunMigrations_FirstRun(t *testing.T) {
 		WithArgs(sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
+	mock.ExpectCommit() // the migration lock
 	err = manager.RunMigrations(ctx, cfg, db)
 
 	assert.NoError(t, err)
@@ -408,8 +418,10 @@ func TestManager_RunMigrations_GetVersionError(t *testing.T) {
 	cfg := &config.Config{}
 
 	// Mock version query error
+	expectMigrationLockGranted(mock)
 	mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").WillReturnError(errors.New("database error"))
 
+	mock.ExpectRollback() // the migration lock
 	err = manager.RunMigrations(ctx, cfg, db)
 
 	assert.Error(t, err)
@@ -430,7 +442,7 @@ func TestDefaultConnector_ConnectToWorkspace(t *testing.T) {
 			SSLMode:  "disable",
 		}
 
-		db, err := connector.connectToWorkspace(cfg, "test-workspace")
+		db, err := connector.connectToWorkspace(context.Background(), cfg, "test-workspace")
 
 		assert.Error(t, err)
 		assert.Nil(t, db)
@@ -448,7 +460,7 @@ func TestDefaultConnector_ConnectToWorkspace(t *testing.T) {
 			SSLMode:  "disable",
 		}
 
-		db, err := connector.connectToWorkspace(cfg, "test-workspace-123")
+		db, err := connector.connectToWorkspace(context.Background(), cfg, "test-workspace-123")
 
 		// Should fail due to invalid host, but we verify the error handling
 		assert.Error(t, err)
@@ -467,7 +479,7 @@ func TestDefaultConnector_ConnectToWorkspace(t *testing.T) {
 			SSLMode:  "invalid",
 		}
 
-		db, err := connector.connectToWorkspace(cfg, "test")
+		db, err := connector.connectToWorkspace(context.Background(), cfg, "test")
 
 		// Should fail due to invalid configuration
 		assert.Error(t, err)
@@ -485,7 +497,7 @@ func TestDefaultConnector_ConnectToWorkspace(t *testing.T) {
 			SSLMode:  "require",
 		}
 
-		db, err := connector.connectToWorkspace(cfg, "workspace-with-special-chars-123")
+		db, err := connector.connectToWorkspace(context.Background(), cfg, "workspace-with-special-chars-123")
 
 		// Should fail due to nonexistent host, but DSN construction is tested
 		assert.Error(t, err)
@@ -505,7 +517,7 @@ func TestDefaultConnector_ConnectToWorkspace(t *testing.T) {
 			SSLMode:  "disable",
 		}
 
-		db, err := connector.connectToWorkspace(cfg, "a?b=c&d=")
+		db, err := connector.connectToWorkspace(context.Background(), cfg, "a?b=c&d=")
 
 		assert.Nil(t, db)
 		assert.EqualError(t, err, `invalid workspace ID for a database name: "a?b=c&d="`)
@@ -529,6 +541,7 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 		}
 
 		// Mock GetCurrentDBVersion to return no version exists
+		expectMigrationLockGranted(mock)
 		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
 			WillReturnError(sql.ErrNoRows)
 
@@ -537,6 +550,7 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 			WithArgs(sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
+		mock.ExpectCommit() // the migration lock
 		err = manager.RunMigrations(context.Background(), cfg, db)
 
 		assert.NoError(t, err)
@@ -563,9 +577,11 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 		// across version bumps instead of hardcoding the latest major.
 		codeVersion, err := GetCurrentCodeVersion()
 		require.NoError(t, err)
+		expectMigrationLockGranted(mock)
 		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
 			WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(fmt.Sprintf("%.0f", codeVersion)))
 
+		mock.ExpectCommit() // the migration lock
 		err = manager.RunMigrations(context.Background(), cfg, db)
 
 		// This should succeed as database is up to date
@@ -589,6 +605,7 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 		}
 
 		// Mock GetCurrentDBVersion to return no version exists
+		expectMigrationLockGranted(mock)
 		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
 			WillReturnError(sql.ErrNoRows)
 
@@ -597,6 +614,7 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 			WithArgs(sqlmock.AnyArg()).
 			WillReturnError(sql.ErrConnDone)
 
+		mock.ExpectRollback() // the migration lock
 		err = manager.RunMigrations(context.Background(), cfg, db)
 
 		assert.Error(t, err)
@@ -620,9 +638,11 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 		}
 
 		// Mock GetCurrentDBVersion to return invalid version format
+		expectMigrationLockGranted(mock)
 		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
 			WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow("invalid-version"))
 
+		mock.ExpectRollback() // the migration lock
 		err = manager.RunMigrations(context.Background(), cfg, db)
 
 		assert.Error(t, err)
@@ -660,9 +680,11 @@ func TestManager_RunMigrations_RefusesADatabaseAheadOfTheCode(t *testing.T) {
 	// the INSERT that re-stamps the version — fails the run as unexpected. That
 	// is the assertion that nothing ran: mis-reporting this database is bad, but
 	// migrating one whose schema this build has never seen is worse.
+	expectMigrationLockGranted(mock)
 	mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
 		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(fmt.Sprintf("%.0f", aheadVersion)))
 
+	mock.ExpectRollback() // the migration lock
 	err = NewManager(&mockLogger{}).RunMigrations(context.Background(), &config.Config{}, db)
 
 	require.Error(t, err, "reporting success is how a rolled-back deploy skips a migration forever")

@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"regexp"
@@ -24,7 +23,6 @@ import (
 type testWorkspaceRepository struct {
 	domain.WorkspaceRepository
 	createDatabaseError error
-	createDatabaseFunc  func(ctx context.Context, workspaceID string) error
 }
 
 // Create overrides the Create method to handle the database creation error
@@ -40,17 +38,6 @@ func (r *testWorkspaceRepository) Create(ctx context.Context, workspace *domain.
 		return r.createDatabaseError
 	}
 
-	return nil
-}
-
-// CreateDatabase overrides the CreateDatabase method to use our custom function
-func (r *testWorkspaceRepository) CreateDatabase(ctx context.Context, workspaceID string) error {
-	if r.createDatabaseFunc != nil {
-		return r.createDatabaseFunc(ctx, workspaceID)
-	}
-	if r.createDatabaseError != nil {
-		return r.createDatabaseError
-	}
 	return nil
 }
 
@@ -78,41 +65,7 @@ func (r *testWorkspaceRepository) Delete(ctx context.Context, workspaceID string
 	return nil
 }
 
-func TestWorkspaceRepository_CreateDatabase(t *testing.T) {
-	_, _, cleanup := testutil.SetupMockDB(t)
-	defer cleanup()
-
-	// Test using a custom mock repository to test error handling
-	t.Run("database creation error", func(t *testing.T) {
-		// Create a mock repo that returns an error
-		mockRepo := &testWorkspaceRepository{
-			createDatabaseError: errors.New("database already exists"),
-		}
-
-		err := mockRepo.CreateDatabase(context.Background(), "testworkspace")
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "database already exists")
-	})
-
-	t.Run("successful database creation", func(t *testing.T) {
-		// Create a mock repo that succeeds
-		mockRepo := &testWorkspaceRepository{}
-
-		err := mockRepo.CreateDatabase(context.Background(), "testworkspace")
-		require.NoError(t, err)
-	})
-
-	t.Run("workspace with hyphens", func(t *testing.T) {
-		// Create a mock repo that succeeds
-		mockRepo := &testWorkspaceRepository{}
-
-		workspaceIDWithHyphens := "test-workspace-123"
-		err := mockRepo.CreateDatabase(context.Background(), workspaceIDWithHyphens)
-		require.NoError(t, err)
-	})
-}
-
-func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
+func TestWorkspaceRepository_DropWorkspaceDatabase(t *testing.T) {
 	newRepo := func(t *testing.T, prefix string) (*workspaceRepository, sqlmock.Sqlmock, func()) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		dbConfig := &config.DatabaseConfig{
@@ -139,7 +92,7 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		require.NoError(t, repo.DeleteDatabase(context.Background(), workspaceID))
+		require.NoError(t, repo.dropWorkspaceDatabase(context.Background(), workspaceID))
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -150,7 +103,7 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
 			WillReturnError(errors.New("permission denied"))
 
-		err := repo.DeleteDatabase(context.Background(), workspaceID)
+		err := repo.dropWorkspaceDatabase(context.Background(), workspaceID)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "permission denied")
 		// The database name has to reach the operator: an unattributed privilege
@@ -185,7 +138,7 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		require.NoError(t, repo.DeleteDatabase(context.Background(), workspaceID))
+		require.NoError(t, repo.dropWorkspaceDatabase(context.Background(), workspaceID))
 		require.NoError(t, mock.ExpectationsWereMet())
 
 		require.NotEmpty(t, executed, "expected the repository to issue at least one statement")
@@ -211,7 +164,7 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta(fmt.Sprintf(`DROP DATABASE IF EXISTS %s`, pq.QuoteIdentifier(dbName)))).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		require.NoError(t, repo.DeleteDatabase(context.Background(), workspaceID))
+		require.NoError(t, repo.dropWorkspaceDatabase(context.Background(), workspaceID))
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -225,7 +178,7 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 			WithArgs(dbName).
 			WillReturnError(errors.New("insufficient privilege"))
 
-		err := repo.DeleteDatabase(context.Background(), workspaceID)
+		err := repo.dropWorkspaceDatabase(context.Background(), workspaceID)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "insufficient privilege")
 		assert.ErrorContains(t, err, dbName)
@@ -244,7 +197,7 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta(fmt.Sprintf(`DROP DATABASE IF EXISTS %s`, pq.QuoteIdentifier(dbName)))).
 			WillReturnError(errors.New("being accessed by other users"))
 
-		err := repo.DeleteDatabase(context.Background(), workspaceID)
+		err := repo.dropWorkspaceDatabase(context.Background(), workspaceID)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "being accessed by other users")
 		require.NoError(t, mock.ExpectationsWereMet())
@@ -265,7 +218,7 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		require.NoError(t, repo.DeleteDatabase(context.Background(), workspaceID))
+		require.NoError(t, repo.dropWorkspaceDatabase(context.Background(), workspaceID))
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -276,7 +229,7 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta(forceDropQuery)).
 			WillReturnError(&pq.Error{Code: pq.ErrorCode("55006"), Message: "database is being accessed by other users"})
 
-		err := repo.DeleteDatabase(context.Background(), workspaceID)
+		err := repo.dropWorkspaceDatabase(context.Background(), workspaceID)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "being accessed by other users")
 		require.NoError(t, mock.ExpectationsWereMet())
@@ -294,7 +247,7 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 
-		require.NoError(t, repo.DeleteDatabase(ctx, workspaceID))
+		require.NoError(t, repo.dropWorkspaceDatabase(ctx, workspaceID))
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -315,7 +268,7 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 			cancel()
 		}()
 
-		require.NoError(t, repo.DeleteDatabase(ctx, workspaceID))
+		require.NoError(t, repo.dropWorkspaceDatabase(ctx, workspaceID))
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -329,7 +282,7 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta(asWritten)).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		require.NoError(t, repo.DeleteDatabase(context.Background(), workspaceID))
+		require.NoError(t, repo.dropWorkspaceDatabase(context.Background(), workspaceID))
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -345,7 +298,7 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 		} {
 			repo, mock, cleanup := newRepo(t, tc.prefix)
 
-			err := repo.DeleteDatabase(context.Background(), tc.workspaceID)
+			err := repo.dropWorkspaceDatabase(context.Background(), tc.workspaceID)
 			assert.EqualError(t, err, tc.expected)
 			require.NoError(t, mock.ExpectationsWereMet())
 			cleanup()
@@ -360,7 +313,7 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta(hyphenated)).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		require.NoError(t, repo.DeleteDatabase(context.Background(), "test-ws-1"))
+		require.NoError(t, repo.dropWorkspaceDatabase(context.Background(), "test-ws-1"))
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }
@@ -415,74 +368,4 @@ func TestWorkspaceRepository_GetConnection(t *testing.T) {
 	db3, err := repo.GetConnection(context.Background(), newWorkspaceID)
 	assert.NoError(t, err)
 	assert.Equal(t, newWorkspaceDB, db3)
-}
-
-// Define a mocking variable for the EnsureWorkspaceDatabaseExists function
-var mockEnsureWorkspaceDB func(cfg *config.DatabaseConfig, workspaceID string) error
-
-// Test the actual CreateDatabase method implementation
-func TestWorkspaceRepository_CreateDatabaseMethod(t *testing.T) {
-	// Create a mock DB and config
-	db, _, cleanup := testutil.SetupMockDB(t)
-	defer cleanup()
-
-	dbConfig := &config.DatabaseConfig{
-		Host:     "localhost",
-		Port:     5432,
-		User:     "postgres",
-		Password: "password",
-		DBName:   "notifuse_system",
-		Prefix:   "notifuse",
-	}
-
-	// Create a custom repo that uses our mock function instead of the real one
-	repo := &mockEnsureDBRepository{
-		db:       db,
-		dbConfig: dbConfig,
-	}
-
-	// Test successful database creation
-	t.Run("successful database creation", func(t *testing.T) {
-		ensureCalled := false
-		mockEnsureWorkspaceDB = func(cfg *config.DatabaseConfig, workspaceID string) error {
-			ensureCalled = true
-			require.Equal(t, dbConfig, cfg)
-			require.Equal(t, "testworkspace", workspaceID)
-			return nil
-		}
-
-		err := repo.CreateDatabase(context.Background(), "testworkspace")
-		require.NoError(t, err)
-		require.True(t, ensureCalled, "EnsureWorkspaceDatabaseExists should be called")
-	})
-
-	// Test database creation error
-	t.Run("database creation error", func(t *testing.T) {
-		ensureCalled := false
-		mockEnsureWorkspaceDB = func(cfg *config.DatabaseConfig, workspaceID string) error {
-			ensureCalled = true
-			return fmt.Errorf("database creation failed")
-		}
-
-		err := repo.CreateDatabase(context.Background(), "testworkspace")
-		require.Error(t, err)
-		require.True(t, ensureCalled, "EnsureWorkspaceDatabaseExists should be called")
-		require.Contains(t, err.Error(), "failed to create and initialize workspace database")
-	})
-}
-
-// mockEnsureDBRepository is a special repository for testing the CreateDatabase method
-type mockEnsureDBRepository struct {
-	domain.WorkspaceRepository
-	db       *sql.DB
-	dbConfig *config.DatabaseConfig
-}
-
-// CreateDatabase implements the WorkspaceRepository interface
-func (r *mockEnsureDBRepository) CreateDatabase(ctx context.Context, workspaceID string) error {
-	// Use our mockEnsureWorkspaceDB instead of database.EnsureWorkspaceDatabaseExists
-	if err := mockEnsureWorkspaceDB(r.dbConfig, workspaceID); err != nil {
-		return fmt.Errorf("failed to create and initialize workspace database: %w", err)
-	}
-	return nil
 }

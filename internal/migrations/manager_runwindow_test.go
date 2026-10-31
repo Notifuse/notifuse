@@ -26,7 +26,7 @@ type fakeWorkspaceConnector struct {
 	err error
 }
 
-func (f fakeWorkspaceConnector) connectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error) {
+func (f fakeWorkspaceConnector) connectToWorkspace(ctx context.Context, cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error) {
 	return f.db, f.err
 }
 
@@ -38,6 +38,7 @@ func managerOneVersionBehind(t *testing.T) (*Manager, sqlmock.Sqlmock, *sql.DB, 
 
 	codeVersion, err := GetCurrentCodeVersion()
 	require.NoError(t, err)
+	expectMigrationLockGranted(mock)
 	mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
 		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(fmt.Sprintf("%.0f", codeVersion-1)))
 	return NewManager(logger.NewLoggerWithLevel("disabled")), mock, db, codeVersion
@@ -53,6 +54,7 @@ func TestManager_RunMigrations_WindowFailures(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectQuery("FROM workspaces").WillReturnError(sentinel)
 		mock.ExpectRollback()
+		mock.ExpectRollback() // the migration lock
 
 		err := manager.RunMigrations(ctx, cfg, db)
 		require.ErrorContains(t, err, fmt.Sprintf("migration failed for version %.0f:", codeVersion))
@@ -71,6 +73,7 @@ func TestManager_RunMigrations_WindowFailures(t *testing.T) {
 			sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at"}).
 				AddRow("ws-1", "Demo", []byte("{}"), []byte("[]"), time.Now(), time.Now()))
 		mock.ExpectRollback()
+		mock.ExpectRollback() // the migration lock
 
 		err := manager.RunMigrations(ctx, cfg, db)
 		require.ErrorContains(t, err, "failed to connect to workspace database ws-1:")
@@ -92,9 +95,11 @@ func TestManager_RunMigrations_WindowFailures(t *testing.T) {
 		mock.ExpectRollback()
 
 		sentinel := errors.New("cannot set local")
+		expectWorkspaceHoldsTables(wsMock, true)
 		wsMock.ExpectBegin()
 		wsMock.ExpectExec("SET LOCAL statement_timeout").WillReturnError(sentinel)
 		wsMock.ExpectRollback()
+		mock.ExpectRollback() // the migration lock
 
 		err = manager.RunMigrations(ctx, cfg, db)
 		require.ErrorContains(t, err, fmt.Sprintf("migration failed for version %.0f:", codeVersion))

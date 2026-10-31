@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -84,8 +85,74 @@ func InitializeDatabase(db *sql.DB, rootEmails []string) error {
 	return nil
 }
 
-// InitializeWorkspaceDatabase creates the necessary tables for a workspace database
+// InitializeWorkspaceDatabase creates the necessary tables for a workspace database, in
+// one transaction: a failure partway leaves no partial schema. Running it again over a
+// complete schema is harmless (every statement is IF NOT EXISTS, CREATE OR REPLACE, or
+// a DROP TRIGGER IF EXISTS before its CREATE TRIGGER).
 func InitializeWorkspaceDatabase(db *sql.DB) error {
+	return InitializeWorkspaceDatabaseContext(context.Background(), db)
+}
+
+// InitializeWorkspaceDatabaseContext is InitializeWorkspaceDatabase under ctx, which
+// bounds the whole initialisation.
+func InitializeWorkspaceDatabaseContext(ctx context.Context, db *sql.DB) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin workspace schema transaction: %w", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	// A role-level statement_timeout or transaction_timeout would otherwise apply to
+	// the whole initialisation; the bound is ctx. transaction_timeout exists from
+	// PostgreSQL 17 only, hence the guard.
+	for _, statement := range workspaceSchemaTransactionSettings {
+		if _, err := tx.ExecContext(ctx, statement); err != nil {
+			return fmt.Errorf("failed to prepare workspace schema transaction: %w", err)
+		}
+	}
+
+	if err := runWorkspaceSchema(ctx, tx); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit workspace schema: %w", err)
+	}
+	committed = true
+	return nil
+}
+
+var workspaceSchemaTransactionSettings = []string{
+	`SET LOCAL statement_timeout = 0`,
+	`SELECT set_config('transaction_timeout', '0', true) WHERE current_setting('transaction_timeout', true) IS NOT NULL`,
+}
+
+// workspaceSchemaGroup is a run of workspace schema statements sharing an error message.
+type workspaceSchemaGroup struct {
+	failure    string
+	statements []string
+}
+
+// runWorkspaceSchema runs every workspace schema statement on tx.
+func runWorkspaceSchema(ctx context.Context, tx *sql.Tx) error {
+	for _, group := range workspaceSchemaGroups(time.Now()) {
+		for _, query := range group.statements {
+			if _, err := tx.ExecContext(ctx, query); err != nil {
+				return fmt.Errorf("%s: %w", group.failure, err)
+			}
+		}
+	}
+	return nil
+}
+
+// workspaceSchemaGroups lists the workspace schema statements in the order they run,
+// with the web analytics partitions of now's month and the next.
+func workspaceSchemaGroups(now time.Time) []workspaceSchemaGroup {
 	// Create workspace tables
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS contacts (
@@ -532,42 +599,12 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_email_queue_integration ON email_queue(integration_id, status)`,
 	}
 
-	// Run all table creation queries
-	for _, query := range queries {
-		if _, err := db.Exec(query); err != nil {
-			return fmt.Errorf("failed to create workspace table: %w", err)
-		}
-	}
-
-	// Web analytics: partitioned parents (shared DDL with the v38 migration)
-	// plus the current and next monthly partitions so ingestion works
+	// The current and next monthly web analytics partitions, so ingestion works
 	// immediately; the maintenance worker keeps creating them afterwards.
-	for _, query := range schema.WebAnalyticsTableDefinitions() {
-		if _, err := db.Exec(query); err != nil {
-			return fmt.Errorf("failed to create web analytics table: %w", err)
-		}
-	}
-	// Annotations: dated markers drawn over the analytics charts (shared DDL
-	// with the v38 migration). Not partitioned, so no partition bootstrap.
-	for _, query := range schema.AnnotationsTableDefinitions() {
-		if _, err := db.Exec(query); err != nil {
-			return fmt.Errorf("failed to create annotations table: %w", err)
-		}
-	}
-	// Monthly usage snapshots and the index the timeline meter counts through
-	// (shared DDL with the v38 migration). Must run after contact_timeline
-	// above, since the index is on it.
-	for _, query := range schema.UsageTableDefinitions() {
-		if _, err := db.Exec(query); err != nil {
-			return fmt.Errorf("failed to create usage table: %w", err)
-		}
-	}
-
-	for _, month := range schema.WebAnalyticsCurrentAndNextMonth(time.Now()) {
+	var partitions []string
+	for _, month := range schema.WebAnalyticsCurrentAndNextMonth(now) {
 		for _, table := range schema.WebAnalyticsTableNames {
-			if _, err := db.Exec(schema.WebAnalyticsPartitionDDL(table, month)); err != nil {
-				return fmt.Errorf("failed to create web analytics partition: %w", err)
-			}
+			partitions = append(partitions, schema.WebAnalyticsPartitionDDL(table, month))
 		}
 	}
 
@@ -834,14 +871,50 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		schema.AutomationEnrollContactFunction(),
 	}
 
-	for _, query := range triggerQueries {
-		if _, err := db.Exec(query); err != nil {
-			return fmt.Errorf("failed to create workspace triggers: %w", err)
-		}
+	return []workspaceSchemaGroup{
+		{failure: "failed to create workspace table", statements: queries},
+		// Web analytics: partitioned parents (shared DDL with the v38 migration).
+		{failure: "failed to create web analytics table", statements: schema.WebAnalyticsTableDefinitions()},
+		// Annotations: dated markers drawn over the analytics charts (shared DDL with
+		// the v38 migration). Not partitioned, so no partition bootstrap.
+		{failure: "failed to create annotations table", statements: schema.AnnotationsTableDefinitions()},
+		// Monthly usage snapshots and the index the timeline meter counts through
+		// (shared DDL with the v38 migration). Must run after contact_timeline above,
+		// since the index is on it.
+		{failure: "failed to create usage table", statements: schema.UsageTableDefinitions()},
+		{failure: "failed to create web analytics partition", statements: partitions},
+		{failure: "failed to create workspace triggers", statements: triggerQueries},
 	}
-
-	return nil
 }
+
+// WorkspaceDatabaseHoldsTables reports whether a workspace database holds a table,
+// view, materialised view, sequence or foreign table of its own: outside the system
+// schemas (pg_catalog, pg_toast*, other sessions' pg_temp_*, which pg_class lists; user
+// schemas cannot start with pg_) and information_schema, and not created by an
+// extension.
+func WorkspaceDatabaseHoldsTables(ctx context.Context, db *sql.DB) (bool, error) {
+	var holds bool
+	err := db.QueryRowContext(ctx, workspaceDatabaseHoldsTablesQuery).Scan(&holds)
+	if err != nil {
+		return false, fmt.Errorf("failed to check whether the workspace database holds tables: %w", err)
+	}
+	return holds, nil
+}
+
+const workspaceDatabaseHoldsTablesQuery = `SELECT EXISTS (
+	SELECT 1
+	FROM pg_class c
+	JOIN pg_namespace n ON n.oid = c.relnamespace
+	WHERE c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f')
+	AND n.nspname <> 'information_schema'
+	AND n.nspname NOT LIKE 'pg\_%'
+	AND NOT EXISTS (
+		SELECT 1 FROM pg_depend d
+		WHERE d.classid = 'pg_class'::regclass
+		AND d.objid = c.oid
+		AND d.deptype = 'e'
+	)
+)`
 
 // CleanDatabase drops all tables in reverse order
 func CleanDatabase(db *sql.DB) error {

@@ -1,10 +1,14 @@
 package database
 
 import (
+	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
@@ -128,7 +132,9 @@ func TestInitializeWorkspaceDatabase(t *testing.T) {
 		defer func() { _ = db.Close() }()
 
 		// Mock the first CREATE TABLE to fail
+		expectWorkspaceSchemaTransactionStart(mock)
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS .+").WillReturnError(sql.ErrConnDone)
+		mock.ExpectRollback()
 
 		// Execute the function
 		err = InitializeWorkspaceDatabase(db)
@@ -136,6 +142,110 @@ func TestInitializeWorkspaceDatabase(t *testing.T) {
 		// Verify
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to create workspace table")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("runs every statement in one transaction", func(t *testing.T) {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		expectWorkspaceSchemaTransactionStart(mock)
+		for i, n := 0, workspaceSchemaStatementCount(); i < n; i++ {
+			mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+		mock.ExpectCommit()
+
+		require.NoError(t, InitializeWorkspaceDatabase(db))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a statement failing in the middle rolls everything back", func(t *testing.T) {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		half := workspaceSchemaStatementCount() / 2
+		expectWorkspaceSchemaTransactionStart(mock)
+		for i := 0; i < half; i++ {
+			mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+		mock.ExpectExec(".+").WillReturnError(errors.New("cannot change return type of existing function"))
+		mock.ExpectRollback()
+
+		err = InitializeWorkspaceDatabase(db)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot change return type")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a failed commit is returned", func(t *testing.T) {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		expectWorkspaceSchemaTransactionStart(mock)
+		for i, n := 0, workspaceSchemaStatementCount(); i < n; i++ {
+			mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+		mock.ExpectCommit().WillReturnError(errors.New("connection lost"))
+
+		err = InitializeWorkspaceDatabase(db)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to commit workspace schema")
+	})
+}
+
+// workspaceSchemaStatementCount is the number of statements runWorkspaceSchema runs.
+func workspaceSchemaStatementCount() int {
+	count := 0
+	for _, group := range workspaceSchemaGroups(time.Now()) {
+		count += len(group.statements)
+	}
+	return count
+}
+
+// expectWorkspaceSchemaTransactionStart queues BEGIN and the two settings that keep a
+// role-level statement_timeout or transaction_timeout from bounding the whole schema.
+func expectWorkspaceSchemaTransactionStart(mock sqlmock.Sqlmock) {
+	mock.ExpectBegin()
+	mock.ExpectExec(`SET LOCAL statement_timeout = 0`).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`SELECT set_config\('transaction_timeout', '0', true\) WHERE current_setting\('transaction_timeout', true\) IS NOT NULL`).WillReturnResult(sqlmock.NewResult(0, 0))
+}
+
+func TestWorkspaceDatabaseHoldsTables(t *testing.T) {
+	query := `SELECT EXISTS`
+
+	t.Run("filters on extension-owned relations of pg_class and the system schemas", func(t *testing.T) {
+		assert.Contains(t, workspaceDatabaseHoldsTablesQuery, `d.classid = 'pg_class'::regclass`)
+		assert.Contains(t, workspaceDatabaseHoldsTablesQuery, `d.deptype = 'e'`)
+		assert.Contains(t, workspaceDatabaseHoldsTablesQuery, `n.nspname NOT LIKE 'pg\_%'`)
+		assert.Contains(t, workspaceDatabaseHoldsTablesQuery, `n.nspname <> 'information_schema'`)
+		assert.Contains(t, workspaceDatabaseHoldsTablesQuery, `c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f')`)
+	})
+
+	for _, holds := range []bool{true, false} {
+		t.Run(fmt.Sprintf("returns %v", holds), func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer func() { _ = db.Close() }()
+			mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(holds))
+
+			got, err := WorkspaceDatabaseHoldsTables(context.Background(), db)
+			require.NoError(t, err)
+			assert.Equal(t, holds, got)
+		})
+	}
+
+	t.Run("returns the query error", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mock.ExpectQuery(query).WillReturnError(errors.New("boom"))
+
+		_, err = WorkspaceDatabaseHoldsTables(context.Background(), db)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "boom")
 	})
 }
 
@@ -295,13 +405,15 @@ func TestInitializeWorkspaceDatabase_Comprehensive(t *testing.T) {
 		defer func() { _ = db.Close() }()
 
 		// Mock all SQL statements - tables, indexes, trigger functions, and triggers
-		// Increased to accommodate all workspace tables, indexes, and webhook-related triggers
-		for i := 0; i < 150; i++ { // Allow for many SQL statements with buffer
+		expectWorkspaceSchemaTransactionStart(mock)
+		for i, n := 0, workspaceSchemaStatementCount(); i < n; i++ {
 			mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
+		mock.ExpectCommit()
 
 		err = InitializeWorkspaceDatabase(db)
 		assert.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
 	t.Run("Error creating workspace table", func(t *testing.T) {
@@ -310,6 +422,7 @@ func TestInitializeWorkspaceDatabase_Comprehensive(t *testing.T) {
 		defer func() { _ = db.Close() }()
 
 		// Mock first CREATE TABLE to fail
+		expectWorkspaceSchemaTransactionStart(mock)
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contacts").WillReturnError(sql.ErrConnDone)
 
 		err = InitializeWorkspaceDatabase(db)
@@ -359,13 +472,14 @@ func recordWorkspaceSchema(t *testing.T) *workspaceStatementRecorder {
 	require.NoError(t, err)
 	defer func() { _ = db.Close() }()
 
-	// Generously more expectations than the initializer has statements; the
-	// unused ones are never asserted on.
-	for i := 0; i < 500; i++ {
+	expectWorkspaceSchemaTransactionStart(mock)
+	for i, n := 0, workspaceSchemaStatementCount(); i < n; i++ {
 		mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
 	}
+	mock.ExpectCommit()
 
 	require.NoError(t, InitializeWorkspaceDatabase(db))
+	require.NoError(t, mock.ExpectationsWereMet())
 	return rec
 }
 
@@ -477,4 +591,33 @@ func TestInitializeWorkspaceDatabase_SubscriptionsPrecedeDeliveries(t *testing.T
 		rec.indexOfStatementContaining(t, "CREATE TABLE IF NOT EXISTS webhook_subscriptions"),
 		rec.indexOfStatementContaining(t, "CREATE TABLE IF NOT EXISTS webhook_deliveries"),
 	)
+}
+
+func TestInitializeWorkspaceDatabaseContext(t *testing.T) {
+	t.Run("the whole schema commits in one transaction under ctx", func(t *testing.T) {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		expectWorkspaceSchemaTransactionStart(mock)
+		for i, n := 0, workspaceSchemaStatementCount(); i < n; i++ {
+			mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+		mock.ExpectCommit()
+
+		require.NoError(t, InitializeWorkspaceDatabaseContext(context.Background(), db))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a cancelled ctx runs nothing", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		err = InitializeWorkspaceDatabaseContext(ctx, db)
+		assert.ErrorIs(t, err, context.Canceled)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
 }

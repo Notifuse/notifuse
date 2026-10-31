@@ -66,17 +66,17 @@ func TestWorkspaceService_CreateWorkspace_SeedsWebAnalyticsDefaults(t *testing.T
 	mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, nil)
 
 	var created *domain.Workspace
-	mockRepo.EXPECT().Create(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, ws *domain.Workspace) error {
+	mockRepo.EXPECT().Create(liveCtx(), gomock.Any()).DoAndReturn(func(_ context.Context, ws *domain.Workspace) error {
 		created = ws
 		return nil
 	})
-	mockRepo.EXPECT().AddUserToWorkspace(ctx, gomock.Any()).Return(nil)
-	mockUserService.EXPECT().GetUserByID(ctx, owner.ID).Return(owner, nil)
-	mockContactService.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
-	mockListService.EXPECT().CreateList(ctx, workspaceID, gomock.Any()).Return(nil)
-	mockListService.EXPECT().SubscribeToLists(ctx, gomock.Any(), true).Return(nil)
-	mockTaskRepo.EXPECT().List(ctx, workspaceID, gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
-	mockTaskRepo.EXPECT().Create(ctx, workspaceID, gomock.Any()).Return(nil).AnyTimes()
+	mockRepo.EXPECT().AddUserToWorkspace(detachedCtx(), gomock.Any()).Return(nil)
+	mockUserService.EXPECT().GetUserByID(detachedCtx(), owner.ID).Return(owner, nil)
+	mockContactService.EXPECT().UpsertContact(detachedCtx(), workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
+	mockListService.EXPECT().CreateList(detachedCtx(), workspaceID, gomock.Any()).Return(nil)
+	mockListService.EXPECT().SubscribeToLists(detachedCtx(), gomock.Any(), true).Return(nil)
+	mockTaskRepo.EXPECT().List(detachedCtx(), workspaceID, gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
+	mockTaskRepo.EXPECT().Create(detachedCtx(), workspaceID, gomock.Any()).Return(nil).AnyTimes()
 
 	workspace, err := service.CreateWorkspace(ctx, workspaceID, "WS", "https://example.com", "", "", "UTC", domain.FileManagerSettings{}, "en", []string{"en"})
 	require.NoError(t, err)

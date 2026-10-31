@@ -12,34 +12,9 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestCoverage_IsDatabaseDoesNotExistErr(t *testing.T) {
-	pqDoesNotExist := &pq.Error{Code: "3D000"}
-	tests := []struct {
-		name string
-		err  error
-		want bool
-	}{
-		{"nil", nil, false},
-		{"plain error mentioning code", errors.New("3D000 database does not exist"), false},
-		{"pq 3D000", pqDoesNotExist, true},
-		{"pq undefined_table 42P01", &pq.Error{Code: "42P01"}, false},
-		{"pq 3D001 is not 3D000", &pq.Error{Code: "3D001"}, false},
-		{"pq empty code", &pq.Error{}, false},
-		{"wrapped pq 3D000", fmt.Errorf("failed to connect to workspace ws1 database: %w", pqDoesNotExist), true},
-		{"double wrapped pq 3D000", fmt.Errorf("outer: %w", fmt.Errorf("inner: %w", pqDoesNotExist)), true},
-		{"wrapped pq other code", fmt.Errorf("connect: %w", &pq.Error{Code: "28P01"}), false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, isDatabaseDoesNotExistErr(tt.err))
-		})
-	}
-}
 
 func TestCoverage_ReserveAndReleaseAccounting(t *testing.T) {
 	newMgr := func(maxConns, perDB int) *connectionManager {

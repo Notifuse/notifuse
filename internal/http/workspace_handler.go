@@ -214,11 +214,18 @@ func (h *WorkspaceHandler) handleCreate(w http.ResponseWriter, r *http.Request) 
 		if writeStaleCredential(w, err) {
 			return
 		}
-		if err.Error() == "workspace already exists" {
+		if errors.Is(err, domain.ErrWorkspaceAlreadyExists) {
 			WriteJSONError(w, "Workspace already exists", http.StatusConflict)
-		} else {
-			WriteJSONError(w, "Failed to create workspace", http.StatusInternalServerError)
+			return
 		}
+		// A leftover database holding tables: the message names the ID and the database,
+		// which the console shows as is.
+		var notEmptyErr *domain.ErrWorkspaceDatabaseNotEmpty
+		if errors.As(err, &notEmptyErr) {
+			WriteJSONError(w, notEmptyErr.Error(), http.StatusConflict)
+			return
+		}
+		WriteJSONError(w, "Failed to create workspace", http.StatusInternalServerError)
 		return
 	}
 
