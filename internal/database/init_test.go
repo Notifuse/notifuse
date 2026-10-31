@@ -592,3 +592,32 @@ func TestInitializeWorkspaceDatabase_SubscriptionsPrecedeDeliveries(t *testing.T
 		rec.indexOfStatementContaining(t, "CREATE TABLE IF NOT EXISTS webhook_deliveries"),
 	)
 }
+
+func TestInitializeWorkspaceDatabaseContext(t *testing.T) {
+	t.Run("the whole schema commits in one transaction under ctx", func(t *testing.T) {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		expectWorkspaceSchemaTransactionStart(mock)
+		for i, n := 0, workspaceSchemaStatementCount(); i < n; i++ {
+			mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+		mock.ExpectCommit()
+
+		require.NoError(t, InitializeWorkspaceDatabaseContext(context.Background(), db))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a cancelled ctx runs nothing", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		err = InitializeWorkspaceDatabaseContext(ctx, db)
+		assert.ErrorIs(t, err, context.Canceled)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+}

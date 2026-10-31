@@ -126,7 +126,8 @@ func WithLockTransaction(ctx context.Context, db *sql.DB, acquire func(ctx conte
 }
 
 // lockBounds are the bounds of a lock transaction: prepare covers the settings, before
-// the wait; hold covers the lock, from its grant.
+// the wait; hold covers the lock, from its grant, and zero or less means the lock is
+// held for as long as the work runs.
 type lockBounds struct {
 	prepare time.Duration
 	hold    time.Duration
@@ -173,11 +174,16 @@ func withLockTransaction(ctx context.Context, db *sql.DB, bounds lockBounds, acq
 		return err
 	}
 
-	holdDeadline := time.Now().Add(bounds.hold)
-	holdTimer := time.AfterFunc(time.Until(holdDeadline), cancelHold)
-	defer holdTimer.Stop()
-
-	workCtx, cancelWork := context.WithDeadline(withLockHoldDeadline(ctx, holdDeadline), holdDeadline.Add(-lockWorkMargin))
+	var workCtx context.Context
+	var cancelWork context.CancelFunc
+	if bounds.hold > 0 {
+		holdDeadline := time.Now().Add(bounds.hold)
+		holdTimer := time.AfterFunc(time.Until(holdDeadline), cancelHold)
+		defer holdTimer.Stop()
+		workCtx, cancelWork = context.WithDeadline(withLockHoldDeadline(ctx, holdDeadline), holdDeadline.Add(-lockWorkMargin))
+	} else {
+		workCtx, cancelWork = context.WithCancel(ctx)
+	}
 	defer cancelWork()
 	if err := fn(workCtx); err != nil {
 		return err

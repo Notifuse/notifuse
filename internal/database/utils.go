@@ -145,7 +145,7 @@ type workspaceDatabaseProvisioner struct {
 var defaultWorkspaceDatabaseProvisioner = workspaceDatabaseProvisioner{
 	lock:          WithWorkspaceDatabaseLock,
 	openWorkspace: openWorkspaceDatabase,
-	initialize:    initializeWorkspaceDatabase,
+	initialize:    InitializeWorkspaceDatabaseContext,
 	holdsTables:   WorkspaceDatabaseHoldsTables,
 }
 

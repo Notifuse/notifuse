@@ -230,6 +230,7 @@ type App struct {
 	activeRequests  int64          // atomic counter for active HTTP requests
 	requestWg       sync.WaitGroup // wait group for active requests
 	shutdownTimeout time.Duration  // configurable shutdown timeout
+	backgroundWg    sync.WaitGroup // background work started by startBackground
 }
 
 // AppOption defines a functional option for configuring the App
@@ -368,7 +369,7 @@ func (a *App) InitDB() error {
 	if err := migrationManager.RunMigrations(ctx, a.config, db); err != nil {
 		// Check if this is a restart-required signal
 		if errors.Is(err, migrations.ErrRestartRequired) {
-			a.logger.Info("Migration completed successfully - server restart required to reload configuration")
+			a.logger.WithField("reason", err.Error()).Info("Server restart required to reload configuration")
 			a.logger.Info("Closing database connection and exiting for restart...")
 
 			// Close database connection before exit
@@ -399,6 +400,13 @@ func (a *App) InitDB() error {
 	a.logger.WithField("max_connections", a.config.Database.MaxConnections).
 		WithField("max_connections_per_db", a.config.Database.MaxConnectionsPerDB).
 		Info("Connection manager initialized")
+
+	// Empty workspace databases left by failed creations get their schema off the
+	// startup path, once the migrations are applied and nothing below can fail and
+	// close db.
+	a.startBackground("empty workspace repair", func(ctx context.Context) {
+		migrationManager.InitializeEmptyWorkspaces(ctx, a.config, db)
+	})
 
 	return nil
 	// codecov:ignore:end
@@ -2123,9 +2131,43 @@ func (a *App) Shutdown(ctx context.Context) error {
 	return shutdownErr
 }
 
+// startBackground runs fn in the background with the app's shutdown context, which
+// Shutdown cancels; cleanupResources waits for it before closing the database.
+func (a *App) startBackground(name string, fn func(ctx context.Context)) {
+	a.backgroundWg.Add(1)
+	go func() {
+		defer a.backgroundWg.Done()
+		fn(a.shutdownCtx)
+		a.logger.WithField("task", name).Debug("Background task finished")
+	}()
+}
+
+// waitForBackground waits for the background work, bounded by ctx, or by
+// shutdownTimeout when ctx has no deadline: the shutdown context, cancelled by then,
+// tells the work to stop but cannot bound the wait.
+func (a *App) waitForBackground(ctx context.Context) {
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, a.shutdownTimeout)
+		defer cancel()
+	}
+	done := make(chan struct{})
+	go func() {
+		a.backgroundWg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-ctx.Done():
+		a.logger.Warn("Background work still running at shutdown; closing the database anyway")
+	}
+}
+
 // cleanupResources handles cleanup of database and other resources
-func (a *App) cleanupResources(_ context.Context) error {
+func (a *App) cleanupResources(ctx context.Context) error {
 	a.logger.Info("Cleaning up resources...")
+
+	a.waitForBackground(ctx)
 
 	// Close connection manager before closing database
 	if connManager, err := pkgDatabase.GetConnectionManager(); err == nil {

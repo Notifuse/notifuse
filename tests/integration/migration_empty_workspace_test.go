@@ -147,3 +147,203 @@ func TestMigrationEmptyWorkspace(t *testing.T) {
 		assert.Equal(t, fmt.Sprintf("%.0f", below), sys.version(t))
 	})
 }
+
+func (s *migrationSystem) repair(ctx context.Context) {
+	migrations.NewManager(logger.NewLoggerWithLevel("disabled")).InitializeEmptyWorkspaces(ctx, s.cfg, s.db)
+}
+
+// migrationLockCount counts the sessions on the migration lock of s's system database,
+// granted or waiting.
+func (s *migrationSystem) migrationLockCount(t *testing.T, granted bool) int {
+	t.Helper()
+	var n int
+	require.NoError(t, s.db.QueryRow(`
+		SELECT count(*) FROM pg_locks
+		WHERE locktype = 'advisory'
+		AND database = (SELECT oid FROM pg_database WHERE datname = current_database())
+		AND objsubid = 1
+		AND classid = ($1::bigint >> 32)::oid
+		AND objid = ($1::bigint & 4294967295)::oid
+		AND granted = $2`, intdb.MigrationLockKey, granted).Scan(&n))
+	return n
+}
+
+func (s *migrationSystem) waitForMigrationLockWaiters(t *testing.T, n int) {
+	t.Helper()
+	deadline := time.Now().Add(barrierTimeout)
+	for s.migrationLockCount(t, false) < n {
+		if time.Now().After(deadline) {
+			require.FailNowf(t, "barrier timeout", "%d session(s) never waited on the migration lock", n)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// holdMigrationLock takes the migration lock exclusively, as another instance's
+// migrations would, until release is called.
+func (s *migrationSystem) holdMigrationLock(t *testing.T) (release func()) {
+	t.Helper()
+	tx, err := s.db.Begin()
+	require.NoError(t, err)
+	_, err = tx.Exec(`SELECT pg_advisory_xact_lock($1)`, intdb.MigrationLockKey)
+	require.NoError(t, err)
+	released := false
+	release = func() {
+		if !released {
+			released = true
+			require.NoError(t, tx.Commit())
+		}
+	}
+	t.Cleanup(func() {
+		if !released {
+			_ = tx.Rollback()
+		}
+	})
+	return release
+}
+
+func TestMigrationEmptyWorkspaceRepair(t *testing.T) {
+	testutil.SkipIfShort(t)
+	admin := openAdmin(t, testDatabaseConfig())
+	codeVersion, err := migrations.GetCurrentCodeVersion()
+	require.NoError(t, err)
+	reference := referenceSchemaRelationCount(t, testDatabaseConfig(), admin)
+
+	t.Run("at the current version: an empty database gets its schema, a missing one is not created", func(t *testing.T) {
+		sys := newMigrationSystem(t, admin)
+		dbCfg := &sys.cfg.Database
+		empty := uniqueID("rempty")
+		createEmptyDatabase(t, admin, dbCfg.Prefix+"_ws_"+empty)
+		sys.register(t, empty)
+		gone := uniqueID("rgone")
+		dropDatabaseAtCleanup(t, admin, dbCfg.Prefix+"_ws_"+gone)
+		sys.register(t, gone)
+		sys.setVersion(t, codeVersion)
+
+		require.NoError(t, sys.run(context.Background()))
+		sys.repair(context.Background())
+
+		assert.Equal(t, reference, relationCount(t, openDatabase(t, dbCfg, dbCfg.Prefix+"_ws_"+empty)))
+		assert.False(t, databaseExists(t, admin, dbCfg.Prefix+"_ws_"+gone), "the repair never creates a database")
+	})
+
+	t.Run("one version below: the migration skips the empty database, the repair then builds it", func(t *testing.T) {
+		sys := newMigrationSystem(t, admin)
+		dbCfg := &sys.cfg.Database
+		id := uniqueID("rbelow")
+		dbName := dbCfg.Prefix + "_ws_" + id
+		createEmptyDatabase(t, admin, dbName)
+		sys.register(t, id)
+		sys.setVersion(t, versionBelowNewestWorkspaceMigration(t))
+
+		require.NoError(t, sys.run(context.Background()))
+		assert.Equal(t, 0, relationCount(t, openDatabase(t, dbCfg, dbName)), "migrations never build a schema")
+		sys.repair(context.Background())
+		assert.Equal(t, reference, relationCount(t, openDatabase(t, dbCfg, dbName)))
+	})
+
+	t.Run("an instance that waited restarts when the holder applied a migration requiring one", func(t *testing.T) {
+		var restartVersion float64
+		for _, migration := range migrations.GetRegisteredMigrations() {
+			if migration.ShouldRestartServer() && migration.GetMajorVersion() <= codeVersion {
+				restartVersion = migration.GetMajorVersion()
+			}
+		}
+		require.NotZero(t, restartVersion, "a registered migration requires a restart")
+		sys := newMigrationSystem(t, admin)
+		sys.setVersion(t, restartVersion-1)
+
+		release := sys.holdMigrationLock(t)
+		migrated := make(chan error, 1)
+		go func() { migrated <- sys.run(context.Background()) }()
+		sys.waitForMigrationLockWaiters(t, 1)
+		sys.setVersion(t, codeVersion) // what the holder's migrations leave
+		release()
+		select {
+		case err := <-migrated:
+			assert.ErrorIs(t, err, migrations.ErrRestartRequired)
+		case <-time.After(barrierTimeout):
+			require.FailNow(t, "RunMigrations never returned")
+		}
+	})
+
+	t.Run("migrations and the repair both wait for another instance's migrations", func(t *testing.T) {
+		sys := newMigrationSystem(t, admin)
+		dbCfg := &sys.cfg.Database
+		id := uniqueID("rwait")
+		dbName := dbCfg.Prefix + "_ws_" + id
+		createEmptyDatabase(t, admin, dbName)
+		sys.register(t, id)
+		sys.setVersion(t, codeVersion)
+
+		release := sys.holdMigrationLock(t)
+		migrated := make(chan error, 1)
+		go func() { migrated <- sys.run(context.Background()) }()
+		repaired := make(chan struct{})
+		go func() { sys.repair(context.Background()); close(repaired) }()
+		sys.waitForMigrationLockWaiters(t, 2)
+		assert.Equal(t, 0, relationCount(t, openDatabase(t, dbCfg, dbName)), "nothing ran while the lock was held")
+
+		release()
+		select {
+		case err := <-migrated:
+			require.NoError(t, err)
+		case <-time.After(barrierTimeout):
+			require.FailNow(t, "RunMigrations never returned")
+		}
+		select {
+		case <-repaired:
+		case <-time.After(barrierTimeout):
+			require.FailNow(t, "the repair never returned")
+		}
+		assert.Equal(t, reference, relationCount(t, openDatabase(t, dbCfg, dbName)))
+	})
+
+	t.Run("migrations wait for a repair in progress, until its initialisation has committed", func(t *testing.T) {
+		sys := newMigrationSystem(t, admin)
+		dbCfg := &sys.cfg.Database
+		id := uniqueID("rhold")
+		dbName := dbCfg.Prefix + "_ws_" + id
+		createEmptyDatabase(t, admin, dbName)
+		sys.register(t, id)
+		sys.setVersion(t, codeVersion)
+
+		// The repair stops on the workspace's name lock, holding the shared migration lock.
+		releaseName := holdNameLock(t, dbCfg, dbName)
+		repaired := make(chan struct{})
+		go func() { sys.repair(context.Background()); close(repaired) }()
+		waitForNameLockWaiters(t, admin, dbName, 1)
+		require.Equal(t, 1, sys.migrationLockCount(t, true), "the repair holds the shared migration lock")
+
+		migrated := make(chan error, 1)
+		go func() { migrated <- sys.run(context.Background()) }()
+		sys.waitForMigrationLockWaiters(t, 1)
+
+		require.NoError(t, releaseName())
+		select {
+		case err := <-migrated:
+			require.NoError(t, err)
+		case <-time.After(barrierTimeout):
+			require.FailNow(t, "RunMigrations never returned")
+		}
+		assert.Equal(t, reference, relationCount(t, openDatabase(t, dbCfg, dbName)), "the migrations ran only once the repair committed")
+		select {
+		case <-repaired:
+		case <-time.After(barrierTimeout):
+			require.FailNow(t, "the repair never returned")
+		}
+	})
+
+	t.Run("a database version above the code's: the repair initialises nothing", func(t *testing.T) {
+		sys := newMigrationSystem(t, admin)
+		dbCfg := &sys.cfg.Database
+		id := uniqueID("rahead")
+		dbName := dbCfg.Prefix + "_ws_" + id
+		createEmptyDatabase(t, admin, dbName)
+		sys.register(t, id)
+		sys.setVersion(t, codeVersion+1)
+
+		sys.repair(context.Background())
+		assert.Equal(t, 0, relationCount(t, openDatabase(t, dbCfg, dbName)))
+	})
+}

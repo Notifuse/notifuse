@@ -393,6 +393,7 @@ func TestManager_RunMigrations_FirstRun(t *testing.T) {
 	cfg := &config.Config{}
 
 	// Mock no version found (first run)
+	expectMigrationLockGranted(mock)
 	mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").WillReturnError(sql.ErrNoRows)
 
 	// Mock version initialization
@@ -400,6 +401,7 @@ func TestManager_RunMigrations_FirstRun(t *testing.T) {
 		WithArgs(sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
+	mock.ExpectCommit() // the migration lock
 	err = manager.RunMigrations(ctx, cfg, db)
 
 	assert.NoError(t, err)
@@ -416,8 +418,10 @@ func TestManager_RunMigrations_GetVersionError(t *testing.T) {
 	cfg := &config.Config{}
 
 	// Mock version query error
+	expectMigrationLockGranted(mock)
 	mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").WillReturnError(errors.New("database error"))
 
+	mock.ExpectRollback() // the migration lock
 	err = manager.RunMigrations(ctx, cfg, db)
 
 	assert.Error(t, err)
@@ -537,6 +541,7 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 		}
 
 		// Mock GetCurrentDBVersion to return no version exists
+		expectMigrationLockGranted(mock)
 		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
 			WillReturnError(sql.ErrNoRows)
 
@@ -545,6 +550,7 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 			WithArgs(sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
+		mock.ExpectCommit() // the migration lock
 		err = manager.RunMigrations(context.Background(), cfg, db)
 
 		assert.NoError(t, err)
@@ -571,9 +577,11 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 		// across version bumps instead of hardcoding the latest major.
 		codeVersion, err := GetCurrentCodeVersion()
 		require.NoError(t, err)
+		expectMigrationLockGranted(mock)
 		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
 			WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(fmt.Sprintf("%.0f", codeVersion)))
 
+		mock.ExpectCommit() // the migration lock
 		err = manager.RunMigrations(context.Background(), cfg, db)
 
 		// This should succeed as database is up to date
@@ -597,6 +605,7 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 		}
 
 		// Mock GetCurrentDBVersion to return no version exists
+		expectMigrationLockGranted(mock)
 		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
 			WillReturnError(sql.ErrNoRows)
 
@@ -605,6 +614,7 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 			WithArgs(sqlmock.AnyArg()).
 			WillReturnError(sql.ErrConnDone)
 
+		mock.ExpectRollback() // the migration lock
 		err = manager.RunMigrations(context.Background(), cfg, db)
 
 		assert.Error(t, err)
@@ -628,9 +638,11 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 		}
 
 		// Mock GetCurrentDBVersion to return invalid version format
+		expectMigrationLockGranted(mock)
 		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
 			WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow("invalid-version"))
 
+		mock.ExpectRollback() // the migration lock
 		err = manager.RunMigrations(context.Background(), cfg, db)
 
 		assert.Error(t, err)
@@ -668,9 +680,11 @@ func TestManager_RunMigrations_RefusesADatabaseAheadOfTheCode(t *testing.T) {
 	// the INSERT that re-stamps the version — fails the run as unexpected. That
 	// is the assertion that nothing ran: mis-reporting this database is bad, but
 	// migrating one whose schema this build has never seen is worse.
+	expectMigrationLockGranted(mock)
 	mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
 		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(fmt.Sprintf("%.0f", aheadVersion)))
 
+	mock.ExpectRollback() // the migration lock
 	err = NewManager(&mockLogger{}).RunMigrations(context.Background(), &config.Config{}, db)
 
 	require.Error(t, err, "reporting success is how a rolled-back deploy skips a migration forever")

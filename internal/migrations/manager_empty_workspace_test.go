@@ -316,6 +316,7 @@ func TestManager_RunMigrations_SkipsAnEmptyWorkspaceAndStampsTheVersion(t *testi
 	lock.expectDatabaseExists("notifuse_ws_empty", true)
 	mock.ExpectCommit()
 	mock.ExpectExec("INSERT INTO settings").WithArgs(fmt.Sprintf("%.0f", codeVersion)).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit() // the migration lock
 
 	require.NoError(t, manager.RunMigrations(context.Background(), emptyWorkspaceTestConfig(), db))
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -330,8 +331,14 @@ func TestManager_RunMigrations_NoWorkspaceConnectionWithoutPendingMigrations(t *
 			db, mock, err := sqlmock.New()
 			require.NoError(t, err)
 			defer func() { _ = db.Close() }()
+			expectMigrationLockGranted(mock)
 			mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
 				WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(fmt.Sprintf("%.0f", dbVersion)))
+			if dbVersion > codeVersion {
+				mock.ExpectRollback() // the migration lock
+			} else {
+				mock.ExpectCommit()
+			}
 
 			conn := newScriptedConnector(t)
 			manager := NewManager(logger.NewLoggerWithLevel("disabled"))
@@ -343,6 +350,7 @@ func TestManager_RunMigrations_NoWorkspaceConnectionWithoutPendingMigrations(t *
 				assert.NoError(t, err)
 			}
 			assert.Equal(t, 0, conn.total())
+			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
 }

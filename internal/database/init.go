@@ -90,12 +90,12 @@ func InitializeDatabase(db *sql.DB, rootEmails []string) error {
 // complete schema is harmless (every statement is IF NOT EXISTS, CREATE OR REPLACE, or
 // a DROP TRIGGER IF EXISTS before its CREATE TRIGGER).
 func InitializeWorkspaceDatabase(db *sql.DB) error {
-	return initializeWorkspaceDatabase(context.Background(), db)
+	return InitializeWorkspaceDatabaseContext(context.Background(), db)
 }
 
-// initializeWorkspaceDatabase is InitializeWorkspaceDatabase under ctx, which bounds the
-// whole initialisation.
-func initializeWorkspaceDatabase(ctx context.Context, db *sql.DB) error {
+// InitializeWorkspaceDatabaseContext is InitializeWorkspaceDatabase under ctx, which
+// bounds the whole initialisation.
+func InitializeWorkspaceDatabaseContext(ctx context.Context, db *sql.DB) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin workspace schema transaction: %w", err)

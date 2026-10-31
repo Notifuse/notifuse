@@ -74,6 +74,10 @@ func (m *V36Migration) HasWorkspaceUpdate() bool { return true }
 
 func (m *V36Migration) ShouldRestartServer() bool { return m.healedScopes }
 
+// MayRestartServer tells an instance that did not run this migration, and cannot know
+// whether it healed the scopes, that it may require a restart.
+func (m *V36Migration) MayRestartServer() bool { return true }
+
 func (m *V36Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db DBExecutor) error {
 	// Literal scope string (not config.DefaultOIDCScopes) so the migration stays
 	// frozen in time even if the runtime default later changes. The WHERE clause
