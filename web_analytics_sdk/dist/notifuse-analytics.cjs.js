@@ -377,7 +377,7 @@ function utf8Length(value) {
  * Session management
  * Handles session creation, persistence, and expiry
  */
-const SDK_VERSION$1 = "42.1";
+const SDK_VERSION$1 = "42.2";
 const CLOCK_SKEW_TOLERANCE$1 = 60; // seconds
 // Absolute lifetime of one session id, independent of activity.
 //
@@ -930,7 +930,7 @@ class SessionManager {
  * - No attributesSent optimization - always include attributes
  */
 const STORAGE_KEY = 'nf_session_state';
-const SDK_VERSION = "42.1";
+const SDK_VERSION = "42.2";
 const MAX_ACTIONS = 1000; // Match server limit from Phase 2
 class SessionState {
     constructor(config) {
