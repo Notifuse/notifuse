@@ -52,6 +52,8 @@ type Manager struct {
 	// the defaults below.
 	repairCheckTimeout time.Duration
 	repairInitTimeout  time.Duration
+	// codeVersion returns this build's version; nil means GetCurrentCodeVersion.
+	codeVersion func() (float64, error)
 }
 
 const (
@@ -129,6 +131,13 @@ func (m *Manager) initializer() func(ctx context.Context, db *sql.DB) error {
 	return database.InitializeWorkspaceDatabaseContext
 }
 
+func (m *Manager) currentCodeVersion() (float64, error) {
+	if m.codeVersion != nil {
+		return m.codeVersion()
+	}
+	return GetCurrentCodeVersion()
+}
+
 func orDefault(d, fallback time.Duration) time.Duration {
 	if d > 0 {
 		return d
@@ -199,7 +208,7 @@ func (m *Manager) RunMigrations(ctx context.Context, cfg *config.Config, db *sql
 	if err != nil {
 		return err
 	}
-	codeVersion, err := GetCurrentCodeVersion()
+	codeVersion, err := m.currentCodeVersion()
 	if err != nil {
 		return fmt.Errorf("failed to get current code version: %w", err)
 	}
@@ -207,7 +216,7 @@ func (m *Manager) RunMigrations(ctx context.Context, cfg *config.Config, db *sql
 		return databaseAheadOfCodeError(before, codeVersion)
 	}
 	return m.lockMigrations()(ctx, db, m.logMigrationLockWait, func(ctx context.Context) error {
-		return m.runMigrations(ctx, cfg, db, before, beforeFound)
+		return m.runMigrations(ctx, cfg, db, before, beforeFound, codeVersion)
 	})
 }
 
@@ -266,17 +275,12 @@ func (m *Manager) logMigrationLockWait(holders []database.MigrationLockHolder, e
 }
 
 // runMigrations runs under the migration lock; before is the version read before it was
-// tried, when beforeFound.
-func (m *Manager) runMigrations(ctx context.Context, cfg *config.Config, db *sql.DB, before float64, beforeFound bool) error {
+// tried, when beforeFound, and currentCodeVersion this build's.
+func (m *Manager) runMigrations(ctx context.Context, cfg *config.Config, db *sql.DB, before float64, beforeFound bool, currentCodeVersion float64) error {
 	// Get current versions
 	currentDBVersion, err, versionExists := m.GetCurrentDBVersion(ctx, db)
 	if err != nil {
 		return fmt.Errorf("failed to get current database version: %w", err)
-	}
-
-	currentCodeVersion, err := GetCurrentCodeVersion()
-	if err != nil {
-		return fmt.Errorf("failed to get current code version: %w", err)
 	}
 
 	// If no version exists in database, this is the first run - initialize it
@@ -619,7 +623,7 @@ func (m *Manager) getAllWorkspaces(ctx context.Context, db *sql.DB) ([]domain.Wo
 // created here. Failures never stop anything: a workspace that cannot be reached,
 // checked or initialised is logged and skipped. A cancelled ctx stops the loop.
 func (m *Manager) InitializeEmptyWorkspaces(ctx context.Context, cfg *config.Config, db *sql.DB) {
-	codeVersion, err := GetCurrentCodeVersion()
+	codeVersion, err := m.currentCodeVersion()
 	if err != nil {
 		m.logger.WithField("error", err.Error()).Error("Empty workspace repair not run: failed to get the code version")
 		return

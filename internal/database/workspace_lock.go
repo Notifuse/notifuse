@@ -60,12 +60,15 @@ var lockTransactionSettings = []string{
 // transaction or the connection anyway, so it is not returned. lapsed is true when the
 // lock transaction's own bound had ended it: the lock went before the work under it
 // returned. A variable for tests.
-var logLockReleaseError = func(err error, lapsed bool) {
+var logLockReleaseError = func(err error, lapsed bool) { reportLockReleaseError(logger.NewLogger(), err, lapsed) }
+
+func reportLockReleaseError(log logger.Logger, err error, lapsed bool) {
+	log = log.WithField("error", err.Error())
 	if lapsed {
-		logger.NewLogger().WithField("error", err.Error()).Error("A database advisory lock was released before the work under it ended")
+		log.Error("A database advisory lock was released before the work under it ended")
 		return
 	}
-	logger.NewLogger().WithField("error", err.Error()).Warn("Failed to release a database advisory lock cleanly; the server releases it with the connection")
+	log.Warn("Failed to release a database advisory lock cleanly; the server releases it with the connection")
 }
 
 type lockHoldDeadlineKey struct{}
@@ -272,7 +275,13 @@ func lockAdminDSN(cfg *config.DatabaseConfig) string {
 // that admin database, opened for this call with room for the lock's connection and
 // fn's own. A hash collision only serialises two unrelated names.
 func WithWorkspaceDatabaseLock(ctx context.Context, cfg *config.DatabaseConfig, dbName string, fn func(ctx context.Context, admin *sql.DB) error) error {
-	admin, err := sql.Open("postgres", lockAdminDSN(cfg))
+	return withWorkspaceDatabaseLock(ctx, openLockAdmin, cfg, dbName, fn)
+}
+
+// withWorkspaceDatabaseLock is WithWorkspaceDatabaseLock opening the admin database
+// with open.
+func withWorkspaceDatabaseLock(ctx context.Context, open func(dsn string) (*sql.DB, error), cfg *config.DatabaseConfig, dbName string, fn func(ctx context.Context, admin *sql.DB) error) error {
+	admin, err := open(lockAdminDSN(cfg))
 	if err != nil {
 		return fmt.Errorf("failed to connect to PostgreSQL server: %w", err)
 	}
@@ -283,6 +292,9 @@ func WithWorkspaceDatabaseLock(ctx context.Context, cfg *config.DatabaseConfig, 
 	}
 	return withWorkspaceDatabaseLockOn(ctx, admin, dbName, fn)
 }
+
+// openLockAdmin opens the admin database the name lock is held on.
+func openLockAdmin(dsn string) (*sql.DB, error) { return sql.Open("postgres", dsn) }
 
 func withWorkspaceDatabaseLockOn(ctx context.Context, admin *sql.DB, dbName string, fn func(ctx context.Context, admin *sql.DB) error) error {
 	return WithLockTransaction(ctx, admin,

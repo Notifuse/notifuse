@@ -63,6 +63,20 @@ type workspaceRepository struct {
 	workspaceDatabaseLock func(ctx context.Context, cfg *config.DatabaseConfig, dbName string, fn func(ctx context.Context, admin *sql.DB) error) error
 }
 
+func (r *workspaceRepository) createDatabase() func(ctx context.Context, cfg *config.DatabaseConfig, workspaceID string, row func(ctx context.Context) (database.WorkspaceRow, error), insert database.WorkspaceInsert) error {
+	if r.createWorkspaceDatabase != nil {
+		return r.createWorkspaceDatabase
+	}
+	return database.CreateWorkspaceDatabase
+}
+
+func (r *workspaceRepository) nameLock() func(ctx context.Context, cfg *config.DatabaseConfig, dbName string, fn func(ctx context.Context, admin *sql.DB) error) error {
+	if r.workspaceDatabaseLock != nil {
+		return r.workspaceDatabaseLock
+	}
+	return database.WithWorkspaceDatabaseLock
+}
+
 // NewWorkspaceRepository creates a new PostgreSQL workspace repository
 func NewWorkspaceRepository(
 	systemDB *sql.DB,
@@ -132,11 +146,7 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 		Values:  []any{workspace.Name, settings, integrations, workspace.CreatedAt, workspace.UpdatedAt},
 	}
 
-	create := r.createWorkspaceDatabase
-	if create == nil {
-		create = database.CreateWorkspaceDatabase
-	}
-	if err := create(ctx, r.dbConfig, workspace.ID, row, insert); err != nil {
+	if err := r.createDatabase()(ctx, r.dbConfig, workspace.ID, row, insert); err != nil {
 		return err
 	}
 
@@ -391,11 +401,7 @@ func (r *workspaceRepository) Delete(ctx context.Context, id string) error {
 	// Under the workspace's name lock: a request arriving meanwhile waits, then finds
 	// the workspace gone and creates nothing, so the database cannot come back between
 	// the drop and the row deletion.
-	lock := r.workspaceDatabaseLock
-	if lock == nil {
-		lock = database.WithWorkspaceDatabaseLock
-	}
-	return lock(ctx, r.dbConfig, dbName, func(lockCtx context.Context, _ *sql.DB) error {
+	return r.nameLock()(ctx, r.dbConfig, dbName, func(lockCtx context.Context, _ *sql.DB) error {
 		// The bound above covers the wait for the lock; the work under it is bounded by
 		// the lock only, so the row deletion that must follow a drop is not cut short by
 		// a long wait.

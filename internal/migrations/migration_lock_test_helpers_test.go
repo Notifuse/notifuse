@@ -16,6 +16,11 @@ import (
 // run's own statements.
 func expectMigrationLockGranted(mock sqlmock.Sqlmock) {
 	mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").WillReturnError(sql.ErrNoRows)
+	expectMigrationLockTaken(mock)
+}
+
+// expectMigrationLockTaken expects the lock transaction and a try that wins.
+func expectMigrationLockTaken(mock sqlmock.Sqlmock) {
 	mock.ExpectBegin()
 	for _, statement := range lockSettingsForTest() {
 		mock.ExpectExec(statement).WillReturnResult(sqlmock.NewResult(0, 0))

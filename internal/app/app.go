@@ -401,12 +401,8 @@ func (a *App) InitDB() error {
 		WithField("max_connections_per_db", a.config.Database.MaxConnectionsPerDB).
 		Info("Connection manager initialized")
 
-	// Empty workspace databases left by failed creations get their schema off the
-	// startup path, once the migrations are applied and nothing below can fail and
-	// close db.
-	a.startBackground("empty workspace repair", func(ctx context.Context) {
-		migrationManager.InitializeEmptyWorkspaces(ctx, a.config, db)
-	})
+	// Last: only once the migrations are applied and nothing below can fail and close db.
+	a.startEmptyWorkspaceRepair(migrationManager.InitializeEmptyWorkspaces, db)
 
 	return nil
 	// codecov:ignore:end
@@ -2129,6 +2125,16 @@ func (a *App) Shutdown(ctx context.Context) error {
 	}
 
 	return shutdownErr
+}
+
+// startEmptyWorkspaceRepair runs repair (migrations.Manager.InitializeEmptyWorkspaces),
+// which gives the empty workspace databases left by failed creations their schema, in
+// the background, off the startup path. InitDB starts it once the migrations are
+// applied and nothing after it can fail and close db.
+func (a *App) startEmptyWorkspaceRepair(repair func(ctx context.Context, cfg *config.Config, db *sql.DB), db *sql.DB) {
+	a.startBackground("empty workspace repair", func(ctx context.Context) {
+		repair(ctx, a.config, db)
+	})
 }
 
 // startBackground runs fn in the background with the app's shutdown context, which

@@ -73,8 +73,9 @@ func workspaceDB(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_ = db.Close()
+		// Checked first: a close the code under test did not make fails the test.
 		assert.NoError(t, mock.ExpectationsWereMet())
+		_ = db.Close()
 	})
 	return db, mock
 }

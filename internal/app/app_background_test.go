@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/Notifuse/notifuse/config"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 )
 
@@ -138,4 +139,19 @@ func TestApp_StartBackground(t *testing.T) {
 		assert.GreaterOrEqual(t, elapsed, 200*time.Millisecond)
 		assert.Less(t, elapsed, 2*time.Second)
 	})
+}
+
+func TestApp_StartEmptyWorkspaceRepair(t *testing.T) {
+	app, db, _ := newBackgroundTestApp(t)
+	var gotCtx context.Context
+	var gotCfg *config.Config
+	var gotDB *sql.DB
+	app.startEmptyWorkspaceRepair(func(ctx context.Context, cfg *config.Config, d *sql.DB) {
+		gotCtx, gotCfg, gotDB = ctx, cfg, d
+	}, db)
+	app.backgroundWg.Wait()
+
+	assert.Same(t, app.shutdownCtx, gotCtx, "the repair stops with the app")
+	assert.Same(t, app.config, gotCfg)
+	assert.Same(t, db, gotDB)
 }

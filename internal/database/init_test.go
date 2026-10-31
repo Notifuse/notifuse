@@ -620,4 +620,16 @@ func TestInitializeWorkspaceDatabaseContext(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
+	t.Run("a refused setting rolls back before any schema statement", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mock.ExpectBegin()
+		mock.ExpectExec(regexp.QuoteMeta(workspaceSchemaTransactionSettings[0])).WillReturnError(errors.New("permission denied"))
+		mock.ExpectRollback()
+
+		err = InitializeWorkspaceDatabaseContext(context.Background(), db)
+		assert.ErrorContains(t, err, "failed to prepare workspace schema transaction: permission denied")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 }

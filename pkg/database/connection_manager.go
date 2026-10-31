@@ -367,6 +367,13 @@ func (cm *connectionManager) releasePoolReservation() {
 	cm.mu.Unlock()
 }
 
+func (cm *connectionManager) ensureDatabase() func(ctx context.Context, cfg *config.DatabaseConfig, workspaceID string, stillRegistered func(ctx context.Context) error) error {
+	if cm.ensureWorkspaceDatabase != nil {
+		return cm.ensureWorkspaceDatabase
+	}
+	return database.EnsureWorkspaceDatabaseExists
+}
+
 // createWorkspacePool creates a new connection pool for a workspace database.
 //
 // The workspace database is normally provisioned up-front at workspace creation
@@ -396,14 +403,10 @@ func (cm *connectionManager) createWorkspacePool(ctx context.Context, workspaceI
 		// workspace's name lock, so a request that waited on a deletion in progress
 		// finds the workspace gone and creates nothing.
 		if database.IsDatabaseMissingError(err) {
-			ensure := cm.ensureWorkspaceDatabase
-			if ensure == nil {
-				ensure = database.EnsureWorkspaceDatabaseExists
-			}
 			stillRegistered := func(ctx context.Context) error {
 				return cm.checkWorkspaceRegistered(ctx, workspaceID)
 			}
-			if ensureErr := ensure(ctx, &cm.config.Database, workspaceID, stillRegistered); ensureErr != nil {
+			if ensureErr := cm.ensureDatabase()(ctx, &cm.config.Database, workspaceID, stillRegistered); ensureErr != nil {
 				return nil, ensureErr
 			}
 			db, err = open(ctx, dsn, workspaceID)

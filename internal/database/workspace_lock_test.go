@@ -10,11 +10,13 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/golang/mock/gomock"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/Notifuse/notifuse/config"
+	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 )
 
 // expectLockTransactionSettings queues the statements every lock transaction runs right
@@ -528,8 +530,11 @@ type staleConnector struct {
 	opened, committed, execs atomic.Int32
 	failBegins               atomic.Int32 // BEGINs on live connections that meet a reset
 	begins                   atomic.Int32
-	refuseBegin              error // every BEGIN refused so by the server
-	maxOpens                 int32 // no connection opens beyond this many; zero means no limit
+	refuseBegin              error  // every BEGIN refused so by the server
+	maxOpens                 int32  // no connection opens beyond this many; zero means no limit
+	slowExec                 string // a statement that calls onSlowExec, then succeeds
+	onSlowExec               func()
+	pingErr                  error // every ping of a live connection fails so
 }
 
 // errConnectionReset is what lib/pq returns for a connection reset mid-statement: not
@@ -579,7 +584,7 @@ func (n *staleConn) Ping(context.Context) error {
 	if n.closed {
 		return driver.ErrBadConn
 	}
-	return nil
+	return n.c.pingErr
 }
 
 // IsValid reports a connection broken by a reset as lib/pq does. One the server closed
@@ -601,9 +606,12 @@ func (n *staleConn) BeginTx(context.Context, driver.TxOptions) (driver.Tx, error
 	return staleTx{c: n.c}, nil
 }
 
-func (n *staleConn) ExecContext(context.Context, string, []driver.NamedValue) (driver.Result, error) {
+func (n *staleConn) ExecContext(_ context.Context, query string, _ []driver.NamedValue) (driver.Result, error) {
 	if n.closed {
 		return nil, driver.ErrBadConn
+	}
+	if n.c.slowExec != "" && query == n.c.slowExec {
+		n.c.onSlowExec()
 	}
 	n.c.execs.Add(1)
 	return driver.RowsAffected(1), nil
@@ -613,3 +621,113 @@ type staleTx struct{ c *staleConnector }
 
 func (t staleTx) Commit() error   { t.c.committed.Add(1); return nil }
 func (t staleTx) Rollback() error { return nil }
+
+func TestWithWorkspaceDatabaseLockOn_LockRefused(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	mock.ExpectBegin()
+	expectLockTransactionSettings(mock)
+	mock.ExpectExec(`SELECT pg_advisory_xact_lock\(\$1::integer, hashtext\(\$2\)\)`).WillReturnError(errors.New("deadlock detected"))
+	mock.ExpectRollback()
+
+	called := false
+	err = withWorkspaceDatabaseLockOn(context.Background(), db, "notifuse_ws_acme", func(ctx context.Context, admin *sql.DB) error {
+		called = true
+		return nil
+	})
+	assert.ErrorContains(t, err, "failed to take the lock on workspace database notifuse_ws_acme: deadlock detected")
+	assert.False(t, called)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWithWorkspaceDatabaseLock_AdminDatabase(t *testing.T) {
+	cfg := &config.DatabaseConfig{User: "u", Password: "p", Host: "h", Port: 5432, SSLMode: "disable"}
+
+	t.Run("opened on the admin DSN, pinged, the lock taken on it, then closed", func(t *testing.T) {
+		admin, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+		require.NoError(t, err)
+		var openedWith string
+		open := func(dsn string) (*sql.DB, error) { openedWith = dsn; return admin, nil }
+		mock.ExpectPing() // the admin database is reachable
+		mock.ExpectPing() // the lock transaction's connection is live
+		mock.ExpectBegin()
+		expectLockTransactionSettings(mock)
+		expectWorkspaceNameLock(mock, "notifuse_ws_acme")
+		mock.ExpectCommit()
+		mock.ExpectClose()
+
+		var gotAdmin *sql.DB
+		err = withWorkspaceDatabaseLock(context.Background(), open, cfg, "notifuse_ws_acme", func(ctx context.Context, a *sql.DB) error {
+			gotAdmin = a
+			return nil
+		})
+		require.NoError(t, err)
+		assert.Equal(t, lockAdminDSN(cfg), openedWith)
+		assert.Same(t, admin, gotAdmin)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a DSN that does not open", func(t *testing.T) {
+		open := func(string) (*sql.DB, error) { return nil, errors.New("unknown driver") }
+
+		called := false
+		err := withWorkspaceDatabaseLock(context.Background(), open, cfg, "notifuse_ws_acme", func(ctx context.Context, a *sql.DB) error {
+			called = true
+			return nil
+		})
+		assert.ErrorContains(t, err, "failed to connect to PostgreSQL server: unknown driver")
+		assert.False(t, called)
+	})
+}
+
+func TestReportLockReleaseError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	log := pkgmocks.NewMockLogger(ctrl)
+	gomock.InOrder(
+		log.EXPECT().WithField("error", "commit failed").Return(log),
+		log.EXPECT().Error("A database advisory lock was released before the work under it ended"),
+		log.EXPECT().WithField("error", "commit failed").Return(log),
+		log.EXPECT().Warn("Failed to release a database advisory lock cleanly; the server releases it with the connection"),
+	)
+	reportLockReleaseError(log, errors.New("commit failed"), true)
+	reportLockReleaseError(log, errors.New("commit failed"), false)
+
+	// The default reporter logs through the application logger.
+	assert.NotPanics(t, func() { logLockReleaseError(errors.New("commit failed"), false) })
+}
+
+func TestWithLockTransaction_ContextEndedByTheLastSetting(t *testing.T) {
+	// The last setting returns without error once the caller's context, and with it the
+	// prepare context, has ended, as lib/pq may when it ends as a statement returns:
+	// nothing is acquired. The prepare context is checked, not the statements' errors.
+	last := lockTransactionSettings[len(lockTransactionSettings)-1]
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c := &staleConnector{slowExec: last, onSlowExec: cancel}
+	db := sql.OpenDB(c)
+	defer func() { _ = db.Close() }()
+
+	acquired := false
+	err := withLockTransaction(ctx, db, lockBounds{prepare: time.Minute},
+		func(ctx context.Context, tx *sql.Tx) error { acquired = true; return nil },
+		func(ctx context.Context) error { return nil })
+	require.ErrorContains(t, err, "failed to prepare lock transaction")
+	assert.ErrorIs(t, err, context.Canceled)
+	assert.False(t, acquired)
+	assert.Equal(t, int32(len(lockTransactionSettings)), c.execs.Load(), "every setting ran, the last past the bound")
+	assert.Equal(t, int32(0), c.committed.Load())
+}
+
+func TestLiveConnection_PingFailingOtherwiseThanAClosedConnection(t *testing.T) {
+	// Only a connection found closed is replaced: any other ping failure is returned.
+	refused := &pq.Error{Code: "53300", Message: "too many connections"}
+	c := &staleConnector{pingErr: refused}
+	db := sql.OpenDB(c)
+	defer func() { _ = db.Close() }()
+
+	conn, err := liveConnection(context.Background(), db)
+	assert.ErrorIs(t, err, refused)
+	assert.Nil(t, conn)
+	assert.Equal(t, int32(1), c.opened.Load())
+}

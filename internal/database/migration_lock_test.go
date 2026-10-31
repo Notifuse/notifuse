@@ -143,3 +143,64 @@ func TestLockTransactionSettings_IsACopy(t *testing.T) {
 	got[0] = "changed"
 	assert.NotEqual(t, "changed", lockTransactionSettings[0])
 }
+
+func TestWithMigrationLock_FailedTry(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	mock.ExpectBegin()
+	expectLockTransactionSettings(mock)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT pg_try_advisory_xact_lock($1)`)).WillReturnError(errors.New("connection reset"))
+	mock.ExpectRollback()
+
+	ran := false
+	err = WithMigrationLock(context.Background(), db, nil, func(ctx context.Context) error { ran = true; return nil })
+	assert.ErrorContains(t, err, "failed to try the migration lock: connection reset")
+	assert.False(t, ran)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWithSharedMigrationLock_FailedLock(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	mock.ExpectBegin()
+	expectLockTransactionSettings(mock)
+	mock.ExpectExec(regexp.QuoteMeta(`SELECT pg_advisory_xact_lock_shared($1)`)).WillReturnError(errors.New("lock timeout"))
+	mock.ExpectRollback()
+
+	ran := false
+	err = WithSharedMigrationLock(context.Background(), db, func(ctx context.Context) error { ran = true; return nil })
+	assert.ErrorContains(t, err, "failed to take the shared migration lock: lock timeout")
+	assert.False(t, ran)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestMigrationLockHolders_ReadFailures(t *testing.T) {
+	holders := `FROM pg_locks l`
+
+	t.Run("a row that does not scan", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mock.ExpectQuery(holders).WillReturnRows(sqlmock.NewRows([]string{"pid", "shared", "app", "addr"}).AddRow("not a pid", false, "", ""))
+
+		got, err := migrationLockHolders(context.Background(), db)
+		assert.ErrorContains(t, err, "failed to look up the migration lock's holders")
+		assert.Nil(t, got)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("an error while reading the rows", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mock.ExpectQuery(holders).WillReturnRows(sqlmock.NewRows([]string{"pid", "shared", "app", "addr"}).
+			AddRow(41, false, "", "").RowError(0, errors.New("connection lost")))
+
+		got, err := migrationLockHolders(context.Background(), db)
+		assert.ErrorContains(t, err, "failed to look up the migration lock's holders: connection lost")
+		assert.Nil(t, got)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
