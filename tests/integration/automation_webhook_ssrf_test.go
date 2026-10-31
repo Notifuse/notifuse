@@ -181,8 +181,10 @@ func TestAutomationWebhookNodeSSRFProtection(t *testing.T) {
 		// what the node stored — instead of a bare timeout.
 		var refused, contactAutomation map[string]interface{}
 		var lastSeen []map[string]interface{}
+		// The node's failed row lands before handleError persists last_error on the
+		// contact automation (separate writes), so wait for both, not just the row.
 		deadline := time.Now().Add(15 * time.Second)
-		for refused == nil && time.Now().Before(deadline) {
+		for (refused == nil || contactAutomation["last_error"] == nil) && time.Now().Before(deadline) {
 			time.Sleep(200 * time.Millisecond)
 			resp, err := client.GetContactNodeExecutions(automationID, email)
 			if err != nil {
@@ -198,17 +200,21 @@ func TestAutomationWebhookNodeSSRFProtection(t *testing.T) {
 				continue
 			}
 			lastSeen = result.NodeExecutions
+			contactAutomation = result.ContactAutomation
 			for _, exec := range result.NodeExecutions {
 				// handleError adds a second failed row under the same node_id with the
 				// placeholder type "trigger"; the webhook node's own row is the one to read.
 				if exec["node_id"] == webhookNodeID && exec["node_type"] == "webhook" && exec["action"] == "failed" {
-					refused, contactAutomation = exec, result.ContactAutomation
+					refused = exec
 				}
 			}
 		}
 		require.NotNil(t, refused,
 			"no refused webhook execution after 15s; receiver hits=%d; node executions seen: %v",
 			atomic.LoadInt32(&hits), lastSeen)
+		require.NotNil(t, contactAutomation["last_error"],
+			"the refused execution was logged but last_error was never persisted; contact automation: %v",
+			contactAutomation)
 
 		assert.Contains(t, refused["error"], "private or reserved")
 		assert.Contains(t, refused["error"], "WEBHOOK_DELIVERY_ALLOW_PRIVATE_HOSTS")
