@@ -2416,3 +2416,25 @@ func TestEmailService_TestEmailProvider_PermissionEnforcement(t *testing.T) {
 	assert.Equal(t, domain.PermissionResourceTransactional, permErr.Resource)
 	assert.Equal(t, domain.PermissionTypeWrite, permErr.Permission)
 }
+
+// TestSendEmailForTemplate_SetsTrackingSigningKey pins that the compile request built by
+// SendEmailForTemplate carries the workspace's tracking key, whatever tracking settings
+// the caller passed: the list confirmation path passes EnableTracking from the workspace
+// and UTM fields, the notification path a resolved per-notification mode, and neither
+// can carry a key (json:"-"). Without it every link of these sends would be unsigned.
+func TestSendEmailForTemplate_SetsTrackingSigningKey(t *testing.T) {
+	const secretKey = "workspace-secret-key-32-chars-min!"
+	want := domain.TrackingSigningKey(secretKey)
+	require.NotEmpty(t, want)
+
+	shapes := map[string]notifuse_mjml.TrackingSettings{
+		"list confirmation": {EnableTracking: true, UTMMedium: "email", UTMCampaign: "newsletter", WorkspaceID: "workspace-123", MessageID: "msg-1"},
+		"notification":      {EnableTracking: true, TrackingMode: notifuse_mjml.TrackingModeInherit},
+	}
+	for name, requestTracking := range shapes {
+		t.Run(name, func(t *testing.T) {
+			tracking := sendForTemplateCapturingTrackingWithRequestSettings(t, nil, "alice@example.com", secretKey, domain.EmailOptions{}, requestTracking)
+			assert.Equal(t, want, tracking.SigningKey)
+		})
+	}
+}

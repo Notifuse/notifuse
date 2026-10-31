@@ -1236,3 +1236,41 @@ func TestTemplateHandler_LicenceRefusalIsA402(t *testing.T) {
 		assertRefusal(t, resp)
 	})
 }
+
+// TestHandleCompile_TrackingSettingsCarryNoSigningKey sends a raw JSON body, as an API
+// client would, naming a signing key and another workspace in tracking_settings. The
+// key must never reach the service: without it, preview links are unsigned and never
+// redirect without a check. The service pins the workspace (template_service_test.go).
+func TestHandleCompile_TrackingSettingsCarryNoSigningKey(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section></mj-body></mjml>"
+	htmlOut := "<html><body>Hello</body></html>"
+	payload := map[string]interface{}{
+		"workspace_id": "workspace123",
+		"message_id":   "msg-1",
+		"mjml_source":  mjmlSrc,
+		"tracking_settings": map[string]interface{}{
+			"workspace_id":    "other",
+			"enable_tracking": true,
+			"signing_key":     "AAAA",
+			"SigningKey":      "AAAA",
+		},
+	}
+
+	var received domain.CompileTemplateRequest
+	mockService.EXPECT().CompileTemplate(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
+			received = req
+			return &domain.CompileTemplateResponse{Success: true, MJML: &mjmlSrc, HTML: &htmlOut}, nil
+		})
+
+	resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.compile", serverURL), createTestToken(secretKey), payload)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "workspace123", received.WorkspaceID)
+	assert.True(t, received.TrackingSettings.EnableTracking)
+	assert.Empty(t, received.TrackingSettings.SigningKey)
+}

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [42.2] - 2026-10-31
+
+- **Improvement**: Tracked links now ask the visitor to confirm before opening another site whenever Notifuse cannot verify that the email itself contained the link. Links in emails sent from now on carry that proof and redirect directly as before. Links in emails sent before the upgrade that lead to another site, legacy `/visit` links and links clicked from a template preview show a confirmation page naming the destination. Unsubscribe and notification center links keep working directly.
+
+  **Upgrade while no broadcast is paused or still sending if you can:** emails queued before the upgrade go out with unsigned links, so their links to other sites show the confirmation page.
+
+- **Security**: Requests naming a workspace that does not exist no longer open database connections or close other workspaces' idle ones.
+
 ## [42.1] - 2026-10-28
 
 - **Security**: Single sign-on now uses `go-jose` 4.1.6, which fixes a denial of service where a crafted RSA key in the signing keys published by the identity provider could use excessive CPU ([GHSA-mgcc-cww5-fp2q](https://github.com/advisories/GHSA-mgcc-cww5-fp2q)).

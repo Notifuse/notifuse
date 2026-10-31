@@ -184,6 +184,16 @@ func ParseWebAnalyticsPartitionName(name string) (table string, month time.Time,
 	return m[1], time.Date(year, time.Month(mon), 1, 0, 0, 0, 0, time.UTC), true
 }
 
+// WebAnalyticsCurrentAndNextMonth returns the first day, in UTC, of the month holding now
+// and of the month after it: the partitions a new workspace starts with. It steps from
+// the first of the month, since on the 31st now.AddDate(0, 1, 0) can skip a shorter
+// month (January 31 plus one month is March 3).
+func WebAnalyticsCurrentAndNextMonth(now time.Time) []time.Time {
+	utc := now.UTC()
+	current := time.Date(utc.Year(), utc.Month(), 1, 0, 0, 0, 0, time.UTC)
+	return []time.Time{current, current.AddDate(0, 1, 0)}
+}
+
 // WebAnalyticsPartitionDDL returns the idempotent CREATE statement for one
 // monthly partition, with the HOT-friendly fillfactor applied per partition
 // (the partitioned parent has no storage, so WITH on the parent would be

@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/crypto"
 
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	httpmocks "github.com/Notifuse/notifuse/internal/http/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 
 	"github.com/golang/mock/gomock"
@@ -24,12 +24,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// setupEmailHandlerTest prepares a test environment for email handler tests
+// setupEmailHandlerTest prepares a test environment for email handler tests. Its
+// tracking workspace source has no expectations, so a test that reaches it fails: use
+// setupEmailHandlerTestWithWorkspaces for the click routes.
 func setupEmailHandlerTest(t *testing.T) (*mocks.MockEmailServiceInterface, *pkgmocks.MockLogger, *EmailHandler, []byte) {
+	mockService, _, mockLogger, handler := setupEmailHandlerTestWithWorkspaces(t)
+	return mockService, mockLogger, handler, []byte("test-secret-key")
+}
+
+// testAPIEndpoint is the API_ENDPOINT the test handlers are built with.
+const testAPIEndpoint = "https://api.notifuse.test"
+
+func setupEmailHandlerTestWithWorkspaces(t *testing.T) (*mocks.MockEmailServiceInterface, *httpmocks.MockTrackingWorkspaces, *pkgmocks.MockLogger, *EmailHandler) {
 	ctrl := gomock.NewController(t)
 	t.Cleanup(func() { ctrl.Finish() })
 
 	mockService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockWorkspaces := httpmocks.NewMockTrackingWorkspaces(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Setup common logger expectations
@@ -43,9 +54,9 @@ func setupEmailHandlerTest(t *testing.T) (*mocks.MockEmailServiceInterface, *pkg
 
 	// Create key pair for testing
 	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
-	handler := NewEmailHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, "test-secret-key")
+	handler := NewEmailHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, "test-secret-key", mockWorkspaces, testAPIEndpoint)
 
-	return mockService, mockLogger, handler, []byte("test-secret-key")
+	return mockService, mockWorkspaces, mockLogger, handler
 }
 
 func TestNewEmailHandler(t *testing.T) {
@@ -57,7 +68,8 @@ func TestNewEmailHandler(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	// Act
-	handler := NewEmailHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, "test-secret-key")
+	mockWorkspaces := httpmocks.NewMockTrackingWorkspaces(ctrl)
+	handler := NewEmailHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, "test-secret-key", mockWorkspaces, "https://API.example.com:8443/base")
 
 	// Assert
 	assert.NotNil(t, handler)
@@ -65,6 +77,8 @@ func TestNewEmailHandler(t *testing.T) {
 	assert.NotNil(t, handler.getJWTSecret)
 	assert.Equal(t, mockLogger, handler.logger)
 	assert.Equal(t, "test-secret-key", handler.secretKey)
+	assert.Equal(t, mockWorkspaces, handler.trackingWorkspaces)
+	assert.Equal(t, "api.example.com", handler.apiHost, "the API_ENDPOINT hostname, port removed")
 }
 
 func TestEmailHandler_RegisterRoutes(t *testing.T) {
@@ -259,166 +273,6 @@ func TestEmailHandler_HandleTestEmailProvider(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestEmailHandler_HandleClickRedirection(t *testing.T) {
-	tests := []struct {
-		name               string
-		queryParams        map[string]string
-		setupExpectations  func(*mocks.MockEmailServiceInterface)
-		expectedStatusCode int
-		expectedRedirectTo string
-		expectedBody       string
-	}{
-		{
-			name: "Success with all parameters",
-			queryParams: map[string]string{
-				"mid": "message-123",
-				"wid": "workspace-123",
-				"url": "https://example.com",
-				"ts":  strconv.FormatInt(time.Now().Add(-10*time.Second).Unix(), 10), // 10 seconds ago
-			},
-			setupExpectations: func(mockEmailService *mocks.MockEmailServiceInterface) {
-				// Legacy /visit URLs are forgeable query params: aggregate-only
-				mockEmailService.EXPECT().
-					VisitLink(gomock.Any(), "message-123", "workspace-123", "", gomock.Any()).
-					Return(nil)
-			},
-			expectedStatusCode: http.StatusSeeOther,
-			expectedRedirectTo: "https://example.com",
-		},
-		{
-			name: "Missing message ID or workspace ID",
-			queryParams: map[string]string{
-				"url": "https://example.com",
-			},
-			setupExpectations:  func(*mocks.MockEmailServiceInterface) {},
-			expectedStatusCode: http.StatusSeeOther,
-			expectedRedirectTo: "https://example.com",
-		},
-		{
-			name:               "Missing URL parameter",
-			queryParams:        map[string]string{},
-			setupExpectations:  func(*mocks.MockEmailServiceInterface) {},
-			expectedStatusCode: http.StatusBadRequest,
-			expectedBody:       "Missing redirect URL\n",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Setup - create fresh mocks for each test case
-			mockEmailService, _, handler, _ := setupEmailHandlerTest(t)
-
-			// Setup request
-			req := httptest.NewRequest(http.MethodGet, "/visit", nil)
-			q := req.URL.Query()
-			for key, value := range tt.queryParams {
-				q.Add(key, value)
-			}
-			req.URL.RawQuery = q.Encode()
-			// Set a normal browser user-agent to pass bot detection
-			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0")
-
-			// Setup expectations
-			tt.setupExpectations(mockEmailService)
-
-			// Create response recorder
-			w := httptest.NewRecorder()
-
-			// Call the handler
-			handler.handleClickRedirection(w, req.WithContext(context.Background()))
-
-			// Assertions
-			assert.Equal(t, tt.expectedStatusCode, w.Code)
-
-			if tt.expectedRedirectTo != "" {
-				location := w.Header().Get("Location")
-				assert.Equal(t, tt.expectedRedirectTo, location)
-			}
-
-			if tt.expectedBody != "" {
-				assert.Equal(t, tt.expectedBody, w.Body.String())
-			}
-		})
-	}
-}
-
-func TestEmailHandler_HandleEncryptedClick(t *testing.T) {
-	oldTimestamp := strconv.FormatInt(time.Now().Add(-10*time.Second).Unix(), 10)
-	freshTimestamp := strconv.FormatInt(time.Now().Unix(), 10)
-
-	tests := []struct {
-		name               string
-		tokenPayload       string
-		userAgent          string
-		setupExpectations  func(*mocks.MockEmailServiceInterface)
-		expectedStatusCode int
-		expectedRedirectTo string
-	}{
-		{
-			name:         "records click with decrypted destination URL",
-			tokenPayload: "message-123\nworkspace-123\n" + oldTimestamp + "\nhttps://example.com/product",
-			userAgent:    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0",
-			setupExpectations: func(mockEmailService *mocks.MockEmailServiceInterface) {
-				mockEmailService.EXPECT().
-					VisitLink(gomock.Any(), "message-123", "workspace-123", "https://example.com/product", gomock.Any()).
-					Return(nil)
-			},
-			expectedStatusCode: http.StatusSeeOther,
-			expectedRedirectTo: "https://example.com/product",
-		},
-		{
-			name:               "bot user agent records nothing but still redirects",
-			tokenPayload:       "message-123\nworkspace-123\n" + oldTimestamp + "\nhttps://example.com/product",
-			userAgent:          "Googlebot/2.1 (+http://www.google.com/bot.html)",
-			setupExpectations:  func(*mocks.MockEmailServiceInterface) {},
-			expectedStatusCode: http.StatusSeeOther,
-			expectedRedirectTo: "https://example.com/product",
-		},
-		{
-			name:               "too-fast click records nothing but still redirects",
-			tokenPayload:       "message-123\nworkspace-123\n" + freshTimestamp + "\nhttps://example.com/product",
-			userAgent:          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0",
-			setupExpectations:  func(*mocks.MockEmailServiceInterface) {},
-			expectedStatusCode: http.StatusSeeOther,
-			expectedRedirectTo: "https://example.com/product",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockEmailService, _, handler, _ := setupEmailHandlerTest(t)
-
-			token, err := crypto.EncryptTrackingToken(tt.tokenPayload)
-			require.NoError(t, err)
-
-			req := httptest.NewRequest(http.MethodGet, "/r/"+token, nil)
-			req.Header.Set("User-Agent", tt.userAgent)
-
-			tt.setupExpectations(mockEmailService)
-
-			w := httptest.NewRecorder()
-			handler.handleEncryptedClick(w, req.WithContext(context.Background()))
-
-			assert.Equal(t, tt.expectedStatusCode, w.Code)
-			if tt.expectedRedirectTo != "" {
-				assert.Equal(t, tt.expectedRedirectTo, w.Header().Get("Location"))
-			}
-		})
-	}
-
-	t.Run("invalid token returns bad request", func(t *testing.T) {
-		_, _, handler, _ := setupEmailHandlerTest(t)
-
-		req := httptest.NewRequest(http.MethodGet, "/r/invalid-token", nil)
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0")
-
-		w := httptest.NewRecorder()
-		handler.handleEncryptedClick(w, req.WithContext(context.Background()))
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-	})
 }
 
 func TestEmailHandler_HandleOpens(t *testing.T) {

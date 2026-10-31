@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1892,9 +1893,7 @@ func TestBuildTemplateData(t *testing.T) {
 		// Check tracking pixel URL
 		trackingPixelURL, ok := data["tracking_opens_url"].(string)
 		assert.True(t, ok)
-		assert.Contains(t, trackingPixelURL, "https://api.example.com/opens")
-		assert.Contains(t, trackingPixelURL, "mid=msg-456")
-		assert.Contains(t, trackingPixelURL, "wid=ws-123")
+		assertSignedOpenURL(t, trackingPixelURL, "https://api.example.com", workspaceSecretKey, "msg-456", "ws-123")
 
 		// Check confirm subscription URL
 		confirmURL, ok := data["confirm_subscription_url"].(string)
@@ -1977,9 +1976,7 @@ func TestBuildTemplateData(t *testing.T) {
 		// Check tracking opens URL still exists even without API endpoint
 		trackingPixelURL, ok := data["tracking_opens_url"].(string)
 		assert.True(t, ok)
-		assert.Contains(t, trackingPixelURL, "/opens")
-		assert.Contains(t, trackingPixelURL, "mid=msg-456")
-		assert.Contains(t, trackingPixelURL, "wid=ws-123")
+		assertSignedOpenURL(t, trackingPixelURL, "https://api.example.com", workspaceSecretKey, "msg-456", "ws-123")
 
 		// No unsubscribe URL should be present
 		_, exists := data["unsubscribe_url"]
@@ -2156,6 +2153,30 @@ func TestBuildTemplateData_GlobalFeed(t *testing.T) {
 }
 
 // TestGenerateEmailRedirectionEndpoint tests the generation of the URL for tracking email redirections
+// assertSignedOpenURL checks that url is an open tracking URL under endpoint, never an
+// /opens query URL, and that its token verifies as an open for mid and wid under the key
+// derived from workspaceSecretKey.
+func assertSignedOpenURL(t *testing.T, url, endpoint, workspaceSecretKey, mid, wid string) {
+	t.Helper()
+	assert.NotContains(t, url, "/opens")
+	require.True(t, strings.HasPrefix(url, endpoint+"/t/"), "open tracking URL %q should start with %s/t/", url, endpoint)
+	tok, err := trackingtoken.Parse(strings.TrimPrefix(url, endpoint+"/t/"), trackingtoken.PurposeOpen)
+	require.NoError(t, err)
+	assert.Equal(t, mid, tok.MessageID)
+	assert.Equal(t, wid, tok.WorkspaceID)
+	key, err := trackingtoken.DeriveKey(workspaceSecretKey)
+	require.NoError(t, err)
+	assert.True(t, tok.Verify(key, trackingtoken.PurposeOpen), "open token should verify under the workspace key")
+	assert.False(t, tok.Verify(key, trackingtoken.PurposeClick), "an open token must not verify as a click")
+}
+
+func TestTrackingSigningKey(t *testing.T) {
+	want, err := trackingtoken.DeriveKey("secret")
+	require.NoError(t, err)
+	assert.Equal(t, want, TrackingSigningKey("secret"))
+	assert.Nil(t, TrackingSigningKey(""))
+}
+
 func TestGenerateEmailRedirectionEndpoint(t *testing.T) {
 	testTimestamp := int64(1699564800)
 
@@ -2195,7 +2216,7 @@ func TestGenerateEmailRedirectionEndpoint(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			url := notifuse_mjml.GenerateEmailRedirectionEndpoint(tt.workspaceID, tt.messageID, tt.apiEndpoint, tt.destinationURL, testTimestamp)
+			url := notifuse_mjml.GenerateEmailRedirectionEndpoint(nil, tt.workspaceID, tt.messageID, tt.apiEndpoint, tt.destinationURL, testTimestamp)
 			assert.True(t, len(url) > len(tt.expectedPrefix), "URL should be longer than prefix")
 			assert.Equal(t, tt.expectedPrefix, url[:len(tt.expectedPrefix)], "URL should start with encrypted redirect prefix")
 		})

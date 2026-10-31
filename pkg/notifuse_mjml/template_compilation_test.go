@@ -1218,7 +1218,7 @@ func TestTrackingPixelWithoutBodyTag(t *testing.T) {
 // mso-line-height-rule makes the Word engine behind Outlook treat the zero
 // line-height as exact rather than as a minimum.
 func TestTrackingPixelCollapsesLineBox(t *testing.T) {
-	pixel := GenerateHTMLOpenTrackingPixel("ws", "msg", "https://api.example.com", 1700000000)
+	pixel := GenerateHTMLOpenTrackingPixel(nil, "ws", "msg", "https://api.example.com", 1700000000)
 
 	assert.Contains(t, pixel, `<td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">`,
 		"the pixel cell must zero its line box, or it reserves a full line of text below the email")
@@ -1237,7 +1237,7 @@ func TestTrackingPixelCollapsesLineBox(t *testing.T) {
 func TestTrackingPixelCellStyleMatchesMJMLSpacerRow(t *testing.T) {
 	const cellStyle = `line-height:0px;font-size:0px;mso-line-height-rule:exactly;`
 
-	pixel := GenerateHTMLOpenTrackingPixel("ws", "msg", "https://api.example.com", 1700000000)
+	pixel := GenerateHTMLOpenTrackingPixel(nil, "ws", "msg", "https://api.example.com", 1700000000)
 	require.Contains(t, pixel, cellStyle)
 
 	rendered, err := mjml.Render(`<mjml><mj-body><mj-section><mj-column><mj-text>x</mj-text></mj-column></mj-section></mj-body></mjml>`)
@@ -1254,7 +1254,7 @@ func TestTrackingPixelCellStyleMatchesMJMLSpacerRow(t *testing.T) {
 // image area only when both attributes are present, and coerces a zero to 200,
 // so width="0" height="0" would bill the pixel as 40000px of image.
 func TestTrackingPixelCarriesNoDimensionAttributes(t *testing.T) {
-	pixel := GenerateHTMLOpenTrackingPixel("ws", "msg", "https://api.example.com", 1700000000)
+	pixel := GenerateHTMLOpenTrackingPixel(nil, "ws", "msg", "https://api.example.com", 1700000000)
 
 	imgTag := regexp.MustCompile(`<img [^>]*>`).FindString(pixel)
 	require.NotEmpty(t, imgTag, "expected an img tag in the pixel markup")

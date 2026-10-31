@@ -14,10 +14,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// trackingObfuscationKey is a hardcoded key used to obfuscate tracking URL parameters.
-// This is NOT for security — the data (workspace ID, message ID, timestamp) is not sensitive.
-// The purpose is to make tracking URLs opaque to automated pixel blockers that pattern-match
-// on query parameters like ?mid=...&wid=...&ts=...
+// trackingObfuscationKey is a public key used to obfuscate tracking URL parameters.
+// This is NOT for security: anyone can open or seal a token with it, so it neither hides
+// the content from a reader nor proves who minted it. The purpose is to make tracking URLs
+// opaque to automated pixel blockers that pattern-match on query parameters like
+// ?mid=...&wid=...&ts=... What a token can be trusted for is decided by the per-workspace
+// signature inside it (pkg/trackingtoken).
 const trackingObfuscationKey = "nf-tracking-obfuscation-2024"
 
 // func ComputeHMAC256FromInterface(toSign interface{}, secretKey string) (signature string, err error) {
@@ -158,8 +160,9 @@ func DecryptFromHexString(str string, passphrase string) (string, error) {
 	return string(decodedBytes), nil
 }
 
-// EncryptTrackingToken encrypts a plaintext string into a URL-safe token using AES-256-GCM
-// with the hardcoded obfuscation key. Returns a base64 RawURLEncoding string (no padding).
+// EncryptTrackingToken seals a plaintext string into a URL-safe token using AES-256-GCM
+// with the public obfuscation key. Returns a base64 RawURLEncoding string (no padding).
+// It obfuscates only: see trackingObfuscationKey.
 func EncryptTrackingToken(plaintext string) (string, error) {
 	data := []byte(plaintext)
 
@@ -182,8 +185,8 @@ func EncryptTrackingToken(plaintext string) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(ciphertext), nil
 }
 
-// DecryptTrackingToken decrypts a URL-safe token back to plaintext using AES-256-GCM
-// with the hardcoded obfuscation key.
+// DecryptTrackingToken opens a URL-safe token back to plaintext using AES-256-GCM
+// with the public obfuscation key. A token that opens proves nothing about who minted it.
 func DecryptTrackingToken(token string) (string, error) {
 	if token == "" {
 		return "", fmt.Errorf("DecryptTrackingToken empty token")

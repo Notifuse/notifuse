@@ -29,6 +29,11 @@ type ConnectionManager interface {
 	// CloseWorkspaceConnection closes a workspace database connection pool
 	CloseWorkspaceConnection(workspaceID string) error
 
+	// ForgetUnknownWorkspace drops the cached "no such workspace" answer for an ID,
+	// so a workspace created under it is usable at once. Called after the workspace
+	// row is inserted.
+	ForgetUnknownWorkspace(workspaceID string)
+
 	// GetStats returns connection statistics
 	GetStats() ConnectionStats
 
@@ -64,6 +69,14 @@ type ConnectionPoolStats struct {
 // can never hang indefinitely on an unreachable server.
 const workspacePoolCreateTimeout = 30 * time.Second
 
+// unknownWorkspaceTTL is how long an ID with no workspace row is answered as not found
+// without querying the system database again.
+const unknownWorkspaceTTL = 5 * time.Second
+
+// maxUnknownWorkspaces caps the not-found cache: anyone can name random IDs. Past it
+// the cache is emptied, which only costs a query per ID again.
+const maxUnknownWorkspaces = 10_000
+
 // connectionManager implements ConnectionManager
 type connectionManager struct {
 	mu                  sync.RWMutex
@@ -75,6 +88,22 @@ type connectionManager struct {
 	maxConnectionsPerDB int
 	inflightPools       int                // pools reserved but not yet inserted, counted against capacity
 	createGroup         singleflight.Group // coalesces concurrent pool creation per workspace
+
+	// unknownWorkspaces caches IDs with no workspace row (ID -> expiry), so requests
+	// naming random IDs cost one primary-key query per ID per unknownWorkspaceTTL and
+	// never reserve capacity or dial. Guarded by unknownMu, never by mu.
+	unknownMu         sync.Mutex
+	unknownWorkspaces map[string]time.Time
+	// forgetEpoch moves on every ForgetUnknownWorkspace. A registration check stores
+	// not-found only if it has not moved since the check began, so a check that read
+	// "no row" just before the row was inserted cannot cache it after the forget.
+	forgetEpoch uint64
+
+	// openPool opens and verifies a workspace pool; nil means openAndVerifyPool. A
+	// seam for tests, which count dials without a real database.
+	openPool func(ctx context.Context, dsn, workspaceID string) (*sql.DB, error)
+	// now is the clock of the not-found cache; nil means time.Now.
+	now func() time.Time
 }
 
 var (
@@ -182,6 +211,11 @@ func (cm *connectionManager) GetWorkspaceConnection(ctx context.Context, workspa
 		return nil, err
 	}
 
+	// An ID known to have no workspace row is refused without a query.
+	if cm.isUnknownWorkspace(workspaceID) {
+		return nil, &domain.ErrWorkspaceNotFound{WorkspaceID: workspaceID}
+	}
+
 	// Slow path: create the pool. singleflight coalesces concurrent creators for
 	// the SAME workspace into a single creation, and — crucially — no global
 	// lock is held across the network I/O of pool creation, so creating one
@@ -195,18 +229,30 @@ func (cm *connectionManager) GetWorkspaceConnection(ctx context.Context, workspa
 			return existing, nil
 		}
 
-		// Reserve capacity (fast, in-memory; may evict LRU idle pools).
-		if err := cm.reserveCapacityForNewPool(workspaceID); err != nil {
-			return nil, err
-		}
-		defer cm.releasePoolReservation()
-
 		// Detach creation from the (arbitrary) first coalesced caller's context:
 		// singleflight serves every waiter from this one creation, so one
 		// caller's cancellation must not fail the others. A bounded timeout keeps
 		// a hung connect from wedging all waiters.
 		createCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), workspacePoolCreateTimeout)
 		defer cancel()
+
+		// Only a registered workspace may take capacity, which can close other
+		// workspaces' idle pools, or open a connection. Unauthenticated routes name
+		// workspace IDs, so this runs before either.
+		epoch := cm.currentForgetEpoch()
+		if err := cm.checkWorkspaceRegistered(createCtx, workspaceID); err != nil {
+			var notFound *domain.ErrWorkspaceNotFound
+			if errors.As(err, &notFound) {
+				cm.rememberUnknownWorkspace(workspaceID, epoch)
+			}
+			return nil, err
+		}
+
+		// Reserve capacity (fast, in-memory; may evict LRU idle pools).
+		if err := cm.reserveCapacityForNewPool(workspaceID); err != nil {
+			return nil, err
+		}
+		defer cm.releasePoolReservation()
 
 		// Network I/O happens WITHOUT cm.mu held.
 		newPool, err := cm.createWorkspacePool(createCtx, workspaceID)
@@ -224,6 +270,58 @@ func (cm *connectionManager) GetWorkspaceConnection(ctx context.Context, workspa
 		return nil, err
 	}
 	return v.(*sql.DB), nil
+}
+
+// ForgetUnknownWorkspace drops the cached not-found answer for workspaceID and moves
+// the forget epoch, so no registration check already in flight caches one after it.
+func (cm *connectionManager) ForgetUnknownWorkspace(workspaceID string) {
+	cm.unknownMu.Lock()
+	defer cm.unknownMu.Unlock()
+	delete(cm.unknownWorkspaces, workspaceID)
+	cm.forgetEpoch++
+}
+
+func (cm *connectionManager) currentForgetEpoch() uint64 {
+	cm.unknownMu.Lock()
+	defer cm.unknownMu.Unlock()
+	return cm.forgetEpoch
+}
+
+func (cm *connectionManager) clock() time.Time {
+	if cm.now != nil {
+		return cm.now()
+	}
+	return time.Now()
+}
+
+// isUnknownWorkspace reports whether workspaceID was found to have no row within the
+// last unknownWorkspaceTTL.
+func (cm *connectionManager) isUnknownWorkspace(workspaceID string) bool {
+	cm.unknownMu.Lock()
+	defer cm.unknownMu.Unlock()
+	expires, ok := cm.unknownWorkspaces[workspaceID]
+	if !ok {
+		return false
+	}
+	if cm.clock().Before(expires) {
+		return true
+	}
+	delete(cm.unknownWorkspaces, workspaceID)
+	return false
+}
+
+// rememberUnknownWorkspace caches that workspaceID has no row, unless a forget happened
+// since epoch was read.
+func (cm *connectionManager) rememberUnknownWorkspace(workspaceID string, epoch uint64) {
+	cm.unknownMu.Lock()
+	defer cm.unknownMu.Unlock()
+	if cm.forgetEpoch != epoch {
+		return
+	}
+	if cm.unknownWorkspaces == nil || len(cm.unknownWorkspaces) >= maxUnknownWorkspaces {
+		cm.unknownWorkspaces = make(map[string]time.Time)
+	}
+	cm.unknownWorkspaces[workspaceID] = cm.clock().Add(unknownWorkspaceTTL)
 }
 
 // reserveCapacityForNewPool verifies there is room for one more workspace pool
@@ -281,20 +379,23 @@ func (cm *connectionManager) createWorkspacePool(ctx context.Context, workspaceI
 		return nil, err
 	}
 
-	db, err := cm.openAndVerifyPool(ctx, dsn, workspaceID)
+	open := cm.openPool
+	if open == nil {
+		open = cm.openAndVerifyPool
+	}
+
+	db, err := open(ctx, dsn, workspaceID)
 	if err != nil {
 		// If the workspace database does not exist yet (e.g. first touch by a
 		// fresh process), create it once and retry — instead of paying an
-		// admin-DB round-trip on every pool creation. Only a registered workspace
-		// gets one: a request naming a workspace ID is no reason to create a database.
+		// admin-DB round-trip on every pool creation. GetWorkspaceConnection has
+		// already checked the workspace is registered: a request naming a workspace
+		// ID is no reason to create a database.
 		if isDatabaseDoesNotExistErr(err) {
-			if regErr := cm.checkWorkspaceRegistered(ctx, workspaceID); regErr != nil {
-				return nil, regErr
-			}
 			if ensureErr := database.EnsureWorkspaceDatabaseExists(&cm.config.Database, workspaceID); ensureErr != nil {
 				return nil, ensureErr
 			}
-			db, err = cm.openAndVerifyPool(ctx, dsn, workspaceID)
+			db, err = open(ctx, dsn, workspaceID)
 		}
 		if err != nil {
 			return nil, err

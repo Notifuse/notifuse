@@ -178,6 +178,13 @@ func TestCoverage_GetWorkspaceConnectionErrorPaths(t *testing.T) {
 
 	t.Run("no capacity surfaces ConnectionLimitError and keeps reservation count", func(t *testing.T) {
 		cm := newMgr(3, 3)
+		// Registration is checked before capacity: the workspace exists.
+		sysDB, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = sysDB.Close() })
+		mock.ExpectQuery(`SELECT EXISTS\(SELECT 1 FROM workspaces WHERE id = \$1\)`).WithArgs("ws_new").
+			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+		cm.systemDB = sysDB
 		cm.inflightPools = 1 // one creation already in flight fills the cap
 		pool, err := cm.GetWorkspaceConnection(context.Background(), "ws_new")
 		assert.Nil(t, pool)

@@ -333,6 +333,7 @@ func (s *queueMessageSender) buildQueueEntry(
 		MessageID:            messageID,
 		IdentifyToken:        identifyToken,
 		IdentifyAllowedHosts: identifyAllowedHosts,
+		SigningKey:           domain.TrackingSigningKey(workspaceSecretKey),
 	}
 
 	// Resolve language variant

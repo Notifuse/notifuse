@@ -13,6 +13,7 @@ import (
 	bmocks "github.com/Notifuse/notifuse/internal/service/broadcast/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1714,4 +1715,91 @@ func TestQueueMessageSender_SendBatch_WebIdentityGateClosed(t *testing.T) {
 			assert.Equal(t, "newsletter", queries[0].Get("utm_source"))
 		})
 	}
+}
+
+// TestQueueMessageSender_SendToRecipient_SignsTrackedLinks pins that a queued broadcast
+// email's tracked links are signed with the key derived from the workspace secret
+// SendToRecipient is handed.
+func TestQueueMessageSender_SendToRecipient_SignsTrackedLinks(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	const secretKey = "workspace-secret-key-for-signing"
+	key := domain.TrackingSigningKey(secretKey)
+	require.NotEmpty(t, key)
+
+	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockBroadcastRepo := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Test Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587},
+	}
+
+	broadcast := &domain.Broadcast{
+		ID:            "broadcast-1",
+		WorkspaceID:   "workspace-1",
+		Name:          "Test Broadcast",
+		UTMParameters: &domain.UTMParameters{},
+	}
+
+	template := &domain.Template{
+		ID: "template-1",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Test Subject",
+			VisualEditorTree: createQueueValidTestTree(createQueueTestTextBlock("txt1", `Visit <a href="https://example.com/promo">our shop</a>`)),
+		},
+	}
+
+	var html string
+	mockQueueRepo.EXPECT().Enqueue(gomock.Any(), "workspace-1", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, entries []*domain.EmailQueueEntry) error {
+			require.Len(t, entries, 1)
+			html = entries[0].Payload.HTMLContent
+			return nil
+		})
+
+	sender := NewQueueMessageSender(
+		mockQueueRepo,
+		mockBroadcastRepo,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		nil,
+		mockLogger,
+		nil,
+		"https://api.example.com",
+	)
+
+	endpoint := "https://api.test.com"
+	err := sender.SendToRecipient(
+		context.Background(),
+		"workspace-1",
+		"integration-1", secretKey,
+		endpoint,
+		true, nil,
+		broadcast,
+		"msg-1",
+		"recipient@example.com",
+		template,
+		map[string]interface{}{"contact": map[string]interface{}{"email": "recipient@example.com"}},
+		emailProvider,
+		time.Now().Add(5*time.Minute),
+		"", "",
+	)
+	require.NoError(t, err)
+
+	tok := parseFirstClickToken(t, html, endpoint)
+	assert.Equal(t, "workspace-1", tok.WorkspaceID)
+	assert.Equal(t, "msg-1", tok.MessageID)
+	assert.NotEmpty(t, tok.Tag, "the tracked link must carry a signature")
+	assert.True(t, tok.Verify(key, trackingtoken.PurposeClick), "the tracked link must verify under the workspace's tracking key")
 }

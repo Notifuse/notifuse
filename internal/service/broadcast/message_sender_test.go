@@ -17,6 +17,7 @@ import (
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -3902,4 +3903,90 @@ func TestMintIdentifyToken(t *testing.T) {
 		assertIdentifies(t, token, "recipient@example.com")
 		assert.Equal(t, webAnalytics.AllowedDomains, hosts)
 	})
+}
+
+// parseFirstClickToken finds the first /r/{token} link under endpoint in html and parses
+// the token the way the click route does.
+func parseFirstClickToken(t *testing.T, html, endpoint string) trackingtoken.Token {
+	t.Helper()
+	m := regexp.MustCompile(regexp.QuoteMeta(endpoint) + `/r/([A-Za-z0-9_-]+)`).FindStringSubmatch(html)
+	require.NotNil(t, m, "expected a /r/{token} tracking link, got: %s", html)
+	tok, err := trackingtoken.Parse(m[1], trackingtoken.PurposeClick)
+	require.NoError(t, err)
+	return tok
+}
+
+// TestSendToRecipient_SignsTrackedLinks pins that a broadcast email's tracked links are
+// signed with the key derived from the workspace secret SendToRecipient is handed.
+func TestSendToRecipient_SignsTrackedLinks(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	const secretKey = "workspace-secret-key-for-signing"
+	key := domain.TrackingSigningKey(secretKey)
+	require.NotEmpty(t, key)
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	endpoint := "https://api.test.com"
+	broadcast := &domain.Broadcast{
+		ID:            "broadcast-123",
+		WorkspaceID:   workspaceID,
+		Name:          "Test Broadcast",
+		ChannelType:   "email",
+		Audience:      domain.AudienceSettings{List: "list-1"},
+		Status:        domain.BroadcastStatusProcessing,
+		UTMParameters: &domain.UTMParameters{},
+	}
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+	}
+	template := createTestTemplateWithLink("template-a", emailSender.ID)
+
+	var sent *domain.SendEmailProviderRequest
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+			sent = &req
+			return nil
+		})
+
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		nil, // dataFeedFetcher
+		mockLogger,
+		TestConfig(),
+		"",
+	)
+
+	timeoutAt := time.Now().Add(30 * time.Second)
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", secretKey, endpoint, true, nil, broadcast, "message-1", "recipient1@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt, "", "")
+	require.NoError(t, err)
+	require.NotNil(t, sent)
+
+	tok := parseFirstClickToken(t, sent.Content, endpoint)
+	assert.Equal(t, workspaceID, tok.WorkspaceID)
+	assert.Equal(t, "message-1", tok.MessageID)
+	assert.NotEmpty(t, tok.Tag, "the tracked link must carry a signature")
+	assert.True(t, tok.Verify(key, trackingtoken.PurposeClick), "the tracked link must verify under the workspace's tracking key")
 }

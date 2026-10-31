@@ -124,3 +124,24 @@ func TestWebAnalyticsPartitionDDL(t *testing.T) {
 		assert.Contains(t, ddl, "web_goals_y2026m12")
 	})
 }
+
+func TestWebAnalyticsCurrentAndNextMonth(t *testing.T) {
+	day := func(y int, m time.Month, d int) time.Time { return time.Date(y, m, d, 0, 0, 0, 0, time.UTC) }
+	cases := []struct {
+		now  time.Time
+		want []time.Time
+	}{
+		// January 31 plus one month is March 3: February must not be skipped.
+		{time.Date(2027, time.January, 31, 23, 30, 0, 0, time.UTC), []time.Time{day(2027, time.January, 1), day(2027, time.February, 1)}},
+		{time.Date(2026, time.October, 31, 12, 0, 0, 0, time.UTC), []time.Time{day(2026, time.October, 1), day(2026, time.November, 1)}},
+		{time.Date(2026, time.December, 15, 0, 0, 0, 0, time.UTC), []time.Time{day(2026, time.December, 1), day(2027, time.January, 1)}},
+		// Read in UTC: 1 a.m. on November 1 in Paris is still October 31 in UTC.
+		{time.Date(2026, time.November, 1, 0, 30, 0, 0, time.FixedZone("CET", 3600)), []time.Time{day(2026, time.October, 1), day(2026, time.November, 1)}},
+	}
+	for _, c := range cases {
+		got := WebAnalyticsCurrentAndNextMonth(c.now)
+		if len(got) != 2 || !got[0].Equal(c.want[0]) || !got[1].Equal(c.want[1]) {
+			t.Errorf("WebAnalyticsCurrentAndNextMonth(%s) = %v, want %v", c.now, got, c.want)
+		}
+	}
+}

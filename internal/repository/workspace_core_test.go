@@ -31,6 +31,8 @@ type mockConnectionManager struct {
 	systemDB     *sql.DB
 	// closeErr, when set, is returned by CloseWorkspaceConnection.
 	closeErr error
+	// forgotten records the IDs passed to ForgetUnknownWorkspace, in order.
+	forgotten []string
 }
 
 func newMockConnectionManager(systemDB *sql.DB) *mockConnectionManager {
@@ -55,6 +57,10 @@ func (m *mockConnectionManager) GetWorkspaceConnection(ctx context.Context, work
 func (m *mockConnectionManager) CloseWorkspaceConnection(workspaceID string) error {
 	delete(m.workspaceDBs, workspaceID)
 	return m.closeErr
+}
+
+func (m *mockConnectionManager) ForgetUnknownWorkspace(workspaceID string) {
+	m.forgotten = append(m.forgotten, workspaceID)
 }
 
 func (m *mockConnectionManager) GetStats() pkgDatabase.ConnectionStats {

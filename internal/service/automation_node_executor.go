@@ -520,6 +520,7 @@ func (e *EmailNodeExecutor) buildTrackingSettings(
 		// the queue entry it builds.
 		IdentifyToken:        identifyToken,
 		IdentifyAllowedHosts: identifyAllowedHosts,
+		SigningKey:           domain.TrackingSigningKey(workspace.Settings.SecretKey),
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/Notifuse/notifuse/pkg/logger"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks" // Corrected import path
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/golang/mock/gomock" // Added gomock import
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1653,6 +1655,63 @@ func TestCompileTemplate_WithMjmlSource(t *testing.T) {
 	assert.True(t, resp.Success)
 	require.NotNil(t, resp.HTML)
 	assert.Contains(t, *resp.HTML, "Hello World")
+}
+
+// TestCompileTemplate_TrackedLinksUseAuthorisedWorkspace pins that a compile request
+// whose tracking settings name another workspace still mints its tracked links for the
+// workspace the caller was authorised for: the settings come from the request body, so
+// a caller could otherwise record clicks against a workspace they cannot access.
+func TestCompileTemplate_TrackedLinksUseAuthorisedWorkspace(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAuthService := domainmocks.NewMockAuthService(ctrl)
+	mockRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockLogger := &MockLogger{}
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+
+	svc := service.NewTemplateService(mockRepo, mockWorkspaceRepo, mockAuthService, mockLogger, "https://api.example.com", licensedForTranslations(ctrl))
+
+	ctx := context.Background()
+	workspaceID := "ws_123"
+	userID := "user_abc"
+	endpoint := "https://track.example.com"
+
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+		UserID:      userID,
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTemplates: {Read: true, Write: true},
+		},
+	}, nil)
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(&domain.Workspace{
+		ID:       workspaceID,
+		Settings: domain.WorkspaceSettings{WebsiteURL: "https://example.com"},
+	}, nil).AnyTimes()
+
+	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
+		WorkspaceID:      workspaceID,
+		MessageID:        "msg-1",
+		VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", `Visit <a href="https://example.com/promo">our shop</a>`)),
+		TrackingSettings: notifuse_mjml.TrackingSettings{
+			EnableTracking: true,
+			Endpoint:       endpoint,
+			WorkspaceID:    "other-ws",
+			MessageID:      "msg-1",
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.True(t, resp.Success)
+	require.NotNil(t, resp.HTML)
+
+	m := regexp.MustCompile(regexp.QuoteMeta(endpoint) + `/r/([A-Za-z0-9_-]+)`).FindStringSubmatch(*resp.HTML)
+	require.NotNil(t, m, "expected a /r/{token} tracking link, got: %s", *resp.HTML)
+	tok, err := trackingtoken.Parse(m[1], trackingtoken.PurposeClick)
+	require.NoError(t, err)
+	assert.Equal(t, workspaceID, tok.WorkspaceID, "the tracked link must record against the authorised workspace")
+	assert.Equal(t, "https://example.com/promo", tok.URL)
 }
 
 // TestCompileTemplate_InjectsWorkspaceData verifies the preview exposes

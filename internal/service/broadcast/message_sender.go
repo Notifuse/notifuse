@@ -311,6 +311,7 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 		MessageID:            messageID,
 		IdentifyToken:        identifyToken,
 		IdentifyAllowedHosts: identifyAllowedHosts,
+		SigningKey:           domain.TrackingSigningKey(workspaceSecretKey),
 	}
 
 	// Resolve language variant

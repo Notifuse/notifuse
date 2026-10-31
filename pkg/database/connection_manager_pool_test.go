@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -58,10 +59,20 @@ func TestCreateWorkspacePool_Unreachable(t *testing.T) {
 
 func TestGetWorkspaceConnection_PoolFailureReleasesReservation(t *testing.T) {
 	cm := unreachableManager(t)
+	// The workspace is registered, so creation gets past the registration check and
+	// reserves capacity before the dial to the unreachable workspace database fails.
+	sysDB, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sysDB.Close() })
+	for range 2 {
+		mock.ExpectQuery(`SELECT EXISTS\(SELECT 1 FROM workspaces WHERE id = \$1\)`).WithArgs("ws1").
+			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+	}
+	cm.systemDB = sysDB
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	_, err := cm.GetWorkspaceConnection(ctx, "ws1")
+	_, err = cm.GetWorkspaceConnection(ctx, "ws1")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create workspace pool:")
 

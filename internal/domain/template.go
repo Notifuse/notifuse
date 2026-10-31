@@ -16,6 +16,7 @@ import (
 	// Import the notifuse_mjml package
 
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/asaskevich/govalidator"
 )
 
@@ -1130,20 +1131,24 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 	// Add tracking data
 	templateData["message_id"] = req.MessageID
 
-	// Add tracking pixel if API endpoint is provided
-
-	// Format: {apiEndpoint}/api/pixel?id={messageID}&t=o&w={workspaceID}
-	messageID := url.QueryEscape(req.MessageID)
-	workspaceID := url.QueryEscape(req.WorkspaceID)
-
-	// Tracking pixel for opens (with timestamp for bot detection)
-	sentTimestamp := time.Now().Unix()
-	trackingPixelURL := fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=%d",
-		req.TrackingSettings.Endpoint, messageID, workspaceID, sentTimestamp)
-
-	templateData["tracking_opens_url"] = trackingPixelURL
+	// Open tracking URL (with timestamp for bot detection), signed with the
+	// workspace's tracking key like the pixel TrackLinks inserts. An empty secret,
+	// which BeforeSave rules out, leaves the key empty and the token unsigned.
+	templateData["tracking_opens_url"] = notifuse_mjml.GenerateOpenTrackingURL(
+		TrackingSigningKey(req.WorkspaceSecretKey), req.WorkspaceID, req.MessageID, req.TrackingSettings.Endpoint, time.Now().Unix())
 
 	return templateData, nil
+}
+
+// TrackingSigningKey returns the key that signs a workspace's tracked links, derived
+// from its secret key, or nil for an empty secret (which BeforeSave rules out): links are
+// then minted unsigned, which still tracks but never redirects without a check.
+func TrackingSigningKey(workspaceSecretKey string) []byte {
+	key, err := trackingtoken.DeriveKey(workspaceSecretKey)
+	if err != nil {
+		return nil
+	}
+	return key
 }
 
 // BuildWorkspaceTemplateVars builds the `workspace` template object exposing the

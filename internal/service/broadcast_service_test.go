@@ -413,6 +413,70 @@ func TestBroadcastService_SendToIndividual_NeverMintsIdentityToken(t *testing.T)
 	}
 }
 
+// TestBroadcastService_SendToIndividual_SetsTrackingSigningKey pins that a
+// send-to-individual compiles with the workspace's tracking key, so its tracked links
+// are signed like those of the broadcast itself.
+func TestBroadcastService_SendToIndividual_SetsTrackingSigningKey(t *testing.T) {
+	const secretKey = "sk_test_signing_key"
+	want := domain.TrackingSigningKey(secretKey)
+	require.NotEmpty(t, want)
+
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	req := &domain.SendToIndividualRequest{WorkspaceID: "w1", BroadcastID: "b1", RecipientEmail: "to@example.com"}
+	authOK(d.authService, ctx, req.WorkspaceID)
+
+	sender := domain.NewEmailSender("from@example.com", "From")
+	workspace := &domain.Workspace{
+		ID: "w1",
+		Settings: domain.WorkspaceSettings{
+			MarketingEmailProviderID: "mkt",
+			SecretKey:                secretKey,
+			EmailTrackingEnabled:     true,
+		},
+		Integrations: domain.Integrations{
+			{ID: "mkt", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSMTP, Senders: []domain.EmailSender{sender}}},
+		},
+	}
+	d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
+
+	b := testBroadcast(req.WorkspaceID, req.BroadcastID)
+	b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: "tplA"}}
+	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.BroadcastID).Return(b, nil)
+
+	d.contactRepo.EXPECT().GetContactByEmail(ctx, req.WorkspaceID, req.RecipientEmail).Return(nil, errors.New("not found")).AnyTimes()
+
+	template := &domain.Template{
+		ID:      "tplA",
+		Name:    "Template A",
+		Channel: "email",
+		Email: &domain.EmailTemplate{
+			SenderID:         sender.ID,
+			Subject:          "Hello",
+			VisualEditorTree: createMJMLRootBlock(),
+		},
+		Category: string(domain.TemplateCategoryMarketing),
+	}
+	d.templateSvc.EXPECT().GetTemplateByID(ctx, req.WorkspaceID, "tplA", int64(0)).Return(template, nil)
+
+	var captured *domain.CompileTemplateRequest
+	compiledHTML := "<html>ok</html>"
+	d.templateSvc.EXPECT().CompileTemplate(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, payload domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
+		captured = &payload
+		return &domain.CompileTemplateResponse{Success: true, HTML: &compiledHTML}, nil
+	})
+
+	d.emailSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
+	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Return(nil)
+
+	require.NoError(t, d.svc.SendToIndividual(ctx, req))
+
+	require.NotNil(t, captured)
+	assert.Equal(t, want, captured.TrackingSettings.SigningKey)
+}
+
 func TestBroadcastService_GetTestResults_ComputesRecommendation(t *testing.T) {
 	d := setupBroadcastSvc(t)
 	defer d.ctrl.Finish()

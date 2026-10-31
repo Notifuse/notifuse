@@ -521,6 +521,10 @@ func (s *TemplateService) CompileTemplate(ctx context.Context, payload domain.Co
 		}
 	}
 
+	// Tracked links record against the workspace the caller was authorised for,
+	// never one named in the tracking settings.
+	payload.TrackingSettings.WorkspaceID = payload.WorkspaceID
+
 	// Set endpoint as fallback if not already set
 	if payload.TrackingSettings.Endpoint == "" {
 		payload.TrackingSettings.Endpoint = s.apiEndpoint

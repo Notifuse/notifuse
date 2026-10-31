@@ -21,6 +21,7 @@ import (
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/Notifuse/notifuse/pkg/safehttpclient"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1091,6 +1092,74 @@ func TestEmailNodeExecutor_NodeType(t *testing.T) {
 
 	executor := NewEmailNodeExecutor(mockEmailQueueRepo, mockTemplateRepo, mockWorkspaceRepo, mockListRepo, mockContactListRepo, "https://api.example.com", mockLogger)
 	assert.Equal(t, domain.NodeTypeEmail, executor.NodeType())
+}
+
+// parseFirstClickToken finds the first /r/{token} link under endpoint in html and parses
+// the token the way the click route does.
+func parseFirstClickToken(t *testing.T, html, endpoint string) trackingtoken.Token {
+	t.Helper()
+	m := regexp.MustCompile(regexp.QuoteMeta(endpoint) + `/r/([A-Za-z0-9_-]+)`).FindStringSubmatch(html)
+	require.NotNil(t, m, "expected a /r/{token} tracking link, got: %s", html)
+	tok, err := trackingtoken.Parse(m[1], trackingtoken.PurposeClick)
+	require.NoError(t, err)
+	return tok
+}
+
+// TestEmailNodeExecutor_Execute_SignsTrackedLinks pins that an automation email's
+// tracked links are signed with the workspace's tracking key.
+func TestEmailNodeExecutor_Execute_SignsTrackedLinks(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockEmailQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockListRepo := mocks.NewMockListRepository(ctrl)
+	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
+	mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+
+	executor := NewEmailNodeExecutor(mockEmailQueueRepo, mockTemplateRepo, mockWorkspaceRepo, mockListRepo, mockContactListRepo, "https://api.example.com", mockLogger)
+
+	workspace := createTestWorkspaceWithEmailProvider()
+	require.True(t, workspace.Settings.EmailTrackingEnabled)
+	key := domain.TrackingSigningKey(workspace.Settings.SecretKey)
+	require.NotEmpty(t, key)
+
+	template := createTestTemplate()
+	template.Email.VisualEditorTree = createValidMJMLTree(createTestTextBlock("txt1", `Visit <a href="https://example.com/promo">our shop</a>`))
+
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "ws1").Return(workspace, nil)
+	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "ws1", "tpl123", int64(0)).Return(template, nil)
+
+	var html string
+	mockEmailQueueRepo.EXPECT().
+		Enqueue(gomock.Any(), "ws1", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, entries []*domain.EmailQueueEntry) error {
+			require.Len(t, entries, 1)
+			html = entries[0].Payload.HTMLContent
+			return nil
+		})
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:         "email_node1",
+			Type:       domain.NodeTypeEmail,
+			NextNodeID: strPtr("next_node"),
+			Config:     map[string]interface{}{"template_id": "tpl123"},
+		},
+		Contact:     &domain.ContactAutomation{ID: "ca1", ContactEmail: "recipient@example.com"},
+		ContactData: &domain.Contact{Email: "recipient@example.com"},
+		Automation:  &domain.Automation{ID: "auto1", Name: "Test Automation"},
+	}
+
+	_, err := executor.Execute(context.Background(), params)
+	require.NoError(t, err)
+
+	tok := parseFirstClickToken(t, html, "https://api.example.com")
+	assert.Equal(t, "ws1", tok.WorkspaceID)
+	assert.NotEmpty(t, tok.Tag, "the tracked link must carry a signature")
+	assert.True(t, tok.Verify(key, trackingtoken.PurposeClick), "the tracked link must verify under the workspace's tracking key")
 }
 
 func TestEmailNodeExecutor_Execute_PreservesReplyTo(t *testing.T) {

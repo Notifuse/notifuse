@@ -13,7 +13,7 @@ import (
 	intdb "github.com/Notifuse/notifuse/internal/database"
 	pgdb "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/tests/testutil"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -55,11 +55,26 @@ func setupChurnManager(t *testing.T, proxy *testutil.LatencyProxy) (pgdb.Connect
 	dbCfg.ConnectionMaxLifetime = 10 * time.Minute
 	dbCfg.ConnectionMaxIdleTime = 5 * time.Minute
 
+	// A system database of its own, holding only the workspaces table: the manager
+	// refuses to open a pool for a workspace ID that has no row there.
+	systemName := base.Prefix + "_churn_system"
+	admin, err := sql.Open("postgres", dsnFor(&direct, "postgres"))
+	require.NoError(t, err)
+	var exists bool
+	require.NoError(t, admin.QueryRow(`SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)`, systemName).Scan(&exists))
+	if !exists {
+		_, err = admin.Exec("CREATE DATABASE " + pq.QuoteIdentifier(systemName))
+		require.NoError(t, err)
+	}
+	_ = admin.Close()
+
 	// Note: InitializeConnectionManager reconfigures this handle's pool size, so
 	// we don't bother capping it here.
-	systemDB, err := sql.Open("postgres", dsnFor(&direct, "postgres"))
+	systemDB, err := sql.Open("postgres", dsnFor(&direct, systemName))
 	require.NoError(t, err)
 	require.NoError(t, systemDB.Ping())
+	_, err = systemDB.Exec(`CREATE TABLE IF NOT EXISTS workspaces (id VARCHAR(32) PRIMARY KEY)`)
+	require.NoError(t, err)
 
 	cfg := &config.Config{Database: dbCfg}
 	pgdb.ResetConnectionManager()
@@ -75,8 +90,12 @@ func setupChurnManager(t *testing.T, proxy *testutil.LatencyProxy) (pgdb.Connect
 	return cm, systemDB, &direct
 }
 
-func ensureWSDB(t *testing.T, direct *config.DatabaseConfig, wsID string) {
+// ensureWSDB registers the workspace in the manager's system database and creates its
+// database, as workspace creation does.
+func ensureWSDB(t *testing.T, cm pgdb.ConnectionManager, direct *config.DatabaseConfig, wsID string) {
 	t.Helper()
+	_, err := cm.GetSystemConnection().Exec(`INSERT INTO workspaces (id) VALUES ($1) ON CONFLICT DO NOTHING`, wsID)
+	require.NoError(t, err)
 	require.NoError(t, intdb.EnsureWorkspaceDatabaseExists(direct, wsID))
 }
 
@@ -116,7 +135,7 @@ func TestConnectionManagerChurn_TransientBlipDoesNotDestroyHealthyPool(t *testin
 
 	cm, _, direct := setupChurnManager(t, proxy)
 	ws := "churn_t1"
-	ensureWSDB(t, direct, ws)
+	ensureWSDB(t, cm, direct, ws)
 
 	ctx := context.Background()
 	db1, err := cm.GetWorkspaceConnection(ctx, ws)
@@ -159,7 +178,7 @@ func TestConnectionManagerChurn_NoAdminDBStormOnReconnect(t *testing.T) {
 
 	cm, systemDB, direct := setupChurnManager(t, proxy)
 	ws := "churn_t2"
-	ensureWSDB(t, direct, ws)
+	ensureWSDB(t, cm, direct, ws)
 
 	ctx := context.Background()
 
@@ -205,8 +224,8 @@ func TestConnectionManagerChurn_PoolCreationDoesNotBlockOtherWorkspaces(t *testi
 	cm, _, direct := setupChurnManager(t, proxy)
 	wsA := "churn_t3_a"
 	wsB := "churn_t3_b"
-	ensureWSDB(t, direct, wsA)
-	ensureWSDB(t, direct, wsB)
+	ensureWSDB(t, cm, direct, wsA)
+	ensureWSDB(t, cm, direct, wsB)
 
 	ctx := context.Background()
 
@@ -256,7 +275,7 @@ func TestConnectionManagerChurn_ConcurrentCreationCoalesces(t *testing.T) {
 
 	cm, _, direct := setupChurnManager(t, proxy)
 	ws := "churn_coalesce"
-	ensureWSDB(t, direct, ws)
+	ensureWSDB(t, cm, direct, ws)
 
 	// Slow the initial connect so all goroutines pile up during the single
 	// in-flight creation window; this makes a missing-coalescing regression fail
@@ -302,7 +321,7 @@ func TestConnectionManagerChurn_PoolSelfHealsAfterBackendKill(t *testing.T) {
 
 	cm, systemDB, direct := setupChurnManager(t, proxy)
 	ws := "churn_selfheal"
-	ensureWSDB(t, direct, ws)
+	ensureWSDB(t, cm, direct, ws)
 	dbName := wsDBName(direct.Prefix, ws)
 
 	ctx := context.Background()

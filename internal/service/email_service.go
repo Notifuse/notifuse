@@ -502,6 +502,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		// without ever reaching a stored tracking_settings row.
 		IdentifyToken:        identifyToken,
 		IdentifyAllowedHosts: identifyAllowedHosts,
+		SigningKey:           domain.TrackingSigningKey(workspace.Settings.SecretKey),
 	}
 
 	compileTemplateRequest := domain.CompileTemplateRequest{

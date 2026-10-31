@@ -124,6 +124,10 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 		return err
 	}
 
+	// A request may have named this ID just before it existed: drop the cached
+	// "no such workspace" answer so the workspace is usable at once on this instance.
+	r.connectionManager.ForgetUnknownWorkspace(workspace.ID)
+
 	if err := workspace.AfterLoad(r.secretKey); err != nil {
 		return err
 	}

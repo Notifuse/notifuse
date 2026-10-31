@@ -1,8 +1,10 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -10,8 +12,8 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"github.com/Notifuse/notifuse/pkg/botdetection"
-	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 )
 
 // paddedTrackingPixel is a 1x1 transparent PNG padded with tEXt metadata to 825 bytes
@@ -71,26 +73,44 @@ var paddedTrackingPixel = []byte{
 	0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
 }
 
-// EmailHandler handles HTTP requests for email operations
-type EmailHandler struct {
-	emailService domain.EmailServiceInterface
-	getJWTSecret func() ([]byte, error)
-	logger       logger.Logger
-	secretKey    string
+//go:generate mockgen -destination=./mocks/mock_tracking_workspaces.go -package=mocks github.com/Notifuse/notifuse/internal/http TrackingWorkspaces
+
+// TrackingWorkspaces tells the click routes a workspace's tracking key and custom
+// endpoint host. Lookup may serve a cached entry; Refresh re-reads a workspace whose key
+// failed to verify a tag, at a bounded rate.
+type TrackingWorkspaces interface {
+	Lookup(ctx context.Context, workspaceID string) (trackingtoken.Workspace, trackingtoken.WorkspaceStatus)
+	Refresh(ctx context.Context, workspaceID string) (trackingtoken.Workspace, trackingtoken.WorkspaceStatus)
 }
 
-// NewEmailHandler creates a new email handler
+// EmailHandler handles HTTP requests for email operations
+type EmailHandler struct {
+	emailService       domain.EmailServiceInterface
+	getJWTSecret       func() ([]byte, error)
+	logger             logger.Logger
+	secretKey          string
+	trackingWorkspaces TrackingWorkspaces
+	// apiHost is the hostname of API_ENDPOINT, one of the installation's own hosts a
+	// link that cannot be verified may still redirect to.
+	apiHost string
+}
+
+// NewEmailHandler creates a new email handler. apiEndpoint is the API_ENDPOINT URL.
 func NewEmailHandler(
 	emailService domain.EmailServiceInterface,
 	getJWTSecret func() ([]byte, error),
 	logger logger.Logger,
 	secretKey string,
+	trackingWorkspaces TrackingWorkspaces,
+	apiEndpoint string,
 ) *EmailHandler {
 	return &EmailHandler{
-		emailService: emailService,
-		getJWTSecret: getJWTSecret,
-		logger:       logger,
-		secretKey:    secretKey,
+		emailService:       emailService,
+		getJWTSecret:       getJWTSecret,
+		logger:             logger,
+		secretKey:          secretKey,
+		trackingWorkspaces: trackingWorkspaces,
+		apiHost:            trackingtoken.HostOf(apiEndpoint),
 	}
 }
 
@@ -148,62 +168,77 @@ func (h *EmailHandler) handleTestEmailProvider(w http.ResponseWriter, r *http.Re
 	writeJSON(w, http.StatusOK, resp)
 }
 
+// handleClickRedirection serves the legacy /visit links of emails sent before 29.2. Its
+// query parameters are unsigned, so anyone can forge one: the destination always goes
+// through classifyTrackedDestination, and the clicked URL is never recorded per link.
 func (h *EmailHandler) handleClickRedirection(w http.ResponseWriter, r *http.Request) {
-	// Get the message id (mid) and workspace id (wid) from the query parameters
 	messageID := r.URL.Query().Get("mid")
 	workspaceID := r.URL.Query().Get("wid")
 	redirectTo := r.URL.Query().Get("url")
 
-	// Check if URL is provided, show error if missing
 	if redirectTo == "" {
 		http.Error(w, "Missing redirect URL", http.StatusBadRequest)
 		return
 	}
 
-	// redirect to the url if mid and wid are present
-	if messageID == "" || workspaceID == "" {
-		http.Redirect(w, r, redirectTo, http.StatusSeeOther)
+	// Classified once without the workspace, so a refused destination costs no lookup.
+	decision, target, parsed, scheme := classifyTrackedDestination(redirectTo, r.Host, h.apiHost, "")
+	if decision == decisionReject {
+		http.Error(w, "Invalid redirect URL", http.StatusBadRequest)
 		return
 	}
 
-	// Bot detection: check time and user agent before recording
-	shouldRecord := true
-	userAgent := r.Header.Get("User-Agent")
-
-	// Check if bot based on user agent
-	if botdetection.IsBotUserAgent(userAgent) {
-		shouldRecord = false
-		h.logger.WithField("user_agent", userAgent).Debug("Bot detected by user agent - not recording click")
-	}
-
-	// Check if click is too fast (< 7 seconds) using timestamp from URL
-	if shouldRecord {
-		tsParam := r.URL.Query().Get("ts")
-		if tsParam != "" {
-			sentTimestamp, err := strconv.ParseInt(tsParam, 10, 64)
-			if err == nil {
-				sentAt := time.Unix(sentTimestamp, 0)
-				timeSinceSent := time.Since(sentAt)
-				if timeSinceSent < 7*time.Second {
-					shouldRecord = false
-					h.logger.WithFields(map[string]interface{}{
-						"time_since_sent": timeSinceSent.Seconds(),
-						"message_id":      messageID,
-					}).Debug("Click too fast - not recording (likely bot)")
-				}
-			}
+	status := trackingtoken.WorkspaceUnknown
+	if messageID != "" && workspaceID != "" {
+		var ws trackingtoken.Workspace
+		ws, status = h.trackingWorkspaces.Lookup(r.Context(), workspaceID)
+		if status == trackingtoken.WorkspaceKnown && ws.EndpointHost != "" && decision != decisionRedirect {
+			// The workspace's custom domain is one of the installation's hosts too.
+			decision, target, parsed, scheme = classifyTrackedDestination(redirectTo, r.Host, h.apiHost, ws.EndpointHost)
 		}
 	}
 
-	// Record click only if it passes bot detection.
-	// The legacy /visit URL comes from forgeable query params, so the clicked
-	// URL is never recorded per-link (aggregate-only).
-	if shouldRecord {
-		_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID, "", r.Host)
+	// Record only for a message of a workspace that may exist, and only if the click
+	// passes bot detection. Aggregate only: the URL comes from forgeable parameters.
+	if status != trackingtoken.WorkspaceUnknown {
+		ts, _ := strconv.ParseInt(r.URL.Query().Get("ts"), 10, 64)
+		if h.passesBotChecks(r, ts, messageID, "click") {
+			_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID, "", r.Host)
+		}
 	}
 
-	// Always redirect regardless of whether we recorded
-	http.Redirect(w, r, redirectTo, http.StatusSeeOther)
+	h.answerTrackedDestination(w, r, decision, target, parsed, scheme)
+}
+
+// answerTrackedDestination answers a click whose destination was classified.
+func (h *EmailHandler) answerTrackedDestination(w http.ResponseWriter, r *http.Request, decision trackedDecision, target string, parsed *url.URL, scheme string) {
+	if decision == decisionRedirect {
+		http.Redirect(w, r, target, http.StatusSeeOther)
+		return
+	}
+	writeRedirectInterstitial(w, parsed, scheme)
+}
+
+// passesBotChecks reports whether an open or click should be recorded: not from a known
+// bot user agent, and not within 7 seconds of the send. A timestamp of 0 (missing or not
+// numeric) skips the time check rather than rejecting the event.
+func (h *EmailHandler) passesBotChecks(r *http.Request, sentTimestamp int64, messageID, event string) bool {
+	userAgent := r.Header.Get("User-Agent")
+	if botdetection.IsBotUserAgent(userAgent) {
+		h.logger.WithField("user_agent", userAgent).Debug("Bot detected by user agent - not recording " + event)
+		return false
+	}
+	if sentTimestamp != 0 {
+		timeSinceSent := time.Since(time.Unix(sentTimestamp, 0))
+		if timeSinceSent < 7*time.Second {
+			h.logger.WithFields(map[string]interface{}{
+				"time_since_sent": timeSinceSent.Seconds(),
+				"message_id":      messageID,
+			}).Debug("Too fast - not recording " + event + " (likely bot)")
+			return false
+		}
+	}
+	return true
 }
 
 func (h *EmailHandler) handleOpens(w http.ResponseWriter, r *http.Request) {
@@ -211,43 +246,14 @@ func (h *EmailHandler) handleOpens(w http.ResponseWriter, r *http.Request) {
 	messageID := r.URL.Query().Get("mid")
 	workspaceID := r.URL.Query().Get("wid")
 
-	// Check if URL is provided, show error if missing
 	if messageID == "" || workspaceID == "" {
 		http.Error(w, "Missing message ID or workspace ID", http.StatusBadRequest)
 		return
 	}
 
-	// Bot detection: check time and user agent before recording
-	shouldRecord := true
-	userAgent := r.Header.Get("User-Agent")
-
-	// Check if bot based on user agent
-	if botdetection.IsBotUserAgent(userAgent) {
-		shouldRecord = false
-		h.logger.WithField("user_agent", userAgent).Debug("Bot detected by user agent - not recording open")
-	}
-
-	// Check if open is too fast (< 7 seconds) using timestamp from URL
-	if shouldRecord {
-		tsParam := r.URL.Query().Get("ts")
-		if tsParam != "" {
-			sentTimestamp, err := strconv.ParseInt(tsParam, 10, 64)
-			if err == nil {
-				sentAt := time.Unix(sentTimestamp, 0)
-				timeSinceSent := time.Since(sentAt)
-				if timeSinceSent < 7*time.Second {
-					shouldRecord = false
-					h.logger.WithFields(map[string]interface{}{
-						"time_since_sent": timeSinceSent.Seconds(),
-						"message_id":      messageID,
-					}).Debug("Open too fast - not recording (likely bot)")
-				}
-			}
-		}
-	}
-
-	// Record open only if it passes bot detection
-	if shouldRecord {
+	// A missing or non-numeric ts reads as 0, which skips the time check.
+	ts, _ := strconv.ParseInt(r.URL.Query().Get("ts"), 10, 64)
+	if h.passesBotChecks(r, ts, messageID, "open") {
 		_ = h.emailService.OpenEmail(r.Context(), messageID, workspaceID)
 	}
 
@@ -265,7 +271,9 @@ func writeTrackingPixel(w http.ResponseWriter) {
 	_, _ = w.Write(paddedTrackingPixel)
 }
 
-// handleEncryptedOpen handles open tracking via encrypted path tokens: GET /t/{token}
+// handleEncryptedOpen handles open tracking via encrypted path tokens: GET /t/{token}.
+// The tag is not checked: an open is recorded for any token that parses, signed or not,
+// so the high-volume open path needs no workspace lookup.
 func (h *EmailHandler) handleEncryptedOpen(w http.ResponseWriter, r *http.Request) {
 	token := strings.TrimPrefix(r.URL.Path, "/t/")
 	if token == "" {
@@ -273,55 +281,24 @@ func (h *EmailHandler) handleEncryptedOpen(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	decrypted, err := crypto.DecryptTrackingToken(token)
+	tok, err := trackingtoken.Parse(token, trackingtoken.PurposeOpen)
 	if err != nil {
 		// Invalid token — return pixel silently, don't leak errors
 		writeTrackingPixel(w)
 		return
 	}
 
-	parts := strings.SplitN(decrypted, "\n", 3)
-	if len(parts) != 3 {
-		writeTrackingPixel(w)
-		return
-	}
-
-	messageID := parts[0]
-	workspaceID := parts[1]
-	tsParam := parts[2]
-
-	// Bot detection: check user agent
-	shouldRecord := true
-	userAgent := r.Header.Get("User-Agent")
-
-	if botdetection.IsBotUserAgent(userAgent) {
-		shouldRecord = false
-		h.logger.WithField("user_agent", userAgent).Debug("Bot detected by user agent - not recording open")
-	}
-
-	// Check if open is too fast (< 7 seconds)
-	if shouldRecord && tsParam != "" {
-		sentTimestamp, err := strconv.ParseInt(tsParam, 10, 64)
-		if err == nil {
-			timeSinceSent := time.Since(time.Unix(sentTimestamp, 0))
-			if timeSinceSent < 7*time.Second {
-				shouldRecord = false
-				h.logger.WithFields(map[string]interface{}{
-					"time_since_sent": timeSinceSent.Seconds(),
-					"message_id":      messageID,
-				}).Debug("Open too fast - not recording (likely bot)")
-			}
-		}
-	}
-
-	if shouldRecord {
-		_ = h.emailService.OpenEmail(r.Context(), messageID, workspaceID)
+	if h.passesBotChecks(r, tok.Timestamp, tok.MessageID, "open") {
+		_ = h.emailService.OpenEmail(r.Context(), tok.MessageID, tok.WorkspaceID)
 	}
 
 	writeTrackingPixel(w)
 }
 
-// handleEncryptedClick handles click tracking via encrypted path tokens: GET /r/{token}
+// handleEncryptedClick handles click tracking via encrypted path tokens: GET /r/{token}.
+// A token signed by its workspace redirects to exactly the destination it was minted
+// with. Any other token (minted before 42.2, unsigned, forged, or for a workspace that
+// is gone) goes through classifyTrackedDestination.
 func (h *EmailHandler) handleEncryptedClick(w http.ResponseWriter, r *http.Request) {
 	token := strings.TrimPrefix(r.URL.Path, "/r/")
 	if token == "" {
@@ -329,55 +306,52 @@ func (h *EmailHandler) handleEncryptedClick(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	decrypted, err := crypto.DecryptTrackingToken(token)
+	tok, err := trackingtoken.Parse(token, trackingtoken.PurposeClick)
 	if err != nil {
 		http.Error(w, "Invalid token", http.StatusBadRequest)
 		return
 	}
 
-	parts := strings.SplitN(decrypted, "\n", 4)
-	if len(parts) != 4 {
-		http.Error(w, "Invalid token format", http.StatusBadRequest)
-		return
-	}
-
-	messageID := parts[0]
-	workspaceID := parts[1]
-	tsParam := parts[2]
-	redirectTo := parts[3]
-
-	if redirectTo == "" {
+	if tok.URL == "" {
 		http.Error(w, "Missing redirect URL", http.StatusBadRequest)
 		return
 	}
 
-	// Bot detection: check user agent
-	shouldRecord := true
-	userAgent := r.Header.Get("User-Agent")
-
-	if botdetection.IsBotUserAgent(userAgent) {
-		shouldRecord = false
-		h.logger.WithField("user_agent", userAgent).Debug("Bot detected by user agent - not recording click")
-	}
-
-	// Check if click is too fast (< 7 seconds)
-	if shouldRecord && tsParam != "" {
-		sentTimestamp, err := strconv.ParseInt(tsParam, 10, 64)
-		if err == nil {
-			timeSinceSent := time.Since(time.Unix(sentTimestamp, 0))
-			if timeSinceSent < 7*time.Second {
-				shouldRecord = false
-				h.logger.WithFields(map[string]interface{}{
-					"time_since_sent": timeSinceSent.Seconds(),
-					"message_id":      messageID,
-				}).Debug("Click too fast - not recording (likely bot)")
-			}
+	ws, status := h.trackingWorkspaces.Lookup(r.Context(), tok.WorkspaceID)
+	verified := false
+	if status == trackingtoken.WorkspaceKnown && tok.Tag != "" {
+		verified = tok.Verify(ws.Key, trackingtoken.PurposeClick)
+		if !verified {
+			// The cached key may be stale, for a workspace re-created under its ID.
+			ws, status = h.trackingWorkspaces.Refresh(r.Context(), tok.WorkspaceID)
+			verified = status == trackingtoken.WorkspaceKnown && tok.Verify(ws.Key, trackingtoken.PurposeClick)
 		}
 	}
 
-	if shouldRecord {
-		_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID, redirectTo, r.Host)
+	decision, target := decisionRedirect, tok.URL
+	var parsed *url.URL
+	var scheme string
+	if verified && blockedSchemes[trackingtoken.SchemeOf(tok.URL)] {
+		// TrackLinks skips these schemes only when written plainly; whatever slipped
+		// through, no tracked link leads to them, signed or not.
+		http.Error(w, "Invalid redirect URL", http.StatusBadRequest)
+		return
+	}
+	if !verified {
+		endpointHost := ""
+		if status == trackingtoken.WorkspaceKnown {
+			endpointHost = ws.EndpointHost
+		}
+		decision, target, parsed, scheme = classifyTrackedDestination(tok.URL, r.Host, h.apiHost, endpointHost)
+		if decision == decisionReject {
+			http.Error(w, "Invalid redirect URL", http.StatusBadRequest)
+			return
+		}
 	}
 
-	http.Redirect(w, r, redirectTo, http.StatusSeeOther)
+	if status != trackingtoken.WorkspaceUnknown && h.passesBotChecks(r, tok.Timestamp, tok.MessageID, "click") {
+		_ = h.emailService.VisitLink(r.Context(), tok.MessageID, tok.WorkspaceID, tok.URL, r.Host)
+	}
+
+	h.answerTrackedDestination(w, r, decision, target, parsed, scheme)
 }

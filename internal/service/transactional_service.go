@@ -916,6 +916,7 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		Endpoint:       endpoint,
 		WorkspaceID:    workspaceID,
 		MessageID:      messageID,
+		SigningKey:     domain.TrackingSigningKey(workspace.Settings.SecretKey),
 	}
 
 	req := domain.TemplateDataRequest{

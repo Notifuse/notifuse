@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -16,8 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/Notifuse/notifuse/tests/testutil"
 )
 
@@ -152,21 +151,21 @@ func TestLinkClickMailpitE2E(t *testing.T) {
 	var sentTs int64
 	clickURLByDest := map[string]string{}
 	for _, m := range matches {
-		decrypted, err := crypto.DecryptTrackingToken(m[2])
+		tok, err := trackingtoken.Parse(m[2], trackingtoken.PurposeClick)
 		require.NoError(t, err)
-		parts := strings.SplitN(decrypted, "\n", 4)
-		require.Len(t, parts, 4)
-		require.Equal(t, workspace.ID, parts[1], "token must carry the workspace ID")
+		require.Equal(t, workspace.ID, tok.WorkspaceID, "token must carry the workspace ID")
+		require.NotEmpty(t, tok.Tag, "links of a real send are signed")
+		require.NotZero(t, tok.Timestamp, "the timestamp before the tag still feeds the bot check")
 		if messageID == "" {
-			messageID = parts[0]
-			sentTs, err = strconv.ParseInt(parts[2], 10, 64)
-			require.NoError(t, err)
+			messageID = tok.MessageID
+			sentTs = tok.Timestamp
 		} else {
-			require.Equal(t, messageID, parts[0], "all links of one email share the message ID")
+			require.Equal(t, messageID, tok.MessageID, "all links of one email share the message ID")
 		}
 		// Click via the test server regardless of the endpoint host baked into
-		// the email, so the test does not depend on endpoint configuration.
-		clickURLByDest[parts[3]] = fmt.Sprintf("%s/r/%s", baseURL, m[2])
+		// the email, so the test does not depend on endpoint configuration: the
+		// signature binds no host.
+		clickURLByDest[tok.URL] = fmt.Sprintf("%s/r/%s", baseURL, m[2])
 	}
 	// The send path appends utm_content=<templateID> to links that carry no
 	// UTM parameters, and leaves links with author-set UTM params untouched —
@@ -183,6 +182,32 @@ func TestLinkClickMailpitE2E(t *testing.T) {
 	if wait := time.Until(time.Unix(sentTs, 0).Add(8 * time.Second)); wait > 0 {
 		t.Logf("Waiting %s for the too-fast-click bot gate to pass...", wait.Round(time.Millisecond))
 		time.Sleep(wait)
+	}
+
+	// The delivered pixel records the open on its own, before any click backfills it.
+	pixelRe := regexp.MustCompile(`<img src="[^"]*(/t/[A-Za-z0-9_-]+)"`)
+	pixel := pixelRe.FindStringSubmatch(email.HTML)
+	require.NotNil(t, pixel, "the delivered email must carry the open pixel")
+	openTok, err := trackingtoken.Parse(strings.TrimPrefix(pixel[1], "/t/"), trackingtoken.PurposeOpen)
+	require.NoError(t, err)
+	require.Equal(t, messageID, openTok.MessageID)
+	require.NotEmpty(t, openTok.Tag, "the pixel of a real send is signed")
+	pixelReq, err := http.NewRequest(http.MethodGet, baseURL+pixel[1], nil)
+	require.NoError(t, err)
+	pixelReq.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15")
+	pixelResp, err := http.DefaultClient.Do(pixelReq)
+	require.NoError(t, err)
+	_ = pixelResp.Body.Close()
+	require.Equal(t, http.StatusOK, pixelResp.StatusCode)
+	{
+		workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
+		require.NoError(t, err)
+		testutil.WaitForCondition(t, func() bool {
+			var openedAt, clickedAt *time.Time
+			_ = workspaceDB.QueryRowContext(ctx, `SELECT opened_at, clicked_at FROM message_history WHERE id = $1`,
+				messageID).Scan(&openedAt, &clickedAt)
+			return openedAt != nil && clickedAt == nil
+		}, 5*time.Second, "opened_at set by the delivered pixel alone")
 	}
 
 	redirectClient := &http.Client{

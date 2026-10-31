@@ -103,8 +103,9 @@ func TestLinkClickStats(t *testing.T) {
 		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
 
-		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
-		assert.Equal(t, destinationURL, resp.Header.Get("Location"))
+		// These tokens are built here in the legacy, unsigned shape, so an external
+		// destination gets the confirmation page; the click is recorded all the same.
+		assertTrackingInterstitial(t, resp, "shop.example.com")
 	}
 
 	// Two clicks on URL A (the second one is a repeat), one click on URL B
@@ -217,7 +218,8 @@ func TestLinkClickStats(t *testing.T) {
 			resp, err := redirectClient.Do(req)
 			require.NoError(t, err)
 			defer func() { _ = resp.Body.Close() }()
-			require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+			// Legacy unsigned token: confirmation page, click recorded.
+			assertTrackingInterstitial(t, resp, "shop.example.com")
 		}
 
 		// urlHigh: clicked once by each of two messages → unique 2, total 2.

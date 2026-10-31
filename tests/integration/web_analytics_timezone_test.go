@@ -77,8 +77,11 @@ func TestWebAnalyticsTimezoneBoundaries(t *testing.T) {
 	afterUTCMidnight := localMonthStart.Add(18 * time.Hour)    // local 18:00
 	previousLocalDay := localMonthStart.Add(-2 * time.Hour)    // last day of the previous local month
 
+	// Step back from the first of the month: on the 31st, now.AddDate(0, -1, 0) is the
+	// 31st of a 30-day month, which Go normalises into the current month again.
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	for _, month := range []time.Time{
-		now, now.AddDate(0, -1, 0), now.AddDate(0, -2, 0),
+		monthStart, monthStart.AddDate(0, -1, 0), monthStart.AddDate(0, -2, 0),
 	} {
 		for _, table := range schema.WebAnalyticsTableNames {
 			_, err := wsDB.Exec(schema.WebAnalyticsPartitionDDL(table, month))

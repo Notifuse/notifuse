@@ -197,6 +197,59 @@ func TestSecretKeyRotation(t *testing.T) {
 	_, err = suite.DBManager.GetDB().Exec(`UPDATE workspaces SET integrations = NULL WHERE id = $1`, legacyID)
 	require.NoError(t, err)
 
+	// A tracked email delivered under A. Its links are signed with a key derived from
+	// the workspace's secret key, whose value rotation never changes, so the delivered
+	// link must keep redirecting to its external destination after every restart.
+	_, err = suite.DBManager.GetDB().Exec(`UPDATE workspaces
+		SET settings = jsonb_set(settings, '{email_tracking_enabled}', 'true') WHERE id = $1`, workspaceID)
+	require.NoError(t, err)
+	trackedTemplate, err := suite.DataFactory.CreateTemplate(workspaceID,
+		testutil.WithTemplateSubject("Rotation tracked "+workspaceID),
+		testutil.WithCodeModeTemplate(`<mjml><mj-body><mj-section><mj-column>`+
+			`<mj-text><a href="https://shop.example.com/rotation">Shop</a></mj-text>`+
+			`</mj-column></mj-section></mj-body></mjml>`))
+	require.NoError(t, err)
+	// Mailpit offers no AUTH, so the send goes through an integration without credentials.
+	mailpit, err := suite.DataFactory.CreateMailpitSMTPIntegration(workspaceID)
+	require.NoError(t, err)
+	require.NoError(t, testutil.ClearMailpitMessages(t))
+	trackedRecipient := "rotation-" + workspaceID + "@example.com"
+	resp, err := owner.Post("/api/transactional.testTemplate", map[string]interface{}{
+		"workspace_id":    workspaceID,
+		"template_id":     trackedTemplate.ID,
+		"integration_id":  mailpit.ID,
+		"sender_id":       mailpit.EmailProvider.Senders[0].ID,
+		"recipient_email": trackedRecipient,
+	})
+	require.NoError(t, err)
+	var sent struct {
+		Success bool   `json:"success"`
+		Error   string `json:"error"`
+	}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&sent))
+	_ = resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.True(t, sent.Success, "test email send failed: %s", sent.Error)
+	trackedEmail, err := waitForEmailAndGetMessage(t, trackedRecipient, 20*time.Second)
+	require.NoError(t, err)
+	_, trackedToken := deliveredClickLink(t, trackedEmail.HTML, "https://shop.example.com/rotation")
+	require.NotEmpty(t, trackedToken.Tag)
+	trackedPath := trackedEmail.HTML[strings.Index(trackedEmail.HTML, "/r/"):]
+	trackedPath = trackedPath[:strings.IndexByte(trackedPath, '"')]
+	// The harness serves the same delivered path from whatever URL it restarts on.
+	// And links minted before signing, in the format 42.1 wrote, which use no key at all.
+	legacyExternal := legacyToken(t, trackedToken.MessageID, workspaceID, oldTimestamp(), "https://shop.example.com/legacy")
+	assertDeliveredLinkRedirects := func(t *testing.T) {
+		t.Helper()
+		serverURL := suite.ServerManager.GetURL()
+		assertTrackedRedirect(t, clickDelivered(t, serverURL+trackedPath), trackedToken.URL)
+		assertTrackingInterstitial(t, clickDelivered(t, serverURL+"/r/"+legacyExternal), "shop.example.com")
+		sameHost := serverURL + "/notification-center?wid=" + workspaceID
+		assertTrackedRedirect(t, clickDelivered(t, serverURL+"/r/"+
+			legacyToken(t, trackedToken.MessageID, workspaceID, oldTimestamp(), sameHost)), sameHost)
+	}
+	assertDeliveredLinkRedirects(t)
+
 	underA := readEncryptedRows(t, suite)
 	for name := range underA {
 		require.NoError(t, opensWith(underA, name, keyA), "%s is under A before the rotation", name)
@@ -230,6 +283,8 @@ func TestSecretKeyRotation(t *testing.T) {
 		require.NotNil(t, integration)
 		assert.Equal(t, "smtp-user", integration.EmailProvider.SMTP.Username)
 		assert.Equal(t, "smtp-pass", integration.EmailProvider.SMTP.Password)
+
+		assertDeliveredLinkRedirects(t)
 	})
 
 	t.Run("starting again with B,A changes nothing", func(t *testing.T) {
@@ -259,6 +314,7 @@ func TestSecretKeyRotation(t *testing.T) {
 
 		require.NoError(t, startWithSecretKey(t, suite, rotationKeyB))
 		client := testutil.NewAPIClient(suite.ServerManager.GetURL())
+		assertDeliveredLinkRedirects(t)
 
 		rootSignin := func(t *testing.T, key string) int {
 			t.Helper()

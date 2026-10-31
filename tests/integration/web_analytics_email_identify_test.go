@@ -11,8 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -21,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/Notifuse/notifuse/tests/testutil"
 )
 
@@ -187,23 +185,20 @@ func TestWebAnalyticsEmailIdentify(t *testing.T) {
 	clickURLByLanding := map[string]string{}
 	var sentTs int64
 	for _, m := range matches {
-		decrypted, err := crypto.DecryptTrackingToken(m[2])
+		tok, err := trackingtoken.Parse(m[2], trackingtoken.PurposeClick)
 		require.NoError(t, err, "every /r/ token in the email must decrypt")
-		parts := strings.SplitN(decrypted, "\n", 4)
-		require.Len(t, parts, 4, "the redirect payload is messageID/workspaceID/ts/destination")
-		assert.Equal(t, messageID, parts[0], "the redirect must name the message transactional.send reported")
-		assert.Equal(t, workspace.ID, parts[1], "the redirect must name this workspace")
-		ts, err := strconv.ParseInt(parts[2], 10, 64)
-		require.NoError(t, err)
-		if ts > sentTs {
-			sentTs = ts
+		assert.Equal(t, messageID, tok.MessageID, "the redirect must name the message transactional.send reported")
+		assert.Equal(t, workspace.ID, tok.WorkspaceID, "the redirect must name this workspace")
+		require.NotZero(t, tok.Timestamp)
+		if tok.Timestamp > sentTs {
+			sentTs = tok.Timestamp
 		}
-		parsed, err := url.Parse(parts[3])
+		parsed, err := url.Parse(tok.URL)
 		require.NoError(t, err, "the encrypted destination must be a URL")
-		landingByHost[parsed.Hostname()] = parts[3]
+		landingByHost[parsed.Hostname()] = tok.URL
 		// Clicked against the test server whatever endpoint host the email baked
 		// in — cfg.APIEndpoint is empty in tests, so the href is a bare "/r/…".
-		clickURLByLanding[parts[3]] = fmt.Sprintf("%s/r/%s", baseURL, m[2])
+		clickURLByLanding[tok.URL] = fmt.Sprintf("%s/r/%s", baseURL, m[2])
 	}
 	require.Len(t, landingByHost, 2,
 		"both authored links must survive as distinct destinations, got %v", landingByHost)

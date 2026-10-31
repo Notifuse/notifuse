@@ -1584,7 +1584,16 @@ func (a *App) InitHandlers() error {
 	contactListHandler := httpHandler.NewContactListHandler(a.contactListService, getJWTSecret, a.logger)
 	templateHandler := httpHandler.NewTemplateHandler(a.templateService, getJWTSecret, a.logger)
 	templateBlockHandler := httpHandler.NewTemplateBlockHandler(a.templateBlockService, getJWTSecret, a.logger)
-	emailHandler := httpHandler.NewEmailHandler(a.emailService, getJWTSecret, a.logger, a.config.Security.SecretKey)
+	systemDB := a.db
+	trackingWorkspaces := service.NewTrackingWorkspaceSource(
+		func(ctx context.Context, workspaceID string) (string, string, error) {
+			row, err := repository.GetTrackingWorkspace(ctx, systemDB, workspaceID)
+			return row.EncryptedSecretKey, row.CustomEndpointURL, err
+		},
+		a.config.Security.SecretKey,
+		a.config.Security.PreviousSecretKeys,
+	)
+	emailHandler := httpHandler.NewEmailHandler(a.emailService, getJWTSecret, a.logger, a.config.Security.SecretKey, trackingWorkspaces, a.config.APIEndpoint)
 	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, a.templateService, getJWTSecret, a.logger, a.config.IsDemo())
 	blogHandler := httpHandler.NewBlogHandler(a.blogService, getJWTSecret, a.logger, a.config.IsDemo())
 	blogThemeHandler := httpHandler.NewBlogThemeHandler(a.blogService, getJWTSecret, a.logger)

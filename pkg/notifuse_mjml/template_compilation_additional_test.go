@@ -84,7 +84,7 @@ func TestGenerateEmailRedirectionAndPixel(t *testing.T) {
 	// Use a fixed timestamp for testing
 	testTimestamp := time.Now().Unix()
 
-	redir := GenerateEmailRedirectionEndpoint("w id", "m/id", "https://api.example.com", "https://example.com/x?y=1", testTimestamp)
+	redir := GenerateEmailRedirectionEndpoint(nil, "w id", "m/id", "https://api.example.com", "https://example.com/x?y=1", testTimestamp)
 	if redir == "" {
 		t.Fatal("expected non-empty redirect URL")
 	}
@@ -93,7 +93,7 @@ func TestGenerateEmailRedirectionAndPixel(t *testing.T) {
 		t.Fatalf("expected encrypted /r/ path in redirect URL, got: %s", redir)
 	}
 
-	pixel := GenerateHTMLOpenTrackingPixel("w", "m", "https://api.example.com", testTimestamp)
+	pixel := GenerateHTMLOpenTrackingPixel(nil, "w", "m", "https://api.example.com", testTimestamp)
 	if pixel == "" || !strings.Contains(pixel, "<img src=") {
 		t.Fatalf("unexpected pixel: %s", pixel)
 	}

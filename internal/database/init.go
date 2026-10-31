@@ -563,8 +563,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		}
 	}
 
-	currentMonth := time.Now().UTC()
-	for _, month := range []time.Time{currentMonth, currentMonth.AddDate(0, 1, 0)} {
+	for _, month := range schema.WebAnalyticsCurrentAndNextMonth(time.Now()) {
 		for _, table := range schema.WebAnalyticsTableNames {
 			if _, err := db.Exec(schema.WebAnalyticsPartitionDDL(table, month)); err != nil {
 				return fmt.Errorf("failed to create web analytics partition: %w", err)

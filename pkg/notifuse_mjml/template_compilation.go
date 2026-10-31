@@ -12,7 +12,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/preslavrachev/gomjml/mjml"
 )
 
@@ -188,6 +188,11 @@ type TrackingSettings struct {
 	// the only hosts the token above may be handed to. Request-scoped like the
 	// token, hence also excluded from the persisted JSON.
 	IdentifyAllowedHosts []string `json:"-"`
+	// SigningKey is the workspace's tracking key (trackingtoken.DeriveKey of its
+	// secret key), which signs the /r/ and /t/ tokens. Set only by the send paths
+	// from the loaded workspace, never from a request or the database, hence
+	// excluded from the JSON. Without it, tokens are minted unsigned.
+	SigningKey []byte `json:"-"`
 }
 
 // IsZero reports whether no field is set. Callers use it to tell "no tracking
@@ -205,7 +210,8 @@ func (t TrackingSettings) IsZero() bool {
 		t.WorkspaceID == "" &&
 		t.MessageID == "" &&
 		t.IdentifyToken == "" &&
-		len(t.IdentifyAllowedHosts) == 0
+		len(t.IdentifyAllowedHosts) == 0 &&
+		len(t.SigningKey) == 0
 }
 
 // Value implements the driver.Valuer interface for database storage
@@ -666,28 +672,33 @@ func renderSubjectField(value *string, data MapOfAny, channel string, preserveLi
 	return &rendered, nil
 }
 
-// GenerateEmailRedirectionEndpoint generates the email redirection endpoint URL
-// Uses encrypted path tokens (/r/{token}) to avoid pixel blocker detection.
-// Falls back to legacy query params (/visit?mid=...) if encryption fails.
-func GenerateEmailRedirectionEndpoint(workspaceID string, messageID string, apiEndpoint string, destinationURL string, sentTimestamp int64) string {
-	// Try encrypted format: /r/{token}
-	plaintext := fmt.Sprintf("%s\n%s\n%d\n%s", messageID, workspaceID, sentTimestamp, destinationURL)
-	token, err := crypto.EncryptTrackingToken(plaintext)
-	if err == nil {
-		return fmt.Sprintf("%s/r/%s", apiEndpoint, token)
+// GenerateEmailRedirectionEndpoint returns the tracked /r/{token} link to destinationURL.
+// With a signing key (see TrackingSettings.SigningKey) the token is signed and the click
+// route redirects straight to destinationURL; without one it is unsigned, still records
+// the click, and the route checks the destination first.
+// If the token cannot be built, the link is destinationURL itself: never an unsigned
+// /visit link, which anyone could forge.
+func GenerateEmailRedirectionEndpoint(signingKey []byte, workspaceID string, messageID string, apiEndpoint string, destinationURL string, sentTimestamp int64) string {
+	token, err := trackingtoken.MintClick(signingKey, messageID, workspaceID, sentTimestamp, destinationURL)
+	if err != nil {
+		return destinationURL
 	}
+	return fmt.Sprintf("%s/r/%s", apiEndpoint, token)
+}
 
-	// Fallback to legacy query params
-	encodedMID := url.QueryEscape(messageID)
-	encodedWID := url.QueryEscape(workspaceID)
-	encodedURL := url.QueryEscape(destinationURL)
-	return fmt.Sprintf("%s/visit?mid=%s&wid=%s&ts=%d&url=%s",
-		apiEndpoint, encodedMID, encodedWID, sentTimestamp, encodedURL)
+// GenerateOpenTrackingURL returns the /t/{token} open tracking URL, signed when
+// signingKey is set, or "" if the token cannot be built: never an /opens query URL.
+func GenerateOpenTrackingURL(signingKey []byte, workspaceID string, messageID string, apiEndpoint string, sentTimestamp int64) string {
+	token, err := trackingtoken.MintOpen(signingKey, messageID, workspaceID, sentTimestamp)
+	if err != nil {
+		return ""
+	}
+	return fmt.Sprintf("%s/t/%s", apiEndpoint, token)
 }
 
 // GenerateHTMLOpenTrackingPixel generates the HTML for the open tracking pixel.
-// Uses encrypted path tokens (/t/{token}) to avoid pixel blocker detection.
-// Falls back to legacy query params (/opens?mid=...) if encryption fails.
+// Uses encrypted path tokens (/t/{token}) to avoid pixel blocker detection, built by
+// GenerateOpenTrackingURL; when no token can be built, there is no pixel.
 //
 // The markup has to collapse to nothing, and that takes more than a small image.
 // An <img> is inline, so it sits on a text baseline and the cell holding it takes
@@ -709,19 +720,10 @@ func GenerateEmailRedirectionEndpoint(workspaceID string, messageID string, apiE
 //
 // The collapse stays in CSS because width/height attributes are the fingerprint
 // pixel blockers match on.
-func GenerateHTMLOpenTrackingPixel(workspaceID string, messageID string, apiEndpoint string, sentTimestamp int64) string {
-	// Try encrypted format: /t/{token}
-	plaintext := fmt.Sprintf("%s\n%s\n%d", messageID, workspaceID, sentTimestamp)
-	token, err := crypto.EncryptTrackingToken(plaintext)
-	var pixelURL string
-	if err == nil {
-		pixelURL = fmt.Sprintf("%s/t/%s", apiEndpoint, token)
-	} else {
-		// Fallback to legacy query params
-		encodedMID := url.QueryEscape(messageID)
-		encodedWID := url.QueryEscape(workspaceID)
-		pixelURL = fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=%d",
-			apiEndpoint, encodedMID, encodedWID, sentTimestamp)
+func GenerateHTMLOpenTrackingPixel(signingKey []byte, workspaceID string, messageID string, apiEndpoint string, sentTimestamp int64) string {
+	pixelURL := GenerateOpenTrackingURL(signingKey, workspaceID, messageID, apiEndpoint, sentTimestamp)
+	if pixelURL == "" {
+		return ""
 	}
 	return fmt.Sprintf(`<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%%"><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><img src="%s" alt="" style="border:0;display:block;outline:none;text-decoration:none;"></td></tr></table>`, pixelURL)
 }
@@ -1158,9 +1160,10 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 		//
 		// It buys no confidentiality, and none is claimed. With click tracking
 		// off there is no redirect at all and the token sits in the href as
-		// plain text; with it on, the /r/ token is obfuscation aimed at
-		// pixel-blockers, not a secret — crypto.EncryptTrackingToken uses a
-		// hardcoded key, so anyone with the source can read it back. The token
+		// plain text; with it on, the /r/ token's outer layer is obfuscation
+		// aimed at pixel-blockers, not a secret — crypto.EncryptTrackingToken
+		// uses a public key, so anyone can read the destination back. The
+		// signature inside only stops a link from being forged. The token
 		// is therefore readable by anyone who can read the email, which is
 		// acceptable because the email is addressed to that contact. The
 		// exposure that remains is forwarding: whoever receives the forward is
@@ -1174,7 +1177,7 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 			// The UTM-augmented destination URL is what gets encrypted into the
 			// token, so the redirect target preserves the UTM parameters.
 			sentTimestamp := time.Now().Unix()
-			trackedURL = GenerateEmailRedirectionEndpoint(trackingSettings.WorkspaceID, trackingSettings.MessageID, trackingSettings.Endpoint, destinationURL, sentTimestamp)
+			trackedURL = GenerateEmailRedirectionEndpoint(trackingSettings.SigningKey, trackingSettings.WorkspaceID, trackingSettings.MessageID, trackingSettings.Endpoint, destinationURL, sentTimestamp)
 		}
 
 		// Return the updated href value
@@ -1186,7 +1189,7 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 		// by GenerateHTMLOpenTrackingPixel to look like a structural layout element
 		// rather than a standalone tracking pixel.
 		sentTimestamp := time.Now().Unix()
-		trackingPixel := GenerateHTMLOpenTrackingPixel(trackingSettings.WorkspaceID, trackingSettings.MessageID, trackingSettings.Endpoint, sentTimestamp)
+		trackingPixel := GenerateHTMLOpenTrackingPixel(trackingSettings.SigningKey, trackingSettings.WorkspaceID, trackingSettings.MessageID, trackingSettings.Endpoint, sentTimestamp)
 
 		bodyCloseRegex := regexp.MustCompile(`(?i)(<\/body>)`)
 		if bodyCloseRegex.MatchString(updatedHTML) {

@@ -1239,6 +1239,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		EnableTracking: workspace.Settings.EmailTrackingEnabled,
 		WorkspaceID:    request.WorkspaceID,
 		MessageID:      messageID,
+		SigningKey:     domain.TrackingSigningKey(workspace.Settings.SecretKey),
 	}
 
 	// Add UTM parameters if available
