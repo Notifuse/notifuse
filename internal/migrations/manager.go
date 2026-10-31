@@ -23,20 +23,37 @@ var ErrDatabaseAheadOfCode = errors.New("database was migrated by a newer build"
 
 // workspaceConnector interface for connecting to workspace databases
 type workspaceConnector interface {
-	connectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error)
+	connectToWorkspace(ctx context.Context, cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error)
 }
+
+// workspaceDatabaseLock takes a workspace database's name lock (see
+// database.WithWorkspaceDatabaseLock).
+type workspaceDatabaseLock func(ctx context.Context, cfg *config.DatabaseConfig, dbName string, fn func(ctx context.Context, admin *sql.DB) error) error
 
 // Manager implements MigrationManager
 type Manager struct {
 	logger    logger.Logger
 	connector workspaceConnector
+	// workspaceLock is the name lock a workspace whose database is empty or missing is
+	// looked at again under; nil means database.WithWorkspaceDatabaseLock.
+	workspaceLock workspaceDatabaseLock
+}
+
+// workspaceMigrationDSN is the DSN migrations connect to a workspace database with,
+// bounding the whole connection establishment (see database.WithConnectTimeout).
+func workspaceMigrationDSN(cfg *config.DatabaseConfig, workspaceID string) (string, error) {
+	dsn, err := database.GetWorkspaceDSN(cfg, workspaceID)
+	if err != nil {
+		return "", err
+	}
+	return database.WithConnectTimeout(dsn), nil
 }
 
 // defaultConnector implements workspaceConnector
 type defaultConnector struct{}
 
-func (c *defaultConnector) connectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error) {
-	dsn, err := database.GetWorkspaceDSN(cfg, workspaceID)
+func (c *defaultConnector) connectToWorkspace(ctx context.Context, cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error) {
+	dsn, err := workspaceMigrationDSN(cfg, workspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +63,9 @@ func (c *defaultConnector) connectToWorkspace(cfg *config.DatabaseConfig, worksp
 		return nil, fmt.Errorf("failed to connect to workspace database: %w", err)
 	}
 
-	// Test the connection
-	if err := db.Ping(); err != nil {
+	// Test the connection. The pq error stays wrapped: a missing database (3D000) is
+	// told apart from other failures.
+	if err := db.PingContext(ctx); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("failed to ping workspace database: %w", err)
 	}
@@ -61,6 +79,13 @@ func NewManager(logger logger.Logger) *Manager {
 		logger:    logger,
 		connector: &defaultConnector{},
 	}
+}
+
+func (m *Manager) lockWorkspaceDatabase() workspaceDatabaseLock {
+	if m.workspaceLock != nil {
+		return m.workspaceLock
+	}
+	return database.WithWorkspaceDatabaseLock
 }
 
 // GetCurrentDBVersion retrieves the current database version from settings table
@@ -252,10 +277,12 @@ func (m *Manager) executeMigration(ctx context.Context, cfg *config.Config, db *
 				WithField("version", fmt.Sprintf("%.0f", version)).
 				Debug("Executing workspace migration")
 
-			// Connect to the specific workspace database
-			workspaceDB, err := m.connector.connectToWorkspace(&cfg.Database, workspace.ID)
+			workspaceDB, migrate, err := m.connectForMigration(ctx, cfg, tx, workspace.ID)
 			if err != nil {
-				return fmt.Errorf("failed to connect to workspace database %s: %w", workspace.ID, err)
+				return err
+			}
+			if !migrate {
+				continue
 			}
 
 			// Start transaction for the workspace database
@@ -297,6 +324,111 @@ func (m *Manager) executeMigration(ctx context.Context, cfg *config.Config, db *
 
 	m.logger.WithField("version", fmt.Sprintf("%.0f", version)).Info("Migration completed successfully")
 	return nil
+}
+
+// connectForMigration connects to a workspace database to migrate it. A database that
+// holds no tables, or is missing, is looked at again under its name lock, which waits
+// for an initialisation in progress on another instance (it commits its whole schema at
+// once, so the database looks empty until then) and for a deletion in progress. It
+// returns migrate false for a workspace to skip; the caller closes the database. A
+// database that holds tables is migrated without the lock, as before: a deletion
+// dropping it meanwhile ends the migration with an error, and the next start goes on
+// without that workspace.
+//
+// The name lock is taken while the migration's system transaction is open. When that
+// transaction holds row locks on rows a deletion removes (workspaces, user_workspaces,
+// workspace_invitations, which several system migrations below 42 write), a workspace
+// deletion on an instance that takes the name lock, under way at the same time,
+// deadlocks with it, unseen by PostgreSQL (each side waits in Go for another connection
+// of its own), until the deletion's 10-minute bound ends it. An instance
+// takes the name lock only from 42.3, and serves only once the database is at its own
+// version, past those migrations; a future system migration writing those rows would
+// bring the case back.
+func (m *Manager) connectForMigration(ctx context.Context, cfg *config.Config, tx *sql.Tx, workspaceID string) (*sql.DB, bool, error) {
+	workspaceDB, err := m.connector.connectToWorkspace(ctx, &cfg.Database, workspaceID)
+	if err != nil {
+		if !database.IsDatabaseMissingError(err) {
+			return nil, false, fmt.Errorf("failed to connect to workspace database %s: %w", workspaceID, err)
+		}
+	} else {
+		holdsTables, err := database.WorkspaceDatabaseHoldsTables(ctx, workspaceDB)
+		if err != nil {
+			_ = workspaceDB.Close()
+			return nil, false, fmt.Errorf("failed to inspect workspace database %s: %w", workspaceID, err)
+		}
+		if holdsTables {
+			return workspaceDB, true, nil
+		}
+		_ = workspaceDB.Close()
+	}
+
+	migrate, err := m.lookAgainUnderNameLock(ctx, cfg, tx, workspaceID)
+	if err != nil || !migrate {
+		return nil, false, err
+	}
+
+	workspaceDB, err = m.connector.connectToWorkspace(ctx, &cfg.Database, workspaceID)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to connect to workspace database %s: %w", workspaceID, err)
+	}
+	return workspaceDB, true, nil
+}
+
+// lookAgainUnderNameLock decides, under the workspace's name lock, what to do with a
+// workspace whose database looked empty or missing: skip it when its row is gone or
+// its database holds no tables (nothing to migrate; the repair gives it the current
+// schema, so pending migrations never run on a freshly built one), fail with what to
+// do when its database is missing (it is never created here: a changed DB_PREFIX would
+// otherwise turn into one silently empty database per workspace), and migrate it when
+// an initialisation committed meanwhile.
+func (m *Manager) lookAgainUnderNameLock(ctx context.Context, cfg *config.Config, tx *sql.Tx, workspaceID string) (bool, error) {
+	dbName, err := database.WorkspaceDatabaseName(cfg.Database.Prefix, workspaceID)
+	if err != nil {
+		return false, err
+	}
+
+	migrate := false
+	err = m.lockWorkspaceDatabase()(ctx, &cfg.Database, dbName, func(ctx context.Context, admin *sql.DB) error {
+		var registered bool
+		if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM workspaces WHERE id = $1)`, workspaceID).Scan(&registered); err != nil {
+			return fmt.Errorf("failed to check workspace %s: %w", workspaceID, err)
+		}
+		if !registered {
+			m.logger.WithField("workspace", workspaceID).Info("Workspace deleted during the migration, skipped")
+			return nil
+		}
+
+		exists, err := database.WorkspaceDatabaseExists(ctx, admin, dbName)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return fmt.Errorf("workspace %s is registered but its database %s does not exist: if DB_PREFIX changed, restore it; otherwise create an empty database named %s owned by %s (startup skips empty databases) or delete the workspace's rows",
+				workspaceID, dbName, dbName, cfg.Database.User)
+		}
+
+		workspaceDB, err := m.connector.connectToWorkspace(ctx, &cfg.Database, workspaceID)
+		if err != nil {
+			return fmt.Errorf("failed to connect to workspace database %s: %w", workspaceID, err)
+		}
+		defer func() { _ = workspaceDB.Close() }()
+		holdsTables, err := database.WorkspaceDatabaseHoldsTables(ctx, workspaceDB)
+		if err != nil {
+			return fmt.Errorf("failed to inspect workspace database %s: %w", workspaceID, err)
+		}
+		if !holdsTables {
+			m.logger.WithField("workspace", workspaceID).
+				WithField("database", dbName).
+				Warn("Workspace database holds no tables, skipped by the migration")
+			return nil
+		}
+		migrate = true
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	return migrate, nil
 }
 
 // getAllWorkspaces retrieves all workspaces from the database

@@ -94,20 +94,6 @@ func (mr *MockWorkspaceRepositoryMockRecorder) Create(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockWorkspaceRepository)(nil).Create), arg0, arg1)
 }
 
-// CreateDatabase mocks base method.
-func (m *MockWorkspaceRepository) CreateDatabase(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateDatabase", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateDatabase indicates an expected call of CreateDatabase.
-func (mr *MockWorkspaceRepositoryMockRecorder) CreateDatabase(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDatabase", reflect.TypeOf((*MockWorkspaceRepository)(nil).CreateDatabase), arg0, arg1)
-}
-
 // CreateInvitation mocks base method.
 func (m *MockWorkspaceRepository) CreateInvitation(arg0 context.Context, arg1 *domain.WorkspaceInvitation) error {
 	m.ctrl.T.Helper()
@@ -134,20 +120,6 @@ func (m *MockWorkspaceRepository) Delete(arg0 context.Context, arg1 string) erro
 func (mr *MockWorkspaceRepositoryMockRecorder) Delete(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockWorkspaceRepository)(nil).Delete), arg0, arg1)
-}
-
-// DeleteDatabase mocks base method.
-func (m *MockWorkspaceRepository) DeleteDatabase(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteDatabase", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteDatabase indicates an expected call of DeleteDatabase.
-func (mr *MockWorkspaceRepositoryMockRecorder) DeleteDatabase(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDatabase", reflect.TypeOf((*MockWorkspaceRepository)(nil).DeleteDatabase), arg0, arg1)
 }
 
 // DeleteInvitation mocks base method.

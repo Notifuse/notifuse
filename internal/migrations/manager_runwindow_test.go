@@ -26,7 +26,7 @@ type fakeWorkspaceConnector struct {
 	err error
 }
 
-func (f fakeWorkspaceConnector) connectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error) {
+func (f fakeWorkspaceConnector) connectToWorkspace(ctx context.Context, cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error) {
 	return f.db, f.err
 }
 
@@ -92,6 +92,7 @@ func TestManager_RunMigrations_WindowFailures(t *testing.T) {
 		mock.ExpectRollback()
 
 		sentinel := errors.New("cannot set local")
+		expectWorkspaceHoldsTables(wsMock, true)
 		wsMock.ExpectBegin()
 		wsMock.ExpectExec("SET LOCAL statement_timeout").WillReturnError(sentinel)
 		wsMock.ExpectRollback()

@@ -33,12 +33,20 @@ const (
 	// exists only to stop a wedged server from pinning a connection forever.
 	dropDatabaseTimeout = 5 * time.Minute
 
-	// deleteWorkspaceTimeout bounds a whole workspace deletion. Deletion is detached
-	// from the caller, and no statement_timeout is configured server-side, so without
-	// this a system-database row delete blocked on a lock would hold a connection from
-	// the small system pool indefinitely. It sits above dropDatabaseTimeout so that a
-	// slow drop still fails on its own, more specific deadline.
+	// deleteWorkspaceTimeout bounds the wait for a workspace deletion's name lock, and
+	// then the deletion under it, each. Deletion is detached from the caller, and no
+	// statement_timeout is configured server-side, so without this a system-database row
+	// delete blocked on a lock would hold a connection from the small system pool
+	// indefinitely. The lock's own bound counts from its grant, so the work under it
+	// ends 30 seconds before that whatever the wait was, and the drop keeps its own,
+	// more specific deadline.
 	deleteWorkspaceTimeout = 10 * time.Minute
+
+	// createWorkspaceTimeout bounds a workspace creation, which is detached from the
+	// caller: a client disconnecting mid-way must not leave a database without its row.
+	// Retrying an insert that failed, then cleaning up, run on bounds of their own in
+	// database.CreateWorkspaceDatabase, and may take that much more, within the lock's.
+	createWorkspaceTimeout = 5 * time.Minute
 )
 
 type workspaceRepository struct {
@@ -46,6 +54,13 @@ type workspaceRepository struct {
 	dbConfig          *config.DatabaseConfig
 	secretKey         string
 	connectionManager pkgDatabase.ConnectionManager
+
+	// createWorkspaceDatabase creates the database and registers the workspace under
+	// the name lock; nil means database.CreateWorkspaceDatabase. A seam for tests.
+	createWorkspaceDatabase func(ctx context.Context, cfg *config.DatabaseConfig, workspaceID string, row func(ctx context.Context) (database.WorkspaceRow, error), insert database.WorkspaceInsert) error
+	// workspaceDatabaseLock takes a workspace database's name lock; nil means
+	// database.WithWorkspaceDatabaseLock. A seam for tests.
+	workspaceDatabaseLock func(ctx context.Context, cfg *config.DatabaseConfig, dbName string, fn func(ctx context.Context, admin *sql.DB) error) error
 }
 
 // NewWorkspaceRepository creates a new PostgreSQL workspace repository
@@ -74,19 +89,28 @@ func (r *workspaceRepository) checkWorkspaceIDExists(ctx context.Context, id str
 	return exists, nil
 }
 
-// Create creates a new workspace
+// Create creates a new workspace: its database, then its row, under the workspace's
+// name lock (see database.CreateWorkspaceDatabase). It returns
+// domain.ErrWorkspaceAlreadyExists for an ID a workspace has, and
+// *domain.ErrWorkspaceDatabaseNotEmpty for an ID whose leftover database holds tables.
 func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Workspace) error {
+	// Detached from the caller: a disconnecting client must not cut the creation off
+	// between the database and the row.
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), createWorkspaceTimeout)
+	defer cancel()
 
-	// Check if workspace ID already exists
+	// Fast path; the check that decides runs again inside the name lock.
 	exists, err := r.checkWorkspaceIDExists(ctx, workspace.ID)
 	if err != nil {
 		return err
 	}
 	if exists {
-		return fmt.Errorf("workspace with ID %s already exists", workspace.ID)
+		return domain.ErrWorkspaceAlreadyExists
 	}
 
-	now := time.Now().UTC()
+	// To the microsecond, as PostgreSQL stores it, so the stored row can be told for
+	// this creation's own.
+	now := time.Now().UTC().Truncate(time.Microsecond)
 	workspace.CreatedAt = now
 	workspace.UpdatedAt = now
 
@@ -99,28 +123,20 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 		return err
 	}
 
-	// STEP 1: Create the workspace database FIRST
-	// If this fails (e.g., due to permissions), no system record is created
-	if err := r.CreateDatabase(ctx, workspace.ID); err != nil {
-		return fmt.Errorf("failed to create workspace database: %w", err)
+	row := func(ctx context.Context) (database.WorkspaceRow, error) {
+		return r.workspaceRow(ctx, workspace)
+	}
+	insert := database.WorkspaceInsert{
+		DB:      r.systemDB,
+		Columns: []string{"name", "settings", "integrations", "created_at", "updated_at"},
+		Values:  []any{workspace.Name, settings, integrations, workspace.CreatedAt, workspace.UpdatedAt},
 	}
 
-	// STEP 2: Now insert the workspace record into system database
-	query := `
-		INSERT INTO workspaces (id, name, settings, integrations, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`
-	_, err = r.systemDB.ExecContext(ctx, query,
-		workspace.ID,
-		workspace.Name,
-		settings,
-		integrations,
-		workspace.CreatedAt,
-		workspace.UpdatedAt,
-	)
-	if err != nil {
-		// Clean up: delete the database we just created
-		_ = r.DeleteDatabase(ctx, workspace.ID)
+	create := r.createWorkspaceDatabase
+	if create == nil {
+		create = database.CreateWorkspaceDatabase
+	}
+	if err := create(ctx, r.dbConfig, workspace.ID, row, insert); err != nil {
 		return err
 	}
 
@@ -133,6 +149,26 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 	}
 
 	return nil
+}
+
+// workspaceRow reports the row registered under workspace's ID: none, the one this
+// creation inserted (told by its creation time, stamped to the microsecond the
+// TIMESTAMP column keeps), or another's. A creation asks it under the name lock before
+// its insert, where any row refuses the ID, and when its insert finds a row, where its
+// own (an earlier attempt that committed) is a success.
+func (r *workspaceRepository) workspaceRow(ctx context.Context, workspace *domain.Workspace) (database.WorkspaceRow, error) {
+	var createdAt time.Time
+	err := r.systemDB.QueryRowContext(ctx, `SELECT created_at FROM workspaces WHERE id = $1`, workspace.ID).Scan(&createdAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return database.WorkspaceRowAbsent, nil
+	}
+	if err != nil {
+		return database.WorkspaceRowAbsent, err
+	}
+	if createdAt.Equal(workspace.CreatedAt) {
+		return database.WorkspaceRowOurs, nil
+	}
+	return database.WorkspaceRowOther, nil
 }
 
 // workspaceDocuments marshals the settings and integrations of a workspace that went
@@ -347,12 +383,37 @@ func (r *workspaceRepository) Delete(ctx context.Context, id string) error {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), deleteWorkspaceTimeout)
 	defer cancel()
 
+	dbName, err := database.WorkspaceDatabaseName(r.dbConfig.Prefix, id)
+	if err != nil {
+		return err
+	}
+
+	// Under the workspace's name lock: a request arriving meanwhile waits, then finds
+	// the workspace gone and creates nothing, so the database cannot come back between
+	// the drop and the row deletion.
+	lock := r.workspaceDatabaseLock
+	if lock == nil {
+		lock = database.WithWorkspaceDatabaseLock
+	}
+	return lock(ctx, r.dbConfig, dbName, func(lockCtx context.Context, _ *sql.DB) error {
+		// The bound above covers the wait for the lock; the work under it is bounded by
+		// the lock only, so the row deletion that must follow a drop is not cut short by
+		// a long wait.
+		workCtx, cancel := database.DetachedUnderLock(lockCtx, deleteWorkspaceTimeout)
+		defer cancel()
+		return r.deleteUnderLock(workCtx, id)
+	})
+}
+
+// deleteUnderLock drops a workspace's database, then deletes its rows. The caller holds
+// the workspace's name lock.
+func (r *workspaceRepository) deleteUnderLock(ctx context.Context, id string) error {
 	// Delete the workspace database first. Dropping is much likelier to fail than the
 	// row cleanup below — it needs an exclusive lock and is refused while a prepared
 	// transaction, an active replication slot or a backend it cannot terminate is
 	// attached — so it goes first, where a failure aborts the whole operation without
 	// having changed anything and the caller can simply retry.
-	if err := r.DeleteDatabase(ctx, id); err != nil {
+	if err := r.dropWorkspaceDatabase(ctx, id); err != nil {
 		return err
 	}
 
@@ -438,15 +499,9 @@ func (r *workspaceRepository) WithWorkspaceTransaction(ctx context.Context, work
 	return nil
 }
 
-func (r *workspaceRepository) CreateDatabase(ctx context.Context, workspaceID string) error {
-	// Use the utility function to ensure the database exists and initialize it
-	if err := database.EnsureWorkspaceDatabaseExists(r.dbConfig, workspaceID); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *workspaceRepository) DeleteDatabase(ctx context.Context, workspaceID string) error {
+// dropWorkspaceDatabase drops a workspace's database, on the system database's
+// connection. The caller holds the workspace's name lock.
+func (r *workspaceRepository) dropWorkspaceDatabase(ctx context.Context, workspaceID string) error {
 	// The name the database was created under, as written: it is created quoted.
 	dbName, err := database.WorkspaceDatabaseName(r.dbConfig.Prefix, workspaceID)
 	if err != nil {
@@ -464,7 +519,8 @@ func (r *workspaceRepository) DeleteDatabase(ctx context.Context, workspaceID st
 	// then rejects every connection and is not recreated automatically, so only a
 	// manual drop recovers it. Detach from the caller's context so a disconnecting
 	// client cannot cancel the drop midway.
-	dropCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), dropDatabaseTimeout)
+	// The drop also ends before the name lock the caller holds.
+	dropCtx, cancel := database.DetachedUnderLock(ctx, dropDatabaseTimeout)
 	defer cancel()
 
 	// WITH (FORCE) terminates the remaining backends and drops the database as one

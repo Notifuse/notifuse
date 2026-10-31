@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [42.3] - 2026-10-31
+
+- **Improvement**: A workspace whose creation stopped partway can now be created again under the same ID, and a leftover database that already holds tables is refused with a message naming it. A workspace deleted while in use no longer gets its database back. Updates at startup no longer stop on a workspace whose database has no tables, and say how to fix a workspace whose database is missing.
+
 ## [42.2] - 2026-10-31
 
 - **Improvement**: Tracked links now ask the visitor to confirm before opening another site whenever Notifuse cannot verify that the email itself contained the link. Links in emails sent from now on carry that proof and redirect directly as before. Links in emails sent before the upgrade that lead to another site, legacy `/visit` links and links clicked from a template preview show a confirmation page naming the destination. Unsubscribe and notification center links keep working directly.

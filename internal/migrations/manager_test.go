@@ -32,8 +32,15 @@ type mockWorkspaceConnector struct {
 	db *sql.DB
 }
 
-func (m *mockWorkspaceConnector) connectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error) {
+func (m *mockWorkspaceConnector) connectToWorkspace(ctx context.Context, cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error) {
 	return m.db, nil
+}
+
+// expectWorkspaceHoldsTables queues the emptiness check run on each workspace database
+// before it is migrated.
+func expectWorkspaceHoldsTables(mock sqlmock.Sqlmock, holds bool) {
+	mock.ExpectQuery(`SELECT EXISTS \(\s*SELECT 1\s*FROM pg_class c`).
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(holds))
 }
 
 func TestNewManager(t *testing.T) {
@@ -275,6 +282,7 @@ func TestManager_executeMigration_WorkspaceOnly(t *testing.T) {
 		WillReturnRows(rows)
 
 	// Mock workspace transaction expectations
+	expectWorkspaceHoldsTables(workspaceMock, true)
 	workspaceMock.ExpectBegin()
 	workspaceMock.ExpectCommit()
 
@@ -430,7 +438,7 @@ func TestDefaultConnector_ConnectToWorkspace(t *testing.T) {
 			SSLMode:  "disable",
 		}
 
-		db, err := connector.connectToWorkspace(cfg, "test-workspace")
+		db, err := connector.connectToWorkspace(context.Background(), cfg, "test-workspace")
 
 		assert.Error(t, err)
 		assert.Nil(t, db)
@@ -448,7 +456,7 @@ func TestDefaultConnector_ConnectToWorkspace(t *testing.T) {
 			SSLMode:  "disable",
 		}
 
-		db, err := connector.connectToWorkspace(cfg, "test-workspace-123")
+		db, err := connector.connectToWorkspace(context.Background(), cfg, "test-workspace-123")
 
 		// Should fail due to invalid host, but we verify the error handling
 		assert.Error(t, err)
@@ -467,7 +475,7 @@ func TestDefaultConnector_ConnectToWorkspace(t *testing.T) {
 			SSLMode:  "invalid",
 		}
 
-		db, err := connector.connectToWorkspace(cfg, "test")
+		db, err := connector.connectToWorkspace(context.Background(), cfg, "test")
 
 		// Should fail due to invalid configuration
 		assert.Error(t, err)
@@ -485,7 +493,7 @@ func TestDefaultConnector_ConnectToWorkspace(t *testing.T) {
 			SSLMode:  "require",
 		}
 
-		db, err := connector.connectToWorkspace(cfg, "workspace-with-special-chars-123")
+		db, err := connector.connectToWorkspace(context.Background(), cfg, "workspace-with-special-chars-123")
 
 		// Should fail due to nonexistent host, but DSN construction is tested
 		assert.Error(t, err)
@@ -505,7 +513,7 @@ func TestDefaultConnector_ConnectToWorkspace(t *testing.T) {
 			SSLMode:  "disable",
 		}
 
-		db, err := connector.connectToWorkspace(cfg, "a?b=c&d=")
+		db, err := connector.connectToWorkspace(context.Background(), cfg, "a?b=c&d=")
 
 		assert.Nil(t, db)
 		assert.EqualError(t, err, `invalid workspace ID for a database name: "a?b=c&d="`)

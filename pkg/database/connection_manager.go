@@ -12,7 +12,6 @@ import (
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database"
 	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/lib/pq"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -102,6 +101,9 @@ type connectionManager struct {
 	// openPool opens and verifies a workspace pool; nil means openAndVerifyPool. A
 	// seam for tests, which count dials without a real database.
 	openPool func(ctx context.Context, dsn, workspaceID string) (*sql.DB, error)
+	// ensureWorkspaceDatabase creates a registered workspace's missing database; nil
+	// means database.EnsureWorkspaceDatabaseExists. A seam for tests.
+	ensureWorkspaceDatabase func(ctx context.Context, cfg *config.DatabaseConfig, workspaceID string, stillRegistered func(ctx context.Context) error) error
 	// now is the clock of the not-found cache; nil means time.Now.
 	now func() time.Time
 }
@@ -368,7 +370,7 @@ func (cm *connectionManager) releasePoolReservation() {
 // createWorkspacePool creates a new connection pool for a workspace database.
 //
 // The workspace database is normally provisioned up-front at workspace creation
-// (see workspaceRepository.CreateDatabase). We therefore connect directly and
+// (see database.CreateWorkspaceDatabase). We therefore connect directly and
 // only fall back to EnsureWorkspaceDatabaseExists — which connects to the
 // `postgres` admin database — when the workspace DB is genuinely missing. Doing
 // that admin-DB round-trip on every pool creation caused a storm of admin
@@ -390,9 +392,18 @@ func (cm *connectionManager) createWorkspacePool(ctx context.Context, workspaceI
 		// fresh process), create it once and retry — instead of paying an
 		// admin-DB round-trip on every pool creation. GetWorkspaceConnection has
 		// already checked the workspace is registered: a request naming a workspace
-		// ID is no reason to create a database.
-		if isDatabaseDoesNotExistErr(err) {
-			if ensureErr := database.EnsureWorkspaceDatabaseExists(&cm.config.Database, workspaceID); ensureErr != nil {
+		// ID is no reason to create a database. The check runs again inside the
+		// workspace's name lock, so a request that waited on a deletion in progress
+		// finds the workspace gone and creates nothing.
+		if database.IsDatabaseMissingError(err) {
+			ensure := cm.ensureWorkspaceDatabase
+			if ensure == nil {
+				ensure = database.EnsureWorkspaceDatabaseExists
+			}
+			stillRegistered := func(ctx context.Context) error {
+				return cm.checkWorkspaceRegistered(ctx, workspaceID)
+			}
+			if ensureErr := ensure(ctx, &cm.config.Database, workspaceID, stillRegistered); ensureErr != nil {
 				return nil, ensureErr
 			}
 			db, err = open(ctx, dsn, workspaceID)
@@ -447,16 +458,6 @@ func (cm *connectionManager) openAndVerifyPool(ctx context.Context, dsn, workspa
 	}
 
 	return db, nil
-}
-
-// isDatabaseDoesNotExistErr reports whether err is PostgreSQL's
-// invalid_catalog_name (3D000), i.e. the target database does not exist.
-func isDatabaseDoesNotExistErr(err error) bool {
-	var pqErr *pq.Error
-	if errors.As(err, &pqErr) {
-		return pqErr.Code == "3D000"
-	}
-	return false
 }
 
 // hasCapacityForNewPool checks if we have capacity for a new connection pool.

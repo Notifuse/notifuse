@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -347,7 +348,7 @@ func TestEnsureWorkspaceDatabaseExists(t *testing.T) {
 		}
 		workspaceID := "test-workspace"
 
-		err := EnsureWorkspaceDatabaseExists(cfg, workspaceID)
+		err := EnsureWorkspaceDatabaseExists(context.Background(), cfg, workspaceID, nil)
 
 		assert.Error(t, err, "Should fail with invalid database configuration")
 		assert.Contains(t, err.Error(), "failed to ping PostgreSQL server")
@@ -366,7 +367,7 @@ func TestEnsureWorkspaceDatabaseExists(t *testing.T) {
 		}
 		workspaceID := "test-workspace-123"
 
-		err := EnsureWorkspaceDatabaseExists(cfg, workspaceID)
+		err := EnsureWorkspaceDatabaseExists(context.Background(), cfg, workspaceID, nil)
 
 		// Should fail due to invalid host, but we can verify the error message structure
 		assert.Error(t, err)
@@ -385,17 +386,17 @@ func TestEnsureWorkspaceDatabaseExists(t *testing.T) {
 			SSLMode:  "disable",
 		}
 
-		err := EnsureWorkspaceDatabaseExists(cfg, "AcmeCo")
+		err := EnsureWorkspaceDatabaseExists(context.Background(), cfg, "AcmeCo", nil)
 		assert.EqualError(t, err, "workspace database name must be lowercase: test_ws_AcmeCo")
 
 		cfg.Prefix = "Notifuse"
-		err = EnsureWorkspaceDatabaseExists(cfg, "acmeco")
+		err = EnsureWorkspaceDatabaseExists(context.Background(), cfg, "acmeco", nil)
 		assert.EqualError(t, err, "workspace database name must be lowercase: Notifuse_ws_acmeco")
 
 		// PostgreSQL folds only ASCII letters, so a name with another capital letter is
 		// created and opened as written, and goes on to the connection.
 		cfg.Prefix = "notifuseÜ"
-		err = EnsureWorkspaceDatabaseExists(cfg, "acmeco")
+		err = EnsureWorkspaceDatabaseExists(context.Background(), cfg, "acmeco", nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to ping PostgreSQL server")
 	})
@@ -412,7 +413,7 @@ func TestEnsureWorkspaceDatabaseExists(t *testing.T) {
 			SSLMode:  "disable",
 		}
 
-		err := EnsureWorkspaceDatabaseExists(cfg, "x template template0")
+		err := EnsureWorkspaceDatabaseExists(context.Background(), cfg, "x template template0", nil)
 		assert.EqualError(t, err, `invalid workspace ID for a database name: "x template template0"`)
 	})
 }

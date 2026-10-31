@@ -96,7 +96,7 @@ func ensureWSDB(t *testing.T, cm pgdb.ConnectionManager, direct *config.Database
 	t.Helper()
 	_, err := cm.GetSystemConnection().Exec(`INSERT INTO workspaces (id) VALUES ($1) ON CONFLICT DO NOTHING`, wsID)
 	require.NoError(t, err)
-	require.NoError(t, intdb.EnsureWorkspaceDatabaseExists(direct, wsID))
+	require.NoError(t, intdb.EnsureWorkspaceDatabaseExists(context.Background(), direct, wsID, nil))
 }
 
 // wsDBName mirrors how the connection manager derives the physical database name
