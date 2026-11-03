@@ -7,8 +7,68 @@ import {
   createFullPermissions,
   grantUnenforcedPermissions,
   grantsFullPermissions,
-  isPermissionEnforced
+  isPermissionEnforced,
+  ENFORCED_PERMISSION_VERBS,
+  countEnforcedGrants
 } from './permissions'
+import type { PermissionType } from './permissions'
+
+// What the members list counts: the verbs that gate something, over every resource the matrix
+// offers. The unenforced verbs are always granted and gate nothing, so counting them would only
+// shift both sides of the badge.
+describe('ENFORCED_PERMISSION_VERBS', () => {
+  const allPairs = [...ALL_PERMISSION_RESOURCES, ...OPT_IN_PERMISSION_RESOURCES].flatMap((resource) =>
+    (['read', 'write'] as PermissionType[]).map((verb) => [resource, verb] as const)
+  )
+
+  // Pinned against literals rather than rebuilt from isPermissionEnforced, so a change to the
+  // unenforced list or to the resources shows up here instead of moving both sides.
+  it('holds every canonical and opt-in verb except the four no endpoint enforces', () => {
+    expect(ALL_PERMISSION_RESOURCES).toHaveLength(14)
+    expect(OPT_IN_PERMISSION_RESOURCES).toEqual(['audit_logs'])
+    const excluded = allPairs.filter(
+      ([resource, verb]) => !ENFORCED_PERMISSION_VERBS.some(([r, v]) => r === resource && v === verb)
+    )
+    expect(excluded.map(([resource, verb]) => `${resource}.${verb}`).sort()).toEqual([
+      'audit_logs.write',
+      'llm.read',
+      'message_history.write',
+      'webhook_events.write'
+    ])
+    expect(ENFORCED_PERMISSION_VERBS).toHaveLength(26)
+  })
+
+  it('includes the opt-in Audit logs read and leaves out its unenforced write', () => {
+    expect(ENFORCED_PERMISSION_VERBS).toContainEqual(['audit_logs', 'read'])
+    expect(ENFORCED_PERMISSION_VERBS).not.toContainEqual(['audit_logs', 'write'])
+  })
+})
+
+describe('countEnforcedGrants', () => {
+  const canonicalEnforced = ENFORCED_PERMISSION_VERBS.filter(([resource]) =>
+    ALL_PERMISSION_RESOURCES.includes(resource)
+  ).length
+
+  it('counts every canonical enforced verb of a full set, and no unenforced one', () => {
+    expect(countEnforcedGrants(grantUnenforcedPermissions(createFullPermissions()))).toBe(
+      canonicalEnforced
+    )
+  })
+
+  it('counts nothing for the set Revoke all saves', () => {
+    expect(countEnforcedGrants(grantUnenforcedPermissions(createEmptyPermissions()))).toBe(0)
+  })
+
+  it('counts the opt-in Audit logs read', () => {
+    expect(countEnforcedGrants({ audit_logs: { read: true, write: true } })).toBe(1)
+  })
+
+  it('counts nothing for an empty, null or undefined map', () => {
+    expect(countEnforcedGrants({})).toBe(0)
+    expect(countEnforcedGrants(null)).toBe(0)
+    expect(countEnforcedGrants(undefined)).toBe(0)
+  })
+})
 
 // Mirrors grantsFullPermissions in internal/service/permissions_predicate.go: the console greys
 // out what the server would refuse without the rbac licence, so the two must agree on "full".

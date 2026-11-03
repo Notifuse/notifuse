@@ -61,7 +61,7 @@ export const ALL_PERMISSION_RESOURCES: PermissionResource[] = [
 
 // Mirrors domain.OptInPermissionResources: resources a member holds only when an owner grants
 // them on purpose. Deliberately absent from ALL_PERMISSION_RESOURCES, which is what "full
-// access" means — createFullPermissions builds it, the Full Access tag counts it — so that an
+// access" means — createFullPermissions builds it, the Full Access tag checks it — so that an
 // existing full-access member is neither widened nor narrowed by a resource added later.
 export const OPT_IN_PERMISSION_RESOURCES: PermissionResource[] = ["audit_logs"];
 
@@ -983,6 +983,28 @@ export function createFullPermissions(): UserPermissions {
 
 export function createEmptyPermissions(): UserPermissions {
   return buildPermissions(false);
+}
+
+/**
+ * Every verb that gates something, over the canonical and opt-in resources the matrix offers. The
+ * members list counts against this: an unenforced verb is always granted and gates nothing, so
+ * counting it would only shift both sides of the badge.
+ */
+export const ENFORCED_PERMISSION_VERBS: ReadonlyArray<
+  readonly [PermissionResource, PermissionType]
+> = [...ALL_PERMISSION_RESOURCES, ...OPT_IN_PERMISSION_RESOURCES].flatMap((resource) =>
+  (["read", "write"] as const)
+    .filter((verb) => isPermissionEnforced(resource, verb))
+    .map((verb) => [resource, verb] as const),
+);
+
+/** How many of ENFORCED_PERMISSION_VERBS a set grants. A missing resource grants nothing. */
+export function countEnforcedGrants(
+  permissions: StoredPermissions | null | undefined,
+): number {
+  return ENFORCED_PERMISSION_VERBS.filter(
+    ([resource, verb]) => permissions?.[resource]?.[verb] === true,
+  ).length;
 }
 
 /**

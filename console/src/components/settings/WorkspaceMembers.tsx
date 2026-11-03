@@ -22,8 +22,11 @@ import { useLingui } from '@lingui/react/macro'
 import { WorkspaceMember, UserPermissions, StoredPermissions } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import {
-  ALL_PERMISSION_RESOURCES,
+  ENFORCED_PERMISSION_VERBS,
+  OPT_IN_PERMISSION_RESOURCES,
+  countEnforcedGrants,
   createEmptyPermissions,
+  grantUnenforcedPermissions,
   createFullPermissions,
   grantsFullPermissions
 } from '../../services/api/permissions'
@@ -124,36 +127,48 @@ export function WorkspaceMembers({
         // may be partial or null — a resource it does not mention is denied.
         const permissions: StoredPermissions = record.permissions ?? createEmptyPermissions()
 
-        // The denominator is the whole resource list, not the row's key count: a row holding
-        // three resources is not Full Access.
-        const totalPermissions = ALL_PERMISSION_RESOURCES.length * 2 // read + write for each resource
-        const activePermissions = Object.values(permissions).reduce(
-          (count, perm) => count + (perm?.read ? 1 : 0) + (perm?.write ? 1 : 0),
-          0
-        )
+        // Full Access is the server's definition, read the way the editor reads a row: the
+        // unenforced verbs count as granted, as the editor shows and saves them, so a row stored
+        // with one of them off is still full access. It is checked first and never inferred from
+        // the count. The count is over the verbs that gate something, canonical and opt-in alike:
+        // the console stores the unenforced verbs as granted on every save, and counting them put
+        // a full row above the total, made a row one verb short read as full, and kept a revoked
+        // row from ever reading No Access.
+        const totalPermissions = ENFORCED_PERMISSION_VERBS.length
+        const activePermissions = countEnforcedGrants(permissions)
+        const details = <PermissionsMatrix value={permissions} />
+
+        if (
+          grantsFullPermissions(
+            grantUnenforcedPermissions({ ...createEmptyPermissions(), ...permissions })
+          )
+        ) {
+          const tag = <Tag color="green">{t`Full Access`}</Tag>
+          // An opt-in grant on top of full access (Audit logs read) is not implied by it, so it
+          // stays one hover away rather than hidden behind the same tag as a plain full grant.
+          const holdsOptIn = ENFORCED_PERMISSION_VERBS.some(
+            ([resource, verb]) =>
+              OPT_IN_PERMISSION_RESOURCES.includes(resource) && permissions[resource]?.[verb]
+          )
+          if (!holdsOptIn) return tag
+          return (
+            <Popover content={details} title={t`Permission Details`} trigger="hover">
+              <span className="cursor-pointer">{tag}</span>
+            </Popover>
+          )
+        }
 
         if (activePermissions === 0) {
           return (
-            <Popover
-              content={<PermissionsMatrix value={permissions} />}
-              title={t`Permission Details`}
-              trigger="hover"
-            >
+            <Popover content={details} title={t`Permission Details`} trigger="hover">
               <Tag color="red" className="cursor-pointer">
                 {t`No Access`}
               </Tag>
             </Popover>
           )
         }
-        if (activePermissions === totalPermissions) {
-          return <Tag color="green">{t`Full Access`}</Tag>
-        }
         return (
-          <Popover
-            content={<PermissionsMatrix value={permissions} />}
-            title={t`Permission Details`}
-            trigger="hover"
-          >
+          <Popover content={details} title={t`Permission Details`} trigger="hover">
             <Tag color="blue" className="cursor-pointer">
               {activePermissions}/{totalPermissions}
             </Tag>

@@ -1286,7 +1286,7 @@ msgstr "Chave API"
 #: src/components/settings/Integrations.tsx:2164
 #: src/components/settings/Integrations.tsx:2165
 #: src/components/settings/Integrations.tsx:2186
-#: src/components/settings/WorkspaceMembers.tsx:100
+#: src/components/settings/WorkspaceMembers.tsx:103
 msgid "API Key"
 msgstr "Chave API"
 
@@ -1302,11 +1302,11 @@ msgstr "Endereço da chave API"
 msgid "API key created"
 msgstr "Chave API criada"
 
-#: src/components/settings/WorkspaceMembers.tsx:309
+#: src/components/settings/WorkspaceMembers.tsx:324
 msgid "API key created successfully"
 msgstr "Chave API criada com sucesso"
 
-#: src/components/settings/WorkspaceMembers.tsx:586
+#: src/components/settings/WorkspaceMembers.tsx:601
 msgid "API Key Created Successfully"
 msgstr "Chave API Criada com Sucesso"
 
@@ -1314,7 +1314,7 @@ msgstr "Chave API Criada com Sucesso"
 #~ msgid "API key name"
 #~ msgstr "Nome da chave API"
 
-#: src/components/settings/WorkspaceMembers.tsx:543
+#: src/components/settings/WorkspaceMembers.tsx:558
 msgid "API Key Name"
 msgstr "Nome da Chave API"
 
@@ -1322,7 +1322,7 @@ msgstr "Nome da Chave API"
 msgid "API key token"
 msgstr "Token da chave API"
 
-#: src/components/settings/WorkspaceMembers.tsx:593
+#: src/components/settings/WorkspaceMembers.tsx:608
 msgid "API Token"
 msgstr "Token API"
 
@@ -1381,7 +1381,7 @@ msgid "Are you sure you want to delete the category"
 msgstr "Tem certeza que deseja excluir a categoria"
 
 #. placeholder {0}: record.email
-#: src/components/settings/WorkspaceMembers.tsx:220
+#: src/components/settings/WorkspaceMembers.tsx:235
 msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "Tem certeza que deseja excluir o convite para {0}?"
 
@@ -1427,7 +1427,7 @@ msgstr "Tem certeza que deseja reconstruir \"{0}\"? Isso recalculará os membros
 
 #. placeholder {0}: record.email
 #. placeholder {1}: record.type === 'api_key' ? ' This API key will be permanently deleted.' : ''
-#: src/components/settings/WorkspaceMembers.tsx:200
+#: src/components/settings/WorkspaceMembers.tsx:215
 msgid "Are you sure you want to remove {0}?{1}"
 msgstr "Tem certeza que deseja remover {0}?{1}"
 
@@ -2382,8 +2382,8 @@ msgstr "Campanhas"
 #: src/components/settings/WebhookCard.tsx:430
 #: src/components/settings/WebhookCard.tsx:450
 #: src/components/settings/WebhooksSettings.tsx:251
-#: src/components/settings/WorkspaceMembers.tsx:464
-#: src/components/settings/WorkspaceMembers.tsx:526
+#: src/components/settings/WorkspaceMembers.tsx:479
+#: src/components/settings/WorkspaceMembers.tsx:541
 #: src/components/templates/CreateTemplateDrawer.tsx:641
 #: src/components/templates/SendTemplateModal.tsx:268
 #: src/components/templates/TemplateTranslationsTab.tsx:276
@@ -2790,7 +2790,7 @@ msgstr "Clonar Template"
 #: src/components/contacts/BulkActionProgressModal.tsx:65
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
 #: src/components/settings/WebhookCard.tsx:447
-#: src/components/settings/WorkspaceMembers.tsx:522
+#: src/components/settings/WorkspaceMembers.tsx:537
 #: src/components/transactional/ApiCommandModal.tsx:990
 msgid "Close"
 msgstr "Fechar"
@@ -3516,9 +3516,9 @@ msgstr "Criar um tenant SES para esta integração?"
 msgid "Create and manage your blog content"
 msgstr "Crie e gerencie o conteúdo do seu blog"
 
-#: src/components/settings/WorkspaceMembers.tsx:428
-#: src/components/settings/WorkspaceMembers.tsx:509
-#: src/components/settings/WorkspaceMembers.tsx:533
+#: src/components/settings/WorkspaceMembers.tsx:443
+#: src/components/settings/WorkspaceMembers.tsx:524
+#: src/components/settings/WorkspaceMembers.tsx:548
 msgid "Create API Key"
 msgstr "Criar Chave API"
 
@@ -4243,8 +4243,8 @@ msgstr "Excluir pasta (Modo somente leitura)"
 msgid "Delete header"
 msgstr "Excluir cabeçalho"
 
-#: src/components/settings/WorkspaceMembers.tsx:219
-#: src/components/settings/WorkspaceMembers.tsx:226
+#: src/components/settings/WorkspaceMembers.tsx:234
+#: src/components/settings/WorkspaceMembers.tsx:241
 msgid "Delete invitation"
 msgstr "Excluir convite"
 
@@ -4877,7 +4877,7 @@ msgstr "Editar notificação"
 msgid "Edit Notification"
 msgstr "Editar Notificação"
 
-#: src/components/settings/WorkspaceMembers.tsx:188
+#: src/components/settings/WorkspaceMembers.tsx:203
 msgid "Edit permissions"
 msgstr "Editar permissões"
 
@@ -4980,7 +4980,7 @@ msgstr "email"
 #: src/components/messages/MessageHistoryTab.tsx:217
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:122
 #: src/components/settings/Integrations.tsx:2703
-#: src/components/settings/WorkspaceMembers.tsx:85
+#: src/components/settings/WorkspaceMembers.tsx:88
 #: src/components/timeline/ContactTimeline.tsx:645
 #: src/pages/ContactsPage.tsx:369
 #: src/pages/ContactsPage.tsx:536
@@ -4995,7 +4995,7 @@ msgstr "Email (Obrigatório)"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
 #: src/components/settings/Integrations.tsx:1939
-#: src/components/settings/WorkspaceMembers.tsx:479
+#: src/components/settings/WorkspaceMembers.tsx:494
 msgid "Email Address"
 msgstr "Endereço de Email"
 
@@ -5322,7 +5322,7 @@ msgid "Enter duration"
 msgstr "Digite a duração"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:521
-#: src/components/settings/WorkspaceMembers.tsx:484
+#: src/components/settings/WorkspaceMembers.tsx:499
 msgid "Enter email address"
 msgstr "Digite o endereço de email"
 
@@ -5785,7 +5785,7 @@ msgstr "Falha ao conectar o Zapier"
 msgid "Failed to copy to clipboard"
 msgstr "Falha ao copiar para a área de transferência"
 
-#: src/components/settings/WorkspaceMembers.tsx:315
+#: src/components/settings/WorkspaceMembers.tsx:330
 msgid "Failed to create API key"
 msgstr "Falha ao criar chave de API"
 
@@ -5865,7 +5865,7 @@ msgstr "Falha ao excluir arquivo: "
 msgid "Failed to delete integration"
 msgstr "Falha ao excluir integração"
 
-#: src/components/settings/WorkspaceMembers.tsx:366
+#: src/components/settings/WorkspaceMembers.tsx:381
 msgid "Failed to delete invitation"
 msgstr "Falha ao excluir convite"
 
@@ -5968,7 +5968,7 @@ msgstr "Falha ao importar template. Por favor, verifique o formato do arquivo."
 msgid "Failed to install the licence key"
 msgstr ""
 
-#: src/components/settings/WorkspaceMembers.tsx:279
+#: src/components/settings/WorkspaceMembers.tsx:294
 msgid "Failed to invite member"
 msgstr "Falha ao convidar membro"
 
@@ -6048,7 +6048,7 @@ msgstr "Falha ao registrar webhooks"
 msgid "Failed to remove custom field label"
 msgstr "Falha ao remover rótulo do campo personalizado"
 
-#: src/components/settings/WorkspaceMembers.tsx:347
+#: src/components/settings/WorkspaceMembers.tsx:362
 msgid "Failed to remove member"
 msgstr "Falha ao remover membro"
 
@@ -6056,7 +6056,7 @@ msgstr "Falha ao remover membro"
 msgid "Failed to render preview"
 msgstr "Falha ao renderizar pré-visualização"
 
-#: src/components/settings/WorkspaceMembers.tsx:399
+#: src/components/settings/WorkspaceMembers.tsx:414
 msgid "Failed to resend invitation"
 msgstr "Falha ao reenviar convite"
 
@@ -6604,7 +6604,7 @@ msgstr "Nome do Remetente (substituir)"
 msgid "From:"
 msgstr "De:"
 
-#: src/components/settings/WorkspaceMembers.tsx:149
+#: src/components/settings/WorkspaceMembers.tsx:146
 msgid "Full Access"
 msgstr "Acesso Total"
 
@@ -7466,24 +7466,24 @@ msgstr "URL do YouTube inválida"
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "Convite aceito com sucesso! Bem-vindo ao workspace."
 
-#: src/components/settings/WorkspaceMembers.tsx:362
+#: src/components/settings/WorkspaceMembers.tsx:377
 msgid "Invitation deleted successfully"
 msgstr "Convite excluído com sucesso"
 
-#: src/components/settings/WorkspaceMembers.tsx:392
+#: src/components/settings/WorkspaceMembers.tsx:407
 msgid "Invitation resent to {email}"
 msgstr "Convite reenviado para {email}"
 
-#: src/components/settings/WorkspaceMembers.tsx:105
+#: src/components/settings/WorkspaceMembers.tsx:108
 msgid "Invitation sent"
 msgstr "Convite enviado"
 
-#: src/components/settings/WorkspaceMembers.tsx:269
+#: src/components/settings/WorkspaceMembers.tsx:284
 msgid "Invitation sent to {inviteEmail}"
 msgstr "Convite enviado para {inviteEmail}"
 
-#: src/components/settings/WorkspaceMembers.tsx:431
-#: src/components/settings/WorkspaceMembers.tsx:455
+#: src/components/settings/WorkspaceMembers.tsx:446
+#: src/components/settings/WorkspaceMembers.tsx:470
 msgid "Invite Member"
 msgstr "Convidar Membro"
 
@@ -8219,7 +8219,7 @@ msgstr "Faz a seção ocupar toda a largura do viewport do email, ignorando rest
 msgid "Makes the wrapper span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
 msgstr "Faz o wrapper ocupar toda a largura do viewport do email, ignorando restrições do container (tipicamente 600px). Útil para fundos de largura total e seções de destaque."
 
-#: src/components/settings/WorkspaceMembers.tsx:422
+#: src/components/settings/WorkspaceMembers.tsx:437
 msgid "Manage your workspace members"
 msgstr "Gerencie os membros do seu workspace"
 
@@ -8369,7 +8369,7 @@ msgstr "Médio"
 msgid "Mediums"
 msgstr "Mídias"
 
-#: src/components/settings/WorkspaceMembers.tsx:343
+#: src/components/settings/WorkspaceMembers.tsx:358
 msgid "Member removed successfully"
 msgstr "Membro removido com sucesso"
 
@@ -8775,8 +8775,8 @@ msgstr "Próxima Execução"
 #: src/components/settings/WebhookCard.tsx:218
 #: src/components/settings/WebhookCard.tsx:274
 #: src/components/settings/WebhookCard.tsx:361
-#: src/components/settings/WorkspaceMembers.tsx:203
-#: src/components/settings/WorkspaceMembers.tsx:223
+#: src/components/settings/WorkspaceMembers.tsx:218
+#: src/components/settings/WorkspaceMembers.tsx:238
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:156
 #: src/components/web_analytics/filters/BackfillStatus.tsx:84
 #: src/components/web_analytics/filters/FilterTable.tsx:272
@@ -8789,7 +8789,7 @@ msgstr "Não"
 msgid "No {0} content to preview"
 msgstr "Nenhum conteúdo {0} para pré-visualizar"
 
-#: src/components/settings/WorkspaceMembers.tsx:143
+#: src/components/settings/WorkspaceMembers.tsx:165
 msgid "No Access"
 msgstr "Sem Acesso"
 
@@ -8995,7 +8995,7 @@ msgstr "Nenhuma lista encontrada"
 msgid "No match"
 msgstr "Sem correspondência"
 
-#: src/components/settings/WorkspaceMembers.tsx:447
+#: src/components/settings/WorkspaceMembers.tsx:462
 msgid "No members found"
 msgstr "Nenhum membro encontrado"
 
@@ -9781,7 +9781,7 @@ msgstr "Payload:"
 #: src/components/automations/nodes/AddToListNode.tsx:59
 #: src/components/contacts/ContactDetailsDrawer.tsx:583
 #: src/components/lists/ListStats.tsx:90
-#: src/components/settings/WorkspaceMembers.tsx:120
+#: src/components/settings/WorkspaceMembers.tsx:123
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:85
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:245
 #: src/pages/BroadcastsPage.tsx:440
@@ -9834,14 +9834,15 @@ msgstr "Verifique periodicamente por novas versões do Notifuse e atualizações
 msgid "Permanently delete any contact"
 msgstr "Excluir permanentemente qualquer contato"
 
-#: src/components/settings/WorkspaceMembers.tsx:139
-#: src/components/settings/WorkspaceMembers.tsx:154
+#: src/components/settings/WorkspaceMembers.tsx:155
+#: src/components/settings/WorkspaceMembers.tsx:163
+#: src/components/settings/WorkspaceMembers.tsx:171
 msgid "Permission Details"
 msgstr "Detalhes da Permissão"
 
-#: src/components/settings/WorkspaceMembers.tsx:116
-#: src/components/settings/WorkspaceMembers.tsx:490
-#: src/components/settings/WorkspaceMembers.tsx:567
+#: src/components/settings/WorkspaceMembers.tsx:119
+#: src/components/settings/WorkspaceMembers.tsx:505
+#: src/components/settings/WorkspaceMembers.tsx:582
 msgid "Permissions"
 msgstr "Permissões"
 
@@ -10035,8 +10036,8 @@ msgstr "Por favor, insira um nome para o workspace"
 msgid "Please enter an API identifier"
 msgstr "Por favor, insira um identificador de API"
 
-#: src/components/settings/WorkspaceMembers.tsx:289
-#: src/components/settings/WorkspaceMembers.tsx:545
+#: src/components/settings/WorkspaceMembers.tsx:304
+#: src/components/settings/WorkspaceMembers.tsx:560
 msgid "Please enter an API key name"
 msgstr "Por favor, insira um nome para a chave API"
 
@@ -10045,8 +10046,8 @@ msgstr "Por favor, insira um nome para a chave API"
 msgid "Please enter an automation name"
 msgstr "Por favor, insira um nome para a automação"
 
-#: src/components/settings/WorkspaceMembers.tsx:256
-#: src/components/settings/WorkspaceMembers.tsx:481
+#: src/components/settings/WorkspaceMembers.tsx:271
+#: src/components/settings/WorkspaceMembers.tsx:496
 msgid "Please enter an email address"
 msgstr "Por favor, insira um endereço de email"
 
@@ -11001,8 +11002,8 @@ msgstr "Remover da Lista"
 msgid "Remove Link"
 msgstr "Remover Link"
 
-#: src/components/settings/WorkspaceMembers.tsx:199
-#: src/components/settings/WorkspaceMembers.tsx:206
+#: src/components/settings/WorkspaceMembers.tsx:214
+#: src/components/settings/WorkspaceMembers.tsx:221
 msgid "Remove member"
 msgstr "Remover membro"
 
@@ -11151,7 +11152,7 @@ msgstr "Requer um espaçamento"
 msgid "Resend code"
 msgstr "Reenviar código"
 
-#: src/components/settings/WorkspaceMembers.tsx:234
+#: src/components/settings/WorkspaceMembers.tsx:249
 msgid "Resend invitation"
 msgstr "Reenviar convite"
 
@@ -11314,7 +11315,7 @@ msgstr "Direita"
 msgid "Right to Left"
 msgstr "Direita para Esquerda"
 
-#: src/components/settings/WorkspaceMembers.tsx:93
+#: src/components/settings/WorkspaceMembers.tsx:96
 msgid "Role"
 msgstr "Função"
 
@@ -12119,7 +12120,7 @@ msgstr "Envie uma notificação transacional usando Python:"
 msgid "Send a transactional notification using TypeScript/JavaScript:"
 msgstr "Envie uma notificação transacional usando TypeScript/JavaScript:"
 
-#: src/components/settings/WorkspaceMembers.tsx:471
+#: src/components/settings/WorkspaceMembers.tsx:486
 msgid "Send Invitation"
 msgstr "Enviar Convite"
 
@@ -12526,7 +12527,7 @@ msgid "Signup"
 msgstr "Cadastro"
 
 #: src/components/analytics/NewContactsTable.tsx:184
-#: src/components/settings/WorkspaceMembers.tsx:165
+#: src/components/settings/WorkspaceMembers.tsx:180
 msgid "Since"
 msgstr "Desde"
 
@@ -13145,11 +13146,11 @@ msgid "Task type:"
 msgstr "Tipo de tarefa:"
 
 #: src/components/settings/SettingsSidebar.tsx:57
-#: src/components/settings/WorkspaceMembers.tsx:422
+#: src/components/settings/WorkspaceMembers.tsx:437
 msgid "Team"
 msgstr "Equipe"
 
-#: src/components/settings/WorkspaceMembers.tsx:277
+#: src/components/settings/WorkspaceMembers.tsx:292
 msgid "Team member limit reached. Please upgrade your plan to add more members."
 msgstr "Limite de membros da equipe atingido. Faça upgrade do seu plano para adicionar mais membros."
 
@@ -13969,7 +13970,7 @@ msgstr "Este texto aparece no painel de visualização do cliente de email, gera
 msgid "This token is displayed once and cannot be retrieved again. Copy it now and paste it into Zapier."
 msgstr "Este token é exibido apenas uma vez e não pode ser recuperado novamente. Copie-o agora e cole no Zapier."
 
-#: src/components/settings/WorkspaceMembers.tsx:587
+#: src/components/settings/WorkspaceMembers.tsx:602
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "Este token será exibido apenas uma vez. Por favor, salve-o em um local seguro. Ele não pode ser recuperado novamente."
 
@@ -15597,8 +15598,8 @@ msgstr "Anual"
 #: src/components/settings/WebhookCard.tsx:217
 #: src/components/settings/WebhookCard.tsx:273
 #: src/components/settings/WebhookCard.tsx:360
-#: src/components/settings/WorkspaceMembers.tsx:202
-#: src/components/settings/WorkspaceMembers.tsx:222
+#: src/components/settings/WorkspaceMembers.tsx:217
+#: src/components/settings/WorkspaceMembers.tsx:237
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:155
 #: src/components/web_analytics/filters/FilterTable.tsx:271
 msgid "Yes"

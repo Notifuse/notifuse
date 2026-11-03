@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [42.3] - 2026-10-31
 
+- **Improvement**: The members list now shows Full Access for every member and API key with full access, including one that can also read audit logs, and No Access for one whose permissions were all revoked. The count shown for other members only includes permissions that grant access.
+
 - **Fix**: Without a licence covering granular permissions, an owner can now put a member or an API key back on full access from the permission editor; only a narrower set needs the licence, as for invitations and new API keys. The permission editor, the invitation form and the API key form now grey out only the choices that would narrow access and keep "Grant all" available.
 
 - **Improvement**: A workspace whose creation stopped partway can now be created again under the same ID, and a leftover database that already holds tables is refused with a message naming it. A workspace deleted while in use no longer gets its database back. Updates at startup no longer stop on a workspace whose database has no tables, which is now set up shortly after startup. An update that cannot start because a workspace's database is missing says how to fix it, and instances starting together now apply updates one at a time.
