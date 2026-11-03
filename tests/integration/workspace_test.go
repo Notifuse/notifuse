@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -242,7 +243,7 @@ func TestWorkspaceCRUDSuite(t *testing.T) {
 			workspaceDBName := wsDBName(cfg.Prefix, workspaceID)
 			dropLeftoverDatabase(t, suite, workspaceDBName)
 
-			err := intdb.EnsureWorkspaceDatabaseExists(cfg, workspaceID)
+			err := intdb.EnsureWorkspaceDatabaseExists(context.Background(), cfg, workspaceID, nil)
 			require.EqualError(t, err, "workspace database name must be lowercase: "+workspaceDBName)
 
 			leftovers, err := databasesAnyCase(suite.DBManager.GetDB(), workspaceDBName)

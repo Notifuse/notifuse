@@ -1182,8 +1182,6 @@ type WorkspaceRepository interface {
 	// Database management
 	GetConnection(ctx context.Context, workspaceID string) (*sql.DB, error)
 	GetSystemConnection(ctx context.Context) (*sql.DB, error)
-	CreateDatabase(ctx context.Context, workspaceID string) error
-	DeleteDatabase(ctx context.Context, workspaceID string) error
 
 	// Transaction management
 	WithWorkspaceTransaction(ctx context.Context, workspaceID string, fn func(*sql.Tx) error) error
@@ -1223,6 +1221,23 @@ type ErrWorkspaceNotFound struct {
 
 func (e *ErrWorkspaceNotFound) Error() string {
 	return fmt.Sprintf("workspace not found: %s", e.WorkspaceID)
+}
+
+// ErrWorkspaceAlreadyExists is returned when a workspace is created under an ID a
+// workspace already has.
+var ErrWorkspaceAlreadyExists = errors.New("workspace already exists")
+
+// ErrWorkspaceDatabaseNotEmpty is returned when a workspace is created under an ID whose
+// database already exists and holds tables while no workspace uses it. Such a database
+// is never adopted (its schema may predate the code, and nothing proves it holds no
+// data) nor dropped automatically.
+type ErrWorkspaceDatabaseNotEmpty struct {
+	WorkspaceID  string
+	DatabaseName string
+}
+
+func (e *ErrWorkspaceDatabaseNotEmpty) Error() string {
+	return fmt.Sprintf("a database for workspace ID %q already exists and holds tables, but no workspace uses it (%s): choose another ID, or remove that database", e.WorkspaceID, e.DatabaseName)
 }
 
 // ErrTeamMemberLimitReached is returned when a workspace has reached its team member limit

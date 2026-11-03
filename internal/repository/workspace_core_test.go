@@ -877,8 +877,7 @@ func TestWorkspaceRepository_Create_Postgres_ErrorsBeforeDBCreation(t *testing.T
 		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
 	dup := &domain.Workspace{ID: "dup", Name: "Dup", Settings: domain.WorkspaceSettings{Timezone: "UTC", SecretKey: "s"}}
 	err := repo.Create(context.Background(), dup)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "already exists")
+	assert.ErrorIs(t, err, domain.ErrWorkspaceAlreadyExists)
 
 	// 2) BeforeSave error (missing secret key) - happens before DB creation
 	mock.ExpectQuery(`SELECT EXISTS\(SELECT 1 FROM workspaces WHERE id = \$1\)`).
@@ -889,10 +888,8 @@ func TestWorkspaceRepository_Create_Postgres_ErrorsBeforeDBCreation(t *testing.T
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "secret key")
 
-	// Note: After refactoring, CreateDatabase is now called first. Testing INSERT failures
-	// with proper cleanup requires integration tests or a more sophisticated mock setup
-	// that can handle database.EnsureWorkspaceDatabaseExists calls. The integration tests
-	// in tests/integration/workspace_test.go cover the full create flow including errors.
+	// The creation itself goes through the createWorkspaceDatabase seam: see
+	// TestWorkspaceRepository_CreateUnderNameLock.
 }
 
 func TestWorkspaceRepository_Delete_Postgres(t *testing.T) {
@@ -902,12 +899,13 @@ func TestWorkspaceRepository_Delete_Postgres(t *testing.T) {
 	dbConfig := &config.DatabaseConfig{User: "postgres", Prefix: "notifuse"}
 	connMgr := newMockConnectionManager(db)
 	repo := NewWorkspaceRepository(db, dbConfig, "secret-key", connMgr).(*workspaceRepository)
+	repo.workspaceDatabaseLock = passThroughWorkspaceLock(nil)
 
 	workspaceID := "ws1"
 	safeID := strings.ReplaceAll(workspaceID, "-", "_")
 	dbName := fmt.Sprintf("%s_ws_%s", dbConfig.Prefix, safeID)
 
-	// Error from DeleteDatabase (drop fails)
+	// Error from the drop
 	dropQuery := fmt.Sprintf(`DROP DATABASE IF EXISTS %s WITH (FORCE)`, pq.QuoteIdentifier(dbName))
 	mock.ExpectExec(regexp.QuoteMeta(dropQuery)).
 		WillReturnError(fmt.Errorf("perm denied"))

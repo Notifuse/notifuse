@@ -168,16 +168,6 @@ func (m *MockWorkspaceRepository) UpdateUserWorkspacePermissions(ctx context.Con
 	return args.Error(0)
 }
 
-func (m *MockWorkspaceRepository) CreateDatabase(ctx context.Context, workspaceID string) error {
-	args := m.Called(ctx, workspaceID)
-	return args.Error(0)
-}
-
-func (m *MockWorkspaceRepository) DeleteDatabase(ctx context.Context, workspaceID string) error {
-	args := m.Called(ctx, workspaceID)
-	return args.Error(0)
-}
-
 // Not in interface, but used by template repository
 func (m *MockWorkspaceRepository) GetAllConnections(ctx context.Context) (map[string]*sql.DB, error) {
 	// Not needed for template repository tests

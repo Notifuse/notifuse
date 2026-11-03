@@ -358,7 +358,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 
 		mockAuthService.EXPECT().AuthenticateUserFromContext(ctx).Return(expectedUser, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, nil)
-		mockRepo.EXPECT().Create(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+		mockRepo.EXPECT().Create(liveCtx(), gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
 			// Instead of expecting an exact value, verify it's not empty and has expected format
 			assert.NotEmpty(t, workspace.Settings.SecretKey, "Secret key should not be empty")
 			assert.Equal(t, 64, len(workspace.Settings.SecretKey), "Secret key should be 64 hex characters (32 bytes)")
@@ -367,12 +367,12 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 			assert.NoError(t, err, "Secret key should be valid hex")
 			return nil
 		})
-		mockRepo.EXPECT().AddUserToWorkspace(ctx, gomock.Any()).Return(nil)
-		mockUserService.EXPECT().GetUserByID(ctx, expectedUser.ID).Return(expectedUser, nil)
-		mockContactService.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
+		mockRepo.EXPECT().AddUserToWorkspace(detachedCtx(), gomock.Any()).Return(nil)
+		mockUserService.EXPECT().GetUserByID(detachedCtx(), expectedUser.ID).Return(expectedUser, nil)
+		mockContactService.EXPECT().UpsertContact(detachedCtx(), workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
 
-		mockListService.EXPECT().CreateList(ctx, workspaceID, gomock.Any()).Return(nil)
-		mockListService.EXPECT().SubscribeToLists(ctx, &domain.SubscribeToListsRequest{
+		mockListService.EXPECT().CreateList(detachedCtx(), workspaceID, gomock.Any()).Return(nil)
+		mockListService.EXPECT().SubscribeToLists(detachedCtx(), &domain.SubscribeToListsRequest{
 			WorkspaceID: workspaceID,
 			Contact: domain.Contact{
 				Email: expectedUser.Email,
@@ -381,8 +381,8 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 		}, true).Return(nil)
 
 		// Expect EnsureContactSegmentQueueProcessingTask to be called
-		mockTaskRepo.EXPECT().List(ctx, workspaceID, gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
-		mockTaskRepo.EXPECT().Create(ctx, workspaceID, gomock.Any()).Return(nil).AnyTimes()
+		mockTaskRepo.EXPECT().List(detachedCtx(), workspaceID, gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
+		mockTaskRepo.EXPECT().Create(detachedCtx(), workspaceID, gomock.Any()).Return(nil).AnyTimes()
 
 		workspace, err := service.CreateWorkspace(ctx, workspaceID, "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", domain.FileManagerSettings{
 			Endpoint:  "https://s3.amazonaws.com",
@@ -440,7 +440,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 
 		mockAuthService.EXPECT().AuthenticateUserFromContext(ctx).Return(expectedUser, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, nil)
-		mockRepo.EXPECT().Create(ctx, gomock.Any()).Return(assert.AnError)
+		mockRepo.EXPECT().Create(liveCtx(), gomock.Any()).Return(assert.AnError)
 
 		workspace, err := service.CreateWorkspace(ctx, workspaceID, "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", domain.FileManagerSettings{
 			Endpoint:  "https://s3.amazonaws.com",
@@ -461,8 +461,8 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 
 		mockAuthService.EXPECT().AuthenticateUserFromContext(ctx).Return(expectedUser, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, nil)
-		mockRepo.EXPECT().Create(ctx, gomock.Any()).Return(nil)
-		mockRepo.EXPECT().AddUserToWorkspace(ctx, gomock.Any()).Return(assert.AnError)
+		mockRepo.EXPECT().Create(liveCtx(), gomock.Any()).Return(nil)
+		mockRepo.EXPECT().AddUserToWorkspace(detachedCtx(), gomock.Any()).Return(assert.AnError)
 
 		workspace, err := service.CreateWorkspace(ctx, workspaceID, "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", domain.FileManagerSettings{
 			Endpoint:  "https://s3.amazonaws.com",
@@ -483,9 +483,9 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 
 		mockAuthService.EXPECT().AuthenticateUserFromContext(ctx).Return(expectedUser, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, nil)
-		mockRepo.EXPECT().Create(ctx, gomock.Any()).Return(nil)
-		mockRepo.EXPECT().AddUserToWorkspace(ctx, gomock.Any()).Return(nil)
-		mockUserService.EXPECT().GetUserByID(ctx, expectedUser.ID).Return(nil, assert.AnError)
+		mockRepo.EXPECT().Create(liveCtx(), gomock.Any()).Return(nil)
+		mockRepo.EXPECT().AddUserToWorkspace(detachedCtx(), gomock.Any()).Return(nil)
+		mockUserService.EXPECT().GetUserByID(detachedCtx(), expectedUser.ID).Return(nil, assert.AnError)
 
 		workspace, err := service.CreateWorkspace(ctx, workspaceID, "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", domain.FileManagerSettings{
 			Endpoint:  "https://s3.amazonaws.com",
@@ -506,10 +506,10 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 
 		mockAuthService.EXPECT().AuthenticateUserFromContext(ctx).Return(expectedUser, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, nil)
-		mockRepo.EXPECT().Create(ctx, gomock.Any()).Return(nil)
-		mockRepo.EXPECT().AddUserToWorkspace(ctx, gomock.Any()).Return(nil)
-		mockUserService.EXPECT().GetUserByID(ctx, expectedUser.ID).Return(expectedUser, nil)
-		mockContactService.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{
+		mockRepo.EXPECT().Create(liveCtx(), gomock.Any()).Return(nil)
+		mockRepo.EXPECT().AddUserToWorkspace(detachedCtx(), gomock.Any()).Return(nil)
+		mockUserService.EXPECT().GetUserByID(detachedCtx(), expectedUser.ID).Return(expectedUser, nil)
+		mockContactService.EXPECT().UpsertContact(detachedCtx(), workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{
 			Action: domain.UpsertContactOperationError,
 			Error:  "failed to upsert contact",
 		})
@@ -533,16 +533,16 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 
 		mockAuthService.EXPECT().AuthenticateUserFromContext(ctx).Return(expectedUser, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, nil)
-		mockRepo.EXPECT().Create(ctx, gomock.Any()).Return(nil)
-		mockRepo.EXPECT().AddUserToWorkspace(ctx, gomock.Any()).Return(nil)
-		mockUserService.EXPECT().GetUserByID(ctx, expectedUser.ID).Return(expectedUser, nil)
-		mockContactService.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
+		mockRepo.EXPECT().Create(liveCtx(), gomock.Any()).Return(nil)
+		mockRepo.EXPECT().AddUserToWorkspace(detachedCtx(), gomock.Any()).Return(nil)
+		mockUserService.EXPECT().GetUserByID(detachedCtx(), expectedUser.ID).Return(expectedUser, nil)
+		mockContactService.EXPECT().UpsertContact(detachedCtx(), workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
 
 		// Simulate template creation error for all four templates
 		mockTemplateService.EXPECT().CreateTemplate(ctx, workspaceID, gomock.Any()).Return(errors.New("template creation failed")).AnyTimes()
 
-		mockListService.EXPECT().CreateList(ctx, workspaceID, gomock.Any()).Return(nil)
-		mockListService.EXPECT().SubscribeToLists(ctx, &domain.SubscribeToListsRequest{
+		mockListService.EXPECT().CreateList(detachedCtx(), workspaceID, gomock.Any()).Return(nil)
+		mockListService.EXPECT().SubscribeToLists(detachedCtx(), &domain.SubscribeToListsRequest{
 			WorkspaceID: workspaceID,
 			Contact: domain.Contact{
 				Email: expectedUser.Email,
@@ -639,14 +639,14 @@ func TestWorkspaceService_CreateWorkspace_MultipleRootEmails(t *testing.T) {
 
 		mockAuthService.EXPECT().AuthenticateUserFromContext(ctx).Return(secondRoot, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, nil)
-		mockRepo.EXPECT().Create(ctx, gomock.Any()).Return(nil)
-		mockRepo.EXPECT().AddUserToWorkspace(ctx, gomock.Any()).Return(nil)
-		mockUserService.EXPECT().GetUserByID(ctx, secondRoot.ID).Return(secondRoot, nil)
-		mockContactService.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
-		mockListService.EXPECT().CreateList(ctx, workspaceID, gomock.Any()).Return(nil)
-		mockListService.EXPECT().SubscribeToLists(ctx, gomock.Any(), true).Return(nil)
-		mockTaskRepo.EXPECT().List(ctx, workspaceID, gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
-		mockTaskRepo.EXPECT().Create(ctx, workspaceID, gomock.Any()).Return(nil).AnyTimes()
+		mockRepo.EXPECT().Create(liveCtx(), gomock.Any()).Return(nil)
+		mockRepo.EXPECT().AddUserToWorkspace(detachedCtx(), gomock.Any()).Return(nil)
+		mockUserService.EXPECT().GetUserByID(detachedCtx(), secondRoot.ID).Return(secondRoot, nil)
+		mockContactService.EXPECT().UpsertContact(detachedCtx(), workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
+		mockListService.EXPECT().CreateList(detachedCtx(), workspaceID, gomock.Any()).Return(nil)
+		mockListService.EXPECT().SubscribeToLists(detachedCtx(), gomock.Any(), true).Return(nil)
+		mockTaskRepo.EXPECT().List(detachedCtx(), workspaceID, gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
+		mockTaskRepo.EXPECT().Create(detachedCtx(), workspaceID, gomock.Any()).Return(nil).AnyTimes()
 
 		workspace, err := service.CreateWorkspace(ctx, workspaceID, "Second Root Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", domain.FileManagerSettings{
 			Endpoint:  "https://s3.amazonaws.com",
@@ -746,18 +746,18 @@ func TestWorkspaceService_CreateWorkspace_CustomLanguageSettings(t *testing.T) {
 
 	mockAuthService.EXPECT().AuthenticateUserFromContext(ctx).Return(expectedUser, nil)
 	mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, nil)
-	mockRepo.EXPECT().Create(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+	mockRepo.EXPECT().Create(liveCtx(), gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
 		assert.Equal(t, "fr", workspace.Settings.DefaultLanguage)
 		assert.Equal(t, []string{"fr", "en"}, workspace.Settings.Languages)
 		return nil
 	})
-	mockRepo.EXPECT().AddUserToWorkspace(ctx, gomock.Any()).Return(nil)
-	mockUserService.EXPECT().GetUserByID(ctx, expectedUser.ID).Return(expectedUser, nil)
-	mockContactService.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
-	mockListService.EXPECT().CreateList(ctx, workspaceID, gomock.Any()).Return(nil)
-	mockListService.EXPECT().SubscribeToLists(ctx, gomock.Any(), true).Return(nil)
-	mockTaskRepo.EXPECT().List(ctx, workspaceID, gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
-	mockTaskRepo.EXPECT().Create(ctx, workspaceID, gomock.Any()).Return(nil).AnyTimes()
+	mockRepo.EXPECT().AddUserToWorkspace(detachedCtx(), gomock.Any()).Return(nil)
+	mockUserService.EXPECT().GetUserByID(detachedCtx(), expectedUser.ID).Return(expectedUser, nil)
+	mockContactService.EXPECT().UpsertContact(detachedCtx(), workspaceID, gomock.Any()).Return(domain.UpsertContactOperation{Action: domain.UpsertContactOperationCreate})
+	mockListService.EXPECT().CreateList(detachedCtx(), workspaceID, gomock.Any()).Return(nil)
+	mockListService.EXPECT().SubscribeToLists(detachedCtx(), gomock.Any(), true).Return(nil)
+	mockTaskRepo.EXPECT().List(detachedCtx(), workspaceID, gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
+	mockTaskRepo.EXPECT().Create(detachedCtx(), workspaceID, gomock.Any()).Return(nil).AnyTimes()
 
 	workspace, err := service.CreateWorkspace(ctx, workspaceID, "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", domain.FileManagerSettings{
 		Endpoint:  "https://s3.amazonaws.com",

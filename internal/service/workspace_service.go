@@ -187,6 +187,10 @@ func (s *WorkspaceService) GetWorkspace(ctx context.Context, id string) (*domain
 	return workspace, nil
 }
 
+// workspaceSetupTimeout bounds what follows the creation of a workspace, detached from
+// the request: the owner membership, contact, list and tasks.
+const workspaceSetupTimeout = 5 * time.Minute
+
 // CreateWorkspace creates a new workspace and adds the creator as owner
 func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name string, websiteURL string, logoURL string, coverURL string, timezone string, fileManager domain.FileManagerSettings, defaultLanguage string, languages []string) (*domain.Workspace, error) {
 	user, err := s.authService.AuthenticateUserFromContext(ctx)
@@ -291,13 +295,20 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 	// check if workspace already exists
 	if existingWorkspace, _ := s.repo.GetByID(ctx, id); existingWorkspace != nil {
 		s.logger.WithField("workspace_id", id).Error("Workspace already exists")
-		return nil, fmt.Errorf("workspace already exists")
+		return nil, domain.ErrWorkspaceAlreadyExists
 	}
 
-	if err := s.repo.Create(ctx, workspace); err != nil {
+	// From here on, detached from the request: a client disconnecting mid-way must not
+	// leave a registered workspace without its owner membership, contact or list.
+	// Values (the audit entry among them) are kept. The repository bounds the creation
+	// itself; what follows gets its own bound once the workspace exists.
+	detached := context.WithoutCancel(ctx)
+	if err := s.repo.Create(detached, workspace); err != nil {
 		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to create workspace")
 		return nil, err
 	}
+	ctx, cancel := context.WithTimeout(detached, workspaceSetupTimeout)
+	defer cancel()
 
 	// Add the creator as owner
 	userWorkspace := &domain.UserWorkspace{
