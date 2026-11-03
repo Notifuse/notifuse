@@ -3987,6 +3987,77 @@ func TestWorkspaceHandler_HandleSetUserPermissions_Forbidden(t *testing.T) {
 	assert.Equal(t, "only workspace owners can manage user permissions", response["error"])
 }
 
+// The licence rule of the permission editor, through the route and a body written the way a
+// client sends it — raw JSON, not a marshalled request struct, so a change to the struct's
+// tags or to the decoder cannot make both sides of the test agree on something no client sends.
+//
+// The handler holds no licence logic of its own: a full set has to reach the service intact
+// (the service accepts it in every licence state), and the service's refusal of a restricted
+// set has to arrive as the 402 the console keys its purchase notice off.
+func TestWorkspaceHandler_HandleSetUserPermissions_LicenceRule(t *testing.T) {
+	post := func(t *testing.T, mux *http.ServeMux, secretKey []byte, body string) *httptest.ResponseRecorder {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setUserPermissions", strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+		return w
+	}
+
+	t.Run("a full-access body reaches the service intact and answers 200", func(t *testing.T) {
+		_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+		grants := make([]string, 0, len(domain.AllPermissionResources))
+		for _, resource := range domain.AllPermissionResources {
+			grants = append(grants, fmt.Sprintf(`"%s":{"read":true,"write":true}`, resource))
+		}
+		body := `{"workspace_id":"workspace123","user_id":"user-123","permissions":{` + strings.Join(grants, ",") + `}}`
+
+		workspaceSvc.EXPECT().
+			SetUserPermissions(gomock.Any(), "workspace123", "user-123", domain.NewFullPermissions()).
+			Return(nil)
+
+		w := post(t, mux, secretKey, body)
+
+		require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+		var response map[string]string
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+		assert.Equal(t, "success", response["status"])
+	})
+
+	t.Run("a restricted body refused by the licence answers 402 with the licence payload", func(t *testing.T) {
+		_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+		workspaceSvc.EXPECT().
+			SetUserPermissions(gomock.Any(), "workspace123", "user-123", domain.UserPermissions{
+				domain.PermissionResourceContacts: {Read: true, Write: false},
+			}).
+			Return(domain.NewFeatureNotLicensedError(domain.FeatureRBAC))
+
+		w := post(t, mux, secretKey,
+			`{"workspace_id":"workspace123","user_id":"user-123","permissions":{"contacts":{"read":true,"write":false}}}`)
+
+		require.Equal(t, http.StatusPaymentRequired, w.Code, w.Body.String())
+		var response map[string]string
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+		assert.Equal(t, "license_required", response["error"])
+		assert.Equal(t, string(domain.FeatureRBAC), response["feature"])
+		assert.Equal(t, "Studio", response["required_tier"])
+		assert.NotEmpty(t, response["message"])
+		assert.NotEmpty(t, response["docs"])
+	})
+
+	t.Run("an unknown resource is a 400 and never reaches the service", func(t *testing.T) {
+		_, _, mux, secretKey, _ := setupTest(t)
+		// No SetUserPermissions expectation: gomock fails the subtest if it is called.
+
+		w := post(t, mux, secretKey,
+			`{"workspace_id":"workspace123","user_id":"user-123","permissions":{"not_a_resource":{"read":true,"write":true}}}`)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
 // TestWorkspaceHandler_List_RevokedKeyIsAnAuthFailure pins the status code a
 // revoked API key gets.
 //

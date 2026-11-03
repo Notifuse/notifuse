@@ -5,6 +5,7 @@ import { EditPermissionsDrawer } from './EditPermissionsDrawer'
 import type { WorkspaceMember } from '../../services/api/types'
 import { LicenseContext, UNKNOWN_LICENSE } from '../../contexts/licenseState'
 import type { Entitlements } from '../../types/license'
+import { ALL_PERMISSION_RESOURCES } from '../../services/api/permissions'
 
 const { setUserPermissions } = vi.hoisted(() => ({ setUserPermissions: vi.fn() }))
 
@@ -39,10 +40,9 @@ async function save() {
 }
 
 /**
- * Granular permissions are a licensed capability and this drawer IS that capability — the
- * server calls SetUserPermissions "the canonical permission editor". So this is the surface
- * where a licence refusal is most likely to be met, and it was the one surface that threw the
- * explanation away.
+ * Granular permissions are a licensed capability and this drawer is where they are edited, so
+ * this is the surface where a licence refusal is most likely to be met, and it was the one
+ * surface that threw the explanation away.
  *
  * client.ts has already turned the 402 into a readable sentence naming the capability and the
  * plan by the time it reaches the catch here. Replacing it with a fixed "Failed to update
@@ -100,9 +100,10 @@ describe('EditPermissionsDrawer error reporting', () => {
 })
 
 /**
- * The same gate, met before Save instead of after it. The server's 402 and its sentence are
- * untouched; what changes is that an owner on an unlicensed deployment sees a locked matrix
- * that names the plan, rather than a live one that refuses on Save.
+ * The same gate, met before Save instead of after it. Without the rbac licence the server accepts
+ * full access and refuses any narrower set, so the drawer offers exactly that: Grant all stays
+ * live, every choice that would narrow the grant is greyed, and Save is enabled only while the
+ * set is full access.
  */
 describe('EditPermissionsDrawer under an unlicensed deployment', () => {
   const licensedFor = (features: Entitlements['features']): Entitlements => ({
@@ -115,13 +116,25 @@ describe('EditPermissionsDrawer under an unlicensed deployment', () => {
     expires_at: '2027-01-01T00:00:00Z'
   })
 
-  const renderUnder = (features: Entitlements['features']) =>
+  const restrictedMember = {
+    ...member,
+    permissions: { contacts: { read: true, write: false } }
+  } as unknown as WorkspaceMember
+
+  const fullMember = {
+    ...member,
+    permissions: Object.fromEntries(
+      ALL_PERMISSION_RESOURCES.map((resource) => [resource, { read: true, write: true }])
+    )
+  } as unknown as WorkspaceMember
+
+  const renderUnder = (features: Entitlements['features'], who: WorkspaceMember = member) =>
     render(
       <AntApp>
         <LicenseContext.Provider value={{ ...UNKNOWN_LICENSE, entitlements: licensedFor(features) }}>
           <EditPermissionsDrawer
             open
-            member={member}
+            member={who}
             workspaceId="ws1"
             onClose={vi.fn()}
             onSuccess={vi.fn()}
@@ -130,25 +143,97 @@ describe('EditPermissionsDrawer under an unlicensed deployment', () => {
       </AntApp>
     )
 
-  it('locks the matrix and the save button, and says what to buy', () => {
-    renderUnder(['template_i18n'])
+  const switchFor = (resource: string, verb: 'read' | 'write') => {
+    const row = document.querySelector(`tr[data-row-key="${resource}"]`)
+    expect(row).not.toBeNull()
+    const [read, write] = Array.from(
+      (row as HTMLElement).querySelectorAll<HTMLButtonElement>('button[role="switch"]')
+    )
+    return verb === 'read' ? read : write
+  }
+
+  beforeEach(() => {
+    setUserPermissions.mockReset()
+    setUserPermissions.mockResolvedValue({ status: 'success' })
+  })
+
+  it('says what to buy, and blocks saving a restricted member as they are', () => {
+    renderUnder(['template_i18n'], restrictedMember)
 
     expect(
       screen.getByText('Custom permissions require a Notifuse Studio licence.')
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /save permissions/i })).toBeDisabled()
-    const switches = screen.getAllByRole('switch')
-    expect(switches.length).toBeGreaterThan(0)
-    expect(switches.every((s) => (s as HTMLButtonElement).disabled)).toBe(true)
+    expect(screen.getByRole('button', { name: 'Revoke all' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Grant all' })).toBeEnabled()
+  })
+
+  it('puts a restricted member back on full access with Grant all', async () => {
+    renderUnder(['template_i18n'], restrictedMember)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Grant all' }))
+    const saveButton = screen.getByRole('button', { name: /save permissions/i })
+    expect(saveButton).toBeEnabled()
+    fireEvent.click(saveButton)
+
+    await waitFor(() => expect(setUserPermissions).toHaveBeenCalled())
+    const { permissions } = setUserPermissions.mock.calls[0][0]
+    for (const resource of ALL_PERMISSION_RESOURCES) {
+      expect(permissions[resource]).toEqual({ read: true, write: true })
+    }
+  })
+
+  it('greys every switch that would narrow a full grant, and lets it be saved', () => {
+    renderUnder(['template_i18n'], fullMember)
+
+    for (const resource of ALL_PERMISSION_RESOURCES) {
+      expect(switchFor(resource, 'read').disabled).toBe(true)
+      expect(switchFor(resource, 'write').disabled).toBe(true)
+    }
+    // Audit logs is opt-in and never part of full access, so granting it narrows nothing.
+    expect(switchFor('audit_logs', 'read').disabled).toBe(false)
+    expect(screen.getByRole('button', { name: /save permissions/i })).toBeEnabled()
+  })
+
+  it('leaves live the one switch that completes full access', () => {
+    const permissions = Object.fromEntries(
+      ALL_PERMISSION_RESOURCES.map((resource) => [resource, { read: true, write: true }])
+    )
+    permissions.contacts = { read: true, write: false }
+    renderUnder(['template_i18n'], { ...member, permissions } as unknown as WorkspaceMember)
+
+    expect(switchFor('contacts', 'write').disabled).toBe(false)
+    expect(switchFor('contacts', 'read').disabled).toBe(true)
+    expect(switchFor('lists', 'write').disabled).toBe(true)
+    expect(screen.getByRole('button', { name: /save permissions/i })).toBeDisabled()
+
+    fireEvent.click(switchFor('contacts', 'write'))
+    expect(screen.getByRole('button', { name: /save permissions/i })).toBeEnabled()
+  })
+
+  // Grant all keeps the opt-in grants the member already holds: replacing the map would strip
+  // Audit logs read from them without anybody choosing to.
+  it('keeps an opt-in grant when Grant all is pressed', async () => {
+    renderUnder(['template_i18n'], {
+      ...member,
+      permissions: { contacts: { read: true, write: false }, audit_logs: { read: true, write: true } }
+    } as unknown as WorkspaceMember)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Grant all' }))
+    fireEvent.click(screen.getByRole('button', { name: /save permissions/i }))
+
+    await waitFor(() => expect(setUserPermissions).toHaveBeenCalled())
+    const { permissions } = setUserPermissions.mock.calls[0][0]
+    expect(permissions.audit_logs).toEqual({ read: true, write: true })
+    expect(permissions.contacts).toEqual({ read: true, write: true })
   })
 
   it('leaves everything live when the licence covers custom permissions', () => {
-    renderUnder(['rbac'])
+    renderUnder(['rbac'], restrictedMember)
 
     expect(screen.queryByText(/requires? a Notifuse/i)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /save permissions/i })).toBeEnabled()
-    expect(
-      screen.getAllByRole('switch').some((s) => !(s as HTMLButtonElement).disabled)
-    ).toBe(true)
+    expect(screen.getByRole('button', { name: 'Revoke all' })).toBeEnabled()
+    expect(switchFor('lists', 'read').disabled).toBe(false)
   })
 })

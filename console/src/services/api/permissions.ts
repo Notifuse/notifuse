@@ -985,6 +985,22 @@ export function createEmptyPermissions(): UserPermissions {
   return buildPermissions(false);
 }
 
+/**
+ * Whether a set grants read and write on every canonical resource — what the server calls full
+ * access (grantsFullPermissions in internal/service/permissions_predicate.go), and the one set it
+ * accepts without a licence covering rbac. Opt-in resources are ignored: they are never part of
+ * full access, so granting one on top narrows nothing. A missing resource is denied, so a partial,
+ * empty or null map is not full.
+ */
+export function grantsFullPermissions(
+  permissions: StoredPermissions | null | undefined,
+): boolean {
+  return ALL_PERMISSION_RESOURCES.every((resource) => {
+    const granted = permissions?.[resource];
+    return Boolean(granted?.read && granted?.write);
+  });
+}
+
 // Applied to any set the console is about to send, so an unenforceable verb never persists as a
 // `false` that no future backfill would widen.
 export function grantUnenforcedPermissions(

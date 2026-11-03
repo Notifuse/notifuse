@@ -25,40 +25,17 @@ import {
   ALL_PERMISSION_RESOURCES,
   createEmptyPermissions,
   createFullPermissions,
-  grantUnenforcedPermissions
+  grantsFullPermissions
 } from '../../services/api/permissions'
 import { ApiError } from '../../services/api/client'
 import { EditPermissionsDrawer } from './EditPermissionsDrawer'
 import { PermissionsMatrix } from './PermissionsMatrix'
+import { PermissionScopePresets } from './PermissionScopePresets'
 import { useLicense } from '../../hooks/useLicense'
 import { LicenceGateNotice } from '../license/LicenceGateNotice'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 const { Text } = Typography
-
-// Narrowly scoped keys are the common case for an integration — the Zapier onboarding asks for
-// three resources out of the canonical list — and reaching one from the full-access default meant
-// flipping every other switch by hand. These two set the floor the owner then edits.
-function PermissionScopePresets({ onChange }: { onChange: (value: UserPermissions) => void }) {
-  const { t } = useLingui()
-
-  return (
-    <div className="flex justify-end gap-1 mb-2">
-      <Button size="small" type="link" onClick={() => onChange(createFullPermissions())}>
-        {t`Grant all`}
-      </Button>
-      {/* Revoking still hands back the unenforceable verbs granted: a stored `false` there would
-          never be widened by a backfill, which only ever adds the keys a row is missing. */}
-      <Button
-        size="small"
-        type="link"
-        onClick={() => onChange(grantUnenforcedPermissions(createEmptyPermissions()))}
-      >
-        {t`Revoke all`}
-      </Button>
-    </div>
-  )
-}
 
 interface WorkspaceMembersProps {
   workspaceId: string
@@ -82,6 +59,10 @@ export function WorkspaceMembers({
   const [invitePermissions, setInvitePermissions] =
     useState<UserPermissions>(createFullPermissions)
   const { has } = useLicense()
+  // Without the rbac licence the server accepts full access and refuses anything narrower, on
+  // invitations and API keys alike: the choices that would narrow a set are greyed, and the
+  // submit button waits until the set is full access. Advisory: the 402 stays the real gate.
+  const rbacLocked = !has('rbac')
   const { message } = App.useApp()
 
   // API Key drawer states
@@ -481,7 +462,12 @@ export function WorkspaceMembers({
           <div className="flex justify-end">
             <Space>
               <Button onClick={() => setInviteDrawerOpen(false)}>{t`Cancel`}</Button>
-              <Button type="primary" onClick={handleInvite} loading={inviting}>
+              <Button
+                type="primary"
+                onClick={handleInvite}
+                loading={inviting}
+                disabled={rbacLocked && !grantsFullPermissions(invitePermissions)}
+              >
                 {t`Send Invitation`}
               </Button>
             </Space>
@@ -502,14 +488,18 @@ export function WorkspaceMembers({
           </Form.Item>
 
           <Form.Item label={t`Permissions`}>
-            {/* An invite starts from a full grant, which is never gated, so a locked matrix
-                still holds a legal invitation; only narrowing it needs the licence. */}
+            {/* An invite starts from a full grant, which is never gated, so it can be sent as it
+                is without the licence; only narrowing it needs one. */}
             <LicenceGateNotice feature="rbac" workspaceId={workspaceId} />
-            <PermissionScopePresets onChange={setInvitePermissions} />
+            <PermissionScopePresets
+              value={invitePermissions}
+              onChange={setInvitePermissions}
+              fullAccessOnly={rbacLocked}
+            />
             <PermissionsMatrix
               value={invitePermissions}
               onChange={setInvitePermissions}
-              disabled={!has('rbac')}
+              fullAccessOnly={rbacLocked}
             />
           </Form.Item>
         </Form>
@@ -534,7 +524,12 @@ export function WorkspaceMembers({
             ) : (
               <Space>
                 <Button onClick={resetApiKeyDrawer}>{t`Cancel`}</Button>
-                <Button type="primary" onClick={handleCreateApiKey} loading={creatingApiKey}>
+                <Button
+                  type="primary"
+                  onClick={handleCreateApiKey}
+                  loading={creatingApiKey}
+                  disabled={rbacLocked && !grantsFullPermissions(apiKeyPermissions)}
+                >
                   {t`Create API Key`}
                 </Button>
               </Space>
@@ -570,8 +565,19 @@ export function WorkspaceMembers({
             </Form.Item>
 
             <Form.Item label={t`Permissions`}>
-              <PermissionScopePresets onChange={setApiKeyPermissions} />
-              <PermissionsMatrix value={apiKeyPermissions} onChange={setApiKeyPermissions} />
+              {/* Same rule as the invitation: a key starts from full access, which is never
+                  gated; scoping it down needs the licence. */}
+              <LicenceGateNotice feature="rbac" workspaceId={workspaceId} />
+              <PermissionScopePresets
+                value={apiKeyPermissions}
+                onChange={setApiKeyPermissions}
+                fullAccessOnly={rbacLocked}
+              />
+              <PermissionsMatrix
+                value={apiKeyPermissions}
+                onChange={setApiKeyPermissions}
+                fullAccessOnly={rbacLocked}
+              />
             </Form.Item>
           </Form>
         ) : (

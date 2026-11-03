@@ -10,6 +10,7 @@ import {
   OPT_IN_PERMISSION_RESOURCES,
   createEmptyPermissions,
   grantUnenforcedPermissions,
+  grantsFullPermissions,
   isPermissionEnforced,
   PERMISSION_DESCRIPTORS
 } from '../../services/api/permissions'
@@ -27,9 +28,13 @@ interface PermissionsMatrixProps {
   value: StoredPermissions | null | undefined
   // Omit to render the grant read-only. The handler always receives a complete map.
   onChange?: (permissions: UserPermissions) => void
-  // Locks every switch while keeping the grant visible: the shape a licence refusal takes,
-  // where the map is still the member's to read but not, for now, to narrow.
+  // Locks every switch while keeping the grant visible. The licence gate does not use it: without
+  // the rbac licence full access can still be given, which is what fullAccessOnly offers.
   disabled?: boolean
+  // Without the rbac licence the server accepts full access and refuses anything narrower. A
+  // switch then stays live only when flipping it leaves the set at full access — turning on the
+  // verb that completes it, or an opt-in grant on top of it — and every other switch is greyed.
+  fullAccessOnly?: boolean
   className?: string
 }
 
@@ -109,7 +114,13 @@ function PermissionDetails({ descriptor }: { descriptor: PermissionDescriptor })
   )
 }
 
-export function PermissionsMatrix({ value, onChange, className, disabled = false }: PermissionsMatrixProps) {
+export function PermissionsMatrix({
+  value,
+  onChange,
+  className,
+  disabled = false,
+  fullAccessOnly = false
+}: PermissionsMatrixProps) {
   const { t } = useLingui()
   const editable = Boolean(onChange)
 
@@ -150,26 +161,31 @@ export function PermissionsMatrix({ value, onChange, className, disabled = false
     }
   })
 
-  const setPermission = (resource: PermissionResource, type: PermissionType, checked: boolean) => {
-    if (!onChange) return
-
-    // Built from the rows rather than from `value`, so a resource the stored map omitted is sent
-    // explicitly denied instead of silently dropped.
+  // The set a flip would produce. Built from the rows rather than from `value`, so a resource the
+  // stored map omitted is sent explicitly denied instead of silently dropped. Shared by the change
+  // and by the full-access test, so a greyed switch is exactly one whose change would be refused.
+  const flipped = (resource: PermissionResource, type: PermissionType, checked: boolean) => {
     const next = createEmptyPermissions()
     for (const row of rows) {
       next[row.key] = { read: row.read, write: row.write }
     }
     next[resource] = { ...next[resource], [type]: checked }
+    return grantUnenforcedPermissions(next)
+  }
 
-    onChange(grantUnenforcedPermissions(next))
+  const setPermission = (resource: PermissionResource, type: PermissionType, checked: boolean) => {
+    if (!onChange) return
+    onChange(flipped(resource, type, checked))
   }
 
   const renderSwitch =
     (type: PermissionType) => (checked: boolean, record: MatrixRow) => {
+      const narrows =
+        fullAccessOnly && !grantsFullPermissions(flipped(record.key, type, !checked))
       const control = (
         <Switch
           checked={checked}
-          disabled={disabled || !isPermissionEnforced(record.key, type)}
+          disabled={disabled || narrows || !isPermissionEnforced(record.key, type)}
           onChange={(next) => setPermission(record.key, type, next)}
           size="small"
         />

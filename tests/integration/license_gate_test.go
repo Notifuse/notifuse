@@ -162,6 +162,97 @@ func TestLicenseGates(t *testing.T) {
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode, "an unlicensed server must not redirect to the IdP")
 	})
+
+	// The rule for the permission editor, end to end: without the licence a full set is always
+	// accepted and only a restricted one is refused. The member here is an API key holding a
+	// restricted set, the state a deployment is left in when its licence lapses — written
+	// straight into the row, since an unlicensed server refuses to write it.
+	t.Run("an unlicensed server puts a restricted member back on full access and refuses a restricted set", func(t *testing.T) {
+		suite := testutil.NewIntegrationTestSuite(t, unlicensed(nil))
+		defer suite.Cleanup()
+
+		client := suite.APIClient
+		rootToken := performCompleteSignInFlow(t, client, rootEmail)
+		client.SetToken(rootToken)
+		workspaceID := createTestWorkspaceWithToken(t, client, rootToken, "Unlicensed permissions")
+		db := suite.DBManager.GetDB()
+
+		// A key with no permissions is a full-access key, which is never gated.
+		resp, err := client.Post("/api/workspaces.createAPIKey", domain.CreateAPIKeyRequest{
+			WorkspaceID: workspaceID,
+			EmailPrefix: "lapsed",
+		})
+		require.NoError(t, err)
+		var created map[string]interface{}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
+		resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		keyToken := created["token"].(string)
+
+		var keyUserID string
+		require.NoError(t, db.QueryRow("SELECT id FROM users WHERE email = $1", created["email"]).Scan(&keyUserID))
+
+		storedPermissions := func(t *testing.T) domain.UserPermissions {
+			t.Helper()
+			var raw []byte
+			require.NoError(t, db.QueryRow(
+				`SELECT permissions FROM user_workspaces WHERE user_id = $1 AND workspace_id = $2`,
+				keyUserID, workspaceID,
+			).Scan(&raw))
+			var stored domain.UserPermissions
+			require.NoError(t, json.Unmarshal(raw, &stored))
+			return stored
+		}
+		getAs := func(t *testing.T, endpoint string) int {
+			t.Helper()
+			client.SetToken(keyToken)
+			defer client.SetToken(rootToken)
+			resp, err := client.Get(endpoint, map[string]string{"workspace_id": workspaceID})
+			require.NoError(t, err)
+			resp.Body.Close()
+			return resp.StatusCode
+		}
+		setPermissions := func(t *testing.T, permissions domain.UserPermissions) (int, map[string]string) {
+			t.Helper()
+			resp, err := client.Post("/api/workspaces.setUserPermissions", domain.SetUserPermissionsRequest{
+				WorkspaceID: workspaceID,
+				UserID:      keyUserID,
+				Permissions: permissions,
+			})
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			var body map[string]string
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+			return resp.StatusCode, body
+		}
+
+		restricted := domain.NewEmptyPermissions()
+		restricted[domain.PermissionResourceTransactional] = domain.ResourcePermissions{Read: true, Write: true}
+		restrictedJSON, err := json.Marshal(restricted)
+		require.NoError(t, err)
+		_, err = db.Exec(
+			`UPDATE user_workspaces SET permissions = $1 WHERE user_id = $2 AND workspace_id = $3`,
+			restrictedJSON, keyUserID, workspaceID,
+		)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusForbidden, getAs(t, "/api/broadcasts.list"),
+			"the restricted set is enforced before the change")
+
+		// A restricted set is still refused, with the body the console renders, and nothing is written.
+		narrower := domain.NewEmptyPermissions()
+		narrower[domain.PermissionResourceBroadcasts] = domain.ResourcePermissions{Read: true}
+		status, refusal := setPermissions(t, narrower)
+		require.Equal(t, http.StatusPaymentRequired, status)
+		assert.Equal(t, "license_required", refusal["error"])
+		assert.Equal(t, string(domain.FeatureRBAC), refusal["feature"])
+		assert.Equal(t, restricted, storedPermissions(t), "a refused write leaves the row as it was")
+
+		// Full access is accepted, stored, and enforced on the key's next request.
+		status, body := setPermissions(t, domain.NewFullPermissions())
+		require.Equal(t, http.StatusOK, status, body)
+		assert.Equal(t, domain.NewFullPermissions(), storedPermissions(t))
+		assert.Equal(t, http.StatusOK, getAs(t, "/api/broadcasts.list"))
+	})
 }
 
 // unlicensed builds an app on the free tier: the harness licence is blanked before the

@@ -1286,7 +1286,7 @@ msgstr "API key"
 #: src/components/settings/Integrations.tsx:2164
 #: src/components/settings/Integrations.tsx:2165
 #: src/components/settings/Integrations.tsx:2186
-#: src/components/settings/WorkspaceMembers.tsx:119
+#: src/components/settings/WorkspaceMembers.tsx:100
 msgid "API Key"
 msgstr "API Key"
 
@@ -1302,11 +1302,11 @@ msgstr "API key address"
 msgid "API key created"
 msgstr "API key created"
 
-#: src/components/settings/WorkspaceMembers.tsx:328
+#: src/components/settings/WorkspaceMembers.tsx:309
 msgid "API key created successfully"
 msgstr "API key created successfully"
 
-#: src/components/settings/WorkspaceMembers.tsx:580
+#: src/components/settings/WorkspaceMembers.tsx:586
 msgid "API Key Created Successfully"
 msgstr "API Key Created Successfully"
 
@@ -1314,7 +1314,7 @@ msgstr "API Key Created Successfully"
 #~ msgid "API key name"
 #~ msgstr "API key name"
 
-#: src/components/settings/WorkspaceMembers.tsx:548
+#: src/components/settings/WorkspaceMembers.tsx:543
 msgid "API Key Name"
 msgstr "API Key Name"
 
@@ -1322,7 +1322,7 @@ msgstr "API Key Name"
 msgid "API key token"
 msgstr "API key token"
 
-#: src/components/settings/WorkspaceMembers.tsx:587
+#: src/components/settings/WorkspaceMembers.tsx:593
 msgid "API Token"
 msgstr "API Token"
 
@@ -1381,7 +1381,7 @@ msgid "Are you sure you want to delete the category"
 msgstr "Are you sure you want to delete the category"
 
 #. placeholder {0}: record.email
-#: src/components/settings/WorkspaceMembers.tsx:239
+#: src/components/settings/WorkspaceMembers.tsx:220
 msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "Are you sure you want to delete the invitation for {0}?"
 
@@ -1427,7 +1427,7 @@ msgstr "Are you sure you want to rebuild \"{0}\"? This will recalculate segment 
 
 #. placeholder {0}: record.email
 #. placeholder {1}: record.type === 'api_key' ? ' This API key will be permanently deleted.' : ''
-#: src/components/settings/WorkspaceMembers.tsx:219
+#: src/components/settings/WorkspaceMembers.tsx:200
 msgid "Are you sure you want to remove {0}?{1}"
 msgstr "Are you sure you want to remove {0}?{1}"
 
@@ -1554,7 +1554,7 @@ msgstr "Audit log retention saved"
 msgid "Audit logs"
 msgstr "Audit logs"
 
-#: src/components/settings/PermissionsMatrix.tsx:136
+#: src/components/settings/PermissionsMatrix.tsx:147
 #: src/services/api/errors.ts:96
 msgid "Audit Logs"
 msgstr "Audit Logs"
@@ -1682,7 +1682,7 @@ msgstr "Automation updated, but it is paused: activate it to run this version."
 msgid "Automation:"
 msgstr "Automation:"
 
-#: src/components/settings/PermissionsMatrix.tsx:130
+#: src/components/settings/PermissionsMatrix.tsx:141
 #: src/layouts/WorkspaceLayout.tsx:428
 #: src/pages/AutomationsPage.tsx:162
 #: src/services/api/errors.ts:90
@@ -1912,7 +1912,7 @@ msgstr "Blocks"
 #: src/components/settings/BlogSettings.tsx:218
 #: src/components/settings/BlogSettings.tsx:226
 #: src/components/settings/BlogSettings.tsx:259
-#: src/components/settings/PermissionsMatrix.tsx:129
+#: src/components/settings/PermissionsMatrix.tsx:140
 #: src/components/settings/SettingsSidebar.tsx:121
 #: src/layouts/WorkspaceLayout.tsx:262
 #: src/services/api/errors.ts:89
@@ -2203,7 +2203,7 @@ msgid "Broadcast updated successfully"
 msgstr "Broadcast updated successfully"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
-#: src/components/settings/PermissionsMatrix.tsx:125
+#: src/components/settings/PermissionsMatrix.tsx:136
 #: src/layouts/WorkspaceLayout.tsx:402
 #: src/pages/BroadcastsPage.tsx:1604
 #: src/services/api/errors.ts:85
@@ -2354,7 +2354,7 @@ msgstr "Campaigns"
 #: src/components/email_builder/ui/BlockToolbar.tsx:210
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:139
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:179
-#: src/components/email_builder/ui/ImportFontInput.tsx:170
+#: src/components/email_builder/ui/ImportFontInput.tsx:173
 #: src/components/email_builder/ui/StringPopoverInput.tsx:92
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:398
 #: src/components/file_manager/buttonSettings.tsx:309
@@ -2370,7 +2370,7 @@ msgstr "Campaigns"
 #: src/components/segment/input.tsx:403
 #: src/components/settings/BlogSettings.tsx:206
 #: src/components/settings/CustomFieldsConfiguration.tsx:291
-#: src/components/settings/EditPermissionsDrawer.tsx:96
+#: src/components/settings/EditPermissionsDrawer.tsx:101
 #: src/components/settings/Integrations.tsx:2562
 #: src/components/settings/Integrations.tsx:2693
 #: src/components/settings/Integrations.tsx:2728
@@ -2382,8 +2382,8 @@ msgstr "Campaigns"
 #: src/components/settings/WebhookCard.tsx:430
 #: src/components/settings/WebhookCard.tsx:450
 #: src/components/settings/WebhooksSettings.tsx:251
-#: src/components/settings/WorkspaceMembers.tsx:483
-#: src/components/settings/WorkspaceMembers.tsx:536
+#: src/components/settings/WorkspaceMembers.tsx:464
+#: src/components/settings/WorkspaceMembers.tsx:526
 #: src/components/templates/CreateTemplateDrawer.tsx:641
 #: src/components/templates/SendTemplateModal.tsx:268
 #: src/components/templates/TemplateTranslationsTab.tsx:276
@@ -2643,7 +2643,7 @@ msgstr "City level (~1km precision)"
 
 #: src/components/contacts/BulkActionsBar.tsx:183
 #: src/components/contacts/InlineEditableField.tsx:308
-#: src/components/email_builder/ui/ImportFontInput.tsx:166
+#: src/components/email_builder/ui/ImportFontInput.tsx:169
 #: src/components/filters/Filter.tsx:193
 #: src/components/messages/MessageHistoryTab.tsx:540
 #: src/components/settings/audit_logs/AuditFilterBuilder.tsx:248
@@ -2790,7 +2790,7 @@ msgstr "Clone Template"
 #: src/components/contacts/BulkActionProgressModal.tsx:65
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
 #: src/components/settings/WebhookCard.tsx:447
-#: src/components/settings/WorkspaceMembers.tsx:532
+#: src/components/settings/WorkspaceMembers.tsx:522
 #: src/components/transactional/ApiCommandModal.tsx:990
 msgid "Close"
 msgstr "Close"
@@ -3201,7 +3201,7 @@ msgstr "Contact records and their fields, contact timelines, and custom events r
 msgid "Contact updated successfully"
 msgstr "Contact updated successfully"
 
-#: src/components/settings/PermissionsMatrix.tsx:122
+#: src/components/settings/PermissionsMatrix.tsx:133
 #: src/layouts/WorkspaceLayout.tsx:383
 #: src/pages/ContactsPage.tsx:1000
 #: src/services/api/errors.ts:82
@@ -3516,9 +3516,9 @@ msgstr "Create an SES tenant for this integration?"
 msgid "Create and manage your blog content"
 msgstr "Create and manage your blog content"
 
-#: src/components/settings/WorkspaceMembers.tsx:447
-#: src/components/settings/WorkspaceMembers.tsx:519
-#: src/components/settings/WorkspaceMembers.tsx:538
+#: src/components/settings/WorkspaceMembers.tsx:428
+#: src/components/settings/WorkspaceMembers.tsx:509
+#: src/components/settings/WorkspaceMembers.tsx:533
 msgid "Create API Key"
 msgstr "Create API Key"
 
@@ -3690,7 +3690,7 @@ msgstr "Created new version v{0}"
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:144
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:114
 #: src/components/email_builder/blocks/MjImageBlock.tsx:176
-#: src/components/email_builder/blocks/MjRawBlock.tsx:273
+#: src/components/email_builder/blocks/MjRawBlock.tsx:334
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:159
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:87
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:479
@@ -3704,7 +3704,7 @@ msgstr "CSS Class"
 msgid "CSS Content"
 msgstr "CSS Content"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:133
+#: src/components/email_builder/ui/ImportFontInput.tsx:136
 msgid "CSS File URL"
 msgstr "CSS File URL"
 
@@ -3739,7 +3739,7 @@ msgstr "Custom (px)"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:175
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:114
-#: src/components/email_builder/blocks/MjRawBlock.tsx:273
+#: src/components/email_builder/blocks/MjRawBlock.tsx:334
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:159
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:143
 msgid "Custom CSS class for styling"
@@ -4243,8 +4243,8 @@ msgstr "Delete folder (Read-only mode)"
 msgid "Delete header"
 msgstr "Delete header"
 
-#: src/components/settings/WorkspaceMembers.tsx:238
-#: src/components/settings/WorkspaceMembers.tsx:245
+#: src/components/settings/WorkspaceMembers.tsx:219
+#: src/components/settings/WorkspaceMembers.tsx:226
 msgid "Delete invitation"
 msgstr "Delete invitation"
 
@@ -4734,7 +4734,7 @@ msgstr "e.g., Product Updates"
 msgid "e.g., purchase"
 msgstr "e.g., purchase"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:127
+#: src/components/email_builder/ui/ImportFontInput.tsx:130
 msgid "e.g., Raleway, Open Sans"
 msgstr "e.g., Raleway, Open Sans"
 
@@ -4761,7 +4761,7 @@ msgstr "edit"
 #: src/components/automations/config/ConditionsField.tsx:108
 #: src/components/automations/UpsertAutomationDrawer.tsx:288
 #: src/components/blog/PostsTable.tsx:349
-#: src/components/email_builder/ui/ImportFontInput.tsx:214
+#: src/components/email_builder/ui/ImportFontInput.tsx:218
 #: src/components/settings/Integrations.tsx:352
 #: src/components/settings/Integrations.tsx:1440
 #: src/components/settings/Integrations.tsx:1599
@@ -4851,11 +4851,11 @@ msgstr "Edit Custom Field Label"
 msgid "Edit email template"
 msgstr "Edit email template"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:207
+#: src/components/email_builder/ui/ImportFontInput.tsx:211
 msgid "Edit Font Import"
 msgstr "Edit Font Import"
 
-#: src/components/email_builder/blocks/MjRawBlock.tsx:265
+#: src/components/email_builder/blocks/MjRawBlock.tsx:326
 msgid "Edit HTML Content"
 msgstr "Edit HTML Content"
 
@@ -4877,12 +4877,12 @@ msgstr "Edit notification"
 msgid "Edit Notification"
 msgstr "Edit Notification"
 
-#: src/components/settings/WorkspaceMembers.tsx:207
+#: src/components/settings/WorkspaceMembers.tsx:188
 msgid "Edit permissions"
 msgstr "Edit permissions"
 
 #. placeholder {0}: member?.email
-#: src/components/settings/EditPermissionsDrawer.tsx:87
+#: src/components/settings/EditPermissionsDrawer.tsx:92
 msgid "Edit Permissions for {0}"
 msgstr "Edit Permissions for {0}"
 
@@ -4980,7 +4980,7 @@ msgstr "email"
 #: src/components/messages/MessageHistoryTab.tsx:217
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:122
 #: src/components/settings/Integrations.tsx:2703
-#: src/components/settings/WorkspaceMembers.tsx:104
+#: src/components/settings/WorkspaceMembers.tsx:85
 #: src/components/timeline/ContactTimeline.tsx:645
 #: src/pages/ContactsPage.tsx:369
 #: src/pages/ContactsPage.tsx:536
@@ -4995,7 +4995,7 @@ msgstr "Email (Required)"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
 #: src/components/settings/Integrations.tsx:1939
-#: src/components/settings/WorkspaceMembers.tsx:493
+#: src/components/settings/WorkspaceMembers.tsx:479
 msgid "Email Address"
 msgstr "Email Address"
 
@@ -5219,7 +5219,7 @@ msgstr "ended"
 msgid "Endpoint URL"
 msgstr "Endpoint URL"
 
-#: src/components/settings/PermissionsMatrix.tsx:216
+#: src/components/settings/PermissionsMatrix.tsx:232
 msgid "Endpoints gated by {label}"
 msgstr "Endpoints gated by {label}"
 
@@ -5313,7 +5313,7 @@ msgstr "Enter CC email addresses"
 msgid "Enter CSS class name"
 msgstr "Enter CSS class name"
 
-#: src/components/email_builder/blocks/MjRawBlock.tsx:248
+#: src/components/email_builder/blocks/MjRawBlock.tsx:309
 msgid "Enter custom HTML code. When placed in mj-head, use for CSS styles, meta tags, or head elements. When placed in mj-body, use for body-level HTML structures, tracking pixels, or template logic."
 msgstr "Enter custom HTML code. When placed in mj-head, use for CSS styles, meta tags, or head elements. When placed in mj-body, use for body-level HTML structures, tracking pixels, or template logic."
 
@@ -5322,7 +5322,7 @@ msgid "Enter duration"
 msgstr "Enter duration"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:521
-#: src/components/settings/WorkspaceMembers.tsx:498
+#: src/components/settings/WorkspaceMembers.tsx:484
 msgid "Enter email address"
 msgstr "Enter email address"
 
@@ -5785,7 +5785,7 @@ msgstr "Failed to connect Zapier"
 msgid "Failed to copy to clipboard"
 msgstr "Failed to copy to clipboard"
 
-#: src/components/settings/WorkspaceMembers.tsx:334
+#: src/components/settings/WorkspaceMembers.tsx:315
 msgid "Failed to create API key"
 msgstr "Failed to create API key"
 
@@ -5865,7 +5865,7 @@ msgstr "Failed to delete file: "
 msgid "Failed to delete integration"
 msgstr "Failed to delete integration"
 
-#: src/components/settings/WorkspaceMembers.tsx:385
+#: src/components/settings/WorkspaceMembers.tsx:366
 msgid "Failed to delete invitation"
 msgstr "Failed to delete invitation"
 
@@ -5968,7 +5968,7 @@ msgstr "Failed to import template. Please check the file format."
 msgid "Failed to install the licence key"
 msgstr "Failed to install the licence key"
 
-#: src/components/settings/WorkspaceMembers.tsx:298
+#: src/components/settings/WorkspaceMembers.tsx:279
 msgid "Failed to invite member"
 msgstr "Failed to invite member"
 
@@ -6048,7 +6048,7 @@ msgstr "Failed to register webhooks"
 msgid "Failed to remove custom field label"
 msgstr "Failed to remove custom field label"
 
-#: src/components/settings/WorkspaceMembers.tsx:366
+#: src/components/settings/WorkspaceMembers.tsx:347
 msgid "Failed to remove member"
 msgstr "Failed to remove member"
 
@@ -6056,7 +6056,7 @@ msgstr "Failed to remove member"
 msgid "Failed to render preview"
 msgstr "Failed to render preview"
 
-#: src/components/settings/WorkspaceMembers.tsx:418
+#: src/components/settings/WorkspaceMembers.tsx:399
 msgid "Failed to resend invitation"
 msgstr "Failed to resend invitation"
 
@@ -6219,7 +6219,7 @@ msgstr "Failed to update list: {error}"
 msgid "Failed to update notification: {0}"
 msgstr "Failed to update notification: {0}"
 
-#: src/components/settings/EditPermissionsDrawer.tsx:76
+#: src/components/settings/EditPermissionsDrawer.tsx:81
 msgid "Failed to update permissions"
 msgstr "Failed to update permissions"
 
@@ -6509,7 +6509,7 @@ msgstr "Font Configuration"
 msgid "Font Family"
 msgstr "Font Family"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:122
+#: src/components/email_builder/ui/ImportFontInput.tsx:125
 msgid "Font Name"
 msgstr "Font Name"
 
@@ -6604,7 +6604,7 @@ msgstr "From Name (override)"
 msgid "From:"
 msgstr "From:"
 
-#: src/components/settings/WorkspaceMembers.tsx:168
+#: src/components/settings/WorkspaceMembers.tsx:149
 msgid "Full Access"
 msgstr "Full Access"
 
@@ -6785,7 +6785,7 @@ msgstr "gpt-4.1, gpt-5.4, o4-mini, or custom model name"
 #~ msgid "gpt-4o, gpt-4.1, o4-mini, or custom model name"
 #~ msgstr "gpt-4o, gpt-4.1, o4-mini, or custom model name"
 
-#: src/components/settings/WorkspaceMembers.tsx:48
+#: src/components/settings/PermissionScopePresets.tsx:44
 msgid "Grant all"
 msgstr "Grant all"
 
@@ -6952,11 +6952,11 @@ msgstr "How to use:"
 msgid "HTML"
 msgstr "HTML"
 
-#: src/components/email_builder/blocks/MjRawBlock.tsx:247
+#: src/components/email_builder/blocks/MjRawBlock.tsx:308
 msgid "HTML Content"
 msgstr "HTML Content"
 
-#: src/components/email_builder/blocks/MjRawBlock.tsx:266
+#: src/components/email_builder/blocks/MjRawBlock.tsx:327
 msgid "HTML Content Editor"
 msgstr "HTML Content Editor"
 
@@ -6981,7 +6981,7 @@ msgstr "HTML Preview of {0}"
 msgid "https://example.com or {{ url }}"
 msgstr "https://example.com or {{ url }}"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:138
+#: src/components/email_builder/ui/ImportFontInput.tsx:141
 msgid "https://fonts.googleapis.com/css?family=... or {{ font_url }}"
 msgstr "https://fonts.googleapis.com/css?family=... or {{ font_url }}"
 
@@ -7176,13 +7176,13 @@ msgstr "Import Contacts from CSV"
 msgid "Import Contacts to List"
 msgstr "Import Contacts to List"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:224
+#: src/components/email_builder/ui/ImportFontInput.tsx:228
 msgid "Import Custom Font"
 msgstr "Import Custom Font"
 
 #: src/components/email_builder/blocks/MjFontBlock.tsx:79
 #: src/components/email_builder/ui/ImportFontInput.tsx:24
-#: src/components/email_builder/ui/ImportFontInput.tsx:173
+#: src/components/email_builder/ui/ImportFontInput.tsx:176
 msgid "Import Font"
 msgstr "Import Font"
 
@@ -7453,7 +7453,7 @@ msgstr "Invalid tree structure: root must be mjml type"
 msgid "Invalid URL format"
 msgstr "Invalid URL format"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:143
+#: src/components/email_builder/ui/ImportFontInput.tsx:146
 #: src/components/email_builder/ui/StringPopoverInput.tsx:87
 msgid "Invalid URL format. Use a valid URL or liquid expression like {{ variable }}"
 msgstr "Invalid URL format. Use a valid URL or liquid expression like {{ variable }}"
@@ -7466,24 +7466,24 @@ msgstr "Invalid YouTube URL"
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "Invitation accepted successfully! Welcome to the workspace."
 
-#: src/components/settings/WorkspaceMembers.tsx:381
+#: src/components/settings/WorkspaceMembers.tsx:362
 msgid "Invitation deleted successfully"
 msgstr "Invitation deleted successfully"
 
-#: src/components/settings/WorkspaceMembers.tsx:411
+#: src/components/settings/WorkspaceMembers.tsx:392
 msgid "Invitation resent to {email}"
 msgstr "Invitation resent to {email}"
 
-#: src/components/settings/WorkspaceMembers.tsx:124
+#: src/components/settings/WorkspaceMembers.tsx:105
 msgid "Invitation sent"
 msgstr "Invitation sent"
 
-#: src/components/settings/WorkspaceMembers.tsx:288
+#: src/components/settings/WorkspaceMembers.tsx:269
 msgid "Invitation sent to {inviteEmail}"
 msgstr "Invitation sent to {inviteEmail}"
 
-#: src/components/settings/WorkspaceMembers.tsx:450
-#: src/components/settings/WorkspaceMembers.tsx:474
+#: src/components/settings/WorkspaceMembers.tsx:431
+#: src/components/settings/WorkspaceMembers.tsx:455
 msgid "Invite Member"
 msgstr "Invite Member"
 
@@ -8027,7 +8027,7 @@ msgid "List:"
 msgstr "List:"
 
 #: src/components/analytics/NewContactsTable.tsx:73
-#: src/components/settings/PermissionsMatrix.tsx:123
+#: src/components/settings/PermissionsMatrix.tsx:134
 #: src/layouts/WorkspaceLayout.tsx:393
 #: src/pages/ContactsPage.tsx:424
 #: src/pages/ContactsPage.tsx:544
@@ -8051,7 +8051,7 @@ msgstr "Lists write also grants contact writing. Subscribing an address through 
 msgid "Live"
 msgstr "Live"
 
-#: src/components/settings/PermissionsMatrix.tsx:131
+#: src/components/settings/PermissionsMatrix.tsx:142
 #: src/services/api/errors.ts:91
 msgid "LLM"
 msgstr "LLM"
@@ -8219,7 +8219,7 @@ msgstr "Makes the section span the entire email viewport width, ignoring contain
 msgid "Makes the wrapper span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
 msgstr "Makes the wrapper span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
 
-#: src/components/settings/WorkspaceMembers.tsx:441
+#: src/components/settings/WorkspaceMembers.tsx:422
 msgid "Manage your workspace members"
 msgstr "Manage your workspace members"
 
@@ -8369,7 +8369,7 @@ msgstr "Medium"
 msgid "Mediums"
 msgstr "Mediums"
 
-#: src/components/settings/WorkspaceMembers.tsx:362
+#: src/components/settings/WorkspaceMembers.tsx:343
 msgid "Member removed successfully"
 msgstr "Member removed successfully"
 
@@ -8377,7 +8377,7 @@ msgstr "Member removed successfully"
 msgid "Message"
 msgstr "Message"
 
-#: src/components/settings/PermissionsMatrix.tsx:128
+#: src/components/settings/PermissionsMatrix.tsx:139
 #: src/pages/LogsPage.tsx:56
 #: src/services/api/errors.ts:88
 msgid "Message History"
@@ -8618,7 +8618,7 @@ msgstr "My Webhook"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:179
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:118
-#: src/components/email_builder/blocks/MjRawBlock.tsx:277
+#: src/components/email_builder/blocks/MjRawBlock.tsx:338
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:163
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:147
 msgid "my-custom-class"
@@ -8771,12 +8771,12 @@ msgstr "Next Run"
 #: src/components/settings/Integrations.tsx:1613
 #: src/components/settings/Integrations.tsx:1682
 #: src/components/settings/Integrations.tsx:1746
-#: src/components/settings/PermissionsMatrix.tsx:193
+#: src/components/settings/PermissionsMatrix.tsx:209
 #: src/components/settings/WebhookCard.tsx:218
 #: src/components/settings/WebhookCard.tsx:274
 #: src/components/settings/WebhookCard.tsx:361
-#: src/components/settings/WorkspaceMembers.tsx:222
-#: src/components/settings/WorkspaceMembers.tsx:242
+#: src/components/settings/WorkspaceMembers.tsx:203
+#: src/components/settings/WorkspaceMembers.tsx:223
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:156
 #: src/components/web_analytics/filters/BackfillStatus.tsx:84
 #: src/components/web_analytics/filters/FilterTable.tsx:272
@@ -8789,7 +8789,7 @@ msgstr "No"
 msgid "No {0} content to preview"
 msgstr "No {0} content to preview"
 
-#: src/components/settings/WorkspaceMembers.tsx:162
+#: src/components/settings/WorkspaceMembers.tsx:143
 msgid "No Access"
 msgstr "No Access"
 
@@ -8995,7 +8995,7 @@ msgstr "No lists found"
 msgid "No match"
 msgstr "No match"
 
-#: src/components/settings/WorkspaceMembers.tsx:466
+#: src/components/settings/WorkspaceMembers.tsx:447
 msgid "No members found"
 msgstr "No members found"
 
@@ -9596,7 +9596,7 @@ msgstr "Optionally filter contacts by segments within the selected lists"
 msgid "or"
 msgstr "or"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:150
+#: src/components/email_builder/ui/ImportFontInput.tsx:153
 msgid "Or select a popular Google Font"
 msgstr "Or select a popular Google Font"
 
@@ -9781,7 +9781,7 @@ msgstr "Payload:"
 #: src/components/automations/nodes/AddToListNode.tsx:59
 #: src/components/contacts/ContactDetailsDrawer.tsx:583
 #: src/components/lists/ListStats.tsx:90
-#: src/components/settings/WorkspaceMembers.tsx:139
+#: src/components/settings/WorkspaceMembers.tsx:120
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:85
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:245
 #: src/pages/BroadcastsPage.tsx:440
@@ -9834,18 +9834,18 @@ msgstr "Periodically check for new Notifuse versions and security updates. A pop
 msgid "Permanently delete any contact"
 msgstr "Permanently delete any contact"
 
-#: src/components/settings/WorkspaceMembers.tsx:158
-#: src/components/settings/WorkspaceMembers.tsx:173
+#: src/components/settings/WorkspaceMembers.tsx:139
+#: src/components/settings/WorkspaceMembers.tsx:154
 msgid "Permission Details"
 msgstr "Permission Details"
 
-#: src/components/settings/WorkspaceMembers.tsx:135
-#: src/components/settings/WorkspaceMembers.tsx:504
-#: src/components/settings/WorkspaceMembers.tsx:572
+#: src/components/settings/WorkspaceMembers.tsx:116
+#: src/components/settings/WorkspaceMembers.tsx:490
+#: src/components/settings/WorkspaceMembers.tsx:567
 msgid "Permissions"
 msgstr "Permissions"
 
-#: src/components/settings/EditPermissionsDrawer.tsx:63
+#: src/components/settings/EditPermissionsDrawer.tsx:68
 msgid "Permissions updated successfully"
 msgstr "Permissions updated successfully"
 
@@ -10035,8 +10035,8 @@ msgstr "Please enter a workspace name"
 msgid "Please enter an API identifier"
 msgstr "Please enter an API identifier"
 
-#: src/components/settings/WorkspaceMembers.tsx:308
-#: src/components/settings/WorkspaceMembers.tsx:550
+#: src/components/settings/WorkspaceMembers.tsx:289
+#: src/components/settings/WorkspaceMembers.tsx:545
 msgid "Please enter an API key name"
 msgstr "Please enter an API key name"
 
@@ -10045,8 +10045,8 @@ msgstr "Please enter an API key name"
 msgid "Please enter an automation name"
 msgstr "Please enter an automation name"
 
-#: src/components/settings/WorkspaceMembers.tsx:275
-#: src/components/settings/WorkspaceMembers.tsx:495
+#: src/components/settings/WorkspaceMembers.tsx:256
+#: src/components/settings/WorkspaceMembers.tsx:481
 msgid "Please enter an email address"
 msgstr "Please enter an email address"
 
@@ -10571,11 +10571,11 @@ msgstr "Raw entry"
 msgid "Raw Entry Data"
 msgstr "Raw Entry Data"
 
-#: src/components/email_builder/blocks/MjRawBlock.tsx:243
+#: src/components/email_builder/blocks/MjRawBlock.tsx:304
 msgid "Raw HTML Block"
 msgstr "Raw HTML Block"
 
-#: src/components/email_builder/blocks/MjRawBlock.tsx:292
+#: src/components/email_builder/blocks/MjRawBlock.tsx:353
 msgid "Raw HTML block - Click to add custom HTML content"
 msgstr "Raw HTML block - Click to add custom HTML content"
 
@@ -10591,9 +10591,9 @@ msgstr "Raw Payload:"
 msgid "Re-register"
 msgstr "Re-register"
 
-#: src/components/settings/PermissionsMatrix.tsx:95
-#: src/components/settings/PermissionsMatrix.tsx:193
-#: src/components/settings/PermissionsMatrix.tsx:243
+#: src/components/settings/PermissionsMatrix.tsx:100
+#: src/components/settings/PermissionsMatrix.tsx:209
+#: src/components/settings/PermissionsMatrix.tsx:259
 msgid "Read"
 msgstr "Read"
 
@@ -11001,8 +11001,8 @@ msgstr "Remove from List"
 msgid "Remove Link"
 msgstr "Remove Link"
 
-#: src/components/settings/WorkspaceMembers.tsx:218
-#: src/components/settings/WorkspaceMembers.tsx:225
+#: src/components/settings/WorkspaceMembers.tsx:199
+#: src/components/settings/WorkspaceMembers.tsx:206
 msgid "Remove member"
 msgstr "Remove member"
 
@@ -11151,7 +11151,7 @@ msgstr "Requires a padding"
 msgid "Resend code"
 msgstr "Resend code"
 
-#: src/components/settings/WorkspaceMembers.tsx:253
+#: src/components/settings/WorkspaceMembers.tsx:234
 msgid "Resend invitation"
 msgstr "Resend invitation"
 
@@ -11197,7 +11197,7 @@ msgstr "Reset translation"
 msgid "Resolved"
 msgstr "Resolved"
 
-#: src/components/settings/PermissionsMatrix.tsx:236
+#: src/components/settings/PermissionsMatrix.tsx:252
 msgid "Resource"
 msgstr "Resource"
 
@@ -11295,7 +11295,7 @@ msgstr "Retry the failed recipients?"
 msgid "Retry the recipients the provider refused"
 msgstr "Retry the recipients the provider refused"
 
-#: src/components/settings/WorkspaceMembers.tsx:57
+#: src/components/settings/PermissionScopePresets.tsx:54
 msgid "Revoke all"
 msgstr "Revoke all"
 
@@ -11314,7 +11314,7 @@ msgstr "Right"
 msgid "Right to Left"
 msgstr "Right to Left"
 
-#: src/components/settings/WorkspaceMembers.tsx:112
+#: src/components/settings/WorkspaceMembers.tsx:93
 msgid "Role"
 msgstr "Role"
 
@@ -11528,7 +11528,7 @@ msgstr "Save for later import"
 msgid "Save Mode"
 msgstr "Save Mode"
 
-#: src/components/settings/EditPermissionsDrawer.tsx:103
+#: src/components/settings/EditPermissionsDrawer.tsx:108
 msgid "Save Permissions"
 msgstr "Save Permissions"
 
@@ -11737,7 +11737,7 @@ msgid "Segment tree reset"
 msgstr "Segment tree reset"
 
 #: src/components/contacts/SegmentsFilter.tsx:230
-#: src/components/settings/PermissionsMatrix.tsx:133
+#: src/components/settings/PermissionsMatrix.tsx:144
 #: src/pages/BroadcastsPage.tsx:1103
 #: src/pages/ContactsPage.tsx:425
 #: src/pages/ContactsPage.tsx:625
@@ -11809,7 +11809,7 @@ msgstr "Select a list..."
 msgid "Select a model"
 msgstr "Select a model"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:154
+#: src/components/email_builder/ui/ImportFontInput.tsx:157
 msgid "Select a popular Google Font"
 msgstr "Select a popular Google Font"
 
@@ -12119,7 +12119,7 @@ msgstr "Send a transactional notification using Python:"
 msgid "Send a transactional notification using TypeScript/JavaScript:"
 msgstr "Send a transactional notification using TypeScript/JavaScript:"
 
-#: src/components/settings/WorkspaceMembers.tsx:485
+#: src/components/settings/WorkspaceMembers.tsx:471
 msgid "Send Invitation"
 msgstr "Send Invitation"
 
@@ -12365,7 +12365,7 @@ msgstr "Set friendly display names for contact custom fields."
 msgid "Set height"
 msgstr "Set height"
 
-#: src/components/email_builder/blocks/MjRawBlock.tsx:265
+#: src/components/email_builder/blocks/MjRawBlock.tsx:326
 msgid "Set HTML Content"
 msgstr "Set HTML Content"
 
@@ -12415,7 +12415,7 @@ msgstr "Set value"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:180
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:119
-#: src/components/email_builder/blocks/MjRawBlock.tsx:278
+#: src/components/email_builder/blocks/MjRawBlock.tsx:339
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:164
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:148
 msgid "Set Value"
@@ -12526,7 +12526,7 @@ msgid "Signup"
 msgstr "Signup"
 
 #: src/components/analytics/NewContactsTable.tsx:184
-#: src/components/settings/WorkspaceMembers.tsx:184
+#: src/components/settings/WorkspaceMembers.tsx:165
 msgid "Since"
 msgstr "Since"
 
@@ -13145,11 +13145,11 @@ msgid "Task type:"
 msgstr "Task type:"
 
 #: src/components/settings/SettingsSidebar.tsx:57
-#: src/components/settings/WorkspaceMembers.tsx:441
+#: src/components/settings/WorkspaceMembers.tsx:422
 msgid "Team"
 msgstr "Team"
 
-#: src/components/settings/WorkspaceMembers.tsx:296
+#: src/components/settings/WorkspaceMembers.tsx:277
 msgid "Team member limit reached. Please upgrade your plan to add more members."
 msgstr "Team member limit reached. Please upgrade your plan to add more members."
 
@@ -13281,7 +13281,7 @@ msgstr "Template Variables:"
 msgid "Template:"
 msgstr "Template:"
 
-#: src/components/settings/PermissionsMatrix.tsx:124
+#: src/components/settings/PermissionsMatrix.tsx:135
 #: src/layouts/WorkspaceLayout.tsx:251
 #: src/pages/TemplatesPage.tsx:404
 #: src/services/api/errors.ts:84
@@ -13913,11 +13913,11 @@ msgstr "This page cannot be previewed here"
 msgid "This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server."
 msgstr "This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server."
 
-#: src/components/settings/PermissionsMatrix.tsx:77
+#: src/components/settings/PermissionsMatrix.tsx:82
 msgid "This permission gates no endpoint today."
 msgstr "This permission gates no endpoint today."
 
-#: src/components/settings/PermissionsMatrix.tsx:184
+#: src/components/settings/PermissionsMatrix.tsx:200
 msgid "This permission is not enforced yet, so it is always granted. It cannot be turned off."
 msgstr "This permission is not enforced yet, so it is always granted. It cannot be turned off."
 
@@ -13969,7 +13969,7 @@ msgstr "This text appears in the email client's preview pane, typically after th
 msgid "This token is displayed once and cannot be retrieved again. Copy it now and paste it into Zapier."
 msgstr "This token is displayed once and cannot be retrieved again. Copy it now and paste it into Zapier."
 
-#: src/components/settings/WorkspaceMembers.tsx:581
+#: src/components/settings/WorkspaceMembers.tsx:587
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 
@@ -14365,7 +14365,7 @@ msgid "Traffic no filter rule has classified"
 msgstr "Traffic no filter rule has classified"
 
 #: src/components/analytics/EmailMetricsChart.tsx:286
-#: src/components/settings/PermissionsMatrix.tsx:126
+#: src/components/settings/PermissionsMatrix.tsx:137
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:413
 #: src/layouts/WorkspaceLayout.tsx:440
 #: src/pages/TemplatesPage.tsx:126
@@ -15130,7 +15130,7 @@ msgstr "Waiting for server restart..."
 msgid "Warning"
 msgstr "Warning"
 
-#: src/components/settings/PermissionsMatrix.tsx:101
+#: src/components/settings/PermissionsMatrix.tsx:106
 msgid "Watch out"
 msgstr "Watch out"
 
@@ -15138,7 +15138,7 @@ msgstr "Watch out"
 msgid "We'll automatically detect and use your website's favicon"
 msgstr "We'll automatically detect and use your website's favicon"
 
-#: src/components/settings/PermissionsMatrix.tsx:132
+#: src/components/settings/PermissionsMatrix.tsx:143
 #: src/components/settings/SettingsSidebar.tsx:126
 #: src/components/settings/WebAnalyticsSettings.tsx:232
 #: src/components/settings/WebAnalyticsSettings.tsx:242
@@ -15208,7 +15208,7 @@ msgstr "Webhook endpoint copied to clipboard"
 msgid "Webhook endpoint:"
 msgstr "Webhook endpoint:"
 
-#: src/components/settings/PermissionsMatrix.tsx:135
+#: src/components/settings/PermissionsMatrix.tsx:146
 #: src/services/api/errors.ts:95
 msgid "Webhook Events"
 msgstr "Webhook Events"
@@ -15229,7 +15229,7 @@ msgstr "Webhook subscription deleted"
 msgid "Webhook subscription updated"
 msgstr "Webhook subscription updated"
 
-#: src/components/settings/PermissionsMatrix.tsx:134
+#: src/components/settings/PermissionsMatrix.tsx:145
 #: src/services/api/errors.ts:94
 msgid "Webhook Subscriptions"
 msgstr "Webhook Subscriptions"
@@ -15451,7 +15451,7 @@ msgstr "With:"
 
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:109
 #: src/components/settings/audit_logs/AuditLogTable.tsx:248
-#: src/components/settings/PermissionsMatrix.tsx:127
+#: src/components/settings/PermissionsMatrix.tsx:138
 #: src/services/api/errors.ts:87
 msgid "Workspace"
 msgstr "Workspace"
@@ -15536,9 +15536,9 @@ msgstr "Workspaces"
 msgid "Wrapper Attributes"
 msgstr "Wrapper Attributes"
 
-#: src/components/settings/PermissionsMatrix.tsx:96
-#: src/components/settings/PermissionsMatrix.tsx:193
-#: src/components/settings/PermissionsMatrix.tsx:250
+#: src/components/settings/PermissionsMatrix.tsx:101
+#: src/components/settings/PermissionsMatrix.tsx:209
+#: src/components/settings/PermissionsMatrix.tsx:266
 msgid "Write"
 msgstr "Write"
 
@@ -15597,8 +15597,8 @@ msgstr "Yearly"
 #: src/components/settings/WebhookCard.tsx:217
 #: src/components/settings/WebhookCard.tsx:273
 #: src/components/settings/WebhookCard.tsx:360
-#: src/components/settings/WorkspaceMembers.tsx:221
-#: src/components/settings/WorkspaceMembers.tsx:241
+#: src/components/settings/WorkspaceMembers.tsx:202
+#: src/components/settings/WorkspaceMembers.tsx:222
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:155
 #: src/components/web_analytics/filters/FilterTable.tsx:271
 msgid "Yes"

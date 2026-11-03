@@ -6460,7 +6460,25 @@ func TestWorkspaceService_RBACLicenceGate(t *testing.T) {
 		assert.NotEmpty(t, notLicensed.Message)
 	}
 
-	t.Run("SetUserPermissions is refused outright without the licence", func(t *testing.T) {
+	// expectWrite stubs the write path of SetUserPermissions for memberID and returns where the
+	// stored map lands, so a subtest can assert what was written rather than only that no error
+	// came back.
+	expectWrite := func(deps licenceGateDeps) *domain.UserPermissions {
+		var written domain.UserPermissions
+		deps.repo.EXPECT().
+			GetUserWorkspace(gomock.Any(), memberID, workspaceID).
+			Return(&domain.UserWorkspace{UserID: memberID, WorkspaceID: workspaceID, Role: "member", Permissions: restrictedPermissions()}, nil)
+		deps.repo.EXPECT().
+			UpdateUserWorkspacePermissions(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, userWorkspace *domain.UserWorkspace) error {
+				written = userWorkspace.Permissions
+				return nil
+			})
+		deps.userRepo.EXPECT().GetSessionsByUserID(gomock.Any(), memberID).Return(nil, nil)
+		return &written
+	}
+
+	t.Run("SetUserPermissions refuses a restricted set without the licence", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
@@ -6473,18 +6491,101 @@ func TestWorkspaceService_RBACLicenceGate(t *testing.T) {
 		assertRBACRefusal(t, err)
 	})
 
-	t.Run("SetUserPermissions is refused even when the map is full", func(t *testing.T) {
+	// An empty map denies every verb once stored, so on this path it is a restricted set like
+	// any other. CreateAPIKey's "nil means full access" is that method's own contract.
+	t.Run("SetUserPermissions refuses an empty set without the licence", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
 
-		// The permission editor exists to hand out a narrower grant; without the licence there
-		// is nothing for it to do, so it refuses rather than silently accepting the one map it
-		// could still write.
 		deps.expectOwner(workspaceID, ownerID, 1)
 
-		err := service.SetUserPermissions(context.Background(), workspaceID, memberID, domain.NewFullPermissions())
+		err := service.SetUserPermissions(context.Background(), workspaceID, memberID, domain.UserPermissions{})
 		assertRBACRefusal(t, err)
+	})
+
+	// The product rule: a full grant is never what the licence sells. This is the path that puts
+	// a member or an API key holding restricted permissions back on full access once the key has
+	// lapsed, and it used to be refused like a narrowing.
+	t.Run("SetUserPermissions accepts full access without the licence", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		deps.expectOwner(workspaceID, ownerID, 1)
+		written := expectWrite(deps)
+
+		err := service.SetUserPermissions(context.Background(), workspaceID, memberID, domain.NewFullPermissions())
+		require.NoError(t, err)
+		assert.Equal(t, domain.NewFullPermissions(), *written)
+	})
+
+	// Audit logs is an opt-in resource, never part of "full", so adding it to a full grant
+	// leaves the grant full — the same answer InviteMember and CreateAPIKey give.
+	t.Run("SetUserPermissions accepts full access plus the opt-in audit logs grant without the licence", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		deps.expectOwner(workspaceID, ownerID, 1)
+		written := expectWrite(deps)
+
+		permissions := domain.NewFullPermissions()
+		permissions[domain.PermissionResourceAuditLogs] = domain.ResourcePermissions{Read: true}
+
+		err := service.SetUserPermissions(context.Background(), workspaceID, memberID, permissions)
+		require.NoError(t, err)
+		assert.Equal(t, permissions, *written)
+	})
+
+	// The gate sits after the owner check, so somebody who may not edit permissions is told
+	// that, and never learns the licence state of the deployment through a 402.
+	t.Run("SetUserPermissions answers a non-owner with ErrUnauthorized, not the licence refusal", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		deps.auth.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(context.Background(), &domain.User{ID: memberID}, &domain.UserWorkspace{UserID: memberID, WorkspaceID: workspaceID, Role: "member"}, nil)
+
+		err := service.SetUserPermissions(context.Background(), workspaceID, "member-2", restrictedPermissions())
+		require.Error(t, err)
+		var unauthorized *domain.ErrUnauthorized
+		assert.True(t, errors.As(err, &unauthorized), "expected ErrUnauthorized, got %v", err)
+		var notLicensed *domain.ErrFeatureNotLicensed
+		assert.False(t, errors.As(err, &notLicensed))
+	})
+
+	// Validate runs before the gate: a malformed map is a malformed request, not something a
+	// licence would fix.
+	t.Run("SetUserPermissions rejects an unknown resource before consulting the licence", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), unlicensed(ctrl))
+
+		deps.expectOwner(workspaceID, ownerID, 1)
+
+		permissions := restrictedPermissions()
+		permissions["not_a_resource"] = domain.ResourcePermissions{Read: true}
+
+		err := service.SetUserPermissions(context.Background(), workspaceID, memberID, permissions)
+		require.Error(t, err)
+		var notLicensed *domain.ErrFeatureNotLicensed
+		assert.False(t, errors.As(err, &notLicensed), "a malformed map must not answer 402, got %v", err)
+	})
+
+	t.Run("SetUserPermissions writes full access when licensed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		service, deps := newLicenceGatedWorkspaceService(t, ctrl, baseConfig(), withRBAC(ctrl))
+
+		deps.expectOwner(workspaceID, ownerID, 1)
+		written := expectWrite(deps)
+
+		err := service.SetUserPermissions(context.Background(), workspaceID, memberID, domain.NewFullPermissions())
+		require.NoError(t, err)
+		assert.Equal(t, domain.NewFullPermissions(), *written)
 	})
 
 	t.Run("SetUserPermissions writes the grant when licensed", func(t *testing.T) {
