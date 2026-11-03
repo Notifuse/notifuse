@@ -79,7 +79,7 @@ var AllPermissionResources = []PermissionResource{
 // grants them on purpose. They are deliberately absent from
 // AllPermissionResources, because that list is what "full access" means:
 // NewFullPermissions builds it, grantsFullPermissions checks every entry of it,
-// the console's Full Access tag counts it and the telemetry rbac_custom flag is
+// the console's Full Access tag checks it and the telemetry rbac_custom flag is
 // derived from it — and every permission map stored before a resource was added
 // to it lacks that resource. Appending audit_logs there would have turned every
 // existing full-access member into a "restricted" one on upgrade: the RBAC

@@ -10,6 +10,10 @@ import type { PermissionResource, WorkspaceMember } from '../../services/api/typ
 import {
   ALL_PERMISSION_RESOURCES,
   OPT_IN_PERMISSION_RESOURCES,
+  ENFORCED_PERMISSION_VERBS,
+  createEmptyPermissions,
+  createFullPermissions,
+  grantUnenforcedPermissions,
   isPermissionEnforced
 } from '../../services/api/permissions'
 
@@ -131,7 +135,7 @@ describe('WorkspaceMembers permissions column', () => {
     renderMembers([member])
 
     const row = rowFor(member)
-    expect(row.textContent).toContain(`1/${ALL_PERMISSION_RESOURCES.length * 2}`)
+    expect(row.textContent).toContain(`1/${ENFORCED_PERMISSION_VERBS.length}`)
     expect(row.textContent).not.toContain('Full Access')
   })
 
@@ -145,8 +149,10 @@ describe('WorkspaceMembers permissions column', () => {
     expect(rowFor(member).textContent).toContain('Full Access')
   })
 
-  it('uses the whole resource list as the badge denominator, not the row key count', () => {
-    expect(ALL_PERMISSION_RESOURCES).toHaveLength(14)
+  it('uses every enforced verb as the badge denominator, not the row key count', () => {
+    // Pinned here and in permissions.test.ts: fourteen canonical resources and Audit logs read,
+    // less the three canonical verbs no endpoint enforces.
+    expect(ENFORCED_PERMISSION_VERBS).toHaveLength(26)
 
     // A row that grants read+write on three resources is not Full Access.
     const member = apiKeyRow({
@@ -157,8 +163,75 @@ describe('WorkspaceMembers permissions column', () => {
     renderMembers([member])
 
     const row = rowFor(member)
-    expect(row.textContent).toContain('6/28')
+    expect(row.textContent).toContain('6/26')
     expect(row.textContent).not.toContain('Full Access')
+  })
+
+  // The shapes the console itself saves: every set leaves the drawer through
+  // grantUnenforcedPermissions, so it carries the unenforced verbs, Audit logs write included.
+  const savedFull = () => grantUnenforcedPermissions(createFullPermissions())
+  // A row with details to show wraps its tag in a Popover; one without renders the tag alone. The
+  // wrapper is what antd attaches the hover to, so its presence is the assertion — read
+  // synchronously, so a missing popover costs no timeout and a render failure is not swallowed.
+  const hasPopover = (member: WorkspaceMember) =>
+    rowFor(member).querySelector('.cursor-pointer') !== null
+
+  it('shows Full Access for a full set as the editor saves it', () => {
+    const member = apiKeyRow(savedFull())
+    renderMembers([member])
+
+    expect(rowFor(member).textContent).toContain('Full Access')
+    expect(hasPopover(member)).toBe(false)
+  })
+
+  it('shows Full Access for a full set that can also read audit logs, and keeps that grant visible', async () => {
+    const member = apiKeyRow({ ...savedFull(), audit_logs: { read: true, write: true } })
+    renderMembers([member])
+
+    expect(rowFor(member).textContent).toContain('Full Access')
+    expect(hasPopover(member)).toBe(true)
+
+    // And the hover really opens it, so the audit grant is reachable from the list.
+    fireEvent.mouseEnter(rowFor(member).querySelector('.cursor-pointer') as HTMLElement)
+    expect(await screen.findByText('Permission Details')).toBeInTheDocument()
+  })
+
+  it('does not call a set one verb short of full Full Access', () => {
+    const permissions = savedFull()
+    permissions.contacts = { read: true, write: false }
+    const member = apiKeyRow(permissions)
+    renderMembers([member])
+
+    const total = ENFORCED_PERMISSION_VERBS.length
+    const canonical = ENFORCED_PERMISSION_VERBS.filter(([resource]) =>
+      ALL_PERMISSION_RESOURCES.includes(resource)
+    ).length
+    expect(rowFor(member).textContent).not.toContain('Full Access')
+    expect(rowFor(member).textContent).toContain(`${canonical - 1}/${total}`)
+  })
+
+  // Older consoles and API callers could store an unenforced verb as false. It gates nothing, the
+  // editor shows it granted and saves it so, so the row is full access.
+  it('shows Full Access for a full set stored with an unenforced verb off', () => {
+    const member = apiKeyRow({ ...createFullPermissions(), llm: { read: false, write: true } })
+    renderMembers([member])
+
+    expect(rowFor(member).textContent).toContain('Full Access')
+  })
+
+  it('shows No Access for the set Revoke all saves', () => {
+    const member = apiKeyRow(grantUnenforcedPermissions(createEmptyPermissions()))
+    renderMembers([member])
+
+    expect(rowFor(member).textContent).toContain('No Access')
+  })
+
+  it('counts a key that can only read audit logs instead of calling it No Access', () => {
+    const member = apiKeyRow({ audit_logs: { read: true, write: true } })
+    renderMembers([member])
+
+    expect(rowFor(member).textContent).not.toContain('No Access')
+    expect(rowFor(member).textContent).toContain(`1/${ENFORCED_PERMISSION_VERBS.length}`)
   })
 
   it('renders a row whose permissions are undefined without throwing', () => {
