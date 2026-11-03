@@ -5,9 +5,11 @@ import { WorkspaceMember, UserPermissions } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import {
   createEmptyPermissions,
-  grantUnenforcedPermissions
+  grantUnenforcedPermissions,
+  grantsFullPermissions
 } from '../../services/api/permissions'
 import { PermissionsMatrix } from './PermissionsMatrix'
+import { PermissionScopePresets } from './PermissionScopePresets'
 import { useLicense } from '../../hooks/useLicense'
 import { LicenceGateNotice } from '../license/LicenceGateNotice'
 
@@ -31,10 +33,13 @@ export function EditPermissionsDrawer({
   const [saving, setSaving] = useState(false)
   const { message } = App.useApp()
   // Advisory, like every licence read in the console: the server still answers 402, and the
-  // catch below still shows its sentence. This only decides whether the matrix is offered
-  // unlocked, so the refusal is not the first the owner hears of it.
+  // catch below still shows its sentence. Without the rbac licence the server accepts full access
+  // and refuses anything narrower, so the editor offers exactly that: Grant all stays live, the
+  // choices that would narrow the set are greyed, and Save waits until the set is full access —
+  // which is how a member holding a restricted set is put back on full access once the key lapsed.
   const { has } = useLicense()
   const locked = !has('rbac')
+  const savable = !locked || grantsFullPermissions(permissions)
 
   // Initialize permissions when the drawer opens
   useEffect(() => {
@@ -98,7 +103,7 @@ export function EditPermissionsDrawer({
               type="primary"
               onClick={handleSavePermissions}
               loading={saving}
-              disabled={locked}
+              disabled={!savable}
             >
               {t`Save Permissions`}
             </Button>
@@ -107,10 +112,15 @@ export function EditPermissionsDrawer({
       }
     >
       <LicenceGateNotice feature="rbac" workspaceId={workspaceId} />
+      <PermissionScopePresets
+        value={permissions}
+        onChange={setPermissions}
+        fullAccessOnly={locked}
+      />
       <PermissionsMatrix
         value={permissions}
         onChange={setPermissions}
-        disabled={locked}
+        fullAccessOnly={locked}
         className="border border-gray-200 rounded-md"
       />
     </Drawer>

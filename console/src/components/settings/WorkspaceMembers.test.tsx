@@ -366,6 +366,45 @@ describe('create API key drawer', () => {
     }
   })
 
+  // The same rule as the invitation: a full key is never gated, a scoped one is. The matrix used
+  // to stay fully live without the licence, so the refusal only came as a 402 on Create.
+  it('greys every choice that narrows the key under an unlicensed deployment, and creates a full key', async () => {
+    renderMembers([], ['template_i18n'])
+    fireEvent.click(screen.getByRole('button', { name: 'Create API Key' }))
+    const drawer = await openDrawer('Create API Key')
+
+    expect(
+      within(drawer).getByText('Custom permissions require a Notifuse Studio licence.')
+    ).toBeInTheDocument()
+    for (const resource of ALL_PERMISSION_RESOURCES) {
+      const { read, write } = switchesFor(drawer, resource)
+      expect(read.disabled).toBe(true)
+      expect(write.disabled).toBe(true)
+    }
+    expect(within(drawer).getByRole('button', { name: 'Revoke all' })).toBeDisabled()
+
+    fireEvent.change(within(drawer).getByRole('textbox'), { target: { value: 'sender' } })
+    const create = within(footerOf(drawer)).getByRole('button', { name: 'Create API Key' })
+    expect(create).toBeEnabled()
+    fireEvent.click(create)
+
+    await waitFor(() => expect(api.createAPIKey).toHaveBeenCalled())
+    const { permissions } = api.createAPIKey.mock.calls[0][0]
+    for (const resource of ALL_PERMISSION_RESOURCES) {
+      expect(permissions[resource]).toEqual({ read: true, write: true })
+    }
+  })
+
+  it('leaves the key matrix live when the licence covers custom permissions', async () => {
+    renderMembers([], ['rbac'])
+    fireEvent.click(screen.getByRole('button', { name: 'Create API Key' }))
+    const drawer = await openDrawer('Create API Key')
+
+    expect(within(drawer).queryByText(/requires? a Notifuse/i)).not.toBeInTheDocument()
+    expect(switchesFor(drawer, 'contacts').write.disabled).toBe(false)
+    expect(within(drawer).getByRole('button', { name: 'Revoke all' })).toBeEnabled()
+  })
+
   it('advertises the address the server actually mints, without a workspace id in it', async () => {
     const drawer = await openCreateApiKey()
 
@@ -399,18 +438,23 @@ describe('invite member drawer', () => {
     return openDrawer('Invite Member')
   }
 
-  // An invite starts from a full grant, which the server never gates, so a locked matrix still
-  // holds a legal invitation. What is locked is narrowing it — the licensed capability — and
-  // it is said here, before Send, rather than as a 402 after it.
-  it('locks the matrix under an unlicensed deployment, and says what to buy', async () => {
+  // An invite starts from a full grant, which the server never gates, so it can be sent as it
+  // is. What is locked is narrowing it — the licensed capability — and it is said here, before
+  // Send, rather than as a 402 after it.
+  it('greys every choice that narrows the grant under an unlicensed deployment, and says what to buy', async () => {
     const drawer = await openInvite(['template_i18n'])
 
     expect(
       within(drawer).getByText('Custom permissions require a Notifuse Studio licence.')
     ).toBeInTheDocument()
-    const switches = within(drawer).getAllByRole('switch')
-    expect(switches.length).toBeGreaterThan(0)
-    expect(switches.every((s) => (s as HTMLButtonElement).disabled)).toBe(true)
+    for (const resource of ALL_PERMISSION_RESOURCES) {
+      const { read, write } = switchesFor(drawer, resource)
+      expect(read.disabled).toBe(true)
+      expect(write.disabled).toBe(true)
+    }
+    expect(within(drawer).getByRole('button', { name: 'Revoke all' })).toBeDisabled()
+    expect(within(drawer).getByRole('button', { name: 'Grant all' })).toBeEnabled()
+    expect(within(footerOf(drawer)).getByRole('button', { name: 'Send Invitation' })).toBeEnabled()
   })
 
   it('sends a grant naming every canonical resource', async () => {
