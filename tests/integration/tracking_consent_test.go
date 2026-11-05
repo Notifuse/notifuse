@@ -162,6 +162,27 @@ func TestTrackingConsent_ContactAPI(t *testing.T) {
 		assert.True(t, c.updatedAt.Time.Equal(time.Date(2025, 3, 1, 10, 0, 0, 0, time.UTC)))
 	})
 
+	// The console's CSV import sends null for an empty consent cell, and an API
+	// caller may send "": neither replaces a recorded choice.
+	t.Run("an import with an empty consent keeps the recorded one", func(t *testing.T) {
+		resp, err := client.BatchImportContacts([]map[string]interface{}{
+			{"email": migrated, "tracking_clicks_consent": nil},
+			{"email": denier, "tracking_opens_consent": ""},
+		}, nil)
+		require.NoError(t, err)
+		raw, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, string(raw))
+
+		assert.Equal(t, "denied", readStoredConsent(t, db, migrated).clicks.String)
+		assert.Equal(t, "denied", readStoredConsent(t, db, denier).opens.String)
+	})
+
+	t.Run("an upsert with an empty consent keeps the recorded one", func(t *testing.T) {
+		upsert(t, map[string]interface{}{"email": denier, "tracking_opens_consent": "  "})
+		assert.Equal(t, "denied", readStoredConsent(t, db, denier).opens.String)
+	})
+
 	t.Run("a change is logged on the timeline with the old and new values", func(t *testing.T) {
 		upsert(t, map[string]interface{}{"email": unknown, "tracking_clicks_consent": "denied"})
 
