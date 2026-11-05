@@ -399,7 +399,11 @@ func TestLinkClickMailpitE2E_URLsWithQuotesOrCharacterReferences(t *testing.T) {
 			<a href='https://example.com/search?q="exact"'>code text quote</a>
 			<a href="https://example.com/hello?name={{ contact.last_name }}">code text liquid</a>
 			<a href="https://example.com/?s=code&#038;post_type=post">code text numeric reference</a>
+			<a href="https://example.com/trailing-space ">code text trailing space</a>
+			<a href=" https://example.com/leading-space">code text leading space</a>
+			<a href=" mailto:hello@example.com">code text mailto with a leading space</a>
 		</mj-text>
+		<mj-button href=" https://example.com/button-space ">code button spaces</mj-button>
 		<mj-button href="https://example.com/blog/what's-new?from=button">code button apostrophe</mj-button>
 		<mj-button href="https://example.com/blog/what&#X27;s-new?from=button-reference">code button numeric reference</mj-button>
 	</mj-column></mj-section></mj-body></mjml>`
@@ -419,6 +423,9 @@ func TestLinkClickMailpitE2E_URLsWithQuotesOrCharacterReferences(t *testing.T) {
 		template testutil.TemplateOption
 		// link text -> the URL its author wrote, as the recipient must land on it
 		authored map[string]string
+		// link text -> the href it must reach the recipient with, byte for byte:
+		// links Notifuse leaves alone, never wrapped in a tracking redirect
+		untracked map[string]string
 	}{
 		{
 			name:     "code mode",
@@ -430,7 +437,13 @@ func TestLinkClickMailpitE2E_URLsWithQuotesOrCharacterReferences(t *testing.T) {
 				"code button apostrophe":        "https://example.com/blog/what's-new?from=button",
 				"code text numeric reference":   "https://example.com/?s=code&post_type=post",
 				"code button numeric reference": "https://example.com/blog/what's-new?from=button-reference",
+				// Browsers trim the spaces around an href, so the recipient lands
+				// on the trimmed URL, tagged like any other link.
+				"code text trailing space": "https://example.com/trailing-space",
+				"code text leading space":  "https://example.com/leading-space",
+				"code button spaces":       "https://example.com/button-space",
 			},
+			untracked: map[string]string{"code text mailto with a leading space": " mailto:hello@example.com"},
 		},
 		{
 			name: "visual editor",
@@ -497,6 +510,11 @@ func TestLinkClickMailpitE2E_URLsWithQuotesOrCharacterReferences(t *testing.T) {
 				require.True(t, strings.HasPrefix(href, baseURL+"/r/"),
 					"%q must be delivered as a tracking redirect on this server, got %q", text, href)
 				hrefs[text] = href
+			}
+
+			for text, want := range send.untracked {
+				assert.Equal(t, want, deliveredLinkHref(t, email.HTML, text),
+					"%q must reach the recipient as written, without a tracking redirect", text)
 			}
 
 			// No wait for the bot window: a click inside it is redirected the

@@ -273,7 +273,9 @@ func sanitizeClickedURL(clickedURL string, requestHost string) string {
 	// template ships, and what per-link reporting and segment filters match against.
 	// Only a link net/url refuses as written is keyed by its preprocessed form. One it
 	// reads as it is, a trailing space included, keeps the key it was always recorded
-	// under, so its click history does not split in two at the upgrade.
+	// under: a broadcast sent before the upgrade, whose links TrackLinks minted with the
+	// space, keeps a single row per link in its stats. Emails sent since are minted
+	// trimmed, so their clicks were never recorded under the old key.
 	key := clickedURL
 	if _, err := url.Parse(clickedURL); err != nil {
 		key = s

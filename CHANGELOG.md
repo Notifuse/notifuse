@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [42.3] - WIP
 
-- **Fix**: Links whose URL holds a `%` that starts no escape, such as `https://shop.com/50%off`, now get the UTM parameters and the web analytics identity token like any other link, and their clicks count in the per-link click statistics and segment link filters. Clicks on links that start with a space now count per link too. These links already redirected and counted in the email's click total.
+- **Fix**: Links whose URL holds a `%` that starts no escape, such as `https://shop.com/50%off`, now get the UTM parameters and the web analytics identity token like any other link, and their clicks count in the per-link click statistics and segment link filters. These links already redirected and counted in the email's click total.
+
+- **Fix**: In emails sent from this version on, a link written with a space after its URL no longer gets its UTM parameters after the space, which sent the recipient to a different page, often a missing one. Links with a leading space or a line break inside now get their UTM parameters and identity token, and clicks on such links count per link, in emails already sent too. A `mailto:` or `tel:` link written with a leading space is no longer wrapped in a tracking redirect.
 
 ## [42.2] - 2026-11-05
 
