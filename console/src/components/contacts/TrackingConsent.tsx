@@ -230,7 +230,7 @@ export function TrackingConsentEditor({
             the negative margin keeps a larger click area, no wider than the gap so it stays off the values */}
         <button
           type="button"
-          className="-my-1.5 -mx-1 py-1.5 px-1 rounded border-0 bg-transparent leading-none text-gray-400 enabled:hover:text-blue-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-blue-500"
+          className="-my-1.5 -mx-1 py-1.5 px-1 rounded border-0 bg-transparent leading-none text-gray-400 enabled:hover:text-blue-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500"
           aria-label={t`Edit tracking consent`}
           disabled={disabled}
           onClick={startEdit}

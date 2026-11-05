@@ -231,10 +231,10 @@ func (t *TrackingSettings) isTrackingPreferenceLink(sourceURL string) bool {
 	}
 	// An href read out of the HTML keeps its &amp; references (see
 	// decodeHrefCharacterReferences), and the query cannot be read through them.
-	// It is read as the click route reads it, so a link browsers open is
-	// recognised even when net/url refuses one of its escapes.
-	link, err := trackingtoken.ParseRepaired(strings.ReplaceAll(sourceURL, "&amp;", "&"))
-	if err != nil {
+	// It is read the way the click route reads a destination, so a link
+	// browsers open is recognised even when net/url refuses one of its escapes.
+	_, link := trackingtoken.ParseLenient(strings.ReplaceAll(sourceURL, "&amp;", "&"))
+	if link == nil {
 		return false
 	}
 	endpoint, err := url.Parse(t.Endpoint)

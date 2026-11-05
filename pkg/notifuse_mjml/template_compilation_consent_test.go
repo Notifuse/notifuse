@@ -103,8 +103,9 @@ func TestTrackLinks_LeavesTrackingPreferenceLinksUntouched(t *testing.T) {
 		{"endpoint with trailing slash", "https://track.example.com/", "https://track.example.com/notification-center?action=tracking_optout"},
 		{"host case differs", "https://Track.Example.com", "https://track.example.com/notification-center?action=tracking_optout"},
 		{"endpoint with path prefix", "https://example.com/notifuse", "https://example.com/notifuse/notification-center?action=tracking_optout"},
-		// Browsers open it, and the click route reads it, though net/url refuses the escape
+		// Browsers open it, though net/url refuses the escape
 		{"invalid percent escape", "https://track.example.com", "https://track.example.com/notification-center?action=tracking_optout#50%off"},
+		// Browsers strip the spaces before opening it
 		{"surrounding spaces", "https://track.example.com", " https://track.example.com/notification-center?action=tracking "},
 	}
 	for _, tc := range cases {
@@ -124,6 +125,15 @@ func TestTrackLinks_LeavesTrackingPreferenceLinksUntouched(t *testing.T) {
 			assert.NotContains(t, result, WebIdentifyQueryParam+"=")
 		})
 	}
+}
+
+func TestIsTrackingPreferenceLink_ReadsLinksLeniently(t *testing.T) {
+	settings := consentTestSettings()
+
+	assert.True(t, settings.isTrackingPreferenceLink(" https://track.example.com/notification-center?action=tracking_optout"))
+	assert.True(t, settings.isTrackingPreferenceLink("https://track.example.com/notification-center?action=tracking&ref=50%off"))
+	// A percent sign in the host is not this endpoint's host
+	assert.False(t, settings.isTrackingPreferenceLink("https://track.example.com%/notification-center?action=tracking_optout"))
 }
 
 func TestTrackLinks_StillTracksOtherNotificationCenterLinks(t *testing.T) {
