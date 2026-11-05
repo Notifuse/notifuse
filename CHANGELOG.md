@@ -20,7 +20,11 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: When an email provider answers that emails arrive too fast, the email integration now slows down, then climbs back to its rate limit once emails go through. The refused email is sent again at the slower pace and keeps its attempts, and its broadcast keeps sending. A quota named in the refusal, or refusals that continue for 30 seconds at a tenth of the rate limit, pause the integration's broadcasts.
 
-- **Fix**: Links whose URL holds a `%` that starts no escape, such as `https://shop.com/50%off`, now get the UTM parameters and the web analytics identity token like any other link, and their clicks count in the per-link click statistics and segment link filters. Clicks on links that start with a space now count per link too. These links already redirected and counted in the email's click total.
+- **Fix**: Links whose URL holds a `%` that starts no escape, such as `https://shop.com/50%off`, now get the UTM parameters and the web analytics identity token like any other link, and their clicks count in the per-link click statistics and segment link filters. These links already redirected and counted in the email's click total.
+
+- **Fix**: In emails sent from this version on, a link written with a space after its URL no longer gets its UTM parameters after the space, which sent the recipient to a different page, often a missing one. Links with a leading space or a line break inside now get their UTM parameters and identity token, and clicks on such links count per link, in emails already sent too. A `mailto:` or `tel:` link written with a leading space is no longer wrapped in a tracking redirect.
+
+- **Security**: The build tooling of the console, the notification center and the web analytics SDK now uses `minimatch` 11, which fixes a denial of service through crafted glob patterns ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)). Neither runs in the shipped app. The console also moves to Lingui 6, whose translation tooling no longer uses a `glob` version that keeps reading the disk after its time limit ([GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4)); building the console now needs Node.js 22.19 or later.
 
 ## [42.2] - 2026-11-05
 

@@ -599,41 +599,6 @@ func (t *TrackingSettings) applyIdentityParam(sourceURL string) string {
 	return appendToRawQuery(sourceURL, WebIdentifyQueryParam+"="+url.QueryEscape(t.IdentifyToken))
 }
 
-func (t *TrackingSettings) GetTrackingURL(sourceURL string) string {
-	// The explicit per-notification opt-out suppresses everything, including
-	// UTM rewriting (single-use auth URLs must never be modified).
-	if t.TrackingMode == TrackingModeDisabled {
-		return sourceURL
-	}
-
-	// Ignore if URL is empty, a placeholder, mailto:, tel:, or already tracked (basic check)
-	if sourceURL == "" || strings.Contains(sourceURL, "{{") || strings.Contains(sourceURL, "{%") || strings.HasPrefix(sourceURL, "mailto:") || strings.HasPrefix(sourceURL, "tel:") {
-		return sourceURL
-	}
-
-	if t.isTrackingPreferenceLink(sourceURL) {
-		return sourceURL
-	}
-
-	// Append UTM parameters to the destination URL
-	destinationURL := t.applyUTMParameters(sourceURL)
-
-	if !t.clicksTracked() {
-		return destinationURL
-	}
-
-	// parse endpoint and add the UTM-augmented destination URL to the query params
-	parsedEndpoint, err := url.Parse(t.Endpoint)
-	if err != nil {
-		return sourceURL
-	}
-	endpointParams := parsedEndpoint.Query()
-	endpointParams.Add("url", destinationURL)
-	parsedEndpoint.RawQuery = endpointParams.Encode()
-
-	return parsedEndpoint.String()
-}
-
 // CompileTemplateRequest represents the request for compiling a template
 type CompileTemplateRequest struct {
 	WorkspaceID            string           `json:"workspace_id"`
@@ -1205,7 +1170,14 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 		// The URL the recipient lands on: the attribute value with its
 		// character references read back as the characters they stand for. It
 		// is escaped again when written back below.
-		originalURL := decodeHrefCharacterReferences(rawValue)
+		//
+		// It is also preprocessed as browsers do (leading and trailing spaces
+		// trimmed, tab and line breaks removed), the way the click route and
+		// recorder read it too. Read raw, "https://shop.com/sale " got its UTM
+		// parameters after the space and sent the recipient to /sale%20, a
+		// leading space kept a link from being tagged at all, and " mailto:"
+		// was wrapped in a tracking redirect.
+		originalURL := trackingtoken.Preprocess(decodeHrefCharacterReferences(rawValue))
 
 		// Skip tracking for empty hrefs and special protocol links (mailto,
 		// tel, sms, etc.). These should not be wrapped in a redirect as it

@@ -381,11 +381,11 @@ msgstr "{seconds} Sekunde"
 msgid "{seconds} seconds"
 msgstr "{seconds} Sekunden"
 
-#: src/components/contacts/BulkActionsBar.tsx:117
+#: src/components/contacts/BulkActionsBar.tsx:118
 msgid "{selectedCount, plural, one {# contact selected} other {# contacts selected}}"
 msgstr "{selectedCount, plural, one {# Kontakt ausgewählt} other {# Kontakte ausgewählt}}"
 
-#: src/components/contacts/BulkActionsBar.tsx:230
+#: src/components/contacts/BulkActionsBar.tsx:231
 msgid "{selectedCount, plural, one {This will permanently delete # contact. This action cannot be undone.} other {This will permanently delete # contacts. This action cannot be undone.}}"
 msgstr "{selectedCount, plural, one {Dadurch wird # Kontakt dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.} other {Dadurch werden # Kontakte dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.}}"
 
@@ -4977,7 +4977,7 @@ msgstr "Theme bearbeiten"
 msgid "Edit Theme v{0}"
 msgstr "Theme v{0} bearbeiten"
 
-#: src/components/contacts/TrackingConsent.tsx:233
+#: src/components/contacts/TrackingConsent.tsx:234
 msgid "Edit tracking consent"
 msgstr "Tracking-Einwilligung bearbeiten"
 

@@ -141,13 +141,6 @@ func TestTrackLinks_TrackingActionOnAnotherHostIsTracked(t *testing.T) {
 	assert.Contains(t, result, `href="https://track.example.com/r/`)
 }
 
-func TestGetTrackingURL_FollowsSuppressClicks(t *testing.T) {
-	settings := consentTestSettings()
-	settings.SuppressClicks = true
-
-	assert.Equal(t, "https://shop.example.com/x?utm_source=newsletter", settings.GetTrackingURL("https://shop.example.com/x"))
-}
-
 func TestTrackingSettings_PerRecipientDecisionsAreNotSerialized(t *testing.T) {
 	settings := consentTestSettings()
 	settings.SuppressOpens = true
