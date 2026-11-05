@@ -1030,6 +1030,21 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 			req.TrackingSettings.Endpoint, notificationCenterParams.Encode())
 		templateData["notification_center_url"] = notificationCenterURL
 
+		// Links to the tracking section of the notification center, and to the
+		// one-click tracking opt-out (which asks for a confirmation before it
+		// writes anything). TrackLinks leaves both untouched.
+		trackingParams := url.Values{}
+		trackingParams.Set("action", "tracking")
+		trackingParams.Set("email", req.ContactWithList.Contact.Email)
+		trackingParams.Set("email_hmac", emailHMAC)
+		trackingParams.Set("wid", req.WorkspaceID)
+		templateData["tracking_preferences_url"] = fmt.Sprintf("%s/notification-center?%s",
+			req.TrackingSettings.Endpoint, trackingParams.Encode())
+
+		trackingParams.Set("action", "tracking_optout")
+		templateData["tracking_optout_url"] = fmt.Sprintf("%s/notification-center?%s",
+			req.TrackingSettings.Endpoint, trackingParams.Encode())
+
 	} else {
 		// Create empty contact object if none provided
 		templateData["contact"] = MapOfAny{}
@@ -1134,8 +1149,13 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 	// Open tracking URL (with timestamp for bot detection), signed with the
 	// workspace's tracking key like the pixel TrackLinks inserts. An empty secret,
 	// which BeforeSave rules out, leaves the key empty and the token unsigned.
-	templateData["tracking_opens_url"] = notifuse_mjml.GenerateOpenTrackingURL(
-		TrackingSigningKey(req.WorkspaceSecretKey), req.WorkspaceID, req.MessageID, req.TrackingSettings.Endpoint, time.Now().Unix())
+	// Empty when the send decided not to track opens for this recipient: a
+	// template using it would otherwise put the pixel back.
+	templateData["tracking_opens_url"] = ""
+	if !req.TrackingSettings.SuppressOpens {
+		templateData["tracking_opens_url"] = notifuse_mjml.GenerateOpenTrackingURL(
+			TrackingSigningKey(req.WorkspaceSecretKey), req.WorkspaceID, req.MessageID, req.TrackingSettings.Endpoint, time.Now().Unix())
+	}
 
 	return templateData, nil
 }

@@ -270,6 +270,7 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 			FileManager:          fileManager,
 			SecretKey:            randomSecretKey,
 			EmailTrackingEnabled: true,
+			EmailTracking:        domain.DefaultEmailTrackingSettings(),
 			DefaultLanguage:      defaultLanguage,
 			Languages:            languages,
 			WebAnalytics: &domain.WebAnalyticsSettings{
@@ -491,6 +492,7 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 
 	existingWorkspace.Settings.MarketingEmailProviderID = settings.MarketingEmailProviderID
 	existingWorkspace.Settings.EmailTrackingEnabled = settings.EmailTrackingEnabled
+	existingWorkspace.Settings.EmailTracking = settings.EmailTracking
 
 	// Verify DNS ownership if custom endpoint URL is being set or changed
 	if settings.CustomEndpointURL != nil && *settings.CustomEndpointURL != "" {

@@ -89,6 +89,11 @@ type EmailQueuePayload struct {
 	// and records the recipient-visible Message-ID for reply matching. Absent for
 	// all other sends (the feature is free for everyone else).
 	ContactAutomationID *string `json:"contact_automation_id,omitempty"`
+
+	// OpensTracked and ClicksTracked record what the compiled HTML carries, for
+	// message_history. An entry queued before they existed has neither.
+	OpensTracked  *bool `json:"opens_tracked,omitempty"`
+	ClicksTracked *bool `json:"clicks_tracked,omitempty"`
 }
 
 // ToSendEmailProviderRequest converts the payload to a SendEmailProviderRequest
