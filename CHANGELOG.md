@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: When an email provider answers that emails arrive too fast, the email integration now slows down, then climbs back to its rate limit once emails go through. The refused email is sent again at the slower pace and keeps its attempts, and its broadcast keeps sending. A quota named in the refusal, or refusals that continue for 30 seconds at a tenth of the rate limit, pause the integration's broadcasts.
 
-- **Security**: The build tooling of the console, the notification center and the web analytics SDK now uses `minimatch` 11, which fixes a denial of service through crafted glob patterns ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)). It only runs while building and linting, never in the shipped app.
+- **Security**: The build tooling of the console, the notification center and the web analytics SDK now uses `minimatch` 11, which fixes a denial of service through crafted glob patterns ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)). Neither runs in the shipped app. The console also moves to Lingui 6, whose translation tooling no longer uses a `glob` version that keeps reading the disk after its time limit ([GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4)); building the console now needs Node.js 22.19 or later.
 
 ## [42.2] - 2026-11-05
 
