@@ -249,6 +249,8 @@ func TestCron_ReturnsImmediately(t *testing.T) {
 	assert.GreaterOrEqual(t, enqueued, int64(contacts),
 		"the work must still happen after the endpoint has answered")
 	assert.Equal(t, "completed", status, "the task started by cron should finish")
+	assert.Equal(t, 0, retries, "a completed run must leave a clean retry budget")
+	assert.Empty(t, errMsg)
 }
 
 // TestCron_ClientHangupDoesNotAbortTasks pins the cancellation half of defect 2:
@@ -278,7 +280,7 @@ func TestCron_ClientHangupDoesNotAbortTasks(t *testing.T) {
 		"a cron caller hanging up must not abort the tasks it started")
 	assert.Equal(t, "completed", status, "the tasks it started should finish")
 	assert.Equal(t, 0, retries,
-		"an interrupted run must not consume the retry budget")
+		"a cron caller hanging up must not consume the retry budget")
 }
 
 // TestBroadcastPauseResume_DoesNotConsumeRetryBudget pins defect 3.
@@ -640,7 +642,8 @@ func TestBroadcastInterrupted_ResumesAndCompletes(t *testing.T) {
 	h.scheduleAsync(t)
 	waitForCommittedBatch(t, h, 60*time.Second)
 	cancel()
-	waitForTaskStatus(t, h, "pending", 30*time.Second)
+	require.Equal(t, "pending", waitForTaskStatus(t, h, "pending", 30*time.Second),
+		"the interrupted run should hand the task back")
 
 	// The scheduler is gone with the context, but the server still serves, so
 	// the task can be driven to completion by hand — through /api/cron, not
