@@ -250,6 +250,7 @@ func TestCron_ReturnsImmediately(t *testing.T) {
 		"the work must still happen after the endpoint has answered")
 	assert.Equal(t, "completed", status, "the task started by cron should finish")
 	assert.Equal(t, 0, retries, "a completed run must leave a clean retry budget")
+	assert.Empty(t, errMsg, "a completed run must leave no error behind")
 }
 
 // TestCron_ClientHangupDoesNotAbortTasks pins the cancellation half of defect 2:
