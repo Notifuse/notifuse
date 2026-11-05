@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"regexp"
 	"testing"
 	"time"
 
@@ -530,6 +531,53 @@ func TestEmailQueueRepository_MarkAsFailed(t *testing.T) {
 		err := repo.MarkAsFailed(ctx, "workspace-123", "entry-123", "error", nil)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to mark email as failed")
+	})
+}
+
+func TestEmailQueueRepository_ReleaseThrottled(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("puts a processing row back to pending and gives back its attempt", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectExec(regexp.QuoteMeta(releaseThrottledSQL)).
+			WithArgs("entry-123", "SES error: Throttling: Maximum sending rate exceeded.").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err := repo.ReleaseThrottled(ctx, "workspace-123", "entry-123", "SES error: Throttling: Maximum sending rate exceeded.")
+		assert.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a row no longer processing is left alone without an error", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectExec(regexp.QuoteMeta(releaseThrottledSQL)).
+			WithArgs("entry-123", "throttled").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		assert.NoError(t, repo.ReleaseThrottled(ctx, "workspace-123", "entry-123", "throttled"))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("handles database error", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		mock.ExpectExec(regexp.QuoteMeta(releaseThrottledSQL)).
+			WillReturnError(errors.New("database error"))
+
+		err := repo.ReleaseThrottled(ctx, "workspace-123", "entry-123", "throttled")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to release throttled email")
 	})
 }
 
