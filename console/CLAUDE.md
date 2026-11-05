@@ -7,7 +7,7 @@ The console uses **LinguiJS** for internationalization with natural language key
 **Setup:**
 
 - Runtime: `@lingui/core`, `@lingui/react`
-- Build: `@lingui/cli`, `@lingui/vite-plugin` (compiles macros with its native transform, `macroTransform: true`). Extraction (`createSwcExtractor` in `lingui.config.ts`) and `src/__tests__/i18nMacro.test.ts` use the same transform from `@lingui/native-tools`, so the IDs extracted are the IDs the bundle looks up
+- Build: `@lingui/cli`, `@lingui/vite-plugin` (compiles macros with its native transform, `macroTransform: true`). Extraction (`createSwcExtractor` from `@lingui/native-tools` in `lingui.config.ts`) uses the same transform, so the IDs extracted are the IDs the bundle looks up; `src/__tests__/i18nMacro.test.ts` runs the plugin's own transform hook over the console
 - Config: `console/lingui.config.ts`
 - Translations: `console/src/i18n/locales/{locale}.po`
 
