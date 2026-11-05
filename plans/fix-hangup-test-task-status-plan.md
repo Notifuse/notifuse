@@ -13,9 +13,9 @@ The test waits until the 300 queue rows are visible (`waitForQueuedCount`), then
 
 ## Fix
 
-In that test, read the status with the existing `waitForTaskStatus(t, h, "completed", 10*time.Second)` (same file), then read `retry_count` and `error_message` with `taskRow` once the status has settled. Assertions are unchanged: a run that never completes still fails, after the wait instead of at once.
+In that test, wait for the task row to read `completed` (a new `waitForTaskRow`, which returns the whole row from one query; the existing `waitForTaskStatus` now wraps it), then count the queue once. `completed` is written after the last batch commits, so the count read then is final. Assertions are unchanged: a run that never completes still fails, at the end of the wait.
 
-`TestCron_ClientHangupDoesNotAbortTasks` and `TestCron_ReturnsImmediately` stop at the same point, so their cleanup can run under the task's last writes, and the first asserts `retry_count` on a task still running. Both now also wait for, and assert, `completed`.
+`TestCron_ClientHangupDoesNotAbortTasks` and `TestCron_ReturnsImmediately` stop at the same point, and the first asserts `retry_count` on a task that can still be running. Both now wait for, and assert, `completed` the same way. This does not wait for the whole cron run to end, only for the broadcast task.
 
 ## Not in scope
 
@@ -27,11 +27,11 @@ In that test, read the status with the existing `waitForTaskStatus(t, h, "comple
 | --- | --- |
 | `tests/integration/broadcast_interruption_test.go` | `TestTaskExecute_ClientHangupDoesNotAbortTask`, `TestCron_ReturnsImmediately` and `TestCron_ClientHangupDoesNotAbortTasks` wait for the task to complete |
 
-## Final step — run the tests
-
-- `INTEGRATION_TESTS=true go test -race -tags integration,licdev -count=20 ./tests/integration/ -run 'TestTaskExecute_ClientHangupDoesNotAbortTask|TestCron_'`
-- `make test-integration`
-
 ## Plan review outcomes
 
-Gemini (`/mnt/project-files/reviews/fix-hangup-test-task-status-gemini-brut-plan.md`) confirmed the diagnosis and pointed out that both cron tests end at the same point. Adopted: they wait for and assert `completed` too.
+A Gemini counter-review confirmed the diagnosis (the queue rows are in the workspace database, the task row in the system one, with no transaction across them) and pointed out that both cron tests end at the same point. Adopted: they wait for and assert `completed` too.
+
+## Final step — run the tests
+
+- `INTEGRATION_TESTS=true go test -race -tags integration,licdev -count=20 -timeout 40m ./tests/integration/ -run 'TestTaskExecute_ClientHangupDoesNotAbortTask|TestCron_'`
+- `make test-integration`
