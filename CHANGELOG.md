@@ -2,19 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## [42.3] - 2026-10-31
-
-- **Improvement**: The members list now shows Full Access for every member and API key with full access, including one that can also read audit logs, and No Access for one whose permissions were all revoked. The count shown for other members only includes permissions that grant access.
-
-- **Fix**: Without a licence covering granular permissions, an owner can now put a member or an API key back on full access from the permission editor; only a narrower set needs the licence, as for invitations and new API keys. The permission editor, the invitation form and the API key form now grey out only the choices that would narrow access and keep "Grant all" available.
-
-- **Improvement**: A workspace whose creation stopped partway can now be created again under the same ID, and a leftover database that already holds tables is refused with a message naming it. A workspace deleted while in use no longer gets its database back. Updates at startup no longer stop on a workspace whose database has no tables, which is now set up shortly after startup. An update that cannot start because a workspace's database is missing says how to fix it, and instances starting together now apply updates one at a time.
-
-## [42.2] - 2026-10-31
+## [42.2] - 2026-11-05
 
 - **Improvement**: Tracked links now ask the visitor to confirm before opening another site whenever Notifuse cannot verify that the email itself contained the link. Links in emails sent from now on carry that proof and redirect directly as before. Links in emails sent before the upgrade that lead to another site, legacy `/visit` links and links clicked from a template preview show a confirmation page naming the destination. Unsubscribe and notification center links keep working directly.
 
   **Upgrade while no broadcast is paused or still sending if you can:** emails queued before the upgrade go out with unsigned links, so their links to other sites show the confirmation page.
+
+- **Improvement**: A workspace whose creation stopped partway can now be created again under the same ID, and a leftover database that already holds tables is refused with a message naming it. A workspace deleted while in use no longer gets its database back. Updates at startup no longer stop on a workspace whose database has no tables, which is now set up shortly after startup. An update that cannot start because a workspace's database is missing says how to fix it, and instances starting together now apply updates one at a time.
+
+- **Fix**: Without a licence covering granular permissions, an owner can now put a member or an API key back on full access from the permission editor; only a narrower set needs the licence, as for invitations and new API keys. The permission editor, the invitation form and the API key form now grey out only the choices that would narrow access and keep "Grant all" available.
+
+- **Improvement**: The members list now shows Full Access for every member and API key with full access, including one that can also read audit logs, and No Access for one whose permissions were all revoked. The count shown for other members only includes permissions that grant access.
 
 - **Security**: Requests naming a workspace that does not exist no longer open database connections or close other workspaces' idle ones.
 
