@@ -1232,7 +1232,7 @@ func GetMailpitMessage(t *testing.T, messageID string) (*MailpitMessage, error) 
 		return nil, fmt.Errorf("failed to decode Mailpit headers of message %s: %w", messageID, err)
 	}
 	if len(msg.Headers) == 0 {
-		return nil, fmt.Errorf("Mailpit returned no headers for message %s", messageID)
+		return nil, fmt.Errorf("no headers returned by Mailpit for message %s", messageID)
 	}
 
 	return &msg, nil
@@ -1285,6 +1285,7 @@ func WaitForMailpitMessageByRecipient(t *testing.T, recipientEmail string, timeo
 			continue
 		}
 
+	scan:
 		for _, msg := range apiResp.Messages {
 			for _, to := range msg.To {
 				if strings.EqualFold(recipientEmail, to.Address) {
@@ -1293,9 +1294,12 @@ func WaitForMailpitMessageByRecipient(t *testing.T, recipientEmail string, timeo
 					if err == nil {
 						return found, nil
 					}
-					// A passing Mailpit failure: poll again until the deadline.
+					// A passing Mailpit failure: poll again until the deadline. The scan stops
+					// at this newest match, so an older email to the same recipient is never
+					// returned in its place.
 					lastErr = err
 					t.Logf("Failed to read Mailpit message %s: %v", msg.ID, err)
+					break scan
 				}
 			}
 		}

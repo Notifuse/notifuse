@@ -986,6 +986,7 @@ func waitForEmailByRecipientAddr(t *testing.T, recipientEmail string, timeout ti
 			continue
 		}
 
+	scan:
 		for _, msg := range apiResp.Messages {
 			for _, to := range msg.To {
 				if strings.EqualFold(recipientEmail, to.Address) {
@@ -994,9 +995,12 @@ func waitForEmailByRecipientAddr(t *testing.T, recipientEmail string, timeout ti
 					if err == nil {
 						return found, nil
 					}
-					// A passing Mailpit failure: poll again until the deadline.
+					// A passing Mailpit failure: poll again until the deadline. The scan stops
+					// at this newest match, so an older email to the same recipient is never
+					// returned in its place.
 					lastErr = err
 					t.Logf("Failed to read Mailpit message %s: %v", msg.ID, err)
+					break scan
 				}
 			}
 		}
