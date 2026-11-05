@@ -221,8 +221,9 @@ func TestRateLimiter_Throttle(t *testing.T) {
 		irl.RecordAccepted("one", gen)
 		// Longer than a recovery interval without a refusal, which at a higher rate lifts
 		// the pace off the floor and ends the run.
-		require.Greater(t, time.Minute, defaultRecoveryInterval)
-		clock.Advance(time.Minute)
+		gap := time.Minute
+		require.Greater(t, gap, irl.recoveryInterval)
+		clock.Advance(gap)
 		assert.True(t, irl.RecordThrottle("one", 1, gen).AtFloor)
 	})
 
