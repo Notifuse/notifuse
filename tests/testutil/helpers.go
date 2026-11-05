@@ -1295,8 +1295,8 @@ func WaitForMailpitMessageByRecipient(t *testing.T, recipientEmail string, timeo
 						return found, nil
 					}
 					// A passing Mailpit failure: poll again until the deadline. The scan stops
-					// at this newest match, so an older email to the same recipient is never
-					// returned in its place.
+					// at this newest match, so a failed read never falls back to an older
+					// email to the same recipient.
 					lastErr = err
 					t.Logf("Failed to read Mailpit message %s: %v", msg.ID, err)
 					break scan

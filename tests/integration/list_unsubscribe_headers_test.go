@@ -370,7 +370,9 @@ func waitForEmailAndGetMessage(t *testing.T, recipientEmail string, timeout time
 
 		t.Logf("Mailpit has %d messages", len(apiResp.Messages))
 
-		// Check each message for matching recipient
+		// Check each message for matching recipient. A failed read of the newest match
+		// polls again rather than falling back to an older email to the same recipient.
+	scan:
 		for _, msg := range apiResp.Messages {
 			for _, to := range msg.To {
 				if strings.EqualFold(recipientEmail, to.Address) {
@@ -379,7 +381,7 @@ func waitForEmailAndGetMessage(t *testing.T, recipientEmail string, timeout time
 					fullMsg, err := testutil.GetMailpitMessage(t, msg.ID)
 					if err != nil {
 						t.Logf("Failed to get full message: %v", err)
-						continue
+						break scan
 					}
 					return fullMsg, nil
 				}
