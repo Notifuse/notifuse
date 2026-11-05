@@ -7,7 +7,7 @@ The console uses **LinguiJS** for internationalization with natural language key
 **Setup:**
 
 - Runtime: `@lingui/core`, `@lingui/react`
-- Build: `@lingui/cli`, `@lingui/babel-plugin-lingui-macro`, `@lingui/vite-plugin`
+- Build: `@lingui/cli`, `@lingui/vite-plugin` (compiles macros with its native transform, `macroTransform: true`); `src/__tests__/i18nMacro.test.ts` runs the same transform through `@lingui/native-tools`
 - Config: `console/lingui.config.ts`
 - Translations: `console/src/i18n/locales/{locale}.po`
 

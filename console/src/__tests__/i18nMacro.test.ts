@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { transformSync } from '@babel/core'
+import { transform } from '@lingui/native-tools'
 import { describe, it, expect } from 'vitest'
 
 // The Lingui macro rewrites t`…` only where `t` resolves to the binding useLingui()
@@ -9,16 +10,24 @@ import { describe, it, expect } from 'vitest'
 // tagged-template call. The strings do not fall back to English; they vanish, in every
 // language, and nothing in this suite can see it because the tests mock the macro away.
 //
-// So this runs the real macro over the console and asserts nothing survives it. The
-// visitor is listed after the macro plugin, so anything the macro rewrote is already a
-// call expression by the time the visitor sees the file.
+// So this compiles the console the way the build does and asserts nothing survives it:
+// vite.config.ts runs @lingui/vite-plugin's native macro transform, which only visits
+// files whose source matches MACRO_IMPORT below, and leaves every other file as written.
+// The output is then parsed, and any translation tag still applied to a template is a
+// string that will vanish.
 
 const SRC = join(import.meta.dirname, '..')
+
+// The filter @lingui/vite-plugin builds from Lingui's default macro packages
+// (buildMacroFilterRe, not exported). lingui.config.ts sets no `macro` option, so these
+// are the packages it uses.
+const MACRO_IMPORT = /from ['"](?:@lingui\/macro|@lingui\/core\/macro|@lingui\/react\/macro)['"]/
+const MACRO_PACKAGE = /['"]@lingui\/(?:core\/|react\/)?macro['"]/
 
 interface TaggedTemplatePath {
   node: {
     tag: { type: string; name?: string }
-    loc: { start: { line: number } } | null
+    quasi: { quasis: { value: { raw: string } }[] }
   }
 }
 
@@ -29,25 +38,31 @@ const sourceFiles = (): string[] =>
     .filter((f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.startsWith('__tests__'))
     .map((f) => join(SRC, f))
 
-const untransformedIn = (file: string): string[] => {
+const relative = (file: string): string => file.slice(file.indexOf('/src/') + 1)
+
+const untransformedIn = async (file: string): Promise<string[]> => {
   const source = readFileSync(file, 'utf8')
   if (!source.includes('`')) return []
 
+  // TypeScript is stripped and JSX kept, so the output still needs the jsx parser plugin.
+  const code = MACRO_IMPORT.test(source)
+    ? (await transform(source, basename(file), { sourceMaps: false })).code
+    : source
+
   const found: string[] = []
-  transformSync(source, {
+  transformSync(code, {
     filename: file,
-    // parserOpts rather than a syntax plugin: @babel/parser ships inside @babel/core,
-    // which @lingui/babel-plugin-lingui-macro itself depends on.
+    // parserOpts rather than a syntax plugin: @babel/parser ships inside @babel/core.
     parserOpts: { plugins: ['typescript', 'jsx'] },
     plugins: [
-      '@lingui/babel-plugin-lingui-macro',
       () => ({
         visitor: {
           TaggedTemplateExpression(path: TaggedTemplatePath) {
-            const { tag, loc } = path.node
+            const { tag, quasi } = path.node
             if (tag.type === 'Identifier' && tag.name && TRANSLATION_TAGS.has(tag.name)) {
-              const where = file.slice(file.indexOf('/src/') + 1)
-              found.push(`${where}:${loc?.start.line ?? '?'} — ${tag.name}\`…\``)
+              // The output's line numbers are not the source's, so name the string instead.
+              const text = quasi.quasis.map((q) => q.value.raw).join('${…}').slice(0, 60)
+              found.push(`${relative(file)} — ${tag.name}\`${text}\``)
             }
           }
         }
@@ -60,12 +75,23 @@ const untransformedIn = (file: string): string[] => {
 }
 
 describe('Lingui macro coverage', () => {
-  // Explicit timeout: this runs Babel with the real macro over all ~489 source files, so it
-  // is CPU-bound and scales with the machine. It lands around 1.2s on a dev laptop but took
-  // 7.3s on a GitHub runner — two shared vCPUs, with the other 88 test files competing for
-  // them — which blew vitest's 5s default. Raised here rather than globally so the rest of
-  // the suite keeps a tight bound and a genuine hang still surfaces as one.
-  it('leaves no translation tagged template untransformed', () => {
-    expect(sourceFiles().flatMap(untransformedIn)).toEqual([])
+  // Explicit timeout: this compiles every console source file, so it is CPU-bound and
+  // scales with the machine. A GitHub runner (two shared vCPUs, with the rest of the suite
+  // competing for them) once took several times longer than a dev laptop and blew vitest's
+  // 5s default. Raised here rather than globally so the rest of the suite keeps a tight
+  // bound and a genuine hang still surfaces as one.
+  it('leaves no translation tagged template untransformed', async () => {
+    const found = await Promise.all(sourceFiles().map(untransformedIn))
+    expect(found.flat()).toEqual([])
   }, 60_000)
+
+  // The plugin skips a file whose macro import its filter does not recognise, and the macro
+  // then reaches the bundle uncompiled, where it throws on first use.
+  it('writes every macro import in a form the build compiles', () => {
+    const missed = sourceFiles().filter((file) => {
+      const source = readFileSync(file, 'utf8')
+      return MACRO_PACKAGE.test(source) && !MACRO_IMPORT.test(source)
+    })
+    expect(missed.map(relative)).toEqual([])
+  })
 })
