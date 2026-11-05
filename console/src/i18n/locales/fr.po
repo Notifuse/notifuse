@@ -14507,7 +14507,7 @@ msgstr "Tracké"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:339
 msgid "Tracking"
-msgstr "Suivi"
+msgstr "Tracking"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:688
 msgid "Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."

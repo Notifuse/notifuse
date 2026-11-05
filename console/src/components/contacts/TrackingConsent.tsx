@@ -114,37 +114,33 @@ export function TrackingConsentEditor({
   }
 
   return (
-    <div className="mb-4">
-      <div className="text-xs font-medium text-gray-500 mb-2">{t`Tracking consent`}</div>
-      <Space direction="vertical" size={8} style={{ width: '100%' }}>
-        <div className="flex items-center justify-between">
-          <span>{t`Opens`}</span>
-          <Select
-            size="small"
-            style={{ width: 140 }}
-            value={opens || 'unknown'}
-            options={filters}
-            disabled={disabled}
-            loading={saving === 'tracking_opens_consent'}
-            onChange={(value) => save('tracking_opens_consent', value)}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <span>{t`Clicks`}</span>
-          <Select
-            size="small"
-            style={{ width: 140 }}
-            value={clicks || 'unknown'}
-            options={filters}
-            disabled={disabled}
-            loading={saving === 'tracking_clicks_consent'}
-            onChange={(value) => save('tracking_clicks_consent', value)}
-          />
-        </div>
-        {changedAt && (
-          <div className="text-xs text-gray-500">{t`Last changed ${changedAt} from ${changedFrom}`}</div>
-        )}
-      </Space>
+    <div className="py-2 px-4 text-xs border-b border-dashed border-gray-300">
+      <div className="font-semibold text-slate-600 mb-2">{t`Tracking consent`}</div>
+      <div className="grid grid-cols-2 gap-x-1 gap-y-2 items-center">
+        <span className="text-slate-600">{t`Opens`}</span>
+        <Select
+          size="small"
+          style={{ width: 140 }}
+          value={opens || 'unknown'}
+          options={filters}
+          disabled={disabled}
+          loading={saving === 'tracking_opens_consent'}
+          onChange={(value) => save('tracking_opens_consent', value)}
+        />
+        <span className="text-slate-600">{t`Clicks`}</span>
+        <Select
+          size="small"
+          style={{ width: 140 }}
+          value={clicks || 'unknown'}
+          options={filters}
+          disabled={disabled}
+          loading={saving === 'tracking_clicks_consent'}
+          onChange={(value) => save('tracking_clicks_consent', value)}
+        />
+      </div>
+      {changedAt && (
+        <div className="text-gray-500 mt-2">{t`Last changed ${changedAt} from ${changedFrom}`}</div>
+      )}
     </div>
   )
 }
