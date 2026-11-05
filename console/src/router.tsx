@@ -38,6 +38,7 @@ import { DebugSegmentPage } from "./pages/DebugSegmentPage";
 import { BlogPage } from "./pages/BlogPage";
 import SetupWizard from "./pages/SetupWizard";
 import { createRouter } from "@tanstack/react-router";
+import type { TrackingConsentFilter } from "./services/api/contacts";
 
 export interface ContactsSearch {
   email?: string;
@@ -50,8 +51,17 @@ export interface ContactsSearch {
   language?: string;
   list_id?: string;
   contact_list_status?: string;
+  tracking_opens_consent?: TrackingConsentFilter;
+  tracking_clicks_consent?: TrackingConsentFilter;
   segments?: string[];
   limit?: number;
+}
+
+const trackingConsentFilters: readonly TrackingConsentFilter[] = ["granted", "denied", "unknown"];
+
+// An unknown value would make the API refuse the whole list request.
+function trackingConsentFilter(value: unknown): TrackingConsentFilter | undefined {
+  return trackingConsentFilters.find((v) => v === value);
 }
 
 export interface SignInSearch {
@@ -230,6 +240,8 @@ export const workspaceContactsRoute = createRoute({
     language: search.language as string | undefined,
     list_id: search.list_id as string | undefined,
     contact_list_status: search.contact_list_status as string | undefined,
+    tracking_opens_consent: trackingConsentFilter(search.tracking_opens_consent),
+    tracking_clicks_consent: trackingConsentFilter(search.tracking_clicks_consent),
     segments: Array.isArray(search.segments)
       ? (search.segments as string[])
       : search.segments

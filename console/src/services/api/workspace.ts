@@ -45,6 +45,7 @@ export interface WorkspaceSettings {
   transactional_email_provider_id?: string
   marketing_email_provider_id?: string
   email_tracking_enabled: boolean
+  email_tracking?: EmailTrackingSettings
   template_blocks?: TemplateBlock[]
   custom_endpoint_url?: string
   custom_field_labels?: Record<string, string>
@@ -54,6 +55,19 @@ export interface WorkspaceSettings {
   audit_logs?: import('./audit_log').AuditLogSettings
   default_language: string
   languages: string[]
+}
+
+export type UnknownTrackingConsent = 'track' | 'no_track'
+
+/**
+ * The workspace half of the tracking decision: what the workspace tracks, and
+ * what it does for a contact with no recorded consent. A workspace saved before
+ * these settings existed has none; email_tracking_enabled then stands for both.
+ */
+export interface EmailTrackingSettings {
+  opens_enabled: boolean
+  clicks_enabled: boolean
+  unknown_consent: UnknownTrackingConsent
 }
 
 export interface FileManagerSettings {

@@ -185,3 +185,53 @@ describe('GeneralSettings', () => {
     expect(workspaceService.update).not.toHaveBeenCalled()
   })
 })
+
+describe('GeneralSettings email tracking', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const sentSettings = (): Record<string, unknown> =>
+    JSON.parse(JSON.stringify(vi.mocked(workspaceService.update).mock.calls[0][0].settings))
+
+  it('saves opens and clicks separately with the unknown-consent choice', async () => {
+    renderComponent(
+      true,
+      makeWorkspace({
+        email_tracking_enabled: true,
+        email_tracking: { opens_enabled: true, clicks_enabled: true, unknown_consent: 'track' }
+      })
+    )
+
+    fireEvent.click(screen.getByLabelText(/Email opens tracking/i))
+    fireEvent.click(screen.getByLabelText(/Do not track/i))
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
+    expect(sentSettings().email_tracking).toEqual({
+      opens_enabled: false,
+      clicks_enabled: true,
+      unknown_consent: 'no_track'
+    })
+    expect(sentSettings().email_tracking_enabled).toBe(true)
+  })
+
+  it('reads a workspace saved with the single switch as both on, unknown tracked', async () => {
+    renderComponent(true, makeWorkspace({ email_tracking_enabled: true }))
+
+    expect(screen.getByLabelText(/Email opens tracking/i)).toBeChecked()
+    expect(screen.getByLabelText(/Email clicks tracking/i)).toBeChecked()
+    expect(screen.getByLabelText(/^Track$/i)).toBeChecked()
+  })
+
+  it('turns the single switch off when neither is tracked', async () => {
+    renderComponent(true, makeWorkspace({ email_tracking_enabled: true }))
+
+    fireEvent.click(screen.getByLabelText(/Email opens tracking/i))
+    fireEvent.click(screen.getByLabelText(/Email clicks tracking/i))
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
+    expect(sentSettings().email_tracking_enabled).toBe(false)
+  })
+})

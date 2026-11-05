@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Form, Input, Select, App, Switch, Descriptions } from 'antd'
+import { Form, Input, Select, App, Switch, Descriptions, Radio } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import { Workspace } from '../../services/api/types'
@@ -10,6 +10,8 @@ import { LogoInput } from './LogoInput'
 import { SettingsSaveBar } from './SettingsSaveBar'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 import { WORKSPACE_NAME_MAX_LENGTH } from '../../constants/limits'
+import { getEmailTrackingPolicy, TRACKING_DOCS_URL } from '../../lib/emailTracking'
+import type { UnknownTrackingConsent } from '../../services/api/workspace'
 
 interface GeneralSettingsProps {
   workspace: Workspace | null
@@ -22,7 +24,9 @@ interface GeneralSettingsFormValues {
   website_url?: string
   logo_url?: string
   timezone: string
-  email_tracking_enabled: boolean
+  opens_tracking_enabled: boolean
+  clicks_tracking_enabled: boolean
+  unknown_consent: UnknownTrackingConsent
   custom_endpoint_url?: string
   languages?: string[]
   default_language?: string
@@ -34,12 +38,15 @@ interface GeneralSettingsFormValues {
  * loaded".
  */
 function toFormValues(workspace: Workspace | null): GeneralSettingsFormValues {
+  const tracking = getEmailTrackingPolicy(workspace?.settings)
   return {
     name: workspace?.name || '',
     website_url: workspace?.settings.website_url || '',
     logo_url: workspace?.settings.logo_url || '',
     timezone: workspace?.settings.timezone || 'UTC',
-    email_tracking_enabled: workspace?.settings.email_tracking_enabled || false,
+    opens_tracking_enabled: tracking.opens_enabled,
+    clicks_tracking_enabled: tracking.clicks_enabled,
+    unknown_consent: tracking.unknown_consent,
     custom_endpoint_url: workspace?.settings.custom_endpoint_url || '',
     languages: workspace?.settings.languages || ['en'],
     default_language: workspace?.settings.default_language || 'en'
@@ -83,7 +90,13 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
           logo_url: (values.logo_url as string | null | undefined) || null,
           cover_url: workspace?.settings.cover_url || null,
           timezone: values.timezone,
-          email_tracking_enabled: values.email_tracking_enabled,
+          // The single switch stays in step for readers that only know it.
+          email_tracking_enabled: values.opens_tracking_enabled || values.clicks_tracking_enabled,
+          email_tracking: {
+            opens_enabled: values.opens_tracking_enabled,
+            clicks_enabled: values.clicks_tracking_enabled,
+            unknown_consent: values.unknown_consent
+          },
           // Emptied means emptied. workspaces.update keeps every setting its body leaves
           // out, and undefined is dropped by JSON.stringify — so sending it restored the
           // very domain the operator was migrating off. An empty string is a value the
@@ -115,6 +128,20 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
   const handleFormChange = () => {
     setFormTouched(true)
   }
+
+  const trackingPolicy = getEmailTrackingPolicy(workspace?.settings)
+  const renderEnabled = (enabled: boolean) =>
+    enabled ? (
+      <span style={{ color: '#52c41a' }}>
+        <CheckCircleOutlined style={{ marginRight: '8px' }} />
+        {t`Enabled`}
+      </span>
+    ) : (
+      <span style={{ color: '#ff4d4f' }}>
+        <CloseCircleOutlined style={{ marginRight: '8px' }} />
+        {t`Disabled`}
+      </span>
+    )
 
   if (!isOwner) {
     // Render read-only settings for non-owner users
@@ -155,18 +182,16 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
             {workspace?.settings.timezone || 'UTC'}
           </Descriptions.Item>
 
-          <Descriptions.Item label={t`Email Opens and Clicks Tracking`}>
-            {workspace?.settings.email_tracking_enabled ? (
-              <span style={{ color: '#52c41a' }}>
-                <CheckCircleOutlined style={{ marginRight: '8px' }} />
-                {t`Enabled`}
-              </span>
-            ) : (
-              <span style={{ color: '#ff4d4f' }}>
-                <CloseCircleOutlined style={{ marginRight: '8px' }} />
-                {t`Disabled`}
-              </span>
-            )}
+          <Descriptions.Item label={t`Email opens tracking`}>
+            {renderEnabled(trackingPolicy.opens_enabled)}
+          </Descriptions.Item>
+
+          <Descriptions.Item label={t`Email clicks tracking`}>
+            {renderEnabled(trackingPolicy.clicks_enabled)}
+          </Descriptions.Item>
+
+          <Descriptions.Item label={t`Contacts without recorded consent`}>
+            {trackingPolicy.unknown_consent === 'no_track' ? t`Not tracked` : t`Tracked`}
           </Descriptions.Item>
 
           <Descriptions.Item label={t`Custom Endpoint URL`}>
@@ -266,12 +291,39 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
         </Form.Item>
 
         <Form.Item
-          name="email_tracking_enabled"
-          label={t`Email Opens and Clicks Tracking`}
-          tooltip={t`When enabled, links in the email will be tracked for opens and clicks`}
+          name="opens_tracking_enabled"
+          label={t`Email opens tracking`}
+          tooltip={t`When enabled, emails carry an invisible image that records when they are opened`}
           valuePropName="checked"
         >
           <Switch />
+        </Form.Item>
+
+        <Form.Item
+          name="clicks_tracking_enabled"
+          label={t`Email clicks tracking`}
+          tooltip={t`When enabled, links in emails go through a redirect that records each click`}
+          valuePropName="checked"
+        >
+          <Switch />
+        </Form.Item>
+
+        <Form.Item
+          name="unknown_consent"
+          label={t`Contacts without recorded consent`}
+          help={
+            <div className="mb-4">
+              {t`A contact's own consent always wins. This choice applies to contacts whose consent to open and click tracking is not recorded. Some regulators, such as the Italian Garante and the French CNIL, expect tracking to require consent.`}{' '}
+              <a href={TRACKING_DOCS_URL} target="_blank" rel="noopener noreferrer">
+                {t`Learn more`}
+              </a>
+            </div>
+          }
+        >
+          <Radio.Group>
+            <Radio value="track">{t`Track`}</Radio>
+            <Radio value="no_track">{t`Do not track`}</Radio>
+          </Radio.Group>
         </Form.Item>
 
         <Form.Item

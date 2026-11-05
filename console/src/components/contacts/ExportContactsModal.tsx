@@ -221,6 +221,10 @@ export function ExportContactsModal({
         getCustomFieldLabel('custom_json_3', workspace),
         getCustomFieldLabel('custom_json_4', workspace),
         getCustomFieldLabel('custom_json_5', workspace),
+        'tracking_opens_consent',
+        'tracking_clicks_consent',
+        'tracking_consent_updated_at',
+        'tracking_consent_source',
         'created_at',
         'updated_at'
       ]
@@ -261,6 +265,10 @@ export function ExportContactsModal({
         c.custom_json_3 ? JSON.stringify(c.custom_json_3) : '',
         c.custom_json_4 ? JSON.stringify(c.custom_json_4) : '',
         c.custom_json_5 ? JSON.stringify(c.custom_json_5) : '',
+        c.tracking_opens_consent || '',
+        c.tracking_clicks_consent || '',
+        c.tracking_consent_updated_at || '',
+        c.tracking_consent_source || '',
         c.created_at,
         c.updated_at
       ])

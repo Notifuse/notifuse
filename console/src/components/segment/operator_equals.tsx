@@ -7,6 +7,11 @@ import { Currencies, Currency } from '../../lib/currencies'
 import { CountriesFormOptions } from '../../lib/countries_timezones'
 import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { Languages } from '../../lib/languages'
+import type { FieldOption } from '../../services/api/segment'
+import {
+  TRACKING_CONSENT_FIELD_OPTIONS,
+  TRACKING_CONSENT_SOURCE_FIELD_OPTIONS
+} from '../../lib/emailTracking'
 import dayjs from 'dayjs'
 
 // Format date for display (converts ISO8601 to readable format)
@@ -17,6 +22,14 @@ const formatDateDisplay = (dateStr: string | undefined): string => {
 
 export type OperatorEqualsProps = {
   value: string | undefined
+}
+
+// Fields whose values are a closed list: the picker offers those values rather
+// than free text. Unknown tracking consent is NULL, reached with "is not set".
+const CLOSED_VALUE_OPTIONS: Record<string, FieldOption[]> = {
+  tracking_opens_consent: TRACKING_CONSENT_FIELD_OPTIONS,
+  tracking_clicks_consent: TRACKING_CONSENT_FIELD_OPTIONS,
+  tracking_consent_source: TRACKING_CONSENT_SOURCE_FIELD_OPTIONS
 }
 
 // Note: This class contains string labels that cannot use useLingui as they are class properties.
@@ -79,6 +92,9 @@ export class OperatorEquals implements IOperator {
     switch (fieldType) {
       case 'json':
       case 'string':
+        if (CLOSED_VALUE_OPTIONS[fieldName]) {
+          input = <Select placeholder="Select a value" options={CLOSED_VALUE_OPTIONS[fieldName]} />
+        }
         if (fieldName === 'gender') {
           input = (
             <Select

@@ -17,6 +17,7 @@ import {
 } from 'antd'
 import { DeleteOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
+import { useTrackingConsentOptions } from './TrackingConsent'
 import type { InputProps } from 'antd/es/input'
 import type { TextAreaProps } from 'antd/es/input/TextArea'
 import type { SelectProps, DefaultOptionType } from 'antd/es/select'
@@ -162,6 +163,8 @@ const getOptionalFields = (workspace: Workspace) => [
   { key: 'postcode', label: 'Postcode' },
   { key: 'state', label: 'State' },
   { key: 'job_title', label: 'Job Title' },
+  { key: 'tracking_opens_consent', label: 'Opens Tracking Consent' },
+  { key: 'tracking_clicks_consent', label: 'Clicks Tracking Consent' },
   { key: 'custom_string_1', label: formatCustomFieldLabel('custom_string_1', workspace) },
   { key: 'custom_string_2', label: formatCustomFieldLabel('custom_string_2', workspace) },
   { key: 'custom_string_3', label: formatCustomFieldLabel('custom_string_3', workspace) },
@@ -225,6 +228,7 @@ export function ContactUpsertDrawer({
 
   // Get optional fields with custom labels - memoize to prevent useEffect from running on every render
   const optionalFields = React.useMemo(() => getOptionalFields(workspace), [workspace])
+  const trackingConsentOptions = useTrackingConsentOptions()
 
   // Use external open state if provided, otherwise use internal state
   const isControlled = externalOpen !== undefined
@@ -420,6 +424,17 @@ export function ContactUpsertDrawer({
       field === 'custom_datetime_5'
     ) {
       return <NullableDatePicker name={field} nullLabel={t`Null`} showTime format="YYYY-MM-DD HH:mm:ss" />
+    }
+
+    if (field === 'tracking_opens_consent' || field === 'tracking_clicks_consent') {
+      return (
+        <NullableSelect
+          name={field}
+          nullLabel={t`Unknown`}
+          placeholder={t`Select consent`}
+          options={trackingConsentOptions.values}
+        />
+      )
     }
 
     if (field === 'timezone') {

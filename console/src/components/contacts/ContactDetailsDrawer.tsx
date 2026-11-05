@@ -22,6 +22,7 @@ import { Contact } from '../../services/api/contacts'
 import { List, Workspace } from '../../services/api/types'
 import { Segment } from '../../services/api/segment'
 import dayjs from '../../lib/dayjs'
+import { TrackingConsentEditor } from './TrackingConsent'
 import { InlineEditableField } from './InlineEditableField'
 import { getFieldType } from './fieldTypes'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -699,6 +700,15 @@ export function ContactDetailsDrawer({
                   isLoading={isLoadingContact}
                 />
               ))}
+
+              <TrackingConsentEditor
+                opens={contact?.tracking_opens_consent}
+                clicks={contact?.tracking_clicks_consent}
+                updatedAt={contact?.tracking_consent_updated_at}
+                source={contact?.tracking_consent_source}
+                disabled={isLoadingContact}
+                onSave={(field, value) => handleFieldUpdate(field, value)}
+              />
 
               {/* Set custom fields */}
               {editableFields
