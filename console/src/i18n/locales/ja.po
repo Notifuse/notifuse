@@ -469,7 +469,7 @@ msgstr "+ 差出人名、CC、BCC、返信先、添付ファイルを追加"
 msgid "+ Add property filter"
 msgstr "+ プロパティフィルターを追加"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:804
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:805
 msgid "+ Add variation"
 msgstr "+ バリエーションを追加"
 
@@ -1443,7 +1443,7 @@ msgstr "このカスタムフィールドラベルを削除してもよろしい
 msgid "Are you sure you want to remove this field?"
 msgstr "このフィールドを削除してもよろしいですか?"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:774
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:775
 msgid "Are you sure you want to remove this variation?"
 msgstr "このバリエーションを削除してもよろしいですか?"
 
@@ -1642,7 +1642,7 @@ msgstr "リストへ自動登録"
 msgid "Automatically add new users to the selected lists"
 msgstr "新規ユーザーを選択したリストに自動追加"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:693
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:694
 msgid "Automatically send winner"
 msgstr "勝者を自動送信"
 
@@ -4960,7 +4960,7 @@ msgstr "経過時間"
 msgid "Element Padding"
 msgstr "要素パディング"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:618
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:619
 msgid "email"
 msgstr "メール"
 
@@ -5134,7 +5134,7 @@ msgstr "絵文字候補"
 msgid "Empty column. Add text, button, or image content."
 msgstr "空のカラムです。テキスト、ボタン、または画像を追加してください。"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:660
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:661
 msgid "Enable A/B Testing"
 msgstr "A/Bテストを有効化"
 
@@ -8750,7 +8750,7 @@ msgstr "次回実行"
 #: src/components/blog/PostsTable.tsx:319
 #: src/components/broadcasts/HeadersEditor.tsx:66
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:238
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:777
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:778
 #: src/components/contacts/ContactUpsertDrawer.tsx:540
 #: src/components/contacts/SegmentsFilter.tsx:150
 #: src/components/contacts/SegmentsFilter.tsx:165
@@ -11011,7 +11011,7 @@ msgstr "メンバーを削除"
 msgid "Remove this author?"
 msgstr "この著者を削除しますか？"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:773
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:774
 msgid "Remove variation"
 msgstr "バリエーションを削除"
 
@@ -11994,8 +11994,8 @@ msgstr "ストレージプロバイダーを選択"
 msgid "Select supported languages"
 msgstr "対応言語を選択"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:761
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:824
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:762
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:825
 msgid "Select template"
 msgstr "テンプレートを選択"
 
@@ -13167,7 +13167,7 @@ msgstr "テレメトリー"
 msgid "template"
 msgstr "テンプレート"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:819
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:820
 #: src/components/messages/MessageHistoryTable.tsx:148
 #: src/components/messages/MessageHistoryTable.tsx:234
 #: src/pages/BroadcastsPage.tsx:871
@@ -13177,7 +13177,7 @@ msgid "Template"
 msgstr "テンプレート"
 
 #. placeholder {0}: field.key + 1
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:728
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:729
 msgid "Template {0}"
 msgstr "テンプレート {0}"
 
@@ -13389,7 +13389,7 @@ msgstr "受信者フィードをテスト"
 msgid "Test rule"
 msgstr "ルールをテスト"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:684
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:685
 msgid "Test sample size (%)"
 msgstr "テストサンプルサイズ（%）"
 
@@ -13726,7 +13726,7 @@ msgstr "これらのコンタクトは、選択したリストから削除され
 msgid "These contacts will be subscribed to the selected list (status: active)."
 msgstr "これらのコンタクトは、選択したリストに購読登録されます (ステータス: active)。"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:606
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:607
 msgid "These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
 msgstr "これらのパラメータはブロードキャストのURLに自動的に追加されます。Webアナリティクスツールがキャンペーンのパフォーマンスを分析するために使用されます。"
 
@@ -13946,7 +13946,7 @@ msgstr "このセクションは空です。コンテンツを表示するには
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "このセグメントは相対日付フィルターを使用しており、毎日午前5時（{timezone}）に自動的に再計算されます"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:749
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:750
 msgid "This template is already used in another variation"
 msgstr "このテンプレートは既に別のバリエーションで使用されています"
 
@@ -14343,11 +14343,11 @@ msgstr "ファーストパーティのスクリプトでWebサイトのトラフ
 msgid "Tracking"
 msgstr "トラッキング"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:651
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:652
 msgid "Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."
 msgstr "A/Bテスト機能を使用するには、ワークスペース設定でトラッキング（開封＆クリック）を有効にする必要があります。"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:697
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:698
 msgid "Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
 msgstr "この機能を使用するには、ワークスペース設定でトラッキング（開封＆クリック）を有効にする必要があります"
 
@@ -14442,6 +14442,10 @@ msgstr "変換"
 #: src/components/blog_editor/menus/block-actions/BlockTransformPopover.tsx:94
 msgid "Turn Into"
 msgstr "変換"
+
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:595
+msgid "Turn off for notices every member must receive, such as security or legal notices: the list's unsubscribed contacts receive it too, and its emails carry no List-Unsubscribe header, so mail clients show no Unsubscribe button. The unsubscribe link in your template is not affected."
+msgstr "セキュリティや法的なお知らせなど、全メンバーに届ける必要がある通知ではオフにしてください。リストの購読解除済みの連絡先にも送信され、メールには List-Unsubscribe ヘッダーが付かないため、メールクライアントに購読解除ボタンは表示されません。テンプレート内の購読解除リンクには影響しません。"
 
 #: src/components/settings/Integrations.tsx:2279
 msgid "Turn off SES tenant isolation to use your own tenant, or clear this field."
@@ -14986,7 +14990,7 @@ msgstr "値:"
 msgid "Variant name"
 msgstr "バリアント名"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:715
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:716
 #: src/pages/BroadcastsPage.tsx:812
 msgid "Variations"
 msgstr "バリエーション"
@@ -15574,7 +15578,7 @@ msgstr "年次"
 #: src/components/blog/PostsTable.tsx:318
 #: src/components/broadcasts/HeadersEditor.tsx:65
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:237
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:776
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:777
 #: src/components/contacts/ContactUpsertDrawer.tsx:539
 #: src/components/contacts/SegmentsFilter.tsx:149
 #: src/components/contacts/SegmentsFilter.tsx:164
@@ -15797,7 +15801,7 @@ msgstr ""
 msgid "Your web analytics settings have not been saved. Leaving this page discards them."
 msgstr "Webアナリティクス設定は保存されていません。このページを離れると破棄されます。"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:611
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:612
 msgid "Your website or company name"
 msgstr "ウェブサイトまたは会社名"
 

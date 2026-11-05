@@ -303,6 +303,15 @@ type Broadcast struct {
 	DataFeed *DataFeedSettings `json:"data_feed,omitempty"`
 }
 
+// SendsListUnsubscribeHeader reports whether the broadcast's emails carry the RFC 8058
+// List-Unsubscribe and List-Unsubscribe-Post headers. A broadcast that keeps the list's
+// unsubscribed contacts is a notice every member must receive (security, outage, legal), so
+// its emails offer no one-click unsubscribe. The template's unsubscribe variables are not
+// affected.
+func (b *Broadcast) SendsListUnsubscribeHeader() bool {
+	return b != nil && b.Audience.ExcludeUnsubscribed
+}
+
 // UTMParameters contains UTM tracking parameters for the broadcast
 type UTMParameters struct {
 	Source   string `json:"source,omitempty"`

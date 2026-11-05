@@ -420,9 +420,12 @@ func (s *queueMessageSender) buildQueueEntry(
 		UpdatedAt:   time.Now().UTC(),
 	}
 
-	// Extract List-Unsubscribe URL from template data for RFC-8058 compliance (broadcast emails only)
-	if unsubscribeURL, ok := data["oneclick_unsubscribe_url"].(string); ok && unsubscribeURL != "" {
-		entry.Payload.EmailOptions.ListUnsubscribeURL = unsubscribeURL
+	// Extract List-Unsubscribe URL from template data for RFC-8058 compliance (broadcast emails
+	// only), unless the broadcast is a notice that also goes to unsubscribed contacts.
+	if broadcast.SendsListUnsubscribeHeader() {
+		if unsubscribeURL, ok := data["oneclick_unsubscribe_url"].(string); ok && unsubscribeURL != "" {
+			entry.Payload.EmailOptions.ListUnsubscribeURL = unsubscribeURL
+		}
 	}
 
 	return entry, nil

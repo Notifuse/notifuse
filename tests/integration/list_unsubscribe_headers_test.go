@@ -100,9 +100,10 @@ func TestListUnsubscribeHeaders(t *testing.T) {
 		return contact.Email, list.ID
 	}
 
-	// sendToIndividual sends a broadcast to a fresh subscribed contact through
-	// broadcasts.sendToIndividual and returns the email Mailpit received.
-	sendToIndividual := func(t *testing.T) (msg *testutil.MailpitMessage, email, listID string) {
+	// sendToIndividualWith sends a broadcast to a fresh subscribed contact through
+	// broadcasts.sendToIndividual and returns the email Mailpit received. excludeUnsubscribed
+	// is the broadcast's audience setting.
+	sendToIndividualWith := func(t *testing.T, excludeUnsubscribed bool) (msg *testutil.MailpitMessage, email, listID string) {
 		t.Helper()
 		email, listID = subscribedContact(t)
 
@@ -116,7 +117,7 @@ func TestListUnsubscribeHeaders(t *testing.T) {
 			testutil.WithBroadcastABTesting([]string{template1.ID, template2.ID}),
 			testutil.WithBroadcastAudience(domain.AudienceSettings{
 				List:                listID,
-				ExcludeUnsubscribed: true,
+				ExcludeUnsubscribed: excludeUnsubscribed,
 			}))
 		require.NoError(t, err)
 
@@ -139,6 +140,12 @@ func TestListUnsubscribeHeaders(t *testing.T) {
 		return msg, email, listID
 	}
 
+	// sendToIndividual sends the usual broadcast, which excludes unsubscribed contacts.
+	sendToIndividual := func(t *testing.T) (msg *testutil.MailpitMessage, email, listID string) {
+		t.Helper()
+		return sendToIndividualWith(t, true)
+	}
+
 	t.Run("header carries an absolute one-click URL on the workspace endpoint", func(t *testing.T) {
 		msg, email, listID := sendToIndividual(t)
 
@@ -153,6 +160,16 @@ func TestListUnsubscribeHeaders(t *testing.T) {
 		require.NotEmpty(t, listUnsubscribePost, "Email should have List-Unsubscribe-Post header")
 		assert.Equal(t, "List-Unsubscribe=One-Click", listUnsubscribePost[0],
 			"List-Unsubscribe-Post should be 'List-Unsubscribe=One-Click'")
+	})
+
+	// A broadcast that keeps the list's unsubscribed contacts is a notice every member must
+	// receive (issue #484): its emails carry neither header, so mail clients show no
+	// Unsubscribe button.
+	t.Run("no header when the broadcast includes unsubscribed contacts", func(t *testing.T) {
+		msg, _, _ := sendToIndividualWith(t, false)
+
+		assert.Empty(t, msg.Headers["List-Unsubscribe"], "Email should have no List-Unsubscribe header")
+		assert.Empty(t, msg.Headers["List-Unsubscribe-Post"], "Email should have no List-Unsubscribe-Post header")
 	})
 
 	// RFC 8058 section 3.2: the receiver SHOULD send the one-click POST as

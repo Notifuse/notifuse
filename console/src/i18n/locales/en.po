@@ -469,7 +469,7 @@ msgstr "+ add from name, CC, BCC, reply-to, attachments"
 msgid "+ Add property filter"
 msgstr "+ Add property filter"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:804
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:805
 msgid "+ Add variation"
 msgstr "+ Add variation"
 
@@ -1443,7 +1443,7 @@ msgstr "Are you sure you want to remove this custom field label?"
 msgid "Are you sure you want to remove this field?"
 msgstr "Are you sure you want to remove this field?"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:774
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:775
 msgid "Are you sure you want to remove this variation?"
 msgstr "Are you sure you want to remove this variation?"
 
@@ -1642,7 +1642,7 @@ msgstr "Auto-subscribe to Lists"
 msgid "Automatically add new users to the selected lists"
 msgstr "Automatically add new users to the selected lists"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:693
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:694
 msgid "Automatically send winner"
 msgstr "Automatically send winner"
 
@@ -4960,7 +4960,7 @@ msgstr "Elapsed"
 msgid "Element Padding"
 msgstr "Element Padding"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:618
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:619
 msgid "email"
 msgstr "email"
 
@@ -5134,7 +5134,7 @@ msgstr "Emoji Suggestions"
 msgid "Empty column. Add text, button, or image content."
 msgstr "Empty column. Add text, button, or image content."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:660
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:661
 msgid "Enable A/B Testing"
 msgstr "Enable A/B Testing"
 
@@ -8750,7 +8750,7 @@ msgstr "Next Run"
 #: src/components/blog/PostsTable.tsx:319
 #: src/components/broadcasts/HeadersEditor.tsx:66
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:238
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:777
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:778
 #: src/components/contacts/ContactUpsertDrawer.tsx:540
 #: src/components/contacts/SegmentsFilter.tsx:150
 #: src/components/contacts/SegmentsFilter.tsx:165
@@ -11011,7 +11011,7 @@ msgstr "Remove member"
 msgid "Remove this author?"
 msgstr "Remove this author?"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:773
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:774
 msgid "Remove variation"
 msgstr "Remove variation"
 
@@ -11994,8 +11994,8 @@ msgstr "Select storage provider"
 msgid "Select supported languages"
 msgstr "Select supported languages"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:761
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:824
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:762
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:825
 msgid "Select template"
 msgstr "Select template"
 
@@ -13167,7 +13167,7 @@ msgstr "Telemetry"
 msgid "template"
 msgstr "template"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:819
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:820
 #: src/components/messages/MessageHistoryTable.tsx:148
 #: src/components/messages/MessageHistoryTable.tsx:234
 #: src/pages/BroadcastsPage.tsx:871
@@ -13177,7 +13177,7 @@ msgid "Template"
 msgstr "Template"
 
 #. placeholder {0}: field.key + 1
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:728
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:729
 msgid "Template {0}"
 msgstr "Template {0}"
 
@@ -13389,7 +13389,7 @@ msgstr "Test Recipient Feed"
 msgid "Test rule"
 msgstr "Test rule"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:684
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:685
 msgid "Test sample size (%)"
 msgstr "Test sample size (%)"
 
@@ -13726,7 +13726,7 @@ msgstr "These contacts will be removed from the selected list. This is a true re
 msgid "These contacts will be subscribed to the selected list (status: active)."
 msgstr "These contacts will be subscribed to the selected list (status: active)."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:606
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:607
 msgid "These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
 msgstr "These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
 
@@ -13946,7 +13946,7 @@ msgstr "This section is empty. Add columns or groups to display content."
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:749
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:750
 msgid "This template is already used in another variation"
 msgstr "This template is already used in another variation"
 
@@ -14343,11 +14343,11 @@ msgstr "Track website traffic with a first-party script. Beats are stored in thi
 msgid "Tracking"
 msgstr "Tracking"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:651
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:652
 msgid "Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."
 msgstr "Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:697
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:698
 msgid "Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
 msgstr "Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
 
@@ -14442,6 +14442,10 @@ msgstr "Turn into"
 #: src/components/blog_editor/menus/block-actions/BlockTransformPopover.tsx:94
 msgid "Turn Into"
 msgstr "Turn Into"
+
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:595
+msgid "Turn off for notices every member must receive, such as security or legal notices: the list's unsubscribed contacts receive it too, and its emails carry no List-Unsubscribe header, so mail clients show no Unsubscribe button. The unsubscribe link in your template is not affected."
+msgstr "Turn off for notices every member must receive, such as security or legal notices: the list's unsubscribed contacts receive it too, and its emails carry no List-Unsubscribe header, so mail clients show no Unsubscribe button. The unsubscribe link in your template is not affected."
 
 #: src/components/settings/Integrations.tsx:2279
 msgid "Turn off SES tenant isolation to use your own tenant, or clear this field."
@@ -14986,7 +14990,7 @@ msgstr "Value:"
 msgid "Variant name"
 msgstr "Variant name"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:715
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:716
 #: src/pages/BroadcastsPage.tsx:812
 msgid "Variations"
 msgstr "Variations"
@@ -15574,7 +15578,7 @@ msgstr "Yearly"
 #: src/components/blog/PostsTable.tsx:318
 #: src/components/broadcasts/HeadersEditor.tsx:65
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:237
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:776
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:777
 #: src/components/contacts/ContactUpsertDrawer.tsx:539
 #: src/components/contacts/SegmentsFilter.tsx:149
 #: src/components/contacts/SegmentsFilter.tsx:164
@@ -15797,7 +15801,7 @@ msgstr "Your Notifuse licence has expired and is in its grace period."
 msgid "Your web analytics settings have not been saved. Leaving this page discards them."
 msgstr "Your web analytics settings have not been saved. Leaving this page discards them."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:611
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:612
 msgid "Your website or company name"
 msgstr "Your website or company name"
 

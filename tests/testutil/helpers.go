@@ -1382,6 +1382,40 @@ func GetAllMailpitRecipients(t *testing.T, subject string) (map[string]bool, err
 	return recipients, nil
 }
 
+// GetMailpitMessagesByRecipient returns, for each recipient of a message whose subject
+// contains subject, that message with its headers.
+func GetMailpitMessagesByRecipient(t *testing.T, subject string) (map[string]*MailpitMessage, error) {
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+
+	resp, err := httpClient.Get("http://localhost:8025/api/v1/messages?limit=10000")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list Mailpit messages: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var apiResp MailpitMessagesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode Mailpit response: %w", err)
+	}
+
+	messages := make(map[string]*MailpitMessage)
+	for _, summary := range apiResp.Messages {
+		if !strings.Contains(summary.Subject, subject) {
+			continue
+		}
+		msg, err := GetMailpitMessage(t, summary.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, to := range summary.To {
+			if email := strings.ToLower(strings.TrimSpace(to.Address)); email != "" {
+				messages[email] = msg
+			}
+		}
+	}
+	return messages, nil
+}
+
 // WaitForMailpitMessages waits until the expected count of messages arrive in Mailpit
 // This is useful when testing async broadcast delivery to many recipients
 func WaitForMailpitMessages(t *testing.T, subject string, expectedCount int, timeout time.Duration) error {

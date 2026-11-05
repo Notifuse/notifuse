@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [42.3] - 2026-11-05
+
+- **Improvement**: A broadcast that also goes to the list's unsubscribed contacts ("Exclude unsubscribed recipients" switched off), for a security, outage or legal notice, no longer carries the List-Unsubscribe header, so mail clients show no Unsubscribe button on it. Draft and scheduled broadcasts with that switch off are sent this way too. The unsubscribe link in your template is unchanged.
+
 ## [42.2] - 2026-11-05
 
 - **Improvement**: Tracked links now ask the visitor to confirm before opening another site whenever Notifuse cannot verify that the email itself contained the link. Links in emails sent from now on carry that proof and redirect directly as before. Links in emails sent before the upgrade that lead to another site, legacy `/visit` links and links clicked from a template preview show a confirmation page naming the destination. Unsubscribe and notification center links keep working directly.

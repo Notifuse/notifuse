@@ -3990,3 +3990,82 @@ func TestSendToRecipient_SignsTrackedLinks(t *testing.T) {
 	assert.NotEmpty(t, tok.Tag, "the tracked link must carry a signature")
 	assert.True(t, tok.Verify(key, trackingtoken.PurposeClick), "the tracked link must verify under the workspace's tracking key")
 }
+
+// The direct sender follows the same rule as the queue sender (issue #484): a broadcast that
+// keeps the list's unsubscribed contacts hands the provider no List-Unsubscribe URL.
+func TestSendToRecipient_ListUnsubscribeHeader(t *testing.T) {
+	for _, tc := range []struct {
+		name                string
+		excludeUnsubscribed bool
+		wantURL             string
+	}{
+		{"excludes unsubscribed contacts: URL sent", true, "https://api.test.com/unsubscribe-oneclick?x=1"},
+		{"includes unsubscribed contacts: no URL", false, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+			mockLogger := pkgmocks.NewMockLogger(ctrl)
+			mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+			mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+			mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+			mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+			broadcast := &domain.Broadcast{
+				ID:            "broadcast-123",
+				WorkspaceID:   "workspace-123",
+				Name:          "Security notice",
+				ChannelType:   "email",
+				Audience:      domain.AudienceSettings{List: "list-1", ExcludeUnsubscribed: tc.excludeUnsubscribed},
+				Status:        domain.BroadcastStatusDraft,
+				UTMParameters: &domain.UTMParameters{},
+			}
+			emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+			emailProvider := &domain.EmailProvider{
+				Kind:    domain.EmailProviderKindSMTP,
+				Senders: []domain.EmailSender{emailSender},
+				SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+			}
+			template := &domain.Template{
+				ID: "template-123",
+				Email: &domain.EmailTemplate{
+					SenderID:         emailSender.ID,
+					Subject:          "Security notice",
+					VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+				},
+			}
+
+			var sentRequest domain.SendEmailProviderRequest
+			mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+				DoAndReturn(func(_ context.Context, request domain.SendEmailProviderRequest, _ bool) error {
+					sentRequest = request
+					return nil
+				})
+
+			sender := NewMessageSender(
+				mocks.NewMockBroadcastRepository(ctrl),
+				mocks.NewMockMessageHistoryRepository(ctrl),
+				mocks.NewMockTemplateRepository(ctrl),
+				mockEmailService,
+				nil,
+				mockLogger,
+				TestConfig(),
+				"",
+			)
+
+			data := map[string]interface{}{
+				"oneclick_unsubscribe_url": "https://api.test.com/unsubscribe-oneclick?x=1",
+			}
+			err := sender.SendToRecipient(context.Background(), "workspace-123", "integration-1", "",
+				"https://api.test.com", true, nil, broadcast, "message-123", "test@example.com",
+				template, data, emailProvider, time.Now().Add(30*time.Second), "", "")
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantURL, sentRequest.EmailOptions.ListUnsubscribeURL)
+		})
+	}
+}

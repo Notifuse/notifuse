@@ -592,6 +592,7 @@ export function UpsertBroadcastDrawer({
                     <Form.Item
                       name={['audience', 'exclude_unsubscribed']}
                       label={t`Exclude unsubscribed recipients`}
+                      extra={t`Turn off for notices every member must receive, such as security or legal notices: the list's unsubscribed contacts receive it too, and its emails carry no List-Unsubscribe header, so mail clients show no Unsubscribe button. The unsubscribe link in your template is not affected.`}
                       valuePropName="checked"
                       initialValue={true}
                     >

@@ -3342,3 +3342,26 @@ func TestUpdateBroadcastRequest_Validate_GlobalFeedDataLifecycle(t *testing.T) {
 		assertPayloadPreserved(t, updated)
 	})
 }
+
+// A broadcast that keeps the list's unsubscribed contacts is a notice every member must
+// receive, so its emails offer no one-click unsubscribe (issue #484).
+func TestBroadcast_SendsListUnsubscribeHeader(t *testing.T) {
+	t.Run("excludes unsubscribed contacts: header sent", func(t *testing.T) {
+		b := &domain.Broadcast{Audience: domain.AudienceSettings{List: "list-1", ExcludeUnsubscribed: true}}
+		assert.True(t, b.SendsListUnsubscribeHeader())
+	})
+
+	t.Run("includes unsubscribed contacts: no header", func(t *testing.T) {
+		b := &domain.Broadcast{Audience: domain.AudienceSettings{List: "list-1", ExcludeUnsubscribed: false}}
+		assert.False(t, b.SendsListUnsubscribeHeader())
+	})
+
+	t.Run("zero-value audience: no header, as it already mails unsubscribed contacts", func(t *testing.T) {
+		assert.False(t, (&domain.Broadcast{}).SendsListUnsubscribeHeader())
+	})
+
+	t.Run("nil broadcast: no header", func(t *testing.T) {
+		var b *domain.Broadcast
+		assert.False(t, b.SendsListUnsubscribeHeader())
+	})
+}

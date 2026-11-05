@@ -3856,3 +3856,76 @@ func TestBroadcastService_PauseForCircuitBreaker(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+// A test send shows what recipients get (issue #484): a broadcast that keeps the list's
+// unsubscribed contacts hands the provider no List-Unsubscribe URL, one that excludes them
+// does.
+func TestBroadcastService_SendToIndividual_ListUnsubscribeHeader(t *testing.T) {
+	for _, tc := range []struct {
+		name                string
+		excludeUnsubscribed bool
+		wantURL             bool
+	}{
+		{"excludes unsubscribed contacts: URL sent", true, true},
+		{"includes unsubscribed contacts: no URL", false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d := setupBroadcastSvc(t)
+			defer d.ctrl.Finish()
+
+			ctx := context.Background()
+			req := &domain.SendToIndividualRequest{WorkspaceID: "w1", BroadcastID: "b1", RecipientEmail: "to@example.com"}
+			authOK(d.authService, ctx, req.WorkspaceID)
+
+			sender := domain.NewEmailSender("from@example.com", "From")
+			workspace := &domain.Workspace{
+				ID:       "w1",
+				Settings: domain.WorkspaceSettings{MarketingEmailProviderID: "mkt", SecretKey: "sk_test"},
+				Integrations: domain.Integrations{
+					{ID: "mkt", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSMTP, Senders: []domain.EmailSender{sender}}},
+				},
+			}
+			d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
+
+			b := testBroadcast(req.WorkspaceID, req.BroadcastID)
+			b.Audience.ExcludeUnsubscribed = tc.excludeUnsubscribed
+			d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.BroadcastID).Return(b, nil)
+
+			// The one-click URL is only built for a known contact.
+			d.contactRepo.EXPECT().GetContactByEmail(ctx, req.WorkspaceID, req.RecipientEmail).
+				Return(&domain.Contact{Email: req.RecipientEmail}, nil)
+
+			template := &domain.Template{
+				ID:      "tplA",
+				Name:    "Template A",
+				Channel: "email",
+				Email: &domain.EmailTemplate{
+					SenderID:         sender.ID,
+					Subject:          "Hello",
+					VisualEditorTree: createMJMLRootBlock(),
+				},
+				Category: string(domain.TemplateCategoryMarketing),
+			}
+			d.templateSvc.EXPECT().GetTemplateByID(ctx, req.WorkspaceID, "tplA", int64(0)).Return(template, nil)
+
+			compiledHTML := "<html>ok</html>"
+			d.templateSvc.EXPECT().CompileTemplate(ctx, gomock.Any()).
+				Return(&domain.CompileTemplateResponse{Success: true, HTML: &compiledHTML}, nil)
+
+			var sent domain.SendEmailProviderRequest
+			d.emailSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+				DoAndReturn(func(_ context.Context, request domain.SendEmailProviderRequest, _ bool) error {
+					sent = request
+					return nil
+				})
+			d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Return(nil)
+
+			require.NoError(t, d.svc.SendToIndividual(ctx, req))
+			if tc.wantURL {
+				assert.Contains(t, sent.EmailOptions.ListUnsubscribeURL, "/unsubscribe-oneclick?")
+			} else {
+				assert.Empty(t, sent.EmailOptions.ListUnsubscribeURL)
+			}
+		})
+	}
+}
