@@ -196,7 +196,10 @@ func TestTaskExecute_ClientHangupDoesNotAbortTask(t *testing.T) {
 		300*time.Millisecond)
 
 	enqueued := waitForQueuedCount(t, h, contacts, 45*time.Second)
-	status, retries, errMsg := taskRow(t, h)
+	// The task is marked completed in the system database after the last batch
+	// commits in the workspace one, so the queue fills a moment before it is.
+	status := waitForTaskStatus(t, h, "completed", 10*time.Second)
+	_, retries, errMsg := taskRow(t, h)
 	t.Logf("after hang-up: enqueued=%d task_status=%s retry_count=%d error=%q",
 		enqueued, status, retries, errMsg)
 
@@ -243,6 +246,9 @@ func TestCron_ReturnsImmediately(t *testing.T) {
 	enqueued := waitForQueuedCount(t, h, contacts, 60*time.Second)
 	assert.GreaterOrEqual(t, enqueued, int64(contacts),
 		"the work must still happen after the endpoint has answered")
+	// Also keeps the cleanup from running under the task's last writes.
+	assert.Equal(t, "completed", waitForTaskStatus(t, h, "completed", 10*time.Second),
+		"the task started by cron should finish")
 }
 
 // TestCron_ClientHangupDoesNotAbortTasks pins the cancellation half of defect 2:
@@ -264,12 +270,14 @@ func TestCron_ClientHangupDoesNotAbortTasks(t *testing.T) {
 		300*time.Millisecond)
 
 	enqueued := waitForQueuedCount(t, h, contacts, 45*time.Second)
-	status, retries, _ := taskRow(t, h)
+	status := waitForTaskStatus(t, h, "completed", 10*time.Second)
+	_, retries, _ := taskRow(t, h)
 	t.Logf("after cron hang-up: enqueued=%d task_status=%s retry_count=%d",
 		enqueued, status, retries)
 
 	assert.GreaterOrEqual(t, enqueued, int64(contacts),
 		"a cron caller hanging up must not abort the tasks it started")
+	assert.Equal(t, "completed", status, "the tasks it started should finish")
 	assert.Equal(t, 0, retries,
 		"an interrupted run must not consume the retry budget")
 }
