@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [42.3] - 2026-11-05
 
-- **Improvement**: A broadcast that also goes to the list's unsubscribed contacts ("Exclude unsubscribed recipients" switched off), for a security, outage or legal notice, no longer carries the List-Unsubscribe header, so mail clients show no Unsubscribe button on it. Draft and scheduled broadcasts are sent this way too; emails a paused broadcast queued before the upgrade keep the header. The unsubscribe link in your template is unchanged.
+- **Improvement**: A broadcast that also goes to the list's unsubscribed contacts ("Exclude unsubscribed recipients" switched off), for a security, outage or legal notice, no longer carries the List-Unsubscribe header, so mail clients show no Unsubscribe button on it. Draft and scheduled broadcasts are sent this way too; emails already queued before the upgrade, for a broadcast that is paused or still sending, keep the header. The unsubscribe link in your template is unchanged.
 
   **Before you upgrade, check that this switch is on for your regular campaigns**, including those created through the API without `exclude_unsubscribed` before 42.0, which were saved with it off.
 

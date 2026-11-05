@@ -134,10 +134,18 @@ func TestBroadcastAudienceStatusesAsDelivered(t *testing.T) {
 		// The queue worker sends after the broadcast is processed. Mailpit can't hold more
 		// emails for this subject than were enqueued, so once it holds that many the set of
 		// recipients is final. The recipients and their emails come from the same read, so
-		// the header assertions look at exactly the emails the audience assertion counted.
+		// the header assertions look at exactly the emails the audience assertion counted,
+		// and a recipient mailed twice is reported as such below.
 		testutil.WaitForCondition(t, func() bool {
 			delivered, err = testutil.GetMailpitMessagesByRecipient(t, subject)
-			return err == nil && len(delivered) >= enqueued
+			if err != nil {
+				return false
+			}
+			emails := 0
+			for _, msgs := range delivered {
+				emails += len(msgs)
+			}
+			return emails >= enqueued
 		}, 30*time.Second, "waiting for the broadcast emails of "+subject)
 
 		received = make(map[string]bool, len(delivered))

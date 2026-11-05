@@ -1407,6 +1407,11 @@ func GetMailpitMessagesByRecipient(t *testing.T, subject string) (map[string][]*
 		if err != nil {
 			return nil, err
 		}
+		// GetMailpitMessage only logs a failed headers request; a caller asserting a header
+		// is absent must not read a message whose headers were never fetched.
+		if msg.Headers == nil {
+			return nil, fmt.Errorf("Mailpit returned no headers for message %s", summary.ID)
+		}
 		for _, to := range summary.To {
 			if email := strings.ToLower(strings.TrimSpace(to.Address)); email != "" {
 				messages[email] = append(messages[email], msg)
