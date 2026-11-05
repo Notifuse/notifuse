@@ -105,6 +105,8 @@ func (c *Contact) Validate() error {
 	if !govalidator.IsEmail(c.Email) {
 		return fmt.Errorf("invalid email format")
 	}
+	c.TrackingOpensConsent = canonicalTrackingConsent(c.TrackingOpensConsent)
+	c.TrackingClicksConsent = canonicalTrackingConsent(c.TrackingClicksConsent)
 	if err := ValidateTrackingConsentValue(TrackingConsentValue(c.TrackingOpensConsent)); err != nil {
 		return fmt.Errorf("tracking_opens_consent: %w", err)
 	}
@@ -118,25 +120,20 @@ func (c *Contact) Validate() error {
 	return nil
 }
 
-// HasTrackingConsentValue reports whether the contact carries a recorded
-// consent (granted or denied) for opens or clicks.
-func (c *Contact) HasTrackingConsentValue() bool {
-	return TrackingConsentValue(c.TrackingOpensConsent) != "" || TrackingConsentValue(c.TrackingClicksConsent) != ""
+// canonicalTrackingConsent reads an empty consent as unknown (null): stored as
+// an empty string, it would escape the unknown filter and, in an import,
+// replace a recorded choice.
+func canonicalTrackingConsent(v *NullableString) *NullableString {
+	if v != nil && !v.IsNull && v.String == "" {
+		return &NullableString{IsNull: true}
+	}
+	return v
 }
 
 // ProvidesTrackingConsent reports whether the contact names either consent at
 // all, an explicit null included: a write that would touch the consent.
 func (c *Contact) ProvidesTrackingConsent() bool {
 	return c.TrackingOpensConsent != nil || c.TrackingClicksConsent != nil
-}
-
-// ClearTrackingConsent drops the four consent fields, so a write that may not
-// change the consent leaves the stored values alone.
-func (c *Contact) ClearTrackingConsent() {
-	c.TrackingOpensConsent = nil
-	c.TrackingClicksConsent = nil
-	c.TrackingConsentSource = nil
-	c.TrackingConsentUpdatedAt = nil
 }
 
 // DefaultTrackingConsentSource sets the source a consent change is recorded
@@ -949,12 +946,14 @@ func FromJSON(data interface{}) (*Contact, error) {
 	if err := parseNullableString(jsonResult, "tracking_opens_consent", &contact.TrackingOpensConsent); err != nil {
 		return nil, err
 	}
+	contact.TrackingOpensConsent = canonicalTrackingConsent(contact.TrackingOpensConsent)
 	if err := ValidateTrackingConsentValue(TrackingConsentValue(contact.TrackingOpensConsent)); err != nil {
 		return nil, fmt.Errorf("tracking_opens_consent: %w", err)
 	}
 	if err := parseNullableString(jsonResult, "tracking_clicks_consent", &contact.TrackingClicksConsent); err != nil {
 		return nil, err
 	}
+	contact.TrackingClicksConsent = canonicalTrackingConsent(contact.TrackingClicksConsent)
 	if err := ValidateTrackingConsentValue(TrackingConsentValue(contact.TrackingClicksConsent)); err != nil {
 		return nil, fmt.Errorf("tracking_clicks_consent: %w", err)
 	}

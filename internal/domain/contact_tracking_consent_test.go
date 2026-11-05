@@ -42,6 +42,25 @@ func TestFromJSON_TrackingConsentExplicitNullAndAbsent(t *testing.T) {
 	assert.Nil(t, contact.TrackingConsentUpdatedAt)
 }
 
+// An empty string is no consent. Stored as ”, it would escape the "unknown"
+// filter (IS NULL) and, in an import, overwrite a recorded refusal.
+func TestFromJSON_TrackingConsentEmptyStringIsUnknown(t *testing.T) {
+	contact, err := FromJSON(`{"email": "a@example.com", "tracking_opens_consent": "", "tracking_clicks_consent": "  "}`)
+	require.NoError(t, err)
+
+	require.NotNil(t, contact.TrackingOpensConsent)
+	assert.True(t, contact.TrackingOpensConsent.IsNull)
+	require.NotNil(t, contact.TrackingClicksConsent)
+	assert.True(t, contact.TrackingClicksConsent.IsNull)
+}
+
+func TestContactValidate_TrackingConsentEmptyStringIsUnknown(t *testing.T) {
+	c := &Contact{Email: "a@example.com", TrackingOpensConsent: &NullableString{String: ""}}
+	require.NoError(t, c.Validate())
+	require.NotNil(t, c.TrackingOpensConsent)
+	assert.True(t, c.TrackingOpensConsent.IsNull)
+}
+
 func TestFromJSON_TrackingConsentRejectsInvalidValue(t *testing.T) {
 	_, err := FromJSON(`{"email": "a@example.com", "tracking_opens_consent": "yes"}`)
 	assert.Error(t, err)
@@ -107,30 +126,10 @@ func TestTrackingConsentChanged(t *testing.T) {
 	}
 }
 
-func TestContact_HasTrackingConsentValue(t *testing.T) {
-	assert.False(t, (&Contact{}).HasTrackingConsentValue())
-	assert.False(t, (&Contact{TrackingOpensConsent: &NullableString{IsNull: true}}).HasTrackingConsentValue())
-	assert.True(t, (&Contact{TrackingClicksConsent: &NullableString{String: TrackingConsentDenied}}).HasTrackingConsentValue())
-}
-
 func TestContact_ProvidesTrackingConsent(t *testing.T) {
 	assert.False(t, (&Contact{}).ProvidesTrackingConsent())
 	assert.True(t, (&Contact{TrackingOpensConsent: &NullableString{IsNull: true}}).ProvidesTrackingConsent())
 	assert.True(t, (&Contact{TrackingClicksConsent: &NullableString{String: TrackingConsentDenied}}).ProvidesTrackingConsent())
-}
-
-func TestContact_ClearTrackingConsent(t *testing.T) {
-	c := &Contact{
-		TrackingOpensConsent:     &NullableString{String: TrackingConsentGranted},
-		TrackingClicksConsent:    &NullableString{String: TrackingConsentGranted},
-		TrackingConsentSource:    &NullableString{String: "x"},
-		TrackingConsentUpdatedAt: &NullableTime{Time: time.Now()},
-	}
-	c.ClearTrackingConsent()
-	assert.Nil(t, c.TrackingOpensConsent)
-	assert.Nil(t, c.TrackingClicksConsent)
-	assert.Nil(t, c.TrackingConsentSource)
-	assert.Nil(t, c.TrackingConsentUpdatedAt)
 }
 
 // trackingScanRow scans the contactColumns-ordered values into the destinations

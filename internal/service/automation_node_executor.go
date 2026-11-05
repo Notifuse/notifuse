@@ -410,8 +410,6 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 			HTMLContent:         htmlContent,
 			RateLimitPerMinute:  emailProvider.RateLimitPerMinute,
 			ContactAutomationID: contactAutomationID,
-			OpensTracked:        trackedFlag(trackingDecision.Opens),
-			ClicksTracked:       trackedFlag(trackingDecision.Clicks),
 			// The list this email is sent for, as broadcasts set it. The worker stores
 			// it as message_history.list_id, which the complaint/bounce trigger needs
 			// to record the contact's status on the list.
@@ -424,6 +422,7 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	}
+	entry.Payload.OpensTracked, entry.Payload.ClicksTracked = trackingDecision.TrackedFlags()
 
 	// 13. Add List-Unsubscribe header for RFC-8058 compliance
 	if url, ok := templateData["oneclick_unsubscribe_url"].(string); ok && url != "" {
@@ -531,11 +530,6 @@ func (e *EmailNodeExecutor) buildTrackingSettings(
 	}
 	decision.Apply(&settings)
 	return settings, decision
-}
-
-// trackedFlag returns a pointer to v, for the message tracking flags.
-func trackedFlag(v bool) *bool {
-	return &v
 }
 
 // parseEmailNodeConfig parses email node configuration from map

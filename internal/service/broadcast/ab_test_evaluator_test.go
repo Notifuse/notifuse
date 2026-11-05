@@ -191,8 +191,8 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_InvalidMetric(t *testing.T) {
 
 	bcRepo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(b, nil)
 
-	// Provide stats so selection reaches metric switch; evaluator will error on first variation
-	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredOpensTracked: 100, TotalDeliveredClicksTracked: 100, TotalOpened: 40, TotalClicked: 5}, nil)
+	// The metric is checked before any stats are read
+	msgRepo.EXPECT().GetBroadcastVariationStats(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 	_, err := evaluator.EvaluateAndSelectWinner(ctx, workspaceID, broadcastID)
 	require.Error(t, err)
@@ -330,6 +330,38 @@ func TestABTestEvaluator_SelectBestVariation_UsesTrackedDenominators(t *testing.
 		winner, err := evaluator.selectBestVariation(ctx, workspaceID, b)
 		require.NoError(t, err)
 		assert.Equal(t, "tplB", winner, "B scores 0 but is the only candidate")
+	})
+
+	// Without delivery webhooks (SMTP, or a provider that sends none), no email is
+	// ever marked delivered: the rate is then measured over the tracked sends.
+	t.Run("no delivery data: rate over tracked sent emails", func(t *testing.T) {
+		ctrl, msgRepo, _, _, evaluator := setupEvaluator(t)
+		defer ctrl.Finish()
+		b := newTestBroadcast(workspaceID, broadcastID)
+		b.TestSettings.AutoSendWinnerMetric = domain.TestWinnerMetricOpenRate
+
+		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalOpensTracked: 100, TotalOpened: 30}, nil)
+		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalOpensTracked: 25, TotalOpened: 20}, nil)
+
+		winner, err := evaluator.selectBestVariation(ctx, workspaceID, b)
+		require.NoError(t, err)
+		assert.Equal(t, "tplB", winner)
+	})
+
+	t.Run("delivery data for one variation: every variation is rated over delivered", func(t *testing.T) {
+		ctrl, msgRepo, _, _, evaluator := setupEvaluator(t)
+		defer ctrl.Finish()
+		b := newTestBroadcast(workspaceID, broadcastID)
+		b.TestSettings.AutoSendWinnerMetric = domain.TestWinnerMetricClickRate
+
+		// A has no delivered email yet, so it is not a candidate: rating it over its
+		// sends would compare it on another base than B.
+		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalClicksTracked: 100, TotalClicked: 90}, nil)
+		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalClicksTracked: 100, TotalDelivered: 50, TotalDeliveredClicksTracked: 50, TotalClicked: 5}, nil)
+
+		winner, err := evaluator.selectBestVariation(ctx, workspaceID, b)
+		require.NoError(t, err)
+		assert.Equal(t, "tplB", winner)
 	})
 
 	t.Run("no tracked emails anywhere: no winner", func(t *testing.T) {

@@ -6,6 +6,7 @@ import { ContactsSearch } from '../../router'
 import { Workspace, List, Segment } from '../../services/api/types'
 import { contactsApi, Contact, ListContactsRequest } from '../../services/api/contacts'
 import { getCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
+import { useTrackingConsentOptions } from './TrackingConsent'
 
 interface ExportContactsModalProps {
   visible: boolean
@@ -32,6 +33,9 @@ export function ExportContactsModal({
   const [startTime, setStartTime] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const { filters: consentFilterOptions } = useTrackingConsentOptions()
+  const consentFilterLabel = (value: string) =>
+    consentFilterOptions.find((option) => option.value === value)?.label || value
 
   // Get display label for a filter value
   const getFilterDisplayValue = (key: string, value: string): string => {
@@ -79,6 +83,20 @@ export function ExportContactsModal({
         key: 'contact_list_status',
         label: t`List Status`,
         value: filters.contact_list_status
+      })
+    }
+    if (filters.tracking_opens_consent) {
+      activeFilters.push({
+        key: 'tracking_opens_consent',
+        label: t`Opens tracking consent`,
+        value: consentFilterLabel(filters.tracking_opens_consent)
+      })
+    }
+    if (filters.tracking_clicks_consent) {
+      activeFilters.push({
+        key: 'tracking_clicks_consent',
+        label: t`Clicks tracking consent`,
+        value: consentFilterLabel(filters.tracking_clicks_consent)
       })
     }
     if (filters.segments && filters.segments.length > 0) {
@@ -154,6 +172,8 @@ export function ExportContactsModal({
           list_id: filters.list_id,
           contact_list_status: filters.contact_list_status,
           segments: filters.segments,
+          tracking_opens_consent: filters.tracking_opens_consent,
+          tracking_clicks_consent: filters.tracking_clicks_consent,
           with_contact_lists: false // Skip for performance
         }
 
