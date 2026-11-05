@@ -581,14 +581,14 @@ func waitForTaskStatus(t *testing.T, h *phase2Harness, want string, timeout time
 	return status
 }
 
-// waitForTaskRow polls the task row until its status is want, or failed, which
-// it does not leave, returning the last row seen, read in one query.
+// waitForTaskRow polls the task row until its status is want, returning the
+// last row seen, read in one query.
 func waitForTaskRow(t *testing.T, h *phase2Harness, want string, timeout time.Duration) (status string, retryCount int, errorMessage string) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
 	for {
 		status, retryCount, errorMessage = taskRow(t, h)
-		if status == want || status == "failed" || !time.Now().Before(deadline) {
+		if status == want || !time.Now().Before(deadline) {
 			return status, retryCount, errorMessage
 		}
 		time.Sleep(100 * time.Millisecond)

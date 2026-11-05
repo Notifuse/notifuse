@@ -25,7 +25,7 @@ In that test, wait for the task row to read `completed` (a new `waitForTaskRow`,
 
 | File | Change |
 | --- | --- |
-| `tests/integration/broadcast_interruption_test.go` | `TestTaskExecute_ClientHangupDoesNotAbortTask`, `TestCron_ReturnsImmediately` and `TestCron_ClientHangupDoesNotAbortTasks` wait for the task to complete |
+| `tests/integration/broadcast_interruption_test.go` | `TestTaskExecute_ClientHangupDoesNotAbortTask`, `TestCron_ReturnsImmediately` and `TestCron_ClientHangupDoesNotAbortTasks` wait for the task to complete; `TestBroadcastInterrupted_ReleasesWithoutSpendingBudget` reads its pending row in one query with `waitForTaskRow` |
 
 ## Plan review outcomes
 
