@@ -32,23 +32,15 @@ var blockedSchemes = map[string]bool{
 	"blob":       true,
 }
 
-// normalizeDestination prepares a destination that could not be verified: WHATWG
-// preprocessing (TrackLinks mints an href as written, and before signing net/http trimmed
-// it on the way out, so " https://brand.com/sale " must keep working), invalid percent
-// escapes repaired, and a protocol-relative URL read as https. It returns the
-// preprocessed string, the parsed URL (nil when it still does not parse) and the
-// lowercase scheme, read leniently when the URL does not parse.
+// normalizeDestination prepares a destination that could not be verified: read through
+// trackingtoken.ParseLenient (before signing, net/http trimmed an href on the way out, so
+// " https://brand.com/sale " must keep working), and a protocol-relative URL read as
+// https. It returns the preprocessed string, the parsed URL (nil when it still does not
+// parse) and the lowercase scheme, read leniently when the URL does not parse.
 func normalizeDestination(raw string) (string, *url.URL, string) {
-	s := trackingtoken.Preprocess(raw)
+	s, u := trackingtoken.ParseLenient(raw)
 	if s == "" {
 		return "", nil, ""
-	}
-	u, err := url.Parse(s)
-	if err != nil {
-		u, err = url.Parse(repairPercentEscapes(s))
-		if err != nil {
-			u = nil
-		}
 	}
 	if u != nil && u.Scheme == "" && u.Host != "" {
 		u.Scheme = "https"
@@ -58,24 +50,6 @@ func normalizeDestination(raw string) (string, *url.URL, string) {
 		scheme = strings.ToLower(u.Scheme)
 	}
 	return s, u, scheme
-}
-
-// repairPercentEscapes rewrites every '%' not followed by two hex digits as "%25", so a
-// URL such as https://shop.com/50%off parses.
-func repairPercentEscapes(s string) string {
-	var b strings.Builder
-	for i := 0; i < len(s); i++ {
-		if s[i] == '%' && (i+2 >= len(s) || !isHex(s[i+1]) || !isHex(s[i+2])) {
-			b.WriteString("%25")
-			continue
-		}
-		b.WriteByte(s[i])
-	}
-	return b.String()
-}
-
-func isHex(c byte) bool {
-	return c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F'
 }
 
 // classifyTrackedDestination decides what a click route does with a destination it could

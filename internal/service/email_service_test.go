@@ -857,8 +857,53 @@ func TestSanitizeClickedURL_IdentifyTokenStripping(t *testing.T) {
 			expected: "http://user:pw@shop.example.com:8443/product",
 		},
 		{
+			name:     "A stray percent sign is recorded as written",
+			url:      "https://shop.example.com/50%off?nf_id=abc123&utm_source=news",
+			expected: "https://shop.example.com/50%off?utm_source=news",
+		},
+		{
+			name:     "An invalid escape is recorded as written",
+			url:      "https://shop.example.com/%zz",
+			expected: "https://shop.example.com/%zz",
+		},
+		{
+			name:     "Surrounding spaces and line breaks are trimmed from the recorded key",
+			url:      " https://shop.example.com/sa\r\nle?nf_id=abc123 ",
+			expected: "https://shop.example.com/sale",
+		},
+		{
+			name:     "A trailing space net/url accepts keeps the key it was always recorded under",
+			url:      "https://shop.example.com/sale ",
+			expected: "https://shop.example.com/sale ",
+		},
+		{
+			name:     "A percent sign in the host is not a destination",
+			url:      "https://click.notifuse.test%/unsubscribe?email=someone@example.com",
+			expected: "",
+		},
+		{
+			name:     "A percent sign in the host is not a destination, escaped either",
+			url:      "https://click.notifuse.test%25/unsubscribe?email=someone@example.com",
+			expected: "",
+		},
+		{
+			name:     "An IPv6 zone is not refused for its percent sign",
+			url:      "https://[fe80::1%25en0]/50%off",
+			expected: "https://[fe80::1%25en0]/50%off",
+		},
+		{
+			name:     "A stray percent sign does not rescue a link back to the request host",
+			url:      "https://click.notifuse.test/50%off",
+			expected: "",
+		},
+		{
+			name:     "A stray percent sign does not rescue a non-http scheme",
+			url:      "ftp://files.example.com/50%off",
+			expected: "",
+		},
+		{
 			name:     "Unparseable URL degrades to aggregate-only",
-			url:      "https://shop.example.com/%zz?nf_id=abc123",
+			url:      "https://shop example.com/product?nf_id=abc123",
 			expected: "",
 		},
 		{

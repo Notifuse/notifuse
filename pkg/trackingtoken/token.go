@@ -218,3 +218,60 @@ func Preprocess(raw string) string {
 	}
 	return s
 }
+
+// ParseLenient reads a tracked destination the way browsers do before net/url sees it:
+// WHATWG preprocessing (TrackLinks mints an href as written, so " https://brand.com/sale "
+// is a link browsers open), then ParseRepaired. It returns the preprocessed string and the
+// parsed URL, nil when it still does not parse. The click route and the click recorder
+// both read destinations through it, so they agree on which links are URLs.
+func ParseLenient(raw string) (string, *url.URL) {
+	s := Preprocess(raw)
+	if s == "" {
+		return "", nil
+	}
+	u, err := ParseRepaired(s)
+	if err != nil {
+		return s, nil
+	}
+	return s, u
+}
+
+// ParseRepaired parses s, and when net/url refuses it, parses it again with its invalid
+// percent escapes repaired: browsers open https://shop.com/50%off, net/url does not. The
+// returned URL is for reading only; callers keep the string as written.
+//
+// A host holding a '%' is refused either way, whether the repair put it there
+// ("brand.com%/x") or a valid escape did ("brand.com%25/x"): browsers refuse such a host,
+// and it would slip past host comparisons and allowlist suffix matches. The only
+// exception is the zone of a bracketed IPv6 literal ("[fe80::1%25en0]").
+func ParseRepaired(s string) (*url.URL, error) {
+	u, err := url.Parse(s)
+	if err != nil {
+		repaired, rerr := url.Parse(repairPercentEscapes(s))
+		if rerr != nil {
+			return nil, err
+		}
+		u = repaired
+	}
+	if strings.Contains(u.Host, "%") && !strings.HasPrefix(u.Host, "[") {
+		return nil, fmt.Errorf("trackingtoken: percent sign in host %q", u.Host)
+	}
+	return u, nil
+}
+
+// repairPercentEscapes rewrites every '%' not followed by two hex digits as "%25".
+func repairPercentEscapes(s string) string {
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		if s[i] == '%' && (i+2 >= len(s) || !isHex(s[i+1]) || !isHex(s[i+2])) {
+			b.WriteString("%25")
+			continue
+		}
+		b.WriteByte(s[i])
+	}
+	return b.String()
+}
+
+func isHex(c byte) bool {
+	return c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F'
+}
