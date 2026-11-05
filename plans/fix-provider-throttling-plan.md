@@ -121,7 +121,7 @@ Describe the behaviour as it is, with no comparison to earlier versions:
 
 ### Part 6 — CHANGELOG and version
 
-- Bump `VERSION` in `config/config.go` (42.4 if `dev` is still at 42.3 when the PR opens), then `make sdk-build` on Node 24 and commit `web_analytics_sdk/dist/` and `web_analytics_sdk/package.json` (CI diffs them byte for byte, `Makefile:64-73`).
+- Bump `VERSION` in `config/config.go` to the next minor after `dev`'s when the PR opens (`dev` is at 42.2 on 2026-11-05, its CHANGELOG having merged 42.2 and 42.3 into one 42.2; if that 42.2 is not released yet, the entry goes into it instead, with no bump), then `make sdk-build` on Node 24 and commit `web_analytics_sdk/dist/` and `web_analytics_sdk/package.json` (CI diffs them byte for byte, `Makefile:64-73`).
 - Entry:
   > **Improvement**: When an email provider answers that emails arrive too fast, the email integration slows down, then climbs back to its rate limit once emails go through. The refused email is sent again at the slower pace and keeps its attempts, and its broadcast keeps sending. A quota named in the refusal, or refusals that continue for 30 seconds at a tenth of the rate limit, pause the integration's broadcasts.
 - The 42.0 entry is left as it is unless Pierre says the "no comparison with earlier versions" rule covers the CHANGELOG.
