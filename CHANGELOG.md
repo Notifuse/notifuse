@@ -2,9 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## [42.3] - 2026-11-05
+## [42.3] - WIP
 
 - **Improvement**: When an email provider answers that emails arrive too fast, the email integration now slows down, then climbs back to its rate limit once emails go through. The refused email is sent again at the slower pace and keeps its attempts, and its broadcast keeps sending. A quota named in the refusal, or refusals that continue for 30 seconds at a tenth of the rate limit, pause the integration's broadcasts.
+
+- **Security**: The build tooling of the console, the notification center and the web analytics SDK now uses `minimatch` 11, which fixes a denial of service through crafted glob patterns ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)). It only runs while building and linting, never in the shipped app.
 
 ## [42.2] - 2026-11-05
 

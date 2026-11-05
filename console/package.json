@@ -115,7 +115,7 @@
     "fast-xml-parser": ">=5.8.0",
     "fast-xml-builder": ">=1.1.7",
     "markdown-it": ">=14.1.1",
-    "minimatch": ">=10.2.3",
+    "minimatch": ">=11.0.1",
     "yaml": "^2.4.2",
     "flatted": ">=3.4.2",
     "picomatch": ">=4.0.4",
