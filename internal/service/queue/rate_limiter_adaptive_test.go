@@ -177,7 +177,7 @@ func TestRateLimiter_Throttle(t *testing.T) {
 		assert.True(t, irl.RecordThrottle("i", 1000, gen).AtFloor, "the run has lasted the dwell")
 	})
 
-	t.Run("a quiet spell is the dwell plus two sends at the floor", func(t *testing.T) {
+	t.Run("a quiet spell after the cut to the floor is the dwell plus two sends at the floor", func(t *testing.T) {
 		cases := []struct {
 			name     string
 			rate     int
@@ -185,16 +185,16 @@ func TestRateLimiter_Throttle(t *testing.T) {
 			newRun   time.Duration
 			floorGap time.Duration
 		}{
-			// Floor 100/min, a send every 600 ms.
 			{"a send interval shorter than the dwell", 1000, defaultFloorDwell + time.Second, defaultFloorDwell + 1300*time.Millisecond, 600 * time.Millisecond},
-			// Floor 2/min, a send every 30 s.
 			{"a send interval as long as the dwell", 20, defaultFloorDwell + 50*time.Second, defaultFloorDwell + 61*time.Second, 30 * time.Second},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
 				for _, gap := range []time.Duration{tc.oneRun, tc.newRun} {
 					irl, clock := newClockedLimiter()
-					for throttleNow(t, irl, clock, "i", tc.rate).Decreased {
+					// The last cut reaches the floor: the run counts from it.
+					for i := 0; i < decreasesToFloor(); i++ {
+						require.True(t, throttleNow(t, irl, clock, "i", tc.rate).Decreased)
 					}
 					require.Equal(t, tc.floorGap, time.Duration(float64(time.Minute)/float64(irl.EffectivePerMinute("i", tc.rate))))
 					gen := irl.CurrentGeneration("i")
@@ -208,7 +208,8 @@ func TestRateLimiter_Throttle(t *testing.T) {
 
 	t.Run("emails accepted between refusals at the floor do not end the run", func(t *testing.T) {
 		irl, clock := newClockedLimiter()
-		for throttleNow(t, irl, clock, "i", 1000).Decreased {
+		for i := 0; i < decreasesToFloor(); i++ {
+			require.True(t, throttleNow(t, irl, clock, "i", 1000).Decreased)
 		}
 		gen := irl.CurrentGeneration("i")
 
