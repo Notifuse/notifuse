@@ -218,3 +218,54 @@ func Preprocess(raw string) string {
 	}
 	return s
 }
+
+// ParseLenient reads a tracked destination the way browsers do before net/url sees it:
+// WHATWG preprocessing (TrackLinks mints an href as written, so " https://brand.com/sale "
+// is a link browsers open), then ParseRepaired. It returns the preprocessed string and the
+// parsed URL, nil when it still does not parse. The click route and the click recorder
+// both read destinations through it, so they agree on which links are URLs.
+func ParseLenient(raw string) (string, *url.URL) {
+	s := Preprocess(raw)
+	if s == "" {
+		return "", nil
+	}
+	u, err := ParseRepaired(s)
+	if err != nil {
+		return s, nil
+	}
+	return s, u
+}
+
+// ParseRepaired parses s, and when net/url refuses it, parses it again with its invalid
+// percent escapes repaired: browsers open https://shop.com/50%off, net/url does not. The
+// repair never rescues a host, where browsers refuse a '%' too: a host such as
+// "brand.com%" would slip past host comparisons. The returned URL is for reading only;
+// callers keep the string as written. The error is the one of the first parse.
+func ParseRepaired(s string) (*url.URL, error) {
+	u, err := url.Parse(s)
+	if err == nil {
+		return u, nil
+	}
+	repaired, rerr := url.Parse(repairPercentEscapes(s))
+	if rerr != nil || strings.Contains(repaired.Host, "%") {
+		return nil, err
+	}
+	return repaired, nil
+}
+
+// repairPercentEscapes rewrites every '%' not followed by two hex digits as "%25".
+func repairPercentEscapes(s string) string {
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		if s[i] == '%' && (i+2 >= len(s) || !isHex(s[i+1]) || !isHex(s[i+2])) {
+			b.WriteString("%25")
+			continue
+		}
+		b.WriteByte(s[i])
+	}
+	return b.String()
+}
+
+func isHex(c byte) bool {
+	return c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F'
+}

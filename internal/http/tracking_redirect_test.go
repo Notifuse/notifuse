@@ -196,9 +196,3 @@ func TestWriteRedirectInterstitial(t *testing.T) {
 		assert.NotContains(t, rec.Body.String(), "<a ")
 	})
 }
-
-func TestRepairPercentEscapes(t *testing.T) {
-	assert.Equal(t, "50%25off", repairPercentEscapes("50%off"))
-	assert.Equal(t, "%41%25", repairPercentEscapes("%41%"))
-	assert.Equal(t, "%252", repairPercentEscapes("%2"))
-}

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [42.3] - WIP
+
+- **Fix**: Links whose URL holds a `%` that starts no escape, such as `https://shop.com/50%off`, now get the UTM parameters and the web analytics identity token like any other link, and their clicks count in the per-link click statistics and segment link filters. The same goes for clicks on links surrounded by spaces. These links already redirected and counted in the email's click total.
+
 ## [42.2] - 2026-11-05
 
 - **Improvement**: Tracked links now ask the visitor to confirm before opening another site whenever Notifuse cannot verify that the email itself contained the link. Links in emails sent from now on carry that proof and redirect directly as before. Links in emails sent before the upgrade that lead to another site, legacy `/visit` links and links clicked from a template preview show a confirmation page naming the destination. Unsubscribe and notification center links keep working directly.

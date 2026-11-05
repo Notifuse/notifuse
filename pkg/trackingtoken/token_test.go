@@ -223,6 +223,70 @@ func TestSchemeOf(t *testing.T) {
 	}
 }
 
+func TestRepairPercentEscapes(t *testing.T) {
+	assert.Equal(t, "50%25off", repairPercentEscapes("50%off"))
+	assert.Equal(t, "%41%25", repairPercentEscapes("%41%"))
+	assert.Equal(t, "%252", repairPercentEscapes("%2"))
+	assert.Equal(t, "https://shop.com/a%20b", repairPercentEscapes("https://shop.com/a%20b"))
+}
+
+func TestParseRepaired(t *testing.T) {
+	u, err := ParseRepaired("https://shop.com/50%off?x=%zz#a%")
+	require.NoError(t, err)
+	assert.Equal(t, "shop.com", u.Host)
+	assert.Equal(t, "/50%off", u.Path)
+
+	u, err = ParseRepaired("/relative/50%off")
+	require.NoError(t, err)
+	assert.Equal(t, "/relative/50%off", u.Path)
+
+	for _, s := range []string{
+		"https://brand.com%/x",         // the repair would put a '%' in the host
+		"https://brand.com%2/x",        // same, with a truncated escape
+		"https://user%@brand.com%/x",   // userinfo repaired, host still refused
+		"https://shop example.com/50%", // still unparsable once repaired
+	} {
+		_, err := ParseRepaired(s)
+		assert.Error(t, err, s)
+	}
+}
+
+func TestParseLenient(t *testing.T) {
+	t.Run("a URL that parses is read as it is", func(t *testing.T) {
+		s, u := ParseLenient("https://shop.com/a%20b?x=1")
+		assert.Equal(t, "https://shop.com/a%20b?x=1", s)
+		require.NotNil(t, u)
+		assert.Equal(t, "/a b", u.Path)
+	})
+
+	t.Run("a stray percent sign is repaired for parsing only", func(t *testing.T) {
+		s, u := ParseLenient("https://shop.com/50%off")
+		assert.Equal(t, "https://shop.com/50%off", s, "the returned string is never the repaired form")
+		require.NotNil(t, u)
+		assert.Equal(t, "shop.com", u.Host)
+		assert.Equal(t, "/50%off", u.Path)
+	})
+
+	t.Run("surrounding spaces and line breaks are preprocessed away", func(t *testing.T) {
+		s, u := ParseLenient(" https://brand.com/sa\r\nle ")
+		assert.Equal(t, "https://brand.com/sale", s)
+		require.NotNil(t, u)
+		assert.Equal(t, "brand.com", u.Host)
+	})
+
+	t.Run("blank input", func(t *testing.T) {
+		s, u := ParseLenient(" \t ")
+		assert.Empty(t, s)
+		assert.Nil(t, u)
+	})
+
+	t.Run("still unparsable", func(t *testing.T) {
+		s, u := ParseLenient("https://shop example.com/x")
+		assert.Equal(t, "https://shop example.com/x", s)
+		assert.Nil(t, u)
+	})
+}
+
 func TestPreprocess(t *testing.T) {
 	assert.Equal(t, "https://brand.com/sale", Preprocess(" https://brand.com/sale "))
 	assert.Equal(t, "https://brand.com/sale", Preprocess("https://brand.com/sa\r\nle\t"))

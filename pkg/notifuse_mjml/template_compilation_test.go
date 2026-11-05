@@ -4167,6 +4167,16 @@ func TestApplyIdentityParam_PreservesURLBytes(t *testing.T) {
 			want:    "https://example.com/page?discount=50%off&nf_id=tok-abc123",
 		},
 		{
+			name:    "bare percent sign in the path",
+			linkURL: "https://example.com/50%off",
+			want:    "https://example.com/50%off?nf_id=tok-abc123",
+		},
+		{
+			name:    "a percent sign in the host is not a link",
+			linkURL: "https://example.com%/page",
+			want:    "https://example.com%/page",
+		},
+		{
 			name:    "order, slashes and commas kept",
 			linkURL: "https://example.com/page?utm_campaign=spring&redirect=/home&ids=1,2,3",
 			want:    "https://example.com/page?utm_campaign=spring&redirect=/home&ids=1,2,3&nf_id=tok-abc123",
@@ -4694,10 +4704,15 @@ func TestApplyUTMParameters_DefensiveCases(t *testing.T) {
 		"{{ unsubscribe_url }}",
 		"{% if x %}https://example.com{% endif %}",
 		"://example.com/broken",
-		"https://example.com/50%off/page", // invalid percent-escape in the path
+		"https://example.com%/page", // the repair of invalid escapes never rescues a host
 	} {
 		assert.Equal(t, sourceURL, settings.applyUTMParameters(sourceURL))
 	}
+
+	// An invalid percent-escape in the path is a link browsers open: it is tagged,
+	// and its own bytes are kept as written.
+	assert.Equal(t, "https://example.com/50%off/page?utm_source=email",
+		settings.applyUTMParameters("https://example.com/50%off/page"))
 
 	// A relative link is still a link: it is what an mj-button pointing at the
 	// hosted page carries, and it must be tagged like any other.
