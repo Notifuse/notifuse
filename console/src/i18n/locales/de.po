@@ -345,7 +345,7 @@ msgstr "{maxScroll}% gescrollt"
 msgid "{minutes}m"
 msgstr "{minutes} Min."
 
-#: src/components/contacts/ExportContactsModal.tsx:137
+#: src/components/contacts/ExportContactsModal.tsx:138
 msgid "{minutes}m {remainingSeconds}s"
 msgstr "{minutes}m {remainingSeconds}s"
 
@@ -373,11 +373,11 @@ msgstr "{pageviews} Seiten"
 msgid "{propertyCount} properties"
 msgstr "{propertyCount} Eigenschaften"
 
-#: src/components/contacts/ExportContactsModal.tsx:133
+#: src/components/contacts/ExportContactsModal.tsx:134
 msgid "{seconds} second"
 msgstr "{seconds} Sekunde"
 
-#: src/components/contacts/ExportContactsModal.tsx:133
+#: src/components/contacts/ExportContactsModal.tsx:134
 msgid "{seconds} seconds"
 msgstr "{seconds} Sekunden"
 
@@ -702,7 +702,7 @@ msgstr "Automatisierung aktivieren?"
 msgid "Active"
 msgstr "Aktiv"
 
-#: src/components/contacts/ExportContactsModal.tsx:360
+#: src/components/contacts/ExportContactsModal.tsx:361
 msgid "Active filters"
 msgstr "Aktive Filter"
 
@@ -1177,7 +1177,7 @@ msgstr "Unter den Kombinationen mit mindestens {0} Sitzungen."
 msgid "An address that is not a contact yet becomes one, carrying the country, language and timezone the visit reported; an existing contact is never modified. Visitors arriving from a tracked email link are identified automatically, with no code."
 msgstr "Eine Adresse, die noch kein Kontakt ist, wird zu einem — mit dem Land, der Sprache und der Zeitzone, die der Besuch gemeldet hat; ein bestehender Kontakt wird nie verändert. Besucher, die über einen verfolgten E-Mail-Link kommen, werden automatisch identifiziert, ganz ohne Code."
 
-#: src/components/contacts/ExportContactsModal.tsx:313
+#: src/components/contacts/ExportContactsModal.tsx:314
 msgid "An error occurred during export"
 msgstr "Beim Export ist ein Fehler aufgetreten"
 
@@ -2366,7 +2366,7 @@ msgstr "Kampagnen"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:822
 #: src/components/contacts/ContactUpsertDrawer.tsx:514
 #: src/components/contacts/DeleteContactModal.tsx:30
-#: src/components/contacts/ExportContactsModal.tsx:344
+#: src/components/contacts/ExportContactsModal.tsx:345
 #: src/components/contacts/InlineEditableField.tsx:291
 #: src/components/contacts/InlineEditableField.tsx:299
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:155
@@ -2760,12 +2760,12 @@ msgstr "Klicks"
 #: src/components/analytics/EmailMetricsChart.tsx:418
 #: src/components/broadcasts/BroadcastStats.tsx:262
 #: src/components/contacts/TrackingConsent.tsx:30
-#: src/components/contacts/TrackingConsent.tsx:133
+#: src/components/contacts/TrackingConsent.tsx:130
 #: src/pages/BroadcastsPage.tsx:950
 msgid "Clicks"
 msgstr "Klicks"
 
-#: src/components/contacts/ExportContactsModal.tsx:98
+#: src/components/contacts/ExportContactsModal.tsx:99
 #: src/pages/ContactsPage.tsx:413
 msgid "Clicks tracking consent"
 msgstr "Einwilligung zum Klick-Tracking"
@@ -3447,7 +3447,7 @@ msgstr "Länder"
 #: src/components/automations/config/TriggerConfigForm.tsx:128
 #: src/components/contacts/ContactDetailsDrawer.tsx:448
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:94
-#: src/components/contacts/ExportContactsModal.tsx:69
+#: src/components/contacts/ExportContactsModal.tsx:70
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:224
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:232
 #: src/components/web_analytics/tabs/DashboardTab.tsx:215
@@ -5003,7 +5003,7 @@ msgstr "Editor-Modus"
 msgid "EHLO Hostname"
 msgstr "EHLO-Hostname"
 
-#: src/components/contacts/ExportContactsModal.tsx:383
+#: src/components/contacts/ExportContactsModal.tsx:384
 msgid "Elapsed"
 msgstr "Vergangen"
 
@@ -5026,7 +5026,7 @@ msgstr "E-Mail"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1052
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1126
 #: src/components/contacts/ContactUpsertDrawer.tsx:530
-#: src/components/contacts/ExportContactsModal.tsx:54
+#: src/components/contacts/ExportContactsModal.tsx:55
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/messages/MessageHistoryTab.tsx:217
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:122
@@ -5728,7 +5728,7 @@ msgstr "Läuft ab:"
 msgid "Explore"
 msgstr "Erkunden"
 
-#: src/components/contacts/ExportContactsModal.tsx:353
+#: src/components/contacts/ExportContactsModal.tsx:354
 #: src/components/email_builder/MjmlCodeEditor.tsx:645
 #: src/components/logs/AuditLogActions.tsx:52
 #: src/components/templates/ImportExportButton.tsx:416
@@ -5736,7 +5736,7 @@ msgstr "Erkunden"
 msgid "Export"
 msgstr "Exportieren"
 
-#: src/components/contacts/ExportContactsModal.tsx:339
+#: src/components/contacts/ExportContactsModal.tsx:340
 msgid "Export Contacts to CSV"
 msgstr "Kontakte als CSV exportieren"
 
@@ -5765,7 +5765,7 @@ msgstr "Den aktuellen Filter als CSV oder NDJSON exportieren, bis zu {AUDIT_LOG_
 msgid "Export to CSV"
 msgstr "Als CSV exportieren"
 
-#: src/components/contacts/ExportContactsModal.tsx:370
+#: src/components/contacts/ExportContactsModal.tsx:371
 msgid "Exporting all contacts"
 msgstr "Alle Kontakte werden exportiert"
 
@@ -5776,7 +5776,7 @@ msgstr "Alle Kontakte werden exportiert"
 #: src/components/automations/config/TriggerConfigForm.tsx:118
 #: src/components/contacts/ContactDetailsDrawer.tsx:454
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:90
-#: src/components/contacts/ExportContactsModal.tsx:57
+#: src/components/contacts/ExportContactsModal.tsx:58
 #: src/components/messages/MessageHistoryTab.tsx:224
 #: src/components/messages/MessageHistoryTable.tsx:145
 #: src/components/messages/MessageHistoryTable.tsx:172
@@ -6352,7 +6352,7 @@ msgid "Feedback:"
 msgstr "Feedback:"
 
 #. placeholder {0}: fetchedCount.toLocaleString()
-#: src/components/contacts/ExportContactsModal.tsx:379
+#: src/components/contacts/ExportContactsModal.tsx:380
 msgid "Fetched {0} contacts..."
 msgstr "{0} Kontakte abgerufen..."
 
@@ -6518,7 +6518,7 @@ msgstr "Firecrawl-Integration erfolgreich gespeichert"
 #: src/components/automations/config/TriggerConfigForm.tsx:115
 #: src/components/contacts/ContactDetailsDrawer.tsx:442
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:91
-#: src/components/contacts/ExportContactsModal.tsx:60
+#: src/components/contacts/ExportContactsModal.tsx:61
 #: src/pages/ContactsPage.tsx:377
 #: src/pages/ContactsPage.tsx:444
 #: src/pages/ContactsPage.tsx:694
@@ -7728,7 +7728,7 @@ msgstr "Landingpages"
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:221
 #: src/components/contacts/ContactDetailsDrawer.tsx:453
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:96
-#: src/components/contacts/ExportContactsModal.tsx:72
+#: src/components/contacts/ExportContactsModal.tsx:73
 #: src/components/templates/SendTemplateModal.tsx:326
 #: src/components/templates/TemplatePreviewDrawer.tsx:353
 #: src/pages/ContactsPage.tsx:381
@@ -7769,7 +7769,7 @@ msgstr "Letzte 7 Tage"
 #~ msgid "Last backfill rewrote"
 #~ msgstr ""
 
-#: src/components/contacts/TrackingConsent.tsx:145
+#: src/components/contacts/TrackingConsent.tsx:142
 msgid "Last changed {changedAt} from {changedFrom}"
 msgstr "Zuletzt geändert {changedAt} über {changedFrom}"
 
@@ -7788,7 +7788,7 @@ msgstr "Zuletzt geändert"
 #: src/components/automations/config/TriggerConfigForm.tsx:116
 #: src/components/contacts/ContactDetailsDrawer.tsx:443
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:92
-#: src/components/contacts/ExportContactsModal.tsx:63
+#: src/components/contacts/ExportContactsModal.tsx:64
 #: src/pages/ContactsPage.tsx:378
 #: src/pages/ContactsPage.tsx:445
 #: src/pages/ContactsPage.tsx:701
@@ -7969,7 +7969,7 @@ msgstr "Liquid-Block - Klicken, um MJML- + Liquid-Inhalt hinzuzufügen"
 #: src/components/automations/UpsertAutomationDrawer.tsx:193
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:521
 #: src/components/contacts/BulkUpdateDrawer.tsx:602
-#: src/components/contacts/ExportContactsModal.tsx:77
+#: src/components/contacts/ExportContactsModal.tsx:78
 #: src/components/messages/MessageHistoryTable.tsx:150
 #: src/components/messages/MessageHistoryTable.tsx:277
 #: src/components/messages/MessageHistoryTable.tsx:291
@@ -8047,7 +8047,7 @@ msgstr "Gesendete Nachrichten auflisten, mit Empfängeradresse, Zustell- und Eng
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:38
 #: src/components/automations/nodes/StatNode.tsx:89
 #: src/components/automations/nodes/StatNode.tsx:251
-#: src/components/contacts/ExportContactsModal.tsx:84
+#: src/components/contacts/ExportContactsModal.tsx:85
 #: src/pages/ContactsPage.tsx:395
 msgid "List Status"
 msgstr "Listenstatus"
@@ -8955,7 +8955,7 @@ msgstr "Keine Bedingungen"
 msgid "No contacts found. Add some contacts to get started."
 msgstr "Keine Kontakte gefunden. Fügen Sie einige Kontakte hinzu, um loszulegen."
 
-#: src/components/contacts/ExportContactsModal.tsx:203
+#: src/components/contacts/ExportContactsModal.tsx:204
 msgid "No contacts match the current filters"
 msgstr "Keine Kontakte entsprechen den aktuellen Filtern"
 
@@ -9663,7 +9663,7 @@ msgstr "Öffnungen"
 #: src/components/analytics/EmailMetricsChart.tsx:388
 #: src/components/broadcasts/BroadcastStats.tsx:235
 #: src/components/contacts/TrackingConsent.tsx:27
-#: src/components/contacts/TrackingConsent.tsx:121
+#: src/components/contacts/TrackingConsent.tsx:120
 #: src/pages/BroadcastsPage.tsx:913
 msgid "Opens"
 msgstr "Öffnungen"
@@ -9672,7 +9672,7 @@ msgstr "Öffnungen"
 msgid "Opens and clicks are not tracked for this broadcast: pick the winning variation yourself."
 msgstr "Öffnungen und Klicks werden für diesen Broadcast nicht getrackt: Wählen Sie die Gewinnervariante selbst."
 
-#: src/components/contacts/ExportContactsModal.tsx:91
+#: src/components/contacts/ExportContactsModal.tsx:92
 #: src/pages/ContactsPage.tsx:407
 msgid "Opens tracking consent"
 msgstr "Einwilligung zum Öffnungs-Tracking"
@@ -9999,7 +9999,7 @@ msgstr "Berechtigungen erfolgreich aktualisiert"
 #: src/components/automations/config/TriggerConfigForm.tsx:117
 #: src/components/contacts/ContactDetailsDrawer.tsx:445
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:93
-#: src/components/contacts/ExportContactsModal.tsx:66
+#: src/components/contacts/ExportContactsModal.tsx:67
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:339
 #: src/pages/ContactsPage.tsx:380
 #: src/pages/ContactsPage.tsx:447
@@ -11857,7 +11857,7 @@ msgstr "Nacherfassungs-Aufgaben der Web-Analyse einsehen; eine Auflistung, die k
 
 #: src/components/automations/config/TriggerConfigForm.tsx:89
 #: src/components/automations/config/TriggerConfigForm.tsx:301
-#: src/components/contacts/ExportContactsModal.tsx:107
+#: src/components/contacts/ExportContactsModal.tsx:108
 #: src/components/segment/button_upsert.tsx:74
 #: src/components/timeline/ContactTimeline.tsx:622
 msgid "Segment"

@@ -345,7 +345,7 @@ msgstr "{maxScroll} % de défilement"
 msgid "{minutes}m"
 msgstr "{minutes}m"
 
-#: src/components/contacts/ExportContactsModal.tsx:137
+#: src/components/contacts/ExportContactsModal.tsx:138
 msgid "{minutes}m {remainingSeconds}s"
 msgstr "{minutes}m {remainingSeconds}s"
 
@@ -373,11 +373,11 @@ msgstr "{pageviews} pages"
 msgid "{propertyCount} properties"
 msgstr "{propertyCount} propriétés"
 
-#: src/components/contacts/ExportContactsModal.tsx:133
+#: src/components/contacts/ExportContactsModal.tsx:134
 msgid "{seconds} second"
 msgstr "{seconds} seconde"
 
-#: src/components/contacts/ExportContactsModal.tsx:133
+#: src/components/contacts/ExportContactsModal.tsx:134
 msgid "{seconds} seconds"
 msgstr "{seconds} secondes"
 
@@ -702,7 +702,7 @@ msgstr "Activer l automation ?"
 msgid "Active"
 msgstr "Actif"
 
-#: src/components/contacts/ExportContactsModal.tsx:360
+#: src/components/contacts/ExportContactsModal.tsx:361
 msgid "Active filters"
 msgstr "Filtres actifs"
 
@@ -968,7 +968,7 @@ msgstr "Adresse ligne 2"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:363
 msgid "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Notifuse for every recipient of every tracked send, which is why it is off by default."
-msgstr "Ajoute une identité signée aux liens des emails suivis : un destinataire qui clique sur l'un d'eux est ainsi reconnu à son arrivée, sans aucun code sur votre site. Sa visite est alors rattachée à sa fiche de contact — entrées de chronologie, objectifs et inscriptions aux automations. Contrairement à identify(), que votre propre serveur appelle, cette identité est générée par Notifuse pour chaque destinataire de chaque envoi suivi, ce qui explique qu'elle soit désactivée par défaut."
+msgstr "Ajoute une identité signée aux liens des emails trackés : un destinataire qui clique sur l'un d'eux est ainsi reconnu à son arrivée, sans aucun code sur votre site. Sa visite est alors rattachée à sa fiche de contact — entrées de chronologie, objectifs et inscriptions aux automations. Contrairement à identify(), que votre propre serveur appelle, cette identité est générée par Notifuse pour chaque destinataire de chaque envoi tracké, ce qui explique qu'elle soit désactivée par défaut."
 
 #: src/pages/SetupWizard.tsx:369
 msgid "Admin email is required"
@@ -1175,9 +1175,9 @@ msgstr "Parmi les combinaisons comptant au moins {0} sessions."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:457
 msgid "An address that is not a contact yet becomes one, carrying the country, language and timezone the visit reported; an existing contact is never modified. Visitors arriving from a tracked email link are identified automatically, with no code."
-msgstr "Une adresse qui n'est pas encore un contact en devient un, avec le pays, la langue et le fuseau horaire signalés par la visite ; un contact existant n'est jamais modifié. Les visiteurs arrivant depuis un lien d'email suivi sont identifiés automatiquement, sans aucun code."
+msgstr "Une adresse qui n'est pas encore un contact en devient un, avec le pays, la langue et le fuseau horaire signalés par la visite ; un contact existant n'est jamais modifié. Les visiteurs arrivant depuis un lien d'email tracké sont identifiés automatiquement, sans aucun code."
 
-#: src/components/contacts/ExportContactsModal.tsx:313
+#: src/components/contacts/ExportContactsModal.tsx:314
 msgid "An error occurred during export"
 msgstr "Une erreur est survenue pendant l exportation"
 
@@ -2366,7 +2366,7 @@ msgstr "Campagnes"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:822
 #: src/components/contacts/ContactUpsertDrawer.tsx:514
 #: src/components/contacts/DeleteContactModal.tsx:30
-#: src/components/contacts/ExportContactsModal.tsx:344
+#: src/components/contacts/ExportContactsModal.tsx:345
 #: src/components/contacts/InlineEditableField.tsx:291
 #: src/components/contacts/InlineEditableField.tsx:299
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:155
@@ -2760,12 +2760,12 @@ msgstr "clics"
 #: src/components/analytics/EmailMetricsChart.tsx:418
 #: src/components/broadcasts/BroadcastStats.tsx:262
 #: src/components/contacts/TrackingConsent.tsx:30
-#: src/components/contacts/TrackingConsent.tsx:133
+#: src/components/contacts/TrackingConsent.tsx:130
 #: src/pages/BroadcastsPage.tsx:950
 msgid "Clicks"
 msgstr "Clics"
 
-#: src/components/contacts/ExportContactsModal.tsx:98
+#: src/components/contacts/ExportContactsModal.tsx:99
 #: src/pages/ContactsPage.tsx:413
 msgid "Clicks tracking consent"
 msgstr "Consentement au tracking des clics"
@@ -3447,7 +3447,7 @@ msgstr "Pays"
 #: src/components/automations/config/TriggerConfigForm.tsx:128
 #: src/components/contacts/ContactDetailsDrawer.tsx:448
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:94
-#: src/components/contacts/ExportContactsModal.tsx:69
+#: src/components/contacts/ExportContactsModal.tsx:70
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:224
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:232
 #: src/components/web_analytics/tabs/DashboardTab.tsx:215
@@ -3825,7 +3825,7 @@ msgstr "Dimensions personnalisées"
 
 #: src/components/settings/GeneralSettings.tsx:332
 msgid "Custom domain for email links (unsubscribe, tracking, notification center). By default, the config API endpoint is used. Leave empty to use the default."
-msgstr "Domaine personnalisé pour les liens email (désinscription, suivi, centre de notifications). Par défaut, le point d accès API de la config est utilisé. Laissez vide pour utiliser la valeur par défaut."
+msgstr "Domaine personnalisé pour les liens email (désinscription, tracking, centre de notifications). Par défaut, le point d accès API de la config est utilisé. Laissez vide pour utiliser la valeur par défaut."
 
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:331
@@ -5003,7 +5003,7 @@ msgstr "Mode éditeur"
 msgid "EHLO Hostname"
 msgstr "Nom d'hôte EHLO"
 
-#: src/components/contacts/ExportContactsModal.tsx:383
+#: src/components/contacts/ExportContactsModal.tsx:384
 msgid "Elapsed"
 msgstr "Écoulé"
 
@@ -5026,7 +5026,7 @@ msgstr "email"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1052
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1126
 #: src/components/contacts/ContactUpsertDrawer.tsx:530
-#: src/components/contacts/ExportContactsModal.tsx:54
+#: src/components/contacts/ExportContactsModal.tsx:55
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 #: src/components/messages/MessageHistoryTab.tsx:217
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:122
@@ -5728,7 +5728,7 @@ msgstr "Expire :"
 msgid "Explore"
 msgstr "Explorer"
 
-#: src/components/contacts/ExportContactsModal.tsx:353
+#: src/components/contacts/ExportContactsModal.tsx:354
 #: src/components/email_builder/MjmlCodeEditor.tsx:645
 #: src/components/logs/AuditLogActions.tsx:52
 #: src/components/templates/ImportExportButton.tsx:416
@@ -5736,7 +5736,7 @@ msgstr "Explorer"
 msgid "Export"
 msgstr "Exporter"
 
-#: src/components/contacts/ExportContactsModal.tsx:339
+#: src/components/contacts/ExportContactsModal.tsx:340
 msgid "Export Contacts to CSV"
 msgstr "Exporter les contacts vers CSV"
 
@@ -5765,7 +5765,7 @@ msgstr "Exporter le filtre actuel en CSV ou NDJSON, jusqu’à {AUDIT_LOG_EXPORT
 msgid "Export to CSV"
 msgstr "Exporter en CSV"
 
-#: src/components/contacts/ExportContactsModal.tsx:370
+#: src/components/contacts/ExportContactsModal.tsx:371
 msgid "Exporting all contacts"
 msgstr "Export de tous les contacts"
 
@@ -5776,7 +5776,7 @@ msgstr "Export de tous les contacts"
 #: src/components/automations/config/TriggerConfigForm.tsx:118
 #: src/components/contacts/ContactDetailsDrawer.tsx:454
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:90
-#: src/components/contacts/ExportContactsModal.tsx:57
+#: src/components/contacts/ExportContactsModal.tsx:58
 #: src/components/messages/MessageHistoryTab.tsx:224
 #: src/components/messages/MessageHistoryTable.tsx:145
 #: src/components/messages/MessageHistoryTable.tsx:172
@@ -6352,7 +6352,7 @@ msgid "Feedback:"
 msgstr "Retour :"
 
 #. placeholder {0}: fetchedCount.toLocaleString()
-#: src/components/contacts/ExportContactsModal.tsx:379
+#: src/components/contacts/ExportContactsModal.tsx:380
 msgid "Fetched {0} contacts..."
 msgstr "{0} contacts récupérés..."
 
@@ -6518,7 +6518,7 @@ msgstr "Intégration Firecrawl enregistrée avec succès"
 #: src/components/automations/config/TriggerConfigForm.tsx:115
 #: src/components/contacts/ContactDetailsDrawer.tsx:442
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:91
-#: src/components/contacts/ExportContactsModal.tsx:60
+#: src/components/contacts/ExportContactsModal.tsx:61
 #: src/pages/ContactsPage.tsx:377
 #: src/pages/ContactsPage.tsx:444
 #: src/pages/ContactsPage.tsx:694
@@ -7189,7 +7189,7 @@ msgstr "Identifier un visiteur"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:361
 msgid "Identify recipients who click a tracked email link"
-msgstr "Identifier les destinataires qui cliquent sur un lien d'email suivi"
+msgstr "Identifier les destinataires qui cliquent sur un lien d'email tracké"
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:92
 msgid "If \"true\", will be full width on mobile even if width is set"
@@ -7728,7 +7728,7 @@ msgstr "Pages d'atterrissage"
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:221
 #: src/components/contacts/ContactDetailsDrawer.tsx:453
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:96
-#: src/components/contacts/ExportContactsModal.tsx:72
+#: src/components/contacts/ExportContactsModal.tsx:73
 #: src/components/templates/SendTemplateModal.tsx:326
 #: src/components/templates/TemplatePreviewDrawer.tsx:353
 #: src/pages/ContactsPage.tsx:381
@@ -7769,7 +7769,7 @@ msgstr "7 derniers jours"
 #~ msgid "Last backfill rewrote"
 #~ msgstr ""
 
-#: src/components/contacts/TrackingConsent.tsx:145
+#: src/components/contacts/TrackingConsent.tsx:142
 msgid "Last changed {changedAt} from {changedFrom}"
 msgstr "Modifié {changedAt} depuis {changedFrom}"
 
@@ -7788,7 +7788,7 @@ msgstr "Dernière modification"
 #: src/components/automations/config/TriggerConfigForm.tsx:116
 #: src/components/contacts/ContactDetailsDrawer.tsx:443
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:92
-#: src/components/contacts/ExportContactsModal.tsx:63
+#: src/components/contacts/ExportContactsModal.tsx:64
 #: src/pages/ContactsPage.tsx:378
 #: src/pages/ContactsPage.tsx:445
 #: src/pages/ContactsPage.tsx:701
@@ -7969,7 +7969,7 @@ msgstr "Bloc Liquid - Cliquez pour ajouter du contenu MJML + Liquid"
 #: src/components/automations/UpsertAutomationDrawer.tsx:193
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:521
 #: src/components/contacts/BulkUpdateDrawer.tsx:602
-#: src/components/contacts/ExportContactsModal.tsx:77
+#: src/components/contacts/ExportContactsModal.tsx:78
 #: src/components/messages/MessageHistoryTable.tsx:150
 #: src/components/messages/MessageHistoryTable.tsx:277
 #: src/components/messages/MessageHistoryTable.tsx:291
@@ -8047,7 +8047,7 @@ msgstr "Lister les messages envoyés avec l'adresse de leur destinataire, les ho
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:38
 #: src/components/automations/nodes/StatNode.tsx:89
 #: src/components/automations/nodes/StatNode.tsx:251
-#: src/components/contacts/ExportContactsModal.tsx:84
+#: src/components/contacts/ExportContactsModal.tsx:85
 #: src/pages/ContactsPage.tsx:395
 msgid "List Status"
 msgstr "Statut de liste"
@@ -8955,7 +8955,7 @@ msgstr "Pas de conditions"
 msgid "No contacts found. Add some contacts to get started."
 msgstr "Aucun contact trouvé. Ajoutez des contacts pour commencer."
 
-#: src/components/contacts/ExportContactsModal.tsx:203
+#: src/components/contacts/ExportContactsModal.tsx:204
 msgid "No contacts match the current filters"
 msgstr "Aucun contact ne correspond aux filtres actuels"
 
@@ -9365,7 +9365,7 @@ msgstr "Non défini"
 
 #: src/components/settings/GeneralSettings.tsx:194
 msgid "Not tracked"
-msgstr "Non tracké"
+msgstr "Non trackés"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:42
 msgid "Not-mapped channels"
@@ -9547,7 +9547,7 @@ msgstr "Seul un administrateur de l'instance peut consulter ou installer la clé
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:92
 msgid "Only clicks recorded since per-link tracking was enabled appear here; earlier clicks still count toward the variation's Clicks total."
-msgstr "Seuls les clics enregistrés depuis l'activation du suivi par lien apparaissent ici ; les clics antérieurs comptent toujours dans le total de clics de la variation."
+msgstr "Seuls les clics enregistrés depuis l'activation du tracking par lien apparaissent ici ; les clics antérieurs comptent toujours dans le total de clics de la variation."
 
 #: src/components/automations/config/TriggerConfigForm.tsx:373
 msgid "Only enroll contacts matching these conditions."
@@ -9663,7 +9663,7 @@ msgstr "ouvertures"
 #: src/components/analytics/EmailMetricsChart.tsx:388
 #: src/components/broadcasts/BroadcastStats.tsx:235
 #: src/components/contacts/TrackingConsent.tsx:27
-#: src/components/contacts/TrackingConsent.tsx:121
+#: src/components/contacts/TrackingConsent.tsx:120
 #: src/pages/BroadcastsPage.tsx:913
 msgid "Opens"
 msgstr "Ouvertures"
@@ -9672,7 +9672,7 @@ msgstr "Ouvertures"
 msgid "Opens and clicks are not tracked for this broadcast: pick the winning variation yourself."
 msgstr "Les ouvertures et les clics ne sont pas trackés pour ce broadcast : choisissez vous-même la variante gagnante."
 
-#: src/components/contacts/ExportContactsModal.tsx:91
+#: src/components/contacts/ExportContactsModal.tsx:92
 #: src/pages/ContactsPage.tsx:407
 msgid "Opens tracking consent"
 msgstr "Consentement au tracking des ouvertures"
@@ -9999,7 +9999,7 @@ msgstr "Permissions mises à jour avec succès"
 #: src/components/automations/config/TriggerConfigForm.tsx:117
 #: src/components/contacts/ContactDetailsDrawer.tsx:445
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:93
-#: src/components/contacts/ExportContactsModal.tsx:66
+#: src/components/contacts/ExportContactsModal.tsx:67
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:339
 #: src/pages/ContactsPage.tsx:380
 #: src/pages/ContactsPage.tsx:447
@@ -11857,7 +11857,7 @@ msgstr "Voir les tâches de recalcul historique d'analyse web ; une liste qui ne
 
 #: src/components/automations/config/TriggerConfigForm.tsx:89
 #: src/components/automations/config/TriggerConfigForm.tsx:301
-#: src/components/contacts/ExportContactsModal.tsx:107
+#: src/components/contacts/ExportContactsModal.tsx:108
 #: src/components/segment/button_upsert.tsx:74
 #: src/components/timeline/ContactTimeline.tsx:622
 msgid "Segment"
@@ -14050,7 +14050,7 @@ msgstr "Cette licence couvre tout le déploiement — une seule base de données
 
 #: src/components/settings/WebAnalyticsSettings.tsx:316
 msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
-msgstr "Cette liste fait deux choses. Elle filtre les beats entrants — les autres origines sont silencieusement ignorées. Elle contrôle aussi l'identification au clic dans les emails : un lien suivi ne transporte un jeton d'identité que pour un domaine listé ici, si bien que tant qu'elle est vide, aucun lien d'email ne peut identifier de contact. Utilisez *.example.com pour couvrir à la fois example.com et ses sous-domaines — example.com seul ne correspond pas à www.example.com."
+msgstr "Cette liste fait deux choses. Elle filtre les beats entrants — les autres origines sont silencieusement ignorées. Elle contrôle aussi l'identification au clic dans les emails : un lien tracké ne transporte un jeton d'identité que pour un domaine listé ici, si bien que tant qu'elle est vide, aucun lien d'email ne peut identifier de contact. Utilisez *.example.com pour couvrir à la fois example.com et ses sous-domaines — example.com seul ne correspond pas à www.example.com."
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:276
 msgid "This notification is managed by an integration and cannot be renamed"
@@ -14503,7 +14503,7 @@ msgstr "Suivez le trafic de votre site web avec un script first-party. Les beats
 
 #: src/components/settings/GeneralSettings.tsx:194
 msgid "Tracked"
-msgstr "Tracké"
+msgstr "Trackés"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:339
 msgid "Tracking"
@@ -14511,11 +14511,11 @@ msgstr "Tracking"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:688
 msgid "Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."
-msgstr "Le suivi (ouvertures et clics) doit être activé dans les paramètres de l'espace de travail pour utiliser les fonctionnalités de test A/B."
+msgstr "Le tracking (ouvertures et clics) doit être activé dans les paramètres de l'espace de travail pour utiliser les fonctionnalités de test A/B."
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:734
 msgid "Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
-msgstr "Le suivi (ouvertures et clics) devrait être activé dans les paramètres de votre espace de travail pour utiliser cette fonctionnalité"
+msgstr "Le tracking (ouvertures et clics) devrait être activé dans les paramètres de votre espace de travail pour utiliser cette fonctionnalité"
 
 #: src/components/contacts/TrackingConsent.tsx:118
 #: src/pages/ContactsPage.tsx:454
