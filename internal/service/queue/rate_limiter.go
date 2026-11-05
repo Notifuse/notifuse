@@ -47,18 +47,17 @@ type adaptiveLimiter struct {
 	// reserved in, so the sends throttled together cut the pace once, and a send
 	// reserved before a decrease is not mistaken for one sent at the new pace.
 	generation uint64
-	// recovering is set by an accepted send and cleared by a refusal: the pace climbs
-	// back only once the provider has taken an email at the lower pace, not while it
-	// waits. stepFrom is when the climb's next step started counting.
+	// recovering is set by an accepted send after a throttle: the pace climbs back only
+	// once the provider has taken an email at the lower pace, not while it waits.
 	recovering bool
 	stepFrom   time.Time
 	// floorSince is when the current run of refusals at the floor began, zero while
 	// above the floor. An email accepted between refusals does not end the run: a
 	// provider taking a trickle of emails at the floor is still refusing more than
-	// slowing down can fix. The run ends after an email accepted at the current pace
-	// and a recovery interval without a refusal, which lifts the pace off the floor
-	// unless the floor is the configured rate, or when a refusal comes after a quiet
-	// spell. lastThrottle is the latest refusal recorded, the cut that
+	// slowing down can fix. The run ends when the pace climbs off the floor, after an
+	// email accepted at the current pace and a recovery interval without a refusal
+	// (never at 1/min, where the floor is the configured rate), or when a refusal comes
+	// after a quiet spell. lastThrottle is the latest refusal recorded, the cut that
 	// reached the floor included, so that an integration left at the floor does not
 	// count its next refusal at once, days later.
 	floorSince   time.Time
@@ -249,9 +248,6 @@ func (irl *IntegrationRateLimiter) RecordThrottle(integrationID string, ratePerM
 	if generation != al.generation {
 		return ThrottleOutcome{}
 	}
-	// A whole recovery interval since an accepted email, with no refusal: the provider
-	// had stopped refusing. Above the floor, recover has climbed by now.
-	calm := al.recovering && now.Sub(al.stepFrom) >= irl.recoveryInterval
 	al.recovering = false
 
 	last := al.lastThrottle
@@ -259,7 +255,7 @@ func (irl *IntegrationRateLimiter) RecordThrottle(integrationID string, ratePerM
 
 	floor := al.floor()
 	if al.effective <= floor {
-		if al.floorSince.IsZero() || calm || now.Sub(last) > al.quietSpell(irl.floorDwell) {
+		if al.floorSince.IsZero() || now.Sub(last) > al.quietSpell(irl.floorDwell) {
 			al.floorSince = now
 		}
 		return ThrottleOutcome{AtFloor: now.Sub(al.floorSince) >= irl.floorDwell}
@@ -278,9 +274,8 @@ func (irl *IntegrationRateLimiter) RecordThrottle(integrationID string, ratePerM
 
 // RecordAccepted records that the provider took a send of the given generation at the
 // current pace: it accepted the email, or refused it for its recipient. After a
-// throttle, the first one starts the climb back, and a recovery interval after it
-// without a refusal ends a run of refusals at the floor. One of an older generation was
-// sent at a pace that no longer applies and starts nothing.
+// throttle, the first one starts the climb back. One of an older generation was sent at
+// a pace that no longer applies and starts nothing.
 func (irl *IntegrationRateLimiter) RecordAccepted(integrationID string, generation uint64) {
 	existing, ok := irl.limiters.Load(integrationID)
 	if !ok {
@@ -292,7 +287,7 @@ func (irl *IntegrationRateLimiter) RecordAccepted(integrationID string, generati
 
 	now := irl.now()
 	al.recover(now, irl.recoveryInterval)
-	if generation != al.generation || al.recovering {
+	if generation != al.generation || al.recovering || al.effective >= al.ceiling {
 		return
 	}
 	al.recovering = true
