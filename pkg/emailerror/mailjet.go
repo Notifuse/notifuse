@@ -50,6 +50,10 @@ func (c *Classifier) classifyMailjetError(err error, errStr string, httpStatus i
 		Retryable:  true,
 	}
 
+	if httpStatus == 429 {
+		return rateLimitedByStatus(result, errStr)
+	}
+
 	// Check for recipient-specific errors
 	if containsAny(errStr, mailjetRecipientPatterns) {
 		result.Type = ErrorTypeRecipient

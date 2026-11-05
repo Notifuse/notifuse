@@ -64,6 +64,10 @@ func (c *Classifier) classifyMailgunError(err error, errStr string, httpStatus i
 		Retryable:  true,
 	}
 
+	if httpStatus == 429 {
+		return rateLimitedByStatus(result, errStr)
+	}
+
 	// Check for recipient-specific errors (SMTP codes)
 	if containsAny(errStr, mailgunRecipientPatterns) {
 		result.Type = ErrorTypeRecipient

@@ -330,6 +330,20 @@ func (mr *MockEmailQueueRepositoryMockRecorder) PauseBySourceTx(arg0, arg1, arg2
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PauseBySourceTx", reflect.TypeOf((*MockEmailQueueRepository)(nil).PauseBySourceTx), arg0, arg1, arg2, arg3)
 }
 
+// ReleaseThrottled mocks base method.
+func (m *MockEmailQueueRepository) ReleaseThrottled(arg0 context.Context, arg1, arg2, arg3 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseThrottled", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReleaseThrottled indicates an expected call of ReleaseThrottled.
+func (mr *MockEmailQueueRepositoryMockRecorder) ReleaseThrottled(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseThrottled", reflect.TypeOf((*MockEmailQueueRepository)(nil).ReleaseThrottled), arg0, arg1, arg2, arg3)
+}
+
 // ResetTerminallyFailedBySource mocks base method.
 func (m *MockEmailQueueRepository) ResetTerminallyFailedBySource(arg0 context.Context, arg1 string, arg2 domain.EmailQueueSourceType, arg3, arg4 string) (int64, error) {
 	m.ctrl.T.Helper()

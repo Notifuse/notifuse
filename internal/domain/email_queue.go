@@ -173,6 +173,11 @@ type EmailQueueRepository interface {
 	// MarkAsFailed marks an entry as failed and schedules retry
 	MarkAsFailed(ctx context.Context, workspaceID string, id string, errorMsg string, nextRetryAt *time.Time) error
 
+	// ReleaseThrottled gives back a row whose send the provider refused for its pace:
+	// the row is due again at once and the attempt its claim counted is returned. Only
+	// a row still processing is changed.
+	ReleaseThrottled(ctx context.Context, workspaceID string, id string, errorMsg string) error
+
 	// Delete removes a queue entry
 	Delete(ctx context.Context, workspaceID string, entryID string) error
 

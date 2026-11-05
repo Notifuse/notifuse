@@ -120,6 +120,26 @@ func containsAny(errStr string, patterns []string) bool {
 	return false
 }
 
+// quotaWords mark a refusal for a sending quota. AWS, for one, reports "Daily message
+// quota exceeded" and "Maximum sending rate exceeded" under the same throttling code.
+var quotaWords = []string{"daily", "hourly", "monthly", "quota", "credits"}
+
+// isQuotaSignal reports whether a refusal names a quota, which sending more slowly does
+// not bring back.
+func isQuotaSignal(text string) bool {
+	return containsAny(text, quotaWords)
+}
+
+// rateLimitedByStatus classifies an HTTP 429, which every API provider uses to say the
+// requests arrive too fast. It is decided before the phrase lists, so a substring in the
+// message can neither take it for a recipient error nor change its retryability.
+func rateLimitedByStatus(result *ClassifiedError, errStr string) *ClassifiedError {
+	result.Type = ErrorTypeProvider
+	result.Retryable = true
+	result.RateLimited = !isQuotaSignal(errStr)
+	return result
+}
+
 // classifyUnknownProvider handles errors from unknown providers
 func (c *Classifier) classifyUnknownProvider(err error, errStr string, httpStatus int) *ClassifiedError {
 	result := &ClassifiedError{
@@ -127,6 +147,10 @@ func (c *Classifier) classifyUnknownProvider(err error, errStr string, httpStatu
 		Provider:   "unknown",
 		HTTPStatus: httpStatus,
 		Retryable:  true,
+	}
+
+	if httpStatus == 429 {
+		return rateLimitedByStatus(result, errStr)
 	}
 
 	// Try HTTP status classification

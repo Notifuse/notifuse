@@ -50,12 +50,30 @@ var sesProviderPatterns = []string{
 	"configurationset",
 }
 
+// sesThrottleCodes are the codes SES answers a refusal for the sending pace with. SES
+// uses the same codes for its daily quota, which the message then names.
+var sesThrottleCodes = []string{
+	"toomanyrequestsexception",
+	"throttlingexception",
+	"throttling",
+	"maximum sending rate",
+}
+
 func (c *Classifier) classifySESError(err error, errStr string, httpStatus int) *ClassifiedError {
 	result := &ClassifiedError{
 		Original:   err,
 		Provider:   "ses",
 		HTTPStatus: httpStatus,
 		Retryable:  true,
+	}
+
+	// Decided first, and retryable whatever the wording: a quota refusal under these
+	// codes that does not say "quota" would otherwise fall to the non-retryable branch.
+	if containsAny(errStr, sesThrottleCodes) {
+		result.Type = ErrorTypeProvider
+		result.Retryable = true
+		result.RateLimited = !isQuotaSignal(errStr)
+		return result
 	}
 
 	// Check for recipient-specific errors first

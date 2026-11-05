@@ -41,6 +41,11 @@ type quotaSMTPServer struct {
 	// says nothing about the provider's health.
 	deadMailboxes map[string]bool
 	refused       int
+	// throttleEvery, when above zero, refuses every throttleEvery-th message with a 451
+	// that asks to send more slowly, the way a provider enforces its sending rate.
+	throttleEvery int
+	received      int
+	throttled     int
 }
 
 func newQuotaSMTPServer(t *testing.T, quota int, dead map[string]bool) *quotaSMTPServer {
@@ -86,15 +91,22 @@ func (s *quotaSMTPServer) handle(conn net.Conn) {
 			if line == "." {
 				inData = false
 				s.mu.Lock()
-				overQuota := s.quota > 0 && s.accepted >= s.quota
-				if overQuota {
+				s.received++
+				throttled := s.throttleEvery > 0 && s.received%s.throttleEvery == 0
+				overQuota := !throttled && s.quota > 0 && s.accepted >= s.quota
+				switch {
+				case throttled:
+					s.throttled++
+				case overQuota:
 					s.refused++
-				} else {
+				default:
 					s.accepted++
 				}
 				s.mu.Unlock()
 
-				if overQuota {
+				if throttled {
+					conn.Write([]byte("451 4.7.1 Rate limit exceeded, slow down\r\n"))
+				} else if overQuota {
 					conn.Write([]byte("452 4.3.1 Daily sending quota exceeded\r\n"))
 				} else {
 					conn.Write([]byte("250 OK queued\r\n"))
@@ -143,6 +155,19 @@ func (s *quotaSMTPServer) liftQuota() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.quota = 0
+}
+
+// stopThrottling is the provider no longer refusing for the sending rate.
+func (s *quotaSMTPServer) stopThrottling() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.throttleEvery = 0
+}
+
+func (s *quotaSMTPServer) throttledCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.throttled
 }
 
 func (s *quotaSMTPServer) counts() (accepted, refused int) {
