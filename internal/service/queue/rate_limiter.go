@@ -48,7 +48,8 @@ type adaptiveLimiter struct {
 	// reserved before a decrease is not mistaken for one sent at the new pace.
 	generation uint64
 	// recovering is set by an accepted send after a throttle: the pace climbs back only
-	// once the provider has taken an email at the lower pace, not while it waits.
+	// once the provider has taken an email at the lower pace, not while it waits. At the
+	// configured rate, 1/min included, there is nothing to climb and it stays unset.
 	recovering bool
 	stepFrom   time.Time
 	// floorSince is when the current run of refusals at the floor began, zero while

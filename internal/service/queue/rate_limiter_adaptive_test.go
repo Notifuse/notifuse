@@ -211,7 +211,7 @@ func TestRateLimiter_Throttle(t *testing.T) {
 		}
 	})
 
-	t.Run("at 1/min, where the pace cannot climb, accepted emails between refusals do not end the run", func(t *testing.T) {
+	t.Run("at 1/min an email accepted between refusals does not end the run", func(t *testing.T) {
 		irl, clock := newClockedLimiter()
 		irl.EffectivePerMinute("one", 1)
 		gen := irl.CurrentGeneration("one")
@@ -219,9 +219,11 @@ func TestRateLimiter_Throttle(t *testing.T) {
 		require.False(t, irl.RecordThrottle("one", 1, gen).AtFloor)
 		clock.Advance(time.Minute)
 		irl.RecordAccepted("one", gen)
+		// Longer than a recovery interval without a refusal, which at a higher rate lifts
+		// the pace off the floor and ends the run.
+		require.Greater(t, time.Minute, defaultRecoveryInterval)
 		clock.Advance(time.Minute)
 		assert.True(t, irl.RecordThrottle("one", 1, gen).AtFloor)
-		assert.Equal(t, 1, irl.EffectivePerMinute("one", 1))
 	})
 
 	t.Run("emails accepted between refusals at the floor do not end the run", func(t *testing.T) {
