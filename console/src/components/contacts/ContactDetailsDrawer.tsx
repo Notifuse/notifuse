@@ -366,7 +366,7 @@ export function ContactDetailsDrawer({
     })
 
     if (listResponse.contacts && listResponse.contacts.length > 0) {
-      handleContactUpdated(listResponse.contacts[0])
+      await handleContactUpdated(listResponse.contacts[0])
     }
   }
 

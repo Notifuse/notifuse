@@ -59,17 +59,26 @@ export function TrackingDialog({
       }
       // Tab stays within the dialog
       if (event.key !== 'Tab' || !dialogRef.current) return
+      const dialog = dialogRef.current
       const focusable = Array.from(
-        dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled])')
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
       )
-      if (focusable.length === 0) return
+      const active = document.activeElement
+      // Every control is disabled while a choice is saved: focus stays on the dialog
+      if (focusable.length === 0) {
+        event.preventDefault()
+        dialog.focus()
+        return
+      }
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
-      const active = document.activeElement
-      if (event.shiftKey && (active === first || active === dialogRef.current)) {
+      const outside = !dialog.contains(active)
+      if (event.shiftKey && (active === first || active === dialog || outside)) {
         event.preventDefault()
         last.focus()
-      } else if (!event.shiftKey && (active === last || !dialogRef.current.contains(active))) {
+      } else if (!event.shiftKey && (active === last || outside)) {
         event.preventDefault()
         first.focus()
       }
@@ -165,7 +174,7 @@ export function TrackingDialog({
               ))}
             </div>
             <div className="mt-5 flex justify-end">
-              <Button variant="ghost" size="sm" className="cursor-pointer" onClick={onClose}>
+              <Button variant="ghost" size="sm" className="cursor-pointer" onClick={close} disabled={saving}>
                 {t('close')}
               </Button>
             </div>

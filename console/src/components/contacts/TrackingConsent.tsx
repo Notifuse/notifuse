@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { App, Button, Select, Space, Tag, Tooltip } from 'antd'
 import { EditOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import dayjs from '../../lib/dayjs'
@@ -118,6 +118,20 @@ export function TrackingConsentEditor({
   const changedAt = updatedAt ? dayjs(updatedAt).format('LLL') : ''
   const changedFrom = sourceLabel(source)
 
+  // A consent that changes elsewhere while the form is open shows its new value,
+  // unless the admin already chose another one.
+  useEffect(() => {
+    if (!editing) return
+    const nextOpens = opens || 'unknown'
+    const nextClicks = clicks || 'unknown'
+    if (nextOpens === initial.opens && nextClicks === initial.clicks) return
+    if (draftOpens === initial.opens) setDraftOpens(nextOpens)
+    if (draftClicks === initial.clicks) setDraftClicks(nextClicks)
+    setInitial({ opens: nextOpens, clicks: nextClicks })
+    // Only a change of the stored values matters here
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opens, clicks])
+
   const startEdit = () => {
     setInitial({ opens: opens || 'unknown', clicks: clicks || 'unknown' })
     setDraftOpens(opens || 'unknown')
@@ -157,7 +171,7 @@ export function TrackingConsentEditor({
             className="ml-1 text-gray-400"
             role="img"
             tabIndex={0}
-            aria-label={t`Last changed ${changedAt} from ${changedFrom}`}
+            aria-label={t`Last change`}
             data-testid="tracking-consent-changed"
           />
         </Tooltip>

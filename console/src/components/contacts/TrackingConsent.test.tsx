@@ -63,6 +63,9 @@ describe('TrackingConsentEditor', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Edit tracking consent' }))
     // The contact refuses opens meanwhile, and the drawer refetches
     onSave.update({ opens: 'denied' })
+    // The form shows the new value rather than the one it opened with
+    const opensSelect = screen.getByRole('combobox', { name: 'Opens' }).closest('.ant-select') as HTMLElement
+    expect(within(opensSelect).getByText('Denied')).toBeInTheDocument()
     await choose('Clicks', 'Granted')
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 

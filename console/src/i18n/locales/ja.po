@@ -2369,7 +2369,7 @@ msgstr "キャンペーン"
 #: src/components/contacts/ExportContactsModal.tsx:345
 #: src/components/contacts/InlineEditableField.tsx:291
 #: src/components/contacts/InlineEditableField.tsx:299
-#: src/components/contacts/TrackingConsent.tsx:197
+#: src/components/contacts/TrackingConsent.tsx:211
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:155
 #: src/components/email_builder/panels/Preview.tsx:194
 #: src/components/email_builder/ui/BlockToolbar.tsx:210
@@ -2761,8 +2761,8 @@ msgstr "クリック"
 #: src/components/analytics/EmailMetricsChart.tsx:425
 #: src/components/broadcasts/BroadcastStats.tsx:273
 #: src/components/contacts/TrackingConsent.tsx:31
-#: src/components/contacts/TrackingConsent.tsx:183
-#: src/components/contacts/TrackingConsent.tsx:187
+#: src/components/contacts/TrackingConsent.tsx:197
+#: src/components/contacts/TrackingConsent.tsx:201
 #: src/pages/BroadcastsPage.tsx:947
 msgid "Clicks"
 msgstr "クリック"
@@ -4977,7 +4977,7 @@ msgstr "テーマを編集"
 msgid "Edit Theme v{0}"
 msgstr "テーマ v{0} を編集"
 
-#: src/components/contacts/TrackingConsent.tsx:219
+#: src/components/contacts/TrackingConsent.tsx:233
 msgid "Edit tracking consent"
 msgstr "トラッキング同意を編集"
 
@@ -6279,7 +6279,7 @@ msgstr "カスタムフィールドラベルの更新に失敗しました"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:344
 #: src/components/contacts/ContactDetailsDrawer.tsx:357
-#: src/components/contacts/TrackingConsent.tsx:145
+#: src/components/contacts/TrackingConsent.tsx:159
 msgid "Failed to update field"
 msgstr "フィールドの更新に失敗しました"
 
@@ -7776,12 +7776,11 @@ msgstr "過去7日間"
 #~ msgid "Last backfill rewrote"
 #~ msgstr ""
 
-#: src/components/contacts/TrackingConsent.tsx:154
-#~ msgid "Last change"
-#~ msgstr "最終変更"
+#: src/components/contacts/TrackingConsent.tsx:174
+msgid "Last change"
+msgstr "最終変更"
 
-#: src/components/contacts/TrackingConsent.tsx:155
-#: src/components/contacts/TrackingConsent.tsx:160
+#: src/components/contacts/TrackingConsent.tsx:169
 msgid "Last changed {changedAt} from {changedFrom}"
 msgstr "最終変更 {changedAt}（{changedFrom}）"
 
@@ -9675,8 +9674,8 @@ msgstr "開封"
 #: src/components/analytics/EmailMetricsChart.tsx:393
 #: src/components/broadcasts/BroadcastStats.tsx:242
 #: src/components/contacts/TrackingConsent.tsx:28
-#: src/components/contacts/TrackingConsent.tsx:173
-#: src/components/contacts/TrackingConsent.tsx:177
+#: src/components/contacts/TrackingConsent.tsx:187
+#: src/components/contacts/TrackingConsent.tsx:191
 #: src/pages/BroadcastsPage.tsx:910
 msgid "Opens"
 msgstr "開封"
@@ -11633,7 +11632,7 @@ msgstr "サンドボックスモード"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:366
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:318
-#: src/components/contacts/TrackingConsent.tsx:200
+#: src/components/contacts/TrackingConsent.tsx:214
 #: src/components/email_builder/panels/Preview.tsx:197
 #: src/components/email_builder/ui/BlockToolbar.tsx:209
 #: src/components/email_builder/ui/StringPopoverInput.tsx:100
@@ -14531,7 +14530,7 @@ msgstr "A/Bテスト機能を使用するには、ワークスペース設定で
 msgid "Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
 msgstr "この機能を使用するには、ワークスペース設定でトラッキング（開封＆クリック）を有効にする必要があります"
 
-#: src/components/contacts/TrackingConsent.tsx:153
+#: src/components/contacts/TrackingConsent.tsx:167
 #: src/pages/ContactsPage.tsx:454
 #: src/pages/ContactsPage.tsx:739
 msgid "Tracking consent"

@@ -174,6 +174,35 @@ describe('Email tracking dialog', () => {
     expect(buttons[buttons.length - 1]).toHaveFocus()
   })
 
+  it('stays open and keeps focus inside while a choice is being saved', async () => {
+    const user = userEvent.setup()
+    vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(preferences(allTracked))
+    let finish: (value: { success: boolean }) => void = () => {}
+    vi.mocked(notificationCenterApi.updateContactPreferences).mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve
+      })
+    )
+    render(<App />)
+
+    const dialog = await openDialog(user)
+    await user.click(within(dialog).getByRole('button', { name: 'Stop: Click tracking' }))
+    expect(within(dialog).getByRole('button', { name: 'Close' })).toBeDisabled()
+
+    // Every control is disabled, and focus has dropped out of the clicked button
+    ;(document.activeElement as HTMLElement | null)?.blur()
+    await user.tab()
+    expect(dialog).toHaveFocus()
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await act(async () => finish({ success: true }))
+    document.body.focus()
+    await user.tab({ shift: true })
+    const buttons = within(dialog).getAllByRole('button')
+    expect(buttons[buttons.length - 1]).toHaveFocus()
+  })
+
   it('opens on load when the email links to it, writing nothing', async () => {
     useParams('tracking')
     vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(preferences(allTracked))
