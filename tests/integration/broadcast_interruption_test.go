@@ -242,8 +242,10 @@ func TestCron_ReturnsImmediately(t *testing.T) {
 	assert.Less(t, elapsed, time.Second,
 		"cron must not hold the caller open for the whole task run")
 
-	status := waitForTaskStatus(t, h, "completed", 60*time.Second)
+	status, retries, errMsg := waitForTaskRow(t, h, "completed", 60*time.Second)
 	enqueued := queuedCount(t, h)
+	t.Logf("after cron: enqueued=%d task_status=%s retry_count=%d error=%q",
+		enqueued, status, retries, errMsg)
 	assert.GreaterOrEqual(t, enqueued, int64(contacts),
 		"the work must still happen after the endpoint has answered")
 	assert.Equal(t, "completed", status, "the task started by cron should finish")
@@ -579,14 +581,14 @@ func waitForTaskStatus(t *testing.T, h *phase2Harness, want string, timeout time
 	return status
 }
 
-// waitForTaskRow polls the task row until its status is want, returning the
-// last row seen, read in one query.
+// waitForTaskRow polls the task row until its status is want, or failed, which
+// it does not leave, returning the last row seen, read in one query.
 func waitForTaskRow(t *testing.T, h *phase2Harness, want string, timeout time.Duration) (status string, retryCount int, errorMessage string) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
 	for {
 		status, retryCount, errorMessage = taskRow(t, h)
-		if status == want || !time.Now().Before(deadline) {
+		if status == want || status == "failed" || !time.Now().Before(deadline) {
 			return status, retryCount, errorMessage
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -611,8 +613,7 @@ func TestBroadcastInterrupted_ReleasesWithoutSpendingBudget(t *testing.T) {
 
 	cancel() // the server is going down under a running slice
 
-	status := waitForTaskStatus(t, h, "pending", 30*time.Second)
-	_, retries, errMsg := taskRow(t, h)
+	status, retries, errMsg := waitForTaskRow(t, h, "pending", 30*time.Second)
 	t.Logf("after interruption: task_status=%s retry_count=%d committed=%d error=%q",
 		status, retries, committed, errMsg)
 
