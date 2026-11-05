@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: In emails sent from this version on, a link written with a space after its URL no longer gets its UTM parameters after the space, which sent the recipient to a different page, often a missing one. Links with a leading space or a line break inside now get their UTM parameters and identity token, and clicks on such links count per link, in emails already sent too. A `mailto:` or `tel:` link written with a leading space is no longer wrapped in a tracking redirect.
 
+- **Security**: The build tooling of the console, the notification center and the web analytics SDK now uses `minimatch` 11, which fixes a denial of service through crafted glob patterns ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)). Neither runs in the shipped app. The console also moves to Lingui 6, whose translation tooling no longer uses a `glob` version that keeps reading the disk after its time limit ([GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4)); building the console now needs Node.js 22.19 or later.
+
 ## [42.2] - 2026-11-05
 
 - **Improvement**: Tracked links now ask the visitor to confirm before opening another site whenever Notifuse cannot verify that the email itself contained the link. Links in emails sent from now on carry that proof and redirect directly as before. Links in emails sent before the upgrade that lead to another site, legacy `/visit` links and links clicked from a template preview show a confirmation page naming the destination. Unsubscribe and notification center links keep working directly.

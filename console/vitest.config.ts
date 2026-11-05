@@ -5,11 +5,11 @@ import react from '@vitejs/plugin-react'
 // vitest 4 fetches and transforms a module before a vi.mock() factory replaces it, and
 // Vite has no idea what a .po file is: it reads the catalog as JavaScript and fails to
 // parse it, so the factory never gets its turn and every catalog import rejects.
-// The build has @lingui/vite-plugin for this, but its companion plugin throws on any
-// resolution of the macro packages, which the tests resolve on purpose and mock in
-// src/__tests__/setup.tsx, so it cannot be reused here. The stub below gives Vite a
-// module it can parse and nothing more: a test that imports a catalog without mocking
-// it still gets a rejected import, exactly as it did before.
+// The build has @lingui/vite-plugin for this, but it would compile and load the real
+// catalog, and the tests mock every catalog import (and the macro packages, in
+// src/__tests__/setup.tsx) on purpose. The stub below gives Vite a module it can parse
+// and nothing more: a test that imports a catalog without mocking it still gets a
+// rejected import instead of silently reading the shipped translations.
 const poCatalogs: Plugin = {
   name: 'notifuse:test-po-catalogs',
   transform(_code, id) {
