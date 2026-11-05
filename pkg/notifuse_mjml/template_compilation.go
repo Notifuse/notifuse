@@ -424,9 +424,10 @@ func (t *TrackingSettings) applyUTMParameters(sourceURL string) string {
 		return sourceURL
 	}
 
-	// url.Parse is used to reject input that is not a URL at all. The string it
-	// would rebuild is never used.
-	if _, err := url.Parse(sourceURL); err != nil {
+	// The parse only rejects input that is not a URL at all; the string it would
+	// rebuild is never used. It repairs invalid escapes as browsers read them, so
+	// https://shop.com/50%off is tagged like any other link.
+	if _, err := trackingtoken.ParseRepaired(sourceURL); err != nil {
 		return sourceURL
 	}
 
@@ -572,9 +573,10 @@ func (t *TrackingSettings) applyIdentityParam(sourceURL string) string {
 		return sourceURL
 	}
 
-	// url.Parse is used to read the host for the allowlist gate and to reject
-	// input that is not a URL at all. The string it would rebuild is never used.
-	parsedURL, err := url.Parse(sourceURL)
+	// The parse reads the host for the allowlist gate and rejects input that is
+	// not a URL at all; the string it would rebuild is never used. Like
+	// applyUTMParameters it repairs invalid escapes, never in the host.
+	parsedURL, err := trackingtoken.ParseRepaired(sourceURL)
 	if err != nil {
 		return sourceURL
 	}

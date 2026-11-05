@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [43.0] - 2026-11-05
+## [43.0] - WIP
 
 - **Feature**: Contacts can now agree to or refuse open tracking and click tracking, each on its own. Their choice is stored on the contact (`tracking_opens_consent`, `tracking_clicks_consent`, with the date and source of the change), set through the API, the console, CSV import and the notification center, exported, filterable in the contact list and in segments, usable as an automation trigger field, and sent in contact webhooks. A contact who refused gets no open pixel or no tracked links, and a later refusal also stops recording opens and clicks of emails already sent.
 
@@ -16,9 +16,11 @@ All notable changes to this project will be documented in this file.
 
   Contact webhook payloads gain the four tracking consent fields; make sure a receiver that validates payloads accepts them.
 
-## [42.3] - 2026-11-05
+## [42.3] - WIP
 
 - **Improvement**: When an email provider answers that emails arrive too fast, the email integration now slows down, then climbs back to its rate limit once emails go through. The refused email is sent again at the slower pace and keeps its attempts, and its broadcast keeps sending. A quota named in the refusal, or refusals that continue for 30 seconds at a tenth of the rate limit, pause the integration's broadcasts.
+
+- **Fix**: Links whose URL holds a `%` that starts no escape, such as `https://shop.com/50%off`, now get the UTM parameters and the web analytics identity token like any other link, and their clicks count in the per-link click statistics and segment link filters. Clicks on links that start with a space now count per link too. These links already redirected and counted in the email's click total.
 
 ## [42.2] - 2026-11-05
 
