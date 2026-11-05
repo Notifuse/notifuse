@@ -1383,8 +1383,8 @@ func GetAllMailpitRecipients(t *testing.T, subject string) (map[string]bool, err
 }
 
 // GetMailpitMessagesByRecipient returns, for each recipient of a message whose subject
-// contains subject, that message with its headers.
-func GetMailpitMessagesByRecipient(t *testing.T, subject string) (map[string]*MailpitMessage, error) {
+// contains subject, every such message they received, with its headers.
+func GetMailpitMessagesByRecipient(t *testing.T, subject string) (map[string][]*MailpitMessage, error) {
 	httpClient := &http.Client{Timeout: 30 * time.Second}
 
 	resp, err := httpClient.Get("http://localhost:8025/api/v1/messages?limit=10000")
@@ -1398,7 +1398,7 @@ func GetMailpitMessagesByRecipient(t *testing.T, subject string) (map[string]*Ma
 		return nil, fmt.Errorf("failed to decode Mailpit response: %w", err)
 	}
 
-	messages := make(map[string]*MailpitMessage)
+	messages := make(map[string][]*MailpitMessage)
 	for _, summary := range apiResp.Messages {
 		if !strings.Contains(summary.Subject, subject) {
 			continue
@@ -1409,7 +1409,7 @@ func GetMailpitMessagesByRecipient(t *testing.T, subject string) (map[string]*Ma
 		}
 		for _, to := range summary.To {
 			if email := strings.ToLower(strings.TrimSpace(to.Address)); email != "" {
-				messages[email] = msg
+				messages[email] = append(messages[email], msg)
 			}
 		}
 	}

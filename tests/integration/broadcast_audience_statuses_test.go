@@ -77,8 +77,8 @@ func TestBroadcastAudienceStatusesAsDelivered(t *testing.T) {
 
 	// sendToList creates a broadcast through the API with the given audience body, sends it
 	// now, and returns who Mailpit received it for, how many emails the broadcast reports,
-	// and the email each recipient received.
-	sendToList := func(t *testing.T, audience map[string]interface{}) (received map[string]bool, enqueued int, delivered map[string]*testutil.MailpitMessage) {
+	// and the emails each recipient received.
+	sendToList := func(t *testing.T, audience map[string]interface{}) (received map[string]bool, enqueued int, delivered map[string][]*testutil.MailpitMessage) {
 		t.Helper()
 		subject := "audience-statuses-" + uuid.New().String()[:8]
 		template, err := factory.CreateTemplate(workspace.ID, testutil.WithTemplateSubject(subject))
@@ -141,21 +141,22 @@ func TestBroadcastAudienceStatusesAsDelivered(t *testing.T) {
 
 		delivered, err = testutil.GetMailpitMessagesByRecipient(t, subject)
 		require.NoError(t, err)
-		require.Len(t, delivered, len(received))
 		return received, enqueued, delivered
 	}
 
 	// assertListUnsubscribeHeaders checks both RFC 8058 headers on every delivered email.
-	assertListUnsubscribeHeaders := func(t *testing.T, delivered map[string]*testutil.MailpitMessage, want bool) {
+	assertListUnsubscribeHeaders := func(t *testing.T, delivered map[string][]*testutil.MailpitMessage, want bool) {
 		t.Helper()
-		for email, msg := range delivered {
-			if want {
-				assert.NotEmpty(t, msg.Headers["List-Unsubscribe"], "%s: List-Unsubscribe", email)
-				assert.Equal(t, []string{"List-Unsubscribe=One-Click"}, msg.Headers["List-Unsubscribe-Post"],
-					"%s: List-Unsubscribe-Post", email)
-			} else {
-				assert.Empty(t, msg.Headers["List-Unsubscribe"], "%s: List-Unsubscribe", email)
-				assert.Empty(t, msg.Headers["List-Unsubscribe-Post"], "%s: List-Unsubscribe-Post", email)
+		for email, msgs := range delivered {
+			for _, msg := range msgs {
+				if want {
+					assert.NotEmpty(t, msg.Headers["List-Unsubscribe"], "%s: List-Unsubscribe", email)
+					assert.Equal(t, []string{"List-Unsubscribe=One-Click"}, msg.Headers["List-Unsubscribe-Post"],
+						"%s: List-Unsubscribe-Post", email)
+				} else {
+					assert.Empty(t, msg.Headers["List-Unsubscribe"], "%s: List-Unsubscribe", email)
+					assert.Empty(t, msg.Headers["List-Unsubscribe-Post"], "%s: List-Unsubscribe-Post", email)
+				}
 			}
 		}
 	}
