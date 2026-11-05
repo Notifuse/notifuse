@@ -63,7 +63,7 @@ type ContactPreferencesResponse struct {
 	Tracking *ContactTrackingState `json:"tracking,omitempty"`
 }
 
-// ContactTrackingState is the tracking section of the notification center.
+// ContactTrackingState is what the notification center's tracking dialog shows.
 type ContactTrackingState struct {
 	OpensEnabled  bool `json:"opens_enabled"`
 	ClicksEnabled bool `json:"clicks_enabled"`

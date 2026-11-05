@@ -112,10 +112,14 @@ export function TrackingConsentEditor({
   const [saving, setSaving] = useState(false)
   const [draftOpens, setDraftOpens] = useState<string>('unknown')
   const [draftClicks, setDraftClicks] = useState<string>('unknown')
+  // The values the form opened with: only a consent the admin changed from these is
+  // written, so one that changed elsewhere meanwhile is not overwritten.
+  const [initial, setInitial] = useState({ opens: 'unknown', clicks: 'unknown' })
   const changedAt = updatedAt ? dayjs(updatedAt).format('LLL') : ''
   const changedFrom = sourceLabel(source)
 
   const startEdit = () => {
+    setInitial({ opens: opens || 'unknown', clicks: clicks || 'unknown' })
     setDraftOpens(opens || 'unknown')
     setDraftClicks(clicks || 'unknown')
     setEditing(true)
@@ -123,10 +127,10 @@ export function TrackingConsentEditor({
 
   const save = async () => {
     const changes: TrackingConsentChanges = {}
-    if (draftOpens !== (opens || 'unknown')) {
+    if (draftOpens !== initial.opens) {
       changes.tracking_opens_consent = draftOpens === 'unknown' ? null : (draftOpens as TrackingConsent)
     }
-    if (draftClicks !== (clicks || 'unknown')) {
+    if (draftClicks !== initial.clicks) {
       changes.tracking_clicks_consent = draftClicks === 'unknown' ? null : (draftClicks as TrackingConsent)
     }
     if (Object.keys(changes).length === 0) {
@@ -148,10 +152,12 @@ export function TrackingConsentEditor({
     <span className="font-semibold text-slate-600">
       {t`Tracking consent`}
       {changedAt && (
-        <Tooltip title={t`Last changed ${changedAt} from ${changedFrom}`}>
+        <Tooltip title={t`Last changed ${changedAt} from ${changedFrom}`} trigger={['hover', 'focus']}>
           <InfoCircleOutlined
             className="ml-1 text-gray-400"
-            aria-label={t`Last change`}
+            role="img"
+            tabIndex={0}
+            aria-label={t`Last changed ${changedAt} from ${changedFrom}`}
             data-testid="tracking-consent-changed"
           />
         </Tooltip>

@@ -151,11 +151,27 @@ describe('Email tracking dialog', () => {
     let dialog = await openDialog(user)
     await user.click(within(dialog).getByRole('button', { name: 'Close' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    // Focus is back on the link that opened it
+    expect(screen.getByRole('button', { name: 'Change' })).toHaveFocus()
 
     dialog = await openDialog(user)
     expect(dialog).toHaveFocus()
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('keeps Tab within the dialog', async () => {
+    const user = userEvent.setup()
+    vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(preferences(allTracked))
+    render(<App />)
+
+    const dialog = await openDialog(user)
+    const buttons = within(dialog).getAllByRole('button')
+    buttons[buttons.length - 1].focus()
+    await user.tab()
+    expect(buttons[0]).toHaveFocus()
+    await user.tab({ shift: true })
+    expect(buttons[buttons.length - 1]).toHaveFocus()
   })
 
   it('opens on load when the email links to it, writing nothing', async () => {
@@ -231,6 +247,48 @@ describe('Tracking opt-out link', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(notificationCenterApi.updateContactPreferences).not.toHaveBeenCalled()
     expect(screen.getByTestId('email-tracking')).toHaveTextContent('Email performance tracking: on')
+  })
+
+  it('cannot be closed while the refusal is being saved', async () => {
+    const user = userEvent.setup()
+    vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(preferences(allTracked))
+    let finish: (value: { success: boolean }) => void = () => {}
+    vi.mocked(notificationCenterApi.updateContactPreferences).mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve
+      })
+    )
+    render(<App />)
+
+    const dialog = await screen.findByRole('dialog', { name: 'Email performance tracking' })
+    await user.click(within(dialog).getByRole('button', { name: 'Stop tracking' }))
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await act(async () => finish({ success: true }))
+    expect(await within(dialog).findByRole('button', { name: 'Allow: Open tracking' })).toBeInTheDocument()
+  })
+
+  it('records the refusal even while the workspace tracks nothing', async () => {
+    const user = userEvent.setup()
+    vi.mocked(notificationCenterApi.getContactPreferences).mockResolvedValueOnce(
+      preferences({ opens_enabled: false, clicks_enabled: false, opens_tracked: false, clicks_tracked: false })
+    )
+    render(<App />)
+
+    const dialog = await screen.findByRole('dialog', { name: 'Email performance tracking' })
+    await user.click(within(dialog).getByRole('button', { name: 'Stop tracking' }))
+
+    expect(notificationCenterApi.updateContactPreferences).toHaveBeenCalledWith({
+      ...credentials,
+      tracking_opens_consent: 'denied',
+      tracking_clicks_consent: 'denied',
+      consent_source: 'email_link'
+    })
+    expect(await screen.findByText(/no longer tracked/i)).toBeInTheDocument()
+    // Nothing is tracked to choose about, so there is no dialog or line left
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('email-tracking')).not.toBeInTheDocument()
   })
 
   it('keeps the confirmation and shows an error when the save fails', async () => {

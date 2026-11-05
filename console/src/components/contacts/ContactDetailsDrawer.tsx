@@ -341,7 +341,7 @@ export function ContactDetailsDrawer({
 
   // Writes several fields in one upsert, so they make one change in the timeline.
   const handleFieldsUpdate = async (fields: Record<string, string | number | object | null>) => {
-    if (!contact) return
+    if (!contact) throw new Error(t`Failed to update field`)
 
     const contactData: Record<string, string | number | object | null> = {
       email: contact.email,

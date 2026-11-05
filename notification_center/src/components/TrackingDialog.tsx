@@ -36,14 +36,47 @@ export function TrackingDialog({
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
 
+  // A close while a choice is being saved would hide its outcome.
+  const close = saving ? undefined : onClose
+
+  // Focus goes back where it was when the dialog closes.
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null
+    return () => opener?.focus?.()
+  }, [])
+
+  // The dialog takes focus when it opens and when it switches view, since the
+  // focused button may be gone.
   useEffect(() => {
     dialogRef.current?.focus()
+  }, [mode])
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        close?.()
+        return
+      }
+      // Tab stays within the dialog
+      if (event.key !== 'Tab' || !dialogRef.current) return
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled])')
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+      if (event.shiftKey && (active === first || active === dialogRef.current)) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && (active === last || !dialogRef.current.contains(active))) {
+        event.preventDefault()
+        first.focus()
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
+  }, [close])
 
   const rows = (
     [
@@ -65,7 +98,7 @@ export function TrackingDialog({
   ).filter((row) => row.enabled)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={close}>
       <div
         ref={dialogRef}
         role="dialog"

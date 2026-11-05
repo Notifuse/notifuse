@@ -6,9 +6,11 @@ import { I18nProvider } from '@lingui/react'
 import { App } from 'antd'
 import { TrackingConsentEditor, type TrackingConsentChanges } from './TrackingConsent'
 
-function renderEditor(props: Partial<Parameters<typeof TrackingConsentEditor>[0]> = {}) {
+type EditorProps = Parameters<typeof TrackingConsentEditor>[0]
+
+function renderEditor(props: Partial<EditorProps> = {}) {
   const onSave = props.onSave ?? vi.fn<(changes: TrackingConsentChanges) => Promise<void>>().mockResolvedValue()
-  render(
+  const tree = (more: Partial<EditorProps>) => (
     <I18nProvider i18n={i18n}>
       <App>
         <TrackingConsentEditor
@@ -17,12 +19,14 @@ function renderEditor(props: Partial<Parameters<typeof TrackingConsentEditor>[0]
           updatedAt="2026-11-05T17:04:00Z"
           source="notification_center"
           {...props}
+          {...more}
           onSave={onSave}
         />
       </App>
     </I18nProvider>
   )
-  return onSave
+  const { rerender } = render(tree({}))
+  return Object.assign(onSave, { update: (more: Partial<EditorProps>) => rerender(tree(more)) })
 }
 
 // Picks an option of the antd select labelled `label`.
@@ -43,6 +47,27 @@ describe('TrackingConsentEditor', () => {
 
     await userEvent.hover(screen.getByTestId('tracking-consent-changed'))
     expect(await screen.findByText(/Last changed .* from Notification center/)).toBeInTheDocument()
+  })
+
+  it('opens the last change tooltip from the keyboard too', async () => {
+    renderEditor()
+
+    await userEvent.tab()
+    expect(screen.getByTestId('tracking-consent-changed')).toHaveFocus()
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(/Last changed .* from Notification center/)
+  })
+
+  it('does not overwrite a consent that changed elsewhere while the form was open', async () => {
+    const onSave = renderEditor()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit tracking consent' }))
+    // The contact refuses opens meanwhile, and the drawer refetches
+    onSave.update({ opens: 'denied' })
+    await choose('Clicks', 'Granted')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
+    expect(onSave).toHaveBeenCalledWith({ tracking_clicks_consent: 'granted' })
   })
 
   it('has no change icon for a contact whose consent was never recorded', () => {

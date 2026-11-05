@@ -2369,7 +2369,7 @@ msgstr "Campagnes"
 #: src/components/contacts/ExportContactsModal.tsx:345
 #: src/components/contacts/InlineEditableField.tsx:291
 #: src/components/contacts/InlineEditableField.tsx:299
-#: src/components/contacts/TrackingConsent.tsx:191
+#: src/components/contacts/TrackingConsent.tsx:197
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:155
 #: src/components/email_builder/panels/Preview.tsx:194
 #: src/components/email_builder/ui/BlockToolbar.tsx:210
@@ -2761,8 +2761,8 @@ msgstr "clics"
 #: src/components/analytics/EmailMetricsChart.tsx:425
 #: src/components/broadcasts/BroadcastStats.tsx:273
 #: src/components/contacts/TrackingConsent.tsx:31
-#: src/components/contacts/TrackingConsent.tsx:177
-#: src/components/contacts/TrackingConsent.tsx:181
+#: src/components/contacts/TrackingConsent.tsx:183
+#: src/components/contacts/TrackingConsent.tsx:187
 #: src/pages/BroadcastsPage.tsx:947
 msgid "Clicks"
 msgstr "Clics"
@@ -4977,7 +4977,7 @@ msgstr "Modifier le thème"
 msgid "Edit Theme v{0}"
 msgstr "Modifier le thème v{0}"
 
-#: src/components/contacts/TrackingConsent.tsx:213
+#: src/components/contacts/TrackingConsent.tsx:219
 msgid "Edit tracking consent"
 msgstr "Modifier le consentement au tracking"
 
@@ -6277,8 +6277,9 @@ msgstr "Échec de la mise à jour de la catégorie : {0}"
 msgid "Failed to update custom field label"
 msgstr "Échec de la mise à jour de l étiquette de champ personnalisé"
 
+#: src/components/contacts/ContactDetailsDrawer.tsx:344
 #: src/components/contacts/ContactDetailsDrawer.tsx:357
-#: src/components/contacts/TrackingConsent.tsx:141
+#: src/components/contacts/TrackingConsent.tsx:145
 msgid "Failed to update field"
 msgstr "Échec de la mise à jour du champ"
 
@@ -7776,10 +7777,11 @@ msgstr "7 derniers jours"
 #~ msgstr ""
 
 #: src/components/contacts/TrackingConsent.tsx:154
-msgid "Last change"
-msgstr "Dernière modification"
+#~ msgid "Last change"
+#~ msgstr "Dernière modification"
 
-#: src/components/contacts/TrackingConsent.tsx:151
+#: src/components/contacts/TrackingConsent.tsx:155
+#: src/components/contacts/TrackingConsent.tsx:160
 msgid "Last changed {changedAt} from {changedFrom}"
 msgstr "Modifié {changedAt} depuis {changedFrom}"
 
@@ -9506,7 +9508,7 @@ msgstr "Survenu :"
 #~ msgid "of {opensBase} tracked"
 #~ msgstr ""
 
-#: src/components/common/TrackedTooltipTitle.tsx:14
+#: src/components/common/TrackedTooltipTitle.tsx:20
 msgid "of {tracked} tracked"
 msgstr "sur {tracked} trackés"
 
@@ -9673,8 +9675,8 @@ msgstr "ouvertures"
 #: src/components/analytics/EmailMetricsChart.tsx:393
 #: src/components/broadcasts/BroadcastStats.tsx:242
 #: src/components/contacts/TrackingConsent.tsx:28
-#: src/components/contacts/TrackingConsent.tsx:167
-#: src/components/contacts/TrackingConsent.tsx:171
+#: src/components/contacts/TrackingConsent.tsx:173
+#: src/components/contacts/TrackingConsent.tsx:177
 #: src/pages/BroadcastsPage.tsx:910
 msgid "Opens"
 msgstr "Ouvertures"
@@ -11631,7 +11633,7 @@ msgstr "Mode bac à sable"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:366
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:318
-#: src/components/contacts/TrackingConsent.tsx:194
+#: src/components/contacts/TrackingConsent.tsx:200
 #: src/components/email_builder/panels/Preview.tsx:197
 #: src/components/email_builder/ui/BlockToolbar.tsx:209
 #: src/components/email_builder/ui/StringPopoverInput.tsx:100
@@ -14529,7 +14531,7 @@ msgstr "Le tracking (ouvertures et clics) doit être activé dans les paramètre
 msgid "Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
 msgstr "Le tracking (ouvertures et clics) devrait être activé dans les paramètres de votre espace de travail pour utiliser cette fonctionnalité"
 
-#: src/components/contacts/TrackingConsent.tsx:149
+#: src/components/contacts/TrackingConsent.tsx:153
 #: src/pages/ContactsPage.tsx:454
 #: src/pages/ContactsPage.tsx:739
 msgid "Tracking consent"

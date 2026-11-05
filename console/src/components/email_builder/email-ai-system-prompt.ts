@@ -234,7 +234,7 @@ When a contact is known (every send to a contact; contact is an empty object oth
 - {{ contact.address_line_1 }}, {{ contact.address_line_2 }}, {{ contact.postcode }}, {{ contact.state }}
 - {{ contact.custom_string_1 }} to custom_string_5, custom_number_1 to 5, custom_datetime_1 to 5, custom_json_1 to 5, only the ones the workspace set
 - {{ notification_center_url }} - the contact's preferences page
-- {{ tracking_preferences_url }} - the email tracking section of that page, where the contact chooses whether opens and clicks are tracked
+- {{ tracking_preferences_url }} - that page with its email tracking dialog open, where the contact chooses whether opens and clicks are tracked
 - {{ tracking_optout_url }} - one-click refusal of open and click tracking (the page asks for a confirmation)
 
 Only when the send has a list (broadcasts, double opt-in confirmations, list-scoped automations):

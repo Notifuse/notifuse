@@ -315,10 +315,12 @@ function App() {
         setSubscriptions(initialSubscriptions)
         setTracking(data.tracking ?? null)
 
-        // Email links to the tracking section only read: a security scanner that opens
+        // Email links to the tracking dialog only read: a security scanner that opens
         // them must not change what the contact chose
         const tracks = !!data.tracking && (data.tracking.opens_enabled || data.tracking.clicks_enabled)
-        if (tracks && params.action === 'tracking_optout') {
+        // A refusal is recorded even while the workspace tracks nothing: it still
+        // holds when tracking is turned back on
+        if (data.tracking && params.action === 'tracking_optout') {
           setTrackingDialog('optout')
         }
         if (tracks && params.action === 'tracking') {
@@ -655,7 +657,8 @@ function App() {
     setTrackingOptoutError(undefined)
     const saved = await saveTrackingConsent({ opens: false, clicks: false }, 'email_link')
     if (saved) {
-      setTrackingDialog('manage')
+      // The dialog then shows the new choice, unless the workspace tracks nothing
+      setTrackingDialog(tracking && (tracking.opens_enabled || tracking.clicks_enabled) ? 'manage' : null)
       toast.success(t('trackingOptoutSuccess'), {
         style: { backgroundColor: '#f0fdf4', borderLeft: '4px solid #22c55e', color: '#166534' },
         duration: 3000

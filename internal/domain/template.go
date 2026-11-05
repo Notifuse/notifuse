@@ -1030,7 +1030,7 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 			req.TrackingSettings.Endpoint, notificationCenterParams.Encode())
 		templateData["notification_center_url"] = notificationCenterURL
 
-		// Links to the tracking section of the notification center, and to the
+		// Links to the tracking dialog of the notification center, and to the
 		// one-click tracking opt-out (which asks for a confirmation before it
 		// writes anything). TrackLinks leaves both untouched.
 		trackingParams := url.Values{}
