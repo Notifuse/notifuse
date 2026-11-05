@@ -123,6 +123,8 @@ func scanMessage(scanner interface {
 		&message.UnsubscribedAt,
 		&message.CreatedAt,
 		&message.UpdatedAt,
+		&message.OpensTracked,
+		&message.ClicksTracked,
 	)
 
 	if err != nil {
@@ -144,8 +146,18 @@ func messageHistorySelectFields() string {
 	return `id, external_id, contact_email, broadcast_id, automation_id, transactional_notification_id, list_id, template_id, template_version,
 			channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at,
 			failed_at, opened_at, clicked_at, bounced_at, complained_at,
-			unsubscribed_at, created_at, updated_at`
+			unsubscribed_at, created_at, updated_at, opens_tracked, clicks_tracked`
 }
+
+// An open or a click is recorded only when the email carried the pixel or the
+// redirect (the flag is NULL on a message sent before it existed) and the
+// contact has not refused since. The redirect itself is never blocked.
+const (
+	opensRecordableCondition = `opens_tracked IS NOT FALSE
+			AND NOT EXISTS (SELECT 1 FROM contacts c WHERE c.email = message_history.contact_email AND c.tracking_opens_consent = 'denied')`
+	clicksRecordableCondition = `clicks_tracked IS NOT FALSE
+			AND NOT EXISTS (SELECT 1 FROM contacts c WHERE c.email = message_history.contact_email AND c.tracking_clicks_consent = 'denied')`
+)
 
 // Create adds a new message history record
 func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID string, secretKey string, message *domain.MessageHistory) error {
@@ -172,12 +184,12 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 			id, external_id, contact_email, broadcast_id, automation_id, transactional_notification_id, list_id, template_id, template_version,
 			channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at,
 			failed_at, opened_at, clicked_at, bounced_at, complained_at,
-			unsubscribed_at, created_at, updated_at, smtp_message_id
+			unsubscribed_at, created_at, updated_at, smtp_message_id, opens_tracked, clicks_tracked
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9,
 			$10, LEFT($11, 255), $12, $13, $14, $15, $16,
 			$17, $18, $19, $20, $21,
-			$22, $23, $24, $25
+			$22, $23, $24, $25, $26, $27
 		)
 	`
 
@@ -209,6 +221,8 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 		message.CreatedAt,
 		message.UpdatedAt,
 		message.SMTPMessageID,
+		message.OpensTracked,
+		message.ClicksTracked,
 	)
 
 	if err != nil {
@@ -244,18 +258,20 @@ func (r *MessageHistoryRepository) Upsert(ctx context.Context, workspaceID strin
 			id, external_id, contact_email, broadcast_id, automation_id, transactional_notification_id, list_id, template_id, template_version,
 			channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at,
 			failed_at, opened_at, clicked_at, bounced_at, complained_at,
-			unsubscribed_at, created_at, updated_at, smtp_message_id
+			unsubscribed_at, created_at, updated_at, smtp_message_id, opens_tracked, clicks_tracked
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9,
 			$10, LEFT($11, 255), $12, $13, $14, $15, $16,
 			$17, $18, $19, $20, $21,
-			$22, $23, $24, $25
+			$22, $23, $24, $25, $26, $27
 		)
 		ON CONFLICT (id) DO UPDATE SET
 			failed_at = EXCLUDED.failed_at,
 			status_info = EXCLUDED.status_info,
 			updated_at = EXCLUDED.updated_at,
-			smtp_message_id = COALESCE(EXCLUDED.smtp_message_id, message_history.smtp_message_id)
+			smtp_message_id = COALESCE(EXCLUDED.smtp_message_id, message_history.smtp_message_id),
+			opens_tracked = COALESCE(EXCLUDED.opens_tracked, message_history.opens_tracked),
+			clicks_tracked = COALESCE(EXCLUDED.clicks_tracked, message_history.clicks_tracked)
 	`
 
 	_, err = workspaceDB.ExecContext(
@@ -286,6 +302,8 @@ func (r *MessageHistoryRepository) Upsert(ctx context.Context, workspaceID strin
 		message.CreatedAt,
 		message.UpdatedAt,
 		message.SMTPMessageID,
+		message.OpensTracked,
+		message.ClicksTracked,
 	)
 
 	if err != nil {
@@ -561,6 +579,7 @@ func (r *MessageHistoryRepository) SetClicked(ctx context.Context, workspaceID, 
 				clicked_at = $1,
 				updated_at = NOW()
 			WHERE id = $2 AND clicked_at IS NULL
+			AND ` + clicksRecordableCondition + `
 		`
 
 		_, err = workspaceDB.ExecContext(ctx, clickQuery, timestamp, id)
@@ -599,6 +618,7 @@ func (r *MessageHistoryRepository) SetClicked(ctx context.Context, workspaceID, 
 			        ELSE clicked_links
 			    END
 			WHERE id = $2
+			AND ` + clicksRecordableCondition + `
 		`
 
 		_, err = workspaceDB.ExecContext(ctx, clickQuery, timestamp, id, clickedURL)
@@ -614,6 +634,7 @@ func (r *MessageHistoryRepository) SetClicked(ctx context.Context, workspaceID, 
 			opened_at = $1,
 			updated_at = NOW()
 		WHERE id = $2 AND opened_at IS NULL
+			AND ` + opensRecordableCondition + `
 	`
 
 	_, err = workspaceDB.ExecContext(ctx, openQuery, timestamp, id)
@@ -633,11 +654,12 @@ func (r *MessageHistoryRepository) SetOpened(ctx context.Context, workspaceID, i
 
 	// First query: Update opened_at if it's null
 	query := `
-		UPDATE message_history 
-		SET 
+		UPDATE message_history
+		SET
 			opened_at = $1,
 			updated_at = NOW()
 		WHERE id = $2 AND opened_at IS NULL
+			AND ` + opensRecordableCondition + `
 	`
 
 	_, err = workspaceDB.ExecContext(ctx, query, timestamp, id)
@@ -677,7 +699,7 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 		"id", "external_id", "contact_email", "broadcast_id", "automation_id", "transactional_notification_id", "list_id", "template_id", "template_version",
 		"channel", "status_info", "message_data", "channel_options", "attachments", "sent_at", "delivered_at",
 		"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
-		"unsubscribed_at", "created_at", "updated_at",
+		"unsubscribed_at", "created_at", "updated_at", "opens_tracked", "clicks_tracked",
 	).From("message_history")
 
 	// Apply filters using squirrel
@@ -878,6 +900,7 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 			&message.SentAt, &deliveredAt, &failedAt, &openedAt,
 			&clickedAt, &bouncedAt, &complainedAt, &unsubscribedAt,
 			&message.CreatedAt, &message.UpdatedAt,
+			&message.OpensTracked, &message.ClicksTracked,
 		)
 
 		if err != nil {
@@ -1023,7 +1046,11 @@ func (r *MessageHistoryRepository) GetBroadcastStats(ctx context.Context, worksp
 			SUM(CASE WHEN clicked_at IS NOT NULL THEN 1 ELSE 0 END) as total_clicked,
 			SUM(CASE WHEN bounced_at IS NOT NULL THEN 1 ELSE 0 END) as total_bounced,
 			SUM(CASE WHEN complained_at IS NOT NULL THEN 1 ELSE 0 END) as total_complained,
-			SUM(CASE WHEN unsubscribed_at IS NOT NULL THEN 1 ELSE 0 END) as total_unsubscribed
+			SUM(CASE WHEN unsubscribed_at IS NOT NULL THEN 1 ELSE 0 END) as total_unsubscribed,
+			SUM(CASE WHEN sent_at IS NOT NULL AND failed_at IS NULL AND opens_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_opens_tracked,
+			SUM(CASE WHEN sent_at IS NOT NULL AND failed_at IS NULL AND clicks_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_clicks_tracked,
+			SUM(CASE WHEN delivered_at IS NOT NULL AND opens_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_delivered_opens_tracked,
+			SUM(CASE WHEN delivered_at IS NOT NULL AND clicks_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_delivered_clicks_tracked
 		FROM message_history
 		WHERE broadcast_id = $1
 	`
@@ -1034,6 +1061,7 @@ func (r *MessageHistoryRepository) GetBroadcastStats(ctx context.Context, worksp
 	// Use NullInt64 to handle NULL values from database
 	var totalSent, totalDelivered, totalFailed, totalOpened sql.NullInt64
 	var totalClicked, totalBounced, totalComplained, totalUnsubscribed sql.NullInt64
+	var totalOpensTracked, totalClicksTracked, totalDeliveredOpensTracked, totalDeliveredClicksTracked sql.NullInt64
 
 	err = row.Scan(
 		&totalSent,
@@ -1044,6 +1072,10 @@ func (r *MessageHistoryRepository) GetBroadcastStats(ctx context.Context, worksp
 		&totalBounced,
 		&totalComplained,
 		&totalUnsubscribed,
+		&totalOpensTracked,
+		&totalClicksTracked,
+		&totalDeliveredOpensTracked,
+		&totalDeliveredClicksTracked,
 	)
 
 	if err != nil {
@@ -1081,6 +1113,10 @@ func (r *MessageHistoryRepository) GetBroadcastStats(ctx context.Context, worksp
 	if totalUnsubscribed.Valid {
 		stats.TotalUnsubscribed = int(totalUnsubscribed.Int64)
 	}
+	stats.TotalOpensTracked = int(totalOpensTracked.Int64)
+	stats.TotalClicksTracked = int(totalClicksTracked.Int64)
+	stats.TotalDeliveredOpensTracked = int(totalDeliveredOpensTracked.Int64)
+	stats.TotalDeliveredClicksTracked = int(totalDeliveredClicksTracked.Int64)
 
 	return stats, nil
 }
@@ -1113,7 +1149,11 @@ func (r *MessageHistoryRepository) GetBroadcastVariationStats(ctx context.Contex
 			SUM(CASE WHEN clicked_at IS NOT NULL THEN 1 ELSE 0 END) as total_clicked,
 			SUM(CASE WHEN bounced_at IS NOT NULL THEN 1 ELSE 0 END) as total_bounced,
 			SUM(CASE WHEN complained_at IS NOT NULL THEN 1 ELSE 0 END) as total_complained,
-			SUM(CASE WHEN unsubscribed_at IS NOT NULL THEN 1 ELSE 0 END) as total_unsubscribed
+			SUM(CASE WHEN unsubscribed_at IS NOT NULL THEN 1 ELSE 0 END) as total_unsubscribed,
+			SUM(CASE WHEN sent_at IS NOT NULL AND failed_at IS NULL AND opens_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_opens_tracked,
+			SUM(CASE WHEN sent_at IS NOT NULL AND failed_at IS NULL AND clicks_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_clicks_tracked,
+			SUM(CASE WHEN delivered_at IS NOT NULL AND opens_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_delivered_opens_tracked,
+			SUM(CASE WHEN delivered_at IS NOT NULL AND clicks_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_delivered_clicks_tracked
 		FROM message_history
 		WHERE broadcast_id = $1 AND template_id = $2
 	`
@@ -1124,6 +1164,7 @@ func (r *MessageHistoryRepository) GetBroadcastVariationStats(ctx context.Contex
 	// Use NullInt64 to handle NULL values from database
 	var totalSent, totalDelivered, totalFailed, totalOpened sql.NullInt64
 	var totalClicked, totalBounced, totalComplained, totalUnsubscribed sql.NullInt64
+	var totalOpensTracked, totalClicksTracked, totalDeliveredOpensTracked, totalDeliveredClicksTracked sql.NullInt64
 
 	err = row.Scan(
 		&totalSent,
@@ -1134,6 +1175,10 @@ func (r *MessageHistoryRepository) GetBroadcastVariationStats(ctx context.Contex
 		&totalBounced,
 		&totalComplained,
 		&totalUnsubscribed,
+		&totalOpensTracked,
+		&totalClicksTracked,
+		&totalDeliveredOpensTracked,
+		&totalDeliveredClicksTracked,
 	)
 
 	if err != nil {
@@ -1171,6 +1216,10 @@ func (r *MessageHistoryRepository) GetBroadcastVariationStats(ctx context.Contex
 	if totalUnsubscribed.Valid {
 		stats.TotalUnsubscribed = int(totalUnsubscribed.Int64)
 	}
+	stats.TotalOpensTracked = int(totalOpensTracked.Int64)
+	stats.TotalClicksTracked = int(totalClicksTracked.Int64)
+	stats.TotalDeliveredOpensTracked = int(totalDeliveredOpensTracked.Int64)
+	stats.TotalDeliveredClicksTracked = int(totalDeliveredClicksTracked.Int64)
 
 	return stats, nil
 }

@@ -1067,14 +1067,25 @@ func TestSegmentRepository_UpdateRecomputeAfter(t *testing.T) {
 // join, ordering and paging — the field-by-field mapping is ScanContact's contract
 // and is pinned by the contact repository tests.
 func segmentContactDetailRow(rows *sqlmock.Rows, email string, ts time.Time, matchedAt time.Time) *sqlmock.Rows {
-	values := make([]driver.Value, 0, len(contactColumns)+1)
-	values = append(values, email)
-	// Everything between the email and the four trailing timestamps is nullable.
-	for i := 1; i < len(contactColumns)-4; i++ {
-		values = append(values, nil)
-	}
-	values = append(values, ts, ts, ts, ts, matchedAt)
+	values := append(contactRowValues(email, ts), matchedAt)
 	return rows.AddRow(values...)
+}
+
+// contactRowValues returns one contact row in contactColumns order: the email,
+// the four timestamps set to ts, and every nullable field NULL.
+func contactRowValues(email string, ts time.Time) []driver.Value {
+	values := make([]driver.Value, 0, len(contactColumns)+1)
+	for _, column := range contactColumns {
+		switch column {
+		case "email":
+			values = append(values, email)
+		case "created_at", "updated_at", "db_created_at", "db_updated_at":
+			values = append(values, ts)
+		default:
+			values = append(values, nil)
+		}
+	}
+	return values
 }
 
 func TestSegmentRepository_GetSegmentContactDetails(t *testing.T) {
@@ -1204,13 +1215,7 @@ func TestSegmentRepository_GetSegmentContactDetails(t *testing.T) {
 		// missing, which is exactly what a mismatch between the SELECT list and the
 		// scan destinations would look like.
 		short := sqlmock.NewRows(contactColumns)
-		values := make([]driver.Value, 0, len(contactColumns))
-		values = append(values, "broken@example.com")
-		for i := 1; i < len(contactColumns)-4; i++ {
-			values = append(values, nil)
-		}
-		values = append(values, now, now, now, now)
-		short.AddRow(values...)
+		short.AddRow(contactRowValues("broken@example.com", now)...)
 
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`FROM contact_segments cs`)).
 			WillReturnRows(short)

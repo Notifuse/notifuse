@@ -33,7 +33,8 @@ const broadcastListColumns = `id,
 			cancelled_at,
 			paused_at,
 			pause_reason,
-			data_feed`
+			data_feed,
+			tracking_mode`
 
 // escapeLikePattern escapes the characters that carry special meaning in a SQL
 // LIKE/ILIKE pattern so a user-provided search term is matched literally.
@@ -120,9 +121,10 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			cancelled_at,
 			paused_at,
 			pause_reason,
-			data_feed
+			data_feed,
+			tracking_mode
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, NULLIF($22, '')
 		)
 	`
 
@@ -148,6 +150,7 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 		broadcast.PausedAt,
 		broadcast.PauseReason,
 		broadcast.DataFeed,
+		broadcast.TrackingMode,
 	)
 
 	if err != nil {
@@ -187,7 +190,8 @@ func (r *broadcastRepository) GetBroadcast(ctx context.Context, workspaceID, id 
 			cancelled_at,
 			paused_at,
 			pause_reason,
-			data_feed
+			data_feed,
+			tracking_mode
 		FROM broadcasts
 		WHERE id = $1 AND workspace_id = $2
 	`
@@ -229,7 +233,8 @@ func (r *broadcastRepository) GetBroadcastTx(ctx context.Context, tx *sql.Tx, wo
 			cancelled_at,
 			paused_at,
 			pause_reason,
-			data_feed
+			data_feed,
+			tracking_mode
 		FROM broadcasts
 		WHERE id = $1 AND workspace_id = $2
 	`
@@ -278,7 +283,8 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			paused_at = $17,
 			pause_reason = $18,
 			enqueued_count = $19,
-			data_feed = $20
+			data_feed = $20,
+			tracking_mode = NULLIF($21, '')
 		WHERE id = $1 AND workspace_id = $2
 			AND status != 'cancelled'
 			AND status != 'processed'
@@ -305,6 +311,7 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 		broadcast.PauseReason,
 		broadcast.EnqueuedCount,
 		broadcast.DataFeed,
+		broadcast.TrackingMode,
 	)
 
 	if err != nil {
@@ -566,6 +573,7 @@ func scanBroadcast(scanner interface {
 	var winningTemplate sql.NullString
 	var pauseReason sql.NullString
 	var dataFeed domain.DataFeedSettings
+	var trackingMode sql.NullString
 
 	err := scanner.Scan(
 		&broadcast.ID,
@@ -589,6 +597,7 @@ func scanBroadcast(scanner interface {
 		&broadcast.PausedAt,
 		&pauseReason,
 		&dataFeed,
+		&trackingMode,
 	)
 
 	if err != nil {
@@ -602,6 +611,7 @@ func scanBroadcast(scanner interface {
 	if pauseReason.Valid {
 		broadcast.PauseReason = &pauseReason.String
 	}
+	broadcast.TrackingMode = trackingMode.String
 
 	// Set DataFeed pointer if it has any data
 	if dataFeed.GlobalFeed != nil || dataFeed.RecipientFeed != nil || len(dataFeed.GlobalFeedData) > 0 || dataFeed.GlobalFeedFetchedAt != nil {

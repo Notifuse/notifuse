@@ -65,7 +65,7 @@ func TestWebGoalValuesBindEachColumnToItsOwnField(t *testing.T) {
 	assert.Equal(t, "FR", at_("country"))
 }
 
-// An untyped goal must reach the database as '' and never as NULL: the column is
+// An untyped goal must reach the database as ” and never as NULL: the column is
 // NOT NULL, and a nil would abort the whole flush — losing every other visitor's
 // conversions in the same batch.
 func TestWebGoalValuesNeverBindNullGoalType(t *testing.T) {
