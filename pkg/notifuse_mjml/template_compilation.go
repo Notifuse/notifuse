@@ -1143,7 +1143,14 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 		// The URL the recipient lands on: the attribute value with its
 		// character references read back as the characters they stand for. It
 		// is escaped again when written back below.
-		originalURL := decodeHrefCharacterReferences(rawValue)
+		//
+		// It is also preprocessed as browsers do (leading and trailing spaces
+		// trimmed, tab and line breaks removed), the way the click route and
+		// recorder read it too. Read raw, "https://shop.com/sale " got its UTM
+		// parameters after the space and sent the recipient to /sale%20, a
+		// leading space kept a link from being tagged at all, and " mailto:"
+		// was wrapped in a tracking redirect.
+		originalURL := trackingtoken.Preprocess(decodeHrefCharacterReferences(rawValue))
 
 		// Skip tracking for empty hrefs and special protocol links (mailto,
 		// tel, sms, etc.). These should not be wrapped in a redirect as it
