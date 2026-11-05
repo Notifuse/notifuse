@@ -22,7 +22,13 @@ export default defineConfig({
     // lingui.config.ts extracts messages with the same transform, and
     // src/__tests__/i18nMacro.test.ts compiles the console with it to find tagged
     // templates the macro leaves untransformed.
-    lingui({ macroTransform: true }),
+    //
+    // failOnCompileError: this plugin compiles the .po catalogs the app imports, and by
+    // default it only logs a message that fails to compile (an unbalanced brace, a broken
+    // plural), which then ships. This is the only check on catalog syntax: `lingui
+    // compile` exits 0 on the same error, and --strict would also fail on the
+    // translations still missing.
+    lingui({ macroTransform: true, failOnCompileError: true }),
   ],
   server: {
     host: 'notifusedev.com',

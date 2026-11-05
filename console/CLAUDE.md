@@ -36,12 +36,11 @@ function MyComponent() {
 - For JSX content, use `<Trans>` component from `@lingui/react/macro`
 - All user-facing strings must be wrapped with `t` or `<Trans>`
 - Run `npm run lingui:extract` after adding new strings
-- Run `npm run lingui:compile` before building
+- No compile step before building: `@lingui/vite-plugin` compiles the `.po` catalogs the app imports, and fails the build on a message that does not compile (`failOnCompileError`)
 
 **Commands:**
 
 - `npm run lingui:extract` - Extract strings to PO files
-- `npm run lingui:compile` - Compile PO files for production
 
 **File Locations:**
 

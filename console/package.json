@@ -9,10 +9,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "lingui compile && tsc -b && vite build",
+    "build": "tsc -b && vite build",
     "lint": "eslint . --max-warnings 0",
     "lingui:extract": "lingui extract",
-    "lingui:compile": "lingui compile",
     "preview": "vite preview",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",

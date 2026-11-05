@@ -62,8 +62,9 @@ jobs:
       - name: Lint
         run: npx eslint .
 
-      # The full production pipeline (lingui compile -> tsc -b -> vite build), which
-      # is what Dockerfile stage 1 runs. Catches catalog and bundler failures that a
-      # type-check alone cannot see.
+      # The full production pipeline (tsc -b -> vite build), which is what Dockerfile
+      # stage 1 runs. Catches catalog and bundler failures that a type-check alone
+      # cannot see: @lingui/vite-plugin fails the build on a catalog message that does
+      # not compile (failOnCompileError in vite.config.ts).
       - name: Production build
         run: npm run build
