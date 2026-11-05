@@ -238,19 +238,25 @@ func ParseLenient(raw string) (string, *url.URL) {
 
 // ParseRepaired parses s, and when net/url refuses it, parses it again with its invalid
 // percent escapes repaired: browsers open https://shop.com/50%off, net/url does not. The
-// repair never rescues a host, where browsers refuse a '%' too: a host such as
-// "brand.com%" would slip past host comparisons. The returned URL is for reading only;
-// callers keep the string as written. The error is the one of the first parse.
+// returned URL is for reading only; callers keep the string as written.
+//
+// A host holding a '%' is refused either way, whether the repair put it there
+// ("brand.com%/x") or a valid escape did ("brand.com%25/x"): browsers refuse such a host,
+// and it would slip past host comparisons and allowlist suffix matches. The only
+// exception is the zone of a bracketed IPv6 literal ("[fe80::1%25en0]").
 func ParseRepaired(s string) (*url.URL, error) {
 	u, err := url.Parse(s)
-	if err == nil {
-		return u, nil
+	if err != nil {
+		repaired, rerr := url.Parse(repairPercentEscapes(s))
+		if rerr != nil {
+			return nil, err
+		}
+		u = repaired
 	}
-	repaired, rerr := url.Parse(repairPercentEscapes(s))
-	if rerr != nil || strings.Contains(repaired.Host, "%") {
-		return nil, err
+	if strings.Contains(u.Host, "%") && !strings.HasPrefix(u.Host, "[") {
+		return nil, fmt.Errorf("trackingtoken: percent sign in host %q", u.Host)
 	}
-	return repaired, nil
+	return u, nil
 }
 
 // repairPercentEscapes rewrites every '%' not followed by two hex digits as "%25".

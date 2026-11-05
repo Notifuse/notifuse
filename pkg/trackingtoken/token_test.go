@@ -240,9 +240,15 @@ func TestParseRepaired(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "/relative/50%off", u.Path)
 
+	u, err = ParseRepaired("https://[fe80::1%25en0]/50%off")
+	require.NoError(t, err, "an IPv6 zone is the one '%' a host may hold")
+	assert.Equal(t, "[fe80::1%en0]", u.Host)
+
 	for _, s := range []string{
-		"https://brand.com%/x",         // the repair would put a '%' in the host
-		"https://brand.com%2/x",        // same, with a truncated escape
+		"https://brand.com%/x",   // the repair would put a '%' in the host
+		"https://brand.com%2/x",  // same, with a truncated escape
+		"https://brand.com%25/x", // a valid escape puts it there without any repair
+		"https://evil.com%25.brand.com/x",
 		"https://user%@brand.com%/x",   // userinfo repaired, host still refused
 		"https://shop example.com/50%", // still unparsable once repaired
 	} {

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -259,15 +260,23 @@ func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspac
 // the workspace database — the same two hazards the request-host check avoids
 // for the unsubscribe links.
 func sanitizeClickedURL(clickedURL string, requestHost string) string {
-	// The destination is read as the click route reads it: surrounding spaces or a
-	// stray '%' (https://shop.com/50%off) make net/url refuse a link that browsers open
-	// and the route redirects to. The recorded key is the link as written, only
-	// preprocessed, never the repaired form: it is what the template ships, and what
-	// per-link reporting and segment filters match against. The repair never rescues a
-	// host, so a "click.example.com%" host cannot slip past the request-host check.
+	// The destination is read as the click route reads it: a leading space or a stray
+	// '%' (https://shop.com/50%off) makes net/url refuse a link that browsers open and
+	// the route redirects to. A host holding a '%' is refused there, so a
+	// "click.example.com%" host cannot slip past the request-host check.
 	s, parsed := trackingtoken.ParseLenient(clickedURL)
 	if parsed == nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		return ""
+	}
+
+	// The recorded key is the link as written, never the repaired form: it is what the
+	// template ships, and what per-link reporting and segment filters match against.
+	// Only a link net/url refuses as written is keyed by its preprocessed form. One it
+	// reads as it is, a trailing space included, keeps the key it was always recorded
+	// under, so its click history does not split in two at the upgrade.
+	key := clickedURL
+	if _, err := url.Parse(clickedURL); err != nil {
+		key = s
 	}
 
 	if requestHost != "" && strings.EqualFold(parsed.Host, requestHost) {
@@ -278,7 +287,7 @@ func sanitizeClickedURL(clickedURL string, requestHost string) string {
 	// link, not a copy of the literal: a second definition drifting from the
 	// first would silently stop matching, and the per-recipient credential the
 	// strip exists to remove would become a clicked_links JSONB key.
-	recorded := stripQueryParam(s, domain.WebIdentifyQueryParam)
+	recorded := stripQueryParam(key, domain.WebIdentifyQueryParam)
 
 	// The cap is measured on what we are about to persist, not on what arrived:
 	// it exists to bound the clicked_links key, and the token adds ~150

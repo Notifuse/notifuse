@@ -872,9 +872,24 @@ func TestSanitizeClickedURL_IdentifyTokenStripping(t *testing.T) {
 			expected: "https://shop.example.com/sale",
 		},
 		{
+			name:     "A trailing space net/url accepts keeps the key it was always recorded under",
+			url:      "https://shop.example.com/sale ",
+			expected: "https://shop.example.com/sale ",
+		},
+		{
 			name:     "A percent sign in the host is not a destination",
 			url:      "https://click.notifuse.test%/unsubscribe?email=someone@example.com",
 			expected: "",
+		},
+		{
+			name:     "A percent sign in the host is not a destination, escaped either",
+			url:      "https://click.notifuse.test%25/unsubscribe?email=someone@example.com",
+			expected: "",
+		},
+		{
+			name:     "An IPv6 zone is not refused for its percent sign",
+			url:      "https://[fe80::1%25en0]/50%off",
+			expected: "https://[fe80::1%25en0]/50%off",
 		},
 		{
 			name:     "A stray percent sign does not rescue a link back to the request host",

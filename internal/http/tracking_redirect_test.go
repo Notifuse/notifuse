@@ -50,6 +50,8 @@ func TestClassifyTrackedDestination(t *testing.T) {
 		"https://br\u0430nd.com/":        {decision: decisionInterstitial, link: true}, // Cyrillic a, shown as Punycode
 
 		// Interstitial without a link.
+		"https://track.brand.com%/u":           {decision: decisionInterstitial}, // a '%' in the host is never read as a host
+		"https://track.brand.com%25/u":         {decision: decisionInterstitial},
 		"https://track.brand.com@evil.com/":    {decision: decisionInterstitial},
 		"https://track.brand.com%2f@evil.com/": {decision: decisionInterstitial},
 		`https:\\evil.com`:                     {decision: decisionInterstitial},

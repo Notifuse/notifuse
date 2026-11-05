@@ -4177,6 +4177,11 @@ func TestApplyIdentityParam_PreservesURLBytes(t *testing.T) {
 			want:    "https://example.com%/page",
 		},
 		{
+			name:    "an escaped percent sign in the host is not a link either",
+			linkURL: "https://example.com%25/page",
+			want:    "https://example.com%25/page",
+		},
+		{
 			name:    "order, slashes and commas kept",
 			linkURL: "https://example.com/page?utm_campaign=spring&redirect=/home&ids=1,2,3",
 			want:    "https://example.com/page?utm_campaign=spring&redirect=/home&ids=1,2,3&nf_id=tok-abc123",
@@ -4704,7 +4709,8 @@ func TestApplyUTMParameters_DefensiveCases(t *testing.T) {
 		"{{ unsubscribe_url }}",
 		"{% if x %}https://example.com{% endif %}",
 		"://example.com/broken",
-		"https://example.com%/page", // the repair of invalid escapes never rescues a host
+		"https://example.com%/page",   // the repair of invalid escapes never rescues a host
+		"https://example.com%25/page", // nor does a valid escape put a '%' in one
 	} {
 		assert.Equal(t, sourceURL, settings.applyUTMParameters(sourceURL))
 	}
