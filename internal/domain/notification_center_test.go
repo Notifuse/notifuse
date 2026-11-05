@@ -417,7 +417,7 @@ func TestUpdateContactPreferencesRequest_Validate(t *testing.T) {
 				Email:       "test@example.com",
 				EmailHMAC:   "hmac",
 			},
-			wantErr: "at least one of language or timezone must be provided",
+			wantErr: "at least one of language, timezone, tracking_opens_consent or tracking_clicks_consent must be provided",
 		},
 		{
 			name: "invalid language - too long",

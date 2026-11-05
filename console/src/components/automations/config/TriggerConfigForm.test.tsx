@@ -189,3 +189,16 @@ describe('TriggerConfigForm existing controls', () => {
     expect(screen.getByText('Entry conditions')).toBeInTheDocument()
   })
 })
+
+describe('TriggerConfigForm tracking consent fields', () => {
+  it('offers the tracking consents as fields a contact update can trigger on', async () => {
+    renderForm({ event_kind: 'contact.updated', frequency: 'once' })
+
+    const fieldFilter = screen.getByText('Trigger on specific field changes').closest('.ant-form-item') as HTMLElement
+    // The option list is virtualised: narrow it so the consent group is rendered.
+    await userEvent.type(within(fieldFilter).getByRole('combobox'), 'Tracking')
+
+    expect(await screen.findByText('Opens Tracking Consent')).toBeInTheDocument()
+    expect(screen.getByText('Clicks Tracking Consent')).toBeInTheDocument()
+  })
+})

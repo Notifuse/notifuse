@@ -51,6 +51,8 @@ func (qb *QueryBuilder) initializeContactFields() {
 		"address_line_1", "address_line_2", "country", "postcode", "state",
 		"job_title",
 		"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+		// Tracking consent: granted, denied, or not set (unknown).
+		"tracking_opens_consent", "tracking_clicks_consent", "tracking_consent_source",
 	}
 	for _, field := range stringFields {
 		qb.allowedFields[field] = fieldConfig{
@@ -72,7 +74,7 @@ func (qb *QueryBuilder) initializeContactFields() {
 
 	// Time fields
 	timeFields := []string{
-		"created_at", "updated_at",
+		"created_at", "updated_at", "tracking_consent_updated_at",
 		"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 	}
 	for _, field := range timeFields {

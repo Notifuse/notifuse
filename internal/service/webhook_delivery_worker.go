@@ -1422,6 +1422,11 @@ func testContactRecord(now string) map[string]interface{} {
 		"updated_at":        now,
 		"db_created_at":     now,
 		"db_updated_at":     now,
+		// Column order of the contacts table: the consent columns come last.
+		"tracking_opens_consent":      "granted",
+		"tracking_clicks_consent":     nil,
+		"tracking_consent_updated_at": now,
+		"tracking_consent_source":     "api",
 	}
 }
 

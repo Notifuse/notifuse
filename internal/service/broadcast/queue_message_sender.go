@@ -61,7 +61,7 @@ func (s *queueMessageSender) SendToRecipient(
 	integrationID string,
 	workspaceSecretKey string,
 	endpoint string,
-	trackingEnabled bool,
+	decision domain.EmailTrackingDecision,
 	webAnalytics *domain.WebAnalyticsSettings,
 	broadcast *domain.Broadcast,
 	messageID string,
@@ -74,7 +74,7 @@ func (s *queueMessageSender) SendToRecipient(
 	workspaceDefaultLanguage string,
 ) error {
 	// Build the email payload
-	entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, workspaceSecretKey, endpoint, trackingEnabled, webAnalytics, broadcast, messageID, email, template, data, emailProvider, contactLanguage, workspaceDefaultLanguage)
+	entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, workspaceSecretKey, endpoint, decision, webAnalytics, broadcast, messageID, email, template, data, emailProvider, contactLanguage, workspaceDefaultLanguage)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func (s *queueMessageSender) SendBatch(
 	workspaceSecretKey string,
 	endpoint string,
 	websiteURL string,
-	trackingEnabled bool,
+	trackingPolicy domain.EmailTrackingPolicy,
 	webAnalytics *domain.WebAnalyticsSettings,
 	broadcastID string,
 	recipients []*domain.ContactWithList,
@@ -162,17 +162,22 @@ func (s *queueMessageSender) SendBatch(
 		// Minting a second one here would encrypt a live per-recipient credential
 		// once more per contact in the batch loop and park it in a struct nothing
 		// reads.
+		//
+		// The tracking decision is applied here, before BuildTemplateData (which
+		// leaves tracking_opens_url empty when opens are not tracked), and the
+		// same decision goes to the compiler in buildQueueEntry.
+		decision := domain.ResolveEmailTracking(trackingPolicy, recipient.Contact, broadcast.TrackingMode)
 		trackingSettings := notifuse_mjml.TrackingSettings{
-			Endpoint:       endpoint,
-			EnableTracking: trackingEnabled,
-			UTMSource:      utmParams.Source,
-			UTMMedium:      utmParams.Medium,
-			UTMCampaign:    utmParams.Campaign,
-			UTMContent:     utmParams.Content,
-			UTMTerm:        utmParams.Term,
-			WorkspaceID:    workspaceID,
-			MessageID:      messageID,
+			Endpoint:    endpoint,
+			UTMSource:   utmParams.Source,
+			UTMMedium:   utmParams.Medium,
+			UTMCampaign: utmParams.Campaign,
+			UTMContent:  utmParams.Content,
+			UTMTerm:     utmParams.Term,
+			WorkspaceID: workspaceID,
+			MessageID:   messageID,
 		}
+		decision.Apply(&trackingSettings)
 
 		// Build template data with all system variables (unsubscribe_url, notification_center_url, etc.)
 		req := domain.TemplateDataRequest{
@@ -231,7 +236,7 @@ func (s *queueMessageSender) SendBatch(
 		}
 
 		// Build queue entry
-		entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, workspaceSecretKey, endpoint, trackingEnabled, webAnalytics, broadcast, messageID, recipient.Contact.Email, template, data, emailProvider, contactLanguage, workspaceDefaultLanguage)
+		entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, workspaceSecretKey, endpoint, decision, webAnalytics, broadcast, messageID, recipient.Contact.Email, template, data, emailProvider, contactLanguage, workspaceDefaultLanguage)
 		if err != nil {
 			s.logger.WithFields(map[string]interface{}{
 				"broadcast_id": broadcastID,
@@ -284,7 +289,7 @@ func (s *queueMessageSender) buildQueueEntry(
 	integrationID string,
 	workspaceSecretKey string,
 	endpoint string,
-	trackingEnabled bool,
+	decision domain.EmailTrackingDecision,
 	webAnalytics *domain.WebAnalyticsSettings,
 	broadcast *domain.Broadcast,
 	messageID string,
@@ -309,21 +314,26 @@ func (s *queueMessageSender) buildQueueEntry(
 	// This function builds one entry for one recipient, so the token minted
 	// here is that recipient's own. A mint failure is logged and the entry is
 	// built without it: an unidentified visit costs analytics precision, a
-	// dropped entry costs the email.
-	identifyToken, identifyAllowedHosts, identifyErr := mintIdentifyToken(email, workspaceSecretKey, webAnalytics)
-	if identifyErr != nil {
-		s.logger.WithFields(map[string]interface{}{
-			"broadcast_id": broadcast.ID,
-			"workspace_id": workspaceID,
-			"recipient":    email,
-			"error":        identifyErr.Error(),
-		}).Warn("Failed to mint web analytics identity token, enqueueing without it")
+	// dropped entry costs the email. No token is minted when the recipient's
+	// click consent does not allow it.
+	var identifyToken string
+	var identifyAllowedHosts []string
+	if decision.Identify {
+		var identifyErr error
+		identifyToken, identifyAllowedHosts, identifyErr = mintIdentifyToken(email, workspaceSecretKey, webAnalytics)
+		if identifyErr != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"broadcast_id": broadcast.ID,
+				"workspace_id": workspaceID,
+				"recipient":    email,
+				"error":        identifyErr.Error(),
+			}).Warn("Failed to mint web analytics identity token, enqueueing without it")
+		}
 	}
 
 	// Build tracking settings
 	trackingSettings := notifuse_mjml.TrackingSettings{
 		Endpoint:             endpoint,
-		EnableTracking:       trackingEnabled,
 		UTMSource:            utmParams.Source,
 		UTMMedium:            utmParams.Medium,
 		UTMCampaign:          utmParams.Campaign,
@@ -335,6 +345,7 @@ func (s *queueMessageSender) buildQueueEntry(
 		IdentifyAllowedHosts: identifyAllowedHosts,
 		SigningKey:           domain.TrackingSigningKey(workspaceSecretKey),
 	}
+	decision.Apply(&trackingSettings)
 
 	// Resolve language variant
 	emailContent := template.ResolveEmailContent(contactLanguage, workspaceDefaultLanguage)
@@ -419,6 +430,8 @@ func (s *queueMessageSender) buildQueueEntry(
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	}
+
+	entry.Payload.OpensTracked, entry.Payload.ClicksTracked = decision.TrackedFlags()
 
 	// Extract List-Unsubscribe URL from template data for RFC-8058 compliance (broadcast emails
 	// only), unless the broadcast is a notice that also goes to unsubscribed contacts.

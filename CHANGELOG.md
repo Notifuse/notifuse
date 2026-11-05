@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [43.0] - WIP
+
+- **Feature**: Contacts can now agree to or refuse open tracking and click tracking, each on its own. Their choice is stored on the contact (`tracking_opens_consent`, `tracking_clicks_consent`, with the date and source of the change), set through the API, the console, CSV import and the notification center, exported, filterable in the contact list and in segments, usable as an automation trigger field, and sent in contact webhooks. A contact who refused gets no open pixel or no tracked links, and a later refusal also stops recording opens and clicks of emails already sent.
+
+- **Feature**: Workspace settings now turn open tracking and click tracking on separately, and choose what happens for contacts whose choice is not recorded: track them (the default, as before) or not. Some regulators, such as the Italian Garante and the French CNIL, expect tracking to require consent; **if that applies to you, set "Contacts without recorded consent" to "Do not track"**.
+
+- **Feature**: The notification center says on one line whether email performance tracking is on for the contact, with a dialog where they make that choice. Templates can link to that dialog with `{{ tracking_preferences_url }}`, or offer a one-click refusal with `{{ tracking_optout_url }}`, which asks the contact to confirm before recording anything.
+
+- **Feature**: A broadcast can be sent without open and click tracking, keeping its UTM parameters. Transactional notifications get the same option (`tracking_mode: no_tracking`), next to `disabled`, which also leaves out UTM parameters.
+
+- **Improvement**: Open and click rates, in broadcast statistics, A/B test results, the analytics dashboard and per-link click rates, are now counted over the emails that were tracked, and their tooltip says how many when some were not. The automatic A/B winner is chosen the same way. Emails sent before the upgrade count as tracked, so their rates do not change.
+
+  Contact webhook payloads gain the four tracking consent fields; make sure a receiver that validates payloads accepts them.
+
 ## [42.3] - WIP
 
 - **Improvement**: When an email provider answers that emails arrive too fast, the email integration now slows down, then climbs back to its rate limit once emails go through. The refused email is sent again at the slower pace and keeps its attempts, and its broadcast keeps sending. A quota named in the refusal, or refusals that continue for 30 seconds at a tenth of the rate limit, pause the integration's broadcasts.

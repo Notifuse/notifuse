@@ -4210,11 +4210,12 @@ func TestEmailNodeExecutor_buildTrackingSettings_WebIdentityGate(t *testing.T) {
 		workspace := createTestWorkspaceWithEmailProvider()
 		workspace.Settings.WebAnalytics = webAnalytics
 
-		return executor.buildTrackingSettings(NodeExecutionParams{
+		settings, _ := executor.buildTrackingSettings(NodeExecutionParams{
 			WorkspaceID: "ws1",
 			ContactData: &domain.Contact{Email: "recipient@example.com"},
 			Automation:  &domain.Automation{ID: "auto1", Name: "Test Automation"},
 		}, workspace, "tpl123", "msg1")
+		return settings
 	}
 
 	// assertBuiltWithoutIdentity is the control every closed-gate case shares:
@@ -4282,5 +4283,67 @@ func TestEmailNodeExecutor_buildTrackingSettings_WebIdentityGate(t *testing.T) {
 
 	t.Run("no web analytics settings mint nothing", func(t *testing.T) {
 		assertBuiltWithoutIdentity(t, build(t, nil))
+	})
+}
+
+func TestEmailNodeExecutor_buildTrackingSettings_FollowsTrackingConsent(t *testing.T) {
+	webAnalytics := &domain.WebAnalyticsSettings{
+		Enabled:                true,
+		IdentifyFromEmailLinks: true,
+		AllowedDomains:         []string{"shop.example.com"},
+	}
+
+	build := func(t *testing.T, contact *domain.Contact, tracking *domain.EmailTrackingSettings) (notifuse_mjml.TrackingSettings, domain.EmailTrackingDecision) {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		executor := NewEmailNodeExecutor(nil, nil, nil, nil, nil, "https://api.example.com", setupMockLoggerForNodeExecutor(ctrl))
+		workspace := createTestWorkspaceWithEmailProvider()
+		workspace.Settings.EmailTrackingEnabled = true
+		workspace.Settings.EmailTracking = tracking
+		workspace.Settings.WebAnalytics = webAnalytics
+
+		return executor.buildTrackingSettings(NodeExecutionParams{
+			WorkspaceID: "ws1",
+			ContactData: contact,
+			Automation:  &domain.Automation{ID: "auto1", Name: "Test Automation"},
+		}, workspace, "tpl123", "msg1")
+	}
+
+	t.Run("denied clicks suppress clicks and the identity token", func(t *testing.T) {
+		settings, decision := build(t, &domain.Contact{
+			Email:                 "recipient@example.com",
+			TrackingClicksConsent: &domain.NullableString{String: domain.TrackingConsentDenied},
+		}, domain.DefaultEmailTrackingSettings())
+
+		assert.True(t, decision.Opens)
+		assert.False(t, decision.Clicks)
+		assert.True(t, settings.EnableTracking)
+		assert.False(t, settings.SuppressOpens)
+		assert.True(t, settings.SuppressClicks)
+		assert.True(t, settings.SuppressIdentify)
+		assert.Empty(t, settings.IdentifyToken)
+	})
+
+	t.Run("unknown consent with no_track tracks nothing", func(t *testing.T) {
+		settings, decision := build(t, &domain.Contact{Email: "recipient@example.com"},
+			&domain.EmailTrackingSettings{OpensEnabled: true, ClicksEnabled: true, UnknownConsent: domain.UnknownConsentNoTrack})
+
+		assert.Equal(t, domain.EmailTrackingDecision{UTM: true}, decision)
+		assert.False(t, settings.EnableTracking)
+		assert.Empty(t, settings.IdentifyToken)
+		assert.Equal(t, "automation", settings.UTMSource, "UTM tagging is not tracking and stays")
+	})
+
+	t.Run("granted consent tracks and identifies", func(t *testing.T) {
+		granted := &domain.NullableString{String: domain.TrackingConsentGranted}
+		settings, decision := build(t, &domain.Contact{Email: "recipient@example.com", TrackingOpensConsent: granted, TrackingClicksConsent: granted},
+			&domain.EmailTrackingSettings{OpensEnabled: true, ClicksEnabled: true, UnknownConsent: domain.UnknownConsentNoTrack})
+
+		assert.True(t, decision.Opens)
+		assert.True(t, decision.Clicks)
+		assert.True(t, settings.EnableTracking)
+		assert.NotEmpty(t, settings.IdentifyToken)
 	})
 }

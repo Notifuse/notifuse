@@ -299,8 +299,9 @@ func TestWebhookContactsTriggerFunction_ComparesTheColumnsItShipped(t *testing.T
 		"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 		"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 		"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
+		"tracking_opens_consent", "tracking_clicks_consent", "tracking_consent_source",
 	}
-	require.Len(t, expected, 33)
+	require.Len(t, expected, 36)
 	assert.Equal(t, expected, compared)
 
 	// A DELETE has no NEW row, so the payload is built from OLD and the function

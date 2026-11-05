@@ -497,8 +497,8 @@ func TestBroadcastService_GetTestResults_ComputesRecommendation(t *testing.T) {
 	d.repo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(b, nil)
 
 	// stats for A and B
-	d.messageHistoryRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalDelivered: 100, TotalOpened: 30, TotalClicked: 5}, nil)
-	d.messageHistoryRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalDelivered: 100, TotalOpened: 25, TotalClicked: 10}, nil)
+	d.messageHistoryRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalOpened: 30, TotalClicked: 5}, nil)
+	d.messageHistoryRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalOpened: 25, TotalClicked: 10}, nil)
 
 	res, err := d.svc.GetTestResults(ctx, workspaceID, broadcastID)
 	require.NoError(t, err)
@@ -2713,8 +2713,8 @@ func TestBroadcastService_GetTestResults_WithAutoSendWinner(t *testing.T) {
 	d.repo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(b, nil)
 
 	// stats for A and B
-	d.messageHistoryRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalDelivered: 100, TotalOpened: 30, TotalClicked: 5}, nil)
-	d.messageHistoryRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalDelivered: 100, TotalOpened: 25, TotalClicked: 10}, nil)
+	d.messageHistoryRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalOpened: 30, TotalClicked: 5}, nil)
+	d.messageHistoryRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalOpened: 25, TotalClicked: 10}, nil)
 
 	res, err := d.svc.GetTestResults(ctx, workspaceID, broadcastID)
 	require.NoError(t, err)
@@ -2746,8 +2746,8 @@ func TestBroadcastService_GetTestResults_WithWinnerAlreadySelected(t *testing.T)
 	d.repo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(b, nil)
 
 	// stats for A and B
-	d.messageHistoryRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalDelivered: 100, TotalOpened: 30, TotalClicked: 5}, nil)
-	d.messageHistoryRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalDelivered: 100, TotalOpened: 25, TotalClicked: 10}, nil)
+	d.messageHistoryRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalOpened: 30, TotalClicked: 5}, nil)
+	d.messageHistoryRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalOpened: 25, TotalClicked: 10}, nil)
 
 	res, err := d.svc.GetTestResults(ctx, workspaceID, broadcastID)
 	require.NoError(t, err)

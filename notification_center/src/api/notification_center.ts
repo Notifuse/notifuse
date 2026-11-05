@@ -48,12 +48,22 @@ export interface TransactionalNotification {
   description?: string
 }
 
+// What the workspace tracks (opens_enabled, clicks_enabled) and what is tracked
+// for this contact, once the workspace setting and their consent are combined
+export interface ContactTrackingState {
+  opens_enabled: boolean
+  clicks_enabled: boolean
+  opens_tracked: boolean
+  clicks_tracked: boolean
+}
+
 export interface ContactPreferencesResponse {
   contact: Contact
   public_lists?: List[] | null
   contact_lists?: ContactList[] | null
   logo_url?: string
   website_url?: string
+  tracking?: ContactTrackingState
 }
 
 /**
@@ -133,7 +143,13 @@ export interface UpdateContactPreferencesRequest {
   email_hmac: string
   language?: string
   timezone?: string
+  tracking_opens_consent?: TrackingConsent
+  tracking_clicks_consent?: TrackingConsent
+  // notification_center (the default) or email_link (the opt-out link of an email)
+  consent_source?: 'notification_center' | 'email_link'
 }
+
+export type TrackingConsent = 'granted' | 'denied'
 
 export async function updateContactPreferences(
   request: UpdateContactPreferencesRequest

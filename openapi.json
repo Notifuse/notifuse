@@ -1100,6 +1100,36 @@
             "example": "active"
           },
           {
+            "name": "tracking_opens_consent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "granted",
+                "denied",
+                "unknown"
+              ]
+            },
+            "description": "Filter by the contact's open tracking choice; `unknown` matches contacts with none recorded",
+            "example": "denied"
+          },
+          {
+            "name": "tracking_clicks_consent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "granted",
+                "denied",
+                "unknown"
+              ]
+            },
+            "description": "Filter by the contact's click tracking choice; `unknown` matches contacts with none recorded",
+            "example": "unknown"
+          },
+          {
             "name": "segments[]",
             "in": "query",
             "required": false,
@@ -7732,6 +7762,37 @@
             "description": "Job title of the contact",
             "example": "Software Engineer"
           },
+          "tracking_opens_consent": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "granted",
+              "denied",
+              null
+            ],
+            "description": "The contact's own choice about open tracking; `null` means unknown."
+          },
+          "tracking_clicks_consent": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "granted",
+              "denied",
+              null
+            ],
+            "description": "The contact's own choice about click tracking; `null` means unknown."
+          },
+          "tracking_consent_updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When a tracking choice last changed."
+          },
+          "tracking_consent_source": {
+            "type": "string",
+            "nullable": true,
+            "description": "Where the last tracking choice came from (api, console, import, notification_center, email_link, subscribe_form)."
+          },
           "custom_string_1": {
             "type": "string",
             "nullable": true,
@@ -7973,6 +8034,41 @@
             "nullable": true,
             "description": "Job title of the contact",
             "example": "Software Engineer"
+          },
+          "tracking_opens_consent": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "granted",
+              "denied",
+              null
+            ],
+            "description": "The contact's own choice about open tracking. `granted` or `denied` override the\nworkspace's rule for contacts without a recorded choice; `null` (or absent on\ncreate) means unknown. Opens are tracked only when the workspace tracks them and\nthis choice allows it.\n",
+            "example": "denied"
+          },
+          "tracking_clicks_consent": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "granted",
+              "denied",
+              null
+            ],
+            "description": "The contact's own choice about click tracking, with the same rules as `tracking_opens_consent`.",
+            "example": "granted"
+          },
+          "tracking_consent_updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the tracking choice changed. Set by the server when a consent value changes and\nthis field is not given.\n"
+          },
+          "tracking_consent_source": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 50,
+            "description": "Where the change came from. Defaults to `api` for an API key and `console` for a\nconsole user; an import uses `import`. Known values: api, console, import,\nnotification_center, email_link, subscribe_form.\n",
+            "example": "api"
           },
           "custom_string_1": {
             "type": "string",
@@ -8295,6 +8391,22 @@
             "nullable": true,
             "description": "Job title of the contact",
             "example": "Software Engineer"
+          },
+          "tracking_opens_consent": {
+            "type": "string",
+            "enum": [
+              "granted",
+              "denied"
+            ],
+            "description": "The visitor's choice about open tracking, for example from a checkbox on your form.\nRecorded with source `subscribe_form` on a public request.\n"
+          },
+          "tracking_clicks_consent": {
+            "type": "string",
+            "enum": [
+              "granted",
+              "denied"
+            ],
+            "description": "The visitor's choice about click tracking, recorded like `tracking_opens_consent`."
           },
           "custom_string_1": {
             "type": "string",
@@ -8830,6 +8942,14 @@
             "type": "string",
             "nullable": true,
             "description": "Reason for pausing the broadcast"
+          },
+          "tracking_mode": {
+            "type": "string",
+            "enum": [
+              "inherit",
+              "no_tracking"
+            ],
+            "description": "Absent or `inherit` follows the workspace tracking settings and each recipient's\ntracking consent (stored as absent). `no_tracking` sends every email without the\nopen pixel and the click-tracking redirect, keeping the UTM parameters; it cannot be\ncombined with an A/B test whose winner is sent automatically.\n"
           }
         }
       },
@@ -9090,12 +9210,20 @@
             "type": "object",
             "additionalProperties": true,
             "description": "Custom metadata for the broadcast"
+          },
+          "tracking_mode": {
+            "type": "string",
+            "enum": [
+              "inherit",
+              "no_tracking"
+            ],
+            "description": "See `Broadcast.tracking_mode`."
           }
         }
       },
       "UpdateBroadcastRequest": {
         "type": "object",
-        "description": "Partial update of a broadcast. workspace_id, id and name are always applied; audience is merged one key at a time, and schedule, test_settings, utm_parameters, metadata and data_feed keep their stored value when the key is left out of the body. Send the key to change it — including an explicitly empty object to clear it.",
+        "description": "Partial update of a broadcast. workspace_id, id and name are always applied; audience is merged one key at a time, and schedule, test_settings, utm_parameters, metadata, data_feed and tracking_mode keep their stored value when the key is left out of the body. Send the key to change it — including an explicitly empty object to clear it.",
         "required": [
           "workspace_id",
           "id",
@@ -9162,6 +9290,14 @@
             "type": "object",
             "additionalProperties": true,
             "description": "Custom metadata for the broadcast. Omit to keep the stored metadata; send an empty object to clear it."
+          },
+          "tracking_mode": {
+            "type": "string",
+            "enum": [
+              "inherit",
+              "no_tracking"
+            ],
+            "description": "Omit to keep the stored mode. Can be changed only while the broadcast is a draft or scheduled. See `Broadcast.tracking_mode`."
           }
         }
       },
@@ -9393,16 +9529,26 @@
             "description": "Number of clicks",
             "example": 120
           },
+          "opens_tracked": {
+            "type": "integer",
+            "description": "Sent emails of this variation that carried the open pixel",
+            "example": 1000
+          },
+          "clicks_tracked": {
+            "type": "integer",
+            "description": "Sent emails of this variation whose links were tracked",
+            "example": 1000
+          },
           "open_rate": {
             "type": "number",
             "format": "float",
-            "description": "Open rate (opens / recipients)",
+            "description": "Open rate (opens / opens_tracked); 0 when no email was tracked",
             "example": 0.45
           },
           "click_rate": {
             "type": "number",
             "format": "float",
-            "description": "Click rate (clicks / recipients)",
+            "description": "Click rate (clicks / clicks_tracked); 0 when no email was tracked",
             "example": 0.12
           }
         }
@@ -10163,9 +10309,10 @@
             "type": "string",
             "enum": [
               "inherit",
+              "no_tracking",
               "disabled"
             ],
-            "description": "Per-notification tri-state tracking preference. Absent or \"inherit\"\nfollows the workspace tracking flag (the workspace flag always acts\nas a kill-switch and cannot be overridden). \"disabled\" suppresses all\nrewriting for this notification — no click-tracking redirect, no open\npixel, and no UTM parameters — used for auth emails (e.g. Supabase\nmagic links) whose single-use URLs must never be modified. Update\nsemantics: an ABSENT tracking_mode field keeps the stored value (so\npartial edits cannot wipe an opt-out; an empty string is treated as\nabsent); an explicit \"inherit\" resets the notification to follow the\nworkspace flag; an explicit \"disabled\" opts it out. Note that the\nother tracking_settings fields (utm_*) are replaced wholesale on\nupdate — only tracking_mode has keep-when-absent semantics.\n"
+            "description": "Per-notification tracking preference. Absent or \"inherit\" follows the\nworkspace tracking settings and each recipient's tracking consent (the\nworkspace settings always act as a kill-switch and cannot be\noverridden). \"no_tracking\" leaves out the open pixel and the\nclick-tracking redirect but keeps the UTM parameters. \"disabled\" suppresses all\nrewriting for this notification — no click-tracking redirect, no open\npixel, and no UTM parameters — used for auth emails (e.g. Supabase\nmagic links) whose single-use URLs must never be modified. Update\nsemantics: an ABSENT tracking_mode field keeps the stored value (so\npartial edits cannot wipe an opt-out; an empty string is treated as\nabsent); an explicit \"inherit\" resets the notification to follow the\nworkspace flag; an explicit \"disabled\" opts it out. Note that the\nother tracking_settings fields (utm_*) are replaced wholesale on\nupdate — only tracking_mode has keep-when-absent semantics.\n"
           },
           "endpoint": {
             "type": "string",

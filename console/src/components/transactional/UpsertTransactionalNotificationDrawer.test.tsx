@@ -56,7 +56,7 @@ const workspace = {
 } as unknown as Workspace
 
 const makeNotification = (
-  trackingMode?: 'inherit' | 'disabled',
+  trackingMode?: 'inherit' | 'no_tracking' | 'disabled',
   overrides: Partial<TransactionalNotification> = {}
 ): TransactionalNotification =>
   ({
@@ -114,6 +114,35 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     expect(await screen.findByText('Disabled for this notification')).toBeInTheDocument()
     // "Follow workspace setting" appears twice: as the selected value and as an option.
     expect(screen.getAllByText('Follow workspace setting').length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('submits tracking_mode "no_tracking" when opens and clicks are turned off', async () => {
+    await openCreateDrawer()
+    await fillRequiredFields()
+
+    await userEvent.click(screen.getByRole('combobox'))
+    await userEvent.click(await screen.findByText('No open or click tracking, keep UTM parameters'))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(transactionalNotificationsApi.create).toHaveBeenCalled())
+    const payload = (transactionalNotificationsApi.create as Mock).mock.calls[0][0]
+    expect(payload.notification.tracking_settings.tracking_mode).toBe('no_tracking')
+  })
+
+  it('shows the no-tracking option selected when editing such a notification', async () => {
+    renderDrawer(
+      <UpsertTransactionalNotificationDrawer
+        workspace={workspace}
+        notification={makeNotification('no_tracking')}
+      />
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: /Edit Notification/i }))
+
+    expect(
+      await screen.findByText('No open or click tracking, keep UTM parameters')
+    ).toBeInTheDocument()
   })
 
   it('submits tracking_mode "inherit" by default in create mode', async () => {

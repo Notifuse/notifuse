@@ -85,6 +85,7 @@ func (s *NotificationCenterService) GetContactPreferences(ctx context.Context, w
 		ContactLists: contact.ContactLists,
 		LogoURL:      workspace.Settings.LogoURL,
 		WebsiteURL:   workspace.Settings.WebsiteURL,
+		Tracking:     domain.NewContactTrackingState(workspace.Settings.TrackingPolicy(), contact),
 	}, nil
 }
 
@@ -117,7 +118,9 @@ func visibleContactLists(rows []*domain.ContactList, publicLists []*domain.List)
 	return visible
 }
 
-// UpdateContactPreferences updates a contact's language and/or timezone
+// UpdateContactPreferences updates a contact's language, timezone and tracking
+// consent. The contact must exist: a link that outlived its contact (deleted on
+// request, for instance) must not create it again.
 func (s *NotificationCenterService) UpdateContactPreferences(ctx context.Context, req *domain.UpdateContactPreferencesRequest) error {
 	workspace, err := s.workspaceRepo.GetByID(ctx, req.WorkspaceID)
 	if err != nil {
@@ -129,7 +132,25 @@ func (s *NotificationCenterService) UpdateContactPreferences(ctx context.Context
 		return fmt.Errorf("invalid email verification")
 	}
 
+	if _, err := s.contactRepo.GetContactByEmail(ctx, req.WorkspaceID, req.Email); err != nil {
+		if strings.Contains(err.Error(), "contact not found") {
+			return err
+		}
+		s.logger.WithField("email", req.Email).Error(fmt.Sprintf("Failed to get contact: %v", err))
+		return fmt.Errorf("failed to get contact: %w", err)
+	}
+
 	contact := &domain.Contact{Email: req.Email}
+	if req.TrackingOpensConsent != "" {
+		contact.TrackingOpensConsent = &domain.NullableString{String: req.TrackingOpensConsent}
+	}
+	if req.TrackingClicksConsent != "" {
+		contact.TrackingClicksConsent = &domain.NullableString{String: req.TrackingClicksConsent}
+	}
+	if req.HasTrackingConsent() {
+		// Dated now by the repository when the value changes.
+		contact.TrackingConsentSource = &domain.NullableString{String: req.TrackingConsentSource()}
+	}
 	if req.Language != "" {
 		contact.Language = &domain.NullableString{String: req.Language, IsNull: false}
 	}

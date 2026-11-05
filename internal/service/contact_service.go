@@ -353,6 +353,14 @@ func (s *ContactService) BatchImportContacts(ctx context.Context, workspaceID st
 		}
 	}
 
+	// A tracking consent in an import is recorded with the source "import"
+	// unless the row names its own.
+	for _, contact := range contacts {
+		if contact != nil {
+			contact.DefaultTrackingConsentSource(domain.TrackingConsentSourceImport)
+		}
+	}
+
 	// Pre-validate all contacts and separate valid from invalid
 	// This allows us to provide immediate feedback on validation errors
 	// while still processing valid contacts in bulk
@@ -477,8 +485,9 @@ func (s *ContactService) UpsertContact(ctx context.Context, workspaceID string, 
 	// Only authenticate and check permissions for non-system calls
 	if !isSystemCall {
 		var err error
+		var user *domain.User
 		var userWorkspace *domain.UserWorkspace
-		ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+		ctx, user, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 		if err != nil {
 			operation.Action = domain.UpsertContactOperationError
 			operation.Error = err.Error()
@@ -503,6 +512,11 @@ func (s *ContactService) UpsertContact(ctx context.Context, workspaceID string, 
 			s.logger.WithField("email", contact.Email).Error(permErr.Error())
 			return operation
 		}
+
+		// A tracking consent change is recorded as coming from the API or the
+		// console unless the caller names its own source. A system caller
+		// (transactional send, custom events) attributes its own.
+		contact.DefaultTrackingConsentSource(domain.TrackingConsentSourceForUser(user))
 	}
 
 	if err := contact.Validate(); err != nil {

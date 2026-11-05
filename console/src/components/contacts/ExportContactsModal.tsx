@@ -6,6 +6,7 @@ import { ContactsSearch } from '../../router'
 import { Workspace, List, Segment } from '../../services/api/types'
 import { contactsApi, Contact, ListContactsRequest } from '../../services/api/contacts'
 import { getCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
+import { useTrackingConsentOptions } from './TrackingConsent'
 
 interface ExportContactsModalProps {
   visible: boolean
@@ -32,12 +33,16 @@ export function ExportContactsModal({
   const [startTime, setStartTime] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const { filters: consentFilterOptions } = useTrackingConsentOptions()
 
   // Get display label for a filter value
   const getFilterDisplayValue = (key: string, value: string): string => {
     if (key === 'list_id') {
       const list = listsData.find((l) => l.id === value)
       return list?.name || value
+    }
+    if (key === 'tracking_opens_consent' || key === 'tracking_clicks_consent') {
+      return consentFilterOptions.find((option) => option.value === value)?.label || value
     }
     return value
   }
@@ -79,6 +84,20 @@ export function ExportContactsModal({
         key: 'contact_list_status',
         label: t`List Status`,
         value: filters.contact_list_status
+      })
+    }
+    if (filters.tracking_opens_consent) {
+      activeFilters.push({
+        key: 'tracking_opens_consent',
+        label: t`Opens tracking consent`,
+        value: getFilterDisplayValue('tracking_opens_consent', filters.tracking_opens_consent)
+      })
+    }
+    if (filters.tracking_clicks_consent) {
+      activeFilters.push({
+        key: 'tracking_clicks_consent',
+        label: t`Clicks tracking consent`,
+        value: getFilterDisplayValue('tracking_clicks_consent', filters.tracking_clicks_consent)
       })
     }
     if (filters.segments && filters.segments.length > 0) {
@@ -154,6 +173,8 @@ export function ExportContactsModal({
           list_id: filters.list_id,
           contact_list_status: filters.contact_list_status,
           segments: filters.segments,
+          tracking_opens_consent: filters.tracking_opens_consent,
+          tracking_clicks_consent: filters.tracking_clicks_consent,
           with_contact_lists: false // Skip for performance
         }
 
@@ -221,6 +242,10 @@ export function ExportContactsModal({
         getCustomFieldLabel('custom_json_3', workspace),
         getCustomFieldLabel('custom_json_4', workspace),
         getCustomFieldLabel('custom_json_5', workspace),
+        'tracking_opens_consent',
+        'tracking_clicks_consent',
+        'tracking_consent_updated_at',
+        'tracking_consent_source',
         'created_at',
         'updated_at'
       ]
@@ -261,6 +286,10 @@ export function ExportContactsModal({
         c.custom_json_3 ? JSON.stringify(c.custom_json_3) : '',
         c.custom_json_4 ? JSON.stringify(c.custom_json_4) : '',
         c.custom_json_5 ? JSON.stringify(c.custom_json_5) : '',
+        c.tracking_opens_consent || '',
+        c.tracking_clicks_consent || '',
+        c.tracking_consent_updated_at || '',
+        c.tracking_consent_source || '',
         c.created_at,
         c.updated_at
       ])

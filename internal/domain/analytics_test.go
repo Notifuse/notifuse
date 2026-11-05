@@ -407,3 +407,22 @@ func TestSentMeasuresExcludeFailures(t *testing.T) {
 	assert.Contains(t, filterSQL("count_failed"), "failed_at IS NOT NULL")
 	assert.NotContains(t, filterSQL("count_failed"), "sent_at IS NOT NULL")
 }
+
+func TestTrackedMeasuresAreSentEmailsWithTheirFlag(t *testing.T) {
+	schema, ok := PredefinedSchemas["message_history"]
+	require.True(t, ok)
+
+	filterSQL := func(measure string) []string {
+		m, exists := schema.Measures[measure]
+		require.True(t, exists, "measure %s should exist", measure)
+		sql := make([]string, 0, len(m.Filters))
+		for _, f := range m.Filters {
+			sql = append(sql, f.SQL)
+		}
+		return sql
+	}
+
+	sentEmails := filterSQL("count_sent_emails")
+	assert.ElementsMatch(t, append(append([]string{}, sentEmails...), "opens_tracked IS NOT FALSE"), filterSQL("count_opens_tracked"))
+	assert.ElementsMatch(t, append(append([]string{}, sentEmails...), "clicks_tracked IS NOT FALSE"), filterSQL("count_clicks_tracked"))
+}

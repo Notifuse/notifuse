@@ -219,7 +219,7 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 			"workspace-1",
 			"integration-1", "",
 			"https://api.test.com",
-			true, nil,
+			testTrackingDecision(true), nil,
 			broadcast,
 			"msg-1",
 			"recipient@example.com",
@@ -286,7 +286,7 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 			"workspace-1",
 			"integration-1", "",
 			"https://api.test.com",
-			true, nil,
+			testTrackingDecision(true), nil,
 			broadcast,
 			"msg-1",
 			"recipient@example.com",
@@ -346,7 +346,7 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 			"workspace-1",
 			"integration-1", "",
 			"https://api.test.com",
-			true, nil,
+			testTrackingDecision(true), nil,
 			broadcast,
 			"msg-1",
 			"recipient@example.com",
@@ -436,7 +436,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			"secret-key",
 			"https://api.example.com",
 			"",
-			true, nil,
+			testTrackingPolicy(true), nil,
 			"broadcast-1",
 			recipients,
 			map[string]*domain.Template{"template-1": template},
@@ -478,7 +478,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			"secret-key",
 			"https://api.example.com",
 			"",
-			true, nil,
+			testTrackingPolicy(true), nil,
 			"broadcast-1",
 			[]*domain.ContactWithList{}, // Empty
 			nil,
@@ -555,7 +555,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			"secret-key",
 			"https://api.example.com",
 			"",
-			true, nil,
+			testTrackingPolicy(true), nil,
 			"broadcast-1",
 			recipients,
 			map[string]*domain.Template{"template-1": template},
@@ -672,7 +672,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			"test-secret-key",
 			"https://api.example.com",
 			"",
-			true, nil,
+			testTrackingPolicy(true), nil,
 			"broadcast-1",
 			recipients,
 			map[string]*domain.Template{"template-1": template},
@@ -767,7 +767,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			"test-secret-key",
 			"https://api.example.com",
 			"",
-			true, nil,
+			testTrackingPolicy(true), nil,
 			"broadcast-1",
 			recipients,
 			map[string]*domain.Template{"template-1": template},
@@ -884,7 +884,7 @@ func TestQueueSendBatch_WithRecipientFeed_Success(t *testing.T) {
 		"secret-key",
 		"https://api.example.com",
 		"",
-		true, nil,
+		testTrackingPolicy(true), nil,
 		"broadcast-1",
 		recipients,
 		map[string]*domain.Template{"template-1": template},
@@ -980,7 +980,7 @@ func TestQueueSendBatch_WithRecipientFeed_FetchError_PausesBroadcast(t *testing.
 		"secret-key",
 		"https://api.example.com",
 		"",
-		true, nil,
+		testTrackingPolicy(true), nil,
 		"broadcast-1",
 		recipients,
 		map[string]*domain.Template{"template-1": template},
@@ -1077,7 +1077,7 @@ func TestQueueSendBatch_WithRecipientFeed_Disabled(t *testing.T) {
 		"secret-key",
 		"https://api.example.com",
 		"",
-		true, nil,
+		testTrackingPolicy(true), nil,
 		"broadcast-1",
 		recipients,
 		map[string]*domain.Template{"template-1": template},
@@ -1168,7 +1168,7 @@ func TestQueueSendBatch_WithRecipientFeed_NilFetcher(t *testing.T) {
 		"secret-key",
 		"https://api.example.com",
 		"",
-		true, nil,
+		testTrackingPolicy(true), nil,
 		"broadcast-1",
 		recipients,
 		map[string]*domain.Template{"template-1": template},
@@ -1305,7 +1305,7 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 			"workspace-1",
 			"integration-1", "",
 			"https://api.test.com",
-			true, nil,
+			testTrackingDecision(true), nil,
 			broadcast,
 			"msg-123",
 			"john@example.com",
@@ -1368,7 +1368,7 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 			"workspace-1",
 			"integration-1", "",
 			"https://api.test.com",
-			true, nil,
+			testTrackingDecision(true), nil,
 			broadcast,
 			"msg-123",
 			"test@example.com",
@@ -1407,7 +1407,7 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 			"workspace-1",
 			"integration-1", "",
 			"https://api.test.com",
-			true, nil,
+			testTrackingDecision(true), nil,
 			broadcast,
 			"msg-123",
 			"test@example.com",
@@ -1450,7 +1450,7 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 			"workspace-1",
 			"integration-1", "",
 			"https://api.test.com",
-			true, nil,
+			testTrackingDecision(true), nil,
 			broadcast,
 			"msg-123",
 			"test@example.com",
@@ -1515,11 +1515,11 @@ func TestQueueMessageSender_ABVariantsPerRecipientUTMContent(t *testing.T) {
 	templateB := createTestTemplateWithLink("template-b", emailSender.ID)
 
 	entryA, err := qms.buildQueueEntry(context.Background(), "workspace-1", "integration-1", "",
-		endpoint, true, nil, broadcast, "msg-1", "recipient1@example.com", templateA,
+		endpoint, testTrackingDecision(true), nil, broadcast, "msg-1", "recipient1@example.com", templateA,
 		map[string]interface{}{}, emailProvider, "", "")
 	require.NoError(t, err)
 	entryB, err := qms.buildQueueEntry(context.Background(), "workspace-1", "integration-1", "",
-		endpoint, true, nil, broadcast, "msg-2", "recipient2@example.com", templateB,
+		endpoint, testTrackingDecision(true), nil, broadcast, "msg-2", "recipient2@example.com", templateB,
 		map[string]interface{}{}, emailProvider, "", "")
 	require.NoError(t, err)
 
@@ -1574,7 +1574,7 @@ func TestQueueMessageSender_BuildQueueEntry_NilUTMParameters(t *testing.T) {
 	template := createTestTemplateWithLink("template-1", emailSender.ID)
 
 	entry, err := qms.buildQueueEntry(context.Background(), "workspace-1", "integration-1", "",
-		"https://api.test.com", true, nil, broadcast, "msg-1", "recipient@example.com", template,
+		"https://api.test.com", testTrackingDecision(true), nil, broadcast, "msg-1", "recipient@example.com", template,
 		map[string]interface{}{}, emailProvider, "", "")
 	require.NoError(t, err)
 	require.NotNil(t, entry)
@@ -1657,7 +1657,7 @@ func enqueueBatchTrackedLinks(t *testing.T, secretKey string, webAnalytics *doma
 		secretKey,
 		endpoint,
 		"",
-		true, webAnalytics,
+		testTrackingPolicy(true), webAnalytics,
 		broadcastID,
 		recipients,
 		templates,
@@ -1787,7 +1787,7 @@ func TestQueueMessageSender_SendToRecipient_SignsTrackedLinks(t *testing.T) {
 		"workspace-1",
 		"integration-1", secretKey,
 		endpoint,
-		true, nil,
+		testTrackingDecision(true), nil,
 		broadcast,
 		"msg-1",
 		"recipient@example.com",
@@ -1861,7 +1861,7 @@ func TestQueueMessageSender_ListUnsubscribeHeaderFollowsExcludeUnsubscribed(t *t
 				}
 				entry, err := sender.buildQueueEntry(
 					context.Background(), "workspace-1", "integration-1", "", "https://api.example.com",
-					true, nil, broadcastFor(tc.excludeUnsubscribed), "msg-1", "user@example.com",
+					testTrackingDecision(true), nil, broadcastFor(tc.excludeUnsubscribed), "msg-1", "user@example.com",
 					template, data, emailProvider, "", "",
 				)
 
@@ -1921,7 +1921,7 @@ func TestQueueMessageSender_ListUnsubscribeHeaderFollowsExcludeUnsubscribed(t *t
 				}}
 				sent, failed, err := sender.SendBatch(
 					context.Background(), "workspace-1", "integration-1", "test-secret-key",
-					"https://api.example.com", "", true, nil, "broadcast-1", recipients,
+					"https://api.example.com", "", testTrackingPolicy(true), nil, "broadcast-1", recipients,
 					map[string]*domain.Template{"template-1": template}, emailProvider,
 					time.Now().Add(5*time.Minute), "",
 				)

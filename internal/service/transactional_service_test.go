@@ -3637,24 +3637,45 @@ func TestTransactionalNotificationService_TestTemplate_WithLanguage(t *testing.T
 	require.NoError(t, err)
 }
 
-func TestEffectiveTracking(t *testing.T) {
+func TestRecipientTrackingSettings(t *testing.T) {
+	workspaceWith := func(enabled bool, unknown string) *domain.Workspace {
+		return &domain.Workspace{Settings: domain.WorkspaceSettings{
+			EmailTrackingEnabled: enabled,
+			EmailTracking:        &domain.EmailTrackingSettings{OpensEnabled: enabled, ClicksEnabled: enabled, UnknownConsent: unknown},
+		}}
+	}
+	denied := &domain.NullableString{String: domain.TrackingConsentDenied}
+	granted := &domain.NullableString{String: domain.TrackingConsentGranted}
+
 	tests := []struct {
-		name             string
-		workspaceEnabled bool
-		mode             string
-		expected         bool
+		name       string
+		workspace  *domain.Workspace
+		contact    *domain.Contact
+		mode       string
+		wantOpens  bool
+		wantClicks bool
 	}{
-		{"workspace on, unset mode inherits", true, "", true},
-		{"workspace on, explicit inherit", true, notifuse_mjml.TrackingModeInherit, true},
-		{"workspace on, disabled wins", true, notifuse_mjml.TrackingModeDisabled, false},
-		{"workspace off is a kill-switch for unset", false, "", false},
-		{"workspace off is a kill-switch for inherit", false, notifuse_mjml.TrackingModeInherit, false},
-		{"workspace off, disabled", false, notifuse_mjml.TrackingModeDisabled, false},
-		{"unknown future mode degrades to inherit", true, "force_on", true},
+		{"workspace on, unset mode inherits", workspaceWith(true, domain.UnknownConsentTrack), &domain.Contact{}, "", true, true},
+		{"workspace on, explicit inherit", workspaceWith(true, domain.UnknownConsentTrack), &domain.Contact{}, notifuse_mjml.TrackingModeInherit, true, true},
+		{"workspace on, disabled wins", workspaceWith(true, domain.UnknownConsentTrack), &domain.Contact{}, notifuse_mjml.TrackingModeDisabled, false, false},
+		{"workspace on, no_tracking wins", workspaceWith(true, domain.UnknownConsentTrack), &domain.Contact{TrackingOpensConsent: granted, TrackingClicksConsent: granted}, notifuse_mjml.TrackingModeNoTracking, false, false},
+		{"workspace off is a kill-switch even for granted consent", workspaceWith(false, domain.UnknownConsentTrack), &domain.Contact{TrackingOpensConsent: granted, TrackingClicksConsent: granted}, "", false, false},
+		{"unknown future mode degrades to inherit", workspaceWith(true, domain.UnknownConsentTrack), &domain.Contact{}, "force_on", true, true},
+		{"denied opens", workspaceWith(true, domain.UnknownConsentTrack), &domain.Contact{TrackingOpensConsent: denied}, "", false, true},
+		{"unknown consent under no_track", workspaceWith(true, domain.UnknownConsentNoTrack), &domain.Contact{}, "", false, false},
+		{"granted consent under no_track", workspaceWith(true, domain.UnknownConsentNoTrack), &domain.Contact{TrackingClicksConsent: granted}, "", false, true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expected, effectiveTracking(tc.workspaceEnabled, tc.mode))
+			stored := notifuse_mjml.TrackingSettings{TrackingMode: tc.mode, UTMSource: "app"}
+			got := recipientTrackingSettings(tc.workspace, tc.contact, stored)
+
+			assert.Equal(t, tc.wantOpens || tc.wantClicks, got.EnableTracking)
+			assert.Equal(t, !tc.wantOpens, got.SuppressOpens)
+			assert.Equal(t, !tc.wantClicks, got.SuppressClicks)
+			assert.Equal(t, tc.mode, got.TrackingMode, "the mode is kept so a disabled send keeps its veto")
+			assert.Equal(t, "app", got.UTMSource)
+			assert.False(t, stored.EnableTracking, "the stored settings are not modified")
 		})
 	}
 }

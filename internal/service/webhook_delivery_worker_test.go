@@ -2325,6 +2325,7 @@ func TestBuildTestPayload(t *testing.T) {
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
 			"created_at", "updated_at", "db_created_at", "db_updated_at",
+			"tracking_opens_consent", "tracking_clicks_consent", "tracking_consent_updated_at", "tracking_consent_source",
 		}
 		assert.ElementsMatch(t, expected, keysOf(contact))
 	})

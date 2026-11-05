@@ -22,6 +22,7 @@ import { Contact } from '../../services/api/contacts'
 import { List, Workspace } from '../../services/api/types'
 import { Segment } from '../../services/api/segment'
 import dayjs from '../../lib/dayjs'
+import { TrackingConsentEditor } from './TrackingConsent'
 import { InlineEditableField } from './InlineEditableField'
 import { getFieldType } from './fieldTypes'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -335,12 +336,16 @@ export function ContactDetailsDrawer({
   }
 
   // Handle inline field update
-  const handleFieldUpdate = async (fieldKey: string, value: string | number | object | null) => {
-    if (!contact) return
+  const handleFieldUpdate = async (fieldKey: string, value: string | number | object | null) =>
+    handleFieldsUpdate({ [fieldKey]: value })
+
+  // Writes several fields in one upsert, so they make one change in the timeline.
+  const handleFieldsUpdate = async (fields: Record<string, string | number | object | null>) => {
+    if (!contact) throw new Error(t`Failed to update field`)
 
     const contactData: Record<string, string | number | object | null> = {
       email: contact.email,
-      [fieldKey]: value
+      ...fields
     }
 
     const response = await contactsApi.upsert({
@@ -361,7 +366,7 @@ export function ContactDetailsDrawer({
     })
 
     if (listResponse.contacts && listResponse.contacts.length > 0) {
-      handleContactUpdated(listResponse.contacts[0])
+      await handleContactUpdated(listResponse.contacts[0])
     }
   }
 
@@ -699,6 +704,15 @@ export function ContactDetailsDrawer({
                   isLoading={isLoadingContact}
                 />
               ))}
+
+              <TrackingConsentEditor
+                opens={contact?.tracking_opens_consent}
+                clicks={contact?.tracking_clicks_consent}
+                updatedAt={contact?.tracking_consent_updated_at}
+                source={contact?.tracking_consent_source}
+                disabled={isLoadingContact}
+                onSave={handleFieldsUpdate}
+              />
 
               {/* Set custom fields */}
               {editableFields

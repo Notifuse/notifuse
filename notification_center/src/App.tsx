@@ -6,8 +6,15 @@ import {
   unsubscribeOneClick,
   updateContactPreferences
 } from './api/notification_center'
-import type { ContactPreferencesResponse, List } from './api/notification_center'
+import type {
+  ContactPreferencesResponse,
+  ContactTrackingState,
+  List,
+  TrackingConsent
+} from './api/notification_center'
 import { Button } from '@/components/ui/button'
+import { TrackingDialog, type TrackingDialogMode } from './components/TrackingDialog'
+import { trackingStatusKey } from './lib/trackingStatus'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
 import { getTranslation, getLanguage } from './translations'
@@ -52,6 +59,14 @@ function App() {
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   // List the visitor is asked to confirm unsubscribing from (action=confirm_unsubscribe)
   const [pendingUnsubscribeListId, setPendingUnsubscribeListId] = useState<string | null>(null)
+  // What the workspace tracks and what is tracked for this contact
+  const [tracking, setTracking] = useState<ContactTrackingState | null>(null)
+  const [savingTracking, setSavingTracking] = useState(false)
+  // The tracking dialog, when open. The opt-out link of an email
+  // (action=tracking_optout) opens it on its confirmation: nothing is written until
+  // the visitor confirms
+  const [trackingDialog, setTrackingDialog] = useState<TrackingDialogMode | null>(null)
+  const [trackingOptoutError, setTrackingOptoutError] = useState<string | undefined>()
   const languageMenuRef = useRef<HTMLDivElement>(null)
   const confirmationResultRef = useRef<HTMLDivElement>(null)
   // Set when the result banner must take focus once shown: the confirmation card's button,
@@ -298,6 +313,19 @@ function App() {
 
         setAllLists(combinedLists)
         setSubscriptions(initialSubscriptions)
+        setTracking(data.tracking ?? null)
+
+        // Email links to the tracking dialog only read: a security scanner that opens
+        // them must not change what the contact chose
+        const tracks = !!data.tracking && (data.tracking.opens_enabled || data.tracking.clicks_enabled)
+        // A refusal is recorded even while the workspace tracks nothing: it still
+        // holds when tracking is turned back on
+        if (data.tracking && params.action === 'tracking_optout') {
+          setTrackingDialog('optout')
+        }
+        if (tracks && params.action === 'tracking') {
+          setTrackingDialog('manage')
+        }
 
         // The List-Unsubscribe header link lands here when it is opened rather than
         // one-click POSTed (the server redirects the GET). Anti-spam scanners fetch header
@@ -340,6 +368,11 @@ function App() {
       confirmationResultRef.current?.focus()
     }
   }, [confirmationResult])
+
+  const closeTrackingDialog = useCallback(() => {
+    setTrackingDialog(null)
+    setTrackingOptoutError(undefined)
+  }, [])
 
   // Set favicon when logo is available
   useEffect(() => {
@@ -565,6 +598,73 @@ function App() {
       setConfirmationResult({ success: false, messageKey: 'unsubscribeFailed' })
     } finally {
       setProcessingLists((prev) => ({ ...prev, [listId]: false }))
+    }
+  }
+
+  // Records the contact's own tracking choice. Only the kinds in the update change.
+  const saveTrackingConsent = async (
+    update: { opens?: boolean; clicks?: boolean },
+    source?: 'email_link'
+  ): Promise<boolean> => {
+    const params = parseNotificationCenterParams()
+    if (!params || !tracking) {
+      return false
+    }
+    const consent = (allowed: boolean): TrackingConsent => (allowed ? 'granted' : 'denied')
+
+    const previous = tracking
+    setTracking({
+      ...tracking,
+      ...(update.opens !== undefined ? { opens_tracked: update.opens } : {}),
+      ...(update.clicks !== undefined ? { clicks_tracked: update.clicks } : {})
+    })
+    setSavingTracking(true)
+    try {
+      await updateContactPreferences({
+        workspace_id: params.wid,
+        email: params.email,
+        email_hmac: params.email_hmac,
+        ...(update.opens !== undefined ? { tracking_opens_consent: consent(update.opens) } : {}),
+        ...(update.clicks !== undefined ? { tracking_clicks_consent: consent(update.clicks) } : {}),
+        ...(source ? { consent_source: source } : {})
+      })
+      return true
+    } catch (err) {
+      console.error('Failed to save tracking consent:', err)
+      setTracking(previous)
+      return false
+    } finally {
+      setSavingTracking(false)
+    }
+  }
+
+  const toggleTracking = async (kind: 'opens' | 'clicks', allowed: boolean) => {
+    setConfirmationResult(null)
+    const saved = await saveTrackingConsent({ [kind]: allowed })
+    if (saved) {
+      toast.success(t('trackingSaved'), {
+        style: { backgroundColor: '#f0fdf4', borderLeft: '4px solid #22c55e', color: '#166534' },
+        duration: 3000
+      })
+    } else {
+      toast.error(t('trackingSaveFailed'))
+    }
+  }
+
+  // Confirmed from the dialog the email's opt-out link opened: the dialog then shows
+  // the new choice, which the contact can still change.
+  const confirmTrackingOptout = async () => {
+    setTrackingOptoutError(undefined)
+    const saved = await saveTrackingConsent({ opens: false, clicks: false }, 'email_link')
+    if (saved) {
+      // The dialog then shows the new choice, unless the workspace tracks nothing
+      setTrackingDialog(tracking && (tracking.opens_enabled || tracking.clicks_enabled) ? 'manage' : null)
+      toast.success(t('trackingOptoutSuccess'), {
+        style: { backgroundColor: '#f0fdf4', borderLeft: '4px solid #22c55e', color: '#166534' },
+        duration: 3000
+      })
+    } else {
+      setTrackingOptoutError(t('trackingSaveFailed'))
     }
   }
 
@@ -853,6 +953,33 @@ function App() {
               {/* Empty state when no lists */}
               {allLists.length === 0 && (
                 <p className="text-center text-gray-500 py-4">{t('noSubscriptions')}</p>
+              )}
+
+              {/* Email tracking: one line, the choice itself in a dialog */}
+              {tracking && (tracking.opens_enabled || tracking.clicks_enabled) && (
+                <p className="mt-8 text-center text-xs text-gray-500" data-testid="email-tracking">
+                  {t(trackingStatusKey(tracking))}
+                  {' · '}
+                  <button
+                    type="button"
+                    className="cursor-pointer underline hover:text-gray-700"
+                    onClick={() => setTrackingDialog('manage')}
+                  >
+                    {t('trackingChange')}
+                  </button>
+                </p>
+              )}
+              {tracking && trackingDialog && (
+                <TrackingDialog
+                  mode={trackingDialog}
+                  tracking={tracking}
+                  saving={savingTracking}
+                  optoutError={trackingOptoutError}
+                  t={t}
+                  onToggle={toggleTracking}
+                  onConfirmOptout={confirmTrackingOptout}
+                  onClose={closeTrackingDialog}
+                />
               )}
             </>
           )}

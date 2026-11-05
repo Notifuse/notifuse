@@ -14,6 +14,8 @@ import { faArrowPointer, faTriangleExclamation, faBan } from '@fortawesome/free-
 import { getBroadcastStats } from '../../services/api/messages_history'
 import { useNavigate } from '@tanstack/react-router'
 import type { Workspace } from '../../services/api/types'
+import { isPartiallyTracked, trackedBase } from '../../lib/emailTracking'
+import { TrackedTooltipTitle } from '../common/TrackedTooltipTitle'
 
 export interface ProgressStats {
   remaining: number
@@ -122,6 +124,10 @@ export function BroadcastStats({
     return integration?.email_provider?.kind === 'smtp'
   })()
 
+  // Opens and clicks are shares of the emails that carried the pixel or tracked links.
+  const opensBase = trackedBase(stats.total_sent, stats.total_opens_tracked)
+  const clicksBase = trackedBase(stats.total_sent, stats.total_clicks_tracked)
+
   const getRate = (numerator: number, denominator: number) => {
     if (denominator === 0) return '-'
     const percentage = (numerator / denominator) * 100
@@ -213,7 +219,14 @@ export function BroadcastStats({
         </Tooltip>
       </Col>
       <Col span={3}>
-        <Tooltip title={t`${stats.total_opened} total opens - Click to view details`}>
+        <Tooltip
+          title={
+            <TrackedTooltipTitle
+              title={t`${stats.total_opened} total opens - Click to view details`}
+              tracked={isPartiallyTracked(stats.total_sent, stats.total_opens_tracked) ? opensBase : undefined}
+            />
+          }
+        >
           <div
             className="cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
             onClick={() => navigateToLogs('is_opened')}
@@ -229,7 +242,7 @@ export function BroadcastStats({
                   {t`Opens`}
                 </Space>
               }
-              value={getRate(stats.total_opened, stats.total_sent)}
+              value={getRate(stats.total_opened, opensBase)}
               styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />
@@ -237,7 +250,14 @@ export function BroadcastStats({
         </Tooltip>
       </Col>
       <Col span={3}>
-        <Tooltip title={t`${stats.total_clicked} total clicks - Click to view details`}>
+        <Tooltip
+          title={
+            <TrackedTooltipTitle
+              title={t`${stats.total_clicked} total clicks - Click to view details`}
+              tracked={isPartiallyTracked(stats.total_sent, stats.total_clicks_tracked) ? clicksBase : undefined}
+            />
+          }
+        >
           <div
             className="cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
             onClick={() => navigateToLogs('is_clicked')}
@@ -253,7 +273,7 @@ export function BroadcastStats({
                   {t`Clicks`}
                 </Space>
               }
-              value={getRate(stats.total_clicked, stats.total_sent)}
+              value={getRate(stats.total_clicked, clicksBase)}
               styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />

@@ -99,6 +99,8 @@ export function ContactsCsvUploadDrawer({
     { key: 'postcode', label: t`Postcode` },
     { key: 'state', label: t`State` },
     { key: 'job_title', label: t`Job Title` },
+    { key: 'tracking_opens_consent', label: t`Opens tracking consent (granted or denied)` },
+    { key: 'tracking_clicks_consent', label: t`Clicks tracking consent (granted or denied)` },
     { key: 'custom_string_1', label: getCustomFieldLabel('custom_string_1', currentWorkspace) },
     { key: 'custom_string_2', label: getCustomFieldLabel('custom_string_2', currentWorkspace) },
     { key: 'custom_string_3', label: getCustomFieldLabel('custom_string_3', currentWorkspace) },
@@ -555,6 +557,14 @@ export function ContactsCsvUploadDrawer({
                     // Set to null if not valid JSON
                     value = null
                   }
+                } else if (
+                  (contactField === 'tracking_opens_consent' ||
+                    contactField === 'tracking_clicks_consent') &&
+                  typeof value === 'string'
+                ) {
+                  // "Granted" and " denied " are what spreadsheets hold; an empty
+                  // cell stays empty and keeps the stored consent.
+                  value = value.trim().toLowerCase()
                 } else if (contactField.startsWith('custom_number_')) {
                   if (typeof value === 'string' && value.trim() !== '') {
                     const numValue = Number(value)

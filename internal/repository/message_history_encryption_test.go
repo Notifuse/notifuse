@@ -30,7 +30,7 @@ func (c *capturedArg) Match(v driver.Value) bool {
 // insertArgsCapturing returns the argument list for Create/Upsert with the
 // message_data parameter replaced by the given capture.
 func insertArgsCapturing(blob *capturedArg) []driver.Value {
-	args := make([]driver.Value, 25)
+	args := make([]driver.Value, 27)
 	for i := range args {
 		args[i] = sqlmock.AnyArg()
 	}
@@ -130,13 +130,13 @@ func TestMessageHistoryMessageDataEncryptionAtRest(t *testing.T) {
 			"id", "external_id", "contact_email", "broadcast_id", "automation_id", "transactional_notification_id", "list_id", "template_id", "template_version",
 			"channel", "status_info", "message_data", "channel_options", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
-			"unsubscribed_at", "created_at", "updated_at",
+			"unsubscribed_at", "created_at", "updated_at", "opens_tracked", "clicks_tracked",
 		}).AddRow(
 			message.ID, message.ExternalID, message.ContactEmail, message.BroadcastID, message.AutomationID,
 			nil, nil, message.TemplateID, message.TemplateVersion, message.Channel, message.StatusInfo,
 			storedBlob, nil, []byte("[]"), message.SentAt, message.DeliveredAt, message.FailedAt,
 			message.OpenedAt, message.ClickedAt, message.BouncedAt, message.ComplainedAt,
-			message.UnsubscribedAt, message.CreatedAt, message.UpdatedAt,
+			message.UnsubscribedAt, message.CreatedAt, message.UpdatedAt, nil, nil,
 		)
 		mock.ExpectQuery(`SELECT .+ FROM message_history ORDER BY created_at DESC, id DESC LIMIT 2`).
 			WillReturnRows(rows)

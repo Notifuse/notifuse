@@ -233,6 +233,158 @@ describe('UpsertBroadcastDrawer schedule', () => {
     const payload = (broadcastApi.create as Mock).mock.calls[0][0]
     expect(payload.schedule).toEqual({ is_scheduled: false, use_recipient_timezone: false })
   })
+
+  it('creates a new broadcast tracked, with the "Don\'t track" box unchecked', async () => {
+    renderDrawer(<UpsertBroadcastDrawer workspace={workspace} lists={lists} />)
+    await userEvent.click(screen.getByRole('button', { name: /Create Broadcast/i }))
+
+    await userEvent.type(
+      screen.getByPlaceholderText('E.g. Weekly Newsletter - May 2023'),
+      'Weekly Newsletter'
+    )
+    await userEvent.click(screen.getAllByRole('combobox')[0])
+    await userEvent.click(await screen.findByText('Newsletter'))
+
+    await goToTab('2. Web Analytics')
+    expect(screen.getByRole('checkbox', { name: /Don't track opens and clicks/i })).not.toBeChecked()
+
+    await goToTab('4. Content')
+    await userEvent.type(screen.getByTestId('template-selector'), 'tmpl1')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(broadcastApi.create).toHaveBeenCalled())
+    expect((broadcastApi.create as Mock).mock.calls[0][0].tracking_mode).toBe('inherit')
+  })
+})
+
+describe('UpsertBroadcastDrawer tracking', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(broadcastApi.update as Mock).mockResolvedValue({ broadcast: {} })
+    ;(broadcastApi.create as Mock).mockResolvedValue({ broadcast: {} })
+  })
+
+  const noTrackingCheckbox = () =>
+    screen.getByRole('checkbox', { name: /Don't track opens and clicks/i })
+
+  it('follows the workspace and each contact by default', async () => {
+    await openEditDrawer(makeBroadcast())
+
+    await save()
+
+    await waitFor(() => expect(broadcastApi.update).toHaveBeenCalled())
+    expect(updatePayload().tracking_mode).toBe('inherit')
+  })
+
+  it('sends no_tracking when the user turns tracking off for the broadcast', async () => {
+    await openEditDrawer(makeBroadcast())
+
+    await goToTab('2. Web Analytics')
+    await userEvent.click(noTrackingCheckbox())
+    await save()
+
+    await waitFor(() => expect(broadcastApi.update).toHaveBeenCalled())
+    expect(updatePayload().tracking_mode).toBe('no_tracking')
+  })
+
+  it('shows the stored no_tracking mode checked and turns it back on', async () => {
+    await openEditDrawer(makeBroadcast({ tracking_mode: 'no_tracking' }))
+
+    await goToTab('2. Web Analytics')
+    expect(noTrackingCheckbox()).toBeChecked()
+    await userEvent.click(noTrackingCheckbox())
+    await save()
+
+    await waitFor(() => expect(broadcastApi.update).toHaveBeenCalled())
+    expect(updatePayload().tracking_mode).toBe('inherit')
+  })
+
+  it('turns off and locks the automatic winner when the broadcast is not tracked', async () => {
+    await openEditDrawer(
+      makeBroadcast({
+        test_settings: {
+          enabled: true,
+          sample_percentage: 50,
+          auto_send_winner: true,
+          auto_send_winner_metric: 'open_rate',
+          test_duration_hours: 2,
+          variations: [
+            { variation_name: 'A', template_id: 'tmpl1' },
+            { variation_name: 'B', template_id: 'tmpl2' }
+          ]
+        }
+      } as Partial<Broadcast>)
+    )
+
+    await goToTab('2. Web Analytics')
+    await userEvent.click(noTrackingCheckbox())
+    await goToTab('4. Content')
+
+    const autoWinner = within(
+      screen.getByText('Automatically send winner').closest('.ant-form-item') as HTMLElement
+    ).getByRole('switch')
+    expect(autoWinner).not.toBeChecked()
+    expect(autoWinner).toBeDisabled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(broadcastApi.update).toHaveBeenCalled())
+    expect(updatePayload().test_settings.auto_send_winner).toBe(false)
+    expect(updatePayload().tracking_mode).toBe('no_tracking')
+  })
+
+  it('warns that only consenting contacts count when unknown contacts are not tracked', async () => {
+    const strictWorkspace = {
+      ...workspace,
+      settings: {
+        ...workspace.settings,
+        email_tracking: { opens_enabled: true, clicks_enabled: true, unknown_consent: 'no_track' }
+      }
+    } as unknown as Workspace
+    renderDrawer(
+      <UpsertBroadcastDrawer
+        workspace={strictWorkspace}
+        broadcast={makeBroadcast({
+          test_settings: {
+            enabled: true,
+            sample_percentage: 50,
+            auto_send_winner: false,
+            variations: [
+              { variation_name: 'A', template_id: 'tmpl1' },
+              { variation_name: 'B', template_id: 'tmpl2' }
+            ]
+          }
+        } as Partial<Broadcast>)}
+        lists={lists}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: /Edit Broadcast/i }))
+    await goToTab('4. Content')
+
+    expect(
+      screen.getByText(/only recipients who agreed to tracking count in the test results/i)
+    ).toBeInTheDocument()
+  })
+
+  it('says nothing about consent when unknown contacts are tracked', async () => {
+    await openEditDrawer(
+      makeBroadcast({
+        test_settings: {
+          enabled: true,
+          sample_percentage: 50,
+          auto_send_winner: false,
+          variations: [
+            { variation_name: 'A', template_id: 'tmpl1' },
+            { variation_name: 'B', template_id: 'tmpl2' }
+          ]
+        }
+      } as Partial<Broadcast>)
+    )
+    await goToTab('4. Content')
+
+    expect(
+      screen.queryByText(/only recipients who agreed to tracking count in the test results/i)
+    ).not.toBeInTheDocument()
+  })
 })
 
 // Switching the exclusion off is how a notice every member must receive is sent (issue #484);

@@ -43,6 +43,10 @@
           "postcode": "75011",
           "state": "Île-de-France",
           "timezone": "Europe/Paris",
+          "tracking_clicks_consent": null,
+          "tracking_consent_source": null,
+          "tracking_consent_updated_at": null,
+          "tracking_opens_consent": null,
           "updated_at": "2024-01-15T09:30:00Z"
         }
       },
@@ -94,6 +98,10 @@
           "postcode": "75011",
           "state": "Île-de-France",
           "timezone": "Europe/Paris",
+          "tracking_clicks_consent": null,
+          "tracking_consent_source": null,
+          "tracking_consent_updated_at": null,
+          "tracking_opens_consent": null,
           "updated_at": "2024-01-15T09:30:00Z"
         }
       },

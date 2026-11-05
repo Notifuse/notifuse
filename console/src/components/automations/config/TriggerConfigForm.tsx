@@ -131,6 +131,13 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
         ]
       },
       {
+        label: t`Email Tracking Consent`,
+        options: [
+          { value: 'tracking_opens_consent', label: t`Opens Tracking Consent` },
+          { value: 'tracking_clicks_consent', label: t`Clicks Tracking Consent` }
+        ]
+      },
+      {
         label: t`Custom String Fields`,
         options: [
           { value: 'custom_string_1', label: getFieldLabel('custom_string_1', t`Custom String 1`, workspace?.settings?.custom_field_labels) },

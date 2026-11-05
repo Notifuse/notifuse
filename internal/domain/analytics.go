@@ -121,6 +121,33 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 					{SQL: "channel = 'email'"},
 				},
 			},
+			// The denominators of the open and click rates: emails sent with the
+			// open pixel, and with the click redirect. A message sent before the
+			// flags existed has them NULL and counts as tracked.
+			"count_opens_tracked": {
+				Type:        "count",
+				Title:       "Sent Emails Tracked for Opens",
+				SQL:         "*",
+				Description: "Email messages accepted by the email provider that carried the open pixel",
+				Filters: []analytics.MeasureFilter{
+					{SQL: "sent_at IS NOT NULL"},
+					{SQL: "failed_at IS NULL"},
+					{SQL: "channel = 'email'"},
+					{SQL: "opens_tracked IS NOT FALSE"},
+				},
+			},
+			"count_clicks_tracked": {
+				Type:        "count",
+				Title:       "Sent Emails Tracked for Clicks",
+				SQL:         "*",
+				Description: "Email messages accepted by the email provider whose links went through the click redirect",
+				Filters: []analytics.MeasureFilter{
+					{SQL: "sent_at IS NOT NULL"},
+					{SQL: "failed_at IS NULL"},
+					{SQL: "channel = 'email'"},
+					{SQL: "clicks_tracked IS NOT FALSE"},
+				},
+			},
 			"count_broadcast_messages": {
 				Type:        "count",
 				Title:       "Broadcast Messages",

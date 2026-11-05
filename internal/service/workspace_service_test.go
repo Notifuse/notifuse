@@ -749,6 +749,8 @@ func TestWorkspaceService_CreateWorkspace_CustomLanguageSettings(t *testing.T) {
 	mockRepo.EXPECT().Create(liveCtx(), gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
 		assert.Equal(t, "fr", workspace.Settings.DefaultLanguage)
 		assert.Equal(t, []string{"fr", "en"}, workspace.Settings.Languages)
+		assert.Equal(t, domain.DefaultEmailTrackingSettings(), workspace.Settings.EmailTracking,
+			"a new workspace tracks opens and clicks and tracks unknown contacts")
 		return nil
 	})
 	mockRepo.EXPECT().AddUserToWorkspace(detachedCtx(), gomock.Any()).Return(nil)
@@ -5934,6 +5936,33 @@ func TestUpdateWorkspace_OmittedSettingsKeepStoredValues(t *testing.T) {
 			"clearing the file manager outright must take its credential with it")
 		assert.Equal(t, "provider-marketing", saved.Settings.MarketingEmailProviderID,
 			"the sibling the body did not name is untouched")
+	})
+
+	t.Run("email_tracking is saved and email_tracking_enabled follows it", func(t *testing.T) {
+		saved := run(t, `{
+			"id": "testworkspace",
+			"name": "Renamed",
+			"settings": {
+				"timezone": "UTC", "default_language": "en", "languages": ["en"],
+				"email_tracking_enabled": true,
+				"email_tracking": {"opens_enabled": false, "clicks_enabled": false, "unknown_consent": "no_track"}
+			}
+		}`)
+
+		require.NotNil(t, saved.Settings.EmailTracking)
+		assert.Equal(t, domain.EmailTrackingSettings{OpensEnabled: false, ClicksEnabled: false, UnknownConsent: domain.UnknownConsentNoTrack}, *saved.Settings.EmailTracking)
+		assert.False(t, saved.Settings.EmailTrackingEnabled)
+	})
+
+	t.Run("an older client flipping the single switch splits it into both", func(t *testing.T) {
+		saved := run(t, `{
+			"id": "testworkspace",
+			"name": "Renamed",
+			"settings": {"timezone": "UTC", "default_language": "en", "languages": ["en"], "email_tracking_enabled": false}
+		}`)
+
+		require.NotNil(t, saved.Settings.EmailTracking)
+		assert.Equal(t, domain.EmailTrackingSettings{OpensEnabled: false, ClicksEnabled: false, UnknownConsent: domain.UnknownConsentTrack}, *saved.Settings.EmailTracking)
 	})
 }
 

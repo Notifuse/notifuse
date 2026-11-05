@@ -1234,13 +1234,17 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 	// visit attribution, which is the cheaper failure.
 	//
 	// Pinned by TestBroadcastService_SendToIndividual_NeverMintsIdentityToken.
+	//
+	// Opens and clicks follow the recipient's consent when the address is a
+	// contact, and the workspace's choice for unknown consent when it is not.
 	trackingSettings := notifuse_mjml.TrackingSettings{
-		Endpoint:       endpoint,
-		EnableTracking: workspace.Settings.EmailTrackingEnabled,
-		WorkspaceID:    request.WorkspaceID,
-		MessageID:      messageID,
-		SigningKey:     domain.TrackingSigningKey(workspace.Settings.SecretKey),
+		Endpoint:    endpoint,
+		WorkspaceID: request.WorkspaceID,
+		MessageID:   messageID,
+		SigningKey:  domain.TrackingSigningKey(workspace.Settings.SecretKey),
 	}
+	decision := domain.ResolveEmailTracking(workspace.Settings.TrackingPolicy(), contact, broadcast.TrackingMode)
+	decision.Apply(&trackingSettings)
 
 	// Add UTM parameters if available
 	if broadcast.UTMParameters != nil {
@@ -1351,6 +1355,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
+	message.OpensTracked, message.ClicksTracked = decision.TrackedFlags()
 
 	// Record message in history
 	return s.messageHistoryRepo.Create(ctx, request.WorkspaceID, workspace.Settings.SecretKey, message)
@@ -1404,28 +1409,43 @@ func (s *BroadcastService) GetTestResults(ctx context.Context, workspaceID, broa
 			continue // Skip failed variations
 		}
 
-		// Calculate rates (avoid division by zero)
+		// Rates are measured over the emails that could record them: an email
+		// sent without the pixel (or the redirects) cannot open (or click). Each
+		// rate has its own guard, and a rate with no tracked email is left out of
+		// the recommendation score.
 		openRate := 0.0
 		clickRate := 0.0
-		if stats.TotalSent > 0 {
-			openRate = float64(stats.TotalOpened) / float64(stats.TotalSent)
-			clickRate = float64(stats.TotalClicked) / float64(stats.TotalSent)
+		if stats.TotalOpensTracked > 0 {
+			openRate = float64(stats.TotalOpened) / float64(stats.TotalOpensTracked)
+		}
+		if stats.TotalClicksTracked > 0 {
+			clickRate = float64(stats.TotalClicked) / float64(stats.TotalClicksTracked)
 		}
 
 		variationResults[variation.TemplateID] = &domain.VariationResult{
-			TemplateID:   variation.TemplateID,
-			TemplateName: "Template " + variation.TemplateID, // Could fetch actual template name
-			Recipients:   stats.TotalSent,                    // Use sent as recipients to match rate calculation denominator
-			Delivered:    stats.TotalDelivered,
-			Opens:        stats.TotalOpened,
-			Clicks:       stats.TotalClicked,
-			OpenRate:     openRate,
-			ClickRate:    clickRate,
+			TemplateID:    variation.TemplateID,
+			TemplateName:  "Template " + variation.TemplateID, // Could fetch actual template name
+			Recipients:    stats.TotalSent,
+			Delivered:     stats.TotalDelivered,
+			Opens:         stats.TotalOpened,
+			Clicks:        stats.TotalClicked,
+			OpenRate:      openRate,
+			ClickRate:     clickRate,
+			OpensTracked:  stats.TotalOpensTracked,
+			ClicksTracked: stats.TotalClicksTracked,
 		}
 
-		// Calculate score for recommendation (if not auto-send winner mode)
-		if !broadcast.TestSettings.AutoSendWinner && broadcast.WinningTemplate == nil {
-			score := (clickRate * 0.7) + (openRate * 0.3)
+		// Calculate score for recommendation (if not auto-send winner mode). A
+		// variation with no tracked email at all is not recommended.
+		if !broadcast.TestSettings.AutoSendWinner && broadcast.WinningTemplate == nil &&
+			(stats.TotalOpensTracked > 0 || stats.TotalClicksTracked > 0) {
+			score := 0.0
+			if stats.TotalClicksTracked > 0 {
+				score += clickRate * 0.7
+			}
+			if stats.TotalOpensTracked > 0 {
+				score += openRate * 0.3
+			}
 			if score > bestScore {
 				bestScore = score
 				recommendedWinner = variation.TemplateID

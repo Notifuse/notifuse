@@ -168,6 +168,12 @@ describe('EMAIL_AI_SYSTEM_PROMPT Liquid variables', () => {
     expect(listGroup).not.toContain('notification_center_url')
   })
 
+  it('puts the tracking preference links with the contact', () => {
+    expect(contactGroup).toContain('{{ tracking_preferences_url }}')
+    expect(contactGroup).toContain('{{ tracking_optout_url }}')
+    expect(listGroup).not.toContain('tracking_optout_url')
+  })
+
   it('keeps the header-only urls out of every availability group', () => {
     for (const availabilityGroup of availabilityGroups) {
       expect(availabilityGroup).not.toContain('oneclick_unsubscribe_url')

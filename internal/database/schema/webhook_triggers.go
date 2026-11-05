@@ -90,7 +90,10 @@ func WebhookContactsTriggerFunction() string {
 				   NEW.custom_json_2 IS NOT DISTINCT FROM OLD.custom_json_2 AND
 				   NEW.custom_json_3 IS NOT DISTINCT FROM OLD.custom_json_3 AND
 				   NEW.custom_json_4 IS NOT DISTINCT FROM OLD.custom_json_4 AND
-				   NEW.custom_json_5 IS NOT DISTINCT FROM OLD.custom_json_5 THEN
+				   NEW.custom_json_5 IS NOT DISTINCT FROM OLD.custom_json_5 AND
+				   NEW.tracking_opens_consent IS NOT DISTINCT FROM OLD.tracking_opens_consent AND
+				   NEW.tracking_clicks_consent IS NOT DISTINCT FROM OLD.tracking_clicks_consent AND
+				   NEW.tracking_consent_source IS NOT DISTINCT FROM OLD.tracking_consent_source THEN
 					RETURN NEW;
 				END IF;
 			ELSIF TG_OP = 'DELETE' THEN
