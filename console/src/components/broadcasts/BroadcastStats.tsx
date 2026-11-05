@@ -14,6 +14,8 @@ import { faArrowPointer, faTriangleExclamation, faBan } from '@fortawesome/free-
 import { getBroadcastStats } from '../../services/api/messages_history'
 import { useNavigate } from '@tanstack/react-router'
 import type { Workspace } from '../../services/api/types'
+import { isPartiallyTracked, trackedBase } from '../../lib/emailTracking'
+import { TrackedOfNote } from '../common/TrackedOfNote'
 
 export interface ProgressStats {
   remaining: number
@@ -122,6 +124,10 @@ export function BroadcastStats({
     return integration?.email_provider?.kind === 'smtp'
   })()
 
+  // Opens and clicks are shares of the emails that carried the pixel or tracked links.
+  const opensBase = trackedBase(stats.total_sent, stats.total_opens_tracked)
+  const clicksBase = trackedBase(stats.total_sent, stats.total_clicks_tracked)
+
   const getRate = (numerator: number, denominator: number) => {
     if (denominator === 0) return '-'
     const percentage = (numerator / denominator) * 100
@@ -229,10 +235,13 @@ export function BroadcastStats({
                   {t`Opens`}
                 </Space>
               }
-              value={getRate(stats.total_opened, stats.total_sent)}
+              value={getRate(stats.total_opened, opensBase)}
               styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />
+            {isPartiallyTracked(stats.total_sent, stats.total_opens_tracked) && (
+              <TrackedOfNote tracked={opensBase} />
+            )}
           </div>
         </Tooltip>
       </Col>
@@ -253,10 +262,13 @@ export function BroadcastStats({
                   {t`Clicks`}
                 </Space>
               }
-              value={getRate(stats.total_clicked, stats.total_sent)}
+              value={getRate(stats.total_clicked, clicksBase)}
               styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />
+            {isPartiallyTracked(stats.total_sent, stats.total_clicks_tracked) && (
+              <TrackedOfNote tracked={clicksBase} />
+            )}
           </div>
         </Tooltip>
       </Col>

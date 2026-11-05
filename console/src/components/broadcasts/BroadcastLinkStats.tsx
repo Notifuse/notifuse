@@ -18,8 +18,8 @@ interface BroadcastLinkStatsProps {
   // Scopes the breakdown to a single A/B variation (the template its messages were sent
   // with). Omit for the whole broadcast.
   templateId?: string
-  // Denominator for the per-link click rate — the number of emails sent for this
-  // variation (the same figure the variation's Clicks % is computed from).
+  // Denominator for the per-link click rate — the emails of this variation that
+  // carried tracked links (the same figure the variation's Clicks % is computed from).
   recipients?: number
   enabled?: boolean
 }
@@ -160,7 +160,7 @@ export function BroadcastLinkStats({
           },
           {
             title: (
-              <Tooltip title={t`Unique clicks ÷ recipients of this variation.`}>
+              <Tooltip title={t`Unique clicks ÷ recipients of this variation whose clicks were tracked.`}>
                 <span className="cursor-help">{t`Click rate`}</span>
               </Tooltip>
             ),

@@ -6,7 +6,12 @@ import {
   unsubscribeOneClick,
   updateContactPreferences
 } from './api/notification_center'
-import type { ContactPreferencesResponse, List } from './api/notification_center'
+import type {
+  ContactPreferencesResponse,
+  ContactTrackingState,
+  List,
+  TrackingConsent
+} from './api/notification_center'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
@@ -52,6 +57,14 @@ function App() {
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   // List the visitor is asked to confirm unsubscribing from (action=confirm_unsubscribe)
   const [pendingUnsubscribeListId, setPendingUnsubscribeListId] = useState<string | null>(null)
+  // What the workspace tracks and what is tracked for this contact
+  const [tracking, setTracking] = useState<ContactTrackingState | null>(null)
+  const [savingTracking, setSavingTracking] = useState(false)
+  // Set by the opt-out link of an email (action=tracking_optout): nothing is written
+  // until the visitor confirms
+  const [pendingTrackingOptout, setPendingTrackingOptout] = useState(false)
+  const trackingHeadingRef = useRef<HTMLHeadingElement>(null)
+  const focusTrackingSectionRef = useRef(false)
   const languageMenuRef = useRef<HTMLDivElement>(null)
   const confirmationResultRef = useRef<HTMLDivElement>(null)
   // Set when the result banner must take focus once shown: the confirmation card's button,
@@ -298,6 +311,16 @@ function App() {
 
         setAllLists(combinedLists)
         setSubscriptions(initialSubscriptions)
+        setTracking(data.tracking ?? null)
+
+        // Email links to the tracking section only read: a security scanner that opens
+        // them must not change what the contact chose
+        if (params.action === 'tracking_optout') {
+          setPendingTrackingOptout(true)
+        }
+        if (params.action === 'tracking') {
+          focusTrackingSectionRef.current = true
+        }
 
         // The List-Unsubscribe header link lands here when it is opened rather than
         // one-click POSTed (the server redirects the GET). Anti-spam scanners fetch header
@@ -340,6 +363,15 @@ function App() {
       confirmationResultRef.current?.focus()
     }
   }, [confirmationResult])
+
+  // The email's link to the tracking section lands on it
+  useEffect(() => {
+    if (!loading && tracking && focusTrackingSectionRef.current) {
+      focusTrackingSectionRef.current = false
+      trackingHeadingRef.current?.scrollIntoView?.({ block: 'start' })
+      trackingHeadingRef.current?.focus()
+    }
+  }, [loading, tracking])
 
   // Set favicon when logo is available
   useEffect(() => {
@@ -568,6 +600,67 @@ function App() {
     }
   }
 
+  // Records the contact's own tracking choice. Only the kinds in the update change.
+  const saveTrackingConsent = async (
+    update: { opens?: boolean; clicks?: boolean },
+    source?: 'email_link'
+  ): Promise<boolean> => {
+    const params = parseNotificationCenterParams()
+    if (!params || !tracking) {
+      return false
+    }
+    const consent = (allowed: boolean): TrackingConsent => (allowed ? 'granted' : 'denied')
+
+    const previous = tracking
+    setTracking({
+      ...tracking,
+      ...(update.opens !== undefined ? { opens_tracked: update.opens } : {}),
+      ...(update.clicks !== undefined ? { clicks_tracked: update.clicks } : {})
+    })
+    setSavingTracking(true)
+    try {
+      await updateContactPreferences({
+        workspace_id: params.wid,
+        email: params.email,
+        email_hmac: params.email_hmac,
+        ...(update.opens !== undefined ? { tracking_opens_consent: consent(update.opens) } : {}),
+        ...(update.clicks !== undefined ? { tracking_clicks_consent: consent(update.clicks) } : {}),
+        ...(source ? { consent_source: source } : {})
+      })
+      return true
+    } catch (err) {
+      console.error('Failed to save tracking consent:', err)
+      setTracking(previous)
+      return false
+    } finally {
+      setSavingTracking(false)
+    }
+  }
+
+  const toggleTracking = async (kind: 'opens' | 'clicks', allowed: boolean) => {
+    setConfirmationResult(null)
+    const saved = await saveTrackingConsent({ [kind]: allowed })
+    if (saved) {
+      toast.success(t('trackingSaved'), {
+        style: { backgroundColor: '#f0fdf4', borderLeft: '4px solid #22c55e', color: '#166534' },
+        duration: 3000
+      })
+    } else {
+      toast.error(t('trackingSaveFailed'))
+    }
+  }
+
+  const confirmTrackingOptout = async () => {
+    const saved = await saveTrackingConsent({ opens: false, clicks: false }, 'email_link')
+    focusConfirmationResultRef.current = true
+    if (saved) {
+      setPendingTrackingOptout(false)
+      setConfirmationResult({ success: true, messageKey: 'trackingOptoutSuccess' })
+    } else {
+      setConfirmationResult({ success: false, messageKey: 'trackingSaveFailed' })
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white">
@@ -776,6 +869,25 @@ function App() {
                 </div>
               )}
 
+              {/* Tracking opt-out confirmation (the opt-out link of an email) */}
+              {pendingTrackingOptout && (
+                <div
+                  className="mb-6 p-4 rounded-sm border border-gray-300 bg-gray-50"
+                  data-testid="confirm-tracking-optout"
+                >
+                  <p className="text-sm text-gray-700">{t('trackingOptoutPrompt')}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={confirmTrackingOptout}
+                    disabled={savingTracking}
+                    className="mt-3 cursor-pointer border-red-500 text-red-500 hover:bg-red-50"
+                  >
+                    {savingTracking ? t('processing') : t('trackingOptoutConfirm')}
+                  </Button>
+                </div>
+              )}
+
               {/* All Lists section with toggles - showing both public and private lists */}
               {allLists.length > 0 && (
                 <div className="mb-6">
@@ -853,6 +965,77 @@ function App() {
               {/* Empty state when no lists */}
               {allLists.length === 0 && (
                 <p className="text-center text-gray-500 py-4">{t('noSubscriptions')}</p>
+              )}
+
+              {/* Email tracking: only the kinds the workspace tracks */}
+              {tracking && (tracking.opens_enabled || tracking.clicks_enabled) && (
+                <div className="mb-6 mt-6" data-testid="email-tracking">
+                  <h2
+                    ref={trackingHeadingRef}
+                    tabIndex={-1}
+                    className="text-md font-medium focus:outline-none"
+                  >
+                    {t('emailTracking')}
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1 mb-3">{t('emailTrackingIntro')}</p>
+                  <div className="space-y-3">
+                    {(
+                      [
+                        {
+                          kind: 'opens',
+                          enabled: tracking.opens_enabled,
+                          tracked: tracking.opens_tracked,
+                          label: t('openTracking'),
+                          description: t('openTrackingDescription')
+                        },
+                        {
+                          kind: 'clicks',
+                          enabled: tracking.clicks_enabled,
+                          tracked: tracking.clicks_tracked,
+                          label: t('clickTracking'),
+                          description: t('clickTrackingDescription')
+                        }
+                      ] as const
+                    )
+                      .filter((row) => row.enabled)
+                      .map((row) => (
+                        <div
+                          key={row.kind}
+                          className={`p-4 border border-gray-300 rounded-sm ${
+                            row.tracked ? 'bg-white' : 'bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="font-medium">
+                                {row.label}
+                                <span className="ml-2 text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded-full">
+                                  {row.tracked ? t('trackingOn') : t('trackingOff')}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-600 mt-1">{row.description}</p>
+                            </div>
+                            <div className="ml-4">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => toggleTracking(row.kind, !row.tracked)}
+                                disabled={savingTracking}
+                                aria-label={`${row.tracked ? t('trackingStop') : t('trackingAllow')}: ${row.label}`}
+                                className={`cursor-pointer ${
+                                  row.tracked
+                                    ? 'border-red-500 text-red-500 hover:bg-red-50'
+                                    : 'border-blue-500 text-blue-500 hover:bg-blue-50'
+                                }`}
+                              >
+                                {row.tracked ? t('trackingStop') : t('trackingAllow')}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
               )}
             </>
           )}

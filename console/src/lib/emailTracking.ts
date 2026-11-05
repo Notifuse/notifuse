@@ -36,5 +36,19 @@ export const TRACKING_CONSENT_SOURCE_FIELD_OPTIONS = [
   { value: 'import', label: 'Import' },
   { value: 'notification_center', label: 'Notification center' },
   { value: 'email_link', label: 'Email link' },
-  { value: 'subscribe_form', label: 'Subscribe form' }
+  { value: 'subscribe_form', label: 'Subscription form' }
 ]
+
+/**
+ * The emails an open or click rate is computed over: those that carried the
+ * pixel (opens) or tracked links (clicks). A response without the tracked
+ * total predates per-recipient tracking, and then every sent email counts.
+ */
+export function trackedBase(sent: number, tracked: number | undefined): number {
+  return tracked ?? sent
+}
+
+/** True when some sent emails were not tracked, so the rate covers fewer recipients. */
+export function isPartiallyTracked(sent: number, tracked: number | undefined): boolean {
+  return tracked !== undefined && tracked < sent
+}

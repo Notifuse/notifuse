@@ -15,7 +15,8 @@ import {
   Alert,
   Tag,
   Tabs,
-  Tooltip
+  Tooltip,
+  Checkbox
 } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -33,6 +34,7 @@ import extractTLD from '../../lib/tld'
 import type { List } from '../../services/api/list'
 import { DataFeedSettings } from './DataFeedSettings'
 import type { GlobalFeedSettings, RecipientFeedSettings } from '../../services/api/broadcast'
+import { getEmailTrackingPolicy, TRACKING_DOCS_URL } from '../../lib/emailTracking'
 
 // Custom component to handle A/B testing configuration
 const ABTestingConfig = ({ form }: { form: ReturnType<typeof Form.useForm>[0] }) => {
@@ -110,6 +112,9 @@ export function UpsertBroadcastDrawer({
 
   // Watch campaign name changes using Form.useWatch
   const campaignName = Form.useWatch('name', form)
+  const trackingPolicy = getEmailTrackingPolicy(workspace.settings)
+  const workspaceTracks = trackingPolicy.opens_enabled || trackingPolicy.clicks_enabled
+  const broadcastUntracked = Form.useWatch('tracking_mode', form) === 'no_tracking'
 
   // Update utm_campaign when campaign name changes
   useEffect(() => {
@@ -163,7 +168,8 @@ export function UpsertBroadcastDrawer({
           ...broadcast.audience
         },
         test_settings: broadcast.test_settings,
-        utm_parameters: broadcast.utm_parameters || undefined
+        utm_parameters: broadcast.utm_parameters || undefined,
+        tracking_mode: broadcast.tracking_mode || 'inherit'
         // metadata is deliberately not seeded: no field registers it, so the form
         // would hold a value nothing can edit and nothing reads back. The server
         // keeps the stored metadata when the key is absent from the payload.
@@ -210,7 +216,8 @@ export function UpsertBroadcastDrawer({
         utm_parameters: {
           source: websiteTLD || undefined,
           medium: 'email'
-        }
+        },
+        tracking_mode: 'inherit'
       })
       // Reset data feed settings to defaults
       setGlobalFeed({
@@ -620,6 +627,36 @@ export function UpsertBroadcastDrawer({
                     <Form.Item name={['utm_parameters', 'campaign']} label="utm_campaign">
                       <Input />
                     </Form.Item>
+
+                    <Form.Item
+                      name="tracking_mode"
+                      label={t`Open and click tracking`}
+                      valuePropName="checked"
+                      getValueProps={(mode?: string) => ({ checked: mode === 'no_tracking' })}
+                      getValueFromEvent={(e: { target: { checked: boolean } }) =>
+                        e.target.checked ? 'no_tracking' : 'inherit'
+                      }
+                      extra={
+                        <>
+                          {t`No recipient gets the open pixel or tracked links; UTM parameters are kept. Otherwise each contact's tracking consent applies.`}{' '}
+                          <a href={TRACKING_DOCS_URL} target="_blank" rel="noopener noreferrer">
+                            {t`Learn more`}
+                          </a>
+                        </>
+                      }
+                    >
+                      <Checkbox
+                        onChange={(e) => {
+                          // The server refuses an untracked broadcast with an automatic
+                          // winner: the winner is chosen on opens or clicks.
+                          if (e.target.checked) {
+                            form.setFieldValue(['test_settings', 'auto_send_winner'], false)
+                          }
+                        }}
+                      >
+                        {t`Don't track opens and clicks for this broadcast`}
+                      </Checkbox>
+                    </Form.Item>
                   </div>
                 </div>
 
@@ -646,7 +683,7 @@ export function UpsertBroadcastDrawer({
 
                 <div style={{ display: tab === 'content' ? 'block' : 'none' }}>
                   <div className="pt-8 pr-8">
-                    {!workspace.settings?.email_tracking_enabled && (
+                    {!workspaceTracks && (
                       <Alert
                         description={t`Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features.`}
                         type="info"
@@ -660,7 +697,7 @@ export function UpsertBroadcastDrawer({
                       label={t`Enable A/B Testing`}
                       valuePropName="checked"
                     >
-                      <Switch disabled={!workspace.settings?.email_tracking_enabled} />
+                      <Switch disabled={!workspaceTracks} />
                     </Form.Item>
 
                     <Form.Item
@@ -701,12 +738,29 @@ export function UpsertBroadcastDrawer({
                                       </Tooltip>
                                     }
                                   >
-                                    <Switch
-                                      disabled={!workspace.settings?.email_tracking_enabled}
-                                    />
+                                    <Switch disabled={!workspaceTracks || broadcastUntracked} />
                                   </Form.Item>
                                 </Col>
                               </Row>
+
+                              {broadcastUntracked && (
+                                <Alert
+                                  description={t`Opens and clicks are not tracked for this broadcast: pick the winning variation yourself.`}
+                                  type="info"
+                                  showIcon
+                                  className="!mb-4"
+                                />
+                              )}
+                              {!broadcastUntracked &&
+                                workspaceTracks &&
+                                trackingPolicy.unknown_consent === 'no_track' && (
+                                  <Alert
+                                    description={t`This workspace does not track contacts whose consent is unknown, so only recipients who agreed to tracking count in the test results.`}
+                                    type="warning"
+                                    showIcon
+                                    className="!mb-4"
+                                  />
+                                )}
 
                               <ABTestingConfig form={form} />
 
