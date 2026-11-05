@@ -226,10 +226,11 @@ export function TrackingConsentEditor({
         <TrackingConsentSummary opens={opens} clicks={clicks} />
       </div>
       <div className="flex items-start">
-        {/* As narrow as the edit icon of the other fields, so the values line up */}
+        {/* Laid out as narrow as the edit icon of the other fields, so the values line up;
+            the negative margin keeps a larger click area */}
         <button
           type="button"
-          className="p-0 border-0 bg-transparent leading-none text-gray-400 hover:text-blue-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+          className="-m-1.5 p-1.5 rounded border-0 bg-transparent leading-none text-gray-400 enabled:hover:text-blue-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-blue-500"
           aria-label={t`Edit tracking consent`}
           disabled={disabled}
           onClick={startEdit}
