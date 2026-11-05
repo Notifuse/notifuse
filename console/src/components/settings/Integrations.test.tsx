@@ -149,7 +149,7 @@ const isolationSwitch = () =>
 
 describe('Integrations — marketing rate limit', () => {
   // The queue now sends at this rate, so the field has to say what it governs and what it
-  // must stay under: a limit above the provider's leads to throttling, which pauses broadcasts.
+  // must stay under: a limit above the provider's leads to throttling, which slows sending down.
   it('says what the rate applies to and what it must stay under', async () => {
     await openSESDrawer()
 

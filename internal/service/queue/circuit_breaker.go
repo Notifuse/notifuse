@@ -95,8 +95,9 @@ func (cb *CircuitBreaker) Allow() (Ticket, bool) {
 	return Ticket{Epoch: cb.epoch, Probe: true}, true
 }
 
-// CancelProbe gives back a probe that was never sent, so the next Allow can probe at
-// once instead of after another cooldown. Any other ticket is ignored.
+// CancelProbe gives back a probe that settled nothing — never sent, or refused for the
+// sending pace — so the next Allow can probe at once instead of after another cooldown.
+// Any other ticket is ignored.
 func (cb *CircuitBreaker) CancelProbe(ticket Ticket) {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
@@ -262,7 +263,7 @@ func (icb *IntegrationCircuitBreaker) Allow(integrationID string) (Ticket, bool)
 	return Ticket{}, true
 }
 
-// CancelProbe gives back a probe that was never sent
+// CancelProbe gives back a probe that settled nothing
 func (icb *IntegrationCircuitBreaker) CancelProbe(integrationID string, ticket Ticket) {
 	if cb, ok := icb.breakers.Load(integrationID); ok {
 		cb.(*CircuitBreaker).CancelProbe(ticket)
