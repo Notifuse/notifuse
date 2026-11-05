@@ -193,7 +193,7 @@ func (m *Manager) SetCurrentDBVersion(ctx context.Context, db *sql.DB, version f
 // without a time limit (a migration is never interrupted, and an instance must not
 // serve before its migrations are applied), then finds the version current. A holder
 // lost with its node is released once the server notices the dead connection, within
-// about a minute with the lock's keepalives. Instances of 42.2 and older take no lock.
+// about a minute with the lock's keepalives. Instances of 42.1 and older take no lock.
 //
 // The version is also read before the lock is tried. A database already ahead of the
 // code is refused there, without waiting. When the version read under the lock is
@@ -487,7 +487,7 @@ func (m *Manager) executeMigration(ctx context.Context, cfg *config.Config, db *
 // deletion on an instance that takes the name lock, under way at the same time,
 // deadlocks with it, unseen by PostgreSQL (each side waits in Go for another connection
 // of its own), until the deletion's 10-minute bound ends it. An instance
-// takes the name lock only from 42.3, and serves only once the database is at its own
+// takes the name lock only from 42.2, and serves only once the database is at its own
 // version, past those migrations; a future system migration writing those rows would
 // bring the case back. The migration lock adds no such case: it is always taken before
 // a name lock, here (exclusively, by RunMigrations) as in InitializeEmptyWorkspaces
