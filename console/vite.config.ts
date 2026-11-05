@@ -15,13 +15,13 @@ const __dirname = dirname(__filename)
 export default defineConfig({
   base: '/console/',
   plugins: [
-    react({
-      babel: {
-        plugins: ['@lingui/babel-plugin-lingui-macro'],
-      },
-    }),
+    react(),
     tailwindcss(),
-    lingui(),
+    // Lingui macros are compiled by the plugin's native transform rather than a Babel
+    // pass inside plugin-react; it becomes Lingui's default in its next major.
+    // src/__tests__/i18nMacro.test.ts still runs the Babel macro to find tagged
+    // templates the macro leaves untransformed.
+    lingui({ macroTransform: true }),
   ],
   server: {
     host: 'notifusedev.com',
