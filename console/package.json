@@ -127,8 +127,10 @@
     "katex": "^0.18.2"
   },
   "devDependencies": {
+    "@babel/core": "^7.29.13",
     "@eslint/js": "^9.19.0",
     "@lingui/cli": "^6.12.0",
+    "@lingui/conf": "^6.12.0",
     "@lingui/native-tools": "^0.2.0",
     "@lingui/vite-plugin": "^6.12.0",
     "@playwright/test": "^1.57.0",
@@ -138,6 +140,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/babel__core": "^7.20.5",
     "@types/blueimp-md5": "^2.18.2",
     "@types/is-hotkey": "^0.1.10",
     "@types/lodash": "^4.17.16",
@@ -151,7 +154,6 @@
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.4.21",
-    "babel-plugin-macros": "^3.1.0",
     "baseline-browser-mapping": "^2.9.18",
     "eslint": "^9.19.0",
     "eslint-plugin-react-hooks": "^7.0.1",

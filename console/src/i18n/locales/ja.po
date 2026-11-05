@@ -373,11 +373,11 @@ msgstr "{seconds}秒"
 msgid "{seconds} seconds"
 msgstr "{seconds}秒"
 
-#: src/components/contacts/BulkActionsBar.tsx:117
+#: src/components/contacts/BulkActionsBar.tsx:118
 msgid "{selectedCount, plural, one {# contact selected} other {# contacts selected}}"
 msgstr "{selectedCount, plural, one {#件のコンタクトを選択中} other {#件のコンタクトを選択中}}"
 
-#: src/components/contacts/BulkActionsBar.tsx:230
+#: src/components/contacts/BulkActionsBar.tsx:231
 msgid "{selectedCount, plural, one {This will permanently delete # contact. This action cannot be undone.} other {This will permanently delete # contacts. This action cannot be undone.}}"
 msgstr "{selectedCount, plural, one {#件のコンタクトを完全に削除します。この操作は取り消せません。} other {#件のコンタクトを完全に削除します。この操作は取り消せません。}}"
 
