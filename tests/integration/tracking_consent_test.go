@@ -162,27 +162,6 @@ func TestTrackingConsent_ContactAPI(t *testing.T) {
 		assert.True(t, c.updatedAt.Time.Equal(time.Date(2025, 3, 1, 10, 0, 0, 0, time.UTC)))
 	})
 
-	// The console's CSV import sends null for an empty consent cell, and an API
-	// caller may send "": neither replaces a recorded choice.
-	t.Run("an import with an empty consent keeps the recorded one", func(t *testing.T) {
-		resp, err := client.BatchImportContacts([]map[string]interface{}{
-			{"email": migrated, "tracking_clicks_consent": nil},
-			{"email": denier, "tracking_opens_consent": ""},
-		}, nil)
-		require.NoError(t, err)
-		raw, _ := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
-		require.Equal(t, http.StatusOK, resp.StatusCode, string(raw))
-
-		assert.Equal(t, "denied", readStoredConsent(t, db, migrated).clicks.String)
-		assert.Equal(t, "denied", readStoredConsent(t, db, denier).opens.String)
-	})
-
-	t.Run("an upsert with an empty consent keeps the recorded one", func(t *testing.T) {
-		upsert(t, map[string]interface{}{"email": denier, "tracking_opens_consent": "  "})
-		assert.Equal(t, "denied", readStoredConsent(t, db, denier).opens.String)
-	})
-
 	t.Run("a change is logged on the timeline with the old and new values", func(t *testing.T) {
 		upsert(t, map[string]interface{}{"email": unknown, "tracking_clicks_consent": "denied"})
 
@@ -232,6 +211,88 @@ func TestTrackingConsent_ContactAPI(t *testing.T) {
 		assert.ElementsMatch(t, []string{denier}, list(t, map[string]string{"tracking_opens_consent": "denied"}))
 		assert.ElementsMatch(t, []string{unknown, migrated}, list(t, map[string]string{"tracking_opens_consent": "unknown"}))
 		assert.ElementsMatch(t, []string{unknown, migrated}, list(t, map[string]string{"tracking_clicks_consent": "denied"}))
+	})
+
+	// importContacts posts an import and requires every row to be written: an
+	// import answers 200 even when rows fail, which would leave the stored
+	// values untouched and a "kept" assertion passing for the wrong reason.
+	importContacts := func(t *testing.T, rows []map[string]interface{}) {
+		t.Helper()
+		status, body := postStatus(t, client, "/api/contacts.import", map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"contacts":     rows,
+		})
+		require.Equal(t, http.StatusOK, status, body)
+		var result domain.BatchImportContactsResponse
+		require.NoError(t, json.Unmarshal([]byte(body), &result), body)
+		require.Empty(t, result.Error, body)
+		require.Len(t, result.Operations, len(rows), body)
+		for _, op := range result.Operations {
+			require.Empty(t, op.Error, body)
+			require.NotEqual(t, domain.UpsertContactOperationError, op.Action, body)
+		}
+	}
+
+	// Each case records its own choice first, so it runs on its own. They come
+	// last: their contacts would otherwise show in the list filter case above.
+	recordRefusal := func(t *testing.T, email string) storedConsent {
+		t.Helper()
+		importContacts(t, []map[string]interface{}{{
+			"email":                       email,
+			"tracking_opens_consent":      "denied",
+			"tracking_clicks_consent":     "denied",
+			"tracking_consent_source":     "legacy_crm",
+			"tracking_consent_updated_at": "2025-03-01T10:00:00Z",
+		}})
+		return readStoredConsent(t, db, email)
+	}
+
+	assertUnchanged := func(t *testing.T, email string, before storedConsent) {
+		t.Helper()
+		after := readStoredConsent(t, db, email)
+		assert.Equal(t, "denied", after.opens.String)
+		assert.Equal(t, "denied", after.clicks.String)
+		assert.Equal(t, before.source, after.source)
+		assert.True(t, before.updatedAt.Time.Equal(after.updatedAt.Time), "the date stays")
+	}
+
+	// In an import, an empty or null consent is no value: the console's CSV
+	// import sends null for an empty cell, and a spreadsheet holds blanks.
+	t.Run("an import with an empty or null consent keeps the recorded one", func(t *testing.T) {
+		email := fmt.Sprintf("import-blank-%s@example.com", tag)
+		before := recordRefusal(t, email)
+
+		for _, blank := range []interface{}{nil, "", "  "} {
+			importContacts(t, []map[string]interface{}{{
+				"email":                   email,
+				"tracking_opens_consent":  blank,
+				"tracking_clicks_consent": blank,
+			}})
+			assertUnchanged(t, email, before)
+		}
+	})
+
+	// In an upsert, an empty string is no value either. An explicit null is a
+	// value there: it sets the choice back to unknown.
+	t.Run("an upsert with an empty consent keeps the recorded one, a null clears it", func(t *testing.T) {
+		email := fmt.Sprintf("upsert-blank-%s@example.com", tag)
+		before := recordRefusal(t, email)
+
+		for _, blank := range []string{"", "  "} {
+			upsert(t, map[string]interface{}{"email": email, "tracking_opens_consent": blank, "tracking_clicks_consent": blank})
+			assertUnchanged(t, email, before)
+		}
+
+		var consentEntries int
+		require.NoError(t, db.QueryRowContext(ctx,
+			`SELECT COUNT(*) FROM contact_timeline WHERE email = $1 AND kind = 'contact.updated' AND changes ? 'tracking_opens_consent'`,
+			email).Scan(&consentEntries))
+		assert.Zero(t, consentEntries, "a blank consent logs no change")
+
+		upsert(t, map[string]interface{}{"email": email, "tracking_opens_consent": nil})
+		after := readStoredConsent(t, db, email)
+		assert.False(t, after.opens.Valid, "null sets the choice back to unknown")
+		assert.Equal(t, "denied", after.clicks.String)
 	})
 }
 
