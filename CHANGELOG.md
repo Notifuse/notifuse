@@ -8,11 +8,11 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: Workspace settings now turn open tracking and click tracking on separately, and choose what happens for contacts whose choice is not recorded: track them (the default, as before) or not. Some regulators, such as the Italian Garante and the French CNIL, expect tracking to require consent; **if that applies to you, set "Contacts without recorded consent" to "Do not track"**.
 
-- **Feature**: The notification center has an email tracking section where contacts make that choice. Templates can link to it with `{{ tracking_preferences_url }}`, or offer a one-click refusal with `{{ tracking_optout_url }}`, which asks the contact to confirm before recording anything.
+- **Feature**: The notification center says on one line whether email performance tracking is on for the contact, with a dialog where they make that choice. Templates can link to that dialog with `{{ tracking_preferences_url }}`, or offer a one-click refusal with `{{ tracking_optout_url }}`, which asks the contact to confirm before recording anything.
 
 - **Feature**: A broadcast can be sent without open and click tracking, keeping its UTM parameters. Transactional notifications get the same option (`tracking_mode: no_tracking`), next to `disabled`, which also leaves out UTM parameters.
 
-- **Improvement**: Open and click rates, in broadcast statistics, A/B test results, the analytics dashboard and per-link click rates, are now counted over the emails that were tracked, and say how many when some were not. The automatic A/B winner is chosen the same way. Emails sent before the upgrade count as tracked, so their rates do not change.
+- **Improvement**: Open and click rates, in broadcast statistics, A/B test results, the analytics dashboard and per-link click rates, are now counted over the emails that were tracked, and their tooltip says how many when some were not. The automatic A/B winner is chosen the same way. Emails sent before the upgrade count as tracked, so their rates do not change.
 
   Contact webhook payloads gain the four tracking consent fields; make sure a receiver that validates payloads accepts them.
 
