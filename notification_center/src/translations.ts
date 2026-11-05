@@ -321,7 +321,7 @@ export const translations: TranslationObject = {
   },
   emailTracking: {
     en: 'Email tracking',
-    fr: 'Suivi des e-mails',
+    fr: 'Tracking des e-mails',
     es: 'Seguimiento de correos',
     de: 'E-Mail-Tracking',
     zh: '邮件跟踪',
@@ -347,7 +347,7 @@ export const translations: TranslationObject = {
   },
   openTracking: {
     en: 'Open tracking',
-    fr: 'Suivi des ouvertures',
+    fr: 'Tracking des ouvertures',
     es: 'Seguimiento de aperturas',
     de: 'Öffnungs-Tracking',
     zh: '打开跟踪',
@@ -373,7 +373,7 @@ export const translations: TranslationObject = {
   },
   clickTracking: {
     en: 'Click tracking',
-    fr: 'Suivi des clics',
+    fr: 'Tracking des clics',
     es: 'Seguimiento de clics',
     de: 'Klick-Tracking',
     zh: '点击跟踪',
@@ -451,7 +451,7 @@ export const translations: TranslationObject = {
   },
   trackingSaved: {
     en: 'Your tracking choice has been saved',
-    fr: 'Votre choix de suivi a été enregistré',
+    fr: 'Votre choix de tracking a été enregistré',
     es: 'Se ha guardado su elección de seguimiento',
     de: 'Ihre Tracking-Auswahl wurde gespeichert',
     zh: '您的跟踪选择已保存',
@@ -464,7 +464,7 @@ export const translations: TranslationObject = {
   },
   trackingSaveFailed: {
     en: 'We could not save your tracking choice. Please try again.',
-    fr: 'Nous n\'avons pas pu enregistrer votre choix de suivi. Veuillez réessayer.',
+    fr: 'Nous n\'avons pas pu enregistrer votre choix de tracking. Veuillez réessayer.',
     es: 'No pudimos guardar su elección de seguimiento. Inténtelo de nuevo.',
     de: 'Wir konnten Ihre Tracking-Auswahl nicht speichern. Bitte versuchen Sie es erneut.',
     zh: '我们无法保存您的跟踪选择，请重试。',
@@ -490,7 +490,7 @@ export const translations: TranslationObject = {
   },
   trackingOptoutConfirm: {
     en: 'Stop tracking',
-    fr: 'Arrêter le suivi',
+    fr: 'Arrêter le tracking',
     es: 'Detener el seguimiento',
     de: 'Tracking beenden',
     zh: '停止跟踪',
@@ -503,7 +503,7 @@ export const translations: TranslationObject = {
   },
   trackingOptoutSuccess: {
     en: 'Opens and clicks of our emails are no longer tracked for you.',
-    fr: 'Les ouvertures et les clics de nos e-mails ne sont plus suivis pour vous.',
+    fr: 'Les ouvertures et les clics de nos e-mails ne sont plus trackés pour vous.',
     es: 'Las aperturas y los clics de nuestros correos ya no se siguen para usted.',
     de: 'Öffnungen und Klicks unserer E-Mails werden für Sie nicht mehr erfasst.',
     zh: '我们将不再跟踪您对我们邮件的打开和点击。',

@@ -294,7 +294,7 @@ msgstr "{clicks} clics sur {recipients} destinataires"
 
 #: src/pages/BroadcastsPage.tsx:978
 msgid "{clicks} clicks out of {tracked} tracked recipients ({recipients} sent)"
-msgstr "{clicks} clics sur {tracked} destinataires suivis ({recipients} envoyés)"
+msgstr "{clicks} clics sur {tracked} destinataires trackés ({recipients} envoyés)"
 
 #: src/pages/ListsPage.tsx:140
 msgid "{count, plural, one {The list \"{listName}\" can't be deleted while a live automation uses it. Ask someone with access to automations to pause it.} other {The list \"{listName}\" can't be deleted while # live automations use it. Ask someone with access to automations to pause them.}}"
@@ -363,7 +363,7 @@ msgstr "{opens} ouvertures sur {recipients} destinataires"
 
 #: src/pages/BroadcastsPage.tsx:937
 msgid "{opens} opens out of {tracked} tracked recipients ({recipients} sent)"
-msgstr "{opens} ouvertures sur {tracked} destinataires suivis ({recipients} envoyés)"
+msgstr "{opens} ouvertures sur {tracked} destinataires trackés ({recipients} envoyés)"
 
 #: src/components/timeline/ContactTimeline.tsx:900
 msgid "{pageviews} pages"
@@ -395,7 +395,7 @@ msgstr "{selectedCount, plural, one {Cette opération supprimera définitivement
 
 #: src/pages/BroadcastsPage.tsx:127
 msgid "{share}% tracked"
-msgstr "{share} % suivis"
+msgstr "{share} % trackés"
 
 #: src/components/timeline/ContactTimeline.tsx:289
 msgid "{totalSeconds}s"
@@ -597,7 +597,7 @@ msgstr "Une action en masse est déjà en cours"
 
 #: src/components/settings/GeneralSettings.tsx:316
 msgid "A contact's own consent always wins. This choice applies to contacts whose consent to open and click tracking is not recorded. Some regulators, such as the Italian Garante and the French CNIL, expect tracking to require consent."
-msgstr "Le consentement propre à un contact l'emporte toujours. Ce choix s'applique aux contacts dont le consentement au suivi des ouvertures et des clics n'est pas enregistré. Certaines autorités, comme le Garante italien et la CNIL, considèrent que ce suivi requiert un consentement."
+msgstr "Le consentement propre à un contact l'emporte toujours. Ce choix s'applique aux contacts dont le consentement au tracking des ouvertures et des clics n'est pas enregistré. Certaines autorités, comme le Garante italien et la CNIL, considèrent que ce tracking requiert un consentement."
 
 #: src/components/automations/config/TriggerConfigForm.tsx:385
 msgid "A count of past activity includes the event that fires the automation, so \"at least 3 opens\" enrolls on the third open."
@@ -2768,15 +2768,15 @@ msgstr "Clics"
 #: src/components/contacts/ExportContactsModal.tsx:98
 #: src/pages/ContactsPage.tsx:413
 msgid "Clicks tracking consent"
-msgstr "Consentement au suivi des clics"
+msgstr "Consentement au tracking des clics"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:137
 msgid "Clicks Tracking Consent"
-msgstr "Consentement au suivi des clics"
+msgstr "Consentement au tracking des clics"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:103
 msgid "Clicks tracking consent (granted or denied)"
-msgstr "Consentement au suivi des clics (granted ou denied)"
+msgstr "Consentement au tracking des clics (granted ou denied)"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:579
 #: src/pages/SetupWizard.tsx:723
@@ -4576,7 +4576,7 @@ msgstr "La vérification DNS empêche l usurpation de domaine"
 
 #: src/components/settings/GeneralSettings.tsx:325
 msgid "Do not track"
-msgstr "Ne pas suivre"
+msgstr "Ne pas tracker"
 
 #: src/components/segment/input.tsx:399
 msgid "Do you really want to remove this branch?"
@@ -4630,7 +4630,7 @@ msgstr "Ne pas indexer, mais suivre les liens"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:657
 msgid "Don't track opens and clicks for this broadcast"
-msgstr "Ne pas suivre les ouvertures et les clics pour ce broadcast"
+msgstr "Ne pas tracker les ouvertures et les clics pour ce broadcast"
 
 #: src/components/automations/config/ConditionsField.tsx:137
 #: src/components/settings/ZapierSettings.tsx:270
@@ -5070,7 +5070,7 @@ msgstr "Email rejeté"
 #: src/components/settings/GeneralSettings.tsx:189
 #: src/components/settings/GeneralSettings.tsx:304
 msgid "Email clicks tracking"
-msgstr "Suivi des clics"
+msgstr "Tracking des clics"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:457
 msgid "Email field mapping is required"
@@ -5117,7 +5117,7 @@ msgstr "Métriques email"
 #: src/components/settings/GeneralSettings.tsx:185
 #: src/components/settings/GeneralSettings.tsx:295
 msgid "Email opens tracking"
-msgstr "Suivi des ouvertures"
+msgstr "Tracking des ouvertures"
 
 #: src/components/transactional/ApiCommandModal.tsx:567
 msgid "Email Options:"
@@ -5166,7 +5166,7 @@ msgstr "Paramètres du titre de l email"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:134
 msgid "Email Tracking Consent"
-msgstr "Consentement au suivi des emails"
+msgstr "Consentement au tracking des emails"
 
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:55
 msgid "Email widths above 650px may not display correctly in some email clients"
@@ -6568,7 +6568,7 @@ msgstr "Suivre le paramètre de l'espace de travail"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:340
 msgid "Following the workspace setting also respects each contact's tracking consent. Without open and click tracking, links keep their UTM parameters. When disabled, links are never rewritten: no tracking and no UTM parameters."
-msgstr "Suivre le réglage du workspace respecte aussi le consentement de chaque contact. Sans suivi des ouvertures et des clics, les liens gardent leurs paramètres UTM. Désactivé, les liens ne sont jamais réécrits : ni suivi ni paramètres UTM."
+msgstr "Suivre le réglage du workspace respecte aussi le consentement de chaque contact. Sans tracking des ouvertures et des clics, les liens gardent leurs paramètres UTM. Désactivé, les liens ne sont jamais réécrits : ni tracking ni paramètres UTM."
 
 #: src/components/email_builder/blocks/MjFontBlock.tsx:30
 msgid "Font Attributes"
@@ -9119,7 +9119,7 @@ msgstr "Aucun compte Notifuse n'est lié à cette identité. Si vous avez été 
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:347
 msgid "No open or click tracking, keep UTM parameters"
-msgstr "Pas de suivi des ouvertures et des clics, UTM conservés"
+msgstr "Pas de tracking des ouvertures et des clics, UTM conservés"
 
 #: src/components/web_analytics/filters/TestFilterModal.tsx:201
 msgid "No operations defined"
@@ -9159,7 +9159,7 @@ msgstr "Pas d articles publiés"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:641
 msgid "No recipient gets the open pixel or tracked links; UTM parameters are kept. Otherwise each contact's tracking consent applies."
-msgstr "Aucun destinataire ne reçoit le pixel d'ouverture ni de liens suivis ; les paramètres UTM sont conservés. Sinon, le consentement de chaque contact s'applique."
+msgstr "Aucun destinataire ne reçoit le pixel d'ouverture ni de liens trackés ; les paramètres UTM sont conservés. Sinon, le consentement de chaque contact s'applique."
 
 #: src/pages/WebAnalyticsLivePage.tsx:170
 msgid "No referrers"
@@ -9365,7 +9365,7 @@ msgstr "Non défini"
 
 #: src/components/settings/GeneralSettings.tsx:194
 msgid "Not tracked"
-msgstr "Non suivi"
+msgstr "Non tracké"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:42
 msgid "Not-mapped channels"
@@ -9498,7 +9498,7 @@ msgstr "Survenu :"
 
 #: src/components/common/TrackedOfNote.tsx:6
 msgid "of {tracked} tracked"
-msgstr "sur {tracked} suivis"
+msgstr "sur {tracked} trackés"
 
 #: src/components/segment/input.tsx:961
 msgid "of the following conditions match:"
@@ -9581,7 +9581,7 @@ msgstr "Seuls les propriétaires de l espace de travail peuvent modifier les int
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:633
 msgid "Open and click tracking"
-msgstr "Suivi des ouvertures et des clics"
+msgstr "Tracking des ouvertures et des clics"
 
 #: src/components/segment/form_leaf.tsx:383
 #: src/components/segment/input.tsx:786
@@ -9670,20 +9670,20 @@ msgstr "Ouvertures"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:748
 msgid "Opens and clicks are not tracked for this broadcast: pick the winning variation yourself."
-msgstr "Les ouvertures et les clics ne sont pas suivis pour ce broadcast : choisissez vous-même la variante gagnante."
+msgstr "Les ouvertures et les clics ne sont pas trackés pour ce broadcast : choisissez vous-même la variante gagnante."
 
 #: src/components/contacts/ExportContactsModal.tsx:91
 #: src/pages/ContactsPage.tsx:407
 msgid "Opens tracking consent"
-msgstr "Consentement au suivi des ouvertures"
+msgstr "Consentement au tracking des ouvertures"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:136
 msgid "Opens Tracking Consent"
-msgstr "Consentement au suivi des ouvertures"
+msgstr "Consentement au tracking des ouvertures"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:102
 msgid "Opens tracking consent (granted or denied)"
-msgstr "Consentement au suivi des ouvertures (granted ou denied)"
+msgstr "Consentement au tracking des ouvertures (granted ou denied)"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:121
 msgid "Operation cancelled"
@@ -14187,7 +14187,7 @@ msgstr "Ce workspace"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:758
 msgid "This workspace does not track contacts whose consent is unknown, so only recipients who agreed to tracking count in the test results."
-msgstr "Ce workspace ne suit pas les contacts dont le consentement est inconnu : seuls les destinataires qui ont accepté le suivi comptent dans les résultats du test."
+msgstr "Ce workspace ne tracke pas les contacts dont le consentement est inconnu : seuls les destinataires qui ont accepté le tracking comptent dans les résultats du test."
 
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:173
 msgid "This wrapper has no sections. Add a section to display content."
@@ -14491,7 +14491,7 @@ msgstr "Valeur totale"
 
 #: src/components/settings/GeneralSettings.tsx:324
 msgid "Track"
-msgstr "Suivre"
+msgstr "Tracker"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:376
 msgid "Track visitor country, region, city, and coordinates"
@@ -14503,7 +14503,7 @@ msgstr "Suivez le trafic de votre site web avec un script first-party. Les beats
 
 #: src/components/settings/GeneralSettings.tsx:194
 msgid "Tracked"
-msgstr "Suivi"
+msgstr "Tracké"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:339
 msgid "Tracking"
@@ -14521,7 +14521,7 @@ msgstr "Le suivi (ouvertures et clics) devrait être activé dans les paramètre
 #: src/pages/ContactsPage.tsx:454
 #: src/pages/ContactsPage.tsx:739
 msgid "Tracking consent"
-msgstr "Consentement au suivi"
+msgstr "Consentement au tracking"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:65
 #: src/components/web_analytics/explore/DimensionSelector.tsx:99
@@ -14696,7 +14696,7 @@ msgstr "Clics uniques"
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:163
 msgid "Unique clicks ÷ recipients of this variation whose clicks were tracked."
-msgstr "Clics uniques ÷ destinataires de cette variante dont les clics étaient suivis."
+msgstr "Clics uniques ÷ destinataires de cette variante dont les clics étaient trackés."
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:163
 #~ msgid "Unique clicks ÷ recipients of this variation."
