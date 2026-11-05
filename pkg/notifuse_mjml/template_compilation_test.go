@@ -929,64 +929,6 @@ func TestTrackLinks_EncryptsTheDecodedURL(t *testing.T) {
 	}
 }
 
-func TestGetTrackingURL(t *testing.T) {
-	trackingSettings := TrackingSettings{
-		EnableTracking: true,
-		Endpoint:       "https://track.example.com/redirect",
-		UTMSource:      "email",
-		UTMMedium:      "newsletter",
-		UTMCampaign:    "test-campaign",
-		WorkspaceID:    "test-workspace",
-		MessageID:      "test-message",
-	}
-
-	tests := []struct {
-		name     string
-		inputURL string
-		expected string
-	}{
-		{
-			name:     "Basic URL with UTM parameters",
-			inputURL: "https://example.com",
-			expected: "https://track.example.com/redirect?url=https%3A%2F%2Fexample.com%3Futm_campaign%3Dtest-campaign%26utm_medium%3Dnewsletter%26utm_source%3Demail",
-		},
-		{
-			name:     "URL with existing UTM parameters",
-			inputURL: "https://example.com?utm_source=existing",
-			expected: "https://track.example.com/redirect?url=https%3A%2F%2Fexample.com%3Futm_source%3Dexisting",
-		},
-		{
-			name:     "Mailto URL should not be modified",
-			inputURL: "mailto:test@example.com",
-			expected: "mailto:test@example.com",
-		},
-		{
-			name:     "Tel URL should not be modified",
-			inputURL: "tel:+1234567890",
-			expected: "tel:+1234567890",
-		},
-		{
-			name:     "Liquid template URL should not be modified",
-			inputURL: "https://example.com/{{ user.id }}",
-			expected: "https://example.com/{{ user.id }}",
-		},
-		{
-			name:     "Empty URL should not be modified",
-			inputURL: "",
-			expected: "",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			result := trackingSettings.GetTrackingURL(test.inputURL)
-			if result != test.expected {
-				t.Errorf("Expected %q, got %q", test.expected, result)
-			}
-		})
-	}
-}
-
 func TestCompileTemplateWithTracking(t *testing.T) {
 	// Create a simple email with button
 	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
@@ -3935,19 +3877,6 @@ func TestTrackLinks_InheritAndUnsetModesKeepRewriting(t *testing.T) {
 		if !strings.Contains(result, "/r/") {
 			t.Errorf("mode %q: expected rewritten /r/ link, got: %s", mode, result)
 		}
-	}
-}
-
-func TestGetTrackingURL_DisabledModeReturnsURLUnmodified(t *testing.T) {
-	settings := &TrackingSettings{
-		TrackingMode:   TrackingModeDisabled,
-		EnableTracking: true,
-		UTMSource:      "auth",
-		Endpoint:       "https://api.example.com/visit",
-	}
-	src := "https://example.com/auth/confirm?token=abc"
-	if got := settings.GetTrackingURL(src); got != src {
-		t.Errorf("opted-out URL must be returned unmodified, got: %s", got)
 	}
 }
 

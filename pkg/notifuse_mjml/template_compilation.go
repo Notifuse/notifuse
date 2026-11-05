@@ -541,37 +541,6 @@ func (t *TrackingSettings) applyIdentityParam(sourceURL string) string {
 	return appendToRawQuery(sourceURL, WebIdentifyQueryParam+"="+url.QueryEscape(t.IdentifyToken))
 }
 
-func (t *TrackingSettings) GetTrackingURL(sourceURL string) string {
-	// The explicit per-notification opt-out suppresses everything, including
-	// UTM rewriting (single-use auth URLs must never be modified).
-	if t.TrackingMode == TrackingModeDisabled {
-		return sourceURL
-	}
-
-	// Ignore if URL is empty, a placeholder, mailto:, tel:, or already tracked (basic check)
-	if sourceURL == "" || strings.Contains(sourceURL, "{{") || strings.Contains(sourceURL, "{%") || strings.HasPrefix(sourceURL, "mailto:") || strings.HasPrefix(sourceURL, "tel:") {
-		return sourceURL
-	}
-
-	// Append UTM parameters to the destination URL
-	destinationURL := t.applyUTMParameters(sourceURL)
-
-	if !t.EnableTracking {
-		return destinationURL
-	}
-
-	// parse endpoint and add the UTM-augmented destination URL to the query params
-	parsedEndpoint, err := url.Parse(t.Endpoint)
-	if err != nil {
-		return sourceURL
-	}
-	endpointParams := parsedEndpoint.Query()
-	endpointParams.Add("url", destinationURL)
-	parsedEndpoint.RawQuery = endpointParams.Encode()
-
-	return parsedEndpoint.String()
-}
-
 // CompileTemplateRequest represents the request for compiling a template
 type CompileTemplateRequest struct {
 	WorkspaceID            string           `json:"workspace_id"`
