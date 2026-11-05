@@ -941,6 +941,10 @@ func (w *EmailQueueWorker) upsertMessageHistory(
 		CreatedAt:       entry.CreatedAt,
 		UpdatedAt:       now,
 	}
+	// What the compiled HTML carries, decided when the entry was built. An entry
+	// queued before the flags existed has neither and records NULL.
+	message.OpensTracked = entry.Payload.OpensTracked
+	message.ClicksTracked = entry.Payload.ClicksTracked
 
 	// Set source (broadcast or automation)
 	if entry.SourceType == domain.EmailQueueSourceBroadcast {

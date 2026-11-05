@@ -87,7 +87,7 @@ func (m *sendingStartedMocks) recordBatches(batches *[]sentBatch, afterEach func
 	m.messageSender.EXPECT().
 		SendBatch(gomock.Any(), "workspace-123", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 			gomock.Any(), "broadcast-123", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _, _, _, _, _ string, _ bool, _ *domain.WebAnalyticsSettings, _ string,
+		DoAndReturn(func(_ context.Context, _, _, _, _, _ string, _ domain.EmailTrackingPolicy, _ *domain.WebAnalyticsSettings, _ string,
 			recipients []*domain.ContactWithList, templates map[string]*domain.Template, _ *domain.EmailProvider,
 			_ time.Time, _ string) (int, int, error) {
 			batch := sentBatch{}
