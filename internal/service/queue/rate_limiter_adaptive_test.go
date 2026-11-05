@@ -187,7 +187,12 @@ func TestRateLimiter_Throttle(t *testing.T) {
 		}{
 			{"1000/min, floor 100/min", 1000, defaultFloorDwell + time.Second, defaultFloorDwell + 1300*time.Millisecond, 600 * time.Millisecond},
 			{"20/min, floor 2/min", 20, defaultFloorDwell + 50*time.Second, defaultFloorDwell + 61*time.Second, 30 * time.Second},
+			{"10/min, floor 1/min", 10, defaultFloorDwell + 100*time.Second, defaultFloorDwell + 121*time.Second, time.Minute},
 		}
+		// The send intervals at the floor fall below, at and above the dwell.
+		require.Less(t, cases[0].floorGap, defaultFloorDwell)
+		require.Equal(t, defaultFloorDwell, cases[1].floorGap)
+		require.Greater(t, cases[2].floorGap, defaultFloorDwell)
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
 				for _, gap := range []time.Duration{tc.oneRun, tc.newRun} {

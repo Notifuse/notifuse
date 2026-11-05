@@ -55,7 +55,8 @@ type adaptiveLimiter struct {
 	// above the floor. An email accepted between refusals does not end the run: a
 	// provider taking a trickle of emails at the floor is still refusing more than
 	// slowing down can fix. The run ends when the pace climbs off the floor, after an
-	// accepted email and a recovery interval without a refusal, or when a refusal comes
+	// email accepted at the current pace and a recovery interval without a refusal
+	// (never at 1/min, where the floor is the configured rate), or when a refusal comes
 	// after a quiet spell. lastThrottle is the latest refusal recorded, the cut that
 	// reached the floor included, so that an integration left at the floor does not
 	// count its next refusal at once, days later.
