@@ -153,7 +153,7 @@ type TransactionalNotificationSendParams struct {
 	ID           string                 `json:"id" validate:"required"`      // ID of the notification to send
 	ExternalID   *string                `json:"external_id,omitempty"`       // External ID for idempotency checks
 	Contact      *Contact               `json:"contact" validate:"required"` // Contact to send the notification to
-	Channels     []TransactionalChannel `json:"channels,omitempty"`          // Specific channels to send through (if empty, use all configured channels)
+	Channels     []TransactionalChannel `json:"channels,omitempty"`          // Channels to send through; empty means all configured channels, but the API (SendTransactionalRequest.Validate) requires at least one
 	Data         MapOfAny               `json:"data,omitempty"`              // Data to populate the template with
 	Metadata     MapOfAny               `json:"metadata,omitempty"`          // Additional metadata for tracking
 	EmailOptions EmailOptions           `json:"email_options,omitempty"`     // Email options for the notification
