@@ -185,8 +185,8 @@ func TestRateLimiter_Throttle(t *testing.T) {
 			newRun   time.Duration
 			floorGap time.Duration
 		}{
-			{"a send interval shorter than the dwell", 1000, defaultFloorDwell + time.Second, defaultFloorDwell + 1300*time.Millisecond, 600 * time.Millisecond},
-			{"a send interval as long as the dwell", 20, defaultFloorDwell + 50*time.Second, defaultFloorDwell + 61*time.Second, 30 * time.Second},
+			{"1000/min, floor 100/min", 1000, defaultFloorDwell + time.Second, defaultFloorDwell + 1300*time.Millisecond, 600 * time.Millisecond},
+			{"20/min, floor 2/min", 20, defaultFloorDwell + 50*time.Second, defaultFloorDwell + 61*time.Second, 30 * time.Second},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {

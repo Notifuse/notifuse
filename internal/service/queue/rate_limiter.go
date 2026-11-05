@@ -54,14 +54,11 @@ type adaptiveLimiter struct {
 	// floorSince is when the current run of refusals at the floor began, zero while
 	// above the floor. An email accepted between refusals does not end the run: a
 	// provider taking a trickle of emails at the floor is still refusing more than
-	// slowing down can fix. The run ends when the pace climbs off the floor, which takes
-	// a recovery interval without a refusal, and at 1/min, where the pace cannot climb,
-	// only after a quiet spell. Either way, the circuit opens only on consecutive
-	// refusals counted after the dwell, so one that alternates with accepted emails
-	// never opens it. lastThrottle is the latest refusal
-	// recorded, the cut that reached the floor included: a refusal after a quiet spell
-	// starts a new run, so an integration left at the floor does not count its next
-	// refusal at once, days later.
+	// slowing down can fix. The run ends when the pace climbs off the floor, after an
+	// accepted email and a recovery interval without a refusal, or when a refusal comes
+	// after a quiet spell. lastThrottle is the latest refusal recorded, the cut that
+	// reached the floor included, so that an integration left at the floor does not
+	// count its next refusal at once, days later.
 	floorSince   time.Time
 	lastThrottle time.Time
 }
