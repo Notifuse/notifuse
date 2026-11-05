@@ -455,7 +455,9 @@ func (w *EmailQueueWorker) processLane(workspace *domain.Workspace, integration 
 		return
 	}
 
-	limit := laneBatchSize(ratePerMinute, w.config.RoundWindow, w.config.BatchSize)
+	// Sized to the current pace, which is below the configured rate while the provider
+	// asks to slow down.
+	limit := laneBatchSize(w.rateLimiter.EffectivePerMinute(integration.ID, ratePerMinute), w.config.RoundWindow, w.config.BatchSize)
 	if ticket.Probe {
 		// After the cooldown, one email tells whether the provider is back.
 		limit = 1
@@ -504,6 +506,11 @@ func (w *EmailQueueWorker) processLane(workspace *domain.Workspace, integration 
 	var openedMu sync.Mutex
 	var openedErr *emailerror.ClassifiedError
 
+	// The generation of the round's first token. Once a throttle cuts the pace, the rows
+	// left wait for the next round, so they still go out in order.
+	var roundGeneration uint64
+	dispatched := false
+
 	for _, entry := range entries {
 		select {
 		case <-w.ctx.Done():
@@ -516,10 +523,17 @@ func (w *EmailQueueWorker) processLane(workspace *domain.Workspace, integration 
 		if !ticket.Probe && w.circuitBreaker.IsOpen(integration.ID) {
 			break
 		}
-		reservation, delay, ok := w.rateLimiter.ReserveBefore(integration.ID, ratePerMinute, deadline)
+		if dispatched && w.rateLimiter.CurrentGeneration(integration.ID) != roundGeneration {
+			break
+		}
+		slot, ok := w.rateLimiter.ReserveBefore(integration.ID, ratePerMinute, deadline)
 		if !ok {
 			// The next token falls in the next round; so do the rows left.
 			break
+		}
+		if !dispatched {
+			roundGeneration = slot.Generation
+			dispatched = true
 		}
 
 		var probe *Ticket
@@ -535,13 +549,18 @@ func (w *EmailQueueWorker) processLane(workspace *domain.Workspace, integration 
 			defer w.inFlight.Add(-1)
 			defer func() { <-slots }()
 
-			if !w.waitForToken(reservation, delay) {
+			// A throttle while this send waited cut the pace: its token belongs to the
+			// old pace, so the row is left for the next round. The lane's own deferred
+			// CancelProbe does not fire once probeSent is set, so a probe is given back
+			// here, or the breaker would refuse every later probe.
+			if !w.waitForToken(slot.Reservation, slot.Delay) ||
+				w.rateLimiter.CurrentGeneration(integration.ID) != slot.Generation {
 				if probe != nil {
 					w.circuitBreaker.CancelProbe(integration.ID, *probe)
 				}
 				return
 			}
-			if opened := w.processEntry(workspace, integration, entry, probe); opened != nil {
+			if opened := w.processEntry(workspace, integration, entry, probe, slot.Generation); opened != nil {
 				openedMu.Lock()
 				if openedErr == nil {
 					openedErr = opened
@@ -660,9 +679,10 @@ func (w *EmailQueueWorker) SetAutomationRepo(repo domain.AutomationRepository) {
 
 // processEntry claims and sends one row whose token is due. A probe row carries the
 // ticket its lane was granted; any other row asks the breaker now, since the circuit
-// may have opened while it waited for its token. It returns the classified error when
-// this send's failure opened the circuit, for the lane to act on once its sends are done.
-func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration *domain.Integration, entry *domain.EmailQueueEntry, probe *Ticket) *emailerror.ClassifiedError {
+// may have opened while it waited for its token. generation is the one its token was
+// reserved in. It returns the classified error when this send's failure opened the
+// circuit, for the lane to act on once its sends are done.
+func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration *domain.Integration, entry *domain.EmailQueueEntry, probe *Ticket, generation uint64) *emailerror.ClassifiedError {
 	var ticket Ticket
 	if probe != nil {
 		ticket = *probe
@@ -795,9 +815,39 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration
 			"original":    err.Error(),
 		}).Debug("Classified send error")
 
+		// A refusal for the sending pace slows the integration down and gives the email
+		// back, without counting against the provider, until the pace has sat at its
+		// floor: then the provider is refusing more than slowing down can fix.
+		if classifiedErr.RateLimited {
+			outcome := w.rateLimiter.RecordThrottle(integration.ID, integrationRate(integration), generation)
+			if outcome.Decreased {
+				w.logger.WithFields(map[string]interface{}{
+					"integration_id": integration.ID,
+					"workspace_id":   workspace.ID,
+					"from_per_min":   outcome.From,
+					"to_per_min":     outcome.To,
+					"error":          err.Error(),
+				}).Warn("Provider asked to send more slowly; lowering the integration's pace")
+			}
+			if !outcome.AtFloor {
+				settled = true
+				if ticket.Probe {
+					// Neither back nor down: the next probe goes once the lower pace
+					// gives a token.
+					w.circuitBreaker.CancelProbe(integration.ID, ticket)
+				}
+				w.releaseThrottled(workspace, entry, err)
+				return nil
+			}
+		}
+
 		// Record failure to circuit breaker (only counts provider errors)
 		settled = true
 		counted, opened := w.circuitBreaker.RecordFailure(integration.ID, ticket, classifiedErr)
+		if classifiedErr.IsRecipientError() {
+			// The provider took the request at this pace.
+			w.rateLimiter.RecordAccepted(integration.ID, generation)
+		}
 
 		// A send allowed before the circuit opened and refused after it shares the
 		// outage of the sends that opened it. It is scheduled for a retry even when the
@@ -818,6 +868,7 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration
 
 	settled = true
 	w.circuitBreaker.RecordSuccess(integration.ID, ticket)
+	w.rateLimiter.RecordAccepted(integration.ID, generation)
 
 	// Mark as sent
 	if err := w.queueRepo.MarkAsSent(w.writeCtx, workspace.ID, entry.ID); err != nil {
@@ -846,6 +897,33 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration
 		w.onEmailSent(workspace.ID, entry.SourceType, entry.SourceID, entry.MessageID)
 	}
 	return nil
+}
+
+// releaseThrottled gives back a row whose send the provider refused for its pace. The
+// row keeps its attempt and is sent again at the lower pace. Message history is written
+// only over the row the pre-send upsert left, which would otherwise read as sent:
+// writing a first row would fire the email.sent webhook and timeline entries for an
+// email not sent yet.
+func (w *EmailQueueWorker) releaseThrottled(workspace *domain.Workspace, entry *domain.EmailQueueEntry, sendErr error) {
+	if entry.SourceType == domain.EmailQueueSourceAutomation && domain.ProviderSetsOwnMessageID(entry.ProviderKind) {
+		w.upsertMessageHistory(w.writeCtx, workspace.ID, workspace.Settings.SecretKey, entry, "", sendErr)
+	}
+
+	if err := w.queueRepo.ReleaseThrottled(w.writeCtx, workspace.ID, entry.ID, sendErr.Error()); err != nil {
+		// The row stays processing and is reclaimed after two minutes, as a send cut
+		// by a crash is.
+		w.logger.WithFields(map[string]interface{}{
+			"entry_id": entry.ID,
+			"error":    err.Error(),
+		}).Error("Failed to give back an email the provider refused for its pace")
+		return
+	}
+
+	w.logger.WithFields(map[string]interface{}{
+		"entry_id":   entry.ID,
+		"message_id": entry.MessageID,
+		"error":      sendErr.Error(),
+	}).Debug("Provider refused the email for its pace; it will be sent again more slowly")
 }
 
 // handleError handles a send error, scheduling retry or deleting permanently failed entries

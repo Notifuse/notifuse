@@ -3,6 +3,7 @@ package emailerror
 import (
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 // SMTP error classification
@@ -94,6 +95,44 @@ func extractSMTPCode(errStr string) (int, bool) {
 	return code, true
 }
 
+// smtpThrottlePhrases are what servers say when the sender goes too fast: SES's SMTP
+// endpoint ("Throttling failure: Maximum sending rate exceeded"), Postfix ("too much mail
+// from"), Microsoft 365 ("Message submission rate for this client has exceeded"), and
+// the rate limit policy services of self-hosted relays.
+var smtpThrottlePhrases = []string{
+	"rate limit",
+	"ratelimit",
+	"throttl",
+	"too many messages",
+	"too many emails",
+	"too much mail",
+	"sending rate",
+	"submission rate",
+	"rate exceeded",
+}
+
+// smtpMailboxPhrases mark a refusal at RCPT TO that is about the recipient's mailbox,
+// such as Gmail's "4.2.1 The user you are trying to contact is receiving mail at a rate
+// that prevents additional messages from being delivered". Sending more slowly to
+// everyone else would not help that one recipient.
+var smtpMailboxPhrases = []string{"4.2.", "mailbox", "receiving"}
+
+// smtpReplyText returns the server's own text after the reply code, without the rest of
+// the message, which can hold the recipient address.
+func smtpReplyText(errStr string) (string, bool) {
+	loc := smtpCodeRegex.FindStringSubmatchIndex(errStr)
+	if loc == nil {
+		return "", false
+	}
+	text := strings.TrimLeft(errStr[loc[1]:], ": ")
+	return text, true
+}
+
+// isSMTPThrottle reports whether a server's reply text asks the sender to slow down.
+func isSMTPThrottle(replyText string) bool {
+	return containsAny(replyText, smtpThrottlePhrases) && !isQuotaSignal(replyText)
+}
+
 // smtpCodeIsRecipient reports whether a reply code blames the recipient rather than
 // the connection: the mailbox is unavailable, not local, full, misnamed, or the
 // transaction was refused for that address. Every other 5xx — a syntax error, a 53x
@@ -127,6 +166,12 @@ func (c *Classifier) classifySMTPError(err error, errStr string, httpStatus int)
 		}
 		result.Type = ErrorTypeProvider
 		result.Retryable = true
+		if code < 500 {
+			if text, ok := smtpReplyText(errStr); ok && isSMTPThrottle(text) {
+				atRecipient := strings.Contains(errStr, "RCPT TO rejected")
+				result.RateLimited = !atRecipient || !containsAny(text, smtpMailboxPhrases)
+			}
+		}
 		return result
 	}
 

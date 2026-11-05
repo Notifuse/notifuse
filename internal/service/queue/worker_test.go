@@ -642,8 +642,8 @@ func TestEmailQueueWorker_GetStats(t *testing.T) {
 	)
 
 	// Prime the rate limiter with some entries
-	worker.rateLimiter.GetOrCreateLimiter("integration-1", 60)
-	worker.rateLimiter.GetOrCreateLimiter("integration-2", 120)
+	worker.rateLimiter.EffectivePerMinute("integration-1", 60)
+	worker.rateLimiter.EffectivePerMinute("integration-2", 120)
 
 	stats := worker.GetStats()
 
@@ -1699,9 +1699,12 @@ func TestEmailQueueWorker_CircuitOpenCallback(t *testing.T) {
 	})
 }
 
-// processOne sends one row the way a lane does once the row's token is due.
+// processOne sends one row the way a lane does once the row's token is due, with a token
+// of the integration's current generation.
 func processOne(w *EmailQueueWorker, workspace *domain.Workspace, entry *domain.EmailQueueEntry) *emailerror.ClassifiedError {
-	return w.processEntry(workspace, workspace.GetIntegrationByID(entry.IntegrationID), entry, nil)
+	integration := workspace.GetIntegrationByID(entry.IntegrationID)
+	w.rateLimiter.EffectivePerMinute(integration.ID, integrationRate(integration))
+	return w.processEntry(workspace, integration, entry, nil, w.rateLimiter.CurrentGeneration(integration.ID))
 }
 
 // quietLogger accepts every log call.
@@ -1743,8 +1746,9 @@ func queuedRows(integrationID string, n int) []*domain.EmailQueueEntry {
 	return rows
 }
 
-// throttled is what SES answers above the account's sending rate: a provider error.
-var throttled = errors.New("ThrottlingException: Maximum sending rate exceeded")
+// unavailable is a retryable provider error that does not ask to slow down: an HTTP 503,
+// classified through the status fallback.
+var unavailable = errors.New("status code: 503")
 
 // accessDenied is a provider error SES gives as permanent: the account must be fixed.
 var accessDenied = errors.New("AccessDeniedException: User is not authorized to perform ses:SendEmail")
@@ -1760,20 +1764,24 @@ type fakeQueue struct {
 	sent     map[string]int
 	failed   map[string]int
 	given    map[string]int // MarkAsPermanentlyFailed calls, also counted in failed
-	ctxErrs  []error        // the context error of every outcome written
-	takenBy  map[string]bool
-	onFailed func(id string)
+	released map[string]int // ReleaseThrottled calls
+	// releaseErr, when set, is what ReleaseThrottled returns, leaving the row as it is.
+	releaseErr error
+	ctxErrs    []error // the context error of every outcome written
+	takenBy    map[string]bool
+	onFailed   func(id string)
 }
 
 func newFakeQueue(rows ...*domain.EmailQueueEntry) *fakeQueue {
 	return &fakeQueue{
-		rows:    rows,
-		fetches: map[string][]int{},
-		claims:  map[string]int{},
-		sent:    map[string]int{},
-		failed:  map[string]int{},
-		given:   map[string]int{},
-		takenBy: map[string]bool{},
+		rows:     rows,
+		fetches:  map[string][]int{},
+		claims:   map[string]int{},
+		sent:     map[string]int{},
+		failed:   map[string]int{},
+		given:    map[string]int{},
+		released: map[string]int{},
+		takenBy:  map[string]bool{},
 	}
 }
 
@@ -1834,6 +1842,21 @@ func (q *fakeQueue) wire(m *mocks.MockEmailQueueRepository) {
 			q.mu.Unlock()
 			return q.fail(ctx, id)
 		}).AnyTimes()
+	m.EXPECT().ReleaseThrottled(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, _ string, id string, _ string) error {
+			q.mu.Lock()
+			defer q.mu.Unlock()
+			q.released[id]++
+			q.ctxErrs = append(q.ctxErrs, ctx.Err())
+			if q.releaseErr != nil {
+				return q.releaseErr
+			}
+			if row := q.find(id); row != nil && row.Status == domain.EmailQueueStatusProcessing {
+				row.Status = domain.EmailQueueStatusPending
+				row.Attempts--
+			}
+			return nil
+		}).AnyTimes()
 }
 
 // find returns the row with that ID. Callers hold q.mu.
@@ -1885,6 +1908,10 @@ func (q *fakeQueue) claimCount(integrationID string) int {
 
 func (q *fakeQueue) sentCount(integrationID string) int {
 	return q.count(func(q *fakeQueue) map[string]int { return q.sent }, integrationID)
+}
+
+func (q *fakeQueue) releasedCount(integrationID string) int {
+	return q.count(func(q *fakeQueue) map[string]int { return q.released }, integrationID)
 }
 
 func (q *fakeQueue) failedCount(integrationID string) int {
@@ -2415,7 +2442,7 @@ func TestEmailQueueWorker_LaneCircuit(t *testing.T) {
 				rows: queuedRows("ses-1", 1),
 				setup: func(t *testing.T, lt *laneTest) {
 					// Spend the banked token so that the probe's is a second away.
-					_, _, ok := lt.w.rateLimiter.ReserveBefore("ses-1", 60, time.Now().Add(time.Minute))
+					_, ok := lt.w.rateLimiter.ReserveBefore("ses-1", 60, time.Now().Add(time.Minute))
 					require.True(t, ok)
 					go func() {
 						time.Sleep(100 * time.Millisecond)
@@ -2460,7 +2487,7 @@ func TestEmailQueueWorker_LaneCircuit(t *testing.T) {
 		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
 			DoAndReturn(func(context.Context, domain.SendEmailProviderRequest, bool) error {
 				sends.Add(1)
-				return throttled
+				return unavailable
 			}).AnyTimes()
 		var opened atomic.Int32
 		lt.w.SetCircuitOpenCallback(func(string, string, *emailerror.ClassifiedError) { opened.Add(1) })
@@ -2511,7 +2538,7 @@ func TestEmailQueueWorker_LaneCircuit(t *testing.T) {
 					time.Sleep(time.Millisecond)
 				}
 				time.Sleep(time.Duration(order[req.MessageID]) * 10 * time.Millisecond)
-				return throttled
+				return unavailable
 			}).AnyTimes()
 
 		within(t, 5*time.Second, func() { lt.w.processWorkspace(sesWorkspace("ses-1")) })
@@ -2542,7 +2569,7 @@ func TestEmailQueueWorker_LaneCircuit(t *testing.T) {
 					time.Sleep(time.Millisecond)
 				}
 				if req.MessageID != rows[3].MessageID {
-					return throttled
+					return unavailable
 				}
 				for !lt.w.circuitBreaker.IsOpen("ses-1") {
 					time.Sleep(time.Millisecond)

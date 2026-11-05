@@ -33,6 +33,12 @@ type ClassifiedError struct {
 
 	// Retryable indicates whether this error can be retried
 	Retryable bool
+
+	// RateLimited means the provider refused because of the sending pace, not the
+	// email or the recipient: the same email is expected to go through later, sent
+	// more slowly. Only ever set on a retryable provider error. A refusal naming a
+	// quota is never rate limited, since slowing down does not bring a quota back.
+	RateLimited bool
 }
 
 // Error implements the error interface
