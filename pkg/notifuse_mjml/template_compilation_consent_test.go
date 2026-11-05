@@ -103,6 +103,9 @@ func TestTrackLinks_LeavesTrackingPreferenceLinksUntouched(t *testing.T) {
 		{"endpoint with trailing slash", "https://track.example.com/", "https://track.example.com/notification-center?action=tracking_optout"},
 		{"host case differs", "https://Track.Example.com", "https://track.example.com/notification-center?action=tracking_optout"},
 		{"endpoint with path prefix", "https://example.com/notifuse", "https://example.com/notifuse/notification-center?action=tracking_optout"},
+		// Browsers open it, and the click route reads it, though net/url refuses the escape
+		{"invalid percent escape", "https://track.example.com", "https://track.example.com/notification-center?action=tracking_optout#50%off"},
+		{"surrounding spaces", "https://track.example.com", " https://track.example.com/notification-center?action=tracking "},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
