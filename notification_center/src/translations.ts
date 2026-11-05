@@ -320,17 +320,17 @@ export const translations: TranslationObject = {
     pl: 'Wypisano'
   },
   emailTracking: {
-    en: 'Email tracking',
-    fr: 'Tracking des e-mails',
-    es: 'Seguimiento de correos',
-    de: 'E-Mail-Tracking',
-    zh: '邮件跟踪',
-    hi: 'ईमेल ट्रैकिंग',
-    ar: 'تتبع البريد الإلكتروني',
-    pt: 'Rastreamento de e-mails',
-    ru: 'Отслеживание писем',
-    ja: 'メールのトラッキング',
-    pl: 'Śledzenie e-maili'
+    en: 'Email performance tracking',
+    fr: 'Suivi des performances des e-mails',
+    es: 'Seguimiento del rendimiento de los correos',
+    de: 'Messung der E-Mail-Leistung',
+    zh: '邮件效果跟踪',
+    hi: 'ईमेल प्रदर्शन ट्रैकिंग',
+    ar: 'تتبع أداء البريد الإلكتروني',
+    pt: 'Acompanhamento do desempenho dos e-mails',
+    ru: 'Отслеживание эффективности писем',
+    ja: 'メールの効果測定',
+    pl: 'Śledzenie skuteczności e-maili'
   },
   emailTrackingIntro: {
     en: 'Choose whether we may record when you open our emails and click their links.',
@@ -513,6 +513,84 @@ export const translations: TranslationObject = {
     ru: 'Открытия и клики по нашим письмам больше не отслеживаются для вас.',
     ja: '今後、メールの開封とクリックはトラッキングされません。',
     pl: 'Otwarcia i kliknięcia naszych e-maili nie są już dla Ciebie śledzone.'
+  },
+  trackingStatusOn: {
+    en: 'Email performance tracking: on',
+    fr: 'Suivi des performances des e-mails : actif',
+    es: 'Seguimiento del rendimiento de los correos: activo',
+    de: 'Messung der E-Mail-Leistung: aktiv',
+    zh: '邮件效果跟踪：已开启',
+    hi: 'ईमेल प्रदर्शन ट्रैकिंग: चालू',
+    ar: 'تتبع أداء البريد الإلكتروني: مفعّل',
+    pt: 'Acompanhamento do desempenho dos e-mails: ativo',
+    ru: 'Отслеживание эффективности писем: включено',
+    ja: 'メールの効果測定：オン',
+    pl: 'Śledzenie skuteczności e-maili: włączone'
+  },
+  trackingStatusOff: {
+    en: 'Email performance tracking: off',
+    fr: 'Suivi des performances des e-mails : inactif',
+    es: 'Seguimiento del rendimiento de los correos: inactivo',
+    de: 'Messung der E-Mail-Leistung: inaktiv',
+    zh: '邮件效果跟踪：已关闭',
+    hi: 'ईमेल प्रदर्शन ट्रैकिंग: बंद',
+    ar: 'تتبع أداء البريد الإلكتروني: متوقف',
+    pt: 'Acompanhamento do desempenho dos e-mails: inativo',
+    ru: 'Отслеживание эффективности писем: выключено',
+    ja: 'メールの効果測定：オフ',
+    pl: 'Śledzenie skuteczności e-maili: wyłączone'
+  },
+  trackingStatusPartial: {
+    en: 'Email performance tracking: partly on',
+    fr: 'Suivi des performances des e-mails : partiel',
+    es: 'Seguimiento del rendimiento de los correos: parcial',
+    de: 'Messung der E-Mail-Leistung: teilweise',
+    zh: '邮件效果跟踪：部分开启',
+    hi: 'ईमेल प्रदर्शन ट्रैकिंग: आंशिक',
+    ar: 'تتبع أداء البريد الإلكتروني: جزئي',
+    pt: 'Acompanhamento do desempenho dos e-mails: parcial',
+    ru: 'Отслеживание эффективности писем: частично',
+    ja: 'メールの効果測定：一部オン',
+    pl: 'Śledzenie skuteczności e-maili: częściowe'
+  },
+  trackingChange: {
+    en: 'Change',
+    fr: 'Modifier',
+    es: 'Cambiar',
+    de: 'Ändern',
+    zh: '更改',
+    hi: 'बदलें',
+    ar: 'تغيير',
+    pt: 'Alterar',
+    ru: 'Изменить',
+    ja: '変更',
+    pl: 'Zmień'
+  },
+  close: {
+    en: 'Close',
+    fr: 'Fermer',
+    es: 'Cerrar',
+    de: 'Schließen',
+    zh: '关闭',
+    hi: 'बंद करें',
+    ar: 'إغلاق',
+    pt: 'Fechar',
+    ru: 'Закрыть',
+    ja: '閉じる',
+    pl: 'Zamknij'
+  },
+  cancel: {
+    en: 'Cancel',
+    fr: 'Annuler',
+    es: 'Cancelar',
+    de: 'Abbrechen',
+    zh: '取消',
+    hi: 'रद्द करें',
+    ar: 'إلغاء',
+    pt: 'Cancelar',
+    ru: 'Отмена',
+    ja: 'キャンセル',
+    pl: 'Anuluj'
   }
 }
 

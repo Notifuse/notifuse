@@ -13,6 +13,8 @@ import type {
   TrackingConsent
 } from './api/notification_center'
 import { Button } from '@/components/ui/button'
+import { TrackingDialog, type TrackingDialogMode } from './components/TrackingDialog'
+import { trackingStatusKey } from './lib/trackingStatus'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
 import { getTranslation, getLanguage } from './translations'
@@ -60,11 +62,11 @@ function App() {
   // What the workspace tracks and what is tracked for this contact
   const [tracking, setTracking] = useState<ContactTrackingState | null>(null)
   const [savingTracking, setSavingTracking] = useState(false)
-  // Set by the opt-out link of an email (action=tracking_optout): nothing is written
-  // until the visitor confirms
-  const [pendingTrackingOptout, setPendingTrackingOptout] = useState(false)
-  const trackingHeadingRef = useRef<HTMLHeadingElement>(null)
-  const focusTrackingSectionRef = useRef(false)
+  // The tracking dialog, when open. The opt-out link of an email
+  // (action=tracking_optout) opens it on its confirmation: nothing is written until
+  // the visitor confirms
+  const [trackingDialog, setTrackingDialog] = useState<TrackingDialogMode | null>(null)
+  const [trackingOptoutError, setTrackingOptoutError] = useState<string | undefined>()
   const languageMenuRef = useRef<HTMLDivElement>(null)
   const confirmationResultRef = useRef<HTMLDivElement>(null)
   // Set when the result banner must take focus once shown: the confirmation card's button,
@@ -315,11 +317,12 @@ function App() {
 
         // Email links to the tracking section only read: a security scanner that opens
         // them must not change what the contact chose
-        if (params.action === 'tracking_optout') {
-          setPendingTrackingOptout(true)
+        const tracks = !!data.tracking && (data.tracking.opens_enabled || data.tracking.clicks_enabled)
+        if (tracks && params.action === 'tracking_optout') {
+          setTrackingDialog('optout')
         }
-        if (params.action === 'tracking') {
-          focusTrackingSectionRef.current = true
+        if (tracks && params.action === 'tracking') {
+          setTrackingDialog('manage')
         }
 
         // The List-Unsubscribe header link lands here when it is opened rather than
@@ -364,14 +367,10 @@ function App() {
     }
   }, [confirmationResult])
 
-  // The email's link to the tracking section lands on it
-  useEffect(() => {
-    if (!loading && tracking && focusTrackingSectionRef.current) {
-      focusTrackingSectionRef.current = false
-      trackingHeadingRef.current?.scrollIntoView?.({ block: 'start' })
-      trackingHeadingRef.current?.focus()
-    }
-  }, [loading, tracking])
+  const closeTrackingDialog = useCallback(() => {
+    setTrackingDialog(null)
+    setTrackingOptoutError(undefined)
+  }, [])
 
   // Set favicon when logo is available
   useEffect(() => {
@@ -650,14 +649,19 @@ function App() {
     }
   }
 
+  // Confirmed from the dialog the email's opt-out link opened: the dialog then shows
+  // the new choice, which the contact can still change.
   const confirmTrackingOptout = async () => {
+    setTrackingOptoutError(undefined)
     const saved = await saveTrackingConsent({ opens: false, clicks: false }, 'email_link')
-    focusConfirmationResultRef.current = true
     if (saved) {
-      setPendingTrackingOptout(false)
-      setConfirmationResult({ success: true, messageKey: 'trackingOptoutSuccess' })
+      setTrackingDialog('manage')
+      toast.success(t('trackingOptoutSuccess'), {
+        style: { backgroundColor: '#f0fdf4', borderLeft: '4px solid #22c55e', color: '#166534' },
+        duration: 3000
+      })
     } else {
-      setConfirmationResult({ success: false, messageKey: 'trackingSaveFailed' })
+      setTrackingOptoutError(t('trackingSaveFailed'))
     }
   }
 
@@ -869,25 +873,6 @@ function App() {
                 </div>
               )}
 
-              {/* Tracking opt-out confirmation (the opt-out link of an email) */}
-              {pendingTrackingOptout && (
-                <div
-                  className="mb-6 p-4 rounded-sm border border-gray-300 bg-gray-50"
-                  data-testid="confirm-tracking-optout"
-                >
-                  <p className="text-sm text-gray-700">{t('trackingOptoutPrompt')}</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={confirmTrackingOptout}
-                    disabled={savingTracking}
-                    className="mt-3 cursor-pointer border-red-500 text-red-500 hover:bg-red-50"
-                  >
-                    {savingTracking ? t('processing') : t('trackingOptoutConfirm')}
-                  </Button>
-                </div>
-              )}
-
               {/* All Lists section with toggles - showing both public and private lists */}
               {allLists.length > 0 && (
                 <div className="mb-6">
@@ -967,75 +952,31 @@ function App() {
                 <p className="text-center text-gray-500 py-4">{t('noSubscriptions')}</p>
               )}
 
-              {/* Email tracking: only the kinds the workspace tracks */}
+              {/* Email tracking: one line, the choice itself in a dialog */}
               {tracking && (tracking.opens_enabled || tracking.clicks_enabled) && (
-                <div className="mb-6 mt-6" data-testid="email-tracking">
-                  <h2
-                    ref={trackingHeadingRef}
-                    tabIndex={-1}
-                    className="text-md font-medium focus:outline-none"
+                <p className="mt-8 text-center text-xs text-gray-500" data-testid="email-tracking">
+                  {t(trackingStatusKey(tracking))}
+                  {' · '}
+                  <button
+                    type="button"
+                    className="cursor-pointer underline hover:text-gray-700"
+                    onClick={() => setTrackingDialog('manage')}
                   >
-                    {t('emailTracking')}
-                  </h2>
-                  <p className="text-sm text-gray-600 mt-1 mb-3">{t('emailTrackingIntro')}</p>
-                  <div className="space-y-3">
-                    {(
-                      [
-                        {
-                          kind: 'opens',
-                          enabled: tracking.opens_enabled,
-                          tracked: tracking.opens_tracked,
-                          label: t('openTracking'),
-                          description: t('openTrackingDescription')
-                        },
-                        {
-                          kind: 'clicks',
-                          enabled: tracking.clicks_enabled,
-                          tracked: tracking.clicks_tracked,
-                          label: t('clickTracking'),
-                          description: t('clickTrackingDescription')
-                        }
-                      ] as const
-                    )
-                      .filter((row) => row.enabled)
-                      .map((row) => (
-                        <div
-                          key={row.kind}
-                          className={`p-4 border border-gray-300 rounded-sm ${
-                            row.tracked ? 'bg-white' : 'bg-gray-50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="font-medium">
-                                {row.label}
-                                <span className="ml-2 text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded-full">
-                                  {row.tracked ? t('trackingOn') : t('trackingOff')}
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-600 mt-1">{row.description}</p>
-                            </div>
-                            <div className="ml-4">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => toggleTracking(row.kind, !row.tracked)}
-                                disabled={savingTracking}
-                                aria-label={`${row.tracked ? t('trackingStop') : t('trackingAllow')}: ${row.label}`}
-                                className={`cursor-pointer ${
-                                  row.tracked
-                                    ? 'border-red-500 text-red-500 hover:bg-red-50'
-                                    : 'border-blue-500 text-blue-500 hover:bg-blue-50'
-                                }`}
-                              >
-                                {row.tracked ? t('trackingStop') : t('trackingAllow')}
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
+                    {t('trackingChange')}
+                  </button>
+                </p>
+              )}
+              {tracking && trackingDialog && (
+                <TrackingDialog
+                  mode={trackingDialog}
+                  tracking={tracking}
+                  saving={savingTracking}
+                  optoutError={trackingOptoutError}
+                  t={t}
+                  onToggle={toggleTracking}
+                  onConfirmOptout={confirmTrackingOptout}
+                  onClose={closeTrackingDialog}
+                />
               )}
             </>
           )}
