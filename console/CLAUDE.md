@@ -7,7 +7,7 @@ The console uses **LinguiJS** for internationalization with natural language key
 **Setup:**
 
 - Runtime: `@lingui/core`, `@lingui/react`
-- Build: `@lingui/cli`, `@lingui/babel-plugin-lingui-macro`, `@lingui/vite-plugin`
+- Build: `@lingui/cli`, `@lingui/vite-plugin` (compiles macros with its native transform, `macroTransform: true`). Extraction (`createSwcExtractor` from `@lingui/native-tools` in `lingui.config.ts`) uses the same transform, so the IDs extracted are the IDs the bundle looks up; `src/__tests__/i18nMacro.test.ts` runs the plugin's own transform hook over the console
 - Config: `console/lingui.config.ts`
 - Translations: `console/src/i18n/locales/{locale}.po`
 
@@ -36,12 +36,11 @@ function MyComponent() {
 - For JSX content, use `<Trans>` component from `@lingui/react/macro`
 - All user-facing strings must be wrapped with `t` or `<Trans>`
 - Run `npm run lingui:extract` after adding new strings
-- Run `npm run lingui:compile` before building
+- No compile step before building: `@lingui/vite-plugin` compiles the `.po` catalogs the app imports, and fails the build on a message that does not compile (`failOnCompileError`)
 
 **Commands:**
 
 - `npm run lingui:extract` - Extract strings to PO files
-- `npm run lingui:compile` - Compile PO files for production
 
 **File Locations:**
 
