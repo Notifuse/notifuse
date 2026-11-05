@@ -211,3 +211,42 @@ func TestGetContactsRequest_TrackingConsentFilters(t *testing.T) {
 	var bad GetContactsRequest
 	assert.Error(t, bad.FromQueryParams(params))
 }
+
+func TestContact_DefaultTrackingConsentSource(t *testing.T) {
+	c := &Contact{TrackingOpensConsent: &NullableString{String: TrackingConsentGranted}}
+	c.DefaultTrackingConsentSource(TrackingConsentSourceAPI)
+	require.NotNil(t, c.TrackingConsentSource)
+	assert.Equal(t, TrackingConsentSourceAPI, c.TrackingConsentSource.String)
+
+	own := &Contact{TrackingOpensConsent: &NullableString{IsNull: true}, TrackingConsentSource: &NullableString{String: "legacy_crm"}}
+	own.DefaultTrackingConsentSource(TrackingConsentSourceAPI)
+	assert.Equal(t, "legacy_crm", own.TrackingConsentSource.String)
+
+	none := &Contact{}
+	none.DefaultTrackingConsentSource(TrackingConsentSourceAPI)
+	assert.Nil(t, none.TrackingConsentSource, "no consent, no source")
+}
+
+func TestContact_ImposeTrackingConsentSource(t *testing.T) {
+	c := &Contact{
+		TrackingClicksConsent:    &NullableString{String: TrackingConsentDenied},
+		TrackingConsentSource:    &NullableString{String: TrackingConsentSourceConsole},
+		TrackingConsentUpdatedAt: &NullableTime{Time: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)},
+	}
+	c.ImposeTrackingConsentSource(TrackingConsentSourceSubscribeForm)
+	require.NotNil(t, c.TrackingConsentSource)
+	assert.Equal(t, TrackingConsentSourceSubscribeForm, c.TrackingConsentSource.String)
+	assert.Nil(t, c.TrackingConsentUpdatedAt)
+	assert.Equal(t, TrackingConsentDenied, c.TrackingClicksConsent.String)
+
+	none := &Contact{TrackingConsentSource: &NullableString{String: "x"}, TrackingConsentUpdatedAt: &NullableTime{Time: time.Now()}}
+	none.ImposeTrackingConsentSource(TrackingConsentSourceSubscribeForm)
+	assert.Nil(t, none.TrackingConsentSource)
+	assert.Nil(t, none.TrackingConsentUpdatedAt)
+}
+
+func TestTrackingConsentSourceForUser(t *testing.T) {
+	assert.Equal(t, TrackingConsentSourceAPI, TrackingConsentSourceForUser(&User{Type: UserTypeAPIKey}))
+	assert.Equal(t, TrackingConsentSourceConsole, TrackingConsentSourceForUser(&User{Type: UserTypeUser}))
+	assert.Equal(t, TrackingConsentSourceConsole, TrackingConsentSourceForUser(nil))
+}

@@ -1234,13 +1234,17 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 	// visit attribution, which is the cheaper failure.
 	//
 	// Pinned by TestBroadcastService_SendToIndividual_NeverMintsIdentityToken.
+	//
+	// Opens and clicks follow the recipient's consent when the address is a
+	// contact, and the workspace's choice for unknown consent when it is not.
 	trackingSettings := notifuse_mjml.TrackingSettings{
-		Endpoint:       endpoint,
-		EnableTracking: workspace.Settings.EmailTrackingEnabled,
-		WorkspaceID:    request.WorkspaceID,
-		MessageID:      messageID,
-		SigningKey:     domain.TrackingSigningKey(workspace.Settings.SecretKey),
+		Endpoint:    endpoint,
+		WorkspaceID: request.WorkspaceID,
+		MessageID:   messageID,
+		SigningKey:  domain.TrackingSigningKey(workspace.Settings.SecretKey),
 	}
+	decision := domain.ResolveEmailTracking(workspace.Settings.TrackingPolicy(), contact, broadcast.TrackingMode)
+	decision.Apply(&trackingSettings)
 
 	// Add UTM parameters if available
 	if broadcast.UTMParameters != nil {
@@ -1347,6 +1351,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
+	message.OpensTracked, message.ClicksTracked = decision.TrackedFlags()
 
 	// Record message in history
 	return s.messageHistoryRepo.Create(ctx, request.WorkspaceID, workspace.Settings.SecretKey, message)

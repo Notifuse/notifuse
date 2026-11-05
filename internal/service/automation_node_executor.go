@@ -299,7 +299,7 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 	messageID := fmt.Sprintf("%s_%s", params.WorkspaceID, uuid.New().String())
 
 	// 6. Setup tracking settings, including this contact's web analytics identity
-	trackingSettings := e.buildTrackingSettings(params, workspace, config.TemplateID, messageID)
+	trackingSettings, trackingDecision := e.buildTrackingSettings(params, workspace, config.TemplateID, messageID)
 
 	// 7. Build template data using shared domain.BuildTemplateData
 	var listID, listName string
@@ -410,6 +410,8 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 			HTMLContent:         htmlContent,
 			RateLimitPerMinute:  emailProvider.RateLimitPerMinute,
 			ContactAutomationID: contactAutomationID,
+			OpensTracked:        trackedFlag(trackingDecision.Opens),
+			ClicksTracked:       trackedFlag(trackingDecision.Clicks),
 			// The list this email is sent for, as broadcasts set it. The worker stores
 			// it as message_history.list_id, which the complaint/bounce trigger needs
 			// to record the contact's status on the list.
@@ -465,7 +467,11 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 // true for every hostname when it is empty, so a workspace that enabled web
 // analytics without naming a domain must mint nothing here rather than inherit
 // that fail-open. The per-link host match runs later, in TrackLinks, against
-// these same hosts.
+// these same hosts. The token is also withheld from a contact whose click
+// consent does not allow tracking: it identifies them on the site.
+//
+// Opens and clicks follow the workspace policy and the contact's consent; the
+// decision is returned so the queue entry records what the email tracks.
 //
 // Splitting this out of Execute is what makes that gate testable: with the
 // emptiness check gone, a token is minted but applyIdentityParam still writes
@@ -478,10 +484,12 @@ func (e *EmailNodeExecutor) buildTrackingSettings(
 	workspace *domain.Workspace,
 	templateID string,
 	messageID string,
-) notifuse_mjml.TrackingSettings {
+) (notifuse_mjml.TrackingSettings, domain.EmailTrackingDecision) {
+	decision := domain.ResolveEmailTracking(workspace.Settings.TrackingPolicy(), params.ContactData, "")
+
 	var identifyToken string
 	var identifyAllowedHosts []string
-	if wa := workspace.Settings.WebAnalytics; wa.CanIdentifyFromEmailLinks() {
+	if wa := workspace.Settings.WebAnalytics; decision.Identify && wa.CanIdentifyFromEmailLinks() {
 		token, err := domain.BuildWebIdentifyToken(
 			params.ContactData.Email,
 			workspace.Settings.SecretKey,
@@ -504,16 +512,15 @@ func (e *EmailNodeExecutor) buildTrackingSettings(
 		}
 	}
 
-	return notifuse_mjml.TrackingSettings{
+	settings := notifuse_mjml.TrackingSettings{
 		// Custom endpoint if set, else the API endpoint.
-		Endpoint:       workspace.Settings.ResolveEndpoint(e.apiEndpoint),
-		EnableTracking: workspace.Settings.EmailTrackingEnabled,
-		UTMSource:      "automation",
-		UTMMedium:      "email",
-		UTMCampaign:    params.Automation.Name,
-		UTMContent:     templateID,
-		WorkspaceID:    params.WorkspaceID,
-		MessageID:      messageID,
+		Endpoint:    workspace.Settings.ResolveEndpoint(e.apiEndpoint),
+		UTMSource:   "automation",
+		UTMMedium:   "email",
+		UTMCampaign: params.Automation.Name,
+		UTMContent:  templateID,
+		WorkspaceID: params.WorkspaceID,
+		MessageID:   messageID,
 		// Request-scoped, and both json:"-": the credential reaches the compiler
 		// without ever reaching a stored tracking_settings row. That says nothing
 		// about the HTML the compiler returns, which Execute does persist — see
@@ -522,6 +529,13 @@ func (e *EmailNodeExecutor) buildTrackingSettings(
 		IdentifyAllowedHosts: identifyAllowedHosts,
 		SigningKey:           domain.TrackingSigningKey(workspace.Settings.SecretKey),
 	}
+	decision.Apply(&settings)
+	return settings, decision
+}
+
+// trackedFlag returns a pointer to v, for the message tracking flags.
+func trackedFlag(v bool) *bool {
+	return &v
 }
 
 // parseEmailNodeConfig parses email node configuration from map

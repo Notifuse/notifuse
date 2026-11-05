@@ -139,6 +139,38 @@ func (c *Contact) ClearTrackingConsent() {
 	c.TrackingConsentUpdatedAt = nil
 }
 
+// DefaultTrackingConsentSource sets the source a consent change is recorded
+// with when the contact names a consent and no source of its own. A caller's
+// source is kept: an API call or an import may carry over a history recorded
+// elsewhere.
+func (c *Contact) DefaultTrackingConsentSource(source string) {
+	if c.ProvidesTrackingConsent() && TrackingConsentValue(c.TrackingConsentSource) == "" {
+		c.TrackingConsentSource = &NullableString{String: source}
+	}
+}
+
+// ImposeTrackingConsentSource records a consent change with source, whatever
+// the caller sent, and drops any date the caller sent so the change is dated
+// now. For writes from an unauthenticated caller, who could otherwise label
+// their change "console" or backdate it.
+func (c *Contact) ImposeTrackingConsentSource(source string) {
+	c.TrackingConsentUpdatedAt = nil
+	if c.ProvidesTrackingConsent() {
+		c.TrackingConsentSource = &NullableString{String: source}
+	} else {
+		c.TrackingConsentSource = nil
+	}
+}
+
+// TrackingConsentSourceForUser is the source of a consent written by an
+// authenticated caller: "api" for an API key, "console" for a user.
+func TrackingConsentSourceForUser(user *User) string {
+	if user != nil && user.Type == UserTypeAPIKey {
+		return TrackingConsentSourceAPI
+	}
+	return TrackingConsentSourceConsole
+}
+
 // TrackingConsentChanged reports whether either consent differs between before
 // and after. A nil pointer and an explicit null are the same unknown value.
 func TrackingConsentChanged(before, after *Contact) bool {

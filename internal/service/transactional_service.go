@@ -54,11 +54,19 @@ func NewTransactionalNotificationService(
 	}
 }
 
-// effectiveTracking resolves the per-notification tracking mode against the
-// workspace kill-switch: only an explicit opt-out suppresses tracking, and no
-// mode can force tracking on when the workspace flag is off.
-func effectiveTracking(workspaceEnabled bool, mode string) bool {
-	return workspaceEnabled && mode != notifuse_mjml.TrackingModeDisabled
+// recipientTrackingSettings returns a copy of a notification's stored tracking
+// settings with the tracking decision for one recipient applied: the
+// workspace's opens and clicks switches, the recipient's consent, and the
+// notification's tracking mode (disabled rewrites nothing, no_tracking keeps the
+// UTM parameters only). No mode can turn on what the workspace turned off.
+//
+// The stored settings are never modified: they describe the notification, and
+// the decision belongs to one recipient.
+func recipientTrackingSettings(workspace *domain.Workspace, contact *domain.Contact, stored notifuse_mjml.TrackingSettings) notifuse_mjml.TrackingSettings {
+	settings := stored
+	decision := domain.ResolveEmailTracking(workspace.Settings.TrackingPolicy(), contact, stored.TrackingMode)
+	decision.Apply(&settings)
+	return settings
 }
 
 // canonicalTrackingMode normalizes the tri-state for storage: an explicit
@@ -605,9 +613,17 @@ func (s *TransactionalNotificationService) SendNotification(
 	// Without contacts:write the send may still create the recipient, but it must not carry
 	// the caller's fields into an existing record: the repository merges every non-nil
 	// pointer, so the full request body would overwrite an unrelated stored contact.
+	//
+	// With contacts:write, a tracking consent in the body is recorded like any other
+	// field. The upsert runs as a system call, which ContactService does not attribute,
+	// so the source defaults to "api" here when the caller gave none.
 	upsertTarget := params.Contact
 	if !hasContactsWrite {
 		upsertTarget = &domain.Contact{Email: params.Contact.Email}
+	} else if params.Contact.ProvidesTrackingConsent() && domain.TrackingConsentValue(params.Contact.TrackingConsentSource) == "" {
+		withSource := *params.Contact
+		withSource.TrackingConsentSource = &domain.NullableString{String: domain.TrackingConsentSourceAPI}
+		upsertTarget = &withSource
 	}
 
 	contactOperation := s.contactService.UpsertContact(contactCtx, workspaceID, upsertTarget)
@@ -693,14 +709,16 @@ func (s *TransactionalNotificationService) SendNotification(
 			trace.StringAttribute("template_id", templateConfig.TemplateID),
 		)
 
-		// Prepare message data with contact and custom data
-		notification.TrackingSettings.EnableTracking = effectiveTracking(workspace.Settings.EmailTrackingEnabled, notification.TrackingSettings.TrackingMode)
+		// Prepare message data with contact and custom data. The tracking decision
+		// is applied to a copy, before BuildTemplateData, which leaves
+		// tracking_opens_url empty when opens are not tracked.
+		trackingSettings := recipientTrackingSettings(workspace, contact, notification.TrackingSettings)
 
 		// Resolve the tracking/base endpoint: custom endpoint if set, else the API endpoint.
-		notification.TrackingSettings.Endpoint = workspace.Settings.ResolveEndpoint(s.apiEndpoint)
+		trackingSettings.Endpoint = workspace.Settings.ResolveEndpoint(s.apiEndpoint)
 
-		notification.TrackingSettings.WorkspaceID = workspaceID
-		notification.TrackingSettings.MessageID = messageID
+		trackingSettings.WorkspaceID = workspaceID
+		trackingSettings.MessageID = messageID
 
 		contactWithList := domain.ContactWithList{
 			Contact: contact,
@@ -713,7 +731,7 @@ func (s *TransactionalNotificationService) SendNotification(
 			ContactWithList:     contactWithList,
 			MessageID:           messageID,
 			ProvidedData:        params.Data,
-			TrackingSettings:    notification.TrackingSettings,
+			TrackingSettings:    trackingSettings,
 			Broadcast:           nil,
 		}
 		templateData, err := domain.BuildTemplateData(req)
@@ -756,8 +774,6 @@ func (s *TransactionalNotificationService) SendNotification(
 				trace.StringAttribute("integration_id", integrationID),
 			)
 
-			notification.TrackingSettings.EnableTracking = effectiveTracking(workspace.Settings.EmailTrackingEnabled, notification.TrackingSettings.TrackingMode)
-
 			notificationID := params.ID
 			request := domain.SendEmailRequest{
 				WorkspaceID:                 workspaceID,
@@ -768,7 +784,7 @@ func (s *TransactionalNotificationService) SendNotification(
 				Contact:                     contact,
 				TemplateConfig:              templateConfig,
 				MessageData:                 messageData,
-				TrackingSettings:            notification.TrackingSettings,
+				TrackingSettings:            trackingSettings,
 				EmailProvider:               emailProvider,
 				EmailOptions:                params.EmailOptions,
 			}
@@ -911,13 +927,14 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 	// Resolve the tracking/base endpoint: custom endpoint if set, else the API endpoint.
 	endpoint := workspace.Settings.ResolveEndpoint(s.apiEndpoint)
 
-	trackingSettings := notifuse_mjml.TrackingSettings{
-		EnableTracking: workspace.Settings.EmailTrackingEnabled,
-		Endpoint:       endpoint,
-		WorkspaceID:    workspaceID,
-		MessageID:      messageID,
-		SigningKey:     domain.TrackingSigningKey(workspace.Settings.SecretKey),
-	}
+	// The test recipient's consent applies as for a real send.
+	trackingSettings := recipientTrackingSettings(workspace, contact, notifuse_mjml.TrackingSettings{
+		Endpoint:    endpoint,
+		WorkspaceID: workspaceID,
+		MessageID:   messageID,
+		SigningKey:  domain.TrackingSigningKey(workspace.Settings.SecretKey),
+	})
+	opensTracked, clicksTracked := domain.TrackedFlagsFromSettings(trackingSettings)
 
 	req := domain.TemplateDataRequest{
 		WorkspaceID:         workspace.ID,
@@ -1025,6 +1042,8 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 			Data: messageData,
 		},
 		ChannelOptions: emailOptions.ToChannelOptions(),
+		OpensTracked:   opensTracked,
+		ClicksTracked:  clicksTracked,
 		SentAt:         time.Now().UTC(),
 		CreatedAt:      time.Now().UTC(),
 		UpdatedAt:      time.Now().UTC(),
