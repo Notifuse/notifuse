@@ -767,3 +767,121 @@ func TestEmailQueueFetchEligibility(t *testing.T) {
 		}
 	})
 }
+
+// TestEmailQueueReleaseThrottled checks that a row refused for the sending pace goes back
+// to pending with its attempt, and can be fetched and claimed again at once.
+func TestEmailQueueReleaseThrottled(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer suite.Cleanup()
+
+	// The worker is not started, so nothing but this test touches the queue.
+	factory := suite.DataFactory
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	integration, err := factory.SetupWorkspaceWithSMTPProvider(workspace.ID)
+	require.NoError(t, err)
+
+	queueRepo := suite.ServerManager.GetApp().GetEmailQueueRepository()
+	db, err := factory.GetWorkspaceDB(workspace.ID)
+	require.NoError(t, err)
+	ctx := context.Background()
+
+	row := func(t *testing.T, name, state string) string {
+		t.Helper()
+		entry := testutil.CreateTestEmailQueueEntry(integration.ID, name+"@example.com", "release-throttled", domain.EmailQueueSourceBroadcast)
+		require.NoError(t, queueRepo.Enqueue(ctx, workspace.ID, []*domain.EmailQueueEntry{entry}))
+		if state != "" {
+			_, err := db.ExecContext(ctx, `UPDATE email_queue SET `+state+` WHERE id = $1`, entry.ID)
+			require.NoError(t, err)
+		}
+		return entry.ID
+	}
+
+	type state struct {
+		status       string
+		attempts     int
+		maxAttempts  int
+		retryPlanned bool
+		lastError    string
+	}
+	read := func(t *testing.T, id string) state {
+		t.Helper()
+		var s state
+		var lastError *string
+		require.NoError(t, db.QueryRowContext(ctx,
+			`SELECT status, attempts, max_attempts, next_retry_at IS NOT NULL, last_error FROM email_queue WHERE id = $1`, id).
+			Scan(&s.status, &s.attempts, &s.maxAttempts, &s.retryPlanned, &lastError))
+		if lastError != nil {
+			s.lastError = *lastError
+		}
+		return s
+	}
+	fetched := func(t *testing.T, id string) bool {
+		t.Helper()
+		entries, err := queueRepo.FetchPendingForIntegration(ctx, workspace.ID, integration.ID, 100)
+		require.NoError(t, err)
+		for _, e := range entries {
+			if e.ID == id {
+				return true
+			}
+		}
+		return false
+	}
+
+	const refusal = "failed to send email: message rejected with code 451: 4.7.1 rate limit exceeded"
+
+	t.Run("a claimed row goes back to pending with its attempt", func(t *testing.T) {
+		id := row(t, "claimed", "")
+		require.NoError(t, queueRepo.MarkAsProcessing(ctx, workspace.ID, id))
+		require.Equal(t, 1, read(t, id).attempts)
+
+		require.NoError(t, queueRepo.ReleaseThrottled(ctx, workspace.ID, id, refusal))
+
+		got := read(t, id)
+		assert.Equal(t, "pending", got.status)
+		assert.Zero(t, got.attempts)
+		assert.False(t, got.retryPlanned)
+		assert.Equal(t, refusal, got.lastError)
+		assert.True(t, fetched(t, id), "sent again without waiting for a retry date")
+		assert.NoError(t, queueRepo.MarkAsProcessing(ctx, workspace.ID, id))
+	})
+
+	t.Run("a retry claimed after a failure goes back to pending without its retry date", func(t *testing.T) {
+		id := row(t, "retried", `status = 'failed', attempts = 1, next_retry_at = NOW() - INTERVAL '1 minute'`)
+		require.NoError(t, queueRepo.MarkAsProcessing(ctx, workspace.ID, id))
+
+		require.NoError(t, queueRepo.ReleaseThrottled(ctx, workspace.ID, id, refusal))
+
+		got := read(t, id)
+		assert.Equal(t, "pending", got.status)
+		assert.Equal(t, 1, got.attempts)
+		assert.False(t, got.retryPlanned)
+		assert.True(t, fetched(t, id))
+	})
+
+	t.Run("a stuck row recovered on its last attempt stays sendable", func(t *testing.T) {
+		id := row(t, "stuck-last-attempt",
+			`status = 'processing', attempts = max_attempts, updated_at = NOW() - INTERVAL '3 minutes'`)
+		require.NoError(t, queueRepo.MarkAsProcessing(ctx, workspace.ID, id))
+
+		require.NoError(t, queueRepo.ReleaseThrottled(ctx, workspace.ID, id, refusal))
+
+		got := read(t, id)
+		assert.Equal(t, "pending", got.status)
+		assert.Equal(t, got.maxAttempts-1, got.attempts)
+		assert.True(t, fetched(t, id), "the release does not use up the row's attempts")
+	})
+
+	t.Run("a row that is not processing is left as it is", func(t *testing.T) {
+		id := row(t, "failed-for-good", `status = 'failed', attempts = max_attempts, next_retry_at = NULL, last_error = 'bounced'`)
+		before := read(t, id)
+
+		require.NoError(t, queueRepo.ReleaseThrottled(ctx, workspace.ID, id, refusal))
+
+		assert.Equal(t, before, read(t, id))
+	})
+}

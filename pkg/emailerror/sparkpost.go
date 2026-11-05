@@ -46,6 +46,10 @@ func (c *Classifier) classifySparkPostError(err error, errStr string, httpStatus
 		Retryable:  true,
 	}
 
+	if httpStatus == 429 {
+		return classifyThrottle(result, errStr)
+	}
+
 	// Check for recipient-specific errors
 	if containsAny(errStr, sparkpostRecipientPatterns) {
 		result.Type = ErrorTypeRecipient

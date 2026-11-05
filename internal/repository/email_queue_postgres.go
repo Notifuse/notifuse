@@ -338,6 +338,36 @@ func (r *EmailQueueRepository) MarkAsFailed(ctx context.Context, workspaceID str
 	return nil
 }
 
+// releaseThrottledSQL gives a row back after the provider refused its send for the
+// sending pace. The attempt the claim counted is returned, and the row is due at once,
+// in its place in the queue. The count is kept below max_attempts: a row reclaimed from
+// stuck processing can be one over it after its claim, and a pending row at
+// max_attempts is neither fetched nor finished.
+const releaseThrottledSQL = `
+		UPDATE email_queue
+		SET status = 'pending',
+		    attempts = LEAST(GREATEST(attempts - 1, 0), GREATEST(max_attempts - 1, 0)),
+		    next_retry_at = NULL,
+		    last_error = $2,
+		    updated_at = NOW()
+		WHERE id = $1 AND status = 'processing'
+	`
+
+// ReleaseThrottled gives back a row whose send the provider refused for its pace. A row
+// that is no longer processing is left alone.
+func (r *EmailQueueRepository) ReleaseThrottled(ctx context.Context, workspaceID string, id string, errorMsg string) error {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	if _, err := db.ExecContext(ctx, releaseThrottledSQL, id, errorMsg); err != nil {
+		return fmt.Errorf("failed to release throttled email: %w", err)
+	}
+
+	return nil
+}
+
 // Delete removes a queue entry (used when max retries exhausted)
 func (r *EmailQueueRepository) Delete(ctx context.Context, workspaceID string, entryID string) error {
 	db, err := r.getDB(ctx, workspaceID)
