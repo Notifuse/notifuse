@@ -31,6 +31,8 @@ var AllowedContactFields = map[string]bool{
 	// Custom JSON fields
 	"custom_json_1": true, "custom_json_2": true, "custom_json_3": true,
 	"custom_json_4": true, "custom_json_5": true,
+	// Tracking consent
+	"tracking_opens_consent": true, "tracking_clicks_consent": true,
 }
 
 // identifierPattern accepts what may be concatenated into a PostgreSQL identifier.

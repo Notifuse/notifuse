@@ -108,3 +108,47 @@ func TestBroadcastService_SendToIndividual_FollowsTrackingConsent(t *testing.T) 
 		})
 	}
 }
+
+func TestBroadcastService_GetTestResults_RatesOverTrackedEmails(t *testing.T) {
+	run := func(t *testing.T, statsA, statsB *domain.MessageHistoryStatusSum) *domain.TestResultsResponse {
+		t.Helper()
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+		ctx := context.Background()
+		authOK(d.authService, ctx, "w1")
+
+		b := testBroadcast("w1", "b1")
+		b.Status = domain.BroadcastStatusTesting
+		b.TestSettings.Enabled = true
+		b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: "tplA"}, {VariationName: "B", TemplateID: "tplB"}}
+		d.repo.EXPECT().GetBroadcast(ctx, "w1", "b1").Return(b, nil)
+		d.messageHistoryRepo.EXPECT().GetBroadcastVariationStats(ctx, "w1", "b1", "tplA").Return(statsA, nil)
+		d.messageHistoryRepo.EXPECT().GetBroadcastVariationStats(ctx, "w1", "b1", "tplB").Return(statsB, nil)
+
+		res, err := d.svc.GetTestResults(ctx, "w1", "b1")
+		require.NoError(t, err)
+		return res
+	}
+
+	t.Run("rates and tracked counts", func(t *testing.T) {
+		res := run(t,
+			&domain.MessageHistoryStatusSum{TotalSent: 100, TotalOpensTracked: 50, TotalClicksTracked: 40, TotalOpened: 25, TotalClicked: 4},
+			&domain.MessageHistoryStatusSum{TotalSent: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalOpened: 30, TotalClicked: 5},
+		)
+		a := res.VariationResults["tplA"]
+		assert.InDelta(t, 0.5, a.OpenRate, 1e-9)
+		assert.InDelta(t, 0.1, a.ClickRate, 1e-9)
+		assert.Equal(t, 50, a.OpensTracked)
+		assert.Equal(t, 40, a.ClicksTracked)
+		assert.Equal(t, "tplA", res.RecommendedWinner, "A: 0.7*0.1+0.3*0.5 beats B: 0.7*0.05+0.3*0.3")
+	})
+
+	t.Run("a variation with no tracked email is not recommended", func(t *testing.T) {
+		res := run(t,
+			&domain.MessageHistoryStatusSum{TotalSent: 100},
+			&domain.MessageHistoryStatusSum{TotalSent: 100},
+		)
+		assert.Empty(t, res.RecommendedWinner)
+		assert.Equal(t, 0.0, res.VariationResults["tplA"].OpenRate)
+	})
+}

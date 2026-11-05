@@ -73,17 +73,27 @@ func (e *ABTestEvaluator) selectBestVariation(ctx context.Context, workspaceID s
 			continue
 		}
 
-		var score float64
-		if stats.TotalDelivered > 0 {
-			switch broadcast.TestSettings.AutoSendWinnerMetric {
-			case domain.TestWinnerMetricOpenRate:
-				score = float64(stats.TotalOpened) / float64(stats.TotalDelivered)
-			case domain.TestWinnerMetricClickRate:
-				score = float64(stats.TotalClicked) / float64(stats.TotalDelivered)
-			default:
-				return "", fmt.Errorf("invalid winner metric: %s", broadcast.TestSettings.AutoSendWinnerMetric)
-			}
+		// The rate is measured over the delivered emails that could record the
+		// metric: an email sent without the pixel (or the redirects) cannot open
+		// (or click), whatever its recipient did. A variation with none of them
+		// is not a candidate, rather than a score of 0 that would still beat -1.
+		var hits, tracked int
+		switch broadcast.TestSettings.AutoSendWinnerMetric {
+		case domain.TestWinnerMetricOpenRate:
+			hits, tracked = stats.TotalOpened, stats.TotalDeliveredOpensTracked
+		case domain.TestWinnerMetricClickRate:
+			hits, tracked = stats.TotalClicked, stats.TotalDeliveredClicksTracked
+		default:
+			return "", fmt.Errorf("invalid winner metric: %s", broadcast.TestSettings.AutoSendWinnerMetric)
 		}
+		if tracked == 0 {
+			e.logger.WithFields(map[string]interface{}{
+				"template_id": variation.TemplateID,
+				"metric":      broadcast.TestSettings.AutoSendWinnerMetric,
+			}).Info("Variation has no tracked delivered email, not a candidate")
+			continue
+		}
+		score := float64(hits) / float64(tracked)
 
 		if score > bestScore {
 			bestScore = score

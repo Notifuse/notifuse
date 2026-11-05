@@ -147,6 +147,10 @@ func (h *NotificationCenterHandler) handleUpdatePreferences(w http.ResponseWrite
 			WriteJSONError(w, "Unauthorized: invalid verification", http.StatusUnauthorized)
 			return
 		}
+		if strings.Contains(err.Error(), "contact not found") {
+			WriteJSONError(w, "Contact not found", http.StatusNotFound)
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to update contact preferences")
 		WriteJSONError(w, "Failed to update contact preferences", http.StatusInternalServerError)
 		return

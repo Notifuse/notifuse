@@ -1808,8 +1808,8 @@ func TestBroadcastOrchestrator_Process_AutoWinnerEvaluationPath(t *testing.T) {
 	abEval := broadcast.NewABTestEvaluator(msgRepo, mockBroadcastRepo, mockLogger)
 
 	// Stats prefer tplB
-	msgRepo.EXPECT().GetBroadcastVariationStats(gomock.Any(), "w", "b", "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpened: 10}, nil)
-	msgRepo.EXPECT().GetBroadcastVariationStats(gomock.Any(), "w", "b", "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpened: 60}, nil)
+	msgRepo.EXPECT().GetBroadcastVariationStats(gomock.Any(), "w", "b", "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredOpensTracked: 100, TotalDeliveredClicksTracked: 100, TotalOpened: 10}, nil)
+	msgRepo.EXPECT().GetBroadcastVariationStats(gomock.Any(), "w", "b", "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredOpensTracked: 100, TotalDeliveredClicksTracked: 100, TotalOpened: 60}, nil)
 
 	// Transaction and update during evaluation
 	mockBroadcastRepo.EXPECT().WithTransaction(gomock.Any(), "w", gomock.Any()).DoAndReturn(func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) })
