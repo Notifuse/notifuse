@@ -226,14 +226,16 @@ export function TrackingConsentEditor({
         <TrackingConsentSummary opens={opens} clicks={clicks} />
       </div>
       <div className="flex items-start">
-        <Button
-          size="small"
-          type="text"
-          icon={<EditOutlined />}
+        {/* As narrow as the edit icon of the other fields, so the values line up */}
+        <button
+          type="button"
+          className="p-0 border-0 bg-transparent leading-none text-gray-400 hover:text-blue-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
           aria-label={t`Edit tracking consent`}
           disabled={disabled}
           onClick={startEdit}
-        />
+        >
+          <EditOutlined />
+        </button>
       </div>
     </div>
   )

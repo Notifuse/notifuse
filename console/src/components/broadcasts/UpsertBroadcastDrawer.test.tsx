@@ -233,6 +233,28 @@ describe('UpsertBroadcastDrawer schedule', () => {
     const payload = (broadcastApi.create as Mock).mock.calls[0][0]
     expect(payload.schedule).toEqual({ is_scheduled: false, use_recipient_timezone: false })
   })
+
+  it('creates a new broadcast tracked, with the "Don\'t track" box unchecked', async () => {
+    renderDrawer(<UpsertBroadcastDrawer workspace={workspace} lists={lists} />)
+    await userEvent.click(screen.getByRole('button', { name: /Create Broadcast/i }))
+
+    await userEvent.type(
+      screen.getByPlaceholderText('E.g. Weekly Newsletter - May 2023'),
+      'Weekly Newsletter'
+    )
+    await userEvent.click(screen.getAllByRole('combobox')[0])
+    await userEvent.click(await screen.findByText('Newsletter'))
+
+    await goToTab('2. Web Analytics')
+    expect(screen.getByRole('checkbox', { name: /Don't track opens and clicks/i })).not.toBeChecked()
+
+    await goToTab('4. Content')
+    await userEvent.type(screen.getByTestId('template-selector'), 'tmpl1')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(broadcastApi.create).toHaveBeenCalled())
+    expect((broadcastApi.create as Mock).mock.calls[0][0].tracking_mode).toBe('inherit')
+  })
 })
 
 describe('UpsertBroadcastDrawer tracking', () => {
