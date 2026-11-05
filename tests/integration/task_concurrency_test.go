@@ -146,10 +146,10 @@ func TestCron_ConcurrentTriggerIsRejected(t *testing.T) {
 	assert.Equal(t, true, secondBody["already_running"],
 		"a trigger arriving while a run is in flight must not start another")
 
-	// Let the first run finish so the suite tears down cleanly and the
-	// duplicate check sees everything it enqueued.
+	// Wait for the broadcast task of the first run to complete, so the
+	// duplicate check sees everything that run enqueued.
 	status := waitForTaskStatus(t, h, "completed", 30*time.Second)
-	assert.Equal(t, "completed", status, "the first run should finish")
+	require.Equal(t, "completed", status, "the first run should finish")
 	rows, distinct := duplicateEnqueueCheck(t, h)
 	assert.Equal(t, rows, distinct, "the rejected trigger must not have duplicated work")
 }
