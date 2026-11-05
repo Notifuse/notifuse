@@ -1222,10 +1222,13 @@ func GetMailpitMessage(t *testing.T, messageID string) (*MailpitMessage, error) 
 	}
 	defer headersResp.Body.Close()
 
-	if headersResp.StatusCode == http.StatusOK {
-		if err := json.NewDecoder(headersResp.Body).Decode(&msg.Headers); err != nil {
-			t.Logf("Warning: failed to decode Mailpit headers: %v", err)
-		}
+	// A message returned without its headers would let an assertion that a header is
+	// absent pass on nothing, so a failed headers request is an error.
+	if headersResp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code from Mailpit headers: %d", headersResp.StatusCode)
+	}
+	if err := json.NewDecoder(headersResp.Body).Decode(&msg.Headers); err != nil {
+		return nil, fmt.Errorf("failed to decode Mailpit headers: %w", err)
 	}
 
 	return &msg, nil
@@ -1406,11 +1409,6 @@ func GetMailpitMessagesByRecipient(t *testing.T, subject string) (map[string][]*
 		msg, err := GetMailpitMessage(t, summary.ID)
 		if err != nil {
 			return nil, err
-		}
-		// GetMailpitMessage only logs a failed headers request; a caller asserting a header
-		// is absent must not read a message whose headers were never fetched.
-		if msg.Headers == nil {
-			return nil, fmt.Errorf("Mailpit returned no headers for message %s", summary.ID)
 		}
 		for _, to := range summary.To {
 			if email := strings.ToLower(strings.TrimSpace(to.Address)); email != "" {
