@@ -772,7 +772,7 @@ func TestNotificationCenterHandler_handleUpdatePreferences(t *testing.T) {
 			},
 			setupMock:          func() {},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   `{"error":"at least one of language or timezone must be provided"}`,
+			expectedResponse:   `{"error":"at least one of language, timezone, tracking_opens_consent or tracking_clicks_consent must be provided"}`,
 		},
 		{
 			name: "service returns HMAC error",
@@ -805,6 +805,55 @@ func TestNotificationCenterHandler_handleUpdatePreferences(t *testing.T) {
 			},
 			expectedStatusCode: http.StatusInternalServerError,
 			expectedResponse:   `{"error":"Failed to update contact preferences"}`,
+		},
+		{
+			name: "contact not found answers 404",
+			requestBody: domain.UpdateContactPreferencesRequest{
+				WorkspaceID: "ws123",
+				Email:       "deleted@example.com",
+				EmailHMAC:   "valid",
+				Language:    "fr",
+			},
+			setupMock: func() {
+				mockService.EXPECT().
+					UpdateContactPreferences(gomock.Any(), gomock.Any()).
+					Return(domain.ErrContactNotFound)
+			},
+			expectedStatusCode: http.StatusNotFound,
+			expectedResponse:   `{"error":"Contact not found"}`,
+		},
+		{
+			name: "tracking consent alone is a valid update",
+			requestBody: domain.UpdateContactPreferencesRequest{
+				WorkspaceID:           "ws123",
+				Email:                 "test@example.com",
+				EmailHMAC:             "valid",
+				TrackingOpensConsent:  domain.TrackingConsentDenied,
+				TrackingClicksConsent: domain.TrackingConsentDenied,
+				ConsentSource:         domain.TrackingConsentSourceEmailLink,
+			},
+			setupMock: func() {
+				mockService.EXPECT().
+					UpdateContactPreferences(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, req *domain.UpdateContactPreferencesRequest) error {
+						assert.Equal(t, domain.TrackingConsentSourceEmailLink, req.ConsentSource)
+						return nil
+					})
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedResponse:   `{"success":true}`,
+		},
+		{
+			name: "unknown is not accepted from the public endpoint",
+			requestBody: domain.UpdateContactPreferencesRequest{
+				WorkspaceID:          "ws123",
+				Email:                "test@example.com",
+				EmailHMAC:            "valid",
+				TrackingOpensConsent: "unknown",
+			},
+			setupMock:          func() {},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   `{"error":"tracking_opens_consent: invalid tracking consent \"unknown\": must be \"granted\" or \"denied\""}`,
 		},
 		{
 			name: "successful update",

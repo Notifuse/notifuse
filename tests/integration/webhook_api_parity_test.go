@@ -64,6 +64,8 @@ var canonicalContactFields = []string{
 	"custom_json_5",
 	"created_at",
 	"updated_at",
+	"tracking_opens_consent",
+	"tracking_clicks_consent",
 }
 
 // TestWebhookAPIParity holds the webhook payload and the read endpoint that backs
@@ -139,11 +141,13 @@ func TestWebhookAPIParity(t *testing.T) {
 		exec(`INSERT INTO contacts (
 				email, external_id, timezone, language,
 				first_name, last_name, full_name, country, job_title,
-				custom_string_1, custom_number_1, custom_datetime_1, custom_json_1
+				custom_string_1, custom_number_1, custom_datetime_1, custom_json_1,
+				tracking_opens_consent
 			) VALUES (
 				$1, 'crm-9001', 'Europe/Paris', 'fr',
 				'Ada', 'Parity', 'Ada Parity', 'FR', 'Engineer',
-				'gold', 42.5, NOW(), '{"plan":"pro"}'::jsonb
+				'gold', 42.5, NOW(), '{"plan":"pro"}'::jsonb,
+				'granted'
 			)`, email)
 
 		created := deliveryFor("contact.created")

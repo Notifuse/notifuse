@@ -18,6 +18,8 @@ export interface VariationMetrics {
   bounced: number
   complained: number
   unsubscribed: number
+  opens_tracked?: number
+  clicks_tracked?: number
 }
 
 // Define the EmailTemplate interface
@@ -149,7 +151,12 @@ export interface Broadcast {
   pause_reason?: string
   // Data feed settings (consolidated)
   data_feed?: DataFeedSettings
+  // Absent follows the workspace and each contact's consent; 'no_tracking'
+  // drops the open pixel and click redirect for every recipient, keeping UTM.
+  tracking_mode?: BroadcastTrackingMode
 }
+
+export type BroadcastTrackingMode = 'inherit' | 'no_tracking'
 
 export interface CreateBroadcastRequest {
   workspace_id: string
@@ -160,6 +167,7 @@ export interface CreateBroadcastRequest {
   utm_parameters?: UTMParameters
   metadata?: Record<string, unknown>
   data_feed?: DataFeedSettings
+  tracking_mode?: BroadcastTrackingMode
 }
 
 // broadcasts.update is a patch: a key this request does not carry leaves the stored value
@@ -179,6 +187,7 @@ export interface UpdateBroadcastRequest {
   utm_parameters?: UTMParameters
   metadata?: Record<string, unknown>
   data_feed?: DataFeedSettings
+  tracking_mode?: BroadcastTrackingMode
 }
 
 export interface ListBroadcastsRequest {
@@ -283,8 +292,11 @@ export interface VariationResult {
   delivered: number
   opens: number
   clicks: number
-  open_rate: number
-  click_rate: number
+  open_rate: number // opens / opens_tracked
+  click_rate: number // clicks / clicks_tracked
+  // Emails of the variation that carried the open pixel / tracked links
+  opens_tracked?: number
+  clicks_tracked?: number
 }
 
 export interface TestResultsResponse {

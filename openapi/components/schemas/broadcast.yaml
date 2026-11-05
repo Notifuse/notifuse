@@ -104,6 +104,14 @@ Broadcast:
       type: string
       nullable: true
       description: Reason for pausing the broadcast
+    tracking_mode:
+      type: string
+      enum: [inherit, no_tracking]
+      description: |
+        Absent or `inherit` follows the workspace tracking settings and each recipient's
+        tracking consent (stored as absent). `no_tracking` sends every email without the
+        open pixel and the click-tracking redirect, keeping the UTM parameters; it cannot be
+        combined with an A/B test whose winner is sent automatically.
 
 BroadcastTestSettings:
   type: object
@@ -321,13 +329,17 @@ CreateBroadcastRequest:
       type: object
       additionalProperties: true
       description: Custom metadata for the broadcast
+    tracking_mode:
+      type: string
+      enum: [inherit, no_tracking]
+      description: See `Broadcast.tracking_mode`.
 
 UpdateBroadcastRequest:
   type: object
   description: >-
     Partial update of a broadcast. workspace_id, id and name are always applied; audience
-    is merged one key at a time, and schedule, test_settings, utm_parameters, metadata and
-    data_feed keep their stored value when the key is left out of the body. Send the key to
+    is merged one key at a time, and schedule, test_settings, utm_parameters, metadata,
+    data_feed and tracking_mode keep their stored value when the key is left out of the body. Send the key to
     change it — including an explicitly empty object to clear it.
   required:
     - workspace_id
@@ -381,6 +393,12 @@ UpdateBroadcastRequest:
       description: >-
         Custom metadata for the broadcast. Omit to keep the stored metadata; send an
         empty object to clear it.
+    tracking_mode:
+      type: string
+      enum: [inherit, no_tracking]
+      description: >-
+        Omit to keep the stored mode. Can be changed only while the broadcast is a draft
+        or scheduled. See `Broadcast.tracking_mode`.
 
 ScheduleBroadcastRequest:
   type: object
@@ -579,15 +597,23 @@ VariationResult:
       type: integer
       description: Number of clicks
       example: 120
+    opens_tracked:
+      type: integer
+      description: Sent emails of this variation that carried the open pixel
+      example: 1000
+    clicks_tracked:
+      type: integer
+      description: Sent emails of this variation whose links were tracked
+      example: 1000
     open_rate:
       type: number
       format: float
-      description: Open rate (opens / recipients)
+      description: Open rate (opens / opens_tracked); 0 when no email was tracked
       example: 0.45
     click_rate:
       type: number
       format: float
-      description: Click rate (clicks / recipients)
+      description: Click rate (clicks / clicks_tracked); 0 when no email was tracked
       example: 0.12
 
 TestResultsResponse:

@@ -378,10 +378,10 @@ func TestWorkspaceRepository_ListPendingInvitationsForEmail(t *testing.T) {
 	// One invitation per workspace (the newest), live ones only, matched case-insensitively
 	// against the address as typed, expiry read at UTC like the seat count.
 	t.Run("lists live invitations with workspace and inviter names", func(t *testing.T) {
-		mock.ExpectQuery(`SELECT DISTINCT ON \(i\.workspace_id\)(.|\n)*`+
-			`JOIN workspaces w ON w\.id = i\.workspace_id(.|\n)*`+
-			`LEFT JOIN users u ON u\.id = i\.inviter_id(.|\n)*`+
-			`WHERE LOWER\(i\.email\) = LOWER\(\$1\) AND i\.expires_at > NOW\(\) AT TIME ZONE 'UTC'(.|\n)*`+
+		mock.ExpectQuery(`SELECT DISTINCT ON \(i\.workspace_id\)(.|\n)*` +
+			`JOIN workspaces w ON w\.id = i\.workspace_id(.|\n)*` +
+			`LEFT JOIN users u ON u\.id = i\.inviter_id(.|\n)*` +
+			`WHERE LOWER\(i\.email\) = LOWER\(\$1\) AND i\.expires_at > NOW\(\) AT TIME ZONE 'UTC'(.|\n)*` +
 			`ORDER BY i\.workspace_id, i\.updated_at DESC`).
 			WithArgs("Invitee@Example.com").
 			WillReturnRows(sqlmock.NewRows(columns).

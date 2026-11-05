@@ -470,7 +470,13 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	// web analytics with email click tracking off and still need the recipient
 	// identified on landing, which is why TrackLinks treats an identity token as
 	// its own reason to rewrite the links.
-	trackingOptedOut := request.TrackingSettings.TrackingMode == notifuse_mjml.TrackingModeDisabled
+	//
+	// The caller's tracking decision counts too: SuppressIdentify is set when the
+	// recipient's click consent does not allow tracking, and no_tracking tracks
+	// nothing, the identity included.
+	trackingOptedOut := request.TrackingSettings.TrackingMode == notifuse_mjml.TrackingModeDisabled ||
+		request.TrackingSettings.TrackingMode == notifuse_mjml.TrackingModeNoTracking ||
+		request.TrackingSettings.SuppressIdentify
 
 	var identifyToken string
 	var identifyAllowedHosts []string
@@ -504,13 +510,19 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		// without it, the UTMContent default above would still rewrite opted-out
 		// single-use auth URLs.
 		TrackingMode: request.TrackingSettings.TrackingMode,
-		UTMSource:    request.TrackingSettings.UTMSource,
-		UTMMedium:    request.TrackingSettings.UTMMedium,
-		UTMCampaign:  request.TrackingSettings.UTMCampaign,
-		UTMContent:   request.TrackingSettings.UTMContent,
-		UTMTerm:      request.TrackingSettings.UTMTerm,
-		WorkspaceID:  request.WorkspaceID,
-		MessageID:    request.MessageID,
+		// The caller's per-recipient decision (consent, workspace switches) must
+		// survive the rebuild as well, or a recipient who refused tracking would
+		// get the pixel and the redirects back.
+		SuppressOpens:    request.TrackingSettings.SuppressOpens,
+		SuppressClicks:   request.TrackingSettings.SuppressClicks,
+		SuppressIdentify: request.TrackingSettings.SuppressIdentify,
+		UTMSource:        request.TrackingSettings.UTMSource,
+		UTMMedium:        request.TrackingSettings.UTMMedium,
+		UTMCampaign:      request.TrackingSettings.UTMCampaign,
+		UTMContent:       request.TrackingSettings.UTMContent,
+		UTMTerm:          request.TrackingSettings.UTMTerm,
+		WorkspaceID:      request.WorkspaceID,
+		MessageID:        request.MessageID,
 		// Request-scoped, and both json:"-": the credential reaches the compiler
 		// without ever reaching a stored tracking_settings row.
 		IdentifyToken:        identifyToken,
@@ -617,7 +629,8 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	// Convert email options to channel options for storage
 	channelOptions := request.EmailOptions.ToChannelOptions()
 
-	// Create message history record
+	// Create message history record, with what the compiled HTML tracks
+	opensTracked, clicksTracked := domain.TrackedFlagsFromSettings(trackingSettings)
 	messageHistory := &domain.MessageHistory{
 		ID:                          request.MessageID,
 		ExternalID:                  request.ExternalID,
@@ -628,6 +641,8 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		Channel:                     "email",
 		MessageData:                 request.MessageData,
 		ChannelOptions:              channelOptions,
+		OpensTracked:                opensTracked,
+		ClicksTracked:               clicksTracked,
 		SentAt:                      now,
 		CreatedAt:                   now,
 		UpdatedAt:                   now,

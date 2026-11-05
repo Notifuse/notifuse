@@ -74,6 +74,12 @@ import { Workspace, UserPermissions } from '../services/api/types'
 import { Template } from '../services/api/template'
 import { Template as BroadcastTemplate } from '../services/api/broadcast'
 import Subtitle from '../components/common/subtitle'
+import {
+  describeVariationRate,
+  toVariationMetrics,
+  type VariationRate,
+  type VariationRowMetrics
+} from '../components/broadcasts/variationMetrics'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -110,18 +116,14 @@ const getRemainingTestTime = (broadcast: Broadcast, testResults?: TestResultsRes
   return now.to(endTime, true) + ' remaining'
 }
 
-// Maps a variation's aggregate stats into the shape the Variations table's Opens/Clicks
-// columns (and the per-link Click rate) expect. Returns undefined for an unsent variation
-// (0 sent) so those rows stay N/A instead of showing 0% / NaN.
-const toVariationMetrics = (s?: MessageHistoryStatusSum) => {
-  if (!s || !s.total_sent) return undefined
-  return {
-    recipients: s.total_sent,
-    opens: s.total_opened,
-    open_rate: s.total_opened / s.total_sent,
-    clicks: s.total_clicked,
-    click_rate: s.total_clicked / s.total_sent
-  }
+// Under a variation's rate, a warning when fewer than half its recipients were
+// tracked, since a rate over few tracked recipients compares poorly. The tracked
+// count itself is in the cell's tooltip.
+function TrackedShareNote({ rate }: { rate: VariationRate }) {
+  const { t } = useLingui()
+  if (rate.trackedShare === undefined || !rate.lowTrackedShare) return null
+  const share = Math.round(rate.trackedShare * 100)
+  return <div className="text-xs text-orange-500">{t`${share}% tracked`}</div>
 }
 
 // The status badge for a broadcast, with its explanatory tooltip.
@@ -907,8 +909,8 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                         {
                           title: t`Opens`,
                           key: 'opens',
-                          width: 80,
-                          render: (_: unknown, record: { metrics?: { open_rate?: number; opens?: number; recipients?: number } }) => {
+                          width: 100,
+                          render: (_: unknown, record: { metrics?: VariationRowMetrics }) => {
                             const metrics = record.metrics
                             if (!metrics) {
                               return (
@@ -920,16 +922,22 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                                 </Tooltip>
                               )
                             }
-                            const openRate = metrics.open_rate || 0
                             const opens = metrics.opens || 0
                             const recipients = metrics.recipients || 0
+                            const rate = describeVariationRate(metrics.open_rate || 0, recipients, metrics.opens_tracked)
+                            const tracked = rate.tracked
                             return (
-                              <Tooltip title={t`${opens} opens out of ${recipients} recipients`}>
+                              <Tooltip
+                                title={
+                                  rate.trackedShare === undefined
+                                    ? t`${opens} opens out of ${recipients} recipients`
+                                    : t`${opens} opens out of ${tracked} tracked recipients (${recipients} sent)`
+                                }
+                              >
                                 <>
                                   <FontAwesomeIcon icon={faEye} style={{ opacity: 0.7 }} className="text-purple-500" />{' '}
-                                  <span className="cursor-help ml-1">
-                                    {(openRate * 100).toFixed(1)}%
-                                  </span>
+                                  <span className="cursor-help ml-1">{rate.text}</span>
+                                  <TrackedShareNote rate={rate} />
                                 </>
                               </Tooltip>
                             )
@@ -938,8 +946,8 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                         {
                           title: t`Clicks`,
                           key: 'clicks',
-                          width: 80,
-                          render: (_: unknown, record: { metrics?: { click_rate?: number; clicks?: number; recipients?: number } }) => {
+                          width: 100,
+                          render: (_: unknown, record: { metrics?: VariationRowMetrics }) => {
                             const metrics = record.metrics
                             if (!metrics) {
                               return (
@@ -955,16 +963,22 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                                 </Tooltip>
                               )
                             }
-                            const clickRate = metrics.click_rate || 0
                             const clicks = metrics.clicks || 0
                             const recipients = metrics.recipients || 0
+                            const rate = describeVariationRate(metrics.click_rate || 0, recipients, metrics.clicks_tracked)
+                            const tracked = rate.tracked
                             return (
-                              <Tooltip title={t`${clicks} clicks out of ${recipients} recipients`}>
+                              <Tooltip
+                                title={
+                                  rate.trackedShare === undefined
+                                    ? t`${clicks} clicks out of ${recipients} recipients`
+                                    : t`${clicks} clicks out of ${tracked} tracked recipients (${recipients} sent)`
+                                }
+                              >
                                 <>
                                   <FontAwesomeIcon icon={faArrowPointer} style={{ opacity: 0.7 }} className="text-cyan-500" />{' '}
-                                  <span className="cursor-help ml-1">
-                                    {(clickRate * 100).toFixed(1)}%
-                                  </span>
+                                  <span className="cursor-help ml-1">{rate.text}</span>
+                                  <TrackedShareNote rate={rate} />
                                 </>
                               </Tooltip>
                             )
@@ -1086,7 +1100,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                       workspaceId={workspaceId}
                       broadcastId={broadcast.id}
                       templateId={record.templateId}
-                      recipients={record.metrics?.recipients}
+                      recipients={record.metrics?.clicks_tracked ?? record.metrics?.recipients}
                     />
                   )
                 }}

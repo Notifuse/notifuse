@@ -34,6 +34,7 @@ var contactColumns = []string{
 	"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 	"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
 	"created_at", "updated_at", "db_created_at", "db_updated_at",
+	"tracking_opens_consent", "tracking_clicks_consent", "tracking_consent_updated_at", "tracking_consent_source",
 }
 
 // contactColumnsWithPrefix returns contact columns prefixed with a table alias
@@ -55,17 +56,18 @@ const contactInsertColumns = `email, external_id, timezone, language,
 		custom_number_1, custom_number_2, custom_number_3, custom_number_4, custom_number_5,
 		custom_datetime_1, custom_datetime_2, custom_datetime_3, custom_datetime_4, custom_datetime_5,
 		custom_json_1, custom_json_2, custom_json_3, custom_json_4, custom_json_5,
-		created_at, updated_at`
+		created_at, updated_at,
+		tracking_opens_consent, tracking_clicks_consent, tracking_consent_updated_at, tracking_consent_source`
 
 // contactInsertFieldCount is how many placeholders one contact occupies.
-const contactInsertFieldCount = 36
+const contactInsertFieldCount = 40
 
 // contactInsertArgs flattens a contact into contactInsertColumns order,
 // defaulting the application-level timestamps to now when the caller left them
 // zero.
 //
 // Shared by BulkUpsertContacts and CreateContactIfAbsent. UpsertContact's INSERT
-// branch still hand-builds the same 36 columns and its own NullableX conversions
+// branch still hand-builds the same 40 columns and its own NullableX conversions
 // — behaviour-identical, but it means "add a column here and both paths get it"
 // holds for two of the three, so a new column still has to be added there by
 // hand. Folding it in is a worthwhile cleanup and a larger one than this change
@@ -79,6 +81,7 @@ func contactInsertArgs(contact *domain.Contact, now time.Time) []interface{} {
 	if !contact.UpdatedAt.IsZero() {
 		updatedAt = contact.UpdatedAt.UTC()
 	}
+	opensConsent, clicksConsent, consentUpdatedAt, consentSource := trackingConsentInsertValues(contact, now)
 
 	return []interface{}{
 		contact.Email,
@@ -117,7 +120,47 @@ func contactInsertArgs(contact *domain.Contact, now time.Time) []interface{} {
 		contactToNullJSON(contact.CustomJSON5),
 		createdAt,
 		updatedAt,
+		opensConsent,
+		clicksConsent,
+		consentUpdatedAt,
+		consentSource,
 	}
+}
+
+// trackingConsentInsertValues returns the four consent columns of a new
+// contact. A recorded consent gets a date (the one provided, or now) and its
+// source; with no consent recorded, date and source stay NULL. The test is on
+// the SQL value: an explicit JSON null arrives as a non-nil pointer.
+func trackingConsentInsertValues(contact *domain.Contact, now time.Time) (opens, clicks sql.NullString, updatedAt sql.NullTime, source sql.NullString) {
+	opens = contactToNullString(contact.TrackingOpensConsent)
+	clicks = contactToNullString(contact.TrackingClicksConsent)
+	if !opens.Valid && !clicks.Valid {
+		return opens, clicks, sql.NullTime{}, sql.NullString{}
+	}
+	updatedAt = contactToNullTime(contact.TrackingConsentUpdatedAt)
+	if !updatedAt.Valid {
+		updatedAt = sql.NullTime{Time: now, Valid: true}
+	}
+	return opens, clicks, updatedAt, contactToNullString(contact.TrackingConsentSource)
+}
+
+// settleTrackingConsentUpdate fixes the date and source of a contact that
+// merged an update. before holds the consents as stored. A write that leaves
+// both consents as they were keeps the stored date and source, so resending a
+// value rewrites nothing. A write that changes one records when (the date
+// provided, or now) and where from (the source provided, or nothing: the
+// stored source described another change).
+func settleTrackingConsentUpdate(merged, before, update *domain.Contact, now time.Time) {
+	if !domain.TrackingConsentChanged(before, merged) {
+		merged.TrackingConsentUpdatedAt = before.TrackingConsentUpdatedAt
+		merged.TrackingConsentSource = before.TrackingConsentSource
+		return
+	}
+	merged.TrackingConsentUpdatedAt = &domain.NullableTime{Time: now}
+	if at := contactToNullTime(update.TrackingConsentUpdatedAt); at.Valid {
+		merged.TrackingConsentUpdatedAt = &domain.NullableTime{Time: at.Time}
+	}
+	merged.TrackingConsentSource = update.TrackingConsentSource
 }
 
 // NewContactRepository creates a new PostgreSQL contact repository
@@ -286,6 +329,9 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 	if req.Language != "" {
 		sb = sb.Where(sq.ILike{"c.language": "%" + req.Language + "%"})
 	}
+
+	sb = withTrackingConsentFilter(sb, "c.tracking_opens_consent", req.TrackingOpensConsent)
+	sb = withTrackingConsentFilter(sb, "c.tracking_clicks_consent", req.TrackingClicksConsent)
 
 	// Use EXISTS subquery for list_id and contact_list_status filters instead of JOIN
 	if req.ListID != "" || req.ContactListStatus != "" {
@@ -881,6 +927,8 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 			}
 		}
 
+		opensConsentSQL, clicksConsentSQL, consentUpdatedAtSQL, consentSourceSQL := trackingConsentInsertValues(contact, now)
+
 		// Build insert query using squirrel
 		// Note: We include all columns in one call to avoid misalignment issues
 		createdAtValue := contact.CreatedAt
@@ -902,6 +950,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 				"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 				"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
 				"created_at", "updated_at", "db_created_at", "db_updated_at",
+				"tracking_opens_consent", "tracking_clicks_consent", "tracking_consent_updated_at", "tracking_consent_source",
 			).
 			Values(
 				contact.Email, externalIDSQL, timezoneSQL, languageSQL,
@@ -912,6 +961,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 				customDatetime1SQL, customDatetime2SQL, customDatetime3SQL, customDatetime4SQL, customDatetime5SQL,
 				customJSON1SQL, customJSON2SQL, customJSON3SQL, customJSON4SQL, customJSON5SQL,
 				createdAtValue.UTC(), updatedAtValue.UTC(), contact.DBCreatedAt, contact.DBUpdatedAt,
+				opensConsentSQL, clicksConsentSQL, consentUpdatedAtSQL, consentSourceSQL,
 			)
 
 		insertQuery, insertArgs, err := insertBuilder.ToSql()
@@ -933,8 +983,17 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 		// Update DB timestamps
 		existingContact.DBUpdatedAt = time.Now().UTC()
 
-		// Merge changes from the input 'contact' into the 'existingContact'
+		// Merge changes from the input 'contact' into the 'existingContact'.
+		// Merge replaces pointers in place, so the consents as stored are kept
+		// first.
+		storedConsent := &domain.Contact{
+			TrackingOpensConsent:     existingContact.TrackingOpensConsent,
+			TrackingClicksConsent:    existingContact.TrackingClicksConsent,
+			TrackingConsentUpdatedAt: existingContact.TrackingConsentUpdatedAt,
+			TrackingConsentSource:    existingContact.TrackingConsentSource,
+		}
 		existingContact.Merge(contact)
+		settleTrackingConsentUpdate(existingContact, storedConsent, contact, existingContact.DBUpdatedAt)
 
 		// Convert domain nullable types to SQL nullable types for the update
 		var externalIDSQL, timezoneSQL, languageSQL sql.NullString
@@ -1178,6 +1237,11 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 			"custom_json_4":     customJSON4SQL,
 			"custom_json_5":     customJSON5SQL,
 			"db_updated_at":     existingContact.DBUpdatedAt,
+
+			"tracking_opens_consent":      contactToNullString(existingContact.TrackingOpensConsent),
+			"tracking_clicks_consent":     contactToNullString(existingContact.TrackingClicksConsent),
+			"tracking_consent_updated_at": contactToNullTime(existingContact.TrackingConsentUpdatedAt),
+			"tracking_consent_source":     contactToNullString(existingContact.TrackingConsentSource),
 		}
 
 		// Always update updated_at to current time for updates
@@ -1243,6 +1307,26 @@ func contactToNullJSON(n *domain.NullableJSON) sql.NullString {
 	}
 	return sql.NullString{Valid: false}
 }
+
+// withTrackingConsentFilter narrows sb to contacts whose consent in column is
+// value: granted, denied, or unknown (no value recorded). An empty value adds
+// nothing.
+func withTrackingConsentFilter(sb sq.SelectBuilder, column, value string) sq.SelectBuilder {
+	switch value {
+	case "":
+		return sb
+	case domain.TrackingConsentFilterUnknown:
+		return sb.Where(sq.Eq{column: nil})
+	default:
+		return sb.Where(sq.Eq{column: value})
+	}
+}
+
+// bulkTrackingConsentChanged is true when a bulk row changes a stored consent.
+// An empty cell is NULL and keeps the stored consent, as for every other
+// column, so it is no change.
+const bulkTrackingConsentChanged = `((EXCLUDED.tracking_opens_consent IS NOT NULL AND EXCLUDED.tracking_opens_consent IS DISTINCT FROM contacts.tracking_opens_consent)
+			OR (EXCLUDED.tracking_clicks_consent IS NOT NULL AND EXCLUDED.tracking_clicks_consent IS DISTINCT FROM contacts.tracking_clicks_consent))`
 
 // BulkUpsertContacts creates or updates multiple contacts in a single database operation
 // It uses PostgreSQL's INSERT ... ON CONFLICT to efficiently handle both inserts and updates
@@ -1380,6 +1464,10 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 		custom_json_3 = CASE WHEN EXCLUDED.custom_json_3 IS NOT NULL THEN EXCLUDED.custom_json_3 ELSE contacts.custom_json_3 END,
 		custom_json_4 = CASE WHEN EXCLUDED.custom_json_4 IS NOT NULL THEN EXCLUDED.custom_json_4 ELSE contacts.custom_json_4 END,
 		custom_json_5 = CASE WHEN EXCLUDED.custom_json_5 IS NOT NULL THEN EXCLUDED.custom_json_5 ELSE contacts.custom_json_5 END,
+		tracking_opens_consent = CASE WHEN EXCLUDED.tracking_opens_consent IS NOT NULL THEN EXCLUDED.tracking_opens_consent ELSE contacts.tracking_opens_consent END,
+		tracking_clicks_consent = CASE WHEN EXCLUDED.tracking_clicks_consent IS NOT NULL THEN EXCLUDED.tracking_clicks_consent ELSE contacts.tracking_clicks_consent END,
+		tracking_consent_updated_at = CASE WHEN ` + bulkTrackingConsentChanged + ` THEN COALESCE(EXCLUDED.tracking_consent_updated_at, NOW()) ELSE contacts.tracking_consent_updated_at END,
+		tracking_consent_source = CASE WHEN ` + bulkTrackingConsentChanged + ` THEN EXCLUDED.tracking_consent_source ELSE contacts.tracking_consent_source END,
 		created_at = EXCLUDED.created_at,
 		updated_at = EXCLUDED.updated_at,
 		db_updated_at = NOW()
@@ -1543,157 +1631,13 @@ func (r *contactRepository) GetContactsForBroadcast(
 		var scanErr error
 
 		if includeListID {
-			// We need to scan all columns at once since we selected c.*, cl.list_id, l.name
-			// Create all the scan destinations for contact fields plus list_id and list_name
-			var email, externalID, timezone, language sql.NullString
-			var firstName, lastName, fullName, phone, addressLine1, addressLine2 sql.NullString
-			var country, postcode, state, jobTitle sql.NullString
-			var customString1, customString2, customString3, customString4, customString5 sql.NullString
-			var customNumber1, customNumber2, customNumber3, customNumber4, customNumber5 sql.NullFloat64
-			var customDatetime1, customDatetime2, customDatetime3, customDatetime4, customDatetime5 sql.NullTime
-			var customJSON1, customJSON2, customJSON3, customJSON4, customJSON5 sql.NullString
-			var createdAt, updatedAt, dbCreatedAt, dbUpdatedAt time.Time
-
-			// Scan all columns including contact fields + list_id + list_name
-			scanErr = rows.Scan(
-				&email, &externalID, &timezone, &language,
-				&firstName, &lastName, &fullName, &phone, &addressLine1, &addressLine2,
-				&country, &postcode, &state, &jobTitle,
-				&customString1, &customString2, &customString3, &customString4, &customString5,
-				&customNumber1, &customNumber2, &customNumber3, &customNumber4, &customNumber5,
-				&customDatetime1, &customDatetime2, &customDatetime3, &customDatetime4, &customDatetime5,
-				&customJSON1, &customJSON2, &customJSON3, &customJSON4, &customJSON5,
-				&createdAt, &updatedAt, &dbCreatedAt, &dbUpdatedAt,
-				&listID, &listName, // Additional columns
-			)
+			// The contact columns are followed by list_id and list_name.
+			contact, scanErr = domain.ScanContact(trailingColumnScanner{
+				scanner: rows,
+				extra:   []interface{}{&listID, &listName},
+			})
 			if scanErr != nil {
 				return nil, fmt.Errorf("failed to scan contact with list: %w", scanErr)
-			}
-
-			// Convert scanned values to domain.Contact
-			contact = &domain.Contact{
-				Email:       email.String,
-				CreatedAt:   createdAt,
-				UpdatedAt:   updatedAt,
-				DBCreatedAt: dbCreatedAt,
-				DBUpdatedAt: dbUpdatedAt,
-			}
-
-			// Set nullable fields
-			if externalID.Valid {
-				contact.ExternalID = &domain.NullableString{String: externalID.String, IsNull: false}
-			}
-			if timezone.Valid {
-				contact.Timezone = &domain.NullableString{String: timezone.String, IsNull: false}
-			}
-			if language.Valid {
-				contact.Language = &domain.NullableString{String: language.String, IsNull: false}
-			}
-			if firstName.Valid {
-				contact.FirstName = &domain.NullableString{String: firstName.String, IsNull: false}
-			}
-			if lastName.Valid {
-				contact.LastName = &domain.NullableString{String: lastName.String, IsNull: false}
-			}
-			if fullName.Valid {
-				contact.FullName = &domain.NullableString{String: fullName.String, IsNull: false}
-			}
-			if phone.Valid {
-				contact.Phone = &domain.NullableString{String: phone.String, IsNull: false}
-			}
-			if addressLine1.Valid {
-				contact.AddressLine1 = &domain.NullableString{String: addressLine1.String, IsNull: false}
-			}
-			if addressLine2.Valid {
-				contact.AddressLine2 = &domain.NullableString{String: addressLine2.String, IsNull: false}
-			}
-			if country.Valid {
-				contact.Country = &domain.NullableString{String: country.String, IsNull: false}
-			}
-			if postcode.Valid {
-				contact.Postcode = &domain.NullableString{String: postcode.String, IsNull: false}
-			}
-			if state.Valid {
-				contact.State = &domain.NullableString{String: state.String, IsNull: false}
-			}
-			if jobTitle.Valid {
-				contact.JobTitle = &domain.NullableString{String: jobTitle.String, IsNull: false}
-			}
-			// Handle custom fields similarly...
-			if customString1.Valid {
-				contact.CustomString1 = &domain.NullableString{String: customString1.String, IsNull: false}
-			}
-			if customString2.Valid {
-				contact.CustomString2 = &domain.NullableString{String: customString2.String, IsNull: false}
-			}
-			if customString3.Valid {
-				contact.CustomString3 = &domain.NullableString{String: customString3.String, IsNull: false}
-			}
-			if customString4.Valid {
-				contact.CustomString4 = &domain.NullableString{String: customString4.String, IsNull: false}
-			}
-			if customString5.Valid {
-				contact.CustomString5 = &domain.NullableString{String: customString5.String, IsNull: false}
-			}
-			if customNumber1.Valid {
-				contact.CustomNumber1 = &domain.NullableFloat64{Float64: customNumber1.Float64, IsNull: false}
-			}
-			if customNumber2.Valid {
-				contact.CustomNumber2 = &domain.NullableFloat64{Float64: customNumber2.Float64, IsNull: false}
-			}
-			if customNumber3.Valid {
-				contact.CustomNumber3 = &domain.NullableFloat64{Float64: customNumber3.Float64, IsNull: false}
-			}
-			if customNumber4.Valid {
-				contact.CustomNumber4 = &domain.NullableFloat64{Float64: customNumber4.Float64, IsNull: false}
-			}
-			if customNumber5.Valid {
-				contact.CustomNumber5 = &domain.NullableFloat64{Float64: customNumber5.Float64, IsNull: false}
-			}
-			if customDatetime1.Valid {
-				contact.CustomDatetime1 = &domain.NullableTime{Time: customDatetime1.Time, IsNull: false}
-			}
-			if customDatetime2.Valid {
-				contact.CustomDatetime2 = &domain.NullableTime{Time: customDatetime2.Time, IsNull: false}
-			}
-			if customDatetime3.Valid {
-				contact.CustomDatetime3 = &domain.NullableTime{Time: customDatetime3.Time, IsNull: false}
-			}
-			if customDatetime4.Valid {
-				contact.CustomDatetime4 = &domain.NullableTime{Time: customDatetime4.Time, IsNull: false}
-			}
-			if customDatetime5.Valid {
-				contact.CustomDatetime5 = &domain.NullableTime{Time: customDatetime5.Time, IsNull: false}
-			}
-			if customJSON1.Valid {
-				var jsonData interface{}
-				if err := json.Unmarshal([]byte(customJSON1.String), &jsonData); err == nil {
-					contact.CustomJSON1 = &domain.NullableJSON{Data: jsonData, IsNull: false}
-				}
-			}
-			if customJSON2.Valid {
-				var jsonData interface{}
-				if err := json.Unmarshal([]byte(customJSON2.String), &jsonData); err == nil {
-					contact.CustomJSON2 = &domain.NullableJSON{Data: jsonData, IsNull: false}
-				}
-			}
-			if customJSON3.Valid {
-				var jsonData interface{}
-				if err := json.Unmarshal([]byte(customJSON3.String), &jsonData); err == nil {
-					contact.CustomJSON3 = &domain.NullableJSON{Data: jsonData, IsNull: false}
-				}
-			}
-			if customJSON4.Valid {
-				var jsonData interface{}
-				if err := json.Unmarshal([]byte(customJSON4.String), &jsonData); err == nil {
-					contact.CustomJSON4 = &domain.NullableJSON{Data: jsonData, IsNull: false}
-				}
-			}
-			if customJSON5.Valid {
-				var jsonData interface{}
-				if err := json.Unmarshal([]byte(customJSON5.String), &jsonData); err == nil {
-					contact.CustomJSON5 = &domain.NullableJSON{Data: jsonData, IsNull: false}
-				}
 			}
 		} else {
 			// No list ID to scan, just get the contact using the existing ScanContact function

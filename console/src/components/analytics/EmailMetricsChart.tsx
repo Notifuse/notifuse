@@ -13,6 +13,8 @@ import { faArrowPointer, faTriangleExclamation, faBan } from '@fortawesome/free-
 import { ChartVisualization } from './ChartVisualization'
 import { analyticsService, AnalyticsQuery, AnalyticsResponse } from '../../services/api/analytics'
 import { Workspace } from '../../services/api/types'
+import { isPartiallyTracked } from '../../lib/emailTracking'
+import { TrackedTooltipTitle } from '../common/TrackedTooltipTitle'
 
 interface EmailMetricsChartProps {
   workspace: Workspace
@@ -113,7 +115,9 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
         'count_opened',
         'count_clicked',
         'count_unsubscribed',
-        'count_failed'
+        'count_failed',
+        'count_opens_tracked',
+        'count_clicks_tracked'
       ],
       dimensions: [],
       timezone: timezone || workspace.settings.timezone || 'UTC',
@@ -187,6 +191,9 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
     count_complained: number
     count_unsubscribed: number
     count_failed: number
+    // Sent emails that carried the open pixel / tracked links: the rate denominators
+    count_opens_tracked: number
+    count_clicks_tracked: number
   }
 
   // Helper function to safely convert unknown to number
@@ -209,7 +216,9 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
       count_bounced: acc.count_bounced + toNumber(row.count_bounced),
       count_complained: acc.count_complained + toNumber(row.count_complained),
       count_unsubscribed: acc.count_unsubscribed + toNumber(row.count_unsubscribed),
-      count_failed: acc.count_failed + toNumber(row.count_failed)
+      count_failed: acc.count_failed + toNumber(row.count_failed),
+      count_opens_tracked: acc.count_opens_tracked + toNumber(row.count_opens_tracked),
+      count_clicks_tracked: acc.count_clicks_tracked + toNumber(row.count_clicks_tracked)
     }),
     {
       count_sent: 0,
@@ -219,7 +228,9 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
       count_bounced: 0,
       count_complained: 0,
       count_unsubscribed: 0,
-      count_failed: 0
+      count_failed: 0,
+      count_opens_tracked: 0,
+      count_clicks_tracked: 0
     }
   ) || {
     count_sent: 0,
@@ -229,7 +240,9 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
     count_bounced: 0,
     count_complained: 0,
     count_unsubscribed: 0,
-    count_failed: 0
+    count_failed: 0,
+    count_opens_tracked: 0,
+    count_clicks_tracked: 0
   }
 
   const getRate = (numerator: number, denominator: number) => {
@@ -357,7 +370,12 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
         </Col>
         <Col span={3}>
           <Tooltip
-            title={!visibleLines.count_opened ? t`${stats.count_opened} total opens (hidden from chart)` : t`${stats.count_opened} total opens`}
+            title={
+              <TrackedTooltipTitle
+                title={!visibleLines.count_opened ? t`${stats.count_opened} total opens (hidden from chart)` : t`${stats.count_opened} total opens`}
+                tracked={isPartiallyTracked(stats.count_sent, stats.count_opens_tracked) ? stats.count_opens_tracked : undefined}
+              />
+            }
           >
             <div
               className="p-2 cursor-pointer hover:bg-gray-50 rounded transition-colors"
@@ -375,7 +393,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                     {t`Opens`}
                   </Space>
                 }
-                value={getRate(stats.count_opened, stats.count_sent)}
+                value={getRate(stats.count_opened, stats.count_opens_tracked)}
                 styles={{ content: { fontSize: '16px' } }}
                 formatter={formatStat}
               />
@@ -384,7 +402,12 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
         </Col>
         <Col span={3}>
           <Tooltip
-            title={!visibleLines.count_clicked ? t`${stats.count_clicked} total clicks (hidden from chart)` : t`${stats.count_clicked} total clicks`}
+            title={
+              <TrackedTooltipTitle
+                title={!visibleLines.count_clicked ? t`${stats.count_clicked} total clicks (hidden from chart)` : t`${stats.count_clicked} total clicks`}
+                tracked={isPartiallyTracked(stats.count_sent, stats.count_clicks_tracked) ? stats.count_clicks_tracked : undefined}
+              />
+            }
           >
             <div
               className="p-2 cursor-pointer hover:bg-gray-50 rounded transition-colors"
@@ -402,7 +425,7 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                     {t`Clicks`}
                   </Space>
                 }
-                value={getRate(stats.count_clicked, stats.count_sent)}
+                value={getRate(stats.count_clicked, stats.count_clicks_tracked)}
                 styles={{ content: { fontSize: '16px' } }}
                 formatter={formatStat}
               />

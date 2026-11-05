@@ -115,9 +115,8 @@ export function UpsertTransactionalNotificationDrawer({
         channels: notification.channels,
         tracking_settings: {
           ...notification.tracking_settings,
-          // A stored absent mode means inherit; only an explicit opt-out shows as disabled
-          tracking_mode:
-            notification.tracking_settings?.tracking_mode === 'disabled' ? 'disabled' : 'inherit'
+          // A stored absent mode means inherit
+          tracking_mode: notification.tracking_settings?.tracking_mode || 'inherit'
         }
       })
     } else {
@@ -338,11 +337,15 @@ export function UpsertTransactionalNotificationDrawer({
               <Form.Item
                 name={['tracking_settings', 'tracking_mode']}
                 label={t`Tracking`}
-                extra={t`When disabled, links in this notification are never rewritten: no click and open tracking and no UTM parameters.`}
+                extra={t`Following the workspace setting also respects each contact's tracking consent. Without open and click tracking, links keep their UTM parameters. When disabled, links are never rewritten: no tracking and no UTM parameters.`}
               >
                 <Select
                   options={[
                     { value: 'inherit', label: t`Follow workspace setting` },
+                    {
+                      value: 'no_tracking',
+                      label: t`No open or click tracking, keep UTM parameters`
+                    },
                     { value: 'disabled', label: t`Disabled for this notification` }
                   ]}
                 />

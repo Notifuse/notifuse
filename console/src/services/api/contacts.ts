@@ -15,6 +15,9 @@ export interface ListContactsRequest {
   list_id?: string
   contact_list_status?: string
   segments?: string[]
+  // granted, denied, or unknown (no consent recorded)
+  tracking_opens_consent?: TrackingConsentFilter
+  tracking_clicks_consent?: TrackingConsentFilter
   // Pagination
   limit?: number
   cursor?: string
@@ -22,6 +25,9 @@ export interface ListContactsRequest {
   // once, for the audit log, and answers exactly as it would without it.
   export?: boolean
 }
+
+export type TrackingConsent = 'granted' | 'denied'
+export type TrackingConsentFilter = TrackingConsent | 'unknown'
 
 export interface Contact {
   email: string
@@ -62,6 +68,13 @@ export interface Contact {
   custom_json_3?: unknown
   custom_json_4?: unknown
   custom_json_5?: unknown
+
+  // Consent to open and click tracking. Absent (or null when written) means
+  // unknown: the workspace's setting for unknown consent applies.
+  tracking_opens_consent?: TrackingConsent | null
+  tracking_clicks_consent?: TrackingConsent | null
+  tracking_consent_updated_at?: string
+  tracking_consent_source?: string
 
   created_at: string
   updated_at: string
@@ -134,6 +147,10 @@ export const contactsApi = {
     if (params.segments && params.segments.length > 0) {
       params.segments.forEach((segment) => searchParams.append('segments[]', segment))
     }
+    if (params.tracking_opens_consent)
+      searchParams.append('tracking_opens_consent', params.tracking_opens_consent)
+    if (params.tracking_clicks_consent)
+      searchParams.append('tracking_clicks_consent', params.tracking_clicks_consent)
     if (params.limit) searchParams.append('limit', params.limit.toString())
     if (params.cursor) searchParams.append('cursor', params.cursor)
     if (params.with_contact_lists)

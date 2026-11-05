@@ -130,6 +130,12 @@ type MessageHistory struct {
 	ComplainedAt   *time.Time `json:"complained_at,omitempty"`
 	UnsubscribedAt *time.Time `json:"unsubscribed_at,omitempty"`
 
+	// OpensTracked and ClicksTracked say whether the email carried the open
+	// pixel and the click redirect. nil on a message sent before they existed,
+	// which counts as tracked.
+	OpensTracked  *bool `json:"opens_tracked,omitempty"`
+	ClicksTracked *bool `json:"clicks_tracked,omitempty"`
+
 	// System timestamps
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -144,6 +150,11 @@ type MessageHistoryStatusSum struct {
 	TotalOpened       int `json:"total_opened"`
 	TotalClicked      int `json:"total_clicked"`
 	TotalUnsubscribed int `json:"total_unsubscribed"`
+
+	// Sends (not failed) whose email was tracked for opens or clicks: the
+	// denominators of the open and click rates.
+	TotalOpensTracked  int `json:"total_opens_tracked"`
+	TotalClicksTracked int `json:"total_clicks_tracked"`
 }
 
 // LinkClickStats aggregates clicks for a single destination URL within a broadcast

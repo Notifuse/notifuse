@@ -97,14 +97,14 @@ func TestManager_RunMigrations_WindowFailures(t *testing.T) {
 		sentinel := errors.New("cannot set local")
 		expectWorkspaceHoldsTables(wsMock, true)
 		wsMock.ExpectBegin()
-		wsMock.ExpectExec("SET LOCAL statement_timeout").WillReturnError(sentinel)
+		wsMock.ExpectExec("SET LOCAL lock_timeout").WillReturnError(sentinel)
 		wsMock.ExpectRollback()
 		mock.ExpectRollback() // the migration lock
 
 		err = manager.RunMigrations(ctx, cfg, db)
 		require.ErrorContains(t, err, fmt.Sprintf("migration failed for version %.0f:", codeVersion))
 		require.ErrorContains(t, err, "workspace migration failed for workspace ws-1:")
-		require.ErrorContains(t, err, "v42: failed to disable statement_timeout:")
+		require.ErrorContains(t, err, "v43: failed to add tracking consent for workspace ws-1:")
 		assert.ErrorIs(t, err, sentinel)
 		require.NoError(t, mock.ExpectationsWereMet())
 		require.NoError(t, wsMock.ExpectationsWereMet())

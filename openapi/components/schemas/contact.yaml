@@ -75,6 +75,38 @@ ContactInput:
       nullable: true
       description: Job title of the contact
       example: Software Engineer
+    tracking_opens_consent:
+      type: string
+      nullable: true
+      enum: [granted, denied, null]
+      description: |
+        The contact's own choice about open tracking. `granted` or `denied` override the
+        workspace's rule for contacts without a recorded choice; `null` (or absent on
+        create) means unknown. Opens are tracked only when the workspace tracks them and
+        this choice allows it.
+      example: denied
+    tracking_clicks_consent:
+      type: string
+      nullable: true
+      enum: [granted, denied, null]
+      description: The contact's own choice about click tracking, with the same rules as `tracking_opens_consent`.
+      example: granted
+    tracking_consent_updated_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: |
+        When the tracking choice changed. Set by the server when a consent value changes and
+        this field is not given.
+    tracking_consent_source:
+      type: string
+      nullable: true
+      maxLength: 50
+      description: |
+        Where the change came from. Defaults to `api` for an API key and `console` for a
+        console user; an import uses `import`. Known values: api, console, import,
+        notification_center, email_link, subscribe_form.
+      example: api
     custom_string_1:
       type: string
       nullable: true
@@ -249,6 +281,25 @@ Contact:
       nullable: true
       description: Job title of the contact
       example: Software Engineer
+    tracking_opens_consent:
+      type: string
+      nullable: true
+      enum: [granted, denied, null]
+      description: The contact's own choice about open tracking; `null` means unknown.
+    tracking_clicks_consent:
+      type: string
+      nullable: true
+      enum: [granted, denied, null]
+      description: The contact's own choice about click tracking; `null` means unknown.
+    tracking_consent_updated_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When a tracking choice last changed.
+    tracking_consent_source:
+      type: string
+      nullable: true
+      description: Where the last tracking choice came from (api, console, import, notification_center, email_link, subscribe_form).
     custom_string_1:
       type: string
       nullable: true
@@ -542,6 +593,16 @@ SubscriptionContact:
       nullable: true
       description: Job title of the contact
       example: Software Engineer
+    tracking_opens_consent:
+      type: string
+      enum: [granted, denied]
+      description: |
+        The visitor's choice about open tracking, for example from a checkbox on your form.
+        Recorded with source `subscribe_form` on a public request.
+    tracking_clicks_consent:
+      type: string
+      enum: [granted, denied]
+      description: The visitor's choice about click tracking, recorded like `tracking_opens_consent`.
     custom_string_1:
       type: string
       nullable: true

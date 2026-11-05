@@ -43,6 +43,10 @@ import { ExportContactsModal } from '../components/contacts/ExportContactsModal'
 import { useContactsCsvUpload } from '../components/contacts/ContactsCsvUploadProvider'
 import { getCustomFieldLabel } from '../hooks/useCustomFieldLabel'
 import { useLingui } from '@lingui/react/macro'
+import {
+  TrackingConsentSummary,
+  useTrackingConsentOptions
+} from '../components/contacts/TrackingConsent'
 
 const STORAGE_KEY = 'contact_columns_visibility'
 
@@ -78,11 +82,13 @@ const DEFAULT_VISIBLE_COLUMNS = {
   custom_json_2: false,
   custom_json_3: false,
   custom_json_4: false,
-  custom_json_5: false
+  custom_json_5: false,
+  tracking_consent: false
 }
 
 export function ContactsPage() {
   const { t } = useLingui()
+  const trackingConsentOptions = useTrackingConsentOptions()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/contacts' })
   const search = useSearch({ from: workspaceContactsRoute.id })
   const navigate = useNavigate()
@@ -395,8 +401,20 @@ export function ContactsPage() {
         { value: 'bounced', label: t`Bounced` },
         { value: 'complained', label: t`Complained` }
       ]
+    },
+    {
+      key: 'tracking_opens_consent',
+      label: t`Opens tracking consent`,
+      type: 'string' as const,
+      options: trackingConsentOptions.filters
+    },
+    {
+      key: 'tracking_clicks_consent',
+      label: t`Clicks tracking consent`,
+      type: 'string' as const,
+      options: trackingConsentOptions.filters
     }
-  ], [listsData?.lists, t])
+  ], [listsData?.lists, t, trackingConsentOptions.filters])
 
   // Load saved state from localStorage on mount
   React.useEffect(() => {
@@ -433,6 +451,7 @@ export function ContactsPage() {
     { key: 'address', title: t`Address` },
     { key: 'job_title', title: t`Job Title` },
     { key: 'created_at', title: t`Created At` },
+    { key: 'tracking_consent', title: t`Tracking consent` },
     { key: 'custom_string_1', title: getCustomFieldLabel('custom_string_1', currentWorkspace) },
     { key: 'custom_string_2', title: getCustomFieldLabel('custom_string_2', currentWorkspace) },
     { key: 'custom_string_3', title: getCustomFieldLabel('custom_string_3', currentWorkspace) },
@@ -505,6 +524,8 @@ export function ContactsPage() {
           language: search.language,
           list_id: search.list_id,
           contact_list_status: search.contact_list_status,
+          tracking_opens_consent: search.tracking_opens_consent,
+          tracking_clicks_consent: search.tracking_clicks_consent,
           segments: search.segments,
           with_contact_lists: true
         })
@@ -713,6 +734,17 @@ export function ContactsPage() {
       dataIndex: 'timezone',
       key: 'timezone',
       hidden: !visibleColumns.timezone
+    },
+    {
+      title: t`Tracking consent`,
+      key: 'tracking_consent',
+      render: (_: unknown, record: Contact) => (
+        <TrackingConsentSummary
+          opens={record.tracking_opens_consent}
+          clicks={record.tracking_clicks_consent}
+        />
+      ),
+      hidden: !visibleColumns.tracking_consent
     },
     {
       title: t`Address`,

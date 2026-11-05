@@ -100,6 +100,22 @@
             - complained
         description: Filter by subscription status within the list
         example: active
+      - name: tracking_opens_consent
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [granted, denied, unknown]
+        description: Filter by the contact's open tracking choice; `unknown` matches contacts with none recorded
+        example: denied
+      - name: tracking_clicks_consent
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [granted, denied, unknown]
+        description: Filter by the contact's click tracking choice; `unknown` matches contacts with none recorded
+        example: unknown
       - name: segments[]
         in: query
         required: false

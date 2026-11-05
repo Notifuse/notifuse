@@ -283,7 +283,8 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 	var userWorkspace *domain.UserWorkspace
 
 	if hasBearerToken {
-		ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace.ID)
+		var user *domain.User
+		ctx, user, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to authenticate user: %w", err)
 		}
@@ -298,7 +299,17 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 		}
 
 		isAuthenticated = true
-	} else if payload.Contact.EmailHMAC != "" {
+
+		// An authenticated caller's tracking consent is recorded with its own
+		// source and date when it gives them.
+		payload.Contact.DefaultTrackingConsentSource(domain.TrackingConsentSourceForUser(user))
+	} else {
+		// A public form or a signed link: the server labels the consent change and
+		// dates it now, so the caller can neither name another source nor backdate it.
+		payload.Contact.ImposeTrackingConsentSource(domain.TrackingConsentSourceSubscribeForm)
+	}
+
+	if !hasBearerToken && payload.Contact.EmailHMAC != "" {
 
 		secretKey := workspace.Settings.SecretKey
 		if !domain.VerifyEmailHMAC(payload.Contact.Email, payload.Contact.EmailHMAC, secretKey) {
@@ -484,16 +495,25 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 		// Resolve the tracking/base endpoint: custom endpoint if set, else the API endpoint.
 		endpoint := workspace.Settings.ResolveEndpoint(s.apiEndpoint)
 
-		trackingSettings := notifuse_mjml.TrackingSettings{
-			Endpoint:       endpoint,
-			EnableTracking: workspace.Settings.EmailTrackingEnabled,
-			UTMSource:      workspace.Settings.WebsiteURL,
-			UTMMedium:      "email",
-			UTMCampaign:    list.Name,
-			UTMContent:     messageID,
-			WorkspaceID:    workspace.ID,
-			MessageID:      messageID,
+		// The recipient's consent applies here like on any marketing send.
+		// utm_content carries the message ID, an identifier of this recipient on
+		// the landing page, so it is left empty (the template ID is used then)
+		// when their clicks are not tracked.
+		decision := domain.ResolveEmailTracking(workspace.Settings.TrackingPolicy(), contact, "")
+		utmContent := messageID
+		if !decision.Clicks {
+			utmContent = ""
 		}
+		trackingSettings := notifuse_mjml.TrackingSettings{
+			Endpoint:    endpoint,
+			UTMSource:   workspace.Settings.WebsiteURL,
+			UTMMedium:   "email",
+			UTMCampaign: list.Name,
+			UTMContent:  utmContent,
+			WorkspaceID: workspace.ID,
+			MessageID:   messageID,
+		}
+		decision.Apply(&trackingSettings)
 
 		req := domain.TemplateDataRequest{
 			WorkspaceID:         workspace.ID,

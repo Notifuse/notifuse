@@ -606,6 +606,9 @@ func TestNotificationCenterService_UpdateContactPreferences(t *testing.T) {
 					GetByID(gomock.Any(), "workspace-123").
 					Return(workspace, nil)
 				mockContactRepo.EXPECT().
+					GetContactByEmail(gomock.Any(), "workspace-123", validEmail).
+					Return(&domain.Contact{Email: validEmail}, nil)
+				mockContactRepo.EXPECT().
 					UpsertContact(gomock.Any(), "workspace-123", gomock.Any()).
 					DoAndReturn(func(ctx context.Context, wsID string, contact *domain.Contact) (bool, error) {
 						assert.Equal(t, validEmail, contact.Email)
@@ -636,6 +639,9 @@ func TestNotificationCenterService_UpdateContactPreferences(t *testing.T) {
 					GetByID(gomock.Any(), "workspace-123").
 					Return(workspace, nil)
 				mockContactRepo.EXPECT().
+					GetContactByEmail(gomock.Any(), "workspace-123", validEmail).
+					Return(&domain.Contact{Email: validEmail}, nil)
+				mockContactRepo.EXPECT().
 					UpsertContact(gomock.Any(), "workspace-123", gomock.Any()).
 					DoAndReturn(func(ctx context.Context, wsID string, contact *domain.Contact) (bool, error) {
 						assert.Equal(t, validEmail, contact.Email)
@@ -664,6 +670,9 @@ func TestNotificationCenterService_UpdateContactPreferences(t *testing.T) {
 				mockWorkspaceRepo.EXPECT().
 					GetByID(gomock.Any(), "workspace-123").
 					Return(workspace, nil)
+				mockContactRepo.EXPECT().
+					GetContactByEmail(gomock.Any(), "workspace-123", validEmail).
+					Return(&domain.Contact{Email: validEmail}, nil)
 				mockContactRepo.EXPECT().
 					UpsertContact(gomock.Any(), "workspace-123", gomock.Any()).
 					DoAndReturn(func(ctx context.Context, wsID string, contact *domain.Contact) (bool, error) {
@@ -731,11 +740,89 @@ func TestNotificationCenterService_UpdateContactPreferences(t *testing.T) {
 					GetByID(gomock.Any(), "workspace-123").
 					Return(workspace, nil)
 				mockContactRepo.EXPECT().
+					GetContactByEmail(gomock.Any(), "workspace-123", validEmail).
+					Return(&domain.Contact{Email: validEmail}, nil)
+				mockContactRepo.EXPECT().
 					UpsertContact(gomock.Any(), "workspace-123", gomock.Any()).
 					Return(false, errors.New("database error"))
 				mockLogger.EXPECT().Error(gomock.Any())
 			},
 			expectedError: "failed to update contact preferences",
+		},
+		{
+			name: "Contact not found creates nothing",
+			req: &domain.UpdateContactPreferencesRequest{
+				WorkspaceID: "workspace-123",
+				Email:       validEmail,
+				EmailHMAC:   validHMAC,
+				Language:    "fr",
+			},
+			setupMocks: func(ctrl *gomock.Controller, mockContactRepo *mocks.MockContactRepository, mockWorkspaceRepo *mocks.MockWorkspaceRepository, mockLogger *pkgmocks.MockLogger) {
+				mockWorkspaceRepo.EXPECT().
+					GetByID(gomock.Any(), "workspace-123").
+					Return(&domain.Workspace{ID: "workspace-123", Settings: domain.WorkspaceSettings{SecretKey: secretKey}}, nil)
+				mockContactRepo.EXPECT().
+					GetContactByEmail(gomock.Any(), "workspace-123", validEmail).
+					Return(nil, domain.ErrContactNotFound)
+				// No UpsertContact: gomock fails the test if one is made.
+			},
+			expectedError: "contact not found",
+		},
+		{
+			name: "Tracking consent from the notification center",
+			req: &domain.UpdateContactPreferencesRequest{
+				WorkspaceID:           "workspace-123",
+				Email:                 validEmail,
+				EmailHMAC:             validHMAC,
+				TrackingClicksConsent: domain.TrackingConsentDenied,
+			},
+			setupMocks: func(ctrl *gomock.Controller, mockContactRepo *mocks.MockContactRepository, mockWorkspaceRepo *mocks.MockWorkspaceRepository, mockLogger *pkgmocks.MockLogger) {
+				mockWorkspaceRepo.EXPECT().
+					GetByID(gomock.Any(), "workspace-123").
+					Return(&domain.Workspace{ID: "workspace-123", Settings: domain.WorkspaceSettings{SecretKey: secretKey}}, nil)
+				mockContactRepo.EXPECT().
+					GetContactByEmail(gomock.Any(), "workspace-123", validEmail).
+					Return(&domain.Contact{Email: validEmail}, nil)
+				mockContactRepo.EXPECT().
+					UpsertContact(gomock.Any(), "workspace-123", gomock.Any()).
+					DoAndReturn(func(ctx context.Context, wsID string, contact *domain.Contact) (bool, error) {
+						assert.Nil(t, contact.TrackingOpensConsent, "a consent not sent is left alone")
+						require.NotNil(t, contact.TrackingClicksConsent)
+						assert.Equal(t, domain.TrackingConsentDenied, contact.TrackingClicksConsent.String)
+						require.NotNil(t, contact.TrackingConsentSource)
+						assert.Equal(t, domain.TrackingConsentSourceNotificationCenter, contact.TrackingConsentSource.String)
+						assert.Nil(t, contact.TrackingConsentUpdatedAt)
+						assert.Nil(t, contact.Language)
+						return false, nil
+					})
+			},
+		},
+		{
+			name: "Tracking opt-out from an email link",
+			req: &domain.UpdateContactPreferencesRequest{
+				WorkspaceID:           "workspace-123",
+				Email:                 validEmail,
+				EmailHMAC:             validHMAC,
+				TrackingOpensConsent:  domain.TrackingConsentDenied,
+				TrackingClicksConsent: domain.TrackingConsentDenied,
+				ConsentSource:         domain.TrackingConsentSourceEmailLink,
+			},
+			setupMocks: func(ctrl *gomock.Controller, mockContactRepo *mocks.MockContactRepository, mockWorkspaceRepo *mocks.MockWorkspaceRepository, mockLogger *pkgmocks.MockLogger) {
+				mockWorkspaceRepo.EXPECT().
+					GetByID(gomock.Any(), "workspace-123").
+					Return(&domain.Workspace{ID: "workspace-123", Settings: domain.WorkspaceSettings{SecretKey: secretKey}}, nil)
+				mockContactRepo.EXPECT().
+					GetContactByEmail(gomock.Any(), "workspace-123", validEmail).
+					Return(&domain.Contact{Email: validEmail}, nil)
+				mockContactRepo.EXPECT().
+					UpsertContact(gomock.Any(), "workspace-123", gomock.Any()).
+					DoAndReturn(func(ctx context.Context, wsID string, contact *domain.Contact) (bool, error) {
+						assert.Equal(t, domain.TrackingConsentDenied, contact.TrackingOpensConsent.String)
+						assert.Equal(t, domain.TrackingConsentDenied, contact.TrackingClicksConsent.String)
+						assert.Equal(t, domain.TrackingConsentSourceEmailLink, contact.TrackingConsentSource.String)
+						return false, nil
+					})
+			},
 		},
 	}
 

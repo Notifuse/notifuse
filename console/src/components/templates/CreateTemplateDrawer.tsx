@@ -366,7 +366,9 @@ export function CreateTemplateDrawer({
       },
       unsubscribe_url: `${endpoint}/notification-center?action=unsubscribe&email=john.doe@example.com&lid=newsletter&lname=Newsletter&wid=${workspace.id}&mid=preview&email_hmac=abc123`,
       confirm_subscription_url: `${endpoint}/notification-center?action=confirm&email=john.doe@example.com&lid=newsletter&lname=Newsletter&wid=${workspace.id}&mid=preview&email_hmac=abc123`,
-      notification_center_url: `${endpoint}/notification-center?email=john.doe@example.com&email_hmac=abc123&wid=${workspace.id}`
+      notification_center_url: `${endpoint}/notification-center?email=john.doe@example.com&email_hmac=abc123&wid=${workspace.id}`,
+      tracking_preferences_url: `${endpoint}/notification-center?action=tracking&email=john.doe@example.com&email_hmac=abc123&wid=${workspace.id}`,
+      tracking_optout_url: `${endpoint}/notification-center?action=tracking_optout&email=john.doe@example.com&email_hmac=abc123&wid=${workspace.id}`
     }
   }, [workspace.settings.custom_endpoint_url, workspace.id])
 

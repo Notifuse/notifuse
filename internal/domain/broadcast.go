@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 )
 
 //go:generate mockgen -destination mocks/mock_broadcast_service.go -package mocks github.com/Notifuse/notifuse/internal/domain BroadcastService
@@ -301,6 +303,24 @@ type Broadcast struct {
 
 	// Data feed settings (global and recipient feeds)
 	DataFeed *DataFeedSettings `json:"data_feed,omitempty"`
+
+	// TrackingMode is "" (follow the workspace and each contact's consent) or
+	// BroadcastTrackingModeNoTracking (no open pixel, no click redirect; UTM
+	// parameters are kept).
+	TrackingMode string `json:"tracking_mode,omitempty"`
+}
+
+// BroadcastTrackingModeNoTracking turns tracking off for every recipient of a
+// broadcast. The transactional "disabled" mode, which also drops the UTM
+// parameters, is not offered to broadcasts.
+const BroadcastTrackingModeNoTracking = notifuse_mjml.TrackingModeNoTracking
+
+// canonicalBroadcastTrackingMode stores "inherit" as "", its meaning.
+func canonicalBroadcastTrackingMode(mode string) string {
+	if mode == notifuse_mjml.TrackingModeInherit {
+		return ""
+	}
+	return mode
 }
 
 // UTMParameters contains UTM tracking parameters for the broadcast
@@ -349,6 +369,16 @@ func (b *Broadcast) Validate() error {
 	// Validate status
 	if !b.Status.IsValid() {
 		return fmt.Errorf("invalid broadcast status: %s", b.Status)
+	}
+
+	b.TrackingMode = canonicalBroadcastTrackingMode(b.TrackingMode)
+	switch b.TrackingMode {
+	case "", BroadcastTrackingModeNoTracking:
+	default:
+		return fmt.Errorf("invalid tracking_mode %q: must be %q or %q", b.TrackingMode, notifuse_mjml.TrackingModeInherit, BroadcastTrackingModeNoTracking)
+	}
+	if b.TrackingMode == BroadcastTrackingModeNoTracking && b.TestSettings.Enabled && b.TestSettings.AutoSendWinner {
+		return fmt.Errorf("tracking_mode %q cannot be used with an automatically selected A/B test winner: the winner is chosen on opens or clicks", BroadcastTrackingModeNoTracking)
 	}
 
 	// Validate test settings if enabled
@@ -446,6 +476,7 @@ type CreateBroadcastRequest struct {
 	UTMParameters *UTMParameters        `json:"utm_parameters,omitempty"`
 	Metadata      MapOfAny              `json:"metadata,omitempty"`
 	DataFeed      *DataFeedSettings     `json:"data_feed,omitempty"`
+	TrackingMode  string                `json:"tracking_mode,omitempty"`
 
 	// Written by UnmarshalJSON only. A request assembled in Go has no wire body to read
 	// presence from, so it keeps the exclude_unsubscribed value it was given.
@@ -498,6 +529,7 @@ func (r *CreateBroadcastRequest) Validate() (*Broadcast, error) {
 		UTMParameters: r.UTMParameters,
 		Metadata:      r.Metadata,
 		DataFeed:      r.DataFeed,
+		TrackingMode:  r.TrackingMode,
 		CreatedAt:     time.Now().UTC(),
 		UpdatedAt:     time.Now().UTC(),
 	}
@@ -538,6 +570,8 @@ type UpdateBroadcastRequest struct {
 	UTMParameters *UTMParameters        `json:"utm_parameters,omitempty"`
 	Metadata      MapOfAny              `json:"metadata,omitempty"`
 	DataFeed      *DataFeedSettings     `json:"data_feed,omitempty"`
+	// TrackingMode is a patch: nil leaves the stored mode alone.
+	TrackingMode *string `json:"tracking_mode,omitempty"`
 
 	// Written by UnmarshalJSON only. A request assembled in Go has no wire body to read
 	// presence from, so these stay false and every field is applied — what a caller
@@ -643,6 +677,17 @@ func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadc
 
 	if r.Metadata != nil {
 		existingBroadcast.Metadata = r.Metadata
+	}
+
+	if r.TrackingMode != nil {
+		mode := canonicalBroadcastTrackingMode(*r.TrackingMode)
+		if mode != existingBroadcast.TrackingMode &&
+			existingBroadcast.Status != BroadcastStatusDraft &&
+			existingBroadcast.Status != BroadcastStatusScheduled {
+			// Part of the audience already received the email as it was.
+			return nil, fmt.Errorf("tracking_mode can only be changed on a draft or scheduled broadcast")
+		}
+		existingBroadcast.TrackingMode = mode
 	}
 
 	// Handle data_feed update - preserve fetched data if only updating settings
@@ -1073,8 +1118,12 @@ type VariationResult struct {
 	Delivered    int     `json:"delivered"`  // Total delivered emails (ESP-dependent, may not be available)
 	Opens        int     `json:"opens"`
 	Clicks       int     `json:"clicks"`
-	OpenRate     float64 `json:"open_rate"`  // Opens / Recipients
-	ClickRate    float64 `json:"click_rate"` // Clicks / Recipients
+	OpenRate     float64 `json:"open_rate"`  // Opens / OpensTracked
+	ClickRate    float64 `json:"click_rate"` // Clicks / ClicksTracked
+	// Sends whose email was tracked for opens and for clicks. A rate with no
+	// tracked send is 0 and says nothing.
+	OpensTracked  int `json:"opens_tracked"`
+	ClicksTracked int `json:"clicks_tracked"`
 }
 
 // TestResultsResponse represents the response for A/B test results

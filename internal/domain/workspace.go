@@ -466,6 +466,11 @@ type WorkspaceSettings struct {
 	MarketingEmailProviderID     string              `json:"marketing_email_provider_id,omitempty"`
 	EncryptedSecretKey           string              `json:"encrypted_secret_key,omitempty"`
 	EmailTrackingEnabled         bool                `json:"email_tracking_enabled"`
+	// EmailTracking splits the tracking switch into opens and clicks and says
+	// what an unknown consent means. nil on every workspace created before it
+	// existed: TrackingPolicy then reads EmailTrackingEnabled alone. After an
+	// update, EmailTrackingEnabled is always OpensEnabled || ClicksEnabled.
+	EmailTracking *EmailTrackingSettings `json:"email_tracking,omitempty"`
 	// TemplateBlocks live inside this settings blob rather than in their own table,
 	// which is why block CRUD emits no webhook events while template CRUD does:
 	// every webhook event in the product is produced by a row trigger writing to
@@ -497,6 +502,9 @@ type WorkspaceSettings struct {
 	// anywhere else (a stored row, another endpoint) carry no record and are used
 	// whole, exactly as before.
 	omittedKeys map[string]struct{}
+	// emailTrackingNull records an update body that sent "email_tracking": null,
+	// which Validate refuses: it would drop the policy back to the fallback.
+	emailTrackingNull bool
 }
 
 // Validate validates workspace settings
@@ -531,6 +539,10 @@ func (ws *WorkspaceSettings) Validate(passphrase string) error {
 		if !strings.HasPrefix(customURL, "http://") && !strings.HasPrefix(customURL, "https://") {
 			return fmt.Errorf("custom endpoint URL must use http or https scheme: %s", customURL)
 		}
+	}
+
+	if err := ws.validateEmailTracking(); err != nil {
+		return err
 	}
 
 	// FileManager is completely optional, but if any fields are set, validate them
@@ -1578,6 +1590,7 @@ var preservableWorkspaceSettingKeys = []string{
 	"transactional_email_provider_id",
 	"marketing_email_provider_id",
 	"email_tracking_enabled",
+	"email_tracking",
 	"custom_endpoint_url",
 	"audit_logs",
 }
@@ -1609,6 +1622,10 @@ func (r *UpdateWorkspaceRequest) UnmarshalJSON(data []byte) error {
 	}
 
 	r.Settings.omittedKeys = nil
+	r.Settings.emailTrackingNull = false
+	if raw, ok := sent["email_tracking"]; ok && strings.TrimSpace(string(raw)) == "null" {
+		r.Settings.emailTrackingNull = true
+	}
 	for _, key := range preservableWorkspaceSettingKeys {
 		if _, ok := sent[key]; ok {
 			continue
@@ -1627,6 +1644,9 @@ func (r *UpdateWorkspaceRequest) UnmarshalJSON(data []byte) error {
 // Settings assembled in Go record nothing and are therefore applied whole, which is
 // the only thing a caller with no body to omit keys from can mean.
 func (ws *WorkspaceSettings) PreserveOmitted(stored WorkspaceSettings) {
+	// The two tracking keys are reconciled whatever the body carried: an old
+	// client resending the whole settings object omits nothing.
+	defer ws.reconcileEmailTracking(stored)
 	if len(ws.omittedKeys) == 0 {
 		return
 	}
@@ -1643,6 +1663,7 @@ func (ws *WorkspaceSettings) PreserveOmitted(stored WorkspaceSettings) {
 	keep("transactional_email_provider_id", func() { ws.TransactionalEmailProviderID = stored.TransactionalEmailProviderID })
 	keep("marketing_email_provider_id", func() { ws.MarketingEmailProviderID = stored.MarketingEmailProviderID })
 	keep("email_tracking_enabled", func() { ws.EmailTrackingEnabled = stored.EmailTrackingEnabled })
+	keep("email_tracking", func() { ws.EmailTracking = nil })
 	keep("custom_endpoint_url", func() { ws.CustomEndpointURL = stored.CustomEndpointURL })
 	keep("audit_logs", func() { ws.AuditLogs = stored.AuditLogs })
 }

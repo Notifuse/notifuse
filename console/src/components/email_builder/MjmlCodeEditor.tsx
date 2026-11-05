@@ -482,6 +482,8 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
           'workspace.base_url',
           'unsubscribe_url',
           'notification_center_url',
+          'tracking_preferences_url',
+          'tracking_optout_url',
           'confirm_subscription_url',
           'message_id',
           'tracking_opens_url'

@@ -137,11 +137,14 @@ export interface MjmlCompileError {
   details: MjmlErrorDetail[]
 }
 
+export type TrackingMode = 'inherit' | 'no_tracking' | 'disabled'
+
 export interface TrackingSettings {
   enable_tracking: boolean
-  // Per-notification tri-state: 'inherit' (or absent) follows the workspace
-  // setting, 'disabled' suppresses all link rewriting (click/open tracking and UTM)
-  tracking_mode?: 'inherit' | 'disabled'
+  // Per-notification mode: 'inherit' (or absent) follows the workspace setting
+  // and each contact's consent, 'no_tracking' drops the open pixel and click
+  // redirect but keeps UTM parameters, 'disabled' suppresses all link rewriting
+  tracking_mode?: TrackingMode
   endpoint?: string
   utm_source?: string
   utm_medium?: string
