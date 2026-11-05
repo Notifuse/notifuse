@@ -12,8 +12,8 @@ import (
 // throttleDecrease of the current pace, never below throttleFloorShare of the configured
 // rate (and never below 1/min). Once the provider accepts again, the pace climbs back by
 // recoveryShare of the configured rate every recoveryInterval. A refusal at the floor
-// counts against the provider only once the pace has sat there for floorDwell, so a
-// burst of refusals of a few seconds, which reaches the floor in under two seconds at
+// counts against the provider only once refusals have continued there for floorDwell, so
+// a burst of refusals of a few seconds, which reaches the floor in under two seconds at
 // high rates, does not pause broadcasts.
 const (
 	throttleDecrease        = 0.75
@@ -51,8 +51,12 @@ type adaptiveLimiter struct {
 	// once the provider has taken an email at the lower pace, not while it waits.
 	recovering bool
 	stepFrom   time.Time
-	// floorSince is when the pace reached the floor, zero while above it.
-	floorSince time.Time
+	// floorSince is when the current run of refusals at the floor began, zero while
+	// above the floor. lastThrottle is the latest refusal of the current generation: a
+	// refusal after a quiet spell starts a new run, so an integration left at the floor
+	// does not count its next refusal at once, days later.
+	floorSince   time.Time
+	lastThrottle time.Time
 }
 
 // Slot is a reserved token: when it falls due, and the generation it was taken in.
@@ -64,8 +68,8 @@ type Slot struct {
 
 // ThrottleOutcome is what a refusal for the sending pace did to the integration's pace.
 type ThrottleOutcome struct {
-	// AtFloor means the pace has sat at its floor for the dwell: slowing down has been
-	// tried to the end, and the refusal should count against the provider.
+	// AtFloor means refusals have continued at the floor for the dwell: slowing down has
+	// been tried to the end, and the refusal should count against the provider.
 	AtFloor bool
 	// Decreased reports a cut of the pace, From and To per minute.
 	Decreased bool
@@ -114,6 +118,13 @@ func (al *adaptiveLimiter) floor() float64 {
 	return math.Min(al.ceiling, math.Max(throttleFloorShare*al.ceiling, 1))
 }
 
+// quietSpell is how long without a refusal ends a run of refusals at the floor: the
+// dwell plus two sends at the floor, so that refusals of every email, a floor interval
+// apart, stay one run even when that interval is longer than the dwell.
+func (al *adaptiveLimiter) quietSpell(dwell time.Duration) time.Duration {
+	return dwell + 2*time.Duration(float64(time.Minute)/al.floor())
+}
+
 // reset starts over at the configured rate. Editing the limit is a fresh start in both
 // directions. The generation keeps counting, so no send reserved before the reset is
 // taken for one reserved after it.
@@ -125,10 +136,7 @@ func (al *adaptiveLimiter) reset(now time.Time, ceiling float64) {
 	al.recovering = false
 	al.stepFrom = now
 	al.floorSince = time.Time{}
-	if al.effective <= al.floor() {
-		// At 1/min the configured rate is its own floor.
-		al.floorSince = now
-	}
+	al.lastThrottle = time.Time{}
 }
 
 // sync applies a change of the configured rate and the recovery due by now. Callers hold
@@ -220,7 +228,9 @@ func (irl *IntegrationRateLimiter) CurrentGeneration(integrationID string) uint6
 // arriving too fast. A refusal of an older generation changes nothing: it comes from a
 // send reserved before the latest decrease, and the sends throttled together cut the
 // pace once. A refusal of the current generation stops any recovery, then cuts the pace,
-// or at the floor reports AtFloor once the pace has sat there for the dwell.
+// or at the floor reports AtFloor once refusals have continued there for the dwell. Below
+// about 1.4/min the configured rate is its own floor, so the first refusal starts the
+// dwell.
 //
 // The cut replaces the limiter rather than lowering its limit: the tokens reserved ahead
 // by the sends waiting in this round are a debt that a lowered limit keeps and
@@ -235,9 +245,12 @@ func (irl *IntegrationRateLimiter) RecordThrottle(integrationID string, ratePerM
 	}
 	al.recovering = false
 
+	last := al.lastThrottle
+	al.lastThrottle = now
+
 	floor := al.floor()
 	if al.effective <= floor {
-		if al.floorSince.IsZero() {
+		if al.floorSince.IsZero() || now.Sub(last) > al.quietSpell(irl.floorDwell) {
 			al.floorSince = now
 		}
 		return ThrottleOutcome{AtFloor: now.Sub(al.floorSince) >= irl.floorDwell}

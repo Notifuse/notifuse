@@ -47,7 +47,7 @@ func (c *Classifier) classifySparkPostError(err error, errStr string, httpStatus
 	}
 
 	if httpStatus == 429 {
-		return rateLimitedByStatus(result, errStr)
+		return classifyThrottle(result, errStr)
 	}
 
 	// Check for recipient-specific errors

@@ -130,10 +130,12 @@ func isQuotaSignal(text string) bool {
 	return containsAny(text, quotaWords)
 }
 
-// rateLimitedByStatus classifies an HTTP 429, which every API provider uses to say the
-// requests arrive too fast. It is decided before the phrase lists, so a substring in the
-// message can neither take it for a recipient error nor change its retryability.
-func rateLimitedByStatus(result *ClassifiedError, errStr string) *ClassifiedError {
+// classifyThrottle classifies a refusal for the sending pace: an HTTP 429, which every API
+// provider uses to say the requests arrive too fast, or an SES throttling code. It is
+// decided before the phrase lists, so a substring in the message can neither take it for
+// a recipient error nor change its retryability. One that names a quota is not rate
+// limited: slowing down does not help it.
+func classifyThrottle(result *ClassifiedError, errStr string) *ClassifiedError {
 	result.Type = ErrorTypeProvider
 	result.Retryable = true
 	result.RateLimited = !isQuotaSignal(errStr)
@@ -150,7 +152,7 @@ func (c *Classifier) classifyUnknownProvider(err error, errStr string, httpStatu
 	}
 
 	if httpStatus == 429 {
-		return rateLimitedByStatus(result, errStr)
+		return classifyThrottle(result, errStr)
 	}
 
 	// Try HTTP status classification

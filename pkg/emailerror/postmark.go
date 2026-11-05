@@ -49,7 +49,7 @@ func (c *Classifier) classifyPostmarkError(err error, errStr string, httpStatus 
 	}
 
 	if httpStatus == 429 {
-		return rateLimitedByStatus(result, errStr)
+		return classifyThrottle(result, errStr)
 	}
 
 	// HTTP 406 is specifically for inactive recipients in Postmark

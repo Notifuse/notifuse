@@ -70,10 +70,7 @@ func (c *Classifier) classifySESError(err error, errStr string, httpStatus int) 
 	// Decided first, and retryable whatever the wording: a quota refusal under these
 	// codes that does not say "quota" would otherwise fall to the non-retryable branch.
 	if containsAny(errStr, sesThrottleCodes) {
-		result.Type = ErrorTypeProvider
-		result.Retryable = true
-		result.RateLimited = !isQuotaSignal(errStr)
-		return result
+		return classifyThrottle(result, errStr)
 	}
 
 	// Check for recipient-specific errors first

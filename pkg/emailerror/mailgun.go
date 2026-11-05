@@ -65,7 +65,7 @@ func (c *Classifier) classifyMailgunError(err error, errStr string, httpStatus i
 	}
 
 	if httpStatus == 429 {
-		return rateLimitedByStatus(result, errStr)
+		return classifyThrottle(result, errStr)
 	}
 
 	// Check for recipient-specific errors (SMTP codes)
