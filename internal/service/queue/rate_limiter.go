@@ -52,9 +52,10 @@ type adaptiveLimiter struct {
 	recovering bool
 	stepFrom   time.Time
 	// floorSince is when the current run of refusals at the floor began, zero while
-	// above the floor. lastThrottle is the latest refusal of the current generation: a
-	// refusal after a quiet spell starts a new run, so an integration left at the floor
-	// does not count its next refusal at once, days later.
+	// above the floor or once an email is accepted. lastThrottle is the latest refusal
+	// recorded, the cut that reached the floor included: a refusal after a quiet spell
+	// starts a new run, so an integration left at the floor does not count its next
+	// refusal at once, days later.
 	floorSince   time.Time
 	lastThrottle time.Time
 }
@@ -119,10 +120,10 @@ func (al *adaptiveLimiter) floor() float64 {
 }
 
 // quietSpell is how long without a refusal ends a run of refusals at the floor: the
-// dwell plus two sends at the floor, so that refusals of every email, a floor interval
-// apart, stay one run even when that interval is longer than the dwell.
+// dwell, or two sends at the floor when that is longer, so that refusals of every email
+// a floor interval apart stay one run at the lowest rates.
 func (al *adaptiveLimiter) quietSpell(dwell time.Duration) time.Duration {
-	return dwell + 2*time.Duration(float64(time.Minute)/al.floor())
+	return max(dwell, 2*time.Duration(float64(time.Minute)/al.floor()))
 }
 
 // reset starts over at the configured rate. Editing the limit is a fresh start in both
@@ -228,9 +229,8 @@ func (irl *IntegrationRateLimiter) CurrentGeneration(integrationID string) uint6
 // arriving too fast. A refusal of an older generation changes nothing: it comes from a
 // send reserved before the latest decrease, and the sends throttled together cut the
 // pace once. A refusal of the current generation stops any recovery, then cuts the pace,
-// or at the floor reports AtFloor once refusals have continued there for the dwell. Below
-// about 1.4/min the configured rate is its own floor, so the first refusal starts the
-// dwell.
+// or at the floor reports AtFloor once refusals have continued there for the dwell. At
+// 1/min the configured rate is its own floor, so the first refusal starts the dwell.
 //
 // The cut replaces the limiter rather than lowering its limit: the tokens reserved ahead
 // by the sends waiting in this round are a debt that a lowered limit keeps and
@@ -250,7 +250,7 @@ func (irl *IntegrationRateLimiter) RecordThrottle(integrationID string, ratePerM
 
 	floor := al.floor()
 	if al.effective <= floor {
-		if al.floorSince.IsZero() || now.Sub(last) > al.quietSpell(irl.floorDwell) {
+		if al.floorSince.IsZero() || now.Sub(last) >= al.quietSpell(irl.floorDwell) {
 			al.floorSince = now
 		}
 		return ThrottleOutcome{AtFloor: now.Sub(al.floorSince) >= irl.floorDwell}
@@ -268,9 +268,9 @@ func (irl *IntegrationRateLimiter) RecordThrottle(integrationID string, ratePerM
 }
 
 // RecordAccepted records that the provider took a send of the given generation at the
-// current pace: it accepted the email, or refused it for its recipient. After a
-// throttle, the first one starts the climb back. One of an older generation was sent at
-// a pace that no longer applies and starts nothing.
+// current pace: it accepted the email, or refused it for its recipient. It ends any run
+// of refusals at the floor, and after a throttle, the first one starts the climb back.
+// One of an older generation was sent at a pace that no longer applies and does neither.
 func (irl *IntegrationRateLimiter) RecordAccepted(integrationID string, generation uint64) {
 	existing, ok := irl.limiters.Load(integrationID)
 	if !ok {
@@ -282,7 +282,11 @@ func (irl *IntegrationRateLimiter) RecordAccepted(integrationID string, generati
 
 	now := irl.now()
 	al.recover(now, irl.recoveryInterval)
-	if generation != al.generation || al.recovering || al.effective >= al.ceiling {
+	if generation != al.generation {
+		return
+	}
+	al.floorSince = time.Time{}
+	if al.recovering || al.effective >= al.ceiling {
 		return
 	}
 	al.recovering = true

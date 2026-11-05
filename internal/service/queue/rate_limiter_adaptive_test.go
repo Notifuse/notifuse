@@ -118,7 +118,9 @@ func TestRateLimiter_Throttle(t *testing.T) {
 		assert.False(t, out.Decreased)
 		assert.False(t, out.AtFloor, "just reached the floor")
 
-		clock.Advance(defaultFloorDwell)
+		clock.Advance(defaultFloorDwell / 2)
+		assert.False(t, throttleNow(t, irl, clock, "i", 1000).AtFloor)
+		clock.Advance(defaultFloorDwell / 2)
 		out = throttleNow(t, irl, clock, "i", 1000)
 		assert.False(t, out.Decreased)
 		assert.True(t, out.AtFloor)
@@ -177,16 +179,42 @@ func TestRateLimiter_Throttle(t *testing.T) {
 		assert.True(t, irl.RecordThrottle("i", 1000, gen).AtFloor, "the run has lasted the dwell")
 	})
 
-	t.Run("refusals at the floor less than a quiet spell apart are one run", func(t *testing.T) {
+	t.Run("a refusal a dwell after the last one at the floor starts a new run", func(t *testing.T) {
 		irl, clock := newClockedLimiter()
 		for i := 0; i < decreasesToFloor(); i++ {
 			require.True(t, throttleNow(t, irl, clock, "i", 1000).Decreased)
 		}
 		gen := irl.CurrentGeneration("i")
 
-		// At 100/min, a quiet spell is the dwell plus 1.2 seconds.
-		clock.Advance(defaultFloorDwell + time.Second)
-		assert.True(t, irl.RecordThrottle("i", 1000, gen).AtFloor)
+		clock.Advance(defaultFloorDwell)
+		assert.False(t, irl.RecordThrottle("i", 1000, gen).AtFloor, "two refusals with nothing between are not a run")
+	})
+
+	t.Run("an accepted email ends the run of refusals at the floor", func(t *testing.T) {
+		cases := []struct {
+			name string
+			rate int
+		}{
+			{"a rate above its floor", 1000},
+			{"1/min, its own floor", 1},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				irl, clock := newClockedLimiter()
+				// Cut down to the floor, then refused there once: the run has begun.
+				for throttleNow(t, irl, clock, "i", tc.rate).Decreased {
+				}
+				gen := irl.CurrentGeneration("i")
+
+				clock.Advance(defaultFloorDwell / 2)
+				irl.RecordAccepted("i", gen)
+				assert.False(t, irl.RecordThrottle("i", tc.rate, gen).AtFloor)
+				clock.Advance(defaultFloorDwell / 2)
+				assert.False(t, irl.RecordThrottle("i", tc.rate, gen).AtFloor, "the run starts again after the accepted email")
+				clock.Advance(defaultFloorDwell / 2)
+				assert.True(t, irl.RecordThrottle("i", tc.rate, gen).AtFloor)
+			})
+		}
 	})
 
 	t.Run("concurrent throttles of one generation cut the pace once", func(t *testing.T) {
@@ -260,8 +288,8 @@ func TestRateLimiter_Recovery(t *testing.T) {
 
 		assert.Equal(t, 100, irl.EffectivePerMinute("i", 1000))
 		assert.False(t, throttleNow(t, irl, clock, "i", 1000).AtFloor)
-		clock.Advance(defaultFloorDwell / 2)
-		assert.True(t, throttleNow(t, irl, clock, "i", 1000).AtFloor, "the run of refusals went on from the floor")
+		clock.Advance(defaultFloorDwell - defaultRecoveryInterval)
+		assert.True(t, throttleNow(t, irl, clock, "i", 1000).AtFloor, "the run began at the refusal after the accepted email")
 	})
 
 	t.Run("climbing off the floor and falling back starts a new dwell", func(t *testing.T) {
