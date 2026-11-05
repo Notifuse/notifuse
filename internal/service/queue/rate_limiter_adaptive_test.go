@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"cmp"
 	"math"
 	"sync"
 	"testing"
@@ -178,23 +179,22 @@ func TestRateLimiter_Throttle(t *testing.T) {
 	})
 
 	t.Run("a quiet spell after the cut to the floor is the dwell plus two sends at the floor", func(t *testing.T) {
+		// The send interval at the floor falls below, at and above the dwell.
 		cases := []struct {
 			name     string
 			rate     int
 			oneRun   time.Duration
 			newRun   time.Duration
 			floorGap time.Duration
+			vsDwell  int
 		}{
-			{"1000/min, floor 100/min", 1000, defaultFloorDwell + time.Second, defaultFloorDwell + 1300*time.Millisecond, 600 * time.Millisecond},
-			{"20/min, floor 2/min", 20, defaultFloorDwell + 50*time.Second, defaultFloorDwell + 61*time.Second, 30 * time.Second},
-			{"10/min, floor 1/min", 10, defaultFloorDwell + 100*time.Second, defaultFloorDwell + 121*time.Second, time.Minute},
+			{"1000/min, floor 100/min", 1000, defaultFloorDwell + time.Second, defaultFloorDwell + 1300*time.Millisecond, 600 * time.Millisecond, -1},
+			{"20/min, floor 2/min", 20, defaultFloorDwell + 50*time.Second, defaultFloorDwell + 61*time.Second, 30 * time.Second, 0},
+			{"10/min, floor 1/min", 10, defaultFloorDwell + 100*time.Second, defaultFloorDwell + 121*time.Second, time.Minute, 1},
 		}
-		// The send intervals at the floor fall below, at and above the dwell.
-		require.Less(t, cases[0].floorGap, defaultFloorDwell)
-		require.Equal(t, defaultFloorDwell, cases[1].floorGap)
-		require.Greater(t, cases[2].floorGap, defaultFloorDwell)
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
+				require.Equal(t, tc.vsDwell, cmp.Compare(tc.floorGap, defaultFloorDwell))
 				for _, gap := range []time.Duration{tc.oneRun, tc.newRun} {
 					irl, clock := newClockedLimiter()
 					// The last cut reaches the floor: the run counts from it.
@@ -209,6 +209,20 @@ func TestRateLimiter_Throttle(t *testing.T) {
 				}
 			})
 		}
+	})
+
+	t.Run("an accepted email and a recovery interval without a refusal end the run, also at 1/min", func(t *testing.T) {
+		irl, clock := newClockedLimiter()
+		irl.EffectivePerMinute("one", 1)
+		gen := irl.CurrentGeneration("one")
+
+		require.False(t, irl.RecordThrottle("one", 1, gen).AtFloor)
+		clock.Advance(time.Minute)
+		irl.RecordAccepted("one", gen)
+		clock.Advance(time.Minute)
+		assert.False(t, irl.RecordThrottle("one", 1, gen).AtFloor, "a new run")
+		clock.Advance(time.Minute)
+		assert.True(t, irl.RecordThrottle("one", 1, gen).AtFloor)
 	})
 
 	t.Run("emails accepted between refusals at the floor do not end the run", func(t *testing.T) {
