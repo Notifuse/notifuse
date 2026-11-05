@@ -195,8 +195,10 @@ func TestTaskExecute_ClientHangupDoesNotAbortTask(t *testing.T) {
 		fmt.Sprintf(`{"workspace_id":%q,"id":%q}`, h.workspaceID, h.taskID),
 		300*time.Millisecond)
 
-	enqueued := waitForQueuedCount(t, h, contacts, 45*time.Second)
-	status, retries, errMsg := taskRow(t, h)
+	// The task is marked completed in the system database after its last batch
+	// commits in the workspace one: once it is, the queue count is final.
+	status, retries, errMsg := waitForTaskRow(t, h, "completed", 45*time.Second)
+	enqueued := queuedCount(t, h)
 	t.Logf("after hang-up: enqueued=%d task_status=%s retry_count=%d error=%q",
 		enqueued, status, retries, errMsg)
 
@@ -240,9 +242,15 @@ func TestCron_ReturnsImmediately(t *testing.T) {
 	assert.Less(t, elapsed, time.Second,
 		"cron must not hold the caller open for the whole task run")
 
-	enqueued := waitForQueuedCount(t, h, contacts, 60*time.Second)
+	status, retries, errMsg := waitForTaskRow(t, h, "completed", 60*time.Second)
+	enqueued := queuedCount(t, h)
+	t.Logf("after cron: enqueued=%d task_status=%s retry_count=%d error=%q",
+		enqueued, status, retries, errMsg)
 	assert.GreaterOrEqual(t, enqueued, int64(contacts),
 		"the work must still happen after the endpoint has answered")
+	assert.Equal(t, "completed", status, "the task started by cron should finish")
+	assert.Equal(t, 0, retries, "a completed run must leave a clean retry budget")
+	assert.Empty(t, errMsg, "a completed run must leave no error behind")
 }
 
 // TestCron_ClientHangupDoesNotAbortTasks pins the cancellation half of defect 2:
@@ -263,15 +271,16 @@ func TestCron_ClientHangupDoesNotAbortTasks(t *testing.T) {
 		h.suite.ServerManager.GetURL()+"/api/cron?max_tasks=10", "",
 		300*time.Millisecond)
 
-	enqueued := waitForQueuedCount(t, h, contacts, 45*time.Second)
-	status, retries, _ := taskRow(t, h)
+	status, retries, _ := waitForTaskRow(t, h, "completed", 45*time.Second)
+	enqueued := queuedCount(t, h)
 	t.Logf("after cron hang-up: enqueued=%d task_status=%s retry_count=%d",
 		enqueued, status, retries)
 
 	assert.GreaterOrEqual(t, enqueued, int64(contacts),
 		"a cron caller hanging up must not abort the tasks it started")
+	assert.Equal(t, "completed", status, "the tasks it started should finish")
 	assert.Equal(t, 0, retries,
-		"an interrupted run must not consume the retry budget")
+		"a cron caller hanging up must not consume the retry budget")
 }
 
 // TestBroadcastPauseResume_DoesNotConsumeRetryBudget pins defect 3.
@@ -570,16 +579,22 @@ func waitForQueuedGrowth(t *testing.T, h *phase2Harness, baseline int64, timeout
 // waitForTaskStatus polls the task row, returning the last status seen.
 func waitForTaskStatus(t *testing.T, h *phase2Harness, want string, timeout time.Duration) string {
 	t.Helper()
+	status, _, _ := waitForTaskRow(t, h, want, timeout)
+	return status
+}
+
+// waitForTaskRow polls the task row until its status is want, returning the
+// last row seen, read in one query.
+func waitForTaskRow(t *testing.T, h *phase2Harness, want string, timeout time.Duration) (status string, retryCount int, errorMessage string) {
+	t.Helper()
 	deadline := time.Now().Add(timeout)
-	last := ""
-	for time.Now().Before(deadline) {
-		last, _, _ = taskRow(t, h)
-		if last == want {
-			return last
+	for {
+		status, retryCount, errorMessage = taskRow(t, h)
+		if status == want || !time.Now().Before(deadline) {
+			return status, retryCount, errorMessage
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	return last
 }
 
 // TestBroadcastInterrupted_ReleasesWithoutSpendingBudget pins the defect that
@@ -600,8 +615,7 @@ func TestBroadcastInterrupted_ReleasesWithoutSpendingBudget(t *testing.T) {
 
 	cancel() // the server is going down under a running slice
 
-	status := waitForTaskStatus(t, h, "pending", 30*time.Second)
-	_, retries, errMsg := taskRow(t, h)
+	status, retries, errMsg := waitForTaskRow(t, h, "pending", 30*time.Second)
 	t.Logf("after interruption: task_status=%s retry_count=%d committed=%d error=%q",
 		status, retries, committed, errMsg)
 
@@ -628,7 +642,8 @@ func TestBroadcastInterrupted_ResumesAndCompletes(t *testing.T) {
 	h.scheduleAsync(t)
 	waitForCommittedBatch(t, h, 60*time.Second)
 	cancel()
-	waitForTaskStatus(t, h, "pending", 30*time.Second)
+	require.Equal(t, "pending", waitForTaskStatus(t, h, "pending", 30*time.Second),
+		"the interrupted run should hand the task back")
 
 	// The scheduler is gone with the context, but the server still serves, so
 	// the task can be driven to completion by hand — through /api/cron, not
