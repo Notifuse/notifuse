@@ -15,7 +15,7 @@ import { getBroadcastStats } from '../../services/api/messages_history'
 import { useNavigate } from '@tanstack/react-router'
 import type { Workspace } from '../../services/api/types'
 import { isPartiallyTracked, trackedBase } from '../../lib/emailTracking'
-import { TrackedOfNote } from '../common/TrackedOfNote'
+import { TrackedTooltipTitle } from '../common/TrackedTooltipTitle'
 
 export interface ProgressStats {
   remaining: number
@@ -219,7 +219,14 @@ export function BroadcastStats({
         </Tooltip>
       </Col>
       <Col span={3}>
-        <Tooltip title={t`${stats.total_opened} total opens - Click to view details`}>
+        <Tooltip
+          title={
+            <TrackedTooltipTitle
+              title={t`${stats.total_opened} total opens - Click to view details`}
+              tracked={isPartiallyTracked(stats.total_sent, stats.total_opens_tracked) ? opensBase : undefined}
+            />
+          }
+        >
           <div
             className="cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
             onClick={() => navigateToLogs('is_opened')}
@@ -239,14 +246,18 @@ export function BroadcastStats({
               styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />
-            {isPartiallyTracked(stats.total_sent, stats.total_opens_tracked) && (
-              <TrackedOfNote tracked={opensBase} />
-            )}
           </div>
         </Tooltip>
       </Col>
       <Col span={3}>
-        <Tooltip title={t`${stats.total_clicked} total clicks - Click to view details`}>
+        <Tooltip
+          title={
+            <TrackedTooltipTitle
+              title={t`${stats.total_clicked} total clicks - Click to view details`}
+              tracked={isPartiallyTracked(stats.total_sent, stats.total_clicks_tracked) ? clicksBase : undefined}
+            />
+          }
+        >
           <div
             className="cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
             onClick={() => navigateToLogs('is_clicked')}
@@ -266,9 +277,6 @@ export function BroadcastStats({
               styles={{ content: { fontSize: '16px' } }}
               formatter={formatStat}
             />
-            {isPartiallyTracked(stats.total_sent, stats.total_clicks_tracked) && (
-              <TrackedOfNote tracked={clicksBase} />
-            )}
           </div>
         </Tooltip>
       </Col>

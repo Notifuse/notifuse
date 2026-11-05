@@ -1,5 +1,6 @@
 import '../../__tests__/resizeObserverMock'
 import { describe, it, expect, vi } from 'vitest'
+import userEvent from '@testing-library/user-event'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ConfigProvider } from 'antd'
@@ -90,7 +91,13 @@ describe('BroadcastStats queue counts', () => {
 // Open and click rates are shares of the emails that could record them: a recipient
 // who refused tracking got no pixel and no tracked links.
 describe('BroadcastStats tracked rates', () => {
-  it('computes open and click rates over the tracked emails and says how many', async () => {
+  // The tooltip of a rate tile, read after hovering it.
+  const tooltipOf = async (tile: string) => {
+    await userEvent.hover(screen.getByText(tile).closest('.ant-statistic') as HTMLElement)
+    return (await screen.findByText(new RegExp(`total ${tile.toLowerCase()}`))).closest('.ant-tooltip') as HTMLElement
+  }
+
+  it('computes open and click rates over the tracked emails and says how many in the tooltip', async () => {
     state.result = {
       broadcast_id: 'bc-1',
       stats: sum({
@@ -106,8 +113,9 @@ describe('BroadcastStats tracked rates', () => {
 
     // 10 of 40 opened, 5 of 20 clicked: both 25%, where the sent total gave 10% and 5%.
     await waitFor(() => expect(screen.getAllByText('25%')).toHaveLength(2))
-    expect(screen.getByText('of 40 tracked')).toBeInTheDocument()
-    expect(screen.getByText('of 20 tracked')).toBeInTheDocument()
+    expect(screen.queryByText(/tracked$/)).not.toBeInTheDocument()
+    expect(within(await tooltipOf('Opens')).getByText('of 40 tracked')).toBeInTheDocument()
+    expect(within(await tooltipOf('Clicks')).getByText('of 20 tracked')).toBeInTheDocument()
   })
 
   it('adds no note when every email was tracked', async () => {
@@ -125,7 +133,7 @@ describe('BroadcastStats tracked rates', () => {
     renderStats()
 
     await waitFor(() => expect(screen.getByText('10%')).toBeInTheDocument())
-    expect(screen.queryByText(/tracked$/)).not.toBeInTheDocument()
+    expect(within(await tooltipOf('Opens')).queryByText(/tracked$/)).not.toBeInTheDocument()
   })
 
   it('shows no rate when nothing was tracked', async () => {
@@ -140,7 +148,8 @@ describe('BroadcastStats tracked rates', () => {
     }
     renderStats()
 
-    await waitFor(() => expect(screen.getAllByText('of 0 tracked')).toHaveLength(2))
+    await waitFor(() => expect(screen.getAllByText('-').length).toBeGreaterThan(0))
+    expect(within(await tooltipOf('Opens')).getByText('of 0 tracked')).toBeInTheDocument()
     for (const tile of ['Opens', 'Clicks']) {
       const statistic = screen.getByText(tile).closest('.ant-statistic') as HTMLElement
       expect(within(statistic).getByText('-')).toBeInTheDocument()

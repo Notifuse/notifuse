@@ -336,12 +336,16 @@ export function ContactDetailsDrawer({
   }
 
   // Handle inline field update
-  const handleFieldUpdate = async (fieldKey: string, value: string | number | object | null) => {
+  const handleFieldUpdate = async (fieldKey: string, value: string | number | object | null) =>
+    handleFieldsUpdate({ [fieldKey]: value })
+
+  // Writes several fields in one upsert, so they make one change in the timeline.
+  const handleFieldsUpdate = async (fields: Record<string, string | number | object | null>) => {
     if (!contact) return
 
     const contactData: Record<string, string | number | object | null> = {
       email: contact.email,
-      [fieldKey]: value
+      ...fields
     }
 
     const response = await contactsApi.upsert({
@@ -707,7 +711,7 @@ export function ContactDetailsDrawer({
                 updatedAt={contact?.tracking_consent_updated_at}
                 source={contact?.tracking_consent_source}
                 disabled={isLoadingContact}
-                onSave={(field, value) => handleFieldUpdate(field, value)}
+                onSave={handleFieldsUpdate}
               />
 
               {/* Set custom fields */}

@@ -747,7 +747,6 @@ export function UpsertBroadcastDrawer({
                                 <Alert
                                   description={t`Opens and clicks are not tracked for this broadcast: pick the winning variation yourself.`}
                                   type="info"
-                                  showIcon
                                   className="!mb-4"
                                 />
                               )}
@@ -757,7 +756,6 @@ export function UpsertBroadcastDrawer({
                                   <Alert
                                     description={t`This workspace does not track contacts whose consent is unknown, so only recipients who agreed to tracking count in the test results.`}
                                     type="warning"
-                                    showIcon
                                     className="!mb-4"
                                   />
                                 )}

@@ -116,17 +116,14 @@ const getRemainingTestTime = (broadcast: Broadcast, testResults?: TestResultsRes
   return now.to(endTime, true) + ' remaining'
 }
 
-// Under a variation's rate: the share of its recipients that could be tracked, in
-// orange under half, since a rate over few tracked recipients compares poorly.
+// Under a variation's rate, a warning when fewer than half its recipients were
+// tracked, since a rate over few tracked recipients compares poorly. The tracked
+// count itself is in the cell's tooltip.
 function TrackedShareNote({ rate }: { rate: VariationRate }) {
   const { t } = useLingui()
-  if (rate.trackedShare === undefined) return null
+  if (rate.trackedShare === undefined || !rate.lowTrackedShare) return null
   const share = Math.round(rate.trackedShare * 100)
-  return (
-    <div className={`text-xs ${rate.lowTrackedShare ? 'text-orange-500' : 'text-gray-500'}`}>
-      {t`${share}% tracked`}
-    </div>
-  )
+  return <div className="text-xs text-orange-500">{t`${share}% tracked`}</div>
 }
 
 // The status badge for a broadcast, with its explanatory tooltip.

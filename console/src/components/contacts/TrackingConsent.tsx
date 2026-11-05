@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { App, Select, Space, Tag } from 'antd'
+import { App, Button, Select, Space, Tag, Tooltip } from 'antd'
+import { EditOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import dayjs from '../../lib/dayjs'
 import { useLingui } from '@lingui/react/macro'
 import type { TrackingConsent } from '../../services/api/contacts'
@@ -75,17 +76,26 @@ export function useTrackingConsentSourceLabel() {
   }
 }
 
+export type TrackingConsentField = 'tracking_opens_consent' | 'tracking_clicks_consent'
+
+/** The consents to write; null records a consent as unknown again. */
+export type TrackingConsentChanges = Partial<Record<TrackingConsentField, TrackingConsent | null>>
+
 interface TrackingConsentEditorProps {
   opens?: TrackingConsent | null
   clicks?: TrackingConsent | null
   updatedAt?: string
   source?: string
   disabled?: boolean
-  /** Saves one consent; null records it as unknown again. */
-  onSave: (field: 'tracking_opens_consent' | 'tracking_clicks_consent', value: TrackingConsent | null) => Promise<void>
+  /** Saves the consents that changed, in one write. */
+  onSave: (changes: TrackingConsentChanges) => Promise<void>
 }
 
-/** The tracking consent block of the contact details. */
+/**
+ * The tracking consent row of the contact details: both consents as tags, the
+ * date and source of the last change in a tooltip, and an edit button that
+ * opens a form for both.
+ */
 export function TrackingConsentEditor({
   opens,
   clicks,
@@ -97,50 +107,114 @@ export function TrackingConsentEditor({
   const { t } = useLingui()
   const { filters } = useTrackingConsentOptions()
   const sourceLabel = useTrackingConsentSourceLabel()
-  const [saving, setSaving] = useState<string | null>(null)
   const { message } = App.useApp()
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [draftOpens, setDraftOpens] = useState<string>('unknown')
+  const [draftClicks, setDraftClicks] = useState<string>('unknown')
   const changedAt = updatedAt ? dayjs(updatedAt).format('LLL') : ''
   const changedFrom = sourceLabel(source)
 
-  const save = async (field: 'tracking_opens_consent' | 'tracking_clicks_consent', value: string) => {
-    setSaving(field)
+  const startEdit = () => {
+    setDraftOpens(opens || 'unknown')
+    setDraftClicks(clicks || 'unknown')
+    setEditing(true)
+  }
+
+  const save = async () => {
+    const changes: TrackingConsentChanges = {}
+    if (draftOpens !== (opens || 'unknown')) {
+      changes.tracking_opens_consent = draftOpens === 'unknown' ? null : (draftOpens as TrackingConsent)
+    }
+    if (draftClicks !== (clicks || 'unknown')) {
+      changes.tracking_clicks_consent = draftClicks === 'unknown' ? null : (draftClicks as TrackingConsent)
+    }
+    if (Object.keys(changes).length === 0) {
+      setEditing(false)
+      return
+    }
+    setSaving(true)
     try {
-      await onSave(field, value === 'unknown' ? null : (value as TrackingConsent))
+      await onSave(changes)
+      setEditing(false)
     } catch (error) {
       message.error((error as Error)?.message || t`Failed to update field`)
     } finally {
-      setSaving(null)
+      setSaving(false)
     }
   }
 
+  const label = (
+    <span className="font-semibold text-slate-600">
+      {t`Tracking consent`}
+      {changedAt && (
+        <Tooltip title={t`Last changed ${changedAt} from ${changedFrom}`}>
+          <InfoCircleOutlined
+            className="ml-1 text-gray-400"
+            aria-label={t`Last change`}
+            data-testid="tracking-consent-changed"
+          />
+        </Tooltip>
+      )}
+    </span>
+  )
+
+  if (editing) {
+    return (
+      <div className="py-2 px-4 text-xs bg-blue-50 border-b border-dashed border-gray-300">
+        <div className="mb-2">{label}</div>
+        <div className="grid grid-cols-2 gap-x-1 gap-y-2 items-center mb-2">
+          <span className="text-slate-600">{t`Opens`}</span>
+          <Select
+            size="small"
+            style={{ width: 140 }}
+            aria-label={t`Opens`}
+            value={draftOpens}
+            options={filters}
+            disabled={saving}
+            onChange={setDraftOpens}
+          />
+          <span className="text-slate-600">{t`Clicks`}</span>
+          <Select
+            size="small"
+            style={{ width: 140 }}
+            aria-label={t`Clicks`}
+            value={draftClicks}
+            options={filters}
+            disabled={saving}
+            onChange={setDraftClicks}
+          />
+        </div>
+        <div className="flex justify-end">
+          <Space size="small">
+            <Button size="small" type="link" onClick={() => setEditing(false)} disabled={saving}>
+              {t`Cancel`}
+            </Button>
+            <Button size="small" type="primary" onClick={save} loading={saving}>
+              {t`Save`}
+            </Button>
+          </Space>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="py-2 px-4 text-xs border-b border-dashed border-gray-300">
-      <div className="font-semibold text-slate-600 mb-2">{t`Tracking consent`}</div>
-      <div className="grid grid-cols-2 gap-x-1 gap-y-2 items-center">
-        <span className="text-slate-600">{t`Opens`}</span>
-        <Select
+    <div className="py-2 px-4 grid grid-cols-[1fr_auto] text-xs gap-1 border-b border-dashed border-gray-300">
+      <div className="grid grid-cols-2 gap-1">
+        {label}
+        <TrackingConsentSummary opens={opens} clicks={clicks} />
+      </div>
+      <div className="flex items-start">
+        <Button
           size="small"
-          style={{ width: 140 }}
-          value={opens || 'unknown'}
-          options={filters}
+          type="text"
+          icon={<EditOutlined />}
+          aria-label={t`Edit tracking consent`}
           disabled={disabled}
-          loading={saving === 'tracking_opens_consent'}
-          onChange={(value) => save('tracking_opens_consent', value)}
-        />
-        <span className="text-slate-600">{t`Clicks`}</span>
-        <Select
-          size="small"
-          style={{ width: 140 }}
-          value={clicks || 'unknown'}
-          options={filters}
-          disabled={disabled}
-          loading={saving === 'tracking_clicks_consent'}
-          onChange={(value) => save('tracking_clicks_consent', value)}
+          onClick={startEdit}
         />
       </div>
-      {changedAt && (
-        <div className="text-gray-500 mt-2">{t`Last changed ${changedAt} from ${changedFrom}`}</div>
-      )}
     </div>
   )
 }

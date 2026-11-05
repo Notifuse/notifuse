@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
+import userEvent from '@testing-library/user-event'
 import { EmailMetricsChart } from './EmailMetricsChart'
 import { analyticsService } from '../../services/api/analytics'
 import type { AnalyticsQuery } from '../../services/api/analytics'
@@ -35,6 +36,12 @@ const renderChart = () =>
 
 const tile = (title: string) => screen.getByText(title).closest('.ant-statistic') as HTMLElement
 
+// The tooltip of a rate tile, read after hovering it.
+const tooltipOf = async (title: string) => {
+  await userEvent.hover(tile(title))
+  return (await screen.findByText(new RegExp(`total ${title.toLowerCase()}`))).closest('.ant-tooltip') as HTMLElement
+}
+
 describe('EmailMetricsChart tracked rates', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -46,8 +53,9 @@ describe('EmailMetricsChart tracked rates', () => {
 
     await waitFor(() => expect(within(tile('Opens')).getByText('25%')).toBeInTheDocument())
     expect(within(tile('Clicks')).getByText('25%')).toBeInTheDocument()
-    expect(screen.getByText('of 40 tracked')).toBeInTheDocument()
-    expect(screen.getByText('of 20 tracked')).toBeInTheDocument()
+    expect(screen.queryByText(/tracked$/)).not.toBeInTheDocument()
+    expect(within(await tooltipOf('Opens')).getByText('of 40 tracked')).toBeInTheDocument()
+    expect(within(await tooltipOf('Clicks')).getByText('of 20 tracked')).toBeInTheDocument()
 
     const measures = vi.mocked(analyticsService.query).mock.calls.map(
       ([query]) => (query as AnalyticsQuery).measures
@@ -62,6 +70,6 @@ describe('EmailMetricsChart tracked rates', () => {
     renderChart()
 
     await waitFor(() => expect(within(tile('Opens')).getByText('10%')).toBeInTheDocument())
-    expect(screen.queryByText(/tracked$/)).not.toBeInTheDocument()
+    expect(within(await tooltipOf('Opens')).queryByText(/tracked$/)).not.toBeInTheDocument()
   })
 })

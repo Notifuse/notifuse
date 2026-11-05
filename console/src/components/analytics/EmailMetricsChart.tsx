@@ -14,7 +14,7 @@ import { ChartVisualization } from './ChartVisualization'
 import { analyticsService, AnalyticsQuery, AnalyticsResponse } from '../../services/api/analytics'
 import { Workspace } from '../../services/api/types'
 import { isPartiallyTracked } from '../../lib/emailTracking'
-import { TrackedOfNote } from '../common/TrackedOfNote'
+import { TrackedTooltipTitle } from '../common/TrackedTooltipTitle'
 
 interface EmailMetricsChartProps {
   workspace: Workspace
@@ -370,7 +370,12 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
         </Col>
         <Col span={3}>
           <Tooltip
-            title={!visibleLines.count_opened ? t`${stats.count_opened} total opens (hidden from chart)` : t`${stats.count_opened} total opens`}
+            title={
+              <TrackedTooltipTitle
+                title={!visibleLines.count_opened ? t`${stats.count_opened} total opens (hidden from chart)` : t`${stats.count_opened} total opens`}
+                tracked={isPartiallyTracked(stats.count_sent, stats.count_opens_tracked) ? stats.count_opens_tracked : undefined}
+              />
+            }
           >
             <div
               className="p-2 cursor-pointer hover:bg-gray-50 rounded transition-colors"
@@ -392,15 +397,17 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                 styles={{ content: { fontSize: '16px' } }}
                 formatter={formatStat}
               />
-              {isPartiallyTracked(stats.count_sent, stats.count_opens_tracked) && (
-                <TrackedOfNote tracked={stats.count_opens_tracked} />
-              )}
             </div>
           </Tooltip>
         </Col>
         <Col span={3}>
           <Tooltip
-            title={!visibleLines.count_clicked ? t`${stats.count_clicked} total clicks (hidden from chart)` : t`${stats.count_clicked} total clicks`}
+            title={
+              <TrackedTooltipTitle
+                title={!visibleLines.count_clicked ? t`${stats.count_clicked} total clicks (hidden from chart)` : t`${stats.count_clicked} total clicks`}
+                tracked={isPartiallyTracked(stats.count_sent, stats.count_clicks_tracked) ? stats.count_clicks_tracked : undefined}
+              />
+            }
           >
             <div
               className="p-2 cursor-pointer hover:bg-gray-50 rounded transition-colors"
@@ -422,9 +429,6 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
                 styles={{ content: { fontSize: '16px' } }}
                 formatter={formatStat}
               />
-              {isPartiallyTracked(stats.count_sent, stats.count_clicks_tracked) && (
-                <TrackedOfNote tracked={stats.count_clicks_tracked} />
-              )}
             </div>
           </Tooltip>
         </Col>
