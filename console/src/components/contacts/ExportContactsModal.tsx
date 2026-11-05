@@ -34,14 +34,15 @@ export function ExportContactsModal({
   const [error, setError] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const { filters: consentFilterOptions } = useTrackingConsentOptions()
-  const consentFilterLabel = (value: string) =>
-    consentFilterOptions.find((option) => option.value === value)?.label || value
 
   // Get display label for a filter value
   const getFilterDisplayValue = (key: string, value: string): string => {
     if (key === 'list_id') {
       const list = listsData.find((l) => l.id === value)
       return list?.name || value
+    }
+    if (key === 'tracking_opens_consent' || key === 'tracking_clicks_consent') {
+      return consentFilterOptions.find((option) => option.value === value)?.label || value
     }
     return value
   }
@@ -89,14 +90,14 @@ export function ExportContactsModal({
       activeFilters.push({
         key: 'tracking_opens_consent',
         label: t`Opens tracking consent`,
-        value: consentFilterLabel(filters.tracking_opens_consent)
+        value: getFilterDisplayValue('tracking_opens_consent', filters.tracking_opens_consent)
       })
     }
     if (filters.tracking_clicks_consent) {
       activeFilters.push({
         key: 'tracking_clicks_consent',
         label: t`Clicks tracking consent`,
-        value: consentFilterLabel(filters.tracking_clicks_consent)
+        value: getFilterDisplayValue('tracking_clicks_consent', filters.tracking_clicks_consent)
       })
     }
     if (filters.segments && filters.segments.length > 0) {

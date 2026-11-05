@@ -106,13 +106,11 @@ func TestGetBroadcastStats_ReturnsTrackedTotals(t *testing.T) {
 		WithArgs("b1").
 		WillReturnRows(sqlmock.NewRows([]string{
 			"total_sent", "total_delivered", "total_failed", "total_opened", "total_clicked", "total_bounced", "total_complained", "total_unsubscribed",
-			"total_opens_tracked", "total_clicks_tracked", "total_delivered_opens_tracked", "total_delivered_clicks_tracked",
-		}).AddRow(10, 9, 0, 3, 2, 0, 0, 0, 6, 7, 5, 4))
+			"total_opens_tracked", "total_clicks_tracked",
+		}).AddRow(10, 9, 0, 3, 2, 0, 0, 0, 6, 7))
 
 	stats, err := repo.GetBroadcastStats(context.Background(), "ws", "b1")
 	require.NoError(t, err)
 	assert.Equal(t, 6, stats.TotalOpensTracked)
 	assert.Equal(t, 7, stats.TotalClicksTracked)
-	assert.Equal(t, 5, stats.TotalDeliveredOpensTracked)
-	assert.Equal(t, 4, stats.TotalDeliveredClicksTracked)
 }

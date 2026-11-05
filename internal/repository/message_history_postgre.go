@@ -1048,9 +1048,7 @@ func (r *MessageHistoryRepository) GetBroadcastStats(ctx context.Context, worksp
 			SUM(CASE WHEN complained_at IS NOT NULL THEN 1 ELSE 0 END) as total_complained,
 			SUM(CASE WHEN unsubscribed_at IS NOT NULL THEN 1 ELSE 0 END) as total_unsubscribed,
 			SUM(CASE WHEN sent_at IS NOT NULL AND failed_at IS NULL AND opens_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_opens_tracked,
-			SUM(CASE WHEN sent_at IS NOT NULL AND failed_at IS NULL AND clicks_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_clicks_tracked,
-			SUM(CASE WHEN delivered_at IS NOT NULL AND opens_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_delivered_opens_tracked,
-			SUM(CASE WHEN delivered_at IS NOT NULL AND clicks_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_delivered_clicks_tracked
+			SUM(CASE WHEN sent_at IS NOT NULL AND failed_at IS NULL AND clicks_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_clicks_tracked
 		FROM message_history
 		WHERE broadcast_id = $1
 	`
@@ -1061,7 +1059,7 @@ func (r *MessageHistoryRepository) GetBroadcastStats(ctx context.Context, worksp
 	// Use NullInt64 to handle NULL values from database
 	var totalSent, totalDelivered, totalFailed, totalOpened sql.NullInt64
 	var totalClicked, totalBounced, totalComplained, totalUnsubscribed sql.NullInt64
-	var totalOpensTracked, totalClicksTracked, totalDeliveredOpensTracked, totalDeliveredClicksTracked sql.NullInt64
+	var totalOpensTracked, totalClicksTracked sql.NullInt64
 
 	err = row.Scan(
 		&totalSent,
@@ -1074,8 +1072,6 @@ func (r *MessageHistoryRepository) GetBroadcastStats(ctx context.Context, worksp
 		&totalUnsubscribed,
 		&totalOpensTracked,
 		&totalClicksTracked,
-		&totalDeliveredOpensTracked,
-		&totalDeliveredClicksTracked,
 	)
 
 	if err != nil {
@@ -1115,8 +1111,6 @@ func (r *MessageHistoryRepository) GetBroadcastStats(ctx context.Context, worksp
 	}
 	stats.TotalOpensTracked = int(totalOpensTracked.Int64)
 	stats.TotalClicksTracked = int(totalClicksTracked.Int64)
-	stats.TotalDeliveredOpensTracked = int(totalDeliveredOpensTracked.Int64)
-	stats.TotalDeliveredClicksTracked = int(totalDeliveredClicksTracked.Int64)
 
 	return stats, nil
 }
@@ -1151,9 +1145,7 @@ func (r *MessageHistoryRepository) GetBroadcastVariationStats(ctx context.Contex
 			SUM(CASE WHEN complained_at IS NOT NULL THEN 1 ELSE 0 END) as total_complained,
 			SUM(CASE WHEN unsubscribed_at IS NOT NULL THEN 1 ELSE 0 END) as total_unsubscribed,
 			SUM(CASE WHEN sent_at IS NOT NULL AND failed_at IS NULL AND opens_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_opens_tracked,
-			SUM(CASE WHEN sent_at IS NOT NULL AND failed_at IS NULL AND clicks_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_clicks_tracked,
-			SUM(CASE WHEN delivered_at IS NOT NULL AND opens_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_delivered_opens_tracked,
-			SUM(CASE WHEN delivered_at IS NOT NULL AND clicks_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_delivered_clicks_tracked
+			SUM(CASE WHEN sent_at IS NOT NULL AND failed_at IS NULL AND clicks_tracked IS NOT FALSE THEN 1 ELSE 0 END) as total_clicks_tracked
 		FROM message_history
 		WHERE broadcast_id = $1 AND template_id = $2
 	`
@@ -1164,7 +1156,7 @@ func (r *MessageHistoryRepository) GetBroadcastVariationStats(ctx context.Contex
 	// Use NullInt64 to handle NULL values from database
 	var totalSent, totalDelivered, totalFailed, totalOpened sql.NullInt64
 	var totalClicked, totalBounced, totalComplained, totalUnsubscribed sql.NullInt64
-	var totalOpensTracked, totalClicksTracked, totalDeliveredOpensTracked, totalDeliveredClicksTracked sql.NullInt64
+	var totalOpensTracked, totalClicksTracked sql.NullInt64
 
 	err = row.Scan(
 		&totalSent,
@@ -1177,8 +1169,6 @@ func (r *MessageHistoryRepository) GetBroadcastVariationStats(ctx context.Contex
 		&totalUnsubscribed,
 		&totalOpensTracked,
 		&totalClicksTracked,
-		&totalDeliveredOpensTracked,
-		&totalDeliveredClicksTracked,
 	)
 
 	if err != nil {
@@ -1218,8 +1208,6 @@ func (r *MessageHistoryRepository) GetBroadcastVariationStats(ctx context.Contex
 	}
 	stats.TotalOpensTracked = int(totalOpensTracked.Int64)
 	stats.TotalClicksTracked = int(totalClicksTracked.Int64)
-	stats.TotalDeliveredOpensTracked = int(totalDeliveredOpensTracked.Int64)
-	stats.TotalDeliveredClicksTracked = int(totalDeliveredClicksTracked.Int64)
 
 	return stats, nil
 }

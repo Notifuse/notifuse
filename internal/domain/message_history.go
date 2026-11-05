@@ -151,12 +151,10 @@ type MessageHistoryStatusSum struct {
 	TotalClicked      int `json:"total_clicked"`
 	TotalUnsubscribed int `json:"total_unsubscribed"`
 
-	// Sends (not failed) and deliveries whose email was tracked for opens or
-	// clicks: the denominators of the open and click rates.
-	TotalOpensTracked           int `json:"total_opens_tracked"`
-	TotalClicksTracked          int `json:"total_clicks_tracked"`
-	TotalDeliveredOpensTracked  int `json:"total_delivered_opens_tracked"`
-	TotalDeliveredClicksTracked int `json:"total_delivered_clicks_tracked"`
+	// Sends (not failed) whose email was tracked for opens or clicks: the
+	// denominators of the open and click rates.
+	TotalOpensTracked  int `json:"total_opens_tracked"`
+	TotalClicksTracked int `json:"total_clicks_tracked"`
 }
 
 // LinkClickStats aggregates clicks for a single destination URL within a broadcast

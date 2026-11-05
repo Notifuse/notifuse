@@ -63,21 +63,25 @@ func (e *ABTestEvaluator) selectBestVariation(ctx context.Context, workspaceID s
 	bestTemplateID := ""
 	bestScore := -1.0
 
+	// The rate is measured over the sends that could record the metric: an email
+	// sent without the pixel (or the redirects) cannot open (or click), whatever
+	// its recipient did. Sends, not deliveries: opens and clicks come from every
+	// send, and delivery is known only from provider webhooks, which SMTP never
+	// sends and other providers send late. The test results use the same base.
+	var rate func(stats *domain.MessageHistoryStatusSum) (hits, tracked int)
 	switch broadcast.TestSettings.AutoSendWinnerMetric {
-	case domain.TestWinnerMetricOpenRate, domain.TestWinnerMetricClickRate:
+	case domain.TestWinnerMetricOpenRate:
+		rate = func(stats *domain.MessageHistoryStatusSum) (int, int) {
+			return stats.TotalOpened, stats.TotalOpensTracked
+		}
+	case domain.TestWinnerMetricClickRate:
+		rate = func(stats *domain.MessageHistoryStatusSum) (int, int) {
+			return stats.TotalClicked, stats.TotalClicksTracked
+		}
 	default:
 		return "", fmt.Errorf("invalid winner metric: %s", broadcast.TestSettings.AutoSendWinnerMetric)
 	}
 
-	type variationStats struct {
-		templateID string
-		stats      *domain.MessageHistoryStatusSum
-	}
-	var candidates []variationStats
-	// Delivery is known only from provider webhooks. Without any (SMTP, or a
-	// provider that sends none), no email is ever delivered, and the sends are
-	// the base instead. One base for every variation, so they compare.
-	anyDelivered := false
 	for _, variation := range broadcast.TestSettings.Variations {
 		stats, err := e.messageHistoryRepo.GetBroadcastVariationStats(ctx, workspaceID, broadcast.ID, variation.TemplateID)
 		if err != nil {
@@ -87,33 +91,13 @@ func (e *ABTestEvaluator) selectBestVariation(ctx context.Context, workspaceID s
 			}).Warn("Failed to get variation stats")
 			continue
 		}
-		if stats.TotalDelivered > 0 {
-			anyDelivered = true
-		}
-		candidates = append(candidates, variationStats{templateID: variation.TemplateID, stats: stats})
-	}
 
-	for _, candidate := range candidates {
-		stats := candidate.stats
-		// The rate is measured over the emails that could record the metric: an
-		// email sent without the pixel (or the redirects) cannot open (or click),
-		// whatever its recipient did. A variation with none of them is not a
-		// candidate, rather than a score of 0 that would still beat -1.
-		var hits, tracked int
-		if broadcast.TestSettings.AutoSendWinnerMetric == domain.TestWinnerMetricOpenRate {
-			hits, tracked = stats.TotalOpened, stats.TotalOpensTracked
-			if anyDelivered {
-				tracked = stats.TotalDeliveredOpensTracked
-			}
-		} else {
-			hits, tracked = stats.TotalClicked, stats.TotalClicksTracked
-			if anyDelivered {
-				tracked = stats.TotalDeliveredClicksTracked
-			}
-		}
+		// A variation with no tracked send is not a candidate, rather than a
+		// score of 0 that would still beat -1.
+		hits, tracked := rate(stats)
 		if tracked == 0 {
 			e.logger.WithFields(map[string]interface{}{
-				"template_id": candidate.templateID,
+				"template_id": variation.TemplateID,
 				"metric":      broadcast.TestSettings.AutoSendWinnerMetric,
 			}).Info("Variation has no tracked email, not a candidate")
 			continue
@@ -122,11 +106,11 @@ func (e *ABTestEvaluator) selectBestVariation(ctx context.Context, workspaceID s
 
 		if score > bestScore {
 			bestScore = score
-			bestTemplateID = candidate.templateID
+			bestTemplateID = variation.TemplateID
 		}
 
 		e.logger.WithFields(map[string]interface{}{
-			"template_id": candidate.templateID,
+			"template_id": variation.TemplateID,
 			"metric":      broadcast.TestSettings.AutoSendWinnerMetric,
 			"score":       score,
 			"is_best":     score == bestScore,

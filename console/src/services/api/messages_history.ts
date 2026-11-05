@@ -135,12 +135,10 @@ export interface MessageHistoryStatusSum {
   total_opened: number
   total_clicked: number
   total_unsubscribed: number
-  // Emails that carried the open pixel / tracked links: the denominators of the
-  // open and click rates. Delivered variants count only delivered emails.
+  // Sent emails that carried the open pixel / tracked links: the denominators
+  // of the open and click rates.
   total_opens_tracked?: number
   total_clicks_tracked?: number
-  total_delivered_opens_tracked?: number
-  total_delivered_clicks_tracked?: number
 }
 
 /**

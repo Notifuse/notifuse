@@ -120,14 +120,19 @@ func (c *Contact) Validate() error {
 	return nil
 }
 
-// canonicalTrackingConsent reads an empty consent as unknown (null): stored as
-// an empty string, it would escape the unknown filter and, in an import,
-// replace a recorded choice.
+// canonicalTrackingConsent trims a consent value and reads an empty one as
+// absent: no value given, so the stored choice stays. Kept as an empty string,
+// it would escape the unknown filter, and as null it would erase a recorded
+// choice.
 func canonicalTrackingConsent(v *NullableString) *NullableString {
-	if v != nil && !v.IsNull && v.String == "" {
-		return &NullableString{IsNull: true}
+	if v == nil || v.IsNull {
+		return v
 	}
-	return v
+	trimmed := trimUnicodeSpace(v.String)
+	if trimmed == "" {
+		return nil
+	}
+	return &NullableString{String: trimmed}
 }
 
 // ProvidesTrackingConsent reports whether the contact names either consent at

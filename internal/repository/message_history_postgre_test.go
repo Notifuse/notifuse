@@ -637,8 +637,8 @@ func TestMessageHistoryRepository_GetBroadcastStats(t *testing.T) {
 
 		rows := sqlmock.NewRows([]string{
 			"total_sent", "total_delivered", "total_failed", "total_opened",
-			"total_clicked", "total_bounced", "total_complained", "total_unsubscribed", "total_opens_tracked", "total_clicks_tracked", "total_delivered_opens_tracked", "total_delivered_clicks_tracked",
-		}).AddRow(10, 8, 2, 5, 3, 1, 0, 1, nil, nil, nil, nil)
+			"total_clicked", "total_bounced", "total_complained", "total_unsubscribed", "total_opens_tracked", "total_clicks_tracked",
+		}).AddRow(10, 8, 2, 5, 3, 1, 0, 1, nil, nil)
 
 		mock.ExpectQuery(`SELECT .* FROM message_history WHERE broadcast_id = \$1`).
 			WithArgs(broadcastID).
@@ -714,8 +714,8 @@ func TestMessageHistoryRepository_GetBroadcastStats(t *testing.T) {
 		// Create mock rows with some NULL values
 		rows := sqlmock.NewRows([]string{
 			"total_sent", "total_delivered", "total_failed", "total_opened",
-			"total_clicked", "total_bounced", "total_complained", "total_unsubscribed", "total_opens_tracked", "total_clicks_tracked", "total_delivered_opens_tracked", "total_delivered_clicks_tracked",
-		}).AddRow(10, nil, 2, nil, 3, nil, nil, 1, nil, nil, nil, nil)
+			"total_clicked", "total_bounced", "total_complained", "total_unsubscribed", "total_opens_tracked", "total_clicks_tracked",
+		}).AddRow(10, nil, 2, nil, 3, nil, nil, 1, nil, nil)
 
 		mock.ExpectQuery(`SELECT .* FROM message_history WHERE broadcast_id = \$1`).
 			WithArgs(broadcastID).
@@ -751,8 +751,8 @@ func TestMessageHistoryRepository_GetBroadcastVariationStats(t *testing.T) {
 
 		rows := sqlmock.NewRows([]string{
 			"total_sent", "total_delivered", "total_failed", "total_opened",
-			"total_clicked", "total_bounced", "total_complained", "total_unsubscribed", "total_opens_tracked", "total_clicks_tracked", "total_delivered_opens_tracked", "total_delivered_clicks_tracked",
-		}).AddRow(10, 8, 2, 5, 3, 1, 0, 1, nil, nil, nil, nil)
+			"total_clicked", "total_bounced", "total_complained", "total_unsubscribed", "total_opens_tracked", "total_clicks_tracked",
+		}).AddRow(10, 8, 2, 5, 3, 1, 0, 1, nil, nil)
 
 		mock.ExpectQuery(`SELECT .* FROM message_history WHERE broadcast_id = \$1 AND template_id = \$2`).
 			WithArgs(broadcastID, templateID).
@@ -828,8 +828,8 @@ func TestMessageHistoryRepository_GetBroadcastVariationStats(t *testing.T) {
 		// Create mock rows with some NULL values
 		rows := sqlmock.NewRows([]string{
 			"total_sent", "total_delivered", "total_failed", "total_opened",
-			"total_clicked", "total_bounced", "total_complained", "total_unsubscribed", "total_opens_tracked", "total_clicks_tracked", "total_delivered_opens_tracked", "total_delivered_clicks_tracked",
-		}).AddRow(10, nil, 2, nil, 3, nil, nil, 1, nil, nil, nil, nil)
+			"total_clicked", "total_bounced", "total_complained", "total_unsubscribed", "total_opens_tracked", "total_clicks_tracked",
+		}).AddRow(10, nil, 2, nil, 3, nil, nil, 1, nil, nil)
 
 		mock.ExpectQuery(`SELECT .* FROM message_history WHERE broadcast_id = \$1 AND template_id = \$2`).
 			WithArgs(broadcastID, templateID).

@@ -42,23 +42,30 @@ func TestFromJSON_TrackingConsentExplicitNullAndAbsent(t *testing.T) {
 	assert.Nil(t, contact.TrackingConsentUpdatedAt)
 }
 
-// An empty string is no consent. Stored as ”, it would escape the "unknown"
-// filter (IS NULL) and, in an import, overwrite a recorded refusal.
-func TestFromJSON_TrackingConsentEmptyStringIsUnknown(t *testing.T) {
+// An empty string is no value given: the stored choice stays. Stored as an
+// empty string it would escape the "unknown" filter (IS NULL), and as null it
+// would erase a recorded refusal.
+func TestFromJSON_TrackingConsentEmptyStringIsAbsent(t *testing.T) {
 	contact, err := FromJSON(`{"email": "a@example.com", "tracking_opens_consent": "", "tracking_clicks_consent": "  "}`)
 	require.NoError(t, err)
 
-	require.NotNil(t, contact.TrackingOpensConsent)
-	assert.True(t, contact.TrackingOpensConsent.IsNull)
-	require.NotNil(t, contact.TrackingClicksConsent)
-	assert.True(t, contact.TrackingClicksConsent.IsNull)
+	assert.Nil(t, contact.TrackingOpensConsent)
+	assert.Nil(t, contact.TrackingClicksConsent)
+	assert.False(t, contact.ProvidesTrackingConsent())
 }
 
-func TestContactValidate_TrackingConsentEmptyStringIsUnknown(t *testing.T) {
-	c := &Contact{Email: "a@example.com", TrackingOpensConsent: &NullableString{String: ""}}
+// Contacts decoded with encoding/json (transactional sends, subscriptions)
+// reach Validate without FromJSON's trimming.
+func TestContactValidate_TrackingConsentIsTrimmed(t *testing.T) {
+	c := &Contact{
+		Email:                 "a@example.com",
+		TrackingOpensConsent:  &NullableString{String: "  "},
+		TrackingClicksConsent: &NullableString{String: " granted "},
+	}
 	require.NoError(t, c.Validate())
-	require.NotNil(t, c.TrackingOpensConsent)
-	assert.True(t, c.TrackingOpensConsent.IsNull)
+	assert.Nil(t, c.TrackingOpensConsent)
+	require.NotNil(t, c.TrackingClicksConsent)
+	assert.Equal(t, TrackingConsentGranted, c.TrackingClicksConsent.String)
 }
 
 func TestFromJSON_TrackingConsentRejectsInvalidValue(t *testing.T) {

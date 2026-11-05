@@ -68,8 +68,8 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_OpenRate_Success(t *testing.T) 
 	bcRepo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(b, nil)
 
 	// Stats: A wins on open rate (0.40 vs 0.30)
-	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredOpensTracked: 100, TotalDeliveredClicksTracked: 100, TotalOpened: 40}, nil)
-	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredOpensTracked: 100, TotalDeliveredClicksTracked: 100, TotalOpened: 30}, nil)
+	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalOpened: 40}, nil)
+	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalOpened: 30}, nil)
 
 	// Transaction update/assert broadcast updated fields
 	bcRepo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
@@ -106,8 +106,8 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_ClickRate_Success(t *testing.T)
 	bcRepo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(b, nil)
 
 	// Stats: B wins on click rate (10/100 vs 5/100)
-	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredOpensTracked: 100, TotalDeliveredClicksTracked: 100, TotalClicked: 5}, nil)
-	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredOpensTracked: 100, TotalDeliveredClicksTracked: 100, TotalClicked: 10}, nil)
+	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalClicked: 5}, nil)
+	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalClicked: 10}, nil)
 
 	bcRepo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
@@ -234,7 +234,7 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_StatsErrorContinue(t *testing.T
 
 	// A fails, B succeeds; should still pick B
 	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(nil, errors.New("stats error"))
-	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredOpensTracked: 100, TotalDeliveredClicksTracked: 100, TotalOpened: 50}, nil)
+	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalOpened: 50}, nil)
 
 	bcRepo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
@@ -264,8 +264,8 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_WithTransactionError(t *testing
 
 	bcRepo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(b, nil)
 
-	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredOpensTracked: 100, TotalDeliveredClicksTracked: 100, TotalOpened: 60}, nil)
-	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredOpensTracked: 100, TotalDeliveredClicksTracked: 100, TotalOpened: 50}, nil)
+	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalOpened: 60}, nil)
+	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalOpened: 50}, nil)
 
 	bcRepo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).Return(errors.New("tx failed"))
 
@@ -286,8 +286,8 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_UpdateBroadcastError(t *testing
 
 	bcRepo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(b, nil)
 
-	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredOpensTracked: 100, TotalDeliveredClicksTracked: 100, TotalOpened: 60}, nil)
-	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredOpensTracked: 100, TotalDeliveredClicksTracked: 100, TotalOpened: 50}, nil)
+	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalOpened: 60}, nil)
+	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalClicksTracked: 100, TotalOpened: 50}, nil)
 
 	bcRepo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
@@ -303,15 +303,15 @@ func TestABTestEvaluator_SelectBestVariation_UsesTrackedDenominators(t *testing.
 	ctx := context.Background()
 	const workspaceID, broadcastID = "w1", "b1"
 
-	t.Run("rate over tracked delivered emails", func(t *testing.T) {
+	t.Run("rate over tracked sends", func(t *testing.T) {
 		ctrl, msgRepo, _, _, evaluator := setupEvaluator(t)
 		defer ctrl.Finish()
 		b := newTestBroadcast(workspaceID, broadcastID)
 		b.TestSettings.AutoSendWinnerMetric = domain.TestWinnerMetricOpenRate
 
-		// Over delivered, A wins (30/100 vs 20/100). Over tracked, B wins (20/25 vs 30/100).
-		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredOpensTracked: 100, TotalOpened: 30}, nil)
-		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredOpensTracked: 25, TotalOpened: 20}, nil)
+		// Over sends, A wins (30/100 vs 20/100). Over tracked sends, B wins (20/25 vs 30/100).
+		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalOpened: 30}, nil)
+		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 25, TotalOpened: 20}, nil)
 
 		winner, err := evaluator.selectBestVariation(ctx, workspaceID, b)
 		require.NoError(t, err)
@@ -325,43 +325,29 @@ func TestABTestEvaluator_SelectBestVariation_UsesTrackedDenominators(t *testing.
 		b.TestSettings.AutoSendWinnerMetric = domain.TestWinnerMetricClickRate
 
 		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100}, nil)
-		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalDeliveredClicksTracked: 50}, nil)
+		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalClicksTracked: 50}, nil)
 
 		winner, err := evaluator.selectBestVariation(ctx, workspaceID, b)
 		require.NoError(t, err)
 		assert.Equal(t, "tplB", winner, "B scores 0 but is the only candidate")
 	})
 
-	// Without delivery webhooks (SMTP, or a provider that sends none), no email is
-	// ever marked delivered: the rate is then measured over the tracked sends.
-	t.Run("no delivery data: rate over tracked sent emails", func(t *testing.T) {
-		ctrl, msgRepo, _, _, evaluator := setupEvaluator(t)
-		defer ctrl.Finish()
-		b := newTestBroadcast(workspaceID, broadcastID)
-		b.TestSettings.AutoSendWinnerMetric = domain.TestWinnerMetricOpenRate
-
-		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalOpensTracked: 100, TotalOpened: 30}, nil)
-		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalOpensTracked: 25, TotalOpened: 20}, nil)
-
-		winner, err := evaluator.selectBestVariation(ctx, workspaceID, b)
-		require.NoError(t, err)
-		assert.Equal(t, "tplB", winner)
-	})
-
-	t.Run("delivery data for one variation: every variation is rated over delivered", func(t *testing.T) {
+	// Opens and clicks come from every send, and delivery is known only from
+	// provider webhooks, which SMTP and some providers never send and others
+	// send late: the base is the tracked sends, as in the test results.
+	t.Run("rate over tracked sends, with or without delivery data", func(t *testing.T) {
 		ctrl, msgRepo, _, _, evaluator := setupEvaluator(t)
 		defer ctrl.Finish()
 		b := newTestBroadcast(workspaceID, broadcastID)
 		b.TestSettings.AutoSendWinnerMetric = domain.TestWinnerMetricClickRate
 
-		// A has no delivered email yet, so it is not a candidate: rating it over its
-		// sends would compare it on another base than B.
+		// A has no delivery webhook yet; over its sends it leads (90/100 vs 5/100).
 		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalClicksTracked: 100, TotalClicked: 90}, nil)
-		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalClicksTracked: 100, TotalDelivered: 50, TotalDeliveredClicksTracked: 50, TotalClicked: 5}, nil)
+		msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalSent: 100, TotalClicksTracked: 100, TotalDelivered: 50, TotalClicked: 5}, nil)
 
 		winner, err := evaluator.selectBestVariation(ctx, workspaceID, b)
 		require.NoError(t, err)
-		assert.Equal(t, "tplB", winner)
+		assert.Equal(t, "tplA", winner)
 	})
 
 	t.Run("no tracked emails anywhere: no winner", func(t *testing.T) {
