@@ -256,6 +256,18 @@ func TestTrackingConsent_ContactAPI(t *testing.T) {
 		assert.True(t, before.updatedAt.Time.Equal(after.updatedAt.Time), "the date stays")
 	}
 
+	// consentChangesLogged counts the contact.updated entries naming a consent
+	// field: a blank consent is no change, so it must log none.
+	consentChangesLogged := func(t *testing.T, email string) int {
+		t.Helper()
+		var n int
+		require.NoError(t, db.QueryRowContext(ctx,
+			`SELECT COUNT(*) FROM contact_timeline WHERE email = $1 AND kind = 'contact.updated'
+			   AND changes ?| array['tracking_opens_consent', 'tracking_clicks_consent', 'tracking_consent_source', 'tracking_consent_updated_at']`,
+			email).Scan(&n))
+		return n
+	}
+
 	// In an import, an empty or null consent is no value: the console's CSV
 	// import sends null for an empty cell, and a spreadsheet holds blanks.
 	t.Run("an import with an empty or null consent keeps the recorded one", func(t *testing.T) {
@@ -270,6 +282,7 @@ func TestTrackingConsent_ContactAPI(t *testing.T) {
 			}})
 			assertUnchanged(t, email, before)
 		}
+		assert.Zero(t, consentChangesLogged(t, email), "a blank consent logs no change")
 	})
 
 	// In an upsert, an empty string is no value either. An explicit null is a
@@ -283,16 +296,14 @@ func TestTrackingConsent_ContactAPI(t *testing.T) {
 			assertUnchanged(t, email, before)
 		}
 
-		var consentEntries int
-		require.NoError(t, db.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM contact_timeline WHERE email = $1 AND kind = 'contact.updated' AND changes ? 'tracking_opens_consent'`,
-			email).Scan(&consentEntries))
-		assert.Zero(t, consentEntries, "a blank consent logs no change")
+		assert.Zero(t, consentChangesLogged(t, email), "a blank consent logs no change")
 
 		upsert(t, map[string]interface{}{"email": email, "tracking_opens_consent": nil})
 		after := readStoredConsent(t, db, email)
 		assert.False(t, after.opens.Valid, "null sets the choice back to unknown")
 		assert.Equal(t, "denied", after.clicks.String)
+		assert.Equal(t, "console", after.source.String, "the clearing is credited to the console")
+		assert.True(t, after.updatedAt.Time.After(before.updatedAt.Time), "the date moves with the change")
 	})
 }
 
