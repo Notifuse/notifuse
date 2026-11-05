@@ -964,6 +964,7 @@ func TestRecipientFeedEmailRendering(t *testing.T) {
 // waitForEmailByRecipientAddr polls Mailpit until an email for the given recipient is found
 func waitForEmailByRecipientAddr(t *testing.T, recipientEmail string, timeout time.Duration) (*testutil.MailpitMessage, error) {
 	deadline := time.Now().Add(timeout)
+	var lastErr error
 	httpClient := &http.Client{Timeout: 5 * time.Second}
 	pollInterval := 500 * time.Millisecond
 
@@ -989,11 +990,20 @@ func waitForEmailByRecipientAddr(t *testing.T, recipientEmail string, timeout ti
 			for _, to := range msg.To {
 				if strings.EqualFold(recipientEmail, to.Address) {
 					t.Logf("Found email for recipient: %s (message ID: %s)", recipientEmail, msg.ID)
-					return testutil.GetMailpitMessage(t, msg.ID)
+					found, err := testutil.GetMailpitMessage(t, msg.ID)
+					if err == nil {
+						return found, nil
+					}
+					// A passing Mailpit failure: poll again until the deadline.
+					lastErr = err
+					t.Logf("Failed to read Mailpit message %s: %v", msg.ID, err)
 				}
 			}
 		}
 		time.Sleep(pollInterval)
+	}
+	if lastErr != nil {
+		return nil, fmt.Errorf("timeout waiting for email to %s after %v: %w", recipientEmail, timeout, lastErr)
 	}
 	return nil, fmt.Errorf("timeout waiting for email to %s after %v", recipientEmail, timeout)
 }

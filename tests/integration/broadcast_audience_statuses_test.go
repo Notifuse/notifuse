@@ -139,6 +139,7 @@ func TestBroadcastAudienceStatusesAsDelivered(t *testing.T) {
 		testutil.WaitForCondition(t, func() bool {
 			delivered, err = testutil.GetMailpitMessagesByRecipient(t, subject)
 			if err != nil {
+				t.Logf("Reading the broadcast emails from Mailpit: %v", err)
 				return false
 			}
 			emails := 0
