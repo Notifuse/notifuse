@@ -236,6 +236,9 @@ func TestAutomation(t *testing.T) {
 	t.Run("PauseResume", func(t *testing.T) {
 		testAutomationPauseResume(t, factory, client, workspace.ID)
 	})
+	t.Run("LongChainWithoutDelay", func(t *testing.T) {
+		testAutomationLongChainWithoutDelay(t, factory, client, workspace.ID)
+	})
 	t.Run("Permissions", func(t *testing.T) {
 		// Permissions test needs additional users with different permission levels
 		memberNoPerms, err := factory.CreateUser()
@@ -2242,6 +2245,114 @@ func testAutomationPauseResume(t *testing.T, factory *testutil.TestDataFactory, 
 	t.Logf("After resume - Scheduler query returned contact: %v (should be true)", found)
 
 	t.Log("Pause/Resume test passed: contacts freeze when paused and resume when automation is live again")
+}
+
+// testAutomationLongChainWithoutDelay runs a journey longer than one scheduler tick processes
+// (maxNodesPerTick) with no delay node: the contact must be handed to the next tick and reach
+// the end, not be left active with no time to resume at.
+func testAutomationLongChainWithoutDelay(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
+	list, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+
+	automationID := shortuuid.New()
+	triggerNodeID := shortuuid.New()
+
+	// Trigger, then list steps alternating add / remove on the same list, more than one tick
+	// processes (maxNodesPerTick)
+	const listSteps = 12
+	stepIDs := make([]string, listSteps)
+	for i := range stepIDs {
+		stepIDs[i] = shortuuid.New()
+	}
+	nodes := []map[string]interface{}{
+		{
+			"id":            triggerNodeID,
+			"automation_id": automationID,
+			"type":          "trigger",
+			"config":        map[string]interface{}{},
+			"next_node_id":  stepIDs[0],
+			"position":      map[string]interface{}{"x": 0, "y": 0},
+		},
+	}
+	for i, id := range stepIDs {
+		node := map[string]interface{}{
+			"id":            id,
+			"automation_id": automationID,
+			"position":      map[string]interface{}{"x": 0, "y": 100 * (i + 1)},
+		}
+		if i%2 == 0 {
+			node["type"] = "add_to_list"
+			node["config"] = map[string]interface{}{"list_id": list.ID, "status": "active"}
+		} else {
+			node["type"] = "remove_from_list"
+			node["config"] = map[string]interface{}{"list_id": list.ID}
+		}
+		if i+1 < listSteps {
+			node["next_node_id"] = stepIDs[i+1]
+		}
+		nodes = append(nodes, node)
+	}
+
+	resp, err := client.CreateAutomation(map[string]interface{}{
+		"workspace_id": workspaceID,
+		"automation": map[string]interface{}{
+			"id":           automationID,
+			"workspace_id": workspaceID,
+			"name":         "Long Chain Without Delay",
+			"status":       "draft",
+			"trigger": map[string]interface{}{
+				"event_kind": "custom_event", "custom_event_name": "long_chain_event",
+				"frequency": "once",
+			},
+			"root_node_id": triggerNodeID,
+			"nodes":        nodes,
+			"stats":        map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	resp.Body.Close()
+
+	activateResp, err := client.ActivateAutomation(map[string]interface{}{
+		"workspace_id":  workspaceID,
+		"automation_id": automationID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, activateResp.StatusCode)
+	activateResp.Body.Close()
+
+	email := "long-chain-e2e@example.com"
+	contactResp, err := client.CreateContact(map[string]interface{}{
+		"workspace_id": workspaceID,
+		"contact":      map[string]interface{}{"email": email},
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, contactResp.StatusCode)
+	contactResp.Body.Close()
+
+	err = factory.CreateCustomEvent(workspaceID, email, "long_chain_event", nil)
+	require.NoError(t, err)
+
+	require.NotNil(t, waitForEnrollmentViaAPI(t, client, automationID, email, 2*time.Second), "Contact should be enrolled")
+
+	completedCA := waitForAutomationComplete(t, factory, workspaceID, automationID, email, 10*time.Second)
+	require.NotNil(t, completedCA)
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, completedCA.Status)
+	assert.Nil(t, completedCA.CurrentNodeID)
+
+	// Every node ran once: the trigger and each list step
+	executions, err := factory.GetNodeExecutions(workspaceID, completedCA.ID)
+	require.NoError(t, err)
+	executedNodes := map[string]int{}
+	for _, exec := range executions {
+		if exec.Action == domain.NodeActionCompleted {
+			executedNodes[exec.NodeID]++
+		}
+	}
+	assert.Equal(t, 1, executedNodes[triggerNodeID], "trigger should complete once")
+	for i, id := range stepIDs {
+		assert.Equal(t, 1, executedNodes[id], "list step %d should complete once", i+1)
+	}
 }
 
 // testAutomationPermissions tests that automation API respects user permissions

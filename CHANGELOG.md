@@ -18,6 +18,8 @@ All notable changes to this project will be documented in this file.
 
 ## [42.3] - WIP
 
+- **Improvement**: From this version on, automations carry contacts through more than ten steps in a row without a delay, and a journey interrupted between two steps, by a restart for instance, picks up again at the next step.
+
 - **Improvement**: When an email provider answers that emails arrive too fast, the email integration now slows down, then climbs back to its rate limit once emails go through. The refused email is sent again at the slower pace and keeps its attempts, and its broadcast keeps sending. A quota named in the refusal, or refusals that continue for 30 seconds at a tenth of the rate limit, pause the integration's broadcasts.
 
 - **Improvement**: A broadcast that also goes to the list's unsubscribed contacts ("Exclude unsubscribed recipients" switched off), for a security, outage or legal notice, no longer carries the List-Unsubscribe header, so mail clients show no Unsubscribe button on it. Draft and scheduled broadcasts are sent this way too; emails already queued before the upgrade, for a broadcast that is paused or still sending, keep the header. The unsubscribe link in your template is unchanged.

@@ -720,6 +720,8 @@ func TestAutomationExecutor_handleError_MaxRetriesExceeded(t *testing.T) {
 		Status:        domain.ContactAutomationStatusActive,
 		RetryCount:    2,
 		MaxRetries:    3,
+		// The in-tick lease an earlier step of the tick left on the row
+		ScheduledAt: func() *time.Time { at := time.Now().Add(inTickResumeLease); return &at }(),
 	}
 
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "failed").Return(nil)
@@ -732,6 +734,8 @@ func TestAutomationExecutor_handleError_MaxRetriesExceeded(t *testing.T) {
 
 	assert.Equal(t, 3, ca.RetryCount)
 	assert.Equal(t, domain.ContactAutomationStatusFailed, ca.Status)
+	// A failed journey is over: like a completed or exited one, it carries no resume time
+	assert.Nil(t, ca.ScheduledAt)
 }
 
 func TestAutomationExecutor_createNodeExecution(t *testing.T) {
@@ -1925,8 +1929,9 @@ func TestAutomationExecutor_Execute_StatePersistsAfterEachNode(t *testing.T) {
 
 	contact := &domain.Contact{Email: "test@example.com"}
 
-	// Track the CurrentNodeID at each UpdateContactAutomation call
+	// Track the CurrentNodeID and ScheduledAt at each UpdateContactAutomation call
 	var capturedNodeIDs []*string
+	var capturedScheduledAts []*time.Time
 	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
 	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil).Times(3)
@@ -1938,6 +1943,12 @@ func TestAutomationExecutor_Execute_StatePersistsAfterEachNode(t *testing.T) {
 				capturedNodeIDs = append(capturedNodeIDs, strPtr(*ca.CurrentNodeID))
 			} else {
 				capturedNodeIDs = append(capturedNodeIDs, nil)
+			}
+			if ca.ScheduledAt != nil {
+				at := *ca.ScheduledAt
+				capturedScheduledAts = append(capturedScheduledAts, &at)
+			} else {
+				capturedScheduledAts = append(capturedScheduledAts, nil)
 			}
 			return true, nil
 		}).Times(3)
@@ -1956,6 +1967,17 @@ func TestAutomationExecutor_Execute_StatePersistsAfterEachNode(t *testing.T) {
 	assert.Equal(t, node3ID, *capturedNodeIDs[1])
 	// After node3: CurrentNodeID = nil (completed)
 	assert.Nil(t, capturedNodeIDs[2])
+
+	// Between two steps of the tick the row carries the in-tick lease, never NULL: a NULL
+	// scheduled_at is never selected by the scheduler, so a tick that stopped there (crash,
+	// restart) would strand the journey.
+	require.Len(t, capturedScheduledAts, 3)
+	for i := 0; i < 2; i++ {
+		require.NotNil(t, capturedScheduledAts[i], "persist %d must keep the contact schedulable", i)
+		assert.WithinDuration(t, time.Now().Add(inTickResumeLease), *capturedScheduledAts[i], 10*time.Second)
+	}
+	// The completing persist clears it, as before
+	assert.Nil(t, capturedScheduledAts[2])
 }
 
 func TestAutomationExecutor_Execute_MaxIterationsLimit(t *testing.T) {
@@ -2030,7 +2052,17 @@ func TestAutomationExecutor_Execute_MaxIterationsLimit(t *testing.T) {
 	// maxNodesPerTick = 10
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil).Times(10)
 	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil).Times(10)
-	mockAutomationRepo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil).Times(10)
+	var persistedScheduledAts []*time.Time
+	mockAutomationRepo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), workspaceID, gomock.Any()).DoAndReturn(
+		func(ctx context.Context, wsID string, ca *domain.ContactAutomation) (bool, error) {
+			if ca.ScheduledAt != nil {
+				at := *ca.ScheduledAt
+				persistedScheduledAts = append(persistedScheduledAts, &at)
+			} else {
+				persistedScheduledAts = append(persistedScheduledAts, nil)
+			}
+			return true, nil
+		}).Times(10)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil).Times(10)
 	// No completion - stopped at max iterations
 
@@ -2043,6 +2075,20 @@ func TestAutomationExecutor_Execute_MaxIterationsLimit(t *testing.T) {
 	assert.NotNil(t, contactAutomation.CurrentNodeID)
 	assert.Equal(t, "node11", *contactAutomation.CurrentNodeID)
 	assert.Equal(t, domain.ContactAutomationStatusActive, contactAutomation.Status)
+
+	// The remaining nodes are left to the next tick, so the last persist must make the contact
+	// due now; the earlier ones carry the in-tick lease.
+	require.Len(t, persistedScheduledAts, 10)
+	for i := 0; i < 9; i++ {
+		require.NotNil(t, persistedScheduledAts[i], "persist %d must keep the contact schedulable", i)
+		assert.WithinDuration(t, time.Now().Add(inTickResumeLease), *persistedScheduledAts[i], 10*time.Second)
+	}
+	last := persistedScheduledAts[9]
+	require.NotNil(t, last, "the contact handed to the next tick must be schedulable")
+	assert.False(t, last.After(time.Now()), "the contact handed to the next tick must be due now")
+	assert.WithinDuration(t, time.Now(), *last, 10*time.Second)
+	require.NotNil(t, contactAutomation.ScheduledAt)
+	assert.Equal(t, *last, *contactAutomation.ScheduledAt)
 }
 
 func TestAutomationExecutor_Execute_ExitReasonPropagation(t *testing.T) {

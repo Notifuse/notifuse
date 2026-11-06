@@ -68,6 +68,12 @@ func NewAutomationExecutor(
 	}
 }
 
+// inTickResumeLease is how far ahead scheduled_at is set after a step when the same tick goes
+// on to the next one. It keeps another instance from picking the contact up for the rest of
+// the tick, and resumes the journey if the tick dies before its next persist. It is renewed
+// after every step, so it only has to outlast one node: a webhook node waits 30 s at most.
+const inTickResumeLease = 5 * time.Minute
+
 // Execute processes a contact through their automation nodes until a delay or completion.
 // It loops through multiple nodes in a single tick for efficiency, persisting state after each node.
 func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, contactAutomation *domain.ContactAutomation) error {
@@ -158,6 +164,19 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 			contactAutomation.Status = domain.ContactAutomationStatusCompleted
 		} else {
 			contactAutomation.Status = result.Status
+		}
+
+		// A contact still active with no time from its node (every node but a delay) must not
+		// be persisted with scheduled_at NULL: the scheduler never selects NULL, so a tick that
+		// stops before its next persist would strand the journey. The last iteration hands the
+		// contact to the next tick, due now; earlier ones hold it with a lease while this tick
+		// carries on.
+		if contactAutomation.Status == domain.ContactAutomationStatusActive && result.ScheduledAt == nil {
+			resumeAt := time.Now().UTC()
+			if iterations < maxNodesPerTick-1 {
+				resumeAt = resumeAt.Add(inTickResumeLease)
+			}
+			contactAutomation.ScheduledAt = &resumeAt
 		}
 
 		// PERSIST STATE (critical for crash recovery). Optimistic lock on
@@ -254,6 +273,7 @@ func (e *AutomationExecutor) handleError(ctx context.Context, workspaceID string
 
 	if ca.RetryCount >= ca.MaxRetries {
 		ca.Status = domain.ContactAutomationStatusFailed
+		ca.ScheduledAt = nil
 		_ = e.automationRepo.IncrementAutomationStat(ctx, workspaceID, ca.AutomationID, "failed")
 
 		e.createAutomationEndEvent(ctx, workspaceID, ca, "failed")
