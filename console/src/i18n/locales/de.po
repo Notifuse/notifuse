@@ -481,7 +481,7 @@ msgstr "+ Absendername, CC, BCC, Antwort-an, Anhänge hinzufügen"
 msgid "+ Add property filter"
 msgstr "+ Eigenschaftsfilter hinzufügen"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:856
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:857
 msgid "+ Add variation"
 msgstr "+ Variante hinzufügen"
 
@@ -1463,7 +1463,7 @@ msgstr "Sind Sie sicher, dass Sie dieses benutzerdefinierte Feldlabel entfernen 
 msgid "Are you sure you want to remove this field?"
 msgstr "Sind Sie sicher, dass Sie dieses Feld entfernen möchten?"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:826
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:827
 msgid "Are you sure you want to remove this variation?"
 msgstr "Sind Sie sicher, dass Sie diese Variante entfernen möchten?"
 
@@ -1662,7 +1662,7 @@ msgstr "Automatisch für Listen anmelden"
 msgid "Automatically add new users to the selected lists"
 msgstr "Neue Benutzer automatisch zu den ausgewählten Listen hinzufügen"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:730
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:731
 msgid "Automatically send winner"
 msgstr "Gewinner automatisch senden"
 
@@ -4630,7 +4630,7 @@ msgstr "Nicht indizieren und Links nicht folgen"
 msgid "Don't index, but follow links"
 msgstr "Nicht indizieren, aber Links folgen"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:657
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:658
 msgid "Don't track opens and clicks for this broadcast"
 msgstr "Öffnungen und Klicks für diesen Broadcast nicht tracken"
 
@@ -5017,7 +5017,7 @@ msgstr "Vergangen"
 msgid "Element Padding"
 msgstr "Element-Innenabstand"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:625
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:626
 msgid "email"
 msgstr "E-Mail"
 
@@ -5209,7 +5209,7 @@ msgstr "Emoji-Vorschläge"
 msgid "Empty column. Add text, button, or image content."
 msgstr "Leere Spalte. Text-, Schaltflächen- oder Bildinhalt hinzufügen."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:697
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:698
 msgid "Enable A/B Testing"
 msgstr "A/B-Tests aktivieren"
 
@@ -7814,7 +7814,7 @@ msgstr "Lead"
 msgid "Learn how to enable SMTP bridge"
 msgstr "Erfahren Sie, wie Sie SMTP-Relay aktivieren"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:643
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:644
 #: src/components/settings/GeneralSettings.tsx:318
 msgid "Learn more"
 msgstr "Mehr erfahren"
@@ -8851,7 +8851,7 @@ msgstr "Nächste Ausführung"
 #: src/components/blog/PostsTable.tsx:319
 #: src/components/broadcasts/HeadersEditor.tsx:66
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:245
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:829
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:830
 #: src/components/contacts/ContactUpsertDrawer.tsx:555
 #: src/components/contacts/SegmentsFilter.tsx:150
 #: src/components/contacts/SegmentsFilter.tsx:165
@@ -9168,7 +9168,7 @@ msgstr "Kein Anbieter zum Testen konfiguriert"
 msgid "No published posts"
 msgstr "Keine veröffentlichten Beiträge"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:641
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:642
 msgid "No recipient gets the open pixel or tracked links; UTM parameters are kept. Otherwise each contact's tracking consent applies."
 msgstr "Kein Empfänger erhält das Öffnungspixel oder getrackte Links; UTM-Parameter bleiben erhalten. Andernfalls gilt die Einwilligung jedes Kontakts."
 
@@ -9590,7 +9590,7 @@ msgstr "Nur ein Breakpoint pro E-Mail-Vorlage ist erlaubt"
 msgid "Only workspace owners can modify integrations"
 msgstr "Nur Arbeitsbereich-Inhaber können Integrationen ändern"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:633
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:634
 msgid "Open and click tracking"
 msgstr "Öffnungs- und Klick-Tracking"
 
@@ -9680,7 +9680,7 @@ msgstr "Öffnungen"
 msgid "Opens"
 msgstr "Öffnungen"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:748
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:749
 msgid "Opens and clicks are not tracked for this broadcast: pick the winning variation yourself."
 msgstr "Öffnungen und Klicks werden für diesen Broadcast nicht getrackt: Wählen Sie die Gewinnervariante selbst."
 
@@ -11169,7 +11169,7 @@ msgstr "Mitglied entfernen"
 msgid "Remove this author?"
 msgstr "Diesen Autor entfernen?"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:825
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:826
 msgid "Remove variation"
 msgstr "Variante entfernen"
 
@@ -12157,8 +12157,8 @@ msgstr "Speicheranbieter auswählen"
 msgid "Select supported languages"
 msgstr "Unterstützte Sprachen auswählen"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:813
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:876
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:814
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:877
 msgid "Select template"
 msgstr "Vorlage auswählen"
 
@@ -13334,7 +13334,7 @@ msgstr "Telemetrie"
 msgid "template"
 msgstr "Vorlage"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:871
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:872
 #: src/components/messages/MessageHistoryTable.tsx:148
 #: src/components/messages/MessageHistoryTable.tsx:234
 #: src/pages/BroadcastsPage.tsx:873
@@ -13344,7 +13344,7 @@ msgid "Template"
 msgstr "Vorlage"
 
 #. placeholder {0}: field.key + 1
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:780
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:781
 msgid "Template {0}"
 msgstr "Vorlage {0}"
 
@@ -13556,7 +13556,7 @@ msgstr "Empfänger-Feed testen"
 msgid "Test rule"
 msgstr "Regel testen"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:721
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:722
 msgid "Test sample size (%)"
 msgstr "Test-Stichprobengröße (%)"
 
@@ -13893,7 +13893,7 @@ msgstr "Diese Kontakte werden aus der ausgewählten Liste entfernt. Dies ist ein
 msgid "These contacts will be subscribed to the selected list (status: active)."
 msgstr "Diese Kontakte werden für die ausgewählte Liste angemeldet (Status: active)."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:613
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:614
 msgid "These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
 msgstr "Diese Parameter werden automatisch zur URL der Kampagne hinzugefügt. Sie werden von Web-Analyse-Tools verwendet, um die Leistung Ihrer Kampagne zu analysieren."
 
@@ -14113,7 +14113,7 @@ msgstr "Dieser Abschnitt ist leer. Fügen Sie Spalten oder Gruppen hinzu, um Inh
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "Dieses Segment verwendet relative Datumsfilter und wird täglich um 5:00 Uhr ({timezone}) automatisch neu berechnet"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:801
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:802
 msgid "This template is already used in another variation"
 msgstr "Diese Vorlage wird bereits in einer anderen Variation verwendet"
 
@@ -14198,7 +14198,7 @@ msgstr "Dies setzt den Wert auf NULL. Sind Sie sicher?"
 msgid "This workspace"
 msgstr "Dieser Workspace"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:757
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:758
 msgid "This workspace does not track contacts whose consent is unknown, so only recipients who agreed to tracking count in the test results."
 msgstr "Dieser Workspace trackt keine Kontakte mit unbekannter Einwilligung, daher zählen in den Testergebnissen nur Empfänger, die dem Tracking zugestimmt haben."
 
@@ -14522,11 +14522,11 @@ msgstr "Getrackt"
 msgid "Tracking"
 msgstr "Tracking"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:688
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:689
 msgid "Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."
 msgstr "Tracking (Öffnungen & Klicks) muss in den Arbeitsbereich-Einstellungen aktiviert sein, um A/B-Test-Funktionen zu nutzen."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:734
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:735
 msgid "Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
 msgstr "Tracking (Öffnungen & Klicks) sollte in Ihren Arbeitsbereich-Einstellungen aktiviert sein, um diese Funktion zu nutzen"
 
@@ -14627,6 +14627,10 @@ msgstr "Umwandeln in"
 #: src/components/blog_editor/menus/block-actions/BlockTransformPopover.tsx:94
 msgid "Turn Into"
 msgstr "Umwandeln in"
+
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:602
+msgid "Turn off for notices every member must receive, such as security or legal notices: the list's unsubscribed contacts receive it too, and its emails carry no List-Unsubscribe header, so mail clients show no Unsubscribe button. The unsubscribe link in your template is not affected."
+msgstr "Deaktivieren Sie dies für Mitteilungen, die jedes Mitglied erhalten muss, etwa Sicherheits- oder rechtliche Hinweise: Auch die abgemeldeten Kontakte der Liste erhalten sie, und die E-Mails enthalten keinen List-Unsubscribe-Header, sodass E-Mail-Programme keine Abmelden-Schaltfläche anzeigen. Der Abmeldelink in Ihrer Vorlage bleibt unverändert."
 
 #: src/components/settings/Integrations.tsx:2279
 msgid "Turn off SES tenant isolation to use your own tenant, or clear this field."
@@ -15178,7 +15182,7 @@ msgstr "Wert:"
 msgid "Variant name"
 msgstr "Variantenname"
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:767
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:768
 #: src/pages/BroadcastsPage.tsx:814
 msgid "Variations"
 msgstr "Variationen"
@@ -15774,7 +15778,7 @@ msgstr "Jährlich"
 #: src/components/blog/PostsTable.tsx:318
 #: src/components/broadcasts/HeadersEditor.tsx:65
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:244
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:828
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:829
 #: src/components/contacts/ContactUpsertDrawer.tsx:554
 #: src/components/contacts/SegmentsFilter.tsx:149
 #: src/components/contacts/SegmentsFilter.tsx:164
@@ -15997,7 +16001,7 @@ msgstr ""
 msgid "Your web analytics settings have not been saved. Leaving this page discards them."
 msgstr "Ihre Web-Analyse-Einstellungen wurden nicht gespeichert. Wenn Sie diese Seite verlassen, werden sie verworfen."
 
-#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:618
+#: src/components/broadcasts/UpsertBroadcastDrawer.tsx:619
 msgid "Your website or company name"
 msgstr "Name Ihrer Website oder Firma"
 

@@ -1222,10 +1222,17 @@ func GetMailpitMessage(t *testing.T, messageID string) (*MailpitMessage, error) 
 	}
 	defer headersResp.Body.Close()
 
-	if headersResp.StatusCode == http.StatusOK {
-		if err := json.NewDecoder(headersResp.Body).Decode(&msg.Headers); err != nil {
-			t.Logf("Warning: failed to decode Mailpit headers: %v", err)
-		}
+	// A message returned without its headers would let an assertion that a header is
+	// absent pass on nothing, so headers that could not be read are an error. Every email
+	// has headers, so an empty set (a null body included) means they were not read.
+	if headersResp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code from Mailpit headers of message %s: %d", messageID, headersResp.StatusCode)
+	}
+	if err := json.NewDecoder(headersResp.Body).Decode(&msg.Headers); err != nil {
+		return nil, fmt.Errorf("failed to decode Mailpit headers of message %s: %w", messageID, err)
+	}
+	if len(msg.Headers) == 0 {
+		return nil, fmt.Errorf("no headers returned by Mailpit for message %s", messageID)
 	}
 
 	return &msg, nil
@@ -1256,6 +1263,7 @@ func GetMailpitMessageRaw(t *testing.T, messageID string) (string, error) {
 // then returns the full MailpitMessage (with Subject, HTML, Text fields).
 func WaitForMailpitMessageByRecipient(t *testing.T, recipientEmail string, timeout time.Duration) (*MailpitMessage, error) {
 	deadline := time.Now().Add(timeout)
+	var lastErr error
 	httpClient := &http.Client{Timeout: 5 * time.Second}
 	pollInterval := 500 * time.Millisecond
 
@@ -1277,15 +1285,28 @@ func WaitForMailpitMessageByRecipient(t *testing.T, recipientEmail string, timeo
 			continue
 		}
 
+	scan:
 		for _, msg := range apiResp.Messages {
 			for _, to := range msg.To {
 				if strings.EqualFold(recipientEmail, to.Address) {
 					t.Logf("Found email for recipient: %s (message ID: %s)", recipientEmail, msg.ID)
-					return GetMailpitMessage(t, msg.ID)
+					found, err := GetMailpitMessage(t, msg.ID)
+					if err == nil {
+						return found, nil
+					}
+					// A passing Mailpit failure: poll again until the deadline. The scan stops
+					// at this newest match, so a failed read never falls back to an older
+					// email to the same recipient.
+					lastErr = err
+					t.Logf("Failed to read Mailpit message %s: %v", msg.ID, err)
+					break scan
 				}
 			}
 		}
 		time.Sleep(pollInterval)
+	}
+	if lastErr != nil {
+		return nil, fmt.Errorf("timeout waiting for email to %s after %v: %w", recipientEmail, timeout, lastErr)
 	}
 	return nil, fmt.Errorf("timeout waiting for email to %s after %v", recipientEmail, timeout)
 }
@@ -1380,6 +1401,43 @@ func GetAllMailpitRecipients(t *testing.T, subject string) (map[string]bool, err
 
 	t.Logf("Found %d unique recipients for subject containing '%s'", len(recipients), subject)
 	return recipients, nil
+}
+
+// GetMailpitMessagesByRecipient returns, for each recipient of a message whose subject
+// contains subject, every such message they received, with its headers.
+func GetMailpitMessagesByRecipient(t *testing.T, subject string) (map[string][]*MailpitMessage, error) {
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+
+	resp, err := httpClient.Get("http://localhost:8025/api/v1/messages?limit=10000")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list Mailpit messages: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code listing Mailpit messages: %d", resp.StatusCode)
+	}
+
+	var apiResp MailpitMessagesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode Mailpit response: %w", err)
+	}
+
+	messages := make(map[string][]*MailpitMessage)
+	for _, summary := range apiResp.Messages {
+		if !strings.Contains(summary.Subject, subject) {
+			continue
+		}
+		msg, err := GetMailpitMessage(t, summary.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, to := range summary.To {
+			if email := strings.ToLower(strings.TrimSpace(to.Address)); email != "" {
+				messages[email] = append(messages[email], msg)
+			}
+		}
+	}
+	return messages, nil
 }
 
 // WaitForMailpitMessages waits until the expected count of messages arrive in Mailpit

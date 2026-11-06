@@ -1322,9 +1322,13 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		},
 	}
 
-	// Extract List-Unsubscribe URL from template data for RFC-8058 compliance
-	if unsubscribeURL, ok := templateData["oneclick_unsubscribe_url"].(string); ok && unsubscribeURL != "" {
-		emailRequest.EmailOptions.ListUnsubscribeURL = unsubscribeURL
+	// Extract List-Unsubscribe URL from template data for RFC-8058 compliance, unless the
+	// broadcast is a notice that also goes to unsubscribed contacts: the test send shows what
+	// recipients will get.
+	if broadcast.SendsListUnsubscribeHeader() {
+		if unsubscribeURL, ok := templateData["oneclick_unsubscribe_url"].(string); ok && unsubscribeURL != "" {
+			emailRequest.EmailOptions.ListUnsubscribeURL = unsubscribeURL
+		}
 	}
 
 	// Send the email

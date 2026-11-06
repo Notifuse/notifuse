@@ -386,3 +386,20 @@ describe('UpsertBroadcastDrawer tracking', () => {
     ).not.toBeInTheDocument()
   })
 })
+
+// Switching the exclusion off is how a notice every member must receive is sent (issue #484);
+// the switch says what else it changes: the emails carry no List-Unsubscribe header.
+describe('UpsertBroadcastDrawer unsubscribed recipients', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('explains that including unsubscribed contacts drops the List-Unsubscribe header', async () => {
+    await openEditDrawer(makeBroadcast())
+
+    expect(screen.getByText('Exclude unsubscribed recipients')).toBeInTheDocument()
+    expect(
+      screen.getByText(/carry no List-Unsubscribe header, so mail clients show no Unsubscribe button/)
+    ).toBeInTheDocument()
+  })
+})

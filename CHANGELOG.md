@@ -20,6 +20,10 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: When an email provider answers that emails arrive too fast, the email integration now slows down, then climbs back to its rate limit once emails go through. The refused email is sent again at the slower pace and keeps its attempts, and its broadcast keeps sending. A quota named in the refusal, or refusals that continue for 30 seconds at a tenth of the rate limit, pause the integration's broadcasts.
 
+- **Improvement**: A broadcast that also goes to the list's unsubscribed contacts ("Exclude unsubscribed recipients" switched off), for a security, outage or legal notice, no longer carries the List-Unsubscribe header, so mail clients show no Unsubscribe button on it. Draft and scheduled broadcasts are sent this way too; emails already queued before the upgrade, for a broadcast that is paused or still sending, keep the header. The unsubscribe link in your template is unchanged.
+
+  **Before you upgrade, check that this switch is on for your regular campaigns**, including those created through the API without `exclude_unsubscribed` before 42.0, which were saved with it off.
+
 - **Fix**: Links whose URL holds a `%` that starts no escape, such as `https://shop.com/50%off`, now get the UTM parameters and the web analytics identity token like any other link, and their clicks count in the per-link click statistics and segment link filters. These links already redirected and counted in the email's click total.
 
 - **Fix**: In emails sent from this version on, a link written with a space after its URL no longer gets its UTM parameters after the space, which sent the recipient to a different page, often a missing one. Links with a leading space or a line break inside now get their UTM parameters and identity token, and clicks on such links count per link, in emails already sent too. A `mailto:` or `tel:` link written with a leading space is no longer wrapped in a tracking redirect.

@@ -21,7 +21,9 @@ import (
 // TestBroadcastAudienceStatusesAsDelivered sends real broadcasts, created through the API,
 // to a list holding one contact of each status, and reads from Mailpit who received them.
 // A create body that left exclude_unsubscribed out used to read it as false and mail every
-// row on the list, bounced and complained addresses included.
+// row on the list, bounced and complained addresses included. A broadcast that keeps the
+// unsubscribed contacts is a notice every member must receive, so its emails carry no
+// List-Unsubscribe headers (issue #484).
 func TestBroadcastAudienceStatusesAsDelivered(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -74,8 +76,9 @@ func TestBroadcastAudienceStatusesAsDelivered(t *testing.T) {
 	}
 
 	// sendToList creates a broadcast through the API with the given audience body, sends it
-	// now, and returns who Mailpit received it for and how many emails the broadcast reports.
-	sendToList := func(t *testing.T, audience map[string]interface{}) (received map[string]bool, enqueued int) {
+	// now, and returns who Mailpit received it for, how many emails the broadcast reports,
+	// and the emails each recipient received.
+	sendToList := func(t *testing.T, audience map[string]interface{}) (received map[string]bool, enqueued int, delivered map[string][]*testutil.MailpitMessage) {
 		t.Helper()
 		subject := "audience-statuses-" + uuid.New().String()[:8]
 		template, err := factory.CreateTemplate(workspace.ID, testutil.WithTemplateSubject(subject))
@@ -128,37 +131,73 @@ func TestBroadcastAudienceStatusesAsDelivered(t *testing.T) {
 		require.NoError(t, json.Unmarshal(body, &got))
 		enqueued = got.Broadcast.EnqueuedCount
 
-		// The queue worker sends after the broadcast is processed. Mailpit can't hold more
-		// emails for this subject than were enqueued, so once it holds that many the set of
-		// recipients is final.
+		// The queue worker sends after the broadcast is processed, one email per recipient
+		// (each has a single To address). Once Mailpit holds as many emails for this subject
+		// as were enqueued, every one has arrived, unless a recipient was mailed twice, which
+		// the check below reports. The recipients and their emails come from the same read,
+		// so the header assertions look at exactly the emails the audience assertion counted.
 		testutil.WaitForCondition(t, func() bool {
-			received, err = testutil.GetAllMailpitRecipients(t, subject)
-			return err == nil && len(received) >= enqueued
+			delivered, err = testutil.GetMailpitMessagesByRecipient(t, subject)
+			if err != nil {
+				t.Logf("Reading the broadcast emails from Mailpit: %v", err)
+				return false
+			}
+			emails := 0
+			for _, msgs := range delivered {
+				emails += len(msgs)
+			}
+			return emails >= enqueued
 		}, 30*time.Second, "waiting for the broadcast emails of "+subject)
-		return received, enqueued
+
+		received = make(map[string]bool, len(delivered))
+		for email, msgs := range delivered {
+			received[email] = true
+			assert.Len(t, msgs, 1, "%s should receive the broadcast once", email)
+		}
+		return received, enqueued, delivered
 	}
 
-	t.Run("exclude_unsubscribed omitted: only active contacts", func(t *testing.T) {
-		received, enqueued := sendToList(t, map[string]interface{}{"list": list.ID})
+	// assertListUnsubscribeHeaders checks both RFC 8058 headers on every delivered email.
+	assertListUnsubscribeHeaders := func(t *testing.T, delivered map[string][]*testutil.MailpitMessage, want bool) {
+		t.Helper()
+		for email, msgs := range delivered {
+			for _, msg := range msgs {
+				if want {
+					assert.NotEmpty(t, msg.Headers["List-Unsubscribe"], "%s: List-Unsubscribe", email)
+					assert.Equal(t, []string{"List-Unsubscribe=One-Click"}, msg.Headers["List-Unsubscribe-Post"],
+						"%s: List-Unsubscribe-Post", email)
+				} else {
+					assert.Empty(t, msg.Headers["List-Unsubscribe"], "%s: List-Unsubscribe", email)
+					assert.Empty(t, msg.Headers["List-Unsubscribe-Post"], "%s: List-Unsubscribe-Post", email)
+				}
+			}
+		}
+	}
+
+	t.Run("exclude_unsubscribed omitted: only active contacts, with List-Unsubscribe", func(t *testing.T) {
+		received, enqueued, delivered := sendToList(t, map[string]interface{}{"list": list.ID})
 
 		assert.Equal(t, map[string]bool{emailWith[domain.ContactListStatusActive]: true}, received)
 		assert.Equal(t, 1, enqueued)
+		assertListUnsubscribeHeaders(t, delivered, true)
 	})
 
-	t.Run("exclude_unsubscribed true: only active contacts", func(t *testing.T) {
-		received, enqueued := sendToList(t, map[string]interface{}{"list": list.ID, "exclude_unsubscribed": true})
+	t.Run("exclude_unsubscribed true: only active contacts, with List-Unsubscribe", func(t *testing.T) {
+		received, enqueued, delivered := sendToList(t, map[string]interface{}{"list": list.ID, "exclude_unsubscribed": true})
 
 		assert.Equal(t, map[string]bool{emailWith[domain.ContactListStatusActive]: true}, received)
 		assert.Equal(t, 1, enqueued)
+		assertListUnsubscribeHeaders(t, delivered, true)
 	})
 
-	t.Run("exclude_unsubscribed false: unsubscribed contacts too, never bounced or complained", func(t *testing.T) {
-		received, enqueued := sendToList(t, map[string]interface{}{"list": list.ID, "exclude_unsubscribed": false})
+	t.Run("exclude_unsubscribed false: unsubscribed contacts too, never bounced or complained, no List-Unsubscribe", func(t *testing.T) {
+		received, enqueued, delivered := sendToList(t, map[string]interface{}{"list": list.ID, "exclude_unsubscribed": false})
 
 		assert.Equal(t, map[string]bool{
 			emailWith[domain.ContactListStatusActive]:       true,
 			emailWith[domain.ContactListStatusUnsubscribed]: true,
 		}, received)
 		assert.Equal(t, 2, enqueued)
+		assertListUnsubscribeHeaders(t, delivered, false)
 	})
 }

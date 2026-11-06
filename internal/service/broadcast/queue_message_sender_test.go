@@ -596,6 +596,7 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 			ID:            "broadcast-1",
 			WorkspaceID:   "workspace-1",
 			Name:          "Weekly Newsletter",
+			Audience:      domain.AudienceSettings{List: "list-123", ExcludeUnsubscribed: true},
 			UTMParameters: &domain.UTMParameters{Source: "newsletter", Medium: "email"},
 		}
 
@@ -1345,6 +1346,7 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 
 		broadcast := &domain.Broadcast{
 			ID:            "broadcast-1",
+			Audience:      domain.AudienceSettings{List: "list-1", ExcludeUnsubscribed: true},
 			UTMParameters: &domain.UTMParameters{},
 		}
 
@@ -1802,4 +1804,142 @@ func TestQueueMessageSender_SendToRecipient_SignsTrackedLinks(t *testing.T) {
 	assert.Equal(t, "msg-1", tok.MessageID)
 	assert.NotEmpty(t, tok.Tag, "the tracked link must carry a signature")
 	assert.True(t, tok.Verify(key, trackingtoken.PurposeClick), "the tracked link must verify under the workspace's tracking key")
+}
+
+// A broadcast that keeps the list's unsubscribed contacts is a notice every member must
+// receive (issue #484): its queued emails carry no List-Unsubscribe URL, so no provider adds
+// the List-Unsubscribe headers, while the template keeps its unsubscribe variables.
+func TestQueueMessageSender_ListUnsubscribeHeaderFollowsExcludeUnsubscribed(t *testing.T) {
+	emailSender := domain.NewEmailSender("sender@example.com", "Test Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+	}
+	template := &domain.Template{
+		ID: "template-1",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Security notice",
+			VisualEditorTree: createQueueValidTestTree(createQueueTestTextBlock("txt1", "<a href=\"{{ unsubscribe_url }}\">Unsubscribe</a>")),
+		},
+	}
+	broadcastFor := func(excludeUnsubscribed bool) *domain.Broadcast {
+		return &domain.Broadcast{
+			ID:            "broadcast-1",
+			WorkspaceID:   "workspace-1",
+			Name:          "Security notice",
+			Audience:      domain.AudienceSettings{List: "list-123", ExcludeUnsubscribed: excludeUnsubscribed},
+			UTMParameters: &domain.UTMParameters{},
+		}
+	}
+
+	t.Run("buildQueueEntry", func(t *testing.T) {
+		for _, tc := range []struct {
+			name                string
+			excludeUnsubscribed bool
+			wantURL             string
+		}{
+			{"excludes unsubscribed contacts: URL kept", true, "https://example.com/unsubscribe-oneclick?x=1"},
+			{"includes unsubscribed contacts: no URL", false, ""},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				ctrl := gomock.NewController(t)
+				defer ctrl.Finish()
+				sender := NewQueueMessageSender(
+					mocks.NewMockEmailQueueRepository(ctrl),
+					mocks.NewMockBroadcastRepository(ctrl),
+					mocks.NewMockMessageHistoryRepository(ctrl),
+					mocks.NewMockTemplateRepository(ctrl),
+					nil,
+					pkgmocks.NewMockLogger(ctrl),
+					nil,
+					"https://api.example.com",
+				).(*queueMessageSender)
+
+				data := map[string]interface{}{
+					"oneclick_unsubscribe_url": "https://example.com/unsubscribe-oneclick?x=1",
+				}
+				entry, err := sender.buildQueueEntry(
+					context.Background(), "workspace-1", "integration-1", "", "https://api.example.com",
+					testTrackingDecision(true), nil, broadcastFor(tc.excludeUnsubscribed), "msg-1", "user@example.com",
+					template, data, emailProvider, "", "",
+				)
+
+				require.NoError(t, err)
+				assert.Equal(t, tc.wantURL, entry.Payload.EmailOptions.ListUnsubscribeURL)
+				// The template data, stored in message history, is left as it was.
+				assert.Equal(t, "https://example.com/unsubscribe-oneclick?x=1",
+					entry.Payload.TemplateData["oneclick_unsubscribe_url"])
+			})
+		}
+	})
+
+	t.Run("SendBatch", func(t *testing.T) {
+		for _, tc := range []struct {
+			name                string
+			excludeUnsubscribed bool
+			wantURL             bool
+		}{
+			{"excludes unsubscribed contacts: URL enqueued", true, true},
+			{"includes unsubscribed contacts: no URL enqueued", false, false},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				ctrl := gomock.NewController(t)
+				defer ctrl.Finish()
+
+				mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+				mockBroadcastRepo := mocks.NewMockBroadcastRepository(ctrl)
+				mockLogger := pkgmocks.NewMockLogger(ctrl)
+				mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+				mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+				mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-1", "broadcast-1").
+					Return(broadcastFor(tc.excludeUnsubscribed), nil)
+
+				var enqueued []*domain.EmailQueueEntry
+				mockQueueRepo.EXPECT().Enqueue(gomock.Any(), "workspace-1", gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ string, entries []*domain.EmailQueueEntry) error {
+						enqueued = entries
+						return nil
+					})
+
+				sender := NewQueueMessageSender(
+					mockQueueRepo,
+					mockBroadcastRepo,
+					mocks.NewMockMessageHistoryRepository(ctrl),
+					mocks.NewMockTemplateRepository(ctrl),
+					nil,
+					mockLogger,
+					nil,
+					"https://api.example.com",
+				)
+
+				recipients := []*domain.ContactWithList{{
+					Contact:  &domain.Contact{Email: "user@example.com"},
+					ListID:   "list-123",
+					ListName: "Customers",
+				}}
+				sent, failed, err := sender.SendBatch(
+					context.Background(), "workspace-1", "integration-1", "test-secret-key",
+					"https://api.example.com", "", testTrackingPolicy(true), nil, "broadcast-1", recipients,
+					map[string]*domain.Template{"template-1": template}, emailProvider,
+					time.Now().Add(5*time.Minute), "",
+				)
+
+				require.NoError(t, err)
+				assert.Equal(t, 1, sent)
+				assert.Equal(t, 0, failed)
+				require.Len(t, enqueued, 1)
+				entry := enqueued[0]
+				if tc.wantURL {
+					assert.Contains(t, entry.Payload.EmailOptions.ListUnsubscribeURL, "/unsubscribe-oneclick?")
+				} else {
+					assert.Empty(t, entry.Payload.EmailOptions.ListUnsubscribeURL)
+				}
+				// The unsubscribe variables stay available to the template either way.
+				assert.Contains(t, entry.Payload.TemplateData["oneclick_unsubscribe_url"], "/unsubscribe-oneclick?")
+				assert.NotEmpty(t, entry.Payload.TemplateData["unsubscribe_url"])
+			})
+		}
+	})
 }
