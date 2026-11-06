@@ -720,6 +720,8 @@ func TestAutomationExecutor_handleError_MaxRetriesExceeded(t *testing.T) {
 		Status:        domain.ContactAutomationStatusActive,
 		RetryCount:    2,
 		MaxRetries:    3,
+		// The in-tick lease an earlier step of the tick left on the row
+		ScheduledAt: func() *time.Time { at := time.Now().Add(inTickResumeLease); return &at }(),
 	}
 
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "failed").Return(nil)
@@ -732,6 +734,8 @@ func TestAutomationExecutor_handleError_MaxRetriesExceeded(t *testing.T) {
 
 	assert.Equal(t, 3, ca.RetryCount)
 	assert.Equal(t, domain.ContactAutomationStatusFailed, ca.Status)
+	// A failed journey is over: like a completed or exited one, it carries no resume time
+	assert.Nil(t, ca.ScheduledAt)
 }
 
 func TestAutomationExecutor_createNodeExecution(t *testing.T) {

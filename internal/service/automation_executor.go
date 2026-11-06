@@ -68,10 +68,10 @@ func NewAutomationExecutor(
 	}
 }
 
-// inTickResumeLease is how far ahead scheduled_at is set while a tick is still stepping a
-// contact from one node to the next. It keeps another instance from picking the contact up
-// mid-tick, and resumes the journey if the tick dies before its next persist. It covers ten
-// webhook nodes at their 30 s timeout.
+// inTickResumeLease is how far ahead scheduled_at is set after a step when the same tick goes
+// on to the next one. It keeps another instance from picking the contact up for the rest of
+// the tick, and resumes the journey if the tick dies before its next persist. It is renewed
+// after every step, so it only has to outlast one node: a webhook node waits 30 s at most.
 const inTickResumeLease = 5 * time.Minute
 
 // Execute processes a contact through their automation nodes until a delay or completion.
@@ -273,6 +273,7 @@ func (e *AutomationExecutor) handleError(ctx context.Context, workspaceID string
 
 	if ca.RetryCount >= ca.MaxRetries {
 		ca.Status = domain.ContactAutomationStatusFailed
+		ca.ScheduledAt = nil
 		_ = e.automationRepo.IncrementAutomationStat(ctx, workspaceID, ca.AutomationID, "failed")
 
 		e.createAutomationEndEvent(ctx, workspaceID, ca, "failed")

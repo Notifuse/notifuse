@@ -2257,7 +2257,8 @@ func testAutomationLongChainWithoutDelay(t *testing.T, factory *testutil.TestDat
 	automationID := shortuuid.New()
 	triggerNodeID := shortuuid.New()
 
-	// Trigger, then twelve list steps alternating add / remove on the same list
+	// Trigger, then list steps alternating add / remove on the same list, more than one tick
+	// processes (maxNodesPerTick)
 	const listSteps = 12
 	stepIDs := make([]string, listSteps)
 	for i := range stepIDs {
@@ -2339,7 +2340,7 @@ func testAutomationLongChainWithoutDelay(t *testing.T, factory *testutil.TestDat
 	assert.Equal(t, domain.ContactAutomationStatusCompleted, completedCA.Status)
 	assert.Nil(t, completedCA.CurrentNodeID)
 
-	// Every node ran once: the trigger and each list step, across two ticks
+	// Every node ran once: the trigger and each list step
 	executions, err := factory.GetNodeExecutions(workspaceID, completedCA.ID)
 	require.NoError(t, err)
 	executedNodes := map[string]int{}

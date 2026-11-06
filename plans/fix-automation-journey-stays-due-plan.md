@@ -49,9 +49,11 @@ no `ScheduledAt`, persist a resume time instead of NULL:
 - on earlier iterations, `now + 5 min` (a lease, constant `inTickResumeLease`): the executor is
   still stepping this contact, so another instance must not pick it up mid-tick (today the NULL
   happens to prevent that, forever), and a crash before the next persist resumes the journey
-  five minutes later. Five minutes covers ten webhook nodes at their 30 s timeout.
+  five minutes later. The lease is renewed after every step, so it only has to outlast one
+  node (a webhook node waits 30 s at most).
 
-A delay node keeps its future time; completed and exited rows keep `scheduled_at = NULL` as today.
+A delay node keeps its future time; completed and exited rows keep `scheduled_at = NULL` as today,
+and `handleError` clears it on a journey that fails for good (it would otherwise keep the lease).
 The loop's delay exit keeps testing `result.ScheduledAt`, not the lease.
 
 No schema change, no migration, no environment variable.
