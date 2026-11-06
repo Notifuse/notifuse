@@ -68,6 +68,12 @@ func NewAutomationExecutor(
 	}
 }
 
+// inTickResumeLease is how far ahead scheduled_at is set while a tick is still stepping a
+// contact from one node to the next. It keeps another instance from picking the contact up
+// mid-tick, and resumes the journey if the tick dies before its next persist. It covers ten
+// webhook nodes at their 30 s timeout.
+const inTickResumeLease = 5 * time.Minute
+
 // Execute processes a contact through their automation nodes until a delay or completion.
 // It loops through multiple nodes in a single tick for efficiency, persisting state after each node.
 func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, contactAutomation *domain.ContactAutomation) error {
@@ -158,6 +164,19 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 			contactAutomation.Status = domain.ContactAutomationStatusCompleted
 		} else {
 			contactAutomation.Status = result.Status
+		}
+
+		// A contact still active with no time from its node (every node but a delay) must not
+		// be persisted with scheduled_at NULL: the scheduler never selects NULL, so a tick that
+		// stops before its next persist would strand the journey. The last iteration hands the
+		// contact to the next tick, due now; earlier ones hold it with a lease while this tick
+		// carries on.
+		if contactAutomation.Status == domain.ContactAutomationStatusActive && result.ScheduledAt == nil {
+			resumeAt := time.Now().UTC()
+			if iterations < maxNodesPerTick-1 {
+				resumeAt = resumeAt.Add(inTickResumeLease)
+			}
+			contactAutomation.ScheduledAt = &resumeAt
 		}
 
 		// PERSIST STATE (critical for crash recovery). Optimistic lock on
