@@ -77,6 +77,7 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_OpenRate_Success(t *testing.T) 
 			return fn(nil)
 		},
 	)
+	bcRepo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 	bcRepo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ *sql.Tx, updated *domain.Broadcast) error {
 			assert.Equal(t, domain.BroadcastStatusWinnerSelected, updated.Status)
@@ -112,6 +113,7 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_ClickRate_Success(t *testing.T)
 	bcRepo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
 	)
+	bcRepo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 	bcRepo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ *sql.Tx, updated *domain.Broadcast) error {
 			assert.Equal(t, domain.BroadcastStatusWinnerSelected, updated.Status)
@@ -239,6 +241,7 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_StatsErrorContinue(t *testing.T
 	bcRepo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
 	)
+	bcRepo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 	bcRepo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ *sql.Tx, updated *domain.Broadcast) error {
 			assert.NotNil(t, updated.WinningTemplate)
@@ -292,6 +295,7 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_UpdateBroadcastError(t *testing
 	bcRepo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
 	)
+	bcRepo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 	bcRepo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).Return(errors.New("update failed"))
 
 	_, err := evaluator.EvaluateAndSelectWinner(ctx, workspaceID, broadcastID)
@@ -363,4 +367,61 @@ func TestABTestEvaluator_SelectBestVariation_UsesTrackedDenominators(t *testing.
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "no winner could be determined")
 	})
+}
+
+// The owner can pick the winner of a completed test while its automatic
+// evaluation runs: the evaluation reads the broadcast again inside its
+// transaction and keeps the owner's choice rather than writing over it.
+func TestABTestEvaluator_EvaluateAndSelectWinner_KeepsAWinnerChosenMeanwhile(t *testing.T) {
+	ctrl, msgRepo, bcRepo, _, evaluator := setupEvaluator(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	workspaceID := "w1"
+	broadcastID := "b1"
+
+	b := newTestBroadcast(workspaceID, broadcastID)
+	bcRepo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(b, nil)
+
+	// A wins on the numbers.
+	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalOpened: 60}, nil)
+	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalOpened: 50}, nil)
+
+	bcRepo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
+	)
+	// Meanwhile the owner picked B.
+	chosen := *b
+	ownerPick := "tplB"
+	chosen.Status = domain.BroadcastStatusWinnerSelected
+	chosen.WinningTemplate = &ownerPick
+	bcRepo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(&chosen, nil)
+	bcRepo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+	winner, err := evaluator.EvaluateAndSelectWinner(ctx, workspaceID, broadcastID)
+	require.NoError(t, err)
+	assert.Equal(t, "tplB", winner)
+}
+
+func TestABTestEvaluator_EvaluateAndSelectWinner_RereadError(t *testing.T) {
+	ctrl, msgRepo, bcRepo, _, evaluator := setupEvaluator(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	workspaceID := "w1"
+	broadcastID := "b1"
+
+	b := newTestBroadcast(workspaceID, broadcastID)
+	bcRepo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(b, nil)
+	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalOpensTracked: 100, TotalOpened: 60}, nil)
+	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalOpensTracked: 100, TotalOpened: 50}, nil)
+	bcRepo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
+	)
+	bcRepo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(nil, errors.New("gone"))
+	bcRepo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+	_, err := evaluator.EvaluateAndSelectWinner(ctx, workspaceID, broadcastID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to update broadcast with winner")
 }

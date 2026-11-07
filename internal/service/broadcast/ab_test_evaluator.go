@@ -51,7 +51,7 @@ func (e *ABTestEvaluator) EvaluateAndSelectWinner(ctx context.Context, workspace
 	}
 
 	// Update broadcast with winner
-	err = e.updateBroadcastWithWinner(ctx, workspaceID, broadcast, winnerTemplateID)
+	winnerTemplateID, err = e.updateBroadcastWithWinner(ctx, workspaceID, broadcastID, winnerTemplateID)
 	if err != nil {
 		return "", fmt.Errorf("failed to update broadcast with winner: %w", err)
 	}
@@ -130,13 +130,39 @@ func (e *ABTestEvaluator) selectBestVariation(ctx context.Context, workspaceID s
 	return bestTemplateID, nil
 }
 
-func (e *ABTestEvaluator) updateBroadcastWithWinner(ctx context.Context, workspaceID string, broadcast *domain.Broadcast, winnerTemplateID string) error {
-	return e.broadcastRepo.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
-		// Update broadcast
+// updateBroadcastWithWinner records the evaluated winner and returns the winner the
+// broadcast ends up with. The owner can pick a completed test's winner while the
+// evaluation runs, so the broadcast is read again inside the transaction and a
+// winner already chosen is kept rather than written over.
+func (e *ABTestEvaluator) updateBroadcastWithWinner(ctx context.Context, workspaceID, broadcastID, winnerTemplateID string) (string, error) {
+	winner := winnerTemplateID
+	err := e.broadcastRepo.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
+		broadcast, err := e.broadcastRepo.GetBroadcastTx(ctx, tx, workspaceID, broadcastID)
+		if err != nil {
+			return err
+		}
+		if broadcast.Status != domain.BroadcastStatusTestCompleted || broadcast.WinningTemplate != nil {
+			if broadcast.WinningTemplate == nil {
+				return fmt.Errorf("broadcast left the test completed state (%s) during evaluation", broadcast.Status)
+			}
+			winner = *broadcast.WinningTemplate
+			e.logger.WithFields(map[string]interface{}{
+				"broadcast_id":     broadcastID,
+				"evaluated_winner": winnerTemplateID,
+				"winning_template": winner,
+				"broadcast_status": string(broadcast.Status),
+			}).Info("A winner was chosen during the automatic evaluation; keeping it")
+			return nil
+		}
+
 		broadcast.WinningTemplate = &winnerTemplateID
 		broadcast.Status = domain.BroadcastStatusWinnerSelected
 		broadcast.UpdatedAt = time.Now().UTC()
 
 		return e.broadcastRepo.UpdateBroadcastTx(ctx, tx, broadcast)
 	})
+	if err != nil {
+		return "", err
+	}
+	return winner, nil
 }

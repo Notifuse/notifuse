@@ -166,8 +166,9 @@ func (m *V39Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 	// Four of the five bodies lived in two unshared copies — v19 and the
 	// workspace initializer — so a workspace upgraded from v19 and one created
 	// last week could in principle emit different payloads for identical data.
-	// Installing all five from the shared generator converges them and adds the
-	// list_ids / segment_ids filtering to the two that support it.
+	// Installing all five, four from the shared generator and the contacts body
+	// as v39 shipped it, converges them and adds the list_ids / segment_ids
+	// filtering to the two that support it.
 	//
 	// Only the functions are reinstalled. Reattaching the triggers would mean
 	// DROP TRIGGER + CREATE TRIGGER, which takes a ShareRowExclusiveLock on
@@ -176,7 +177,8 @@ func (m *V39Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 	// trigger already attached picks up a replaced body on its next invocation.
 	//
 	// The contacts body is v39's own (v39WebhookContactsTriggerFunction): the
-	// generator's compares columns that only v43 adds.
+	// generator's compares columns that only v43 adds, and v39 runs on databases
+	// that do not have them yet.
 	for _, fn := range v39WebhookTriggerFunctions() {
 		if _, err := db.ExecContext(ctx, fn); err != nil {
 			return fmt.Errorf("v39: failed to reinstall webhook trigger functions: %w", err)
@@ -305,16 +307,15 @@ func init() {
 	Register(&V39Migration{})
 }
 
-// v39WebhookTriggerFunctions is the shared generator's set with the contacts body
-// v39 shipped in place of today's, which reads columns a database below 39 lacks
-// until v43 adds them.
+// v39WebhookTriggerFunctions lists the five functions v39 installs: the contacts
+// body v39 shipped, since today's reads columns a database below 39 lacks until
+// v43 adds them, and the other four from the shared generator.
 func v39WebhookTriggerFunctions() []string {
-	fns := schema.WebhookTriggerFunctions()
-	current := schema.WebhookContactsTriggerFunction()
-	for i, fn := range fns {
-		if fn == current {
-			fns[i] = v39WebhookContactsTriggerFunction
-		}
+	return []string{
+		v39WebhookContactsTriggerFunction,
+		schema.WebhookContactListsTriggerFunction(),
+		schema.WebhookContactSegmentsTriggerFunction(),
+		schema.WebhookMessageHistoryTriggerFunction(),
+		schema.WebhookCustomEventsTriggerFunction(),
 	}
-	return fns
 }

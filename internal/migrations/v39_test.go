@@ -508,7 +508,7 @@ func TestV39Migration_SweepsOnlyGenuineOrphans(t *testing.T) {
 // The contacts body is the exception: the generator's compares columns that only
 // v43 adds, so v39 installs the body it shipped with (v39WebhookContactsTriggerFunction)
 // and v43 installs the generator's.
-func TestV39Migration_ReinstallsEveryTriggerFunctionFromTheSharedGenerator(t *testing.T) {
+func TestV39Migration_ReinstallsEveryTriggerFunction(t *testing.T) {
 	rec := v39RecordedWorkspaceRun(t)
 
 	// The generator's set and the names below have to stay the same set, or the
@@ -544,9 +544,9 @@ func TestV39Migration_ReinstallsEveryTriggerFunctionFromTheSharedGenerator(t *te
 }
 
 // v39 runs on a database below 39, which has none of the tracking consent columns
-// v43 adds: a PL/pgSQL body naming NEW.tracking_opens_consent installs without
-// complaint and then fails every UPDATE on contacts until v43 commits.
-func TestV39Migration_InstallsNoColumnAddedAfterIt(t *testing.T) {
+// v43 adds to contacts: a PL/pgSQL body naming NEW.tracking_opens_consent installs
+// without complaint and then fails every UPDATE on contacts until v43 commits.
+func TestV39Migration_InstallsNoTrackingConsentColumn(t *testing.T) {
 	rec := v39RecordedWorkspaceRun(t)
 	assert.NotContains(t, rec.all(), "tracking_")
 }

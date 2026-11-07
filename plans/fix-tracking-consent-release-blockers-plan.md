@@ -45,7 +45,8 @@ Reachable whenever no test send recorded the metric:
 
 - `console/src/lib/abTestWinner.test.ts`: `canSelectWinner` is true for `test_completed` with
   `auto_send_winner` true and false, false for `testing`, `winner_selected`, `processing` and `draft`.
-  The first case fails before the change.
+  The first case fails against the condition the page used before (checked by moving it into the helper); no test
+  renders the variations table itself.
 - Backend: none changed. The existing evaluator subtest "no tracked emails anywhere: no winner" stays and pins
   the documented rule.
 
@@ -82,9 +83,9 @@ change amended.
 ### Tests
 
 - `internal/migrations/v39_test.go`:
-  - `TestV39Migration_ReinstallsEveryTriggerFunctionFromTheSharedGenerator` becomes: the four other functions are
+  - `TestV39Migration_ReinstallsEveryTriggerFunctionFromTheSharedGenerator` becomes `TestV39Migration_ReinstallsEveryTriggerFunction`: the four other functions are
     the generator's text, the contacts function is the frozen v39 body.
-  - New `TestV39Migration_InstallsNoColumnAddedAfterIt`: no statement v39 issues mentions `tracking_`.
+  - New `TestV39Migration_InstallsNoTrackingConsentColumn`: no statement v39 issues mentions `tracking_`.
   - New `TestV39WebhookContactsTriggerFunction_IsTheGeneratorWithoutTheConsentColumns`: the frozen body equals
     today's generator output with its three consent comparisons removed (pins that the two differ only there).
 - `tests/integration/v39_webhook_contacts_before_v43_test.go` (real PostgreSQL), `TestV39WebhookContactsFunctionBeforeV43`:
@@ -104,13 +105,28 @@ change amended.
 - v39's other four functions and v43's two contacts functions still come from live generators: a column added
   later to one of their comparison lists would reach databases below that migration the same way. Nothing does
   so today (checked from v38 to v43).
+- If v43 fails on one workspace after succeeding on another, the next start runs v39 again on both and briefly
+  puts back the pre-consent contacts body on the first, until v43 runs on it again (consent-only changes send no
+  webhook meanwhile).
 - An `email_tracking` object without `unknown_consent` is refused with a 400 (see the top of this plan).
 - An automatic-winner A/B test whose metric is not tracked can still be saved; the drawer warns only for
-  `unknown_consent = no_track`.
+  `unknown_consent = no_track`, and after a failed evaluation the broadcast page still describes the automatic
+  send rather than asking the owner to pick.
+- The integration test repeats the pre-43 revert of `TestV43TrackingConsentMigration` instead of sharing a helper.
 
 ## CHANGELOG
 
-No line: neither defect shipped. The 43.0 entries already describe the corrected behaviour.
+No Fix line: neither defect shipped. The 43.0 A/B bullet gains one clause: when no variation has a tracked email
+for its metric the owner picks the winner, and the console offers that choice on every completed test, including
+automatic ones (a change to released console behaviour).
+
+## Added after the high review
+
+- `ABTestEvaluator.updateBroadcastWithWinner` reads the broadcast again inside its transaction and keeps a winner
+  the owner chose meanwhile, now that the console offers that choice during an automatic test
+  (`TestABTestEvaluator_EvaluateAndSelectWinner_KeepsAWinnerChosenMeanwhile`, `..._RereadError`). The read takes
+  no lock, so a choice committed between that read and the update can still be overwritten.
+- v39 lists its five functions explicitly instead of swapping the contacts body by text.
 
 ## Counter-review
 
@@ -123,7 +139,7 @@ keeps a frozen literal instead of a new generator variant; the integration test 
 
 - `go build ./... && go vet ./...`
 - `go test -race ./internal/migrations/ ./internal/database/schema/`
-- `cd console && npx vitest run src/pages/ && npx tsc -b && npm run lint`
+- `cd console && npx vitest run src/lib/ src/pages/ && npx tsc -b && npm run lint`
 - `make test-unit`
 - `INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestV39|TestV43'`,
   then the full integration suite in CI.
