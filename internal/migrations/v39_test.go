@@ -521,7 +521,8 @@ func TestV39Migration_ReinstallsEveryTriggerFunction(t *testing.T) {
 		schema.WebhookMessageHistoryTriggerFunction():  true,
 		schema.WebhookCustomEventsTriggerFunction():    true,
 	}
-	require.Len(t, expected, len(v39TriggerFunctions))
+	require.Len(t, expected, 5, "five distinct bodies")
+	require.Len(t, v39TriggerFunctions, len(expected))
 
 	installed := 0
 	for _, stmt := range rec.issued {

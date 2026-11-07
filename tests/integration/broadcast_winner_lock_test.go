@@ -6,6 +6,7 @@ package integration
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,19 +54,41 @@ func TestBroadcastWinnerReadLocksTheRow(t *testing.T) {
 	assert.Contains(t, err.Error(), "lock timeout")
 	_ = second.Rollback()
 
-	// The first writer records a winner and commits; the next locking read sees it.
+	// A locking read with no timeout waits for the first writer, then sees the
+	// winner it committed rather than the row it was blocked on.
+	type readResult struct {
+		broadcast *domain.Broadcast
+		err       error
+	}
+	waiter, err := db.BeginTx(ctx, nil)
+	require.NoError(t, err)
+	defer func() { _ = waiter.Rollback() }()
+	done := make(chan readResult, 1)
+	go func() {
+		b, rErr := repo.GetBroadcastForUpdateTx(ctx, waiter, workspace.ID, broadcast.ID)
+		done <- readResult{b, rErr}
+	}()
+
+	select {
+	case r := <-done:
+		t.Fatalf("the locking read returned while the row was held: %+v", r)
+	case <-time.After(300 * time.Millisecond):
+	}
+
 	winner := "tpl-winner"
 	held.WinningTemplate = &winner
 	held.Status = domain.BroadcastStatusWinnerSelected
 	require.NoError(t, repo.UpdateBroadcastTx(ctx, first, held))
 	require.NoError(t, first.Commit())
 
-	third, err := db.BeginTx(ctx, nil)
-	require.NoError(t, err)
-	defer func() { _ = third.Rollback() }()
-	after, err := repo.GetBroadcastForUpdateTx(ctx, third, workspace.ID, broadcast.ID)
-	require.NoError(t, err)
-	assert.Equal(t, domain.BroadcastStatusWinnerSelected, after.Status)
-	require.NotNil(t, after.WinningTemplate)
-	assert.Equal(t, winner, *after.WinningTemplate)
+	var after readResult
+	select {
+	case after = <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the locking read was still blocked after the first writer committed")
+	}
+	require.NoError(t, after.err)
+	assert.Equal(t, domain.BroadcastStatusWinnerSelected, after.broadcast.Status)
+	require.NotNil(t, after.broadcast.WinningTemplate)
+	assert.Equal(t, winner, *after.broadcast.WinningTemplate)
 }
