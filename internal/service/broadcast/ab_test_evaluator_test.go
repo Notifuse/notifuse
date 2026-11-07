@@ -377,38 +377,62 @@ func TestABTestEvaluator_SelectBestVariation_UsesTrackedDenominators(t *testing.
 	})
 }
 
-// The owner can pick the winner of a completed test while its automatic
-// evaluation runs: the evaluation reads the broadcast again inside its
-// transaction and keeps the owner's choice rather than writing over it.
-func TestABTestEvaluator_EvaluateAndSelectWinner_KeepsAWinnerChosenMeanwhile(t *testing.T) {
-	ctrl, msgRepo, bcRepo, _, evaluator := setupEvaluator(t)
-	defer ctrl.Finish()
+// A winner already recorded on the row read under the lock is kept: the owner
+// picked it while the evaluation counted, or the run moved on to sending it.
+// Only a test_completed row is still waiting for its status to follow.
+func TestABTestEvaluator_EvaluateAndSelectWinner_KeepsAWinnerAlreadyRecorded(t *testing.T) {
+	cases := []struct {
+		status      domain.BroadcastStatus
+		wantsUpdate bool
+	}{
+		{domain.BroadcastStatusWinnerSelected, false},
+		{domain.BroadcastStatusProcessing, false},
+		{domain.BroadcastStatusTestCompleted, true},
+	}
+	for _, tc := range cases {
+		t.Run(string(tc.status), func(t *testing.T) {
+			ctrl, msgRepo, bcRepo, _, evaluator := setupEvaluator(t)
+			defer ctrl.Finish()
 
-	ctx := context.Background()
-	workspaceID := "w1"
-	broadcastID := "b1"
+			ctx := context.Background()
+			workspaceID := "w1"
+			broadcastID := "b1"
 
-	b := newTestBroadcast(workspaceID, broadcastID)
-	bcRepo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(b, nil)
+			b := newTestBroadcast(workspaceID, broadcastID)
+			bcRepo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(b, nil)
 
-	// A wins on the numbers.
-	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalOpened: 60}, nil)
-	msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalOpened: 50}, nil)
+			// A wins on the numbers.
+			msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplA").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalOpened: 60}, nil)
+			msgRepo.EXPECT().GetBroadcastVariationStats(ctx, workspaceID, broadcastID, "tplB").Return(&domain.MessageHistoryStatusSum{TotalDelivered: 100, TotalOpensTracked: 100, TotalOpened: 50}, nil)
 
-	bcRepo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
-		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
-	)
-	// Meanwhile the owner picked B.
-	chosen := *b
-	ownerPick := "tplB"
-	chosen.Status = domain.BroadcastStatusWinnerSelected
-	chosen.WinningTemplate = &ownerPick
-	bcRepo.EXPECT().GetBroadcastForUpdateTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(&chosen, nil)
-	bcRepo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			bcRepo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
+				func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
+			)
+			// B is already recorded on the row.
+			recorded := lockedCopy(b)
+			ownerPick := "tplB"
+			recorded.Status = tc.status
+			recorded.WinningTemplate = &ownerPick
+			bcRepo.EXPECT().GetBroadcastForUpdateTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(recorded, nil)
+			if tc.wantsUpdate {
+				bcRepo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).DoAndReturn(
+					func(_ context.Context, _ *sql.Tx, updated *domain.Broadcast) error {
+						assert.Same(t, recorded, updated)
+						require.NotNil(t, updated.WinningTemplate)
+						assert.Equal(t, "tplB", *updated.WinningTemplate)
+						assert.Equal(t, domain.BroadcastStatusWinnerSelected, updated.Status)
+						return nil
+					},
+				)
+			} else {
+				bcRepo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			}
 
-	winner, err := evaluator.EvaluateAndSelectWinner(ctx, workspaceID, broadcastID)
-	require.NoError(t, err)
-	assert.Equal(t, "tplB", winner)
+			winner, err := evaluator.EvaluateAndSelectWinner(ctx, workspaceID, broadcastID)
+			require.NoError(t, err)
+			assert.Equal(t, "tplB", winner)
+		})
+	}
 }
 
 func TestABTestEvaluator_EvaluateAndSelectWinner_RereadError(t *testing.T) {
@@ -434,11 +458,23 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_RereadError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to update broadcast with winner")
 }
 
-// A broadcast that left test_completed without a winner during the evaluation
-// (paused or cancelled by its owner) is not given one.
-func TestABTestEvaluator_EvaluateAndSelectWinner_LeftTestCompletedMeanwhile(t *testing.T) {
-	for _, status := range []domain.BroadcastStatus{domain.BroadcastStatusPaused, domain.BroadcastStatusCancelled} {
-		t.Run(string(status), func(t *testing.T) {
+// The evaluation gives a winner only to a broadcast waiting for one. No service
+// path takes a broadcast out of test_completed to paused or cancelled today (pause
+// and cancel refuse that status), so this pins a guard, not a race: a row the
+// evaluation finds in such a status is left as it is, winner column included.
+func TestABTestEvaluator_EvaluateAndSelectWinner_RefusesARowThatAwaitsNoWinner(t *testing.T) {
+	stale := "tplB"
+	cases := []struct {
+		name    string
+		status  domain.BroadcastStatus
+		winning *string
+	}{
+		{"paused", domain.BroadcastStatusPaused, nil},
+		{"cancelled", domain.BroadcastStatusCancelled, nil},
+		{"cancelled with a winner", domain.BroadcastStatusCancelled, &stale},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
 			ctrl, msgRepo, bcRepo, _, evaluator := setupEvaluator(t)
 			defer ctrl.Finish()
 
@@ -454,17 +490,14 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_LeftTestCompletedMeanwhile(t *t
 				func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
 			)
 			moved := lockedCopy(b)
-			moved.Status = status
-			// A winner recorded on a broadcast that is no longer waiting for one is not
-			// a winner to send: cancelling keeps the column as it was.
-			stale := "tplB"
-			moved.WinningTemplate = &stale
+			moved.Status = tc.status
+			moved.WinningTemplate = tc.winning
 			bcRepo.EXPECT().GetBroadcastForUpdateTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(moved, nil)
 			bcRepo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 			_, err := evaluator.EvaluateAndSelectWinner(ctx, workspaceID, broadcastID)
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "left the test completed state")
+			assert.Contains(t, err.Error(), "is not waiting for a winner")
 		})
 	}
 }

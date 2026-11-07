@@ -160,15 +160,9 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 	return nil
 }
 
-// GetBroadcast retrieves a broadcast by ID
-func (r *broadcastRepository) GetBroadcast(ctx context.Context, workspaceID, id string) (*domain.Broadcast, error) {
-	// Get the workspace database connection
-	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
-	}
-
-	query := `
+// getBroadcastQuery reads one broadcast by id; GetBroadcast and getBroadcastTx
+// share it so the columns scanBroadcast expects are listed once.
+const getBroadcastQuery = `
 		SELECT
 			id,
 			workspace_id,
@@ -196,6 +190,16 @@ func (r *broadcastRepository) GetBroadcast(ctx context.Context, workspaceID, id 
 		WHERE id = $1 AND workspace_id = $2
 	`
 
+// GetBroadcast retrieves a broadcast by ID
+func (r *broadcastRepository) GetBroadcast(ctx context.Context, workspaceID, id string) (*domain.Broadcast, error) {
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := getBroadcastQuery
+
 	row := workspaceDB.QueryRowContext(ctx, query, id, workspaceID)
 
 	broadcast, err := scanBroadcast(row)
@@ -221,33 +225,7 @@ func (r *broadcastRepository) GetBroadcastForUpdateTx(ctx context.Context, tx *s
 }
 
 func (r *broadcastRepository) getBroadcastTx(ctx context.Context, tx *sql.Tx, workspaceID, id, lock string) (*domain.Broadcast, error) {
-	query := `
-		SELECT
-			id,
-			workspace_id,
-			name,
-			status,
-			audience,
-			schedule,
-			test_settings,
-			utm_parameters,
-			metadata,
-			winning_template,
-			test_sent_at,
-			winner_sent_at,
-			enqueued_count,
-			created_at,
-			updated_at,
-			started_at,
-			completed_at,
-			cancelled_at,
-			paused_at,
-			pause_reason,
-			data_feed,
-			tracking_mode
-		FROM broadcasts
-		WHERE id = $1 AND workspace_id = $2
-	` + lock
+	query := getBroadcastQuery + lock
 
 	row := tx.QueryRowContext(ctx, query, id, workspaceID)
 

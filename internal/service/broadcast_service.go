@@ -1488,13 +1488,20 @@ func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadc
 		)
 	}
 
-	return s.repo.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
+	err = s.repo.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
 		// Get broadcast
 		// Locked: the automatic evaluation reads and writes the winner the same way,
 		// and the two take turns rather than one writing over the other.
 		broadcast, err := s.repo.GetBroadcastForUpdateTx(ctx, tx, workspaceID, broadcastID)
 		if err != nil {
 			return err
+		}
+
+		// The pick already recorded saves nothing again and only wakes the task
+		// below, so an owner whose wake failed after the save can repeat it.
+		if broadcast.Status == domain.BroadcastStatusWinnerSelected &&
+			broadcast.WinningTemplate != nil && *broadcast.WinningTemplate == templateID {
+			return nil
 		}
 
 		// Validate status - allow winner selection during testing phase if auto_send_winner is false
@@ -1531,56 +1538,57 @@ func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadc
 		broadcast.Status = domain.BroadcastStatusWinnerSelected
 		broadcast.UpdatedAt = time.Now().UTC()
 
-		if err := s.repo.UpdateBroadcastTx(ctx, tx, broadcast); err != nil {
-			return err
-		}
-
-		// Resume the associated task by finding it and waking it
-		task, err := s.taskRepo.GetTaskByBroadcastID(ctx, workspaceID, broadcastID)
-		if err != nil {
-			s.logger.WithField("broadcast_id", broadcastID).Debug("No task found for broadcast")
-			return nil // Not an error if no task exists
-		}
-
-		// A task its run still holds is left to that run, which switches to the
-		// winner on its next refresh. Writing the task back as pending handed it
-		// to a second execution that enqueued everyone past the cursor it read
-		// a second time.
-		woken, wakeErr := s.taskRepo.WakeTask(ctx, workspaceID, task.ID, time.Now().UTC())
-		if errors.Is(wakeErr, domain.ErrTaskNotFound) {
-			s.logger.WithField("broadcast_id", broadcastID).Debug("No task found for broadcast")
-			return nil
-		}
-		if wakeErr != nil {
-			return wakeErr
-		}
-		if !woken {
-			s.logger.WithFields(map[string]interface{}{
-				"broadcast_id": broadcastID,
-				"task_id":      task.ID,
-			}).Info("Winner selected while the broadcast's run holds its task - the run switches to the winner")
-			return nil
-		}
-
-		// Immediately trigger task execution after winner selection (if auto-execution is enabled)
-		// Note: We always trigger here since winner selection should immediately resume sending
-		// In tests, this is disabled to prevent race conditions
-		if s.taskService.IsAutoExecuteEnabled() {
-			go func() {
-				// Small delay to ensure transaction is committed
-				time.Sleep(100 * time.Millisecond)
-				if execErr := s.taskService.ExecutePendingTasks(context.Background(), 1); execErr != nil {
-					s.logger.WithFields(map[string]interface{}{
-						"broadcast_id": broadcastID,
-						"task_id":      task.ID,
-						"error":        execErr.Error(),
-					}).Error("Failed to trigger immediate task execution after winner selection")
-				}
-			}()
-		}
-
-		return nil
+		return s.repo.UpdateBroadcastTx(ctx, tx, broadcast)
 	})
+	if err != nil {
+		return err
+	}
+
+	// Resume the associated task by finding it and waking it, once the winner is
+	// committed: the broadcast row stays locked until then, and the task lives in
+	// the system database.
+	task, err := s.taskRepo.GetTaskByBroadcastID(ctx, workspaceID, broadcastID)
+	if err != nil {
+		s.logger.WithField("broadcast_id", broadcastID).Debug("No task found for broadcast")
+		return nil // Not an error if no task exists
+	}
+
+	// A task its run still holds is left to that run, which switches to the
+	// winner on its next refresh. Writing the task back as pending handed it
+	// to a second execution that enqueued everyone past the cursor it read
+	// a second time.
+	woken, wakeErr := s.taskRepo.WakeTask(ctx, workspaceID, task.ID, time.Now().UTC())
+	if errors.Is(wakeErr, domain.ErrTaskNotFound) {
+		s.logger.WithField("broadcast_id", broadcastID).Debug("No task found for broadcast")
+		return nil
+	}
+	if wakeErr != nil {
+		return wakeErr
+	}
+	if !woken {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"task_id":      task.ID,
+		}).Info("Winner selected while the broadcast's run holds its task - the run switches to the winner")
+		return nil
+	}
+
+	// Immediately trigger task execution after winner selection (if auto-execution is enabled)
+	// Note: We always trigger here since winner selection should immediately resume sending
+	// In tests, this is disabled to prevent race conditions
+	if s.taskService.IsAutoExecuteEnabled() {
+		go func() {
+			if execErr := s.taskService.ExecutePendingTasks(context.Background(), 1); execErr != nil {
+				s.logger.WithFields(map[string]interface{}{
+					"broadcast_id": broadcastID,
+					"task_id":      task.ID,
+					"error":        execErr.Error(),
+				}).Error("Failed to trigger immediate task execution after winner selection")
+			}
+		}()
+	}
+
+	return nil
 }
 
 // RefreshGlobalFeed refreshes the global feed data for a broadcast

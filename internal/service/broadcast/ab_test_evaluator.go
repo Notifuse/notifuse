@@ -130,11 +130,24 @@ func (e *ABTestEvaluator) selectBestVariation(ctx context.Context, workspaceID s
 	return bestTemplateID, nil
 }
 
+// keepsARecordedWinner lists the statuses in which a winner already on the row
+// stands: the test is waiting for one, the owner picked it, or the run is
+// sending it. A broadcast paused or cancelled meanwhile gets no winner sent.
+func keepsARecordedWinner(status domain.BroadcastStatus) bool {
+	switch status {
+	case domain.BroadcastStatusTestCompleted,
+		domain.BroadcastStatusWinnerSelected,
+		domain.BroadcastStatusProcessing:
+		return true
+	}
+	return false
+}
+
 // updateBroadcastWithWinner records the evaluated winner and returns the winner the
 // broadcast ends up with. The owner can pick a completed test's winner while the
 // evaluation runs, so the broadcast is read again with its row locked, as
-// SelectWinner reads it: the two take turns, and a winner the owner chose first is
-// kept rather than written over.
+// SelectWinner reads it: the two take turns, and a winner already recorded is kept
+// rather than written over.
 func (e *ABTestEvaluator) updateBroadcastWithWinner(ctx context.Context, workspaceID, broadcastID, winnerTemplateID string) (string, error) {
 	winner := winnerTemplateID
 	err := e.broadcastRepo.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
@@ -142,17 +155,23 @@ func (e *ABTestEvaluator) updateBroadcastWithWinner(ctx context.Context, workspa
 		if err != nil {
 			return err
 		}
-		switch {
-		case broadcast.Status == domain.BroadcastStatusWinnerSelected && broadcast.WinningTemplate != nil:
+		if broadcast.WinningTemplate != nil && keepsARecordedWinner(broadcast.Status) {
 			winner = *broadcast.WinningTemplate
 			e.logger.WithFields(map[string]interface{}{
 				"broadcast_id":     broadcastID,
 				"evaluated_winner": winnerTemplateID,
 				"winning_template": winner,
-			}).Info("A winner was chosen during the automatic evaluation; keeping it")
-			return nil
-		case broadcast.Status != domain.BroadcastStatusTestCompleted:
-			return fmt.Errorf("broadcast left the test completed state (%s) during evaluation", broadcast.Status)
+				"broadcast_status": string(broadcast.Status),
+			}).Info("A winner is already recorded; keeping it")
+			if broadcast.Status != domain.BroadcastStatusTestCompleted {
+				return nil
+			}
+			broadcast.Status = domain.BroadcastStatusWinnerSelected
+			broadcast.UpdatedAt = time.Now().UTC()
+			return e.broadcastRepo.UpdateBroadcastTx(ctx, tx, broadcast)
+		}
+		if broadcast.Status != domain.BroadcastStatusTestCompleted {
+			return fmt.Errorf("broadcast is not waiting for a winner (%s)", broadcast.Status)
 		}
 
 		broadcast.WinningTemplate = &winnerTemplateID
