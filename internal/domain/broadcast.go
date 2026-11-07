@@ -1339,6 +1339,10 @@ type BroadcastRepository interface {
 	// Transaction-aware methods
 	CreateBroadcastTx(ctx context.Context, tx *sql.Tx, broadcast *Broadcast) error
 	GetBroadcastTx(ctx context.Context, tx *sql.Tx, workspaceID, broadcastID string) (*Broadcast, error)
+	// GetBroadcastForUpdateTx is GetBroadcastTx with the row locked (FOR UPDATE)
+	// until the transaction ends: writers that read the broadcast and then write
+	// a decision based on it, such as choosing an A/B winner, take turns.
+	GetBroadcastForUpdateTx(ctx context.Context, tx *sql.Tx, workspaceID, broadcastID string) (*Broadcast, error)
 	UpdateBroadcastTx(ctx context.Context, tx *sql.Tx, broadcast *Broadcast) error
 	// UpdateBroadcastStatusTx updates only status-lifecycle fields (status,
 	// timestamps, pause_reason). Unlike UpdateBroadcastTx, it does not reject
