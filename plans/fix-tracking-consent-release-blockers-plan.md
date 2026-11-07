@@ -35,15 +35,15 @@ Reachable whenever no test send recorded the metric:
 
 ### Change (console only)
 
-- `console/src/pages/BroadcastsPage.tsx`: a small exported `canSelectWinner(broadcast)` returns true for any
-  broadcast in `test_completed`, automatic winner or not, and the variations table uses it. The server already
+- `console/src/lib/abTestWinner.ts`: `canSelectWinner(broadcast)` returns true for any broadcast in
+  `test_completed`, automatic winner or not; the variations table of `console/src/pages/BroadcastsPage.tsx` uses it. The server already
   accepts this, and a broadcast in `test_completed` with an automatic winner is either before its evaluation time
   (choosing early is the owner's explicit call) or one the evaluator could not decide.
 - No backend change: the evaluator keeps refusing to crown a variation without data, as documented.
 
 ### Tests
 
-- `console/src/pages/BroadcastsPage.selectWinner.test.ts`: `canSelectWinner` is true for `test_completed` with
+- `console/src/lib/abTestWinner.test.ts`: `canSelectWinner` is true for `test_completed` with
   `auto_send_winner` true and false, false for `testing`, `winner_selected`, `processing` and `draft`.
   The first case fails before the change.
 - Backend: none changed. The existing evaluator subtest "no tracked emails anywhere: no winner" stays and pins
