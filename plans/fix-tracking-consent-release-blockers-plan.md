@@ -85,7 +85,7 @@ change amended.
 - `internal/migrations/v39_test.go`:
   - `TestV39Migration_ReinstallsEveryTriggerFunctionFromTheSharedGenerator` becomes `TestV39Migration_ReinstallsEveryTriggerFunction`: the four other functions are
     the generator's text, the contacts function is the frozen v39 body.
-  - New `TestV39Migration_InstallsNoTrackingConsentColumn`: no statement v39 issues mentions `tracking_`.
+  - New `TestV39Migration_InstallsNoColumnV43Adds`: no statement v39 issues names a column v43 adds.
   - New `TestV39WebhookContactsTriggerFunction_IsTheGeneratorWithoutTheConsentColumns`: the frozen body equals
     today's generator output with its three consent comparisons removed (pins that the two differ only there).
 - `tests/integration/v39_webhook_contacts_before_v43_test.go` (real PostgreSQL), `TestV39WebhookContactsFunctionBeforeV43`:
@@ -122,10 +122,14 @@ automatic ones (a change to released console behaviour).
 
 ## Added after the high review
 
-- `ABTestEvaluator.updateBroadcastWithWinner` reads the broadcast again inside its transaction and keeps a winner
-  the owner chose meanwhile, now that the console offers that choice during an automatic test
-  (`TestABTestEvaluator_EvaluateAndSelectWinner_KeepsAWinnerChosenMeanwhile`, `..._RereadError`). The read takes
-  no lock, so a choice committed between that read and the update can still be overwritten.
+- New `BroadcastRepository.GetBroadcastForUpdateTx` (`SELECT ... FOR UPDATE`). `ABTestEvaluator.updateBroadcastWithWinner`
+  and `BroadcastService.SelectWinner` read the broadcast through it, so the automatic evaluation and the owner's
+  choice, now offered during an automatic test, take turns: the evaluation keeps a winner the owner chose first
+  and gives none to a broadcast that left `test_completed` (paused, cancelled); the owner's choice is refused once
+  the evaluation chose. Tests: `TestBroadcastRepository_GetBroadcastForUpdateTx` (sqlmock),
+  `TestBroadcastWinnerReadLocksTheRow` (real PostgreSQL: a second locking read waits, then sees the winner),
+  `TestABTestEvaluator_EvaluateAndSelectWinner_KeepsAWinnerChosenMeanwhile`, `..._LeftTestCompletedMeanwhile`,
+  `..._WritesTheLockedRow`, `..._RereadError`; the SelectWinner service tests expect the locking read.
 - v39 lists its five functions explicitly instead of swapping the contacts body by text.
 
 ## Counter-review

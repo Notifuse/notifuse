@@ -1436,6 +1436,73 @@ func TestBroadcastRepository_GetBroadcastTx(t *testing.T) {
 	})
 }
 
+// GetBroadcastForUpdateTx is GetBroadcastTx with the row locked until the
+// transaction ends, so two writers that each read then write the winner (the
+// automatic evaluation and the owner's choice) take turns.
+func TestBroadcastRepository_GetBroadcastForUpdateTx(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	repo := NewBroadcastRepository(mocks.NewMockWorkspaceRepository(ctrl))
+
+	db, sqlMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	columns := []string{
+		"id", "workspace_id", "name", "status", "audience", "schedule",
+		"test_settings", "utm_parameters", "metadata",
+		"winning_template",
+		"test_sent_at", "winner_sent_at", "enqueued_count",
+		"created_at", "updated_at",
+		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
+		"data_feed", "tracking_mode",
+	}
+	lockingRead := `(?s)FROM broadcasts\s+WHERE id = \$1 AND workspace_id = \$2\s+FOR UPDATE`
+
+	t.Run("locks the row it reads", func(t *testing.T) {
+		sqlMock.ExpectBegin()
+		sqlMock.ExpectQuery(lockingRead).
+			WithArgs("bc123", "ws123").
+			WillReturnRows(sqlmock.NewRows(columns).AddRow(
+				"bc123", "ws123", "Test Broadcast", "test_completed",
+				[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
+				"tplB", nil, nil, 0, time.Now(), time.Now(), nil, nil, nil, nil, nil,
+				nil, nil,
+			))
+		sqlMock.ExpectCommit()
+
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		broadcast, err := repo.GetBroadcastForUpdateTx(ctx, tx, "ws123", "bc123")
+		require.NoError(t, err)
+		require.NoError(t, tx.Commit())
+		assert.Equal(t, "bc123", broadcast.ID)
+		assert.Equal(t, domain.BroadcastStatusTestCompleted, broadcast.Status)
+		require.NotNil(t, broadcast.WinningTemplate)
+		assert.Equal(t, "tplB", *broadcast.WinningTemplate)
+		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		sqlMock.ExpectBegin()
+		sqlMock.ExpectQuery(lockingRead).
+			WithArgs("missing", "ws123").
+			WillReturnError(sql.ErrNoRows)
+		sqlMock.ExpectRollback()
+
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		broadcast, err := repo.GetBroadcastForUpdateTx(ctx, tx, "ws123", "missing")
+		_ = tx.Rollback()
+		assert.Nil(t, broadcast)
+		var notFound *domain.ErrBroadcastNotFound
+		assert.ErrorAs(t, err, &notFound)
+		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+}
+
 // TestBroadcastRepository_GetBroadcast_WithDataFeed tests that the repository
 // correctly handles broadcasts with DataFeed settings.
 func TestBroadcastRepository_GetBroadcast_WithDataFeed(t *testing.T) {

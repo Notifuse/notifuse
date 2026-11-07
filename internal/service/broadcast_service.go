@@ -1490,7 +1490,9 @@ func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadc
 
 	return s.repo.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
 		// Get broadcast
-		broadcast, err := s.repo.GetBroadcastTx(ctx, tx, workspaceID, broadcastID)
+		// Locked: the automatic evaluation reads and writes the winner the same way,
+		// and the two take turns rather than one writing over the other.
+		broadcast, err := s.repo.GetBroadcastForUpdateTx(ctx, tx, workspaceID, broadcastID)
 		if err != nil {
 			return err
 		}

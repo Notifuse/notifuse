@@ -1813,7 +1813,7 @@ func TestBroadcastOrchestrator_Process_AutoWinnerEvaluationPath(t *testing.T) {
 
 	// Transaction and update during evaluation
 	mockBroadcastRepo.EXPECT().WithTransaction(gomock.Any(), "w", gomock.Any()).DoAndReturn(func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) })
-	mockBroadcastRepo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w", "b").Return(bcast, nil)
+	mockBroadcastRepo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w", "b").Return(bcast, nil)
 	mockBroadcastRepo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 	// After evaluation, phase becomes winner; ensure we can proceed with winner phase template

@@ -211,6 +211,16 @@ func (r *broadcastRepository) GetBroadcast(ctx context.Context, workspaceID, id 
 
 // GetBroadcastTx retrieves a broadcast by ID within a transaction
 func (r *broadcastRepository) GetBroadcastTx(ctx context.Context, tx *sql.Tx, workspaceID, id string) (*domain.Broadcast, error) {
+	return r.getBroadcastTx(ctx, tx, workspaceID, id, "")
+}
+
+// GetBroadcastForUpdateTx retrieves a broadcast by ID within a transaction and
+// locks its row until the transaction ends.
+func (r *broadcastRepository) GetBroadcastForUpdateTx(ctx context.Context, tx *sql.Tx, workspaceID, id string) (*domain.Broadcast, error) {
+	return r.getBroadcastTx(ctx, tx, workspaceID, id, "FOR UPDATE")
+}
+
+func (r *broadcastRepository) getBroadcastTx(ctx context.Context, tx *sql.Tx, workspaceID, id, lock string) (*domain.Broadcast, error) {
 	query := `
 		SELECT
 			id,
@@ -237,7 +247,7 @@ func (r *broadcastRepository) GetBroadcastTx(ctx context.Context, tx *sql.Tx, wo
 			tracking_mode
 		FROM broadcasts
 		WHERE id = $1 AND workspace_id = $2
-	`
+	` + lock
 
 	row := tx.QueryRowContext(ctx, query, id, workspaceID)
 

@@ -511,19 +511,17 @@ func TestV39Migration_SweepsOnlyGenuineOrphans(t *testing.T) {
 func TestV39Migration_ReinstallsEveryTriggerFunction(t *testing.T) {
 	rec := v39RecordedWorkspaceRun(t)
 
-	// The generator's set and the names below have to stay the same set, or the
-	// per-name assertions at the end of this test would silently stop covering a
-	// function the migration is supposed to converge.
-	require.Len(t, schema.WebhookTriggerFunctions(), len(v39TriggerFunctions))
-
-	expected := make(map[string]bool, len(schema.WebhookTriggerFunctions()))
-	for _, fn := range schema.WebhookTriggerFunctions() {
-		if fn == schema.WebhookContactsTriggerFunction() {
-			continue
-		}
-		expected[fn] = true
+	// The five bodies v39 installs, named here rather than taken from the
+	// generator's current set: a shipped migration must not follow that set as it
+	// grows.
+	expected := map[string]bool{
+		v39WebhookContactsTriggerFunction:              true,
+		schema.WebhookContactListsTriggerFunction():    true,
+		schema.WebhookContactSegmentsTriggerFunction(): true,
+		schema.WebhookMessageHistoryTriggerFunction():  true,
+		schema.WebhookCustomEventsTriggerFunction():    true,
 	}
-	expected[v39WebhookContactsTriggerFunction] = true
+	require.Len(t, expected, len(v39TriggerFunctions))
 
 	installed := 0
 	for _, stmt := range rec.issued {
@@ -543,12 +541,17 @@ func TestV39Migration_ReinstallsEveryTriggerFunction(t *testing.T) {
 	}
 }
 
-// v39 runs on a database below 39, which has none of the tracking consent columns
-// v43 adds to contacts: a PL/pgSQL body naming NEW.tracking_opens_consent installs
-// without complaint and then fails every UPDATE on contacts until v43 commits.
-func TestV39Migration_InstallsNoTrackingConsentColumn(t *testing.T) {
+// v39 runs on a database below 39, which has none of the columns v43 adds: a
+// PL/pgSQL body naming NEW.tracking_opens_consent installs without complaint and
+// then fails every write to its table until v43 commits.
+func TestV39Migration_InstallsNoColumnV43Adds(t *testing.T) {
 	rec := v39RecordedWorkspaceRun(t)
-	assert.NotContains(t, rec.all(), "tracking_")
+	for _, column := range []string{
+		"tracking_opens_consent", "tracking_clicks_consent", "tracking_consent_updated_at", "tracking_consent_source",
+		"opens_tracked", "clicks_tracked", "tracking_mode",
+	} {
+		assert.NotContains(t, rec.all(), column)
+	}
 }
 
 // The frozen contacts body is the generator's minus the three consent comparisons

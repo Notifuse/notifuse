@@ -529,7 +529,7 @@ func TestBroadcastService_SelectWinner_SetsWinnerAndResumesTask(t *testing.T) {
 	b.TestSettings.AutoSendWinner = false
 	b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: winner}, {VariationName: "B", TemplateID: "tplB"}}
 
-	d.repo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
+	d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 	d.repo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).Return(nil)
 
 	// Task repo: wake the task if present. Never Update: writing back the task it
@@ -578,7 +578,7 @@ func TestBroadcastService_SelectWinner_LeavesAHeldTaskToItsRun(t *testing.T) {
 	b.TestSettings.AutoSendWinner = false
 	b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: winner}, {VariationName: "B", TemplateID: "tplB"}}
 
-	d.repo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
+	d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 	d.repo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ *sql.Tx, saved *domain.Broadcast) error {
 			require.NotNil(t, saved.WinningTemplate)
@@ -619,7 +619,7 @@ func TestBroadcastService_SelectWinner_TaskGoneBeforeWake(t *testing.T) {
 			b := testBroadcast(workspaceID, broadcastID)
 			b.Status = domain.BroadcastStatusTestCompleted
 			b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: templateID}}
-			d.repo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 			d.repo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).Return(nil)
 
 			task := &domain.Task{ID: "task1", WorkspaceID: workspaceID, Status: domain.TaskStatusPending}
@@ -2353,7 +2353,7 @@ func TestBroadcastService_SelectWinner_InvalidStatus(t *testing.T) {
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
 			b := testBroadcast(workspaceID, broadcastID)
 			b.Status = domain.BroadcastStatusDraft // invalid status
-			d.repo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 			return fn(nil)
 		},
 	)
@@ -2378,7 +2378,7 @@ func TestBroadcastService_SelectWinner_InvalidTemplate(t *testing.T) {
 			b := testBroadcast(workspaceID, broadcastID)
 			b.Status = domain.BroadcastStatusTestCompleted
 			b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: "tplA"}}
-			d.repo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 			return fn(nil)
 		},
 	)
@@ -2403,7 +2403,7 @@ func TestBroadcastService_SelectWinner_UpdateFailure(t *testing.T) {
 			b := testBroadcast(workspaceID, broadcastID)
 			b.Status = domain.BroadcastStatusTestCompleted
 			b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: templateID}}
-			d.repo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 			d.repo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).Return(errors.New("update failed"))
 			return fn(nil)
 		},
@@ -2429,7 +2429,7 @@ func TestBroadcastService_SelectWinner_TaskUpdateFailure(t *testing.T) {
 			b := testBroadcast(workspaceID, broadcastID)
 			b.Status = domain.BroadcastStatusTestCompleted
 			b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: templateID}}
-			d.repo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 			d.repo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).Return(nil)
 
 			task := &domain.Task{ID: "task1", WorkspaceID: workspaceID, Status: domain.TaskStatusPaused}
@@ -2459,7 +2459,7 @@ func TestBroadcastService_SelectWinner_NoTask(t *testing.T) {
 			b := testBroadcast(workspaceID, broadcastID)
 			b.Status = domain.BroadcastStatusTestCompleted
 			b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: templateID}}
-			d.repo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 			d.repo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).Return(nil)
 
 			// No task found - should not be an error
@@ -2805,7 +2805,7 @@ func TestBroadcastService_SelectWinner_DuringTestingPhase(t *testing.T) {
 			b.TestSettings.Enabled = true
 			b.TestSettings.AutoSendWinner = false // manual selection allowed
 			b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: templateID}}
-			d.repo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 			d.repo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).Return(nil)
 
 			// No task found - should not be an error
@@ -2835,7 +2835,7 @@ func TestBroadcastService_SelectWinner_DuringSendingPhase(t *testing.T) {
 			b.TestSettings.Enabled = true
 			b.TestSettings.AutoSendWinner = false // manual selection allowed
 			b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: templateID}}
-			d.repo.EXPECT().GetBroadcastTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(ctx, gomock.Any(), workspaceID, broadcastID).Return(b, nil)
 			d.repo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).Return(nil)
 
 			// No task found - should not be an error

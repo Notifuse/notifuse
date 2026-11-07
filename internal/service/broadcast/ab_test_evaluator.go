@@ -132,27 +132,27 @@ func (e *ABTestEvaluator) selectBestVariation(ctx context.Context, workspaceID s
 
 // updateBroadcastWithWinner records the evaluated winner and returns the winner the
 // broadcast ends up with. The owner can pick a completed test's winner while the
-// evaluation runs, so the broadcast is read again inside the transaction and a
-// winner already chosen is kept rather than written over.
+// evaluation runs, so the broadcast is read again with its row locked, as
+// SelectWinner reads it: the two take turns, and a winner the owner chose first is
+// kept rather than written over.
 func (e *ABTestEvaluator) updateBroadcastWithWinner(ctx context.Context, workspaceID, broadcastID, winnerTemplateID string) (string, error) {
 	winner := winnerTemplateID
 	err := e.broadcastRepo.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
-		broadcast, err := e.broadcastRepo.GetBroadcastTx(ctx, tx, workspaceID, broadcastID)
+		broadcast, err := e.broadcastRepo.GetBroadcastForUpdateTx(ctx, tx, workspaceID, broadcastID)
 		if err != nil {
 			return err
 		}
-		if broadcast.Status != domain.BroadcastStatusTestCompleted || broadcast.WinningTemplate != nil {
-			if broadcast.WinningTemplate == nil {
-				return fmt.Errorf("broadcast left the test completed state (%s) during evaluation", broadcast.Status)
-			}
+		switch {
+		case broadcast.Status == domain.BroadcastStatusWinnerSelected && broadcast.WinningTemplate != nil:
 			winner = *broadcast.WinningTemplate
 			e.logger.WithFields(map[string]interface{}{
 				"broadcast_id":     broadcastID,
 				"evaluated_winner": winnerTemplateID,
 				"winning_template": winner,
-				"broadcast_status": string(broadcast.Status),
 			}).Info("A winner was chosen during the automatic evaluation; keeping it")
 			return nil
+		case broadcast.Status != domain.BroadcastStatusTestCompleted:
+			return fmt.Errorf("broadcast left the test completed state (%s) during evaluation", broadcast.Status)
 		}
 
 		broadcast.WinningTemplate = &winnerTemplateID
