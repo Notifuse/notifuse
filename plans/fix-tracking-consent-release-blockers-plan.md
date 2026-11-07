@@ -68,7 +68,8 @@ change amended.
 ### Change
 
 - `internal/migrations/v39.go`: v39 installs a frozen copy of the contacts webhook function as it shipped from
-  v39.0 to 42.2 (byte-identical in every tag), kept as a literal in v39.go, as v19 and v23 keep theirs. The other
+  v39.0 to 42.2 (byte-identical in every tag), kept as a literal in `internal/migrations/v39_webhook_contacts.go`,
+  as v19 and v23 keep theirs. The other
   four functions still come from the shared generator, as today.
 - `internal/database/schema/` is not changed: `WebhookContactsTriggerFunction()` stays what v43 and
   `init.go` install.
@@ -84,18 +85,18 @@ change amended.
   - `TestV39Migration_ReinstallsEveryTriggerFunctionFromTheSharedGenerator` becomes: the four other functions are
     the generator's text, the contacts function is the frozen v39 body.
   - New `TestV39Migration_InstallsNoColumnAddedAfterIt`: no statement v39 issues mentions `tracking_`.
-  - New `TestV39WebhookContactsBody_IsTheShippedBody`: the frozen body equals today's generator output with its
-    three consent comparisons removed and the line before them ending the condition (pins that the two differ only
-    there).
+  - New `TestV39WebhookContactsTriggerFunction_IsTheGeneratorWithoutTheConsentColumns`: the frozen body equals
+    today's generator output with its three consent comparisons removed (pins that the two differ only there).
 - `tests/integration/v39_webhook_contacts_before_v43_test.go` (real PostgreSQL), `TestV39WebhookContactsFunctionBeforeV43`:
   1. Fresh workspace, one contact, one enabled webhook subscription for `contact.updated`.
-  2. Bring `contacts` back to its pre-v43 shape: drop the four consent columns; disable `contact_changes_trigger`,
-     whose current body also reads them (its pre-v43 body is not what is under test).
+  2. Bring the workspace back to its pre-v43 shape with the helpers of `TestV43TrackingConsentMigration`: the
+     pre-43 `track_contact_changes()` and `webhook_contacts_trigger()` bodies, and the consent, message and
+     broadcast columns dropped.
   3. Run every registered workspace migration from v39 up to v42, each in a transaction committed, as the
      migration manager does.
   4. `UPDATE contacts SET first_name = ...` must succeed and queue one `contact.updated` delivery. Before the fix
      it fails with `record "new" has no field`.
-  5. Run v43's `UpdateWorkspace` in a transaction, re-enable the trigger, update `tracking_opens_consent` → one
+  5. Run v43's `UpdateWorkspace` in a transaction, update `tracking_opens_consent` → one
      more `contact.updated` delivery (today's body compares the consent columns again).
 
 ## Known, not addressed

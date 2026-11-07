@@ -174,7 +174,10 @@ func (m *V39Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 	// contacts, contact_lists, contact_segments, message_history and
 	// custom_events and holds it until commit, and it would buy nothing: a
 	// trigger already attached picks up a replaced body on its next invocation.
-	for _, fn := range schema.WebhookTriggerFunctions() {
+	//
+	// The contacts body is v39's own (v39WebhookContactsTriggerFunction): the
+	// generator's compares columns that only v43 adds.
+	for _, fn := range v39WebhookTriggerFunctions() {
 		if _, err := db.ExecContext(ctx, fn); err != nil {
 			return fmt.Errorf("v39: failed to reinstall webhook trigger functions: %w", err)
 		}
@@ -300,4 +303,18 @@ func (m *V39Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 
 func init() {
 	Register(&V39Migration{})
+}
+
+// v39WebhookTriggerFunctions is the shared generator's set with the contacts body
+// v39 shipped in place of today's, which reads columns a database below 39 lacks
+// until v43 adds them.
+func v39WebhookTriggerFunctions() []string {
+	fns := schema.WebhookTriggerFunctions()
+	current := schema.WebhookContactsTriggerFunction()
+	for i, fn := range fns {
+		if fn == current {
+			fns[i] = v39WebhookContactsTriggerFunction
+		}
+	}
+	return fns
 }

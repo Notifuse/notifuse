@@ -500,10 +500,14 @@ func TestV39Migration_SweepsOnlyGenuineOrphans(t *testing.T) {
 	assert.NotContains(t, strings.ToUpper(rec.all()), "DROP TABLE")
 }
 
-// Every body comes from internal/database/schema, so a workspace upgraded from
-// v19 and a workspace created from the initializer converge on identical
+// Every body but one comes from internal/database/schema, so a workspace upgraded
+// from v19 and a workspace created from the initializer converge on identical
 // behaviour. The payload is a public contract; two installs emitting different
 // shapes for the same data is what this reinstall exists to end.
+//
+// The contacts body is the exception: the generator's compares columns that only
+// v43 adds, so v39 installs the body it shipped with (v39WebhookContactsTriggerFunction)
+// and v43 installs the generator's.
 func TestV39Migration_ReinstallsEveryTriggerFunctionFromTheSharedGenerator(t *testing.T) {
 	rec := v39RecordedWorkspaceRun(t)
 
@@ -512,10 +516,14 @@ func TestV39Migration_ReinstallsEveryTriggerFunctionFromTheSharedGenerator(t *te
 	// function the migration is supposed to converge.
 	require.Len(t, schema.WebhookTriggerFunctions(), len(v39TriggerFunctions))
 
-	generated := make(map[string]bool, len(schema.WebhookTriggerFunctions()))
+	expected := make(map[string]bool, len(schema.WebhookTriggerFunctions()))
 	for _, fn := range schema.WebhookTriggerFunctions() {
-		generated[fn] = true
+		if fn == schema.WebhookContactsTriggerFunction() {
+			continue
+		}
+		expected[fn] = true
 	}
+	expected[v39WebhookContactsTriggerFunction] = true
 
 	installed := 0
 	for _, stmt := range rec.issued {
@@ -523,15 +531,39 @@ func TestV39Migration_ReinstallsEveryTriggerFunctionFromTheSharedGenerator(t *te
 			continue
 		}
 		installed++
-		assert.Truef(t, generated[stmt],
-			"v39 must install the shared generator's text verbatim, not its own copy:\n%s", stmt)
+		assert.Truef(t, expected[stmt],
+			"v39 must install the shared generator's text verbatim, or its own contacts body:\n%s", stmt)
 	}
-	assert.Equal(t, len(schema.WebhookTriggerFunctions()), installed,
-		"every generated function must be installed, and nothing else")
+	assert.Equal(t, len(expected), installed,
+		"every function must be installed once, and nothing else")
+	assert.Contains(t, rec.issued, v39WebhookContactsTriggerFunction)
 
 	for _, fn := range v39TriggerFunctions {
 		assert.Contains(t, rec.all(), "CREATE OR REPLACE FUNCTION "+fn+"()")
 	}
+}
+
+// v39 runs on a database below 39, which has none of the tracking consent columns
+// v43 adds: a PL/pgSQL body naming NEW.tracking_opens_consent installs without
+// complaint and then fails every UPDATE on contacts until v43 commits.
+func TestV39Migration_InstallsNoColumnAddedAfterIt(t *testing.T) {
+	rec := v39RecordedWorkspaceRun(t)
+	assert.NotContains(t, rec.all(), "tracking_")
+}
+
+// The frozen contacts body is the generator's minus the three consent comparisons
+// v43 added, so the two differ there and nowhere else.
+func TestV39WebhookContactsTriggerFunction_IsTheGeneratorWithoutTheConsentColumns(t *testing.T) {
+	const consentComparisons = " AND\n" +
+		"\t\t\t\t   NEW.tracking_opens_consent IS NOT DISTINCT FROM OLD.tracking_opens_consent AND\n" +
+		"\t\t\t\t   NEW.tracking_clicks_consent IS NOT DISTINCT FROM OLD.tracking_clicks_consent AND\n" +
+		"\t\t\t\t   NEW.tracking_consent_source IS NOT DISTINCT FROM OLD.tracking_consent_source THEN"
+
+	current := schema.WebhookContactsTriggerFunction()
+	require.Equal(t, 1, strings.Count(current, consentComparisons),
+		"the generator no longer ends its comparison with the three consent columns")
+
+	assert.Equal(t, strings.Replace(current, consentComparisons, " THEN", 1), v39WebhookContactsTriggerFunction)
 }
 
 // The functions are reinstalled first, while the migration has done no real work
