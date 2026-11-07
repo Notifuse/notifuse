@@ -132,6 +132,26 @@ automatic ones (a change to released console behaviour).
   `..._WritesTheLockedRow`, `..._RereadError`; the SelectWinner service tests expect the locking read.
 - v39 lists its five functions explicitly instead of swapping the contacts body by text.
 
+## After the third high review (Pierre chose to fix every remaining finding)
+
+- `ABTestEvaluator.updateBroadcastWithWinner` keeps a winner already on the locked row while the broadcast is in
+  `test_completed`, `winner_selected` or `processing` (on `test_completed` it moves the status to
+  `winner_selected`), and refuses any other status ("is not waiting for a winner"). Tests:
+  `..._KeepsAWinnerAlreadyRecorded` (three statuses), `..._RefusesARowThatAwaitsNoWinner`, which says it pins a
+  guard: pause and cancel refuse `test_completed` today.
+- `BroadcastOrchestrator.handleTestPhaseCompletion` reads the row with `GetBroadcastForUpdateTx` and writes
+  `test_completed` with `UpdateBroadcastTx` in that transaction, so an owner's pick is not written over. A failed
+  locked read writes nothing. Tests: `TestHandleTestPhaseCompletion_*` (write under the lock, read error), and
+  the orchestrator `Process` tests through `expectLockedTestCompletion`.
+- `BroadcastService.SelectWinner` wakes the task after its transaction commits; a wake error returns with the
+  winner saved, and repeating the recorded pick only wakes the task. Tests: `..._SetsWinnerAndResumesTask` (wake
+  after commit), `..._WakeErrorKeepsTheSavedWinner`, `..._RepeatingTheRecordedPickWakesTheTask`,
+  `..._RefusesADifferentPickOnceChosen`.
+- `getBroadcastQuery` lists the broadcast columns once for `GetBroadcast` and `getBroadcastTx`.
+- The orchestrator tests give the locked read its own copy and check that the evaluator writes it.
+- `TestV39Migration_ReinstallsEveryTriggerFunction` pins five bodies; `TestBroadcastWinnerReadLocksTheRow` shows a
+  blocked locking read returning the committed winner (it fails when `FOR UPDATE` is removed).
+
 ## Counter-review
 
 The Gemini key was refused, so on Pierre's request the plan was counter-reviewed by an independent xhigh
