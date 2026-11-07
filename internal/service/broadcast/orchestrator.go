@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"slices"
@@ -1596,45 +1597,83 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 
 // handleTestPhaseCompletion handles the transition from test phase to test_completed status
 func (o *BroadcastOrchestrator) handleTestPhaseCompletion(ctx context.Context, broadcast *domain.Broadcast, broadcastState *domain.SendBroadcastState) bool {
-	// Re-fetch latest broadcast state to avoid race with concurrent winner selection
-	if latest, err := o.broadcastRepo.GetBroadcast(ctx, broadcast.WorkspaceID, broadcast.ID); err == nil && latest != nil {
-		if latest.WinningTemplate != nil || latest.Status == domain.BroadcastStatusWinnerSelected {
-			// Winner was selected concurrently; transition to winner phase instead of marking test_completed
-			broadcastState.Phase = "winner"
-			// Get winning template as string for logging
-			winningTemplate := ""
-			if latest.WinningTemplate != nil {
-				winningTemplate = *latest.WinningTemplate
-			}
-			o.logger.WithFields(map[string]interface{}{
-				"broadcast_id":     latest.ID,
-				"winning_template": winningTemplate,
-				"broadcast_status": string(latest.Status),
-			}).Info("Concurrent winner selection detected during test completion - transitioning to winner phase")
-			return false
-		}
-	}
-
-	// Mark test phase as completed in state
-	broadcastState.TestPhaseCompleted = true
-
-	// Update broadcast status to test_completed
-	broadcast.Status = domain.BroadcastStatusTestCompleted
-	broadcast.UpdatedAt = time.Now().UTC()
-
-	// Set test completion time
+	// The owner can pick a winner during the test phase. The row is read with its
+	// lock, as SelectWinner and the automatic evaluation read it, so the three take
+	// turns: a pick made first sends this run to the winner phase, and one made
+	// after finds the broadcast in test_completed instead of being written over.
+	// The run's own copy is what gets written, so the locked row also tells
+	// whether the broadcast is still in its test phase.
 	now := time.Now().UTC()
-	if broadcast.TestSentAt == nil {
-		broadcast.TestSentAt = &now
-	}
+	var concurrent *domain.Broadcast
+	var left domain.BroadcastStatus
+	waiting := false
+	err := o.broadcastRepo.WithTransaction(context.Background(), broadcast.WorkspaceID, func(tx *sql.Tx) error {
+		latest, err := o.broadcastRepo.GetBroadcastForUpdateTx(context.Background(), tx, broadcast.WorkspaceID, broadcast.ID)
+		if err != nil {
+			return err
+		}
+		if latest.WinningTemplate != nil || latest.Status == domain.BroadcastStatusWinnerSelected {
+			concurrent = latest
+			return nil
+		}
+		if latest.Status == domain.BroadcastStatusTestCompleted {
+			// An earlier run already completed the test phase; this one only
+			// finds it still waiting for a winner.
+			waiting = true
+			return nil
+		}
+		if latest.Status != domain.BroadcastStatusTesting && latest.Status != domain.BroadcastStatusProcessing {
+			// Paused or cancelled since this run last refreshed it. The run's copy
+			// is written whole, so writing it now would undo that; the next run's
+			// refresh handles the new status instead.
+			left = latest.Status
+			return nil
+		}
 
-	// Save the updated broadcast status
-	if err := o.broadcastRepo.UpdateBroadcast(context.Background(), broadcast); err != nil {
+		// Mark test phase as completed in state
+		broadcastState.TestPhaseCompleted = true
+
+		// Update broadcast status to test_completed
+		broadcast.Status = domain.BroadcastStatusTestCompleted
+		broadcast.UpdatedAt = now
+		if broadcast.TestSentAt == nil {
+			broadcast.TestSentAt = &now
+		}
+		return o.broadcastRepo.UpdateBroadcastTx(context.Background(), tx, broadcast)
+	})
+	if err != nil {
 		o.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcast.ID,
 			"error":        err.Error(),
 		}).Error("Failed to update broadcast status to test_completed")
 		return false // Continue processing despite error
+	}
+
+	if waiting {
+		return false // Still waiting for winner selection
+	}
+
+	if left != "" {
+		o.logger.WithFields(map[string]interface{}{
+			"broadcast_id":     broadcast.ID,
+			"broadcast_status": string(left),
+		}).Info("Broadcast left the test phase before it completed - leaving its status as it is")
+		return false
+	}
+
+	if concurrent != nil {
+		// Winner was selected concurrently; transition to winner phase instead of marking test_completed
+		broadcastState.Phase = "winner"
+		winningTemplate := ""
+		if concurrent.WinningTemplate != nil {
+			winningTemplate = *concurrent.WinningTemplate
+		}
+		o.logger.WithFields(map[string]interface{}{
+			"broadcast_id":     concurrent.ID,
+			"winning_template": winningTemplate,
+			"broadcast_status": string(concurrent.Status),
+		}).Info("Concurrent winner selection detected during test completion - transitioning to winner phase")
+		return false
 	}
 
 	o.logger.WithFields(map[string]interface{}{

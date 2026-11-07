@@ -60,6 +60,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import React, { useState, useEffect, useRef } from 'react'
 import dayjs from '../lib/dayjs'
+import { canSelectWinner } from '../lib/abTestWinner'
 import { UpsertBroadcastDrawer } from '../components/broadcasts/UpsertBroadcastDrawer'
 import { SendOrScheduleModal } from '../components/broadcasts/SendOrScheduleModal'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
@@ -992,9 +993,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                     width: 150,
                     align: 'right',
                     render: (_, record) => {
-                      const canSelectWinner =
-                        broadcast.status === 'test_completed' &&
-                        !broadcast.test_settings.auto_send_winner
+                      const winnerSelectable = canSelectWinner(broadcast)
                       return (
                         // Stop clicks here from toggling the row's expand-on-click.
                         <Space size="small" onClick={(e) => e.stopPropagation()}>
@@ -1052,7 +1051,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                               )}
                             </>
                           </Tooltip>
-                          {canSelectWinner && record.templateId && (
+                          {winnerSelectable && record.templateId && (
                             <Tooltip
                               title={
                                 !permissions?.broadcasts?.write
