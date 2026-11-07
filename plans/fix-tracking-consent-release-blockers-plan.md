@@ -146,10 +146,11 @@ automatic ones (a change to released console behaviour).
   guard: pause and cancel refuse `test_completed` today.
 - `BroadcastOrchestrator.handleTestPhaseCompletion` reads the row with `GetBroadcastForUpdateTx` and writes
   `test_completed` with `UpdateBroadcastTx` in that transaction, so an owner's pick is not written over. The run's
-  own copy is what gets written, so a row no longer in `testing` or `processing` (paused or cancelled meanwhile)
-  is left as it is, for the next run's refresh. A failed locked read writes nothing. Tests:
-  `TestHandleTestPhaseCompletion_*` (write under the lock, left the test phase meanwhile, read error), and the
-  orchestrator `Process` tests through `expectLockedTestCompletion`.
+  own copy is what gets written, so a row already in `test_completed` (a later run while the test waits for its
+  winner) gets no write, and a row in any other status but `testing` or `processing` (paused or cancelled
+  meanwhile) is left as it is, for the next run's refresh. A failed locked read writes nothing. Tests:
+  `TestHandleTestPhaseCompletion_*` (write under the lock, already completed, left the test phase meanwhile, read
+  error), and the orchestrator `Process` tests through `expectLockedTestCompletion`.
 - `BroadcastService.SelectWinner` wakes the task after its transaction commits; a wake error returns with the
   winner saved, and repeating the pick recorded on a broadcast in `winner_selected` only wakes the task. Tests: `..._SetsWinnerAndResumesTask` (wake
   after commit), `..._WakeErrorKeepsTheSavedWinner`, `..._RepeatingTheRecordedPickWakesTheTask`,

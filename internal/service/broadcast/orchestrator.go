@@ -1606,6 +1606,7 @@ func (o *BroadcastOrchestrator) handleTestPhaseCompletion(ctx context.Context, b
 	now := time.Now().UTC()
 	var concurrent *domain.Broadcast
 	var left domain.BroadcastStatus
+	waiting := false
 	err := o.broadcastRepo.WithTransaction(context.Background(), broadcast.WorkspaceID, func(tx *sql.Tx) error {
 		latest, err := o.broadcastRepo.GetBroadcastForUpdateTx(context.Background(), tx, broadcast.WorkspaceID, broadcast.ID)
 		if err != nil {
@@ -1613,6 +1614,12 @@ func (o *BroadcastOrchestrator) handleTestPhaseCompletion(ctx context.Context, b
 		}
 		if latest.WinningTemplate != nil || latest.Status == domain.BroadcastStatusWinnerSelected {
 			concurrent = latest
+			return nil
+		}
+		if latest.Status == domain.BroadcastStatusTestCompleted {
+			// An earlier run already completed the test phase; this one only
+			// finds it still waiting for a winner.
+			waiting = true
 			return nil
 		}
 		if latest.Status != domain.BroadcastStatusTesting && latest.Status != domain.BroadcastStatusProcessing {
@@ -1640,6 +1647,10 @@ func (o *BroadcastOrchestrator) handleTestPhaseCompletion(ctx context.Context, b
 			"error":        err.Error(),
 		}).Error("Failed to update broadcast status to test_completed")
 		return false // Continue processing despite error
+	}
+
+	if waiting {
+		return false // Still waiting for winner selection
 	}
 
 	if left != "" {
