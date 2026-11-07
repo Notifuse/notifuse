@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [43.0] - WIP
+## [43.0] - 2026-11-07
 
 - **Feature**: Contacts can now agree to or refuse open tracking and click tracking, each on its own. Their choice is stored on the contact (`tracking_opens_consent`, `tracking_clicks_consent`, with the date and source of the change), set through the API, the console, CSV import and the notification center, exported, filterable in the contact list and in segments, usable as an automation trigger field, and sent in contact webhooks. A contact who refused gets no open pixel or no tracked links, and a later refusal also stops recording opens and clicks of emails already sent.
 
@@ -15,8 +15,6 @@ All notable changes to this project will be documented in this file.
 - **Improvement**: Open and click rates, in broadcast statistics, A/B test results, the analytics dashboard and per-link click rates, are now counted over the emails that were tracked, and their tooltip says how many when some were not. The automatic A/B winner is chosen the same way; when no variation has a tracked email for its metric, you pick the winner, and the console now offers that choice on every completed test, including those set to choose their winner automatically. Emails sent before the upgrade count as tracked, so their rates do not change.
 
   Contact webhook payloads gain the four tracking consent fields; make sure a receiver that validates payloads accepts them.
-
-## [42.3] - WIP
 
 - **Improvement**: From this version on, automations carry contacts through more than ten steps in a row without a delay, and a journey interrupted between two steps, by a restart for instance, picks up again at the next step.
 
