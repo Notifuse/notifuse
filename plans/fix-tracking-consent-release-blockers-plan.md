@@ -113,6 +113,11 @@ change amended.
   `unknown_consent = no_track`, and after a failed evaluation the broadcast page still describes the automatic
   send rather than asking the owner to pick.
 - The integration test repeats the pre-43 revert of `TestV43TrackingConsentMigration` instead of sharing a helper.
+- Other whole-row broadcast writes of the orchestrator still use the run's copy without the lock: the switch to
+  `testing` at run start and the circuit-breaker pause. A pick that `SelectWinner` accepts in `processing` (manual
+  test) just before the switch to `testing` can be written over (older than this PR).
+- On a broadcast in `processing` with a winner (winner phase resumed after a pause), `SelectWinner` still accepts
+  a different template (older than this PR).
 
 ## CHANGELOG
 
@@ -140,11 +145,13 @@ automatic ones (a change to released console behaviour).
   `..._KeepsAWinnerAlreadyRecorded` (three statuses), `..._RefusesARowThatAwaitsNoWinner`, which says it pins a
   guard: pause and cancel refuse `test_completed` today.
 - `BroadcastOrchestrator.handleTestPhaseCompletion` reads the row with `GetBroadcastForUpdateTx` and writes
-  `test_completed` with `UpdateBroadcastTx` in that transaction, so an owner's pick is not written over. A failed
-  locked read writes nothing. Tests: `TestHandleTestPhaseCompletion_*` (write under the lock, read error), and
-  the orchestrator `Process` tests through `expectLockedTestCompletion`.
+  `test_completed` with `UpdateBroadcastTx` in that transaction, so an owner's pick is not written over. The run's
+  own copy is what gets written, so a row no longer in `testing` or `processing` (paused or cancelled meanwhile)
+  is left as it is, for the next run's refresh. A failed locked read writes nothing. Tests:
+  `TestHandleTestPhaseCompletion_*` (write under the lock, left the test phase meanwhile, read error), and the
+  orchestrator `Process` tests through `expectLockedTestCompletion`.
 - `BroadcastService.SelectWinner` wakes the task after its transaction commits; a wake error returns with the
-  winner saved, and repeating the recorded pick only wakes the task. Tests: `..._SetsWinnerAndResumesTask` (wake
+  winner saved, and repeating the pick recorded on a broadcast in `winner_selected` only wakes the task. Tests: `..._SetsWinnerAndResumesTask` (wake
   after commit), `..._WakeErrorKeepsTheSavedWinner`, `..._RepeatingTheRecordedPickWakesTheTask`,
   `..._RefusesADifferentPickOnceChosen`.
 - `getBroadcastQuery` lists the broadcast columns once for `GetBroadcast` and `getBroadcastTx`.

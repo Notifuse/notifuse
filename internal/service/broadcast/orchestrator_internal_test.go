@@ -236,7 +236,7 @@ func TestHandleTestPhaseCompletion_UpdateStatus(t *testing.T) {
 			return fn(nil)
 		},
 	)
-	bcRepo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), b.WorkspaceID, b.ID).Return(&domain.Broadcast{ID: b.ID, WorkspaceID: b.WorkspaceID}, nil)
+	bcRepo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), b.WorkspaceID, b.ID).Return(&domain.Broadcast{ID: b.ID, WorkspaceID: b.WorkspaceID, Status: domain.BroadcastStatusTesting}, nil)
 	bcRepo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ *sql.Tx, updated *domain.Broadcast) error {
 			assert.True(t, inTx, "test_completed must be written while the row is locked")
@@ -272,7 +272,7 @@ func TestHandleTestPhaseCompletion_UpdateStatusError(t *testing.T) {
 	bcRepo.EXPECT().WithTransaction(gomock.Any(), b.WorkspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
 	)
-	bcRepo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), b.WorkspaceID, b.ID).Return(&domain.Broadcast{ID: b.ID}, nil)
+	bcRepo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), b.WorkspaceID, b.ID).Return(&domain.Broadcast{ID: b.ID, Status: domain.BroadcastStatusProcessing}, nil)
 	bcRepo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("db"))
 
 	done := orch.handleTestPhaseCompletion(ctx, b, state)
@@ -306,6 +306,41 @@ func TestHandleTestPhaseCompletion_LockedReadError(t *testing.T) {
 	done := orch.handleTestPhaseCompletion(ctx, b, state)
 	assert.False(t, done)
 	assert.Equal(t, "test", state.Phase)
+}
+
+// A broadcast paused or cancelled since the run's last refresh keeps that
+// status: the run's copy, still in its test phase, is not written over it.
+func TestHandleTestPhaseCompletion_LeftTheTestPhaseMeanwhile(t *testing.T) {
+	for _, status := range []domain.BroadcastStatus{domain.BroadcastStatusPaused, domain.BroadcastStatusCancelled} {
+		t.Run(string(status), func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			ctx := context.Background()
+			bcRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+			logger := pkgmocks.NewMockLogger(ctrl)
+			logger.EXPECT().WithFields(gomock.Any()).Return(logger).AnyTimes()
+			logger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+			orch := minimalOrchestrator(ctrl, bcRepo, logger, NewRealTimeProvider(), nil)
+
+			b := &domain.Broadcast{ID: "b1", WorkspaceID: "w1", Status: domain.BroadcastStatusProcessing, TestSettings: domain.BroadcastTestSettings{Enabled: true}}
+			state := &domain.SendBroadcastState{Phase: "test"}
+
+			bcRepo.EXPECT().WithTransaction(gomock.Any(), b.WorkspaceID, gomock.Any()).DoAndReturn(
+				func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
+			)
+			bcRepo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), b.WorkspaceID, b.ID).Return(&domain.Broadcast{ID: b.ID, WorkspaceID: b.WorkspaceID, Status: status}, nil)
+			bcRepo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			bcRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Times(0)
+
+			done := orch.handleTestPhaseCompletion(ctx, b, state)
+			assert.False(t, done)
+			assert.Equal(t, "test", state.Phase)
+			assert.False(t, state.TestPhaseCompleted)
+			assert.Equal(t, domain.BroadcastStatusProcessing, b.Status, "the run's copy is left as it was")
+		})
+	}
 }
 
 func TestHandleTestPhaseCompletion_AutoWinnerLogsEvaluationTime(t *testing.T) {
@@ -347,6 +382,7 @@ func TestHandleTestPhaseCompletion_AutoWinnerLogsEvaluationTime(t *testing.T) {
 	)
 	bcRepo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), b.WorkspaceID, b.ID).Return(&domain.Broadcast{
 		ID:           b.ID,
+		Status:       domain.BroadcastStatusTesting,
 		TestSettings: b.TestSettings,
 	}, nil)
 

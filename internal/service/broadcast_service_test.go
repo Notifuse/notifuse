@@ -649,9 +649,8 @@ func TestBroadcastService_SelectWinner_TaskGoneBeforeWake(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// A wake that fails after the winner is saved returns its error, and repeating
-// the same pick wakes the task without saving anything again, so the owner can
-// retry.
+// A wake that fails after the winner is saved returns its error and leaves the
+// winner saved (the next test covers the owner repeating that pick).
 func TestBroadcastService_SelectWinner_WakeErrorKeepsTheSavedWinner(t *testing.T) {
 	d := setupBroadcastSvc(t)
 	defer d.ctrl.Finish()
@@ -681,6 +680,8 @@ func TestBroadcastService_SelectWinner_WakeErrorKeepsTheSavedWinner(t *testing.T
 	assert.Contains(t, err.Error(), "system db down")
 }
 
+// Repeating the pick recorded on a broadcast in winner_selected saves nothing
+// again and wakes the task.
 func TestBroadcastService_SelectWinner_RepeatingTheRecordedPickWakesTheTask(t *testing.T) {
 	d := setupBroadcastSvc(t)
 	defer d.ctrl.Finish()
@@ -710,7 +711,8 @@ func TestBroadcastService_SelectWinner_RepeatingTheRecordedPickWakesTheTask(t *t
 	require.NoError(t, d.svc.SelectWinner(ctx, workspaceID, broadcastID, templateID))
 }
 
-// Once a winner is recorded, another pick is refused and wakes nothing.
+// Once the owner's pick is recorded and the broadcast waits for its run
+// (winner_selected), another pick is refused and wakes nothing.
 func TestBroadcastService_SelectWinner_RefusesADifferentPickOnceChosen(t *testing.T) {
 	d := setupBroadcastSvc(t)
 	defer d.ctrl.Finish()

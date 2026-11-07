@@ -3272,17 +3272,20 @@ func TestProcessBroadcastTask_RecipientFeedFailure_NotMarkedAsFailed(t *testing.
 }
 
 // expectLockedTestCompletion expects the end of a test phase: the row read again
-// under its lock, as a copy distinct from the run's, and test_completed written
-// in that transaction.
+// under its lock, returned as its own copy in the test phase with no winner, and
+// the run's copy (the broadcast the run loaded, b) written as test_completed in
+// that transaction.
 func expectLockedTestCompletion(t *testing.T, repo *domainmocks.MockBroadcastRepository, b *domain.Broadcast) {
 	t.Helper()
 	repo.EXPECT().WithTransaction(gomock.Any(), b.WorkspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
 	)
 	locked := *b
+	locked.Status = domain.BroadcastStatusTesting
 	repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), b.WorkspaceID, b.ID).Return(&locked, nil)
 	repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ *sql.Tx, updated *domain.Broadcast) error {
+			assert.Same(t, b, updated, "the run's copy is written")
 			assert.Equal(t, domain.BroadcastStatusTestCompleted, updated.Status)
 			return nil
 		},

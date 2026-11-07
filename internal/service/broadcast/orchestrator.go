@@ -1601,8 +1601,11 @@ func (o *BroadcastOrchestrator) handleTestPhaseCompletion(ctx context.Context, b
 	// lock, as SelectWinner and the automatic evaluation read it, so the three take
 	// turns: a pick made first sends this run to the winner phase, and one made
 	// after finds the broadcast in test_completed instead of being written over.
+	// The run's own copy is what gets written, so the locked row also tells
+	// whether the broadcast is still in its test phase.
 	now := time.Now().UTC()
 	var concurrent *domain.Broadcast
+	var left domain.BroadcastStatus
 	err := o.broadcastRepo.WithTransaction(context.Background(), broadcast.WorkspaceID, func(tx *sql.Tx) error {
 		latest, err := o.broadcastRepo.GetBroadcastForUpdateTx(context.Background(), tx, broadcast.WorkspaceID, broadcast.ID)
 		if err != nil {
@@ -1610,6 +1613,13 @@ func (o *BroadcastOrchestrator) handleTestPhaseCompletion(ctx context.Context, b
 		}
 		if latest.WinningTemplate != nil || latest.Status == domain.BroadcastStatusWinnerSelected {
 			concurrent = latest
+			return nil
+		}
+		if latest.Status != domain.BroadcastStatusTesting && latest.Status != domain.BroadcastStatusProcessing {
+			// Paused or cancelled since this run last refreshed it. The run's copy
+			// is written whole, so writing it now would undo that; the next run's
+			// refresh handles the new status instead.
+			left = latest.Status
 			return nil
 		}
 
@@ -1630,6 +1640,14 @@ func (o *BroadcastOrchestrator) handleTestPhaseCompletion(ctx context.Context, b
 			"error":        err.Error(),
 		}).Error("Failed to update broadcast status to test_completed")
 		return false // Continue processing despite error
+	}
+
+	if left != "" {
+		o.logger.WithFields(map[string]interface{}{
+			"broadcast_id":     broadcast.ID,
+			"broadcast_status": string(left),
+		}).Info("Broadcast left the test phase before it completed - leaving its status as it is")
+		return false
 	}
 
 	if concurrent != nil {
