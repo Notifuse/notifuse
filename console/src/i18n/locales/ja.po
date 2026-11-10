@@ -87,7 +87,7 @@ msgid "{0, plural, one {Exported # row} other {Exported # rows}}"
 msgstr "{0, plural, one {#行をエクスポートしました} other {#行をエクスポートしました}}"
 
 #. placeholder {0}: list.name
-#: src/components/templates/SendTemplateModal.tsx:379
+#: src/components/templates/SendTemplateModal.tsx:383
 msgid "{0} (broadcast audience)"
 msgstr "{0}（ブロードキャストの配信先）"
 
@@ -184,7 +184,7 @@ msgid "{0} of {1} rules match"
 msgstr "{1}件中{0}件のルールが一致"
 
 #. placeholder {0}: requeued.toLocaleString()
-#: src/pages/BroadcastsPage.tsx:1533
+#: src/pages/BroadcastsPage.tsx:1520
 msgid "{0} recipients queued for another attempt"
 msgstr "{0} 件の宛先を再送のためキューに追加しました"
 
@@ -281,7 +281,7 @@ msgstr "{total}件のオートメーション中 {0}-{1}"
 
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
-#: src/pages/BroadcastsPage.tsx:1737
+#: src/pages/BroadcastsPage.tsx:1724
 msgid "{0}-{1} of {total} broadcasts"
 msgstr "{total}件のブロードキャスト中 {0}-{1}"
 
@@ -478,9 +478,13 @@ msgstr "• コンポーネント属性が有効か確認してください"
 msgid "+ Add filter"
 msgstr "+ フィルターを追加"
 
-#: src/components/templates/SendTemplateModal.tsx:400
+#: src/components/templates/SendTemplateModal.tsx:405
 msgid "+ add from name, CC, BCC, reply-to, attachments"
 msgstr "+ 差出人名、CC、BCC、返信先、添付ファイルを追加"
+
+#: src/components/templates/SendTemplateModal.tsx:406
+msgid "+ add from name, reply-to, attachments"
+msgstr "+ 差出人名、返信先、添付ファイルを追加"
 
 #: src/components/segment/input_event_property_filters.tsx:122
 msgid "+ Add property filter"
@@ -627,7 +631,7 @@ msgstr "\"{0}\"の前回のアップロード ({1}) が見つかりました。�
 msgid "A segment with ID \"{id}\" already exists"
 msgstr "ID「{id}」のセグメントはすでに存在します"
 
-#: src/services/api/permissions.ts:641
+#: src/services/api/permissions.ts:653
 msgid "A send-only key really is send-only, and this is new in 39.0: /api/transactional.send still creates the recipient contact, but without Contacts write it stores nothing beyond the email address, and without Contacts read it refuses cc and bcc outright — the subject line is rendered against each recipient's whole record. The SMTP bridge is a second front door to the same switch, so this is also exactly what the SMTP username can do. Note that the write verb sends real mail from three separate endpoints, including one that only claims to \"test\" a provider."
 msgstr "送信専用キーは本当に送信専用です。これは39.0からの新しい挙動です: /api/transactional.send は引き続き受信者のコンタクトを作成しますが、コンタクトの書き込みがなければメールアドレス以外は一切保存せず、コンタクトの読み取りがなければ cc と bcc を完全に拒否します — 件名は各受信者のレコード全体を使ってレンダリングされるためです。SMTPブリッジは同じスイッチへのもう一つの入り口であり、SMTPユーザー名にできることもまさにこれと同じです。書き込みの動詞は3つの異なるエンドポイントから実際のメールを送信することにご注意ください。そのうち1つはプロバイダーを「テスト」すると称しているだけのものです。"
 
@@ -647,7 +651,7 @@ msgstr "勝者が選択されました。残りの受信者にメールを送信
 #: src/components/automations/nodes/ABTestNode.tsx:47
 #: src/components/automations/nodes/StatNode.tsx:87
 #: src/components/automations/nodes/StatNode.tsx:340
-#: src/pages/BroadcastsPage.tsx:1245
+#: src/pages/BroadcastsPage.tsx:1231
 msgid "A/B Test"
 msgstr "A/Bテスト"
 
@@ -768,7 +772,7 @@ msgstr "キャプションを追加..."
 msgid "Add a filter"
 msgstr "フィルターを追加"
 
-#: src/services/api/permissions.ts:780
+#: src/services/api/permissions.ts:792
 msgid "Add an annotation to the analytics timeline"
 msgstr "アナリティクスのタイムラインに注釈を追加"
 
@@ -975,11 +979,11 @@ msgstr "住所2"
 msgid "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Notifuse for every recipient of every tracked send, which is why it is off by default."
 msgstr "トラッキング対象メールのリンクに署名付きの識別情報を追加します。これにより、リンクをクリックした受信者は、サイトにコードを設置しなくても着地時に識別されます。その訪問はコンタクトレコードに紐づけられます — タイムラインの記録、ゴール、オートメーションへの登録です。自社サーバーが呼び出す identify() とは異なり、こちらはトラッキング対象の送信すべての受信者ごとにNotifuseが発行します。そのため既定では無効になっています。"
 
-#: src/components/templates/SendTemplateModal.tsx:366
+#: src/components/templates/SendTemplateModal.tsx:370
 msgid "Adds this list's unsubscribe links and the List-Unsubscribe header, as a broadcast to this list does. Unsubscribing or confirming from this test, or a bounce or complaint on it, really changes the recipient's subscription to the list."
 msgstr "このリストへのブロードキャストと同じく、このリストの配信停止リンクと List-Unsubscribe ヘッダーを追加します。このテストからの配信停止や確認、またはこのテストのバウンスや苦情によって、受信者のリスト購読が実際に変更されます。"
 
-#: src/components/templates/SendTemplateModal.tsx:365
+#: src/components/templates/SendTemplateModal.tsx:369
 msgid "Adds this list's unsubscribe links, as the broadcast does. The broadcast also goes to the list's unsubscribed contacts, so the test carries no List-Unsubscribe header. Unsubscribing or confirming from this test, or a bounce or complaint on it, really changes the recipient's subscription to the list."
 msgstr "ブロードキャストと同じく、このリストの配信停止リンクを追加します。ブロードキャストはリストの配信停止済みの連絡先にも送られるため、テストに List-Unsubscribe ヘッダーは付きません。このテストからの配信停止や確認、またはこのテストのバウンスや苦情によって、受信者のリスト購読が実際に変更されます。"
 
@@ -1006,7 +1010,7 @@ msgstr "以降"
 
 #. placeholder {0}: broadcast.test_settings.test_duration_hours
 #. placeholder {1}: broadcast.test_settings.auto_send_winner_metric === 'open_rate' ? t`opens` : t`clicks`
-#: src/pages/BroadcastsPage.tsx:1263
+#: src/pages/BroadcastsPage.tsx:1249
 msgid "After {0} hours based on highest {1}"
 msgstr "{0}時間後、最も高い{1}に基づいて"
 
@@ -1070,7 +1074,7 @@ msgstr "配置"
 #: src/components/analytics/EmailMetricsChart.tsx:297
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:124
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
-#: src/pages/BroadcastsPage.tsx:1652
+#: src/pages/BroadcastsPage.tsx:1639
 #: src/pages/TemplatesPage.tsx:124
 msgid "All"
 msgstr "すべて"
@@ -1242,7 +1246,7 @@ msgstr "注釈を更新しました"
 msgid "Annotations"
 msgstr "注釈"
 
-#: src/services/api/permissions.ts:808
+#: src/services/api/permissions.ts:820
 msgid "Annotations have no permission of their own: they deliberately answer to this switch, so a Web Analytics grant is also the right to write on the shared timeline everyone reads. Write reaches workspace configuration too — /api/workspaces.setWebAnalyticsSettings answers to Web Analytics write rather than Workspace write, including the email-link identification setting that ties recipients to their browsing. The public /track collector is governed by nothing at all: it accepts data without any authentication, and no grant here changes that."
 msgstr "注釈には独自の権限がありません。意図的にこのスイッチに従うため、Webアナリティクスの付与は、全員が読む共有タイムラインに書き込む権利でもあります。書き込みはワークスペース設定にも及びます — /api/workspaces.setWebAnalyticsSettings はワークスペースの書き込みではなくWebアナリティクスの書き込みに従い、受信者を閲覧行動に紐づけるメールリンク識別の設定も含まれます。公開されている /track コレクターは何によっても制御されていません。認証なしでデータを受け付け、ここでのどの付与もそれを変えることはありません。"
 
@@ -1288,7 +1292,7 @@ msgid "API"
 msgstr "API"
 
 #: src/components/transactional/ApiCommandModal.tsx:976
-#: src/pages/TransactionalNotificationsPage.tsx:181
+#: src/pages/TransactionalNotificationsPage.tsx:182
 msgid "API Command"
 msgstr "APIコマンド"
 
@@ -1411,7 +1415,7 @@ msgid "Are you sure you want to delete \"{0}\"?"
 msgstr "\"{0}\"を削除してもよろしいですか?"
 
 #. placeholder {0}: broadcastToDelete.name
-#: src/pages/BroadcastsPage.tsx:1821
+#: src/pages/BroadcastsPage.tsx:1808
 msgid "Are you sure you want to delete the broadcast \"{0}\"?"
 msgstr "ブロードキャスト\"{0}\"を削除してもよろしいですか?"
 
@@ -1487,7 +1491,7 @@ msgid "Are you sure you want to remove this variation?"
 msgstr "このバリエーションを削除してもよろしいですか?"
 
 #. placeholder {0}: record.templateName
-#: src/pages/BroadcastsPage.tsx:1065
+#: src/pages/BroadcastsPage.tsx:1051
 msgid "Are you sure you want to select \"{0}\" as the winner? The broadcast will be sent to the remaining recipients."
 msgstr "\"{0}\"を勝者として選択しますか?残りの受信者にブロードキャストが送信されます。"
 
@@ -1545,7 +1549,7 @@ msgstr "少なくとも1つのルートメールアドレスが必要です"
 msgid "at most"
 msgstr "最大"
 
-#: src/components/templates/SendTemplateModal.tsx:449
+#: src/components/templates/SendTemplateModal.tsx:459
 msgid "Attachments"
 msgstr "添付ファイル"
 
@@ -1565,7 +1569,7 @@ msgstr "アトリビューションルール"
 #~ msgid "Attribution rules saved. Run a backfill to rewrite historical data."
 #~ msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1112
+#: src/pages/BroadcastsPage.tsx:1098
 msgid "Audience"
 msgstr "オーディエンス"
 
@@ -1669,7 +1673,7 @@ msgstr "自動的に無効化"
 msgid "Auto-reply"
 msgstr "自動返信"
 
-#: src/pages/BroadcastsPage.tsx:1254
+#: src/pages/BroadcastsPage.tsx:1240
 msgid "Auto-send Winner"
 msgstr "勝者を自動送信"
 
@@ -1701,7 +1705,7 @@ msgstr "オートメーションを作成しました"
 msgid "Automation deleted successfully"
 msgstr "オートメーションを削除しました"
 
-#: src/services/api/permissions.ts:645
+#: src/services/api/permissions.ts:657
 msgid "Automation flows — their triggers, nodes and per-contact execution history."
 msgstr "オートメーションフロー — そのトリガー、ノード、コンタクトごとの実行履歴。"
 
@@ -1728,7 +1732,7 @@ msgstr "オートメーション:"
 msgid "Automations"
 msgstr "オートメーション"
 
-#: src/services/api/permissions.ts:694
+#: src/services/api/permissions.ts:706
 msgid "Automations write is an indirect contact read that Contacts read cannot restrain: a webhook node sends the complete contact record to any URL the automation names, and nothing checks permissions while an automation runs. The same nodes add contacts to and remove them from lists, and send email, so this switch changes list membership and sends mail with no Lists or Transactional grant at all. Automations read returns a webhook node's full configuration, including the bearer secret saved on it."
 msgstr "オートメーションの書き込みは、コンタクトの読み取りでは抑制できない間接的なコンタクトの読み取りです: Webhookノードはコンタクトのレコード全体をオートメーションが指定した任意のURLへ送信し、オートメーションの実行中は権限が一切チェックされません。同じノードがコンタクトをリストに追加したりリストから削除したりし、メールも送信します。そのため、このスイッチはリストやトランザクションの付与が一切なくてもリストのメンバーシップを変更し、メールを送信します。オートメーションの読み取りは、Webhookノードの設定全体を返します。そこに保存されているベアラーシークレットも含まれます。"
 
@@ -1871,7 +1875,7 @@ msgstr "基本情報"
 msgid "BCC"
 msgstr "BCC"
 
-#: src/components/templates/SendTemplateModal.tsx:429
+#: src/components/templates/SendTemplateModal.tsx:437
 msgid "BCC Recipients"
 msgstr "BCC宛先"
 
@@ -1958,7 +1962,7 @@ msgstr "ブロック"
 msgid "Blog"
 msgstr "ブログ"
 
-#: src/services/api/permissions.ts:422
+#: src/services/api/permissions.ts:434
 msgid "Blog categories, posts and themes, plus the workspace-level blog configuration."
 msgstr "ブログのカテゴリ、投稿、テーマ、およびワークスペースレベルのブログ設定。"
 
@@ -1982,7 +1986,7 @@ msgstr "ブログのスタイルとSEO設定"
 msgid "Blog Title"
 msgstr "ブログタイトル"
 
-#: src/services/api/permissions.ts:498
+#: src/services/api/permissions.ts:510
 msgid "Blog write publishes JavaScript on your own domain. A theme carries its own `scripts.js`, and /api/blogThemes.publish makes it live for every visitor of the blog's custom domain — so this switch is the right to run any script on your site, not just to edit content. It also reaches workspace configuration: /api/workspaces.setBlogSettings answers to Blog write rather than Workspace write, so whoever you hand the blog to can also switch the blog feature itself on or off."
 msgstr "ブログの書き込みは、自社ドメイン上でJavaScriptを公開します。テーマは独自の `scripts.js` を持ち、/api/blogThemes.publish はそれをブログのカスタムドメインのすべての訪問者に対して有効にします — つまりこのスイッチは、コンテンツを編集する権利にとどまらず、サイト上で任意のスクリプトを実行する権利です。ワークスペース設定にも及びます: /api/workspaces.setBlogSettings はワークスペースの書き込みではなくブログの書き込みに従うため、ブログを任せた相手はブログ機能そのものの有効・無効も切り替えられます。"
 
@@ -2119,7 +2123,7 @@ msgstr "バウンスタイプ"
 #: src/components/messages/MessageHistoryTab.tsx:170
 #: src/components/messages/MessageHistoryTable.tsx:360
 #: src/pages/ContactsPage.tsx:401
-#: src/pages/TransactionalNotificationsPage.tsx:251
+#: src/pages/TransactionalNotificationsPage.tsx:252
 msgid "Bounced"
 msgstr "バウンス済み"
 
@@ -2187,27 +2191,27 @@ msgid "Broadcast"
 msgstr "ブロードキャスト"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1567
+#: src/pages/BroadcastsPage.tsx:1554
 msgid "Broadcast \"{0}\" cancelled successfully"
 msgstr "ブロードキャスト\"{0}\"をキャンセルしました"
 
 #. placeholder {0}: broadcastToDelete.name
-#: src/pages/BroadcastsPage.tsx:1491
+#: src/pages/BroadcastsPage.tsx:1478
 msgid "Broadcast \"{0}\" deleted successfully"
 msgstr "ブロードキャスト\"{0}\"を削除しました"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1517
+#: src/pages/BroadcastsPage.tsx:1504
 msgid "Broadcast \"{0}\" paused successfully"
 msgstr "ブロードキャスト\"{0}\"を一時停止しました"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1605
+#: src/pages/BroadcastsPage.tsx:1592
 msgid "Broadcast \"{0}\" refreshed"
 msgstr "ブロードキャスト\"{0}\"を更新しました"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1551
+#: src/pages/BroadcastsPage.tsx:1538
 msgid "Broadcast \"{0}\" resumed successfully"
 msgstr "ブロードキャスト\"{0}\"を再開しました"
 
@@ -2230,7 +2234,7 @@ msgstr "ブロードキャストを作成しました"
 msgid "Broadcast ID"
 msgstr "ブロードキャストID"
 
-#: src/pages/BroadcastsPage.tsx:1832
+#: src/pages/BroadcastsPage.tsx:1819
 msgid "Broadcast ID copied to clipboard"
 msgstr "ブロードキャストIDをクリップボードにコピーしました"
 
@@ -2245,7 +2249,7 @@ msgstr "ブロードキャストを更新しました"
 #: src/components/analytics/EmailMetricsChart.tsx:298
 #: src/components/settings/PermissionsMatrix.tsx:136
 #: src/layouts/WorkspaceLayout.tsx:402
-#: src/pages/BroadcastsPage.tsx:1620
+#: src/pages/BroadcastsPage.tsx:1607
 #: src/services/api/errors.ts:85
 msgid "Broadcasts"
 msgstr "ブロードキャスト"
@@ -2254,11 +2258,11 @@ msgstr "ブロードキャスト"
 msgid "Broadcasts and automation emails are sent at up to this rate. Keep it at or below your provider's sending limit, minus your transactional traffic."
 msgstr "ブロードキャストとオートメーションのメールは、このレートを上限として送信されます。プロバイダーの送信上限からトランザクションメールの送信量を差し引いた値以下に設定してください。"
 
-#: src/services/api/permissions.ts:592
+#: src/services/api/permissions.ts:604
 msgid "Broadcasts write sends. The same switch that lets someone draft a campaign lets them push it to the entire audience — through /api/broadcasts.schedule, and again through /api/tasks.trigger and /api/tasks.reset on the underlying send task. Note that Broadcasts read does NOT give delivery statistics: open/click/bounce numbers come from /api/messages.broadcastStats and siblings, which are gated on Message History read. It also does not grant the recipient list — that is Contacts read."
 msgstr "ブロードキャストの書き込みは送信を行います。キャンペーンの下書きを作れるのと同じスイッチで、オーディエンス全体へ配信できます — /api/broadcasts.schedule 経由で、さらに配下の送信タスクに対する /api/tasks.trigger と /api/tasks.reset 経由でも可能です。ブロードキャストの読み取りでは配信統計は得られないことにご注意ください: 開封・クリック・バウンスの数値は /api/messages.broadcastStats とその同系エンドポイントから得られ、これらはメッセージ履歴の読み取りで制御されています。受信者リストも付与されません — それはコンタクトの読み取りです。"
 
-#: src/services/api/permissions.ts:870
+#: src/services/api/permissions.ts:882
 msgid "Browse and filter the audit log, including every member's email address and IP address"
 msgstr "各メンバーのメールアドレスと IP アドレスを含む監査ログの閲覧と絞り込み"
 
@@ -2426,7 +2430,7 @@ msgstr "キャンペーン"
 #: src/components/settings/WorkspaceMembers.tsx:479
 #: src/components/settings/WorkspaceMembers.tsx:541
 #: src/components/templates/CreateTemplateDrawer.tsx:643
-#: src/components/templates/SendTemplateModal.tsx:299
+#: src/components/templates/SendTemplateModal.tsx:303
 #: src/components/templates/TemplateTranslationsTab.tsx:282
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:180
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
@@ -2441,19 +2445,19 @@ msgstr "キャンペーン"
 #: src/pages/BroadcastsPage.tsx:646
 #: src/pages/BroadcastsPage.tsx:670
 #: src/pages/BroadcastsPage.tsx:692
-#: src/pages/BroadcastsPage.tsx:1068
-#: src/pages/BroadcastsPage.tsx:1805
+#: src/pages/BroadcastsPage.tsx:1054
+#: src/pages/BroadcastsPage.tsx:1792
 #: src/pages/ListsPage.tsx:387
 #: src/pages/TemplatesPage.tsx:366
-#: src/pages/TransactionalNotificationsPage.tsx:149
+#: src/pages/TransactionalNotificationsPage.tsx:150
 msgid "Cancel"
 msgstr "キャンセル"
 
-#: src/services/api/permissions.ts:559
+#: src/services/api/permissions.ts:571
 msgid "Cancel a broadcast"
 msgstr "ブロードキャストをキャンセルする"
 
-#: src/services/api/permissions.ts:776
+#: src/services/api/permissions.ts:788
 msgid "Cancel a running backfill"
 msgstr "実行中のバックフィルをキャンセルする"
 
@@ -2479,7 +2483,7 @@ msgstr "アップロードをキャンセルしますか?"
 
 #: src/pages/BroadcastsPage.tsx:271
 #: src/pages/BroadcastsPage.tsx:452
-#: src/pages/BroadcastsPage.tsx:1202
+#: src/pages/BroadcastsPage.tsx:1188
 msgid "Cancelled"
 msgstr "キャンセル済み"
 
@@ -2547,7 +2551,7 @@ msgstr "カテゴリ:"
 msgid "CC"
 msgstr "CC"
 
-#: src/components/templates/SendTemplateModal.tsx:418
+#: src/components/templates/SendTemplateModal.tsx:426
 msgid "CC Recipients"
 msgstr "CC宛先"
 
@@ -2583,7 +2587,7 @@ msgstr "リスト上のコンタクトの購読ステータスを変更する (�
 msgid "Change a list's settings, including its double opt-in and public flag"
 msgstr "ダブルオプトインや公開フラグを含む、リストの設定を変更する"
 
-#: src/services/api/permissions.ts:410
+#: src/services/api/permissions.ts:422
 msgid "Change a reusable template block, which changes every template that embeds it"
 msgstr "再利用可能なテンプレートブロックを変更する。これを埋め込んでいるすべてのテンプレートが変更される"
 
@@ -2591,11 +2595,11 @@ msgstr "再利用可能なテンプレートブロックを変更する。これ
 msgid "Change a segment's definition"
 msgstr "セグメントの定義を変更する"
 
-#: src/services/api/permissions.ts:845
+#: src/services/api/permissions.ts:857
 msgid "Change a subscription, including where it posts and which events it carries"
 msgstr "送信先URLと対象イベントを含む、サブスクリプションを変更する"
 
-#: src/services/api/permissions.ts:401
+#: src/services/api/permissions.ts:413
 msgid "Change a template's content, in any language"
 msgstr "任意の言語で、テンプレートのコンテンツを変更する"
 
@@ -2704,7 +2708,7 @@ msgstr "すべてクリア"
 msgid "Clear field"
 msgstr "フィールドをクリア"
 
-#: src/pages/BroadcastsPage.tsx:1751
+#: src/pages/BroadcastsPage.tsx:1738
 msgid "Clear filters"
 msgstr "フィルターをクリア"
 
@@ -2789,7 +2793,7 @@ msgstr "クリックされたリンクに次を含む"
 msgid "Clicked link contains"
 msgstr "クリックされたリンクに含まれる文字列"
 
-#: src/pages/BroadcastsPage.tsx:1263
+#: src/pages/BroadcastsPage.tsx:1249
 msgid "clicks"
 msgstr "クリック"
 
@@ -3027,7 +3031,7 @@ msgstr "完了"
 #: src/components/automations/nodes/StatNode.tsx:264
 #: src/components/automations/nodes/StatNode.tsx:353
 #: src/pages/BroadcastsPage.tsx:448
-#: src/pages/BroadcastsPage.tsx:1183
+#: src/pages/BroadcastsPage.tsx:1169
 msgid "Completed"
 msgstr "完了"
 
@@ -3107,7 +3111,7 @@ msgid "Configure outgoing webhooks to receive real-time notifications when event
 msgstr "ワークスペースでイベントが発生した際にリアルタイム通知を受け取るための送信Webhookを設定します。"
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:187
-#: src/pages/BroadcastsPage.tsx:1689
+#: src/pages/BroadcastsPage.tsx:1676
 msgid "Configure Provider"
 msgstr "プロバイダーを設定"
 
@@ -3399,7 +3403,7 @@ msgstr "{0}コードをコピー"
 msgid "Copy link"
 msgstr "リンクをコピー"
 
-#: src/pages/BroadcastsPage.tsx:1825
+#: src/pages/BroadcastsPage.tsx:1812
 msgid "Copy to clipboard"
 msgstr "クリップボードにコピー"
 
@@ -3509,7 +3513,7 @@ msgstr "この件数には、自動セキュリティスキャナーやApple Mai
 msgid "Cover"
 msgstr "カバー"
 
-#: src/services/api/permissions.ts:418
+#: src/services/api/permissions.ts:430
 msgid "Covers more than templates: reusable blocks answer to the same switch, and editing a block edits every template that embeds it. Blocks are kept with the workspace's own settings, so their content also comes back from /api/workspaces.get and from /api/workspaces.list, which needs no permission at all — Templates read is not the only way to see block content. And /api/templates.compile only checks this grant for calls arriving over the API; when the workspace compiles a template for itself, nothing is checked."
 msgstr "テンプレート以外にも及びます: 再利用可能なブロックも同じスイッチに従い、ブロックを編集するとそれを埋め込んでいるすべてのテンプレートが編集されます。ブロックはワークスペース自体の設定とともに保存されるため、その内容は /api/workspaces.get や、権限を一切必要としない /api/workspaces.list からも返ってきます — ブロックの内容を見る手段はテンプレートの読み取りだけではありません。また /api/templates.compile がこの付与を確認するのはAPI経由で届いた呼び出しのみです。ワークスペースが自分自身のためにテンプレートをコンパイルする場合は、何もチェックされません。"
 
@@ -3522,12 +3526,12 @@ msgstr "テンプレート以外にも及びます: 再利用可能なブロッ�
 msgid "Create"
 msgstr "作成"
 
-#: src/services/api/permissions.ts:459
+#: src/services/api/permissions.ts:471
 msgid "Create a blog category"
 msgstr "ブログのカテゴリを作成する"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:382
-#: src/services/api/permissions.ts:539
+#: src/services/api/permissions.ts:551
 msgid "Create a broadcast"
 msgstr "ブロードキャストを作成"
 
@@ -3547,11 +3551,11 @@ msgstr "リストを作成する"
 msgid "Create a notification"
 msgstr "通知を作成"
 
-#: src/services/api/permissions.ts:469
+#: src/services/api/permissions.ts:481
 msgid "Create a post"
 msgstr "投稿を作成する"
 
-#: src/services/api/permissions.ts:406
+#: src/services/api/permissions.ts:418
 msgid "Create a reusable template block"
 msgstr "再利用可能なテンプレートブロックを作成する"
 
@@ -3559,27 +3563,31 @@ msgstr "再利用可能なテンプレートブロックを作成する"
 msgid "Create a segment and start its first build"
 msgstr "セグメントを作成し、最初のビルドを開始する"
 
-#: src/services/api/permissions.ts:841
+#: src/services/api/permissions.ts:853
 msgid "Create a subscription that POSTs the workspace's events to any URL"
 msgstr "ワークスペースのイベントを任意のURLへPOSTするサブスクリプションを作成する"
 
-#: src/services/api/permissions.ts:398
+#: src/services/api/permissions.ts:410
 msgid "Create a template"
 msgstr "テンプレートを作成する"
 
-#: src/services/api/permissions.ts:482
+#: src/services/api/permissions.ts:494
 msgid "Create a theme version"
 msgstr "テーマのバージョンを作成する"
 
-#: src/services/api/permissions.ts:613
-msgid "Create a transactional notification"
-msgstr "トランザクション通知を作成する"
+#: src/services/api/permissions.ts:625
+#~ msgid "Create a transactional notification"
+#~ msgstr "トランザクション通知を作成する"
+
+#: src/services/api/permissions.ts:625
+msgid "Create a transactional notification (choosing its template also needs Templates read)"
+msgstr "トランザクション通知を作成する (テンプレートの選択にはテンプレートの読み取りも必要)"
 
 #: src/components/settings/ZapierSettings.tsx:191
 #~ msgid "Create a Zapier API key"
 #~ msgstr "Zapier用のAPIキーを作成"
 
-#: src/services/api/permissions.ts:674
+#: src/services/api/permissions.ts:686
 msgid "Create an automation, including webhook, email and list nodes"
 msgstr "Webhook、メール、リストのノードを含むオートメーションを作成する"
 
@@ -3608,8 +3616,8 @@ msgid "Create Automation"
 msgstr "オートメーションを作成"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:378
-#: src/pages/BroadcastsPage.tsx:1635
-#: src/pages/BroadcastsPage.tsx:1774
+#: src/pages/BroadcastsPage.tsx:1622
+#: src/pages/BroadcastsPage.tsx:1761
 msgid "Create Broadcast"
 msgstr "ブロードキャストを作成"
 
@@ -3661,8 +3669,8 @@ msgid "Create New Theme - {0}"
 msgstr "新規テーマを作成 - {0}"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:199
-#: src/pages/TransactionalNotificationsPage.tsx:407
-#: src/pages/TransactionalNotificationsPage.tsx:459
+#: src/pages/TransactionalNotificationsPage.tsx:408
+#: src/pages/TransactionalNotificationsPage.tsx:460
 msgid "Create Notification"
 msgstr "通知を作成"
 
@@ -3704,7 +3712,7 @@ msgstr "最初のオートメーションを作成"
 msgid "Create your first blog post to get started"
 msgstr "最初のブログ投稿を作成して始めましょう"
 
-#: src/pages/BroadcastsPage.tsx:1759
+#: src/pages/BroadcastsPage.tsx:1746
 msgid "Create your first broadcast to get started"
 msgstr "最初のブロードキャストを作成して始めましょう"
 
@@ -3716,7 +3724,7 @@ msgstr "最初のカテゴリを作成"
 msgid "Create your first list to get started"
 msgstr "最初のリストを作成して始めましょう"
 
-#: src/pages/TransactionalNotificationsPage.tsx:446
+#: src/pages/TransactionalNotificationsPage.tsx:447
 msgid "Create your first notification to get started"
 msgstr "最初の通知を作成して始めましょう"
 
@@ -3724,7 +3732,7 @@ msgstr "最初の通知を作成して始めましょう"
 msgid "Create Your First Post"
 msgstr "最初の投稿を作成"
 
-#: src/pages/TemplatesPage.tsx:464
+#: src/pages/TemplatesPage.tsx:454
 msgid "Create your first template to get started"
 msgstr "最初のテンプレートを作成して始めましょう"
 
@@ -3997,7 +4005,7 @@ msgstr "カスタム送信者（マーケティングメールプロバイダ）
 msgid "Custom sender (transactional email provider)"
 msgstr "カスタム送信者（トランザクションメールプロバイダ）"
 
-#: src/components/templates/SendTemplateModal.tsx:408
+#: src/components/templates/SendTemplateModal.tsx:414
 msgid "Custom sender name (optional)"
 msgstr "カスタム送信者名（任意）"
 
@@ -4090,7 +4098,7 @@ msgstr "装飾"
 msgid "Deduplication:"
 msgstr "重複排除:"
 
-#: src/components/templates/SendTemplateModal.tsx:95
+#: src/components/templates/SendTemplateModal.tsx:99
 #: src/pages/TemplatesPage.tsx:252
 msgid "default"
 msgstr "デフォルト"
@@ -4182,7 +4190,7 @@ msgstr "遅延"
 #: src/components/web_analytics/filters/FilterTable.tsx:136
 #: src/components/web_analytics/filters/FilterTable.tsx:291
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
-#: src/pages/BroadcastsPage.tsx:1815
+#: src/pages/BroadcastsPage.tsx:1802
 #: src/pages/ContactsPage.tsx:978
 #: src/pages/ListsPage.tsx:397
 msgid "Delete"
@@ -4197,15 +4205,15 @@ msgstr "削除"
 msgid "Delete {0} selected item(s)?"
 msgstr "{0}件の選択アイテムを削除しますか？"
 
-#: src/services/api/permissions.ts:804
+#: src/services/api/permissions.ts:816
 msgid "Delete a backfill task"
 msgstr "バックフィルタスクを削除する"
 
-#: src/services/api/permissions.ts:563
+#: src/services/api/permissions.ts:575
 msgid "Delete a broadcast"
 msgstr "ブロードキャストを削除する"
 
-#: src/services/api/permissions.ts:467
+#: src/services/api/permissions.ts:479
 msgid "Delete a category"
 msgstr "カテゴリを削除する"
 
@@ -4213,11 +4221,11 @@ msgstr "カテゴリを削除する"
 msgid "Delete a list"
 msgstr "リストを削除する"
 
-#: src/services/api/permissions.ts:471
+#: src/services/api/permissions.ts:483
 msgid "Delete a post"
 msgstr "投稿を削除する"
 
-#: src/services/api/permissions.ts:414
+#: src/services/api/permissions.ts:426
 msgid "Delete a reusable template block"
 msgstr "再利用可能なテンプレートブロックを削除する"
 
@@ -4229,31 +4237,31 @@ msgstr "セグメントを削除する"
 msgid "Delete a segment build/recompute task"
 msgstr "セグメントのビルド/再計算タスクを削除する"
 
-#: src/services/api/permissions.ts:589
+#: src/services/api/permissions.ts:601
 msgid "Delete a send task"
 msgstr "送信タスクを削除する"
 
-#: src/services/api/permissions.ts:849
+#: src/services/api/permissions.ts:861
 msgid "Delete a subscription"
 msgstr "サブスクリプションを削除する"
 
-#: src/services/api/permissions.ts:403
+#: src/services/api/permissions.ts:415
 msgid "Delete a template"
 msgstr "テンプレートを削除する"
 
-#: src/services/api/permissions.ts:621
+#: src/services/api/permissions.ts:633
 msgid "Delete a transactional notification"
 msgstr "トランザクション通知を削除する"
 
-#: src/services/api/permissions.ts:788
+#: src/services/api/permissions.ts:800
 msgid "Delete an annotation"
 msgstr "注釈を削除する"
 
-#: src/services/api/permissions.ts:682
+#: src/services/api/permissions.ts:694
 msgid "Delete an automation and exit every contact currently in it"
 msgstr "オートメーションを削除し、現在その中にいるすべてのコンタクトを離脱させる"
 
-#: src/services/api/permissions.ts:965
+#: src/services/api/permissions.ts:977
 msgid "Delete an integration sync task"
 msgstr "インテグレーションの同期タスクを削除する"
 
@@ -4283,7 +4291,7 @@ msgid "Delete Block"
 msgstr "ブロックを削除"
 
 #: src/pages/BroadcastsPage.tsx:733
-#: src/pages/BroadcastsPage.tsx:1800
+#: src/pages/BroadcastsPage.tsx:1787
 msgid "Delete Broadcast"
 msgstr "ブロードキャストを削除"
 
@@ -4353,7 +4361,7 @@ msgstr "テンプレートを削除"
 msgid "Delete template?"
 msgstr "テンプレートを削除しますか？"
 
-#: src/pages/TransactionalNotificationsPage.tsx:145
+#: src/pages/TransactionalNotificationsPage.tsx:146
 msgid "Delete the notification?"
 msgstr "通知を削除しますか？"
 
@@ -4438,7 +4446,7 @@ msgstr "配信済み"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:67
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:84
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:239
-#: src/pages/TransactionalNotificationsPage.tsx:217
+#: src/pages/TransactionalNotificationsPage.tsx:218
 msgid "Delivered"
 msgstr "配信済み"
 
@@ -4477,7 +4485,7 @@ msgstr "この画像を説明..."
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:330
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
 #: src/pages/ListsPage.tsx:338
-#: src/pages/TransactionalNotificationsPage.tsx:266
+#: src/pages/TransactionalNotificationsPage.tsx:267
 msgid "Description"
 msgstr "説明"
 
@@ -4711,7 +4719,7 @@ msgstr "{0}件のファイルをダウンロードしました"
 #: src/components/automations/AutomationCard.tsx:63
 #: src/components/blog/PostStatusTag.tsx:33
 #: src/pages/BroadcastsPage.tsx:180
-#: src/pages/BroadcastsPage.tsx:1653
+#: src/pages/BroadcastsPage.tsx:1640
 msgid "Draft"
 msgstr "下書き"
 
@@ -4864,7 +4872,7 @@ msgstr "編集"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
 #: src/pages/ContactsPage.tsx:972
-#: src/pages/TransactionalNotificationsPage.tsx:157
+#: src/pages/TransactionalNotificationsPage.tsx:158
 msgid "Edit"
 msgstr "編集"
 
@@ -4873,17 +4881,21 @@ msgstr "編集"
 msgid "Edit {0} translation"
 msgstr "{0}の翻訳を編集"
 
-#: src/services/api/permissions.ts:543
+#: src/services/api/permissions.ts:555
 msgid "Edit a broadcast, including its audience and templates"
 msgstr "オーディエンスとテンプレートを含む、ブロードキャストを編集する"
 
-#: src/services/api/permissions.ts:486
+#: src/services/api/permissions.ts:498
 msgid "Edit a theme version, including its scripts.js"
 msgstr "scripts.js を含む、テーマのバージョンを編集する"
 
-#: src/services/api/permissions.ts:617
-msgid "Edit a transactional notification"
-msgstr "トランザクション通知を編集する"
+#: src/services/api/permissions.ts:629
+#~ msgid "Edit a transactional notification"
+#~ msgstr "トランザクション通知を編集する"
+
+#: src/services/api/permissions.ts:629
+msgid "Edit a transactional notification (an edit that sends its channels, as every console edit does, also needs Templates read)"
+msgstr "トランザクション通知を編集する (コンソールからの編集のようにチャネルを送信する編集には、テンプレートの読み取りも必要)"
 
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:427
 msgid "Edit alt text"
@@ -4893,15 +4905,15 @@ msgstr "代替テキストを編集"
 msgid "Edit annotation"
 msgstr "注釈を編集"
 
-#: src/services/api/permissions.ts:784
+#: src/services/api/permissions.ts:796
 msgid "Edit any annotation"
 msgstr "任意の注釈を編集する"
 
-#: src/services/api/permissions.ts:678
+#: src/services/api/permissions.ts:690
 msgid "Edit any automation's nodes, including where its webhook nodes post"
 msgstr "Webhookノードの送信先を含む、任意のオートメーションのノードを編集する"
 
-#: src/services/api/permissions.ts:470
+#: src/services/api/permissions.ts:482
 msgid "Edit any post"
 msgstr "任意の投稿を編集する"
 
@@ -5122,7 +5134,7 @@ msgid "Email field mapping is required"
 msgstr "メールフィールドのマッピングが必要です"
 
 #: src/components/automations/config/EmailConfigForm.tsx:80
-#: src/components/templates/SendTemplateModal.tsx:319
+#: src/components/templates/SendTemplateModal.tsx:323
 msgid "Email Integration"
 msgstr "メール連携"
 
@@ -5181,7 +5193,7 @@ msgstr "メールプレビュー"
 msgid "Email Provider Configuration Needed"
 msgstr "メールプロバイダの設定が必要です"
 
-#: src/pages/BroadcastsPage.tsx:1678
+#: src/pages/BroadcastsPage.tsx:1665
 msgid "Email Provider Required"
 msgstr "メールプロバイダが必要です"
 
@@ -5273,7 +5285,7 @@ msgstr "デフォルトで字幕を有効化"
 msgid "Enable geo-location tracking"
 msgstr "位置情報トラッキングを有効にする"
 
-#: src/services/api/permissions.ts:853
+#: src/services/api/permissions.ts:865
 msgid "Enable or disable a subscription"
 msgstr "サブスクリプションを有効または無効にする"
 
@@ -5400,11 +5412,11 @@ msgstr "アバターURLを入力（任意）"
 msgid "Enter background image URL"
 msgstr "背景画像URLを入力"
 
-#: src/components/templates/SendTemplateModal.tsx:432
+#: src/components/templates/SendTemplateModal.tsx:440
 msgid "Enter BCC email addresses"
 msgstr "BCCメールアドレスを入力"
 
-#: src/pages/BroadcastsPage.tsx:1838
+#: src/pages/BroadcastsPage.tsx:1825
 msgid "Enter broadcast ID to confirm"
 msgstr "確認のためブロードキャストIDを入力"
 
@@ -5416,7 +5428,7 @@ msgstr "ボタンリンクURLまたは{{ url }}を入力"
 msgid "Enter button text..."
 msgstr "ボタンテキストを入力..."
 
-#: src/components/templates/SendTemplateModal.tsx:421
+#: src/components/templates/SendTemplateModal.tsx:429
 msgid "Enter CC email addresses"
 msgstr "CCメールアドレスを入力"
 
@@ -5504,7 +5516,7 @@ msgstr "数値を入力..."
 msgid "Enter preview text that appears in email clients..."
 msgstr "メールクライアントに表示されるプレビューテキストを入力..."
 
-#: src/components/templates/SendTemplateModal.tsx:442
+#: src/components/templates/SendTemplateModal.tsx:452
 msgid "Enter Reply-To email address"
 msgstr "返信先メールアドレスを入力"
 
@@ -5587,7 +5599,7 @@ msgstr "オートメーションの読み込みエラー"
 #: src/components/messages/MessageHistoryTab.tsx:605
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:497
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:448
-#: src/pages/TransactionalNotificationsPage.tsx:373
+#: src/pages/TransactionalNotificationsPage.tsx:374
 msgid "Error loading data"
 msgstr "データの読み込みエラー"
 
@@ -5618,7 +5630,7 @@ msgstr "エラー:"
 msgid "Error: {0}"
 msgstr "エラー: {0}"
 
-#: src/components/templates/SendTemplateModal.tsx:182
+#: src/components/templates/SendTemplateModal.tsx:186
 msgid "Error: {errorMessage}"
 msgstr "エラー: {errorMessage}"
 
@@ -5718,7 +5730,7 @@ msgstr "抜粋"
 msgid "Excerpt only"
 msgstr "抜粋のみ"
 
-#: src/pages/BroadcastsPage.tsx:1144
+#: src/pages/BroadcastsPage.tsx:1130
 msgid "Exclude Unsubscribed"
 msgstr "配信停止者を除外"
 
@@ -5805,7 +5817,7 @@ msgstr "HTMLをエクスポート"
 msgid "Export MJML"
 msgstr "MJMLをエクスポート"
 
-#: src/services/api/permissions.ts:878
+#: src/services/api/permissions.ts:890
 msgid "Export the audit log as CSV or NDJSON"
 msgstr "監査ログを CSV または NDJSON としてエクスポート"
 
@@ -5865,8 +5877,8 @@ msgstr "失敗"
 #: src/pages/BroadcastsPage.tsx:279
 #: src/pages/BroadcastsPage.tsx:450
 #: src/pages/BroadcastsPage.tsx:517
-#: src/pages/BroadcastsPage.tsx:1657
-#: src/pages/TransactionalNotificationsPage.tsx:234
+#: src/pages/BroadcastsPage.tsx:1644
+#: src/pages/TransactionalNotificationsPage.tsx:235
 msgid "Failed"
 msgstr "失敗"
 
@@ -5882,7 +5894,7 @@ msgstr "オートメーションの有効化に失敗しました"
 msgid "Failed to add to list: {error}"
 msgstr "リストへの追加に失敗しました: {error}"
 
-#: src/pages/BroadcastsPage.tsx:1572
+#: src/pages/BroadcastsPage.tsx:1559
 msgid "Failed to cancel broadcast"
 msgstr "ブロードキャストのキャンセルに失敗しました"
 
@@ -5966,7 +5978,7 @@ msgstr "ワークスペースの作成に失敗しました"
 msgid "Failed to delete automation"
 msgstr "オートメーションの削除に失敗しました"
 
-#: src/pages/BroadcastsPage.tsx:1504
+#: src/pages/BroadcastsPage.tsx:1491
 msgid "Failed to delete broadcast"
 msgstr "ブロードキャストの削除に失敗しました"
 
@@ -5996,7 +6008,7 @@ msgstr "招待の削除に失敗しました"
 msgid "Failed to delete list"
 msgstr "リストの削除に失敗しました"
 
-#: src/pages/TransactionalNotificationsPage.tsx:356
+#: src/pages/TransactionalNotificationsPage.tsx:357
 msgid "Failed to delete notification"
 msgstr "通知の削除に失敗しました"
 
@@ -6118,7 +6130,7 @@ msgstr "Webhookサブスクリプションの読み込みに失敗しました"
 msgid "Failed to pause automation"
 msgstr "オートメーションの一時停止に失敗しました"
 
-#: src/pages/BroadcastsPage.tsx:1522
+#: src/pages/BroadcastsPage.tsx:1509
 msgid "Failed to pause broadcast"
 msgstr "ブロードキャストの一時停止に失敗しました"
 
@@ -6132,7 +6144,7 @@ msgid "Failed to process all {0} contacts"
 msgstr "全{0}件のコンタクト処理に失敗しました"
 
 #. placeholder {0}: file.name
-#: src/components/templates/SendTemplateModal.tsx:256
+#: src/components/templates/SendTemplateModal.tsx:260
 msgid "Failed to process file {0}"
 msgstr "ファイル{0}の処理に失敗しました"
 
@@ -6186,11 +6198,11 @@ msgstr "招待の再送信に失敗しました"
 msgid "Failed to resend magic code"
 msgstr "マジックコードの再送信に失敗しました"
 
-#: src/pages/BroadcastsPage.tsx:1556
+#: src/pages/BroadcastsPage.tsx:1543
 msgid "Failed to resume broadcast"
 msgstr "ブロードキャストの再開に失敗しました"
 
-#: src/pages/BroadcastsPage.tsx:1540
+#: src/pages/BroadcastsPage.tsx:1527
 msgid "Failed to retry the recipients"
 msgstr "宛先の再送に失敗しました"
 
@@ -6268,7 +6280,7 @@ msgstr "マジックコードの送信に失敗しました"
 #. placeholder {0}: response.error
 #. placeholder {0}: response.error || 'Unknown error'
 #: src/components/settings/Integrations.tsx:1241
-#: src/components/templates/SendTemplateModal.tsx:171
+#: src/components/templates/SendTemplateModal.tsx:175
 msgid "Failed to send test email: {0}"
 msgstr "テストメールの送信に失敗しました: {0}"
 
@@ -6437,12 +6449,12 @@ msgid "File"
 msgstr "ファイル"
 
 #. placeholder {0}: file.name
-#: src/components/templates/SendTemplateModal.tsx:253
+#: src/components/templates/SendTemplateModal.tsx:257
 msgid "File {0} added"
 msgstr "ファイル {0} を追加しました"
 
 #. placeholder {0}: file.name
-#: src/components/templates/SendTemplateModal.tsx:209
+#: src/components/templates/SendTemplateModal.tsx:213
 msgid "File {0} exceeds 3MB limit"
 msgstr "ファイル {0} は3MBの制限を超えています"
 
@@ -6557,11 +6569,11 @@ msgstr "Azure Portal > Azure Active Directory > 概要で確認できます"
 msgid "Find this in Google Cloud Console > APIs & Services > Credentials"
 msgstr "Google Cloud Console > APIとサービス > 認証情報で確認できます"
 
-#: src/services/api/permissions.ts:579
+#: src/services/api/permissions.ts:591
 msgid "Fire a test data-feed request for a named recipient"
 msgstr "指定した受信者に対してテスト用のデータフィードリクエストを実行する"
 
-#: src/services/api/permissions.ts:857
+#: src/services/api/permissions.ts:869
 msgid "Fire a test delivery at the subscription's URL — write, not read, because it makes the server call out"
 msgstr "サブスクリプションのURLへテスト配信を実行する — サーバーが外部へ通信するため、読み取りではなく書き込みに属する"
 
@@ -6724,7 +6736,7 @@ msgstr "差出人メールは必須です"
 msgid "From Name"
 msgstr "差出人名"
 
-#: src/components/templates/SendTemplateModal.tsx:406
+#: src/components/templates/SendTemplateModal.tsx:412
 msgid "From Name (override)"
 msgstr "差出人名（上書き）"
 
@@ -7040,7 +7052,7 @@ msgstr "優先度の高いルールが先に評価されます (0〜1000)"
 msgid "Historical sessions and goals were written with a different rule set."
 msgstr "過去のセッションとゴールは、異なるルールセットで記録されています。"
 
-#: src/services/api/permissions.ts:916
+#: src/services/api/permissions.ts:928
 msgid "Hold a streaming conversation with the workspace's configured LLM provider, spending its credits"
 msgstr "ワークスペースに設定されたLLMプロバイダーとストリーミング形式で対話し、そのクレジットを消費する"
 
@@ -7160,7 +7172,7 @@ msgstr "アイコン/ファビコンURL"
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:149
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:360
 #: src/pages/ListsPage.tsx:336
-#: src/pages/TransactionalNotificationsPage.tsx:264
+#: src/pages/TransactionalNotificationsPage.tsx:265
 msgid "ID"
 msgstr "ID"
 
@@ -7172,7 +7184,7 @@ msgstr "IDは小文字の英字と数字のみ使用できます"
 msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "IDは小文字の英字、数字、アンダースコアのみ使用できます"
 
-#: src/pages/BroadcastsPage.tsx:1846
+#: src/pages/BroadcastsPage.tsx:1833
 #: src/pages/ListsPage.tsx:415
 msgid "ID doesn't match"
 msgstr "IDが一致しません"
@@ -7371,7 +7383,7 @@ msgid "in"
 msgstr "いずれかに一致"
 
 #. placeholder {0}: broadcast.schedule.timezone
-#: src/pages/BroadcastsPage.tsx:1170
+#: src/pages/BroadcastsPage.tsx:1156
 msgid "in {0}"
 msgstr "{0}で"
 
@@ -7380,7 +7392,7 @@ msgstr "{0}で"
 msgid "in date range"
 msgstr "日付範囲内"
 
-#: src/pages/BroadcastsPage.tsx:1169
+#: src/pages/BroadcastsPage.tsx:1155
 msgid "in recipients timezone"
 msgstr "受信者のタイムゾーンで"
 
@@ -7787,7 +7799,7 @@ msgstr "ランディングページ"
 #: src/components/contacts/ContactDetailsDrawer.tsx:457
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:96
 #: src/components/contacts/ExportContactsModal.tsx:73
-#: src/components/templates/SendTemplateModal.tsx:388
+#: src/components/templates/SendTemplateModal.tsx:392
 #: src/components/templates/TemplatePreviewDrawer.tsx:393
 #: src/pages/ContactsPage.tsx:381
 #: src/pages/ContactsPage.tsx:449
@@ -8045,7 +8057,7 @@ msgstr "Liquidブロック - クリックしてMJML + Liquidコンテンツを�
 #: src/components/messages/MessageHistoryTable.tsx:291
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:231
 #: src/components/web_analytics/tabs/DashboardTab.tsx:220
-#: src/pages/BroadcastsPage.tsx:1136
+#: src/pages/BroadcastsPage.tsx:1122
 #: src/pages/ContactsPage.tsx:385
 msgid "List"
 msgstr "リスト"
@@ -8059,19 +8071,19 @@ msgstr "リスト\"{0}\"を削除しました"
 msgid "List at least one domain to enable web analytics"
 msgstr "Webアナリティクスを有効にするには、少なくとも1つのドメインを登録してください"
 
-#: src/services/api/permissions.ts:650
+#: src/services/api/permissions.ts:662
 msgid "List automations with their complete node graphs"
 msgstr "オートメーションを、その完全なノードグラフとともに一覧表示する"
 
-#: src/services/api/permissions.ts:427
+#: src/services/api/permissions.ts:439
 msgid "List blog categories"
 msgstr "ブログのカテゴリを一覧表示する"
 
-#: src/services/api/permissions.ts:435
+#: src/services/api/permissions.ts:447
 msgid "List blog posts, including unpublished drafts"
 msgstr "未公開の下書きを含め、ブログの投稿を一覧表示する"
 
-#: src/services/api/permissions.ts:507
+#: src/services/api/permissions.ts:519
 msgid "List broadcasts with their audience and schedule"
 msgstr "ブロードキャストを、そのオーディエンスとスケジュールとともに一覧表示する"
 
@@ -8109,7 +8121,7 @@ msgstr "リストID: {0}"
 msgid "List segments with their full definition trees"
 msgstr "セグメントを、その完全な定義ツリーとともに一覧表示する"
 
-#: src/services/api/permissions.ts:703
+#: src/services/api/permissions.ts:715
 msgid "List sent messages with their recipient address, delivery and engagement timestamps, and the data each was rendered with"
 msgstr "送信済みメッセージを、受信者アドレス、配信・エンゲージメントのタイムスタンプ、各メッセージのレンダリングに使われたデータとともに一覧表示する"
 
@@ -8132,7 +8144,7 @@ msgstr "リスト購読"
 msgid "List Subscriptions"
 msgstr "リスト購読"
 
-#: src/services/api/permissions.ts:817
+#: src/services/api/permissions.ts:829
 msgid "List subscriptions with their target URL, event types and filters"
 msgstr "サブスクリプションを、その送信先URL、イベントタイプ、フィルターとともに一覧表示する"
 
@@ -8140,7 +8152,7 @@ msgstr "サブスクリプションを、その送信先URL、イベントタイ
 msgid "List templates with their full MJML bodies"
 msgstr "テンプレートを、その完全なMJML本文とともに一覧表示する"
 
-#: src/services/api/permissions.ts:748
+#: src/services/api/permissions.ts:760
 msgid "List the annotations drawn on the analytics timeline"
 msgstr "アナリティクスのタイムラインに描かれた注釈を一覧表示する"
 
@@ -8152,11 +8164,11 @@ msgstr "現在セグメントに含まれるメールアドレスを一覧表示
 msgid "List the email addresses inside a segment (also needs Segments read)"
 msgstr "セグメント内のメールアドレスを一覧表示する (セグメントの読み取りも必要)"
 
-#: src/services/api/permissions.ts:895
+#: src/services/api/permissions.ts:907
 msgid "List the raw provider callbacks, including recipient addresses and provider diagnostics"
 msgstr "受信者アドレスやプロバイダーの診断情報を含む、生のプロバイダーコールバックを一覧表示する"
 
-#: src/services/api/permissions.ts:933
+#: src/services/api/permissions.ts:945
 msgid "List the whole team — members, owners, API keys and pending invitations; without it the answer is degraded to your own row rather than refused"
 msgstr "チーム全体 — メンバー、オーナー、APIキー、保留中の招待 — を一覧表示する。これがない場合、応答は拒否されるのではなく自分自身の行のみに縮小される"
 
@@ -8164,7 +8176,7 @@ msgstr "チーム全体 — メンバー、オーナー、APIキー、保留中�
 msgid "List the workspace's reusable template blocks"
 msgstr "ワークスペースの再利用可能なテンプレートブロックを一覧表示する"
 
-#: src/services/api/permissions.ts:443
+#: src/services/api/permissions.ts:455
 msgid "List theme versions"
 msgstr "テーマのバージョンを一覧表示する"
 
@@ -8172,7 +8184,7 @@ msgstr "テーマのバージョンを一覧表示する"
 msgid "List to Check"
 msgstr "確認するリスト"
 
-#: src/services/api/permissions.ts:601
+#: src/services/api/permissions.ts:613
 msgid "List transactional notification definitions"
 msgstr "トランザクション通知の定義を一覧表示する"
 
@@ -8236,7 +8248,7 @@ msgstr "さらにイベントを読み込む"
 msgid "Load saved template"
 msgstr "保存済みテンプレートを読み込む"
 
-#: src/services/api/permissions.ts:953
+#: src/services/api/permissions.ts:965
 msgid "Load the workspace record, which read or write both admit"
 msgstr "ワークスペースのレコードを読み込む。読み取りと書き込みのいずれでも許可される"
 
@@ -8289,7 +8301,7 @@ msgstr "Webhookステータスを読み込み中..."
 #: src/pages/ListsPage.tsx:218
 #: src/pages/LogsPage.tsx:29
 #: src/pages/TemplatesPage.tsx:203
-#: src/pages/TransactionalNotificationsPage.tsx:383
+#: src/pages/TransactionalNotificationsPage.tsx:384
 msgid "Loading..."
 msgstr "読み込み中..."
 
@@ -8351,7 +8363,7 @@ msgstr "マジックコードをメールに送信しました"
 msgid "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 msgstr "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 
-#: src/components/templates/SendTemplateModal.tsx:360
+#: src/components/templates/SendTemplateModal.tsx:364
 msgid "Mailing list"
 msgstr "メーリングリスト"
 
@@ -8363,11 +8375,11 @@ msgstr "メーリングリスト、その設定と統計、およびコンタク
 msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 msgstr "ブログのメインロゴ。推奨サイズ: 200x50pxまたは同様のアスペクト比"
 
-#: src/services/api/permissions.ts:490
+#: src/services/api/permissions.ts:502
 msgid "Make a theme version live on the blog's public domain, replacing the current one"
 msgstr "テーマのバージョンをブログの公開ドメインで有効にし、現在のものを置き換える"
 
-#: src/services/api/permissions.ts:686
+#: src/services/api/permissions.ts:698
 msgid "Make an automation live and install its database trigger, so contacts begin flowing through it"
 msgstr "オートメーションを有効にしてデータベーストリガーを設置し、コンタクトが流れ始めるようにする"
 
@@ -8393,7 +8405,7 @@ msgstr "管理対象"
 
 #. placeholder {0}: integration.name
 #. placeholder {1}: integration.type
-#: src/pages/TransactionalNotificationsPage.tsx:134
+#: src/pages/TransactionalNotificationsPage.tsx:135
 msgid "Managed by {0} ({1} integration)"
 msgstr "{0}（{1}連携）によって管理"
 
@@ -8431,7 +8443,7 @@ msgstr "スパムとしてマーク"
 msgid "Marketing"
 msgstr "マーケティング"
 
-#: src/services/api/permissions.ts:502
+#: src/services/api/permissions.ts:514
 msgid "Marketing campaigns: their drafts, A/B variations, data feeds, schedules and send lifecycle."
 msgstr "マーケティングキャンペーン: その下書き、A/Bバリエーション、データフィード、スケジュール、送信のライフサイクル。"
 
@@ -8467,11 +8479,11 @@ msgstr "正規表現に一致"
 msgid "Matching contacts:"
 msgstr "一致するコンタクト:"
 
-#: src/components/templates/SendTemplateModal.tsx:456
+#: src/components/templates/SendTemplateModal.tsx:466
 msgid "Max 3MB per file, 10MB total, 20 files maximum"
 msgstr "ファイルあたり最大3MB、合計10MB、最大20ファイル"
 
-#: src/components/templates/SendTemplateModal.tsx:230
+#: src/components/templates/SendTemplateModal.tsx:234
 msgid "Maximum 20 attachments allowed"
 msgstr "添付ファイルは最大20個まで"
 
@@ -8982,11 +8994,11 @@ msgstr "オートメーションがまだありません"
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr "バックフィルはまだ実行されていません。過去のセッションとゴールにこれらのルールを適用するには、バックフィルを実行してください。"
 
-#: src/pages/BroadcastsPage.tsx:1757
+#: src/pages/BroadcastsPage.tsx:1744
 msgid "No broadcasts found"
 msgstr "ブロードキャストが見つかりません"
 
-#: src/pages/BroadcastsPage.tsx:1745
+#: src/pages/BroadcastsPage.tsx:1732
 msgid "No broadcasts match your filters"
 msgstr "フィルターに一致するブロードキャストはありません"
 
@@ -9087,7 +9099,7 @@ msgstr "メールなし"
 msgid "No email column found. Please ensure your CSV has a column with \"email\" in the name"
 msgstr "メール列が見つかりません。CSVに「email」という名前の列があることを確認してください"
 
-#: src/components/templates/SendTemplateModal.tsx:331
+#: src/components/templates/SendTemplateModal.tsx:335
 msgid "No email integrations available. Please configure one in Settings."
 msgstr "メール連携が利用できません。設定で連携を構成してください。"
 
@@ -9284,7 +9296,7 @@ msgid "No specific details provided."
 msgstr "詳細が提供されていません。"
 
 #: src/components/templates/TemplateSelectorInput.tsx:258
-#: src/pages/TemplatesPage.tsx:462
+#: src/pages/TemplatesPage.tsx:452
 msgid "No templates found"
 msgstr "テンプレートが見つかりません"
 
@@ -9293,11 +9305,11 @@ msgstr "テンプレートが見つかりません"
 msgid "No templates found for {0} category"
 msgstr "{0}カテゴリのテンプレートが見つかりません"
 
-#: src/pages/TemplatesPage.tsx:490
+#: src/pages/TemplatesPage.tsx:480
 msgid "No templates found for category \"{selectedCategory}\""
 msgstr "カテゴリ「{selectedCategory}」のテンプレートが見つかりません"
 
-#: src/pages/TemplatesPage.tsx:454
+#: src/pages/TemplatesPage.tsx:444
 msgid "No templates match your search"
 msgstr "検索に一致するテンプレートはありません"
 
@@ -9319,7 +9331,7 @@ msgstr "このコンタクトのタイムラインイベントが見つかりま
 msgid "No traffic in the last 24 hours"
 msgstr "過去24時間のトラフィックはありません"
 
-#: src/pages/TransactionalNotificationsPage.tsx:444
+#: src/pages/TransactionalNotificationsPage.tsx:445
 msgid "No transactional notifications found"
 msgstr "トランザクション通知が見つかりません"
 
@@ -9368,7 +9380,7 @@ msgstr "非アクティブ"
 msgid "None"
 msgstr "なし"
 
-#: src/components/templates/SendTemplateModal.tsx:373
+#: src/components/templates/SendTemplateModal.tsx:377
 msgid "None (no unsubscribe link)"
 msgstr "なし（配信停止リンクなし）"
 
@@ -9609,7 +9621,7 @@ msgstr "1回のみ"
 msgid "Once per contact"
 msgstr "コンタクトごとに1回"
 
-#: src/services/api/permissions.ts:920
+#: src/services/api/permissions.ts:932
 msgid "One endpoint, but it is the whole assistant: /api/llm.chat streams through the workspace's own provider integration, on the workspace's own billing. When a Firecrawl integration is configured it also lets the assistant run the scrape and search tools from the server, so this grant reaches the open web through your credentials."
 msgstr "エンドポイントは1つですが、それがアシスタント全体です: /api/llm.chat はワークスペース自身のプロバイダーインテグレーションを通じて、ワークスペース自身の課金でストリーミングします。Firecrawlのインテグレーションが設定されている場合は、アシスタントがサーバーからスクレイピングと検索のツールを実行することも可能になります。つまりこの付与は、あなたの認証情報を通じてオープンなWebにまで及びます。"
 
@@ -9708,7 +9720,7 @@ msgstr "新しいタブで開く"
 msgid "Open on web"
 msgstr "Webで開く"
 
-#: src/services/api/permissions.ts:874
+#: src/services/api/permissions.ts:886
 msgid "Open one audit entry with its before/after changes"
 msgstr "変更前後を含む監査エントリを 1 件開く"
 
@@ -9747,7 +9759,7 @@ msgstr "開封済み"
 #~ msgid "Opened the {section} section"
 #~ msgstr ""
 
-#: src/pages/BroadcastsPage.tsx:1263
+#: src/pages/BroadcastsPage.tsx:1249
 msgid "opens"
 msgstr "開封"
 
@@ -9852,7 +9864,7 @@ msgstr "OS"
 msgid "Other"
 msgstr "その他"
 
-#: src/services/api/permissions.ts:812
+#: src/services/api/permissions.ts:824
 msgid "Outbound webhook subscriptions — where the workspace POSTs its own events — and their delivery log."
 msgstr "送信Webhookサブスクリプション — ワークスペースが自身のイベントをPOSTする先 — とその配信ログ。"
 
@@ -9879,7 +9891,7 @@ msgstr "アウトセット"
 msgid "Overline"
 msgstr "上線"
 
-#: src/components/templates/SendTemplateModal.tsx:414
+#: src/components/templates/SendTemplateModal.tsx:420
 msgid "Override the default sender name for this test email"
 msgstr "このテストメールのデフォルト送信者名を上書き"
 
@@ -9984,11 +9996,11 @@ msgstr "パス形式アクセス"
 msgid "Pause"
 msgstr "一時停止"
 
-#: src/services/api/permissions.ts:551
+#: src/services/api/permissions.ts:563
 msgid "Pause a broadcast mid-send"
 msgstr "送信中のブロードキャストを一時停止する"
 
-#: src/services/api/permissions.ts:690
+#: src/services/api/permissions.ts:702
 msgid "Pause a live automation"
 msgstr "稼働中のオートメーションを一時停止する"
 
@@ -10011,7 +10023,7 @@ msgstr "ブロードキャストを一時停止しますか？"
 #: src/components/automations/AutomationCard.tsx:67
 #: src/pages/BroadcastsPage.tsx:206
 #: src/pages/BroadcastsPage.tsx:454
-#: src/pages/BroadcastsPage.tsx:1189
+#: src/pages/BroadcastsPage.tsx:1175
 msgid "Paused"
 msgstr "一時停止中"
 
@@ -10124,7 +10136,7 @@ msgstr "下からディメンションを選択してください"
 msgid "Pick a report to start from, or build your own."
 msgstr "出発点となるレポートを選ぶか、自分で作成してください。"
 
-#: src/services/api/permissions.ts:571
+#: src/services/api/permissions.ts:583
 msgid "Pick the winning A/B variation and send it to the remaining audience"
 msgstr "勝利したA/Bバリエーションを選び、残りのオーディエンスに送信する"
 
@@ -10561,12 +10573,12 @@ msgstr "プレビューモードが必要です"
 msgid "Preview Results"
 msgstr "結果をプレビュー"
 
-#: src/pages/TransactionalNotificationsPage.tsx:83
+#: src/pages/TransactionalNotificationsPage.tsx:84
 msgid "Preview template"
 msgstr "テンプレートをプレビュー"
 
-#: src/pages/BroadcastsPage.tsx:1032
-#: src/pages/TemplatesPage.tsx:386
+#: src/pages/BroadcastsPage.tsx:1018
+#: src/pages/TemplatesPage.tsx:376
 msgid "Preview Template"
 msgstr "テンプレートをプレビュー"
 
@@ -10761,7 +10773,7 @@ msgstr "公開"
 msgid "Publish"
 msgstr "公開"
 
-#: src/services/api/permissions.ts:474
+#: src/services/api/permissions.ts:486
 msgid "Publish a post to the live blog"
 msgstr "投稿を公開ブログに公開する"
 
@@ -10846,11 +10858,11 @@ msgstr "再登録"
 msgid "Read"
 msgstr "読み取り"
 
-#: src/services/api/permissions.ts:764
+#: src/services/api/permissions.ts:776
 msgid "Read a backfill task's state and progress"
 msgstr "バックフィルタスクの状態と進捗を読み取る"
 
-#: src/services/api/permissions.ts:707
+#: src/services/api/permissions.ts:719
 msgid "Read a broadcast's delivered, open, click, bounce and complaint counts"
 msgstr "ブロードキャストの配信・開封・クリック・バウンス・苦情の件数を読み取る"
 
@@ -10858,15 +10870,15 @@ msgstr "ブロードキャストの配信・開封・クリック・バウンス
 msgid "Read a list's subscriber counts by status"
 msgstr "リストの購読者数をステータス別に読み取る"
 
-#: src/services/api/permissions.ts:531
+#: src/services/api/permissions.ts:543
 msgid "Read a send task's progress"
 msgstr "送信タスクの進捗を読み取る"
 
-#: src/services/api/permissions.ts:515
+#: src/services/api/permissions.ts:527
 msgid "Read A/B test results for a broadcast"
 msgstr "ブロードキャストのA/Bテスト結果を読み取る"
 
-#: src/services/api/permissions.ts:941
+#: src/services/api/permissions.ts:953
 msgid "Read an integration sync task's state and progress"
 msgstr "インテグレーションの同期タスクの状態と進捗を読み取る"
 
@@ -10874,23 +10886,23 @@ msgstr "インテグレーションの同期タスクの状態と進捗を読み
 #~ msgid "Read and write"
 #~ msgstr ""
 
-#: src/services/api/permissions.ts:903
+#: src/services/api/permissions.ts:915
 msgid "Read is not a summary: these are the provider's own payloads, so the rows carry recipient addresses and provider diagnostics. That is why membership alone is not enough for them."
 msgstr "読み取りは要約ではありません: これらはプロバイダー自身のペイロードであり、各行には受信者アドレスとプロバイダーの診断情報が含まれます。ワークスペースのメンバーであるだけでは不十分なのはそのためです。"
 
-#: src/services/api/permissions.ts:752
+#: src/services/api/permissions.ts:764
 msgid "Read one annotation"
 msgstr "1件の注釈を読み取る"
 
-#: src/services/api/permissions.ts:654
+#: src/services/api/permissions.ts:666
 msgid "Read one automation's full node configuration, including webhook node URLs and bearer secrets"
 msgstr "WebhookノードのURLとベアラーシークレットを含む、1件のオートメーションのノード設定全体を読み取る"
 
-#: src/services/api/permissions.ts:511
+#: src/services/api/permissions.ts:523
 msgid "Read one broadcast's full configuration"
 msgstr "1件のブロードキャストの設定全体を読み取る"
 
-#: src/services/api/permissions.ts:431
+#: src/services/api/permissions.ts:443
 msgid "Read one category by ID or slug"
 msgstr "IDまたはスラッグで1件のカテゴリを読み取る"
 
@@ -10910,11 +10922,11 @@ msgstr "コンタクトに記録された1件のカスタムイベントを読�
 msgid "Read one list's full settings"
 msgstr "1件のリストの設定全体を読み取る"
 
-#: src/services/api/permissions.ts:658
+#: src/services/api/permissions.ts:670
 msgid "Read one named contact's journey through an automation, node by node"
 msgstr "指定した1件のコンタクトのオートメーション内の経路を、ノードごとに読み取る"
 
-#: src/services/api/permissions.ts:439
+#: src/services/api/permissions.ts:451
 msgid "Read one post, including unpublished drafts"
 msgstr "未公開の下書きを含め、1件の投稿を読み取る"
 
@@ -10930,7 +10942,7 @@ msgstr "1件のセグメントのビルド/再計算タスクの状態と進捗�
 msgid "Read one segment's definition and generated SQL"
 msgstr "1件のセグメントの定義と生成されたSQLを読み取る"
 
-#: src/services/api/permissions.ts:821
+#: src/services/api/permissions.ts:833
 msgid "Read one subscription; its signing secret is redacted unless you own the workspace"
 msgstr "1件のサブスクリプションを読み取る。ワークスペースのオーナーでない限り、署名シークレットは伏せられる"
 
@@ -10938,23 +10950,23 @@ msgstr "1件のサブスクリプションを読み取る。ワークスペー�
 msgid "Read one template, at any stored version"
 msgstr "保存されている任意のバージョンで、1件のテンプレートを読み取る"
 
-#: src/services/api/permissions.ts:447
+#: src/services/api/permissions.ts:459
 msgid "Read one theme version, including its scripts.js"
 msgstr "scripts.js を含む、1件のテーマのバージョンを読み取る"
 
-#: src/services/api/permissions.ts:605
+#: src/services/api/permissions.ts:617
 msgid "Read one transactional notification's channel and template configuration"
 msgstr "1件のトランザクション通知のチャネルとテンプレートの設定を読み取る"
 
-#: src/services/api/permissions.ts:715
+#: src/services/api/permissions.ts:727
 msgid "Read per-link click counts for one broadcast template"
 msgstr "1件のブロードキャストテンプレートのリンク別クリック数を読み取る"
 
-#: src/services/api/permissions.ts:451
+#: src/services/api/permissions.ts:463
 msgid "Read the currently published theme"
 msgstr "現在公開されているテーマを読み取る"
 
-#: src/services/api/permissions.ts:825
+#: src/services/api/permissions.ts:837
 msgid "Read the delivery log, including each event payload and the endpoint's response status and body"
 msgstr "各イベントのペイロードと、エンドポイントのレスポンスステータスおよび本文を含む、配信ログを読み取る"
 
@@ -10962,15 +10974,24 @@ msgstr "各イベントのペイロードと、エンドポイントのレスポ
 msgid "Read the latest post from this broadcast."
 msgstr "このブロードキャストの最新投稿を読む。"
 
-#: src/services/api/permissions.ts:756
+#: src/services/api/permissions.ts:768
 msgid "Read the progress of the historical backfill"
 msgstr "過去データのバックフィルの進捗を読み取る"
 
-#: src/services/api/permissions.ts:711
+#: src/services/api/permissions.ts:723
 msgid "Read the same counts for one A/B variation"
 msgstr "1件のA/Bバリエーションについて同じ件数を読み取る"
 
-#: src/services/api/permissions.ts:929
+#: src/services/api/permissions.ts:396
+msgid "Read the template a test email is sent from (also needs Transactional write)"
+msgstr "テストメールの送信元となるテンプレートを読み取る (トランザクションの書き込みも必要)"
+
+#: src/services/api/permissions.ts:400
+#: src/services/api/permissions.ts:404
+msgid "Read the template of a transactional notification when creating it, or when editing it with its channels as the console does (also needs Transactional write)"
+msgstr "作成時、またはコンソールと同じくチャネルを含めて編集する際に、トランザクション通知のテンプレートを読み取る (トランザクションの書き込みも必要)"
+
+#: src/services/api/permissions.ts:941
 msgid "Read the workspace record and its settings; Workspace write alone also passes, so someone who may only edit can still load what they are editing"
 msgstr "ワークスペースのレコードとその設定を読み取る。ワークスペースの書き込みだけでも通過するため、編集のみ許可されている人でも、編集対象を読み込むことができる"
 
@@ -11002,7 +11023,7 @@ msgstr "送信準備完了"
 msgid "Ready to use"
 msgstr "使用可能"
 
-#: src/pages/BroadcastsPage.tsx:1194
+#: src/pages/BroadcastsPage.tsx:1180
 msgid "Reason:"
 msgstr "理由:"
 
@@ -11035,7 +11056,7 @@ msgstr "最近使用した色"
 msgid "Recipient"
 msgstr "受信者"
 
-#: src/components/templates/SendTemplateModal.tsx:349
+#: src/components/templates/SendTemplateModal.tsx:353
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:106
 msgid "Recipient Email"
 msgstr "受信者メールアドレス"
@@ -11044,16 +11065,16 @@ msgstr "受信者メールアドレス"
 msgid "Recipient feed test completed successfully"
 msgstr "受信者フィードのテストが正常に完了しました"
 
-#: src/components/templates/SendTemplateModal.tsx:351
+#: src/components/templates/SendTemplateModal.tsx:355
 msgid "recipient@example.com"
 msgstr "recipient@example.com"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:98
-#: src/pages/BroadcastsPage.tsx:1272
+#: src/pages/BroadcastsPage.tsx:1258
 msgid "Recommended"
 msgstr "おすすめ"
 
-#: src/pages/BroadcastsPage.tsx:1270
+#: src/pages/BroadcastsPage.tsx:1256
 msgid "Recommended Winner"
 msgstr "推奨の勝者"
 
@@ -11142,7 +11163,7 @@ msgstr "更新"
 msgid "Refresh Broadcast"
 msgstr "ブロードキャストを更新"
 
-#: src/services/api/permissions.ts:575
+#: src/services/api/permissions.ts:587
 msgid "Refresh the broadcast's data feed by calling the configured external URL"
 msgstr "設定された外部URLを呼び出して、ブロードキャストのデータフィードを更新する"
 
@@ -11272,11 +11293,11 @@ msgstr "削除済み"
 msgid "Removed"
 msgstr "削除済み"
 
-#: src/services/api/permissions.ts:463
+#: src/services/api/permissions.ts:475
 msgid "Rename or re-slug a category"
 msgstr "カテゴリの名前またはスラッグを変更する"
 
-#: src/services/api/permissions.ts:949
+#: src/services/api/permissions.ts:961
 msgid "Rename the workspace's custom contact field labels"
 msgstr "ワークスペースのカスタムコンタクトフィールドのラベルを変更する"
 
@@ -11333,7 +11354,7 @@ msgstr "返信先"
 msgid "Reply To:"
 msgstr "返信先:"
 
-#: src/components/templates/SendTemplateModal.tsx:440
+#: src/components/templates/SendTemplateModal.tsx:450
 msgid "Reply-To"
 msgstr "Reply-To"
 
@@ -11411,7 +11432,7 @@ msgstr "招待を再送"
 msgid "Reset"
 msgstr "リセット"
 
-#: src/services/api/permissions.ts:800
+#: src/services/api/permissions.ts:812
 msgid "Reset a backfill task so it re-runs from the start"
 msgstr "バックフィルタスクをリセットし、最初から再実行させる"
 
@@ -11419,11 +11440,11 @@ msgstr "バックフィルタスクをリセットし、最初から再実行さ
 msgid "Reset a segment task's progress so it re-runs from the start"
 msgstr "セグメントタスクの進捗をリセットし、最初から再実行させる"
 
-#: src/services/api/permissions.ts:587
+#: src/services/api/permissions.ts:599
 msgid "Reset a send task, so a broadcast re-sends from the start"
 msgstr "送信タスクをリセットし、ブロードキャストを最初から再送信させる"
 
-#: src/services/api/permissions.ts:961
+#: src/services/api/permissions.ts:973
 msgid "Reset an integration sync task so it re-runs from the start"
 msgstr "インテグレーションの同期タスクをリセットし、最初から再実行させる"
 
@@ -11431,7 +11452,7 @@ msgstr "インテグレーションの同期タスクをリセットし、最初
 msgid "Reset formatting"
 msgstr "書式をリセット"
 
-#: src/pages/TemplatesPage.tsx:495
+#: src/pages/TemplatesPage.tsx:485
 msgid "reset the filter"
 msgstr "フィルターをリセット"
 
@@ -11505,7 +11526,7 @@ msgstr "結果:"
 msgid "Resume"
 msgstr "再開"
 
-#: src/services/api/permissions.ts:555
+#: src/services/api/permissions.ts:567
 msgid "Resume a paused broadcast, continuing the send"
 msgstr "一時停止したブロードキャストを再開し、送信を続行する"
 
@@ -11613,7 +11634,7 @@ msgstr "ルールを有効にしました"
 msgid "Rule updated"
 msgstr "ルールを更新しました"
 
-#: src/services/api/permissions.ts:796
+#: src/services/api/permissions.ts:808
 msgid "Run a backfill task immediately"
 msgstr "バックフィルタスクを直ちに実行する"
 
@@ -11621,11 +11642,11 @@ msgstr "バックフィルタスクを直ちに実行する"
 msgid "Run a segment build/recompute task immediately"
 msgstr "セグメントのビルド/再計算タスクを直ちに実行する"
 
-#: src/services/api/permissions.ts:662
+#: src/services/api/permissions.ts:674
 msgid "Run aggregate queries over the `automation_node_executions` schema"
 msgstr "`automation_node_executions` スキーマに対して集計クエリを実行する"
 
-#: src/services/api/permissions.ts:519
+#: src/services/api/permissions.ts:531
 msgid "Run aggregate queries over the `broadcasts` schema"
 msgstr "`broadcasts` スキーマに対して集計クエリを実行する"
 
@@ -11633,19 +11654,19 @@ msgstr "`broadcasts` スキーマに対して集計クエリを実行する"
 msgid "Run aggregate queries over the `contacts` schema"
 msgstr "`contacts` スキーマに対して集計クエリを実行する"
 
-#: src/services/api/permissions.ts:719
+#: src/services/api/permissions.ts:731
 msgid "Run aggregate queries over the `message_history` and `email_queue` schemas"
 msgstr "`message_history` と `email_queue` のスキーマに対して集計クエリを実行する"
 
-#: src/services/api/permissions.ts:740
+#: src/services/api/permissions.ts:752
 msgid "Run aggregate queries over the `web_sessions`, `web_pages` and `web_goals` schemas"
 msgstr "`web_sessions`、`web_pages`、`web_goals` のスキーマに対して集計クエリを実行する"
 
-#: src/services/api/permissions.ts:829
+#: src/services/api/permissions.ts:841
 msgid "Run aggregate queries over the `webhook_deliveries` schema"
 msgstr "`webhook_deliveries` スキーマに対して集計クエリを実行する"
 
-#: src/services/api/permissions.ts:957
+#: src/services/api/permissions.ts:969
 msgid "Run an integration sync task immediately"
 msgstr "インテグレーションの同期タスクを直ちに実行する"
 
@@ -11700,7 +11721,7 @@ msgstr "S3シークレットキー"
 msgid "Same Window"
 msgstr "同じウィンドウ"
 
-#: src/pages/BroadcastsPage.tsx:1247
+#: src/pages/BroadcastsPage.tsx:1233
 msgid "Sample Percentage"
 msgstr "サンプル割合"
 
@@ -11817,14 +11838,14 @@ msgstr "予約"
 msgid "Schedule for later delivery"
 msgstr "後で配信するように予約"
 
-#: src/services/api/permissions.ts:547
+#: src/services/api/permissions.ts:559
 msgid "Schedule or immediately send a broadcast to its entire audience"
 msgstr "ブロードキャストをオーディエンス全体に予約送信または即時送信する"
 
 #: src/components/blog/PostStatusTag.tsx:20
 #: src/pages/BroadcastsPage.tsx:188
-#: src/pages/BroadcastsPage.tsx:1163
-#: src/pages/BroadcastsPage.tsx:1654
+#: src/pages/BroadcastsPage.tsx:1149
+#: src/pages/BroadcastsPage.tsx:1641
 msgid "Scheduled"
 msgstr "予約済み"
 
@@ -11853,8 +11874,8 @@ msgstr "モバイルレイアウトが有効になる画面幅。一般的な値
 msgid "Search"
 msgstr "検索"
 
-#: src/pages/BroadcastsPage.tsx:1662
-#: src/pages/TemplatesPage.tsx:435
+#: src/pages/BroadcastsPage.tsx:1649
+#: src/pages/TemplatesPage.tsx:425
 msgid "Search by name"
 msgstr "名前で検索"
 
@@ -11915,7 +11936,7 @@ msgstr "セクション属性"
 msgid "Security"
 msgstr "セキュリティ"
 
-#: src/services/api/permissions.ts:527
+#: src/services/api/permissions.ts:539
 msgid "See broadcast send tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "ブロードキャストの送信タスクを参照する。タイプを指定しない一覧は、読み取りを許可されたタイプのみに絞り込まれる"
 
@@ -11923,7 +11944,7 @@ msgstr "ブロードキャストの送信タスクを参照する。タイプを
 msgid "See docs for:"
 msgstr "ドキュメント:"
 
-#: src/services/api/permissions.ts:937
+#: src/services/api/permissions.ts:949
 msgid "See integration sync tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "インテグレーションの同期タスクを参照する。タイプを指定しない一覧は、読み取りを許可されたタイプのみに絞り込まれる"
 
@@ -11931,11 +11952,11 @@ msgstr "インテグレーションの同期タスクを参照する。タイプ
 msgid "See segment build and recompute tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "セグメントのビルドおよび再計算タスクを参照する。タイプを指定しない一覧は、読み取りを許可されたタイプのみに絞り込まれる"
 
-#: src/services/api/permissions.ts:666
+#: src/services/api/permissions.ts:678
 msgid "See the `automation_node_executions` schema listed in the queryable catalogue"
 msgstr "クエリ可能なカタログに `automation_node_executions` スキーマが表示される"
 
-#: src/services/api/permissions.ts:523
+#: src/services/api/permissions.ts:535
 msgid "See the `broadcasts` schema listed in the queryable catalogue"
 msgstr "クエリ可能なカタログに `broadcasts` スキーマが表示される"
 
@@ -11943,19 +11964,19 @@ msgstr "クエリ可能なカタログに `broadcasts` スキーマが表示さ�
 msgid "See the `contacts` schema listed in the queryable catalogue (the listing is filtered to what you may read, never refused)"
 msgstr "クエリ可能なカタログに `contacts` スキーマが表示される (一覧は読み取りを許可された範囲に絞り込まれ、拒否されることはない)"
 
-#: src/services/api/permissions.ts:723
+#: src/services/api/permissions.ts:735
 msgid "See the `message_history` and `email_queue` schemas listed in the queryable catalogue"
 msgstr "クエリ可能なカタログに `message_history` と `email_queue` のスキーマが表示される"
 
-#: src/services/api/permissions.ts:833
+#: src/services/api/permissions.ts:845
 msgid "See the `webhook_deliveries` schema listed in the queryable catalogue"
 msgstr "クエリ可能なカタログに `webhook_deliveries` スキーマが表示される"
 
-#: src/services/api/permissions.ts:744
+#: src/services/api/permissions.ts:756
 msgid "See the web analytics schemas listed in the queryable catalogue"
 msgstr "クエリ可能なカタログにWebアナリティクスのスキーマが表示される"
 
-#: src/services/api/permissions.ts:760
+#: src/services/api/permissions.ts:772
 msgid "See web analytics backfill tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "Webアナリティクスのバックフィルタスクを参照する。タイプを指定しない一覧は、読み取りを許可されたタイプのみに絞り込まれる"
 
@@ -11994,7 +12015,7 @@ msgstr "セグメントツリーをリセット"
 
 #: src/components/contacts/SegmentsFilter.tsx:230
 #: src/components/settings/PermissionsMatrix.tsx:144
-#: src/pages/BroadcastsPage.tsx:1117
+#: src/pages/BroadcastsPage.tsx:1103
 #: src/pages/ContactsPage.tsx:443
 #: src/pages/ContactsPage.tsx:646
 #: src/services/api/errors.ts:93
@@ -12007,7 +12028,7 @@ msgstr "セグメント"
 #: src/components/settings/BlogSettings.tsx:376
 #: src/components/templates/TemplateSelectorInput.tsx:238
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
-#: src/pages/BroadcastsPage.tsx:1075
+#: src/pages/BroadcastsPage.tsx:1061
 msgid "Select"
 msgstr "選択"
 
@@ -12073,7 +12094,7 @@ msgstr "人気のGoogle Fontを選択"
 msgid "Select a segment..."
 msgstr "セグメントを選択..."
 
-#: src/components/templates/SendTemplateModal.tsx:339
+#: src/components/templates/SendTemplateModal.tsx:343
 msgid "Select a sender"
 msgstr "送信者を選択"
 
@@ -12089,7 +12110,7 @@ msgstr "タイムゾーンを選択"
 msgid "Select all"
 msgstr "すべて選択"
 
-#: src/components/templates/SendTemplateModal.tsx:322
+#: src/components/templates/SendTemplateModal.tsx:326
 msgid "Select an email integration"
 msgstr "メール連携を選択"
 
@@ -12311,7 +12332,7 @@ msgstr "連絡先を削除するリストを選択"
 msgid "Select which segment this trigger applies to"
 msgstr "このトリガーを適用するセグメントを選択"
 
-#: src/pages/BroadcastsPage.tsx:1064
+#: src/pages/BroadcastsPage.tsx:1050
 msgid "Select Winner"
 msgstr "勝者を選択"
 
@@ -12328,7 +12349,7 @@ msgstr "設定を事前入力するストレージプロバイダーを選択:"
 msgid "Selected dimensions, in order:"
 msgstr "選択したディメンション (順序どおり):"
 
-#: src/pages/BroadcastsPage.tsx:1281
+#: src/pages/BroadcastsPage.tsx:1267
 msgid "Selected Winner"
 msgstr "選択された勝者"
 
@@ -12339,7 +12360,7 @@ msgstr "選択された勝者"
 msgid "Selected: {0}"
 msgstr "選択済み: {0}"
 
-#: src/services/api/permissions.ts:567
+#: src/services/api/permissions.ts:579
 msgid "Send a broadcast to one named address"
 msgstr "指定した1件のアドレスにブロードキャストを送信する"
 
@@ -12347,15 +12368,15 @@ msgstr "指定した1件のアドレスにブロードキャストを送信す�
 #~ msgid "Send a real test email through a chosen integration and sender; cc or bcc additionally needs Contacts read"
 #~ msgstr "選択したインテグレーションと送信者を使って実際のテストメールを送信する。cc または bcc を使う場合は、追加でコンタクトの読み取りが必要"
 
-#: src/services/api/permissions.ts:629
-msgid "Send a real test email through a chosen integration and sender; cc or bcc additionally needs Contacts read, and sending it for a list additionally needs Lists read"
-msgstr "選択したインテグレーションと送信者を使って実際のテストメールを送信する。cc または bcc を使う場合は追加でコンタクトの読み取りが、リスト向けに送信する場合はリストの読み取りが必要"
+#: src/services/api/permissions.ts:641
+msgid "Send a real test email through a chosen integration and sender; it also needs Templates read, cc or bcc additionally needs Contacts read, and sending it for a list additionally needs Lists read"
+msgstr "選択したインテグレーションと送信者を使って実際のテストメールを送信する。テンプレートの読み取りも必要で、cc または bcc を使う場合は追加でコンタクトの読み取りが、リスト向けに送信する場合はリストの読み取りが必要"
 
-#: src/services/api/permissions.ts:633
+#: src/services/api/permissions.ts:645
 msgid "Send a real test email through the workspace's stored provider credentials"
 msgstr "ワークスペースに保存されたプロバイダーの認証情報を使って実際のテストメールを送信する"
 
-#: src/services/api/permissions.ts:625
+#: src/services/api/permissions.ts:637
 msgid "Send a real transactional email to any address; adding cc or bcc additionally needs Contacts read, and writing contact fields beyond the recipient's email additionally needs Contacts write"
 msgstr "任意のアドレスに実際のトランザクションメールを送信する。cc または bcc を追加する場合は追加でコンタクトの読み取りが必要で、受信者のメールアドレス以外のコンタクトフィールドを書き込む場合は追加でコンタクトの書き込みが必要"
 
@@ -12363,11 +12384,11 @@ msgstr "任意のアドレスに実際のトランザクションメールを送
 msgid "Send a test email for a list, with that list's working unsubscribe links (also needs Transactional write)"
 msgstr "リスト向けのテストメールを、そのリストの有効な配信停止リンク付きで送信する (トランザクションの書き込みも必要)"
 
-#: src/components/templates/SendTemplateModal.tsx:317
+#: src/components/templates/SendTemplateModal.tsx:321
 msgid "Send a test email using this template to verify how it will look."
 msgstr "このテンプレートを使用してテストメールを送信し、外観を確認します。"
 
-#: src/services/api/permissions.ts:637
+#: src/services/api/permissions.ts:649
 msgid "Send a transactional notification by SMTP using the key's API email address as the username — the same gate as /api/transactional.send"
 msgstr "キーのAPIメールアドレスをユーザー名として、SMTPでトランザクション通知を送信する — /api/transactional.send と同じ制御下にある"
 
@@ -12413,10 +12434,9 @@ msgid "Send Test"
 msgstr "テストを送信"
 
 #: src/components/settings/Integrations.tsx:2737
-#: src/components/templates/SendTemplateModal.tsx:294
-#: src/components/templates/SendTemplateModal.tsx:310
-#: src/pages/BroadcastsPage.tsx:1016
-#: src/pages/TemplatesPage.tsx:376
+#: src/components/templates/SendTemplateModal.tsx:298
+#: src/components/templates/SendTemplateModal.tsx:314
+#: src/components/templates/SendTestEmailButton.tsx:24
 msgid "Send Test Email"
 msgstr "テストメールを送信"
 
@@ -12425,7 +12445,7 @@ msgid "Send transactional notifications using SMTP bridge. Perfect for integrati
 msgstr "SMTPリレーを使用してトランザクション通知を送信。既存のメールシステムやSMTPをサポートするアプリケーションとの統合に最適です。"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:948
-#: src/components/templates/SendTemplateModal.tsx:336
+#: src/components/templates/SendTemplateModal.tsx:340
 #: src/pages/TemplatesPage.tsx:237
 msgid "Sender"
 msgstr "送信者"
@@ -12440,7 +12460,7 @@ msgstr "送信者名"
 msgid "Senders"
 msgstr "送信者"
 
-#: src/pages/BroadcastsPage.tsx:1655
+#: src/pages/BroadcastsPage.tsx:1642
 msgid "Sending"
 msgstr "送信中"
 
@@ -12475,8 +12495,8 @@ msgstr "送信済み"
 #: src/components/messages/MessageHistoryTab.tsx:100
 #: src/components/messages/MessageHistoryTab.tsx:102
 #: src/components/messages/MessageHistoryTable.tsx:320
-#: src/pages/BroadcastsPage.tsx:1656
-#: src/pages/TransactionalNotificationsPage.tsx:200
+#: src/pages/BroadcastsPage.tsx:1643
+#: src/pages/TransactionalNotificationsPage.tsx:201
 msgid "Sent"
 msgstr "送信済み"
 
@@ -13012,7 +13032,7 @@ msgstr "編集中に他のユーザーがこのテンプレートを変更しま
 msgid "Someone saved version {0} while you were editing (you started from {1}). Reload the latest version — your unsaved changes will be lost — or overwrite it with yours."
 msgstr "編集中に他のユーザーがバージョン{0}を保存しました (あなたは{1}から編集を開始しました)。最新バージョンを再読み込みする (保存されていない変更は失われます) か、自分の内容で上書きしてください。"
 
-#: src/components/templates/SendTemplateModal.tsx:181
+#: src/components/templates/SendTemplateModal.tsx:185
 msgid "Something went wrong"
 msgstr "エラーが発生しました"
 
@@ -13062,11 +13082,11 @@ msgstr "ほとんどのメールクライアントで標準値は480pxです"
 msgid "Start"
 msgstr "開始"
 
-#: src/services/api/permissions.ts:583
+#: src/services/api/permissions.ts:595
 msgid "Start a broadcast send task immediately"
 msgstr "ブロードキャストの送信タスクを直ちに開始する"
 
-#: src/services/api/permissions.ts:772
+#: src/services/api/permissions.ts:784
 msgid "Start a historical backfill of web analytics data"
 msgstr "Webアナリティクスデータの過去分バックフィルを開始する"
 
@@ -13108,7 +13128,7 @@ msgstr "書き始める..."
 msgid "started"
 msgstr "開始"
 
-#: src/pages/BroadcastsPage.tsx:1177
+#: src/pages/BroadcastsPage.tsx:1163
 msgid "Started"
 msgstr "開始済み"
 
@@ -13394,7 +13414,7 @@ msgstr "目次"
 msgid "Tags"
 msgstr "タグ"
 
-#: src/services/api/permissions.ts:478
+#: src/services/api/permissions.ts:490
 msgid "Take a published post off the live blog"
 msgstr "公開済みの投稿を公開ブログから取り下げる"
 
@@ -13564,7 +13584,7 @@ msgstr "テンプレート:"
 
 #: src/components/settings/PermissionsMatrix.tsx:135
 #: src/layouts/WorkspaceLayout.tsx:251
-#: src/pages/TemplatesPage.tsx:404
+#: src/pages/TemplatesPage.tsx:394
 #: src/services/api/errors.ts:84
 msgid "Templates"
 msgstr "テンプレート"
@@ -13598,7 +13618,7 @@ msgstr "キーワード"
 #: src/components/settings/Integrations.tsx:375
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:104
 #: src/components/web_analytics/tabs/FiltersTab.tsx:127
-#: src/pages/TransactionalNotificationsPage.tsx:175
+#: src/pages/TransactionalNotificationsPage.tsx:176
 msgid "Test"
 msgstr "テスト"
 
@@ -13640,7 +13660,7 @@ msgid "Test Email Provider"
 msgstr "メールプロバイダーをテスト"
 
 #: src/components/settings/Integrations.tsx:1238
-#: src/components/templates/SendTemplateModal.tsx:168
+#: src/components/templates/SendTemplateModal.tsx:172
 msgid "Test email sent successfully"
 msgstr "テストメールが正常に送信されました"
 
@@ -13761,7 +13781,7 @@ msgstr "The"
 #~ msgid "The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code."
 #~ msgstr ""
 
-#: src/services/api/permissions.ts:907
+#: src/services/api/permissions.ts:919
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
 msgstr "AIアシスタント: ワークスペースに設定されたLLMインテグレーションを介したチャットと、それが呼び出し得るサーバー側のツール。"
 
@@ -13851,7 +13871,7 @@ msgstr "生成されたメールには、レンダリングを妨げる問題が
 msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 msgstr "SMTPサーバーへの接続時に、サーバーが自身を名乗るホスト名。空欄の場合はSMTPホストの値がデフォルトとして使用されます。"
 
-#: src/services/api/permissions.ts:890
+#: src/services/api/permissions.ts:902
 msgid "The inbound events email providers send back — bounces, complaints, deliveries and replies — as the raw rows the provider posted."
 msgstr "メールプロバイダーが返してくる受信イベント — バウンス、苦情、配信、返信 — を、プロバイダーが送信したままの生の行として扱います。"
 
@@ -13880,7 +13900,7 @@ msgstr "ライブ状態のオートメーション\"{first}\"と\"{second}\"が�
 msgid "The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\" and \"{third}\" use it. Pause them first, or change them to stop using the list."
 msgstr "ライブ状態のオートメーション\"{first}\"、\"{second}\"、\"{third}\"が使用しているため、リスト\"{listName}\"は削除できません。先にそれらを一時停止するか、このリストを使用しないように変更してください。"
 
-#: src/services/api/permissions.ts:886
+#: src/services/api/permissions.ts:898
 msgid "The log names every member's email and IP address and records refused actions. Grant read to the people who need to answer \"who did this\", not to everyone."
 msgstr "このログには各メンバーのメールと IP アドレスが記録され、拒否された操作も残ります。「誰がこれをしたか」に答える必要がある人にだけ閲覧権限を付与してください。"
 
@@ -13892,7 +13912,7 @@ msgstr "ブログのメインタイトル"
 #~ msgid "The name {prefix} is already taken on this Notifuse installation. Please pick another one."
 #~ msgstr "名前「{prefix}」はこのNotifuseインストールですでに使用されています。別の名前を選んでください。"
 
-#: src/services/api/permissions.ts:698
+#: src/services/api/permissions.ts:710
 msgid "The outbound message log: every email the workspace sent, its delivery status, and the engagement counted against it."
 msgstr "送信メッセージのログ: ワークスペースが送信したすべてのメール、その配信ステータス、およびそれに対して計上されたエンゲージメント。"
 
@@ -13970,7 +13990,7 @@ msgstr "Webhookはイベントの受信を停止します。"
 msgid "The whole condition tree will be deleted."
 msgstr "条件ツリー全体が削除されます。"
 
-#: src/services/api/permissions.ts:924
+#: src/services/api/permissions.ts:936
 msgid "The workspace record itself — its settings and its member roster — plus the custom contact field labels."
 msgstr "ワークスペースのレコードそのもの — その設定とメンバー一覧 — に加えて、カスタムコンタクトフィールドのラベル。"
 
@@ -13978,7 +13998,7 @@ msgstr "ワークスペースのレコードそのもの — その設定とメ�
 msgid "The workspace settings have been updated!"
 msgstr "ワークスペース設定が更新されました！"
 
-#: src/services/api/permissions.ts:865
+#: src/services/api/permissions.ts:877
 msgid "The workspace's audit log: who changed what, from where, and whether it was allowed. Owners always read it; a member or an API key reads it only with this grant."
 msgstr "ワークスペースの監査ログ：誰が何をどこから変更し、それが許可されていたか。オーナーは常に閲覧でき、メンバーや API キーはこの権限がある場合のみ閲覧できます。"
 
@@ -13998,7 +14018,7 @@ msgstr "テーマが正常に更新されました"
 msgid "Theme Versions"
 msgstr "テーマバージョン"
 
-#: src/services/api/permissions.ts:884
+#: src/services/api/permissions.ts:896
 msgid "There is nothing to write: the log is append-only, and the retention setting is owner-only. The switch is granted and locked for the same reason as the other unenforced verbs."
 msgstr "書き込むものはありません。ログは追記専用で、保持期間の設定はオーナー専用です。このスイッチは他の未適用の動詞と同じ理由で付与・ロックされています。"
 
@@ -14047,7 +14067,7 @@ msgstr "このアカウントはすでに別のシングルサインオンのID�
 msgid "This action cannot be undone."
 msgstr "この操作は元に戻せません。"
 
-#: src/pages/BroadcastsPage.tsx:1823
+#: src/pages/BroadcastsPage.tsx:1810
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "この操作は元に戻せません。確認のため、ブロードキャストIDを入力してください:"
 
@@ -14101,7 +14121,7 @@ msgstr "このブロードキャストは固定のUTMコンテンツを設定し
 msgid "This broadcast was cancelled before completion."
 msgstr "このブロードキャストは完了前にキャンセルされました。"
 
-#: src/pages/TransactionalNotificationsPage.tsx:146
+#: src/pages/TransactionalNotificationsPage.tsx:147
 msgid "This cannot be undone."
 msgstr "この操作は元に戻せません。"
 
@@ -14162,7 +14182,7 @@ msgstr "この招待リンクは無効または期限切れです。"
 msgid "This is the ID that will be used as the utm_content parameter in the links URL to track the template"
 msgstr "これはテンプレートを追跡するためにリンクURLのutm_contentパラメータとして使用されるIDです"
 
-#: src/services/api/permissions.ts:731
+#: src/services/api/permissions.ts:743
 msgid "This is where delivery statistics live, not under Broadcasts: a key that may create and send a broadcast still cannot read its open, click or bounce numbers without Message History read. The log carries recipient addresses and the rendered message data, so it is contact data by another name."
 msgstr "配信統計があるのはここであり、ブロードキャストの下ではありません: ブロードキャストを作成・送信できるキーであっても、メッセージ履歴の読み取りがなければ、その開封・クリック・バウンスの数値を読み取ることはできません。ログには受信者アドレスとレンダリング済みのメッセージデータが含まれるため、これは名前を変えたコンタクトデータにほかなりません。"
 
@@ -14266,15 +14286,15 @@ msgstr "このトークンは一度だけ表示され、再度取得すること
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "このトークンは一度だけ表示されます。安全な場所に保存してください。再度取得することはできません。"
 
-#: src/services/api/permissions.ts:910
+#: src/services/api/permissions.ts:922
 msgid "This verb gates nothing today. /api/llm.chat is the only LLM endpoint and it answers to LLM write, so there is nothing left for read to govern. The switch is granted and locked rather than denied, because storing it as \"off\" would be permanent: filling in a missing permission only ever adds what a grant lacks, so nothing would widen it if a later release gives this verb something real to gate."
 msgstr "この動詞は現在、何も制御していません。/api/llm.chat が唯一のLLMエンドポイントで、これはLLMの書き込みに従うため、読み取りが制御するものは残っていません。このスイッチは拒否ではなく、付与されたうえでロックされています。「オフ」として保存すると、それが恒久的になってしまうためです: 欠けている権限の補完は、付与に不足しているものを追加するだけなので、将来のリリースでこの動詞に実際に制御すべきものができても、それを広げるものが何もなくなってしまいます。"
 
-#: src/services/api/permissions.ts:729
+#: src/services/api/permissions.ts:741
 msgid "This verb gates nothing today. Every message history call the API offers is a read, and rows are written by the sending pipeline itself, never by anything you can call. The switch is granted and locked rather than denied, because storing it as \"off\" would be permanent: filling in a missing permission only ever adds what a grant lacks, so nothing would widen it if a later release gives this verb something real to gate."
 msgstr "この動詞は現在、何も制御していません。APIが提供するメッセージ履歴の呼び出しはすべて読み取りであり、行は送信パイプライン自身によって書き込まれるもので、あなたが呼び出せるものによって書き込まれることは決してありません。このスイッチは拒否ではなく、付与されたうえでロックされています。「オフ」として保存すると、それが恒久的になってしまうためです: 欠けている権限の補完は、付与に不足しているものを追加するだけなので、将来のリリースでこの動詞に実際に制御すべきものができても、それを広げるものが何もなくなってしまいます。"
 
-#: src/services/api/permissions.ts:901
+#: src/services/api/permissions.ts:913
 msgid "This verb gates nothing today. Exactly one inbound webhook event call is permission-checked and it is a read; the rows themselves arrive on the provider callback routes /webhooks/email and /webhooks/email/inbound, which carry no workspace session and so consult no grant. Unlike the two verbs the matrix locks on, this one is still yours to switch — turning it off simply changes nothing today."
 msgstr "この動詞は現在、何も制御していません。受信Webhookイベントの呼び出しのうち権限がチェックされるのはちょうど1つだけで、それは読み取りです。行そのものはプロバイダーのコールバックルート /webhooks/email および /webhooks/email/inbound に届きますが、これらはワークスペースのセッションを持たないため、どの付与も参照しません。マトリクスがオンで固定している2つの動詞とは異なり、これは自由に切り替えられます — オフにしても、現時点では何も変わらないというだけです。"
 
@@ -14611,7 +14631,7 @@ msgstr "合計"
 msgid "Total {total} posts"
 msgstr "合計 {total} 件の投稿"
 
-#: src/components/templates/SendTemplateModal.tsx:223
+#: src/components/templates/SendTemplateModal.tsx:227
 msgid "Total attachments size exceeds 10MB limit"
 msgstr "添付ファイルの合計サイズが10MBの制限を超えています"
 
@@ -14692,15 +14712,15 @@ msgstr "トランザクションメール"
 msgid "Transactional ID"
 msgstr "トランザクションID"
 
-#: src/services/api/permissions.ts:596
+#: src/services/api/permissions.ts:608
 msgid "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
 msgstr "トランザクション通知の定義と、ワークスペースのプロバイダー認証情報を使って実際にメールを送信するすべての経路。"
 
-#: src/pages/TransactionalNotificationsPage.tsx:350
+#: src/pages/TransactionalNotificationsPage.tsx:351
 msgid "Transactional notification deleted successfully"
 msgstr "トランザクション通知が正常に削除されました"
 
-#: src/pages/TransactionalNotificationsPage.tsx:389
+#: src/pages/TransactionalNotificationsPage.tsx:390
 msgid "Transactional Notifications"
 msgstr "トランザクション通知"
 
@@ -14736,11 +14756,11 @@ msgstr "トリガーイベント"
 msgid "Trigger on specific field changes"
 msgstr "特定のフィールド変更でトリガー"
 
-#: src/pages/BroadcastsPage.tsx:1748
+#: src/pages/BroadcastsPage.tsx:1735
 msgid "Try adjusting your search or status filter"
 msgstr "検索条件やステータスフィルターを調整してみてください"
 
-#: src/pages/TemplatesPage.tsx:493
+#: src/pages/TemplatesPage.tsx:483
 msgid "Try selecting a different category or"
 msgstr "別のカテゴリを選択するか、"
 
@@ -14761,11 +14781,11 @@ msgstr "セキュリティや法的なお知らせなど、全メンバーに届
 msgid "Turn off SES tenant isolation to use your own tenant, or clear this field."
 msgstr "自分のテナントを使用するにはSESテナントの分離をオフにするか、このフィールドをクリアしてください。"
 
-#: src/services/api/permissions.ts:494
+#: src/services/api/permissions.ts:506
 msgid "Turn the blog on or off and change its title, SEO, pagination and feed settings"
 msgstr "ブログの有効・無効を切り替え、そのタイトル、SEO、ページネーション、フィードの設定を変更する"
 
-#: src/services/api/permissions.ts:792
+#: src/services/api/permissions.ts:804
 msgid "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 msgstr "Webアナリティクスの有効・無効を切り替え、許可するドメイン、フィルター、カスタムディメンションのラベル、メールリンクによる識別を変更する"
 
@@ -14860,8 +14880,8 @@ msgstr "ユニーククリックは、リンクごとに各受信者を1回だ�
 #: src/components/contacts/TrackingConsent.tsx:49
 #: src/components/timeline/ContactTimeline.tsx:1052
 #: src/components/web_analytics/LiveSessionMap.tsx:49
-#: src/pages/BroadcastsPage.tsx:1275
-#: src/pages/BroadcastsPage.tsx:1286
+#: src/pages/BroadcastsPage.tsx:1261
+#: src/pages/BroadcastsPage.tsx:1272
 msgid "Unknown"
 msgstr "不明"
 
@@ -14877,7 +14897,7 @@ msgstr "不明なエラー"
 
 #: src/components/automations/nodes/AddToListNode.tsx:57
 #: src/components/automations/nodes/RemoveFromListNode.tsx:54
-#: src/pages/BroadcastsPage.tsx:1139
+#: src/pages/BroadcastsPage.tsx:1125
 msgid "Unknown list"
 msgstr "不明なリスト"
 
@@ -14889,7 +14909,7 @@ msgstr "不明なリスト"
 msgid "Unknown page"
 msgstr "不明なページ"
 
-#: src/pages/BroadcastsPage.tsx:1127
+#: src/pages/BroadcastsPage.tsx:1113
 msgid "Unknown segment"
 msgstr "不明なセグメント"
 
@@ -15061,7 +15081,7 @@ msgstr "アップロードに失敗しました。もう一度お試しくださ
 msgid "Upload file (Read-only mode)"
 msgstr "ファイルをアップロード（読み取り専用モード）"
 
-#: src/components/templates/SendTemplateModal.tsx:452
+#: src/components/templates/SendTemplateModal.tsx:462
 msgid "Upload Files"
 msgstr "ファイルをアップロード"
 
@@ -15240,7 +15260,7 @@ msgstr "UTM"
 msgid "UTM campaign"
 msgstr "UTMキャンペーン"
 
-#: src/pages/BroadcastsPage.tsx:1224
+#: src/pages/BroadcastsPage.tsx:1210
 msgid "UTM Campaign"
 msgstr "UTMキャンペーン"
 
@@ -15252,7 +15272,7 @@ msgstr "UTMキャンペーン"
 msgid "UTM content"
 msgstr "UTMコンテンツ"
 
-#: src/pages/BroadcastsPage.tsx:1236
+#: src/pages/BroadcastsPage.tsx:1222
 msgid "UTM Content"
 msgstr "UTMコンテンツ"
 
@@ -15260,7 +15280,7 @@ msgstr "UTMコンテンツ"
 msgid "UTM medium"
 msgstr "UTMメディア"
 
-#: src/pages/BroadcastsPage.tsx:1218
+#: src/pages/BroadcastsPage.tsx:1204
 msgid "UTM Medium"
 msgstr "UTMメディア"
 
@@ -15268,11 +15288,11 @@ msgstr "UTMメディア"
 msgid "UTM source"
 msgstr "UTMソース"
 
-#: src/pages/BroadcastsPage.tsx:1212
+#: src/pages/BroadcastsPage.tsx:1198
 msgid "UTM Source"
 msgstr "UTMソース"
 
-#: src/pages/BroadcastsPage.tsx:1230
+#: src/pages/BroadcastsPage.tsx:1216
 msgid "UTM Term"
 msgstr "UTMタグ"
 
@@ -15468,7 +15488,7 @@ msgstr "ウェブサイトのファビコンを自動検出して使用します
 #: src/components/settings/WebAnalyticsSettings.tsx:291
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:370
 #: src/layouts/WorkspaceLayout.tsx:293
-#: src/pages/BroadcastsPage.tsx:1209
+#: src/pages/BroadcastsPage.tsx:1195
 #: src/pages/WebAnalyticsPage.tsx:94
 #: src/services/api/errors.ts:92
 msgid "Web Analytics"
@@ -15607,7 +15627,7 @@ msgstr "Webサイトのトラフィック計測設定"
 msgid "Website URL"
 msgstr "ウェブサイトURL"
 
-#: src/services/api/permissions.ts:735
+#: src/services/api/permissions.ts:747
 msgid "Website visitor analytics — sessions, page views and goals — the annotations drawn on those charts, and the historical backfill."
 msgstr "Webサイト訪問者のアナリティクス — セッション、ページビュー、ゴール — と、それらのチャートに描かれた注釈、および過去データのバックフィル。"
 
@@ -15741,7 +15761,7 @@ msgstr "削除されます"
 msgid "Will resume from row {0}"
 msgstr "行 {0} から再開します"
 
-#: src/pages/BroadcastsPage.tsx:1283
+#: src/pages/BroadcastsPage.tsx:1269
 msgid "Winner"
 msgstr "優勝"
 
@@ -15780,7 +15800,7 @@ msgstr "ステータス付き"
 msgid "With:"
 msgstr "含む内容:"
 
-#: src/components/templates/SendTemplateModal.tsx:363
+#: src/components/templates/SendTemplateModal.tsx:367
 msgid "Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header."
 msgstr "リストを選ばない場合、テストメールには有効な配信停止リンクも List-Unsubscribe ヘッダーも含まれません。"
 
@@ -15854,7 +15874,7 @@ msgstr "ワークスペースが見つかりません"
 msgid "Workspace settings updated successfully"
 msgstr "ワークスペース設定が正常に更新されました"
 
-#: src/services/api/permissions.ts:969
+#: src/services/api/permissions.ts:981
 msgid "Workspace write is far narrower than its name: the only workspace endpoint it gates is /api/workspaces.setCustomFieldLabels. Renaming or deleting the workspace, and creating, updating or deleting an integration, are owner-only and consult no permission at all — granting this does not confer them, and an owner has them without it. /api/workspaces.list is not gated either: it returns the workspaces you belong to whatever this switch says. Two settings endpoints that look like workspace configuration answer elsewhere — /api/workspaces.setBlogSettings to Blog write, and /api/workspaces.setWebAnalyticsSettings to Web Analytics write."
 msgstr "ワークスペースの書き込みは、その名前が示すよりもはるかに限定的です: これが制御する唯一のワークスペースのエンドポイントは /api/workspaces.setCustomFieldLabels です。ワークスペースの名称変更や削除、インテグレーションの作成・更新・削除はオーナー専用であり、権限を一切参照しません — これを付与してもそれらは与えられませんし、オーナーはこれがなくても行えます。/api/workspaces.list も制御されていません: このスイッチの状態にかかわらず、自分が所属するワークスペースを返します。ワークスペース設定のように見える2つの設定エンドポイントは別の権限に従います — /api/workspaces.setBlogSettings はブログの書き込みに、/api/workspaces.setWebAnalyticsSettings はWebアナリティクスの書き込みに従います。"
 
@@ -15881,7 +15901,7 @@ msgstr "書き込み"
 msgid "Write contact fields beyond the recipient's email address; without it the send still creates the recipient but carries only the email (also needs Transactional write)"
 msgstr "受信者のメールアドレス以外のコンタクトフィールドを書き込む。これがない場合でも送信は受信者を作成するが、保持されるのはメールアドレスのみとなる (トランザクションの書き込みも必要)"
 
-#: src/services/api/permissions.ts:861
+#: src/services/api/permissions.ts:873
 msgid "Write decides where the workspace's event stream goes: create and update both accept any URL, and the delivery log that read opens carries the event payloads themselves. Two neighbours on the same routes answer to something else — /api/webhookSubscriptions.regenerateSecret is owner-only whatever this switch says, and /api/webhookSubscriptions.eventTypes is a fixed catalogue that checks nothing at all. Reading a subscription hides its signing secret from everyone but an owner."
 msgstr "書き込みは、ワークスペースのイベントストリームの送信先を決定します: 作成も更新も任意のURLを受け付け、読み取りで開ける配信ログにはイベントのペイロードそのものが含まれます。同じルート上の2つの隣接エンドポイントは別の権限に従います — /api/webhookSubscriptions.regenerateSecret はこのスイッチの状態にかかわらずオーナー専用であり、/api/webhookSubscriptions.eventTypes は固定のカタログで何もチェックしません。サブスクリプションを読み取る際、署名シークレットはオーナー以外には伏せられます。"
 
@@ -15957,7 +15977,7 @@ msgid "Yes, delete"
 msgstr "はい、削除"
 
 #: src/pages/TemplatesPage.tsx:364
-#: src/pages/TransactionalNotificationsPage.tsx:148
+#: src/pages/TransactionalNotificationsPage.tsx:149
 msgid "Yes, Delete"
 msgstr "はい、削除"
 
@@ -15974,7 +15994,7 @@ msgstr "はい、再開"
 msgid "Yes, retry"
 msgstr "はい、再送します"
 
-#: src/pages/BroadcastsPage.tsx:1067
+#: src/pages/BroadcastsPage.tsx:1053
 msgid "Yes, Select Winner"
 msgstr "はい、優勝者を選択"
 
@@ -15995,7 +16015,7 @@ msgid "You do not have write access to {resource}."
 msgstr "{resource}への書き込みアクセス権がありません。"
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:177
-#: src/pages/BroadcastsPage.tsx:1679
+#: src/pages/BroadcastsPage.tsx:1666
 msgid "You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts."
 msgstr "マーケティングメールプロバイダーが設定されていません。ブロードキャストを送信するには、ワークスペース設定でメールプロバイダーを設定してください。"
 
@@ -16019,9 +16039,9 @@ msgstr "オートメーションの書き込み権限がありません"
 #: src/pages/BroadcastsPage.tsx:709
 #: src/pages/BroadcastsPage.tsx:732
 #: src/pages/BroadcastsPage.tsx:748
-#: src/pages/BroadcastsPage.tsx:1059
-#: src/pages/BroadcastsPage.tsx:1626
-#: src/pages/BroadcastsPage.tsx:1765
+#: src/pages/BroadcastsPage.tsx:1045
+#: src/pages/BroadcastsPage.tsx:1613
+#: src/pages/BroadcastsPage.tsx:1752
 msgid "You don't have write permission for broadcasts"
 msgstr "ブロードキャストの書き込み権限がありません"
 
@@ -16042,12 +16062,12 @@ msgstr "リストの書き込み権限がありません"
 #: src/pages/TemplatesPage.tsx:299
 #: src/pages/TemplatesPage.tsx:321
 #: src/pages/TemplatesPage.tsx:344
-#: src/pages/TemplatesPage.tsx:409
+#: src/pages/TemplatesPage.tsx:399
 msgid "You don't have write permission for templates"
 msgstr "テンプレートの書き込み権限がありません"
 
-#: src/pages/TransactionalNotificationsPage.tsx:400
-#: src/pages/TransactionalNotificationsPage.tsx:452
+#: src/pages/TransactionalNotificationsPage.tsx:401
+#: src/pages/TransactionalNotificationsPage.tsx:453
 msgid "You don't have write permission for transactional notifications"
 msgstr "トランザクション通知の書き込み権限がありません"
 
@@ -16083,8 +16103,12 @@ msgstr "ブログを有効にする前に、上の一般設定でカスタムエ
 
 #: src/pages/BroadcastsPage.tsx:1015
 #: src/pages/TemplatesPage.tsx:375
-msgid "You need read template and write contact permissions to send test emails"
-msgstr "テストメールを送信するには、テンプレートの読み取りとコンタクトの書き込み権限が必要です"
+#~ msgid "You need read template and write contact permissions to send test emails"
+#~ msgstr "テストメールを送信するには、テンプレートの読み取りとコンタクトの書き込み権限が必要です"
+
+#: src/components/templates/SendTestEmailButton.tsx:25
+msgid "You need Templates read and Transactional write permissions to send test emails"
+msgstr "テストメールを送信するには、テンプレートの読み取りとトランザクションの書き込み権限が必要です"
 
 #. placeholder {0}: currentRow + 1
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:854
