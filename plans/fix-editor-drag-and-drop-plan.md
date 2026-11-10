@@ -1,6 +1,6 @@
 # Fix drag-and-drop in the email editor's structure tree
 
-Branch `fix/editor-drag-and-drop`, from `dev` (ff1ed695). PR to `dev`. Console only: no table, no migration, no
+Branch `fix/editor-drag-and-drop`, from `dev` (b994c1a6). PR to `dev`. Console only: no table, no migration, no
 environment variable, no new user-facing string.
 
 Audit (46 browser scenarios) and independent second opinion:
@@ -247,7 +247,7 @@ First review: resolver confirmed against rc-tree (all expected results reproduce
 scope (gomjml renders percentage group widths at 100%), no-fall-through rule and its distinguishing case, row lookup
 through `[role="treeitem"]` with both `preventDefault` and `stopPropagation`, jsdom drag tests of `TreePanel`, width
 tests that fail on dev, saved-column insertion, sum-to-100 condition and integer rounding, corrected and added
-limitations, Fix/Improvement changelog split, rebase on ff1ed695. Second review: the line itself as the red signal for
+limitations, Fix/Improvement changelog split, rebase on the dev of the time (since moved to b994c1a6). Second review: the line itself as the red signal for
 refused gaps, the jsdom indent stub, the hidden-children case moved to `TreePanel`, the rounding rule, the
 raw/liquid lifting limit, wording of the limitations and the changelog.
 
