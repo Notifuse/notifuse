@@ -773,6 +773,11 @@ func (tdf *TestDataFactory) SetWorkspaceWebsiteURL(workspaceID, websiteURL strin
 // SetWorkspaceCustomEndpointURL sets the workspace's Custom Endpoint URL (the tracking
 // domain), which resolves into TrackingSettings.Endpoint and is exposed to templates as
 // {{ workspace.base_url }}. Writes directly via the repository to bypass DNS verification.
+// GetWorkspace reads a workspace as stored.
+func (tdf *TestDataFactory) GetWorkspace(workspaceID string) (*domain.Workspace, error) {
+	return tdf.workspaceRepo.GetByID(context.Background(), workspaceID)
+}
+
 func (tdf *TestDataFactory) SetWorkspaceCustomEndpointURL(workspaceID, endpointURL string) error {
 	workspace, err := tdf.workspaceRepo.GetByID(context.Background(), workspaceID)
 	if err != nil {

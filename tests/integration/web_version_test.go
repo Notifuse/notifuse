@@ -166,16 +166,40 @@ func TestWebVersion(t *testing.T) {
 		assert.Equal(t, openedBefore, openedAfter)
 		assert.Equal(t, clickedBefore, clickedAfter)
 
-		// Another workspace's custom domain does not show it.
-		foreign, err := http.NewRequest(http.MethodGet, destination, nil)
+		// Another workspace's custom domain does not show it; a host no workspace claims,
+		// such as a domain this workspace used before, still does.
+		other, err := factory.CreateWorkspace()
 		require.NoError(t, err)
-		foreign.Host = "mail.another-brand.example"
-		foreignResp, err := noRedirectClient().Do(foreign)
+		require.NoError(t, factory.SetWorkspaceCustomEndpointURL(other.ID, "https://mail.another-brand.example"))
+		onHost := func(host string) (int, string) {
+			req, err := http.NewRequest(http.MethodGet, destination, nil)
+			require.NoError(t, err)
+			req.Host = host
+			resp, err := noRedirectClient().Do(req)
+			require.NoError(t, err)
+			body, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			return resp.StatusCode, string(body)
+		}
+		status, foreignBody := onHost("Mail.Another-Brand.example:443")
+		assert.Equal(t, http.StatusNotFound, status)
+		assert.NotContains(t, foreignBody, "Camille")
+		status, _ = onHost("old.brand-a.example")
+		assert.Equal(t, http.StatusOK, status)
+
+		// Nor can this workspace take the other one's domain as its own.
+		current, err := factory.GetWorkspace(workspace.ID)
 		require.NoError(t, err)
-		foreignBody, _ := io.ReadAll(foreignResp.Body)
-		_ = foreignResp.Body.Close()
-		assert.Equal(t, http.StatusNotFound, foreignResp.StatusCode)
-		assert.NotContains(t, string(foreignBody), "Camille")
+		taken := "https://mail.another-brand.example"
+		current.Settings.CustomEndpointURL = &taken
+		current.Settings.DefaultLanguage = "en"
+		current.Settings.Languages = []string{"en"}
+		updateResp, err := client.Post("/api/workspaces.update", domain.UpdateWorkspaceRequest{ID: workspace.ID, Name: current.Name, Settings: current.Settings})
+		require.NoError(t, err)
+		updateBody, _ := io.ReadAll(updateResp.Body)
+		_ = updateResp.Body.Close()
+		assert.Equal(t, http.StatusBadRequest, updateResp.StatusCode, string(updateBody))
+		assert.Contains(t, string(updateBody), "already used by another workspace")
 
 		// The tracked link in the email redirects to the web version.
 		redirect := clickDelivered(t, clickLink)

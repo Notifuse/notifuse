@@ -397,3 +397,30 @@ func TestVerify_ViewRejectsChangedFields(t *testing.T) {
 		assert.False(t, forged.Verify(key, PurposeView), "changing the %s must break the tag", name)
 	}
 }
+
+func TestSameHost(t *testing.T) {
+	matches := [][2]string{
+		{"mail.brand.com", "mail.brand.com"},
+		{"Mail.Brand.COM", "mail.brand.com"},
+		{"mail.brand.com:8443", "mail.brand.com"},
+		{"mail.brand.com.", "mail.brand.com"},
+		{"mail.brand.com.:443", "mail.brand.com"},
+		{"[::1]:8080", "::1"},
+		{"mail.brand.com", "MAIL.brand.com."},
+	}
+	for _, c := range matches {
+		assert.True(t, SameHost(c[0], c[1]), "%q names %q", c[0], c[1])
+	}
+	differ := [][2]string{
+		{"mail.brand.com.evil.example", "mail.brand.com"},
+		{"evilmail.brand.com", "mail.brand.com"},
+		{"", "mail.brand.com"},
+		{"mail.brand.com", ""},
+		{".", "."},
+		// The Kelvin sign folds onto k under strings.EqualFold: hosts fold ASCII only.
+		{"\u212aelvin.example", "kelvin.example"},
+	}
+	for _, c := range differ {
+		assert.False(t, SameHost(c[0], c[1]), "%q does not name %q", c[0], c[1])
+	}
+}

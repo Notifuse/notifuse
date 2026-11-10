@@ -239,62 +239,70 @@ func TestWebVersionService_RendersACodeModeTemplateThatLinksToIt(t *testing.T) {
 	assert.Contains(t, html, "Hello Camille")
 }
 
-// A web version opens only on the installation's API host or on its own workspace's
-// custom domain: on another workspace's domain, it would put one brand's email under
-// another brand's address, which is what a phishing page needs.
-func TestWebVersionService_ResolveChecksTheHost(t *testing.T) {
+// On another workspace's custom domain, a web version would put one brand's email under
+// another brand's address, which is what a phishing page needs: it is not found there.
+// Every other host serves it, the API host and the workspace's own domains, past ones
+// included, so links already delivered keep working after a domain change.
+func TestWebVersionService_ResolveRefusesAnotherWorkspacesDomain(t *testing.T) {
 	token := func(t *testing.T) string { return wvToken(t, wvSecret, wvWorkspaceID, wvMessageID) }
-	withDomain := func(f *webVersionFixture, host string) {
-		f.keys.lookup.EndpointHost = host
+	endpoints := map[string]string{
+		wvWorkspaceID: "https://mail.brand-a.example",
+		"brand_b":     "https://Mail.Brand-B.example:8443/",
 	}
 
-	t.Run("on the workspace's custom domain", func(t *testing.T) {
-		for _, host := range []string{"mail.brand-a.example", "Mail.Brand-A.example", "mail.brand-a.example:443"} {
-			f := newWebVersionFixture(t)
-			withDomain(f, "mail.brand-a.example")
-			ref, err := f.svc.Resolve(context.Background(), token(t), host)
-			require.NoError(t, err, host)
-			assert.Equal(t, wvMessageID, ref.MessageID)
-		}
+	t.Run("on the API host, without reading the custom domains", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		_, err := f.svc.Resolve(context.Background(), token(t), "API.example.com:8443")
+		require.NoError(t, err)
 	})
 
-	t.Run("on the API host, with or without a custom domain", func(t *testing.T) {
-		for _, domainHost := range []string{"", "mail.brand-a.example"} {
-			f := newWebVersionFixture(t)
-			withDomain(f, domainHost)
-			_, err := f.svc.Resolve(context.Background(), token(t), "API.example.com:8443")
-			require.NoError(t, err, domainHost)
-		}
+	t.Run("on its own workspace's custom domain", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.workspaceRepo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(endpoints, nil)
+		ref, err := f.svc.Resolve(context.Background(), token(t), "mail.brand-a.example")
+		require.NoError(t, err)
+		assert.Equal(t, wvMessageID, ref.MessageID)
+	})
+
+	t.Run("on a host no workspace claims, such as a former domain", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.workspaceRepo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(endpoints, nil)
+		_, err := f.svc.Resolve(context.Background(), token(t), "old.brand-a.example")
+		require.NoError(t, err)
 	})
 
 	t.Run("not on another workspace's custom domain", func(t *testing.T) {
-		f := newWebVersionFixture(t)
-		withDomain(f, "mail.brand-a.example")
-		_, err := f.svc.Resolve(context.Background(), token(t), "mail.brand-b.example")
-		assert.ErrorIs(t, err, ErrWebVersionNotFound)
-		assert.Equal(t, 1, f.keys.refreshes, "a host that does not match re-reads the workspace once")
-	})
-
-	t.Run("not on a custom domain when the workspace has none", func(t *testing.T) {
-		f := newWebVersionFixture(t)
-		_, err := f.svc.Resolve(context.Background(), token(t), "mail.brand-b.example")
-		assert.ErrorIs(t, err, ErrWebVersionNotFound)
-	})
-
-	t.Run("not on a host that only resembles the domain", func(t *testing.T) {
-		for _, host := range []string{"mail.brand-a.example.evil.example", "evilmail.brand-a.example", ""} {
+		for _, host := range []string{"mail.brand-b.example", "MAIL.brand-b.example:443", "mail.brand-b.example."} {
 			f := newWebVersionFixture(t)
-			withDomain(f, "mail.brand-a.example")
+			f.workspaceRepo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(endpoints, nil)
 			_, err := f.svc.Resolve(context.Background(), token(t), host)
 			assert.ErrorIs(t, err, ErrWebVersionNotFound, host)
 		}
 	})
 
-	t.Run("on a custom domain the cache does not know yet", func(t *testing.T) {
+	t.Run("not on a domain another workspace also claims", func(t *testing.T) {
+		// Saving a domain another workspace uses is refused, but rows saved before that
+		// check may share one: the page is refused rather than shown under the other brand.
 		f := newWebVersionFixture(t)
-		f.keys.refreshed = trackingtoken.Workspace{Key: domain.TrackingSigningKey(wvSecret), EndpointHost: "mail.brand-a.example"}
+		f.workspaceRepo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(map[string]string{
+			wvWorkspaceID: "https://mail.shared.example",
+			"brand_b":     "https://mail.shared.example",
+		}, nil)
+		_, err := f.svc.Resolve(context.Background(), token(t), "mail.shared.example")
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+
+	t.Run("a failure to read the custom domains is transient", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.workspaceRepo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(nil, errors.New("db down"))
 		_, err := f.svc.Resolve(context.Background(), token(t), "mail.brand-a.example")
-		require.NoError(t, err)
+		assert.ErrorIs(t, err, ErrWebVersionUnavailable)
+	})
+
+	t.Run("a forged token reads no custom domain", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		_, err := f.svc.Resolve(context.Background(), wvToken(t, "another-secret", wvWorkspaceID, wvMessageID), "mail.brand-b.example")
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
 	})
 }
 

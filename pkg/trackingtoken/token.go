@@ -99,6 +99,30 @@ func HostOf(endpoint string) string {
 	return strings.ToLower(u.Hostname())
 }
 
+// SameHost reports whether hostport, a request's Host with or without a port, names
+// host. Letters fold in ASCII only (strings.EqualFold would also fold, for instance, the
+// Kelvin sign onto 'k'), and a trailing dot, which names the same host, is ignored.
+func SameHost(hostport, host string) bool {
+	a := strings.TrimSuffix((&url.URL{Host: hostport}).Hostname(), ".")
+	b := strings.TrimSuffix(host, ".")
+	if a == "" || len(a) != len(b) {
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		if asciiLower(a[i]) != asciiLower(b[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func asciiLower(c byte) byte {
+	if 'A' <= c && c <= 'Z' {
+		return c + 'a' - 'A'
+	}
+	return c
+}
+
 // Token is a parsed, unverified tracking token.
 type Token struct {
 	MessageID   string
