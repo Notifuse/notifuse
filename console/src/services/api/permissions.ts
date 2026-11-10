@@ -397,11 +397,11 @@ export const PERMISSION_DESCRIPTORS: Record<
         },
         {
           endpoint: "/api/transactional.create",
-          action: msg`Pick the template a transactional notification sends (also needs Transactional write)`,
+          action: msg`Choose the template of a transactional notification, when creating it or changing its template (also needs Transactional write)`,
         },
         {
           endpoint: "/api/transactional.update",
-          action: msg`Pick the template a transactional notification sends (also needs Transactional write)`,
+          action: msg`Choose the template of a transactional notification, when creating it or changing its template (also needs Transactional write)`,
         },
       ],
     },
@@ -622,11 +622,11 @@ export const PERMISSION_DESCRIPTORS: Record<
       endpoints: [
         {
           endpoint: "/api/transactional.create",
-          action: msg`Create a transactional notification`,
+          action: msg`Create a transactional notification (choosing its template also needs Templates read)`,
         },
         {
           endpoint: "/api/transactional.update",
-          action: msg`Edit a transactional notification`,
+          action: msg`Edit a transactional notification (changing its template also needs Templates read)`,
         },
         {
           endpoint: "/api/transactional.delete",

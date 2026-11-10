@@ -2662,6 +2662,11 @@ msgstr "Trieu un bloc desat per actualitzar"
 msgid "Choose a starting point for your new theme. You can customize everything later."
 msgstr "Trieu un punt de partida per al vostre nou tema. Podeu personalitzar-ho tot més tard."
 
+#: src/services/api/permissions.ts:400
+#: src/services/api/permissions.ts:404
+msgid "Choose the template of a transactional notification, when creating it or changing its template (also needs Transactional write)"
+msgstr "Triar la plantilla d'una notificació transaccional, en crear-la o en canviar-ne la plantilla (també necessita escriptura de Transaccional)"
+
 #. placeholder {0}: post.settings.title
 #: src/components/blog/PublishModal.tsx:110
 msgid "Choose when to publish \"{0}\""
@@ -3552,8 +3557,12 @@ msgid "Create a theme version"
 msgstr "Crear una versió de tema"
 
 #: src/services/api/permissions.ts:625
-msgid "Create a transactional notification"
-msgstr "Crear una notificació transaccional"
+#~ msgid "Create a transactional notification"
+#~ msgstr "Crear una notificació transaccional"
+
+#: src/services/api/permissions.ts:625
+msgid "Create a transactional notification (choosing its template also needs Templates read)"
+msgstr "Crear una notificació transaccional (triar-ne la plantilla també necessita lectura de Plantilles)"
 
 #: src/components/settings/ZapierSettings.tsx:191
 #~ msgid "Create a Zapier API key"
@@ -4860,8 +4869,12 @@ msgid "Edit a theme version, including its scripts.js"
 msgstr "Editar una versió de tema, inclòs el seu scripts.js"
 
 #: src/services/api/permissions.ts:629
-msgid "Edit a transactional notification"
-msgstr "Editar una notificació transaccional"
+#~ msgid "Edit a transactional notification"
+#~ msgstr "Editar una notificació transaccional"
+
+#: src/services/api/permissions.ts:629
+msgid "Edit a transactional notification (changing its template also needs Templates read)"
+msgstr "Editar una notificació transaccional (canviar-ne la plantilla també necessita lectura de Plantilles)"
 
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:427
 msgid "Edit alt text"
@@ -10063,11 +10076,6 @@ msgstr "Trieu una dimensió a sota"
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:102
 msgid "Pick a report to start from, or build your own."
 msgstr "Trieu un informe per començar, o construïu el vostre."
-
-#: src/services/api/permissions.ts:400
-#: src/services/api/permissions.ts:404
-msgid "Pick the template a transactional notification sends (also needs Transactional write)"
-msgstr "Triar la plantilla que envia una notificació transaccional (també necessita escriptura de Transaccional)"
 
 #: src/services/api/permissions.ts:583
 msgid "Pick the winning A/B variation and send it to the remaining audience"

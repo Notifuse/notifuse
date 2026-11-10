@@ -62,7 +62,8 @@ func TestTransactionalHandler(t *testing.T) {
 	})
 
 	// The console enables its test email buttons on templates:read and transactional:write,
-	// so pin that this is exactly what the endpoint needs: contacts:write is not.
+	// so pin that templates:read is needed on top of transactional:write, and that the pair
+	// is enough without any contacts permission.
 	t.Run("Template Testing Permissions", func(t *testing.T) {
 		template, err := factory.CreateTemplate(workspace.ID)
 		require.NoError(t, err)

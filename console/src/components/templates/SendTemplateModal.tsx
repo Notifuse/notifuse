@@ -29,8 +29,9 @@ interface SendTemplateModalProps {
   omitListUnsubscribeHeader?: boolean
   // The list field is shown, and lists loaded, only for members who can read lists
   canReadLists?: boolean
-  // cc and bcc need contacts:read on the server, so their fields are shown only with it
-  canReadContacts?: boolean
+  // cc and bcc need contacts:read on the server, so their fields are shown only with it.
+  // Required, so a page that forgets it does not silently hide them from everyone.
+  canReadContacts: boolean
 }
 
 export default function SendTemplateModal({
@@ -43,7 +44,7 @@ export default function SendTemplateModal({
   defaultListId,
   omitListUnsubscribeHeader = false,
   canReadLists = false,
-  canReadContacts = false
+  canReadContacts
 }: SendTemplateModalProps) {
   const { t } = useLingui()
   const [email, setEmail] = useState('')

@@ -2662,6 +2662,11 @@ msgstr "更新する保存済みブロックを選択"
 msgid "Choose a starting point for your new theme. You can customize everything later."
 msgstr "新しいテーマの出発点を選択してください。後ですべてカスタマイズできます。"
 
+#: src/services/api/permissions.ts:400
+#: src/services/api/permissions.ts:404
+msgid "Choose the template of a transactional notification, when creating it or changing its template (also needs Transactional write)"
+msgstr "作成時またはテンプレートの変更時に、トランザクション通知のテンプレートを選ぶ (トランザクションの書き込みも必要)"
+
 #. placeholder {0}: post.settings.title
 #: src/components/blog/PublishModal.tsx:110
 msgid "Choose when to publish \"{0}\""
@@ -3552,8 +3557,12 @@ msgid "Create a theme version"
 msgstr "テーマのバージョンを作成する"
 
 #: src/services/api/permissions.ts:625
-msgid "Create a transactional notification"
-msgstr "トランザクション通知を作成する"
+#~ msgid "Create a transactional notification"
+#~ msgstr "トランザクション通知を作成する"
+
+#: src/services/api/permissions.ts:625
+msgid "Create a transactional notification (choosing its template also needs Templates read)"
+msgstr "トランザクション通知を作成する (テンプレートの選択にはテンプレートの読み取りも必要)"
 
 #: src/components/settings/ZapierSettings.tsx:191
 #~ msgid "Create a Zapier API key"
@@ -4860,8 +4869,12 @@ msgid "Edit a theme version, including its scripts.js"
 msgstr "scripts.js を含む、テーマのバージョンを編集する"
 
 #: src/services/api/permissions.ts:629
-msgid "Edit a transactional notification"
-msgstr "トランザクション通知を編集する"
+#~ msgid "Edit a transactional notification"
+#~ msgstr "トランザクション通知を編集する"
+
+#: src/services/api/permissions.ts:629
+msgid "Edit a transactional notification (changing its template also needs Templates read)"
+msgstr "トランザクション通知を編集する (テンプレートの変更にはテンプレートの読み取りも必要)"
 
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:427
 msgid "Edit alt text"
@@ -10063,11 +10076,6 @@ msgstr "下からディメンションを選択してください"
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:102
 msgid "Pick a report to start from, or build your own."
 msgstr "出発点となるレポートを選ぶか、自分で作成してください。"
-
-#: src/services/api/permissions.ts:400
-#: src/services/api/permissions.ts:404
-msgid "Pick the template a transactional notification sends (also needs Transactional write)"
-msgstr "トランザクション通知が送信するテンプレートを選ぶ (トランザクションの書き込みも必要)"
 
 #: src/services/api/permissions.ts:583
 msgid "Pick the winning A/B variation and send it to the remaining audience"

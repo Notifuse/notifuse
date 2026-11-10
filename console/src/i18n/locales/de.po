@@ -2662,6 +2662,11 @@ msgstr "Gespeicherten Block zum Aktualisieren auswählen"
 msgid "Choose a starting point for your new theme. You can customize everything later."
 msgstr "Wählen Sie einen Ausgangspunkt für Ihr neues Theme. Sie können alles später anpassen."
 
+#: src/services/api/permissions.ts:400
+#: src/services/api/permissions.ts:404
+msgid "Choose the template of a transactional notification, when creating it or changing its template (also needs Transactional write)"
+msgstr "Die Vorlage einer transaktionalen Benachrichtigung wählen, beim Erstellen oder beim Ändern ihrer Vorlage (benötigt zusätzlich Schreibrecht für Transaktional)"
+
 #. placeholder {0}: post.settings.title
 #: src/components/blog/PublishModal.tsx:110
 msgid "Choose when to publish \"{0}\""
@@ -3552,8 +3557,12 @@ msgid "Create a theme version"
 msgstr "Eine Theme-Version erstellen"
 
 #: src/services/api/permissions.ts:625
-msgid "Create a transactional notification"
-msgstr "Eine transaktionale Benachrichtigung erstellen"
+#~ msgid "Create a transactional notification"
+#~ msgstr "Eine transaktionale Benachrichtigung erstellen"
+
+#: src/services/api/permissions.ts:625
+msgid "Create a transactional notification (choosing its template also needs Templates read)"
+msgstr "Eine transaktionale Benachrichtigung erstellen (die Wahl ihrer Vorlage benötigt zusätzlich Leserecht für Vorlagen)"
 
 #: src/components/settings/ZapierSettings.tsx:191
 #~ msgid "Create a Zapier API key"
@@ -4860,8 +4869,12 @@ msgid "Edit a theme version, including its scripts.js"
 msgstr "Eine Theme-Version bearbeiten, einschließlich ihrer scripts.js"
 
 #: src/services/api/permissions.ts:629
-msgid "Edit a transactional notification"
-msgstr "Eine transaktionale Benachrichtigung bearbeiten"
+#~ msgid "Edit a transactional notification"
+#~ msgstr "Eine transaktionale Benachrichtigung bearbeiten"
+
+#: src/services/api/permissions.ts:629
+msgid "Edit a transactional notification (changing its template also needs Templates read)"
+msgstr "Eine transaktionale Benachrichtigung bearbeiten (das Ändern ihrer Vorlage benötigt zusätzlich Leserecht für Vorlagen)"
 
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:427
 msgid "Edit alt text"
@@ -10063,11 +10076,6 @@ msgstr "Wählen Sie unten eine Dimension aus"
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:102
 msgid "Pick a report to start from, or build your own."
 msgstr "Wählen Sie einen Bericht als Ausgangspunkt oder erstellen Sie einen eigenen."
-
-#: src/services/api/permissions.ts:400
-#: src/services/api/permissions.ts:404
-msgid "Pick the template a transactional notification sends (also needs Transactional write)"
-msgstr "Die Vorlage wählen, die eine Transaktionsbenachrichtigung sendet (benötigt zusätzlich Schreibrecht für Transaktional)"
 
 #: src/services/api/permissions.ts:583
 msgid "Pick the winning A/B variation and send it to the remaining audience"
