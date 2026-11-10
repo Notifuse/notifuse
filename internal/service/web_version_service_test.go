@@ -1,0 +1,354 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+const (
+	wvWorkspaceID = "ws1"
+	wvMessageID   = "msg-1"
+	wvSecret      = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+)
+
+// fakeWebVersionKeys answers Lookup and Refresh from fixed values, and counts the refreshes.
+type fakeWebVersionKeys struct {
+	lookup    trackingtoken.Workspace
+	status    trackingtoken.WorkspaceStatus
+	refreshed trackingtoken.Workspace
+	refreshes int
+}
+
+func (f *fakeWebVersionKeys) Lookup(context.Context, string) (trackingtoken.Workspace, trackingtoken.WorkspaceStatus) {
+	return f.lookup, f.status
+}
+
+func (f *fakeWebVersionKeys) Refresh(context.Context, string) (trackingtoken.Workspace, trackingtoken.WorkspaceStatus) {
+	f.refreshes++
+	if f.refreshed.Key != nil {
+		return f.refreshed, trackingtoken.WorkspaceKnown
+	}
+	return f.lookup, f.status
+}
+
+type webVersionFixture struct {
+	ctrl          *gomock.Controller
+	keys          *fakeWebVersionKeys
+	workspaceRepo *mocks.MockWorkspaceRepository
+	messageRepo   *mocks.MockMessageHistoryRepository
+	templateRepo  *mocks.MockTemplateRepository
+	compiled      []notifuse_mjml.CompileTemplateRequest
+	svc           *WebVersionService
+}
+
+func newWebVersionFixture(t *testing.T) *webVersionFixture {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+	logger := pkgmocks.NewMockLogger(ctrl)
+	logger.EXPECT().WithFields(gomock.Any()).Return(logger).AnyTimes()
+	logger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(logger).AnyTimes()
+	logger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	logger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	f := &webVersionFixture{
+		ctrl:          ctrl,
+		keys:          &fakeWebVersionKeys{lookup: trackingtoken.Workspace{Key: domain.TrackingSigningKey(wvSecret)}, status: trackingtoken.WorkspaceKnown},
+		workspaceRepo: mocks.NewMockWorkspaceRepository(ctrl),
+		messageRepo:   mocks.NewMockMessageHistoryRepository(ctrl),
+		templateRepo:  mocks.NewMockTemplateRepository(ctrl),
+	}
+	f.svc = NewWebVersionService(f.keys, f.workspaceRepo, f.messageRepo, f.templateRepo, "https://api.example.com", logger)
+	realCompile := f.svc.compile
+	f.svc.compile = func(req notifuse_mjml.CompileTemplateRequest) (*notifuse_mjml.CompileTemplateResponse, error) {
+		f.compiled = append(f.compiled, req)
+		return realCompile(req)
+	}
+	return f
+}
+
+func wvToken(t *testing.T, secret, wid, mid string) string {
+	t.Helper()
+	token, err := trackingtoken.MintView(domain.TrackingSigningKey(secret), mid, wid, time.Now().Unix())
+	require.NoError(t, err)
+	return token
+}
+
+func wvWorkspace() *domain.Workspace {
+	return &domain.Workspace{ID: wvWorkspaceID, Settings: domain.WorkspaceSettings{SecretKey: wvSecret, DefaultLanguage: "en"}}
+}
+
+func wvTemplate(content string) *domain.Template {
+	return &domain.Template{
+		ID:      "tpl-1",
+		Version: 3,
+		Channel: "email",
+		Email:   &domain.EmailTemplate{Subject: "Hi", VisualEditorTree: createValidMJMLTree(createTestTextBlock("txt1", content))},
+	}
+}
+
+func wvBroadcastMessage(data map[string]interface{}) *domain.MessageHistory {
+	broadcastID := "broadcast-1"
+	return &domain.MessageHistory{ID: wvMessageID, BroadcastID: &broadcastID, TemplateID: "tpl-1", TemplateVersion: 3, MessageData: domain.MessageData{Data: data}}
+}
+
+func wvContactData(firstName, language string) map[string]interface{} {
+	contact := map[string]interface{}{"email": "camille@example.com", "first_name": firstName}
+	if language != "" {
+		contact["language"] = language
+	}
+	return contact
+}
+
+// expectSource sets up the loads of a message that renders.
+func (f *webVersionFixture) expectSource(message *domain.MessageHistory, template *domain.Template) {
+	f.workspaceRepo.EXPECT().GetByID(gomock.Any(), wvWorkspaceID).Return(wvWorkspace(), nil)
+	f.messageRepo.EXPECT().GetForWebVersion(gomock.Any(), wvWorkspaceID, wvSecret, wvMessageID).Return(message, nil)
+	if template != nil {
+		f.templateRepo.EXPECT().GetTemplateByID(gomock.Any(), wvWorkspaceID, "tpl-1", int64(3)).Return(template, nil)
+	}
+}
+
+func TestWebVersionService_RendersABroadcastEmailFromItsVersion(t *testing.T) {
+	f := newWebVersionFixture(t)
+	f.expectSource(wvBroadcastMessage(map[string]interface{}{"contact": wvContactData("Camille", "")}), wvTemplate("Hello {{ contact.first_name }}"))
+
+	ref, err := f.svc.Resolve(context.Background(), wvToken(t, wvSecret, wvWorkspaceID, wvMessageID))
+	require.NoError(t, err)
+	assert.Equal(t, WebVersionRef{WorkspaceID: wvWorkspaceID, MessageID: wvMessageID}, ref)
+
+	html, err := f.svc.Render(context.Background(), ref)
+	require.NoError(t, err)
+	assert.Contains(t, html, "Hello Camille")
+}
+
+func TestWebVersionService_RendersTheContactLanguage(t *testing.T) {
+	f := newWebVersionFixture(t)
+	template := wvTemplate("Hello")
+	template.Translations = map[string]domain.TemplateTranslation{
+		"fr": {Email: &domain.EmailTemplate{Subject: "Salut", VisualEditorTree: createValidMJMLTree(createTestTextBlock("txt1", "Bonjour"))}},
+	}
+	f.expectSource(wvBroadcastMessage(map[string]interface{}{"contact": wvContactData("Camille", "fr")}), template)
+
+	html, err := f.svc.Render(context.Background(), WebVersionRef{WorkspaceID: wvWorkspaceID, MessageID: wvMessageID})
+	require.NoError(t, err)
+	assert.Contains(t, html, "Bonjour")
+	assert.NotContains(t, html, "Hello")
+}
+
+func TestWebVersionService_RendersWithoutAnyTracking(t *testing.T) {
+	f := newWebVersionFixture(t)
+	f.expectSource(wvBroadcastMessage(map[string]interface{}{
+		"contact":            wvContactData("Camille", ""),
+		"tracking_opens_url": "https://api.example.com/t/live-pixel",
+		"utm_source":         "newsletter",
+		"utm_medium":         "email",
+		"utm_campaign":       "autumn",
+		"utm_content":        "tpl-1",
+		"utm_term":           "coffee",
+	}), wvTemplate(`<a href="https://shop.example.com/sale">Shop</a><img src="{{ tracking_opens_url }}">`))
+
+	html, err := f.svc.Render(context.Background(), WebVersionRef{WorkspaceID: wvWorkspaceID, MessageID: wvMessageID})
+	require.NoError(t, err)
+
+	require.Len(t, f.compiled, 1)
+	ts := f.compiled[0].TrackingSettings
+	assert.False(t, ts.EnableTracking)
+	assert.True(t, ts.SuppressOpens)
+	assert.True(t, ts.SuppressClicks)
+	assert.True(t, ts.SuppressIdentify)
+	assert.Empty(t, ts.IdentifyToken)
+	assert.Empty(t, ts.SigningKey)
+	assert.Equal(t, "https://api.example.com", ts.Endpoint)
+	assert.Equal(t, "newsletter", ts.UTMSource)
+	assert.Equal(t, "email", ts.UTMMedium)
+	assert.Equal(t, "autumn", ts.UTMCampaign)
+	assert.Equal(t, "tpl-1", ts.UTMContent)
+	assert.Equal(t, "coffee", ts.UTMTerm)
+	assert.Equal(t, "", f.compiled[0].TemplateData["tracking_opens_url"], "the stored pixel URL is live: never render it")
+
+	assert.NotContains(t, html, "/t/", "no open pixel")
+	assert.NotContains(t, html, "/r/", "no click redirect")
+	assert.Contains(t, html, "https://shop.example.com/sale?utm_")
+}
+
+func TestWebVersionService_RendersWithTheWorkspaceEndpoint(t *testing.T) {
+	f := newWebVersionFixture(t)
+	custom := "https://mail.example.com/"
+	ws := wvWorkspace()
+	ws.Settings.CustomEndpointURL = &custom
+	f.workspaceRepo.EXPECT().GetByID(gomock.Any(), wvWorkspaceID).Return(ws, nil)
+	f.messageRepo.EXPECT().GetForWebVersion(gomock.Any(), wvWorkspaceID, wvSecret, wvMessageID).
+		Return(wvBroadcastMessage(map[string]interface{}{"contact": wvContactData("Camille", "")}), nil)
+	f.templateRepo.EXPECT().GetTemplateByID(gomock.Any(), wvWorkspaceID, "tpl-1", int64(3)).Return(wvTemplate("Hi"), nil)
+
+	_, err := f.svc.Render(context.Background(), WebVersionRef{WorkspaceID: wvWorkspaceID, MessageID: wvMessageID})
+	require.NoError(t, err)
+	require.Len(t, f.compiled, 1)
+	assert.Equal(t, "https://mail.example.com", f.compiled[0].TrackingSettings.Endpoint)
+}
+
+func TestWebVersionService_RendersAnAutomationEmailWithItsUTMs(t *testing.T) {
+	f := newWebVersionFixture(t)
+	automationID := "auto-1"
+	f.expectSource(&domain.MessageHistory{
+		ID: wvMessageID, AutomationID: &automationID, TemplateID: "tpl-1", TemplateVersion: 3,
+		MessageData: domain.MessageData{Data: map[string]interface{}{"contact": wvContactData("Camille", ""), "automation_name": "Welcome"}},
+	}, wvTemplate(`<a href="https://shop.example.com/">Shop</a>`))
+
+	_, err := f.svc.Render(context.Background(), WebVersionRef{WorkspaceID: wvWorkspaceID, MessageID: wvMessageID})
+	require.NoError(t, err)
+	require.Len(t, f.compiled, 1)
+	ts := f.compiled[0].TrackingSettings
+	assert.Equal(t, "automation", ts.UTMSource)
+	assert.Equal(t, "email", ts.UTMMedium)
+	assert.Equal(t, "Welcome", ts.UTMCampaign)
+	assert.Equal(t, "tpl-1", ts.UTMContent)
+}
+
+func TestWebVersionService_Resolve(t *testing.T) {
+	t.Run("a token of another purpose is not found", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		openToken, err := trackingtoken.MintOpen(domain.TrackingSigningKey(wvSecret), wvMessageID, wvWorkspaceID, time.Now().Unix())
+		require.NoError(t, err)
+		_, err = f.svc.Resolve(context.Background(), openToken)
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+
+	t.Run("a token signed with another key is not found", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		_, err := f.svc.Resolve(context.Background(), wvToken(t, "another-secret", wvWorkspaceID, wvMessageID))
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+		assert.Equal(t, 1, f.keys.refreshes, "a failed signature re-reads the key once")
+	})
+
+	t.Run("a stale cached key is refreshed", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.keys.lookup = trackingtoken.Workspace{Key: domain.TrackingSigningKey("old-secret")}
+		f.keys.refreshed = trackingtoken.Workspace{Key: domain.TrackingSigningKey(wvSecret)}
+		ref, err := f.svc.Resolve(context.Background(), wvToken(t, wvSecret, wvWorkspaceID, wvMessageID))
+		require.NoError(t, err)
+		assert.Equal(t, wvMessageID, ref.MessageID)
+	})
+
+	t.Run("an unknown workspace is not found", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.keys.status = trackingtoken.WorkspaceUnknown
+		_, err := f.svc.Resolve(context.Background(), wvToken(t, wvSecret, wvWorkspaceID, wvMessageID))
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+
+	t.Run("an unavailable workspace lookup is transient", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.keys.status = trackingtoken.WorkspaceUnavailable
+		_, err := f.svc.Resolve(context.Background(), wvToken(t, wvSecret, wvWorkspaceID, wvMessageID))
+		assert.ErrorIs(t, err, ErrWebVersionUnavailable)
+	})
+
+	t.Run("garbage is not found", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		_, err := f.svc.Resolve(context.Background(), "not-a-token")
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+
+	t.Run("an over-long token is not found without being opened", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		_, err := f.svc.Resolve(context.Background(), strings.Repeat("a", MaxWebVersionTokenLength+1))
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+}
+
+func TestWebVersionService_RenderRefusals(t *testing.T) {
+	ref := WebVersionRef{WorkspaceID: wvWorkspaceID, MessageID: wvMessageID}
+	data := map[string]interface{}{"contact": wvContactData("Camille", "")}
+
+	t.Run("no such message", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.expectSource(nil, nil)
+		_, err := f.svc.Render(context.Background(), ref)
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+
+	t.Run("a transactional message", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.expectSource(&domain.MessageHistory{ID: wvMessageID, TemplateID: "tpl-1", TemplateVersion: 3, MessageData: domain.MessageData{Data: data}}, nil)
+		_, err := f.svc.Render(context.Background(), ref)
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+
+	t.Run("a message recorded without its template version", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		message := wvBroadcastMessage(data)
+		message.TemplateVersion = 0
+		f.expectSource(message, nil)
+		_, err := f.svc.Render(context.Background(), ref)
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+
+	t.Run("a message whose contact was erased", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.expectSource(wvBroadcastMessage(nil), nil)
+		_, err := f.svc.Render(context.Background(), ref)
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+
+	t.Run("a missing template version", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.workspaceRepo.EXPECT().GetByID(gomock.Any(), wvWorkspaceID).Return(wvWorkspace(), nil)
+		f.messageRepo.EXPECT().GetForWebVersion(gomock.Any(), wvWorkspaceID, wvSecret, wvMessageID).Return(wvBroadcastMessage(data), nil)
+		f.templateRepo.EXPECT().GetTemplateByID(gomock.Any(), wvWorkspaceID, "tpl-1", int64(3)).Return(nil, &domain.ErrTemplateNotFound{Message: "not found"})
+		_, err := f.svc.Render(context.Background(), ref)
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+
+	t.Run("a deleted template", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		template := wvTemplate("Hi")
+		deletedAt := time.Now()
+		template.DeletedAt = &deletedAt
+		f.expectSource(wvBroadcastMessage(data), template)
+		_, err := f.svc.Render(context.Background(), ref)
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+		assert.Empty(t, f.compiled)
+	})
+
+	t.Run("a template without email content", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.expectSource(wvBroadcastMessage(data), &domain.Template{ID: "tpl-1", Version: 3})
+		_, err := f.svc.Render(context.Background(), ref)
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+
+	t.Run("a template that does not compile", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.expectSource(wvBroadcastMessage(data), wvTemplate("{% if %}"))
+		_, err := f.svc.Render(context.Background(), ref)
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+
+	t.Run("a message history read failure is transient", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.workspaceRepo.EXPECT().GetByID(gomock.Any(), wvWorkspaceID).Return(wvWorkspace(), nil)
+		f.messageRepo.EXPECT().GetForWebVersion(gomock.Any(), wvWorkspaceID, wvSecret, wvMessageID).Return(nil, errors.New("db down"))
+		_, err := f.svc.Render(context.Background(), ref)
+		assert.ErrorIs(t, err, ErrWebVersionUnavailable)
+	})
+
+	t.Run("a workspace read failure is transient", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.workspaceRepo.EXPECT().GetByID(gomock.Any(), wvWorkspaceID).Return(nil, errors.New("db down"))
+		_, err := f.svc.Render(context.Background(), ref)
+		assert.ErrorIs(t, err, ErrWebVersionUnavailable)
+	})
+}

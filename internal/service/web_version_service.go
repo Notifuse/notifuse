@@ -1,0 +1,226 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
+)
+
+// MaxWebVersionTokenLength bounds the token read from a /v/ path before it is opened. A
+// real token is a few hundred bytes; anything longer is refused without decrypting it.
+const MaxWebVersionTokenLength = 2048
+
+var (
+	// ErrWebVersionNotFound covers every reason a web version is not shown: a token that
+	// does not verify, a message that is not a broadcast or automation email, an erased
+	// contact, a deleted template. One error, so the route answers them all alike.
+	ErrWebVersionNotFound = errors.New("web version not found")
+	// ErrWebVersionUnavailable is a transient failure: the email may well exist.
+	ErrWebVersionUnavailable = errors.New("web version temporarily unavailable")
+)
+
+// WebVersionKeys is what the web version needs from the tracking workspace source: the
+// key a workspace's links are signed with.
+type WebVersionKeys interface {
+	Lookup(ctx context.Context, workspaceID string) (trackingtoken.Workspace, trackingtoken.WorkspaceStatus)
+	Refresh(ctx context.Context, workspaceID string) (trackingtoken.Workspace, trackingtoken.WorkspaceStatus)
+}
+
+// WebVersionRef names the message a verified web version token points to.
+type WebVersionRef struct {
+	WorkspaceID string
+	MessageID   string
+}
+
+// WebVersionService renders the web version of a broadcast or automation email: the
+// template version it was sent with, compiled again from the data recorded in message
+// history. It writes nothing, and the page it returns tracks nothing.
+type WebVersionService struct {
+	keys          WebVersionKeys
+	workspaceRepo domain.WorkspaceRepository
+	messageRepo   domain.MessageHistoryRepository
+	templateRepo  domain.TemplateRepository
+	apiEndpoint   string
+	logger        logger.Logger
+	compile       func(notifuse_mjml.CompileTemplateRequest) (*notifuse_mjml.CompileTemplateResponse, error)
+}
+
+// NewWebVersionService builds the service. apiEndpoint is the endpoint used when the
+// workspace has no custom one.
+func NewWebVersionService(
+	keys WebVersionKeys,
+	workspaceRepo domain.WorkspaceRepository,
+	messageRepo domain.MessageHistoryRepository,
+	templateRepo domain.TemplateRepository,
+	apiEndpoint string,
+	logger logger.Logger,
+) *WebVersionService {
+	return &WebVersionService{
+		keys:          keys,
+		workspaceRepo: workspaceRepo,
+		messageRepo:   messageRepo,
+		templateRepo:  templateRepo,
+		apiEndpoint:   apiEndpoint,
+		logger:        logger,
+		compile:       notifuse_mjml.CompileTemplate,
+	}
+}
+
+// Resolve opens and verifies a web version token. Only a token signed with its
+// workspace's key for the view purpose resolves: there is no unsigned or legacy form.
+func (s *WebVersionService) Resolve(ctx context.Context, token string) (WebVersionRef, error) {
+	if token == "" || len(token) > MaxWebVersionTokenLength {
+		return WebVersionRef{}, ErrWebVersionNotFound
+	}
+	tok, err := trackingtoken.Parse(token, trackingtoken.PurposeView)
+	if err != nil || tok.Tag == "" || !trackingtoken.ValidWorkspaceID(tok.WorkspaceID) {
+		return WebVersionRef{}, ErrWebVersionNotFound
+	}
+
+	ws, status := s.keys.Lookup(ctx, tok.WorkspaceID)
+	switch status {
+	case trackingtoken.WorkspaceUnavailable:
+		return WebVersionRef{}, ErrWebVersionUnavailable
+	case trackingtoken.WorkspaceKnown:
+	default:
+		return WebVersionRef{}, ErrWebVersionNotFound
+	}
+	if !tok.Verify(ws.Key, trackingtoken.PurposeView) {
+		// The cached key may be stale, for a workspace re-created under its ID.
+		ws, status = s.keys.Refresh(ctx, tok.WorkspaceID)
+		if status != trackingtoken.WorkspaceKnown || !tok.Verify(ws.Key, trackingtoken.PurposeView) {
+			return WebVersionRef{}, ErrWebVersionNotFound
+		}
+	}
+	return WebVersionRef{WorkspaceID: tok.WorkspaceID, MessageID: tok.MessageID}, nil
+}
+
+// Render compiles the web version of a resolved message.
+func (s *WebVersionService) Render(ctx context.Context, ref WebVersionRef) (string, error) {
+	workspace, err := s.workspaceRepo.GetByID(ctx, ref.WorkspaceID)
+	if err != nil {
+		var notFound *domain.ErrWorkspaceNotFound
+		if errors.As(err, &notFound) {
+			return "", ErrWebVersionNotFound
+		}
+		return "", s.unavailable(ref, "load the workspace", err)
+	}
+
+	message, err := s.messageRepo.GetForWebVersion(ctx, ref.WorkspaceID, workspace.Settings.SecretKey, ref.MessageID)
+	if err != nil {
+		return "", s.unavailable(ref, "load the message", err)
+	}
+	// Broadcasts and automations only. A message recorded without its template version
+	// is never rendered from the latest one, and an erased contact's message has no data.
+	if message == nil || (message.BroadcastID == nil && message.AutomationID == nil) ||
+		message.TemplateVersion <= 0 || len(message.MessageData.Data) == 0 {
+		return "", ErrWebVersionNotFound
+	}
+
+	template, err := s.templateRepo.GetTemplateByID(ctx, ref.WorkspaceID, message.TemplateID, message.TemplateVersion)
+	if err != nil {
+		var notFound *domain.ErrTemplateNotFound
+		if errors.As(err, &notFound) {
+			return "", ErrWebVersionNotFound
+		}
+		return "", s.unavailable(ref, "load the template", err)
+	}
+	// Deleting a template takes its web versions down: it is how an operator withdraws one.
+	if template == nil || template.DeletedAt != nil {
+		return "", ErrWebVersionNotFound
+	}
+
+	data := make(map[string]interface{}, len(message.MessageData.Data))
+	for key, value := range message.MessageData.Data {
+		data[key] = value
+	}
+	// The recorded pixel URL is live and signed: a template that uses it must not record
+	// an open each time the page is viewed.
+	data["tracking_opens_url"] = ""
+
+	emailContent := template.ResolveEmailContent(contactLanguage(data), workspace.Settings.DefaultLanguage)
+	if emailContent == nil {
+		return "", ErrWebVersionNotFound
+	}
+
+	compileReq := notifuse_mjml.CompileTemplateRequest{
+		WorkspaceID:      ref.WorkspaceID,
+		MessageID:        ref.MessageID,
+		TemplateData:     notifuse_mjml.MapOfAny(data),
+		TrackingSettings: webVersionTrackingSettings(workspace.Settings.ResolveEndpoint(s.apiEndpoint), message, data),
+	}
+	emailContent.ApplyToCompileRequest(&compileReq, nil)
+	compiled, err := s.compile(compileReq)
+	if err != nil || compiled == nil || !compiled.Success || compiled.HTML == nil {
+		reason := "compilation failed"
+		if err != nil {
+			reason = err.Error()
+		} else if compiled != nil && compiled.Error != nil {
+			reason = compiled.Error.Message
+		}
+		s.logger.WithFields(map[string]interface{}{
+			"workspace_id": ref.WorkspaceID,
+			"message_id":   ref.MessageID,
+			"template_id":  message.TemplateID,
+			"error":        reason,
+		}).Warn("Web version could not be compiled")
+		return "", ErrWebVersionNotFound
+	}
+	return *compiled.HTML, nil
+}
+
+func (s *WebVersionService) unavailable(ref WebVersionRef, step string, err error) error {
+	s.logger.WithFields(map[string]interface{}{
+		"workspace_id": ref.WorkspaceID,
+		"message_id":   ref.MessageID,
+		"error":        err.Error(),
+	}).Error("Web version failed to " + step)
+	return fmt.Errorf("%w: %s", ErrWebVersionUnavailable, step)
+}
+
+// webVersionTrackingSettings tracks nothing (no pixel, no click redirect, no identity
+// token), so viewing or clicking in the web version records nothing and cannot track a
+// contact who refused tracking after the send. Links keep the UTM parameters of the
+// send: a broadcast's are in its recorded data, an automation's follow the rule the
+// automation executor applies.
+func webVersionTrackingSettings(endpoint string, message *domain.MessageHistory, data map[string]interface{}) notifuse_mjml.TrackingSettings {
+	ts := notifuse_mjml.TrackingSettings{
+		Endpoint:         endpoint,
+		EnableTracking:   false,
+		SuppressOpens:    true,
+		SuppressClicks:   true,
+		SuppressIdentify: true,
+	}
+	if message.BroadcastID != nil {
+		ts.UTMSource = stringValue(data["utm_source"])
+		ts.UTMMedium = stringValue(data["utm_medium"])
+		ts.UTMCampaign = stringValue(data["utm_campaign"])
+		ts.UTMContent = stringValue(data["utm_content"])
+		ts.UTMTerm = stringValue(data["utm_term"])
+	} else {
+		ts.UTMSource = "automation"
+		ts.UTMMedium = "email"
+		ts.UTMCampaign = stringValue(data["automation_name"])
+		ts.UTMContent = message.TemplateID
+	}
+	return ts
+}
+
+// contactLanguage reads the recorded contact's language, "" when there is none.
+func contactLanguage(data map[string]interface{}) string {
+	contact, ok := data["contact"].(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	return stringValue(contact["language"])
+}
+
+func stringValue(v interface{}) string {
+	s, _ := v.(string)
+	return s
+}
