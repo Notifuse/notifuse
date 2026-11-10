@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [44.0] - unreleased
+
+- **Feature**: Automations can start when a contact clicks a specific link, with the new "Clicked a link" trigger (`email.link_clicked`). It starts the first time a contact clicks each link of an email, and can be limited to links containing some text, to one broadcast or to one template. A click on an email the automation sent itself does not start it again. Clicks made before the upgrade, and clicks on links in emails sent before 42.2, do not start it. The new event does not count toward the monthly event usage.
+
+- **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
+
+- **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it, even when it was not the first link they clicked in that email.
+
+- **Improvement**: Opens and clicks on an email whose contact was deleted are no longer recorded. The link still redirects.
+
 ## [43.0] - 2026-11-07
 
 - **Feature**: Contacts can now agree to or refuse open tracking and click tracking, each on its own. Their choice is stored on the contact (`tracking_opens_consent`, `tracking_clicks_consent`, with the date and source of the change), set through the API, the console, CSV import and the notification center, exported, filterable in the contact list and in segments, usable as an automation trigger field, and sent in contact webhooks. A contact who refused gets no open pixel or no tracked links, and a later refusal also stops recording opens and clicks of emails already sent.
