@@ -1065,7 +1065,8 @@ export function CreateTemplateDrawer({
                               return {
                                 html: response.html || '',
                                 mjml: response.mjml || '',
-                                error: response.error
+                                error: response.error,
+                                text: response.text
                               }
                             } catch (error) {
                               const err = error as Error
@@ -1131,7 +1132,8 @@ export function CreateTemplateDrawer({
                             return {
                               html: response.html || '',
                               mjml: response.mjml || '',
-                              errors: []
+                              errors: [],
+                              text: response.text
                             }
                           } catch (error) {
                             const err = error as Error
@@ -1163,6 +1165,7 @@ export function CreateTemplateDrawer({
                         selectedBlockId={selectedBlockId}
                         hiddenBlocks={['mj-title', 'mj-preview']}
                         height={emailBuilderHeight}
+                        textVersion={{ enabled: true }}
                         toolbarActions={
                           <div className="flex gap-2 items-start">
                             <HelpSupportDropdown
