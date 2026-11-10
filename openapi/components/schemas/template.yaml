@@ -423,6 +423,14 @@ CompileTemplateResponse:
         Rendered inbox preview text. Present only when the request included a
         non-empty `subject_preview`. Returned on both success and error paths.
       example: "Welcome Pierre"
+    text:
+      type: string
+      description: |
+        Plain-text version sent with the email, generated from the compiled
+        HTML with the same links. Present only when an email compilation
+        succeeds. An empty string means the email holds no text to read and is
+        sent as HTML only.
+      example: "Hi Pierre\n\nShop now (https://example.com/shop)\n"
     error:
       type: object
       description: MJML compilation error details, if any

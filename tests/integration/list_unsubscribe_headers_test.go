@@ -17,6 +17,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/app"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/tests/testutil"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -57,7 +58,7 @@ func TestListUnsubscribeHeaders(t *testing.T) {
 	require.NoError(t, err)
 
 	// Set up SMTP email provider for testing (Mailpit)
-	_, err = factory.SetupWorkspaceWithSMTPProvider(workspace.ID)
+	integration, err := factory.SetupWorkspaceWithSMTPProvider(workspace.ID)
 	require.NoError(t, err)
 
 	// Login to get auth token
@@ -242,6 +243,125 @@ func TestListUnsubscribeHeaders(t *testing.T) {
 			"application/x-www-form-urlencoded", strings.NewReader("List-Unsubscribe=One-Click"))
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "the one-click POST must not be redirected")
 		assert.Equal(t, domain.ContactListStatusUnsubscribed, statusOf(t, email, listID))
+	})
+
+	// A test email sent from the console for a mailing list (issue #423) carries that list's
+	// real links and the header, and its one-click unsubscribe works for a recipient who was
+	// not on the list - typed with capitals, as people do.
+	t.Run("test email for a list", func(t *testing.T) {
+		list, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		template, err := factory.CreateTemplate(workspace.ID, testutil.WithCodeModeTemplate(
+			`<mjml><mj-body><mj-section><mj-column><mj-text>List: {{ list.name }} Link: {{ unsubscribe_url }}</mj-text></mj-column></mj-section></mj-body></mjml>`))
+		require.NoError(t, err)
+		senderID := integration.EmailProvider.Senders[0].ID
+
+		testSend := func(t *testing.T, recipient string, extra map[string]interface{}) *testutil.MailpitMessage {
+			t.Helper()
+			req := map[string]interface{}{
+				"workspace_id":    workspace.ID,
+				"template_id":     template.ID,
+				"integration_id":  integration.ID,
+				"sender_id":       senderID,
+				"recipient_email": recipient,
+			}
+			for k, v := range extra {
+				req[k] = v
+			}
+			resp, err := client.TestTransactionalTemplate(req)
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+			var result domain.TestTemplateResponse
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+			require.True(t, result.Success, "test send failed: %s", result.Error)
+
+			msg, err := waitForEmailAndGetMessage(t, recipient, 10*time.Second)
+			require.NoError(t, err, "Should receive the test email in Mailpit")
+			return msg
+		}
+
+		t.Run("carries the list's links and a working one-click header", func(t *testing.T) {
+			recipient := fmt.Sprintf("Tester.%s@Example.com", uuid.New().String()[:8])
+			msg := testSend(t, recipient, map[string]interface{}{"list_id": list.ID})
+
+			assert.Contains(t, msg.HTML, list.Name, "the body should name the real list")
+			assert.Contains(t, msg.HTML, "lid="+list.ID, "the body's unsubscribe link should point at the real list")
+
+			u := listUnsubscribeURL(t, msg)
+			assert.Equal(t, "/unsubscribe-oneclick", u.Path)
+			assert.Equal(t, list.ID, u.Query().Get("lids"))
+			listUnsubscribePost := msg.Headers["List-Unsubscribe-Post"]
+			require.NotEmpty(t, listUnsubscribePost)
+			assert.Equal(t, "List-Unsubscribe=One-Click", listUnsubscribePost[0])
+
+			resp := requestListUnsubscribeURL(t, http.MethodPost, u,
+				"application/x-www-form-urlencoded", strings.NewReader("List-Unsubscribe=One-Click"))
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			assert.Equal(t, domain.ContactListStatusUnsubscribed, statusOf(t, domain.NormalizeEmail(recipient), list.ID),
+				"the one-click POST from the test must unsubscribe the recipient from the list")
+		})
+
+		t.Run("no header when the test leaves it out", func(t *testing.T) {
+			recipient := fmt.Sprintf("notice.%s@example.com", uuid.New().String()[:8])
+			msg := testSend(t, recipient, map[string]interface{}{
+				"list_id":                      list.ID,
+				"omit_list_unsubscribe_header": true,
+			})
+
+			assert.Contains(t, msg.HTML, "lid="+list.ID, "the body keeps the list's links")
+			assert.Empty(t, msg.Headers["List-Unsubscribe"])
+			assert.Empty(t, msg.Headers["List-Unsubscribe-Post"])
+		})
+
+		t.Run("no header without a list", func(t *testing.T) {
+			recipient := fmt.Sprintf("nolist.%s@example.com", uuid.New().String()[:8])
+			msg := testSend(t, recipient, nil)
+
+			assert.Empty(t, msg.Headers["List-Unsubscribe"])
+			assert.Empty(t, msg.Headers["List-Unsubscribe-Post"])
+		})
+
+		// The test is recorded for the list as a real send is, so a bounce reported on it
+		// changes the recipient's subscription, as the dialog says.
+		t.Run("a bounce on the test marks the subscriber bounced on the list", func(t *testing.T) {
+			email, listID := subscribedContact(t)
+			testSend(t, email, map[string]interface{}{"list_id": listID})
+
+			db, err := factory.GetWorkspaceDB(workspace.ID)
+			require.NoError(t, err)
+			res, err := db.ExecContext(context.Background(),
+				`UPDATE message_history SET bounced_at = NOW() WHERE contact_email = $1 AND list_id = $2`,
+				email, listID)
+			require.NoError(t, err)
+			rows, err := res.RowsAffected()
+			require.NoError(t, err)
+			require.Equal(t, int64(1), rows, "the test should be recorded for the list")
+
+			assert.Equal(t, domain.ContactListStatusBounced, statusOf(t, email, listID))
+		})
+
+		t.Run("an unknown list is refused and creates no contact", func(t *testing.T) {
+			recipient := fmt.Sprintf("unknown.%s@example.com", uuid.New().String()[:8])
+			resp, err := client.TestTransactionalTemplate(map[string]interface{}{
+				"workspace_id":    workspace.ID,
+				"template_id":     template.ID,
+				"integration_id":  integration.ID,
+				"sender_id":       senderID,
+				"recipient_email": recipient,
+				"list_id":         "nosuchlist",
+			})
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+
+			db, err := factory.GetWorkspaceDB(workspace.ID)
+			require.NoError(t, err)
+			var contacts int
+			require.NoError(t, db.QueryRowContext(context.Background(),
+				`SELECT COUNT(*) FROM contacts WHERE email = $1`, recipient).Scan(&contacts))
+			assert.Equal(t, 0, contacts)
+		})
 	})
 
 	// Real broadcasts are not sent through broadcasts.sendToIndividual but scheduled and

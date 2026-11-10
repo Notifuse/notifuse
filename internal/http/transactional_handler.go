@@ -309,7 +309,7 @@ func (h *TransactionalNotificationHandler) handleTestTemplate(w http.ResponseWri
 		return
 	}
 
-	err = h.service.TestTemplate(r.Context(), req.WorkspaceID, req.TemplateID, req.IntegrationID, req.SenderID, req.RecipientEmail, req.Language, req.EmailOptions)
+	err = h.service.TestTemplate(r.Context(), req.WorkspaceID, req.TemplateID, req.IntegrationID, req.SenderID, req.RecipientEmail, req.Language, req.ListID, req.OmitListUnsubscribeHeader, req.EmailOptions)
 
 	// Create response
 	response := domain.TestTemplateResponse{
@@ -325,6 +325,12 @@ func (h *TransactionalNotificationHandler) handleTestTemplate(w http.ResponseWri
 		var notFound *domain.ErrTemplateNotFound
 		if errors.As(err, &notFound) {
 			WriteJSONError(w, "Template not found", http.StatusNotFound)
+			return
+		}
+
+		var listNotFound *domain.ErrListNotFound
+		if errors.As(err, &listNotFound) {
+			WriteJSONError(w, "List not found", http.StatusNotFound)
 			return
 		}
 

@@ -168,6 +168,13 @@ type TestTemplateRequest struct {
 	RecipientEmail string       `json:"recipient_email"`
 	Language       string       `json:"language,omitempty"`
 	EmailOptions   EmailOptions `json:"email_options,omitempty"`
+	// ListID sends the test for a mailing list: it carries that list's unsubscribe links
+	// and the List-Unsubscribe header, as a real send does, and they act on the list.
+	ListID string `json:"list_id,omitempty"`
+	// OmitListUnsubscribeHeader keeps the list's links but leaves out the header, as a
+	// broadcast that also goes to the list's unsubscribed contacts does. No effect
+	// without ListID.
+	OmitListUnsubscribeHeader bool `json:"omit_list_unsubscribe_header,omitempty"`
 }
 
 func (r *TestTemplateRequest) Validate() error {
@@ -188,6 +195,14 @@ func (r *TestTemplateRequest) Validate() error {
 	}
 	if !govalidator.IsEmail(r.RecipientEmail) {
 		return fmt.Errorf("invalid recipient_email format")
+	}
+	if r.ListID != "" {
+		if len(r.ListID) > 32 {
+			return fmt.Errorf("invalid list_id: length must be between 1 and 32")
+		}
+		if !govalidator.IsAlphanumeric(r.ListID) {
+			return fmt.Errorf("invalid list_id: must be alphanumeric")
+		}
 	}
 
 	// Validate CC and BCC email addresses if provided
@@ -241,7 +256,9 @@ type TransactionalNotificationService interface {
 	// SendNotification sends a transactional notification to a contact
 	SendNotification(ctx context.Context, workspaceID string, params TransactionalNotificationSendParams) (string, error)
 
-	TestTemplate(ctx context.Context, workspaceID string, templateID string, integrationID string, senderID string, recipientEmail string, language string, options EmailOptions) error
+	// TestTemplate sends a test email. With listID it is sent for that mailing list,
+	// with the list's List-Unsubscribe header unless omitListUnsubscribeHeader is set.
+	TestTemplate(ctx context.Context, workspaceID string, templateID string, integrationID string, senderID string, recipientEmail string, language string, listID string, omitListUnsubscribeHeader bool, options EmailOptions) error
 }
 
 // Request and response types for transactional notifications

@@ -1,0 +1,22 @@
+Acme (https://www.example.com/)
+
+Shop (https://www.example.com/shop) Blog (https://www.example.com/blog) Help (https://www.example.com/help)
+
+Hello Camille
+
+Our spring collection is in store. Read the story behind it (https://www.example.com/blog/spring).
+
+- Linen shirts
+- Canvas shoes
+
+3. Free returns
+
+Shop the collection (https://www.example.com/spring?ref=email&size=m)
+
+Facebook (https://www.facebook.com/sharer/sharer.php?u=https://facebook.com/acme)
+
+Instagram (https://instagram.com/acme)
+
+Acme, 1 Market Street, Lyon
+
+Unsubscribe (https://www.example.com/unsubscribe/abc) · help@example.com

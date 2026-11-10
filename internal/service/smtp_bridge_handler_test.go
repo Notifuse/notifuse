@@ -917,6 +917,7 @@ func newParityDeps(t *testing.T, ctrl *gomock.Controller, workspace *domain.Work
 		authService,
 		log,
 		workspaceRepo,
+		mocks.NewMockListRepository(ctrl),
 		"https://api.example.com",
 	)
 

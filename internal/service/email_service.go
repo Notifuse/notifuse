@@ -10,6 +10,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/Notifuse/notifuse/pkg/plaintext"
 	"github.com/Notifuse/notifuse/pkg/tracing"
 	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/google/uuid"
@@ -193,6 +194,13 @@ func (s *EmailService) SendEmail(ctx context.Context, request domain.SendEmailPr
 	// If fromName is not provided, use the first sender's name from the provider
 	if request.FromName == "" && len(request.Provider.Senders) > 0 {
 		request.FromName = request.Provider.Senders[0].Name
+	}
+
+	// Every email goes out with a plain-text version. Generating it here, from the final
+	// HTML, covers every send path at once and keeps its links identical to the HTML's.
+	// An HTML with nothing to read yields "", and the email goes out HTML-only.
+	if strings.TrimSpace(request.TextContent) == "" {
+		request.TextContent = plaintext.FromHTML(request.Content)
 	}
 
 	// Get the appropriate provider service

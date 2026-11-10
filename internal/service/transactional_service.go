@@ -26,6 +26,7 @@ type TransactionalNotificationService struct {
 	authService        domain.AuthService
 	logger             logger.Logger
 	workspaceRepo      domain.WorkspaceRepository
+	listRepo           domain.ListRepository
 	apiEndpoint        string
 }
 
@@ -39,6 +40,7 @@ func NewTransactionalNotificationService(
 	authService domain.AuthService,
 	logger logger.Logger,
 	workspaceRepo domain.WorkspaceRepository,
+	listRepo domain.ListRepository,
 	apiEndpoint string,
 ) *TransactionalNotificationService {
 	return &TransactionalNotificationService{
@@ -50,6 +52,7 @@ func NewTransactionalNotificationService(
 		authService:        authService,
 		logger:             logger,
 		workspaceRepo:      workspaceRepo,
+		listRepo:           listRepo,
 		apiEndpoint:        apiEndpoint,
 	}
 }
@@ -822,8 +825,11 @@ func (s *TransactionalNotificationService) SendNotification(
 	return messageID, nil
 }
 
-// TestTemplate sends a test email with a template to verify it works
-func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, workspaceID string, templateID string, integrationID string, senderID string, recipientEmail string, language string, emailOptions domain.EmailOptions) error {
+// TestTemplate sends a test email with a template to verify it works. With listID the test is
+// sent for that mailing list, as a real send to the list is: it carries the list's links and,
+// unless omitListUnsubscribeHeader is set, its List-Unsubscribe header, and those act on the
+// list for the recipient.
+func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, workspaceID string, templateID string, integrationID string, senderID string, recipientEmail string, language string, listID string, omitListUnsubscribeHeader bool, emailOptions domain.EmailOptions) error {
 	// Authenticate user
 	var err error
 	var userWorkspace *domain.UserWorkspace
@@ -851,6 +857,16 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 			domain.PermissionResourceContacts,
 			domain.PermissionTypeRead,
 			"Insufficient permissions: read access to contacts required to set cc or bcc",
+		)
+	}
+
+	// The list's name goes into the email and its preferences page, so choosing one is a
+	// list read.
+	if listID != "" && !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeRead) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceLists,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to lists required to send a test for a list",
 		)
 	}
 
@@ -894,6 +910,16 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		return fmt.Errorf("sender not found: %s", senderID)
 	}
 
+	// Look the list up before the contact is upserted, so an unknown or deleted list leaves
+	// nothing behind.
+	var list *domain.List
+	if listID != "" {
+		list, err = s.listRepo.GetListByID(ctx, workspaceID, listID)
+		if err != nil {
+			return fmt.Errorf("failed to get list: %w", err)
+		}
+	}
+
 	// upsert the contact — system-scoped for the same reason as SendNotification, so
 	// transactional:write alone is enough to send a test
 	contactCtx := context.WithValue(ctx, domain.SystemCallKey, true)
@@ -909,16 +935,22 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 	// Get the full contact record (same pattern as SendNotification)
 	contact, err := s.contactService.GetContactByEmail(contactCtx, workspaceID, recipientEmail)
 	if err != nil {
-		// Fallback to minimal contact - test emails should still work
+		// Fallback to minimal contact - test emails should still work. Its address is
+		// stored the way the contact's is, so the history and the links agree.
 		contact = &domain.Contact{
-			Email: recipientEmail,
+			Email: domain.NormalizeEmail(recipientEmail),
 		}
 	}
 
+	// Without a list the links point at a placeholder list.
 	contactWithList := domain.ContactWithList{
 		Contact:  contact,
 		ListID:   "foo",
 		ListName: "bar",
+	}
+	if list != nil {
+		contactWithList.ListID = list.ID
+		contactWithList.ListName = list.Name
 	}
 
 	// Use fixed messageID for testing
@@ -999,6 +1031,17 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		processedSubject = overrideSubject
 	}
 
+	// A test for a list carries the list's one-click header, as a real send to the list does,
+	// in place of any URL the caller passed; a test that leaves the header out carries none.
+	if list != nil {
+		emailOptions.ListUnsubscribeURL = ""
+		if !omitListUnsubscribeHeader {
+			if unsubscribeURL, ok := messageData["oneclick_unsubscribe_url"].(string); ok {
+				emailOptions.ListUnsubscribeURL = unsubscribeURL
+			}
+		}
+	}
+
 	// Fall back to the template's reply-to; an explicit one still wins
 	if emailOptions.ReplyTo == "" && emailContent.ReplyTo != "" {
 		emailOptions.ReplyTo = emailContent.ReplyTo
@@ -1030,11 +1073,18 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		return fmt.Errorf("failed to send test email: %w", err)
 	}
 
-	// record the message history
+	// Record the message history under the contact's address, the one its links carry: the
+	// one-click unsubscribe and bounces look the email up by it. The list makes the
+	// unsubscribe valid for a recipient who is not on it yet.
+	var historyListID *string
+	if list != nil {
+		historyListID = &list.ID
+	}
 	return s.messageHistoryRepo.Create(ctx, workspaceID, workspace.Settings.SecretKey, &domain.MessageHistory{
 		ID:              messageID,
 		ExternalID:      nil, // No external ID for test messages
-		ContactEmail:    recipientEmail,
+		ContactEmail:    contact.Email,
+		ListID:          historyListID,
 		TemplateID:      templateID,
 		TemplateVersion: template.Version,
 		Channel:         "email",

@@ -3593,3 +3593,101 @@ func TestSendEmail_QuotedPrintableRoundTrip(t *testing.T) {
 	decodedContent := string(decodedBytes)
 	assert.Equal(t, originalContent, decodedContent, "Decoded content should match original")
 }
+
+func TestSendEmail_PlainTextVersion(t *testing.T) {
+	const text = "Hello Camille\n\n  Indented line kept\nTrack your parcel (https://example.com/track?a=1&b=2)\n"
+	const html = "<html><body><h1>Hello Camille</h1><img src=\"cid:logo\"/><a href=\"https://example.com/track?a=1&b=2\">Track</a></body></html>"
+
+	inline := domain.Attachment{Filename: "logo.png", Content: "iVBORw0KGgo=", ContentType: "image/png", Disposition: "inline", ContentID: "logo"}
+	regular := domain.Attachment{Filename: "receipt.pdf", Content: "JVBERi0=", ContentType: "application/pdf", Disposition: "attachment"}
+
+	tests := []struct {
+		name        string
+		text        string
+		unsubscribe string
+		attachments []domain.Attachment
+		wantShape   string // "" for the simple (non-raw) path
+	}{
+		{name: "simple path with text", text: text},
+		{name: "simple path without text"},
+		{name: "list-unsubscribe with text", text: text, unsubscribe: "https://example.com/unsub",
+			wantShape: "multipart/mixed[multipart/alternative[text/plain,text/html]]"},
+		{name: "list-unsubscribe without text", unsubscribe: "https://example.com/unsub",
+			wantShape: "multipart/mixed[text/html]"},
+		{name: "inline image with text", text: text, attachments: []domain.Attachment{inline},
+			wantShape: "multipart/mixed[multipart/alternative[text/plain,multipart/related[text/html,image/png]]]"},
+		{name: "inline image without text", attachments: []domain.Attachment{inline},
+			wantShape: "multipart/mixed[multipart/related[text/html,image/png]]"},
+		{name: "inline image and attachment with text", text: text, attachments: []domain.Attachment{inline, regular},
+			wantShape: "multipart/mixed[multipart/alternative[text/plain,multipart/related[text/html,image/png]],application/pdf]"},
+		{name: "inline image and attachment without text", attachments: []domain.Attachment{inline, regular},
+			wantShape: "multipart/mixed[multipart/related[text/html,image/png],application/pdf]"},
+		{name: "attachment with text", text: text, attachments: []domain.Attachment{regular},
+			wantShape: "multipart/mixed[multipart/alternative[text/plain,text/html],application/pdf]"},
+		{name: "attachment without text", attachments: []domain.Attachment{regular},
+			wantShape: "multipart/mixed[text/html,application/pdf]"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service, mockSESClient, _, _, _, mockSESv2 := createMockSESServiceWithV2(t)
+			mockSESClient.EXPECT().ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+				Return(&ses.ListConfigurationSetsOutput{}, nil).AnyTimes()
+
+			var input *sesv2.SendEmailInput
+			mockSESv2.EXPECT().SendEmail(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, in *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+					input = in
+					return &sesv2.SendEmailOutput{}, nil
+				})
+
+			request := domain.SendEmailProviderRequest{
+				WorkspaceID:   "workspace",
+				IntegrationID: "test-integration-id",
+				MessageID:     "message",
+				FromAddress:   "from@example.com",
+				FromName:      "From",
+				To:            "to@example.com",
+				Subject:       "Subject",
+				Content:       html,
+				TextContent:   tt.text,
+				Provider: &domain.EmailProvider{SES: &domain.AmazonSESSettings{
+					AccessKey: "test-access-key", SecretKey: "test-secret-key", Region: "us-east-1",
+				}},
+				EmailOptions: domain.EmailOptions{Attachments: tt.attachments, ListUnsubscribeURL: tt.unsubscribe},
+			}
+			require.NoError(t, service.SendEmail(context.Background(), request))
+			require.NotNil(t, input)
+
+			if tt.wantShape == "" {
+				require.NotNil(t, input.Content.Simple)
+				body := input.Content.Simple.Body
+				assert.Equal(t, html, aws.StringValue(body.Html.Data))
+				if tt.text == "" {
+					assert.Nil(t, body.Text)
+					return
+				}
+				require.NotNil(t, body.Text)
+				assert.Equal(t, text, aws.StringValue(body.Text.Data))
+				assert.Equal(t, "UTF-8", aws.StringValue(body.Text.Charset))
+				return
+			}
+
+			require.NotNil(t, input.Content.Raw)
+			tree := parseMIMEMessage(t, input.Content.Raw.Data)
+			assert.Equal(t, tt.wantShape, tree.shape())
+
+			htmlPart, ok := tree.find("text/html")
+			require.True(t, ok)
+			assert.Equal(t, html, htmlPart.Body)
+
+			textPart, hasText := tree.find("text/plain")
+			assert.Equal(t, tt.text != "", hasText)
+			if hasText {
+				assert.Equal(t, text, textPart.Body)
+				assert.Equal(t, "UTF-8", strings.ToUpper(textPart.Params["charset"]))
+				assert.Equal(t, "quoted-printable", textPart.Header.Get("Content-Transfer-Encoding"))
+			}
+		})
+	}
+}

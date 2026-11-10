@@ -60,9 +60,9 @@ double opt-in emails (which never set one, so they keep the template's).
 Why at resolution rather than on save: it heals templates already stored without a migration, covers
 translations written by the API, and keeps one rule in one place for all six send paths.
 
-No SQL change, no environment variable. Version bump 43.0 → 43.1 (minor), CHANGELOG entry under
-`## [43.1] - WIP`. The bump also regenerates the web analytics SDK (`web_analytics_sdk/package.json`
-and its `dist/` bundles), whose version CI compares with `VERSION`.
+No SQL change, no environment variable. No version bump of its own: `dev` is already at 43.2 (43.1
+shipped while this was in review), so the CHANGELOG entries go under `## [43.2] - WIP` and the web
+analytics SDK (`web_analytics_sdk/package.json` and its `dist/` bundles) keeps `dev`'s version.
 
 ## Files and tests (TDD: tests first)
 

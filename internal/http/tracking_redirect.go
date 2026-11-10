@@ -75,7 +75,9 @@ func classifyTrackedDestination(raw, requestHost, apiHost, endpointHost string) 
 		return decisionReject, "", nil, scheme
 	}
 	if isPlainWebURL(u) {
-		host := u.Hostname()
+		// The own hosts are in Punycode, as HostOf writes them. This one is encoded, not
+		// mapped: a look-alike such as the Kelvin sign for 'k' is not an own host.
+		host, _ := displayHost(u.Hostname())
 		for _, own := range []string{hostnameOf(requestHost), apiHost, endpointHost} {
 			if asciiHostEqual(host, own) {
 				return decisionRedirect, u.String(), u, scheme
