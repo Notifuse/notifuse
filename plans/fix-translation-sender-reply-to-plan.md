@@ -53,7 +53,8 @@ replaces an explicit `email_options.reply_to` with the template's reply-to whene
 one. The API documents `reply_to` as "Set custom reply-to email address", and `TestTemplate` already
 lets the explicit one win. Today translated sends escape that override only because their reply-to is
 empty; inheriting it would extend the override to them. So the same PR makes the template's reply-to
-a fallback there too: applied only when the send gives none. Covers transactional sends and list
+a fallback there too: applied only when the send gives none. Covers transactional sends, emails
+relayed over SMTP (whose `Reply-To` header fills `email_options.reply_to`), and list
 double opt-in / welcome emails (the latter never set one, so they keep the template's).
 
 Why at resolution rather than on save: it heals templates already stored without a migration, covers
@@ -68,14 +69,14 @@ No SQL change, no environment variable. Version bump 43.0 → 43.1 (minor), CHAN
 
 `ResolveEmailContent`: copy-and-inherit as described.
 
-Tests — `internal/domain/template_test.go`, `TestTemplate_ResolveEmailContent`, new subtests:
+Tests — `internal/domain/template_test.go`, new `TestTemplate_ResolveEmailContent_InheritsSenderAndReplyTo`:
 
 1. translation without `sender_id` inherits the base template's `sender_id`;
 2. translation without `reply_to` inherits the base template's `reply_to`;
-3. translation with its own `sender_id` / `reply_to` keeps them (existing fixture: `fr-sender`);
+3. translation with its own `sender_id` / `reply_to` keeps them, each field on its own (new `it` fixture, `it-sender`);
 4. base template without sender or reply-to: translation stays empty (default sender is then picked
    by `GetSender`, as today);
-5. resolving does not mutate the stored translation (`Translations["de"].Email.SenderID` and
+5. resolving does not mutate the stored translation (`Translations["it"].Email.SenderID` and
    `ReplyTo` still empty afterwards) nor the base template;
 6. the returned translation keeps its own subject, preview and content;
 7. default-content branches still return the base `*EmailTemplate` pointer (`assert.Same`).
@@ -107,7 +108,8 @@ Tests — `internal/service/email_service_test.go` (`SendEmailForTemplate`):
 
 ### Integration — `tests/integration/template_translation_test.go`
 
-New subtests on a second workspace whose Mailpit SMTP integration (`WithIntegrationEmailProvider`)
+A new `TestTemplateTranslationSenderAndReplyTo`, on a workspace set up with `SetupWorkspaceWithSMTPProvider` and an
+inline `IntegrationOption` adding a second sender, whose Mailpit SMTP integration
 has a default sender A and a non-default sender B; the template uses B and a reply-to, and its `fr`
 translation has neither:
 

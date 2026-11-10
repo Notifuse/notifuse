@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Emails sent in a template's translation now leave from the sender chosen on the template, with its reply-to, instead of the email integration's default sender with no reply-to.
 
-- **Fix**: A transactional email sent with `email_options.reply_to` now uses that address even when its template has a reply-to of its own.
+- **Fix**: A transactional email sent with `email_options.reply_to`, or relayed over SMTP with a `Reply-To` header, now uses that address even when its template has a reply-to of its own.
 
 ## [43.0] - 2026-11-07
 

@@ -942,8 +942,8 @@ func mailpitReplyTo(t *testing.T, msg *testutil.MailpitMessage) string {
 
 // TestTemplateTranslationSenderAndReplyTo checks that a translation saved the way the console
 // saves it, with no sender and no reply-to of its own, sends from the sender picked on the
-// template and with the template's reply-to, on every send path, and that a transactional send's
-// own reply-to still wins over the template's.
+// template and with the template's reply-to, on the transactional, broadcast and automation send
+// paths, and that a transactional send's own reply-to still wins over the template's.
 func TestTemplateTranslationSenderAndReplyTo(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()

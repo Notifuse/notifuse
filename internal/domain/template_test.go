@@ -2721,6 +2721,16 @@ func TestTemplate_ResolveEmailContent_InheritsSenderAndReplyTo(t *testing.T) {
 
 		assert.Equal(t, "it-sender", got.SenderID)
 		assert.Equal(t, "support@example.com", got.ReplyTo)
+
+		tmpl = newTemplate(
+			&EmailTemplate{Subject: "Hello", SenderID: "newsletter-sender", ReplyTo: "support@example.com"},
+			&EmailTemplate{Subject: "Ciao", ReplyTo: "assistenza@example.com"},
+		)
+
+		got = tmpl.ResolveEmailContent("it", "en")
+
+		assert.Equal(t, "newsletter-sender", got.SenderID)
+		assert.Equal(t, "assistenza@example.com", got.ReplyTo)
 	})
 
 	t.Run("template without sender or reply-to leaves the translation empty", func(t *testing.T) {
