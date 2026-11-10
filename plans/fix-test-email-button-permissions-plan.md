@@ -2,7 +2,7 @@
 
 **Status**: plan reviewed, implemented
 **Date**: 2026-11-10
-**Target**: 43.1 (unreleased on `dev`). No migration, no environment variable, no backend change.
+**Target**: 43.2 (WIP on `dev`). No migration, no environment variable, no backend change.
 **Base**: `origin/dev` at `f7699b8`.
 
 ## Goal
@@ -54,7 +54,7 @@ The console's "Send Test Email" buttons are enabled exactly when the member hold
 5. i18n: extract, translate the new strings in the 8 catalogues. The old tooltip shipped, so its obsolete entry
    stays; the `transactional.write` testTemplate string being reworded was added by the unreleased #503, so its
    obsolete entry is deleted.
-6. `CHANGELOG.md`: a `Fix` line under 43.1, since the buttons' checks are released behaviour.
+6. `CHANGELOG.md`: a `Fix` line under 43.2, since the buttons' checks are released behaviour.
 7. Docs repository, its own PR: `features/transactional-api.mdx` and `features/admins-api-keys.mdx` say a test email
    also needs Templates read (and the Templates row of the admins page lists test sends). "Transactional write alone
    is enough to send" stays, since `transactional.send` does not read the template with the member's context.
