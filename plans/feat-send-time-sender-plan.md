@@ -32,7 +32,7 @@ deleted from its integration.
   `broadcasts.test_settings` JSONB. Broadcasts stored without it keep today's behaviour.
 - `EmailOptions.SenderID string` (`json:"sender_id,omitempty"`), request-only. `IsEmpty` /
   `ToChannelOptions` unchanged: message history does not store the From today.
-- No migration, no environment variable. Version 43.1 (minor), CHANGELOG `Feature` bullet.
+- No migration, no environment variable. No version bump of its own (`dev` is at 43.2 WIP), CHANGELOG `Feature` bullet under `## [43.2] - WIP`.
 
 ## Broadcast
 
