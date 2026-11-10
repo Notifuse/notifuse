@@ -525,6 +525,22 @@ describe('CreateTemplateDrawer custom text version', () => {
     await waitFor(() => expect(textVersion().custom.value).toBe('Newer text'))
   })
 
+  it('takes the translation texts of a newer revision found on opening', async () => {
+    const newer = { ...withTranslationText('Texte plus récent'), version: 5 } as Template
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: newer })
+    ;(templatesApi.update as Mock).mockResolvedValue({ template: { ...newer, version: 6 } })
+    renderDrawer(<CreateTemplateDrawer workspace={multilingual} template={withTranslationText('Ancien texte')} />)
+    await userEvent.click(screen.getByRole('button', { name: /Edit Template/i }))
+    await waitFor(() => expect(templatesApi.get).toHaveBeenCalled())
+    await screen.findByText(/Loaded the latest version/)
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(templatesApi.update).toHaveBeenCalled())
+
+    expect((templatesApi.update as Mock).mock.calls[0][0].translations.fr.email.text).toBe('Texte plus récent')
+  })
+
   const refuseText = async (error: string) => {
     const tpl = withText('Hi {% if %}')
     ;(templatesApi.get as Mock).mockResolvedValue({ template: tpl })

@@ -125,8 +125,8 @@ func (s *SecureLiquidEngine) Render(content string, data map[string]interface{})
 
 // ValidateLiquidSyntax reports whether content would parse when rendered: it applies the
 // cleaning the renderer applies (see cleanLiquidTemplate) and parses with the same
-// environment, where include and render refuse to parse. Those two parse at render but
-// can only write an error into the output, since no file system is configured; refused
+// environment, where include and render refuse to parse. Neither is supported: with no
+// file system configured, a partial they name renders as an error in the output. Refused
 // by the parser itself, they are refused wherever it would run them (any spelling, a
 // {% liquid %} line) and nowhere else (raw and comment bodies).
 func ValidateLiquidSyntax(content string) (err error) {

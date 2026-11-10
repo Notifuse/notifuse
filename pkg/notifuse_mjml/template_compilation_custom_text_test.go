@@ -203,12 +203,21 @@ func TestCompileTemplate_CustomTextSeed(t *testing.T) {
 		assert.NotContains(t, *resp.Text, "{% if")
 	})
 
-	t.Run("a loop in mj-raw tags wrapping sections is kept", func(t *testing.T) {
+	t.Run("a loop in mj-raw tags wrapping the whole body is kept", func(t *testing.T) {
 		resp := seed(t, CompileTemplateRequest{MjmlSource: wrap(`<mj-raw>{% for item in order.items %}</mj-raw><mj-section><mj-column><mj-text>- {{ item.name }}</mj-text></mj-column></mj-section><mj-raw>{% endfor %}</mj-raw>`)})
 		require.True(t, resp.Success)
 		require.NotNil(t, resp.Text)
 		assert.Contains(t, *resp.Text, "{% for item in order.items %}")
 		assert.Contains(t, *resp.Text, "{% endfor %}")
+	})
+
+	t.Run("a condition in mj-raw tags around a section between a header and a footer is not carried over", func(t *testing.T) {
+		resp := seed(t, CompileTemplateRequest{MjmlSource: wrap(`<mj-section><mj-column><mj-text>Header</mj-text></mj-column></mj-section><mj-raw>{% if vip %}</mj-raw><mj-section><mj-column><mj-text>VIP offer</mj-text></mj-column></mj-section><mj-raw>{% endif %}</mj-raw><mj-section><mj-column><mj-text>Footer</mj-text></mj-column></mj-section>`)})
+		require.True(t, resp.Success)
+		require.NotNil(t, resp.Text)
+		assert.Contains(t, *resp.Text, "VIP offer")
+		assert.NotContains(t, *resp.Text, "{% if vip %}")
+		assert.NotContains(t, *resp.Text, "{% endif %}")
 	})
 
 	t.Run("an mj-raw tag placed between two sections is not carried over", func(t *testing.T) {
