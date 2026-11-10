@@ -1671,6 +1671,45 @@ func TestTestTemplateRequest_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "valid request with a list",
+			req: TestTemplateRequest{
+				WorkspaceID:               "workspace-123",
+				TemplateID:                "template-456",
+				IntegrationID:             "integration-789",
+				SenderID:                  "sender-101",
+				RecipientEmail:            "test@example.com",
+				ListID:                    "newsletter",
+				OmitListUnsubscribeHeader: true,
+			},
+			wantErr: false,
+		},
+		{
+			name: "list_id longer than 32 characters",
+			req: TestTemplateRequest{
+				WorkspaceID:    "workspace-123",
+				TemplateID:     "template-456",
+				IntegrationID:  "integration-789",
+				SenderID:       "sender-101",
+				RecipientEmail: "test@example.com",
+				ListID:         "abcdefghijklmnopqrstuvwxyz0123456",
+			},
+			wantErr: true,
+			errMsg:  "invalid list_id: length must be between 1 and 32",
+		},
+		{
+			name: "list_id not alphanumeric",
+			req: TestTemplateRequest{
+				WorkspaceID:    "workspace-123",
+				TemplateID:     "template-456",
+				IntegrationID:  "integration-789",
+				SenderID:       "sender-101",
+				RecipientEmail: "test@example.com",
+				ListID:         "news-letter",
+			},
+			wantErr: true,
+			errMsg:  "invalid list_id: must be alphanumeric",
+		},
+		{
 			name: "missing workspace_id",
 			req: TestTemplateRequest{
 				TemplateID:     "template-456",

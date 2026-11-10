@@ -27,7 +27,8 @@ import {
   broadcastApi,
   Broadcast,
   TestResultsResponse,
-  getStatusesForGroup
+  getStatusesForGroup,
+  testEmailListProps
 } from '../services/api/broadcast'
 import { listsApi } from '../services/api/list'
 import { taskApi } from '../services/api/task'
@@ -1302,6 +1303,8 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
           onClose={() => setTestModalOpen(false)}
           template={templateToTest}
           workspace={currentWorkspace}
+          canReadLists={!!permissions?.lists?.read}
+          {...testEmailListProps(broadcast)}
         />
       )}
     </Card>
