@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Input, Popconfirm, Radio, Spin, Tag, Typography } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 
@@ -65,6 +65,16 @@ export const TextVersionPanel: React.FC<TextVersionPanelProps> = ({
   const { t } = useLingui()
   const [seeding, setSeeding] = useState(false)
   const [seedResult, setSeedResult] = useState<TextVersionSeed | null>(null)
+  // A seed answer applies only to the run that asked for it: a later seed, a switch to
+  // Automatic or an unmount makes it stale, and it is then dropped.
+  const seedRunRef = useRef(0)
+  const mountedRef = useRef(true)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   const isCustom = custom?.value !== undefined
   const hasCustomContent = !!custom?.value && custom.value.trim() !== ''
@@ -72,18 +82,21 @@ export const TextVersionPanel: React.FC<TextVersionPanelProps> = ({
 
   const seed = async () => {
     if (!custom) return
+    const run = ++seedRunRef.current
+    const current = () => mountedRef.current && run === seedRunRef.current
     setSeeding(true)
     setSeedResult(null)
     try {
       const result = await custom.onSeed()
+      if (!current()) return
       setSeedResult(result)
       if (result.text !== undefined && !result.error) {
         custom.onChange(result.text)
       }
     } catch (error) {
-      setSeedResult({ error: (error as Error).message })
+      if (current()) setSeedResult({ error: (error as Error).message })
     } finally {
-      setSeeding(false)
+      if (current()) setSeeding(false)
     }
   }
 
@@ -95,6 +108,8 @@ export const TextVersionPanel: React.FC<TextVersionPanelProps> = ({
 
   const chooseAutomatic = () => {
     if (!custom || !isCustom) return
+    seedRunRef.current++
+    setSeeding(false)
     setSeedResult(null)
     custom.onChange(undefined)
   }

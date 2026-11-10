@@ -617,8 +617,9 @@ type CompileTemplateRequest struct {
 	SubjectPreviewOverride *string          `json:"subject_preview_override,omitempty"` // Override mj-preview content before compilation
 	Text                   *string          `json:"text,omitempty"`                     // Source of a custom plain-text version, with Liquid; nil for the automatic version
 
-	// IncludeText asks for the plain-text version in the response. Only the preview
-	// endpoint sets it: a send generates the text itself, once, in EmailService.SendEmail.
+	// IncludeText asks for the automatic plain-text version in the response; a custom text
+	// that renders is returned without it. Only the preview endpoint sets it: a send
+	// generates the automatic text itself, once, in EmailService.SendEmail.
 	IncludeText bool `json:"-"`
 }
 

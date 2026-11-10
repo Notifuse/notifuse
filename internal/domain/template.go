@@ -246,8 +246,8 @@ func ResolveSubjectPreviewOverride(explicit *string, content *EmailTemplate) *st
 }
 
 // ApplyToCompileRequest fills the fields of a send-time compile request that derive from this email
-// variant: the visual editor tree, the code-mode MJML source, and the subject-preview override that
-// makes a translation render its OWN inbox preview text. Every outbound send (broadcast,
+// variant: the visual editor tree, the code-mode MJML source, the subject-preview override that
+// makes a translation render its OWN inbox preview text, and its own custom plain-text version. Every outbound send (broadcast,
 // automation, transactional) must route the resolved email content through here so the preview
 // override travels with the body and cannot be forgotten — a send path that skips this call ends up
 // with no tree/source and fails compilation loudly instead of silently shipping a stale preview.

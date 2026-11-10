@@ -125,16 +125,15 @@ func (s *SecureLiquidEngine) Render(content string, data map[string]interface{})
 
 // ValidateLiquidSyntax reports whether content would parse when rendered: it applies the
 // cleaning the renderer applies (see cleanLiquidTemplate) and parses with the same
-// environment. It also refuses include and render, which parse but can only write an
-// error into the output, since no file system is configured.
+// environment, where include and render refuse to parse. Those two parse at render but
+// can only write an error into the output, since no file system is configured; refused
+// by the parser itself, they are refused wherever it would run them (any spelling, a
+// {% liquid %} line) and nowhere else (raw and comment bodies).
 func ValidateLiquidSyntax(content string) (err error) {
 	if !strings.Contains(content, "{{") && !strings.Contains(content, "{%") {
 		return nil
 	}
 	content = cleanLiquidTemplate(content)
-	if tag := firstFileTag(content); tag != "" {
-		return fmt.Errorf("the %s tag is not supported", tag)
-	}
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -142,40 +141,21 @@ func ValidateLiquidSyntax(content string) (err error) {
 		}
 	}()
 	if _, parseErr := liquid.ParseTemplate(content, &liquid.TemplateOptions{
-		Environment: newSecureLiquidEnv(DefaultMaxRenderLength),
+		Environment: newValidationLiquidEnv(),
 	}); parseErr != nil {
 		return parseErr
 	}
 	return nil
 }
 
-// firstFileTag returns "include" or "render" when content uses one of them outside a raw
-// block, including as a line of a {% liquid %} tag, and "" otherwise.
-func firstFileTag(content string) string {
-	inRaw := false
-	for _, markup := range liquidMarkupRegex.FindAllString(content, -1) {
-		if inRaw {
-			inRaw = !isLiquidEndRawTag(markup)
-			continue
-		}
-		if !strings.HasPrefix(markup, "{%") {
-			continue
-		}
-		if liquidRawTagRegex.MatchString(markup) {
-			inRaw = true
-			continue
-		}
-		inner := strings.Trim(strings.TrimSuffix(strings.TrimPrefix(markup, "{%"), "%}"), "- \t\r\n")
-		lines := []string{inner}
-		if fields := strings.Fields(inner); len(fields) > 0 && fields[0] == "liquid" {
-			lines = strings.Split(strings.TrimPrefix(inner, "liquid"), "\n")
-		}
-		for _, line := range lines {
-			fields := strings.Fields(line)
-			if len(fields) > 0 && (fields[0] == "include" || fields[0] == "render") {
-				return fields[0]
-			}
-		}
+// newValidationLiquidEnv is the render environment where the tags that read a partial
+// from a file system fail to parse.
+func newValidationLiquidEnv() *liquid.Environment {
+	env := newSecureLiquidEnv(DefaultMaxRenderLength)
+	for _, name := range []string{"include", "render"} {
+		env.RegisterTag(name, tags.TagConstructor(func(tagName, _ string, _ liquid.ParseContextInterface) (interface{}, error) {
+			return nil, fmt.Errorf("the %s tag is not supported", tagName)
+		}))
 	}
-	return ""
+	return env
 }

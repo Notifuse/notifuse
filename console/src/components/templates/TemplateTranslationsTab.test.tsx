@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { LicenseContext, UNKNOWN_LICENSE } from '../../contexts/licenseState'
 import TemplateTranslationsTab, { type TranslationEditorState } from './TemplateTranslationsTab'
 import type { Entitlements } from '../../types/license'
@@ -218,5 +219,47 @@ describe('TemplateTranslationsTab custom text version', () => {
       screen.getByText(new RegExp(`\\(${language}\\)`)).closest('.ant-card') as HTMLElement
     expect(card('fr')).toHaveTextContent('Text version: Custom')
     expect(card('de')).toHaveTextContent('Text version: Automatic')
+  })
+})
+
+describe('TemplateTranslationsTab change made from an earlier render', () => {
+  it('keeps the edits made since, when a late text arrives', async () => {
+    const changes = vi.fn()
+    const Host = () => {
+      const [state, setState] = useState<Record<string, TranslationEditorState>>({
+        fr: { enabled: true, subject: 'Bonjour', subjectPreview: '', visualEditorTree: tree }
+      })
+      return (
+        <LicenseContext.Provider value={{ ...UNKNOWN_LICENSE, entitlements: licensedFor(['template_i18n']) }}>
+          <TemplateTranslationsTab
+            workspace={workspace}
+            editorMode="visual"
+            translationsState={state}
+            onTranslationsStateChange={(next) => {
+              changes(next)
+              setState(next)
+            }}
+            defaultSubject="Hello"
+            defaultSubjectPreview=""
+            defaultVisualEditorTree={tree}
+            defaultMjmlSource=""
+            onTestDataChange={vi.fn()}
+            savedBlocks={[]}
+            onSaveBlock={vi.fn()}
+          />
+        </LicenseContext.Provider>
+      )
+    }
+    render(<Host />)
+    fireEvent.click(screen.getByText('Open email editor'))
+    await waitFor(() => expect(builder.props).toBeDefined())
+    // A seed keeps the handlers of the render that started it.
+    const startedWith = (builder.props?.textVersion as { custom: { onChange: (v?: string) => void } }).custom
+
+    const changedTree = { kind: 'root', edited: true } as unknown as EmailBlock
+    act(() => (builder.props?.onTreeChange as (t: EmailBlock) => void)(changedTree))
+    act(() => startedWith.onChange('Late seed'))
+
+    expect(changes.mock.calls.at(-1)![0].fr).toMatchObject({ text: 'Late seed', visualEditorTree: changedTree })
   })
 })

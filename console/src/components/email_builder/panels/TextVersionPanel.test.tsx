@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { TextVersionPanel } from './TextVersionPanel'
 import type { CustomTextVersion } from './TextVersionPanel'
 
@@ -90,6 +90,29 @@ describe('TextVersionPanel with a custom text', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Replace' }))
     await waitFor(() => expect(onChange).toHaveBeenCalledWith('Seeded {{ unsubscribe_url }}'))
     expect(onSeed).toHaveBeenCalledTimes(1)
+  })
+
+  it('drops a starting point that arrives after going back to Automatic', async () => {
+    let resolve: (v: { text: string }) => void = () => {}
+    const onSeed = vi.fn().mockReturnValue(new Promise((r) => (resolve = r)))
+    const { onChange } = setup({ value: '', onSeed })
+    fireEvent.click(screen.getByRole('button', { name: 'Start again from the automatic version' }))
+    fireEvent.click(screen.getByRole('radio', { name: /Automatic/ }))
+    expect(onChange).toHaveBeenLastCalledWith(undefined)
+
+    await act(async () => resolve({ text: 'Late seed' }))
+    expect(onChange).not.toHaveBeenCalledWith('Late seed')
+  })
+
+  it('drops a starting point that arrives after the panel is gone', async () => {
+    let resolve: (v: { text: string }) => void = () => {}
+    const onSeed = vi.fn().mockReturnValue(new Promise((r) => (resolve = r)))
+    const { onChange, unmount } = setup({ value: '', onSeed })
+    fireEvent.click(screen.getByRole('button', { name: 'Start again from the automatic version' }))
+    unmount()
+
+    await act(async () => resolve({ text: 'Late seed' }))
+    expect(onChange).not.toHaveBeenCalledWith('Late seed')
   })
 
   it('locks the text area while the automatic version is generated', async () => {

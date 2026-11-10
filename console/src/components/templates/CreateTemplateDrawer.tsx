@@ -231,6 +231,15 @@ export function CreateTemplateDrawer({
   const [emailText, setEmailText] = useState<string | undefined>(() =>
     customTextOrUndefined(template?.email?.text ?? fromTemplate?.email?.text)
   )
+  // Each opening of the drawer is a session: a text change sent by a handler of an
+  // earlier session (a seed answering after Cancel or Save) is dropped.
+  const [textSession, setTextSession] = useState(0)
+  const textSessionRef = useRef(0)
+  const changeEmailText = (value?: string) => {
+    if (textSession !== textSessionRef.current) return
+    dirtyRef.current = true
+    setEmailText(value)
+  }
 
   const translationLanguages = (workspace.settings.languages || []).filter(
     (l) => l !== workspace.settings.default_language
@@ -560,6 +569,8 @@ export function CreateTemplateDrawer({
     setMjmlSource(STARTER_TEMPLATE)
     setTranslationsState({})
     setEmailText(undefined)
+    textSessionRef.current++
+    setTextSession(textSessionRef.current)
     if (onClose) {
       onClose()
     }
@@ -1139,10 +1150,7 @@ export function CreateTemplateDrawer({
                           textVersion={{
                             custom: {
                               value: emailText,
-                              onChange: (value) => {
-                                dirtyRef.current = true
-                                setEmailText(value)
-                              },
+                              onChange: changeEmailText,
                               onSeed: () => seedTextVersion(workspace, { mjmlSource }),
                               category: categoryValue
                             }
@@ -1228,10 +1236,7 @@ export function CreateTemplateDrawer({
                           enabled: true,
                           custom: {
                             value: emailText,
-                            onChange: (value) => {
-                              dirtyRef.current = true
-                              setEmailText(value)
-                            },
+                            onChange: changeEmailText,
                             onSeed: () =>
                               seedTextVersion(workspace, {
                                 visualEditorTree: visualEditorTreeRef.current

@@ -202,6 +202,8 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       setPreviewHtml(null)
       setPreviewMjml(null)
       setPreviewText(null)
+      setPreviewTextSource(null)
+      setPreviewTextError(null)
       setError(null)
       setMjmlError(null)
       setIsLoading(false)

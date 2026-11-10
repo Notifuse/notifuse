@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { Button, Card, Col, Drawer, Dropdown, Input, Popconfirm, Row, Space, Switch, Tag } from 'antd'
 import { DownOutlined } from '@ant-design/icons'
@@ -14,7 +14,7 @@ import IphoneEmailPreview from './PhonePreview'
 import { useLicense } from '../../hooks/useLicense'
 import { LicenceGateNotice } from '../license/LicenceGateNotice'
 import type { CustomTextVersion } from '../email_builder/panels/TextVersionPanel'
-import { seedTextVersion } from './textVersionSeed'
+import { customTextOrUndefined, seedTextVersion } from './textVersionSeed'
 
 export interface TranslationEditorState {
   enabled: boolean
@@ -72,21 +72,29 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
     (l) => l !== workspace.settings.default_language
   )
 
+  // The latest state, so a change sent by a handler of an earlier render (a seed answering
+  // late) merges into the edits made since instead of reverting them.
+  const translationsStateRef = useRef(translationsState)
+  translationsStateRef.current = translationsState
+
   const updateLangState = useCallback(
     (lang: string, updates: Partial<TranslationEditorState>) => {
-      onTranslationsStateChange({
-        ...translationsState,
+      const current = translationsStateRef.current
+      const next = {
+        ...current,
         [lang]: {
-          ...(translationsState[lang] || {
+          ...(current[lang] || {
             enabled: false,
             subject: '',
             subjectPreview: ''
           }),
           ...updates
         }
-      })
+      }
+      translationsStateRef.current = next
+      onTranslationsStateChange(next)
     },
-    [translationsState, onTranslationsStateChange]
+    [onTranslationsStateChange]
   )
 
   const handleToggle = useCallback(
@@ -320,7 +328,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                       </Dropdown>
                     </Space.Compact>
                     <div className="mt-3">
-                      {langState.text !== undefined ? (
+                      {customTextOrUndefined(langState.text) !== undefined ? (
                         <Tag color="purple">{t`Text version: Custom`}</Tag>
                       ) : (
                         <Tag>{t`Text version: Automatic`}</Tag>

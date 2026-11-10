@@ -192,11 +192,7 @@ describe('TemplatePreviewDrawer custom text version', () => {
     )
   })
 
-  it('previews a translation with its own text, never the text of the default language', async () => {
-    vi.mocked(templatesApi.compile).mockResolvedValue({ html: '<p>Hello</p>', mjml: '<mjml></mjml>', text: 'x' })
-    const record = withText('Default text', {
-      fr: { email: { editor_mode: 'code', mjml_source: '<mjml></mjml>', subject: 'Bonjour' } }
-    } as unknown as Template['translations'])
+  const renderMultilingual = (record: Template) => {
     render(
       <ConfigProvider>
         <App>
@@ -210,10 +206,31 @@ describe('TemplatePreviewDrawer custom text version', () => {
       </ConfigProvider>
     )
     fireEvent.click(screen.getByText('open'))
+  }
+  const french = (text?: string) =>
+    ({
+      fr: { email: { editor_mode: 'code', mjml_source: '<mjml></mjml>', subject: 'Bonjour', ...(text ? { text } : {}) } },
+      de: { email: { editor_mode: 'code', mjml_source: '<mjml></mjml>', subject: 'Hallo' } }
+    }) as unknown as Template['translations']
+
+  it('previews a translation with its own text', async () => {
+    vi.mocked(templatesApi.compile).mockResolvedValue({ html: '<p>Hello</p>', mjml: '<mjml></mjml>', text: 'x' })
+    renderMultilingual(withText('Default text', french('Salut {{ contact.first_name }}')))
     await waitFor(() => expect(lastRequest().text).toBe('Default text'))
 
     fireEvent.click(await screen.findByText('French'))
-    await waitFor(() => expect(vi.mocked(templatesApi.compile).mock.calls.length).toBeGreaterThan(1))
+    await waitFor(() => expect(lastRequest().text).toBe('Salut {{ contact.first_name }}'))
+    vi.mocked(templatesApi.compile).mockReset()
+    vi.mocked(templatesApi.compile).mockRejectedValue(new Error('no preview in tests'))
+  })
+
+  it('previews a translation without a text with the automatic version, never the default text', async () => {
+    vi.mocked(templatesApi.compile).mockResolvedValue({ html: '<p>Hello</p>', mjml: '<mjml></mjml>', text: 'x' })
+    renderMultilingual(withText('Default text', french('Salut')))
+    await waitFor(() => expect(lastRequest().text).toBe('Default text'))
+
+    fireEvent.click(await screen.findByText('German'))
+    await waitFor(() => expect(lastRequest().subject).toBe('Hallo'))
     expect(lastRequest()).not.toHaveProperty('text')
     vi.mocked(templatesApi.compile).mockReset()
     vi.mocked(templatesApi.compile).mockRejectedValue(new Error('no preview in tests'))

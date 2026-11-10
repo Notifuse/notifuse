@@ -27,7 +27,9 @@ type queueMessageSender struct {
 	config             *Config
 	apiEndpoint        string
 	// customTextWarned holds the template versions whose custom text could not be used
-	// and was already logged, so a broadcast logs it once, not once per recipient.
+	// and was already logged by this process, so the warning comes once per template
+	// version rather than once per recipient. A template version never changes, so the
+	// set only grows with the versions that failed.
 	customTextWarned sync.Map
 }
 

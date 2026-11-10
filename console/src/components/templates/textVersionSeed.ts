@@ -5,8 +5,7 @@ import type { TextVersionSeed } from '../email_builder/panels/TextVersionPanel'
 
 const countLiquidTags = (s: string) => (s.match(/\{%/g) || []).length
 
-// A custom text is stored without surrounding blank-only values: "" or whitespace is the
-// automatic version.
+// A text that is empty or only whitespace is no custom text: the automatic version.
 export const customTextOrUndefined = (text?: string | null): string | undefined =>
   text && text.trim() !== '' ? text : undefined
 

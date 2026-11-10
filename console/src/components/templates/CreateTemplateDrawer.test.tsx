@@ -451,6 +451,80 @@ describe('CreateTemplateDrawer custom text version', () => {
     await waitFor(() => expect(textVersion().custom.value).toBeUndefined())
   })
 
+  it('drops a text that arrives for a drawer already closed', async () => {
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} />)
+    await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await waitFor(() => expect(builder.props).toBeDefined())
+    // The panel keeps the handlers of the render that started a seed.
+    const startedWith = textVersion().custom
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    act(() => startedWith.onChange('Seed of the cancelled template'))
+
+    await waitFor(() => expect(textVersion().custom.value).toBeUndefined())
+    act(() => textVersion().custom.onChange('Mine'))
+    await waitFor(() => expect(textVersion().custom.value).toBe('Mine'))
+  })
+
+  const multilingual = {
+    ...workspace,
+    settings: { ...workspace.settings, languages: ['en', 'fr'] }
+  } as unknown as Workspace
+  const withTranslationText = (frText: string): Template =>
+    ({
+      ...withText('Hi'),
+      translations: {
+        fr: { email: { ...makeTemplate(3).email, subject: 'Bonjour', subject_preview: 'Salut', text: frText } }
+      }
+    }) as unknown as Template
+
+  it('sends back the text a translation holds', async () => {
+    const tpl = withTranslationText('Salut {{ contact.first_name }}')
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: tpl })
+    ;(templatesApi.update as Mock).mockResolvedValue({ template: { ...tpl, version: 4 } })
+    renderDrawer(<CreateTemplateDrawer workspace={multilingual} template={tpl} />)
+    await userEvent.click(screen.getByRole('button', { name: /Edit Template/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(templatesApi.update).toHaveBeenCalled())
+
+    const payload = (templatesApi.update as Mock).mock.calls[0][0]
+    expect(payload.email.text).toBe('Hi')
+    expect(payload.translations.fr.email.text).toBe('Salut {{ contact.first_name }}')
+  })
+
+  it('copies the texts of the template it duplicates', async () => {
+    const source = withTranslationText('Salut')
+    // The copy's ID is free.
+    ;(templatesApi.get as Mock).mockRejectedValue(new ApiError('not found', 404))
+    ;(templatesApi.create as Mock).mockResolvedValue({ template: source })
+    renderDrawer(<CreateTemplateDrawer workspace={multilingual} fromTemplate={source} />)
+    await userEvent.click(screen.getByRole('button', { name: /Clone Template/i }))
+    await waitFor(() => expect(textVersion().custom.value).toBe('Hi'))
+    // Opened again after a Cancel, the copy starts from the source again.
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await userEvent.click(screen.getByRole('button', { name: /Clone Template/i }))
+    await waitFor(() => expect(textVersion().custom.value).toBe('Hi'))
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(templatesApi.create).toHaveBeenCalled())
+
+    const payload = (templatesApi.create as Mock).mock.calls[0][0]
+    expect(payload.email.text).toBe('Hi')
+    expect(payload.translations.fr.email.text).toBe('Salut')
+  })
+
+  it('takes the text of a newer revision found on opening', async () => {
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: { ...withText('Newer text'), version: 5 } })
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} template={withText('Older text')} />)
+    await userEvent.click(screen.getByRole('button', { name: /Edit Template/i }))
+
+    await waitFor(() => expect(textVersion().custom.value).toBe('Newer text'))
+  })
+
   const refuseText = async (error: string) => {
     const tpl = withText('Hi {% if %}')
     ;(templatesApi.get as Mock).mockResolvedValue({ template: tpl })
