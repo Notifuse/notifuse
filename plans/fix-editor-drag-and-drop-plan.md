@@ -233,7 +233,8 @@ evidence, run before review.
 - Column widths in px, `auto` or missing, or percentages that do not add up to 100 (on add), are still equalised
   to percentages, as today.
 - Group widths: gomjml renders percentage `mj-group` widths at 100% outside Outlook, and its default is 100% where
-  MJML shares the width between siblings; the canvas also applies an explicit group width twice
+  MJML shares the width between siblings; the editor writes `width: 100%` on every new group
+  (`mjml-defaults.ts:210`), so a group made in the editor is full width even under MJML; the canvas also applies an explicit group width twice
   (`MjSectionBlock.tsx:361-371` on the cell, `MjGroupBlock.tsx:288-291` on the inner div). Separate fix.
 - The AI assistant's add, delete and move tools do not rebalance widths.
 - Dragging from the saved-blocks library (lot 1) needs its own drag handling; it will reuse `resolveDropTarget`.
