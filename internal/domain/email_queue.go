@@ -69,6 +69,10 @@ type EmailQueuePayload struct {
 	FromName    string `json:"from_name"`
 	Subject     string `json:"subject"`
 	HTMLContent string `json:"html_content"`
+	// TextContent is a custom plain-text version, rendered for this recipient. Empty for
+	// the automatic version, which the worker's SendEmail generates from HTMLContent; an
+	// entry queued before this field existed reads as empty and gets the automatic text.
+	TextContent string `json:"text_content,omitempty"`
 
 	// Options
 	EmailOptions EmailOptions `json:"email_options"`
@@ -108,6 +112,7 @@ func (p *EmailQueuePayload) ToSendEmailProviderRequest(workspaceID, integrationI
 		To:            toEmail,
 		Subject:       p.Subject,
 		Content:       p.HTMLContent,
+		TextContent:   p.TextContent,
 		Provider:      provider,
 		EmailOptions:  p.EmailOptions,
 	}

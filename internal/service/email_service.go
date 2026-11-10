@@ -678,6 +678,15 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	}).Debug("Sending email")
 
 	tracing.AddAttribute(ctx, "email.sending", true)
+	if compiledTemplate.TextError != "" {
+		s.logger.WithFields(map[string]interface{}{
+			"message_id":       request.MessageID,
+			"workspace_id":     request.WorkspaceID,
+			"template_id":      template.ID,
+			"template_version": template.Version,
+			"error":            compiledTemplate.TextError,
+		}).Warn("Custom text version could not be used, sending the automatic one")
+	}
 
 	// optional override for reply to
 	if emailContent.ReplyTo != "" {
@@ -694,6 +703,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		To:            request.Contact.Email,
 		Subject:       subject,
 		Content:       htmlContent,
+		TextContent:   compiledTemplate.CustomText(),
 		Provider:      request.EmailProvider,
 		EmailOptions:  request.EmailOptions,
 	}

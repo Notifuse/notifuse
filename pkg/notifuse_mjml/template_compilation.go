@@ -615,6 +615,7 @@ type CompileTemplateRequest struct {
 	Channel                string           `json:"channel,omitempty"`                  // "email" or "web"
 	PreserveLiquid         bool             `json:"preserve_liquid,omitempty"`          // When true, skip Liquid template processing and preserve raw syntax
 	SubjectPreviewOverride *string          `json:"subject_preview_override,omitempty"` // Override mj-preview content before compilation
+	Text                   *string          `json:"text,omitempty"`                     // Source of a custom plain-text version, with Liquid; nil for the automatic version
 
 	// IncludeText asks for the plain-text version in the response. Only the preview
 	// endpoint sets it: a send generates the text itself, once, in EmailService.SendEmail.
@@ -687,7 +688,84 @@ type CompileTemplateResponse struct {
 	SubjectPreview *string     `json:"subject_preview,omitempty"` // Rendered email subject preview (Liquid processed); omit if not provided in request
 	Error          *mjml.Error `json:"error,omitempty"`           // Pointer, omit if nil
 	TemplateData   MapOfAny    `json:"test_data,omitempty"`       // Effective template data used for rendering (includes the injected workspace object); omit if empty
-	Text           *string     `json:"text,omitempty"`            // Plain-text version sent with the email, when the request asked for it; omit otherwise
+	Text           *string     `json:"text,omitempty"`            // Plain-text version: the custom text rendered, or the automatic text when the request asked for it; omit otherwise
+	TextSource     string      `json:"text_source,omitempty"`     // TextSourceCustom or TextSourceAuto when Text is set
+	TextError      string      `json:"text_error,omitempty"`      // Why a custom text could not be used; the email then gets the automatic text
+}
+
+// Where the plain-text version of a compile comes from.
+const (
+	TextSourceAuto   = "auto"   // generated from the HTML
+	TextSourceCustom = "custom" // written by the user, rendered with Liquid
+)
+
+// MaxRenderedCustomTextSize caps a rendered custom text, in bytes. A loop can expand a
+// small source a lot; above the cap the email gets the automatic text.
+const MaxRenderedCustomTextSize = 256 * 1024
+
+// CustomText returns the rendered custom text, or "" when the email gets the automatic
+// text (none was written, it could not be rendered, or it rendered blank). Send paths put
+// it in TextContent; "" lets EmailService.SendEmail generate the automatic text from the
+// final HTML.
+func (r *CompileTemplateResponse) CustomText() string {
+	if r == nil || r.TextSource != TextSourceCustom || r.Text == nil {
+		return ""
+	}
+	return *r.Text
+}
+
+// NormalizeCustomText returns a custom text with \n line endings, or nil when it holds
+// only whitespace, which means the automatic version.
+func NormalizeCustomText(text *string) *string {
+	if text == nil || strings.TrimSpace(*text) == "" {
+		return nil
+	}
+	normalized := strings.ReplaceAll(*text, "\r\n", "\n")
+	normalized = strings.ReplaceAll(normalized, "\r", "\n")
+	return &normalized
+}
+
+// plainTextVersion decides the plain-text version of an email compile from its final
+// HTML. A custom text is rendered with the same rules as the subject; when that fails,
+// renders blank or too large, the email keeps the automatic text and TextError says why
+// (blank is not an error: a condition chose to say nothing). The automatic text is only
+// generated here when the request asked for it; a send leaves it to SendEmail.
+func plainTextVersion(req CompileTemplateRequest, trackedHTML string) (text *string, source string, textErr string) {
+	if custom := NormalizeCustomText(req.Text); custom != nil {
+		rendered, err := renderCustomText(*custom, req)
+		switch {
+		case err != nil:
+			textErr = err.Error()
+		case len(rendered) > MaxRenderedCustomTextSize:
+			textErr = fmt.Sprintf("the text version renders to more than %d bytes", MaxRenderedCustomTextSize)
+		case strings.TrimSpace(rendered) != "":
+			return &rendered, TextSourceCustom, ""
+		}
+	}
+	if !req.IncludeText {
+		return nil, "", textErr
+	}
+	auto := plaintext.FromHTML(trackedHTML)
+	// With Liquid kept, the automatic text is the starting point of a custom text: a tag
+	// pair split by the HTML structure would be refused when saved, so say it now.
+	if req.PreserveLiquid && textErr == "" {
+		if err := ValidateLiquidSyntax(auto); err != nil {
+			textErr = err.Error()
+		}
+	}
+	return &auto, TextSourceAuto, textErr
+}
+
+// renderCustomText renders a custom text like the subject (see renderSubjectField); kept
+// raw when Liquid is preserved or there is no data, after a syntax check.
+func renderCustomText(text string, req CompileTemplateRequest) (string, error) {
+	if req.PreserveLiquid || len(req.TemplateData) == 0 {
+		if err := ValidateLiquidSyntax(text); err != nil {
+			return "", err
+		}
+		return text, nil
+	}
+	return ProcessLiquidTemplate(text, req.TemplateData, "email_text")
 }
 
 // renderSubjectField applies the same Liquid rules used for the body to a header
@@ -986,13 +1064,9 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		}, nil
 	}
 
-	// The plain-text version is derived from the tracked HTML, as a send does, so the
-	// preview shows the links that go out.
-	var text *string
-	if req.IncludeText {
-		t := plaintext.FromHTML(trackedHTML)
-		text = &t
-	}
+	// The automatic plain-text version is derived from the tracked HTML, as a send does,
+	// so the preview shows the links that go out.
+	text, textSource, textErr := plainTextVersion(req, trackedHTML)
 
 	// Return successful response
 	return &CompileTemplateResponse{
@@ -1003,6 +1077,8 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		SubjectPreview: renderedSubjectPreview,
 		Error:          nil,
 		Text:           text,
+		TextSource:     textSource,
+		TextError:      textErr,
 	}, nil
 }
 

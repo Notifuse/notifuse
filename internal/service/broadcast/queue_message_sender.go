@@ -5,6 +5,7 @@ import (
 	crand "crypto/rand"
 	"fmt"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -25,6 +26,9 @@ type queueMessageSender struct {
 	logger             logger.Logger
 	config             *Config
 	apiEndpoint        string
+	// customTextWarned holds the template versions whose custom text could not be used
+	// and was already logged, so a broadcast logs it once, not once per recipient.
+	customTextWarned sync.Map
 }
 
 // NewQueueMessageSender creates a new message sender that enqueues to the email queue
@@ -380,6 +384,18 @@ func (s *queueMessageSender) buildQueueEntry(
 		return nil, fmt.Errorf("%s", errMsg)
 	}
 	htmlContent := *compiledTemplate.HTML
+	if compiledTemplate.TextError != "" {
+		key := fmt.Sprintf("%s/%s/%d", workspaceID, template.ID, template.Version)
+		if _, logged := s.customTextWarned.LoadOrStore(key, true); !logged {
+			s.logger.WithFields(map[string]interface{}{
+				"broadcast_id":     broadcast.ID,
+				"workspace_id":     workspaceID,
+				"template_id":      template.ID,
+				"template_version": template.Version,
+				"error":            compiledTemplate.TextError,
+			}).Warn("Custom text version could not be used, sending the automatic one")
+		}
+	}
 
 	// Process subject line through Liquid templating
 	subject, err := notifuse_mjml.ProcessLiquidTemplate(
@@ -418,6 +434,7 @@ func (s *queueMessageSender) buildQueueEntry(
 			FromName:           sender.Name,
 			Subject:            subject,
 			HTMLContent:        htmlContent,
+			TextContent:        compiledTemplate.CustomText(),
 			RateLimitPerMinute: emailProvider.RateLimitPerMinute,
 			EmailOptions: domain.EmailOptions{
 				ReplyTo: emailContent.ReplyTo,

@@ -3,6 +3,7 @@ package notifuse_mjml
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/liquidgo/liquid"
@@ -120,4 +121,61 @@ func (s *SecureLiquidEngine) RenderWithTimeout(content string, data map[string]i
 // Render is a convenience method that calls RenderWithTimeout
 func (s *SecureLiquidEngine) Render(content string, data map[string]interface{}) (string, error) {
 	return s.RenderWithTimeout(content, data)
+}
+
+// ValidateLiquidSyntax reports whether content would parse when rendered: it applies the
+// cleaning the renderer applies (see cleanLiquidTemplate) and parses with the same
+// environment. It also refuses include and render, which parse but can only write an
+// error into the output, since no file system is configured.
+func ValidateLiquidSyntax(content string) (err error) {
+	if !strings.Contains(content, "{{") && !strings.Contains(content, "{%") {
+		return nil
+	}
+	content = cleanLiquidTemplate(content)
+	if tag := firstFileTag(content); tag != "" {
+		return fmt.Errorf("the %s tag is not supported", tag)
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("liquid parsing failed: %v", r)
+		}
+	}()
+	if _, parseErr := liquid.ParseTemplate(content, &liquid.TemplateOptions{
+		Environment: newSecureLiquidEnv(DefaultMaxRenderLength),
+	}); parseErr != nil {
+		return parseErr
+	}
+	return nil
+}
+
+// firstFileTag returns "include" or "render" when content uses one of them outside a raw
+// block, including as a line of a {% liquid %} tag, and "" otherwise.
+func firstFileTag(content string) string {
+	inRaw := false
+	for _, markup := range liquidMarkupRegex.FindAllString(content, -1) {
+		if inRaw {
+			inRaw = !isLiquidEndRawTag(markup)
+			continue
+		}
+		if !strings.HasPrefix(markup, "{%") {
+			continue
+		}
+		if liquidRawTagRegex.MatchString(markup) {
+			inRaw = true
+			continue
+		}
+		inner := strings.Trim(strings.TrimSuffix(strings.TrimPrefix(markup, "{%"), "%}"), "- \t\r\n")
+		lines := []string{inner}
+		if fields := strings.Fields(inner); len(fields) > 0 && fields[0] == "liquid" {
+			lines = strings.Split(strings.TrimPrefix(inner, "liquid"), "\n")
+		}
+		for _, line := range lines {
+			fields := strings.Fields(line)
+			if len(fields) > 0 && (fields[0] == "include" || fields[0] == "render") {
+				return fields[0]
+			}
+		}
+	}
+	return ""
 }
