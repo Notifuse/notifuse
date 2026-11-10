@@ -1371,3 +1371,59 @@ func TestAutomationTriggerGenerator_JSONCastsCannotAbortTheStatement(t *testing.
 			"changing the segment path is out of scope for this fix")
 	})
 }
+
+// An email.link_clicked trigger filters on what the timeline entry carries in changes: the
+// WHEN clause cannot read message_history. It never fires on a click on an email the
+// automation itself sent, which would restart an every_time automation once per link of
+// each of its own emails.
+func TestAutomationTriggerGenerator_LinkClickedWHENClause(t *testing.T) {
+	str := func(s string) *string { return &s }
+	gen := NewAutomationTriggerGenerator(NewQueryBuilder())
+	automation := func(trigger *domain.TimelineTriggerConfig) *domain.Automation {
+		trigger.EventKind = "email.link_clicked"
+		trigger.Frequency = domain.TriggerFrequencyEveryTime
+		return &domain.Automation{ID: "auto-1", RootNodeID: "node-1", Trigger: trigger}
+	}
+	const selfGuard = "COALESCE(NEW.changes->'automation_id'->>'new', '') <> 'auto-1'"
+
+	t.Run("kind and self guard only", func(t *testing.T) {
+		result, err := gen.Generate(automation(&domain.TimelineTriggerConfig{}))
+		require.NoError(t, err)
+		assert.Equal(t, "NEW.kind = 'email.link_clicked' AND "+selfGuard, result.WHENClause)
+	})
+
+	t.Run("every filter", func(t *testing.T) {
+		result, err := gen.Generate(automation(&domain.TimelineTriggerConfig{
+			LinkURL: str("Example.com/Pricing"), BroadcastID: str("bc-1"), TemplateID: str("tpl-1"),
+		}))
+		require.NoError(t, err)
+		assert.Equal(t, "NEW.kind = 'email.link_clicked' AND "+selfGuard+
+			" AND strpos(lower(NEW.changes->'clicked_url'->>'new'), lower('Example.com/Pricing')) > 0"+
+			" AND NEW.changes->'broadcast_id'->>'new' = 'bc-1'"+
+			" AND NEW.changes->'template_id'->>'new' = 'tpl-1'", result.WHENClause)
+		assert.NotContains(t, result.WHENClause, "(SELECT")
+	})
+
+	t.Run("an empty filter adds nothing", func(t *testing.T) {
+		result, err := gen.Generate(automation(&domain.TimelineTriggerConfig{
+			LinkURL: str(""), BroadcastID: str(""), TemplateID: str(""),
+		}))
+		require.NoError(t, err)
+		assert.Equal(t, "NEW.kind = 'email.link_clicked' AND "+selfGuard, result.WHENClause)
+	})
+
+	t.Run("quotes, wildcards and backslashes stay literal", func(t *testing.T) {
+		result, err := gen.Generate(automation(&domain.TimelineTriggerConfig{LinkURL: str(`/what's-new?a=50%_\x`)}))
+		require.NoError(t, err)
+		assert.Contains(t, result.WHENClause, `lower(E'/what''s-new?a=50%_\\x')`,
+			"strpos matches literally, so % and _ need no escaping; the quote and the backslash do")
+	})
+
+	t.Run("the filters of another kind are ignored", func(t *testing.T) {
+		result, err := gen.Generate(&domain.Automation{ID: "auto-1", RootNodeID: "node-1", Trigger: &domain.TimelineTriggerConfig{
+			EventKind: "email.clicked", Frequency: domain.TriggerFrequencyOnce, LinkURL: str("pricing"),
+		}})
+		require.NoError(t, err)
+		assert.Equal(t, "NEW.kind = 'email.clicked'", result.WHENClause)
+	})
+}

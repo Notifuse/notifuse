@@ -228,7 +228,7 @@ func (s *EmailService) getProviderService(providerKind domain.EmailProviderKind)
 }
 
 // maxRecordedClickedURLLength bounds the destination URLs persisted in clicked_links
-const maxRecordedClickedURLLength = 2048
+const maxRecordedClickedURLLength = domain.MaxClickedURLLength
 
 // VisitLink records a click on a tracked link. verified says the token was signed by the
 // workspace, so the email really carried clickedURL; see MessageHistoryRepository.SetClicked.

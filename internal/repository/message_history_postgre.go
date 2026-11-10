@@ -753,6 +753,13 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 		queryBuilder = queryBuilder.Where(sq.Eq{"template_id": params.TemplateID})
 	}
 
+	// The exact key per-link statistics group by. -> rather than the ? operator, which the
+	// query builder would take for a placeholder; -> also yields NULL, not an error, on a
+	// clicked_links that is an array or a scalar.
+	if params.ClickedURL != "" {
+		queryBuilder = queryBuilder.Where("clicked_links -> ?::text IS NOT NULL", params.ClickedURL)
+	}
+
 	if params.IsSent != nil {
 		if *params.IsSent {
 			queryBuilder = queryBuilder.Where(sq.NotEq{"sent_at": nil})

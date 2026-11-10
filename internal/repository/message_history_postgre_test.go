@@ -1865,6 +1865,29 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		assert.Equal(t, "", nextCursor)
 	})
 
+	t.Run("clicked_url matches the exact clicked_links key, within the broadcast", func(t *testing.T) {
+		params := domain.MessageListParams{
+			Limit:       10,
+			BroadcastID: "bc-1",
+			ClickedURL:  "https://shop.example.com/a?b=1&c=2",
+		}
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		// -> rather than the ? operator, which the query builder would read as a placeholder;
+		// -> returns NULL on a malformed (array or scalar) clicked_links instead of failing.
+		mock.ExpectQuery(`FROM message_history WHERE broadcast_id = \$1 AND clicked_links -> \$2::text IS NOT NULL ORDER BY`).
+			WithArgs("bc-1", "https://shop.example.com/a?b=1&c=2").
+			WillReturnRows(sqlmock.NewRows([]string{"id"}))
+
+		messages, _, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
+		require.NoError(t, err)
+		require.Len(t, messages, 0)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
 	t.Run("successful listing with IsClicked filter", func(t *testing.T) {
 		isClicked := false
 		params := domain.MessageListParams{

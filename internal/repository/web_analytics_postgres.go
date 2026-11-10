@@ -703,10 +703,15 @@ const (
 	// web_analytics_timeline_projection.go writes and the predicate of
 	// idx_contact_timeline_billable. Without it every pageview would be metered
 	// twice, once as a pageview and once as an event.
+	//
+	// email.link_clicked is left out too: it details a click, and the first click on each
+	// email already writes a metered email.clicked. The partial index keeps serving the
+	// range; the kind is checked on the rows it finds.
 	monthlyUsageTimelineCount = `
 		SELECT COUNT(*) FROM contact_timeline
 		WHERE created_at >= $1 AND created_at < $2
-		AND entity_type NOT IN ('web_page', 'web_session')`
+		AND entity_type NOT IN ('web_page', 'web_session')
+		AND kind <> 'email.link_clicked'`
 
 	// The open month, where a lower count is legitimate: deleting a contact
 	// removes its timeline rows.
