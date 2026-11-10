@@ -332,6 +332,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           endpoint: "/api/contactLists.getListsByContact",
           action: msg`List everything one contact is subscribed to (also needs Contacts read)`,
         },
+        {
+          endpoint: "/api/transactional.testTemplate",
+          action: msg`Send a test email for a list, with that list's working unsubscribe links (also needs Transactional write)`,
+        },
       ],
     },
     write: {
@@ -622,7 +626,7 @@ export const PERMISSION_DESCRIPTORS: Record<
         },
         {
           endpoint: "/api/transactional.testTemplate",
-          action: msg`Send a real test email through a chosen integration and sender; cc or bcc additionally needs Contacts read`,
+          action: msg`Send a real test email through a chosen integration and sender; cc or bcc additionally needs Contacts read, and sending it for a list additionally needs Lists read`,
         },
         {
           endpoint: "/api/email.testProvider",
