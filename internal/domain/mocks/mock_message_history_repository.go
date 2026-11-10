@@ -139,6 +139,21 @@ func (mr *MockMessageHistoryRepositoryMockRecorder) GetBySMTPMessageID(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBySMTPMessageID", reflect.TypeOf((*MockMessageHistoryRepository)(nil).GetBySMTPMessageID), arg0, arg1, arg2)
 }
 
+// GetForWebVersion mocks base method.
+func (m *MockMessageHistoryRepository) GetForWebVersion(arg0 context.Context, arg1, arg2, arg3 string) (*domain.MessageHistory, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetForWebVersion", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(*domain.MessageHistory)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetForWebVersion indicates an expected call of GetForWebVersion.
+func (mr *MockMessageHistoryRepositoryMockRecorder) GetForWebVersion(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetForWebVersion", reflect.TypeOf((*MockMessageHistoryRepository)(nil).GetForWebVersion), arg0, arg1, arg2, arg3)
+}
+
 // GetRecipientAndList mocks base method.
 func (m *MockMessageHistoryRepository) GetRecipientAndList(arg0 context.Context, arg1, arg2 string) (*domain.MessageHistory, error) {
 	m.ctrl.T.Helper()

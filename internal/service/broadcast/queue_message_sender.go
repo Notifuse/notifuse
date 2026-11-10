@@ -188,6 +188,7 @@ func (s *queueMessageSender) SendBatch(
 			MessageID:           messageID,
 			TrackingSettings:    trackingSettings,
 			Broadcast:           broadcast,
+			WebVersion:          true,
 		}
 		data, err := domain.BuildTemplateData(req)
 		if err != nil {

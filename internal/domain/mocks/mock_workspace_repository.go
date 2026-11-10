@@ -330,6 +330,21 @@ func (mr *MockWorkspaceRepositoryMockRecorder) List(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockWorkspaceRepository)(nil).List), arg0)
 }
 
+// ListCustomEndpoints mocks base method.
+func (m *MockWorkspaceRepository) ListCustomEndpoints(arg0 context.Context) (map[string]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListCustomEndpoints", arg0)
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListCustomEndpoints indicates an expected call of ListCustomEndpoints.
+func (mr *MockWorkspaceRepositoryMockRecorder) ListCustomEndpoints(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCustomEndpoints", reflect.TypeOf((*MockWorkspaceRepository)(nil).ListCustomEndpoints), arg0)
+}
+
 // ListPendingInvitationsForEmail mocks base method.
 func (m *MockWorkspaceRepository) ListPendingInvitationsForEmail(arg0 context.Context, arg1 string) ([]*domain.PendingInvitation, error) {
 	m.ctrl.T.Helper()

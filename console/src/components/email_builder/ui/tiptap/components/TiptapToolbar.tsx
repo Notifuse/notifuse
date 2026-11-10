@@ -39,7 +39,9 @@ import {
   getEffectiveTextColor,
   getEffectiveBackgroundColor,
   createLinkWithStyleMerging,
-  expandSelectionToLinkRange
+  expandSelectionToLinkRange,
+  parseLinkHref,
+  WEB_VERSION_LINK_HREF
 } from '../shared/utils'
 
 // Toolbar Button Component
@@ -281,33 +283,19 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
 
   React.useEffect(() => {
     if (visible) {
-      const currentHref = getCurrentLink()
-      if (currentHref) {
-        setLinkValue(currentHref)
-        // Try to determine link type based on current href
-        if (currentHref.startsWith('mailto:')) {
-          setLinkType('email')
-          setLinkValue(currentHref.replace('mailto:', ''))
-        } else if (currentHref.startsWith('tel:')) {
-          setLinkType('phone')
-          setLinkValue(currentHref.replace('tel:', ''))
-        } else if (currentHref.startsWith('#')) {
-          setLinkType('anchor')
-          setLinkValue(currentHref.replace('#', ''))
-        } else {
-          setLinkType('url')
-          setLinkValue(currentHref)
-        }
-      } else {
-        setLinkValue('')
-        setLinkType('url')
-      }
+      // Determine the link type and value from the current href, if any
+      const { type, value } = parseLinkHref(getCurrentLink())
+      setLinkType(type)
+      setLinkValue(value)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- getCurrentLink is stable
   }, [visible, isActiveLink])
 
+  const isWebVersion = linkType === 'web_version'
+
   const handleInsertLink = () => {
-    if (!linkValue.trim()) {
+    // The web version link has a fixed target, so it never needs a value
+    if (!isWebVersion && !linkValue.trim()) {
       // Remove link if value is empty
       // Expand selection to full link range first to ensure entire link is removed
       expandSelectionToLinkRange(editor)
@@ -337,7 +325,8 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
     { value: 'url', label: t`URL` },
     { value: 'email', label: t`Email` },
     { value: 'phone', label: t`Phone` },
-    { value: 'anchor', label: t`Anchor` }
+    { value: 'anchor', label: t`Anchor` },
+    { value: 'web_version', label: t`Web version of the email` }
   ]
 
   // Placeholder strings contain Liquid template syntax - not translatable
@@ -383,15 +372,26 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
                   ? t`Email Address`
                   : linkType === 'phone'
                     ? t`Phone Number`
-                    : t`Anchor ID`}
+                    : linkType === 'web_version'
+                      ? t`Link target`
+                      : t`Anchor ID`}
             </label>
-            <Input
-              value={linkValue}
-              onChange={(e) => setLinkValue(e.target.value)}
-              placeholder={getPlaceholder()}
-              size="small"
-              onPressEnter={handleInsertLink}
-            />
+            {isWebVersion ? (
+              <>
+                <Input value={WEB_VERSION_LINK_HREF} disabled size="small" />
+                <div style={{ marginTop: '4px', fontSize: '12px', color: 'rgba(0, 0, 0, 0.45)' }}>
+                  {t`Opens this email in the browser. The link is filled in for broadcasts and automations, and left empty in other emails.`}
+                </div>
+              </>
+            ) : (
+              <Input
+                value={linkValue}
+                onChange={(e) => setLinkValue(e.target.value)}
+                placeholder={getPlaceholder()}
+                size="small"
+                onPressEnter={handleInsertLink}
+              />
+            )}
           </div>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
             <Button size="small" onClick={() => setVisible(false)}>

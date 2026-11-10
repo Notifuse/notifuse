@@ -326,7 +326,7 @@ msgstr "{hours}h {remainingMinutes}m"
 msgid "{label} copied to clipboard"
 msgstr "{label} copied to clipboard"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:717
+#: src/components/templates/CreateTemplateDrawer.tsx:701
 msgid "{langName} translation is missing required fields (subject and preview)"
 msgstr "{langName} translation is missing required fields (subject and preview)"
 
@@ -527,7 +527,7 @@ msgstr "1 page"
 msgid "1. Audience"
 msgstr "1. Audience"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:791
+#: src/components/templates/CreateTemplateDrawer.tsx:775
 msgid "1. Settings"
 msgstr "1. Settings"
 
@@ -535,12 +535,12 @@ msgstr "1. Settings"
 msgid "100 - Thin"
 msgstr "100 - Thin"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:797
+#: src/components/templates/CreateTemplateDrawer.tsx:781
 msgid "2. Template"
 msgstr "2. Template"
 
 #. placeholder {0}: workspace.settings.default_language
-#: src/components/templates/CreateTemplateDrawer.tsx:796
+#: src/components/templates/CreateTemplateDrawer.tsx:780
 msgid "2. Template ({0})"
 msgstr "2. Template ({0})"
 
@@ -556,7 +556,7 @@ msgstr "200 - Extra Light"
 msgid "3. Data Feeds"
 msgstr "3. Data Feeds"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:803
+#: src/components/templates/CreateTemplateDrawer.tsx:787
 msgid "3. Translations"
 msgstr "3. Translations"
 
@@ -1206,11 +1206,11 @@ msgstr "An error occurred with the file manager"
 msgid "Analytics Assistant"
 msgstr "Analytics Assistant"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:340
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:328
 msgid "Anchor"
 msgstr "Anchor"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:386
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:377
 msgid "Anchor ID"
 msgstr "Anchor ID"
 
@@ -1382,7 +1382,7 @@ msgstr "Applies to every workspace that has not set its own retention, and to de
 msgid "Apply"
 msgstr "Apply"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:830
+#: src/components/email_builder/MjmlCodeEditor.tsx:815
 msgid "Apply & Recompile"
 msgstr "Apply & Recompile"
 
@@ -1930,7 +1930,7 @@ msgstr "Block Name"
 msgid "Block saved as \"{0}\""
 msgstr "Block saved as \"{0}\""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1288
+#: src/components/templates/CreateTemplateDrawer.tsx:1272
 msgid "Block Settings Panel"
 msgstr "Block Settings Panel"
 
@@ -2422,7 +2422,7 @@ msgstr "Campaigns"
 #: src/components/settings/WebhooksSettings.tsx:251
 #: src/components/settings/WorkspaceMembers.tsx:479
 #: src/components/settings/WorkspaceMembers.tsx:541
-#: src/components/templates/CreateTemplateDrawer.tsx:643
+#: src/components/templates/CreateTemplateDrawer.tsx:627
 #: src/components/templates/SendTemplateModal.tsx:303
 #: src/components/templates/TemplateTranslationsTab.tsx:282
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:180
@@ -2518,7 +2518,7 @@ msgstr "Categories"
 #: src/components/blog/ThemeEditorDrawer.tsx:428
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:75
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:105
-#: src/components/templates/CreateTemplateDrawer.tsx:890
+#: src/components/templates/CreateTemplateDrawer.tsx:874
 #: src/pages/TemplatesPage.tsx:231
 msgid "Category"
 msgstr "Category"
@@ -2829,11 +2829,11 @@ msgstr "Clone"
 msgid "Clone Block"
 msgstr "Clone Block"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:628
+#: src/components/templates/CreateTemplateDrawer.tsx:612
 msgid "Clone email template"
 msgstr "Clone email template"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:619
+#: src/components/templates/CreateTemplateDrawer.tsx:603
 #: src/pages/TemplatesPage.tsx:322
 msgid "Clone Template"
 msgstr "Clone Template"
@@ -2857,12 +2857,12 @@ msgstr "Close without saving"
 msgid "Closed Captions (CC)"
 msgstr "Closed Captions (CC)"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:685
+#: src/components/email_builder/MjmlCodeEditor.tsx:670
 #: src/pages/TemplatesPage.tsx:224
 msgid "Code"
 msgstr "Code"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:941
+#: src/components/templates/CreateTemplateDrawer.tsx:925
 msgid "Code (MJML)"
 msgstr "Code (MJML)"
 
@@ -2942,12 +2942,12 @@ msgstr "Compilation Results"
 msgid "Compile MJML to HTML with test data"
 msgstr "Compile MJML to HTML with test data"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:596
+#: src/components/email_builder/MjmlCodeEditor.tsx:581
 msgid "Compile the template first"
 msgstr "Compile the template first"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:730
-#: src/components/email_builder/MjmlCodeEditor.tsx:854
+#: src/components/email_builder/MjmlCodeEditor.tsx:715
+#: src/components/email_builder/MjmlCodeEditor.tsx:839
 msgid "Compiling..."
 msgstr "Compiling..."
 
@@ -3316,7 +3316,7 @@ msgstr "Content"
 msgid "Content quality by traffic source"
 msgstr "Content quality by traffic source"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1274
+#: src/components/templates/CreateTemplateDrawer.tsx:1258
 msgid "Content Structure Tree"
 msgstr "Content Structure Tree"
 
@@ -3419,7 +3419,7 @@ msgid "Could not load the goals"
 msgstr "Could not load the goals"
 
 #: src/components/blog/PostDrawer.tsx:377
-#: src/components/templates/CreateTemplateDrawer.tsx:453
+#: src/components/templates/CreateTemplateDrawer.tsx:437
 msgid "Could not load the latest version. Please try again."
 msgstr "Could not load the latest version. Please try again."
 
@@ -3568,7 +3568,7 @@ msgstr "Create a transactional notification (choosing its template also needs Te
 msgid "Create an automation, including webhook, email and list nodes"
 msgstr "Create an automation, including webhook, email and list nodes"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:629
+#: src/components/templates/CreateTemplateDrawer.tsx:613
 msgid "Create an email template"
 msgstr "Create an email template"
 
@@ -3656,7 +3656,7 @@ msgstr "Create Notification"
 msgid "Create rule"
 msgstr "Create rule"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:619
+#: src/components/templates/CreateTemplateDrawer.tsx:603
 msgid "Create Template"
 msgstr "Create Template"
 
@@ -3974,11 +3974,11 @@ msgstr "Custom range"
 msgid "Custom report"
 msgstr "Custom report"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1001
+#: src/components/templates/CreateTemplateDrawer.tsx:985
 msgid "Custom sender (marketing email provider)"
 msgstr "Custom sender (marketing email provider)"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1001
+#: src/components/templates/CreateTemplateDrawer.tsx:985
 msgid "Custom sender (transactional email provider)"
 msgstr "Custom sender (transactional email provider)"
 
@@ -4927,7 +4927,7 @@ msgstr "Edit CSS"
 msgid "Edit Custom Field Label"
 msgstr "Edit Custom Field Label"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:626
+#: src/components/templates/CreateTemplateDrawer.tsx:610
 msgid "Edit email template"
 msgstr "Edit email template"
 
@@ -4982,7 +4982,7 @@ msgstr "Edit segment"
 msgid "Edit Sender"
 msgstr "Edit Sender"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:619
+#: src/components/templates/CreateTemplateDrawer.tsx:603
 #: src/pages/TemplatesPage.tsx:300
 msgid "Edit Template"
 msgstr "Edit Template"
@@ -5025,7 +5025,7 @@ msgstr "Edit Zapier connection"
 msgid "Editable markup"
 msgstr "Editable markup"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:931
+#: src/components/templates/CreateTemplateDrawer.tsx:915
 msgid "Editor mode"
 msgstr "Editor mode"
 
@@ -5060,7 +5060,7 @@ msgstr "email"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1126
 #: src/components/contacts/ContactUpsertDrawer.tsx:530
 #: src/components/contacts/ExportContactsModal.tsx:55
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:326
 #: src/components/messages/MessageHistoryTab.tsx:217
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:122
 #: src/components/settings/Integrations.tsx:2703
@@ -5077,7 +5077,7 @@ msgstr "Email"
 msgid "Email (Required)"
 msgstr "Email (Required)"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:372
 #: src/components/settings/Integrations.tsx:1939
 #: src/components/settings/WorkspaceMembers.tsx:494
 msgid "Email Address"
@@ -5156,7 +5156,7 @@ msgstr "Email opens tracking"
 msgid "Email Options:"
 msgstr "Email Options:"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:911
+#: src/components/email_builder/MjmlCodeEditor.tsx:896
 #: src/components/email_builder/panels/Preview.tsx:482
 msgid "Email Preview"
 msgstr "Email Preview"
@@ -5169,18 +5169,18 @@ msgstr "Email Provider Configuration Needed"
 msgid "Email Provider Required"
 msgstr "Email Provider Required"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:953
+#: src/components/templates/CreateTemplateDrawer.tsx:937
 #: src/components/templates/TemplateTranslationsTab.tsx:237
 msgid "Email subject"
 msgstr "Email subject"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1019
+#: src/components/templates/CreateTemplateDrawer.tsx:1003
 #: src/components/templates/TemplateTranslationsTab.tsx:300
 msgid "Email Subject"
 msgstr "Email Subject"
 
 #. placeholder {0}: workspace.settings.default_language
-#: src/components/templates/CreateTemplateDrawer.tsx:953
+#: src/components/templates/CreateTemplateDrawer.tsx:937
 msgid "Email subject ({0})"
 msgstr "Email subject ({0})"
 
@@ -5579,8 +5579,8 @@ msgstr "Error loading data"
 msgid "Error loading preview"
 msgstr "Error loading preview"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:254
-#: src/components/templates/CreateTemplateDrawer.tsx:523
+#: src/components/templates/CreateTemplateDrawer.tsx:255
+#: src/components/templates/CreateTemplateDrawer.tsx:507
 msgid "Error loading template: Invalid template data"
 msgstr "Error loading template: Invalid template data"
 
@@ -5606,7 +5606,7 @@ msgstr "Error: {0}"
 msgid "Error: {errorMessage}"
 msgstr "Error: {errorMessage}"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:690
+#: src/components/email_builder/MjmlCodeEditor.tsx:675
 msgid "Errors"
 msgstr "Errors"
 
@@ -5766,7 +5766,7 @@ msgid "Explore"
 msgstr "Explore"
 
 #: src/components/contacts/ExportContactsModal.tsx:354
-#: src/components/email_builder/MjmlCodeEditor.tsx:650
+#: src/components/email_builder/MjmlCodeEditor.tsx:635
 #: src/components/logs/AuditLogActions.tsx:52
 #: src/components/templates/ImportExportButton.tsx:416
 #: src/pages/ContactsPage.tsx:1055
@@ -5781,11 +5781,11 @@ msgstr "Export Contacts to CSV"
 msgid "Export failed"
 msgstr "Export failed"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:659
+#: src/components/email_builder/MjmlCodeEditor.tsx:644
 msgid "Export HTML"
 msgstr "Export HTML"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:654
+#: src/components/email_builder/MjmlCodeEditor.tsx:639
 msgid "Export MJML"
 msgstr "Export MJML"
 
@@ -5934,7 +5934,7 @@ msgid "Failed to create segment"
 msgstr "Failed to create segment"
 
 #. placeholder {0}: error.message
-#: src/components/templates/CreateTemplateDrawer.tsx:344
+#: src/components/templates/CreateTemplateDrawer.tsx:345
 msgid "Failed to create template: {0}"
 msgstr "Failed to create template: {0}"
 
@@ -6128,7 +6128,7 @@ msgstr "Failed to publish post"
 msgid "Failed to publish theme"
 msgstr "Failed to publish theme"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:576
+#: src/components/email_builder/MjmlCodeEditor.tsx:561
 #: src/components/templates/ImportExportButton.tsx:197
 msgid "Failed to read the file"
 msgstr "Failed to read the file"
@@ -6213,7 +6213,7 @@ msgstr "Failed to save settings"
 msgid "Failed to save Supabase integration"
 msgstr "Failed to save Supabase integration"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:603
+#: src/components/templates/CreateTemplateDrawer.tsx:587
 msgid "Failed to save template block"
 msgstr "Failed to save template block"
 
@@ -6345,7 +6345,7 @@ msgid "Failed to update status: {error}"
 msgstr "Failed to update status: {error}"
 
 #. placeholder {0}: error.message
-#: src/components/templates/CreateTemplateDrawer.tsx:344
+#: src/components/templates/CreateTemplateDrawer.tsx:345
 msgid "Failed to update template: {0}"
 msgstr "Failed to update template: {0}"
 
@@ -6434,7 +6434,7 @@ msgstr "File {0} exceeds 3MB limit"
 msgid "File deleted successfully."
 msgstr "File deleted successfully."
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:563
+#: src/components/email_builder/MjmlCodeEditor.tsx:548
 msgid "File is too large. Maximum size is 1MB."
 msgstr "File is too large. Maximum size is 1MB."
 
@@ -6663,7 +6663,7 @@ msgstr "Force a full rebuild of a segment"
 #~ msgid "Forever"
 #~ msgstr "Forever"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:754
+#: src/components/email_builder/MjmlCodeEditor.tsx:739
 msgid "Format"
 msgstr "Format"
 
@@ -6781,7 +6781,7 @@ msgstr "Generate report"
 msgid "Generate this key in Supabase Auth Hooks settings"
 msgstr "Generate this key in Supabase Auth Hooks settings"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:698
+#: src/components/email_builder/MjmlCodeEditor.tsx:683
 msgid "Generated HTML"
 msgstr "Generated HTML"
 
@@ -6978,13 +6978,13 @@ msgstr "Header value is required"
 msgid "Height"
 msgstr "Height"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:726
-#: src/components/templates/CreateTemplateDrawer.tsx:155
+#: src/components/email_builder/MjmlCodeEditor.tsx:711
+#: src/components/templates/CreateTemplateDrawer.tsx:156
 #: src/layouts/WorkspaceLayout.tsx:681
 msgid "Help"
 msgstr "Help"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:150
+#: src/components/templates/CreateTemplateDrawer.tsx:151
 msgid "Help & Support"
 msgstr "Help & Support"
 
@@ -7111,11 +7111,11 @@ msgstr "I ran {maxRounds} rounds of tool calls without reaching an answer and st
 msgid "i.e: Big spenders..."
 msgstr "i.e: Big spenders..."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:827
+#: src/components/templates/CreateTemplateDrawer.tsx:811
 msgid "i.e: Welcome Email"
 msgstr "i.e: Welcome Email"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:881
+#: src/components/templates/CreateTemplateDrawer.tsx:865
 msgid "i.e: welcome-email"
 msgstr "i.e: welcome-email"
 
@@ -7177,7 +7177,7 @@ msgstr "ID must be alphanumeric"
 msgid "ID must be less than 32 characters"
 msgstr "ID must be less than 32 characters"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:851
+#: src/components/templates/CreateTemplateDrawer.tsx:835
 msgid "ID must contain only lowercase letters, numbers, underscores, and hyphens"
 msgstr "ID must contain only lowercase letters, numbers, underscores, and hyphens"
 
@@ -7267,18 +7267,18 @@ msgid "Implicit TLS (SMTPS)"
 msgstr "Implicit TLS (SMTPS)"
 
 #: src/components/contacts/TrackingConsent.tsx:66
-#: src/components/email_builder/MjmlCodeEditor.tsx:638
+#: src/components/email_builder/MjmlCodeEditor.tsx:623
 #: src/components/templates/ImportExportButton.tsx:387
 #: src/pages/ContactsPage.tsx:1048
 msgid "Import"
 msgstr "Import"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:715
+#: src/components/email_builder/MjmlCodeEditor.tsx:700
 #: src/components/templates/ImportExportButton.tsx:456
 msgid "Import / Export"
 msgstr "Import / Export"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1317
+#: src/components/templates/CreateTemplateDrawer.tsx:1301
 msgid "Import & Export Templates"
 msgstr "Import & Export Templates"
 
@@ -7313,7 +7313,7 @@ msgstr "Import fonts from hosted CSS files (like Google Fonts) to use in your em
 msgid "Import from CSV"
 msgstr "Import from CSV"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:642
+#: src/components/email_builder/MjmlCodeEditor.tsx:627
 msgid "Import MJML"
 msgstr "Import MJML"
 
@@ -7531,7 +7531,7 @@ msgid "Invalid invitation link: missing token"
 msgstr "Invalid invitation link: missing token"
 
 #: src/components/contacts/InlineEditableField.tsx:94
-#: src/components/email_builder/MjmlCodeEditor.tsx:616
+#: src/components/email_builder/MjmlCodeEditor.tsx:601
 msgid "Invalid JSON format"
 msgstr "Invalid JSON format"
 
@@ -7907,7 +7907,7 @@ msgstr "Left to Right"
 msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 msgstr "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1270
+#: src/components/templates/CreateTemplateDrawer.tsx:1254
 msgid "Let's take a quick tour to help you get started with building beautiful emails using MJML."
 msgstr "Let's take a quick tour to help you get started with building beautiful emails using MJML."
 
@@ -7989,7 +7989,11 @@ msgstr "Link copied"
 msgid "Link Settings"
 msgstr "Link Settings"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:366
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:376
+msgid "Link target"
+msgstr "Link target"
+
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:355
 msgid "Link Type"
 msgstr "Link Type"
 
@@ -8217,7 +8221,7 @@ msgid "Load the workspace record, which read or write both admit"
 msgstr "Load the workspace record, which read or write both admit"
 
 #. placeholder {0}: latest.version
-#: src/components/templates/CreateTemplateDrawer.tsx:445
+#: src/components/templates/CreateTemplateDrawer.tsx:429
 msgid "Loaded the latest version of this template (v{0})."
 msgstr "Loaded the latest version of this template (v{0})."
 
@@ -8640,7 +8644,7 @@ msgstr "MJML Compilation Error: {0}"
 msgid "MJML Compilation Warnings"
 msgstr "MJML Compilation Warnings"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:671
+#: src/components/email_builder/MjmlCodeEditor.tsx:656
 msgid "MJML Documentation"
 msgstr "MJML Documentation"
 
@@ -8652,7 +8656,7 @@ msgstr "MJML Export Failed"
 msgid "MJML exported successfully"
 msgstr "MJML exported successfully"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:572
+#: src/components/email_builder/MjmlCodeEditor.tsx:557
 msgid "MJML file imported"
 msgstr "MJML file imported"
 
@@ -8680,7 +8684,7 @@ msgstr "MJML template imported and converted successfully"
 msgid "MJML Validation Failed"
 msgstr "MJML Validation Failed"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1302
+#: src/components/templates/CreateTemplateDrawer.tsx:1286
 msgid "Mobile & Desktop Preview"
 msgstr "Mobile & Desktop Preview"
 
@@ -8874,8 +8878,8 @@ msgstr "New workspace"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:328
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:338
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:349
-#: src/components/templates/CreateTemplateDrawer.tsx:648
-#: src/components/templates/CreateTemplateDrawer.tsx:669
+#: src/components/templates/CreateTemplateDrawer.tsx:632
+#: src/components/templates/CreateTemplateDrawer.tsx:653
 msgid "Next"
 msgstr "Next"
 
@@ -9071,7 +9075,7 @@ msgstr "No email integrations available. Please configure one in Settings."
 msgid "No error message was recorded."
 msgstr "No error message was recorded."
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:811
+#: src/components/email_builder/MjmlCodeEditor.tsx:796
 msgid "No errors"
 msgstr "No errors"
 
@@ -9277,7 +9281,7 @@ msgstr "No templates found for category \"{selectedCategory}\""
 msgid "No templates match your search"
 msgstr "No templates match your search"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:872
+#: src/components/email_builder/MjmlCodeEditor.tsx:857
 #: src/components/email_builder/panels/TextVersionPanel.tsx:80
 #: src/components/templates/TemplatePreviewDrawer.tsx:250
 msgid "No text version: this email will be sent as HTML only."
@@ -9487,7 +9491,7 @@ msgstr "Notifuse will create a tenant in your AWS account, give it its own suppr
 msgid "notifuse-…"
 msgstr "notifuse-…"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1021
+#: src/components/templates/CreateTemplateDrawer.tsx:1005
 #: src/components/templates/TemplateTranslationsTab.tsx:302
 msgid "Now"
 msgstr "Now"
@@ -9732,6 +9736,10 @@ msgstr "Opens"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:749
 msgid "Opens and clicks are not tracked for this broadcast: pick the winning variation yourself."
 msgstr "Opens and clicks are not tracked for this broadcast: pick the winning variation yourself."
+
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
+msgid "Opens this email in the browser. The link is filled in for broadcasts and automations, and left empty in other emails."
+msgstr "Opens this email in the browser. The link is filled in for broadcasts and automations, and left empty in other emails."
 
 #: src/components/contacts/ExportContactsModal.tsx:92
 #: src/pages/ContactsPage.tsx:407
@@ -10061,14 +10069,14 @@ msgstr "Permissions updated successfully"
 #: src/components/contacts/ContactDetailsDrawer.tsx:449
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:93
 #: src/components/contacts/ExportContactsModal.tsx:67
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:339
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:327
 #: src/pages/ContactsPage.tsx:380
 #: src/pages/ContactsPage.tsx:447
 #: src/pages/ContactsPage.tsx:715
 msgid "Phone"
 msgstr "Phone"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:385
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:374
 msgid "Phone Number"
 msgstr "Phone Number"
 
@@ -10542,7 +10550,7 @@ msgstr "Preview text"
 msgid "Preview Text Settings"
 msgstr "Preview Text Settings"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1020
+#: src/components/templates/CreateTemplateDrawer.tsx:1004
 #: src/components/templates/TemplateTranslationsTab.tsx:301
 msgid "Preview text will appear here..."
 msgstr "Preview text will appear here..."
@@ -10551,7 +10559,7 @@ msgstr "Preview text will appear here..."
 msgid "Preview this theme in a new tab"
 msgstr "Preview this theme in a new tab"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:902
+#: src/components/email_builder/MjmlCodeEditor.tsx:887
 msgid "Preview will appear here after compilation"
 msgstr "Preview will appear here after compilation"
 
@@ -10559,15 +10567,15 @@ msgstr "Preview will appear here after compilation"
 msgid "Preview with test data"
 msgstr "Preview with test data"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1295
+#: src/components/templates/CreateTemplateDrawer.tsx:1279
 msgid "Preview Your Email"
 msgstr "Preview Your Email"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:335
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:346
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:357
-#: src/components/templates/CreateTemplateDrawer.tsx:653
-#: src/components/templates/CreateTemplateDrawer.tsx:674
+#: src/components/templates/CreateTemplateDrawer.tsx:637
+#: src/components/templates/CreateTemplateDrawer.tsx:658
 msgid "Previous"
 msgstr "Previous"
 
@@ -11021,7 +11029,7 @@ msgstr "Recipient feed test completed successfully"
 msgid "recipient@example.com"
 msgstr "recipient@example.com"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:98
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:100
 #: src/pages/BroadcastsPage.tsx:1258
 msgid "Recommended"
 msgstr "Recommended"
@@ -11297,7 +11305,7 @@ msgstr "Reply forwarding is set up. Inbound replies also require your domain's M
 #~ msgid "Reply forwarding route is set up. Inbound replies also require your domain's MX records to point at Mailgun."
 #~ msgstr "Reply forwarding route is set up. Inbound replies also require your domain's MX records to point at Mailgun."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:992
+#: src/components/templates/CreateTemplateDrawer.tsx:976
 #: src/components/templates/TemplatePreviewDrawer.tsx:342
 msgid "Reply to"
 msgstr "Reply to"
@@ -11436,7 +11444,7 @@ msgstr "Response Body:"
 msgid "Restart Server?"
 msgstr "Restart Server?"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:379
+#: src/components/email_builder/MjmlCodeEditor.tsx:380
 msgid "Restore"
 msgstr "Restore"
 
@@ -11711,8 +11719,8 @@ msgstr "Sandbox Mode"
 #: src/components/settings/Integrations.tsx:2914
 #: src/components/settings/SystemSettingsDrawer.tsx:245
 #: src/components/settings/WebhooksSettings.tsx:253
-#: src/components/templates/CreateTemplateDrawer.tsx:664
-#: src/components/templates/CreateTemplateDrawer.tsx:685
+#: src/components/templates/CreateTemplateDrawer.tsx:648
+#: src/components/templates/CreateTemplateDrawer.tsx:669
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:189
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
@@ -12085,7 +12093,7 @@ msgstr "Select AWS Region"
 msgid "Select Block to Update"
 msgstr "Select Block to Update"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:894
+#: src/components/templates/CreateTemplateDrawer.tsx:878
 msgid "Select category"
 msgstr "Select category"
 
@@ -12391,13 +12399,13 @@ msgstr "Send Test Email"
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:948
+#: src/components/templates/CreateTemplateDrawer.tsx:932
 #: src/components/templates/SendTemplateModal.tsx:340
 #: src/pages/TemplatesPage.tsx:237
 msgid "Sender"
 msgstr "Sender"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1018
+#: src/components/templates/CreateTemplateDrawer.tsx:1002
 #: src/components/templates/TemplateTranslationsTab.tsx:299
 msgid "Sender Name"
 msgstr "Sender Name"
@@ -13172,14 +13180,14 @@ msgid "Subject"
 msgstr "Subject"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
-#: src/components/templates/CreateTemplateDrawer.tsx:971
+#: src/components/templates/CreateTemplateDrawer.tsx:955
 #: src/components/templates/TemplatePreviewDrawer.tsx:363
 #: src/components/templates/TemplateTranslationsTab.tsx:241
 msgid "Subject preview"
 msgstr "Subject preview"
 
 #. placeholder {0}: workspace.settings.default_language
-#: src/components/templates/CreateTemplateDrawer.tsx:971
+#: src/components/templates/CreateTemplateDrawer.tsx:955
 msgid "Subject preview ({0})"
 msgstr "Subject preview ({0})"
 
@@ -13327,7 +13335,7 @@ msgstr "Supported Languages"
 msgid "Supports reply_to, cc, bcc, and attachments"
 msgstr "Supports reply_to, cc, bcc, and attachments"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1297
+#: src/components/templates/CreateTemplateDrawer.tsx:1281
 msgid "Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied."
 msgstr "Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied."
 
@@ -13361,7 +13369,7 @@ msgstr "Tags"
 msgid "Take a published post off the live blog"
 msgstr "Take a published post off the live blog"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:140
+#: src/components/templates/CreateTemplateDrawer.tsx:141
 msgid "Take a Tour"
 msgstr "Take a Tour"
 
@@ -13424,20 +13432,20 @@ msgid "Template {0}"
 msgstr "Template {0}"
 
 #. placeholder {0}: existingBlock?.name || nameOrId
-#: src/components/templates/CreateTemplateDrawer.tsx:589
+#: src/components/templates/CreateTemplateDrawer.tsx:573
 msgid "Template block \"{0}\" deleted successfully"
 msgstr "Template block \"{0}\" deleted successfully"
 
 #. placeholder {0}: existingBlock.name
-#: src/components/templates/CreateTemplateDrawer.tsx:581
+#: src/components/templates/CreateTemplateDrawer.tsx:565
 msgid "Template block \"{0}\" updated successfully"
 msgstr "Template block \"{0}\" updated successfully"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:567
+#: src/components/templates/CreateTemplateDrawer.tsx:551
 msgid "Template block \"{nameOrId}\" saved successfully"
 msgstr "Template block \"{nameOrId}\" saved successfully"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:572
+#: src/components/templates/CreateTemplateDrawer.tsx:556
 msgid "Template block not found"
 msgstr "Template block not found"
 
@@ -13445,7 +13453,7 @@ msgstr "Template block not found"
 msgid "Template changed by someone else"
 msgstr "Template changed by someone else"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:312
+#: src/components/templates/CreateTemplateDrawer.tsx:313
 msgid "Template created successfully"
 msgstr "Template created successfully"
 
@@ -13454,7 +13462,7 @@ msgstr "Template created successfully"
 msgid "Template Data"
 msgstr "Template Data"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1309
+#: src/components/templates/CreateTemplateDrawer.tsx:1293
 msgid "Template Data & Liquid Templating"
 msgstr "Template Data & Liquid Templating"
 
@@ -13470,15 +13478,15 @@ msgstr "Template Error"
 msgid "Template ID"
 msgstr "Template ID"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:843
+#: src/components/templates/CreateTemplateDrawer.tsx:827
 msgid "Template ID (utm_content)"
 msgstr "Template ID (utm_content)"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:871
+#: src/components/templates/CreateTemplateDrawer.tsx:855
 msgid "Template ID already exists"
 msgstr "Template ID already exists"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:855
+#: src/components/templates/CreateTemplateDrawer.tsx:839
 msgid "Template ID must be at most {TEMPLATE_ID_MAX_LENGTH} characters long"
 msgstr "Template ID must be at most {TEMPLATE_ID_MAX_LENGTH} characters long"
 
@@ -13486,11 +13494,11 @@ msgstr "Template ID must be at most {TEMPLATE_ID_MAX_LENGTH} characters long"
 msgid "Template imported successfully"
 msgstr "Template imported successfully"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:817
+#: src/components/templates/CreateTemplateDrawer.tsx:801
 msgid "Template name"
 msgstr "Template name"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:822
+#: src/components/templates/CreateTemplateDrawer.tsx:806
 msgid "Template name must be at most {TEMPLATE_NAME_MAX_LENGTH} characters long"
 msgstr "Template name must be at most {TEMPLATE_NAME_MAX_LENGTH} characters long"
 
@@ -13511,7 +13519,7 @@ msgstr "Template translations"
 msgid "Template translations require a Notifuse {tier} licence."
 msgstr "Template translations require a Notifuse {tier} licence."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:312
+#: src/components/templates/CreateTemplateDrawer.tsx:313
 msgid "Template updated successfully"
 msgstr "Template updated successfully"
 
@@ -13535,8 +13543,8 @@ msgstr "Templates"
 msgid "Templates using this sender will need to be updated to use a different sender."
 msgstr "Templates using this sender will need to be updated to use a different sender."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:967
-#: src/components/templates/CreateTemplateDrawer.tsx:985
+#: src/components/templates/CreateTemplateDrawer.tsx:951
+#: src/components/templates/CreateTemplateDrawer.tsx:969
 msgid "Templating markup allowed"
 msgstr "Templating markup allowed"
 
@@ -13577,11 +13585,11 @@ msgstr "Test Completed"
 msgid "Test Connection"
 msgstr "Test Connection"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:697
+#: src/components/email_builder/MjmlCodeEditor.tsx:682
 msgid "Test Data"
 msgstr "Test Data"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:614
+#: src/components/email_builder/MjmlCodeEditor.tsx:599
 msgid "Test data updated"
 msgstr "Test data updated"
 
@@ -13709,7 +13717,7 @@ msgid "Text Transform"
 msgstr "Text Transform"
 
 #: src/components/email_builder/EmailBuilder.tsx:859
-#: src/components/email_builder/MjmlCodeEditor.tsx:699
+#: src/components/email_builder/MjmlCodeEditor.tsx:684
 #: src/components/email_builder/panels/TextVersionPanel.tsx:30
 #: src/components/templates/TemplatePreviewDrawer.tsx:228
 msgid "Text version"
@@ -13775,7 +13783,7 @@ msgstr "The current date range, filters and session threshold"
 msgid "The currently published theme will be unpublished automatically."
 msgstr "The currently published theme will be unpublished automatically."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:932
+#: src/components/templates/CreateTemplateDrawer.tsx:916
 msgid "The editor mode can't be changed after the template is created. To use the other editor, create a new template and copy the content with Import MJML or Export MJML."
 msgstr "The editor mode can't be changed after the template is created. To use the other editor, create a new template and copy the content with Import MJML or Export MJML."
 
@@ -13791,7 +13799,7 @@ msgstr "The email body must contain a JSON payload with your notification data. 
 msgid "The email body must contain valid JSON matching the format above"
 msgstr "The email body must contain valid JSON matching the format above"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:850
+#: src/components/email_builder/MjmlCodeEditor.tsx:835
 #: src/components/email_builder/panels/TextVersionPanel.tsx:56
 msgid "The email could not be compiled"
 msgstr "The email could not be compiled"
@@ -14104,7 +14112,7 @@ msgstr "This feature makes an HTTP request for each recipient before sending the
 msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
 msgstr "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:870
+#: src/components/templates/CreateTemplateDrawer.tsx:854
 msgid "This ID belongs to a deleted template and can't be reused"
 msgstr "This ID belongs to a deleted template and can't be reused"
 
@@ -14120,7 +14128,7 @@ msgstr "This ID will be used when triggering the notification via API"
 msgid "This invitation link is invalid or has expired."
 msgstr "This invitation link is invalid or has expired."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:844
+#: src/components/templates/CreateTemplateDrawer.tsx:828
 msgid "This is the ID that will be used as the utm_content parameter in the links URL to track the template"
 msgstr "This is the ID that will be used as the utm_content parameter in the links URL to track the template"
 
@@ -14128,11 +14136,11 @@ msgstr "This is the ID that will be used as the utm_content parameter in the lin
 msgid "This is where delivery statistics live, not under Broadcasts: a key that may create and send a broadcast still cannot read its open, click or bounce numbers without Message History read. The log carries recipient addresses and the rendered message data, so it is contact data by another name."
 msgstr "This is where delivery statistics live, not under Broadcasts: a key that may create and send a broadcast still cannot read its open, click or bounce numbers without Message History read. The log carries recipient addresses and the rendered message data, so it is contact data by another name."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1276
+#: src/components/templates/CreateTemplateDrawer.tsx:1260
 msgid "This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another."
 msgstr "This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1283
+#: src/components/templates/CreateTemplateDrawer.tsx:1267
 msgid "This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options."
 msgstr "This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options."
 
@@ -14491,7 +14499,7 @@ msgstr "Today"
 msgid "TODO"
 msgstr "TODO"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1304
+#: src/components/templates/CreateTemplateDrawer.tsx:1288
 msgid "Toggle between mobile and desktop views to see how your email appears on different devices. Mobile view shows a 400px width while desktop shows the full width."
 msgstr "Toggle between mobile and desktop views to see how your email appears on different devices. Mobile view shows a 400px width while desktop shows the full width."
 
@@ -14887,7 +14895,7 @@ msgstr "Unsaved changes"
 msgid "Unsaved Changes"
 msgstr "Unsaved Changes"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:369
+#: src/components/email_builder/MjmlCodeEditor.tsx:370
 msgid "Unsaved draft found."
 msgstr "Unsaved draft found."
 
@@ -15031,8 +15039,8 @@ msgstr "Upload Files"
 msgid "UPPERCASE"
 msgstr "UPPERCASE"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:337
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:381
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:325
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:370
 msgid "URL"
 msgstr "URL"
 
@@ -15118,11 +15126,11 @@ msgstr "Use the font name in text elements:"
 msgid "Use the save button in the block toolbar to save blocks"
 msgstr "Use the save button in the block toolbar to save blocks"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1311
+#: src/components/templates/CreateTemplateDrawer.tsx:1295
 msgid "Use the Template Data tab to define dynamic content for your emails. Add variables like {{ name }} or {{ company }} in your email content, then define their values here. The Liquid templating engine supports conditionals, loops, and filters for powerful personalization."
 msgstr "Use the Template Data tab to define dynamic content for your emails. Add variables like {{ name }} or {{ company }} in your email content, then define their values here. The Liquid templating engine supports conditionals, loops, and filters for powerful personalization."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1319
+#: src/components/templates/CreateTemplateDrawer.tsx:1303
 msgid "Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use."
 msgstr "Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use."
 
@@ -15391,11 +15399,11 @@ msgstr "Visitor locations"
 msgid "Visitors are being tracked by more than one SDK version ({0} alongside {newest}). A cached copy of the tracking snippet is probably still being served."
 msgstr "Visitors are being tracked by more than one SDK version ({0} alongside {newest}). A cached copy of the tracking snippet is probably still being served."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:940
+#: src/components/templates/CreateTemplateDrawer.tsx:924
 msgid "Visual"
 msgstr "Visual"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1281
+#: src/components/templates/CreateTemplateDrawer.tsx:1265
 msgid "Visual Email Editor"
 msgstr "Visual Email Editor"
 
@@ -15467,6 +15475,10 @@ msgstr "Web analytics settings updated successfully"
 #: src/components/timeline/ContactTimeline.tsx:916
 msgid "Web session"
 msgstr "Web session"
+
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:329
+msgid "Web version of the email"
+msgstr "Web version of the email"
 
 #: src/components/automations/AddNodeButton.tsx:83
 #: src/components/automations/nodes/StatNode.tsx:88
@@ -15586,7 +15598,7 @@ msgstr "Weight"
 msgid "Welcome"
 msgstr "Welcome"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1268
+#: src/components/templates/CreateTemplateDrawer.tsx:1252
 msgid "Welcome to Email Builder!"
 msgstr "Welcome to Email Builder!"
 
@@ -15661,7 +15673,7 @@ msgstr "When matched, execute these operations:"
 msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 msgstr "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1290
+#: src/components/templates/CreateTemplateDrawer.tsx:1274
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 msgstr "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 

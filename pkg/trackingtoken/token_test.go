@@ -322,8 +322,130 @@ func TestHostOf(t *testing.T) {
 		" http://localhost:4000/ ":          "localhost",
 		"":                                  "",
 		"https://[::1":                      "",
+		// A browser sends a Unicode hostname in Punycode, so it is compared that way.
+		"https://bücher.example":      "xn--bcher-kva.example",
+		"https://BÜCHER.example":      "xn--bcher-kva.example",
+		"https://my_host.example.com": "my_host.example.com",
+		"https://bücher_shop.example": "xn--bcher_shop-9db.example",
+		"https://ü\u0080.example":     "",
 	}
 	for raw, want := range cases {
 		assert.Equal(t, want, HostOf(raw), "%q", raw)
 	}
+}
+
+func TestMintView_RoundTrip(t *testing.T) {
+	key := testKey(t, "workspace-secret")
+	token, err := MintView(key, "msg-1", "ws-1", 1730000000, "mail.brand.com")
+	require.NoError(t, err)
+
+	parsed, err := Parse(token, PurposeView)
+	require.NoError(t, err)
+	assert.Equal(t, "msg-1", parsed.MessageID)
+	assert.Equal(t, "ws-1", parsed.WorkspaceID)
+	assert.Equal(t, int64(1730000000), parsed.Timestamp)
+	assert.Equal(t, "mail.brand.com", parsed.Host, "a view token names the host its link was minted on")
+	assert.Empty(t, parsed.URL)
+	assert.True(t, parsed.Verify(key, PurposeView))
+	assert.False(t, parsed.Verify(testKey(t, "other-secret"), PurposeView), "another workspace's key must not verify")
+}
+
+func TestMintView_RequiresKey(t *testing.T) {
+	_, err := MintView(nil, "msg-1", "ws-1", 1730000000, "mail.brand.com")
+	assert.Error(t, err, "a view token is never minted unsigned")
+	_, err = MintView([]byte{}, "msg-1", "ws-1", 1730000000, "mail.brand.com")
+	assert.Error(t, err)
+}
+
+func TestVerify_ViewPurposeIsBound(t *testing.T) {
+	key := testKey(t, "workspace-secret")
+
+	// A click token has the view shape: three fields and a fourth, its destination.
+	click, err := MintClick(key, "msg-1", "ws-1", 1730000000, "mail.brand.com")
+	require.NoError(t, err)
+	clickAsView, err := Parse(click, PurposeView)
+	require.NoError(t, err)
+	assert.False(t, clickAsView.Verify(key, PurposeView), "a click token must not verify as a view")
+
+	openToken, err := MintOpen(key, "msg-1", "ws-1", 1730000000)
+	require.NoError(t, err)
+	openAsView, err := Parse(reseal(t, open(t, openToken)+"\n"), PurposeView)
+	require.NoError(t, err)
+	assert.False(t, openAsView.Verify(key, PurposeView), "an open token must not verify as a view")
+
+	view, err := MintView(key, "msg-1", "ws-1", 1730000000, "mail.brand.com")
+	require.NoError(t, err)
+	viewAsClick, err := Parse(view, PurposeClick)
+	require.NoError(t, err)
+	assert.False(t, viewAsClick.Verify(key, PurposeClick), "a view token must not verify as a click")
+	// With an empty host, a view token differs from an open token by its purpose alone.
+	bareView, err := MintView(key, "msg-1", "ws-1", 1730000000, "")
+	require.NoError(t, err)
+	viewParts := strings.SplitN(open(t, bareView), "\n", 4)
+	viewAsOpen, err := Parse(reseal(t, strings.Join(viewParts[:3], "\n")), PurposeOpen)
+	require.NoError(t, err)
+	assert.False(t, viewAsOpen.Verify(key, PurposeOpen), "a view token must not verify as an open")
+}
+
+func TestVerify_ViewRejectsChangedFields(t *testing.T) {
+	key := testKey(t, "workspace-secret")
+	token, err := MintView(key, "msg-1", "ws-1", 1730000000, "mail.brand.com")
+	require.NoError(t, err)
+	parts := strings.SplitN(open(t, token), "\n", 4)
+	_, tag, found := strings.Cut(parts[2], ".")
+	require.True(t, found)
+
+	changed := map[string]string{
+		"message id": "msg-2\n" + parts[1] + "\n" + parts[2] + "\n" + parts[3],
+		"workspace":  parts[0] + "\nws-2\n" + parts[2] + "\n" + parts[3],
+		"timestamp":  parts[0] + "\n" + parts[1] + "\n1730000001." + tag + "\n" + parts[3],
+		"host":       parts[0] + "\n" + parts[1] + "\n" + parts[2] + "\nmail.other-brand.com",
+	}
+	for name, plaintext := range changed {
+		forged, err := Parse(reseal(t, plaintext), PurposeView)
+		require.NoError(t, err, name)
+		assert.False(t, forged.Verify(key, PurposeView), "changing the %s must break the tag", name)
+	}
+}
+
+func TestParse_ViewNeedsItsHostField(t *testing.T) {
+	key := testKey(t, "workspace-secret")
+	openToken, err := MintOpen(key, "msg-1", "ws-1", 1730000000)
+	require.NoError(t, err)
+	_, err = Parse(openToken, PurposeView)
+	assert.Error(t, err, "a three-field token is not a view token")
+}
+
+func TestSameHost(t *testing.T) {
+	matches := [][2]string{
+		{"mail.brand.com", "mail.brand.com"},
+		{"Mail.Brand.COM", "mail.brand.com"},
+		{"mail.brand.com:8443", "mail.brand.com"},
+		{"mail.brand.com.", "mail.brand.com"},
+		{"mail.brand.com.:443", "mail.brand.com"},
+		{"[::1]:8080", "::1"},
+		{"mail.brand.com", "MAIL.brand.com."},
+	}
+	for _, c := range matches {
+		assert.True(t, SameHost(c[0], c[1]), "%q names %q", c[0], c[1])
+	}
+	differ := [][2]string{
+		{"mail.brand.com.evil.example", "mail.brand.com"},
+		{"evilmail.brand.com", "mail.brand.com"},
+		{"", "mail.brand.com"},
+		{"mail.brand.com", ""},
+		{".", "."},
+		// The Kelvin sign folds onto k under strings.EqualFold: hosts fold ASCII only.
+		{"\u212aelvin.example", "kelvin.example"},
+	}
+	for _, c := range differ {
+		assert.False(t, SameHost(c[0], c[1]), "%q does not name %q", c[0], c[1])
+	}
+}
+
+func TestSameHostname(t *testing.T) {
+	assert.True(t, SameHostname("mail.brand.com.", "MAIL.brand.com"))
+	assert.True(t, SameHostname("2001:db8::1", "2001:DB8::1"))
+	assert.False(t, SameHostname("2001:db8::1", "2001:db8::2"))
+	assert.False(t, SameHostname("", ""))
 }

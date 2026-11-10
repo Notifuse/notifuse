@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -197,4 +198,16 @@ func TestWriteRedirectInterstitial(t *testing.T) {
 		assertHeaders(t, rec)
 		assert.NotContains(t, rec.Body.String(), "<a ")
 	})
+}
+
+func TestClassifyTrackedDestination_UnicodeEndpoint(t *testing.T) {
+	// The endpoint host is kept in Punycode; a destination written with the Unicode
+	// endpoint, as a wrapped unsubscribe link is, is still the workspace's own.
+	endpoint := trackingtoken.HostOf("https://bücher.example")
+	for _, raw := range []string{"https://bücher.example/unsubscribe", "https://xn--bcher-kva.example/unsubscribe"} {
+		decision, _, _, _ := classifyTrackedDestination(raw, classifyReqHost, classifyAPIHost, endpoint)
+		assert.Equal(t, decisionRedirect, decision, raw)
+	}
+	decision, _, _, _ := classifyTrackedDestination("https://bucher.example/unsubscribe", classifyReqHost, classifyAPIHost, endpoint)
+	assert.Equal(t, decisionInterstitial, decision)
 }
