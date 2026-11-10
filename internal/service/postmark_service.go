@@ -555,6 +555,9 @@ func (s *PostmarkService) SendEmail(ctx context.Context, request domain.SendEmai
 			"notifuse_message_id": request.MessageID,
 		},
 	}
+	if request.TextContent != "" {
+		requestBody["TextBody"] = request.TextContent
+	}
 
 	// Add CC if specified
 	if len(request.EmailOptions.CC) > 0 {

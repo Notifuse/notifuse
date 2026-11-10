@@ -2,13 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [43.2] - WIP
+
+- **Feature**: Every email now includes a plain-text version, generated from its HTML, for mail clients that show text only and for better deliverability. Its links are the links of the HTML, tracked the same way. Preview it in the template editor's new Text version mode, in the MJML editor's Text version tab and in the template preview. `templates.compile` returns it as `text`.
+
+- **Fix**: In the email editor, saving a block now always starts as a new saved block, and "Update existing block" only lists saved blocks of the same type. Before, the dialog could open on updating another saved block that merely looked alike. The confirmation now appears once the block is saved, and the dialog stays open if saving fails.
+
 ## [43.1] - 2026-11-10
 
 - **Improvement**: Test emails can now be sent for a mailing list, chosen in the test dialog of a template or a broadcast and preselected with the broadcast's audience list (#423). They then carry that list's working unsubscribe and confirmation links and the List-Unsubscribe header, as a broadcast to the list does; a test for the audience list of a broadcast that also goes to the list's unsubscribed contacts has no header, as the broadcast. Unsubscribing or confirming from such a test, or a bounce or complaint on it, changes the recipient's subscription to the list. `transactional.testTemplate` takes `list_id` and `omit_list_unsubscribe_header`; a test for a list also needs Lists read.
 
 - **Fix**: Test emails sent to an address typed with capital letters are now recorded under the contact's address, so they show in the contact's history and are erased with the contact.
-
-- **Fix**: In the email editor, saving a block now always starts as a new saved block, and "Update existing block" only lists saved blocks of the same type. Before, the dialog could open on updating another saved block that merely looked alike. The confirmation now appears once the block is saved, and the dialog stays open if saving fails.
 
 ## [43.0] - 2026-11-07
 

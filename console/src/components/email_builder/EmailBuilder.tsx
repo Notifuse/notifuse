@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { Button, Space, Segmented, Spin } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faRedoAlt, faUndoAlt } from '@fortawesome/free-solid-svg-icons'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
@@ -8,6 +9,7 @@ import { TreePanel } from './panels/TreePanel'
 import { EditPanel } from './panels/EditPanel'
 import { SettingsPanel } from './panels/SettingsPanel'
 import { Preview, type PreviewRef } from './panels/Preview'
+import { TextVersionPanel } from './panels/TextVersionPanel'
 import type {
   EmailBlock,
   EmailBuilderState,
@@ -17,13 +19,22 @@ import type {
 } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
 
+type ViewMode = 'edit' | 'preview' | 'text'
+
+interface CompilationResults {
+  errors?: Array<Record<string, unknown>>
+  html: string
+  mjml: string
+  text?: string
+}
+
 interface EmailBuilderProps {
   tree: EmailBlock
   onTreeChange: (tree: EmailBlock) => void
   onCompile: (
     tree: EmailBlock,
     testData?: Record<string, unknown>
-  ) => Promise<{ errors?: Array<Record<string, unknown>>; html: string; mjml: string }>
+  ) => Promise<CompilationResults>
   testData?: Record<string, unknown>
   onTestDataChange: (testData: Record<string, unknown>) => void
   toolbarActions?: React.ReactNode
@@ -35,7 +46,10 @@ interface EmailBuilderProps {
   previewSwitcherRef?: React.RefObject<HTMLDivElement>
   mobileDesktopSwitcherRef?: React.RefObject<HTMLDivElement>
   templateDataRef?: React.RefObject<PreviewRef>
-  forcedViewMode?: 'edit' | 'preview' | null
+  forcedViewMode?: ViewMode | null
+  // When set, the toolbar offers a "Text version" mode showing the plain-text version
+  // sent with the email, from the compile result's text.
+  textVersion?: { enabled: true }
   onSelectBlock?: (blockId: string | null) => void
   selectedBlockId?: string | null
   hiddenBlocks?: string[]
@@ -58,11 +72,13 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   mobileDesktopSwitcherRef,
   templateDataRef,
   forcedViewMode,
+  textVersion,
   onSelectBlock: externalOnSelectBlock,
   selectedBlockId: externalSelectedBlockId,
   hiddenBlocks,
   height
 }) => {
+  const { t } = useLingui()
   // State for current selection, UI, and history
   const [state, setState] = useState<
     EmailBuilderState & { history: EmailBlock[]; historyIndex: number }
@@ -103,7 +119,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   })
 
   // Local state for view mode and compilation results
-  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit')
+  const [viewMode, setViewMode] = useState<ViewMode>('edit')
 
   // Use forced view mode when provided (for tour), otherwise use local state
   const effectiveViewMode = forcedViewMode || viewMode
@@ -111,11 +127,10 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   // Use external selected block ID when provided (for tour), otherwise use local state
   const effectiveSelectedBlockId = externalSelectedBlockId ?? state.selectedBlockId
 
-  const [compilationResults, setCompilationResults] = useState<{
-    errors?: Array<Record<string, unknown>>
-    html: string
-    mjml: string
-  } | null>(null)
+  const [compilationResults, setCompilationResults] = useState<CompilationResults | null>(null)
+
+  // Preview and text version both show the compiled email.
+  const showsCompiledEmail = effectiveViewMode === 'preview' || effectiveViewMode === 'text'
 
   const selectedBlock = useMemo(() => {
     return EmailBlockClass.findBlockById(tree, effectiveSelectedBlockId || '')
@@ -206,14 +221,14 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   }
 
   const handleModeChange = async (value: string | number) => {
-    const mode = value as 'edit' | 'preview'
+    const mode = value as ViewMode
     // Only update local state if not being forced by tour
     if (!forcedViewMode) {
       setViewMode(mode)
     }
 
-    // If switching to preview mode, compile the email
-    if (mode === 'preview') {
+    // If switching to preview or text version mode, compile the email
+    if (mode === 'preview' || mode === 'text') {
       await compileEmail()
     } else {
       // Clear compilation results when switching back to edit mode
@@ -221,9 +236,9 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     }
   }
 
-  // Recompile when testData changes (only if in preview mode)
+  // Recompile when testData changes (only if in preview or text version mode)
   useEffect(() => {
-    if (effectiveViewMode === 'preview') {
+    if (showsCompiledEmail) {
       compileEmail()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -238,7 +253,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   // double-compile alongside the testData/effectiveViewMode effect above.
   const treeKey = useMemo(() => JSON.stringify(tree), [tree])
   useEffect(() => {
-    if (effectiveViewMode !== 'preview') return
+    if (!showsCompiledEmail) return
     const timeoutId = setTimeout(() => {
       compileEmail()
     }, 400)
@@ -248,7 +263,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
 
   // Handle forced view mode changes from tour
   useEffect(() => {
-    if (forcedViewMode === 'preview') {
+    if (forcedViewMode === 'preview' || forcedViewMode === 'text') {
       compileEmail()
     } else if (forcedViewMode === 'edit') {
       setCompilationResults(null)
@@ -813,7 +828,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               icon={<FontAwesomeIcon icon={faUndoAlt} />}
               onClick={handleUndo}
               disabled={!canUndo || effectiveViewMode !== 'edit'}
-              title="Undo"
+              title={t`Undo`}
             />
             <Button
               size="small"
@@ -821,7 +836,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               icon={<FontAwesomeIcon icon={faRedoAlt} />}
               onClick={handleRedo}
               disabled={!canRedo || effectiveViewMode !== 'edit'}
-              title="Redo"
+              title={t`Redo`}
             />
           </Space>
         </div>
@@ -834,13 +849,14 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
             onChange={handleModeChange}
             options={[
               {
-                label: 'Edit',
+                label: t`Edit`,
                 value: 'edit'
               },
               {
-                label: 'Preview',
+                label: t`Preview`,
                 value: 'preview'
-              }
+              },
+              ...(textVersion?.enabled ? [{ label: t`Text version`, value: 'text' }] : [])
             ]}
           />
         </div>
@@ -860,9 +876,10 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
           mobileDesktopSwitcherRef={mobileDesktopSwitcherRef}
         />
       )}
-      {effectiveViewMode === 'preview' && !compilationResults && (
-        <Spin size="large" className="!m-16" />
+      {effectiveViewMode === 'text' && compilationResults && (
+        <TextVersionPanel text={compilationResults.text} errors={compilationResults.errors} />
       )}
+      {showsCompiledEmail && !compilationResults && <Spin size="large" className="!m-16" />}
       {/* Three Column Layout */}
       {effectiveViewMode === 'edit' && (
         <>
