@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"go.opencensus.io/plugin/ochttp"
 	"go.opencensus.io/trace"
@@ -19,6 +20,13 @@ func TracingMiddleware(next http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// A web version path holds a token that opens a contact's email for anyone who
+		// has it: the request is not traced, so the token never reaches the trace backend.
+		if strings.HasPrefix(r.URL.Path, "/v/") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		// Add common attributes to all spans
 		ctx := r.Context()
 		spanCtx := trace.FromContext(ctx)

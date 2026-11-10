@@ -41,6 +41,7 @@ import { templatesApi } from '../services/api/template'
 import { Workspace, UserPermissions } from '../services/api/types'
 import { ApiCommandModal } from '../components/transactional/ApiCommandModal'
 import { analyticsService } from '../services/api/analytics'
+import { canSendTestEmail } from '../services/api/permissions'
 
 const { Title, Paragraph } = Typography
 
@@ -171,7 +172,7 @@ const TransactionalNotificationCard: React.FC<{
               workspace={workspace}
             />
           )}
-          {canWrite && (
+          {canSendTestEmail(permissions) && (
             <Tooltip title={t`Test`}>
               <Button type="text" size="small" onClick={() => onTest(notification)}>
                 <FontAwesomeIcon icon={faPaperPlane} style={{ opacity: 0.7 }} />
@@ -493,6 +494,7 @@ export function TransactionalNotificationsPage() {
           }}
           workspace={currentWorkspace || null}
           withCCAndBCC={true}
+          canReadContacts={!!permissions?.contacts?.read}
         />
       )}
     </div>

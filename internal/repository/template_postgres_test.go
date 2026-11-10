@@ -64,6 +64,12 @@ func (m *MockWorkspaceRepository) GetWorkspaceByCustomDomain(ctx context.Context
 	return ws, args.Error(1)
 }
 
+func (m *MockWorkspaceRepository) ListCustomEndpoints(ctx context.Context) (map[string]string, error) {
+	args := m.Called(ctx)
+	endpoints, _ := args.Get(0).(map[string]string)
+	return endpoints, args.Error(1)
+}
+
 func (m *MockWorkspaceRepository) PatchIntegrationSESSettings(ctx context.Context, workspaceID string, integrationID string, patch map[string]interface{}) error {
 	args := m.Called(ctx, workspaceID, integrationID, patch)
 	return args.Error(0)

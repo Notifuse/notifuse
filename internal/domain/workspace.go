@@ -1147,6 +1147,9 @@ type WorkspaceRepository interface {
 	Create(ctx context.Context, workspace *Workspace) error
 	GetByID(ctx context.Context, id string) (*Workspace, error)
 	GetWorkspaceByCustomDomain(ctx context.Context, hostname string) (*Workspace, error)
+	// ListCustomEndpoints returns the custom endpoint URL of every workspace that has
+	// one, keyed by workspace ID.
+	ListCustomEndpoints(ctx context.Context) (map[string]string, error)
 	List(ctx context.Context) ([]*Workspace, error)
 	Update(ctx context.Context, workspace *Workspace) error
 
