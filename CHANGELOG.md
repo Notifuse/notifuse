@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: Every email now includes a plain-text version, generated from its HTML, for mail clients that show text only and for better deliverability. Its links are the links of the HTML, tracked the same way. Preview it in the template editor's new Text version mode, in the MJML editor's Text version tab and in the template preview. `templates.compile` returns it as `text`.
 
+- **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
+
 ## [43.1] - 2026-11-10
 
 - **Improvement**: Test emails can now be sent for a mailing list, chosen in the test dialog of a template or a broadcast and preselected with the broadcast's audience list (#423). They then carry that list's working unsubscribe and confirmation links and the List-Unsubscribe header, as a broadcast to the list does; a test for the audience list of a broadcast that also goes to the list's unsubscribed contacts has no header, as the broadcast. Unsubscribing or confirming from such a test, or a bounce or complaint on it, changes the recipient's subscription to the list. `transactional.testTemplate` takes `list_id` and `omit_list_unsubscribe_header`; a test for a list also needs Lists read.
