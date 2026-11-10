@@ -39,7 +39,9 @@ export function ChangeVariationSenderModal({
   const blocksSending = missing.some(
     (v) => !broadcast.winning_template || v.template_id === broadcast.winning_template
   )
-  if (broadcast.status !== 'paused' || !blocksSending) return null
+  // Once every recipient is queued (completed_at), the queued emails keep the sender they
+  // were queued with and resuming sends them: a new sender would change nothing.
+  if (broadcast.status !== 'paused' || broadcast.completed_at || !blocksSending) return null
 
   const variations = broadcast.test_settings.variations || []
   // Variations sharing a template share a sender (the server refuses two): one field each.

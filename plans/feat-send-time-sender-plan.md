@@ -106,7 +106,8 @@ keeps its top-level `sender_id`; `sender_id` is added to the send schema's `emai
   registered as a `Form.Item` (`Form.List` items and the non-A/B `variations[0]`), since `onFinish`
   only sends registered fields. Switching A/B off keeps variation 1's sender.
 - `console/src/components/broadcasts/ChangeVariationSenderModal.tsx` (new): on a paused broadcast
-  whose variation still to send (the winner once chosen) lost its sender, a "Change sender" button
+  not fully queued (no `completed_at`: queued emails keep their sender) whose variation still to
+  send (the winner once chosen) lost its sender, a "Change sender" button
   next to Resume opens one sender field per template whose sender is gone (the server checks them
   all on save), labelled by variation name or number, and saves through `broadcasts.update` (the
   edit drawer only opens drafts and scheduled broadcasts). A failed resume shows the server's
@@ -135,7 +136,7 @@ keeps its top-level `sender_id`; `sender_id` is added to the send schema's `emai
 | `service/transactional_service.go`, `email_service.go` | `service/transactional_sender_test.go` | `email_options.sender_id` → From; unknown → error before the contact upsert and before any message, also on a replayed `external_id`; `from_name` still applies on top |
 | `http/transactional_handler.go`, `http/broadcast_handler.go` | `http/transactional_handler_test.go`, `http/broadcast_handler_sender_test.go` | unknown sender → 400 on send, create, update, schedule, resume, send-to-individual; other service errors stay 500 |
 | console drawer + select + page | `UpsertBroadcastDrawer.test.tsx`, `VariationSenderSelect.test.tsx`, `BroadcastsPage` test if present | options from the marketing integration; clear = template's; payload carries `sender_id`; deleted sender shown in error and still clearable; no template's sender named before a template is chosen; "From:" shows the override |
-| change-sender modal | `ChangeVariationSenderModal.test.tsx` | shown only on a paused broadcast whose variation to send has a missing sender, not for a loser's alone; disabled without write permission; asks only for the missing variations, numbered when unnamed; saves the new sender and keeps the others and the A/B settings, without the joined template or a schedule; refuses the deleted sender |
+| change-sender modal | `ChangeVariationSenderModal.test.tsx` | shown only on a paused, not fully queued broadcast whose variation to send has a missing sender, not for a loser's alone; disabled without write permission; asks only for the missing variations, numbered when unnamed; saves the new sender and keeps the others and the A/B settings, without the joined template or a schedule; refuses the deleted sender |
 | integration | `tests/integration/broadcast_sender_test.go` (new), `tests/integration/transactional_handler_test.go` | Mailpit From for a broadcast with a variation sender (A/B and single), for a transactional `sender_id`; unknown sender → 400 on create and on send; sender removed from the integration → schedule refused |
 
 ## Review

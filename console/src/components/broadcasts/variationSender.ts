@@ -38,8 +38,9 @@ export function resolveVariationSender(
 export const formatSender = (sender: Sender) => `${sender.name} <${sender.email}>`
 
 // variationsWithMissingSender returns the variations whose chosen sender is no longer one of
-// the marketing integration's. The server refuses to save, schedule or resume a broadcast
-// while any of them is left, and pauses one that is sending.
+// the marketing integration's. The server refuses to save test_settings or to schedule while
+// any of them is left; it refuses to resume, and stops queuing, only for a variation still to
+// send.
 export function variationsWithMissingSender(
   workspace: Workspace,
   broadcast: Broadcast

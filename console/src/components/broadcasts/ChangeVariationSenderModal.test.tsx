@@ -87,6 +87,11 @@ describe('ChangeVariationSenderModal', () => {
     expect(screen.queryByRole('button', { name: 'Change sender' })).not.toBeInTheDocument()
   })
 
+  it('offers nothing once every recipient is queued: the queued emails keep their sender', () => {
+    renderModal(makeBroadcast({ completed_at: '2026-11-10T10:00:00Z' }))
+    expect(screen.queryByRole('button', { name: 'Change sender' })).not.toBeInTheDocument()
+  })
+
   it('is disabled without write permission', () => {
     renderModal(makeBroadcast(), true)
     expect(screen.getByRole('button', { name: 'Change sender' })).toBeDisabled()
