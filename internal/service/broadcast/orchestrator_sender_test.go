@@ -141,8 +141,8 @@ func TestProcessBroadcastTask_VariationSenderGone_PausesBeforeSending(t *testing
 	assert.Equal(t, "template-1", senderErr.TemplateID)
 }
 
-// A broadcast whose test phase is over waits for a winner and sends nothing meanwhile:
-// a losing variation's missing sender must not pause it, or no winner could be picked.
+// A broadcast whose test phase is over waits for a winner: a losing variation's missing
+// sender must not pause it, or no winner could be picked.
 // A paused broadcast is not paused again, nor announced as sending.
 func TestProcessBroadcastTask_VariationSenderGone_NoPauseWhileNotSending(t *testing.T) {
 	for _, status := range []domain.BroadcastStatus{domain.BroadcastStatusTestCompleted, domain.BroadcastStatusPaused} {

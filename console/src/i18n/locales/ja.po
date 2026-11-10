@@ -2361,7 +2361,7 @@ msgstr "キャンペーン"
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:131
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:133
 #: src/components/broadcasts/HeadersEditor.tsx:103
 #: src/components/broadcasts/SendOrScheduleModal.tsx:301
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:344
@@ -2589,8 +2589,8 @@ msgstr "任意の言語で、テンプレートのコンテンツを変更する
 msgid "Change provider"
 msgstr "プロバイダーを変更"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:123
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:126
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:125
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:128
 msgid "Change sender"
 msgstr "送信者を変更"
 
@@ -5859,12 +5859,12 @@ msgstr "リストへの追加に失敗しました: {error}"
 msgid "Failed to cancel broadcast"
 msgstr "ブロードキャストのキャンセルに失敗しました"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:113
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:115
 msgid "Failed to change the sender"
 msgstr "送信者を変更できませんでした"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:112
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:114
 msgid "Failed to change the sender: {0}"
 msgstr "送信者を変更できませんでした: {0}"
 
@@ -11662,7 +11662,7 @@ msgstr "サンドボックスモード"
 #: src/components/blog/PostDrawer.tsx:690
 #: src/components/blog/ThemeEditorDrawer.tsx:318
 #: src/components/blog/ThemeEditorDrawer.tsx:468
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:130
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:132
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:387
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:318
@@ -12354,7 +12354,7 @@ msgstr "テストメールを送信"
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "SMTPリレーを使用してトランザクション通知を送信。既存のメールシステムやSMTPをサポートするアプリケーションとの統合に最適です。"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:51
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:53
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:920
 #: src/components/templates/CreateTemplateDrawer.tsx:948
 #: src/components/templates/SendTemplateModal.tsx:303
@@ -12367,7 +12367,7 @@ msgstr "送信者"
 msgid "Sender {0}"
 msgstr "送信者 {0}"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:106
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:108
 msgid "Sender changed. You can now resume the broadcast."
 msgstr "送信者を変更しました。ブロードキャストを再開できます。"
 
@@ -12376,7 +12376,7 @@ msgstr "送信者を変更しました。ブロードキャストを再開でき
 msgid "Sender Name"
 msgstr "送信者名"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:53
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:55
 msgid "Sender of variation {name}"
 msgstr "バリエーション {name} の送信者"
 
@@ -13862,7 +13862,7 @@ msgstr "セグメントが更新されました！"
 msgid "The selected file"
 msgstr "選択したファイル"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:136
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
 msgid "The sender chosen for this broadcast is no longer one of the marketing email integration's senders. Choose another one, or clear the field to send from the template's sender, then resume the broadcast."
 msgstr "このブロードキャストで選択した送信者は、マーケティングメール連携の送信者ではなくなりました。別の送信者を選択するか、フィールドを空にしてテンプレートの送信者から送信し、ブロードキャストを再開してください。"
 
@@ -14179,7 +14179,7 @@ msgstr "このセクションは空です。コンテンツを表示するには
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "このセグメントは相対日付フィルターを使用しており、毎日午前5時（{timezone}）に自動的に再計算されます"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:63
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:65
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:130
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "この送信者はマーケティングメール連携に含まれなくなりました。別の送信者を選ぶか、欄を空にしてテンプレートの送信者を使ってください。"

@@ -2361,7 +2361,7 @@ msgstr "Kampagnen"
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:131
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:133
 #: src/components/broadcasts/HeadersEditor.tsx:103
 #: src/components/broadcasts/SendOrScheduleModal.tsx:301
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:344
@@ -2589,8 +2589,8 @@ msgstr "Den Inhalt einer Vorlage ändern, in jeder Sprache"
 msgid "Change provider"
 msgstr "Anbieter wechseln"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:123
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:126
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:125
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:128
 msgid "Change sender"
 msgstr "Absender ändern"
 
@@ -5859,12 +5859,12 @@ msgstr "Zur Liste hinzufügen fehlgeschlagen: {error}"
 msgid "Failed to cancel broadcast"
 msgstr "Abbrechen der Kampagne fehlgeschlagen"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:113
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:115
 msgid "Failed to change the sender"
 msgstr "Absender konnte nicht geändert werden"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:112
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:114
 msgid "Failed to change the sender: {0}"
 msgstr "Absender konnte nicht geändert werden: {0}"
 
@@ -11662,7 +11662,7 @@ msgstr "Sandbox-Modus"
 #: src/components/blog/PostDrawer.tsx:690
 #: src/components/blog/ThemeEditorDrawer.tsx:318
 #: src/components/blog/ThemeEditorDrawer.tsx:468
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:130
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:132
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:387
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:318
@@ -12354,7 +12354,7 @@ msgstr "Test-E-Mail senden"
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "Senden Sie transaktionale Benachrichtigungen über SMTP-Relay. Perfekt für die Integration mit bestehenden E-Mail-Systemen oder Anwendungen, die SMTP unterstützen."
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:51
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:53
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:920
 #: src/components/templates/CreateTemplateDrawer.tsx:948
 #: src/components/templates/SendTemplateModal.tsx:303
@@ -12367,7 +12367,7 @@ msgstr "Absender"
 msgid "Sender {0}"
 msgstr "Absender {0}"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:106
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:108
 msgid "Sender changed. You can now resume the broadcast."
 msgstr "Absender geändert. Sie können die Kampagne jetzt fortsetzen."
 
@@ -12376,7 +12376,7 @@ msgstr "Absender geändert. Sie können die Kampagne jetzt fortsetzen."
 msgid "Sender Name"
 msgstr "Absendername"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:53
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:55
 msgid "Sender of variation {name}"
 msgstr "Absender der Variante {name}"
 
@@ -13862,7 +13862,7 @@ msgstr "Das Segment wurde aktualisiert!"
 msgid "The selected file"
 msgstr "Die ausgewählte Datei"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:136
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
 msgid "The sender chosen for this broadcast is no longer one of the marketing email integration's senders. Choose another one, or clear the field to send from the template's sender, then resume the broadcast."
 msgstr "Der für diese Kampagne gewählte Absender gehört nicht mehr zu den Absendern der Marketing-E-Mail-Integration. Wählen Sie einen anderen oder leeren Sie das Feld, um vom Absender der Vorlage zu senden, und setzen Sie die Kampagne dann fort."
 
@@ -14179,7 +14179,7 @@ msgstr "Dieser Abschnitt ist leer. Fügen Sie Spalten oder Gruppen hinzu, um Inh
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "Dieses Segment verwendet relative Datumsfilter und wird täglich um 5:00 Uhr ({timezone}) automatisch neu berechnet"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:63
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:65
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:130
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "Dieser Absender gehört nicht mehr zur Marketing-E-Mail-Integration. Wählen Sie einen anderen oder leeren Sie das Feld, um den der Vorlage zu verwenden."

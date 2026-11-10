@@ -2361,7 +2361,7 @@ msgstr "Campagne"
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:131
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:133
 #: src/components/broadcasts/HeadersEditor.tsx:103
 #: src/components/broadcasts/SendOrScheduleModal.tsx:301
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:344
@@ -2589,8 +2589,8 @@ msgstr "Modifica il contenuto di un template, in qualsiasi lingua"
 msgid "Change provider"
 msgstr "Cambia provider"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:123
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:126
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:125
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:128
 msgid "Change sender"
 msgstr "Cambia mittente"
 
@@ -5859,12 +5859,12 @@ msgstr "Impossibile aggiungere alla lista: {error}"
 msgid "Failed to cancel broadcast"
 msgstr "Impossibile annullare il broadcast"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:113
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:115
 msgid "Failed to change the sender"
 msgstr "Impossibile cambiare il mittente"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:112
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:114
 msgid "Failed to change the sender: {0}"
 msgstr "Impossibile cambiare il mittente: {0}"
 
@@ -11662,7 +11662,7 @@ msgstr "Modalità Sandbox"
 #: src/components/blog/PostDrawer.tsx:690
 #: src/components/blog/ThemeEditorDrawer.tsx:318
 #: src/components/blog/ThemeEditorDrawer.tsx:468
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:130
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:132
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:387
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:318
@@ -12354,7 +12354,7 @@ msgstr "Invia email di test"
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "Invia notifiche transazionali utilizzando relay SMTP. Perfetto per l'integrazione con sistemi email esistenti o applicazioni che supportano SMTP."
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:51
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:53
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:920
 #: src/components/templates/CreateTemplateDrawer.tsx:948
 #: src/components/templates/SendTemplateModal.tsx:303
@@ -12367,7 +12367,7 @@ msgstr "Mittente"
 msgid "Sender {0}"
 msgstr "Mittente {0}"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:106
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:108
 msgid "Sender changed. You can now resume the broadcast."
 msgstr "Mittente cambiato. Ora puoi riprendere il broadcast."
 
@@ -12376,7 +12376,7 @@ msgstr "Mittente cambiato. Ora puoi riprendere il broadcast."
 msgid "Sender Name"
 msgstr "Nome mittente"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:53
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:55
 msgid "Sender of variation {name}"
 msgstr "Mittente della variante {name}"
 
@@ -13862,7 +13862,7 @@ msgstr "Il segmento è stato aggiornato!"
 msgid "The selected file"
 msgstr "Il file selezionato"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:136
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
 msgid "The sender chosen for this broadcast is no longer one of the marketing email integration's senders. Choose another one, or clear the field to send from the template's sender, then resume the broadcast."
 msgstr "Il mittente scelto per questo broadcast non è più uno dei mittenti dell'integrazione email di marketing. Scegline un altro, o svuota il campo per inviare dal mittente del modello, poi riprendi il broadcast."
 
@@ -14179,7 +14179,7 @@ msgstr "Questa sezione è vuota. Aggiungi colonne o gruppi per visualizzare il c
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "Questo segmento utilizza filtri di date relative e verrà ricalcolato automaticamente ogni giorno alle 5:00 ({timezone})"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:63
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:65
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:130
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "Questo mittente non fa più parte dell'integrazione email di marketing. Scegline un altro o svuota il campo per usare quello del template."

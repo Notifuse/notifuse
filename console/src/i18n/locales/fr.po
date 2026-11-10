@@ -2361,7 +2361,7 @@ msgstr "Campagnes"
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:131
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:133
 #: src/components/broadcasts/HeadersEditor.tsx:103
 #: src/components/broadcasts/SendOrScheduleModal.tsx:301
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:344
@@ -2589,8 +2589,8 @@ msgstr "Modifier le contenu d'un modèle, dans n'importe quelle langue"
 msgid "Change provider"
 msgstr "Changer de fournisseur"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:123
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:126
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:125
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:128
 msgid "Change sender"
 msgstr "Changer l'expéditeur"
 
@@ -5859,12 +5859,12 @@ msgstr "Échec de l ajout à la liste : {error}"
 msgid "Failed to cancel broadcast"
 msgstr "Échec de l annulation de la diffusion"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:113
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:115
 msgid "Failed to change the sender"
 msgstr "Impossible de changer l'expéditeur"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:112
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:114
 msgid "Failed to change the sender: {0}"
 msgstr "Impossible de changer l'expéditeur : {0}"
 
@@ -11662,7 +11662,7 @@ msgstr "Mode bac à sable"
 #: src/components/blog/PostDrawer.tsx:690
 #: src/components/blog/ThemeEditorDrawer.tsx:318
 #: src/components/blog/ThemeEditorDrawer.tsx:468
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:130
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:132
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:387
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:318
@@ -12354,7 +12354,7 @@ msgstr "Envoyer un email de test"
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "Envoyez des notifications transactionnelles via le relais SMTP. Parfait pour l intégration avec des systèmes email existants ou des applications qui supportent SMTP."
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:51
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:53
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:920
 #: src/components/templates/CreateTemplateDrawer.tsx:948
 #: src/components/templates/SendTemplateModal.tsx:303
@@ -12367,7 +12367,7 @@ msgstr "Expéditeur"
 msgid "Sender {0}"
 msgstr "Expéditeur {0}"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:106
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:108
 msgid "Sender changed. You can now resume the broadcast."
 msgstr "Expéditeur changé. Vous pouvez maintenant reprendre la diffusion."
 
@@ -12376,7 +12376,7 @@ msgstr "Expéditeur changé. Vous pouvez maintenant reprendre la diffusion."
 msgid "Sender Name"
 msgstr "Nom de l expéditeur"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:53
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:55
 msgid "Sender of variation {name}"
 msgstr "Expéditeur de la variante {name}"
 
@@ -13862,7 +13862,7 @@ msgstr "Le segment a été mis à jour !"
 msgid "The selected file"
 msgstr "Le fichier sélectionné"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:136
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
 msgid "The sender chosen for this broadcast is no longer one of the marketing email integration's senders. Choose another one, or clear the field to send from the template's sender, then resume the broadcast."
 msgstr "L'expéditeur choisi pour cette diffusion ne fait plus partie des expéditeurs de l'intégration email marketing. Choisissez-en un autre, ou videz le champ pour envoyer depuis l'expéditeur du modèle, puis reprenez la diffusion."
 
@@ -14179,7 +14179,7 @@ msgstr "Cette section est vide. Ajoutez des colonnes ou des groupes pour affiche
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "Ce segment utilise des filtres de date relatifs et sera automatiquement recalculé quotidiennement à 5h00 ({timezone})"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:63
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:65
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:130
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "Cet expéditeur ne fait plus partie de l'intégration email marketing. Choisissez-en un autre ou videz le champ pour garder celui du modèle."

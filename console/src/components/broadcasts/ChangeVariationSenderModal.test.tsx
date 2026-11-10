@@ -40,6 +40,8 @@ const makeBroadcast = (overrides: Partial<Broadcast> = {}): Broadcast =>
     workspace_id: 'ws1',
     name: 'Spring sale',
     status: 'paused',
+    // Every server pause sets it.
+    paused_at: '2026-11-10T09:00:00Z',
     audience: { list: 'list1', segments: [], exclude_unsubscribed: true },
     test_settings: {
       enabled: true,
