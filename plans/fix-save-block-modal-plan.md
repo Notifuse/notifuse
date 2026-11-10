@@ -81,8 +81,8 @@ down; no behaviour changes there.
 
 ### Version and changelog
 
-`dev` already moved to 43.1 (unreleased, with the web analytics SDK synced) while this branch was open, so no
-version change here. `CHANGELOG.md`, under `## [43.1]`:
+`dev` moved to 43.2 (WIP, 43.1 closed and dated) while this branch was open, so no version change here.
+`CHANGELOG.md`, under `## [43.2] - WIP`:
 
   `- **Fix**: In the email editor, saving a block now always starts as a new saved block, and "Update existing block" only lists saved blocks of the same type. Before, the dialog could open on updating another saved block that merely looked alike. The confirmation now appears once the block is saved, and the dialog stays open if saving fails.`
 
