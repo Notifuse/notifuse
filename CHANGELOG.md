@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [43.1] - 2026-11-10
+
+- **Feature**: Broadcast and automation emails can link to their web version with `{{ view_in_browser_url }}`, for recipients whose mail client renders the email badly. The page shows the email as it was sent, with the template version and the data of that send, and records no open and no click; links keep their UTM parameters. The link exists only in emails that use the variable, and is empty in transactional and double opt-in emails. Deleting the template takes its web versions down, and so does erasing the contact. The link editor of the visual builder offers it as a link type, "Web version of the email".
+
+  From this version on, automation emails keep the data they were rendered with in the message history, encrypted, as broadcasts already did, so their web version can be shown. Erasing a contact removes it.
+
 ## [43.0] - 2026-11-07
 
 - **Feature**: Contacts can now agree to or refuse open tracking and click tracking, each on its own. Their choice is stored on the contact (`tracking_opens_consent`, `tracking_clicks_consent`, with the date and source of the change), set through the API, the console, CSV import and the notification center, exported, filterable in the contact list and in segments, usable as an automation trigger field, and sent in contact webhooks. A contact who refused gets no open pixel or no tracked links, and a later refusal also stops recording opens and clicks of emails already sent.
