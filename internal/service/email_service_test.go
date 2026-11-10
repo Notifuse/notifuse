@@ -656,8 +656,8 @@ func TestEmailService_VisitLink(t *testing.T) {
 	t.Run("Successfully sets message as clicked without URL", func(t *testing.T) {
 		// Setup message repository mock to expect SetClicked
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
-			DoAndReturn(func(_ context.Context, _, _ string, timestamp time.Time, _ string) error {
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
+			DoAndReturn(func(_ context.Context, _, _ string, timestamp time.Time, _ string, _ bool) error {
 				// Verify the timestamp is close to now
 				assert.True(t, time.Since(timestamp) < time.Second)
 				return nil
@@ -666,7 +666,7 @@ func TestEmailService_VisitLink(t *testing.T) {
 		// No logger error expected
 
 		// Call method under test
-		err := emailService.VisitLink(ctx, messageID, workspaceID, "", requestHost)
+		err := emailService.VisitLink(ctx, messageID, workspaceID, "", requestHost, true)
 
 		// Assertions
 		require.NoError(t, err)
@@ -676,19 +676,19 @@ func TestEmailService_VisitLink(t *testing.T) {
 		clickedURL := "https://shop.example.com/product?utm_source=news"
 
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), clickedURL).
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), clickedURL, true).
 			Return(nil)
 
-		err := emailService.VisitLink(ctx, messageID, workspaceID, clickedURL, requestHost)
+		err := emailService.VisitLink(ctx, messageID, workspaceID, clickedURL, requestHost, true)
 		require.NoError(t, err)
 	})
 
 	t.Run("Non-http scheme degrades to aggregate-only", func(t *testing.T) {
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
 			Return(nil)
 
-		err := emailService.VisitLink(ctx, messageID, workspaceID, "mailto:someone@example.com", requestHost)
+		err := emailService.VisitLink(ctx, messageID, workspaceID, "mailto:someone@example.com", requestHost, true)
 		require.NoError(t, err)
 	})
 
@@ -696,10 +696,10 @@ func TestEmailService_VisitLink(t *testing.T) {
 		longURL := "https://example.com/?q=" + strings.Repeat("a", 2048)
 
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
 			Return(nil)
 
-		err := emailService.VisitLink(ctx, messageID, workspaceID, longURL, requestHost)
+		err := emailService.VisitLink(ctx, messageID, workspaceID, longURL, requestHost, true)
 		require.NoError(t, err)
 	})
 
@@ -707,21 +707,21 @@ func TestEmailService_VisitLink(t *testing.T) {
 		// Unsubscribe/notification-center URLs embed the recipient's raw email
 		// and are built on the same endpoint that serves the click redirect.
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
 			Return(nil)
 
 		err := emailService.VisitLink(ctx, messageID, workspaceID,
-			"https://click.notifuse.test/unsubscribe?email=someone@example.com", requestHost)
+			"https://click.notifuse.test/unsubscribe?email=someone@example.com", requestHost, true)
 		require.NoError(t, err)
 	})
 
 	t.Run("Host comparison is case-insensitive", func(t *testing.T) {
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
 			Return(nil)
 
 		err := emailService.VisitLink(ctx, messageID, workspaceID,
-			"https://Click.Notifuse.Test/notification-center?email=someone@example.com", requestHost)
+			"https://Click.Notifuse.Test/notification-center?email=someone@example.com", requestHost, true)
 		require.NoError(t, err)
 	})
 
@@ -729,28 +729,38 @@ func TestEmailService_VisitLink(t *testing.T) {
 		clickedURL := "https://shop.example.com/product"
 
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), clickedURL).
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), clickedURL, true).
 			Return(nil)
 
-		err := emailService.VisitLink(ctx, messageID, workspaceID, clickedURL, "")
+		err := emailService.VisitLink(ctx, messageID, workspaceID, clickedURL, "", true)
 		require.NoError(t, err)
 	})
 
 	t.Run("Error setting clicked status", func(t *testing.T) {
 		// Setup message repository mock to return an error
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
 			Return(assert.AnError)
 
 		// Should log the error
 		mockLogger.EXPECT().Error(gomock.Any())
 
 		// Call method under test
-		err := emailService.VisitLink(ctx, messageID, workspaceID, "", requestHost)
+		err := emailService.VisitLink(ctx, messageID, workspaceID, "", requestHost, true)
 
 		// Assertions
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to set clicked")
+	})
+	t.Run("An unverified token is passed on as unverified", func(t *testing.T) {
+		clickedURL := "https://shop.example.com/product"
+
+		mockMessageRepo.EXPECT().
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), clickedURL, false).
+			Return(nil)
+
+		err := emailService.VisitLink(ctx, messageID, workspaceID, clickedURL, requestHost, false)
+		require.NoError(t, err)
 	})
 }
 

@@ -203,7 +203,7 @@ func (h *EmailHandler) handleClickRedirection(w http.ResponseWriter, r *http.Req
 	if status != trackingtoken.WorkspaceUnknown {
 		ts, _ := strconv.ParseInt(r.URL.Query().Get("ts"), 10, 64)
 		if h.passesBotChecks(r, ts, messageID, "click") {
-			_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID, "", r.Host)
+			_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID, "", r.Host, false)
 		}
 	}
 
@@ -350,7 +350,7 @@ func (h *EmailHandler) handleEncryptedClick(w http.ResponseWriter, r *http.Reque
 	}
 
 	if status != trackingtoken.WorkspaceUnknown && h.passesBotChecks(r, tok.Timestamp, tok.MessageID, "click") {
-		_ = h.emailService.VisitLink(r.Context(), tok.MessageID, tok.WorkspaceID, tok.URL, r.Host)
+		_ = h.emailService.VisitLink(r.Context(), tok.MessageID, tok.WorkspaceID, tok.URL, r.Host, verified)
 	}
 
 	h.answerTrackedDestination(w, r, decision, target, parsed, scheme)

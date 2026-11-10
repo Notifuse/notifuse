@@ -230,9 +230,11 @@ func (s *EmailService) getProviderService(providerKind domain.EmailProviderKind)
 // maxRecordedClickedURLLength bounds the destination URLs persisted in clicked_links
 const maxRecordedClickedURLLength = 2048
 
-func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspaceID string, clickedURL string, requestHost string) error {
+// VisitLink records a click on a tracked link. verified says the token was signed by the
+// workspace, so the email really carried clickedURL; see MessageHistoryRepository.SetClicked.
+func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspaceID string, clickedURL string, requestHost string, verified bool) error {
 	// find the message by id
-	err := s.messageRepo.SetClicked(ctx, workspaceID, messageID, time.Now(), sanitizeClickedURL(clickedURL, requestHost))
+	err := s.messageRepo.SetClicked(ctx, workspaceID, messageID, time.Now(), sanitizeClickedURL(clickedURL, requestHost), verified)
 	if err != nil {
 		s.logger.Error(err.Error())
 		return fmt.Errorf("failed to set clicked: %w", err)

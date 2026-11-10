@@ -325,16 +325,26 @@ var clickedLinksUpsertSQL = regexp.QuoteMeta(`
 	    clicked_links = CASE
 	        -- known URL: bump count, refresh last_at
 	        WHEN (CASE WHEN jsonb_typeof(clicked_links) = 'object' THEN clicked_links ELSE '{}'::jsonb END) ? $3 THEN
-	            jsonb_set(
-	                jsonb_set(clicked_links, ARRAY[$3, 'count'],
-	                    to_jsonb(COALESCE((clicked_links #>> ARRAY[$3, 'count'])::int, 0) + 1)),
-	                ARRAY[$3, 'last_at'], to_jsonb($1::timestamptz))
+	            (CASE WHEN $4::boolean THEN
+	                jsonb_set(
+	                    jsonb_set(
+	                        jsonb_set(clicked_links, ARRAY[$3, 'count'],
+	                            to_jsonb(COALESCE((clicked_links #>> ARRAY[$3, 'count'])::int, 0) + 1)),
+	                        ARRAY[$3, 'last_at'], to_jsonb($1::timestamptz)),
+	                    ARRAY[$3, 'verified'], 'true'::jsonb)
+	            ELSE
+	                jsonb_set(
+	                    jsonb_set(clicked_links, ARRAY[$3, 'count'],
+	                        to_jsonb(COALESCE((clicked_links #>> ARRAY[$3, 'count'])::int, 0) + 1)),
+	                    ARRAY[$3, 'last_at'], to_jsonb($1::timestamptz))
+	            END)
 	        -- new URL under the per-message cap (also self-heals malformed non-object values)
 	        WHEN (SELECT COUNT(*) FROM jsonb_object_keys(CASE WHEN jsonb_typeof(clicked_links) = 'object' THEN clicked_links ELSE '{}'::jsonb END)) < 50 THEN
 	            (CASE WHEN jsonb_typeof(clicked_links) = 'object' THEN clicked_links ELSE '{}'::jsonb END) || jsonb_build_object($3,
 	                jsonb_build_object('count', 1,
 	                    'first_at', to_jsonb($1::timestamptz),
-	                    'last_at',  to_jsonb($1::timestamptz)))
+	                    'last_at',  to_jsonb($1::timestamptz),
+	                    'verified', $4::boolean))
 	        -- at cap: leave map unchanged (bounds tuple width; repeat clicks rewrite ~1.4KB rows)
 	        ELSE clicked_links
 	    END
@@ -367,7 +377,7 @@ func TestMessageHistoryRepository_SetClicked(t *testing.T) {
 			WithArgs(timestamp, messageID).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, "")
+		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, "", false)
 		require.NoError(t, err)
 	})
 
@@ -378,7 +388,7 @@ func TestMessageHistoryRepository_SetClicked(t *testing.T) {
 
 		// Expect the clicked_at + clicked_links upsert query
 		mock.ExpectExec(clickedLinksUpsertSQL).
-			WithArgs(timestamp, messageID, clickedURL).
+			WithArgs(timestamp, messageID, clickedURL, true).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// Expect the opened_at update query (must stay a separate statement)
@@ -386,7 +396,7 @@ func TestMessageHistoryRepository_SetClicked(t *testing.T) {
 			WithArgs(timestamp, messageID).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, clickedURL)
+		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, clickedURL, true)
 		require.NoError(t, err)
 	})
 
@@ -395,7 +405,7 @@ func TestMessageHistoryRepository_SetClicked(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(nil, errors.New("connection error"))
 
-		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, "")
+		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, "", false)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to get workspace connection")
 	})
@@ -410,7 +420,7 @@ func TestMessageHistoryRepository_SetClicked(t *testing.T) {
 			WithArgs(timestamp, messageID).
 			WillReturnError(errors.New("execution error"))
 
-		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, "")
+		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, "", false)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to set clicked")
 	})
@@ -422,10 +432,10 @@ func TestMessageHistoryRepository_SetClicked(t *testing.T) {
 
 		// First query fails
 		mock.ExpectExec(clickedLinksUpsertSQL).
-			WithArgs(timestamp, messageID, clickedURL).
+			WithArgs(timestamp, messageID, clickedURL, true).
 			WillReturnError(errors.New("execution error"))
 
-		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, clickedURL)
+		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, clickedURL, true)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to set clicked")
 	})
@@ -445,10 +455,38 @@ func TestMessageHistoryRepository_SetClicked(t *testing.T) {
 			WithArgs(timestamp, messageID).
 			WillReturnError(errors.New("execution error"))
 
-		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, "")
+		err := repo.SetClicked(ctx, workspaceID, messageID, timestamp, "", false)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to set opened")
 	})
+}
+
+// An unverified click still counts and keeps its URL for the per-link statistics; only the
+// verified flag, which the timeline trigger writes email.link_clicked from, is withheld.
+func TestMessageHistoryRepository_SetClicked_PassesTheVerifiedFlag(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
+	defer cleanup()
+
+	timestamp := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db, nil)
+	mock.ExpectExec(clickedLinksUpsertSQL).
+		WithArgs(timestamp, "msg-123", "https://example.com/a", false).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec(`UPDATE message_history SET opened_at = \$1`).
+		WithArgs(timestamp, "msg-123").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	require.NoError(t, repo.SetClicked(context.Background(), "workspace-123", "msg-123", timestamp, "https://example.com/a", false))
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// A message whose contact was erased records no open and no click: the redaction cleared its
+// clicked_links, and a later click would put the URL back under DELETED_EMAIL, write timeline
+// entries nothing purges and start automations for that placeholder address.
+func TestMessageHistoryRepository_RecordableConditionsSkipErasedContacts(t *testing.T) {
+	for name, condition := range map[string]string{"opens": opensRecordableCondition, "clicks": clicksRecordableCondition} {
+		assert.Contains(t, condition, "message_history.contact_email <> '"+redactedContactEmail+"'", name)
+	}
 }
 
 func TestMessageHistoryRepository_GetBroadcastLinkStats(t *testing.T) {

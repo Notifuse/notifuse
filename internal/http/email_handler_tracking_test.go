@@ -74,8 +74,10 @@ func expectLookup(ws *httpmocks.MockTrackingWorkspaces, workspace trackingtoken.
 	ws.EXPECT().Lookup(gomock.Any(), trackingTestWorkspace).Return(workspace, status)
 }
 
-func expectVisit(svc *mocks.MockEmailServiceInterface, clickedURL string) {
-	svc.EXPECT().VisitLink(gomock.Any(), trackingTestMessageID, trackingTestWorkspace, clickedURL, gomock.Any()).Return(nil)
+// expectVisit expects one recorded click. verified is whether the token was signed by the
+// workspace: only such a click can mark a link verified and write email.link_clicked.
+func expectVisit(svc *mocks.MockEmailServiceInterface, clickedURL string, verified bool) {
+	svc.EXPECT().VisitLink(gomock.Any(), trackingTestMessageID, trackingTestWorkspace, clickedURL, gomock.Any(), verified).Return(nil)
 }
 
 func assertInterstitial(t *testing.T, w *httptest.ResponseRecorder) {
@@ -96,7 +98,7 @@ func TestEncryptedClick_VerifiedTokenRedirectsToMintedDestination(t *testing.T) 
 		t.Run(dest, func(t *testing.T) {
 			svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
 			expectLookup(ws, trackingtoken.Workspace{Key: key}, trackingtoken.WorkspaceKnown)
-			expectVisit(svc, dest)
+			expectVisit(svc, dest, true)
 
 			w := clickRequest(handler, signedClickToken(t, key, oldTS(), dest), trackingTestReqHost, trackingTestUA)
 			assert.Equal(t, http.StatusSeeOther, w.Code)
@@ -107,7 +109,7 @@ func TestEncryptedClick_VerifiedTokenRedirectsToMintedDestination(t *testing.T) 
 	t.Run("on another request host too, the tag binds no host", func(t *testing.T) {
 		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
 		expectLookup(ws, trackingtoken.Workspace{Key: key}, trackingtoken.WorkspaceKnown)
-		expectVisit(svc, "https://shop.example.com/x")
+		expectVisit(svc, "https://shop.example.com/x", true)
 
 		w := clickRequest(handler, signedClickToken(t, key, oldTS(), "https://shop.example.com/x"), "other-host.example:8080", trackingTestUA)
 		assert.Equal(t, http.StatusSeeOther, w.Code)
@@ -130,7 +132,7 @@ func TestEncryptedClick_UnverifiableTokensShowInterstitial(t *testing.T) {
 		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
 		expectLookup(ws, trackingtoken.Workspace{Key: key}, trackingtoken.WorkspaceKnown)
 		ws.EXPECT().Refresh(gomock.Any(), trackingTestWorkspace).Return(trackingtoken.Workspace{Key: key}, trackingtoken.WorkspaceKnown).Times(1)
-		expectVisit(svc, dest)
+		expectVisit(svc, dest, false)
 
 		forged := signedClickToken(t, trackingTestKey(t, "attacker-key"), oldTS(), dest)
 		assertInterstitial(t, clickRequest(handler, forged, trackingTestReqHost, trackingTestUA))
@@ -141,7 +143,7 @@ func TestEncryptedClick_UnverifiableTokensShowInterstitial(t *testing.T) {
 		newKey := trackingTestKey(t, "recreated-secret")
 		expectLookup(ws, trackingtoken.Workspace{Key: key}, trackingtoken.WorkspaceKnown)
 		ws.EXPECT().Refresh(gomock.Any(), trackingTestWorkspace).Return(trackingtoken.Workspace{Key: newKey}, trackingtoken.WorkspaceKnown)
-		expectVisit(svc, dest)
+		expectVisit(svc, dest, true)
 
 		w := clickRequest(handler, signedClickToken(t, newKey, oldTS(), dest), trackingTestReqHost, trackingTestUA)
 		assert.Equal(t, http.StatusSeeOther, w.Code)
@@ -151,14 +153,14 @@ func TestEncryptedClick_UnverifiableTokensShowInterstitial(t *testing.T) {
 	t.Run("unsigned", func(t *testing.T) {
 		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
 		expectLookup(ws, trackingtoken.Workspace{Key: key}, trackingtoken.WorkspaceKnown)
-		expectVisit(svc, dest)
+		expectVisit(svc, dest, false)
 		assertInterstitial(t, clickRequest(handler, signedClickToken(t, nil, oldTS(), dest), trackingTestReqHost, trackingTestUA))
 	})
 
 	t.Run("legacy", func(t *testing.T) {
 		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
 		expectLookup(ws, trackingtoken.Workspace{Key: key}, trackingtoken.WorkspaceKnown)
-		expectVisit(svc, dest)
+		expectVisit(svc, dest, false)
 		assertInterstitial(t, clickRequest(handler, legacyClickToken(t, oldTS(), dest), trackingTestReqHost, trackingTestUA))
 	})
 
@@ -179,7 +181,7 @@ func TestEncryptedClick_UnverifiableTokensShowInterstitial(t *testing.T) {
 	t.Run("workspace unavailable still records", func(t *testing.T) {
 		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
 		expectLookup(ws, trackingtoken.Workspace{}, trackingtoken.WorkspaceUnavailable)
-		expectVisit(svc, dest)
+		expectVisit(svc, dest, false)
 		assertInterstitial(t, clickRequest(handler, signedClickToken(t, key, oldTS(), dest), trackingTestReqHost, trackingTestUA))
 	})
 }
@@ -199,7 +201,7 @@ func TestEncryptedClick_LegacyToOwnHostsRedirects(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
 			expectLookup(ws, trackingtoken.Workspace{Key: trackingTestKey(t, "s"), EndpointHost: tc.endpoint}, trackingtoken.WorkspaceKnown)
-			expectVisit(svc, tc.dest)
+			expectVisit(svc, tc.dest, false)
 
 			w := clickRequest(handler, legacyClickToken(t, oldTS(), tc.dest), trackingTestReqHost, trackingTestUA)
 			assert.Equal(t, http.StatusSeeOther, w.Code)
@@ -252,7 +254,7 @@ func TestEncryptedClick_BotChecks(t *testing.T) {
 		t.Run(name+" old enough records", func(t *testing.T) {
 			svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
 			ws.EXPECT().Lookup(gomock.Any(), trackingTestWorkspace).Return(trackingtoken.Workspace{Key: key}, trackingtoken.WorkspaceKnown).AnyTimes()
-			expectVisit(svc, dest)
+			expectVisit(svc, dest, name == "signed")
 			clickRequest(handler, mint(oldTS()), trackingTestReqHost, trackingTestUA)
 		})
 	}
@@ -294,7 +296,7 @@ func TestVisit_Classification(t *testing.T) {
 	t.Run("same host, known workspace: 303 and aggregate click", func(t *testing.T) {
 		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
 		expectLookup(ws, trackingtoken.Workspace{Key: trackingTestKey(t, "s")}, trackingtoken.WorkspaceKnown)
-		expectVisit(svc, "")
+		expectVisit(svc, "", false)
 		dest := "https://" + trackingTestReqHost + "/notification-center?x=1"
 		w := visitRequest(handler, url.Values{
 			"url": {dest}, "mid": {trackingTestMessageID}, "wid": {trackingTestWorkspace},
@@ -307,7 +309,7 @@ func TestVisit_Classification(t *testing.T) {
 	t.Run("external host, known workspace: interstitial and aggregate click", func(t *testing.T) {
 		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
 		expectLookup(ws, trackingtoken.Workspace{Key: trackingTestKey(t, "s")}, trackingtoken.WorkspaceKnown)
-		expectVisit(svc, "")
+		expectVisit(svc, "", false)
 		assertInterstitial(t, visitRequest(handler, url.Values{
 			"url": {"https://evil.example"}, "mid": {trackingTestMessageID}, "wid": {trackingTestWorkspace},
 		}, trackingTestReqHost))
@@ -378,7 +380,7 @@ func TestVisit_RefusedDestinationCostsNoLookup(t *testing.T) {
 func TestVisit_WorkspaceCustomDomainRedirects(t *testing.T) {
 	svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
 	expectLookup(ws, trackingtoken.Workspace{Key: trackingTestKey(t, "s"), EndpointHost: "links.brand.com"}, trackingtoken.WorkspaceKnown)
-	expectVisit(svc, "")
+	expectVisit(svc, "", false)
 	w := visitRequest(handler, url.Values{
 		"url": {"https://links.brand.com/notification-center?x=1"}, "mid": {trackingTestMessageID}, "wid": {trackingTestWorkspace},
 	}, trackingTestReqHost)

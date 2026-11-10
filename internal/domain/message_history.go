@@ -190,7 +190,7 @@ type MessageHistoryRepository interface {
 
 	// SetClicked sets the clicked_at timestamp and ensures opened_at is also set.
 	// When clickedURL is non-empty, the per-URL click counters in clicked_links are updated too.
-	SetClicked(ctx context.Context, workspaceID, id string, timestamp time.Time, clickedURL string) error
+	SetClicked(ctx context.Context, workspaceID, id string, timestamp time.Time, clickedURL string, verified bool) error
 
 	// SetOpened sets the opened_at timestamp if not already set
 	SetOpened(ctx context.Context, workspaceID, id string, timestamp time.Time) error
