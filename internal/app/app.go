@@ -709,6 +709,10 @@ func (a *App) InitServices() error {
 	a.rateLimiter.SetPolicy("wa_identify:create", 300, 1*time.Minute)
 	a.rateLimiter.SetPolicy("inbound:ip", 240, 1*time.Minute)        // Public inbound replies by source IP (generous; providers share IPs)
 	a.rateLimiter.SetPolicy("inbound:workspace", 120, 1*time.Minute) // Public inbound replies by workspace
+	// Web version of emails (/v/): by address, generous because readers behind one proxy
+	// share it, and per message once the token verifies, the bound a client cannot vary.
+	a.rateLimiter.SetPolicy(httpHandler.WebVersionIPPolicy, 300, 1*time.Minute)
+	a.rateLimiter.SetPolicy(httpHandler.WebVersionMessagePolicy, 30, 1*time.Minute)
 	// OIDC policies are registered UNCONDITIONALLY (even when OIDC is disabled):
 	// RateLimiter.Allow fails closed on an unknown namespace, so enabling OIDC at
 	// runtime (settings drawer → graceful restart) must not 429 every request.
@@ -1598,6 +1602,10 @@ func (a *App) InitHandlers() error {
 		a.config.Security.PreviousSecretKeys,
 	)
 	emailHandler := httpHandler.NewEmailHandler(a.emailService, getJWTSecret, a.logger, a.config.Security.SecretKey, trackingWorkspaces, a.config.APIEndpoint)
+	webVersionHandler := httpHandler.NewWebVersionHandler(
+		service.NewWebVersionService(trackingWorkspaces, a.workspaceRepo, a.messageHistoryRepo, a.templateRepo, a.config.APIEndpoint, a.logger),
+		a.rateLimiter,
+	)
 	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, a.templateService, getJWTSecret, a.logger, a.config.IsDemo())
 	blogHandler := httpHandler.NewBlogHandler(a.blogService, getJWTSecret, a.logger, a.config.IsDemo())
 	blogThemeHandler := httpHandler.NewBlogThemeHandler(a.blogService, getJWTSecret, a.logger)
@@ -1702,6 +1710,7 @@ func (a *App) InitHandlers() error {
 	templateHandler.RegisterRoutes(a.mux)
 	templateBlockHandler.RegisterRoutes(a.mux)
 	emailHandler.RegisterRoutes(a.mux)
+	webVersionHandler.RegisterRoutes(a.mux)
 	broadcastHandler.RegisterRoutes(a.mux)
 	blogHandler.RegisterRoutes(a.mux)
 	blogThemeHandler.RegisterRoutes(a.mux)
