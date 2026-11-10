@@ -31,6 +31,22 @@ vi.mock('../../segment/input', () => ({
   )
 }))
 
+// The selectors query the API; here they only need to show their value and report a choice.
+vi.mock('../../segment/BroadcastSelectorInput', () => ({
+  default: ({ value, onChange }: { value?: string | null; onChange?: (v: string | null) => void }) => (
+    <button data-testid="broadcast-selector" onClick={() => onChange?.('bc-1')}>
+      broadcast:{value ?? 'any'}
+    </button>
+  )
+}))
+vi.mock('../../templates/TemplateSelectorInput', () => ({
+  default: ({ value, onChange }: { value?: string | null; onChange?: (v: string | null) => void }) => (
+    <button data-testid="template-selector" onClick={() => onChange?.('tpl-1')}>
+      template:{value ?? 'any'}
+    </button>
+  )
+}))
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: () => ({ data: { lists: [] } })
 }))
@@ -75,6 +91,9 @@ interface TriggerConfigLike {
   event_kind?: string
   frequency?: 'once' | 'every_time'
   conditions?: TreeNode
+  link_url?: string
+  broadcast_id?: string
+  template_id?: string
 }
 
 const renderForm = (config: TriggerConfigLike, onChange = vi.fn()) => {
@@ -200,5 +219,43 @@ describe('TriggerConfigForm tracking consent fields', () => {
 
     expect(await screen.findByText('Opens Tracking Consent')).toBeInTheDocument()
     expect(screen.getByText('Clicks Tracking Consent')).toBeInTheDocument()
+  })
+})
+
+describe('TriggerConfigForm link click filters', () => {
+  it('shows the link, broadcast and template filters for a link click', () => {
+    renderForm({ event_kind: 'email.link_clicked', frequency: 'every_time', link_url: '/pricing', broadcast_id: 'bc-9' })
+
+    expect(screen.getByText('Clicked link contains')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('/pricing')).toBeInTheDocument()
+    expect(screen.getByTestId('broadcast-selector')).toHaveTextContent('broadcast:bc-9')
+    expect(screen.getByTestId('template-selector')).toHaveTextContent('template:any')
+    expect(screen.getByText(/does not start it again/)).toBeInTheDocument()
+  })
+
+  it('shows none of them for a plain email click', () => {
+    renderForm({ event_kind: 'email.clicked', frequency: 'once' })
+
+    expect(screen.queryByText('Clicked link contains')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('broadcast-selector')).not.toBeInTheDocument()
+  })
+
+  it('emits each filter it is given', async () => {
+    const onChange = renderForm({ event_kind: 'email.link_clicked', frequency: 'every_time' })
+
+    await userEvent.type(screen.getByPlaceholderText('e.g. /pricing'), 'p')
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ link_url: 'p' }))
+
+    await userEvent.click(screen.getByTestId('broadcast-selector'))
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ broadcast_id: 'bc-1' }))
+
+    await userEvent.click(screen.getByTestId('template-selector'))
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ template_id: 'tpl-1' }))
+  })
+
+  it('warns that a link click fires often', async () => {
+    renderForm({ event_kind: 'email.link_clicked', frequency: 'once', conditions: contactsTree })
+    await userEvent.click(screen.getByText('Edit'))
+    expect(screen.getByText(/evaluated for every matching event/)).toBeInTheDocument()
   })
 })

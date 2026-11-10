@@ -97,6 +97,8 @@ export const VALID_EVENT_KINDS = [
   'email.bounced',
   'email.complained',
   'email.unsubscribed',
+  // A link clicked for the first time in an email (optional link_url, broadcast_id, template_id)
+  'email.link_clicked',
   // Custom events (require custom_event_name)
   'custom_event'
 ] as const
@@ -110,6 +112,9 @@ export interface TimelineTriggerConfig {
   segment_id?: string // Required for segment.* events
   custom_event_name?: string // Required for custom_event
   updated_fields?: string[] // For contact.updated: only trigger on these field changes
+  link_url?: string // For email.link_clicked: the clicked URL contains this (case-insensitive)
+  broadcast_id?: string // For email.link_clicked: the email was sent by this broadcast
+  template_id?: string // For email.link_clicked: the email was sent with this template
   conditions?: TreeNode
   frequency: TriggerFrequency
 }
