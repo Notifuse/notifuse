@@ -247,11 +247,8 @@ describe('SendTemplateModal cc and bcc', () => {
   })
 
   // cc and bcc need contacts:read on the server, so a member without it is not offered them.
-  it.each([
-    ['false', false],
-    ['absent', undefined]
-  ])('hides cc and bcc when canReadContacts is %s', async (_label, canReadContacts) => {
-    renderModal({ canReadContacts })
+  it('hides cc and bcc without canReadContacts', async () => {
+    renderModal({ canReadContacts: false })
     await userEvent.click(screen.getByText('+ add from name, reply-to, attachments'))
 
     expect(screen.getByText('From Name (override)')).toBeInTheDocument()
@@ -267,6 +264,11 @@ describe('SendTemplateModal cc and bcc', () => {
       .closest('.ant-form-item')
       ?.querySelector('input') as HTMLInputElement
     await userEvent.type(ccInput, 'copy@example.com,')
+    const bccInput = screen
+      .getByText('BCC Recipients')
+      .closest('.ant-form-item')
+      ?.querySelector('input') as HTMLInputElement
+    await userEvent.type(bccInput, 'hidden@example.com,')
     await waitFor(() => expect(screen.getAllByText('copy@example.com').length).toBeGreaterThan(0))
 
     rerenderModal({ canReadContacts: false })

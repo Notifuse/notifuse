@@ -37,8 +37,10 @@ The console's "Send Test Email" buttons are enabled exactly when the member hold
    - Export `canSendTestEmail(permissions: StoredPermissions | null | undefined): boolean`, which returns
      `Boolean(permissions?.templates?.read && permissions?.transactional?.write)`, like the file's other predicates.
    - Add `templates.read` entries for `/api/transactional.testTemplate` ("Read the template a test email is sent
-     from (also needs Transactional write)"), `/api/transactional.create` and `/api/transactional.update` ("Pick the
-     template a transactional notification sends (also needs Transactional write)").
+     from (also needs Transactional write)"), `/api/transactional.create` and `/api/transactional.update`
+     ("Read the template of a transactional notification when creating it, or when editing it with its channels as the
+     console does (also needs Transactional write)"); `transactional.update` reads the template whenever the body
+     carries `channels`, which every console edit does.
    - The `transactional.write` lines for `testTemplate`, `create` and `update` say what also needs Templates read.
 2. New `console/src/components/templates/SendTestEmailButton.tsx`: the tooltip and icon button now duplicated in
    `TemplatesPage` and `BroadcastsPage`, disabled unless `canSendTestEmail`. Its tooltip says "Send Test Email", or
@@ -66,7 +68,7 @@ The console's "Send Test Email" buttons are enabled exactly when the member hold
 | `components/templates/SendTestEmailButton.tsx` | `components/templates/SendTestEmailButton.test.tsx` | enabled with `templates:read` + `transactional:write` and no contacts write, click calls `onClick`; disabled with `templates:read` + `contacts:write` and no transactional write, permission tooltip shown on hover; disabled without permissions |
 | `pages/TemplatesPage.tsx`, `pages/BroadcastsPage.tsx` | covered by `SendTestEmailButton.test.tsx`; `npx tsc -b` for the wiring | |
 | `pages/TransactionalNotificationsPage.tsx` | `pages/TransactionalNotificationsPage.test.tsx` (new) | test button present with `templates:read` + `transactional:write`; absent without `templates:read` |
-| `components/templates/SendTemplateModal.tsx` | `components/templates/SendTemplateModal.test.tsx` | CC/BCC fields hidden without `canReadContacts`, shown with it; a cc typed with it is not sent once it is gone |
+| `components/templates/SendTemplateModal.tsx` | `components/templates/SendTemplateModal.test.tsx` | CC/BCC fields hidden without `canReadContacts`, shown with it; a cc and a bcc typed with it are not sent once it is gone |
 | Backend requirement mirrored by the console | `tests/integration/transactional_handler_test.go`, new `t.Run` in `TestTransactionalHandler` that keeps the SMTP integration and logs in a second member with `testutil.NewAPIClient` | `transactional:write` only: 403 with `resource` `templates` and `permission` `read`; `templates:read` + `transactional:write`, no contacts: 200 with `success: true`, using the integration's real sender |
 | catalogues | `i18n/locales/catalogues.test.ts` | every entry translated; compilation checked by `npm run build` |
 
