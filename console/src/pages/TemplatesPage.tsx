@@ -507,6 +507,7 @@ export function TemplatesPage() {
         onClose={() => setTestModalOpen(false)}
         template={templateToTest}
         workspace={workspace}
+        canReadLists={!!permissions?.lists?.read}
       />
     </div>
   )

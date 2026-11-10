@@ -197,6 +197,10 @@ export interface TestTemplateRequest {
   recipient_email: string
   language?: string
   email_options?: EmailOptions
+  // Sends the test for this mailing list: its unsubscribe links and List-Unsubscribe header
+  list_id?: string
+  // With list_id, keeps the list's links but leaves out the List-Unsubscribe header
+  omit_list_unsubscribe_header?: boolean
 }
 
 export interface TestTemplateResponse {
