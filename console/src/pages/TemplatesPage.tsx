@@ -21,11 +21,11 @@ import {
   faPenToSquare,
   faEye,
   faTrashCan,
-  faPaperPlane,
   faCopy
 } from '@fortawesome/free-regular-svg-icons'
 import { faTerminal } from '@fortawesome/free-solid-svg-icons'
 import { CreateTemplateDrawer } from '../components/templates/CreateTemplateDrawer'
+import SendTestEmailButton from '../components/templates/SendTestEmailButton'
 import { renderCategoryTag } from '../components/templates'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import dayjs from '../lib/dayjs'
@@ -369,20 +369,10 @@ export function TemplatesPage() {
               }}
             />
           </Tooltip>
-          <Tooltip
-            title={
-              !(permissions?.templates?.read && permissions?.contacts?.write)
-                ? t`You need read template and write contact permissions to send test emails`
-                : t`Send Test Email`
-            }
-          >
-            <Button
-              type="text"
-              icon={<FontAwesomeIcon icon={faPaperPlane} style={{ opacity: 0.7 }} />}
-              onClick={() => handleTestTemplate(record)}
-              disabled={!(permissions?.templates?.read && permissions?.contacts?.write)}
-            />
-          </Tooltip>
+          <SendTestEmailButton
+            permissions={permissions}
+            onClick={() => handleTestTemplate(record)}
+          />
           <Tooltip title={t`Preview Template`}>
             <>
               <TemplatePreviewDrawer record={record} workspace={workspace}>
@@ -508,6 +498,7 @@ export function TemplatesPage() {
         template={templateToTest}
         workspace={workspace}
         canReadLists={!!permissions?.lists?.read}
+        canReadContacts={!!permissions?.contacts?.read}
       />
     </div>
   )

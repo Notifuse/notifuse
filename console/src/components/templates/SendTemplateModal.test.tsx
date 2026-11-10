@@ -57,6 +57,7 @@ interface ModalProps {
   defaultListId?: string
   omitListUnsubscribeHeader?: boolean
   canReadLists?: boolean
+  canReadContacts?: boolean
 }
 
 function modal(props: ModalProps & { isOpen?: boolean }, queryClient: QueryClient) {
@@ -70,6 +71,7 @@ function modal(props: ModalProps & { isOpen?: boolean }, queryClient: QueryClien
           template={template}
           workspace={workspace}
           {...rest}
+          canReadContacts={rest.canReadContacts ?? false}
         />
       </AntApp>
     </QueryClientProvider>
@@ -235,5 +237,52 @@ describe('SendTemplateModal mailing list', () => {
 
     const call = await sendTo('me@example.com')
     expect(call[7]).toBeUndefined()
+  })
+})
+
+describe('SendTemplateModal cc and bcc', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(transactionalNotificationsApi.testTemplate as Mock).mockResolvedValue({ success: true })
+  })
+
+  // cc and bcc need contacts:read on the server, so a member without it is not offered them.
+  it('hides cc and bcc without canReadContacts', async () => {
+    renderModal({ canReadContacts: false })
+    await userEvent.click(screen.getByText('+ add from name, reply-to, attachments'))
+
+    expect(screen.getByText('From Name (override)')).toBeInTheDocument()
+    expect(screen.queryByText('CC Recipients')).not.toBeInTheDocument()
+    expect(screen.queryByText('BCC Recipients')).not.toBeInTheDocument()
+  })
+
+  it('sends the cc typed with Contacts read, and none once that permission is gone', async () => {
+    const { rerenderModal } = renderModal({ canReadContacts: true })
+    await userEvent.click(screen.getByText(/add from name, CC, BCC/i))
+    const ccInput = screen
+      .getByText('CC Recipients')
+      .closest('.ant-form-item')
+      ?.querySelector('input') as HTMLInputElement
+    await userEvent.type(ccInput, 'copy@example.com,')
+    const bccInput = screen
+      .getByText('BCC Recipients')
+      .closest('.ant-form-item')
+      ?.querySelector('input') as HTMLInputElement
+    await userEvent.type(bccInput, 'hidden@example.com,')
+    await waitFor(() => expect(screen.getAllByText('copy@example.com').length).toBeGreaterThan(0))
+
+    rerenderModal({ canReadContacts: false })
+    expect(screen.queryByText('CC Recipients')).not.toBeInTheDocument()
+
+    const call = await sendTo('me@example.com')
+    expect(call[6]).toMatchObject({ cc: [], bcc: [] })
+  })
+
+  it('shows cc and bcc when canReadContacts is true', async () => {
+    renderModal({ canReadContacts: true })
+    await userEvent.click(screen.getByText(/add from name, CC, BCC/i))
+
+    expect(screen.getByText('CC Recipients')).toBeInTheDocument()
+    expect(screen.getByText('BCC Recipients')).toBeInTheDocument()
   })
 })
