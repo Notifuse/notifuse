@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: Every email now includes a plain-text version, generated from its HTML, for mail clients that show text only and for better deliverability. Its links are the links of the HTML, tracked the same way. Preview it in the template editor's new Text version mode, in the MJML editor's Text version tab and in the template preview. `templates.compile` returns it as `text`.
 
+- **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
+
 - **Fix**: In the email editor, saving a block now always starts as a new saved block, and "Update existing block" only lists saved blocks of the same type. Before, the dialog could open on updating another saved block that merely looked alike. The confirmation now appears once the block is saved, and the dialog stays open if saving fails.
 
 ## [43.1] - 2026-11-10
