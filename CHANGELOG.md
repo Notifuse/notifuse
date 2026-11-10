@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [43.1] - 2026-11-10
+## [43.2] - WIP
+
+- **Feature**: Every email now includes a plain-text version, generated from its HTML, for mail clients that show text only and for better deliverability. Its links are the links of the HTML, tracked the same way. Preview it in the template editor's new Text version mode, in the MJML editor's Text version tab and in the template preview. `templates.compile` returns it as `text`.
 
 - **Feature**: Broadcast and automation emails can link to their web version with `{{ view_in_browser_url }}`, for recipients whose mail client renders the email badly. The page shows the email as it was sent, with the template version and the data of that send. Viewing it records no open and its links record no click; they keep their UTM parameters. With click tracking on, the click on the link in the email itself counts as a click. Only emails whose template uses the variable have a web version; transactional and double opt-in emails leave it empty. Deleting the template takes its web versions down, and so does deleting the contact. The link signs the domain it was sent with, and the page opens there and on the API endpoint only, which keeps another workspace's custom domain from showing it. The API endpoint shows every workspace's web versions, and workspaces that already share a custom domain show each other's on it. After a workspace changes custom domain, its old links keep working while the old domain points to Notifuse, and stop within a few minutes of another workspace taking it; a redirect keeps them working only if it goes to the API endpoint. Behind a reverse proxy, forward the original `Host` or set `X-Forwarded-Host`, which is then the only host the request is judged on; a proxy that sends the API endpoint's host as `Host` turns the rule off. The link editor of the visual builder offers it as a link type, "Web version of the email".
 
@@ -11,6 +13,8 @@ All notable changes to this project will be documented in this file.
   The `/v/` path is now reserved for web versions: on a blog's custom domain, a blog category whose slug is `v` is no longer reachable. Rename such a category before upgrading.
 
 - **Security**: A custom domain can no longer be saved on a workspace when another workspace already uses it, whatever its case, port or trailing dot, since that workspace could show its own pages and emails under the other's brand. Notifuse checks that a domain points to it, not who owns it, so the first workspace to save a domain holds it. Workspaces that already share one keep it and can still edit its URL while the host stays the same; one that removes it cannot save it again.
+
+## [43.1] - 2026-11-10
 
 - **Improvement**: Test emails can now be sent for a mailing list, chosen in the test dialog of a template or a broadcast and preselected with the broadcast's audience list (#423). They then carry that list's working unsubscribe and confirmation links and the List-Unsubscribe header, as a broadcast to the list does; a test for the audience list of a broadcast that also goes to the list's unsubscribed contacts has no header, as the broadcast. Unsubscribing or confirming from such a test, or a bounce or complaint on it, changes the recipient's subscription to the list. `transactional.testTemplate` takes `list_id` and `omit_list_unsubscribe_header`; a test for a list also needs Lists read.
 

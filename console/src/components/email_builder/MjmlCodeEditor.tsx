@@ -24,6 +24,7 @@ interface MjmlCodeEditorProps {
     html: string
     mjml: string
     error?: MjmlCompileError
+    text?: string
   }>
   testData?: Record<string, unknown>
   onTestDataChange: (testData: Record<string, unknown>) => void
@@ -242,6 +243,8 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
     testData ? JSON.stringify(testData, null, 2) : '{}'
   )
   const [htmlOutput, setHtmlOutput] = useState<string>('')
+  // null until the first compile returns
+  const [textOutput, setTextOutput] = useState<string | null>(null)
   const [testDataDirty, setTestDataDirty] = useState(false)
 
   // Draft storage key
@@ -267,6 +270,7 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
           setCompileErrors(result.error)
           setPreviewHtml('')
           setHtmlOutput('')
+          setTextOutput('')
           // Set error markers in editor
           if (monacoRef.current && editorRef.current) {
             const monaco = monacoRef.current as typeof import('monaco-editor')
@@ -286,6 +290,7 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
         } else {
           setPreviewHtml(result.html)
           setHtmlOutput(result.html)
+          setTextOutput(result.text ?? '')
           setCompileErrors(undefined)
           // Clear error markers
           if (monacoRef.current && editorRef.current) {
@@ -675,7 +680,8 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
             )
           },
           { key: 'testdata', label: t`Test Data` },
-          { key: 'html', label: t`Generated HTML` }
+          { key: 'html', label: t`Generated HTML` },
+          { key: 'text', label: t`Text version` }
         ]}
         tabBarExtraContent={
           <Space size="small">
@@ -821,6 +827,37 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
                 }}
               />
               </>
+            )}
+            {activeTab === 'text' && (
+              <div style={{ padding: 16 }}>
+                {compileErrors ? (
+                  <div style={{ color: '#999', textAlign: 'center', padding: 40 }}>
+                    {t`The email could not be compiled`}
+                  </div>
+                ) : textOutput === null ? (
+                  <div style={{ color: '#999', textAlign: 'center', padding: 40 }}>
+                    {t`Compiling...`}
+                  </div>
+                ) : textOutput.trim() ? (
+                  <pre
+                    data-testid="text-version"
+                    style={{
+                      margin: 0,
+                      fontSize: 13,
+                      lineHeight: 1.6,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+                    }}
+                  >
+                    {textOutput}
+                  </pre>
+                ) : (
+                  <div style={{ color: '#999', textAlign: 'center', padding: 40 }}>
+                    {t`No text version: this email will be sent as HTML only.`}
+                  </div>
+                )}
+              </div>
             )}
             {activeTab === 'html' && (
               <Editor

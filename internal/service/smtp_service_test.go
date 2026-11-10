@@ -168,13 +168,17 @@ func (s *mockSMTPServer) handleConnection(conn net.Conn) {
 			return
 		}
 
+		// The message body is kept as received, dot-stuffing included, minus the line
+		// ending: trimming it would unfold MIME headers and strip the leading spaces
+		// of a plain-text part.
+		rawLine := strings.TrimRight(line, "\r\n")
 		line = strings.TrimSpace(line)
 		s.mu.Lock()
 		s.commands = append(s.commands, line)
 		s.mu.Unlock()
 
 		if inData {
-			if line == "." {
+			if rawLine == "." {
 				inData = false
 				s.mu.Lock()
 				s.messages = append(s.messages, capturedMessage{
@@ -186,7 +190,7 @@ func (s *mockSMTPServer) handleConnection(conn net.Conn) {
 				conn.Write([]byte("250 OK message queued\r\n"))
 				continue
 			}
-			dataBuffer.WriteString(line + "\r\n")
+			dataBuffer.WriteString(rawLine + "\r\n")
 			continue
 		}
 
@@ -2159,4 +2163,83 @@ func TestDotStuffingIntegration(t *testing.T) {
 	// Our mock server stores the raw data as received (with dot-stuffing applied).
 	assert.Contains(t, receivedData, "..com/path/to/image.png",
 		"Expected dot-stuffed content (double dot) but got: %s", receivedData)
+}
+
+func TestSMTPService_SendEmail_PlainTextVersion(t *testing.T) {
+	const text = "Hello Camille\n\nTrack your parcel (https://example.com/track)\n"
+	const html = "<h1>Hello Camille</h1><img src=\"cid:logo.png\"><a href=\"https://example.com/track\">Track your parcel</a>"
+
+	inline := domain.Attachment{Filename: "logo.png", Content: "iVBORw0KGgo=", ContentType: "image/png", Disposition: "inline"}
+	regular := domain.Attachment{Filename: "invoice.pdf", Content: "JVBERi0xLjQ=", ContentType: "application/pdf", Disposition: "attachment"}
+
+	tests := []struct {
+		name        string
+		text        string
+		attachments []domain.Attachment
+		wantShape   string
+	}{
+		{
+			name:      "text and HTML are alternatives, HTML last",
+			text:      text,
+			wantShape: "multipart/alternative[text/plain,text/html]",
+		},
+		{
+			name:        "inline image and attachment keep their places around the alternative",
+			text:        text,
+			attachments: []domain.Attachment{inline, regular},
+			wantShape:   "multipart/mixed[multipart/related[multipart/alternative[text/plain,text/html],image/png],application/pdf]",
+		},
+		{
+			name:      "no text keeps the HTML-only message",
+			wantShape: "text/html",
+		},
+		{
+			name:        "no text with attachments keeps the previous structure",
+			attachments: []domain.Attachment{inline, regular},
+			wantShape:   "multipart/mixed[multipart/related[text/html,image/png],application/pdf]",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newMockSMTPServer(t, true)
+			defer server.Close()
+
+			service := NewSMTPService(&noopLogger{})
+			request := domain.SendEmailProviderRequest{
+				WorkspaceID:   "workspace-123",
+				IntegrationID: "integration-123",
+				MessageID:     "message-123",
+				FromAddress:   "sender@example.com",
+				FromName:      "Test Sender",
+				To:            "recipient@example.com",
+				Subject:       "Your order",
+				Content:       html,
+				TextContent:   tt.text,
+				Provider: &domain.EmailProvider{
+					Kind: domain.EmailProviderKindSMTP,
+					SMTP: &domain.SMTPSettings{Host: "127.0.0.1", Port: server.Port()},
+				},
+				EmailOptions: domain.EmailOptions{Attachments: tt.attachments},
+			}
+
+			require.NoError(t, service.SendEmail(context.Background(), request))
+
+			messages := server.GetMessages()
+			require.Len(t, messages, 1)
+			tree := parseMIMEMessage(t, messages[0].data)
+			assert.Equal(t, tt.wantShape, tree.shape())
+
+			htmlPart, ok := tree.find("text/html")
+			require.True(t, ok)
+			assert.Equal(t, html, strings.TrimRight(htmlPart.Body, "\n"))
+
+			textPart, hasText := tree.find("text/plain")
+			assert.Equal(t, tt.text != "", hasText)
+			if hasText {
+				assert.Equal(t, tt.text, textPart.Body)
+				assert.Equal(t, "UTF-8", strings.ToUpper(textPart.Params["charset"]))
+			}
+		})
+	}
 }
