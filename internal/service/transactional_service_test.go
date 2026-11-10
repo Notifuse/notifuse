@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -1328,6 +1329,7 @@ func TestNewTransactionalNotificationService(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockListRepo := mocks.NewMockListRepository(ctrl)
 	apiEndpoint := "https://api.example.com"
 
 	service := NewTransactionalNotificationService(
@@ -1339,6 +1341,7 @@ func TestNewTransactionalNotificationService(t *testing.T) {
 		mockAuthService,
 		mockLogger,
 		mockWorkspaceRepo,
+		mockListRepo,
 		apiEndpoint,
 	)
 
@@ -1351,6 +1354,7 @@ func TestNewTransactionalNotificationService(t *testing.T) {
 	assert.Equal(t, mockAuthService, service.authService)
 	assert.Equal(t, mockLogger, service.logger)
 	assert.Equal(t, mockWorkspaceRepo, service.workspaceRepo)
+	assert.Equal(t, mockListRepo, service.listRepo)
 	assert.Equal(t, apiEndpoint, service.apiEndpoint)
 }
 
@@ -2477,7 +2481,7 @@ func TestTransactionalNotificationService_TestTemplate(t *testing.T) {
 		Return(nil)
 
 	// Call the method
-	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
+	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", "", false, domain.EmailOptions{})
 
 	// Assertions
 	require.NoError(t, err)
@@ -2616,7 +2620,7 @@ func TestTransactionalNotificationService_TestTemplate_TrackingFollowsWorkspaceF
 				Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
 				Return(nil)
 
-			err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
+			err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", "", false, domain.EmailOptions{})
 
 			require.NoError(t, err)
 		})
@@ -2740,7 +2744,7 @@ func TestTransactionalNotificationService_TestTemplate_SetsTrackingSigningKey(t 
 		Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
 		Return(nil)
 
-	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
+	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", "", false, domain.EmailOptions{})
 	require.NoError(t, err)
 
 	require.NotNil(t, captured)
@@ -2927,7 +2931,7 @@ func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *tes
 		})
 
 	// Call the method with email options
-	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", emailOptions)
+	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", "", false, emailOptions)
 
 	// Assertions
 	require.NoError(t, err)
@@ -3081,7 +3085,7 @@ func TestTransactionalNotificationService_TestTemplate_TemplateReplyToFallback(t
 			return nil
 		})
 
-	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
+	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", "", false, domain.EmailOptions{})
 	require.NoError(t, err)
 
 	// 2) Explicit reply-to in the options takes precedence over the template's
@@ -3092,7 +3096,7 @@ func TestTransactionalNotificationService_TestTemplate_TemplateReplyToFallback(t
 			return nil
 		})
 
-	err = service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{
+	err = service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", "", false, domain.EmailOptions{
 		ReplyTo: "explicit-reply@example.com",
 	})
 	require.NoError(t, err)
@@ -3143,7 +3147,7 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
 			Return(ctx, nil, nil, errors.New("authentication failed"))
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", "", false, domain.EmailOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to authenticate user for workspace")
 	})
@@ -3166,7 +3170,7 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 			GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
 			Return(nil, errors.New("template not found"))
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", "", false, domain.EmailOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to retrieve template")
 	})
@@ -3194,7 +3198,7 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 			GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
 			Return(template, nil)
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", "", false, domain.EmailOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "template does not contain email content")
 	})
@@ -3229,7 +3233,7 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 			GetByID(gomock.Any(), workspaceID).
 			Return(nil, errors.New("workspace not found"))
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", "", false, domain.EmailOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to get workspace")
 	})
@@ -3269,7 +3273,7 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 			GetByID(gomock.Any(), workspaceID).
 			Return(workspace, nil)
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, "nonexistent-integration", senderID, recipientEmail, "", domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, "nonexistent-integration", senderID, recipientEmail, "", "", false, domain.EmailOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "integration not found")
 	})
@@ -3319,7 +3323,7 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 			GetByID(gomock.Any(), workspaceID).
 			Return(workspace, nil)
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, "nonexistent-sender", recipientEmail, "", domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, "nonexistent-sender", recipientEmail, "", "", false, domain.EmailOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "sender not found")
 	})
@@ -3384,7 +3388,7 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 				Error:  "database error",
 			})
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", "", false, domain.EmailOptions{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to upsert contact")
 	})
@@ -3478,7 +3482,7 @@ func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) 
 			Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
 			Return(nil)
 
-		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", domain.EmailOptions{})
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "", "", false, domain.EmailOptions{})
 		require.NoError(t, err)
 	})
 }
@@ -3633,7 +3637,7 @@ func TestTransactionalNotificationService_TestTemplate_WithLanguage(t *testing.T
 		Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
 		Return(nil)
 
-	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "fr", domain.EmailOptions{})
+	err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, "fr", "", false, domain.EmailOptions{})
 	require.NoError(t, err)
 }
 
@@ -3771,7 +3775,7 @@ func TestTransactionalNotificationService_PermissionGates(t *testing.T) {
 			userWorkspace: readOnly,
 			call: func(ctx context.Context, s *TransactionalNotificationService) error {
 				return s.TestTemplate(ctx, workspace, "template-1", "integration-1", "sender-1",
-					"recipient@example.com", "", domain.EmailOptions{})
+					"recipient@example.com", "", "", false, domain.EmailOptions{})
 			},
 			expectedPermission: domain.PermissionTypeWrite,
 		},
@@ -3806,6 +3810,7 @@ func TestTransactionalNotificationService_PermissionGates(t *testing.T) {
 				mockAuthService,
 				mockLogger,
 				mocks.NewMockWorkspaceRepository(ctrl),
+				mocks.NewMockListRepository(ctrl),
 				"https://api.example.com",
 			)
 
@@ -3854,6 +3859,7 @@ func TestTransactionalNotificationService_PermissionGates_OwnerBypasses(t *testi
 		mockAuthService,
 		mockLogger,
 		mocks.NewMockWorkspaceRepository(ctrl),
+		mocks.NewMockListRepository(ctrl),
 		"https://api.example.com",
 	)
 
@@ -4131,7 +4137,7 @@ func TestTransactionalNotificationService_SendOnlyKey(t *testing.T) {
 		m.msgHistoryRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
 
 		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID,
-			recipientEmail, "", domain.EmailOptions{})
+			recipientEmail, "", "", false, domain.EmailOptions{})
 
 		require.NoError(t, err)
 	})
@@ -4416,7 +4422,7 @@ func TestTransactionalNotificationService_ContactScopeContainment(t *testing.T) 
 
 		// No other expectation: the refusal lands before the template is fetched.
 		err := service.TestTemplate(ctx, workspaceID, templateID, "integration-1", "sender-1",
-			recipientEmail, "", domain.EmailOptions{BCC: []string{"attacker@evil.example"}})
+			recipientEmail, "", "", false, domain.EmailOptions{BCC: []string{"attacker@evil.example"}})
 
 		require.Error(t, err)
 		var permErr *domain.PermissionError
@@ -4482,7 +4488,7 @@ func TestTransactionalNotificationService_ContactScopeContainment(t *testing.T) 
 		m.msgHistoryRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
 
 		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID,
-			recipientEmail, "", domain.EmailOptions{BCC: []string{"archive@customer.com"}})
+			recipientEmail, "", "", false, domain.EmailOptions{BCC: []string{"archive@customer.com"}})
 
 		require.NoError(t, err)
 	})
@@ -4623,6 +4629,280 @@ func TestTransactionalNotificationService_UpdateNotification_TrackingSettingsPre
 			require.NoError(t, err)
 			require.NotNil(t, result)
 			assert.Equal(t, tc.expected, result.TrackingSettings)
+		})
+	}
+}
+
+// testTemplateListFixture wires a TransactionalNotificationService for TestTemplate calls that
+// attach a mailing list, capturing what is compiled, sent and recorded.
+type testTemplateListFixture struct {
+	svc             *TransactionalNotificationService
+	authService     *mocks.MockAuthService
+	templateService *mocks.MockTemplateService
+	workspaceRepo   *mocks.MockWorkspaceRepository
+	contactService  *mocks.MockContactService
+	listRepo        *mocks.MockListRepository
+	emailService    *mocks.MockEmailServiceInterface
+	msgHistoryRepo  *mocks.MockMessageHistoryRepository
+	workspace       *domain.Workspace
+	template        *domain.Template
+
+	compiled *domain.CompileTemplateRequest
+	sent     *domain.SendEmailProviderRequest
+	recorded *domain.MessageHistory
+}
+
+const (
+	testListWorkspaceID   = "test-workspace"
+	testListTemplateID    = "tpl-1"
+	testListIntegrationID = "integration-1"
+	testListSenderID      = "sender-1"
+)
+
+func newTestTemplateListFixture(t *testing.T) *testTemplateListFixture {
+	ctrl := gomock.NewController(t)
+	logger := pkgmocks.NewMockLogger(ctrl)
+	logger.EXPECT().WithFields(gomock.Any()).Return(logger).AnyTimes()
+	logger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(logger).AnyTimes()
+	logger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	logger.EXPECT().Info(gomock.Any()).AnyTimes()
+	logger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	logger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	f := &testTemplateListFixture{
+		authService:     mocks.NewMockAuthService(ctrl),
+		templateService: mocks.NewMockTemplateService(ctrl),
+		workspaceRepo:   mocks.NewMockWorkspaceRepository(ctrl),
+		contactService:  mocks.NewMockContactService(ctrl),
+		listRepo:        mocks.NewMockListRepository(ctrl),
+		emailService:    mocks.NewMockEmailServiceInterface(ctrl),
+		msgHistoryRepo:  mocks.NewMockMessageHistoryRepository(ctrl),
+	}
+	f.svc = NewTransactionalNotificationService(
+		mocks.NewMockTransactionalNotificationRepository(ctrl),
+		f.msgHistoryRepo,
+		f.templateService,
+		f.contactService,
+		f.emailService,
+		f.authService,
+		logger,
+		f.workspaceRepo,
+		f.listRepo,
+		"https://api.example.com",
+	)
+	f.workspace = &domain.Workspace{
+		ID:   testListWorkspaceID,
+		Name: "Test Workspace",
+		Settings: domain.WorkspaceSettings{
+			SecretKey: "test-secret-key",
+		},
+		Integrations: []domain.Integration{{
+			ID:   testListIntegrationID,
+			Name: "Test Integration",
+			Type: "email",
+			EmailProvider: domain.EmailProvider{
+				Kind:    domain.EmailProviderKindSparkPost,
+				Senders: []domain.EmailSender{{ID: testListSenderID, Email: "sender@example.com", Name: "Sender"}},
+			},
+		}},
+	}
+	f.template = &domain.Template{
+		ID:   testListTemplateID,
+		Name: "Newsletter",
+		Email: &domain.EmailTemplate{
+			Subject: "Hello",
+			VisualEditorTree: &notifuse_mjml.MJMLBlock{
+				BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
+			},
+		},
+	}
+	return f
+}
+
+// authenticate makes the caller a member with transactional:write, plus lists:read when
+// canReadLists is set.
+func (f *testTemplateListFixture) authenticate(canReadLists bool) {
+	perms := domain.UserPermissions{
+		domain.PermissionResourceTransactional: {Read: true, Write: true},
+	}
+	if canReadLists {
+		perms[domain.PermissionResourceLists] = domain.ResourcePermissions{Read: true}
+	}
+	f.authService.EXPECT().
+		AuthenticateUserForWorkspace(gomock.Any(), testListWorkspaceID).
+		Return(context.Background(), &domain.User{ID: "user-1"}, &domain.UserWorkspace{
+			UserID:      "user-1",
+			WorkspaceID: testListWorkspaceID,
+			Role:        "member",
+			Permissions: perms,
+		}, nil)
+}
+
+// expectSend expects the full send path for recipient. When contactFound is false the contact
+// lookup after the upsert fails and TestTemplate falls back to a minimal contact.
+func (f *testTemplateListFixture) expectSend(recipient string, contactFound bool) {
+	f.templateService.EXPECT().GetTemplateByID(gomock.Any(), testListWorkspaceID, testListTemplateID, int64(0)).Return(f.template, nil)
+	f.workspaceRepo.EXPECT().GetByID(gomock.Any(), testListWorkspaceID).Return(f.workspace, nil)
+	normalized := domain.NormalizeEmail(recipient)
+	f.contactService.EXPECT().UpsertContact(gomock.Any(), testListWorkspaceID, gomock.Any()).
+		Return(domain.UpsertContactOperation{Email: normalized, Action: domain.UpsertContactOperationUpdate})
+	if contactFound {
+		f.contactService.EXPECT().GetContactByEmail(gomock.Any(), testListWorkspaceID, recipient).
+			Return(&domain.Contact{Email: normalized}, nil)
+	} else {
+		f.contactService.EXPECT().GetContactByEmail(gomock.Any(), testListWorkspaceID, recipient).
+			Return(nil, errors.New("lookup failed"))
+	}
+	html := "<html><body>Hello</body></html>"
+	f.templateService.EXPECT().CompileTemplate(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
+			f.compiled = &req
+			return &domain.CompileTemplateResponse{Success: true, HTML: &html}, nil
+		})
+	f.emailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), false).
+		DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+			f.sent = &req
+			return nil
+		})
+	f.msgHistoryRepo.EXPECT().Create(gomock.Any(), testListWorkspaceID, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, _ string, m *domain.MessageHistory) error {
+			f.recorded = m
+			return nil
+		})
+}
+
+func (f *testTemplateListFixture) call(recipient, listID string, omitHeader bool, opts domain.EmailOptions) error {
+	return f.svc.TestTemplate(context.Background(), testListWorkspaceID, testListTemplateID, testListIntegrationID,
+		testListSenderID, recipient, "", listID, omitHeader, opts)
+}
+
+func TestTransactionalNotificationService_TestTemplate_WithList(t *testing.T) {
+	newsletter := &domain.List{ID: "newsletter", Name: "Monthly news"}
+
+	t.Run("a list puts its real links and the List-Unsubscribe header on the test", func(t *testing.T) {
+		f := newTestTemplateListFixture(t)
+		f.authenticate(true)
+		f.listRepo.EXPECT().GetListByID(gomock.Any(), testListWorkspaceID, "newsletter").Return(newsletter, nil)
+		f.expectSend("tester@example.com", true)
+
+		require.NoError(t, f.call("tester@example.com", "newsletter", false, domain.EmailOptions{}))
+
+		require.NotNil(t, f.compiled)
+		data := f.compiled.TemplateData
+		list, ok := data["list"].(domain.MapOfAny)
+		require.True(t, ok, "template data should carry the list")
+		assert.Equal(t, "newsletter", list["id"])
+		assert.Equal(t, "Monthly news", list["name"])
+
+		unsubscribe, err := url.Parse(data["unsubscribe_url"].(string))
+		require.NoError(t, err)
+		assert.Equal(t, "newsletter", unsubscribe.Query().Get("lid"))
+		assert.Equal(t, "Monthly news", unsubscribe.Query().Get("lname"))
+		assert.NotEmpty(t, data["confirm_subscription_url"])
+
+		require.NotNil(t, f.sent)
+		header, err := url.Parse(f.sent.EmailOptions.ListUnsubscribeURL)
+		require.NoError(t, err)
+		assert.Equal(t, "/unsubscribe-oneclick", header.Path)
+		assert.Equal(t, "newsletter", header.Query().Get("lids"))
+		assert.Equal(t, data["oneclick_unsubscribe_url"], f.sent.EmailOptions.ListUnsubscribeURL)
+
+		require.NotNil(t, f.recorded)
+		require.NotNil(t, f.recorded.ListID)
+		assert.Equal(t, "newsletter", *f.recorded.ListID)
+	})
+
+	t.Run("an unknown or deleted list is refused before anything is sent", func(t *testing.T) {
+		f := newTestTemplateListFixture(t)
+		f.authenticate(true)
+		f.listRepo.EXPECT().GetListByID(gomock.Any(), testListWorkspaceID, "gone").
+			Return(nil, &domain.ErrListNotFound{Message: "list not found"})
+		f.templateService.EXPECT().GetTemplateByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(f.template, nil).AnyTimes()
+		f.workspaceRepo.EXPECT().GetByID(gomock.Any(), gomock.Any()).Return(f.workspace, nil).AnyTimes()
+
+		err := f.call("tester@example.com", "gone", false, domain.EmailOptions{})
+
+		var notFound *domain.ErrListNotFound
+		require.ErrorAs(t, err, &notFound)
+		assert.Nil(t, f.sent)
+		assert.Nil(t, f.recorded)
+	})
+
+	t.Run("a list needs lists:read", func(t *testing.T) {
+		f := newTestTemplateListFixture(t)
+		f.authenticate(false)
+
+		err := f.call("tester@example.com", "newsletter", false, domain.EmailOptions{})
+
+		var permErr *domain.PermissionError
+		require.ErrorAs(t, err, &permErr)
+		assert.Equal(t, domain.PermissionResourceLists, permErr.Resource)
+		assert.Nil(t, f.sent)
+	})
+
+	t.Run("without a list the test keeps the placeholder list and no header", func(t *testing.T) {
+		f := newTestTemplateListFixture(t)
+		f.authenticate(false)
+		f.expectSend("tester@example.com", true)
+
+		require.NoError(t, f.call("tester@example.com", "", false, domain.EmailOptions{}))
+
+		require.NotNil(t, f.sent)
+		assert.Empty(t, f.sent.EmailOptions.ListUnsubscribeURL)
+		require.NotNil(t, f.recorded)
+		assert.Nil(t, f.recorded.ListID)
+		assert.Equal(t, "tester@example.com", f.recorded.ContactEmail)
+	})
+
+	t.Run("a caller's list_unsubscribe_url is replaced by the list's", func(t *testing.T) {
+		f := newTestTemplateListFixture(t)
+		f.authenticate(true)
+		f.listRepo.EXPECT().GetListByID(gomock.Any(), testListWorkspaceID, "newsletter").Return(newsletter, nil)
+		f.expectSend("tester@example.com", true)
+
+		opts := domain.EmailOptions{ListUnsubscribeURL: "https://elsewhere.example.com/unsub"}
+		require.NoError(t, f.call("tester@example.com", "newsletter", false, opts))
+
+		require.NotNil(t, f.sent)
+		assert.Equal(t, f.compiled.TemplateData["oneclick_unsubscribe_url"], f.sent.EmailOptions.ListUnsubscribeURL)
+	})
+
+	t.Run("omitting the header keeps the list's links and sends no header", func(t *testing.T) {
+		f := newTestTemplateListFixture(t)
+		f.authenticate(true)
+		f.listRepo.EXPECT().GetListByID(gomock.Any(), testListWorkspaceID, "newsletter").Return(newsletter, nil)
+		f.expectSend("tester@example.com", true)
+
+		opts := domain.EmailOptions{ListUnsubscribeURL: "https://elsewhere.example.com/unsub"}
+		require.NoError(t, f.call("tester@example.com", "newsletter", true, opts))
+
+		require.NotNil(t, f.compiled)
+		assert.NotEmpty(t, f.compiled.TemplateData["unsubscribe_url"])
+		require.NotNil(t, f.sent)
+		assert.Empty(t, f.sent.EmailOptions.ListUnsubscribeURL)
+		require.NotNil(t, f.recorded.ListID)
+		assert.Equal(t, "newsletter", *f.recorded.ListID)
+	})
+
+	for _, contactFound := range []bool{true, false} {
+		name := "an address typed with capitals is recorded as the link's address (contact found)"
+		if !contactFound {
+			name = "an address typed with capitals is recorded as the link's address (fallback contact)"
+		}
+		t.Run(name, func(t *testing.T) {
+			f := newTestTemplateListFixture(t)
+			f.authenticate(true)
+			f.listRepo.EXPECT().GetListByID(gomock.Any(), testListWorkspaceID, "newsletter").Return(newsletter, nil)
+			f.expectSend("Tester@Example.com", contactFound)
+
+			require.NoError(t, f.call("Tester@Example.com", "newsletter", false, domain.EmailOptions{}))
+
+			require.NotNil(t, f.recorded)
+			assert.Equal(t, "tester@example.com", f.recorded.ContactEmail)
+			header, err := url.Parse(f.sent.EmailOptions.ListUnsubscribeURL)
+			require.NoError(t, err)
+			assert.Equal(t, f.recorded.ContactEmail, header.Query().Get("email"))
+			assert.Equal(t, "Tester@Example.com", f.sent.To, "the provider still gets the address as typed")
 		})
 	}
 }

@@ -493,6 +493,7 @@ export function TransactionalNotificationsPage() {
           }}
           workspace={currentWorkspace || null}
           withCCAndBCC={true}
+          canReadLists={!!permissions?.lists?.read}
         />
       )}
     </div>

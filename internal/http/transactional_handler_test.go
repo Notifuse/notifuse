@@ -1277,6 +1277,8 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"sender123",
 						"test@example.com",
 						"",
+						"",
+						false,
 						domain.EmailOptions{},
 					).
 					Return(fmt.Errorf("integration not found: invalid"))
@@ -1317,6 +1319,8 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"sender123",
 						"test@example.com",
 						"",
+						"",
+						false,
 						domain.EmailOptions{},
 					).
 					Return(errors.New("service error"))
@@ -1357,6 +1361,8 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"sender123",
 						"test@example.com",
 						"",
+						"",
+						false,
 						domain.EmailOptions{},
 					).
 					Return(&domain.ErrTemplateNotFound{Message: "not found"})
@@ -1388,6 +1394,8 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"sender123",
 						"test@example.com",
 						"",
+						"",
+						false,
 						domain.EmailOptions{
 							CC:  []string{"cc1@example.com", "cc2@example.com"},
 							BCC: []string{"bcc@example.com"},
@@ -1420,6 +1428,8 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"sender123",
 						"test@example.com",
 						"",
+						"",
+						false,
 						domain.EmailOptions{},
 					).
 					Return(nil)
@@ -1452,6 +1462,8 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"sender123",
 						"test@example.com",
 						"",
+						"",
+						false,
 						domain.EmailOptions{
 							ReplyTo: "custom-reply@example.com",
 						},
@@ -1504,6 +1516,8 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"sender123",
 						"test@example.com",
 						"",
+						"",
+						false,
 						domain.EmailOptions{
 							CC:      []string{"cc@example.com"},
 							BCC:     []string{"bcc@example.com"},
@@ -1538,6 +1552,8 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 						"sender123",
 						"test@example.com",
 						"fr",
+						"",
+						false,
 						domain.EmailOptions{},
 					).
 					Return(nil)
@@ -1747,7 +1763,7 @@ func TestTransactionalNotificationHandler_PermissionErrorMapping(t *testing.T) {
 			serviceErr: fmt.Errorf("failed to retrieve template: %w", newDenial()),
 			invoke: func(m *mocks.MockTransactionalNotificationService, h *TransactionalNotificationHandler, svcErr error) *httptest.ResponseRecorder {
 				m.EXPECT().
-					TestTemplate(gomock.Any(), "workspace123", "template123", "marketing", "sender123", "test@example.com", gomock.Any(), gomock.Any()).
+					TestTemplate(gomock.Any(), "workspace123", "template123", "marketing", "sender123", "test@example.com", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(svcErr)
 				body, err := json.Marshal(domain.TestTemplateRequest{
 					WorkspaceID:    "workspace123",
@@ -1794,7 +1810,7 @@ func TestTransactionalNotificationHandler_HandleTestTemplate_WrappedTemplateNotF
 	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
 
 	mockService.EXPECT().
-		TestTemplate(gomock.Any(), "workspace123", "template123", "marketing", "sender123", "test@example.com", gomock.Any(), gomock.Any()).
+		TestTemplate(gomock.Any(), "workspace123", "template123", "marketing", "sender123", "test@example.com", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(fmt.Errorf("failed to retrieve template: %w", &domain.ErrTemplateNotFound{Message: "template not found"}))
 
 	body, err := json.Marshal(domain.TestTemplateRequest{
@@ -1815,6 +1831,71 @@ func TestTransactionalNotificationHandler_HandleTestTemplate_WrappedTemplateNotF
 	var response map[string]string
 	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
 	assert.Equal(t, "Template not found", response["error"])
+}
+
+func TestTransactionalNotificationHandler_HandleTestTemplate_List(t *testing.T) {
+	send := func(t *testing.T, handler *TransactionalNotificationHandler, body domain.TestTemplateRequest) *httptest.ResponseRecorder {
+		raw, err := json.Marshal(body)
+		require.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/transactional.testTemplate", bytes.NewReader(raw))
+		w := httptest.NewRecorder()
+		handler.handleTestTemplate(w, req)
+		return w
+	}
+	base := domain.TestTemplateRequest{
+		WorkspaceID:    "workspace123",
+		TemplateID:     "template123",
+		IntegrationID:  "marketing",
+		SenderID:       "sender123",
+		RecipientEmail: "test@example.com",
+	}
+
+	t.Run("passes the list and the header choice to the service", func(t *testing.T) {
+		mockService, _, handler := setupTransactionalHandlerTest(t)
+		mockService.EXPECT().
+			TestTemplate(gomock.Any(), "workspace123", "template123", "marketing", "sender123", "test@example.com", "", "newsletter", true, gomock.Any()).
+			Return(nil)
+
+		body := base
+		body.ListID = "newsletter"
+		body.OmitListUnsubscribeHeader = true
+		w := send(t, handler, body)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var response domain.TestTemplateResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+		assert.True(t, response.Success)
+	})
+
+	t.Run("without a list the service gets no list and the header", func(t *testing.T) {
+		mockService, _, handler := setupTransactionalHandlerTest(t)
+		mockService.EXPECT().
+			TestTemplate(gomock.Any(), "workspace123", "template123", "marketing", "sender123", "test@example.com", "", "", false, gomock.Any()).
+			Return(nil)
+
+		w := send(t, handler, base)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("a wrapped list not found answers 404", func(t *testing.T) {
+		mockService, mockLogger, handler := setupTransactionalHandlerTest(t)
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+		mockService.EXPECT().
+			TestTemplate(gomock.Any(), "workspace123", "template123", "marketing", "sender123", "test@example.com", "", "gone", false, gomock.Any()).
+			Return(fmt.Errorf("failed to get list: %w", &domain.ErrListNotFound{Message: "list not found"}))
+
+		body := base
+		body.ListID = "gone"
+		w := send(t, handler, body)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+		var response map[string]string
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+		assert.Equal(t, "List not found", response["error"])
+	})
 }
 
 // An id or name longer than its column is refused before the service runs, with the

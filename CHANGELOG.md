@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [43.1] - 2026-11-10
+
+- **Improvement**: Test emails can now be sent for a mailing list, chosen in the test dialog and preselected for a broadcast: they then carry that list's working unsubscribe links and List-Unsubscribe header, as a real send does.
+
+- **Improvement**: Test emails sent to an address typed with capital letters are now recorded under the contact's address, so they show in the contact's history and are erased with the contact.
+
 ## [43.0] - 2026-11-07
 
 - **Feature**: Contacts can now agree to or refuse open tracking and click tracking, each on its own. Their choice is stored on the contact (`tracking_opens_consent`, `tracking_clicks_consent`, with the date and source of the change), set through the API, the console, CSV import and the notification center, exported, filterable in the contact list and in segments, usable as an automation trigger field, and sent in contact webhooks. A contact who refused gets no open pixel or no tracked links, and a later refusal also stops recording opens and clicks of emails already sent.
