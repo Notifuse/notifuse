@@ -12,7 +12,7 @@ import type {
   EmailBlock,
   EmailBuilderState,
   SavedBlock,
-  SaveOperation,
+  SaveBlockHandler,
   MJMLComponentType
 } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
@@ -28,7 +28,7 @@ interface EmailBuilderProps {
   onTestDataChange: (testData: Record<string, unknown>) => void
   toolbarActions?: React.ReactNode
   savedBlocks?: SavedBlock[]
-  onSaveBlock: (block: EmailBlock, operation: SaveOperation, nameOrId: string) => void
+  onSaveBlock: SaveBlockHandler
   treePanelRef?: React.RefObject<HTMLDivElement>
   editPanelRef?: React.RefObject<HTMLDivElement>
   settingsPanelRef?: React.RefObject<HTMLDivElement>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
-import type { EmailBlock, SaveOperation, SavedBlock } from '../types'
+import type { EmailBlock, SaveBlockHandler, SavedBlock } from '../types'
 import { EmailBlockClass } from '../EmailBlockClass'
 import { OverlayScrollbarsComponent, type OverlayScrollbarsComponentRef } from 'overlayscrollbars-react'
 import 'overlayscrollbars/overlayscrollbars.css'
@@ -15,7 +15,7 @@ interface EditPanelProps {
   testData?: Record<string, unknown>
   onTestDataChange?: (testData: Record<string, unknown>) => void
   onPreview?: () => Promise<void>
-  onSaveBlock: (block: EmailBlock, operation: SaveOperation, nameOrId: string) => void
+  onSaveBlock: SaveBlockHandler
   savedBlocks?: SavedBlock[]
 }
 

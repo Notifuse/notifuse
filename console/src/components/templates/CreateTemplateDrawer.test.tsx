@@ -8,13 +8,23 @@ import { CreateTemplateDrawer } from './CreateTemplateDrawer'
 import type { Template, Workspace } from '../../services/api/types'
 import type { EmailAIAssistantProps } from '../email_builder/EmailAIAssistant'
 import { templatesApi } from '../../services/api/template'
+import { templateBlocksApi } from '../../services/api/template_blocks'
+import type { EmailBlock, SaveBlockHandler } from '../email_builder/types'
 
 // The editor pulls in Monaco / the visual builder / AI assistant, none of which are
 // relevant to the logic under test — stub them out. The assistant stub keeps the one
 // prop these tests are about, the template category, readable from the DOM: it changes
 // a render after the form field settles, so an attribute waitFor can see beats a
 // captured variable.
-vi.mock('../email_builder/EmailBuilder', () => ({ default: () => null }))
+// The visual builder stub records its props, so the save-block tests can call the drawer's handler.
+const builder = vi.hoisted(() => ({ props: undefined as undefined | Record<string, unknown> }))
+const auth = vi.hoisted(() => ({ refreshWorkspaces: vi.fn() }))
+vi.mock('../email_builder/EmailBuilder', () => ({
+  default: (props: Record<string, unknown>) => {
+    builder.props = props
+    return null
+  }
+}))
 vi.mock('../email_builder/EmailAIAssistant', () => ({
   EmailAIAssistant: ({ category }: EmailAIAssistantProps) => (
     <div data-testid="email-ai-assistant" data-category={category ?? ''} />
@@ -28,7 +38,10 @@ vi.mock('./PhonePreview', () => ({ default: () => null }))
 vi.mock('./ImportExportButton', () => ({ ImportExportButton: () => null }))
 vi.mock('./TemplateTranslationsTab', () => ({ default: () => null }))
 vi.mock('../../contexts/AuthContext', () => ({
-  useAuth: () => ({ refreshWorkspaces: vi.fn() })
+  useAuth: () => ({ refreshWorkspaces: auth.refreshWorkspaces })
+}))
+vi.mock('../../services/api/template_blocks', () => ({
+  templateBlocksApi: { list: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() }
 }))
 
 vi.mock('../../services/api/template', async (importOriginal) => {
@@ -307,5 +320,84 @@ describe('CreateTemplateDrawer name and ID length', () => {
       await screen.findByText('Template name must be at most 255 characters long')
     ).toBeInTheDocument()
     expect(templatesApi.create).not.toHaveBeenCalled()
+  })
+})
+
+describe('CreateTemplateDrawer saving a block from the editor', () => {
+  const block = { id: 'b1', type: 'mj-section', attributes: {}, children: [] } as unknown as EmailBlock
+  const savedWorkspace = {
+    ...workspace,
+    settings: {
+      ...workspace.settings,
+      template_blocks: [{ id: 'header-id', name: 'Header', block }]
+    }
+  } as unknown as Workspace
+  const toasts = (kind: string) => document.querySelectorAll(`.ant-message-notice-${kind}`)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    builder.props = undefined
+    auth.refreshWorkspaces.mockResolvedValue(undefined)
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: makeTemplate(3) })
+  })
+
+  const openEditor = async () => {
+    renderDrawer(<CreateTemplateDrawer workspace={savedWorkspace} template={makeTemplate(3)} />)
+    await userEvent.click(screen.getByRole('button', { name: /Edit Template/i }))
+    await waitFor(() => expect(builder.props).toBeDefined())
+    return builder.props!.onSaveBlock as SaveBlockHandler
+  }
+
+  // Characterisation: the duplicate success message came from the toolbar, not from here
+  it('creates a template block, refreshes the workspace and shows one success message', async () => {
+    ;(templateBlocksApi.create as Mock).mockResolvedValue({ block: {} })
+    const onSaveBlock = await openEditor()
+
+    await expect(onSaveBlock(block, 'create', 'Products')).resolves.toBeUndefined()
+
+    expect(templateBlocksApi.create).toHaveBeenCalledWith({ workspace_id: 'ws1', name: 'Products', block })
+    expect(auth.refreshWorkspaces).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(toasts('success')).toHaveLength(1))
+    expect(toasts('error')).toHaveLength(0)
+  })
+
+  it('rejects and shows the API error when creating a template block fails', async () => {
+    ;(templateBlocksApi.create as Mock).mockRejectedValue(new Error('Name already used'))
+    const onSaveBlock = await openEditor()
+
+    await expect(onSaveBlock(block, 'create', 'Products')).rejects.toThrow()
+
+    expect(await screen.findByText('Name already used')).toBeInTheDocument()
+    expect(toasts('success')).toHaveLength(0)
+    expect(auth.refreshWorkspaces).not.toHaveBeenCalled()
+  })
+
+  it('rejects without calling the API when updating a template block the workspace no longer has', async () => {
+    const onSaveBlock = await openEditor()
+
+    await expect(onSaveBlock(block, 'update', 'gone-id')).rejects.toThrow()
+
+    expect(templateBlocksApi.update).not.toHaveBeenCalled()
+    expect(await screen.findByText('Template block not found')).toBeInTheDocument()
+  })
+
+  it('resolves with a warning when the block is saved but refreshing the workspace fails', async () => {
+    ;(templateBlocksApi.update as Mock).mockResolvedValue({ block: {} })
+    auth.refreshWorkspaces.mockRejectedValue(new Error('network'))
+    const onSaveBlock = await openEditor()
+
+    await expect(onSaveBlock(block, 'update', 'header-id')).resolves.toBeUndefined()
+
+    expect(templateBlocksApi.update).toHaveBeenCalledWith({
+      workspace_id: 'ws1',
+      id: 'header-id',
+      name: 'Header',
+      block
+    })
+    await waitFor(() => expect(toasts('success')).toHaveLength(1))
+    expect(
+      await screen.findByText('Block saved. Reload the page to see it in your saved blocks.')
+    ).toBeInTheDocument()
+    expect(toasts('error')).toHaveLength(0)
   })
 })

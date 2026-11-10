@@ -21,9 +21,9 @@ import { templatesApi, type CreateTemplateRequest, type UpdateTemplateRequest } 
 import { ApiError } from '../../services/api/client'
 import { useTemplateConflictModal } from './useTemplateConflictModal'
 import { templateBlocksApi } from '../../services/api/template_blocks'
-import type { Template, Workspace } from '../../services/api/types'
+import type { Template, TemplateBlock, Workspace } from '../../services/api/types'
 import EmailBuilder from '../email_builder/EmailBuilder'
-import type { EmailBlock } from '../email_builder/types'
+import type { EmailBlock, SaveBlockHandler } from '../email_builder/types'
 import type { PreviewRef } from '../email_builder/panels/Preview'
 import { kebabCase } from 'lodash'
 import { truncateIdentifier } from '../../utils/identifiers'
@@ -551,26 +551,19 @@ export function CreateTemplateDrawer({
     setVisualEditorTree(tree)
   }
 
-  const handleSaveBlock = async (
-    block: EmailBlock,
-    operation: 'create' | 'update' | 'delete',
-    nameOrId: string
-  ) => {
+  const handleSaveBlock: SaveBlockHandler = async (block, operation, nameOrId) => {
+    let existingBlock: TemplateBlock | undefined
     try {
       if (operation === 'create') {
-        // Create new template block
         await templateBlocksApi.create({
           workspace_id: workspace.id,
           name: nameOrId,
           block: block
         })
-        message.success(t`Template block "${nameOrId}" saved successfully`)
-      } else if (operation === 'update') {
-        // Update existing template block
-        const existingBlock = workspace.settings.template_blocks?.find((b) => b.id === nameOrId)
+      } else {
+        existingBlock = workspace.settings.template_blocks?.find((b) => b.id === nameOrId)
         if (!existingBlock) {
-          message.error(t`Template block not found`)
-          return
+          throw new Error(t`Template block not found`)
         }
         await templateBlocksApi.update({
           workspace_id: workspace.id,
@@ -578,29 +571,29 @@ export function CreateTemplateDrawer({
           name: existingBlock.name, // Preserve the existing name
           block: block
         })
-        message.success(t`Template block "${existingBlock.name}" updated successfully`)
-      } else if (operation === 'delete') {
-        // Delete template block
-        await templateBlocksApi.delete({
-          workspace_id: workspace.id,
-          id: nameOrId
-        })
-        const existingBlock = workspace.settings.template_blocks?.find((b) => b.id === nameOrId)
-        message.success(t`Template block "${existingBlock?.name || nameOrId}" deleted successfully`)
-      } else {
-        return // Invalid operation
       }
-
-      // Invalidate workspace query to refetch latest data
-      queryClient.invalidateQueries({ queryKey: ['workspace', workspace.id] })
-
-      // Refresh workspaces in AuthContext to immediately update the workspace state
-      // This ensures the EmailBuilder shows the saved blocks without requiring a page refresh
-      await refreshWorkspaces()
     } catch (error) {
       console.error('Failed to save template block:', error)
       const err = error as Error
       message.error(err?.message || t`Failed to save template block`)
+      throw error
+    }
+
+    message.success(
+      operation === 'create'
+        ? t`Template block "${nameOrId}" saved successfully`
+        : t`Template block "${existingBlock?.name}" updated successfully`
+    )
+
+    // The block is saved: a failed refresh only leaves the editor's list of saved blocks behind, so it is
+    // reported without failing the save, which would invite saving the block a second time
+    try {
+      queryClient.invalidateQueries({ queryKey: ['workspace', workspace.id] })
+      // Refresh workspaces in AuthContext so the EmailBuilder shows the saved blocks without a page refresh
+      await refreshWorkspaces()
+    } catch (error) {
+      console.error('Failed to refresh the workspace after saving a template block:', error)
+      message.warning(t`Block saved. Reload the page to see it in your saved blocks.`)
     }
   }
 
