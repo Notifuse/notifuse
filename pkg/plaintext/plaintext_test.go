@@ -97,14 +97,21 @@ func TestFromHTML(t *testing.T) {
 		},
 		{"a query-like word after a bare url is separated", `<p><a href="https://e.com/a">https://e.com/a</a>?x=1</p>`, "https://e.com/a ?x=1\n"},
 		{
-			"a social element writes its labelled link only, even when the links differ",
+			// With click tracking the icon and the label of a social element get different
+			// URLs: both are kept, since nothing in the HTML says they lead to the same place.
+			"an icon next to a labelled link with another url keeps both",
 			`<table><tr><td><table><tr><td><a href="https://t.e.com/r/1"><img src="fb.png" alt=""></a></td></tr></table></td><td><a href="https://t.e.com/r/2">Facebook</a></td></tr></table>`,
-			"Facebook (https://t.e.com/r/2)\n",
+			"https://t.e.com/r/1\n\nFacebook (https://t.e.com/r/2)\n",
 		},
 		{
-			"an icon is kept when the labelled link after it is hidden",
-			`<table><tr><td><a href="https://e.com/fb"><img src="fb.png"></a></td><td style="display:none"><a href="https://e.com/fb2">Facebook</a></td></tr></table>`,
-			"https://e.com/fb\n",
+			"a logo next to a view-in-browser link keeps both",
+			`<table><tr><td><a href="https://acme.example/"><img src="logo.png"></a></td><td><a href="https://acme.example/view/123">View in browser</a></td></tr></table>`,
+			"https://acme.example/\nView in browser (https://acme.example/view/123)\n",
+		},
+		{
+			"a closing quote after a link keeps the punctuation attached",
+			"<p>\u201cSee the <a href=\"https://e.com/faq\">FAQ</a>.\u201d</p>",
+			"\u201cSee the FAQ (https://e.com/faq).\u201d\n",
 		},
 		{
 			"icon links side by side are all kept",

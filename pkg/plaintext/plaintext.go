@@ -114,7 +114,7 @@ func (w *writer) write(s string) {
 // trailingPunctuation may follow a URL without a space when a space or the end of the
 // text comes next: autolinkers leave it out of the link, and a space before it would
 // read oddly.
-const trailingPunctuation = ".,;:!?)]"
+const trailingPunctuation = ".,;:!?)]\"'”’»"
 
 // writeURL appends a URL and remembers that the next word must be separated from it,
 // so that a client's autolinker never reads two links, or a link and a word, as one.
@@ -350,12 +350,6 @@ func (w *writer) link(n *html.Node) {
 
 	switch {
 	case strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://"):
-		if label == "" && labelledLinkFollows(n) {
-			// An icon whose row then links with a label, as a social element does: the
-			// labelled link says the same, and with click tracking the two URLs differ, so
-			// the repeat could not be recognised from the text.
-			return
-		}
 		if label == "" || label == href || isWebURL(label) {
 			w.writeURL(href)
 			return
@@ -378,48 +372,6 @@ func (w *writer) link(n *html.Node) {
 	default:
 		w.write(label)
 	}
-}
-
-// labelledLinkFollows reports whether the next link in the table row holding the
-// anchor, or in the row around that one, has a label. Climbing stops at the first row
-// holding another link, so icons side by side are all kept.
-func labelledLinkFollows(a *html.Node) bool {
-	rows := 0
-	for p := a.Parent; p != nil && rows < 2; p = p.Parent {
-		if p.DataAtom != atom.Tr {
-			continue
-		}
-		rows++
-		if next := nextAnchor(p, a); next != nil {
-			return linkLabel(next) != ""
-		}
-	}
-	return false
-}
-
-// nextAnchor returns the first anchor inside root that comes after the subtree of after.
-func nextAnchor(root, after *html.Node) *html.Node {
-	passed := false
-	var found *html.Node
-	var visit func(*html.Node)
-	visit = func(n *html.Node) {
-		for c := n.FirstChild; c != nil && found == nil; c = c.NextSibling {
-			if c == after {
-				passed = true
-				continue
-			}
-			if c.Type == html.ElementNode && (skipped[c.DataAtom] || isHidden(c)) {
-				continue
-			}
-			if passed && c.Type == html.ElementNode && c.DataAtom == atom.A {
-				found = c
-				return
-			}
-			visit(c)
-		}
-	}
-	visit(root)
-	return found
 }
 
 // linkLabel is the text a reader sees for a link: its text, or the alt text of the

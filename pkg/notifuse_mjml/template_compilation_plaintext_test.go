@@ -173,7 +173,8 @@ func TestCompileTemplate_PlainTextGolden(t *testing.T) {
 }
 
 // With click tracking every link gets its own token, so the icon and the label of a
-// social element no longer share a URL: the icon must still not be written.
+// social element no longer share a URL and both are written: no link of the HTML is
+// left out of the text, and the text links only to what the HTML links to.
 func TestCompileTemplate_PlainTextGoldenTracked(t *testing.T) {
 	src, err := os.ReadFile("testdata/plain-text-golden.json")
 	require.NoError(t, err)
@@ -191,18 +192,9 @@ func TestCompileTemplate_PlainTextGoldenTracked(t *testing.T) {
 	require.True(t, resp.Success, "%+v", resp.Error)
 	require.NotNil(t, resp.Text)
 
-	for _, line := range strings.Split(*resp.Text, "\n") {
-		assert.False(t, textURL.MatchString(line) && textURL.FindString(line) == line, "bare URL line %q", line)
-	}
 	assert.Contains(t, *resp.Text, "Facebook (https://t.example.com/r/")
 	assert.Contains(t, *resp.Text, "Instagram (https://t.example.com/r/")
-	hrefs := map[string]bool{}
-	for _, h := range htmlHrefs(t, *resp.HTML) {
-		hrefs[h] = true
-	}
-	for _, u := range textURL.FindAllString(*resp.Text, -1) {
-		assert.True(t, hrefs[u], "text URL %q is an href of the HTML", u)
-	}
+	assert.Equal(t, urlSet(htmlHrefs(t, *resp.HTML)), urlSet(textURL.FindAllString(*resp.Text, -1)))
 }
 
 func BenchmarkCompileTemplate(b *testing.B) {
