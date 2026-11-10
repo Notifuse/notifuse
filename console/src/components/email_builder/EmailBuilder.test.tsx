@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
-import { render, waitFor } from '@testing-library/react'
+import { render, waitFor, screen, fireEvent } from '@testing-library/react'
 import EmailBuilder from './EmailBuilder'
 import type { EmailBlock } from './types'
 
@@ -96,5 +96,59 @@ describe('EmailBuilder preview auto-recompile', () => {
     // No further compiles after the debounce settles.
     await new Promise((resolve) => setTimeout(resolve, 250))
     expect(onCompile).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('EmailBuilder text version mode', () => {
+  const textProps = (onCompile: Mock) => ({
+    ...props(makeTree('one'), onCompile, null),
+    textVersion: { enabled: true as const }
+  })
+
+  it('offers no text version mode unless asked to', () => {
+    const onCompile = vi.fn()
+    render(<EmailBuilder {...props(makeTree('one'), onCompile, null)} />)
+
+    expect(screen.getByText('Edit')).toBeTruthy()
+    expect(screen.getByText('Preview')).toBeTruthy()
+    expect(screen.queryByText('Text version')).toBeNull()
+  })
+
+  it('compiles and shows the text version when that mode is selected', async () => {
+    const onCompile = vi.fn().mockResolvedValue({
+      html: '<p>Hello</p>',
+      mjml: '<mjml></mjml>',
+      errors: [],
+      text: 'Hello Camille\n'
+    })
+    render(<EmailBuilder {...textProps(onCompile)} />)
+    expect(onCompile).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByText('Text version'))
+
+    await waitFor(() => expect(screen.getByTestId('text-version').textContent).toBe('Hello Camille\n'))
+    expect(onCompile).toHaveBeenCalled()
+    // Undo and redo only apply to editing.
+    expect((screen.getByTitle('Undo') as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByTitle('Redo') as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('shows the compile error, not a stale text', async () => {
+    const broken = makeTree('two')
+    const onCompile = vi.fn(async (tree: EmailBlock) =>
+      tree === broken
+        ? { html: '', mjml: '', errors: [{ message: 'Broken template' }] }
+        : { html: '<p>a</p>', mjml: '', errors: [], text: 'First text\n' }
+    )
+    const { rerender } = render(<EmailBuilder {...textProps(onCompile)} />)
+
+    fireEvent.click(screen.getByText('Text version'))
+    await waitFor(() => expect(screen.getByTestId('text-version')).toBeTruthy())
+
+    // An edit made outside the toolbar (the AI assistant) recompiles in this mode too.
+    rerender(<EmailBuilder {...textProps(onCompile)} tree={broken} />)
+
+    await waitFor(() => expect(screen.getByText('Broken template')).toBeTruthy())
+    expect(screen.queryByText('First text')).toBeNull()
   })
 })

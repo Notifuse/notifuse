@@ -29,6 +29,8 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   const { t } = useLingui()
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
   const [previewMjml, setPreviewMjml] = useState<string | null>(null)
+  // Plain-text version sent with the email; null when the compile returned none.
+  const [previewText, setPreviewText] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [mjmlError, setMjmlError] = useState<MjmlCompileError | null>(null)
@@ -86,6 +88,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     setMjmlError(null)
     setPreviewHtml(null)
     setPreviewMjml(null)
+    setPreviewText(null)
     setRenderedSubject(null)
     setRenderedSubjectPreview(null)
     setEffectiveTestData(null)
@@ -158,9 +161,11 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
         setPreviewMjml(response.mjml)
         setError(null)
         setPreviewHtml(null)
+        setPreviewText(null)
       } else {
         setPreviewHtml(response.html)
         setPreviewMjml(response.mjml)
+        setPreviewText(response.text ?? null)
         setError(null)
         setMjmlError(null)
       }
@@ -172,6 +177,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       setError(errorMsg)
       setMjmlError(null)
       setPreviewMjml(null)
+      setPreviewText(null)
     } finally {
       setIsLoading(false)
     }
@@ -184,6 +190,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       // Reset state when drawer closes to avoid showing stale data briefly on reopen
       setPreviewHtml(null)
       setPreviewMjml(null)
+      setPreviewText(null)
       setError(null)
       setMjmlError(null)
       setIsLoading(false)
@@ -210,6 +217,38 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
           title={t`HTML Preview of ${record.name}`}
           sandbox=""
         />
+      )
+    })
+  }
+
+  if (previewText !== null) {
+    items.push({
+      key: 'text',
+      label: t`Text version`,
+      children: (
+        <div>
+          <div className="text-xs text-gray-500 mb-2">
+            {t`Sent with the HTML version and generated from it. Its links are tracked like the links of the HTML.`}
+          </div>
+          {previewText.trim() ? (
+            <pre
+              data-testid="preview-text-version"
+              className="text-sm text-gray-800 bg-white border border-gray-200 rounded"
+              style={{
+                margin: 0,
+                padding: '16px 20px',
+                lineHeight: 1.6,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+              }}
+            >
+              {previewText}
+            </pre>
+          ) : (
+            <div className="text-gray-500">{t`No text version: this email will be sent as HTML only.`}</div>
+          )}
+        </div>
       )
     })
   }

@@ -139,7 +139,12 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
             errors: [response.error as unknown as Record<string, unknown>]
           }
         }
-        return { html: response.html || '', mjml: response.mjml || '', errors: [] }
+        return {
+          html: response.html || '',
+          mjml: response.mjml || '',
+          errors: [],
+          text: response.text
+        }
       } catch (error) {
         const err = error as Error
         return {
@@ -171,7 +176,8 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
         return {
           html: response.html || '',
           mjml: response.mjml || '',
-          error: response.error
+          error: response.error,
+          text: response.text
         }
       } catch (error) {
         const err = error as Error
@@ -345,6 +351,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
               onSaveBlock={onSaveBlock}
               hiddenBlocks={['mj-title', 'mj-preview']}
               height="calc(100vh - 66px)"
+              textVersion={{ enabled: true }}
             />
           )}
         </Drawer>
