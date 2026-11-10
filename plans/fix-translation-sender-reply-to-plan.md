@@ -78,7 +78,7 @@ Tests — `internal/domain/template_test.go`, new `TestTemplate_ResolveEmailCont
    by `GetSender`, as today);
 5. resolving does not mutate the stored translation (`Translations["it"].Email.SenderID` and
    `ReplyTo` still empty afterwards) nor the base template;
-6. the returned translation keeps its own subject, preview and content;
+6. the returned translation keeps its own subject, preview and editor mode;
 7. default-content branches still return the base `*EmailTemplate` pointer (`assert.Same`).
 
 Fixture rule for every test below: `domain.NewEmailSender` always sets `IsDefault: true`, so the
@@ -96,7 +96,8 @@ Tests — `internal/service/email_service_test.go` (`SendEmailForTemplate`):
 1. explicit `email_options.reply_to` + template reply-to → the explicit one is sent;
 2. no explicit reply-to + template reply-to → the template's is sent;
 3. translated contact, translation without sender / reply-to → From is the template's sender B and
-   Reply-To the template's.
+   Reply-To the template's;
+4. translated contact with an explicit `email_options.reply_to` → the explicit one is sent.
 
 ### Send paths (no code change, regression tests)
 
@@ -108,10 +109,10 @@ Tests — `internal/service/email_service_test.go` (`SendEmailForTemplate`):
 
 ### Integration — `tests/integration/template_translation_test.go`
 
-A new `TestTemplateTranslationSenderAndReplyTo`, on a workspace set up with `SetupWorkspaceWithSMTPProvider` and an
-inline `IntegrationOption` adding a second sender, whose Mailpit SMTP integration
-has a default sender A and a non-default sender B; the template uses B and a reply-to, and its `fr`
-translation has neither:
+A new `TestTemplateTranslationSenderAndReplyTo`, on a workspace set up with
+`SetupWorkspaceWithSMTPProvider`, whose Mailpit SMTP integration gets, through an inline
+`IntegrationOption`, a default sender A and a non-default sender B; the template uses B and a
+reply-to, and its `fr` translation has neither:
 
 - **Transactional**: send to an `fr` contact → Mailpit `From` is B, the raw message
   (`GetMailpitMessageRaw`) carries the template's `Reply-To`.
@@ -149,7 +150,6 @@ make test-unit
 
 ## Review
 
-Spec review (Fable) on the first version of this plan:
-`/mnt/project-files/reviews/fix-translation-sender-reply-to-spec-review.md` in the project files.
-All six findings were checked in the code and folded in above (reply-to override, empty-means-inherit,
-non-default sender fixtures, language collision, mandatory queue test, automation coverage).
+A counter-review of the first version of this plan raised six findings. All of them were checked in
+the code and folded in above (reply-to override, empty-means-inherit, non-default sender fixtures,
+language collision, mandatory queue test, automation coverage).
