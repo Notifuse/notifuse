@@ -77,4 +77,4 @@ export type ButtonType =
   | 'subscript'
 
 // Link types
-export type LinkType = 'url' | 'email' | 'phone' | 'anchor'
+export type LinkType = 'url' | 'email' | 'phone' | 'anchor' | 'web_version'

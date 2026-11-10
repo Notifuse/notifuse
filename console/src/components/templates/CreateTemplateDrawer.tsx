@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from 'react'
+import { buildDefaultTestData } from './defaultTestData'
 import { useLingui } from '@lingui/react/macro'
 import {
   Button,
@@ -346,31 +347,14 @@ export function CreateTemplateDrawer({
     }
   })
 
-  const defaultTestData = useMemo(() => {
-    const endpoint = workspace.settings.custom_endpoint_url || window.API_ENDPOINT
-    // These example values show available template variables for preview
-    // Note: Preview links (mid=preview) show a "Preview Mode" message in the notification center
-    // Real emails use secure HMACs for authentication
-    // The `workspace` object (base_url / website_url) is intentionally omitted: the compile
-    // endpoint injects it server-side (single source of truth), so it renders in the preview
-    // and is echoed back without being hard-coded here.
-    return {
-      contact: {
-        first_name: 'John',
-        last_name: 'Doe',
-        email: 'john.doe@example.com'
-      },
-      list: {
-        id: 'newsletter',
-        name: 'Newsletter'
-      },
-      unsubscribe_url: `${endpoint}/notification-center?action=unsubscribe&email=john.doe@example.com&lid=newsletter&lname=Newsletter&wid=${workspace.id}&mid=preview&email_hmac=abc123`,
-      confirm_subscription_url: `${endpoint}/notification-center?action=confirm&email=john.doe@example.com&lid=newsletter&lname=Newsletter&wid=${workspace.id}&mid=preview&email_hmac=abc123`,
-      notification_center_url: `${endpoint}/notification-center?email=john.doe@example.com&email_hmac=abc123&wid=${workspace.id}`,
-      tracking_preferences_url: `${endpoint}/notification-center?action=tracking&email=john.doe@example.com&email_hmac=abc123&wid=${workspace.id}`,
-      tracking_optout_url: `${endpoint}/notification-center?action=tracking_optout&email=john.doe@example.com&email_hmac=abc123&wid=${workspace.id}`
-    }
-  }, [workspace.settings.custom_endpoint_url, workspace.id])
+  const defaultTestData = useMemo(
+    () =>
+      buildDefaultTestData(
+        workspace.settings.custom_endpoint_url || window.API_ENDPOINT,
+        workspace.id
+      ),
+    [workspace.settings.custom_endpoint_url, workspace.id]
+  )
 
   const loadTranslations = (translations?: Record<string, TemplateTranslation>) => {
     if (!translations) return

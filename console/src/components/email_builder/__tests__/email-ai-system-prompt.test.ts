@@ -44,8 +44,9 @@ function group(label: string, nextLabel: string): string {
 const alwaysGroup = group('Always available:', 'When a contact is known')
 const contactGroup = group('When a contact is known', 'Only when the send has a list')
 const listGroup = group('Only when the send has a list', 'Broadcasts only:')
-const broadcastGroup = group('Broadcasts only:', 'Transactional API sends:')
-const availabilityGroups = [alwaysGroup, contactGroup, listGroup, broadcastGroup]
+const broadcastGroup = group('Broadcasts only:', 'Broadcasts and automations:')
+const webVersionGroup = group('Broadcasts and automations:', 'Transactional API sends:')
+const availabilityGroups = [alwaysGroup, contactGroup, listGroup, broadcastGroup, webVersionGroup]
 
 const makeTree = (): EmailBlock => ({
   id: 'mjml-1',
@@ -150,6 +151,7 @@ describe('EMAIL_AI_SYSTEM_PROMPT Liquid variables', () => {
     expect(liquid).toContain('When a contact is known')
     expect(liquid).toContain('Only when the send has a list')
     expect(liquid).toContain('Broadcasts only:')
+    expect(liquid).toContain('Broadcasts and automations:')
     expect(liquid).toContain('Transactional API sends:')
   })
 
@@ -172,6 +174,15 @@ describe('EMAIL_AI_SYSTEM_PROMPT Liquid variables', () => {
     expect(contactGroup).toContain('{{ tracking_preferences_url }}')
     expect(contactGroup).toContain('{{ tracking_optout_url }}')
     expect(listGroup).not.toContain('tracking_optout_url')
+  })
+
+  it('puts the web version link with broadcasts and automations only', () => {
+    // The backend mints it for those two sends and leaves it empty everywhere else.
+    expect(webVersionGroup).toContain('{{ view_in_browser_url }}')
+    for (const other of [alwaysGroup, contactGroup, listGroup, broadcastGroup]) {
+      expect(other).not.toContain('view_in_browser_url')
+    }
+    expect(liquid).toMatch(/view_in_browser_url[^\n]*empty/)
   })
 
   it('keeps the header-only urls out of every availability group', () => {

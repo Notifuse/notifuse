@@ -12,6 +12,7 @@ import Editor, { type OnMount, type BeforeMount } from '@monaco-editor/react'
 import type { editor as MonacoEditor } from 'monaco-editor'
 import { useLingui } from '@lingui/react/macro'
 import type { MjmlCompileError } from '../../services/api/template'
+import { COMMON_TEMPLATE_VARIABLES } from './templateVariables'
 
 interface MjmlCodeEditorProps {
   mjmlSource: string
@@ -473,23 +474,7 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
         }
         extractKeys(parsedData, '')
 
-        // Add common template variables
-        const commonVars = [
-          'contact.email',
-          'contact.first_name',
-          'contact.last_name',
-          'contact.external_id',
-          'workspace.base_url',
-          'unsubscribe_url',
-          'notification_center_url',
-          'tracking_preferences_url',
-          'tracking_optout_url',
-          'confirm_subscription_url',
-          'message_id',
-          'tracking_opens_url'
-        ]
-
-        const allKeys = [...new Set([...keys, ...commonVars])]
+        const allKeys = [...new Set([...keys, ...COMMON_TEMPLATE_VARIABLES])]
 
         const suggestions = allKeys.map((key) => ({
           label: key,

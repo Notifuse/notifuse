@@ -5,8 +5,12 @@ import {
   processInlineContent,
   prepareInlineContent,
   sanitizeRichContent,
-  getInitialInlineContent
+  getInitialInlineContent,
+  createLinkWithStyleMerging,
+  parseLinkHref,
+  WEB_VERSION_LINK_HREF
 } from './utils'
+import type { Editor } from '@tiptap/react'
 import { parseHtmlInert } from '../../../../../utils/safeHtml'
 
 // The helpers below read and rewrite template HTML. They must do it away from the
@@ -170,5 +174,67 @@ describe('getInitialInlineContent text-only fallback', () => {
     expect(getInitialInlineContent('<p>a &lt;a href="javascript:x()"&gt;go&lt;/a&gt; b</p>')).toBe(
       '<span data-inline-doc="">a &lt;a href="javascript:x()"&gt;go&lt;/a&gt; b</span>'
     )
+  })
+})
+
+// An editor that records the href each setLink call is given.
+const linkRecordingEditor = () => {
+  const hrefs: string[] = []
+  const chain = {
+    focus: () => chain,
+    setLink: ({ href }: { href: string }) => {
+      hrefs.push(href)
+      return chain
+    },
+    run: () => true
+  }
+  const editor = { chain: () => chain } as unknown as Editor
+  return { editor, hrefs }
+}
+
+describe('createLinkWithStyleMerging', () => {
+  it.each([
+    ['url', 'https://example.com', 'https://example.com'],
+    ['email', 'a@example.com', 'mailto:a@example.com'],
+    ['phone', '+331234', 'tel:+331234'],
+    ['anchor', 'top', '#top']
+  ])('formats a %s link', (linkType, value, expected) => {
+    const { editor, hrefs } = linkRecordingEditor()
+    createLinkWithStyleMerging(editor, value, linkType)
+    expect(hrefs).toEqual([expected])
+  })
+
+  it('links the web version to its variable whatever the value', () => {
+    const { editor, hrefs } = linkRecordingEditor()
+    createLinkWithStyleMerging(editor, '', 'web_version')
+    createLinkWithStyleMerging(editor, 'https://ignored.example', 'web_version')
+    expect(hrefs).toEqual(['{{ view_in_browser_url }}', '{{ view_in_browser_url }}'])
+    expect(WEB_VERSION_LINK_HREF).toBe('{{ view_in_browser_url }}')
+  })
+})
+
+describe('parseLinkHref', () => {
+  it.each([
+    ['mailto:a@example.com', 'email', 'a@example.com'],
+    ['tel:+331234', 'phone', '+331234'],
+    ['#top', 'anchor', 'top'],
+    ['https://example.com', 'url', 'https://example.com'],
+    ['{{ cta_url }}', 'url', '{{ cta_url }}'],
+    ['', 'url', '']
+  ])('reads %s as a %s link', (href, type, value) => {
+    expect(parseLinkHref(href)).toEqual({ type, value })
+  })
+
+  it.each(['{{ view_in_browser_url }}', '{{view_in_browser_url}}', '  {{  view_in_browser_url  }} '])(
+    'recognises the web version link %s',
+    (href) => {
+      expect(parseLinkHref(href)).toEqual({ type: 'web_version', value: '' })
+    }
+  )
+
+  it('keeps a link that only mentions the variable as a URL', () => {
+    // A filter or a suffix makes it another target, which the URL field must show as written.
+    const href = '{{ view_in_browser_url }}?ref=footer'
+    expect(parseLinkHref(href)).toEqual({ type: 'url', value: href })
   })
 })

@@ -247,6 +247,9 @@ Broadcasts only:
 - {{ utm_source }}, {{ utm_medium }}, {{ utm_campaign }}, {{ utm_term }}, {{ utm_content }} when the broadcast configured them
 - {{ global_feed }}, {{ recipient_feed }} when the broadcast enabled a data feed
 
+Broadcasts and automations:
+- {{ view_in_browser_url }} - the web version of this email, for a "View in browser" link near the top; empty in transactional and double opt-in emails, so guard it: {% if view_in_browser_url != "" %}...{% endif %}
+
 Transactional API sends: every key of the API call's data payload is available at top level (e.g. {{ order_id }}). There is no list, so unsubscribe_url, confirm_subscription_url and list.* render empty. Ask the user for the payload field names rather than inventing them.
 
 Guard optional values: {% if contact.first_name %}Hi {{ contact.first_name }},{% else %}Hi there,{% endif %}
