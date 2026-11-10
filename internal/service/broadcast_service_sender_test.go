@@ -127,6 +127,30 @@ func TestBroadcastService_UpdateBroadcast_VariationSender(t *testing.T) {
 		requireValidationError(t, err, "unknown-sender")
 	})
 
+	t.Run("a paused broadcast whose sender has gone takes another known sender", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		f := newSenderFixture()
+		ctx := context.Background()
+		authOK(d.authService, ctx, "w1")
+		stored := testBroadcast("w1", "b1")
+		stored.Status = domain.BroadcastStatusPaused
+		stored.TestSettings.Variations[0].SenderID = "sender-since-deleted"
+		d.repo.EXPECT().GetBroadcast(ctx, "w1", "b1").Return(stored, nil)
+		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(f.workspace, nil)
+		d.repo.EXPECT().UpdateBroadcast(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+			assert.Equal(t, f.promos.ID, b.TestSettings.Variations[0].SenderID)
+			assert.Equal(t, domain.BroadcastStatusPaused, b.Status)
+			return nil
+		})
+
+		var req domain.UpdateBroadcastRequest
+		require.NoError(t, json.Unmarshal([]byte(`{"workspace_id":"w1","id":"b1","name":"n",
+			"test_settings":{"enabled":false,"variations":[{"variation_name":"A","template_id":"tplA","sender_id":"`+f.promos.ID+`"}]}}`), &req))
+
+		_, err := d.svc.UpdateBroadcast(ctx, &req)
+		require.NoError(t, err)
+	})
+
 	t.Run("an update leaving test_settings out is not blocked by a stored sender that has gone", func(t *testing.T) {
 		d := setupBroadcastSvc(t)
 		ctx := context.Background()

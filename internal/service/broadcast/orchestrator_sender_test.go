@@ -112,7 +112,7 @@ func TestProcessBroadcastTask_VariationSenderGone_PausesBeforeSending(t *testing
 		Status:   domain.BroadcastStatusProcessing,
 		Audience: domain.AudienceSettings{List: "list-1"},
 		TestSettings: domain.BroadcastTestSettings{
-			Variations: []domain.BroadcastVariation{{TemplateID: "template-1", SenderID: "sender-since-deleted"}},
+			Variations: []domain.BroadcastVariation{{VariationName: "Spring", TemplateID: "template-1", SenderID: "sender-since-deleted"}},
 		},
 	}, nil).AnyTimes()
 	d.expectTemplate("template-1")
@@ -123,6 +123,8 @@ func TestProcessBroadcastTask_VariationSenderGone_PausesBeforeSending(t *testing
 		assert.NotNil(t, b.PausedAt)
 		require.NotNil(t, b.PauseReason)
 		assert.Contains(t, *b.PauseReason, "sender-since-deleted")
+		assert.Contains(t, *b.PauseReason, `variation "Spring"`)
+		assert.NotContains(t, *b.PauseReason, "feed")
 		return nil
 	})
 	d.eventBus.EXPECT().Publish(gomock.Any(), eventOfType(domain.EventBroadcastPaused)).Do(func(_ context.Context, event domain.EventPayload) {
@@ -134,6 +136,56 @@ func TestProcessBroadcastTask_VariationSenderGone_PausesBeforeSending(t *testing
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, broadcast.ErrBroadcastShouldPause))
 	assert.True(t, errors.Is(err, domain.ErrSenderNotFound))
+	var senderErr *broadcast.SenderUnavailableError
+	require.ErrorAs(t, err, &senderErr)
+	assert.Equal(t, "template-1", senderErr.TemplateID)
+}
+
+// A broadcast whose test phase is over waits for a winner and sends nothing meanwhile:
+// a losing variation's missing sender must not pause it, or no winner could be picked.
+// A paused broadcast is not paused again either.
+func TestProcessBroadcastTask_VariationSenderGone_NoPauseWhileNotSending(t *testing.T) {
+	for _, status := range []domain.BroadcastStatus{domain.BroadcastStatusTestCompleted, domain.BroadcastStatusPaused} {
+		t.Run(string(status), func(t *testing.T) {
+			d := newSenderOrchestratorDeps(t)
+
+			d.broadcasts.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(&domain.Broadcast{
+				ID:       "broadcast-123",
+				Status:   status,
+				Audience: domain.AudienceSettings{List: "list-1"},
+				TestSettings: domain.BroadcastTestSettings{
+					Enabled: true, SamplePercentage: 20,
+					Variations: []domain.BroadcastVariation{
+						{TemplateID: "template-a", SenderID: d.kept.ID},
+						{TemplateID: "template-b", SenderID: "sender-since-deleted"},
+					},
+				},
+			}, nil).AnyTimes()
+			d.templates.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", gomock.Any(), int64(0)).Return(&domain.Template{
+				ID: "template",
+				Email: &domain.EmailTemplate{
+					Subject:          "Hello",
+					VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)},
+				},
+			}, nil).AnyTimes()
+			d.contacts.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+			d.broadcasts.EXPECT().WithTransaction(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			d.sender.EXPECT().SendBatch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(0, 0, nil).AnyTimes()
+			d.eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Do(func(_ context.Context, event domain.EventPayload) {
+				assert.NotEqual(t, domain.EventBroadcastPaused, event.Type)
+			}).AnyTimes()
+			d.broadcasts.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+				if b.PauseReason != nil {
+					assert.NotContains(t, *b.PauseReason, "sender-since-deleted")
+				}
+				return nil
+			}).AnyTimes()
+
+			_, err := d.orchestrate.Process(context.Background(), senderTask("test"), time.Now().Add(30*time.Second))
+			assert.False(t, errors.Is(err, domain.ErrSenderNotFound), "unexpected sender error: %v", err)
+		})
+	}
 }
 
 func TestProcessBroadcastTask_WinnerPhase_OnlyTheWinnersSenderCounts(t *testing.T) {

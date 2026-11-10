@@ -271,8 +271,7 @@ func (h *TransactionalNotificationHandler) handleSend(w http.ResponseWriter, r *
 		// limit, timeout, template error — with the real cause logged and dropped, so it names
 		// nothing a 400 would help the caller fix, and telling a client not to retry a
 		// provider that was briefly down loses a send that would have gone out.
-		if errors.Is(err, domain.ErrSenderNotFound) ||
-			strings.Contains(err.Error(), "not found") ||
+		if strings.Contains(err.Error(), "not found") ||
 			strings.Contains(err.Error(), "not active") ||
 			strings.Contains(err.Error(), "no valid channels") ||
 			strings.Contains(err.Error(), "no email provider configured") {

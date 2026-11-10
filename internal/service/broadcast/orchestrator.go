@@ -204,13 +204,14 @@ func (o *BroadcastOrchestrator) winnerTemplates(ctx context.Context, workspaceID
 }
 
 // pauseForSendError pauses a broadcast whose send cannot go on until the user acts (a
-// recipient feed that failed, a chosen sender that has left the integration), pauses its
+// data feed that failed, a chosen sender that has left the integration), pauses its
 // queued rows and announces the pause. Paused, unlike failed, can be edited and resumed.
 func (o *BroadcastOrchestrator) pauseForSendError(ctx context.Context, task *domain.Task, broadcastID string, offset int64, cause error) {
 	reason := fmt.Sprintf("Recipient feed failed: %v", cause)
 	eventReason := "recipient_feed_failed"
-	if errors.Is(cause, domain.ErrSenderNotFound) {
-		reason = fmt.Sprintf("Sender unavailable: %v", cause)
+	var senderErr *SenderUnavailableError
+	if errors.As(cause, &senderErr) {
+		reason = senderErr.PauseReason()
 		eventReason = "sender_unavailable"
 	}
 
@@ -251,16 +252,43 @@ func (o *BroadcastOrchestrator) pauseForSendError(ctx context.Context, task *dom
 	}
 }
 
-// checkVariationSenders returns an error wrapping ErrBroadcastShouldPause and
-// domain.ErrSenderNotFound when a variation this run sends chooses a sender that is no
-// longer one of the integration's.
+// SenderUnavailableError reports a variation whose chosen sender is no longer one of the
+// marketing email integration's. It matches both ErrBroadcastShouldPause and
+// domain.ErrSenderNotFound.
+type SenderUnavailableError struct {
+	VariationName string
+	TemplateID    string
+	SenderID      string
+}
+
+func (e *SenderUnavailableError) Error() string {
+	return fmt.Sprintf("sender %s chosen for the variation sending template %s is not one of the marketing email integration's senders", e.SenderID, e.TemplateID)
+}
+
+func (e *SenderUnavailableError) Unwrap() []error {
+	return []error{ErrBroadcastShouldPause, domain.ErrSenderNotFound}
+}
+
+// PauseReason is the reason shown on the paused broadcast.
+func (e *SenderUnavailableError) PauseReason() string {
+	variation := e.VariationName
+	if variation == "" {
+		variation = e.TemplateID
+	}
+	return fmt.Sprintf("Sender unavailable: the sender chosen for variation %q (sender %s) is no longer one of the marketing email integration's senders. Choose another sender, then resume.", variation, e.SenderID)
+}
+
+// checkVariationSenders returns a *SenderUnavailableError when a variation this run sends
+// chooses a sender that is no longer one of the integration's.
 func checkVariationSenders(broadcast *domain.Broadcast, templates map[string]*domain.Template, provider *domain.EmailProvider) error {
-	for templateID := range templates {
-		senderID := broadcast.VariationSenderID(templateID)
-		if senderID == "" || provider.HasSender(senderID) {
+	for _, variation := range broadcast.TestSettings.Variations {
+		if _, sends := templates[variation.TemplateID]; !sends {
 			continue
 		}
-		return fmt.Errorf("%w: %w (chosen for the variation sending template %s)", ErrBroadcastShouldPause, fmt.Errorf("%w: %s", domain.ErrSenderNotFound, senderID), templateID)
+		if variation.SenderID == "" || provider.HasSender(variation.SenderID) {
+			continue
+		}
+		return &SenderUnavailableError{VariationName: variation.VariationName, TemplateID: variation.TemplateID, SenderID: variation.SenderID}
 	}
 	return nil
 }
@@ -601,13 +629,14 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				return
 			}
 
-			// Also skip if broadcast was paused due to recipient feed failure
+			// Also skip if the broadcast was paused for a failed data feed or a chosen
+			// sender that left the integration
 			if errors.Is(err, ErrBroadcastShouldPause) {
 				o.logger.WithFields(map[string]interface{}{
 					"task_id":      task.ID,
 					"broadcast_id": broadcastID,
 					"error":        err.Error(),
-				}).Info("Task failed due to recipient feed - broadcast already paused, not marking as failed")
+				}).Info("Task failed on a pausing send error - broadcast already paused, not marking as failed")
 				return
 			}
 
@@ -1063,11 +1092,15 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	}
 
 	// A sender chosen on a variation may have left the integration since the broadcast
-	// was scheduled. Pause before anyone is sent from another address.
-	if senderErr := checkVariationSenders(broadcast, templates, emailProvider); senderErr != nil {
-		o.pauseForSendError(ctx, task, broadcastState.BroadcastID, broadcastState.RecipientOffset, senderErr)
-		err = senderErr
-		return false, err
+	// was scheduled. Pause before anyone is sent from another address. A broadcast already
+	// paused stops in the loop below, and one whose test phase is over waits for a winner
+	// and sends nothing until then: neither is paused again for a variation it may never send.
+	if broadcast.Status != domain.BroadcastStatusPaused && broadcast.Status != domain.BroadcastStatusTestCompleted {
+		if senderErr := checkVariationSenders(broadcast, templates, emailProvider); senderErr != nil {
+			o.pauseForSendError(ctx, task, broadcastState.BroadcastID, broadcastState.RecipientOffset, senderErr)
+			err = senderErr
+			return false, err
+		}
 	}
 
 	// Announce that this broadcast has started sending, once every gate that can still

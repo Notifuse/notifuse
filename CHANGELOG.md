@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [43.1] - WIP
 
-- **Feature**: A broadcast can now send from a sender other than its template's: each variation, in an A/B test too, chooses one of the marketing email integration's senders, or keeps its template's. A transactional email can do the same with `email_options.sender_id`. A sender that is not one of the integration's is refused when saving or sending. A broadcast whose chosen sender is removed from the integration afterwards cannot be scheduled, and one already sending pauses before its next batch, so it never leaves from another address.
+- **Feature**: A broadcast can now send from a sender other than its template's: each variation, in an A/B test too, chooses one of the marketing email integration's senders, or keeps its template's. A transactional email can do the same with `email_options.sender_id`. A sender that is not one of the integration's is refused when saving or sending. A broadcast whose chosen sender is removed from the integration afterwards cannot be scheduled or resumed until another sender is chosen; one still queuing its recipients pauses at its next sending round, and the console offers to change its sender before resuming it. Emails already queued keep the sender they were queued with, and no email falls back to another address.
 
 ## [43.0] - 2026-11-07
 

@@ -207,7 +207,7 @@ func (e *EmailProvider) ResolveSender(chosenID string, templateSenderID string) 
 	if sender := e.GetSender(templateSenderID); sender != nil {
 		return sender, nil
 	}
-	return nil, fmt.Errorf("%w: no sender configured for email provider", ErrSenderNotFound)
+	return nil, errors.New("no sender configured for email provider")
 }
 
 // EncryptSecretKeys encrypts all secret keys in the email provider

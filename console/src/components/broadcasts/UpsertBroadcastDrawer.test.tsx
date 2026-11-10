@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App as AntApp } from 'antd'
@@ -459,6 +459,28 @@ describe('UpsertBroadcastDrawer sender', () => {
 
   it("sends no sender when the variation keeps the template's", async () => {
     await openWithSenders(makeBroadcast())
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(broadcastApi.update).toHaveBeenCalled())
+    expect(updatePayload().test_settings.variations[0].sender_id).toBeUndefined()
+  })
+
+  it('sends no sender once the chosen one is cleared', async () => {
+    await openWithSenders(
+      makeBroadcast({
+        test_settings: {
+          enabled: false,
+          sample_percentage: 50,
+          auto_send_winner: false,
+          variations: [{ variation_name: 'default', template_id: 'tmpl1', sender_id: 's3' }]
+        }
+      })
+    )
+
+    const select = screen.getByLabelText('Sender').closest('.ant-select') as HTMLElement
+    const clear = select.querySelector('.ant-select-clear') as HTMLElement
+    fireEvent.mouseDown(clear)
+    fireEvent.click(clear)
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(broadcastApi.update).toHaveBeenCalled())

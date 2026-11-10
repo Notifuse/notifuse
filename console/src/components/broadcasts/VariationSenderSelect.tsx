@@ -39,11 +39,10 @@ export function VariationSenderSelect({
     enabled: !!workspace.id && !!templateId
   })
   const template = templatesResponse?.templates?.find((tpl) => tpl.id === templateId)
-  const templateSender = resolveVariationSender(
-    senders,
-    undefined,
-    template?.email?.sender_id
-  ).sender
+  // Known once the variation's template is: until then no sender can be said to be its.
+  const templateSender = template
+    ? resolveVariationSender(senders, undefined, template.email?.sender_id).sender
+    : undefined
 
   const options = senders.map((sender) => ({
     value: sender.id,
@@ -72,7 +71,8 @@ export function VariationSenderSelect({
       value={value || undefined}
       onChange={(next) => onChange?.(next || undefined)}
       allowClear
-      disabled={senders.length === 0}
+      // A sender kept from before the integration lost its senders can still be cleared.
+      disabled={senders.length === 0 && !value}
       placeholder={
         templateSender ? t`Template's sender (${templateSender.name})` : t`Template's sender`
       }

@@ -63,6 +63,7 @@ import dayjs from '../lib/dayjs'
 import { canSelectWinner } from '../lib/abTestWinner'
 import { UpsertBroadcastDrawer } from '../components/broadcasts/UpsertBroadcastDrawer'
 import { SendOrScheduleModal } from '../components/broadcasts/SendOrScheduleModal'
+import { ChangeVariationSenderModal } from '../components/broadcasts/ChangeVariationSenderModal'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import { BroadcastStats, ProgressStats } from '../components/broadcasts/BroadcastStats'
@@ -679,6 +680,13 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                 </Button>
               </Popconfirm>
             </Tooltip>
+          )}
+          {broadcast.status === 'paused' && currentWorkspace && (
+            <ChangeVariationSenderModal
+              workspace={currentWorkspace}
+              broadcast={broadcast}
+              disabled={!permissions?.broadcasts?.write}
+            />
           )}
           {broadcast.status === 'paused' && (
             <Tooltip
@@ -1561,7 +1569,12 @@ export function BroadcastsPage() {
         queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
       })
     } catch (error) {
-      message.error(t`Failed to resume broadcast`)
+      // The server names why, e.g. a chosen sender that left the integration.
+      message.error(
+        error instanceof Error
+          ? t`Failed to resume broadcast: ${error.message}`
+          : t`Failed to resume broadcast`
+      )
       console.error(error)
     }
   }

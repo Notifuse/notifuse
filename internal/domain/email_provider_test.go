@@ -1852,11 +1852,13 @@ func TestEmailProvider_ResolveSender(t *testing.T) {
 		assert.Equal(t, "hello@example.com", sender.Email)
 	})
 
-	t.Run("no sender at all is an error", func(t *testing.T) {
+	t.Run("no sender at all is an error, not a missing chosen sender", func(t *testing.T) {
 		empty := &EmailProvider{}
 		sender, err := empty.ResolveSender("", "")
 		assert.Nil(t, sender)
-		require.ErrorIs(t, err, ErrSenderNotFound)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no sender configured")
+		assert.NotErrorIs(t, err, ErrSenderNotFound)
 	})
 
 	t.Run("HasSender", func(t *testing.T) {

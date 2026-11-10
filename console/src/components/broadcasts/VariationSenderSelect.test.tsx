@@ -86,6 +86,18 @@ describe('VariationSenderSelect', () => {
     expect(screen.getByText('gone (deleted)')).toBeInTheDocument()
   })
 
+  it("names no sender before the variation's template is chosen", () => {
+    renderSelect({})
+    expect(screen.getByText("Template's sender")).toBeInTheDocument()
+    expect(screen.queryByText("Template's sender (Default)")).not.toBeInTheDocument()
+  })
+
+  it('lets a deleted sender be cleared when the integration has no sender left', async () => {
+    const onChange = vi.fn()
+    renderSelect({ value: 'gone', onChange, ws: { id: 'ws1', settings: {} } as unknown as Workspace })
+    expect(screen.getByRole('combobox')).not.toBeDisabled()
+  })
+
   it('is disabled without a marketing integration', async () => {
     renderSelect({ ws: { id: 'ws1', settings: {} } as unknown as Workspace })
     await waitFor(() => expect(screen.getByRole('combobox')).toBeDisabled())

@@ -151,7 +151,7 @@ func TestSendTimeSender(t *testing.T) {
 		keeps := newTemplate(t, "Keeps the template's sender "+suffix)
 		chooses := newTemplate(t, "Chooses promos "+suffix)
 		// Recipients get a variation at random; with this many, both are all but certain to go out.
-		list, emails := newAudience(t, 10)
+		list, emails := newAudience(t, 20)
 
 		resp, broadcastID := createBroadcast(t, list, map[string]interface{}{
 			"enabled":           true,
@@ -189,6 +189,7 @@ func TestSendTimeSender(t *testing.T) {
 			}
 		}
 		require.Contains(t, fromByVariation, chooses.Email.Subject, "the variation choosing a sender went out")
+		require.Contains(t, fromByVariation, keeps.Email.Subject, "the variation keeping its template's sender went out")
 	})
 
 	t.Run("a sender the integration does not have is refused on create", func(t *testing.T) {

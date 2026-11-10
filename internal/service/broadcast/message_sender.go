@@ -373,11 +373,12 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 	emailSender, senderErr := emailProvider.ResolveSender(broadcast.VariationSenderID(template.ID), emailContent.SenderID)
 	if senderErr != nil {
 		s.logger.WithFields(map[string]interface{}{
-			"broadcast_id": broadcast.ID,
-			"workspace_id": workspaceID,
-			"sender_id":    emailContent.SenderID,
-			"recipient":    email,
-			"error":        senderErr.Error(),
+			"broadcast_id":       broadcast.ID,
+			"workspace_id":       workspaceID,
+			"sender_id":          broadcast.VariationSenderID(template.ID),
+			"template_sender_id": emailContent.SenderID,
+			"recipient":          email,
+			"error":              senderErr.Error(),
 		}).Error("Sender not found")
 		return NewBroadcastError(ErrCodeSenderNotFound, "sender not found", true, senderErr)
 	}

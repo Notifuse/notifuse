@@ -1,3 +1,4 @@
+import type { Broadcast, BroadcastVariation } from '../../services/api/broadcast'
 import type { Sender, Workspace } from '../../services/api/types'
 
 // A broadcast always sends through the workspace's marketing email integration, whatever the
@@ -35,3 +36,16 @@ export function resolveVariationSender(
 }
 
 export const formatSender = (sender: Sender) => `${sender.name} <${sender.email}>`
+
+// variationsWithMissingSender returns the variations whose chosen sender is no longer one of
+// the marketing integration's. The server refuses to save, schedule or resume a broadcast
+// while any of them is left, and pauses one that is sending.
+export function variationsWithMissingSender(
+  workspace: Workspace,
+  broadcast: Broadcast
+): BroadcastVariation[] {
+  const senders = getMarketingSenders(workspace)
+  return (broadcast.test_settings?.variations || []).filter(
+    (variation) => resolveVariationSender(senders, variation.sender_id).missing
+  )
+}

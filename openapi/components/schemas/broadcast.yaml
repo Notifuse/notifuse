@@ -171,10 +171,11 @@ BroadcastVariation:
         instead of its template's sender. Omitted, the variation uses its template's sender:
         sending test_settings without it clears a sender chosen earlier. An ID that is not one
         of the integration's senders is refused with a 400. A broadcast whose chosen sender has
-        since been removed from the integration cannot be scheduled or resumed, and pauses if
-        it is already sending. Two variations using the same template must choose the same
-        sender.
-      example: 3f1c2a9e-sender
+        since been removed from the integration cannot be scheduled or resumed until another
+        sender is chosen. One still queuing its recipients pauses at its next sending round;
+        emails already queued keep the sender they were queued with. It never falls back to
+        another address. Two variations using the same template must choose the same sender.
+      example: 3f1c2a9e-7b4d-4e1a-9c2f-5d8e6a0b1c3d
     metrics:
       $ref: '#/VariationMetrics'
     template:

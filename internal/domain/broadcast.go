@@ -647,7 +647,6 @@ func (r *UpdateBroadcastRequest) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Validate validates the update broadcast request
 // TestSettingsProvided reports whether the update carries test_settings, which hold the
 // variations and their senders; without it the stored ones stand.
 func (r *UpdateBroadcastRequest) TestSettingsProvided() bool {
@@ -699,6 +698,7 @@ func CheckVariationSenders(provider *EmailProvider, variations []BroadcastVariat
 	return nil
 }
 
+// Validate validates the update broadcast request
 func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadcast, error) {
 	if r.WorkspaceID != existingBroadcast.WorkspaceID {
 		return nil, fmt.Errorf("workspace_id cannot be changed")
