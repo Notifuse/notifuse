@@ -975,6 +975,10 @@ type TemplateDataRequest struct {
 	ProvidedData        MapOfAny                       `json:"provided_data,omitempty"`
 	TrackingSettings    notifuse_mjml.TrackingSettings `json:"tracking_settings"`
 	Broadcast           *Broadcast                     `json:"broadcast,omitempty"`
+	// WebVersion fills view_in_browser_url with a signed link to the web version of
+	// this message. Set by broadcasts and automations only: transactional emails can
+	// carry sign-in or reset links that must not be readable from a shareable URL.
+	WebVersion bool `json:"web_version,omitempty"`
 }
 
 // Validate ensures that the template data request has all required fields
@@ -1155,6 +1159,17 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 	if !req.TrackingSettings.SuppressOpens {
 		templateData["tracking_opens_url"] = notifuse_mjml.GenerateOpenTrackingURL(
 			TrackingSigningKey(req.WorkspaceSecretKey), req.WorkspaceID, req.MessageID, req.TrackingSettings.Endpoint, time.Now().Unix())
+	}
+
+	// Web version link. Outside its scope the key renders empty, but a value the caller
+	// supplied (a transactional API payload, template test data) is left alone.
+	if req.WebVersion {
+		templateData["view_in_browser_url"] = ""
+		if viewToken, err := trackingtoken.MintView(TrackingSigningKey(req.WorkspaceSecretKey), req.MessageID, req.WorkspaceID, time.Now().Unix()); err == nil {
+			templateData["view_in_browser_url"] = strings.TrimRight(req.TrackingSettings.Endpoint, "/") + "/v/" + viewToken
+		}
+	} else if _, supplied := templateData["view_in_browser_url"]; !supplied {
+		templateData["view_in_browser_url"] = ""
 	}
 
 	return templateData, nil

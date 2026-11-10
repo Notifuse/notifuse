@@ -327,3 +327,73 @@ func TestHostOf(t *testing.T) {
 		assert.Equal(t, want, HostOf(raw), "%q", raw)
 	}
 }
+
+func TestMintView_RoundTrip(t *testing.T) {
+	key := testKey(t, "workspace-secret")
+	token, err := MintView(key, "msg-1", "ws-1", 1730000000)
+	require.NoError(t, err)
+
+	parsed, err := Parse(token, PurposeView)
+	require.NoError(t, err)
+	assert.Equal(t, "msg-1", parsed.MessageID)
+	assert.Equal(t, "ws-1", parsed.WorkspaceID)
+	assert.Equal(t, int64(1730000000), parsed.Timestamp)
+	assert.Empty(t, parsed.URL)
+	assert.True(t, parsed.Verify(key, PurposeView))
+	assert.False(t, parsed.Verify(testKey(t, "other-secret"), PurposeView), "another workspace's key must not verify")
+}
+
+func TestMintView_RequiresKey(t *testing.T) {
+	_, err := MintView(nil, "msg-1", "ws-1", 1730000000)
+	assert.Error(t, err, "a view token is never minted unsigned")
+	_, err = MintView([]byte{}, "msg-1", "ws-1", 1730000000)
+	assert.Error(t, err)
+}
+
+func TestVerify_ViewPurposeIsBound(t *testing.T) {
+	key := testKey(t, "workspace-secret")
+
+	openToken, err := MintOpen(key, "msg-1", "ws-1", 1730000000)
+	require.NoError(t, err)
+	asView, err := Parse(openToken, PurposeView)
+	require.NoError(t, err)
+	assert.False(t, asView.Verify(key, PurposeView), "an open token must not verify as a view")
+
+	click, err := MintClick(key, "msg-1", "ws-1", 1730000000, "")
+	require.NoError(t, err)
+	// A click token with an empty destination opens as three fields plus an empty one;
+	// re-sealed without it, it has the view shape.
+	clickParts := strings.SplitN(open(t, click), "\n", 4)
+	clickAsView, err := Parse(reseal(t, strings.Join(clickParts[:3], "\n")), PurposeView)
+	require.NoError(t, err)
+	assert.False(t, clickAsView.Verify(key, PurposeView), "a click token must not verify as a view")
+
+	view, err := MintView(key, "msg-1", "ws-1", 1730000000)
+	require.NoError(t, err)
+	viewAsOpen, err := Parse(view, PurposeOpen)
+	require.NoError(t, err)
+	assert.False(t, viewAsOpen.Verify(key, PurposeOpen), "a view token must not verify as an open")
+	viewAsClick, err := Parse(reseal(t, open(t, view)+"\n"), PurposeClick)
+	require.NoError(t, err)
+	assert.False(t, viewAsClick.Verify(key, PurposeClick), "a view token must not verify as a click")
+}
+
+func TestVerify_ViewRejectsChangedFields(t *testing.T) {
+	key := testKey(t, "workspace-secret")
+	token, err := MintView(key, "msg-1", "ws-1", 1730000000)
+	require.NoError(t, err)
+	parts := strings.SplitN(open(t, token), "\n", 3)
+	_, tag, found := strings.Cut(parts[2], ".")
+	require.True(t, found)
+
+	changed := map[string]string{
+		"message id": "msg-2\n" + parts[1] + "\n" + parts[2],
+		"workspace":  parts[0] + "\nws-2\n" + parts[2],
+		"timestamp":  parts[0] + "\n" + parts[1] + "\n1730000001." + tag,
+	}
+	for name, plaintext := range changed {
+		forged, err := Parse(reseal(t, plaintext), PurposeView)
+		require.NoError(t, err, name)
+		assert.False(t, forged.Verify(key, PurposeView), "changing the %s must break the tag", name)
+	}
+}

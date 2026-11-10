@@ -1,5 +1,6 @@
-// Package trackingtoken mints and reads the tokens of the email tracking routes:
-// /r/<token> for clicks and /t/<token> for opens.
+// Package trackingtoken mints and reads the tokens of the email tracking routes and of
+// the web version route:
+// /r/<token> for clicks, /t/<token> for opens and /v/<token> for the web version.
 //
 // A token is the plaintext below, sealed with crypto.EncryptTrackingToken. That outer
 // layer uses a public key: it only keeps the content opaque to pixel blockers, and anyone
@@ -8,6 +9,7 @@
 //
 //	click: <mid>\n<wid>\n<ts>.<tag>\n<url>
 //	open:  <mid>\n<wid>\n<ts>.<tag>
+//	view:  <mid>\n<wid>\n<ts>.<tag>
 //
 // The fields keep the order of the unsigned tokens minted before 42.2, so an instance that
 // still reads the old format finds the message, workspace and destination where they were.
@@ -36,6 +38,9 @@ type Purpose string
 const (
 	PurposeClick Purpose = "r"
 	PurposeOpen  Purpose = "t"
+	// PurposeView is the web version of an email. Unlike clicks and opens, it has no
+	// unsigned or legacy form: the token is the only credential to read the email.
+	PurposeView Purpose = "v"
 )
 
 // keyInfo is the HKDF info string. Changing it changes every workspace's key and makes
@@ -128,6 +133,15 @@ func MintClick(key []byte, mid, wid string, ts int64, url string) (string, error
 // MintOpen returns an open token. An empty key mints an unsigned token.
 func MintOpen(key []byte, mid, wid string, ts int64) (string, error) {
 	return crypto.EncryptTrackingToken(mid + "\n" + wid + "\n" + timestampField(key, PurposeOpen, mid, wid, ts, ""))
+}
+
+// MintView returns a web version token. It refuses an empty key: a view token that
+// does not verify is never accepted, so an unsigned one would only be a dead link.
+func MintView(key []byte, mid, wid string, ts int64) (string, error) {
+	if len(key) == 0 {
+		return "", errors.New("trackingtoken: a view token needs a signing key")
+	}
+	return crypto.EncryptTrackingToken(mid + "\n" + wid + "\n" + timestampField(key, PurposeView, mid, wid, ts, ""))
 }
 
 func timestampField(key []byte, purpose Purpose, mid, wid string, ts int64, url string) string {
