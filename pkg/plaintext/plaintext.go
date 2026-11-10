@@ -51,7 +51,9 @@ var invisible = strings.NewReplacer(
 )
 
 // FromHTML returns the plain-text version of an HTML email, or "" when the HTML holds
-// nothing to read. It never fails: unparseable input yields whatever text it holds.
+// nothing to read. It never fails: the parser recovers from malformed markup, and the
+// one input it refuses (elements nested deeper than it allows) yields "", which sends the
+// email as HTML only.
 func FromHTML(src string) string {
 	if strings.TrimSpace(src) == "" {
 		return ""
@@ -78,6 +80,9 @@ type writer struct {
 	lists        []list
 	quoteDepth   int
 	preDepth     int
+	itemDepth    int    // open list items: a paragraph inside one ends a line, not a block
+	marker       string // the list marker waiting for the first word of its item
+	continuation string // what starts the other lines of the current item, under its text
 }
 
 // write appends s to the current line, inserting the space that collapsed whitespace,
@@ -86,17 +91,29 @@ func (w *writer) write(s string) {
 	if s == "" {
 		return
 	}
-	separate := w.pendingSpace || (w.afterURL && !strings.ContainsRune(trailingPunctuation, rune(s[0])))
+	if w.line.Len() == 0 {
+		if w.marker != "" {
+			w.line.WriteString(w.marker)
+			w.marker = ""
+		} else {
+			w.line.WriteString(w.continuation)
+		}
+	}
+	punctuation := len(s) - len(strings.TrimLeft(s, trailingPunctuation))
+	attached := w.afterURL && punctuation > 0 && (punctuation == len(s) || isSpace(s[punctuation]))
+	separate := w.pendingSpace || (w.afterURL && !attached)
 	if w.line.Len() > 0 && separate && !strings.HasSuffix(w.line.String(), " ") && !strings.HasPrefix(s, " ") {
 		w.line.WriteByte(' ')
 	}
 	w.pendingSpace = false
-	w.afterURL = false
+	// Punctuation alone after a URL leaves the URL needing a space before the next word.
+	w.afterURL = attached && punctuation == len(s)
 	w.line.WriteString(s)
 }
 
-// trailingPunctuation may follow a URL without a space: autolinkers leave it out of
-// the link, and a space before it would read oddly.
+// trailingPunctuation may follow a URL without a space when a space or the end of the
+// text comes next: autolinkers leave it out of the link, and a space before it would
+// read oddly.
 const trailingPunctuation = ".,;:!?)]"
 
 // writeURL appends a URL and remembers that the next word must be separated from it,
@@ -239,6 +256,10 @@ func (w *writer) element(n *html.Node) {
 	}
 	switch n.DataAtom {
 	case atom.Br:
+		if w.line.Len() == 0 {
+			// A second line break in a row leaves an empty line.
+			w.b.WriteByte('\n')
+		}
 		w.newline()
 		return
 	case atom.Hr:
@@ -256,7 +277,11 @@ func (w *writer) element(n *html.Node) {
 		return
 	case atom.Ul, atom.Ol:
 		w.newline()
-		w.lists = append(w.lists, list{ordered: n.DataAtom == atom.Ol})
+		l := list{ordered: n.DataAtom == atom.Ol}
+		if start, err := strconv.Atoi(strings.TrimSpace(attr(n, "start"))); err == nil && l.ordered {
+			l.count = start - 1
+		}
+		w.lists = append(w.lists, l)
 		w.walkChildren(n)
 		w.lists = w.lists[:len(w.lists)-1]
 		w.newline()
@@ -275,9 +300,17 @@ func (w *writer) element(n *html.Node) {
 				marker = strconv.Itoa(l.count) + ". "
 			}
 		}
-		w.line.WriteString(indent + marker)
+		// The marker waits for the item's first word, so a paragraph or a div inside the
+		// item does not leave it alone on its line.
+		outer := w.continuation
+		w.marker = indent + marker
+		w.continuation = strings.Repeat(" ", len(w.marker))
+		w.itemDepth++
 		w.walkChildren(n)
 		w.newline()
+		w.itemDepth--
+		w.marker = ""
+		w.continuation = outer
 		return
 	case atom.Blockquote:
 		w.blankLine()
@@ -300,7 +333,7 @@ func (w *writer) element(n *html.Node) {
 		w.newline()
 	}
 	w.walkChildren(n)
-	if paragraphs[n.DataAtom] {
+	if paragraphs[n.DataAtom] && w.itemDepth == 0 {
 		w.blankLine()
 	} else if blocks[n.DataAtom] {
 		w.newline()
@@ -317,6 +350,12 @@ func (w *writer) link(n *html.Node) {
 
 	switch {
 	case strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://"):
+		if label == "" && labelledLinkFollows(n) {
+			// An icon whose row then links with a label, as a social element does: the
+			// labelled link says the same, and with click tracking the two URLs differ, so
+			// the repeat could not be recognised from the text.
+			return
+		}
 		if label == "" || label == href || isWebURL(label) {
 			w.writeURL(href)
 			return
@@ -339,6 +378,48 @@ func (w *writer) link(n *html.Node) {
 	default:
 		w.write(label)
 	}
+}
+
+// labelledLinkFollows reports whether the next link in the table row holding the
+// anchor, or in the row around that one, has a label. Climbing stops at the first row
+// holding another link, so icons side by side are all kept.
+func labelledLinkFollows(a *html.Node) bool {
+	rows := 0
+	for p := a.Parent; p != nil && rows < 2; p = p.Parent {
+		if p.DataAtom != atom.Tr {
+			continue
+		}
+		rows++
+		if next := nextAnchor(p, a); next != nil {
+			return linkLabel(next) != ""
+		}
+	}
+	return false
+}
+
+// nextAnchor returns the first anchor inside root that comes after the subtree of after.
+func nextAnchor(root, after *html.Node) *html.Node {
+	passed := false
+	var found *html.Node
+	var visit func(*html.Node)
+	visit = func(n *html.Node) {
+		for c := n.FirstChild; c != nil && found == nil; c = c.NextSibling {
+			if c == after {
+				passed = true
+				continue
+			}
+			if c.Type == html.ElementNode && (skipped[c.DataAtom] || isHidden(c)) {
+				continue
+			}
+			if passed && c.Type == html.ElementNode && c.DataAtom == atom.A {
+				found = c
+				return
+			}
+			visit(c)
+		}
+	}
+	visit(root)
+	return found
 }
 
 // linkLabel is the text a reader sees for a link: its text, or the alt text of the

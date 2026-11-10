@@ -242,7 +242,8 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
     testData ? JSON.stringify(testData, null, 2) : '{}'
   )
   const [htmlOutput, setHtmlOutput] = useState<string>('')
-  const [textOutput, setTextOutput] = useState<string>('')
+  // null until the first compile returns
+  const [textOutput, setTextOutput] = useState<string | null>(null)
   const [testDataDirty, setTestDataDirty] = useState(false)
 
   // Draft storage key
@@ -847,6 +848,10 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
                 {compileErrors ? (
                   <div style={{ color: '#999', textAlign: 'center', padding: 40 }}>
                     {t`The email could not be compiled`}
+                  </div>
+                ) : textOutput === null ? (
+                  <div style={{ color: '#999', textAlign: 'center', padding: 40 }}>
+                    {t`Compiling...`}
                   </div>
                 ) : textOutput.trim() ? (
                   <pre

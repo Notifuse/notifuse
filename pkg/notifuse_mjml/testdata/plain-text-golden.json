@@ -47,7 +47,7 @@
                 {
                   "id": "intro",
                   "type": "mj-text",
-                  "content": "<p>Our spring collection is in store. Read <a href=\"https://www.example.com/blog/spring\">the story behind it</a>.</p><ul><li>Linen shirts</li><li>Canvas shoes</li></ul>"
+                  "content": "<p>Our spring collection is in store. Read <a href=\"https://www.example.com/blog/spring\">the story behind it</a>.</p><ul><li><p>Linen shirts</p></li><li><p>Canvas shoes</p></li></ul><ol start=\"3\"><li><p>Free returns</p></li></ol>"
                 },
                 {
                   "id": "button",

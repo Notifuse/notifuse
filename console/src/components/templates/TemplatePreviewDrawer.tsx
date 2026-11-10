@@ -80,6 +80,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       setMjmlError(null)
       setPreviewMjml(null)
       setPreviewHtml(null)
+      setPreviewText(null)
       return
     }
 

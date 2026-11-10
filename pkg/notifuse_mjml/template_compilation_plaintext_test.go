@@ -172,6 +172,39 @@ func TestCompileTemplate_PlainTextGolden(t *testing.T) {
 	assert.Equal(t, urlSet(htmlHrefs(t, *resp.HTML)), urlSet(textURL.FindAllString(*resp.Text, -1)))
 }
 
+// With click tracking every link gets its own token, so the icon and the label of a
+// social element no longer share a URL: the icon must still not be written.
+func TestCompileTemplate_PlainTextGoldenTracked(t *testing.T) {
+	src, err := os.ReadFile("testdata/plain-text-golden.json")
+	require.NoError(t, err)
+	tree, err := UnmarshalEmailBlock(src)
+	require.NoError(t, err)
+
+	resp := compilePlainText(t, CompileTemplateRequest{
+		VisualEditorTree: tree,
+		TemplateData:     MapOfAny{"unsubscribe_url": "https://www.example.com/unsubscribe/abc"},
+		IncludeText:      true,
+		TrackingSettings: TrackingSettings{
+			EnableTracking: true, Endpoint: "https://t.example.com", WorkspaceID: "ws", MessageID: "msg",
+		},
+	})
+	require.True(t, resp.Success, "%+v", resp.Error)
+	require.NotNil(t, resp.Text)
+
+	for _, line := range strings.Split(*resp.Text, "\n") {
+		assert.False(t, textURL.MatchString(line) && textURL.FindString(line) == line, "bare URL line %q", line)
+	}
+	assert.Contains(t, *resp.Text, "Facebook (https://t.example.com/r/")
+	assert.Contains(t, *resp.Text, "Instagram (https://t.example.com/r/")
+	hrefs := map[string]bool{}
+	for _, h := range htmlHrefs(t, *resp.HTML) {
+		hrefs[h] = true
+	}
+	for _, u := range textURL.FindAllString(*resp.Text, -1) {
+		assert.True(t, hrefs[u], "text URL %q is an href of the HTML", u)
+	}
+}
+
 func BenchmarkCompileTemplate(b *testing.B) {
 	src, err := os.ReadFile("testdata/plain-text-golden.json")
 	if err != nil {
