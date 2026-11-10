@@ -18,7 +18,7 @@ Affected send paths (all go through `ResolveEmailContent`):
 
 | Path | File |
 | --- | --- |
-| Transactional API, list double opt-in / welcome emails | `internal/service/email_service.go` (`SendEmailForTemplate`) |
+| Transactional API, list double opt-in emails | `internal/service/email_service.go` (`SendEmailForTemplate`) |
 | Template test send | `internal/service/transactional_service.go` (`TestTemplate`, reply-to only: sender is chosen in the dialog) |
 | Broadcast, direct sender | `internal/service/broadcast/message_sender.go` |
 | Broadcast, queue sender | `internal/service/broadcast/queue_message_sender.go` |
@@ -55,13 +55,14 @@ lets the explicit one win. Today translated sends escape that override only beca
 empty; inheriting it would extend the override to them. So the same PR makes the template's reply-to
 a fallback there too: applied only when the send gives none. Covers transactional sends, emails
 relayed through the SMTP bridge (whose `Reply-To` header fills `email_options.reply_to`), and list
-double opt-in / welcome emails (the latter never set one, so they keep the template's).
+double opt-in emails (which never set one, so they keep the template's).
 
 Why at resolution rather than on save: it heals templates already stored without a migration, covers
 translations written by the API, and keeps one rule in one place for all six send paths.
 
 No SQL change, no environment variable. Version bump 43.0 → 43.1 (minor), CHANGELOG entry under
-`## [43.1] - WIP`.
+`## [43.1] - WIP`. The bump also regenerates the web analytics SDK (`web_analytics_sdk/package.json`
+and its `dist/` bundles), whose version CI compares with `VERSION`.
 
 ## Files and tests (TDD: tests first)
 
@@ -97,7 +98,8 @@ Tests — `internal/service/email_service_test.go` (`SendEmailForTemplate`):
 2. no explicit reply-to + template reply-to → the template's is sent;
 3. translated contact, translation without sender / reply-to → From is the template's sender B and
    Reply-To the template's;
-4. translated contact with an explicit `email_options.reply_to` → the explicit one is sent.
+4. translated contact with an explicit `email_options.reply_to` → the explicit one is sent;
+5. translation with its own sender and reply-to → those are sent, not the template's.
 
 ### Send paths (no code change, regression tests)
 
@@ -125,6 +127,7 @@ reply-to, and its `fr` translation has neither:
 - `openapi/components/schemas/template.yaml`, `TemplateTranslation`: an email translation without
   `sender_id` or `reply_to` uses the default content's.
 - `openapi/components/schemas/transactional.yaml`, `reply_to`: overrides the template's reply-to.
+- `openapi.json` re-bundled from those schemas.
 - `../docs` (separate PR, `docs/` branch to `dev`): `features/templates.mdx` (translations send from
   the template's sender with its reply-to) and `features/transactional-api.mdx` (`reply_to` overrides
   the template's).
@@ -135,6 +138,12 @@ reply-to, and its `fr` translation has neither:
   per-language sender set through the API is wiped by a console save. With this fix the translation
   then inherits the base template's values, which is the console's intent.
 - The automation email node's `from_override` / `subject_override` are declared but never read.
+
+## Review
+
+A counter-review of the first version of this plan raised six findings. All of them were checked in
+the code and folded in above (reply-to override, empty-means-inherit, non-default sender fixtures,
+language collision, mandatory queue test, automation coverage).
 
 ## Test commands
 
@@ -147,9 +156,3 @@ make test-service
 INTEGRATION_TESTS=true go test -race -tags integration,licdev -timeout 20m ./tests/integration/ -run 'TestTemplateTranslation' -v
 make test-unit
 ```
-
-## Review
-
-A counter-review of the first version of this plan raised six findings. All of them were checked in
-the code and folded in above (reply-to override, empty-means-inherit, non-default sender fixtures,
-language collision, mandatory queue test, automation coverage).

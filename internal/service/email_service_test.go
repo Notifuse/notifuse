@@ -2675,6 +2675,18 @@ func TestEmailService_SendEmailForTemplate_SenderAndReplyTo(t *testing.T) {
 		assert.Equal(t, "support@example.com", sent.EmailOptions.ReplyTo)
 	})
 
+	t.Run("a translation's own sender and reply-to win over the template's", func(t *testing.T) {
+		tmpl := newTemplate()
+		it := tmpl.Translations["it"]
+		it.Email.SenderID = defaultSender.ID
+		it.Email.ReplyTo = "assistenza@example.com"
+
+		sent := sendForTemplateCapturingProviderRequest(t, tmpl, senders, italian, domain.EmailOptions{})
+
+		assert.Equal(t, "hello@example.com", sent.FromAddress)
+		assert.Equal(t, "assistenza@example.com", sent.EmailOptions.ReplyTo)
+	})
+
 	t.Run("without a reply-to of its own the send takes the template's", func(t *testing.T) {
 		sent := sendForTemplateCapturingProviderRequest(t, newTemplate(), senders, english, domain.EmailOptions{})
 

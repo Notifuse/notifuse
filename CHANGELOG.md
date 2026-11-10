@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [43.1] - WIP
 
-- **Fix**: Emails sent in a template's translation now leave from the sender chosen on the template, with its reply-to, instead of the email integration's default sender with no reply-to.
+- **Fix**: Emails sent in a template's translation now leave from the sender chosen on the template, with its reply-to, instead of the email integration's default sender with no reply-to. Emails already queued before the upgrade keep the sender they were queued with.
 
 - **Fix**: A transactional email sent with `email_options.reply_to`, or relayed through the SMTP bridge with a `Reply-To` header, now uses that address even when its template has a reply-to of its own.
 
