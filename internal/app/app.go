@@ -974,6 +974,7 @@ func (a *App) InitServices() error {
 		a.authService,
 		a.logger,
 		a.workspaceRepo,
+		a.listRepo,
 		a.config.APIEndpoint,
 	)
 

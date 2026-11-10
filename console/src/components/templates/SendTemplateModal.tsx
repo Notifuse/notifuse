@@ -9,6 +9,8 @@ import {
 } from '../../services/api/transactional_notifications'
 import { emailProviders } from '../integrations/EmailProviders'
 import { SUPPORTED_LANGUAGES } from '../../lib/languages'
+import { useQuery } from '@tanstack/react-query'
+import { listsApi } from '../../services/api/list'
 
 const { Text } = Typography
 const { Option } = Select
@@ -20,6 +22,13 @@ interface SendTemplateModalProps {
   workspace: Workspace | null
   loading?: boolean
   withCCAndBCC?: boolean
+  // List preselected for the test, such as a broadcast's audience list
+  defaultListId?: string
+  // When the test is sent for defaultListId, keep its links but leave out the List-Unsubscribe
+  // header, as a broadcast that also goes to the list's unsubscribed contacts does
+  omitListUnsubscribeHeader?: boolean
+  // The list field is shown, and lists loaded, only for members who can read lists
+  canReadLists?: boolean
 }
 
 export default function SendTemplateModal({
@@ -28,7 +37,10 @@ export default function SendTemplateModal({
   template,
   workspace,
   loading = false,
-  withCCAndBCC = false
+  withCCAndBCC = false,
+  defaultListId,
+  omitListUnsubscribeHeader = false,
+  canReadLists = false
 }: SendTemplateModalProps) {
   const { t } = useLingui()
   const [email, setEmail] = useState('')
@@ -42,8 +54,25 @@ export default function SendTemplateModal({
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState<string>('')
+  const [selectedListId, setSelectedListId] = useState<string | undefined>(undefined)
   const [form] = Form.useForm()
   const { message } = App.useApp()
+
+  const { data: listsData, isLoading: listsLoading } = useQuery({
+    queryKey: ['lists', workspace?.id],
+    queryFn: () => listsApi.list({ workspace_id: workspace?.id ?? '' }),
+    enabled: isOpen && canReadLists && !!workspace?.id
+  })
+  const lists = React.useMemo(() => listsData?.lists ?? [], [listsData])
+  // Only a list of this workspace is used, so a preselected list that was deleted selects nothing
+  const listId =
+    canReadLists && selectedListId && lists.some((list) => list.id === selectedListId)
+      ? selectedListId
+      : undefined
+  // The header is left out only for the broadcast's own audience list
+  const omitHeader = omitListUnsubscribeHeader && !!listId && listId === defaultListId
+  // A preselected list is not sent until the lists have loaded, so wait for them
+  const waitingForDefaultList = canReadLists && !!defaultListId && listsLoading
 
   // Filter to only email integrations
    
@@ -108,9 +137,10 @@ export default function SendTemplateModal({
       setAttachments([])
       setShowAdvancedOptions(false)
       setSelectedLanguage(workspace?.settings?.default_language || '')
+      setSelectedListId(defaultListId)
       form.resetFields()
     }
-  }, [isOpen, form, withCCAndBCC, workspace?.settings?.default_language])
+  }, [isOpen, form, withCCAndBCC, workspace?.settings?.default_language, defaultListId])
 
   const handleSend = async () => {
     if (!template || !workspace || !selectedIntegrationId) return
@@ -130,7 +160,8 @@ export default function SendTemplateModal({
           bcc: bccEmails,
           reply_to: replyTo,
           attachments: attachments.length > 0 ? attachments : undefined
-        }
+        },
+        listId ? { listId, omitListUnsubscribeHeader: omitHeader } : undefined
       )
 
       if (response.success) {
@@ -271,7 +302,9 @@ export default function SendTemplateModal({
           key="send"
           type="primary"
           onClick={handleSend}
-          disabled={!email || !selectedIntegrationId || loading || sendLoading}
+          disabled={
+            !email || !selectedIntegrationId || loading || sendLoading || waitingForDefaultList
+          }
           loading={loading || sendLoading}
         >
           {t`Send Test Email`}
@@ -321,6 +354,35 @@ export default function SendTemplateModal({
               type="email"
             />
           </Form.Item>
+
+          {canReadLists && (
+            <Form.Item
+              label={t`Mailing list`}
+              extra={
+                !listId
+                  ? t`Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header.`
+                  : omitHeader
+                    ? t`Adds this list's unsubscribe links, as the broadcast does. The broadcast also goes to the list's unsubscribed contacts, so the test carries no List-Unsubscribe header. Unsubscribing or confirming from this test, or a bounce or complaint on it, really changes the recipient's subscription to the list.`
+                    : t`Adds this list's unsubscribe links and the List-Unsubscribe header, as a broadcast to this list does. Unsubscribing or confirming from this test, or a bounce or complaint on it, really changes the recipient's subscription to the list.`
+              }
+            >
+              <Select
+                className="w-full"
+                allowClear
+                loading={listsLoading}
+                placeholder={t`None (no unsubscribe link)`}
+                value={listId}
+                onChange={(value?: string) => setSelectedListId(value)}
+                options={lists.map((list) => ({
+                  label:
+                    list.id === defaultListId
+                      ? t`${list.name} (broadcast audience)`
+                      : list.name,
+                  value: list.id
+                }))}
+              />
+            </Form.Item>
+          )}
 
           {languageOptions.length > 0 && (
             <Form.Item label={t`Language`}>

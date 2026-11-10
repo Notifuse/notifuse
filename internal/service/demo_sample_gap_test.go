@@ -235,7 +235,7 @@ func TestDemoService_AddSampleData_GapMessageHistoryFailureAborts(t *testing.T) 
 		txRepo, mocks.NewMockMessageHistoryRepository(ctrl), templateSvc,
 		mocks.NewMockContactService(ctrl), mocks.NewMockEmailServiceInterface(ctrl),
 		txAuth, logger.NewLoggerWithLevel("disabled"),
-		mocks.NewMockWorkspaceRepository(ctrl), "",
+		mocks.NewMockWorkspaceRepository(ctrl), mocks.NewMockListRepository(ctrl), "",
 	)
 
 	// Step 7 cannot load the workspace: exact wrapped error, segments skipped.
@@ -297,7 +297,7 @@ func TestDemoService_AddSampleData_GapFullSuccessNonFatalStepsDegrade(t *testing
 		txRepo, mocks.NewMockMessageHistoryRepository(ctrl), templateSvc,
 		mocks.NewMockContactService(ctrl), mocks.NewMockEmailServiceInterface(ctrl),
 		txAuth, logger.NewLoggerWithLevel("disabled"),
-		mocks.NewMockWorkspaceRepository(ctrl), "",
+		mocks.NewMockWorkspaceRepository(ctrl), mocks.NewMockListRepository(ctrl), "",
 	)
 
 	wsRepo := mocks.NewMockWorkspaceRepository(ctrl)

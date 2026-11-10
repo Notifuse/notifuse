@@ -81,10 +81,8 @@ down; no behaviour changes there.
 
 ### Version and changelog
 
-- `config/config.go`: `VERSION` 43.0 → 43.1 (minor: no schema change).
-- `web_analytics_sdk/`: `npm run build` (its `prebuild` runs `sync-version`, which writes `43.1.0` into
-  `package.json`; rollup reads `config/config.go` for the three `dist` bundles). CI checks this sync.
-- `CHANGELOG.md`, new section `## [43.1] - WIP` (the release PR dates it, as for 42.3):
+`dev` already moved to 43.1 (unreleased, with the web analytics SDK synced) while this branch was open, so no
+version change here. `CHANGELOG.md`, under `## [43.1]`:
 
   `- **Fix**: In the email editor, saving a block now always starts as a new saved block, and "Update existing block" only lists saved blocks of the same type. Before, the dialog could open on updating another saved block that merely looked alike. The confirmation now appears once the block is saved, and the dialog stays open if saving fails.`
 
