@@ -12,6 +12,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/Notifuse/notifuse/pkg/plaintext"
 	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/preslavrachev/gomjml/mjml"
 )
@@ -614,6 +615,10 @@ type CompileTemplateRequest struct {
 	Channel                string           `json:"channel,omitempty"`                  // "email" or "web"
 	PreserveLiquid         bool             `json:"preserve_liquid,omitempty"`          // When true, skip Liquid template processing and preserve raw syntax
 	SubjectPreviewOverride *string          `json:"subject_preview_override,omitempty"` // Override mj-preview content before compilation
+
+	// IncludeText asks for the plain-text version in the response. Only the preview
+	// endpoint sets it: a send generates the text itself, once, in EmailService.SendEmail.
+	IncludeText bool `json:"-"`
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for CompileTemplateRequest
@@ -682,6 +687,7 @@ type CompileTemplateResponse struct {
 	SubjectPreview *string     `json:"subject_preview,omitempty"` // Rendered email subject preview (Liquid processed); omit if not provided in request
 	Error          *mjml.Error `json:"error,omitempty"`           // Pointer, omit if nil
 	TemplateData   MapOfAny    `json:"test_data,omitempty"`       // Effective template data used for rendering (includes the injected workspace object); omit if empty
+	Text           *string     `json:"text,omitempty"`            // Plain-text version sent with the email, when the request asked for it; omit otherwise
 }
 
 // renderSubjectField applies the same Liquid rules used for the body to a header
@@ -980,6 +986,14 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		}, nil
 	}
 
+	// The plain-text version is derived from the tracked HTML, as a send does, so the
+	// preview shows the links that go out.
+	var text *string
+	if req.IncludeText {
+		t := plaintext.FromHTML(trackedHTML)
+		text = &t
+	}
+
 	// Return successful response
 	return &CompileTemplateResponse{
 		Success:        true,
@@ -988,6 +1002,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		Subject:        renderedSubject,
 		SubjectPreview: renderedSubjectPreview,
 		Error:          nil,
+		Text:           text,
 	}, nil
 }
 

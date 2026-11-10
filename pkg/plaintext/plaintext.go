@@ -86,7 +86,8 @@ func (w *writer) write(s string) {
 	if s == "" {
 		return
 	}
-	if w.line.Len() > 0 && (w.pendingSpace || w.afterURL) && !strings.HasSuffix(w.line.String(), " ") && !strings.HasPrefix(s, " ") {
+	separate := w.pendingSpace || (w.afterURL && !strings.ContainsRune(trailingPunctuation, rune(s[0])))
+	if w.line.Len() > 0 && separate && !strings.HasSuffix(w.line.String(), " ") && !strings.HasPrefix(s, " ") {
 		w.line.WriteByte(' ')
 	}
 	w.pendingSpace = false
@@ -94,8 +95,12 @@ func (w *writer) write(s string) {
 	w.line.WriteString(s)
 }
 
-// writeURL appends a URL and remembers that whatever comes next must be separated
-// from it, so that a client's autolinker never reads two links as one.
+// trailingPunctuation may follow a URL without a space: autolinkers leave it out of
+// the link, and a space before it would read oddly.
+const trailingPunctuation = ".,;:!?)]"
+
+// writeURL appends a URL and remembers that the next word must be separated from it,
+// so that a client's autolinker never reads two links, or a link and a word, as one.
 func (w *writer) writeURL(s string) {
 	w.write(s)
 	w.afterURL = true

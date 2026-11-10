@@ -247,6 +247,9 @@ func (h *TemplateHandler) handleCompile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// The preview shows the plain-text version a send would include.
+	req.IncludeText = true
+
 	resp, err := h.service.CompileTemplate(r.Context(), req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Warn("Template compilation failed")

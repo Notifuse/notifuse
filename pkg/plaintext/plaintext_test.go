@@ -60,6 +60,11 @@ func TestFromHTML(t *testing.T) {
 			`<a href="https://e.com/1"><img src="x.png"></a><a href="https://e.com/2"><img src="y.png"></a>`,
 			"https://e.com/1 https://e.com/2\n",
 		},
+		{
+			"punctuation right after a link stays attached",
+			`<p>Read <a href="https://e.com/a">the post</a>. Then <a href="https://e.com/b">https://e.com/b</a>, ok</p>`,
+			"Read the post (https://e.com/a). Then https://e.com/b, ok\n",
+		},
 		{"mailto with the address as label", `<a href="mailto:help@e.com">help@e.com</a>`, "help@e.com\n"},
 		{"mailto drops its query", `<a href="mailto:help@e.com?subject=Hi">Write to us</a>`, "Write to us (help@e.com)\n"},
 		{"tel", `<a href="tel:+33123456789">Call</a>`, "Call (+33123456789)\n"},
