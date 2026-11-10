@@ -1,5 +1,6 @@
-// Package trackingtoken mints and reads the tokens of the email tracking routes:
-// /r/<token> for clicks and /t/<token> for opens.
+// Package trackingtoken mints and reads the tokens of the email tracking routes and of
+// the web version route:
+// /r/<token> for clicks, /t/<token> for opens and /v/<token> for the web version.
 //
 // A token is the plaintext below, sealed with crypto.EncryptTrackingToken. That outer
 // layer uses a public key: it only keeps the content opaque to pixel blockers, and anyone
@@ -8,6 +9,7 @@
 //
 //	click: <mid>\n<wid>\n<ts>.<tag>\n<url>
 //	open:  <mid>\n<wid>\n<ts>.<tag>
+//	view:  <mid>\n<wid>\n<ts>.<tag>\n<host>
 //
 // The fields keep the order of the unsigned tokens minted before 42.2, so an instance that
 // still reads the old format finds the message, workspace and destination where they were.
@@ -27,6 +29,7 @@ import (
 	"strings"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
+	"golang.org/x/net/idna"
 )
 
 // Purpose tells a click token from an open token, so a tag minted for one is never
@@ -36,6 +39,9 @@ type Purpose string
 const (
 	PurposeClick Purpose = "r"
 	PurposeOpen  Purpose = "t"
+	// PurposeView is the web version of an email. Unlike clicks and opens, it has no
+	// unsigned or legacy form: the token is the only credential to read the email.
+	PurposeView Purpose = "v"
 )
 
 // keyInfo is the HKDF info string. Changing it changes every workspace's key and makes
@@ -78,7 +84,8 @@ func ValidWorkspaceID(id string) bool {
 
 // HostOf returns the lowercase hostname of an endpoint URL such as API_ENDPOINT or a
 // workspace's custom endpoint, read as https when it has no scheme, or "" when it is
-// empty or does not parse.
+// empty or does not parse. A Unicode hostname comes back in Punycode, as browsers send
+// it, and one that cannot be converted comes back "", matching no request.
 func HostOf(endpoint string) string {
 	raw := strings.TrimSpace(endpoint)
 	if raw == "" {
@@ -91,7 +98,52 @@ func HostOf(endpoint string) string {
 	if err != nil {
 		return ""
 	}
-	return strings.ToLower(u.Hostname())
+	host := u.Hostname()
+	for i := 0; i < len(host); i++ {
+		if host[i] >= 0x80 {
+			converted, err := hostProfile.ToASCII(host)
+			if err != nil {
+				return ""
+			}
+			return converted
+		}
+	}
+	return strings.ToLower(host)
+}
+
+// hostProfile maps a Unicode hostname as a browser's address bar does. It allows what
+// idna.Lookup refuses and browsers accept, such as underscores and hyphens at a label's
+// ends, so a host written in Unicode and its Punycode form compare equal.
+var hostProfile = idna.New(idna.MapForLookup(), idna.Transitional(false), idna.StrictDomainName(false), idna.CheckHyphens(false))
+
+// SameHost reports whether hostport, a request's Host with or without a port, names
+// host. Letters fold in ASCII only (strings.EqualFold would also fold, for instance, the
+// Kelvin sign onto 'k'), and a trailing dot, which names the same host, is ignored.
+func SameHost(hostport, host string) bool {
+	return SameHostname((&url.URL{Host: hostport}).Hostname(), host)
+}
+
+// SameHostname reports whether two hostnames, without ports, name the same host, with
+// SameHost's folding.
+func SameHostname(a, b string) bool {
+	a = strings.TrimSuffix(a, ".")
+	b = strings.TrimSuffix(b, ".")
+	if a == "" || len(a) != len(b) {
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		if asciiLower(a[i]) != asciiLower(b[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func asciiLower(c byte) byte {
+	if 'A' <= c && c <= 'Z' {
+		return c + 'a' - 'A'
+	}
+	return c
 }
 
 // Token is a parsed, unverified tracking token.
@@ -101,8 +153,11 @@ type Token struct {
 	// Timestamp is the send time in Unix seconds, or 0 when the field is missing or not
 	// numeric. It only feeds the bot check.
 	Timestamp int64
-	// URL is the click destination, exactly as minted. Empty for open tokens.
+	// URL is the click destination, exactly as minted. Empty for open and view tokens.
 	URL string
+	// Host is the host a view token's link was minted on, as signed. Empty for open and
+	// click tokens.
+	Host string
 	// Tag is the signature, empty for tokens minted unsigned or before 42.2.
 	Tag string
 
@@ -128,6 +183,17 @@ func MintClick(key []byte, mid, wid string, ts int64, url string) (string, error
 // MintOpen returns an open token. An empty key mints an unsigned token.
 func MintOpen(key []byte, mid, wid string, ts int64) (string, error) {
 	return crypto.EncryptTrackingToken(mid + "\n" + wid + "\n" + timestampField(key, PurposeOpen, mid, wid, ts, ""))
+}
+
+// MintView returns a web version token for a link on host, the hostname of the endpoint
+// the link is written with. The host is signed: the page opens on it, and on no other
+// workspace's domain. It refuses an empty key: a view token that does not verify is
+// never accepted, so an unsigned one would only be a dead link.
+func MintView(key []byte, mid, wid string, ts int64, host string) (string, error) {
+	if len(key) == 0 {
+		return "", errors.New("trackingtoken: a view token needs a signing key")
+	}
+	return crypto.EncryptTrackingToken(mid + "\n" + wid + "\n" + timestampField(key, PurposeView, mid, wid, ts, host) + "\n" + host)
 }
 
 func timestampField(key []byte, purpose Purpose, mid, wid string, ts int64, url string) string {
@@ -158,7 +224,7 @@ func Parse(token string, purpose Purpose) (Token, error) {
 		return Token{}, err
 	}
 	fields := 3
-	if purpose == PurposeClick {
+	if purpose == PurposeClick || purpose == PurposeView {
 		fields = 4
 	}
 	parts := strings.SplitN(plaintext, "\n", fields)
@@ -171,8 +237,11 @@ func Parse(token string, purpose Purpose) (Token, error) {
 	if n, err := strconv.ParseInt(ts, 10, 64); err == nil {
 		t.Timestamp = n
 	}
-	if purpose == PurposeClick {
+	switch purpose {
+	case PurposeClick:
 		t.URL = parts[3]
+	case PurposeView:
+		t.Host = parts[3]
 	}
 	t.rawTimestamp = ts
 	return t, nil
@@ -183,7 +252,11 @@ func (t Token) Verify(key []byte, purpose Purpose) bool {
 	if t.Tag == "" || len(key) == 0 {
 		return false
 	}
-	want := computeTag(key, purpose, t.MessageID, t.WorkspaceID, t.rawTimestamp, t.URL)
+	signed := t.URL
+	if purpose == PurposeView {
+		signed = t.Host
+	}
+	want := computeTag(key, purpose, t.MessageID, t.WorkspaceID, t.rawTimestamp, signed)
 	return hmac.Equal([]byte(want), []byte(t.Tag))
 }
 

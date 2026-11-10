@@ -1,6 +1,7 @@
 import { getMarkRange, type Editor } from '@tiptap/react'
 import type { Mark, Node } from '@tiptap/pm/model'
 import { parseHtmlInert, sanitizeEditorHtml, textOnlyHtml } from '../../../../../utils/safeHtml'
+import type { LinkType } from './types'
 
 // Extend the ChainedCommands type to include our custom command
 declare module '@tiptap/core' {
@@ -600,10 +601,36 @@ export const debugCurrentMarks = (editor: Editor): void => {
 }
 
 // Enhanced link creation that ensures style merging
+// The link to the web version of the email. Broadcasts and automations fill the variable
+// with the page's address when they send; elsewhere it is empty.
+export const WEB_VERSION_LINK_HREF = '{{ view_in_browser_url }}'
+
+const WEB_VERSION_LINK_PATTERN = /^\{\{\s*view_in_browser_url\s*\}\}$/
+
+// Reads a saved link target back into the link type and value the link popover edits.
+export const parseLinkHref = (href: string): { type: LinkType; value: string } => {
+  if (WEB_VERSION_LINK_PATTERN.test(href.trim())) {
+    return { type: 'web_version', value: '' }
+  }
+  if (href.startsWith('mailto:')) {
+    return { type: 'email', value: href.slice('mailto:'.length) }
+  }
+  if (href.startsWith('tel:')) {
+    return { type: 'phone', value: href.slice('tel:'.length) }
+  }
+  if (href.startsWith('#')) {
+    return { type: 'anchor', value: href.slice(1) }
+  }
+  return { type: 'url', value: href }
+}
+
 export const createLinkWithStyleMerging = (editor: Editor, href: string, linkType: string = 'url') => {
   // Format the href based on link type
   let formattedHref = href.trim()
   switch (linkType) {
+    case 'web_version':
+      formattedHref = WEB_VERSION_LINK_HREF
+      break
     case 'email':
       formattedHref = `mailto:${formattedHref}`
       break

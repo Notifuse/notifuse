@@ -259,6 +259,31 @@ func (r *workspaceRepository) GetWorkspaceByCustomDomain(ctx context.Context, ho
 	return workspace, nil
 }
 
+// ListCustomEndpoints returns the custom endpoint URL of every workspace that has one,
+// keyed by workspace ID, as stored: callers compare hosts, which the URL alone does not
+// normalise.
+func (r *workspaceRepository) ListCustomEndpoints(ctx context.Context) (map[string]string, error) {
+	rows, err := r.systemDB.QueryContext(ctx,
+		`SELECT id, settings->>'custom_endpoint_url' FROM workspaces WHERE COALESCE(settings->>'custom_endpoint_url', '') != ''`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list custom endpoints: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	endpoints := make(map[string]string)
+	for rows.Next() {
+		var id, endpoint string
+		if err := rows.Scan(&id, &endpoint); err != nil {
+			return nil, fmt.Errorf("failed to scan custom endpoint: %w", err)
+		}
+		endpoints[id] = endpoint
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to list custom endpoints: %w", err)
+	}
+	return endpoints, nil
+}
+
 func (r *workspaceRepository) List(ctx context.Context) ([]*domain.Workspace, error) {
 	query := `
 		SELECT id, name, settings, integrations, created_at, updated_at

@@ -15,6 +15,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/mailer"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/asaskevich/govalidator"
 	"github.com/google/uuid"
 )
@@ -190,6 +191,26 @@ func (s *WorkspaceService) GetWorkspace(ctx context.Context, id string) (*domain
 // workspaceSetupTimeout bounds what follows the creation of a workspace, detached from
 // the request: the owner membership, contact, list and tasks.
 const workspaceSetupTimeout = 5 * time.Minute
+
+// ensureCustomDomainIsFree refuses a custom endpoint URL whose host is another
+// workspace's custom domain, comparing hosts without case, port or trailing dot.
+func (s *WorkspaceService) ensureCustomDomainIsFree(ctx context.Context, workspaceID, endpoint string) error {
+	host := trackingtoken.HostOf(endpoint)
+	if host == "" {
+		return nil
+	}
+	endpoints, err := s.repo.ListCustomEndpoints(ctx)
+	if err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to read the custom domains in use")
+		return fmt.Errorf("failed to check the custom domain: %w", err)
+	}
+	for id, other := range endpoints {
+		if id != workspaceID && trackingtoken.SameHostname(host, trackingtoken.HostOf(other)) {
+			return domain.ValidationError{Message: fmt.Sprintf("the custom domain %s is already used by another workspace", host)}
+		}
+	}
+	return nil
+}
 
 // CreateWorkspace creates a new workspace and adds the creator as owner
 func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name string, websiteURL string, logoURL string, coverURL string, timezone string, fileManager domain.FileManagerSettings, defaultLanguage string, languages []string) (*domain.Workspace, error) {
@@ -500,6 +521,19 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 			*existingWorkspace.Settings.CustomEndpointURL != *settings.CustomEndpointURL
 
 		if isDomainChanging {
+			// A domain belongs to one workspace: another workspace that saved it could show
+			// its own pages and emails under this one's brand. Workspaces that shared one
+			// before the rule may still edit its URL, as long as the host stays the same.
+			previousHost := ""
+			if existingWorkspace.Settings.CustomEndpointURL != nil {
+				previousHost = trackingtoken.HostOf(*existingWorkspace.Settings.CustomEndpointURL)
+			}
+			if !trackingtoken.SameHostname(previousHost, trackingtoken.HostOf(*settings.CustomEndpointURL)) {
+				if err := s.ensureCustomDomainIsFree(ctx, id, *settings.CustomEndpointURL); err != nil {
+					return nil, err
+				}
+			}
+
 			// Verify DNS ownership
 			if err := s.dnsVerificationService.VerifyDomainOwnership(ctx, *settings.CustomEndpointURL); err != nil {
 				s.logger.
