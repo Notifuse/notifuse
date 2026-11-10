@@ -522,9 +522,16 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 
 		if isDomainChanging {
 			// A domain belongs to one workspace: another workspace that saved it could show
-			// its own pages and emails under this one's brand.
-			if err := s.ensureCustomDomainIsFree(ctx, id, *settings.CustomEndpointURL); err != nil {
-				return nil, err
+			// its own pages and emails under this one's brand. Workspaces that shared one
+			// before the rule may still edit its URL, as long as the host stays the same.
+			previousHost := ""
+			if existingWorkspace.Settings.CustomEndpointURL != nil {
+				previousHost = trackingtoken.HostOf(*existingWorkspace.Settings.CustomEndpointURL)
+			}
+			if !trackingtoken.SameHostname(previousHost, trackingtoken.HostOf(*settings.CustomEndpointURL)) {
+				if err := s.ensureCustomDomainIsFree(ctx, id, *settings.CustomEndpointURL); err != nil {
+					return nil, err
+				}
 			}
 
 			// Verify DNS ownership

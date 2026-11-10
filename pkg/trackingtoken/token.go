@@ -84,7 +84,8 @@ func ValidWorkspaceID(id string) bool {
 
 // HostOf returns the lowercase hostname of an endpoint URL such as API_ENDPOINT or a
 // workspace's custom endpoint, read as https when it has no scheme, or "" when it is
-// empty or does not parse.
+// empty or does not parse. A Unicode hostname comes back in Punycode, as browsers send
+// it, and one that cannot be converted comes back "", matching no request.
 func HostOf(endpoint string) string {
 	raw := strings.TrimSpace(endpoint)
 	if raw == "" {
@@ -100,17 +101,20 @@ func HostOf(endpoint string) string {
 	host := u.Hostname()
 	for i := 0; i < len(host); i++ {
 		if host[i] >= 0x80 {
-			// Browsers send a Unicode hostname in Punycode. idna.Lookup would refuse valid
-			// ASCII hosts such as my_host.example.com, so it only sees non-ASCII ones; one
-			// it cannot convert stays as written and matches no request.
-			if converted, err := idna.Lookup.ToASCII(host); err == nil && converted != "" {
-				return converted
+			converted, err := hostProfile.ToASCII(host)
+			if err != nil {
+				return ""
 			}
-			break
+			return converted
 		}
 	}
 	return strings.ToLower(host)
 }
+
+// hostProfile maps a Unicode hostname as a browser's address bar does. It allows what
+// idna.Lookup refuses and browsers accept, such as underscores and hyphens at a label's
+// ends, so a host written in Unicode and its Punycode form compare equal.
+var hostProfile = idna.New(idna.MapForLookup(), idna.Transitional(false), idna.StrictDomainName(false), idna.CheckHyphens(false))
 
 // SameHost reports whether hostport, a request's Host with or without a port, names
 // host. Letters fold in ASCII only (strings.EqualFold would also fold, for instance, the

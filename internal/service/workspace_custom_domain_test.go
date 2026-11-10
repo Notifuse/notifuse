@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 )
 
 // A custom domain belongs to one workspace: one that saved another workspace's domain
@@ -53,6 +54,34 @@ func TestWorkspaceService_UpdateWorkspace_CustomDomainIsNotShared(t *testing.T) 
 
 		_, err := svc.UpdateWorkspace(ctx, "ws1", "Old Name", settingsWith(endpoint))
 		require.NoError(t, err)
+	})
+
+	t.Run("lets a workspace edit the URL of a domain it shares, the host unchanged", func(t *testing.T) {
+		// Workspaces that shared a domain before the rule keep it; rewriting its URL
+		// is not taking another workspace's domain.
+		ctrl := gomock.NewController(t)
+		svc, deps := covWorkspaceService(ctrl, nil, nil, nil)
+		quiet := pkgmocks.NewMockLogger(ctrl)
+		quiet.EXPECT().WithFields(gomock.Any()).Return(quiet).AnyTimes()
+		quiet.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(quiet).AnyTimes()
+		quiet.EXPECT().Debug(gomock.Any()).AnyTimes()
+		quiet.EXPECT().Warn(gomock.Any()).AnyTimes()
+		quiet.EXPECT().Error(gomock.Any()).AnyTimes()
+		svc.dnsVerificationService = NewDNSVerificationService(quiet, "api.example.com")
+		deps.expectOwner(ctx, "ws1", "user-1")
+		existing := existingWorkspaceForUpdate()
+		previous := "http://mail.shared.invalid"
+		existing.Settings.CustomEndpointURL = &previous
+		deps.repo.EXPECT().GetByID(gomock.Any(), "ws1").Return(existing, nil)
+		deps.repo.EXPECT().ListCustomEndpoints(gomock.Any()).Times(0)
+		deps.repo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+		// The DNS check of the new URL still runs; whatever this resolver answers, the
+		// other workspaces' domains are not read.
+		_, err := svc.UpdateWorkspace(ctx, "ws1", "Old Name", settingsWith("https://MAIL.shared.invalid/"))
+		if err != nil {
+			assert.NotContains(t, err.Error(), "another workspace")
+		}
 	})
 
 	t.Run("a failure to read the other domains refuses the save", func(t *testing.T) {

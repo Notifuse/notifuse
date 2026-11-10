@@ -326,6 +326,8 @@ func TestHostOf(t *testing.T) {
 		"https://bücher.example":      "xn--bcher-kva.example",
 		"https://BÜCHER.example":      "xn--bcher-kva.example",
 		"https://my_host.example.com": "my_host.example.com",
+		"https://bücher_shop.example": "xn--bcher_shop-9db.example",
+		"https://ü\u0080.example":     "",
 	}
 	for raw, want := range cases {
 		assert.Equal(t, want, HostOf(raw), "%q", raw)

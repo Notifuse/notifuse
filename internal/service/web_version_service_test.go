@@ -313,6 +313,27 @@ func TestWebVersionService_ResolveChecksTheSignedHost(t *testing.T) {
 	})
 }
 
+func TestWebVersionService_ReadsTheCustomDomainsOncePerTTL(t *testing.T) {
+	// Anyone holding a link sent with a domain the workspace left can request it at will:
+	// the domains are not read again for each request.
+	f := newWebVersionFixture(t)
+	f.keys.lookup.EndpointHost = "new.brand-a.example"
+	clock := time.Unix(1_800_000_000, 0)
+	f.svc.now = func() time.Time { return clock }
+	f.workspaceRepo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(map[string]string{
+		wvWorkspaceID: "https://new.brand-a.example",
+	}, nil).Times(2)
+
+	token := wvToken(t, wvSecret, wvWorkspaceID, wvMessageID)
+	for i := 0; i < 5; i++ {
+		_, err := f.svc.Resolve(context.Background(), token, wvLinkHost)
+		require.NoError(t, err)
+	}
+	clock = clock.Add(webVersionEndpointsTTL)
+	_, err := f.svc.Resolve(context.Background(), token, wvLinkHost)
+	require.NoError(t, err)
+}
+
 func TestWebVersionService_RefusalLogIsBounded(t *testing.T) {
 	// A refused request writes one line a minute per workspace, with the hosts cut short:
 	// both come from the request, so they must not size the log.
@@ -321,6 +342,7 @@ func TestWebVersionService_RefusalLogIsBounded(t *testing.T) {
 	quiet := pkgmocks.NewMockLogger(f.ctrl)
 	quiet.EXPECT().WithFields(gomock.Any()).DoAndReturn(func(fields map[string]interface{}) logger.Logger {
 		assert.LessOrEqual(t, len(fields["request_host"].(string)), 255)
+		assert.LessOrEqual(t, len(fields["link_host"].(string)), 255)
 		return quiet
 	}).AnyTimes()
 	quiet.EXPECT().Info(gomock.Any()).Do(func(string) { logged++ }).AnyTimes()

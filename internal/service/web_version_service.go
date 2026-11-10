@@ -54,8 +54,14 @@ type WebVersionService struct {
 	logger        logger.Logger
 	compile       func(notifuse_mjml.CompileTemplateRequest) (*notifuse_mjml.CompileTemplateResponse, error)
 
+	now func() time.Time
+
 	refusalMu     sync.Mutex
 	refusalLogged map[string]time.Time
+
+	endpointsMu sync.Mutex
+	endpoints   map[string]string
+	endpointsAt time.Time
 }
 
 // NewWebVersionService builds the service. apiEndpoint is the endpoint used when the
@@ -77,6 +83,7 @@ func NewWebVersionService(
 		apiHost:       trackingtoken.HostOf(apiEndpoint),
 		logger:        logger,
 		compile:       notifuse_mjml.CompileTemplate,
+		now:           time.Now,
 		refusalLogged: make(map[string]time.Time),
 	}
 }
@@ -127,7 +134,7 @@ func (s *WebVersionService) Resolve(ctx context.Context, token, requestHost stri
 		return ref, nil
 	}
 	// A domain the workspace has left: refused once another workspace holds it.
-	endpoints, err := s.workspaceRepo.ListCustomEndpoints(ctx)
+	endpoints, err := s.customEndpoints(ctx)
 	if err != nil {
 		return WebVersionRef{}, s.unavailable(ref, "read the custom domains", err)
 	}
@@ -140,6 +147,31 @@ func (s *WebVersionService) Resolve(ctx context.Context, token, requestHost stri
 	return ref, nil
 }
 
+// webVersionEndpointsTTL is how long the list of custom domains is reused. Anyone holding
+// a link sent with a domain its workspace has left can request it at will, so the list
+// is not read for each request; a domain another workspace takes is refused this much
+// later at most, on top of the tracking cache's own delay.
+const webVersionEndpointsTTL = 30 * time.Second
+
+// customEndpoints returns every workspace's custom endpoint, read at most once per TTL.
+// Concurrent readers wait for the one read in flight.
+func (s *WebVersionService) customEndpoints(ctx context.Context) (map[string]string, error) {
+	s.endpointsMu.Lock()
+	defer s.endpointsMu.Unlock()
+	if s.endpoints != nil && s.now().Sub(s.endpointsAt) < webVersionEndpointsTTL {
+		return s.endpoints, nil
+	}
+	endpoints, err := s.workspaceRepo.ListCustomEndpoints(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if endpoints == nil {
+		endpoints = map[string]string{}
+	}
+	s.endpoints, s.endpointsAt = endpoints, s.now()
+	return endpoints, nil
+}
+
 // webVersionRefusalLogInterval spaces the refusal lines of one workspace: each comes from
 // a request, so a stream of requests must not become a stream of lines.
 const webVersionRefusalLogInterval = time.Minute
@@ -148,7 +180,7 @@ const webVersionRefusalLogInterval = time.Minute
 const maxLoggedHostLength = 255
 
 func (s *WebVersionService) logRefusal(tok trackingtoken.Token, requestHost, reason string) {
-	now := time.Now()
+	now := s.now()
 	s.refusalMu.Lock()
 	if last, ok := s.refusalLogged[tok.WorkspaceID]; ok && now.Sub(last) < webVersionRefusalLogInterval {
 		s.refusalMu.Unlock()
