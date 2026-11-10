@@ -30,6 +30,7 @@ func TestWorkspaceService_UpdateWorkspace_CustomDomainIsNotShared(t *testing.T) 
 			deps.expectOwner(ctx, "ws1", "user-1")
 			deps.repo.EXPECT().GetByID(gomock.Any(), "ws1").Return(existingWorkspaceForUpdate(), nil)
 			deps.repo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(map[string]string{
+				"ws1":     "https://old.brand-a.example",
 				"brand_b": "https://mail.brand-b.example",
 			}, nil)
 			deps.repo.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
@@ -63,5 +64,33 @@ func TestWorkspaceService_UpdateWorkspace_CustomDomainIsNotShared(t *testing.T) 
 
 		_, err := svc.UpdateWorkspace(ctx, "ws1", "Old Name", settingsWith("https://mail.brand-a.example"))
 		assert.Error(t, err)
+	})
+}
+
+func TestWorkspaceService_EnsureCustomDomainIsFree(t *testing.T) {
+	ctx := context.Background()
+	inUse := map[string]string{
+		"ws1":     "https://mail.brand-a.example",
+		"brand_b": "https://[2001:db8::1]:8443",
+	}
+
+	t.Run("accepts a domain no other workspace uses, and the workspace's own", func(t *testing.T) {
+		for _, endpoint := range []string{"https://new.brand-a.example", "https://MAIL.brand-a.example:443", "https://[2001:db8::2]"} {
+			svc, deps := covWorkspaceService(gomock.NewController(t), nil, nil, nil)
+			deps.repo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(inUse, nil)
+			assert.NoError(t, svc.ensureCustomDomainIsFree(ctx, "ws1", endpoint), endpoint)
+		}
+	})
+
+	t.Run("refuses another workspace's IPv6 literal", func(t *testing.T) {
+		svc, deps := covWorkspaceService(gomock.NewController(t), nil, nil, nil)
+		deps.repo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(inUse, nil)
+		var validation domain.ValidationError
+		assert.ErrorAs(t, svc.ensureCustomDomainIsFree(ctx, "ws1", "https://[2001:DB8::1]"), &validation)
+	})
+
+	t.Run("an endpoint without a host is left to the URL validation", func(t *testing.T) {
+		svc, _ := covWorkspaceService(gomock.NewController(t), nil, nil, nil)
+		assert.NoError(t, svc.ensureCustomDomainIsFree(ctx, "ws1", ""))
 	})
 }

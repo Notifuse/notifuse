@@ -24,7 +24,22 @@ func TestBuildTemplateData_ViewInBrowserURL(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "msg-1", tok.MessageID)
 	assert.Equal(t, "ws123", tok.WorkspaceID)
+	assert.Equal(t, "track.example.com", tok.Host, "the token names the host its link is written with")
 	assert.True(t, tok.Verify(TrackingSigningKey(req.WorkspaceSecretKey), trackingtoken.PurposeView))
+}
+
+func TestBuildTemplateData_ViewInBrowserURLSignsTheEndpointHost(t *testing.T) {
+	req := trackingTemplateDataRequest(&Contact{Email: "a@example.com"})
+	req.WebVersion = true
+	req.TrackingSettings.Endpoint = "https://Mail.Brand.example:8443/base"
+
+	data, err := BuildTemplateData(req)
+	require.NoError(t, err)
+	raw := data["view_in_browser_url"].(string)
+	require.True(t, strings.HasPrefix(raw, "https://Mail.Brand.example:8443/base/v/"), raw)
+	tok, err := trackingtoken.Parse(strings.TrimPrefix(raw, "https://Mail.Brand.example:8443/base/v/"), trackingtoken.PurposeView)
+	require.NoError(t, err)
+	assert.Equal(t, "mail.brand.example", tok.Host)
 }
 
 func TestBuildTemplateData_ViewInBrowserURLTrimsTheEndpointSlash(t *testing.T) {

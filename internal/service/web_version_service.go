@@ -75,12 +75,13 @@ func NewWebVersionService(
 	}
 }
 
-// Resolve opens and verifies a web version token requested on requestHost (the request's
-// Host, port included or not). Only a token signed with its workspace's key for the view
-// purpose resolves: there is no unsigned or legacy form. It does not resolve on another
-// workspace's custom domain, where the page would show one brand's email under another
-// brand's address.
-func (s *WebVersionService) Resolve(ctx context.Context, token, requestHost string) (WebVersionRef, error) {
+// Resolve opens and verifies a web version token requested on requestHosts: the
+// request's Host, then the host a reverse proxy forwarded, ports included or not. Only a
+// token signed with its workspace's key for the view purpose resolves: there is no
+// unsigned or legacy form. It resolves on the host its link was minted on, which the
+// token signs, and on the API host, never on another workspace's domain, where the page
+// would show one brand's email under another brand's address.
+func (s *WebVersionService) Resolve(ctx context.Context, token string, requestHosts []string) (WebVersionRef, error) {
 	if token == "" || len(token) > MaxWebVersionTokenLength {
 		return WebVersionRef{}, ErrWebVersionNotFound
 	}
@@ -104,35 +105,26 @@ func (s *WebVersionService) Resolve(ctx context.Context, token, requestHost stri
 			return WebVersionRef{}, ErrWebVersionNotFound
 		}
 	}
-	ref := WebVersionRef{WorkspaceID: tok.WorkspaceID, MessageID: tok.MessageID}
-	claimed, err := s.claimedByAnotherWorkspace(ctx, requestHost, tok.WorkspaceID)
-	if err != nil {
-		return WebVersionRef{}, s.unavailable(ref, "read the custom domains", err)
-	}
-	if claimed {
+	if !s.opensOn(tok.Host, requestHosts) {
+		s.logger.WithFields(map[string]interface{}{
+			"workspace_id":  tok.WorkspaceID,
+			"message_id":    tok.MessageID,
+			"link_host":     tok.Host,
+			"request_hosts": requestHosts,
+		}).Info("Web version refused on a host its link was not minted on")
 		return WebVersionRef{}, ErrWebVersionNotFound
 	}
-	return ref, nil
+	return WebVersionRef{WorkspaceID: tok.WorkspaceID, MessageID: tok.MessageID}, nil
 }
 
-// claimedByAnotherWorkspace reports whether requestHost is the custom domain of a
-// workspace other than workspaceID. The API host is no workspace's own and is not looked
-// up. A host no workspace claims, such as a workspace's former domain still routed here,
-// is not refused, so links already delivered keep working after a domain change.
-func (s *WebVersionService) claimedByAnotherWorkspace(ctx context.Context, requestHost, workspaceID string) (bool, error) {
-	if trackingtoken.SameHost(requestHost, s.apiHost) {
-		return false, nil
-	}
-	endpoints, err := s.workspaceRepo.ListCustomEndpoints(ctx)
-	if err != nil {
-		return false, err
-	}
-	for id, endpoint := range endpoints {
-		if id != workspaceID && trackingtoken.SameHost(requestHost, trackingtoken.HostOf(endpoint)) {
-			return true, nil
+// opensOn reports whether one of requestHosts is linkHost or the API host.
+func (s *WebVersionService) opensOn(linkHost string, requestHosts []string) bool {
+	for _, host := range requestHosts {
+		if trackingtoken.SameHost(host, linkHost) || trackingtoken.SameHost(host, s.apiHost) {
+			return true
 		}
 	}
-	return false, nil
+	return false
 }
 
 // Render compiles the web version of a resolved message.

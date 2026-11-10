@@ -166,25 +166,32 @@ func TestWebVersion(t *testing.T) {
 		assert.Equal(t, openedBefore, openedAfter)
 		assert.Equal(t, clickedBefore, clickedAfter)
 
-		// Another workspace's custom domain does not show it; a host no workspace claims,
-		// such as a domain this workspace used before, still does.
+		// The token signs the host its link was minted on: another workspace's custom
+		// domain, or any other host, does not show the email.
 		other, err := factory.CreateWorkspace()
 		require.NoError(t, err)
 		require.NoError(t, factory.SetWorkspaceCustomEndpointURL(other.ID, "https://mail.another-brand.example"))
-		onHost := func(host string) (int, string) {
+		onHost := func(host, forwardedHost string) (int, string) {
 			req, err := http.NewRequest(http.MethodGet, destination, nil)
 			require.NoError(t, err)
 			req.Host = host
+			if forwardedHost != "" {
+				req.Header.Set("X-Forwarded-Host", forwardedHost)
+			}
 			resp, err := noRedirectClient().Do(req)
 			require.NoError(t, err)
 			body, _ := io.ReadAll(resp.Body)
 			_ = resp.Body.Close()
 			return resp.StatusCode, string(body)
 		}
-		status, foreignBody := onHost("Mail.Another-Brand.example:443")
+		status, foreignBody := onHost("Mail.Another-Brand.example:443", "")
 		assert.Equal(t, http.StatusNotFound, status)
 		assert.NotContains(t, foreignBody, "Camille")
-		status, _ = onHost("old.brand-a.example")
+		status, _ = onHost("unknown.example", "")
+		assert.Equal(t, http.StatusNotFound, status)
+		// Behind a proxy that rewrites Host, the forwarded host counts.
+		linkHost := strings.SplitN(strings.TrimPrefix(destination, "http://"), "/", 2)[0]
+		status, _ = onHost("notifuse:8080", linkHost)
 		assert.Equal(t, http.StatusOK, status)
 
 		// Nor can this workspace take the other one's domain as its own.

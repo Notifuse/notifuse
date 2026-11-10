@@ -1165,7 +1165,10 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 	// supplied (a transactional API payload, template test data) is left alone.
 	if req.WebVersion {
 		templateData["view_in_browser_url"] = ""
-		if viewToken, err := trackingtoken.MintView(TrackingSigningKey(req.WorkspaceSecretKey), req.MessageID, req.WorkspaceID, time.Now().Unix()); err == nil {
+		// The token signs the link's host: the page opens there, never on another
+		// workspace's domain.
+		viewHost := trackingtoken.HostOf(req.TrackingSettings.Endpoint)
+		if viewToken, err := trackingtoken.MintView(TrackingSigningKey(req.WorkspaceSecretKey), req.MessageID, req.WorkspaceID, time.Now().Unix(), viewHost); err == nil {
 			templateData["view_in_browser_url"] = strings.TrimRight(req.TrackingSettings.Endpoint, "/") + "/v/" + viewToken
 		}
 	} else if _, supplied := templateData["view_in_browser_url"]; !supplied {

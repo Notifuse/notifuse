@@ -46,7 +46,7 @@ const webVersionPreviewPage = `<!doctype html><html lang="en"><head><meta charse
 
 // WebVersionRenderer resolves a web version token and renders the email it points to.
 type WebVersionRenderer interface {
-	Resolve(ctx context.Context, token, requestHost string) (service.WebVersionRef, error)
+	Resolve(ctx context.Context, token string, requestHosts []string) (service.WebVersionRef, error)
 	Render(ctx context.Context, ref service.WebVersionRef) (string, error)
 }
 
@@ -92,7 +92,7 @@ func (h *WebVersionHandler) handleWebVersion(w http.ResponseWriter, r *http.Requ
 		writeWebVersionPage(w, r, http.StatusOK, webVersionPreviewPage)
 		return
 	}
-	ref, err := h.renderer.Resolve(r.Context(), token, r.Host)
+	ref, err := h.renderer.Resolve(r.Context(), token, webVersionRequestHosts(r))
 	if err != nil {
 		h.writeError(w, r, err)
 		return
@@ -119,6 +119,19 @@ func (h *WebVersionHandler) writeError(w http.ResponseWriter, r *http.Request, e
 	}
 	w.Header().Set("Retry-After", "60")
 	writeWebVersionPage(w, r, http.StatusServiceUnavailable, webVersionUnavailablePage)
+}
+
+// webVersionRequestHosts returns the hosts a request reached: its Host, then the first
+// X-Forwarded-Host, for a reverse proxy that rewrites Host. A reader's browser sets
+// neither to anything but the address it shows, so neither lets a page open under
+// another workspace's domain.
+func webVersionRequestHosts(r *http.Request) []string {
+	hosts := []string{r.Host}
+	if forwarded := r.Header.Get("X-Forwarded-Host"); forwarded != "" {
+		first, _, _ := strings.Cut(forwarded, ",")
+		hosts = append(hosts, strings.TrimSpace(first))
+	}
+	return hosts
 }
 
 // setWebVersionHeaders sets the headers every web version response carries, error

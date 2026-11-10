@@ -192,7 +192,6 @@ func (s *WorkspaceService) GetWorkspace(ctx context.Context, id string) (*domain
 // the request: the owner membership, contact, list and tasks.
 const workspaceSetupTimeout = 5 * time.Minute
 
-// CreateWorkspace creates a new workspace and adds the creator as owner
 // ensureCustomDomainIsFree refuses a custom endpoint URL whose host is another
 // workspace's custom domain, comparing hosts without case, port or trailing dot.
 func (s *WorkspaceService) ensureCustomDomainIsFree(ctx context.Context, workspaceID, endpoint string) error {
@@ -202,16 +201,18 @@ func (s *WorkspaceService) ensureCustomDomainIsFree(ctx context.Context, workspa
 	}
 	endpoints, err := s.repo.ListCustomEndpoints(ctx)
 	if err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to read the custom domains in use")
 		return fmt.Errorf("failed to check the custom domain: %w", err)
 	}
 	for id, other := range endpoints {
-		if id != workspaceID && trackingtoken.SameHost(host, trackingtoken.HostOf(other)) {
+		if id != workspaceID && trackingtoken.SameHostname(host, trackingtoken.HostOf(other)) {
 			return domain.ValidationError{Message: fmt.Sprintf("the custom domain %s is already used by another workspace", host)}
 		}
 	}
 	return nil
 }
 
+// CreateWorkspace creates a new workspace and adds the creator as owner
 func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name string, websiteURL string, logoURL string, coverURL string, timezone string, fileManager domain.FileManagerSettings, defaultLanguage string, languages []string) (*domain.Workspace, error) {
 	user, err := s.authService.AuthenticateUserFromContext(ctx)
 	if err != nil {

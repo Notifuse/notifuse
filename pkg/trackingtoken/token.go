@@ -103,8 +103,14 @@ func HostOf(endpoint string) string {
 // host. Letters fold in ASCII only (strings.EqualFold would also fold, for instance, the
 // Kelvin sign onto 'k'), and a trailing dot, which names the same host, is ignored.
 func SameHost(hostport, host string) bool {
-	a := strings.TrimSuffix((&url.URL{Host: hostport}).Hostname(), ".")
-	b := strings.TrimSuffix(host, ".")
+	return SameHostname((&url.URL{Host: hostport}).Hostname(), host)
+}
+
+// SameHostname reports whether two hostnames, without ports, name the same host, with
+// SameHost's folding.
+func SameHostname(a, b string) bool {
+	a = strings.TrimSuffix(a, ".")
+	b = strings.TrimSuffix(b, ".")
 	if a == "" || len(a) != len(b) {
 		return false
 	}
@@ -130,8 +136,11 @@ type Token struct {
 	// Timestamp is the send time in Unix seconds, or 0 when the field is missing or not
 	// numeric. It only feeds the bot check.
 	Timestamp int64
-	// URL is the click destination, exactly as minted. Empty for open tokens.
+	// URL is the click destination, exactly as minted. Empty for open and view tokens.
 	URL string
+	// Host is the host a view token's link was minted on, as signed. Empty for open and
+	// click tokens.
+	Host string
 	// Tag is the signature, empty for tokens minted unsigned or before 42.2.
 	Tag string
 
@@ -159,13 +168,15 @@ func MintOpen(key []byte, mid, wid string, ts int64) (string, error) {
 	return crypto.EncryptTrackingToken(mid + "\n" + wid + "\n" + timestampField(key, PurposeOpen, mid, wid, ts, ""))
 }
 
-// MintView returns a web version token. It refuses an empty key: a view token that
-// does not verify is never accepted, so an unsigned one would only be a dead link.
-func MintView(key []byte, mid, wid string, ts int64) (string, error) {
+// MintView returns a web version token for a link on host, the hostname of the endpoint
+// the link is written with. The host is signed: the page opens on it, and on no other
+// workspace's domain. It refuses an empty key: a view token that does not verify is
+// never accepted, so an unsigned one would only be a dead link.
+func MintView(key []byte, mid, wid string, ts int64, host string) (string, error) {
 	if len(key) == 0 {
 		return "", errors.New("trackingtoken: a view token needs a signing key")
 	}
-	return crypto.EncryptTrackingToken(mid + "\n" + wid + "\n" + timestampField(key, PurposeView, mid, wid, ts, ""))
+	return crypto.EncryptTrackingToken(mid + "\n" + wid + "\n" + timestampField(key, PurposeView, mid, wid, ts, host) + "\n" + host)
 }
 
 func timestampField(key []byte, purpose Purpose, mid, wid string, ts int64, url string) string {
@@ -196,7 +207,7 @@ func Parse(token string, purpose Purpose) (Token, error) {
 		return Token{}, err
 	}
 	fields := 3
-	if purpose == PurposeClick {
+	if purpose == PurposeClick || purpose == PurposeView {
 		fields = 4
 	}
 	parts := strings.SplitN(plaintext, "\n", fields)
@@ -209,8 +220,11 @@ func Parse(token string, purpose Purpose) (Token, error) {
 	if n, err := strconv.ParseInt(ts, 10, 64); err == nil {
 		t.Timestamp = n
 	}
-	if purpose == PurposeClick {
+	switch purpose {
+	case PurposeClick:
 		t.URL = parts[3]
+	case PurposeView:
+		t.Host = parts[3]
 	}
 	t.rawTimestamp = ts
 	return t, nil
@@ -221,7 +235,11 @@ func (t Token) Verify(key []byte, purpose Purpose) bool {
 	if t.Tag == "" || len(key) == 0 {
 		return false
 	}
-	want := computeTag(key, purpose, t.MessageID, t.WorkspaceID, t.rawTimestamp, t.URL)
+	signed := t.URL
+	if purpose == PurposeView {
+		signed = t.Host
+	}
+	want := computeTag(key, purpose, t.MessageID, t.WorkspaceID, t.rawTimestamp, signed)
 	return hmac.Equal([]byte(want), []byte(t.Tag))
 }
 
