@@ -391,6 +391,18 @@ export const PERMISSION_DESCRIPTORS: Record<
           endpoint: "/api/templateBlocks.get",
           action: msg`Read one reusable template block`,
         },
+        {
+          endpoint: "/api/transactional.testTemplate",
+          action: msg`Read the template a test email is sent from (also needs Transactional write)`,
+        },
+        {
+          endpoint: "/api/transactional.create",
+          action: msg`Pick the template a transactional notification sends (also needs Transactional write)`,
+        },
+        {
+          endpoint: "/api/transactional.update",
+          action: msg`Pick the template a transactional notification sends (also needs Transactional write)`,
+        },
       ],
     },
     write: {
@@ -626,7 +638,7 @@ export const PERMISSION_DESCRIPTORS: Record<
         },
         {
           endpoint: "/api/transactional.testTemplate",
-          action: msg`Send a real test email through a chosen integration and sender; cc or bcc additionally needs Contacts read, and sending it for a list additionally needs Lists read`,
+          action: msg`Send a real test email through a chosen integration and sender; it also needs Templates read, cc or bcc additionally needs Contacts read, and sending it for a list additionally needs Lists read`,
         },
         {
           endpoint: "/api/email.testProvider",
@@ -1045,4 +1057,16 @@ function buildPermissions(granted: boolean): UserPermissions {
     permissions[resource] = { read: granted, write: granted };
   }
   return permissions;
+}
+
+/**
+ * Whether a set lets a member send a test email (transactional.testTemplate): the endpoint checks
+ * Transactional write, then reads the template with the member's own permissions. Its contact
+ * upsert runs system-scoped, so no contacts permission is needed; cc, bcc and a list need more,
+ * which the test dialog gates field by field.
+ */
+export function canSendTestEmail(
+  permissions: StoredPermissions | null | undefined,
+): boolean {
+  return Boolean(permissions?.templates?.read && permissions?.transactional?.write);
 }

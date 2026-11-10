@@ -57,6 +57,7 @@ interface ModalProps {
   defaultListId?: string
   omitListUnsubscribeHeader?: boolean
   canReadLists?: boolean
+  canReadContacts?: boolean
 }
 
 function modal(props: ModalProps & { isOpen?: boolean }, queryClient: QueryClient) {
@@ -235,5 +236,33 @@ describe('SendTemplateModal mailing list', () => {
 
     const call = await sendTo('me@example.com')
     expect(call[7]).toBeUndefined()
+  })
+})
+
+describe('SendTemplateModal cc and bcc', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(transactionalNotificationsApi.testTemplate as Mock).mockResolvedValue({ success: true })
+  })
+
+  // cc and bcc need contacts:read on the server, so a member without it is not offered them.
+  it.each([
+    ['false', false],
+    ['absent', undefined]
+  ])('hides cc and bcc when canReadContacts is %s', async (_label, canReadContacts) => {
+    renderModal({ canReadContacts })
+    await userEvent.click(screen.getByText('+ add from name, reply-to, attachments'))
+
+    expect(screen.getByText('From Name (override)')).toBeInTheDocument()
+    expect(screen.queryByText('CC Recipients')).not.toBeInTheDocument()
+    expect(screen.queryByText('BCC Recipients')).not.toBeInTheDocument()
+  })
+
+  it('shows cc and bcc when canReadContacts is true', async () => {
+    renderModal({ canReadContacts: true })
+    await userEvent.click(screen.getByText(/add from name, CC, BCC/i))
+
+    expect(screen.getByText('CC Recipients')).toBeInTheDocument()
+    expect(screen.getByText('BCC Recipients')).toBeInTheDocument()
   })
 })

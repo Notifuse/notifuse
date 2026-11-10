@@ -9,7 +9,8 @@ import {
   grantsFullPermissions,
   isPermissionEnforced,
   ENFORCED_PERMISSION_VERBS,
-  countEnforcedGrants
+  countEnforcedGrants,
+  canSendTestEmail
 } from './permissions'
 import type { PermissionType } from './permissions'
 
@@ -135,5 +136,40 @@ describe('opt-in permission resources', () => {
       '/api/auditLogs.export'
     ])
     expect(descriptor.write.endpoints).toEqual([])
+  })
+})
+
+// transactional.testTemplate checks transactional:write, then reads the template with the
+// member's own context (templates:read). Its contact upsert is system-scoped, so contacts:write
+// plays no part; tests/integration/transactional_handler_test.go pins both against the server.
+describe('canSendTestEmail', () => {
+  it('needs templates read and transactional write', () => {
+    expect(canSendTestEmail({ templates: { read: true, write: false }, transactional: { read: false, write: true } })).toBe(true)
+  })
+
+  it.each([
+    ['without templates read', { templates: { read: false, write: true }, transactional: { read: true, write: true } }],
+    ['without transactional write', { templates: { read: true, write: true }, transactional: { read: true, write: false } }],
+    ['with the contacts write the buttons used to ask for', { templates: { read: true, write: false }, contacts: { read: true, write: true } }],
+    ['with no permissions', {}]
+  ])('is false %s', (_label, permissions) => {
+    expect(canSendTestEmail(permissions)).toBe(false)
+  })
+
+  it.each([null, undefined])('is false for %s', (permissions) => {
+    expect(canSendTestEmail(permissions)).toBe(false)
+  })
+})
+
+describe('templates read catalogue', () => {
+  it('lists the transactional endpoints that read a template with the member context', () => {
+    const endpoints = PERMISSION_DESCRIPTORS.templates.read.endpoints.map((e) => e.endpoint)
+    expect(endpoints).toEqual(
+      expect.arrayContaining([
+        '/api/transactional.testTemplate',
+        '/api/transactional.create',
+        '/api/transactional.update'
+      ])
+    )
   })
 })

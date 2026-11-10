@@ -2,6 +2,7 @@ package integration
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -40,7 +41,7 @@ func TestTransactionalHandler(t *testing.T) {
 	require.NoError(t, err)
 
 	// Set up SMTP email provider for testing
-	_, err = factory.SetupWorkspaceWithSMTPProvider(workspace.ID)
+	smtpIntegration, err := factory.SetupWorkspaceWithSMTPProvider(workspace.ID)
 	require.NoError(t, err)
 
 	// Login to get auth token
@@ -58,6 +59,60 @@ func TestTransactionalHandler(t *testing.T) {
 
 	t.Run("Template Testing", func(t *testing.T) {
 		testTransactionalTemplateTest(t, client, factory, workspace.ID)
+	})
+
+	// The console enables its test email buttons on templates:read and transactional:write,
+	// so pin that this is exactly what the endpoint needs: contacts:write is not.
+	t.Run("Template Testing Permissions", func(t *testing.T) {
+		template, err := factory.CreateTemplate(workspace.ID)
+		require.NoError(t, err)
+
+		memberClient := func(t *testing.T, perms domain.UserPermissions) *testutil.APIClient {
+			t.Helper()
+			member, err := factory.CreateUser()
+			require.NoError(t, err)
+			require.NoError(t, factory.AddUserToWorkspaceWithPermissions(member.ID, workspace.ID, "member", perms))
+			c := testutil.NewAPIClient(suite.ServerManager.GetURL())
+			require.NoError(t, c.Login(member.Email, "password"))
+			c.SetWorkspaceID(workspace.ID)
+			return c
+		}
+		testSend := func(t *testing.T, c *testutil.APIClient) *http.Response {
+			t.Helper()
+			resp, err := c.TestTransactionalTemplate(map[string]interface{}{
+				"workspace_id":    workspace.ID,
+				"template_id":     template.ID,
+				"integration_id":  smtpIntegration.ID,
+				"sender_id":       smtpIntegration.EmailProvider.Senders[0].ID,
+				"recipient_email": fmt.Sprintf("perm-test-%d@example.com", time.Now().UnixNano()),
+			})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = resp.Body.Close() })
+			return resp
+		}
+
+		t.Run("transactional write without templates read is refused", func(t *testing.T) {
+			resp := testSend(t, memberClient(t, domain.UserPermissions{
+				domain.PermissionResourceTransactional: {Read: true, Write: true},
+				domain.PermissionResourceContacts:      {Read: true, Write: true},
+			}))
+			require.Equal(t, http.StatusForbidden, resp.StatusCode)
+			var body map[string]interface{}
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+			assert.Equal(t, string(domain.PermissionResourceTemplates), body["resource"])
+			assert.Equal(t, string(domain.PermissionTypeRead), body["permission"])
+		})
+
+		t.Run("templates read and transactional write send without any contacts permission", func(t *testing.T) {
+			resp := testSend(t, memberClient(t, domain.UserPermissions{
+				domain.PermissionResourceTemplates:     {Read: true},
+				domain.PermissionResourceTransactional: {Write: true},
+			}))
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+			var result domain.TestTemplateResponse
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+			assert.True(t, result.Success, "test send failed: %s", result.Error)
+		})
 	})
 
 	t.Run("Send with CC and BCC Recipients", func(t *testing.T) {

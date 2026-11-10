@@ -29,6 +29,8 @@ interface SendTemplateModalProps {
   omitListUnsubscribeHeader?: boolean
   // The list field is shown, and lists loaded, only for members who can read lists
   canReadLists?: boolean
+  // cc and bcc need contacts:read on the server, so their fields are shown only with it
+  canReadContacts?: boolean
 }
 
 export default function SendTemplateModal({
@@ -40,7 +42,8 @@ export default function SendTemplateModal({
   withCCAndBCC = false,
   defaultListId,
   omitListUnsubscribeHeader = false,
-  canReadLists = false
+  canReadLists = false,
+  canReadContacts = false
 }: SendTemplateModalProps) {
   const { t } = useLingui()
   const [email, setEmail] = useState('')
@@ -156,8 +159,8 @@ export default function SendTemplateModal({
         selectedLanguage || undefined,
         {
           from_name: fromName || undefined,
-          cc: ccEmails,
-          bcc: bccEmails,
+          cc: canReadContacts ? ccEmails : [],
+          bcc: canReadContacts ? bccEmails : [],
           reply_to: replyTo,
           attachments: attachments.length > 0 ? attachments : undefined
         },
@@ -397,7 +400,9 @@ export default function SendTemplateModal({
 
           {!showAdvancedOptions && (
             <Button type="link" onClick={() => setShowAdvancedOptions(true)} className="!p-0">
-              {t`+ add from name, CC, BCC, reply-to, attachments`}
+              {canReadContacts
+                ? t`+ add from name, CC, BCC, reply-to, attachments`
+                : t`+ add from name, reply-to, attachments`}
             </Button>
           )}
 
@@ -415,27 +420,31 @@ export default function SendTemplateModal({
                 </Text>
               </Form.Item>
 
-              <Form.Item label={t`CC Recipients`}>
-                <Select
-                  mode="tags"
-                  placeholder={t`Enter CC email addresses`}
-                  value={ccEmails}
-                  onChange={setCcEmails}
-                  tokenSeparators={[',', ' ']}
-                  allowClear
-                />
-              </Form.Item>
+              {canReadContacts && (
+                <>
+                  <Form.Item label={t`CC Recipients`}>
+                    <Select
+                      mode="tags"
+                      placeholder={t`Enter CC email addresses`}
+                      value={ccEmails}
+                      onChange={setCcEmails}
+                      tokenSeparators={[',', ' ']}
+                      allowClear
+                    />
+                  </Form.Item>
 
-              <Form.Item label={t`BCC Recipients`}>
-                <Select
-                  mode="tags"
-                  placeholder={t`Enter BCC email addresses`}
-                  value={bccEmails}
-                  onChange={setBccEmails}
-                  tokenSeparators={[',', ' ']}
-                  allowClear
-                />
-              </Form.Item>
+                  <Form.Item label={t`BCC Recipients`}>
+                    <Select
+                      mode="tags"
+                      placeholder={t`Enter BCC email addresses`}
+                      value={bccEmails}
+                      onChange={setBccEmails}
+                      tokenSeparators={[',', ' ']}
+                      allowClear
+                    />
+                  </Form.Item>
+                </>
+              )}
 
               <Form.Item label={t`Reply-To`}>
                 <Input
