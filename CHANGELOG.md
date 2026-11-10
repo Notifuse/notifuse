@@ -16,6 +16,10 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
 
+- **Fix**: In the email editor's structure tree, a block dragged down now lands where the line shows, and the line only appears where the block can go.
+
+- **Improvement**: Blocks can now be dragged into empty columns, sections, wrappers, groups and social blocks, wrappers get a drag handle, and a section dragged below nested content finds its place without a sideways move. Moving, adding, duplicating or deleting a column keeps the other columns' proportions when their widths are percentages adding up to 100.
+
 ## [43.1] - 2026-11-10
 
 - **Improvement**: Test emails can now be sent for a mailing list, chosen in the test dialog of a template or a broadcast and preselected with the broadcast's audience list (#423). They then carry that list's working unsubscribe and confirmation links and the List-Unsubscribe header, as a broadcast to the list does; a test for the audience list of a broadcast that also goes to the list's unsubscribed contacts has no header, as the broadcast. Unsubscribing or confirming from such a test, or a bounce or complaint on it, changes the recipient's subscription to the list. `transactional.testTemplate` takes `list_id` and `omit_list_unsubscribe_header`; a test for a list also needs Lists read.
