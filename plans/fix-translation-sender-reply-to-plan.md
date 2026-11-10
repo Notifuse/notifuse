@@ -54,7 +54,7 @@ one. The API documents `reply_to` as "Set custom reply-to email address", and `T
 lets the explicit one win. Today translated sends escape that override only because their reply-to is
 empty; inheriting it would extend the override to them. So the same PR makes the template's reply-to
 a fallback there too: applied only when the send gives none. Covers transactional sends, emails
-relayed over SMTP (whose `Reply-To` header fills `email_options.reply_to`), and list
+relayed through the SMTP bridge (whose `Reply-To` header fills `email_options.reply_to`), and list
 double opt-in / welcome emails (the latter never set one, so they keep the template's).
 
 Why at resolution rather than on save: it heals templates already stored without a migration, covers
@@ -110,8 +110,8 @@ Tests — `internal/service/email_service_test.go` (`SendEmailForTemplate`):
 ### Integration — `tests/integration/template_translation_test.go`
 
 A new `TestTemplateTranslationSenderAndReplyTo`, on a workspace set up with
-`SetupWorkspaceWithSMTPProvider`, whose Mailpit SMTP integration gets, through an inline
-`IntegrationOption`, a default sender A and a non-default sender B; the template uses B and a
+`SetupWorkspaceWithSMTPProvider`: its Mailpit SMTP integration keeps the helper's default sender A
+and gets, through an inline `IntegrationOption`, a non-default sender B; the template uses B and a
 reply-to, and its `fr` translation has neither:
 
 - **Transactional**: send to an `fr` contact → Mailpit `From` is B, the raw message
