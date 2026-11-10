@@ -9,6 +9,8 @@ import (
 	"sync"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/Notifuse/liquidgo/liquid"
 )
 
 // liquidEnginePool reuses SecureLiquidEngine instances across renders.
@@ -393,15 +395,12 @@ func restoreLiquidDelimiters(s string) string {
 // verbatim.
 var liquidRawTagRegex = regexp.MustCompile(`^\{%-?\s*raw\s*-?%\}$`)
 
-// isLiquidEndRawTag reports whether markup ends a raw body, the way liquidgo's raw tag
-// decides it: the markup between {% and %}, trimmed, is "endraw" or starts with
-// "endraw " ({%- endraw -%} is not an end there, so the body runs on).
+// isLiquidEndRawTag reports whether markup ends a raw body, with liquidgo's own rule
+// (Ruby's FullTokenPossiblyInvalid): the markup ends with a tag named endraw, whatever
+// its whitespace control ({%- endraw -%}) or the text before it in the same markup.
 func isLiquidEndRawTag(markup string) bool {
-	if !strings.HasPrefix(markup, "{%") {
-		return false
-	}
-	name := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(markup, "{%"), "%}"))
-	return name == "endraw" || strings.HasPrefix(name, "endraw ")
+	_, tagName, ok := liquid.MatchTagPossiblyInvalid(markup)
+	return ok && tagName == "endraw"
 }
 
 // cleanLiquidTemplate undoes what rich text editors do to the Liquid markup typed
@@ -417,7 +416,15 @@ func cleanLiquidTemplate(content string) string {
 	last := 0
 	inRaw := false
 	for _, loc := range locs {
-		cleaned := cleanLiquidMarkup(content[loc[0]:loc[1]])
+		start := loc[0]
+		if inRaw {
+			// The closing tag is the last {% of the markup; text before it in the same
+			// markup ({% raw %}{% if x {% endraw %}) is still raw body, copied unchanged.
+			if i := strings.LastIndex(content[loc[0]:loc[1]], "{%"); i > 0 {
+				start += i
+			}
+		}
+		cleaned := cleanLiquidMarkup(content[start:loc[1]])
 		if inRaw {
 			if !isLiquidEndRawTag(cleaned) {
 				continue
@@ -426,7 +433,7 @@ func cleanLiquidTemplate(content string) string {
 		} else {
 			inRaw = liquidRawTagRegex.MatchString(cleaned)
 		}
-		b.WriteString(content[last:loc[0]])
+		b.WriteString(content[last:start])
 		b.WriteString(cleaned)
 		last = loc[1]
 	}
