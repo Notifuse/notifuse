@@ -3365,3 +3365,133 @@ func TestBroadcast_SendsListUnsubscribeHeader(t *testing.T) {
 		assert.False(t, b.SendsListUnsubscribeHeader())
 	})
 }
+
+func TestBroadcast_VariationSenderID(t *testing.T) {
+	b := &domain.Broadcast{TestSettings: domain.BroadcastTestSettings{Variations: []domain.BroadcastVariation{
+		{VariationName: "A", TemplateID: "tpl-a", SenderID: "sender-promos"},
+		{VariationName: "B", TemplateID: "tpl-b"},
+	}}}
+
+	assert.Equal(t, "sender-promos", b.VariationSenderID("tpl-a"))
+	assert.Empty(t, b.VariationSenderID("tpl-b"), "no sender chosen: the template's applies")
+	assert.Empty(t, b.VariationSenderID("tpl-unknown"))
+	assert.Empty(t, (*domain.Broadcast)(nil).VariationSenderID("tpl-a"))
+}
+
+func TestBroadcastVariation_SenderIDJSON(t *testing.T) {
+	t.Run("round-trips through the stored test settings", func(t *testing.T) {
+		settings := domain.BroadcastTestSettings{Variations: []domain.BroadcastVariation{
+			{VariationName: "A", TemplateID: "tpl-a", SenderID: "sender-promos"},
+		}}
+		raw, err := settings.Value()
+		require.NoError(t, err)
+
+		var decoded domain.BroadcastTestSettings
+		require.NoError(t, decoded.Scan(raw))
+		assert.Equal(t, "sender-promos", decoded.Variations[0].SenderID)
+	})
+
+	t.Run("settings stored before the field decode with no sender", func(t *testing.T) {
+		var decoded domain.BroadcastTestSettings
+		require.NoError(t, decoded.Scan([]byte(`{"enabled":false,"variations":[{"variation_name":"A","template_id":"tpl-a"}]}`)))
+		assert.Empty(t, decoded.Variations[0].SenderID)
+	})
+
+	t.Run("an unset sender is left out of the JSON", func(t *testing.T) {
+		raw, err := json.Marshal(domain.BroadcastVariation{VariationName: "A", TemplateID: "tpl-a"})
+		require.NoError(t, err)
+		assert.NotContains(t, string(raw), "sender_id")
+	})
+}
+
+func TestBroadcast_Validate_VariationSenders(t *testing.T) {
+	newBroadcast := func(variations ...domain.BroadcastVariation) *domain.Broadcast {
+		return &domain.Broadcast{
+			WorkspaceID: "ws",
+			Name:        "November letter",
+			Status:      domain.BroadcastStatusDraft,
+			Audience:    domain.AudienceSettings{List: "list-1"},
+			TestSettings: domain.BroadcastTestSettings{
+				Enabled:          true,
+				SamplePercentage: 20,
+				Variations:       variations,
+			},
+		}
+	}
+
+	t.Run("the same template twice with different senders is refused", func(t *testing.T) {
+		err := newBroadcast(
+			domain.BroadcastVariation{TemplateID: "tpl-a", SenderID: "sender-1"},
+			domain.BroadcastVariation{TemplateID: "tpl-a", SenderID: "sender-2"},
+		).Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "tpl-a")
+	})
+
+	t.Run("the same template twice with one sender is accepted, as before", func(t *testing.T) {
+		require.NoError(t, newBroadcast(
+			domain.BroadcastVariation{TemplateID: "tpl-a", SenderID: "sender-1"},
+			domain.BroadcastVariation{TemplateID: "tpl-a", SenderID: "sender-1"},
+		).Validate())
+	})
+
+	t.Run("different templates with different senders are accepted", func(t *testing.T) {
+		require.NoError(t, newBroadcast(
+			domain.BroadcastVariation{TemplateID: "tpl-a", SenderID: "sender-1"},
+			domain.BroadcastVariation{TemplateID: "tpl-b", SenderID: "sender-2"},
+		).Validate())
+	})
+}
+
+func TestUpdateBroadcastRequest_TestSettingsProvided(t *testing.T) {
+	var withSettings domain.UpdateBroadcastRequest
+	require.NoError(t, json.Unmarshal([]byte(`{"workspace_id":"ws","id":"b1","name":"n","test_settings":{"enabled":false,"variations":[]}}`), &withSettings))
+	assert.True(t, withSettings.TestSettingsProvided())
+
+	var without domain.UpdateBroadcastRequest
+	require.NoError(t, json.Unmarshal([]byte(`{"workspace_id":"ws","id":"b1","name":"renamed"}`), &without))
+	assert.False(t, without.TestSettingsProvided())
+}
+
+func TestCheckVariationSenders(t *testing.T) {
+	promos := domain.NewEmailSender("promos@example.com", "Promos")
+	provider := &domain.EmailProvider{Senders: []domain.EmailSender{promos}}
+
+	t.Run("variations without a chosen sender need no integration", func(t *testing.T) {
+		require.NoError(t, domain.CheckVariationSenders(nil, []domain.BroadcastVariation{{TemplateID: "tplA"}}))
+	})
+
+	t.Run("a sender of the integration passes", func(t *testing.T) {
+		require.NoError(t, domain.CheckVariationSenders(provider, []domain.BroadcastVariation{{TemplateID: "tplA", SenderID: promos.ID}}))
+	})
+
+	t.Run("a sender the integration does not have is a validation error naming it", func(t *testing.T) {
+		err := domain.CheckVariationSenders(provider, []domain.BroadcastVariation{
+			{TemplateID: "tplA", SenderID: promos.ID},
+			{VariationName: "B", TemplateID: "tplB", SenderID: "gone"},
+		})
+		var validationErr domain.ValidationError
+		require.ErrorAs(t, err, &validationErr)
+		assert.Contains(t, err.Error(), "gone")
+		assert.Contains(t, err.Error(), "tplB")
+	})
+
+	t.Run("a chosen sender without an integration is a validation error", func(t *testing.T) {
+		err := domain.CheckVariationSenders(nil, []domain.BroadcastVariation{{TemplateID: "tplA", SenderID: promos.ID}})
+		var validationErr domain.ValidationError
+		require.ErrorAs(t, err, &validationErr)
+		assert.Contains(t, err.Error(), "marketing")
+	})
+}
+
+func TestBroadcast_VariationsToSend(t *testing.T) {
+	b := &domain.Broadcast{TestSettings: domain.BroadcastTestSettings{Variations: []domain.BroadcastVariation{
+		{TemplateID: "tplA"}, {TemplateID: "tplB"},
+	}}}
+	assert.Len(t, b.VariationsToSend(), 2, "before a winner, every variation can still be sent")
+
+	winner := "tplB"
+	b.WinningTemplate = &winner
+	require.Len(t, b.VariationsToSend(), 1)
+	assert.Equal(t, "tplB", b.VariationsToSend()[0].TemplateID)
+}

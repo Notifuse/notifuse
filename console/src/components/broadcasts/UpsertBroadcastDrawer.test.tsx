@@ -21,6 +21,13 @@ vi.mock('../templates/TemplateSelectorInput', () => ({
   )
 }))
 
+// The sender field reads the chosen template's sender from the template list.
+vi.mock('../../services/api/template', () => ({
+  templatesApi: {
+    list: vi.fn().mockResolvedValue({ templates: [{ id: 'tmpl1', email: { sender_id: 's2' } }] })
+  }
+}))
+
 vi.mock('../../services/api/broadcast', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../services/api/broadcast')>()
   return {
@@ -401,5 +408,108 @@ describe('UpsertBroadcastDrawer unsubscribed recipients', () => {
     expect(
       screen.getByText(/carry no List-Unsubscribe header, so mail clients show no Unsubscribe button/)
     ).toBeInTheDocument()
+  })
+})
+
+describe('UpsertBroadcastDrawer sender', () => {
+  const withSenders = {
+    ...workspace,
+    settings: { ...workspace.settings, marketing_email_provider_id: 'mkt' },
+    integrations: [
+      {
+        id: 'mkt',
+        email_provider: {
+          senders: [
+            { id: 's1', name: 'Default', email: 'hello@example.com', is_default: true },
+            { id: 's2', name: 'Newsletter', email: 'news@example.com', is_default: false },
+            { id: 's3', name: 'Promos', email: 'promos@example.com', is_default: false }
+          ]
+        }
+      }
+    ]
+  } as unknown as Workspace
+
+  const openWithSenders = async (broadcast: Broadcast) => {
+    renderDrawer(
+      <UpsertBroadcastDrawer workspace={withSenders} broadcast={broadcast} lists={lists} />
+    )
+    await userEvent.click(screen.getByRole('button', { name: /Edit Broadcast/i }))
+    await goToTab('4. Content')
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(broadcastApi.update as Mock).mockResolvedValue({ broadcast: {} })
+  })
+
+  it('sends the sender chosen for the variation', async () => {
+    await openWithSenders(makeBroadcast())
+
+    expect(await screen.findByText("Template's sender (Newsletter)")).toBeInTheDocument()
+    await userEvent.click(screen.getByLabelText('Sender'))
+    await userEvent.click(await screen.findByText('Promos <promos@example.com>'))
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(broadcastApi.update).toHaveBeenCalled())
+    expect(updatePayload().test_settings.variations[0]).toMatchObject({
+      template_id: 'tmpl1',
+      sender_id: 's3'
+    })
+  })
+
+  it("sends no sender when the variation keeps the template's", async () => {
+    await openWithSenders(makeBroadcast())
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(broadcastApi.update).toHaveBeenCalled())
+    expect(updatePayload().test_settings.variations[0].sender_id).toBeUndefined()
+  })
+
+  it('refuses to save a sender that has left the integration', async () => {
+    await openWithSenders(
+      makeBroadcast({
+        test_settings: {
+          enabled: false,
+          sample_percentage: 50,
+          auto_send_winner: false,
+          variations: [{ variation_name: 'default', template_id: 'tmpl1', sender_id: 'gone' }]
+        }
+      })
+    )
+
+    expect(screen.getByText('gone (deleted)')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(
+      await screen.findByText(
+        "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
+      )
+    ).toBeInTheDocument()
+    expect(broadcastApi.update).not.toHaveBeenCalled()
+  })
+
+  it('gives each A/B variation its own sender', async () => {
+    await openWithSenders(
+      makeBroadcast({
+        test_settings: {
+          enabled: true,
+          sample_percentage: 20,
+          auto_send_winner: false,
+          variations: [
+            { variation_name: 'a', template_id: 'tmpl1' },
+            { variation_name: 'b', template_id: 'tmpl2', sender_id: 's3' }
+          ]
+        }
+      })
+    )
+
+    await userEvent.click(screen.getByLabelText('Sender 1'))
+    await userEvent.click(await screen.findByText('Default <hello@example.com>'))
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(broadcastApi.update).toHaveBeenCalled())
+    const variations = updatePayload().test_settings.variations
+    expect(variations[0].sender_id).toBe('s1')
+    expect(variations[1].sender_id).toBe('s3')
   })
 })

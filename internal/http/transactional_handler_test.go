@@ -957,6 +957,37 @@ func TestTransactionalNotificationHandler_HandleSend(t *testing.T) {
 			checkResponse:  nil,
 		},
 		{
+			name:   "sender chosen in email_options that the integration does not have",
+			method: http.MethodPost,
+			requestBody: map[string]interface{}{
+				"workspace_id": workspaceID,
+				"notification": map[string]interface{}{
+					"id":            notificationID,
+					"contact":       map[string]interface{}{"email": "test@example.com"},
+					"channels":      []string{"email"},
+					"email_options": map[string]interface{}{"sender_id": "no-such-sender"},
+				},
+			},
+			setupMock: func() {
+				mockService.EXPECT().
+					SendNotification(gomock.Any(), gomock.Eq(workspaceID), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ string, params domain.TransactionalNotificationSendParams) (string, error) {
+						assert.Equal(t, "no-such-sender", params.EmailOptions.SenderID)
+						return "", fmt.Errorf("%w: %s", domain.ErrSenderNotFound, params.EmailOptions.SenderID)
+					})
+
+				mockLogger.EXPECT().
+					WithField(gomock.Eq("error"), gomock.Any()).
+					Return(mockLogger)
+				mockLogger.EXPECT().
+					Error(gomock.Eq("Failed to send transactional notification"))
+			},
+			expectedStatus: http.StatusBadRequest,
+			checkResponse: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "sender not found: no-such-sender", response["error"])
+			},
+		},
+		{
 			name:        "notification inactive",
 			method:      http.MethodPost,
 			requestBody: validReqBody,

@@ -39,6 +39,8 @@ export interface EmailOptions {
   subject?: string
   subject_preview?: string
   reply_to?: string
+  // One of the transactional integration's senders, in place of the template's.
+  sender_id?: string
   cc?: string[]
   bcc?: string[]
   attachments?: Attachment[]

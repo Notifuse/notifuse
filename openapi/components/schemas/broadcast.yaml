@@ -164,6 +164,17 @@ BroadcastVariation:
       type: string
       description: Template ID for this variation
       example: template_variant_a
+    sender_id:
+      type: string
+      description: |
+        ID of one of the marketing email integration's senders. This variation leaves from it
+        instead of its template's sender. Omitted, the variation uses its template's sender:
+        sending test_settings without it clears a sender chosen earlier. An ID that is not one
+        of the integration's senders is refused with a 400. A broadcast whose chosen sender has
+        since been removed from the integration cannot be scheduled or resumed, and pauses if
+        it is already sending. Two variations using the same template must choose the same
+        sender.
+      example: 3f1c2a9e-sender
     metrics:
       $ref: '#/VariationMetrics'
     template:

@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -172,6 +173,43 @@ func (e *EmailProvider) GetSender(id string) *EmailSender {
 	return nil
 }
 
+// ErrSenderNotFound is returned when a sender chosen for a send is not one of the
+// integration's senders.
+var ErrSenderNotFound = errors.New("sender not found")
+
+// HasSender reports whether the integration has a sender with this ID.
+func (e *EmailProvider) HasSender(id string) bool {
+	if id == "" {
+		return false
+	}
+	for i := range e.Senders {
+		if e.Senders[i].ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+// ResolveSender returns the sender an email leaves from. A sender chosen for this send
+// (a broadcast variation's, or a transactional email_options.sender_id) must be one of
+// the integration's senders and never falls back: sending from another address than the
+// one chosen is never right. Without one, the template's sender applies, else the
+// integration's default, as GetSender does.
+func (e *EmailProvider) ResolveSender(chosenID string, templateSenderID string) (*EmailSender, error) {
+	if chosenID != "" {
+		for i := range e.Senders {
+			if e.Senders[i].ID == chosenID {
+				return &e.Senders[i], nil
+			}
+		}
+		return nil, fmt.Errorf("%w: %s", ErrSenderNotFound, chosenID)
+	}
+	if sender := e.GetSender(templateSenderID); sender != nil {
+		return sender, nil
+	}
+	return nil, fmt.Errorf("%w: no sender configured for email provider", ErrSenderNotFound)
+}
+
 // EncryptSecretKeys encrypts all secret keys in the email provider
 func (e *EmailProvider) EncryptSecretKeys(passphrase string) error {
 	if e.Kind == EmailProviderKindSES && e.SES != nil && e.SES.SecretKey != "" {
@@ -322,12 +360,15 @@ func (e *EmailProvider) DecryptSecretKeys(passphrase string) error {
 }
 
 type EmailOptions struct {
-	FromName           *string      `json:"from_name,omitempty"`       // Override default sender from name
-	Subject            *string      `json:"subject,omitempty"`         // Override template subject
-	SubjectPreview     *string      `json:"subject_preview,omitempty"` // Override template preheader
-	CC                 []string     `json:"cc,omitempty"`
-	BCC                []string     `json:"bcc,omitempty"`
-	ReplyTo            string       `json:"reply_to,omitempty"`
+	FromName       *string  `json:"from_name,omitempty"`       // Override default sender from name
+	Subject        *string  `json:"subject,omitempty"`         // Override template subject
+	SubjectPreview *string  `json:"subject_preview,omitempty"` // Override template preheader
+	CC             []string `json:"cc,omitempty"`
+	BCC            []string `json:"bcc,omitempty"`
+	ReplyTo        string   `json:"reply_to,omitempty"`
+	// SenderID picks one of the integration's senders for this message, in place of the
+	// template's. Request-only: message history does not store the From.
+	SenderID           string       `json:"sender_id,omitempty"`
 	Attachments        []Attachment `json:"attachments,omitempty"`
 	ListUnsubscribeURL string       `json:"list_unsubscribe_url,omitempty"` // RFC-8058 one-click unsubscribe URL
 }

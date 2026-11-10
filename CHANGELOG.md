@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [43.1] - WIP
+
+- **Feature**: A broadcast can now send from a sender other than its template's: each variation, in an A/B test too, chooses one of the marketing email integration's senders, or keeps its template's. A transactional email can do the same with `email_options.sender_id`. A sender that is not one of the integration's is refused when saving or sending. A broadcast whose chosen sender is removed from the integration afterwards cannot be scheduled, and one already sending pauses before its next batch, so it never leaves from another address.
+
 ## [43.0] - 2026-11-07
 
 - **Feature**: Contacts can now agree to or refuse open tracking and click tracking, each on its own. Their choice is stored on the contact (`tracking_opens_consent`, `tracking_clicks_consent`, with the date and source of the change), set through the API, the console, CSV import and the notification center, exported, filterable in the contact list and in segments, usable as an automation trigger field, and sent in contact webhooks. A contact who refused gets no open pixel or no tracked links, and a later refusal also stops recording opens and clicks of emails already sent.

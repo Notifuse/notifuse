@@ -56,6 +56,9 @@ export interface Template {
 export interface BroadcastVariation {
   variation_name: string
   template_id: string
+  // One of the marketing integration's senders, in place of the template's. Absent: the
+  // template's sender.
+  sender_id?: string
   metrics?: VariationMetrics
   template?: Template // Template joined from server when with_templates is true
 }

@@ -7604,6 +7604,11 @@
             "type": "object",
             "description": "Email-specific options",
             "properties": {
+              "sender_id": {
+                "type": "string",
+                "description": "ID of one of the transactional email integration's senders. The email leaves from\nthis sender instead of the template's. An ID that is not one of the integration's\nsenders is refused with a 400 before the contact is created or updated. `from_name`\nstill applies on top of it.\n",
+                "example": "3f1c2a9e-sender"
+              },
               "from_name": {
                 "type": "string",
                 "nullable": true,
@@ -9015,6 +9020,11 @@
             "type": "string",
             "description": "Template ID for this variation",
             "example": "template_variant_a"
+          },
+          "sender_id": {
+            "type": "string",
+            "description": "ID of one of the marketing email integration's senders. This variation leaves from it\ninstead of its template's sender. Omitted, the variation uses its template's sender:\nsending test_settings without it clears a sender chosen earlier. An ID that is not one\nof the integration's senders is refused with a 400. A broadcast whose chosen sender has\nsince been removed from the integration cannot be scheduled or resumed, and pauses if\nit is already sending. Two variations using the same template must choose the same\nsender.\n",
+            "example": "3f1c2a9e-sender"
           },
           "metrics": {
             "$ref": "#/components/schemas/VariationMetrics"

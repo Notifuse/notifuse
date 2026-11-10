@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -598,6 +599,13 @@ func (s *TransactionalNotificationService) SendNotification(
 		trace.StringAttribute("notification.name", notification.Name),
 	)
 
+	// A sender chosen for this message is checked before anything is written: an unknown one
+	// must not create or update the contact, nor be swallowed by the channel loop below.
+	if err := checkChosenSender(workspace, notification, params); err != nil {
+		tracing.MarkSpanError(ctx, err)
+		return "", err
+	}
+
 	// Upsert the contact first
 	if params.Contact == nil {
 		err := fmt.Errorf("contact is required")
@@ -1048,4 +1056,28 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		CreatedAt:      time.Now().UTC(),
 		UpdatedAt:      time.Now().UTC(),
 	})
+}
+
+// checkChosenSender returns an error wrapping domain.ErrSenderNotFound when the send chooses a
+// sender (email_options.sender_id) that the transactional email integration does not have.
+// A send that does not go out by email, or a workspace without that integration, is left to
+// the checks that already handle it.
+func checkChosenSender(workspace *domain.Workspace, notification *domain.TransactionalNotification, params domain.TransactionalNotificationSendParams) error {
+	if params.EmailOptions.SenderID == "" {
+		return nil
+	}
+	if _, ok := notification.Channels[domain.TransactionalChannelEmail]; !ok {
+		return nil
+	}
+	if len(params.Channels) > 0 && !slices.Contains(params.Channels, domain.TransactionalChannelEmail) {
+		return nil
+	}
+	provider, err := workspace.GetEmailProvider(false)
+	if err != nil || provider == nil {
+		return nil
+	}
+	if !provider.HasSender(params.EmailOptions.SenderID) {
+		return fmt.Errorf("%w: %s", domain.ErrSenderNotFound, params.EmailOptions.SenderID)
+	}
+	return nil
 }
