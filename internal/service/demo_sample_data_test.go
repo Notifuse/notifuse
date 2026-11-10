@@ -151,6 +151,7 @@ func TestDemoService_CreateSampleTransactionalNotifications(t *testing.T) {
 			authService,
 			logger.NewLoggerWithLevel("disabled"),
 			mocks.NewMockWorkspaceRepository(ctrl),
+			mocks.NewMockListRepository(ctrl),
 			"",
 		)
 		svc := &DemoService{
