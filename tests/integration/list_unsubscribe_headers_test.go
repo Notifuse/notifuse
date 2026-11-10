@@ -321,6 +321,47 @@ func TestListUnsubscribeHeaders(t *testing.T) {
 			assert.Empty(t, msg.Headers["List-Unsubscribe"])
 			assert.Empty(t, msg.Headers["List-Unsubscribe-Post"])
 		})
+
+		// The test is recorded for the list as a real send is, so a bounce reported on it
+		// changes the recipient's subscription, as the dialog says.
+		t.Run("a bounce on the test marks the subscriber bounced on the list", func(t *testing.T) {
+			email, listID := subscribedContact(t)
+			testSend(t, email, map[string]interface{}{"list_id": listID})
+
+			db, err := factory.GetWorkspaceDB(workspace.ID)
+			require.NoError(t, err)
+			res, err := db.ExecContext(context.Background(),
+				`UPDATE message_history SET bounced_at = NOW() WHERE contact_email = $1 AND list_id = $2`,
+				email, listID)
+			require.NoError(t, err)
+			rows, err := res.RowsAffected()
+			require.NoError(t, err)
+			require.Equal(t, int64(1), rows, "the test should be recorded for the list")
+
+			assert.Equal(t, domain.ContactListStatusBounced, statusOf(t, email, listID))
+		})
+
+		t.Run("an unknown list is refused and creates no contact", func(t *testing.T) {
+			recipient := fmt.Sprintf("unknown.%s@example.com", uuid.New().String()[:8])
+			resp, err := client.TestTransactionalTemplate(map[string]interface{}{
+				"workspace_id":    workspace.ID,
+				"template_id":     template.ID,
+				"integration_id":  integration.ID,
+				"sender_id":       senderID,
+				"recipient_email": recipient,
+				"list_id":         "nosuchlist",
+			})
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+
+			db, err := factory.GetWorkspaceDB(workspace.ID)
+			require.NoError(t, err)
+			var contacts int
+			require.NoError(t, db.QueryRowContext(context.Background(),
+				`SELECT COUNT(*) FROM contacts WHERE email = $1`, recipient).Scan(&contacts))
+			assert.Equal(t, 0, contacts)
+		})
 	})
 
 	// Real broadcasts are not sent through broadcasts.sendToIndividual but scheduled and

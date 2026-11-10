@@ -2,6 +2,7 @@ import { api } from './client'
 import type { TestTemplateRequest, TestTemplateResponse, TrackingSettings } from './template'
 
 export type TransactionalChannel = 'email'
+// Add other channels in the future (sms, push, etc.)
 
 // The mailing list a test email is sent for
 export interface TestTemplateListOptions {
@@ -9,7 +10,6 @@ export interface TestTemplateListOptions {
   // Keep the list's links but leave out the List-Unsubscribe header
   omitListUnsubscribeHeader?: boolean
 }
-// Add other channels in the future (sms, push, etc.)
 
 export interface ChannelTemplate {
   template_id: string

@@ -87,7 +87,7 @@ msgid "{0, plural, one {Exported # row} other {Exported # rows}}"
 msgstr "{0, plural, one {# ligne exportée} other {# lignes exportées}}"
 
 #. placeholder {0}: list.name
-#: src/components/templates/SendTemplateModal.tsx:372
+#: src/components/templates/SendTemplateModal.tsx:375
 msgid "{0} (broadcast audience)"
 msgstr "{0} (audience du broadcast)"
 
@@ -478,7 +478,7 @@ msgstr "• Vérifiez que les attributs des composants sont valides"
 msgid "+ Add filter"
 msgstr "+ Ajouter un filtre"
 
-#: src/components/templates/SendTemplateModal.tsx:393
+#: src/components/templates/SendTemplateModal.tsx:396
 msgid "+ add from name, CC, BCC, reply-to, attachments"
 msgstr "+ ajouter nom expéditeur, CC, CCI, répondre-à, pièces jointes"
 
@@ -975,13 +975,13 @@ msgstr "Adresse ligne 2"
 msgid "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Notifuse for every recipient of every tracked send, which is why it is off by default."
 msgstr "Ajoute une identité signée aux liens des emails trackés : un destinataire qui clique sur l'un d'eux est ainsi reconnu à son arrivée, sans aucun code sur votre site. Sa visite est alors rattachée à sa fiche de contact — entrées de chronologie, objectifs et inscriptions aux automations. Contrairement à identify(), que votre propre serveur appelle, cette identité est générée par Notifuse pour chaque destinataire de chaque envoi tracké, ce qui explique qu'elle soit désactivée par défaut."
 
-#: src/components/templates/SendTemplateModal.tsx:360
-msgid "Adds this list's unsubscribe links and the List-Unsubscribe header, as in a real send. Unsubscribing or confirming from this test really changes the recipient's subscription to the list."
-msgstr "Ajoute les liens de désinscription de cette liste et l'en-tête List-Unsubscribe, comme un envoi réel. Se désinscrire ou confirmer depuis ce test modifie vraiment l'abonnement du destinataire à la liste."
+#: src/components/templates/SendTemplateModal.tsx:362
+msgid "Adds this list's unsubscribe links and the List-Unsubscribe header, as a broadcast to this list does. Unsubscribing or confirming from this test, or a bounce or complaint on it, really changes the recipient's subscription to the list."
+msgstr "Ajoute les liens de désinscription de cette liste et l'en-tête List-Unsubscribe, comme un broadcast vers cette liste. Se désinscrire ou confirmer depuis ce test, ou un bounce ou une plainte sur ce test, modifie vraiment l'abonnement du destinataire à la liste."
 
-#: src/components/templates/SendTemplateModal.tsx:359
-msgid "Adds this list's unsubscribe links, as in a real send. This broadcast also goes to the list's unsubscribed contacts, so it carries no List-Unsubscribe header. Unsubscribing or confirming from this test really changes the recipient's subscription to the list."
-msgstr "Ajoute les liens de désinscription de cette liste, comme un envoi réel. Ce broadcast est aussi envoyé aux désabonnés de la liste, il n'a donc pas d'en-tête List-Unsubscribe. Se désinscrire ou confirmer depuis ce test modifie vraiment l'abonnement du destinataire à la liste."
+#: src/components/templates/SendTemplateModal.tsx:361
+msgid "Adds this list's unsubscribe links, as the broadcast does. The broadcast also goes to the list's unsubscribed contacts, so the test carries no List-Unsubscribe header. Unsubscribing or confirming from this test, or a bounce or complaint on it, really changes the recipient's subscription to the list."
+msgstr "Ajoute les liens de désinscription de cette liste, comme le broadcast. Le broadcast est aussi envoyé aux désabonnés de la liste, le test n'a donc pas d'en-tête List-Unsubscribe. Se désinscrire ou confirmer depuis ce test, ou un bounce ou une plainte sur ce test, modifie vraiment l'abonnement du destinataire à la liste."
 
 #: src/pages/SetupWizard.tsx:369
 msgid "Admin email is required"
@@ -1539,7 +1539,7 @@ msgstr "Au moins un email racine est requis"
 msgid "at most"
 msgstr "au plus"
 
-#: src/components/templates/SendTemplateModal.tsx:442
+#: src/components/templates/SendTemplateModal.tsx:445
 msgid "Attachments"
 msgstr "Pièces jointes"
 
@@ -1865,7 +1865,7 @@ msgstr "Informations de base"
 msgid "BCC"
 msgstr "CCI"
 
-#: src/components/templates/SendTemplateModal.tsx:422
+#: src/components/templates/SendTemplateModal.tsx:425
 msgid "BCC Recipients"
 msgstr "Destinataires CCI"
 
@@ -2419,7 +2419,7 @@ msgstr "Campagnes"
 #: src/components/settings/WorkspaceMembers.tsx:479
 #: src/components/settings/WorkspaceMembers.tsx:541
 #: src/components/templates/CreateTemplateDrawer.tsx:643
-#: src/components/templates/SendTemplateModal.tsx:295
+#: src/components/templates/SendTemplateModal.tsx:297
 #: src/components/templates/TemplateTranslationsTab.tsx:276
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:180
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
@@ -2540,7 +2540,7 @@ msgstr "Catégorie :"
 msgid "CC"
 msgstr "CC"
 
-#: src/components/templates/SendTemplateModal.tsx:411
+#: src/components/templates/SendTemplateModal.tsx:414
 msgid "CC Recipients"
 msgstr "Destinataires CC"
 
@@ -3973,7 +3973,7 @@ msgstr "Expéditeur personnalisé (fournisseur d email marketing)"
 msgid "Custom sender (transactional email provider)"
 msgstr "Expéditeur personnalisé (fournisseur d email transactionnel)"
 
-#: src/components/templates/SendTemplateModal.tsx:401
+#: src/components/templates/SendTemplateModal.tsx:404
 msgid "Custom sender name (optional)"
 msgstr "Nom d expéditeur personnalisé (optionnel)"
 
@@ -4066,7 +4066,7 @@ msgstr "Décoration"
 msgid "Deduplication:"
 msgstr "Déduplication :"
 
-#: src/components/templates/SendTemplateModal.tsx:91
+#: src/components/templates/SendTemplateModal.tsx:93
 #: src/pages/TemplatesPage.tsx:252
 msgid "default"
 msgstr "par défaut"
@@ -5096,7 +5096,7 @@ msgid "Email field mapping is required"
 msgstr "Le mappage du champ email est requis"
 
 #: src/components/automations/config/EmailConfigForm.tsx:80
-#: src/components/templates/SendTemplateModal.tsx:313
+#: src/components/templates/SendTemplateModal.tsx:315
 msgid "Email Integration"
 msgstr "Intégration email"
 
@@ -5370,7 +5370,7 @@ msgstr "Entrez l URL de l avatar (optionnel)"
 msgid "Enter background image URL"
 msgstr "Entrez l URL de l image d arrière-plan"
 
-#: src/components/templates/SendTemplateModal.tsx:425
+#: src/components/templates/SendTemplateModal.tsx:428
 msgid "Enter BCC email addresses"
 msgstr "Entrez les adresses email CCI"
 
@@ -5386,7 +5386,7 @@ msgstr "Entrez l URL du lien du bouton ou {{ url }}"
 msgid "Enter button text..."
 msgstr "Entrez le texte du bouton..."
 
-#: src/components/templates/SendTemplateModal.tsx:414
+#: src/components/templates/SendTemplateModal.tsx:417
 msgid "Enter CC email addresses"
 msgstr "Entrez les adresses email CC"
 
@@ -5474,7 +5474,7 @@ msgstr "Entrez un nombre..."
 msgid "Enter preview text that appears in email clients..."
 msgstr "Entrez le texte d aperçu qui apparaît dans les clients email..."
 
-#: src/components/templates/SendTemplateModal.tsx:435
+#: src/components/templates/SendTemplateModal.tsx:438
 msgid "Enter Reply-To email address"
 msgstr "Entrez l adresse email de réponse"
 
@@ -5588,7 +5588,7 @@ msgstr "Erreur :"
 msgid "Error: {0}"
 msgstr "Erreur : {0}"
 
-#: src/components/templates/SendTemplateModal.tsx:178
+#: src/components/templates/SendTemplateModal.tsx:180
 msgid "Error: {errorMessage}"
 msgstr "Erreur : {errorMessage}"
 
@@ -6098,7 +6098,7 @@ msgid "Failed to process all {0} contacts"
 msgstr "Échec du traitement des {0} contacts"
 
 #. placeholder {0}: file.name
-#: src/components/templates/SendTemplateModal.tsx:252
+#: src/components/templates/SendTemplateModal.tsx:254
 msgid "Failed to process file {0}"
 msgstr "Échec du traitement du fichier {0}"
 
@@ -6234,7 +6234,7 @@ msgstr "Échec de l'envoi du code magique"
 #. placeholder {0}: response.error
 #. placeholder {0}: response.error || 'Unknown error'
 #: src/components/settings/Integrations.tsx:1241
-#: src/components/templates/SendTemplateModal.tsx:167
+#: src/components/templates/SendTemplateModal.tsx:169
 msgid "Failed to send test email: {0}"
 msgstr "Échec de l envoi de l email de test : {0}"
 
@@ -6403,12 +6403,12 @@ msgid "File"
 msgstr "Fichier"
 
 #. placeholder {0}: file.name
-#: src/components/templates/SendTemplateModal.tsx:249
+#: src/components/templates/SendTemplateModal.tsx:251
 msgid "File {0} added"
 msgstr "Fichier {0} ajouté"
 
 #. placeholder {0}: file.name
-#: src/components/templates/SendTemplateModal.tsx:205
+#: src/components/templates/SendTemplateModal.tsx:207
 msgid "File {0} exceeds 3MB limit"
 msgstr "Le fichier {0} dépasse la limite de 3 Mo"
 
@@ -6690,7 +6690,7 @@ msgstr "L email de l expéditeur est requis"
 msgid "From Name"
 msgstr "Nom de l expéditeur"
 
-#: src/components/templates/SendTemplateModal.tsx:399
+#: src/components/templates/SendTemplateModal.tsx:402
 msgid "From Name (override)"
 msgstr "Nom de l expéditeur (remplacement)"
 
@@ -7749,7 +7749,7 @@ msgstr "Pages d'atterrissage"
 #: src/components/contacts/ContactDetailsDrawer.tsx:457
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:96
 #: src/components/contacts/ExportContactsModal.tsx:73
-#: src/components/templates/SendTemplateModal.tsx:381
+#: src/components/templates/SendTemplateModal.tsx:384
 #: src/components/templates/TemplatePreviewDrawer.tsx:353
 #: src/pages/ContactsPage.tsx:381
 #: src/pages/ContactsPage.tsx:449
@@ -8305,7 +8305,7 @@ msgstr "Code magique envoyé à votre email"
 msgid "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 msgstr "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 
-#: src/components/templates/SendTemplateModal.tsx:354
+#: src/components/templates/SendTemplateModal.tsx:356
 msgid "Mailing list"
 msgstr "Liste de diffusion"
 
@@ -8421,11 +8421,11 @@ msgstr "correspond à la regex"
 msgid "Matching contacts:"
 msgstr "Contacts correspondants :"
 
-#: src/components/templates/SendTemplateModal.tsx:449
+#: src/components/templates/SendTemplateModal.tsx:452
 msgid "Max 3MB per file, 10MB total, 20 files maximum"
 msgstr "Max 3 Mo par fichier, 10 Mo au total, 20 fichiers maximum"
 
-#: src/components/templates/SendTemplateModal.tsx:226
+#: src/components/templates/SendTemplateModal.tsx:228
 msgid "Maximum 20 attachments allowed"
 msgstr "Maximum 20 pièces jointes autorisées"
 
@@ -9041,7 +9041,7 @@ msgstr "pas d email"
 msgid "No email column found. Please ensure your CSV has a column with \"email\" in the name"
 msgstr "Aucune colonne email trouvée. Assurez-vous que votre CSV a une colonne avec \"email\" dans le nom"
 
-#: src/components/templates/SendTemplateModal.tsx:325
+#: src/components/templates/SendTemplateModal.tsx:327
 msgid "No email integrations available. Please configure one in Settings."
 msgstr "Aucune intégration email disponible. Veuillez en configurer une dans les paramètres."
 
@@ -9316,7 +9316,7 @@ msgstr "Non actif"
 msgid "None"
 msgstr "Aucun"
 
-#: src/components/templates/SendTemplateModal.tsx:366
+#: src/components/templates/SendTemplateModal.tsx:369
 msgid "None (no unsubscribe link)"
 msgstr "Aucune (pas de lien de désinscription)"
 
@@ -9819,7 +9819,7 @@ msgstr "En relief"
 msgid "Overline"
 msgstr "Surlignement"
 
-#: src/components/templates/SendTemplateModal.tsx:407
+#: src/components/templates/SendTemplateModal.tsx:410
 msgid "Override the default sender name for this test email"
 msgstr "Remplacer le nom d expéditeur par défaut pour cet email de test"
 
@@ -10966,7 +10966,7 @@ msgstr "Récemment utilisés"
 msgid "Recipient"
 msgstr "Destinataire"
 
-#: src/components/templates/SendTemplateModal.tsx:343
+#: src/components/templates/SendTemplateModal.tsx:345
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:106
 msgid "Recipient Email"
 msgstr "Email du destinataire"
@@ -10975,7 +10975,7 @@ msgstr "Email du destinataire"
 msgid "Recipient feed test completed successfully"
 msgstr "Test du feed destinataire terminé avec succès"
 
-#: src/components/templates/SendTemplateModal.tsx:345
+#: src/components/templates/SendTemplateModal.tsx:347
 msgid "recipient@example.com"
 msgstr "destinataire@exemple.com"
 
@@ -11263,7 +11263,7 @@ msgstr "Répondre à"
 msgid "Reply To:"
 msgstr "Répondre à :"
 
-#: src/components/templates/SendTemplateModal.tsx:433
+#: src/components/templates/SendTemplateModal.tsx:436
 msgid "Reply-To"
 msgstr "Répondre à"
 
@@ -11998,7 +11998,7 @@ msgstr "Sélectionner une police Google populaire"
 msgid "Select a segment..."
 msgstr "Sélectionner un segment..."
 
-#: src/components/templates/SendTemplateModal.tsx:333
+#: src/components/templates/SendTemplateModal.tsx:335
 msgid "Select a sender"
 msgstr "Sélectionner un expéditeur"
 
@@ -12014,7 +12014,7 @@ msgstr "Sélectionner un fuseau horaire"
 msgid "Select all"
 msgstr "Tout sélectionner"
 
-#: src/components/templates/SendTemplateModal.tsx:316
+#: src/components/templates/SendTemplateModal.tsx:318
 msgid "Select an email integration"
 msgstr "Sélectionner une intégration email"
 
@@ -12288,7 +12288,7 @@ msgstr "Envoyer un véritable email transactionnel à n'importe quelle adresse ;
 msgid "Send a test email for a list, with that list's working unsubscribe links (also needs Transactional write)"
 msgstr "Envoyer un email de test pour une liste, avec les liens de désinscription de cette liste en état de marche (nécessite aussi l'écriture Transactionnel)"
 
-#: src/components/templates/SendTemplateModal.tsx:311
+#: src/components/templates/SendTemplateModal.tsx:313
 msgid "Send a test email using this template to verify how it will look."
 msgstr "Envoyer un email de test avec ce modèle pour vérifier son apparence."
 
@@ -12338,8 +12338,8 @@ msgid "Send Test"
 msgstr "Envoyer un test"
 
 #: src/components/settings/Integrations.tsx:2737
-#: src/components/templates/SendTemplateModal.tsx:290
-#: src/components/templates/SendTemplateModal.tsx:304
+#: src/components/templates/SendTemplateModal.tsx:292
+#: src/components/templates/SendTemplateModal.tsx:306
 #: src/pages/BroadcastsPage.tsx:1016
 #: src/pages/TemplatesPage.tsx:376
 msgid "Send Test Email"
@@ -12350,7 +12350,7 @@ msgid "Send transactional notifications using SMTP bridge. Perfect for integrati
 msgstr "Envoyez des notifications transactionnelles via le relais SMTP. Parfait pour l intégration avec des systèmes email existants ou des applications qui supportent SMTP."
 
 #: src/components/templates/CreateTemplateDrawer.tsx:948
-#: src/components/templates/SendTemplateModal.tsx:330
+#: src/components/templates/SendTemplateModal.tsx:332
 #: src/pages/TemplatesPage.tsx:237
 msgid "Sender"
 msgstr "Expéditeur"
@@ -12933,7 +12933,7 @@ msgstr "Quelqu'un a modifié ce modèle pendant que vous l'éditiez. Rechargez l
 msgid "Someone saved version {0} while you were editing (you started from {1}). Reload the latest version — your unsaved changes will be lost — or overwrite it with yours."
 msgstr "Quelqu'un a enregistré la version {0} pendant que vous l'éditiez (vous êtes parti de la version {1}). Rechargez la dernière version — vos modifications non enregistrées seront perdues — ou écrasez-la avec la vôtre."
 
-#: src/components/templates/SendTemplateModal.tsx:177
+#: src/components/templates/SendTemplateModal.tsx:179
 msgid "Something went wrong"
 msgstr "Une erreur s'est produite"
 
@@ -13556,7 +13556,7 @@ msgid "Test Email Provider"
 msgstr "Tester le fournisseur d'email"
 
 #: src/components/settings/Integrations.tsx:1238
-#: src/components/templates/SendTemplateModal.tsx:164
+#: src/components/templates/SendTemplateModal.tsx:166
 msgid "Test email sent successfully"
 msgstr "Email de test envoyé avec succès"
 
@@ -14515,7 +14515,7 @@ msgstr "Total"
 msgid "Total {total} posts"
 msgstr "Total {total} articles"
 
-#: src/components/templates/SendTemplateModal.tsx:219
+#: src/components/templates/SendTemplateModal.tsx:221
 msgid "Total attachments size exceeds 10MB limit"
 msgstr "La taille totale des pièces jointes dépasse la limite de 10 Mo"
 
@@ -14964,7 +14964,7 @@ msgstr "Échec du téléversement. Veuillez réessayer."
 msgid "Upload file (Read-only mode)"
 msgstr "Envoyer un fichier (Mode lecture seule)"
 
-#: src/components/templates/SendTemplateModal.tsx:445
+#: src/components/templates/SendTemplateModal.tsx:448
 msgid "Upload Files"
 msgstr "Envoyer des fichiers"
 
@@ -15683,7 +15683,7 @@ msgstr "avec statut"
 msgid "With:"
 msgstr "Avec :"
 
-#: src/components/templates/SendTemplateModal.tsx:357
+#: src/components/templates/SendTemplateModal.tsx:359
 msgid "Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header."
 msgstr "Sans liste, l'email de test n'a ni lien de désinscription valide ni en-tête List-Unsubscribe."
 

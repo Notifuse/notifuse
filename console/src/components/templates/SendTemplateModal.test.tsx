@@ -59,21 +59,51 @@ interface ModalProps {
   canReadLists?: boolean
 }
 
-function renderModal(props: ModalProps) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
+function modal(props: ModalProps & { isOpen?: boolean }, queryClient: QueryClient) {
+  const { isOpen = true, ...rest } = props
+  return (
     <QueryClientProvider client={queryClient}>
       <AntApp>
         <SendTemplateModal
-          isOpen
+          isOpen={isOpen}
           onClose={() => {}}
           template={template}
           workspace={workspace}
-          {...props}
+          {...rest}
         />
       </AntApp>
     </QueryClientProvider>
   )
+}
+
+function renderModal(props: ModalProps) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const result = render(modal(props, queryClient))
+  return {
+    ...result,
+    rerenderModal: (next: ModalProps & { isOpen?: boolean }) =>
+      result.rerender(modal(next, queryClient))
+  }
+}
+
+function selectedList() {
+  const field = screen.getByText('Mailing list').closest('.ant-form-item')
+  return field?.querySelector('.ant-select-content')?.textContent
+}
+
+async function pickList(name: string) {
+  const field = screen.getByText('Mailing list').closest('.ant-form-item')
+  const select = field?.querySelector('.ant-select')
+  expect(select).not.toBeNull()
+  fireEvent.mouseDown(select as Element)
+  const option = await waitFor(() => {
+    const found = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
+      (el) => el.textContent === name
+    )
+    expect(found).toBeDefined()
+    return found as Element
+  })
+  fireEvent.click(option)
 }
 
 async function sendTo(email: string) {
@@ -97,7 +127,7 @@ describe('SendTemplateModal mailing list', () => {
     expect(await screen.findByText('Monthly news (broadcast audience)')).toBeInTheDocument()
     expect(listsApi.list).toHaveBeenCalledWith({ workspace_id: 'ws1' })
     expect(
-      screen.getByText(/Unsubscribing or confirming from this test really changes/i)
+      screen.getByText(/or a bounce or complaint on it, really changes the recipient's subscription/i)
     ).toBeInTheDocument()
 
     const call = await sendTo('me@example.com')
@@ -114,6 +144,48 @@ describe('SendTemplateModal mailing list', () => {
 
     const call = await sendTo('me@example.com')
     expect(call[7]).toEqual({ listId: 'news', omitListUnsubscribeHeader: true })
+  })
+
+  it('sends the test for a list picked from the field when no list is preselected', async () => {
+    renderModal({ canReadLists: true })
+
+    expect(await screen.findByText('None (no unsubscribe link)')).toBeInTheDocument()
+    await waitFor(() => expect(listsApi.list).toHaveBeenCalled())
+    await pickList('Beta testers')
+    expect(
+      await screen.findByText(/and the List-Unsubscribe header, as a broadcast to this list does/i)
+    ).toBeInTheDocument()
+
+    const call = await sendTo('me@example.com')
+    expect(call[7]).toEqual({ listId: 'beta', omitListUnsubscribeHeader: false })
+  })
+
+  it('keeps the header for another list picked in a notice broadcast test', async () => {
+    renderModal({ canReadLists: true, defaultListId: 'news', omitListUnsubscribeHeader: true })
+
+    expect(await screen.findByText('Monthly news (broadcast audience)')).toBeInTheDocument()
+    await pickList('Beta testers')
+    expect(
+      await screen.findByText(/and the List-Unsubscribe header, as a broadcast to this list does/i)
+    ).toBeInTheDocument()
+
+    const call = await sendTo('me@example.com')
+    expect(call[7]).toEqual({ listId: 'beta', omitListUnsubscribeHeader: false })
+  })
+
+  it('goes back to the default list when the dialog is opened again', async () => {
+    const { rerenderModal } = renderModal({ canReadLists: true, defaultListId: 'news' })
+
+    expect(await screen.findByText('Monthly news (broadcast audience)')).toBeInTheDocument()
+    await pickList('Beta testers')
+    await waitFor(() => expect(selectedList()).toBe('Beta testers'))
+
+    rerenderModal({ canReadLists: true, defaultListId: 'news', isOpen: false })
+    rerenderModal({ canReadLists: true, defaultListId: 'news', isOpen: true })
+    await waitFor(() => expect(selectedList()).toBe('Monthly news (broadcast audience)'))
+
+    const call = await sendTo('me@example.com')
+    expect(call[7]).toEqual({ listId: 'news', omitListUnsubscribeHeader: false })
   })
 
   it('selects nothing when the default list is not one of the workspace lists', async () => {

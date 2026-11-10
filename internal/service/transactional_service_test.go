@@ -4843,9 +4843,15 @@ func TestTransactionalNotificationService_TestTemplate_WithList(t *testing.T) {
 	t.Run("without a list the test keeps the placeholder list and no header", func(t *testing.T) {
 		f := newTestTemplateListFixture(t)
 		f.authenticate(false)
-		f.expectSend("tester@example.com", true)
+		f.expectSend("Tester@Example.com", false)
 
-		require.NoError(t, f.call("tester@example.com", "", false, domain.EmailOptions{}))
+		require.NoError(t, f.call("Tester@Example.com", "", false, domain.EmailOptions{}))
+
+		require.NotNil(t, f.compiled)
+		list, ok := f.compiled.TemplateData["list"].(domain.MapOfAny)
+		require.True(t, ok, "template data should carry the placeholder list")
+		assert.Equal(t, "foo", list["id"])
+		assert.Equal(t, "bar", list["name"])
 
 		require.NotNil(t, f.sent)
 		assert.Empty(t, f.sent.EmailOptions.ListUnsubscribeURL)

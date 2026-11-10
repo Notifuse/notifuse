@@ -1,6 +1,6 @@
 # Test email for a mailing list plan (issue #423)
 
-**Status**: plan reviewed in two rounds, implemented
+**Status**: plan reviewed in two rounds, implemented, code reviewed
 **Date**: 2026-11-10
 **Target**: 43.1. No migration, no environment variable.
 **Base**: `origin/dev` at `c859e1c`.
@@ -61,13 +61,18 @@ sent as before, except that its history row is recorded under the contact's lowe
    `services/api/transactional_notifications.ts`: `testTemplate` takes an optional last `listOptions` and only sends
    the fields when a list is given.
 5. `components/templates/SendTemplateModal.tsx`: optional `defaultListId`, `omitListUnsubscribeHeader` and
-   `canReadLists` props, passed by the three pages that already hold the member's permissions (no
-   `useWorkspacePermissions` in the modal: the hook has no cache and the broadcast page mounts one modal per card).
-   Lists load with the console's `['lists', workspaceId]` query, enabled only when the dialog is open and
-   `canReadLists` is true. A "Mailing list" select under the recipient, clearable, with the default list labelled
-   "(broadcast audience)"; a preselected list that is not among the workspace's lists selects nothing. The help text
-   says what the list adds, that the links of the test really act on the list, and, for a notice broadcast, that
-   there is no header.
+   `canReadLists` props, passed by the templates and broadcasts pages, which already hold the member's permissions
+   (no `useWorkspacePermissions` in the modal: the hook has no cache and the broadcast page mounts one modal per
+   card). The transactional notifications page passes no `canReadLists`, so its dialog has no list field: a real
+   transactional send carries no list links and no header. Lists load with the console's `['lists', workspaceId]`
+   query, enabled only when the dialog is open and `canReadLists` is true, and the select shows a loading state
+   meanwhile. A "Mailing list" select under the recipient, clearable, with the default list labelled
+   "(broadcast audience)"; a preselected list that is not among the workspace's lists selects nothing; reopening
+   the dialog goes back to the default list. The header is left out only for the broadcast's own audience list, so
+   another list picked in a notice broadcast's dialog keeps it. The help text says what the list adds, that
+   unsubscribing or confirming from the test, or a bounce or complaint on it, really changes the recipient's
+   subscription to the list (the history row carries the list, which the message status trigger reads), and, for a
+   notice broadcast, that there is no header.
 6. `services/api/broadcast.ts`: `testEmailListProps(broadcast)` returns the audience list and
    `omitListUnsubscribeHeader: !exclude_unsubscribed`; `BroadcastsPage` passes it to the modal. Kept out of the page
    module so it adds no `react-refresh/only-export-components` warning.
@@ -77,7 +82,8 @@ sent as before, except that its history row is recorded under the contact's lowe
 
 ### Release and docs
 
-9. `VERSION` 43.1; the web analytics SDK bundle is rebuilt since it embeds the version; two CHANGELOG improvement lines.
+9. `VERSION` 43.1; the web analytics SDK bundle is rebuilt since it embeds the version; a CHANGELOG improvement
+   line for the list (#423) and a fix line for the address typed with capitals, which fixes released behaviour.
 10. Docs repository: `features/templates.mdx`, `features/notification-center.mdx` (who carries the header),
     `features/transactional-api.mdx` and `features/admins-api-keys.mdx` (Lists read for a test sent for a list).
 
@@ -86,13 +92,17 @@ sent as before, except that its history row is recorded under the contact's lowe
 | Implementation | Test file | Cases |
 |---|---|---|
 | `internal/domain/transactional.go` | `internal/domain/transactional_test.go` (`TestTestTemplateRequest_Validate`) | valid with a list; `list_id` of 33 characters refused; non-alphanumeric `list_id` refused |
-| `internal/service/transactional_service.go` | `internal/service/transactional_service_test.go` (`TestTransactionalNotificationService_TestTemplate_WithList`) | list: compiled data carries the real `list`, `unsubscribe_url` (`lid`, `lname`) and `confirm_subscription_url`, the header URL is the list's one-click URL, history has the list; unknown list: `ErrListNotFound`, nothing sent; no `lists:read`: permission error, nothing sent; no list: no header, no list, lowercase address; caller's `list_unsubscribe_url` replaced; header omitted: list links kept, caller's URL cleared, list recorded; address typed with capitals, contact found and fallback contact: history address equals the link's `email` |
+| `internal/service/transactional_service.go` | `internal/service/transactional_service_test.go` (`TestTransactionalNotificationService_TestTemplate_WithList`) | list: compiled data carries the real `list`, `unsubscribe_url` (`lid`, `lname`) and `confirm_subscription_url`, the header URL is the list's one-click URL, history has the list; unknown list: `ErrListNotFound`, nothing sent; no `lists:read`: permission error, nothing sent; no list, address typed with capitals and contact not found: placeholder `foo`/`bar` list, no header, no list recorded, lowercase address; caller's `list_unsubscribe_url` replaced; header omitted: list links kept, caller's URL cleared, list recorded; address typed with capitals, contact found and fallback contact: history address equals the link's `email` |
 | `internal/http/transactional_handler.go` | `internal/http/transactional_handler_test.go` (`TestTransactionalNotificationHandler_HandleTestTemplate_List`) | both fields passed to the service; defaults without them; wrapped `ErrListNotFound` → 404 |
-| Full stack | `tests/integration/list_unsubscribe_headers_test.go` (`test email for a list`) | Mailpit receives the list's name and `lid` in the body, both headers; the one-click POST from the delivered header unsubscribes a recipient typed with capitals who was on no row; no header when omitted; no header without a list; `success` checked in the response |
+| Full stack | `tests/integration/list_unsubscribe_headers_test.go` (`test email for a list`) | Mailpit receives the list's name and `lid` in the body, both headers; the one-click POST from the delivered header unsubscribes a recipient typed with capitals who was on no row; no header when omitted; no header without a list; a bounce set on the test's history row marks the subscriber bounced on the list; unknown list answers 404 and creates no contact; `success` checked in the response |
 | `services/api/transactional_notifications.ts` | `services/api/transactional_notifications.test.ts` | fields sent with a list, absent without |
-| `components/templates/SendTemplateModal.tsx` | `components/templates/SendTemplateModal.test.tsx` | default list preselected and labelled; notice help text and flag; unknown default selects nothing; cleared list sends none; field hidden and no list request when `canReadLists` is false or absent |
+| `components/templates/SendTemplateModal.tsx` | `components/templates/SendTemplateModal.test.tsx` | default list preselected and labelled; notice help text and flag; list picked from the field with no default; another list picked in a notice broadcast keeps the header; reopening goes back to the default list; unknown default selects nothing; cleared list sends none; field hidden and no list request when `canReadLists` is false or absent |
 | `services/api/broadcast.ts` | `services/api/broadcast.test.ts` (`testEmailListProps`) | regular broadcast; notice broadcast; audience without a list |
 | catalogues | `i18n/locales/catalogues.test.ts` | catalogues complete and compilable |
+| `pages/BroadcastsPage.tsx`, `pages/TemplatesPage.tsx` | none of their own: the props are typed (`npx tsc -b`) and their effect is covered by the modal tests | |
+| `services/api/permissions.ts` | `services/api/permissions.test.ts`, `components/settings/__tests__/PermissionsMatrix.test.tsx` (existing) | still pass with the new entry |
+| `services/api/template.ts` | covered by `transactional_notifications.test.ts` | |
+| `internal/app/app.go` | covered by the integration test, which runs the wired app | |
 
 ## Known, not handled
 
@@ -101,6 +111,9 @@ sent as before, except that its history row is recorded under the contact's lowe
   `transactional:write`.
 - A test sent from a broadcast does not apply the broadcast's tracking mode, UTM parameters or broadcast variables.
 - `email_options.list_unsubscribe_url` is still accepted as given from API callers without a list.
+- If the lists fail to load, the dialog shows no list and a broadcast test is sent without one; the help text then
+  says the test has no working unsubscribe link.
+- `web_analytics_sdk/package-lock.json` still carries 42.3.0, as on `dev`.
 
 ## Test commands
 

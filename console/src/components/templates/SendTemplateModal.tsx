@@ -58,7 +58,7 @@ export default function SendTemplateModal({
   const [form] = Form.useForm()
   const { message } = App.useApp()
 
-  const { data: listsData } = useQuery({
+  const { data: listsData, isLoading: listsLoading } = useQuery({
     queryKey: ['lists', workspace?.id],
     queryFn: () => listsApi.list({ workspace_id: workspace?.id ?? '' }),
     enabled: isOpen && canReadLists && !!workspace?.id
@@ -69,6 +69,8 @@ export default function SendTemplateModal({
     canReadLists && selectedListId && lists.some((list) => list.id === selectedListId)
       ? selectedListId
       : undefined
+  // The header is left out only for the broadcast's own audience list
+  const omitHeader = omitListUnsubscribeHeader && !!listId && listId === defaultListId
 
   // Filter to only email integrations
    
@@ -157,7 +159,7 @@ export default function SendTemplateModal({
           reply_to: replyTo,
           attachments: attachments.length > 0 ? attachments : undefined
         },
-        listId ? { listId, omitListUnsubscribeHeader } : undefined
+        listId ? { listId, omitListUnsubscribeHeader: omitHeader } : undefined
       )
 
       if (response.success) {
@@ -355,14 +357,15 @@ export default function SendTemplateModal({
               extra={
                 !listId
                   ? t`Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header.`
-                  : omitListUnsubscribeHeader
-                    ? t`Adds this list's unsubscribe links, as in a real send. This broadcast also goes to the list's unsubscribed contacts, so it carries no List-Unsubscribe header. Unsubscribing or confirming from this test really changes the recipient's subscription to the list.`
-                    : t`Adds this list's unsubscribe links and the List-Unsubscribe header, as in a real send. Unsubscribing or confirming from this test really changes the recipient's subscription to the list.`
+                  : omitHeader
+                    ? t`Adds this list's unsubscribe links, as the broadcast does. The broadcast also goes to the list's unsubscribed contacts, so the test carries no List-Unsubscribe header. Unsubscribing or confirming from this test, or a bounce or complaint on it, really changes the recipient's subscription to the list.`
+                    : t`Adds this list's unsubscribe links and the List-Unsubscribe header, as a broadcast to this list does. Unsubscribing or confirming from this test, or a bounce or complaint on it, really changes the recipient's subscription to the list.`
               }
             >
               <Select
                 className="w-full"
                 allowClear
+                loading={listsLoading}
                 placeholder={t`None (no unsubscribe link)`}
                 value={listId}
                 onChange={(value?: string) => setSelectedListId(value)}
