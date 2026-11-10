@@ -163,7 +163,9 @@ describe('BlockToolbar save dialog', () => {
   it('cannot be dismissed while a save is pending', async () => {
     const pending = deferred()
     renderToolbar(vi.fn().mockReturnValue(pending.promise), [])
-    await openDialog()
+    // Opened without hovering: the save button's tooltip, once shown and hidden, would take the dialog off the
+    // Escape stack in the test environment and leave the Escape check below with nothing to prove
+    fireEvent.click(document.querySelector('svg[data-icon="floppy-disk"]')!.closest('button')!)
     expect(document.querySelector('.ant-modal-close')).not.toBeNull()
 
     await userEvent.click(saveButton())
@@ -195,8 +197,8 @@ describe('BlockToolbar save dialog', () => {
     expect(onSave).toHaveBeenCalledWith(section, 'update', 'footer-id')
   })
 
-  // Guards the awaited save: before the fix the reset name stopped the second Enter instead. The input ignores
-  // a second Enter until the key is released, so each press is a keydown and a keyup.
+  // Guards the awaited save: before the fix a second Enter saved the block twice. The input ignores a second
+  // Enter until the key is released, so each press is a keydown and a keyup.
   it('ignores Enter while a save is pending', async () => {
     const pending = deferred()
     const onSave = vi.fn().mockReturnValue(pending.promise)

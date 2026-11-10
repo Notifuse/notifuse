@@ -55,7 +55,7 @@ down; no behaviour changes there.
   with what was typed */ } finally { setSaving(false) }`, so no rejection escapes to `onOk` / `onPressEnter`.
   Remove the toolbar's own `message.success` calls and the now unused `App.useApp()`.
 - While `saving`, the dialog cannot be dismissed: Cancel button disabled (`cancelButtonProps`), `closable`,
-  `maskClosable` and `keyboard` false. Otherwise a cancel during a slow save, then a reopen, lets the first save's
+  `mask.closable` and `keyboard` false. Otherwise a cancel during a slow save, then a reopen, lets the first save's
   completion close and reset the second dialog.
 
 ### `console/src/components/templates/CreateTemplateDrawer.tsx`
@@ -114,12 +114,14 @@ Toasts are counted with `document.querySelectorAll('.ant-message-notice')`.
    wrap's display is `none`; zero `.ant-message-notice`.
 6. `keeps the dialog open with the typed name when the save fails`: `onSave` rejects; the wrap's display is
    still `''`, the name field holds `Products`, the Save button has no `ant-btn-loading` class.
-7. `cannot be dismissed while a save is pending`: `onSave` pending; the Cancel button is disabled and the close
-   icon absent.
+7. `cannot be dismissed while a save is pending`: `onSave` pending; the Cancel button is disabled, the close
+   icon absent, and neither Escape nor a click on the mask closes the dialog. The dialog is opened with a plain
+   click: hovering the save button shows its tooltip, which in the test environment takes the dialog off the
+   Escape stack.
 8. `updates the chosen saved block` (characterisation, also passes before the fix): update mode, pick `Footer`,
    click Update; `onSave(block, 'update', 'footer-id')`.
-9. `ignores Enter while a save is pending` (guards the new `await`; passes before the fix because the name was
-   reset): `onSave` pending; Enter pressed and released twice (the input ignores a second keydown until keyup);
+9. `ignores Enter while a save is pending` (guards the new `await`; before the fix a second Enter saved the
+   block twice): `onSave` pending; Enter pressed and released twice (the input ignores a second keydown until keyup);
    `onSave` called once.
 
 ### `console/src/components/templates/CreateTemplateDrawer.test.tsx` (extended)
@@ -167,8 +169,8 @@ run Playwright: this is local evidence, run before review.
 From `console/`: `npx vitest run src/components/email_builder/ui/BlockToolbar.test.tsx
 src/components/templates/CreateTemplateDrawer.test.tsx` while developing, then the CI steps once: `npx tsc -b`,
 `npx vitest run`, `npx eslint .`, `npm run build`; then `npx playwright test e2e/features/saved-blocks.spec.ts
-e2e/features/templates.spec.ts` against the dev server. From `web_analytics_sdk/`: `npm run build` and its unit
-tests. Go: only `config/config.go` changes, so `go test ./config/...` and `make test-unit` once.
+e2e/features/templates.spec.ts` against the dev server. No Go or `web_analytics_sdk/` file changes: `make test-unit`
+once as a sanity check.
 
 ## Plan review
 
