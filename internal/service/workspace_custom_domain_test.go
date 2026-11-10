@@ -43,6 +43,25 @@ func TestWorkspaceService_UpdateWorkspace_CustomDomainIsNotShared(t *testing.T) 
 		}
 	})
 
+	t.Run("checks a move from one domain to another", func(t *testing.T) {
+		svc, deps := covWorkspaceService(gomock.NewController(t), nil, nil, nil)
+		deps.expectOwner(ctx, "ws1", "user-1")
+		existing := existingWorkspaceForUpdate()
+		previous := "https://mail.brand-a.example"
+		existing.Settings.CustomEndpointURL = &previous
+		deps.repo.EXPECT().GetByID(gomock.Any(), "ws1").Return(existing, nil)
+		deps.repo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(map[string]string{
+			"ws1":     previous,
+			"brand_b": "https://mail.brand-b.example",
+		}, nil)
+		deps.repo.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
+
+		_, err := svc.UpdateWorkspace(ctx, "ws1", "Old Name", settingsWith("https://mail.brand-b.example"))
+		var validation domain.ValidationError
+		require.ErrorAs(t, err, &validation)
+		assert.Contains(t, validation.Message, "another workspace")
+	})
+
 	t.Run("keeps a domain the workspace already has without looking it up", func(t *testing.T) {
 		svc, deps := covWorkspaceService(gomock.NewController(t), nil, nil, nil)
 		deps.expectOwner(ctx, "ws1", "user-1")
@@ -76,8 +95,8 @@ func TestWorkspaceService_UpdateWorkspace_CustomDomainIsNotShared(t *testing.T) 
 		deps.repo.EXPECT().ListCustomEndpoints(gomock.Any()).Times(0)
 		deps.repo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-		// The DNS check of the new URL still runs; whatever this resolver answers, the
-		// other workspaces' domains are not read.
+		// Whatever this resolver answers for the DNS check, the other workspaces'
+		// domains are not read.
 		_, err := svc.UpdateWorkspace(ctx, "ws1", "Old Name", settingsWith("https://MAIL.shared.invalid/"))
 		if err != nil {
 			assert.NotContains(t, err.Error(), "another workspace")

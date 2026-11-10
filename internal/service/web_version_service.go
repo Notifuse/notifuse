@@ -13,6 +13,7 @@ import (
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/Notifuse/notifuse/pkg/trackingtoken"
+	"golang.org/x/sync/singleflight"
 )
 
 // MaxWebVersionTokenLength bounds the token read from a /v/ path before it is opened. A
@@ -59,9 +60,11 @@ type WebVersionService struct {
 	refusalMu     sync.Mutex
 	refusalLogged map[string]time.Time
 
-	endpointsMu sync.Mutex
-	endpoints   map[string]string
-	endpointsAt time.Time
+	endpointsGroup    singleflight.Group
+	endpointsMu       sync.Mutex
+	endpointHosts     map[string]string
+	endpointsAt       time.Time
+	endpointsFailedAt time.Time
 }
 
 // NewWebVersionService builds the service. apiEndpoint is the endpoint used when the
@@ -134,12 +137,12 @@ func (s *WebVersionService) Resolve(ctx context.Context, token, requestHost stri
 		return ref, nil
 	}
 	// A domain the workspace has left: refused once another workspace holds it.
-	endpoints, err := s.customEndpoints(ctx)
+	hosts, err := s.customDomainHosts(ctx)
 	if err != nil {
 		return WebVersionRef{}, s.unavailable(ref, "read the custom domains", err)
 	}
-	for workspaceID, endpoint := range endpoints {
-		if workspaceID != tok.WorkspaceID && trackingtoken.SameHostname(trackingtoken.HostOf(endpoint), tok.Host) {
+	for workspaceID, host := range hosts {
+		if workspaceID != tok.WorkspaceID && trackingtoken.SameHostname(host, tok.Host) {
 			s.logRefusal(tok, requestHost, "a domain another workspace now holds")
 			return WebVersionRef{}, ErrWebVersionNotFound
 		}
@@ -153,24 +156,58 @@ func (s *WebVersionService) Resolve(ctx context.Context, token, requestHost stri
 // later at most, on top of the tracking cache's own delay.
 const webVersionEndpointsTTL = 30 * time.Second
 
-// customEndpoints returns every workspace's custom endpoint, read at most once per TTL.
-// Concurrent readers wait for the one read in flight.
-func (s *WebVersionService) customEndpoints(ctx context.Context) (map[string]string, error) {
+// webVersionEndpointsBackoff is how long a failed read of the list is answered as
+// unavailable before the list is read again.
+const webVersionEndpointsBackoff = 2 * time.Second
+
+// webVersionEndpointsTimeout bounds one read of the list, which no single client's
+// disconnect cancels.
+const webVersionEndpointsTimeout = 5 * time.Second
+
+// customDomainHosts returns the host of every workspace's custom domain, by workspace
+// ID, read at most once per TTL. Concurrent readers share the read in flight, and each
+// stops waiting when its own request ends.
+func (s *WebVersionService) customDomainHosts(ctx context.Context) (map[string]string, error) {
 	s.endpointsMu.Lock()
-	defer s.endpointsMu.Unlock()
-	if s.endpoints != nil && s.now().Sub(s.endpointsAt) < webVersionEndpointsTTL {
-		return s.endpoints, nil
+	hosts, at, failedAt := s.endpointHosts, s.endpointsAt, s.endpointsFailedAt
+	s.endpointsMu.Unlock()
+	now := s.now()
+	if hosts != nil && now.Sub(at) < webVersionEndpointsTTL {
+		return hosts, nil
 	}
-	endpoints, err := s.workspaceRepo.ListCustomEndpoints(ctx)
-	if err != nil {
-		return nil, err
+	if !failedAt.IsZero() && now.Sub(failedAt) < webVersionEndpointsBackoff {
+		return nil, errWebVersionEndpointsBackoff
 	}
-	if endpoints == nil {
-		endpoints = map[string]string{}
+
+	result := s.endpointsGroup.DoChan("endpoints", func() (any, error) {
+		readCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), webVersionEndpointsTimeout)
+		defer cancel()
+		endpoints, err := s.workspaceRepo.ListCustomEndpoints(readCtx)
+		s.endpointsMu.Lock()
+		defer s.endpointsMu.Unlock()
+		if err != nil {
+			s.endpointsFailedAt = s.now()
+			return nil, err
+		}
+		read := make(map[string]string, len(endpoints))
+		for workspaceID, endpoint := range endpoints {
+			read[workspaceID] = trackingtoken.HostOf(endpoint)
+		}
+		s.endpointHosts, s.endpointsAt, s.endpointsFailedAt = read, s.now(), time.Time{}
+		return read, nil
+	})
+	select {
+	case r := <-result:
+		if r.Err != nil {
+			return nil, r.Err
+		}
+		return r.Val.(map[string]string), nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
-	s.endpoints, s.endpointsAt = endpoints, s.now()
-	return endpoints, nil
 }
+
+var errWebVersionEndpointsBackoff = errors.New("custom domains unavailable after a failed read")
 
 // webVersionRefusalLogInterval spaces the refusal lines of one workspace: each comes from
 // a request, so a stream of requests must not become a stream of lines.

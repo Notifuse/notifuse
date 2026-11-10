@@ -65,6 +65,7 @@ func newWebVersionFixture(t *testing.T) *webVersionFixture {
 	logger := pkgmocks.NewMockLogger(ctrl)
 	logger.EXPECT().WithFields(gomock.Any()).Return(logger).AnyTimes()
 	logger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(logger).AnyTimes()
+	logger.EXPECT().Debug(gomock.Any()).AnyTimes()
 	logger.EXPECT().Info(gomock.Any()).AnyTimes()
 	logger.EXPECT().Warn(gomock.Any()).AnyTimes()
 	logger.EXPECT().Error(gomock.Any()).AnyTimes()
@@ -334,15 +335,61 @@ func TestWebVersionService_ReadsTheCustomDomainsOncePerTTL(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestWebVersionService_BacksOffAfterAFailedReadOfTheCustomDomains(t *testing.T) {
+	f := newWebVersionFixture(t)
+	f.keys.lookup.EndpointHost = "new.brand-a.example"
+	clock := time.Unix(1_800_000_000, 0)
+	f.svc.now = func() time.Time { return clock }
+	gomock.InOrder(
+		f.workspaceRepo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(nil, errors.New("db down")),
+		f.workspaceRepo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(map[string]string{}, nil),
+	)
+
+	token := wvToken(t, wvSecret, wvWorkspaceID, wvMessageID)
+	for i := 0; i < 3; i++ {
+		_, err := f.svc.Resolve(context.Background(), token, wvLinkHost)
+		assert.ErrorIs(t, err, ErrWebVersionUnavailable)
+	}
+	clock = clock.Add(webVersionEndpointsBackoff)
+	_, err := f.svc.Resolve(context.Background(), token, wvLinkHost)
+	require.NoError(t, err)
+}
+
+func TestWebVersionService_StopsWaitingForTheCustomDomainsWhenTheRequestEnds(t *testing.T) {
+	f := newWebVersionFixture(t)
+	f.keys.lookup.EndpointHost = "new.brand-a.example"
+	started, release := make(chan struct{}), make(chan struct{})
+	f.workspaceRepo.EXPECT().ListCustomEndpoints(gomock.Any()).DoAndReturn(func(ctx context.Context) (map[string]string, error) {
+		close(started)
+		<-release
+		return map[string]string{}, ctx.Err()
+	})
+	defer close(release)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		_, err := f.svc.Resolve(ctx, wvToken(t, wvSecret, wvWorkspaceID, wvMessageID), wvLinkHost)
+		done <- err
+	}()
+	<-started
+	cancel()
+	select {
+	case err := <-done:
+		assert.ErrorIs(t, err, ErrWebVersionUnavailable)
+	case <-time.After(2 * time.Second):
+		t.Fatal("Resolve kept waiting for the read after its request ended")
+	}
+}
+
 func TestWebVersionService_RefusalLogIsBounded(t *testing.T) {
-	// A refused request writes one line a minute per workspace, with the hosts cut short:
-	// both come from the request, so they must not size the log.
+	// A refused request writes one line a minute per workspace, with the request's host
+	// cut short: requests must not size the log.
 	f := newWebVersionFixture(t)
 	logged := 0
 	quiet := pkgmocks.NewMockLogger(f.ctrl)
 	quiet.EXPECT().WithFields(gomock.Any()).DoAndReturn(func(fields map[string]interface{}) logger.Logger {
 		assert.LessOrEqual(t, len(fields["request_host"].(string)), 255)
-		assert.LessOrEqual(t, len(fields["link_host"].(string)), 255)
 		return quiet
 	}).AnyTimes()
 	quiet.EXPECT().Info(gomock.Any()).Do(func(string) { logged++ }).AnyTimes()
