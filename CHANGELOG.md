@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [43.2] - WIP
 
-- **Feature**: Every email now includes a plain-text version, generated from its HTML, for mail clients that show text only and for better deliverability. Its links are the links of the HTML, tracked the same way. Preview it in the template editor's new Text version mode, in the MJML editor's Text version tab and in the template preview. `templates.compile` returns it as `text`.
+- **Feature**: Every email now includes a plain-text version, for mail clients that show text only and for better deliverability. By default it is generated from the HTML at every send, its links tracked like the links of the HTML. In the template editor's new Text version mode, and in the MJML editor's Text version tab, you can instead write your own, starting from the automatic version, with Liquid like the subject, for the default language and for each translation; a language without its own text gets the automatic version. A custom text is sent as written: its links are not tracked, and a marketing template's text should keep `{{ unsubscribe_url }}`, which the editor reminds you of. A custom text that cannot be rendered at send time is replaced by the automatic version. The template preview shows the text sent and where it comes from, and `templates.compile` returns it as `text`, with `text_source` and `text_error`.
+
+  **Before you upgrade, if you set `email.text` through the API**: it was stored and never sent, and is now sent as the email's text version. It is checked when the template is saved (Liquid syntax, 64 KiB at most, 400 otherwise) and rendered with Liquid, so a literal `{{` needs `{% raw %}`.
 
 ## [43.1] - 2026-11-10
 

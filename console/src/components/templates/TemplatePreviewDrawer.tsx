@@ -31,6 +31,9 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   const [previewMjml, setPreviewMjml] = useState<string | null>(null)
   // Plain-text version sent with the email; null when the compile returned none.
   const [previewText, setPreviewText] = useState<string | null>(null)
+  // Where the previewed text comes from, and why a custom text was not used.
+  const [previewTextSource, setPreviewTextSource] = useState<'auto' | 'custom' | null>(null)
+  const [previewTextError, setPreviewTextError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [mjmlError, setMjmlError] = useState<MjmlCompileError | null>(null)
@@ -94,6 +97,8 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     setRenderedSubjectPreview(null)
     setEffectiveTestData(null)
     setActiveTabKey('1') // Reset to HTML tab on new fetch
+    setPreviewTextSource(null)
+    setPreviewTextError(null)
 
     try {
       // Build compile request based on editor mode.
@@ -104,6 +109,9 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
         message_id: 'preview',
         subject: effectiveEmail?.subject,
         subject_preview: effectiveEmail?.subject_preview,
+        // The custom text of the language previewed; a translation without one receives
+        // the automatic version, never the text of the default language.
+        ...(effectiveEmail?.text?.trim() ? { text: effectiveEmail.text } : {}),
         test_data: templateData || record.test_data || {},
         tracking_settings: {
           enable_tracking: workspace.settings?.email_tracking_enabled || false,
@@ -167,6 +175,8 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
         setPreviewHtml(response.html)
         setPreviewMjml(response.mjml)
         setPreviewText(response.text ?? null)
+        setPreviewTextSource(response.text_source ?? null)
+        setPreviewTextError(response.text_error ?? null)
         setError(null)
         setMjmlError(null)
       }
@@ -228,9 +238,26 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       label: t`Text version`,
       children: (
         <div>
-          <div className="text-xs text-gray-500 mb-2">
-            {t`Sent with the HTML version and generated from it. Its links are tracked like the links of the HTML.`}
+          <div className="flex items-center gap-2 mb-2">
+            {previewTextSource === 'custom' ? (
+              <Tag color="purple">{t`Custom`}</Tag>
+            ) : previewTextSource === 'auto' ? (
+              <Tag>{t`Automatic`}</Tag>
+            ) : null}
+            <span className="text-xs text-gray-500">
+              {previewTextSource === 'custom'
+                ? t`Written by hand for this template and sent with the HTML version. Its links are not tracked.`
+                : t`Sent with the HTML version and generated from it. Its links are tracked like the links of the HTML.`}
+            </span>
           </div>
+          {previewTextError && (
+            <Alert
+              type="warning"
+              showIcon
+              className="mb-2"
+              message={t`The custom text could not be used, the automatic version is sent instead: ${previewTextError}`}
+            />
+          )}
           {previewText.trim() ? (
             <pre
               data-testid="preview-text-version"

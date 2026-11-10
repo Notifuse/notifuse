@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App as AntApp } from 'antd'
 import type { ReactElement } from 'react'
+import { ApiError } from '../../services/api/client'
 import { CreateTemplateDrawer } from './CreateTemplateDrawer'
 import type { Template, Workspace } from '../../services/api/types'
 import type { EmailAIAssistantProps } from '../email_builder/EmailAIAssistant'
@@ -335,11 +336,159 @@ describe('CreateTemplateDrawer text version', () => {
     await userEvent.click(screen.getByRole('button', { name: /Edit Template/i }))
     await waitFor(() => expect(builder.props).toBeDefined())
 
-    expect(builder.props?.textVersion).toEqual({ enabled: true })
+    expect(builder.props?.textVersion).toMatchObject({ enabled: true })
     const onCompile = builder.props?.onCompile as (tree: unknown) => Promise<{ text?: string }>
     await expect(onCompile({ id: 'root', type: 'mjml', children: [] })).resolves.toMatchObject({
       html: '<p>Hi</p>',
       text: 'Hi\n'
     })
+  })
+})
+
+interface BuilderTextVersion {
+  enabled: true
+  custom: {
+    value?: string
+    onChange: (v?: string) => void
+    onSeed: () => Promise<{ text?: string; error?: string; textError?: string; lostLiquid?: boolean }>
+    category?: string
+  }
+}
+
+describe('CreateTemplateDrawer custom text version', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    builder.props = undefined
+  })
+
+  const withText = (text: string | undefined, category = 'transactional'): Template =>
+    ({ ...makeTemplate(3), category, email: { ...makeTemplate(3).email, text } }) as unknown as Template
+  const textVersion = () => builder.props?.textVersion as BuilderTextVersion
+
+  const openEdit = async (tpl: Template) => {
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: tpl })
+    ;(templatesApi.update as Mock).mockResolvedValue({ template: { ...tpl, version: 4 } })
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} template={tpl} />)
+    await userEvent.click(screen.getByRole('button', { name: /Edit Template/i }))
+    await waitFor(() => expect(builder.props).toBeDefined())
+  }
+
+  const save = async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(templatesApi.update).toHaveBeenCalled())
+    return (templatesApi.update as Mock).mock.calls[0][0] as { email: { text?: string } }
+  }
+
+  it('loads the custom text of the template and its category', async () => {
+    await openEdit(withText('Hi {{ contact.first_name }}'))
+    expect(textVersion().custom.value).toBe('Hi {{ contact.first_name }}')
+    expect(textVersion().custom.category).toBe('transactional')
+  })
+
+  it('treats a blank stored text as automatic', async () => {
+    await openEdit(withText('  \n '))
+    expect(textVersion().custom.value).toBeUndefined()
+  })
+
+  it('saves the text written in the editor', async () => {
+    await openEdit(withText(undefined))
+    act(() => textVersion().custom.onChange('Hello {{ contact.first_name }}'))
+    await waitFor(() => expect(textVersion().custom.value).toBe('Hello {{ contact.first_name }}'))
+    const payload = await save()
+    expect(payload.email.text).toBe('Hello {{ contact.first_name }}')
+  })
+
+  it('saves no text after going back to automatic', async () => {
+    await openEdit(withText('Mine'))
+    act(() => textVersion().custom.onChange(undefined))
+    await waitFor(() => expect(textVersion().custom.value).toBeUndefined())
+    const payload = await save()
+    expect(payload.email).not.toHaveProperty('text')
+  })
+
+  it('never asks the editor compile for the custom text', async () => {
+    ;(templatesApi.compile as Mock).mockResolvedValue({ html: '<p>Hi</p>', mjml: '', text: 'Hi\n' })
+    await openEdit(withText('Mine'))
+    const onCompile = builder.props?.onCompile as (tree: unknown) => Promise<unknown>
+    await onCompile({ id: 'root', type: 'mjml', children: [] })
+    expect((templatesApi.compile as Mock).mock.calls[0][0]).not.toHaveProperty('text')
+  })
+
+  it('starts from the automatic version with Liquid kept, no test data and no tracking', async () => {
+    ;(templatesApi.compile as Mock).mockResolvedValue({
+      html: '<p>Hi</p>',
+      mjml: '<mjml>{% for i in items %}<mj-section></mj-section>{% endfor %}</mjml>',
+      text: 'Hi {{ contact.first_name }}\n'
+    })
+    await openEdit(withText(undefined))
+    const seed = await textVersion().custom.onSeed()
+
+    const request = (templatesApi.compile as Mock).mock.calls[0][0]
+    expect(request.preserve_liquid).toBe(true)
+    expect(request.test_data).toBeUndefined()
+    expect(request.tracking_settings?.enable_tracking).toBe(false)
+    expect(request).not.toHaveProperty('text')
+    expect(seed).toMatchObject({ text: 'Hi {{ contact.first_name }}\n', lostLiquid: true })
+  })
+
+  it('reports a starting point that could not be generated', async () => {
+    ;(templatesApi.compile as Mock).mockResolvedValue({ html: '', mjml: '', error: { message: 'XML syntax error' } })
+    await openEdit(withText(undefined))
+    await expect(textVersion().custom.onSeed()).resolves.toMatchObject({ error: 'XML syntax error' })
+  })
+
+  it('forgets the text of the previous template when creating a new one', async () => {
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} />)
+    await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await waitFor(() => expect(builder.props).toBeDefined())
+    act(() => textVersion().custom.onChange('Leftover'))
+    await waitFor(() => expect(textVersion().custom.value).toBe('Leftover'))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+
+    await waitFor(() => expect(textVersion().custom.value).toBeUndefined())
+  })
+
+  const refuseText = async (error: string) => {
+    const tpl = withText('Hi {% if %}')
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: tpl })
+    ;(templatesApi.update as Mock).mockRejectedValue(new ApiError(error, 400))
+    const multilingual = {
+      ...workspace,
+      settings: { ...workspace.settings, languages: ['en', 'fr'] }
+    } as unknown as Workspace
+    renderDrawer(<CreateTemplateDrawer workspace={multilingual} template={tpl} />)
+    await userEvent.click(screen.getByRole('button', { name: /Edit Template/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(templatesApi.update).toHaveBeenCalled())
+    expect(await screen.findByText(new RegExp(error.replace(/[{}%]/g, '.')))).toBeInTheDocument()
+  }
+
+  it('goes back to the email editor when the server refuses its text version', async () => {
+    await refuseText('invalid email template: text version: Liquid syntax error')
+    // The email editor's footer: back to the settings, on to the translations.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save' })).toBeNull())
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument()
+  })
+
+  it('stays on the translations when the refused text version is a translation', async () => {
+    await refuseText("translation 'fr': invalid email template: text version: Liquid syntax error")
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()
+  })
+
+  it('warns, without blocking, when a marketing text has no unsubscribe link', async () => {
+    await openEdit(withText('Hi there', 'marketing'))
+    await save()
+    expect(await screen.findByText(/has no unsubscribe link/)).toBeInTheDocument()
+  })
+
+  it('does not warn a transactional text about an unsubscribe link', async () => {
+    await openEdit(withText('Hi there', 'transactional'))
+    await save()
+    expect(screen.queryByText(/has no unsubscribe link/)).toBeNull()
   })
 })

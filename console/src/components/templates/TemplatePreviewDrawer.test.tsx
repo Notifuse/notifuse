@@ -130,3 +130,92 @@ describe('TemplatePreviewDrawer text version tab', () => {
     expect(screen.queryByText('Text version')).not.toBeInTheDocument()
   })
 })
+
+describe('TemplatePreviewDrawer custom text version', () => {
+  const withText = (text?: string, translations?: Template['translations']) =>
+    ({
+      ...template,
+      email: { editor_mode: 'code', mjml_source: '<mjml></mjml>', ...(text === undefined ? {} : { text }) },
+      ...(translations ? { translations } : {})
+    }) as unknown as Template
+  const lastRequest = () => vi.mocked(templatesApi.compile).mock.calls.at(-1)![0]
+
+  it('previews the custom text of the template and says it is custom', async () => {
+    vi.mocked(templatesApi.compile).mockResolvedValueOnce({
+      html: '<p>Hello</p>',
+      mjml: '<mjml></mjml>',
+      text: 'Hi Bob',
+      text_source: 'custom'
+    })
+    await openDrawer(undefined, withText('Hi {{ contact.first_name }}'))
+    await waitFor(() => expect(screen.getByText('Text version')).toBeInTheDocument())
+
+    expect(lastRequest().text).toBe('Hi {{ contact.first_name }}')
+    fireEvent.click(screen.getByText('Text version'))
+    await waitFor(() => expect(screen.getByTestId('preview-text-version').textContent).toBe('Hi Bob'))
+    expect(screen.getByText('Custom')).toBeInTheDocument()
+    expect(screen.getByText(/Written by hand for this template/)).toBeInTheDocument()
+  })
+
+  it('asks for the automatic version when the template has no custom text', async () => {
+    vi.mocked(templatesApi.compile).mockResolvedValueOnce({
+      html: '<p>Hello</p>',
+      mjml: '<mjml></mjml>',
+      text: 'Hello\n',
+      text_source: 'auto'
+    })
+    await openDrawer(undefined, withText(undefined))
+    await waitFor(() => expect(screen.getByText('Text version')).toBeInTheDocument())
+
+    expect(lastRequest()).not.toHaveProperty('text')
+    fireEvent.click(screen.getByText('Text version'))
+    await waitFor(() => expect(screen.getByText('Automatic')).toBeInTheDocument())
+    expect(screen.queryByText('Custom')).not.toBeInTheDocument()
+  })
+
+  it('says why the custom text was replaced by the automatic version', async () => {
+    vi.mocked(templatesApi.compile).mockResolvedValueOnce({
+      html: '<p>Hello</p>',
+      mjml: '<mjml></mjml>',
+      text: 'Hello\n',
+      text_source: 'auto',
+      text_error: 'Liquid syntax error: unclosed tag'
+    })
+    await openDrawer(undefined, withText('{% if %}'))
+    await waitFor(() => expect(screen.getByText('Text version')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByText('Text version'))
+    await waitFor(() =>
+      expect(
+        screen.getByText(/The custom text could not be used, the automatic version is sent instead: Liquid syntax error: unclosed tag/)
+      ).toBeInTheDocument()
+    )
+  })
+
+  it('previews a translation with its own text, never the text of the default language', async () => {
+    vi.mocked(templatesApi.compile).mockResolvedValue({ html: '<p>Hello</p>', mjml: '<mjml></mjml>', text: 'x' })
+    const record = withText('Default text', {
+      fr: { email: { editor_mode: 'code', mjml_source: '<mjml></mjml>', subject: 'Bonjour' } }
+    } as unknown as Template['translations'])
+    render(
+      <ConfigProvider>
+        <App>
+          <TemplatePreviewDrawer
+            record={record}
+            workspace={{ ...workspace, settings: { timezone: 'UTC', default_language: 'en' } } as unknown as Workspace}
+          >
+            <button>open</button>
+          </TemplatePreviewDrawer>
+        </App>
+      </ConfigProvider>
+    )
+    fireEvent.click(screen.getByText('open'))
+    await waitFor(() => expect(lastRequest().text).toBe('Default text'))
+
+    fireEvent.click(await screen.findByText('French'))
+    await waitFor(() => expect(vi.mocked(templatesApi.compile).mock.calls.length).toBeGreaterThan(1))
+    expect(lastRequest()).not.toHaveProperty('text')
+    vi.mocked(templatesApi.compile).mockReset()
+    vi.mocked(templatesApi.compile).mockRejectedValue(new Error('no preview in tests'))
+  })
+})

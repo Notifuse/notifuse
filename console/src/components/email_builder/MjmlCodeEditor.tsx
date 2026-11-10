@@ -12,6 +12,8 @@ import Editor, { type OnMount, type BeforeMount } from '@monaco-editor/react'
 import type { editor as MonacoEditor } from 'monaco-editor'
 import { useLingui } from '@lingui/react/macro'
 import type { MjmlCompileError } from '../../services/api/template'
+import { TextVersionPanel } from './panels/TextVersionPanel'
+import type { CustomTextVersion } from './panels/TextVersionPanel'
 
 interface MjmlCodeEditorProps {
   mjmlSource: string
@@ -29,6 +31,8 @@ interface MjmlCodeEditorProps {
   onTestDataChange: (testData: Record<string, unknown>) => void
   height?: string | number
   templateId?: string
+  // With `custom`, the text version tab lets the text be written by hand.
+  textVersion?: { custom?: CustomTextVersion }
 }
 
 export interface MjmlCodeEditorRef {
@@ -225,7 +229,8 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
   testData,
   onTestDataChange,
   height = 'calc(100vh - 200px)',
-  templateId
+  templateId,
+  textVersion
 }, ref) => {
   const { t } = useLingui()
   const { message } = App.useApp()
@@ -844,35 +849,13 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
               </>
             )}
             {activeTab === 'text' && (
-              <div style={{ padding: 16 }}>
-                {compileErrors ? (
-                  <div style={{ color: '#999', textAlign: 'center', padding: 40 }}>
-                    {t`The email could not be compiled`}
-                  </div>
-                ) : textOutput === null ? (
-                  <div style={{ color: '#999', textAlign: 'center', padding: 40 }}>
-                    {t`Compiling...`}
-                  </div>
-                ) : textOutput.trim() ? (
-                  <pre
-                    data-testid="text-version"
-                    style={{
-                      margin: 0,
-                      fontSize: 13,
-                      lineHeight: 1.6,
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
-                    }}
-                  >
-                    {textOutput}
-                  </pre>
-                ) : (
-                  <div style={{ color: '#999', textAlign: 'center', padding: 40 }}>
-                    {t`No text version: this email will be sent as HTML only.`}
-                  </div>
-                )}
-              </div>
+              <TextVersionPanel
+                compact
+                text={textOutput ?? undefined}
+                errors={compileErrors ? [{ message: compileErrors.message }] : undefined}
+                loading={textOutput === null && !compileErrors}
+                custom={textVersion?.custom}
+              />
             )}
             {activeTab === 'html' && (
               <Editor
