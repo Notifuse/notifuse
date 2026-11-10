@@ -113,8 +113,9 @@ func (w *writer) write(s string) {
 
 // trailingPunctuation may follow a URL without a space when a space or the end of the
 // text comes next: autolinkers leave it out of the link, and a space before it would
-// read oddly.
-const trailingPunctuation = ".,;:!?)]\"'”’»"
+// read oddly. Typographic closing quotes are not in it: autolinkers take them into the
+// link, so they are kept apart like a word.
+const trailingPunctuation = ".,;:!?)]\"'"
 
 // writeURL appends a URL and remembers that the next word must be separated from it,
 // so that a client's autolinker never reads two links, or a link and a word, as one.

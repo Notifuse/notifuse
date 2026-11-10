@@ -109,10 +109,16 @@ func TestFromHTML(t *testing.T) {
 			"https://acme.example/\nView in browser (https://acme.example/view/123)\n",
 		},
 		{
-			"a closing quote after a link keeps the punctuation attached",
+			// Autolinkers read a typographic closing quote as part of the URL, so it is
+			// kept apart; an ASCII quote is left out of the link and stays attached.
+			"a typographic closing quote is kept apart from the url before it",
 			"<p>\u201cSee the <a href=\"https://e.com/faq\">FAQ</a>.\u201d</p>",
-			"\u201cSee the FAQ (https://e.com/faq).\u201d\n",
+			"\u201cSee the FAQ (https://e.com/faq) .\u201d\n",
 		},
+		{"a bare url before \u201d is kept apart", "<p>\u201c<a href=\"https://e.com/a\">https://e.com/a</a>\u201d</p>", "\u201chttps://e.com/a \u201d\n"},
+		{"a bare url before \u2019 is kept apart", "<p>\u2018<a href=\"https://e.com/a\">https://e.com/a</a>\u2019</p>", "\u2018https://e.com/a \u2019\n"},
+		{"a bare url before \u00bb is kept apart", "<p>\u00ab<a href=\"https://e.com/a\">https://e.com/a</a>\u00bb</p>", "\u00abhttps://e.com/a \u00bb\n"},
+		{"a bare url before an ascii quote keeps it attached", `<p>"<a href="https://e.com/a">https://e.com/a</a>"</p>`, "\"https://e.com/a\"\n"},
 		{
 			"icon links side by side are all kept",
 			`<table><tr><td><a href="https://e.com/fb"><img src="fb.png"></a></td><td><a href="https://e.com/x"><img src="x.png"></a></td></tr></table>`,

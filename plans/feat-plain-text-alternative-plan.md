@@ -414,7 +414,9 @@ and the suggestions were checked against the code and integrated:
 
 - The visual editor has no navbar block, so the golden fixture builds its navigation row
   as adjacent anchors in an `mj-text`, which is what the navbar compiles to.
-- Punctuation right after a link (`.,;:!?)]`) stays attached: `label (url).`, not
-  `label (url) .`. Autolinkers leave it out of the link, so nothing is glued.
+- Punctuation right after a link (`.,;:!?)]` and ASCII quotes) stays attached when a
+  space or the end of the text follows: `label (url).`, not `label (url) .`. Autolinkers
+  leave it out of the link. Typographic closing quotes are kept apart, since autolinkers
+  take them into the link.
 - A link with a relative `href` keeps its label only: there is no base to resolve it
   against. Tracked links are absolute whenever `API_ENDPOINT` or a custom endpoint is set.
