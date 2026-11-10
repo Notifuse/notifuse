@@ -121,7 +121,8 @@ Toasts are counted with `document.querySelectorAll('.ant-message-notice')`.
 8. `updates the chosen saved block` (characterisation, also passes before the fix): update mode, pick `Footer`,
    click Update; `onSave(block, 'update', 'footer-id')`.
 9. `ignores Enter while a save is pending` (guards the new `await`; passes before the fix because the name was
-   reset): `onSave` pending; Enter twice; `onSave` called once.
+   reset): `onSave` pending; Enter pressed and released twice (the input ignores a second keydown until keyup);
+   `onSave` called once.
 
 ### `console/src/components/templates/CreateTemplateDrawer.test.tsx` (extended)
 
@@ -171,9 +172,8 @@ src/components/templates/CreateTemplateDrawer.test.tsx` while developing, then t
 e2e/features/templates.spec.ts` against the dev server. From `web_analytics_sdk/`: `npm run build` and its unit
 tests. Go: only `config/config.go` changes, so `go test ./config/...` and `make test-unit` once.
 
-## Spec review
+## Plan review
 
-Reviewed by Fable (xhigh) on 2026-11-10; review saved at `/mnt/project-files/reviews/fix-save-block-modal-fable-plan.md`.
-Integrated: test assertions that passed without the fix (modal state, fixture paddings, option query),
+Integrated after review: test assertions that passed without the fix (modal state, fixture paddings, option query),
 characterisation labels, toast counts, dismissal during a pending save, explicit `catch`, awaited refresh with a
 warning, three obsolete strings, e2e routing, WIP changelog heading, SDK sync through `prebuild`, docs locations.

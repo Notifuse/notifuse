@@ -121,9 +121,15 @@ test.describe('Saving a block from the email editor', () => {
     await dialog.getByRole('button', { name: 'Save' }).click()
 
     await expect(page.locator('.ant-message-notice-error')).toHaveCount(1)
-    await expect(dialog).toBeVisible()
-    await expect(dialog.getByPlaceholder('Enter a name for this block')).toHaveValue('Products')
-    await expect(page.locator('.ant-message-notice-success')).toHaveCount(0)
+    // Read once, while the error shows: a success toast would still be there
+    expect(await page.locator('.ant-message-notice-success').count()).toBe(0)
     expect(calls).toHaveLength(1)
+
+    // The dialog is still open with the typed name, so saving again sends a second request. A dialog that had
+    // closed would only be animating away by now, its Save button gone.
+    await page.waitForTimeout(1000)
+    await expect(dialog.getByPlaceholder('Enter a name for this block')).toHaveValue('Products')
+    await dialog.getByRole('button', { name: 'Save' }).click()
+    await expect.poll(() => calls.length).toBe(2)
   })
 })

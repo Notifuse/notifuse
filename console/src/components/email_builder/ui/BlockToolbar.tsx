@@ -173,7 +173,7 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
         }}
         cancelButtonProps={{ disabled: saving }}
         closable={!saving}
-        maskClosable={!saving}
+        mask={{ closable: !saving }}
         keyboard={!saving}
       >
         {block && (
@@ -210,7 +210,7 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
             <Select
               style={{ width: '100%' }}
               placeholder={t`Choose a saved block to update`}
-              value={selectedSavedBlockId}
+              value={selectedSavedBlockId || undefined}
               onChange={setSelectedSavedBlockId}
               showSearch
               filterOption={(input, option) => {

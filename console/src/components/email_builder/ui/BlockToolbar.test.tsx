@@ -170,6 +170,9 @@ describe('BlockToolbar save dialog', () => {
 
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
     expect(document.querySelector('.ant-modal-close')).toBeNull()
+    await userEvent.keyboard('{Escape}')
+    await userEvent.click(document.querySelector('.ant-modal-wrap') as HTMLElement)
+    expect(dialogDisplay()).toBe('')
     pending.resolve()
     await waitFor(() => expect(dialogDisplay()).toBe('none'))
   })
@@ -192,15 +195,20 @@ describe('BlockToolbar save dialog', () => {
     expect(onSave).toHaveBeenCalledWith(section, 'update', 'footer-id')
   })
 
-  // Guards the awaited save: before the fix the reset name stopped the second Enter instead
+  // Guards the awaited save: before the fix the reset name stopped the second Enter instead. The input ignores
+  // a second Enter until the key is released, so each press is a keydown and a keyup.
   it('ignores Enter while a save is pending', async () => {
     const pending = deferred()
     const onSave = vi.fn().mockReturnValue(pending.promise)
     renderToolbar(onSave, [])
     await openDialog()
 
-    fireEvent.keyDown(nameInput(), { key: 'Enter', code: 'Enter', keyCode: 13 })
-    fireEvent.keyDown(nameInput(), { key: 'Enter', code: 'Enter', keyCode: 13 })
+    const pressEnter = () => {
+      fireEvent.keyDown(nameInput(), { key: 'Enter', code: 'Enter', keyCode: 13 })
+      fireEvent.keyUp(nameInput(), { key: 'Enter', code: 'Enter', keyCode: 13 })
+    }
+    pressEnter()
+    pressEnter()
 
     expect(onSave).toHaveBeenCalledTimes(1)
     pending.resolve()
