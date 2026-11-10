@@ -276,7 +276,7 @@ msgstr "{0}-{1} di {total} automazioni"
 
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
-#: src/pages/BroadcastsPage.tsx:1758
+#: src/pages/BroadcastsPage.tsx:1756
 msgid "{0}-{1} of {total} broadcasts"
 msgstr "{0}-{1} di {total} broadcast"
 
@@ -1062,7 +1062,7 @@ msgstr "Allineamento"
 #: src/components/analytics/EmailMetricsChart.tsx:297
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:124
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
-#: src/pages/BroadcastsPage.tsx:1673
+#: src/pages/BroadcastsPage.tsx:1671
 #: src/pages/TemplatesPage.tsx:124
 msgid "All"
 msgstr "Tutti"
@@ -1397,7 +1397,7 @@ msgid "Are you sure you want to delete \"{0}\"?"
 msgstr "Sei sicuro di voler eliminare \"{0}\"?"
 
 #. placeholder {0}: broadcastToDelete.name
-#: src/pages/BroadcastsPage.tsx:1842
+#: src/pages/BroadcastsPage.tsx:1840
 msgid "Are you sure you want to delete the broadcast \"{0}\"?"
 msgstr "Sei sicuro di voler eliminare il broadcast \"{0}\"?"
 
@@ -2172,7 +2172,7 @@ msgid "Broadcast"
 msgstr "Broadcast"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1588
+#: src/pages/BroadcastsPage.tsx:1586
 msgid "Broadcast \"{0}\" cancelled successfully"
 msgstr "Broadcast \"{0}\" annullato con successo"
 
@@ -2187,7 +2187,7 @@ msgid "Broadcast \"{0}\" paused successfully"
 msgstr "Broadcast \"{0}\" messo in pausa con successo"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1626
+#: src/pages/BroadcastsPage.tsx:1624
 msgid "Broadcast \"{0}\" refreshed"
 msgstr "Broadcast \"{0}\" aggiornato"
 
@@ -2215,7 +2215,7 @@ msgstr "Broadcast creato con successo"
 msgid "Broadcast ID"
 msgstr "ID broadcast"
 
-#: src/pages/BroadcastsPage.tsx:1853
+#: src/pages/BroadcastsPage.tsx:1851
 msgid "Broadcast ID copied to clipboard"
 msgstr "ID broadcast copiato negli appunti"
 
@@ -2230,7 +2230,7 @@ msgstr "Broadcast aggiornato con successo"
 #: src/components/analytics/EmailMetricsChart.tsx:298
 #: src/components/settings/PermissionsMatrix.tsx:136
 #: src/layouts/WorkspaceLayout.tsx:402
-#: src/pages/BroadcastsPage.tsx:1641
+#: src/pages/BroadcastsPage.tsx:1639
 #: src/services/api/errors.ts:85
 msgid "Broadcasts"
 msgstr "Broadcast"
@@ -2361,7 +2361,7 @@ msgstr "Campagne"
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:113
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:131
 #: src/components/broadcasts/HeadersEditor.tsx:103
 #: src/components/broadcasts/SendOrScheduleModal.tsx:301
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:344
@@ -2428,7 +2428,7 @@ msgstr "Campagne"
 #: src/pages/BroadcastsPage.tsx:675
 #: src/pages/BroadcastsPage.tsx:704
 #: src/pages/BroadcastsPage.tsx:1086
-#: src/pages/BroadcastsPage.tsx:1826
+#: src/pages/BroadcastsPage.tsx:1824
 #: src/pages/ListsPage.tsx:387
 #: src/pages/TemplatesPage.tsx:366
 #: src/pages/TransactionalNotificationsPage.tsx:149
@@ -2589,8 +2589,8 @@ msgstr "Modifica il contenuto di un template, in qualsiasi lingua"
 msgid "Change provider"
 msgstr "Cambia provider"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:105
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:108
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:123
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:126
 msgid "Change sender"
 msgstr "Cambia mittente"
 
@@ -2699,7 +2699,7 @@ msgstr "Cancella tutto"
 msgid "Clear field"
 msgstr "Cancella campo"
 
-#: src/pages/BroadcastsPage.tsx:1772
+#: src/pages/BroadcastsPage.tsx:1770
 msgid "Clear filters"
 msgstr "Cancella filtri"
 
@@ -3085,7 +3085,7 @@ msgid "Configure outgoing webhooks to receive real-time notifications when event
 msgstr "Configura webhook in uscita per ricevere notifiche in tempo reale quando si verificano eventi nel tuo workspace."
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:187
-#: src/pages/BroadcastsPage.tsx:1710
+#: src/pages/BroadcastsPage.tsx:1708
 msgid "Configure Provider"
 msgstr "Configura provider"
 
@@ -3377,7 +3377,7 @@ msgstr "Copia codice {0}"
 msgid "Copy link"
 msgstr "Copia link"
 
-#: src/pages/BroadcastsPage.tsx:1846
+#: src/pages/BroadcastsPage.tsx:1844
 msgid "Copy to clipboard"
 msgstr "Copia negli appunti"
 
@@ -3586,8 +3586,8 @@ msgid "Create Automation"
 msgstr "Crea automation"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:399
-#: src/pages/BroadcastsPage.tsx:1656
-#: src/pages/BroadcastsPage.tsx:1795
+#: src/pages/BroadcastsPage.tsx:1654
+#: src/pages/BroadcastsPage.tsx:1793
 msgid "Create Broadcast"
 msgstr "Crea broadcast"
 
@@ -3682,7 +3682,7 @@ msgstr "Crea la tua prima automation"
 msgid "Create your first blog post to get started"
 msgstr "Crea il tuo primo post del blog per iniziare"
 
-#: src/pages/BroadcastsPage.tsx:1780
+#: src/pages/BroadcastsPage.tsx:1778
 msgid "Create your first broadcast to get started"
 msgstr "Crea il tuo primo broadcast per iniziare"
 
@@ -4161,7 +4161,7 @@ msgstr "Ritardo"
 #: src/components/web_analytics/filters/FilterTable.tsx:136
 #: src/components/web_analytics/filters/FilterTable.tsx:291
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
-#: src/pages/BroadcastsPage.tsx:1836
+#: src/pages/BroadcastsPage.tsx:1834
 #: src/pages/ContactsPage.tsx:978
 #: src/pages/ListsPage.tsx:397
 msgid "Delete"
@@ -4262,7 +4262,7 @@ msgid "Delete Block"
 msgstr "Elimina blocco"
 
 #: src/pages/BroadcastsPage.tsx:745
-#: src/pages/BroadcastsPage.tsx:1821
+#: src/pages/BroadcastsPage.tsx:1819
 msgid "Delete Broadcast"
 msgstr "Elimina broadcast"
 
@@ -4690,7 +4690,7 @@ msgstr "Scaricati {0} file"
 #: src/components/automations/AutomationCard.tsx:63
 #: src/components/blog/PostStatusTag.tsx:33
 #: src/pages/BroadcastsPage.tsx:185
-#: src/pages/BroadcastsPage.tsx:1674
+#: src/pages/BroadcastsPage.tsx:1672
 msgid "Draft"
 msgstr "Bozza"
 
@@ -5158,7 +5158,7 @@ msgstr "Anteprima email"
 msgid "Email Provider Configuration Needed"
 msgstr "Configurazione provider email necessaria"
 
-#: src/pages/BroadcastsPage.tsx:1699
+#: src/pages/BroadcastsPage.tsx:1697
 msgid "Email Provider Required"
 msgstr "Provider email richiesto"
 
@@ -5381,7 +5381,7 @@ msgstr "Inserisci URL immagine di sfondo"
 msgid "Enter BCC email addresses"
 msgstr "Inserisci indirizzi email BCC"
 
-#: src/pages/BroadcastsPage.tsx:1859
+#: src/pages/BroadcastsPage.tsx:1857
 msgid "Enter broadcast ID to confirm"
 msgstr "Inserisci ID broadcast per confermare"
 
@@ -5838,7 +5838,7 @@ msgstr "fallito"
 #: src/pages/BroadcastsPage.tsx:284
 #: src/pages/BroadcastsPage.tsx:455
 #: src/pages/BroadcastsPage.tsx:522
-#: src/pages/BroadcastsPage.tsx:1678
+#: src/pages/BroadcastsPage.tsx:1676
 #: src/pages/TransactionalNotificationsPage.tsx:234
 msgid "Failed"
 msgstr "Fallito"
@@ -5855,16 +5855,16 @@ msgstr "Impossibile attivare l'automation"
 msgid "Failed to add to list: {error}"
 msgstr "Impossibile aggiungere alla lista: {error}"
 
-#: src/pages/BroadcastsPage.tsx:1593
+#: src/pages/BroadcastsPage.tsx:1591
 msgid "Failed to cancel broadcast"
 msgstr "Impossibile annullare il broadcast"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:95
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:113
 msgid "Failed to change the sender"
 msgstr "Impossibile cambiare il mittente"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:94
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:112
 msgid "Failed to change the sender: {0}"
 msgstr "Impossibile cambiare il mittente: {0}"
 
@@ -6168,14 +6168,9 @@ msgstr "Impossibile inviare nuovamente l'invito"
 msgid "Failed to resend magic code"
 msgstr "Impossibile inviare nuovamente il codice magico"
 
-#: src/pages/BroadcastsPage.tsx:1576
+#: src/pages/BroadcastsPage.tsx:1574
 msgid "Failed to resume broadcast"
 msgstr "Impossibile riprendere il broadcast"
-
-#. placeholder {0}: error.message
-#: src/pages/BroadcastsPage.tsx:1575
-msgid "Failed to resume broadcast: {0}"
-msgstr "Impossibile riprendere la campagna: {0}"
 
 #: src/pages/BroadcastsPage.tsx:1556
 msgid "Failed to retry the recipients"
@@ -7159,7 +7154,7 @@ msgstr "L'ID può contenere solo lettere minuscole e numeri"
 msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "L'ID può contenere solo lettere minuscole, numeri e underscore"
 
-#: src/pages/BroadcastsPage.tsx:1867
+#: src/pages/BroadcastsPage.tsx:1865
 #: src/pages/ListsPage.tsx:415
 msgid "ID doesn't match"
 msgstr "L'ID non corrisponde"
@@ -8957,11 +8952,11 @@ msgstr "Nessuna automation ancora"
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr "Non è ancora stato eseguito alcun backfill. Eseguine uno per applicare queste regole alle sessioni e agli obiettivi storici."
 
-#: src/pages/BroadcastsPage.tsx:1778
+#: src/pages/BroadcastsPage.tsx:1776
 msgid "No broadcasts found"
 msgstr "Nessun broadcast trovato"
 
-#: src/pages/BroadcastsPage.tsx:1766
+#: src/pages/BroadcastsPage.tsx:1764
 msgid "No broadcasts match your filters"
 msgstr "Nessun broadcast corrisponde ai tuoi filtri"
 
@@ -11667,7 +11662,7 @@ msgstr "Modalità Sandbox"
 #: src/components/blog/PostDrawer.tsx:690
 #: src/components/blog/ThemeEditorDrawer.tsx:318
 #: src/components/blog/ThemeEditorDrawer.tsx:468
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:112
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:130
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:387
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:318
@@ -11772,7 +11767,7 @@ msgstr "Pianifica o invia immediatamente un broadcast al suo intero pubblico"
 #: src/components/blog/PostStatusTag.tsx:20
 #: src/pages/BroadcastsPage.tsx:193
 #: src/pages/BroadcastsPage.tsx:1181
-#: src/pages/BroadcastsPage.tsx:1675
+#: src/pages/BroadcastsPage.tsx:1673
 msgid "Scheduled"
 msgstr "Pianificato"
 
@@ -11801,7 +11796,7 @@ msgstr "Larghezza schermo sotto la quale viene attivato il layout mobile. Valori
 msgid "Search"
 msgstr "Cerca"
 
-#: src/pages/BroadcastsPage.tsx:1683
+#: src/pages/BroadcastsPage.tsx:1681
 #: src/pages/TemplatesPage.tsx:435
 msgid "Search by name"
 msgstr "Cerca per nome"
@@ -12359,7 +12354,7 @@ msgstr "Invia email di test"
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "Invia notifiche transazionali utilizzando relay SMTP. Perfetto per l'integrazione con sistemi email esistenti o applicazioni che supportano SMTP."
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:128
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:51
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:920
 #: src/components/templates/CreateTemplateDrawer.tsx:948
 #: src/components/templates/SendTemplateModal.tsx:303
@@ -12372,26 +12367,25 @@ msgstr "Mittente"
 msgid "Sender {0}"
 msgstr "Mittente {0}"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:88
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:106
 msgid "Sender changed. You can now resume the broadcast."
-msgstr "Mittente cambiato. Ora puoi riprendere la campagna."
+msgstr "Mittente cambiato. Ora puoi riprendere il broadcast."
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1018
 #: src/components/templates/TemplateTranslationsTab.tsx:293
 msgid "Sender Name"
 msgstr "Nome mittente"
 
-#. placeholder {0}: variation.variation_name
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:127
-msgid "Sender of {0}"
-msgstr "Mittente di {0}"
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:53
+msgid "Sender of variation {name}"
+msgstr "Mittente della variante {name}"
 
 #: src/components/settings/Integrations.tsx:390
 #: src/components/settings/Integrations.tsx:2376
 msgid "Senders"
 msgstr "Mittenti"
 
-#: src/pages/BroadcastsPage.tsx:1676
+#: src/pages/BroadcastsPage.tsx:1674
 msgid "Sending"
 msgstr "Invio in corso"
 
@@ -12426,7 +12420,7 @@ msgstr "inviato"
 #: src/components/messages/MessageHistoryTab.tsx:99
 #: src/components/messages/MessageHistoryTab.tsx:101
 #: src/components/messages/MessageHistoryTable.tsx:320
-#: src/pages/BroadcastsPage.tsx:1677
+#: src/pages/BroadcastsPage.tsx:1675
 #: src/pages/TransactionalNotificationsPage.tsx:200
 msgid "Sent"
 msgstr "Inviato"
@@ -13868,9 +13862,9 @@ msgstr "Il segmento è stato aggiornato!"
 msgid "The selected file"
 msgstr "Il file selezionato"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:118
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:136
 msgid "The sender chosen for this broadcast is no longer one of the marketing email integration's senders. Choose another one, or clear the field to send from the template's sender, then resume the broadcast."
-msgstr "Il mittente scelto per questa campagna non è più uno dei mittenti dell'integrazione email di marketing. Scegline un altro, o svuota il campo per inviare dal mittente del modello, poi riprendi la campagna."
+msgstr "Il mittente scelto per questo broadcast non è più uno dei mittenti dell'integrazione email di marketing. Scegline un altro, o svuota il campo per inviare dal mittente del modello, poi riprendi il broadcast."
 
 #: src/components/timeline/WebPageDrawer.tsx:90
 msgid "The site refuses to be displayed inside another page, which is a common security setting. Open it in a new tab to see it."
@@ -13994,7 +13988,7 @@ msgstr "Questo account è già collegato a un'identità single sign-on diversa."
 msgid "This action cannot be undone."
 msgstr "Questa azione non può essere annullata."
 
-#: src/pages/BroadcastsPage.tsx:1844
+#: src/pages/BroadcastsPage.tsx:1842
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "Questa azione non può essere annullata. Per confermare, inserisci l'ID del broadcast:"
 
@@ -14185,7 +14179,7 @@ msgstr "Questa sezione è vuota. Aggiungi colonne o gruppi per visualizzare il c
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "Questo segmento utilizza filtri di date relative e verrà ricalcolato automaticamente ogni giorno alle 5:00 ({timezone})"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:45
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:63
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:130
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "Questo mittente non fa più parte dell'integrazione email di marketing. Scegline un altro o svuota il campo per usare quello del template."
@@ -14688,7 +14682,7 @@ msgstr "Evento trigger"
 msgid "Trigger on specific field changes"
 msgstr "Attiva su modifiche di campi specifici"
 
-#: src/pages/BroadcastsPage.tsx:1769
+#: src/pages/BroadcastsPage.tsx:1767
 msgid "Try adjusting your search or status filter"
 msgstr "Prova a modificare la ricerca o il filtro di stato"
 
@@ -15942,7 +15936,7 @@ msgid "You do not have write access to {resource}."
 msgstr "Non hai accesso in scrittura a {resource}."
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:177
-#: src/pages/BroadcastsPage.tsx:1700
+#: src/pages/BroadcastsPage.tsx:1698
 msgid "You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts."
 msgstr "Non hai configurato un provider email per il marketing. Configura un provider email nelle impostazioni del workspace per inviare broadcast."
 
@@ -15967,8 +15961,8 @@ msgstr "Non hai i permessi di scrittura per le automazioni"
 #: src/pages/BroadcastsPage.tsx:744
 #: src/pages/BroadcastsPage.tsx:760
 #: src/pages/BroadcastsPage.tsx:1077
-#: src/pages/BroadcastsPage.tsx:1647
-#: src/pages/BroadcastsPage.tsx:1786
+#: src/pages/BroadcastsPage.tsx:1645
+#: src/pages/BroadcastsPage.tsx:1784
 msgid "You don't have write permission for broadcasts"
 msgstr "Non hai i permessi di scrittura per i broadcast"
 

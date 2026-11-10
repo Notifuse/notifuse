@@ -97,8 +97,8 @@ describe('ChangeVariationSenderModal', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Change sender' }))
 
     // Only the variation whose sender left the integration is asked for.
-    expect(await screen.findByText('Sender of A')).toBeInTheDocument()
-    expect(screen.queryByText('Sender of B')).not.toBeInTheDocument()
+    expect(await screen.findByText('Sender of variation A')).toBeInTheDocument()
+    expect(screen.queryByText('Sender of variation B')).not.toBeInTheDocument()
     expect(screen.getByText('gone (deleted)')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('combobox'))
@@ -108,11 +108,45 @@ describe('ChangeVariationSenderModal', () => {
     await waitFor(() => expect(broadcastApi.update).toHaveBeenCalledTimes(1))
     const request = (broadcastApi.update as Mock).mock.calls[0][0]
     expect(request).toMatchObject({ workspace_id: 'ws1', id: 'bc1', name: 'Spring sale' })
-    expect(request.test_settings.enabled).toBe(true)
+    // The A/B settings are sent back as stored; what the request leaves out is kept.
+    expect(request.test_settings).toMatchObject({
+      enabled: true,
+      sample_percentage: 20,
+      auto_send_winner: false
+    })
+    expect(request).not.toHaveProperty('schedule')
+    expect(request).not.toHaveProperty('data_feed')
     expect(request.test_settings.variations).toEqual([
       { variation_name: 'A', template_id: 'tmpl-a', sender_id: 's2', metrics: undefined },
       { variation_name: 'B', template_id: 'tmpl-b', sender_id: 's1', metrics: undefined }
     ])
+  })
+
+  it('numbers unnamed variations, as the console saves them', async () => {
+    const broadcast = makeBroadcast()
+    broadcast.test_settings.variations[0].variation_name = ''
+    broadcast.test_settings.variations[1].variation_name = ''
+    broadcast.test_settings.variations[1].sender_id = 'also-gone'
+    renderModal(broadcast)
+    await userEvent.click(screen.getByRole('button', { name: 'Change sender' }))
+
+    expect(await screen.findByText('Sender of variation 1')).toBeInTheDocument()
+    expect(screen.getByText('Sender of variation 2')).toBeInTheDocument()
+  })
+
+  it("offers nothing when only a losing variation's sender is gone", () => {
+    renderModal(makeBroadcast({ winning_template: 'tmpl-b' }))
+    expect(screen.queryByRole('button', { name: 'Change sender' })).not.toBeInTheDocument()
+  })
+
+  it('asks for every missing sender once a sent variation needs one', async () => {
+    const broadcast = makeBroadcast({ winning_template: 'tmpl-b' })
+    broadcast.test_settings.variations[1].sender_id = 'also-gone'
+    renderModal(broadcast)
+    await userEvent.click(screen.getByRole('button', { name: 'Change sender' }))
+
+    expect(await screen.findByText('Sender of variation A')).toBeInTheDocument()
+    expect(screen.getByText('Sender of variation B')).toBeInTheDocument()
   })
 
   it('refuses to save while the deleted sender is still selected', async () => {

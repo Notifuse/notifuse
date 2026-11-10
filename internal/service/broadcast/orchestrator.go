@@ -257,8 +257,12 @@ func (o *BroadcastOrchestrator) pauseForSendError(ctx context.Context, task *dom
 // domain.ErrSenderNotFound.
 type SenderUnavailableError struct {
 	VariationName string
-	TemplateID    string
-	SenderID      string
+	// VariationNumber counts the broadcast's variations from 1; VariationCount is how
+	// many it has. They name the variation when it has no name, as the console's do not.
+	VariationNumber int
+	VariationCount  int
+	TemplateID      string
+	SenderID        string
 }
 
 func (e *SenderUnavailableError) Error() string {
@@ -271,24 +275,34 @@ func (e *SenderUnavailableError) Unwrap() []error {
 
 // PauseReason is the reason shown on the paused broadcast.
 func (e *SenderUnavailableError) PauseReason() string {
-	variation := e.VariationName
-	if variation == "" {
-		variation = e.TemplateID
+	variation := "this broadcast"
+	switch {
+	case e.VariationName != "":
+		variation = fmt.Sprintf("variation %q", e.VariationName)
+	case e.VariationCount > 1:
+		variation = fmt.Sprintf("variation %d", e.VariationNumber)
 	}
-	return fmt.Sprintf("Sender unavailable: the sender chosen for variation %q (sender %s) is no longer one of the marketing email integration's senders. Choose another sender, then resume.", variation, e.SenderID)
+	return fmt.Sprintf("Sender unavailable: the sender chosen for %s (sender %s) is no longer one of the marketing email integration's senders. Choose another sender, then resume.", variation, e.SenderID)
 }
 
 // checkVariationSenders returns a *SenderUnavailableError when a variation this run sends
 // chooses a sender that is no longer one of the integration's.
 func checkVariationSenders(broadcast *domain.Broadcast, templates map[string]*domain.Template, provider *domain.EmailProvider) error {
-	for _, variation := range broadcast.TestSettings.Variations {
+	variations := broadcast.TestSettings.Variations
+	for i, variation := range variations {
 		if _, sends := templates[variation.TemplateID]; !sends {
 			continue
 		}
 		if variation.SenderID == "" || provider.HasSender(variation.SenderID) {
 			continue
 		}
-		return &SenderUnavailableError{VariationName: variation.VariationName, TemplateID: variation.TemplateID, SenderID: variation.SenderID}
+		return &SenderUnavailableError{
+			VariationName:   variation.VariationName,
+			VariationNumber: i + 1,
+			VariationCount:  len(variations),
+			TemplateID:      variation.TemplateID,
+			SenderID:        variation.SenderID,
+		}
 	}
 	return nil
 }
@@ -1093,8 +1107,10 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 
 	// A sender chosen on a variation may have left the integration since the broadcast
 	// was scheduled. Pause before anyone is sent from another address. A broadcast already
-	// paused stops in the loop below, and one whose test phase is over waits for a winner
-	// and sends nothing until then: neither is paused again for a variation it may never send.
+	// paused stops in the loop below, and one whose test phase is over waits for a winner:
+	// neither is paused again for a variation it may never send. SendBatch runs the same
+	// check on the templates of each batch it is given, so nothing leaves from another
+	// address either way.
 	if broadcast.Status != domain.BroadcastStatusPaused && broadcast.Status != domain.BroadcastStatusTestCompleted {
 		if senderErr := checkVariationSenders(broadcast, templates, emailProvider); senderErr != nil {
 			o.pauseForSendError(ctx, task, broadcastState.BroadcastID, broadcastState.RecipientOffset, senderErr)
@@ -1114,7 +1130,9 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// returns on every exit, so the broadcast row is only ever in hand on a later task
 	// run. context.Background() matches the other publishes in this file — the
 	// announcement must outlive the request that triggered the run.
-	if isFirstSendingRun && o.eventBus != nil {
+	//
+	// A paused broadcast stops in the loop below without sending: it is not announced.
+	if isFirstSendingRun && broadcast.Status != domain.BroadcastStatusPaused && o.eventBus != nil {
 		o.eventBus.Publish(context.Background(), domain.EventPayload{
 			Type:        domain.EventBroadcastSendingStarted,
 			WorkspaceID: task.WorkspaceID,

@@ -276,7 +276,7 @@ msgstr "{total}件のオートメーション中 {0}-{1}"
 
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
-#: src/pages/BroadcastsPage.tsx:1758
+#: src/pages/BroadcastsPage.tsx:1756
 msgid "{0}-{1} of {total} broadcasts"
 msgstr "{total}件のブロードキャスト中 {0}-{1}"
 
@@ -1062,7 +1062,7 @@ msgstr "配置"
 #: src/components/analytics/EmailMetricsChart.tsx:297
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:124
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
-#: src/pages/BroadcastsPage.tsx:1673
+#: src/pages/BroadcastsPage.tsx:1671
 #: src/pages/TemplatesPage.tsx:124
 msgid "All"
 msgstr "すべて"
@@ -1397,7 +1397,7 @@ msgid "Are you sure you want to delete \"{0}\"?"
 msgstr "\"{0}\"を削除してもよろしいですか?"
 
 #. placeholder {0}: broadcastToDelete.name
-#: src/pages/BroadcastsPage.tsx:1842
+#: src/pages/BroadcastsPage.tsx:1840
 msgid "Are you sure you want to delete the broadcast \"{0}\"?"
 msgstr "ブロードキャスト\"{0}\"を削除してもよろしいですか?"
 
@@ -2172,7 +2172,7 @@ msgid "Broadcast"
 msgstr "ブロードキャスト"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1588
+#: src/pages/BroadcastsPage.tsx:1586
 msgid "Broadcast \"{0}\" cancelled successfully"
 msgstr "ブロードキャスト\"{0}\"をキャンセルしました"
 
@@ -2187,7 +2187,7 @@ msgid "Broadcast \"{0}\" paused successfully"
 msgstr "ブロードキャスト\"{0}\"を一時停止しました"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1626
+#: src/pages/BroadcastsPage.tsx:1624
 msgid "Broadcast \"{0}\" refreshed"
 msgstr "ブロードキャスト\"{0}\"を更新しました"
 
@@ -2215,7 +2215,7 @@ msgstr "ブロードキャストを作成しました"
 msgid "Broadcast ID"
 msgstr "ブロードキャストID"
 
-#: src/pages/BroadcastsPage.tsx:1853
+#: src/pages/BroadcastsPage.tsx:1851
 msgid "Broadcast ID copied to clipboard"
 msgstr "ブロードキャストIDをクリップボードにコピーしました"
 
@@ -2230,7 +2230,7 @@ msgstr "ブロードキャストを更新しました"
 #: src/components/analytics/EmailMetricsChart.tsx:298
 #: src/components/settings/PermissionsMatrix.tsx:136
 #: src/layouts/WorkspaceLayout.tsx:402
-#: src/pages/BroadcastsPage.tsx:1641
+#: src/pages/BroadcastsPage.tsx:1639
 #: src/services/api/errors.ts:85
 msgid "Broadcasts"
 msgstr "ブロードキャスト"
@@ -2361,7 +2361,7 @@ msgstr "キャンペーン"
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:113
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:131
 #: src/components/broadcasts/HeadersEditor.tsx:103
 #: src/components/broadcasts/SendOrScheduleModal.tsx:301
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:344
@@ -2428,7 +2428,7 @@ msgstr "キャンペーン"
 #: src/pages/BroadcastsPage.tsx:675
 #: src/pages/BroadcastsPage.tsx:704
 #: src/pages/BroadcastsPage.tsx:1086
-#: src/pages/BroadcastsPage.tsx:1826
+#: src/pages/BroadcastsPage.tsx:1824
 #: src/pages/ListsPage.tsx:387
 #: src/pages/TemplatesPage.tsx:366
 #: src/pages/TransactionalNotificationsPage.tsx:149
@@ -2589,8 +2589,8 @@ msgstr "任意の言語で、テンプレートのコンテンツを変更する
 msgid "Change provider"
 msgstr "プロバイダーを変更"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:105
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:108
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:123
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:126
 msgid "Change sender"
 msgstr "送信者を変更"
 
@@ -2699,7 +2699,7 @@ msgstr "すべてクリア"
 msgid "Clear field"
 msgstr "フィールドをクリア"
 
-#: src/pages/BroadcastsPage.tsx:1772
+#: src/pages/BroadcastsPage.tsx:1770
 msgid "Clear filters"
 msgstr "フィルターをクリア"
 
@@ -3085,7 +3085,7 @@ msgid "Configure outgoing webhooks to receive real-time notifications when event
 msgstr "ワークスペースでイベントが発生した際にリアルタイム通知を受け取るための送信Webhookを設定します。"
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:187
-#: src/pages/BroadcastsPage.tsx:1710
+#: src/pages/BroadcastsPage.tsx:1708
 msgid "Configure Provider"
 msgstr "プロバイダーを設定"
 
@@ -3377,7 +3377,7 @@ msgstr "{0}コードをコピー"
 msgid "Copy link"
 msgstr "リンクをコピー"
 
-#: src/pages/BroadcastsPage.tsx:1846
+#: src/pages/BroadcastsPage.tsx:1844
 msgid "Copy to clipboard"
 msgstr "クリップボードにコピー"
 
@@ -3586,8 +3586,8 @@ msgid "Create Automation"
 msgstr "オートメーションを作成"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:399
-#: src/pages/BroadcastsPage.tsx:1656
-#: src/pages/BroadcastsPage.tsx:1795
+#: src/pages/BroadcastsPage.tsx:1654
+#: src/pages/BroadcastsPage.tsx:1793
 msgid "Create Broadcast"
 msgstr "ブロードキャストを作成"
 
@@ -3682,7 +3682,7 @@ msgstr "最初のオートメーションを作成"
 msgid "Create your first blog post to get started"
 msgstr "最初のブログ投稿を作成して始めましょう"
 
-#: src/pages/BroadcastsPage.tsx:1780
+#: src/pages/BroadcastsPage.tsx:1778
 msgid "Create your first broadcast to get started"
 msgstr "最初のブロードキャストを作成して始めましょう"
 
@@ -4161,7 +4161,7 @@ msgstr "遅延"
 #: src/components/web_analytics/filters/FilterTable.tsx:136
 #: src/components/web_analytics/filters/FilterTable.tsx:291
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
-#: src/pages/BroadcastsPage.tsx:1836
+#: src/pages/BroadcastsPage.tsx:1834
 #: src/pages/ContactsPage.tsx:978
 #: src/pages/ListsPage.tsx:397
 msgid "Delete"
@@ -4262,7 +4262,7 @@ msgid "Delete Block"
 msgstr "ブロックを削除"
 
 #: src/pages/BroadcastsPage.tsx:745
-#: src/pages/BroadcastsPage.tsx:1821
+#: src/pages/BroadcastsPage.tsx:1819
 msgid "Delete Broadcast"
 msgstr "ブロードキャストを削除"
 
@@ -4690,7 +4690,7 @@ msgstr "{0}件のファイルをダウンロードしました"
 #: src/components/automations/AutomationCard.tsx:63
 #: src/components/blog/PostStatusTag.tsx:33
 #: src/pages/BroadcastsPage.tsx:185
-#: src/pages/BroadcastsPage.tsx:1674
+#: src/pages/BroadcastsPage.tsx:1672
 msgid "Draft"
 msgstr "下書き"
 
@@ -5158,7 +5158,7 @@ msgstr "メールプレビュー"
 msgid "Email Provider Configuration Needed"
 msgstr "メールプロバイダの設定が必要です"
 
-#: src/pages/BroadcastsPage.tsx:1699
+#: src/pages/BroadcastsPage.tsx:1697
 msgid "Email Provider Required"
 msgstr "メールプロバイダが必要です"
 
@@ -5381,7 +5381,7 @@ msgstr "背景画像URLを入力"
 msgid "Enter BCC email addresses"
 msgstr "BCCメールアドレスを入力"
 
-#: src/pages/BroadcastsPage.tsx:1859
+#: src/pages/BroadcastsPage.tsx:1857
 msgid "Enter broadcast ID to confirm"
 msgstr "確認のためブロードキャストIDを入力"
 
@@ -5838,7 +5838,7 @@ msgstr "失敗"
 #: src/pages/BroadcastsPage.tsx:284
 #: src/pages/BroadcastsPage.tsx:455
 #: src/pages/BroadcastsPage.tsx:522
-#: src/pages/BroadcastsPage.tsx:1678
+#: src/pages/BroadcastsPage.tsx:1676
 #: src/pages/TransactionalNotificationsPage.tsx:234
 msgid "Failed"
 msgstr "失敗"
@@ -5855,16 +5855,16 @@ msgstr "オートメーションの有効化に失敗しました"
 msgid "Failed to add to list: {error}"
 msgstr "リストへの追加に失敗しました: {error}"
 
-#: src/pages/BroadcastsPage.tsx:1593
+#: src/pages/BroadcastsPage.tsx:1591
 msgid "Failed to cancel broadcast"
 msgstr "ブロードキャストのキャンセルに失敗しました"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:95
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:113
 msgid "Failed to change the sender"
 msgstr "送信者を変更できませんでした"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:94
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:112
 msgid "Failed to change the sender: {0}"
 msgstr "送信者を変更できませんでした: {0}"
 
@@ -6168,14 +6168,9 @@ msgstr "招待の再送信に失敗しました"
 msgid "Failed to resend magic code"
 msgstr "マジックコードの再送信に失敗しました"
 
-#: src/pages/BroadcastsPage.tsx:1576
+#: src/pages/BroadcastsPage.tsx:1574
 msgid "Failed to resume broadcast"
 msgstr "ブロードキャストの再開に失敗しました"
-
-#. placeholder {0}: error.message
-#: src/pages/BroadcastsPage.tsx:1575
-msgid "Failed to resume broadcast: {0}"
-msgstr "配信を再開できませんでした: {0}"
 
 #: src/pages/BroadcastsPage.tsx:1556
 msgid "Failed to retry the recipients"
@@ -7159,7 +7154,7 @@ msgstr "IDは小文字の英字と数字のみ使用できます"
 msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "IDは小文字の英字、数字、アンダースコアのみ使用できます"
 
-#: src/pages/BroadcastsPage.tsx:1867
+#: src/pages/BroadcastsPage.tsx:1865
 #: src/pages/ListsPage.tsx:415
 msgid "ID doesn't match"
 msgstr "IDが一致しません"
@@ -8957,11 +8952,11 @@ msgstr "オートメーションがまだありません"
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr "バックフィルはまだ実行されていません。過去のセッションとゴールにこれらのルールを適用するには、バックフィルを実行してください。"
 
-#: src/pages/BroadcastsPage.tsx:1778
+#: src/pages/BroadcastsPage.tsx:1776
 msgid "No broadcasts found"
 msgstr "ブロードキャストが見つかりません"
 
-#: src/pages/BroadcastsPage.tsx:1766
+#: src/pages/BroadcastsPage.tsx:1764
 msgid "No broadcasts match your filters"
 msgstr "フィルターに一致するブロードキャストはありません"
 
@@ -11667,7 +11662,7 @@ msgstr "サンドボックスモード"
 #: src/components/blog/PostDrawer.tsx:690
 #: src/components/blog/ThemeEditorDrawer.tsx:318
 #: src/components/blog/ThemeEditorDrawer.tsx:468
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:112
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:130
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:387
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:318
@@ -11772,7 +11767,7 @@ msgstr "ブロードキャストをオーディエンス全体に予約送信ま
 #: src/components/blog/PostStatusTag.tsx:20
 #: src/pages/BroadcastsPage.tsx:193
 #: src/pages/BroadcastsPage.tsx:1181
-#: src/pages/BroadcastsPage.tsx:1675
+#: src/pages/BroadcastsPage.tsx:1673
 msgid "Scheduled"
 msgstr "予約済み"
 
@@ -11801,7 +11796,7 @@ msgstr "モバイルレイアウトが有効になる画面幅。一般的な値
 msgid "Search"
 msgstr "検索"
 
-#: src/pages/BroadcastsPage.tsx:1683
+#: src/pages/BroadcastsPage.tsx:1681
 #: src/pages/TemplatesPage.tsx:435
 msgid "Search by name"
 msgstr "名前で検索"
@@ -12359,7 +12354,7 @@ msgstr "テストメールを送信"
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "SMTPリレーを使用してトランザクション通知を送信。既存のメールシステムやSMTPをサポートするアプリケーションとの統合に最適です。"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:128
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:51
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:920
 #: src/components/templates/CreateTemplateDrawer.tsx:948
 #: src/components/templates/SendTemplateModal.tsx:303
@@ -12372,26 +12367,25 @@ msgstr "送信者"
 msgid "Sender {0}"
 msgstr "送信者 {0}"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:88
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:106
 msgid "Sender changed. You can now resume the broadcast."
-msgstr "送信者を変更しました。配信を再開できます。"
+msgstr "送信者を変更しました。ブロードキャストを再開できます。"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1018
 #: src/components/templates/TemplateTranslationsTab.tsx:293
 msgid "Sender Name"
 msgstr "送信者名"
 
-#. placeholder {0}: variation.variation_name
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:127
-msgid "Sender of {0}"
-msgstr "{0} の送信者"
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:53
+msgid "Sender of variation {name}"
+msgstr "バリエーション {name} の送信者"
 
 #: src/components/settings/Integrations.tsx:390
 #: src/components/settings/Integrations.tsx:2376
 msgid "Senders"
 msgstr "送信者"
 
-#: src/pages/BroadcastsPage.tsx:1676
+#: src/pages/BroadcastsPage.tsx:1674
 msgid "Sending"
 msgstr "送信中"
 
@@ -12426,7 +12420,7 @@ msgstr "送信済み"
 #: src/components/messages/MessageHistoryTab.tsx:99
 #: src/components/messages/MessageHistoryTab.tsx:101
 #: src/components/messages/MessageHistoryTable.tsx:320
-#: src/pages/BroadcastsPage.tsx:1677
+#: src/pages/BroadcastsPage.tsx:1675
 #: src/pages/TransactionalNotificationsPage.tsx:200
 msgid "Sent"
 msgstr "送信済み"
@@ -13868,9 +13862,9 @@ msgstr "セグメントが更新されました！"
 msgid "The selected file"
 msgstr "選択したファイル"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:118
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:136
 msgid "The sender chosen for this broadcast is no longer one of the marketing email integration's senders. Choose another one, or clear the field to send from the template's sender, then resume the broadcast."
-msgstr "この配信で選択した送信者は、マーケティングメール連携の送信者ではなくなりました。別の送信者を選択するか、フィールドを空にしてテンプレートの送信者から送信し、配信を再開してください。"
+msgstr "このブロードキャストで選択した送信者は、マーケティングメール連携の送信者ではなくなりました。別の送信者を選択するか、フィールドを空にしてテンプレートの送信者から送信し、ブロードキャストを再開してください。"
 
 #: src/components/timeline/WebPageDrawer.tsx:90
 msgid "The site refuses to be displayed inside another page, which is a common security setting. Open it in a new tab to see it."
@@ -13994,7 +13988,7 @@ msgstr "このアカウントはすでに別のシングルサインオンのID�
 msgid "This action cannot be undone."
 msgstr "この操作は元に戻せません。"
 
-#: src/pages/BroadcastsPage.tsx:1844
+#: src/pages/BroadcastsPage.tsx:1842
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "この操作は元に戻せません。確認のため、ブロードキャストIDを入力してください:"
 
@@ -14185,7 +14179,7 @@ msgstr "このセクションは空です。コンテンツを表示するには
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "このセグメントは相対日付フィルターを使用しており、毎日午前5時（{timezone}）に自動的に再計算されます"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:45
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:63
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:130
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "この送信者はマーケティングメール連携に含まれなくなりました。別の送信者を選ぶか、欄を空にしてテンプレートの送信者を使ってください。"
@@ -14688,7 +14682,7 @@ msgstr "トリガーイベント"
 msgid "Trigger on specific field changes"
 msgstr "特定のフィールド変更でトリガー"
 
-#: src/pages/BroadcastsPage.tsx:1769
+#: src/pages/BroadcastsPage.tsx:1767
 msgid "Try adjusting your search or status filter"
 msgstr "検索条件やステータスフィルターを調整してみてください"
 
@@ -15942,7 +15936,7 @@ msgid "You do not have write access to {resource}."
 msgstr "{resource}への書き込みアクセス権がありません。"
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:177
-#: src/pages/BroadcastsPage.tsx:1700
+#: src/pages/BroadcastsPage.tsx:1698
 msgid "You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts."
 msgstr "マーケティングメールプロバイダーが設定されていません。ブロードキャストを送信するには、ワークスペース設定でメールプロバイダーを設定してください。"
 
@@ -15967,8 +15961,8 @@ msgstr "オートメーションの書き込み権限がありません"
 #: src/pages/BroadcastsPage.tsx:744
 #: src/pages/BroadcastsPage.tsx:760
 #: src/pages/BroadcastsPage.tsx:1077
-#: src/pages/BroadcastsPage.tsx:1647
-#: src/pages/BroadcastsPage.tsx:1786
+#: src/pages/BroadcastsPage.tsx:1645
+#: src/pages/BroadcastsPage.tsx:1784
 msgid "You don't have write permission for broadcasts"
 msgstr "ブロードキャストの書き込み権限がありません"
 

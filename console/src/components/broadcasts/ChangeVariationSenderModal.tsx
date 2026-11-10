@@ -33,7 +33,25 @@ export function ChangeVariationSenderModal({
   const [saving, setSaving] = useState(false)
 
   const missing = variationsWithMissingSender(workspace, broadcast)
-  if (broadcast.status !== 'paused' || missing.length === 0) return null
+  // Offered only when a variation still to send has lost its sender: a losing variation's
+  // does not stop the winner. Once offered, every missing sender is asked for, because the
+  // server checks them all on save.
+  const blocksSending = missing.some(
+    (v) => !broadcast.winning_template || v.template_id === broadcast.winning_template
+  )
+  if (broadcast.status !== 'paused' || !blocksSending) return null
+
+  const variations = broadcast.test_settings.variations || []
+  // Variations sharing a template share a sender (the server refuses two): one field each.
+  const asked = missing.filter(
+    (v, i) => missing.findIndex((m) => m.template_id === v.template_id) === i
+  )
+  // The console saves variations without a name: they are numbered as on the broadcast page.
+  const variationLabel = (variation: BroadcastVariation) => {
+    if (!broadcast.test_settings.enabled && variations.length === 1) return t`Sender`
+    const name = variation.variation_name || String(variations.indexOf(variation) + 1)
+    return t`Sender of variation ${name}`
+  }
 
   const marketingSenders = getMarketingSenders(workspace)
   const senderRules = [
@@ -51,7 +69,7 @@ export function ChangeVariationSenderModal({
 
   const openModal = () => {
     form.setFieldsValue({
-      senders: Object.fromEntries(missing.map((v) => [v.template_id, v.sender_id]))
+      senders: Object.fromEntries(asked.map((v) => [v.template_id, v.sender_id]))
     })
     setOpen(true)
   }
@@ -65,7 +83,7 @@ export function ChangeVariationSenderModal({
     }
     setSaving(true)
     try {
-      const variations = (broadcast.test_settings.variations || []).map((variation) => {
+      const sentVariations = variations.map((variation) => {
         // The joined template is a read-only copy: it is not sent back.
         const sent: BroadcastVariation = {
           variation_name: variation.variation_name,
@@ -83,7 +101,7 @@ export function ChangeVariationSenderModal({
         id: broadcast.id,
         name: broadcast.name,
         audience: broadcast.audience,
-        test_settings: { ...broadcast.test_settings, variations }
+        test_settings: { ...broadcast.test_settings, variations: sentVariations }
       })
       message.success(t`Sender changed. You can now resume the broadcast.`)
       setOpen(false)
@@ -118,15 +136,11 @@ export function ChangeVariationSenderModal({
           {t`The sender chosen for this broadcast is no longer one of the marketing email integration's senders. Choose another one, or clear the field to send from the template's sender, then resume the broadcast.`}
         </p>
         <Form form={form} layout="vertical">
-          {missing.map((variation) => (
+          {asked.map((variation) => (
             <Form.Item
               key={variation.template_id}
               name={['senders', variation.template_id]}
-              label={
-                missing.length > 1 || broadcast.test_settings.enabled
-                  ? t`Sender of ${variation.variation_name}`
-                  : t`Sender`
-              }
+              label={variationLabel(variation)}
               rules={senderRules}
             >
               <VariationSenderSelect workspace={workspace} templateId={variation.template_id} />

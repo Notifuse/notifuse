@@ -276,7 +276,7 @@ msgstr "{0}-{1} de {total} automatitzacions"
 
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
-#: src/pages/BroadcastsPage.tsx:1758
+#: src/pages/BroadcastsPage.tsx:1756
 msgid "{0}-{1} of {total} broadcasts"
 msgstr "{0}-{1} de {total} difusions"
 
@@ -1062,7 +1062,7 @@ msgstr "Alineació"
 #: src/components/analytics/EmailMetricsChart.tsx:297
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:124
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
-#: src/pages/BroadcastsPage.tsx:1673
+#: src/pages/BroadcastsPage.tsx:1671
 #: src/pages/TemplatesPage.tsx:124
 msgid "All"
 msgstr "Tot"
@@ -1397,7 +1397,7 @@ msgid "Are you sure you want to delete \"{0}\"?"
 msgstr "Esteu segur que voleu eliminar \"{0}\"?"
 
 #. placeholder {0}: broadcastToDelete.name
-#: src/pages/BroadcastsPage.tsx:1842
+#: src/pages/BroadcastsPage.tsx:1840
 msgid "Are you sure you want to delete the broadcast \"{0}\"?"
 msgstr "Esteu segur que voleu eliminar la difusió \"{0}\"?"
 
@@ -2172,7 +2172,7 @@ msgid "Broadcast"
 msgstr "Difusió"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1588
+#: src/pages/BroadcastsPage.tsx:1586
 msgid "Broadcast \"{0}\" cancelled successfully"
 msgstr "Difusió \"{0}\" cancel·lada correctament"
 
@@ -2187,7 +2187,7 @@ msgid "Broadcast \"{0}\" paused successfully"
 msgstr "Difusió \"{0}\" pausada correctament"
 
 #. placeholder {0}: broadcast.name
-#: src/pages/BroadcastsPage.tsx:1626
+#: src/pages/BroadcastsPage.tsx:1624
 msgid "Broadcast \"{0}\" refreshed"
 msgstr "Difusió \"{0}\" actualitzada"
 
@@ -2215,7 +2215,7 @@ msgstr "Difusió creada correctament"
 msgid "Broadcast ID"
 msgstr "ID de difusió"
 
-#: src/pages/BroadcastsPage.tsx:1853
+#: src/pages/BroadcastsPage.tsx:1851
 msgid "Broadcast ID copied to clipboard"
 msgstr "ID de difusió copiat al porta-retalls"
 
@@ -2230,7 +2230,7 @@ msgstr "Difusió actualitzada correctament"
 #: src/components/analytics/EmailMetricsChart.tsx:298
 #: src/components/settings/PermissionsMatrix.tsx:136
 #: src/layouts/WorkspaceLayout.tsx:402
-#: src/pages/BroadcastsPage.tsx:1641
+#: src/pages/BroadcastsPage.tsx:1639
 #: src/services/api/errors.ts:85
 msgid "Broadcasts"
 msgstr "Difusions"
@@ -2361,7 +2361,7 @@ msgstr "Campanyes"
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:113
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:131
 #: src/components/broadcasts/HeadersEditor.tsx:103
 #: src/components/broadcasts/SendOrScheduleModal.tsx:301
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:344
@@ -2428,7 +2428,7 @@ msgstr "Campanyes"
 #: src/pages/BroadcastsPage.tsx:675
 #: src/pages/BroadcastsPage.tsx:704
 #: src/pages/BroadcastsPage.tsx:1086
-#: src/pages/BroadcastsPage.tsx:1826
+#: src/pages/BroadcastsPage.tsx:1824
 #: src/pages/ListsPage.tsx:387
 #: src/pages/TemplatesPage.tsx:366
 #: src/pages/TransactionalNotificationsPage.tsx:149
@@ -2589,8 +2589,8 @@ msgstr "Canviar el contingut d'una plantilla, en qualsevol idioma"
 msgid "Change provider"
 msgstr "Canviar proveïdor"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:105
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:108
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:123
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:126
 msgid "Change sender"
 msgstr "Canvia el remitent"
 
@@ -2699,7 +2699,7 @@ msgstr "Esborrar tot"
 msgid "Clear field"
 msgstr "Esborrar camp"
 
-#: src/pages/BroadcastsPage.tsx:1772
+#: src/pages/BroadcastsPage.tsx:1770
 msgid "Clear filters"
 msgstr "Esborrar filtres"
 
@@ -3085,7 +3085,7 @@ msgid "Configure outgoing webhooks to receive real-time notifications when event
 msgstr "Configureu webhooks sortints per rebre notificacions en temps real quan es produeixin esdeveniments al vostre espai de treball."
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:187
-#: src/pages/BroadcastsPage.tsx:1710
+#: src/pages/BroadcastsPage.tsx:1708
 msgid "Configure Provider"
 msgstr "Configurar proveïdor"
 
@@ -3377,7 +3377,7 @@ msgstr "Copiar codi {0}"
 msgid "Copy link"
 msgstr "Copia l'enllaç"
 
-#: src/pages/BroadcastsPage.tsx:1846
+#: src/pages/BroadcastsPage.tsx:1844
 msgid "Copy to clipboard"
 msgstr "Copiar al porta-retalls"
 
@@ -3586,8 +3586,8 @@ msgid "Create Automation"
 msgstr "Crear automatització"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:399
-#: src/pages/BroadcastsPage.tsx:1656
-#: src/pages/BroadcastsPage.tsx:1795
+#: src/pages/BroadcastsPage.tsx:1654
+#: src/pages/BroadcastsPage.tsx:1793
 msgid "Create Broadcast"
 msgstr "Crear difusió"
 
@@ -3682,7 +3682,7 @@ msgstr "Creeu la vostra primera automatització"
 msgid "Create your first blog post to get started"
 msgstr "Creeu la vostra primera publicació de blog per començar"
 
-#: src/pages/BroadcastsPage.tsx:1780
+#: src/pages/BroadcastsPage.tsx:1778
 msgid "Create your first broadcast to get started"
 msgstr "Creeu la vostra primera difusió per començar"
 
@@ -4161,7 +4161,7 @@ msgstr "Retard"
 #: src/components/web_analytics/filters/FilterTable.tsx:136
 #: src/components/web_analytics/filters/FilterTable.tsx:291
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
-#: src/pages/BroadcastsPage.tsx:1836
+#: src/pages/BroadcastsPage.tsx:1834
 #: src/pages/ContactsPage.tsx:978
 #: src/pages/ListsPage.tsx:397
 msgid "Delete"
@@ -4262,7 +4262,7 @@ msgid "Delete Block"
 msgstr "Eliminar bloc"
 
 #: src/pages/BroadcastsPage.tsx:745
-#: src/pages/BroadcastsPage.tsx:1821
+#: src/pages/BroadcastsPage.tsx:1819
 msgid "Delete Broadcast"
 msgstr "Eliminar difusió"
 
@@ -4690,7 +4690,7 @@ msgstr "Descarregat(s) {0} fitxer(s)"
 #: src/components/automations/AutomationCard.tsx:63
 #: src/components/blog/PostStatusTag.tsx:33
 #: src/pages/BroadcastsPage.tsx:185
-#: src/pages/BroadcastsPage.tsx:1674
+#: src/pages/BroadcastsPage.tsx:1672
 msgid "Draft"
 msgstr "Esborrany"
 
@@ -5158,7 +5158,7 @@ msgstr "Previsualització del correu"
 msgid "Email Provider Configuration Needed"
 msgstr "Es necessita configuració del proveïdor de correu"
 
-#: src/pages/BroadcastsPage.tsx:1699
+#: src/pages/BroadcastsPage.tsx:1697
 msgid "Email Provider Required"
 msgstr "Proveïdor de correu obligatori"
 
@@ -5381,7 +5381,7 @@ msgstr "Introduïu URL de la imatge de fons"
 msgid "Enter BCC email addresses"
 msgstr "Introduïu adreces de correu CCO"
 
-#: src/pages/BroadcastsPage.tsx:1859
+#: src/pages/BroadcastsPage.tsx:1857
 msgid "Enter broadcast ID to confirm"
 msgstr "Introduïu l'ID de difusió per confirmar"
 
@@ -5838,7 +5838,7 @@ msgstr "Fallat"
 #: src/pages/BroadcastsPage.tsx:284
 #: src/pages/BroadcastsPage.tsx:455
 #: src/pages/BroadcastsPage.tsx:522
-#: src/pages/BroadcastsPage.tsx:1678
+#: src/pages/BroadcastsPage.tsx:1676
 #: src/pages/TransactionalNotificationsPage.tsx:234
 msgid "Failed"
 msgstr "Fallat"
@@ -5855,16 +5855,16 @@ msgstr "No s'ha pogut activar l'automatització"
 msgid "Failed to add to list: {error}"
 msgstr "No s'ha pogut afegir a la llista: {error}"
 
-#: src/pages/BroadcastsPage.tsx:1593
+#: src/pages/BroadcastsPage.tsx:1591
 msgid "Failed to cancel broadcast"
 msgstr "No s'ha pogut cancel·lar la difusió"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:95
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:113
 msgid "Failed to change the sender"
 msgstr "No s'ha pogut canviar el remitent"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:94
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:112
 msgid "Failed to change the sender: {0}"
 msgstr "No s'ha pogut canviar el remitent: {0}"
 
@@ -6168,14 +6168,9 @@ msgstr "No s'ha pogut reenviar la invitació"
 msgid "Failed to resend magic code"
 msgstr "Error en reenviar el codi màgic"
 
-#: src/pages/BroadcastsPage.tsx:1576
+#: src/pages/BroadcastsPage.tsx:1574
 msgid "Failed to resume broadcast"
 msgstr "No s'ha pogut reprendre la difusió"
-
-#. placeholder {0}: error.message
-#: src/pages/BroadcastsPage.tsx:1575
-msgid "Failed to resume broadcast: {0}"
-msgstr "No s'ha pogut reprendre la campanya: {0}"
 
 #: src/pages/BroadcastsPage.tsx:1556
 msgid "Failed to retry the recipients"
@@ -7159,7 +7154,7 @@ msgstr "L'ID només pot contenir lletres minúscules i números"
 msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "L'ID només pot contenir lletres minúscules, números i guions baixos"
 
-#: src/pages/BroadcastsPage.tsx:1867
+#: src/pages/BroadcastsPage.tsx:1865
 #: src/pages/ListsPage.tsx:415
 msgid "ID doesn't match"
 msgstr "L'ID no coincideix"
@@ -8957,11 +8952,11 @@ msgstr "Encara no hi ha automatitzacions"
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr "Encara no s'ha executat cap reompliment. Executeu-ne un per aplicar aquestes regles a les sessions i els objectius històrics."
 
-#: src/pages/BroadcastsPage.tsx:1778
+#: src/pages/BroadcastsPage.tsx:1776
 msgid "No broadcasts found"
 msgstr "No s'han trobat difusions"
 
-#: src/pages/BroadcastsPage.tsx:1766
+#: src/pages/BroadcastsPage.tsx:1764
 msgid "No broadcasts match your filters"
 msgstr "Cap difusió coincideix amb els vostres filtres"
 
@@ -11667,7 +11662,7 @@ msgstr "Mode de caixa de proves"
 #: src/components/blog/PostDrawer.tsx:690
 #: src/components/blog/ThemeEditorDrawer.tsx:318
 #: src/components/blog/ThemeEditorDrawer.tsx:468
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:112
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:130
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:387
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:318
@@ -11772,7 +11767,7 @@ msgstr "Programar o enviar immediatament una difusió a tot el seu públic"
 #: src/components/blog/PostStatusTag.tsx:20
 #: src/pages/BroadcastsPage.tsx:193
 #: src/pages/BroadcastsPage.tsx:1181
-#: src/pages/BroadcastsPage.tsx:1675
+#: src/pages/BroadcastsPage.tsx:1673
 msgid "Scheduled"
 msgstr "Programat"
 
@@ -11801,7 +11796,7 @@ msgstr "Amplada de pantalla per sota de la qual s'activa el disseny mòbil. Valo
 msgid "Search"
 msgstr "Cercar"
 
-#: src/pages/BroadcastsPage.tsx:1683
+#: src/pages/BroadcastsPage.tsx:1681
 #: src/pages/TemplatesPage.tsx:435
 msgid "Search by name"
 msgstr "Cercar per nom"
@@ -12359,7 +12354,7 @@ msgstr "Enviar correu de prova"
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "Envieu notificacions transaccionals mitjançant relay SMTP. Perfecte per integrar amb sistemes de correu existents o aplicacions que suporten SMTP."
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:128
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:51
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:920
 #: src/components/templates/CreateTemplateDrawer.tsx:948
 #: src/components/templates/SendTemplateModal.tsx:303
@@ -12372,26 +12367,25 @@ msgstr "Remitent"
 msgid "Sender {0}"
 msgstr "Remitent {0}"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:88
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:106
 msgid "Sender changed. You can now resume the broadcast."
-msgstr "Remitent canviat. Ara podeu reprendre la campanya."
+msgstr "Remitent canviat. Ara podeu reprendre la difusió."
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1018
 #: src/components/templates/TemplateTranslationsTab.tsx:293
 msgid "Sender Name"
 msgstr "Nom del remitent"
 
-#. placeholder {0}: variation.variation_name
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:127
-msgid "Sender of {0}"
-msgstr "Remitent de {0}"
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:53
+msgid "Sender of variation {name}"
+msgstr "Remitent de la variant {name}"
 
 #: src/components/settings/Integrations.tsx:390
 #: src/components/settings/Integrations.tsx:2376
 msgid "Senders"
 msgstr "Remitents"
 
-#: src/pages/BroadcastsPage.tsx:1676
+#: src/pages/BroadcastsPage.tsx:1674
 msgid "Sending"
 msgstr "Enviant"
 
@@ -12426,7 +12420,7 @@ msgstr "Enviat"
 #: src/components/messages/MessageHistoryTab.tsx:99
 #: src/components/messages/MessageHistoryTab.tsx:101
 #: src/components/messages/MessageHistoryTable.tsx:320
-#: src/pages/BroadcastsPage.tsx:1677
+#: src/pages/BroadcastsPage.tsx:1675
 #: src/pages/TransactionalNotificationsPage.tsx:200
 msgid "Sent"
 msgstr "Enviat"
@@ -13868,9 +13862,9 @@ msgstr "El segment s'ha actualitzat!"
 msgid "The selected file"
 msgstr "El fitxer seleccionat"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:118
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:136
 msgid "The sender chosen for this broadcast is no longer one of the marketing email integration's senders. Choose another one, or clear the field to send from the template's sender, then resume the broadcast."
-msgstr "El remitent triat per a aquesta campanya ja no és un dels remitents de la integració de correu de màrqueting. Trieu-ne un altre, o buideu el camp per enviar des del remitent de la plantilla, i després repreneu la campanya."
+msgstr "El remitent triat per a aquesta difusió ja no és un dels remitents de la integració de correu de màrqueting. Trieu-ne un altre, o buideu el camp per enviar des del remitent de la plantilla, i després repreneu la difusió."
 
 #: src/components/timeline/WebPageDrawer.tsx:90
 msgid "The site refuses to be displayed inside another page, which is a common security setting. Open it in a new tab to see it."
@@ -13994,7 +13988,7 @@ msgstr "Aquest compte ja està vinculat a una identitat d'inici de sessió únic
 msgid "This action cannot be undone."
 msgstr "Aquesta acció no es pot desfer."
 
-#: src/pages/BroadcastsPage.tsx:1844
+#: src/pages/BroadcastsPage.tsx:1842
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "Aquesta acció no es pot desfer. Per confirmar, si us plau introduïu l'ID de la difusió:"
 
@@ -14185,7 +14179,7 @@ msgstr "Aquesta secció està buida. Afegiu columnes o grups per mostrar conting
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "Aquest segment utilitza filtres de data relativa i es recalcularà automàticament diàriament a les 5:00 AM ({timezone})"
 
-#: src/components/broadcasts/ChangeVariationSenderModal.tsx:45
+#: src/components/broadcasts/ChangeVariationSenderModal.tsx:63
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:130
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "Aquest remitent ja no forma part de la integració d'email de màrqueting. Tria'n un altre o buida el camp per fer servir el de la plantilla."
@@ -14688,7 +14682,7 @@ msgstr "Esdeveniment activador"
 msgid "Trigger on specific field changes"
 msgstr "Activar amb canvis de camp específics"
 
-#: src/pages/BroadcastsPage.tsx:1769
+#: src/pages/BroadcastsPage.tsx:1767
 msgid "Try adjusting your search or status filter"
 msgstr "Proveu d'ajustar la cerca o el filtre d'estat"
 
@@ -15942,7 +15936,7 @@ msgid "You do not have write access to {resource}."
 msgstr "No teniu accés d'escriptura a {resource}."
 
 #: src/components/broadcasts/SendOrScheduleModal.tsx:177
-#: src/pages/BroadcastsPage.tsx:1700
+#: src/pages/BroadcastsPage.tsx:1698
 msgid "You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts."
 msgstr "No teniu cap proveïdor de correu de màrqueting configurat. Si us plau, configureu un proveïdor de correu a la configuració de l'espai de treball per enviar difusions."
 
@@ -15967,8 +15961,8 @@ msgstr "No teniu permís d'escriptura per a automatitzacions"
 #: src/pages/BroadcastsPage.tsx:744
 #: src/pages/BroadcastsPage.tsx:760
 #: src/pages/BroadcastsPage.tsx:1077
-#: src/pages/BroadcastsPage.tsx:1647
-#: src/pages/BroadcastsPage.tsx:1786
+#: src/pages/BroadcastsPage.tsx:1645
+#: src/pages/BroadcastsPage.tsx:1784
 msgid "You don't have write permission for broadcasts"
 msgstr "No teniu permís d'escriptura per a difusions"
 

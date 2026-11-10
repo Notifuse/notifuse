@@ -1571,9 +1571,7 @@ export function BroadcastsPage() {
     } catch (error) {
       // The server names why, e.g. a chosen sender that left the integration.
       message.error(
-        error instanceof Error
-          ? t`Failed to resume broadcast: ${error.message}`
-          : t`Failed to resume broadcast`
+        error instanceof Error && error.message ? error.message : t`Failed to resume broadcast`
       )
       console.error(error)
     }

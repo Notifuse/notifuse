@@ -60,9 +60,11 @@ deleted from its integration.
      typed `SenderUnavailableError` (matching the pause sentinel and `ErrSenderNotFound`), so the
      reason is built from its fields, not from the sentinel's text. The integration is read once per
      task run, so a sender removed during a run is caught at the next run, not the next batch. The
-     check is skipped while the broadcast is `paused` (the loop stops it anyway) or `test_completed`
-     (it waits for a manual winner and sends nothing: pausing it on a losing variation would block
-     the winner choice).
+     check is skipped while the broadcast is `paused` (the loop stops it anyway, and a paused run is
+     not announced as sending started) or `test_completed` (it waits for a manual winner: pausing it
+     on a losing variation would block the winner choice); `SendBatch` still checks the templates of
+     any batch it is given. The pause reason names the variation by its name, else by its number
+     (the console saves none), else "this broadcast".
 4. **Send paths** resolve with `ResolveSender(broadcast.VariationSenderID(template.ID), emailContent.SenderID)`:
    `broadcast/message_sender.go`, `broadcast/queue_message_sender.go` (`buildQueueEntry`),
    `broadcast_service.go` (`SendToIndividual`). In both `SendBatch`, the overrides of the batch's
@@ -104,9 +106,11 @@ keeps its top-level `sender_id`; `sender_id` is added to the send schema's `emai
   registered as a `Form.Item` (`Form.List` items and the non-A/B `variations[0]`), since `onFinish`
   only sends registered fields. Switching A/B off keeps variation 1's sender.
 - `console/src/components/broadcasts/ChangeVariationSenderModal.tsx` (new): on a paused broadcast
-  whose chosen sender left the integration, a "Change sender" button next to Resume opens one sender
-  field per such variation and saves through `broadcasts.update` (the edit drawer only opens drafts
-  and scheduled broadcasts). A failed resume shows the server's message.
+  whose variation still to send (the winner once chosen) lost its sender, a "Change sender" button
+  next to Resume opens one sender field per template whose sender is gone (the server checks them
+  all on save), labelled by variation name or number, and saves through `broadcasts.update` (the
+  edit drawer only opens drafts and scheduled broadcasts). A failed resume shows the server's
+  message.
 - Lingui: wrap strings, `npm run lingui:extract`, translate every catalogue (ca, de, es, fr, it, ja,
   pt-BR): `catalogues.test.ts` fails on any empty `msgstr`.
 
@@ -125,13 +129,13 @@ keeps its top-level `sender_id`; `sender_id` is added to the send schema's `emai
 | --- | --- | --- |
 | `domain/email_provider.go` `ResolveSender` | `domain/email_provider_test.go` | override found; override missing → `ErrSenderNotFound`, no fallback; no override → template's; no override, template's missing → default; no sender at all → plain error, not `ErrSenderNotFound` |
 | `domain/broadcast.go` | `domain/broadcast_test.go` | `VariationSenderID` found / not set / unknown template; same template twice with different senders refused, same sender accepted; `TestSettingsProvided`; JSON round-trip keeps `sender_id`, old JSON without it decodes empty |
-| `service/broadcast_service.go` | `service/broadcast_service_test.go` | create/update with known sender OK; unknown sender → `ValidationError`; no marketing provider + sender → error; no sender set → no provider check; update without `test_settings` on a broadcast whose sender left → accepted; schedule refused when a variation's sender left; resume phase 1 refused, resume of a fully queued broadcast accepted; `SendToIndividual` uses the variation's sender |
-| `broadcast/orchestrator.go` | `broadcast/orchestrator_sender_test.go` | missing sender → broadcast paused with a reason naming the variation and the sender (not the feed sentinel), nothing sent or queued; winner phase with a losing variation's sender gone → sends; `test_completed` and `paused` with a sender gone → not paused |
-| `broadcast/message_sender.go`, `queue_message_sender.go` | their `_test.go` | variation sender wins over the template's (non-default sender fixture: `NewEmailSender` sets `IsDefault: true`); missing override → batch returns the pause error before any recipient, none counted as failed |
-| `service/transactional_service.go`, `email_service.go` | their `_test.go` | `email_options.sender_id` → From; unknown → error before the contact upsert and before any message, also on a replayed `external_id`; `from_name` still applies on top |
-| `http/transactional_handler.go`, `http/broadcast_handler.go` | their `_test.go` | unknown sender → 400 on send, create, update, schedule, resume, send-to-individual; other service errors stay 500 |
+| `service/broadcast_service.go` | `service/broadcast_service_sender_test.go` | create/update with known sender OK; unknown sender → `ValidationError`; no marketing provider + sender → error; no sender set → no provider check; update without `test_settings` on a broadcast whose sender left → accepted; schedule refused when a variation's sender left; resume phase 1 refused, resume of a fully queued broadcast accepted; `SendToIndividual` uses the variation's sender |
+| `broadcast/orchestrator.go` | `broadcast/orchestrator_sender_test.go` | missing sender → broadcast paused with a reason naming the variation and the sender (not the feed sentinel), nothing sent or queued; winner phase with a losing variation's sender gone → sends; `test_completed` and `paused` with a sender gone → not paused, and a paused run not announced as sending started; pause reason for named, unnamed and single variations |
+| `broadcast/message_sender.go`, `queue_message_sender.go` | `broadcast/variation_sender_test.go`, `queue_message_sender_test.go` | variation sender wins over the template's (non-default sender fixture: `NewEmailSender` sets `IsDefault: true`); missing override → batch returns the pause error before any recipient, none counted as failed |
+| `service/transactional_service.go`, `email_service.go` | `service/transactional_sender_test.go` | `email_options.sender_id` → From; unknown → error before the contact upsert and before any message, also on a replayed `external_id`; `from_name` still applies on top |
+| `http/transactional_handler.go`, `http/broadcast_handler.go` | `http/transactional_handler_test.go`, `http/broadcast_handler_sender_test.go` | unknown sender → 400 on send, create, update, schedule, resume, send-to-individual; other service errors stay 500 |
 | console drawer + select + page | `UpsertBroadcastDrawer.test.tsx`, `VariationSenderSelect.test.tsx`, `BroadcastsPage` test if present | options from the marketing integration; clear = template's; payload carries `sender_id`; deleted sender shown in error and still clearable; no template's sender named before a template is chosen; "From:" shows the override |
-| change-sender modal | `ChangeVariationSenderModal.test.tsx` | shown only on a paused broadcast with a missing sender; disabled without write permission; asks only for the missing variations; saves the new sender and keeps the others, without the joined template; refuses the deleted sender |
+| change-sender modal | `ChangeVariationSenderModal.test.tsx` | shown only on a paused broadcast whose variation to send has a missing sender, not for a loser's alone; disabled without write permission; asks only for the missing variations, numbered when unnamed; saves the new sender and keeps the others and the A/B settings, without the joined template or a schedule; refuses the deleted sender |
 | integration | `tests/integration/broadcast_sender_test.go` (new), `tests/integration/transactional_handler_test.go` | Mailpit From for a broadcast with a variation sender (A/B and single), for a transactional `sender_id`; unknown sender → 400 on create and on send; sender removed from the integration → schedule refused |
 
 ## Review
@@ -149,7 +153,7 @@ batch; all four are fixed above.
 go test -race ./internal/domain -run 'ResolveSender|VariationSenderID|Broadcast'
 go test -race ./internal/service ./internal/service/broadcast -run 'Sender|Broadcast|Transactional|SendEmailForTemplate'
 go test -race ./internal/http -run 'Transactional|Broadcast'
-cd console && npm test -- --run src/components/broadcasts && npm run lint && npx tsc --noEmit
+cd console && npm test -- --run src/components/broadcasts && npx eslint src/components/broadcasts src/pages/BroadcastsPage.tsx && npx tsc -b --noEmit
 INTEGRATION_TESTS=true go test -race -tags integration,licdev -timeout 20m ./tests/integration/ -run 'SendTimeSender|Transactional' -v
 make test-unit
 cd console && npm test

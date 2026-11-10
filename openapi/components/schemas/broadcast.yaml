@@ -170,10 +170,11 @@ BroadcastVariation:
         ID of one of the marketing email integration's senders. This variation leaves from it
         instead of its template's sender. Omitted, the variation uses its template's sender:
         sending test_settings without it clears a sender chosen earlier. An ID that is not one
-        of the integration's senders is refused with a 400. A broadcast whose chosen sender has
-        since been removed from the integration cannot be scheduled or resumed until another
-        sender is chosen. One still queuing its recipients pauses at its next sending round;
-        emails already queued keep the sender they were queued with. It never falls back to
+        of the integration's senders is refused with a 400. A variation whose chosen sender has
+        since been removed from the integration sends nothing more until another sender is
+        chosen: the broadcast cannot be scheduled, cannot be resumed while that variation still
+        has recipients to queue, and pauses at the next run of its sending task if it is queuing
+        them. Emails already queued keep the sender they were queued with; nothing falls back to
         another address. Two variations using the same template must choose the same sender.
       example: 3f1c2a9e-7b4d-4e1a-9c2f-5d8e6a0b1c3d
     metrics:

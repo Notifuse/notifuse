@@ -143,7 +143,7 @@ func TestProcessBroadcastTask_VariationSenderGone_PausesBeforeSending(t *testing
 
 // A broadcast whose test phase is over waits for a winner and sends nothing meanwhile:
 // a losing variation's missing sender must not pause it, or no winner could be picked.
-// A paused broadcast is not paused again either.
+// A paused broadcast is not paused again, nor announced as sending.
 func TestProcessBroadcastTask_VariationSenderGone_NoPauseWhileNotSending(t *testing.T) {
 	for _, status := range []domain.BroadcastStatus{domain.BroadcastStatusTestCompleted, domain.BroadcastStatusPaused} {
 		t.Run(string(status), func(t *testing.T) {
@@ -174,6 +174,10 @@ func TestProcessBroadcastTask_VariationSenderGone_NoPauseWhileNotSending(t *test
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(0, 0, nil).AnyTimes()
 			d.eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Do(func(_ context.Context, event domain.EventPayload) {
 				assert.NotEqual(t, domain.EventBroadcastPaused, event.Type)
+				if status == domain.BroadcastStatusPaused {
+					// A paused broadcast sends nothing in this run: it has not started sending.
+					assert.NotEqual(t, domain.EventBroadcastSendingStarted, event.Type)
+				}
 			}).AnyTimes()
 			d.broadcasts.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
 				if b.PauseReason != nil {
@@ -184,6 +188,24 @@ func TestProcessBroadcastTask_VariationSenderGone_NoPauseWhileNotSending(t *test
 
 			_, err := d.orchestrate.Process(context.Background(), senderTask("test"), time.Now().Add(30*time.Second))
 			assert.False(t, errors.Is(err, domain.ErrSenderNotFound), "unexpected sender error: %v", err)
+		})
+	}
+}
+
+func TestSenderUnavailableError_PauseReason(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  broadcast.SenderUnavailableError
+		want string
+	}{
+		{"named variation", broadcast.SenderUnavailableError{VariationName: "Spring", VariationNumber: 2, VariationCount: 2, SenderID: "s-gone"}, `the sender chosen for variation "Spring" (sender s-gone)`},
+		{"unnamed A/B variation, as the console saves them", broadcast.SenderUnavailableError{VariationNumber: 2, VariationCount: 2, TemplateID: "tpl-b", SenderID: "s-gone"}, "the sender chosen for variation 2 (sender s-gone)"},
+		{"single variation", broadcast.SenderUnavailableError{VariationNumber: 1, VariationCount: 1, TemplateID: "tpl", SenderID: "s-gone"}, "the sender chosen for this broadcast (sender s-gone)"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			reason := tc.err.PauseReason()
+			assert.Contains(t, reason, tc.want)
+			assert.NotContains(t, reason, "tpl")
 		})
 	}
 }
