@@ -323,6 +323,7 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 			"automation_id":   params.Automation.ID,
 			"automation_name": params.Automation.Name,
 		},
+		WebVersion: true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to build template data: %w", err)
@@ -414,6 +415,11 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 			// it as message_history.list_id, which the complaint/bounce trigger needs
 			// to record the contact's status on the list.
 			ListID: listID,
+			// The version and data it was rendered from, as broadcasts record them: the
+			// worker stores both in message_history, where the web version and the
+			// console's message preview render the email again from them.
+			TemplateVersion: int(template.Version),
+			TemplateData:    templateData,
 			EmailOptions: domain.EmailOptions{
 				ReplyTo: emailContent.ReplyTo,
 			},

@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
 import TemplatePreviewDrawer from './TemplatePreviewDrawer'
+import { templatesApi } from '../../services/api/template'
 import type { Template, Workspace } from '../../services/api/types'
 import type { MessageHistory } from '../../services/api/messages_history'
 
@@ -42,11 +43,11 @@ const message = (metadata?: Record<string, unknown>): MessageHistory =>
     updated_at: '2026-08-01T10:00:00Z'
   }) as MessageHistory
 
-const openDrawer = async (messageHistory?: MessageHistory) => {
+const openDrawer = async (messageHistory?: MessageHistory, record: Template = template) => {
   render(
     <ConfigProvider>
       <App>
-        <TemplatePreviewDrawer record={template} workspace={workspace} messageHistory={messageHistory}>
+        <TemplatePreviewDrawer record={record} workspace={workspace} messageHistory={messageHistory}>
           <button>open</button>
         </TemplatePreviewDrawer>
       </App>
@@ -82,5 +83,50 @@ describe('TemplatePreviewDrawer metadata tab', () => {
     await openDrawer()
 
     expect(screen.queryByText('Metadata')).not.toBeInTheDocument()
+  })
+})
+
+describe('TemplatePreviewDrawer text version tab', () => {
+  const codeTemplate = {
+    ...template,
+    email: { editor_mode: 'code', mjml_source: '<mjml></mjml>' }
+  } as unknown as Template
+  const tabLabels = () => Array.from(document.querySelectorAll('.ant-tabs-tab')).map((tab) => tab.textContent)
+
+  it('shows the text version between the HTML preview and the MJML source', async () => {
+    vi.mocked(templatesApi.compile).mockResolvedValueOnce({
+      html: '<p>Hello</p>',
+      mjml: '<mjml></mjml>',
+      text: 'Hello Bob\n\nTrack (https://example.com/t)\n'
+    })
+    await openDrawer(undefined, codeTemplate)
+    await waitFor(() => expect(screen.getByText('Text version')).toBeInTheDocument())
+
+    expect(tabLabels().slice(0, 3)).toEqual(['HTML Preview', 'Text version', 'MJML Source'])
+    fireEvent.click(screen.getByText('Text version'))
+    await waitFor(() =>
+      expect(screen.getByTestId('preview-text-version').textContent).toBe(
+        'Hello Bob\n\nTrack (https://example.com/t)\n'
+      )
+    )
+  })
+
+  it('says the email goes out as HTML only when its text is empty', async () => {
+    vi.mocked(templatesApi.compile).mockResolvedValueOnce({ html: '<img src="x.gif">', mjml: '<mjml></mjml>', text: '' })
+    await openDrawer(undefined, codeTemplate)
+    await waitFor(() => expect(screen.getByText('Text version')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByText('Text version'))
+    await waitFor(() =>
+      expect(screen.getByText('No text version: this email will be sent as HTML only.')).toBeInTheDocument()
+    )
+  })
+
+  it('has no text version tab when the compile returns no text', async () => {
+    vi.mocked(templatesApi.compile).mockResolvedValueOnce({ html: '<p>Hello</p>', mjml: '<mjml></mjml>' })
+    await openDrawer(undefined, codeTemplate)
+    await waitFor(() => expect(screen.getByText('HTML Preview')).toBeInTheDocument())
+
+    expect(screen.queryByText('Text version')).not.toBeInTheDocument()
   })
 })

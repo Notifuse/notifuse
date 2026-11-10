@@ -1318,6 +1318,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		MessageID:        messageID,
 		TrackingSettings: trackingSettings,
 		Broadcast:        broadcast,
+		WebVersion:       true,
 	}
 	templateData, err := domain.BuildTemplateData(req)
 	if err != nil {

@@ -14,7 +14,14 @@ import { templatesApi } from '../../services/api/template'
 // prop these tests are about, the template category, readable from the DOM: it changes
 // a render after the form field settles, so an attribute waitFor can see beats a
 // captured variable.
-vi.mock('../email_builder/EmailBuilder', () => ({ default: () => null }))
+// The builder stub records its last props, so a test can call the onCompile it is given.
+const builder = vi.hoisted(() => ({ props: undefined as Record<string, unknown> | undefined }))
+vi.mock('../email_builder/EmailBuilder', () => ({
+  default: (props: Record<string, unknown>) => {
+    builder.props = props
+    return null
+  }
+}))
 vi.mock('../email_builder/EmailAIAssistant', () => ({
   EmailAIAssistant: ({ category }: EmailAIAssistantProps) => (
     <div data-testid="email-ai-assistant" data-category={category ?? ''} />
@@ -307,5 +314,32 @@ describe('CreateTemplateDrawer name and ID length', () => {
       await screen.findByText('Template name must be at most 255 characters long')
     ).toBeInTheDocument()
     expect(templatesApi.create).not.toHaveBeenCalled()
+  })
+})
+
+describe('CreateTemplateDrawer text version', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    builder.props = undefined
+  })
+
+  it('turns on the text version mode and hands the compiled text to the builder', async () => {
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: makeTemplate(3) })
+    ;(templatesApi.compile as Mock).mockResolvedValue({
+      html: '<p>Hi</p>',
+      mjml: '<mjml></mjml>',
+      text: 'Hi\n'
+    })
+
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} template={makeTemplate(3)} />)
+    await userEvent.click(screen.getByRole('button', { name: /Edit Template/i }))
+    await waitFor(() => expect(builder.props).toBeDefined())
+
+    expect(builder.props?.textVersion).toEqual({ enabled: true })
+    const onCompile = builder.props?.onCompile as (tree: unknown) => Promise<{ text?: string }>
+    await expect(onCompile({ id: 'root', type: 'mjml', children: [] })).resolves.toMatchObject({
+      html: '<p>Hi</p>',
+      text: 'Hi\n'
+    })
   })
 })

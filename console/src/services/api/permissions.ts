@@ -332,6 +332,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           endpoint: "/api/contactLists.getListsByContact",
           action: msg`List everything one contact is subscribed to (also needs Contacts read)`,
         },
+        {
+          endpoint: "/api/transactional.testTemplate",
+          action: msg`Send a test email for a list, with that list's working unsubscribe links (also needs Transactional write)`,
+        },
       ],
     },
     write: {
@@ -386,6 +390,18 @@ export const PERMISSION_DESCRIPTORS: Record<
         {
           endpoint: "/api/templateBlocks.get",
           action: msg`Read one reusable template block`,
+        },
+        {
+          endpoint: "/api/transactional.testTemplate",
+          action: msg`Read the template a test email is sent from (also needs Transactional write)`,
+        },
+        {
+          endpoint: "/api/transactional.create",
+          action: msg`Read the template of a transactional notification when creating it, or when editing it with its channels as the console does (also needs Transactional write)`,
+        },
+        {
+          endpoint: "/api/transactional.update",
+          action: msg`Read the template of a transactional notification when creating it, or when editing it with its channels as the console does (also needs Transactional write)`,
         },
       ],
     },
@@ -606,11 +622,11 @@ export const PERMISSION_DESCRIPTORS: Record<
       endpoints: [
         {
           endpoint: "/api/transactional.create",
-          action: msg`Create a transactional notification`,
+          action: msg`Create a transactional notification (choosing its template also needs Templates read)`,
         },
         {
           endpoint: "/api/transactional.update",
-          action: msg`Edit a transactional notification`,
+          action: msg`Edit a transactional notification (an edit that sends its channels, as every console edit does, also needs Templates read)`,
         },
         {
           endpoint: "/api/transactional.delete",
@@ -622,7 +638,7 @@ export const PERMISSION_DESCRIPTORS: Record<
         },
         {
           endpoint: "/api/transactional.testTemplate",
-          action: msg`Send a real test email through a chosen integration and sender; cc or bcc additionally needs Contacts read`,
+          action: msg`Send a real test email through a chosen integration and sender; it also needs Templates read, cc or bcc additionally needs Contacts read, and sending it for a list additionally needs Lists read`,
         },
         {
           endpoint: "/api/email.testProvider",
@@ -1041,4 +1057,16 @@ function buildPermissions(granted: boolean): UserPermissions {
     permissions[resource] = { read: granted, write: granted };
   }
   return permissions;
+}
+
+/**
+ * Whether a set lets a member send a test email (transactional.testTemplate): the endpoint checks
+ * Transactional write, then reads the template with the member's own permissions. Its contact
+ * upsert runs system-scoped, so no contacts permission is needed; cc, bcc and a list need more,
+ * which the test dialog gates field by field.
+ */
+export function canSendTestEmail(
+  permissions: StoredPermissions | null | undefined,
+): boolean {
+  return Boolean(permissions?.templates?.read && permissions?.transactional?.write);
 }

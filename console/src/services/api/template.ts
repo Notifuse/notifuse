@@ -175,6 +175,7 @@ export interface CompileTemplateResponse {
   subject_preview?: string // Rendered subject preview; only present when request.subject_preview was set
   error?: MjmlCompileError // Use the structured error type, optional
   test_data?: Record<string, unknown> // Effective template data used to render (includes the injected workspace object)
+  text?: string // Plain-text version sent with the email; "" when the email has no text and is sent as HTML only
 }
 
 export interface TestEmailProviderRequest {
@@ -197,6 +198,10 @@ export interface TestTemplateRequest {
   recipient_email: string
   language?: string
   email_options?: EmailOptions
+  // Sends the test for this mailing list: its unsubscribe links and List-Unsubscribe header
+  list_id?: string
+  // With list_id, keeps the list's links but leaves out the List-Unsubscribe header
+  omit_list_unsubscribe_header?: boolean
 }
 
 export interface TestTemplateResponse {

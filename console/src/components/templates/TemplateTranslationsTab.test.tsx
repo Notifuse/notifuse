@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { LicenseContext, UNKNOWN_LICENSE } from '../../contexts/licenseState'
 import TemplateTranslationsTab, { type TranslationEditorState } from './TemplateTranslationsTab'
 import type { Entitlements } from '../../types/license'
@@ -7,10 +7,20 @@ import type { Workspace } from '../../services/api/types'
 import type { EmailBlock } from '../email_builder/types'
 
 // The editors are the heavy half of this tab and none of it is under test here.
-vi.mock('../email_builder/EmailBuilder', () => ({ default: () => null }))
+// The builder stub records its last props, so a test can call the onCompile it is given.
+const builder = vi.hoisted(() => ({
+  props: undefined as Record<string, unknown> | undefined,
+  compile: vi.fn()
+}))
+vi.mock('../email_builder/EmailBuilder', () => ({
+  default: (props: Record<string, unknown>) => {
+    builder.props = props
+    return null
+  }
+}))
 vi.mock('../email_builder/MjmlCodeEditor', () => ({ default: () => null }))
 vi.mock('./PhonePreview', () => ({ default: () => null }))
-vi.mock('../../services/api/template', () => ({ templatesApi: {} }))
+vi.mock('../../services/api/template', () => ({ templatesApi: { compile: builder.compile } }))
 
 const workspace = {
   id: 'ws1',
@@ -87,5 +97,21 @@ describe('TemplateTranslationsTab under an unlicensed deployment', () => {
     expect(screen.queryByText(/requires? a Notifuse/i)).not.toBeInTheDocument()
     expect(switchFor('de')).toBeEnabled()
     expect(screen.getByDisplayValue('Bonjour')).toBeEnabled()
+  })
+})
+
+describe('TemplateTranslationsTab text version', () => {
+  it('turns on the text version mode and hands the compiled text to the builder', async () => {
+    builder.compile.mockResolvedValue({ html: '<p>Bonjour</p>', mjml: '<mjml></mjml>', text: 'Bonjour\n' })
+    renderTab(['template_i18n'], {
+      fr: { enabled: true, subject: 'Bonjour', subjectPreview: '', visualEditorTree: tree }
+    })
+
+    fireEvent.click(screen.getByText('Open email editor'))
+    await waitFor(() => expect(builder.props).toBeDefined())
+
+    expect(builder.props?.textVersion).toEqual({ enabled: true })
+    const onCompile = builder.props?.onCompile as (tree: unknown) => Promise<{ text?: string }>
+    await expect(onCompile(tree)).resolves.toMatchObject({ html: '<p>Bonjour</p>', text: 'Bonjour\n' })
   })
 })

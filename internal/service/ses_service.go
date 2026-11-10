@@ -1365,6 +1365,7 @@ func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProv
 						Charset: awsv2.String("UTF-8"),
 						Data:    awsv2.String(request.Content),
 					},
+					Text: sesTextBody(request.TextContent),
 				},
 				Subject: &sesv2types.Content{
 					Charset: awsv2.String("UTF-8"),
@@ -1514,27 +1515,33 @@ func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESv2Cli
 
 	buf.WriteString("MIME-Version: 1.0\r\n")
 
-	// writeHTMLPart writes the quoted-printable HTML body into the given writer.
-	writeHTMLPart := func(w *multipart.Writer) error {
-		htmlPart := textproto.MIMEHeader{}
-		htmlPart.Set("Content-Type", "text/html; charset=UTF-8")
-		htmlPart.Set("Content-Transfer-Encoding", "quoted-printable")
+	// writeTextualPart writes a quoted-printable UTF-8 body (the HTML, or its plain-text
+	// version) into the given writer.
+	writeTextualPart := func(w *multipart.Writer, mediaType string, content string, label string) error {
+		header := textproto.MIMEHeader{}
+		header.Set("Content-Type", mediaType+"; charset=UTF-8")
+		header.Set("Content-Transfer-Encoding", "quoted-printable")
 
-		htmlWriter, err := w.CreatePart(htmlPart)
+		partWriter, err := w.CreatePart(header)
 		if err != nil {
-			return fmt.Errorf("failed to create HTML part: %w", err)
+			return fmt.Errorf("failed to create %s part: %w", label, err)
 		}
 
 		// Wrap with quoted-printable encoder for RFC 2045 compliance (Issue #230)
-		qpWriter := quotedprintable.NewWriter(htmlWriter)
-		if _, err := qpWriter.Write([]byte(request.Content)); err != nil {
+		qpWriter := quotedprintable.NewWriter(partWriter)
+		if _, err := qpWriter.Write([]byte(content)); err != nil {
 			qpWriter.Close()
-			return fmt.Errorf("failed to write HTML content: %w", err)
+			return fmt.Errorf("failed to write %s content: %w", label, err)
 		}
 		if err := qpWriter.Close(); err != nil {
 			return fmt.Errorf("failed to close quoted-printable writer: %w", err)
 		}
 		return nil
+	}
+
+	// writeHTMLPart writes the quoted-printable HTML body into the given writer.
+	writeHTMLPart := func(w *multipart.Writer) error {
+		return writeTextualPart(w, "text/html", request.Content, "HTML")
 	}
 
 	// writeAttachmentPart writes a single attachment (inline or not) as a base64
@@ -1608,12 +1615,16 @@ func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESv2Cli
 	boundary := writer.Boundary()
 	buf.WriteString(fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"%s\"\r\n\r\n", boundary))
 
-	// HTML body — wrapped in multipart/related when inline images are present.
-	if len(inlineAtts) > 0 {
+	// writeHTMLOrRelated writes the HTML body, wrapped in multipart/related with the
+	// inline images when there are any.
+	writeHTMLOrRelated := func(w *multipart.Writer) error {
+		if len(inlineAtts) == 0 {
+			return writeHTMLPart(w)
+		}
 		relatedBoundary := multipart.NewWriter(&bytes.Buffer{}).Boundary()
 		relatedHeader := textproto.MIMEHeader{}
 		relatedHeader.Set("Content-Type", fmt.Sprintf("multipart/related; type=\"text/html\"; boundary=\"%s\"", relatedBoundary))
-		relatedPart, err := writer.CreatePart(relatedHeader)
+		relatedPart, err := w.CreatePart(relatedHeader)
 		if err != nil {
 			return fmt.Errorf("failed to create related part: %w", err)
 		}
@@ -1632,10 +1643,35 @@ func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESv2Cli
 		if err := related.Close(); err != nil {
 			return fmt.Errorf("failed to close related writer: %w", err)
 		}
-	} else {
-		if err := writeHTMLPart(writer); err != nil {
+		return nil
+	}
+
+	// Body. With a plain-text version it is multipart/alternative: the text first, then
+	// the HTML (or its related subtree), since clients show the last alternative they can
+	// render. Inline images stay with the HTML they belong to.
+	if request.TextContent != "" {
+		alternativeBoundary := multipart.NewWriter(&bytes.Buffer{}).Boundary()
+		alternativeHeader := textproto.MIMEHeader{}
+		alternativeHeader.Set("Content-Type", fmt.Sprintf("multipart/alternative; boundary=\"%s\"", alternativeBoundary))
+		alternativePart, err := writer.CreatePart(alternativeHeader)
+		if err != nil {
+			return fmt.Errorf("failed to create alternative part: %w", err)
+		}
+		alternative := multipart.NewWriter(alternativePart)
+		if err := alternative.SetBoundary(alternativeBoundary); err != nil {
+			return fmt.Errorf("failed to set alternative boundary: %w", err)
+		}
+		if err := writeTextualPart(alternative, "text/plain", request.TextContent, "text"); err != nil {
 			return err
 		}
+		if err := writeHTMLOrRelated(alternative); err != nil {
+			return err
+		}
+		if err := alternative.Close(); err != nil {
+			return fmt.Errorf("failed to close alternative writer: %w", err)
+		}
+	} else if err := writeHTMLOrRelated(writer); err != nil {
+		return err
 	}
 
 	// Regular (non-inline) attachments at the top level
@@ -1678,4 +1714,15 @@ func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESv2Cli
 	captureSESMessageID(request, out.MessageId)
 
 	return nil
+}
+
+// sesTextBody is the plain-text body of a simple SES send, or nil when there is none.
+func sesTextBody(text string) *sesv2types.Content {
+	if text == "" {
+		return nil
+	}
+	return &sesv2types.Content{
+		Charset: awsv2.String("UTF-8"),
+		Data:    awsv2.String(text),
+	}
 }

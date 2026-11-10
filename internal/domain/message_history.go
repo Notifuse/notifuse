@@ -219,6 +219,12 @@ type MessageHistoryRepository interface {
 	// message.
 	GetRecipientAndList(ctx context.Context, workspaceID, id string) (*MessageHistory, error)
 
+	// GetForWebVersion returns what the web version of message id is rendered from: id,
+	// broadcast_id, automation_id, template_id, template_version and message_data,
+	// decrypted with secretKey. An erased message comes back with empty data. Returns
+	// (nil, nil) when there is no such message.
+	GetForWebVersion(ctx context.Context, workspaceID, secretKey, id string) (*MessageHistory, error)
+
 	// GetRecipients returns, for each of ids that names a message, the address it was sent
 	// to. Ids that name no message are absent from the map, as are the messages whose
 	// address an erasure redacted: they name no one.

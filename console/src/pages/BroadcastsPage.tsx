@@ -27,7 +27,8 @@ import {
   broadcastApi,
   Broadcast,
   TestResultsResponse,
-  getStatusesForGroup
+  getStatusesForGroup,
+  testEmailListProps
 } from '../services/api/broadcast'
 import { listsApi } from '../services/api/list'
 import { taskApi } from '../services/api/task'
@@ -46,8 +47,7 @@ import {
   faCirclePlay,
   faCopy,
   faEye,
-  faCircleQuestion,
-  faPaperPlane
+  faCircleQuestion
 } from '@fortawesome/free-regular-svg-icons'
 import {
   faRotateRight,
@@ -77,6 +77,7 @@ import {
   resolveVariationSender
 } from '../components/broadcasts/variationSender'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
+import SendTestEmailButton from '../components/templates/SendTestEmailButton'
 import { Workspace, UserPermissions } from '../services/api/types'
 import { Template } from '../services/api/template'
 import { Template as BroadcastTemplate } from '../services/api/broadcast'
@@ -1027,25 +1028,11 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                             withDivider
                           />
                           {record.template && (
-                            <Tooltip
-                              title={
-                                !(permissions?.templates?.read && permissions?.contacts?.write)
-                                  ? t`You need read template and write contact permissions to send test emails`
-                                  : t`Send Test Email`
-                              }
-                            >
-                              <Button
-                                size="small"
-                                type="text"
-                                icon={
-                                  <FontAwesomeIcon icon={faPaperPlane} className="opacity-70" />
-                                }
-                                onClick={() => record.template && handleTestTemplate(toTemplateApiType(record.template))}
-                                disabled={
-                                  !(permissions?.templates?.read && permissions?.contacts?.write)
-                                }
-                              />
-                            </Tooltip>
+                            <SendTestEmailButton
+                              size="small"
+                              permissions={permissions}
+                              onClick={() => record.template && handleTestTemplate(toTemplateApiType(record.template))}
+                            />
                           )}
                           <Tooltip title={t`Preview Template`}>
                             <>
@@ -1321,6 +1308,9 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
           onClose={() => setTestModalOpen(false)}
           template={templateToTest}
           workspace={currentWorkspace}
+          canReadLists={!!permissions?.lists?.read}
+          canReadContacts={!!permissions?.contacts?.read}
+          {...testEmailListProps(broadcast)}
         />
       )}
     </Card>

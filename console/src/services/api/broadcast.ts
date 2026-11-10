@@ -342,6 +342,18 @@ export interface TestRecipientFeedResponse {
   contact_email?: string
 }
 
+/**
+ * The mailing list a broadcast's test email is sent for: the broadcast's audience list, without
+ * the List-Unsubscribe header when the broadcast also goes to the list's unsubscribed contacts,
+ * as its real emails are sent.
+ */
+export const testEmailListProps = (
+  broadcast: Broadcast
+): { defaultListId?: string; omitListUnsubscribeHeader: boolean } => ({
+  defaultListId: broadcast.audience.list || undefined,
+  omitListUnsubscribeHeader: !broadcast.audience.exclude_unsubscribed
+})
+
 export const broadcastApi = {
   list: async (params: ListBroadcastsRequest): Promise<ListBroadcastsResponse> => {
     const searchParams = new URLSearchParams()

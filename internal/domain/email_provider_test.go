@@ -1400,6 +1400,7 @@ func TestSendEmailProviderRequest_Validate(t *testing.T) {
 		{"missing content", SendEmailProviderRequest{WorkspaceID: "w", IntegrationID: "i", MessageID: "m", FromAddress: "from@example.com", FromName: "From", To: "to@example.com", Subject: "Subject"}, true},
 		{"missing provider", SendEmailProviderRequest{WorkspaceID: "w", IntegrationID: "i", MessageID: "m", FromAddress: "from@example.com", FromName: "From", To: "to@example.com", Subject: "Subject", Content: "Content"}, true},
 		{"valid", SendEmailProviderRequest{WorkspaceID: "w", IntegrationID: "i", MessageID: "m", FromAddress: "from@example.com", FromName: "From", To: "to@example.com", Subject: "Subject", Content: "Content", Provider: validProvider}, false},
+		{"valid with a plain-text version", SendEmailProviderRequest{WorkspaceID: "w", IntegrationID: "i", MessageID: "m", FromAddress: "from@example.com", FromName: "From", To: "to@example.com", Subject: "Subject", Content: "Content", TextContent: "Content", Provider: validProvider}, false},
 	}
 
 	for _, tc := range tests {
