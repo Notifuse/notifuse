@@ -372,6 +372,11 @@ type SendEmailProviderRequest struct {
 	Provider      *EmailProvider `validate:"required"`
 	EmailOptions  EmailOptions
 
+	// TextContent is the text/plain alternative sent with Content. Optional: when it is
+	// empty, EmailService.SendEmail generates it from Content, the final HTML, so its links
+	// are the links the HTML carries (tracked or not, as decided for the recipient).
+	TextContent string
+
 	// CapturedMessageID, when non-nil, is written by providers that OVERWRITE the RFC
 	// Message-ID at send time (e.g. Amazon SES) with the provider-returned MessageId, so
 	// the caller can store the recipient-visible Message-ID for reply matching. It is a

@@ -1035,6 +1035,91 @@ func TestEmailService_OpenEmail(t *testing.T) {
 	})
 }
 
+func TestEmailService_SendEmail_PlainTextVersion(t *testing.T) {
+	provider := domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSES,
+		Senders: []domain.EmailSender{{ID: "s1", Email: "default@example.com", Name: "Default Sender"}},
+		SES:     &domain.AmazonSESSettings{Region: "us-east-1", AccessKey: "k", SecretKey: "s"},
+	}
+	newRequest := func(content, text string) domain.SendEmailProviderRequest {
+		return domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-1",
+			MessageID:     "message-1",
+			FromAddress:   "sender@example.com",
+			FromName:      "Sender",
+			To:            "recipient@example.com",
+			Subject:       "Subject",
+			Content:       content,
+			TextContent:   text,
+			Provider:      &provider,
+		}
+	}
+
+	tests := []struct {
+		name     string
+		content  string
+		text     string
+		wantText string
+	}{
+		{
+			name:     "an empty text is generated from the HTML",
+			content:  `<html><body><p>Hello Camille</p><a href="https://example.com/track">Track</a></body></html>`,
+			wantText: "Hello Camille\n\nTrack (https://example.com/track)\n",
+		},
+		{
+			name:     "a whitespace-only text is generated from the HTML",
+			content:  "<p>Hello</p>",
+			text:     " \n\t",
+			wantText: "Hello\n",
+		},
+		{
+			name:     "a text given by the caller is sent as is",
+			content:  "<p>Hello</p>",
+			text:     "Custom text {{ kept }}",
+			wantText: "Custom text {{ kept }}",
+		},
+		{
+			name:     "HTML with nothing to read gives no text",
+			content:  `<img src="https://example.com/pixel.gif" alt="">`,
+			wantText: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockSESService := mocks.NewMockEmailProviderService(ctrl)
+			emailService := EmailService{sesService: mockSESService}
+
+			var got domain.SendEmailProviderRequest
+			mockSESService.EXPECT().SendEmail(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest) error {
+					got = req
+					return nil
+				})
+
+			err := emailService.SendEmail(context.Background(), newRequest(tt.content, tt.text), true)
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantText, got.TextContent)
+			assert.Equal(t, tt.content, got.Content, "the HTML is never changed")
+		})
+	}
+
+	t.Run("demo mode sends nothing", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockSESService := mocks.NewMockEmailProviderService(ctrl)
+		emailService := EmailService{sesService: mockSESService, isDemo: true}
+
+		require.NoError(t, emailService.SendEmail(context.Background(), newRequest("<p>Hello</p>", ""), true))
+	})
+}
+
 func TestEmailService_SendEmailForTemplate(t *testing.T) {
 	// Setup the controller
 	ctrl := gomock.NewController(t)

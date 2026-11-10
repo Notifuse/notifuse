@@ -544,6 +544,7 @@ func (s *MailjetService) SendEmail(ctx context.Context, request domain.SendEmail
 		},
 		Subject:  request.Subject,
 		HTMLPart: request.Content,
+		TextPart: request.TextContent,
 		CustomID: request.MessageID,
 	}
 

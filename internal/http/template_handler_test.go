@@ -1274,3 +1274,36 @@ func TestHandleCompile_TrackingSettingsCarryNoSigningKey(t *testing.T) {
 	assert.True(t, received.TrackingSettings.EnableTracking)
 	assert.Empty(t, received.TrackingSettings.SigningKey)
 }
+
+func TestHandleCompile_AsksForThePlainTextVersion(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section></mj-body></mjml>"
+	htmlOut := "<html><body>Hello</body></html>"
+	text := "Hello\n"
+
+	// The client cannot switch the text off: include_text is not part of the API.
+	payload := map[string]interface{}{
+		"workspace_id": "workspace123",
+		"message_id":   "msg-1",
+		"mjml_source":  mjmlSrc,
+		"include_text": false,
+	}
+
+	mockService.EXPECT().CompileTemplate(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
+			assert.True(t, req.IncludeText)
+			return &domain.CompileTemplateResponse{Success: true, MJML: &mjmlSrc, HTML: &htmlOut, Text: &text}, nil
+		})
+
+	apiURL := fmt.Sprintf("%s/api/templates.compile", serverURL)
+	token := createTestToken(secretKey)
+	resp := sendRequest(t, http.MethodPost, apiURL, token, payload)
+	defer func() { _ = resp.Body.Close() }()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	var body map[string]interface{}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	assert.Equal(t, text, body["text"])
+}
