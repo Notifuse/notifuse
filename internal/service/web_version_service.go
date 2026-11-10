@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -48,6 +49,7 @@ type WebVersionService struct {
 	messageRepo   domain.MessageHistoryRepository
 	templateRepo  domain.TemplateRepository
 	apiEndpoint   string
+	apiHost       string
 	logger        logger.Logger
 	compile       func(notifuse_mjml.CompileTemplateRequest) (*notifuse_mjml.CompileTemplateResponse, error)
 }
@@ -68,14 +70,18 @@ func NewWebVersionService(
 		messageRepo:   messageRepo,
 		templateRepo:  templateRepo,
 		apiEndpoint:   apiEndpoint,
+		apiHost:       trackingtoken.HostOf(apiEndpoint),
 		logger:        logger,
 		compile:       notifuse_mjml.CompileTemplate,
 	}
 }
 
-// Resolve opens and verifies a web version token. Only a token signed with its
-// workspace's key for the view purpose resolves: there is no unsigned or legacy form.
-func (s *WebVersionService) Resolve(ctx context.Context, token string) (WebVersionRef, error) {
+// Resolve opens and verifies a web version token requested on requestHost (the request's
+// Host, port included or not). Only a token signed with its workspace's key for the view
+// purpose resolves: there is no unsigned or legacy form. It resolves on the API host and
+// on the workspace's own custom domain only: on another workspace's domain, the page
+// would show one brand's email under another brand's address.
+func (s *WebVersionService) Resolve(ctx context.Context, token, requestHost string) (WebVersionRef, error) {
 	if token == "" || len(token) > MaxWebVersionTokenLength {
 		return WebVersionRef{}, ErrWebVersionNotFound
 	}
@@ -92,14 +98,43 @@ func (s *WebVersionService) Resolve(ctx context.Context, token string) (WebVersi
 	default:
 		return WebVersionRef{}, ErrWebVersionNotFound
 	}
-	if !tok.Verify(ws.Key, trackingtoken.PurposeView) {
-		// The cached key may be stale, for a workspace re-created under its ID.
+	if !tok.Verify(ws.Key, trackingtoken.PurposeView) || !s.servesOn(requestHost, ws) {
+		// The cached key may be stale, for a workspace re-created under its ID, and so may
+		// the cached custom domain, for a workspace that just set one.
 		ws, status = s.keys.Refresh(ctx, tok.WorkspaceID)
-		if status != trackingtoken.WorkspaceKnown || !tok.Verify(ws.Key, trackingtoken.PurposeView) {
+		if status != trackingtoken.WorkspaceKnown || !tok.Verify(ws.Key, trackingtoken.PurposeView) || !s.servesOn(requestHost, ws) {
 			return WebVersionRef{}, ErrWebVersionNotFound
 		}
 	}
 	return WebVersionRef{WorkspaceID: tok.WorkspaceID, MessageID: tok.MessageID}, nil
+}
+
+// servesOn reports whether a workspace's web versions open on requestHost: the API host,
+// or the workspace's custom domain when it has one.
+func (s *WebVersionService) servesOn(requestHost string, ws trackingtoken.Workspace) bool {
+	host := (&url.URL{Host: requestHost}).Hostname()
+	return sameASCIIHost(host, s.apiHost) || sameASCIIHost(host, ws.EndpointHost)
+}
+
+// sameASCIIHost compares two hostnames, ports removed, folding ASCII letters only:
+// strings.EqualFold would also fold, for instance, the Kelvin sign onto 'k'.
+func sameASCIIHost(a, b string) bool {
+	if a == "" || len(a) != len(b) {
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		if asciiLower(a[i]) != asciiLower(b[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func asciiLower(c byte) byte {
+	if 'A' <= c && c <= 'Z' {
+		return c + 'a' - 'A'
+	}
+	return c
 }
 
 // Render compiles the web version of a resolved message.

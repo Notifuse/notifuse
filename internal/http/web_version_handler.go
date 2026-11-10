@@ -46,7 +46,7 @@ const webVersionPreviewPage = `<!doctype html><html lang="en"><head><meta charse
 
 // WebVersionRenderer resolves a web version token and renders the email it points to.
 type WebVersionRenderer interface {
-	Resolve(ctx context.Context, token string) (service.WebVersionRef, error)
+	Resolve(ctx context.Context, token, requestHost string) (service.WebVersionRef, error)
 	Render(ctx context.Context, ref service.WebVersionRef) (string, error)
 }
 
@@ -92,7 +92,7 @@ func (h *WebVersionHandler) handleWebVersion(w http.ResponseWriter, r *http.Requ
 		writeWebVersionPage(w, r, http.StatusOK, webVersionPreviewPage)
 		return
 	}
-	ref, err := h.renderer.Resolve(r.Context(), token)
+	ref, err := h.renderer.Resolve(r.Context(), token, r.Host)
 	if err != nil {
 		h.writeError(w, r, err)
 		return

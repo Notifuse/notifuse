@@ -22,11 +22,13 @@ type fakeWebVersion struct {
 	renderErr   error
 	html        string
 	resolved    []string
+	hosts       []string
 	rendered    int
 }
 
-func (f *fakeWebVersion) Resolve(_ context.Context, token string) (service.WebVersionRef, error) {
+func (f *fakeWebVersion) Resolve(_ context.Context, token, requestHost string) (service.WebVersionRef, error) {
 	f.resolved = append(f.resolved, token)
+	f.hosts = append(f.hosts, requestHost)
 	if err, ok := f.resolveErrs[token]; ok {
 		return service.WebVersionRef{}, err
 	}
@@ -84,6 +86,18 @@ func TestWebVersionHandler_ServesTheEmail(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(t, "<html>Hello Camille</html>", rec.Body.String())
 	assertWebVersionSecurityHeaders(t, rec.Header())
+}
+
+func TestWebVersionHandler_ResolvesForTheRequestedHost(t *testing.T) {
+	// The service refuses a web version on another workspace's custom domain, so it
+	// needs the host the reader asked for.
+	renderer := &fakeWebVersion{html: "<html>ok</html>"}
+	mux := newWebVersionTestHandler(t, renderer, 100, 100)
+
+	req := httptest.NewRequest(http.MethodGet, "/v/good", nil)
+	req.Host = "mail.brand-a.example:8443"
+	mux.ServeHTTP(httptest.NewRecorder(), req)
+	assert.Equal(t, []string{"mail.brand-a.example:8443"}, renderer.hosts)
 }
 
 func TestWebVersionHandler_IgnoresTheQueryString(t *testing.T) {

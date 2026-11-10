@@ -166,6 +166,17 @@ func TestWebVersion(t *testing.T) {
 		assert.Equal(t, openedBefore, openedAfter)
 		assert.Equal(t, clickedBefore, clickedAfter)
 
+		// Another workspace's custom domain does not show it.
+		foreign, err := http.NewRequest(http.MethodGet, destination, nil)
+		require.NoError(t, err)
+		foreign.Host = "mail.another-brand.example"
+		foreignResp, err := noRedirectClient().Do(foreign)
+		require.NoError(t, err)
+		foreignBody, _ := io.ReadAll(foreignResp.Body)
+		_ = foreignResp.Body.Close()
+		assert.Equal(t, http.StatusNotFound, foreignResp.StatusCode)
+		assert.NotContains(t, string(foreignBody), "Camille")
+
 		// The tracked link in the email redirects to the web version.
 		redirect := clickDelivered(t, clickLink)
 		assert.Equal(t, http.StatusSeeOther, redirect.StatusCode)
