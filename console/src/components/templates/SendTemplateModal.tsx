@@ -24,8 +24,8 @@ interface SendTemplateModalProps {
   withCCAndBCC?: boolean
   // List preselected for the test, such as a broadcast's audience list
   defaultListId?: string
-  // With a list, keep its links but leave out the List-Unsubscribe header, as a broadcast
-  // that also goes to the list's unsubscribed contacts does
+  // When the test is sent for defaultListId, keep its links but leave out the List-Unsubscribe
+  // header, as a broadcast that also goes to the list's unsubscribed contacts does
   omitListUnsubscribeHeader?: boolean
   // The list field is shown, and lists loaded, only for members who can read lists
   canReadLists?: boolean
@@ -71,6 +71,8 @@ export default function SendTemplateModal({
       : undefined
   // The header is left out only for the broadcast's own audience list
   const omitHeader = omitListUnsubscribeHeader && !!listId && listId === defaultListId
+  // A preselected list is not sent until the lists have loaded, so wait for them
+  const waitingForDefaultList = canReadLists && !!defaultListId && listsLoading
 
   // Filter to only email integrations
    
@@ -300,7 +302,9 @@ export default function SendTemplateModal({
           key="send"
           type="primary"
           onClick={handleSend}
-          disabled={!email || !selectedIntegrationId || loading || sendLoading}
+          disabled={
+            !email || !selectedIntegrationId || loading || sendLoading || waitingForDefaultList
+          }
           loading={loading || sendLoading}
         >
           {t`Send Test Email`}

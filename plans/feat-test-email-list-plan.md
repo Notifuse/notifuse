@@ -96,7 +96,7 @@ sent as before, except that its history row is recorded under the contact's lowe
 | `internal/http/transactional_handler.go` | `internal/http/transactional_handler_test.go` (`TestTransactionalNotificationHandler_HandleTestTemplate_List`) | both fields passed to the service; defaults without them; wrapped `ErrListNotFound` → 404 |
 | Full stack | `tests/integration/list_unsubscribe_headers_test.go` (`test email for a list`) | Mailpit receives the list's name and `lid` in the body, both headers; the one-click POST from the delivered header unsubscribes a recipient typed with capitals who was on no row; no header when omitted; no header without a list; a bounce set on the test's history row marks the subscriber bounced on the list; unknown list answers 404 and creates no contact; `success` checked in the response |
 | `services/api/transactional_notifications.ts` | `services/api/transactional_notifications.test.ts` | fields sent with a list, absent without |
-| `components/templates/SendTemplateModal.tsx` | `components/templates/SendTemplateModal.test.tsx` | default list preselected and labelled; notice help text and flag; list picked from the field with no default; another list picked in a notice broadcast keeps the header; reopening goes back to the default list; unknown default selects nothing; cleared list sends none; field hidden and no list request when `canReadLists` is false or absent |
+| `components/templates/SendTemplateModal.tsx` | `components/templates/SendTemplateModal.test.tsx` | default list preselected and labelled; notice help text and flag; list picked from the field with no default; another list picked in a notice broadcast keeps the header; reopening goes back to the default list; send disabled while the preselected list loads; unknown default selects nothing; cleared list sends none; field hidden and no list request when `canReadLists` is false or absent |
 | `services/api/broadcast.ts` | `services/api/broadcast.test.ts` (`testEmailListProps`) | regular broadcast; notice broadcast; audience without a list |
 | catalogues | `i18n/locales/catalogues.test.ts` | catalogues complete and compilable |
 | `pages/BroadcastsPage.tsx`, `pages/TemplatesPage.tsx` | none of their own: the props are typed (`npx tsc -b`) and their effect is covered by the modal tests | |
@@ -111,7 +111,7 @@ sent as before, except that its history row is recorded under the contact's lowe
   `transactional:write`.
 - A test sent from a broadcast does not apply the broadcast's tracking mode, UTM parameters or broadcast variables.
 - `email_options.list_unsubscribe_url` is still accepted as given from API callers without a list.
-- If the lists fail to load, the dialog shows no list and a broadcast test is sent without one; the help text then
+- The send button waits for the lists while a list is preselected. If the lists fail to load, the dialog shows no list and a broadcast test is sent without one; the help text then
   says the test has no working unsubscribe link.
 - `web_analytics_sdk/package-lock.json` still carries 42.3.0, as on `dev`.
 

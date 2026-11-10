@@ -188,6 +188,15 @@ describe('SendTemplateModal mailing list', () => {
     expect(call[7]).toEqual({ listId: 'news', omitListUnsubscribeHeader: false })
   })
 
+  it('waits for the lists before a test for the preselected list can be sent', async () => {
+    ;(listsApi.list as Mock).mockReturnValue(new Promise(() => {}))
+    renderModal({ canReadLists: true, defaultListId: 'news' })
+
+    await userEvent.type(screen.getByPlaceholderText('recipient@example.com'), 'me@example.com')
+    const buttons = screen.getAllByRole('button', { name: /Send Test Email/i })
+    expect(buttons[buttons.length - 1]).toBeDisabled()
+  })
+
   it('selects nothing when the default list is not one of the workspace lists', async () => {
     renderModal({ canReadLists: true, defaultListId: 'deleted' })
 

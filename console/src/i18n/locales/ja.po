@@ -87,7 +87,7 @@ msgid "{0, plural, one {Exported # row} other {Exported # rows}}"
 msgstr "{0, plural, one {#行をエクスポートしました} other {#行をエクスポートしました}}"
 
 #. placeholder {0}: list.name
-#: src/components/templates/SendTemplateModal.tsx:375
+#: src/components/templates/SendTemplateModal.tsx:379
 msgid "{0} (broadcast audience)"
 msgstr "{0}（ブロードキャストの配信先）"
 
@@ -478,7 +478,7 @@ msgstr "• コンポーネント属性が有効か確認してください"
 msgid "+ Add filter"
 msgstr "+ フィルターを追加"
 
-#: src/components/templates/SendTemplateModal.tsx:396
+#: src/components/templates/SendTemplateModal.tsx:400
 msgid "+ add from name, CC, BCC, reply-to, attachments"
 msgstr "+ 差出人名、CC、BCC、返信先、添付ファイルを追加"
 
@@ -975,11 +975,11 @@ msgstr "住所2"
 msgid "Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Notifuse for every recipient of every tracked send, which is why it is off by default."
 msgstr "トラッキング対象メールのリンクに署名付きの識別情報を追加します。これにより、リンクをクリックした受信者は、サイトにコードを設置しなくても着地時に識別されます。その訪問はコンタクトレコードに紐づけられます — タイムラインの記録、ゴール、オートメーションへの登録です。自社サーバーが呼び出す identify() とは異なり、こちらはトラッキング対象の送信すべての受信者ごとにNotifuseが発行します。そのため既定では無効になっています。"
 
-#: src/components/templates/SendTemplateModal.tsx:362
+#: src/components/templates/SendTemplateModal.tsx:366
 msgid "Adds this list's unsubscribe links and the List-Unsubscribe header, as a broadcast to this list does. Unsubscribing or confirming from this test, or a bounce or complaint on it, really changes the recipient's subscription to the list."
 msgstr "このリストへのブロードキャストと同じく、このリストの配信停止リンクと List-Unsubscribe ヘッダーを追加します。このテストからの配信停止や確認、またはこのテストのバウンスや苦情によって、受信者のリスト購読が実際に変更されます。"
 
-#: src/components/templates/SendTemplateModal.tsx:361
+#: src/components/templates/SendTemplateModal.tsx:365
 msgid "Adds this list's unsubscribe links, as the broadcast does. The broadcast also goes to the list's unsubscribed contacts, so the test carries no List-Unsubscribe header. Unsubscribing or confirming from this test, or a bounce or complaint on it, really changes the recipient's subscription to the list."
 msgstr "ブロードキャストと同じく、このリストの配信停止リンクを追加します。ブロードキャストはリストの配信停止済みの連絡先にも送られるため、テストに List-Unsubscribe ヘッダーは付きません。このテストからの配信停止や確認、またはこのテストのバウンスや苦情によって、受信者のリスト購読が実際に変更されます。"
 
@@ -1539,7 +1539,7 @@ msgstr "少なくとも1つのルートメールアドレスが必要です"
 msgid "at most"
 msgstr "最大"
 
-#: src/components/templates/SendTemplateModal.tsx:445
+#: src/components/templates/SendTemplateModal.tsx:449
 msgid "Attachments"
 msgstr "添付ファイル"
 
@@ -1865,7 +1865,7 @@ msgstr "基本情報"
 msgid "BCC"
 msgstr "BCC"
 
-#: src/components/templates/SendTemplateModal.tsx:425
+#: src/components/templates/SendTemplateModal.tsx:429
 msgid "BCC Recipients"
 msgstr "BCC宛先"
 
@@ -2419,7 +2419,7 @@ msgstr "キャンペーン"
 #: src/components/settings/WorkspaceMembers.tsx:479
 #: src/components/settings/WorkspaceMembers.tsx:541
 #: src/components/templates/CreateTemplateDrawer.tsx:643
-#: src/components/templates/SendTemplateModal.tsx:297
+#: src/components/templates/SendTemplateModal.tsx:299
 #: src/components/templates/TemplateTranslationsTab.tsx:276
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:180
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
@@ -2540,7 +2540,7 @@ msgstr "カテゴリ:"
 msgid "CC"
 msgstr "CC"
 
-#: src/components/templates/SendTemplateModal.tsx:414
+#: src/components/templates/SendTemplateModal.tsx:418
 msgid "CC Recipients"
 msgstr "CC宛先"
 
@@ -3973,7 +3973,7 @@ msgstr "カスタム送信者（マーケティングメールプロバイダ）
 msgid "Custom sender (transactional email provider)"
 msgstr "カスタム送信者（トランザクションメールプロバイダ）"
 
-#: src/components/templates/SendTemplateModal.tsx:404
+#: src/components/templates/SendTemplateModal.tsx:408
 msgid "Custom sender name (optional)"
 msgstr "カスタム送信者名（任意）"
 
@@ -4066,7 +4066,7 @@ msgstr "装飾"
 msgid "Deduplication:"
 msgstr "重複排除:"
 
-#: src/components/templates/SendTemplateModal.tsx:93
+#: src/components/templates/SendTemplateModal.tsx:95
 #: src/pages/TemplatesPage.tsx:252
 msgid "default"
 msgstr "デフォルト"
@@ -5096,7 +5096,7 @@ msgid "Email field mapping is required"
 msgstr "メールフィールドのマッピングが必要です"
 
 #: src/components/automations/config/EmailConfigForm.tsx:80
-#: src/components/templates/SendTemplateModal.tsx:315
+#: src/components/templates/SendTemplateModal.tsx:319
 msgid "Email Integration"
 msgstr "メール連携"
 
@@ -5370,7 +5370,7 @@ msgstr "アバターURLを入力（任意）"
 msgid "Enter background image URL"
 msgstr "背景画像URLを入力"
 
-#: src/components/templates/SendTemplateModal.tsx:428
+#: src/components/templates/SendTemplateModal.tsx:432
 msgid "Enter BCC email addresses"
 msgstr "BCCメールアドレスを入力"
 
@@ -5386,7 +5386,7 @@ msgstr "ボタンリンクURLまたは{{ url }}を入力"
 msgid "Enter button text..."
 msgstr "ボタンテキストを入力..."
 
-#: src/components/templates/SendTemplateModal.tsx:417
+#: src/components/templates/SendTemplateModal.tsx:421
 msgid "Enter CC email addresses"
 msgstr "CCメールアドレスを入力"
 
@@ -5474,7 +5474,7 @@ msgstr "数値を入力..."
 msgid "Enter preview text that appears in email clients..."
 msgstr "メールクライアントに表示されるプレビューテキストを入力..."
 
-#: src/components/templates/SendTemplateModal.tsx:438
+#: src/components/templates/SendTemplateModal.tsx:442
 msgid "Enter Reply-To email address"
 msgstr "返信先メールアドレスを入力"
 
@@ -5588,7 +5588,7 @@ msgstr "エラー:"
 msgid "Error: {0}"
 msgstr "エラー: {0}"
 
-#: src/components/templates/SendTemplateModal.tsx:180
+#: src/components/templates/SendTemplateModal.tsx:182
 msgid "Error: {errorMessage}"
 msgstr "エラー: {errorMessage}"
 
@@ -6098,7 +6098,7 @@ msgid "Failed to process all {0} contacts"
 msgstr "全{0}件のコンタクト処理に失敗しました"
 
 #. placeholder {0}: file.name
-#: src/components/templates/SendTemplateModal.tsx:254
+#: src/components/templates/SendTemplateModal.tsx:256
 msgid "Failed to process file {0}"
 msgstr "ファイル{0}の処理に失敗しました"
 
@@ -6234,7 +6234,7 @@ msgstr "マジックコードの送信に失敗しました"
 #. placeholder {0}: response.error
 #. placeholder {0}: response.error || 'Unknown error'
 #: src/components/settings/Integrations.tsx:1241
-#: src/components/templates/SendTemplateModal.tsx:169
+#: src/components/templates/SendTemplateModal.tsx:171
 msgid "Failed to send test email: {0}"
 msgstr "テストメールの送信に失敗しました: {0}"
 
@@ -6403,12 +6403,12 @@ msgid "File"
 msgstr "ファイル"
 
 #. placeholder {0}: file.name
-#: src/components/templates/SendTemplateModal.tsx:251
+#: src/components/templates/SendTemplateModal.tsx:253
 msgid "File {0} added"
 msgstr "ファイル {0} を追加しました"
 
 #. placeholder {0}: file.name
-#: src/components/templates/SendTemplateModal.tsx:207
+#: src/components/templates/SendTemplateModal.tsx:209
 msgid "File {0} exceeds 3MB limit"
 msgstr "ファイル {0} は3MBの制限を超えています"
 
@@ -6690,7 +6690,7 @@ msgstr "差出人メールは必須です"
 msgid "From Name"
 msgstr "差出人名"
 
-#: src/components/templates/SendTemplateModal.tsx:402
+#: src/components/templates/SendTemplateModal.tsx:406
 msgid "From Name (override)"
 msgstr "差出人名（上書き）"
 
@@ -7749,7 +7749,7 @@ msgstr "ランディングページ"
 #: src/components/contacts/ContactDetailsDrawer.tsx:457
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:96
 #: src/components/contacts/ExportContactsModal.tsx:73
-#: src/components/templates/SendTemplateModal.tsx:384
+#: src/components/templates/SendTemplateModal.tsx:388
 #: src/components/templates/TemplatePreviewDrawer.tsx:353
 #: src/pages/ContactsPage.tsx:381
 #: src/pages/ContactsPage.tsx:449
@@ -8305,7 +8305,7 @@ msgstr "マジックコードをメールに送信しました"
 msgid "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 msgstr "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 
-#: src/components/templates/SendTemplateModal.tsx:356
+#: src/components/templates/SendTemplateModal.tsx:360
 msgid "Mailing list"
 msgstr "メーリングリスト"
 
@@ -8421,11 +8421,11 @@ msgstr "正規表現に一致"
 msgid "Matching contacts:"
 msgstr "一致するコンタクト:"
 
-#: src/components/templates/SendTemplateModal.tsx:452
+#: src/components/templates/SendTemplateModal.tsx:456
 msgid "Max 3MB per file, 10MB total, 20 files maximum"
 msgstr "ファイルあたり最大3MB、合計10MB、最大20ファイル"
 
-#: src/components/templates/SendTemplateModal.tsx:228
+#: src/components/templates/SendTemplateModal.tsx:230
 msgid "Maximum 20 attachments allowed"
 msgstr "添付ファイルは最大20個まで"
 
@@ -9041,7 +9041,7 @@ msgstr "メールなし"
 msgid "No email column found. Please ensure your CSV has a column with \"email\" in the name"
 msgstr "メール列が見つかりません。CSVに「email」という名前の列があることを確認してください"
 
-#: src/components/templates/SendTemplateModal.tsx:327
+#: src/components/templates/SendTemplateModal.tsx:331
 msgid "No email integrations available. Please configure one in Settings."
 msgstr "メール連携が利用できません。設定で連携を構成してください。"
 
@@ -9316,7 +9316,7 @@ msgstr "非アクティブ"
 msgid "None"
 msgstr "なし"
 
-#: src/components/templates/SendTemplateModal.tsx:369
+#: src/components/templates/SendTemplateModal.tsx:373
 msgid "None (no unsubscribe link)"
 msgstr "なし（配信停止リンクなし）"
 
@@ -9819,7 +9819,7 @@ msgstr "アウトセット"
 msgid "Overline"
 msgstr "上線"
 
-#: src/components/templates/SendTemplateModal.tsx:410
+#: src/components/templates/SendTemplateModal.tsx:414
 msgid "Override the default sender name for this test email"
 msgstr "このテストメールのデフォルト送信者名を上書き"
 
@@ -10966,7 +10966,7 @@ msgstr "最近使用した色"
 msgid "Recipient"
 msgstr "受信者"
 
-#: src/components/templates/SendTemplateModal.tsx:345
+#: src/components/templates/SendTemplateModal.tsx:349
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:106
 msgid "Recipient Email"
 msgstr "受信者メールアドレス"
@@ -10975,7 +10975,7 @@ msgstr "受信者メールアドレス"
 msgid "Recipient feed test completed successfully"
 msgstr "受信者フィードのテストが正常に完了しました"
 
-#: src/components/templates/SendTemplateModal.tsx:347
+#: src/components/templates/SendTemplateModal.tsx:351
 msgid "recipient@example.com"
 msgstr "recipient@example.com"
 
@@ -11263,7 +11263,7 @@ msgstr "返信先"
 msgid "Reply To:"
 msgstr "返信先:"
 
-#: src/components/templates/SendTemplateModal.tsx:436
+#: src/components/templates/SendTemplateModal.tsx:440
 msgid "Reply-To"
 msgstr "Reply-To"
 
@@ -11998,7 +11998,7 @@ msgstr "人気のGoogle Fontを選択"
 msgid "Select a segment..."
 msgstr "セグメントを選択..."
 
-#: src/components/templates/SendTemplateModal.tsx:335
+#: src/components/templates/SendTemplateModal.tsx:339
 msgid "Select a sender"
 msgstr "送信者を選択"
 
@@ -12014,7 +12014,7 @@ msgstr "タイムゾーンを選択"
 msgid "Select all"
 msgstr "すべて選択"
 
-#: src/components/templates/SendTemplateModal.tsx:318
+#: src/components/templates/SendTemplateModal.tsx:322
 msgid "Select an email integration"
 msgstr "メール連携を選択"
 
@@ -12288,7 +12288,7 @@ msgstr "任意のアドレスに実際のトランザクションメールを送
 msgid "Send a test email for a list, with that list's working unsubscribe links (also needs Transactional write)"
 msgstr "リスト向けのテストメールを、そのリストの有効な配信停止リンク付きで送信する (トランザクションの書き込みも必要)"
 
-#: src/components/templates/SendTemplateModal.tsx:313
+#: src/components/templates/SendTemplateModal.tsx:317
 msgid "Send a test email using this template to verify how it will look."
 msgstr "このテンプレートを使用してテストメールを送信し、外観を確認します。"
 
@@ -12338,8 +12338,8 @@ msgid "Send Test"
 msgstr "テストを送信"
 
 #: src/components/settings/Integrations.tsx:2737
-#: src/components/templates/SendTemplateModal.tsx:292
-#: src/components/templates/SendTemplateModal.tsx:306
+#: src/components/templates/SendTemplateModal.tsx:294
+#: src/components/templates/SendTemplateModal.tsx:310
 #: src/pages/BroadcastsPage.tsx:1016
 #: src/pages/TemplatesPage.tsx:376
 msgid "Send Test Email"
@@ -12350,7 +12350,7 @@ msgid "Send transactional notifications using SMTP bridge. Perfect for integrati
 msgstr "SMTPリレーを使用してトランザクション通知を送信。既存のメールシステムやSMTPをサポートするアプリケーションとの統合に最適です。"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:948
-#: src/components/templates/SendTemplateModal.tsx:332
+#: src/components/templates/SendTemplateModal.tsx:336
 #: src/pages/TemplatesPage.tsx:237
 msgid "Sender"
 msgstr "送信者"
@@ -12933,7 +12933,7 @@ msgstr "編集中に他のユーザーがこのテンプレートを変更しま
 msgid "Someone saved version {0} while you were editing (you started from {1}). Reload the latest version — your unsaved changes will be lost — or overwrite it with yours."
 msgstr "編集中に他のユーザーがバージョン{0}を保存しました (あなたは{1}から編集を開始しました)。最新バージョンを再読み込みする (保存されていない変更は失われます) か、自分の内容で上書きしてください。"
 
-#: src/components/templates/SendTemplateModal.tsx:179
+#: src/components/templates/SendTemplateModal.tsx:181
 msgid "Something went wrong"
 msgstr "エラーが発生しました"
 
@@ -13556,7 +13556,7 @@ msgid "Test Email Provider"
 msgstr "メールプロバイダーをテスト"
 
 #: src/components/settings/Integrations.tsx:1238
-#: src/components/templates/SendTemplateModal.tsx:166
+#: src/components/templates/SendTemplateModal.tsx:168
 msgid "Test email sent successfully"
 msgstr "テストメールが正常に送信されました"
 
@@ -14515,7 +14515,7 @@ msgstr "合計"
 msgid "Total {total} posts"
 msgstr "合計 {total} 件の投稿"
 
-#: src/components/templates/SendTemplateModal.tsx:221
+#: src/components/templates/SendTemplateModal.tsx:223
 msgid "Total attachments size exceeds 10MB limit"
 msgstr "添付ファイルの合計サイズが10MBの制限を超えています"
 
@@ -14964,7 +14964,7 @@ msgstr "アップロードに失敗しました。もう一度お試しくださ
 msgid "Upload file (Read-only mode)"
 msgstr "ファイルをアップロード（読み取り専用モード）"
 
-#: src/components/templates/SendTemplateModal.tsx:448
+#: src/components/templates/SendTemplateModal.tsx:452
 msgid "Upload Files"
 msgstr "ファイルをアップロード"
 
@@ -15683,7 +15683,7 @@ msgstr "ステータス付き"
 msgid "With:"
 msgstr "含む内容:"
 
-#: src/components/templates/SendTemplateModal.tsx:359
+#: src/components/templates/SendTemplateModal.tsx:363
 msgid "Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header."
 msgstr "リストを選ばない場合、テストメールには有効な配信停止リンクも List-Unsubscribe ヘッダーも含まれません。"
 
