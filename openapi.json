@@ -7649,7 +7649,7 @@
               "reply_to": {
                 "type": "string",
                 "format": "email",
-                "description": "Reply-To email address",
+                "description": "Reply-To email address. Takes the place of the template's reply-to for this message.",
                 "example": "support@example.com"
               },
               "attachments": {
@@ -12664,7 +12664,7 @@
       },
       "TemplateTranslation": {
         "type": "object",
-        "description": "Content for one language. Carries the field matching the template's channel: email for an email template, web for a web template.",
+        "description": "Content for one language. Carries the field matching the template's channel: email for an email template, web for a web template. An email translation without `sender_id` or `reply_to` sends with those of the template's default content.",
         "properties": {
           "email": {
             "$ref": "#/components/schemas/EmailTemplate"

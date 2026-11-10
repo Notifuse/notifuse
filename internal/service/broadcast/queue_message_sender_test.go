@@ -1466,6 +1466,60 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 		assert.Equal(t, "support@example.com", entry.Payload.EmailOptions.ReplyTo,
 			"ReplyTo from template should be preserved in queue entry")
 	})
+
+	t.Run("translated recipient gets the template's sender and reply-to", func(t *testing.T) {
+		defaultSender := domain.NewEmailSender("hello@example.com", "Default")
+		newsletterSender := domain.NewEmailSender("news@example.com", "Newsletter")
+		newsletterSender.IsDefault = false
+		emailProvider := &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{defaultSender, newsletterSender},
+		}
+
+		broadcast := &domain.Broadcast{
+			ID:            "broadcast-1",
+			UTMParameters: &domain.UTMParameters{},
+		}
+
+		// The translation is saved as the console saves it: no sender, no reply-to.
+		template := &domain.Template{
+			ID: "template-1",
+			Email: &domain.EmailTemplate{
+				SenderID:         newsletterSender.ID,
+				Subject:          "Hello",
+				ReplyTo:          "support@example.com",
+				VisualEditorTree: createQueueValidTestTree(createQueueTestTextBlock("txt1", "Hello")),
+			},
+			Translations: map[string]domain.TemplateTranslation{
+				"it": {Email: &domain.EmailTemplate{
+					Subject:          "Ciao",
+					VisualEditorTree: createQueueValidTestTree(createQueueTestTextBlock("txt1", "Ciao")),
+				}},
+			},
+		}
+
+		entry, err := qms.buildQueueEntry(
+			context.Background(),
+			"workspace-1",
+			"integration-1", "",
+			"https://api.test.com",
+			testTrackingDecision(true), nil,
+			broadcast,
+			"msg-123",
+			"mario@example.com",
+			template,
+			map[string]interface{}{},
+			emailProvider,
+			"it",
+			"en",
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, "Ciao", entry.Payload.Subject)
+		assert.Equal(t, "news@example.com", entry.Payload.FromAddress)
+		assert.Equal(t, "Newsletter", entry.Payload.FromName)
+		assert.Equal(t, "support@example.com", entry.Payload.EmailOptions.ReplyTo)
+	})
 }
 
 func TestQueueMessageSender_ABVariantsPerRecipientUTMContent(t *testing.T) {

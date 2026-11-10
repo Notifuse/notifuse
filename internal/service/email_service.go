@@ -671,8 +671,8 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 
 	tracing.AddAttribute(ctx, "email.sending", true)
 
-	// optional override for reply to
-	if emailContent.ReplyTo != "" {
+	// The template's reply-to applies when the send gives none of its own
+	if request.EmailOptions.ReplyTo == "" && emailContent.ReplyTo != "" {
 		request.EmailOptions.ReplyTo = emailContent.ReplyTo
 	}
 

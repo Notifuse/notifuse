@@ -1550,6 +1550,44 @@ func TestSendToRecipient_LanguageResolution(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("translation saved without sender or reply-to uses the template's", func(t *testing.T) {
+		newsletterSender := domain.NewEmailSender("news@example.com", "Newsletter")
+		newsletterSender.IsDefault = false
+		provider := &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{emailSender, newsletterSender},
+			SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+		}
+		consoleSavedTemplate := &domain.Template{
+			ID: "template-console",
+			Email: &domain.EmailTemplate{
+				SenderID:         newsletterSender.ID,
+				ReplyTo:          "support@example.com",
+				Subject:          "Default Subject",
+				VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Default content")),
+			},
+			Translations: map[string]domain.TemplateTranslation{
+				"it": {Email: &domain.EmailTemplate{
+					Subject:          "Oggetto Italiano",
+					VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Contenuto italiano")),
+				}},
+			},
+		}
+
+		mockEmailService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, req domain.SendEmailProviderRequest, isMarketing bool) error {
+				assert.Equal(t, "Oggetto Italiano", req.Subject)
+				assert.Equal(t, "news@example.com", req.FromAddress)
+				assert.Equal(t, "Newsletter", req.FromName)
+				assert.Equal(t, "support@example.com", req.EmailOptions.ReplyTo)
+				return nil
+			})
+
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", "", "https://api.test.com", testTrackingDecision(tracking), nil, broadcast, "message-it", "it-user@example.com", consoleSavedTemplate, map[string]interface{}{}, provider, timeoutAt, "it", "en")
+		assert.NoError(t, err)
+	})
+
 	t.Run("template with nil Email returns error instead of panic", func(t *testing.T) {
 		nilEmailTemplate := &domain.Template{
 			ID:    "template-nil-email",

@@ -2551,3 +2551,148 @@ func TestEmailService_SendEmailForTemplate_CarriesTrackingDecision(t *testing.T)
 		assert.False(t, *history.ClicksTracked)
 	})
 }
+
+// sendForTemplateCapturingProviderRequest sends emailTemplate to contact through
+// SendEmailForTemplate and returns what reached the provider. The integration has a
+// default sender and a second one; the caller's template names which it uses.
+func sendForTemplateCapturingProviderRequest(t *testing.T, emailTemplate *domain.Template, senders []domain.EmailSender, contact *domain.Contact, emailOptions domain.EmailOptions) domain.SendEmailProviderRequest {
+	t.Helper()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockMessageRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockSESService := mocks.NewMockEmailProviderService(ctrl)
+
+	emailService := EmailService{
+		logger:          mockLogger,
+		workspaceRepo:   mockWorkspaceRepo,
+		templateService: mockTemplateService,
+		messageRepo:     mockMessageRepo,
+		sesService:      mockSESService,
+		apiEndpoint:     "https://api.example.com",
+	}
+
+	const workspaceID = "workspace-123"
+	compiledHTML := "<h1>Hello</h1>"
+
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), workspaceID).
+		Return(&domain.Workspace{
+			ID:       workspaceID,
+			Settings: domain.WorkspaceSettings{DefaultLanguage: "en", SecretKey: "workspace-secret-key-32-chars-min!"},
+		}, nil)
+	mockTemplateService.EXPECT().
+		GetTemplateByID(gomock.Any(), workspaceID, emailTemplate.ID, int64(0)).
+		Return(emailTemplate, nil)
+	mockTemplateService.EXPECT().
+		CompileTemplate(gomock.Any(), gomock.Any()).
+		Return(&domain.CompileTemplateResponse{Success: true, HTML: &compiledHTML}, nil)
+	mockMessageRepo.EXPECT().
+		Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	var sent domain.SendEmailProviderRequest
+	mockSESService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest) error {
+			sent = req
+			return nil
+		})
+
+	request := domain.SendEmailRequest{
+		WorkspaceID:      workspaceID,
+		IntegrationID:    "test-integration-id",
+		MessageID:        "message-456",
+		Contact:          contact,
+		TemplateConfig:   domain.ChannelTemplate{TemplateID: emailTemplate.ID},
+		TrackingSettings: notifuse_mjml.TrackingSettings{EnableTracking: true},
+		EmailProvider: &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSES,
+			Senders: senders,
+			SES:     &domain.AmazonSESSettings{Region: "us-east-1"},
+		},
+		EmailOptions: emailOptions,
+	}
+	require.NoError(t, emailService.SendEmailForTemplate(context.Background(), request))
+
+	return sent
+}
+
+// TestEmailService_SendEmailForTemplate_SenderAndReplyTo covers which From and Reply-To a
+// transactional or list email leaves with: the template's, for translated contacts too, and the
+// send's own reply-to over the template's.
+func TestEmailService_SendEmailForTemplate_SenderAndReplyTo(t *testing.T) {
+	defaultSender := domain.NewEmailSender("hello@example.com", "Default")
+	newsletterSender := domain.NewEmailSender("news@example.com", "Newsletter")
+	newsletterSender.IsDefault = false
+	senders := []domain.EmailSender{defaultSender, newsletterSender}
+
+	newTemplate := func() *domain.Template {
+		return &domain.Template{
+			ID:   "template-789",
+			Name: "Welcome Email",
+			Email: &domain.EmailTemplate{
+				Subject:  "Welcome",
+				SenderID: newsletterSender.ID,
+				ReplyTo:  "support@example.com",
+				VisualEditorTree: &notifuse_mjml.MJMLBlock{
+					BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
+				},
+			},
+			// Saved from the console: no sender, no reply-to.
+			Translations: map[string]domain.TemplateTranslation{
+				"it": {Email: &domain.EmailTemplate{
+					Subject: "Benvenuto",
+					VisualEditorTree: &notifuse_mjml.MJMLBlock{
+						BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
+					},
+				}},
+			},
+		}
+	}
+	italian := &domain.Contact{
+		Email:    "mario@example.com",
+		Language: &domain.NullableString{String: "it", IsNull: false},
+	}
+	english := &domain.Contact{Email: "john@example.com"}
+
+	t.Run("translated contact gets the template's sender and reply-to", func(t *testing.T) {
+		sent := sendForTemplateCapturingProviderRequest(t, newTemplate(), senders, italian, domain.EmailOptions{})
+
+		assert.Equal(t, "Benvenuto", sent.Subject)
+		assert.Equal(t, "news@example.com", sent.FromAddress)
+		assert.Equal(t, "Newsletter", sent.FromName)
+		assert.Equal(t, "support@example.com", sent.EmailOptions.ReplyTo)
+	})
+
+	t.Run("without a reply-to of its own the send takes the template's", func(t *testing.T) {
+		sent := sendForTemplateCapturingProviderRequest(t, newTemplate(), senders, english, domain.EmailOptions{})
+
+		assert.Equal(t, "news@example.com", sent.FromAddress)
+		assert.Equal(t, "support@example.com", sent.EmailOptions.ReplyTo)
+	})
+
+	t.Run("the send's own reply-to wins over the template's", func(t *testing.T) {
+		sent := sendForTemplateCapturingProviderRequest(t, newTemplate(), senders, english,
+			domain.EmailOptions{ReplyTo: "agent@example.com"})
+
+		assert.Equal(t, "agent@example.com", sent.EmailOptions.ReplyTo)
+	})
+
+	t.Run("the send's own reply-to wins for a translated contact too", func(t *testing.T) {
+		sent := sendForTemplateCapturingProviderRequest(t, newTemplate(), senders, italian,
+			domain.EmailOptions{ReplyTo: "agent@example.com"})
+
+		assert.Equal(t, "agent@example.com", sent.EmailOptions.ReplyTo)
+	})
+}
