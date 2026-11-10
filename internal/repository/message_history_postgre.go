@@ -756,10 +756,10 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 	// The exact key per-link statistics group by. The jsonb ? operator (?? to the query
 	// builder, which reads a lone ? as a placeholder) rather than "-> key IS NOT NULL":
 	// PostgreSQL has a selectivity estimate for ?, and none for an expression, which it
-	// assumes almost every row matches. With that guess and the page LIMIT, it walks the
-	// created_at index over the whole table looking for a match, instead of reading the
-	// broadcast's messages. ? is also true for an array or a string holding the key,
-	// hence the object guard.
+	// assumes almost every row matches. With that guess and the page LIMIT, it walked the
+	// created_at index over the whole table for a little-clicked link, where the other
+	// filters of this list read the broadcast's messages. ? is also true for an array or
+	// a string holding the key, hence the object guard.
 	if params.ClickedURL != "" {
 		queryBuilder = queryBuilder.Where("jsonb_typeof(clicked_links) = 'object' AND clicked_links ?? ?", params.ClickedURL)
 	}

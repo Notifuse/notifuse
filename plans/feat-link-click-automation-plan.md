@@ -71,7 +71,7 @@ Issue #498. Base: `dev` after the 43.0 release. Branches: `feat/link-click-autom
 - **Log filter**: `clicked_url`, exact key match with the jsonb `?` operator (`??` to Squirrel) behind a
   `jsonb_typeof(clicked_links) = 'object'` guard. Not `clicked_links -> key IS NOT NULL`: PostgreSQL has no estimate for
   that expression and assumes nearly every row matches, so with the page LIMIT it walks the `created_at` index over the
-  whole table for a little-clicked link; `?` has an estimate, and the broadcast index is used. `clicked_url` requires
+  whole table for a little-clicked link; `?` has an estimate, and the query is planned like the list's other filters. `clicked_url` requires
   `broadcast_id`. The console passes the URL returned by the per-link stats, so the same string.
 
 ## Steps (TDD: tests first, then code)

@@ -433,7 +433,8 @@ func (p *MessageListParams) Validate() error {
 	}
 
 	// clicked_url is matched inside clicked_links, which no index covers, so it only
-	// narrows a broadcast's messages, read through the broadcast index.
+	// narrows a broadcast's messages; PostgreSQL plans it like the other filters of
+	// this list.
 	if p.ClickedURL != "" {
 		if p.BroadcastID == "" {
 			return fmt.Errorf("clicked_url requires broadcast_id")
