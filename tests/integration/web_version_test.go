@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -247,6 +248,63 @@ func TestWebVersion(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode, body)
 		assert.Contains(t, body, "Hello Alex, welcome aboard.")
 		assertWebVersionSandboxed(t, resp)
+	})
+
+	t.Run("a template that does not use the variable has no web version", func(t *testing.T) {
+		// The send records a link for every broadcast email; only the variable in the
+		// template makes it open.
+		source := `<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{ contact.first_name }}, no link here.</mj-text></mj-column></mj-section></mj-body></mjml>`
+		template, err := factory.CreateTemplate(workspace.ID,
+			testutil.WithTemplateSubject("No web version "+uuid.New().String()[:8]),
+			testutil.WithCodeModeTemplate(source))
+		require.NoError(t, err)
+		email := newEmail("nolink")
+		_, err = factory.CreateContact(workspace.ID, testutil.WithContactEmail(email), testutil.WithContactName("Noa", "Doe"))
+		require.NoError(t, err)
+		list, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		broadcast, err := factory.CreateBroadcast(workspace.ID,
+			testutil.WithBroadcastTemplateID(template.ID),
+			testutil.WithBroadcastAudience(domain.AudienceSettings{List: list.ID}))
+		require.NoError(t, err)
+		postOK(t, "/api/broadcasts.sendToIndividual", map[string]interface{}{
+			"workspace_id": workspace.ID, "broadcast_id": broadcast.ID, "recipient_email": email, "template_id": template.ID,
+		})
+		_, err = waitForEmailAndGetMessage(t, email, 20*time.Second)
+		require.NoError(t, err)
+
+		var link string
+		require.Eventually(t, func() bool {
+			resp, err := client.Get("/api/messages.list", map[string]string{"workspace_id": workspace.ID, "limit": "100"})
+			if err != nil {
+				return false
+			}
+			raw, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			var payload struct {
+				Messages []struct {
+					ContactEmail string `json:"contact_email"`
+					MessageData  struct {
+						Data map[string]interface{} `json:"data"`
+					} `json:"message_data"`
+				} `json:"messages"`
+			}
+			if json.Unmarshal(raw, &payload) != nil {
+				return false
+			}
+			for _, m := range payload.Messages {
+				if m.ContactEmail == email {
+					link, _ = m.MessageData.Data["view_in_browser_url"].(string)
+					return true
+				}
+			}
+			return false
+		}, 20*time.Second, 200*time.Millisecond)
+		require.True(t, strings.HasPrefix(link, serverURL+"/v/"), link)
+
+		resp, body := getWebVersion(t, link)
+		assert.Equal(t, http.StatusNotFound, resp.StatusCode, body)
+		assert.NotContains(t, body, "Noa")
 	})
 
 	t.Run("transactional emails get no web version link", func(t *testing.T) {

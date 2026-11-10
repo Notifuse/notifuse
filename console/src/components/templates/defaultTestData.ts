@@ -21,8 +21,8 @@ export function buildDefaultTestData(endpoint: string, workspaceId: string) {
     notification_center_url: `${endpoint}/notification-center?email=john.doe@example.com&email_hmac=abc123&wid=${workspaceId}`,
     tracking_preferences_url: `${endpoint}/notification-center?action=tracking&email=john.doe@example.com&email_hmac=abc123&wid=${workspaceId}`,
     tracking_optout_url: `${endpoint}/notification-center?action=tracking_optout&email=john.doe@example.com&email_hmac=abc123&wid=${workspaceId}`,
-    // A preview has no sent message, so this address opens the web version's "no longer
-    // available" page; a broadcast or automation fills in the real one.
+    // A preview has no sent message: this address opens a page saying so. A broadcast or
+    // an automation fills in the real one.
     view_in_browser_url: `${endpoint}/v/preview`
   }
 }

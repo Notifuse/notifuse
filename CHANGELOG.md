@@ -4,9 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [43.1] - 2026-11-10
 
-- **Feature**: Broadcast and automation emails can link to their web version with `{{ view_in_browser_url }}`, for recipients whose mail client renders the email badly. The page shows the email as it was sent, with the template version and the data of that send, and records no open and no click; links keep their UTM parameters. The link exists only in emails that use the variable, and is empty in transactional and double opt-in emails. Deleting the template takes its web versions down, and so does erasing the contact. The link editor of the visual builder offers it as a link type, "Web version of the email".
+- **Feature**: Broadcast and automation emails can link to their web version with `{{ view_in_browser_url }}`, for recipients whose mail client renders the email badly. The page shows the email as it was sent, with the template version and the data of that send. Viewing it records no open and its links record no click; they keep their UTM parameters. With click tracking on, the click on the link in the email itself counts as a click. Only emails whose template uses the variable have a web version; transactional and double opt-in emails leave it empty. Deleting the template takes its web versions down, and so does deleting the contact. The link editor of the visual builder offers it as a link type, "Web version of the email".
 
-  From this version on, automation emails keep the data they were rendered with in the message history, encrypted, as broadcasts already did, so their web version can be shown. Erasing a contact removes it.
+  From this version on, automation emails keep the data they were rendered with in the message history, encrypted, as broadcasts already did, so their web version can be shown. Deleting a contact removes it.
+
+  The `/v/` path is now reserved for web versions: on a blog's custom domain, a blog category whose slug is `v` is no longer reachable. Rename such a category before upgrading.
 
 ## [43.0] - 2026-11-07
 

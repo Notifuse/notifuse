@@ -177,12 +177,14 @@ describe('EMAIL_AI_SYSTEM_PROMPT Liquid variables', () => {
   })
 
   it('puts the web version link with broadcasts and automations only', () => {
-    // The backend mints it for those two sends and leaves it empty everywhere else.
+    // The backend mints it for broadcasts and automations and leaves it empty elsewhere.
     expect(webVersionGroup).toContain('{{ view_in_browser_url }}')
     for (const other of [alwaysGroup, contactGroup, listGroup, broadcastGroup]) {
       expect(other).not.toContain('view_in_browser_url')
     }
     expect(liquid).toMatch(/view_in_browser_url[^\n]*empty/)
+    // An absent variable is not "", so only blank hides the link in an older preview.
+    expect(liquid).toContain('{% if view_in_browser_url != blank %}')
   })
 
   it('keeps the header-only urls out of every availability group', () => {

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -89,13 +90,21 @@ func wvWorkspace() *domain.Workspace {
 	return &domain.Workspace{ID: wvWorkspaceID, Settings: domain.WorkspaceSettings{SecretKey: wvSecret, DefaultLanguage: "en"}}
 }
 
+// wvLink is the web version link a template must hold for its web version to be shown.
+const wvLink = `<a href="{{ view_in_browser_url }}">View in browser</a> `
+
+// wvTemplate is a visual template whose text links to its web version, then holds content.
 func wvTemplate(content string) *domain.Template {
 	return &domain.Template{
 		ID:      "tpl-1",
 		Version: 3,
 		Channel: "email",
-		Email:   &domain.EmailTemplate{Subject: "Hi", VisualEditorTree: createValidMJMLTree(createTestTextBlock("txt1", content))},
+		Email:   wvEmail("Hi", content),
 	}
+}
+
+func wvEmail(subject, content string) *domain.EmailTemplate {
+	return &domain.EmailTemplate{Subject: subject, VisualEditorTree: createValidMJMLTree(createTestTextBlock("txt1", wvLink+content))}
 }
 
 func wvBroadcastMessage(data map[string]interface{}) *domain.MessageHistory {
@@ -137,7 +146,7 @@ func TestWebVersionService_RendersTheContactLanguage(t *testing.T) {
 	f := newWebVersionFixture(t)
 	template := wvTemplate("Hello")
 	template.Translations = map[string]domain.TemplateTranslation{
-		"fr": {Email: &domain.EmailTemplate{Subject: "Salut", VisualEditorTree: createValidMJMLTree(createTestTextBlock("txt1", "Bonjour"))}},
+		"fr": {Email: wvEmail("Salut", "Bonjour")},
 	}
 	f.expectSource(wvBroadcastMessage(map[string]interface{}{"contact": wvContactData("Camille", "fr")}), template)
 
@@ -215,6 +224,17 @@ func TestWebVersionService_RendersAnAutomationEmailWithItsUTMs(t *testing.T) {
 	assert.Equal(t, "email", ts.UTMMedium)
 	assert.Equal(t, "Welcome", ts.UTMCampaign)
 	assert.Equal(t, "tpl-1", ts.UTMContent)
+}
+
+func TestWebVersionService_RendersACodeModeTemplateThatLinksToIt(t *testing.T) {
+	f := newWebVersionFixture(t)
+	source := `<mjml><mj-body><mj-section><mj-column><mj-text><a href="{{view_in_browser_url}}">View</a> Hello {{ contact.first_name }}</mj-text></mj-column></mj-section></mj-body></mjml>`
+	template := &domain.Template{ID: "tpl-1", Version: 3, Channel: "email", Email: &domain.EmailTemplate{Subject: "Hi", EditorMode: domain.EditorModeCode, MjmlSource: &source}}
+	f.expectSource(wvBroadcastMessage(map[string]interface{}{"contact": wvContactData("Camille", "")}), template)
+
+	html, err := f.svc.Render(context.Background(), WebVersionRef{WorkspaceID: wvWorkspaceID, MessageID: wvMessageID})
+	require.NoError(t, err)
+	assert.Contains(t, html, "Hello Camille")
 }
 
 func TestWebVersionService_Resolve(t *testing.T) {
@@ -330,6 +350,41 @@ func TestWebVersionService_RenderRefusals(t *testing.T) {
 		assert.ErrorIs(t, err, ErrWebVersionNotFound)
 	})
 
+	// The variable in the template is what turns the web version on: a send mints a link
+	// for every broadcast and automation email, but only one whose email shows it is served.
+	t.Run("a template that does not link to its web version", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		template := wvTemplate("Hi")
+		template.Email.VisualEditorTree = createValidMJMLTree(createTestTextBlock("txt1", "Hi {{ contact.first_name }}"))
+		f.expectSource(wvBroadcastMessage(data), template)
+		_, err := f.svc.Render(context.Background(), ref)
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+		assert.Empty(t, f.compiled)
+	})
+
+	t.Run("a code mode template that does not link to its web version", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		source := `<mjml><mj-body><mj-section><mj-column><mj-text>Hi</mj-text></mj-column></mj-section></mj-body></mjml>`
+		// The visual tree a code mode template keeps from before is not what it sends.
+		template := wvTemplate("Hi")
+		template.Email.EditorMode = domain.EditorModeCode
+		template.Email.MjmlSource = &source
+		f.expectSource(wvBroadcastMessage(data), template)
+		_, err := f.svc.Render(context.Background(), ref)
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+
+	t.Run("a translation that does not link to its web version", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		template := wvTemplate("Hello")
+		template.Translations = map[string]domain.TemplateTranslation{
+			"fr": {Email: &domain.EmailTemplate{Subject: "Salut", VisualEditorTree: createValidMJMLTree(createTestTextBlock("txt1", "Bonjour"))}},
+		}
+		f.expectSource(wvBroadcastMessage(map[string]interface{}{"contact": wvContactData("Camille", "fr")}), template)
+		_, err := f.svc.Render(context.Background(), ref)
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+
 	t.Run("a template that does not compile", func(t *testing.T) {
 		f := newWebVersionFixture(t)
 		f.expectSource(wvBroadcastMessage(data), wvTemplate("{% if %}"))
@@ -341,6 +396,17 @@ func TestWebVersionService_RenderRefusals(t *testing.T) {
 		f := newWebVersionFixture(t)
 		f.workspaceRepo.EXPECT().GetByID(gomock.Any(), wvWorkspaceID).Return(wvWorkspace(), nil)
 		f.messageRepo.EXPECT().GetForWebVersion(gomock.Any(), wvWorkspaceID, wvSecret, wvMessageID).Return(nil, errors.New("db down"))
+		_, err := f.svc.Render(context.Background(), ref)
+		assert.ErrorIs(t, err, ErrWebVersionUnavailable)
+	})
+
+	t.Run("a request its reader abandoned is not logged as an error", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		quiet := pkgmocks.NewMockLogger(f.ctrl)
+		quiet.EXPECT().WithFields(gomock.Any()).Return(quiet).AnyTimes()
+		quiet.EXPECT().Debug(gomock.Any()).AnyTimes()
+		f.svc.logger = quiet
+		f.workspaceRepo.EXPECT().GetByID(gomock.Any(), wvWorkspaceID).Return(nil, fmt.Errorf("query: %w", context.Canceled))
 		_, err := f.svc.Render(context.Background(), ref)
 		assert.ErrorIs(t, err, ErrWebVersionUnavailable)
 	})

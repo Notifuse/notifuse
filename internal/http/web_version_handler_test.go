@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// fakeWebVersion resolves "good" to msg-1 and renders it, and fails the other tokens
-// with the error mapped to them.
+// fakeWebVersion resolves a token to the message msg-<token> and renders it, unless the
+// token is mapped to an error.
 type fakeWebVersion struct {
 	resolveErrs map[string]error
 	renderErr   error
@@ -65,7 +65,7 @@ func serveWebVersion(mux *http.ServeMux, method, path string, headers map[string
 func assertWebVersionSecurityHeaders(t *testing.T, h http.Header) {
 	t.Helper()
 	csp := h.Get("Content-Security-Policy")
-	assert.Equal(t, "sandbox allow-popups allow-popups-to-escape-sandbox; default-src 'none'; img-src * data:; style-src 'unsafe-inline' *; font-src * data:; form-action 'none'; frame-ancestors 'none'; base-uri 'none'", csp)
+	assert.Equal(t, "sandbox allow-popups allow-popups-to-escape-sandbox allow-downloads; default-src 'none'; img-src * data:; style-src 'unsafe-inline' *; font-src * data:; form-action 'none'; frame-ancestors 'none'; base-uri 'none'", csp)
 	sandbox := strings.SplitN(csp, ";", 2)[0]
 	assert.NotContains(t, sandbox, "allow-scripts", "a script in a contact field would run on the console origin")
 	assert.NotContains(t, sandbox, "allow-same-origin", "the page must keep an opaque origin")
@@ -144,6 +144,20 @@ func TestWebVersionHandler_MethodNotAllowed(t *testing.T) {
 	assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
 	assert.Equal(t, "GET, HEAD", rec.Header().Get("Allow"))
 	assert.Empty(t, renderer.resolved)
+	assertWebVersionSecurityHeaders(t, rec.Header())
+}
+
+func TestWebVersionHandler_PreviewLink(t *testing.T) {
+	// A template preview and a test email link to /v/preview: there is no sent message
+	// behind them, and the page says so instead of reading as a broken link.
+	renderer := &fakeWebVersion{html: "<html>ok</html>"}
+	mux := newWebVersionTestHandler(t, renderer, 100, 100)
+
+	rec := serveWebVersion(mux, http.MethodGet, "/v/preview", nil)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), "web version of the email")
+	assert.Empty(t, renderer.resolved, "the preview page opens no token")
+	assertWebVersionSecurityHeaders(t, rec.Header())
 }
 
 func TestWebVersionHandler_LimitsEachMessageWhateverTheForwardedAddress(t *testing.T) {

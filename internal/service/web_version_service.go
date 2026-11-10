@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -144,7 +146,10 @@ func (s *WebVersionService) Render(ctx context.Context, ref WebVersionRef) (stri
 	data["tracking_opens_url"] = ""
 
 	emailContent := template.ResolveEmailContent(contactLanguage(data), workspace.Settings.DefaultLanguage)
-	if emailContent == nil {
+	// The variable in the template is what turns the web version on. Every broadcast and
+	// automation email carries a link in its data, but only one whose email shows it has
+	// a web version.
+	if emailContent == nil || !linksToWebVersion(emailContent) {
 		return "", ErrWebVersionNotFound
 	}
 
@@ -175,11 +180,17 @@ func (s *WebVersionService) Render(ctx context.Context, ref WebVersionRef) (stri
 }
 
 func (s *WebVersionService) unavailable(ref WebVersionRef, step string, err error) error {
-	s.logger.WithFields(map[string]interface{}{
+	log := s.logger.WithFields(map[string]interface{}{
 		"workspace_id": ref.WorkspaceID,
 		"message_id":   ref.MessageID,
 		"error":        err.Error(),
-	}).Error("Web version failed to " + step)
+	})
+	if errors.Is(err, context.Canceled) {
+		// The reader closed the page, or a link scanner gave up: nothing failed.
+		log.Debug("Web version request abandoned while trying to " + step)
+	} else {
+		log.Error("Web version failed to " + step)
+	}
 	return fmt.Errorf("%w: %s", ErrWebVersionUnavailable, step)
 }
 
@@ -210,6 +221,18 @@ func webVersionTrackingSettings(endpoint string, message *domain.MessageHistory,
 	}
 	return ts
 }
+
+// linksToWebVersion reports whether the email content uses the web version variable: the
+// MJML source of a code mode template, the visual tree otherwise.
+func linksToWebVersion(content *domain.EmailTemplate) bool {
+	if source := content.GetCodeModeMjmlSource(); source != nil {
+		return strings.Contains(*source, webVersionVariable)
+	}
+	tree, err := json.Marshal(content.VisualEditorTree)
+	return err == nil && strings.Contains(string(tree), webVersionVariable)
+}
+
+const webVersionVariable = "view_in_browser_url"
 
 // contactLanguage reads the recorded contact's language, "" when there is none.
 func contactLanguage(data map[string]interface{}) string {
