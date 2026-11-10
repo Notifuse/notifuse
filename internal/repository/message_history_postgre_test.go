@@ -1876,9 +1876,10 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		// -> rather than the ? operator, which the query builder would read as a placeholder;
-		// -> returns NULL on a malformed (array or scalar) clicked_links instead of failing.
-		mock.ExpectQuery(`FROM message_history WHERE broadcast_id = \$1 AND clicked_links -> \$2::text IS NOT NULL ORDER BY`).
+		// The jsonb ? operator, written ?? to the query builder so it stays an operator; the
+		// URL, which holds a ? of its own, is still bound as $2. ? is true for an array
+		// holding the key too, hence the object guard.
+		mock.ExpectQuery(`FROM message_history WHERE broadcast_id = \$1 AND jsonb_typeof\(clicked_links\) = 'object' AND clicked_links \? \$2 ORDER BY`).
 			WithArgs("bc-1", "https://shop.example.com/a?b=1&c=2").
 			WillReturnRows(sqlmock.NewRows([]string{"id"}))
 

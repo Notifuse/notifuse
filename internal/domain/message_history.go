@@ -432,8 +432,8 @@ func (p *MessageListParams) Validate() error {
 		return fmt.Errorf("invalid contact email format")
 	}
 
-	// clicked_url is matched inside clicked_links, which no index covers: scoped to a
-	// broadcast, the scan stays on that broadcast's messages.
+	// clicked_url is matched inside clicked_links, which no index covers, so it only
+	// narrows a broadcast's messages, read through the broadcast index.
 	if p.ClickedURL != "" {
 		if p.BroadcastID == "" {
 			return fmt.Errorf("clicked_url requires broadcast_id")

@@ -753,11 +753,15 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 		queryBuilder = queryBuilder.Where(sq.Eq{"template_id": params.TemplateID})
 	}
 
-	// The exact key per-link statistics group by. -> rather than the ? operator, which the
-	// query builder would take for a placeholder; -> also yields NULL, not an error, on a
-	// clicked_links that is an array or a scalar.
+	// The exact key per-link statistics group by. The jsonb ? operator (?? to the query
+	// builder, which reads a lone ? as a placeholder) rather than "-> key IS NOT NULL":
+	// PostgreSQL has a selectivity estimate for ?, and none for an expression, which it
+	// assumes almost every row matches. With that guess and the page LIMIT, it walks the
+	// created_at index over the whole table looking for a match, instead of reading the
+	// broadcast's messages. ? is also true for an array or a string holding the key,
+	// hence the object guard.
 	if params.ClickedURL != "" {
-		queryBuilder = queryBuilder.Where("clicked_links -> ?::text IS NOT NULL", params.ClickedURL)
+		queryBuilder = queryBuilder.Where("jsonb_typeof(clicked_links) = 'object' AND clicked_links ?? ?", params.ClickedURL)
 	}
 
 	if params.IsSent != nil {

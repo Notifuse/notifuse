@@ -705,8 +705,9 @@ const (
 	// twice, once as a pageview and once as an event.
 	//
 	// email.link_clicked is left out too: it details a click, and the first click on each
-	// email already writes a metered email.clicked. The partial index keeps serving the
-	// range; the kind is checked on the rows it finds.
+	// email already writes a metered email.clicked. The partial index still serves the
+	// range, but no longer answers alone: kind is read from the table for each row it
+	// finds. The meter runs once a day per workspace.
 	monthlyUsageTimelineCount = `
 		SELECT COUNT(*) FROM contact_timeline
 		WHERE created_at >= $1 AND created_at < $2

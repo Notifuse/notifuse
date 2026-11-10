@@ -211,10 +211,11 @@ func TestTimelineLinkClicked(t *testing.T) {
 		assert.Len(t, linkEntries(t, msg.ID), 1, "a later unsigned click never unverifies it")
 	})
 
-	t.Run("a click without a URL writes email.clicked only", func(t *testing.T) {
+	t.Run("a click recorded without its URL writes email.clicked only", func(t *testing.T) {
 		msg := newMessage(t, "no-url@link.test")
-		_, err := workspaceDB.ExecContext(ctx, `UPDATE message_history SET clicked_at = NOW() WHERE id = $1`, msg.ID)
-		require.NoError(t, err)
+		// A mailto: destination is not a link the email service records, so the click
+		// reaches SetClicked with no URL: clicked_at moves, clicked_links does not.
+		click(t, msg.ID, "mailto:sales@shop.example.com", true)
 		assert.Equal(t, 1, countKind(t, msg.ID, "email.clicked"))
 		assert.Empty(t, linkEntries(t, msg.ID))
 	})
@@ -260,12 +261,16 @@ func TestTimelineLinkClicked(t *testing.T) {
 		assert.Len(t, linkEntries(t, msg.ID), 1)
 	})
 
-	t.Run("a click on an erased contact's email records nothing", func(t *testing.T) {
+	t.Run("a click on an email anonymised by a contact erasure records nothing", func(t *testing.T) {
 		email := "erased@link.test"
 		msg := newMessage(t, email)
-		_, err := workspaceDB.ExecContext(ctx,
-			`UPDATE message_history SET contact_email = 'DELETED_EMAIL', clicked_links = NULL WHERE id = $1`, msg.ID)
-		require.NoError(t, err)
+		// The anonymisation the contact erasure runs on its message history.
+		historyRepo := repository.NewMessageHistoryRepository(suite.ServerManager.GetApp().GetWorkspaceRepository())
+		require.NoError(t, historyRepo.DeleteForEmail(ctx, workspaceID, email))
+		var redacted string
+		require.NoError(t, workspaceDB.QueryRowContext(ctx,
+			`SELECT contact_email FROM message_history WHERE id = $1`, msg.ID).Scan(&redacted))
+		require.Equal(t, "DELETED_EMAIL", redacted)
 
 		click(t, msg.ID, urlA, true)
 
@@ -339,9 +344,13 @@ func TestTimelineLinkClicked(t *testing.T) {
 		assert.Equal(t, []string{msg.ID}, list(t, statURL), "exact match, not a prefix")
 		assert.Empty(t, list(t, "https://shop.example.com/nowhere"))
 
-		// A malformed clicked_links on another email of the broadcast fails nothing.
+		// A malformed clicked_links on another email of the broadcast fails nothing, and an
+		// array holding the URL as a string is not a click on it (jsonb ? is true for it).
 		bad := newMessage(t, "drilldown-bad@link.test")
-		_, err = workspaceDB.ExecContext(ctx, `UPDATE message_history SET clicked_links = '[1]'::jsonb WHERE id = $1`, bad.ID)
+		_, err = workspaceDB.ExecContext(ctx, `UPDATE message_history SET clicked_links = jsonb_build_array($2::text) WHERE id = $1`, bad.ID, tricky)
+		require.NoError(t, err)
+		scalar := newMessage(t, "drilldown-scalar@link.test")
+		_, err = workspaceDB.ExecContext(ctx, `UPDATE message_history SET clicked_links = to_jsonb($2::text) WHERE id = $1`, scalar.ID, tricky)
 		require.NoError(t, err)
 		assert.Equal(t, []string{msg.ID}, list(t, statURL))
 	})
@@ -369,6 +378,22 @@ func TestTimelineLinkClicked(t *testing.T) {
 			`SELECT count(*) FROM contact_timeline WHERE entity_id = $1 AND kind NOT IN ('email.link_clicked', 'email.sent')`, msg.ID).Scan(&others)) // email.sent was written, and metered, before
 		require.Positive(t, others)
 		assert.Equal(t, before+others, metered(t), "one click costs what it cost before")
+	})
+
+	t.Run("a link clicked before 44 writes its entry on its first signed click after", func(t *testing.T) {
+		msg := newMessage(t, "pre-44@link.test")
+		// What 43 recorded: no verified key.
+		_, err := workspaceDB.ExecContext(ctx, `
+			UPDATE message_history SET clicked_at = NOW(),
+			       clicked_links = jsonb_build_object($2::text, jsonb_build_object('count', 1, 'first_at', NOW(), 'last_at', NOW()))
+			WHERE id = $1`, msg.ID, urlA)
+		require.NoError(t, err)
+		require.Empty(t, linkEntries(t, msg.ID))
+
+		click(t, msg.ID, urlA, true)
+		assert.Equal(t, []string{urlA}, urls(linkEntries(t, msg.ID)), "the first verified click on the link")
+		click(t, msg.ID, urlA, true)
+		assert.Len(t, linkEntries(t, msg.ID), 1)
 	})
 
 	t.Run("v44 brings the link step to a workspace that ran 43", func(t *testing.T) {

@@ -68,9 +68,11 @@ Issue #498. Base: `dev` after the 43.0 release. Branches: `feat/link-click-autom
 - **Freeze the v42 body** in `v42.go` as a constant, as v7, v8 and v36 keep theirs.
 - **Clicks on an anonymised message**: `SetClicked` (and the open path) skip messages whose `contact_email` is
   `DELETED_EMAIL`; the redirect still works.
-- **Log filter**: `clicked_url`, exact key match (`clicked_links -> ?::text IS NOT NULL`; `->` returns NULL on an array or
-  scalar, and the `?` operator would clash with Squirrel placeholders). `clicked_url` requires `broadcast_id`. The
-  console passes the URL returned by the per-link stats, so the same string.
+- **Log filter**: `clicked_url`, exact key match with the jsonb `?` operator (`??` to Squirrel) behind a
+  `jsonb_typeof(clicked_links) = 'object'` guard. Not `clicked_links -> key IS NOT NULL`: PostgreSQL has no estimate for
+  that expression and assumes nearly every row matches, so with the page LIMIT it walks the `created_at` index over the
+  whole table for a little-clicked link; `?` has an estimate, and the broadcast index is used. `clicked_url` requires
+  `broadcast_id`. The console passes the URL returned by the per-link stats, so the same string.
 
 ## Steps (TDD: tests first, then code)
 
@@ -187,3 +189,6 @@ cd web_analytics_sdk && npm run build
   key from the per-link stats.
 - A click on a new link now waits for the contact's `contact_segment_queue` row lock before the redirect, as the first
   click already does.
+- A link clicked before 44.0 has no `verified` key, so its first signed click after the upgrade writes its entry
+  (documented).
+- The monthly meter reads `kind` from the table for each row of the month: the partial index no longer answers alone.

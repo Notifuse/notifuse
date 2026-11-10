@@ -134,13 +134,14 @@ const LinkClickedStepAnchor = "-- Link clicks: one entry per link newly clicked 
 //
 // A click also writes one email.link_clicked entry for each link of clicked_links that has
 // just become verified: a link clicked for the first time through a signed token, or a link
-// first clicked through an unverified token and then through a signed one. Its changes carry
+// clicked before through an unverified token, or before 44, which recorded no verified key,
+// and now through a signed one. Its changes carry
 // the URL and the message's broadcast_id, template_id and automation_id, which the WHEN
 // clause of an automation trigger reads, since a WHEN cannot query message_history. Repeat
 // clicks on a link already verified write nothing, and the 50-link cap of clicked_links
-// bounds the entries one email can write. Any statement that rewrites clicked_links writes
-// these entries and starts the automations listening to them, so a migration that rewrote
-// clicked_links in bulk would replay clicks.
+// bounds the entries one email can write. Any statement that marks links of clicked_links
+// verified writes these entries and starts the automations listening to them, so a
+// migration that rewrote clicked_links in bulk with verified keys would replay clicks.
 //
 // Two paths install it: the new-workspace path (internal/database/init.go) and the v44
 // migration. internal/migrations/v7.go, v8.go, v36.go and v42.go carry the bodies this one

@@ -498,7 +498,7 @@ func TestUsageMeterStatements(t *testing.T) {
 		assert.Contains(t, monthlyUsagePageviewCount, "session_date >= $1::date AND session_date < $2::date")
 	})
 
-	t.Run("timeline count excludes exactly the rows the web projection writes", func(t *testing.T) {
+	t.Run("timeline count excludes the rows the web projection writes, and link click details", func(t *testing.T) {
 		assert.Contains(t, monthlyUsageTimelineCount, "created_at >= $1 AND created_at < $2")
 		assert.Contains(t, monthlyUsageTimelineCount, "entity_type NOT IN ('web_page', 'web_session')")
 		// email.link_clicked derives from a click whose email.clicked entry is already

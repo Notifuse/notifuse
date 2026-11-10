@@ -259,3 +259,25 @@ describe('TriggerConfigForm link click filters', () => {
     expect(screen.getByText(/evaluated for every matching event/)).toBeInTheDocument()
   })
 })
+
+describe('TriggerConfigForm event change', () => {
+  it('drops the link click filters when the event changes', async () => {
+    // email.clicked takes none of them: the server would refuse the trigger.
+    const onChange = renderForm({
+      event_kind: 'email.link_clicked',
+      frequency: 'every_time',
+      link_url: '/pricing',
+      broadcast_id: 'bc-9',
+      template_id: 'tpl-9'
+    })
+
+    await userEvent.click(screen.getByRole('combobox'))
+    await userEvent.click(await screen.findByRole('menuitemcheckbox', { name: 'Clicked' }))
+
+    const emitted = onChange.mock.calls[onChange.mock.calls.length - 1][0]
+    expect(emitted.event_kind).toBe('email.clicked')
+    expect(emitted.link_url).toBeUndefined()
+    expect(emitted.broadcast_id).toBeUndefined()
+    expect(emitted.template_id).toBeUndefined()
+  })
+})

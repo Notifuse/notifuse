@@ -43,8 +43,8 @@ func UsageTableDefinitions() []string {
 		//
 		// The predicate repeats the entity_type literals written by
 		// internal/repository/web_analytics_timeline_projection.go verbatim, and
-		// has to stay identical to the meter's WHERE clause or PostgreSQL will
-		// not match the index. A rename on either side costs a seq scan, not
+		// the meter's WHERE clause has to repeat it exactly, whatever else it
+		// checks, or PostgreSQL will not match the index. A rename on either side costs a seq scan, not
 		// correctness.
 		`CREATE INDEX IF NOT EXISTS idx_contact_timeline_billable
 	ON contact_timeline (created_at)
