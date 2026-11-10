@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -51,6 +53,9 @@ type WebVersionService struct {
 	apiHost       string
 	logger        logger.Logger
 	compile       func(notifuse_mjml.CompileTemplateRequest) (*notifuse_mjml.CompileTemplateResponse, error)
+
+	refusalMu     sync.Mutex
+	refusalLogged map[string]time.Time
 }
 
 // NewWebVersionService builds the service. apiEndpoint is the endpoint used when the
@@ -72,16 +77,20 @@ func NewWebVersionService(
 		apiHost:       trackingtoken.HostOf(apiEndpoint),
 		logger:        logger,
 		compile:       notifuse_mjml.CompileTemplate,
+		refusalLogged: make(map[string]time.Time),
 	}
 }
 
-// Resolve opens and verifies a web version token requested on requestHosts: the
-// request's Host, then the host a reverse proxy forwarded, ports included or not. Only a
-// token signed with its workspace's key for the view purpose resolves: there is no
-// unsigned or legacy form. It resolves on the host its link was minted on, which the
-// token signs, and on the API host, never on another workspace's domain, where the page
-// would show one brand's email under another brand's address.
-func (s *WebVersionService) Resolve(ctx context.Context, token string, requestHosts []string) (WebVersionRef, error) {
+// Resolve opens and verifies a web version token requested on requestHost, the host the
+// reader's browser asked for, port included or not. Only a token signed with its
+// workspace's key for the view purpose resolves: there is no unsigned or legacy form.
+//
+// A web version shown under another workspace's custom domain would put one brand's
+// email under another brand's address, which is what a phishing page needs. The token
+// signs the host its link was written with, and the page opens on that host and on the
+// API host only. When the workspace has since moved to another domain, the old one keeps
+// its web versions only while no other workspace has claimed it.
+func (s *WebVersionService) Resolve(ctx context.Context, token, requestHost string) (WebVersionRef, error) {
 	if token == "" || len(token) > MaxWebVersionTokenLength {
 		return WebVersionRef{}, ErrWebVersionNotFound
 	}
@@ -105,26 +114,69 @@ func (s *WebVersionService) Resolve(ctx context.Context, token string, requestHo
 			return WebVersionRef{}, ErrWebVersionNotFound
 		}
 	}
-	if !s.opensOn(tok.Host, requestHosts) {
-		s.logger.WithFields(map[string]interface{}{
-			"workspace_id":  tok.WorkspaceID,
-			"message_id":    tok.MessageID,
-			"link_host":     tok.Host,
-			"request_hosts": requestHosts,
-		}).Info("Web version refused on a host its link was not minted on")
+
+	ref := WebVersionRef{WorkspaceID: tok.WorkspaceID, MessageID: tok.MessageID}
+	if trackingtoken.SameHost(requestHost, s.apiHost) {
+		return ref, nil
+	}
+	if !trackingtoken.SameHost(requestHost, tok.Host) {
+		s.logRefusal(tok, requestHost, "a host its link was not written with")
 		return WebVersionRef{}, ErrWebVersionNotFound
 	}
-	return WebVersionRef{WorkspaceID: tok.WorkspaceID, MessageID: tok.MessageID}, nil
-}
-
-// opensOn reports whether one of requestHosts is linkHost or the API host.
-func (s *WebVersionService) opensOn(linkHost string, requestHosts []string) bool {
-	for _, host := range requestHosts {
-		if trackingtoken.SameHost(host, linkHost) || trackingtoken.SameHost(host, s.apiHost) {
-			return true
+	if trackingtoken.SameHostname(tok.Host, ws.EndpointHost) {
+		return ref, nil
+	}
+	// A domain the workspace has left: refused once another workspace holds it.
+	endpoints, err := s.workspaceRepo.ListCustomEndpoints(ctx)
+	if err != nil {
+		return WebVersionRef{}, s.unavailable(ref, "read the custom domains", err)
+	}
+	for workspaceID, endpoint := range endpoints {
+		if workspaceID != tok.WorkspaceID && trackingtoken.SameHostname(trackingtoken.HostOf(endpoint), tok.Host) {
+			s.logRefusal(tok, requestHost, "a domain another workspace now holds")
+			return WebVersionRef{}, ErrWebVersionNotFound
 		}
 	}
-	return false
+	return ref, nil
+}
+
+// webVersionRefusalLogInterval spaces the refusal lines of one workspace: each comes from
+// a request, so a stream of requests must not become a stream of lines.
+const webVersionRefusalLogInterval = time.Minute
+
+// maxLoggedHostLength cuts the hosts a refusal logs to the longest a DNS name can be.
+const maxLoggedHostLength = 255
+
+func (s *WebVersionService) logRefusal(tok trackingtoken.Token, requestHost, reason string) {
+	now := time.Now()
+	s.refusalMu.Lock()
+	if last, ok := s.refusalLogged[tok.WorkspaceID]; ok && now.Sub(last) < webVersionRefusalLogInterval {
+		s.refusalMu.Unlock()
+		return
+	}
+	if len(s.refusalLogged) >= maxRefusalLogEntries {
+		// Only workspaces whose key verified reach here, so the map stays small; clearing
+		// it bounds it anyway.
+		s.refusalLogged = make(map[string]time.Time)
+	}
+	s.refusalLogged[tok.WorkspaceID] = now
+	s.refusalMu.Unlock()
+
+	s.logger.WithFields(map[string]interface{}{
+		"workspace_id": tok.WorkspaceID,
+		"message_id":   tok.MessageID,
+		"link_host":    truncateHost(tok.Host),
+		"request_host": truncateHost(requestHost),
+	}).Info("Web version refused on " + reason)
+}
+
+const maxRefusalLogEntries = 10000
+
+func truncateHost(host string) string {
+	if len(host) > maxLoggedHostLength {
+		return host[:maxLoggedHostLength]
+	}
+	return host
 }
 
 // Render compiles the web version of a resolved message.

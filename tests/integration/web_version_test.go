@@ -166,7 +166,7 @@ func TestWebVersion(t *testing.T) {
 		assert.Equal(t, openedBefore, openedAfter)
 		assert.Equal(t, clickedBefore, clickedAfter)
 
-		// The token signs the host its link was minted on: another workspace's custom
+		// The token signs the host its link was written with: another workspace's custom
 		// domain, or any other host, does not show the email.
 		other, err := factory.CreateWorkspace()
 		require.NoError(t, err)
@@ -189,10 +189,12 @@ func TestWebVersion(t *testing.T) {
 		assert.NotContains(t, foreignBody, "Camille")
 		status, _ = onHost("unknown.example", "")
 		assert.Equal(t, http.StatusNotFound, status)
-		// Behind a proxy that rewrites Host, the forwarded host counts.
+		// Behind a proxy, the forwarded host is the one the request is judged on.
 		linkHost := strings.SplitN(strings.TrimPrefix(destination, "http://"), "/", 2)[0]
 		status, _ = onHost("notifuse:8080", linkHost)
 		assert.Equal(t, http.StatusOK, status)
+		status, _ = onHost(linkHost, "mail.another-brand.example")
+		assert.Equal(t, http.StatusNotFound, status)
 
 		// Nor can this workspace take the other one's domain as its own.
 		current, err := factory.GetWorkspace(workspace.ID)

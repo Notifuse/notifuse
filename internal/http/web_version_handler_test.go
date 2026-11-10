@@ -22,13 +22,13 @@ type fakeWebVersion struct {
 	renderErr   error
 	html        string
 	resolved    []string
-	hosts       [][]string
+	hosts       []string
 	rendered    int
 }
 
-func (f *fakeWebVersion) Resolve(_ context.Context, token string, requestHosts []string) (service.WebVersionRef, error) {
+func (f *fakeWebVersion) Resolve(_ context.Context, token, requestHost string) (service.WebVersionRef, error) {
 	f.resolved = append(f.resolved, token)
-	f.hosts = append(f.hosts, requestHosts)
+	f.hosts = append(f.hosts, requestHost)
 	if err, ok := f.resolveErrs[token]; ok {
 		return service.WebVersionRef{}, err
 	}
@@ -89,8 +89,8 @@ func TestWebVersionHandler_ServesTheEmail(t *testing.T) {
 }
 
 func TestWebVersionHandler_ResolvesForTheRequestedHost(t *testing.T) {
-	// The service opens a web version only on the host its link was minted on, so it
-	// needs the host the reader asked for, and the one a proxy forwarded.
+	// The service opens a web version only on the host its link was written with, so it
+	// needs the host the reader asked for: the one a proxy forwarded, when there is one.
 	renderer := &fakeWebVersion{html: "<html>ok</html>"}
 	mux := newWebVersionTestHandler(t, renderer, 100, 100)
 
@@ -103,10 +103,12 @@ func TestWebVersionHandler_ResolvesForTheRequestedHost(t *testing.T) {
 	proxied.Header.Set("X-Forwarded-Host", " mail.brand-a.example , edge.example")
 	mux.ServeHTTP(httptest.NewRecorder(), proxied)
 
-	assert.Equal(t, [][]string{
-		{"mail.brand-a.example:8443"},
-		{"notifuse:8080", "mail.brand-a.example"},
-	}, renderer.hosts)
+	blank := httptest.NewRequest(http.MethodGet, "/v/good", nil)
+	blank.Host = "mail.brand-a.example"
+	blank.Header.Set("X-Forwarded-Host", " , edge.example")
+	mux.ServeHTTP(httptest.NewRecorder(), blank)
+
+	assert.Equal(t, []string{"mail.brand-a.example:8443", "mail.brand-a.example", "mail.brand-a.example"}, renderer.hosts)
 }
 
 func TestWebVersionHandler_IgnoresTheQueryString(t *testing.T) {

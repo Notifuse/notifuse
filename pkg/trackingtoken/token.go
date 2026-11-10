@@ -9,7 +9,7 @@
 //
 //	click: <mid>\n<wid>\n<ts>.<tag>\n<url>
 //	open:  <mid>\n<wid>\n<ts>.<tag>
-//	view:  <mid>\n<wid>\n<ts>.<tag>
+//	view:  <mid>\n<wid>\n<ts>.<tag>\n<host>
 //
 // The fields keep the order of the unsigned tokens minted before 42.2, so an instance that
 // still reads the old format finds the message, workspace and destination where they were.
@@ -29,6 +29,7 @@ import (
 	"strings"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
+	"golang.org/x/net/idna"
 )
 
 // Purpose tells a click token from an open token, so a tag minted for one is never
@@ -96,7 +97,19 @@ func HostOf(endpoint string) string {
 	if err != nil {
 		return ""
 	}
-	return strings.ToLower(u.Hostname())
+	host := u.Hostname()
+	for i := 0; i < len(host); i++ {
+		if host[i] >= 0x80 {
+			// Browsers send a Unicode hostname in Punycode. idna.Lookup would refuse valid
+			// ASCII hosts such as my_host.example.com, so it only sees non-ASCII ones; one
+			// it cannot convert stays as written and matches no request.
+			if converted, err := idna.Lookup.ToASCII(host); err == nil && converted != "" {
+				return converted
+			}
+			break
+		}
+	}
+	return strings.ToLower(host)
 }
 
 // SameHost reports whether hostport, a request's Host with or without a port, names

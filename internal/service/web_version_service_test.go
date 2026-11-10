@@ -10,6 +10,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	"github.com/Notifuse/notifuse/pkg/logger"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/Notifuse/notifuse/pkg/trackingtoken"
@@ -70,7 +71,7 @@ func newWebVersionFixture(t *testing.T) *webVersionFixture {
 
 	f := &webVersionFixture{
 		ctrl:          ctrl,
-		keys:          &fakeWebVersionKeys{lookup: trackingtoken.Workspace{Key: domain.TrackingSigningKey(wvSecret)}, status: trackingtoken.WorkspaceKnown},
+		keys:          &fakeWebVersionKeys{lookup: trackingtoken.Workspace{Key: domain.TrackingSigningKey(wvSecret), EndpointHost: wvLinkHost}, status: trackingtoken.WorkspaceKnown},
 		workspaceRepo: mocks.NewMockWorkspaceRepository(ctrl),
 		messageRepo:   mocks.NewMockMessageHistoryRepository(ctrl),
 		templateRepo:  mocks.NewMockTemplateRepository(ctrl),
@@ -138,7 +139,7 @@ func TestWebVersionService_RendersABroadcastEmailFromItsVersion(t *testing.T) {
 	f := newWebVersionFixture(t)
 	f.expectSource(wvBroadcastMessage(map[string]interface{}{"contact": wvContactData("Camille", "")}), wvTemplate("Hello {{ contact.first_name }}"))
 
-	ref, err := f.svc.Resolve(context.Background(), wvToken(t, wvSecret, wvWorkspaceID, wvMessageID), []string{wvAPIHost})
+	ref, err := f.svc.Resolve(context.Background(), wvToken(t, wvSecret, wvWorkspaceID, wvMessageID), wvAPIHost)
 	require.NoError(t, err)
 	assert.Equal(t, WebVersionRef{WorkspaceID: wvWorkspaceID, MessageID: wvMessageID}, ref)
 
@@ -244,14 +245,15 @@ func TestWebVersionService_RendersACodeModeTemplateThatLinksToIt(t *testing.T) {
 
 // On another workspace's custom domain, a web version would put one brand's email under
 // another brand's address, which is what a phishing page needs. The token signs the host
-// its link was minted on, and the page opens there and on the API host only.
+// its link was minted on, and the page opens there and on the API host only; on a
+// domain the workspace has since left, only while no other workspace has taken it.
 func TestWebVersionService_ResolveChecksTheSignedHost(t *testing.T) {
 	token := func(t *testing.T) string { return wvToken(t, wvSecret, wvWorkspaceID, wvMessageID) }
 
-	t.Run("on the host the link was minted on", func(t *testing.T) {
+	t.Run("on the workspace's current domain, without reading the others", func(t *testing.T) {
 		for _, host := range []string{"mail.brand-a.example", "Mail.Brand-A.example:443", "mail.brand-a.example."} {
 			f := newWebVersionFixture(t)
-			ref, err := f.svc.Resolve(context.Background(), token(t), []string{host})
+			ref, err := f.svc.Resolve(context.Background(), token(t), host)
 			require.NoError(t, err, host)
 			assert.Equal(t, wvMessageID, ref.MessageID)
 		}
@@ -259,40 +261,77 @@ func TestWebVersionService_ResolveChecksTheSignedHost(t *testing.T) {
 
 	t.Run("on the API host", func(t *testing.T) {
 		f := newWebVersionFixture(t)
-		_, err := f.svc.Resolve(context.Background(), token(t), []string{"API.example.com:8443"})
-		require.NoError(t, err)
-	})
-
-	t.Run("on the forwarded host when a proxy rewrote the Host", func(t *testing.T) {
-		f := newWebVersionFixture(t)
-		_, err := f.svc.Resolve(context.Background(), token(t), []string{"notifuse:8080", "mail.brand-a.example"})
+		_, err := f.svc.Resolve(context.Background(), token(t), "API.example.com:8443")
 		require.NoError(t, err)
 	})
 
 	t.Run("not on any other host", func(t *testing.T) {
-		for _, hosts := range [][]string{
-			{"mail.brand-b.example"},
-			{"old.brand-a.example"},
-			{"mail.brand-a.example.evil.example"},
-			{"notifuse:8080", ""},
-			{""},
-			nil,
-		} {
+		for _, host := range []string{"mail.brand-b.example", "old.brand-a.example", "mail.brand-a.example.evil.example", "notifuse:8080", ""} {
 			f := newWebVersionFixture(t)
-			_, err := f.svc.Resolve(context.Background(), token(t), hosts)
-			assert.ErrorIs(t, err, ErrWebVersionNotFound, "%q", hosts)
+			_, err := f.svc.Resolve(context.Background(), token(t), host)
+			assert.ErrorIs(t, err, ErrWebVersionNotFound, host)
 		}
+	})
+
+	t.Run("on a domain the workspace left, while no other workspace has it", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.keys.lookup.EndpointHost = "new.brand-a.example"
+		f.workspaceRepo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(map[string]string{
+			wvWorkspaceID: "https://new.brand-a.example",
+		}, nil)
+		_, err := f.svc.Resolve(context.Background(), token(t), "mail.brand-a.example")
+		require.NoError(t, err)
+	})
+
+	t.Run("not on a domain the workspace left once another workspace has it", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.keys.lookup.EndpointHost = "new.brand-a.example"
+		f.workspaceRepo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(map[string]string{
+			wvWorkspaceID: "https://new.brand-a.example",
+			"brand_b":     "https://MAIL.brand-a.example:443",
+		}, nil)
+		_, err := f.svc.Resolve(context.Background(), token(t), "mail.brand-a.example")
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+
+	t.Run("a failure to read the other domains is transient", func(t *testing.T) {
+		f := newWebVersionFixture(t)
+		f.keys.lookup.EndpointHost = ""
+		f.workspaceRepo.EXPECT().ListCustomEndpoints(gomock.Any()).Return(nil, errors.New("db down"))
+		_, err := f.svc.Resolve(context.Background(), token(t), "mail.brand-a.example")
+		assert.ErrorIs(t, err, ErrWebVersionUnavailable)
 	})
 
 	t.Run("a link minted without an endpoint host opens on the API host only", func(t *testing.T) {
 		f := newWebVersionFixture(t)
 		bare, err := trackingtoken.MintView(domain.TrackingSigningKey(wvSecret), wvMessageID, wvWorkspaceID, time.Now().Unix(), "")
 		require.NoError(t, err)
-		_, err = f.svc.Resolve(context.Background(), bare, []string{wvAPIHost})
+		_, err = f.svc.Resolve(context.Background(), bare, wvAPIHost)
 		require.NoError(t, err)
-		_, err = f.svc.Resolve(context.Background(), bare, []string{"mail.brand-b.example"})
+		_, err = f.svc.Resolve(context.Background(), bare, "mail.brand-b.example")
 		assert.ErrorIs(t, err, ErrWebVersionNotFound)
 	})
+}
+
+func TestWebVersionService_RefusalLogIsBounded(t *testing.T) {
+	// A refused request writes one line a minute per workspace, with the hosts cut short:
+	// both come from the request, so they must not size the log.
+	f := newWebVersionFixture(t)
+	logged := 0
+	quiet := pkgmocks.NewMockLogger(f.ctrl)
+	quiet.EXPECT().WithFields(gomock.Any()).DoAndReturn(func(fields map[string]interface{}) logger.Logger {
+		assert.LessOrEqual(t, len(fields["request_host"].(string)), 255)
+		return quiet
+	}).AnyTimes()
+	quiet.EXPECT().Info(gomock.Any()).Do(func(string) { logged++ }).AnyTimes()
+	f.svc.logger = quiet
+
+	long := strings.Repeat("a", 10000) + ".example"
+	for i := 0; i < 5; i++ {
+		_, err := f.svc.Resolve(context.Background(), wvToken(t, wvSecret, wvWorkspaceID, wvMessageID), long)
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	}
+	assert.Equal(t, 1, logged)
 }
 
 func TestWebVersionService_Resolve(t *testing.T) {
@@ -300,13 +339,13 @@ func TestWebVersionService_Resolve(t *testing.T) {
 		f := newWebVersionFixture(t)
 		openToken, err := trackingtoken.MintOpen(domain.TrackingSigningKey(wvSecret), wvMessageID, wvWorkspaceID, time.Now().Unix())
 		require.NoError(t, err)
-		_, err = f.svc.Resolve(context.Background(), openToken, []string{wvAPIHost})
+		_, err = f.svc.Resolve(context.Background(), openToken, wvAPIHost)
 		assert.ErrorIs(t, err, ErrWebVersionNotFound)
 	})
 
 	t.Run("a token signed with another key is not found", func(t *testing.T) {
 		f := newWebVersionFixture(t)
-		_, err := f.svc.Resolve(context.Background(), wvToken(t, "another-secret", wvWorkspaceID, wvMessageID), []string{wvAPIHost})
+		_, err := f.svc.Resolve(context.Background(), wvToken(t, "another-secret", wvWorkspaceID, wvMessageID), wvAPIHost)
 		assert.ErrorIs(t, err, ErrWebVersionNotFound)
 		assert.Equal(t, 1, f.keys.refreshes, "a failed signature re-reads the key once")
 	})
@@ -315,7 +354,7 @@ func TestWebVersionService_Resolve(t *testing.T) {
 		f := newWebVersionFixture(t)
 		f.keys.lookup = trackingtoken.Workspace{Key: domain.TrackingSigningKey("old-secret")}
 		f.keys.refreshed = trackingtoken.Workspace{Key: domain.TrackingSigningKey(wvSecret)}
-		ref, err := f.svc.Resolve(context.Background(), wvToken(t, wvSecret, wvWorkspaceID, wvMessageID), []string{wvAPIHost})
+		ref, err := f.svc.Resolve(context.Background(), wvToken(t, wvSecret, wvWorkspaceID, wvMessageID), wvAPIHost)
 		require.NoError(t, err)
 		assert.Equal(t, wvMessageID, ref.MessageID)
 	})
@@ -323,26 +362,26 @@ func TestWebVersionService_Resolve(t *testing.T) {
 	t.Run("an unknown workspace is not found", func(t *testing.T) {
 		f := newWebVersionFixture(t)
 		f.keys.status = trackingtoken.WorkspaceUnknown
-		_, err := f.svc.Resolve(context.Background(), wvToken(t, wvSecret, wvWorkspaceID, wvMessageID), []string{wvAPIHost})
+		_, err := f.svc.Resolve(context.Background(), wvToken(t, wvSecret, wvWorkspaceID, wvMessageID), wvAPIHost)
 		assert.ErrorIs(t, err, ErrWebVersionNotFound)
 	})
 
 	t.Run("an unavailable workspace lookup is transient", func(t *testing.T) {
 		f := newWebVersionFixture(t)
 		f.keys.status = trackingtoken.WorkspaceUnavailable
-		_, err := f.svc.Resolve(context.Background(), wvToken(t, wvSecret, wvWorkspaceID, wvMessageID), []string{wvAPIHost})
+		_, err := f.svc.Resolve(context.Background(), wvToken(t, wvSecret, wvWorkspaceID, wvMessageID), wvAPIHost)
 		assert.ErrorIs(t, err, ErrWebVersionUnavailable)
 	})
 
 	t.Run("garbage is not found", func(t *testing.T) {
 		f := newWebVersionFixture(t)
-		_, err := f.svc.Resolve(context.Background(), "not-a-token", []string{wvAPIHost})
+		_, err := f.svc.Resolve(context.Background(), "not-a-token", wvAPIHost)
 		assert.ErrorIs(t, err, ErrWebVersionNotFound)
 	})
 
 	t.Run("an over-long token is not found without being opened", func(t *testing.T) {
 		f := newWebVersionFixture(t)
-		_, err := f.svc.Resolve(context.Background(), strings.Repeat("a", MaxWebVersionTokenLength+1), []string{wvAPIHost})
+		_, err := f.svc.Resolve(context.Background(), strings.Repeat("a", MaxWebVersionTokenLength+1), wvAPIHost)
 		assert.ErrorIs(t, err, ErrWebVersionNotFound)
 	})
 }

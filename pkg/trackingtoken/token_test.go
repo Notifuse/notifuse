@@ -322,6 +322,10 @@ func TestHostOf(t *testing.T) {
 		" http://localhost:4000/ ":          "localhost",
 		"":                                  "",
 		"https://[::1":                      "",
+		// A browser sends a Unicode hostname in Punycode, so it is compared that way.
+		"https://bücher.example":      "xn--bcher-kva.example",
+		"https://BÜCHER.example":      "xn--bcher-kva.example",
+		"https://my_host.example.com": "my_host.example.com",
 	}
 	for raw, want := range cases {
 		assert.Equal(t, want, HostOf(raw), "%q", raw)
@@ -372,7 +376,10 @@ func TestVerify_ViewPurposeIsBound(t *testing.T) {
 	viewAsClick, err := Parse(view, PurposeClick)
 	require.NoError(t, err)
 	assert.False(t, viewAsClick.Verify(key, PurposeClick), "a view token must not verify as a click")
-	viewParts := strings.SplitN(open(t, view), "\n", 4)
+	// With an empty host, a view token differs from an open token by its purpose alone.
+	bareView, err := MintView(key, "msg-1", "ws-1", 1730000000, "")
+	require.NoError(t, err)
+	viewParts := strings.SplitN(open(t, bareView), "\n", 4)
 	viewAsOpen, err := Parse(reseal(t, strings.Join(viewParts[:3], "\n")), PurposeOpen)
 	require.NoError(t, err)
 	assert.False(t, viewAsOpen.Verify(key, PurposeOpen), "a view token must not verify as an open")
@@ -426,7 +433,6 @@ func TestSameHost(t *testing.T) {
 		{"", "mail.brand.com"},
 		{"mail.brand.com", ""},
 		{".", "."},
-		// A bare IPv6 literal is not a hostport: compare hostnames with SameHostname.
 		// The Kelvin sign folds onto k under strings.EqualFold: hosts fold ASCII only.
 		{"\u212aelvin.example", "kelvin.example"},
 	}
