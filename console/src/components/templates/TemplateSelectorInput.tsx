@@ -117,6 +117,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   }
 
   const showDrawer = () => {
+    // The input is disabled without Templates read; the check keeps the drawer shut anyway.
     if (!disabled && canReadTemplates) {
       setOpen(true)
     }
@@ -166,7 +167,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
           size={size}
           style={{ flex: 1 }}
         />
-        {selectedTemplate && currentWorkspace && (
+        {canReadTemplates && selectedTemplate && currentWorkspace && (
           <TemplatePreviewPopover record={selectedTemplate} workspace={currentWorkspace}>
             <Button icon={<EyeOutlined />} />
           </TemplatePreviewPopover>

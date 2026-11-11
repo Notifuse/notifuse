@@ -2983,8 +2983,8 @@ msgstr "Client Secret is required"
 msgid "Client Secret Value"
 msgstr "Client Secret Value"
 
-#: src/components/templates/TemplateSelectorInput.tsx:235
-#: src/components/templates/TemplateSelectorInput.tsx:237
+#: src/components/templates/TemplateSelectorInput.tsx:236
+#: src/components/templates/TemplateSelectorInput.tsx:238
 msgid "Clone"
 msgstr "Clone"
 
@@ -3781,7 +3781,7 @@ msgid "Create my own"
 msgstr "Create my own"
 
 #. placeholder {0}: category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:274
+#: src/components/templates/TemplateSelectorInput.tsx:275
 msgid "Create New {0} Template"
 msgstr "Create New {0} Template"
 
@@ -3801,7 +3801,7 @@ msgstr "Create New List"
 msgid "Create New Post"
 msgstr "Create New Post"
 
-#: src/components/templates/TemplateSelectorInput.tsx:275
+#: src/components/templates/TemplateSelectorInput.tsx:276
 msgid "Create New Template"
 msgstr "Create New Template"
 
@@ -8616,7 +8616,7 @@ msgstr "Loading webhook status..."
 
 #: src/components/blog_editor/NotifuseEditor.tsx:480
 #: src/components/messages/MessageHistoryTab.tsx:612
-#: src/components/templates/TemplateSelectorInput.tsx:149
+#: src/components/templates/TemplateSelectorInput.tsx:150
 #: src/components/timeline/ContactTimeline.tsx:1122
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:504
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:455
@@ -9354,7 +9354,7 @@ msgstr "No campaign data"
 msgid "No categories yet"
 msgstr "No categories yet"
 
-#: src/components/templates/TemplateSelectorInput.tsx:252
+#: src/components/templates/TemplateSelectorInput.tsx:253
 msgid "No category"
 msgstr "No category"
 
@@ -9643,13 +9643,13 @@ msgstr "No source data"
 msgid "No specific details provided."
 msgstr "No specific details provided."
 
-#: src/components/templates/TemplateSelectorInput.tsx:262
+#: src/components/templates/TemplateSelectorInput.tsx:263
 #: src/pages/TemplatesPage.tsx:455
 msgid "No templates found"
 msgstr "No templates found"
 
 #. placeholder {0}: category.replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:261
+#: src/components/templates/TemplateSelectorInput.tsx:262
 msgid "No templates found for {0} category"
 msgstr "No templates found for {0} category"
 
@@ -12344,7 +12344,7 @@ msgstr "Search Engine Indexing"
 msgid "Search saved blocks"
 msgstr "Search saved blocks"
 
-#: src/components/templates/TemplateSelectorInput.tsx:187
+#: src/components/templates/TemplateSelectorInput.tsx:188
 msgid "Search templates..."
 msgstr "Search templates..."
 
@@ -12486,7 +12486,7 @@ msgstr "Segments"
 #: src/components/file_manager/fileManager.tsx:976
 #: src/components/settings/BlogSettings.tsx:360
 #: src/components/settings/BlogSettings.tsx:376
-#: src/components/templates/TemplateSelectorInput.tsx:242
+#: src/components/templates/TemplateSelectorInput.tsx:243
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 #: src/pages/BroadcastsPage.tsx:1080
 msgid "Select"
@@ -12763,7 +12763,7 @@ msgstr "Select supported languages"
 msgid "Select template"
 msgstr "Select template"
 
-#: src/components/templates/TemplateSelectorInput.tsx:177
+#: src/components/templates/TemplateSelectorInput.tsx:178
 msgid "Select Template"
 msgstr "Select Template"
 

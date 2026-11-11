@@ -309,6 +309,7 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
 
     // The selector is told not to request templates, and the field says why it shows no name.
     expect(screen.getByTestId('template-selector')).toHaveAttribute('data-can-read-templates', 'false')
+    expect(screen.getByTestId('template-selector')).toBeDisabled()
     expect(
       screen.getByText("You need Templates read permission to see this template's name and preview")
     ).toBeInTheDocument()

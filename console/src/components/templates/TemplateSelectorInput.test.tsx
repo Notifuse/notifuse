@@ -88,7 +88,7 @@ describe('TemplateSelectorInput', () => {
 describe('TemplateSelectorInput without Templates read', () => {
   const renderSelector = (value: string | null, onChange = vi.fn()) => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    render(
+    const tree = (canReadTemplates: boolean) => (
       <QueryClientProvider client={client}>
         <I18nProvider i18n={i18n}>
           <ConfigProvider>
@@ -97,14 +97,15 @@ describe('TemplateSelectorInput without Templates read', () => {
                 value={value}
                 onChange={onChange}
                 workspaceId="ws1"
-                canReadTemplates={false}
+                canReadTemplates={canReadTemplates}
               />
             </App>
           </ConfigProvider>
         </I18nProvider>
       </QueryClientProvider>
     )
-    return onChange
+    const { container, rerender } = render(tree(false))
+    return { onChange, container, grant: () => rerender(tree(true)) }
   }
 
   beforeEach(() => {
@@ -114,15 +115,25 @@ describe('TemplateSelectorInput without Templates read', () => {
   })
 
   it('shows the template ID, disabled, without requesting any template', async () => {
-    const onChange = renderSelector('supabase_magiclink_000001')
+    const { onChange, container } = renderSelector('supabase_magiclink_000001')
 
     const input = screen.getByDisplayValue('supabase_magiclink_000001')
     expect(input).toBeDisabled()
+    // No clear button: clearing is the one way the field could change the stored value.
+    expect(container.querySelector('.ant-input-clear-icon')).toBeNull()
     // Give a query or the effect the chance to fire before asserting they did not.
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(templatesApi.list).not.toHaveBeenCalled()
     expect(templatesApi.get).not.toHaveBeenCalled()
     expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('resolves the template once the permission is granted', async () => {
+    const { grant } = renderSelector('tpl-a')
+    grant()
+
+    expect(await screen.findByDisplayValue('Template A')).toBeInTheDocument()
+    expect(templatesApi.get).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'tpl-a' })
   })
 
   it('requests the templates when the prop is left out', async () => {
