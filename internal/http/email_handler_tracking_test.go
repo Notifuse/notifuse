@@ -421,29 +421,33 @@ func TestLegacyOpens_BotChecks(t *testing.T) {
 	})
 }
 
-// TestEncryptedClick_PassesEveryRequestHostToTheRecorder pins the hosts a click is
-// judged against when its link is sorted out of the per-link record: the request's Host
-// and every X-Forwarded-Host entry. Behind a proxy that forwards its own upstream name as
-// Host, only the forwarded one is the host the email's own links were built on; a direct
-// request keeps its Host whatever forwarded value a client adds.
-func TestEncryptedClick_PassesEveryRequestHostToTheRecorder(t *testing.T) {
+// TestEncryptedClick_PassesEveryOwnHostToTheRecorder pins the hosts a click's link is
+// compared with before it is recorded per link: the request's Host, every
+// X-Forwarded-Host entry, the API endpoint's host and the workspace's custom endpoint
+// host. Behind a proxy that forwards its own upstream name as Host, the forwarded host
+// or, with no header at all, the endpoint hosts are the ones the email's own links were
+// built on; a direct request keeps its Host whatever forwarded value a client adds.
+func TestEncryptedClick_PassesEveryOwnHostToTheRecorder(t *testing.T) {
 	key := trackingTestKey(t, "workspace-secret")
 	const dest = "https://mail.brand.test/unsubscribe-oneclick?email=someone@example.com"
+	const apiHost = "api.notifuse.test"
 
 	cases := map[string]struct {
 		forwarded []string
+		endpoint  string
 		want      []string
 	}{
-		"no forwarded host":         {want: []string{"notifuse:8080"}},
-		"one forwarded host":        {forwarded: []string{"mail.brand.test"}, want: []string{"notifuse:8080", "mail.brand.test"}},
-		"a list, spaces trimmed":    {forwarded: []string{" mail.brand.test , edge.example"}, want: []string{"notifuse:8080", "mail.brand.test", "edge.example"}},
-		"blank entries are skipped": {forwarded: []string{" , edge.example", ""}, want: []string{"notifuse:8080", "edge.example"}},
-		"several header lines":      {forwarded: []string{"mail.brand.test", "edge.example"}, want: []string{"notifuse:8080", "mail.brand.test", "edge.example"}},
+		"no forwarded host":         {want: []string{"notifuse:8080", apiHost}},
+		"one forwarded host":        {forwarded: []string{"mail.brand.test"}, want: []string{"notifuse:8080", "mail.brand.test", apiHost}},
+		"a list, spaces trimmed":    {forwarded: []string{" mail.brand.test , edge.example"}, want: []string{"notifuse:8080", "mail.brand.test", "edge.example", apiHost}},
+		"blank entries are skipped": {forwarded: []string{" , edge.example", ""}, want: []string{"notifuse:8080", "edge.example", apiHost}},
+		"several header lines":      {forwarded: []string{"mail.brand.test", "edge.example"}, want: []string{"notifuse:8080", "mail.brand.test", "edge.example", apiHost}},
+		"the custom endpoint host":  {endpoint: "links.brand.com", want: []string{"notifuse:8080", apiHost, "links.brand.com"}},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
-			expectLookup(ws, trackingtoken.Workspace{Key: key}, trackingtoken.WorkspaceKnown)
+			expectLookup(ws, trackingtoken.Workspace{Key: key, EndpointHost: tc.endpoint}, trackingtoken.WorkspaceKnown)
 			svc.EXPECT().VisitLink(gomock.Any(), trackingTestMessageID, trackingTestWorkspace, dest, tc.want, true).Return(nil)
 
 			req := httptest.NewRequest(http.MethodGet, "/r/"+signedClickToken(t, key, oldTS(), dest), nil)
@@ -458,10 +462,32 @@ func TestEncryptedClick_PassesEveryRequestHostToTheRecorder(t *testing.T) {
 		})
 	}
 
+	t.Run("an unverified token passes the custom endpoint host too", func(t *testing.T) {
+		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
+		expectLookup(ws, trackingtoken.Workspace{Key: key, EndpointHost: "links.brand.com"}, trackingtoken.WorkspaceKnown)
+		svc.EXPECT().VisitLink(gomock.Any(), trackingTestMessageID, trackingTestWorkspace, dest, []string{"notifuse:8080", apiHost, "links.brand.com"}, false).Return(nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/r/"+signedClickToken(t, nil, oldTS(), dest), nil)
+		req.Host = "notifuse:8080"
+		req.Header.Set("User-Agent", trackingTestUA)
+		handler.handleEncryptedClick(httptest.NewRecorder(), req)
+	})
+
+	t.Run("an unavailable workspace passes no custom endpoint host", func(t *testing.T) {
+		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
+		expectLookup(ws, trackingtoken.Workspace{}, trackingtoken.WorkspaceUnavailable)
+		svc.EXPECT().VisitLink(gomock.Any(), trackingTestMessageID, trackingTestWorkspace, dest, []string{"notifuse:8080", apiHost}, false).Return(nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/r/"+signedClickToken(t, key, oldTS(), dest), nil)
+		req.Host = "notifuse:8080"
+		req.Header.Set("User-Agent", trackingTestUA)
+		handler.handleEncryptedClick(httptest.NewRecorder(), req)
+	})
+
 	t.Run("the legacy /visit route passes them too", func(t *testing.T) {
 		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
-		expectLookup(ws, trackingtoken.Workspace{}, trackingtoken.WorkspaceKnown)
-		svc.EXPECT().VisitLink(gomock.Any(), trackingTestMessageID, trackingTestWorkspace, "", []string{"notifuse:8080", "mail.brand.test"}, false).Return(nil)
+		expectLookup(ws, trackingtoken.Workspace{EndpointHost: "links.brand.com"}, trackingtoken.WorkspaceKnown)
+		svc.EXPECT().VisitLink(gomock.Any(), trackingTestMessageID, trackingTestWorkspace, "", []string{"notifuse:8080", "mail.brand.test", apiHost, "links.brand.com"}, false).Return(nil)
 
 		req := httptest.NewRequest(http.MethodGet, "/visit?"+url.Values{
 			"mid": {trackingTestMessageID}, "wid": {trackingTestWorkspace}, "url": {"https://shop.example.com/x"},

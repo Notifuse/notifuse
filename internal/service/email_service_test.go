@@ -758,6 +758,30 @@ func TestEmailService_VisitLink(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("Own hosts are compared by hostname, whatever the ports", func(t *testing.T) {
+		// A proxy forwarding the public host without its port, a Host with the
+		// upstream port, an endpoint host that never carries one: the link is the
+		// instance's own on any port of that hostname.
+		for name, tc := range map[string]struct {
+			link  string
+			hosts []string
+		}{
+			"link with a port, host without":     {"https://click.notifuse.test:8443/unsubscribe?email=someone@example.com", []string{requestHost}},
+			"host with a port, link without":     {"http://notifuse/unsubscribe?email=someone@example.com", []string{"notifuse:8080"}},
+			"a trailing dot names the same host": {"https://click.notifuse.test./unsubscribe?email=someone@example.com", []string{requestHost}},
+			"a Unicode link, a Punycode host":    {"https://café.example/unsubscribe?email=someone@example.com", []string{"xn--caf-dma.example"}},
+		} {
+			t.Run(name, func(t *testing.T) {
+				assert.Empty(t, sanitizeClickedURL(tc.link, tc.hosts))
+			})
+		}
+	})
+
+	t.Run("A hostname that only ends like an own host is recorded", func(t *testing.T) {
+		clickedURL := "https://evil-click.notifuse.test/landing"
+		assert.Equal(t, clickedURL, sanitizeClickedURL(clickedURL, []string{requestHost, "api.notifuse.test"}))
+	})
+
 	t.Run("No request host still records external URLs", func(t *testing.T) {
 		clickedURL := "https://shop.example.com/product"
 

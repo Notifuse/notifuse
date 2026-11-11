@@ -124,13 +124,16 @@ refuses a NUL, surrounding whitespace, or a `link_url` longer than `MaxClickedUR
 **`internal/service/email_service.go`**: `VisitLink(…, verified)` passed on to `SetClicked`.
 **`internal/service/demo_service.go`**: demo clicks are verified.
 **`internal/http/email_handler.go`**: passes `verified` from `/r/`, and `false` from the legacy `/visit`. Both routes
-pass every host the click was addressed to (`Host` plus each `X-Forwarded-Host` entry), and `VisitLink` leaves a link
-back to any of them out of `clicked_links`: behind a proxy that forwards its upstream name as `Host`, the unsubscribe,
-notification center and web version links were recorded, carried the recipient's address into the keys, and would
-have started "any link" automations.
+pass the instance's own hosts (`Host`, each `X-Forwarded-Host` entry, the API endpoint's host and the workspace's
+custom endpoint host), and `VisitLink` leaves a link whose hostname is any of them, on any port, out of
+`clicked_links`: behind a proxy that forwards its upstream name as `Host`, the unsubscribe, notification center and
+web version links were recorded, carried the recipient's address into the keys, and would have started "any link"
+automations.
 - Tests `email_service_test.go`, `demo_service_test.go`, `email_handler_tracking_test.go`: the flag is passed as is; a
   forged, unsigned or legacy token passes `false`; the host list (no header, a list, blank entries, several header
-  lines, `/visit`); a link back to a forwarded host is aggregate-only, an external one is still recorded.
+  lines, the custom endpoint host, an unverified token, an unavailable workspace, `/visit`); a link back to a forwarded
+  host is aggregate-only, an external one is still recorded; hostnames compared whatever the ports, with a trailing dot
+  and in Punycode; a hostname that only ends like an own host is recorded.
 - Test `message_history_handler_test.go`: `clicked_url` passed through; 400 without `broadcast_id`.
 
 **`internal/repository/message_history_postgre.go`**: `SetClicked` sets `verified: true` on the entry (new or existing)
@@ -164,7 +167,8 @@ when verified and never turns it back to false; both click and open UPDATEs skip
   `clicked_links`; an update that does not touch `clicked_links`; a click on an erased contact's email; the
   `messages.list` round trip with the per-link stats; the usage counter; v44 upgrading a body without the step; behind
   a proxy, a link back to the forwarded host records no URL, and a client's own `X-Forwarded-Host` does not get a link
-  back to the server's host recorded.
+  back to the server's host recorded; behind a proxy that forwards no public host, a link to the workspace's custom
+  domain records no URL.
 - `automation_link_click_trigger_test.go`: an `email.link_clicked` automation with `link_url` and `broadcast_id` enrols
   the contact when they click that link second and `add_to_list` adds them; another link or broadcast does nothing; a
   click on an email the automation sent does not restart it; a URL with `'`, `%`, `_`; an update keeps the filters.
@@ -178,7 +182,7 @@ when verified and never turns it back to false; both click and open UPDATEs skip
 
 `## [44.0] - unreleased`: the trigger, segments current on each new link, who clicked each link, clicks and opens on an
 erased contact's email no longer recorded, the instance's own links no longer recorded per link behind a reverse
-proxy that passes `X-Forwarded-Host`. The 43.1 and 43.2 sections are folded into 44.0, which ships them all.
+proxy. The 43.1 and 43.2 sections are folded into 44.0, which ships them all.
 
 ### 8. Checks
 
@@ -200,8 +204,7 @@ cd web_analytics_sdk && npm run build
 - A link clicked before 44.0 has no `verified` key, so its first signed click after the upgrade writes its entry
   (documented).
 - The monthly meter reads `kind` from the table for each row of the month: the partial index no longer answers alone.
-- Behind a proxy that forwards neither the public host as `Host` nor an `X-Forwarded-Host` (nginx's plain
-  `proxy_pass`, for one), the instance's own links are still recorded per link: `VisitLink` compares them to the
-  request's hosts only. The route already holds the API host and the workspace's custom endpoint host, which
-  `classifyTrackedDestination` compares against; comparing to them too would close this, and is left as a choice.
+- Behind a proxy that forwards no public host, a link on a custom domain the workspace has since left is still
+  recorded per link: only the current custom domain is known to the route.
+- `Forwarded: host=` (RFC 7239) is not read, as on `/v/`.
 - Own-link keys recorded before 44.0 are not removed, so older broadcasts keep listing them in their per-link stats.

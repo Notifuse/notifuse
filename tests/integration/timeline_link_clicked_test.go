@@ -267,6 +267,59 @@ func TestTimelineLinkClicked(t *testing.T) {
 		assert.False(t, clickedLinks(t, direct.ID).Valid, "no URL is recorded")
 	})
 
+	t.Run("behind a proxy that forwards no public host, a link to the custom domain records no URL", func(t *testing.T) {
+		// nginx's plain proxy_pass: Host is the upstream name and no X-Forwarded-Host is
+		// sent. The workspace's custom domain, on which its emails' links are built, is
+		// what tells the route the link is the instance's own.
+		const customHost = "links.brand-nginx.test"
+		ws, err := factory.CreateWorkspace()
+		require.NoError(t, err)
+		require.NoError(t, factory.SetWorkspaceCustomEndpointURL(ws.ID, "https://"+customHost))
+		wsKey, err := trackingtoken.DeriveKey(ws.Settings.SecretKey)
+		require.NoError(t, err)
+		wsTemplate, err := factory.CreateTemplate(ws.ID)
+		require.NoError(t, err)
+		wsBroadcast, err := factory.CreateBroadcast(ws.ID)
+		require.NoError(t, err)
+		wsDB, err := factory.GetWorkspaceDB(ws.ID)
+		require.NoError(t, err)
+
+		const email = "nginx@link.test"
+		_, err = factory.CreateContact(ws.ID, testutil.WithContactEmail(email))
+		require.NoError(t, err)
+		msg, err := factory.CreateMessageHistory(ws.ID,
+			testutil.WithMessageContact(email),
+			testutil.WithMessageTemplate(wsTemplate.ID),
+			testutil.WithMessageBroadcast(wsBroadcast.ID))
+		require.NoError(t, err)
+
+		for _, destination := range []string{
+			"https://" + customHost + "/unsubscribe-oneclick?email=" + email,
+			"https://" + strings.ToUpper(customHost) + ":8443/notification-center?email=" + email,
+		} {
+			token, err := trackingtoken.MintClick(wsKey, msg.ID, ws.ID, tokenTS, destination)
+			require.NoError(t, err)
+			req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/r/%s", baseURL, token), nil)
+			require.NoError(t, err)
+			req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15")
+			resp, err := redirectClient.Do(req)
+			require.NoError(t, err)
+			_ = resp.Body.Close()
+			require.Less(t, resp.StatusCode, 400)
+		}
+
+		var clickedAt sql.NullTime
+		var links sql.NullString
+		require.NoError(t, wsDB.QueryRowContext(ctx,
+			`SELECT clicked_at, clicked_links::text FROM message_history WHERE id = $1`, msg.ID).Scan(&clickedAt, &links))
+		assert.True(t, clickedAt.Valid, "the clicks still count")
+		assert.False(t, links.Valid, "no URL is recorded")
+		var entries int
+		require.NoError(t, wsDB.QueryRowContext(ctx,
+			`SELECT count(*) FROM contact_timeline WHERE entity_id = $1 AND kind = 'email.link_clicked'`, msg.ID).Scan(&entries))
+		assert.Zero(t, entries)
+	})
+
 	t.Run("at the 50-link cap a new link writes nothing, a known one still verifies", func(t *testing.T) {
 		msg := newMessage(t, "cap@link.test")
 		// Seeded unverified, so the seed itself writes no entry.

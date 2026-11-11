@@ -238,13 +238,13 @@ func (s *EmailService) getProviderService(providerKind domain.EmailProviderKind)
 // maxRecordedClickedURLLength bounds the destination URLs persisted in clicked_links
 const maxRecordedClickedURLLength = domain.MaxClickedURLLength
 
-// VisitLink records a click on a tracked link. requestHosts are the hosts the click was
-// addressed to: the request's Host and, behind a reverse proxy, each X-Forwarded-Host
-// entry. verified says the token was signed by the workspace, so the email really carried
+// VisitLink records a click on a tracked link. ownHosts are the instance's hosts as the
+// click route knows them: the request's Host, each X-Forwarded-Host entry, the API
+// endpoint's host and the workspace's custom endpoint host. verified says the token was signed by the workspace, so the email really carried
 // clickedURL; see MessageHistoryRepository.SetClicked.
-func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspaceID string, clickedURL string, requestHosts []string, verified bool) error {
+func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspaceID string, clickedURL string, ownHosts []string, verified bool) error {
 	// find the message by id
-	err := s.messageRepo.SetClicked(ctx, workspaceID, messageID, time.Now(), sanitizeClickedURL(clickedURL, requestHosts), verified)
+	err := s.messageRepo.SetClicked(ctx, workspaceID, messageID, time.Now(), sanitizeClickedURL(clickedURL, ownHosts), verified)
 	if err != nil {
 		s.logger.Error(err.Error())
 		return fmt.Errorf("failed to set clicked: %w", err)
@@ -255,31 +255,32 @@ func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspac
 
 // sanitizeClickedURL decides whether a clicked destination URL may be recorded
 // per-link; it returns "" (aggregate-only) when the URL is not a plausible
-// http(s) destination or when it points back at the host serving the click
-// redirect: all links of one email (tracking redirect, unsubscribe,
-// notification center, web version) are built from the same send-time endpoint,
-// and the unsubscribe/notification-center ones embed the recipient's raw email
-// address, which must not be persisted in clicked_links keys. Comparing
-// against the request hosts identifies that send-time endpoint without a
-// workspace lookup on the hot click path, and stays correct when the
-// workspace endpoint is later reconfigured. Behind a reverse proxy that
-// forwards its upstream name as Host, the endpoint is the forwarded host, so
-// a link matching any of requestHosts is left out: a client adding its own
-// forwarded value can only leave out more of its own clicks, never get a link
-// back to the Host it reached recorded.
+// http(s) destination or when it points back at the instance: all links of one
+// email (tracking redirect, unsubscribe, notification center, web version) are
+// built from the same send-time endpoint, and the unsubscribe and notification
+// center ones embed the recipient's raw email address, which must not be
+// persisted in clicked_links keys, nor start an automation on any link.
+//
+// The request's Host is that send-time endpoint when nothing rewrites it, and
+// stays right after the workspace endpoint is reconfigured. Behind a reverse
+// proxy that forwards its upstream name as Host, the forwarded host is, and with
+// no forwarded header the API endpoint or the workspace's current custom domain
+// is. A link whose hostname is any of ownHosts is left out, on any port: a
+// client adding its own forwarded value can only leave out more of its own
+// clicks, never get a link back to the Host it reached recorded.
 //
 // It also strips the web analytics identity token from the URLs it does keep.
 // A recorded URL becomes a JSONB *key* in clicked_links and per-link reporting
 // aggregates those keys across a broadcast, but the token is minted per
 // recipient over a fresh random nonce: left in place it would turn one row per
 // link into one row per recipient, and persist a bearer identity credential in
-// the workspace database — the same two hazards the request-host check avoids
+// the workspace database — the same two hazards the own-host check avoids
 // for the unsubscribe links.
-func sanitizeClickedURL(clickedURL string, requestHosts []string) string {
+func sanitizeClickedURL(clickedURL string, ownHosts []string) string {
 	// The destination is read as the click route reads it: a leading space or a stray
 	// '%' (https://shop.com/50%off) makes net/url refuse a link that browsers open and
 	// the route redirects to. A host holding a '%' is refused there, so a
-	// "click.example.com%" host cannot slip past the request-host check.
+	// "click.example.com%" host cannot slip past the own-host check.
 	s, parsed := trackingtoken.ParseLenient(clickedURL)
 	if parsed == nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		return ""
@@ -297,8 +298,11 @@ func sanitizeClickedURL(clickedURL string, requestHosts []string) string {
 		key = s
 	}
 
-	for _, host := range requestHosts {
-		if host != "" && strings.EqualFold(parsed.Host, host) {
+	// Hostnames are compared as HostOf writes them, lowercase and in Punycode, so a
+	// link written in Unicode matches the endpoint host the route was given.
+	linkHost := trackingtoken.HostOf(parsed.Scheme + "://" + parsed.Host)
+	for _, host := range ownHosts {
+		if trackingtoken.SameHostname(linkHost, trackingtoken.HostOf(host)) {
 			return ""
 		}
 	}
