@@ -232,7 +232,12 @@ func TestTransactionalHandler(t *testing.T) {
 						"enable_tracking": true,
 					},
 				}))
-				assert.Equal(t, http.StatusOK, resp.StatusCode)
+				require.Equal(t, http.StatusOK, resp.StatusCode)
+				var body map[string]interface{}
+				require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+				saved, ok := body["notification"].(map[string]interface{})
+				require.True(t, ok, "response has no notification: %v", body)
+				assert.Equal(t, integrationID, saved["integration_id"], "the notification must be managed for this case to pin the managed branch")
 			})
 		})
 	})

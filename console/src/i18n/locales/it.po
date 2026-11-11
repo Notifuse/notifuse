@@ -10948,7 +10948,7 @@ msgstr "Leggi il template da cui viene inviata un'email di test (richiede anche 
 #: src/services/api/permissions.ts:400
 #: src/services/api/permissions.ts:404
 msgid "Read the template of a transactional notification when creating it, or when editing it with its channels, which the console sends unless an integration manages the notification (also needs Transactional write)"
-msgstr "Leggere il template di una notifica transazionale alla sua creazione, o quando la si modifica con i suoi canali, che la console invia a meno che un'integrazione gestisca la notifica (richiede anche la Scrittura Transazionale)"
+msgstr "Leggi il template di una notifica transazionale alla creazione, o quando la si modifica con i suoi canali, che la console invia a meno che un'integrazione gestisca la notifica (richiede anche Scrittura Transazionale)"
 
 #: src/services/api/permissions.ts:941
 msgid "Read the workspace record and its settings; Workspace write alone also passes, so someone who may only edit can still load what they are editing"

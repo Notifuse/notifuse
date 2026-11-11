@@ -50,6 +50,7 @@ vi.mock('../services/api/template', () => ({
 vi.mock('../services/api/analytics', () => ({
   analyticsService: { query: vi.fn().mockResolvedValue({ data: [] }) }
 }))
+
 const welcome = {
   id: 'welcome',
   name: 'Welcome',
@@ -90,7 +91,6 @@ beforeEach(() => {
 })
 
 describe('TransactionalNotificationsPage test button', () => {
-
   it('is offered with templates read and transactional write', async () => {
     permissions = {
       templates: { read: true, write: false },
@@ -148,12 +148,20 @@ describe('TransactionalNotificationsPage Create button', () => {
     ).toBeInTheDocument()
   })
 
-  it('is enabled with transactional write and templates read', async () => {
+  it('is enabled with transactional write and templates read, without the permission hint', async () => {
     permissions = withTemplates
     renderPage()
 
     await screen.findByText('Welcome')
-    expect(screen.getByTestId('create')).toBeEnabled()
+    const create = screen.getByTestId('create')
+    expect(create).toBeEnabled()
+    hover(create)
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    expect(
+      screen.queryByText(
+        'You need Transactional write and Templates read permissions to create notifications'
+      )
+    ).toBeNull()
   })
 
   it('is disabled without templates read on the empty page too', async () => {

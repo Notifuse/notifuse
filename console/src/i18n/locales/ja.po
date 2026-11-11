@@ -4870,7 +4870,7 @@ msgstr "scripts.js を含む、テーマのバージョンを編集する"
 
 #: src/services/api/permissions.ts:629
 msgid "Edit a transactional notification (an edit that sends its channels, which the console does unless an integration manages the notification, also needs Templates read)"
-msgstr "トランザクション通知を編集する (チャネルを送信する編集にはテンプレートの読み取りも必要です。コンソールは、通知が連携で管理されていない限りチャネルを送信します)"
+msgstr "トランザクション通知を編集する (チャネルを送信する編集にはテンプレートの読み取りも必要。コンソールは、通知が連携で管理されていない限りチャネルを送信する)"
 
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:427
 msgid "Edit alt text"
@@ -10948,7 +10948,7 @@ msgstr "テストメールの送信元となるテンプレートを読み取る
 #: src/services/api/permissions.ts:400
 #: src/services/api/permissions.ts:404
 msgid "Read the template of a transactional notification when creating it, or when editing it with its channels, which the console sends unless an integration manages the notification (also needs Transactional write)"
-msgstr "作成時、またはチャネルを含めて編集する際に、トランザクション通知のテンプレートを読み取る (コンソールは、通知が連携で管理されていない限りチャネルを送信します。トランザクションの書き込みも必要)"
+msgstr "作成時、またはチャネルを含めて編集する際に、トランザクション通知のテンプレートを読み取る (コンソールは、通知が連携で管理されていない限りチャネルを送信する。トランザクションの書き込みも必要)"
 
 #: src/services/api/permissions.ts:941
 msgid "Read the workspace record and its settings; Workspace write alone also passes, so someone who may only edit can still load what they are editing"

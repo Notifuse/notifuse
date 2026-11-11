@@ -452,9 +452,7 @@ export function TransactionalNotificationsPage() {
             {t`No transactional notifications found`}
           </Title>
           <Paragraph type="secondary">{t`Create your first notification to get started`}</Paragraph>
-          <div className="mt-4">
-            {createButton}
-          </div>
+          <div className="mt-4">{createButton}</div>
         </div>
       )}
 

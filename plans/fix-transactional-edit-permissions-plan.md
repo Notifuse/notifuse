@@ -1,6 +1,6 @@
 # Transactional notification create and edit permissions plan
 
-**Status**: plan reviewed
+**Status**: plan reviewed, implemented
 **Date**: 2026-11-11
 **Target**: 44.0. On `dev` the WIP section is still `## [43.2] - WIP` (v43.0 is the last release; 43.1 and 43.2 never
 shipped and are merged into 44.0 by another PR, which also bumps `VERSION`). This PR touches neither section headings
