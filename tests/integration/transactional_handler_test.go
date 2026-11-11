@@ -239,6 +239,48 @@ func TestTransactionalHandler(t *testing.T) {
 				require.True(t, ok, "response has no notification: %v", body)
 				assert.Equal(t, integrationID, saved["integration_id"], "the notification must be managed for this case to pin the managed branch")
 			})
+
+			// The API refuses to change a managed notification's name or channels, or to delete it,
+			// with a 400 naming the reason. The channels are refused before their template is read:
+			// this member has no Templates read, so a later refusal would answer 403.
+			t.Run("changes an integration does not allow are refused with 400 and leave it as it was", func(t *testing.T) {
+				integrationID := "perm-managed-refusals"
+				n := newNotification(t, func(tn *domain.TransactionalNotification) {
+					tn.IntegrationID = &integrationID
+				})
+				c := memberClient(t, writeOnly)
+				requireRefusal := func(t *testing.T, resp *http.Response, about string) {
+					t.Helper()
+					require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+					var body map[string]interface{}
+					require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+					assert.Contains(t, body["error"], about)
+				}
+
+				// Another template, so the check below would see a channels write that got through.
+				requireRefusal(t, closeLater(t)(c.UpdateTransactionalNotification(n.ID, map[string]interface{}{
+					"name": n.Name,
+					"channels": map[string]interface{}{
+						"email": map[string]interface{}{"template_id": "tpl-not-the-stored-one", "settings": map[string]interface{}{}},
+					},
+				})), "cannot update channels")
+				requireRefusal(t, closeLater(t)(c.UpdateTransactionalNotification(n.ID, map[string]interface{}{
+					"name": "Renamed by the API",
+				})), "cannot update name")
+				requireRefusal(t, closeLater(t)(c.DeleteTransactionalNotification(n.ID)), "cannot delete")
+
+				resp := closeLater(t)(c.GetTransactionalNotification(n.ID))
+				require.Equal(t, http.StatusOK, resp.StatusCode)
+				var body map[string]interface{}
+				require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+				stored, ok := body["notification"].(map[string]interface{})
+				require.True(t, ok, "response has no notification: %v", body)
+				assert.Equal(t, n.Name, stored["name"])
+				assert.Equal(t, integrationID, stored["integration_id"])
+				channels, _ := stored["channels"].(map[string]interface{})
+				email, _ := channels["email"].(map[string]interface{})
+				assert.Equal(t, template.ID, email["template_id"])
+			})
 		})
 	})
 

@@ -290,7 +290,7 @@ describe('EmailBuilder moving and changing columns', () => {
   })
   const section = (id: string, children: Node[]): Node => ({ id, type: 'mj-section', attributes: {}, children })
 
-  // SA: 20/30/50, SB: 30/70, SC holds a 30/70 group
+  // SA: 20/30/50, SB: 30/70, SC holds a 30/70 group, SD two columns and a group
   const makeColumnsTree = () =>
     ({
       id: 'root',
@@ -306,16 +306,22 @@ describe('EmailBuilder moving and changing columns', () => {
             section('SB', [col('b1', '30%'), col('b2', '70%')]),
             section('SC', [
               { id: 'G', type: 'mj-group', attributes: {}, children: [col('g1', '30%'), col('g2', '70%')] }
+            ]),
+            // SD: a 30/70 section that made room for a width-less group
+            section('SD', [
+              col('d1', '20%'),
+              col('d2', '46.67%'),
+              { id: 'G2', type: 'mj-group', attributes: {}, children: [col('h1', '50%'), col('h2', '50%')] }
             ])
           ]
         }
       ]
     }) as unknown as EmailBlock
 
-  const setup = () => {
+  const setup = (initialTree: EmailBlock = makeColumnsTree()) => {
     mockTreePanelProps = {}
     const onTreeChange = vi.fn()
-    render(<EmailBuilder {...props(makeColumnsTree(), vi.fn(), null)} onTreeChange={onTreeChange} />)
+    render(<EmailBuilder {...props(initialTree, vi.fn(), null)} onTreeChange={onTreeChange} />)
     const call = (name: string, ...args: unknown[]) =>
       act(() => {
         (mockTreePanelProps[name] as (...a: unknown[]) => void)(...args)
@@ -370,6 +376,48 @@ describe('EmailBuilder moving and changing columns', () => {
     const { call, widths } = setup()
     call('onAddSavedBlock', 'SB', col('saved', '25%'), 2)
     expect(widths('SB')).toEqual(['20%', '46.67%', '33.33%'])
+  })
+
+  it('makes room for a group added to a section, and gives it back when the group is deleted', () => {
+    const added = setup()
+    added.call('onAddBlock', 'SB', 'mj-group', 2)
+    expect(added.widths('SB')).toEqual(['20%', '46.67%', undefined])
+
+    const deleted = setup()
+    deleted.call('onDeleteBlock', 'G2')
+    expect(deleted.widths('SD')).toEqual(['30%', '70%'])
+  })
+
+  it('makes room for a group moved, duplicated or inserted from the saved blocks', () => {
+    const moved = setup()
+    moved.call('onMoveBlock', 'G', 'SB', 2)
+    expect(moved.children('SB').map((c) => c.id)).toEqual(['b1', 'b2', 'G'])
+    expect(moved.widths('SB')).toEqual(['20%', '46.67%', undefined])
+    // The group's own columns keep their widths
+    expect(moved.widths('G')).toEqual(['30%', '70%'])
+
+    const duplicated = setup()
+    duplicated.call('onCloneBlock', 'G2')
+    expect(duplicated.widths('SD')).toEqual(['15%', '35%', undefined, undefined])
+
+    const saved = setup()
+    saved.call('onAddSavedBlock', 'SB', { id: 'sg', type: 'mj-group', attributes: {}, children: [] }, 0)
+    expect(saved.widths('SB')).toEqual([undefined, '20%', '46.67%'])
+  })
+
+  it("counts a group at the width the template's default attributes give it", () => {
+    const tree = makeColumnsTree() as unknown as { children: Node[] }
+    tree.children[0].children = [
+      {
+        id: 'attrs',
+        type: 'mj-attributes',
+        attributes: {},
+        children: [{ id: 'group-defaults', type: 'mj-group', attributes: { width: '40%' } }]
+      }
+    ]
+    const { call, widths } = setup(tree as unknown as EmailBlock)
+    call('onMoveBlock', 'G', 'SB', 2)
+    expect(widths('SB')).toEqual(['18%', '42%', undefined])
   })
 
   // Characterisation: the AI assistant moves blocks through moveBlockInTree with a final index

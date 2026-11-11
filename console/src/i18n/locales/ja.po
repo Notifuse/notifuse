@@ -25,7 +25,7 @@ msgstr " - 失敗"
 msgid " · {seconds}s"
 msgstr " · {seconds}秒"
 
-#: src/components/email_builder/EmailBuilder.tsx:901
+#: src/components/email_builder/EmailBuilder.tsx:912
 msgid " (copy)"
 msgstr "（コピー）"
 
@@ -1308,7 +1308,7 @@ msgstr "注釈"
 msgid "Annotations have no permission of their own: they deliberately answer to this switch, so a Web Analytics grant is also the right to write on the shared timeline everyone reads. Write reaches workspace configuration too — /api/workspaces.setWebAnalyticsSettings answers to Web Analytics write rather than Workspace write, including the email-link identification setting that ties recipients to their browsing. The public /track collector is governed by nothing at all: it accepts data without any authentication, and no grant here changes that."
 msgstr "注釈には独自の権限がありません。意図的にこのスイッチに従うため、Webアナリティクスの付与は、全員が読む共有タイムラインに書き込む権利でもあります。書き込みはワークスペース設定にも及びます — /api/workspaces.setWebAnalyticsSettings はワークスペースの書き込みではなくWebアナリティクスの書き込みに従い、受信者を閲覧行動に紐づけるメールリンク識別の設定も含まれます。公開されている /track コレクターは何によっても制御されていません。認証なしでデータを受け付け、ここでのどの付与もそれを変えることはありません。"
 
-#: src/components/email_builder/EmailBuilder.tsx:876
+#: src/components/email_builder/EmailBuilder.tsx:887
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "ライブラリの別の変更を実行中です。しばらくしてからもう一度お試しください。"
 
@@ -1711,7 +1711,7 @@ msgstr "認証シークレット"
 msgid "Authors"
 msgstr "著者"
 
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:72
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:76
 msgid "auto"
 msgstr "自動"
 
@@ -2007,7 +2007,7 @@ msgstr "の間"
 msgid "Block \"{name}\" deleted"
 msgstr "ブロック「{name}」を削除しました"
 
-#: src/components/email_builder/EmailBuilder.tsx:967
+#: src/components/email_builder/EmailBuilder.tsx:978
 msgid "Block \"{name}\" inserted"
 msgstr "ブロック「{name}」を挿入しました"
 
@@ -2127,14 +2127,14 @@ msgstr "予約"
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:321
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:84
 #: src/components/email_builder/blocks/MjImageBlock.tsx:156
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:61
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:62
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:59
 msgid "Border"
 msgstr "ボーダー"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:223
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:105
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:82
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:83
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:80
 msgid "Border radius"
 msgstr "角丸"
@@ -2153,7 +2153,7 @@ msgid "Both the category and all its associated posts will be unpublished from t
 msgstr "カテゴリとすべての関連投稿がWebから非公開になります。"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:64
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:62
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:66
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:367
 #: src/components/email_builder/ui/BorderInput.tsx:375
 #: src/components/email_builder/ui/PaddingInput.tsx:187
@@ -2512,8 +2512,8 @@ msgstr "キャンペーン"
 #: src/components/contacts/InlineEditableField.tsx:299
 #: src/components/contacts/TrackingConsent.tsx:211
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:155
-#: src/components/email_builder/EmailBuilder.tsx:915
-#: src/components/email_builder/EmailBuilder.tsx:931
+#: src/components/email_builder/EmailBuilder.tsx:926
+#: src/components/email_builder/EmailBuilder.tsx:942
 #: src/components/email_builder/panels/Preview.tsx:207
 #: src/components/email_builder/panels/TextVersionPanel.tsx:137
 #: src/components/email_builder/panels/TextVersionPanel.tsx:181
@@ -3921,10 +3921,10 @@ msgstr "新しいバージョン v{0} を作成しました"
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:384
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:175
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:144
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:114
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:118
 #: src/components/email_builder/blocks/MjImageBlock.tsx:176
 #: src/components/email_builder/blocks/MjRawBlock.tsx:334
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:159
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:160
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:87
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:479
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:88
@@ -3974,9 +3974,9 @@ msgid "Custom (px)"
 msgstr "カスタム（px）"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:175
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:114
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:118
 #: src/components/email_builder/blocks/MjRawBlock.tsx:334
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:159
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:160
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:143
 msgid "Custom CSS class for styling"
 msgstr "スタイリング用カスタムCSSクラス"
@@ -4320,7 +4320,7 @@ msgstr "遅延"
 #: src/components/contacts/BulkActionsBar.tsx:219
 #: src/components/contacts/DeleteContactModal.tsx:40
 #: src/components/contacts/SegmentsFilter.tsx:159
-#: src/components/email_builder/EmailBuilder.tsx:929
+#: src/components/email_builder/EmailBuilder.tsx:940
 #: src/components/email_builder/ui/SavedBlockCard.tsx:115
 #: src/components/file_manager/fileManager.tsx:773
 #: src/components/file_manager/fileManager.tsx:778
@@ -4352,7 +4352,7 @@ msgstr "削除"
 msgid "DELETE"
 msgstr "削除"
 
-#: src/components/email_builder/EmailBuilder.tsx:927
+#: src/components/email_builder/EmailBuilder.tsx:938
 msgid "Delete \"{name}\" from the library?"
 msgstr "「{name}」をライブラリから削除しますか？"
 
@@ -5053,7 +5053,7 @@ msgstr "編集"
 #: src/components/automations/config/ConditionsField.tsx:108
 #: src/components/automations/UpsertAutomationDrawer.tsx:288
 #: src/components/blog/PostsTable.tsx:349
-#: src/components/email_builder/EmailBuilder.tsx:1046
+#: src/components/email_builder/EmailBuilder.tsx:1057
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
 #: src/components/settings/Integrations.tsx:352
@@ -6988,7 +6988,7 @@ msgstr "全文"
 msgid "Full Name"
 msgstr "氏名"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:146
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:147
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:91
 msgid "Full Width"
 msgstr "全幅"
@@ -7187,11 +7187,11 @@ msgstr "同意済み"
 msgid "Groove"
 msgstr "グルーブ"
 
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:144
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:148
 msgid "Group (drag columns here)"
 msgstr "グループ（ここにカラムをドラッグ）"
 
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:43
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:47
 msgid "Group Attributes"
 msgstr "グループ属性"
 
@@ -7245,7 +7245,7 @@ msgstr "ヘッダーの値は必須です"
 
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:236
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:363
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:68
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:72
 #: src/components/email_builder/blocks/MjImageBlock.tsx:101
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:192
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:36
@@ -7995,7 +7995,7 @@ msgstr "発行者URLは必須です"
 msgid "It is generated from the HTML at every send, so there is nothing to maintain. Its links are the links of the HTML, tracked the same way."
 msgstr "テキスト版は送信のたびにHTMLから生成されるため、管理は不要です。リンクはHTMLのリンクと同じで、同じ方法でトラッキングされます。"
 
-#: src/components/email_builder/EmailBuilder.tsx:928
+#: src/components/email_builder/EmailBuilder.tsx:939
 msgid "It is removed for every template of the workspace. Templates that already contain this block do not change."
 msgstr "ワークスペースのすべてのテンプレートで使えなくなります。このブロックをすでに含むテンプレートは変更されません。"
 
@@ -8239,8 +8239,8 @@ msgstr "退出しました"
 msgid "Left"
 msgstr "左"
 
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:99
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:137
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:103
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:138
 msgid "Left to Right"
 msgstr "左から右"
 
@@ -8256,7 +8256,7 @@ msgstr "MJMLを使った美しいメール作成を始めるためのクイッ�
 msgid "Letter Spacing"
 msgstr "文字間隔"
 
-#: src/components/email_builder/EmailBuilder.tsx:1120
+#: src/components/email_builder/EmailBuilder.tsx:1131
 msgid "Library"
 msgstr "ライブラリ"
 
@@ -8712,7 +8712,7 @@ msgstr "オートメーションを有効にしてデータベーストリガー
 msgid "Make it relevant to your email content"
 msgstr "メールの内容に関連性のあるものにしてください"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:147
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:148
 msgid "Makes the section span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
 msgstr "セクションをメールビューポート全幅に広げ、コンテナの制約（通常600px）を無視します。全面背景やヒーローセクションに便利です。"
 
@@ -8941,7 +8941,7 @@ msgid "Microsoft 365 / Office 365"
 msgstr "Microsoft 365 / Office 365"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:61
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:61
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:65
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:366
 msgid "Middle"
 msgstr "中央"
@@ -9126,9 +9126,9 @@ msgid "My Webhook"
 msgstr "マイWebhook"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:179
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:118
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:122
 #: src/components/email_builder/blocks/MjRawBlock.tsx:338
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:163
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:164
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:147
 msgid "my-custom-class"
 msgstr "my-custom-class"
@@ -10288,7 +10288,7 @@ msgstr "自分の内容で上書き"
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:144
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:107
 #: src/components/email_builder/blocks/MjImageBlock.tsx:109
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:92
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:93
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:75
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:58
 #: src/components/email_builder/blocks/MjTextBlock.tsx:111
@@ -10926,7 +10926,7 @@ msgstr "プレビュー"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:37
 #: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/common/ImageURLInput.tsx:52
-#: src/components/email_builder/EmailBuilder.tsx:1050
+#: src/components/email_builder/EmailBuilder.tsx:1061
 #: src/components/segment/button_upsert.tsx:659
 msgid "Preview"
 msgstr "プレビュー"
@@ -11504,7 +11504,7 @@ msgstr "リダイレクトURI"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:676
-#: src/components/email_builder/EmailBuilder.tsx:1033
+#: src/components/email_builder/EmailBuilder.tsx:1044
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
 msgid "Redo"
 msgstr "やり直す"
@@ -11737,13 +11737,13 @@ msgstr "X軸で繰り返し"
 msgid "Repeat Y"
 msgstr "Y軸で繰り返し"
 
-#: src/components/email_builder/EmailBuilder.tsx:914
+#: src/components/email_builder/EmailBuilder.tsx:925
 #: src/components/email_builder/panels/TextVersionPanel.tsx:180
 #: src/components/email_builder/ui/SaveBlockModal.tsx:90
 msgid "Replace"
 msgstr "置き換える"
 
-#: src/components/email_builder/EmailBuilder.tsx:912
+#: src/components/email_builder/EmailBuilder.tsx:923
 msgid "Replace \"{name}\" with the selected block?"
 msgstr "「{name}」を選択中のブロックで置き換えますか？"
 
@@ -12006,8 +12006,8 @@ msgstr "隆起"
 msgid "Right"
 msgstr "右"
 
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:105
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:140
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:109
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:141
 msgid "Right to Left"
 msgstr "右から左"
 
@@ -12384,7 +12384,7 @@ msgstr "シークレット:"
 msgid "Section — {0}"
 msgstr "セクション — {0}"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:44
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:45
 msgid "Section Attributes"
 msgstr "セクション属性"
 
@@ -13151,7 +13151,7 @@ msgstr "デフォルトに設定"
 msgid "Set friendly display names for contact custom fields."
 msgstr "連絡先カスタムフィールドのわかりやすい表示名を設定します。"
 
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:73
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:77
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:354
 msgid "Set height"
 msgstr "高さを設定"
@@ -13205,9 +13205,9 @@ msgid "Set value"
 msgstr "値を設定"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:180
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:119
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:123
 #: src/components/email_builder/blocks/MjRawBlock.tsx:339
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:164
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:165
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:148
 msgid "Set Value"
 msgstr "値を設定"
@@ -13735,7 +13735,7 @@ msgstr "地域/州名を保存"
 msgid "Strikethrough"
 msgstr "取り消し線"
 
-#: src/components/email_builder/EmailBuilder.tsx:1116
+#: src/components/email_builder/EmailBuilder.tsx:1127
 msgid "Structure"
 msgstr "構造"
 
@@ -14131,7 +14131,7 @@ msgstr "テンプレートの送信者（{0}）"
 msgid "Templates"
 msgstr "テンプレート"
 
-#: src/components/email_builder/EmailBuilder.tsx:913
+#: src/components/email_builder/EmailBuilder.tsx:924
 msgid "Templates that already contain this block do not change."
 msgstr "このブロックをすでに含むテンプレートは変更されません。"
 
@@ -14271,7 +14271,7 @@ msgstr "テキスト"
 msgid "Text Align"
 msgstr "テキスト配置"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:123
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:124
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:135
 msgid "Text Alignment"
 msgstr "テキスト配置"
@@ -14291,8 +14291,8 @@ msgstr "テキスト色"
 msgid "Text Decoration"
 msgstr "テキスト装飾"
 
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:92
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:130
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:96
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:131
 msgid "Text Direction"
 msgstr "テキスト方向"
 
@@ -14316,7 +14316,7 @@ msgstr "サインインボタンに表示するテキスト"
 msgid "Text Transform"
 msgstr "テキスト変換"
 
-#: src/components/email_builder/EmailBuilder.tsx:1053
+#: src/components/email_builder/EmailBuilder.tsx:1064
 #: src/components/email_builder/MjmlCodeEditor.tsx:689
 #: src/components/email_builder/panels/TextVersionPanel.tsx:119
 #: src/components/templates/TemplatePreviewDrawer.tsx:240
@@ -14864,7 +14864,7 @@ msgstr "今四半期"
 msgid "This rule is not valid."
 msgstr "このルールは無効です。"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:189
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:190
 msgid "This section is empty. Add columns or groups to display content."
 msgstr "このセクションは空です。コンテンツを表示するには列またはグループを追加してください。"
 
@@ -15203,7 +15203,7 @@ msgid "Tooltip text"
 msgstr "ツールチップテキスト"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:58
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:60
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:64
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:365
 #: src/components/email_builder/ui/BorderInput.tsx:365
 #: src/components/email_builder/ui/PaddingInput.tsx:160
@@ -15475,8 +15475,8 @@ msgstr "リファラルの質を把握する"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:669
-#: src/components/email_builder/EmailBuilder.tsx:974
-#: src/components/email_builder/EmailBuilder.tsx:1025
+#: src/components/email_builder/EmailBuilder.tsx:985
+#: src/components/email_builder/EmailBuilder.tsx:1036
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:496
 msgid "Undo"
 msgstr "元に戻す"
@@ -16002,7 +16002,7 @@ msgstr "バージョンノート（任意）"
 msgid "Version:"
 msgstr "バージョン:"
 
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:54
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:58
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:358
 msgid "Vertical Align"
 msgstr "垂直配置"
@@ -16400,7 +16400,7 @@ msgstr "トラフィックが変化した理由は？"
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:345
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:42
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:70
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:46
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:50
 #: src/components/email_builder/blocks/MjImageBlock.tsx:82
 msgid "Width"
 msgstr "幅"

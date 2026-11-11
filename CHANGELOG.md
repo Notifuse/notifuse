@@ -34,6 +34,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Create Notification is now disabled, and Edit hidden, on the transactional notifications page for members without Templates read: creating offered a template picker they could not load, and saving an edit was refused. Editing a notification managed by an integration stays available with Transactional write alone.
 
+- **Fix**: `transactional.update`, `transactional.delete` and `templates.delete` now answer 400 with the reason, instead of 500, when they refuse to change the name or channels of a notification managed by an integration, or to delete such a notification or template. `templates.delete` also answers a missing permission with 403 and a revoked API key with 401, as the other endpoints do, instead of 500.
+
 - **Fix**: Liquid in templates now matches Shopify Liquid in more cases: `{% if order.total == 100 %}` matches numbers from your data, accented text is no longer corrupted by `capitalize` or `truncate`, amounts are exact (`0.1 | plus: 0.2` is `0.3`), `date` supports `%-d` and formats timestamps, and conditions on a text containing "and" or "or", tags written over several lines and `{%- raw -%}` work.
 
 - **Fix**: `{% if tags contains "vip" %}` on a list now matches only the element `vip`, no longer `vip_gold`. Check templates that relied on the partial match.
@@ -63,6 +65,8 @@ All notable changes to this project will be documented in this file.
 - **Fix**: In templates written in the MJML editor, an attribute value containing an escaped double quote or angle bracket, such as `alt="27&quot; monitor"` on an image, no longer fails the compile, and a quote escaped in the HTML of a text or raw block now reaches the email intact.
 
 - **Improvement**: Groups in email templates now render as in MJML: a group without a width takes its share of the section, a group with a percentage width keeps it, and in Outlook a group sits side by side with the columns and groups of its section, with raw HTML blocks placed between them. A group saved with a width of 100% next to another column or group now makes a row wider than the email in Outlook: give the group and the columns next to it widths that add up to 100%.
+
+- **Improvement**: The email editor no longer gives a new group a width of 100%, unless the template's default attributes give groups one, so it takes its share of the section, and the canvas shows each group at the width the email gives it. The Width field of a group shows that share when it is empty. Adding, moving, duplicating or deleting a group in a section resizes the section's columns to the room the groups leave, keeping their proportions.
 
 ## [43.0] - 2026-11-07
 

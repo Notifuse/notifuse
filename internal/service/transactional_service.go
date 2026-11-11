@@ -222,12 +222,12 @@ func (s *TransactionalNotificationService) UpdateNotification(
 	if isIntegrationManaged {
 		// Prevent updating name and channels for integration-managed notifications
 		if params.Name != "" && params.Name != notification.Name {
-			err := fmt.Errorf("cannot update name of integration-managed notification: notification is managed by integration %s", *notification.IntegrationID)
+			err := domain.NewValidationError(fmt.Sprintf("cannot update name of integration-managed notification: notification is managed by integration %s", *notification.IntegrationID))
 			tracing.MarkSpanError(ctx, err)
 			return nil, err
 		}
 		if params.Channels != nil {
-			err := fmt.Errorf("cannot update channels of integration-managed notification: notification is managed by integration %s", *notification.IntegrationID)
+			err := domain.NewValidationError(fmt.Sprintf("cannot update channels of integration-managed notification: notification is managed by integration %s", *notification.IntegrationID))
 			tracing.MarkSpanError(ctx, err)
 			return nil, err
 		}
@@ -489,7 +489,7 @@ func (s *TransactionalNotificationService) DeleteNotification(
 
 	// Prevent deletion of integration-managed notifications
 	if notification.IntegrationID != nil && *notification.IntegrationID != "" {
-		err := fmt.Errorf("cannot delete integration-managed notification: notification is managed by integration %s", *notification.IntegrationID)
+		err := domain.NewValidationError(fmt.Sprintf("cannot delete integration-managed notification: notification is managed by integration %s", *notification.IntegrationID))
 		tracing.MarkSpanError(ctx, err)
 		return err
 	}

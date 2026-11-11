@@ -215,6 +215,12 @@ func (h *TemplateHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.DeleteTemplate(r.Context(), workspaceID, id); err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		if writeValidationError(w, err) {
+			return
+		}
 		if _, ok := err.(*domain.ErrTemplateNotFound); ok {
 			WriteJSONError(w, "Template not found", http.StatusNotFound)
 			return

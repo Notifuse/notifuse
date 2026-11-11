@@ -108,6 +108,22 @@ func writePermissionError(w http.ResponseWriter, err error) bool {
 	return false
 }
 
+// writeValidationError answers a domain.ValidationError with 400 and its text, and reports
+// whether it did. A service returns one for a request it refuses as asked, such as a change
+// to a notification or template an integration manages: the caller can fix the request, so
+// it is told why rather than handed a 500, and nothing is logged.
+//
+// errors.As against a value target: ValidationError's Error has a value receiver, so a
+// %w-wrapped one is still matched.
+func writeValidationError(w http.ResponseWriter, err error) bool {
+	var validationErr domain.ValidationError
+	if errors.As(err, &validationErr) {
+		WriteJSONError(w, validationErr.Error(), http.StatusBadRequest)
+		return true
+	}
+	return false
+}
+
 // The two values in a 402 body that are contracts rather than prose.
 //
 // licenseRequiredCode is what the console switches on. licenseDocsURL is the page
