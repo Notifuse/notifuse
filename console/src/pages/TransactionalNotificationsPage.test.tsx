@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
@@ -28,13 +28,16 @@ vi.mock('@fortawesome/react-fontawesome', () => ({
 vi.mock('../components/transactional/UpsertTransactionalNotificationDrawer', () => ({
   default: ({
     notification,
-    buttonProps
+    buttonProps,
+    canReadTemplates
   }: {
     notification?: { id: string }
     buttonProps?: { disabled?: boolean }
+    canReadTemplates: boolean
   }) => (
     <button
       data-testid={notification ? `edit-${notification.id}` : 'create'}
+      data-can-read-templates={String(canReadTemplates)}
       disabled={!!buttonProps?.disabled}
     />
   )
@@ -71,6 +74,7 @@ vi.mock('../services/api/transactional_notifications', () => ({
 }))
 
 import { TransactionalNotificationsPage } from './TransactionalNotificationsPage'
+import { templatesApi } from '../services/api/template'
 
 const renderPage = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -88,6 +92,7 @@ const renderPage = () => {
 beforeEach(() => {
   permissions = {}
   listNotifications.mockResolvedValue({ notifications: [welcome], total: 1 })
+  vi.mocked(templatesApi.get).mockClear()
 })
 
 describe('TransactionalNotificationsPage test button', () => {
@@ -210,5 +215,33 @@ describe('TransactionalNotificationsPage Edit button', () => {
     await screen.findByText('Managed')
     expect(screen.getByTestId('edit-managed')).toBeInTheDocument()
     expect(screen.queryByTestId('edit-welcome')).toBeNull()
+  })
+})
+
+// templates.get needs Templates read: without it the page requests no template, and tells the
+// drawers so their template field does not either.
+describe('TransactionalNotificationsPage templates without Templates read', () => {
+  it('requests no template preview and tells the drawers', async () => {
+    listNotifications.mockResolvedValue({ notifications: [welcome, managed], total: 2 })
+    permissions = writeOnly
+    renderPage()
+
+    await screen.findByText('Managed')
+    expect(screen.getByTestId('create')).toHaveAttribute('data-can-read-templates', 'false')
+    expect(screen.getByTestId('edit-managed')).toHaveAttribute('data-can-read-templates', 'false')
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(templatesApi.get).not.toHaveBeenCalled()
+  })
+
+  it('requests the template preview with Templates read and tells the drawers', async () => {
+    permissions = withTemplates
+    renderPage()
+
+    await screen.findByText('Welcome')
+    expect(screen.getByTestId('create')).toHaveAttribute('data-can-read-templates', 'true')
+    expect(screen.getByTestId('edit-welcome')).toHaveAttribute('data-can-read-templates', 'true')
+    await waitFor(() =>
+      expect(templatesApi.get).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'tpl1' })
+    )
   })
 })

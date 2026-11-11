@@ -22,9 +22,21 @@ vi.stubGlobal('ResizeObserver', ResizeObserverStub)
 // The template selector pulls in template list queries; replace it with a bare
 // input so the required template_id field can be filled without network calls.
 vi.mock('../templates/TemplateSelectorInput', () => ({
-  default: ({ value, onChange }: { value?: string; onChange?: (value: string) => void }) => (
+  default: ({
+    value,
+    onChange,
+    disabled,
+    canReadTemplates
+  }: {
+    value?: string
+    onChange?: (value: string) => void
+    disabled?: boolean
+    canReadTemplates?: boolean
+  }) => (
     <input
       data-testid="template-selector"
+      data-can-read-templates={String(canReadTemplates)}
+      disabled={disabled}
       value={value ?? ''}
       onChange={(e) => onChange?.(e.target.value)}
     />
@@ -85,7 +97,7 @@ function renderDrawer(ui: ReactElement) {
 }
 
 const openCreateDrawer = async () => {
-  renderDrawer(<UpsertTransactionalNotificationDrawer workspace={workspace} />)
+  renderDrawer(<UpsertTransactionalNotificationDrawer workspace={workspace} canReadTemplates />)
   await userEvent.click(screen.getByRole('button', { name: /Create Notification/i }))
 }
 
@@ -134,6 +146,7 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     renderDrawer(
       <UpsertTransactionalNotificationDrawer
         workspace={workspace}
+        canReadTemplates
         notification={makeNotification('no_tracking')}
       />
     )
@@ -176,6 +189,7 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     renderDrawer(
       <UpsertTransactionalNotificationDrawer
         workspace={workspace}
+        canReadTemplates
         notification={makeNotification('disabled')}
       />
     )
@@ -189,6 +203,7 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     renderDrawer(
       <UpsertTransactionalNotificationDrawer
         workspace={workspace}
+        canReadTemplates
         notification={makeNotification()}
       />
     )
@@ -202,6 +217,7 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     renderDrawer(
       <UpsertTransactionalNotificationDrawer
         workspace={workspace}
+        canReadTemplates
         notification={makeNotification('disabled')}
       />
     )
@@ -224,6 +240,7 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     renderDrawer(
       <UpsertTransactionalNotificationDrawer
         workspace={workspace}
+        canReadTemplates
         notification={makeNotification()}
       />
     )
@@ -247,6 +264,7 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
     renderDrawer(
       <UpsertTransactionalNotificationDrawer
         workspace={workspace}
+        canReadTemplates
         notification={makeNotification(undefined, { metadata: { campaign_id: 'welcome-series' } })}
       />
     )
@@ -275,9 +293,12 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
   it('omits channels from updates of integration-managed notifications', async () => {
     // The server rejects any channels value on integration-managed notifications,
     // so the drawer must leave it out while still sending the tracking preference.
+    // A member without Templates read can still edit it: Transactional write is enough
+    // when no channels are sent.
     renderDrawer(
       <UpsertTransactionalNotificationDrawer
         workspace={workspace}
+        canReadTemplates={false}
         notification={makeNotification(undefined, {
           id: 'supabase_magiclink_000001',
           integration_id: 'supabase-integration-1'
@@ -285,6 +306,12 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
       />
     )
     await userEvent.click(screen.getByRole('button', { name: /Edit Notification/i }))
+
+    // The selector is told not to request templates, and the field says why it shows no name.
+    expect(screen.getByTestId('template-selector')).toHaveAttribute('data-can-read-templates', 'false')
+    expect(
+      screen.getByText("You need Templates read permission to see this template's name and preview")
+    ).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('combobox'))
     await userEvent.click(await screen.findByText('Disabled for this notification'))
@@ -296,6 +323,25 @@ describe('UpsertTransactionalNotificationDrawer tracking mode', () => {
       .calls[0][0]
     expect(payload.updates.channels).toBeUndefined()
     expect(payload.updates.tracking_settings.tracking_mode).toBe('disabled')
+  })
+
+  it('gives the selector Templates read and no hint when the member has it', async () => {
+    renderDrawer(
+      <UpsertTransactionalNotificationDrawer
+        workspace={workspace}
+        canReadTemplates
+        notification={makeNotification(undefined, {
+          id: 'supabase_magiclink_000001',
+          integration_id: 'supabase-integration-1'
+        })}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: /Edit Notification/i }))
+
+    expect(screen.getByTestId('template-selector')).toHaveAttribute('data-can-read-templates', 'true')
+    expect(
+      screen.queryByText("You need Templates read permission to see this template's name and preview")
+    ).toBeNull()
   })
 })
 

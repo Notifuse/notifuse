@@ -621,7 +621,7 @@ msgstr "900 - Black"
 msgid "A branch condition is required..."
 msgstr "A branch condition is required..."
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:343
 msgid "A brief description of this notification's purpose"
 msgstr "A brief description of this notification's purpose"
 
@@ -1354,7 +1354,7 @@ msgid "API"
 msgstr "API"
 
 #: src/components/transactional/ApiCommandModal.tsx:976
-#: src/pages/TransactionalNotificationsPage.tsx:186
+#: src/pages/TransactionalNotificationsPage.tsx:188
 msgid "API Command"
 msgstr "API Command"
 
@@ -1369,11 +1369,11 @@ msgstr "API Endpoint"
 msgid "API endpoint is required"
 msgstr "API endpoint is required"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:290
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:294
 msgid "API Identifier"
 msgstr "API Identifier"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:300
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:304
 msgid "API identifier must be at most {TRANSACTIONAL_ID_MAX_LENGTH} characters long"
 msgstr "API identifier must be at most {TRANSACTIONAL_ID_MAX_LENGTH} characters long"
 
@@ -2239,7 +2239,7 @@ msgstr "Bounce Type"
 #: src/components/messages/MessageHistoryTab.tsx:170
 #: src/components/messages/MessageHistoryTable.tsx:360
 #: src/pages/ContactsPage.tsx:401
-#: src/pages/TransactionalNotificationsPage.tsx:256
+#: src/pages/TransactionalNotificationsPage.tsx:258
 msgid "Bounced"
 msgstr "Bounced"
 
@@ -2555,7 +2555,7 @@ msgstr "Campaigns"
 #: src/components/templates/CreateTemplateDrawer.tsx:708
 #: src/components/templates/SendTemplateModal.tsx:303
 #: src/components/templates/TemplateTranslationsTab.tsx:329
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:180
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:184
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
 #: src/components/web_analytics/filters/BackfillStatus.tsx:87
@@ -2983,8 +2983,8 @@ msgstr "Client Secret is required"
 msgid "Client Secret Value"
 msgstr "Client Secret Value"
 
-#: src/components/templates/TemplateSelectorInput.tsx:231
-#: src/components/templates/TemplateSelectorInput.tsx:233
+#: src/components/templates/TemplateSelectorInput.tsx:235
+#: src/components/templates/TemplateSelectorInput.tsx:237
 msgid "Clone"
 msgstr "Clone"
 
@@ -3694,7 +3694,7 @@ msgstr "Create a custom report"
 msgid "Create a list"
 msgstr "Create a list"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:203
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:207
 msgid "Create a notification"
 msgstr "Create a notification"
 
@@ -3781,7 +3781,7 @@ msgid "Create my own"
 msgstr "Create my own"
 
 #. placeholder {0}: category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:270
+#: src/components/templates/TemplateSelectorInput.tsx:274
 msgid "Create New {0} Template"
 msgstr "Create New {0} Template"
 
@@ -3801,7 +3801,7 @@ msgstr "Create New List"
 msgid "Create New Post"
 msgstr "Create New Post"
 
-#: src/components/templates/TemplateSelectorInput.tsx:271
+#: src/components/templates/TemplateSelectorInput.tsx:275
 msgid "Create New Template"
 msgstr "Create New Template"
 
@@ -3815,8 +3815,8 @@ msgstr "Create New Theme"
 msgid "Create New Theme - {0}"
 msgstr "Create New Theme - {0}"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:199
-#: src/pages/TransactionalNotificationsPage.tsx:404
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:203
+#: src/pages/TransactionalNotificationsPage.tsx:407
 msgid "Create Notification"
 msgstr "Create Notification"
 
@@ -3870,7 +3870,7 @@ msgstr "Create Your First Category"
 msgid "Create your first list to get started"
 msgstr "Create your first list to get started"
 
-#: src/pages/TransactionalNotificationsPage.tsx:454
+#: src/pages/TransactionalNotificationsPage.tsx:457
 msgid "Create your first notification to get started"
 msgstr "Create your first notification to get started"
 
@@ -4302,7 +4302,7 @@ msgstr "Defaults to meta title"
 msgid "Defaults to SMTP host"
 msgstr "Defaults to SMTP host"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:355
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:365
 msgid "Define UTM parameters for links in your email for better campaign tracking."
 msgstr "Define UTM parameters for links in your email for better campaign tracking."
 
@@ -4606,7 +4606,7 @@ msgstr "delivered"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:67
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:84
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:239
-#: src/pages/TransactionalNotificationsPage.tsx:222
+#: src/pages/TransactionalNotificationsPage.tsx:224
 msgid "Delivered"
 msgstr "Delivered"
 
@@ -4642,10 +4642,10 @@ msgstr "Describe this image..."
 #: src/components/automations/NodeConfigPanel.tsx:195
 #: src/components/blog/CategoryDrawer.tsx:155
 #: src/components/lists/ListDrawer.tsx:206
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:330
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:340
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
 #: src/pages/ListsPage.tsx:338
-#: src/pages/TransactionalNotificationsPage.tsx:271
+#: src/pages/TransactionalNotificationsPage.tsx:273
 msgid "Description"
 msgstr "Description"
 
@@ -4733,7 +4733,7 @@ msgstr "Disable webhook"
 msgid "Disabled"
 msgstr "Disabled"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:349
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:359
 msgid "Disabled for this notification"
 msgstr "Disabled for this notification"
 
@@ -4938,11 +4938,11 @@ msgstr "e.g. {0}"
 msgid "e.g. /pricing"
 msgstr "e.g. /pricing"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:391
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:401
 msgid "e.g. cta_button"
 msgstr "e.g. cta_button"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:373
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:383
 msgid "e.g. email"
 msgstr "e.g. email"
 
@@ -4950,7 +4950,7 @@ msgstr "e.g. email"
 msgid "e.g. Marketing"
 msgstr "e.g. Marketing"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:365
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:375
 msgid "e.g. notifuse"
 msgstr "e.g. notifuse"
 
@@ -4958,11 +4958,11 @@ msgstr "e.g. notifuse"
 msgid "e.g. order.has_image"
 msgstr "e.g. order.has_image"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:281
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:285
 msgid "E.g. Password Reset Email"
 msgstr "E.g. Password Reset Email"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:305
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:309
 msgid "E.g. password_reset"
 msgstr "E.g. password_reset"
 
@@ -4982,7 +4982,7 @@ msgstr "e.g. sku"
 msgid "E.g. Weekly Newsletter - May 2023"
 msgstr "E.g. Weekly Newsletter - May 2023"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:383
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:393
 msgid "e.g. welcome_series"
 msgstr "e.g. welcome_series"
 
@@ -5167,11 +5167,11 @@ msgstr "Edit Liquid Content"
 msgid "Edit List"
 msgstr "Edit List"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:203
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:207
 msgid "Edit notification"
 msgstr "Edit notification"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:199
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:203
 msgid "Edit Notification"
 msgstr "Edit Notification"
 
@@ -5408,7 +5408,7 @@ msgid "Email subject ({0})"
 msgstr "Email subject ({0})"
 
 #: src/components/automations/config/EmailConfigForm.tsx:66
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:314
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:318
 msgid "Email Template"
 msgstr "Email Template"
 
@@ -5807,7 +5807,7 @@ msgstr "Error loading automations"
 #: src/components/messages/MessageHistoryTab.tsx:605
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:497
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:448
-#: src/pages/TransactionalNotificationsPage.tsx:378
+#: src/pages/TransactionalNotificationsPage.tsx:380
 msgid "Error loading data"
 msgstr "Error loading data"
 
@@ -6086,7 +6086,7 @@ msgstr "failed"
 #: src/pages/BroadcastsPage.tsx:456
 #: src/pages/BroadcastsPage.tsx:523
 #: src/pages/BroadcastsPage.tsx:1666
-#: src/pages/TransactionalNotificationsPage.tsx:239
+#: src/pages/TransactionalNotificationsPage.tsx:241
 msgid "Failed"
 msgstr "Failed"
 
@@ -6165,7 +6165,7 @@ msgid "Failed to create list: {error}"
 msgstr "Failed to create list: {error}"
 
 #. placeholder {0}: error.message
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:102
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:106
 msgid "Failed to create notification: {0}"
 msgstr "Failed to create notification: {0}"
 
@@ -6225,7 +6225,7 @@ msgstr "Failed to delete invitation"
 msgid "Failed to delete list"
 msgstr "Failed to delete list"
 
-#: src/pages/TransactionalNotificationsPage.tsx:361
+#: src/pages/TransactionalNotificationsPage.tsx:363
 msgid "Failed to delete notification"
 msgstr "Failed to delete notification"
 
@@ -6576,7 +6576,7 @@ msgid "Failed to update list: {error}"
 msgstr "Failed to update list: {error}"
 
 #. placeholder {0}: error.message
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:101
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:105
 msgid "Failed to update notification: {0}"
 msgstr "Failed to update notification: {0}"
 
@@ -6857,11 +6857,11 @@ msgstr "Folder name"
 msgid "folder with all its content?"
 msgstr "folder with all its content?"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:344
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:354
 msgid "Follow workspace setting"
 msgstr "Follow workspace setting"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:340
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:350
 msgid "Following the workspace setting also respects each contact's tracking consent. Without open and click tracking, links keep their UTM parameters. When disabled, links are never rewritten: no tracking and no UTM parameters."
 msgstr "Following the workspace setting also respects each contact's tracking consent. Without open and click tracking, links keep their UTM parameters. When disabled, links are never rewritten: no tracking and no UTM parameters."
 
@@ -7424,7 +7424,7 @@ msgstr "Icon/Favicon URL"
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:149
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:360
 #: src/pages/ListsPage.tsx:336
-#: src/pages/TransactionalNotificationsPage.tsx:269
+#: src/pages/TransactionalNotificationsPage.tsx:271
 msgid "ID"
 msgstr "ID"
 
@@ -7432,7 +7432,7 @@ msgstr "ID"
 msgid "ID can only contain lowercase letters and numbers"
 msgstr "ID can only contain lowercase letters and numbers"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:296
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:300
 msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "ID can only contain lowercase letters, numbers, and underscores"
 
@@ -7485,19 +7485,19 @@ msgstr "ID: {segmentId}"
 msgid "ID: {webhookTemplateId}"
 msgstr "ID: {webhookTemplateId}"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:381
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:391
 msgid "Identifies a specific product promotion or strategic campaign"
 msgstr "Identifies a specific product promotion or strategic campaign"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:389
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:399
 msgid "Identifies what specifically was clicked (e.g. header_link, body_link)"
 msgstr "Identifies what specifically was clicked (e.g. header_link, body_link)"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:371
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:381
 msgid "Identifies what type of link was used (e.g. email, cpc, banner)"
 msgstr "Identifies what type of link was used (e.g. email, cpc, banner)"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:363
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:373
 msgid "Identifies which site sent the traffic (e.g. google, newsletter)"
 msgstr "Identifies which site sent the traffic (e.g. google, newsletter)"
 
@@ -8616,7 +8616,7 @@ msgstr "Loading webhook status..."
 
 #: src/components/blog_editor/NotifuseEditor.tsx:480
 #: src/components/messages/MessageHistoryTab.tsx:612
-#: src/components/templates/TemplateSelectorInput.tsx:145
+#: src/components/templates/TemplateSelectorInput.tsx:149
 #: src/components/timeline/ContactTimeline.tsx:1122
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:504
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:455
@@ -8626,7 +8626,7 @@ msgstr "Loading webhook status..."
 #: src/pages/ListsPage.tsx:218
 #: src/pages/LogsPage.tsx:29
 #: src/pages/TemplatesPage.tsx:203
-#: src/pages/TransactionalNotificationsPage.tsx:388
+#: src/pages/TransactionalNotificationsPage.tsx:390
 msgid "Loading..."
 msgstr "Loading..."
 
@@ -9295,7 +9295,7 @@ msgstr "Next Run"
 #: src/components/settings/WebhookCard.tsx:361
 #: src/components/settings/WorkspaceMembers.tsx:218
 #: src/components/settings/WorkspaceMembers.tsx:238
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:155
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:159
 #: src/components/web_analytics/filters/BackfillStatus.tsx:84
 #: src/components/web_analytics/filters/FilterTable.tsx:272
 #: src/pages/BroadcastsPage.tsx:731
@@ -9354,7 +9354,7 @@ msgstr "No campaign data"
 msgid "No categories yet"
 msgstr "No categories yet"
 
-#: src/components/templates/TemplateSelectorInput.tsx:248
+#: src/components/templates/TemplateSelectorInput.tsx:252
 msgid "No category"
 msgstr "No category"
 
@@ -9545,7 +9545,7 @@ msgstr "No notes"
 msgid "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:347
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:357
 msgid "No open or click tracking, keep UTM parameters"
 msgstr "No open or click tracking, keep UTM parameters"
 
@@ -9643,13 +9643,13 @@ msgstr "No source data"
 msgid "No specific details provided."
 msgstr "No specific details provided."
 
-#: src/components/templates/TemplateSelectorInput.tsx:258
+#: src/components/templates/TemplateSelectorInput.tsx:262
 #: src/pages/TemplatesPage.tsx:455
 msgid "No templates found"
 msgstr "No templates found"
 
 #. placeholder {0}: category.replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:257
+#: src/components/templates/TemplateSelectorInput.tsx:261
 msgid "No templates found for {0} category"
 msgstr "No templates found for {0} category"
 
@@ -9678,7 +9678,7 @@ msgstr "No timeline events found for this contact"
 msgid "No traffic in the last 24 hours"
 msgstr "No traffic in the last 24 hours"
 
-#: src/pages/TransactionalNotificationsPage.tsx:452
+#: src/pages/TransactionalNotificationsPage.tsx:455
 msgid "No transactional notifications found"
 msgstr "No transactional notifications found"
 
@@ -9862,19 +9862,19 @@ msgstr "Nothing is being recorded, and nothing is refused: this page, the export
 msgid "Notification center"
 msgstr "Notification center"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:92
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:96
 msgid "Notification created successfully"
 msgstr "Notification created successfully"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:266
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:270
 msgid "Notification name"
 msgstr "Notification name"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:271
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:275
 msgid "Notification name must be at most {TRANSACTIONAL_NAME_MAX_LENGTH} characters long"
 msgstr "Notification name must be at most {TRANSACTIONAL_NAME_MAX_LENGTH} characters long"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:91
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:95
 msgid "Notification updated successfully"
 msgstr "Notification updated successfully"
 
@@ -10560,7 +10560,7 @@ msgstr "Please check the form for errors"
 
 #: src/components/blog/PostDrawer.tsx:702
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:495
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:255
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:259
 msgid "Please check the form for errors."
 msgstr "Please check the form for errors."
 
@@ -10612,7 +10612,7 @@ msgstr "Please enter a name"
 #~ msgid "Please enter a name for the API key"
 #~ msgstr "Please enter a name for the API key"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:268
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:272
 msgid "Please enter a notification name"
 msgstr "Please enter a notification name"
 
@@ -10673,7 +10673,7 @@ msgstr "Please enter a website URL first"
 msgid "Please enter a workspace name"
 msgstr "Please enter a workspace name"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:293
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:297
 msgid "Please enter an API identifier"
 msgstr "Please enter an API identifier"
 
@@ -10791,7 +10791,7 @@ msgstr "Please select a timezone"
 msgid "Please select aggregate"
 msgstr "Please select aggregate"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:315
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:319
 msgid "Please select an email template"
 msgstr "Please select an email template"
 
@@ -12188,7 +12188,7 @@ msgstr "Sandbox Mode"
 #: src/components/settings/WebhooksSettings.tsx:253
 #: src/components/templates/CreateTemplateDrawer.tsx:729
 #: src/components/templates/CreateTemplateDrawer.tsx:750
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:189
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:193
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Save"
@@ -12344,7 +12344,7 @@ msgstr "Search Engine Indexing"
 msgid "Search saved blocks"
 msgstr "Search saved blocks"
 
-#: src/components/templates/TemplateSelectorInput.tsx:183
+#: src/components/templates/TemplateSelectorInput.tsx:187
 msgid "Search templates..."
 msgstr "Search templates..."
 
@@ -12486,7 +12486,7 @@ msgstr "Segments"
 #: src/components/file_manager/fileManager.tsx:976
 #: src/components/settings/BlogSettings.tsx:360
 #: src/components/settings/BlogSettings.tsx:376
-#: src/components/templates/TemplateSelectorInput.tsx:238
+#: src/components/templates/TemplateSelectorInput.tsx:242
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 #: src/pages/BroadcastsPage.tsx:1080
 msgid "Select"
@@ -12582,7 +12582,7 @@ msgstr "Select a sender"
 msgid "Select a social block"
 msgstr "Select a social block"
 
-#: src/components/templates/TemplateSelectorInput.tsx:42
+#: src/components/templates/TemplateSelectorInput.tsx:46
 msgid "Select a template"
 msgstr "Select a template"
 
@@ -12663,7 +12663,7 @@ msgstr "Select date"
 msgid "Select dimension"
 msgstr "Select dimension"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:324
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
 msgid "Select email template"
 msgstr "Select email template"
 
@@ -12763,7 +12763,7 @@ msgstr "Select supported languages"
 msgid "Select template"
 msgstr "Select template"
 
-#: src/components/templates/TemplateSelectorInput.tsx:173
+#: src/components/templates/TemplateSelectorInput.tsx:177
 msgid "Select Template"
 msgstr "Select Template"
 
@@ -12995,7 +12995,7 @@ msgstr "sent"
 #: src/components/messages/MessageHistoryTab.tsx:102
 #: src/components/messages/MessageHistoryTable.tsx:320
 #: src/pages/BroadcastsPage.tsx:1665
-#: src/pages/TransactionalNotificationsPage.tsx:205
+#: src/pages/TransactionalNotificationsPage.tsx:207
 msgid "Sent"
 msgstr "Sent"
 
@@ -14164,7 +14164,7 @@ msgstr "Terms"
 #: src/components/settings/Integrations.tsx:375
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:104
 #: src/components/web_analytics/tabs/FiltersTab.tsx:127
-#: src/pages/TransactionalNotificationsPage.tsx:180
+#: src/pages/TransactionalNotificationsPage.tsx:182
 msgid "Test"
 msgstr "Test"
 
@@ -14780,7 +14780,7 @@ msgstr "This ID belongs to a deleted template and can't be reused"
 msgid "This ID will be used in URLs and API requests. It can only contain lowercase letters and numbers."
 msgstr "This ID will be used in URLs and API requests. It can only contain lowercase letters and numbers."
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:291
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:295
 msgid "This ID will be used when triggering the notification via API"
 msgstr "This ID will be used when triggering the notification via API"
 
@@ -14820,11 +14820,11 @@ msgstr "This licence covers the whole deployment — one database. A key pasted 
 msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 msgstr "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:276
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:280
 msgid "This notification is managed by an integration and cannot be renamed"
 msgstr "This notification is managed by an integration and cannot be renamed"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:318
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:322
 msgid "This notification is managed by an integration and the template cannot be changed"
 msgstr "This notification is managed by an integration and the template cannot be changed"
 
@@ -15294,7 +15294,7 @@ msgstr "Track website traffic with a first-party script. Beats are stored in thi
 msgid "Tracked"
 msgstr "Tracked"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:339
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:349
 msgid "Tracking"
 msgstr "Tracking"
 
@@ -15347,11 +15347,11 @@ msgstr "Transactional ID"
 msgid "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
 msgstr "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
 
-#: src/pages/TransactionalNotificationsPage.tsx:355
+#: src/pages/TransactionalNotificationsPage.tsx:357
 msgid "Transactional notification deleted successfully"
 msgstr "Transactional notification deleted successfully"
 
-#: src/pages/TransactionalNotificationsPage.tsx:414
+#: src/pages/TransactionalNotificationsPage.tsx:417
 msgid "Transactional Notifications"
 msgstr "Transactional Notifications"
 
@@ -15572,7 +15572,7 @@ msgstr "Unpublish post"
 #: src/components/automations/UpsertAutomationDrawer.tsx:147
 #: src/components/blog/PostDrawer.tsx:557
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:263
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:152
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:156
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
 
@@ -16624,7 +16624,7 @@ msgstr "Yearly"
 #: src/components/settings/WebhookCard.tsx:360
 #: src/components/settings/WorkspaceMembers.tsx:217
 #: src/components/settings/WorkspaceMembers.tsx:237
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:154
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:158
 #: src/components/web_analytics/filters/FilterTable.tsx:271
 msgid "Yes"
 msgstr "Yes"
@@ -16747,7 +16747,7 @@ msgstr "You have unsaved changes"
 
 #: src/components/blog/PostDrawer.tsx:558
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:264
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:153
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:157
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "You have unsaved changes. Are you sure you want to close this drawer?"
 
@@ -16780,7 +16780,11 @@ msgstr "You must configure a Custom Endpoint URL in General Settings above befor
 msgid "You need Templates read and Transactional write permissions to send test emails"
 msgstr "You need Templates read and Transactional write permissions to send test emails"
 
-#: src/pages/TransactionalNotificationsPage.tsx:398
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:328
+msgid "You need Templates read permission to see this template's name and preview"
+msgstr "You need Templates read permission to see this template's name and preview"
+
+#: src/pages/TransactionalNotificationsPage.tsx:400
 msgid "You need Transactional write and Templates read permissions to create notifications"
 msgstr "You need Transactional write and Templates read permissions to create notifications"
 

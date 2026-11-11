@@ -82,3 +82,65 @@ describe('TemplateSelectorInput', () => {
     })
   })
 })
+
+// Without Templates read, templates.list and templates.get answer 403: the field shows the stored
+// template ID instead, requests nothing, and never changes the value it was given.
+describe('TemplateSelectorInput without Templates read', () => {
+  const renderSelector = (value: string | null, onChange = vi.fn()) => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <I18nProvider i18n={i18n}>
+          <ConfigProvider>
+            <App>
+              <TemplateSelectorInput
+                value={value}
+                onChange={onChange}
+                workspaceId="ws1"
+                canReadTemplates={false}
+              />
+            </App>
+          </ConfigProvider>
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    return onChange
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(templatesApi.list as Mock).mockResolvedValue({ templates: [] })
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: makeTemplate('tpl-a', 'Template A') })
+  })
+
+  it('shows the template ID, disabled, without requesting any template', async () => {
+    const onChange = renderSelector('supabase_magiclink_000001')
+
+    const input = screen.getByDisplayValue('supabase_magiclink_000001')
+    expect(input).toBeDisabled()
+    // Give a query or the effect the chance to fire before asserting they did not.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(templatesApi.list).not.toHaveBeenCalled()
+    expect(templatesApi.get).not.toHaveBeenCalled()
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('requests the templates when the prop is left out', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <I18nProvider i18n={i18n}>
+          <ConfigProvider>
+            <App>
+              <TemplateSelectorInput value="tpl-a" onChange={vi.fn()} workspaceId="ws1" />
+            </App>
+          </ConfigProvider>
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+
+    expect(await screen.findByDisplayValue('Template A')).toBeInTheDocument()
+    expect(templatesApi.list).toHaveBeenCalled()
+    expect(templatesApi.get).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'tpl-a' })
+  })
+})

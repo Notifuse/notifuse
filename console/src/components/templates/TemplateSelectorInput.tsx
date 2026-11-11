@@ -26,6 +26,9 @@ interface TemplateSelectorInputProps {
   clearable?: boolean
   disabled?: boolean
   size?: 'small' | 'middle' | 'large'
+  // Without Templates read, templates.list and templates.get answer 403: the field then shows
+  // the stored template ID, requests nothing and cannot be changed. Defaults to true.
+  canReadTemplates?: boolean
 }
 
 const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
@@ -36,7 +39,8 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   placeholder,
   clearable = true,
   disabled = false,
-  size
+  size,
+  canReadTemplates = true
 }) => {
   const { t } = useLingui()
   const defaultPlaceholder = placeholder || t`Select a template`
@@ -64,7 +68,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
       })
       return response
     },
-    enabled: !!workspaceId
+    enabled: !!workspaceId && canReadTemplates
   })
 
   // Keep the displayed template in sync with the controlled `value` prop.
@@ -79,7 +83,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
     }
     // Already showing the right template
     if (selectedTemplate?.id === value) return
-    if (!workspaceId) return
+    if (!workspaceId || !canReadTemplates) return
 
     // Guard against out-of-order responses when `value` changes rapidly
     let cancelled = false
@@ -96,7 +100,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
     return () => {
       cancelled = true
     }
-  }, [value, workspaceId, selectedTemplate])
+  }, [value, workspaceId, selectedTemplate, canReadTemplates])
 
   // Get templates array from response
   const templates = templatesResponse?.templates || []
@@ -113,7 +117,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   }
 
   const showDrawer = () => {
-    if (!disabled) {
+    if (!disabled && canReadTemplates) {
       setOpen(true)
     }
   }
@@ -149,16 +153,16 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
     <>
       <Space.Compact style={{ width: '100%' }}>
         <Input
-          value={selectedTemplate?.name || ''}
+          value={canReadTemplates ? selectedTemplate?.name || '' : value || ''}
           placeholder={defaultPlaceholder}
           readOnly={!clearable}
-          disabled={disabled}
+          disabled={disabled || !canReadTemplates}
           onClick={showDrawer}
           onClear={() => {
             setSelectedTemplate(null)
             onChange?.(null)
           }}
-          allowClear={clearable}
+          allowClear={clearable && canReadTemplates}
           size={size}
           style={{ flex: 1 }}
         />
