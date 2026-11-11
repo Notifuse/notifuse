@@ -61,6 +61,11 @@ func ConvertJSONToMJMLWithDataProtected(tree EmailBlock, templateData string) (s
 
 // convertBlockToMJMLWithErrorAndParsedData recursively converts a single EmailBlock to MJML string with error handling and pre-parsed data
 func convertBlockToMJMLWithErrorAndParsedData(block EmailBlock, indentLevel int, templateData string, parsedData map[string]interface{}, protectLiquid bool) (string, error) {
+	// Defensive check, as in the other walks: a nil or untyped block renders nothing
+	if isNilBlock(block) || block.GetType() == "" {
+		return "", nil
+	}
+
 	// mj-liquid: output content directly, no wrapping tags
 	// Content is raw MJML+Liquid processed in the whole-string Liquid pass
 	if block.GetType() == MJMLComponentMjLiquid {
@@ -123,13 +128,23 @@ func convertBlockToMJMLWithErrorAndParsedData(block EmailBlock, indentLevel int,
 	// Process children
 	var childrenMJML []string
 	for _, child := range children {
-		if child != nil {
-			childMJML, err := convertBlockToMJMLWithErrorAndParsedData(child, indentLevel+1, templateData, parsedData, protectLiquid)
-			if err != nil {
-				return "", err
-			}
-			childrenMJML = append(childrenMJML, childMJML)
+		if isNilBlock(child) {
+			continue
 		}
+		// a hidden block is skipped before its content is rendered, so its Liquid
+		// cannot fail the send
+		shown, err := child.GetDisplayCondition().Evaluate(parsedData)
+		if err != nil {
+			return "", fmt.Errorf("display condition failed for block %s: %w", child.GetID(), err)
+		}
+		if !shown {
+			continue
+		}
+		childMJML, err := convertBlockToMJMLWithErrorAndParsedData(child, indentLevel+1, templateData, parsedData, protectLiquid)
+		if err != nil {
+			return "", err
+		}
+		childrenMJML = append(childrenMJML, childMJML)
 	}
 
 	return fmt.Sprintf("%s\n%s\n%s", openTag, strings.Join(childrenMJML, "\n"), closeTag), nil
@@ -151,7 +166,7 @@ func convertBlockToMJML(block EmailBlock, indentLevel int, templateData string) 
 // needs no delimiter protection; the data path uses convertBlockToMJMLWithErrorAndParsedData.
 func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templateData string, parsedData map[string]interface{}) string {
 	// Defensive check: ensure the block has a valid BaseBlock pointer
-	if block == nil {
+	if isNilBlock(block) {
 		return ""
 	}
 
@@ -218,9 +233,16 @@ func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templat
 	// Process children
 	var childrenMJML []string
 	for _, child := range children {
-		if child != nil {
-			childrenMJML = append(childrenMJML, convertBlockToMJMLWithParsedData(child, indentLevel+1, templateData, parsedData))
+		if isNilBlock(child) {
+			continue
 		}
+		// without test data the condition sees an empty map, so a block that needs a
+		// variable is hidden; an engine failure keeps the block, as this walk ignores
+		// Liquid errors
+		if shown, err := child.GetDisplayCondition().Evaluate(parsedData); err == nil && !shown {
+			continue
+		}
+		childrenMJML = append(childrenMJML, convertBlockToMJMLWithParsedData(child, indentLevel+1, templateData, parsedData))
 	}
 
 	return fmt.Sprintf("%s\n%s\n%s", openTag, strings.Join(childrenMJML, "\n"), closeTag)
@@ -230,7 +252,7 @@ func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templat
 // without any Liquid template processing - preserving raw template syntax
 func convertBlockToMJMLRaw(block EmailBlock, indentLevel int) string {
 	// Defensive check: ensure the block has a valid BaseBlock pointer
-	if block == nil {
+	if isNilBlock(block) {
 		return ""
 	}
 
@@ -282,9 +304,16 @@ func convertBlockToMJMLRaw(block EmailBlock, indentLevel int) string {
 	// Process children
 	var childrenMJML []string
 	for _, child := range children {
-		if child != nil {
-			childrenMJML = append(childrenMJML, convertBlockToMJMLRaw(child, indentLevel+1))
+		if isNilBlock(child) {
+			continue
 		}
+		childMJML := convertBlockToMJMLRaw(child, indentLevel+1)
+		// the export keeps the condition as the Liquid that sending evaluates
+		if open, close := child.GetDisplayCondition().ToLiquid(child.GetID()); open != "" {
+			childIndent := strings.Repeat("  ", indentLevel+1)
+			childMJML = childIndent + open + "\n" + childMJML + "\n" + childIndent + close
+		}
+		childrenMJML = append(childrenMJML, childMJML)
 	}
 
 	return fmt.Sprintf("%s\n%s\n%s", openTag, strings.Join(childrenMJML, "\n"), closeTag)
@@ -897,7 +926,7 @@ func ConvertToMJMLString(block EmailBlock) (string, error) {
 
 // ConvertToMJMLStringWithData converts an EmailBlock to MJML with template data
 func ConvertToMJMLStringWithData(block EmailBlock, templateData string) (string, error) {
-	if block == nil {
+	if isNilBlock(block) {
 		return "", fmt.Errorf("block cannot be nil")
 	}
 
@@ -924,7 +953,7 @@ type MJMLConvertOptions struct {
 
 // ConvertToMJMLWithOptions converts an EmailBlock to MJML string with additional options
 func ConvertToMJMLWithOptions(block EmailBlock, options MJMLConvertOptions) (string, error) {
-	if block == nil {
+	if isNilBlock(block) {
 		return "", fmt.Errorf("block cannot be nil")
 	}
 

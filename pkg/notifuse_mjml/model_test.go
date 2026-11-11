@@ -1585,3 +1585,34 @@ func TestMJLiquidUnmarshal(t *testing.T) {
 	require.NotNil(t, block.GetContent())
 	assert.Contains(t, *block.GetContent(), "{% if show %}")
 }
+
+func TestEmailBlockDisplayConditionRoundTrip(t *testing.T) {
+	raw := `{"id":"root","type":"mjml","children":[{"id":"body","type":"mj-body","children":[
+		{"id":"sec","type":"mj-section","children":[{"id":"col","type":"mj-column","children":[
+			{"id":"img","type":"mj-image","attributes":{"src":"https://example.com/a.png"},
+			 "display_condition":{"match":"any","rules":[
+				{"variable":"contact.custom_string_1","operator":"eq","value":"vip"},
+				{"variable":"order.total","operator":"gte","value":"100"},
+				{"variable":"contact.first_name","operator":"is_present"}]}}]}]}]}]}`
+	tree, err := UnmarshalEmailBlock([]byte(raw))
+	require.NoError(t, err)
+
+	marshaled, err := json.Marshal(tree)
+	require.NoError(t, err)
+	again, err := UnmarshalEmailBlock(marshaled)
+	require.NoError(t, err)
+
+	img := again.GetChildren()[0].GetChildren()[0].GetChildren()[0].GetChildren()[0]
+	require.Equal(t, "img", img.GetID())
+	value := func(s string) *string { return &s }
+	assert.Equal(t, &DisplayCondition{Match: "any", Rules: []DisplayConditionRule{
+		{Variable: "contact.custom_string_1", Operator: DisplayConditionEq, Value: value("vip")},
+		{Variable: "order.total", Operator: DisplayConditionGte, Value: value("100")},
+		{Variable: "contact.first_name", Operator: DisplayConditionIsPresent},
+	}}, img.GetDisplayCondition())
+
+	t.Run("a block without condition has no display_condition key", func(t *testing.T) {
+		assert.Equal(t, 1, strings.Count(string(marshaled), `"display_condition"`))
+		assert.Nil(t, again.GetDisplayCondition())
+	})
+}

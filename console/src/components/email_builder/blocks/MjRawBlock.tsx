@@ -459,6 +459,7 @@ export class MjRawBlock extends BaseEmailBlock {
           className={`${attrs.cssClass} ${blockClasses}`.trim()}
           onClick={handleClick}
           data-block-id={this.block.id}
+        data-display-condition={this.block.display_condition ? "true" : undefined}
           style={{
             padding: '20px',
             backgroundColor: '#f8f9fa',
@@ -484,6 +485,7 @@ export class MjRawBlock extends BaseEmailBlock {
         className={`${blockClasses}`.trim()}
         onClick={handleClick}
         data-block-id={this.block.id}
+        data-display-condition={this.block.display_condition ? "true" : undefined}
         style={{
           position: 'relative',
           ...selectionStyle

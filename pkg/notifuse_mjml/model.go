@@ -105,6 +105,8 @@ type BaseBlock struct {
 	Children   []EmailBlock           `json:"children,omitempty"`
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 	Content    *string                `json:"content,omitempty"`
+	// DisplayCondition shows the block only when rules on the template data hold
+	DisplayCondition *DisplayCondition `json:"display_condition,omitempty"`
 }
 
 // Specific attribute types for complex blocks
@@ -474,6 +476,7 @@ type EmailBlock interface {
 	SetAttributes(map[string]interface{})
 	GetContent() *string
 	SetContent(*string)
+	GetDisplayCondition() *DisplayCondition
 }
 
 // Helper methods for EmailBlock interface implementation
@@ -536,6 +539,13 @@ func (b *BaseBlock) SetContent(content *string) {
 	}
 }
 
+func (b *BaseBlock) GetDisplayCondition() *DisplayCondition {
+	if b == nil {
+		return nil
+	}
+	return b.DisplayCondition
+}
+
 // EmailBlockJSON is used for JSON marshaling/unmarshaling with type information
 type EmailBlockJSON struct {
 	ID         string                 `json:"id"`
@@ -543,6 +553,8 @@ type EmailBlockJSON struct {
 	Children   []json.RawMessage      `json:"children,omitempty"`
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 	Content    *string                `json:"content,omitempty"`
+	// DisplayCondition shows the block only when rules on the template data hold
+	DisplayCondition *DisplayCondition `json:"display_condition,omitempty"`
 }
 
 // MarshalJSON implements custom JSON marshaling for EmailBlock interface
@@ -584,6 +596,9 @@ func UnmarshalEmailBlock(data []byte) (EmailBlock, error) {
 		Children:   children,
 		Attributes: attrs,
 		Content:    blockJSON.Content,
+		// a condition is kept on every block type, so validation can refuse it where
+		// it does not belong instead of the tree silently dropping it
+		DisplayCondition: blockJSON.DisplayCondition,
 	}
 
 	// Return typed wrapper based on component type
