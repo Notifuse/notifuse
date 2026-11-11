@@ -323,6 +323,7 @@ export class MjWrapperBlock extends BaseEmailBlock {
         className={`${attrs.cssClass} ${blockClasses}`.trim()}
         onClick={handleClick}
         data-block-id={this.block.id}
+        data-display-condition={this.block.display_condition ? "true" : undefined}
       >
         <div style={innerWrapperStyle}>
           {!hasSections ? (

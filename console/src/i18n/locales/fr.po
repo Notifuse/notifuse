@@ -313,6 +313,10 @@ msgstr "{count, plural, one {La liste \"{listName}\" ne peut pas être supprimé
 msgid "{goalCount} goals"
 msgstr "{goalCount} objectifs"
 
+#: src/components/email_builder/panels/Preview.tsx:487
+msgid "{hiddenBlockCount} blocks hidden by their condition with this test data."
+msgstr "{hiddenBlockCount} blocs masqués par leur condition avec ces données de test."
+
 #: src/components/timeline/ContactTimeline.tsx:302
 msgid "{hours}h"
 msgstr "{hours}h"
@@ -454,23 +458,23 @@ msgstr "{what} par semaine"
 msgid "{what} per year"
 msgstr "{what} par an"
 
-#: src/components/email_builder/panels/Preview.tsx:230
+#: src/components/email_builder/panels/Preview.tsx:243
 msgid "// No test data yet..."
 msgstr "// Pas encore de données de test..."
 
-#: src/components/templates/ImportExportButton.tsx:515
+#: src/components/templates/ImportExportButton.tsx:531
 msgid "• Check that your MJML structure follows the proper hierarchy"
 msgstr "• Vérifiez que votre structure MJML suit la bonne hiérarchie"
 
-#: src/components/templates/ImportExportButton.tsx:516
+#: src/components/templates/ImportExportButton.tsx:532
 msgid "• Ensure all required components are properly nested"
 msgstr "• Assurez-vous que tous les composants requis sont correctement imbriqués"
 
-#: src/components/templates/ImportExportButton.tsx:518
+#: src/components/templates/ImportExportButton.tsx:534
 msgid "• Make sure all XML tags are properly closed"
 msgstr "• Vérifiez que toutes les balises XML sont correctement fermées"
 
-#: src/components/templates/ImportExportButton.tsx:517
+#: src/components/templates/ImportExportButton.tsx:533
 msgid "• Verify that component attributes are valid"
 msgstr "• Vérifiez que les attributs des composants sont valides"
 
@@ -514,6 +518,10 @@ msgstr "0 contacts"
 #: src/pages/BroadcastsPage.tsx:919
 msgid "0 opens out of 0 recipients"
 msgstr "0 ouvertures sur 0 destinataires"
+
+#: src/components/email_builder/panels/Preview.tsx:486
+msgid "1 block hidden by its condition with this test data."
+msgstr "1 bloc masqué par sa condition avec ces données de test."
 
 #: src/components/timeline/ContactTimeline.tsx:927
 msgid "1 goal"
@@ -604,6 +612,10 @@ msgstr "Une brève description de l objectif de cette notification"
 msgid "A bulk action is already running"
 msgstr "Une action en masse est déjà en cours"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:100
+msgid "A condition cannot use .empty or .to_liquid: use the operator \"is false or empty\"."
+msgstr "Une condition ne peut pas utiliser .empty ni .to_liquid : utilisez l'opérateur « est faux ou vide »."
+
 #: src/components/settings/GeneralSettings.tsx:316
 msgid "A contact's own consent always wins. This choice applies to contacts whose consent to open and click tracking is not recorded. Some regulators, such as the Italian Garante and the French CNIL, expect tracking to require consent."
 msgstr "Le consentement propre à un contact l'emporte toujours. Ce choix s'applique aux contacts dont le consentement au tracking des ouvertures et des clics n'est pas enregistré. Certaines autorités, comme le Garante italien et la CNIL, considèrent que ce tracking requiert un consentement."
@@ -611,6 +623,15 @@ msgstr "Le consentement propre à un contact l'emporte toujours. Ce choix s'appl
 #: src/components/automations/config/TriggerConfigForm.tsx:449
 msgid "A count of past activity includes the event that fires the automation, so \"at least 3 opens\" enrolls on the third open."
 msgstr "Un décompte d'activité passée inclut l'événement qui déclenche l'automation : « au moins 3 ouvertures » inscrit donc le contact dès la troisième ouverture."
+
+#: src/components/email_builder/EmailAIAssistant.tsx:114
+#: src/components/email_builder/EmailAIAssistant.tsx:156
+msgid "A Liquid block cannot go inside a block with a display condition"
+msgstr "Un bloc Liquid ne peut pas aller dans un bloc qui a une condition d'affichage"
+
+#: src/components/email_builder/EmailBuilder.tsx:348
+msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
+msgstr "Un bloc Liquid ne peut pas aller dans un bloc qui a une condition d'affichage : supprimez d'abord la condition, ou placez le bloc Liquid à l'extérieur."
 
 #: src/components/blog/ThemeEditorDrawer.tsx:459
 msgid "A newer draft was found in local storage. Would you like to restore it or discard it?"
@@ -767,6 +788,10 @@ msgstr "Ajouter {0}"
 #: src/components/blog_editor/extensions/CodeBlockNodeView.tsx:63
 msgid "Add a caption..."
 msgstr "Ajouter une légende..."
+
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:138
+msgid "Add a condition"
+msgstr "Ajouter une condition"
 
 #: src/components/segment/input_dimension_filters.tsx:176
 msgid "Add a filter"
@@ -1079,6 +1104,7 @@ msgstr "Alignement"
 msgid "All"
 msgstr "Tout"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:309
 #: src/components/segment/input.tsx:958
 msgid "ALL"
 msgstr "TOUT"
@@ -1181,6 +1207,10 @@ msgstr "Toujours fournir des polices de secours pour une meilleure compatibilit�
 msgid "Always set to the specified value"
 msgstr "Toujours définir à la valeur spécifiée"
 
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:128
+msgid "Always shown"
+msgstr "Toujours affiché"
+
 #: src/components/settings/Integrations.tsx:222
 msgid "Amazon SES (inbound-smtp.<region>.amazonaws.com, in a region that supports email receiving)"
 msgstr "Amazon SES (inbound-smtp.<region>.amazonaws.com, dans une région qui prend en charge la réception d'emails)"
@@ -1214,6 +1244,8 @@ msgstr "Ancre"
 msgid "Anchor ID"
 msgstr "ID d ancre"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:116
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
 #: src/components/segment/form_leaf.tsx:850
 #: src/components/segment/input.tsx:674
 msgid "and"
@@ -1379,6 +1411,7 @@ msgstr "URL de l'API"
 msgid "Applies to every workspace that has not set its own retention, and to deployment-level entries such as sign-ins. 0 keeps every entry forever."
 msgstr "S'applique à chaque workspace qui n'a pas défini sa propre rétention, et aux entrées au niveau du déploiement comme les connexions. 0 conserve chaque entrée pour toujours."
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:293
 #: src/components/messages/MessageHistoryTab.tsx:544
 #: src/components/settings/audit_logs/AuditFilterBuilder.tsx:244
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:47
@@ -1527,6 +1560,10 @@ msgstr "Demandez-moi de vous aider à écrire votre blog..."
 #: src/components/segment/input.tsx:811
 msgid "at least"
 msgstr "au moins"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:310
+msgid "AT LEAST ONE"
+msgstr "AU MOINS UNE"
 
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:159
 msgid "At least one condition is required"
@@ -1927,6 +1964,10 @@ msgstr "entre"
 msgid "Block \"{0}\" updated"
 msgstr "Bloc \"{0}\" mis à jour"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:367
+msgid "block hidden"
+msgstr "bloc masqué"
+
 #: src/components/email_builder/ui/BlockToolbar.tsx:234
 msgid "Block Name"
 msgstr "Nom du bloc"
@@ -1936,9 +1977,13 @@ msgstr "Nom du bloc"
 msgid "Block saved as \"{0}\""
 msgstr "Bloc enregistré sous \"{0}\""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1272
+#: src/components/templates/CreateTemplateDrawer.tsx:1273
 msgid "Block Settings Panel"
 msgstr "Panneau des paramètres du bloc"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:367
+msgid "block shown"
+msgstr "bloc affiché"
 
 #: src/components/email_builder/ui/BlockToolbar.tsx:218
 msgid "Block type:"
@@ -2395,10 +2440,12 @@ msgstr "Campagnes"
 #: src/components/contacts/InlineEditableField.tsx:299
 #: src/components/contacts/TrackingConsent.tsx:211
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:155
-#: src/components/email_builder/panels/Preview.tsx:194
+#: src/components/email_builder/panels/Preview.tsx:207
 #: src/components/email_builder/ui/BlockToolbar.tsx:210
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:139
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:179
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:285
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:92
 #: src/components/email_builder/ui/ImportFontInput.tsx:173
 #: src/components/email_builder/ui/StringPopoverInput.tsx:92
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:398
@@ -2431,7 +2478,7 @@ msgstr "Campagnes"
 #: src/components/settings/WorkspaceMembers.tsx:541
 #: src/components/templates/CreateTemplateDrawer.tsx:627
 #: src/components/templates/SendTemplateModal.tsx:303
-#: src/components/templates/TemplateTranslationsTab.tsx:282
+#: src/components/templates/TemplateTranslationsTab.tsx:283
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:180
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
@@ -2476,6 +2523,10 @@ msgstr "Annuler la diffusion ?"
 #: src/components/contacts/BulkUpdateDrawer.tsx:432
 msgid "Cancel Operation?"
 msgstr "Annuler l opération ?"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:197
+msgid "Cancel the rule changes"
+msgstr "Annuler les modifications de la règle"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:301
 msgid "Cancel Upload?"
@@ -2957,7 +3008,7 @@ msgstr "Comparaison"
 msgid "Comparison — {detail}"
 msgstr "Comparaison — {detail}"
 
-#: src/components/email_builder/panels/Preview.tsx:330
+#: src/components/email_builder/panels/Preview.tsx:343
 msgid "Compilation Results"
 msgstr "Résultats de compilation"
 
@@ -3044,6 +3095,7 @@ msgstr "Terminé — {0} en échec"
 msgid "condition"
 msgstr "condition"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:361
 #: src/components/segment/input.tsx:1011
 msgid "Condition"
 msgstr "Condition"
@@ -3132,6 +3184,7 @@ msgid "Configuring {0}"
 msgstr "Configuration de {0}"
 
 #: src/components/contacts/BulkActionsBar.tsx:193
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:203
 #: src/components/filters/Filter.tsx:185
 #: src/components/filters/Filter.tsx:204
 #: src/components/segment/button_upsert.tsx:426
@@ -3326,6 +3379,7 @@ msgstr "Couleur du conteneur"
 msgid "Container Padding"
 msgstr "Espacement du conteneur"
 
+#: src/components/email_builder/ui/displayConditionLabels.ts:16
 #: src/components/web_analytics/FilterBuilder.tsx:39
 #: src/components/web_analytics/lib/filterCatalog.ts:218
 msgid "contains"
@@ -3339,7 +3393,7 @@ msgstr "Contenu"
 msgid "Content quality by traffic source"
 msgstr "Qualité du contenu par source de trafic"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1258
+#: src/components/templates/CreateTemplateDrawer.tsx:1259
 msgid "Content Structure Tree"
 msgstr "Arborescence de la structure du contenu"
 
@@ -4348,6 +4402,10 @@ msgstr "Supprimer le nœud"
 msgid "Delete Post"
 msgstr "Supprimer l article"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:155
+msgid "Delete rule"
+msgstr "Supprimer la règle"
+
 #: src/components/contacts/SegmentsFilter.tsx:162
 msgid "Delete segment"
 msgstr "Supprimer le segment"
@@ -4496,7 +4554,7 @@ msgstr "La description ne doit pas dépasser {MAX_DESCRIPTION_LENGTH} caractère
 msgid "Description when shared on social media (og:description)"
 msgstr "Description lors du partage sur les réseaux sociaux (og:description)"
 
-#: src/components/email_builder/panels/Preview.tsx:457
+#: src/components/email_builder/panels/Preview.tsx:470
 msgid "Desktop view (100%)"
 msgstr "Vue bureau (100%)"
 
@@ -4568,7 +4626,7 @@ msgstr "Désactiver le webhook"
 #: src/components/settings/GeneralSettings.tsx:142
 #: src/components/settings/Integrations.tsx:1576
 #: src/components/settings/WebAnalyticsSettings.tsx:251
-#: src/components/templates/TemplateTranslationsTab.tsx:224
+#: src/components/templates/TemplateTranslationsTab.tsx:225
 msgid "Disabled"
 msgstr "Désactivé"
 
@@ -4595,6 +4653,15 @@ msgstr "Abandonner le brouillon"
 #: src/components/settings/SettingsSaveBar.tsx:95
 msgid "Discard unsaved changes?"
 msgstr "Abandonner les modifications non enregistrées ?"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:277
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:71
+msgid "Display condition"
+msgstr "Condition d'affichage"
+
+#: src/components/templates/ImportExportButton.tsx:232
+msgid "Display conditions not imported"
+msgstr "Conditions d'affichage non importées"
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:452
 msgid "Display video player controls"
@@ -4654,6 +4721,14 @@ msgstr "Voulez-vous envoyer \"{0}\" immédiatement ou le programmer pour plus ta
 msgid "Documentation"
 msgstr "Documentation"
 
+#: src/components/email_builder/ui/displayConditionLabels.ts:17
+msgid "does not contain"
+msgstr "ne contient pas"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:15
+msgid "does not equal"
+msgstr "n'est pas égal à"
+
 #: src/components/settings/Integrations.tsx:2143
 #: src/components/settings/Integrations.tsx:2490
 #: src/pages/SetupWizard.tsx:605
@@ -4680,7 +4755,7 @@ msgstr "Ne pas tracker les ouvertures et les clics pour ce broadcast"
 
 #: src/components/automations/config/ConditionsField.tsx:137
 #: src/components/settings/ZapierSettings.tsx:270
-#: src/components/templates/TemplateTranslationsTab.tsx:325
+#: src/components/templates/TemplateTranslationsTab.tsx:326
 msgid "Done"
 msgstr "Terminé"
 
@@ -4767,6 +4842,10 @@ msgstr "ex. Marketing"
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:365
 msgid "e.g. notifuse"
 msgstr "ex. notifuse"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:213
+msgid "e.g. order.has_image"
+msgstr "ex. order.has_image"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:281
 msgid "E.g. Password Reset Email"
@@ -4859,7 +4938,8 @@ msgstr "modifier"
 #: src/components/automations/config/ConditionsField.tsx:108
 #: src/components/automations/UpsertAutomationDrawer.tsx:288
 #: src/components/blog/PostsTable.tsx:349
-#: src/components/email_builder/EmailBuilder.tsx:852
+#: src/components/email_builder/EmailBuilder.tsx:873
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
 #: src/components/settings/Integrations.tsx:352
 #: src/components/settings/Integrations.tsx:1440
@@ -4876,7 +4956,7 @@ msgid "Edit"
 msgstr "Modifier"
 
 #. placeholder {0}: SUPPORTED_LANGUAGES[editorDrawerLang] || editorDrawerLang
-#: src/components/templates/TemplateTranslationsTab.tsx:316
+#: src/components/templates/TemplateTranslationsTab.tsx:317
 msgid "Edit {0} translation"
 msgstr "Modifier la traduction {0}"
 
@@ -4993,6 +5073,7 @@ msgstr "Modifier les permissions pour {0}"
 msgid "Edit Post"
 msgstr "Modifier l article"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:163
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:94
 msgid "Edit rule"
 msgstr "Modifier la règle"
@@ -5010,11 +5091,11 @@ msgstr "Modifier l expéditeur"
 msgid "Edit Template"
 msgstr "Modifier le modèle"
 
-#: src/components/email_builder/panels/Preview.tsx:223
+#: src/components/email_builder/panels/Preview.tsx:236
 msgid "Edit Test Data"
 msgstr "Modifier les données de test"
 
-#: src/components/email_builder/panels/Preview.tsx:191
+#: src/components/email_builder/panels/Preview.tsx:204
 msgid "Edit Test Data (JSON)"
 msgstr "Modifier les données de test (JSON)"
 
@@ -5044,7 +5125,7 @@ msgstr "Modifier le webhook"
 msgid "Edit Zapier connection"
 msgstr "Modifier la connexion Zapier"
 
-#: src/components/templates/ImportExportButton.tsx:433
+#: src/components/templates/ImportExportButton.tsx:449
 msgid "Editable markup"
 msgstr "Balisage modifiable"
 
@@ -5184,7 +5265,7 @@ msgid "Email Options:"
 msgstr "Options email :"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:896
-#: src/components/email_builder/panels/Preview.tsx:482
+#: src/components/email_builder/panels/Preview.tsx:505
 msgid "Email Preview"
 msgstr "Aperçu de l email"
 
@@ -5197,12 +5278,12 @@ msgid "Email Provider Required"
 msgstr "Fournisseur d email requis"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:937
-#: src/components/templates/TemplateTranslationsTab.tsx:237
+#: src/components/templates/TemplateTranslationsTab.tsx:238
 msgid "Email subject"
 msgstr "Objet de l email"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1003
-#: src/components/templates/TemplateTranslationsTab.tsx:300
+#: src/components/templates/TemplateTranslationsTab.tsx:301
 msgid "Email Subject"
 msgstr "Objet de l email"
 
@@ -5331,7 +5412,7 @@ msgstr "Activer le webhook"
 #: src/components/settings/SystemSettingsDrawer.tsx:465
 #: src/components/settings/SystemSettingsDrawer.tsx:550
 #: src/components/settings/WebAnalyticsSettings.tsx:246
-#: src/components/templates/TemplateTranslationsTab.tsx:223
+#: src/components/templates/TemplateTranslationsTab.tsx:224
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:146
 msgid "Enabled"
 msgstr "Activé"
@@ -5387,9 +5468,21 @@ msgstr "Entrez un nom pour cette intégration"
 msgid "Enter a name for your workspace"
 msgstr "Entrez un nom pour votre espace de travail"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:110
+msgid "Enter a number, with at most 15 digits before the decimal point."
+msgstr "Saisissez un nombre d'au plus 15 chiffres avant la virgule."
+
 #: src/components/lists/ListDrawer.tsx:203
 msgid "Enter a unique alphanumeric ID"
 msgstr "Entrez un ID alphanumérique unique"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:102
+msgid "Enter a value."
+msgstr "Saisissez une valeur."
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:98
+msgid "Enter a variable path such as order.total: letters, digits and underscores, separated by dots."
+msgstr "Saisissez un chemin de variable comme order.total : lettres, chiffres et tirets bas, séparés par des points."
 
 #: src/components/settings/Integrations.tsx:2741
 msgid "Enter an email address to receive a test email:"
@@ -5423,7 +5516,7 @@ msgstr "Entrez l ID de diffusion pour confirmer"
 msgid "Enter button link URL or {{ url }}"
 msgstr "Entrez l URL du lien du bouton ou {{ url }}"
 
-#: src/components/email_builder/blocks/MjButtonBlock.tsx:644
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:645
 msgid "Enter button text..."
 msgstr "Entrez le texte du bouton..."
 
@@ -5575,6 +5668,7 @@ msgstr "Énumérer toutes les adresses abonnées à une liste (nécessite aussi 
 msgid "Enumerate every subscriber address on a list (also needs Lists read)"
 msgstr "Énumérer toutes les adresses abonnées à une liste (nécessite aussi la lecture Listes)"
 
+#: src/components/email_builder/ui/displayConditionLabels.ts:14
 #: src/components/web_analytics/FilterBuilder.tsx:37
 #: src/components/web_analytics/lib/filterCatalog.ts:216
 msgid "equals"
@@ -5795,7 +5889,7 @@ msgstr "Explorer"
 #: src/components/contacts/ExportContactsModal.tsx:354
 #: src/components/email_builder/MjmlCodeEditor.tsx:635
 #: src/components/logs/AuditLogActions.tsx:52
-#: src/components/templates/ImportExportButton.tsx:416
+#: src/components/templates/ImportExportButton.tsx:432
 #: src/pages/ContactsPage.tsx:1055
 msgid "Export"
 msgstr "Exporter"
@@ -6048,15 +6142,15 @@ msgstr "Échec du téléchargement des fichiers"
 msgid "Failed to enable reputation isolation"
 msgstr "Échec de l'activation de l'isolation de réputation"
 
-#: src/components/templates/ImportExportButton.tsx:330
+#: src/components/templates/ImportExportButton.tsx:346
 msgid "Failed to export HTML"
 msgstr "Échec de l exportation HTML"
 
-#: src/components/templates/ImportExportButton.tsx:379
+#: src/components/templates/ImportExportButton.tsx:395
 msgid "Failed to export JSON"
 msgstr "Échec de l exportation JSON"
 
-#: src/components/templates/ImportExportButton.tsx:359
+#: src/components/templates/ImportExportButton.tsx:375
 msgid "Failed to export MJML"
 msgstr "Échec de l exportation MJML"
 
@@ -6089,11 +6183,11 @@ msgstr "Échec de la récupération du statut de configuration"
 msgid "Failed to fetch workspace members"
 msgstr "Échec de la récupération des membres de l espace de travail"
 
-#: src/components/templates/ImportExportButton.tsx:239
+#: src/components/templates/ImportExportButton.tsx:255
 msgid "Failed to import MJML template. Please check the MJML syntax."
 msgstr "Échec de l importation du modèle MJML. Veuillez vérifier la syntaxe MJML."
 
-#: src/components/templates/ImportExportButton.tsx:191
+#: src/components/templates/ImportExportButton.tsx:201
 msgid "Failed to import template. Please check the file format."
 msgstr "Échec de l importation du modèle. Veuillez vérifier le format du fichier."
 
@@ -6156,7 +6250,7 @@ msgid "Failed to publish theme"
 msgstr "Échec de la publication du thème"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:561
-#: src/components/templates/ImportExportButton.tsx:197
+#: src/components/templates/ImportExportButton.tsx:207
 msgid "Failed to read the file"
 msgstr "Échec de la lecture du fichier"
 
@@ -6395,6 +6489,10 @@ msgstr "Échec de la vérification du code"
 #: src/components/settings/audit_logs/AuditFilterBuilder.tsx:110
 msgid "Failure"
 msgstr "Échec"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:149
+msgid "false"
+msgstr "faux"
 
 #: src/components/settings/BlogSettings.tsx:368
 msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
@@ -7023,6 +7121,10 @@ msgstr "Aidez-nous à améliorer Notifuse en envoyant des statistiques d utilisa
 msgid "Helps screen readers describe the image"
 msgstr "Aide les lecteurs d écran à décrire l image"
 
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:120
+msgid "hidden"
+msgstr "masqué"
+
 #: src/components/settings/WebhookCard.tsx:351
 msgid "Hide"
 msgstr "Masquer"
@@ -7092,8 +7194,8 @@ msgstr "Combien de temps attendre avant de passer à l étape suivante"
 msgid "How to use:"
 msgstr "Comment utiliser :"
 
-#: src/components/email_builder/panels/Preview.tsx:384
-#: src/components/templates/ImportExportButton.tsx:422
+#: src/components/email_builder/panels/Preview.tsx:397
+#: src/components/templates/ImportExportButton.tsx:438
 msgid "HTML"
 msgstr "HTML"
 
@@ -7105,11 +7207,11 @@ msgstr "Contenu HTML"
 msgid "HTML Content Editor"
 msgstr "Éditeur de contenu HTML"
 
-#: src/components/templates/ImportExportButton.tsx:317
+#: src/components/templates/ImportExportButton.tsx:333
 msgid "HTML Export Failed"
 msgstr "Échec de l exportation HTML"
 
-#: src/components/templates/ImportExportButton.tsx:324
+#: src/components/templates/ImportExportButton.tsx:340
 msgid "HTML exported successfully"
 msgstr "HTML exporté avec succès"
 
@@ -7295,17 +7397,17 @@ msgstr "TLS implicite (SMTPS)"
 
 #: src/components/contacts/TrackingConsent.tsx:66
 #: src/components/email_builder/MjmlCodeEditor.tsx:623
-#: src/components/templates/ImportExportButton.tsx:387
+#: src/components/templates/ImportExportButton.tsx:403
 #: src/pages/ContactsPage.tsx:1048
 msgid "Import"
 msgstr "Importer"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:700
-#: src/components/templates/ImportExportButton.tsx:456
+#: src/components/templates/ImportExportButton.tsx:472
 msgid "Import / Export"
 msgstr "Importer / Exporter"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1301
+#: src/components/templates/CreateTemplateDrawer.tsx:1302
 msgid "Import & Export Templates"
 msgstr "Importer et exporter des modèles"
 
@@ -7344,11 +7446,11 @@ msgstr "Importer depuis CSV"
 msgid "Import MJML"
 msgstr "Importer du MJML"
 
-#: src/components/templates/ImportExportButton.tsx:404
+#: src/components/templates/ImportExportButton.tsx:420
 msgid "Import MJML markup"
 msgstr "Importer du balisage MJML"
 
-#: src/components/templates/ImportExportButton.tsx:189
+#: src/components/templates/ImportExportButton.tsx:199
 msgid "Import Validation Failed"
 msgstr "Échec de la validation de l importation"
 
@@ -7531,6 +7633,10 @@ msgstr "Intégration mise à jour avec succès"
 msgid "Integrations"
 msgstr "Intégrations"
 
+#: src/components/email_builder/EmailAIAssistant.tsx:89
+msgid "Invalid display condition"
+msgstr "Condition d'affichage invalide"
+
 #: src/components/settings/SystemSettingsDrawer.tsx:409
 msgid "Invalid email"
 msgstr "Email invalide"
@@ -7562,7 +7668,7 @@ msgstr "Lien d invitation invalide : jeton manquant"
 msgid "Invalid JSON format"
 msgstr "Format JSON invalide"
 
-#: src/components/email_builder/panels/Preview.tsx:144
+#: src/components/email_builder/panels/Preview.tsx:157
 msgid "Invalid JSON format. Please check your syntax."
 msgstr "Format JSON invalide. Veuillez vérifier votre syntaxe."
 
@@ -7578,20 +7684,20 @@ msgstr "Jeton d invitation invalide ou expiré"
 msgid "Invalid template structure data."
 msgstr "Données de structure de modèle invalides."
 
-#: src/components/templates/ImportExportButton.tsx:97
+#: src/components/templates/ImportExportButton.tsx:101
 msgid "Invalid tree structure: children must be an array"
 msgstr "Structure d arbre invalide : les enfants doivent être un tableau"
 
-#: src/components/templates/ImportExportButton.tsx:82
-#: src/components/templates/ImportExportButton.tsx:87
+#: src/components/templates/ImportExportButton.tsx:86
+#: src/components/templates/ImportExportButton.tsx:91
 msgid "Invalid tree structure: missing id or type"
 msgstr "Structure d arbre invalide : id ou type manquant"
 
-#: src/components/templates/ImportExportButton.tsx:71
+#: src/components/templates/ImportExportButton.tsx:75
 msgid "Invalid tree structure: not an object"
 msgstr "Structure d arbre invalide : n est pas un objet"
 
-#: src/components/templates/ImportExportButton.tsx:92
+#: src/components/templates/ImportExportButton.tsx:96
 msgid "Invalid tree structure: root must be mjml type"
 msgstr "Structure d arbre invalide : la racine doit être de type mjml"
 
@@ -7661,10 +7767,30 @@ msgstr "est"
 msgid "is empty"
 msgstr "est vide"
 
+#: src/components/email_builder/ui/displayConditionLabels.ts:11
+msgid "is false or empty"
+msgstr "est faux ou vide"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:18
+msgid "is greater than"
+msgstr "est supérieur à"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:19
+msgid "is greater than or equal to"
+msgstr "est supérieur ou égal à"
+
 #: src/components/segment/form_leaf.tsx:229
 #: src/components/segment/input.tsx:584
 msgid "is in"
 msgstr "est dans"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:20
+msgid "is less than"
+msgstr "est inférieur à"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:21
+msgid "is less than or equal to"
+msgstr "est inférieur ou égal à"
 
 #: src/components/web_analytics/FilterBuilder.tsx:42
 #: src/components/web_analytics/lib/filterCatalog.ts:221
@@ -7675,6 +7801,18 @@ msgstr "n'est pas vide"
 #: src/components/segment/input.tsx:584
 msgid "is not in"
 msgstr "n'est pas dans"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:13
+msgid "is not set"
+msgstr "n'est pas défini"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:12
+msgid "is set"
+msgstr "est défini"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:10
+msgid "is true"
+msgstr "est vrai"
 
 #: src/components/settings/Integrations.tsx:2464
 msgid "isolated"
@@ -7726,12 +7864,12 @@ msgstr "a rejoint"
 msgid "Joined"
 msgstr "A rejoint"
 
-#: src/components/templates/ImportExportButton.tsx:393
-#: src/components/templates/ImportExportButton.tsx:442
+#: src/components/templates/ImportExportButton.tsx:409
+#: src/components/templates/ImportExportButton.tsx:458
 msgid "JSON"
 msgstr "JSON"
 
-#: src/components/templates/ImportExportButton.tsx:376
+#: src/components/templates/ImportExportButton.tsx:392
 msgid "JSON exported successfully"
 msgstr "JSON exporté avec succès"
 
@@ -7934,7 +8072,7 @@ msgstr "De gauche à droite"
 msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 msgstr "Permettre aux utilisateurs de se connecter avec un fournisseur d'identité externe (Google Workspace, Keycloak, Okta, …) en plus des codes magiques."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1254
+#: src/components/templates/CreateTemplateDrawer.tsx:1255
 msgid "Let's take a quick tour to help you get started with building beautiful emails using MJML."
 msgstr "Faisons une visite rapide pour vous aider à commencer à créer de beaux emails avec MJML."
 
@@ -8247,7 +8385,7 @@ msgstr "Charger plus"
 msgid "Load More Events"
 msgstr "Charger plus d événements"
 
-#: src/components/templates/ImportExportButton.tsx:394
+#: src/components/templates/ImportExportButton.tsx:410
 msgid "Load saved template"
 msgstr "Charger un modèle enregistré"
 
@@ -8462,6 +8600,10 @@ msgstr "Emails marketing"
 msgid "Marketing Provider"
 msgstr "Fournisseur marketing"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:303
+msgid "Match"
+msgstr "Correspondance"
+
 #: src/components/contacts/SegmentsFilter.tsx:73
 msgid "Matched"
 msgstr "Correspondant"
@@ -8652,9 +8794,9 @@ msgstr "Balises manquantes"
 msgid "Missing workspace ID or template data."
 msgstr "ID d espace de travail ou données de modèle manquants."
 
-#: src/components/email_builder/panels/Preview.tsx:366
-#: src/components/templates/ImportExportButton.tsx:403
-#: src/components/templates/ImportExportButton.tsx:432
+#: src/components/email_builder/panels/Preview.tsx:379
+#: src/components/templates/ImportExportButton.tsx:419
+#: src/components/templates/ImportExportButton.tsx:448
 msgid "MJML"
 msgstr "MJML"
 
@@ -8666,7 +8808,7 @@ msgstr "Contenu MJML + Liquid"
 msgid "MJML + Liquid Editor"
 msgstr "Éditeur MJML + Liquid"
 
-#: src/components/email_builder/panels/Preview.tsx:100
+#: src/components/email_builder/panels/Preview.tsx:113
 msgid "MJML compilation completed successfully with no warnings or errors."
 msgstr "Compilation MJML terminée avec succès sans avertissements ni erreurs."
 
@@ -8675,7 +8817,7 @@ msgstr "Compilation MJML terminée avec succès sans avertissements ni erreurs."
 msgid "MJML Compilation Error: {0}"
 msgstr "Erreur de compilation MJML : {0}"
 
-#: src/components/email_builder/panels/Preview.tsx:110
+#: src/components/email_builder/panels/Preview.tsx:123
 msgid "MJML Compilation Warnings"
 msgstr "Avertissements de compilation MJML"
 
@@ -8683,11 +8825,11 @@ msgstr "Avertissements de compilation MJML"
 msgid "MJML Documentation"
 msgstr "Documentation MJML"
 
-#: src/components/templates/ImportExportButton.tsx:346
+#: src/components/templates/ImportExportButton.tsx:362
 msgid "MJML Export Failed"
 msgstr "Échec de l exportation MJML"
 
-#: src/components/templates/ImportExportButton.tsx:353
+#: src/components/templates/ImportExportButton.tsx:369
 msgid "MJML exported successfully"
 msgstr "MJML exporté avec succès"
 
@@ -8695,11 +8837,11 @@ msgstr "MJML exporté avec succès"
 msgid "MJML file imported"
 msgstr "Fichier MJML importé"
 
-#: src/components/templates/ImportExportButton.tsx:236
+#: src/components/templates/ImportExportButton.tsx:252
 msgid "MJML Import Error"
 msgstr "Erreur d importation MJML"
 
-#: src/components/templates/ImportExportButton.tsx:212
+#: src/components/templates/ImportExportButton.tsx:222
 msgid "MJML Import Validation Failed"
 msgstr "Échec de la validation de l importation MJML"
 
@@ -8707,19 +8849,19 @@ msgstr "Échec de la validation de l importation MJML"
 msgid "MJML Source"
 msgstr "Source MJML"
 
-#: src/components/templates/ImportExportButton.tsx:229
+#: src/components/templates/ImportExportButton.tsx:245
 msgid "MJML Syntax Error"
 msgstr "Erreur de syntaxe MJML"
 
-#: src/components/templates/ImportExportButton.tsx:219
+#: src/components/templates/ImportExportButton.tsx:229
 msgid "MJML template imported and converted successfully"
 msgstr "Modèle MJML importé et converti avec succès"
 
-#: src/components/templates/ImportExportButton.tsx:234
+#: src/components/templates/ImportExportButton.tsx:250
 msgid "MJML Validation Failed"
 msgstr "Échec de la validation MJML"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1286
+#: src/components/templates/CreateTemplateDrawer.tsx:1287
 msgid "Mobile & Desktop Preview"
 msgstr "Aperçu mobile et bureau"
 
@@ -8727,7 +8869,7 @@ msgstr "Aperçu mobile et bureau"
 msgid "Mobile Breakpoint"
 msgstr "Point de rupture mobile"
 
-#: src/components/email_builder/panels/Preview.tsx:449
+#: src/components/email_builder/panels/Preview.tsx:462
 msgid "Mobile view (400px)"
 msgstr "Vue mobile (400px)"
 
@@ -9134,7 +9276,7 @@ msgstr "Aucune donnée d'objectifs"
 msgid "No goals tracked yet"
 msgstr "Aucun objectif suivi pour le moment"
 
-#: src/components/templates/ImportExportButton.tsx:326
+#: src/components/templates/ImportExportButton.tsx:342
 msgid "No HTML content to export"
 msgstr "Pas de contenu HTML à exporter"
 
@@ -9142,7 +9284,7 @@ msgstr "Pas de contenu HTML à exporter"
 msgid "No icon found"
 msgstr "Aucune icône trouvée"
 
-#: src/components/email_builder/panels/Preview.tsx:98
+#: src/components/email_builder/panels/Preview.tsx:111
 msgid "No Issues"
 msgstr "Pas de problèmes"
 
@@ -9182,7 +9324,7 @@ msgstr "Aucun membre trouvé"
 msgid "No messages found"
 msgstr "Aucun message trouvé"
 
-#: src/components/templates/ImportExportButton.tsx:355
+#: src/components/templates/ImportExportButton.tsx:371
 msgid "No MJML content to export"
 msgstr "Pas de contenu MJML à exporter"
 
@@ -9442,6 +9584,10 @@ msgstr "pas dans"
 msgid "Not in List"
 msgstr "Pas dans la liste"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:184
+msgid "Not in the test data: the rule is evaluated as if the variable were empty."
+msgstr "Absente des données de test : la règle est évaluée comme si la variable était vide."
+
 #: src/components/settings/Integrations.tsx:1076
 msgid "Not now"
 msgstr "Pas maintenant"
@@ -9470,7 +9616,7 @@ msgstr "Non trackés"
 msgid "Not-mapped channels"
 msgstr "Canaux non associés"
 
-#: src/components/templates/ImportExportButton.tsx:108
+#: src/components/templates/ImportExportButton.tsx:112
 msgid "Note: mj-raw components can only be placed directly in mj-body or mj-head, not inside mj-wrapper. Consider moving the mj-raw content outside the wrapper or converting it to appropriate MJML components."
 msgstr "Note : les composants mj-raw ne peuvent être placés que directement dans mj-body ou mj-head, pas à l intérieur de mj-wrapper. Envisagez de déplacer le contenu mj-raw en dehors du wrapper ou de le convertir en composants MJML appropriés."
 
@@ -9478,7 +9624,7 @@ msgstr "Note : les composants mj-raw ne peuvent être placés que directement da
 msgid "Note: The template will be hidden from your workspace but preserved to maintain the ability to preview previously sent broadcasts and messages that used this template."
 msgstr "Note : Le modèle sera masqué de votre espace de travail mais conservé pour maintenir la possibilité de prévisualiser les diffusions et messages précédemment envoyés qui utilisaient ce modèle."
 
-#: src/components/templates/ImportExportButton.tsx:113
+#: src/components/templates/ImportExportButton.tsx:117
 msgid "Note: This might be caused by an incorrectly structured MJML file. HTML content inside mj-raw should be stored as text content, not as child elements."
 msgstr "Note : Cela peut être causé par un fichier MJML mal structuré. Le contenu HTML à l intérieur de mj-raw doit être stocké comme contenu texte, pas comme éléments enfants."
 
@@ -9527,7 +9673,7 @@ msgid "notifuse-…"
 msgstr "notifuse-…"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1005
-#: src/components/templates/TemplateTranslationsTab.tsx:302
+#: src/components/templates/TemplateTranslationsTab.tsx:303
 msgid "Now"
 msgstr "Maintenant"
 
@@ -9599,6 +9745,7 @@ msgstr "Survenu :"
 msgid "of {tracked} tracked"
 msgstr "sur {tracked} trackés"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:313
 #: src/components/segment/input.tsx:961
 msgid "of the following conditions match:"
 msgstr "des conditions suivantes correspondent :"
@@ -9611,7 +9758,7 @@ msgstr "Désactivé (texte en clair)"
 msgid "OIDC issuer base URL — discovery happens at <issuer>/.well-known/openid-configuration"
 msgstr "URL de base de l'émetteur OIDC — la découverte se fait sur <issuer>/.well-known/openid-configuration"
 
-#: src/components/templates/ImportExportButton.tsx:491
+#: src/components/templates/ImportExportButton.tsx:507
 msgid "OK"
 msgstr "OK"
 
@@ -9695,7 +9842,7 @@ msgstr "Tracking des ouvertures et des clics"
 msgid "Open email"
 msgstr "Ouverture email"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:259
+#: src/components/templates/TemplateTranslationsTab.tsx:260
 msgid "Open email editor"
 msgstr "Ouvrir l'éditeur d'email"
 
@@ -9820,6 +9967,10 @@ msgstr "Résultats de l'opération :"
 msgid "Operations"
 msgstr "Opérations"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:233
+msgid "Operator"
+msgstr "Opérateur"
+
 #: src/pages/TemplatesPage.tsx:128
 msgid "Opt-in"
 msgstr "Opt-in"
@@ -9850,6 +10001,8 @@ msgstr "Optionnel. Si fourni, envoyé comme Authorization : Bearer <secret>"
 msgid "Optionally filter contacts by segments within the selected lists"
 msgstr "Filtrer optionnellement les contacts par segments dans les listes sélectionnées"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:116
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
 #: src/pages/SignInPage.tsx:294
 msgid "or"
 msgstr "ou"
@@ -10361,7 +10514,7 @@ msgstr "Veuillez sélectionner un champ"
 msgid "Please select a goal type"
 msgstr "Veuillez sélectionner un type d objectif"
 
-#: src/components/templates/ImportExportButton.tsx:265
+#: src/components/templates/ImportExportButton.tsx:281
 msgid "Please select a JSON file"
 msgstr "Veuillez sélectionner un fichier JSON"
 
@@ -10420,7 +10573,7 @@ msgstr "Veuillez sélectionner un modèle d email"
 msgid "Please select an event type"
 msgstr "Veuillez sélectionner un type d événement"
 
-#: src/components/templates/ImportExportButton.tsx:284
+#: src/components/templates/ImportExportButton.tsx:300
 msgid "Please select an MJML file"
 msgstr "Veuillez sélectionner un fichier MJML"
 
@@ -10547,7 +10700,7 @@ msgstr "aperçu"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:37
 #: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/common/ImageURLInput.tsx:52
-#: src/components/email_builder/EmailBuilder.tsx:856
+#: src/components/email_builder/EmailBuilder.tsx:877
 #: src/components/segment/button_upsert.tsx:659
 msgid "Preview"
 msgstr "Aperçu"
@@ -10589,7 +10742,7 @@ msgstr "Prévisualiser le modèle"
 msgid "Preview Template"
 msgstr "Prévisualiser le modèle"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:248
+#: src/components/templates/TemplateTranslationsTab.tsx:249
 msgid "Preview text"
 msgstr "Texte d'aperçu"
 
@@ -10598,7 +10751,7 @@ msgid "Preview Text Settings"
 msgstr "Paramètres du texte de prévisualisation"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1004
-#: src/components/templates/TemplateTranslationsTab.tsx:301
+#: src/components/templates/TemplateTranslationsTab.tsx:302
 msgid "Preview text will appear here..."
 msgstr "Le texte de prévisualisation apparaîtra ici..."
 
@@ -10614,7 +10767,7 @@ msgstr "L'aperçu apparaîtra ici après la compilation"
 msgid "Preview with test data"
 msgstr "Aperçu avec les données de test"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1279
+#: src/components/templates/CreateTemplateDrawer.tsx:1280
 msgid "Preview Your Email"
 msgstr "Prévisualisez votre email"
 
@@ -11022,7 +11175,7 @@ msgstr "Lire le guide de configuration Zapier"
 msgid "Reading Time"
 msgstr "Temps de lecture"
 
-#: src/components/templates/ImportExportButton.tsx:423
+#: src/components/templates/ImportExportButton.tsx:439
 msgid "Ready to send"
 msgstr "Prêt à envoyer"
 
@@ -11125,7 +11278,7 @@ msgstr "URI de redirection"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:676
-#: src/components/email_builder/EmailBuilder.tsx:839
+#: src/components/email_builder/EmailBuilder.tsx:860
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
 msgid "Redo"
 msgstr "Rétablir"
@@ -11235,6 +11388,7 @@ msgstr "Recharger la dernière version"
 #: src/components/automations/config/ConditionsField.tsx:119
 #: src/components/automations/config/ConditionsField.tsx:124
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:91
 msgid "Remove"
 msgstr "Retirer"
 
@@ -11283,6 +11437,15 @@ msgstr "Supprimer le lien"
 #: src/components/settings/WorkspaceMembers.tsx:221
 msgid "Remove member"
 msgstr "Retirer le membre"
+
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:95
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:99
+msgid "Remove the condition"
+msgstr "Supprimer la condition"
+
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:89
+msgid "Remove the display condition?"
+msgstr "Supprimer la condition d'affichage ?"
 
 #: src/components/blog/AuthorsTable.tsx:103
 msgid "Remove this author?"
@@ -11433,8 +11596,8 @@ msgstr "Renvoyer le code"
 msgid "Resend invitation"
 msgstr "Renvoyer l invitation"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:281
-#: src/components/templates/TemplateTranslationsTab.tsx:284
+#: src/components/templates/TemplateTranslationsTab.tsx:282
+#: src/components/templates/TemplateTranslationsTab.tsx:285
 #: src/pages/DebugSegmentPage.tsx:83
 msgid "Reset"
 msgstr "Réinitialiser"
@@ -11463,7 +11626,7 @@ msgstr "Réinitialiser le formatage"
 msgid "reset the filter"
 msgstr "réinitialiser le filtre"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:268
+#: src/components/templates/TemplateTranslationsTab.tsx:269
 msgid "Reset translation"
 msgstr "Réinitialiser la traduction"
 
@@ -11511,6 +11674,10 @@ msgstr "Réabonné"
 #: src/components/web_analytics/filters/TestFilterModal.tsx:189
 msgid "Result value"
 msgstr "Valeur du résultat"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:147
+msgid "Result with the test data"
+msgstr "Résultat avec les données de test"
 
 #: src/components/web_analytics/filters/TestFilterModal.tsx:158
 msgid "Result:"
@@ -11752,7 +11919,7 @@ msgstr "Mode bac à sable"
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:318
 #: src/components/contacts/TrackingConsent.tsx:214
-#: src/components/email_builder/panels/Preview.tsx:197
+#: src/components/email_builder/panels/Preview.tsx:210
 #: src/components/email_builder/ui/BlockToolbar.tsx:209
 #: src/components/email_builder/ui/StringPopoverInput.tsx:100
 #: src/components/file_manager/buttonSettings.tsx:312
@@ -11799,7 +11966,7 @@ msgstr "Enregistrer le bloc"
 msgid "Save Changes"
 msgstr "Enregistrer les modifications"
 
-#: src/components/templates/ImportExportButton.tsx:443
+#: src/components/templates/ImportExportButton.tsx:459
 msgid "Save for later import"
 msgstr "Enregistrer pour importation ultérieure"
 
@@ -12048,7 +12215,7 @@ msgstr "Sélectionner"
 msgid "Select {0}"
 msgstr "Sélectionner {0}"
 
-#: src/components/email_builder/panels/SettingsPanel.tsx:66
+#: src/components/email_builder/panels/SettingsPanel.tsx:85
 msgid "Select a block to edit its attributes"
 msgstr "Sélectionnez un bloc pour modifier ses attributs"
 
@@ -12458,7 +12625,7 @@ msgid "Sender"
 msgstr "Expéditeur"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1002
-#: src/components/templates/TemplateTranslationsTab.tsx:299
+#: src/components/templates/TemplateTranslationsTab.tsx:300
 msgid "Sender Name"
 msgstr "Nom de l expéditeur"
 
@@ -12794,6 +12961,10 @@ msgstr "Afficher plus ({0} restants)"
 #~ msgid "Show the endpoints this permission gates"
 #~ msgstr ""
 
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:110
+msgid "Show this block if"
+msgstr "Afficher ce bloc si"
+
 #: src/components/broadcasts/BroadcastLinkStats.tsx:132
 #~ msgid "Showing the top 200 links by total clicks."
 #~ msgstr ""
@@ -12801,6 +12972,14 @@ msgstr "Afficher plus ({0} restants)"
 #: src/components/broadcasts/BroadcastLinkStats.tsx:221
 msgid "Showing the top 200 links by unique clicks."
 msgstr "Affichage des 200 premiers liens par clics uniques."
+
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:120
+msgid "shown"
+msgstr "affiché"
+
+#: src/components/email_builder/panels/TreePanel.tsx:267
+msgid "Shown under a condition"
+msgstr "Affiché sous condition"
 
 #: src/pages/SignInPage.tsx:244
 msgid "Sign In"
@@ -13229,7 +13408,7 @@ msgid "Style Attributes"
 msgstr "Attributs de style"
 
 #: src/components/templates/TemplatePreviewDrawer.tsx:358
-#: src/components/templates/TemplateTranslationsTab.tsx:232
+#: src/components/templates/TemplateTranslationsTab.tsx:233
 #: src/pages/BroadcastsPage.tsx:880
 #: src/pages/TemplatesPage.tsx:258
 msgid "Subject"
@@ -13238,7 +13417,7 @@ msgstr "Sujet"
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
 #: src/components/templates/CreateTemplateDrawer.tsx:955
 #: src/components/templates/TemplatePreviewDrawer.tsx:363
-#: src/components/templates/TemplateTranslationsTab.tsx:241
+#: src/components/templates/TemplateTranslationsTab.tsx:242
 msgid "Subject preview"
 msgstr "Aperçu du sujet"
 
@@ -13391,7 +13570,7 @@ msgstr "Langues prises en charge"
 msgid "Supports reply_to, cc, bcc, and attachments"
 msgstr "Prend en charge reply_to, cc, bcc et les pièces jointes"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1281
+#: src/components/templates/CreateTemplateDrawer.tsx:1282
 msgid "Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied."
 msgstr "Passez en mode Aperçu pour voir à quoi ressemblera votre email pour les destinataires. Cela affiche la version finale rendue avec tous les styles appliqués."
 
@@ -13514,12 +13693,12 @@ msgstr "Modèle modifié par quelqu'un d'autre"
 msgid "Template created successfully"
 msgstr "Modèle d'email créé avec succès"
 
-#: src/components/email_builder/panels/Preview.tsx:348
+#: src/components/email_builder/panels/Preview.tsx:361
 #: src/components/templates/TemplatePreviewDrawer.tsx:271
 msgid "Template Data"
 msgstr "Données du modèle"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1293
+#: src/components/templates/CreateTemplateDrawer.tsx:1294
 msgid "Template Data & Liquid Templating"
 msgstr "Données du modèle et templating Liquid"
 
@@ -13547,7 +13726,7 @@ msgstr "L'ID du modèle existe déjà"
 msgid "Template ID must be at most {TEMPLATE_ID_MAX_LENGTH} characters long"
 msgstr "L'ID du modèle doit comporter au plus {TEMPLATE_ID_MAX_LENGTH} caractères"
 
-#: src/components/templates/ImportExportButton.tsx:181
+#: src/components/templates/ImportExportButton.tsx:191
 msgid "Template imported successfully"
 msgstr "Modèle d'email importé avec succès"
 
@@ -13650,7 +13829,7 @@ msgstr "Données de test"
 msgid "Test data updated"
 msgstr "Données de test mises à jour"
 
-#: src/components/email_builder/panels/Preview.tsx:139
+#: src/components/email_builder/panels/Preview.tsx:152
 msgid "Test data updated successfully"
 msgstr "Données de test mises à jour avec succès"
 
@@ -13773,7 +13952,7 @@ msgstr "Texte affiché sur le bouton de connexion"
 msgid "Text Transform"
 msgstr "Transformation du texte"
 
-#: src/components/email_builder/EmailBuilder.tsx:859
+#: src/components/email_builder/EmailBuilder.tsx:880
 #: src/components/email_builder/MjmlCodeEditor.tsx:684
 #: src/components/email_builder/panels/TextVersionPanel.tsx:30
 #: src/components/templates/TemplatePreviewDrawer.tsx:228
@@ -13807,6 +13986,14 @@ msgstr "L'automatisation arrêtera de traiter les nouveaux contacts."
 #: src/components/web_analytics/explore/ExploreSummary.tsx:92
 msgid "The best-performing combination could not be loaded."
 msgstr "La combinaison la plus performante n'a pas pu être chargée."
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:298
+msgid "The block and everything in it are sent only to recipients for whom the condition holds. Variables are those of the email's data: contact fields, data sent to the API, data feeds."
+msgstr "Le bloc et tout son contenu ne sont envoyés qu'aux destinataires pour qui la condition est vraie. Les variables sont celles des données de l'email : champs du contact, données envoyées à l'API, flux de données."
+
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:90
+msgid "The block will be sent to every recipient again."
+msgstr "Le bloc sera de nouveau envoyé à tous les destinataires."
 
 #: src/pages/BroadcastsPage.tsx:689
 msgid "The broadcast will continue sending from where it was paused."
@@ -13865,7 +14052,7 @@ msgstr "L'email n'a pas pu être compilé"
 msgid "The export failed. Please try again."
 msgstr "L'export a échoué. Veuillez réessayer."
 
-#: src/components/templates/ImportExportButton.tsx:498
+#: src/components/templates/ImportExportButton.tsx:514
 msgid "The following validation errors were found in your import:"
 msgstr "Les erreurs de validation suivantes ont été trouvées dans votre import :"
 
@@ -13983,6 +14170,14 @@ msgstr "L'URL vers laquelle envoyer la requête POST"
 #: src/components/integrations/SupabaseIntegration.tsx:208
 msgid "The user_metadata field in Supabase will be saved to this custom JSON field"
 msgstr "Le champ user_metadata dans Supabase sera enregistré dans ce champ JSON personnalisé"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:107
+msgid "The value cannot contain the Liquid delimiters {delimiters}."
+msgstr "La valeur ne peut pas contenir les délimiteurs Liquid {delimiters}."
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:104
+msgid "The value is too long."
+msgstr "La valeur est trop longue."
 
 #: src/components/automations/config/WebhookConfigForm.tsx:36
 #: src/components/automations/utils/flowConverter.ts:555
@@ -14104,6 +14299,10 @@ msgstr "Ceci apparaît dans les onglets du navigateur lors de la visualisation d
 msgid "This audit entry could not be found"
 msgstr "Cette entrée d'audit est introuvable"
 
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:75
+msgid "This block holds a Liquid block, which a condition could cut off from the rest of the email. Move the Liquid block out of it first."
+msgstr "Ce bloc contient un bloc Liquid, qu'une condition pourrait couper du reste de l'email. Sortez d'abord le bloc Liquid de ce bloc."
+
 #: src/pages/BroadcastsPage.tsx:277
 msgid "This broadcast failed due to an error. Check the logs for details."
 msgstr "Cette diffusion a échoué en raison d'une erreur. Consultez les logs pour plus de détails."
@@ -14165,6 +14364,10 @@ msgstr "Cet événement se déclenche souvent. Ces conditions sont évaluées po
 msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 msgstr "Cette fonctionnalité effectue une requête HTTP pour chaque destinataire avant l'envoi de son email. Cela peut considérablement ralentir le traitement du broadcast. Si la requête du feed échoue après les tentatives, le broadcast sera automatiquement mis en pause."
 
+#: src/components/templates/ImportExportButton.tsx:233
+msgid "This file holds the display conditions of an export. They are not imported: the blocks they wrapped now show to every recipient. Add their conditions again in the block settings."
+msgstr "Ce fichier contient les conditions d'affichage d'un export. Elles ne sont pas importées : les blocs qu'elles entouraient s'affichent désormais pour tous les destinataires. Ajoutez de nouveau leurs conditions dans les réglages du bloc."
+
 #: src/components/integrations/SupabaseIntegration.tsx:245
 msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
 msgstr "Ce hook ne bloque jamais la création d'utilisateur Supabase pour les erreurs. Cependant, si \"Rejeter les adresses email jetables\" est activé et qu'un email jetable est détecté, l'inscription de l'utilisateur sera rejetée par Supabase."
@@ -14193,11 +14396,11 @@ msgstr "C'est l'ID qui sera utilisé comme paramètre utm_content dans l'URL des
 msgid "This is where delivery statistics live, not under Broadcasts: a key that may create and send a broadcast still cannot read its open, click or bounce numbers without Message History read. The log carries recipient addresses and the rendered message data, so it is contact data by another name."
 msgstr "C'est ici que résident les statistiques de livraison, et non sous Newsletters : une clé autorisée à créer et envoyer une diffusion ne peut toujours pas lire ses chiffres d'ouverture, de clic ou de rejet sans la lecture Historique des messages. Le journal contient les adresses des destinataires et les données rendues du message : ce sont donc des données de contact sous un autre nom."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1260
+#: src/components/templates/CreateTemplateDrawer.tsx:1261
 msgid "This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another."
 msgstr "Ceci est votre arborescence de structure de contenu. Vous pouvez glisser-déposer les blocs pour réorganiser la mise en page de votre email. Cliquez sur les boutons + pour ajouter de nouveaux blocs, ou faites glisser les blocs d'une section à une autre."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1267
+#: src/components/templates/CreateTemplateDrawer.tsx:1268
 msgid "This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options."
 msgstr "Ceci est votre éditeur d'email visuel. Cliquez sur n'importe quel élément de votre email pour le sélectionner. Les éléments sélectionnés seront surlignés avec une bordure bleue et afficheront les options d'édition."
 
@@ -14256,6 +14459,10 @@ msgstr "Cette propriété est déjà filtrée"
 #: src/components/web_analytics/toolbar.tsx:27
 msgid "This quarter"
 msgstr "Ce trimestre"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:112
+msgid "This rule is not valid."
+msgstr "Cette règle n'est pas valide."
 
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:189
 msgid "This section is empty. Add columns or groups to display content."
@@ -14334,7 +14541,7 @@ msgstr "Cela supprimera définitivement le contact et ses abonnements."
 msgid "This will register or update webhook endpoints for this email provider."
 msgstr "Cela enregistrera ou mettra à jour les endpoints webhook pour ce fournisseur d'email."
 
-#: src/components/templates/TemplateTranslationsTab.tsx:269
+#: src/components/templates/TemplateTranslationsTab.tsx:270
 msgid "This will replace all content with the default language template. Continue?"
 msgstr "Cette opération remplacera tout le contenu par le modèle de la langue par défaut. Continuer ?"
 
@@ -14460,7 +14667,7 @@ msgstr "Fuseau horaire :"
 msgid "Tips for effective preview text:"
 msgstr "Conseils pour un texte d'aperçu efficace :"
 
-#: src/components/templates/ImportExportButton.tsx:513
+#: src/components/templates/ImportExportButton.tsx:529
 msgid "Tips for fixing these errors:"
 msgstr "Conseils pour corriger ces erreurs :"
 
@@ -14556,7 +14763,7 @@ msgstr "Aujourd'hui"
 msgid "TODO"
 msgstr "À FAIRE"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1288
+#: src/components/templates/CreateTemplateDrawer.tsx:1289
 msgid "Toggle between mobile and desktop views to see how your email appears on different devices. Mobile view shows a 400px width while desktop shows the full width."
 msgstr "Basculez entre les vues mobile et bureau pour voir comment votre email apparaît sur différents appareils. La vue mobile affiche une largeur de 400px tandis que la vue bureau affiche la largeur complète."
 
@@ -14763,6 +14970,10 @@ msgstr "Événement déclencheur"
 msgid "Trigger on specific field changes"
 msgstr "Déclencher sur des modifications de champs spécifiques"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:149
+msgid "true"
+msgstr "vrai"
+
 #: src/pages/BroadcastsPage.tsx:1735
 msgid "Try adjusting your search or status filter"
 msgstr "Essayez d'ajuster votre recherche ou votre filtre de statut"
@@ -14847,7 +15058,7 @@ msgstr "Comprendre la qualité des sites référents"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:669
-#: src/components/email_builder/EmailBuilder.tsx:831
+#: src/components/email_builder/EmailBuilder.tsx:852
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:496
 msgid "Undo"
 msgstr "Annuler"
@@ -15183,11 +15394,11 @@ msgstr "Utilisez le nom de la police dans les éléments de texte :"
 msgid "Use the save button in the block toolbar to save blocks"
 msgstr "Utilisez le bouton enregistrer dans la barre d'outils du bloc pour sauvegarder les blocs"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1295
+#: src/components/templates/CreateTemplateDrawer.tsx:1296
 msgid "Use the Template Data tab to define dynamic content for your emails. Add variables like {{ name }} or {{ company }} in your email content, then define their values here. The Liquid templating engine supports conditionals, loops, and filters for powerful personalization."
 msgstr "Utilisez l'onglet Données du modèle pour définir le contenu dynamique de vos emails. Ajoutez des variables comme {{ name }} ou {{ company }} dans votre contenu email, puis définissez leurs valeurs ici. Le moteur de templating Liquid prend en charge les conditionnels, boucles et filtres pour une personnalisation puissante."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1303
+#: src/components/templates/CreateTemplateDrawer.tsx:1304
 msgid "Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use."
 msgstr "Utilisez ce bouton pour importer des modèles d'email enregistrés ou exporter vos emails terminés. Vous pouvez importer des modèles JSON/MJML ou exporter en HTML, MJML ou JSON pour une utilisation future."
 
@@ -15308,6 +15519,7 @@ msgid "Validation Error"
 msgstr "Erreur de validation"
 
 #: src/components/broadcasts/HeadersEditor.tsx:40
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:251
 #: src/components/segment/form_leaf.tsx:839
 #: src/components/web_analytics/FilterBuilder.tsx:263
 #: src/components/web_analytics/FilterBuilder.tsx:271
@@ -15330,6 +15542,11 @@ msgstr "Type de valeur"
 #: src/components/settings/GeneralSettings.tsx:366
 msgid "Value:"
 msgstr "Valeur :"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:66
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:210
+msgid "Variable"
+msgstr "Variable"
 
 #: src/components/automations/config/ABTestConfigForm.tsx:129
 msgid "Variant name"
@@ -15460,7 +15677,7 @@ msgstr "Les visiteurs sont suivis par plusieurs versions du SDK ({0} en plus de 
 msgid "Visual"
 msgstr "Visuel"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1265
+#: src/components/templates/CreateTemplateDrawer.tsx:1266
 msgid "Visual Email Editor"
 msgstr "Éditeur d'email visuel"
 
@@ -15655,7 +15872,7 @@ msgstr "Épaisseur"
 msgid "Welcome"
 msgstr "Bienvenue"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1252
+#: src/components/templates/CreateTemplateDrawer.tsx:1253
 msgid "Welcome to Email Builder!"
 msgstr "Bienvenue dans l'éditeur d'email !"
 
@@ -15730,7 +15947,7 @@ msgstr "En cas de correspondance, exécuter ces opérations :"
 msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 msgstr "Lorsque cette option est désactivée (recommandé), seuls les utilisateurs déjà invités peuvent se connecter via le SSO. Lorsqu'elle est activée, un email vérifié appartenant à un domaine autorisé crée automatiquement un compte."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1274
+#: src/components/templates/CreateTemplateDrawer.tsx:1275
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 msgstr "Lorsque vous sélectionnez un bloc, ses paramètres apparaissent ici. Modifiez les couleurs, le texte, l'espacement, l'alignement et d'autres propriétés pour personnaliser le design de votre email."
 
@@ -15806,6 +16023,11 @@ msgstr "avec les propriétés"
 #: src/components/timeline/ContactTimeline.tsx:378
 msgid "with status"
 msgstr "avec statut"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:366
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:119
+msgid "With the test data:"
+msgstr "Avec les données de test :"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:129
 msgid "With:"

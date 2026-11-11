@@ -234,6 +234,7 @@ export class MjSpacerBlock extends BaseEmailBlock {
         onClick={handleClick}
         style={{ ...containerStyle, position: 'relative' }}
         data-block-id={this.block.id}
+        data-display-condition={this.block.display_condition ? "true" : undefined}
       >
         <div style={spacerStyle}>&nbsp;</div>
       </div>

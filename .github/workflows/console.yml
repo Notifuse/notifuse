@@ -14,11 +14,15 @@ on:
     branches: [dev, main]
     paths:
       - 'console/**'
+      # the display condition cases shared with the Go evaluator
+      - 'pkg/notifuse_mjml/testdata/**'
       - '.github/workflows/console.yml'
   pull_request:
     branches: [dev, main]
     paths:
       - 'console/**'
+      # the display condition cases shared with the Go evaluator
+      - 'pkg/notifuse_mjml/testdata/**'
       - '.github/workflows/console.yml'
 
 jobs:
