@@ -177,8 +177,8 @@ when verified and never turns it back to false; both click and open UPDATEs skip
 ### 7. CHANGELOG
 
 `## [44.0] - unreleased`: the trigger, segments current on each new link, who clicked each link, clicks and opens on an
-erased contact's email no longer recorded, the instance's own links behind a reverse proxy no longer recorded per
-link.
+erased contact's email no longer recorded, the instance's own links no longer recorded per link behind a reverse
+proxy that passes `X-Forwarded-Host`. The 43.1 and 43.2 sections are folded into 44.0, which ships them all.
 
 ### 8. Checks
 
@@ -200,6 +200,8 @@ cd web_analytics_sdk && npm run build
 - A link clicked before 44.0 has no `verified` key, so its first signed click after the upgrade writes its entry
   (documented).
 - The monthly meter reads `kind` from the table for each row of the month: the partial index no longer answers alone.
-- Behind a proxy that forwards neither the public host as `Host` nor an `X-Forwarded-Host`, the instance's own links
-  are still recorded per link: the click route has no other way to tell them from external ones without a workspace
-  lookup.
+- Behind a proxy that forwards neither the public host as `Host` nor an `X-Forwarded-Host` (nginx's plain
+  `proxy_pass`, for one), the instance's own links are still recorded per link: `VisitLink` compares them to the
+  request's hosts only. The route already holds the API host and the workspace's custom endpoint host, which
+  `classifyTrackedDestination` compares against; comparing to them too would close this, and is left as a choice.
+- Own-link keys recorded before 44.0 are not removed, so older broadcasts keep listing them in their per-link stats.

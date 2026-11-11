@@ -748,18 +748,17 @@ func TestEmailService_VisitLink(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("An empty host in the list matches nothing", func(t *testing.T) {
-		clickedURL := "https://shop.example.com/product"
-
+	t.Run("The request's own Host still counts when forwarded hosts follow it", func(t *testing.T) {
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), clickedURL, true).
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
 			Return(nil)
 
-		err := emailService.VisitLink(ctx, messageID, workspaceID, clickedURL, []string{"", requestHost}, true)
+		err := emailService.VisitLink(ctx, messageID, workspaceID,
+			"https://click.notifuse.test/unsubscribe?email=someone@example.com", []string{requestHost, "edge.example"}, true)
 		require.NoError(t, err)
 	})
 
-	t.Run("Empty request host still records external URLs", func(t *testing.T) {
+	t.Run("No request host still records external URLs", func(t *testing.T) {
 		clickedURL := "https://shop.example.com/product"
 
 		mockMessageRepo.EXPECT().
