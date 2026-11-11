@@ -91,7 +91,8 @@ export const auditBody = (): TreeBlock[] => [
   { id: 'L', type: 'mj-liquid', attributes: {}, content: '{{ contact.email }}' }
 ]
 
-const ROW = '.ant-tree-treenode:not([aria-hidden="true"])'
+// Visible rows: rc-tree also renders a hidden measurer with the row class, without the treeitem role
+const ROW = '[role="treeitem"]'
 
 export const shape = (b: TreeBlock): string =>
   b.children && b.children.length ? `${b.id}[${b.children.map(shape).join(',')}]` : b.id
@@ -122,49 +123,70 @@ export const openTreeEditor = async (page: Page, body: TreeBlock[]) => {
   const drawer = await openTemplateEditor(page, template)
   const tree = drawer.locator('.ant-tree').nth(1)
 
-  // Rows in display order: the editor opens with every container that has children expanded
-  const visible = (expandedOnly = (b: TreeBlock) => !!b.children?.length): string[] => {
-    const ids: string[] = []
-    const walk = (b: TreeBlock) => {
-      ids.push(b.id)
-      if (expandedOnly(b)) b.children?.forEach(walk)
-    }
-    walk(root.children![1])
-    return ids
-  }
-  const allExpanded = visible()
-  let order = allExpanded
-  await expect(tree.locator(ROW)).toHaveCount(order.length)
+  // The editor opens with every container that has children expanded
+  const countRows = (b: TreeBlock): number =>
+    1 + (b.children?.length ? b.children.reduce((sum, child) => sum + countRows(child), 0) : 0)
+  const allExpanded = countRows(root.children![1])
+  await expect(tree.locator(ROW)).toHaveCount(allExpanded)
 
-  const row = (id: string) => tree.locator(ROW).nth(order.indexOf(id))
+  const row = (id: string) =>
+    tree.locator(ROW).filter({ has: page.locator(`[data-block-id="${id}"]`) })
+  const handle = (id: string) =>
+    row(id).getByRole('img', { name: 'Drag to move this block in the tree' })
 
   const collapse = async (id: string) => {
+    const before = await tree.locator(ROW).count()
     await row(id).locator('.ant-tree-switcher').click()
-    order = visible((b) => !!b.children?.length && b.id !== id)
-    await expect(tree.locator(ROW)).toHaveCount(order.length)
+    await expect(tree.locator(ROW)).not.toHaveCount(before)
   }
 
-  // Grab `from` by its label and hover `to` at a height (0 top, 1 bottom) and a sideways offset from its label
-  const hover = async (from: string, to: string, yFrac: number, dx = 0) => {
-    const src = row(from).locator('.ant-tree-node-content-wrapper')
-    const dst = row(to).locator('.ant-tree-node-content-wrapper')
-    const s = (await src.boundingBox())!
-    await page.mouse.move(s.x + 20, s.y + s.height / 2)
+  // Where the block was grabbed: the pointer then moves straight down from there, plus dx
+  let grabX = 0
+  const grab = async (from: string, by: 'label' | 'handle' = 'label') => {
+    const target =
+      by === 'label' ? row(from).locator('.ant-tree-node-content-wrapper') : handle(from)
+    const s = (await target.boundingBox())!
+    grabX = by === 'label' ? s.x + 20 : s.x + s.width / 2
+    await page.mouse.move(grabX, s.y + s.height / 2)
     await page.mouse.down()
-    await page.mouse.move(s.x + 25, s.y + s.height / 2 + 3, { steps: 3 })
-    const d = (await dst.boundingBox())!
-    await page.mouse.move(d.x + 20 + dx, d.y + d.height * yFrac, { steps: 8 })
+    await page.mouse.move(grabX + 5, s.y + s.height / 2 + 3, { steps: 3 })
+  }
+  // Moves over `to` at a height of its row (0 top, 1 bottom), plus yPx below that
+  const moveTo = async (to: string, yFrac: number, dx = 0, yPx = 0) => {
+    const d = (await row(to).boundingBox())!
+    const y = d.y + d.height * yFrac + yPx
+    await page.mouse.move(grabX + dx - 1, y, { steps: 8 })
     await page.waitForTimeout(150)
-    await page.mouse.move(d.x + 21 + dx, d.y + d.height * yFrac, { steps: 2 })
+    await page.mouse.move(grabX + dx, y, { steps: 2 })
     await page.waitForTimeout(150)
   }
-  const lineShown = async () => (await tree.locator('.ant-tree-drop-indicator').count()) > 0
+  const hover = async (
+    from: string,
+    to: string,
+    yFrac: number,
+    dx = 0,
+    options: { by?: 'label' | 'handle'; yPx?: number } = {}
+  ) => {
+    await grab(from, options.by)
+    await moveTo(to, yFrac, dx, options.yPx)
+  }
+  const line = drawer.getByTestId('tree-drop-line')
+  const lineShown = async () => (await line.count()) > 0
+  const lineLeft = async () => (await line.boundingBox())!.x
+  const contentLeft = async (id: string) =>
+    (await row(id).locator('.ant-tree-node-content-wrapper').boundingBox())!.x
   const release = async () => {
     await page.mouse.up()
     await page.waitForTimeout(300)
   }
-  const drag = async (from: string, to: string, yFrac: number, dx = 0) => {
-    await hover(from, to, yFrac, dx)
+  const drag = async (
+    from: string,
+    to: string,
+    yFrac: number,
+    dx = 0,
+    options: { by?: 'label' | 'handle'; yPx?: number } = {}
+  ) => {
+    await hover(from, to, yFrac, dx, options)
     await release()
   }
 
@@ -179,11 +201,14 @@ export const openTreeEditor = async (page: Page, body: TreeBlock[]) => {
     drawer,
     tree,
     rows: tree.locator(ROW),
-    allExpanded: allExpanded.length,
+    allExpanded,
     row,
     collapse,
     hover,
+    moveTo,
     lineShown,
+    lineLeft,
+    contentLeft,
     release,
     drag,
     saved,

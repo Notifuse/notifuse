@@ -11,8 +11,9 @@ import {
   type TreeBlock
 } from '../fixtures/tree-drag'
 
-// Structure tree of the template editor, dragged with the mouse. Each case saves the template and reads the tree
-// sent to the API.
+// Structure tree of the template editor, dragged with the mouse. The pointer goes straight down from where the
+// block was grabbed, plus a sideways offset that picks the level. Each case saves the template and reads the tree
+// sent to the API. Offsets stay off ±12 px, where the level changes.
 
 const children = (b: TreeBlock | undefined) => (b?.children ?? []).map((child) => child.id)
 
@@ -65,8 +66,8 @@ test.describe('Structure tree drag and drop', () => {
   test.describe('moves up and across containers', () => {
     for (const [from, to, y, parent, expected] of [
       ['T4', 'SP', 0.2, 'C3', 'C3[D,T4,SP,T3]'],
-      ['T1', 'C2', 0.5, 'C2', 'C2[T1,T2,SO[SE1,SE2]]'],
-      ['C2', 'S3', 0.5, 'S3', 'S3[C2[T2,SO[SE1,SE2]],C3[D,SP,T3,T4]]']
+      ['T1', 'C2', 0.7, 'C2', 'C2[T1,T2,SO[SE1,SE2]]'],
+      ['C2', 'S3', 0.7, 'S3', 'S3[C2[T2,SO[SE1,SE2]],C3[D,SP,T3,T4]]']
     ] as const) {
       test(`${from} onto ${to} at ${y}`, async ({ authenticatedPageWithData: page }) => {
         const editor = await openTreeEditor(page, auditBody())
@@ -93,7 +94,8 @@ test.describe('Structure tree drag and drop', () => {
   })
 
   test.describe('a section dropped on the top half of the next section lands before it', () => {
-    for (const dx of [0, -24, -48, -72]) {
+    // The body is the only level of that gap that takes a section
+    for (const dx of [0, -24, 24, 48]) {
       test(`cursor moved ${dx}px sideways`, async ({ authenticatedPageWithData: page }) => {
         const editor = await openTreeEditor(page, auditBody())
         await editor.hover('S1', 'S3', 0.2, dx)
@@ -138,7 +140,7 @@ test.describe('Structure tree drag and drop', () => {
     await expect(
       editor.row('W').getByRole('img', { name: 'Drag to move this block in the tree' })
     ).toBeVisible()
-    await editor.drag('W', 'L', 0.8)
+    await editor.drag('W', 'L', 0.8, 0, { by: 'handle' })
     expect(children(await editor.saved())).toEqual(['S1', 'S2', 'S3', 'R', 'L', 'W'])
   })
 
@@ -167,9 +169,110 @@ test.describe('Structure tree drag and drop', () => {
     authenticatedPageWithData: page
   }) => {
     const editor = await openTreeEditor(page, withWidths())
-    await editor.drag('C2', 'S3', 0.5)
+    await editor.drag('C2', 'S3', 0.7)
     const body = await editor.saved()
     expect(widths(find(body, 'S1'))).toEqual(['C1 100%'])
     expect(widths(find(body, 'S3'))).toEqual(['C2 33.33%', 'C3 26.67%', 'C4 40%'])
+  })
+
+  test.describe('the pointer’s sideways move picks the level', () => {
+    test('a section dropped below a wrapper goes after it', async ({
+      authenticatedPageWithData: page
+    }) => {
+      const editor = await openTreeEditor(page, auditBody())
+      await editor.drag('S1', 'TW', 0.8)
+      expect(children(await editor.saved())).toEqual(['W', 'S1', 'S2', 'S3', 'R', 'L'])
+    })
+
+    test('a section dropped below a wrapper one indent right goes into it', async ({
+      authenticatedPageWithData: page
+    }) => {
+      const editor = await openTreeEditor(page, auditBody())
+      await editor.drag('S1', 'TW', 0.8, 24)
+      const body = await editor.saved()
+      expect(children(body)).toEqual(['W', 'S2', 'S3', 'R', 'L'])
+      expect(children(find(body, 'W'))).toEqual(['SW', 'S1'])
+    })
+
+    test('a section dropped on an empty wrapper fills it, or goes after it one indent left', async ({
+      authenticatedPageWithData: page
+    }) => {
+      const editor = await openTreeEditor(page, withEmpties())
+      await editor.drag('S1', 'EW', 0.8, -24)
+      const body = await editor.saved()
+      expect(children(body).slice(0, 5)).toEqual(['ES', 'S5', 'EW', 'S1', 'S6'])
+      expect(children(find(body, 'EW'))).toEqual([])
+    })
+
+    test('Liquid dropped below the last text of a section stays at body level', async ({
+      authenticatedPageWithData: page
+    }) => {
+      const editor = await openTreeEditor(page, auditBody())
+      await editor.drag('L', 'T4', 0.8)
+      const body = await editor.saved()
+      expect(children(body)).toEqual(['S1', 'W', 'S2', 'S3', 'L', 'R'])
+      expect(children(find(body, 'C3'))).toEqual(['D', 'SP', 'T3', 'T4'])
+    })
+
+    test('the line is indented at the level where the block goes', async ({
+      authenticatedPageWithData: page
+    }) => {
+      const editor = await openTreeEditor(page, auditBody())
+      await editor.hover('S1', 'TW', 0.8)
+      expect(Math.abs((await editor.lineLeft()) - (await editor.contentLeft('S2')))).toBeLessThan(2)
+      await editor.moveTo('TW', 0.8, 24)
+      expect(Math.abs((await editor.lineLeft()) - (await editor.contentLeft('SW')))).toBeLessThan(2)
+      await editor.release()
+    })
+  })
+
+  test('the line goes away on the half of a row where the block cannot go', async ({
+    authenticatedPageWithData: page
+  }) => {
+    const editor = await openTreeEditor(page, auditBody())
+    // Top half of the social block: after T2. Bottom half: inside the social block, which refuses a text
+    await editor.hover('T4', 'SO', 0.25)
+    expect(await editor.lineShown()).toBe(true)
+    await editor.moveTo('SO', 0.75)
+    expect(await editor.lineShown()).toBe(false)
+    await editor.release()
+    expect(shape(await editor.saved())).toBe(editor.original)
+  })
+
+  test('a drop in the space between two rows lands between them', async ({
+    authenticatedPageWithData: page
+  }) => {
+    const editor = await openTreeEditor(page, auditBody())
+    await editor.hover('D', 'T3', 1, 0, { yPx: 2 })
+    expect(await editor.lineShown()).toBe(true)
+    await editor.release()
+    expect(shape(find(await editor.saved(), 'C3')!)).toBe('C3[SP,T3,D,T4]')
+  })
+
+  test.describe('grabbed by the handle, a block fills an empty container', () => {
+    for (const [from, to, label] of [
+      ['S1', 'EW', 'wrapper'],
+      ['C1', 'EG', 'group']
+    ] as const) {
+      test(label, async ({ authenticatedPageWithData: page }) => {
+        const editor = await openTreeEditor(page, withEmpties())
+        await editor.hover(from, to, 0.8, 0, { by: 'handle' })
+        expect(await editor.lineShown()).toBe(true)
+        await editor.release()
+        expect(children(find(await editor.saved(), to))).toEqual([from])
+      })
+    }
+  })
+
+  test('leaving the tree removes the line and drops nothing', async ({
+    authenticatedPageWithData: page
+  }) => {
+    const editor = await openTreeEditor(page, auditBody())
+    await editor.hover('D', 'T3', 0.8)
+    expect(await editor.lineShown()).toBe(true)
+    await editor.moveTo('T3', 0.8, 600)
+    expect(await editor.lineShown()).toBe(false)
+    await editor.release()
+    expect(shape(await editor.saved())).toBe(editor.original)
   })
 })

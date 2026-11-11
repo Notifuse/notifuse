@@ -1,9 +1,5 @@
-import type { EmailBlock } from '../types'
+import type { EmailBlock, MJMLComponentType } from '../types'
 import { EmailBlockClass } from '../EmailBlockClass'
-
-// rc-tree's relative drop position: before the row (rc-tree only offers it on the first root row), first child of
-// the row, or after the row and its visible subtree
-export type DropSide = -1 | 0 | 1
 
 // Where a dragged block goes: index is its position in parent.children once the block has been taken out
 export interface DropTarget {
@@ -11,100 +7,141 @@ export interface DropTarget {
   index: number
 }
 
+// The space between two rows of the structure tree, as shown on screen: upper is the row above the pointer's gap,
+// lower the row below it, or null after the last row
+export interface DropGap {
+  upperId: string
+  lowerId: string | null
+}
+
+// A place the gap offers. slot counts in the parent's current children, depth from the body (0). emptyInside marks
+// the inside of an empty container
+export interface DropPlace {
+  parentId: string
+  slot: number
+  depth: number
+  emptyInside: boolean
+}
+
+// The dragged block: a block of the tree (id set) or a new one of the given type. depth is the level it is dragged
+// from, which the pointer's sideways moves count from
+export interface DragSource {
+  id?: string
+  type: MJMLComponentType
+  depth: number
+}
+
 interface Located {
   block: EmailBlock
-  parent: EmailBlock | null
+  // Ancestors from the root down to the block's parent
+  path: EmailBlock[]
 }
 
 const locate = (tree: EmailBlock, id: string): Located | null => {
-  if (tree.id === id) return { block: tree, parent: null }
-  const walk = (parent: EmailBlock): Located | null => {
-    for (const child of parent.children ?? []) {
-      if (child.id === id) return { block: child, parent }
-      const found = walk(child)
+  const walk = (block: EmailBlock, path: EmailBlock[]): Located | null => {
+    if (block.id === id) return { block, path }
+    for (const child of block.children ?? []) {
+      const found = walk(child, [...path, block])
       if (found) return found
     }
     return null
   }
-  return walk(tree)
+  return walk(tree, [])
 }
 
 const contains = (ancestor: EmailBlock, id: string): boolean =>
   ancestor.id === id || (ancestor.children ?? []).some((child) => contains(child, id))
 
+const isBody = (block: EmailBlock) => block.type === 'mj-body'
+
+const indexIn = (parent: EmailBlock, id: string) =>
+  (parent.children ?? []).findIndex((child) => child.id === id)
+
+// Levels from the body, or null for a block outside it
+export function depthOf(tree: EmailBlock, id: string): number | null {
+  const found = locate(tree, id)
+  if (!found) return null
+  if (isBody(found.block)) return 0
+  const body = found.path.findIndex(isBody)
+  return body === -1 ? null : found.path.length - body
+}
+
 /**
- * Resolves a drop proposed by rc-tree into the place the dragged block will take, or null when there is none
- * (the line is then not shown). The same answer drives the line and the move, so a line always means a move.
- *
- * Candidates are tried in order and the first valid one decides; when it is the block's current place, the
- * result is null rather than a later candidate.
+ * The places a gap offers, deepest first: inside the upper block when it is a container, then after the upper
+ * block and after each ancestor whose shown content ends with it, up to the body's children.
  */
-export function resolveDropTarget(
+export function placesInGap(tree: EmailBlock, gap: DropGap): DropPlace[] {
+  const upper = locate(tree, gap.upperId)
+  const upperDepth = depthOf(tree, gap.upperId)
+  if (!upper || upperDepth === null) return []
+  if (gap.lowerId !== null && !locate(tree, gap.lowerId)) return []
+  const lowerId = gap.lowerId
+
+  const places: DropPlace[] = []
+  const block = upper.block
+  if (EmailBlockClass.from(block).canHaveChildren()) {
+    const children = block.children ?? []
+    const lowerIndex = lowerId === null ? -1 : indexIn(block, lowerId)
+    // The lower row is a child of the upper one: the container is shown open, the gap is before that child
+    const slot = lowerIndex !== -1 ? lowerIndex : children.length
+    places.push({ parentId: block.id, slot, depth: upperDepth + 1, emptyInside: !children.length })
+  }
+
+  let current = block
+  let depth = upperDepth
+  for (let i = upper.path.length - 1; i >= 0 && !isBody(current); i--) {
+    if (lowerId !== null && contains(current, lowerId)) break
+    const parent = upper.path[i]
+    places.push({
+      parentId: parent.id,
+      slot: indexIn(parent, current.id) + 1,
+      depth,
+      emptyInside: false
+    })
+    current = parent
+    depth--
+  }
+  return places
+}
+
+/**
+ * The place a drop in the gap gives, or null when there is none (the line is then not shown). shift is the number
+ * of indents the pointer moved right (positive) or left since the grab.
+ *
+ * An empty container that accepts the block takes it unless the pointer moved left. Otherwise the place nearest to
+ * the pointer's depth wins, the deeper one on a tie. A place that is the block's current one gives null.
+ */
+export function resolveDrop(
   tree: EmailBlock,
-  dragId: string,
-  dropId: string,
-  side: DropSide,
-  expandedKeys: readonly string[]
-): DropTarget | null {
-  const drag = locate(tree, dragId)
-  const drop = locate(tree, dropId)
-  if (!drag || !drop || !drag.parent) return null
+  drag: DragSource,
+  gap: DropGap,
+  shift: number
+): (DropTarget & { depth: number }) | null {
+  const dragged = drag.id === undefined ? null : locate(tree, drag.id)
+  if (drag.id !== undefined && !dragged) return null
 
-  const parentOf = (block: EmailBlock) => locate(tree, block.id)?.parent ?? null
-  const isOpen = (block: EmailBlock) => !!block.children?.length && expandedKeys.includes(block.id)
-  const isContainer = (block: EmailBlock) => EmailBlockClass.from(block).canHaveChildren()
-  const valid = (parent: EmailBlock | null): parent is EmailBlock =>
-    !!parent &&
-    !contains(drag.block, parent.id) &&
-    EmailBlockClass.from(parent).canAcceptChild(drag.block.type)
+  const kept = placesInGap(tree, gap).filter((place) => {
+    if (dragged && contains(dragged.block, place.parentId)) return false
+    const parent = locate(tree, place.parentId)
+    return !!parent && EmailBlockClass.from(parent.block).canAcceptChild(drag.type)
+  })
+  if (!kept.length) return null
 
-  // Turns a slot counted in the parent's current children into the final index, or null for no move
-  const settle = (parent: EmailBlock, slot: number): DropTarget | null => {
-    const children = parent.children ?? []
-    const current = children.findIndex((child) => child.id === dragId)
-    const index = current !== -1 && current < slot ? slot - 1 : slot
-    if (current !== -1 && current === index) return null
-    return { parentId: parent.id, index }
-  }
-  const indexIn = (parent: EmailBlock, block: EmailBlock) =>
-    (parent.children ?? []).findIndex((child) => child.id === block.id)
+  const pointerDepth = drag.depth + shift
+  const chosen =
+    (shift >= 0 && kept.find((place) => place.emptyInside)) ||
+    kept.reduce((best, place) => {
+      const distance = Math.abs(place.depth - pointerDepth)
+      const bestDistance = Math.abs(best.depth - pointerDepth)
+      return distance < bestDistance || (distance === bestDistance && place.depth > best.depth)
+        ? place
+        : best
+    })
 
-  const candidates: Array<() => DropTarget | null | undefined> = []
-  const tryAt = (parent: EmailBlock | null, slot: () => number) => {
-    candidates.push(() => (valid(parent) ? settle(parent, slot()) : undefined))
-  }
-
-  if (side === 0) {
-    tryAt(drop.block, () => 0)
-  } else if (side === -1) {
-    tryAt(drop.parent, () => indexIn(drop.parent!, drop.block))
-    tryAt(drop.block, () => 0)
-  } else {
-    // 1. An empty container takes the block rather than the slot after it
-    if (isContainer(drop.block) && !drop.block.children?.length) tryAt(drop.block, () => 0)
-    // 2. The level rc-tree proposes
-    tryAt(drop.parent, () => indexIn(drop.parent!, drop.block) + 1)
-    // 3. Down the chain of open last children, shallowest first: the gap is after their visible content
-    for (let node: EmailBlock | undefined = drop.block; node && isContainer(node);) {
-      const current: EmailBlock = node
-      tryAt(current, () => current.children?.length ?? 0)
-      node = isOpen(current) ? current.children![current.children!.length - 1] : undefined
-    }
-    // 4. Up the chain of last children: the gap after a last child is also the gap after its parent
-    for (let node: EmailBlock = drop.block, parent = drop.parent; parent;) {
-      const grandParent = parentOf(parent)
-      const siblings = parent.children ?? []
-      if (!grandParent || siblings[siblings.length - 1]?.id !== node.id) break
-      const lifted: EmailBlock = parent
-      tryAt(grandParent, () => indexIn(grandParent, lifted) + 1)
-      node = parent
-      parent = grandParent
-    }
-  }
-
-  for (const candidate of candidates) {
-    const result = candidate()
-    if (result !== undefined) return result
-  }
-  return null
+  // Turn the slot, counted in the parent's current children, into the final index
+  const parent = locate(tree, chosen.parentId)!.block
+  const current = drag.id === undefined ? -1 : indexIn(parent, drag.id)
+  const index = current !== -1 && current < chosen.slot ? chosen.slot - 1 : chosen.slot
+  if (current !== -1 && current === index) return null
+  return { parentId: chosen.parentId, index, depth: chosen.depth }
 }

@@ -18,7 +18,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: In the email editor's structure tree, a block dragged down now lands where the line shows, and the line only appears where the block can go.
 
-- **Improvement**: Blocks can now be dragged into empty columns, sections, wrappers, groups and social blocks, wrappers get a drag handle, and a section dragged below nested content finds its place without a sideways move. Moving, adding, duplicating or deleting a column keeps the other columns' proportions when their widths are percentages adding up to 100.
+- **Improvement**: Blocks can now be dragged into empty columns, sections, wrappers, groups and social blocks, wrappers get a drag handle, and a section dragged below nested content finds its place without a sideways move. While dragging, moving the pointer left or right picks the level where the block goes, and the line shows that level. Moving, adding, duplicating or deleting a column keeps the other columns' proportions when their widths are percentages adding up to 100.
 
 ## [43.1] - 2026-11-10
 
