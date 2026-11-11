@@ -689,6 +689,14 @@ export interface MJSocialElementBlock extends BaseBlock {
 
 export type SaveOperation = 'create' | 'update'
 
+// Saves a block in the workspace's saved blocks. Resolves once saved; rejects when the save failed, after
+// telling the user why.
+export type SaveBlockHandler = (
+  block: EmailBlock,
+  operation: SaveOperation,
+  nameOrId: string
+) => Promise<void>
+
 // Helper type for merged attributes that provides string access with proper typing
 export interface MergedBlockAttributes {
   // Common attributes
