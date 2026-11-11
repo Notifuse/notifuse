@@ -629,7 +629,7 @@ msgstr "過去のアクティビティのカウントには、オートメーシ
 msgid "A Liquid block cannot go inside a block with a display condition"
 msgstr "表示条件のあるブロックの中に Liquid ブロックは配置できません"
 
-#: src/components/email_builder/EmailBuilder.tsx:351
+#: src/components/email_builder/EmailBuilder.tsx:352
 msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
 msgstr "表示条件のあるブロックの中に Liquid ブロックは配置できません。先に条件を削除するか、Liquid ブロックを外側に配置してください。"
 
@@ -814,31 +814,31 @@ msgstr "注釈を追加"
 msgid "Add Author"
 msgstr "著者を追加"
 
-#: src/components/email_builder/panels/TreePanel.tsx:146
+#: src/components/email_builder/panels/TreePanel.tsx:149
 msgid "Add block"
 msgstr "ブロックを追加"
 
-#: src/components/email_builder/panels/TreePanel.tsx:93
+#: src/components/email_builder/panels/TreePanel.tsx:96
 msgid "Add Block"
 msgstr "ブロックを追加"
 
-#: src/components/email_builder/panels/TreePanel.tsx:134
+#: src/components/email_builder/panels/TreePanel.tsx:137
 msgid "Add block in body"
 msgstr "本文にブロックを追加"
 
-#: src/components/email_builder/panels/TreePanel.tsx:140
+#: src/components/email_builder/panels/TreePanel.tsx:143
 msgid "Add block in column"
 msgstr "列にブロックを追加"
 
-#: src/components/email_builder/panels/TreePanel.tsx:132
+#: src/components/email_builder/panels/TreePanel.tsx:135
 msgid "Add block in header"
 msgstr "ヘッダーにブロックを追加"
 
-#: src/components/email_builder/panels/TreePanel.tsx:138
+#: src/components/email_builder/panels/TreePanel.tsx:141
 msgid "Add block in section"
 msgstr "セクションにブロックを追加"
 
-#: src/components/email_builder/panels/TreePanel.tsx:136
+#: src/components/email_builder/panels/TreePanel.tsx:139
 msgid "Add block in wrapper"
 msgstr "ラッパーにブロックを追加"
 
@@ -850,7 +850,7 @@ msgstr "特定のコンポーネント (mj-text、mj-buttonなど) に子要素�
 msgid "Add child elements like mj-font, mj-style, or mj-preview to configure email metadata."
 msgstr "mj-font、mj-style、mj-previewなどの子要素を追加してメールメタデータを設定します。"
 
-#: src/components/email_builder/panels/TreePanel.tsx:144
+#: src/components/email_builder/panels/TreePanel.tsx:147
 msgid "Add column in group"
 msgstr "グループに列を追加"
 
@@ -942,7 +942,7 @@ msgstr "パスを追加"
 msgid "Add Sender"
 msgstr "送信者を追加"
 
-#: src/components/email_builder/panels/TreePanel.tsx:142
+#: src/components/email_builder/panels/TreePanel.tsx:145
 msgid "Add social element"
 msgstr "ソーシャル要素を追加"
 
@@ -1470,7 +1470,7 @@ msgstr "リスト\"{0}\"を削除してもよろしいですか?"
 msgid "Are you sure you want to delete the post"
 msgstr "投稿を削除してもよろしいですか"
 
-#: src/components/email_builder/panels/TreePanel.tsx:216
+#: src/components/email_builder/panels/TreePanel.tsx:220
 #: src/components/email_builder/ui/BlockToolbar.tsx:185
 msgid "Are you sure you want to delete this block?"
 msgstr "このブロックを削除してもよろしいですか?"
@@ -4348,7 +4348,7 @@ msgstr "オートメーションを削除"
 msgid "Delete automation?"
 msgstr "オートメーションを削除しますか？"
 
-#: src/components/email_builder/panels/TreePanel.tsx:220
+#: src/components/email_builder/panels/TreePanel.tsx:224
 msgid "Delete block"
 msgstr "ブロックを削除"
 
@@ -4951,7 +4951,7 @@ msgstr "編集"
 #: src/components/automations/config/ConditionsField.tsx:108
 #: src/components/automations/UpsertAutomationDrawer.tsx:288
 #: src/components/blog/PostsTable.tsx:349
-#: src/components/email_builder/EmailBuilder.tsx:876
+#: src/components/email_builder/EmailBuilder.tsx:824
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
 #: src/components/settings/Integrations.tsx:352
@@ -10728,7 +10728,7 @@ msgstr "プレビュー"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:37
 #: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/common/ImageURLInput.tsx:52
-#: src/components/email_builder/EmailBuilder.tsx:880
+#: src/components/email_builder/EmailBuilder.tsx:828
 #: src/components/segment/button_upsert.tsx:659
 msgid "Preview"
 msgstr "プレビュー"
@@ -11306,7 +11306,7 @@ msgstr "リダイレクトURI"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:676
-#: src/components/email_builder/EmailBuilder.tsx:863
+#: src/components/email_builder/EmailBuilder.tsx:811
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
 msgid "Redo"
 msgstr "やり直す"
@@ -13009,7 +13009,7 @@ msgstr "ユニーククリック数の上位200件のリンクを表示してい
 msgid "shown"
 msgstr "表示"
 
-#: src/components/email_builder/panels/TreePanel.tsx:267
+#: src/components/email_builder/panels/TreePanel.tsx:272
 msgid "Shown under a condition"
 msgstr "条件付きで表示"
 
@@ -14001,7 +14001,7 @@ msgstr "サインインボタンに表示するテキスト"
 msgid "Text Transform"
 msgstr "テキスト変換"
 
-#: src/components/email_builder/EmailBuilder.tsx:883
+#: src/components/email_builder/EmailBuilder.tsx:831
 #: src/components/email_builder/MjmlCodeEditor.tsx:689
 #: src/components/email_builder/panels/TextVersionPanel.tsx:119
 #: src/components/templates/TemplatePreviewDrawer.tsx:240
@@ -15147,7 +15147,7 @@ msgstr "リファラルの質を把握する"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:669
-#: src/components/email_builder/EmailBuilder.tsx:855
+#: src/components/email_builder/EmailBuilder.tsx:803
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:496
 msgid "Undo"
 msgstr "元に戻す"

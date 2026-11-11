@@ -1,12 +1,14 @@
 import React from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { Tree, Tooltip, Popconfirm } from 'antd'
+import type { TreeProps } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronRight, faChevronDown, faCodeBranch, faPlus } from '@fortawesome/free-solid-svg-icons'
 import { faTrashAlt } from '@fortawesome/free-regular-svg-icons'
 import type { EmailBlock, MJMLComponentType, TreeNode, SavedBlock } from '../types'
 import { EmailBlockClass } from '../EmailBlockClass'
 import { AddBlockPopover } from '../ui/AddBlockPopover'
+import { resolveDropTarget, type DropSide } from '../utils/treeDrop'
 
 interface TreePanelProps {
   emailTree: EmailBlock
@@ -25,6 +27,7 @@ interface TreePanelProps {
 
 // Constants
 const DRAGGABLE_NODES: MJMLComponentType[] = [
+  'mj-wrapper',
   'mj-section',
   'mj-column',
   'mj-group',
@@ -173,16 +176,17 @@ const AddContentButton: React.FC<{
 // Drag Handle Component
 const DragHandle: React.FC = () => {
   const { t } = useLingui()
+  const label = t`Drag to move this block in the tree`
   return (
     <span className="inline-block ml-2">
       <Tooltip
-        title={t`Drag to move this block in the tree`}
+        title={label}
         trigger={['hover']}
         onOpenChange={() => {
           // Tooltip will close automatically on click due to trigger configuration
         }}
       >
-        <span className="opacity-50">
+        <span className="opacity-50" role="img" aria-label={label}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -260,7 +264,8 @@ const TreeNodeTitle: React.FC<{
   const preventAddBlocks = shouldPreventAddBlocks(emailTree, block.id)
 
   return (
-    <span>
+    // data-draggable lets the tree cancel a drag started on a row that cannot move (the body)
+    <span data-draggable={isDraggable ? 'true' : 'false'}>
       <span>
         {blockClass.getLabel(indexToPass)}
         {block.display_condition && (
@@ -432,41 +437,6 @@ const convertToTreeNode = (
   return node
 }
 
-// Check if drop is allowed based on MJML structure rules using EmailBlockClass
-const allowDrop = (dragType: MJMLComponentType, dropType: MJMLComponentType): boolean => {
-  const tempBlock = { id: 'temp', type: dropType, attributes: {} } as EmailBlock
-  const blockClass = EmailBlockClass.from(tempBlock)
-  return blockClass.canAcceptChild(dragType)
-}
-
-// Tree utility functions
-const findParentId = (nodes: TreeNode[], pos: string): string | null => {
-  for (const node of nodes) {
-    const nodeWithPos = node as TreeNode & { pos?: string }
-    if (nodeWithPos.pos === pos) {
-      return typeof nodeWithPos.key === 'string' ? nodeWithPos.key : null
-    }
-    if (Array.isArray(node.children)) {
-      const found = findParentId(node.children, pos)
-      if (found) return found
-    }
-  }
-  return null
-}
-
-const getNodesWithPos = (
-  nodes: TreeNode[],
-  parentPos = '0'
-): Array<TreeNode & { pos: string }> => {
-  return nodes.map((node, index) => ({
-    ...node,
-    pos: `${parentPos}-${index}`,
-    children: Array.isArray(node.children)
-      ? getNodesWithPos(node.children, `${parentPos}-${index}`)
-      : undefined
-  })) as Array<TreeNode & { pos: string }>
-}
-
 export const TreePanel: React.FC<TreePanelProps> = ({
   emailTree,
   selectedBlockId,
@@ -559,67 +529,30 @@ export const TreePanel: React.FC<TreePanelProps> = ({
     }
   }
 
-  const handleDrop = (info: Record<string, unknown>) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const infoTyped = info as any
-    const dropKey = infoTyped.node.key
-    const dragKey = infoTyped.dragNode.key
-    const dropPos = infoTyped.node.pos.split('-')
-    const dropPosition = infoTyped.dropPosition - Number(dropPos[dropPos.length - 1])
+  const handleDrop: TreeProps['onDrop'] = (info) => {
+    const dropPos = info.node.pos.split('-')
+    const relative = info.dropPosition - Number(dropPos[dropPos.length - 1])
+    const side: DropSide = !info.dropToGap ? 0 : relative < 0 ? -1 : 1
+    const dragId = String(info.dragNode.key)
+    const target = resolveDropTarget(emailTree, dragId, String(info.node.key), side, expandedKeys)
+    if (!target) return
 
-    const dragNode = infoTyped.dragNode
-    const dropNode = infoTyped.node
-
-    let targetParentId: string
-    let targetPosition: number
-
-    if (infoTyped.dropToGap) {
-      // Dropping between siblings
-      const dropNodePos = infoTyped.node.pos.split('-')
-      const dropNodeParentPos = dropNodePos.slice(0, -1).join('-')
-
-      const treeWithPos = getNodesWithPos(bodyTreeData)
-      const parentId = findParentId(treeWithPos, dropNodeParentPos)
-
-      if (!parentId) {
-        console.error('Could not find parent for sibling drop')
-        return
-      }
-
-      const parentBlock = EmailBlockClass.findBlockById(emailTree, parentId)
-      if (!parentBlock) {
-        console.error('Parent block not found')
-        return
-      }
-
-      const parentClass = EmailBlockClass.from(parentBlock)
-      if (!parentClass.canAcceptChild(dragNode.blockType)) {
-        console.warn(
-          'Sibling drop not allowed:',
-          dragNode.blockType,
-          'cannot be child of',
-          parentBlock.type
-        )
-        return
-      }
-
-      targetParentId = parentId
-      targetPosition =
-        dropPosition < 0
-          ? Number(dropPos[dropPos.length - 1])
-          : Number(dropPos[dropPos.length - 1]) + 1
-    } else {
-      // Dropping into a container
-      if (!allowDrop(dragNode.blockType, dropNode.blockType)) {
-        console.warn('Drop not allowed:', dragNode.blockType, 'into', dropNode.blockType)
-        return
-      }
-
-      targetParentId = dropKey
-      targetPosition = 0
+    onMoveBlock(dragId, target.parentId, target.index)
+    // A block dropped into a collapsed or empty container would vanish from view: open it
+    if (onTreeExpand && !expandedKeys.includes(target.parentId)) {
+      onTreeExpand([...expandedKeys, target.parentId])
     }
+  }
 
-    onMoveBlock(dragKey, targetParentId, targetPosition)
+  // rc-tree makes every row draggable once the tree is; cancel the drag of a row that cannot move, before
+  // rc-tree sees it, so the row still accepts drops
+  const handleDragStartCapture = (event: React.DragEvent<HTMLDivElement>) => {
+    const row = (event.target as HTMLElement).closest?.('[role="treeitem"]')
+    const title = row?.querySelector('[data-draggable]')
+    if (title?.getAttribute('data-draggable') === 'false') {
+      event.preventDefault()
+      event.stopPropagation()
+    }
   }
 
   // Common tree props
@@ -656,7 +589,7 @@ export const TreePanel: React.FC<TreePanelProps> = ({
       {/* Body Section */}
       {bodyTreeData.length > 0 && (
         <div className="flex-shrink-0">
-          <div className="p-2 overflow-auto">
+          <div className="p-2 overflow-auto" onDragStartCapture={handleDragStartCapture}>
             <Tree
               {...commonTreeProps}
               draggable={{ icon: false }}
@@ -664,12 +597,15 @@ export const TreePanel: React.FC<TreePanelProps> = ({
               onExpand={handleExpand}
               treeData={bodyTreeData}
               onDrop={handleDrop}
-              allowDrop={({ dragNode, dropNode, dropPosition }) => {
-                if (dropPosition !== 0) {
-                  return true // Sibling drop - let handleDrop validate
-                }
-                return allowDrop(dragNode.blockType, dropNode.blockType)
-              }}
+              allowDrop={({ dragNode, dropNode, dropPosition }) =>
+                resolveDropTarget(
+                  emailTree,
+                  String(dragNode.key),
+                  String(dropNode.key),
+                  dropPosition as DropSide,
+                  expandedKeys
+                ) !== null
+              }
             />
           </div>
         </div>

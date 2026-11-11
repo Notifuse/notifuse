@@ -629,7 +629,7 @@ msgstr "Un recuento de actividad pasada incluye el evento que dispara la automat
 msgid "A Liquid block cannot go inside a block with a display condition"
 msgstr "Un bloque Liquid no puede ir dentro de un bloque con una condición de visualización"
 
-#: src/components/email_builder/EmailBuilder.tsx:351
+#: src/components/email_builder/EmailBuilder.tsx:352
 msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
 msgstr "Un bloque Liquid no puede ir dentro de un bloque con una condición de visualización: elimina primero la condición o coloca el bloque Liquid fuera."
 
@@ -814,31 +814,31 @@ msgstr "Añadir anotación"
 msgid "Add Author"
 msgstr "Añadir autor"
 
-#: src/components/email_builder/panels/TreePanel.tsx:146
+#: src/components/email_builder/panels/TreePanel.tsx:149
 msgid "Add block"
 msgstr "Añadir bloque"
 
-#: src/components/email_builder/panels/TreePanel.tsx:93
+#: src/components/email_builder/panels/TreePanel.tsx:96
 msgid "Add Block"
 msgstr "Añadir bloque"
 
-#: src/components/email_builder/panels/TreePanel.tsx:134
+#: src/components/email_builder/panels/TreePanel.tsx:137
 msgid "Add block in body"
 msgstr "Añadir bloque en el cuerpo"
 
-#: src/components/email_builder/panels/TreePanel.tsx:140
+#: src/components/email_builder/panels/TreePanel.tsx:143
 msgid "Add block in column"
 msgstr "Añadir bloque en columna"
 
-#: src/components/email_builder/panels/TreePanel.tsx:132
+#: src/components/email_builder/panels/TreePanel.tsx:135
 msgid "Add block in header"
 msgstr "Añadir bloque en encabezado"
 
-#: src/components/email_builder/panels/TreePanel.tsx:138
+#: src/components/email_builder/panels/TreePanel.tsx:141
 msgid "Add block in section"
 msgstr "Añadir bloque en sección"
 
-#: src/components/email_builder/panels/TreePanel.tsx:136
+#: src/components/email_builder/panels/TreePanel.tsx:139
 msgid "Add block in wrapper"
 msgstr "Añadir bloque en contenedor"
 
@@ -850,7 +850,7 @@ msgstr "Añade elementos secundarios para componentes específicos (mj-text, mj-
 msgid "Add child elements like mj-font, mj-style, or mj-preview to configure email metadata."
 msgstr "Añade elementos secundarios como mj-font, mj-style o mj-preview para configurar los metadatos del correo."
 
-#: src/components/email_builder/panels/TreePanel.tsx:144
+#: src/components/email_builder/panels/TreePanel.tsx:147
 msgid "Add column in group"
 msgstr "Añadir columna en grupo"
 
@@ -942,7 +942,7 @@ msgstr "Añadir ruta"
 msgid "Add Sender"
 msgstr "Añadir remitente"
 
-#: src/components/email_builder/panels/TreePanel.tsx:142
+#: src/components/email_builder/panels/TreePanel.tsx:145
 msgid "Add social element"
 msgstr "Añadir elemento social"
 
@@ -1470,7 +1470,7 @@ msgstr "¿Estás seguro de que quieres eliminar la lista \"{0}\"?"
 msgid "Are you sure you want to delete the post"
 msgstr "¿Estás seguro de que quieres eliminar la publicación"
 
-#: src/components/email_builder/panels/TreePanel.tsx:216
+#: src/components/email_builder/panels/TreePanel.tsx:220
 #: src/components/email_builder/ui/BlockToolbar.tsx:185
 msgid "Are you sure you want to delete this block?"
 msgstr "¿Estás seguro de que quieres eliminar este bloque?"
@@ -4348,7 +4348,7 @@ msgstr "Eliminar automatización"
 msgid "Delete automation?"
 msgstr "¿Eliminar automatización?"
 
-#: src/components/email_builder/panels/TreePanel.tsx:220
+#: src/components/email_builder/panels/TreePanel.tsx:224
 msgid "Delete block"
 msgstr "Eliminar bloque"
 
@@ -4951,7 +4951,7 @@ msgstr "editar"
 #: src/components/automations/config/ConditionsField.tsx:108
 #: src/components/automations/UpsertAutomationDrawer.tsx:288
 #: src/components/blog/PostsTable.tsx:349
-#: src/components/email_builder/EmailBuilder.tsx:876
+#: src/components/email_builder/EmailBuilder.tsx:824
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
 #: src/components/settings/Integrations.tsx:352
@@ -10728,7 +10728,7 @@ msgstr "vista previa"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:37
 #: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/common/ImageURLInput.tsx:52
-#: src/components/email_builder/EmailBuilder.tsx:880
+#: src/components/email_builder/EmailBuilder.tsx:828
 #: src/components/segment/button_upsert.tsx:659
 msgid "Preview"
 msgstr "Vista previa"
@@ -11306,7 +11306,7 @@ msgstr "URI de redirección"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:676
-#: src/components/email_builder/EmailBuilder.tsx:863
+#: src/components/email_builder/EmailBuilder.tsx:811
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
 msgid "Redo"
 msgstr "Rehacer"
@@ -13009,7 +13009,7 @@ msgstr "Mostrando los 200 enlaces principales por clics únicos."
 msgid "shown"
 msgstr "visible"
 
-#: src/components/email_builder/panels/TreePanel.tsx:267
+#: src/components/email_builder/panels/TreePanel.tsx:272
 msgid "Shown under a condition"
 msgstr "Visible bajo una condición"
 
@@ -14001,7 +14001,7 @@ msgstr "Texto mostrado en el botón de inicio de sesión"
 msgid "Text Transform"
 msgstr "Transformación de texto"
 
-#: src/components/email_builder/EmailBuilder.tsx:883
+#: src/components/email_builder/EmailBuilder.tsx:831
 #: src/components/email_builder/MjmlCodeEditor.tsx:689
 #: src/components/email_builder/panels/TextVersionPanel.tsx:119
 #: src/components/templates/TemplatePreviewDrawer.tsx:240
@@ -15147,7 +15147,7 @@ msgstr "Entiende la calidad de las referencias"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:669
-#: src/components/email_builder/EmailBuilder.tsx:855
+#: src/components/email_builder/EmailBuilder.tsx:803
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:496
 msgid "Undo"
 msgstr "Deshacer"
