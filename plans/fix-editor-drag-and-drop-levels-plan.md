@@ -53,7 +53,7 @@ longer decides any drop.
 
 Rows are the visible body-tree rows, `[role="treeitem"]` under the wrapper, in document order. (`.ant-tree-treenode`
 also matches rc-tree's hidden measurer, which has no block id.) Each row carries its block id in
-`data-block-id`, on the title span.
+`data-tree-block-id`, on the title span (not `data-block-id`, which marks the block on the canvas).
 
 - **upper** is the last row whose vertical middle is above the pointer or level with it (the same tie as rc-tree).
   When there is none (the pointer is above the Body row's middle), upper is the Body row.
@@ -204,7 +204,7 @@ A drag that did not start in this tree (no drag ref) is ignored: no line, no `pr
   `DropGap`, `DropPlace`, `DragSource`. Keep `locate`, `contains`, `settle`.
 
 ### `console/src/components/email_builder/panels/TreePanel.tsx`
-- `TreeNodeTitle` root span: add `data-block-id={block.id}`, next to `data-draggable`.
+- `TreeNodeTitle` root span: add `data-tree-block-id={block.id}`, next to `data-draggable`.
 - Remove `handleDrop` and the resolver-based `allowDrop`.
 - Add the drag ref, the line state, the hover timer and the capture handlers above on the body tree's wrapper, which
   becomes `relative`. Render the line.
@@ -263,7 +263,7 @@ Places are asserted as exact arrays, so their number is pinned.
 
 ### `panels/TreePanel.test.tsx` (real TreePanel, jsdom, layout stubs for rows, content wrappers and the indent unit)
 
-Rows are found by `data-block-id`. Fake timers for the hover cases.
+Rows are found by `data-tree-block-id`. Fake timers for the hover cases.
 
 1. D over the bottom half of T3: the line is at T3's bottom with D's indentation; the drop calls
    `onMoveBlock('D', 'C3', 2)`.
