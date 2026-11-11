@@ -106,8 +106,8 @@ func preprocessMjmlForXML(mjmlString string) string {
 	// raw HTML of an mj-text, and wrote MJML attributes back unescaped: a
 	// rich-text link saved as href="…?q=&quot;exact&quot;" reached the HTML as
 	// href="…?q="exact"", which ends the URL at "q=". v0.14.1 leaves entities
-	// inside quoted attribute values to its XML parser and escapes the
-	// attributes it writes. The doubling below (&amp;quot;, the way
+	// inside quoted attribute values to its XML parser and escapes most of the
+	// attributes it writes (not the carousel's hand-built href and src). The doubling below (&amp;quot;, the way
 	// escapeAttributeValue does for visual-editor attributes) still comes back
 	// as &quot; through decodeHTMLEntitiesInURLAttributes after the render, so
 	// the output is the same with both releases.

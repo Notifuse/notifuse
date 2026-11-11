@@ -887,16 +887,16 @@ func camelToKebab(str string) string {
 // All ampersands must be escaped as &amp; per XML specification
 // The MJML compiler will handle converting them back to & in the final HTML
 func escapeAttributeValue(value string, attributeName string) string {
-	// gomjml (v0.14.1) escapes " < and > when it writes an HTML attribute, but writes
-	// inline style values as they are, and many MJML attributes end up in a style
-	// (font-family, background-url...). A value escaped the ordinary XML way
-	// (" -> &quot;) is decoded to a raw " by the XML parser, and that " would close
-	// the style attribute of the output. Escaping the ampersand of each entity a
-	// second time (&amp;quot;) makes the XML parser give back the literal entity
-	// &quot;, which gomjml leaves as is (it does not escape &) and the browser decodes
-	// to ". The apostrophe uses the numeric &#39;, and a raw ' inside a double-quoted
-	// attribute needs no further escaping. Keep the doubling while gomjml leaves
-	// style values unescaped.
+	// gomjml (v0.14.1) escapes " < and > in the attributes it writes through
+	// html.HTMLTag, but writes inline style values (font-family, color...) and
+	// some hand-built attributes (bgcolor, the carousel's alt, href and src) as
+	// they are. A value escaped the ordinary XML way (" -> &quot;) is decoded to a
+	// raw " by the XML parser, and that " would close the attribute of the output.
+	// Escaping the ampersand of each entity a second time (&amp;quot;) makes the
+	// XML parser give back the literal entity &quot;, which those writers leave as
+	// is and the browser decodes to ". The apostrophe uses the numeric &#39;, and a
+	// raw ' inside a double-quoted attribute needs no further escaping. Keep the
+	// doubling while gomjml leaves style values and these attributes unescaped.
 	value = strings.ReplaceAll(value, "&", "&amp;")
 	value = strings.ReplaceAll(value, "\"", "&amp;quot;")
 	value = strings.ReplaceAll(value, "'", "&#39;")
