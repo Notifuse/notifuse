@@ -78,6 +78,8 @@ const installLayout = () => {
   HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
     const row = this.closest('[role="treeitem"]')
     if (this.matches('.ant-tree-indent-unit')) return rect(0, 0, INDENT, 0)
+    // The body tree's wrapper
+    if (this.querySelector(':scope > .ant-tree')) return rect(0, 0, 320, 2000)
     if (!row) return rect(0, 0, 0, 0)
     const top = TOP + ROW_STEP * rowsOf(row).indexOf(row)
     if (this.matches('.ant-tree-node-content-wrapper')) {
@@ -203,7 +205,8 @@ describe('TreePanel drag and drop', () => {
     // Top half of the social block: after T2 in C2. Bottom half: first in the social block, refused for a text
     over(row('SO'), yOf('SO', 0.25))
     expect(line()).not.toBeNull()
-    over(row('SO'), yOf('SO', 0.75))
+    // Within one row a browser sends dragover only
+    fire(row('SO'), 'dragOver', { clientX: GRAB_X, clientY: yOf('SO', 0.75) })
     expect(line()).toBeNull()
     drop(row('SO'), yOf('SO', 0.75))
     expect(onMoveBlock).not.toHaveBeenCalled()
@@ -271,7 +274,11 @@ describe('TreePanel drag and drop', () => {
     }
 
     it('does not open a section that cannot take the dragged section', () => {
-      const { row, yOf, onTreeExpand } = setup(build(c3()), without('S3'))
+      // C3 is left out too: rc-tree would show S3 open to show an expanded C3
+      const { row, yOf, onTreeExpand } = setup(
+        build(c3()),
+        ALL.filter((k) => k !== 'S3' && k !== 'C3')
+      )
       grab(row('S1'))
       over(row('S3'), yOf('S3', 0.75))
       act(() => {
@@ -323,6 +330,16 @@ describe('TreePanel drag and drop', () => {
     fire(row('T3'), 'dragLeave', { relatedTarget: row('T4'), clientX: GRAB_X, clientY: 0 })
     expect(line()).not.toBeNull()
     fire(row('T3'), 'dragLeave', { relatedTarget: document.body, clientX: GRAB_X, clientY: 0 })
+    expect(line()).toBeNull()
+  })
+
+  it('tells a leave from a crossing by the pointer when the browser gives no related target', () => {
+    const { row, yOf, line } = setup(build(c3()), ALL)
+    grab(row('D'))
+    over(row('T3'), yOf('T3', 0.75))
+    fire(row('T3'), 'dragLeave', { relatedTarget: null, clientX: GRAB_X, clientY: yOf('T3', 0.75) })
+    expect(line()).not.toBeNull()
+    fire(row('T3'), 'dragLeave', { relatedTarget: null, clientX: 400, clientY: yOf('T3', 0.75) })
     expect(line()).toBeNull()
   })
 

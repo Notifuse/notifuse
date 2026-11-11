@@ -628,7 +628,10 @@ export const TreePanel: React.FC<TreePanelProps> = ({
 
   const handleDropCapture = (event: React.DragEvent<HTMLDivElement>) => {
     const drag = dragRef.current
-    const place = placeRef.current
+    const wrapper = wrapperRef.current
+    // Computed again: a row may have opened under the pointer since the last dragover
+    const place =
+      drag && wrapper ? locateDrop(wrapper, drag, event.clientX, event.clientY)?.place : null
     clearDrop()
     dragRef.current = null
     if (!drag || !place) return

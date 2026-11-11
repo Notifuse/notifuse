@@ -55,8 +55,8 @@ Rows are the visible body-tree rows, `[role="treeitem"]` under the wrapper, in d
 also matches rc-tree's hidden measurer, which has no block id.) Each row carries its block id in
 `data-block-id`, on the title span.
 
-- **upper** is the last row whose vertical middle is above the pointer. When there is none (the pointer is above
-  the Body row's middle), upper is the Body row.
+- **upper** is the last row whose vertical middle is above the pointer or level with it (the same tie as rc-tree).
+  When there is none (the pointer is above the Body row's middle), upper is the Body row.
 - **lower** is the row after upper, or null.
 
 This one rule covers the 4 px band antd leaves under each row (`antd/es/tree/style/index.js:123-134`), the space
@@ -179,10 +179,12 @@ The wrapper handles, in the capture phase (it runs before rc-tree's row handlers
 - `onDragEnterCapture`, `onDragOverCapture`: when a drag from this tree is in progress (the drag ref is set),
   compute the gap, the shift, `resolveDrop`, the line and the hover row; store the place in the ref; call
   `preventDefault` when there is a place, so the native `drop` fires on the padding too.
-- `onDropCapture`: when the ref holds a place, `preventDefault`, `onMoveBlock(id, parentId, index)`, and
-  `onTreeExpand` for the parent when it is collapsed or empty. Then clear the line, the timer and the drag ref.
-- `onDragLeaveCapture`: clear the line and the timer when the pointer leaves the wrapper: `relatedTarget` is outside
-  it, or, when `relatedTarget` is null, the pointer is outside the wrapper's rect.
+- `onDropCapture`: the place is computed again from the drop's coordinates (a row may have opened under the pointer
+  since the last `dragover`). With a place: `preventDefault`, `onMoveBlock(id, parentId, index)`, and
+  `onTreeExpand` for the parent when it is collapsed or empty. Then clear the line, the place, the timer and the
+  drag ref.
+- `onDragLeaveCapture`: clear the line, the place and the timer when the pointer leaves the wrapper: `relatedTarget`
+  is outside it, or, when `relatedTarget` is null, the pointer is outside the wrapper's rect.
 
 rc-tree props:
 - `onDragStart` records the drag ref: id, type, depth, start x.
@@ -214,7 +216,12 @@ level." The entries move under 44.0 with #510's when the release section exists 
 
 ## Tests (written first)
 
-"Red on #510's head" is noted for each case; the others pin behaviour #510 already has.
+"Red on head" was checked by running the new tests on #510's head (70cc34dc) with only `data-block-id` added to the
+rows, so the rows can be found:
+- `treeDrop.test.ts` is red as a whole (new API). The values that differ from #510's resolver: resolveDrop 2 at
+  shift 0, 3 at shift −1, 5 and 10.
+- `TreePanel.test.tsx`: red on head are 1 to 5, the three hover cases of 7 other than "from below", 8, 9, 10, the
+  null `relatedTarget` case and 12. The others (6, 7 from below, 11, 13) pin behaviour #510 already has.
 
 ### `utils/treeDrop.test.ts` (rewritten for the new API, same audit and empty-container fixtures)
 
@@ -238,8 +245,8 @@ Places are asserted as exact arrays, so their number is pinned.
 **resolveDrop**
 1. D in `(T3, T4)`, shift 0: `{C3, 2}`.
 2. A section in `(TW, S2)`: S1 at shift 0 gives `{B, 1}`, at shift +1 `{W, 1}`; S3 gives `{B, 2}` and `{W, 1}`.
-   (Red on head for shift 0.)
-3. A section in `(EW, S6)`: shift 0 gives `{EW, 0}`, shift −1 gives `{B, index of EW + 1}`. (Red on head for −1.)
+  
+3. A section in `(EW, S6)`: shift 0 gives `{EW, 0}`, shift −1 gives `{B, index of EW + 1}`.
 4. A text in `(EC, C5)`: `{EC, 0}` at shifts 0 and −2.
 5. Liquid L in `(T4, R)`: shift 0 gives `{B, 4}`; raw R in `(T4, R)` at shift +2 gives `{C3, 4}`, at shift 0 null
    (its own place).
@@ -258,20 +265,23 @@ Places are asserted as exact arrays, so their number is pinned.
 Rows are found by `data-block-id`. Fake timers for the hover cases.
 
 1. D over the bottom half of T3: the line is at T3's bottom with D's indentation; the drop calls
-   `onMoveBlock('D', 'C3', 2)`. (Characterisation for the move; red for the line.)
+   `onMoveBlock('D', 'C3', 2)`.
 2. A section over the bottom half of TW, straight down: body indentation, the drop moves it after W; one indent to
-   the right: wrapper indentation, `{W, 1}`. (Red on head.)
-3. From an accepted half to a refused half of the same row: the line is gone and the drop does nothing. (Red on
-   head: it drops at the stale place.)
+   the right: wrapper indentation, `{W, 1}`.
+3. From an accepted half to a refused half of the same row, the second position sent as `dragover` only (as a
+   browser does within one row; a `dragenter` resets rc-tree's state): the line is gone and the drop does nothing.
+   Head drops at the stale place.
 4. The pointer in the band between two rows (below T3's rect, above T4's): the line stays and the drop lands
    between them.
 5. A drop on the wrapper's padding under the last row: the block goes at the end of the body.
 6. A collapsed C3 receives a text and is opened; an empty container receives a block and is opened.
 7. Hover open: a text held over collapsed C3 for 800 ms opens it, from above and from below; a section held over
-   collapsed S3 does not; leaving the row before 800 ms cancels it.
-8. The last visible child hides a raw block; the gap after it is computed from the rows (limit 5). (Red on head.)
-9. Mounted with C3 in `expandedKeys` and not S3: the lifted drop still has a line (limit 6). (Red on head.)
-10. Leaving the wrapper from a row clears the line.
+   S3 does not, with S3 and C3 both left out of `expandedKeys` (with C3 expanded, rc-tree shows S3 open); leaving
+   the row before 800 ms cancels it.
+8. The last visible child hides a raw block; the gap after it is computed from the rows (limit 5).
+9. Mounted with C3 in `expandedKeys` and not S3: the lifted drop still has a line (limit 6).
+10. Leaving the wrapper from a row clears the line; crossing to another row does not. With a null `relatedTarget`,
+    the pointer's position against the wrapper's rect decides.
 11. A drag that did not start in the tree: no line, no move.
 12. rc-tree renders no `.ant-tree-drop-indicator`.
 13. Kept from #510: Body dragstart cancelled, `data-draggable`, `aria-label`.
@@ -283,7 +293,10 @@ No change: `onMoveBlock` keeps its contract.
 - `fixtures/tree-drag.ts`: the pointer goes straight down from the grab point, plus `dx`, instead of to the target's
   label. `ROW` becomes `[role="treeitem"]`. `lineShown` reads `tree-drop-line`; a `lineLeft` helper is added; a
   `grab` option picks the label or the drag handle. Offsets stay off ±12.
-- Kept cases: unchanged expectations.
+- Kept cases: unchanged expectations. Two gestures change: the drops "onto the middle" of C2 and S3 move from 0.5
+  to 0.7 of the row, off the exact middle, and the sideways offsets of "a section dropped on the top half of the next
+  section" become 0, −24, +24, +48, so the pointer stays over the tree now that it starts from the section's label.
+  Each case makes one gesture: after a save the test does not drag again.
 - New cases:
   - a section just after a wrapper: dx 0 goes after the wrapper, dx +24 inside it;
   - a section below an empty wrapper: dx 0 inside, dx −24 after it;
@@ -295,9 +308,15 @@ No change: `onMoveBlock` keeps its contract.
   - leaving the tree to the right clears the line.
 
 ## Known, not handled
-- From the drag handle, raw HTML or Liquid at body level cannot reach a place two levels to the right (the end of a
-  column, an empty column inside a section): the tree ends about 24 px to the right of the handle. From the label
-  it works.
+- From the drag handle the tree ends about 24 px to the right of the pointer (measured in Chromium):
+  - a move that needs one indent to the right (a section to the end of a wrapper, a column to the end of a group,
+    Liquid to the end of a section) works only for dx 13 to 23;
+  - raw HTML or Liquid cannot reach places two levels in: the end of a non-empty column, the end of a section inside
+    a wrapper.
+
+  Empty containers are not affected: rule 2 fills them at dx 0. From the label every place is reachable.
+- Grabbing S6 (just below the empty wrapper EW) or C6 (just below the empty group EG) on the top half of its own row
+  and releasing it nearby moves it into the empty container, by rule 2. #510 does the same.
 - Native autoscroll during a drag in a long tree is not covered by the e2e.
 - The Body row keeps antd's grab cursor.
 - Keyboard moves: there are none today.
