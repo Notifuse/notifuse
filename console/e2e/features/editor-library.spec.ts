@@ -241,6 +241,8 @@ test.describe('Dropping a block from the library on the canvas', () => {
     await editor.grab('lib-section')
     await editor.moveTo(vp.x + vp.width / 2, vp.y + 10)
     await expect(editor.el('S1')).toBeInViewport({ timeout: 15000 })
+    // At the top the canvas stops, so S1's box no longer moves under the pointer
+    await expect.poll(() => editor.viewport.evaluate((v) => v.scrollTop), { timeout: 15000 }).toBe(0)
     await editor.moveOver('S1', 0.5, 0.1)
     expect(await editor.shown()).toMatchObject({ parentId: 'B', index: 0 })
     await editor.release()

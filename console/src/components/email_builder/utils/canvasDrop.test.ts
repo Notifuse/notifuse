@@ -307,6 +307,78 @@ describe('resolveCanvasDrop, right to left', () => {
   })
 })
 
+describe('resolveCanvasDrop, direction from the head and from the section', () => {
+  const rtl = { attributes: { direction: 'rtl' } } as Partial<EmailBlock>
+  const headDefaults = (type: string, attributes: Record<string, string>) => [
+    b('attrs', 'mj-attributes', [
+      b(`${type}-defaults`, type, undefined, { attributes } as Partial<EmailBlock>)
+    ])
+  ]
+  const run = (
+    inTree: EmailBlock,
+    layout: Record<string, Box>,
+    hoveredId: string,
+    x: number,
+    y: number
+  ) =>
+    resolveCanvasDrop({
+      tree: inTree,
+      block: block('mj-column'),
+      hoveredId,
+      x,
+      y,
+      rectOf: (id) => layout[id] ?? null
+    })
+
+  it("reads a single column section's direction from the head", () => {
+    const inTree = email(
+      [b('section-h', 'mj-section', [b('col-h', 'mj-column', [text('text-h')])])],
+      headDefaults('mj-section', { direction: 'rtl' })
+    )
+    const layout = {
+      'section-h': box(0, 0, 600, 200),
+      'col-h': box(0, 0, 600, 200),
+      'text-h': box(0, 0, 600, 100)
+    }
+    const left = run(inTree, layout, 'text-h', 20, 50)
+    expect(placed(left)).toEqual({ parentId: 'section-h', index: 1 })
+    expect(left.drop!.indicator).toMatchObject({ x1: 0, x2: 0 })
+  })
+
+  // A group's row follows its section's direction, and its own direction turns it once more
+  const groupTree = (groupAttrs: Partial<EmailBlock>) =>
+    email([
+      b(
+        'section-g',
+        'mj-section',
+        [
+          b('group-g', 'mj-group', [b('col-g', 'mj-column', [text('text-g')])], groupAttrs),
+          b('col-c', 'mj-column', [])
+        ],
+        rtl
+      )
+    ])
+  const groupLayout = {
+    'section-g': box(0, 0, 900, 200),
+    'group-g': box(300, 0, 900, 200),
+    'col-g': box(300, 0, 900, 200),
+    'text-g': box(300, 0, 900, 100),
+    'col-c': box(0, 0, 300, 200)
+  }
+
+  it('puts a column on the left of a lone column in a group of a right-to-left section after it', () => {
+    const result = run(groupTree({}), groupLayout, 'text-g', 320, 50)
+    expect(placed(result)).toEqual({ parentId: 'group-g', index: 1 })
+    expect(result.drop!.indicator).toMatchObject({ x1: 300, x2: 300 })
+  })
+
+  it('treats a right-to-left group in a right-to-left section as left to right', () => {
+    const result = run(groupTree(rtl), groupLayout, 'text-g', 320, 50)
+    expect(placed(result)).toEqual({ parentId: 'group-g', index: 0 })
+    expect(result.drop!.indicator).toMatchObject({ x1: 300, x2: 300 })
+  })
+})
+
 describe('resolveCanvasDrop, social elements', () => {
   const socialTree = (mode?: string) =>
     email([
@@ -354,6 +426,39 @@ describe('resolveCanvasDrop, social elements', () => {
     const result = socialDrop(socialTree(), row, 'icon-1', 25, 30)
     expect(placed(result)).toEqual({ parentId: 'social', index: 1 })
     expect(result.drop!.indicator).toEqual({ kind: 'line', x1: 35, y1: 0, x2: 35, y2: 40 })
+  })
+
+  it('stacks the icons of a social block made vertical by the head', () => {
+    const inTree = email(
+      [
+        b('section-s', 'mj-section', [
+          b('column-s', 'mj-column', [
+            b('social', 'mj-social', [
+              b('icon-1', 'mj-social-element'),
+              b('icon-2', 'mj-social-element'),
+              b('icon-3', 'mj-social-element')
+            ])
+          ])
+        ])
+      ],
+      [
+        b('attrs', 'mj-attributes', [
+          b('social-defaults', 'mj-social', undefined, {
+            attributes: { mode: 'vertical' }
+          } as Partial<EmailBlock>)
+        ])
+      ]
+    )
+    const column: Record<string, Box> = {
+      ...row,
+      social: box(0, 0, 120, 120),
+      'icon-1': box(0, 0, 120, 30),
+      'icon-2': box(0, 40, 120, 70),
+      'icon-3': box(0, 80, 120, 110)
+    }
+    const result = socialDrop(inTree, column, 'icon-1', 60, 25)
+    expect(placed(result)).toEqual({ parentId: 'social', index: 1 })
+    expect(result.drop!.indicator).toEqual({ kind: 'line', x1: 0, y1: 35, x2: 120, y2: 35 })
   })
 
   it('stacks the icons of a vertical social block', () => {

@@ -46,25 +46,15 @@ type Axis = 'x' | 'y'
 
 const childrenOf = (block: EmailBlock) => (block.children as EmailBlock[] | undefined) ?? []
 
-// Columns and groups sit side by side in a section or a group, and icons in a social block unless it is vertical;
-// everything else stacks
-const axisOf = (container: EmailBlock): Axis => {
-  if (container.type === 'mj-section' || container.type === 'mj-group') return 'x'
-  if (container.type === 'mj-social') {
-    return (container.attributes as Record<string, unknown> | undefined)?.mode === 'vertical'
-      ? 'y'
-      : 'x'
-  }
-  return 'y'
-}
-
 // An attribute of a block, else its default from the head's mj-attributes
 const attributeOf = (tree: EmailBlock, node: EmailBlock, name: string): unknown => {
   const own = (node.attributes as Record<string, unknown> | undefined)?.[name]
   if (own !== undefined && own !== '') return own
   const head = childrenOf(tree).find((child) => child.type === 'mj-head')
   const defaults = head && childrenOf(head).find((child) => child.type === 'mj-attributes')
-  const forType = defaults && childrenOf(defaults).find((child) => child.type === node.type)
+  // As in the editor, the last entry for a type wins
+  const forType =
+    defaults && [...childrenOf(defaults)].reverse().find((child) => child.type === node.type)
   return (forType?.attributes as Record<string, unknown> | undefined)?.[name]
 }
 
@@ -98,18 +88,34 @@ export function resolveCanvasDrop(input: CanvasDropInput): CanvasDropResult {
   const pos = (axis: Axis) => (axis === 'x' ? x : y)
   const takes = (container: EmailBlock) => takesFromLibrary(container, block)
 
-  // A right-to-left section or group draws its first child on the right. The boxes tell when there are two
-  // children or more; the direction attribute otherwise.
+  // Columns and groups sit side by side in a section or a group, and icons in a social block unless it is vertical;
+  // everything else stacks
+  const axisOf = (container: EmailBlock): Axis => {
+    if (container.type === 'mj-section' || container.type === 'mj-group') return 'x'
+    if (container.type === 'mj-social')
+      return attributeOf(tree, container, 'mode') === 'vertical' ? 'y' : 'x'
+    return 'y'
+  }
+
+  const rtl = (node: EmailBlock) => attributeOf(tree, node, 'direction') === 'rtl'
+
+  // A right-to-left section draws its first child on the right. A group's row follows its section's direction,
+  // and the group's own right-to-left turns it once more. The boxes tell when there are two children or more; the
+  // directions otherwise.
   const reversed = (container: EmailBlock) => {
     if (axisOf(container) !== 'x') return false
     const boxes = childrenOf(container)
       .map((child) => rectOf(child.id))
       .filter((r): r is Box => !!r)
     if (boxes.length > 1) return boxes[0].left > boxes[boxes.length - 1].left
-    return (
-      (container.type === 'mj-section' || container.type === 'mj-group') &&
-      attributeOf(tree, container, 'direction') === 'rtl'
-    )
+    if (container.type === 'mj-section') return rtl(container)
+    if (container.type === 'mj-group') {
+      const section = (pathTo(tree, container.id) ?? [])
+        .reverse()
+        .find((node) => node.type === 'mj-section')
+      return rtl(container) !== (section ? rtl(section) : false)
+    }
+    return false
   }
   // Whether the pointer is on the side of box r that comes first in the container's order
   const beforeHalf = (r: Box, container: EmailBlock) => {
