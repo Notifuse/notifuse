@@ -38,6 +38,10 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Test emails sent to an address typed with capital letters are now recorded under the contact's address, so they show in the contact's history and are erased with the contact.
 
+- **Fix**: In email templates, attribute values that contain a double quote or an angle bracket, such as `alt="27&quot; monitor"` on an image, now render correctly.
+
+- **Improvement**: Groups in email templates now render as in MJML: a group without a width takes its share of the section, a group with a percentage width keeps it, and in Outlook a group sits side by side with the columns and groups of its section. A group saved with a width of 100% next to another column or group now makes a row wider than the email in Outlook: clear the group's Width so it takes its share.
+
 ## [43.0] - 2026-11-07
 
 - **Feature**: Contacts can now agree to or refuse open tracking and click tracking, each on its own. Their choice is stored on the contact (`tracking_opens_consent`, `tracking_clicks_consent`, with the date and source of the change), set through the API, the console, CSV import and the notification center, exported, filterable in the contact list and in segments, usable as an automation trigger field, and sent in contact webhooks. A contact who refused gets no open pixel or no tracked links, and a later refusal also stops recording opens and clicks of emails already sent.
