@@ -858,18 +858,16 @@ func camelToKebab(str string) string {
 // All ampersands must be escaped as &amp; per XML specification
 // The MJML compiler will handle converting them back to & in the final HTML
 func escapeAttributeValue(value string, attributeName string) string {
-	// The MJML renderer (gomjml) decodes the named XML entities &lt; &gt; &quot; &apos;
-	// back to raw characters in a pre-pass *before* its XML parse, and then writes
-	// attribute values to the final HTML without re-escaping them. A value escaped the
-	// ordinary XML way (" -> &quot;) therefore reaches the attribute as a raw " < or >,
-	// which closes the attribute and fails the compile, or emits broken HTML. Escaping
-	// the ampersand of each entity a second time (&amp;quot;) survives that pre-pass:
-	// gomjml preserves &amp;, the XML parser turns &amp; back into &, and the literal
-	// entity &quot; is what lands in the HTML, which the browser decodes to ". The
-	// apostrophe uses the numeric &#39;, which gomjml does not pre-decode, and a raw '
-	// inside a double-quoted attribute needs no further escaping. See the gomjml
-	// write-up (double-decoding + unescaped attribute output); drop the doubling once a
-	// renderer release escapes attribute output.
+	// gomjml (v0.14.1) escapes " < and > when it writes an HTML attribute, but writes
+	// inline style values as they are, and many MJML attributes end up in a style
+	// (font-family, background-url...). A value escaped the ordinary XML way
+	// (" -> &quot;) is decoded to a raw " by the XML parser, and that " would close
+	// the style attribute of the output. Escaping the ampersand of each entity a
+	// second time (&amp;quot;) makes the XML parser give back the literal entity
+	// &quot;, which gomjml leaves as is (it does not escape &) and the browser decodes
+	// to ". The apostrophe uses the numeric &#39;, and a raw ' inside a double-quoted
+	// attribute needs no further escaping. Keep the doubling while gomjml leaves
+	// style values unescaped.
 	value = strings.ReplaceAll(value, "&", "&amp;")
 	value = strings.ReplaceAll(value, "\"", "&amp;quot;")
 	value = strings.ReplaceAll(value, "'", "&#39;")
