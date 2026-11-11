@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/mail"
+	"strings"
 	"testing"
 	"time"
 
@@ -926,4 +928,291 @@ func TestTemplateTranslationSubjectPreview(t *testing.T) {
 	// The crux of the fix: the FR translation's own preview text must render, not the default EN one.
 	assert.Contains(t, msg.HTML, frPreview, "Preview text should be the FR translation's own value")
 	assert.NotContains(t, msg.HTML, enPreview, "Preview text should NOT be the default EN value")
+}
+
+// mailpitReplyTo returns the Reply-To header of a message Mailpit received.
+func mailpitReplyTo(t *testing.T, msg *testutil.MailpitMessage) string {
+	t.Helper()
+	raw, err := testutil.GetMailpitMessageRaw(t, msg.ID)
+	require.NoError(t, err)
+	parsed, err := mail.ReadMessage(strings.NewReader(raw))
+	require.NoError(t, err)
+	return parsed.Header.Get("Reply-To")
+}
+
+// TestTemplateTranslationSenderAndReplyTo checks that a translation saved the way the console
+// saves it, with no sender and no reply-to of its own, sends from the sender picked on the
+// template and with the template's reply-to, on the transactional, broadcast and automation send
+// paths, and that a transactional send's own reply-to still wins over the template's.
+func TestTemplateTranslationSenderAndReplyTo(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer suite.Cleanup()
+
+	ctx := context.Background()
+	require.NoError(t, suite.ServerManager.StartBackgroundWorkers(ctx))
+
+	client := suite.APIClient
+	factory := suite.DataFactory
+
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace(
+		testutil.WithWorkspaceDefaultLanguage("en", []string{"en", "fr"}),
+	)
+	require.NoError(t, err)
+	require.NoError(t, factory.AddUserToWorkspace(user.ID, workspace.ID, "owner"))
+
+	// The integration's default sender stays the factory's; the templates below pick a second,
+	// non-default one, so a send that falls back to the default is told apart.
+	newsletterSender := domain.NewEmailSender("newsletter@notifuse.test", "Newsletter")
+	newsletterSender.IsDefault = false
+	_, err = factory.SetupWorkspaceWithSMTPProvider(workspace.ID,
+		testutil.IntegrationOption(func(integration *domain.Integration) {
+			integration.EmailProvider.Senders = append(integration.EmailProvider.Senders, newsletterSender)
+		}),
+	)
+	require.NoError(t, err)
+
+	require.NoError(t, client.Login(user.Email, "password"))
+	client.SetWorkspaceID(workspace.ID)
+
+	const templateReplyTo = "support@notifuse.test"
+
+	// createTemplate stores a template on the newsletter sender with a reply-to, and a French
+	// translation saved as the console saves it: no sender, no reply-to.
+	createTemplate := func(t *testing.T, name, uid string) (*domain.Template, string) {
+		t.Helper()
+		frSubject := fmt.Sprintf("Bonjour FR - %s", uid)
+		template, err := factory.CreateTemplate(workspace.ID,
+			testutil.WithTemplateName(name),
+			testutil.TemplateOption(func(tmpl *domain.Template) {
+				tmpl.Email = makeEmailTemplate(fmt.Sprintf("Hello EN - %s", uid), "Hello in English")
+				tmpl.Email.SenderID = newsletterSender.ID
+				tmpl.Email.ReplyTo = templateReplyTo
+			}),
+			testutil.WithTemplateTranslations(map[string]domain.TemplateTranslation{
+				"fr": {Email: makeEmailTemplate(frSubject, "Bonjour en Francais")},
+			}),
+		)
+		require.NoError(t, err)
+		require.Empty(t, template.Translations["fr"].Email.SenderID)
+		require.Empty(t, template.Translations["fr"].Email.ReplyTo)
+		return template, frSubject
+	}
+
+	assertTemplateSenderAndReplyTo := func(t *testing.T, msg *testutil.MailpitMessage, frSubject string) {
+		t.Helper()
+		assert.Contains(t, msg.Subject, frSubject, "the French translation is sent")
+		assert.Equal(t, "newsletter@notifuse.test", msg.From.Address, "From is the template's sender")
+		assert.Equal(t, "Newsletter", msg.From.Name)
+		assert.Contains(t, mailpitReplyTo(t, msg), templateReplyTo, "Reply-To is the template's")
+	}
+
+	t.Run("Transactional", func(t *testing.T) {
+		require.NoError(t, testutil.ClearMailpitMessages(t))
+		uid := uuid.New().String()[:8]
+		template, frSubject := createTemplate(t, "Sender Translation - Transactional", uid)
+
+		notification, err := factory.CreateTransactionalNotification(workspace.ID,
+			testutil.WithTransactionalNotificationID(fmt.Sprintf("trans-sender-%s", uid)),
+			testutil.WithTransactionalNotificationChannels(domain.ChannelTemplates{
+				domain.TransactionalChannelEmail: domain.ChannelTemplate{
+					TemplateID: template.ID,
+					Settings:   map[string]interface{}{},
+				},
+			}),
+		)
+		require.NoError(t, err)
+
+		send := func(t *testing.T, contactEmail string, emailOptions map[string]interface{}) *testutil.MailpitMessage {
+			t.Helper()
+			_, err := factory.CreateContact(workspace.ID,
+				testutil.WithContactEmail(contactEmail),
+				testutil.WithContactLanguage("fr"),
+			)
+			require.NoError(t, err)
+
+			params := map[string]interface{}{
+				"id":       notification.ID,
+				"contact":  map[string]interface{}{"email": contactEmail},
+				"channels": []string{"email"},
+			}
+			if emailOptions != nil {
+				params["email_options"] = emailOptions
+			}
+			resp, err := client.SendTransactionalNotification(params)
+			require.NoError(t, err)
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			require.Equal(t, http.StatusOK, resp.StatusCode, string(body))
+
+			msg, err := testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 15*time.Second)
+			require.NoError(t, err)
+			return msg
+		}
+
+		t.Run("translated contact gets the template's sender and reply-to", func(t *testing.T) {
+			msg := send(t, fmt.Sprintf("trans-sender-fr-%s@example.com", uid), nil)
+			assertTemplateSenderAndReplyTo(t, msg, frSubject)
+		})
+
+		t.Run("the send's own reply-to wins over the template's", func(t *testing.T) {
+			msg := send(t, fmt.Sprintf("trans-replyto-fr-%s@example.com", uid),
+				map[string]interface{}{"reply_to": "agent@notifuse.test"})
+			assert.Equal(t, "newsletter@notifuse.test", msg.From.Address)
+			replyTo := mailpitReplyTo(t, msg)
+			assert.Contains(t, replyTo, "agent@notifuse.test")
+			assert.NotContains(t, replyTo, templateReplyTo)
+		})
+	})
+
+	t.Run("Broadcast", func(t *testing.T) {
+		require.NoError(t, testutil.ClearMailpitMessages(t))
+		uid := uuid.New().String()[:8]
+		template, frSubject := createTemplate(t, "Sender Translation - Broadcast", uid)
+
+		list, err := factory.CreateList(workspace.ID,
+			testutil.WithListName(fmt.Sprintf("Sender Translation List %s", uid)))
+		require.NoError(t, err)
+
+		contactEmail := fmt.Sprintf("bc-sender-fr-%s@example.com", uid)
+		_, err = factory.CreateContact(workspace.ID,
+			testutil.WithContactEmail(contactEmail),
+			testutil.WithContactLanguage("fr"),
+		)
+		require.NoError(t, err)
+		_, err = factory.CreateContactList(workspace.ID,
+			testutil.WithContactListEmail(contactEmail),
+			testutil.WithContactListListID(list.ID),
+			testutil.WithContactListStatus(domain.ContactListStatusActive),
+		)
+		require.NoError(t, err)
+
+		broadcast, err := factory.CreateBroadcast(workspace.ID,
+			testutil.WithBroadcastName(fmt.Sprintf("Sender Translation Broadcast %s", uid)),
+			testutil.WithBroadcastAudience(domain.AudienceSettings{
+				List:                list.ID,
+				ExcludeUnsubscribed: true,
+			}),
+		)
+		require.NoError(t, err)
+
+		broadcast.TestSettings.Variations[0].TemplateID = template.ID
+		updateResp, err := client.UpdateBroadcast(map[string]interface{}{
+			"workspace_id":  workspace.ID,
+			"id":            broadcast.ID,
+			"name":          broadcast.Name,
+			"audience":      broadcast.Audience,
+			"schedule":      broadcast.Schedule,
+			"test_settings": broadcast.TestSettings,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, updateResp.StatusCode)
+		updateResp.Body.Close()
+
+		scheduleResp, err := client.ScheduleBroadcast(map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"id":           broadcast.ID,
+			"send_now":     true,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, scheduleResp.StatusCode)
+		scheduleResp.Body.Close()
+
+		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
+			[]string{"processed", "completed"}, 60*time.Second)
+		require.NoError(t, err)
+
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 15*time.Second)
+		require.NoError(t, err)
+		assertTemplateSenderAndReplyTo(t, msg, frSubject)
+	})
+
+	t.Run("Automation", func(t *testing.T) {
+		require.NoError(t, testutil.ClearMailpitMessages(t))
+		uid := uuid.New().String()[:8]
+		template, frSubject := createTemplate(t, "Sender Translation - Automation", uid)
+
+		list, err := factory.CreateList(workspace.ID,
+			testutil.WithListName(fmt.Sprintf("Sender Translation Auto List %s", uid)))
+		require.NoError(t, err)
+
+		automationID := shortuuid.New()
+		triggerNodeID := shortuuid.New()
+		emailNodeID := shortuuid.New()
+
+		resp, err := client.CreateAutomation(map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"automation": map[string]interface{}{
+				"id":           automationID,
+				"workspace_id": workspace.ID,
+				"name":         fmt.Sprintf("Sender Translation Auto %s", uid),
+				"status":       "draft",
+				"list_id":      list.ID,
+				"trigger": map[string]interface{}{
+					"event_kind": "list.subscribed",
+					"list_id":    list.ID,
+					"frequency":  "once",
+				},
+				"root_node_id": triggerNodeID,
+				"nodes": []map[string]interface{}{
+					{
+						"id":            triggerNodeID,
+						"automation_id": automationID,
+						"type":          "trigger",
+						"config":        map[string]interface{}{},
+						"next_node_id":  emailNodeID,
+						"position":      map[string]interface{}{"x": 0, "y": 0},
+					},
+					{
+						"id":            emailNodeID,
+						"automation_id": automationID,
+						"type":          "email",
+						"config":        map[string]interface{}{"template_id": template.ID},
+						"position":      map[string]interface{}{"x": 0, "y": 100},
+					},
+				},
+				"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
+			},
+		})
+		require.NoError(t, err)
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		require.Equal(t, http.StatusCreated, resp.StatusCode, string(body))
+
+		activateResp, err := client.ActivateAutomation(map[string]interface{}{
+			"workspace_id":  workspace.ID,
+			"automation_id": automationID,
+		})
+		require.NoError(t, err)
+		body, _ = io.ReadAll(activateResp.Body)
+		activateResp.Body.Close()
+		require.Equal(t, http.StatusOK, activateResp.StatusCode, string(body))
+
+		contactEmail := fmt.Sprintf("auto-sender-fr-%s@example.com", uid)
+		_, err = factory.CreateContact(workspace.ID,
+			testutil.WithContactEmail(contactEmail),
+			testutil.WithContactLanguage("fr"),
+		)
+		require.NoError(t, err)
+		_, err = factory.CreateContactList(workspace.ID,
+			testutil.WithContactListEmail(contactEmail),
+			testutil.WithContactListListID(list.ID),
+			testutil.WithContactListStatus(domain.ContactListStatusActive),
+		)
+		require.NoError(t, err)
+
+		require.NotNil(t, waitForEnrollmentViaAPI(t, client, automationID, contactEmail, 5*time.Second))
+		require.NotNil(t, waitForAutomationComplete(t, factory, workspace.ID, automationID, contactEmail, 15*time.Second))
+
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 15*time.Second)
+		require.NoError(t, err)
+		assertTemplateSenderAndReplyTo(t, msg, frSubject)
+	})
 }

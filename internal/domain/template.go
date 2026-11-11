@@ -218,6 +218,12 @@ type Template struct {
 
 // ResolveEmailContent returns the EmailTemplate for the given contact language.
 // Falls back to the default template content if no translation exists.
+//
+// A translation carries its own subject, preview and content, but the console saves it with no
+// sender and no reply-to: those are set once, on the template. A translation that leaves either
+// empty therefore takes the default content's, so a translated email leaves from the sender picked
+// on the template rather than the integration's default one. The translation is returned as a
+// copy, never filled in place, as the template may be held and saved again by the caller.
 func (t *Template) ResolveEmailContent(contactLanguage string, workspaceDefaultLanguage string) *EmailTemplate {
 	if t.Email == nil || t.Translations == nil || contactLanguage == "" {
 		return t.Email
@@ -226,7 +232,14 @@ func (t *Template) ResolveEmailContent(contactLanguage string, workspaceDefaultL
 		return t.Email
 	}
 	if translation, ok := t.Translations[contactLanguage]; ok && translation.Email != nil {
-		return translation.Email
+		resolved := *translation.Email
+		if resolved.SenderID == "" {
+			resolved.SenderID = t.Email.SenderID
+		}
+		if resolved.ReplyTo == "" {
+			resolved.ReplyTo = t.Email.ReplyTo
+		}
+		return &resolved
 	}
 	return t.Email
 }

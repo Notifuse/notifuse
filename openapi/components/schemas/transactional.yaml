@@ -101,7 +101,7 @@ TransactionalNotificationSendParams:
         reply_to:
           type: string
           format: email
-          description: Reply-To email address
+          description: Reply-To email address. Takes the place of the template's reply-to for this message.
           example: support@example.com
         attachments:
           type: array
