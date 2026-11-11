@@ -8,6 +8,7 @@ import 'overlayscrollbars/overlayscrollbars.css'
 import { TreePanel } from './panels/TreePanel'
 import { EditPanel, type CanvasHandle } from './panels/EditPanel'
 import { LibraryPanel } from './panels/LibraryPanel'
+import { LibraryDnd } from './dnd/LibraryDnd'
 import { SaveBlockModal } from './ui/SaveBlockModal'
 import type { LibraryItem } from './utils/library'
 import { isRefusal, resolveInsertTarget, type InsertPlace } from './utils/insertTarget'
@@ -822,6 +823,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   const [highlightedSavedId, setHighlightedSavedId] = useState<string | null>(null)
   const [saveDialogBlockId, setSaveDialogBlockId] = useState<string | null>(null)
   const canvasRef = useRef<CanvasHandle | null>(null)
+  const [libraryDragging, setLibraryDragging] = useState(false)
 
   const changeLeftTab = (tab: LeftTab) => {
     setLeftTab(tab)
@@ -906,7 +908,11 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   const canRedo = state.historyIndex < state.history.length - 1
 
   return (
-    <div className="flex flex-col w-screen bg-gray-50" style={{ height: height || '100vh' }}>
+    <div
+      className="flex flex-col w-screen bg-gray-50"
+      style={{ height: height || '100vh' }}
+      data-library-dragging={libraryDragging ? 'true' : undefined}
+    >
       {/* Top Toolbar */}
       <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
         {/* Left section - Undo/Redo buttons */}
@@ -980,7 +986,12 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       )}
       {/* Three Column Layout */}
       {effectiveViewMode === 'edit' && (
-        <>
+        <LibraryDnd
+          tree={tree}
+          canvasRef={canvasRef}
+          onDrop={insertLibraryItem}
+          onDraggingChange={setLibraryDragging}
+        >
           <div className="flex flex-1 min-h-0">
             {/* Left Panel - Tree Component (only show in edit mode) */}
             <div
@@ -1111,7 +1122,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               </OverlayScrollbarsComponent>
             </div>
           </div>
-        </>
+        </LibraryDnd>
       )}
       <SaveBlockModal
         block={saveDialogBlock}

@@ -145,3 +145,8 @@
   line-height: 16px;
   pointer-events: none;
 }
+
+/* While a block is dragged from the library, a frame on the canvas (raw HTML) must not take the pointer from the page */
+[data-library-dragging] iframe {
+    pointer-events: none !important;
+}
