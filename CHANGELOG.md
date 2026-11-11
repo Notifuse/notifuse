@@ -44,7 +44,11 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: As in Shopify Liquid 5.11, `{% snippet %}` and `{% render variable %}` are no longer supported: a template or blog theme using them shows a Liquid error. Use `{% render 'name' %}`.
 
-- **Fix**: In the email editor, saving a block now always starts as a new saved block, and "Update existing block" only lists saved blocks of the same type. Before, the dialog could open on updating another saved block that merely looked alike. The confirmation now appears once the block is saved, and the dialog stays open if saving fails.
+- **Feature**: The visual email editor has a Library tab beside Structure, with previews of your saved blocks that you can search and filter, and the basic blocks. A block's Insert button adds it at the selected block, where it fits, and the confirmation offers to undo it; you can also drag a saved or basic block onto the email, where a line shows where it lands and a label says why a place does not take it. Saving a block to the library suggests a name from its content, says that templates already using a saved block do not change when it is replaced, and opens the library on the new block.
+
+- **Fix**: In the email editor, saving a block now always starts as a new saved block, and "Replace an existing block" only lists saved blocks of the same type. Before, the dialog could open on updating another saved block that merely looked alike. The confirmation now appears once the block is saved, and the dialog stays open if saving fails.
+
+- **Fix**: In the email editor, the canvas now fits the space left for it. It was taller, which made the bottom of a long email hard to reach.
 
 - **Fix**: In the email editor's structure tree, a block dragged down now lands where the line shows, and the line only appears where the block can go.
 

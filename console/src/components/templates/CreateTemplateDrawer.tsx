@@ -567,13 +567,15 @@ export function CreateTemplateDrawer({
 
   const handleSaveBlock: SaveBlockHandler = async (block, operation, nameOrId) => {
     let existingBlock: TemplateBlock | undefined
+    let savedId = nameOrId
     try {
       if (operation === 'create') {
-        await templateBlocksApi.create({
+        const response = await templateBlocksApi.create({
           workspace_id: workspace.id,
           name: nameOrId,
           block: block
         })
+        savedId = response.block.id
       } else {
         existingBlock = workspace.settings.template_blocks?.find((b) => b.id === nameOrId)
         if (!existingBlock) {
@@ -609,6 +611,7 @@ export function CreateTemplateDrawer({
       console.error('Failed to refresh the workspace after saving a template block:', error)
       message.warning(t`Block saved. Reload the page to see it in your saved blocks.`)
     }
+    return savedId
   }
 
   const goNext = () => {

@@ -52,7 +52,10 @@ const savedBlocks = [
   }
 ]
 
-const workspace = { ...mockWorkspace, settings: { ...mockWorkspace.settings, template_blocks: savedBlocks } }
+const workspace = {
+  ...mockWorkspace,
+  settings: { ...mockWorkspace.settings, template_blocks: savedBlocks }
+}
 
 // The shared mocks answer unknown endpoints with an empty success and capture no template block request, so the
 // spec answers and records those itself
@@ -63,11 +66,21 @@ const recordBlockSaves = async (page: Page, createStatus = 200) => {
     await route.fulfill({
       status,
       contentType: 'application/json',
-      body: JSON.stringify(status === 200 ? { block: {} } : { error: 'Saving failed on the server' })
+      body: JSON.stringify(
+        status === 200
+          ? { block: { id: `${endpoint}d-id` } }
+          : { error: 'Saving failed on the server' }
+      )
     })
   }
-  await page.route('https://localapi.notifuse.com:4000/api/templateBlocks.create*', answer('create', createStatus))
-  await page.route('https://localapi.notifuse.com:4000/api/templateBlocks.update*', answer('update', 200))
+  await page.route(
+    'https://localapi.notifuse.com:4000/api/templateBlocks.create*',
+    answer('create', createStatus)
+  )
+  await page.route(
+    'https://localapi.notifuse.com:4000/api/templateBlocks.update*',
+    answer('update', 200)
+  )
   return calls
 }
 
@@ -75,19 +88,27 @@ const openSaveDialog = async (page: Page) => {
   await mockApi(page, 'user.me', { ...mockUserMeResponse, workspaces: [workspace] })
   await mockApi(page, 'workspace.get', { workspace })
   const drawer = await openTemplateEditor(page, template)
-  await drawer.locator('.ant-tree-title', { hasText: /^Section$/ }).first().click()
+  await drawer
+    .locator('.ant-tree-title', { hasText: /^Section$/ })
+    .first()
+    .click()
   await drawer.locator('button:has(svg[data-icon="floppy-disk"])').click()
-  const dialog = page.getByRole('dialog', { name: 'Save Block' })
+  const dialog = page.getByRole('dialog', { name: 'Save to library' })
   await expect(dialog).toBeVisible()
-  return dialog
+  return { dialog, drawer }
 }
 
 test.describe('Saving a block from the email editor', () => {
   test('saves a look-alike section as a new block', async ({ authenticatedPage: page }) => {
     const calls = await recordBlockSaves(page)
-    const dialog = await openSaveDialog(page)
+    const { dialog } = await openSaveDialog(page)
 
-    await expect(dialog.getByRole('radio', { name: 'Save as new block' })).toBeChecked()
+    await expect(dialog.getByRole('radio', { name: 'New block' })).toBeChecked()
+    await expect(dialog.getByTestId('save-block-type')).toHaveText('Section')
+    // A name is suggested from the block's text
+    await expect(dialog.getByPlaceholder('Enter a name for this block')).toHaveValue(
+      'Section · Our products'
+    )
     await dialog.getByPlaceholder('Enter a name for this block').fill('Products')
     await dialog.getByRole('button', { name: 'Save' }).click()
 
@@ -102,20 +123,62 @@ test.describe('Saving a block from the email editor', () => {
     await expect(page.locator('.ant-message-notice-success')).toHaveCount(1)
   })
 
-  test('offers only saved sections when updating a section', async ({ authenticatedPage: page }) => {
-    await recordBlockSaves(page)
-    const dialog = await openSaveDialog(page)
+  test('offers only saved sections when replacing a section', async ({
+    authenticatedPage: page
+  }) => {
+    const calls = await recordBlockSaves(page)
+    const { dialog } = await openSaveDialog(page)
 
-    await dialog.getByRole('radio', { name: 'Update existing block' }).click()
+    await dialog.getByRole('radio', { name: 'Replace an existing block (1)' }).click()
     await dialog.getByRole('combobox').click()
 
     const options = page.locator('.ant-select-item-option-content')
-    await expect(options).toHaveText(['Header (mj-section)'])
+    await expect(options).toHaveText(['Header'])
+    await options.first().click()
+    await dialog.getByRole('button', { name: 'Replace' }).click()
+    await expect(dialog).toBeHidden()
+    expect(calls).toMatchObject([{ endpoint: 'update', body: { id: 'header-id', name: 'Header' } }])
+  })
+
+  test('shows a new block in the library, highlighted', async ({ authenticatedPage: page }) => {
+    await recordBlockSaves(page)
+    const { dialog, drawer } = await openSaveDialog(page)
+    // After the save, the workspace is read again with the new block
+    const refreshed = {
+      ...workspace,
+      settings: {
+        ...workspace.settings,
+        template_blocks: [
+          ...savedBlocks,
+          {
+            id: 'created-id',
+            name: 'Products',
+            block: section,
+            created: '2026-11-01T00:00:00Z',
+            updated: '2026-11-01T00:00:00Z'
+          }
+        ]
+      }
+    }
+    await mockApi(page, 'user.me', { ...mockUserMeResponse, workspaces: [refreshed] })
+    await mockApi(page, 'workspace.get', { workspace: refreshed })
+
+    await dialog.getByPlaceholder('Enter a name for this block').fill('Products')
+    await dialog.getByRole('button', { name: 'Save' }).click()
+    await expect(dialog).toBeHidden()
+
+    await expect(drawer.getByTestId('library-panel')).toBeVisible()
+    const card = drawer.locator('[data-library-card="created-id"]')
+    await expect(card).toBeVisible()
+    await expect(card.getByText('New', { exact: true })).toBeVisible()
+    await expect(
+      drawer.locator('[data-library-card="header-id"]').getByText('New', { exact: true })
+    ).toHaveCount(0)
   })
 
   test('keeps the dialog open when saving fails', async ({ authenticatedPage: page }) => {
     const calls = await recordBlockSaves(page, 500)
-    const dialog = await openSaveDialog(page)
+    const { dialog } = await openSaveDialog(page)
 
     await dialog.getByPlaceholder('Enter a name for this block').fill('Products')
     await dialog.getByRole('button', { name: 'Save' }).click()

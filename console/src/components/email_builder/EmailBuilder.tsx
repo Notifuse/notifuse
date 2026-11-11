@@ -1,12 +1,17 @@
-import React, { useMemo, useState, useEffect } from 'react'
-import { Button, Space, Segmented, Spin, message } from 'antd'
+import React, { useMemo, useState, useEffect, useRef } from 'react'
+import { App, Button, Space, Segmented, Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faRedoAlt, faUndoAlt } from '@fortawesome/free-solid-svg-icons'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import 'overlayscrollbars/overlayscrollbars.css'
 import { TreePanel } from './panels/TreePanel'
-import { EditPanel } from './panels/EditPanel'
+import { EditPanel, type CanvasHandle } from './panels/EditPanel'
+import { LibraryPanel } from './panels/LibraryPanel'
+import { LibraryDnd } from './dnd/LibraryDnd'
+import { SaveBlockModal } from './ui/SaveBlockModal'
+import type { LibraryItem } from './utils/library'
+import { isRefusal, resolveInsertTarget, type InsertPlace } from './utils/insertTarget'
 import { SettingsPanel } from './panels/SettingsPanel'
 import { Preview, type PreviewRef } from './panels/Preview'
 import { TextVersionPanel } from './panels/TextVersionPanel'
@@ -23,6 +28,14 @@ import { rebalanceAfterAdd, rebalanceAfterRemove } from './utils/columnWidths'
 import { countHiddenBlocks, liquidPlacementError } from './displayCondition'
 
 type ViewMode = 'edit' | 'preview' | 'text'
+
+type LeftTab = 'structure' | 'library'
+
+interface AddBlockOptions {
+  // From the library: the block goes exactly where it was put. A first wrapper does not take the body's sections, and
+  // a section gets its default column in a wrapper as in the body.
+  fromLibrary?: boolean
+}
 
 interface CompilationResults {
   errors?: Array<Record<string, unknown>>
@@ -86,6 +99,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   height
 }) => {
   const { t } = useLingui()
+  const { message } = App.useApp()
   // State for current selection, UI, and history
   const [state, setState] = useState<
     EmailBuilderState & { history: EmailBlock[]; historyIndex: number }
@@ -144,7 +158,8 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   }, [tree, effectiveSelectedBlockId])
 
   // Handlers
-  const handleSelectBlock = (blockId: string | null) => {
+  // inTree: the tree the block is in, when it was just added and the render has not caught up
+  const handleSelectBlock = (blockId: string | null, inTree: EmailBlock = tree) => {
     // Update external state if provided
     if (externalOnSelectBlock) {
       externalOnSelectBlock(blockId)
@@ -154,7 +169,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
 
     // Auto-expand tree to show selected block
     if (blockId) {
-      const ancestorIds = EmailBlockClass.getAncestorIds(tree, blockId)
+      const ancestorIds = EmailBlockClass.getAncestorIds(inTree, blockId)
       setExpandedKeys((prev) => {
         const newKeys = new Set(prev)
         ancestorIds.forEach((id) => newKeys.add(id))
@@ -290,10 +305,14 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     }
   }, [externalSelectedBlockId, tree])
 
+  // The history index of the last change, for the undo of an insertion from the library
+  const lastHistoryIndex = useRef(0)
+
   const updateTreeWithHistory = (updatedTree: EmailBlock) => {
     // Add to history for undo/redo support
     const newHistory = state.history.slice(0, state.historyIndex + 1)
     newHistory.push(updatedTree)
+    lastHistoryIndex.current = newHistory.length - 1
 
     setState((prev) => ({
       ...prev,
@@ -354,15 +373,21 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     return true
   }
 
-  const handleAddBlock = (parentId: string, blockType: string, position?: number) => {
-    if (refuseLiquidPlacement(parentId, { type: blockType as MJMLComponentType })) return
+  // Returns the new block's id, or null when it was refused or could not be added
+  const handleAddBlock = (
+    parentId: string,
+    blockType: string,
+    position?: number,
+    options: AddBlockOptions = {}
+  ): string | null => {
+    if (refuseLiquidPlacement(parentId, { type: blockType as MJMLComponentType })) return null
 
     // Check if trying to add mj-breakpoint when one already exists
     if (blockType === 'mj-breakpoint') {
       const existingBreakpoint = EmailBlockClass.findBlockByType(tree, 'mj-breakpoint')
       if (existingBreakpoint) {
         console.warn('Only one mj-breakpoint block is allowed per email template')
-        return
+        return null
       }
     }
 
@@ -375,7 +400,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     )
 
     // Special handling for adding the first wrapper to a body with existing sections
-    if (blockType === 'mj-wrapper') {
+    if (blockType === 'mj-wrapper' && !options.fromLibrary) {
       const parentBody = EmailBlockClass.findBlockById(tree, parentId)
       if (parentBody && parentBody.type === 'mj-body' && parentBody.children) {
         // Check if this is the first wrapper being added
@@ -418,13 +443,12 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
 
           if (newTreeWithWrapper) {
             updateTreeWithHistory(newTreeWithWrapper)
-            setState((prev) => ({ ...prev, selectedBlockId: newBlock.id }))
+            handleSelectBlock(newBlock.id, newTreeWithWrapper)
 
             // Auto-expand the new wrapper
             expandBlock(newBlock.id)
 
-            // console.log('Wrapper with wrapped sections added successfully:', newBlock.id)
-            return
+            return newBlock.id
           }
         }
       }
@@ -498,10 +522,14 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         if (parentContainer) rebalanceAfterAdd(parentContainer, newBlock.id, EmailBlockClass.extractAttributeDefaults(updatedTree))
       }
 
-      // If we're adding a section to the body, add a default column with text
+      // If we're adding a section to the body (or, from the library, to a wrapper), add a default column with text
       if (blockType === 'mj-section') {
         const parentBody = EmailBlockClass.findBlockById(updatedTree, parentId)
-        if (parentBody && parentBody.type === 'mj-body' && parentBody.children) {
+        if (
+          parentBody &&
+          (parentBody.type === 'mj-body' || (options.fromLibrary && parentBody.type === 'mj-wrapper')) &&
+          parentBody.children
+        ) {
           const sections = parentBody.children.filter((child) => child.type === 'mj-section')
           const newSection = EmailBlockClass.findBlockById(updatedTree, newBlock.id)
 
@@ -548,7 +576,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       }
 
       updateTreeWithHistory(updatedTree)
-      setState((prev) => ({ ...prev, selectedBlockId: newBlock.id }))
+      handleSelectBlock(newBlock.id, updatedTree)
 
       // Auto-expand the new block if it can have children
       const newBlockClass = EmailBlockClass.from(newBlock)
@@ -556,10 +584,10 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         expandBlock(newBlock.id)
       }
 
-      // console.log('Block added successfully:', newBlock.id, blockType)
-    } else {
-      console.error('Failed to add block:', blockType)
+      return newBlock.id
     }
+    console.error('Failed to add block:', blockType)
+    return null
   }
 
   const handleDeleteBlock = (blockId: string) => {
@@ -745,11 +773,16 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     }
   }
 
-  const handleAddSavedBlock = (parentId: string, savedBlock: EmailBlock, position?: number) => {
+  // Returns the new block's id, or null when it was refused or could not be added
+  const handleAddSavedBlock = (
+    parentId: string,
+    savedBlock: EmailBlock,
+    position?: number
+  ): string | null => {
     // Create a deep copy of the saved block and regenerate IDs
     const blockCopy = JSON.parse(JSON.stringify(savedBlock)) as EmailBlock
     const blockWithNewIds = EmailBlockClass.regenerateIds(blockCopy)
-    if (refuseLiquidPlacement(parentId, blockWithNewIds)) return
+    if (refuseLiquidPlacement(parentId, blockWithNewIds)) return null
 
     // Insert the block into the tree
     const updatedTree = EmailBlockClass.insertBlockIntoTree(
@@ -767,7 +800,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       }
 
       updateTreeWithHistory(updatedTree)
-      setState((prev) => ({ ...prev, selectedBlockId: blockWithNewIds.id }))
+      handleSelectBlock(blockWithNewIds.id, updatedTree)
 
       // Auto-expand the new saved block if it can have children
       const newBlockClass = EmailBlockClass.from(blockWithNewIds)
@@ -789,17 +822,108 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         expandNestedChildren(blockWithNewIds)
       }
 
-      // console.log('Saved block added successfully:', blockWithNewIds.id)
-    } else {
-      console.error('Failed to add saved block')
+      return blockWithNewIds.id
     }
+    console.error('Failed to add saved block')
+    return null
+  }
+
+  // The library: its tab, the save dialog the editor owns, and insertions with their own undo
+  const [leftTab, setLeftTab] = useState<LeftTab>('structure')
+  const [libraryKey, setLibraryKey] = useState(0)
+  const [highlightedSavedId, setHighlightedSavedId] = useState<string | null>(null)
+  const [saveDialogBlockId, setSaveDialogBlockId] = useState<string | null>(null)
+  const canvasRef = useRef<CanvasHandle | null>(null)
+  const [libraryDragging, setLibraryDragging] = useState(false)
+
+  const changeLeftTab = (tab: LeftTab) => {
+    setLeftTab(tab)
+    setHighlightedSavedId(null)
+  }
+
+  const saveDialogBlock = saveDialogBlockId
+    ? EmailBlockClass.findBlockById(tree, saveDialogBlockId)
+    : null
+
+  // A new saved block shows in the library, tagged "New"; a replaced one only gets the success message
+  const handleBlockSaved = (savedId: string, operation: 'create' | 'update') => {
+    if (operation !== 'create') return
+    setLeftTab('library')
+    setLibraryKey((key) => key + 1)
+    setHighlightedSavedId(savedId)
+  }
+
+  // The latest render's undo and history index, for the "Undo" of a message shown by an earlier render
+  const latest = useRef({ historyIndex: state.historyIndex, undo: handleUndo, select: handleSelectBlock })
+  latest.current = { historyIndex: state.historyIndex, undo: handleUndo, select: handleSelectBlock }
+  const insertMessage = useRef<{ key: string; historyIndex: number } | null>(null)
+
+  const undoInsertion = (historyIndex: number, key: string) => {
+    message.destroy(key)
+    insertMessage.current = null
+    const { historyIndex: current, undo, select } = latest.current
+    // Only while the insertion is the last change
+    if (current !== historyIndex) return
+    undo()
+    select(null)
+  }
+
+  const announceInsertion = (name: string, historyIndex: number) => {
+    if (insertMessage.current) message.destroy(insertMessage.current.key)
+    const key = `library-insert-${historyIndex}`
+    insertMessage.current = { key, historyIndex }
+    message.success({
+      key,
+      duration: 6,
+      content: (
+        <span>
+          {t`Block "${name}" inserted`}
+          <Button
+            type="link"
+            size="small"
+            data-testid="library-insert-undo"
+            onClick={() => undoInsertion(historyIndex, key)}
+          >
+            {t`Undo`}
+          </Button>
+        </span>
+      )
+    })
+  }
+
+  // The message of an insertion closes with the next change of the history
+  useEffect(() => {
+    const shown = insertMessage.current
+    if (shown && shown.historyIndex !== state.historyIndex) {
+      message.destroy(shown.key)
+      insertMessage.current = null
+    }
+  }, [state.historyIndex, state.history, message])
+
+  const insertLibraryItem = (item: LibraryItem, place: InsertPlace): string | null => {
+    const id =
+      item.kind === 'saved'
+        ? handleAddSavedBlock(place.parentId, item.block, place.index)
+        : handleAddBlock(place.parentId, item.block.type, place.index, { fromLibrary: true })
+    if (id) announceInsertion(item.name, lastHistoryIndex.current)
+    return id
+  }
+
+  const handleLibraryInsert = (item: LibraryItem) => {
+    const target = resolveInsertTarget(tree, effectiveSelectedBlockId, item.block)
+    if (isRefusal(target)) return
+    insertLibraryItem(item, target)
   }
 
   const canUndo = state.historyIndex > 0
   const canRedo = state.historyIndex < state.history.length - 1
 
   return (
-    <div className="flex flex-col w-screen bg-gray-50" style={{ height: height || '100vh' }}>
+    <div
+      className="flex flex-col w-screen bg-gray-50"
+      style={{ height: height || '100vh' }}
+      data-library-dragging={libraryDragging ? 'true' : undefined}
+    >
       {/* Top Toolbar */}
       <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
         {/* Left section - Undo/Redo buttons */}
@@ -873,7 +997,12 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       )}
       {/* Three Column Layout */}
       {effectiveViewMode === 'edit' && (
-        <>
+        <LibraryDnd
+          tree={tree}
+          canvasRef={canvasRef}
+          onDrop={insertLibraryItem}
+          onDraggingChange={setLibraryDragging}
+        >
           <div className="flex flex-1 min-h-0">
             {/* Left Panel - Tree Component (only show in edit mode) */}
             <div
@@ -890,21 +1019,59 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                   }
                 }}
               >
-                <div className="pt-4 px-6 text-gray-900 text-sm font-bold">Content structure</div>
-                <TreePanel
-                  emailTree={tree}
-                  selectedBlockId={effectiveSelectedBlockId}
-                  onSelectBlock={handleSelectBlock}
-                  onAddBlock={handleAddBlock}
-                  onAddSavedBlock={handleAddSavedBlock}
-                  onDeleteBlock={handleDeleteBlock}
-                  onCloneBlock={handleCloneBlock}
-                  onMoveBlock={handleMoveBlock}
-                  savedBlocks={savedBlocks}
-                  expandedKeys={expandedKeys}
-                  onTreeExpand={handleTreeExpand}
-                  hiddenBlocks={hiddenBlocks}
-                />
+                <div className="sticky top-0 z-10 bg-gray-50 px-4 pt-4 pb-3">
+                  <Segmented
+                    block
+                    size="small"
+                    value={leftTab}
+                    onChange={(value) => changeLeftTab(value as LeftTab)}
+                    options={[
+                      { label: t`Structure`, value: 'structure' },
+                      {
+                        label: (
+                          <span data-testid="library-tab">
+                            {t`Library`}{' '}
+                            <span
+                              data-testid="library-count"
+                              className={`ml-0.5 inline-block min-w-[18px] rounded-full px-1 text-center text-[10px] leading-4 ${
+                                savedBlocks?.length ? 'bg-[#7763F1] text-white' : 'bg-gray-200 text-gray-500'
+                              }`}
+                            >
+                              {savedBlocks?.length ?? 0}
+                            </span>
+                          </span>
+                        ),
+                        value: 'library'
+                      }
+                    ]}
+                  />
+                </div>
+                {leftTab === 'structure' ? (
+                  <TreePanel
+                    emailTree={tree}
+                    selectedBlockId={effectiveSelectedBlockId}
+                    onSelectBlock={handleSelectBlock}
+                    onAddBlock={handleAddBlock}
+                    onAddSavedBlock={handleAddSavedBlock}
+                    onDeleteBlock={handleDeleteBlock}
+                    onCloneBlock={handleCloneBlock}
+                    onMoveBlock={handleMoveBlock}
+                    savedBlocks={savedBlocks}
+                    expandedKeys={expandedKeys}
+                    onTreeExpand={handleTreeExpand}
+                    hiddenBlocks={hiddenBlocks}
+                  />
+                ) : (
+                  <LibraryPanel
+                    key={libraryKey}
+                    emailTree={tree}
+                    savedBlocks={savedBlocks ?? []}
+                    selectedBlockId={effectiveSelectedBlockId}
+                    highlightedId={highlightedSavedId}
+                    onInsert={handleLibraryInsert}
+                    onOpenSaveDialog={setSaveDialogBlockId}
+                  />
+                )}
               </OverlayScrollbarsComponent>
             </div>
 
@@ -929,6 +1096,8 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                     onTestDataChange={onTestDataChange}
                     onSaveBlock={onSaveBlock}
                     savedBlocks={savedBlocks}
+                    onOpenSaveDialog={setSaveDialogBlockId}
+                    canvasRef={canvasRef}
                   />
                 </div>
               </div>
@@ -964,8 +1133,16 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               </OverlayScrollbarsComponent>
             </div>
           </div>
-        </>
+        </LibraryDnd>
       )}
+      <SaveBlockModal
+        block={saveDialogBlock}
+        emailTree={tree}
+        savedBlocks={savedBlocks}
+        onSave={onSaveBlock}
+        onSaved={handleBlockSaved}
+        onClose={() => setSaveDialogBlockId(null)}
+      />
     </div>
   )
 }

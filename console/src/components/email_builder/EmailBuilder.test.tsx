@@ -1,8 +1,13 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
-import { act, render, waitFor, screen, fireEvent } from '@testing-library/react'
+import { act, render as rtlRender, waitFor, screen, fireEvent, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { App } from 'antd'
 import EmailBuilder from './EmailBuilder'
-import type { EmailBlock } from './types'
+
+// The editor shows its messages through antd's App
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: App })
+import type { EmailBlock, SaveBlockHandler, SavedBlock } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
 
 // Mock the heavy child panels so the test exercises only EmailBuilder's own
@@ -16,7 +21,14 @@ vi.mock('./panels/TreePanel', () => ({
     return null
   }
 }))
-vi.mock('./panels/EditPanel', () => ({ EditPanel: () => null }))
+// The canvas's props carry the editor's update handler and its save dialog opener.
+let mockEditPanelProps: Record<string, unknown> = {}
+vi.mock('./panels/EditPanel', () => ({
+  EditPanel: (p: Record<string, unknown>) => {
+    mockEditPanelProps = p
+    return null
+  }
+}))
 vi.mock('./panels/SettingsPanel', () => ({ SettingsPanel: () => null }))
 vi.mock('./panels/Preview', () => ({
   // forwardRef so EmailBuilder passing templateDataRef doesn't warn
@@ -406,5 +418,277 @@ describe('EmailBuilder moving and changing columns', () => {
   it('moveBlockInTree puts the block at the final index it is given', () => {
     const moved = EmailBlockClass.moveBlockInTree(makeColumnsTree(), 'a1', 'SA', 2)!
     expect(EmailBlockClass.findBlockById(moved, 'SA')!.children!.map((c) => c.id)).toEqual(['a2', 'a3', 'a1'])
+  })
+})
+
+describe('EmailBuilder library', () => {
+  const blk = (id: string, type: string, children?: EmailBlock[], extra: Record<string, unknown> = {}) =>
+    ({ id, type, attributes: {}, ...(children ? { children } : {}), ...extra }) as unknown as EmailBlock
+
+  const libraryTree = () =>
+    blk('root', 'mjml', [
+      blk('head', 'mj-head', []),
+      blk('body', 'mj-body', [
+        blk('section-1', 'mj-section', [blk('column-1', 'mj-column', [blk('text-1', 'mj-text', undefined, { content: '<p>Hi</p>' })])]),
+        blk('section-2', 'mj-section', [blk('column-2', 'mj-column', [])])
+      ])
+    ])
+
+  const ctaBlock: SavedBlock = {
+    id: 'cta',
+    name: 'CTA',
+    block: blk('saved-button', 'mj-button', undefined, { content: 'Shop' }),
+    created: '2026-10-01T00:00:00Z'
+  }
+  const headerBlock: SavedBlock = {
+    id: 'header',
+    name: 'Header',
+    block: blk('saved-section', 'mj-section', [blk('saved-col', 'mj-column', [])]),
+    created: '2026-09-01T00:00:00Z'
+  }
+
+  // Holds the tree, the selection and the saved blocks the way the template drawer does
+  let current: { tree: EmailBlock; selected: string | null; onSelectBlock: Mock }
+  function Drawer({
+    onSaveBlock,
+    initialTree = libraryTree
+  }: {
+    onSaveBlock?: (add: (saved: SavedBlock) => void) => SaveBlockHandler
+    initialTree?: () => EmailBlock
+  }) {
+    const [tree, setTree] = useState(initialTree)
+    const [selected, setSelected] = useState<string | null>(null)
+    const [savedBlocks, setSavedBlocks] = useState<SavedBlock[]>([ctaBlock, headerBlock])
+    const onSelectBlock = React.useMemo(() => vi.fn((id: string | null) => setSelected(id)), [])
+    React.useEffect(() => {
+      current = { tree, selected, onSelectBlock }
+    })
+    const add = (saved: SavedBlock) => setSavedBlocks((prev) => [...prev, saved])
+    return (
+      <App>
+        <EmailBuilder
+          tree={tree}
+          onTreeChange={setTree}
+          onCompile={vi.fn()}
+          onTestDataChange={vi.fn()}
+          onSaveBlock={onSaveBlock ? onSaveBlock(add) : vi.fn()}
+          savedBlocks={savedBlocks}
+          selectedBlockId={selected}
+          onSelectBlock={onSelectBlock}
+          forcedViewMode={null}
+        />
+      </App>
+    )
+  }
+
+  const childIds = (id: string) =>
+    (EmailBlockClass.findBlockById(current.tree, id)?.children ?? []).map((child) => child.id)
+  const select = (id: string | null) => act(() => (mockTreePanelProps.onSelectBlock as (id: string | null) => void)(id))
+  const openLibrary = () => fireEvent.click(screen.getByTestId('library-tab'))
+  const card = (key: string) => document.querySelector(`[data-library-card="${key}"]`) as HTMLElement
+  const insertCard = (key: string) => fireEvent.click(within(card(key)).getByRole('button', { name: 'Insert' }))
+  const tile = (type: string) => document.querySelector(`[data-library-tile="${type}"]`) as HTMLElement
+  const undoLink = () => screen.getByTestId('library-insert-undo')
+  const successToasts = () => document.querySelectorAll('.ant-message-notice-success')
+
+  beforeEach(() => {
+    mockTreePanelProps = {}
+    mockEditPanelProps = {}
+    document.body.innerHTML = ''
+  })
+
+  it('opens on the structure, with the number of saved blocks on the library tab', () => {
+    render(<Drawer />)
+    expect(screen.getByTestId('library-count')).toHaveTextContent('2')
+    expect(mockTreePanelProps.emailTree).toBeDefined()
+    expect(screen.queryByTestId('library-panel')).not.toBeInTheDocument()
+
+    openLibrary()
+    expect(screen.getByTestId('library-panel')).toBeInTheDocument()
+  })
+
+  it('selects the inserted block through the selection the drawer holds', () => {
+    render(<Drawer />)
+    select('text-1')
+    openLibrary()
+    insertCard('cta')
+
+    const [, inserted] = childIds('column-1')
+    expect(inserted).toBeDefined()
+    expect(inserted).not.toBe('saved-button')
+    expect(current.onSelectBlock).toHaveBeenLastCalledWith(inserted)
+    expect(current.selected).toBe(inserted)
+  })
+
+  it('keeps the order of two insertions in a row', () => {
+    render(<Drawer />)
+    select('text-1')
+    openLibrary()
+    insertCard('cta')
+    const first = current.selected
+    insertCard('cta')
+    const second = current.selected
+
+    expect(childIds('column-1')).toEqual(['text-1', first, second])
+  })
+
+  it('undoes only the insertion from its message, and clears the selection', async () => {
+    render(<Drawer />)
+    select('text-1')
+    openLibrary()
+    insertCard('cta')
+    expect(childIds('column-1')).toHaveLength(2)
+    expect(successToasts()).toHaveLength(1)
+
+    fireEvent.click(undoLink())
+
+    expect(childIds('column-1')).toEqual(['text-1'])
+    expect(current.selected).toBeNull()
+  })
+
+  it('a refused tile neither inserts its block nor shows a message', () => {
+    render(<Drawer />)
+    openLibrary()
+    // A text needs a column, and nothing is selected
+    expect(tile('mj-text')).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(tile('mj-text'))
+
+    expect(successToasts()).toHaveLength(0)
+    expect(childIds('body')).toEqual(['section-1', 'section-2'])
+  })
+
+  it('inserts an empty wrapper where it is put, leaving the sections as they are', () => {
+    render(<Drawer />)
+    select('section-1')
+    openLibrary()
+    fireEvent.click(tile('mj-wrapper'))
+
+    const ids = childIds('body')
+    expect(ids).toHaveLength(3)
+    expect(ids[0]).toBe('section-1')
+    expect(ids[2]).toBe('section-2')
+    const wrapper = EmailBlockClass.findBlockById(current.tree, ids[1])!
+    expect(wrapper.type).toBe('mj-wrapper')
+    expect(wrapper.children ?? []).toHaveLength(0)
+  })
+
+  it('gives a section inserted into a wrapper from the library its default column', () => {
+    const wrapped = () =>
+      blk('root', 'mjml', [
+        blk('head', 'mj-head', []),
+        blk('body', 'mj-body', [
+          blk('wrapper-1', 'mj-wrapper', [blk('section-w', 'mj-section', [blk('column-w', 'mj-column', [])])])
+        ])
+      ])
+    render(<Drawer initialTree={wrapped} />)
+    select('column-w')
+    openLibrary()
+    // After the selected column's section, in the wrapper
+    fireEvent.click(tile('mj-section'))
+
+    const [, added] = EmailBlockClass.findBlockById(current.tree, 'wrapper-1')!.children!
+    expect(added.type).toBe('mj-section')
+    expect(added.children).toHaveLength(1)
+    expect(added.children![0].type).toBe('mj-column')
+  })
+
+  it("keeps the tree's \"+\": a first wrapper takes the body's sections", () => {
+    render(<Drawer />)
+    act(() => (mockTreePanelProps.onAddBlock as (p: string, t: string, i?: number) => void)('body', 'mj-wrapper', 0))
+
+    const ids = childIds('body')
+    expect(ids).toHaveLength(1)
+    const wrapper = EmailBlockClass.findBlockById(current.tree, ids[0])!
+    expect(wrapper.type).toBe('mj-wrapper')
+    expect(wrapper.children).toHaveLength(2)
+  })
+
+  it("undoes the insertion and keeps the edit made before it, and Redo puts the insertion back", () => {
+    render(<Drawer />)
+    const text = EmailBlockClass.findBlockById(current.tree, 'text-1')!
+    act(() =>
+      (mockEditPanelProps.onUpdateBlock as (id: string, block: EmailBlock) => void)('text-1', {
+        ...text,
+        content: '<p>Edited</p>'
+      } as EmailBlock)
+    )
+    openLibrary()
+    insertCard('header')
+    expect(childIds('body')).toHaveLength(3)
+
+    fireEvent.click(undoLink())
+    expect(childIds('body')).toEqual(['section-1', 'section-2'])
+    expect((EmailBlockClass.findBlockById(current.tree, 'text-1') as { content?: string }).content).toBe(
+      '<p>Edited</p>'
+    )
+
+    fireEvent.click(screen.getByTitle('Redo').closest('button')!)
+    expect(childIds('body')).toHaveLength(3)
+  })
+
+  it('changes nothing from the message once another change followed the insertion', async () => {
+    render(<Drawer />)
+    openLibrary()
+    insertCard('header')
+    const undo = undoLink()
+    const text = EmailBlockClass.findBlockById(current.tree, 'text-1')!
+    act(() =>
+      (mockEditPanelProps.onUpdateBlock as (id: string, block: EmailBlock) => void)('text-1', {
+        ...text,
+        content: '<p>Edited</p>'
+      } as EmailBlock)
+    )
+
+    fireEvent.click(undo)
+    expect(childIds('body')).toHaveLength(3)
+    expect((EmailBlockClass.findBlockById(current.tree, 'text-1') as { content?: string }).content).toBe(
+      '<p>Edited</p>'
+    )
+    await waitFor(() => expect(screen.queryByTestId('library-insert-undo')).not.toBeInTheDocument())
+  })
+
+  it('shows a block just saved in the library, search and filter cleared, tagged "New"', async () => {
+    const created: SavedBlock = {
+      id: 'new-id',
+      name: 'Products',
+      block: blk('saved-products', 'mj-section', []),
+      created: '2026-11-11T00:00:00Z'
+    }
+    render(
+      <Drawer
+        onSaveBlock={(add) => async () => {
+          add(created)
+          return 'new-id'
+        }}
+      />
+    )
+    openLibrary()
+    await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'nothing like it')
+    act(() => (mockEditPanelProps.onOpenSaveDialog as (id: string) => void)('section-1'))
+    await userEvent.click(await screen.findByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(card('new-id')).not.toBeNull())
+    expect(screen.getByPlaceholderText('Search saved blocks')).toHaveValue('')
+    expect(within(card('new-id')).getByText('New')).toBeInTheDocument()
+
+    // Until the tab changes
+    fireEvent.click(screen.getByText('Structure'))
+    openLibrary()
+    expect(screen.queryByText('New')).not.toBeInTheDocument()
+  })
+
+  it('tags nothing "New" after replacing a saved block', async () => {
+    render(<Drawer onSaveBlock={() => async () => 'header'} />)
+    act(() => (mockEditPanelProps.onOpenSaveDialog as (id: string) => void)('section-1'))
+    await userEvent.click(await screen.findByRole('radio', { name: /Replace an existing block/ }))
+    await userEvent.click(screen.getByRole('combobox'))
+    const option = await screen.findAllByText('Header', { selector: '.ant-select-item-option-content' })
+    await userEvent.click(option[option.length - 1])
+    await userEvent.click(screen.getByRole('button', { name: 'Replace' }))
+
+    await waitFor(() => expect((document.querySelector('.ant-modal-wrap') as HTMLElement).style.display).toBe('none'))
+    expect(screen.queryByTestId('library-panel')).not.toBeInTheDocument()
+    openLibrary()
+    expect(screen.queryByText('New')).not.toBeInTheDocument()
   })
 })
