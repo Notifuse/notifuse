@@ -19,7 +19,8 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/DataDog/opencensus-go-exporter-datadog v0.0.0-20220622145613-731d59e8b567
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/Notifuse/liquidgo v0.0.0-20251124135804-bb1578ffeff3
+	github.com/Notifuse/gomjml v0.14.1
+	github.com/Notifuse/liquidgo/v5 v5.11.0
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/anthropics/anthropic-sdk-go v1.19.0
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
@@ -40,7 +41,6 @@ require (
 	github.com/openai/openai-go/v3 v3.30.0
 	github.com/openzipkin/zipkin-go v0.4.2
 	github.com/oschwald/geoip2-golang v1.13.0
-	github.com/preslavrachev/gomjml v0.12.0
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/viper v1.19.0
 	github.com/standard-webhooks/standard-webhooks/libraries v0.0.0-20250711233419-a173a6c0125c
@@ -142,5 +142,3 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/preslavrachev/gomjml => github.com/Notifuse/gomjml v0.10.1-0.20261028150808-425c7167ec50

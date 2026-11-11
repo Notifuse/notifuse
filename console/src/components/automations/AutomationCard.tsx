@@ -119,6 +119,9 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
     if (triggerEvent === 'custom_event' && triggerCustomEventName) {
       return triggerCustomEventName
     }
+    if (triggerEvent === 'email.link_clicked' && automation.trigger?.link_url) {
+      return automation.trigger.link_url
+    }
     return null
   }
 

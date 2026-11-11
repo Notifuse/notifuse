@@ -3,10 +3,11 @@ package notifuse_mjml
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
-	"github.com/Notifuse/liquidgo/liquid"
-	"github.com/Notifuse/liquidgo/liquid/tags"
+	"github.com/Notifuse/liquidgo/v5/liquid"
+	"github.com/Notifuse/liquidgo/v5/liquid/tags"
 )
 
 // Security limits for Liquid template rendering
@@ -29,7 +30,14 @@ type SecureLiquidEngine struct {
 	timeout time.Duration
 	maxSize int
 	env     *liquid.Environment
+	// parsed caches the templates renderCached parses, keyed by their source. It is
+	// only touched by the render goroutine of the engine's current user (an engine is
+	// never shared, and one that fails is dropped), so it needs no lock.
+	parsed map[string]*liquid.Template
 }
+
+// maxParsedTemplates bounds an engine's parse cache; past it the cache starts over.
+const maxParsedTemplates = 256
 
 // newSecureLiquidEnv builds a liquidgo environment with the standard tags and a
 // render-length cap, shared by every engine constructor.
@@ -71,6 +79,18 @@ func NewSecureLiquidEngineWithOptions(timeout time.Duration, maxSize int) *Secur
 
 // RenderWithTimeout renders a Liquid template with timeout and size protection
 func (s *SecureLiquidEngine) RenderWithTimeout(content string, data map[string]interface{}) (string, error) {
+	return s.render(content, data, false)
+}
+
+// renderCached is RenderWithTimeout for a template rendered over and over, such as a
+// display condition, which it parses once per engine. Only for a template whose every
+// variable is assigned before it is read: liquidgo keeps a template's assigns from one
+// render to the next.
+func (s *SecureLiquidEngine) renderCached(content string, data map[string]interface{}) (string, error) {
+	return s.render(content, data, true)
+}
+
+func (s *SecureLiquidEngine) render(content string, data map[string]interface{}, cached bool) (string, error) {
 	// Validate template size
 	if len(content) > s.maxSize {
 		return "", fmt.Errorf("template size (%d bytes) exceeds maximum allowed size (%d bytes)", len(content), s.maxSize)
@@ -92,13 +112,25 @@ func (s *SecureLiquidEngine) RenderWithTimeout(content string, data map[string]i
 			}
 		}()
 
-		// Parse the template
-		tmpl, err := liquid.ParseTemplate(content, &liquid.TemplateOptions{
-			Environment: s.env,
-		})
-		if err != nil {
-			errorChan <- fmt.Errorf("liquid parsing failed: %w", err)
-			return
+		var tmpl *liquid.Template
+		if cached {
+			tmpl = s.parsed[content]
+		}
+		if tmpl == nil {
+			var err error
+			tmpl, err = liquid.ParseTemplate(content, &liquid.TemplateOptions{
+				Environment: s.env,
+			})
+			if err != nil {
+				errorChan <- fmt.Errorf("liquid parsing failed: %w", err)
+				return
+			}
+			if cached {
+				if s.parsed == nil || len(s.parsed) >= maxParsedTemplates {
+					s.parsed = make(map[string]*liquid.Template)
+				}
+				s.parsed[content] = tmpl
+			}
 		}
 
 		// Render the template (second parameter is 'assigns', pass nil)
@@ -120,4 +152,41 @@ func (s *SecureLiquidEngine) RenderWithTimeout(content string, data map[string]i
 // Render is a convenience method that calls RenderWithTimeout
 func (s *SecureLiquidEngine) Render(content string, data map[string]interface{}) (string, error) {
 	return s.RenderWithTimeout(content, data)
+}
+
+// ValidateLiquidSyntax reports whether content would parse when rendered: it applies the
+// cleaning the renderer applies (see cleanLiquidTemplate) and parses with the same
+// environment, where include and render refuse to parse. Neither is supported: with no
+// file system configured, a partial they name renders as an error in the output. Refused
+// by the parser itself, they are refused wherever it would run them (any spelling, a
+// {% liquid %} line) and nowhere else (raw and comment bodies).
+func ValidateLiquidSyntax(content string) (err error) {
+	if !strings.Contains(content, "{{") && !strings.Contains(content, "{%") {
+		return nil
+	}
+	content = cleanLiquidTemplate(content)
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("liquid parsing failed: %v", r)
+		}
+	}()
+	if _, parseErr := liquid.ParseTemplate(content, &liquid.TemplateOptions{
+		Environment: newValidationLiquidEnv(),
+	}); parseErr != nil {
+		return parseErr
+	}
+	return nil
+}
+
+// newValidationLiquidEnv is the render environment where the tags that read a partial
+// from a file system fail to parse.
+func newValidationLiquidEnv() *liquid.Environment {
+	env := newSecureLiquidEnv(DefaultMaxRenderLength)
+	for _, name := range []string{"include", "render"} {
+		env.RegisterTag(name, tags.TagConstructor(func(tagName, _ string, _ liquid.ParseContextInterface) (interface{}, error) {
+			return nil, fmt.Errorf("the %s tag is not supported", tagName)
+		}))
+	}
+	return env
 }

@@ -33,6 +33,10 @@ export const UPDATE_BLOCK_TOOL: LLMTool = {
           content: {
             type: 'string',
             description: 'Text or HTML content for blocks like mj-text, mj-button, mj-title, mj-preview'
+          },
+          display_condition: {
+            description:
+              'Show the block only when this condition on the template data holds (see Display Conditions); null removes it'
           }
         }
       }
@@ -294,6 +298,10 @@ export function serializeEmailTree(tree: EmailBlock): string {
       if (keyAttrs.length > 0) {
         result += ` [${keyAttrs.join(', ')}]`
       }
+    }
+
+    if (block.display_condition) {
+      result += ` display_condition: ${JSON.stringify(block.display_condition)}`
     }
 
     // Recursively add children

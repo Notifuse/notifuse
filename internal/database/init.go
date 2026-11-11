@@ -624,8 +624,9 @@ func workspaceSchemaGroups(now time.Time) []workspaceSchemaGroup {
 		// shared with the v42 migration so a fresh workspace and an upgraded one record the same events.
 		schema.TrackContactListChangesFunction(),
 		// Complaint and hard bounce list status, then the message history changes trigger
-		// function that applies it before writing the timeline. Both are shared with the v42
-		// migration so a fresh workspace and an upgraded one record the same statuses.
+		// function that applies it before writing the timeline. The first is shared with the
+		// v42 migration, the second with v44, so a fresh workspace and an upgraded one record
+		// the same statuses and the same link clicks.
 		schema.ApplyMessageStatusToContactListsFunction(),
 		schema.TrackMessageHistoryChangesFunction(),
 		// Inbound webhook event changes trigger function

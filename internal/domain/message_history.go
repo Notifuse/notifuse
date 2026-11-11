@@ -190,7 +190,7 @@ type MessageHistoryRepository interface {
 
 	// SetClicked sets the clicked_at timestamp and ensures opened_at is also set.
 	// When clickedURL is non-empty, the per-URL click counters in clicked_links are updated too.
-	SetClicked(ctx context.Context, workspaceID, id string, timestamp time.Time, clickedURL string) error
+	SetClicked(ctx context.Context, workspaceID, id string, timestamp time.Time, clickedURL string, verified bool) error
 
 	// SetOpened sets the opened_at timestamp if not already set
 	SetOpened(ctx context.Context, workspaceID, id string, timestamp time.Time) error
@@ -278,6 +278,7 @@ type MessageListParams struct {
 	ContactEmail   string `json:"contact_email,omitempty"`   // filter by contact
 	BroadcastID    string `json:"broadcast_id,omitempty"`    // filter by broadcast
 	TemplateID     string `json:"template_id,omitempty"`     // filter by template
+	ClickedURL     string `json:"clicked_url,omitempty"`     // filter by a link clicked, exact URL as clicked_links holds it (requires broadcast_id)
 	IsSent         *bool  `json:"is_sent,omitempty"`         // filter messages that are sent
 	IsDelivered    *bool  `json:"is_delivered,omitempty"`    // filter messages that are delivered
 	IsFailed       *bool  `json:"is_failed,omitempty"`       // filter messages that are failed
@@ -304,6 +305,7 @@ func (p *MessageListParams) FromQuery(query url.Values) error {
 	p.ContactEmail = query.Get("contact_email")
 	p.BroadcastID = query.Get("broadcast_id")
 	p.TemplateID = query.Get("template_id")
+	p.ClickedURL = query.Get("clicked_url")
 
 	// Parse limit
 	if limitStr := query.Get("limit"); limitStr != "" {
@@ -434,6 +436,18 @@ func (p *MessageListParams) Validate() error {
 	// Validate contact email if provided
 	if p.ContactEmail != "" && !govalidator.IsEmail(p.ContactEmail) {
 		return fmt.Errorf("invalid contact email format")
+	}
+
+	// clicked_url is matched inside clicked_links, which no index covers, so it only
+	// narrows a broadcast's messages; PostgreSQL plans it like the other filters of
+	// this list.
+	if p.ClickedURL != "" {
+		if p.BroadcastID == "" {
+			return fmt.Errorf("clicked_url requires broadcast_id")
+		}
+		if len(p.ClickedURL) > MaxClickedURLLength {
+			return fmt.Errorf("clicked_url must be at most %d characters", MaxClickedURLLength)
+		}
 	}
 
 	// Note: BroadcastID and TemplateID are not validated as UUIDs

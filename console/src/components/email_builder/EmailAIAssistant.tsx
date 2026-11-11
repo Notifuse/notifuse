@@ -1,4 +1,5 @@
 import { message } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { Wand2 } from 'lucide-react'
 import { useAIAssistant, AIAssistantChat } from '../ai-assistant'
 import type { AIAssistantConfig, ToolHandler } from '../ai-assistant'
@@ -7,6 +8,11 @@ import type { EmailBlock, MJMLComponentType } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
 import { EMAIL_AI_TOOLS, TOOL_NAMES, type EmailAIAgentCallbacks } from './email-ai-tools'
 import { buildEmailSystemPrompt } from './email-ai-system-prompt'
+import {
+  conditionErrorsInTree,
+  displayConditionUpdateError,
+  liquidPlacementError
+} from './displayCondition'
 
 export interface EmailAIAssistantProps {
   workspace: Workspace
@@ -52,6 +58,7 @@ export function EmailAIAssistant({
   validateOnComplete,
   hidden = false
 }: EmailAIAssistantProps) {
+  const { t } = useLingui()
   // Deliberately not memoized: the hook refreshes its ref on every render and calls this
   // once per request round, so a category or a tree changed mid-conversation reaches the
   // next round. A useCallback here would pin a stale closure instead.
@@ -72,6 +79,16 @@ export function EmailAIAssistant({
           updates: Partial<EmailBlock>
         }
         if (!input?.blockId || !input?.updates) return
+        const conditionError = displayConditionUpdateError(
+          callbacks.getEmailTree(),
+          input.blockId,
+          input.updates
+        )
+        if (conditionError) {
+          insert(`Block not updated: ${conditionError}`, TOOL_NAMES.UPDATE_BLOCK)
+          message.error(t`Invalid display condition`)
+          return
+        }
         callbacks.onUpdateBlock(input.blockId, input.updates)
         insert(`Updated block ${input.blockId}`, TOOL_NAMES.UPDATE_BLOCK)
         message.success('Block updated')
@@ -89,6 +106,14 @@ export function EmailAIAssistant({
           attributes?: Record<string, unknown>
         }
         if (!input?.parentId || !input?.blockType) return
+        const placementError = liquidPlacementError(callbacks.getEmailTree(), input.parentId, {
+          type: input.blockType
+        })
+        if (placementError) {
+          insert(`Block not added: ${placementError}`, TOOL_NAMES.ADD_BLOCK)
+          message.error(t`A Liquid block cannot go inside a block with a display condition`)
+          return
+        }
         callbacks.onAddBlock(
           input.parentId,
           input.blockType,
@@ -121,6 +146,16 @@ export function EmailAIAssistant({
           position: number
         }
         if (!input?.blockId || !input?.newParentId || input?.position === undefined) return
+        const current = callbacks.getEmailTree()
+        const moved = EmailBlockClass.findBlockById(current, input.blockId)
+        const placementError = moved
+          ? liquidPlacementError(current, input.newParentId, moved)
+          : null
+        if (placementError) {
+          insert(`Block not moved: ${placementError}`, TOOL_NAMES.MOVE_BLOCK)
+          message.error(t`A Liquid block cannot go inside a block with a display condition`)
+          return
+        }
         callbacks.onMoveBlock(input.blockId, input.newParentId, input.position)
         insert(`Moved block ${input.blockId} to ${input.newParentId}`, TOOL_NAMES.MOVE_BLOCK)
         message.success('Block moved')
@@ -153,7 +188,10 @@ export function EmailAIAssistant({
           return
         }
 
-        const errors = EmailBlockClass.validateStructure(input.tree)
+        const errors = [
+          ...EmailBlockClass.validateStructure(input.tree),
+          ...conditionErrorsInTree(input.tree)
+        ]
         if (errors.length > 0) {
           insert(`Tree validation failed: ${errors.join(', ')}`, TOOL_NAMES.SET_EMAIL_TREE)
           message.error('Invalid tree structure')

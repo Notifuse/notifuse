@@ -156,8 +156,8 @@ func TestWebAnalyticsSchemaParity(t *testing.T) {
 	assertAnnotationConflictTargetResolves(t, initDB)
 	assertAnnotationConflictTargetResolves(t, migrDB)
 
-	// The usage meter's index must be partial in both databases, and its
-	// predicate must match the meter's WHERE clause exactly or PostgreSQL will
+	// The usage meter's index must be partial in both databases, and the
+	// meter's WHERE clause must repeat its predicate exactly or PostgreSQL will
 	// not use it and the meter seq-scans contact_timeline on every pass.
 	const billableTimelineIndex = "CREATE INDEX idx_contact_timeline_billable ON public.contact_timeline " +
 		"USING btree (created_at) WHERE ((entity_type)::text <> ALL " +
@@ -225,7 +225,8 @@ func assertBillableTimelineIndexIsUsed(t *testing.T, db *sql.DB) {
 	rows, err := db.Query(`EXPLAIN
 		SELECT COUNT(*) FROM contact_timeline
 		WHERE created_at >= $1 AND created_at < $2
-		AND entity_type NOT IN ('web_page', 'web_session')`,
+		AND entity_type NOT IN ('web_page', 'web_session')
+		AND kind <> 'email.link_clicked'`,
 		time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC))
 	require.NoError(t, err)

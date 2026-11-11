@@ -24,6 +24,7 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, selected }) => {
   // Format event kind for display (e.g., "list.subscribed" -> "List Subscribed")
   const formatEventKind = (eventKind: string): string => {
     if (eventKind === 'custom_event') return t`Custom Event`
+    if (eventKind === 'email.link_clicked') return t`Email Link Clicked`
     const parts = eventKind.split('.')
     return parts.map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
   }
@@ -39,6 +40,10 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, selected }) => {
     }
     if (config.event_kind?.startsWith('segment.') && segmentName) {
       return segmentName
+    }
+    if (config.event_kind === 'email.link_clicked') {
+      const link = config.link_url
+      return link ? t`Link contains ${link}` : t`Any link`
     }
     return null
   }
@@ -65,7 +70,7 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, selected }) => {
         {hasEventKind ? (
           <div>
             <div>{getEventDisplay()}</div>
-            {detail && <div className="text-gray-500">{detail}</div>}
+            {detail && <div className="text-gray-500 truncate" title={detail}>{detail}</div>}
             <div className="text-gray-400">{frequency}</div>
           </div>
         ) : (

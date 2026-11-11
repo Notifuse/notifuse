@@ -79,6 +79,14 @@ describe('Email AI Tools', () => {
     })
   })
 
+  test('updateBlock accepts a display condition', () => {
+    const tool = EMAIL_AI_TOOLS.find((t) => t.name === TOOL_NAMES.UPDATE_BLOCK)
+    const schema = tool?.input_schema as ToolSchemaNode | undefined
+    expect(schema?.properties?.updates?.properties?.display_condition?.description).toMatch(
+      /null removes/i
+    )
+  })
+
   describe('TOOL_NAMES Constants', () => {
     test('should have all tool names as constants', () => {
       expect(TOOL_NAMES.UPDATE_BLOCK).toBe('updateBlock')
@@ -92,6 +100,31 @@ describe('Email AI Tools', () => {
   })
 
   describe('serializeEmailTree', () => {
+    // The model rebuilds whole emails with setEmailTree; it can only keep a condition
+    // it was shown.
+    test('should print the display condition of a block', () => {
+      const tree: EmailBlock = {
+        id: 'text-1',
+        type: 'mj-text',
+        content: '<p>VIP</p>',
+        attributes: {},
+        display_condition: {
+          match: 'all',
+          rules: [{ variable: 'contact.custom_string_1', operator: 'eq', value: 'vip' }]
+        }
+      }
+
+      const result = serializeEmailTree(tree)
+      expect(result).toContain(
+        'display_condition: {"match":"all","rules":[{"variable":"contact.custom_string_1","operator":"eq","value":"vip"}]}'
+      )
+    })
+
+    test('should not print a display condition on a block without one', () => {
+      const tree: EmailBlock = { id: 'text-1', type: 'mj-text', content: '<p>Hi</p>', attributes: {} }
+      expect(serializeEmailTree(tree)).not.toContain('display_condition')
+    })
+
     test('should serialize simple tree with type and id', () => {
       const tree: EmailBlock = {
         id: 'root-1',

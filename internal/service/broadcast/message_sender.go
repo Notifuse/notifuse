@@ -368,6 +368,16 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 		return NewBroadcastError(ErrCodeTemplateCompile, errMsg, true, nil)
 	}
 
+	if compiledTemplate.TextError != "" {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id":     broadcast.ID,
+			"workspace_id":     workspaceID,
+			"template_id":      template.ID,
+			"template_version": template.Version,
+			"error":            compiledTemplate.TextError,
+		}).Warn("Custom text version could not be used, sending the automatic one")
+	}
+
 	// The variation's sender wins over the template's; a chosen sender that has gone is an
 	// error rather than the default sender.
 	emailSender, senderErr := emailProvider.ResolveSender(broadcast.VariationSenderID(template.ID), emailContent.SenderID)
@@ -410,6 +420,7 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 		To:            email,
 		Subject:       processedSubject,
 		Content:       *compiledTemplate.HTML,
+		TextContent:   compiledTemplate.CustomText(),
 		Provider:      emailProvider,
 		EmailOptions: domain.EmailOptions{
 			ReplyTo: emailContent.ReplyTo,

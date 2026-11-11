@@ -31,4 +31,36 @@ describe('Preview', () => {
     expect(doc.compatMode).toBe('CSS1Compat')
     expect(doc.querySelector('head > base')?.getAttribute('target')).toBe('_blank')
   })
+
+  it('says how many blocks the test data hides', () => {
+    const { rerender } = render(
+      <Preview
+        html="<p>x</p>"
+        mjml="<mjml></mjml>"
+        onTestDataChange={vi.fn()}
+        hiddenBlockCount={0}
+      />
+    )
+    expect(screen.queryByTestId('preview-hidden-blocks')).toBeNull()
+
+    rerender(
+      <Preview
+        html="<p>x</p>"
+        mjml="<mjml></mjml>"
+        onTestDataChange={vi.fn()}
+        hiddenBlockCount={1}
+      />
+    )
+    expect(screen.getByText('1 block hidden by its condition with this test data.')).toBeTruthy()
+
+    rerender(
+      <Preview
+        html="<p>x</p>"
+        mjml="<mjml></mjml>"
+        onTestDataChange={vi.fn()}
+        hiddenBlockCount={3}
+      />
+    )
+    expect(screen.getByText('3 blocks hidden by their condition with this test data.')).toBeTruthy()
+  })
 })

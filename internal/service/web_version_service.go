@@ -306,6 +306,8 @@ func (s *WebVersionService) Render(ctx context.Context, ref WebVersionRef) (stri
 		TrackingSettings: webVersionTrackingSettings(workspace.Settings.ResolveEndpoint(s.apiEndpoint), message, data),
 	}
 	emailContent.ApplyToCompileRequest(&compileReq, nil)
+	// The page is the HTML: the custom text version is not rendered for it.
+	compileReq.Text = nil
 	compiled, err := s.compile(compileReq)
 	if err != nil || compiled == nil || !compiled.Success || compiled.HTML == nil {
 		reason := "compilation failed"
@@ -368,9 +370,13 @@ func webVersionTrackingSettings(endpoint string, message *domain.MessageHistory,
 	return ts
 }
 
-// linksToWebVersion reports whether the email content uses the web version variable: the
-// MJML source of a code mode template, the visual tree otherwise.
+// linksToWebVersion reports whether the email content uses the web version variable: in its
+// custom text version, or in the MJML source of a code mode template, the visual tree
+// otherwise.
 func linksToWebVersion(content *domain.EmailTemplate) bool {
+	if text := domain.NormalizeCustomText(content.Text); text != nil && strings.Contains(*text, webVersionVariable) {
+		return true
+	}
 	if source := content.GetCodeModeMjmlSource(); source != nil {
 		return strings.Contains(*source, webVersionVariable)
 	}

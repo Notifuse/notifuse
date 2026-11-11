@@ -91,6 +91,35 @@ export interface ContainerAttributes {
 }
 
 // Base interface for all MJML blocks
+export type DisplayConditionOperator =
+  | 'is_true'
+  | 'is_blank'
+  | 'is_present'
+  | 'is_absent'
+  | 'eq'
+  | 'neq'
+  | 'contains'
+  | 'not_contains'
+  | 'gt'
+  | 'gte'
+  | 'lt'
+  | 'lte'
+
+// One test on a template variable; operators of is_* take no value.
+export interface DisplayConditionRule {
+  variable: string
+  operator: DisplayConditionOperator
+  value?: string
+}
+
+// Shows a block only when all ("all") or any ("any") of its rules hold on the template
+// data. Sending evaluates it as Liquid in pkg/notifuse_mjml/display_condition.go;
+// displayCondition.ts mirrors that evaluation for the editor.
+export interface DisplayCondition {
+  match: 'all' | 'any'
+  rules: DisplayConditionRule[]
+}
+
 export interface BaseBlock {
   id: string
   type: MJMLComponentType
@@ -98,6 +127,7 @@ export interface BaseBlock {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   attributes?: Record<string, any>
   content?: string
+  display_condition?: DisplayCondition
 }
 
 // MJML Head - Contains head components
@@ -658,6 +688,14 @@ export interface MJSocialElementBlock extends BaseBlock {
 }
 
 export type SaveOperation = 'create' | 'update'
+
+// Saves a block in the workspace's saved blocks. Resolves once saved; rejects when the save failed, after
+// telling the user why.
+export type SaveBlockHandler = (
+  block: EmailBlock,
+  operation: SaveOperation,
+  nameOrId: string
+) => Promise<void>
 
 // Helper type for merged attributes that provides string access with proper typing
 export interface MergedBlockAttributes {

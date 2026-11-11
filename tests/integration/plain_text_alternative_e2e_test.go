@@ -289,3 +289,233 @@ func TestPlainTextAlternative_E2E(t *testing.T) {
 		assert.Equal(t, webHrefs(t, result.HTML), distinctSorted(plainTextURLRe.FindAllString(*result.Text, -1)))
 	})
 }
+
+// customTextMJML is the HTML side of the custom text tests: its button is tracked, while a
+// custom text's links are sent as written.
+func customTextMJML(body string) string {
+	return `<mjml><mj-body><mj-section><mj-column>
+	<mj-text><p>` + body + `</p></mj-text>
+	<mj-button href="https://shop.example.com/sale">Shop the sale</mj-button>
+</mj-column></mj-section></mj-body></mjml>`
+}
+
+func withCustomText(text string) testutil.TemplateOption {
+	return func(t *domain.Template) { t.Email.Text = &text }
+}
+
+func codeTranslation(subject, body string, text *string) domain.TemplateTranslation {
+	source := customTextMJML(body)
+	return domain.TemplateTranslation{Email: &domain.EmailTemplate{
+		Subject:         subject,
+		EditorMode:      domain.EditorModeCode,
+		MjmlSource:      &source,
+		CompiledPreview: source,
+		Text:            text,
+	}}
+}
+
+func TestPlainTextCustom_E2E(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	factory := suite.DataFactory
+
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	linkEndpoint := "https://links.example.com"
+	workspace, err := factory.CreateWorkspace(
+		withEmailTracking(*domain.DefaultEmailTrackingSettings()),
+		testutil.WithWorkspaceDefaultLanguage("en", []string{"en", "fr", "de"}),
+		func(w *domain.Workspace) { w.Settings.CustomEndpointURL = &linkEndpoint },
+	)
+	require.NoError(t, err)
+	require.NoError(t, factory.AddUserToWorkspace(user.ID, workspace.ID, "owner"))
+	_, err = factory.SetupWorkspaceWithSMTPProvider(workspace.ID, smtpToMailpit("Custom Text E2E"))
+	require.NoError(t, err)
+
+	workerCtx, cancelWorker := context.WithCancel(context.Background())
+	defer cancelWorker()
+	require.NoError(t, suite.ServerManager.StartBackgroundWorkers(workerCtx))
+
+	require.NoError(t, client.Login(user.Email, "password"))
+	client.SetWorkspaceID(workspace.ID)
+	require.NoError(t, testutil.ClearMailpitMessages(t))
+
+	tag := uuid.New().String()[:8]
+
+	sendTransactional := func(t *testing.T, template *domain.Template, recipient string, contact map[string]interface{}) deliveredParts {
+		t.Helper()
+		notification, err := factory.CreateTransactionalNotification(workspace.ID,
+			testutil.WithTransactionalNotificationChannels(domain.ChannelTemplates{
+				domain.TransactionalChannelEmail: {TemplateID: template.ID, Settings: map[string]interface{}{}},
+			}))
+		require.NoError(t, err)
+		contact["email"] = recipient
+		resp, err := client.SendTransactionalNotification(map[string]interface{}{
+			"id":       notification.ID,
+			"contact":  contact,
+			"channels": []string{"email"},
+		})
+		require.NoError(t, err)
+		body, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, string(body))
+		email, err := waitForEmailByRecipientAddr(t, recipient, 30*time.Second)
+		require.NoError(t, err)
+		return readDeliveredParts(t, email.ID)
+	}
+
+	t.Run("a transactional email carries the custom text, rendered and untracked", func(t *testing.T) {
+		template, err := factory.CreateTemplate(workspace.ID,
+			testutil.WithTemplateCategory("transactional"),
+			testutil.WithTemplateSubject("Custom text "+tag),
+			testutil.WithCodeModeTemplate(customTextMJML("Hello in HTML")),
+			withCustomText("Hi {{ contact.first_name }},\r\nThe sale: https://shop.example.com/sale\r\n"))
+		require.NoError(t, err)
+
+		parts := sendTransactional(t, template, fmt.Sprintf("tx-custom-%s@example.com", tag),
+			map[string]interface{}{"first_name": "Camille"})
+
+		require.Contains(t, parts.types, "multipart/alternative")
+		assert.Equal(t, "Hi Camille,\nThe sale: https://shop.example.com/sale\n", parts.text)
+		assert.Contains(t, parts.html, "Hello in HTML")
+		assert.Contains(t, parts.html, linkEndpoint+"/r/", "the HTML links are still tracked")
+	})
+
+	t.Run("a custom text that does not render is replaced by the automatic text", func(t *testing.T) {
+		// Written straight into the database: the API refuses this text.
+		template, err := factory.CreateTemplate(workspace.ID,
+			testutil.WithTemplateCategory("transactional"),
+			testutil.WithTemplateSubject("Broken text "+tag),
+			testutil.WithCodeModeTemplate(customTextMJML("Automatic fallback")),
+			withCustomText("Hi {% if contact.first_name %}"))
+		require.NoError(t, err)
+
+		parts := sendTransactional(t, template, fmt.Sprintf("tx-broken-%s@example.com", tag),
+			map[string]interface{}{"first_name": "Camille"})
+
+		assertTextMirrorsHTML(t, parts)
+		assert.Contains(t, parts.text, "Automatic fallback")
+		assert.NotContains(t, parts.text, "{%")
+	})
+
+	t.Run("each language sends its own text, or the automatic text of its own HTML", func(t *testing.T) {
+		frText := "Bonjour {{ contact.first_name }}"
+		template, err := factory.CreateTemplate(workspace.ID,
+			testutil.WithTemplateCategory("transactional"),
+			testutil.WithTemplateSubject("Languages "+tag),
+			testutil.WithCodeModeTemplate(customTextMJML("Hello in English")),
+			withCustomText("Default language text"),
+			testutil.WithTemplateTranslations(map[string]domain.TemplateTranslation{
+				"fr": codeTranslation("Langues FR "+tag, "Bonjour en HTML", &frText),
+				"de": codeTranslation("Sprachen DE "+tag, "Hallo im HTML", nil),
+			}))
+		require.NoError(t, err)
+
+		frRecipient := fmt.Sprintf("tx-fr-%s@example.com", tag)
+		_, err = factory.CreateContact(workspace.ID, testutil.WithContactEmail(frRecipient), testutil.WithContactLanguage("fr"))
+		require.NoError(t, err)
+		frParts := sendTransactional(t, template, frRecipient, map[string]interface{}{"first_name": "Léa"})
+		assert.Equal(t, "Bonjour Léa", strings.TrimSpace(frParts.text))
+
+		deRecipient := fmt.Sprintf("tx-de-%s@example.com", tag)
+		_, err = factory.CreateContact(workspace.ID, testutil.WithContactEmail(deRecipient), testutil.WithContactLanguage("de"))
+		require.NoError(t, err)
+		deParts := sendTransactional(t, template, deRecipient, map[string]interface{}{"first_name": "Jonas"})
+		assertTextMirrorsHTML(t, deParts)
+		assert.Contains(t, deParts.text, "Hallo im HTML")
+		assert.NotContains(t, deParts.text, "Default language text")
+	})
+
+	t.Run("a broadcast sends the custom text to every recipient, with its unsubscribe link", func(t *testing.T) {
+		template, err := factory.CreateTemplate(workspace.ID,
+			testutil.WithTemplateCategory("marketing"),
+			testutil.WithTemplateSubject("Broadcast custom "+tag),
+			testutil.WithCodeModeTemplate(customTextMJML("Broadcast HTML")),
+			withCustomText("Hello {{ contact.first_name }}\n\nUnsubscribe: {{ unsubscribe_url }}\n"))
+		require.NoError(t, err)
+
+		list, err := factory.CreateList(workspace.ID, testutil.WithListName("Custom Text E2E List"))
+		require.NoError(t, err)
+		recipients := map[string]string{
+			fmt.Sprintf("bc-custom-a-%s@example.com", tag): "Ada",
+			fmt.Sprintf("bc-custom-b-%s@example.com", tag): "Grace",
+		}
+		for email, name := range recipients {
+			_, err = factory.CreateContact(workspace.ID, testutil.WithContactEmail(email), testutil.WithContactName(name, ""))
+			require.NoError(t, err)
+			_, err = factory.CreateContactList(workspace.ID,
+				testutil.WithContactListEmail(email),
+				testutil.WithContactListListID(list.ID),
+				testutil.WithContactListStatus(domain.ContactListStatusActive))
+			require.NoError(t, err)
+		}
+
+		broadcast, err := factory.CreateBroadcast(workspace.ID,
+			testutil.WithBroadcastName("Custom Text E2E Broadcast"),
+			testutil.WithBroadcastTemplateID(template.ID),
+			testutil.WithBroadcastAudience(domain.AudienceSettings{List: list.ID, ExcludeUnsubscribed: true}))
+		require.NoError(t, err)
+		resp, err := client.ScheduleBroadcast(map[string]interface{}{"workspace_id": workspace.ID, "id": broadcast.ID, "send_now": true})
+		require.NoError(t, err)
+		_ = resp.Body.Close()
+		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID, []string{"processed", "completed", "sent"}, 60*time.Second)
+		require.NoError(t, err)
+
+		for email, name := range recipients {
+			delivered, err := waitForEmailByRecipientAddr(t, email, 30*time.Second)
+			require.NoError(t, err)
+			parts := readDeliveredParts(t, delivered.ID)
+			require.Contains(t, parts.types, "multipart/alternative")
+			assert.True(t, strings.HasPrefix(parts.text, "Hello "+name+"\n\nUnsubscribe: "), parts.text)
+			unsubscribe := plainTextURLRe.FindString(parts.text)
+			require.NotEmpty(t, unsubscribe, "the text holds the unsubscribe link")
+			assert.True(t, strings.HasPrefix(unsubscribe, linkEndpoint+"/notification-center?"), unsubscribe)
+			assert.Contains(t, unsubscribe, "action=unsubscribe")
+			assert.Contains(t, unsubscribe, "email_hmac=")
+			assert.NotEmpty(t, parts.header.Get("List-Unsubscribe"))
+			assert.Contains(t, parts.html, "Broadcast HTML")
+		}
+	})
+
+	t.Run("templates.compile previews a custom text, and says why one cannot be used", func(t *testing.T) {
+		compile := func(text string) (result struct {
+			Success    bool    `json:"success"`
+			Text       *string `json:"text"`
+			TextSource string  `json:"text_source"`
+			TextError  string  `json:"text_error"`
+		}) {
+			resp, err := client.Post("/api/templates.compile", map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"message_id":   "preview",
+				"mjml_source":  customTextMJML("Compile HTML"),
+				"test_data":    map[string]interface{}{"contact": map[string]interface{}{"first_name": "Lou"}},
+				"channel":      "email",
+				"text":         text,
+			})
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+			return result
+		}
+
+		valid := compile("Hi {{ contact.first_name }}")
+		require.NotNil(t, valid.Text)
+		assert.Equal(t, "Hi Lou", *valid.Text)
+		assert.Equal(t, "custom", valid.TextSource)
+		assert.Empty(t, valid.TextError)
+
+		invalid := compile("Hi {% if %}")
+		assert.True(t, invalid.Success)
+		require.NotNil(t, invalid.Text)
+		assert.Contains(t, *invalid.Text, "Compile HTML")
+		assert.Equal(t, "auto", invalid.TextSource)
+		assert.NotEmpty(t, invalid.TextError)
+	})
+}

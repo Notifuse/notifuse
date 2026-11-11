@@ -804,11 +804,12 @@ func TestDemoService_GenerateMessagesPerContact(t *testing.T) {
 	mockMessageHistoryRepo.EXPECT().Create(ctx, "demo", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	// Mock SetOpened and SetClicked for message_history updates (triggers timeline entries)
 	mockMessageHistoryRepo.EXPECT().SetOpened(ctx, "demo", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	mockMessageHistoryRepo.EXPECT().SetClicked(ctx, "demo", gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, _, _ string, _ time.Time, clickedURL string) error {
+	mockMessageHistoryRepo.EXPECT().SetClicked(ctx, "demo", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, _, _ string, _ time.Time, clickedURL string, verified bool) error {
 			// Demo clicks must record a plausible https destination so the
 			// per-link click table is populated in demo workspaces
 			assert.True(t, strings.HasPrefix(clickedURL, "https://"))
+			assert.True(t, verified, "a demo click stands for a click through a signed link")
 			return nil
 		}).AnyTimes()
 

@@ -1357,6 +1357,15 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		s.logger.Error("Failed to generate HTML from template")
 		return fmt.Errorf("template compilation failed: %s", errMsg)
 	}
+	if compiledTemplate.TextError != "" {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id":     request.BroadcastID,
+			"workspace_id":     request.WorkspaceID,
+			"template_id":      template.ID,
+			"template_version": template.Version,
+			"error":            compiledTemplate.TextError,
+		}).Warn("Custom text version could not be used, sending the automatic one")
+	}
 
 	// Create SendEmailProviderRequest
 	emailRequest := domain.SendEmailProviderRequest{
@@ -1368,6 +1377,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		To:            request.RecipientEmail,
 		Subject:       emailContent.Subject,
 		Content:       *compiledTemplate.HTML,
+		TextContent:   compiledTemplate.CustomText(),
 		Provider:      emailProvider,
 		EmailOptions: domain.EmailOptions{
 			ReplyTo: emailContent.ReplyTo,

@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { App, Button, Table, Tooltip, Typography } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCopy, faCircleQuestion } from '@fortawesome/free-regular-svg-icons'
+import { faCopy, faCircleQuestion, faUser } from '@fortawesome/free-regular-svg-icons'
 import { getBroadcastLinkStats, LinkClickStats } from '../../services/api/messages_history'
 
 const { Text } = Typography
@@ -41,6 +42,7 @@ export function BroadcastLinkStats({
 }: BroadcastLinkStatsProps) {
   const { t } = useLingui()
   const { message } = App.useApp()
+  const navigate = useNavigate()
 
   // Per-link breakdown for this variation. Mounted only when the variation row is
   // expanded (antd renders expandedRowRender lazily), so the JSONB aggregation runs on
@@ -60,6 +62,16 @@ export function BroadcastLinkStats({
   const copyUrl = (url: string) => {
     navigator.clipboard.writeText(url)
     message.success(t`URL copied to clipboard.`)
+  }
+
+  // Opens the message log on the emails of this broadcast (and variation) on which this
+  // exact link was clicked: the recipients behind the row.
+  const showClickers = (url: string) => {
+    const searchParams = new URLSearchParams()
+    searchParams.set('broadcast_id', broadcastId)
+    if (templateId) searchParams.set('template_id', templateId)
+    searchParams.set('clicked_url', url)
+    navigate({ to: `/console/workspace/${workspaceId}/logs?${searchParams.toString()}` as string & {} })
   }
 
   // Older servers answer this route with an empty 200 body, which makes the API client
@@ -123,6 +135,15 @@ export function BroadcastLinkStats({
                     size="small"
                     icon={<FontAwesomeIcon icon={faCopy} style={{ opacity: 0.7 }} />}
                     onClick={() => copyUrl(url)}
+                  />
+                </Tooltip>
+                <Tooltip title={t`See who clicked`}>
+                  <Button
+                    type="text"
+                    size="small"
+                    aria-label={t`See who clicked`}
+                    icon={<FontAwesomeIcon icon={faUser} style={{ opacity: 0.7 }} />}
+                    onClick={() => showClickers(url)}
                   />
                 </Tooltip>
               </div>

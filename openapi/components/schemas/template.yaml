@@ -141,14 +141,29 @@ EmailTemplate:
       type: object
       description: >-
         MJML visual editor tree structure. Required when `editor_mode` is `visual` (the
-        default), ignored in `code` mode.
+        default), ignored in `code` mode. A block under `mj-body` of type `mj-wrapper`,
+        `mj-section`, `mj-text`, `mj-image`, `mj-button`, `mj-divider`, `mj-spacer`,
+        `mj-social` or `mj-raw` can carry a `display_condition` (see `DisplayCondition`):
+        the block is then sent only to recipients for whom it holds. A condition anywhere
+        else, on a block that holds an `mj-liquid`, or an invalid one, is refused with a 400.
       example:
         type: mjml
         children: []
     text:
       type: string
       nullable: true
-      description: Plain text version of the email
+      maxLength: 65536
+      description: >-
+        Custom plain-text version of the email, sent next to the HTML. Liquid is
+        rendered with the same data as the body (write `{% raw %}` around a literal
+        `{{`). Its links are sent as written: neither tracked nor given UTM
+        parameters. Omit it, or send only whitespace, for the automatic version
+        generated from the HTML at every send. Each translation has its own; a
+        translation without one gets the automatic version of its own HTML. Saving
+        a text with a Liquid syntax error, an `include` or `render` tag, or over
+        64 KiB answers 400. If it cannot be rendered at send time, the email gets
+        the automatic version.
+      example: "Hi {{ contact.first_name }},\n\nYour order has shipped.\n"
   required:
     - subject
     - compiled_preview
@@ -377,6 +392,14 @@ CompileTemplateRequest:
         most clients). Rendered through Liquid like `subject` and returned as
         `subject_preview` in the response.
       example: "Welcome {{ contact.first_name }}"
+    text:
+      type: string
+      description: |
+        Optional source of a custom plain-text version, as stored in a
+        template's `email.text`. It is rendered with `test_data` (kept as
+        written when `preserve_liquid` is true) and returned as `text` with
+        `text_source` set to `custom`. Omit it to get the automatic version.
+      example: "Hi {{ contact.first_name }}"
     test_data:
       type: object
       description: Data to use for Liquid templating
@@ -425,11 +448,25 @@ CompileTemplateResponse:
     text:
       type: string
       description: |
-        Plain-text version sent with the email, generated from the compiled
-        HTML with the same links. Present only when an email compilation
-        succeeds. An empty string means the email holds no text to read and is
-        sent as HTML only.
+        Plain-text version sent with the email: the custom text rendered when
+        the request has a `text` that renders, otherwise the automatic version,
+        generated from the compiled HTML with the same links. Present only when
+        an email compilation succeeds. An empty string means the email holds no
+        text to read and is sent as HTML only.
       example: "Hi Pierre\n\nShop now (https://example.com/shop)\n"
+    text_source:
+      type: string
+      enum:
+        - auto
+        - custom
+      description: Where `text` comes from. Present when `text` is.
+    text_error:
+      type: string
+      description: |
+        Why the custom `text` of the request could not be used (a Liquid
+        error, or a rendered text over 256 KiB); `text` is then the automatic
+        version, as a send would be. With `preserve_liquid`, also flags an
+        automatic text whose Liquid tags would not parse.
     error:
       type: object
       description: MJML compilation error details, if any
@@ -485,3 +522,78 @@ TrackingSettings:
     message_id:
       type: string
       description: Message ID for tracking
+
+DisplayCondition:
+  type: object
+  description: >-
+    Shows a block of a visual template only when a condition on the template data holds.
+    Evaluated at send time with the same data as the Liquid of the template; the MJML export
+    writes it as Liquid around the block.
+  required:
+    - match
+    - rules
+  properties:
+    match:
+      type: string
+      enum:
+        - all
+        - any
+      description: '`all`: every rule holds. `any`: at least one rule holds.'
+    rules:
+      type: array
+      minItems: 1
+      maxItems: 20
+      items:
+        $ref: '#/DisplayConditionRule'
+  example:
+    match: all
+    rules:
+      - variable: order.has_image
+        operator: is_true
+      - variable: contact.custom_string_1
+        operator: eq
+        value: vip
+
+DisplayConditionRule:
+  type: object
+  required:
+    - variable
+    - operator
+  properties:
+    variable:
+      type: string
+      maxLength: 200
+      description: >-
+        Path of a template variable, without braces: segments of letters, digits and
+        underscores separated by dots, the first one not starting with a digit, such as
+        `contact.first_name` or `order.items.size`. The `empty` and `to_liquid` segments
+        are refused: test an empty list or text with `is_blank`.
+      example: order.total
+    operator:
+      type: string
+      enum:
+        - is_true
+        - is_blank
+        - is_present
+        - is_absent
+        - eq
+        - neq
+        - contains
+        - not_contains
+        - gt
+        - gte
+        - lt
+        - lte
+      description: >-
+        `is_true`, `is_blank` (false, empty or absent), `is_present` and `is_absent` take no
+        value. `eq`, `neq`, `contains` and `not_contains` compare text (`contains` on a list
+        looks for an element equal to the value). `gt`, `gte`, `lt` and `lte` compare
+        numbers; a variable that is not a number makes the rule false.
+    value:
+      type: string
+      maxLength: 200
+      description: >-
+        Required by the operators that compare. Free text, without the Liquid delimiters
+        `{{`, `}}`, `{%` and `%}`; for `gt`, `gte`, `lt` and `lte`, a number of at most 15
+        digits before the decimal point.
+      example: '100'

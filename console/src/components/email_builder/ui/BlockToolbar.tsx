@@ -1,16 +1,16 @@
-import React, { useState } from 'react'
-import { Button, Popconfirm, Tooltip, Modal, Input, Radio, Select, App } from 'antd'
+import React, { useRef, useState } from 'react'
+import { Button, Popconfirm, Tooltip, Modal, Input, Radio, Select } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faClone, faFloppyDisk, faTrashAlt } from '@fortawesome/free-regular-svg-icons'
 import { useLingui } from '@lingui/react/macro'
-import type { EmailBlock, SaveOperation, SavedBlock } from '../types'
+import type { EmailBlock, SaveBlockHandler, SavedBlock } from '../types'
 
 interface BlockToolbarProps {
   blockId: string
   block?: EmailBlock
   onClone: (blockId: string) => void
   onDelete: (blockId: string) => void
-  onSave: (block: EmailBlock, operation: SaveOperation, nameOrId: string) => void
+  onSave: SaveBlockHandler
   savedBlocks?: SavedBlock[]
   style?: React.CSSProperties
 }
@@ -25,12 +25,13 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
   style
 }) => {
   const { t } = useLingui()
-  const { message } = App.useApp()
   const [saveModalVisible, setSaveModalVisible] = useState(false)
   const [saveBlockName, setSaveBlockName] = useState('')
   const [saveMode, setSaveMode] = useState<'new' | 'update'>('new')
   const [selectedSavedBlockId, setSelectedSavedBlockId] = useState<string>('')
   const [saving, setSaving] = useState(false)
+  // Set synchronously, so a second Enter in the same tick cannot start another save
+  const savingRef = useRef(false)
 
   const handleClone = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -41,87 +42,45 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
     onDelete(blockId)
   }
 
+  // A saved block can only be replaced by a block of its own type, newest first
+  const sameTypeSavedBlocks = [...(savedBlocks ?? [])]
+    .filter((savedBlock) => savedBlock.block.type === block?.type)
+    .sort((a, b) => {
+      const dateA = a.created ? new Date(a.created).getTime() : 0
+      const dateB = b.created ? new Date(b.created).getTime() : 0
+      return dateB - dateA
+    })
+
+  // Always starts as a new saved block: saved blocks are shared by the workspace, so replacing one is a choice
+  // the user makes, never a default
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation()
+    setSaveMode('new')
+    setSelectedSavedBlockId('')
+    setSaveBlockName(block ? `${block.type.replace('mj-', '')} Block` : '')
     setSaveModalVisible(true)
-
-    // Check if current block already exists in saved blocks
-    if (block && savedBlocks && savedBlocks.length > 0) {
-      const matchingBlock = savedBlocks.find((savedBlock) => {
-        // Match based on block type and content
-        if (savedBlock.block.type !== block.type) return false
-
-        // For blocks with content, match the content
-        if ('content' in block && 'content' in savedBlock.block) {
-          return block.content === savedBlock.block.content
-        }
-
-        // For blocks without content, match based on key attributes
-        const currentAttrs = block.attributes || {}
-        const savedAttrs = savedBlock.block.attributes || {}
-
-        // Get important attributes to compare (excluding dynamic ones like padding, margins)
-        const getComparableAttrs = (attrs: Record<string, unknown>) => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { paddingTop, paddingRight, paddingBottom, paddingLeft, ...comparable } = attrs as {
-            paddingTop?: unknown
-            paddingRight?: unknown
-            paddingBottom?: unknown
-            paddingLeft?: unknown
-            [key: string]: unknown
-          }
-          return comparable
-        }
-
-        const currentComparable = JSON.stringify(getComparableAttrs(currentAttrs as Record<string, unknown>))
-        const savedComparable = JSON.stringify(getComparableAttrs(savedAttrs as Record<string, unknown>))
-
-        return currentComparable === savedComparable
-      })
-
-      if (matchingBlock) {
-        // Pre-select update mode and the matching block
-        setSaveMode('update')
-        setSelectedSavedBlockId(matchingBlock.id)
-        setSaveBlockName('') // Clear the name since we're updating
-      } else {
-        // No match found, use new mode
-        setSaveMode('new')
-        setSelectedSavedBlockId('')
-        setSaveBlockName(`${block.type.replace('mj-', '')} Block`)
-      }
-    } else {
-      // No saved blocks or no current block, use new mode
-      setSaveMode('new')
-      setSelectedSavedBlockId('')
-      if (block) {
-        setSaveBlockName(`${block.type.replace('mj-', '')} Block`)
-      }
-    }
   }
 
   const handleSaveBlock = async () => {
-    if (!onSave || !block) return
+    if (!onSave || !block || savingRef.current) return
+    if (saveMode === 'new' ? !saveBlockName.trim() : !selectedSavedBlockId) return
 
+    savingRef.current = true
     setSaving(true)
-
     try {
       if (saveMode === 'new') {
-        if (!saveBlockName.trim()) return
-        onSave(block, 'create', saveBlockName.trim())
-        message.success(t`Block saved as "${saveBlockName.trim()}"`)
+        await onSave(block, 'create', saveBlockName.trim())
       } else {
-        if (!selectedSavedBlockId) return
-        onSave(block, 'update', selectedSavedBlockId)
-        const selectedBlock = savedBlocks?.find((b) => b.id === selectedSavedBlockId)
-        message.success(t`Block "${selectedBlock?.name}" updated`)
+        await onSave(block, 'update', selectedSavedBlockId)
       }
-
       setSaveModalVisible(false)
       setSaveBlockName('')
       setSaveMode('new')
       setSelectedSavedBlockId('')
+    } catch {
+      // The handler already told the user why; the dialog stays open with what they entered
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
   }
@@ -212,6 +171,10 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
           disabled: saveMode === 'new' ? !saveBlockName.trim() : !selectedSavedBlockId,
           loading: saving
         }}
+        cancelButtonProps={{ disabled: saving }}
+        closable={!saving}
+        mask={{ closable: !saving }}
+        keyboard={!saving}
       >
         {block && (
           <div style={{ marginBottom: 16, fontSize: 12, color: '#666' }}>
@@ -223,7 +186,7 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>{t`Save Mode`}</label>
           <Radio.Group value={saveMode} onChange={(e) => setSaveMode(e.target.value)}>
             <Radio value="new">{t`Save as new block`}</Radio>
-            <Radio value="update" disabled={!savedBlocks || savedBlocks.length === 0}>
+            <Radio value="update" disabled={sameTypeSavedBlocks.length === 0}>
               {t`Update existing block`}
             </Radio>
           </Radio.Group>
@@ -247,25 +210,17 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
             <Select
               style={{ width: '100%' }}
               placeholder={t`Choose a saved block to update`}
-              value={selectedSavedBlockId}
+              value={selectedSavedBlockId || undefined}
               onChange={setSelectedSavedBlockId}
               showSearch
               filterOption={(input, option) => {
                 if (!option) return false
                 return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0
               }}
-              options={
-                savedBlocks
-                  ?.sort((a, b) => {
-                    const dateA = a.created ? new Date(a.created).getTime() : 0
-                    const dateB = b.created ? new Date(b.created).getTime() : 0
-                    return dateB - dateA
-                  })
-                  ?.map((savedBlock) => ({
-                    value: savedBlock.id,
-                    label: `${savedBlock.name} (${savedBlock.block.type})`
-                  })) || []
-              }
+              options={sameTypeSavedBlocks.map((savedBlock) => ({
+                value: savedBlock.id,
+                label: `${savedBlock.name} (${savedBlock.block.type})`
+              }))}
             />
           </div>
         )}

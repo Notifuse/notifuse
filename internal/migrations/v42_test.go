@@ -93,7 +93,7 @@ func expectV42Prelude(mock sqlmock.Sqlmock) {
 func v42StatusChangeFunctions() []string {
 	return []string{
 		schema.ApplyMessageStatusToContactListsFunction(),
-		schema.TrackMessageHistoryChangesFunction(),
+		v42TrackMessageHistoryChangesFn,
 	}
 }
 
@@ -103,9 +103,21 @@ func TestV42Migration_TimelineFunctionAddsOnlyTheStatusStepToV36s(t *testing.T) 
 	collapse := func(s string) string { return strings.Join(strings.Fields(s), " ") }
 	statusStep := regexp.MustCompile(`(?s)\n\s*-- A new complaint or hard bounce.*?PERFORM apply_message_status_to_contact_lists\(.*?\);\s*END IF;`)
 
-	v42 := schema.TrackMessageHistoryChangesFunction()
+	v42 := v42TrackMessageHistoryChangesFn
 	require.Len(t, statusStep.FindAllString(v42, -1), 1)
 	assert.Equal(t, collapse(dottedTrackMessageHistoryChangesFn), collapse(statusStep.ReplaceAllString(v42, "")))
+}
+
+// v42's frozen body is the shared one without the email.link_clicked step v44 added: the
+// copy kept every other line, so a workspace still below 42 records what it recorded before.
+func TestV42Migration_FrozenTimelineFunctionIsTheSharedOneWithoutTheLinkStep(t *testing.T) {
+	collapse := func(s string) string { return strings.Join(strings.Fields(s), " ") }
+	linkStep := regexp.MustCompile(`(?s)\n\s*` + regexp.QuoteMeta(schema.LinkClickedStepAnchor) + `\n.*?ORDER BY e\.key;\s*END IF;`)
+
+	shared := schema.TrackMessageHistoryChangesFunction()
+	require.Len(t, linkStep.FindAllString(shared, -1), 1)
+	assert.NotContains(t, v42TrackMessageHistoryChangesFn, "link_clicked")
+	assert.Equal(t, collapse(v42TrackMessageHistoryChangesFn), collapse(linkStep.ReplaceAllString(shared, "")))
 }
 
 func expectPatch(mock sqlmock.Sqlmock, patched string, execErr error) {

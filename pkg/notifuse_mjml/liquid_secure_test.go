@@ -1,9 +1,14 @@
 package notifuse_mjml
 
 import (
+	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSecureLiquidEngine_TimeoutEnforcement(t *testing.T) {
@@ -374,4 +379,94 @@ func TestSecureLiquidEngine_NormalRenderUnderLimit(t *testing.T) {
 	if !strings.Contains(out, "1,2,3,") {
 		t.Errorf("expected rendered sequence, got %q", out[:min(40, len(out))])
 	}
+}
+
+// Data reaches the engine decoded from JSON, so every number is a float64: conditions
+// and filters must treat it as the number written in the template.
+func TestSecureLiquidEngine_JSONDataConformance(t *testing.T) {
+	engine := NewSecureLiquidEngine()
+	var data map[string]interface{}
+	raw := `{"order": {"total": 100, "price": 19.99, "qty": 3}, "tags": ["vip_gold", "new"], "first_name": "élodie", "country": "Trinidad and Tobago", "ts": 1709640000}`
+	if err := json.Unmarshal([]byte(raw), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	testCases := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{"number equals an integer literal", `{% if order.total == 100 %}yes{% else %}no{% endif %}`, "yes"},
+		{"case when on a number", `{% case order.qty %}{% when 3 %}three{% else %}other{% endcase %}`, "three"},
+		{"contains compares list elements", `{% if tags contains "vip" %}yes{% else %}no{% endif %}`, "no"},
+		{"contains an element", `{% if tags contains "new" %}yes{% else %}no{% endif %}`, "yes"},
+		{"quoted and in a condition", `{% if country == "Trinidad and Tobago" %}yes{% else %}no{% endif %}`, "yes"},
+		{"exact amounts", `{{ order.price | times: order.qty }}`, "59.97"},
+		{"accented capitalize", `{{ first_name | capitalize }}`, "Élodie"},
+		{"timestamp date", `{{ ts | date: "%-d %B %Y" }}`, "5 March 2024"},
+		{"multi-line tag", "{% if order.total\n  > 50 %}big{% endif %}", "big"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := engine.Render(tc.template, data)
+			if err != nil {
+				t.Fatalf("Expected no error, got: %v", err)
+			}
+			if result != tc.expected {
+				t.Errorf("Expected %q, got %q", tc.expected, result)
+			}
+		})
+	}
+}
+
+// liquidgo 5.11 follows Shopify Liquid 5.11: {% snippet %} is gone and {% render %}
+// takes only a quoted template name.
+func TestSecureLiquidEngine_RemovedSnippetAndRenderVariable(t *testing.T) {
+	engine := NewSecureLiquidEngine()
+	for _, template := range []string{
+		`{% snippet greeting %}Hi{% endsnippet %}{% render greeting %}`,
+		`{% assign name = "footer" %}{% render name %}`,
+	} {
+		result, err := engine.Render(template, map[string]interface{}{})
+		if err == nil && !strings.Contains(result, "Liquid") {
+			t.Errorf("%s: expected a Liquid error, got %q", template, result)
+		}
+	}
+}
+
+func TestSecureLiquidEngine_RenderCached(t *testing.T) {
+	t.Run("parses a template once and renders it with each call's data", func(t *testing.T) {
+		engine := NewSecureLiquidEngine()
+		source := `{% assign x = name | upcase %}{{ x }}`
+		out, err := engine.renderCached(source, map[string]interface{}{"name": "ada"})
+		require.NoError(t, err)
+		assert.Equal(t, "ADA", out)
+		parsed := engine.parsed[source]
+		require.NotNil(t, parsed)
+
+		out, err = engine.renderCached(source, map[string]interface{}{"name": "bob"})
+		require.NoError(t, err)
+		assert.Equal(t, "BOB", out)
+		assert.Same(t, parsed, engine.parsed[source])
+	})
+	t.Run("RenderWithTimeout does not cache", func(t *testing.T) {
+		engine := NewSecureLiquidEngine()
+		_, err := engine.RenderWithTimeout(`{{ a }}`, map[string]interface{}{})
+		require.NoError(t, err)
+		assert.Empty(t, engine.parsed)
+	})
+	t.Run("the cache is bounded", func(t *testing.T) {
+		engine := NewSecureLiquidEngine()
+		for i := 0; i <= maxParsedTemplates; i++ {
+			_, err := engine.renderCached(fmt.Sprintf(`{{ a }}%d`, i), map[string]interface{}{})
+			require.NoError(t, err)
+			assert.LessOrEqual(t, len(engine.parsed), maxParsedTemplates)
+		}
+	})
+	t.Run("size cap still applies", func(t *testing.T) {
+		engine := NewSecureLiquidEngine()
+		_, err := engine.renderCached(strings.Repeat("x", DefaultMaxTemplateSize+1), nil)
+		assert.Error(t, err)
+		assert.Empty(t, engine.parsed)
+	})
 }

@@ -2,9 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
-## [43.2] - WIP
+## [44.0] - unreleased
 
-- **Feature**: Every email now includes a plain-text version, generated from its HTML, for mail clients that show text only and for better deliverability. Its links are the links of the HTML, tracked the same way. Preview it in the template editor's new Text version mode, in the MJML editor's Text version tab and in the template preview. `templates.compile` returns it as `text`.
+- **Feature**: Automations can start when a contact clicks a specific link, with the new "Clicked a link" trigger (`email.link_clicked`). It starts the first time a contact clicks each link of an email, and can be limited to links containing some text, to one broadcast or to one template. A click on an email the automation sent itself does not start it again. Clicks made before the upgrade, and clicks on links in emails sent before 42.2, do not start it; a link clicked before the upgrade starts it on its next click. The new event does not count toward the monthly event usage.
+
+- **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
+
+- **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.
+
+- **Improvement**: Opens and clicks on an email whose contact was deleted are no longer recorded. The link still redirects.
+
+- **Improvement**: Behind a reverse proxy, clicks on an email's unsubscribe and notification center links are no longer recorded per link, so the contact address these links carry is no longer stored with the click. Behind a proxy that forwards neither the public host nor `X-Forwarded-Host`, links on a custom domain the workspace no longer uses are still recorded. Links recorded before the upgrade stay in the per-link statistics.
+
+- **Feature**: Blocks of the visual email editor can now be sent only to some recipients, with a display condition on the email's data, such as "`order.total` is greater than 100" or "`contact.custom_string_1` equals `vip`" (#395). Add it at the top of a section, text, image, button or other block's settings, where its result with the test data shows; the preview hides the blocks it would hide. Columns and groups cannot have one. Through the API, a block of `visual_editor_tree` takes it as `display_condition`. The MJML export writes conditions as Liquid; importing that file back into the visual editor drops them.
+
+- **Feature**: Every email now includes a plain-text version, for mail clients that show text only and for better deliverability. By default it is generated from the HTML at every send, its links tracked like the links of the HTML. In the template editor's new Text version mode, and in the MJML editor's Text version tab, you can instead write your own, starting from the automatic version, with Liquid like the subject, for the default language and for each translation; a language without its own text gets the automatic version. A custom text is sent as written: its links are not tracked, and a marketing template's text should keep `{{ unsubscribe_url }}`, which the editor reminds you of. A custom text that cannot be rendered at send time is replaced by the automatic version. The template preview shows the text sent and where it comes from, and `templates.compile` returns it as `text`, with `text_source` and `text_error`.
+
+  **Before you upgrade, if you set `email.text` through the API**: it was stored and never sent, and is now sent as the email's text version. It is checked when the template is saved (Liquid syntax, 64 KiB at most, 400 otherwise) and rendered with Liquid, so a literal `{{` needs `{% raw %}`.
 
 - **Feature**: Broadcast and automation emails can link to their web version with `{{ view_in_browser_url }}`, for recipients whose mail client renders the email badly. The page shows the email as it was sent, with the template version and the data of that send. Viewing it records no open and its links record no click; they keep their UTM parameters. With click tracking on, the click on the link in the email itself counts as a click. Only emails whose template uses the variable have a web version; transactional and double opt-in emails leave it empty. Deleting the template takes its web versions down, and so does deleting the contact. The link signs the domain it was sent with, and the page opens there and on the API endpoint only, which keeps another workspace's custom domain from showing it. The API endpoint shows every workspace's web versions, and workspaces that already share a custom domain show each other's on it. After a workspace changes custom domain, its old links keep working while the old domain points to Notifuse, and stop within a few minutes of another workspace taking it; a redirect keeps them working only if it goes to the API endpoint. Behind a reverse proxy, forward the original `Host` or set `X-Forwarded-Host`, which is then the only host the request is judged on; a proxy that sends the API endpoint's host as `Host` turns the rule off. The link editor of the visual builder offers it as a link type, "Web version of the email".
 
@@ -18,11 +32,29 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
 
-## [43.1] - 2026-11-10
+- **Fix**: Create Notification is now disabled, and Edit hidden, on the transactional notifications page for members without Templates read: creating offered a template picker they could not load, and saving an edit was refused. Editing a notification managed by an integration stays available with Transactional write alone.
+
+- **Fix**: Liquid in templates now matches Shopify Liquid in more cases: `{% if order.total == 100 %}` matches numbers from your data, accented text is no longer corrupted by `capitalize` or `truncate`, amounts are exact (`0.1 | plus: 0.2` is `0.3`), `date` supports `%-d` and formats timestamps, and conditions on a text containing "and" or "or", tags written over several lines and `{%- raw -%}` work.
+
+- **Fix**: `{% if tags contains "vip" %}` on a list now matches only the element `vip`, no longer `vip_gold`. Check templates that relied on the partial match.
+
+- **Fix**: As in Shopify Liquid, `{{ item.size }}` on an object without a `size` field now gives its number of fields: use `item["size"]` to test an optional field. A filter given too many arguments now shows nothing instead of the unfiltered text.
+
+- **Fix**: As in Shopify Liquid 5.11, `{% snippet %}` and `{% render variable %}` are no longer supported: a template or blog theme using them shows a Liquid error. Use `{% render 'name' %}`.
+
+- **Fix**: In the email editor, saving a block now always starts as a new saved block, and "Update existing block" only lists saved blocks of the same type. Before, the dialog could open on updating another saved block that merely looked alike. The confirmation now appears once the block is saved, and the dialog stays open if saving fails.
+
+- **Fix**: In the email editor's structure tree, a block dragged down now lands where the line shows, and the line only appears where the block can go.
+
+- **Improvement**: Blocks can now be dragged into empty columns, sections, wrappers, groups and social blocks, wrappers get a drag handle, and a section dragged below nested content finds its place without a sideways move. While dragging, moving the pointer left or right picks the level where the block goes, and the line shows that level. Moving, adding, duplicating or deleting a column keeps the other columns' proportions when their widths are percentages adding up to 100.
 
 - **Improvement**: Test emails can now be sent for a mailing list, chosen in the test dialog of a template or a broadcast and preselected with the broadcast's audience list (#423). They then carry that list's working unsubscribe and confirmation links and the List-Unsubscribe header, as a broadcast to the list does; a test for the audience list of a broadcast that also goes to the list's unsubscribed contacts has no header, as the broadcast. Unsubscribing or confirming from such a test, or a bounce or complaint on it, changes the recipient's subscription to the list. `transactional.testTemplate` takes `list_id` and `omit_list_unsubscribe_header`; a test for a list also needs Lists read.
 
 - **Fix**: Test emails sent to an address typed with capital letters are now recorded under the contact's address, so they show in the contact's history and are erased with the contact.
+
+- **Fix**: In templates written in the MJML editor, an attribute value containing an escaped double quote or angle bracket, such as `alt="27&quot; monitor"` on an image, no longer fails the compile, and a quote escaped in the HTML of a text or raw block now reaches the email intact.
+
+- **Improvement**: Groups in email templates now render as in MJML: a group without a width takes its share of the section, a group with a percentage width keeps it, and in Outlook a group sits side by side with the columns and groups of its section, with raw HTML blocks placed between them. A group saved with a width of 100% next to another column or group now makes a row wider than the email in Outlook: give the group and the columns next to it widths that add up to 100%.
 
 ## [43.0] - 2026-11-07
 

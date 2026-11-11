@@ -137,6 +137,17 @@ func TestFromHTML(t *testing.T) {
 		},
 		{"a bare url line followed by another link is kept", `<p><a href="https://e.com/a">https://e.com/a</a></p><p><a href="https://e.com/b">B</a></p>`, "https://e.com/a\n\nB (https://e.com/b)\n"},
 		{"hr is a separator line", `<p>A</p><hr><p>B</p>`, "A\n\n" + separator + "\n\nB\n"},
+		// An href still holding Liquid only reaches the converter from a compile that kept
+		// Liquid (the seed of a custom text): it is written as a destination, so the seed
+		// keeps links such as the unsubscribe link.
+		{"a liquid href with a label is written as a destination", `<p><a href="{{ unsubscribe_url }}">Unsubscribe</a></p>`, "Unsubscribe ({{ unsubscribe_url }})\n"},
+		{"a liquid href without spaces is written as a destination", `<a href="{{url}}">Open</a>`, "Open ({{url}})\n"},
+		{"a liquid href with a path is written as a destination", `<a href="{{ workspace.base_url }}/x">Site</a>`, "Site ({{ workspace.base_url }}/x)\n"},
+		{"a liquid tag href is written as a destination", `<a href="{% if a %}https://e.com/a{% endif %}">A</a>`, "A ({% if a %}https://e.com/a{% endif %})\n"},
+		{"a liquid href equal to its label is written once", `<a href="{{ unsubscribe_url }}">{{ unsubscribe_url }}</a>`, "{{ unsubscribe_url }}\n"},
+		{"a linked image with a liquid href keeps its alt and destination", `<a href="{{ shop_url }}"><img src="logo.png" alt="Shop"></a>`, "Shop ({{ shop_url }})\n"},
+		{"liquid inside a web url is unchanged", `<a href="https://e.com/?id={{ contact.id }}">Profile</a>`, "Profile (https://e.com/?id={{ contact.id }})\n"},
+		{"liquid tags in text are kept", `<p>{% if vip %}Hello VIP{% endif %}</p>`, "{% if vip %}Hello VIP{% endif %}\n"},
 	}
 
 	for _, tt := range tests {
