@@ -7,6 +7,7 @@ import { faTrashAlt } from '@fortawesome/free-regular-svg-icons'
 import type { EmailBlock, MJMLComponentType, TreeNode, SavedBlock } from '../types'
 import { EmailBlockClass } from '../EmailBlockClass'
 import { AddBlockPopover } from '../ui/AddBlockPopover'
+import { depthOf, resolveDrop, type DragSource } from '../utils/treeDrop'
 
 interface TreePanelProps {
   emailTree: EmailBlock
@@ -25,6 +26,7 @@ interface TreePanelProps {
 
 // Constants
 const DRAGGABLE_NODES: MJMLComponentType[] = [
+  'mj-wrapper',
   'mj-section',
   'mj-column',
   'mj-group',
@@ -173,16 +175,17 @@ const AddContentButton: React.FC<{
 // Drag Handle Component
 const DragHandle: React.FC = () => {
   const { t } = useLingui()
+  const label = t`Drag to move this block in the tree`
   return (
     <span className="inline-block ml-2">
       <Tooltip
-        title={t`Drag to move this block in the tree`}
+        title={label}
         trigger={['hover']}
         onOpenChange={() => {
           // Tooltip will close automatically on click due to trigger configuration
         }}
       >
-        <span className="opacity-50">
+        <span className="opacity-50" role="img" aria-label={label}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -260,7 +263,10 @@ const TreeNodeTitle: React.FC<{
   const preventAddBlocks = shouldPreventAddBlocks(emailTree, block.id)
 
   return (
-    <span>
+    // data-draggable lets the tree cancel a drag started on a row that cannot move (the body), and
+    // data-tree-block-id lets the tree find the block of a row on screen while dragging. It is not
+    // data-block-id, which marks the block on the canvas and is looked up there
+    <span data-draggable={isDraggable ? 'true' : 'false'} data-tree-block-id={block.id}>
       <span>
         {blockClass.getLabel(indexToPass)}
         {block.display_condition && (
@@ -432,41 +438,6 @@ const convertToTreeNode = (
   return node
 }
 
-// Check if drop is allowed based on MJML structure rules using EmailBlockClass
-const allowDrop = (dragType: MJMLComponentType, dropType: MJMLComponentType): boolean => {
-  const tempBlock = { id: 'temp', type: dropType, attributes: {} } as EmailBlock
-  const blockClass = EmailBlockClass.from(tempBlock)
-  return blockClass.canAcceptChild(dragType)
-}
-
-// Tree utility functions
-const findParentId = (nodes: TreeNode[], pos: string): string | null => {
-  for (const node of nodes) {
-    const nodeWithPos = node as TreeNode & { pos?: string }
-    if (nodeWithPos.pos === pos) {
-      return typeof nodeWithPos.key === 'string' ? nodeWithPos.key : null
-    }
-    if (Array.isArray(node.children)) {
-      const found = findParentId(node.children, pos)
-      if (found) return found
-    }
-  }
-  return null
-}
-
-const getNodesWithPos = (
-  nodes: TreeNode[],
-  parentPos = '0'
-): Array<TreeNode & { pos: string }> => {
-  return nodes.map((node, index) => ({
-    ...node,
-    pos: `${parentPos}-${index}`,
-    children: Array.isArray(node.children)
-      ? getNodesWithPos(node.children, `${parentPos}-${index}`)
-      : undefined
-  })) as Array<TreeNode & { pos: string }>
-}
-
 export const TreePanel: React.FC<TreePanelProps> = ({
   emailTree,
   selectedBlockId,
@@ -559,67 +530,153 @@ export const TreePanel: React.FC<TreePanelProps> = ({
     }
   }
 
-  const handleDrop = (info: Record<string, unknown>) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const infoTyped = info as any
-    const dropKey = infoTyped.node.key
-    const dragKey = infoTyped.dragNode.key
-    const dropPos = infoTyped.node.pos.split('-')
-    const dropPosition = infoTyped.dropPosition - Number(dropPos[dropPos.length - 1])
+  // Dropping is the tree's own: from the rows on screen and the pointer, it computes the place, draws the line and
+  // moves the block. rc-tree is only the drag source (allowDrop is always false), so it draws no indicator and
+  // opens no row on its own
+  const wrapperRef = React.useRef<HTMLDivElement>(null)
+  const dragRef = React.useRef<(DragSource & { id: string; startX: number }) | null>(null)
+  const [line, setLine] = React.useState<{ top: number; left: number } | null>(null)
+  const hoverRef = React.useRef<{ id: string | null; timer?: ReturnType<typeof setTimeout> }>({
+    id: null
+  })
+  // The hover timer fires after renders: it reads the expanded keys of the latest one
+  const expandedRef = React.useRef(expandedKeys)
+  React.useEffect(() => {
+    expandedRef.current = expandedKeys
+  }, [expandedKeys])
 
-    const dragNode = infoTyped.dragNode
-    const dropNode = infoTyped.node
+  const stopHover = () => {
+    clearTimeout(hoverRef.current.timer)
+    hoverRef.current = { id: null }
+  }
+  React.useEffect(() => stopHover, [])
 
-    let targetParentId: string
-    let targetPosition: number
+  const showLine = (next: { top: number; left: number } | null) =>
+    // Only on a change: every render rebuilds the tree data, which stops a running expand animation
+    setLine((prev) => (prev?.top === next?.top && prev?.left === next?.left ? prev : next))
 
-    if (infoTyped.dropToGap) {
-      // Dropping between siblings
-      const dropNodePos = infoTyped.node.pos.split('-')
-      const dropNodeParentPos = dropNodePos.slice(0, -1).join('-')
+  const clearDrop = () => {
+    stopHover()
+    showLine(null)
+  }
 
-      const treeWithPos = getNodesWithPos(bodyTreeData)
-      const parentId = findParentId(treeWithPos, dropNodeParentPos)
+  const rowId = (row: Element | null | undefined) =>
+    row?.querySelector('[data-tree-block-id]')?.getAttribute('data-tree-block-id') ?? null
 
-      if (!parentId) {
-        console.error('Could not find parent for sibling drop')
-        return
-      }
+  // The gap is between the last row whose middle is above the pointer, or level with it, and the next row; above
+  // the Body row's middle, it is the Body row's bottom half. This covers the band antd leaves under each row and
+  // the padding
+  const locateDrop = (
+    wrapper: HTMLElement,
+    drag: DragSource & { startX: number },
+    x: number,
+    y: number
+  ) => {
+    const rows = Array.from(wrapper.querySelectorAll('[role="treeitem"]')).map((el) => ({
+      el,
+      id: rowId(el),
+      rect: el.getBoundingClientRect()
+    }))
+    if (!rows.length) return null
+    const below = rows.findIndex((row) => row.rect.top + row.rect.height / 2 > y)
+    const upperIndex = below === -1 ? rows.length - 1 : Math.max(below - 1, 0)
+    const upper = rows[upperIndex]
+    const lowerId = rows[upperIndex + 1]?.id ?? null
+    const upperDepth = upper.id === null ? null : depthOf(emailTree, upper.id)
+    if (upper.id === null || upperDepth === null) return null
 
-      const parentBlock = EmailBlockClass.findBlockById(emailTree, parentId)
-      if (!parentBlock) {
-        console.error('Parent block not found')
-        return
-      }
+    const indent =
+      wrapper.querySelector('.ant-tree-indent-unit')?.getBoundingClientRect().width || 24
+    const shift = Math.round((x - drag.startX) / indent)
+    const place = resolveDrop(emailTree, drag, { upperId: upper.id, lowerId }, shift)
+    if (!place) return null
 
-      const parentClass = EmailBlockClass.from(parentBlock)
-      if (!parentClass.canAcceptChild(dragNode.blockType)) {
-        console.warn(
-          'Sibling drop not allowed:',
-          dragNode.blockType,
-          'cannot be child of',
-          parentBlock.type
-        )
-        return
-      }
-
-      targetParentId = parentId
-      targetPosition =
-        dropPosition < 0
-          ? Number(dropPos[dropPos.length - 1])
-          : Number(dropPos[dropPos.length - 1]) + 1
-    } else {
-      // Dropping into a container
-      if (!allowDrop(dragNode.blockType, dropNode.blockType)) {
-        console.warn('Drop not allowed:', dragNode.blockType, 'into', dropNode.blockType)
-        return
-      }
-
-      targetParentId = dropKey
-      targetPosition = 0
+    const box = wrapper.getBoundingClientRect()
+    const content = upper.el
+      .querySelector('.ant-tree-node-content-wrapper')
+      ?.getBoundingClientRect()
+    const line = {
+      top: upper.rect.bottom - box.top + wrapper.scrollTop,
+      left:
+        (content ?? upper.rect).left -
+        box.left +
+        wrapper.scrollLeft +
+        (place.depth - upperDepth) * indent
     }
+    return { place: { parentId: place.parentId, index: place.index }, line }
+  }
 
-    onMoveBlock(dragKey, targetParentId, targetPosition)
+  // A collapsed row held under the pointer opens after a while when the dragged block can go somewhere inside it
+  const trackHover = (target: EventTarget, drag: DragSource & { id: string }) => {
+    const row = (target as Element).closest?.('[role="treeitem"]')
+    const id = rowId(row)
+    if (id === hoverRef.current.id) return
+    stopHover()
+    hoverRef.current.id = id
+    if (!id || expandedRef.current.includes(id)) return
+    const hovered = EmailBlockClass.findBlockById(emailTree, id)
+    const dragged = EmailBlockClass.findBlockById(emailTree, drag.id)
+    if (!hovered?.children?.length || !dragged || EmailBlockClass.findBlockById(dragged, id)) return
+    const takes = (block: EmailBlock): boolean =>
+      EmailBlockClass.from(block).canAcceptChild(drag.type) || (block.children ?? []).some(takes)
+    if (!takes(hovered)) return
+    hoverRef.current.timer = setTimeout(() => {
+      onTreeExpand?.([...expandedRef.current, id])
+    }, 800)
+  }
+
+  const handleDragOverCapture = (event: React.DragEvent<HTMLDivElement>) => {
+    const drag = dragRef.current
+    const wrapper = wrapperRef.current
+    // A drag that did not start in this tree is not ours
+    if (!drag || !wrapper) return
+    trackHover(event.target, drag)
+    const found = locateDrop(wrapper, drag, event.clientX, event.clientY)
+    showLine(found?.line ?? null)
+    // Lets the drop fire on the padding too
+    if (found) event.preventDefault()
+  }
+
+  const handleDropCapture = (event: React.DragEvent<HTMLDivElement>) => {
+    const drag = dragRef.current
+    const wrapper = wrapperRef.current
+    // Computed again: a row may have opened under the pointer since the last dragover
+    const place =
+      drag && wrapper ? locateDrop(wrapper, drag, event.clientX, event.clientY)?.place : null
+    clearDrop()
+    dragRef.current = null
+    if (!drag || !place) return
+    event.preventDefault()
+    onMoveBlock(drag.id, place.parentId, place.index)
+    // A block dropped into a collapsed or empty container would vanish from view: open it
+    if (onTreeExpand && !expandedKeys.includes(place.parentId)) {
+      onTreeExpand([...expandedKeys, place.parentId])
+    }
+  }
+
+  // Capture phase: rc-tree's rows stop the propagation of their dragleave
+  const handleDragLeaveCapture = (event: React.DragEvent<HTMLDivElement>) => {
+    const wrapper = event.currentTarget
+    const related = event.relatedTarget as Node | null
+    const box = wrapper.getBoundingClientRect()
+    const leaving = related
+      ? !wrapper.contains(related)
+      : event.clientX < box.left ||
+        event.clientX >= box.right ||
+        event.clientY < box.top ||
+        event.clientY >= box.bottom
+    if (leaving) clearDrop()
+  }
+
+  // rc-tree makes every row draggable once the tree is; cancel the drag of a row that cannot move, before
+  // rc-tree sees it, so the row still accepts drops
+  const handleDragStartCapture = (event: React.DragEvent<HTMLDivElement>) => {
+    const row = (event.target as HTMLElement).closest?.('[role="treeitem"]')
+    const title = row?.querySelector('[data-draggable]')
+    if (title?.getAttribute('data-draggable') === 'false') {
+      event.preventDefault()
+      event.stopPropagation()
+    }
   }
 
   // Common tree props
@@ -656,21 +713,44 @@ export const TreePanel: React.FC<TreePanelProps> = ({
       {/* Body Section */}
       {bodyTreeData.length > 0 && (
         <div className="flex-shrink-0">
-          <div className="p-2 overflow-auto">
+          <div
+            ref={wrapperRef}
+            className="relative p-2 overflow-auto"
+            onDragStartCapture={handleDragStartCapture}
+            onDragEnterCapture={handleDragOverCapture}
+            onDragOverCapture={handleDragOverCapture}
+            onDropCapture={handleDropCapture}
+            onDragLeaveCapture={handleDragLeaveCapture}
+          >
             <Tree
               {...commonTreeProps}
               draggable={{ icon: false }}
               expandedKeys={expandedKeys}
               onExpand={handleExpand}
               treeData={bodyTreeData}
-              onDrop={handleDrop}
-              allowDrop={({ dragNode, dropNode, dropPosition }) => {
-                if (dropPosition !== 0) {
-                  return true // Sibling drop - let handleDrop validate
-                }
-                return allowDrop(dragNode.blockType, dropNode.blockType)
+              onDragStart={({ event, node }) => {
+                const id = String(node.key)
+                const block = EmailBlockClass.findBlockById(emailTree, id)
+                const depth = depthOf(emailTree, id)
+                dragRef.current =
+                  block && depth !== null
+                    ? { id, type: block.type, depth, startX: event.clientX }
+                    : null
               }}
+              onDragEnd={() => {
+                clearDrop()
+                dragRef.current = null
+              }}
+              allowDrop={() => false}
             />
+            {line && (
+              <div
+                data-testid="tree-drop-line"
+                aria-hidden="true"
+                className="pointer-events-none absolute right-0 h-0.5 -translate-y-1/2 bg-blue-500"
+                style={{ top: line.top, left: line.left }}
+              />
+            )}
           </div>
         </div>
       )}
