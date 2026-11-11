@@ -145,7 +145,7 @@ EmailTemplate:
         `mj-section`, `mj-text`, `mj-image`, `mj-button`, `mj-divider`, `mj-spacer`,
         `mj-social` or `mj-raw` can carry a `display_condition` (see `DisplayCondition`):
         the block is then sent only to recipients for whom it holds. A condition anywhere
-        else, or an invalid one, is refused with a 400.
+        else, on a block that holds an `mj-liquid`, or an invalid one, is refused with a 400.
       example:
         type: mjml
         children: []
@@ -533,7 +533,8 @@ DisplayConditionRule:
       description: >-
         Path of a template variable, without braces: segments of letters, digits and
         underscores separated by dots, the first one not starting with a digit, such as
-        `contact.first_name` or `order.items.size`.
+        `contact.first_name` or `order.items.size`. The `empty` and `to_liquid` segments
+        are refused: test an empty list or text with `is_blank`.
       example: order.total
     operator:
       type: string

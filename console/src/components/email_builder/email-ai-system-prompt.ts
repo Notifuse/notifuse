@@ -267,7 +267,8 @@ A block can be shown only to recipients for whom a condition on the template dat
 - operators without a value: is_true, is_blank (false, empty or absent), is_present, is_absent
 - operators with a text value: eq, neq, contains, not_contains
 - operators with a number value: gt, gte, lt, lte (the value is a number, written as a string)
-- allowed on mj-wrapper, mj-section, mj-text, mj-image, mj-button, mj-divider, mj-spacer, mj-social and mj-raw under mj-body; never on mj-column, mj-group or mj-liquid
+- allowed on mj-wrapper, mj-section, mj-text, mj-image, mj-button, mj-divider, mj-spacer, mj-social and mj-raw under mj-body; never on mj-column, mj-group or mj-liquid, nor on a block that holds an mj-liquid
+- a variable path cannot use .empty or .to_liquid: test an empty list or text with is_blank
 - set it with updateBlock ({"display_condition": {...}}, or null to remove it) or inside setEmailTree
 - the current email structure prints each block's display_condition: when you rebuild the email with setEmailTree, keep every existing display_condition on the block it belongs to
 

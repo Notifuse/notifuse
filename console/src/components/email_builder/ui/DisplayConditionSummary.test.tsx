@@ -67,4 +67,34 @@ describe('DisplayConditionSummary', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Edit' }))
     expect(await screen.findByRole('button', { name: 'Apply' })).toBeTruthy()
   })
+
+  // The server refuses a condition on a block holding an mj-liquid: hiding the block
+  // would drop half of a Liquid tag pair.
+  it('does not offer a condition on a block holding a Liquid block', () => {
+    const section = {
+      id: 'sec-2',
+      type: 'mj-section',
+      children: [
+        {
+          id: 'col',
+          type: 'mj-column',
+          children: [{ id: 'liq', type: 'mj-liquid', content: '{% endif %}' }]
+        }
+      ]
+    } as unknown as EmailBlock
+    render(<DisplayConditionSummary block={section} onChange={vi.fn()} />)
+    expect(screen.getByRole('button', { name: /Add a condition/ })).toBeDisabled()
+  })
+
+  it('says why an existing condition on such a block is refused', () => {
+    const section = {
+      ...block(true),
+      children: [
+        { id: 'col', type: 'mj-column', children: [{ id: 'liq', type: 'mj-liquid', content: '' }] }
+      ]
+    } as unknown as EmailBlock
+    render(<DisplayConditionSummary block={section} onChange={vi.fn()} />)
+    expect(screen.getByTestId('display-condition-liquid')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Remove the condition' })).toBeEnabled()
+  })
 })

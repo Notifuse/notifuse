@@ -51,6 +51,26 @@ describe('DisplayConditionModal', () => {
     })
   })
 
+  // Confirm saves the variable trimmed, so spaces around it must not block it
+  it('confirms a variable typed with spaces around it, trimmed', async () => {
+    const { onApply } = renderModal()
+    await addRule('  order.has_image ')
+    expect(confirm()).toBeEnabled()
+    await userEvent.click(confirm())
+    await userEvent.click(apply())
+    expect(onApply).toHaveBeenCalledWith({
+      match: 'all',
+      rules: [{ variable: 'order.has_image', operator: 'is_true' }]
+    })
+  })
+
+  it('explains that .empty cannot be used', async () => {
+    renderModal()
+    await addRule('order.items.empty')
+    expect(confirm()).toBeDisabled()
+    expect(screen.getByText(/cannot use .empty or .to_liquid/)).toBeTruthy()
+  })
+
   it('drops the value when the operator takes none', async () => {
     const { onApply } = renderModal({
       match: 'any',

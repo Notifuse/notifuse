@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import { faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import type { DisplayCondition, EmailBlock } from '../types'
-import { evaluateDisplayCondition, operatorTakesValue } from '../displayCondition'
+import { evaluateDisplayCondition, holdsLiquidBlock, operatorTakesValue } from '../displayCondition'
 import { ConditionResult, DisplayConditionModal } from './DisplayConditionModal'
 import { CONDITION_MONO, useOperatorLabels } from './displayConditionLabels'
 
@@ -70,6 +70,9 @@ export const DisplayConditionSummary: React.FC<DisplayConditionSummaryProps> = (
   const condition = block.display_condition
   const header = <div className="text-gray-900 text-sm font-bold">{t`Display condition`}</div>
   const shown = evaluateDisplayCondition(condition, testData)
+  // the server refuses a condition on a block holding an mj-liquid (see holdsLiquidBlock)
+  const liquidInside = holdsLiquidBlock(block)
+  const liquidMessage = t`This block holds a Liquid block, which a condition could cut off from the rest of the email. Move the Liquid block out of it first.`
 
   return (
     <div
@@ -107,6 +110,11 @@ export const DisplayConditionSummary: React.FC<DisplayConditionSummaryProps> = (
             <div className="opacity-60 mb-1.5">{t`Show this block if`}</div>
             <ConditionRules condition={condition} />
           </div>
+          {liquidInside && (
+            <div className="mt-1.5 text-xs text-red-600" data-testid="display-condition-liquid">
+              {liquidMessage}
+            </div>
+          )}
           <div className="mt-1.5 text-xs text-slate-500">
             {t`With the test data:`}{' '}
             <ConditionResult shown={shown} label={shown ? t`shown` : t`hidden`} />
@@ -119,14 +127,17 @@ export const DisplayConditionSummary: React.FC<DisplayConditionSummaryProps> = (
             <Text type="secondary" className="text-xs">
               {t`Always shown`}
             </Text>
-            <Button
-              size="small"
-              type="dashed"
-              icon={<FontAwesomeIcon icon={faPlus} />}
-              onClick={() => setOpen(true)}
-            >
-              {t`Add a condition`}
-            </Button>
+            <Tooltip title={liquidInside ? liquidMessage : undefined}>
+              <Button
+                size="small"
+                type="dashed"
+                disabled={liquidInside}
+                icon={<FontAwesomeIcon icon={faPlus} />}
+                onClick={() => setOpen(true)}
+              >
+                {t`Add a condition`}
+              </Button>
+            </Tooltip>
           </div>
         </>
       )}

@@ -96,6 +96,8 @@ export const DisplayConditionModal: React.FC<DisplayConditionModalProps> = ({
     switch (error) {
       case 'invalid_variable':
         return t`Enter a variable path such as order.total: letters, digits and underscores, separated by dots.`
+      case 'unsupported_lookup':
+        return t`A condition cannot use .empty or .to_liquid: use the operator "is false or empty".`
       case 'value_required':
         return t`Enter a value.`
       case 'value_too_long':
@@ -113,17 +115,23 @@ export const DisplayConditionModal: React.FC<DisplayConditionModalProps> = ({
 
   const andOr = condition.match === 'all' ? t`and` : t`or`
   const shown = evaluateDisplayCondition(condition, testData)
-  const draftError = editing ? validateRule(editing.rule) : null
+  // the rule as Confirm saves it, so the error shown is the one Confirm would meet
+  const draft: DisplayConditionRule | null = editing
+    ? {
+        ...editing.rule,
+        variable: editing.rule.variable.trim(),
+        ...(editing.rule.value !== undefined ? { value: trimGoSpace(editing.rule.value) } : {})
+      }
+    : null
+  const draftError = draft ? validateRule(draft) : null
 
   const removeRule = (index: number) =>
     setCondition({ ...condition, rules: condition.rules.filter((_, j) => j !== index) })
 
   const confirmEdit = () => {
-    if (!editing || draftError) return
-    const rule: DisplayConditionRule = { ...editing.rule, variable: editing.rule.variable.trim() }
-    if (rule.value !== undefined) rule.value = trimGoSpace(rule.value)
+    if (!editing || !draft || draftError) return
     const rules = [...condition.rules]
-    rules[editing.index] = rule
+    rules[editing.index] = draft
     setCondition({ ...condition, rules })
     setEditing(null)
   }

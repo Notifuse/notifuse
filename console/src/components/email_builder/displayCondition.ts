@@ -157,16 +157,37 @@ function eqNumber(value: string): ConditionNumber | null {
   return EQ_NUMBER_REGEX.test(value) ? conditionNumber(value) : null
 }
 
-export function isValidConditionVariable(variable: string): boolean {
-  if (variable.length > MAX_DISPLAY_CONDITION_VARIABLE_LENGTH || !VARIABLE_REGEX.test(variable)) {
+// liquidgo reads these segments as lookup commands, which resolveVariable does not
+// mirror: refused on both sides so the editor and the send never disagree.
+const UNSUPPORTED_SEGMENTS = new Set(['empty', 'to_liquid'])
+
+// usesUnsupportedLookup reports a path with an .empty or .to_liquid segment.
+export function usesUnsupportedLookup(variable: string): boolean {
+  return variable
+    .split('.')
+    .slice(1)
+    .some((segment) => UNSUPPORTED_SEGMENTS.has(segment))
+}
+
+export function isValidConditionVariable(variable: unknown): boolean {
+  if (
+    typeof variable !== 'string' ||
+    variable.length > MAX_DISPLAY_CONDITION_VARIABLE_LENGTH ||
+    !VARIABLE_REGEX.test(variable)
+  ) {
     return false
   }
   const first = variable.split('.')[0]
-  return !RESERVED_FIRST_SEGMENTS.has(first) && !first.startsWith('__dc')
+  return (
+    !RESERVED_FIRST_SEGMENTS.has(first) &&
+    !first.startsWith('__dc') &&
+    !usesUnsupportedLookup(variable)
+  )
 }
 
 export type DisplayConditionRuleError =
   | 'invalid_variable'
+  | 'unsupported_lookup'
   | 'unknown_operator'
   | 'value_not_allowed'
   | 'value_required'
@@ -182,13 +203,21 @@ export type DisplayConditionError =
 
 // validateRule mirrors DisplayConditionRule.validate in Go: the first reason the rule
 // cannot be saved, or null.
+// A rule from the AI assistant or an imported file may have any shape: anything
+// malformed is an error, never an exception.
 export function validateRule(rule: DisplayConditionRule): DisplayConditionRuleError | null {
-  if (!isValidConditionVariable(rule.variable)) return 'invalid_variable'
+  if (!isPlainObject(rule) || !isValidConditionVariable(rule.variable)) {
+    return isPlainObject(rule) &&
+      typeof rule.variable === 'string' &&
+      usesUnsupportedLookup(rule.variable)
+      ? 'unsupported_lookup'
+      : 'invalid_variable'
+  }
   if (VALUELESS_OPERATORS.has(rule.operator)) {
     return rule.value === undefined || rule.value === null ? null : 'value_not_allowed'
   }
   if (!KNOWN_OPERATORS.has(rule.operator)) return 'unknown_operator'
-  if (rule.value === undefined || rule.value === null || trimGoSpace(rule.value) === '') {
+  if (typeof rule.value !== 'string' || trimGoSpace(rule.value) === '') {
     return 'value_required'
   }
   if ([...rule.value].length > MAX_DISPLAY_CONDITION_VALUE_LENGTH) return 'value_too_long'
@@ -203,6 +232,7 @@ export function validateRule(rule: DisplayConditionRule): DisplayConditionRuleEr
 
 // validateCondition mirrors DisplayCondition.Validate in Go.
 export function validateCondition(condition: DisplayCondition): DisplayConditionError | null {
+  if (!isPlainObject(condition)) return { kind: 'invalid_match' }
   if (condition.match !== 'all' && condition.match !== 'any') return { kind: 'invalid_match' }
   if (!Array.isArray(condition.rules) || condition.rules.length === 0) return { kind: 'no_rules' }
   if (condition.rules.length > MAX_DISPLAY_CONDITION_RULES) return { kind: 'too_many_rules' }
@@ -299,7 +329,7 @@ function numericValue(x: unknown): number | null {
 }
 
 export function evaluateRule(rule: DisplayConditionRule, data: unknown): boolean {
-  if (!isValidConditionVariable(rule.variable)) return false
+  if (!isPlainObject(rule) || !isValidConditionVariable(rule.variable)) return false
   const x = resolveVariable(data, rule.variable)
   switch (rule.operator) {
     case 'is_true':
@@ -312,7 +342,7 @@ export function evaluateRule(rule: DisplayConditionRule, data: unknown): boolean
       return isBlank(x) || isEmpty(x)
   }
   const value = rule.value
-  if (value === undefined || value === null || trimGoSpace(value) === '') return false
+  if (typeof value !== 'string' || trimGoSpace(value) === '') return false
   if (ORDER_OPERATORS.has(rule.operator)) {
     const literal = conditionNumber(value)
     const n = numericValue(x)
@@ -353,7 +383,8 @@ export function evaluateDisplayCondition(
   condition: DisplayCondition | undefined | null,
   data: unknown
 ): boolean {
-  if (!condition || !Array.isArray(condition.rules) || condition.rules.length === 0) return true
+  if (!isPlainObject(condition) || !Array.isArray(condition.rules) || condition.rules.length === 0)
+    return true
   if (condition.match === 'any') return condition.rules.some((rule) => evaluateRule(rule, data))
   return condition.rules.every((rule) => evaluateRule(rule, data))
 }
@@ -367,6 +398,15 @@ export function isConditionEligible(tree: EmailBlock, block: EmailBlock): boolea
   )
 }
 
+// holdsLiquidBlock reports an mj-liquid under block: hiding the block would drop it,
+// and it can hold one half of a tag pair whose other half stays (ValidateDisplayConditions
+// in Go refuses the condition).
+export function holdsLiquidBlock(block: EmailBlock): boolean {
+  return ((block.children as EmailBlock[] | undefined) ?? []).some(
+    (child) => !!child && (child.type === 'mj-liquid' || holdsLiquidBlock(child))
+  )
+}
+
 // conditionErrorsInTree lists every condition the server would refuse in tree, with
 // the block it sits on.
 export function conditionErrorsInTree(tree: EmailBlock): string[] {
@@ -376,12 +416,18 @@ export function conditionErrorsInTree(tree: EmailBlock): string[] {
     if (block.display_condition) {
       if (head || !CONDITION_ELIGIBLE_TYPES.includes(block.type)) {
         errors.push(`Block ${block.id} (${block.type}) cannot have a display condition`)
+      } else if (holdsLiquidBlock(block)) {
+        errors.push(
+          `Block ${block.id} (${block.type}) holds an mj-liquid block and cannot have a display condition`
+        )
       } else {
         const error = validateCondition(block.display_condition)
         if (error) errors.push(`Block ${block.id}: ${describeConditionError(error)}`)
       }
     }
-    for (const child of (block.children as EmailBlock[] | undefined) ?? []) walk(child, head)
+    for (const child of (block.children as EmailBlock[] | undefined) ?? []) {
+      if (child) walk(child, head)
+    }
   }
   walk(tree, false)
   return errors
@@ -400,6 +446,7 @@ export function describeConditionError(error: DisplayConditionError): string {
     case 'rule': {
       const messages: Record<DisplayConditionRuleError, string> = {
         invalid_variable: 'invalid variable path',
+        unsupported_lookup: 'the .empty and .to_liquid lookups are not supported, use is_blank',
         unknown_operator: 'unknown operator',
         value_not_allowed: 'this operator takes no value',
         value_required: 'this operator needs a value',
@@ -495,6 +542,9 @@ export function displayConditionUpdateError(
   if (!block) return null
   if (!isConditionEligible(tree, block)) {
     return `block ${block.id} (${block.type}) cannot have a display condition`
+  }
+  if (holdsLiquidBlock(block)) {
+    return `block ${block.id} (${block.type}) holds an mj-liquid block and cannot have a display condition`
   }
   const error = validateCondition(updates.display_condition)
   return error ? describeConditionError(error) : null

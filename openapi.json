@@ -9980,7 +9980,7 @@
           },
           "visual_editor_tree": {
             "type": "object",
-            "description": "MJML visual editor tree structure. Required when `editor_mode` is `visual` (the default), ignored in `code` mode. A block under `mj-body` of type `mj-wrapper`, `mj-section`, `mj-text`, `mj-image`, `mj-button`, `mj-divider`, `mj-spacer`, `mj-social` or `mj-raw` can carry a `display_condition` (see `DisplayCondition`): the block is then sent only to recipients for whom it holds. A condition anywhere else, or an invalid one, is refused with a 400.",
+            "description": "MJML visual editor tree structure. Required when `editor_mode` is `visual` (the default), ignored in `code` mode. A block under `mj-body` of type `mj-wrapper`, `mj-section`, `mj-text`, `mj-image`, `mj-button`, `mj-divider`, `mj-spacer`, `mj-social` or `mj-raw` can carry a `display_condition` (see `DisplayCondition`): the block is then sent only to recipients for whom it holds. A condition anywhere else, on a block that holds an `mj-liquid`, or an invalid one, is refused with a 400.",
             "example": {
               "type": "mjml",
               "children": []
@@ -10403,7 +10403,7 @@
           "variable": {
             "type": "string",
             "maxLength": 200,
-            "description": "Path of a template variable, without braces: segments of letters, digits and underscores separated by dots, the first one not starting with a digit, such as `contact.first_name` or `order.items.size`.",
+            "description": "Path of a template variable, without braces: segments of letters, digits and underscores separated by dots, the first one not starting with a digit, such as `contact.first_name` or `order.items.size`. The `empty` and `to_liquid` segments are refused: test an empty list or text with `is_blank`.",
             "example": "order.total"
           },
           "operator": {

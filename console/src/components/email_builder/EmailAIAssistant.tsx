@@ -1,4 +1,5 @@
 import { message } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 import { Wand2 } from 'lucide-react'
 import { useAIAssistant, AIAssistantChat } from '../ai-assistant'
 import type { AIAssistantConfig, ToolHandler } from '../ai-assistant'
@@ -53,6 +54,7 @@ export function EmailAIAssistant({
   validateOnComplete,
   hidden = false
 }: EmailAIAssistantProps) {
+  const { t } = useLingui()
   // Deliberately not memoized: the hook refreshes its ref on every render and calls this
   // once per request round, so a category or a tree changed mid-conversation reaches the
   // next round. A useCallback here would pin a stale closure instead.
@@ -80,7 +82,7 @@ export function EmailAIAssistant({
         )
         if (conditionError) {
           insert(`Block not updated: ${conditionError}`, TOOL_NAMES.UPDATE_BLOCK)
-          message.error('Invalid display condition')
+          message.error(t`Invalid display condition`)
           return
         }
         callbacks.onUpdateBlock(input.blockId, input.updates)

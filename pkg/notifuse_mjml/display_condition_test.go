@@ -151,6 +151,15 @@ func TestDisplayCondition_Evaluate(t *testing.T) {
 		require.NoError(t, err)
 		assert.False(t, ok)
 	})
+	// liquidgo reads data before assigns: a top-level "__dc" key would decide the result
+	t.Run("data keys named like the generated variables are ignored, data unchanged", func(t *testing.T) {
+		c := &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{{Variable: "contact.vip", Operator: DisplayConditionIsTrue}}}
+		data := map[string]interface{}{"__dc": true, "__dc_ok": true, "contact": map[string]interface{}{}}
+		ok, err := c.Evaluate(data)
+		require.NoError(t, err)
+		assert.False(t, ok)
+		assert.Len(t, data, 3)
+	})
 	t.Run("a data key does not leak into the next evaluation", func(t *testing.T) {
 		c := &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{{Variable: "contact.vip", Operator: DisplayConditionIsTrue}}}
 		ok, err := c.Evaluate(map[string]interface{}{"contact": map[string]interface{}{"vip": true}})
@@ -317,6 +326,28 @@ func TestValidateDisplayConditions(t *testing.T) {
 		err := ValidateDisplayConditions(tree)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "t-9")
+	})
+	// Hiding the section would drop its mj-liquid, here the {% endif %} of a tag opened
+	// outside it: the email would fail to compile for the recipients it is hidden from.
+	t.Run("refused on a block holding an mj-liquid", func(t *testing.T) {
+		liquid := block("l-1", "mj-liquid", `"content":"{% endif %}"`)
+		tree := parse(t, body(
+			block("l-0", "mj-liquid", `"content":"{% if contact.email %}"`),
+			block("s-1", "mj-section", condition, block("c", "mj-column", "", block("t", "mj-text", ""), liquid))))
+		err := ValidateDisplayConditions(tree)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "s-1")
+		assert.Contains(t, err.Error(), "mj-liquid")
+		wrapped := parse(t, body(block("w-1", "mj-wrapper", condition, block("s", "mj-section", "", block("c", "mj-column", "", liquid)))))
+		assert.Error(t, ValidateDisplayConditions(wrapped))
+		assert.Error(t, ValidateDisplayConditionsInBlock(parse(t, block("s-2", "mj-section", condition, block("c", "mj-column", "", liquid)))))
+	})
+	t.Run("accepted beside an mj-liquid", func(t *testing.T) {
+		tree := parse(t, body(
+			block("l-0", "mj-liquid", `"content":"{% if contact.email %}"`),
+			block("s-1", "mj-section", condition, block("c", "mj-column", "", block("t", "mj-text", ""))),
+			block("l-1", "mj-liquid", `"content":"{% endif %}"`)))
+		assert.NoError(t, ValidateDisplayConditions(tree))
 	})
 	t.Run("a saved block", func(t *testing.T) {
 		assert.NoError(t, ValidateDisplayConditionsInBlock(parse(t, block("s", "mj-section", condition))))

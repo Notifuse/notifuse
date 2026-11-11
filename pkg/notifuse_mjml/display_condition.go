@@ -105,6 +105,8 @@ var conditionReservedFirstSegments = map[string]bool{
 	"blank": true, "and": true, "or": true, "contains": true,
 }
 
+var conditionUnsupportedSegments = map[string]bool{"empty": true, "to_liquid": true}
+
 // Validate reports the first reason the condition cannot be saved.
 func (c *DisplayCondition) Validate() error {
 	if c == nil {
@@ -164,8 +166,18 @@ func validConditionVariable(variable string) bool {
 	if len(variable) > MaxDisplayConditionVariableLen || !conditionVariableRegex.MatchString(variable) {
 		return false
 	}
-	first := strings.SplitN(variable, ".", 2)[0]
-	return !conditionReservedFirstSegments[first] && !strings.HasPrefix(first, "__dc")
+	segments := strings.Split(variable, ".")
+	if conditionReservedFirstSegments[segments[0]] || strings.HasPrefix(segments[0], "__dc") {
+		return false
+	}
+	// liquidgo reads these as lookup commands, which the console's evaluator does not
+	// mirror: refused so the editor and the send never disagree.
+	for _, segment := range segments[1:] {
+		if conditionUnsupportedSegments[segment] {
+			return false
+		}
+	}
+	return true
 }
 
 // maxConditionNumber bounds the numbers a condition compares: below it, a number has
@@ -195,7 +207,7 @@ func conditionNumber(value string) (string, bool) {
 // assigned right before it is read.
 type conditionNames struct {
 	flag, ok, vs, c, b, f, r, p, i, n string
-	value                          func(i int) string
+	value                             func(i int) string
 }
 
 func newConditionNames(suffix string) conditionNames {
@@ -384,9 +396,7 @@ func (c *DisplayCondition) Evaluate(data map[string]interface{}) (bool, error) {
 		return true, nil
 	}
 	open, close := c.toLiquid(newConditionNames(""))
-	if data == nil {
-		data = map[string]interface{}{}
-	}
+	data = withoutConditionNames(data)
 	engine := liquidEnginePool.Get().(*SecureLiquidEngine)
 	out, err := engine.renderCached(open+"1"+close, data)
 	if err != nil {
@@ -395,6 +405,32 @@ func (c *DisplayCondition) Evaluate(data map[string]interface{}) (bool, error) {
 	}
 	liquidEnginePool.Put(engine)
 	return out == "1", nil
+}
+
+// withoutConditionNames returns data without its top-level keys named like the
+// generated variables: liquidgo reads data before assigns, so a "__dc" key would
+// otherwise decide the condition. The data is copied only when it has such a key.
+func withoutConditionNames(data map[string]interface{}) map[string]interface{} {
+	if data == nil {
+		return map[string]interface{}{}
+	}
+	hasConditionName := false
+	for key := range data {
+		if strings.HasPrefix(key, "__dc") {
+			hasConditionName = true
+			break
+		}
+	}
+	if !hasConditionName {
+		return data
+	}
+	clean := make(map[string]interface{}, len(data))
+	for key, value := range data {
+		if !strings.HasPrefix(key, "__dc") {
+			clean[key] = value
+		}
+	}
+	return clean
 }
 
 // IsConditionEligible reports whether a block of this type may carry a condition when
@@ -425,6 +461,12 @@ func validateDisplayConditionsIn(block EmailBlock, inHead bool) error {
 		if inHead || !IsConditionEligible(block.GetType()) {
 			return fmt.Errorf("block %s (%s) cannot have a display condition", block.GetID(), block.GetType())
 		}
+		// a hidden block drops its mj-liquid blocks, which can hold one half of a tag
+		// pair ({% if %} here, {% endif %} outside): the rest of the email would no
+		// longer parse, for the recipients the block is hidden from only
+		if hasLiquidBlock(block) {
+			return fmt.Errorf("block %s (%s) holds an mj-liquid block and cannot have a display condition", block.GetID(), block.GetType())
+		}
 		if err := condition.Validate(); err != nil {
 			return fmt.Errorf("block %s: %w", block.GetID(), err)
 		}
@@ -435,6 +477,19 @@ func validateDisplayConditionsIn(block EmailBlock, inHead bool) error {
 		}
 	}
 	return nil
+}
+
+// hasLiquidBlock reports whether an mj-liquid block sits under block.
+func hasLiquidBlock(block EmailBlock) bool {
+	for _, child := range block.GetChildren() {
+		if isNilBlock(child) {
+			continue
+		}
+		if child.GetType() == MJMLComponentMjLiquid || hasLiquidBlock(child) {
+			return true
+		}
+	}
+	return false
 }
 
 // isNilBlock reports a nil block, including a typed nil pointer in the interface.

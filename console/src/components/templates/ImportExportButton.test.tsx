@@ -54,4 +54,54 @@ describe('ImportExportButton MJML import', () => {
     await waitFor(() => expect(onImport).toHaveBeenCalledTimes(1))
     expect(screen.queryByText('Display conditions not imported')).not.toBeInTheDocument()
   })
+
+  // A tree from a JSON file reaches the editor as is: a malformed or misplaced
+  // condition would break it, or be refused only on save.
+  it('refuses a JSON tree with a condition the server would refuse', async () => {
+    const onImport = vi.fn()
+    const { container } = render(
+      <I18nProvider i18n={i18n}>
+        <App>
+          <ImportExportButton onImport={onImport} tree={tree} workspaceId="ws1" />
+        </App>
+      </I18nProvider>
+    )
+    const bad = {
+      id: 'root',
+      type: 'mjml',
+      children: [
+        {
+          id: 'body',
+          type: 'mj-body',
+          children: [
+            {
+              id: 'sec',
+              type: 'mj-section',
+              children: [
+                {
+                  id: 'col-1',
+                  type: 'mj-column',
+                  display_condition: {
+                    match: 'all',
+                    rules: [{ variable: 'a', operator: 'is_true' }]
+                  },
+                  children: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    const input = container.querySelector('input[accept^=".json"]') as HTMLInputElement
+    fireEvent.change(input, {
+      target: {
+        files: [new File([JSON.stringify(bad)], 'email.json', { type: 'application/json' })]
+      }
+    })
+    expect(
+      await screen.findByText(/col-1 \(mj-column\) cannot have a display condition/)
+    ).toBeInTheDocument()
+    expect(onImport).not.toHaveBeenCalled()
+  })
 })

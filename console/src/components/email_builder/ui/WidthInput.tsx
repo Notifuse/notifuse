@@ -8,7 +8,11 @@ interface WidthInputProps {
   placeholder?: string
 }
 
-const WidthInput: React.FC<WidthInputProps> = ({ value, onChange, placeholder }) => {
+const WidthInput: React.FC<WidthInputProps> = ({
+  value,
+  onChange,
+  placeholder
+}) => {
   const { t } = useLingui()
   const [numericValue, setNumericValue] = useState<number | undefined>()
   const resolvedPlaceholder = placeholder || t`Enter width`

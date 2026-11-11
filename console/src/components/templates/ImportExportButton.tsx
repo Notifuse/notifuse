@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons'
 import type { EmailBlock } from '../email_builder/types'
 import { EmailBlockClass } from '../email_builder/EmailBlockClass'
+import { conditionErrorsInTree } from '../email_builder/displayCondition'
 import {
   convertMjmlToJsonBrowser,
   hasDisplayConditionLiquid
@@ -123,6 +124,12 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
         isValid: false,
         errors: helpfulErrors
       }
+    }
+
+    // display conditions the server would refuse, and would crash the editor if malformed
+    const conditionErrors = conditionErrorsInTree(tree as EmailBlock)
+    if (conditionErrors.length > 0) {
+      return { isValid: false, errors: conditionErrors }
     }
 
     return {

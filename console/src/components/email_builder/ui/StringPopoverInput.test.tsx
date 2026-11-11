@@ -19,12 +19,15 @@ describe('StringPopoverInput', () => {
     'data:text/html,<p>x</p>',
     'search-ms:query=invoice',
     'webcal://example.com/cal.ics'
-  ])('shows %s as text, not as a link', (value) => {
-    render(<StringPopoverInput value={value} onChange={vi.fn()} validateUri />)
+  ])(
+    'shows %s as text, not as a link',
+    (value) => {
+      render(<StringPopoverInput value={value} onChange={vi.fn()} validateUri />)
 
-    expect(screen.getByText(value)).toBeInTheDocument()
-    expect(screen.queryByRole('link')).toBeNull()
-  })
+      expect(screen.getByText(value)).toBeInTheDocument()
+      expect(screen.queryByRole('link')).toBeNull()
+    }
+  )
 
   it('marks a value holding a Liquid output as Liquid', () => {
     render(<StringPopoverInput value="{{ cta_url }}" onChange={vi.fn()} validateUri />)
@@ -69,3 +72,4 @@ describe('StringPopoverInput link value', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 })
+

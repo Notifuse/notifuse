@@ -27226,6 +27226,100 @@
    "expected": true
   },
   {
+   "name": "totality: empty lookup is false",
+   "data": {
+    "order": {
+     "items": []
+    }
+   },
+   "condition": {
+    "match": "all",
+    "rules": [
+     {
+      "variable": "order.items.empty",
+      "operator": "is_true"
+     }
+    ]
+   },
+   "expected": false
+  },
+  {
+   "name": "totality: empty key is refused too",
+   "data": {
+    "order": {
+     "empty": "x"
+    }
+   },
+   "condition": {
+    "match": "all",
+    "rules": [
+     {
+      "variable": "order.empty",
+      "operator": "eq",
+      "value": "x"
+     }
+    ]
+   },
+   "expected": false
+  },
+  {
+   "name": "totality: to_liquid lookup is false",
+   "data": {
+    "order": {
+     "v": 1
+    }
+   },
+   "condition": {
+    "match": "all",
+    "rules": [
+     {
+      "variable": "order.v.to_liquid",
+      "operator": "gt",
+      "value": "0"
+     }
+    ]
+   },
+   "expected": false
+  },
+  {
+   "name": "data keys named like the flags are ignored",
+   "data": {
+    "__dc": true,
+    "__dc_ok": true,
+    "__dc_b": "1",
+    "order": {}
+   },
+   "condition": {
+    "match": "all",
+    "rules": [
+     {
+      "variable": "order.v",
+      "operator": "is_true"
+     }
+    ]
+   },
+   "expected": false
+  },
+  {
+   "name": "data keys named like the flags, any",
+   "data": {
+    "__dc": true,
+    "__dc_ok": true,
+    "order": {}
+   },
+   "condition": {
+    "match": "any",
+    "rules": [
+     {
+      "variable": "order.v",
+      "operator": "gt",
+      "value": "1"
+     }
+    ]
+   },
+   "expected": false
+  },
+  {
    "name": "contact string field",
    "data": {
     "contact": {
@@ -27863,6 +27957,45 @@
    "valid": false
   },
   {
+   "name": "bad variable \"order.items.empty\"",
+   "condition": {
+    "match": "all",
+    "rules": [
+     {
+      "variable": "order.items.empty",
+      "operator": "is_true"
+     }
+    ]
+   },
+   "valid": false
+  },
+  {
+   "name": "bad variable \"order.empty.x\"",
+   "condition": {
+    "match": "all",
+    "rules": [
+     {
+      "variable": "order.empty.x",
+      "operator": "is_true"
+     }
+    ]
+   },
+   "valid": false
+  },
+  {
+   "name": "bad variable \"order.v.to_liquid\"",
+   "condition": {
+    "match": "all",
+    "rules": [
+     {
+      "variable": "order.v.to_liquid",
+      "operator": "is_true"
+     }
+    ]
+   },
+   "valid": false
+  },
+  {
    "name": "200-character path",
    "condition": {
     "match": "all",
@@ -27887,6 +28020,19 @@
     ]
    },
    "valid": false
+  },
+  {
+   "name": "empty inside a segment is fine",
+   "condition": {
+    "match": "all",
+    "rules": [
+     {
+      "variable": "order.is_empty",
+      "operator": "is_true"
+     }
+    ]
+   },
+   "valid": true
   },
   {
    "name": "dc prefix without underscores is fine",
