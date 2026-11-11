@@ -181,6 +181,9 @@ func (h *TransactionalNotificationHandler) handleUpdate(w http.ResponseWriter, r
 		if writePermissionError(w, err) {
 			return
 		}
+		if writeValidationError(w, err) {
+			return
+		}
 		if strings.Contains(err.Error(), "not found") {
 			WriteJSONError(w, "Notification not found", http.StatusNotFound)
 			return
@@ -219,6 +222,9 @@ func (h *TransactionalNotificationHandler) handleDelete(w http.ResponseWriter, r
 
 	if err := h.service.DeleteNotification(r.Context(), req.WorkspaceID, req.ID); err != nil {
 		if writePermissionError(w, err) {
+			return
+		}
+		if writeValidationError(w, err) {
 			return
 		}
 		if strings.Contains(err.Error(), "not found") {

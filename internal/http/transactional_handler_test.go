@@ -2000,3 +2000,51 @@ func TestTransactionalNotificationHandler_LengthLimits(t *testing.T) {
 		})
 	}
 }
+
+// A refusal to change or delete a notification managed by an integration answers 400 with its
+// reason rather than 500. The logger mock is strict: the 400 must not log an error.
+func TestTransactionalNotificationHandler_IntegrationManagedRefusal(t *testing.T) {
+	refusal := func(what string) error {
+		return fmt.Errorf("service: %w", domain.NewValidationError(what+": notification is managed by integration supabase"))
+	}
+
+	t.Run("update", func(t *testing.T) {
+		mockService, _, handler := setupTransactionalHandlerTest(t)
+		mockService.EXPECT().
+			UpdateNotification(gomock.Any(), "workspace1", "magic-link", gomock.Any()).
+			Return(nil, refusal("cannot update channels of integration-managed notification"))
+
+		body, err := json.Marshal(map[string]interface{}{
+			"workspace_id": "workspace1",
+			"id":           "magic-link",
+			"updates": map[string]interface{}{
+				"channels": map[string]interface{}{"email": map[string]interface{}{"template_id": "tpl-other"}},
+			},
+		})
+		require.NoError(t, err)
+		w := httptest.NewRecorder()
+		handler.handleUpdate(w, httptest.NewRequest(http.MethodPost, "/api/transactional.update", bytes.NewReader(body)))
+
+		require.Equal(t, http.StatusBadRequest, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		assert.Equal(t, "validation error: cannot update channels of integration-managed notification: notification is managed by integration supabase", resp["error"])
+	})
+
+	t.Run("delete", func(t *testing.T) {
+		mockService, _, handler := setupTransactionalHandlerTest(t)
+		mockService.EXPECT().
+			DeleteNotification(gomock.Any(), "workspace1", "magic-link").
+			Return(refusal("cannot delete integration-managed notification"))
+
+		body, err := json.Marshal(map[string]interface{}{"workspace_id": "workspace1", "id": "magic-link"})
+		require.NoError(t, err)
+		w := httptest.NewRecorder()
+		handler.handleDelete(w, httptest.NewRequest(http.MethodPost, "/api/transactional.delete", bytes.NewReader(body)))
+
+		require.Equal(t, http.StatusBadRequest, w.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		assert.Equal(t, "validation error: cannot delete integration-managed notification: notification is managed by integration supabase", resp["error"])
+	})
+}

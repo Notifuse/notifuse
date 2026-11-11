@@ -1342,3 +1342,58 @@ func TestHandleCompile_CustomText(t *testing.T) {
 	_, hasError := body["text_error"]
 	assert.False(t, hasError)
 }
+
+// templates.delete answers a refusal with its reason, and permission errors as the other
+// endpoints do, rather than 500.
+func TestTemplateHandler_HandleDelete_ErrorMapping(t *testing.T) {
+	request := domain.DeleteTemplateRequest{WorkspaceID: "workspace123", ID: "template1"}
+
+	testCases := []struct {
+		name           string
+		serviceErr     error
+		expectedStatus int
+		check          func(t *testing.T, body map[string]interface{})
+	}{
+		{
+			name:           "a refusal of a managed template answers 400 with its reason",
+			serviceErr:     fmt.Errorf("delete: %w", domain.NewValidationError("cannot delete integration-managed template: template is managed by integration supabase")),
+			expectedStatus: http.StatusBadRequest,
+			check: func(t *testing.T, body map[string]interface{}) {
+				assert.Equal(t, "validation error: cannot delete integration-managed template: template is managed by integration supabase", body["error"])
+			},
+		},
+		{
+			name:           "a revoked API key answers 401",
+			serviceErr:     fmt.Errorf("failed to authenticate user: %w", fmt.Errorf("%w: %w", domain.ErrAPIKeyRevoked, errors.New("user not found"))),
+			expectedStatus: http.StatusUnauthorized,
+			check: func(t *testing.T, body map[string]interface{}) {
+				assert.Equal(t, "API key has been revoked", body["error"])
+			},
+		},
+		{
+			name:           "a missing permission answers 403 naming it",
+			serviceErr:     domain.NewPermissionError(domain.PermissionResourceTemplates, domain.PermissionTypeWrite, "Insufficient permissions: write access to templates required"),
+			expectedStatus: http.StatusForbidden,
+			check: func(t *testing.T, body map[string]interface{}) {
+				assert.Equal(t, string(domain.PermissionResourceTemplates), body["resource"])
+				assert.Equal(t, string(domain.PermissionTypeWrite), body["permission"])
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+			defer cleanup()
+			mockService.EXPECT().DeleteTemplate(gomock.Any(), request.WorkspaceID, request.ID).Return(tc.serviceErr)
+
+			resp := sendRequest(t, http.MethodPost, serverURL+"/api/templates.delete", createTestToken(secretKey), request)
+			defer func() { _ = resp.Body.Close() }()
+
+			require.Equal(t, tc.expectedStatus, resp.StatusCode)
+			var body map[string]interface{}
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+			tc.check(t, body)
+		})
+	}
+}
