@@ -252,9 +252,11 @@ export const EditPanel: React.FC<EditPanelProps> = ({
   return (
     <div
       ref={editPanelRef}
+      // The height of the space the editor gives it: one computed from the window ignores the drawer's header,
+      // which pushed the bottom of a long email out of reach
+      className="h-full min-h-0"
       style={{
         overflow: 'hidden',
-        height: 'calc(100vh - 58px)',
         position: 'relative'
       }}
       onClick={handleBackgroundClick}
