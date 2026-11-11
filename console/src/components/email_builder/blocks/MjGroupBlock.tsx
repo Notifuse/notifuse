@@ -3,7 +3,7 @@ import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLock, faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import { Select, Radio, Tooltip } from 'antd'
-import type { MJMLComponentType, MJGroupAttributes, MergedBlockAttributes } from '../types'
+import type { EmailBlock, MJMLComponentType, MJGroupAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -16,18 +16,22 @@ import BackgroundInput from '../ui/BackgroundInput'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import WidthInput from '../ui/WidthInput'
 import PanelLayout from '../panels/PanelLayout'
+import { findParentSection, sectionShare } from '../utils/sectionChildWidth'
 
 // Functional component for settings panel with i18n support
 interface MjGroupSettingsPanelProps {
   currentAttributes: MJGroupAttributes
   blockDefaults: MergedBlockAttributes
   onUpdate: OnUpdateAttributesFunction
+  /** Width the group takes without one: its share of the section, when it is in one */
+  sectionShareWidth?: string
 }
 
 const MjGroupSettingsPanel: React.FC<MjGroupSettingsPanelProps> = ({
   currentAttributes,
   blockDefaults,
-  onUpdate
+  onUpdate,
+  sectionShareWidth
 }) => {
   const { t } = useLingui()
 
@@ -47,7 +51,7 @@ const MjGroupSettingsPanel: React.FC<MjGroupSettingsPanelProps> = ({
           <WidthInput
             value={currentAttributes.width}
             onChange={(value) => onUpdate({ width: value })}
-            placeholder={blockDefaults.width || '100%'}
+            placeholder={(blockDefaults.width as string | undefined) || sectionShareWidth}
           />
         </InputLayout>
 
@@ -241,15 +245,18 @@ export class MjGroupBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: MergedBlockAttributes
+    blockDefaults: MergedBlockAttributes,
+    emailTree?: EmailBlock
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJGroupAttributes
+    const section = emailTree ? findParentSection(emailTree, this.block.id) : null
 
     return (
       <MjGroupSettingsPanel
         currentAttributes={currentAttributes}
         blockDefaults={blockDefaults}
         onUpdate={onUpdate}
+        sectionShareWidth={section ? sectionShare(section) : undefined}
       />
     )
   }
@@ -289,7 +296,8 @@ export class MjGroupBlock extends BaseEmailBlock {
     const groupStyle: React.CSSProperties = {
       display: 'flex',
       flexDirection: attrs.direction === 'rtl' ? 'row-reverse' : 'row',
-      width: attrs.width,
+      // The section cell carries the group's width; the group fills it
+      width: '100%',
       verticalAlign: attrs.verticalAlign as React.CSSProperties['verticalAlign'],
       backgroundColor: attrs.backgroundColor,
       alignItems:

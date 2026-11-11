@@ -8,6 +8,7 @@ import {
   type PreviewProps
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
+import { sectionChildWidth } from '../utils/sectionChildWidth'
 import { EmailBlockClass } from '../EmailBlockClass'
 import PanelLayout from '../panels/PanelLayout'
 import InputLayout from '../ui/InputLayout'
@@ -341,11 +342,6 @@ export class MjSectionBlock extends BaseEmailBlock {
     ) : (
       // Wrap columns in a table row structure as MJML does for multiple columns
       (() => {
-        // Count columns to calculate default proportional width for columns without explicit width
-        const columnChildren = this.block.children?.filter(c => c.type === 'mj-column') || []
-        const columnCount = columnChildren.length
-        const defaultColumnWidth = columnCount > 0 ? `${(100 / columnCount).toFixed(2)}%` : '100%'
-
         return (
           <table
             role="presentation"
@@ -357,11 +353,8 @@ export class MjSectionBlock extends BaseEmailBlock {
             <tbody>
               <tr>
                 {this.block.children?.map((child) => {
-                  // Get column width from child attributes (for mj-column blocks)
-                  const childAttrs = child.attributes as Record<string, unknown> | undefined
-                  const explicitWidth = childAttrs?.width as string | undefined
-                  // Use explicit width if set, otherwise use calculated proportional width for columns
-                  const columnWidth = explicitWidth || (child.type === 'mj-column' ? defaultColumnWidth : undefined)
+                  // Columns and groups carry their width on their cell, as in the email
+                  const columnWidth = sectionChildWidth(child, this.block, attributeDefaults)
 
                   return (
                     <td
