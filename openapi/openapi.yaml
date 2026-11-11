@@ -303,6 +303,10 @@ components:
       $ref: './components/schemas/template.yaml#/CompileTemplateResponse'
     TrackingSettings:
       $ref: './components/schemas/template.yaml#/TrackingSettings'
+    DisplayCondition:
+      $ref: './components/schemas/template.yaml#/DisplayCondition'
+    DisplayConditionRule:
+      $ref: './components/schemas/template.yaml#/DisplayConditionRule'
     SEOSettings:
       $ref: './components/schemas/blog.yaml#/SEOSettings'
     BlogAuthor:

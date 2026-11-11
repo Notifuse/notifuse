@@ -313,6 +313,10 @@ msgstr "{count, plural, one {La llista \"{listName}\" no es pot eliminar mentre 
 msgid "{goalCount} goals"
 msgstr "{goalCount} objectius"
 
+#: src/components/email_builder/panels/Preview.tsx:487
+msgid "{hiddenBlockCount} blocks hidden by their condition with this test data."
+msgstr "{hiddenBlockCount} blocs ocults per la seva condició amb aquestes dades de prova."
+
 #: src/components/timeline/ContactTimeline.tsx:302
 msgid "{hours}h"
 msgstr "{hours}h"
@@ -454,23 +458,23 @@ msgstr "{what} per setmana"
 msgid "{what} per year"
 msgstr "{what} per any"
 
-#: src/components/email_builder/panels/Preview.tsx:230
+#: src/components/email_builder/panels/Preview.tsx:243
 msgid "// No test data yet..."
 msgstr "// Encara no hi ha dades de prova..."
 
-#: src/components/templates/ImportExportButton.tsx:515
+#: src/components/templates/ImportExportButton.tsx:531
 msgid "• Check that your MJML structure follows the proper hierarchy"
 msgstr "• Comproveu que l'estructura MJML segueix la jerarquia correcta"
 
-#: src/components/templates/ImportExportButton.tsx:516
+#: src/components/templates/ImportExportButton.tsx:532
 msgid "• Ensure all required components are properly nested"
 msgstr "• Assegureu-vos que tots els components requerits estan correctament imbricats"
 
-#: src/components/templates/ImportExportButton.tsx:518
+#: src/components/templates/ImportExportButton.tsx:534
 msgid "• Make sure all XML tags are properly closed"
 msgstr "• Assegureu-vos que totes les etiquetes XML estan correctament tancades"
 
-#: src/components/templates/ImportExportButton.tsx:517
+#: src/components/templates/ImportExportButton.tsx:533
 msgid "• Verify that component attributes are valid"
 msgstr "• Verifiqueu que els atributs dels components són vàlids"
 
@@ -514,6 +518,10 @@ msgstr "0 contactes"
 #: src/pages/BroadcastsPage.tsx:919
 msgid "0 opens out of 0 recipients"
 msgstr "0 obertures de 0 destinataris"
+
+#: src/components/email_builder/panels/Preview.tsx:486
+msgid "1 block hidden by its condition with this test data."
+msgstr "1 bloc ocult per la seva condició amb aquestes dades de prova."
 
 #: src/components/timeline/ContactTimeline.tsx:927
 msgid "1 goal"
@@ -604,6 +612,10 @@ msgstr "Una breu descripció del propòsit d'aquesta notificació"
 msgid "A bulk action is already running"
 msgstr "Ja hi ha una acció massiva en curs"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:100
+msgid "A condition cannot use .empty or .to_liquid: use the operator \"is false or empty\"."
+msgstr "Una condició no pot fer servir .empty ni .to_liquid: fes servir l'operador «és fals o buit»."
+
 #: src/components/settings/GeneralSettings.tsx:316
 msgid "A contact's own consent always wins. This choice applies to contacts whose consent to open and click tracking is not recorded. Some regulators, such as the Italian Garante and the French CNIL, expect tracking to require consent."
 msgstr "El consentiment propi d'un contacte sempre preval. Aquesta opció s'aplica als contactes el consentiment dels quals al seguiment d'obertures i clics no està registrat. Algunes autoritats, com el Garante italià i la CNIL francesa, consideren que aquest seguiment requereix consentiment."
@@ -611,6 +623,15 @@ msgstr "El consentiment propi d'un contacte sempre preval. Aquesta opció s'apli
 #: src/components/automations/config/TriggerConfigForm.tsx:449
 msgid "A count of past activity includes the event that fires the automation, so \"at least 3 opens\" enrolls on the third open."
 msgstr "Un recompte d'activitat passada inclou l'esdeveniment que dispara l'automatització, de manera que \"almenys 3 obertures\" inscriu el contacte a la tercera obertura."
+
+#: src/components/email_builder/EmailAIAssistant.tsx:114
+#: src/components/email_builder/EmailAIAssistant.tsx:156
+msgid "A Liquid block cannot go inside a block with a display condition"
+msgstr "Un bloc Liquid no pot anar dins d'un bloc amb una condició de visualització"
+
+#: src/components/email_builder/EmailBuilder.tsx:348
+msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
+msgstr "Un bloc Liquid no pot anar dins d'un bloc amb una condició de visualització: suprimeix primer la condició o col·loca el bloc Liquid fora."
 
 #: src/components/blog/ThemeEditorDrawer.tsx:459
 msgid "A newer draft was found in local storage. Would you like to restore it or discard it?"
@@ -767,6 +788,10 @@ msgstr "Afegir {0}"
 #: src/components/blog_editor/extensions/CodeBlockNodeView.tsx:63
 msgid "Add a caption..."
 msgstr "Afegir un peu de foto..."
+
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:138
+msgid "Add a condition"
+msgstr "Afegeix una condició"
 
 #: src/components/segment/input_dimension_filters.tsx:176
 msgid "Add a filter"
@@ -1079,6 +1104,7 @@ msgstr "Alineació"
 msgid "All"
 msgstr "Tot"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:309
 #: src/components/segment/input.tsx:958
 msgid "ALL"
 msgstr "Tot"
@@ -1181,6 +1207,10 @@ msgstr "Proporcioneu sempre fonts alternatives per a una millor compatibilitat"
 msgid "Always set to the specified value"
 msgstr "Establir sempre al valor especificat"
 
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:128
+msgid "Always shown"
+msgstr "Sempre visible"
+
 #: src/components/settings/Integrations.tsx:222
 msgid "Amazon SES (inbound-smtp.<region>.amazonaws.com, in a region that supports email receiving)"
 msgstr "Amazon SES (inbound-smtp.<region>.amazonaws.com, en una regió que admeti la recepció de correu)"
@@ -1214,6 +1244,8 @@ msgstr "Àncora"
 msgid "Anchor ID"
 msgstr "ID d'àncora"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:116
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
 #: src/components/segment/form_leaf.tsx:850
 #: src/components/segment/input.tsx:674
 msgid "and"
@@ -1379,6 +1411,7 @@ msgstr "URL de l'API"
 msgid "Applies to every workspace that has not set its own retention, and to deployment-level entries such as sign-ins. 0 keeps every entry forever."
 msgstr "S'aplica a cada workspace que no ha definit la seva pròpia retenció i a les entrades a nivell de desplegament, com els inicis de sessió. 0 conserva cada entrada per sempre."
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:293
 #: src/components/messages/MessageHistoryTab.tsx:544
 #: src/components/settings/audit_logs/AuditFilterBuilder.tsx:244
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:47
@@ -1527,6 +1560,10 @@ msgstr "Demaneu-me que us ajudi a escriure el vostre blog..."
 #: src/components/segment/input.tsx:811
 msgid "at least"
 msgstr "com a mínim"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:310
+msgid "AT LEAST ONE"
+msgstr "ALMENYS UNA"
 
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:159
 msgid "At least one condition is required"
@@ -1927,6 +1964,10 @@ msgstr "Entre"
 msgid "Block \"{0}\" updated"
 msgstr "Bloc \"{0}\" actualitzat"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:367
+msgid "block hidden"
+msgstr "bloc ocult"
+
 #: src/components/email_builder/ui/BlockToolbar.tsx:234
 msgid "Block Name"
 msgstr "Nom del bloc"
@@ -1936,9 +1977,13 @@ msgstr "Nom del bloc"
 msgid "Block saved as \"{0}\""
 msgstr "Bloc desat com a \"{0}\""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1272
+#: src/components/templates/CreateTemplateDrawer.tsx:1273
 msgid "Block Settings Panel"
 msgstr "Panell de configuració del bloc"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:367
+msgid "block shown"
+msgstr "bloc visible"
 
 #: src/components/email_builder/ui/BlockToolbar.tsx:218
 msgid "Block type:"
@@ -2395,10 +2440,12 @@ msgstr "Campanyes"
 #: src/components/contacts/InlineEditableField.tsx:299
 #: src/components/contacts/TrackingConsent.tsx:211
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:155
-#: src/components/email_builder/panels/Preview.tsx:194
+#: src/components/email_builder/panels/Preview.tsx:207
 #: src/components/email_builder/ui/BlockToolbar.tsx:210
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:139
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:179
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:285
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:92
 #: src/components/email_builder/ui/ImportFontInput.tsx:173
 #: src/components/email_builder/ui/StringPopoverInput.tsx:92
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:398
@@ -2431,7 +2478,7 @@ msgstr "Campanyes"
 #: src/components/settings/WorkspaceMembers.tsx:541
 #: src/components/templates/CreateTemplateDrawer.tsx:627
 #: src/components/templates/SendTemplateModal.tsx:303
-#: src/components/templates/TemplateTranslationsTab.tsx:282
+#: src/components/templates/TemplateTranslationsTab.tsx:283
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:180
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
@@ -2476,6 +2523,10 @@ msgstr "Cancel·lar la difusió?"
 #: src/components/contacts/BulkUpdateDrawer.tsx:432
 msgid "Cancel Operation?"
 msgstr "Cancel·lar operació?"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:197
+msgid "Cancel the rule changes"
+msgstr "Cancel·la els canvis de la regla"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:301
 msgid "Cancel Upload?"
@@ -2957,7 +3008,7 @@ msgstr "Comparació"
 msgid "Comparison — {detail}"
 msgstr "Comparació — {detail}"
 
-#: src/components/email_builder/panels/Preview.tsx:330
+#: src/components/email_builder/panels/Preview.tsx:343
 msgid "Compilation Results"
 msgstr "Resultats de la compilació"
 
@@ -3044,6 +3095,7 @@ msgstr "Completat — {0} amb error"
 msgid "condition"
 msgstr "Condició"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:361
 #: src/components/segment/input.tsx:1011
 msgid "Condition"
 msgstr "Condició"
@@ -3132,6 +3184,7 @@ msgid "Configuring {0}"
 msgstr "Configurant {0}"
 
 #: src/components/contacts/BulkActionsBar.tsx:193
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:203
 #: src/components/filters/Filter.tsx:185
 #: src/components/filters/Filter.tsx:204
 #: src/components/segment/button_upsert.tsx:426
@@ -3326,6 +3379,7 @@ msgstr "Color del contenidor"
 msgid "Container Padding"
 msgstr "Farciment del contenidor"
 
+#: src/components/email_builder/ui/displayConditionLabels.ts:16
 #: src/components/web_analytics/FilterBuilder.tsx:39
 #: src/components/web_analytics/lib/filterCatalog.ts:218
 msgid "contains"
@@ -3339,7 +3393,7 @@ msgstr "Contingut"
 msgid "Content quality by traffic source"
 msgstr "Qualitat del contingut per font de trànsit"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1258
+#: src/components/templates/CreateTemplateDrawer.tsx:1259
 msgid "Content Structure Tree"
 msgstr "Arbre d'estructura del contingut"
 
@@ -4349,6 +4403,10 @@ msgstr "Eliminar node"
 msgid "Delete Post"
 msgstr "Eliminar publicació"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:155
+msgid "Delete rule"
+msgstr "Suprimeix la regla"
+
 #: src/components/contacts/SegmentsFilter.tsx:162
 msgid "Delete segment"
 msgstr "Eliminar segment"
@@ -4497,7 +4555,7 @@ msgstr "La descripció ha de tenir com a màxim {MAX_DESCRIPTION_LENGTH} caràct
 msgid "Description when shared on social media (og:description)"
 msgstr "Descripció quan es comparteix a xarxes socials (og:description)"
 
-#: src/components/email_builder/panels/Preview.tsx:457
+#: src/components/email_builder/panels/Preview.tsx:470
 msgid "Desktop view (100%)"
 msgstr "Vista d'escriptori (100%)"
 
@@ -4569,7 +4627,7 @@ msgstr "Desactivar webhook"
 #: src/components/settings/GeneralSettings.tsx:142
 #: src/components/settings/Integrations.tsx:1576
 #: src/components/settings/WebAnalyticsSettings.tsx:251
-#: src/components/templates/TemplateTranslationsTab.tsx:224
+#: src/components/templates/TemplateTranslationsTab.tsx:225
 msgid "Disabled"
 msgstr "Desactivat"
 
@@ -4596,6 +4654,15 @@ msgstr "Descartar esborrany"
 #: src/components/settings/SettingsSaveBar.tsx:95
 msgid "Discard unsaved changes?"
 msgstr "Descartar els canvis no desats?"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:277
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:71
+msgid "Display condition"
+msgstr "Condició de visualització"
+
+#: src/components/templates/ImportExportButton.tsx:232
+msgid "Display conditions not imported"
+msgstr "Condicions de visualització no importades"
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:452
 msgid "Display video player controls"
@@ -4655,6 +4722,14 @@ msgstr "Voleu enviar \"{0}\" immediatament o programar-ho per més tard?"
 msgid "Documentation"
 msgstr "Documentació"
 
+#: src/components/email_builder/ui/displayConditionLabels.ts:17
+msgid "does not contain"
+msgstr "no conté"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:15
+msgid "does not equal"
+msgstr "no és igual a"
+
 #: src/components/settings/Integrations.tsx:2143
 #: src/components/settings/Integrations.tsx:2490
 #: src/pages/SetupWizard.tsx:605
@@ -4681,7 +4756,7 @@ msgstr "No fer seguiment d'obertures i clics en aquest broadcast"
 
 #: src/components/automations/config/ConditionsField.tsx:137
 #: src/components/settings/ZapierSettings.tsx:270
-#: src/components/templates/TemplateTranslationsTab.tsx:325
+#: src/components/templates/TemplateTranslationsTab.tsx:326
 msgid "Done"
 msgstr "Fet"
 
@@ -4768,6 +4843,10 @@ msgstr "p. ex. Marketing"
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:365
 msgid "e.g. notifuse"
 msgstr "p. ex. notifuse"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:213
+msgid "e.g. order.has_image"
+msgstr "p. ex. order.has_image"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:281
 msgid "E.g. Password Reset Email"
@@ -4860,7 +4939,8 @@ msgstr "Editar"
 #: src/components/automations/config/ConditionsField.tsx:108
 #: src/components/automations/UpsertAutomationDrawer.tsx:288
 #: src/components/blog/PostsTable.tsx:349
-#: src/components/email_builder/EmailBuilder.tsx:852
+#: src/components/email_builder/EmailBuilder.tsx:873
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
 #: src/components/settings/Integrations.tsx:352
 #: src/components/settings/Integrations.tsx:1440
@@ -4877,7 +4957,7 @@ msgid "Edit"
 msgstr "Editar"
 
 #. placeholder {0}: SUPPORTED_LANGUAGES[editorDrawerLang] || editorDrawerLang
-#: src/components/templates/TemplateTranslationsTab.tsx:316
+#: src/components/templates/TemplateTranslationsTab.tsx:317
 msgid "Edit {0} translation"
 msgstr "Editar la traducció {0}"
 
@@ -4994,6 +5074,7 @@ msgstr "Editar permisos per a {0}"
 msgid "Edit Post"
 msgstr "Editar publicació"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:163
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:94
 msgid "Edit rule"
 msgstr "Editar regla"
@@ -5011,11 +5092,11 @@ msgstr "Editar remitent"
 msgid "Edit Template"
 msgstr "Editar plantilla"
 
-#: src/components/email_builder/panels/Preview.tsx:223
+#: src/components/email_builder/panels/Preview.tsx:236
 msgid "Edit Test Data"
 msgstr "Editar dades de prova"
 
-#: src/components/email_builder/panels/Preview.tsx:191
+#: src/components/email_builder/panels/Preview.tsx:204
 msgid "Edit Test Data (JSON)"
 msgstr "Editar dades de prova (JSON)"
 
@@ -5045,7 +5126,7 @@ msgstr "Editar webhook"
 msgid "Edit Zapier connection"
 msgstr "Editar la connexió de Zapier"
 
-#: src/components/templates/ImportExportButton.tsx:433
+#: src/components/templates/ImportExportButton.tsx:449
 msgid "Editable markup"
 msgstr "Marcatge editable"
 
@@ -5185,7 +5266,7 @@ msgid "Email Options:"
 msgstr "Opcions de correu:"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:896
-#: src/components/email_builder/panels/Preview.tsx:482
+#: src/components/email_builder/panels/Preview.tsx:505
 msgid "Email Preview"
 msgstr "Previsualització del correu"
 
@@ -5198,12 +5279,12 @@ msgid "Email Provider Required"
 msgstr "Proveïdor de correu obligatori"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:937
-#: src/components/templates/TemplateTranslationsTab.tsx:237
+#: src/components/templates/TemplateTranslationsTab.tsx:238
 msgid "Email subject"
 msgstr "Assumpte del correu"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1003
-#: src/components/templates/TemplateTranslationsTab.tsx:300
+#: src/components/templates/TemplateTranslationsTab.tsx:301
 msgid "Email Subject"
 msgstr "Assumpte del correu"
 
@@ -5332,7 +5413,7 @@ msgstr "Activar webhook"
 #: src/components/settings/SystemSettingsDrawer.tsx:465
 #: src/components/settings/SystemSettingsDrawer.tsx:550
 #: src/components/settings/WebAnalyticsSettings.tsx:246
-#: src/components/templates/TemplateTranslationsTab.tsx:223
+#: src/components/templates/TemplateTranslationsTab.tsx:224
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:146
 msgid "Enabled"
 msgstr "Activat"
@@ -5388,9 +5469,21 @@ msgstr "Introduïu un nom per a aquesta integració"
 msgid "Enter a name for your workspace"
 msgstr "Introduïu un nom per al vostre espai de treball"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:110
+msgid "Enter a number, with at most 15 digits before the decimal point."
+msgstr "Introdueix un nombre amb 15 xifres com a màxim abans del separador decimal."
+
 #: src/components/lists/ListDrawer.tsx:203
 msgid "Enter a unique alphanumeric ID"
 msgstr "Introduïu un ID alfanumèric únic"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:102
+msgid "Enter a value."
+msgstr "Introdueix un valor."
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:98
+msgid "Enter a variable path such as order.total: letters, digits and underscores, separated by dots."
+msgstr "Introdueix un camí de variable com order.total: lletres, xifres i guions baixos, separats per punts."
 
 #: src/components/settings/Integrations.tsx:2741
 msgid "Enter an email address to receive a test email:"
@@ -5424,7 +5517,7 @@ msgstr "Introduïu l'ID de difusió per confirmar"
 msgid "Enter button link URL or {{ url }}"
 msgstr "Introduïu URL de l'enllaç del botó o {{ url }}"
 
-#: src/components/email_builder/blocks/MjButtonBlock.tsx:644
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:645
 msgid "Enter button text..."
 msgstr "Introduïu text del botó..."
 
@@ -5576,6 +5669,7 @@ msgstr "Enumerar totes les adreces de subscriptor d'una llista (també necessita
 msgid "Enumerate every subscriber address on a list (also needs Lists read)"
 msgstr "Enumerar totes les adreces de subscriptor d'una llista (també necessita lectura de Llistes)"
 
+#: src/components/email_builder/ui/displayConditionLabels.ts:14
 #: src/components/web_analytics/FilterBuilder.tsx:37
 #: src/components/web_analytics/lib/filterCatalog.ts:216
 msgid "equals"
@@ -5796,7 +5890,7 @@ msgstr "Explorar"
 #: src/components/contacts/ExportContactsModal.tsx:354
 #: src/components/email_builder/MjmlCodeEditor.tsx:635
 #: src/components/logs/AuditLogActions.tsx:52
-#: src/components/templates/ImportExportButton.tsx:416
+#: src/components/templates/ImportExportButton.tsx:432
 #: src/pages/ContactsPage.tsx:1055
 msgid "Export"
 msgstr "Exportar"
@@ -6049,15 +6143,15 @@ msgstr "No s'han pogut descarregar els fitxers"
 msgid "Failed to enable reputation isolation"
 msgstr "No s'ha pogut activar l'aïllament de reputació"
 
-#: src/components/templates/ImportExportButton.tsx:330
+#: src/components/templates/ImportExportButton.tsx:346
 msgid "Failed to export HTML"
 msgstr "No s'ha pogut exportar HTML"
 
-#: src/components/templates/ImportExportButton.tsx:379
+#: src/components/templates/ImportExportButton.tsx:395
 msgid "Failed to export JSON"
 msgstr "No s'ha pogut exportar JSON"
 
-#: src/components/templates/ImportExportButton.tsx:359
+#: src/components/templates/ImportExportButton.tsx:375
 msgid "Failed to export MJML"
 msgstr "No s'ha pogut exportar MJML"
 
@@ -6090,11 +6184,11 @@ msgstr "No s'ha pogut obtenir l'estat de configuració"
 msgid "Failed to fetch workspace members"
 msgstr "No s'han pogut obtenir els membres de l'espai de treball"
 
-#: src/components/templates/ImportExportButton.tsx:239
+#: src/components/templates/ImportExportButton.tsx:255
 msgid "Failed to import MJML template. Please check the MJML syntax."
 msgstr "No s'ha pogut importar la plantilla MJML. Si us plau, comproveu la sintaxi MJML."
 
-#: src/components/templates/ImportExportButton.tsx:191
+#: src/components/templates/ImportExportButton.tsx:201
 msgid "Failed to import template. Please check the file format."
 msgstr "No s'ha pogut importar la plantilla. Si us plau, comproveu el format del fitxer."
 
@@ -6157,7 +6251,7 @@ msgid "Failed to publish theme"
 msgstr "No s'ha pogut publicar el tema"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:561
-#: src/components/templates/ImportExportButton.tsx:197
+#: src/components/templates/ImportExportButton.tsx:207
 msgid "Failed to read the file"
 msgstr "No s'ha pogut llegir el fitxer"
 
@@ -6396,6 +6490,10 @@ msgstr "Error en verificar el codi"
 #: src/components/settings/audit_logs/AuditFilterBuilder.tsx:110
 msgid "Failure"
 msgstr "Error"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:149
+msgid "false"
+msgstr "fals"
 
 #: src/components/settings/BlogSettings.tsx:368
 msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
@@ -7024,6 +7122,10 @@ msgstr "Ajudeu-nos a millorar Notifuse enviant estadístiques d'ús anònimes. N
 msgid "Helps screen readers describe the image"
 msgstr "Ajuda els lectors de pantalla a descriure la imatge"
 
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:120
+msgid "hidden"
+msgstr "ocult"
+
 #: src/components/settings/WebhookCard.tsx:351
 msgid "Hide"
 msgstr "Amagar"
@@ -7093,8 +7195,8 @@ msgstr "Quant de temps esperar abans de procedir al pas següent"
 msgid "How to use:"
 msgstr "Com utilitzar:"
 
-#: src/components/email_builder/panels/Preview.tsx:384
-#: src/components/templates/ImportExportButton.tsx:422
+#: src/components/email_builder/panels/Preview.tsx:397
+#: src/components/templates/ImportExportButton.tsx:438
 msgid "HTML"
 msgstr "HTML"
 
@@ -7106,11 +7208,11 @@ msgstr "Contingut HTML"
 msgid "HTML Content Editor"
 msgstr "Editor de contingut HTML"
 
-#: src/components/templates/ImportExportButton.tsx:317
+#: src/components/templates/ImportExportButton.tsx:333
 msgid "HTML Export Failed"
 msgstr "L'exportació HTML ha fallat"
 
-#: src/components/templates/ImportExportButton.tsx:324
+#: src/components/templates/ImportExportButton.tsx:340
 msgid "HTML exported successfully"
 msgstr "HTML exportat correctament"
 
@@ -7296,17 +7398,17 @@ msgstr "TLS implícit (SMTPS)"
 
 #: src/components/contacts/TrackingConsent.tsx:66
 #: src/components/email_builder/MjmlCodeEditor.tsx:623
-#: src/components/templates/ImportExportButton.tsx:387
+#: src/components/templates/ImportExportButton.tsx:403
 #: src/pages/ContactsPage.tsx:1048
 msgid "Import"
 msgstr "Importar"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:700
-#: src/components/templates/ImportExportButton.tsx:456
+#: src/components/templates/ImportExportButton.tsx:472
 msgid "Import / Export"
 msgstr "Importar / Exportar"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1301
+#: src/components/templates/CreateTemplateDrawer.tsx:1302
 msgid "Import & Export Templates"
 msgstr "Importar i exportar plantilles"
 
@@ -7345,11 +7447,11 @@ msgstr "Importar des de CSV"
 msgid "Import MJML"
 msgstr "Importar MJML"
 
-#: src/components/templates/ImportExportButton.tsx:404
+#: src/components/templates/ImportExportButton.tsx:420
 msgid "Import MJML markup"
 msgstr "Importar marcatge MJML"
 
-#: src/components/templates/ImportExportButton.tsx:189
+#: src/components/templates/ImportExportButton.tsx:199
 msgid "Import Validation Failed"
 msgstr "La validació de la importació ha fallat"
 
@@ -7532,6 +7634,10 @@ msgstr "Integració actualitzada correctament"
 msgid "Integrations"
 msgstr "Integracions"
 
+#: src/components/email_builder/EmailAIAssistant.tsx:89
+msgid "Invalid display condition"
+msgstr "Condició de visualització no vàlida"
+
 #: src/components/settings/SystemSettingsDrawer.tsx:409
 msgid "Invalid email"
 msgstr "Correu no vàlid"
@@ -7563,7 +7669,7 @@ msgstr "Enllaç d'invitació invàlid: falta el token"
 msgid "Invalid JSON format"
 msgstr "Format JSON invàlid"
 
-#: src/components/email_builder/panels/Preview.tsx:144
+#: src/components/email_builder/panels/Preview.tsx:157
 msgid "Invalid JSON format. Please check your syntax."
 msgstr "Format JSON invàlid. Si us plau, comproveu la vostra sintaxi."
 
@@ -7579,20 +7685,20 @@ msgstr "Token d'invitació invàlid o caducat"
 msgid "Invalid template structure data."
 msgstr "Dades d'estructura de plantilla invàlides."
 
-#: src/components/templates/ImportExportButton.tsx:97
+#: src/components/templates/ImportExportButton.tsx:101
 msgid "Invalid tree structure: children must be an array"
 msgstr "Estructura d'arbre invàlida: els fills han de ser una matriu"
 
-#: src/components/templates/ImportExportButton.tsx:82
-#: src/components/templates/ImportExportButton.tsx:87
+#: src/components/templates/ImportExportButton.tsx:86
+#: src/components/templates/ImportExportButton.tsx:91
 msgid "Invalid tree structure: missing id or type"
 msgstr "Estructura d'arbre invàlida: falta id o type"
 
-#: src/components/templates/ImportExportButton.tsx:71
+#: src/components/templates/ImportExportButton.tsx:75
 msgid "Invalid tree structure: not an object"
 msgstr "Estructura d'arbre invàlida: no és un objecte"
 
-#: src/components/templates/ImportExportButton.tsx:92
+#: src/components/templates/ImportExportButton.tsx:96
 msgid "Invalid tree structure: root must be mjml type"
 msgstr "Estructura d'arbre invàlida: l'arrel ha de ser de tipus mjml"
 
@@ -7662,10 +7768,30 @@ msgstr "és"
 msgid "is empty"
 msgstr "està buit"
 
+#: src/components/email_builder/ui/displayConditionLabels.ts:11
+msgid "is false or empty"
+msgstr "és fals o buit"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:18
+msgid "is greater than"
+msgstr "és més gran que"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:19
+msgid "is greater than or equal to"
+msgstr "és més gran o igual que"
+
 #: src/components/segment/form_leaf.tsx:229
 #: src/components/segment/input.tsx:584
 msgid "is in"
 msgstr "està a"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:20
+msgid "is less than"
+msgstr "és més petit que"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:21
+msgid "is less than or equal to"
+msgstr "és més petit o igual que"
 
 #: src/components/web_analytics/FilterBuilder.tsx:42
 #: src/components/web_analytics/lib/filterCatalog.ts:221
@@ -7676,6 +7802,18 @@ msgstr "no està buit"
 #: src/components/segment/input.tsx:584
 msgid "is not in"
 msgstr "no està a"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:13
+msgid "is not set"
+msgstr "no està definit"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:12
+msgid "is set"
+msgstr "està definit"
+
+#: src/components/email_builder/ui/displayConditionLabels.ts:10
+msgid "is true"
+msgstr "és cert"
 
 #: src/components/settings/Integrations.tsx:2464
 msgid "isolated"
@@ -7727,12 +7865,12 @@ msgstr "s'ha unit"
 msgid "Joined"
 msgstr "Unit"
 
-#: src/components/templates/ImportExportButton.tsx:393
-#: src/components/templates/ImportExportButton.tsx:442
+#: src/components/templates/ImportExportButton.tsx:409
+#: src/components/templates/ImportExportButton.tsx:458
 msgid "JSON"
 msgstr "JSON"
 
-#: src/components/templates/ImportExportButton.tsx:376
+#: src/components/templates/ImportExportButton.tsx:392
 msgid "JSON exported successfully"
 msgstr "JSON exportat correctament"
 
@@ -7935,7 +8073,7 @@ msgstr "Esquerra a dreta"
 msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 msgstr "Permet als usuaris iniciar sessió amb un proveïdor d'identitat extern (Google Workspace, Keycloak, Okta, …) a més dels codis màgics."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1254
+#: src/components/templates/CreateTemplateDrawer.tsx:1255
 msgid "Let's take a quick tour to help you get started with building beautiful emails using MJML."
 msgstr "Fem un ràpid recorregut per ajudar-vos a començar a construir correus bonics utilitzant MJML."
 
@@ -8248,7 +8386,7 @@ msgstr "Carregar més"
 msgid "Load More Events"
 msgstr "Carregar més esdeveniments"
 
-#: src/components/templates/ImportExportButton.tsx:394
+#: src/components/templates/ImportExportButton.tsx:410
 msgid "Load saved template"
 msgstr "Carregar plantilla desada"
 
@@ -8463,6 +8601,10 @@ msgstr "Correus de màrqueting"
 msgid "Marketing Provider"
 msgstr "Proveïdor de màrqueting"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:303
+msgid "Match"
+msgstr "Coincidència"
+
 #: src/components/contacts/SegmentsFilter.tsx:73
 msgid "Matched"
 msgstr "Coincideix"
@@ -8653,9 +8795,9 @@ msgstr "Falten etiquetes"
 msgid "Missing workspace ID or template data."
 msgstr "Falta l'ID de l'espai de treball o les dades de la plantilla."
 
-#: src/components/email_builder/panels/Preview.tsx:366
-#: src/components/templates/ImportExportButton.tsx:403
-#: src/components/templates/ImportExportButton.tsx:432
+#: src/components/email_builder/panels/Preview.tsx:379
+#: src/components/templates/ImportExportButton.tsx:419
+#: src/components/templates/ImportExportButton.tsx:448
 msgid "MJML"
 msgstr "MJML"
 
@@ -8667,7 +8809,7 @@ msgstr "Contingut MJML + Liquid"
 msgid "MJML + Liquid Editor"
 msgstr "Editor MJML + Liquid"
 
-#: src/components/email_builder/panels/Preview.tsx:100
+#: src/components/email_builder/panels/Preview.tsx:113
 msgid "MJML compilation completed successfully with no warnings or errors."
 msgstr "La compilació MJML s'ha completat correctament sense avisos ni errors."
 
@@ -8676,7 +8818,7 @@ msgstr "La compilació MJML s'ha completat correctament sense avisos ni errors."
 msgid "MJML Compilation Error: {0}"
 msgstr "Error de compilació MJML: {0}"
 
-#: src/components/email_builder/panels/Preview.tsx:110
+#: src/components/email_builder/panels/Preview.tsx:123
 msgid "MJML Compilation Warnings"
 msgstr "Avisos de compilació MJML"
 
@@ -8684,11 +8826,11 @@ msgstr "Avisos de compilació MJML"
 msgid "MJML Documentation"
 msgstr "Documentació de MJML"
 
-#: src/components/templates/ImportExportButton.tsx:346
+#: src/components/templates/ImportExportButton.tsx:362
 msgid "MJML Export Failed"
 msgstr "L'exportació MJML ha fallat"
 
-#: src/components/templates/ImportExportButton.tsx:353
+#: src/components/templates/ImportExportButton.tsx:369
 msgid "MJML exported successfully"
 msgstr "MJML exportat correctament"
 
@@ -8696,11 +8838,11 @@ msgstr "MJML exportat correctament"
 msgid "MJML file imported"
 msgstr "Fitxer MJML importat"
 
-#: src/components/templates/ImportExportButton.tsx:236
+#: src/components/templates/ImportExportButton.tsx:252
 msgid "MJML Import Error"
 msgstr "Error d'importació MJML"
 
-#: src/components/templates/ImportExportButton.tsx:212
+#: src/components/templates/ImportExportButton.tsx:222
 msgid "MJML Import Validation Failed"
 msgstr "La validació d'importació MJML ha fallat"
 
@@ -8708,19 +8850,19 @@ msgstr "La validació d'importació MJML ha fallat"
 msgid "MJML Source"
 msgstr "Font MJML"
 
-#: src/components/templates/ImportExportButton.tsx:229
+#: src/components/templates/ImportExportButton.tsx:245
 msgid "MJML Syntax Error"
 msgstr "Error de sintaxi MJML"
 
-#: src/components/templates/ImportExportButton.tsx:219
+#: src/components/templates/ImportExportButton.tsx:229
 msgid "MJML template imported and converted successfully"
 msgstr "Plantilla MJML importada i convertida correctament"
 
-#: src/components/templates/ImportExportButton.tsx:234
+#: src/components/templates/ImportExportButton.tsx:250
 msgid "MJML Validation Failed"
 msgstr "La validació MJML ha fallat"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1286
+#: src/components/templates/CreateTemplateDrawer.tsx:1287
 msgid "Mobile & Desktop Preview"
 msgstr "Previsualització mòbil i escriptori"
 
@@ -8728,7 +8870,7 @@ msgstr "Previsualització mòbil i escriptori"
 msgid "Mobile Breakpoint"
 msgstr "Punt de ruptura mòbil"
 
-#: src/components/email_builder/panels/Preview.tsx:449
+#: src/components/email_builder/panels/Preview.tsx:462
 msgid "Mobile view (400px)"
 msgstr "Vista mòbil (400px)"
 
@@ -9135,7 +9277,7 @@ msgstr "No hi ha dades d'objectius"
 msgid "No goals tracked yet"
 msgstr "Encara no hi ha cap objectiu amb seguiment"
 
-#: src/components/templates/ImportExportButton.tsx:326
+#: src/components/templates/ImportExportButton.tsx:342
 msgid "No HTML content to export"
 msgstr "No hi ha contingut HTML per exportar"
 
@@ -9143,7 +9285,7 @@ msgstr "No hi ha contingut HTML per exportar"
 msgid "No icon found"
 msgstr "No s'ha trobat cap icona"
 
-#: src/components/email_builder/panels/Preview.tsx:98
+#: src/components/email_builder/panels/Preview.tsx:111
 msgid "No Issues"
 msgstr "Sense problemes"
 
@@ -9183,7 +9325,7 @@ msgstr "No s'han trobat membres"
 msgid "No messages found"
 msgstr "No s'han trobat missatges"
 
-#: src/components/templates/ImportExportButton.tsx:355
+#: src/components/templates/ImportExportButton.tsx:371
 msgid "No MJML content to export"
 msgstr "No hi ha contingut MJML per exportar"
 
@@ -9443,6 +9585,10 @@ msgstr "no a"
 msgid "Not in List"
 msgstr "No és a la llista"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:184
+msgid "Not in the test data: the rule is evaluated as if the variable were empty."
+msgstr "No és a les dades de prova: la regla s'avalua com si la variable fos buida."
+
 #: src/components/settings/Integrations.tsx:1076
 msgid "Not now"
 msgstr "Ara no"
@@ -9471,7 +9617,7 @@ msgstr "Sense seguiment"
 msgid "Not-mapped channels"
 msgstr "Canals no assignats"
 
-#: src/components/templates/ImportExportButton.tsx:108
+#: src/components/templates/ImportExportButton.tsx:112
 msgid "Note: mj-raw components can only be placed directly in mj-body or mj-head, not inside mj-wrapper. Consider moving the mj-raw content outside the wrapper or converting it to appropriate MJML components."
 msgstr "Nota: els components mj-raw només es poden col·locar directament a mj-body o mj-head, no dins de mj-wrapper. Considereu moure el contingut mj-raw fora del wrapper o convertir-lo a components MJML adequats."
 
@@ -9479,7 +9625,7 @@ msgstr "Nota: els components mj-raw només es poden col·locar directament a mj-
 msgid "Note: The template will be hidden from your workspace but preserved to maintain the ability to preview previously sent broadcasts and messages that used this template."
 msgstr "Nota: La plantilla s'amagarà del vostre espai de treball però es preservarà per mantenir la capacitat de previsualitzar difusions i missatges enviats anteriorment que han utilitzat aquesta plantilla."
 
-#: src/components/templates/ImportExportButton.tsx:113
+#: src/components/templates/ImportExportButton.tsx:117
 msgid "Note: This might be caused by an incorrectly structured MJML file. HTML content inside mj-raw should be stored as text content, not as child elements."
 msgstr "Nota: Això pot ser causat per un fitxer MJML estructurat incorrectament. El contingut HTML dins de mj-raw s'ha d'emmagatzemar com a contingut de text, no com a elements fills."
 
@@ -9528,7 +9674,7 @@ msgid "notifuse-…"
 msgstr "notifuse-…"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1005
-#: src/components/templates/TemplateTranslationsTab.tsx:302
+#: src/components/templates/TemplateTranslationsTab.tsx:303
 msgid "Now"
 msgstr "Ara"
 
@@ -9600,6 +9746,7 @@ msgstr "Ocorregut:"
 msgid "of {tracked} tracked"
 msgstr "de {tracked} amb seguiment"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:313
 #: src/components/segment/input.tsx:961
 msgid "of the following conditions match:"
 msgstr "de les condicions següents coincideixen:"
@@ -9612,7 +9759,7 @@ msgstr "Desactivat (text pla)"
 msgid "OIDC issuer base URL — discovery happens at <issuer>/.well-known/openid-configuration"
 msgstr "URL base de l'emissor OIDC — el descobriment es fa a <issuer>/.well-known/openid-configuration"
 
-#: src/components/templates/ImportExportButton.tsx:491
+#: src/components/templates/ImportExportButton.tsx:507
 msgid "OK"
 msgstr "D'acord"
 
@@ -9696,7 +9843,7 @@ msgstr "Seguiment d'obertures i clics"
 msgid "Open email"
 msgstr "Correu obert"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:259
+#: src/components/templates/TemplateTranslationsTab.tsx:260
 msgid "Open email editor"
 msgstr "Obrir l'editor de correu"
 
@@ -9821,6 +9968,10 @@ msgstr "Resultats de l'operació:"
 msgid "Operations"
 msgstr "Operacions"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:233
+msgid "Operator"
+msgstr "Operador"
+
 #: src/pages/TemplatesPage.tsx:128
 msgid "Opt-in"
 msgstr "Opt-in"
@@ -9851,6 +10002,8 @@ msgstr "Opcional. Si es proporciona, s'envia com Authorization: Bearer <secret>"
 msgid "Optionally filter contacts by segments within the selected lists"
 msgstr "Opcionalment filtreu contactes per segments dins de les llistes seleccionades"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:116
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
 #: src/pages/SignInPage.tsx:294
 msgid "or"
 msgstr "o"
@@ -10362,7 +10515,7 @@ msgstr "Si us plau, seleccioneu un camp"
 msgid "Please select a goal type"
 msgstr "Si us plau, seleccioneu un tipus d'objectiu"
 
-#: src/components/templates/ImportExportButton.tsx:265
+#: src/components/templates/ImportExportButton.tsx:281
 msgid "Please select a JSON file"
 msgstr "Si us plau, seleccioneu un fitxer JSON"
 
@@ -10421,7 +10574,7 @@ msgstr "Si us plau, seleccioneu una plantilla de correu"
 msgid "Please select an event type"
 msgstr "Si us plau, seleccioneu un tipus d'esdeveniment"
 
-#: src/components/templates/ImportExportButton.tsx:284
+#: src/components/templates/ImportExportButton.tsx:300
 msgid "Please select an MJML file"
 msgstr "Si us plau, seleccioneu un fitxer MJML"
 
@@ -10548,7 +10701,7 @@ msgstr "Previsualitzar"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:37
 #: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/common/ImageURLInput.tsx:52
-#: src/components/email_builder/EmailBuilder.tsx:856
+#: src/components/email_builder/EmailBuilder.tsx:877
 #: src/components/segment/button_upsert.tsx:659
 msgid "Preview"
 msgstr "Previsualitzar"
@@ -10590,7 +10743,7 @@ msgstr "Previsualitzar plantilla"
 msgid "Preview Template"
 msgstr "Previsualitzar plantilla"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:248
+#: src/components/templates/TemplateTranslationsTab.tsx:249
 msgid "Preview text"
 msgstr "Text de vista prèvia"
 
@@ -10599,7 +10752,7 @@ msgid "Preview Text Settings"
 msgstr "Configuració del text de vista prèvia"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1004
-#: src/components/templates/TemplateTranslationsTab.tsx:301
+#: src/components/templates/TemplateTranslationsTab.tsx:302
 msgid "Preview text will appear here..."
 msgstr "El text de vista prèvia apareixerà aquí..."
 
@@ -10615,7 +10768,7 @@ msgstr "La vista prèvia apareixerà aquí després de la compilació"
 msgid "Preview with test data"
 msgstr "Previsualització amb dades de prova"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1279
+#: src/components/templates/CreateTemplateDrawer.tsx:1280
 msgid "Preview Your Email"
 msgstr "Previsualitza el teu correu"
 
@@ -11023,7 +11176,7 @@ msgstr "Llegiu la guia de configuració de Zapier"
 msgid "Reading Time"
 msgstr "Temps de lectura"
 
-#: src/components/templates/ImportExportButton.tsx:423
+#: src/components/templates/ImportExportButton.tsx:439
 msgid "Ready to send"
 msgstr "Llest per enviar"
 
@@ -11126,7 +11279,7 @@ msgstr "URI de redirecció"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:676
-#: src/components/email_builder/EmailBuilder.tsx:839
+#: src/components/email_builder/EmailBuilder.tsx:860
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
 msgid "Redo"
 msgstr "Refer"
@@ -11236,6 +11389,7 @@ msgstr "Recarregar la darrera"
 #: src/components/automations/config/ConditionsField.tsx:119
 #: src/components/automations/config/ConditionsField.tsx:124
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:91
 msgid "Remove"
 msgstr "Treure"
 
@@ -11284,6 +11438,15 @@ msgstr "Eliminar enllaç"
 #: src/components/settings/WorkspaceMembers.tsx:221
 msgid "Remove member"
 msgstr "Treure membre"
+
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:95
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:99
+msgid "Remove the condition"
+msgstr "Suprimeix la condició"
+
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:89
+msgid "Remove the display condition?"
+msgstr "Vols suprimir la condició de visualització?"
 
 #: src/components/blog/AuthorsTable.tsx:103
 msgid "Remove this author?"
@@ -11434,8 +11597,8 @@ msgstr "Reenviar codi"
 msgid "Resend invitation"
 msgstr "Reenviar invitació"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:281
-#: src/components/templates/TemplateTranslationsTab.tsx:284
+#: src/components/templates/TemplateTranslationsTab.tsx:282
+#: src/components/templates/TemplateTranslationsTab.tsx:285
 #: src/pages/DebugSegmentPage.tsx:83
 msgid "Reset"
 msgstr "Restablir"
@@ -11464,7 +11627,7 @@ msgstr "Restablir format"
 msgid "reset the filter"
 msgstr "restablir el filtre"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:268
+#: src/components/templates/TemplateTranslationsTab.tsx:269
 msgid "Reset translation"
 msgstr "Restablir la traducció"
 
@@ -11512,6 +11675,10 @@ msgstr "Resubscrit"
 #: src/components/web_analytics/filters/TestFilterModal.tsx:189
 msgid "Result value"
 msgstr "Valor del resultat"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:147
+msgid "Result with the test data"
+msgstr "Resultat amb les dades de prova"
 
 #: src/components/web_analytics/filters/TestFilterModal.tsx:158
 msgid "Result:"
@@ -11753,7 +11920,7 @@ msgstr "Mode de caixa de proves"
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:318
 #: src/components/contacts/TrackingConsent.tsx:214
-#: src/components/email_builder/panels/Preview.tsx:197
+#: src/components/email_builder/panels/Preview.tsx:210
 #: src/components/email_builder/ui/BlockToolbar.tsx:209
 #: src/components/email_builder/ui/StringPopoverInput.tsx:100
 #: src/components/file_manager/buttonSettings.tsx:312
@@ -11800,7 +11967,7 @@ msgstr "Desar bloc"
 msgid "Save Changes"
 msgstr "Desar canvis"
 
-#: src/components/templates/ImportExportButton.tsx:443
+#: src/components/templates/ImportExportButton.tsx:459
 msgid "Save for later import"
 msgstr "Desar per importar més tard"
 
@@ -12049,7 +12216,7 @@ msgstr "Seleccionar"
 msgid "Select {0}"
 msgstr "Seleccionar {0}"
 
-#: src/components/email_builder/panels/SettingsPanel.tsx:66
+#: src/components/email_builder/panels/SettingsPanel.tsx:85
 msgid "Select a block to edit its attributes"
 msgstr "Seleccioneu un bloc per editar els seus atributs"
 
@@ -12459,7 +12626,7 @@ msgid "Sender"
 msgstr "Remitent"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1002
-#: src/components/templates/TemplateTranslationsTab.tsx:299
+#: src/components/templates/TemplateTranslationsTab.tsx:300
 msgid "Sender Name"
 msgstr "Nom del remitent"
 
@@ -12795,6 +12962,10 @@ msgstr "Mostrar més ({0} restants)"
 #~ msgid "Show the endpoints this permission gates"
 #~ msgstr ""
 
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:110
+msgid "Show this block if"
+msgstr "Mostra aquest bloc si"
+
 #: src/components/broadcasts/BroadcastLinkStats.tsx:132
 #~ msgid "Showing the top 200 links by total clicks."
 #~ msgstr ""
@@ -12802,6 +12973,14 @@ msgstr "Mostrar més ({0} restants)"
 #: src/components/broadcasts/BroadcastLinkStats.tsx:221
 msgid "Showing the top 200 links by unique clicks."
 msgstr "Es mostren els 200 enllaços principals per clics únics."
+
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:120
+msgid "shown"
+msgstr "visible"
+
+#: src/components/email_builder/panels/TreePanel.tsx:267
+msgid "Shown under a condition"
+msgstr "Visible sota una condició"
 
 #: src/pages/SignInPage.tsx:244
 msgid "Sign In"
@@ -13230,7 +13409,7 @@ msgid "Style Attributes"
 msgstr "Atributs d'estil"
 
 #: src/components/templates/TemplatePreviewDrawer.tsx:358
-#: src/components/templates/TemplateTranslationsTab.tsx:232
+#: src/components/templates/TemplateTranslationsTab.tsx:233
 #: src/pages/BroadcastsPage.tsx:880
 #: src/pages/TemplatesPage.tsx:258
 msgid "Subject"
@@ -13239,7 +13418,7 @@ msgstr "Assumpte"
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
 #: src/components/templates/CreateTemplateDrawer.tsx:955
 #: src/components/templates/TemplatePreviewDrawer.tsx:363
-#: src/components/templates/TemplateTranslationsTab.tsx:241
+#: src/components/templates/TemplateTranslationsTab.tsx:242
 msgid "Subject preview"
 msgstr "Vista prèvia de l'assumpte"
 
@@ -13392,7 +13571,7 @@ msgstr "Idiomes admesos"
 msgid "Supports reply_to, cc, bcc, and attachments"
 msgstr "Suporta reply_to, cc, bcc i fitxers adjunts"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1281
+#: src/components/templates/CreateTemplateDrawer.tsx:1282
 msgid "Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied."
 msgstr "Canvieu al mode de vista prèvia per veure com es veurà el vostre correu als destinataris. Això mostra la versió final renderitzada amb tots els estils aplicats."
 
@@ -13515,12 +13694,12 @@ msgstr "Plantilla canviada per una altra persona"
 msgid "Template created successfully"
 msgstr "Plantilla creada correctament"
 
-#: src/components/email_builder/panels/Preview.tsx:348
+#: src/components/email_builder/panels/Preview.tsx:361
 #: src/components/templates/TemplatePreviewDrawer.tsx:271
 msgid "Template Data"
 msgstr "Dades de la plantilla"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1293
+#: src/components/templates/CreateTemplateDrawer.tsx:1294
 msgid "Template Data & Liquid Templating"
 msgstr "Dades de plantilla i plantilles Liquid"
 
@@ -13548,7 +13727,7 @@ msgstr "L'ID de plantilla ja existeix"
 msgid "Template ID must be at most {TEMPLATE_ID_MAX_LENGTH} characters long"
 msgstr "L'ID de la plantilla ha de tenir com a màxim {TEMPLATE_ID_MAX_LENGTH} caràcters"
 
-#: src/components/templates/ImportExportButton.tsx:181
+#: src/components/templates/ImportExportButton.tsx:191
 msgid "Template imported successfully"
 msgstr "Plantilla importada correctament"
 
@@ -13651,7 +13830,7 @@ msgstr "Dades de prova"
 msgid "Test data updated"
 msgstr "Dades de prova actualitzades"
 
-#: src/components/email_builder/panels/Preview.tsx:139
+#: src/components/email_builder/panels/Preview.tsx:152
 msgid "Test data updated successfully"
 msgstr "Dades de prova actualitzades correctament"
 
@@ -13774,7 +13953,7 @@ msgstr "Text que es mostra al botó d'inici de sessió"
 msgid "Text Transform"
 msgstr "Transformació de text"
 
-#: src/components/email_builder/EmailBuilder.tsx:859
+#: src/components/email_builder/EmailBuilder.tsx:880
 #: src/components/email_builder/MjmlCodeEditor.tsx:684
 #: src/components/email_builder/panels/TextVersionPanel.tsx:30
 #: src/components/templates/TemplatePreviewDrawer.tsx:228
@@ -13808,6 +13987,14 @@ msgstr "L'automatització deixarà de processar nous contactes."
 #: src/components/web_analytics/explore/ExploreSummary.tsx:92
 msgid "The best-performing combination could not be loaded."
 msgstr "No s'ha pogut carregar la combinació amb millor rendiment."
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:298
+msgid "The block and everything in it are sent only to recipients for whom the condition holds. Variables are those of the email's data: contact fields, data sent to the API, data feeds."
+msgstr "El bloc i tot el seu contingut només s'envien als destinataris per als quals es compleix la condició. Les variables són les de les dades del correu: camps del contacte, dades enviades a l'API, fonts de dades."
+
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:90
+msgid "The block will be sent to every recipient again."
+msgstr "El bloc s'enviarà de nou a tots els destinataris."
 
 #: src/pages/BroadcastsPage.tsx:689
 msgid "The broadcast will continue sending from where it was paused."
@@ -13866,7 +14053,7 @@ msgstr "No s'ha pogut compilar el correu"
 msgid "The export failed. Please try again."
 msgstr "L'exportació ha fallat. Torneu-ho a provar."
 
-#: src/components/templates/ImportExportButton.tsx:498
+#: src/components/templates/ImportExportButton.tsx:514
 msgid "The following validation errors were found in your import:"
 msgstr "S'han trobat els següents errors de validació a la vostra importació:"
 
@@ -13984,6 +14171,14 @@ msgstr "L'URL on enviar la sol·licitud POST"
 #: src/components/integrations/SupabaseIntegration.tsx:208
 msgid "The user_metadata field in Supabase will be saved to this custom JSON field"
 msgstr "El camp user_metadata de Supabase es desarà en aquest camp JSON personalitzat"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:107
+msgid "The value cannot contain the Liquid delimiters {delimiters}."
+msgstr "El valor no pot contenir els delimitadors de Liquid {delimiters}."
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:104
+msgid "The value is too long."
+msgstr "El valor és massa llarg."
 
 #: src/components/automations/config/WebhookConfigForm.tsx:36
 #: src/components/automations/utils/flowConverter.ts:555
@@ -14105,6 +14300,10 @@ msgstr "Això apareix a les pestanyes del navegador quan es visualitza el correu
 msgid "This audit entry could not be found"
 msgstr "No s'ha trobat aquesta entrada d'auditoria"
 
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:75
+msgid "This block holds a Liquid block, which a condition could cut off from the rest of the email. Move the Liquid block out of it first."
+msgstr "Aquest bloc conté un bloc Liquid, que una condició podria separar de la resta del correu. Treu primer el bloc Liquid d'aquest bloc."
+
 #: src/pages/BroadcastsPage.tsx:277
 msgid "This broadcast failed due to an error. Check the logs for details."
 msgstr "Aquesta difusió ha fallat a causa d'un error. Consulteu els registres per als detalls."
@@ -14166,6 +14365,10 @@ msgstr "Aquest esdeveniment es dispara sovint. Aquestes condicions s'avaluen per
 msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 msgstr "Aquesta funcionalitat fa una sol·licitud HTTP per a cada destinatari abans d'enviar el seu email. Això pot alentir significativament el processament del broadcast. Si la sol·licitud del feed falla després dels reintents, el broadcast es posarà en pausa automàticament."
 
+#: src/components/templates/ImportExportButton.tsx:233
+msgid "This file holds the display conditions of an export. They are not imported: the blocks they wrapped now show to every recipient. Add their conditions again in the block settings."
+msgstr "Aquest fitxer conté les condicions de visualització d'una exportació. No s'importen: els blocs que envoltaven ara es mostren a tots els destinataris. Torna a afegir les seves condicions a la configuració del bloc."
+
 #: src/components/integrations/SupabaseIntegration.tsx:245
 msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
 msgstr "Aquest hook mai bloqueja la creació d'usuaris de Supabase per errors. No obstant això, si 'Rebutjar adreces de correu d'un sol ús' està habilitat i es detecta un correu d'un sol ús, el registre d'usuari serà rebutjat per Supabase."
@@ -14194,11 +14397,11 @@ msgstr "Aquest és l'ID que s'utilitzarà com a paràmetre utm_content a l'URL d
 msgid "This is where delivery statistics live, not under Broadcasts: a key that may create and send a broadcast still cannot read its open, click or bounce numbers without Message History read. The log carries recipient addresses and the rendered message data, so it is contact data by another name."
 msgstr "És aquí on viuen les estadístiques de lliurament, i no sota Difusions: una clau que pot crear i enviar una difusió segueix sense poder llegir-ne les xifres d'obertures, clics o rebots sense la lectura d'Historial de missatges. El registre porta adreces de destinataris i les dades renderitzades del missatge, de manera que són dades de contactes amb un altre nom."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1260
+#: src/components/templates/CreateTemplateDrawer.tsx:1261
 msgid "This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another."
 msgstr "Aquest és el vostre arbre d'estructura de contingut. Podeu arrossegar i deixar anar blocs per reorganitzar el disseny del correu. Feu clic als botons + per afegir nous blocs, o arrossegueu blocs d'una secció a una altra."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1267
+#: src/components/templates/CreateTemplateDrawer.tsx:1268
 msgid "This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options."
 msgstr "Aquest és el vostre editor visual de correu. Feu clic a qualsevol element del vostre correu per seleccionar-lo. Els elements seleccionats es ressaltaran amb una vora blava i mostraran opcions d'edició."
 
@@ -14257,6 +14460,10 @@ msgstr "Aquesta propietat ja està filtrada"
 #: src/components/web_analytics/toolbar.tsx:27
 msgid "This quarter"
 msgstr "Aquest trimestre"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:112
+msgid "This rule is not valid."
+msgstr "Aquesta regla no és vàlida."
 
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:189
 msgid "This section is empty. Add columns or groups to display content."
@@ -14335,7 +14542,7 @@ msgstr "Això eliminarà permanentment el contacte i les seves subscripcions."
 msgid "This will register or update webhook endpoints for this email provider."
 msgstr "Això registrarà o actualitzarà els punts finals de webhook per a aquest proveïdor de correu."
 
-#: src/components/templates/TemplateTranslationsTab.tsx:269
+#: src/components/templates/TemplateTranslationsTab.tsx:270
 msgid "This will replace all content with the default language template. Continue?"
 msgstr "Això substituirà tot el contingut per la plantilla de l'idioma predeterminat. Voleu continuar?"
 
@@ -14461,7 +14668,7 @@ msgstr "Zona horària:"
 msgid "Tips for effective preview text:"
 msgstr "Consells per a un text de vista prèvia efectiu:"
 
-#: src/components/templates/ImportExportButton.tsx:513
+#: src/components/templates/ImportExportButton.tsx:529
 msgid "Tips for fixing these errors:"
 msgstr "Consells per solucionar aquests errors:"
 
@@ -14557,7 +14764,7 @@ msgstr "Avui"
 msgid "TODO"
 msgstr "PENDENT"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1288
+#: src/components/templates/CreateTemplateDrawer.tsx:1289
 msgid "Toggle between mobile and desktop views to see how your email appears on different devices. Mobile view shows a 400px width while desktop shows the full width."
 msgstr "Canvieu entre les vistes mòbil i escriptori per veure com es mostra el vostre correu en diferents dispositius. La vista mòbil mostra una amplada de 400px mentre que l'escriptori mostra l'amplada completa."
 
@@ -14764,6 +14971,10 @@ msgstr "Esdeveniment activador"
 msgid "Trigger on specific field changes"
 msgstr "Activar amb canvis de camp específics"
 
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:149
+msgid "true"
+msgstr "cert"
+
 #: src/pages/BroadcastsPage.tsx:1735
 msgid "Try adjusting your search or status filter"
 msgstr "Proveu d'ajustar la cerca o el filtre d'estat"
@@ -14848,7 +15059,7 @@ msgstr "Entendre la qualitat de les referències"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:669
-#: src/components/email_builder/EmailBuilder.tsx:831
+#: src/components/email_builder/EmailBuilder.tsx:852
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:496
 msgid "Undo"
 msgstr "Desfer"
@@ -15184,11 +15395,11 @@ msgstr "Utilitzeu el nom de la font en elements de text:"
 msgid "Use the save button in the block toolbar to save blocks"
 msgstr "Utilitzeu el botó de desar a la barra d'eines del bloc per desar blocs"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1295
+#: src/components/templates/CreateTemplateDrawer.tsx:1296
 msgid "Use the Template Data tab to define dynamic content for your emails. Add variables like {{ name }} or {{ company }} in your email content, then define their values here. The Liquid templating engine supports conditionals, loops, and filters for powerful personalization."
 msgstr "Utilitzeu la pestanya Dades de plantilla per definir contingut dinàmic per als vostres correus. Afegiu variables com {{ name }} o {{ company }} al contingut del correu, després definiu els seus valors aquí. El motor de plantilles Liquid suporta condicionals, bucles i filtres per a una personalització potent."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1303
+#: src/components/templates/CreateTemplateDrawer.tsx:1304
 msgid "Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use."
 msgstr "Utilitzeu aquest botó per importar plantilles de correu desades o exportar els vostres correus acabats. Podeu importar plantilles JSON/MJML o exportar com a HTML, MJML o JSON per a ús futur."
 
@@ -15309,6 +15520,7 @@ msgid "Validation Error"
 msgstr "Error de validació"
 
 #: src/components/broadcasts/HeadersEditor.tsx:40
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:251
 #: src/components/segment/form_leaf.tsx:839
 #: src/components/web_analytics/FilterBuilder.tsx:263
 #: src/components/web_analytics/FilterBuilder.tsx:271
@@ -15331,6 +15543,11 @@ msgstr "Tipus de valor"
 #: src/components/settings/GeneralSettings.tsx:366
 msgid "Value:"
 msgstr "Valor:"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:66
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:210
+msgid "Variable"
+msgstr "Variable"
 
 #: src/components/automations/config/ABTestConfigForm.tsx:129
 msgid "Variant name"
@@ -15461,7 +15678,7 @@ msgstr "El seguiment dels visitants es fa amb més d'una versió de l'SDK ({0} j
 msgid "Visual"
 msgstr "Visual"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1265
+#: src/components/templates/CreateTemplateDrawer.tsx:1266
 msgid "Visual Email Editor"
 msgstr "Editor visual de correu"
 
@@ -15656,7 +15873,7 @@ msgstr "Pes"
 msgid "Welcome"
 msgstr "Benvingut"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1252
+#: src/components/templates/CreateTemplateDrawer.tsx:1253
 msgid "Welcome to Email Builder!"
 msgstr "Benvingut a l'Editor de correu!"
 
@@ -15731,7 +15948,7 @@ msgstr "Quan hi hagi coincidència, executeu aquestes operacions:"
 msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 msgstr "Quan està desactivat (recomanat), només els usuaris ja convidats poden iniciar sessió amb SSO. Quan està activat, un correu verificat d'un domini permès crea un compte automàticament."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1274
+#: src/components/templates/CreateTemplateDrawer.tsx:1275
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 msgstr "Quan seleccioneu un bloc, la seva configuració apareix aquí. Modifiqueu colors, text, espaiat, alineació i altres propietats per personalitzar el disseny del vostre correu."
 
@@ -15807,6 +16024,11 @@ msgstr "amb propietats"
 #: src/components/timeline/ContactTimeline.tsx:378
 msgid "with status"
 msgstr "amb estat"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:366
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:119
+msgid "With the test data:"
+msgstr "Amb les dades de prova:"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:129
 msgid "With:"

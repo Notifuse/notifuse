@@ -29,7 +29,14 @@ type SecureLiquidEngine struct {
 	timeout time.Duration
 	maxSize int
 	env     *liquid.Environment
+	// parsed caches the templates renderCached parses, keyed by their source. It is
+	// only touched by the render goroutine of the engine's current user (an engine is
+	// never shared, and one that fails is dropped), so it needs no lock.
+	parsed map[string]*liquid.Template
 }
+
+// maxParsedTemplates bounds an engine's parse cache; past it the cache starts over.
+const maxParsedTemplates = 256
 
 // newSecureLiquidEnv builds a liquidgo environment with the standard tags and a
 // render-length cap, shared by every engine constructor.
@@ -71,6 +78,18 @@ func NewSecureLiquidEngineWithOptions(timeout time.Duration, maxSize int) *Secur
 
 // RenderWithTimeout renders a Liquid template with timeout and size protection
 func (s *SecureLiquidEngine) RenderWithTimeout(content string, data map[string]interface{}) (string, error) {
+	return s.render(content, data, false)
+}
+
+// renderCached is RenderWithTimeout for a template rendered over and over, such as a
+// display condition, which it parses once per engine. Only for a template whose every
+// variable is assigned before it is read: liquidgo keeps a template's assigns from one
+// render to the next.
+func (s *SecureLiquidEngine) renderCached(content string, data map[string]interface{}) (string, error) {
+	return s.render(content, data, true)
+}
+
+func (s *SecureLiquidEngine) render(content string, data map[string]interface{}, cached bool) (string, error) {
 	// Validate template size
 	if len(content) > s.maxSize {
 		return "", fmt.Errorf("template size (%d bytes) exceeds maximum allowed size (%d bytes)", len(content), s.maxSize)
@@ -92,13 +111,25 @@ func (s *SecureLiquidEngine) RenderWithTimeout(content string, data map[string]i
 			}
 		}()
 
-		// Parse the template
-		tmpl, err := liquid.ParseTemplate(content, &liquid.TemplateOptions{
-			Environment: s.env,
-		})
-		if err != nil {
-			errorChan <- fmt.Errorf("liquid parsing failed: %w", err)
-			return
+		var tmpl *liquid.Template
+		if cached {
+			tmpl = s.parsed[content]
+		}
+		if tmpl == nil {
+			var err error
+			tmpl, err = liquid.ParseTemplate(content, &liquid.TemplateOptions{
+				Environment: s.env,
+			})
+			if err != nil {
+				errorChan <- fmt.Errorf("liquid parsing failed: %w", err)
+				return
+			}
+			if cached {
+				if s.parsed == nil || len(s.parsed) >= maxParsedTemplates {
+					s.parsed = make(map[string]*liquid.Template)
+				}
+				s.parsed[content] = tmpl
+			}
 		}
 
 		// Render the template (second parameter is 'assigns', pass nil)
