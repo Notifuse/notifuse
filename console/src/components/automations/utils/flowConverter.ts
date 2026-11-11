@@ -283,6 +283,9 @@ export function buildTriggerConfig(
     segment_id?: string
     custom_event_name?: string
     updated_fields?: string[]
+    link_url?: string
+    broadcast_id?: string
+    template_id?: string
     conditions?: TreeNode
     frequency?: 'once' | 'every_time'
   }
@@ -298,6 +301,12 @@ export function buildTriggerConfig(
     segment_id: config.segment_id,
     custom_event_name: config.custom_event_name,
     updated_fields: config.updated_fields,
+    // email.link_clicked filters: dropped here, a save would regenerate the trigger
+    // without them and enroll on every link clicked.
+    // Trimmed: the server refuses surrounding whitespace, which a paste often carries.
+    link_url: config.link_url?.trim() || undefined,
+    broadcast_id: config.broadcast_id,
+    template_id: config.template_id,
     // Omitted rather than sent empty: the server rejects a branch with zero leaves.
     conditions: HasLeaf(config.conditions) ? config.conditions : undefined,
     frequency: config.frequency || 'once'
@@ -336,6 +345,9 @@ export function hydrateTriggerNodeConfig(
           updated_fields:
             trigger.updated_fields ??
             (node.data.config as { updated_fields?: string[] }).updated_fields,
+          link_url: trigger.link_url,
+          broadcast_id: trigger.broadcast_id,
+          template_id: trigger.template_id,
           conditions: trigger.conditions,
           frequency: trigger.frequency
         }

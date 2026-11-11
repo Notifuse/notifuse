@@ -1,6 +1,6 @@
 import '../../__tests__/resizeObserverMock'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App, ConfigProvider } from 'antd'
 import { MessageHistoryTab } from './MessageHistoryTab'
@@ -135,5 +135,58 @@ describe('MessageHistoryTab error column default', () => {
 
     await waitFor(() => expect(screen.getByText('bob@example.com')).toBeInTheDocument())
     expect(screen.queryByText('Error')).not.toBeInTheDocument()
+  })
+})
+
+// The broadcast link stats open the log on the recipients who clicked one link. The
+// server takes that filter only within a broadcast, so it lives and dies with it.
+describe('MessageHistoryTab clicked link filter', () => {
+  const pricing = 'https://shop.example.com/pricing?utm_source=news'
+
+  beforeEach(async () => {
+    localStorage.clear()
+    const { listMessages } = await import('../../services/api/messages_history')
+    vi.mocked(listMessages).mockClear()
+  })
+
+  const lastListParams = async () => {
+    const { listMessages } = await import('../../services/api/messages_history')
+    const calls = vi.mocked(listMessages).mock.calls
+    return calls[calls.length - 1]?.[1]
+  }
+
+  it('sends the clicked link from the URL along with its broadcast', async () => {
+    window.history.replaceState({}, '', `/logs?broadcast_id=bc-1&clicked_url=${encodeURIComponent(pricing)}`)
+    renderTab()
+
+    await waitFor(async () =>
+      expect(await lastListParams()).toMatchObject({ broadcast_id: 'bc-1', clicked_url: pricing })
+    )
+    expect(screen.getByText(`Clicked link: ${pricing}`)).toBeInTheDocument()
+  })
+
+  it('offers no clicked link filter outside a broadcast', async () => {
+    window.history.replaceState({}, '', '/logs')
+    renderTab()
+
+    await waitFor(() => expect(screen.getByText('bob@example.com')).toBeInTheDocument())
+    expect(screen.getByText('Broadcast ID')).toBeInTheDocument()
+    expect(screen.queryByText('Clicked link')).not.toBeInTheDocument()
+  })
+
+  it('drops the clicked link when the broadcast filter is cleared', async () => {
+    window.history.replaceState({}, '', `/logs?broadcast_id=bc-1&clicked_url=${encodeURIComponent(pricing)}`)
+    renderTab()
+
+    await waitFor(() => expect(screen.getByText('Broadcast ID: bc-1')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('Broadcast ID: bc-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Clear' }))
+
+    await waitFor(async () => {
+      const params = await lastListParams()
+      expect(params).not.toHaveProperty('broadcast_id')
+      expect(params).not.toHaveProperty('clicked_url')
+    })
+    expect(screen.queryByText(`Clicked link: ${pricing}`)).not.toBeInTheDocument()
   })
 })

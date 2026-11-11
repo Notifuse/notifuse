@@ -152,10 +152,17 @@ func messageHistorySelectFields() string {
 // An open or a click is recorded only when the email carried the pixel or the
 // redirect (the flag is NULL on a message sent before it existed) and the
 // contact has not refused since. The redirect itself is never blocked.
+//
+// Nor is anything recorded on a message whose contact was erased: the redaction cleared
+// its clicked_links (see DeleteForEmail), and a later open or click would write
+// timeline entries under the placeholder address, which no purge reaches, put the clicked
+// URL back on the row, and start automations for the placeholder.
 const (
 	opensRecordableCondition = `opens_tracked IS NOT FALSE
+			AND message_history.contact_email <> '` + redactedContactEmail + `'
 			AND NOT EXISTS (SELECT 1 FROM contacts c WHERE c.email = message_history.contact_email AND c.tracking_opens_consent = 'denied')`
 	clicksRecordableCondition = `clicks_tracked IS NOT FALSE
+			AND message_history.contact_email <> '` + redactedContactEmail + `'
 			AND NOT EXISTS (SELECT 1 FROM contacts c WHERE c.email = message_history.contact_email AND c.tracking_clicks_consent = 'denied')`
 )
 
@@ -593,7 +600,11 @@ func (r *MessageHistoryRepository) SetStatusesIfNotSet(ctx context.Context, work
 	return nil
 }
 
-func (r *MessageHistoryRepository) SetClicked(ctx context.Context, workspaceID, id string, timestamp time.Time, clickedURL string) error {
+// SetClicked records a click. verified says the link came from a token signed by the
+// workspace, so the email really carried it: a link's first verified click marks its
+// clicked_links entry verified, which makes the timeline trigger write email.link_clicked.
+// An unverified click still counts, under its URL, in the per-link statistics.
+func (r *MessageHistoryRepository) SetClicked(ctx context.Context, workspaceID, id string, timestamp time.Time, clickedURL string, verified bool) error {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -633,16 +644,26 @@ func (r *MessageHistoryRepository) SetClicked(ctx context.Context, workspaceID, 
 			    clicked_links = CASE
 			        -- known URL: bump count, refresh last_at
 			        WHEN (CASE WHEN jsonb_typeof(clicked_links) = 'object' THEN clicked_links ELSE '{}'::jsonb END) ? $3 THEN
-			            jsonb_set(
-			                jsonb_set(clicked_links, ARRAY[$3, 'count'],
-			                    to_jsonb(COALESCE((clicked_links #>> ARRAY[$3, 'count'])::int, 0) + 1)),
-			                ARRAY[$3, 'last_at'], to_jsonb($1::timestamptz))
+			            (CASE WHEN $4::boolean THEN
+			                jsonb_set(
+			                    jsonb_set(
+			                        jsonb_set(clicked_links, ARRAY[$3, 'count'],
+			                            to_jsonb(COALESCE((clicked_links #>> ARRAY[$3, 'count'])::int, 0) + 1)),
+			                        ARRAY[$3, 'last_at'], to_jsonb($1::timestamptz)),
+			                    ARRAY[$3, 'verified'], 'true'::jsonb)
+			            ELSE
+			                jsonb_set(
+			                    jsonb_set(clicked_links, ARRAY[$3, 'count'],
+			                        to_jsonb(COALESCE((clicked_links #>> ARRAY[$3, 'count'])::int, 0) + 1)),
+			                    ARRAY[$3, 'last_at'], to_jsonb($1::timestamptz))
+			            END)
 			        -- new URL under the per-message cap (also self-heals malformed non-object values)
 			        WHEN (SELECT COUNT(*) FROM jsonb_object_keys(CASE WHEN jsonb_typeof(clicked_links) = 'object' THEN clicked_links ELSE '{}'::jsonb END)) < 50 THEN
 			            (CASE WHEN jsonb_typeof(clicked_links) = 'object' THEN clicked_links ELSE '{}'::jsonb END) || jsonb_build_object($3,
 			                jsonb_build_object('count', 1,
 			                    'first_at', to_jsonb($1::timestamptz),
-			                    'last_at',  to_jsonb($1::timestamptz)))
+			                    'last_at',  to_jsonb($1::timestamptz),
+			                    'verified', $4::boolean))
 			        -- at cap: leave map unchanged (bounds tuple width; repeat clicks rewrite ~1.4KB rows)
 			        ELSE clicked_links
 			    END
@@ -650,7 +671,7 @@ func (r *MessageHistoryRepository) SetClicked(ctx context.Context, workspaceID, 
 			AND ` + clicksRecordableCondition + `
 		`
 
-		_, err = workspaceDB.ExecContext(ctx, clickQuery, timestamp, id, clickedURL)
+		_, err = workspaceDB.ExecContext(ctx, clickQuery, timestamp, id, clickedURL, verified)
 		if err != nil {
 			return fmt.Errorf("failed to set clicked: %w", err)
 		}
@@ -759,6 +780,17 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 
 	if params.TemplateID != "" {
 		queryBuilder = queryBuilder.Where(sq.Eq{"template_id": params.TemplateID})
+	}
+
+	// The exact key per-link statistics group by. The jsonb ? operator (?? to the query
+	// builder, which reads a lone ? as a placeholder) rather than "-> key IS NOT NULL":
+	// PostgreSQL has a selectivity estimate for ?, and none for an expression, which it
+	// assumes almost every row matches. With that guess and the page LIMIT, it walked the
+	// created_at index over the whole table for a little-clicked link, where the other
+	// filters of this list read the broadcast's messages. ? is also true for an array or
+	// a string holding the key, hence the object guard.
+	if params.ClickedURL != "" {
+		queryBuilder = queryBuilder.Where("jsonb_typeof(clicked_links) = 'object' AND clicked_links ?? ?", params.ClickedURL)
 	}
 
 	if params.IsSent != nil {
