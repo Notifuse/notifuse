@@ -652,6 +652,7 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 			MessageID:           messageID,
 			TrackingSettings:    trackingSettings,
 			Broadcast:           broadcast,
+			WebVersion:          true,
 		}
 		recipientData, err := domain.BuildTemplateData(req)
 		if err != nil {
