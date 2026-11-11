@@ -36,8 +36,6 @@ func loadDisplayConditionFixture(t testing.TB) displayConditionFixture {
 	return fixture
 }
 
-func strPtr(s string) *string { return &s }
-
 func TestDisplayConditionFixture_Evaluate(t *testing.T) {
 	fixture := loadDisplayConditionFixture(t)
 	require.NotEmpty(t, fixture.Evaluate)
@@ -179,7 +177,7 @@ func TestDisplayCondition_LargestConditionFitsTheEngine(t *testing.T) {
 			}
 			rules := make([]DisplayConditionRule, MaxDisplayConditionRules)
 			for i := range rules {
-				rules[i] = DisplayConditionRule{Variable: longVariable, Operator: operator, Value: strPtr(value)}
+				rules[i] = DisplayConditionRule{Variable: longVariable, Operator: operator, Value: stringPtr(value)}
 			}
 			c := &DisplayCondition{Match: "any", Rules: rules}
 			require.NoError(t, c.Validate())
@@ -209,28 +207,28 @@ func TestDisplayCondition_ToLiquid(t *testing.T) {
 			name: "any, is_blank and neq on a number",
 			condition: &DisplayCondition{Match: "any", Rules: []DisplayConditionRule{
 				{Variable: "a", Operator: DisplayConditionIsBlank},
-				{Variable: "b", Operator: DisplayConditionNeq, Value: strPtr("100")},
+				{Variable: "b", Operator: DisplayConditionNeq, Value: stringPtr("100")},
 			}},
 			open: `{% assign __dc_blk_1 = false %}{% assign __dc_ok_blk_1 = false %}{% if a == blank or a == false or a == empty %}{% assign __dc_ok_blk_1 = true %}{% endif %}{% if __dc_ok_blk_1 %}{% assign __dc_blk_1 = true %}{% endif %}{% assign __dc_ok_blk_1 = true %}{% if b == "100" or b == 100 %}{% assign __dc_ok_blk_1 = false %}{% endif %}{% if __dc_ok_blk_1 %}{% assign __dc_blk_1 = true %}{% endif %}{% if __dc_blk_1 %}`,
 		},
 		{
 			name:      "encoded value",
-			condition: &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{{Variable: "a", Operator: DisplayConditionContains, Value: strPtr("R&D <x>")}}},
+			condition: &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{{Variable: "a", Operator: DisplayConditionContains, Value: stringPtr("R&D <x>")}}},
 			open:      `{% assign __dc_blk_1 = true %}{% assign __dc_v0_blk_1 = "R%26D+%3Cx%3E" | url_decode %}{% assign __dc_ok_blk_1 = false %}{% if a contains __dc_v0_blk_1 %}{% assign __dc_ok_blk_1 = true %}{% endif %}{% unless __dc_ok_blk_1 %}{% assign __dc_blk_1 = false %}{% endunless %}{% if __dc_blk_1 %}`,
 		},
 		{
 			name:      "eq true matches the boolean",
-			condition: &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{{Variable: "a", Operator: DisplayConditionEq, Value: strPtr("true")}}},
+			condition: &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{{Variable: "a", Operator: DisplayConditionEq, Value: stringPtr("true")}}},
 			open:      `{% assign __dc_blk_1 = true %}{% assign __dc_ok_blk_1 = false %}{% if a == "true" or a == true %}{% assign __dc_ok_blk_1 = true %}{% endif %}{% unless __dc_ok_blk_1 %}{% assign __dc_blk_1 = false %}{% endunless %}{% if __dc_blk_1 %}`,
 		},
 		{
 			name:      "normalised number on lt, without a less-than sign",
-			condition: &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{{Variable: "a", Operator: DisplayConditionLt, Value: strPtr("+.5e1")}}},
+			condition: &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{{Variable: "a", Operator: DisplayConditionLt, Value: stringPtr("+.5e1")}}},
 			open:      `{% assign __dc_blk_1 = true %}{% assign __dc_ok_blk_1 = false %}{% assign __dc_vs_blk_1 = a | append: "" | strip %}{% assign __dc_c_blk_1 = __dc_vs_blk_1 | slice: 0 %}{% assign __dc_b_blk_1 = __dc_vs_blk_1 %}{% if __dc_c_blk_1 == "-" or __dc_c_blk_1 == "+" %}{% assign __dc_b_blk_1 = __dc_vs_blk_1 | slice: 1, 1000000 %}{% endif %}{% assign __dc_f_blk_1 = __dc_b_blk_1 | slice: 0 %}{% assign __dc_r_blk_1 = __dc_b_blk_1 | remove: "0" | remove: "1" | remove: "2" | remove: "3" | remove: "4" | remove: "5" | remove: "6" | remove: "7" | remove: "8" | remove: "9" %}{% assign __dc_p_blk_1 = __dc_b_blk_1 | split: "." | size %}{% if __dc_r_blk_1 == "" or __dc_r_blk_1 == "." %}{% if 3 > __dc_p_blk_1 %}{% if __dc_f_blk_1 != "" %}{% if "0123456789" contains __dc_f_blk_1 %}{% assign __dc_n_blk_1 = __dc_b_blk_1 | plus: 0 %}{% if __dc_c_blk_1 == "-" %}{% assign __dc_n_blk_1 = 0 | minus: __dc_n_blk_1 %}{% endif %}{% if 5 > __dc_n_blk_1 %}{% assign __dc_ok_blk_1 = true %}{% endif %}{% endif %}{% endif %}{% endif %}{% endif %}{% unless __dc_ok_blk_1 %}{% assign __dc_blk_1 = false %}{% endunless %}{% if __dc_blk_1 %}`,
 		},
 		{
 			name:      "unknown operator is a false rule",
-			condition: &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{{Variable: "a", Operator: "between", Value: strPtr("1")}}},
+			condition: &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{{Variable: "a", Operator: "between", Value: stringPtr("1")}}},
 			open:      `{% assign __dc_blk_1 = true %}{% assign __dc_ok_blk_1 = false %}{% unless __dc_ok_blk_1 %}{% assign __dc_blk_1 = false %}{% endunless %}{% if __dc_blk_1 %}`,
 		},
 		{
@@ -333,8 +331,8 @@ func TestValidateDisplayConditions(t *testing.T) {
 
 func BenchmarkDisplayConditionEvaluate(b *testing.B) {
 	c := &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{
-		{Variable: "contact.custom_string_1", Operator: DisplayConditionEq, Value: strPtr("vip")},
-		{Variable: "contact.custom_number_1", Operator: DisplayConditionGte, Value: strPtr("42")},
+		{Variable: "contact.custom_string_1", Operator: DisplayConditionEq, Value: stringPtr("vip")},
+		{Variable: "contact.custom_number_1", Operator: DisplayConditionGte, Value: stringPtr("42")},
 		{Variable: "contact.first_name", Operator: DisplayConditionIsPresent},
 	}}
 	data := map[string]interface{}{"contact": map[string]interface{}{"custom_string_1": "vip", "custom_number_1": 42.0, "first_name": "Ada"}}
@@ -350,8 +348,8 @@ func BenchmarkDisplayConditionEvaluate(b *testing.B) {
 // caches; run with -race.
 func TestDisplayCondition_EvaluateConcurrently(t *testing.T) {
 	c := &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{
-		{Variable: "contact.custom_number_1", Operator: DisplayConditionGt, Value: strPtr("10")},
-		{Variable: "contact.custom_string_1", Operator: DisplayConditionEq, Value: strPtr("vip gold")},
+		{Variable: "contact.custom_number_1", Operator: DisplayConditionGt, Value: stringPtr("10")},
+		{Variable: "contact.custom_string_1", Operator: DisplayConditionEq, Value: stringPtr("vip gold")},
 	}}
 	done := make(chan error, 16)
 	for g := 0; g < 16; g++ {
