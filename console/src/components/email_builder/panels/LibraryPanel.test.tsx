@@ -81,7 +81,11 @@ describe('LibraryPanel', () => {
   it('refuses to insert a content block with nothing selected, and gives the reason', async () => {
     const { onInsert } = renderPanel()
     const ctaCard = document.querySelector('[data-library-card="cta"]') as HTMLElement
-    expect(within(ctaCard).getByRole('button', { name: 'Insert' })).toBeDisabled()
+    const insert = within(ctaCard).getByRole('button', { name: 'Insert' })
+    expect(insert).toBeDisabled()
+    // The reason shows on the disabled button's wrapper, which takes the hover
+    fireEvent.mouseEnter(insert.parentElement!)
+    expect(await screen.findByText('Select a column')).toBeInTheDocument()
 
     const headerCard = document.querySelector('[data-library-card="header"]') as HTMLElement
     fireEvent.click(within(headerCard).getByRole('button', { name: 'Insert' }))

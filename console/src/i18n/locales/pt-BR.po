@@ -10417,7 +10417,7 @@ msgstr "Escolher a variação A/B vencedora e enviá-la ao público restante"
 
 #: src/components/email_builder/dnd/LibraryDnd.tsx:134
 msgid "Picked up {name}."
-msgstr "{name} selecionado."
+msgstr "Arrastando {name}."
 
 #: src/components/transactional/ApiCommandModal.tsx:529
 #~ msgid "Plain text (not recommended for production)"

@@ -4,7 +4,12 @@ import { b, condition, email, text } from './libraryTestTrees'
 import type { EmailBlock } from '../types'
 
 const block = (type: string, children?: EmailBlock[]) => b(`new-${type}`, type, children)
-const box = (left: number, top: number, right: number, bottom: number): Box => ({ left, top, right, bottom })
+const box = (left: number, top: number, right: number, bottom: number): Box => ({
+  left,
+  top,
+  right,
+  bottom
+})
 
 // The canvas laid out as a stub, 600 px wide:
 //   section-1   y 0-200:   column-1 x 0-300 y 0-120 (text-1 y 0-80, text-2 y 80-110), column-2 x 300-600 y 0-60 (text-3)
@@ -55,16 +60,25 @@ const rects: Record<string, Box> = {
 }
 const rectOf = (id: string) => rects[id] ?? null
 
-const drop = (type: string, hoveredId: string | null, x: number, y: number, inTree = tree, children?: EmailBlock[]) =>
-  resolveCanvasDrop({ tree: inTree, block: block(type, children), hoveredId, x, y, rectOf })
+const drop = (
+  type: string,
+  hoveredId: string | null,
+  x: number,
+  y: number,
+  inTree = tree,
+  children?: EmailBlock[]
+) => resolveCanvasDrop({ tree: inTree, block: block(type, children), hoveredId, x, y, rectOf })
 
 const placed = (result: ReturnType<typeof drop>) =>
   result.drop ? { parentId: result.drop.parentId, index: result.drop.index } : result
 
 describe('resolveCanvasDrop', () => {
-  it("puts a section before or after the hovered section, by its half", () => {
+  it('puts a section before or after the hovered section, by its half', () => {
     expect(placed(drop('mj-section', 'text-1', 100, 50))).toEqual({ parentId: 'body', index: 0 })
-    expect(placed(drop('mj-section', 'section-1', 100, 150))).toEqual({ parentId: 'body', index: 1 })
+    expect(placed(drop('mj-section', 'section-1', 100, 150))).toEqual({
+      parentId: 'body',
+      index: 1
+    })
     const line = drop('mj-section', 'section-1', 100, 150).drop!.indicator
     expect(line).toEqual({ kind: 'line', x1: 0, y1: 200, x2: 600, y2: 200 })
   })
@@ -80,7 +94,10 @@ describe('resolveCanvasDrop', () => {
   })
 
   it("puts a section beside a wrapper near the wrapper's edge", () => {
-    expect(placed(drop('mj-section', 'wrapper-e', 300, 703))).toEqual({ parentId: 'body', index: 3 })
+    expect(placed(drop('mj-section', 'wrapper-e', 300, 703))).toEqual({
+      parentId: 'body',
+      index: 3
+    })
   })
 
   it('puts a section between two sections of a wrapper', () => {
@@ -127,7 +144,11 @@ describe('resolveCanvasDrop', () => {
   })
 
   it('refuses a text between two sections, with the reason', () => {
-    expect(drop('mj-text', null, 300, 200)).toEqual({ drop: null, refusal: 'nesting', reason: 'column' })
+    expect(drop('mj-text', null, 300, 200)).toEqual({
+      drop: null,
+      refusal: 'nesting',
+      reason: 'column'
+    })
   })
 
   it('refuses a column over the body, asking for a section', () => {
@@ -145,8 +166,11 @@ describe('resolveCanvasDrop', () => {
     })
   })
 
-  it("snaps a text under the shorter of two columns into that column", () => {
-    expect(placed(drop('mj-text', 'section-1', 450, 150))).toEqual({ parentId: 'column-2', index: 1 })
+  it('snaps a text under the shorter of two columns into that column', () => {
+    expect(placed(drop('mj-text', 'section-1', 450, 150))).toEqual({
+      parentId: 'column-2',
+      index: 1
+    })
   })
 
   it('never snaps outside the hovered section', () => {
@@ -197,7 +221,12 @@ describe('resolveCanvasDrop', () => {
 
   it('refuses a section holding Liquid over a wrapper with a display condition', () => {
     const conditional = email([
-      b('wrapper-c', 'mj-wrapper', [b('section-c', 'mj-section', [b('column-c', 'mj-column', [])])], condition)
+      b(
+        'wrapper-c',
+        'mj-wrapper',
+        [b('section-c', 'mj-section', [b('column-c', 'mj-column', [])])],
+        condition
+      )
     ])
     const layout: Record<string, Box> = {
       body: box(0, 0, 600, 200),
@@ -220,5 +249,123 @@ describe('resolveCanvasDrop', () => {
 
   it('gives nothing for a hovered block it does not know', () => {
     expect(drop('mj-section', 'not-in-this-email', 300, 50)).toEqual({ drop: null })
+  })
+})
+
+// Right to left: the first child is drawn on the right
+describe('resolveCanvasDrop, right to left', () => {
+  const rtl = { attributes: { direction: 'rtl' } } as Partial<EmailBlock>
+  const rtlTree = email([
+    b(
+      'section-r',
+      'mj-section',
+      [b('col-a', 'mj-column', [text('text-a')]), b('col-b', 'mj-column', [])],
+      rtl
+    ),
+    b('section-one', 'mj-section', [b('col-one', 'mj-column', [text('text-one')])], rtl)
+  ])
+  const layout: Record<string, Box> = {
+    body: box(0, 0, 600, 400),
+    'section-r': box(0, 0, 600, 200),
+    'col-a': box(300, 0, 600, 200),
+    'text-a': box(300, 0, 600, 100),
+    'col-b': box(0, 0, 300, 200),
+    'section-one': box(0, 200, 600, 400),
+    'col-one': box(0, 200, 600, 400),
+    'text-one': box(0, 200, 600, 300)
+  }
+  const rtlDrop = (hoveredId: string, x: number, y: number) =>
+    resolveCanvasDrop({
+      tree: rtlTree,
+      block: block('mj-column'),
+      hoveredId,
+      x,
+      y,
+      rectOf: (id) => layout[id] ?? null
+    })
+
+  it('puts a column on the side of the hovered column the pointer is on, and the line there', () => {
+    // Left half of the first column: after it in the email, drawn on its left
+    const between = rtlDrop('text-a', 320, 50)
+    expect(placed(between)).toEqual({ parentId: 'section-r', index: 1 })
+    expect(between.drop!.indicator).toEqual({ kind: 'line', x1: 300, y1: 0, x2: 300, y2: 200 })
+    // Right half of the first column: first, drawn on the far right
+    const first = rtlDrop('text-a', 580, 50)
+    expect(placed(first)).toEqual({ parentId: 'section-r', index: 0 })
+    expect(first.drop!.indicator).toMatchObject({ x1: 600, x2: 600 })
+    // Left half of the last column: last, drawn on the far left
+    const last = rtlDrop('col-b', 20, 50)
+    expect(placed(last)).toEqual({ parentId: 'section-r', index: 2 })
+    expect(last.drop!.indicator).toMatchObject({ x1: 0, x2: 0 })
+  })
+
+  it('reads the direction of a section with a single column from its attributes', () => {
+    const left = rtlDrop('text-one', 20, 250)
+    expect(placed(left)).toEqual({ parentId: 'section-one', index: 1 })
+    expect(left.drop!.indicator).toMatchObject({ x1: 0, x2: 0 })
+    expect(placed(rtlDrop('text-one', 580, 250))).toEqual({ parentId: 'section-one', index: 0 })
+  })
+})
+
+describe('resolveCanvasDrop, social elements', () => {
+  const socialTree = (mode?: string) =>
+    email([
+      b('section-s', 'mj-section', [
+        b('column-s', 'mj-column', [
+          b(
+            'social',
+            'mj-social',
+            [
+              b('icon-1', 'mj-social-element'),
+              b('icon-2', 'mj-social-element'),
+              b('icon-3', 'mj-social-element')
+            ],
+            mode ? ({ attributes: { mode } } as Partial<EmailBlock>) : {}
+          )
+        ])
+      ])
+    ])
+  const row: Record<string, Box> = {
+    body: box(0, 0, 600, 100),
+    'section-s': box(0, 0, 600, 100),
+    'column-s': box(0, 0, 600, 100),
+    social: box(0, 0, 120, 40),
+    'icon-1': box(0, 5, 30, 35),
+    'icon-2': box(40, 5, 70, 35),
+    'icon-3': box(80, 5, 110, 35)
+  }
+  const socialDrop = (
+    inTree: EmailBlock,
+    layout: Record<string, Box>,
+    hoveredId: string,
+    x: number,
+    y: number
+  ) =>
+    resolveCanvasDrop({
+      tree: inTree,
+      block: block('mj-social-element'),
+      hoveredId,
+      x,
+      y,
+      rectOf: (id) => layout[id] ?? null
+    })
+
+  it('puts an icon between two icons of a row, with an upright line', () => {
+    const result = socialDrop(socialTree(), row, 'icon-1', 25, 30)
+    expect(placed(result)).toEqual({ parentId: 'social', index: 1 })
+    expect(result.drop!.indicator).toEqual({ kind: 'line', x1: 35, y1: 0, x2: 35, y2: 40 })
+  })
+
+  it('stacks the icons of a vertical social block', () => {
+    const column: Record<string, Box> = {
+      ...row,
+      social: box(0, 0, 120, 120),
+      'icon-1': box(0, 0, 120, 30),
+      'icon-2': box(0, 40, 120, 70),
+      'icon-3': box(0, 80, 120, 110)
+    }
+    const result = socialDrop(socialTree('vertical'), column, 'icon-1', 60, 25)
+    expect(placed(result)).toEqual({ parentId: 'social', index: 1 })
+    expect(result.drop!.indicator).toEqual({ kind: 'line', x1: 0, y1: 35, x2: 120, y2: 35 })
   })
 })

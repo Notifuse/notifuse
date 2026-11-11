@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/auth'
-import { find, block, section, column, text } from '../fixtures/tree-drag'
+import { find, block, section, column, text, type TreeBlock } from '../fixtures/tree-drag'
 import {
   baseBody,
   dropCase,
@@ -112,6 +112,31 @@ test.describe('Dropping a block from the library on the canvas', () => {
     await expect(editor.refusal).toHaveCount(0)
     await expect(editor.drawer.getByTitle('Undo')).toBeDisabled()
     expect(await editor.inserted()).toEqual([])
+  })
+
+  test('column in a right-to-left section lands on the side of the line', async ({
+    authenticatedPage: page
+  }) => {
+    const rtl = {
+      ...section('SR', [
+        column('CA', [text('TA', 'Right')], '50%'),
+        column('CB', [text('TB', 'Left')], '50%')
+      ]),
+      attributes: { direction: 'rtl' }
+    } as TreeBlock
+    const editor = await openLibraryEditor(page, [rtl, ...baseBody()])
+    // The first column is drawn on the right
+    const a = (await editor.el('CA').boundingBox())!
+    const b = (await editor.el('CB').boundingBox())!
+    expect(a.x).toBeGreaterThan(b.x)
+    await editor.grab('lib-column')
+    // Left part of the first column: between the two columns
+    await editor.moveOver('TA', 0.2, 0.5)
+    expect(await editor.shown()).toMatchObject({ parentId: 'SR', index: 1 })
+    const line = (await editor.indicator.boundingBox())!
+    expect(Math.abs(line.x + line.width / 2 - a.x)).toBeLessThan(4)
+    await editor.release()
+    expect(await editor.inserted()).toMatchObject([{ parentId: 'SR', index: 1, type: 'mj-column' }])
   })
 
   test('column beside the columns of a section, the widths rebalanced', async ({

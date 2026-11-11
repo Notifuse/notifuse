@@ -14962,7 +14962,7 @@ msgstr "La clau privada TLS és obligatòria"
 
 #: src/components/email_builder/dnd/LibraryDnd.tsx:160
 msgid "To insert a block without dragging it, use its Insert button. Press Escape to cancel a drag."
-msgstr "Per inserir un bloc sense arrossegar-lo, fes servir el seu botó Insereix. Prem Escape per cancel·lar un arrossegament."
+msgstr "Per inserir un bloc sense arrossegar-lo, fes servir el seu botó Inserir. Prem Escape per cancel·lar un arrossegament."
 
 #: src/components/transactional/ApiCommandModal.tsx:561
 msgid "to prevent duplicate sends"

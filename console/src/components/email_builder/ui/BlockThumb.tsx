@@ -43,6 +43,7 @@ const useNearViewport = (ref: React.RefObject<HTMLElement | null>) => {
 const BlockThumbContent: React.FC<BlockThumbProps> = ({
   block,
   emailTree,
+  headKey,
   width,
   maxHeight,
   placeholderHeight = 80
@@ -76,7 +77,7 @@ const BlockThumbContent: React.FC<BlockThumbProps> = ({
         : null,
     // The email is read for its head only, which headKey stands for
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [near, copy]
+    [near, copy, headKey]
   )
 
   // A transform does not shrink the layout box: the scaled height is set on the outer box

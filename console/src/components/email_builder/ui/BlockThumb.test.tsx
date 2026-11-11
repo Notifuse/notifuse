@@ -15,6 +15,33 @@ describe('BlockThumb', () => {
     vi.unstubAllGlobals()
   })
 
+  it("renders again when the email's head changes", () => {
+    const withColor = (color: string) =>
+      email(
+        [section],
+        [
+          b('attrs', 'mj-attributes', [
+            b('text-defaults', 'mj-text', undefined, { attributes: { color } } as never)
+          ])
+        ]
+      )
+    const colorShown = () => {
+      let element: HTMLElement | null = screen.getByText('Spring sale')
+      while (element && !element.style.color) element = element.parentElement
+      return element?.style.color
+    }
+    const red = withColor('#ff0000')
+    const { rerender } = render(
+      <BlockThumb block={section} emailTree={red} headKey={headKeyOf(red)} width={240} />
+    )
+    expect(colorShown()).toBe('rgb(255, 0, 0)')
+    const green = withColor('#00ff00')
+    rerender(
+      <BlockThumb block={section} emailTree={green} headKey={headKeyOf(green)} width={240} />
+    )
+    expect(colorShown()).toBe('rgb(0, 255, 0)')
+  })
+
   it("renders the block's content", () => {
     renderThumb()
     expect(screen.getByText('Spring sale')).toBeInTheDocument()

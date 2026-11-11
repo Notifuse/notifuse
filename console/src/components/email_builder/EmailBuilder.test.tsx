@@ -498,7 +498,7 @@ describe('EmailBuilder library', () => {
     expect(current.selected).toBeNull()
   })
 
-  it('shows no success message for a block it cannot place', () => {
+  it('a refused tile neither inserts its block nor shows a message', () => {
     render(<Drawer />)
     openLibrary()
     // A text needs a column, and nothing is selected

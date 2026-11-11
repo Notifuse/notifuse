@@ -6,7 +6,11 @@ import type { EmailBlock } from '../types'
 
 vi.mock('overlayscrollbars-react', () => ({
   OverlayScrollbarsComponent: React.forwardRef<unknown, { children?: React.ReactNode }>(
-    ({ children }, _ref) => <div data-testid="scroll">{children}</div>
+    ({ children }, _ref) => (
+      <div data-testid="scroll" data-overlayscrollbars-viewport="">
+        {children}
+      </div>
+    )
   )
 }))
 
@@ -87,8 +91,11 @@ describe('EditPanel', () => {
     const root = canvasRef.current!.root()
     expect(root).not.toBeNull()
     expect(root!.querySelector('[data-block-id="text-1"]')).not.toBeNull()
-    // The mocked scroll area has no viewport; the real one is found from the root
-    expect(canvasRef.current!.viewport()).toBeNull()
+    // The mocked scroll area gives no instance: its viewport is found from the root
+    const viewport = canvasRef.current!.viewport()
+    expect(viewport).not.toBeNull()
+    expect(viewport!.getAttribute('data-testid')).toBe('scroll')
+    expect(viewport!.contains(root)).toBe(true)
 
     unmount()
     expect(canvasRef.current).toBeNull()

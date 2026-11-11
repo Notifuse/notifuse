@@ -7063,15 +7063,15 @@ msgstr "曜日・時間帯別のゴール"
 
 #: src/components/email_builder/panels/CanvasDropIndicator.tsx:25
 msgid "Goes inside a column"
-msgstr "カラムの中に配置します"
+msgstr "カラムの中にのみ配置できます"
 
 #: src/components/email_builder/panels/CanvasDropIndicator.tsx:26
 msgid "Goes inside a section"
-msgstr "セクションの中に配置します"
+msgstr "セクションの中にのみ配置できます"
 
 #: src/components/email_builder/panels/CanvasDropIndicator.tsx:27
 msgid "Goes inside a social block"
-msgstr "ソーシャルブロックの中に配置します"
+msgstr "ソーシャルブロックの中にのみ配置できます"
 
 #: src/components/settings/Integrations.tsx:1933
 msgid "Google Workspace / Gmail"
