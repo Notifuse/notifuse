@@ -173,13 +173,17 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     }
 
   // A changed block moves to the top of the list, sorted by modification date: it is brought into view
+  // once, as soon as it shows: a later change of the list does not scroll back to it
   const rootRef = useRef<HTMLDivElement>(null)
+  const scrolledTo = useRef<LibraryHighlight | null>(null)
   useEffect(() => {
-    if (!highlight) return
+    if (!highlight || scrolledTo.current === highlight) return
     const card = rootRef.current?.querySelector(
       `[data-library-card=${JSON.stringify(highlight.id)}]`
     )
-    if (card && typeof card.scrollIntoView === 'function') card.scrollIntoView({ block: 'nearest' })
+    if (!card) return
+    scrolledTo.current = highlight
+    if (typeof card.scrollIntoView === 'function') card.scrollIntoView({ block: 'nearest' })
   }, [highlight, savedBlocks])
 
   return (

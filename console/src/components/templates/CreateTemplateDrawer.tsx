@@ -644,6 +644,10 @@ export function CreateTemplateDrawer({
       })
     } catch (error) {
       failedBlockChange(error, t`Failed to rename the block`)
+      // Deleted elsewhere: the library stops showing it
+      if (error instanceof ApiError && error.status === 404) {
+        await refreshSavedBlocks(t`Reload the page to update your saved blocks.`)
+      }
       throw error
     }
     message.success(t`Block renamed to "${name}"`)

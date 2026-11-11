@@ -173,9 +173,9 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
       rows[refusal ? 'unavailable' : 'available'].push({ saved, refusal })
     }
     return rows
-    // reasonText and t change with the language only, which renders the popover again
+    // reasonText and t follow the language, which i18n.locale stands for
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, contentMode, parentType, parentId, emailTree, bodySavedBlocks])
+  }, [visible, contentMode, parentType, parentId, emailTree, bodySavedBlocks, i18n.locale])
 
   const headKey = useMemo(
     () => (visible && contentMode && emailTree ? headKeyOf(emailTree) : ''),

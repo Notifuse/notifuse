@@ -229,7 +229,7 @@ describe('AddBlockPopover saved blocks', () => {
 })
 
 describe('AddBlockPopover in the head', () => {
-  it('offers the saved head blocks only, and only when there are some', async () => {
+  it('offers no saved tab without saved head blocks', async () => {
     renderPopover({ mode: 'header', parentId: 'head', parentType: 'mj-head' })
     await open()
     expect(screen.queryByRole('tab', { name: /Saved/ })).toBeNull()

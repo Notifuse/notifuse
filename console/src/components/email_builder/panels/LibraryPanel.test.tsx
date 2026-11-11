@@ -1,5 +1,5 @@
 import React from 'react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, onTestFinished, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { LibraryPanel, type LibraryManage } from './LibraryPanel'
@@ -183,7 +183,7 @@ describe('LibraryPanel', () => {
       expect(handlers.onDelete).toHaveBeenCalledWith(cta)
     })
 
-    it('replaces only with a selected block of the same type', async () => {
+    it('replaces only with a block selected in the email', async () => {
       renderPanel({ manage: manage() })
       await menuOf('header', 'Header')
       expect(item('Replace with the selected block')).toHaveTextContent(
@@ -204,6 +204,38 @@ describe('LibraryPanel', () => {
       expect(screen.queryByText('New')).toBeNull()
       const card = document.querySelector('[data-library-card="header"]') as HTMLElement
       expect(card.className).toContain('border-[#7763F1]')
+    })
+
+    it('brings the changed card into view once, not again when the list changes', () => {
+      const scroll = vi.fn()
+      // jsdom has no scrollIntoView: it is set for this test only
+      const original = Element.prototype.scrollIntoView
+      Element.prototype.scrollIntoView = scroll
+      onTestFinished(() => {
+        Element.prototype.scrollIntoView = original
+      })
+      const highlight = { id: 'header', kind: 'updated' as const }
+      const handlers = { onInsert: vi.fn() }
+      const { rerender } = render(
+        <LibraryPanel
+          emailTree={tree}
+          savedBlocks={[header, cta, footer]}
+          selectedBlockId={null}
+          highlight={highlight}
+          {...handlers}
+        />
+      )
+      expect(scroll).toHaveBeenCalledTimes(1)
+      rerender(
+        <LibraryPanel
+          emailTree={tree}
+          savedBlocks={[header, footer]}
+          selectedBlockId={null}
+          highlight={highlight}
+          {...handlers}
+        />
+      )
+      expect(scroll).toHaveBeenCalledTimes(1)
     })
 
     it('disables the menus of every card while a change runs', async () => {

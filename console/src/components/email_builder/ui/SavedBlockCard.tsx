@@ -170,7 +170,8 @@ export const SavedBlockCard: React.FC<SavedBlockCardProps> = ({
                 onChange={(e) => setDraft(e.target.value)}
                 onPressEnter={() => endRename(true)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
+                  // Escape during an IME conversion cancels the conversion, not the rename
+                  if (e.key === 'Escape' && !e.nativeEvent.isComposing) {
                     e.stopPropagation()
                     endRename(false)
                   }

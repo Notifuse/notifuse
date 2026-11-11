@@ -217,12 +217,21 @@ describe('SavedBlockCard actions', () => {
     expect(new TextEncoder().encode(input.value).length).toBeLessThanOrEqual(255)
   })
 
-  it('stops the card from being dragged while its name is edited', async () => {
+  it('drops the drag cursor of the card while its name is edited', async () => {
     renderCard({ actions: actions() })
     const handle = document.querySelector('[data-library-drag-handle]') as HTMLElement
     expect(handle.className).toContain('cursor-grab')
     await startRename()
     expect(handle.className).not.toContain('cursor-grab')
+  })
+
+  it('keeps editing when Escape ends an IME conversion', async () => {
+    const onRename = vi.fn().mockResolvedValue(undefined)
+    renderCard({ actions: actions({ onRename }) })
+    const input = await startRename()
+    fireEvent.keyDown(input, { key: 'Escape', isComposing: true })
+    expect(screen.getByRole('textbox', { name: 'Block name' })).toBeInTheDocument()
+    expect(onRename).not.toHaveBeenCalled()
   })
 
   it('disables the input while the name is saved, and keeps the old name on failure', async () => {

@@ -771,5 +771,46 @@ describe('EmailBuilder library', () => {
         expect(menuItem('Duplicate')).not.toHaveAttribute('aria-disabled', 'true')
       )
     })
+
+    it('lets the next change run after one failed', async () => {
+      const onDelete = vi.fn(async () => {
+        throw new Error('Server down')
+      })
+      render(<Drawer canManage onDelete={onDelete} />)
+      openLibrary()
+      await menuOf('cta', 'CTA')
+      await userEvent.click(menuItem('Delete'))
+      await userEvent.click(await confirmButton('Delete'))
+      await waitFor(() => expect(onDelete).toHaveBeenCalledTimes(1))
+      await menuOf('header', 'Header')
+      await waitFor(() =>
+        expect(menuItem('Duplicate')).not.toHaveAttribute('aria-disabled', 'true')
+      )
+    })
+
+    it('keeps the save dialog open while another library change runs', async () => {
+      let finish: () => void = () => {}
+      const onDelete = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)))
+      const save = vi.fn(async () => 'new-id')
+      render(<Drawer canManage onDelete={onDelete} onSaveBlock={() => save} />)
+      openLibrary()
+      await menuOf('cta', 'CTA')
+      await userEvent.click(menuItem('Delete'))
+      await userEvent.click(await confirmButton('Delete'))
+      await waitFor(() => expect(onDelete).toHaveBeenCalledTimes(1))
+
+      act(() => (mockEditPanelProps.onOpenSaveDialog as (id: string) => void)('section-1'))
+      await userEvent.click(await screen.findByRole('button', { name: 'Save' }))
+      expect(
+        await screen.findByText('Another change to the library is running. Try again in a moment.')
+      ).toBeInTheDocument()
+      expect(save).not.toHaveBeenCalled()
+      // The dialog stays open, its Save button ready
+      expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+
+      await act(async () => finish())
+      await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+      await waitFor(() => expect(save).toHaveBeenCalledTimes(1))
+    })
   })
 })

@@ -870,6 +870,19 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   // The handlers report their errors to the user: a failed change only leaves the library as it was
   const quietly = (change: () => Promise<void>) => changeLibrary(change).catch(() => {})
 
+  // The save dialog takes its turn too; while another change runs it keeps what was entered
+  const saveFromDialog: SaveBlockHandler = async (block, operation, nameOrId) => {
+    if (libraryBusyRef.current) {
+      message.info(t`Another change to the library is running. Try again in a moment.`)
+      throw new Error('library busy')
+    }
+    let savedId = ''
+    await changeLibrary(async () => {
+      savedId = await onSaveBlock(block, operation, nameOrId)
+    })
+    return savedId
+  }
+
   const libraryManage: LibraryManage | undefined = canManageSavedBlocks
     ? {
         busy: libraryBusy,
@@ -885,7 +898,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
             const id = await onSaveBlock(
               saved.block,
               'create',
-              copyName(saved.name, ' ' + t`(copy)`)
+              copyName(saved.name, t` (copy)`)
             )
             if (id) setLibraryHighlight({ id, kind: 'new' })
           }),
@@ -1214,7 +1227,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         block={saveDialogBlock}
         emailTree={tree}
         savedBlocks={savedBlocks}
-        onSave={onSaveBlock}
+        onSave={saveFromDialog}
         onSaved={handleBlockSaved}
         onClose={() => setSaveDialogBlockId(null)}
       />

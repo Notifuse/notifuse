@@ -481,6 +481,16 @@ describe('CreateTemplateDrawer managing saved blocks', () => {
     expect(auth.refreshWorkspaces).not.toHaveBeenCalled()
   })
 
+  it('refreshes when the block to rename is already gone from the server', async () => {
+    ;(templateBlocksApi.update as Mock).mockRejectedValue(
+      new ApiError('Template block not found', 404)
+    )
+    const rename = (await openEditor(true)).onRenameSavedBlock as RenameSavedBlockHandler
+
+    await expect(rename('header-id', 'Top')).rejects.toThrow()
+    expect(auth.refreshWorkspaces).toHaveBeenCalledTimes(1)
+  })
+
   it('deletes a saved block, then refreshes', async () => {
     ;(templateBlocksApi.delete as Mock).mockResolvedValue({ success: true })
     const remove = (await openEditor(true)).onDeleteSavedBlock as DeleteSavedBlockHandler
