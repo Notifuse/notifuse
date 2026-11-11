@@ -42,6 +42,18 @@ export const savedBlockTime = (saved: SavedBlock) => {
   return date ? new Date(date).getTime() : 0
 }
 
+// A saved block's date as the library shows it, in the console's language
+export const formatSavedDate = (date: string | undefined, locale: string) => {
+  if (!date) return null
+  const parsed = new Date(date)
+  if (Number.isNaN(parsed.getTime())) return null
+  try {
+    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(parsed)
+  } catch {
+    return new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(parsed)
+  }
+}
+
 export const typeLabelOf = (block: Pick<EmailBlock, 'type'>) =>
   EmailBlockClass.from(block as EmailBlock).getLabel()
 

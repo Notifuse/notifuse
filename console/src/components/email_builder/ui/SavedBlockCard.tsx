@@ -5,7 +5,7 @@ import { faEllipsis } from '@fortawesome/free-solid-svg-icons'
 import { useLingui } from '@lingui/react/macro'
 import type { EmailBlock } from '../types'
 import { BlockThumb } from './BlockThumb'
-import { useLibraryDraggable, type LibraryItem } from '../utils/library'
+import { formatSavedDate, useLibraryDraggable, type LibraryItem } from '../utils/library'
 import { MAX_BLOCK_NAME_BYTES, fitUtf8, utf8Length } from '../utils/blockName'
 
 // What a member who may change the library can do with a saved block
@@ -38,17 +38,6 @@ interface SavedBlockCardProps {
   actions?: CardActions
 }
 
-const formatDate = (date: string | undefined, locale: string) => {
-  if (!date) return null
-  const parsed = new Date(date)
-  if (Number.isNaN(parsed.getTime())) return null
-  try {
-    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(parsed)
-  } catch {
-    return new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(parsed)
-  }
-}
-
 export const SavedBlockCard: React.FC<SavedBlockCardProps> = ({
   item,
   typeLabel,
@@ -70,7 +59,7 @@ export const SavedBlockCard: React.FC<SavedBlockCardProps> = ({
   const ended = useRef(false)
   const inputRef = useRef<InputRef>(null)
   const { listeners, setNodeRef, isDragging } = useLibraryDraggable(item, editing)
-  const formatted = formatDate(date, locale)
+  const formatted = formatSavedDate(date, locale)
   const highlighted = !!highlight
   const name = item.name
 
