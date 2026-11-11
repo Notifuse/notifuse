@@ -492,6 +492,12 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         }
       }
 
+      // A group added to a section makes room: the columns keep their proportions
+      if (blockType === 'mj-group') {
+        const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentId)
+        if (parentContainer) rebalanceAfterAdd(parentContainer, newBlock.id)
+      }
+
       // If we're adding a section to the body, add a default column with text
       if (blockType === 'mj-section') {
         const parentBody = EmailBlockClass.findBlockById(updatedTree, parentId)
@@ -562,7 +568,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     let parentContainerId: string | null = null
     let parentContainerType: 'mj-section' | 'mj-group' | null = null
 
-    if (blockToDelete?.type === 'mj-column') {
+    if (blockToDelete?.type === 'mj-column' || blockToDelete?.type === 'mj-group') {
       // Find the parent container (section or group) ID for later width recalculation
       const findParentContainer = (
         tree: EmailBlock,
@@ -606,8 +612,12 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         updatedTree = EmailBlockClass.cleanupFontReferences(updatedTree, removedFontName)
       }
 
-      // If we deleted a column, the remaining columns of its container keep their proportions
-      if (blockToDelete?.type === 'mj-column' && parentContainerId && parentContainerType) {
+      // If we deleted a column or a group, the remaining columns of its container keep their proportions
+      if (
+        (blockToDelete?.type === 'mj-column' || blockToDelete?.type === 'mj-group') &&
+        parentContainerId &&
+        parentContainerType
+      ) {
         const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentContainerId)
         if (parentContainer) rebalanceAfterRemove(parentContainer)
       }
@@ -674,8 +684,9 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     )
 
     if (updatedTree) {
-      // If we're cloning a column, it gets its share and the other columns keep their proportions
-      if (blockToClone.type === 'mj-column') {
+      // If we're cloning a column, it gets its share and the other columns keep their proportions; a cloned
+      // group makes room the same way
+      if (blockToClone.type === 'mj-column' || blockToClone.type === 'mj-group') {
         const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentInfo.parent.id)
         if (parentContainer) rebalanceAfterAdd(parentContainer, clonedBlock.id)
       }
@@ -718,10 +729,10 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     const updatedTree = EmailBlockClass.moveBlockInTree(currentTree, blockId, newParentId, target)
 
     if (updatedTree) {
-      // A column that changes container: both containers keep their proportions. Reordering within a
+      // A column or a group that changes container: both containers keep their proportions. Reordering within a
       // container leaves the widths alone.
       const moved = EmailBlockClass.findBlockById(updatedTree, blockId)
-      if (moved?.type === 'mj-column' && !sameParent) {
+      if ((moved?.type === 'mj-column' || moved?.type === 'mj-group') && !sameParent) {
         const source = EmailBlockClass.findBlockById(updatedTree, original.parent.id)
         if (source) rebalanceAfterRemove(source)
         const destination = EmailBlockClass.findBlockById(updatedTree, newParentId)
@@ -749,8 +760,8 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     )
 
     if (updatedTree) {
-      // A saved column takes its share of the container like an added one
-      if (blockWithNewIds.type === 'mj-column') {
+      // A saved column takes its share of the container like an added one, and a saved group makes room
+      if (blockWithNewIds.type === 'mj-column' || blockWithNewIds.type === 'mj-group') {
         const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentId)
         if (parentContainer) rebalanceAfterAdd(parentContainer, blockWithNewIds.id)
       }

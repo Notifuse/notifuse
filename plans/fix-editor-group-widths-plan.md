@@ -103,5 +103,10 @@ cd console && npm run lingui:extract   # only if a new string is added
   [44.0]. Helper API: `sectionShare(section)`, `sectionChildWidth(child, section, attributeDefaults)`,
   `findParentSection(tree, id)`. A group outside a section (default attributes) keeps the WidthInput
   placeholder ("Enter width").
-- Left for after #510/#514 reach dev: rebalancing in `utils/columnWidths.ts` counting groups
-  (option (a)), then an independent code review of the whole PR.
+- After #510/#514 reached dev (merged in): `utils/columnWidths.ts` counts groups in a section. Groups
+  take their % width, or 100/(columns+groups) when width-less or px; columns share the rest by ratio
+  (equal split when their widths are not all % filling the previous budget). Groups leaving no room
+  (e.g. a group saved at 100%) are not counted. Group widths are never written. Call sites in
+  EmailBuilder.tsx: add, delete, clone, move across containers, saved block, for mj-group too.
+  Tests: columnWidths.test.ts (+9), EmailBuilder.test.tsx (+2, new section SD). Full console suite
+  3854 tests, tsc -b, eslint pass.

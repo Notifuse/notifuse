@@ -52,7 +52,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Groups in email templates now render as in MJML: a group without a width takes its share of the section, a group with a percentage width keeps it, and in Outlook a group sits side by side with the columns and groups of its section, with raw HTML blocks placed between them. A group saved with a width of 100% next to another column or group now makes a row wider than the email in Outlook: give the group and the columns next to it widths that add up to 100%.
 
-- **Improvement**: The email editor no longer gives a new group a width of 100%, so it takes its share of the section, and the canvas shows each group at the width the email gives it. The Width field of a group shows that share when it is empty.
+- **Improvement**: The email editor no longer gives a new group a width of 100%, so it takes its share of the section, and the canvas shows each group at the width the email gives it. The Width field of a group shows that share when it is empty. Adding, moving, duplicating or deleting a group in a section resizes the section's columns to the room the groups leave, keeping their proportions.
 
 ## [43.0] - 2026-11-07
 
