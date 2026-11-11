@@ -266,9 +266,10 @@ func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspac
 // stays right after the workspace endpoint is reconfigured. Behind a reverse
 // proxy that forwards its upstream name as Host, the forwarded host is, and with
 // no forwarded header the API endpoint or the workspace's current custom domain
-// is, unless the email was sent before the one it used changed. A link whose hostname is any of ownHosts is left out, on any port: a
-// client adding its own forwarded value can only leave out more of its own
-// clicks, never get a link back to the Host it reached recorded.
+// is, unless the email was sent before the one it used changed. A link whose
+// hostname is any of ownHosts is left out, on any port: a client adding its own
+// forwarded value can only leave out more of its own clicks, never get a link
+// back to the Host it reached recorded.
 //
 // It also strips the web analytics identity token from the URLs it does keep.
 // A recorded URL becomes a JSONB *key* in clicked_links and per-link reporting

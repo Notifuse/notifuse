@@ -131,7 +131,7 @@ web version links were recorded, carried the recipient's address into the keys, 
 automations.
 - Tests `email_service_test.go`, `demo_service_test.go`, `email_handler_tracking_test.go`: the flag is passed as is; a
   forged, unsigned or legacy token passes `false`; the host list (no header, a list, blank entries, several header
-  lines, the custom endpoint host, an unverified token, an unavailable workspace, `/visit`); a link back to a forwarded
+  lines, the custom endpoint host, an unverified token, `/visit`); a link back to a forwarded
   host is aggregate-only, an external one is still recorded; hostnames compared whatever the ports, with a trailing dot
   and in Punycode, an IPv6 endpoint host in brackets; a hostname that only ends like an own host is recorded.
 - Test `message_history_handler_test.go`: `clicked_url` passed through; 400 without `broadcast_id`.
