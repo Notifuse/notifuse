@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -1452,5 +1453,33 @@ func TestChannelOptions_Scan_SQLErrors(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, sql.ErrNoRows, err)
+	})
+}
+
+// clicked_url lists the emails of a broadcast whose clicked_links hold that exact URL: the
+// drill-down from a row of the broadcast's per-link statistics.
+func TestMessageListParams_ClickedURL(t *testing.T) {
+	t.Run("FromQuery reads it verbatim", func(t *testing.T) {
+		const link = "https://shop.example.com/a?b=1&c=%20d#top"
+		var p MessageListParams
+		require.NoError(t, p.FromQuery(url.Values{"broadcast_id": {"bc-1"}, "clicked_url": {link}}))
+		assert.Equal(t, link, p.ClickedURL)
+	})
+
+	t.Run("Validate requires a broadcast", func(t *testing.T) {
+		p := MessageListParams{ClickedURL: "https://shop.example.com/a"}
+		err := p.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "broadcast_id")
+
+		p.BroadcastID = "bc-1"
+		assert.NoError(t, p.Validate())
+	})
+
+	t.Run("Validate bounds it like the URLs clicks record", func(t *testing.T) {
+		p := MessageListParams{BroadcastID: "bc-1", ClickedURL: strings.Repeat("a", MaxClickedURLLength)}
+		assert.NoError(t, p.Validate())
+		p.ClickedURL += "a"
+		assert.Error(t, p.Validate())
 	})
 }
