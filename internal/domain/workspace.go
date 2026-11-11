@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/asaskevich/govalidator"
 )
 
@@ -560,6 +561,9 @@ func (ws *WorkspaceSettings) Validate(passphrase string) error {
 		}
 		if templateBlock.Block == nil || templateBlock.Block.GetType() == "" {
 			return fmt.Errorf("template block at index %d: block kind is required", i)
+		}
+		if err := notifuse_mjml.ValidateDisplayConditionsInBlock(templateBlock.Block); err != nil {
+			return fmt.Errorf("template block at index %d: %w", i, err)
 		}
 	}
 

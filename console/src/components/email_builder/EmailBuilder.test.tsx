@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
-import { render, waitFor, screen, fireEvent, act } from '@testing-library/react'
+import { act, render, waitFor, screen, fireEvent } from '@testing-library/react'
 import EmailBuilder from './EmailBuilder'
 import type { EmailBlock } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
@@ -8,11 +8,11 @@ import { EmailBlockClass } from './EmailBlockClass'
 // Mock the heavy child panels so the test exercises only EmailBuilder's own
 // compile orchestration (not Preview's iframe, the tree/edit/settings panels,
 // or overlay scrollbars).
-// The tree panel stub records its props, so the structure tests can call its handlers.
-const treePanel = vi.hoisted(() => ({ props: undefined as Record<string, unknown> | undefined }))
+// The tree panel's props carry the editor's add and move handlers.
+let mockTreePanelProps: Record<string, unknown> = {}
 vi.mock('./panels/TreePanel', () => ({
-  TreePanel: (props: Record<string, unknown>) => {
-    treePanel.props = props
+  TreePanel: (p: Record<string, unknown>) => {
+    mockTreePanelProps = p
     return null
   }
 }))
@@ -162,6 +162,59 @@ describe('EmailBuilder text version mode', () => {
   })
 })
 
+// A condition hides its block with every mj-liquid in it, which can hold half of a tag
+// pair, so the server refuses the tree: the editor must not build it.
+describe('EmailBuilder Liquid blocks under a display condition', () => {
+  const conditionedTree = (): EmailBlock =>
+    ({
+      id: 'root',
+      type: 'mjml',
+      children: [
+        {
+          id: 'body',
+          type: 'mj-body',
+          attributes: {},
+          children: [
+            {
+              id: 'sec-1',
+              type: 'mj-section',
+              display_condition: { match: 'all', rules: [{ variable: 'contact.vip', operator: 'is_true' }] },
+              children: [{ id: 'col-1', type: 'mj-column', children: [] }]
+            },
+            { id: 'liq-1', type: 'mj-liquid', content: '{% endif %}' }
+          ]
+        }
+      ]
+    }) as unknown as EmailBlock
+
+  const renderBuilder = () => {
+    const onTreeChange = vi.fn()
+    render(
+      <EmailBuilder
+        {...props(conditionedTree(), vi.fn().mockResolvedValue({ html: '', mjml: '' }), 'edit')}
+        onTreeChange={onTreeChange}
+      />
+    )
+    return onTreeChange
+  }
+
+  it('refuses to add a Liquid block inside the block with the condition', () => {
+    const onTreeChange = renderBuilder()
+    const add = mockTreePanelProps.onAddBlock as (parentId: string, type: string, position?: number) => void
+    act(() => add('col-1', 'mj-liquid', 0))
+    expect(onTreeChange).not.toHaveBeenCalled()
+    act(() => add('col-1', 'mj-text', 0))
+    expect(onTreeChange).toHaveBeenCalledTimes(1)
+  })
+
+  it('refuses to move a Liquid block into it', () => {
+    const onTreeChange = renderBuilder()
+    const move = mockTreePanelProps.onMoveBlock as (id: string, parentId: string, position: number) => void
+    act(() => move('liq-1', 'col-1', 0))
+    expect(onTreeChange).not.toHaveBeenCalled()
+  })
+})
+
 describe('EmailBuilder moving and changing columns', () => {
   interface Node {
     id: string
@@ -201,12 +254,12 @@ describe('EmailBuilder moving and changing columns', () => {
     }) as unknown as EmailBlock
 
   const setup = () => {
-    treePanel.props = undefined
+    mockTreePanelProps = {}
     const onTreeChange = vi.fn()
     render(<EmailBuilder {...props(makeColumnsTree(), vi.fn(), null)} onTreeChange={onTreeChange} />)
     const call = (name: string, ...args: unknown[]) =>
       act(() => {
-        ;(treePanel.props![name] as (...a: unknown[]) => void)(...args)
+        (mockTreePanelProps[name] as (...a: unknown[]) => void)(...args)
       })
     const latest = () => onTreeChange.mock.calls[onTreeChange.mock.calls.length - 1][0] as EmailBlock
     const children = (id: string) => EmailBlockClass.findBlockById(latest(), id)!.children!
