@@ -1,17 +1,22 @@
 # Pick the drop level in the structure tree from the pointer
 
-Branch `fix/editor-drag-and-drop-levels`, from `fix/editor-drag-and-drop` (PR #510, 70cc34dc). It is rebased onto
-`dev` once #510 merges, and the PR goes to `dev`. Console only: no table, no migration, no environment variable,
-no new user-facing string.
+Branch `fix/editor-drag-and-drop-levels`, from `fix/editor-drag-and-drop` (PR #510, 70cc34dc). It takes `dev` in once
+#510 merges, and the PR goes to `dev`. Console only: no table, no migration, no environment variable, no new
+user-facing string.
 
 Follows `plans/fix-editor-drag-and-drop-plan.md`. Pierre asked to handle its remaining limits before the
 saved-blocks library work.
 
+Revision 2, after the first plan review (`reviews/fix-editor-drag-and-drop-levels-fable-plan-1.md` in the project
+files). Changes against revision 1: the gap comes from row middles, the line is cleared on a capture-phase leave,
+the tree opens collapsed rows with its own timer and gives rc-tree `allowDrop={() => false}`, an empty container
+takes the block unless the pointer moved left, the places stop at the Body, and the test values are corrected.
+
 ## Problem
 
 #510 fixed the audited bugs and kept rc-tree's drop model: rc-tree proposes a node and a side from the pointer, and
-`resolveDropTarget` tries candidates from the deepest level up and takes the first valid one. The plan of #510 lists
-the limits that come from this model:
+`resolveDropTarget` tries candidates from the deepest level up and takes the first valid one. The limits that come
+from this model (1 to 4 are listed in #510's plan, 5 and 6 were found by its reviews):
 
 1. **The deepest valid level wins.** With no sideways move:
    - a section dropped just after a wrapper lands at the end of the wrapper (`W[SW, S]`), not after it;
@@ -28,193 +33,275 @@ the limits that come from this model:
    where that stale line shows.
 5. **Hidden last child**: the walk down last children reads the data tree, while rc-tree shows the filtered tree.
    This is latent, since only `mj-title` and `mj-preview` are hidden today.
-6. **Expanded state desync**: after a Preview and Edit round trip, rc-tree can show a container open that
-   `expandedKeys` says is closed. A lifted drop there gets no line.
+6. **Expanded state desync**: rc-tree opens the parents of expanded keys on mount (`Tree.js:166`), and the panel is
+   unmounted in Preview (`EmailBuilder.tsx:832`). After a Preview and Edit round trip, rc-tree can show a container
+   open that `expandedKeys` says is closed. A lifted drop there gets no line.
 
 Out of scope:
 - Group widths, which go to their own thread (gomjml and the editor's `width: 100%` default).
 - The AI assistant's tools.
+- Dragging from the saved-blocks library (lot 1). The API below takes the dragged block's type, with the id
+  optional, so that lot does not rework it.
 
 ## Model
 
 The tree draws its own line and computes the place itself, from what the user sees: the rows on screen and the
-pointer. Dragging stays rc-tree's: draggable rows, the dragging highlight, auto-expand on hover, drag end.
+pointer. rc-tree keeps the drag source: draggable rows, the dragging highlight, `onDragStart`, `onDragEnd`. It no
+longer decides any drop.
 
 ### Gap
 
-The pointer is over a row R, or above the first row, or below the last one. Rows are the visible
-`.ant-tree-treenode` elements of the body tree, in order.
+Rows are the visible body-tree rows, `[role="treeitem"]` under the wrapper, in document order. (`.ant-tree-treenode`
+also matches rc-tree's hidden measurer, which has no block id.) Each row carries its block id in
+`data-block-id`, on the title span.
 
-- In the top half of R, the gap is between the row above R and R.
-- In the bottom half of R, the gap is between R and the row below it.
+- **upper** is the last row whose vertical middle is above the pointer. When there is none (the pointer is above
+  the Body row's middle), upper is the Body row.
+- **lower** is the row after upper, or null.
 
-A gap is `(upper, lower)`, two block ids, and either may be null. A gap with no upper row (above the Body row) has
-no place.
+This one rule covers the 4 px band antd leaves under each row (`antd/es/tree/style/index.js:123-134`), the space
+above the first row, below the last one and the wrapper's padding. The Body row is always the first row, so the top
+half of the Body row gives the gap `(B, first child row)` and the place `{B, 0}`, as on #510.
 
 ### Places in a gap
 
-The function is pure, in `utils/treeDrop.ts`:
+Pure, in `utils/treeDrop.ts`:
 
 ```ts
-export interface DropGap { upperId: string | null; lowerId: string | null }
-export interface DropPlace { parentId: string; slot: number; depth: number }
+export interface DropGap { upperId: string; lowerId: string | null }
+export interface DropPlace { parentId: string; slot: number; depth: number; emptyInside: boolean }
 export function placesInGap(tree: EmailBlock, gap: DropGap): DropPlace[]
+export function depthOf(tree: EmailBlock, id: string): number | null
 ```
 
 `depth` counts levels from the Body, which is 0; a section in the body is 1. `slot` is the insertion index in the
 parent's current children. With U the upper block and L the lower one, the places run from deepest to shallowest:
 
-1. **Inside U, when U is a container.**
-   - If L is a child of U, U is shown open and the gap is before its first child: `(U, 0)`.
-   - Otherwise U is collapsed or empty: `(U, U.children.length)`.
-
-   The depth is `depth(U) + 1`.
+1. **Inside U, when U is a container.** The depth is `depth(U) + 1`.
+   - If L is a child of U, U is shown open and the gap is before L: `(U, index of L in U)`. With a hidden first
+     child this is after it, which is where the line is.
+   - Otherwise U is collapsed or empty: `(U, U.children.length)`. `emptyInside` is true when U has no children.
 2. **After U and each ancestor whose shown content ends at U.** For A = U, then its parent, and so on, while A is
-   not an ancestor of L and A has a parent P: `(P, index of A in P + 1)`, at `depth(A)`.
+   not the Body and A is not an ancestor of L: `(parent of A, index of A in it + 1)`, at `depth(A)`.
 
-Because U and L come from the screen, a collapsed container, a hidden child, or a desync between `expandedKeys` and
-the screen all give the gap the user sees (limits 5 and 6).
+Unknown ids give no place. Because U and L come from the screen, a collapsed container, a hidden child, or a
+desync between `expandedKeys` and the screen all give the gap the user sees (limits 5 and 6).
 
 ### Choosing the place
 
 ```ts
+export interface DragSource { id?: string; type: EmailBlockType; depth: number }
 export function resolveDrop(
   tree: EmailBlock,
-  dragId: string,
+  drag: DragSource,
   gap: DropGap,
-  pointerDepth: number
+  shift: number
 ): (DropTarget & { depth: number }) | null
 ```
 
-1. Keep the places whose parent accepts the dragged block (`canAcceptChild`) and is not inside it.
-2. Take the one whose depth is closest to `pointerDepth`; on a tie, take the deeper one.
-3. Settle the slot into a final index, as `settle` does in #510: subtract 1 when the block is before the slot in the
-   same parent.
-4. Return null when the chosen place is the block's current place, or when no place is kept.
+`shift = Math.round((pointerX − dragStartX) / indent)`: whole indents moved right (positive) or left (negative)
+since the grab. `indent` is the width of the first `.ant-tree-indent-unit` under the wrapper, or 24 when it measures
+0 (jsdom). The pointer depth is `drag.depth + shift`.
 
-`pointerDepth = depth(drag) + round((pointerX − dragStartX) / indent)`. Moving the pointer straight down keeps the
-dragged block's level; each indent to the left or right moves one level out or in. `indent` is the width of
-`.ant-tree-indent-unit`, or 24 when it measures 0 (jsdom).
+1. Keep the places whose parent accepts `drag.type` (`canAcceptChild`) and, when `drag.id` is set, is neither the
+   dragged block nor inside it.
+2. **Empty container.** If a kept place has `emptyInside` and `shift >= 0`, take it. Dropping on an empty
+   container fills it, as on #510; one indent to the left puts the block after it instead.
+3. Otherwise take the kept place whose depth is closest to the pointer depth; on a tie, the deeper one.
+4. Settle the slot into a final index, as `settle` does in #510: subtract 1 when the block is before the slot in the
+   same parent.
+5. Return null when no place is kept, or when the chosen place is the block's current place.
+
+Why rule 2: from the drag handle there is about 24 px of tree to the right of the pointer (handle centre x 279,
+tree right edge 303 in Chromium). A rule that needed one indent to the right to enter an empty wrapper or group
+would leave a window of 12 px for users who grab the handle. Room to the left always exists.
 
 Effect on the limits:
-- **Section just after a wrapper**, gap `(TW, S2)`, pointer straight down (depth 1). The places are after TW in CW,
+- **Section just after a wrapper**, gap `(TW, S2)`, straight down (pointer depth 1). The places are after TW in CW,
   after CW in SW, after SW in W (depth 2) and after W in the body (depth 1). Only the last two accept a section, and
-  depth 1 wins: the section lands after the wrapper. One indent to the right puts it in the wrapper (limit 1).
-- **Section below an empty wrapper**, gap `(EW, S6)`. The places are inside EW (depth 2) and after EW (depth 1):
-  after it by default, inside with one indent to the right (limit 2).
-- **Text below an empty column**, gap `(EC, C5)`. Inside EC (depth 3) is the only place that accepts a text, so the
-  natural gesture still fills it. The same holds for a column below an empty section and a social element below an
-  empty social block.
-- **Raw HTML between sections**, gap `(T3 last in S3, R)`, pointer at depth 1. The places are after T3 (3), after C3
+  depth 1 wins: the section lands after the wrapper. One indent to the right puts it at the end of the wrapper
+  (limit 1).
+- **Section below an empty wrapper**, gap `(EW, S6)`. The places are inside EW (depth 2, empty) and after EW
+  (depth 1): inside by default, after it with one indent to the left (limit 2).
+- **Text below an empty column**, gap `(EC, C5)`. Inside EC is the only place that accepts a text.
+- **Raw HTML between sections**, gap `(T4 last in S3, R)`, pointer depth 1. The places are after T4 (3), after C3
   in S3 (2) and after S3 in the body (1). All three accept raw HTML, and the body wins.
+
+### Behaviour changes for a straight drag (no sideways move)
+
+Measured by the review on the audit fixture and the fixture with empty containers. All follow the line.
+
+| Gesture | #510 | Now |
+|---|---|---|
+| Section over the last row of a wrapper | `{W, 1}` | after W |
+| Column over the last row of a group | `{G, 2}` | after G, `{S2, 1}` |
+| Body-level raw or Liquid over the last row of a last column | end of that column | body level, after the section |
+| Body-level raw or Liquid over IM1, last row of the first column C1 | `{C1, 3}` | `{S1, 1}`, between the columns |
+| S2 over the bottom of TW, the row just above it | `{W, 1}` | nothing: its own place |
+| Raw R over the bottom of collapsed C3 | `{S3, 1}` | nothing: its own place |
+| Liquid L over the bottom of collapsed C3 | `{S3, 1}` | `{B, 4}`, before R |
+
+Unchanged: empty containers take the block (rule 2), the top half of the Body row gives `{B, 0}`, a collapsed
+non-empty container appends (`(U, len)`, the existing e2e case `C3[D,SP,T3,T4,T1]`).
 
 ### Line
 
-The tree draws its own line, a `div` with `data-testid="tree-drop-line"` that is `aria-hidden`, absolutely
-positioned in the body tree's wrapper:
-- top: the upper row's bottom, in wrapper coordinates (scroll included);
-- left: the content left of the upper row, plus `(depth − depth(U)) × indent`;
+A `div` with `data-testid="tree-drop-line"`, `aria-hidden`, `pointer-events: none`, absolutely positioned in the
+body tree's wrapper (`relative`):
+- top: the upper row's bottom, in wrapper coordinates (the rect difference handles the panel's scroll);
+- left: the upper row's content left (its `.ant-tree-node-content-wrapper`) plus `(depth − depth(U)) × indent`;
 - right: 0.
 
-antd's indicator never shows: `allowDrop` returns whether the tree's own place exists, but rc-tree renders its
-indicator only where it computes one, so the wrapper hides `.ant-tree-drop-indicator` with a Tailwind arbitrary
-variant. The line is recomputed on every `dragover`, so a refused position removes it (limit 4), and it is drawn at
-the chosen depth (limit 3).
+The line state is `{ top, left } | null` and is set only when it changes: every render rebuilds `treeData`, and a
+new data identity drops a running expand animation in rc-tree (`NodeList.js:143-147`).
 
-### Drop
+rc-tree renders no indicator at all, since `allowDrop` is always false, so no CSS hiding is needed. The line is
+recomputed on every `dragover`, so a refused position removes it (limit 4), and it is drawn at the chosen depth
+(limit 3).
 
-The wrapper handles the native `drop` in the capture phase:
-- with a place, it calls `preventDefault`, then `onMoveBlock`, and opens the parent when it is collapsed or empty;
-- it clears the line, as do `dragleave` out of the wrapper and rc-tree's `onDragEnd`.
+### Opening collapsed rows on hover
 
-rc-tree's `onDrop` is no longer passed, so its own refusals no longer cancel a valid drop. One example is a column
-dragged left over its own last text to leave its group.
+rc-tree's own timer is armed only on `dragenter` and only where `allowDrop` is true, and is not cancelled when the
+pointer moves to a row with no place. With `allowDrop={() => false}` it never arms, and the wrapper runs its own:
 
-`allowDrop` returns `currentPlace !== null`, read from a ref that the capture-phase `dragover` and `dragenter`
-handlers update before rc-tree's node handlers run. This keeps rc-tree's auto-expand on hover, which only runs
-where `allowDrop` is true.
+- On each `dragover`, the hovered row is the row under the pointer (by rect), or none.
+- If it changed, the pending timer is cleared. If the new row is collapsed (not in `expandedKeys`, has children), is
+  not the dragged block or inside it, and it or one of its descendants accepts the dragged type, a timer of 800 ms
+  calls `onTreeExpand([...expandedKeys, id])`.
+- The timer is cleared on leave, drop, `dragend` and unmount.
+
+So a section held over collapsed S3 no longer opens it, and a text coming from above opens a collapsed column.
+
+### Events
+
+The wrapper handles, in the capture phase (it runs before rc-tree's row handlers, which stop propagation):
+
+- `onDragEnterCapture`, `onDragOverCapture`: when a drag from this tree is in progress (the drag ref is set),
+  compute the gap, the shift, `resolveDrop`, the line and the hover row; store the place in the ref; call
+  `preventDefault` when there is a place, so the native `drop` fires on the padding too.
+- `onDropCapture`: when the ref holds a place, `preventDefault`, `onMoveBlock(id, parentId, index)`, and
+  `onTreeExpand` for the parent when it is collapsed or empty. Then clear the line, the timer and the drag ref.
+- `onDragLeaveCapture`: clear the line and the timer when the pointer leaves the wrapper: `relatedTarget` is outside
+  it, or, when `relatedTarget` is null, the pointer is outside the wrapper's rect.
+
+rc-tree props:
+- `onDragStart` records the drag ref: id, type, depth, start x.
+- `onDragEnd` clears everything.
+- `onDrop` is no longer passed, so rc-tree's own refusals (its descendant check) no longer cancel a valid drop. One
+  example is a column dragged left over its own last text to leave its group.
+- `allowDrop={() => false}`.
+
+A drag that did not start in this tree (no drag ref) is ignored: no line, no `preventDefault`, no move.
 
 ## Changes
 
 ### `console/src/components/email_builder/utils/treeDrop.ts`
-- Replace `resolveDropTarget` and `DropSide` with `placesInGap`, `resolveDrop` and `depthOf`. Keep `locate`,
-  `contains` and `settle`.
+- Replace `resolveDropTarget` and `DropSide` with `placesInGap`, `resolveDrop` and `depthOf`, and the types
+  `DropGap`, `DropPlace`, `DragSource`. Keep `locate`, `contains`, `settle`.
 
 ### `console/src/components/email_builder/panels/TreePanel.tsx`
 - `TreeNodeTitle` root span: add `data-block-id={block.id}`, next to `data-draggable`.
 - Remove `handleDrop` and the resolver-based `allowDrop`.
-- `onDragStart` (rc-tree prop): record the drag id, the start x and the dragged block's depth in a ref.
-- Wrapper (`relative`):
-  - `onDragOverCapture` and `onDragEnterCapture` compute the gap from the row rects, then the pointer depth, then
-    `resolveDrop`; they store the result in the ref and the line position in state, and call `preventDefault` when
-    there is a place;
-  - `onDropCapture` performs the move;
-  - `onDragLeave` (target leaving the wrapper) clears the line.
-- `onDragEnd` (rc-tree prop) clears.
-- Render the line; hide `.ant-tree-drop-indicator` under the wrapper.
+- Add the drag ref, the line state, the hover timer and the capture handlers above on the body tree's wrapper, which
+  becomes `relative`. Render the line.
 - Keep `handleDragStartCapture` (Body row).
 
-### `CHANGELOG.md` (43.2, unreleased)
-#510's entries are unreleased, so this folds into its Improvement bullet rather than adding a Fix:
+### `CHANGELOG.md`
+#510's entries are unreleased (43.2 WIP, shipping as 44.0), so this folds into its Improvement bullet rather than
+adding a Fix. The existing sentence on empty containers stays true thanks to rule 2. Added at its end:
 "…; while dragging, moving the pointer left or right picks the level where the block goes, and the line shows that
-level."
+level." The entries move under 44.0 with #510's when the release section exists on `dev`.
 
-## Tests (written first, red on #510's head)
+## Tests (written first)
+
+"Red on #510's head" is noted for each case; the others pin behaviour #510 already has.
 
 ### `utils/treeDrop.test.ts` (rewritten for the new API, same audit and empty-container fixtures)
 
+Places are asserted as exact arrays, so their number is pinned.
+
+**depthOf**
+1. B 0, S1 1, C1 2, T1 3, TW 4; an unknown id gives null.
+
 **placesInGap**
-1. `(T3, T4)` gives only `(C3, 3, depth 3)`.
-2. `(T4 last in S3, R)` gives `(C3, 4, 3)`, `(S3, 1, 2)` and `(B, 4, 1)`.
-3. `(S3 open, C3)` gives only `(S3, 0, 2)`.
-4. `(C3 collapsed, R)`, with lower R, gives `(C3, 4, 3)`, `(S3, 1, 2)` and `(B, 4, 1)`.
-5. `(EW, S6)` gives `(EW, 0, 2)` and `(B, i + 1, 1)`.
-6. A null upper gives no place; a null lower (after the last row L) gives `(B, len, 1)`.
+1. `(T3, T4)` gives `[(C3, 3, 3)]`.
+2. `(T4, R)` gives `[(C3, 4, 3), (S3, 1, 2), (B, 4, 1)]`.
+3. `(S3 open, C3)` gives `[(S3, 0, 2)]`.
+4. `(C3 collapsed, R)` gives `[(C3, 4, 3), (S3, 1, 2), (B, 4, 1)]`.
+5. `(EW, S6)` gives `[(EW, 0, 2, empty), (B, index of EW + 1, 1)]`.
+6. `(L, null)` gives `[(B, 6, 1)]`: nothing above the Body.
+7. `(B, S1)` gives `[(B, 0, 1)]`.
+8. A hidden first child of C3: `(S3, T4-like row)` where C3's first child is hidden gives the index of the lower
+   row in C3, not 0. (Uses #510's hidden-first-child fixture, `('T4', 'C3', 2)`.)
+9. Unknown upper id: `[]`, no throw.
 
 **resolveDrop**
-1. Moves down in the same parent land where the line is: D in `(T3, T4)` at depth 3 gives `{C3, 2}`.
-2. A section in `(TW, S2)`: at depth 1, after W; at depth 2, `{W, 1}`.
-3. A section in `(EW, S6)`: at depth 1, after EW; at depth 2, `{EW, 0}`.
-4. A text in `(EC, C5)` at depth 3 gives `{EC, 0}`, and also at depth 1 (nearest accepting place).
-5. Raw HTML in `(T4, R)`: at depth 1, `{B, 4}`; at depth 3, `{C3, 4}`.
-6. A tie between depths 3 and 1 at pointer depth 2 takes depth 3.
-7. Refused: a text in `(SE1, SE2)`; a text after the last row L; a section in `(T3, T4)` — all null.
-8. No-op: SP in `(D, SP)` gives null; S3 in `(T4, R)` at depth 1 gives null (its own place).
-9. Never into itself: S1 in a gap inside its own subtree gives null. On the malformed tree, S1 in `(WX, …)` gives
-   null.
-10. G2 (a column of group G in S2) dragged over its own last text TG2, gap `(TG2, S3)`, at pointer depth 2 (one
-    indent left): after G in S2, `{S2, 1}`; at depth 3: after G2 in G is its own place, null.
+1. D in `(T3, T4)`, shift 0: `{C3, 2}`.
+2. A section in `(TW, S2)`: S1 at shift 0 gives `{B, 1}`, at shift +1 `{W, 1}`; S3 gives `{B, 2}` and `{W, 1}`.
+   (Red on head for shift 0.)
+3. A section in `(EW, S6)`: shift 0 gives `{EW, 0}`, shift −1 gives `{B, index of EW + 1}`. (Red on head for −1.)
+4. A text in `(EC, C5)`: `{EC, 0}` at shifts 0 and −2.
+5. Liquid L in `(T4, R)`: shift 0 gives `{B, 4}`; raw R in `(T4, R)` at shift +2 gives `{C3, 4}`, at shift 0 null
+   (its own place).
+6. Tie: R in `(TG2, S3)` at shift +2, pointer depth 3. The accepting places are at depths 4, 2 and 1 (the group
+   refuses raw), so 4 and 2 tie and the deeper wins: `{G2, 1}`.
+7. Refused, all null: a text in `(SE1, SE2)`; a text in `(L, null)`; a section in `(T3, T4)`.
+8. No-op, null: SP in `(D, SP)`; S3 in `(T4, R)` at shift 0.
+9. Never into itself: S1 in a gap inside its own subtree gives null; on the malformed tree, S1 in `(WX, …)` at
+   pointer depth 3 and 4 gives null (without the check it would be `{WX, 0}`).
+10. G2 over its own last text TG2, gap `(TG2, S3)`: shift −1 gives `{S2, 1}`; shift 0 gives null (its own place).
+11. A drag with no id (library shape) and a type: R-type in `(T4, R)` at depth 1 gives `{B, 4}`.
+12. Unknown drag id: null, no throw.
 
-### `panels/TreePanel.test.tsx` (real TreePanel, jsdom, `box()` rect stubs and a stubbed indent)
-1. Dragging D over the bottom half of T3 shows the line at T3's bottom with D's indentation; the drop calls
-   `onMoveBlock('D', 'C3', 2)`.
-2. A section over the bottom half of TW, straight down: the line is at body indentation and the drop moves it after
-   W. The same with the pointer one indent to the right: wrapper indentation, `{W, 1}`.
-3. Moving from an accepted half to a refused half of the same row removes the line (limit 4).
-4. A collapsed C3 receives a text and is opened; an empty container receives a block and is opened.
-5. The last visible child hides a raw block; the gap after it is computed from the rows, not the data (limit 5).
-6. Rows rendered open while `expandedKeys` says closed: the lifted drop still has a line (limit 6).
-7. antd's `.ant-tree-drop-indicator` never shows; `allowDrop` follows the tree's own place.
-8. Kept from #510: Body dragstart cancelled, `data-draggable`, `aria-label`.
+### `panels/TreePanel.test.tsx` (real TreePanel, jsdom, layout stubs for rows, content wrappers and the indent unit)
+
+Rows are found by `data-block-id`. Fake timers for the hover cases.
+
+1. D over the bottom half of T3: the line is at T3's bottom with D's indentation; the drop calls
+   `onMoveBlock('D', 'C3', 2)`. (Characterisation for the move; red for the line.)
+2. A section over the bottom half of TW, straight down: body indentation, the drop moves it after W; one indent to
+   the right: wrapper indentation, `{W, 1}`. (Red on head.)
+3. From an accepted half to a refused half of the same row: the line is gone and the drop does nothing. (Red on
+   head: it drops at the stale place.)
+4. The pointer in the band between two rows (below T3's rect, above T4's): the line stays and the drop lands
+   between them.
+5. A drop on the wrapper's padding under the last row: the block goes at the end of the body.
+6. A collapsed C3 receives a text and is opened; an empty container receives a block and is opened.
+7. Hover open: a text held over collapsed C3 for 800 ms opens it, from above and from below; a section held over
+   collapsed S3 does not; leaving the row before 800 ms cancels it.
+8. The last visible child hides a raw block; the gap after it is computed from the rows (limit 5). (Red on head.)
+9. Mounted with C3 in `expandedKeys` and not S3: the lifted drop still has a line (limit 6). (Red on head.)
+10. Leaving the wrapper from a row clears the line.
+11. A drag that did not start in the tree: no line, no move.
+12. rc-tree renders no `.ant-tree-drop-indicator`.
+13. Kept from #510: Body dragstart cancelled, `data-draggable`, `aria-label`.
 
 ### `EmailBuilder.test.tsx`
 No change: `onMoveBlock` keeps its contract.
 
 ### `console/e2e/features/editor-drag-and-drop.spec.ts` (Playwright, API mocked, run locally)
 - `fixtures/tree-drag.ts`: the pointer goes straight down from the grab point, plus `dx`, instead of to the target's
-  label. `lineShown` reads `tree-drop-line`, and a `lineLeft` helper is added.
-- Kept cases: unchanged expectations, except that the wrapper and group empty-container cases need `dx = +24`.
+  label. `ROW` becomes `[role="treeitem"]`. `lineShown` reads `tree-drop-line`; a `lineLeft` helper is added; a
+  `grab` option picks the label or the drag handle. Offsets stay off ±12.
+- Kept cases: unchanged expectations.
 - New cases:
   - a section just after a wrapper: dx 0 goes after the wrapper, dx +24 inside it;
-  - a section below an empty wrapper: dx 0 goes after it, dx +24 inside it;
+  - a section below an empty wrapper: dx 0 inside, dx −24 after it;
   - raw HTML dropped between sections at body level;
   - the line's left matches the target level's row content left, within 2 px;
-  - the stale line on the same row is gone.
+  - the stale line on the same row is gone;
+  - a drop in the band between two rows (y = row bottom + 2);
+  - grabbed by the handle: S1 into the empty wrapper and C1 into the empty group;
+  - leaving the tree to the right clears the line.
 
 ## Known, not handled
+- From the drag handle, raw HTML or Liquid at body level cannot reach a place two levels to the right (the end of a
+  column, an empty column inside a section): the tree ends about 24 px to the right of the handle. From the label
+  it works.
 - Native autoscroll during a drag in a long tree is not covered by the e2e.
 - The Body row keeps antd's grab cursor.
 - Keyboard moves: there are none today.
+- Checked in Chromium only.
 
 ## Verification
 
