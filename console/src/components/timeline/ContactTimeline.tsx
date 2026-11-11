@@ -172,6 +172,9 @@ export function ContactTimeline({
         }
         return faClock
       case 'message_history':
+        if (entry.kind === 'email.link_clicked') {
+          return faMousePointer
+        }
         if (entry.changes.delivered_at) {
           return faCheck
         } else if (entry.changes.opened_at) {
@@ -630,9 +633,17 @@ export function ContactTimeline({
       case 'message_history': {
         const messageData = entry.entity_data as MessageHistoryEntityData | undefined
 
+        // A link click is told by its kind: its changes hold the URL, not a status date.
+        const isLinkClick = entry.kind === 'email.link_clicked'
+        const clickedURL = isLinkClick
+          ? (entry.changes?.clicked_url as { new?: unknown } | undefined)?.new
+          : undefined
+
         // Determine email action based on changes
         let emailAction = t`sent`
-        if (entry.changes.delivered_at) {
+        if (isLinkClick) {
+          emailAction = t`clicked a link`
+        } else if (entry.changes.delivered_at) {
           emailAction = t`delivered`
         } else if (entry.changes.opened_at) {
           emailAction = t`opened`
@@ -642,7 +653,15 @@ export function ContactTimeline({
 
         return (
           <div>
-            {renderEventHeader(entry, t`Email`, emailAction)}
+            {renderEventHeader(entry, t`Email`, emailAction, isLinkClick ? 'geekblue' : undefined)}
+            {typeof clickedURL === 'string' && clickedURL !== '' && (
+              <div className="text-sm flex items-center gap-2 min-w-0">
+                <Text type="secondary">{t`Link:`}</Text>
+                <Text ellipsis={{ tooltip: clickedURL }} copyable={{ text: clickedURL }} style={{ maxWidth: 420 }}>
+                  {clickedURL}
+                </Text>
+              </div>
+            )}
             {messageData && messageData.template_id && (
               <div className="text-sm flex items-center gap-2">
                 <Text type="secondary">{t`Template:`}</Text>{' '}

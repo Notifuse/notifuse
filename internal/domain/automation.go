@@ -65,6 +65,9 @@ var ValidEventKinds = []string{
 	// lands in the generic email.updated kind. Enabling them needs a send-loop guard first.
 	"email.opened", "email.clicked",
 	"email.bounced", "email.complained", "email.unsubscribed",
+	// A link of an email clicked for the first time through a signed token. Takes the
+	// optional link_url, broadcast_id and template_id filters.
+	"email.link_clicked",
 	// Custom events (require custom_event_name)
 	"custom_event",
 }
@@ -157,8 +160,42 @@ type TimelineTriggerConfig struct {
 	SegmentID       *string          `json:"segment_id,omitempty"`        // Required for segment.* events
 	CustomEventName *string          `json:"custom_event_name,omitempty"` // Required for custom_event
 	UpdatedFields   []string         `json:"updated_fields,omitempty"`    // For contact.updated: only trigger on these field changes
+	LinkURL         *string          `json:"link_url,omitempty"`          // For email.link_clicked: case-insensitive substring of the clicked URL
+	BroadcastID     *string          `json:"broadcast_id,omitempty"`      // For email.link_clicked: the broadcast that sent the email
+	TemplateID      *string          `json:"template_id,omitempty"`       // For email.link_clicked: the template the email was sent with
 	Conditions      *TreeNode        `json:"conditions"`                  // Reuse segments condition system
 	Frequency       TriggerFrequency `json:"frequency"`
+}
+
+// MaxClickedURLLength bounds the destination URLs a click records in clicked_links, and so
+// the link_url an email.link_clicked trigger can usefully match.
+const MaxClickedURLLength = 2048
+
+// validateLinkClickFilters checks the filters only an email.link_clicked trigger takes. Their
+// values reach the trigger's WHEN clause as SQL literals; a NUL byte cannot be stored in one.
+func (c *TimelineTriggerConfig) validateLinkClickFilters() error {
+	filters := []struct {
+		name  string
+		value *string
+	}{{"link_url", c.LinkURL}, {"broadcast_id", c.BroadcastID}, {"template_id", c.TemplateID}}
+	for _, f := range filters {
+		if f.value == nil || *f.value == "" {
+			continue
+		}
+		if c.EventKind != "email.link_clicked" {
+			return fmt.Errorf("%s can only be used with the email.link_clicked event kind", f.name)
+		}
+		if strings.ContainsRune(*f.value, 0) {
+			return fmt.Errorf("%s must not contain a NUL byte", f.name)
+		}
+		if strings.TrimSpace(*f.value) != *f.value {
+			return fmt.Errorf("%s must not start or end with whitespace", f.name)
+		}
+	}
+	if c.LinkURL != nil && len(*c.LinkURL) > MaxClickedURLLength {
+		return fmt.Errorf("link_url must be at most %d characters", MaxClickedURLLength)
+	}
+	return nil
 }
 
 // Validate validates the trigger configuration
@@ -187,6 +224,10 @@ func (c *TimelineTriggerConfig) Validate() error {
 		if c.SegmentID == nil || *c.SegmentID == "" {
 			return fmt.Errorf("segment_id is required for segment events")
 		}
+	}
+
+	if err := c.validateLinkClickFilters(); err != nil {
+		return err
 	}
 
 	// custom_event requires custom_event_name

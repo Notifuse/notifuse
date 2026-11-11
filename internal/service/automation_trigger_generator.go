@@ -191,6 +191,25 @@ func (g *AutomationTriggerGenerator) buildWHENClause(automation *domain.Automati
 		}
 	}
 
+	// 5. email.link_clicked: the entry's changes carry the clicked URL and the message's
+	// broadcast, template and automation, since a WHEN clause cannot read message_history.
+	// A click on an email this automation sent never restarts it: an every_time automation
+	// would otherwise run again for each link of each of its own emails, a link scanner
+	// clicking them all included.
+	if trigger.EventKind == "email.link_clicked" {
+		conditions = append(conditions, fmt.Sprintf("COALESCE(NEW.changes->'automation_id'->>'new', '') <> %s", sqlLiteral(automation.ID)))
+		if trigger.LinkURL != nil && *trigger.LinkURL != "" {
+			// strpos rather than LIKE: URLs hold '%' and '_', which LIKE reads as wildcards.
+			conditions = append(conditions, fmt.Sprintf("strpos(lower(NEW.changes->'clicked_url'->>'new'), lower(%s)) > 0", sqlLiteral(*trigger.LinkURL)))
+		}
+		if trigger.BroadcastID != nil && *trigger.BroadcastID != "" {
+			conditions = append(conditions, fmt.Sprintf("NEW.changes->'broadcast_id'->>'new' = %s", sqlLiteral(*trigger.BroadcastID)))
+		}
+		if trigger.TemplateID != nil && *trigger.TemplateID != "" {
+			conditions = append(conditions, fmt.Sprintf("NEW.changes->'template_id'->>'new' = %s", sqlLiteral(*trigger.TemplateID)))
+		}
+	}
+
 	// trigger.Conditions is deliberately absent here. Every leaf the condition
 	// compiler supports produces a subquery — EXISTS, NOT EXISTS, or a scalar
 	// (SELECT COUNT(*) ...) comparison — and PostgreSQL rejects any subquery in a

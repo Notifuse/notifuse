@@ -3,6 +3,7 @@ package domain
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -2235,5 +2236,71 @@ func TestAutomation_ListIDSpecified(t *testing.T) {
 		automation = decode(t, `{"id":"auto-1","list_id":"list-1"}`)
 		assert.True(t, automation.ListIDSpecified())
 		assert.False(t, automation.ExitOnReplySpecified())
+	})
+}
+
+func TestTimelineTriggerConfig_Validate_LinkClicked(t *testing.T) {
+	str := func(s string) *string { return &s }
+	base := func() *TimelineTriggerConfig {
+		return &TimelineTriggerConfig{EventKind: "email.link_clicked", Frequency: TriggerFrequencyEveryTime}
+	}
+
+	t.Run("the kind is valid on its own", func(t *testing.T) {
+		assert.True(t, IsValidEventKind("email.link_clicked"))
+		assert.NoError(t, base().Validate())
+	})
+
+	t.Run("each filter is accepted, alone and together", func(t *testing.T) {
+		for name, set := range map[string]func(c *TimelineTriggerConfig){
+			"link_url":     func(c *TimelineTriggerConfig) { c.LinkURL = str("example.com/pricing") },
+			"broadcast_id": func(c *TimelineTriggerConfig) { c.BroadcastID = str("bc-1") },
+			"template_id":  func(c *TimelineTriggerConfig) { c.TemplateID = str("tpl-1") },
+			"all": func(c *TimelineTriggerConfig) {
+				c.LinkURL, c.BroadcastID, c.TemplateID = str("pricing"), str("bc-1"), str("tpl-1")
+			},
+		} {
+			c := base()
+			set(c)
+			assert.NoError(t, c.Validate(), name)
+		}
+	})
+
+	t.Run("an empty filter is no filter", func(t *testing.T) {
+		c := base()
+		c.LinkURL, c.BroadcastID, c.TemplateID = str(""), str(""), str("")
+		assert.NoError(t, c.Validate())
+	})
+
+	t.Run("the filters belong to email.link_clicked only", func(t *testing.T) {
+		for _, kind := range []string{"email.clicked", "contact.updated", "list.subscribed"} {
+			for field, set := range map[string]func(c *TimelineTriggerConfig){
+				"link_url":     func(c *TimelineTriggerConfig) { c.LinkURL = str("pricing") },
+				"broadcast_id": func(c *TimelineTriggerConfig) { c.BroadcastID = str("bc-1") },
+				"template_id":  func(c *TimelineTriggerConfig) { c.TemplateID = str("tpl-1") },
+			} {
+				c := &TimelineTriggerConfig{EventKind: kind, Frequency: TriggerFrequencyOnce, ListID: str("list-1")}
+				set(c)
+				err := c.Validate()
+				require.Error(t, err, "%s with %s", field, kind)
+				assert.Contains(t, err.Error(), field)
+				assert.Contains(t, err.Error(), "email.link_clicked")
+			}
+		}
+	})
+
+	t.Run("link_url is bounded like the URLs clicks record", func(t *testing.T) {
+		c := base()
+		c.LinkURL = str(strings.Repeat("a", MaxClickedURLLength))
+		assert.NoError(t, c.Validate())
+		c.LinkURL = str(strings.Repeat("a", MaxClickedURLLength+1))
+		assert.Error(t, c.Validate())
+	})
+
+	t.Run("link_url refuses a NUL byte and surrounding whitespace", func(t *testing.T) {
+		for _, bad := range []string{"pri\x00cing", " pricing", "pricing\n", "\tpricing"} {
+			c := base()
+			c.LinkURL = str(bad)
+			assert.Error(t, c.Validate(), "%q", bad)
+		}
 	})
 }

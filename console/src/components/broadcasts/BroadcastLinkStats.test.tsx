@@ -20,6 +20,9 @@ vi.mock('../../services/api/messages_history', () => ({
 
 const mockedGetBroadcastLinkStats = getBroadcastLinkStats as Mock
 
+const navigate = vi.fn()
+vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigate }))
+
 const clipboardWriteText = vi.fn()
 Object.defineProperty(navigator, 'clipboard', {
   value: { writeText: clipboardWriteText },
@@ -28,7 +31,7 @@ Object.defineProperty(navigator, 'clipboard', {
 
 // Rendered inside an expanded variation row: scoped to a templateId, with the variation's
 // recipient count as the click-rate denominator.
-const renderComponent = (props?: { templateId?: string; recipients?: number }) => {
+const renderComponent = (props?: { templateId?: string | null; recipients?: number }) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
@@ -36,7 +39,7 @@ const renderComponent = (props?: { templateId?: string; recipients?: number }) =
         <BroadcastLinkStats
           workspaceId="ws1"
           broadcastId="bc1"
-          templateId={props?.templateId ?? 'tpl-1'}
+          templateId={props?.templateId === null ? undefined : (props?.templateId ?? 'tpl-1')}
           recipients={props?.recipients ?? 100}
         />
       </AntApp>
@@ -168,5 +171,39 @@ describe('BroadcastLinkStats', () => {
 
     expect(await screen.findByText('Per-link click data is not available.')).toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
+  })
+
+  it('opens the message log on the recipients who clicked that link in this variation', async () => {
+    const url = 'https://example.com/pricing?utm_source=news&x=1'
+    mockedGetBroadcastLinkStats.mockResolvedValue({
+      link_stats: [{ url, total_clicks: 10, unique_clicks: 6 }]
+    })
+
+    renderComponent()
+
+    await screen.findByText(url)
+    await userEvent.click(screen.getByRole('button', { name: 'See who clicked' }))
+    const to = navigate.mock.calls[0][0].to as string
+    const [path, query] = to.split('?')
+    expect(path).toBe('/console/workspace/ws1/logs')
+    const params = new URLSearchParams(query)
+    expect(params.get('broadcast_id')).toBe('bc1')
+    expect(params.get('template_id')).toBe('tpl-1')
+    expect(params.get('clicked_url')).toBe(url)
+  })
+
+  it('leaves the variation out of the log link for a whole-broadcast breakdown', async () => {
+    mockedGetBroadcastLinkStats.mockResolvedValue({
+      link_stats: [{ url: 'https://example.com/pricing', total_clicks: 10, unique_clicks: 6 }]
+    })
+
+    renderComponent({ templateId: null })
+
+    await screen.findByText('https://example.com/pricing')
+    await userEvent.click(screen.getByRole('button', { name: 'See who clicked' }))
+    const params = new URLSearchParams((navigate.mock.calls[0][0].to as string).split('?')[1])
+    expect(params.get('broadcast_id')).toBe('bc1')
+    expect(params.has('template_id')).toBe(false)
+    expect(params.get('clicked_url')).toBe('https://example.com/pricing')
   })
 })
