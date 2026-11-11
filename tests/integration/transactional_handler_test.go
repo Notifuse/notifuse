@@ -114,6 +114,132 @@ func TestTransactionalHandler(t *testing.T) {
 			require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
 			assert.True(t, result.Success, "test send failed: %s", result.Error)
 		})
+
+		// The console offers Create on transactional:write and templates:read, and Edit on
+		// the same pair unless an integration manages the notification, since it then sends
+		// no channels. Pin each request the console sends against those permissions.
+		t.Run("Create and Edit Permissions", func(t *testing.T) {
+			writeOnly := domain.UserPermissions{
+				domain.PermissionResourceTransactional: {Read: true, Write: true},
+			}
+			withTemplates := domain.UserPermissions{
+				domain.PermissionResourceTemplates:     {Read: true},
+				domain.PermissionResourceTransactional: {Read: true, Write: true},
+			}
+			emailChannels := map[string]interface{}{
+				"email": map[string]interface{}{
+					"template_id": template.ID,
+					"settings":    map[string]interface{}{},
+				},
+			}
+			createBody := func(id string) map[string]interface{} {
+				return map[string]interface{}{
+					"workspace_id": workspace.ID,
+					"notification": map[string]interface{}{
+						"id":       id,
+						"name":     "Permission " + id,
+						"channels": emailChannels,
+						"tracking_settings": map[string]interface{}{
+							"enable_tracking": true,
+						},
+					},
+				}
+			}
+			newNotification := func(t *testing.T, opts ...testutil.TransactionalNotificationOption) *domain.TransactionalNotification {
+				t.Helper()
+				opts = append([]testutil.TransactionalNotificationOption{
+					testutil.WithTransactionalNotificationID(fmt.Sprintf("perm-%d", time.Now().UnixNano())),
+					testutil.WithTransactionalNotificationChannels(domain.ChannelTemplates{
+						domain.TransactionalChannelEmail: domain.ChannelTemplate{
+							TemplateID: template.ID,
+							Settings:   map[string]interface{}{},
+						},
+					}),
+				}, opts...)
+				n, err := factory.CreateTransactionalNotification(workspace.ID, opts...)
+				require.NoError(t, err)
+				return n
+			}
+			requireTemplatesReadRefusal := func(t *testing.T, resp *http.Response) {
+				t.Helper()
+				require.Equal(t, http.StatusForbidden, resp.StatusCode)
+				var body map[string]interface{}
+				require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+				assert.Equal(t, string(domain.PermissionResourceTemplates), body["resource"])
+				assert.Equal(t, string(domain.PermissionTypeRead), body["permission"])
+			}
+			closeLater := func(t *testing.T) func(*http.Response, error) *http.Response {
+				return func(resp *http.Response, err error) *http.Response {
+					t.Helper()
+					require.NoError(t, err)
+					t.Cleanup(func() { _ = resp.Body.Close() })
+					return resp
+				}
+			}
+
+			t.Run("create with transactional write only is refused", func(t *testing.T) {
+				c := memberClient(t, writeOnly)
+				resp := closeLater(t)(c.CreateTransactionalNotification(createBody(fmt.Sprintf("perm-create-%d", time.Now().UnixNano()))))
+				requireTemplatesReadRefusal(t, resp)
+			})
+
+			t.Run("create with templates read too succeeds", func(t *testing.T) {
+				c := memberClient(t, withTemplates)
+				resp := closeLater(t)(c.CreateTransactionalNotification(createBody(fmt.Sprintf("perm-create-%d", time.Now().UnixNano()))))
+				assert.Equal(t, http.StatusCreated, resp.StatusCode)
+			})
+
+			t.Run("update with channels and transactional write only is refused", func(t *testing.T) {
+				n := newNotification(t)
+				c := memberClient(t, writeOnly)
+				resp := closeLater(t)(c.UpdateTransactionalNotification(n.ID, map[string]interface{}{
+					"name":     n.Name,
+					"channels": emailChannels,
+				}))
+				requireTemplatesReadRefusal(t, resp)
+			})
+
+			t.Run("update with channels and templates read too succeeds", func(t *testing.T) {
+				n := newNotification(t)
+				c := memberClient(t, withTemplates)
+				resp := closeLater(t)(c.UpdateTransactionalNotification(n.ID, map[string]interface{}{
+					"name":     n.Name,
+					"channels": emailChannels,
+				}))
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
+			})
+
+			t.Run("update of the description alone needs transactional write only", func(t *testing.T) {
+				n := newNotification(t)
+				c := memberClient(t, writeOnly)
+				resp := closeLater(t)(c.UpdateTransactionalNotification(n.ID, map[string]interface{}{
+					"description": "Edited without templates read",
+				}))
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
+			})
+
+			t.Run("console edit of an integration-managed notification needs transactional write only", func(t *testing.T) {
+				integrationID := "perm-managed-integration"
+				n := newNotification(t, func(tn *domain.TransactionalNotification) {
+					tn.IntegrationID = &integrationID
+				})
+				c := memberClient(t, writeOnly)
+				// The body the console's drawer sends for a managed notification: no channels.
+				resp := closeLater(t)(c.UpdateTransactionalNotification(n.ID, map[string]interface{}{
+					"name":        n.Name,
+					"description": "Edited without templates read",
+					"tracking_settings": map[string]interface{}{
+						"enable_tracking": true,
+					},
+				}))
+				require.Equal(t, http.StatusOK, resp.StatusCode)
+				var body map[string]interface{}
+				require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+				saved, ok := body["notification"].(map[string]interface{})
+				require.True(t, ok, "response has no notification: %v", body)
+				assert.Equal(t, integrationID, saved["integration_id"], "the notification must be managed for this case to pin the managed branch")
+			})
+		})
 	})
 
 	t.Run("Send with CC and BCC Recipients", func(t *testing.T) {

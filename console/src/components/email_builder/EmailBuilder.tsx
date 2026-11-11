@@ -10,6 +10,7 @@ import { EditPanel } from './panels/EditPanel'
 import { SettingsPanel } from './panels/SettingsPanel'
 import { Preview, type PreviewRef } from './panels/Preview'
 import { TextVersionPanel } from './panels/TextVersionPanel'
+import type { CustomTextVersion } from './panels/TextVersionPanel'
 import type {
   EmailBlock,
   EmailBuilderState,
@@ -18,6 +19,7 @@ import type {
   MJMLComponentType
 } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
+import { rebalanceAfterAdd, rebalanceAfterRemove } from './utils/columnWidths'
 import { countHiddenBlocks, liquidPlacementError } from './displayCondition'
 
 type ViewMode = 'edit' | 'preview' | 'text'
@@ -51,8 +53,10 @@ interface EmailBuilderProps {
   templateDataRef?: React.RefObject<PreviewRef>
   forcedViewMode?: ViewMode | null
   // When set, the toolbar offers a "Text version" mode showing the plain-text version
-  // sent with the email, from the compile result's text.
-  textVersion?: { enabled: true }
+  // sent with the email, from the compile result's text. With `custom`, the text can be
+  // written by hand there; the compile is never asked for it, so the result's text is
+  // always the automatic version.
+  textVersion?: { enabled: true; custom?: CustomTextVersion }
   onSelectBlock?: (blockId: string | null) => void
   selectedBlockId?: string | null
   hiddenBlocks?: string[]
@@ -428,7 +432,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
 
     // Regular block insertion logic (unchanged from original)
     // Insert the block into the tree
-    let updatedTree = EmailBlockClass.insertBlockIntoTree(tree, parentId, newBlock, position || 0)
+    const updatedTree = EmailBlockClass.insertBlockIntoTree(tree, parentId, newBlock, position || 0)
 
     if (updatedTree) {
       // If we're adding a column to a section or group, recalculate all column widths
@@ -437,16 +441,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         if (parentContainer && parentContainer.children) {
           if (parentContainer.type === 'mj-section') {
             const columns = parentContainer.children.filter((child) => child.type === 'mj-column')
-            const columnCount = columns.length
-            const equalWidth = `${100 / columnCount}%`
-
-            // Update all columns in this section with equal widths
-            columns.forEach((column) => {
-              if (!column.attributes) {
-                column.attributes = {}
-              }
-              ;(column.attributes as { width?: string }).width = equalWidth
-            })
+            rebalanceAfterAdd(parentContainer, newBlock.id)
 
             // Add a default text element to the new column
             const newColumn = EmailBlockClass.findBlockById(updatedTree, newBlock.id)
@@ -470,8 +465,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               ;(newColumn.children as EmailBlock[]).push(textBlock)
             }
           } else if (parentContainer.type === 'mj-group') {
-            // Use the new utility function to redistribute column widths in the group
-            updatedTree = EmailBlockClass.redistributeGroupColumnWidths(updatedTree, parentId)
+            rebalanceAfterAdd(parentContainer, newBlock.id)
 
             // Add a default text element to the new column
             const newColumn = EmailBlockClass.findBlockById(updatedTree, newBlock.id)
@@ -612,33 +606,10 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         updatedTree = EmailBlockClass.cleanupFontReferences(updatedTree, removedFontName)
       }
 
-      // If we deleted a column, recalculate remaining column widths in the container
+      // If we deleted a column, the remaining columns of its container keep their proportions
       if (blockToDelete?.type === 'mj-column' && parentContainerId && parentContainerType) {
-        if (parentContainerType === 'mj-section') {
-          const parentSection = EmailBlockClass.findBlockById(updatedTree, parentContainerId)
-          if (parentSection && parentSection.children) {
-            const columns = parentSection.children.filter((child) => child.type === 'mj-column')
-            const columnCount = columns.length
-
-            if (columnCount > 0) {
-              const equalWidth = `${100 / columnCount}%`
-
-              // Update all remaining columns in this section with equal widths
-              columns.forEach((column) => {
-                if (!column.attributes) {
-                  column.attributes = {}
-                }
-                ;(column.attributes as { width?: string }).width = equalWidth
-              })
-            }
-          }
-        } else if (parentContainerType === 'mj-group') {
-          // Use the new utility function to redistribute column widths in the group
-          updatedTree = EmailBlockClass.redistributeGroupColumnWidths(
-            updatedTree,
-            parentContainerId
-          )
-        }
+        const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentContainerId)
+        if (parentContainer) rebalanceAfterRemove(parentContainer)
       }
 
       updateTreeWithHistory(updatedTree)
@@ -695,7 +666,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     }
 
     // Insert the cloned block after the original
-    let updatedTree = EmailBlockClass.insertBlockIntoTree(
+    const updatedTree = EmailBlockClass.insertBlockIntoTree(
       currentTree,
       parentInfo.parent.id,
       clonedBlock,
@@ -703,31 +674,10 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     )
 
     if (updatedTree) {
-      // If we're cloning a column, recalculate all column widths in the container
-      if (
-        blockToClone.type === 'mj-column' &&
-        (parentInfo.parent.type === 'mj-section' || parentInfo.parent.type === 'mj-group')
-      ) {
-        if (parentInfo.parent.type === 'mj-section') {
-          const parentSection = EmailBlockClass.findBlockById(updatedTree, parentInfo.parent.id)
-          if (parentSection && parentSection.children) {
-            const columns = parentSection.children.filter((child) => child.type === 'mj-column')
-            const columnCount = columns.length
-            const equalWidth = `${100 / columnCount}%` // Update all columns in this section with equal widths
-            columns.forEach((column) => {
-              if (!column.attributes) {
-                column.attributes = {}
-              }
-              ;(column.attributes as { width?: string }).width = equalWidth
-            })
-          }
-        } else if (parentInfo.parent.type === 'mj-group') {
-          // Use the new utility function to redistribute column widths in the group
-          updatedTree = EmailBlockClass.redistributeGroupColumnWidths(
-            updatedTree,
-            parentInfo.parent.id
-          )
-        }
+      // If we're cloning a column, it gets its share and the other columns keep their proportions
+      if (blockToClone.type === 'mj-column') {
+        const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentInfo.parent.id)
+        if (parentContainer) rebalanceAfterAdd(parentContainer, clonedBlock.id)
       }
 
       updateTreeWithHistory(updatedTree)
@@ -743,47 +693,42 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     const movedBlock = EmailBlockClass.findBlockById(currentTree, blockId)
     if (movedBlock && refuseLiquidPlacement(newParentId, movedBlock)) return
 
-    // Find the original parent before moving
-    const findParentId = (tree: EmailBlock, targetId: string): string | null => {
-      if (tree.children) {
-        for (const child of tree.children) {
-          if (child.id === targetId) {
-            return tree.id
-          }
-          const result = findParentId(child, targetId)
-          if (result) return result
-        }
+    // Find the original parent and place before moving
+    const findParent = (node: EmailBlock): { parent: EmailBlock; index: number } | null => {
+      for (const [index, child] of (node.children ?? []).entries()) {
+        if (child.id === blockId) return { parent: node, index }
+        const result = findParent(child)
+        if (result) return result
       }
       return null
     }
+    const original = findParent(currentTree)
+    const newParent = EmailBlockClass.findBlockById(currentTree, newParentId)
+    if (!original || !newParent) {
+      console.error('Failed to move block:', blockId)
+      return
+    }
 
-    const originalParentId = findParentId(currentTree, blockId)
+    // A move that leaves the block where it is changes nothing and adds no undo step
+    const sameParent = original.parent.id === newParentId
+    const slots = (newParent.children?.length ?? 0) - (sameParent ? 1 : 0)
+    const target = Math.max(0, Math.min(position, slots))
+    if (sameParent && target === original.index) return
 
-    // Use EmailBlockClass to move the block
-    let updatedTree = EmailBlockClass.moveBlockInTree(currentTree, blockId, newParentId, position)
+    const updatedTree = EmailBlockClass.moveBlockInTree(currentTree, blockId, newParentId, target)
 
     if (updatedTree) {
-      // If we moved a column, redistribute widths in both source and target containers
-      if (originalParentId && originalParentId !== newParentId) {
-        updatedTree = EmailBlockClass.redistributeColumnWidthsAfterMove(
-          updatedTree,
-          blockId,
-          originalParentId,
-          newParentId
-        )
-      } else if (originalParentId === newParentId) {
-        // Even if moving within the same container, we might need to redistribute if it's a group
-        const parentContainer = EmailBlockClass.findBlockById(updatedTree, newParentId)
-        if (parentContainer?.type === 'mj-group') {
-          const movedBlock = EmailBlockClass.findBlockById(updatedTree, blockId)
-          if (movedBlock?.type === 'mj-column') {
-            updatedTree = EmailBlockClass.redistributeGroupColumnWidths(updatedTree, newParentId)
-          }
-        }
+      // A column that changes container: both containers keep their proportions. Reordering within a
+      // container leaves the widths alone.
+      const moved = EmailBlockClass.findBlockById(updatedTree, blockId)
+      if (moved?.type === 'mj-column' && !sameParent) {
+        const source = EmailBlockClass.findBlockById(updatedTree, original.parent.id)
+        if (source) rebalanceAfterRemove(source)
+        const destination = EmailBlockClass.findBlockById(updatedTree, newParentId)
+        if (destination) rebalanceAfterAdd(destination, blockId)
       }
 
       updateTreeWithHistory(updatedTree)
-      // console.log('Block moved successfully:', blockId, 'to', newParentId, 'at position', position)
     } else {
       console.error('Failed to move block:', blockId)
     }
@@ -804,6 +749,12 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     )
 
     if (updatedTree) {
+      // A saved column takes its share of the container like an added one
+      if (blockWithNewIds.type === 'mj-column') {
+        const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentId)
+        if (parentContainer) rebalanceAfterAdd(parentContainer, blockWithNewIds.id)
+      }
+
       updateTreeWithHistory(updatedTree)
       setState((prev) => ({ ...prev, selectedBlockId: blockWithNewIds.id }))
 
@@ -898,10 +849,17 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
           hiddenBlockCount={countHiddenBlocks(tree, compilationResults.test_data ?? testData ?? {})}
         />
       )}
-      {effectiveViewMode === 'text' && compilationResults && (
-        <TextVersionPanel text={compilationResults.text} errors={compilationResults.errors} />
+      {effectiveViewMode === 'text' && (compilationResults || textVersion?.custom) && (
+        <TextVersionPanel
+          text={compilationResults?.text}
+          errors={compilationResults?.errors}
+          loading={!compilationResults}
+          custom={textVersion?.custom}
+        />
       )}
-      {showsCompiledEmail && !compilationResults && <Spin size="large" className="!m-16" />}
+      {showsCompiledEmail && !compilationResults && !(effectiveViewMode === 'text' && textVersion?.custom) && (
+        <Spin size="large" className="!m-16" />
+      )}
       {/* Three Column Layout */}
       {effectiveViewMode === 'edit' && (
         <>

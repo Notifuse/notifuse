@@ -166,6 +166,7 @@ export interface CompileTemplateRequest {
   tracking_settings?: TrackingSettings
   channel?: string // "email" or "web"
   preserve_liquid?: boolean // When true, skip Liquid template processing and preserve raw syntax
+  text?: string // Source of a custom plain-text version; returned rendered as `text`
 }
 
 export interface CompileTemplateResponse {
@@ -176,6 +177,8 @@ export interface CompileTemplateResponse {
   error?: MjmlCompileError // Use the structured error type, optional
   test_data?: Record<string, unknown> // Effective template data used to render (includes the injected workspace object)
   text?: string // Plain-text version sent with the email; "" when the email has no text and is sent as HTML only
+  text_source?: 'auto' | 'custom' // Where `text` comes from
+  text_error?: string // Why the custom text of the request could not be used; `text` is then automatic
 }
 
 export interface TestEmailProviderRequest {

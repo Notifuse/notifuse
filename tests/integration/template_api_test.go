@@ -1015,3 +1015,119 @@ func TestTemplateNameLength(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, tooLongCreateResp.StatusCode)
 	assert.Equal(t, "invalid create template request: name length must be between 1 and 255", decode(tooLongCreateResp)["error"])
 }
+
+// TestTemplateCustomText covers the custom plain-text version through the API: stored and
+// returned per language, cleared by an update without it, and refused when its Liquid
+// does not parse or it is over the size limit.
+func TestTemplateCustomText(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	factory := suite.DataFactory
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace(testutil.WithWorkspaceDefaultLanguage("en", []string{"en", "fr"}))
+	require.NoError(t, err)
+	require.NoError(t, factory.AddUserToWorkspace(user.ID, workspace.ID, "owner"))
+	require.NoError(t, client.Login(user.Email, "password"))
+	client.SetWorkspaceID(workspace.ID)
+
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hi</mj-text></mj-column></mj-section></mj-body></mjml>"
+	templateID := fmt.Sprintf("text-%d", time.Now().UnixNano())
+	payload := func(text, frText interface{}) map[string]interface{} {
+		email := map[string]interface{}{"editor_mode": "code", "mjml_source": mjmlSrc, "subject": "Hello"}
+		if text != nil {
+			email["text"] = text
+		}
+		fr := map[string]interface{}{"editor_mode": "code", "mjml_source": mjmlSrc, "subject": "Bonjour", "subject_preview": "Salut"}
+		if frText != nil {
+			fr["text"] = frText
+		}
+		return map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"id":           templateID,
+			"name":         "Custom text",
+			"channel":      "email",
+			"category":     "marketing",
+			"email":        email,
+			"translations": map[string]interface{}{"fr": map[string]interface{}{"email": fr}},
+		}
+	}
+	decode := func(resp *http.Response) map[string]interface{} {
+		defer func() { _ = resp.Body.Close() }()
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		return body
+	}
+	stored := func() (text, frText interface{}) {
+		resp, err := client.Get("/api/templates.get", map[string]string{"workspace_id": workspace.ID, "id": templateID})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		tpl := decode(resp)["template"].(map[string]interface{})
+		email := tpl["email"].(map[string]interface{})
+		translations, _ := tpl["translations"].(map[string]interface{})
+		fr := translations["fr"].(map[string]interface{})["email"].(map[string]interface{})
+		return email["text"], fr["text"]
+	}
+
+	createResp, err := client.CreateTemplate(payload("Hi {{ contact.first_name }}\r\n{{ unsubscribe_url }}", "Salut {{ contact.first_name }}"))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, createResp.StatusCode, "create: %v", decode(createResp))
+	_ = createResp.Body.Close()
+
+	t.Run("the text of each language is stored, line breaks normalised", func(t *testing.T) {
+		text, frText := stored()
+		assert.Equal(t, "Hi {{ contact.first_name }}\n{{ unsubscribe_url }}", text)
+		assert.Equal(t, "Salut {{ contact.first_name }}", frText)
+	})
+
+	t.Run("an update without a text goes back to the automatic version", func(t *testing.T) {
+		resp, err := client.UpdateTemplate(payload(nil, nil))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode, "update: %v", decode(resp))
+		_ = resp.Body.Close()
+		text, frText := stored()
+		assert.Nil(t, text)
+		assert.Nil(t, frText)
+	})
+
+	t.Run("a text that only holds whitespace is the automatic version", func(t *testing.T) {
+		resp, err := client.UpdateTemplate(payload(" \r\n ", nil))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode, "update: %v", decode(resp))
+		_ = resp.Body.Close()
+		text, _ := stored()
+		assert.Nil(t, text)
+	})
+
+	t.Run("a text whose Liquid does not parse is refused, naming the text version", func(t *testing.T) {
+		resp, err := client.UpdateTemplate(payload("Hi {% if %}", nil))
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		assert.Contains(t, decode(resp)["error"], "text version")
+
+		resp, err = client.UpdateTemplate(payload(nil, "Salut {% for %}"))
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		assert.Contains(t, decode(resp)["error"], "text version")
+	})
+
+	t.Run("a text over 64 KiB is refused", func(t *testing.T) {
+		resp, err := client.UpdateTemplate(payload(strings.Repeat("a", 64*1024+1), nil))
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		assert.Contains(t, decode(resp)["error"], "text version")
+
+		resp, err = client.UpdateTemplate(payload(strings.Repeat("a", 64*1024), nil))
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode, "the limit itself is accepted")
+		_ = resp.Body.Close()
+	})
+}
