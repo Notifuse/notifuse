@@ -42,7 +42,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: In the email editor's structure tree, a block dragged down now lands where the line shows, and the line only appears where the block can go.
 
-- **Improvement**: Blocks can now be dragged into empty columns, sections, wrappers, groups and social blocks, wrappers get a drag handle, and a section dragged below nested content finds its place without a sideways move. Moving, adding, duplicating or deleting a column keeps the other columns' proportions when their widths are percentages adding up to 100.
+- **Improvement**: Blocks can now be dragged into empty columns, sections, wrappers, groups and social blocks, wrappers get a drag handle, and a section dragged below nested content finds its place without a sideways move. While dragging, moving the pointer left or right picks the level where the block goes, and the line shows that level. Moving, adding, duplicating or deleting a column keeps the other columns' proportions when their widths are percentages adding up to 100.
 
 - **Improvement**: Test emails can now be sent for a mailing list, chosen in the test dialog of a template or a broadcast and preselected with the broadcast's audience list (#423). They then carry that list's working unsubscribe and confirmation links and the List-Unsubscribe header, as a broadcast to the list does; a test for the audience list of a broadcast that also goes to the list's unsubscribed contacts has no header, as the broadcast. Unsubscribing or confirming from such a test, or a bounce or complaint on it, changes the recipient's subscription to the list. `transactional.testTemplate` takes `list_id` and `omit_list_unsubscribe_header`; a test for a list also needs Lists read.
 

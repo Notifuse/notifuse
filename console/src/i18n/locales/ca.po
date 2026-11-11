@@ -814,31 +814,31 @@ msgstr "Afegir anotació"
 msgid "Add Author"
 msgstr "Afegir autor"
 
-#: src/components/email_builder/panels/TreePanel.tsx:149
+#: src/components/email_builder/panels/TreePanel.tsx:148
 msgid "Add block"
 msgstr "Afegir bloc"
 
-#: src/components/email_builder/panels/TreePanel.tsx:96
+#: src/components/email_builder/panels/TreePanel.tsx:95
 msgid "Add Block"
 msgstr "Afegir bloc"
 
-#: src/components/email_builder/panels/TreePanel.tsx:137
+#: src/components/email_builder/panels/TreePanel.tsx:136
 msgid "Add block in body"
 msgstr "Afegir bloc al cos"
 
-#: src/components/email_builder/panels/TreePanel.tsx:143
+#: src/components/email_builder/panels/TreePanel.tsx:142
 msgid "Add block in column"
 msgstr "Afegir bloc a la columna"
 
-#: src/components/email_builder/panels/TreePanel.tsx:135
+#: src/components/email_builder/panels/TreePanel.tsx:134
 msgid "Add block in header"
 msgstr "Afegir bloc a la capçalera"
 
-#: src/components/email_builder/panels/TreePanel.tsx:141
+#: src/components/email_builder/panels/TreePanel.tsx:140
 msgid "Add block in section"
 msgstr "Afegir bloc a la secció"
 
-#: src/components/email_builder/panels/TreePanel.tsx:139
+#: src/components/email_builder/panels/TreePanel.tsx:138
 msgid "Add block in wrapper"
 msgstr "Afegir bloc al contenidor"
 
@@ -850,7 +850,7 @@ msgstr "Afegiu elements fills per a components específics (mj-text, mj-button, 
 msgid "Add child elements like mj-font, mj-style, or mj-preview to configure email metadata."
 msgstr "Afegiu elements fills com mj-font, mj-style o mj-preview per configurar les metadades del correu."
 
-#: src/components/email_builder/panels/TreePanel.tsx:147
+#: src/components/email_builder/panels/TreePanel.tsx:146
 msgid "Add column in group"
 msgstr "Afegir columna al grup"
 
@@ -942,7 +942,7 @@ msgstr "Afegir camí"
 msgid "Add Sender"
 msgstr "Afegir remitent"
 
-#: src/components/email_builder/panels/TreePanel.tsx:145
+#: src/components/email_builder/panels/TreePanel.tsx:144
 msgid "Add social element"
 msgstr "Afegir element social"
 
@@ -1470,7 +1470,7 @@ msgstr "Esteu segur que voleu eliminar la llista \"{0}\"?"
 msgid "Are you sure you want to delete the post"
 msgstr "Esteu segur que voleu eliminar la publicació"
 
-#: src/components/email_builder/panels/TreePanel.tsx:220
+#: src/components/email_builder/panels/TreePanel.tsx:219
 #: src/components/email_builder/ui/BlockToolbar.tsx:185
 msgid "Are you sure you want to delete this block?"
 msgstr "Esteu segur que voleu eliminar aquest bloc?"
@@ -4348,7 +4348,7 @@ msgstr "Eliminar automatització"
 msgid "Delete automation?"
 msgstr "Eliminar automatització?"
 
-#: src/components/email_builder/panels/TreePanel.tsx:224
+#: src/components/email_builder/panels/TreePanel.tsx:223
 msgid "Delete block"
 msgstr "Eliminar bloc"
 
@@ -4818,7 +4818,7 @@ msgstr "Esborrany restaurat des de l'emmagatzematge local"
 msgid "Drafts"
 msgstr "Esborranys"
 
-#: src/components/email_builder/panels/TreePanel.tsx:179
+#: src/components/email_builder/panels/TreePanel.tsx:178
 msgid "Drag to move this block in the tree"
 msgstr "Arrossegueu per moure aquest bloc a l'arbre"
 
