@@ -743,3 +743,22 @@ func TestSessionCheckStatus(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, sessionCheckStatus(fmt.Errorf("verify: %w", domain.ErrSessionAuthFailed)))
 	assert.Equal(t, http.StatusInternalServerError, sessionCheckStatus(errors.New("connection refused")))
 }
+
+func TestWriteValidationError(t *testing.T) {
+	t.Run("a wrapped validation error answers 400 with its text", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		handled := writeValidationError(w, fmt.Errorf("service: %w", domain.NewValidationError("cannot delete integration-managed template")))
+		require.True(t, handled)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&body))
+		assert.Equal(t, "validation error: cannot delete integration-managed template", body["error"])
+	})
+
+	t.Run("any other error is left to the caller", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		handled := writeValidationError(w, errors.New("db error"))
+		assert.False(t, handled)
+		assert.Equal(t, 0, w.Body.Len())
+	})
+}

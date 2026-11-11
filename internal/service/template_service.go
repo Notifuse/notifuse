@@ -481,7 +481,7 @@ func (s *TemplateService) DeleteTemplate(ctx context.Context, workspaceID string
 
 	// Prevent deletion of integration-managed templates
 	if template.IntegrationID != nil && *template.IntegrationID != "" {
-		return fmt.Errorf("cannot delete integration-managed template: template is managed by integration %s", *template.IntegrationID)
+		return domain.NewValidationError(fmt.Sprintf("cannot delete integration-managed template: template is managed by integration %s", *template.IntegrationID))
 	}
 
 	// Delete template

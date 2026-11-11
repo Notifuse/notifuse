@@ -1044,6 +1044,9 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "cannot delete integration-managed template")
 		assert.Contains(t, err.Error(), integrationID)
+		// A ValidationError, so the API answers 400 with the reason rather than 500.
+		var validationErr domain.ValidationError
+		assert.True(t, errors.As(err, &validationErr), "want a ValidationError, got %T", err)
 	})
 
 	t.Run("Get Template Not Found Before Delete", func(t *testing.T) {
