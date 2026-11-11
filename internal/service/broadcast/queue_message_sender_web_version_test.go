@@ -29,6 +29,7 @@ func TestQueueMessageSender_SendBatchFillsViewInBrowserURL(t *testing.T) {
 			SenderID:         emailSender.ID,
 			Subject:          "News",
 			VisualEditorTree: createQueueValidTestTree(createQueueTestTextBlock("txt1", "<a href=\"{{ view_in_browser_url }}\">Web version</a>")),
+			Text:             func() *string { s := "Web version: {{ view_in_browser_url }}"; return &s }(),
 		},
 	}
 
@@ -76,4 +77,6 @@ func TestQueueMessageSender_SendBatchFillsViewInBrowserURL(t *testing.T) {
 	// With click tracking on, the link reaches the email wrapped in a /r/ redirect: what
 	// matters here is that it is no longer the empty href it rendered before.
 	assert.NotContains(t, enqueued[0].Payload.HTMLContent, `href=""`, "the compiled email links to its web version")
+	// A custom text links to the same recorded link, as written.
+	assert.Equal(t, "Web version: "+link, enqueued[0].Payload.TextContent)
 }

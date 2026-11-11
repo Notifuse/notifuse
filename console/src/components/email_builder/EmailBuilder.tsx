@@ -10,6 +10,7 @@ import { EditPanel } from './panels/EditPanel'
 import { SettingsPanel } from './panels/SettingsPanel'
 import { Preview, type PreviewRef } from './panels/Preview'
 import { TextVersionPanel } from './panels/TextVersionPanel'
+import type { CustomTextVersion } from './panels/TextVersionPanel'
 import type {
   EmailBlock,
   EmailBuilderState,
@@ -51,8 +52,10 @@ interface EmailBuilderProps {
   templateDataRef?: React.RefObject<PreviewRef>
   forcedViewMode?: ViewMode | null
   // When set, the toolbar offers a "Text version" mode showing the plain-text version
-  // sent with the email, from the compile result's text.
-  textVersion?: { enabled: true }
+  // sent with the email, from the compile result's text. With `custom`, the text can be
+  // written by hand there; the compile is never asked for it, so the result's text is
+  // always the automatic version.
+  textVersion?: { enabled: true; custom?: CustomTextVersion }
   onSelectBlock?: (blockId: string | null) => void
   selectedBlockId?: string | null
   hiddenBlocks?: string[]
@@ -898,10 +901,17 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
           hiddenBlockCount={countHiddenBlocks(tree, compilationResults.test_data ?? testData ?? {})}
         />
       )}
-      {effectiveViewMode === 'text' && compilationResults && (
-        <TextVersionPanel text={compilationResults.text} errors={compilationResults.errors} />
+      {effectiveViewMode === 'text' && (compilationResults || textVersion?.custom) && (
+        <TextVersionPanel
+          text={compilationResults?.text}
+          errors={compilationResults?.errors}
+          loading={!compilationResults}
+          custom={textVersion?.custom}
+        />
       )}
-      {showsCompiledEmail && !compilationResults && <Spin size="large" className="!m-16" />}
+      {showsCompiledEmail && !compilationResults && !(effectiveViewMode === 'text' && textVersion?.custom) && (
+        <Spin size="large" className="!m-16" />
+      )}
       {/* Three Column Layout */}
       {effectiveViewMode === 'edit' && (
         <>

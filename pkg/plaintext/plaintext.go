@@ -343,14 +343,18 @@ func (w *writer) element(n *html.Node) {
 
 // link writes an anchor as "label (url)", or just the URL when the label adds nothing.
 // Only web, mail and phone links carry a destination a reader can use; anything else
-// keeps its label alone.
+// keeps its label alone. An href that starts with Liquid is written as a destination
+// too: it only gets here from a compile that kept Liquid, the starting point of a custom
+// text, where it stands for a link such as {{ unsubscribe_url }}. After a send's Liquid
+// pass such an href can only be literal text, written as the HTML has it.
 func (w *writer) link(n *html.Node) {
 	href := strings.TrimSpace(attr(n, "href"))
 	label := linkLabel(n)
 	lower := strings.ToLower(href)
 
 	switch {
-	case strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://"):
+	case strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") ||
+		strings.HasPrefix(href, "{{") || strings.HasPrefix(href, "{%"):
 		if label == "" || label == href || isWebURL(label) {
 			w.writeURL(href)
 			return
