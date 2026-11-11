@@ -126,6 +126,12 @@ func (s *queueMessageSender) SendBatch(
 		return 0, len(recipients), fmt.Errorf("failed to get broadcast: %w", err)
 	}
 
+	// A sender chosen on a variation that has left the integration stops the batch before
+	// any recipient: the broadcast pauses and the batch is sent once the sender is fixed.
+	if senderErr := checkVariationSenders(broadcast, templates, emailProvider); senderErr != nil {
+		return 0, 0, senderErr
+	}
+
 	// Build queue entries
 	var entries []*domain.EmailQueueEntry
 	var buildErrors int
@@ -360,10 +366,11 @@ func (s *queueMessageSender) buildQueueEntry(
 		return nil, fmt.Errorf("email content not available after language resolution")
 	}
 
-	// Get sender (use template's sender ID if specified, otherwise default)
-	sender := emailProvider.GetSender(emailContent.SenderID)
-	if sender == nil {
-		return nil, fmt.Errorf("no sender configured for email provider")
+	// The variation's sender wins over the template's; a chosen sender that has gone is an
+	// error rather than the default sender.
+	sender, err := emailProvider.ResolveSender(broadcast.VariationSenderID(template.ID), emailContent.SenderID)
+	if err != nil {
+		return nil, err
 	}
 
 	// Compile template with the provided data

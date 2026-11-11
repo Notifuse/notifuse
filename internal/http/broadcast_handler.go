@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -196,6 +197,9 @@ func (h *BroadcastHandler) HandleCreate(w http.ResponseWriter, r *http.Request) 
 		if writePermissionError(w, err) {
 			return
 		}
+		if writeSenderError(w, err) {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to create broadcast")
 		WriteJSONError(w, "Failed to create broadcast", http.StatusInternalServerError)
 		return
@@ -243,6 +247,9 @@ func (h *BroadcastHandler) HandleUpdate(w http.ResponseWriter, r *http.Request) 
 		if writePermissionError(w, err) {
 			return
 		}
+		if writeSenderError(w, err) {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to update broadcast")
 		WriteJSONError(w, "Failed to update broadcast", http.StatusInternalServerError)
 		return
@@ -275,6 +282,9 @@ func (h *BroadcastHandler) HandleSchedule(w http.ResponseWriter, r *http.Request
 	err := h.service.ScheduleBroadcast(r.Context(), &req)
 	if err != nil {
 		if writePermissionError(w, err) {
+			return
+		}
+		if writeSenderError(w, err) {
 			return
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
@@ -400,6 +410,9 @@ func (h *BroadcastHandler) HandleResume(w http.ResponseWriter, r *http.Request) 
 		if writePermissionError(w, err) {
 			return
 		}
+		if writeSenderError(w, err) {
+			return
+		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
 			WriteJSONError(w, "Broadcast not found", http.StatusNotFound)
 			return
@@ -474,6 +487,9 @@ func (h *BroadcastHandler) HandleSendToIndividual(w http.ResponseWriter, r *http
 	err := h.service.SendToIndividual(r.Context(), &req)
 	if err != nil {
 		if writePermissionError(w, err) {
+			return
+		}
+		if writeSenderError(w, err) {
 			return
 		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
@@ -678,4 +694,21 @@ func (h *BroadcastHandler) HandleTestRecipientFeed(w http.ResponseWriter, r *htt
 	}
 
 	writeJSON(w, http.StatusOK, response)
+}
+
+// writeSenderError answers 400 when a broadcast chooses a sender the marketing email integration
+// does not have: the caller fixes it by choosing another sender. The service reports that as a
+// domain.ValidationError, or as domain.ErrSenderNotFound on a send to one recipient; any
+// ValidationError is the caller's input, so all of them answer 400. It reports whether it wrote.
+func writeSenderError(w http.ResponseWriter, err error) bool {
+	var validationErr domain.ValidationError
+	if errors.As(err, &validationErr) {
+		WriteJSONError(w, validationErr.Error(), http.StatusBadRequest)
+		return true
+	}
+	if errors.Is(err, domain.ErrSenderNotFound) {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return true
+	}
+	return false
 }

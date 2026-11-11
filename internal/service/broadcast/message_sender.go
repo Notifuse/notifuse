@@ -378,16 +378,19 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 		}).Warn("Custom text version could not be used, sending the automatic one")
 	}
 
-	emailSender := emailProvider.GetSender(emailContent.SenderID)
-
-	if emailSender == nil {
+	// The variation's sender wins over the template's; a chosen sender that has gone is an
+	// error rather than the default sender.
+	emailSender, senderErr := emailProvider.ResolveSender(broadcast.VariationSenderID(template.ID), emailContent.SenderID)
+	if senderErr != nil {
 		s.logger.WithFields(map[string]interface{}{
-			"broadcast_id": broadcast.ID,
-			"workspace_id": workspaceID,
-			"sender_id":    emailContent.SenderID,
-			"recipient":    email,
+			"broadcast_id":       broadcast.ID,
+			"workspace_id":       workspaceID,
+			"sender_id":          broadcast.VariationSenderID(template.ID),
+			"template_sender_id": emailContent.SenderID,
+			"recipient":          email,
+			"error":              senderErr.Error(),
 		}).Error("Sender not found")
-		return NewBroadcastError(ErrCodeSenderNotFound, "sender not found", true, nil)
+		return NewBroadcastError(ErrCodeSenderNotFound, "sender not found", true, senderErr)
 	}
 
 	// Process subject line through Liquid templating if it contains Liquid tags
@@ -530,6 +533,12 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 			"workspace_id": workspaceID,
 		}).Error("Nil broadcast returned from repository")
 		return 0, 0, NewBroadcastError(ErrCodeBroadcastNotFound, "broadcast not found", false, fmt.Errorf("nil broadcast"))
+	}
+
+	// A sender chosen on a variation that has left the integration stops the batch before
+	// any recipient: the broadcast pauses and the batch is sent once the sender is fixed.
+	if senderErr := checkVariationSenders(broadcast, templates, emailProvider); senderErr != nil {
+		return 0, 0, senderErr
 	}
 
 	// Ensure UTM parameters is non-nil for downstream usage

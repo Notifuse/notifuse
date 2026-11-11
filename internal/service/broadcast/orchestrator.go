@@ -203,6 +203,110 @@ func (o *BroadcastOrchestrator) winnerTemplates(ctx context.Context, workspaceID
 	return templates, nil
 }
 
+// pauseForSendError pauses a broadcast whose send cannot go on until the user acts (a
+// data feed that failed, a chosen sender that has left the integration), pauses its
+// queued rows and announces the pause. Paused, unlike failed, can be edited and resumed.
+func (o *BroadcastOrchestrator) pauseForSendError(ctx context.Context, task *domain.Task, broadcastID string, offset int64, cause error) {
+	reason := fmt.Sprintf("Recipient feed failed: %v", cause)
+	eventReason := "recipient_feed_failed"
+	var senderErr *SenderUnavailableError
+	if errors.As(cause, &senderErr) {
+		reason = senderErr.PauseReason()
+		eventReason = "sender_unavailable"
+	}
+
+	o.logger.WithFields(map[string]interface{}{
+		"task_id":      task.ID,
+		"broadcast_id": broadcastID,
+		"offset":       offset,
+		"reason":       eventReason,
+		"error":        cause.Error(),
+	}).Warn("Pausing broadcast")
+
+	currentBroadcast, getBroadcastErr := o.broadcastRepo.GetBroadcast(ctx, task.WorkspaceID, broadcastID)
+	if getBroadcastErr != nil || currentBroadcast == nil {
+		return
+	}
+	currentBroadcast.Status = domain.BroadcastStatusPaused
+	currentBroadcast.PausedAt = &[]time.Time{time.Now().UTC()}[0]
+	currentBroadcast.PauseReason = &reason
+	currentBroadcast.UpdatedAt = time.Now().UTC()
+
+	if updateErr := o.broadcastRepo.UpdateBroadcast(ctx, currentBroadcast); updateErr != nil {
+		return
+	}
+	// Pause already-queued rows so the worker stops sending.
+	o.pauseQueueEntries(ctx, task.WorkspaceID, broadcastID)
+
+	if o.eventBus != nil {
+		o.eventBus.Publish(context.Background(), domain.EventPayload{
+			Type:        domain.EventBroadcastPaused,
+			WorkspaceID: task.WorkspaceID,
+			EntityID:    broadcastID,
+			Data: map[string]interface{}{
+				"broadcast_id": broadcastID,
+				"task_id":      task.ID,
+				"reason":       eventReason,
+			},
+		})
+	}
+}
+
+// SenderUnavailableError reports a variation whose chosen sender is no longer one of the
+// marketing email integration's. It matches both ErrBroadcastShouldPause and
+// domain.ErrSenderNotFound.
+type SenderUnavailableError struct {
+	VariationName string
+	// VariationNumber counts the broadcast's variations from 1; VariationCount is how
+	// many it has. They name the variation when it has no name, as the console's do not.
+	VariationNumber int
+	VariationCount  int
+	TemplateID      string
+	SenderID        string
+}
+
+func (e *SenderUnavailableError) Error() string {
+	return fmt.Sprintf("sender %s chosen for the variation sending template %s is not one of the marketing email integration's senders", e.SenderID, e.TemplateID)
+}
+
+func (e *SenderUnavailableError) Unwrap() []error {
+	return []error{ErrBroadcastShouldPause, domain.ErrSenderNotFound}
+}
+
+// PauseReason is the reason shown on the paused broadcast.
+func (e *SenderUnavailableError) PauseReason() string {
+	variation := "this broadcast"
+	switch {
+	case e.VariationName != "":
+		variation = fmt.Sprintf("variation %q", e.VariationName)
+	case e.VariationCount > 1:
+		variation = fmt.Sprintf("variation %d", e.VariationNumber)
+	}
+	return fmt.Sprintf("Sender unavailable: the sender chosen for %s (sender %s) is no longer one of the marketing email integration's senders. Choose another sender, then resume.", variation, e.SenderID)
+}
+
+// checkVariationSenders returns a *SenderUnavailableError when a variation this run sends
+// chooses a sender that is no longer one of the integration's.
+func checkVariationSenders(broadcast *domain.Broadcast, templates map[string]*domain.Template, provider *domain.EmailProvider) error {
+	variations := broadcast.TestSettings.Variations
+	for i, variation := range variations {
+		if _, sends := templates[variation.TemplateID]; !sends {
+			continue
+		}
+		if variation.SenderID == "" || provider.HasSender(variation.SenderID) {
+			continue
+		}
+		return &SenderUnavailableError{
+			VariationName:   variation.VariationName,
+			VariationNumber: i + 1,
+			VariationCount:  len(variations),
+			TemplateID:      variation.TemplateID,
+			SenderID:        variation.SenderID,
+		}
+	}
+	return nil
+}
+
 // ValidateTemplates validates that the required templates are loaded and valid
 func (o *BroadcastOrchestrator) ValidateTemplates(templates map[string]*domain.Template) error {
 	if len(templates) == 0 {
@@ -539,13 +643,14 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				return
 			}
 
-			// Also skip if broadcast was paused due to recipient feed failure
+			// Also skip if the broadcast was paused for a failed data feed or a chosen
+			// sender that left the integration
 			if errors.Is(err, ErrBroadcastShouldPause) {
 				o.logger.WithFields(map[string]interface{}{
 					"task_id":      task.ID,
 					"broadcast_id": broadcastID,
 					"error":        err.Error(),
-				}).Info("Task failed due to recipient feed - broadcast already paused, not marking as failed")
+				}).Info("Task failed on a pausing send error - broadcast already paused, not marking as failed")
 				return
 			}
 
@@ -1000,6 +1105,20 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 		return false, err
 	}
 
+	// A sender chosen on a variation may have left the integration since the broadcast
+	// was scheduled. Pause before anyone is sent from another address. A broadcast already
+	// paused stops in the loop below, and one whose test phase is over waits for a winner:
+	// neither is paused again for a variation it may never send. SendBatch runs the same
+	// check on the templates of each batch it is given, so nothing leaves from another
+	// address either way.
+	if broadcast.Status != domain.BroadcastStatusPaused && broadcast.Status != domain.BroadcastStatusTestCompleted {
+		if senderErr := checkVariationSenders(broadcast, templates, emailProvider); senderErr != nil {
+			o.pauseForSendError(ctx, task, broadcastState.BroadcastID, broadcastState.RecipientOffset, senderErr)
+			err = senderErr
+			return false, err
+		}
+	}
+
 	// Announce that this broadcast has started sending, once every gate that can still
 	// abort the run without mailing anyone has been cleared: the workspace and provider
 	// lookup, the winner-selection branches, and the two template checks directly above.
@@ -1011,7 +1130,9 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// returns on every exit, so the broadcast row is only ever in hand on a later task
 	// run. context.Background() matches the other publishes in this file — the
 	// announcement must outlive the request that triggered the run.
-	if isFirstSendingRun && o.eventBus != nil {
+	//
+	// A paused broadcast stops in the loop below without sending: it is not announced.
+	if isFirstSendingRun && broadcast.Status != domain.BroadcastStatusPaused && o.eventBus != nil {
 		o.eventBus.Publish(context.Background(), domain.EventPayload{
 			Type:        domain.EventBroadcastSendingStarted,
 			WorkspaceID: task.WorkspaceID,
@@ -1372,42 +1493,10 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				return false, err
 			}
 
-			// Check if this is a recipient feed error requiring broadcast pause
+			// A recipient feed that failed, or a sender chosen on a variation that has
+			// left the integration, pauses the broadcast for the user to fix.
 			if errors.Is(sendErr, ErrBroadcastShouldPause) {
-				o.logger.WithFields(map[string]interface{}{
-					"task_id":      task.ID,
-					"broadcast_id": broadcastState.BroadcastID,
-					"offset":       currentOffset,
-					"error":        sendErr.Error(),
-				}).Warn("Recipient feed failed - pausing broadcast")
-
-				currentBroadcast, getBroadcastErr := o.broadcastRepo.GetBroadcast(ctx, task.WorkspaceID, broadcastState.BroadcastID)
-				if getBroadcastErr == nil && currentBroadcast != nil {
-					currentBroadcast.Status = domain.BroadcastStatusPaused
-					currentBroadcast.PausedAt = &[]time.Time{time.Now().UTC()}[0]
-					reason := fmt.Sprintf("Recipient feed failed: %v", sendErr)
-					currentBroadcast.PauseReason = &reason
-					currentBroadcast.UpdatedAt = time.Now().UTC()
-
-					if updateErr := o.broadcastRepo.UpdateBroadcast(ctx, currentBroadcast); updateErr == nil {
-						// Pause already-queued rows so the worker stops sending.
-						o.pauseQueueEntries(ctx, task.WorkspaceID, broadcastState.BroadcastID)
-
-						if o.eventBus != nil {
-							pausedEvent := domain.EventPayload{
-								Type:        domain.EventBroadcastPaused,
-								WorkspaceID: task.WorkspaceID,
-								EntityID:    broadcastState.BroadcastID,
-								Data: map[string]interface{}{
-									"broadcast_id": broadcastState.BroadcastID,
-									"task_id":      task.ID,
-									"reason":       "recipient_feed_failed",
-								},
-							}
-							o.eventBus.Publish(context.Background(), pausedEvent)
-						}
-					}
-				}
+				o.pauseForSendError(ctx, task, broadcastState.BroadcastID, int64(currentOffset), sendErr)
 
 				err = sendErr
 				return false, err

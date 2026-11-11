@@ -102,6 +102,10 @@ func (s *BroadcastService) CreateBroadcast(ctx context.Context, request *domain.
 		return nil, err
 	}
 
+	if err := s.checkVariationSenders(ctx, request.WorkspaceID, broadcast.TestSettings.Variations); err != nil {
+		return nil, err
+	}
+
 	// Generate a unique ID for the broadcast if not provided
 	if broadcast.ID == "" {
 		// Create a random ID
@@ -135,6 +139,31 @@ func (s *BroadcastService) CreateBroadcast(ctx context.Context, request *domain.
 	s.logger.Info("Broadcast created successfully")
 
 	return broadcast, nil
+}
+
+// checkVariationSenders refuses variations whose chosen sender is not on the workspace's
+// marketing email integration. The workspace is only read when a variation chooses one.
+func (s *BroadcastService) checkVariationSenders(ctx context.Context, workspaceID string, variations []domain.BroadcastVariation) error {
+	chosen := false
+	for _, variation := range variations {
+		if variation.SenderID != "" {
+			chosen = true
+			break
+		}
+	}
+	if !chosen {
+		return nil
+	}
+
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace: %w", err)
+	}
+	provider, err := workspace.GetEmailProvider(true)
+	if err != nil {
+		return fmt.Errorf("failed to get email provider: %w", err)
+	}
+	return domain.CheckVariationSenders(provider, variations)
 }
 
 // GetBroadcast retrieves a broadcast by ID
@@ -191,6 +220,14 @@ func (s *BroadcastService) UpdateBroadcast(ctx context.Context, request *domain.
 	if err != nil {
 		s.logger.Error("Failed to validate broadcast update request")
 		return nil, err
+	}
+
+	// Only senders the request sets are checked: a patch that leaves test_settings out
+	// keeps the stored variations and must not be blocked by a sender removed since.
+	if request.TestSettingsProvided() {
+		if err := s.checkVariationSenders(ctx, request.WorkspaceID, updatedBroadcast.TestSettings.Variations); err != nil {
+			return nil, err
+		}
 	}
 
 	// Set the updated time
@@ -329,6 +366,12 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 		if bcast.Status != domain.BroadcastStatusDraft {
 			err := fmt.Errorf("only broadcasts with draft status can be scheduled, current status: %s", bcast.Status)
 			s.logger.Error("Cannot schedule broadcast with non-draft status")
+			return err
+		}
+
+		// A sender chosen on a variation may have left the integration since the broadcast
+		// was saved: refuse rather than send from another address.
+		if err := domain.CheckVariationSenders(emailProvider, bcast.TestSettings.Variations); err != nil {
 			return err
 		}
 
@@ -629,6 +672,15 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 			err := fmt.Errorf("only broadcasts with paused status can be resumed, current status: %s", broadcast.Status)
 			s.logger.Error("Cannot resume broadcast with invalid status")
 			return err
+		}
+
+		// A broadcast with recipients still to enqueue resolves their sender again, which
+		// may have left the integration during the pause. One whose recipients are all
+		// queued only releases emails that already carry their sender.
+		if broadcast.CompletedAt == nil {
+			if err := s.checkVariationSenders(ctx, request.WorkspaceID, broadcast.VariationsToSend()); err != nil {
+				return err
+			}
 		}
 
 		// Update broadcast status
@@ -1207,11 +1259,10 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		return fmt.Errorf("email content not available after language resolution")
 	}
 
-	emailSender := emailProvider.GetSender(emailContent.SenderID)
-
-	if emailSender == nil {
+	emailSender, err := emailProvider.ResolveSender(variation.SenderID, emailContent.SenderID)
+	if err != nil {
 		s.logger.Error("Failed to get sender for broadcast")
-		return fmt.Errorf("failed to get sender for broadcast")
+		return fmt.Errorf("failed to get sender for broadcast: %w", err)
 	}
 
 	messageID := uuid.New().String()

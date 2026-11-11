@@ -63,13 +63,19 @@ import dayjs from '../lib/dayjs'
 import { canSelectWinner } from '../lib/abTestWinner'
 import { UpsertBroadcastDrawer } from '../components/broadcasts/UpsertBroadcastDrawer'
 import { SendOrScheduleModal } from '../components/broadcasts/SendOrScheduleModal'
+import { ChangeVariationSenderModal } from '../components/broadcasts/ChangeVariationSenderModal'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import { BroadcastStats, ProgressStats } from '../components/broadcasts/BroadcastStats'
 import { BroadcastLinkStats } from '../components/broadcasts/BroadcastLinkStats'
 import { SendingProgress } from '../components/broadcasts/SendingProgress'
 import { BroadcastAnalyticsLinks } from '../components/broadcasts/BroadcastAnalyticsLinks'
-import { Integration, List, Sender } from '../services/api/types'
+import { List } from '../services/api/types'
+import {
+  formatSender,
+  getMarketingSenders,
+  resolveVariationSender
+} from '../components/broadcasts/variationSender'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import SendTestEmailButton from '../components/templates/SendTestEmailButton'
 import { Workspace, UserPermissions } from '../services/api/types'
@@ -676,6 +682,13 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               </Popconfirm>
             </Tooltip>
           )}
+          {broadcast.status === 'paused' && currentWorkspace && (
+            <ChangeVariationSenderModal
+              workspace={currentWorkspace}
+              broadcast={broadcast}
+              disabled={!permissions?.broadcasts?.write}
+            />
+          )}
           {broadcast.status === 'paused' && (
             <Tooltip
               title={
@@ -819,16 +832,13 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               <Table
                 showHeader={false}
                 dataSource={(broadcast.test_settings.variations || []).map((variation, index) => {
-                  const emailProvider = currentWorkspace?.integrations?.find(
-                    (i: Integration) =>
-                      i.id ===
-                      (variation.template?.category === 'marketing'
-                        ? currentWorkspace.settings?.marketing_email_provider_id
-                        : currentWorkspace.settings?.transactional_email_provider_id)
-                  )?.email_provider
-
-                  const templateSender = emailProvider?.senders.find(
-                    (s: Sender) => s.id === variation.template?.email?.sender_id
+                  // A broadcast always sends through the marketing integration, whatever its
+                  // templates' category.
+                  const senderId = variation.sender_id
+                  const resolvedSender = resolveVariationSender(
+                    getMarketingSenders(currentWorkspace),
+                    senderId,
+                    variation.template?.email?.sender_id
                   )
 
                   const variationResult = testResults?.variation_results?.[variation.template_id]
@@ -845,9 +855,13 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                     isWinner,
                     templateName: variation.template?.name || t`Untitled`,
                     template: variation.template,
-                    sender: templateSender
-                      ? `${templateSender.name} <${templateSender.email}>`
-                      : t`Default sender`,
+                    sender: resolvedSender.sender
+                      ? formatSender(resolvedSender.sender)
+                      : resolvedSender.missing
+                        ? t`${senderId} (deleted)`
+                        : t`Default sender`,
+                    senderChosen: resolvedSender.chosen,
+                    senderMissing: resolvedSender.missing,
                     subject: variation.template?.email?.subject || t`N/A`,
                     subjectPreview: variation.template?.email?.subject_preview,
                     replyTo: variation.template?.email?.reply_to || '-',
@@ -896,6 +910,11 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                       <div>
                         <div>
                           <span className="font-medium text-gray-500">{t`From:`}</span> {record.sender}
+                          {record.senderChosen && (
+                            <Tag className="!ml-2" color={record.senderMissing ? 'red' : 'purple'}>
+                              {t`chosen on the broadcast`}
+                            </Tag>
+                          )}
                         </div>
                         {record.replyTo && record.replyTo !== '-' && (
                           <div>
@@ -1540,7 +1559,10 @@ export function BroadcastsPage() {
         queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
       })
     } catch (error) {
-      message.error(t`Failed to resume broadcast`)
+      // The server names why, e.g. a chosen sender that left the integration.
+      message.error(
+        error instanceof Error && error.message ? error.message : t`Failed to resume broadcast`
+      )
       console.error(error)
     }
   }
