@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Input, Segmented, Tooltip } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import type { EmailBlock, MJMLComponentType, SavedBlock } from '../types'
 import { EmailBlockClass } from '../EmailBlockClass'
 import { EmailBlockFactory } from '../blocks/EmailBlockFactory'
-import { SavedBlockCard } from '../ui/SavedBlockCard'
+import { SavedBlockCard, type CardActions } from '../ui/SavedBlockCard'
 import { resolveInsertTarget } from '../utils/insertTarget'
 import {
   headKeyOf,
@@ -71,23 +71,41 @@ const BasicTile: React.FC<BasicTileProps> = ({ item, icon, refusal, onInsert }) 
   )
 }
 
+// A saved block just created ("new") or just changed ("updated") from this editor
+export interface LibraryHighlight {
+  id: string
+  kind: 'new' | 'updated'
+}
+
+// What a member who may change the library can do with its saved blocks
+export interface LibraryManage {
+  // A library change is running
+  busy: boolean
+  onRename?: (saved: SavedBlock, name: string) => Promise<void>
+  onReplace: (saved: SavedBlock) => void
+  onDuplicate: (saved: SavedBlock) => void
+  onDelete?: (saved: SavedBlock) => void
+}
+
 interface LibraryPanelProps {
   emailTree: EmailBlock
   savedBlocks: SavedBlock[]
   selectedBlockId: string | null
-  // A saved block just created from this editor, tagged "New"
-  highlightedId?: string | null
+  highlight?: LibraryHighlight | null
   onInsert: (item: LibraryItem) => void
   onOpenSaveDialog?: (blockId: string) => void
+  // Rename, replace, duplicate and delete on each card; none when absent
+  manage?: LibraryManage
 }
 
 export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   emailTree,
   savedBlocks,
   selectedBlockId,
-  highlightedId,
+  highlight,
   onInsert,
-  onOpenSaveDialog
+  onOpenSaveDialog,
+  manage
 }) => {
   const { t, i18n } = useLingui()
   const refusalText = useInsertRefusal()
@@ -131,14 +149,45 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   const selected = selectedBlockId
     ? EmailBlockClass.findBlockById(emailTree, selectedBlockId)
     : null
-  const canSaveSelected =
-    !!onOpenSaveDialog &&
+  const selectedInBody =
     !!selected &&
     selected.type !== 'mj-body' &&
     EmailBlockClass.isChildOf(emailTree, selected.id, 'mj-body')
+  const canSaveSelected = !!onOpenSaveDialog && selectedInBody
+
+  // Only a block of the email's body, of the saved block's type, can replace it
+  const replaceRefusal = (saved: SavedBlock) => {
+    if (!selectedInBody) return t`Select a block in the email`
+    if (selected!.type !== saved.block.type) return t`Select a block of the same type`
+    return null
+  }
+
+  const actionsFor = (saved: SavedBlock): CardActions | undefined =>
+    manage && {
+      busy: manage.busy,
+      replaceRefusal: replaceRefusal(saved),
+      onRename: manage.onRename && ((name: string) => manage.onRename!(saved, name)),
+      onReplace: () => manage.onReplace(saved),
+      onDuplicate: () => manage.onDuplicate(saved),
+      onDelete: manage.onDelete && (() => manage.onDelete!(saved))
+    }
+
+  // A changed block moves to the top of the list, sorted by modification date: it is brought into view
+  // once, as soon as it shows: a later change of the list does not scroll back to it
+  const rootRef = useRef<HTMLDivElement>(null)
+  const scrolledTo = useRef<LibraryHighlight | null>(null)
+  useEffect(() => {
+    if (!highlight || scrolledTo.current === highlight) return
+    const card = rootRef.current?.querySelector(
+      `[data-library-card=${JSON.stringify(highlight.id)}]`
+    )
+    if (!card) return
+    scrolledTo.current = highlight
+    if (typeof card.scrollIntoView === 'function') card.scrollIntoView({ block: 'nearest' })
+  }, [highlight, items])
 
   return (
-    <div className="px-4 pb-8" data-testid="library-panel">
+    <div ref={rootRef} className="px-4 pb-8" data-testid="library-panel">
       {savedBlocks.length > 0 ? (
         <>
           <Input
@@ -175,8 +224,9 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
                 emailTree={emailTree}
                 headKey={headKey}
                 refusal={refusalFor(saved.block)}
-                highlighted={saved.id === highlightedId}
+                highlight={saved.id === highlight?.id ? highlight.kind : null}
                 onInsert={onInsert}
+                actions={actionsFor(saved)}
               />
             ))}
             {items.length === 0 && (

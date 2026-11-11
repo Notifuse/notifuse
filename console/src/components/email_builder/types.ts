@@ -697,6 +697,12 @@ export type SaveBlockHandler = (
   nameOrId: string
 ) => Promise<string>
 
+// Renames a saved block, keeping its content. Resolves once renamed; rejects after telling the user why it failed.
+export type RenameSavedBlockHandler = (id: string, name: string) => Promise<void>
+
+// Removes a saved block from the workspace's library. Resolves once removed; rejects after telling the user why.
+export type DeleteSavedBlockHandler = (id: string) => Promise<void>
+
 // Helper type for merged attributes that provides string access with proper typing
 export interface MergedBlockAttributes {
   // Common attributes

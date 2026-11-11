@@ -1,8 +1,8 @@
 import React from 'react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, onTestFinished, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { LibraryPanel } from './LibraryPanel'
+import { LibraryPanel, type LibraryManage } from './LibraryPanel'
 import type { SavedBlock } from '../types'
 import { b, email, text } from '../utils/libraryTestTrees'
 
@@ -141,9 +141,126 @@ describe('LibraryPanel', () => {
   })
 
   it('tags the block just saved "New"', () => {
-    renderPanel({ highlightedId: 'header' })
+    renderPanel({ highlight: { id: 'header', kind: 'new' } })
     const headerCard = document.querySelector('[data-library-card="header"]') as HTMLElement
     expect(within(headerCard).getByText('New')).toBeInTheDocument()
     expect(screen.getAllByText('New')).toHaveLength(1)
+  })
+
+  describe('managing saved blocks', () => {
+    const manage = (over: Partial<LibraryManage> = {}): LibraryManage => ({
+      busy: false,
+      onRename: vi.fn().mockResolvedValue(undefined),
+      onReplace: vi.fn(),
+      onDuplicate: vi.fn(),
+      onDelete: vi.fn(),
+      ...over
+    })
+    const menuOf = async (id: string, name: string) => {
+      const card = document.querySelector(`[data-library-card="${id}"]`) as HTMLElement
+      await userEvent.click(within(card).getByRole('button', { name: `More actions for ${name}` }))
+    }
+    // Menus closed earlier stay in the document, hidden: the open one is the last
+    const item = (name: string) =>
+      screen.getAllByRole('menuitem', { name: new RegExp(name) }).at(-1)!
+
+    it('shows no menu without the right to change the library', () => {
+      renderPanel()
+      expect(screen.queryByRole('button', { name: /More actions/ })).toBeNull()
+    })
+
+    it('hands the saved block to each action', async () => {
+      const handlers = manage()
+      renderPanel({ manage: handlers, selectedBlockId: 'section-1' })
+      await menuOf('header', 'Header')
+      await userEvent.click(item('Duplicate'))
+      expect(handlers.onDuplicate).toHaveBeenCalledWith(header)
+      await menuOf('header', 'Header')
+      await userEvent.click(item('Replace with the selected block'))
+      expect(handlers.onReplace).toHaveBeenCalledWith(header)
+      await menuOf('cta', 'Élan CTA')
+      await userEvent.click(item('Delete'))
+      expect(handlers.onDelete).toHaveBeenCalledWith(cta)
+    })
+
+    it('replaces only with a block selected in the email', async () => {
+      renderPanel({ manage: manage() })
+      await menuOf('header', 'Header')
+      expect(item('Replace with the selected block')).toHaveTextContent(
+        'Select a block in the email'
+      )
+    })
+
+    it('refuses a selected block of another type', async () => {
+      renderPanel({ manage: manage(), selectedBlockId: 'text-1' })
+      await menuOf('header', 'Header')
+      const replace = item('Replace with the selected block')
+      expect(replace).toHaveAttribute('aria-disabled', 'true')
+      expect(replace).toHaveTextContent('Select a block of the same type')
+    })
+
+    it('marks an updated block with its border only', () => {
+      renderPanel({ highlight: { id: 'header', kind: 'updated' } })
+      expect(screen.queryByText('New')).toBeNull()
+      const card = document.querySelector('[data-library-card="header"]') as HTMLElement
+      expect(card.className).toContain('border-[#7763F1]')
+    })
+
+    it('brings the changed card into view once, not again when the list changes', () => {
+      const scroll = vi.fn()
+      // jsdom has no scrollIntoView: it is set for this test only
+      const original = Element.prototype.scrollIntoView
+      Element.prototype.scrollIntoView = scroll
+      onTestFinished(() => {
+        Element.prototype.scrollIntoView = original
+      })
+      const highlight = { id: 'header', kind: 'updated' as const }
+      const handlers = { onInsert: vi.fn() }
+      const { rerender } = render(
+        <LibraryPanel
+          emailTree={tree}
+          savedBlocks={[header, cta, footer]}
+          selectedBlockId={null}
+          highlight={highlight}
+          {...handlers}
+        />
+      )
+      expect(scroll).toHaveBeenCalledTimes(1)
+      rerender(
+        <LibraryPanel
+          emailTree={tree}
+          savedBlocks={[header, footer]}
+          selectedBlockId={null}
+          highlight={highlight}
+          {...handlers}
+        />
+      )
+      expect(scroll).toHaveBeenCalledTimes(1)
+    })
+
+    it('brings a changed card hidden by the search into view once the search shows it', async () => {
+      const scroll = vi.fn()
+      const original = Element.prototype.scrollIntoView
+      Element.prototype.scrollIntoView = scroll
+      onTestFinished(() => {
+        Element.prototype.scrollIntoView = original
+      })
+      const props = { emailTree: tree, selectedBlockId: null, onInsert: vi.fn() }
+      const { rerender } = render(<LibraryPanel {...props} savedBlocks={[header, cta, footer]} />)
+      await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'elan')
+      const highlight = { id: 'header', kind: 'updated' as const }
+      rerender(
+        <LibraryPanel {...props} savedBlocks={[header, cta, footer]} highlight={highlight} />
+      )
+      expect(scroll).not.toHaveBeenCalled()
+      await userEvent.clear(screen.getByPlaceholderText('Search saved blocks'))
+      expect(scroll).toHaveBeenCalledTimes(1)
+    })
+
+    it('disables the menus of every card while a change runs', async () => {
+      renderPanel({ manage: manage({ busy: true }), selectedBlockId: 'section-1' })
+      await menuOf('cta', 'Élan CTA')
+      expect(item('Duplicate')).toHaveAttribute('aria-disabled', 'true')
+    })
   })
 })

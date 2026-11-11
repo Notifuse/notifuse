@@ -22,10 +22,11 @@ export interface LibraryDragData {
 }
 
 // The drag source of a library item: the element it is set on starts a drag once the pointer moves a few pixels
-export const useLibraryDraggable = (item: LibraryItem) =>
+export const useLibraryDraggable = (item: LibraryItem, disabled = false) =>
   useDraggable({
     id: `library-${item.key}`,
-    data: { type: LIBRARY_DRAG_TYPE, item } satisfies LibraryDragData
+    data: { type: LIBRARY_DRAG_TYPE, item } satisfies LibraryDragData,
+    disabled
   })
 
 // The head of an email as a string: a thumbnail renders again only when it changes, not on every edit of the email
@@ -39,6 +40,18 @@ export const headKeyOf = (tree: EmailBlock): string =>
 export const savedBlockTime = (saved: SavedBlock) => {
   const date = saved.updated || saved.created
   return date ? new Date(date).getTime() : 0
+}
+
+// A saved block's date as the library shows it, in the console's language
+export const formatSavedDate = (date: string | undefined, locale: string) => {
+  if (!date) return null
+  const parsed = new Date(date)
+  if (Number.isNaN(parsed.getTime())) return null
+  try {
+    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(parsed)
+  } catch {
+    return new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(parsed)
+  }
 }
 
 export const typeLabelOf = (block: Pick<EmailBlock, 'type'>) =>
