@@ -1,6 +1,6 @@
 import React from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import type { EmailBlock, MJMLComponentType, SaveBlockHandler, SavedBlock, MergedBlockAttributes, BaseBlock } from './types'
+import type { DisplayCondition, EmailBlock, MJMLComponentType, SaveBlockHandler, SavedBlock, MergedBlockAttributes, BaseBlock } from './types'
 import { MJML_COMPONENT_DEFAULTS, mergeWithDefaults } from './mjml-defaults'
 import { EmailBlockFactory } from './blocks/EmailBlockFactory'
 import type { OnUpdateAttributesFunction, PreviewProps } from './blocks/BaseEmailBlock'
@@ -803,6 +803,36 @@ export class EmailBlockClass {
 
     regenerateIdsRecursive(newTree)
     return newTree
+  }
+
+  /**
+   * Applies a partial update (the AI assistant's updateBlock) to a copy of tree: merges
+   * attributes, replaces content, and sets or removes (null) the display condition,
+   * leaving every other field of the block as it was. Returns tree itself when the
+   * block is not found.
+   */
+  static mergeBlockUpdate(
+    tree: EmailBlock,
+    blockId: string,
+    updates: Partial<Omit<EmailBlock, 'display_condition'>> & {
+      display_condition?: DisplayCondition | null
+    }
+  ): EmailBlock {
+    const updatedTree = JSON.parse(JSON.stringify(tree)) as EmailBlock
+    const block = EmailBlockClass.findBlockById(updatedTree, blockId)
+    if (!block) return tree
+    if (updates.attributes) {
+      block.attributes = { ...block.attributes, ...updates.attributes }
+    }
+    if (updates.content !== undefined) {
+      block.content = updates.content
+    }
+    if (updates.display_condition === null) {
+      delete block.display_condition
+    } else if (updates.display_condition !== undefined) {
+      block.display_condition = updates.display_condition
+    }
+    return updatedTree
   }
 
   /**

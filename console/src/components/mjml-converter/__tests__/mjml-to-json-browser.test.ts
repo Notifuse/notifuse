@@ -1,5 +1,9 @@
 import { describe, test, expect } from 'vitest'
-import { convertMjmlToJsonBrowser, preprocessMjml } from '../mjml-to-json-browser'
+import {
+  convertMjmlToJsonBrowser,
+  hasDisplayConditionLiquid,
+  preprocessMjml
+} from '../mjml-to-json-browser'
 
 describe('MJML Preprocessing', () => {
   test('should escape unescaped ampersands in attributes', () => {
@@ -661,5 +665,52 @@ describe('MJML to JSON Browser Converter', () => {
         'https://example.com?a=1&b=2'
       )
     })
+  })
+})
+
+// What the MJML export writes around a section with a display condition (see
+// pkg/notifuse_mjml/display_condition_test.go): the value goes through url_decode, and an
+// order rule is written with ">", so the file stays well-formed XML.
+const EXPORTED_CONDITION_OPEN =
+  '{% assign __dc_sec_1 = true %}{% assign __dc_v0_sec_1 = "R%26D+%3Cx%3E" | url_decode %}' +
+  '{% assign __dc_ok_sec_1 = false %}{% if a contains __dc_v0_sec_1 %}{% assign __dc_ok_sec_1 = true %}{% endif %}' +
+  '{% unless __dc_ok_sec_1 %}{% assign __dc_sec_1 = false %}{% endunless %}' +
+  '{% assign __dc_ok_sec_1 = false %}{% assign __dc_n_sec_1 = order.total | plus: 0 %}{% if __dc_n_sec_1 > 100 %}{% assign __dc_ok_sec_1 = true %}{% endif %}' +
+  '{% if __dc_sec_1 %}'
+
+describe('MJML exported with display conditions', () => {
+  const exported = `
+    <mjml>
+      <mj-body>
+        ${EXPORTED_CONDITION_OPEN}
+        <mj-section>
+          <mj-column>
+            <mj-text>VIP offer</mj-text>
+          </mj-column>
+        </mj-section>
+        {% endif %}
+      </mj-body>
+    </mjml>
+  `
+
+  test('imports without error and keeps the wrapped section', () => {
+    const result = convertMjmlToJsonBrowser(exported)
+    const body = result.children?.[0]
+    expect(body?.children).toHaveLength(1)
+    expect(body?.children?.[0].type).toBe('mj-section')
+    expect(body?.children?.[0]).not.toHaveProperty('display_condition')
+  })
+
+  test('detects the condition Liquid', () => {
+    expect(hasDisplayConditionLiquid(exported)).toBe(true)
+    expect(hasDisplayConditionLiquid('{%- if __dc -%}')).toBe(true)
+  })
+
+  test('ignores other Liquid', () => {
+    expect(
+      hasDisplayConditionLiquid(
+        '<mjml><mj-body><mj-raw>{% if contact.vip %}VIP{% endif %}{{ __dc }}</mj-raw></mj-body></mjml>'
+      )
+    ).toBe(false)
   })
 })

@@ -22,15 +22,16 @@ func createTestEmailBlock() notifuse_mjml.EmailBlock {
 // dummyEmptyTypeBlock is a test helper that implements EmailBlock but returns empty type
 type dummyEmptyTypeBlock struct{}
 
-func (d dummyEmptyTypeBlock) GetID() string                                   { return "dummy" }
-func (d dummyEmptyTypeBlock) SetID(id string)                                 {}
-func (d dummyEmptyTypeBlock) GetType() notifuse_mjml.MJMLComponentType        { return "" }
-func (d dummyEmptyTypeBlock) GetChildren() []notifuse_mjml.EmailBlock         { return nil }
-func (d dummyEmptyTypeBlock) SetChildren(children []notifuse_mjml.EmailBlock) {}
-func (d dummyEmptyTypeBlock) GetAttributes() map[string]interface{}           { return nil }
-func (d dummyEmptyTypeBlock) SetAttributes(attrs map[string]interface{})      {}
-func (d dummyEmptyTypeBlock) GetContent() *string                             { return nil }
-func (d dummyEmptyTypeBlock) SetContent(content *string)                      {}
+func (d dummyEmptyTypeBlock) GetID() string                                        { return "dummy" }
+func (d dummyEmptyTypeBlock) SetID(id string)                                      {}
+func (d dummyEmptyTypeBlock) GetType() notifuse_mjml.MJMLComponentType             { return "" }
+func (d dummyEmptyTypeBlock) GetChildren() []notifuse_mjml.EmailBlock              { return nil }
+func (d dummyEmptyTypeBlock) SetChildren(children []notifuse_mjml.EmailBlock)      {}
+func (d dummyEmptyTypeBlock) GetAttributes() map[string]interface{}                { return nil }
+func (d dummyEmptyTypeBlock) SetAttributes(attrs map[string]interface{})           {}
+func (d dummyEmptyTypeBlock) GetContent() *string                                  { return nil }
+func (d dummyEmptyTypeBlock) SetContent(content *string)                           {}
+func (d dummyEmptyTypeBlock) GetDisplayCondition() *notifuse_mjml.DisplayCondition { return nil }
 func (d dummyEmptyTypeBlock) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"id":   d.GetID(),

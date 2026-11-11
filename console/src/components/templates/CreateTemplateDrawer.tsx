@@ -1110,7 +1110,8 @@ export function CreateTemplateDrawer({
                               html: response.html || '',
                               mjml: response.mjml || '',
                               errors: [],
-                              text: response.text
+                              text: response.text,
+                              test_data: response.test_data
                             }
                           } catch (error) {
                             const err = error as Error
@@ -1385,20 +1386,9 @@ export function CreateTemplateDrawer({
                 onUpdateBlock: (blockId, updates) => {
                   dirtyRef.current = true
                   // Use functional updater to ensure atomic updates
-                  setVisualEditorTree(prevTree => {
-                    const updatedTree = JSON.parse(JSON.stringify(prevTree)) as EmailBlock
-                    const block = EmailBlockClass.findBlockById(updatedTree, blockId)
-                    if (block) {
-                      if (updates.attributes) {
-                        block.attributes = { ...block.attributes, ...updates.attributes }
-                      }
-                      if (updates.content !== undefined) {
-                        block.content = updates.content
-                      }
-                      return updatedTree
-                    }
-                    return prevTree
-                  })
+                  setVisualEditorTree(prevTree =>
+                    EmailBlockClass.mergeBlockUpdate(prevTree, blockId, updates)
+                  )
                 },
                 onDeleteBlock: (blockId) => {
                   dirtyRef.current = true

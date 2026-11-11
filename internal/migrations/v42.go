@@ -300,11 +300,15 @@ func (m *V42Migration) requeueRemovedListMembers(ctx context.Context, db DBExecu
 // message_history until this migration commits, and an insert in its function can deadlock
 // with a subscribe. See schema.TrackMessageHistoryChangesFunction for both.
 //
+// The timeline function is v42TrackMessageHistoryChangesFn, frozen here when v44 added
+// the email.link_clicked step to the shared body: a workspace below 42 gets this body at
+// v42 and the shared one at v44, as one at 42 or 43 does.
+//
 // Replacing a function body takes no table lock.
 func (m *V42Migration) installStatusChangeFunctions(ctx context.Context, db DBExecutor) error {
 	for _, query := range []string{
 		schema.ApplyMessageStatusToContactListsFunction(),
-		schema.TrackMessageHistoryChangesFunction(),
+		v42TrackMessageHistoryChangesFn,
 	} {
 		if _, err := db.ExecContext(ctx, query); err != nil {
 			return err
@@ -312,6 +316,70 @@ func (m *V42Migration) installStatusChangeFunctions(ctx context.Context, db DBEx
 	}
 	return nil
 }
+
+// v42TrackMessageHistoryChangesFn is track_message_history_changes() as v42 shipped it:
+// v36's body with the list status step. Frozen; v44 installs the current body.
+const v42TrackMessageHistoryChangesFn = `CREATE OR REPLACE FUNCTION track_message_history_changes()
+		RETURNS TRIGGER AS $$
+		DECLARE
+			changes_json JSONB := '{}'::jsonb;
+			op VARCHAR(20);
+			kind_value VARCHAR(50);
+		BEGIN
+			IF TG_OP = 'INSERT' THEN
+				op := 'insert';
+				changes_json := jsonb_build_object('template_id', jsonb_build_object('new', NEW.template_id), 'template_version', jsonb_build_object('new', NEW.template_version), 'channel', jsonb_build_object('new', NEW.channel), 'broadcast_id', jsonb_build_object('new', NEW.broadcast_id), 'sent_at', jsonb_build_object('new', NEW.sent_at));
+				INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+				VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.sent', NEW.id, changes_json, NEW.updated_at);
+			ELSIF TG_OP = 'UPDATE' THEN
+				op := 'update';
+				-- A new complaint or hard bounce sets the list status before any timeline entry
+				-- is written: the contact_lists row is locked before the contact_segment_queue row,
+				-- in the order every write to contact_lists takes them.
+				IF NEW.list_id IS NOT NULL AND ((NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL) OR (NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL)) THEN
+					PERFORM apply_message_status_to_contact_lists(NEW.contact_email, NEW.list_id,
+						CASE WHEN NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL THEN NEW.complained_at END,
+						CASE WHEN NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL THEN NEW.bounced_at END);
+				END IF;
+				-- Handle engagement events separately with specific kinds
+				IF OLD.opened_at IS DISTINCT FROM NEW.opened_at AND NEW.opened_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('opened_at', jsonb_build_object('old', OLD.opened_at, 'new', NEW.opened_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.opened', NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				IF OLD.clicked_at IS DISTINCT FROM NEW.clicked_at AND NEW.clicked_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('clicked_at', jsonb_build_object('old', OLD.clicked_at, 'new', NEW.clicked_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.clicked', NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				IF OLD.bounced_at IS DISTINCT FROM NEW.bounced_at AND NEW.bounced_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('bounced_at', jsonb_build_object('old', OLD.bounced_at, 'new', NEW.bounced_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.bounced', NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				IF OLD.complained_at IS DISTINCT FROM NEW.complained_at AND NEW.complained_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('complained_at', jsonb_build_object('old', OLD.complained_at, 'new', NEW.complained_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.complained', NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				IF OLD.unsubscribed_at IS DISTINCT FROM NEW.unsubscribed_at AND NEW.unsubscribed_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('unsubscribed_at', jsonb_build_object('old', OLD.unsubscribed_at, 'new', NEW.unsubscribed_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.unsubscribed', NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				-- Handle other updates (delivered, failed, status_info) as generic updates
+				changes_json := '{}'::jsonb;
+				IF OLD.delivered_at IS DISTINCT FROM NEW.delivered_at THEN changes_json := changes_json || jsonb_build_object('delivered_at', jsonb_build_object('old', OLD.delivered_at, 'new', NEW.delivered_at)); END IF;
+				IF OLD.failed_at IS DISTINCT FROM NEW.failed_at THEN changes_json := changes_json || jsonb_build_object('failed_at', jsonb_build_object('old', OLD.failed_at, 'new', NEW.failed_at)); END IF;
+				IF OLD.status_info IS DISTINCT FROM NEW.status_info THEN changes_json := changes_json || jsonb_build_object('status_info', jsonb_build_object('old', OLD.status_info, 'new', NEW.status_info)); END IF;
+				IF changes_json != '{}'::jsonb THEN
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.updated', NEW.id, changes_json, NEW.updated_at);
+				END IF;
+			END IF;
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;`
 
 func init() {
 	Register(&V42Migration{})

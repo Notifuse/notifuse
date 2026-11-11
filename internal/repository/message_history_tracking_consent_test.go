@@ -39,7 +39,7 @@ func TestSetClicked_RecordsOnlyTrackedAndConsentedClicks(t *testing.T) {
 		mock.ExpectExec(`WHERE id = \$2 AND opened_at IS NULL\s+AND `+regexp.QuoteMeta(opensRecordableCondition)).
 			WithArgs(now, "msg-1").WillReturnResult(sqlmock.NewResult(0, 0))
 
-		require.NoError(t, repo.SetClicked(context.Background(), "ws", "msg-1", now, ""))
+		require.NoError(t, repo.SetClicked(context.Background(), "ws", "msg-1", now, "", false))
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -49,11 +49,11 @@ func TestSetClicked_RecordsOnlyTrackedAndConsentedClicks(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws").Return(db, nil)
 
 		mock.ExpectExec(`clicked_links = CASE[\s\S]*WHERE id = \$2\s+AND `+regexp.QuoteMeta(clicksRecordableCondition)).
-			WithArgs(now, "msg-1", "https://example.com").WillReturnResult(sqlmock.NewResult(0, 0))
+			WithArgs(now, "msg-1", "https://example.com", true).WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec(`WHERE id = \$2 AND opened_at IS NULL\s+AND `+regexp.QuoteMeta(opensRecordableCondition)).
 			WithArgs(now, "msg-1").WillReturnResult(sqlmock.NewResult(0, 0))
 
-		require.NoError(t, repo.SetClicked(context.Background(), "ws", "msg-1", now, "https://example.com"))
+		require.NoError(t, repo.SetClicked(context.Background(), "ws", "msg-1", now, "https://example.com", true))
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }
