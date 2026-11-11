@@ -130,7 +130,7 @@ export const openTreeEditor = async (page: Page, body: TreeBlock[]) => {
   await expect(tree.locator(ROW)).toHaveCount(allExpanded)
 
   const row = (id: string) =>
-    tree.locator(ROW).filter({ has: page.locator(`[data-block-id="${id}"]`) })
+    tree.locator(ROW).filter({ has: page.locator(`[data-tree-block-id="${id}"]`) })
   const handle = (id: string) =>
     row(id).getByRole('img', { name: 'Drag to move this block in the tree' })
 

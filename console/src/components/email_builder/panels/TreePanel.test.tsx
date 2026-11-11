@@ -114,7 +114,7 @@ const setup = (tree: EmailBlock, expanded: string[], hiddenBlocks?: string[]) =>
   const bodyTree = trees[trees.length - 1] as HTMLElement
   const rows = () => Array.from(bodyTree.querySelectorAll('[role="treeitem"]')) as HTMLElement[]
   const row = (id: string) => {
-    const found = rows().find((el) => el.querySelector(`[data-block-id="${id}"]`))
+    const found = rows().find((el) => el.querySelector(`[data-tree-block-id="${id}"]`))
     if (!found) throw new Error(`no row for ${id}`)
     return found
   }
@@ -181,6 +181,12 @@ describe('TreePanel drag and drop', () => {
     drop(row('T3'), yOf('T3', 0.75))
     expect(onMoveBlock).toHaveBeenCalledWith('D', 'C3', 2)
     expect(line()).toBeNull()
+  })
+
+  it('leaves data-block-id to the canvas, so a lookup by block id finds only the canvas block', () => {
+    const { bodyTree, row } = setup(build(c3()), ALL)
+    expect(row('T3')).toBeTruthy()
+    expect(bodyTree.querySelector('[data-block-id]')).toBeNull()
   })
 
   it('keeps a section at body level when the pointer goes straight down', () => {

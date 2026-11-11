@@ -264,8 +264,9 @@ const TreeNodeTitle: React.FC<{
 
   return (
     // data-draggable lets the tree cancel a drag started on a row that cannot move (the body), and
-    // data-block-id lets the tree find the block of a row on screen while dragging
-    <span data-draggable={isDraggable ? 'true' : 'false'} data-block-id={block.id}>
+    // data-tree-block-id lets the tree find the block of a row on screen while dragging. It is not
+    // data-block-id, which marks the block on the canvas and is looked up there
+    <span data-draggable={isDraggable ? 'true' : 'false'} data-tree-block-id={block.id}>
       <span>
         {blockClass.getLabel(indexToPass)}
         {block.display_condition && (
@@ -560,7 +561,7 @@ export const TreePanel: React.FC<TreePanelProps> = ({
   }
 
   const rowId = (row: Element | null | undefined) =>
-    row?.querySelector('[data-block-id]')?.getAttribute('data-block-id') ?? null
+    row?.querySelector('[data-tree-block-id]')?.getAttribute('data-tree-block-id') ?? null
 
   // The gap is between the last row whose middle is above the pointer, or level with it, and the next row; above
   // the Body row's middle, it is the Body row's bottom half. This covers the band antd leaves under each row and
