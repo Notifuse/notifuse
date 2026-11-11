@@ -2,7 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## [43.2] - WIP
+## [44.0] - unreleased
+
+- **Feature**: Automations can start when a contact clicks a specific link, with the new "Clicked a link" trigger (`email.link_clicked`). It starts the first time a contact clicks each link of an email, and can be limited to links containing some text, to one broadcast or to one template. A click on an email the automation sent itself does not start it again. Clicks made before the upgrade, and clicks on links in emails sent before 42.2, do not start it; a link clicked before the upgrade starts it on its next click. The new event does not count toward the monthly event usage.
+
+- **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
+
+- **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.
+
+- **Improvement**: Opens and clicks on an email whose contact was deleted are no longer recorded. The link still redirects.
+
+- **Improvement**: Behind a reverse proxy, clicks on an email's unsubscribe and notification center links are no longer recorded per link, so the contact address these links carry is no longer stored with the click. Behind a proxy that forwards neither the public host nor `X-Forwarded-Host`, links on a custom domain the workspace no longer uses are still recorded. Links recorded before the upgrade stay in the per-link statistics.
 
 - **Feature**: Every email now includes a plain-text version, generated from its HTML, for mail clients that show text only and for better deliverability. Its links are the links of the HTML, tracked the same way. Preview it in the template editor's new Text version mode, in the MJML editor's Text version tab and in the template preview. `templates.compile` returns it as `text`.
 
@@ -25,8 +35,6 @@ All notable changes to this project will be documented in this file.
 - **Fix**: As in Shopify Liquid, `{{ item.size }}` on an object without a `size` field now gives its number of fields: use `item["size"]` to test an optional field. A filter given too many arguments now shows nothing instead of the unfiltered text.
 
 - **Fix**: As in Shopify Liquid 5.11, `{% snippet %}` and `{% render variable %}` are no longer supported: a template or blog theme using them shows a Liquid error. Use `{% render 'name' %}`.
-
-## [43.1] - 2026-11-10
 
 - **Improvement**: Test emails can now be sent for a mailing list, chosen in the test dialog of a template or a broadcast and preselected with the broadcast's audience list (#423). They then carry that list's working unsubscribe and confirmation links and the List-Unsubscribe header, as a broadcast to the list does; a test for the audience list of a broadcast that also goes to the list's unsubscribed contacts has no header, as the broadcast. Unsubscribing or confirming from such a test, or a bounce or complaint on it, changes the recipient's subscription to the list. `transactional.testTemplate` takes `list_id` and `omit_list_unsubscribe_header`; a test for a list also needs Lists read.
 

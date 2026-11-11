@@ -85,6 +85,10 @@ func ApplyMessageStatusToContactListsFunction() string {
 		$$ LANGUAGE plpgsql;`
 }
 
+// LinkClickedStepAnchor is the SQL comment that opens the email.link_clicked step of
+// track_message_history_changes(). The v42 freeze test cuts the step out by it.
+const LinkClickedStepAnchor = "-- Link clicks: one entry per link newly clicked through a verified token"
+
 // TrackMessageHistoryChangesFunction returns track_message_history_changes(), the function
 // message_history_changes_trigger runs after every insert and update of message_history. It
 // writes the message's contact_timeline entries (email.sent, email.opened,
@@ -128,9 +132,21 @@ func ApplyMessageStatusToContactListsFunction() string {
 // that ran this function's body from before 42, around the v42 commit, sets the status as
 // before 42.
 //
-// Two paths install it: the new-workspace path (internal/database/init.go) and the v42
-// migration. internal/migrations/v7.go, v8.go and v36.go carry the bodies this one
-// replaced and stay frozen. Apart from the status step, this body is v36's.
+// A click also writes one email.link_clicked entry for each link of clicked_links that has
+// just become verified: a link clicked for the first time through a signed token, or a link
+// clicked before through an unverified token, or before 44, which recorded no verified key,
+// and now through a signed one. Its changes carry the URL and the message's broadcast_id,
+// template_id and automation_id, which the WHEN clause of an automation trigger reads,
+// since a WHEN cannot query message_history. Repeat clicks on a link already verified
+// write nothing, and the 50-link cap of clicked_links bounds the entries one email can
+// write. Any statement that marks links of clicked_links
+// verified writes these entries and starts the automations listening to them, so a
+// migration that rewrote clicked_links in bulk with verified keys would replay clicks.
+//
+// Two paths install it: the new-workspace path (internal/database/init.go) and the v44
+// migration. internal/migrations/v7.go, v8.go, v36.go and v42.go carry the bodies this one
+// replaced and stay frozen. Apart from the status step (v42) and the link step (v44), this
+// body is v36's.
 func TrackMessageHistoryChangesFunction() string {
 	return `CREATE OR REPLACE FUNCTION track_message_history_changes()
 		RETURNS TRIGGER AS $$
@@ -164,6 +180,22 @@ func TrackMessageHistoryChangesFunction() string {
 					changes_json := jsonb_build_object('clicked_at', jsonb_build_object('old', OLD.clicked_at, 'new', NEW.clicked_at));
 					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
 					VALUES (NEW.contact_email, op, 'message_history', NEW.channel || '.clicked', NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				` + LinkClickedStepAnchor + `
+				IF NEW.clicked_links IS DISTINCT FROM OLD.clicked_links AND jsonb_typeof(NEW.clicked_links) = 'object' THEN
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+					SELECT NEW.contact_email, op, 'message_history', NEW.channel || '.link_clicked', NEW.id,
+						jsonb_build_object(
+							'clicked_url', jsonb_build_object('new', e.key),
+							'broadcast_id', jsonb_build_object('new', NEW.broadcast_id),
+							'template_id', jsonb_build_object('new', NEW.template_id),
+							'automation_id', jsonb_build_object('new', NEW.automation_id)),
+						NEW.updated_at
+					FROM jsonb_each(NEW.clicked_links) AS e(key, value)
+					WHERE jsonb_typeof(e.value) = 'object'
+						AND (e.value->>'verified') = 'true'
+						AND NOT COALESCE((((CASE WHEN jsonb_typeof(OLD.clicked_links) = 'object' THEN OLD.clicked_links END) -> e.key) ->> 'verified') = 'true', false)
+					ORDER BY e.key;
 				END IF;
 				IF OLD.bounced_at IS DISTINCT FROM NEW.bounced_at AND NEW.bounced_at IS NOT NULL THEN
 					changes_json := jsonb_build_object('bounced_at', jsonb_build_object('old', OLD.bounced_at, 'new', NEW.bounced_at));

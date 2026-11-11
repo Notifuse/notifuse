@@ -427,3 +427,32 @@ describe('validateFlow: webhook targets', () => {
     expect(urlErrors('')).toHaveLength(0)
   })
 })
+
+// An email.link_clicked trigger's filters are its whole meaning: dropped on save, the
+// installed trigger would be regenerated without them and start on every link clicked.
+describe('email.link_clicked filters', () => {
+  const trigger: TimelineTriggerConfig = {
+    event_kind: 'email.link_clicked',
+    link_url: 'example.com/pricing',
+    broadcast_id: 'bc-1',
+    template_id: 'tpl-1',
+    frequency: 'every_time'
+  }
+
+  it('survives a load -> save round trip', () => {
+    const hydrated = hydrateTriggerNodeConfig([triggerNode({}), emailNode()], trigger)
+    expect(buildTriggerConfig(hydrated)).toEqual(trigger)
+  })
+
+  it('is built from the trigger node config the form edits', () => {
+    const config = buildTriggerConfig([triggerNode({ ...trigger, link_url: 'other' }), emailNode()])
+    expect(config?.link_url).toBe('other')
+    expect(config?.broadcast_id).toBe('bc-1')
+    expect(config?.template_id).toBe('tpl-1')
+  })
+
+  it('trims the link and sends an empty one as no filter', () => {
+    expect(buildTriggerConfig([triggerNode({ ...trigger, link_url: '  /pricing \n' })])?.link_url).toBe('/pricing')
+    expect(buildTriggerConfig([triggerNode({ ...trigger, link_url: '   ' })])?.link_url).toBeUndefined()
+  })
+})

@@ -189,8 +189,8 @@ func (h *EmailHandler) handleClickRedirection(w http.ResponseWriter, r *http.Req
 	}
 
 	status := trackingtoken.WorkspaceUnknown
+	var ws trackingtoken.Workspace
 	if messageID != "" && workspaceID != "" {
-		var ws trackingtoken.Workspace
 		ws, status = h.trackingWorkspaces.Lookup(r.Context(), workspaceID)
 		if status == trackingtoken.WorkspaceKnown && ws.EndpointHost != "" && decision != decisionRedirect {
 			// The workspace's custom domain is one of the installation's hosts too.
@@ -203,11 +203,46 @@ func (h *EmailHandler) handleClickRedirection(w http.ResponseWriter, r *http.Req
 	if status != trackingtoken.WorkspaceUnknown {
 		ts, _ := strconv.ParseInt(r.URL.Query().Get("ts"), 10, 64)
 		if h.passesBotChecks(r, ts, messageID, "click") {
-			_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID, "", r.Host)
+			endpointHost := ""
+			if status == trackingtoken.WorkspaceKnown {
+				endpointHost = ws.EndpointHost
+			}
+			_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID, "", clickOwnHosts(r, h.apiHost, endpointHost), false)
 		}
 	}
 
 	h.answerTrackedDestination(w, r, decision, target, parsed, scheme)
+}
+
+// clickOwnHosts returns the instance's hosts as a click knows them: the request's Host,
+// every X-Forwarded-Host entry (webVersionRequestHost reads the first), the API
+// endpoint's host and the workspace's custom endpoint host, the ones
+// classifyTrackedDestination redirects to. A link back to any of them is the email's own
+// (unsubscribe, notification center, web version) and is not recorded per link. All of
+// them: behind a proxy that forwards its upstream name as Host, the email's links use
+// the forwarded host or, with no forwarded header, one of the endpoint hosts, and a
+// direct request keeps its own Host whatever forwarded value a client adds.
+func clickOwnHosts(r *http.Request, apiHost, endpointHost string) []string {
+	hosts := []string{r.Host}
+	for _, value := range r.Header.Values("X-Forwarded-Host") {
+		for _, entry := range strings.Split(value, ",") {
+			if entry = strings.TrimSpace(entry); entry != "" {
+				hosts = append(hosts, entry)
+			}
+		}
+	}
+	for _, host := range []string{apiHost, endpointHost} {
+		if host == "" {
+			continue
+		}
+		// HostOf writes an IPv6 literal bare ("2001:db8::1"): read again as a
+		// host[:port] value, its last group would be taken for a port.
+		if strings.Contains(host, ":") {
+			host = "[" + host + "]"
+		}
+		hosts = append(hosts, host)
+	}
+	return hosts
 }
 
 // answerTrackedDestination answers a click whose destination was classified.
@@ -337,11 +372,11 @@ func (h *EmailHandler) handleEncryptedClick(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Invalid redirect URL", http.StatusBadRequest)
 		return
 	}
+	endpointHost := ""
+	if status == trackingtoken.WorkspaceKnown {
+		endpointHost = ws.EndpointHost
+	}
 	if !verified {
-		endpointHost := ""
-		if status == trackingtoken.WorkspaceKnown {
-			endpointHost = ws.EndpointHost
-		}
 		decision, target, parsed, scheme = classifyTrackedDestination(tok.URL, r.Host, h.apiHost, endpointHost)
 		if decision == decisionReject {
 			http.Error(w, "Invalid redirect URL", http.StatusBadRequest)
@@ -350,7 +385,7 @@ func (h *EmailHandler) handleEncryptedClick(w http.ResponseWriter, r *http.Reque
 	}
 
 	if status != trackingtoken.WorkspaceUnknown && h.passesBotChecks(r, tok.Timestamp, tok.MessageID, "click") {
-		_ = h.emailService.VisitLink(r.Context(), tok.MessageID, tok.WorkspaceID, tok.URL, r.Host)
+		_ = h.emailService.VisitLink(r.Context(), tok.MessageID, tok.WorkspaceID, tok.URL, clickOwnHosts(r, h.apiHost, endpointHost), verified)
 	}
 
 	h.answerTrackedDestination(w, r, decision, target, parsed, scheme)

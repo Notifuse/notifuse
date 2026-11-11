@@ -545,3 +545,38 @@ describe('ContactTimeline web session layout', () => {
     expect(screen.getByText('Source:')).toBeInTheDocument()
   })
 })
+
+describe('ContactTimeline link click entries', () => {
+  const link = 'https://shop.example.com/pricing?utm_source=newsletter'
+  const linkEntry: ContactTimelineEntry = {
+    id: '66666666-6666-6666-6666-666666666666',
+    email: 'reader@example.com',
+    operation: 'update',
+    entity_type: 'message_history',
+    kind: 'email.link_clicked',
+    entity_id: 'msg-1',
+    changes: {
+      clicked_url: webChange(link),
+      broadcast_id: webChange('bc-1'),
+      template_id: webChange('tpl-1'),
+      automation_id: webChange(null)
+    },
+    created_at: '2026-08-12T10:04:00Z',
+    db_created_at: '2026-08-12T10:04:00Z'
+  }
+
+  it('says which link was clicked, read by kind rather than by the shape of changes', () => {
+    const { container } = render(<ContactTimeline entries={[linkEntry]} />)
+
+    expect(screen.getByText('clicked a link')).toBeInTheDocument()
+    expect(screen.getByText(link)).toBeInTheDocument()
+    expect(container.querySelector('svg[data-icon="arrow-pointer"]')).not.toBeNull()
+  })
+
+  it('shows no link line when the envelope is missing', () => {
+    render(<ContactTimeline entries={[{ ...linkEntry, changes: {} }]} />)
+
+    expect(screen.getByText('clicked a link')).toBeInTheDocument()
+    expect(screen.queryByText(link)).not.toBeInTheDocument()
+  })
+})
