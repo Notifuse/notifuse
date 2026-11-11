@@ -238,6 +238,25 @@ describe('LibraryPanel', () => {
       expect(scroll).toHaveBeenCalledTimes(1)
     })
 
+    it('brings a changed card hidden by the search into view once the search shows it', async () => {
+      const scroll = vi.fn()
+      const original = Element.prototype.scrollIntoView
+      Element.prototype.scrollIntoView = scroll
+      onTestFinished(() => {
+        Element.prototype.scrollIntoView = original
+      })
+      const props = { emailTree: tree, selectedBlockId: null, onInsert: vi.fn() }
+      const { rerender } = render(<LibraryPanel {...props} savedBlocks={[header, cta, footer]} />)
+      await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'elan')
+      const highlight = { id: 'header', kind: 'updated' as const }
+      rerender(
+        <LibraryPanel {...props} savedBlocks={[header, cta, footer]} highlight={highlight} />
+      )
+      expect(scroll).not.toHaveBeenCalled()
+      await userEvent.clear(screen.getByPlaceholderText('Search saved blocks'))
+      expect(scroll).toHaveBeenCalledTimes(1)
+    })
+
     it('disables the menus of every card while a change runs', async () => {
       renderPanel({ manage: manage({ busy: true }), selectedBlockId: 'section-1' })
       await menuOf('cta', 'Élan CTA')

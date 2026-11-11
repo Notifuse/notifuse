@@ -184,7 +184,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     if (!card) return
     scrolledTo.current = highlight
     if (typeof card.scrollIntoView === 'function') card.scrollIntoView({ block: 'nearest' })
-  }, [highlight, savedBlocks])
+  }, [highlight, items])
 
   return (
     <div ref={rootRef} className="px-4 pb-8" data-testid="library-panel">
