@@ -16,6 +16,14 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
 
+- **Fix**: Liquid in templates now matches Shopify Liquid in more cases: `{% if order.total == 100 %}` matches numbers from your data, accented text is no longer corrupted by `capitalize` or `truncate`, amounts are exact (`0.1 | plus: 0.2` is `0.3`), `date` supports `%-d` and formats timestamps, and conditions on a text containing "and" or "or", tags written over several lines and `{%- raw -%}` work.
+
+- **Fix**: `{% if tags contains "vip" %}` on a list now matches only the element `vip`, no longer `vip_gold`. Check templates that relied on the partial match.
+
+- **Fix**: As in Shopify Liquid, `{{ item.size }}` on an object without a `size` field now gives its number of fields: use `item["size"]` to test an optional field. A filter given too many arguments now shows nothing instead of the unfiltered text.
+
+- **Fix**: As in Shopify Liquid 5.11, `{% snippet %}` and `{% render variable %}` are no longer supported: a template or blog theme using them shows a Liquid error. Use `{% render 'name' %}`.
+
 - **Fix**: In the email editor, saving a block now always starts as a new saved block, and "Update existing block" only lists saved blocks of the same type. Before, the dialog could open on updating another saved block that merely looked alike. The confirmation now appears once the block is saved, and the dialog stays open if saving fails.
 
 ## [43.1] - 2026-11-10
