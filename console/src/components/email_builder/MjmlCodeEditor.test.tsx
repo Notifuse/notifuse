@@ -73,3 +73,38 @@ describe('MjmlCodeEditor text version tab', () => {
     expect(screen.queryByText('Old text')).toBeNull()
   })
 })
+
+describe('MjmlCodeEditor text version tab with a custom text', () => {
+  it('lets the text be written when the editor is given a custom text', async () => {
+    const onCompile = vi.fn().mockResolvedValue({ html: '', mjml: '', error: { message: 'Broken', details: [] } })
+    const onChange = vi.fn()
+    render(
+      <App>
+        <MjmlCodeEditor
+          mjmlSource={source}
+          onMjmlSourceChange={vi.fn()}
+          onCompile={onCompile}
+          onTestDataChange={vi.fn()}
+          height={600}
+          textVersion={{ custom: { value: 'Mine', onChange, onSeed: vi.fn(), category: 'transactional' } }}
+        />
+      </App>
+    )
+    await waitFor(() => expect(onCompile).toHaveBeenCalled())
+
+    fireEvent.click(screen.getAllByText('Text version')[0])
+    const area = (await screen.findByTestId('custom-text-input')) as HTMLTextAreaElement
+    expect(area.value).toBe('Mine')
+    fireEvent.change(area, { target: { value: 'Mine, edited' } })
+    expect(onChange).toHaveBeenCalledWith('Mine, edited')
+  })
+
+  it('stays read-only without a custom text', async () => {
+    const onCompile = vi.fn().mockResolvedValue({ html: '<p>Hi</p>', mjml: source, text: 'Hi\n' })
+    renderEditor(onCompile)
+    fireEvent.click(screen.getByText('Text version'))
+    await waitFor(() => expect(screen.getByTestId('text-version')).toBeTruthy())
+    expect(screen.queryByTestId('custom-text-input')).toBeNull()
+    expect(screen.queryByRole('radio', { name: /Custom/ })).toBeNull()
+  })
+})
