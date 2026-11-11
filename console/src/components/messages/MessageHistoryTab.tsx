@@ -59,7 +59,8 @@ const filterKeys = [
   'external_id',
   'list_id',
   'template_id',
-  'broadcast_id'
+  'broadcast_id',
+  'clicked_url'
 ]
 
 // Simple filter interface
@@ -224,7 +225,8 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
       { key: 'external_id', label: t`External ID` },
       { key: 'list_id', label: t`List ID` },
       { key: 'template_id', label: t`Template ID` },
-      { key: 'broadcast_id', label: t`Broadcast ID` }
+      { key: 'broadcast_id', label: t`Broadcast ID` },
+      { key: 'clicked_url', label: t`Clicked link` }
     ],
     [t]
   )
@@ -415,6 +417,13 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
   }
 
   // Handle applying a filter
+  // The server accepts a clicked link filter only within a broadcast, so it goes when
+  // the broadcast filter does.
+  const withoutOrphanClickedURL = (filters: Filter[]) =>
+    filters.some((f) => f.field === 'broadcast_id')
+      ? filters
+      : filters.filter((f) => f.field !== 'clicked_url')
+
   const applyFilter = (field: string, value: string) => {
     // Remove any existing filter for this field
     const updatedFilters = activeFilters.filter((f) => f.field !== field)
@@ -431,13 +440,13 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
       }
     }
 
-    setActiveFilters(updatedFilters)
+    setActiveFilters(withoutOrphanClickedURL(updatedFilters))
     setOpenPopovers({ ...openPopovers, [field]: false })
   }
 
   // Handle clearing a filter
   const clearFilter = (field: string) => {
-    setActiveFilters(activeFilters.filter((f) => f.field !== field))
+    setActiveFilters(withoutOrphanClickedURL(activeFilters.filter((f) => f.field !== field)))
     setTempFilterValues({ ...tempFilterValues, [field]: '' })
     setOpenPopovers({ ...openPopovers, [field]: false })
   }
@@ -572,7 +581,13 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-600">{t`Filters`}:</span>
           <Space wrap>
-            {renderFilterGroup(otherFilterOptions)}
+            {renderFilterGroup(
+              otherFilterOptions.filter(
+                (option) =>
+                  option.key !== 'clicked_url' ||
+                  activeFilters.some((f) => f.field === 'broadcast_id')
+              )
+            )}
             {activeFilters.length > 0 && (
               <Button size="small" onClick={clearAllFilters}>
                 {t`Clear All`}

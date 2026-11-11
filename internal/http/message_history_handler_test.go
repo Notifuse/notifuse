@@ -1084,3 +1084,45 @@ func TestMessageHistoryHandler_handleBroadcastStats_Success(t *testing.T) {
 	assert.Equal(t, float64(3), queueMap["pending"])
 	assert.Equal(t, float64(4), queueMap["failed_terminal"])
 }
+
+// The per-link drill-down: clicked_url reaches the service decoded, and is refused without
+// the broadcast it is scoped to.
+func TestMessageHistoryHandler_handleList_ClickedURL(t *testing.T) {
+	user := &domain.User{ID: "user123", Email: "test@example.com"}
+	const link = "https://shop.example.com/a?b=1&c=2#top"
+
+	expectRequest := func(mockTracer *pkgmocks.MockTracer, mockAuthService *mocks.MockAuthService) {
+		mockSpan := &trace.Span{}
+		mockTracer.EXPECT().StartSpan(gomock.Any(), "MessageHistoryHandler.handleList").Return(context.Background(), mockSpan)
+		mockTracer.EXPECT().EndSpan(mockSpan, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws123").Return(context.Background(), user, nil, nil)
+	}
+
+	t.Run("passed to the service", func(t *testing.T) {
+		handler, mockService, mockAuthService, mockTracer, _ := setupMessageHistoryHandlerTest(t)
+		expectRequest(mockTracer, mockAuthService)
+		mockService.EXPECT().
+			ListMessages(gomock.Any(), "ws123", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, params domain.MessageListParams) (*domain.MessageListResult, error) {
+				assert.Equal(t, "bc-1", params.BroadcastID)
+				assert.Equal(t, link, params.ClickedURL)
+				return &domain.MessageListResult{Messages: []*domain.MessageHistory{}}, nil
+			})
+
+		query := url.Values{"workspace_id": {"ws123"}, "broadcast_id": {"bc-1"}, "clicked_url": {link}}
+		w := httptest.NewRecorder()
+		handler.handleList(w, httptest.NewRequest(http.MethodGet, "/api/messages.list?"+query.Encode(), nil))
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("refused without broadcast_id", func(t *testing.T) {
+		handler, _, mockAuthService, mockTracer, _ := setupMessageHistoryHandlerTest(t)
+		expectRequest(mockTracer, mockAuthService)
+
+		query := url.Values{"workspace_id": {"ws123"}, "clicked_url": {link}}
+		w := httptest.NewRecorder()
+		handler.handleList(w, httptest.NewRequest(http.MethodGet, "/api/messages.list?"+query.Encode(), nil))
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "clicked_url requires broadcast_id")
+	})
+}

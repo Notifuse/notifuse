@@ -2009,7 +2009,9 @@ func (s *DemoService) updateClickedMessagesForBatch(ctx context.Context, workspa
 		// Use SetClicked to update the message (triggers timeline entry)
 		// SetClicked also sets opened_at if not already set
 		clickedURL := demoClickedURLs[i%len(demoClickedURLs)]
-		if err := s.messageHistoryRepo.SetClicked(ctx, workspaceID, data.message.ID, data.engagement.clickedTime, clickedURL); err != nil {
+		// Verified, as a click through a signed link is: the demo timeline shows which link
+		// each contact clicked, and link-click automations can be tried on it.
+		if err := s.messageHistoryRepo.SetClicked(ctx, workspaceID, data.message.ID, data.engagement.clickedTime, clickedURL, true); err != nil {
 			s.logger.WithField("message_id", data.message.ID).WithField("error", err.Error()).Debug("Failed to set clicked status")
 		}
 	}
