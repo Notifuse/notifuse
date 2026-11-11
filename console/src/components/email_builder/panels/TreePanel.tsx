@@ -2,7 +2,7 @@ import React from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { Tree, Tooltip, Popconfirm } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faChevronRight, faChevronDown, faPlus } from '@fortawesome/free-solid-svg-icons'
+import { faChevronRight, faChevronDown, faCodeBranch, faPlus } from '@fortawesome/free-solid-svg-icons'
 import { faTrashAlt } from '@fortawesome/free-regular-svg-icons'
 import type { EmailBlock, MJMLComponentType, TreeNode, SavedBlock } from '../types'
 import { EmailBlockClass } from '../EmailBlockClass'
@@ -252,6 +252,7 @@ const TreeNodeTitle: React.FC<{
   savedBlocks,
   hiddenBlocks
 }) => {
+  const { t } = useLingui()
   const shouldShowIndex = parentType !== 'mj-attributes'
   const indexToPass = shouldShowIndex ? index : undefined
   const isInsideMjAttributes = EmailBlockClass.isChildOf(emailTree, block.id, 'mj-attributes')
@@ -260,7 +261,18 @@ const TreeNodeTitle: React.FC<{
 
   return (
     <span>
-      <span>{blockClass.getLabel(indexToPass)}</span>
+      <span>
+        {blockClass.getLabel(indexToPass)}
+        {block.display_condition && (
+          <Tooltip title={t`Shown under a condition`}>
+            <FontAwesomeIcon
+              icon={faCodeBranch}
+              className="text-[#7763F1] text-[11px] ml-1.5"
+              data-testid="tree-condition-icon"
+            />
+          </Tooltip>
+        )}
+      </span>
       <span className="float-right flex items-center gap-1">
         {/* Inline Add Button for supported block types */}
         {shouldShowInlineAddButton(block.type) && onAddBlock && !preventAddBlocks && (

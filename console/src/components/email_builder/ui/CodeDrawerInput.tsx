@@ -65,7 +65,12 @@ const CodeDrawerInput: React.FC<CodeDrawerInputProps> = ({
     // Type guard for Monaco instance
     if (!monaco || typeof monaco !== 'object') return
 
-    const monacoInstance = monaco as { languages: { html: { htmlDefaults: { setOptions: (options: unknown) => void } }; css: { cssDefaults: { setOptions: (options: unknown) => void } } } }
+    const monacoInstance = monaco as {
+      languages: {
+        html: { htmlDefaults: { setOptions: (options: unknown) => void } }
+        css: { cssDefaults: { setOptions: (options: unknown) => void } }
+      }
+    }
 
     // Configure language-specific settings
     if (language === 'html') {

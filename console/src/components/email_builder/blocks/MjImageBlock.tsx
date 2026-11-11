@@ -364,6 +364,7 @@ export class MjImageBlock extends BaseEmailBlock {
         onClick={handleClick}
         style={{ ...containerStyle, position: 'relative' }}
         data-block-id={this.block.id}
+        data-display-condition={this.block.display_condition ? "true" : undefined}
       >
         <table border={0} cellPadding="0" cellSpacing="0" role="presentation" style={tableStyle}>
           <tbody>

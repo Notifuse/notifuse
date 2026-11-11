@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { Empty } from 'antd'
-import type { EmailBlock } from '../types'
+import type { DisplayCondition, EmailBlock } from '../types'
 import { EmailBlockFactory } from '../blocks/EmailBlockFactory'
+import { isConditionEligible } from '../displayCondition'
+import { DisplayConditionSummary } from '../ui/DisplayConditionSummary'
 
 interface SettingsPanelProps {
   selectedBlock: EmailBlock | null
@@ -17,7 +19,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   selectedBlock,
   onUpdateBlock,
   attributeDefaults,
-  emailTree
+  emailTree,
+  testData
 }) => {
   const { t } = useLingui()
   const [currentBlockId, setCurrentBlockId] = useState<string | null>(null)
@@ -54,6 +57,22 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       })
 
       // Update tree immediately
+      onUpdateBlock(updatedBlock.id, updatedBlock)
+    },
+    [selectedBlock, onUpdateBlock]
+  )
+
+  // Sets or removes the block's display condition; the update goes through the
+  // editor's history like any attribute change
+  const handleDisplayConditionChange = useCallback(
+    (condition: DisplayCondition | undefined) => {
+      if (!selectedBlock) return
+      const updatedBlock = JSON.parse(JSON.stringify(selectedBlock)) as EmailBlock
+      if (condition) {
+        updatedBlock.display_condition = condition
+      } else {
+        delete updatedBlock.display_condition
+      }
       onUpdateBlock(updatedBlock.id, updatedBlock)
     },
     [selectedBlock, onUpdateBlock]
@@ -116,9 +135,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const blockDefaults = attributeDefaults[selectedBlock.type] || {}
 
   // Render the settings panel using the new block architecture
-  return blockInstance.renderSettingsPanel(
-    handleDirectUpdate,
-    blockDefaults,
-    emailTree
+  const settings = blockInstance.renderSettingsPanel(handleDirectUpdate, blockDefaults, emailTree)
+  if (!isConditionEligible(emailTree, selectedBlock)) {
+    return settings
+  }
+  return (
+    <>
+      <DisplayConditionSummary
+        block={selectedBlock}
+        testData={testData}
+        onChange={handleDisplayConditionChange}
+      />
+      {settings}
+    </>
   )
 }

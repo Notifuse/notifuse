@@ -256,6 +256,21 @@ Guard optional values: {% if contact.first_name %}Hi {{ contact.first_name }},{%
 
 Never put {{ oneclick_unsubscribe_url }} or {{ tracking_opens_url }} in the body: the backend uses them for the List-Unsubscribe header and the open-tracking pixel.
 
+## Display Conditions
+
+A block can be shown only to recipients for whom a condition on the template data holds, through its "display_condition" field:
+
+{"match": "all", "rules": [{"variable": "order.has_image", "operator": "is_true"}, {"variable": "contact.custom_string_1", "operator": "eq", "value": "vip"}]}
+
+- match: "all" (every rule holds) or "any" (at least one does); 1 to 20 rules
+- variable: a variable path without braces, such as contact.first_name or order.total
+- operators without a value: is_true, is_blank (false, empty or absent), is_present, is_absent
+- operators with a text value: eq, neq, contains, not_contains
+- operators with a number value: gt, gte, lt, lte (the value is a number, written as a string)
+- allowed on mj-wrapper, mj-section, mj-text, mj-image, mj-button, mj-divider, mj-spacer, mj-social and mj-raw under mj-body; never on mj-column, mj-group or mj-liquid
+- set it with updateBlock ({"display_condition": {...}}, or null to remove it) or inside setEmailTree
+- the current email structure prints each block's display_condition: when you rebuild the email with setEmailTree, keep every existing display_condition on the block it belongs to
+
 ## Compliance Footer
 
 A marketing email (newsletter, promotion, announcement, anything sent to a list) MUST end with a footer section holding two visible links in an mj-text: unsubscribe via {{ unsubscribe_url }} and preferences via {{ notification_center_url }}. Without them the email breaks anti-spam law (CAN-SPAM, GDPR/ePrivacy, CASL) and the Gmail/Yahoo bulk-sender rules. Add the sender's postal address to the footer when the user gives one.

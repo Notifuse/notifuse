@@ -277,7 +277,8 @@ export class MjDividerBlock extends BaseEmailBlock {
     }
 
     return (
-      <div key={key} style={containerStyle} className={blockClasses} onClick={handleClick} data-block-id={this.block.id}>
+      <div key={key} style={containerStyle} className={blockClasses} onClick={handleClick} data-block-id={this.block.id}
+        data-display-condition={this.block.display_condition ? "true" : undefined}>
         <div style={dividerStyle}>&nbsp;</div>
       </div>
     )

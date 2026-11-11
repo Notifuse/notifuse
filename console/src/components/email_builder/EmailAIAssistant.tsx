@@ -7,6 +7,7 @@ import type { EmailBlock, MJMLComponentType } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
 import { EMAIL_AI_TOOLS, TOOL_NAMES, type EmailAIAgentCallbacks } from './email-ai-tools'
 import { buildEmailSystemPrompt } from './email-ai-system-prompt'
+import { conditionErrorsInTree, displayConditionUpdateError } from './displayCondition'
 
 export interface EmailAIAssistantProps {
   workspace: Workspace
@@ -72,6 +73,16 @@ export function EmailAIAssistant({
           updates: Partial<EmailBlock>
         }
         if (!input?.blockId || !input?.updates) return
+        const conditionError = displayConditionUpdateError(
+          callbacks.getEmailTree(),
+          input.blockId,
+          input.updates
+        )
+        if (conditionError) {
+          insert(`Block not updated: ${conditionError}`, TOOL_NAMES.UPDATE_BLOCK)
+          message.error('Invalid display condition')
+          return
+        }
         callbacks.onUpdateBlock(input.blockId, input.updates)
         insert(`Updated block ${input.blockId}`, TOOL_NAMES.UPDATE_BLOCK)
         message.success('Block updated')
@@ -153,7 +164,10 @@ export function EmailAIAssistant({
           return
         }
 
-        const errors = EmailBlockClass.validateStructure(input.tree)
+        const errors = [
+          ...EmailBlockClass.validateStructure(input.tree),
+          ...conditionErrorsInTree(input.tree)
+        ]
         if (errors.length > 0) {
           insert(`Tree validation failed: ${errors.join(', ')}`, TOOL_NAMES.SET_EMAIL_TREE)
           message.error('Invalid tree structure')

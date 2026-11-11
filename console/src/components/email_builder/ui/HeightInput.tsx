@@ -8,10 +8,7 @@ interface HeightInputProps {
   placeholder?: string
 }
 
-const HeightInput: React.FC<HeightInputProps> = ({
-  value,
-  onChange
-}) => {
+const HeightInput: React.FC<HeightInputProps> = ({ value, onChange }) => {
   const { t } = useLingui()
   const [mode, setMode] = useState<'auto' | 'custom'>('auto')
   const [numericValue, setNumericValue] = useState<number | undefined>()

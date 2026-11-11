@@ -8,11 +8,7 @@ interface LineHeightInputProps {
   placeholder?: string
 }
 
-const LineHeightInput: React.FC<LineHeightInputProps> = ({
-  value,
-  onChange,
-  placeholder
-}) => {
+const LineHeightInput: React.FC<LineHeightInputProps> = ({ value, onChange, placeholder }) => {
   const { t } = useLingui()
   const [numericValue, setNumericValue] = useState<number | undefined>()
   const resolvedPlaceholder = placeholder || t`Enter height`

@@ -124,3 +124,24 @@
 .email-text-preview small {
     font-size: smaller;
 }
+/* A block shown under a display condition: it stays visible while editing, with a
+   badge in its top right corner */
+[data-display-condition='true'] {
+  position: relative;
+}
+
+[data-display-condition='true']::after {
+  content: '\2442';
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  padding: 0 6px;
+  border-bottom-left-radius: 4px;
+  background: #7763f1;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  pointer-events: none;
+}

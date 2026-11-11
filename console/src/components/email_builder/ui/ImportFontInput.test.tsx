@@ -97,4 +97,3 @@ describe('ImportFontInput stylesheet address', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 })
-

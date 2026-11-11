@@ -185,6 +185,18 @@ export function preprocessMjml(mjmlString: string): string {
   return processed
 }
 
+// The MJML export wraps a block that has a display condition in Liquid ending with
+// `{% if __dc_<block id> %}`. The importer keeps elements only, so that Liquid is lost.
+const DISPLAY_CONDITION_LIQUID = /\{%-?\s*if\s+__dc(?:_[A-Za-z0-9_]+)?\s*-?%\}/
+
+/**
+ * Whether mjml holds the Liquid of exported display conditions, which an import into the
+ * visual editor drops: the blocks they wrapped then show to every recipient.
+ */
+export function hasDisplayConditionLiquid(mjml: string): boolean {
+  return DISPLAY_CONDITION_LIQUID.test(mjml)
+}
+
 /**
  * Browser-compatible MJML to JSON converter using DOMParser
  * This is a fallback when mjml2json doesn't work in browser environment

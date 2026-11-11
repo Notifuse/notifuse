@@ -18,6 +18,7 @@ import type {
   MJMLComponentType
 } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
+import { countHiddenBlocks } from './displayCondition'
 
 type ViewMode = 'edit' | 'preview' | 'text'
 
@@ -26,6 +27,8 @@ interface CompilationResults {
   html: string
   mjml: string
   text?: string
+  // The data the server rendered with, including the workspace object it injects
+  test_data?: Record<string, unknown>
 }
 
 interface EmailBuilderProps {
@@ -874,6 +877,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
           testData={testData}
           onTestDataChange={onTestDataChange}
           mobileDesktopSwitcherRef={mobileDesktopSwitcherRef}
+          hiddenBlockCount={countHiddenBlocks(tree, compilationResults.test_data ?? testData ?? {})}
         />
       )}
       {effectiveViewMode === 'text' && compilationResults && (
@@ -961,7 +965,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               >
                 <div className="pb-32">
                   <SettingsPanel
-                    key={`settings-${selectedBlock?.type || 'none'}`}
+                    key={`settings-${selectedBlock?.id || 'none'}`}
                     selectedBlock={selectedBlock}
                     onUpdateBlock={handleUpdateBlock}
                     attributeDefaults={EmailBlockClass.extractAttributeDefaults(tree)}

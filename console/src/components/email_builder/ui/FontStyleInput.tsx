@@ -136,7 +136,10 @@ const FontStyleInput: React.FC<FontStyleInputProps> = memo(
       { value: 'none', label: <span className="no-underline">{t`None`}</span> },
       { value: 'underline', label: <span className="underline">{t`Underline`}</span> },
       { value: 'line-through', label: <span className="line-through">{t`Line Through`}</span> },
-      { value: 'overline', label: <span style={{ textDecoration: 'overline' }}>{t`Overline`}</span> }
+      {
+        value: 'overline',
+        label: <span style={{ textDecoration: 'overline' }}>{t`Overline`}</span>
+      }
     ]
 
     const textAlignOptions = [

@@ -5,7 +5,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons'
 import type { EmailBlock } from '../email_builder/types'
 import { EmailBlockClass } from '../email_builder/EmailBlockClass'
-import { convertMjmlToJsonBrowser } from '../mjml-converter/mjml-to-json-browser'
+import {
+  convertMjmlToJsonBrowser,
+  hasDisplayConditionLiquid
+} from '../mjml-converter/mjml-to-json-browser'
 import { templatesApi } from '../../services/api/template'
 
 interface ImportExportButtonProps {
@@ -47,7 +50,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
   templateName
 }) => {
   const { t } = useLingui()
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mjmlFileInputRef = useRef<HTMLInputElement>(null)
@@ -217,6 +220,12 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
       onImport(emailTree)
 
       message.success(t`MJML template imported and converted successfully`)
+      if (hasDisplayConditionLiquid(mjmlContent)) {
+        modal.warning({
+          title: t`Display conditions not imported`,
+          content: t`This file holds the display conditions of an export. They are not imported: the blocks they wrapped now show to every recipient. Add their conditions again in the block settings.`
+        })
+      }
     } catch (error) {
       console.error('MJML import failed:', error)
 

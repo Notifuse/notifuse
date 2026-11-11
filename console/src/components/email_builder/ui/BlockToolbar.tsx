@@ -73,8 +73,12 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
           return comparable
         }
 
-        const currentComparable = JSON.stringify(getComparableAttrs(currentAttrs as Record<string, unknown>))
-        const savedComparable = JSON.stringify(getComparableAttrs(savedAttrs as Record<string, unknown>))
+        const currentComparable = JSON.stringify(
+          getComparableAttrs(currentAttrs as Record<string, unknown>)
+        )
+        const savedComparable = JSON.stringify(
+          getComparableAttrs(savedAttrs as Record<string, unknown>)
+        )
 
         return currentComparable === savedComparable
       })
@@ -182,7 +186,10 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
           />
         </Tooltip>
         <Tooltip title={t`Delete Block`} placement="left">
-          <Popconfirm title={t`Are you sure you want to delete this block?`} onConfirm={handleDelete}>
+          <Popconfirm
+            title={t`Are you sure you want to delete this block?`}
+            onConfirm={handleDelete}
+          >
             <Button
               type="text"
               size="small"
@@ -220,7 +227,9 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
         )}
 
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>{t`Save Mode`}</label>
+          <label
+            style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}
+          >{t`Save Mode`}</label>
           <Radio.Group value={saveMode} onChange={(e) => setSaveMode(e.target.value)}>
             <Radio value="new">{t`Save as new block`}</Radio>
             <Radio value="update" disabled={!savedBlocks || savedBlocks.length === 0}>
@@ -231,7 +240,9 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
 
         {saveMode === 'new' ? (
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>{t`Block Name`}</label>
+            <label
+              style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}
+            >{t`Block Name`}</label>
             <Input
               placeholder={t`Enter a name for this block`}
               value={saveBlockName}

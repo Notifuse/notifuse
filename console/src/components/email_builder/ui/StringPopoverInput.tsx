@@ -133,8 +133,8 @@ const StringPopoverInput: React.FC<StringPopoverInputProps> = ({
               isLiquid
                 ? 'text-purple-600 font-mono'
                 : validateUri && !isValueValid
-                ? 'text-red-500'
-                : 'text-slate-600'
+                  ? 'text-red-500'
+                  : 'text-slate-600'
             }`}
           >
             {value}

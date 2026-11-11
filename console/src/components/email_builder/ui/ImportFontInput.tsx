@@ -14,11 +14,7 @@ interface ImportFontInputProps {
   buttonText?: string
 }
 
-const ImportFontInput: React.FC<ImportFontInputProps> = ({
-  value,
-  onChange,
-  buttonText
-}) => {
+const ImportFontInput: React.FC<ImportFontInputProps> = ({ value, onChange, buttonText }) => {
   const { t } = useLingui()
   const [open, setOpen] = useState(false)
   const resolvedButtonText = buttonText || t`Import Font`

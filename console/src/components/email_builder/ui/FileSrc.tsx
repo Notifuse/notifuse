@@ -19,7 +19,8 @@ const FileSrcContent: React.FC<FileSrcProps> = ({
   onChange,
   placeholder,
   acceptFileType = 'image/*',
-  acceptItem = (item) => !item.is_folder && (item.file_info?.content_type?.startsWith('image/') ?? false),
+  acceptItem = (item) =>
+    !item.is_folder && (item.file_info?.content_type?.startsWith('image/') ?? false),
   buttonText,
   disabled = false,
   size = 'small'
