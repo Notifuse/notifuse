@@ -14,7 +14,18 @@ export const mockApi = async (page: Page, path: string, data: unknown) => {
 }
 
 // Opens the visual editor of a template, the API answering with that template
-export const openTemplateEditor = async (page: Page, shown: object) => {
+// The labels the drawer is found by, in the console's language
+export interface EditorLabels {
+  drawer: string
+  templateTab: string
+}
+const ENGLISH: EditorLabels = { drawer: 'Edit email template', templateTab: '2. Template' }
+
+export const openTemplateEditor = async (
+  page: Page,
+  shown: object,
+  labels: EditorLabels = ENGLISH
+) => {
   await mockApi(page, 'templates.list', { templates: [shown], total: 1 })
   await mockApi(page, 'templates.get', { template: shown })
 
@@ -25,8 +36,8 @@ export const openTemplateEditor = async (page: Page, shown: object) => {
     .first()
     .locator('button:has(svg[data-icon="pen-to-square"])')
     .click()
-  const drawer = page.getByRole('dialog', { name: 'Edit email template', exact: true })
+  const drawer = page.getByRole('dialog', { name: labels.drawer, exact: true })
   await expect(drawer).toBeVisible()
-  await drawer.getByRole('tab', { name: '2. Template' }).click()
+  await drawer.getByRole('tab', { name: labels.templateTab }).click()
   return drawer
 }

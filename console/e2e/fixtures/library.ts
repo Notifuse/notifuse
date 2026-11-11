@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 import { expect } from './auth'
-import { mockApi, openTemplateEditor } from './template-editor'
+import { mockApi, openTemplateEditor, type EditorLabels } from './template-editor'
 import { mockTemplates, mockUserMeResponse, mockWorkspace } from './mock-data'
 import { block, column, find, section, text, type TreeBlock } from './tree-drag'
 
@@ -150,6 +150,8 @@ const insertedIn = (body: TreeBlock, original: Set<string>) => {
 interface OpenOptions {
   viewport?: { width: number; height: number }
   savedBlocks?: unknown[]
+  // For a console in another language
+  labels?: EditorLabels
 }
 
 export const workspaceWithBlocks = (savedBlocks: unknown[]) => ({
@@ -184,7 +186,7 @@ export const openLibraryEditor = async (
     })
   })
   await page.setViewportSize(options.viewport ?? { width: 1600, height: 1000 })
-  const drawer = await openTemplateEditor(page, template)
+  const drawer = await openTemplateEditor(page, template, options.labels)
   const canvas = drawer.locator('[data-canvas-root]')
   await expect(canvas.locator('[data-block-id="S1"]')).toBeVisible()
   await drawer.getByTestId('library-tab').click()
