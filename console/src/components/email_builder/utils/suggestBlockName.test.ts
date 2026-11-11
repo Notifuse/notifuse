@@ -5,13 +5,19 @@ import { b, text } from './libraryTestTrees'
 describe('suggestBlockName', () => {
   it('names a section after its heading text', () => {
     const section = b('s', 'mj-section', [
-      b('c', 'mj-column', [b('i', 'mj-image'), text('t', '<h1>Spring sale</h1><p>Up to 50% off</p>')])
+      b('c', 'mj-column', [
+        b('i', 'mj-image'),
+        text('t', '<h1>Spring sale</h1><p>Up to 50% off</p>')
+      ])
     ])
     expect(suggestBlockName(section, 'Section')).toBe('Section · Spring sale Up to 50% off')
   })
 
   it('strips HTML and Liquid from the text and collapses its spaces', () => {
-    const block = text('t', '<p>Hello   {{ contact.first_name }}{% if vip %},\n welcome{% endif %}</p>')
+    const block = text(
+      't',
+      '<p>Hello   {{ contact.first_name }}{% if vip %},\n welcome{% endif %}</p>'
+    )
     expect(suggestBlockName(block, 'Text')).toBe('Text · Hello, welcome')
   })
 

@@ -5,6 +5,13 @@ import { OverlayScrollbarsComponent, type OverlayScrollbarsComponentRef } from '
 import 'overlayscrollbars/overlayscrollbars.css'
 import { BlockToolbar } from '../ui/BlockToolbar'
 
+// The canvas, for the library's drag-and-drop: the rendered email and the element that scrolls it. Looked up through
+// this handle, never in the document: another editor can be mounted, hidden, at the same time.
+export interface CanvasHandle {
+  root: () => HTMLElement | null
+  viewport: () => HTMLElement | null
+}
+
 interface EditPanelProps {
   emailTree: EmailBlock
   selectedBlockId?: string | null
@@ -17,6 +24,9 @@ interface EditPanelProps {
   onPreview?: () => Promise<void>
   onSaveBlock: SaveBlockHandler
   savedBlocks?: SavedBlock[]
+  // Opens the editor's save dialog for a block
+  onOpenSaveDialog: (blockId: string) => void
+  canvasRef?: React.MutableRefObject<CanvasHandle | null>
 }
 
 export const EditPanel: React.FC<EditPanelProps> = ({
@@ -27,7 +37,9 @@ export const EditPanel: React.FC<EditPanelProps> = ({
   onCloneBlock,
   onDeleteBlock,
   onSaveBlock,
-  savedBlocks
+  savedBlocks,
+  onOpenSaveDialog,
+  canvasRef
 }) => {
   // Ref to store the OverlayScrollbars instance for scroll position preservation
   const scrollContainerRef = useRef<OverlayScrollbarsComponentRef<'div'> | null>(null)
@@ -38,6 +50,21 @@ export const EditPanel: React.FC<EditPanelProps> = ({
   const emailTreeRef = useRef(emailTree)
   const prevSelectedBlockId = useRef(selectedBlockId)
   const editPanelRef = useRef<HTMLDivElement>(null)
+  const canvasRootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!canvasRef) return
+    canvasRef.current = {
+      root: () => canvasRootRef.current,
+      viewport: () =>
+        scrollContainerRef.current?.osInstance()?.elements().viewport ??
+        canvasRootRef.current?.closest<HTMLElement>('[data-overlayscrollbars-viewport]') ??
+        null
+    }
+    return () => {
+      canvasRef.current = null
+    }
+  }, [canvasRef])
 
   // State for toolbar positioning
   const [toolbarPosition, setToolbarPosition] = useState<{
@@ -296,6 +323,8 @@ export const EditPanel: React.FC<EditPanelProps> = ({
         }}
       >
         <div
+          ref={canvasRootRef}
+          data-canvas-root
           style={{
             width: bodyWidth,
             minWidth: '600px',
@@ -334,15 +363,9 @@ export const EditPanel: React.FC<EditPanelProps> = ({
         >
           <BlockToolbar
             blockId={selectedBlockId || ''}
-            block={
-              selectedBlockId
-                ? EmailBlockClass.findBlockById(emailTree, selectedBlockId) || undefined
-                : undefined
-            }
             onClone={onCloneBlock}
             onDelete={onDeleteBlock}
-            onSave={onSaveBlock}
-            savedBlocks={savedBlocks}
+            onSave={onOpenSaveDialog}
           />
         </div>
       )}

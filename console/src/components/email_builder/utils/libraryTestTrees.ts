@@ -16,7 +16,8 @@ export const b = (
     ...extra
   }) as unknown as EmailBlock
 
-export const text = (id: string, content = '<p>Text</p>') => b(id, 'mj-text', undefined, { content } as Partial<EmailBlock>)
+export const text = (id: string, content = '<p>Text</p>') =>
+  b(id, 'mj-text', undefined, { content } as Partial<EmailBlock>)
 
 export const email = (bodyChildren: EmailBlock[], headChildren: EmailBlock[] = []): EmailBlock =>
   b('root', 'mjml', [b('head', 'mj-head', headChildren), b('body', 'mj-body', bodyChildren)])

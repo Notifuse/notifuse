@@ -52,7 +52,9 @@ export function resolveInsertTarget(
   const path = selectedId ? pathTo(tree, selectedId) : null
   const bodyIndex = path ? path.findIndex((node) => node.id === body.id) : -1
   if (!path || bodyIndex === -1) {
-    return takesFromLibrary(body, block) ? decide({ parentId: body.id, index: childrenOf(body).length }) : refused
+    return takesFromLibrary(body, block)
+      ? decide({ parentId: body.id, index: childrenOf(body).length })
+      : refused
   }
 
   const selected = path[path.length - 1]

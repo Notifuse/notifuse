@@ -12,8 +12,12 @@ const tree = email([
     b('column-1', 'mj-column', [text('text-1'), text('text-2')]),
     b('column-2', 'mj-column', [text('text-3')])
   ]),
-  b('section-2', 'mj-section', [b('group-1', 'mj-group', [b('column-g', 'mj-column', [text('text-g')])])]),
-  b('wrapper-1', 'mj-wrapper', [b('section-w', 'mj-section', [b('column-w', 'mj-column', [text('text-w')])])])
+  b('section-2', 'mj-section', [
+    b('group-1', 'mj-group', [b('column-g', 'mj-column', [text('text-g')])])
+  ]),
+  b('wrapper-1', 'mj-wrapper', [
+    b('section-w', 'mj-section', [b('column-w', 'mj-column', [text('text-w')])])
+  ])
 ])
 
 describe('resolveInsertTarget', () => {
@@ -66,7 +70,7 @@ describe('resolveInsertTarget', () => {
     })
   })
 
-  it("puts a saved group after the group holding the selected text, in its section, not inside it", () => {
+  it('puts a saved group after the group holding the selected text, in its section, not inside it', () => {
     expect(resolveInsertTarget(tree, 'text-g', block('mj-group', []))).toEqual({
       parentId: 'section-2',
       index: 1
@@ -110,7 +114,9 @@ describe('resolveInsertTarget', () => {
     const conditional = email([
       b('section-c', 'mj-section', [b('column-c', 'mj-column', [text('text-c')])], condition)
     ])
-    expect(resolveInsertTarget(conditional, 'text-c', block('mj-liquid'))).toEqual({ refusal: 'liquid' })
+    expect(resolveInsertTarget(conditional, 'text-c', block('mj-liquid'))).toEqual({
+      refusal: 'liquid'
+    })
   })
 
   it('refuses a saved section holding Liquid with a block in a conditional wrapper selected', () => {

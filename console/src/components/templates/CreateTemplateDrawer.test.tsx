@@ -352,10 +352,11 @@ describe('CreateTemplateDrawer saving a block from the editor', () => {
 
   // Characterisation: the duplicate success message came from the toolbar, not from here
   it('creates a template block, refreshes the workspace and shows one success message', async () => {
-    ;(templateBlocksApi.create as Mock).mockResolvedValue({ block: {} })
+    ;(templateBlocksApi.create as Mock).mockResolvedValue({ block: { id: 'products-id' } })
     const onSaveBlock = await openEditor()
 
-    await expect(onSaveBlock(block, 'create', 'Products')).resolves.toBeUndefined()
+    // The created block's id, which the editor highlights in its library
+    await expect(onSaveBlock(block, 'create', 'Products')).resolves.toBe('products-id')
 
     expect(templateBlocksApi.create).toHaveBeenCalledWith({ workspace_id: 'ws1', name: 'Products', block })
     expect(auth.refreshWorkspaces).toHaveBeenCalledTimes(1)
@@ -388,7 +389,7 @@ describe('CreateTemplateDrawer saving a block from the editor', () => {
     auth.refreshWorkspaces.mockRejectedValue(new Error('network'))
     const onSaveBlock = await openEditor()
 
-    await expect(onSaveBlock(block, 'update', 'header-id')).resolves.toBeUndefined()
+    await expect(onSaveBlock(block, 'update', 'header-id')).resolves.toBe('header-id')
 
     expect(templateBlocksApi.update).toHaveBeenCalledWith({
       workspace_id: 'ws1',
