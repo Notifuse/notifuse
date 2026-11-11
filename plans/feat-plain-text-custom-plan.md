@@ -30,6 +30,8 @@ keys only, inside existing JSONB columns (`templates.email.text`, translation
 `email.text`, `email_queue.payload.text_content`). Version stays **43.2** while unreleased
 (if 43.2 ships first: 43.3, SDK rebuild, OpenAPI bundle). Also aligns
 `web_analytics_sdk/package-lock.json` (still `42.3.0`) on `43.2.0`.
+As shipped: dev folded the unreleased 43.1 and 43.2 sections into **44.0** (#507), so the
+CHANGELOG entry sits under 44.0 and the lockfile is aligned on `44.0.0`.
 
 ## Data and rules
 

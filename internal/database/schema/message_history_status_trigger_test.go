@@ -150,3 +150,31 @@ func TestTrackMessageHistoryChangesFunction_SetsTheListStatusBeforeTheTimeline(t
 	assert.Less(t, updateBranch, step, "a send sets no status")
 	assert.Less(t, step, firstEntryOfTheUpdate)
 }
+
+// A click that records a link not yet verified on the message writes one email.link_clicked
+// entry per such link, after the email.clicked entry of the same update. The step is found by
+// its anchor comment, which the v42 freeze test also relies on.
+func TestTrackMessageHistoryChangesFunction_WritesALinkClickedEntryPerNewlyVerifiedLink(t *testing.T) {
+	body := normalizeIndent(TrackMessageHistoryChangesFunction())
+
+	require.Equal(t, 1, strings.Count(body, LinkClickedStepAnchor), "the anchor marks exactly one step")
+	require.Equal(t, 1, strings.Count(body, "NEW.channel || '.link_clicked'"))
+
+	clicked := strings.Index(body, "NEW.channel || '.clicked'")
+	step := strings.Index(body, LinkClickedStepAnchor)
+	bounced := strings.Index(body, "NEW.channel || '.bounced'")
+	require.NotEqual(t, -1, clicked)
+	assert.Less(t, clicked, step, "email.clicked is written before the link entries")
+	assert.Less(t, step, bounced)
+
+	stepBody := body[step:bounced]
+	assert.Contains(t, stepBody, "NEW.clicked_links IS DISTINCT FROM OLD.clicked_links",
+		"an update that leaves clicked_links alone does no work")
+	assert.Contains(t, stepBody, "jsonb_typeof(NEW.clicked_links) = 'object'", "jsonb_each fails on a non-object")
+	assert.Contains(t, stepBody, "jsonb_typeof(OLD.clicked_links) = 'object'", "a malformed OLD value reads as no link")
+	assert.Contains(t, stepBody, "jsonb_typeof(e.value) = 'object'", "a malformed entry is skipped")
+	assert.Contains(t, stepBody, "(e.value->>'verified') = 'true'", "only a link clicked through a verified token")
+	for _, field := range []string{"'clicked_url'", "'broadcast_id'", "'template_id'", "'automation_id'"} {
+		assert.Contains(t, stepBody, field, "the automation trigger WHEN reads %s from changes", field)
+	}
+}

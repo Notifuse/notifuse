@@ -130,8 +130,9 @@ const updateTimelineKindsSQL = `
 
 // dottedTrackMessageHistoryChangesFn is the dot-notation writer trigger function as v36
 // shipped it. It stays frozen: v42 replaces it on every workspace with
-// schema.TrackMessageHistoryChangesFunction, which a fresh install uses too and which adds
-// only the complaint and bounce list status step to this body.
+// v42TrackMessageHistoryChangesFn, which adds only the complaint and bounce list status
+// step to this body, and v44 with schema.TrackMessageHistoryChangesFunction, which a fresh
+// install uses too and which adds the email.link_clicked step.
 const dottedTrackMessageHistoryChangesFn = `CREATE OR REPLACE FUNCTION track_message_history_changes()
 	RETURNS TRIGGER AS $$
 	DECLARE
