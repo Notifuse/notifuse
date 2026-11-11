@@ -441,7 +441,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         if (parentContainer && parentContainer.children) {
           if (parentContainer.type === 'mj-section') {
             const columns = parentContainer.children.filter((child) => child.type === 'mj-column')
-            rebalanceAfterAdd(parentContainer, newBlock.id)
+            rebalanceAfterAdd(parentContainer, newBlock.id, EmailBlockClass.extractAttributeDefaults(updatedTree))
 
             // Add a default text element to the new column
             const newColumn = EmailBlockClass.findBlockById(updatedTree, newBlock.id)
@@ -465,7 +465,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               ;(newColumn.children as EmailBlock[]).push(textBlock)
             }
           } else if (parentContainer.type === 'mj-group') {
-            rebalanceAfterAdd(parentContainer, newBlock.id)
+            rebalanceAfterAdd(parentContainer, newBlock.id, EmailBlockClass.extractAttributeDefaults(updatedTree))
 
             // Add a default text element to the new column
             const newColumn = EmailBlockClass.findBlockById(updatedTree, newBlock.id)
@@ -495,7 +495,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       // A group added to a section makes room: the columns keep their proportions
       if (blockType === 'mj-group') {
         const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentId)
-        if (parentContainer) rebalanceAfterAdd(parentContainer, newBlock.id)
+        if (parentContainer) rebalanceAfterAdd(parentContainer, newBlock.id, EmailBlockClass.extractAttributeDefaults(updatedTree))
       }
 
       // If we're adding a section to the body, add a default column with text
@@ -619,7 +619,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         parentContainerType
       ) {
         const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentContainerId)
-        if (parentContainer) rebalanceAfterRemove(parentContainer)
+        if (parentContainer) rebalanceAfterRemove(parentContainer, EmailBlockClass.extractAttributeDefaults(updatedTree))
       }
 
       updateTreeWithHistory(updatedTree)
@@ -688,7 +688,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       // group makes room the same way
       if (blockToClone.type === 'mj-column' || blockToClone.type === 'mj-group') {
         const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentInfo.parent.id)
-        if (parentContainer) rebalanceAfterAdd(parentContainer, clonedBlock.id)
+        if (parentContainer) rebalanceAfterAdd(parentContainer, clonedBlock.id, EmailBlockClass.extractAttributeDefaults(updatedTree))
       }
 
       updateTreeWithHistory(updatedTree)
@@ -734,9 +734,9 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       const moved = EmailBlockClass.findBlockById(updatedTree, blockId)
       if ((moved?.type === 'mj-column' || moved?.type === 'mj-group') && !sameParent) {
         const source = EmailBlockClass.findBlockById(updatedTree, original.parent.id)
-        if (source) rebalanceAfterRemove(source)
+        if (source) rebalanceAfterRemove(source, EmailBlockClass.extractAttributeDefaults(updatedTree))
         const destination = EmailBlockClass.findBlockById(updatedTree, newParentId)
-        if (destination) rebalanceAfterAdd(destination, blockId)
+        if (destination) rebalanceAfterAdd(destination, blockId, EmailBlockClass.extractAttributeDefaults(updatedTree))
       }
 
       updateTreeWithHistory(updatedTree)
@@ -763,7 +763,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       // A saved column takes its share of the container like an added one, and a saved group makes room
       if (blockWithNewIds.type === 'mj-column' || blockWithNewIds.type === 'mj-group') {
         const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentId)
-        if (parentContainer) rebalanceAfterAdd(parentContainer, blockWithNewIds.id)
+        if (parentContainer) rebalanceAfterAdd(parentContainer, blockWithNewIds.id, EmailBlockClass.extractAttributeDefaults(updatedTree))
       }
 
       updateTreeWithHistory(updatedTree)

@@ -55,12 +55,6 @@ next to a column, if #513's entry does not already say it.
 ## Out of scope
 - gomjml remaining differences listed in `plans/fix-gomjml-group-widths-plan.md`.
 
-## Run
-```
-cd console && npm test -- email_builder && npx tsc --noEmit && npm run lint
-cd console && npm run lingui:extract   # only if a new string is added
-```
-
 ## Spec review — integrated
 - Current behaviours confirmed (mjml-defaults.ts:209-215, EmailBlockClass.tsx:433-456,
   MjSectionBlock.tsx:343-361, MjGroupBlock.tsx:50 and :292).
@@ -110,3 +104,18 @@ cd console && npm run lingui:extract   # only if a new string is added
   EmailBuilder.tsx: add, delete, clone, move across containers, saved block, for mj-group too.
   Tests: columnWidths.test.ts (+9), EmailBuilder.test.tsx (+2, new section SD). Full console suite
   3854 tests, tsc -b, eslint pass.
+- Code review of 02a02bb: blocking, the rebalance ignored the mj-attributes group width
+  the canvas and gomjml use; fixed by one resolver (`groupWidth`, `parseWidth` in
+  sectionChildWidth.ts) passed `extractAttributeDefaults(tree)` from every EmailBuilder call site.
+  Also fixed: a group added where groups leave no room no longer stretches the columns to 100%;
+  one width parser for canvas and rebalance; a test comment; the CHANGELOG qualifies new groups in
+  templates whose default attributes set a group width. Known, not handled: the AI assistant's
+  add/move/delete never rebalance (as for columns); a px group counts as an equal share in the
+  rebalance; mj-class ignored; on the canvas a row over 100% is squeezed.
+
+## Run
+```
+cd console && npx vitest run src/components/email_builder && npx tsc -b && npm run lint
+cd console && npx vitest run   # full console suite once, before review
+cd console && npm run lingui:extract   # only if a new string is added
+```

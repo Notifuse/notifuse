@@ -75,7 +75,7 @@ describe('rebalanceAfterAdd', () => {
   })
 
   it('equalises the columns in what the groups leave when they did not fill it', () => {
-    // A group saved at the old 100% default next to a column at 100%
+    // A group created before groups were counted, next to a column at 100%
     const section = container('mj-section', [group('g'), col('a', '100%'), col('new')])
     rebalanceAfterAdd(section, 'new')
     expect(widths(section)).toEqual([undefined, '33.33%', '33.34%'])
@@ -97,6 +97,23 @@ describe('rebalanceAfterAdd', () => {
     const section = container('mj-section', [group('g', '300px'), col('new')])
     rebalanceAfterAdd(section, 'new')
     expect(widths(section)).toEqual(['300px', '50%'])
+  })
+
+  it("counts a group at the width the template's default attributes give it", () => {
+    const section = container('mj-section', [group('g'), col('new')])
+    rebalanceAfterAdd(section, 'new', { 'mj-group': { width: '40%' } })
+    expect(widths(section)).toEqual([undefined, '60%'])
+
+    // The group's own width wins
+    const own = container('mj-section', [group('g', '30%'), col('a', '60%'), col('b', '40%')])
+    rebalanceAfterRemove(own, { 'mj-group': { width: '40%' } })
+    expect(widths(own)).toEqual(['30%', '42%', '28%'])
+  })
+
+  it('leaves the columns alone when a new group leaves them no room', () => {
+    const section = container('mj-section', [group('g', '50%'), group('new', '50%'), col('a', '50%')])
+    rebalanceAfterAdd(section, 'new')
+    expect(widths(section)).toEqual(['50%', '50%', '50%'])
   })
 
   it('does not count groups that leave the columns no room', () => {

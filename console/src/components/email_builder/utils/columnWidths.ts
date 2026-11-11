@@ -1,8 +1,10 @@
 import type { EmailBlock } from '../types'
+import { groupWidth, parseWidth, type AttributeDefaults } from './sectionChildWidth'
 
 // Column widths of a section or a group, kept in proportion when a column or a group comes or goes. In a section,
-// the groups take their part first, as in the email: their percentage width, or an equal share of the section when
-// they have none (a pixel width counts as that share too). The columns share what is left. Groups, raw HTML and
+// the groups take their part first, as in the email: their percentage width (their own, else the one the template's
+// default attributes give groups), or an equal share of the section when they have none (a pixel width counts as
+// that share too). The columns share what is left. Groups, raw HTML and
 // Liquid keep their own attributes: only column widths are written.
 
 const SUM_TOLERANCE = 0.5
@@ -15,22 +17,39 @@ const columnsOf = (container: EmailBlock): EmailBlock[] =>
     ? childrenOf(container, 'mj-column')
     : []
 
-const percentOf = (block: EmailBlock): number | null => {
-  const width = (block.attributes as Record<string, unknown> | undefined)?.width
-  if (typeof width !== 'string') return null
-  const match = /^\s*(\d+(?:\.\d+)?)\s*%\s*$/.exec(width)
-  return match ? Number(match[1]) : null
+const percent = (value: unknown): number | null => {
+  const width = parseWidth(value)
+  return width?.unit === '%' ? width.amount : null
 }
 
-// What the groups of a section leave to its columns, the section holding `layoutCount` columns and groups. Groups
-// that would leave no room are not counted, as before groups were counted at all.
-const columnBudget = (container: EmailBlock, groups: EmailBlock[], layoutCount: number): number => {
+const percentOf = (block: EmailBlock): number | null =>
+  percent((block.attributes as Record<string, unknown> | undefined)?.width)
+
+// What the groups of a section leave to its columns, the section holding `layoutCount` columns and groups, or null
+// when they leave no room
+const roomLeft = (
+  container: EmailBlock,
+  groups: EmailBlock[],
+  layoutCount: number,
+  attributeDefaults: AttributeDefaults
+): number | null => {
   if (container.type !== 'mj-section' || groups.length === 0) return 100
   const share = 100 / Math.max(layoutCount, 1)
-  const taken = groups.reduce((total, group) => total + (percentOf(group) ?? share), 0)
+  const taken = groups.reduce(
+    (total, group) => total + (percent(groupWidth(group, attributeDefaults)) ?? share),
+    0
+  )
   const left = 100 - taken
-  return left > 0 ? left : 100
+  return left > 0 ? left : null
 }
+
+// Groups that leave no room are not counted, as before groups were counted at all
+const columnBudget = (
+  container: EmailBlock,
+  groups: EmailBlock[],
+  layoutCount: number,
+  attributeDefaults: AttributeDefaults
+): number => roomLeft(container, groups, layoutCount, attributeDefaults) ?? 100
 
 // Writes the exact shares, rounded to hundredths for every column but the last, which takes the remainder so the
 // total is exactly the budget
@@ -67,21 +86,27 @@ const scaleTo = (columns: EmailBlock[], budget: number) => {
  * After a column or a group was added to (or moved into) the container. A new column gets its share of what the
  * groups leave and the other columns keep their ratio; a new group makes room, the columns keeping their ratio.
  */
-export function rebalanceAfterAdd(container: EmailBlock, addedId: string): void {
+export function rebalanceAfterAdd(
+  container: EmailBlock,
+  addedId: string,
+  attributeDefaults: AttributeDefaults = {}
+): void {
   const columns = columnsOf(container)
   if (columns.length === 0) return
   const groups = container.type === 'mj-section' ? childrenOf(container, 'mj-group') : []
   const layoutCount = columns.length + groups.length
-  const budget = columnBudget(container, groups, layoutCount)
 
   if (groups.some((group) => group.id === addedId)) {
-    scaleTo(columns, budget)
+    // A group that leaves the columns no room leaves them as they are
+    const room = roomLeft(container, groups, layoutCount, attributeDefaults)
+    if (room !== null) scaleTo(columns, room)
     return
   }
   if (!columns.some((column) => column.id === addedId)) return
+  const budget = columnBudget(container, groups, layoutCount, attributeDefaults)
 
   // What the other columns filled before this one came
-  const previousBudget = columnBudget(container, groups, layoutCount - 1)
+  const previousBudget = columnBudget(container, groups, layoutCount - 1, attributeDefaults)
   const others = columns.filter((column) => column.id !== addedId).map(percentOf)
   const sum = others.reduce<number>((total, width) => total + (width ?? 0), 0)
   const keepRatios =
@@ -103,9 +128,12 @@ export function rebalanceAfterAdd(container: EmailBlock, addedId: string): void 
 }
 
 /** After a column or a group was removed from (or moved out of) the container: the columns keep their ratio. */
-export function rebalanceAfterRemove(container: EmailBlock): void {
+export function rebalanceAfterRemove(
+  container: EmailBlock,
+  attributeDefaults: AttributeDefaults = {}
+): void {
   const columns = columnsOf(container)
   if (columns.length === 0) return
   const groups = container.type === 'mj-section' ? childrenOf(container, 'mj-group') : []
-  scaleTo(columns, columnBudget(container, groups, columns.length + groups.length))
+  scaleTo(columns, columnBudget(container, groups, columns.length + groups.length, attributeDefaults))
 }

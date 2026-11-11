@@ -300,10 +300,10 @@ describe('EmailBuilder moving and changing columns', () => {
       ]
     }) as unknown as EmailBlock
 
-  const setup = () => {
+  const setup = (initialTree: EmailBlock = makeColumnsTree()) => {
     mockTreePanelProps = {}
     const onTreeChange = vi.fn()
-    render(<EmailBuilder {...props(makeColumnsTree(), vi.fn(), null)} onTreeChange={onTreeChange} />)
+    render(<EmailBuilder {...props(initialTree, vi.fn(), null)} onTreeChange={onTreeChange} />)
     const call = (name: string, ...args: unknown[]) =>
       act(() => {
         (mockTreePanelProps[name] as (...a: unknown[]) => void)(...args)
@@ -385,6 +385,21 @@ describe('EmailBuilder moving and changing columns', () => {
     const saved = setup()
     saved.call('onAddSavedBlock', 'SB', { id: 'sg', type: 'mj-group', attributes: {}, children: [] }, 0)
     expect(saved.widths('SB')).toEqual([undefined, '20%', '46.67%'])
+  })
+
+  it("counts a group at the width the template's default attributes give it", () => {
+    const tree = makeColumnsTree() as unknown as { children: Node[] }
+    tree.children[0].children = [
+      {
+        id: 'attrs',
+        type: 'mj-attributes',
+        attributes: {},
+        children: [{ id: 'group-defaults', type: 'mj-group', attributes: { width: '40%' } }]
+      }
+    ]
+    const { call, widths } = setup(tree as unknown as EmailBlock)
+    call('onMoveBlock', 'G', 'SB', 2)
+    expect(widths('SB')).toEqual(['18%', '42%', undefined])
   })
 
   // Characterisation: the AI assistant moves blocks through moveBlockInTree with a final index

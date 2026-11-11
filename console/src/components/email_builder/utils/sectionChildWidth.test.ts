@@ -65,6 +65,11 @@ describe('sectionChildWidth', () => {
     expect(sectionChildWidth(own, section(own), { 'mj-group': { width: '300px' } })).toBe('40%')
   })
 
+  it('reads a width written with spaces', () => {
+    const g = block('g', 'mj-group', { width: ' 60 % ' })
+    expect(sectionChildWidth(g, section(g))).toBe('60%')
+  })
+
   it('falls back to the share when the width cannot be read', () => {
     const g = block('g', 'mj-group', { width: 'auto' })
     const c = block('c', 'mj-column', { width: '' })
