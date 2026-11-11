@@ -5,7 +5,7 @@ import { DownOutlined } from '@ant-design/icons'
 import { SUPPORTED_LANGUAGES } from '../../lib/languages'
 import type { Workspace } from '../../services/api/types'
 import type { EmailBlock } from '../email_builder/types'
-import type { SavedBlock, SaveOperation } from '../email_builder/types'
+import type { SavedBlock, SaveBlockHandler } from '../email_builder/types'
 import type { MjmlCompileError } from '../../services/api/template'
 import { templatesApi } from '../../services/api/template'
 import EmailBuilder from '../email_builder/EmailBuilder'
@@ -39,7 +39,7 @@ interface TemplateTranslationsTabProps {
   testData?: Record<string, unknown>
   onTestDataChange: (testData: Record<string, unknown>) => void
   savedBlocks: SavedBlock[]
-  onSaveBlock: (block: EmailBlock, operation: SaveOperation, nameOrId: string) => void
+  onSaveBlock: SaveBlockHandler
   // Template category: decides which links a custom text is reminded to keep.
   category?: string
 }

@@ -1,6 +1,6 @@
 import React from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import type { DisplayCondition, EmailBlock, MJMLComponentType, SaveOperation, SavedBlock, MergedBlockAttributes, BaseBlock } from './types'
+import type { DisplayCondition, EmailBlock, MJMLComponentType, SaveBlockHandler, SavedBlock, MergedBlockAttributes, BaseBlock } from './types'
 import { MJML_COMPONENT_DEFAULTS, mergeWithDefaults } from './mjml-defaults'
 import { EmailBlockFactory } from './blocks/EmailBlockFactory'
 import type { OnUpdateAttributesFunction, PreviewProps } from './blocks/BaseEmailBlock'
@@ -748,7 +748,7 @@ export class EmailBlockClass {
     onUpdateBlock: (blockId: string, updates: EmailBlock) => void,
     onCloneBlock: (blockId: string) => void,
     onDeleteBlock: (blockId: string) => void,
-    onSaveBlock: (block: EmailBlock, operation: SaveOperation, nameOrId: string) => void,
+    onSaveBlock: SaveBlockHandler,
     savedBlocks?: SavedBlock[]
   ): React.ReactNode {
     // Try to use the new block class architecture first

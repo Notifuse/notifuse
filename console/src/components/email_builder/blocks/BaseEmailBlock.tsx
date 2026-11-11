@@ -1,5 +1,5 @@
 import React from 'react'
-import type { EmailBlock, MJMLComponentType, SaveOperation, SavedBlock, MergedBlockAttributes } from '../types'
+import type { EmailBlock, MJMLComponentType, SaveBlockHandler, SavedBlock, MergedBlockAttributes } from '../types'
 
 // Define the onUpdate function type - accepts object of attributes to update
 export type OnUpdateAttributesFunction = (updates: Record<string, unknown>) => void
@@ -12,7 +12,7 @@ export interface PreviewProps {
   onDeleteBlock: (blockId: string) => void
   attributeDefaults: Partial<Record<MJMLComponentType, Record<string, unknown>>>
   emailTree: EmailBlock
-  onSaveBlock: (block: EmailBlock, operation: SaveOperation, nameOrId: string) => void
+  onSaveBlock: SaveBlockHandler
   savedBlocks?: SavedBlock[]
 }
 
