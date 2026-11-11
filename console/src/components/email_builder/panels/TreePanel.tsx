@@ -551,8 +551,8 @@ export const TreePanel: React.FC<TreePanelProps> = ({
     row?.querySelector('[data-block-id]')?.getAttribute('data-block-id') ?? null
 
   // The gap is between the last row whose middle is above the pointer, or level with it, and the next row; above
-  // the Body row's
-  // middle, it is the Body row's bottom half. This covers the band antd leaves under each row and the padding
+  // the Body row's middle, it is the Body row's bottom half. This covers the band antd leaves under each row and
+  // the padding
   const locateDrop = (
     wrapper: HTMLElement,
     drag: DragSource & { startX: number },

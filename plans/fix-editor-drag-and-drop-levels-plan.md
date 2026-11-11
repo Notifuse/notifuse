@@ -148,8 +148,10 @@ non-empty container appends (`(U, len)`, the existing e2e case `C3[D,SP,T3,T4,T1
 
 A `div` with `data-testid="tree-drop-line"`, `aria-hidden`, `pointer-events: none`, absolutely positioned in the
 body tree's wrapper (`relative`):
-- top: the upper row's bottom, in wrapper coordinates (the rect difference handles the panel's scroll, plus the wrapper's own scroll offsets);
-- left: the upper row's content left (its `.ant-tree-node-content-wrapper`) plus `(depth − depth(U)) × indent`;
+- top: the upper row's bottom, in wrapper coordinates (the rect difference handles the panel's scroll), plus the
+  wrapper's `scrollTop`;
+- left: the upper row's content left (its `.ant-tree-node-content-wrapper`), in wrapper coordinates, plus the
+  wrapper's `scrollLeft`, plus `(depth − depth(U)) × indent`;
 - right: 0.
 
 The line state is `{ top, left } | null` and is set only when it changes: every render rebuilds `treeData`, and a
@@ -164,7 +166,8 @@ recomputed on every `dragover`, so a refused position removes it (limit 4), and 
 rc-tree's own timer is armed only on `dragenter` and only where `allowDrop` is true, and is not cancelled when the
 pointer moves to a row with no place. With `allowDrop={() => false}` it never arms, and the wrapper runs its own:
 
-- On each `dragover`, the hovered row is the row of the event's target, or none (in the 4 px band under a row, that row).
+- On each `dragover`, the hovered row is the row of the event's target, or none (in the 4 px band under a row,
+  that row).
 - If it changed, the pending timer is cleared. If the new row is collapsed (not in `expandedKeys`, has children), is
   not the dragged block or inside it, and it or one of its descendants accepts the dragged type, a timer of 800 ms
   calls `onTreeExpand([...expandedKeys, id])`.
@@ -181,9 +184,8 @@ The wrapper handles, in the capture phase (it runs before rc-tree's row handlers
   `preventDefault` when there is a place, so the native `drop` fires on the padding too.
 - `onDropCapture`: the place is computed again from the drop's coordinates (a row may have opened under the pointer
   since the last `dragover`). With a place: `preventDefault`, `onMoveBlock(id, parentId, index)`, and
-  `onTreeExpand` for the parent when it is collapsed or empty. Then clear the line, the place, the timer and the
-  drag ref.
-- `onDragLeaveCapture`: clear the line, the place and the timer when the pointer leaves the wrapper: `relatedTarget`
+  `onTreeExpand` for the parent when it is collapsed or empty. Then clear the line, the timer and the drag ref.
+- `onDragLeaveCapture`: clear the line and the timer when the pointer leaves the wrapper: `relatedTarget`
   is outside it, or, when `relatedTarget` is null, the pointer is outside the wrapper's rect.
 
 rc-tree props:
@@ -294,15 +296,18 @@ No change: `onMoveBlock` keeps its contract.
 - `fixtures/tree-drag.ts`: the pointer goes straight down from the grab point, plus `dx`, instead of to the target's
   label. `ROW` becomes `[role="treeitem"]`. `lineShown` reads `tree-drop-line`; a `lineLeft` helper is added; a
   `grab` option picks the label or the drag handle. Offsets stay off ±12.
-- Kept cases: unchanged expectations. Three gestures change: the drops "onto the middle" of C2 and S3 move from 0.5
-  to 0.7 of the row, off the exact middle; the sideways offsets of "a section dropped on the top half of the next
-  section" become 0, −24, +24, +48, so the pointer stays over the tree now that it starts from the section's label;
-  "the wrapper moves by its handle" now grabs the handle.
+- Kept cases: unchanged expectations. Some gestures change:
+  - the drops on the middle of C2 and S3 (including the column-proportions case) move from 0.5 to 0.7 of the row,
+    off the exact middle;
+  - the sideways offsets of "a section dropped on the top half of the next section" become 0, −24, +24, +48, so
+    the pointer stays over the tree now that it starts from the section's label;
+  - "the wrapper moves by its handle" now grabs the handle.
   Each case makes one gesture: after a save the test does not drag again.
 - New cases:
   - a section just after a wrapper: dx 0 goes after the wrapper, dx +24 inside it;
-  - a section below an empty wrapper: dx 0 inside, dx −24 after it;
-  - Liquid dropped between sections stays at body level (raw R over T4 would be its own place);
+  - a section on an empty wrapper one indent left goes after it (dx 0 fills it: the kept empty-container case);
+  - Liquid dropped below the last text of a section stays at body level, before R (raw R there would be its own
+    place);
   - the line's left matches the target level's row content left, within 2 px;
   - the stale line on the same row is gone;
   - a drop in the band between two rows (y = row bottom + 2);
