@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Button, Card, Col, Drawer, Dropdown, Input, Popconfirm, Row, Space, Switch } from 'antd'
+import { Button, Card, Col, Drawer, Dropdown, Input, Popconfirm, Row, Space, Switch, Tag } from 'antd'
 import { DownOutlined } from '@ant-design/icons'
 import { SUPPORTED_LANGUAGES } from '../../lib/languages'
 import type { Workspace } from '../../services/api/types'
 import type { EmailBlock } from '../email_builder/types'
-import type { SavedBlock, SaveOperation } from '../email_builder/types'
+import type { SavedBlock, SaveBlockHandler } from '../email_builder/types'
 import type { MjmlCompileError } from '../../services/api/template'
 import { templatesApi } from '../../services/api/template'
 import EmailBuilder from '../email_builder/EmailBuilder'
@@ -13,6 +13,8 @@ import MjmlCodeEditor from '../email_builder/MjmlCodeEditor'
 import IphoneEmailPreview from './PhonePreview'
 import { useLicense } from '../../hooks/useLicense'
 import { LicenceGateNotice } from '../license/LicenceGateNotice'
+import type { CustomTextVersion } from '../email_builder/panels/TextVersionPanel'
+import { customTextOrUndefined, seedTextVersion } from './textVersionSeed'
 
 export interface TranslationEditorState {
   enabled: boolean
@@ -20,6 +22,9 @@ export interface TranslationEditorState {
   subjectPreview: string
   visualEditorTree?: EmailBlock
   mjmlSource?: string
+  // The custom plain-text version of this language; undefined for the automatic one.
+  // Never copied from the default language: each language writes its own.
+  text?: string
 }
 
 interface TemplateTranslationsTabProps {
@@ -34,7 +39,9 @@ interface TemplateTranslationsTabProps {
   testData?: Record<string, unknown>
   onTestDataChange: (testData: Record<string, unknown>) => void
   savedBlocks: SavedBlock[]
-  onSaveBlock: (block: EmailBlock, operation: SaveOperation, nameOrId: string) => void
+  onSaveBlock: SaveBlockHandler
+  // Template category: decides which links a custom text is reminded to keep.
+  category?: string
 }
 
 const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
@@ -49,7 +56,8 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
   testData,
   onTestDataChange,
   savedBlocks,
-  onSaveBlock
+  onSaveBlock,
+  category
 }) => {
   const { t } = useLingui()
   const [editorDrawerLang, setEditorDrawerLang] = useState<string | null>(null)
@@ -64,28 +72,36 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
     (l) => l !== workspace.settings.default_language
   )
 
+  // The latest state, so a change sent by a handler of an earlier render (a seed answering
+  // late) merges into the edits made since instead of reverting them.
+  const translationsStateRef = useRef(translationsState)
+  translationsStateRef.current = translationsState
+
   const updateLangState = useCallback(
     (lang: string, updates: Partial<TranslationEditorState>) => {
-      onTranslationsStateChange({
-        ...translationsState,
+      const current = translationsStateRef.current
+      const next = {
+        ...current,
         [lang]: {
-          ...(translationsState[lang] || {
+          ...(current[lang] || {
             enabled: false,
             subject: '',
             subjectPreview: ''
           }),
           ...updates
         }
-      })
+      }
+      translationsStateRef.current = next
+      onTranslationsStateChange(next)
     },
-    [translationsState, onTranslationsStateChange]
+    [onTranslationsStateChange]
   )
 
   const handleToggle = useCallback(
     (lang: string, checked: boolean) => {
       if (checked) {
         const existing = translationsState[lang]
-        if (existing && (existing.subject || existing.subjectPreview || existing.visualEditorTree || existing.mjmlSource)) {
+        if (existing && (existing.subject || existing.subjectPreview || existing.visualEditorTree || existing.mjmlSource || existing.text)) {
           // Re-enable with existing data
           updateLangState(lang, { enabled: true })
         } else {
@@ -197,6 +213,24 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
 
   const activeLangState = editorDrawerLang ? translationsState[editorDrawerLang] : null
 
+  const activeCustomText: CustomTextVersion | undefined =
+    editorDrawerLang && activeLangState
+      ? {
+          value: activeLangState.text,
+          onChange: (value) => updateLangState(editorDrawerLang, { text: value }),
+          onSeed: () =>
+            seedTextVersion(
+              workspace,
+              editorMode === 'code'
+                ? { mjmlSource: activeLangState.mjmlSource || '' }
+                : { visualEditorTree: activeLangState.visualEditorTree || defaultVisualEditorTree }
+            ),
+          category,
+          isTranslation: true,
+          disabled: locked
+        }
+      : undefined
+
   return (
     <div className="p-8">
       <div className="flex flex-col gap-6 items-center">
@@ -276,7 +310,8 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                                         editorMode === 'visual'
                                           ? (JSON.parse(JSON.stringify(defaultVisualEditorTree)) as EmailBlock)
                                           : undefined,
-                                      mjmlSource: editorMode === 'code' ? defaultMjmlSource : undefined
+                                      mjmlSource: editorMode === 'code' ? defaultMjmlSource : undefined,
+                                      text: undefined
                                     })
                                   }}
                                   okText={t`Reset`}
@@ -293,6 +328,13 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                         <Button type="primary" icon={<DownOutlined />} disabled={locked} />
                       </Dropdown>
                     </Space.Compact>
+                    <div className="mt-3">
+                      {customTextOrUndefined(langState.text) !== undefined ? (
+                        <Tag color="purple">{t`Text version: Custom`}</Tag>
+                      ) : (
+                        <Tag>{t`Text version: Automatic`}</Tag>
+                      )}
+                    </div>
                   </Col>
                   <Col span={12}>
                     <div className="flex justify-center" style={{ transform: 'scale(0.8)', transformOrigin: 'top center', height: 208 }}>
@@ -338,6 +380,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
               onTestDataChange={onTestDataChange}
               height="calc(100vh - 66px)"
               templateId={`translation-${editorDrawerLang}`}
+              textVersion={{ custom: activeCustomText }}
             />
           ) : (
             <EmailBuilder
@@ -352,7 +395,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
               onSaveBlock={onSaveBlock}
               hiddenBlocks={['mj-title', 'mj-preview']}
               height="calc(100vh - 66px)"
-              textVersion={{ enabled: true }}
+              textVersion={{ enabled: true, custom: activeCustomText }}
             />
           )}
         </Drawer>

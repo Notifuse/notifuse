@@ -146,11 +146,14 @@ func TranslationsWiden(prior, next map[string]TemplateTranslation) bool {
 // authoredTranslation is a copy of t with every machine-derived field zeroed, so that
 // TranslationsWiden compares only what a human typed. See its comment for why each of the
 // three fields is here; add to this list, never to the comparison, when a new derived
-// field is introduced.
+// field is introduced. The custom text is authored, so it is compared, but normalised:
+// the incoming side was normalised by Validate before the gate runs, the stored side may
+// predate that.
 func authoredTranslation(t TemplateTranslation) TemplateTranslation {
 	if t.Email != nil {
 		email := *t.Email
 		email.CompiledPreview = ""
+		email.Text = NormalizeCustomText(email.Text)
 		t.Email = &email
 	}
 	if t.Web != nil {
@@ -256,8 +259,8 @@ func ResolveSubjectPreviewOverride(explicit *string, content *EmailTemplate) *st
 }
 
 // ApplyToCompileRequest fills the fields of a send-time compile request that derive from this email
-// variant: the visual editor tree, the code-mode MJML source, and the subject-preview override that
-// makes a translation render its OWN inbox preview text. Every outbound send (broadcast,
+// variant: the visual editor tree, the code-mode MJML source, the subject-preview override that
+// makes a translation render its OWN inbox preview text, and its own custom plain-text version. Every outbound send (broadcast,
 // automation, transactional) must route the resolved email content through here so the preview
 // override travels with the body and cannot be forgotten — a send path that skips this call ends up
 // with no tree/source and fails compilation loudly instead of silently shipping a stale preview.
@@ -273,6 +276,18 @@ func (e *EmailTemplate) ApplyToCompileRequest(req *CompileTemplateRequest, expli
 	req.VisualEditorTree = e.VisualEditorTree
 	req.MjmlSource = e.GetCodeModeMjmlSource()
 	req.SubjectPreviewOverride = ResolveSubjectPreviewOverride(explicitPreviewOverride, e)
+	req.Text = e.Text
+}
+
+// MaxCustomTextSize caps the source of a custom plain-text version, in bytes.
+const MaxCustomTextSize = 64 * 1024
+
+// NormalizeCustomText returns the custom plain-text version as it is stored and compared:
+// line endings as \n, and nil when it holds only whitespace, which means the automatic
+// version. Save, the licence gate and the render all go through it, so two texts that
+// differ only in line endings or emptiness are the same text everywhere.
+func NormalizeCustomText(text *string) *string {
+	return notifuse_mjml.NormalizeCustomText(text)
 }
 
 // ResolveWebContent returns the WebTemplate for the given contact language.
@@ -432,6 +447,18 @@ func (e *EmailTemplate) Validate(testData MapOfAny) error {
 	// Validate required fields
 	if e.Subject == "" {
 		return fmt.Errorf("invalid email template: subject is required")
+	}
+
+	// The custom plain-text version: stored normalised, size-capped, and parsed now so a
+	// syntax error is refused at save rather than found at send.
+	e.Text = NormalizeCustomText(e.Text)
+	if e.Text != nil {
+		if len(*e.Text) > MaxCustomTextSize {
+			return fmt.Errorf("invalid email template: text version must be at most %d bytes", MaxCustomTextSize)
+		}
+		if err := notifuse_mjml.ValidateLiquidSyntax(*e.Text); err != nil {
+			return fmt.Errorf("invalid email template: text version: %w", err)
+		}
 	}
 	if len(e.Subject) > 255 {
 		return fmt.Errorf("invalid email template: subject length must be between 1 and 255")

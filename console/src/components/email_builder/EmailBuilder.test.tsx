@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { act, render, waitFor, screen, fireEvent } from '@testing-library/react'
 import EmailBuilder from './EmailBuilder'
 import type { EmailBlock } from './types'
+import { EmailBlockClass } from './EmailBlockClass'
 
 // Mock the heavy child panels so the test exercises only EmailBuilder's own
 // compile orchestration (not Preview's iframe, the tree/edit/settings panels,
@@ -161,6 +162,47 @@ describe('EmailBuilder text version mode', () => {
   })
 })
 
+describe('EmailBuilder text version mode with a custom text', () => {
+  const customProps = (onCompile: Mock, value: string | undefined) => ({
+    ...props(makeTree('one'), onCompile, null),
+    textVersion: {
+      enabled: true as const,
+      custom: { value, onChange: vi.fn(), onSeed: vi.fn().mockResolvedValue({ text: '' }), category: 'marketing' }
+    }
+  })
+
+  it('shows the text area while the email is still compiling', async () => {
+    const onCompile = vi.fn(() => new Promise(() => {}))
+    render(<EmailBuilder {...customProps(onCompile as unknown as Mock, 'Mine')} />)
+
+    fireEvent.click(screen.getAllByText('Text version')[0])
+
+    await waitFor(() => expect((screen.getByTestId('custom-text-input') as HTMLTextAreaElement).value).toBe('Mine'))
+  })
+
+  it('shows the text area when the email does not compile', async () => {
+    const onCompile = vi.fn().mockResolvedValue({ html: '', mjml: '', errors: [{ message: 'Broken template' }] })
+    render(<EmailBuilder {...customProps(onCompile, 'Mine')} />)
+
+    fireEvent.click(screen.getAllByText('Text version')[0])
+
+    await waitFor(() => expect(onCompile).toHaveBeenCalled())
+    expect(screen.getByTestId('custom-text-input')).toBeTruthy()
+  })
+
+  it('shows the automatic text, not the custom one, after going back to Automatic', async () => {
+    const onCompile = vi.fn().mockResolvedValue({ html: '<p>a</p>', mjml: '', errors: [], text: 'Automatic text' })
+    const { rerender } = render(<EmailBuilder {...customProps(onCompile, 'Mine')} />)
+    fireEvent.click(screen.getAllByText('Text version')[0])
+    await waitFor(() => expect(screen.getByTestId('custom-text-input')).toBeTruthy())
+
+    rerender(<EmailBuilder {...customProps(onCompile, undefined)} />)
+
+    await waitFor(() => expect(screen.getByTestId('text-version').textContent).toBe('Automatic text'))
+    expect(screen.queryByText('Mine')).toBeNull()
+  })
+})
+
 // A condition hides its block with every mj-liquid in it, which can hold half of a tag
 // pair, so the server refuses the tree: the editor must not build it.
 describe('EmailBuilder Liquid blocks under a display condition', () => {
@@ -211,5 +253,110 @@ describe('EmailBuilder Liquid blocks under a display condition', () => {
     const move = mockTreePanelProps.onMoveBlock as (id: string, parentId: string, position: number) => void
     act(() => move('liq-1', 'col-1', 0))
     expect(onTreeChange).not.toHaveBeenCalled()
+  })
+})
+
+describe('EmailBuilder moving and changing columns', () => {
+  interface Node {
+    id: string
+    type: string
+    attributes: Record<string, unknown>
+    content?: string
+    children?: Node[]
+  }
+  const col = (id: string, width: string): Node => ({
+    id,
+    type: 'mj-column',
+    attributes: { width },
+    children: [{ id: `${id}-text`, type: 'mj-text', attributes: {}, content: `<p>${id}</p>` }]
+  })
+  const section = (id: string, children: Node[]): Node => ({ id, type: 'mj-section', attributes: {}, children })
+
+  // SA: 20/30/50, SB: 30/70, SC holds a 30/70 group
+  const makeColumnsTree = () =>
+    ({
+      id: 'root',
+      type: 'mjml',
+      children: [
+        { id: 'head', type: 'mj-head', children: [] },
+        {
+          id: 'body',
+          type: 'mj-body',
+          attributes: {},
+          children: [
+            section('SA', [col('a1', '20%'), col('a2', '30%'), col('a3', '50%')]),
+            section('SB', [col('b1', '30%'), col('b2', '70%')]),
+            section('SC', [
+              { id: 'G', type: 'mj-group', attributes: {}, children: [col('g1', '30%'), col('g2', '70%')] }
+            ])
+          ]
+        }
+      ]
+    }) as unknown as EmailBlock
+
+  const setup = () => {
+    mockTreePanelProps = {}
+    const onTreeChange = vi.fn()
+    render(<EmailBuilder {...props(makeColumnsTree(), vi.fn(), null)} onTreeChange={onTreeChange} />)
+    const call = (name: string, ...args: unknown[]) =>
+      act(() => {
+        (mockTreePanelProps[name] as (...a: unknown[]) => void)(...args)
+      })
+    const latest = () => onTreeChange.mock.calls[onTreeChange.mock.calls.length - 1][0] as EmailBlock
+    const children = (id: string) => EmailBlockClass.findBlockById(latest(), id)!.children!
+    const widths = (id: string) =>
+      children(id).map((child) => (child.attributes as Record<string, unknown>).width)
+    return { onTreeChange, call, children, widths }
+  }
+
+  it('adds no undo step for a move that changes nothing', () => {
+    const { onTreeChange, call } = setup()
+    call('onMoveBlock', 'a1', 'SA', 0)
+    expect(onTreeChange).not.toHaveBeenCalled()
+    expect(screen.getByTitle('Undo').closest('button')).toBeDisabled()
+  })
+
+  it('keeps proportions on both sides when a column moves to another section', () => {
+    const { call, widths, children } = setup()
+    call('onMoveBlock', 'a3', 'SB', 2)
+    expect(widths('SA')).toEqual(['40%', '60%'])
+    expect(children('SB').map((c) => c.id)).toEqual(['b1', 'b2', 'a3'])
+    expect(widths('SB')).toEqual(['20%', '46.67%', '33.33%'])
+  })
+
+  it('keeps the widths of columns reordered inside a group', () => {
+    const { call, widths, children } = setup()
+    call('onMoveBlock', 'g2', 'G', 0)
+    expect(children('G').map((c) => c.id)).toEqual(['g2', 'g1'])
+    expect(widths('G')).toEqual(['70%', '30%'])
+  })
+
+  it('keeps proportions when a column is added, with its default text', () => {
+    const { call, widths, children } = setup()
+    call('onAddBlock', 'SB', 'mj-column', 2)
+    expect(widths('SB')).toEqual(['20%', '46.67%', '33.33%'])
+    expect(JSON.stringify(children('SB')[2].children)).toContain('Column 3')
+  })
+
+  it('keeps proportions when a column is duplicated or deleted', () => {
+    const duplicated = setup()
+    duplicated.call('onCloneBlock', 'b1')
+    expect(duplicated.widths('SB')).toEqual(['20%', '33.33%', '46.67%'])
+
+    const deleted = setup()
+    deleted.call('onDeleteBlock', 'a3')
+    expect(deleted.widths('SA')).toEqual(['40%', '60%'])
+  })
+
+  it('gives a saved column inserted into a section its share', () => {
+    const { call, widths } = setup()
+    call('onAddSavedBlock', 'SB', col('saved', '25%'), 2)
+    expect(widths('SB')).toEqual(['20%', '46.67%', '33.33%'])
+  })
+
+  // Characterisation: the AI assistant moves blocks through moveBlockInTree with a final index
+  it('moveBlockInTree puts the block at the final index it is given', () => {
+    const moved = EmailBlockClass.moveBlockInTree(makeColumnsTree(), 'a1', 'SA', 2)!
+    expect(EmailBlockClass.findBlockById(moved, 'SA')!.children!.map((c) => c.id)).toEqual(['a2', 'a3', 'a1'])
   })
 })

@@ -3,6 +3,7 @@ package notifuse_mjml
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/liquidgo/v5/liquid"
@@ -151,4 +152,41 @@ func (s *SecureLiquidEngine) render(content string, data map[string]interface{},
 // Render is a convenience method that calls RenderWithTimeout
 func (s *SecureLiquidEngine) Render(content string, data map[string]interface{}) (string, error) {
 	return s.RenderWithTimeout(content, data)
+}
+
+// ValidateLiquidSyntax reports whether content would parse when rendered: it applies the
+// cleaning the renderer applies (see cleanLiquidTemplate) and parses with the same
+// environment, where include and render refuse to parse. Neither is supported: with no
+// file system configured, a partial they name renders as an error in the output. Refused
+// by the parser itself, they are refused wherever it would run them (any spelling, a
+// {% liquid %} line) and nowhere else (raw and comment bodies).
+func ValidateLiquidSyntax(content string) (err error) {
+	if !strings.Contains(content, "{{") && !strings.Contains(content, "{%") {
+		return nil
+	}
+	content = cleanLiquidTemplate(content)
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("liquid parsing failed: %v", r)
+		}
+	}()
+	if _, parseErr := liquid.ParseTemplate(content, &liquid.TemplateOptions{
+		Environment: newValidationLiquidEnv(),
+	}); parseErr != nil {
+		return parseErr
+	}
+	return nil
+}
+
+// newValidationLiquidEnv is the render environment where the tags that read a partial
+// from a file system fail to parse.
+func newValidationLiquidEnv() *liquid.Environment {
+	env := newSecureLiquidEnv(DefaultMaxRenderLength)
+	for _, name := range []string{"include", "render"} {
+		env.RegisterTag(name, tags.TagConstructor(func(tagName, _ string, _ liquid.ParseContextInterface) (interface{}, error) {
+			return nil, fmt.Errorf("the %s tag is not supported", tagName)
+		}))
+	}
+	return env
 }

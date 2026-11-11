@@ -2946,3 +2946,54 @@ func TestEmailQueueWorker_Orphans(t *testing.T) {
 		w.processWorkspace(&domain.Workspace{ID: "ws-1"}) // the second pass found less than a batch
 	})
 }
+
+func TestEmailQueueWorker_ProcessEntry_CarriesCustomText(t *testing.T) {
+	for _, tc := range []struct{ name, text string }{
+		{"a custom text reaches SendEmail", "Hi Ada\nhttps://e.com/u"},
+		{"no custom text leaves it empty for SendEmail to generate", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+			mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+			mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+			mockLogger := pkgmocks.NewMockLogger(ctrl)
+			mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+			mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+			workspace := &domain.Workspace{
+				ID: "workspace-1",
+				Integrations: []domain.Integration{{
+					ID:            "integration-1",
+					EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSMTP, RateLimitPerMinute: 100},
+				}},
+			}
+			entry := &domain.EmailQueueEntry{
+				ID: "entry-1", Status: domain.EmailQueueStatusPending, SourceType: domain.EmailQueueSourceBroadcast,
+				SourceID: "broadcast-1", IntegrationID: "integration-1", ContactEmail: "ada@example.com", MessageID: "msg-1",
+				Payload: domain.EmailQueuePayload{
+					FromAddress: "s@example.com", Subject: "S", HTMLContent: "<p>Hello</p>", TextContent: tc.text, RateLimitPerMinute: 100,
+				},
+				MaxAttempts: 3,
+			}
+
+			mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), "workspace-1", "entry-1").Return(nil)
+			mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
+				DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+					assert.Equal(t, tc.text, req.TextContent)
+					assert.Equal(t, "<p>Hello</p>", req.Content)
+					return nil
+				})
+			mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), "workspace-1", gomock.Any(), gomock.Any()).Return(nil)
+			mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), "workspace-1", "entry-1").Return(nil)
+
+			worker := NewEmailQueueWorker(mockQueueRepo, mocks.NewMockWorkspaceRepository(ctrl), mockEmailService,
+				mockMessageHistoryRepo, DefaultWorkerConfig(), mockLogger)
+			worker.initContexts(context.Background())
+			processOne(worker, workspace, entry)
+		})
+	}
+}
