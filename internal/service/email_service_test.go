@@ -770,6 +770,7 @@ func TestEmailService_VisitLink(t *testing.T) {
 			"host with a port, link without":     {"http://notifuse/unsubscribe?email=someone@example.com", []string{"notifuse:8080"}},
 			"a trailing dot names the same host": {"https://click.notifuse.test./unsubscribe?email=someone@example.com", []string{requestHost}},
 			"a Unicode link, a Punycode host":    {"https://café.example/unsubscribe?email=someone@example.com", []string{"xn--caf-dma.example"}},
+			"an IPv6 endpoint host in brackets":  {"http://[2001:db8::1]:8080/unsubscribe-oneclick?email=someone@example.com", []string{"127.0.0.1:8080", "[2001:db8::1]"}},
 		} {
 			t.Run(name, func(t *testing.T) {
 				assert.Empty(t, sanitizeClickedURL(tc.link, tc.hosts))

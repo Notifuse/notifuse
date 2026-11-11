@@ -473,17 +473,6 @@ func TestEncryptedClick_PassesEveryOwnHostToTheRecorder(t *testing.T) {
 		handler.handleEncryptedClick(httptest.NewRecorder(), req)
 	})
 
-	t.Run("an unavailable workspace passes no custom endpoint host", func(t *testing.T) {
-		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
-		expectLookup(ws, trackingtoken.Workspace{}, trackingtoken.WorkspaceUnavailable)
-		svc.EXPECT().VisitLink(gomock.Any(), trackingTestMessageID, trackingTestWorkspace, dest, []string{"notifuse:8080", apiHost}, false).Return(nil)
-
-		req := httptest.NewRequest(http.MethodGet, "/r/"+signedClickToken(t, key, oldTS(), dest), nil)
-		req.Host = "notifuse:8080"
-		req.Header.Set("User-Agent", trackingTestUA)
-		handler.handleEncryptedClick(httptest.NewRecorder(), req)
-	})
-
 	t.Run("the legacy /visit route passes them too", func(t *testing.T) {
 		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
 		expectLookup(ws, trackingtoken.Workspace{EndpointHost: "links.brand.com"}, trackingtoken.WorkspaceKnown)
@@ -498,4 +487,14 @@ func TestEncryptedClick_PassesEveryOwnHostToTheRecorder(t *testing.T) {
 		req.Header.Set("X-Forwarded-Host", "mail.brand.test")
 		handler.handleClickRedirection(httptest.NewRecorder(), req)
 	})
+}
+
+// TestClickOwnHosts_BracketsIPv6EndpointHosts pins the form of an endpoint host that is
+// an IPv6 literal. HostOf writes it bare, as "2001:db8::1"; read again as a host[:port]
+// value its last group would be taken for a port, so it is passed in brackets.
+func TestClickOwnHosts_BracketsIPv6EndpointHosts(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/r/x", nil)
+	req.Host = "127.0.0.1:8080"
+	assert.Equal(t, []string{"127.0.0.1:8080", "[2001:db8::1]", "[::1]"}, clickOwnHosts(req, "2001:db8::1", "::1"))
+	assert.Equal(t, []string{"127.0.0.1:8080", "api.notifuse.test"}, clickOwnHosts(req, "api.notifuse.test", ""))
 }

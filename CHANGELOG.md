@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Opens and clicks on an email whose contact was deleted are no longer recorded. The link still redirects.
 
-- **Improvement**: Behind a reverse proxy, clicks on an email's unsubscribe and notification center links are no longer recorded per link, so the contact address these links carry is no longer stored with the click. Links on a custom domain the workspace no longer uses are not recognised, and links recorded before the upgrade stay in the per-link statistics.
+- **Improvement**: Behind a reverse proxy, clicks on an email's unsubscribe and notification center links are no longer recorded per link, so the contact address these links carry is no longer stored with the click. Behind a proxy that forwards neither the public host nor `X-Forwarded-Host`, links on a custom domain the workspace no longer uses are still recorded. Links recorded before the upgrade stay in the per-link statistics.
 
 - **Feature**: Every email now includes a plain-text version, generated from its HTML, for mail clients that show text only and for better deliverability. Its links are the links of the HTML, tracked the same way. Preview it in the template editor's new Text version mode, in the MJML editor's Text version tab and in the template preview. `templates.compile` returns it as `text`.
 

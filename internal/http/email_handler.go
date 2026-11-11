@@ -232,9 +232,15 @@ func clickOwnHosts(r *http.Request, apiHost, endpointHost string) []string {
 		}
 	}
 	for _, host := range []string{apiHost, endpointHost} {
-		if host != "" {
-			hosts = append(hosts, host)
+		if host == "" {
+			continue
 		}
+		// HostOf writes an IPv6 literal bare ("2001:db8::1"): read again as a
+		// host[:port] value, its last group would be taken for a port.
+		if strings.Contains(host, ":") {
+			host = "[" + host + "]"
+		}
+		hosts = append(hosts, host)
 	}
 	return hosts
 }

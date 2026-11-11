@@ -239,9 +239,10 @@ func (s *EmailService) getProviderService(providerKind domain.EmailProviderKind)
 const maxRecordedClickedURLLength = domain.MaxClickedURLLength
 
 // VisitLink records a click on a tracked link. ownHosts are the instance's hosts as the
-// click route knows them: the request's Host, each X-Forwarded-Host entry, the API
-// endpoint's host and the workspace's custom endpoint host. verified says the token was signed by the workspace, so the email really carried
-// clickedURL; see MessageHistoryRepository.SetClicked.
+// click route knows them, each a host[:port] value: the request's Host, each
+// X-Forwarded-Host entry, the API endpoint's host and the workspace's custom endpoint
+// host. verified says the token was signed by the workspace, so the email really
+// carried clickedURL; see MessageHistoryRepository.SetClicked.
 func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspaceID string, clickedURL string, ownHosts []string, verified bool) error {
 	// find the message by id
 	err := s.messageRepo.SetClicked(ctx, workspaceID, messageID, time.Now(), sanitizeClickedURL(clickedURL, ownHosts), verified)
@@ -265,7 +266,7 @@ func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspac
 // stays right after the workspace endpoint is reconfigured. Behind a reverse
 // proxy that forwards its upstream name as Host, the forwarded host is, and with
 // no forwarded header the API endpoint or the workspace's current custom domain
-// is. A link whose hostname is any of ownHosts is left out, on any port: a
+// is, unless the email was sent before the one it used changed. A link whose hostname is any of ownHosts is left out, on any port: a
 // client adding its own forwarded value can only leave out more of its own
 // clicks, never get a link back to the Host it reached recorded.
 //

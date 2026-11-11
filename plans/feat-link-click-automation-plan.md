@@ -133,7 +133,7 @@ automations.
   forged, unsigned or legacy token passes `false`; the host list (no header, a list, blank entries, several header
   lines, the custom endpoint host, an unverified token, an unavailable workspace, `/visit`); a link back to a forwarded
   host is aggregate-only, an external one is still recorded; hostnames compared whatever the ports, with a trailing dot
-  and in Punycode; a hostname that only ends like an own host is recorded.
+  and in Punycode, an IPv6 endpoint host in brackets; a hostname that only ends like an own host is recorded.
 - Test `message_history_handler_test.go`: `clicked_url` passed through; 400 without `broadcast_id`.
 
 **`internal/repository/message_history_postgre.go`**: `SetClicked` sets `verified: true` on the entry (new or existing)
@@ -204,7 +204,11 @@ cd web_analytics_sdk && npm run build
 - A link clicked before 44.0 has no `verified` key, so its first signed click after the upgrade writes its entry
   (documented).
 - The monthly meter reads `kind` from the table for each row of the month: the partial index no longer answers alone.
-- Behind a proxy that forwards no public host, a link on a custom domain the workspace has since left is still
-  recorded per link: only the current custom domain is known to the route.
+- Behind a proxy that forwards no public host, a link on a custom domain the workspace has since left, or on an
+  `API_ENDPOINT` changed since the send, is still recorded per link: only the current hosts are known to the route.
+- Own hosts are compared by hostname on any port, so a site served on the API's or the custom domain's hostname on
+  another port, and the blog served on the custom domain, are not recorded per link and start no link-click
+  automation.
+- Each `X-Forwarded-Host` entry costs one hostname comparison per click; the number of entries read is not capped.
 - `Forwarded: host=` (RFC 7239) is not read, as on `/v/`.
 - Own-link keys recorded before 44.0 are not removed, so older broadcasts keep listing them in their per-link stats.
