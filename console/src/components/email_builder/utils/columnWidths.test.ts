@@ -40,7 +40,11 @@ describe('rebalanceAfterAdd', () => {
       [undefined, '50%'],
       ['40%', '40%']
     ]) {
-      const section = container('mj-section', [col('a', others[0]), col('b', others[1]), col('new')])
+      const section = container('mj-section', [
+        col('a', others[0]),
+        col('b', others[1]),
+        col('new')
+      ])
       rebalanceAfterAdd(section, 'new')
       expect(widths(section)).toEqual(['33.33%', '33.33%', '33.34%'])
     }
@@ -84,7 +88,11 @@ describe('rebalanceAfterRemove', () => {
   })
 
   it('equalises three columns with pixel widths, the last taking the remainder', () => {
-    const section = container('mj-section', [col('a', '100px'), col('b', '200px'), col('c', '300px')])
+    const section = container('mj-section', [
+      col('a', '100px'),
+      col('b', '200px'),
+      col('c', '300px')
+    ])
     rebalanceAfterRemove(section)
     expect(widths(section)).toEqual(['33.33%', '33.33%', '33.34%'])
   })

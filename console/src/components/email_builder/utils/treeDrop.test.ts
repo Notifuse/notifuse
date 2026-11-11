@@ -26,11 +26,16 @@ const build = (patch: (body: Node[]) => Node[] = (b) => b): EmailBlock => {
     n('S2', 'mj-section', [
       n('G', 'mj-group', [n('G1', 'mj-column', [text('TG1')]), n('G2', 'mj-column', [text('TG2')])])
     ]),
-    n('S3', 'mj-section', [n('C3', 'mj-column', [n('D', 'mj-divider'), n('SP', 'mj-spacer'), text('T3'), text('T4')])]),
+    n('S3', 'mj-section', [
+      n('C3', 'mj-column', [n('D', 'mj-divider'), n('SP', 'mj-spacer'), text('T3'), text('T4')])
+    ]),
     n('R', 'mj-raw'),
     n('L', 'mj-liquid')
   ]
-  return n('ROOT', 'mjml', [n('HEAD', 'mj-head', []), n('B', 'mj-body', patch(body))]) as unknown as EmailBlock
+  return n('ROOT', 'mjml', [
+    n('HEAD', 'mj-head', []),
+    n('B', 'mj-body', patch(body))
+  ]) as unknown as EmailBlock
 }
 
 // Every container with children is expanded, as the editor opens the tree
@@ -44,15 +49,23 @@ const expandedOf = (tree: EmailBlock, except: string[] = []): string[] => {
   return keys
 }
 
-const resolve = (tree: EmailBlock, drag: string, drop: string, side: DropSide, collapsed: string[] = []) =>
-  resolveDropTarget(tree, drag, drop, side, expandedOf(tree, collapsed))
+const resolve = (
+  tree: EmailBlock,
+  drag: string,
+  drop: string,
+  side: DropSide,
+  collapsed: string[] = []
+) => resolveDropTarget(tree, drag, drop, side, expandedOf(tree, collapsed))
 
 const tree = build()
 
 // Empty containers inserted in the body for the empty-container cases
 const withEmpties = build((body) => [
   n('ES', 'mj-section', []),
-  n('S5', 'mj-section', [n('EC', 'mj-column', []), n('C5', 'mj-column', [text('T5'), n('ESO', 'mj-social', [])])]),
+  n('S5', 'mj-section', [
+    n('EC', 'mj-column', []),
+    n('C5', 'mj-column', [text('T5'), n('ESO', 'mj-social', [])])
+  ]),
   n('EW', 'mj-wrapper', []),
   n('S6', 'mj-section', [n('EG', 'mj-group', []), n('C6', 'mj-column', [text('T6')])]),
   ...body
@@ -130,16 +143,21 @@ describe('resolveDropTarget', () => {
     expect(resolve(small, 'T1', 'S3', 1)).toEqual({ parentId: 'C3', index: 2 })
     // A closed section hides its column: no gap to show
     expect(resolve(small, 'T1', 'S3', 1, ['S3'])).toBeNull()
+    // Through several levels, always taking the last child: S2 > G > G2 (not G1) > TG2
+    expect(resolve(tree, 'T1', 'S2', 1)).toEqual({ parentId: 'G2', index: 1 })
   })
 
   it('never puts a block inside itself', () => {
-    // Nesting rules alone refuse these
+    // Refused without the descendant check: by the nesting rules, or as the block's own place
     expect(resolve(tree, 'C1', 'T1', 1)).toBeNull()
     expect(resolve(tree, 'W', 'SW', 1)).toBeNull()
     // A malformed tree, a wrapper inside a column, where only the descendant check refuses the section
     const malformed = n('ROOT', 'mjml', [
       n('HEAD', 'mj-head', []),
-      n('B', 'mj-body', [n('S1', 'mj-section', [n('C1', 'mj-column', [n('WX', 'mj-wrapper', [])])]), n('R', 'mj-raw')])
+      n('B', 'mj-body', [
+        n('S1', 'mj-section', [n('C1', 'mj-column', [n('WX', 'mj-wrapper', [])])]),
+        n('R', 'mj-raw')
+      ])
     ]) as unknown as EmailBlock
     expect(resolve(malformed, 'S1', 'WX', 1)).toBeNull()
   })

@@ -54,7 +54,9 @@ export function resolveDropTarget(
   const isOpen = (block: EmailBlock) => !!block.children?.length && expandedKeys.includes(block.id)
   const isContainer = (block: EmailBlock) => EmailBlockClass.from(block).canHaveChildren()
   const valid = (parent: EmailBlock | null): parent is EmailBlock =>
-    !!parent && !contains(drag.block, parent.id) && EmailBlockClass.from(parent).canAcceptChild(drag.block.type)
+    !!parent &&
+    !contains(drag.block, parent.id) &&
+    EmailBlockClass.from(parent).canAcceptChild(drag.block.type)
 
   // Turns a slot counted in the parent's current children into the final index, or null for no move
   const settle = (parent: EmailBlock, slot: number): DropTarget | null => {

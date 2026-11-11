@@ -39,7 +39,9 @@ export function rebalanceAfterAdd(container: EmailBlock, addedId: string): void 
   const others = columns.filter((column) => column.id !== addedId).map(percentOf)
   const sum = others.reduce<number>((total, width) => total + (width ?? 0), 0)
   const keepRatios =
-    others.length > 0 && others.every((width) => width !== null) && Math.abs(sum - 100) <= SUM_TOLERANCE
+    others.length > 0 &&
+    others.every((width) => width !== null) &&
+    Math.abs(sum - 100) <= SUM_TOLERANCE
 
   if (!keepRatios) {
     write(columns, equal(count))

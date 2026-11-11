@@ -151,8 +151,11 @@ second, empty social block) and a collapsed C3.
    empty social → inside; S1 after an empty wrapper → inside; C1 after an empty group → inside.
 9. collapsed container: T1 after collapsed C3 → `{C3, 4}`; R after collapsed C3 → after C3 in S3 (rc-tree level
    first); T1 side 0 on collapsed C3 → `{C3, 0}`.
-10. never into itself: C1 after T1 (its own child) → null; W after SW → null.
+10. never into itself: C1 after T1 (its own child) → null; W after SW → null; a malformed tree with an empty
+    wrapper inside a column, S1 after that wrapper → null (only the descendant check refuses it).
 11. unknown drag or drop id → null, no throw.
+12. walk down open last children: on a small tree, T1 after S3 → `{C3, 2}`, null when S3 is collapsed; T1 after S2
+    → `{G2, 1}` (last child, several levels).
 
 ### `console/src/components/email_builder/utils/columnWidths.test.ts` (new)
 
@@ -247,7 +250,8 @@ First review: resolver confirmed against rc-tree (all expected results reproduce
 scope (gomjml renders percentage group widths at 100%), no-fall-through rule and its distinguishing case, row lookup
 through `[role="treeitem"]` with both `preventDefault` and `stopPropagation`, jsdom drag tests of `TreePanel`, width
 tests that fail on dev, saved-column insertion, sum-to-100 condition and integer rounding, corrected and added
-limitations, Fix/Improvement changelog split, rebase on the dev of the time (since moved to b994c1a6). Second review: the line itself as the red signal for
+limitations, Fix/Improvement changelog split, rebase on the dev of the time
+(since moved to b994c1a6). Second review: the line itself as the red signal for
 refused gaps, the jsdom indent stub, the hidden-children case moved to `TreePanel`, the rounding rule, the
 raw/liquid lifting limit, wording of the limitations and the changelog.
 

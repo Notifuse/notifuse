@@ -19,7 +19,10 @@ const children = (b: TreeBlock | undefined) => (b?.children ?? []).map((child) =
 // The audit tree with empty containers in front
 const withEmpties = (): TreeBlock[] => [
   section('ES', []),
-  section('S5', [column('EC', []), column('C5', [text('T5', 'Echo'), block('ESO', 'mj-social', [])])]),
+  section('S5', [
+    column('EC', []),
+    column('C5', [text('T5', 'Echo'), block('ESO', 'mj-social', [])])
+  ]),
   block('EW', 'mj-wrapper', []),
   section('S6', [block('EG', 'mj-group', []), column('C6', [text('T6', 'Foxtrot')])]),
   ...auditBody()
@@ -30,7 +33,10 @@ const withWidths = (): TreeBlock[] => {
   const s1 = body[0]
   s1.children![0].attributes = { width: '30%' }
   s1.children![1].attributes = { width: '70%' }
-  body[3] = section('S3', [column('C3', [text('T3', 'Charlie')], '40%'), column('C4', [text('T5', 'Echo')], '60%')])
+  body[3] = section('S3', [
+    column('C3', [text('T3', 'Charlie')], '40%'),
+    column('C4', [text('T5', 'Echo')], '60%')
+  ])
   return body
 }
 
@@ -115,7 +121,9 @@ test.describe('Structure tree drag and drop', () => {
       })
     }
 
-    test('a collapsed column takes a text and opens', async ({ authenticatedPageWithData: page }) => {
+    test('a collapsed column takes a text and opens', async ({
+      authenticatedPageWithData: page
+    }) => {
       const editor = await openTreeEditor(page, auditBody())
       await editor.collapse('C3')
       await editor.drag('T1', 'C3', 0.8)
@@ -127,7 +135,9 @@ test.describe('Structure tree drag and drop', () => {
 
   test('the wrapper moves by its handle', async ({ authenticatedPageWithData: page }) => {
     const editor = await openTreeEditor(page, auditBody())
-    await expect(editor.row('W').getByRole('img', { name: 'Drag to move this block in the tree' })).toBeVisible()
+    await expect(
+      editor.row('W').getByRole('img', { name: 'Drag to move this block in the tree' })
+    ).toBeVisible()
     await editor.drag('W', 'L', 0.8)
     expect(children(await editor.saved())).toEqual(['S1', 'S2', 'S3', 'R', 'L', 'W'])
   })
@@ -135,14 +145,17 @@ test.describe('Structure tree drag and drop', () => {
   test('the Body row cannot be dragged', async ({ authenticatedPageWithData: page }) => {
     const editor = await openTreeEditor(page, auditBody())
     await editor.hover('B', 'S3', 0.5)
-    // No drag starts: on dev the row was dragged and only rc-tree's own descendant check refused the drops
+    // No drag starts. Before this fix the row was dragged and its drops were refused afterwards, by rc-tree's
+    // descendant check and, for a drop inside a row, by the nesting rules
     await expect(editor.tree.locator('.ant-tree-treenode.dragging')).toHaveCount(0)
     expect(await editor.lineShown()).toBe(false)
     await editor.release()
     expect(shape(await editor.saved())).toBe(editor.original)
   })
 
-  test('a drop on the block’s own place adds no undo step', async ({ authenticatedPageWithData: page }) => {
+  test('a drop on the block’s own place adds no undo step', async ({
+    authenticatedPageWithData: page
+  }) => {
     const editor = await openTreeEditor(page, auditBody())
     await editor.hover('SP', 'D', 0.8)
     expect(await editor.lineShown()).toBe(false)

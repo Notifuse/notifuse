@@ -11,8 +11,18 @@ interface Node {
   children?: Node[]
 }
 
-const n = (id: string, type: string, children?: Node[]): Node => ({ id, type, attributes: {}, children })
-const text = (id: string): Node => ({ id, type: 'mj-text', attributes: {}, content: `<p>${id}</p>` })
+const n = (id: string, type: string, children?: Node[]): Node => ({
+  id,
+  type,
+  attributes: {},
+  children
+})
+const text = (id: string): Node => ({
+  id,
+  type: 'mj-text',
+  attributes: {},
+  content: `<p>${id}</p>`
+})
 
 // Body: S1[C2[T2, SO[SE1, SE2]]], S3[C3[...c3]], W[SW[CW[TW]]]
 const build = (c3: Node[]): EmailBlock =>
@@ -22,7 +32,10 @@ const build = (c3: Node[]): EmailBlock =>
       n('S1', 'mj-section', [
         n('C2', 'mj-column', [
           text('T2'),
-          n('SO', 'mj-social', [n('SE1', 'mj-social-element', []), n('SE2', 'mj-social-element', [])])
+          n('SO', 'mj-social', [
+            n('SE1', 'mj-social-element', []),
+            n('SE2', 'mj-social-element', [])
+          ])
         ])
       ]),
       n('S3', 'mj-section', [n('C3', 'mj-column', c3)]),
@@ -74,7 +87,11 @@ const setup = (tree: EmailBlock, expanded: string[], hiddenBlocks?: string[]) =>
 }
 
 // jsdom has no DragEvent: coordinates are set on the event by hand, and the target row gets a box
-const fire = (el: HTMLElement, type: 'dragStart' | 'dragEnter' | 'dragOver' | 'drop', init: Record<string, number>) => {
+const fire = (
+  el: HTMLElement,
+  type: 'dragStart' | 'dragEnter' | 'dragOver' | 'drop',
+  init: Record<string, number>
+) => {
   const event = createEvent[type](el, init)
   for (const [key, value] of Object.entries(init)) {
     if ((event as unknown as Record<string, unknown>)[key] === undefined) {
@@ -111,7 +128,10 @@ const offsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offs
 
 describe('TreePanel drag and drop', () => {
   beforeEach(() => {
-    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 24 })
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+      configurable: true,
+      get: () => 24
+    })
     vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
   afterEach(() => {
@@ -155,8 +175,12 @@ describe('TreePanel drag and drop', () => {
     const { row } = setup(build(c3()), ALL)
     expect(row('W').querySelector('[data-draggable]')?.getAttribute('data-draggable')).toBe('true')
     expect(row('B').querySelector('[data-draggable]')?.getAttribute('data-draggable')).toBe('false')
-    expect(screen.getAllByLabelText('Drag to move this block in the tree').length).toBeGreaterThan(0)
-    expect(row('W').querySelector('[aria-label="Drag to move this block in the tree"]')).not.toBeNull()
+    expect(screen.getAllByLabelText('Drag to move this block in the tree').length).toBeGreaterThan(
+      0
+    )
+    expect(
+      row('W').querySelector('[aria-label="Drag to move this block in the tree"]')
+    ).not.toBeNull()
   })
 
   it('cancels a drag started on the body row, not on a section row', () => {

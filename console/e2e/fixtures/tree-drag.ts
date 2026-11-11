@@ -55,8 +55,18 @@ export const auditBody = (): TreeBlock[] => [
       [
         text('T2', 'Bravo'),
         block('SO', 'mj-social', [
-          { id: 'SE1', type: 'mj-social-element', attributes: { name: 'facebook', href: '#' }, content: 'Facebook' },
-          { id: 'SE2', type: 'mj-social-element', attributes: { name: 'twitter', href: '#' }, content: 'Twitter' }
+          {
+            id: 'SE1',
+            type: 'mj-social-element',
+            attributes: { name: 'facebook', href: '#' },
+            content: 'Facebook'
+          },
+          {
+            id: 'SE2',
+            type: 'mj-social-element',
+            attributes: { name: 'twitter', href: '#' },
+            content: 'Twitter'
+          }
         ])
       ],
       '50%'
@@ -64,10 +74,18 @@ export const auditBody = (): TreeBlock[] => [
   ]),
   block('W', 'mj-wrapper', [section('SW', [column('CW', [text('TW', 'Wrapped')])])]),
   section('S2', [
-    block('G', 'mj-group', [column('G1', [text('TG1', 'Left')], '50%'), column('G2', [text('TG2', 'Right')], '50%')])
+    block('G', 'mj-group', [
+      column('G1', [text('TG1', 'Left')], '50%'),
+      column('G2', [text('TG2', 'Right')], '50%')
+    ])
   ]),
   section('S3', [
-    column('C3', [block('D', 'mj-divider'), block('SP', 'mj-spacer'), text('T3', 'Charlie'), text('T4', 'Delta')])
+    column('C3', [
+      block('D', 'mj-divider'),
+      block('SP', 'mj-spacer'),
+      text('T3', 'Charlie'),
+      text('T4', 'Delta')
+    ])
   ]),
   { id: 'R', type: 'mj-raw', attributes: {}, content: '<div>raw</div>' },
   { id: 'L', type: 'mj-liquid', attributes: {}, content: '{{ contact.email }}' }
@@ -87,11 +105,18 @@ export const openTreeEditor = async (page: Page, body: TreeBlock[]) => {
     type: 'mjml',
     children: [block('HEAD', 'mj-head', []), block('B', 'mj-body', body)]
   }
-  const template = { ...mockTemplates[0], email: { ...mockTemplates[0].email, visual_editor_tree: root } }
+  const template = {
+    ...mockTemplates[0],
+    email: { ...mockTemplates[0].email, visual_editor_tree: root }
+  }
   const saves: TreeBlock[] = []
   await page.route('https://localapi.notifuse.com:4000/api/templates.update*', async (route) => {
     saves.push(route.request().postDataJSON().email.visual_editor_tree)
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ template }) })
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ template })
+    })
   })
   await page.setViewportSize({ width: 1280, height: 1300 })
   const drawer = await openTemplateEditor(page, template)
