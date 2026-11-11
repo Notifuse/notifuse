@@ -35,6 +35,8 @@ import type { List } from '../../services/api/list'
 import { DataFeedSettings } from './DataFeedSettings'
 import type { GlobalFeedSettings, RecipientFeedSettings } from '../../services/api/broadcast'
 import { getEmailTrackingPolicy, TRACKING_DOCS_URL } from '../../lib/emailTracking'
+import { VariationSenderSelect } from './VariationSenderSelect'
+import { getMarketingSenders } from './variationSender'
 
 // Custom component to handle A/B testing configuration
 const ABTestingConfig = ({ form }: { form: ReturnType<typeof Form.useForm>[0] }) => {
@@ -112,6 +114,25 @@ export function UpsertBroadcastDrawer({
 
   // Watch campaign name changes using Form.useWatch
   const campaignName = Form.useWatch('name', form)
+  // Each sender field shows the sender of the template chosen beside it.
+  const watchedVariations = Form.useWatch(['test_settings', 'variations'], form) as
+    | { template_id?: string }[]
+    | undefined
+  const marketingSenders = getMarketingSenders(workspace)
+  // A chosen sender must still be one of the marketing integration's: the server refuses to
+  // save or send a broadcast whose sender has gone.
+  const senderRules = [
+    {
+      validator(_: unknown, value?: string) {
+        if (!value || marketingSenders.some((s) => s.id === value)) return Promise.resolve()
+        return Promise.reject(
+          new Error(
+            t`This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's.`
+          )
+        )
+      }
+    }
+  ]
   const trackingPolicy = getEmailTrackingPolicy(workspace.settings)
   const workspaceTracks = trackingPolicy.opens_enabled || trackingPolicy.clicks_enabled
   const broadcastUntracked = Form.useWatch('tracking_mode', form) === 'no_tracking'
@@ -815,6 +836,19 @@ export function UpsertBroadcastDrawer({
                                                 category="marketing"
                                               />
                                             </Form.Item>
+                                            <Form.Item
+                                              key={`sender-${field.key}`}
+                                              name={[field.name, 'sender_id']}
+                                              label={t`Sender ${field.key + 1}`}
+                                              rules={senderRules}
+                                            >
+                                              <VariationSenderSelect
+                                                workspace={workspace}
+                                                templateId={
+                                                  watchedVariations?.[field.name]?.template_id
+                                                }
+                                              />
+                                            </Form.Item>
                                           </Col>
                                           {fields.length > 1 && (
                                             <Col
@@ -857,6 +891,9 @@ export function UpsertBroadcastDrawer({
                                         {t`+ Add variation`}
                                       </Button>
                                     )}
+                                    <div className="mt-3 text-xs text-gray-500">
+                                      {t`Each variation keeps its template's sender unless you choose another one, which then becomes part of what is tested.`}
+                                    </div>
                                   </>
                                 )}
                               </Form.List>
@@ -876,6 +913,17 @@ export function UpsertBroadcastDrawer({
                                 workspaceId={workspace.id}
                                 placeholder={t`Select template`}
                                 category="marketing"
+                              />
+                            </Form.Item>
+                            <Form.Item
+                              name={['test_settings', 'variations', 0, 'sender_id']}
+                              label={t`Sender`}
+                              rules={senderRules}
+                              extra={t`Leave empty to keep the template's sender. Only the senders of the marketing email integration are offered.`}
+                            >
+                              <VariationSenderSelect
+                                workspace={workspace}
+                                templateId={watchedVariations?.[0]?.template_id}
                               />
                             </Form.Item>
                           </div>

@@ -2670,6 +2670,105 @@ func TestTemplate_ResolveEmailContent(t *testing.T) {
 	})
 }
 
+// TestTemplate_ResolveEmailContent_InheritsSenderAndReplyTo covers translations saved without a
+// sender or reply-to, which is how the console saves every translation: they send from the
+// template's sender with its reply-to, not from the integration's default sender without one.
+func TestTemplate_ResolveEmailContent_InheritsSenderAndReplyTo(t *testing.T) {
+	newTemplate := func(base *EmailTemplate, it *EmailTemplate) *Template {
+		return &Template{
+			Email:        base,
+			Translations: map[string]TemplateTranslation{"it": {Email: it}},
+		}
+	}
+
+	t.Run("translation without sender or reply-to inherits the template's", func(t *testing.T) {
+		preview := "Anteprima"
+		tmpl := newTemplate(
+			&EmailTemplate{Subject: "Hello", SenderID: "newsletter-sender", ReplyTo: "support@example.com"},
+			&EmailTemplate{Subject: "Ciao", SubjectPreview: &preview, EditorMode: EditorModeVisual},
+		)
+
+		got := tmpl.ResolveEmailContent("it", "en")
+
+		require.NotNil(t, got)
+		assert.Equal(t, "newsletter-sender", got.SenderID)
+		assert.Equal(t, "support@example.com", got.ReplyTo)
+		assert.Equal(t, "Ciao", got.Subject, "the translation keeps its own subject")
+		require.NotNil(t, got.SubjectPreview)
+		assert.Equal(t, "Anteprima", *got.SubjectPreview, "the translation keeps its own preview")
+		assert.Equal(t, EditorModeVisual, got.EditorMode)
+	})
+
+	t.Run("translation with its own sender and reply-to keeps them", func(t *testing.T) {
+		tmpl := newTemplate(
+			&EmailTemplate{Subject: "Hello", SenderID: "newsletter-sender", ReplyTo: "support@example.com"},
+			&EmailTemplate{Subject: "Ciao", SenderID: "it-sender", ReplyTo: "supporto@example.com"},
+		)
+
+		got := tmpl.ResolveEmailContent("it", "en")
+
+		assert.Equal(t, "it-sender", got.SenderID)
+		assert.Equal(t, "supporto@example.com", got.ReplyTo)
+	})
+
+	t.Run("each field is inherited on its own", func(t *testing.T) {
+		tmpl := newTemplate(
+			&EmailTemplate{Subject: "Hello", SenderID: "newsletter-sender", ReplyTo: "support@example.com"},
+			&EmailTemplate{Subject: "Ciao", SenderID: "it-sender"},
+		)
+
+		got := tmpl.ResolveEmailContent("it", "en")
+
+		assert.Equal(t, "it-sender", got.SenderID)
+		assert.Equal(t, "support@example.com", got.ReplyTo)
+
+		tmpl = newTemplate(
+			&EmailTemplate{Subject: "Hello", SenderID: "newsletter-sender", ReplyTo: "support@example.com"},
+			&EmailTemplate{Subject: "Ciao", ReplyTo: "assistenza@example.com"},
+		)
+
+		got = tmpl.ResolveEmailContent("it", "en")
+
+		assert.Equal(t, "newsletter-sender", got.SenderID)
+		assert.Equal(t, "assistenza@example.com", got.ReplyTo)
+	})
+
+	t.Run("template without sender or reply-to leaves the translation empty", func(t *testing.T) {
+		tmpl := newTemplate(
+			&EmailTemplate{Subject: "Hello"},
+			&EmailTemplate{Subject: "Ciao"},
+		)
+
+		got := tmpl.ResolveEmailContent("it", "en")
+
+		assert.Empty(t, got.SenderID, "the integration's default sender is then picked, as before")
+		assert.Empty(t, got.ReplyTo)
+	})
+
+	t.Run("resolving changes neither the stored translation nor the template", func(t *testing.T) {
+		base := &EmailTemplate{Subject: "Hello", SenderID: "newsletter-sender", ReplyTo: "support@example.com"}
+		it := &EmailTemplate{Subject: "Ciao"}
+		tmpl := newTemplate(base, it)
+
+		got := tmpl.ResolveEmailContent("it", "en")
+
+		assert.NotSame(t, it, got, "the stored translation must not be handed out to be filled in")
+		assert.Empty(t, tmpl.Translations["it"].Email.SenderID)
+		assert.Empty(t, tmpl.Translations["it"].Email.ReplyTo)
+		assert.Equal(t, "newsletter-sender", base.SenderID)
+		assert.Equal(t, "support@example.com", base.ReplyTo)
+	})
+
+	t.Run("default content is returned as stored", func(t *testing.T) {
+		base := &EmailTemplate{Subject: "Hello", SenderID: "newsletter-sender"}
+		tmpl := newTemplate(base, &EmailTemplate{Subject: "Ciao"})
+
+		assert.Same(t, base, tmpl.ResolveEmailContent("", "en"))
+		assert.Same(t, base, tmpl.ResolveEmailContent("en", "en"))
+		assert.Same(t, base, tmpl.ResolveEmailContent("de", "en"))
+	})
+}
+
 func TestTemplate_ResolveWebContent(t *testing.T) {
 	defaultWeb := &WebTemplate{HTML: "<p>Default</p>"}
 	frWeb := &WebTemplate{HTML: "<p>Français</p>"}
