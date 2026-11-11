@@ -435,11 +435,11 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 
 	emailContent := template.ResolveEmailContent(contactLang, workspace.Settings.DefaultLanguage)
 
-	// Find the emailSender
-	emailSender := request.EmailProvider.GetSender(emailContent.SenderID)
-
-	if emailSender == nil {
-		return fmt.Errorf("sender not found: %s", emailContent.SenderID)
+	// The sender the send chooses wins over the template's; a chosen sender that is not one
+	// of the integration's is an error rather than the default sender.
+	emailSender, err := request.EmailProvider.ResolveSender(request.EmailOptions.SenderID, emailContent.SenderID)
+	if err != nil {
+		return err
 	}
 
 	span.AddAttributes(

@@ -107,9 +107,12 @@ func (b *BroadcastTestSettings) Scan(value interface{}) error {
 
 // BroadcastVariation represents a single variation in an A/B test
 type BroadcastVariation struct {
-	VariationName string            `json:"variation_name"`
-	TemplateID    string            `json:"template_id"`
-	Metrics       *VariationMetrics `json:"metrics,omitempty"`
+	VariationName string `json:"variation_name"`
+	TemplateID    string `json:"template_id"`
+	// SenderID is the integration sender this variation is sent from, chosen on the
+	// broadcast. Empty: the template's sender.
+	SenderID string            `json:"sender_id,omitempty"`
+	Metrics  *VariationMetrics `json:"metrics,omitempty"`
 	// joined servers-side
 	Template *Template `json:"template,omitempty"`
 }
@@ -434,6 +437,16 @@ func (b *Broadcast) Validate() error {
 		}
 	}
 
+	// A variation's sender is looked up by its template, so one template cannot be sent
+	// from two senders.
+	senderByTemplate := make(map[string]string, len(b.TestSettings.Variations))
+	for _, variation := range b.TestSettings.Variations {
+		if previous, seen := senderByTemplate[variation.TemplateID]; seen && previous != variation.SenderID {
+			return fmt.Errorf("template %s is used by two variations with different senders", variation.TemplateID)
+		}
+		senderByTemplate[variation.TemplateID] = variation.SenderID
+	}
+
 	// Validate audience settings
 	// CHANGED: List is required (for all broadcasts, not just web)
 	if b.Audience.List == "" {
@@ -631,6 +644,57 @@ func (r *UpdateBroadcastRequest) UnmarshalJSON(data []byte) error {
 	r.audienceSegmentsOmitted = jsonKeyOmitted(audience, "segments")
 	r.audienceExcludeUnsubscribedOmitted = jsonKeyOmitted(audience, "exclude_unsubscribed")
 
+	return nil
+}
+
+// TestSettingsProvided reports whether the update carries test_settings, which hold the
+// variations and their senders; without it the stored ones stand.
+func (r *UpdateBroadcastRequest) TestSettingsProvided() bool {
+	return !r.testSettingsOmitted
+}
+
+// VariationSenderID returns the sender chosen on the broadcast for the variation sending
+// templateID, or "" when the template's sender applies.
+func (b *Broadcast) VariationSenderID(templateID string) string {
+	if b == nil {
+		return ""
+	}
+	for _, variation := range b.TestSettings.Variations {
+		if variation.TemplateID == templateID {
+			return variation.SenderID
+		}
+	}
+	return ""
+}
+
+// VariationsToSend returns the variations a broadcast can still send: the winning one
+// once a winner is chosen, every one before.
+func (b *Broadcast) VariationsToSend() []BroadcastVariation {
+	if b.WinningTemplate != nil {
+		for _, variation := range b.TestSettings.Variations {
+			if variation.TemplateID == *b.WinningTemplate {
+				return []BroadcastVariation{variation}
+			}
+		}
+	}
+	return b.TestSettings.Variations
+}
+
+// CheckVariationSenders returns a ValidationError when a variation chooses a sender that
+// is not one of provider's, the workspace's marketing email integration. Variations that
+// keep their template's sender need no integration.
+func CheckVariationSenders(provider *EmailProvider, variations []BroadcastVariation) error {
+	for _, variation := range variations {
+		if variation.SenderID == "" {
+			continue
+		}
+		if provider == nil {
+			return NewValidationError(fmt.Sprintf("the variation sending template %s chooses a sender, but the workspace has no marketing email integration", variation.TemplateID))
+		}
+		if !provider.HasSender(variation.SenderID) {
+			return NewValidationError(fmt.Sprintf("sender %s, chosen for the variation sending template %s, is not a sender of the marketing email integration", variation.SenderID, variation.TemplateID))
+		}
+	}
 	return nil
 }
 

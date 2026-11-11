@@ -57,6 +57,14 @@ TransactionalNotificationSendParams:
       type: object
       description: Email-specific options
       properties:
+        sender_id:
+          type: string
+          description: |
+            ID of one of the transactional email integration's senders. The email leaves from
+            this sender instead of the template's. An ID that is not one of the integration's
+            senders is refused with a 400 before the contact is created or updated. `from_name`
+            still applies on top of it.
+          example: 3f1c2a9e-7b4d-4e1a-9c2f-5d8e6a0b1c3d
         from_name:
           type: string
           nullable: true

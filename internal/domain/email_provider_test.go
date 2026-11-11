@@ -1819,3 +1819,52 @@ func TestEmailProviderKind_IsTransactionalOnly(t *testing.T) {
 		})
 	}
 }
+
+func TestEmailProvider_ResolveSender(t *testing.T) {
+	defaultSender := NewEmailSender("hello@example.com", "Default")
+	newsletter := NewEmailSender("news@example.com", "Newsletter")
+	newsletter.IsDefault = false
+	promos := NewEmailSender("promos@example.com", "Promos")
+	promos.IsDefault = false
+	provider := &EmailProvider{Senders: []EmailSender{defaultSender, newsletter, promos}}
+
+	t.Run("a sender chosen at send time wins over the template's", func(t *testing.T) {
+		sender, err := provider.ResolveSender(promos.ID, newsletter.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "promos@example.com", sender.Email)
+	})
+
+	t.Run("a chosen sender missing from the integration is an error, never the default", func(t *testing.T) {
+		sender, err := provider.ResolveSender("gone", newsletter.ID)
+		assert.Nil(t, sender)
+		require.ErrorIs(t, err, ErrSenderNotFound)
+		assert.Contains(t, err.Error(), "gone")
+	})
+
+	t.Run("without a chosen sender the template's is used", func(t *testing.T) {
+		sender, err := provider.ResolveSender("", newsletter.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "news@example.com", sender.Email)
+	})
+
+	t.Run("without a chosen sender a template sender missing falls back to the default, as before", func(t *testing.T) {
+		sender, err := provider.ResolveSender("", "gone")
+		require.NoError(t, err)
+		assert.Equal(t, "hello@example.com", sender.Email)
+	})
+
+	t.Run("no sender at all is an error, not a missing chosen sender", func(t *testing.T) {
+		empty := &EmailProvider{}
+		sender, err := empty.ResolveSender("", "")
+		assert.Nil(t, sender)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no sender configured")
+		assert.NotErrorIs(t, err, ErrSenderNotFound)
+	})
+
+	t.Run("HasSender", func(t *testing.T) {
+		assert.True(t, provider.HasSender(promos.ID))
+		assert.False(t, provider.HasSender("gone"))
+		assert.False(t, provider.HasSender(""))
+	})
+}
