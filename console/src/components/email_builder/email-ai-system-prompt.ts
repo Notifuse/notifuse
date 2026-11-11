@@ -339,7 +339,7 @@ If your response carried no text, the application sends the results of your tool
 
 1. ALWAYS wrap text content in sections > columns > content blocks
 2. Use wrapper for consistent background across sections
-3. Set explicit column widths that sum to 100% within a section
+3. Set explicit widths on the columns and groups of a section that sum to 100%; a group without a width takes an equal share of the section, like a column
 4. Use padding attributes instead of spacers when possible
 5. Always provide alt text for images
 6. Use groups to prevent columns from stacking on mobile when needed

@@ -206,8 +206,8 @@ export const MJ_TITLE_DEFAULTS = {
 }
 
 // mj-group defaults
+// No width: as in MJML, a group without one takes its share of the section
 export const MJ_GROUP_DEFAULTS = {
-  width: '100%',
   verticalAlign: 'top' as const,
   backgroundColor: 'transparent',
   direction: 'ltr' as const,
