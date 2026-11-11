@@ -154,7 +154,7 @@ func (r DisplayConditionRule) validate() error {
 	}
 	if displayConditionOrderOperators[r.Operator] {
 		if _, ok := conditionNumber(value); !ok {
-			return fmt.Errorf("operator %s needs a number", r.Operator)
+			return fmt.Errorf("operator %s needs a number of at most 15 digits before the decimal point", r.Operator)
 		}
 	}
 	return nil
@@ -168,6 +168,11 @@ func validConditionVariable(variable string) bool {
 	return !conditionReservedFirstSegments[first] && !strings.HasPrefix(first, "__dc")
 }
 
+// maxConditionNumber bounds the numbers a condition compares: below it, a number has
+// at most 15 integer digits, so liquidgo (integers as int64, decimals as float64) and
+// the console's evaluator (float64 only) read every one of them alike.
+const maxConditionNumber = 1e15
+
 // conditionNumber parses an order operator's value, normalised as Liquid writes it.
 func conditionNumber(value string) (string, bool) {
 	value = strings.TrimSpace(value)
@@ -175,7 +180,7 @@ func conditionNumber(value string) (string, bool) {
 		return "", false
 	}
 	f, err := strconv.ParseFloat(value, 64)
-	if err != nil || math.IsInf(f, 0) || math.IsNaN(f) {
+	if err != nil || math.IsNaN(f) || math.Abs(f) >= maxConditionNumber {
 		return "", false
 	}
 	if f == 0 {
@@ -189,7 +194,7 @@ func conditionNumber(value string) (string, bool) {
 // them with the block id, which is harmless even on a collision since each one is
 // assigned right before it is read.
 type conditionNames struct {
-	flag, ok, vs, c, b, f, r, p, n string
+	flag, ok, vs, c, b, f, r, p, i, n string
 	value                          func(i int) string
 }
 
@@ -197,7 +202,7 @@ func newConditionNames(suffix string) conditionNames {
 	name := func(base string) string { return base + suffix }
 	return conditionNames{
 		flag: name("__dc"), ok: name("__dc_ok"), vs: name("__dc_vs"), c: name("__dc_c"),
-		b: name("__dc_b"), f: name("__dc_f"), r: name("__dc_r"), p: name("__dc_p"), n: name("__dc_n"),
+		b: name("__dc_b"), f: name("__dc_f"), r: name("__dc_r"), p: name("__dc_p"), i: name("__dc_i"), n: name("__dc_n"),
 		value: func(i int) string { return fmt.Sprintf("__dc_v%d%s", i, suffix) },
 	}
 }
@@ -345,7 +350,8 @@ func orderComparison(operator, n, value string) string {
 
 // numericGuard sets names.ok to comparison when v is a number or a decimal text
 // ("19.90", " 150 ", "-5", "+5", "007"), read into names.n; text, booleans, lists,
-// objects and absent values are not numbers, nor are "1e2" and ".5".
+// objects and absent values are not numbers, nor are "1e2" and ".5", nor numbers of
+// more than 15 integer digits (see maxConditionNumber).
 func (names conditionNames) numericGuard(v, comparison string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "{%% assign %s = false %%}", names.ok)
@@ -361,9 +367,10 @@ func (names conditionNames) numericGuard(v, comparison string) string {
 	b.WriteString(" %}")
 	fmt.Fprintf(&b, `{%% assign %s = %s | split: "." | size %%}`, names.p, names.b)
 	fmt.Fprintf(&b, `{%% if %s == "" or %s == "." %%}{%% if 3 > %s %%}{%% if %s != "" %%}{%% if "0123456789" contains %s %%}`, names.r, names.r, names.p, names.f, names.f)
+	fmt.Fprintf(&b, `{%% assign %s = %s | split: "." | first | size %%}{%% if 16 > %s %%}`, names.i, names.b, names.i)
 	fmt.Fprintf(&b, `{%% assign %s = %s | plus: 0 %%}{%% if %s == "-" %%}{%% assign %s = 0 | minus: %s %%}{%% endif %%}`, names.n, names.b, names.c, names.n, names.n)
 	fmt.Fprintf(&b, `{%% if %s %%}{%% assign %s = true %%}{%% endif %%}`, comparison, names.ok)
-	b.WriteString("{% endif %}{% endif %}{% endif %}{% endif %}")
+	b.WriteString("{% endif %}{% endif %}{% endif %}{% endif %}{% endif %}")
 	return b.String()
 }
 

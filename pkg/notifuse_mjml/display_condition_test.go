@@ -173,7 +173,7 @@ func TestDisplayCondition_LargestConditionFitsTheEngine(t *testing.T) {
 		t.Run(operator, func(t *testing.T) {
 			value := longValue
 			if displayConditionOrderOperators[operator] {
-				value = "-" + strings.Repeat("9", MaxDisplayConditionValueLen-3) + ".5"
+				value = "-12345678901234." + strings.Repeat("1", MaxDisplayConditionValueLen-16)
 			}
 			rules := make([]DisplayConditionRule, MaxDisplayConditionRules)
 			for i := range rules {
@@ -224,7 +224,7 @@ func TestDisplayCondition_ToLiquid(t *testing.T) {
 		{
 			name:      "normalised number on lt, without a less-than sign",
 			condition: &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{{Variable: "a", Operator: DisplayConditionLt, Value: stringPtr("+.5e1")}}},
-			open:      `{% assign __dc_blk_1 = true %}{% assign __dc_ok_blk_1 = false %}{% assign __dc_vs_blk_1 = a | append: "" | strip %}{% assign __dc_c_blk_1 = __dc_vs_blk_1 | slice: 0 %}{% assign __dc_b_blk_1 = __dc_vs_blk_1 %}{% if __dc_c_blk_1 == "-" or __dc_c_blk_1 == "+" %}{% assign __dc_b_blk_1 = __dc_vs_blk_1 | slice: 1, 1000000 %}{% endif %}{% assign __dc_f_blk_1 = __dc_b_blk_1 | slice: 0 %}{% assign __dc_r_blk_1 = __dc_b_blk_1 | remove: "0" | remove: "1" | remove: "2" | remove: "3" | remove: "4" | remove: "5" | remove: "6" | remove: "7" | remove: "8" | remove: "9" %}{% assign __dc_p_blk_1 = __dc_b_blk_1 | split: "." | size %}{% if __dc_r_blk_1 == "" or __dc_r_blk_1 == "." %}{% if 3 > __dc_p_blk_1 %}{% if __dc_f_blk_1 != "" %}{% if "0123456789" contains __dc_f_blk_1 %}{% assign __dc_n_blk_1 = __dc_b_blk_1 | plus: 0 %}{% if __dc_c_blk_1 == "-" %}{% assign __dc_n_blk_1 = 0 | minus: __dc_n_blk_1 %}{% endif %}{% if 5 > __dc_n_blk_1 %}{% assign __dc_ok_blk_1 = true %}{% endif %}{% endif %}{% endif %}{% endif %}{% endif %}{% unless __dc_ok_blk_1 %}{% assign __dc_blk_1 = false %}{% endunless %}{% if __dc_blk_1 %}`,
+			open:      `{% assign __dc_blk_1 = true %}{% assign __dc_ok_blk_1 = false %}{% assign __dc_vs_blk_1 = a | append: "" | strip %}{% assign __dc_c_blk_1 = __dc_vs_blk_1 | slice: 0 %}{% assign __dc_b_blk_1 = __dc_vs_blk_1 %}{% if __dc_c_blk_1 == "-" or __dc_c_blk_1 == "+" %}{% assign __dc_b_blk_1 = __dc_vs_blk_1 | slice: 1, 1000000 %}{% endif %}{% assign __dc_f_blk_1 = __dc_b_blk_1 | slice: 0 %}{% assign __dc_r_blk_1 = __dc_b_blk_1 | remove: "0" | remove: "1" | remove: "2" | remove: "3" | remove: "4" | remove: "5" | remove: "6" | remove: "7" | remove: "8" | remove: "9" %}{% assign __dc_p_blk_1 = __dc_b_blk_1 | split: "." | size %}{% if __dc_r_blk_1 == "" or __dc_r_blk_1 == "." %}{% if 3 > __dc_p_blk_1 %}{% if __dc_f_blk_1 != "" %}{% if "0123456789" contains __dc_f_blk_1 %}{% assign __dc_i_blk_1 = __dc_b_blk_1 | split: "." | first | size %}{% if 16 > __dc_i_blk_1 %}{% assign __dc_n_blk_1 = __dc_b_blk_1 | plus: 0 %}{% if __dc_c_blk_1 == "-" %}{% assign __dc_n_blk_1 = 0 | minus: __dc_n_blk_1 %}{% endif %}{% if 5 > __dc_n_blk_1 %}{% assign __dc_ok_blk_1 = true %}{% endif %}{% endif %}{% endif %}{% endif %}{% endif %}{% endif %}{% unless __dc_ok_blk_1 %}{% assign __dc_blk_1 = false %}{% endunless %}{% if __dc_blk_1 %}`,
 		},
 		{
 			name:      "unknown operator is a false rule",
