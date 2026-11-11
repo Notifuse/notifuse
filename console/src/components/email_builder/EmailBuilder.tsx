@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react'
-import { Button, Space, Segmented, Spin } from 'antd'
+import { Button, Space, Segmented, Spin, message } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faRedoAlt, faUndoAlt } from '@fortawesome/free-solid-svg-icons'
@@ -19,6 +19,7 @@ import type {
 } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
 import { rebalanceAfterAdd, rebalanceAfterRemove } from './utils/columnWidths'
+import { countHiddenBlocks, liquidPlacementError } from './displayCondition'
 
 type ViewMode = 'edit' | 'preview' | 'text'
 
@@ -27,6 +28,8 @@ interface CompilationResults {
   html: string
   mjml: string
   text?: string
+  // The data the server rendered with, including the workspace object it injects
+  test_data?: Record<string, unknown>
 }
 
 interface EmailBuilderProps {
@@ -335,7 +338,22 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     // console.log('Block updated successfully:', blockId)
   }
 
+  // A condition hides its block with every mj-liquid in it, which can hold half of a
+  // tag pair: the server refuses that tree, so the editor refuses to build it.
+  const refuseLiquidPlacement = (
+    parentId: string,
+    block: Pick<EmailBlock, 'type' | 'children'>
+  ): boolean => {
+    if (!liquidPlacementError(tree, parentId, block)) return false
+    message.warning(
+      t`A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside.`
+    )
+    return true
+  }
+
   const handleAddBlock = (parentId: string, blockType: string, position?: number) => {
+    if (refuseLiquidPlacement(parentId, { type: blockType as MJMLComponentType })) return
+
     // Check if trying to add mj-breakpoint when one already exists
     if (blockType === 'mj-breakpoint') {
       const existingBreakpoint = EmailBlockClass.findBlockByType(tree, 'mj-breakpoint')
@@ -669,6 +687,8 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
 
   const handleMoveBlock = (blockId: string, newParentId: string, position: number) => {
     const currentTree = tree
+    const movedBlock = EmailBlockClass.findBlockById(currentTree, blockId)
+    if (movedBlock && refuseLiquidPlacement(newParentId, movedBlock)) return
 
     // Find the original parent and place before moving
     const findParent = (node: EmailBlock): { parent: EmailBlock; index: number } | null => {
@@ -715,6 +735,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     // Create a deep copy of the saved block and regenerate IDs
     const blockCopy = JSON.parse(JSON.stringify(savedBlock)) as EmailBlock
     const blockWithNewIds = EmailBlockClass.regenerateIds(blockCopy)
+    if (refuseLiquidPlacement(parentId, blockWithNewIds)) return
 
     // Insert the block into the tree
     const updatedTree = EmailBlockClass.insertBlockIntoTree(
@@ -822,6 +843,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
           testData={testData}
           onTestDataChange={onTestDataChange}
           mobileDesktopSwitcherRef={mobileDesktopSwitcherRef}
+          hiddenBlockCount={countHiddenBlocks(tree, compilationResults.test_data ?? testData ?? {})}
         />
       )}
       {effectiveViewMode === 'text' && compilationResults && (
@@ -909,7 +931,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               >
                 <div className="pb-32">
                   <SettingsPanel
-                    key={`settings-${selectedBlock?.type || 'none'}`}
+                    key={`settings-${selectedBlock?.id || 'none'}`}
                     selectedBlock={selectedBlock}
                     onUpdateBlock={handleUpdateBlock}
                     attributeDefaults={EmailBlockClass.extractAttributeDefaults(tree)}

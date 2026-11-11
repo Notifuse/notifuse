@@ -471,6 +471,7 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
       onClick={handleClick}
       style={{ position: 'relative' }}
       data-block-id={block.id}
+        data-display-condition={block.display_condition ? "true" : undefined}
     >
       {isSelected ? (
         <div

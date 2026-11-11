@@ -5,7 +5,7 @@ import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import 'overlayscrollbars/overlayscrollbars.css'
 import { Highlight, themes } from 'prism-react-renderer'
 import { Editor } from '@monaco-editor/react'
-import { faDesktop, faMobileAlt } from '@fortawesome/free-solid-svg-icons'
+import { faCodeBranch, faDesktop, faMobileAlt } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { insertAfterDoctype } from '../../../utils/previewDocument'
 
@@ -27,6 +27,8 @@ interface PreviewProps {
   testData?: Record<string, unknown>
   onTestDataChange: (testData: Record<string, unknown>) => void
   mobileDesktopSwitcherRef?: React.RefObject<HTMLDivElement>
+  // Blocks the test data hides through their display condition
+  hiddenBlockCount?: number
 }
 
 export interface PreviewRef {
@@ -39,7 +41,18 @@ export interface PreviewRef {
 }
 
 export const Preview = forwardRef<PreviewRef, PreviewProps>(
-  ({ html, mjml, errors, testData, onTestDataChange, mobileDesktopSwitcherRef }, ref) => {
+  (
+    {
+      html,
+      mjml,
+      errors,
+      testData,
+      onTestDataChange,
+      mobileDesktopSwitcherRef,
+      hiddenBlockCount = 0
+    },
+    ref
+  ) => {
     const { t } = useLingui()
     const { message } = App.useApp()
     const [mobileView, setMobileView] = useState(true)
@@ -465,6 +478,16 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
                   />
                 </div>
               </div>
+              {hiddenBlockCount > 0 && (
+                <div className="px-4 pt-4" data-testid="preview-hidden-blocks">
+                  <div className="inline-flex items-center gap-2 bg-white/95 border border-gray-200 rounded-lg shadow-sm px-3 py-1.5 text-xs text-slate-600">
+                    <FontAwesomeIcon icon={faCodeBranch} className="text-[#7763F1]" />
+                    {hiddenBlockCount === 1
+                      ? t`1 block hidden by its condition with this test data.`
+                      : t`${hiddenBlockCount} blocks hidden by their condition with this test data.`}
+                  </div>
+                </div>
+              )}
               <div
                 className="flex-1"
                 style={{
