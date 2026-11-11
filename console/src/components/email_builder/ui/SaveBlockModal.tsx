@@ -59,6 +59,7 @@ export const SaveBlockModal: React.FC<SaveBlockModalProps> = ({
         .sort((a, b) => savedBlockTime(b) - savedBlockTime(a)),
     [savedBlocks, shown?.type]
   )
+  const count = sameType.length
 
   const headKey = useMemo(() => headKeyOf(emailTree), [emailTree])
   const canSave = mode === 'new' ? !!name.trim() : !!replacedId
@@ -116,7 +117,7 @@ export const SaveBlockModal: React.FC<SaveBlockModalProps> = ({
             <Radio.Group value={mode} onChange={(e) => setMode(e.target.value)}>
               <Radio value="new">{t`New block`}</Radio>
               <Radio value="replace" disabled={sameType.length === 0}>
-                {t`Replace an existing block (${sameType.length})`}
+                {t`Replace an existing block (${count})`}
               </Radio>
             </Radio.Group>
           </div>
