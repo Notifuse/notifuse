@@ -12,9 +12,9 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/Notifuse/gomjml/mjml"
 	"github.com/Notifuse/notifuse/pkg/plaintext"
 	"github.com/Notifuse/notifuse/pkg/trackingtoken"
-	"github.com/preslavrachev/gomjml/mjml"
 )
 
 // htmlVoidElements are HTML elements that must be self-closing in XML
@@ -101,23 +101,21 @@ func preprocessMjmlForXML(mjmlString string) string {
 	})
 
 	// Step 3: Keep quote entities inside URL attributes from turning into the
-	// quote that delimits them. gomjml decodes &quot; and &apos; to raw quotes
-	// before its XML parse, everywhere, including the raw HTML of an mj-text.
-	// A rich-text link saved as href="…?q=&quot;exact&quot;" therefore reached
-	// the HTML as href="…?q="exact"", which ends the URL at "q=". Doubling the
-	// ampersand (&amp;quot;) survives that pre-pass the way escapeAttributeValue
-	// does for visual-editor attributes; decodeHTMLEntitiesInURLAttributes
-	// brings it back to &quot; after the render.
+	// quote that delimits them. gomjml releases before v0.14.1 decoded &quot;
+	// and &apos; to raw quotes before their XML parse, everywhere, including the
+	// raw HTML of an mj-text, and wrote MJML attributes back unescaped: a
+	// rich-text link saved as href="…?q=&quot;exact&quot;" reached the HTML as
+	// href="…?q="exact"", which ends the URL at "q=". v0.14.1 leaves entities
+	// inside quoted attribute values to its XML parser and escapes most of the
+	// attributes it writes (not the carousel's hand-built href and src). The doubling below (&amp;quot;, the way
+	// escapeAttributeValue does for visual-editor attributes) still comes back
+	// as &quot; through decodeHTMLEntitiesInURLAttributes after the render, so
+	// the output is the same with both releases.
 	//
 	// The numeric forms &#34; and &#x22; (Go's html.EscapeString writes the
-	// former) get the same treatment: the XML parser decodes them to a raw "
-	// too, and an MJML element writes it back unescaped.
-	//
-	// A single-quoted value needs more: gomjml writes an MJML element's
-	// attributes back between double quotes without escaping them, so a " in
-	// <mj-button href='…?q="exact"'>, raw or as an entity, would close the
-	// output attribute too. It gets the same &amp;quot;. Its &apos; becomes
-	// &#39;, which gomjml leaves alone.
+	// former) get the same treatment, and so does a " in a single-quoted value
+	// such as <mj-button href='…?q="exact"'>, raw or as an entity. Its &apos;
+	// becomes &#39;.
 	//
 	// A hexadecimal reference written with an upper-case X, valid HTML, fails
 	// the whole compile when it sits in an MJML element's attribute, such as an
