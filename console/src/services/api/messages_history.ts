@@ -60,6 +60,8 @@ export interface MessageListParams {
   contact_email?: string
   broadcast_id?: string
   template_id?: string
+  // Messages on which this exact URL was clicked; requires broadcast_id.
+  clicked_url?: string
   is_sent?: boolean
   is_delivered?: boolean
   is_failed?: boolean
@@ -103,6 +105,7 @@ export function listMessages(
   if (params.contact_email) queryParams.append('contact_email', params.contact_email)
   if (params.broadcast_id) queryParams.append('broadcast_id', params.broadcast_id)
   if (params.template_id) queryParams.append('template_id', params.template_id)
+  if (params.clicked_url) queryParams.append('clicked_url', params.clicked_url)
   if (params.is_sent !== undefined) queryParams.append('is_sent', String(params.is_sent))
   if (params.is_delivered !== undefined)
     queryParams.append('is_delivered', String(params.is_delivered))

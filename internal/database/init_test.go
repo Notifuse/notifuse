@@ -499,9 +499,9 @@ func TestInitializeWorkspaceDatabase_InstallsSharedContactListTimelineFunction(t
 	assert.Equal(t, 1, count, "the function must be defined once, from the shared schema body")
 }
 
-// A fresh workspace must install the same message_history functions the v42 migration
-// installs on upgraded ones, so both record a complaint on a list the same way and set
-// the list status before the timeline entries.
+// A fresh workspace must install the same message_history functions the v42 and v44
+// migrations install on upgraded ones, so both record a complaint on a list the same way,
+// set the list status before the timeline entries and record link clicks the same way.
 func TestInitializeWorkspaceDatabase_InstallsSharedMessageHistoryFunctions(t *testing.T) {
 	rec := recordWorkspaceSchema(t)
 	for header, body := range map[string]string{

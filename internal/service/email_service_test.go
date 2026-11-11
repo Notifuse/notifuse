@@ -656,8 +656,8 @@ func TestEmailService_VisitLink(t *testing.T) {
 	t.Run("Successfully sets message as clicked without URL", func(t *testing.T) {
 		// Setup message repository mock to expect SetClicked
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
-			DoAndReturn(func(_ context.Context, _, _ string, timestamp time.Time, _ string) error {
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
+			DoAndReturn(func(_ context.Context, _, _ string, timestamp time.Time, _ string, _ bool) error {
 				// Verify the timestamp is close to now
 				assert.True(t, time.Since(timestamp) < time.Second)
 				return nil
@@ -666,7 +666,7 @@ func TestEmailService_VisitLink(t *testing.T) {
 		// No logger error expected
 
 		// Call method under test
-		err := emailService.VisitLink(ctx, messageID, workspaceID, "", requestHost)
+		err := emailService.VisitLink(ctx, messageID, workspaceID, "", []string{requestHost}, true)
 
 		// Assertions
 		require.NoError(t, err)
@@ -676,19 +676,19 @@ func TestEmailService_VisitLink(t *testing.T) {
 		clickedURL := "https://shop.example.com/product?utm_source=news"
 
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), clickedURL).
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), clickedURL, true).
 			Return(nil)
 
-		err := emailService.VisitLink(ctx, messageID, workspaceID, clickedURL, requestHost)
+		err := emailService.VisitLink(ctx, messageID, workspaceID, clickedURL, []string{requestHost}, true)
 		require.NoError(t, err)
 	})
 
 	t.Run("Non-http scheme degrades to aggregate-only", func(t *testing.T) {
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
 			Return(nil)
 
-		err := emailService.VisitLink(ctx, messageID, workspaceID, "mailto:someone@example.com", requestHost)
+		err := emailService.VisitLink(ctx, messageID, workspaceID, "mailto:someone@example.com", []string{requestHost}, true)
 		require.NoError(t, err)
 	})
 
@@ -696,10 +696,10 @@ func TestEmailService_VisitLink(t *testing.T) {
 		longURL := "https://example.com/?q=" + strings.Repeat("a", 2048)
 
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
 			Return(nil)
 
-		err := emailService.VisitLink(ctx, messageID, workspaceID, longURL, requestHost)
+		err := emailService.VisitLink(ctx, messageID, workspaceID, longURL, []string{requestHost}, true)
 		require.NoError(t, err)
 	})
 
@@ -707,50 +707,118 @@ func TestEmailService_VisitLink(t *testing.T) {
 		// Unsubscribe/notification-center URLs embed the recipient's raw email
 		// and are built on the same endpoint that serves the click redirect.
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
 			Return(nil)
 
 		err := emailService.VisitLink(ctx, messageID, workspaceID,
-			"https://click.notifuse.test/unsubscribe?email=someone@example.com", requestHost)
+			"https://click.notifuse.test/unsubscribe?email=someone@example.com", []string{requestHost}, true)
 		require.NoError(t, err)
 	})
 
 	t.Run("Host comparison is case-insensitive", func(t *testing.T) {
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
 			Return(nil)
 
 		err := emailService.VisitLink(ctx, messageID, workspaceID,
-			"https://Click.Notifuse.Test/notification-center?email=someone@example.com", requestHost)
+			"https://Click.Notifuse.Test/notification-center?email=someone@example.com", []string{requestHost}, true)
 		require.NoError(t, err)
 	})
 
-	t.Run("Empty request host still records external URLs", func(t *testing.T) {
+	t.Run("Behind a proxy, a URL pointing back at a forwarded host degrades to aggregate-only", func(t *testing.T) {
+		// The proxy forwards its upstream name as Host: the email's own links are built
+		// on the host it forwards in X-Forwarded-Host, the second one here.
+		mockMessageRepo.EXPECT().
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
+			Return(nil)
+
+		err := emailService.VisitLink(ctx, messageID, workspaceID,
+			"https://click.notifuse.test/unsubscribe?email=someone@example.com", []string{"notifuse:8080", requestHost}, true)
+		require.NoError(t, err)
+	})
+
+	t.Run("Behind a proxy, external URLs are still recorded", func(t *testing.T) {
 		clickedURL := "https://shop.example.com/product"
 
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), clickedURL).
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), clickedURL, true).
 			Return(nil)
 
-		err := emailService.VisitLink(ctx, messageID, workspaceID, clickedURL, "")
+		err := emailService.VisitLink(ctx, messageID, workspaceID, clickedURL, []string{"notifuse:8080", requestHost}, true)
+		require.NoError(t, err)
+	})
+
+	t.Run("The request's own Host still counts when forwarded hosts follow it", func(t *testing.T) {
+		mockMessageRepo.EXPECT().
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
+			Return(nil)
+
+		err := emailService.VisitLink(ctx, messageID, workspaceID,
+			"https://click.notifuse.test/unsubscribe?email=someone@example.com", []string{requestHost, "edge.example"}, true)
+		require.NoError(t, err)
+	})
+
+	t.Run("Own hosts are compared by hostname, whatever the ports", func(t *testing.T) {
+		// A proxy forwarding the public host without its port, a Host with the
+		// upstream port, an endpoint host that never carries one: the link is the
+		// instance's own on any port of that hostname.
+		for name, tc := range map[string]struct {
+			link  string
+			hosts []string
+		}{
+			"link with a port, host without":     {"https://click.notifuse.test:8443/unsubscribe?email=someone@example.com", []string{requestHost}},
+			"host with a port, link without":     {"http://notifuse/unsubscribe?email=someone@example.com", []string{"notifuse:8080"}},
+			"a trailing dot names the same host": {"https://click.notifuse.test./unsubscribe?email=someone@example.com", []string{requestHost}},
+			"a Unicode link, a Punycode host":    {"https://café.example/unsubscribe?email=someone@example.com", []string{"xn--caf-dma.example"}},
+			"an IPv6 endpoint host in brackets":  {"http://[2001:db8::1]:8080/unsubscribe-oneclick?email=someone@example.com", []string{"127.0.0.1:8080", "[2001:db8::1]"}},
+		} {
+			t.Run(name, func(t *testing.T) {
+				assert.Empty(t, sanitizeClickedURL(tc.link, tc.hosts))
+			})
+		}
+	})
+
+	t.Run("A hostname that only ends like an own host is recorded", func(t *testing.T) {
+		clickedURL := "https://evil-click.notifuse.test/landing"
+		assert.Equal(t, clickedURL, sanitizeClickedURL(clickedURL, []string{requestHost, "api.notifuse.test"}))
+	})
+
+	t.Run("No request host still records external URLs", func(t *testing.T) {
+		clickedURL := "https://shop.example.com/product"
+
+		mockMessageRepo.EXPECT().
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), clickedURL, true).
+			Return(nil)
+
+		err := emailService.VisitLink(ctx, messageID, workspaceID, clickedURL, nil, true)
 		require.NoError(t, err)
 	})
 
 	t.Run("Error setting clicked status", func(t *testing.T) {
 		// Setup message repository mock to return an error
 		mockMessageRepo.EXPECT().
-			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "").
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), "", true).
 			Return(assert.AnError)
 
 		// Should log the error
 		mockLogger.EXPECT().Error(gomock.Any())
 
 		// Call method under test
-		err := emailService.VisitLink(ctx, messageID, workspaceID, "", requestHost)
+		err := emailService.VisitLink(ctx, messageID, workspaceID, "", []string{requestHost}, true)
 
 		// Assertions
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to set clicked")
+	})
+	t.Run("An unverified token is passed on as unverified", func(t *testing.T) {
+		clickedURL := "https://shop.example.com/product"
+
+		mockMessageRepo.EXPECT().
+			SetClicked(ctx, workspaceID, messageID, gomock.Any(), clickedURL, false).
+			Return(nil)
+
+		err := emailService.VisitLink(ctx, messageID, workspaceID, clickedURL, []string{requestHost}, false)
+		require.NoError(t, err)
 	})
 }
 
@@ -775,8 +843,8 @@ func TestSanitizeClickedURL_CollapsesPerRecipientIdentityTokens(t *testing.T) {
 		bobURL := link + "&" + domain.WebIdentifyQueryParam + "=" + bobToken
 		require.NotEqual(t, aliceURL, bobURL, "the two recipients must not share a destination URL, or the test proves nothing")
 
-		recordedForAlice := sanitizeClickedURL(aliceURL, requestHost)
-		recordedForBob := sanitizeClickedURL(bobURL, requestHost)
+		recordedForAlice := sanitizeClickedURL(aliceURL, []string{requestHost})
+		recordedForBob := sanitizeClickedURL(bobURL, []string{requestHost})
 
 		assert.Equal(t, link, recordedForAlice)
 		assert.Equal(t, recordedForAlice, recordedForBob, "both clicks must aggregate under a single clicked_links key")
@@ -793,8 +861,8 @@ func TestSanitizeClickedURL_CollapsesPerRecipientIdentityTokens(t *testing.T) {
 		require.NotEqual(t, first, second, "EncryptString must seed a fresh nonce per call")
 
 		assert.Equal(t,
-			sanitizeClickedURL(link+"&"+domain.WebIdentifyQueryParam+"="+first, requestHost),
-			sanitizeClickedURL(link+"&"+domain.WebIdentifyQueryParam+"="+second, requestHost))
+			sanitizeClickedURL(link+"&"+domain.WebIdentifyQueryParam+"="+first, []string{requestHost}),
+			sanitizeClickedURL(link+"&"+domain.WebIdentifyQueryParam+"="+second, []string{requestHost}))
 	})
 }
 
@@ -920,7 +988,7 @@ func TestSanitizeClickedURL_IdentifyTokenStripping(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expected, sanitizeClickedURL(tc.url, requestHost))
+			assert.Equal(t, tc.expected, sanitizeClickedURL(tc.url, []string{requestHost}))
 		})
 	}
 }
@@ -940,7 +1008,7 @@ func TestSanitizeClickedURL_LengthCapIgnoresTheIdentifyToken(t *testing.T) {
 		require.Len(t, atCap, maxRecordedClickedURLLength)
 		require.Greater(t, len(withToken), maxRecordedClickedURLLength, "the token must be what pushes this URL over the cap")
 
-		assert.Equal(t, atCap, sanitizeClickedURL(withToken, requestHost))
+		assert.Equal(t, atCap, sanitizeClickedURL(withToken, []string{requestHost}))
 	})
 
 	t.Run("A URL still over the cap once stripped degrades to aggregate-only", func(t *testing.T) {
@@ -948,7 +1016,7 @@ func TestSanitizeClickedURL_LengthCapIgnoresTheIdentifyToken(t *testing.T) {
 		overCap := prefix + strings.Repeat("a", maxRecordedClickedURLLength-len(prefix)+1)
 		withToken := overCap + "&" + domain.WebIdentifyQueryParam + "=" + token
 
-		assert.Empty(t, sanitizeClickedURL(withToken, requestHost))
+		assert.Empty(t, sanitizeClickedURL(withToken, []string{requestHost}))
 	})
 }
 
@@ -2485,8 +2553,8 @@ func TestSanitizeClickedURL_StripsWhatTrackLinksWrites(t *testing.T) {
 	require.NotEqual(t, aliceDestination, bobDestination,
 		"the two recipients must land on different URLs, or the strip is not being exercised")
 
-	aliceKey := sanitizeClickedURL(aliceDestination, requestHost)
-	bobKey := sanitizeClickedURL(bobDestination, requestHost)
+	aliceKey := sanitizeClickedURL(aliceDestination, []string{requestHost})
+	bobKey := sanitizeClickedURL(bobDestination, []string{requestHost})
 
 	require.NotEmpty(t, aliceKey, "the destination is on a third-party host and must stay recordable")
 	assert.Equal(t, aliceKey, bobKey, "both clicks must aggregate under a single clicked_links key")

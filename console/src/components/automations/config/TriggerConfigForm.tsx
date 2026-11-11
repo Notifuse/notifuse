@@ -8,11 +8,13 @@ import type { TreeNode } from '../../../services/api/segment'
 import { listsApi } from '../../../services/api/list'
 import { listSegments } from '../../../services/api/segment'
 import { OptionSelector } from '../../ui/OptionSelector'
+import BroadcastSelectorInput from '../../segment/BroadcastSelectorInput'
+import TemplateSelectorInput from '../../templates/TemplateSelectorInput'
 import type { Workspace } from '../../../services/api/types'
 
 // Kinds that fire often enough that a condition is worth a word about cost: it runs for every
 // matching row written to contact_timeline.
-const FREQUENT_EVENT_KINDS = ['email.opened', 'email.clicked', 'contact.updated', 'custom_event']
+const FREQUENT_EVENT_KINDS = ['email.opened', 'email.clicked', 'email.link_clicked', 'contact.updated', 'custom_event']
 
 // Event kind cascader options are built inside the component to support i18n
 
@@ -43,6 +45,9 @@ interface TriggerConfig {
   segment_id?: string
   custom_event_name?: string
   updated_fields?: string[]
+  link_url?: string
+  broadcast_id?: string
+  template_id?: string
   // Declared here as well as in TimelineTriggerConfig: without it the field survives only by
   // the runtime {...config} spreads, invisible to the type checker.
   conditions?: TreeNode
@@ -98,6 +103,7 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
       children: [
         { value: 'email.opened', label: t`Opened` },
         { value: 'email.clicked', label: t`Clicked` },
+        { value: 'email.link_clicked', label: t`Clicked a link` },
         { value: 'email.bounced', label: t`Bounced` },
         { value: 'email.complained', label: t`Complained` },
         { value: 'email.unsubscribed', label: t`Unsubscribed` }
@@ -204,7 +210,10 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
       list_id: undefined,
       segment_id: undefined,
       custom_event_name: undefined,
-      updated_fields: undefined
+      updated_fields: undefined,
+      link_url: undefined,
+      broadcast_id: undefined,
+      template_id: undefined
     }
     onChange(newConfig)
   }
@@ -229,6 +238,19 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
     onChange({ ...config, updated_fields: value.length > 0 ? value : undefined })
   }
 
+  // An empty filter is no filter: sent as absent rather than "".
+  const handleLinkURLChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange({ ...config, link_url: e.target.value || undefined })
+  }
+
+  const handleBroadcastIdChange = (value: string | null) => {
+    onChange({ ...config, broadcast_id: value || undefined })
+  }
+
+  const handleTemplateIdChange = (value: string | null) => {
+    onChange({ ...config, template_id: value || undefined })
+  }
+
   const handleConditionsChange = (conditions: TreeNode) => {
     onChange({ ...config, conditions })
   }
@@ -241,6 +263,7 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
   const isSegmentEvent = config.event_kind?.startsWith('segment.')
   const isCustomEvent = config.event_kind === 'custom_event'
   const isContactUpdated = config.event_kind === 'contact.updated'
+  const isLinkClicked = config.event_kind === 'email.link_clicked'
   const usesTimeline = treeUsesSource(config.conditions, 'contact_timeline')
   const isFrequentEvent = Boolean(config.event_kind && FREQUENT_EVENT_KINDS.includes(config.event_kind))
 
@@ -347,6 +370,47 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
             style={{ width: '100%' }}
           />
         </Form.Item>
+      )}
+
+      {/* Filters of a link click: what the clicked URL contains, and which email it was in */}
+      {isLinkClicked && (
+        <>
+          <Alert
+            type="info"
+            showIcon
+            className="mb-3"
+            title={t`Starts the first time a contact clicks each link of an email. A click on an email this automation sent does not start it again.`}
+          />
+          <Form.Item
+            label={t`Clicked link contains`}
+            extra={t`Part of the link's URL, not case-sensitive. Leave empty to start on any link.`}
+          >
+            <Input
+              placeholder={t`e.g. /pricing`}
+              value={config.link_url}
+              onChange={handleLinkURLChange}
+              allowClear
+            />
+          </Form.Item>
+          <Form.Item label={t`Broadcast`} extra={t`Only links in emails of this broadcast.`}>
+            <BroadcastSelectorInput
+              workspaceId={workspaceId}
+              value={config.broadcast_id}
+              onChange={handleBroadcastIdChange}
+              placeholder={t`Any broadcast`}
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+          <Form.Item label={t`Template`} extra={t`Only links in emails sent with this template.`}>
+            <TemplateSelectorInput
+              workspaceId={workspaceId}
+              value={config.template_id}
+              onChange={handleTemplateIdChange}
+              placeholder={t`Any template`}
+              clearable={true}
+            />
+          </Form.Item>
+        </>
       )}
 
       <Form.Item label={t`Frequency`} required>
