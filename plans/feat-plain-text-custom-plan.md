@@ -303,7 +303,7 @@ No count in a test name or comment unless an assertion pins it.
 
 ## Review log
 
-Revision 2, independent plan review (`reviews/feat-plain-text-custom-revue-fable-xhigh-plan.md`):
+Revision 2, after an independent plan review:
 
 | Finding | Change |
 |---|---|
