@@ -397,11 +397,11 @@ export const PERMISSION_DESCRIPTORS: Record<
         },
         {
           endpoint: "/api/transactional.create",
-          action: msg`Read the template of a transactional notification when creating it, or when editing it with its channels as the console does (also needs Transactional write)`,
+          action: msg`Read the template of a transactional notification when creating it, or when editing it with its channels, which the console sends unless an integration manages the notification (also needs Transactional write)`,
         },
         {
           endpoint: "/api/transactional.update",
-          action: msg`Read the template of a transactional notification when creating it, or when editing it with its channels as the console does (also needs Transactional write)`,
+          action: msg`Read the template of a transactional notification when creating it, or when editing it with its channels, which the console sends unless an integration manages the notification (also needs Transactional write)`,
         },
       ],
     },
@@ -626,7 +626,7 @@ export const PERMISSION_DESCRIPTORS: Record<
         },
         {
           endpoint: "/api/transactional.update",
-          action: msg`Edit a transactional notification (an edit that sends its channels, as every console edit does, also needs Templates read)`,
+          action: msg`Edit a transactional notification (an edit that sends its channels, which the console does unless an integration manages the notification, also needs Templates read)`,
         },
         {
           endpoint: "/api/transactional.delete",
@@ -1069,4 +1069,32 @@ export function canSendTestEmail(
   permissions: StoredPermissions | null | undefined,
 ): boolean {
   return Boolean(permissions?.templates?.read && permissions?.transactional?.write);
+}
+
+/**
+ * Whether a set lets a member create a transactional notification (transactional.create): the
+ * endpoint checks Transactional write, then reads the chosen template with the member's own
+ * permissions.
+ */
+export function canCreateTransactionalNotification(
+  permissions: StoredPermissions | null | undefined,
+): boolean {
+  return Boolean(permissions?.transactional?.write && permissions?.templates?.read);
+}
+
+/**
+ * Whether a set lets a member save the console's edit of a transactional notification
+ * (transactional.update): the endpoint checks Transactional write, and reads the template with the
+ * member's own permissions when the edit carries channels. The console's drawer sends them unless an
+ * integration manages the notification, whose channels cannot change; an empty integration id is not
+ * managed, as in the drawer and the server.
+ */
+export function canEditTransactionalNotification(
+  permissions: StoredPermissions | null | undefined,
+  notification: { integration_id?: string | null },
+): boolean {
+  if (!permissions?.transactional?.write) {
+    return false;
+  }
+  return Boolean(notification.integration_id) || Boolean(permissions.templates?.read);
 }

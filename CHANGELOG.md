@@ -30,6 +30,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
 
+- **Fix**: Create Notification is now disabled, and Edit hidden, on the transactional notifications page for members without Templates read: creating offered a template picker they could not load, and saving an edit was refused. Editing a notification managed by an integration stays available with Transactional write alone.
+
 - **Fix**: Liquid in templates now matches Shopify Liquid in more cases: `{% if order.total == 100 %}` matches numbers from your data, accented text is no longer corrupted by `capitalize` or `truncate`, amounts are exact (`0.1 | plus: 0.2` is `0.3`), `date` supports `%-d` and formats timestamps, and conditions on a text containing "and" or "or", tags written over several lines and `{%- raw -%}` work.
 
 - **Fix**: `{% if tags contains "vip" %}` on a list now matches only the element `vip`, no longer `vip_gold`. Check templates that relied on the partial match.

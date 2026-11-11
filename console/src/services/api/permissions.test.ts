@@ -10,7 +10,9 @@ import {
   isPermissionEnforced,
   ENFORCED_PERMISSION_VERBS,
   countEnforcedGrants,
-  canSendTestEmail
+  canSendTestEmail,
+  canCreateTransactionalNotification,
+  canEditTransactionalNotification
 } from './permissions'
 import type { PermissionType } from './permissions'
 
@@ -158,6 +160,57 @@ describe('canSendTestEmail', () => {
 
   it.each([null, undefined])('is false for %s', (permissions) => {
     expect(canSendTestEmail(permissions)).toBe(false)
+  })
+})
+
+// transactional.create reads the chosen template with the member's own context (templates:read).
+// transactional.update does so only when the body carries channels, which the console's drawer
+// sends unless an integration manages the notification. tests/integration/transactional_handler_test.go
+// pins these requirements against the server.
+describe('canCreateTransactionalNotification', () => {
+  it('needs transactional write and templates read', () => {
+    expect(canCreateTransactionalNotification({ templates: { read: true, write: false }, transactional: { read: false, write: true } })).toBe(true)
+  })
+
+  it.each([
+    ['without templates read', { templates: { read: false, write: true }, transactional: { read: true, write: true } }],
+    ['without transactional write', { templates: { read: true, write: true }, transactional: { read: true, write: false } }]
+  ])('is false %s', (_label, permissions) => {
+    expect(canCreateTransactionalNotification(permissions)).toBe(false)
+  })
+
+  it.each([null, undefined])('is false for %s', (permissions) => {
+    expect(canCreateTransactionalNotification(permissions)).toBe(false)
+  })
+})
+
+describe('canEditTransactionalNotification', () => {
+  const both = { templates: { read: true, write: false }, transactional: { read: false, write: true } }
+  const writeOnly = { templates: { read: false, write: false }, transactional: { read: true, write: true } }
+  const readTemplatesOnly = { templates: { read: true, write: true }, transactional: { read: true, write: false } }
+
+  it('needs transactional write and templates read for a notification no integration manages', () => {
+    expect(canEditTransactionalNotification(both, {})).toBe(true)
+    expect(canEditTransactionalNotification(writeOnly, {})).toBe(false)
+  })
+
+  // The console sends no channels for a managed notification, so its template is not read.
+  it('needs transactional write only for a notification an integration manages', () => {
+    expect(canEditTransactionalNotification(writeOnly, { integration_id: 'supabase' })).toBe(true)
+  })
+
+  it('treats an empty integration id as not managed, as the drawer and the server do', () => {
+    expect(canEditTransactionalNotification(writeOnly, { integration_id: '' })).toBe(false)
+    expect(canEditTransactionalNotification(writeOnly, { integration_id: null })).toBe(false)
+  })
+
+  it('is false without transactional write, even for a managed notification', () => {
+    expect(canEditTransactionalNotification(readTemplatesOnly, { integration_id: 'supabase' })).toBe(false)
+    expect(canEditTransactionalNotification(readTemplatesOnly, {})).toBe(false)
+  })
+
+  it.each([null, undefined])('is false for %s', (permissions) => {
+    expect(canEditTransactionalNotification(permissions, { integration_id: 'supabase' })).toBe(false)
   })
 })
 
