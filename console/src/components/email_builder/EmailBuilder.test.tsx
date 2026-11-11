@@ -161,6 +161,47 @@ describe('EmailBuilder text version mode', () => {
   })
 })
 
+describe('EmailBuilder text version mode with a custom text', () => {
+  const customProps = (onCompile: Mock, value: string | undefined) => ({
+    ...props(makeTree('one'), onCompile, null),
+    textVersion: {
+      enabled: true as const,
+      custom: { value, onChange: vi.fn(), onSeed: vi.fn().mockResolvedValue({ text: '' }), category: 'marketing' }
+    }
+  })
+
+  it('shows the text area while the email is still compiling', async () => {
+    const onCompile = vi.fn(() => new Promise(() => {}))
+    render(<EmailBuilder {...customProps(onCompile as unknown as Mock, 'Mine')} />)
+
+    fireEvent.click(screen.getAllByText('Text version')[0])
+
+    await waitFor(() => expect((screen.getByTestId('custom-text-input') as HTMLTextAreaElement).value).toBe('Mine'))
+  })
+
+  it('shows the text area when the email does not compile', async () => {
+    const onCompile = vi.fn().mockResolvedValue({ html: '', mjml: '', errors: [{ message: 'Broken template' }] })
+    render(<EmailBuilder {...customProps(onCompile, 'Mine')} />)
+
+    fireEvent.click(screen.getAllByText('Text version')[0])
+
+    await waitFor(() => expect(onCompile).toHaveBeenCalled())
+    expect(screen.getByTestId('custom-text-input')).toBeTruthy()
+  })
+
+  it('shows the automatic text, not the custom one, after going back to Automatic', async () => {
+    const onCompile = vi.fn().mockResolvedValue({ html: '<p>a</p>', mjml: '', errors: [], text: 'Automatic text' })
+    const { rerender } = render(<EmailBuilder {...customProps(onCompile, 'Mine')} />)
+    fireEvent.click(screen.getAllByText('Text version')[0])
+    await waitFor(() => expect(screen.getByTestId('custom-text-input')).toBeTruthy())
+
+    rerender(<EmailBuilder {...customProps(onCompile, undefined)} />)
+
+    await waitFor(() => expect(screen.getByTestId('text-version').textContent).toBe('Automatic text'))
+    expect(screen.queryByText('Mine')).toBeNull()
+  })
+})
+
 // A condition hides its block with every mj-liquid in it, which can hold half of a tag
 // pair, so the server refuses the tree: the editor must not build it.
 describe('EmailBuilder Liquid blocks under a display condition', () => {

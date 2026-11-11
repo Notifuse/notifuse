@@ -46,6 +46,7 @@ import { SUPPORTED_LANGUAGES } from '../../lib/languages'
 import TemplateTranslationsTab from './TemplateTranslationsTab'
 import type { TranslationEditorState } from './TemplateTranslationsTab'
 import type { EmailTemplate, TemplateTranslation } from '../../services/api/template'
+import { customTextOrUndefined, missingRequiredLink, seedTextVersion } from './textVersionSeed'
 
 /**
  * Validates liquid template tags in a string to ensure they are properly closed
@@ -125,6 +126,10 @@ interface CreateTemplateDrawerProps {
 type TranslationEmailPayload = Partial<EmailTemplate> & Pick<EmailTemplate, 'subject'>
 
 const HEADER_HEIGHT = 66
+
+// Liquid variables named in the custom text warnings, outside the translated sentences.
+const UNSUBSCRIBE_VARIABLE = '{{ unsubscribe_url }}'
+const CONFIRM_VARIABLE = '{{ confirm_subscription_url }}'
 /**
  * Creates default email blocks from the template JSON
  */
@@ -223,6 +228,19 @@ export function CreateTemplateDrawer({
     return STARTER_TEMPLATE
   })
   const [translationsState, setTranslationsState] = useState<Record<string, TranslationEditorState>>({})
+  // The custom plain-text version of the default language; undefined for the automatic one.
+  const [emailText, setEmailText] = useState<string | undefined>(() =>
+    customTextOrUndefined(template?.email?.text ?? fromTemplate?.email?.text)
+  )
+  // Each opening of the drawer is a session: a text change sent by a handler of an
+  // earlier session (a seed answering after Cancel or Save) is dropped.
+  const [textSession, setTextSession] = useState(0)
+  const textSessionRef = useRef(0)
+  const changeEmailText = (value?: string) => {
+    if (textSession !== textSessionRef.current) return
+    dirtyRef.current = true
+    setEmailText(value)
+  }
 
   const translationLanguages = (workspace.settings.languages || []).filter(
     (l) => l !== workspace.settings.default_language
@@ -343,6 +361,11 @@ export function CreateTemplateDrawer({
         return
       }
       message.error(template ? t`Failed to update template: ${error.message}` : t`Failed to create template: ${error.message}`)
+      // A refused text version of the default language is written in the email editor;
+      // one of a translation, in the translations.
+      if (error.message.includes('text version') && !error.message.includes("translation '")) {
+        setTab('template')
+      }
       setLoading(false)
     }
   })
@@ -369,7 +392,8 @@ export function CreateTemplateDrawer({
               ? (JSON.parse(JSON.stringify(trans.email.visual_editor_tree)) as EmailBlock)
               : (JSON.parse(trans.email.visual_editor_tree as unknown as string) as EmailBlock))
           : undefined,
-        mjmlSource: trans.email?.mjml_source || undefined
+        mjmlSource: trans.email?.mjml_source || undefined,
+        text: customTextOrUndefined(trans.email?.text)
       }
     }
     setTranslationsState(loaded)
@@ -395,6 +419,7 @@ export function CreateTemplateDrawer({
       },
       test_data: latest.test_data || defaultTestData
     })
+    setEmailText(customTextOrUndefined(latest.email?.text))
     loadTranslations(latest.translations)
     if (latest.email?.visual_editor_tree) {
       if (typeof latest.email.visual_editor_tree === 'object') {
@@ -460,6 +485,7 @@ export function CreateTemplateDrawer({
         },
         test_data: template.test_data || defaultTestData
       })
+      setEmailText(customTextOrUndefined(template.email?.text))
       loadTranslations(template.translations)
       // Track the revision this content is based on, then freshen against the server
       // so a stale list snapshot doesn't lead to a silent overwrite of newer edits.
@@ -493,6 +519,7 @@ export function CreateTemplateDrawer({
         test_data: fromTemplate.test_data || defaultTestData
       })
 
+      setEmailText(customTextOrUndefined(fromTemplate.email?.text))
       loadTranslations(fromTemplate.translations)
 
       // Update the visual editor tree
@@ -525,6 +552,9 @@ export function CreateTemplateDrawer({
     setEditorMode('visual')
     setMjmlSource(STARTER_TEMPLATE)
     setTranslationsState({})
+    setEmailText(undefined)
+    textSessionRef.current++
+    setTextSession(textSessionRef.current)
     if (onClose) {
       onClose()
     }
@@ -690,6 +720,19 @@ export function CreateTemplateDrawer({
                 values.email.editor_mode = 'visual'
                 values.email.visual_editor_tree = visualEditorTree
               }
+              const defaultText = customTextOrUndefined(emailText)
+              if (defaultText !== undefined) {
+                values.email.text = defaultText
+              } else {
+                delete values.email.text
+              }
+              // Texts that miss the link their category needs: a warning, not a refusal.
+              const missingLinkLanguages: string[] = []
+              const missingVariable = missingRequiredLink(categoryValue, defaultText)
+              if (missingVariable) {
+                const lang = workspace.settings.default_language
+                missingLinkLanguages.push((lang && SUPPORTED_LANGUAGES[lang]) || lang || '')
+              }
 
               // Validate and build translations from state
               if (showTranslationsTab) {
@@ -719,10 +762,26 @@ export function CreateTemplateDrawer({
                     emailTranslation.editor_mode = 'visual'
                     emailTranslation.visual_editor_tree = state.visualEditorTree || visualEditorTree
                   }
+                  const translationText = customTextOrUndefined(state.text)
+                  if (translationText !== undefined) {
+                    emailTranslation.text = translationText
+                    if (missingRequiredLink(categoryValue, translationText)) {
+                      missingLinkLanguages.push(SUPPORTED_LANGUAGES[lang] || lang)
+                    }
+                  }
                   translations[lang] = { email: emailTranslation }
                 }
                 // Always send translations (even empty) so disabling all clears them on the server
                 values.translations = translations
+              }
+
+              if (missingLinkLanguages.length > 0) {
+                const languages = missingLinkLanguages.filter(Boolean).join(', ')
+                message.warning(
+                  categoryValue === 'opt_in'
+                    ? t`The custom text version (${languages}) has no confirmation link. Add ${CONFIRM_VARIABLE} so recipients can confirm their subscription.`
+                    : t`The custom text version (${languages}) has no unsubscribe link. Add ${UNSUBSCRIBE_VARIABLE} so recipients can unsubscribe.`
+                )
               }
 
               // Remember the payload so the conflict dialog can re-submit it verbatim.
@@ -1072,6 +1131,14 @@ export function CreateTemplateDrawer({
                           }}
                           height={emailBuilderHeight}
                           templateId={templateId || 'new'}
+                          textVersion={{
+                            custom: {
+                              value: emailText,
+                              onChange: changeEmailText,
+                              onSeed: () => seedTextVersion(workspace, { mjmlSource }),
+                              category: categoryValue
+                            }
+                          }}
                         />
                       )
                     }
@@ -1150,7 +1217,18 @@ export function CreateTemplateDrawer({
                         selectedBlockId={selectedBlockId}
                         hiddenBlocks={['mj-title', 'mj-preview']}
                         height={emailBuilderHeight}
-                        textVersion={{ enabled: true }}
+                        textVersion={{
+                          enabled: true,
+                          custom: {
+                            value: emailText,
+                            onChange: changeEmailText,
+                            onSeed: () =>
+                              seedTextVersion(workspace, {
+                                visualEditorTree: visualEditorTreeRef.current
+                              }),
+                            category: categoryValue
+                          }
+                        }}
                         toolbarActions={
                           <div className="flex gap-2 items-start">
                             <HelpSupportDropdown
@@ -1194,6 +1272,7 @@ export function CreateTemplateDrawer({
                     onTestDataChange={(newTestData) => form.setFieldsValue({ test_data: newTestData })}
                     savedBlocks={workspace.settings.template_blocks || []}
                     onSaveBlock={handleSaveBlock}
+                    category={categoryValue}
                   />
                 </div>
               )}

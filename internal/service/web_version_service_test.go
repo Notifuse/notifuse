@@ -584,3 +584,41 @@ func TestWebVersionService_RenderRefusals(t *testing.T) {
 		assert.ErrorIs(t, err, ErrWebVersionUnavailable)
 	})
 }
+
+// A link to the web version written only in the custom text version is a link the email
+// shows: the page opens, in visual and code mode alike. The page itself is the HTML, so
+// the custom text is not rendered for it.
+func TestWebVersionService_RendersWhenOnlyTheCustomTextLinksToIt(t *testing.T) {
+	text := "Web version: {{ view_in_browser_url }}"
+	source := `<mjml><mj-body><mj-section><mj-column><mj-text>Hi</mj-text></mj-column></mj-section></mj-body></mjml>`
+	for name, template := range map[string]*domain.Template{
+		"visual": {ID: "tpl-1", Version: 3, Channel: "email", Email: &domain.EmailTemplate{
+			Subject: "Hi", VisualEditorTree: createValidMJMLTree(createTestTextBlock("txt1", "Hi")), Text: &text,
+		}},
+		"code": {ID: "tpl-1", Version: 3, Channel: "email", Email: &domain.EmailTemplate{
+			Subject: "Hi", EditorMode: domain.EditorModeCode, MjmlSource: &source, Text: &text,
+		}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newWebVersionFixture(t)
+			f.expectSource(wvBroadcastMessage(map[string]interface{}{"contact": wvContactData("Camille", "")}), template)
+
+			html, err := f.svc.Render(context.Background(), WebVersionRef{WorkspaceID: wvWorkspaceID, MessageID: wvMessageID})
+			require.NoError(t, err)
+			assert.Contains(t, html, "Hi")
+			require.Len(t, f.compiled, 1)
+			assert.Nil(t, f.compiled[0].Text, "the page is the HTML: the custom text is not rendered")
+		})
+	}
+
+	t.Run("a blank custom text does not count", func(t *testing.T) {
+		blank := "  \n "
+		template := &domain.Template{ID: "tpl-1", Version: 3, Channel: "email", Email: &domain.EmailTemplate{
+			Subject: "Hi", VisualEditorTree: createValidMJMLTree(createTestTextBlock("txt1", "Hi")), Text: &blank,
+		}}
+		f := newWebVersionFixture(t)
+		f.expectSource(wvBroadcastMessage(map[string]interface{}{"contact": wvContactData("Camille", "")}), template)
+		_, err := f.svc.Render(context.Background(), WebVersionRef{WorkspaceID: wvWorkspaceID, MessageID: wvMessageID})
+		assert.ErrorIs(t, err, ErrWebVersionNotFound)
+	})
+}

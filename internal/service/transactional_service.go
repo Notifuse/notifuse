@@ -1008,6 +1008,15 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		return fmt.Errorf("template compilation failed: %s", errMsg)
 	}
 
+	if compiledResult.TextError != "" {
+		s.logger.WithFields(map[string]interface{}{
+			"workspace_id":     workspaceID,
+			"template_id":      template.ID,
+			"template_version": template.Version,
+			"error":            compiledResult.TextError,
+		}).Warn("Custom text version could not be used, sending the automatic one")
+	}
+
 	// Process subject line through Liquid templating if it contains Liquid tags
 	processedSubject, err := notifuse_mjml.ProcessLiquidTemplate(
 		emailContent.Subject,
@@ -1057,6 +1066,7 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		To:            recipientEmail,
 		Subject:       processedSubject,
 		Content:       *compiledResult.HTML,
+		TextContent:   compiledResult.CustomText(),
 		Provider:      emailProvider,
 		EmailOptions:  emailOptions,
 	}

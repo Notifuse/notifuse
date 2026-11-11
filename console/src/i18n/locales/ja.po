@@ -71,8 +71,8 @@ msgstr "(空)"
 
 #. placeholder {0}: record.email.reply_to
 #. placeholder {0}: templateSender?.name || defaultSender?.name
-#: src/components/templates/TemplatePreviewDrawer.tsx:312
-#: src/components/templates/TemplatePreviewDrawer.tsx:348
+#: src/components/templates/TemplatePreviewDrawer.tsx:341
+#: src/components/templates/TemplatePreviewDrawer.tsx:377
 msgid "(original: {0})"
 msgstr "(元: {0})"
 
@@ -330,7 +330,7 @@ msgstr "{hours}時間{remainingMinutes}分"
 msgid "{label} copied to clipboard"
 msgstr "{label}をクリップボードにコピーしました"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:701
+#: src/components/templates/CreateTemplateDrawer.tsx:744
 msgid "{langName} translation is missing required fields (subject and preview)"
 msgstr "{langName}の翻訳に必須項目 (件名とプレビュー) が不足しています"
 
@@ -535,7 +535,7 @@ msgstr "1ページ"
 msgid "1. Audience"
 msgstr "1. オーディエンス"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:775
+#: src/components/templates/CreateTemplateDrawer.tsx:834
 msgid "1. Settings"
 msgstr "1. 設定"
 
@@ -543,12 +543,12 @@ msgstr "1. 設定"
 msgid "100 - Thin"
 msgstr "100 - 極細"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:781
+#: src/components/templates/CreateTemplateDrawer.tsx:840
 msgid "2. Template"
 msgstr "2. テンプレート"
 
 #. placeholder {0}: workspace.settings.default_language
-#: src/components/templates/CreateTemplateDrawer.tsx:780
+#: src/components/templates/CreateTemplateDrawer.tsx:839
 msgid "2. Template ({0})"
 msgstr "2. テンプレート ({0})"
 
@@ -564,7 +564,7 @@ msgstr "200 - 超細"
 msgid "3. Data Feeds"
 msgstr "3. データフィード"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:787
+#: src/components/templates/CreateTemplateDrawer.tsx:846
 msgid "3. Translations"
 msgstr "3. 翻訳"
 
@@ -629,7 +629,7 @@ msgstr "過去のアクティビティのカウントには、オートメーシ
 msgid "A Liquid block cannot go inside a block with a display condition"
 msgstr "表示条件のあるブロックの中に Liquid ブロックは配置できません"
 
-#: src/components/email_builder/EmailBuilder.tsx:348
+#: src/components/email_builder/EmailBuilder.tsx:351
 msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
 msgstr "表示条件のあるブロックの中に Liquid ブロックは配置できません。先に条件を削除するか、Liquid ブロックを外側に配置してください。"
 
@@ -1421,7 +1421,7 @@ msgstr "独自の保持期間を設定していないすべてのワークスペ
 msgid "Apply"
 msgstr "適用"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:815
+#: src/components/email_builder/MjmlCodeEditor.tsx:820
 msgid "Apply & Recompile"
 msgstr "適用して再コンパイル"
 
@@ -1718,6 +1718,11 @@ msgstr "勝者を自動送信"
 msgid "Auto-subscribe to Lists"
 msgstr "リストへ自動登録"
 
+#: src/components/email_builder/panels/TextVersionPanel.tsx:154
+#: src/components/templates/TemplatePreviewDrawer.tsx:247
+msgid "Automatic"
+msgstr "自動"
+
 #: src/components/integrations/SupabaseIntegration.tsx:181
 msgid "Automatically add new users to the selected lists"
 msgstr "新規ユーザーを選択したリストに自動追加"
@@ -1908,7 +1913,7 @@ msgstr "Basic認証 (ユーザー名/パスワード)"
 msgid "Basic Information"
 msgstr "基本情報"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:382
+#: src/components/templates/TemplatePreviewDrawer.tsx:411
 msgid "BCC"
 msgstr "BCC"
 
@@ -1977,7 +1982,7 @@ msgstr "ブロック名"
 msgid "Block saved as \"{0}\""
 msgstr "ブロックを\"{0}\"として保存しました"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1273
+#: src/components/templates/CreateTemplateDrawer.tsx:1352
 msgid "Block Settings Panel"
 msgstr "ブロック設定パネル"
 
@@ -2441,6 +2446,8 @@ msgstr "キャンペーン"
 #: src/components/contacts/TrackingConsent.tsx:211
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:155
 #: src/components/email_builder/panels/Preview.tsx:207
+#: src/components/email_builder/panels/TextVersionPanel.tsx:137
+#: src/components/email_builder/panels/TextVersionPanel.tsx:181
 #: src/components/email_builder/ui/BlockToolbar.tsx:210
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:139
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:179
@@ -2476,9 +2483,9 @@ msgstr "キャンペーン"
 #: src/components/settings/WebhooksSettings.tsx:251
 #: src/components/settings/WorkspaceMembers.tsx:479
 #: src/components/settings/WorkspaceMembers.tsx:541
-#: src/components/templates/CreateTemplateDrawer.tsx:627
+#: src/components/templates/CreateTemplateDrawer.tsx:657
 #: src/components/templates/SendTemplateModal.tsx:303
-#: src/components/templates/TemplateTranslationsTab.tsx:283
+#: src/components/templates/TemplateTranslationsTab.tsx:318
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:180
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
@@ -2576,7 +2583,7 @@ msgstr "カテゴリ"
 #: src/components/blog/ThemeEditorDrawer.tsx:428
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:75
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:105
-#: src/components/templates/CreateTemplateDrawer.tsx:874
+#: src/components/templates/CreateTemplateDrawer.tsx:933
 #: src/pages/TemplatesPage.tsx:231
 msgid "Category"
 msgstr "カテゴリ"
@@ -2598,7 +2605,7 @@ msgstr "カテゴリを更新しました"
 msgid "Category:"
 msgstr "カテゴリ:"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:370
+#: src/components/templates/TemplatePreviewDrawer.tsx:399
 msgid "CC"
 msgstr "CC"
 
@@ -2903,11 +2910,11 @@ msgstr "複製"
 msgid "Clone Block"
 msgstr "ブロックを複製"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:612
+#: src/components/templates/CreateTemplateDrawer.tsx:642
 msgid "Clone email template"
 msgstr "メールテンプレートを複製"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:603
+#: src/components/templates/CreateTemplateDrawer.tsx:633
 #: src/pages/TemplatesPage.tsx:322
 msgid "Clone Template"
 msgstr "テンプレートを複製"
@@ -2931,12 +2938,12 @@ msgstr "保存せずに閉じる"
 msgid "Closed Captions (CC)"
 msgstr "字幕 (CC)"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:670
+#: src/components/email_builder/MjmlCodeEditor.tsx:675
 #: src/pages/TemplatesPage.tsx:224
 msgid "Code"
 msgstr "コード"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:925
+#: src/components/templates/CreateTemplateDrawer.tsx:984
 msgid "Code (MJML)"
 msgstr "コード (MJML)"
 
@@ -3016,12 +3023,11 @@ msgstr "コンパイル結果"
 msgid "Compile MJML to HTML with test data"
 msgstr "テストデータを使ってMJMLをHTMLにコンパイルする"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:581
+#: src/components/email_builder/MjmlCodeEditor.tsx:586
 msgid "Compile the template first"
 msgstr "先にテンプレートをコンパイルしてください"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:715
-#: src/components/email_builder/MjmlCodeEditor.tsx:839
+#: src/components/email_builder/MjmlCodeEditor.tsx:720
 msgid "Compiling..."
 msgstr "コンパイル中..."
 
@@ -3114,6 +3120,10 @@ msgstr "条件"
 #: src/pages/WebAnalyticsFiltersPage.tsx:285
 #~ msgid "Conditions (all must match; none = always match)"
 #~ msgstr ""
+
+#: src/components/email_builder/panels/TextVersionPanel.tsx:242
+msgid "Conditions and loops placed between blocks are not carried over. Check the text before saving."
+msgstr "ブロックの間に置かれた条件やループは引き継がれません。保存する前にテキストを確認してください。"
 
 #: src/components/automations/NodeConfigPanel.tsx:165
 msgid "Configuration for {nodeType} is not available in Phase 2"
@@ -3393,7 +3403,7 @@ msgstr "コンテンツ"
 msgid "Content quality by traffic source"
 msgstr "トラフィックソース別のコンテンツ品質"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1259
+#: src/components/templates/CreateTemplateDrawer.tsx:1338
 msgid "Content Structure Tree"
 msgstr "コンテンツ構造ツリー"
 
@@ -3496,7 +3506,7 @@ msgid "Could not load the goals"
 msgstr "ゴールを読み込めませんでした"
 
 #: src/components/blog/PostDrawer.tsx:377
-#: src/components/templates/CreateTemplateDrawer.tsx:437
+#: src/components/templates/CreateTemplateDrawer.tsx:462
 msgid "Could not load the latest version. Please try again."
 msgstr "最新バージョンを読み込めませんでした。もう一度お試しください。"
 
@@ -3645,7 +3655,7 @@ msgstr "トランザクション通知を作成する (テンプレートの選�
 msgid "Create an automation, including webhook, email and list nodes"
 msgstr "Webhook、メール、リストのノードを含むオートメーションを作成する"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:613
+#: src/components/templates/CreateTemplateDrawer.tsx:643
 msgid "Create an email template"
 msgstr "メールテンプレートを作成"
 
@@ -3732,7 +3742,7 @@ msgstr "通知を作成"
 msgid "Create rule"
 msgstr "ルールを作成"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:603
+#: src/components/templates/CreateTemplateDrawer.tsx:633
 msgid "Create Template"
 msgstr "テンプレートを作成"
 
@@ -3865,7 +3875,10 @@ msgid "custom"
 msgstr "カスタム"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:95
+#: src/components/email_builder/panels/TextVersionPanel.tsx:165
+#: src/components/email_builder/panels/TextVersionPanel.tsx:313
 #: src/components/email_builder/ui/BackgroundInput.tsx:113
+#: src/components/templates/TemplatePreviewDrawer.tsx:245
 msgid "Custom"
 msgstr "カスタム"
 
@@ -4050,11 +4063,11 @@ msgstr "カスタム期間"
 msgid "Custom report"
 msgstr "カスタムレポート"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:985
+#: src/components/templates/CreateTemplateDrawer.tsx:1044
 msgid "Custom sender (marketing email provider)"
 msgstr "カスタム送信者（マーケティングメールプロバイダ）"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:985
+#: src/components/templates/CreateTemplateDrawer.tsx:1044
 msgid "Custom sender (transactional email provider)"
 msgstr "カスタム送信者（トランザクションメールプロバイダ）"
 
@@ -4626,7 +4639,7 @@ msgstr "Webhookを無効化"
 #: src/components/settings/GeneralSettings.tsx:142
 #: src/components/settings/Integrations.tsx:1576
 #: src/components/settings/WebAnalyticsSettings.tsx:251
-#: src/components/templates/TemplateTranslationsTab.tsx:225
+#: src/components/templates/TemplateTranslationsTab.tsx:259
 msgid "Disabled"
 msgstr "無効"
 
@@ -4755,7 +4768,7 @@ msgstr "このブロードキャストでは開封とクリックをトラッキ
 
 #: src/components/automations/config/ConditionsField.tsx:137
 #: src/components/settings/ZapierSettings.tsx:270
-#: src/components/templates/TemplateTranslationsTab.tsx:326
+#: src/components/templates/TemplateTranslationsTab.tsx:368
 msgid "Done"
 msgstr "完了"
 
@@ -4938,7 +4951,7 @@ msgstr "編集"
 #: src/components/automations/config/ConditionsField.tsx:108
 #: src/components/automations/UpsertAutomationDrawer.tsx:288
 #: src/components/blog/PostsTable.tsx:349
-#: src/components/email_builder/EmailBuilder.tsx:873
+#: src/components/email_builder/EmailBuilder.tsx:876
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
 #: src/components/settings/Integrations.tsx:352
@@ -4956,7 +4969,7 @@ msgid "Edit"
 msgstr "編集"
 
 #. placeholder {0}: SUPPORTED_LANGUAGES[editorDrawerLang] || editorDrawerLang
-#: src/components/templates/TemplateTranslationsTab.tsx:317
+#: src/components/templates/TemplateTranslationsTab.tsx:359
 msgid "Edit {0} translation"
 msgstr "{0}の翻訳を編集"
 
@@ -5030,7 +5043,7 @@ msgstr "CSSを編集"
 msgid "Edit Custom Field Label"
 msgstr "カスタムフィールドラベルを編集"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:610
+#: src/components/templates/CreateTemplateDrawer.tsx:640
 msgid "Edit email template"
 msgstr "メールテンプレートを編集"
 
@@ -5086,7 +5099,7 @@ msgstr "セグメントを編集"
 msgid "Edit Sender"
 msgstr "送信者を編集"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:603
+#: src/components/templates/CreateTemplateDrawer.tsx:633
 #: src/pages/TemplatesPage.tsx:300
 msgid "Edit Template"
 msgstr "テンプレートを編集"
@@ -5129,7 +5142,7 @@ msgstr "Zapier接続を編集"
 msgid "Editable markup"
 msgstr "編集可能なマークアップ"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:915
+#: src/components/templates/CreateTemplateDrawer.tsx:974
 msgid "Editor mode"
 msgstr "エディターモード"
 
@@ -5264,7 +5277,7 @@ msgstr "開封トラッキング"
 msgid "Email Options:"
 msgstr "メールオプション:"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:896
+#: src/components/email_builder/MjmlCodeEditor.tsx:879
 #: src/components/email_builder/panels/Preview.tsx:505
 msgid "Email Preview"
 msgstr "メールプレビュー"
@@ -5277,18 +5290,18 @@ msgstr "メールプロバイダの設定が必要です"
 msgid "Email Provider Required"
 msgstr "メールプロバイダが必要です"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:937
-#: src/components/templates/TemplateTranslationsTab.tsx:238
+#: src/components/templates/CreateTemplateDrawer.tsx:996
+#: src/components/templates/TemplateTranslationsTab.tsx:272
 msgid "Email subject"
 msgstr "メール件名"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1003
-#: src/components/templates/TemplateTranslationsTab.tsx:301
+#: src/components/templates/CreateTemplateDrawer.tsx:1062
+#: src/components/templates/TemplateTranslationsTab.tsx:343
 msgid "Email Subject"
 msgstr "メール件名"
 
 #. placeholder {0}: workspace.settings.default_language
-#: src/components/templates/CreateTemplateDrawer.tsx:937
+#: src/components/templates/CreateTemplateDrawer.tsx:996
 msgid "Email subject ({0})"
 msgstr "メールの件名 ({0})"
 
@@ -5412,7 +5425,7 @@ msgstr "Webhookを有効化"
 #: src/components/settings/SystemSettingsDrawer.tsx:465
 #: src/components/settings/SystemSettingsDrawer.tsx:550
 #: src/components/settings/WebAnalyticsSettings.tsx:246
-#: src/components/templates/TemplateTranslationsTab.tsx:224
+#: src/components/templates/TemplateTranslationsTab.tsx:258
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:146
 msgid "Enabled"
 msgstr "有効"
@@ -5696,12 +5709,12 @@ msgstr "オートメーションの読み込みエラー"
 msgid "Error loading data"
 msgstr "データの読み込みエラー"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:414
+#: src/components/templates/TemplatePreviewDrawer.tsx:443
 msgid "Error loading preview"
 msgstr "プレビューの読み込みエラー"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:255
-#: src/components/templates/CreateTemplateDrawer.tsx:507
+#: src/components/templates/CreateTemplateDrawer.tsx:273
+#: src/components/templates/CreateTemplateDrawer.tsx:534
 msgid "Error loading template: Invalid template data"
 msgstr "テンプレートの読み込みエラー: 無効なテンプレートデータ"
 
@@ -5727,7 +5740,7 @@ msgstr "エラー: {0}"
 msgid "Error: {errorMessage}"
 msgstr "エラー: {errorMessage}"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:675
+#: src/components/email_builder/MjmlCodeEditor.tsx:680
 msgid "Errors"
 msgstr "エラー"
 
@@ -5779,7 +5792,7 @@ msgstr "「set」操作にはすべて値が必要です"
 msgid "Every domain"
 msgstr "すべてのドメイン"
 
-#: src/components/email_builder/panels/TextVersionPanel.tsx:32
+#: src/components/email_builder/panels/TextVersionPanel.tsx:121
 msgid "Every email is sent with an HTML version and a text version. Mail clients show the text version when HTML is blocked or not supported."
 msgstr "すべてのメールはHTML版とテキスト版の両方で送信されます。HTMLがブロックされている場合やサポートされていない場合、メールクライアントはテキスト版を表示します。"
 
@@ -5887,7 +5900,7 @@ msgid "Explore"
 msgstr "探索"
 
 #: src/components/contacts/ExportContactsModal.tsx:354
-#: src/components/email_builder/MjmlCodeEditor.tsx:635
+#: src/components/email_builder/MjmlCodeEditor.tsx:640
 #: src/components/logs/AuditLogActions.tsx:52
 #: src/components/templates/ImportExportButton.tsx:432
 #: src/pages/ContactsPage.tsx:1055
@@ -5902,11 +5915,11 @@ msgstr "コンタクトをCSVにエクスポート"
 msgid "Export failed"
 msgstr "エクスポートに失敗しました"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:644
+#: src/components/email_builder/MjmlCodeEditor.tsx:649
 msgid "Export HTML"
 msgstr "HTMLをエクスポート"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:639
+#: src/components/email_builder/MjmlCodeEditor.tsx:644
 msgid "Export MJML"
 msgstr "MJMLをエクスポート"
 
@@ -5995,7 +6008,7 @@ msgstr "ブロードキャストのキャンセルに失敗しました"
 msgid "Failed to clear field"
 msgstr "フィールドのクリアに失敗しました"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:177
+#: src/components/templates/TemplatePreviewDrawer.tsx:187
 msgid "Failed to compile template preview."
 msgstr "テンプレートプレビューのコンパイルに失敗しました。"
 
@@ -6055,7 +6068,7 @@ msgid "Failed to create segment"
 msgstr "セグメントの作成に失敗しました"
 
 #. placeholder {0}: error.message
-#: src/components/templates/CreateTemplateDrawer.tsx:345
+#: src/components/templates/CreateTemplateDrawer.tsx:363
 msgid "Failed to create template: {0}"
 msgstr "テンプレートの作成に失敗しました: {0}"
 
@@ -6249,7 +6262,7 @@ msgstr "投稿の公開に失敗しました"
 msgid "Failed to publish theme"
 msgstr "テーマの公開に失敗しました"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:561
+#: src/components/email_builder/MjmlCodeEditor.tsx:566
 #: src/components/templates/ImportExportButton.tsx:207
 msgid "Failed to read the file"
 msgstr "ファイルの読み込みに失敗しました"
@@ -6334,7 +6347,7 @@ msgstr "設定の保存に失敗しました"
 msgid "Failed to save Supabase integration"
 msgstr "Supabase連携の保存に失敗しました"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:587
+#: src/components/templates/CreateTemplateDrawer.tsx:617
 msgid "Failed to save template block"
 msgstr "テンプレートブロックの保存に失敗しました"
 
@@ -6466,7 +6479,7 @@ msgid "Failed to update status: {error}"
 msgstr "ステータスの更新に失敗しました: {error}"
 
 #. placeholder {0}: error.message
-#: src/components/templates/CreateTemplateDrawer.tsx:345
+#: src/components/templates/CreateTemplateDrawer.tsx:363
 msgid "Failed to update template: {0}"
 msgstr "テンプレートの更新に失敗しました: {0}"
 
@@ -6559,7 +6572,7 @@ msgstr "ファイル {0} は3MBの制限を超えています"
 msgid "File deleted successfully."
 msgstr "ファイルを削除しました。"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:548
+#: src/components/email_builder/MjmlCodeEditor.tsx:553
 msgid "File is too large. Maximum size is 1MB."
 msgstr "ファイルが大きすぎます。最大サイズは1MBです。"
 
@@ -6788,7 +6801,7 @@ msgstr "セグメントの完全な再構築を強制する"
 #~ msgid "Forever"
 #~ msgstr ""
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:739
+#: src/components/email_builder/MjmlCodeEditor.tsx:744
 msgid "Format"
 msgstr "整形"
 
@@ -6815,7 +6828,7 @@ msgstr "{0}からの未保存の変更が見つかりました"
 msgid "Frequency"
 msgstr "頻度"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:303
+#: src/components/templates/TemplatePreviewDrawer.tsx:332
 msgid "From"
 msgstr "差出人"
 
@@ -6906,7 +6919,11 @@ msgstr "レポートを生成"
 msgid "Generate this key in Supabase Auth Hooks settings"
 msgstr "Supabase Auth Hooks設定でこのキーを生成してください"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:683
+#: src/components/email_builder/panels/TextVersionPanel.tsx:157
+msgid "Generated from the HTML at every send. Nothing to maintain."
+msgstr "送信のたびにHTMLから生成されます。管理は不要です。"
+
+#: src/components/email_builder/MjmlCodeEditor.tsx:688
 msgid "Generated HTML"
 msgstr "生成されたHTML"
 
@@ -7103,13 +7120,13 @@ msgstr "ヘッダーの値は必須です"
 msgid "Height"
 msgstr "高さ"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:711
-#: src/components/templates/CreateTemplateDrawer.tsx:156
+#: src/components/email_builder/MjmlCodeEditor.tsx:716
+#: src/components/templates/CreateTemplateDrawer.tsx:161
 #: src/layouts/WorkspaceLayout.tsx:681
 msgid "Help"
 msgstr "ヘルプ"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:151
+#: src/components/templates/CreateTemplateDrawer.tsx:156
 msgid "Help & Support"
 msgstr "ヘルプ＆サポート"
 
@@ -7215,12 +7232,12 @@ msgstr "HTMLエクスポートに失敗しました"
 msgid "HTML exported successfully"
 msgstr "HTMLを正常にエクスポートしました"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:212
+#: src/components/templates/TemplatePreviewDrawer.tsx:224
 msgid "HTML Preview"
 msgstr "HTMLプレビュー"
 
 #. placeholder {0}: record.name
-#: src/components/templates/TemplatePreviewDrawer.tsx:218
+#: src/components/templates/TemplatePreviewDrawer.tsx:230
 msgid "HTML Preview of {0}"
 msgstr "{0}のHTMLプレビュー"
 
@@ -7240,11 +7257,11 @@ msgstr "{maxRounds}回のツール呼び出しを行いましたが、答えに�
 msgid "i.e: Big spenders..."
 msgstr "例: 高額利用者..."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:811
+#: src/components/templates/CreateTemplateDrawer.tsx:870
 msgid "i.e: Welcome Email"
 msgstr "例: ウェルカムメール"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:865
+#: src/components/templates/CreateTemplateDrawer.tsx:924
 msgid "i.e: welcome-email"
 msgstr "例: welcome-email"
 
@@ -7306,7 +7323,7 @@ msgstr "IDは英数字である必要があります"
 msgid "ID must be less than 32 characters"
 msgstr "IDは32文字未満である必要があります"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:835
+#: src/components/templates/CreateTemplateDrawer.tsx:894
 msgid "ID must contain only lowercase letters, numbers, underscores, and hyphens"
 msgstr "IDは小文字の英字、数字、アンダースコア、ハイフンのみ使用できます"
 
@@ -7396,18 +7413,18 @@ msgid "Implicit TLS (SMTPS)"
 msgstr "暗黙的TLS (SMTPS)"
 
 #: src/components/contacts/TrackingConsent.tsx:66
-#: src/components/email_builder/MjmlCodeEditor.tsx:623
+#: src/components/email_builder/MjmlCodeEditor.tsx:628
 #: src/components/templates/ImportExportButton.tsx:403
 #: src/pages/ContactsPage.tsx:1048
 msgid "Import"
 msgstr "インポート"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:700
+#: src/components/email_builder/MjmlCodeEditor.tsx:705
 #: src/components/templates/ImportExportButton.tsx:472
 msgid "Import / Export"
 msgstr "インポート / エクスポート"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1302
+#: src/components/templates/CreateTemplateDrawer.tsx:1381
 msgid "Import & Export Templates"
 msgstr "テンプレートのインポート＆エクスポート"
 
@@ -7442,7 +7459,7 @@ msgstr "ホストされたCSSファイル（Google Fontsなど）からフォン
 msgid "Import from CSV"
 msgstr "CSVからインポート"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:627
+#: src/components/email_builder/MjmlCodeEditor.tsx:632
 msgid "Import MJML"
 msgstr "MJMLをインポート"
 
@@ -7664,7 +7681,7 @@ msgid "Invalid invitation link: missing token"
 msgstr "無効な招待リンク: トークンがありません"
 
 #: src/components/contacts/InlineEditableField.tsx:94
-#: src/components/email_builder/MjmlCodeEditor.tsx:601
+#: src/components/email_builder/MjmlCodeEditor.tsx:606
 msgid "Invalid JSON format"
 msgstr "無効なJSON形式です"
 
@@ -7680,7 +7697,7 @@ msgstr "フィールド{field}のJSONが無効です"
 msgid "Invalid or expired invitation token"
 msgstr "無効または期限切れの招待トークンです"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:127
+#: src/components/templates/TemplatePreviewDrawer.tsx:135
 msgid "Invalid template structure data."
 msgstr "無効なテンプレート構造データです。"
 
@@ -7831,7 +7848,7 @@ msgstr "発行者URL"
 msgid "Issuer URL is required"
 msgstr "発行者URLは必須です"
 
-#: src/components/email_builder/panels/TextVersionPanel.tsx:35
+#: src/components/email_builder/panels/TextVersionPanel.tsx:125
 msgid "It is generated from the HTML at every send, so there is nothing to maintain. Its links are the links of the HTML, tracked the same way."
 msgstr "テキスト版は送信のたびにHTMLから生成されるため、管理は不要です。リンクはHTMLのリンクと同じで、同じ方法でトラッキングされます。"
 
@@ -7902,6 +7919,14 @@ msgstr "35〜140文字に収めてください"
 msgid "Keep it concise and descriptive"
 msgstr "簡潔で説明的に保ってください"
 
+#: src/components/email_builder/panels/TextVersionPanel.tsx:207
+msgid "Keep the confirmation link: {CONFIRM_VARIABLE}."
+msgstr "確認リンクを残してください：{CONFIRM_VARIABLE}。"
+
+#: src/components/email_builder/panels/TextVersionPanel.tsx:204
+msgid "Keep the unsubscribe link: {UNSUBSCRIBE_VARIABLE}."
+msgstr "配信停止リンクを残してください：{UNSUBSCRIBE_VARIABLE}。"
+
 #: src/components/segment/input_json_path.tsx:88
 msgid "key or index"
 msgstr "キーまたはインデックス"
@@ -7937,7 +7962,7 @@ msgstr "ランディングページ"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:96
 #: src/components/contacts/ExportContactsModal.tsx:73
 #: src/components/templates/SendTemplateModal.tsx:392
-#: src/components/templates/TemplatePreviewDrawer.tsx:393
+#: src/components/templates/TemplatePreviewDrawer.tsx:422
 #: src/pages/ContactsPage.tsx:381
 #: src/pages/ContactsPage.tsx:449
 #: src/pages/ContactsPage.tsx:727
@@ -8072,7 +8097,7 @@ msgstr "左から右"
 msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 msgstr "マジックコードに加えて、外部のIDプロバイダー (Google Workspace、Keycloak、Okta など) でのサインインを許可します。"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1255
+#: src/components/templates/CreateTemplateDrawer.tsx:1334
 msgid "Let's take a quick tour to help you get started with building beautiful emails using MJML."
 msgstr "MJMLを使った美しいメール作成を始めるためのクイックツアーをご案内します。"
 
@@ -8118,7 +8143,7 @@ msgstr "行"
 #. placeholder {0}: detail.line
 #. placeholder {1}: detail.tagName
 #. placeholder {2}: detail.message
-#: src/components/templates/TemplatePreviewDrawer.tsx:429
+#: src/components/templates/TemplatePreviewDrawer.tsx:458
 msgid "Line {0} ({1}): {2}"
 msgstr "行 {0} ({1}): {2}"
 
@@ -8175,6 +8200,10 @@ msgstr "リンクURL"
 #: src/components/timeline/ContactTimeline.tsx:659
 msgid "Link:"
 msgstr "リンク:"
+
+#: src/components/email_builder/panels/TextVersionPanel.tsx:209
+msgid "Links in a custom text are not tracked."
+msgstr "カスタムテキストのリンクはトラッキングされません。"
 
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:29
 msgid "Liquid Block"
@@ -8394,7 +8423,7 @@ msgid "Load the workspace record, which read or write both admit"
 msgstr "ワークスペースのレコードを読み込む。読み取りと書き込みのいずれでも許可される"
 
 #. placeholder {0}: latest.version
-#: src/components/templates/CreateTemplateDrawer.tsx:429
+#: src/components/templates/CreateTemplateDrawer.tsx:454
 msgid "Loaded the latest version of this template (v{0})."
 msgstr "このテンプレートの最新バージョン (v{0}) を読み込みました。"
 
@@ -8740,7 +8769,7 @@ msgstr "メタタイトル"
 
 #: src/components/messages/MessageHistoryTable.tsx:146
 #: src/components/messages/MessageHistoryTable.tsx:190
-#: src/components/templates/TemplatePreviewDrawer.tsx:283
+#: src/components/templates/TemplatePreviewDrawer.tsx:312
 msgid "Metadata"
 msgstr "メタデータ"
 
@@ -8790,7 +8819,7 @@ msgstr "分"
 msgid "Missing Tags"
 msgstr "不足しているタグ"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:79
+#: src/components/templates/TemplatePreviewDrawer.tsx:82
 msgid "Missing workspace ID or template data."
 msgstr "ワークスペースIDまたはテンプレートデータがありません。"
 
@@ -8813,7 +8842,7 @@ msgid "MJML compilation completed successfully with no warnings or errors."
 msgstr "MJMLコンパイルが警告やエラーなしで正常に完了しました。"
 
 #. placeholder {0}: mjmlError.message
-#: src/components/templates/TemplatePreviewDrawer.tsx:421
+#: src/components/templates/TemplatePreviewDrawer.tsx:450
 msgid "MJML Compilation Error: {0}"
 msgstr "MJMLコンパイルエラー: {0}"
 
@@ -8821,7 +8850,7 @@ msgstr "MJMLコンパイルエラー: {0}"
 msgid "MJML Compilation Warnings"
 msgstr "MJMLコンパイル警告"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:656
+#: src/components/email_builder/MjmlCodeEditor.tsx:661
 msgid "MJML Documentation"
 msgstr "MJMLドキュメント"
 
@@ -8833,7 +8862,7 @@ msgstr "MJMLエクスポートに失敗しました"
 msgid "MJML exported successfully"
 msgstr "MJMLを正常にエクスポートしました"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:557
+#: src/components/email_builder/MjmlCodeEditor.tsx:562
 msgid "MJML file imported"
 msgstr "MJMLファイルをインポートしました"
 
@@ -8845,7 +8874,7 @@ msgstr "MJMLインポートエラー"
 msgid "MJML Import Validation Failed"
 msgstr "MJMLインポート検証に失敗しました"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:260
+#: src/components/templates/TemplatePreviewDrawer.tsx:289
 msgid "MJML Source"
 msgstr "MJMLソース"
 
@@ -8861,7 +8890,7 @@ msgstr "MJMLテンプレートを正常にインポートして変換しまし�
 msgid "MJML Validation Failed"
 msgstr "MJML検証に失敗しました"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1287
+#: src/components/templates/CreateTemplateDrawer.tsx:1366
 msgid "Mobile & Desktop Preview"
 msgstr "モバイル＆デスクトッププレビュー"
 
@@ -9055,8 +9084,8 @@ msgstr "新規ワークスペース"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:328
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:338
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:349
-#: src/components/templates/CreateTemplateDrawer.tsx:632
-#: src/components/templates/CreateTemplateDrawer.tsx:653
+#: src/components/templates/CreateTemplateDrawer.tsx:662
+#: src/components/templates/CreateTemplateDrawer.tsx:683
 msgid "Next"
 msgstr "次へ"
 
@@ -9218,7 +9247,7 @@ msgstr "データが見つかりません"
 msgid "No data returned"
 msgstr "データが返されませんでした"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:333
+#: src/components/templates/TemplatePreviewDrawer.tsx:362
 msgid "No default sender configured"
 msgstr "デフォルトの差出人が設定されていません"
 
@@ -9236,7 +9265,7 @@ msgstr "ディメンションが見つかりません"
 msgid "No draft posts"
 msgstr "下書き投稿がありません"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:308
+#: src/components/templates/TemplatePreviewDrawer.tsx:337
 msgid "no email"
 msgstr "メールなし"
 
@@ -9252,7 +9281,7 @@ msgstr "メール連携が利用できません。設定で連携を構成して
 msgid "No error message was recorded."
 msgstr "エラーメッセージは記録されませんでした。"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:796
+#: src/components/email_builder/MjmlCodeEditor.tsx:801
 msgid "No errors"
 msgstr "エラーなし"
 
@@ -9368,7 +9397,7 @@ msgstr "このカテゴリに投稿がありません"
 msgid "No posts yet"
 msgstr "投稿がまだありません"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:458
+#: src/components/templates/TemplatePreviewDrawer.tsx:487
 msgid "No preview available or template is empty."
 msgstr "プレビューが利用できないか、テンプレートが空です。"
 
@@ -9436,7 +9465,7 @@ msgstr "head要素の設定はありません。"
 msgid "No source data"
 msgstr "ソースのデータがありません"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:434
+#: src/components/templates/TemplatePreviewDrawer.tsx:463
 msgid "No specific details provided."
 msgstr "詳細が提供されていません。"
 
@@ -9458,9 +9487,8 @@ msgstr "カテゴリ「{selectedCategory}」のテンプレートが見つかり
 msgid "No templates match your search"
 msgstr "検索に一致するテンプレートはありません"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:857
-#: src/components/email_builder/panels/TextVersionPanel.tsx:80
-#: src/components/templates/TemplatePreviewDrawer.tsx:250
+#: src/components/email_builder/panels/TextVersionPanel.tsx:300
+#: src/components/templates/TemplatePreviewDrawer.tsx:279
 msgid "No text version: this email will be sent as HTML only."
 msgstr "テキスト版はありません。このメールはHTMLのみで送信されます。"
 
@@ -9604,7 +9632,7 @@ msgstr "未解決"
 #: src/components/settings/GeneralSettings.tsx:177
 #: src/components/settings/SMTPBridgeSettings.tsx:42
 #: src/components/settings/SMTPBridgeSettings.tsx:46
-#: src/components/templates/TemplatePreviewDrawer.tsx:353
+#: src/components/templates/TemplatePreviewDrawer.tsx:382
 msgid "Not set"
 msgstr "未設定"
 
@@ -9672,8 +9700,8 @@ msgstr "NotifuseはあなたのAWSアカウントにテナントを作成し、�
 msgid "notifuse-…"
 msgstr "notifuse-…"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1005
-#: src/components/templates/TemplateTranslationsTab.tsx:303
+#: src/components/templates/CreateTemplateDrawer.tsx:1064
+#: src/components/templates/TemplateTranslationsTab.tsx:345
 msgid "Now"
 msgstr "現在"
 
@@ -9842,7 +9870,7 @@ msgstr "開封とクリックのトラッキング"
 msgid "Open email"
 msgstr "メール開封"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:260
+#: src/components/templates/TemplateTranslationsTab.tsx:294
 msgid "Open email editor"
 msgstr "メールエディターを開く"
 
@@ -10700,7 +10728,7 @@ msgstr "プレビュー"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:37
 #: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/common/ImageURLInput.tsx:52
-#: src/components/email_builder/EmailBuilder.tsx:877
+#: src/components/email_builder/EmailBuilder.tsx:880
 #: src/components/segment/button_upsert.tsx:659
 msgid "Preview"
 msgstr "プレビュー"
@@ -10742,7 +10770,7 @@ msgstr "テンプレートをプレビュー"
 msgid "Preview Template"
 msgstr "テンプレートをプレビュー"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:249
+#: src/components/templates/TemplateTranslationsTab.tsx:283
 msgid "Preview text"
 msgstr "プレビューテキスト"
 
@@ -10750,8 +10778,8 @@ msgstr "プレビューテキスト"
 msgid "Preview Text Settings"
 msgstr "プレビューテキスト設定"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1004
-#: src/components/templates/TemplateTranslationsTab.tsx:302
+#: src/components/templates/CreateTemplateDrawer.tsx:1063
+#: src/components/templates/TemplateTranslationsTab.tsx:344
 msgid "Preview text will appear here..."
 msgstr "プレビューテキストがここに表示されます..."
 
@@ -10759,23 +10787,23 @@ msgstr "プレビューテキストがここに表示されます..."
 msgid "Preview this theme in a new tab"
 msgstr "新しいタブでこのテーマをプレビュー"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:887
+#: src/components/email_builder/MjmlCodeEditor.tsx:870
 msgid "Preview will appear here after compilation"
 msgstr "コンパイル後、ここにプレビューが表示されます"
 
-#: src/components/email_builder/panels/TextVersionPanel.tsx:46
+#: src/components/email_builder/panels/TextVersionPanel.tsx:262
 msgid "Preview with test data"
 msgstr "テストデータでプレビュー"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1280
+#: src/components/templates/CreateTemplateDrawer.tsx:1359
 msgid "Preview Your Email"
 msgstr "メールをプレビュー"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:335
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:346
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:357
-#: src/components/templates/CreateTemplateDrawer.tsx:637
-#: src/components/templates/CreateTemplateDrawer.tsx:658
+#: src/components/templates/CreateTemplateDrawer.tsx:667
+#: src/components/templates/CreateTemplateDrawer.tsx:688
 msgid "Previous"
 msgstr "前へ"
 
@@ -11278,7 +11306,7 @@ msgstr "リダイレクトURI"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:676
-#: src/components/email_builder/EmailBuilder.tsx:860
+#: src/components/email_builder/EmailBuilder.tsx:863
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
 msgid "Redo"
 msgstr "やり直す"
@@ -11503,6 +11531,10 @@ msgstr "X軸で繰り返し"
 msgid "Repeat Y"
 msgstr "Y軸で繰り返し"
 
+#: src/components/email_builder/panels/TextVersionPanel.tsx:180
+msgid "Replace"
+msgstr "置き換える"
+
 #: src/components/timeline/ContactTimeline.tsx:737
 msgid "Replied"
 msgstr "返信あり"
@@ -11515,8 +11547,8 @@ msgstr "返信転送が設定されました。受信返信には、ドメイン
 #~ msgid "Reply forwarding route is set up. Inbound replies also require your domain's MX records to point at Mailgun."
 #~ msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:976
-#: src/components/templates/TemplatePreviewDrawer.tsx:342
+#: src/components/templates/CreateTemplateDrawer.tsx:1035
+#: src/components/templates/TemplatePreviewDrawer.tsx:371
 msgid "Reply to"
 msgstr "返信先"
 
@@ -11596,8 +11628,8 @@ msgstr "コードを再送"
 msgid "Resend invitation"
 msgstr "招待を再送"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:282
-#: src/components/templates/TemplateTranslationsTab.tsx:285
+#: src/components/templates/TemplateTranslationsTab.tsx:317
+#: src/components/templates/TemplateTranslationsTab.tsx:320
 #: src/pages/DebugSegmentPage.tsx:83
 msgid "Reset"
 msgstr "リセット"
@@ -11626,7 +11658,7 @@ msgstr "書式をリセット"
 msgid "reset the filter"
 msgstr "フィルターをリセット"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:269
+#: src/components/templates/TemplateTranslationsTab.tsx:303
 msgid "Reset translation"
 msgstr "翻訳をリセット"
 
@@ -11654,7 +11686,7 @@ msgstr "レスポンスボディ:"
 msgid "Restart Server?"
 msgstr "サーバーを再起動しますか？"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:380
+#: src/components/email_builder/MjmlCodeEditor.tsx:385
 msgid "Restore"
 msgstr "復元"
 
@@ -11933,8 +11965,8 @@ msgstr "サンドボックスモード"
 #: src/components/settings/Integrations.tsx:2914
 #: src/components/settings/SystemSettingsDrawer.tsx:245
 #: src/components/settings/WebhooksSettings.tsx:253
-#: src/components/templates/CreateTemplateDrawer.tsx:648
-#: src/components/templates/CreateTemplateDrawer.tsx:669
+#: src/components/templates/CreateTemplateDrawer.tsx:678
+#: src/components/templates/CreateTemplateDrawer.tsx:699
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:189
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
@@ -12312,7 +12344,7 @@ msgstr "AWSリージョンを選択"
 msgid "Select Block to Update"
 msgstr "更新するブロックを選択"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:878
+#: src/components/templates/CreateTemplateDrawer.tsx:937
 msgid "Select category"
 msgstr "カテゴリを選択"
 
@@ -12618,14 +12650,14 @@ msgstr "テストメールを送信"
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "SMTPリレーを使用してトランザクション通知を送信。既存のメールシステムやSMTPをサポートするアプリケーションとの統合に最適です。"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:932
+#: src/components/templates/CreateTemplateDrawer.tsx:991
 #: src/components/templates/SendTemplateModal.tsx:340
 #: src/pages/TemplatesPage.tsx:237
 msgid "Sender"
 msgstr "送信者"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1002
-#: src/components/templates/TemplateTranslationsTab.tsx:300
+#: src/components/templates/CreateTemplateDrawer.tsx:1061
+#: src/components/templates/TemplateTranslationsTab.tsx:342
 msgid "Sender Name"
 msgstr "送信者名"
 
@@ -12674,7 +12706,7 @@ msgstr "送信済み"
 msgid "Sent"
 msgstr "送信済み"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:232
+#: src/components/templates/TemplatePreviewDrawer.tsx:252
 msgid "Sent with the HTML version and generated from it. Its links are tracked like the links of the HTML."
 msgstr "HTML版とともに送信され、HTML版から生成されます。リンクはHTMLのリンクと同じようにトラッキングされます。"
 
@@ -13208,6 +13240,11 @@ msgstr "ソーシャルシェアタイトル"
 msgid "Solid"
 msgstr "実線"
 
+#. placeholder {0}: seedResult.textError
+#: src/components/email_builder/panels/TextVersionPanel.tsx:249
+msgid "Some templating markup would not be accepted: {0}"
+msgstr "一部のテンプレートマークアップは受け付けられません：{0}"
+
 #: src/components/templates/useTemplateConflictModal.tsx:70
 msgid "Someone changed this template while you were editing. Reload the latest version — your unsaved changes will be lost — or overwrite it with yours."
 msgstr "編集中に他のユーザーがこのテンプレートを変更しました。最新バージョンを再読み込みする (保存されていない変更は失われます) か、自分の内容で上書きしてください。"
@@ -13275,6 +13312,14 @@ msgstr "ブロードキャストの送信タスクを直ちに開始する"
 #: src/services/api/permissions.ts:784
 msgid "Start a historical backfill of web analytics data"
 msgstr "Webアナリティクスデータの過去分バックフィルを開始する"
+
+#: src/components/email_builder/panels/TextVersionPanel.tsx:193
+msgid "Start again from the automatic version"
+msgstr "自動版からやり直す"
+
+#: src/components/email_builder/panels/TextVersionPanel.tsx:178
+msgid "Start again from the automatic version?"
+msgstr "自動版からやり直しますか？"
 
 #: src/components/web_analytics/toolbar.tsx:67
 msgid "Start date cannot be in the future"
@@ -13407,22 +13452,22 @@ msgstr "スタイル"
 msgid "Style Attributes"
 msgstr "スタイル属性"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:358
-#: src/components/templates/TemplateTranslationsTab.tsx:233
+#: src/components/templates/TemplatePreviewDrawer.tsx:387
+#: src/components/templates/TemplateTranslationsTab.tsx:267
 #: src/pages/BroadcastsPage.tsx:880
 #: src/pages/TemplatesPage.tsx:258
 msgid "Subject"
 msgstr "件名"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
-#: src/components/templates/CreateTemplateDrawer.tsx:955
-#: src/components/templates/TemplatePreviewDrawer.tsx:363
-#: src/components/templates/TemplateTranslationsTab.tsx:242
+#: src/components/templates/CreateTemplateDrawer.tsx:1014
+#: src/components/templates/TemplatePreviewDrawer.tsx:392
+#: src/components/templates/TemplateTranslationsTab.tsx:276
 msgid "Subject preview"
 msgstr "件名プレビュー"
 
 #. placeholder {0}: workspace.settings.default_language
-#: src/components/templates/CreateTemplateDrawer.tsx:955
+#: src/components/templates/CreateTemplateDrawer.tsx:1014
 msgid "Subject preview ({0})"
 msgstr "件名のプレビュー ({0})"
 
@@ -13570,7 +13615,7 @@ msgstr "対応言語"
 msgid "Supports reply_to, cc, bcc, and attachments"
 msgstr "reply_to、cc、bcc、添付ファイルをサポート"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1282
+#: src/components/templates/CreateTemplateDrawer.tsx:1361
 msgid "Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied."
 msgstr "プレビューモードに切り替えて、受信者にどのように表示されるかを確認できます。すべてのスタイルが適用された最終レンダリング版が表示されます。"
 
@@ -13604,7 +13649,7 @@ msgstr "タグ"
 msgid "Take a published post off the live blog"
 msgstr "公開済みの投稿を公開ブログから取り下げる"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:141
+#: src/components/templates/CreateTemplateDrawer.tsx:146
 msgid "Take a Tour"
 msgstr "ツアーを開始"
 
@@ -13668,20 +13713,20 @@ msgid "Template {0}"
 msgstr "テンプレート {0}"
 
 #. placeholder {0}: existingBlock?.name || nameOrId
-#: src/components/templates/CreateTemplateDrawer.tsx:573
+#: src/components/templates/CreateTemplateDrawer.tsx:603
 msgid "Template block \"{0}\" deleted successfully"
 msgstr "テンプレートブロック「{0}」が正常に削除されました"
 
 #. placeholder {0}: existingBlock.name
-#: src/components/templates/CreateTemplateDrawer.tsx:565
+#: src/components/templates/CreateTemplateDrawer.tsx:595
 msgid "Template block \"{0}\" updated successfully"
 msgstr "テンプレートブロック「{0}」が正常に更新されました"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:551
+#: src/components/templates/CreateTemplateDrawer.tsx:581
 msgid "Template block \"{nameOrId}\" saved successfully"
 msgstr "テンプレートブロック「{nameOrId}」が正常に保存されました"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:556
+#: src/components/templates/CreateTemplateDrawer.tsx:586
 msgid "Template block not found"
 msgstr "テンプレートブロックが見つかりません"
 
@@ -13689,16 +13734,16 @@ msgstr "テンプレートブロックが見つかりません"
 msgid "Template changed by someone else"
 msgstr "テンプレートが他のユーザーによって変更されました"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:313
+#: src/components/templates/CreateTemplateDrawer.tsx:331
 msgid "Template created successfully"
 msgstr "テンプレートが正常に作成されました"
 
 #: src/components/email_builder/panels/Preview.tsx:361
-#: src/components/templates/TemplatePreviewDrawer.tsx:271
+#: src/components/templates/TemplatePreviewDrawer.tsx:300
 msgid "Template Data"
 msgstr "テンプレートデータ"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1294
+#: src/components/templates/CreateTemplateDrawer.tsx:1373
 msgid "Template Data & Liquid Templating"
 msgstr "テンプレートデータとLiquidテンプレート"
 
@@ -13714,15 +13759,15 @@ msgstr "テンプレートエラー"
 msgid "Template ID"
 msgstr "テンプレートID"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:827
+#: src/components/templates/CreateTemplateDrawer.tsx:886
 msgid "Template ID (utm_content)"
 msgstr "テンプレートID（utm_content）"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:855
+#: src/components/templates/CreateTemplateDrawer.tsx:914
 msgid "Template ID already exists"
 msgstr "テンプレートIDは既に存在します"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:839
+#: src/components/templates/CreateTemplateDrawer.tsx:898
 msgid "Template ID must be at most {TEMPLATE_ID_MAX_LENGTH} characters long"
 msgstr "テンプレートIDは{TEMPLATE_ID_MAX_LENGTH}文字以内にしてください"
 
@@ -13730,11 +13775,11 @@ msgstr "テンプレートIDは{TEMPLATE_ID_MAX_LENGTH}文字以内にしてく�
 msgid "Template imported successfully"
 msgstr "テンプレートが正常にインポートされました"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:801
+#: src/components/templates/CreateTemplateDrawer.tsx:860
 msgid "Template name"
 msgstr "テンプレート名"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:806
+#: src/components/templates/CreateTemplateDrawer.tsx:865
 msgid "Template name must be at most {TEMPLATE_NAME_MAX_LENGTH} characters long"
 msgstr "テンプレート名は{TEMPLATE_NAME_MAX_LENGTH}文字以内にしてください"
 
@@ -13742,7 +13787,7 @@ msgstr "テンプレート名は{TEMPLATE_NAME_MAX_LENGTH}文字以内にして�
 msgid "Template set"
 msgstr "テンプレート設定済み"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:138
+#: src/components/templates/TemplatePreviewDrawer.tsx:146
 msgid "Template structure data is missing or invalid."
 msgstr "テンプレート構造データが見つからないか無効です。"
 
@@ -13755,7 +13800,7 @@ msgstr ""
 msgid "Template translations require a Notifuse {tier} licence."
 msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:313
+#: src/components/templates/CreateTemplateDrawer.tsx:331
 msgid "Template updated successfully"
 msgstr "テンプレートが正常に更新されました"
 
@@ -13779,8 +13824,8 @@ msgstr "テンプレート"
 msgid "Templates using this sender will need to be updated to use a different sender."
 msgstr "この送信者を使用しているテンプレートは、別の送信者を使用するように更新する必要があります。"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:951
-#: src/components/templates/CreateTemplateDrawer.tsx:969
+#: src/components/templates/CreateTemplateDrawer.tsx:1010
+#: src/components/templates/CreateTemplateDrawer.tsx:1028
 msgid "Templating markup allowed"
 msgstr "テンプレートマークアップ使用可能"
 
@@ -13821,11 +13866,11 @@ msgstr "テストが完了しました"
 msgid "Test Connection"
 msgstr "接続テスト"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:682
+#: src/components/email_builder/MjmlCodeEditor.tsx:687
 msgid "Test Data"
 msgstr "テストデータ"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:599
+#: src/components/email_builder/MjmlCodeEditor.tsx:604
 msgid "Test data updated"
 msgstr "テストデータを更新しました"
 
@@ -13940,6 +13985,10 @@ msgstr "テキスト方向"
 msgid "Text Padding"
 msgstr "テキストパディング"
 
+#: src/components/email_builder/panels/TextVersionPanel.tsx:310
+msgid "Text sent, as you write it"
+msgstr "送信されるテキスト（入力したとおり）"
+
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:239
 msgid "Text Settings"
 msgstr "テキスト設定"
@@ -13952,12 +14001,20 @@ msgstr "サインインボタンに表示するテキスト"
 msgid "Text Transform"
 msgstr "テキスト変換"
 
-#: src/components/email_builder/EmailBuilder.tsx:880
-#: src/components/email_builder/MjmlCodeEditor.tsx:684
-#: src/components/email_builder/panels/TextVersionPanel.tsx:30
-#: src/components/templates/TemplatePreviewDrawer.tsx:228
+#: src/components/email_builder/EmailBuilder.tsx:883
+#: src/components/email_builder/MjmlCodeEditor.tsx:689
+#: src/components/email_builder/panels/TextVersionPanel.tsx:119
+#: src/components/templates/TemplatePreviewDrawer.tsx:240
 msgid "Text version"
 msgstr "テキスト版"
+
+#: src/components/templates/TemplateTranslationsTab.tsx:335
+msgid "Text version: Automatic"
+msgstr "テキスト版：自動"
+
+#: src/components/templates/TemplateTranslationsTab.tsx:333
+msgid "Text version: Custom"
+msgstr "テキスト版：カスタム"
 
 #: src/components/transactional/ApiCommandModal.tsx:558
 msgid "The"
@@ -13974,6 +14031,11 @@ msgstr "AIアシスタント: ワークスペースに設定されたLLMイン�
 #: src/components/settings/SystemSettingsDrawer.tsx:161
 msgid "The API endpoint has changed. After restart, the console will be available at:"
 msgstr "APIエンドポイントが変更されました。再起動後、コンソールは次のURLで利用できます:"
+
+#. placeholder {0}: seedResult.error
+#: src/components/email_builder/panels/TextVersionPanel.tsx:235
+msgid "The automatic version could not be generated: {0}"
+msgstr "自動版を生成できませんでした：{0}"
 
 #: src/components/automations/AutomationCard.tsx:213
 msgid "The automation will start processing contacts that match the trigger."
@@ -14027,7 +14089,19 @@ msgstr "現在の期間、フィルター、セッションのしきい値"
 msgid "The currently published theme will be unpublished automatically."
 msgstr "現在公開中のテーマは自動的に非公開になります。"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:916
+#: src/components/templates/TemplatePreviewDrawer.tsx:260
+msgid "The custom text could not be used, the automatic version is sent instead: {previewTextError}"
+msgstr "カスタムテキストを使用できなかったため、代わりに自動版が送信されます：{previewTextError}"
+
+#: src/components/templates/CreateTemplateDrawer.tsx:782
+msgid "The custom text version ({languages}) has no confirmation link. Add {CONFIRM_VARIABLE} so recipients can confirm their subscription."
+msgstr "カスタムテキスト版（{languages}）に確認リンクがありません。受信者が購読を確認できるよう {CONFIRM_VARIABLE} を追加してください。"
+
+#: src/components/templates/CreateTemplateDrawer.tsx:783
+msgid "The custom text version ({languages}) has no unsubscribe link. Add {UNSUBSCRIBE_VARIABLE} so recipients can unsubscribe."
+msgstr "カスタムテキスト版（{languages}）に配信停止リンクがありません。受信者が配信停止できるよう {UNSUBSCRIBE_VARIABLE} を追加してください。"
+
+#: src/components/templates/CreateTemplateDrawer.tsx:975
 msgid "The editor mode can't be changed after the template is created. To use the other editor, create a new template and copy the content with Import MJML or Export MJML."
 msgstr "エディターモードはテンプレート作成後に変更できません。別のエディターを使うには、新しいテンプレートを作成し、「MJMLをインポート」または「MJMLをエクスポート」で内容をコピーしてください。"
 
@@ -14043,8 +14117,7 @@ msgstr "メール本文には通知データのJSONペイロードを含める�
 msgid "The email body must contain valid JSON matching the format above"
 msgstr "メール本文には上記の形式に一致する有効なJSONを含める必要があります"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:835
-#: src/components/email_builder/panels/TextVersionPanel.tsx:56
+#: src/components/email_builder/panels/TextVersionPanel.tsx:272
 msgid "The email could not be compiled"
 msgstr "メールをコンパイルできませんでした"
 
@@ -14150,6 +14223,14 @@ msgstr ""
 #: src/components/automations/config/AddToListConfigForm.tsx:51
 msgid "The status to assign when adding to the list"
 msgstr "リストに追加する際に割り当てるステータス"
+
+#: src/components/email_builder/panels/TextVersionPanel.tsx:135
+msgid "The text you wrote will be removed."
+msgstr "入力したテキストは削除されます。"
+
+#: src/components/email_builder/panels/TextVersionPanel.tsx:179
+msgid "The text you wrote will be replaced."
+msgstr "入力したテキストは置き換えられます。"
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:160
 msgid "The top {MAX_ROWS} rows by session count"
@@ -14372,7 +14453,7 @@ msgstr "このファイルにはエクスポートの表示条件が含まれて
 msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
 msgstr "このフックはエラー時にSupabaseユーザー作成をブロックしません。ただし、「使い捨てメールアドレスを拒否」が有効で、使い捨てメールが検出された場合、ユーザー登録はSupabaseによって拒否されます。"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:854
+#: src/components/templates/CreateTemplateDrawer.tsx:913
 msgid "This ID belongs to a deleted template and can't be reused"
 msgstr "このIDは削除されたテンプレートのものであり、再利用できません"
 
@@ -14388,7 +14469,7 @@ msgstr "このIDはAPI経由で通知をトリガーする際に使用されま�
 msgid "This invitation link is invalid or has expired."
 msgstr "この招待リンクは無効または期限切れです。"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:828
+#: src/components/templates/CreateTemplateDrawer.tsx:887
 msgid "This is the ID that will be used as the utm_content parameter in the links URL to track the template"
 msgstr "これはテンプレートを追跡するためにリンクURLのutm_contentパラメータとして使用されるIDです"
 
@@ -14396,11 +14477,11 @@ msgstr "これはテンプレートを追跡するためにリンクURLのutm_co
 msgid "This is where delivery statistics live, not under Broadcasts: a key that may create and send a broadcast still cannot read its open, click or bounce numbers without Message History read. The log carries recipient addresses and the rendered message data, so it is contact data by another name."
 msgstr "配信統計があるのはここであり、ブロードキャストの下ではありません: ブロードキャストを作成・送信できるキーであっても、メッセージ履歴の読み取りがなければ、その開封・クリック・バウンスの数値を読み取ることはできません。ログには受信者アドレスとレンダリング済みのメッセージデータが含まれるため、これは名前を変えたコンタクトデータにほかなりません。"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1261
+#: src/components/templates/CreateTemplateDrawer.tsx:1340
 msgid "This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another."
 msgstr "これはコンテンツ構造ツリーです。ブロックをドラッグ＆ドロップしてメールレイアウトを再編成できます。+ボタンをクリックして新しいブロックを追加するか、ブロックをセクション間でドラッグしてください。"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1268
+#: src/components/templates/CreateTemplateDrawer.tsx:1347
 msgid "This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options."
 msgstr "これはビジュアルメールエディターです。メール内の要素をクリックして選択できます。選択された要素は青い境界線でハイライトされ、編集オプションが表示されます。"
 
@@ -14492,6 +14573,14 @@ msgstr "このテンプレートは連携によって管理されており、削
 msgid "This text appears in the email client's preview pane, typically after the subject line. Keep it concise and compelling (100-140 characters recommended)."
 msgstr "このテキストはメールクライアントのプレビューペインに表示され、通常は件名の後に表示されます。簡潔で魅力的な内容にしてください（100〜140文字推奨）。"
 
+#: src/components/email_builder/panels/TextVersionPanel.tsx:222
+msgid "This text is for the default language. Each translation has its own text in the Translations tab, otherwise it receives the automatic version."
+msgstr "このテキストはデフォルト言語用です。各翻訳は「翻訳」タブに独自のテキストを持ち、ない場合は自動版を受け取ります。"
+
+#: src/components/email_builder/panels/TextVersionPanel.tsx:210
+msgid "This text is not updated when you change the email."
+msgstr "メールを変更しても、このテキストは更新されません。"
+
 #: src/components/settings/ZapierSettings.tsx:242
 msgid "This token is displayed once and cannot be retrieved again. Copy it now and paste it into Zapier."
 msgstr "このトークンは一度だけ表示され、再度取得することはできません。今すぐコピーしてZapierに貼り付けてください。"
@@ -14541,7 +14630,7 @@ msgstr "コンタクトと購読が完全に削除されます。"
 msgid "This will register or update webhook endpoints for this email provider."
 msgstr "このメールプロバイダーのWebhookエンドポイントを登録または更新します。"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:270
+#: src/components/templates/TemplateTranslationsTab.tsx:304
 msgid "This will replace all content with the default language template. Continue?"
 msgstr "すべてのコンテンツがデフォルト言語のテンプレートで置き換えられます。続行しますか？"
 
@@ -14763,7 +14852,7 @@ msgstr "今日"
 msgid "TODO"
 msgstr "TODO"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1289
+#: src/components/templates/CreateTemplateDrawer.tsx:1368
 msgid "Toggle between mobile and desktop views to see how your email appears on different devices. Mobile view shows a 400px width while desktop shows the full width."
 msgstr "モバイルとデスクトップビューを切り替えて、異なるデバイスでメールがどのように表示されるかを確認できます。モバイルビューは400px幅、デスクトップは全幅で表示されます。"
 
@@ -15058,7 +15147,7 @@ msgstr "リファラルの質を把握する"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:669
-#: src/components/email_builder/EmailBuilder.tsx:852
+#: src/components/email_builder/EmailBuilder.tsx:855
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:496
 msgid "Undo"
 msgstr "元に戻す"
@@ -15163,7 +15252,7 @@ msgstr "未保存の変更"
 msgid "Unsaved Changes"
 msgstr "未保存の変更"
 
-#: src/components/email_builder/MjmlCodeEditor.tsx:370
+#: src/components/email_builder/MjmlCodeEditor.tsx:375
 msgid "Unsaved draft found."
 msgstr "保存されていない下書きが見つかりました。"
 
@@ -15386,6 +15475,14 @@ msgstr "パススタイルURLを使用（サブドメインではなくパスに
 msgid "Use recipient timezone"
 msgstr "受信者のタイムゾーンを使用"
 
+#: src/components/email_builder/panels/TextVersionPanel.tsx:136
+msgid "Use the automatic version"
+msgstr "自動版を使用"
+
+#: src/components/email_builder/panels/TextVersionPanel.tsx:134
+msgid "Use the automatic version?"
+msgstr "自動版を使用しますか？"
+
 #: src/components/email_builder/blocks/MjFontBlock.tsx:45
 msgid "Use the font name in text elements:"
 msgstr "テキスト要素でフォント名を使用:"
@@ -15394,11 +15491,11 @@ msgstr "テキスト要素でフォント名を使用:"
 msgid "Use the save button in the block toolbar to save blocks"
 msgstr "ブロックツールバーの保存ボタンを使用してブロックを保存"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1296
+#: src/components/templates/CreateTemplateDrawer.tsx:1375
 msgid "Use the Template Data tab to define dynamic content for your emails. Add variables like {{ name }} or {{ company }} in your email content, then define their values here. The Liquid templating engine supports conditionals, loops, and filters for powerful personalization."
 msgstr "テンプレートデータタブを使用してメールの動的コンテンツを定義します。メールコンテンツに{{ name }}や{{ company }}のような変数を追加し、ここで値を定義します。Liquidテンプレートエンジンは条件、ループ、フィルターをサポートし、強力なパーソナライズが可能です。"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1304
+#: src/components/templates/CreateTemplateDrawer.tsx:1383
 msgid "Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use."
 msgstr "このボタンを使用して保存済みメールテンプレートをインポートしたり、完成したメールをエクスポートできます。JSON/MJMLテンプレートをインポートしたり、HTML、MJML、JSONとしてエクスポートして将来使用できます。"
 
@@ -15673,11 +15770,11 @@ msgstr "訪問者の所在地"
 msgid "Visitors are being tracked by more than one SDK version ({0} alongside {newest}). A cached copy of the tracking snippet is probably still being served."
 msgstr "訪問者が複数のSDKバージョン ({newest} と並んで{0}) でトラッキングされています。トラッキングスニペットのキャッシュされたコピーがまだ配信されている可能性があります。"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:924
+#: src/components/templates/CreateTemplateDrawer.tsx:983
 msgid "Visual"
 msgstr "ビジュアル"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1266
+#: src/components/templates/CreateTemplateDrawer.tsx:1345
 msgid "Visual Email Editor"
 msgstr "ビジュアルメールエディター"
 
@@ -15872,7 +15969,7 @@ msgstr "太さ"
 msgid "Welcome"
 msgstr "ようこそ"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1253
+#: src/components/templates/CreateTemplateDrawer.tsx:1332
 msgid "Welcome to Email Builder!"
 msgstr "メールビルダーへようこそ！"
 
@@ -15947,7 +16044,7 @@ msgstr "一致した場合、次の操作を実行します:"
 msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 msgstr "オフ (推奨) の場合、SSOでサインインできるのはすでに招待済みのユーザーのみです。オンの場合、許可されたドメインの検証済みメールアドレスがあれば自動的にアカウントが作成されます。"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1275
+#: src/components/templates/CreateTemplateDrawer.tsx:1354
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 msgstr "ブロックを選択すると、その設定がここに表示されます。色、テキスト、間隔、配置、その他のプロパティを変更してメールデザインをカスタマイズできます。"
 
@@ -16036,6 +16133,10 @@ msgstr "含む内容:"
 #: src/components/templates/SendTemplateModal.tsx:367
 msgid "Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header."
 msgstr "リストを選ばない場合、テストメールには有効な配信停止リンクも List-Unsubscribe ヘッダーも含まれません。"
+
+#: src/components/email_builder/panels/TextVersionPanel.tsx:221
+msgid "Without its own text, this language receives the automatic version."
+msgstr "独自のテキストがない場合、この言語には自動版が送信されます。"
 
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:109
 #: src/components/settings/audit_logs/AuditLogTable.tsx:248
@@ -16145,6 +16246,14 @@ msgstr "書き込みには、完全な削除と一括上書きが含まれます
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:33
 msgid "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
 msgstr "Liquidのテンプレートタグを使ってMJMLマークアップを記述します。このコンテンツはメールに直接挿入され、MJMLのコンパイル前にLiquidエンジンによって処理されます。for ループ、条件分岐、変数を使って、動的な構造コンテンツを生成できます。"
+
+#: src/components/templates/TemplatePreviewDrawer.tsx:251
+msgid "Written by hand for this template and sent with the HTML version. Its links are not tracked."
+msgstr "このテンプレート用に手書きされ、HTML版とともに送信されます。リンクはトラッキングされません。"
+
+#: src/components/email_builder/panels/TextVersionPanel.tsx:168
+msgid "Written by hand, with the templating markup."
+msgstr "テンプレートのマークアップを使って手書きします。"
 
 #: src/components/web_analytics/toolbar.tsx:29
 msgid "Year to date"
