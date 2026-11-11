@@ -152,7 +152,18 @@ EmailTemplate:
     text:
       type: string
       nullable: true
-      description: Plain text version of the email
+      maxLength: 65536
+      description: >-
+        Custom plain-text version of the email, sent next to the HTML. Liquid is
+        rendered with the same data as the body (write `{% raw %}` around a literal
+        `{{`). Its links are sent as written: neither tracked nor given UTM
+        parameters. Omit it, or send only whitespace, for the automatic version
+        generated from the HTML at every send. Each translation has its own; a
+        translation without one gets the automatic version of its own HTML. Saving
+        a text with a Liquid syntax error, an `include` or `render` tag, or over
+        64 KiB answers 400. If it cannot be rendered at send time, the email gets
+        the automatic version.
+      example: "Hi {{ contact.first_name }},\n\nYour order has shipped.\n"
   required:
     - subject
     - compiled_preview
@@ -381,6 +392,14 @@ CompileTemplateRequest:
         most clients). Rendered through Liquid like `subject` and returned as
         `subject_preview` in the response.
       example: "Welcome {{ contact.first_name }}"
+    text:
+      type: string
+      description: |
+        Optional source of a custom plain-text version, as stored in a
+        template's `email.text`. It is rendered with `test_data` (kept as
+        written when `preserve_liquid` is true) and returned as `text` with
+        `text_source` set to `custom`. Omit it to get the automatic version.
+      example: "Hi {{ contact.first_name }}"
     test_data:
       type: object
       description: Data to use for Liquid templating
@@ -429,11 +448,25 @@ CompileTemplateResponse:
     text:
       type: string
       description: |
-        Plain-text version sent with the email, generated from the compiled
-        HTML with the same links. Present only when an email compilation
-        succeeds. An empty string means the email holds no text to read and is
-        sent as HTML only.
+        Plain-text version sent with the email: the custom text rendered when
+        the request has a `text` that renders, otherwise the automatic version,
+        generated from the compiled HTML with the same links. Present only when
+        an email compilation succeeds. An empty string means the email holds no
+        text to read and is sent as HTML only.
       example: "Hi Pierre\n\nShop now (https://example.com/shop)\n"
+    text_source:
+      type: string
+      enum:
+        - auto
+        - custom
+      description: Where `text` comes from. Present when `text` is.
+    text_error:
+      type: string
+      description: |
+        Why the custom `text` of the request could not be used (a Liquid
+        error, or a rendered text over 256 KiB); `text` is then the automatic
+        version, as a send would be. With `preserve_liquid`, also flags an
+        automatic text whose Liquid tags would not parse.
     error:
       type: object
       description: MJML compilation error details, if any

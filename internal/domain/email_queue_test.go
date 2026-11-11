@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -326,4 +327,33 @@ func TestEmailQueueStats_DefaultValues(t *testing.T) {
 	assert.Equal(t, int64(0), stats.Processing)
 	assert.Equal(t, int64(0), stats.Failed)
 	// Note: Sent entries are deleted immediately, not tracked in stats
+}
+
+func TestEmailQueuePayload_TextContent(t *testing.T) {
+	t.Run("is copied to the provider request", func(t *testing.T) {
+		p := &EmailQueuePayload{HTMLContent: "<p>Hi</p>", TextContent: "Hi Ada"}
+		req := p.ToSendEmailProviderRequest("ws", "int", "msg", "a@e.com", &EmailProvider{})
+		assert.Equal(t, "Hi Ada", req.TextContent)
+	})
+
+	t.Run("is omitted from the stored JSON when empty", func(t *testing.T) {
+		raw, err := json.Marshal(EmailQueuePayload{HTMLContent: "<p>Hi</p>"})
+		require.NoError(t, err)
+		assert.NotContains(t, string(raw), "text_content")
+	})
+
+	t.Run("an entry queued before it existed reads as empty", func(t *testing.T) {
+		var p EmailQueuePayload
+		require.NoError(t, json.Unmarshal([]byte(`{"html_content":"<p>Hi</p>","subject":"S"}`), &p))
+		assert.Equal(t, "", p.TextContent)
+		assert.Equal(t, "", p.ToSendEmailProviderRequest("ws", "int", "msg", "a@e.com", &EmailProvider{}).TextContent)
+	})
+
+	t.Run("round-trips through JSON", func(t *testing.T) {
+		raw, err := json.Marshal(EmailQueuePayload{TextContent: "Line 1\nLine 2"})
+		require.NoError(t, err)
+		var p EmailQueuePayload
+		require.NoError(t, json.Unmarshal(raw, &p))
+		assert.Equal(t, "Line 1\nLine 2", p.TextContent)
+	})
 }

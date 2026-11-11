@@ -1307,3 +1307,38 @@ func TestHandleCompile_AsksForThePlainTextVersion(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
 	assert.Equal(t, text, body["text"])
 }
+
+func TestHandleCompile_CustomText(t *testing.T) {
+	mockService, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+
+	mjmlSrc := "<mjml><mj-body><mj-section><mj-column><mj-text>Hello</mj-text></mj-column></mj-section></mj-body></mjml>"
+	htmlOut := "<html><body>Hello</body></html>"
+	rendered := "Hi Ada"
+
+	mockService.EXPECT().CompileTemplate(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
+			require.NotNil(t, req.Text, "the custom text source reaches the compile")
+			assert.Equal(t, "Hi {{ name }}", *req.Text)
+			return &domain.CompileTemplateResponse{
+				Success: true, MJML: &mjmlSrc, HTML: &htmlOut,
+				Text: &rendered, TextSource: "custom",
+			}, nil
+		})
+
+	resp := sendRequest(t, http.MethodPost, fmt.Sprintf("%s/api/templates.compile", serverURL), createTestToken(secretKey), map[string]interface{}{
+		"workspace_id": "workspace123",
+		"message_id":   "msg-1",
+		"mjml_source":  mjmlSrc,
+		"text":         "Hi {{ name }}",
+	})
+	defer func() { _ = resp.Body.Close() }()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	var body map[string]interface{}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	assert.Equal(t, "Hi Ada", body["text"])
+	assert.Equal(t, "custom", body["text_source"])
+	_, hasError := body["text_error"]
+	assert.False(t, hasError)
+}

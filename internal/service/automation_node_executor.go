@@ -357,6 +357,15 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		return nil, fmt.Errorf("%s", errMsg)
 	}
 	htmlContent := *compiledTemplate.HTML
+	if compiledTemplate.TextError != "" {
+		e.logger.WithFields(map[string]interface{}{
+			"automation_id":    params.Automation.ID,
+			"workspace_id":     params.WorkspaceID,
+			"template_id":      template.ID,
+			"template_version": template.Version,
+			"error":            compiledTemplate.TextError,
+		}).Warn("Custom text version could not be used, sending the automatic one")
+	}
 
 	// 10. Process subject line through Liquid templating
 	subject, err := notifuse_mjml.ProcessLiquidTemplate(
@@ -409,6 +418,7 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 			FromName:            sender.Name,
 			Subject:             subject,
 			HTMLContent:         htmlContent,
+			TextContent:         compiledTemplate.CustomText(),
 			RateLimitPerMinute:  emailProvider.RateLimitPerMinute,
 			ContactAutomationID: contactAutomationID,
 			// The list this email is sent for, as broadcasts set it. The worker stores

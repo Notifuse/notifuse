@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Notifuse/gomjml/mjml"
 	"github.com/Notifuse/notifuse/internal/domain"
 	domainmocks "github.com/Notifuse/notifuse/internal/domain/mocks"
 	broadcastmocks "github.com/Notifuse/notifuse/internal/service/broadcast/mocks"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	notifusemjml "github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/golang/mock/gomock"
-	"github.com/preslavrachev/gomjml/mjml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
