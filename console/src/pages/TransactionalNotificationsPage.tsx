@@ -41,7 +41,11 @@ import { templatesApi } from '../services/api/template'
 import { Workspace, UserPermissions } from '../services/api/types'
 import { ApiCommandModal } from '../components/transactional/ApiCommandModal'
 import { analyticsService } from '../services/api/analytics'
-import { canSendTestEmail } from '../services/api/permissions'
+import {
+  canCreateTransactionalNotification,
+  canEditTransactionalNotification,
+  canSendTestEmail
+} from '../services/api/permissions'
 
 const { Title, Paragraph } = Typography
 
@@ -124,7 +128,7 @@ const TransactionalNotificationCard: React.FC<{
   const { t } = useLingui()
   const integration = workspace.integrations?.find((i) => i.id === notification.integration_id)
   const canDelete = permissions?.transactional?.write && !notification.integration_id
-  const canWrite = permissions?.transactional?.write
+  const canEdit = canEditTransactionalNotification(permissions, notification)
 
   return (
     <Card
@@ -154,7 +158,7 @@ const TransactionalNotificationCard: React.FC<{
               </Button>
             </Popconfirm>
           )}
-          {canWrite && (
+          {canEdit && (
             <Tooltip title={t`Edit`}>
               <span>
                 <UpsertTransactionalNotificationDrawer
@@ -384,6 +388,26 @@ export function TransactionalNotificationsPage() {
     return <div>{t`Loading...`}</div>
   }
 
+  // Shown in the header, and on the empty page in its place.
+  const canCreate = canCreateTransactionalNotification(permissions)
+  const createButton = (
+    <Tooltip
+      title={
+        canCreate
+          ? undefined
+          : t`You need Transactional write and Templates read permissions to create notifications`
+      }
+    >
+      <div>
+        <UpsertTransactionalNotificationDrawer
+          workspace={currentWorkspace}
+          buttonContent={t`Create Notification`}
+          buttonProps={{ type: 'primary', disabled: !canCreate }}
+        />
+      </div>
+    </Tooltip>
+  )
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -395,24 +419,7 @@ export function TransactionalNotificationsPage() {
               value={statsPeriod}
               onChange={(value) => setStatsPeriod(value as '7D' | '30D' | '60D')}
             />
-            <Tooltip
-              title={
-                !permissions?.transactional?.write
-                  ? t`You don't have write permission for transactional notifications`
-                  : undefined
-              }
-            >
-              <div>
-                <UpsertTransactionalNotificationDrawer
-                  workspace={currentWorkspace}
-                  buttonContent={t`Create Notification`}
-                  buttonProps={{
-                    type: 'primary',
-                    disabled: !permissions?.transactional?.write
-                  }}
-                />
-              </div>
-            </Tooltip>
+            {createButton}
           </Space>
         )}
       </div>
@@ -445,28 +452,7 @@ export function TransactionalNotificationsPage() {
             {t`No transactional notifications found`}
           </Title>
           <Paragraph type="secondary">{t`Create your first notification to get started`}</Paragraph>
-          <div className="mt-4">
-            {currentWorkspace && (
-              <Tooltip
-                title={
-                  !permissions?.transactional?.write
-                    ? t`You don't have write permission for transactional notifications`
-                    : undefined
-                }
-              >
-                <div>
-                  <UpsertTransactionalNotificationDrawer
-                    workspace={currentWorkspace}
-                    buttonContent={t`Create Notification`}
-                    buttonProps={{
-                      type: 'primary',
-                      disabled: !permissions?.transactional?.write
-                    }}
-                  />
-                </div>
-              </Tooltip>
-            )}
-          </div>
+          <div className="mt-4">{createButton}</div>
         </div>
       )}
 

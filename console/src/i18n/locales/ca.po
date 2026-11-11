@@ -1324,7 +1324,7 @@ msgid "API"
 msgstr "API"
 
 #: src/components/transactional/ApiCommandModal.tsx:976
-#: src/pages/TransactionalNotificationsPage.tsx:182
+#: src/pages/TransactionalNotificationsPage.tsx:186
 msgid "API Command"
 msgstr "Comanda API"
 
@@ -2168,7 +2168,7 @@ msgstr "Tipus de rebot"
 #: src/components/messages/MessageHistoryTab.tsx:170
 #: src/components/messages/MessageHistoryTable.tsx:360
 #: src/pages/ContactsPage.tsx:401
-#: src/pages/TransactionalNotificationsPage.tsx:252
+#: src/pages/TransactionalNotificationsPage.tsx:256
 msgid "Bounced"
 msgstr "Rebotat"
 
@@ -2496,7 +2496,7 @@ msgstr "Campanyes"
 #: src/pages/BroadcastsPage.tsx:1792
 #: src/pages/ListsPage.tsx:387
 #: src/pages/TemplatesPage.tsx:366
-#: src/pages/TransactionalNotificationsPage.tsx:150
+#: src/pages/TransactionalNotificationsPage.tsx:154
 msgid "Cancel"
 msgstr "Cancel·lar"
 
@@ -3723,8 +3723,7 @@ msgid "Create New Theme - {0}"
 msgstr "Crear nou tema - {0}"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:199
-#: src/pages/TransactionalNotificationsPage.tsx:408
-#: src/pages/TransactionalNotificationsPage.tsx:460
+#: src/pages/TransactionalNotificationsPage.tsx:404
 msgid "Create Notification"
 msgstr "Crear notificació"
 
@@ -3778,7 +3777,7 @@ msgstr "Creeu la vostra primera categoria"
 msgid "Create your first list to get started"
 msgstr "Creeu la vostra primera llista per començar"
 
-#: src/pages/TransactionalNotificationsPage.tsx:447
+#: src/pages/TransactionalNotificationsPage.tsx:454
 msgid "Create your first notification to get started"
 msgstr "Creeu la vostra primera notificació per començar"
 
@@ -4419,7 +4418,7 @@ msgstr "Eliminar plantilla"
 msgid "Delete template?"
 msgstr "Eliminar plantilla?"
 
-#: src/pages/TransactionalNotificationsPage.tsx:146
+#: src/pages/TransactionalNotificationsPage.tsx:150
 msgid "Delete the notification?"
 msgstr "Eliminar la notificació?"
 
@@ -4504,7 +4503,7 @@ msgstr "Lliurat"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:67
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:84
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:239
-#: src/pages/TransactionalNotificationsPage.tsx:218
+#: src/pages/TransactionalNotificationsPage.tsx:222
 msgid "Delivered"
 msgstr "Lliurat"
 
@@ -4543,7 +4542,7 @@ msgstr "Descriviu aquesta imatge..."
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:330
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
 #: src/pages/ListsPage.tsx:338
-#: src/pages/TransactionalNotificationsPage.tsx:267
+#: src/pages/TransactionalNotificationsPage.tsx:271
 msgid "Description"
 msgstr "Descripció"
 
@@ -4952,7 +4951,7 @@ msgstr "Editar"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
 #: src/pages/ContactsPage.tsx:972
-#: src/pages/TransactionalNotificationsPage.tsx:158
+#: src/pages/TransactionalNotificationsPage.tsx:162
 msgid "Edit"
 msgstr "Editar"
 
@@ -4974,8 +4973,8 @@ msgstr "Editar una versió de tema, inclòs el seu scripts.js"
 #~ msgstr "Editar una notificació transaccional"
 
 #: src/services/api/permissions.ts:629
-msgid "Edit a transactional notification (an edit that sends its channels, as every console edit does, also needs Templates read)"
-msgstr "Editar una notificació transaccional (una edició que envia els seus canals, com totes les edicions des de la consola, també necessita lectura de Plantilles)"
+msgid "Edit a transactional notification (an edit that sends its channels, which the console does unless an integration manages the notification, also needs Templates read)"
+msgstr "Editar una notificació transaccional (una edició que envia els seus canals, com fa la consola tret que una integració gestioni la notificació, també necessita lectura de Plantilles)"
 
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:427
 msgid "Edit alt text"
@@ -5693,7 +5692,7 @@ msgstr "Error en carregar les automatitzacions"
 #: src/components/messages/MessageHistoryTab.tsx:605
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:497
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:448
-#: src/pages/TransactionalNotificationsPage.tsx:374
+#: src/pages/TransactionalNotificationsPage.tsx:378
 msgid "Error loading data"
 msgstr "Error en carregar les dades"
 
@@ -5972,7 +5971,7 @@ msgstr "Fallat"
 #: src/pages/BroadcastsPage.tsx:450
 #: src/pages/BroadcastsPage.tsx:517
 #: src/pages/BroadcastsPage.tsx:1644
-#: src/pages/TransactionalNotificationsPage.tsx:235
+#: src/pages/TransactionalNotificationsPage.tsx:239
 msgid "Failed"
 msgstr "Fallat"
 
@@ -6102,7 +6101,7 @@ msgstr "No s'ha pogut eliminar la invitació"
 msgid "Failed to delete list"
 msgstr "No s'ha pogut eliminar la llista"
 
-#: src/pages/TransactionalNotificationsPage.tsx:357
+#: src/pages/TransactionalNotificationsPage.tsx:361
 msgid "Failed to delete notification"
 msgstr "No s'ha pogut eliminar la notificació"
 
@@ -7274,7 +7273,7 @@ msgstr "URL d'icona/favicon"
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:149
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:360
 #: src/pages/ListsPage.tsx:336
-#: src/pages/TransactionalNotificationsPage.tsx:265
+#: src/pages/TransactionalNotificationsPage.tsx:269
 msgid "ID"
 msgstr "ID"
 
@@ -8443,7 +8442,7 @@ msgstr "Carregant estat del webhook..."
 #: src/pages/ListsPage.tsx:218
 #: src/pages/LogsPage.tsx:29
 #: src/pages/TemplatesPage.tsx:203
-#: src/pages/TransactionalNotificationsPage.tsx:384
+#: src/pages/TransactionalNotificationsPage.tsx:388
 msgid "Loading..."
 msgstr "Carregant..."
 
@@ -8547,7 +8546,7 @@ msgstr "gestionat"
 
 #. placeholder {0}: integration.name
 #. placeholder {1}: integration.type
-#: src/pages/TransactionalNotificationsPage.tsx:135
+#: src/pages/TransactionalNotificationsPage.tsx:139
 msgid "Managed by {0} ({1} integration)"
 msgstr "Gestionat per {0} (integració {1})"
 
@@ -9477,7 +9476,7 @@ msgstr "No s'han trobat esdeveniments de cronologia per a aquest contacte"
 msgid "No traffic in the last 24 hours"
 msgstr "No hi ha trànsit en les darreres 24 hores"
 
-#: src/pages/TransactionalNotificationsPage.tsx:445
+#: src/pages/TransactionalNotificationsPage.tsx:452
 msgid "No transactional notifications found"
 msgstr "No s'han trobat notificacions transaccionals"
 
@@ -10734,7 +10733,7 @@ msgstr "Cal mode de vista prèvia"
 msgid "Preview Results"
 msgstr "Resultats de la vista prèvia"
 
-#: src/pages/TransactionalNotificationsPage.tsx:84
+#: src/pages/TransactionalNotificationsPage.tsx:88
 msgid "Preview template"
 msgstr "Previsualitzar plantilla"
 
@@ -11149,8 +11148,8 @@ msgstr "Llegir la plantilla des de la qual s'envia un correu de prova (també ne
 
 #: src/services/api/permissions.ts:400
 #: src/services/api/permissions.ts:404
-msgid "Read the template of a transactional notification when creating it, or when editing it with its channels as the console does (also needs Transactional write)"
-msgstr "Llegir la plantilla d'una notificació transaccional en crear-la, o en editar-la amb els seus canals com fa la consola (també necessita escriptura de Transaccional)"
+msgid "Read the template of a transactional notification when creating it, or when editing it with its channels, which the console sends unless an integration manages the notification (also needs Transactional write)"
+msgstr "Llegir la plantilla d'una notificació transaccional en crear-la, o en editar-la amb els seus canals, que la consola envia tret que una integració gestioni la notificació (també necessita escriptura de Transaccional)"
 
 #: src/services/api/permissions.ts:941
 msgid "Read the workspace record and its settings; Workspace write alone also passes, so someone who may only edit can still load what they are editing"
@@ -12671,7 +12670,7 @@ msgstr "Enviat"
 #: src/components/messages/MessageHistoryTab.tsx:102
 #: src/components/messages/MessageHistoryTable.tsx:320
 #: src/pages/BroadcastsPage.tsx:1643
-#: src/pages/TransactionalNotificationsPage.tsx:201
+#: src/pages/TransactionalNotificationsPage.tsx:205
 msgid "Sent"
 msgstr "Enviat"
 
@@ -13805,7 +13804,7 @@ msgstr "Termes"
 #: src/components/settings/Integrations.tsx:375
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:104
 #: src/components/web_analytics/tabs/FiltersTab.tsx:127
-#: src/pages/TransactionalNotificationsPage.tsx:176
+#: src/pages/TransactionalNotificationsPage.tsx:180
 msgid "Test"
 msgstr "Provar"
 
@@ -14328,7 +14327,7 @@ msgstr "Aquesta difusió estableix un contingut UTM fix, de manera que les seves
 msgid "This broadcast was cancelled before completion."
 msgstr "Aquesta difusió es va cancel·lar abans de completar-se."
 
-#: src/pages/TransactionalNotificationsPage.tsx:147
+#: src/pages/TransactionalNotificationsPage.tsx:151
 msgid "This cannot be undone."
 msgstr "Això no es pot desfer."
 
@@ -14931,11 +14930,11 @@ msgstr "ID transaccional"
 msgid "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
 msgstr "Definicions de notificacions transaccionals i tots els camins que realment envien un correu amb les credencials de proveïdor de l'espai de treball."
 
-#: src/pages/TransactionalNotificationsPage.tsx:351
+#: src/pages/TransactionalNotificationsPage.tsx:355
 msgid "Transactional notification deleted successfully"
 msgstr "Notificació transaccional eliminada correctament"
 
-#: src/pages/TransactionalNotificationsPage.tsx:390
+#: src/pages/TransactionalNotificationsPage.tsx:414
 msgid "Transactional Notifications"
 msgstr "Notificacions transaccionals"
 
@@ -16211,7 +16210,7 @@ msgid "Yes, delete"
 msgstr "Sí, eliminar"
 
 #: src/pages/TemplatesPage.tsx:364
-#: src/pages/TransactionalNotificationsPage.tsx:149
+#: src/pages/TransactionalNotificationsPage.tsx:153
 msgid "Yes, Delete"
 msgstr "Sí, eliminar"
 
@@ -16302,8 +16301,8 @@ msgstr "No teniu permís d'escriptura per a plantilles"
 
 #: src/pages/TransactionalNotificationsPage.tsx:401
 #: src/pages/TransactionalNotificationsPage.tsx:453
-msgid "You don't have write permission for transactional notifications"
-msgstr "No teniu permís d'escriptura per a notificacions transaccionals"
+#~ msgid "You don't have write permission for transactional notifications"
+#~ msgstr "No teniu permís d'escriptura per a notificacions transaccionals"
 
 #: src/components/settings/SettingsSaveBar.tsx:82
 msgid "You have unsaved changes"
@@ -16343,6 +16342,10 @@ msgstr "Heu de configurar una URL de punt final personalitzat a la Configuració
 #: src/components/templates/SendTestEmailButton.tsx:25
 msgid "You need Templates read and Transactional write permissions to send test emails"
 msgstr "Necessiteu permisos de lectura de Plantilles i escriptura de Transaccional per enviar correus de prova"
+
+#: src/pages/TransactionalNotificationsPage.tsx:398
+msgid "You need Transactional write and Templates read permissions to create notifications"
+msgstr "Necessiteu permisos d'escriptura de Transaccional i lectura de Plantilles per crear notificacions"
 
 #. placeholder {0}: currentRow + 1
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:854
