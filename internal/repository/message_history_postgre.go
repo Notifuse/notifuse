@@ -426,6 +426,35 @@ func (r *MessageHistoryRepository) GetRecipientAndList(ctx context.Context, work
 	return message, nil
 }
 
+// GetForWebVersion reads what the web version of a message is rendered from. It reads
+// only those columns, and decrypts message_data with the workspace's secret key.
+func (r *MessageHistoryRepository) GetForWebVersion(ctx context.Context, workspaceID, secretKey, id string) (*domain.MessageHistory, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `SELECT id, broadcast_id, automation_id, template_id, template_version, message_data FROM message_history WHERE id = $1`
+
+	message := &domain.MessageHistory{}
+	err = workspaceDB.QueryRowContext(ctx, query, id).Scan(
+		&message.ID, &message.BroadcastID, &message.AutomationID,
+		&message.TemplateID, &message.TemplateVersion, &message.MessageData,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get message %s for its web version: %w", id, err)
+	}
+
+	message.MessageData, err = decryptMessageData(message.MessageData, secretKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt the data of message %s: %w", id, err)
+	}
+	return message, nil
+}
+
 // GetRecipients returns, for each of ids that names a message, the address it was sent to,
 // in one query. Ids that name no message are absent from the map, as are the messages
 // whose address an erasure redacted: they name no one.

@@ -570,3 +570,24 @@ func TestRenderBlogTemplateGo(t *testing.T) {
 		assert.Contains(t, html, "Site")
 	})
 }
+
+// liquidgo 5.11 follows Shopify Liquid 5.11: {% snippet %} is gone and {% render %}
+// takes only a quoted partial name, which keeps working.
+func TestBlogRendererGo_RenderTakesAQuotedName(t *testing.T) {
+	partials := map[string]string{"footer": "<footer>{{ year }}</footer>"}
+	data := map[string]interface{}{"year": 2026, "name": "footer"}
+
+	out, err := RenderBlogTemplateGo(`{% render 'footer', year: year %}`, data, partials)
+	require.NoError(t, err)
+	assert.Equal(t, "<footer>2026</footer>", out)
+
+	for _, template := range []string{
+		`{% render name %}`,
+		`{% snippet greeting %}Hi{% endsnippet %}{% render greeting %}`,
+	} {
+		out, err := RenderBlogTemplateGo(template, data, partials)
+		if err == nil {
+			assert.Contains(t, out, "Liquid", template)
+		}
+	}
+}
