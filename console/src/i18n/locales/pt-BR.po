@@ -814,31 +814,31 @@ msgstr "Adicionar anotação"
 msgid "Add Author"
 msgstr "Adicionar Autor"
 
-#: src/components/email_builder/panels/TreePanel.tsx:149
+#: src/components/email_builder/panels/TreePanel.tsx:148
 msgid "Add block"
 msgstr "Adicionar bloco"
 
-#: src/components/email_builder/panels/TreePanel.tsx:96
+#: src/components/email_builder/panels/TreePanel.tsx:95
 msgid "Add Block"
 msgstr "Adicionar Bloco"
 
-#: src/components/email_builder/panels/TreePanel.tsx:137
+#: src/components/email_builder/panels/TreePanel.tsx:136
 msgid "Add block in body"
 msgstr "Adicionar bloco no corpo"
 
-#: src/components/email_builder/panels/TreePanel.tsx:143
+#: src/components/email_builder/panels/TreePanel.tsx:142
 msgid "Add block in column"
 msgstr "Adicionar bloco na coluna"
 
-#: src/components/email_builder/panels/TreePanel.tsx:135
+#: src/components/email_builder/panels/TreePanel.tsx:134
 msgid "Add block in header"
 msgstr "Adicionar bloco no cabecalho"
 
-#: src/components/email_builder/panels/TreePanel.tsx:141
+#: src/components/email_builder/panels/TreePanel.tsx:140
 msgid "Add block in section"
 msgstr "Adicionar bloco na secao"
 
-#: src/components/email_builder/panels/TreePanel.tsx:139
+#: src/components/email_builder/panels/TreePanel.tsx:138
 msgid "Add block in wrapper"
 msgstr "Adicionar bloco no wrapper"
 
@@ -850,7 +850,7 @@ msgstr "Adicione elementos filhos para componentes específicos (mj-text, mj-but
 msgid "Add child elements like mj-font, mj-style, or mj-preview to configure email metadata."
 msgstr "Adicione elementos filhos como mj-font, mj-style ou mj-preview para configurar os metadados do email."
 
-#: src/components/email_builder/panels/TreePanel.tsx:147
+#: src/components/email_builder/panels/TreePanel.tsx:146
 msgid "Add column in group"
 msgstr "Adicionar coluna no grupo"
 
@@ -942,7 +942,7 @@ msgstr "Adicionar caminho"
 msgid "Add Sender"
 msgstr "Adicionar Remetente"
 
-#: src/components/email_builder/panels/TreePanel.tsx:145
+#: src/components/email_builder/panels/TreePanel.tsx:144
 msgid "Add social element"
 msgstr "Adicionar elemento social"
 
@@ -1470,7 +1470,7 @@ msgstr "Tem certeza que deseja excluir a lista \"{0}\"?"
 msgid "Are you sure you want to delete the post"
 msgstr "Tem certeza que deseja excluir a postagem"
 
-#: src/components/email_builder/panels/TreePanel.tsx:220
+#: src/components/email_builder/panels/TreePanel.tsx:219
 #: src/components/email_builder/ui/BlockToolbar.tsx:144
 msgid "Are you sure you want to delete this block?"
 msgstr "Tem certeza que deseja excluir este bloco?"
@@ -4352,7 +4352,7 @@ msgstr "Excluir Automação"
 msgid "Delete automation?"
 msgstr "Excluir automação?"
 
-#: src/components/email_builder/panels/TreePanel.tsx:224
+#: src/components/email_builder/panels/TreePanel.tsx:223
 msgid "Delete block"
 msgstr "Excluir bloco"
 
@@ -4822,7 +4822,7 @@ msgstr "Rascunho restaurado do armazenamento local"
 msgid "Drafts"
 msgstr "Rascunhos"
 
-#: src/components/email_builder/panels/TreePanel.tsx:179
+#: src/components/email_builder/panels/TreePanel.tsx:178
 msgid "Drag to move this block in the tree"
 msgstr "Arraste para mover este bloco na árvore"
 
@@ -13013,7 +13013,7 @@ msgstr "Mostrando os 200 principais links por cliques únicos."
 msgid "shown"
 msgstr "exibido"
 
-#: src/components/email_builder/panels/TreePanel.tsx:272
+#: src/components/email_builder/panels/TreePanel.tsx:273
 msgid "Shown under a condition"
 msgstr "Exibido sob uma condição"
 
