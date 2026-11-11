@@ -324,3 +324,37 @@ describe('buildEmailSystemPrompt', () => {
     expect(source).not.toMatch(/\b(?:msg|defineMessage|useLingui|Trans)\b/)
   })
 })
+
+// A rebuilt email that drops a condition sends the block to every recipient, without
+// anything in the thread to show it.
+describe('display conditions in the prompt', () => {
+  const conditions = section('## Display Conditions')
+
+  it('documents the field and every operator', () => {
+    expect(conditions).toContain('"display_condition"')
+    for (const operator of [
+      'is_true',
+      'is_blank',
+      'is_present',
+      'is_absent',
+      'eq',
+      'neq',
+      'contains',
+      'not_contains',
+      'gt',
+      'gte',
+      'lt',
+      'lte'
+    ]) {
+      expect(conditions).toContain(operator)
+    }
+  })
+
+  it('asks to keep existing conditions when rebuilding the email', () => {
+    expect(conditions).toMatch(/keep every existing display_condition/)
+  })
+
+  it('forbids conditions on columns and groups', () => {
+    expect(conditions).toMatch(/never on mj-column, mj-group or mj-liquid/)
+  })
+})

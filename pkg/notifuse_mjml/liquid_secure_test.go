@@ -2,9 +2,13 @@ package notifuse_mjml
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSecureLiquidEngine_TimeoutEnforcement(t *testing.T) {
@@ -428,4 +432,41 @@ func TestSecureLiquidEngine_RemovedSnippetAndRenderVariable(t *testing.T) {
 			t.Errorf("%s: expected a Liquid error, got %q", template, result)
 		}
 	}
+}
+
+func TestSecureLiquidEngine_RenderCached(t *testing.T) {
+	t.Run("parses a template once and renders it with each call's data", func(t *testing.T) {
+		engine := NewSecureLiquidEngine()
+		source := `{% assign x = name | upcase %}{{ x }}`
+		out, err := engine.renderCached(source, map[string]interface{}{"name": "ada"})
+		require.NoError(t, err)
+		assert.Equal(t, "ADA", out)
+		parsed := engine.parsed[source]
+		require.NotNil(t, parsed)
+
+		out, err = engine.renderCached(source, map[string]interface{}{"name": "bob"})
+		require.NoError(t, err)
+		assert.Equal(t, "BOB", out)
+		assert.Same(t, parsed, engine.parsed[source])
+	})
+	t.Run("RenderWithTimeout does not cache", func(t *testing.T) {
+		engine := NewSecureLiquidEngine()
+		_, err := engine.RenderWithTimeout(`{{ a }}`, map[string]interface{}{})
+		require.NoError(t, err)
+		assert.Empty(t, engine.parsed)
+	})
+	t.Run("the cache is bounded", func(t *testing.T) {
+		engine := NewSecureLiquidEngine()
+		for i := 0; i <= maxParsedTemplates; i++ {
+			_, err := engine.renderCached(fmt.Sprintf(`{{ a }}%d`, i), map[string]interface{}{})
+			require.NoError(t, err)
+			assert.LessOrEqual(t, len(engine.parsed), maxParsedTemplates)
+		}
+	})
+	t.Run("size cap still applies", func(t *testing.T) {
+		engine := NewSecureLiquidEngine()
+		_, err := engine.renderCached(strings.Repeat("x", DefaultMaxTemplateSize+1), nil)
+		assert.Error(t, err)
+		assert.Empty(t, engine.parsed)
+	})
 }

@@ -285,6 +285,7 @@ export class MjSocialBlock extends BaseEmailBlock {
         className={blockClasses}
         onClick={handleClick}
         data-block-id={this.block.id}
+        data-display-condition={this.block.display_condition ? "true" : undefined}
       >
         <tbody>
           <tr>
