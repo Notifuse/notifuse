@@ -7,7 +7,13 @@ import EmailBuilder from './EmailBuilder'
 
 // The editor shows its messages through antd's App
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: App })
-import type { EmailBlock, SaveBlockHandler, SavedBlock } from './types'
+import type {
+  DeleteSavedBlockHandler,
+  EmailBlock,
+  RenameSavedBlockHandler,
+  SaveBlockHandler,
+  SavedBlock
+} from './types'
 import { EmailBlockClass } from './EmailBlockClass'
 
 // Mock the heavy child panels so the test exercises only EmailBuilder's own
@@ -403,10 +409,16 @@ describe('EmailBuilder library', () => {
   let current: { tree: EmailBlock; selected: string | null; onSelectBlock: Mock }
   function Drawer({
     onSaveBlock,
-    initialTree = libraryTree
+    initialTree = libraryTree,
+    canManage = false,
+    onRename,
+    onDelete
   }: {
     onSaveBlock?: (add: (saved: SavedBlock) => void) => SaveBlockHandler
     initialTree?: () => EmailBlock
+    canManage?: boolean
+    onRename?: RenameSavedBlockHandler
+    onDelete?: DeleteSavedBlockHandler
   }) {
     const [tree, setTree] = useState(initialTree)
     const [selected, setSelected] = useState<string | null>(null)
@@ -428,6 +440,9 @@ describe('EmailBuilder library', () => {
           selectedBlockId={selected}
           onSelectBlock={onSelectBlock}
           forcedViewMode={null}
+          canManageSavedBlocks={canManage}
+          onRenameSavedBlock={onRename}
+          onDeleteSavedBlock={onDelete}
         />
       </App>
     )
@@ -642,5 +657,119 @@ describe('EmailBuilder library', () => {
     expect(screen.queryByTestId('library-panel')).not.toBeInTheDocument()
     openLibrary()
     expect(screen.queryByText('New')).not.toBeInTheDocument()
+  })
+
+  describe('managing saved blocks', () => {
+    const menuOf = async (key: string, name: string) => {
+      await userEvent.click(
+        within(card(key)).getByRole('button', { name: `More actions for ${name}` })
+      )
+    }
+    const menuItem = (name: string) =>
+      screen.getAllByRole('menuitem', { name: new RegExp(name) }).at(-1)!
+    const confirmButton = async (name: string) =>
+      (await screen.findAllByRole('button', { name })).at(-1)!
+
+    it('shows no menu unless the member may change the library', () => {
+      render(<Drawer />)
+      openLibrary()
+      expect(screen.queryByRole('button', { name: /More actions/ })).toBeNull()
+    })
+
+    it('duplicates a block as "(copy)" and tags the copy "New", keeping the search', async () => {
+      const handler = vi.fn(async (block: EmailBlock, _op: string, name: string) => {
+        addSaved({ id: 'cta-copy', name, block, created: '2026-11-01T00:00:00Z' })
+        return 'cta-copy'
+      })
+      let addSaved: (saved: SavedBlock) => void = () => {}
+      render(
+        <Drawer
+          canManage
+          onSaveBlock={(add) => {
+            addSaved = add
+            return handler as unknown as SaveBlockHandler
+          }}
+        />
+      )
+      openLibrary()
+      await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'CTA')
+      await menuOf('cta', 'CTA')
+      await userEvent.click(menuItem('Duplicate'))
+
+      await waitFor(() => expect(card('cta-copy')).not.toBeNull())
+      expect(handler).toHaveBeenCalledWith(ctaBlock.block, 'create', 'CTA (copy)')
+      expect(within(card('cta-copy')).getByText('New')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Search saved blocks')).toHaveValue('CTA')
+    })
+
+    it('replaces a saved block with the selected one after confirming, without a "New" tag', async () => {
+      const handler = vi.fn(async () => 'header')
+      render(<Drawer canManage onSaveBlock={() => handler as unknown as SaveBlockHandler} />)
+      select('section-2')
+      openLibrary()
+      await menuOf('header', 'Header')
+      await userEvent.click(menuItem('Replace with the selected block'))
+      // The dialog names its title for assistive technology too
+      await screen.findAllByText('Replace "Header" with the selected block?')
+      expect(document.querySelectorAll('.ant-modal-confirm')).toHaveLength(1)
+      await userEvent.click(await confirmButton('Replace'))
+
+      await waitFor(() => expect(handler).toHaveBeenCalledTimes(1))
+      const [block, operation, id] = handler.mock.calls[0] as unknown as [
+        EmailBlock,
+        string,
+        string
+      ]
+      expect([block.id, operation, id]).toEqual(['section-2', 'update', 'header'])
+      await waitFor(() => expect(card('header').className).toContain('border-[#7763F1]'))
+      expect(within(card('header')).queryByText('New')).toBeNull()
+    })
+
+    it('deletes a saved block after confirming, and nothing when cancelled', async () => {
+      const onDelete = vi.fn(async () => {})
+      render(<Drawer canManage onDelete={onDelete} />)
+      openLibrary()
+      await menuOf('cta', 'CTA')
+      await userEvent.click(menuItem('Delete'))
+      await screen.findAllByText('Delete "CTA" from the library?')
+      await userEvent.click(await confirmButton('Cancel'))
+      expect(onDelete).not.toHaveBeenCalled()
+
+      await menuOf('cta', 'CTA')
+      await userEvent.click(menuItem('Delete'))
+      await userEvent.click(await confirmButton('Delete'))
+      await waitFor(() => expect(onDelete).toHaveBeenCalledWith('cta'))
+    })
+
+    it('renames a saved block', async () => {
+      const onRename = vi.fn(async () => {})
+      render(<Drawer canManage onRename={onRename} />)
+      openLibrary()
+      await menuOf('cta', 'CTA')
+      await userEvent.click(menuItem('Rename'))
+      const input = await screen.findByRole('textbox', { name: 'Block name' })
+      await userEvent.clear(input)
+      await userEvent.type(input, 'Buy now{Enter}')
+      await waitFor(() => expect(onRename).toHaveBeenCalledWith('cta', 'Buy now'))
+    })
+
+    it('runs one library change at a time', async () => {
+      let finish: () => void = () => {}
+      const onDelete = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)))
+      render(<Drawer canManage onDelete={onDelete} />)
+      openLibrary()
+      await menuOf('cta', 'CTA')
+      await userEvent.click(menuItem('Delete'))
+      await userEvent.click(await confirmButton('Delete'))
+      await waitFor(() => expect(onDelete).toHaveBeenCalledTimes(1))
+
+      await menuOf('header', 'Header')
+      expect(menuItem('Duplicate')).toHaveAttribute('aria-disabled', 'true')
+      await act(async () => finish())
+      await menuOf('header', 'Header')
+      await waitFor(() =>
+        expect(menuItem('Duplicate')).not.toHaveAttribute('aria-disabled', 'true')
+      )
+    })
   })
 })

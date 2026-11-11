@@ -10,7 +10,12 @@ import type { Template, Workspace } from '../../services/api/types'
 import type { EmailAIAssistantProps } from '../email_builder/EmailAIAssistant'
 import { templatesApi } from '../../services/api/template'
 import { templateBlocksApi } from '../../services/api/template_blocks'
-import type { EmailBlock, SaveBlockHandler } from '../email_builder/types'
+import type {
+  DeleteSavedBlockHandler,
+  EmailBlock,
+  RenameSavedBlockHandler,
+  SaveBlockHandler
+} from '../email_builder/types'
 
 // The editor pulls in Monaco / the visual builder / AI assistant, none of which are
 // relevant to the logic under test — stub them out. The assistant stub keeps the one
@@ -402,6 +407,123 @@ describe('CreateTemplateDrawer saving a block from the editor', () => {
       await screen.findByText('Block saved. Reload the page to see it in your saved blocks.')
     ).toBeInTheDocument()
     expect(toasts('error')).toHaveLength(0)
+  })
+})
+
+describe('CreateTemplateDrawer managing saved blocks', () => {
+  const block = {
+    id: 'b1',
+    type: 'mj-section',
+    attributes: {},
+    children: []
+  } as unknown as EmailBlock
+  const savedWorkspace = {
+    ...workspace,
+    settings: {
+      ...workspace.settings,
+      template_blocks: [{ id: 'header-id', name: 'Header', block }]
+    }
+  } as unknown as Workspace
+  const toasts = (kind: string) => document.querySelectorAll(`.ant-message-notice-${kind}`)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    builder.props = undefined
+    auth.refreshWorkspaces.mockResolvedValue(undefined)
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: makeTemplate(3) })
+  })
+
+  const openEditor = async (canManageSavedBlocks?: boolean) => {
+    renderDrawer(
+      <CreateTemplateDrawer
+        workspace={savedWorkspace}
+        template={makeTemplate(3)}
+        canManageSavedBlocks={canManageSavedBlocks}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: /Edit Template/i }))
+    await waitFor(() => expect(builder.props).toBeDefined())
+    return builder.props!
+  }
+
+  it('lets the editor change the library only when told the member may', async () => {
+    expect((await openEditor()).canManageSavedBlocks).toBeFalsy()
+  })
+
+  it('hands the editor the right to change the library', async () => {
+    expect((await openEditor(true)).canManageSavedBlocks).toBe(true)
+  })
+
+  it('renames a saved block, keeping its content, then refreshes', async () => {
+    ;(templateBlocksApi.update as Mock).mockResolvedValue({ block: {} })
+    const props = await openEditor(true)
+    const rename = props.onRenameSavedBlock as RenameSavedBlockHandler
+
+    await expect(rename('header-id', 'Top')).resolves.toBeUndefined()
+
+    expect(templateBlocksApi.update).toHaveBeenCalledWith({
+      workspace_id: 'ws1',
+      id: 'header-id',
+      name: 'Top',
+      block
+    })
+    expect(auth.refreshWorkspaces).toHaveBeenCalledTimes(1)
+    expect(await screen.findByText('Block renamed to "Top"')).toBeInTheDocument()
+  })
+
+  it('rejects and shows the error when renaming fails', async () => {
+    ;(templateBlocksApi.update as Mock).mockRejectedValue(new Error('Server down'))
+    const rename = (await openEditor(true)).onRenameSavedBlock as RenameSavedBlockHandler
+
+    await expect(rename('header-id', 'Top')).rejects.toThrow()
+
+    expect(await screen.findByText('Server down')).toBeInTheDocument()
+    expect(auth.refreshWorkspaces).not.toHaveBeenCalled()
+  })
+
+  it('deletes a saved block, then refreshes', async () => {
+    ;(templateBlocksApi.delete as Mock).mockResolvedValue({ success: true })
+    const remove = (await openEditor(true)).onDeleteSavedBlock as DeleteSavedBlockHandler
+
+    await expect(remove('header-id')).resolves.toBeUndefined()
+
+    expect(templateBlocksApi.delete).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'header-id' })
+    expect(auth.refreshWorkspaces).toHaveBeenCalledTimes(1)
+    expect(await screen.findByText('Block "Header" deleted')).toBeInTheDocument()
+  })
+
+  it('counts a block already gone from the server as deleted', async () => {
+    ;(templateBlocksApi.delete as Mock).mockRejectedValue(
+      new ApiError('Template block not found', 404)
+    )
+    const remove = (await openEditor(true)).onDeleteSavedBlock as DeleteSavedBlockHandler
+
+    await expect(remove('header-id')).resolves.toBeUndefined()
+
+    expect(auth.refreshWorkspaces).toHaveBeenCalledTimes(1)
+    expect(toasts('error')).toHaveLength(0)
+  })
+
+  it('rejects and shows the error when deleting fails', async () => {
+    ;(templateBlocksApi.delete as Mock).mockRejectedValue(new ApiError('Server down', 500))
+    const remove = (await openEditor(true)).onDeleteSavedBlock as DeleteSavedBlockHandler
+
+    await expect(remove('header-id')).rejects.toThrow()
+
+    expect(await screen.findByText('Server down')).toBeInTheDocument()
+    expect(auth.refreshWorkspaces).not.toHaveBeenCalled()
+  })
+
+  it('warns about the operation done when the refresh after it fails', async () => {
+    ;(templateBlocksApi.delete as Mock).mockResolvedValue({ success: true })
+    auth.refreshWorkspaces.mockRejectedValue(new Error('network'))
+    const remove = (await openEditor(true)).onDeleteSavedBlock as DeleteSavedBlockHandler
+
+    await expect(remove('header-id')).resolves.toBeUndefined()
+
+    expect(
+      await screen.findByText('Block deleted. Reload the page to update your saved blocks.')
+    ).toBeInTheDocument()
   })
 })
 

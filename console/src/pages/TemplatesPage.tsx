@@ -302,6 +302,7 @@ export function TemplatesPage() {
             >
               <div>
                 <CreateTemplateDrawer
+                  canManageSavedBlocks={!!permissions?.templates?.write}
                   template={record}
                   workspace={workspace}
                   buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
@@ -324,6 +325,7 @@ export function TemplatesPage() {
             >
               <div>
                 <CreateTemplateDrawer
+                  canManageSavedBlocks={!!permissions?.templates?.write}
                   fromTemplate={record}
                   workspace={workspace}
                   buttonContent={<FontAwesomeIcon icon={faCopy} style={{ opacity: 0.7 }} />}
@@ -402,6 +404,7 @@ export function TemplatesPage() {
           >
             <div>
               <CreateTemplateDrawer
+                canManageSavedBlocks={!!permissions?.templates?.write}
                 workspace={workspace}
                 buttonProps={{
                   disabled: !permissions?.templates?.write
@@ -463,6 +466,7 @@ export function TemplatesPage() {
                   >
                     <div>
                       <CreateTemplateDrawer
+                        canManageSavedBlocks={!!permissions?.templates?.write}
                         workspace={workspace}
                         buttonProps={{
                           size: 'large',

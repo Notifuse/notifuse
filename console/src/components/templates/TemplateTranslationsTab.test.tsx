@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { LicenseContext, UNKNOWN_LICENSE } from '../../contexts/licenseState'
@@ -46,6 +46,7 @@ const renderTab = (
   options: {
     onTranslationsStateChange?: (state: Record<string, TranslationEditorState>) => void
     category?: string
+    library?: Partial<React.ComponentProps<typeof TemplateTranslationsTab>>
   } = {}
 ) =>
   render(
@@ -63,6 +64,7 @@ const renderTab = (
         savedBlocks={[]}
         onSaveBlock={vi.fn()}
         category={options.category}
+        {...options.library}
       />
     </LicenseContext.Provider>
   )
@@ -119,6 +121,25 @@ describe('TemplateTranslationsTab text version', () => {
     expect(builder.props?.textVersion).toMatchObject({ enabled: true })
     const onCompile = builder.props?.onCompile as (tree: unknown) => Promise<{ text?: string }>
     await expect(onCompile(tree)).resolves.toMatchObject({ html: '<p>Bonjour</p>', text: 'Bonjour\n' })
+  })
+})
+
+describe('TemplateTranslationsTab saved blocks', () => {
+  it('hands the library management to the builder', async () => {
+    const onRenameSavedBlock = vi.fn()
+    const onDeleteSavedBlock = vi.fn()
+    renderTab(
+      ['template_i18n'],
+      { fr: { enabled: true, subject: 'Bonjour', subjectPreview: '', visualEditorTree: tree } },
+      { library: { canManageSavedBlocks: true, onRenameSavedBlock, onDeleteSavedBlock } }
+    )
+    fireEvent.click(screen.getByText('Open email editor'))
+    await waitFor(() => expect(builder.props).toBeDefined())
+    expect(builder.props).toMatchObject({
+      canManageSavedBlocks: true,
+      onRenameSavedBlock,
+      onDeleteSavedBlock
+    })
   })
 })
 

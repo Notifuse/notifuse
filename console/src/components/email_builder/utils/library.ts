@@ -22,10 +22,11 @@ export interface LibraryDragData {
 }
 
 // The drag source of a library item: the element it is set on starts a drag once the pointer moves a few pixels
-export const useLibraryDraggable = (item: LibraryItem) =>
+export const useLibraryDraggable = (item: LibraryItem, disabled = false) =>
   useDraggable({
     id: `library-${item.key}`,
-    data: { type: LIBRARY_DRAG_TYPE, item } satisfies LibraryDragData
+    data: { type: LIBRARY_DRAG_TYPE, item } satisfies LibraryDragData,
+    disabled
   })
 
 // The head of an email as a string: a thumbnail renders again only when it changes, not on every edit of the email

@@ -5,7 +5,12 @@ import { DownOutlined } from '@ant-design/icons'
 import { SUPPORTED_LANGUAGES } from '../../lib/languages'
 import type { Workspace } from '../../services/api/types'
 import type { EmailBlock } from '../email_builder/types'
-import type { SavedBlock, SaveBlockHandler } from '../email_builder/types'
+import type {
+  DeleteSavedBlockHandler,
+  RenameSavedBlockHandler,
+  SavedBlock,
+  SaveBlockHandler
+} from '../email_builder/types'
 import type { MjmlCompileError } from '../../services/api/template'
 import { templatesApi } from '../../services/api/template'
 import EmailBuilder from '../email_builder/EmailBuilder'
@@ -40,6 +45,9 @@ interface TemplateTranslationsTabProps {
   onTestDataChange: (testData: Record<string, unknown>) => void
   savedBlocks: SavedBlock[]
   onSaveBlock: SaveBlockHandler
+  canManageSavedBlocks?: boolean
+  onRenameSavedBlock?: RenameSavedBlockHandler
+  onDeleteSavedBlock?: DeleteSavedBlockHandler
   // Template category: decides which links a custom text is reminded to keep.
   category?: string
 }
@@ -57,6 +65,9 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
   onTestDataChange,
   savedBlocks,
   onSaveBlock,
+  canManageSavedBlocks,
+  onRenameSavedBlock,
+  onDeleteSavedBlock,
   category
 }) => {
   const { t } = useLingui()
@@ -393,6 +404,9 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
               onTestDataChange={onTestDataChange}
               savedBlocks={savedBlocks}
               onSaveBlock={onSaveBlock}
+              canManageSavedBlocks={canManageSavedBlocks}
+              onRenameSavedBlock={onRenameSavedBlock}
+              onDeleteSavedBlock={onDeleteSavedBlock}
               hiddenBlocks={['mj-title', 'mj-preview']}
               height="calc(100vh - 66px)"
               textVersion={{ enabled: true, custom: activeCustomText }}

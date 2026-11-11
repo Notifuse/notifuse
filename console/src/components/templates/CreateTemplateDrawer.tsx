@@ -24,7 +24,12 @@ import { useTemplateConflictModal } from './useTemplateConflictModal'
 import { templateBlocksApi } from '../../services/api/template_blocks'
 import type { Template, TemplateBlock, Workspace } from '../../services/api/types'
 import EmailBuilder from '../email_builder/EmailBuilder'
-import type { EmailBlock, SaveBlockHandler } from '../email_builder/types'
+import type {
+  DeleteSavedBlockHandler,
+  EmailBlock,
+  RenameSavedBlockHandler,
+  SaveBlockHandler
+} from '../email_builder/types'
 import type { PreviewRef } from '../email_builder/panels/Preview'
 import { kebabCase } from 'lodash'
 import { truncateIdentifier } from '../../utils/identifiers'
@@ -113,6 +118,8 @@ interface CreateTemplateDrawerProps {
   buttonContent?: React.ReactNode
   onClose?: () => void
   forceCategory?: string
+  // The member may rename, replace, duplicate and delete saved blocks from the editor's library
+  canManageSavedBlocks?: boolean
 }
 
 /**
@@ -192,7 +199,8 @@ export function CreateTemplateDrawer({
   buttonProps = {},
   buttonContent,
   onClose,
-  forceCategory
+  forceCategory,
+  canManageSavedBlocks = false
 }: CreateTemplateDrawerProps) {
   const { t } = useLingui()
   const [isOpen, setIsOpen] = useState(false)
@@ -601,17 +609,60 @@ export function CreateTemplateDrawer({
         : t`Template block "${existingBlock?.name}" updated successfully`
     )
 
-    // The block is saved: a failed refresh only leaves the editor's list of saved blocks behind, so it is
-    // reported without failing the save, which would invite saving the block a second time
+    await refreshSavedBlocks(t`Block saved. Reload the page to see it in your saved blocks.`)
+    return savedId
+  }
+
+  // The change is made: a failed refresh only leaves the editor's list of saved blocks behind, so it is reported
+  // with what was done, without failing the change, which would invite making it a second time
+  const refreshSavedBlocks = async (warning: string) => {
     try {
       queryClient.invalidateQueries({ queryKey: ['workspace', workspace.id] })
       // Refresh workspaces in AuthContext so the EmailBuilder shows the saved blocks without a page refresh
       await refreshWorkspaces()
     } catch (error) {
-      console.error('Failed to refresh the workspace after saving a template block:', error)
-      message.warning(t`Block saved. Reload the page to see it in your saved blocks.`)
+      console.error('Failed to refresh the workspace after changing a template block:', error)
+      message.warning(warning)
     }
-    return savedId
+  }
+
+  const failedBlockChange = (error: unknown, fallback: string) => {
+    console.error('Failed to change template block:', error)
+    message.error((error as Error)?.message || fallback)
+  }
+
+  const handleRenameSavedBlock: RenameSavedBlockHandler = async (id, name) => {
+    const existing = workspace.settings.template_blocks?.find((b) => b.id === id)
+    try {
+      if (!existing) throw new Error(t`Template block not found`)
+      // The API replaces the whole entry: the block goes with the new name
+      await templateBlocksApi.update({
+        workspace_id: workspace.id,
+        id,
+        name,
+        block: existing.block
+      })
+    } catch (error) {
+      failedBlockChange(error, t`Failed to rename the block`)
+      throw error
+    }
+    message.success(t`Block renamed to "${name}"`)
+    await refreshSavedBlocks(t`Block renamed. Reload the page to update your saved blocks.`)
+  }
+
+  const handleDeleteSavedBlock: DeleteSavedBlockHandler = async (id) => {
+    const name = workspace.settings.template_blocks?.find((b) => b.id === id)?.name ?? id
+    try {
+      await templateBlocksApi.delete({ workspace_id: workspace.id, id })
+    } catch (error) {
+      // Already gone, for instance deleted from another tab: what was asked is done
+      if (!(error instanceof ApiError && error.status === 404)) {
+        failedBlockChange(error, t`Failed to delete the block`)
+        throw error
+      }
+    }
+    message.success(t`Block "${name}" deleted`)
+    await refreshSavedBlocks(t`Block deleted. Reload the page to update your saved blocks.`)
   }
 
   const goNext = () => {
@@ -1209,6 +1260,9 @@ export function CreateTemplateDrawer({
                         forcedViewMode={forcedViewMode}
                         savedBlocks={workspace.settings.template_blocks || []}
                         onSaveBlock={handleSaveBlock}
+                        canManageSavedBlocks={canManageSavedBlocks}
+                        onRenameSavedBlock={handleRenameSavedBlock}
+                        onDeleteSavedBlock={handleDeleteSavedBlock}
                         onSelectBlock={setSelectedBlockId}
                         selectedBlockId={selectedBlockId}
                         hiddenBlocks={['mj-title', 'mj-preview']}
@@ -1268,6 +1322,9 @@ export function CreateTemplateDrawer({
                     onTestDataChange={(newTestData) => form.setFieldsValue({ test_data: newTestData })}
                     savedBlocks={workspace.settings.template_blocks || []}
                     onSaveBlock={handleSaveBlock}
+                    canManageSavedBlocks={canManageSavedBlocks}
+                    onRenameSavedBlock={handleRenameSavedBlock}
+                    onDeleteSavedBlock={handleDeleteSavedBlock}
                     category={categoryValue}
                   />
                 </div>

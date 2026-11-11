@@ -7,7 +7,8 @@ import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import 'overlayscrollbars/overlayscrollbars.css'
 import { TreePanel } from './panels/TreePanel'
 import { EditPanel, type CanvasHandle } from './panels/EditPanel'
-import { LibraryPanel } from './panels/LibraryPanel'
+import { LibraryPanel, type LibraryHighlight, type LibraryManage } from './panels/LibraryPanel'
+import { copyName } from './utils/blockName'
 import { LibraryDnd } from './dnd/LibraryDnd'
 import { SaveBlockModal } from './ui/SaveBlockModal'
 import type { LibraryItem } from './utils/library'
@@ -21,6 +22,8 @@ import type {
   EmailBuilderState,
   SavedBlock,
   SaveBlockHandler,
+  RenameSavedBlockHandler,
+  DeleteSavedBlockHandler,
   MJMLComponentType
 } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
@@ -58,6 +61,10 @@ interface EmailBuilderProps {
   toolbarActions?: React.ReactNode
   savedBlocks?: SavedBlock[]
   onSaveBlock: SaveBlockHandler
+  // The member may change the library: each saved block then offers rename, replace, duplicate and delete
+  canManageSavedBlocks?: boolean
+  onRenameSavedBlock?: RenameSavedBlockHandler
+  onDeleteSavedBlock?: DeleteSavedBlockHandler
   treePanelRef?: React.RefObject<HTMLDivElement>
   editPanelRef?: React.RefObject<HTMLDivElement>
   settingsPanelRef?: React.RefObject<HTMLDivElement>
@@ -85,6 +92,9 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   toolbarActions,
   savedBlocks,
   onSaveBlock,
+  canManageSavedBlocks = false,
+  onRenameSavedBlock,
+  onDeleteSavedBlock,
   treePanelRef,
   editPanelRef,
   settingsPanelRef,
@@ -99,7 +109,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   height
 }) => {
   const { t } = useLingui()
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
   // State for current selection, UI, and history
   const [state, setState] = useState<
     EmailBuilderState & { history: EmailBlock[]; historyIndex: number }
@@ -820,14 +830,17 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   // The library: its tab, the save dialog the editor owns, and insertions with their own undo
   const [leftTab, setLeftTab] = useState<LeftTab>('structure')
   const [libraryKey, setLibraryKey] = useState(0)
-  const [highlightedSavedId, setHighlightedSavedId] = useState<string | null>(null)
+  const [libraryHighlight, setLibraryHighlight] = useState<LibraryHighlight | null>(null)
+  // One library change at a time: the server rewrites the whole list of saved blocks on each
+  const [libraryBusy, setLibraryBusy] = useState(false)
+  const libraryBusyRef = useRef(false)
   const [saveDialogBlockId, setSaveDialogBlockId] = useState<string | null>(null)
   const canvasRef = useRef<CanvasHandle | null>(null)
   const [libraryDragging, setLibraryDragging] = useState(false)
 
   const changeLeftTab = (tab: LeftTab) => {
     setLeftTab(tab)
-    setHighlightedSavedId(null)
+    setLibraryHighlight(null)
   }
 
   const saveDialogBlock = saveDialogBlockId
@@ -839,8 +852,80 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     if (operation !== 'create') return
     setLeftTab('library')
     setLibraryKey((key) => key + 1)
-    setHighlightedSavedId(savedId)
+    setLibraryHighlight({ id: savedId, kind: 'new' })
   }
+
+  // Runs a change of the library unless one is running; rejects with the change's error
+  const changeLibrary = async (change: () => Promise<void>) => {
+    if (libraryBusyRef.current) return
+    libraryBusyRef.current = true
+    setLibraryBusy(true)
+    try {
+      await change()
+    } finally {
+      libraryBusyRef.current = false
+      setLibraryBusy(false)
+    }
+  }
+  // The handlers report their errors to the user: a failed change only leaves the library as it was
+  const quietly = (change: () => Promise<void>) => changeLibrary(change).catch(() => {})
+
+  const libraryManage: LibraryManage | undefined = canManageSavedBlocks
+    ? {
+        busy: libraryBusy,
+        onRename: onRenameSavedBlock
+          ? (saved, name) =>
+              changeLibrary(async () => {
+                await onRenameSavedBlock(saved.id, name)
+                setLibraryHighlight({ id: saved.id, kind: 'updated' })
+              })
+          : undefined,
+        onDuplicate: (saved) =>
+          quietly(async () => {
+            const id = await onSaveBlock(
+              saved.block,
+              'create',
+              copyName(saved.name, ' ' + t`(copy)`)
+            )
+            if (id) setLibraryHighlight({ id, kind: 'new' })
+          }),
+        onReplace: (saved) => {
+          const selected = effectiveSelectedBlockId
+            ? EmailBlockClass.findBlockById(tree, effectiveSelectedBlockId)
+            : null
+          if (!selected) return
+          const name = saved.name
+          modal.confirm({
+            title: t`Replace "${name}" with the selected block?`,
+            content: t`Templates that already contain this block do not change.`,
+            okText: t`Replace`,
+            cancelText: t`Cancel`,
+            onOk: () =>
+              quietly(async () => {
+                await onSaveBlock(selected, 'update', saved.id)
+                setLibraryHighlight({ id: saved.id, kind: 'updated' })
+              })
+          })
+        },
+        onDelete: onDeleteSavedBlock
+          ? (saved) => {
+              const name = saved.name
+              modal.confirm({
+                title: t`Delete "${name}" from the library?`,
+                content: t`It is removed for every template of the workspace. Templates that already contain this block do not change.`,
+                okText: t`Delete`,
+                okButtonProps: { danger: true },
+                cancelText: t`Cancel`,
+                onOk: () =>
+                  quietly(async () => {
+                    await onDeleteSavedBlock(saved.id)
+                    setLibraryHighlight((current) => (current?.id === saved.id ? null : current))
+                  })
+              })
+            }
+          : undefined
+      }
+    : undefined
 
   // The latest render's undo and history index, for the "Undo" of a message shown by an earlier render
   const latest = useRef({ historyIndex: state.historyIndex, undo: handleUndo, select: handleSelectBlock })
@@ -1056,9 +1141,10 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                     emailTree={tree}
                     savedBlocks={savedBlocks ?? []}
                     selectedBlockId={effectiveSelectedBlockId}
-                    highlightedId={highlightedSavedId}
+                    highlight={libraryHighlight}
                     onInsert={handleLibraryInsert}
                     onOpenSaveDialog={setSaveDialogBlockId}
+                    manage={libraryManage}
                   />
                 )}
               </OverlayScrollbarsComponent>
