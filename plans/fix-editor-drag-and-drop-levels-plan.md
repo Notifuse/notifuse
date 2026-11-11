@@ -231,8 +231,8 @@ Places are asserted as exact arrays, so their number is pinned.
 5. `(EW, S6)` gives `[(EW, 0, 2, empty), (B, index of EW + 1, 1)]`.
 6. `(L, null)` gives `[(B, 6, 1)]`: nothing above the Body.
 7. `(B, S1)` gives `[(B, 0, 1)]`.
-8. A hidden first child of C3: `(S3, T4-like row)` where C3's first child is hidden gives the index of the lower
-   row in C3, not 0. (Uses #510's hidden-first-child fixture, `('T4', 'C3', 2)`.)
+8. A hidden first child RH of C3 (`C3[RH, D, SP, T4]`): `(C3, D)` gives `[(C3, 1, 3)]`, not slot 0, and `(D, SP)`
+   gives `[(C3, 2, 3)]` (#510's hidden-first-child case, `('T4', 'C3', 2)`).
 9. Unknown upper id: `[]`, no throw.
 
 **resolveDrop**
