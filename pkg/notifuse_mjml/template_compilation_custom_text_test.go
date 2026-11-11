@@ -248,6 +248,22 @@ func TestCompileTemplate_CustomTextSeed(t *testing.T) {
 		assert.NotContains(t, *resp.Text, "{% for")
 	})
 
+	t.Run("a block with a display condition keeps its text, not its condition", func(t *testing.T) {
+		condition := &DisplayCondition{Match: "any", Rules: []DisplayConditionRule{
+			{Variable: "contact.custom_string_1", Operator: DisplayConditionEq, Value: stringPtr("vip")},
+			{Variable: "contact.custom_number_1", Operator: DisplayConditionLt, Value: stringPtr("10")},
+		}}
+		resp := seed(t, CompileTemplateRequest{VisualEditorTree: conditionalTextTree(t, condition)})
+		require.True(t, resp.Success)
+		require.NotNil(t, resp.Text)
+		assert.Contains(t, *resp.Text, conditionMarker)
+		assert.Contains(t, *resp.Text, "always")
+		assert.NotContains(t, *resp.Text, "{%")
+		require.NotNil(t, resp.MJML)
+		open, _ := condition.ToLiquid("cond-text")
+		assert.Contains(t, *resp.MJML, open, "the MJML still shows the condition, which the console checks")
+	})
+
 	t.Run("a pair split across blocks is flagged", func(t *testing.T) {
 		resp := seed(t, CompileTemplateRequest{MjmlSource: wrap(`<mj-section><mj-column><mj-text>{% if vip %}VIP</mj-text></mj-column></mj-section>{% endif %}`)})
 		require.True(t, resp.Success)

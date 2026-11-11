@@ -1,13 +1,20 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
-import { render, waitFor, screen, fireEvent } from '@testing-library/react'
+import { act, render, waitFor, screen, fireEvent } from '@testing-library/react'
 import EmailBuilder from './EmailBuilder'
 import type { EmailBlock } from './types'
 
 // Mock the heavy child panels so the test exercises only EmailBuilder's own
 // compile orchestration (not Preview's iframe, the tree/edit/settings panels,
 // or overlay scrollbars).
-vi.mock('./panels/TreePanel', () => ({ TreePanel: () => null }))
+// The tree panel's props carry the editor's add and move handlers.
+let mockTreePanelProps: Record<string, unknown> = {}
+vi.mock('./panels/TreePanel', () => ({
+  TreePanel: (p: Record<string, unknown>) => {
+    mockTreePanelProps = p
+    return null
+  }
+}))
 vi.mock('./panels/EditPanel', () => ({ EditPanel: () => null }))
 vi.mock('./panels/SettingsPanel', () => ({ SettingsPanel: () => null }))
 vi.mock('./panels/Preview', () => ({
@@ -192,5 +199,58 @@ describe('EmailBuilder text version mode with a custom text', () => {
 
     await waitFor(() => expect(screen.getByTestId('text-version').textContent).toBe('Automatic text'))
     expect(screen.queryByText('Mine')).toBeNull()
+  })
+})
+
+// A condition hides its block with every mj-liquid in it, which can hold half of a tag
+// pair, so the server refuses the tree: the editor must not build it.
+describe('EmailBuilder Liquid blocks under a display condition', () => {
+  const conditionedTree = (): EmailBlock =>
+    ({
+      id: 'root',
+      type: 'mjml',
+      children: [
+        {
+          id: 'body',
+          type: 'mj-body',
+          attributes: {},
+          children: [
+            {
+              id: 'sec-1',
+              type: 'mj-section',
+              display_condition: { match: 'all', rules: [{ variable: 'contact.vip', operator: 'is_true' }] },
+              children: [{ id: 'col-1', type: 'mj-column', children: [] }]
+            },
+            { id: 'liq-1', type: 'mj-liquid', content: '{% endif %}' }
+          ]
+        }
+      ]
+    }) as unknown as EmailBlock
+
+  const renderBuilder = () => {
+    const onTreeChange = vi.fn()
+    render(
+      <EmailBuilder
+        {...props(conditionedTree(), vi.fn().mockResolvedValue({ html: '', mjml: '' }), 'edit')}
+        onTreeChange={onTreeChange}
+      />
+    )
+    return onTreeChange
+  }
+
+  it('refuses to add a Liquid block inside the block with the condition', () => {
+    const onTreeChange = renderBuilder()
+    const add = mockTreePanelProps.onAddBlock as (parentId: string, type: string, position?: number) => void
+    act(() => add('col-1', 'mj-liquid', 0))
+    expect(onTreeChange).not.toHaveBeenCalled()
+    act(() => add('col-1', 'mj-text', 0))
+    expect(onTreeChange).toHaveBeenCalledTimes(1)
+  })
+
+  it('refuses to move a Liquid block into it', () => {
+    const onTreeChange = renderBuilder()
+    const move = mockTreePanelProps.onMoveBlock as (id: string, parentId: string, position: number) => void
+    act(() => move('liq-1', 'col-1', 0))
+    expect(onTreeChange).not.toHaveBeenCalled()
   })
 })

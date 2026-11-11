@@ -159,7 +159,8 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
           html: response.html || '',
           mjml: response.mjml || '',
           errors: [],
-          text: response.text
+          text: response.text,
+          test_data: response.test_data
         }
       } catch (error) {
         const err = error as Error

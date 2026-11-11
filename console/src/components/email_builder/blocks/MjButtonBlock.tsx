@@ -624,6 +624,7 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
       className={blockClasses}
       onClick={handleClick}
       data-block-id={block.id}
+        data-display-condition={block.display_condition ? "true" : undefined}
     >
       <div style={buttonWrapperStyle}>
         <div style={buttonStyle}>

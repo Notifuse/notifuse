@@ -148,6 +148,9 @@ func (r *CreateTemplateBlockRequest) Validate() (block *TemplateBlock, workspace
 	if r.Block.GetType() == "" {
 		return nil, "", fmt.Errorf("invalid create template block request: block kind is required")
 	}
+	if err := notifuse_mjml.ValidateDisplayConditionsInBlock(r.Block); err != nil {
+		return nil, "", fmt.Errorf("invalid create template block request: %w", err)
+	}
 
 	now := time.Now().UTC()
 	return &TemplateBlock{
@@ -230,6 +233,9 @@ func (r *UpdateTemplateBlockRequest) Validate() (block *TemplateBlock, workspace
 	}
 	if r.Block.GetType() == "" {
 		return nil, "", fmt.Errorf("invalid update template block request: block kind is required")
+	}
+	if err := notifuse_mjml.ValidateDisplayConditionsInBlock(r.Block); err != nil {
+		return nil, "", fmt.Errorf("invalid update template block request: %w", err)
 	}
 
 	return &TemplateBlock{

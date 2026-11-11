@@ -9980,7 +9980,7 @@
           },
           "visual_editor_tree": {
             "type": "object",
-            "description": "MJML visual editor tree structure. Required when `editor_mode` is `visual` (the default), ignored in `code` mode.",
+            "description": "MJML visual editor tree structure. Required when `editor_mode` is `visual` (the default), ignored in `code` mode. A block under `mj-body` of type `mj-wrapper`, `mj-section`, `mj-text`, `mj-image`, `mj-button`, `mj-divider`, `mj-spacer`, `mj-social` or `mj-raw` can carry a `display_condition` (see `DisplayCondition`): the block is then sent only to recipients for whom it holds. A condition anywhere else, on a block that holds an `mj-liquid`, or an invalid one, is refused with a 400.",
             "example": {
               "type": "mjml",
               "children": []
@@ -10369,6 +10369,85 @@
           "message_id": {
             "type": "string",
             "description": "Message ID for tracking"
+          }
+        }
+      },
+      "DisplayCondition": {
+        "type": "object",
+        "description": "Shows a block of a visual template only when a condition on the template data holds. Evaluated at send time with the same data as the Liquid of the template; the MJML export writes it as Liquid around the block.",
+        "required": [
+          "match",
+          "rules"
+        ],
+        "properties": {
+          "match": {
+            "type": "string",
+            "enum": [
+              "all",
+              "any"
+            ],
+            "description": "`all`: every rule holds. `any`: at least one rule holds."
+          },
+          "rules": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/DisplayConditionRule"
+            }
+          }
+        },
+        "example": {
+          "match": "all",
+          "rules": [
+            {
+              "variable": "order.has_image",
+              "operator": "is_true"
+            },
+            {
+              "variable": "contact.custom_string_1",
+              "operator": "eq",
+              "value": "vip"
+            }
+          ]
+        }
+      },
+      "DisplayConditionRule": {
+        "type": "object",
+        "required": [
+          "variable",
+          "operator"
+        ],
+        "properties": {
+          "variable": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Path of a template variable, without braces: segments of letters, digits and underscores separated by dots, the first one not starting with a digit, such as `contact.first_name` or `order.items.size`. The `empty` and `to_liquid` segments are refused: test an empty list or text with `is_blank`.",
+            "example": "order.total"
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "is_true",
+              "is_blank",
+              "is_present",
+              "is_absent",
+              "eq",
+              "neq",
+              "contains",
+              "not_contains",
+              "gt",
+              "gte",
+              "lt",
+              "lte"
+            ],
+            "description": "`is_true`, `is_blank` (false, empty or absent), `is_present` and `is_absent` take no value. `eq`, `neq`, `contains` and `not_contains` compare text (`contains` on a list looks for an element equal to the value). `gt`, `gte`, `lt` and `lte` compare numbers; a variable that is not a number makes the rule false."
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Required by the operators that compare. Free text, without the Liquid delimiters `{{`, `}}`, `{%` and `%}`; for `gt`, `gte`, `lt` and `lte`, a number of at most 15 digits before the decimal point.",
+            "example": "100"
           }
         }
       },

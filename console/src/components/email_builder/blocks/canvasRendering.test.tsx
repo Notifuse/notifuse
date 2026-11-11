@@ -504,3 +504,21 @@ describe('editor canvas raw HTML frame height', () => {
     expect(second.state.reads).toBe(reads)
   })
 })
+
+describe('editor canvas marks a block shown under a condition', () => {
+  it.each([
+    ['mj-text', MjTextBlock],
+    ['mj-button', MjButtonBlock],
+    ['mj-image', MjImageBlock]
+  ])('%s', (type, Block) => {
+    const condition = { match: 'all', rules: [{ variable: 'contact.vip', operator: 'is_true' }] }
+    const conditional = { id: `c-${type}`, type, attributes: {}, content: 'x', display_condition: condition } as unknown as EmailBlock
+    const plain = { id: `p-${type}`, type, attributes: {}, content: 'x' } as unknown as EmailBlock
+
+    const { container } = render(<>{new Block(conditional).getEdit(previewProps())}</>)
+    expect(container.querySelector(`[data-block-id="c-${type}"]`)?.getAttribute('data-display-condition')).toBe('true')
+
+    const { container: other } = render(<>{new Block(plain).getEdit(previewProps())}</>)
+    expect(other.querySelector(`[data-block-id="p-${type}"]`)?.hasAttribute('data-display-condition')).toBe(false)
+  })
+})

@@ -476,6 +476,9 @@ func (e *EmailTemplate) Validate(testData MapOfAny) error {
 		if e.VisualEditorTree.GetChildren() == nil {
 			return fmt.Errorf("invalid email template: visual_editor_tree root block must have children")
 		}
+		if err := notifuse_mjml.ValidateDisplayConditions(e.VisualEditorTree); err != nil {
+			return fmt.Errorf("invalid email template: %w", err)
+		}
 		if e.CompiledPreview == "" {
 			// Prepare template data JSON string
 			var templateDataStr string
