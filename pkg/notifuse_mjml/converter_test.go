@@ -225,9 +225,14 @@ func TestCleanLiquidTemplate(t *testing.T) {
 			expected: "{%- raw -%}{{ \u2018x\u2019 }}{% endraw %}{{ 'y' }}",
 		},
 		{
-			name:     "endraw with whitespace control does not end a raw body, as in liquidgo",
-			input:    "{% raw %}{{ \u2018x\u2019 }}{%- endraw -%}{{ \u2018y\u2019 }}{% endraw %}{{ \u2018z\u2019 }}",
-			expected: "{% raw %}{{ \u2018x\u2019 }}{%- endraw -%}{{ \u2018y\u2019 }}{% endraw %}{{ 'z' }}",
+			name:     "endraw with whitespace control ends a raw body, as in liquidgo",
+			input:    "{% raw %}{{ \u2018x\u2019 }}{%- endraw -%}{{ \u2018y\u2019 }}",
+			expected: "{% raw %}{{ \u2018x\u2019 }}{%- endraw -%}{{ 'y' }}",
+		},
+		{
+			name:     "endraw after other text in the same markup ends a raw body, as in liquidgo",
+			input:    "{% raw %}{% if \u2018x\u2019 {% endraw %}{{ \u2018y\u2019 }}",
+			expected: "{% raw %}{% if \u2018x\u2019 {% endraw %}{{ 'y' }}",
 		},
 		{
 			name:     "endraw followed by more markup ends a raw body, as in liquidgo",
@@ -490,9 +495,9 @@ func TestProcessLiquidTemplate_EditorRewrittenMarkup(t *testing.T) {
 		},
 		{
 			name:         "raw body ends where liquidgo ends it",
-			content:      "{% raw %}{{ \u2018x\u2019 }}{%- endraw -%}{{ \u2018y\u2019 }}{% endraw %}{{ x | default: \u2018z\u2019 }}",
+			content:      "{% raw %}{{ \u2018x\u2019 }}{%- endraw -%} {{ x | default: \u2018z\u2019 }}",
 			templateData: map[string]interface{}{"contact": map[string]interface{}{}},
-			expected:     "{{ \u2018x\u2019 }}{%- endraw -%}{{ \u2018y\u2019 }}z",
+			expected:     "{{ \u2018x\u2019 }}z",
 		},
 		{
 			name:         "curly quotes outside Liquid markup are left alone",
