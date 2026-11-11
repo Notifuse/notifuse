@@ -93,7 +93,7 @@ const installLayout = () => {
 const setup = (tree: EmailBlock, expanded: string[], hiddenBlocks?: string[]) => {
   const onMoveBlock = vi.fn()
   const onTreeExpand = vi.fn()
-  const utils = render(
+  const panel = (expandedKeys: string[]) => (
     <TreePanel
       emailTree={tree}
       selectedBlockId={null}
@@ -103,11 +103,13 @@ const setup = (tree: EmailBlock, expanded: string[], hiddenBlocks?: string[]) =>
       onDeleteBlock={vi.fn()}
       onCloneBlock={vi.fn()}
       onMoveBlock={onMoveBlock}
-      expandedKeys={expanded}
+      expandedKeys={expandedKeys}
       onTreeExpand={onTreeExpand}
       hiddenBlocks={hiddenBlocks}
     />
   )
+  const utils = render(panel(expanded))
+  const rerender = (expandedKeys: string[]) => utils.rerender(panel(expandedKeys))
   const trees = utils.container.querySelectorAll('.ant-tree')
   const bodyTree = trees[trees.length - 1] as HTMLElement
   const rows = () => Array.from(bodyTree.querySelectorAll('[role="treeitem"]')) as HTMLElement[]
@@ -121,7 +123,7 @@ const setup = (tree: EmailBlock, expanded: string[], hiddenBlocks?: string[]) =>
   const bottomOf = (id: string) => yOf(id, 1)
   const line = () =>
     utils.container.querySelector('[data-testid="tree-drop-line"]') as HTMLElement | null
-  return { row, yOf, bottomOf, line, onMoveBlock, onTreeExpand, bodyTree }
+  return { row, yOf, bottomOf, line, onMoveBlock, onTreeExpand, bodyTree, rerender }
 }
 
 // jsdom has no DragEvent: coordinates are set on the event by hand
@@ -174,7 +176,7 @@ describe('TreePanel drag and drop', () => {
     const { row, yOf, bottomOf, line, onMoveBlock } = setup(build(c3()), ALL)
     grab(row('D'))
     over(row('T3'), yOf('T3', 0.75))
-    // T3 and D are texts of C3, level 3
+    // T3 and D are children of C3, level 3
     expect(lineAt(line())).toEqual(px(bottomOf('T3'), contentLeft(3)))
     drop(row('T3'), yOf('T3', 0.75))
     expect(onMoveBlock).toHaveBeenCalledWith('D', 'C3', 2)
@@ -220,6 +222,33 @@ describe('TreePanel drag and drop', () => {
     expect(lineAt(line())).toEqual(px(bottomOf('T3'), contentLeft(3)))
     drop(row('T3'), bottomOf('T3') + 2)
     expect(onMoveBlock).toHaveBeenCalledWith('D', 'C3', 2)
+  })
+
+  it('counts a row whose middle is level with the pointer as above it', () => {
+    const { row, yOf, onMoveBlock } = setup(build(c3()), ALL)
+    grab(row('T4'))
+    // Gap (C2, T2): first in C2. Taken as the gap above C2, it would be first in S1, refused for a text
+    over(row('C2'), yOf('C2', 0.5))
+    drop(row('C2'), yOf('C2', 0.5))
+    expect(onMoveBlock).toHaveBeenCalledWith('T4', 'C2', 0)
+  })
+
+  it('puts a block dropped on the top half of the body row first in the body', () => {
+    const { row, yOf, onMoveBlock } = setup(build(c3()), ALL)
+    grab(row('S3'))
+    over(row('B'), yOf('B', 0.25))
+    drop(row('B'), yOf('B', 0.25))
+    expect(onMoveBlock).toHaveBeenCalledWith('S3', 'B', 0)
+  })
+
+  it('drops where the rows are at the drop, after a row opened under a still pointer', () => {
+    const { row, yOf, onMoveBlock, rerender } = setup(build(c3()), without('C3'))
+    grab(row('T2'))
+    // Bottom half of collapsed C3: its end. Once C3 is open, the same point is before its first child
+    over(row('C3'), yOf('C3', 0.75))
+    rerender(ALL)
+    drop(row('C3'), yOf('C3', 0.75))
+    expect(onMoveBlock).toHaveBeenCalledWith('T2', 'C3', 0)
   })
 
   it('drops on the padding under the last row at the end of the body', () => {

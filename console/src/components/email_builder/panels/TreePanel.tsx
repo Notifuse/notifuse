@@ -7,7 +7,7 @@ import { faTrashAlt } from '@fortawesome/free-regular-svg-icons'
 import type { EmailBlock, MJMLComponentType, TreeNode, SavedBlock } from '../types'
 import { EmailBlockClass } from '../EmailBlockClass'
 import { AddBlockPopover } from '../ui/AddBlockPopover'
-import { depthOf, resolveDrop, type DragSource, type DropTarget } from '../utils/treeDrop'
+import { depthOf, resolveDrop, type DragSource } from '../utils/treeDrop'
 
 interface TreePanelProps {
   emailTree: EmailBlock
@@ -522,7 +522,6 @@ export const TreePanel: React.FC<TreePanelProps> = ({
   // opens no row on its own
   const wrapperRef = React.useRef<HTMLDivElement>(null)
   const dragRef = React.useRef<(DragSource & { id: string; startX: number }) | null>(null)
-  const placeRef = React.useRef<DropTarget | null>(null)
   const [line, setLine] = React.useState<{ top: number; left: number } | null>(null)
   const hoverRef = React.useRef<{ id: string | null; timer?: ReturnType<typeof setTimeout> }>({
     id: null
@@ -545,14 +544,14 @@ export const TreePanel: React.FC<TreePanelProps> = ({
 
   const clearDrop = () => {
     stopHover()
-    placeRef.current = null
     showLine(null)
   }
 
   const rowId = (row: Element | null | undefined) =>
     row?.querySelector('[data-block-id]')?.getAttribute('data-block-id') ?? null
 
-  // The gap is between the last row whose middle is above the pointer and the next row; above the Body row's
+  // The gap is between the last row whose middle is above the pointer, or level with it, and the next row; above
+  // the Body row's
   // middle, it is the Body row's bottom half. This covers the band antd leaves under each row and the padding
   const locateDrop = (
     wrapper: HTMLElement,
@@ -620,7 +619,6 @@ export const TreePanel: React.FC<TreePanelProps> = ({
     if (!drag || !wrapper) return
     trackHover(event.target, drag)
     const found = locateDrop(wrapper, drag, event.clientX, event.clientY)
-    placeRef.current = found?.place ?? null
     showLine(found?.line ?? null)
     // Lets the drop fire on the padding too
     if (found) event.preventDefault()

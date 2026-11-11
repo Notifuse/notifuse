@@ -12,7 +12,7 @@ import {
 } from '../fixtures/tree-drag'
 
 // Structure tree of the template editor, dragged with the mouse. The pointer goes straight down from where the
-// block was grabbed, plus a sideways offset that picks the level. Each case saves the template and reads the tree
+// block was grabbed, plus a sideways offset that picks the level. Most cases save the template and read the tree
 // sent to the API. Offsets stay off ±12 px, where the level changes.
 
 const children = (b: TreeBlock | undefined) => (b?.children ?? []).map((child) => child.id)
@@ -194,7 +194,7 @@ test.describe('Structure tree drag and drop', () => {
       expect(children(find(body, 'W'))).toEqual(['SW', 'S1'])
     })
 
-    test('a section dropped on an empty wrapper fills it, or goes after it one indent left', async ({
+    test('a section dropped on an empty wrapper one indent left goes after it', async ({
       authenticatedPageWithData: page
     }) => {
       const editor = await openTreeEditor(page, withEmpties())

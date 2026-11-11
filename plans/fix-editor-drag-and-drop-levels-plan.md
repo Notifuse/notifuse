@@ -90,7 +90,7 @@ desync between `expandedKeys` and the screen all give the gap the user sees (lim
 ### Choosing the place
 
 ```ts
-export interface DragSource { id?: string; type: EmailBlockType; depth: number }
+export interface DragSource { id?: string; type: MJMLComponentType; depth: number }
 export function resolveDrop(
   tree: EmailBlock,
   drag: DragSource,
@@ -148,7 +148,7 @@ non-empty container appends (`(U, len)`, the existing e2e case `C3[D,SP,T3,T4,T1
 
 A `div` with `data-testid="tree-drop-line"`, `aria-hidden`, `pointer-events: none`, absolutely positioned in the
 body tree's wrapper (`relative`):
-- top: the upper row's bottom, in wrapper coordinates (the rect difference handles the panel's scroll);
+- top: the upper row's bottom, in wrapper coordinates (the rect difference handles the panel's scroll, plus the wrapper's own scroll offsets);
 - left: the upper row's content left (its `.ant-tree-node-content-wrapper`) plus `(depth − depth(U)) × indent`;
 - right: 0.
 
@@ -164,7 +164,7 @@ recomputed on every `dragover`, so a refused position removes it (limit 4), and 
 rc-tree's own timer is armed only on `dragenter` and only where `allowDrop` is true, and is not cancelled when the
 pointer moves to a row with no place. With `allowDrop={() => false}` it never arms, and the wrapper runs its own:
 
-- On each `dragover`, the hovered row is the row under the pointer (by rect), or none.
+- On each `dragover`, the hovered row is the row of the event's target, or none (in the 4 px band under a row, that row).
 - If it changed, the pending timer is cleared. If the new row is collapsed (not in `expandedKeys`, has children), is
   not the dragged block or inside it, and it or one of its descendants accepts the dragged type, a timer of 800 ms
   calls `onTreeExpand([...expandedKeys, id])`.
@@ -177,7 +177,7 @@ So a section held over collapsed S3 no longer opens it, and a text coming from a
 The wrapper handles, in the capture phase (it runs before rc-tree's row handlers, which stop propagation):
 
 - `onDragEnterCapture`, `onDragOverCapture`: when a drag from this tree is in progress (the drag ref is set),
-  compute the gap, the shift, `resolveDrop`, the line and the hover row; store the place in the ref; call
+  compute the gap, the shift, `resolveDrop`, the line and the hover row; call
   `preventDefault` when there is a place, so the native `drop` fires on the padding too.
 - `onDropCapture`: the place is computed again from the drop's coordinates (a row may have opened under the pointer
   since the last `dragover`). With a place: `preventDefault`, `onMoveBlock(id, parentId, index)`, and
@@ -245,7 +245,6 @@ Places are asserted as exact arrays, so their number is pinned.
 **resolveDrop**
 1. D in `(T3, T4)`, shift 0: `{C3, 2}`.
 2. A section in `(TW, S2)`: S1 at shift 0 gives `{B, 1}`, at shift +1 `{W, 1}`; S3 gives `{B, 2}` and `{W, 1}`.
-  
 3. A section in `(EW, S6)`: shift 0 gives `{EW, 0}`, shift −1 gives `{B, index of EW + 1}`.
 4. A text in `(EC, C5)`: `{EC, 0}` at shifts 0 and −2.
 5. Liquid L in `(T4, R)`: shift 0 gives `{B, 4}`; raw R in `(T4, R)` at shift +2 gives `{C3, 4}`, at shift 0 null
@@ -285,6 +284,8 @@ Rows are found by `data-block-id`. Fake timers for the hover cases.
 11. A drag that did not start in the tree: no line, no move.
 12. rc-tree renders no `.ant-tree-drop-indicator`.
 13. Kept from #510: Body dragstart cancelled, `data-draggable`, `aria-label`.
+14. Added after the code review: a pointer level with a row's middle counts that row as above; the top half of the
+    Body row gives `{B, 0}`; a drop right after a row opened under a still pointer uses the rows at the drop.
 
 ### `EmailBuilder.test.tsx`
 No change: `onMoveBlock` keeps its contract.
@@ -293,14 +294,15 @@ No change: `onMoveBlock` keeps its contract.
 - `fixtures/tree-drag.ts`: the pointer goes straight down from the grab point, plus `dx`, instead of to the target's
   label. `ROW` becomes `[role="treeitem"]`. `lineShown` reads `tree-drop-line`; a `lineLeft` helper is added; a
   `grab` option picks the label or the drag handle. Offsets stay off ±12.
-- Kept cases: unchanged expectations. Two gestures change: the drops "onto the middle" of C2 and S3 move from 0.5
-  to 0.7 of the row, off the exact middle, and the sideways offsets of "a section dropped on the top half of the next
-  section" become 0, −24, +24, +48, so the pointer stays over the tree now that it starts from the section's label.
+- Kept cases: unchanged expectations. Three gestures change: the drops "onto the middle" of C2 and S3 move from 0.5
+  to 0.7 of the row, off the exact middle; the sideways offsets of "a section dropped on the top half of the next
+  section" become 0, −24, +24, +48, so the pointer stays over the tree now that it starts from the section's label;
+  "the wrapper moves by its handle" now grabs the handle.
   Each case makes one gesture: after a save the test does not drag again.
 - New cases:
   - a section just after a wrapper: dx 0 goes after the wrapper, dx +24 inside it;
   - a section below an empty wrapper: dx 0 inside, dx −24 after it;
-  - raw HTML dropped between sections at body level;
+  - Liquid dropped between sections stays at body level (raw R over T4 would be its own place);
   - the line's left matches the target level's row content left, within 2 px;
   - the stale line on the same row is gone;
   - a drop in the band between two rows (y = row bottom + 2);
