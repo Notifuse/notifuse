@@ -203,11 +203,29 @@ func (h *EmailHandler) handleClickRedirection(w http.ResponseWriter, r *http.Req
 	if status != trackingtoken.WorkspaceUnknown {
 		ts, _ := strconv.ParseInt(r.URL.Query().Get("ts"), 10, 64)
 		if h.passesBotChecks(r, ts, messageID, "click") {
-			_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID, "", r.Host, false)
+			_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID, "", clickRequestHosts(r), false)
 		}
 	}
 
 	h.answerTrackedDestination(w, r, decision, target, parsed, scheme)
+}
+
+// clickRequestHosts returns the hosts a click was addressed to: the request's Host, then
+// every X-Forwarded-Host entry, as webVersionRequestHost reads the first. A link back to
+// any of them is the email's own (unsubscribe, notification center, web version) and is
+// not recorded per link. All of them, not only the first forwarded one: behind a proxy
+// that forwards its upstream name as Host, the email's links use the forwarded host,
+// and a direct request keeps its own Host whatever forwarded value a client adds.
+func clickRequestHosts(r *http.Request) []string {
+	hosts := []string{r.Host}
+	for _, value := range r.Header.Values("X-Forwarded-Host") {
+		for _, entry := range strings.Split(value, ",") {
+			if entry = strings.TrimSpace(entry); entry != "" {
+				hosts = append(hosts, entry)
+			}
+		}
+	}
+	return hosts
 }
 
 // answerTrackedDestination answers a click whose destination was classified.
@@ -350,7 +368,7 @@ func (h *EmailHandler) handleEncryptedClick(w http.ResponseWriter, r *http.Reque
 	}
 
 	if status != trackingtoken.WorkspaceUnknown && h.passesBotChecks(r, tok.Timestamp, tok.MessageID, "click") {
-		_ = h.emailService.VisitLink(r.Context(), tok.MessageID, tok.WorkspaceID, tok.URL, r.Host, verified)
+		_ = h.emailService.VisitLink(r.Context(), tok.MessageID, tok.WorkspaceID, tok.URL, clickRequestHosts(r), verified)
 	}
 
 	h.answerTrackedDestination(w, r, decision, target, parsed, scheme)

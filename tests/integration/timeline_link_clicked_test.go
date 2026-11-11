@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -79,9 +80,16 @@ func TestTimelineLinkClicked(t *testing.T) {
 		return msg
 	}
 
+	var clickVia func(t *testing.T, messageID, destination string, signed bool, forwardedHost string)
 	// click follows a tracked link. A signed token is what an email sent since 42.2 carries;
 	// an unsigned one is what an older email carries, or what a recipient can forge.
 	click := func(t *testing.T, messageID, destination string, signed bool) {
+		t.Helper()
+		clickVia(t, messageID, destination, signed, "")
+	}
+	// clickVia follows the link as a reverse proxy relays it: forwardedHost, when set, is
+	// the X-Forwarded-Host the proxy adds, while the Host reaching the server stays its own.
+	clickVia = func(t *testing.T, messageID, destination string, signed bool, forwardedHost string) {
 		t.Helper()
 		var signingKey []byte
 		if signed {
@@ -92,6 +100,9 @@ func TestTimelineLinkClicked(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/r/%s", baseURL, token), nil)
 		require.NoError(t, err)
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15")
+		if forwardedHost != "" {
+			req.Header.Set("X-Forwarded-Host", forwardedHost)
+		}
 		resp, err := redirectClient.Do(req)
 		require.NoError(t, err)
 		_ = resp.Body.Close()
@@ -218,6 +229,42 @@ func TestTimelineLinkClicked(t *testing.T) {
 		click(t, msg.ID, "mailto:sales@shop.example.com", true)
 		assert.Equal(t, 1, countKind(t, msg.ID, "email.clicked"))
 		assert.Empty(t, linkEntries(t, msg.ID))
+	})
+
+	t.Run("behind a reverse proxy, a link back to the instance records no URL and writes no entry", func(t *testing.T) {
+		// The proxy forwards its own upstream name as Host, the public host in
+		// X-Forwarded-Host: the one the email's unsubscribe and web version links use.
+		const publicHost = "mail.brand-proxy.test"
+		clickedLinks := func(t *testing.T, messageID string) sql.NullString {
+			t.Helper()
+			var links sql.NullString
+			require.NoError(t, workspaceDB.QueryRowContext(ctx,
+				`SELECT clicked_links::text FROM message_history WHERE id = $1`, messageID).Scan(&links))
+			return links
+		}
+
+		unsubscribe := "https://" + publicHost + "/unsubscribe-oneclick?email=proxied@link.test"
+		msg := newMessage(t, "proxied@link.test")
+		clickVia(t, msg.ID, unsubscribe, true, publicHost)
+		clickVia(t, msg.ID, "https://"+strings.ToUpper(publicHost)+"/v/abc", true, "edge.proxy.test, "+publicHost)
+		assert.Equal(t, 1, countKind(t, msg.ID, "email.clicked"), "the clicks still count")
+		assert.Empty(t, linkEntries(t, msg.ID))
+		assert.False(t, clickedLinks(t, msg.ID).Valid, "no URL is recorded")
+
+		// The same link reached without the forwarded host is one the route cannot tell
+		// from an external link: that is what the header is read for.
+		control := newMessage(t, "unproxied@link.test")
+		clickVia(t, control.ID, "https://"+publicHost+"/unsubscribe-oneclick?email=unproxied@link.test", true, "")
+		assert.Len(t, linkEntries(t, control.ID), 1)
+
+		// A client adding its own X-Forwarded-Host to a direct request does not get a link
+		// back to the host it reached recorded.
+		direct := newMessage(t, "direct@link.test")
+		serverHost := strings.TrimPrefix(strings.TrimPrefix(baseURL, "http://"), "https://")
+		clickVia(t, direct.ID, "http://"+serverHost+"/unsubscribe-oneclick?email=direct@link.test", true, "elsewhere.test")
+		assert.Equal(t, 1, countKind(t, direct.ID, "email.clicked"), "the click still counts")
+		assert.Empty(t, linkEntries(t, direct.ID))
+		assert.False(t, clickedLinks(t, direct.ID).Valid, "no URL is recorded")
 	})
 
 	t.Run("at the 50-link cap a new link writes nothing, a known one still verifies", func(t *testing.T) {

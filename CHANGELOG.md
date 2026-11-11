@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Opens and clicks on an email whose contact was deleted are no longer recorded. The link still redirects.
 
+- **Improvement**: Behind a reverse proxy, the unsubscribe, notification center and web version links of an email are no longer listed in a broadcast's per-link statistics, so the contact address they carry is no longer stored there.
+
 ## [43.2] - WIP
 
 - **Feature**: Every email now includes a plain-text version, generated from its HTML, for mail clients that show text only and for better deliverability. Its links are the links of the HTML, tracked the same way. Preview it in the template editor's new Text version mode, in the MJML editor's Text version tab and in the template preview. `templates.compile` returns it as `text`.

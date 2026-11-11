@@ -238,11 +238,13 @@ func (s *EmailService) getProviderService(providerKind domain.EmailProviderKind)
 // maxRecordedClickedURLLength bounds the destination URLs persisted in clicked_links
 const maxRecordedClickedURLLength = domain.MaxClickedURLLength
 
-// VisitLink records a click on a tracked link. verified says the token was signed by the
-// workspace, so the email really carried clickedURL; see MessageHistoryRepository.SetClicked.
-func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspaceID string, clickedURL string, requestHost string, verified bool) error {
+// VisitLink records a click on a tracked link. requestHosts are the hosts the click was
+// addressed to: the request's Host and, behind a reverse proxy, each X-Forwarded-Host
+// entry. verified says the token was signed by the workspace, so the email really carried
+// clickedURL; see MessageHistoryRepository.SetClicked.
+func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspaceID string, clickedURL string, requestHosts []string, verified bool) error {
 	// find the message by id
-	err := s.messageRepo.SetClicked(ctx, workspaceID, messageID, time.Now(), sanitizeClickedURL(clickedURL, requestHost), verified)
+	err := s.messageRepo.SetClicked(ctx, workspaceID, messageID, time.Now(), sanitizeClickedURL(clickedURL, requestHosts), verified)
 	if err != nil {
 		s.logger.Error(err.Error())
 		return fmt.Errorf("failed to set clicked: %w", err)
@@ -255,12 +257,16 @@ func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspac
 // per-link; it returns "" (aggregate-only) when the URL is not a plausible
 // http(s) destination or when it points back at the host serving the click
 // redirect: all links of one email (tracking redirect, unsubscribe,
-// notification center) are built from the same send-time endpoint, and the
-// unsubscribe/notification-center ones embed the recipient's raw email
+// notification center, web version) are built from the same send-time endpoint,
+// and the unsubscribe/notification-center ones embed the recipient's raw email
 // address, which must not be persisted in clicked_links keys. Comparing
-// against the request host identifies that send-time endpoint without a
+// against the request hosts identifies that send-time endpoint without a
 // workspace lookup on the hot click path, and stays correct when the
-// workspace endpoint is later reconfigured.
+// workspace endpoint is later reconfigured. Behind a reverse proxy that
+// forwards its upstream name as Host, the endpoint is the forwarded host, so
+// a link matching any of requestHosts is left out: a client adding its own
+// forwarded value can only leave out more of its own clicks, never get a link
+// back to the Host it reached recorded.
 //
 // It also strips the web analytics identity token from the URLs it does keep.
 // A recorded URL becomes a JSONB *key* in clicked_links and per-link reporting
@@ -269,7 +275,7 @@ func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspac
 // link into one row per recipient, and persist a bearer identity credential in
 // the workspace database — the same two hazards the request-host check avoids
 // for the unsubscribe links.
-func sanitizeClickedURL(clickedURL string, requestHost string) string {
+func sanitizeClickedURL(clickedURL string, requestHosts []string) string {
 	// The destination is read as the click route reads it: a leading space or a stray
 	// '%' (https://shop.com/50%off) makes net/url refuse a link that browsers open and
 	// the route redirects to. A host holding a '%' is refused there, so a
@@ -291,8 +297,10 @@ func sanitizeClickedURL(clickedURL string, requestHost string) string {
 		key = s
 	}
 
-	if requestHost != "" && strings.EqualFold(parsed.Host, requestHost) {
-		return ""
+	for _, host := range requestHosts {
+		if host != "" && strings.EqualFold(parsed.Host, host) {
+			return ""
+		}
 	}
 
 	// The parameter name has to be the one notifuse_mjml WRITES onto a tracked

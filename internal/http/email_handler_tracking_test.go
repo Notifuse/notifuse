@@ -420,3 +420,56 @@ func TestLegacyOpens_BotChecks(t *testing.T) {
 		open(handler, oldTS(), trackingTestBotUA)
 	})
 }
+
+// TestEncryptedClick_PassesEveryRequestHostToTheRecorder pins the hosts a click is
+// judged against when its link is sorted out of the per-link record: the request's Host
+// and every X-Forwarded-Host entry. Behind a proxy that forwards its own upstream name as
+// Host, only the forwarded one is the host the email's own links were built on; a direct
+// request keeps its Host whatever forwarded value a client adds.
+func TestEncryptedClick_PassesEveryRequestHostToTheRecorder(t *testing.T) {
+	key := trackingTestKey(t, "workspace-secret")
+	const dest = "https://mail.brand.test/unsubscribe-oneclick?email=someone@example.com"
+
+	cases := map[string]struct {
+		forwarded []string
+		want      []string
+	}{
+		"no forwarded host":         {want: []string{"notifuse:8080"}},
+		"one forwarded host":        {forwarded: []string{"mail.brand.test"}, want: []string{"notifuse:8080", "mail.brand.test"}},
+		"a list, spaces trimmed":    {forwarded: []string{" mail.brand.test , edge.example"}, want: []string{"notifuse:8080", "mail.brand.test", "edge.example"}},
+		"blank entries are skipped": {forwarded: []string{" , edge.example", ""}, want: []string{"notifuse:8080", "edge.example"}},
+		"several header lines":      {forwarded: []string{"mail.brand.test", "edge.example"}, want: []string{"notifuse:8080", "mail.brand.test", "edge.example"}},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
+			expectLookup(ws, trackingtoken.Workspace{Key: key}, trackingtoken.WorkspaceKnown)
+			svc.EXPECT().VisitLink(gomock.Any(), trackingTestMessageID, trackingTestWorkspace, dest, tc.want, true).Return(nil)
+
+			req := httptest.NewRequest(http.MethodGet, "/r/"+signedClickToken(t, key, oldTS(), dest), nil)
+			req.Host = "notifuse:8080"
+			req.Header.Set("User-Agent", trackingTestUA)
+			for _, v := range tc.forwarded {
+				req.Header.Add("X-Forwarded-Host", v)
+			}
+			w := httptest.NewRecorder()
+			handler.handleEncryptedClick(w, req)
+			assert.Equal(t, http.StatusSeeOther, w.Code)
+		})
+	}
+
+	t.Run("the legacy /visit route passes them too", func(t *testing.T) {
+		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
+		expectLookup(ws, trackingtoken.Workspace{}, trackingtoken.WorkspaceKnown)
+		svc.EXPECT().VisitLink(gomock.Any(), trackingTestMessageID, trackingTestWorkspace, "", []string{"notifuse:8080", "mail.brand.test"}, false).Return(nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/visit?"+url.Values{
+			"mid": {trackingTestMessageID}, "wid": {trackingTestWorkspace}, "url": {"https://shop.example.com/x"},
+			"ts": {strconv.FormatInt(oldTS(), 10)},
+		}.Encode(), nil)
+		req.Host = "notifuse:8080"
+		req.Header.Set("User-Agent", trackingTestUA)
+		req.Header.Set("X-Forwarded-Host", "mail.brand.test")
+		handler.handleClickRedirection(httptest.NewRecorder(), req)
+	})
+}

@@ -92,7 +92,7 @@ func (mr *MockEmailServiceInterfaceMockRecorder) TestEmailProvider(arg0, arg1, a
 }
 
 // VisitLink mocks base method.
-func (m *MockEmailServiceInterface) VisitLink(arg0 context.Context, arg1, arg2, arg3, arg4 string, arg5 bool) error {
+func (m *MockEmailServiceInterface) VisitLink(arg0 context.Context, arg1, arg2, arg3 string, arg4 []string, arg5 bool) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "VisitLink", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].(error)

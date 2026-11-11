@@ -123,9 +123,14 @@ refuses a NUL, surrounding whitespace, or a `link_url` longer than `MaxClickedUR
 
 **`internal/service/email_service.go`**: `VisitLink(…, verified)` passed on to `SetClicked`.
 **`internal/service/demo_service.go`**: demo clicks are verified.
-**`internal/http/email_handler.go`**: passes `verified` from `/r/`, and `false` from the legacy `/visit`.
+**`internal/http/email_handler.go`**: passes `verified` from `/r/`, and `false` from the legacy `/visit`. Both routes
+pass every host the click was addressed to (`Host` plus each `X-Forwarded-Host` entry), and `VisitLink` leaves a link
+back to any of them out of `clicked_links`: behind a proxy that forwards its upstream name as `Host`, the unsubscribe,
+notification center and web version links were recorded, carried the recipient's address into the keys, and would
+have started "any link" automations.
 - Tests `email_service_test.go`, `demo_service_test.go`, `email_handler_tracking_test.go`: the flag is passed as is; a
-  forged, unsigned or legacy token passes `false`.
+  forged, unsigned or legacy token passes `false`; the host list (no header, a list, blank entries, several header
+  lines, `/visit`); a link back to a forwarded host is aggregate-only, an external one is still recorded.
 - Test `message_history_handler_test.go`: `clicked_url` passed through; 400 without `broadcast_id`.
 
 **`internal/repository/message_history_postgre.go`**: `SetClicked` sets `verified: true` on the entry (new or existing)
@@ -157,7 +162,9 @@ when verified and never turns it back to false; both click and open UPDATEs skip
 - `timeline_link_clicked_test.go`: first verified click; repeat click and a second link, with the segment queue and a
   segment on the link clicked second; unsigned then signed click; click with no URL; the 50-link cap; malformed
   `clicked_links`; an update that does not touch `clicked_links`; a click on an erased contact's email; the
-  `messages.list` round trip with the per-link stats; the usage counter; v44 upgrading a body without the step.
+  `messages.list` round trip with the per-link stats; the usage counter; v44 upgrading a body without the step; behind
+  a proxy, a link back to the forwarded host records no URL, and a client's own `X-Forwarded-Host` does not get a link
+  back to the server's host recorded.
 - `automation_link_click_trigger_test.go`: an `email.link_clicked` automation with `link_url` and `broadcast_id` enrols
   the contact when they click that link second and `add_to_list` adds them; another link or broadcast does nothing; a
   click on an email the automation sent does not restart it; a URL with `'`, `%`, `_`; an update keeps the filters.
@@ -170,7 +177,8 @@ when verified and never turns it back to false; both click and open UPDATEs skip
 ### 7. CHANGELOG
 
 `## [44.0] - unreleased`: the trigger, segments current on each new link, who clicked each link, clicks and opens on an
-erased contact's email no longer recorded.
+erased contact's email no longer recorded, the instance's own links behind a reverse proxy no longer recorded per
+link.
 
 ### 8. Checks
 
@@ -192,3 +200,6 @@ cd web_analytics_sdk && npm run build
 - A link clicked before 44.0 has no `verified` key, so its first signed click after the upgrade writes its entry
   (documented).
 - The monthly meter reads `kind` from the table for each row of the month: the partial index no longer answers alone.
+- Behind a proxy that forwards neither the public host as `Host` nor an `X-Forwarded-Host`, the instance's own links
+  are still recorded per link: the click route has no other way to tell them from external ones without a workspace
+  lookup.
