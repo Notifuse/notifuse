@@ -34,6 +34,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Create Notification is now disabled, and Edit hidden, on the transactional notifications page for members without Templates read: creating offered a template picker they could not load, and saving an edit was refused. Editing a notification managed by an integration stays available with Transactional write alone.
 
+- **Fix**: `transactional.update`, `transactional.delete` and `templates.delete` now answer 400 with the reason, instead of 500, when they refuse to change the name or channels of a notification managed by an integration, or to delete such a notification or template. `templates.delete` also answers a missing permission with 403 and a revoked API key with 401, as the other endpoints do, instead of 500.
+
 - **Fix**: Liquid in templates now matches Shopify Liquid in more cases: `{% if order.total == 100 %}` matches numbers from your data, accented text is no longer corrupted by `capitalize` or `truncate`, amounts are exact (`0.1 | plus: 0.2` is `0.3`), `date` supports `%-d` and formats timestamps, and conditions on a text containing "and" or "or", tags written over several lines and `{%- raw -%}` work.
 
 - **Fix**: `{% if tags contains "vip" %}` on a list now matches only the element `vip`, no longer `vip_gold`. Check templates that relied on the partial match.

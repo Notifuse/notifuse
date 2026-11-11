@@ -11,6 +11,7 @@ import (
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/app"
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1129,5 +1130,76 @@ func TestTemplateCustomText(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "the limit itself is accepted")
 		_ = resp.Body.Close()
+	})
+}
+
+// TestTemplateIntegrationManagedDelete pins templates.delete's answers: 400 with the reason for a
+// template managed by an integration, which stays, and 403 naming the permission for a member
+// without Templates write.
+func TestTemplateIntegrationManagedDelete(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	factory := suite.DataFactory
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+
+	memberClient := func(t *testing.T, perms domain.UserPermissions) *testutil.APIClient {
+		t.Helper()
+		member, err := factory.CreateUser()
+		require.NoError(t, err)
+		require.NoError(t, factory.AddUserToWorkspaceWithPermissions(member.ID, workspace.ID, "member", perms))
+		c := testutil.NewAPIClient(suite.ServerManager.GetURL())
+		require.NoError(t, c.Login(member.Email, "password"))
+		c.SetWorkspaceID(workspace.ID)
+		return c
+	}
+	decode := func(t *testing.T, resp *http.Response) map[string]interface{} {
+		t.Helper()
+		defer func() { _ = resp.Body.Close() }()
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		return body
+	}
+
+	integrationID := "supabase-managed"
+	managed, err := factory.CreateTemplate(workspace.ID, func(tpl *domain.Template) {
+		tpl.IntegrationID = &integrationID
+	})
+	require.NoError(t, err)
+
+	t.Run("a managed template is refused with 400 and stays", func(t *testing.T) {
+		c := memberClient(t, domain.UserPermissions{domain.PermissionResourceTemplates: {Read: true, Write: true}})
+		resp, err := c.DeleteTemplate(workspace.ID, managed.ID)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		assert.Contains(t, decode(t, resp)["error"], "cannot delete integration-managed template")
+
+		// templates.delete only sets deleted_at, and templates.get still answers a deleted
+		// template: check the mark, not the status.
+		getResp, err := c.Get("/api/templates.get", map[string]string{"workspace_id": workspace.ID, "id": managed.ID})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, getResp.StatusCode)
+		stored, ok := decode(t, getResp)["template"].(map[string]interface{})
+		require.True(t, ok, "templates.get must return the template")
+		assert.Nil(t, stored["deleted_at"], "the refused delete must not soft-delete the template")
+	})
+
+	t.Run("a member without templates write gets 403 naming it", func(t *testing.T) {
+		other, err := factory.CreateTemplate(workspace.ID)
+		require.NoError(t, err)
+		c := memberClient(t, domain.UserPermissions{domain.PermissionResourceTemplates: {Read: true}})
+		resp, err := c.DeleteTemplate(workspace.ID, other.ID)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusForbidden, resp.StatusCode)
+		body := decode(t, resp)
+		assert.Equal(t, string(domain.PermissionResourceTemplates), body["resource"])
+		assert.Equal(t, string(domain.PermissionTypeWrite), body["permission"])
 	})
 }
