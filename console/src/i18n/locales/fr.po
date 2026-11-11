@@ -624,6 +624,15 @@ msgstr "Le consentement propre à un contact l'emporte toujours. Ce choix s'appl
 msgid "A count of past activity includes the event that fires the automation, so \"at least 3 opens\" enrolls on the third open."
 msgstr "Un décompte d'activité passée inclut l'événement qui déclenche l'automation : « au moins 3 ouvertures » inscrit donc le contact dès la troisième ouverture."
 
+#: src/components/email_builder/EmailAIAssistant.tsx:114
+#: src/components/email_builder/EmailAIAssistant.tsx:156
+msgid "A Liquid block cannot go inside a block with a display condition"
+msgstr "Un bloc Liquid ne peut pas aller dans un bloc qui a une condition d'affichage"
+
+#: src/components/email_builder/EmailBuilder.tsx:348
+msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
+msgstr "Un bloc Liquid ne peut pas aller dans un bloc qui a une condition d'affichage : supprimez d'abord la condition, ou placez le bloc Liquid à l'extérieur."
+
 #: src/components/blog/ThemeEditorDrawer.tsx:459
 msgid "A newer draft was found in local storage. Would you like to restore it or discard it?"
 msgstr "Un brouillon plus récent a été trouvé dans le stockage local. Voulez-vous le restaurer ou le supprimer ?"
@@ -4906,7 +4915,7 @@ msgstr "modifier"
 #: src/components/automations/config/ConditionsField.tsx:108
 #: src/components/automations/UpsertAutomationDrawer.tsx:288
 #: src/components/blog/PostsTable.tsx:349
-#: src/components/email_builder/EmailBuilder.tsx:855
+#: src/components/email_builder/EmailBuilder.tsx:873
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
 #: src/components/settings/Integrations.tsx:352
@@ -7597,7 +7606,7 @@ msgstr "Intégration mise à jour avec succès"
 msgid "Integrations"
 msgstr "Intégrations"
 
-#: src/components/email_builder/EmailAIAssistant.tsx:85
+#: src/components/email_builder/EmailAIAssistant.tsx:89
 msgid "Invalid display condition"
 msgstr "Condition d'affichage invalide"
 
@@ -10644,7 +10653,7 @@ msgstr "aperçu"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:37
 #: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/common/ImageURLInput.tsx:52
-#: src/components/email_builder/EmailBuilder.tsx:859
+#: src/components/email_builder/EmailBuilder.tsx:877
 #: src/components/segment/button_upsert.tsx:659
 msgid "Preview"
 msgstr "Aperçu"
@@ -11222,7 +11231,7 @@ msgstr "URI de redirection"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:676
-#: src/components/email_builder/EmailBuilder.tsx:842
+#: src/components/email_builder/EmailBuilder.tsx:860
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
 msgid "Redo"
 msgstr "Rétablir"
@@ -13886,7 +13895,7 @@ msgstr "Texte affiché sur le bouton de connexion"
 msgid "Text Transform"
 msgstr "Transformation du texte"
 
-#: src/components/email_builder/EmailBuilder.tsx:862
+#: src/components/email_builder/EmailBuilder.tsx:880
 #: src/components/email_builder/MjmlCodeEditor.tsx:684
 #: src/components/email_builder/panels/TextVersionPanel.tsx:30
 #: src/components/templates/TemplatePreviewDrawer.tsx:228
@@ -14992,7 +15001,7 @@ msgstr "Comprendre la qualité des sites référents"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:669
-#: src/components/email_builder/EmailBuilder.tsx:834
+#: src/components/email_builder/EmailBuilder.tsx:852
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:496
 msgid "Undo"
 msgstr "Annuler"

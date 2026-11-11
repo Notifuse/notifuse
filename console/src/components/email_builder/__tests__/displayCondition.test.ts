@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   collectVariableSuggestions,
   conditionErrorsInTree,
+  conditionedContainer,
   countHiddenBlocks,
   displayConditionUpdateError,
   evaluateDisplayCondition,
@@ -11,6 +12,7 @@ import {
   formatGoFloat,
   holdsLiquidBlock,
   isConditionEligible,
+  liquidPlacementError,
   resolveVariable,
   trimGoSpace,
   validateCondition,
@@ -270,6 +272,25 @@ describe('blocks holding an mj-liquid', () => {
     expect(
       holdsLiquidBlock({ id: 't', type: 'mj-text', content: '' } as unknown as EmailBlock)
     ).toBe(false)
+  })
+
+  it('refuses an mj-liquid placed under a block with a condition', () => {
+    const plain = JSON.parse(JSON.stringify(tree)) as EmailBlock
+    const section = plain.children![0].children![0]
+    section.children![0].children = []
+    expect(conditionedContainer(plain, 'col-1')?.id).toBe('sec-1')
+    expect(conditionedContainer(plain, 'sec-1')?.id).toBe('sec-1')
+    expect(conditionedContainer(plain, 'body')).toBeNull()
+    expect(liquidPlacementError(plain, 'col-1', { type: 'mj-liquid' })).toMatch(
+      /sec-1 \(mj-section\) has a display condition/
+    )
+    const holding = {
+      type: 'mj-section',
+      children: [{ id: 'l', type: 'mj-liquid' }]
+    } as unknown as EmailBlock
+    expect(liquidPlacementError(plain, 'col-1', holding)).not.toBeNull()
+    expect(liquidPlacementError(plain, 'col-1', { type: 'mj-text' })).toBeNull()
+    expect(liquidPlacementError(plain, 'body', { type: 'mj-liquid' })).toBeNull()
   })
 
   it('refuses their condition, as the server does', () => {

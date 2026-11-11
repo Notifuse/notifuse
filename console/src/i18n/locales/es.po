@@ -624,6 +624,15 @@ msgstr "El consentimiento propio de un contacto siempre prevalece. Esta opción 
 msgid "A count of past activity includes the event that fires the automation, so \"at least 3 opens\" enrolls on the third open."
 msgstr "Un recuento de actividad pasada incluye el evento que dispara la automatización, así que \"al menos 3 aperturas\" inscribe en la tercera apertura."
 
+#: src/components/email_builder/EmailAIAssistant.tsx:114
+#: src/components/email_builder/EmailAIAssistant.tsx:156
+msgid "A Liquid block cannot go inside a block with a display condition"
+msgstr "Un bloque Liquid no puede ir dentro de un bloque con una condición de visualización"
+
+#: src/components/email_builder/EmailBuilder.tsx:348
+msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
+msgstr "Un bloque Liquid no puede ir dentro de un bloque con una condición de visualización: elimina primero la condición o coloca el bloque Liquid fuera."
+
 #: src/components/blog/ThemeEditorDrawer.tsx:459
 msgid "A newer draft was found in local storage. Would you like to restore it or discard it?"
 msgstr "Se encontró un borrador más reciente en el almacenamiento local. ¿Te gustaría restaurarlo o descartarlo?"
@@ -4906,7 +4915,7 @@ msgstr "editar"
 #: src/components/automations/config/ConditionsField.tsx:108
 #: src/components/automations/UpsertAutomationDrawer.tsx:288
 #: src/components/blog/PostsTable.tsx:349
-#: src/components/email_builder/EmailBuilder.tsx:855
+#: src/components/email_builder/EmailBuilder.tsx:873
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
 #: src/components/settings/Integrations.tsx:352
@@ -7597,7 +7606,7 @@ msgstr "Integración actualizada exitosamente"
 msgid "Integrations"
 msgstr "Integraciones"
 
-#: src/components/email_builder/EmailAIAssistant.tsx:85
+#: src/components/email_builder/EmailAIAssistant.tsx:89
 msgid "Invalid display condition"
 msgstr "Condición de visualización no válida"
 
@@ -10644,7 +10653,7 @@ msgstr "vista previa"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:37
 #: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/common/ImageURLInput.tsx:52
-#: src/components/email_builder/EmailBuilder.tsx:859
+#: src/components/email_builder/EmailBuilder.tsx:877
 #: src/components/segment/button_upsert.tsx:659
 msgid "Preview"
 msgstr "Vista previa"
@@ -11222,7 +11231,7 @@ msgstr "URI de redirección"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:676
-#: src/components/email_builder/EmailBuilder.tsx:842
+#: src/components/email_builder/EmailBuilder.tsx:860
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
 msgid "Redo"
 msgstr "Rehacer"
@@ -13886,7 +13895,7 @@ msgstr "Texto mostrado en el botón de inicio de sesión"
 msgid "Text Transform"
 msgstr "Transformación de texto"
 
-#: src/components/email_builder/EmailBuilder.tsx:862
+#: src/components/email_builder/EmailBuilder.tsx:880
 #: src/components/email_builder/MjmlCodeEditor.tsx:684
 #: src/components/email_builder/panels/TextVersionPanel.tsx:30
 #: src/components/templates/TemplatePreviewDrawer.tsx:228
@@ -14992,7 +15001,7 @@ msgstr "Entiende la calidad de las referencias"
 
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:669
-#: src/components/email_builder/EmailBuilder.tsx:834
+#: src/components/email_builder/EmailBuilder.tsx:852
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:496
 msgid "Undo"
 msgstr "Deshacer"

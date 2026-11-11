@@ -246,4 +246,60 @@ describe('EmailAIAssistant display conditions', () => {
     expect(onUpdateBlock).toHaveBeenNthCalledWith(1, 'text-1', { display_condition: condition })
     expect(onUpdateBlock).toHaveBeenNthCalledWith(2, 'text-1', { display_condition: null })
   })
+
+  it('refuses to add or move a Liquid block under a block with a condition', () => {
+    const conditioned = JSON.parse(JSON.stringify(treeWithText)) as EmailBlock
+    const body = conditioned.children![0]
+    body.children![0].display_condition = {
+      match: 'all',
+      rules: [{ variable: 'contact.vip', operator: 'is_true' }]
+    }
+    ;(body.children as EmailBlock[]).push({
+      id: 'liquid-1',
+      type: 'mj-liquid',
+      content: '{% endif %}'
+    } as EmailBlock)
+    const onAddBlock = vi.fn()
+    const onMoveBlock = vi.fn()
+    render(
+      <EmailAIAssistant
+        workspace={workspace}
+        callbacks={{
+          getEmailTree: () => conditioned,
+          setEmailTree,
+          onAddBlock,
+          onUpdateBlock,
+          onDeleteBlock: vi.fn(),
+          onMoveBlock,
+          onSelectBlock: vi.fn()
+        }}
+      />
+    )
+    const add = captured!.toolHandlers.get(TOOL_NAMES.ADD_BLOCK)!
+    const move = captured!.toolHandlers.get(TOOL_NAMES.MOVE_BLOCK)!
+    const call = (name: string, input: unknown) =>
+      ({ type: 'tool_use', tool_name: name, tool_input: input }) as LLMChatEvent
+
+    add(
+      call(TOOL_NAMES.ADD_BLOCK, { parentId: 'column-1', blockType: 'mj-liquid' }),
+      insert,
+      context()
+    )
+    move(
+      call(TOOL_NAMES.MOVE_BLOCK, { blockId: 'liquid-1', newParentId: 'column-1', position: 0 }),
+      insert,
+      context()
+    )
+    add(
+      call(TOOL_NAMES.ADD_BLOCK, { parentId: 'column-1', blockType: 'mj-text' }),
+      insert,
+      context()
+    )
+
+    expect(insert.mock.calls[0][0]).toMatch(/^Block not added: block section-1/)
+    expect(insert.mock.calls[1][0]).toMatch(/^Block not moved: block section-1/)
+    expect(onMoveBlock).not.toHaveBeenCalled()
+    expect(onAddBlock).toHaveBeenCalledTimes(1)
+    expect(onAddBlock.mock.calls[0][1]).toBe('mj-text')
+  })
 })

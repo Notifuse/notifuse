@@ -407,6 +407,35 @@ export function holdsLiquidBlock(block: EmailBlock): boolean {
   )
 }
 
+// conditionedContainer is the block with a display condition among blockId and its
+// ancestors, the one an mj-liquid placed in blockId would sit under, or null.
+export function conditionedContainer(tree: EmailBlock, blockId: string): EmailBlock | null {
+  const path = (block: EmailBlock): EmailBlock[] | null => {
+    if (block.id === blockId) return [block]
+    for (const child of (block.children as EmailBlock[] | undefined) ?? []) {
+      const found = child ? path(child) : null
+      if (found) return [block, ...found]
+    }
+    return null
+  }
+  return (path(tree) ?? []).reverse().find((block) => !!block.display_condition) ?? null
+}
+
+// liquidPlacementError is why block cannot go under parentId: it is or holds an
+// mj-liquid and parentId sits in a block with a display condition, which the server
+// would then refuse (see holdsLiquidBlock). Null when it can.
+export function liquidPlacementError(
+  tree: EmailBlock,
+  parentId: string,
+  block: Pick<EmailBlock, 'type' | 'children'>
+): string | null {
+  if (block.type !== 'mj-liquid' && !holdsLiquidBlock(block as EmailBlock)) return null
+  const container = conditionedContainer(tree, parentId)
+  return container
+    ? `block ${container.id} (${container.type}) has a display condition and cannot hold an mj-liquid block`
+    : null
+}
+
 // conditionErrorsInTree lists every condition the server would refuse in tree, with
 // the block it sits on.
 export function conditionErrorsInTree(tree: EmailBlock): string[] {

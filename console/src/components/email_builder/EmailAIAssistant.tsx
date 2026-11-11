@@ -8,7 +8,11 @@ import type { EmailBlock, MJMLComponentType } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
 import { EMAIL_AI_TOOLS, TOOL_NAMES, type EmailAIAgentCallbacks } from './email-ai-tools'
 import { buildEmailSystemPrompt } from './email-ai-system-prompt'
-import { conditionErrorsInTree, displayConditionUpdateError } from './displayCondition'
+import {
+  conditionErrorsInTree,
+  displayConditionUpdateError,
+  liquidPlacementError
+} from './displayCondition'
 
 export interface EmailAIAssistantProps {
   workspace: Workspace
@@ -102,6 +106,14 @@ export function EmailAIAssistant({
           attributes?: Record<string, unknown>
         }
         if (!input?.parentId || !input?.blockType) return
+        const placementError = liquidPlacementError(callbacks.getEmailTree(), input.parentId, {
+          type: input.blockType
+        })
+        if (placementError) {
+          insert(`Block not added: ${placementError}`, TOOL_NAMES.ADD_BLOCK)
+          message.error(t`A Liquid block cannot go inside a block with a display condition`)
+          return
+        }
         callbacks.onAddBlock(
           input.parentId,
           input.blockType,
@@ -134,6 +146,16 @@ export function EmailAIAssistant({
           position: number
         }
         if (!input?.blockId || !input?.newParentId || input?.position === undefined) return
+        const current = callbacks.getEmailTree()
+        const moved = EmailBlockClass.findBlockById(current, input.blockId)
+        const placementError = moved
+          ? liquidPlacementError(current, input.newParentId, moved)
+          : null
+        if (placementError) {
+          insert(`Block not moved: ${placementError}`, TOOL_NAMES.MOVE_BLOCK)
+          message.error(t`A Liquid block cannot go inside a block with a display condition`)
+          return
+        }
         callbacks.onMoveBlock(input.blockId, input.newParentId, input.position)
         insert(`Moved block ${input.blockId} to ${input.newParentId}`, TOOL_NAMES.MOVE_BLOCK)
         message.success('Block moved')
