@@ -1324,7 +1324,7 @@ msgid "API"
 msgstr "API"
 
 #: src/components/transactional/ApiCommandModal.tsx:976
-#: src/pages/TransactionalNotificationsPage.tsx:182
+#: src/pages/TransactionalNotificationsPage.tsx:186
 msgid "API Command"
 msgstr "Commande API"
 
@@ -2168,7 +2168,7 @@ msgstr "Type de rebond"
 #: src/components/messages/MessageHistoryTab.tsx:170
 #: src/components/messages/MessageHistoryTable.tsx:360
 #: src/pages/ContactsPage.tsx:401
-#: src/pages/TransactionalNotificationsPage.tsx:252
+#: src/pages/TransactionalNotificationsPage.tsx:256
 msgid "Bounced"
 msgstr "Rejeté"
 
@@ -2496,7 +2496,7 @@ msgstr "Campagnes"
 #: src/pages/BroadcastsPage.tsx:1792
 #: src/pages/ListsPage.tsx:387
 #: src/pages/TemplatesPage.tsx:366
-#: src/pages/TransactionalNotificationsPage.tsx:150
+#: src/pages/TransactionalNotificationsPage.tsx:154
 msgid "Cancel"
 msgstr "Annuler"
 
@@ -3723,8 +3723,7 @@ msgid "Create New Theme - {0}"
 msgstr "Créer un nouveau thème - {0}"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:199
-#: src/pages/TransactionalNotificationsPage.tsx:408
-#: src/pages/TransactionalNotificationsPage.tsx:460
+#: src/pages/TransactionalNotificationsPage.tsx:404
 msgid "Create Notification"
 msgstr "Créer une notification"
 
@@ -3778,7 +3777,7 @@ msgstr "Créer votre première catégorie"
 msgid "Create your first list to get started"
 msgstr "Créez votre première liste pour commencer"
 
-#: src/pages/TransactionalNotificationsPage.tsx:447
+#: src/pages/TransactionalNotificationsPage.tsx:454
 msgid "Create your first notification to get started"
 msgstr "Créez votre première notification pour commencer"
 
@@ -4419,7 +4418,7 @@ msgstr "Supprimer le modèle"
 msgid "Delete template?"
 msgstr "Supprimer le modèle ?"
 
-#: src/pages/TransactionalNotificationsPage.tsx:146
+#: src/pages/TransactionalNotificationsPage.tsx:150
 msgid "Delete the notification?"
 msgstr "Supprimer la notification ?"
 
@@ -4504,7 +4503,7 @@ msgstr "livré"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:67
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:84
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:239
-#: src/pages/TransactionalNotificationsPage.tsx:218
+#: src/pages/TransactionalNotificationsPage.tsx:222
 msgid "Delivered"
 msgstr "Livré"
 
@@ -4543,7 +4542,7 @@ msgstr "Décrivez cette image..."
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:330
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
 #: src/pages/ListsPage.tsx:338
-#: src/pages/TransactionalNotificationsPage.tsx:267
+#: src/pages/TransactionalNotificationsPage.tsx:271
 msgid "Description"
 msgstr "Description"
 
@@ -4952,7 +4951,7 @@ msgstr "modifier"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
 #: src/pages/ContactsPage.tsx:972
-#: src/pages/TransactionalNotificationsPage.tsx:158
+#: src/pages/TransactionalNotificationsPage.tsx:162
 msgid "Edit"
 msgstr "Modifier"
 
@@ -4974,8 +4973,8 @@ msgstr "Modifier une version de thème, y compris son scripts.js"
 #~ msgstr "Modifier une notification transactionnelle"
 
 #: src/services/api/permissions.ts:629
-msgid "Edit a transactional notification (an edit that sends its channels, as every console edit does, also needs Templates read)"
-msgstr "Modifier une notification transactionnelle (une modification qui envoie ses canaux, comme toute modification depuis la console, nécessite aussi la lecture Modèles d'email)"
+msgid "Edit a transactional notification (an edit that sends its channels, which the console does unless an integration manages the notification, also needs Templates read)"
+msgstr "Modifier une notification transactionnelle (une modification qui envoie ses canaux, ce que fait la console sauf si une intégration gère la notification, nécessite aussi la lecture Modèles d'email)"
 
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:427
 msgid "Edit alt text"
@@ -5693,7 +5692,7 @@ msgstr "Erreur lors du chargement des automations"
 #: src/components/messages/MessageHistoryTab.tsx:605
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:497
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:448
-#: src/pages/TransactionalNotificationsPage.tsx:374
+#: src/pages/TransactionalNotificationsPage.tsx:378
 msgid "Error loading data"
 msgstr "Erreur lors du chargement des données"
 
@@ -5972,7 +5971,7 @@ msgstr "échoué"
 #: src/pages/BroadcastsPage.tsx:450
 #: src/pages/BroadcastsPage.tsx:517
 #: src/pages/BroadcastsPage.tsx:1644
-#: src/pages/TransactionalNotificationsPage.tsx:235
+#: src/pages/TransactionalNotificationsPage.tsx:239
 msgid "Failed"
 msgstr "Échoué"
 
@@ -6102,7 +6101,7 @@ msgstr "Échec de la suppression de l invitation"
 msgid "Failed to delete list"
 msgstr "Échec de la suppression de la liste"
 
-#: src/pages/TransactionalNotificationsPage.tsx:357
+#: src/pages/TransactionalNotificationsPage.tsx:361
 msgid "Failed to delete notification"
 msgstr "Échec de la suppression de la notification"
 
@@ -7274,7 +7273,7 @@ msgstr "URL de l icône/Favicon"
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:149
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:360
 #: src/pages/ListsPage.tsx:336
-#: src/pages/TransactionalNotificationsPage.tsx:265
+#: src/pages/TransactionalNotificationsPage.tsx:269
 msgid "ID"
 msgstr "ID"
 
@@ -8443,7 +8442,7 @@ msgstr "Chargement du statut webhook..."
 #: src/pages/ListsPage.tsx:218
 #: src/pages/LogsPage.tsx:29
 #: src/pages/TemplatesPage.tsx:203
-#: src/pages/TransactionalNotificationsPage.tsx:384
+#: src/pages/TransactionalNotificationsPage.tsx:388
 msgid "Loading..."
 msgstr "Chargement..."
 
@@ -8547,7 +8546,7 @@ msgstr "géré"
 
 #. placeholder {0}: integration.name
 #. placeholder {1}: integration.type
-#: src/pages/TransactionalNotificationsPage.tsx:135
+#: src/pages/TransactionalNotificationsPage.tsx:139
 msgid "Managed by {0} ({1} integration)"
 msgstr "Géré par {0} (intégration {1})"
 
@@ -9477,7 +9476,7 @@ msgstr "Aucun événement de timeline trouvé pour ce contact"
 msgid "No traffic in the last 24 hours"
 msgstr "Aucun trafic au cours des dernières 24 heures"
 
-#: src/pages/TransactionalNotificationsPage.tsx:445
+#: src/pages/TransactionalNotificationsPage.tsx:452
 msgid "No transactional notifications found"
 msgstr "Aucune notification transactionnelle trouvée"
 
@@ -10734,7 +10733,7 @@ msgstr "Mode aperçu requis"
 msgid "Preview Results"
 msgstr "Résultats de l aperçu"
 
-#: src/pages/TransactionalNotificationsPage.tsx:84
+#: src/pages/TransactionalNotificationsPage.tsx:88
 msgid "Preview template"
 msgstr "Prévisualiser le modèle"
 
@@ -11149,8 +11148,8 @@ msgstr "Lire le modèle à partir duquel un email de test est envoyé (nécessit
 
 #: src/services/api/permissions.ts:400
 #: src/services/api/permissions.ts:404
-msgid "Read the template of a transactional notification when creating it, or when editing it with its channels as the console does (also needs Transactional write)"
-msgstr "Lire le modèle d'une notification transactionnelle à sa création, ou lors d'une modification qui envoie ses canaux comme le fait la console (nécessite aussi l'écriture Transactionnel)"
+msgid "Read the template of a transactional notification when creating it, or when editing it with its channels, which the console sends unless an integration manages the notification (also needs Transactional write)"
+msgstr "Lire le modèle d'une notification transactionnelle à sa création, ou lors d'une modification qui envoie ses canaux, ce que fait la console sauf si une intégration gère la notification (nécessite aussi l'écriture Transactionnel)"
 
 #: src/services/api/permissions.ts:941
 msgid "Read the workspace record and its settings; Workspace write alone also passes, so someone who may only edit can still load what they are editing"
@@ -12671,7 +12670,7 @@ msgstr "envoyé"
 #: src/components/messages/MessageHistoryTab.tsx:102
 #: src/components/messages/MessageHistoryTable.tsx:320
 #: src/pages/BroadcastsPage.tsx:1643
-#: src/pages/TransactionalNotificationsPage.tsx:201
+#: src/pages/TransactionalNotificationsPage.tsx:205
 msgid "Sent"
 msgstr "Envoyé"
 
@@ -13805,7 +13804,7 @@ msgstr "Termes"
 #: src/components/settings/Integrations.tsx:375
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:104
 #: src/components/web_analytics/tabs/FiltersTab.tsx:127
-#: src/pages/TransactionalNotificationsPage.tsx:176
+#: src/pages/TransactionalNotificationsPage.tsx:180
 msgid "Test"
 msgstr "Tester"
 
@@ -14328,7 +14327,7 @@ msgstr "Cette diffusion définit un contenu UTM fixe, ses variations ne peuvent 
 msgid "This broadcast was cancelled before completion."
 msgstr "Cette diffusion a été annulée avant son terme."
 
-#: src/pages/TransactionalNotificationsPage.tsx:147
+#: src/pages/TransactionalNotificationsPage.tsx:151
 msgid "This cannot be undone."
 msgstr "Cette action est irréversible."
 
@@ -14931,11 +14930,11 @@ msgstr "ID transactionnel"
 msgid "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
 msgstr "Les définitions de notifications transactionnelles et tous les chemins qui envoient réellement un email avec les identifiants de fournisseur de l'espace de travail."
 
-#: src/pages/TransactionalNotificationsPage.tsx:351
+#: src/pages/TransactionalNotificationsPage.tsx:355
 msgid "Transactional notification deleted successfully"
 msgstr "Notification transactionnelle supprimée avec succès"
 
-#: src/pages/TransactionalNotificationsPage.tsx:390
+#: src/pages/TransactionalNotificationsPage.tsx:414
 msgid "Transactional Notifications"
 msgstr "Notifications transactionnelles"
 
@@ -16211,7 +16210,7 @@ msgid "Yes, delete"
 msgstr "Oui, supprimer"
 
 #: src/pages/TemplatesPage.tsx:364
-#: src/pages/TransactionalNotificationsPage.tsx:149
+#: src/pages/TransactionalNotificationsPage.tsx:153
 msgid "Yes, Delete"
 msgstr "Oui, supprimer"
 
@@ -16302,8 +16301,8 @@ msgstr "Vous n'avez pas la permission d'écriture pour les modèles"
 
 #: src/pages/TransactionalNotificationsPage.tsx:401
 #: src/pages/TransactionalNotificationsPage.tsx:453
-msgid "You don't have write permission for transactional notifications"
-msgstr "Vous n'avez pas la permission d'écriture pour les notifications transactionnelles"
+#~ msgid "You don't have write permission for transactional notifications"
+#~ msgstr "Vous n'avez pas la permission d'écriture pour les notifications transactionnelles"
 
 #: src/components/settings/SettingsSaveBar.tsx:82
 msgid "You have unsaved changes"
@@ -16343,6 +16342,10 @@ msgstr "Vous devez configurer une URL d'endpoint personnalisée dans les paramè
 #: src/components/templates/SendTestEmailButton.tsx:25
 msgid "You need Templates read and Transactional write permissions to send test emails"
 msgstr "Vous avez besoin des permissions de lecture Modèles d'email et d'écriture Transactionnel pour envoyer des emails de test"
+
+#: src/pages/TransactionalNotificationsPage.tsx:398
+msgid "You need Transactional write and Templates read permissions to create notifications"
+msgstr "Vous avez besoin des permissions d'écriture Transactionnel et de lecture Modèles d'email pour créer des notifications"
 
 #. placeholder {0}: currentRow + 1
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:854
