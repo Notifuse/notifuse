@@ -1324,7 +1324,7 @@ msgid "API"
 msgstr "API"
 
 #: src/components/transactional/ApiCommandModal.tsx:976
-#: src/pages/TransactionalNotificationsPage.tsx:182
+#: src/pages/TransactionalNotificationsPage.tsx:186
 msgid "API Command"
 msgstr "APIコマンド"
 
@@ -2168,7 +2168,7 @@ msgstr "バウンスタイプ"
 #: src/components/messages/MessageHistoryTab.tsx:170
 #: src/components/messages/MessageHistoryTable.tsx:360
 #: src/pages/ContactsPage.tsx:401
-#: src/pages/TransactionalNotificationsPage.tsx:252
+#: src/pages/TransactionalNotificationsPage.tsx:256
 msgid "Bounced"
 msgstr "バウンス済み"
 
@@ -2496,7 +2496,7 @@ msgstr "キャンペーン"
 #: src/pages/BroadcastsPage.tsx:1792
 #: src/pages/ListsPage.tsx:387
 #: src/pages/TemplatesPage.tsx:366
-#: src/pages/TransactionalNotificationsPage.tsx:150
+#: src/pages/TransactionalNotificationsPage.tsx:154
 msgid "Cancel"
 msgstr "キャンセル"
 
@@ -3723,8 +3723,7 @@ msgid "Create New Theme - {0}"
 msgstr "新規テーマを作成 - {0}"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:199
-#: src/pages/TransactionalNotificationsPage.tsx:408
-#: src/pages/TransactionalNotificationsPage.tsx:460
+#: src/pages/TransactionalNotificationsPage.tsx:404
 msgid "Create Notification"
 msgstr "通知を作成"
 
@@ -3778,7 +3777,7 @@ msgstr "最初のカテゴリを作成"
 msgid "Create your first list to get started"
 msgstr "最初のリストを作成して始めましょう"
 
-#: src/pages/TransactionalNotificationsPage.tsx:447
+#: src/pages/TransactionalNotificationsPage.tsx:454
 msgid "Create your first notification to get started"
 msgstr "最初の通知を作成して始めましょう"
 
@@ -4419,7 +4418,7 @@ msgstr "テンプレートを削除"
 msgid "Delete template?"
 msgstr "テンプレートを削除しますか？"
 
-#: src/pages/TransactionalNotificationsPage.tsx:146
+#: src/pages/TransactionalNotificationsPage.tsx:150
 msgid "Delete the notification?"
 msgstr "通知を削除しますか？"
 
@@ -4504,7 +4503,7 @@ msgstr "配信済み"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:67
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:84
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:239
-#: src/pages/TransactionalNotificationsPage.tsx:218
+#: src/pages/TransactionalNotificationsPage.tsx:222
 msgid "Delivered"
 msgstr "配信済み"
 
@@ -4543,7 +4542,7 @@ msgstr "この画像を説明..."
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:330
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
 #: src/pages/ListsPage.tsx:338
-#: src/pages/TransactionalNotificationsPage.tsx:267
+#: src/pages/TransactionalNotificationsPage.tsx:271
 msgid "Description"
 msgstr "説明"
 
@@ -4952,7 +4951,7 @@ msgstr "編集"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
 #: src/pages/ContactsPage.tsx:972
-#: src/pages/TransactionalNotificationsPage.tsx:158
+#: src/pages/TransactionalNotificationsPage.tsx:162
 msgid "Edit"
 msgstr "編集"
 
@@ -4974,8 +4973,8 @@ msgstr "scripts.js を含む、テーマのバージョンを編集する"
 #~ msgstr "トランザクション通知を編集する"
 
 #: src/services/api/permissions.ts:629
-msgid "Edit a transactional notification (an edit that sends its channels, as every console edit does, also needs Templates read)"
-msgstr "トランザクション通知を編集する (コンソールからの編集のようにチャネルを送信する編集には、テンプレートの読み取りも必要)"
+msgid "Edit a transactional notification (an edit that sends its channels, which the console does unless an integration manages the notification, also needs Templates read)"
+msgstr "トランザクション通知を編集する (チャネルを送信する編集にはテンプレートの読み取りも必要。コンソールは、通知が連携で管理されていない限りチャネルを送信する)"
 
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:427
 msgid "Edit alt text"
@@ -5693,7 +5692,7 @@ msgstr "オートメーションの読み込みエラー"
 #: src/components/messages/MessageHistoryTab.tsx:605
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:497
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:448
-#: src/pages/TransactionalNotificationsPage.tsx:374
+#: src/pages/TransactionalNotificationsPage.tsx:378
 msgid "Error loading data"
 msgstr "データの読み込みエラー"
 
@@ -5972,7 +5971,7 @@ msgstr "失敗"
 #: src/pages/BroadcastsPage.tsx:450
 #: src/pages/BroadcastsPage.tsx:517
 #: src/pages/BroadcastsPage.tsx:1644
-#: src/pages/TransactionalNotificationsPage.tsx:235
+#: src/pages/TransactionalNotificationsPage.tsx:239
 msgid "Failed"
 msgstr "失敗"
 
@@ -6102,7 +6101,7 @@ msgstr "招待の削除に失敗しました"
 msgid "Failed to delete list"
 msgstr "リストの削除に失敗しました"
 
-#: src/pages/TransactionalNotificationsPage.tsx:357
+#: src/pages/TransactionalNotificationsPage.tsx:361
 msgid "Failed to delete notification"
 msgstr "通知の削除に失敗しました"
 
@@ -7274,7 +7273,7 @@ msgstr "アイコン/ファビコンURL"
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:149
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:360
 #: src/pages/ListsPage.tsx:336
-#: src/pages/TransactionalNotificationsPage.tsx:265
+#: src/pages/TransactionalNotificationsPage.tsx:269
 msgid "ID"
 msgstr "ID"
 
@@ -8443,7 +8442,7 @@ msgstr "Webhookステータスを読み込み中..."
 #: src/pages/ListsPage.tsx:218
 #: src/pages/LogsPage.tsx:29
 #: src/pages/TemplatesPage.tsx:203
-#: src/pages/TransactionalNotificationsPage.tsx:384
+#: src/pages/TransactionalNotificationsPage.tsx:388
 msgid "Loading..."
 msgstr "読み込み中..."
 
@@ -8547,7 +8546,7 @@ msgstr "管理対象"
 
 #. placeholder {0}: integration.name
 #. placeholder {1}: integration.type
-#: src/pages/TransactionalNotificationsPage.tsx:135
+#: src/pages/TransactionalNotificationsPage.tsx:139
 msgid "Managed by {0} ({1} integration)"
 msgstr "{0}（{1}連携）によって管理"
 
@@ -9477,7 +9476,7 @@ msgstr "このコンタクトのタイムラインイベントが見つかりま
 msgid "No traffic in the last 24 hours"
 msgstr "過去24時間のトラフィックはありません"
 
-#: src/pages/TransactionalNotificationsPage.tsx:445
+#: src/pages/TransactionalNotificationsPage.tsx:452
 msgid "No transactional notifications found"
 msgstr "トランザクション通知が見つかりません"
 
@@ -10734,7 +10733,7 @@ msgstr "プレビューモードが必要です"
 msgid "Preview Results"
 msgstr "結果をプレビュー"
 
-#: src/pages/TransactionalNotificationsPage.tsx:84
+#: src/pages/TransactionalNotificationsPage.tsx:88
 msgid "Preview template"
 msgstr "テンプレートをプレビュー"
 
@@ -11149,8 +11148,8 @@ msgstr "テストメールの送信元となるテンプレートを読み取る
 
 #: src/services/api/permissions.ts:400
 #: src/services/api/permissions.ts:404
-msgid "Read the template of a transactional notification when creating it, or when editing it with its channels as the console does (also needs Transactional write)"
-msgstr "作成時、またはコンソールと同じくチャネルを含めて編集する際に、トランザクション通知のテンプレートを読み取る (トランザクションの書き込みも必要)"
+msgid "Read the template of a transactional notification when creating it, or when editing it with its channels, which the console sends unless an integration manages the notification (also needs Transactional write)"
+msgstr "作成時、またはチャネルを含めて編集する際に、トランザクション通知のテンプレートを読み取る (コンソールは、通知が連携で管理されていない限りチャネルを送信する。トランザクションの書き込みも必要)"
 
 #: src/services/api/permissions.ts:941
 msgid "Read the workspace record and its settings; Workspace write alone also passes, so someone who may only edit can still load what they are editing"
@@ -12671,7 +12670,7 @@ msgstr "送信済み"
 #: src/components/messages/MessageHistoryTab.tsx:102
 #: src/components/messages/MessageHistoryTable.tsx:320
 #: src/pages/BroadcastsPage.tsx:1643
-#: src/pages/TransactionalNotificationsPage.tsx:201
+#: src/pages/TransactionalNotificationsPage.tsx:205
 msgid "Sent"
 msgstr "送信済み"
 
@@ -13805,7 +13804,7 @@ msgstr "キーワード"
 #: src/components/settings/Integrations.tsx:375
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:104
 #: src/components/web_analytics/tabs/FiltersTab.tsx:127
-#: src/pages/TransactionalNotificationsPage.tsx:176
+#: src/pages/TransactionalNotificationsPage.tsx:180
 msgid "Test"
 msgstr "テスト"
 
@@ -14328,7 +14327,7 @@ msgstr "このブロードキャストは固定のUTMコンテンツを設定し
 msgid "This broadcast was cancelled before completion."
 msgstr "このブロードキャストは完了前にキャンセルされました。"
 
-#: src/pages/TransactionalNotificationsPage.tsx:147
+#: src/pages/TransactionalNotificationsPage.tsx:151
 msgid "This cannot be undone."
 msgstr "この操作は元に戻せません。"
 
@@ -14931,11 +14930,11 @@ msgstr "トランザクションID"
 msgid "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
 msgstr "トランザクション通知の定義と、ワークスペースのプロバイダー認証情報を使って実際にメールを送信するすべての経路。"
 
-#: src/pages/TransactionalNotificationsPage.tsx:351
+#: src/pages/TransactionalNotificationsPage.tsx:355
 msgid "Transactional notification deleted successfully"
 msgstr "トランザクション通知が正常に削除されました"
 
-#: src/pages/TransactionalNotificationsPage.tsx:390
+#: src/pages/TransactionalNotificationsPage.tsx:414
 msgid "Transactional Notifications"
 msgstr "トランザクション通知"
 
@@ -16211,7 +16210,7 @@ msgid "Yes, delete"
 msgstr "はい、削除"
 
 #: src/pages/TemplatesPage.tsx:364
-#: src/pages/TransactionalNotificationsPage.tsx:149
+#: src/pages/TransactionalNotificationsPage.tsx:153
 msgid "Yes, Delete"
 msgstr "はい、削除"
 
@@ -16302,8 +16301,8 @@ msgstr "テンプレートの書き込み権限がありません"
 
 #: src/pages/TransactionalNotificationsPage.tsx:401
 #: src/pages/TransactionalNotificationsPage.tsx:453
-msgid "You don't have write permission for transactional notifications"
-msgstr "トランザクション通知の書き込み権限がありません"
+#~ msgid "You don't have write permission for transactional notifications"
+#~ msgstr "トランザクション通知の書き込み権限がありません"
 
 #: src/components/settings/SettingsSaveBar.tsx:82
 msgid "You have unsaved changes"
@@ -16343,6 +16342,10 @@ msgstr "ブログを有効にする前に、上の一般設定でカスタムエ
 #: src/components/templates/SendTestEmailButton.tsx:25
 msgid "You need Templates read and Transactional write permissions to send test emails"
 msgstr "テストメールを送信するには、テンプレートの読み取りとトランザクションの書き込み権限が必要です"
+
+#: src/pages/TransactionalNotificationsPage.tsx:398
+msgid "You need Transactional write and Templates read permissions to create notifications"
+msgstr "通知を作成するには、トランザクションの書き込みとテンプレートの読み取り権限が必要です"
 
 #. placeholder {0}: currentRow + 1
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:854
