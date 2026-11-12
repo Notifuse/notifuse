@@ -213,6 +213,19 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "sent_at",
 				Description: "Message sent timestamp",
 			},
+			// No index on either column: the console always filters on broadcast_id too.
+			"opened_at": {
+				Type:        "time",
+				Title:       "Opened At",
+				SQL:         "opened_at",
+				Description: "When the message was first opened; a click counts as an open when opens are tracked",
+			},
+			"clicked_at": {
+				Type:        "time",
+				Title:       "Clicked At",
+				SQL:         "clicked_at",
+				Description: "When a link in the message was first clicked",
+			},
 			"contact_email": {
 				Type:        "string",
 				Title:       "Contact Email",
