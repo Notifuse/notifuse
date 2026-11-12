@@ -156,9 +156,9 @@ func (f MessageFilter) Validate() error {
 	return nil
 }
 
-// RequireBound refuses a filter that would make messages.count read the whole table: it
-// needs created_after, or a filter that an index narrows. list_id and external_id are not
-// indexed for this.
+// RequireBound refuses a messages.count filter that no index can narrow: it needs
+// created_after, or a filter on an indexed column. list_id and external_id are not indexed
+// for this. A wide period or a common value can still read a large part of the table.
 func (f MessageFilter) RequireBound() error {
 	if f.CreatedAfter != nil {
 		return nil

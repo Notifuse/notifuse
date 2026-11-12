@@ -106,6 +106,18 @@ func TestMessageHistoryHandler_handleCount(t *testing.T) {
 		}
 	})
 
+	t.Run("zero counts are in the response", func(t *testing.T) {
+		m := newCountHandlerMocks(t)
+		m.authenticated()
+		m.service.EXPECT().CountMessages(gomock.Any(), "ws1", gomock.Any()).Return(&domain.MessageCounts{}, nil)
+		code, body := m.call(http.MethodGet, "workspace_id=ws1&broadcast_id=b1")
+		require.Equal(t, http.StatusOK, code)
+		require.Len(t, body, 7)
+		for _, field := range []string{"total", "delivered", "opened", "clicked", "bounced", "failed", "complained"} {
+			assert.Equal(t, float64(0), body[field], field)
+		}
+	})
+
 	t.Run("an indexed filter alone is enough", func(t *testing.T) {
 		m := newCountHandlerMocks(t)
 		m.authenticated()

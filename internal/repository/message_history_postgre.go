@@ -720,7 +720,6 @@ func (r *MessageHistoryRepository) SetOpened(ctx context.Context, workspaceID, i
 	return nil
 }
 
-// ListMessages retrieves message history with cursor-based pagination and filtering
 // applyMessageFilters adds the conditions of the messages.list filters, shared by
 // ListMessages and CountMessages.
 func applyMessageFilters(queryBuilder sq.SelectBuilder, params domain.MessageFilter) sq.SelectBuilder {
@@ -925,6 +924,7 @@ func (r *MessageHistoryRepository) CountMessages(ctx context.Context, workspaceI
 	return &counts, nil
 }
 
+// ListMessages retrieves message history with cursor-based pagination and filtering
 func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID string, secretKey string, params domain.MessageListParams) ([]*domain.MessageHistory, string, error) {
 	// codecov:ignore:start
 	ctx, span := tracing.StartServiceSpan(ctx, "MessageHistoryRepository", "ListMessages")

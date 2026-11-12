@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/url"
 	"time"
-
 )
 
 //go:generate mockgen -destination mocks/mock_message_history_service.go -package mocks github.com/Notifuse/notifuse/internal/domain MessageHistoryService

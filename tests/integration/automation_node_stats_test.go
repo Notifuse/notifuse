@@ -203,8 +203,9 @@ func TestAutomationNodeStats(t *testing.T) {
 	})
 
 	// The retry: the first webhook call fails, the journey waits for its retry.
+	// The journey's retry state and the failed attempt's row are two writes: wait for both.
 	statsB := waitForStats(t, automationB, "a webhook retry", func(s domain.NodeStatsResponse) bool {
-		return s.Nodes[webhook] != nil && s.Nodes[webhook].Retrying == 1
+		return s.Nodes[webhook] != nil && s.Nodes[webhook].Retrying == 1 && s.Nodes[webhook].FailedAttempts == 1
 	})
 
 	t.Run("a failed attempt: retrying while it waits, counted once", func(t *testing.T) {
