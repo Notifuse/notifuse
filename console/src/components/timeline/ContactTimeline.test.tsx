@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { i18n } from '@lingui/core'
+import dayjs from '../../lib/dayjs'
 import { ContactTimeline } from './ContactTimeline'
 import type { ContactTimelineEntry } from '../../services/api/contact_timeline'
 
@@ -578,5 +579,16 @@ describe('ContactTimeline link click entries', () => {
 
     expect(screen.getByText('clicked a link')).toBeInTheDocument()
     expect(screen.queryByText(link)).not.toBeInTheDocument()
+  })
+})
+
+describe('ContactTimeline entry time tooltip', () => {
+  it('shows the full date in the timezone it names', async () => {
+    // 10:00 UTC is 19:00 in Tokyo, whatever timezone the browser runs in.
+    render(<ContactTimeline entries={[sessionEntry]} timezone="Asia/Tokyo" />)
+
+    fireEvent.mouseEnter(screen.getByText(dayjs(sessionEntry.created_at).fromNow()))
+
+    expect(await screen.findByText('Wednesday, August 12, 2026 7:00 PM in Asia/Tokyo')).toBeInTheDocument()
   })
 })

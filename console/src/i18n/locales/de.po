@@ -813,6 +813,10 @@ msgstr "{what} pro Woche"
 msgid "{what} per year"
 msgstr "{what} pro Jahr"
 
+#: src/components/timeline/ContactTimeline.tsx:106
+msgid "{when} in {zone}"
+msgstr "{when} ({zone})"
+
 #: src/components/email_builder/panels/Preview.tsx:243
 msgid "// No test data yet..."
 msgstr "// Noch keine Testdaten..."

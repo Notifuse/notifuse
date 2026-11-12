@@ -100,6 +100,12 @@ export function ContactTimeline({
 }: ContactTimelineProps) {
   const { t } = useLingui()
 
+  // A tooltip's full date, in the console's language, on the clock of the timezone it names.
+  const timeInZone = (at: string, zone: string = timezone): string => {
+    const when = dayjs(at).tz(zone).format('LLLL')
+    return t`${when} in ${zone}`
+  }
+
   // The page a "View website" button opened, null when the drawer is closed.
   const [previewURL, setPreviewURL] = React.useState<string | null>(null)
 
@@ -326,7 +332,7 @@ export function ContactTimeline({
           </Tag>
         )}
         {suffixContent}
-        <Tooltip title={`${dayjs(entry.created_at).format('LLLL')} in ${timezone}`}>
+        <Tooltip title={timeInZone(entry.created_at)}>
           <span>
             <Text type="secondary" className="text-xs cursor-help">
               {dayjs(entry.created_at).fromNow()}
@@ -566,7 +572,7 @@ export function ContactTimeline({
                   } else if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T/)) {
                     // Likely a date string
                     displayValue = (
-                      <Tooltip title={`${dayjs(value).format('LLLL')} in ${timezone}`}>
+                      <Tooltip title={timeInZone(value, timezone)}>
                         <span>
                           <Text>{dayjs(value).fromNow()}</Text>
                         </span>
@@ -843,7 +849,7 @@ export function ContactTimeline({
                   {t`updated`}
                 </Tag>
               )}
-              <Tooltip title={`${dayjs(entry.created_at).format('LLLL')} in ${timezone}`}>
+              <Tooltip title={timeInZone(entry.created_at)}>
                 <span>
                   <Text type="secondary" className="text-xs cursor-help">
                     {dayjs(entry.created_at).fromNow()}
@@ -872,7 +878,7 @@ export function ContactTimeline({
               {customEventData?.occurred_at && customEventData.occurred_at !== entry.created_at && (
                 <div className="text-sm">
                   <Tooltip
-                    title={`${dayjs(customEventData.occurred_at).format('LLLL')} in ${timezone}`}
+                    title={timeInZone(customEventData.occurred_at)}
                   >
                     <span>
                       <Text type="secondary" className="cursor-help">
