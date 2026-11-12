@@ -721,37 +721,9 @@ func (r *MessageHistoryRepository) SetOpened(ctx context.Context, workspaceID, i
 }
 
 // ListMessages retrieves message history with cursor-based pagination and filtering
-func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID string, secretKey string, params domain.MessageListParams) ([]*domain.MessageHistory, string, error) {
-	// codecov:ignore:start
-	ctx, span := tracing.StartServiceSpan(ctx, "MessageHistoryRepository", "ListMessages")
-	defer tracing.EndSpan(span, nil)
-	tracing.AddAttribute(ctx, "workspaceID", workspaceID)
-	// codecov:ignore:end
-
-	// Get the workspace database connection
-	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
-	if err != nil {
-		// codecov:ignore:start
-		tracing.MarkSpanError(ctx, err)
-		// codecov:ignore:end
-		return nil, "", fmt.Errorf("failed to get workspace connection: %w", err)
-	}
-
-	// Set a reasonable default limit if not provided
-	limit := params.Limit
-	if limit <= 0 {
-		limit = 20
-	}
-
-	// Use squirrel to build the query with placeholders
-	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	queryBuilder := psql.Select(
-		"id", "external_id", "contact_email", "broadcast_id", "automation_id", "transactional_notification_id", "list_id", "template_id", "template_version",
-		"channel", "status_info", "message_data", "channel_options", "attachments", "sent_at", "delivered_at",
-		"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
-		"unsubscribed_at", "created_at", "updated_at", "opens_tracked", "clicks_tracked",
-	).From("message_history")
-
+// applyMessageFilters adds the conditions of the messages.list filters, shared by
+// ListMessages and CountMessages.
+func applyMessageFilters(queryBuilder sq.SelectBuilder, params domain.MessageFilter) sq.SelectBuilder {
 	// Apply filters using squirrel
 	if params.ID != "" {
 		queryBuilder = queryBuilder.Where(sq.Eq{"id": params.ID})
@@ -877,6 +849,110 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 	if params.UpdatedBefore != nil {
 		queryBuilder = queryBuilder.Where(sq.LtOrEq{"updated_at": params.UpdatedBefore})
 	}
+
+	switch params.Origin {
+	case domain.MessageOriginBroadcast:
+		queryBuilder = queryBuilder.Where(sq.NotEq{"broadcast_id": nil})
+	case domain.MessageOriginAutomation:
+		queryBuilder = queryBuilder.Where(sq.NotEq{"automation_id": nil})
+	case domain.MessageOriginTransactional:
+		queryBuilder = queryBuilder.Where(sq.NotEq{"transactional_notification_id": nil})
+	case domain.MessageOriginOther:
+		queryBuilder = queryBuilder.Where(sq.Eq{"broadcast_id": nil, "automation_id": nil, "transactional_notification_id": nil})
+	}
+
+	if params.CreatedAfter != nil {
+		queryBuilder = queryBuilder.Where(sq.GtOrEq{"created_at": params.CreatedAfter})
+	}
+
+	if params.CreatedBefore != nil {
+		queryBuilder = queryBuilder.Where(sq.LtOrEq{"created_at": params.CreatedBefore})
+	}
+
+	return queryBuilder
+}
+
+// CountMessages counts the messages matching the filter, in total and by status. Each
+// status count follows the is_*=true filter of the same name.
+func (r *MessageHistoryRepository) CountMessages(ctx context.Context, workspaceID string, filter domain.MessageFilter) (*domain.MessageCounts, error) {
+	// codecov:ignore:start
+	ctx, span := tracing.StartServiceSpan(ctx, "MessageHistoryRepository", "CountMessages")
+	defer tracing.EndSpan(span, nil)
+	tracing.AddAttribute(ctx, "workspaceID", workspaceID)
+	// codecov:ignore:end
+
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	queryBuilder := applyMessageFilters(psql.Select(
+		"COUNT(*)",
+		"COUNT(*) FILTER (WHERE delivered_at IS NOT NULL)",
+		"COUNT(*) FILTER (WHERE opened_at IS NOT NULL)",
+		"COUNT(*) FILTER (WHERE clicked_at IS NOT NULL)",
+		"COUNT(*) FILTER (WHERE bounced_at IS NOT NULL)",
+		"COUNT(*) FILTER (WHERE failed_at IS NOT NULL)",
+		"COUNT(*) FILTER (WHERE complained_at IS NOT NULL)",
+	).From("message_history"), filter)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("failed to build count query: %w", err)
+	}
+
+	var counts domain.MessageCounts
+	if err := workspaceDB.QueryRowContext(ctx, query, args...).Scan(
+		&counts.Total, &counts.Delivered, &counts.Opened, &counts.Clicked,
+		&counts.Bounced, &counts.Failed, &counts.Complained,
+	); err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("failed to count messages: %w", err)
+	}
+	return &counts, nil
+}
+
+func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID string, secretKey string, params domain.MessageListParams) ([]*domain.MessageHistory, string, error) {
+	// codecov:ignore:start
+	ctx, span := tracing.StartServiceSpan(ctx, "MessageHistoryRepository", "ListMessages")
+	defer tracing.EndSpan(span, nil)
+	tracing.AddAttribute(ctx, "workspaceID", workspaceID)
+	// codecov:ignore:end
+
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, "", fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// Set a reasonable default limit if not provided
+	limit := params.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+
+	// Use squirrel to build the query with placeholders
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	queryBuilder := psql.Select(
+		"id", "external_id", "contact_email", "broadcast_id", "automation_id", "transactional_notification_id", "list_id", "template_id", "template_version",
+		"channel", "status_info", "message_data", "channel_options", "attachments", "sent_at", "delivered_at",
+		"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+		"unsubscribed_at", "created_at", "updated_at", "opens_tracked", "clicks_tracked",
+	).From("message_history")
+
+	queryBuilder = applyMessageFilters(queryBuilder, params.Filter())
 
 	// Handle cursor-based pagination
 	if params.Cursor != "" {

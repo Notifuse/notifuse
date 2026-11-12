@@ -59,6 +59,7 @@ func (h *MessageHistoryHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Register RPC-style endpoints with dot notation
 	mux.Handle("/api/messages.list", requireAuth(http.HandlerFunc(h.handleList)))
+	mux.Handle("/api/messages.count", requireAuth(http.HandlerFunc(h.handleCount)))
 	mux.Handle("/api/messages.broadcastStats", requireAuth(http.HandlerFunc(h.handleBroadcastStats)))
 	mux.Handle("/api/messages.broadcastVariationStats", requireAuth(http.HandlerFunc(h.handleBroadcastVariationStats)))
 	mux.Handle("/api/messages.broadcastLinkStats", requireAuth(http.HandlerFunc(h.handleBroadcastLinkStats)))
@@ -127,6 +128,67 @@ func (h *MessageHistoryHandler) handleList(w http.ResponseWriter, r *http.Reques
 
 	// Return JSON response
 	writeJSON(w, http.StatusOK, result)
+}
+
+// handleCount counts the messages matching the filters of messages.list, in total and by
+// status. cursor and limit are ignored; the filter must be bounded by created_after or an
+// indexed filter.
+func (h *MessageHistoryHandler) handleCount(w http.ResponseWriter, r *http.Request) {
+	// codecov:ignore:start
+	ctx, span := h.tracer.StartSpan(r.Context(), "MessageHistoryHandler.handleCount")
+	defer func() {
+		if span != nil {
+			h.tracer.EndSpan(span, nil)
+		}
+	}()
+	// codecov:ignore:end
+
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	workspaceID := r.URL.Query().Get("workspace_id")
+	if workspaceID == "" {
+		WriteJSONError(w, "Missing workspace ID", http.StatusBadRequest)
+		return
+	}
+
+	var err error
+	ctx, _, _, err = h.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		// codecov:ignore:start
+		h.logger.Error(err.Error())
+		if span != nil {
+			h.tracer.MarkSpanError(ctx, err)
+		}
+		// codecov:ignore:end
+		WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	filter, err := domain.ParseMessageCountQuery(r.URL.Query())
+	if err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	counts, err := h.service.CountMessages(ctx, workspaceID, filter)
+	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		// codecov:ignore:start
+		h.logger.Error(err.Error())
+		if span != nil {
+			h.tracer.MarkSpanError(ctx, err)
+		}
+		// codecov:ignore:end
+		WriteJSONError(w, "Failed to count messages", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, counts)
 }
 
 func (h *MessageHistoryHandler) handleBroadcastStats(w http.ResponseWriter, r *http.Request) {

@@ -304,6 +304,7 @@ var AuditExcludedRoutes = map[string]struct{}{
 	"messages.broadcastLinkStats":      {},
 	"messages.broadcastStats":          {},
 	"messages.broadcastVariationStats": {},
+	"messages.count":                   {},
 	"messages.list":                    {},
 	"segments.contacts":                {},
 	"segments.get":                     {},
