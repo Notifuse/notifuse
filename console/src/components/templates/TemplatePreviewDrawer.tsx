@@ -15,7 +15,11 @@ interface TemplatePreviewDrawerProps {
   workspace: Workspace
   templateData?: Record<string, unknown>
   messageHistory?: MessageHistory
-  children: React.ReactNode
+  /** Opens the drawer on click; not needed in controlled mode. */
+  children?: React.ReactNode
+  /** Controlled mode, for a page that opens the drawer itself; onClose asks it to close. */
+  open?: boolean
+  onClose?: () => void
 }
 
 const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
@@ -23,7 +27,9 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   workspace,
   templateData,
   messageHistory,
-  children
+  children,
+  open,
+  onClose
 }) => {
   const { t } = useLingui()
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
@@ -36,7 +42,10 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [mjmlError, setMjmlError] = useState<MjmlCompileError | null>(null)
-  const [isOpen, setIsOpen] = useState<boolean>(false)
+  const [ownOpen, setOwnOpen] = useState<boolean>(false)
+  const controlled = open !== undefined
+  const isOpen = controlled ? open : ownOpen
+  const close = () => (controlled ? onClose?.() : setOwnOpen(false))
   const [activeTabKey, setActiveTabKey] = useState<string>('1') // State for active tab
   const [renderedSubject, setRenderedSubject] = useState<string | null>(null)
   const [renderedSubjectPreview, setRenderedSubjectPreview] = useState<string | null>(null)
@@ -455,13 +464,13 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
 
   return (
     <>
-      <div onClick={() => setIsOpen(true)}>{children}</div>
+      {controlled ? null : <div onClick={() => setOwnOpen(true)}>{children}</div>}
       <Drawer
         title={`${record.name}`}
         placement="right"
         size={650}
         open={isOpen}
-        onClose={() => setIsOpen(false)}
+        onClose={close}
         destroyOnHidden={true}
         mask={{ enabled: true, closable: true }}
         keyboard={true}

@@ -254,3 +254,33 @@ describe('TemplatePreviewDrawer preview errors', () => {
     expect(templatesApi.compile).not.toHaveBeenCalled()
   })
 })
+
+// The templates page opens the preview from its row menu and from the URL.
+describe('TemplatePreviewDrawer controlled by the page', () => {
+  const renderControlled = (open: boolean, onClose = vi.fn()) =>
+    render(
+      <ConfigProvider>
+        <App>
+          <TemplatePreviewDrawer record={template} workspace={workspace} open={open} onClose={onClose} />
+        </App>
+      </ConfigProvider>
+    )
+
+  it('opens without children when told to', async () => {
+    renderControlled(true)
+    expect(await screen.findByText('Template Data')).toBeInTheDocument()
+  })
+
+  it('stays closed while open is false', () => {
+    renderControlled(false)
+    expect(screen.queryByText('Template Data')).not.toBeInTheDocument()
+  })
+
+  it('asks the page to close it', async () => {
+    const onClose = vi.fn()
+    renderControlled(true, onClose)
+    await screen.findByText('Template Data')
+    fireEvent.click(document.querySelector('.ant-drawer-close') as HTMLElement)
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+})

@@ -124,6 +124,46 @@ export interface DeleteTemplateResponse {
   status: string
 }
 
+/** A kind of object that can use a template, as `templates.usage` names its counters. */
+export type TemplateUsageType =
+  'broadcasts' | 'transactional_notifications' | 'automations' | 'lists'
+
+/** Every usage type, in the order of the response. */
+export const TEMPLATE_USAGE_TYPES: TemplateUsageType[] = [
+  'broadcasts',
+  'transactional_notifications',
+  'automations',
+  'lists'
+]
+
+/**
+ * How many objects of each type use one template. A type the member may not read is absent,
+ * never 0: it is listed in `hidden_types` instead.
+ */
+export type TemplateUsageCounts = Partial<Record<TemplateUsageType, number>>
+
+/** One object using the template asked for; `status` is set for broadcasts and automations. */
+export interface TemplateUsageReference {
+  type: 'broadcast' | 'transactional_notification' | 'automation' | 'list'
+  id: string
+  name: string
+  status?: string
+}
+
+export interface GetTemplateUsageRequest {
+  workspace_id: string
+  /** One template: its counts, with at most 50 references per type. */
+  template_id?: string
+}
+
+export interface GetTemplateUsageResponse {
+  /** Only the templates used at least once, by id. */
+  usage: Record<string, TemplateUsageCounts>
+  /** Set when `template_id` is. */
+  references?: TemplateUsageReference[]
+  hidden_types: TemplateUsageType[]
+}
+
 // Represents a detail within an MJML compilation error
 export interface MjmlErrorDetail {
   line: number
@@ -220,6 +260,7 @@ export interface TemplatesApi {
   update: (params: UpdateTemplateRequest) => Promise<UpdateTemplateResponse>
   delete: (params: DeleteTemplateRequest) => Promise<DeleteTemplateResponse>
   compile: (params: CompileTemplateRequest) => Promise<CompileTemplateResponse>
+  usage: (params: GetTemplateUsageRequest) => Promise<GetTemplateUsageResponse>
 }
 
 export const templatesApi: TemplatesApi = {
@@ -254,5 +295,10 @@ export const templatesApi: TemplatesApi = {
   compile: async (params: CompileTemplateRequest): Promise<CompileTemplateResponse> => {
     const response = await api.post<CompileTemplateResponse>(`/api/templates.compile`, params)
     return response
+  },
+  usage: (params: GetTemplateUsageRequest): Promise<GetTemplateUsageResponse> => {
+    const query = new URLSearchParams({ workspace_id: params.workspace_id })
+    if (params.template_id) query.set('template_id', params.template_id)
+    return api.get<GetTemplateUsageResponse>(`/api/templates.usage?${query.toString()}`)
   }
 }

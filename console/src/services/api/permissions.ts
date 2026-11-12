@@ -380,6 +380,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           action: msg`Read one template, at any stored version`,
         },
         {
+          endpoint: "/api/templates.usage",
+          action: msg`Count the broadcasts, transactional notifications, automations and lists using each template, among those the member may read`,
+        },
+        {
           endpoint: "/api/templates.compile",
           action: msg`Compile MJML to HTML with test data`,
         },

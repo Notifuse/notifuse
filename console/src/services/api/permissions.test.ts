@@ -225,4 +225,8 @@ describe('templates read catalogue', () => {
       ])
     )
   })
+  it('lists templates.usage, which answers under Templates read', () => {
+    const endpoints = PERMISSION_DESCRIPTORS.templates.read.endpoints.map((e) => e.endpoint)
+    expect(endpoints).toContain('/api/templates.usage')
+  })
 })
