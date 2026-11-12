@@ -1,14 +1,38 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Alert, App, Button, Modal, Popconfirm, Result, Segmented, Select, Skeleton, Space, Switch, Tooltip } from 'antd'
+import {
+  Alert,
+  App,
+  Button,
+  Modal,
+  Popconfirm,
+  Result,
+  Segmented,
+  Select,
+  Skeleton,
+  Space,
+  Switch,
+  Tooltip
+} from 'antd'
 import { Copy, Eye, EyeOff, RotateCw } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
-import { webhookSubscriptionApi, type WebhookSubscription } from '../../services/api/webhook_subscription'
+import {
+  webhookSubscriptionApi,
+  type WebhookSubscription
+} from '../../services/api/webhook_subscription'
 import { analyticsService } from '../../services/api/analytics'
 import { ApiError, shouldRetryQuery } from '../../services/api/errors'
 import { copyToClipboard } from '../../lib/copyToClipboard'
-import { KeyValueList, KpiStrip, Mono, Pill, SidePanel, useNumberFormat, useRelativeDate } from '../layout'
+import {
+  KeyValueList,
+  KpiStrip,
+  Mono,
+  Pill,
+  SidePanel,
+  useNumberFormat,
+  useRelativeDate
+} from '../layout'
 import type { DrawerNav } from '../layout'
 import { invalidateWebhookQueries, webhookQueryKeys } from './webhookQueries'
 
@@ -89,7 +113,8 @@ export function WebhookDetail({
 
   const reportedMissing = useRef<string | undefined>(undefined)
   useEffect(() => {
-    if (!webhookId || !isNotFound(subscriptionQuery.error) || reportedMissing.current === webhookId) return
+    if (!webhookId || !isNotFound(subscriptionQuery.error) || reportedMissing.current === webhookId)
+      return
     reportedMissing.current = webhookId
     message.info(t`This webhook no longer exists`)
     onNotFound()
@@ -107,8 +132,16 @@ export function WebhookDetail({
           measures: ['count_delivered', 'count_failed'],
           dimensions: ['subscription_id'],
           filters: [
-            { member: 'subscription_id', operator: 'equals', values: [id as string] },
-            { member: 'created_at', operator: 'gte', values: [from.toISOString()] }
+            {
+              member: 'subscription_id',
+              operator: 'equals',
+              values: [id as string]
+            },
+            {
+              member: 'created_at',
+              operator: 'gte',
+              values: [from.toISOString()]
+            }
           ]
         },
         workspaceId
@@ -133,7 +166,11 @@ export function WebhookDetail({
   const handleToggle = async (enabled: boolean) => {
     if (!webhook) return
     try {
-      await webhookSubscriptionApi.toggle({ workspace_id: workspaceId, id: webhook.id, enabled })
+      await webhookSubscriptionApi.toggle({
+        workspace_id: workspaceId,
+        id: webhook.id,
+        enabled
+      })
       message.success(enabled ? t`Webhook enabled` : t`Webhook disabled`)
       await refresh()
     } catch (error) {
@@ -187,7 +224,12 @@ export function WebhookDetail({
       })
     } catch (error) {
       console.error('Failed to test webhook:', error)
-      setTestResult({ success: false, statusCode: 0, responseBody: '', error: t`Failed to send test webhook` })
+      setTestResult({
+        success: false,
+        statusCode: 0,
+        responseBody: '',
+        error: t`Failed to send test webhook`
+      })
     } finally {
       setTestLoading(false)
     }
@@ -319,7 +361,13 @@ export function WebhookDetail({
         <Button
           type="text"
           size="small"
-          icon={visibleSecret ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
+          icon={
+            visibleSecret ? (
+              <EyeOff size={14} aria-hidden="true" />
+            ) : (
+              <Eye size={14} aria-hidden="true" />
+            )
+          }
           onClick={() => setVisibleSecret(!visibleSecret)}
         >
           {visibleSecret ? t`Hide` : t`Show`}
@@ -372,7 +420,9 @@ export function WebhookDetail({
           <Result
             status="error"
             title={t`Couldn't load this webhook`}
-            subTitle={subscriptionQuery.error instanceof Error ? subscriptionQuery.error.message : undefined}
+            subTitle={
+              subscriptionQuery.error instanceof Error ? subscriptionQuery.error.message : undefined
+            }
             extra={<Button onClick={() => subscriptionQuery.refetch()}>{t`Retry`}</Button>}
           />
         )
@@ -475,8 +525,16 @@ export function WebhookDetail({
           <KpiStrip
             loading={statsQuery.isPending}
             items={[
-              { key: 'delivered', label: t`Delivered`, value: stats ? int(stats.delivered) : '—' },
-              { key: 'failed', label: t`Failed`, value: stats ? int(stats.failed) : '—' },
+              {
+                key: 'delivered',
+                label: t`Delivered`,
+                value: stats ? int(stats.delivered) : '—'
+              },
+              {
+                key: 'failed',
+                label: t`Failed`,
+                value: stats ? int(stats.failed) : '—'
+              },
               {
                 key: 'rate',
                 label: t`Success rate`,
@@ -530,7 +588,12 @@ export function WebhookDetail({
           ) : (
             <Space>
               <Button onClick={() => setTestModalVisible(false)}>{t`Cancel`}</Button>
-              <Button type="primary" onClick={handleTest} loading={testLoading} disabled={!selectedEventType}>
+              <Button
+                type="primary"
+                onClick={handleTest}
+                loading={testLoading}
+                disabled={!selectedEventType}
+              >
                 {t`Send Test`}
               </Button>
             </Space>
@@ -554,7 +617,9 @@ export function WebhookDetail({
             {testResult.responseBody && (
               <>
                 <div className="mt-3 text-gray-500">{t`Body:`}</div>
-                <div className="break-all whitespace-pre-wrap text-gray-300">{testResult.responseBody}</div>
+                <div className="break-all whitespace-pre-wrap text-gray-300">
+                  {testResult.responseBody}
+                </div>
               </>
             )}
           </div>
@@ -568,7 +633,10 @@ export function WebhookDetail({
               onChange={setSelectedEventType}
               style={{ width: '100%' }}
               placeholder={t`Select an event type`}
-              options={(webhook?.settings.event_types || []).map((type) => ({ value: type, label: type }))}
+              options={(webhook?.settings.event_types || []).map((type) => ({
+                value: type,
+                label: type
+              }))}
             />
           </div>
         )}

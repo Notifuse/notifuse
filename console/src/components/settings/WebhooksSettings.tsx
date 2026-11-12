@@ -1,5 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Alert, Button, Checkbox, Col, Drawer, Empty, Form, Input, Result, Row, Select, Skeleton, Space, Table, Tooltip, message } from 'antd'
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Col,
+  Drawer,
+  Empty,
+  Form,
+  Input,
+  Result,
+  Row,
+  Select,
+  Skeleton,
+  Space,
+  Table,
+  Tooltip,
+  message
+} from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { ChevronRight, Globe, Plus, RefreshCw } from 'lucide-react'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -37,7 +54,8 @@ const DAY = 24 * 60 * 60 * 1000
 const MINUTE = 60 * 1000
 
 /** Seven days back, rounded down to the minute so the query key holds still between renders. */
-const sevenDaysAgo = () => new Date(Math.floor((Date.now() - 7 * DAY) / MINUTE) * MINUTE).toISOString()
+const sevenDaysAgo = () =>
+  new Date(Math.floor((Date.now() - 7 * DAY) / MINUTE) * MINUTE).toISOString()
 
 /** The success rate rounded as it is shown, so the tone never contradicts the figure. */
 function rateTone(ratio: number): PillTone {
@@ -54,7 +72,12 @@ function middleTruncate(text: string, max = 44): string {
   return `${text.slice(0, max - 1 - tail)}…${text.slice(-tail)}`
 }
 
-export function WebhooksSettings({ workspaceId, canManage, openWebhookId, onOpenWebhook }: WebhooksSettingsProps) {
+export function WebhooksSettings({
+  workspaceId,
+  canManage,
+  openWebhookId,
+  onOpenWebhook
+}: WebhooksSettingsProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
   const relativeDate = useRelativeDate()
@@ -110,7 +133,9 @@ export function WebhooksSettings({ workspaceId, canManage, openWebhookId, onOpen
 
   const refresh = () => {
     setFrom(sevenDaysAgo())
-    void queryClient.invalidateQueries({ queryKey: webhookQueryKeys.list(workspaceId) })
+    void queryClient.invalidateQueries({
+      queryKey: webhookQueryKeys.list(workspaceId)
+    })
   }
 
   // Neither of these seeds `enabled`: the drawer registers no such Form.Item, so a value put in
@@ -223,15 +248,17 @@ export function WebhooksSettings({ workspaceId, canManage, openWebhookId, onOpen
   const noPermission = canManage ? undefined : t`You don't have permission to manage webhooks`
   const addButton = (
     <Tooltip title={noPermission}>
-      <Button
-        type="primary"
-        size="small"
-        icon={<Plus size={14} aria-hidden="true" />}
-        onClick={handleCreate}
-        disabled={!canManage}
-      >
-        {t`Add endpoint`}
-      </Button>
+      <span className="inline-block">
+        <Button
+          type="primary"
+          size="small"
+          icon={<Plus size={14} aria-hidden="true" />}
+          onClick={handleCreate}
+          disabled={!canManage}
+        >
+          {t`Add endpoint`}
+        </Button>
+      </span>
     </Tooltip>
   )
 
@@ -309,7 +336,12 @@ export function WebhooksSettings({ workspaceId, canManage, openWebhookId, onOpen
         )
       }
     },
-    { title: t`Success 7d`, key: 'success', width: 110, render: (_, subscription) => rateCell(subscription) },
+    {
+      title: t`Success 7d`,
+      key: 'success',
+      width: 110,
+      render: (_, subscription) => rateCell(subscription)
+    },
     {
       title: t`Last success`,
       key: 'last-success',
@@ -398,13 +430,18 @@ export function WebhooksSettings({ workspaceId, canManage, openWebhookId, onOpen
           total: subscriptions.length,
           onPrev: openIndex > 0 ? () => onOpenWebhook(subscriptions[openIndex - 1].id) : undefined,
           onNext:
-            openIndex < subscriptions.length - 1 ? () => onOpenWebhook(subscriptions[openIndex + 1].id) : undefined
+            openIndex < subscriptions.length - 1
+              ? () => onOpenWebhook(subscriptions[openIndex + 1].id)
+              : undefined
         }
       : undefined
 
   return (
     <>
-      <SettingsSectionHeader title={t`Webhooks`} description={t`Tell your systems when something changes`} />
+      <SettingsSectionHeader
+        title={t`Webhooks`}
+        description={t`Tell your systems when something changes`}
+      />
 
       <Panel
         flush
@@ -500,7 +537,12 @@ export function WebhooksSettings({ workspaceId, canManage, openWebhookId, onOpen
                 </a>
               </div>
             }
-            rules={[{ required: true, message: t`Please select at least one event type` }]}
+            rules={[
+              {
+                required: true,
+                message: t`Please select at least one event type`
+              }
+            ]}
             className="[&_.ant-form-item-label]:w-full [&_.ant-form-item-label>label]:w-full [&_.ant-form-item-label>label]:inline-flex"
           >
             <Checkbox.Group className="w-full">
