@@ -41,10 +41,10 @@ func TestV44Migration_IsWhatLetsTheStampReachFortyFour(t *testing.T) {
 }
 
 // The exact statements of the workspace update, in order. The first one replaces the body of
-// the timeline function (no trigger is dropped or created). The two SET LOCAL statements make
-// the index builds outlive a configured statement_timeout and give up on a busy table instead
-// of queuing writes behind them. No column is touched, so no automation trigger function needs
-// regenerating.
+// the timeline function (no trigger is dropped or created). The two SET LOCAL statements let
+// the index builds outlive a configured statement_timeout, and bound the wait for the table
+// lock behind a transaction already writing to it. No column is touched, so no automation
+// trigger function needs regenerating.
 var v44ExpectedWorkspaceStatements = []string{
 	schema.TrackMessageHistoryChangesFunction(),
 	`SET LOCAL statement_timeout = 0`,

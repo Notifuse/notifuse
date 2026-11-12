@@ -199,3 +199,11 @@ Review: `reviews/console-redesign-server/pr-1-code-review.md` in the project fil
   `count_transactional_messages` counts automation messages (existing measure);
   `transaction_timeout` is not lifted (no other migration does); the EXPLAIN test copies the
   query by hand; the origin integration test builds fixture rows.
+
+## Final verification
+
+```bash
+make test-domain test-repo test-http test-migrations test-database
+INTEGRATION_TESTS=true go test -race -tags integration,licdev -run 'TestAnalyticsMessageOrigin|TestMessageHistory|TestV44MessageHistoryIndexesMigration|TestTimelineLinkClicked' ./tests/integration/ -v
+make test-unit
+```

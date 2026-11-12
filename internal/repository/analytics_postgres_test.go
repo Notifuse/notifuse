@@ -215,6 +215,7 @@ func TestAnalyticsRepository_MessageHistoryOriginFilter(t *testing.T) {
 
 	// The query's own WHERE, after FROM: the measures' FILTER (WHERE ...) come before it.
 	afterFrom := sent[strings.Index(sent, " FROM "):]
+	require.Contains(t, afterFrom, "WHERE")
 	where := afterFrom[strings.Index(afterFrom, "WHERE"):]
 	assert.Contains(t, where, originCaseSQL)
 }
