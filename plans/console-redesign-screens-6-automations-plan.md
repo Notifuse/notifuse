@@ -404,13 +404,19 @@ Blocking, fixed in the following commit:
   (list open rate and step results alike). Tests in Paris across the DST change and in Tokyo.
 - **Test that could not fail.** The read-only drop case read the nodes before React rendered: now in
   `act`, with the positive case beside it.
-- **R19 changed.** Passes of a branch that took no path (`none`) are a "No path" row of the step
-  panel's splits rather than a tooltip, so the shares add up to 100 %. Test.
+- **R19 changed.** The server records `none` only for a branch without any path, and sends a pass
+  whose `default_path_id` names no path down the first path, recorded as `default`. The edges and the
+  panel follow it: `default` counts on the path named default, else on the first path, so the shares
+  add up; a branch without paths shows its passes as a "No path" row of the panel rather than a
+  tooltip. Tests (found by the delta review on e73c9e8).
 - **R5, R21 tests added.** View messages and the preview on a read-only email step; Pause disabled and
   no Delete without write. **R21 "Save Anyway"** stays untested: no validation rule emits a
   `Warning:` today, so the confirm is unreachable; kept for when one does.
 
 Known, not handled (reported, not blocking):
+
+- Two "last 30 days" in the console: automations end today, the broadcast figures end yesterday.
+- Every reopening shows the skeleton for one read (the price of the stale-copy fix).
 
 - Edits made while E1 turns live (a failed save's refetch after someone activated the automation)
   become read-only without a word.

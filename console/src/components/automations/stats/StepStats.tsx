@@ -37,7 +37,7 @@ export function StepStats({ nodeType, config, stats }: StepStatsProps) {
       return label && share ? { handle, label: label.text, ...share } : null
     })
     .filter((row): row is NonNullable<typeof row> => row !== null)
-  // A branch pass that matched no path and has no default ends there: shown, so the shares add up.
+  // A branch with no path at all ends its passes there (`none`): shown rather than left out.
   const none = branchShare(stats, nodeType === 'branch' ? ['none'] : [])
   if (none && none.count > 0) splits.push({ handle: 'none', label: t`No path`, ...none })
 

@@ -17,7 +17,10 @@ export function branchKeysOfEdge(
     return []
   }
   if (nodeType === 'branch') {
-    const defaultPath = (config as Partial<BranchNodeConfig> | undefined)?.default_path_id
+    // As the server: the path named default, else the first path when that name matches none.
+    const branch = config as Partial<BranchNodeConfig> | undefined
+    const paths = branch?.paths ?? []
+    const defaultPath = paths.find((p) => p.id === branch?.default_path_id)?.id ?? paths[0]?.id
     return sourceHandle === defaultPath ? [sourceHandle, 'default'] : [sourceHandle]
   }
   if (nodeType === 'list_status_branch' || nodeType === 'ab_test') return [sourceHandle]

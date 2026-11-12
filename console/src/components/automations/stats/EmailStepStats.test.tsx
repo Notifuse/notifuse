@@ -128,13 +128,19 @@ describe('StepStats', () => {
 })
 
 describe('StepStats of a branch', () => {
-  it('shows the passes that took no path, so the shares add up', () => {
-    const config = { paths: [{ id: 'p1', name: 'Pro' }] }
-    renderStep('branch', stats({ branches: { p1: 3, none: 1 } }), config)
+  it('counts the default passes on the first path when the default names no path', () => {
+    const config = { paths: [{ id: 'p1', name: 'Pro' }], default_path_id: 'gone' }
+    renderStep('branch', stats({ branches: { p1: 3, default: 1 } }), config)
     const splits = document.querySelector('[data-step-splits]')!
     expect(splits).toHaveTextContent('Pro')
-    expect(splits).toHaveTextContent('75.0%')
+    expect(splits).toHaveTextContent('100.0%')
+    expect(splits).not.toHaveTextContent('No path')
+  })
+
+  it('shows the passes of a branch without any path', () => {
+    renderStep('branch', stats({ branches: { none: 2 } }), { paths: [] })
+    const splits = document.querySelector('[data-step-splits]')!
     expect(splits).toHaveTextContent('No path')
-    expect(splits).toHaveTextContent('25.0%')
+    expect(splits).toHaveTextContent('100.0%')
   })
 })

@@ -266,6 +266,7 @@ describe('NodeConfigPanel Delete step', () => {
 describe('NodeConfigPanel results', () => {
   afterEach(() => {
     context.workspace = { id: 'ws-1' }
+    context.readOnly = false
   })
 
   it('shows no results for a draft that never ran', () => {
@@ -307,7 +308,6 @@ describe('NodeConfigPanel results', () => {
     expect(link).toHaveAttribute('href')
     expect(link).not.toHaveAttribute('aria-disabled', 'true')
     expect(screen.getByTestId('email-preview')).toBeInTheDocument()
-    context.readOnly = false
   })
 
   it.each([

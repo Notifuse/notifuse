@@ -5,6 +5,11 @@ import type { NodeStats } from '../../services/api/automation'
 const stats = (branches: Record<string, number>): NodeStats =>
   ({ node_type: 'filter', visits: 0, completed: 0, failed_attempts: 0, skipped: 0, skip_reasons: {}, errors: 0, failed_journeys: 0, in_progress: 0, waiting: 0, retrying: 0, branches }) as NodeStats
 
+const PATHS = [
+  { id: 'p1', name: 'Pro' },
+  { id: 'p2', name: 'Others' }
+]
+
 describe('branchKeysOfEdge', () => {
   it('reads a filter exit as yes or no', () => {
     expect(branchKeysOfEdge('filter', 'continue')).toEqual(['yes'])
@@ -14,11 +19,19 @@ describe('branchKeysOfEdge', () => {
   it('reads list status, variant and path handles as their own keys', () => {
     expect(branchKeysOfEdge('list_status_branch', 'non_active')).toEqual(['non_active'])
     expect(branchKeysOfEdge('ab_test', 'v-a')).toEqual(['v-a'])
-    expect(branchKeysOfEdge('branch', 'p2', { default_path_id: 'p1' })).toEqual(['p2'])
+    expect(branchKeysOfEdge('branch', 'p2', { paths: PATHS, default_path_id: 'p1' })).toEqual(['p2'])
   })
 
   it('adds default to the edge of the default path', () => {
-    expect(branchKeysOfEdge('branch', 'p1', { default_path_id: 'p1' })).toEqual(['p1', 'default'])
+    expect(branchKeysOfEdge('branch', 'p2', { paths: PATHS, default_path_id: 'p2' })).toEqual(['p2', 'default'])
+    expect(branchKeysOfEdge('branch', 'p1', { paths: PATHS, default_path_id: 'p2' })).toEqual(['p1'])
+  })
+
+  it('adds default to the first path when the default names no path, as the server does', () => {
+    for (const default_path_id of [undefined, '', 'gone']) {
+      expect(branchKeysOfEdge('branch', 'p1', { paths: PATHS, default_path_id })).toEqual(['p1', 'default'])
+      expect(branchKeysOfEdge('branch', 'p2', { paths: PATHS, default_path_id })).toEqual(['p2'])
+    }
   })
 
   it('has no key for a single-exit node', () => {
