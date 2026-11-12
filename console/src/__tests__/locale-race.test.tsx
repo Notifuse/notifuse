@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import dayjs from 'dayjs'
 
 /**
  * The locale race.
@@ -65,6 +66,10 @@ beforeEach(async () => {
   const internals = singleton as unknown as { _locale: string; _messages: Record<string, unknown> }
   internals._locale = ''
   internals._messages = {}
+
+  // dayjs lives in node_modules, outside what vi.resetModules() reloads, so its global locale is
+  // shared by every test of the file. Start each one in English, as a fresh page does.
+  dayjs.locale('en')
 })
 
 describe('loadLocale generation guard', () => {
@@ -76,6 +81,7 @@ describe('loadLocale generation guard', () => {
     const [bootstrapResult, userResult] = await Promise.all([bootstrap, userSync])
 
     expect(i18n.locale).toBe('en')
+    expect(dayjs.locale()).toBe('en')
     expect(window.localStorage.getItem('locale')).toBe('en')
     expect(userResult).toBe('en')
     expect(bootstrapResult).toBeNull()
@@ -92,6 +98,7 @@ describe('loadLocale generation guard', () => {
     const [bootstrapResult, userResult] = await Promise.all([bootstrap, userSync])
 
     expect(i18n.locale).toBe('en')
+    expect(dayjs.locale()).toBe('en')
     expect(window.localStorage.getItem('locale')).toBe('en')
     expect(userResult).toBe('en')
     expect(bootstrapResult).toBeNull()
@@ -187,6 +194,7 @@ describe('a catalog that fails to load', () => {
 
     expect(i18n.locale).toBe('es')
     expect(i18n.messages).toHaveProperty('Hello', 'Hola')
+    expect(dayjs.locale()).toBe('es')
   })
 
   it('does not let a superseded failure drag the winner to English', async () => {
@@ -200,6 +208,7 @@ describe('a catalog that fails to load', () => {
 
     expect(i18n.locale).toBe('fr')
     expect(winnerResult).toBe('fr')
+    expect(dayjs.locale()).toBe('fr')
     expect(supersededResult).toBeNull()
     expect(window.localStorage.getItem('locale')).toBe('fr')
   })
@@ -207,6 +216,9 @@ describe('a catalog that fails to load', () => {
   it('falls back to English without recording it as the preference', async () => {
     window.localStorage.setItem('locale', 'fr')
     const { loadLocale, i18n } = await withCatalogs({ ja: 5 }, { ja: true })
+    // Start from French, so the English the fallback ends on is one it activated.
+    await loadLocale('fr')
+    expect(dayjs.locale()).toBe('fr')
 
     // A deliberate switcher click, so persist is on — yet the fallback is not
     // what the user chose, and storing it would outlive the reload that fixes
@@ -214,6 +226,7 @@ describe('a catalog that fails to load', () => {
     await expect(loadLocale('ja', { persist: true })).resolves.toBe('en')
 
     expect(i18n.locale).toBe('en')
+    expect(dayjs.locale()).toBe('en')
     expect(window.localStorage.getItem('locale')).toBe('fr')
   })
 })

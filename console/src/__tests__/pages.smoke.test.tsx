@@ -198,8 +198,8 @@ vi.mock('../services/api/automation', async (importOriginal) => ({
 }))
 
 // Mock transactional notifications API
-vi.mock('../services/api/transactional', () => ({
-  transactionalApi: {
+vi.mock('../services/api/transactional_notifications', () => ({
+  transactionalNotificationsApi: {
     list: vi.fn().mockResolvedValue({ notifications: [] }),
     get: vi.fn().mockResolvedValue({ notification: null }),
     create: vi.fn().mockResolvedValue({}),

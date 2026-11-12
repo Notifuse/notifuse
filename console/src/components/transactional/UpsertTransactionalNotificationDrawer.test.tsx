@@ -385,3 +385,65 @@ describe('UpsertTransactionalNotificationDrawer name and API identifier length',
     expect(payload.notification.name).toBe('Password reset email for a user list')
   })
 })
+
+describe('UpsertTransactionalNotificationDrawer opened from outside', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(transactionalNotificationsApi.update as Mock).mockResolvedValue({ notification: {} })
+  })
+
+  const renderControlled = (open: boolean, onClose = vi.fn()) => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
+    const notification = makeNotification('no_tracking', { name: 'Password reset' })
+    const ui = (isOpen: boolean) => (
+      <QueryClientProvider client={queryClient}>
+        <AntApp>
+          <UpsertTransactionalNotificationDrawer
+            workspace={workspace}
+            canReadTemplates
+            notification={notification}
+            open={isOpen}
+            onClose={onClose}
+          />
+        </AntApp>
+      </QueryClientProvider>
+    )
+    const view = render(ui(open))
+    return { ...view, invalidate, onClose, reopen: () => view.rerender(ui(true)) }
+  }
+
+  it('renders no button of its own and stays closed while not open', () => {
+    renderControlled(false)
+    expect(screen.queryByRole('button', { name: /Edit Notification/i })).not.toBeInTheDocument()
+    expect(screen.queryByText('Edit notification')).not.toBeInTheDocument()
+  })
+
+  it('opens filled with the notification when the prop turns true', async () => {
+    const { reopen } = renderControlled(false)
+    reopen()
+
+    expect(await screen.findByText('Edit notification')).toBeInTheDocument()
+    expect(await screen.findByDisplayValue('Password reset')).toBeInTheDocument()
+    expect(screen.getByText('No open or click tracking, keep UTM parameters')).toBeInTheDocument()
+  })
+
+  it('tells the parent when it closes', async () => {
+    const { onClose } = renderControlled(true)
+    await screen.findByDisplayValue('Password reset')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('refreshes the list and the open sheet after saving', async () => {
+    const { invalidate, onClose } = renderControlled(true)
+    await screen.findByDisplayValue('Password reset')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['transactional-notifications', 'ws1'] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['transactional-notification', 'ws1', 'welcome_email'] })
+  })
+})

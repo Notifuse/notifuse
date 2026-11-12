@@ -133,7 +133,7 @@ function KpiCell({ item, loading, arrow, gridColumn }: KpiCellProps) {
           <ArrowRight size={12} />
         </span>
       ) : null}
-      <span className="block truncate text-xs text-ink-3">{item.label}</span>
+      <span className="mb-1 block truncate text-xs text-ink-3">{item.label}</span>
       <span className="flex min-h-6 items-end justify-between gap-2">
         {loading ? (
           <span className="flex">

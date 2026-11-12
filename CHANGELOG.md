@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: Contacts, lists and segments share one page in the console, with your lists and segments in a side rail; the Lists page now opens it. A contact opens in a sheet with its own link: move through the table with J and K, edit fields in place, and see its key figures, activity, messages and web visits.
 
+- **Improvement**: Most dates in the console follow its language: month and weekday names, "3 days ago" and the date pickers. Weeks start on Monday in French, Spanish, German, Catalan and Italian.
+
+- **Fix**: In a contact's activity, the full date shown on hover is the time in the timezone it names (the contact's, else the workspace's), not in your browser's.
+
 - **Feature**: Automations can start when a contact clicks a specific link, with the new "Clicked a link" trigger (`email.link_clicked`). It starts the first time a contact clicks each link of an email, and can be limited to links containing some text, to one broadcast or to one template. A click on an email the automation sent itself does not start it again. Clicks made before the upgrade, and clicks on links in emails sent before 42.2, do not start it; a link clicked before the upgrade starts it on its next click. The new event does not count toward the monthly event usage.
 
 - **Fix**: `automations.get` answers 404 instead of 500 for an automation that does not exist.
@@ -72,7 +76,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
 
-- **Fix**: Create Notification is now disabled, and Edit hidden, on the transactional notifications page for members without Templates read: creating offered a template picker they could not load, and saving an edit was refused. Editing a notification managed by an integration stays available with Transactional write alone. Its edit drawer then shows the template's ID, with a note that Templates read is needed to see the template, instead of an empty field, and the page no longer requests templates without Templates read.
+- **Fix**: New notification and Edit are now disabled, with a tooltip naming the missing permission, on the transactional notifications page for members without Templates read: creating offered a template picker they could not load, and saving an edit was refused. Editing a notification managed by an integration stays available with Transactional write alone. Its edit drawer then shows the template's ID, with a note that Templates read is needed to see the template, instead of an empty field, and the page no longer requests templates without Templates read.
 
 - **Fix**: A member without Templates read now sees the template's ID instead of an empty field or "Untitled" in a list's double opt-in template, a broadcast's templates, an automation's email nodes and a segment's email conditions, and these screens no longer request templates such a member cannot read. The template fields carry a lock saying that Templates read is needed.
 
@@ -127,6 +131,8 @@ All notable changes to this project will be documented in this file.
 - **Feature**: Settings have a new layout. The side menu groups the pages into Workspace, Sending, Content and Security. General shows the workspace, its languages, email tracking and custom domain in separate panels, with a logo preview. Team & API keys lists members and keys in tables with each one's access, and invitations with when they expire. Each email provider is a card with its roles, webhook status, settings and senders, which you can add from the card. Webhooks are listed with their success rate over the last 7 days and their last success; a webhook opens in a side panel, with its statistics, its secret, a test and a link to its deliveries. Custom fields list the named slots, and how many of each type are still free.
 
 - **Feature**: Templates are listed in a table with a tab per category and a search on name or subject. Each template shows where it is used (newsletters, transactional notifications, automations, lists), and deleting one lists what still uses it first. A Notifuse export or an MJML file is imported from the page header into a new template, and a template's preview has its own link.
+
+- **Feature**: The transactional page shows each notification's open and click rates and its last send, and opens a detail view with sends per day, the latest sends, a preview of its template and the API call in cURL, TypeScript and Python. The message log can be filtered by transactional notification in the console.
 
 ## [43.0] - 2026-11-07
 

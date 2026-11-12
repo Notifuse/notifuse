@@ -417,7 +417,6 @@ Known, not handled (reported, not blocking):
 
 - Two "last 30 days" in the console: automations end today, the broadcast figures end yesterday.
 - Every reopening shows the skeleton for one read (the price of the stale-copy fix).
-
 - Edits made while E1 turns live (a failed save's refetch after someone activated the automation)
   become read-only without a word.
 - The first load renders the skeleton in one `FullDrawer`, then the editor in another: the drawer may

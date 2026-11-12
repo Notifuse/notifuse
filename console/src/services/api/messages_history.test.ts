@@ -1,23 +1,45 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { listMessages } from './messages_history'
 import { api } from './client'
+import { listMessages } from './messages_history'
 
-vi.mock('./client', () => ({ api: { get: vi.fn().mockResolvedValue({ messages: [] }) } }))
+// The service module imports the api client, which pulls in the router.
+vi.mock('./client', () => ({
+  api: { get: vi.fn() }
+}))
 
-beforeEach(() => vi.clearAllMocks())
+const sentQuery = (): URLSearchParams => {
+  const [url] = vi.mocked(api.get).mock.calls.at(-1) as [string]
+  return new URLSearchParams(url.split('?')[1])
+}
+
+beforeEach(() => {
+  vi.mocked(api.get).mockReset()
+  vi.mocked(api.get).mockResolvedValue({ messages: [], has_more: false })
+})
 
 describe('listMessages', () => {
-  it('sends the automation filter when it is set', async () => {
-    await listMessages('ws1', { automation_id: 'a1', template_id: 'tpl' })
-    const url = (api.get as ReturnType<typeof vi.fn>).mock.calls[0][0] as string
-    const params = new URL(url, 'http://x').searchParams
-    expect(params.get('automation_id')).toBe('a1')
-    expect(params.get('template_id')).toBe('tpl')
+  it('sends the transactional notification filter', async () => {
+    await listMessages('ws1', { transactional_notification_id: 'password_reset', limit: 10 })
+    const query = sentQuery()
+    expect(query.get('workspace_id')).toBe('ws1')
+    expect(query.get('transactional_notification_id')).toBe('password_reset')
+    expect(query.get('limit')).toBe('10')
   })
 
-  it('leaves it out otherwise', async () => {
-    await listMessages('ws1', {})
-    const url = (api.get as ReturnType<typeof vi.fn>).mock.calls[0][0] as string
-    expect(new URL(url, 'http://x').searchParams.has('automation_id')).toBe(false)
+  it('leaves the filter out when it is not set', async () => {
+    await listMessages('ws1', { limit: 10 })
+    expect(sentQuery().has('transactional_notification_id')).toBe(false)
+  })
+
+  it('sends the automation filter when it is set', async () => {
+    await listMessages('ws1', { automation_id: 'a1', template_id: 'tpl' })
+    const query = sentQuery()
+    expect(query.get('automation_id')).toBe('a1')
+    expect(query.get('template_id')).toBe('tpl')
+  })
+
+  it('leaves the automation filter out otherwise', async () => {
+    await listMessages('ws1', { limit: 10 })
+    expect(sentQuery().has('automation_id')).toBe(false)
   })
 })
