@@ -37,4 +37,20 @@ describe('Panel', () => {
     expect(screen.getByText('10 of 12 broadcasts').closest('[data-panel-footer]')).not.toBeNull()
     expect((container.firstChild as HTMLElement).className).toMatch(/\bcol-span-2\b/)
   })
+
+  it('turns its border and title red for a danger zone', () => {
+    const { container, rerender } = render(<Panel title="Settings">x</Panel>)
+    const section = container.firstChild as HTMLElement
+    expect(section.className).toMatch(/\bborder-line\b/)
+    expect(screen.getByRole('heading').className).toMatch(/\btext-ink\b/)
+
+    rerender(
+      <Panel title="Delete this workspace" tone="danger">
+        x
+      </Panel>
+    )
+    expect(section.className).toMatch(/border-danger-fg\/25/)
+    expect(section.className).not.toMatch(/\bborder-line\b/)
+    expect(screen.getByRole('heading').className).toMatch(/\btext-danger-fg\b/)
+  })
 })

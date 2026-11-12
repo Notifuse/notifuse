@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Form, App, Descriptions, Input, Divider, Select, Row, Col } from 'antd'
+import { Alert, Button, Form, App, Descriptions, Input, Divider, Select, Row, Col } from 'antd'
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -12,6 +12,7 @@ import { workspaceService } from '../../services/api/workspace'
 import { SEOSettingsForm } from '../seo/SEOSettingsForm'
 import { SettingsSaveBar } from './SettingsSaveBar'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
+import { Panel } from '../layout'
 import { RecentThemesTable } from '../blog/RecentThemesTable'
 import { blogThemesApi } from '../../services/api/blog'
 import { THEME_PRESETS } from '../blog/themePresets'
@@ -217,6 +218,7 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
       <>
         <SettingsSectionHeader title={t`Blog`} description={t`Blog styling and SEO settings`} />
 
+        <Panel>
         <Descriptions
           bordered
           column={1}
@@ -249,6 +251,7 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
             </>
           )}
         </Descriptions>
+        </Panel>
       </>
     )
   }
@@ -261,26 +264,20 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
       />
 
       {!workspace?.settings.custom_endpoint_url && (
-        <div
-          style={{
-            marginBottom: 16,
-            padding: '12px 16px',
-            background: '#fff7e6',
-            border: '1px solid #ffd591',
-            borderRadius: '4px'
-          }}
-        >
-          {t`You must configure a Custom Endpoint URL in General Settings above before enabling the blog.`}
-        </div>
+        <Alert
+          type="warning"
+          showIcon
+          title={t`You must configure a Custom Endpoint URL in General Settings above before enabling the blog.`}
+        />
       )}
 
       {workspace?.settings.blog_enabled && workspace?.settings.custom_endpoint_url && (
         <>
           <RecentThemesTable workspaceId={workspace.id} workspace={workspace} />
-          <Divider className="!my-12" />
         </>
       )}
 
+      <Panel title={t`Blog settings`}>
       <Form
         form={form}
         layout="vertical"
@@ -459,29 +456,18 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
           </>
         )}
       </Form>
+      </Panel>
 
       {/* Danger Zone - Show when blog is enabled */}
       {workspace?.settings.blog_enabled && (
-        <>
-          <Divider className="!my-12" />
-          <div
-            style={{
-              marginTop: 32,
-              padding: '24px',
-              border: '1px solid #ff4d4f',
-              borderRadius: '4px',
-              backgroundColor: '#fff1f0'
-            }}
-          >
-            <h3 style={{ color: '#cf1322', marginBottom: 8 }}>{t`Danger Zone`}</h3>
-            <p style={{ marginBottom: 16, color: '#595959' }}>
-              {t`Disabling the blog will remove all SEO settings and make your blog inaccessible to visitors. This action will affect your blog's visibility and search engine rankings.`}
-            </p>
-            <Button danger onClick={handleDisableBlog}>
-              {t`Disable Blog`}
-            </Button>
-          </div>
-        </>
+        <Panel title={t`Danger zone`} tone="danger">
+          <p className="m-0 mb-3 text-sm text-ink-2">
+            {t`Disabling the blog will remove all SEO settings and make your blog inaccessible to visitors. This action will affect your blog's visibility and search engine rankings.`}
+          </p>
+          <Button danger onClick={handleDisableBlog}>
+            {t`Disable Blog`}
+          </Button>
+        </Panel>
       )}
 
       {/* Last child on purpose — see SettingsSaveBar for why. */}
