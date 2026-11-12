@@ -14,7 +14,6 @@ interface OriginVolumeChartProps {
   data: OriginSeries
   metric: DashboardMetric
   onMetricChange: (metric: DashboardMetric) => void
-  error?: unknown
 }
 
 const CHART_HEIGHT = 250
@@ -32,11 +31,10 @@ interface TooltipParam {
   color: string
 }
 
-const escapeHtml = (text: string) =>
-  text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`)
+const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`)
 
 /** Emails per day by origin: broadcasts as bars, transactional and automations as lines. */
-export function OriginVolumeChart({ data, metric, onMetricChange, error }: OriginVolumeChartProps) {
+export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolumeChartProps) {
   const { t, i18n } = useLingui()
   const { int, compact } = useNumberFormat()
 
@@ -51,13 +49,21 @@ export function OriginVolumeChart({ data, metric, onMetricChange, error }: Origi
 
   const option = useMemo(() => {
     if (!chart) return null
-    const dayLabel = new Intl.DateTimeFormat(i18n.locale, { day: 'numeric', month: 'numeric', timeZone: 'UTC' })
+    const dayLabel = new Intl.DateTimeFormat(i18n.locale, {
+      day: 'numeric',
+      month: 'numeric',
+      timeZone: 'UTC'
+    })
     const labels = chart.days.map((day) => dayLabel.format(new Date(`${day}T00:00:00Z`)))
     const line = (origin: MessageOrigin) => ({
       name: names[origin],
       type: 'line',
       data: chart.values[origin],
-      symbol: 'none',
+      // On a log axis a zero is null, so a send between two empty days is a lone point: a line
+      // alone would draw nothing there.
+      symbol: 'circle',
+      symbolSize: 4,
+      showSymbol: chart.log,
       smooth: true,
       connectNulls: false,
       color: SERIES_COLOR[origin],
@@ -100,7 +106,11 @@ export function OriginVolumeChart({ data, metric, onMetricChange, error }: Origi
         type: chart.log ? 'log' : 'value',
         minInterval: 1,
         splitLine: { lineStyle: { color: colors.gray[100] } },
-        axisLabel: { fontSize: 10.5, color: colors.ink3, formatter: (value: number) => compact(value) }
+        axisLabel: {
+          fontSize: 10.5,
+          color: colors.ink3,
+          formatter: (value: number) => compact(value)
+        }
       },
       series: [
         {
@@ -120,7 +130,7 @@ export function OriginVolumeChart({ data, metric, onMetricChange, error }: Origi
   }, [chart, i18n.locale, int, compact, ofSentThatDay])
 
   let body
-  if (data.isError) body = <BlockError onRetry={data.refetch} error={error} />
+  if (data.isError) body = <BlockError onRetry={data.refetch} error={data.error} />
   else if (!chart || !option)
     body = (
       <div data-testid="chart-loading" className="h-[250px]">

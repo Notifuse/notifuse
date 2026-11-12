@@ -20,8 +20,16 @@ interface ProviderUse {
 export function SendingCard({ workspace, canConfigure }: SendingCardProps) {
   const { t } = useLingui()
   const uses: ProviderUse[] = [
-    { key: 'marketing', label: t`Marketing`, providerId: workspace.settings?.marketing_email_provider_id },
-    { key: 'transactional', label: t`Transactional`, providerId: workspace.settings?.transactional_email_provider_id }
+    {
+      key: 'marketing',
+      label: t`Marketing`,
+      providerId: workspace.settings?.marketing_email_provider_id
+    },
+    {
+      key: 'transactional',
+      label: t`Transactional`,
+      providerId: workspace.settings?.transactional_email_provider_id
+    }
   ]
 
   const provider = (id?: string): Integration | undefined =>
@@ -51,7 +59,10 @@ export function SendingCard({ workspace, canConfigure }: SendingCardProps) {
                   {canConfigure ? (
                     <Link
                       to="/console/workspace/$workspaceId/settings/$section"
-                      params={{ workspaceId: workspace.id, section: 'integrations' }}
+                      params={{
+                        workspaceId: workspace.id,
+                        section: 'integrations'
+                      }}
                     >
                       {t`Configure`}
                     </Link>

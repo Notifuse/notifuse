@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { buildOriginChart } from './originChart'
 import { emptyTotals, type SeriesPoint } from './dashboardKpis'
 
-const point = (day: string, values: Partial<SeriesPoint>): SeriesPoint => ({ ...emptyTotals(), day, ...values })
+const point = (day: string, values: Partial<SeriesPoint>): SeriesPoint => ({
+  ...emptyTotals(),
+  day,
+  ...values
+})
 const days = ['2026-11-08', '2026-11-09', '2026-11-10']
 
 describe('buildOriginChart', () => {
@@ -21,7 +25,16 @@ describe('buildOriginChart', () => {
     expect(chart.values.automation).toEqual([0, 0, 0])
     expect(chart.log).toBe(false)
     expect(chart.empty).toBe(false)
-    expect(buildOriginChart({ broadcast: [point('2026-11-08', { clicked: 7 })], transactional: [], automation: [] }, 'clicks').values.broadcast).toEqual([7])
+    expect(
+      buildOriginChart(
+        {
+          broadcast: [point('2026-11-08', { clicked: 7 })],
+          transactional: [],
+          automation: []
+        },
+        'clicks'
+      ).values.broadcast
+    ).toEqual([7])
   })
 
   it('switches to a log axis when one day dwarfs the median, without drawing zeros', () => {
@@ -52,7 +65,11 @@ describe('buildOriginChart', () => {
 
   it('is empty when nothing was sent', () => {
     const chart = buildOriginChart(
-      { broadcast: days.map((day) => point(day, {})), transactional: [], automation: [] },
+      {
+        broadcast: days.map((day) => point(day, {})),
+        transactional: [],
+        automation: []
+      },
       'sent'
     )
     expect(chart.empty).toBe(true)

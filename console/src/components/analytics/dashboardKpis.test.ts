@@ -1,18 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import {
-  computeDashboardKpis,
-  emptyTotals,
-  parseSeries,
-  sumSeries,
-  type MessageTotals
-} from './dashboardKpis'
+import { computeDashboardKpis, emptyTotals, parseSeries, sumSeries, type MessageTotals } from './dashboardKpis'
 
-const totals = (values: Partial<MessageTotals>): MessageTotals => ({ ...emptyTotals(), ...values })
+const totals = (values: Partial<MessageTotals>): MessageTotals => ({
+  ...emptyTotals(),
+  ...values
+})
 
 describe('parseSeries', () => {
   it('reads the day from the first ten characters and converts numbers', () => {
     const points = parseSeries([
-      { created_at_day: '2026-11-09T00:00:00Z', count_sent: '12', count_delivered: 10, count_opened: null },
+      {
+        created_at_day: '2026-11-09T00:00:00Z',
+        count_sent: '12',
+        count_delivered: 10,
+        count_opened: null
+      },
       { created_at_day: '2026-11-10T00:00:00Z' }
     ])
     expect(points).toEqual([
@@ -29,8 +31,16 @@ describe('parseSeries', () => {
 describe('sumSeries', () => {
   it('adds every day', () => {
     const points = parseSeries([
-      { created_at_day: '2026-11-09T00:00:00Z', count_sent: 2, count_opens_tracked: 1 },
-      { created_at_day: '2026-11-10T00:00:00Z', count_sent: 3, count_opens_tracked: 3 }
+      {
+        created_at_day: '2026-11-09T00:00:00Z',
+        count_sent: 2,
+        count_opens_tracked: 1
+      },
+      {
+        created_at_day: '2026-11-10T00:00:00Z',
+        count_sent: 3,
+        count_opens_tracked: 3
+      }
     ])
     expect(sumSeries(points)).toEqual(totals({ sent: 5, opensTracked: 4 }))
   })
@@ -38,12 +48,35 @@ describe('sumSeries', () => {
 
 describe('computeDashboardKpis', () => {
   const series = {
-    broadcast: totals({ sent: 600, delivered: 594, bounced: 6, opened: 300, opensTracked: 600, clicked: 60, clicksTracked: 600 }),
-    automation: totals({ sent: 300, delivered: 297, bounced: 3, opened: 90, opensTracked: 300, clicked: 30, clicksTracked: 300 }),
-    transactional: totals({ sent: 100, delivered: 100, opened: 60, opensTracked: 100, clicked: 10, clicksTracked: 100 })
+    broadcast: totals({
+      sent: 600,
+      delivered: 594,
+      bounced: 6,
+      opened: 300,
+      opensTracked: 600,
+      clicked: 60,
+      clicksTracked: 600
+    }),
+    automation: totals({
+      sent: 300,
+      delivered: 297,
+      bounced: 3,
+      opened: 90,
+      opensTracked: 300,
+      clicked: 30,
+      clicksTracked: 300
+    }),
+    transactional: totals({
+      sent: 100,
+      delivered: 100,
+      opened: 60,
+      opensTracked: 100,
+      clicked: 10,
+      clicksTracked: 100
+    })
   }
 
-  it('sums the three origins', () => {
+  it('sums every origin', () => {
     const kpis = computeDashboardKpis({ series })
     expect(kpis.sent.total).toBe(1000)
     expect(kpis.sent.broadcastShare).toBeCloseTo(0.6)
@@ -54,7 +87,13 @@ describe('computeDashboardKpis', () => {
   })
 
   it('gives no rate on a zero denominator', () => {
-    const kpis = computeDashboardKpis({ series: { broadcast: emptyTotals(), automation: emptyTotals(), transactional: emptyTotals() } })
+    const kpis = computeDashboardKpis({
+      series: {
+        broadcast: emptyTotals(),
+        automation: emptyTotals(),
+        transactional: emptyTotals()
+      }
+    })
     expect(kpis.sent.total).toBe(0)
     expect(kpis.sent.broadcastShare).toBeNull()
     expect(kpis.delivered.rate).toBeNull()
@@ -65,7 +104,12 @@ describe('computeDashboardKpis', () => {
 
   it('says when no delivery event came back', () => {
     const kpis = computeDashboardKpis({
-      series: { ...series, broadcast: totals({ sent: 10 }), automation: emptyTotals(), transactional: emptyTotals() }
+      series: {
+        ...series,
+        broadcast: totals({ sent: 10 }),
+        automation: emptyTotals(),
+        transactional: emptyTotals()
+      }
     })
     expect(kpis.delivered.noDeliveryEvents).toBe(true)
     expect(kpis.delivered.rate).toBeNull()
@@ -73,24 +117,58 @@ describe('computeDashboardKpis', () => {
 
   it('warns above 2 % bounces or 0.1 % complaints', () => {
     const only = { automation: emptyTotals(), transactional: emptyTotals() }
-    const ok = computeDashboardKpis({ series: { ...only, broadcast: totals({ sent: 1000, delivered: 980, bounced: 20, complained: 1 }) } })
+    const ok = computeDashboardKpis({
+      series: {
+        ...only,
+        broadcast: totals({
+          sent: 1000,
+          delivered: 980,
+          bounced: 20,
+          complained: 1
+        })
+      }
+    })
     expect(ok.delivered.tone).toBe('neutral')
-    const bounces = computeDashboardKpis({ series: { ...only, broadcast: totals({ sent: 1000, delivered: 979, bounced: 21 }) } })
+    const bounces = computeDashboardKpis({
+      series: {
+        ...only,
+        broadcast: totals({ sent: 1000, delivered: 979, bounced: 21 })
+      }
+    })
     expect(bounces.delivered.tone).toBe('warning')
-    const complaints = computeDashboardKpis({ series: { ...only, broadcast: totals({ sent: 1000, delivered: 998, complained: 2 }) } })
+    const complaints = computeDashboardKpis({
+      series: {
+        ...only,
+        broadcast: totals({ sent: 1000, delivered: 998, complained: 2 })
+      }
+    })
     expect(complaints.delivered.tone).toBe('warning')
   })
 
   it('compares rates in points with a ±0.05 neutral band', () => {
     // current open rate 45 %
-    const up = computeDashboardKpis({ series, previous: totals({ opened: 431, opensTracked: 1000, clicked: 100, clicksTracked: 1000 }) })
+    const up = computeDashboardKpis({
+      series,
+      previous: totals({
+        opened: 431,
+        opensTracked: 1000,
+        clicked: 100,
+        clicksTracked: 1000
+      })
+    })
     expect(up.openRate.deltaPoints).toBeCloseTo(1.9)
     expect(up.openRate.tone).toBe('positive')
     expect(up.clickRate.deltaPoints).toBeCloseTo(0)
     expect(up.clickRate.tone).toBe('neutral')
-    const down = computeDashboardKpis({ series, previous: totals({ opened: 4506, opensTracked: 10000 }) })
+    const down = computeDashboardKpis({
+      series,
+      previous: totals({ opened: 4506, opensTracked: 10000 })
+    })
     expect(down.openRate.tone).toBe('negative')
-    const flat = computeDashboardKpis({ series, previous: totals({ opened: 4504, opensTracked: 10000 }) })
+    const flat = computeDashboardKpis({
+      series,
+      previous: totals({ opened: 4504, opensTracked: 10000 })
+    })
     expect(flat.openRate.tone).toBe('neutral')
   })
 
@@ -102,7 +180,10 @@ describe('computeDashboardKpis', () => {
 
   it('flags partial tracking with the tracked count', () => {
     const kpis = computeDashboardKpis({
-      series: { ...series, broadcast: totals({ sent: 600, opensTracked: 400, clicksTracked: 600 }) }
+      series: {
+        ...series,
+        broadcast: totals({ sent: 600, opensTracked: 400, clicksTracked: 600 })
+      }
     })
     expect(kpis.openRate.partial).toBe(true)
     expect(kpis.openRate.tracked).toBe(800)
@@ -110,18 +191,30 @@ describe('computeDashboardKpis', () => {
   })
 
   it('counts new contacts', () => {
-    expect(computeDashboardKpis({ series, contactsTotal: 18342, contactsNew: 1204 }).contacts).toEqual({ total: 18342, added: 1204, tone: 'positive' })
+    expect(computeDashboardKpis({ series, contactsTotal: 18342, contactsNew: 1204 }).contacts).toEqual({
+      total: 18342,
+      added: 1204,
+      tone: 'positive'
+    })
     expect(computeDashboardKpis({ series, contactsTotal: 5, contactsNew: 0 }).contacts.tone).toBe('neutral')
   })
 
   it('compares visits relatively, with the tone of the shown value', () => {
-    const up = computeDashboardKpis({ series, visits: 1175, previousVisits: 1000 })
+    const up = computeDashboardKpis({
+      series,
+      visits: 1175,
+      previousVisits: 1000
+    })
     expect(up.visits.deltaRatio).toBeCloseTo(0.175)
     expect(up.visits.tone).toBe('positive')
     expect(computeDashboardKpis({ series, visits: 900, previousVisits: 1000 }).visits.tone).toBe('negative')
     // +0.04 % shows as +0.0 %: not green
     expect(computeDashboardKpis({ series, visits: 10004, previousVisits: 10000 }).visits.tone).toBe('neutral')
-    const empty = computeDashboardKpis({ series, visits: 50, previousVisits: 0 })
+    const empty = computeDashboardKpis({
+      series,
+      visits: 50,
+      previousVisits: 0
+    })
     expect(empty.visits.deltaRatio).toBeNull()
     expect(empty.visits.tone).toBe('neutral')
   })

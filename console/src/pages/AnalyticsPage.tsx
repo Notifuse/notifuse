@@ -42,9 +42,19 @@ function searchWith(change: { period?: DashboardPeriod; metric?: DashboardMetric
   }
 }
 
+/**
+ * Keyed by workspace: the route keeps its component across a workspace switch, and the rights of
+ * the previous workspace would otherwise send its requests to the new one until they reload.
+ */
 export function AnalyticsPage() {
+  const { workspaceId } = useParams({
+    from: '/console/workspace/$workspaceId'
+  })
+  return <Dashboard key={workspaceId} workspaceId={workspaceId} />
+}
+
+function Dashboard({ workspaceId }: { workspaceId: string }) {
   const { t } = useLingui()
-  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   // Mounted on the workspace index and on /analytics: both validate the same search.
   const search = validateDashboardSearch(useSearch({ strict: false }))
   const navigate = useNavigate()
@@ -62,10 +72,15 @@ export function AnalyticsPage() {
   // Read strictly: message_history write is granted to every member the console saves, so the
   // sidebar's read-or-write check shows the dashboard to members who cannot read messages.
   const canRead = Boolean(permissions?.message_history?.read)
-  const series = useOriginSeries({ workspaceId, timezone, range: periods.current, enabled: canRead })
+  const series = useOriginSeries({
+    workspaceId,
+    timezone,
+    range: periods.current,
+    enabled: canRead
+  })
 
   const setSearch = (change: { period?: DashboardPeriod; metric?: DashboardMetric }) =>
-    void navigate({ to: '.', search: searchWith(change), replace: true })
+    void navigate({ to: '.', search: searchWith(change) })
 
   if (!workspace) {
     return (
@@ -106,7 +121,14 @@ export function AnalyticsPage() {
     return (
       <div className="flex flex-col gap-3" data-testid="dashboard-loading">
         {header}
-        <KpiStrip loading items={[{ key: 'a', label: '', value: '' }, { key: 'b', label: '', value: '' }, { key: 'c', label: '', value: '' }]} />
+        <KpiStrip
+          loading
+          items={[
+            { key: 'a', label: '', value: '' },
+            { key: 'b', label: '', value: '' },
+            { key: 'c', label: '', value: '' }
+          ]}
+        />
         <Panel>
           <Skeleton active paragraph={{ rows: 6 }} title={false} />
         </Panel>
@@ -114,7 +136,8 @@ export function AnalyticsPage() {
     )
   }
 
-  const can = (resource: keyof UserPermissions, verb: 'read' | 'write' = 'read') => Boolean(permissions[resource]?.[verb])
+  const can = (resource: keyof UserPermissions, verb: 'read' | 'write' = 'read') =>
+    Boolean(permissions[resource]?.[verb])
 
   return (
     <div className="flex flex-col gap-3">
@@ -133,7 +156,9 @@ export function AnalyticsPage() {
           <OriginVolumeChart data={series} metric={metric} onMetricChange={(value) => setSearch({ metric: value })} />
           <div className="grid grid-cols-1 items-start gap-3 min-[1000px]:grid-cols-2">
             <RecentFailures workspaceId={workspaceId} timezone={timezone} />
-            {can('contacts') ? <NewContactsTable workspaceId={workspaceId} canImport={can('contacts', 'write')} /> : null}
+            {can('contacts') ? (
+              <NewContactsTable workspaceId={workspaceId} canImport={can('contacts', 'write')} />
+            ) : null}
           </div>
         </div>
         <div className="flex min-w-0 flex-col gap-3">

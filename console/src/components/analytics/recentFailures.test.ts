@@ -39,25 +39,53 @@ describe('mergeFailures', () => {
   })
 
   it('shows a message in two lists once, as a complaint before a bounce before a failure', () => {
-    const both = message('x', { bounced_at: '2026-11-10T09:00:00Z', complained_at: '2026-11-10T12:00:00Z', failed_at: '2026-11-10T13:00:00Z' })
-    const rows = mergeFailures({ complained: [both], bounced: [both], failed: [both] })
+    const both = message('x', {
+      bounced_at: '2026-11-10T09:00:00Z',
+      complained_at: '2026-11-10T12:00:00Z',
+      failed_at: '2026-11-10T13:00:00Z'
+    })
+    const rows = mergeFailures({
+      complained: [both],
+      bounced: [both],
+      failed: [both]
+    })
     expect(rows).toHaveLength(1)
     expect(rows[0].kind).toBe('complaint')
     expect(rows[0].at).toBe('2026-11-10T12:00:00Z')
-    const bounceAndFail = message('y', { bounced_at: '2026-11-10T09:00:00Z', failed_at: '2026-11-10T13:00:00Z' })
-    expect(mergeFailures({ complained: [], bounced: [bounceAndFail], failed: [bounceAndFail] })[0].kind).toBe('bounce')
+    const bounceAndFail = message('y', {
+      bounced_at: '2026-11-10T09:00:00Z',
+      failed_at: '2026-11-10T13:00:00Z'
+    })
+    expect(
+      mergeFailures({
+        complained: [],
+        bounced: [bounceAndFail],
+        failed: [bounceAndFail]
+      })[0].kind
+    ).toBe('bounce')
   })
 
   it('gives the provider reason, or none', () => {
     const rows = mergeFailures({
       complained: [],
-      bounced: [message('a', { bounced_at: '2026-11-10T09:00:00Z', status_info: '  Mailbox full ' })],
+      bounced: [
+        message('a', {
+          bounced_at: '2026-11-10T09:00:00Z',
+          status_info: '  Mailbox full '
+        })
+      ],
       failed: [message('b', { failed_at: '2026-11-10T08:00:00Z', status_info: '' })]
     })
     expect(rows.map((row) => row.reason)).toEqual(['Mailbox full', null])
   })
 
   it('accepts missing lists', () => {
-    expect(mergeFailures({ complained: undefined, bounced: undefined, failed: undefined })).toEqual([])
+    expect(
+      mergeFailures({
+        complained: undefined,
+        bounced: undefined,
+        failed: undefined
+      })
+    ).toEqual([])
   })
 })

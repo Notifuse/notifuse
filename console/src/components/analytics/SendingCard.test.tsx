@@ -26,8 +26,18 @@ const workspace = (settings: Record<string, string>): Workspace =>
         email_provider: {
           kind: 'ses',
           senders: [
-            { id: 's1', email: 'first@acme.test', name: 'First', is_default: false },
-            { id: 's2', email: 'news@acme.test', name: 'News', is_default: true }
+            {
+              id: 's1',
+              email: 'first@acme.test',
+              name: 'First',
+              is_default: false
+            },
+            {
+              id: 's2',
+              email: 'news@acme.test',
+              name: 'News',
+              is_default: true
+            }
           ]
         }
       },
@@ -35,7 +45,17 @@ const workspace = (settings: Record<string, string>): Workspace =>
         id: 'smtp',
         name: 'Relay',
         type: 'email',
-        email_provider: { kind: 'smtp', senders: [{ id: 's3', email: 'hello@acme.test', name: 'Hello', is_default: false }] }
+        email_provider: {
+          kind: 'smtp',
+          senders: [
+            {
+              id: 's3',
+              email: 'hello@acme.test',
+              name: 'Hello',
+              is_default: false
+            }
+          ]
+        }
       }
     ]
   }) as unknown as Workspace
@@ -49,7 +69,12 @@ const renderCard = (ws: Workspace, canConfigure = true) =>
 
 describe('SendingCard', () => {
   it('shows the provider and default sender of each use', () => {
-    renderCard(workspace({ marketing_email_provider_id: 'ses', transactional_email_provider_id: 'smtp' }))
+    renderCard(
+      workspace({
+        marketing_email_provider_id: 'ses',
+        transactional_email_provider_id: 'smtp'
+      })
+    )
 
     expect(screen.getByText('Amazon SES')).toBeInTheDocument()
     expect(screen.getByText('news@acme.test')).toBeInTheDocument()

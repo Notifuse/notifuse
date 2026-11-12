@@ -23,8 +23,13 @@ vi.mock('@tanstack/react-router', () => ({
   )
 }))
 vi.mock('../contexts/AuthContext', () => ({
-  useAuth: () => ({ workspaces: [{ id: 'ws1', name: 'Acme', settings: { timezone: 'Europe/Paris' } }] }),
-  useWorkspacePermissions: () => ({ permissions: state.permissions, loading: state.loading })
+  useAuth: () => ({
+    workspaces: [{ id: 'ws1', name: 'Acme', settings: { timezone: 'Europe/Paris' } }]
+  }),
+  useWorkspacePermissions: () => ({
+    permissions: state.permissions,
+    loading: state.loading
+  })
 }))
 vi.mock('../components/analytics/useOriginSeries', () => ({
   useOriginSeries: ({ enabled }: { enabled: boolean }) => {
@@ -45,14 +50,18 @@ vi.mock('../components/analytics/OriginVolumeChart', () => ({
     </button>
   )
 }))
-vi.mock('../components/analytics/RecentFailures', () => ({ RecentFailures: () => <div data-testid="failures" /> }))
+vi.mock('../components/analytics/RecentFailures', () => ({
+  RecentFailures: () => <div data-testid="failures" />
+}))
 vi.mock('../components/analytics/NewContactsTable', () => ({
   NewContactsTable: ({ canImport }: { canImport: boolean }) => <div data-testid="contacts">{String(canImport)}</div>
 }))
 vi.mock('../components/analytics/SendingCard', () => ({
   SendingCard: ({ canConfigure }: { canConfigure: boolean }) => <div data-testid="sending">{String(canConfigure)}</div>
 }))
-vi.mock('../components/analytics/UpcomingSends', () => ({ UpcomingSends: () => <div data-testid="upcoming" /> }))
+vi.mock('../components/analytics/UpcomingSends', () => ({
+  UpcomingSends: () => <div data-testid="upcoming" />
+}))
 
 import { AnalyticsPage } from './AnalyticsPage'
 
@@ -68,14 +77,26 @@ const renderPage = () =>
 
 /** The search the last navigation wrote, from the reducer it was given. */
 const lastSearch = (previous: Record<string, unknown> = {}) => {
-  const [options] = state.navigate.mock.calls.at(-1) as [{ search: (p: Record<string, unknown>) => Record<string, unknown>; replace: boolean }]
-  expect(options.replace).toBe(true)
+  const [options] = state.navigate.mock.calls.at(-1) as [
+    {
+      search: (p: Record<string, unknown>) => Record<string, unknown>
+      replace?: boolean
+    }
+  ]
+  // A period or metric is a step the browser's back button undoes.
+  expect(options.replace).toBeUndefined()
   return options.search(previous)
 }
 
 beforeEach(() => {
   state.search = {}
-  state.permissions = { message_history: readOnly, contacts: all, broadcasts: all, lists: all, workspace: all }
+  state.permissions = {
+    message_history: readOnly,
+    contacts: all,
+    broadcasts: all,
+    lists: all,
+    workspace: all
+  }
   state.loading = false
   state.navigate.mockReset()
   state.kpiPeriods = []
@@ -101,11 +122,12 @@ describe('AnalyticsPage', () => {
     expect(screen.getByTestId('chart')).toHaveTextContent('clicks')
   })
 
-  it('ignores a period it does not know', () => {
-    state.search = { period: '14d' }
+  it('ignores a period or a metric it does not know', () => {
+    state.search = { period: '14d', metric: 'bounces' }
     renderPage()
 
     expect(state.kpiPeriods.at(-1)?.days).toBe(30)
+    expect(screen.getByTestId('chart')).toHaveTextContent('sent')
   })
 
   it('writes the period and the metric to the URL, leaving the defaults out', () => {
@@ -116,10 +138,16 @@ describe('AnalyticsPage', () => {
     expect(lastSearch({ period: '7d' })).toEqual({ period: '90d' })
 
     fireEvent.click(screen.getByText('30 d'))
-    expect(lastSearch({ period: '7d', metric: 'opens' })).toEqual({ period: undefined, metric: 'opens' })
+    expect(lastSearch({ period: '7d', metric: 'opens' })).toEqual({
+      period: undefined,
+      metric: 'opens'
+    })
 
     fireEvent.click(screen.getByTestId('chart'))
-    expect(lastSearch({ period: '7d' })).toEqual({ period: '7d', metric: 'opens' })
+    expect(lastSearch({ period: '7d' })).toEqual({
+      period: '7d',
+      metric: 'opens'
+    })
   })
 
   it('shows skeletons and asks nothing while the permissions load', () => {
@@ -140,7 +168,10 @@ describe('AnalyticsPage', () => {
   })
 
   it('never redirects a member who may only write message history to the dashboard or the logs', () => {
-    state.permissions = { message_history: { read: false, write: true }, workspace: readOnly }
+    state.permissions = {
+      message_history: { read: false, write: true },
+      workspace: readOnly
+    }
     renderPage()
 
     // The workspace read right reaches the blog, the first content page.

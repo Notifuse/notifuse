@@ -36,7 +36,16 @@ export const MEASURES: Record<keyof MessageTotals, string> = {
 const FIELDS = Object.keys(MEASURES) as (keyof MessageTotals)[]
 
 export function emptyTotals(): MessageTotals {
-  return { sent: 0, delivered: 0, bounced: 0, complained: 0, opened: 0, clicked: 0, opensTracked: 0, clicksTracked: 0 }
+  return {
+    sent: 0,
+    delivered: 0,
+    bounced: 0,
+    complained: 0,
+    opened: 0,
+    clicked: 0,
+    opensTracked: 0,
+    clicksTracked: 0
+  }
 }
 
 export function toNumber(value: unknown): number {
@@ -61,10 +70,12 @@ export function readTotals(row: Record<string, unknown> | undefined): MessageTot
  * timezone conversion.
  */
 export function parseSeries(rows: Record<string, unknown>[] | undefined): SeriesPoint[] {
-  return (rows ?? []).map((row) => ({
-    day: String(row.created_at_day ?? '').slice(0, 10),
-    ...readTotals(row)
-  }))
+  return (rows ?? [])
+    .map((row) => ({
+      day: String(row.created_at_day ?? '').slice(0, 10),
+      ...readTotals(row)
+    }))
+    .filter((point) => /^\d{4}-\d{2}-\d{2}$/.test(point.day))
 }
 
 export function sumSeries(points: MessageTotals[]): MessageTotals {
@@ -116,13 +127,30 @@ export interface DashboardKpiInput {
   previousVisits?: number
 }
 
-function rateKpi(numerator: number, tracked: number, sent: number, previous?: { numerator: number; tracked: number }): RateKpi {
+function rateKpi(
+  numerator: number,
+  tracked: number,
+  sent: number,
+  previous?: { numerator: number; tracked: number }
+): RateKpi {
   const rate = ratio(numerator, tracked)
   const previousRate = previous ? ratio(previous.numerator, previous.tracked) : null
   const deltaPoints = rate !== null && previousRate !== null ? (rate - previousRate) * 100 : null
   const tone: KpiTone =
-    deltaPoints === null ? 'neutral' : deltaPoints > POINTS_BAND ? 'positive' : deltaPoints < -POINTS_BAND ? 'negative' : 'neutral'
-  return { rate, deltaPoints, tone, tracked, partial: isPartiallyTracked(sent, tracked) }
+    deltaPoints === null
+      ? 'neutral'
+      : deltaPoints > POINTS_BAND
+        ? 'positive'
+        : deltaPoints < -POINTS_BAND
+          ? 'negative'
+          : 'neutral'
+  return {
+    rate,
+    deltaPoints,
+    tone,
+    tracked,
+    partial: isPartiallyTracked(sent, tracked)
+  }
 }
 
 /** The six KPIs, as numbers and tones; the strip formats them in the console's language. */
@@ -143,27 +171,39 @@ export function computeDashboardKpis(input: DashboardKpiInput): DashboardKpis {
   const shownDelta = visitsDelta === null ? 0 : Math.round(visitsDelta * 1000)
 
   return {
-    contacts: { total: input.contactsTotal ?? 0, added, tone: added > 0 ? 'positive' : 'neutral' },
-    sent: { total: total.sent, broadcastShare: ratio(input.series.broadcast.sent, total.sent) },
+    contacts: {
+      total: input.contactsTotal ?? 0,
+      added,
+      tone: added > 0 ? 'positive' : 'neutral'
+    },
+    sent: {
+      total: total.sent,
+      broadcastShare: ratio(input.series.broadcast.sent, total.sent)
+    },
     delivered: {
       rate: noDeliveryEvents ? null : ratio(total.delivered, total.sent),
       bounceRate,
       complaintRate,
-      tone:
-        (bounceRate ?? 0) > BOUNCE_WARNING || (complaintRate ?? 0) > COMPLAINT_WARNING ? 'warning' : 'neutral',
+      tone: (bounceRate ?? 0) > BOUNCE_WARNING || (complaintRate ?? 0) > COMPLAINT_WARNING ? 'warning' : 'neutral',
       noDeliveryEvents
     },
     openRate: rateKpi(
       total.opened,
       total.opensTracked,
       total.sent,
-      previous && { numerator: previous.opened, tracked: previous.opensTracked }
+      previous && {
+        numerator: previous.opened,
+        tracked: previous.opensTracked
+      }
     ),
     clickRate: rateKpi(
       total.clicked,
       total.clicksTracked,
       total.sent,
-      previous && { numerator: previous.clicked, tracked: previous.clicksTracked }
+      previous && {
+        numerator: previous.clicked,
+        tracked: previous.clicksTracked
+      }
     ),
     visits: {
       value: input.visits ?? null,

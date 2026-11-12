@@ -47,7 +47,10 @@ export function sortUpcoming(broadcasts: Broadcast[], workspaceTimezone: string)
 
 /** "EST", "UTC", "GMT+1": the zone's short name at that date, in the console's language. */
 export function timeZoneAbbreviation(timezone: string, at: Date, locale: string): string {
-  const part = new Intl.DateTimeFormat(locale, { timeZone: timezone, timeZoneName: 'short' })
+  const part = new Intl.DateTimeFormat(locale, {
+    timeZone: timezone,
+    timeZoneName: 'short'
+  })
     .formatToParts(at)
     .find((p) => p.type === 'timeZoneName')
   return part?.value ?? timezone

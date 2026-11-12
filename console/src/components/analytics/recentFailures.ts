@@ -20,7 +20,11 @@ export interface FailureLists {
 export const RECENT_FAILURES_LIMIT = 5
 
 // In this order: a message both bounced and complained about shows as the complaint.
-const SOURCES: { list: keyof FailureLists; kind: FailureKind; field: 'complained_at' | 'bounced_at' | 'failed_at' }[] = [
+const SOURCES: {
+  list: keyof FailureLists
+  kind: FailureKind
+  field: 'complained_at' | 'bounced_at' | 'failed_at'
+}[] = [
   { list: 'complained', kind: 'complaint', field: 'complained_at' },
   { list: 'bounced', kind: 'bounce', field: 'bounced_at' },
   { list: 'failed', kind: 'failed', field: 'failed_at' }
@@ -40,7 +44,5 @@ export function mergeFailures(lists: FailureLists): FailureRow[] {
       rows.set(message.id, { message, kind, at, reason })
     }
   }
-  return [...rows.values()]
-    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
-    .slice(0, RECENT_FAILURES_LIMIT)
+  return [...rows.values()].sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, RECENT_FAILURES_LIMIT)
 }

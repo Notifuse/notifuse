@@ -7,7 +7,7 @@ const METRIC_FIELD: Record<DashboardMetric, keyof MessageTotals> = {
   clicks: 'clicked'
 }
 
-/** A peak above this many times the median of the other days calls for a log axis. */
+/** A peak above this many times the median of the non-zero daily values (all origins pooled) calls for a log axis. */
 const LOG_RATIO = 10
 
 export interface OriginChartData {
@@ -30,7 +30,10 @@ function median(values: number[]): number {
  * median of non-zero days, the axis turns logarithmic, where a zero cannot be drawn and is
  * passed as null.
  */
-export function buildOriginChart(series: Record<MessageOrigin, SeriesPoint[]>, metric: DashboardMetric): OriginChartData {
+export function buildOriginChart(
+  series: Record<MessageOrigin, SeriesPoint[]>,
+  metric: DashboardMetric
+): OriginChartData {
   const field = METRIC_FIELD[metric]
   const days = [...new Set(Object.values(series).flatMap((points) => points.map((point) => point.day)))].sort()
 
@@ -42,8 +45,9 @@ export function buildOriginChart(series: Record<MessageOrigin, SeriesPoint[]>, m
 
   const all = Object.values(raw).flat()
   const nonZero = all.filter((value) => value > 0)
-  const empty = nonZero.length === 0
-  const log = !empty && Math.max(...nonZero) > LOG_RATIO * median(nonZero)
+  // Empty when no email left: a period with sends but no click still draws its zeros.
+  const empty = Object.values(series).every((points) => points.every((point) => point.sent === 0))
+  const log = nonZero.length > 0 && Math.max(...nonZero) > LOG_RATIO * median(nonZero)
 
   const values = {} as Record<MessageOrigin, (number | null)[]>
   for (const origin of Object.keys(raw) as MessageOrigin[]) {

@@ -30,8 +30,13 @@ export function NewContactsTable({ workspaceId, canImport }: NewContactsTablePro
   const { openDrawer } = useContactsCsvUpload()
 
   const contacts = useQuery({
-    queryKey: ['dashboard', 'new-contacts', workspaceId],
-    queryFn: () => contactsApi.list({ workspace_id: workspaceId, limit: NEW_CONTACTS_LIMIT }),
+    // Under ['contacts', ws], which the CSV import invalidates when it finishes.
+    queryKey: ['contacts', workspaceId, 'dashboard-latest'],
+    queryFn: () =>
+      contactsApi.list({
+        workspace_id: workspaceId,
+        limit: NEW_CONTACTS_LIMIT
+      }),
     refetchInterval: DASHBOARD_REFRESH_MS
   })
 
@@ -51,7 +56,7 @@ export function NewContactsTable({ workspaceId, canImport }: NewContactsTablePro
   const rows = contacts.data?.contacts ?? []
   const now = new Date()
   let body
-  if (contacts.isError) {
+  if (contacts.isError && !contacts.data) {
     body = <BlockError error={contacts.error} onRetry={() => void contacts.refetch()} />
   } else if (contacts.isLoading) {
     body = (
@@ -61,13 +66,15 @@ export function NewContactsTable({ workspaceId, canImport }: NewContactsTablePro
     )
   } else if (rows.length === 0) {
     body = (
-      <Empty className="py-4" image={Empty.PRESENTED_IMAGE_SIMPLE} description={t`No contact yet`}>
-        {canImport ? (
-          <Button size="small" onClick={() => openDrawer(workspaceId)}>
-            {t`Import contacts`}
-          </Button>
-        ) : null}
-      </Empty>
+      <div className="py-4">
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t`No contact yet`}>
+          {canImport ? (
+            <Button size="small" onClick={() => openDrawer(workspaceId)}>
+              {t`Import contacts`}
+            </Button>
+          ) : null}
+        </Empty>
+      </div>
     )
   } else {
     body = (

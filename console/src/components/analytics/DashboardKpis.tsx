@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
@@ -10,7 +11,14 @@ import type { AnalyticsQuery } from '../../services/api/analytics'
 import { buildWebQuery } from '../web_analytics/lib/query'
 import type { ResolvedRange } from '../web_analytics/lib/types'
 import { DASHBOARD_REFRESH_MS, dashboardAnalytics } from './dashboardClient'
-import { computeDashboardKpis, emptyTotals, readTotals, toNumber, type MessageOrigin, type MessageTotals } from './dashboardKpis'
+import {
+  computeDashboardKpis,
+  emptyTotals,
+  readTotals,
+  toNumber,
+  type MessageOrigin,
+  type MessageTotals
+} from './dashboardKpis'
 import type { DashboardPeriods } from './dashboardPeriods'
 
 interface DashboardKpisProps {
@@ -32,7 +40,7 @@ function useCount(key: unknown[], query: AnalyticsQuery, workspaceId: string, en
     queryKey: key,
     queryFn: async () => {
       const response = await dashboardAnalytics.query(query, workspaceId)
-      return response.data?.[0] ?? {}
+      return (response.data?.[0] ?? {}) as Record<string, unknown>
     },
     enabled,
     refetchInterval: stable ? false : DASHBOARD_REFRESH_MS,
@@ -47,7 +55,11 @@ const messagesInRange = (range: ResolvedRange, timezone: string): AnalyticsQuery
   dimensions: [],
   timezone,
   filters: [
-    { member: 'created_at', operator: 'inDateRange', values: [range.startUtc, range.endUtc] },
+    {
+      member: 'created_at',
+      operator: 'inDateRange',
+      values: [range.startUtc, range.endUtc]
+    },
     { member: 'channel', operator: 'equals', values: ['email'] }
   ]
 })
@@ -80,25 +92,37 @@ export function DashboardKpis({
     true
   )
   const contactsTotal = useCount(
-    ['dashboard', 'contacts-total', ws],
+    // Under ['contacts', ws], which the CSV import invalidates when it finishes.
+    ['contacts', ws, 'dashboard-total'],
     { schema: 'contacts', measures: ['count'], dimensions: [], timezone },
     ws,
     canContacts
   )
   const contactsNew = useCount(
-    ['dashboard', 'contacts-new', ws, timezone, current.startUtc, current.endUtc],
+    ['contacts', ws, 'dashboard-new', timezone, current.startUtc, current.endUtc],
     {
       schema: 'contacts',
       measures: ['count'],
       dimensions: [],
       timezone,
-      filters: [{ member: 'created_at', operator: 'inDateRange', values: [current.startUtc, current.endUtc] }]
+      filters: [
+        {
+          member: 'created_at',
+          operator: 'inDateRange',
+          values: [current.startUtc, current.endUtc]
+        }
+      ]
     },
     ws,
     canContacts
   )
   const visitsQuery = (range: ResolvedRange) =>
-    buildWebQuery({ schema: 'web_sessions', measures: ['sessions'], range, timezone })
+    buildWebQuery({
+      schema: 'web_sessions',
+      measures: ['sessions'],
+      range,
+      timezone
+    })
   const visits = useCount(
     ['dashboard', 'visits', ws, timezone, current.startUtc, current.endUtc],
     visitsQuery(current),
@@ -113,9 +137,24 @@ export function DashboardKpis({
     true
   )
 
+  // A failed request is shown only when nothing was loaded before: a failed refresh keeps the figures.
+  const failedNow = (query: { isError: boolean; data?: unknown }) => query.isError && query.data === undefined
+  const queries = [previousRates, contactsTotal, contactsNew, visits, previousVisits]
+  const errors = queries.map((query) => (failedNow(query) ? query.error : null))
+  useEffect(() => {
+    // A warning, not an error: the strip already says what failed, and the page goes on.
+    for (const error of errors) if (error) console.warn('Dashboard KPI failed to load', error)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- logged once per error object
+  }, errors)
+
   const kpis = computeDashboardKpis({
-    series: totals ?? { broadcast: emptyTotals(), transactional: emptyTotals(), automation: emptyTotals() },
-    previous: previousRates.data ? readTotals(previousRates.data) : undefined,
+    series: totals ?? {
+      broadcast: emptyTotals(),
+      transactional: emptyTotals(),
+      automation: emptyTotals()
+    },
+    // The previous period of the period shown: after a period switch, the placeholder is the old one.
+    previous: previousRates.data && !previousRates.isPlaceholderData ? readTotals(previousRates.data) : undefined,
     contactsTotal: toNumber(contactsTotal.data?.count),
     contactsNew: toNumber(contactsNew.data?.count),
     visits: visits.data ? toNumber(visits.data.sessions) : undefined,
@@ -166,7 +205,7 @@ export function DashboardKpis({
       </Link>
     )
     items.push(
-      contactsTotal.isError || contactsNew.isError
+      failedNow(contactsTotal) || failedNow(contactsNew)
         ? {
             key: 'contacts',
             label: t`Contacts`,
@@ -179,10 +218,14 @@ export function DashboardKpis({
             key: 'contacts',
             label: t`Contacts`,
             value: contactsValue,
-            sub: t`${plural(days, {
-              one: `+${int(kpis.contacts.added)} over # d`,
-              other: `+${int(kpis.contacts.added)} over # d`
-            })}`,
+            // Nothing until the count of new contacts arrives, rather than a false « +0 ».
+            sub:
+              contactsNew.data === undefined
+                ? undefined
+                : t`${plural(days, {
+                    one: `+${int(kpis.contacts.added)} over # d`,
+                    other: `+${int(kpis.contacts.added)} over # d`
+                  })}`,
             tone: kpis.contacts.tone
           }
     )
@@ -224,7 +267,7 @@ export function DashboardKpis({
 
   if (canWeb && webConfigured) {
     items.push(
-      visits.isError || previousVisits.isError
+      failedNow(visits) || failedNow(previousVisits)
         ? {
             key: 'visits',
             label: t`Website visits`,
@@ -240,7 +283,10 @@ export function DashboardKpis({
               <Link
                 to="/console/workspace/$workspaceId/web-analytics/$tab"
                 params={{ workspaceId: ws, tab: 'dashboard' }}
-                search={{ period: periods.preset, comparison: 'previous_period' }}
+                search={{
+                  period: periods.preset,
+                  comparison: 'previous_period'
+                }}
                 className="text-inherit hover:text-primary-600"
               >
                 {kpis.visits.value === null ? dash : compact(kpis.visits.value)}

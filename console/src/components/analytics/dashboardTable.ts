@@ -11,6 +11,7 @@ export function openableRow(open: () => void): HTMLAttributes<HTMLElement> {
       if (event.key === 'Enter') open()
     },
     tabIndex: 0,
+    role: 'link',
     className: 'cursor-pointer'
   }
 }

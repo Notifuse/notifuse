@@ -33,7 +33,11 @@ export function UpcomingSends({ workspaceId, timezone, canReadLists, canCreate }
   const scheduled = useQuery({
     queryKey: ['dashboard', 'upcoming', workspaceId],
     queryFn: () =>
-      broadcastApi.list({ workspace_id: workspaceId, statuses: ['scheduled'], limit: SCHEDULED_FETCH_LIMIT }),
+      broadcastApi.list({
+        workspace_id: workspaceId,
+        statuses: ['scheduled'],
+        limit: SCHEDULED_FETCH_LIMIT
+      }),
     refetchInterval: DASHBOARD_REFRESH_MS
   })
   const hasRows = (scheduled.data?.broadcasts.length ?? 0) > 0
@@ -44,11 +48,17 @@ export function UpcomingSends({ workspaceId, timezone, canReadLists, canCreate }
   })
 
   // Rows go to the scheduled broadcasts until the Broadcasts page opens one from its URL.
-  const scheduledBroadcasts = { to: '/console/workspace/$workspaceId/broadcasts', params: { workspaceId }, search: { status: 'scheduled' } } as const
+  const scheduledBroadcasts = {
+    to: '/console/workspace/$workspaceId/broadcasts',
+    params: { workspaceId },
+    search: { status: 'scheduled' }
+  } as const
 
   const upcoming = sortUpcoming(scheduled.data?.broadcasts ?? [], timezone)
   const shown = upcoming.slice(0, UPCOMING_LIMIT)
-  const more = Math.max(0, (scheduled.data?.total_count ?? 0) - shown.length)
+  // A scheduled broadcast without a date (never seen in practice) is neither shown nor counted.
+  const undated = (scheduled.data?.broadcasts.length ?? 0) - upcoming.length
+  const more = Math.max(0, (scheduled.data?.total_count ?? 0) - undated - shown.length)
 
   const listName = (send: UpcomingSend) => {
     const id = send.broadcast.audience?.list
@@ -73,7 +83,7 @@ export function UpcomingSends({ workspaceId, timezone, canReadLists, canCreate }
     ) : undefined
 
   let body
-  if (scheduled.isError) {
+  if (scheduled.isError && !scheduled.data) {
     body = <BlockError error={scheduled.error} onRetry={() => void scheduled.refetch()} />
   } else if (scheduled.isLoading) {
     body = (
@@ -83,20 +93,21 @@ export function UpcomingSends({ workspaceId, timezone, canReadLists, canCreate }
     )
   } else if (shown.length === 0) {
     body = (
-      <Empty className="py-4" image={Empty.PRESENTED_IMAGE_SIMPLE} description={t`No broadcast scheduled`}>
-        {canCreate ? (
-          <Link to="/console/workspace/$workspaceId/broadcasts" params={{ workspaceId }}>
-            <Button size="small">{t`New broadcast`}</Button>
-          </Link>
-        ) : null}
-      </Empty>
+      <div className="py-4">
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t`No broadcast scheduled`}>
+          {canCreate ? (
+            <Link to="/console/workspace/$workspaceId/broadcasts" params={{ workspaceId }}>
+              <Button size="small">{t`New broadcast`}</Button>
+            </Link>
+          ) : null}
+        </Empty>
+      </div>
     )
   } else {
     body = (
-      <ul data-unreset className="m-0 flex list-none flex-col p-0">
+      <div className="flex flex-col">
         {shown.map((send) => (
-          <li
-            data-unreset
+          <div
             key={send.broadcast.id}
             {...openableRow(() => void navigate(scheduledBroadcasts))}
             className="flex cursor-pointer gap-3 border-t border-line px-3.5 py-2.5 text-sm first:border-t-0 hover:bg-fill"
@@ -109,9 +120,9 @@ export function UpcomingSends({ workspaceId, timezone, canReadLists, canCreate }
                 {send.broadcast.test_settings?.enabled ? ` · ${t`A/B`}` : ''}
               </div>
             </div>
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     )
   }
 

@@ -10,7 +10,13 @@ import { BlockError } from './BlockError'
 import { DASHBOARD_REFRESH_MS } from './dashboardClient'
 import { formatEventTime } from './dashboardFormat'
 import { openableRow } from './dashboardTable'
-import { mergeFailures, RECENT_FAILURES_LIMIT, type FailureKind, type FailureLists, type FailureRow } from './recentFailures'
+import {
+  mergeFailures,
+  RECENT_FAILURES_LIMIT,
+  type FailureKind,
+  type FailureLists,
+  type FailureRow
+} from './recentFailures'
 
 interface RecentFailuresProps {
   workspaceId: string
@@ -23,7 +29,11 @@ const LISTS: { list: keyof FailureLists; params: MessageListParams }[] = [
   { list: 'failed', params: { is_failed: true } }
 ]
 
-const TONE: Record<FailureKind, PillTone> = { complaint: 'danger', bounce: 'warning', failed: 'danger' }
+const TONE: Record<FailureKind, PillTone> = {
+  complaint: 'danger',
+  bounce: 'warning',
+  failed: 'danger'
+}
 
 /** The five latest complaints, bounces and failures, whatever sent them. */
 export function RecentFailures({ workspaceId, timezone }: RecentFailuresProps) {
@@ -38,14 +48,19 @@ export function RecentFailures({ workspaceId, timezone }: RecentFailuresProps) {
     }))
   })
 
-  const label: Record<FailureKind, string> = { complaint: t`Complaint`, bounce: t`Bounce`, failed: t`Failed` }
+  const label: Record<FailureKind, string> = {
+    complaint: t`Complaint`,
+    bounce: t`Bounce`,
+    failed: t`Failed`
+  }
   const fallbackReason: Record<FailureKind, string> = {
     complaint: t`Marked as spam`,
     bounce: t`Bounced`,
     failed: t`Failed`
   }
 
-  const failed = results.find((result) => result.isError)
+  // A failed refresh keeps the rows already shown.
+  const failed = results.find((result) => result.isError && !result.data)
   const loading = results.some((result) => result.isLoading)
   const lists: FailureLists = {}
   LISTS.forEach(({ list }, index) => {
@@ -57,7 +72,11 @@ export function RecentFailures({ workspaceId, timezone }: RecentFailuresProps) {
     void navigate({
       to: '/console/workspace/$workspaceId/logs',
       params: { workspaceId },
-      search: { tab: LOGS_TAB.messages, id: row.message.id, message: row.message.id }
+      search: {
+        tab: LOGS_TAB.messages,
+        id: row.message.id,
+        message: row.message.id
+      }
     })
 
   const extra = (
@@ -108,9 +127,7 @@ export function RecentFailures({ workspaceId, timezone }: RecentFailuresProps) {
             key: 'at',
             width: 64,
             render: (_, row) => (
-              <span className="text-xs text-ink-3 tabular-nums">
-                {formatEventTime(row.at, timezone, i18n.locale)}
-              </span>
+              <span className="text-xs text-ink-3 tabular-nums">{formatEventTime(row.at, timezone, i18n.locale)}</span>
             )
           },
           {

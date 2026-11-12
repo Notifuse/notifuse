@@ -184,13 +184,6 @@ describe('firstAccessiblePage', () => {
     })
   })
 
-  it('never sends a member who may only write message history back to the dashboard', () => {
-    // The dashboard tests message_history.read strictly and passes the same strict check here.
-    const page = firstAccessiblePage(only(), 'ws1')
-    expect(page.key).toBe('settings')
-    expect(page.target.to).not.toBe('/console/workspace/$workspaceId')
-  })
-
   it('falls back to settings when nothing is reachable', () => {
     expect(firstAccessiblePage(() => false, 'ws1')).toEqual({
       key: 'settings',

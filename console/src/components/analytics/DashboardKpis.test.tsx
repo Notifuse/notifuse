@@ -9,7 +9,10 @@ import type { StoredPermissions } from '../../services/api/permissions'
 import type { Workspace } from '../../services/api/types'
 
 const { query } = vi.hoisted(() => ({ query: vi.fn() }))
-vi.mock('./dashboardClient', () => ({ dashboardAnalytics: { query }, DASHBOARD_REFRESH_MS: 60_000 }))
+vi.mock('./dashboardClient', () => ({
+  dashboardAnalytics: { query },
+  DASHBOARD_REFRESH_MS: 60_000
+}))
 
 vi.mock('@tanstack/react-router', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-router')>()),
@@ -59,18 +62,51 @@ const periods: DashboardPeriods = {
 }
 
 const all = { read: true, write: true }
-const fullPermissions: StoredPermissions = { contacts: all, web_analytics: all, workspace: all, message_history: all }
+const fullPermissions: StoredPermissions = {
+  contacts: all,
+  web_analytics: all,
+  workspace: all,
+  message_history: all
+}
 
 const workspace = (webEnabled: boolean) =>
-  ({ id: 'ws1', name: 'Acme', settings: { timezone: 'Europe/Paris', web_analytics: { enabled: webEnabled } } }) as unknown as Workspace
+  ({
+    id: 'ws1',
+    name: 'Acme',
+    settings: {
+      timezone: 'Europe/Paris',
+      web_analytics: { enabled: webEnabled }
+    }
+  }) as unknown as Workspace
 
 const totals = (overrides: Partial<Record<MessageOrigin, Partial<MessageTotals>>> = {}) => ({
-  broadcast: { ...emptyTotals(), sent: 600, delivered: 600, opened: 300, opensTracked: 600, clicked: 60, clicksTracked: 600, ...overrides.broadcast },
-  transactional: { ...emptyTotals(), sent: 400, delivered: 400, opened: 200, opensTracked: 400, clicked: 40, clicksTracked: 400, ...overrides.transactional },
+  broadcast: {
+    ...emptyTotals(),
+    sent: 600,
+    delivered: 600,
+    opened: 300,
+    opensTracked: 600,
+    clicked: 60,
+    clicksTracked: 600,
+    ...overrides.broadcast
+  },
+  transactional: {
+    ...emptyTotals(),
+    sent: 400,
+    delivered: 400,
+    opened: 200,
+    opensTracked: 400,
+    clicked: 40,
+    clicksTracked: 400,
+    ...overrides.transactional
+  },
   automation: { ...emptyTotals(), ...overrides.automation }
 })
 
-const row = (data: Record<string, unknown>) => ({ data: [data], meta: { total: 1, query: '', params: [] } })
+const row = (data: Record<string, unknown>) => ({
+  data: [data],
+  meta: { total: 1, query: '', params: [] }
+})
 
 /** Answers each query of the strip from its schema and bounds. */
 function answer(q: AnalyticsQuery) {
@@ -79,7 +115,12 @@ function answer(q: AnalyticsQuery) {
   if (q.schema === 'contacts') return row({ count: range ? 1204 : 18342 })
   if (q.schema === 'web_sessions') return row({ sessions: isCurrent ? 4700 : 4000 })
   // Previous period rates: 40 % opens, 8 % clicks.
-  return row({ count_opened: 400, count_opens_tracked: 1000, count_clicked: 80, count_clicks_tracked: 1000 })
+  return row({
+    count_opened: 400,
+    count_opens_tracked: 1000,
+    count_clicked: 80,
+    count_clicks_tracked: 1000
+  })
 }
 
 function renderKpis(props: Partial<Parameters<typeof DashboardKpis>[0]> = {}) {
@@ -134,18 +175,28 @@ describe('DashboardKpis', () => {
     const queries = query.mock.calls.map(([q]) => q as AnalyticsQuery)
     const newContacts = queries.find((q) => q.schema === 'contacts' && q.filters?.length)
     expect(newContacts?.filters).toEqual([
-      { member: 'created_at', operator: 'inDateRange', values: [periods.current.startUtc, periods.current.endUtc] }
+      {
+        member: 'created_at',
+        operator: 'inDateRange',
+        values: [periods.current.startUtc, periods.current.endUtc]
+      }
     ])
     const previousRates = queries.find((q) => q.schema === 'message_history')
     expect(previousRates?.filters).toEqual([
-      { member: 'created_at', operator: 'inDateRange', values: [periods.previous.startUtc, periods.previous.endUtc] },
+      {
+        member: 'created_at',
+        operator: 'inDateRange',
+        values: [periods.previous.startUtc, periods.previous.endUtc]
+      },
       { member: 'channel', operator: 'equals', values: ['email'] }
     ])
     expect(queries.filter((q) => q.schema === 'web_sessions')).toHaveLength(2)
   })
 
   it('leaves out the contacts and visits a member may not read', async () => {
-    renderKpis({ permissions: { message_history: { read: true, write: false } } })
+    renderKpis({
+      permissions: { message_history: { read: true, write: false } }
+    })
 
     expect(await screen.findByText('1,000')).toBeInTheDocument()
     expect(screen.queryByText('Contacts')).not.toBeInTheDocument()
@@ -167,7 +218,10 @@ describe('DashboardKpis', () => {
   it('hides visits when web analytics is off and the member cannot set it up', async () => {
     renderKpis({
       workspace: workspace(false),
-      permissions: { ...fullPermissions, workspace: { read: true, write: false } }
+      permissions: {
+        ...fullPermissions,
+        workspace: { read: true, write: false }
+      }
     })
 
     expect(await screen.findByText('18,342')).toBeInTheDocument()
@@ -175,7 +229,9 @@ describe('DashboardKpis', () => {
   })
 
   it('says over how many emails a partly tracked rate is computed', async () => {
-    renderKpis({ totals: totals({ transactional: { opensTracked: 200, opened: 100 } }) })
+    renderKpis({
+      totals: totals({ transactional: { opensTracked: 200, opened: 100 } })
+    })
 
     // 400 opens over 800 tracked emails.
     const value = await screen.findByText('50.0%')

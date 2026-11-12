@@ -6,14 +6,22 @@ import { I18nProvider } from '@lingui/react'
 import type { ReactNode } from 'react'
 import type { MessageHistory, MessageListParams } from '../../services/api/messages_history'
 
-const { listMessages, navigate } = vi.hoisted(() => ({ listMessages: vi.fn(), navigate: vi.fn() }))
+const { listMessages, navigate } = vi.hoisted(() => ({
+  listMessages: vi.fn(),
+  navigate: vi.fn()
+}))
 vi.mock('../../services/api/messages_history', () => ({ listMessages }))
-vi.mock('./dashboardClient', () => ({ dashboardAnalytics: { query: vi.fn() }, DASHBOARD_REFRESH_MS: 60_000 }))
+vi.mock('./dashboardClient', () => ({
+  dashboardAnalytics: { query: vi.fn() },
+  DASHBOARD_REFRESH_MS: 60_000
+}))
+const { linkSearch } = vi.hoisted(() => ({ linkSearch: vi.fn() }))
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => navigate,
-  Link: ({ search, children }: { search?: Record<string, unknown>; children: ReactNode }) => (
-    <a href={`/logs?${new URLSearchParams(search as Record<string, string>).toString()}`}>{children}</a>
-  )
+  Link: ({ search, children }: { search?: Record<string, unknown>; children: ReactNode }) => {
+    linkSearch(search)
+    return <a href={`/logs?${new URLSearchParams(search as Record<string, string>).toString()}`}>{children}</a>
+  }
 }))
 
 import { RecentFailures } from './RecentFailures'
@@ -66,10 +74,21 @@ describe('RecentFailures', () => {
 
   it('lists each failure once with its reason and kind', async () => {
     lists(
-      [message('spam', { complained_at: '2026-11-03T09:00:00Z', bounced_at: '2026-11-02T09:00:00Z' })],
       [
-        message('spam', { complained_at: '2026-11-03T09:00:00Z', bounced_at: '2026-11-02T09:00:00Z' }),
-        message('full', { bounced_at: '2026-11-04T09:00:00Z', status_info: 'Mailbox full' })
+        message('spam', {
+          complained_at: '2026-11-03T09:00:00Z',
+          bounced_at: '2026-11-02T09:00:00Z'
+        })
+      ],
+      [
+        message('spam', {
+          complained_at: '2026-11-03T09:00:00Z',
+          bounced_at: '2026-11-02T09:00:00Z'
+        }),
+        message('full', {
+          bounced_at: '2026-11-04T09:00:00Z',
+          status_info: 'Mailbox full'
+        })
       ],
       [message('down', { failed_at: '2026-11-01T09:00:00Z' })]
     )
@@ -107,6 +126,11 @@ describe('RecentFailures', () => {
       'href',
       '/logs?tab=messages&is_failed=true'
     )
+    // A boolean: the router would write the string 'true' JSON-quoted, read back as not true.
+    expect(linkSearch).toHaveBeenLastCalledWith({
+      tab: 'messages',
+      is_failed: true
+    })
   })
 
   it('offers a retry when a list fails, and asks it again', async () => {

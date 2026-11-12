@@ -6,10 +6,19 @@ import { I18nProvider } from '@lingui/react'
 import type { ReactNode } from 'react'
 import type { Contact } from '../../services/api/contacts'
 
-const { list, navigate, openDrawer } = vi.hoisted(() => ({ list: vi.fn(), navigate: vi.fn(), openDrawer: vi.fn() }))
+const { list, navigate, openDrawer } = vi.hoisted(() => ({
+  list: vi.fn(),
+  navigate: vi.fn(),
+  openDrawer: vi.fn()
+}))
 vi.mock('../../services/api/contacts', () => ({ contactsApi: { list } }))
-vi.mock('../contacts/ContactsCsvUploadProvider', () => ({ useContactsCsvUpload: () => ({ openDrawer }) }))
-vi.mock('./dashboardClient', () => ({ dashboardAnalytics: { query: vi.fn() }, DASHBOARD_REFRESH_MS: 60_000 }))
+vi.mock('../contacts/ContactsCsvUploadProvider', () => ({
+  useContactsCsvUpload: () => ({ openDrawer })
+}))
+vi.mock('./dashboardClient', () => ({
+  dashboardAnalytics: { query: vi.fn() },
+  DASHBOARD_REFRESH_MS: 60_000
+}))
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => navigate,
   Link: ({ children }: { children: ReactNode }) => <a href="/contacts">{children}</a>
@@ -20,7 +29,12 @@ import { NewContactsTable } from './NewContactsTable'
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString()
 
 const contact = (email: string, extra: Partial<Contact> = {}): Contact =>
-  ({ email, created_at: minutesAgo(4), updated_at: minutesAgo(4), ...extra }) as Contact
+  ({
+    email,
+    created_at: minutesAgo(4),
+    updated_at: minutesAgo(4),
+    ...extra
+  }) as Contact
 
 const renderCard = (canImport = true) =>
   render(
@@ -41,7 +55,10 @@ describe('NewContactsTable', () => {
   it('lists the five latest contacts with their age and name', async () => {
     list.mockResolvedValue({
       contacts: [
-        contact('ada@example.com', { first_name: 'Ada', last_name: 'Lovelace' }),
+        contact('ada@example.com', {
+          first_name: 'Ada',
+          last_name: 'Lovelace'
+        }),
         contact('anon@example.com', { created_at: minutesAgo(180) })
       ]
     })
