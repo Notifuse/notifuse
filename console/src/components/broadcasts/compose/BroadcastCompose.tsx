@@ -285,11 +285,12 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
   const sendTest = async () => {
     if (!previewTemplate) return
     // The test sends the template to the chosen addresses: a booked broadcast's pending edits stay
-    // pending (its Save bar decides), and a draft's refused save stops here, as Send now does.
+    // pending (its Save bar decides), and a draft the server refuses stops here, as Send now does.
+    // An incomplete draft is not refused: nothing was sent, and the test needs only the template.
     if (!scheduled) {
       const { ok, error } = await autosave.flush()
-      if (!ok) {
-        message.error(error ?? t`The broadcast could not be saved`)
+      if (!ok && error) {
+        message.error(error)
         return
       }
     }
@@ -299,10 +300,10 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
   const send = async (now: boolean) => {
     if (!id) return
     setSending(true)
-    const { ok } = await autosave.flush()
+    const { ok, error } = await autosave.flush()
     if (!ok) {
       setSending(false)
-      message.error(t`The broadcast could not be saved`)
+      message.error(error ?? t`The broadcast could not be saved`)
       return
     }
     autosave.freeze()

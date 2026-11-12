@@ -340,6 +340,30 @@ describe('BroadcastsPage', () => {
     expect(url.get().broadcast).toBeUndefined()
   })
 
+  it('drops a pending J when its page fails, even after a second failure', async () => {
+    const first = Array.from({ length: 25 }, (_, i) => broadcastOf(`b${i + 1}`))
+    let failures = 0
+    list.mockImplementation(({ offset }: { offset: number }) => {
+      if (offset === 0) return Promise.resolve(page(first, 26))
+      if (failures < 2) {
+        failures++
+        return Promise.reject(new Error('down'))
+      }
+      return Promise.resolve(page([broadcastOf('b26')], 26))
+    })
+    url.set({ broadcast: 'b25' })
+    renderPage()
+    expect(await screen.findByText('25 of 26')).toBeInTheDocument()
+
+    fireEvent.keyDown(document.body, { key: 'j' })
+    await waitFor(() => expect(failures).toBe(1))
+    fireEvent.keyDown(document.body, { key: 'j' })
+    await waitFor(() => expect(failures).toBe(2))
+    fireEvent.click(await screen.findByRole('button', { name: 'Load 25 more' }))
+    expect(await screen.findByText('Broadcast b26')).toBeInTheDocument()
+    expect(url.get().broadcast).toBe('b25')
+  })
+
   it('loads 25 more from the footer', async () => {
     const first = Array.from({ length: 25 }, (_, i) => broadcastOf(`b${i + 1}`))
     list.mockImplementation(({ offset }: { offset: number }) =>

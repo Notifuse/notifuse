@@ -2730,7 +2730,7 @@ msgstr "ブロードキャスト「{name}」を一時停止しました"
 msgid "Broadcast \"{name}\" resumed successfully"
 msgstr "ブロードキャスト「{name}」を再開しました"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:324
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:325
 msgid "Broadcast \"{name}\" sending started"
 msgstr "ブロードキャスト「{name}」の送信を開始しました"
 
@@ -2752,7 +2752,7 @@ msgstr "ブロードキャストID"
 #~ msgid "Broadcast ID copied to clipboard"
 #~ msgstr "ブロードキャストIDをクリップボードにコピーしました"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:409
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:410
 msgid "Broadcast name"
 msgstr "ブロードキャスト名"
 
@@ -2761,14 +2761,14 @@ msgstr "ブロードキャスト名"
 msgid "Broadcast not found"
 msgstr "ブロードキャストが見つかりません"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:479
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:480
 msgid "Broadcast updated successfully"
 msgstr "ブロードキャストを更新しました"
 
 #: src/components/analytics/OriginVolumeChart.tsx:42
 #: src/components/analytics/UpcomingSends.tsx:77
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:87
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:425
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:426
 #: src/components/settings/permissionLabels.ts:10
 #: src/layouts/app-shell/menuItems.ts:175
 #: src/pages/BroadcastsPage.tsx:236
@@ -2905,7 +2905,7 @@ msgstr "キャンペーン"
 #: src/components/blog/ThemeEditorDrawer.tsx:469
 #: src/components/broadcasts/BroadcastsTable.tsx:187
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:358
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:359
 #: src/components/broadcasts/compose/ContentCard.tsx:81
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:48
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:340
@@ -3215,8 +3215,8 @@ msgstr "予約する日付を選択してください"
 msgid "choose a list"
 msgstr "リストを選択してください"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:370
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:389
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:371
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:390
 msgid "Choose a list first"
 msgstr "先にリストを選択してください"
 
@@ -3232,7 +3232,7 @@ msgstr "保存済みブロックを選択"
 msgid "Choose a starting point for your new theme. You can customize everything later."
 msgstr "新しいテーマの出発点を選択してください。後ですべてカスタマイズできます。"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:393
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:394
 msgid "Choose a template first"
 msgstr "先にテンプレートを選択してください"
 
@@ -7185,7 +7185,7 @@ msgstr "Webhookサブスクリプションの保存に失敗しました"
 msgid "Failed to save Zapier integration"
 msgstr "Zapier連携の保存に失敗しました"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:335
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:336
 msgid "Failed to schedule broadcast"
 msgstr "ブロードキャストのスケジュールに失敗しました"
 
@@ -7193,7 +7193,7 @@ msgstr "ブロードキャストのスケジュールに失敗しました"
 msgid "Failed to select winner"
 msgstr "勝者の選択に失敗しました"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:335
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:336
 msgid "Failed to send broadcast"
 msgstr "ブロードキャストの送信に失敗しました"
 
@@ -7535,7 +7535,7 @@ msgstr "初回開封"
 msgid "First opens counts the messages opened or clicked, once each; first clicks, the messages clicked once each."
 msgstr "初回開封は開封またはクリックされたメッセージを 1 件につき 1 回、初回クリックはクリックされたメッセージを 1 件につき 1 回数えます。"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:368
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:369
 msgid "Fix {errors, plural, one {# issue} other {# issues}} first"
 msgstr "先に {errors, plural, one {# 件の問題} other {# 件の問題}}を修正してください"
 
@@ -8440,7 +8440,7 @@ msgstr "含める"
 msgid "Incoming Webhooks"
 msgstr "受信Webhook"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:537
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:538
 msgid "Incomplete: {reason}"
 msgstr "未完了: {reason}"
 
@@ -10453,7 +10453,7 @@ msgstr "リスト未選択"
 msgid "No lists found"
 msgstr "リストが見つかりません"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:366
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:367
 #: src/components/broadcasts/compose/SendSummary.tsx:154
 msgid "No marketing email provider"
 msgstr "マーケティングメールプロバイダーがありません"
@@ -10784,7 +10784,7 @@ msgstr "今はしない"
 msgid "Not resolved"
 msgstr "未解決"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:543
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:544
 msgid "Not saved"
 msgstr "未保存"
 
@@ -11105,7 +11105,7 @@ msgstr "新しいウィンドウで開く"
 msgid "Open in new tab"
 msgstr "新しいタブで開く"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:440
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:441
 msgid "Open its page"
 msgstr "ページを開く"
 
@@ -13166,7 +13166,7 @@ msgstr "保持期間"
 #: src/components/analytics/BlockError.tsx:22
 #: src/components/analytics/DashboardKpis.tsx:183
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:92
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:546
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:547
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:169
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
@@ -13430,7 +13430,7 @@ msgstr "それでも保存"
 #~ msgid "Save Block"
 #~ msgstr "ブロックを保存"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:484
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:485
 msgid "Save changes"
 msgstr "変更を保存"
 
@@ -13484,7 +13484,7 @@ msgstr "ユーザーメタデータをこのカスタムJSONフィールドに�
 msgid "Saved ({0})"
 msgstr "保存済み ({0})"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:533
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:534
 msgid "Saved {ago}"
 msgstr "{ago}に保存"
 
@@ -13509,11 +13509,11 @@ msgstr "保存済みブロックはワークスペースのすべてのテンプ
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr "設定を保存するとサーバーが再起動します。再度サインインが必要になります。"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:530
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:531
 msgid "Saving…"
 msgstr "保存中…"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:382
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:383
 #: src/components/broadcasts/compose/SendingCard.tsx:86
 msgid "Schedule"
 msgstr "予約"
@@ -13538,7 +13538,7 @@ msgstr "予約のタイムゾーン"
 msgid "Scheduled"
 msgstr "予約済み"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:327
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:328
 msgid "Scheduled for {date}"
 msgstr "{date} に予約済み"
 
@@ -14166,8 +14166,8 @@ msgstr "招待を送信"
 msgid "Send Magic Code"
 msgstr "マジックコードを送信"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:357
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:382
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:358
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:383
 msgid "Send now"
 msgstr "今すぐ送信"
 
@@ -14183,7 +14183,7 @@ msgstr "今すぐ送信"
 #~ msgid "Send or Schedule Broadcast"
 #~ msgstr "ブロードキャストを送信または予約"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:399
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:400
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:305
 #: src/components/settings/WebhookDetail.tsx:324
 msgid "Send test"
@@ -14205,11 +14205,11 @@ msgstr "テストメールを送信"
 msgid "Send the winner automatically"
 msgstr "勝者を自動送信"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:346
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:347
 msgid "Send this broadcast now?"
 msgstr "このブロードキャストを今すぐ送信しますか？"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:347
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:348
 msgid "Send to ≈ {count, plural, one {# recipient} other {# recipients}} now?"
 msgstr "≈ {count, plural, one {# 件の宛先} other {# 件の宛先}}に今すぐ送信しますか？"
 
@@ -15824,8 +15824,7 @@ msgstr "ブロックとその中身は、条件を満たす受信者にのみ送
 msgid "The block will be sent to every recipient again."
 msgstr "ブロックは再びすべての受信者に送信されます。"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:292
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:305
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:306
 msgid "The broadcast could not be saved"
 msgstr "ブロードキャストを保存できませんでした"
 
@@ -16230,7 +16229,7 @@ msgstr "このブロードキャストにはUTMキャンペーンが設定され
 msgid "This broadcast is a draft and has not been scheduled or sent yet."
 msgstr "このブロードキャストは下書きで、まだ予約も送信もされていません。"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:439
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:440
 msgid "This broadcast is no longer a draft, so it can't be edited here."
 msgstr "このブロードキャストは下書きではなくなったため、ここでは編集できません。"
 
@@ -18380,7 +18379,7 @@ msgid "You don't have write permission for automations"
 msgstr "オートメーションの書き込み権限がありません"
 
 #: src/components/broadcasts/BroadcastsTable.tsx:89
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:364
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:365
 #: src/components/broadcasts/detail/AbTestPanel.tsx:198
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:175
 #: src/pages/BroadcastsPage.tsx:45
@@ -18451,7 +18450,7 @@ msgstr "{workspaceName} に参加しました"
 #~ msgid "You need read template and write contact permissions to send test emails"
 #~ msgstr "テストメールを送信するには、テンプレートの読み取りとコンタクトの書き込み権限が必要です"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:391
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:392
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:302
 #: src/components/templates/SendTestEmailButton.tsx:25
 msgid "You need Templates read and Transactional write permissions to send test emails"
@@ -18489,7 +18488,7 @@ msgstr "このAWS認証情報ではSESテナントを作成できません。ses
 msgid "Your blog settings have not been saved. Leaving this page discards them."
 msgstr "ブログ設定は保存されていません。このページを離れると破棄されます。"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:483
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:484
 msgid "Your changes to this scheduled broadcast will be lost."
 msgstr "この予約済みブロードキャストへの変更は失われます。"
 

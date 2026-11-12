@@ -141,13 +141,10 @@ export function BroadcastsPage() {
   // J and K walk the loaded rows; at the last one J loads the next page, then moves on.
   const index = search.broadcast ? rows.findIndex((b) => b.id === search.broadcast) : -1
   const pendingNext = useRef<string | null>(null)
-  // A pending J is dropped once the drawer leaves its row (K, close, another row) or the page fails.
+  // A pending J is dropped once the drawer leaves its row (K, close, another row) or its page fails.
   useEffect(() => {
     if (pendingNext.current && search.broadcast !== pendingNext.current) pendingNext.current = null
   }, [search.broadcast])
-  useEffect(() => {
-    if (list.isFetchNextPageError) pendingNext.current = null
-  }, [list.isFetchNextPageError])
   useEffect(() => {
     if (!pendingNext.current || search.broadcast !== pendingNext.current) return
     const from = rows.findIndex((b) => b.id === pendingNext.current)
@@ -168,8 +165,11 @@ export function BroadcastsPage() {
               ? () => openDetail(rows[index + 1].id, true)
               : list.hasNextPage
                 ? () => {
-                    pendingNext.current = rows[index].id
-                    void list.fetchNextPage()
+                    const from = rows[index].id
+                    pendingNext.current = from
+                    void list.fetchNextPage().then((result) => {
+                      if (result.isError && pendingNext.current === from) pendingNext.current = null
+                    })
                   }
                 : undefined
         }

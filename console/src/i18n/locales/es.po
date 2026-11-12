@@ -2730,7 +2730,7 @@ msgstr "El envío masivo «{name}» se ha pausado"
 msgid "Broadcast \"{name}\" resumed successfully"
 msgstr "El envío masivo «{name}» se ha reanudado"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:324
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:325
 msgid "Broadcast \"{name}\" sending started"
 msgstr "Ha comenzado el envío de «{name}»"
 
@@ -2752,7 +2752,7 @@ msgstr "ID del envío masivo"
 #~ msgid "Broadcast ID copied to clipboard"
 #~ msgstr "ID del envío masivo copiado al portapapeles"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:409
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:410
 msgid "Broadcast name"
 msgstr "Nombre del envío masivo"
 
@@ -2761,14 +2761,14 @@ msgstr "Nombre del envío masivo"
 msgid "Broadcast not found"
 msgstr "No se encontró el envío masivo"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:479
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:480
 msgid "Broadcast updated successfully"
 msgstr "Envío masivo actualizado exitosamente"
 
 #: src/components/analytics/OriginVolumeChart.tsx:42
 #: src/components/analytics/UpcomingSends.tsx:77
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:87
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:425
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:426
 #: src/components/settings/permissionLabels.ts:10
 #: src/layouts/app-shell/menuItems.ts:175
 #: src/pages/BroadcastsPage.tsx:236
@@ -2905,7 +2905,7 @@ msgstr "Campañas"
 #: src/components/blog/ThemeEditorDrawer.tsx:469
 #: src/components/broadcasts/BroadcastsTable.tsx:187
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:358
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:359
 #: src/components/broadcasts/compose/ContentCard.tsx:81
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:48
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:340
@@ -3215,8 +3215,8 @@ msgstr "Elige una fecha para programar"
 msgid "choose a list"
 msgstr "elige una lista"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:370
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:389
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:371
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:390
 msgid "Choose a list first"
 msgstr "Primero elige una lista"
 
@@ -3232,7 +3232,7 @@ msgstr "Elige un bloque guardado"
 msgid "Choose a starting point for your new theme. You can customize everything later."
 msgstr "Elige un punto de partida para tu nuevo tema. Puedes personalizar todo después."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:393
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:394
 msgid "Choose a template first"
 msgstr "Primero elige una plantilla"
 
@@ -7185,7 +7185,7 @@ msgstr "Error al guardar suscripción de webhook"
 msgid "Failed to save Zapier integration"
 msgstr "Error al guardar integración de Zapier"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:335
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:336
 msgid "Failed to schedule broadcast"
 msgstr "Error al programar envío masivo"
 
@@ -7193,7 +7193,7 @@ msgstr "Error al programar envío masivo"
 msgid "Failed to select winner"
 msgstr "Error al seleccionar ganador"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:335
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:336
 msgid "Failed to send broadcast"
 msgstr "Error al enviar envío masivo"
 
@@ -7535,7 +7535,7 @@ msgstr "Primeras aperturas"
 msgid "First opens counts the messages opened or clicked, once each; first clicks, the messages clicked once each."
 msgstr "Primeras aperturas cuenta los mensajes abiertos o con clic, una vez cada uno; primeros clics, los mensajes con clic, una vez cada uno."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:368
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:369
 msgid "Fix {errors, plural, one {# issue} other {# issues}} first"
 msgstr "Primero corrige {errors, plural, one {# problema} other {# problemas}}"
 
@@ -8440,7 +8440,7 @@ msgstr "Incluidos"
 msgid "Incoming Webhooks"
 msgstr "Webhooks entrantes"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:537
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:538
 msgid "Incomplete: {reason}"
 msgstr "Incompleto: {reason}"
 
@@ -10453,7 +10453,7 @@ msgstr "Ninguna lista elegida"
 msgid "No lists found"
 msgstr "No se encontraron listas"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:366
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:367
 #: src/components/broadcasts/compose/SendSummary.tsx:154
 msgid "No marketing email provider"
 msgstr "Ningún proveedor de correo de marketing"
@@ -10784,7 +10784,7 @@ msgstr "Ahora no"
 msgid "Not resolved"
 msgstr "No resuelto"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:543
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:544
 msgid "Not saved"
 msgstr "No guardado"
 
@@ -11105,7 +11105,7 @@ msgstr "Abrir en una ventana"
 msgid "Open in new tab"
 msgstr "Abrir en una pestaña nueva"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:440
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:441
 msgid "Open its page"
 msgstr "Abrir su página"
 
@@ -13166,7 +13166,7 @@ msgstr "Retención"
 #: src/components/analytics/BlockError.tsx:22
 #: src/components/analytics/DashboardKpis.tsx:183
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:92
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:546
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:547
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:169
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
@@ -13430,7 +13430,7 @@ msgstr "Guardar de todos modos"
 #~ msgid "Save Block"
 #~ msgstr "Guardar bloque"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:484
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:485
 msgid "Save changes"
 msgstr "Guardar cambios"
 
@@ -13484,7 +13484,7 @@ msgstr "Guardar metadatos del usuario en este campo JSON personalizado (Opcional
 msgid "Saved ({0})"
 msgstr "Guardado ({0})"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:533
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:534
 msgid "Saved {ago}"
 msgstr "Guardado {ago}"
 
@@ -13509,11 +13509,11 @@ msgstr "Los bloques guardados se pueden usar en todas las plantillas del espacio
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr "Guardar la configuración reiniciará el servidor. Tendrás que iniciar sesión de nuevo."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:530
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:531
 msgid "Saving…"
 msgstr "Guardando…"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:382
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:383
 #: src/components/broadcasts/compose/SendingCard.tsx:86
 msgid "Schedule"
 msgstr "Programación"
@@ -13538,7 +13538,7 @@ msgstr "Zona horaria de la programación"
 msgid "Scheduled"
 msgstr "Programado"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:327
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:328
 msgid "Scheduled for {date}"
 msgstr "Programado para el {date}"
 
@@ -14166,8 +14166,8 @@ msgstr "Enviar invitación"
 msgid "Send Magic Code"
 msgstr "Enviar código mágico"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:357
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:382
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:358
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:383
 msgid "Send now"
 msgstr "Enviar ahora"
 
@@ -14183,7 +14183,7 @@ msgstr "Enviar ahora"
 #~ msgid "Send or Schedule Broadcast"
 #~ msgstr "Enviar o programar envío masivo"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:399
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:400
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:305
 #: src/components/settings/WebhookDetail.tsx:324
 msgid "Send test"
@@ -14205,11 +14205,11 @@ msgstr "Enviar correo de prueba"
 msgid "Send the winner automatically"
 msgstr "Enviar el ganador automáticamente"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:346
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:347
 msgid "Send this broadcast now?"
 msgstr "¿Enviar este envío masivo ahora?"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:347
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:348
 msgid "Send to ≈ {count, plural, one {# recipient} other {# recipients}} now?"
 msgstr "¿Enviar ahora a ≈ {count, plural, one {# destinatario} other {# destinatarios}}?"
 
@@ -15824,8 +15824,7 @@ msgstr "El bloque y todo su contenido solo se envían a los destinatarios para l
 msgid "The block will be sent to every recipient again."
 msgstr "El bloque se enviará de nuevo a todos los destinatarios."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:292
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:305
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:306
 msgid "The broadcast could not be saved"
 msgstr "No se pudo guardar el envío masivo"
 
@@ -16230,7 +16229,7 @@ msgstr "Este envío masivo no tiene campaña UTM, así que su tráfico web no pu
 msgid "This broadcast is a draft and has not been scheduled or sent yet."
 msgstr "Este envío masivo es un borrador y aún no se ha programado ni enviado."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:439
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:440
 msgid "This broadcast is no longer a draft, so it can't be edited here."
 msgstr "Este envío masivo ya no es un borrador, así que no se puede editar aquí."
 
@@ -18380,7 +18379,7 @@ msgid "You don't have write permission for automations"
 msgstr "No tienes permiso de escritura para automatizaciones"
 
 #: src/components/broadcasts/BroadcastsTable.tsx:89
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:364
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:365
 #: src/components/broadcasts/detail/AbTestPanel.tsx:198
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:175
 #: src/pages/BroadcastsPage.tsx:45
@@ -18451,7 +18450,7 @@ msgstr "Te has unido a {workspaceName}"
 #~ msgid "You need read template and write contact permissions to send test emails"
 #~ msgstr "Necesitas permisos de lectura de plantilla y escritura de contacto para enviar correos de prueba"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:391
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:392
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:302
 #: src/components/templates/SendTestEmailButton.tsx:25
 msgid "You need Templates read and Transactional write permissions to send test emails"
@@ -18489,7 +18488,7 @@ msgstr "Tus credenciales de AWS no pueden crear tenants de SES. Concede ses:Crea
 msgid "Your blog settings have not been saved. Leaving this page discards them."
 msgstr "Tu configuración del blog no se ha guardado. Si sales de esta página, se descartará."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:483
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:484
 msgid "Your changes to this scheduled broadcast will be lost."
 msgstr "Se perderán los cambios de este envío masivo programado."
 

@@ -274,6 +274,16 @@ describe('BroadcastCompose', () => {
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument()
   })
 
+  it('still opens the test of an incomplete draft: nothing was refused', async () => {
+    renderCompose()
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Broadcast name' }), { target: { value: '' } })
+    const button = screen.getByRole('button', { name: 'Send test' })
+    await waitFor(() => expect(button).toBeEnabled())
+    await userEvent.click(button)
+    expect(await screen.findByTestId('send-test')).toBeInTheDocument()
+    expect(broadcastApi.update).not.toHaveBeenCalled()
+  })
+
   it('opens no test when the draft cannot be saved', async () => {
     ;(broadcastApi.update as Mock).mockRejectedValue(new ApiError('Refused', 400))
     renderCompose()
