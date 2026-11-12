@@ -4062,7 +4062,9 @@ func TestBroadcastService_ListBroadcasts_WithTemplates_WithoutTemplatesRead(t *t
 
 	ctx := context.Background()
 	params := domain.ListBroadcastsParams{WorkspaceID: "w1", WithTemplates: true}
-	authOK(d.authService, ctx, params.WorkspaceID)
+	authAs(d.authService, ctx, params.WorkspaceID, "member", domain.UserPermissions{
+		domain.PermissionResourceBroadcasts: {Read: true, Write: true},
+	})
 
 	b := testBroadcast(params.WorkspaceID, "b1")
 	b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: "tplA"}}
