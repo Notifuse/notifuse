@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { router } from '../router'
 
 describe('route page layouts', () => {
-  it('declares the rail layout on Settings, its sections and the Blog, and on nothing else', () => {
+  it('declares the rail layout on Settings, its sections, the Blog, Contacts and the Lists redirect, and on nothing else', () => {
     const declared = Object.values(router.routesById)
       .filter((route) => route.options.staticData?.layout !== undefined)
       .map((route) => [route.id, route.options.staticData?.layout])
@@ -10,6 +10,8 @@ describe('route page layouts', () => {
 
     expect(declared).toEqual([
       ['/console/workspace/$workspaceId/blog', 'rail'],
+      ['/console/workspace/$workspaceId/contacts', 'rail'],
+      ['/console/workspace/$workspaceId/lists', 'rail'],
       ['/console/workspace/$workspaceId/settings', 'rail'],
       ['/console/workspace/$workspaceId/settings/$section', 'rail']
     ])

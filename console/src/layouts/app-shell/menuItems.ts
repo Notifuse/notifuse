@@ -6,7 +6,6 @@ import {
   AlignJustify,
   ChartLine,
   Files,
-  FolderOpen,
   LayoutGrid,
   Send,
   Settings,
@@ -65,7 +64,8 @@ export function selectedMenuKey(pathname: string): string {
       : 'web-analytics-dashboard'
   }
   const cascade: [string, string][] = [
-    ['/lists', 'lists'],
+    // The Lists page redirects to Contacts, whose rail holds the lists.
+    ['/lists', 'contacts'],
     ['/templates', 'templates'],
     ['/blog', 'blog'],
     ['/contacts', 'contacts'],
@@ -124,7 +124,6 @@ const LABELS = {
   filters: msg`Filters`,
   annotations: msg`Annotations`,
   contacts: msg`Contacts`,
-  lists: msg`Lists`,
   broadcasts: msg`Broadcasts`,
   automations: msg`Automations`,
   transactional: msg`Transactional`,
@@ -245,7 +244,8 @@ export function buildMenuItems({ hasAccess, workspaceId, i18n }: BuildMenuItemsO
         tab('annotations', LABELS.annotations)
       ]
     },
-    hasAccess('contacts') && {
+    // Contacts holds the lists too: a member who may only read lists lands there.
+    (hasAccess('contacts') || hasAccess('lists')) && {
       key: 'contacts',
       icon: icon(SquareUserRound),
       label: link(
@@ -254,17 +254,6 @@ export function buildMenuItems({ hasAccess, workspaceId, i18n }: BuildMenuItemsO
           params: { workspaceId }
         },
         label(LABELS.contacts)
-      )
-    },
-    hasAccess('lists') && {
-      key: 'lists',
-      icon: icon(FolderOpen),
-      label: link(
-        {
-          to: '/console/workspace/$workspaceId/lists',
-          params: { workspaceId }
-        },
-        label(LABELS.lists)
       )
     },
     hasAccess('broadcasts') && {

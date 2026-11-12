@@ -4,84 +4,86 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App, message } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
-import { ApiError } from '../services/api/errors'
-
-vi.mock('@tanstack/react-router', () => ({
-  useParams: () => ({ workspaceId: 'ws1' })
-}))
-
-vi.mock('../contexts/AuthContext', () => ({
-  useAuth: () => ({ workspaces: [{ id: 'ws1', name: 'Workspace' }] }),
-  useWorkspacePermissions: () => ({ permissions: { lists: { read: true, write: true } } })
-}))
-
-// The icon is the only content of the delete button; render something a test can find.
-vi.mock('@fortawesome/react-fontawesome', () => ({
-  FontAwesomeIcon: ({ icon }: { icon: { iconName: string } }) => (
-    <span data-icon={icon.iconName} />
-  )
-}))
-
-// Keep the page render shallow: these children play no part in deleting a list.
-vi.mock('../components/lists/ListDrawer', () => ({ CreateListDrawer: () => null }))
-vi.mock('../components/lists/ImportContactsToListButton', () => ({
-  ImportContactsToListButton: () => null
-}))
-vi.mock('../components/lists/ListStats', () => ({ ListStats: () => null }))
-vi.mock('../components/templates/TemplatePreviewDrawer', () => ({ default: () => null }))
-vi.mock('../components/templates/CreateTemplateDrawer', () => ({
-  CreateTemplateDrawer: () => null
-}))
-vi.mock('../services/api/template', () => ({ templatesApi: { get: vi.fn() } }))
+import { ApiError } from '../../services/api/errors'
+import type { List } from '../../services/api/types'
 
 const deleteList = vi.fn()
-vi.mock('../services/api/list', () => ({
+vi.mock('../../services/api/list', () => ({
   listsApi: {
-    list: vi.fn().mockResolvedValue({
-      lists: [
-        {
-          id: 'newsletter',
-          name: 'Newsletter',
-          is_double_optin: false,
-          is_public: false,
-          created_at: '2026-01-01T00:00:00Z',
-          updated_at: '2026-01-01T00:00:00Z'
-        }
-      ]
-    }),
     delete: (...args: unknown[]) => deleteList(...args)
   }
 }))
 
-import { ListsPage } from './ListsPage'
+import { DeleteListModal } from './DeleteListModal'
 
-const renderPage = () => {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+const list: List = {
+  id: 'newsletter',
+  name: 'Newsletter',
+  is_double_optin: false,
+  is_public: false,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z'
+}
+
+let onDeleted = vi.fn()
+let onClose = vi.fn()
+let queryClient: QueryClient
+
+const renderModal = () => {
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
         <App>
-          <ListsPage />
+          <DeleteListModal workspaceId="ws1" list={list} open onClose={onClose} onDeleted={onDeleted} />
         </App>
       </I18nProvider>
     </QueryClientProvider>
   )
 }
 
-// Opens the delete dialog of the one list, confirms with its id and submits.
-const deleteTheList = async (container: HTMLElement) => {
-  await screen.findByText('Newsletter')
-  const trash = container.querySelector('[data-icon="trash-can"]')?.closest('button')
-  expect(trash).toBeTruthy()
-  fireEvent.click(trash as HTMLButtonElement)
-
+// Confirms with the list's id and submits.
+const deleteTheList = async () => {
   fireEvent.change(await screen.findByPlaceholderText('Enter list ID to confirm'), {
     target: { value: 'newsletter' }
   })
   fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
 }
 
-describe('ListsPage list deletion', () => {
+describe('DeleteListModal confirmation', () => {
+  beforeEach(() => {
+    deleteList.mockReset()
+    onDeleted = vi.fn()
+    onClose = vi.fn()
+  })
+
+  it('waits for the list ID before deleting', async () => {
+    renderModal()
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled()
+    fireEvent.change(screen.getByPlaceholderText('Enter list ID to confirm'), { target: { value: 'news' } })
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled()
+    expect(screen.getByText("ID doesn't match")).toBeInTheDocument()
+  })
+
+  it('deletes the list, refreshes the lists and their counts, then hands over', async () => {
+    deleteList.mockResolvedValue({})
+    renderModal()
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
+    await deleteTheList()
+    await waitFor(() => expect(onDeleted).toHaveBeenCalled())
+    expect(deleteList).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'newsletter' })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['lists', 'ws1'] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['lists-with-counts', 'ws1'] })
+  })
+
+  it('closes on cancel', () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onClose).toHaveBeenCalled()
+  })
+})
+
+describe('DeleteListModal', () => {
   beforeEach(() => {
     deleteList.mockReset()
     vi.mocked(message.error).mockClear()
@@ -145,8 +147,8 @@ describe('ListsPage list deletion', () => {
   ])('explains a refusal while live automations use the list: $case', async ({ refusal, shown }) => {
     deleteList.mockRejectedValue(refusal)
 
-    const { container } = renderPage()
-    await deleteTheList(container)
+    renderModal()
+    await deleteTheList()
 
     await waitFor(() => expect(message.error).toHaveBeenCalledWith({ content: shown, duration: 10 }))
     expect(deleteList).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'newsletter' })
@@ -158,19 +160,17 @@ describe('ListsPage list deletion', () => {
       'cannot delete list "Newsletter" while the live automation "Welcome series" uses it: pause the automation first, or change it to stop using the list'
     deleteList.mockRejectedValue(new ApiError(refusal, 409, { error: refusal }))
 
-    const { container } = renderPage()
-    await deleteTheList(container)
+    renderModal()
+    await deleteTheList()
 
-    await waitFor(() =>
-      expect(message.error).toHaveBeenCalledWith({ content: refusal, duration: 10 })
-    )
+    await waitFor(() => expect(message.error).toHaveBeenCalledWith({ content: refusal, duration: 10 }))
   })
 
   it('keeps the generic message for any other failure', async () => {
     deleteList.mockRejectedValue(new ApiError('pq: connection reset', 500))
 
-    const { container } = renderPage()
-    await deleteTheList(container)
+    renderModal()
+    await deleteTheList()
 
     await waitFor(() => expect(message.error).toHaveBeenCalledWith('Failed to delete list'))
     expect(message.error).not.toHaveBeenCalledWith('pq: connection reset')

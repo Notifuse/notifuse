@@ -19,7 +19,8 @@ describe('selectedMenuKey', () => {
     [`${ws}/web-analytics/annotations`, 'web-analytics-annotations'],
     [`${ws}/web-analytics/unknown`, 'web-analytics-dashboard'],
     [`${ws}/web-analytics`, 'web-analytics-dashboard'],
-    [`${ws}/lists`, 'lists'],
+    // The Lists page redirects to Contacts, whose rail holds the lists.
+    [`${ws}/lists`, 'contacts'],
     [`${ws}/templates`, 'templates'],
     [`${ws}/blog`, 'blog'],
     [`${ws}/contacts`, 'contacts'],
@@ -90,7 +91,6 @@ describe('buildMenuItems', () => {
       'analytics',
       'web-analytics',
       'contacts',
-      'lists',
       'broadcasts',
       'automations',
       'transactional-notifications',
@@ -112,8 +112,6 @@ describe('buildMenuItems', () => {
   it.each([
     ['message_history', ['analytics', 'logs']],
     ['web_analytics', ['web-analytics']],
-    ['contacts', ['contacts']],
-    ['lists', ['lists']],
     ['broadcasts', ['broadcasts']],
     ['automations', ['automations']],
     ['transactional', ['transactional-notifications']],
@@ -121,6 +119,14 @@ describe('buildMenuItems', () => {
   ] as const)('drops the entries a member without %s cannot reach', (resource, gone) => {
     const items = keys(buildMenuItems({ hasAccess: allowAllBut(resource), workspaceId: 'ws1', i18n }))
     gone.forEach((key) => expect(items).not.toContain(key))
+  })
+
+  it('shows Contacts with contacts or lists, and drops it without both', () => {
+    const entries = (hasAccess: (resource: keyof UserPermissions) => boolean) =>
+      keys(buildMenuItems({ hasAccess, workspaceId: 'ws1', i18n }))
+    expect(entries(allowAllBut('contacts'))).toContain('contacts')
+    expect(entries(allowAllBut('lists'))).toContain('contacts')
+    expect(entries(allowAllBut('contacts', 'lists'))).not.toContain('contacts')
   })
 
   it('keeps Blog and File Manager without templates, and drops Content without any child', () => {

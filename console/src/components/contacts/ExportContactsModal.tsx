@@ -47,10 +47,16 @@ export function ExportContactsModal({
     return value
   }
 
+  // The segment view exports its segment, as the table lists it.
+  const exportedSegments = filters.segment_id ? [filters.segment_id] : filters.segments
+
   // Build list of active filters for display
   const getActiveFilters = () => {
     const activeFilters: { key: string; label: string; value: string }[] = []
 
+    if (filters.search) {
+      activeFilters.push({ key: 'search', label: t`Search`, value: filters.search })
+    }
     if (filters.email) {
       activeFilters.push({ key: 'email', label: t`Email`, value: filters.email })
     }
@@ -62,6 +68,9 @@ export function ExportContactsModal({
     }
     if (filters.last_name) {
       activeFilters.push({ key: 'last_name', label: t`Last Name`, value: filters.last_name })
+    }
+    if (filters.full_name) {
+      activeFilters.push({ key: 'full_name', label: t`Full Name`, value: filters.full_name })
     }
     if (filters.phone) {
       activeFilters.push({ key: 'phone', label: t`Phone`, value: filters.phone })
@@ -100,8 +109,8 @@ export function ExportContactsModal({
         value: getFilterDisplayValue('tracking_clicks_consent', filters.tracking_clicks_consent)
       })
     }
-    if (filters.segments && filters.segments.length > 0) {
-      filters.segments.forEach((segmentId) => {
+    if (exportedSegments && exportedSegments.length > 0) {
+      exportedSegments.forEach((segmentId) => {
         const segment = segmentsData.find((s) => s.id === segmentId)
         activeFilters.push({
           key: 'segment',
@@ -167,12 +176,14 @@ export function ExportContactsModal({
           external_id: filters.external_id,
           first_name: filters.first_name,
           last_name: filters.last_name,
+          full_name: filters.full_name,
+          search: filters.search,
           phone: filters.phone,
           country: filters.country,
           language: filters.language,
           list_id: filters.list_id,
-          contact_list_status: filters.contact_list_status,
-          segments: filters.segments,
+          contact_list_status: filters.list_id ? filters.contact_list_status : undefined,
+          segments: exportedSegments,
           tracking_opens_consent: filters.tracking_opens_consent,
           tracking_clicks_consent: filters.tracking_clicks_consent,
           with_contact_lists: false // Skip for performance

@@ -86,7 +86,8 @@ const ButtonUpsertSegment = (props: {
   )
 }
 
-const DrawerSegment = (props: {
+// Exported for the Contacts rail, which opens it from its own "+" button.
+export const DrawerSegment = (props: {
   segment?: Segment
   totalContacts?: number
   setDrawserVisible: (visible: boolean) => void

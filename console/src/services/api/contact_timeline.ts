@@ -82,6 +82,19 @@ export type EntityData =
   | CustomEventEntityData
   | AutomationEventEntityData
 
+/** The entity types timeline.list filters on. */
+export type TimelineEntityType =
+  | 'contact'
+  | 'contact_list'
+  | 'contact_segment'
+  | 'message_history'
+  | 'custom_event'
+  | 'inbound_webhook_event'
+  | 'webhook_event'
+  | 'automation'
+  | 'web_session'
+  | 'web_page'
+
 export interface ContactTimelineEntry {
   id: string
   email: string
@@ -100,6 +113,8 @@ export interface TimelineListRequest {
   email: string
   limit?: number // Default 50, max 100
   cursor?: string
+  // Only these entity types; the server also drops the ones the member may not read.
+  entity_types?: TimelineEntityType[]
 }
 
 export interface TimelineListResponse {
@@ -124,6 +139,9 @@ export const contactTimelineApi = {
     }
     if (params.cursor) {
       searchParams.append('cursor', params.cursor)
+    }
+    if (params.entity_types && params.entity_types.length > 0) {
+      searchParams.append('entity_types', params.entity_types.join(','))
     }
 
     return api.get<TimelineListResponse>(`/api/timeline.list?${searchParams.toString()}`)
