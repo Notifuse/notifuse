@@ -139,6 +139,23 @@ func authOK(auth *domainmocks.MockAuthService, ctx context.Context, workspaceID 
 	auth.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: "user1"}, userWorkspace, nil)
 }
 
+// authAs authenticates a member of the workspace with the given role and permissions.
+func authAs(auth *domainmocks.MockAuthService, ctx context.Context, workspaceID, role string, perms domain.UserPermissions) {
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "user1",
+		WorkspaceID: workspaceID,
+		Role:        role,
+		Permissions: perms,
+	}
+	auth.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: "user1"}, userWorkspace, nil)
+}
+
+// broadcastsAndTemplatesRead is what listing broadcasts with their templates takes.
+var broadcastsAndTemplatesRead = domain.UserPermissions{
+	domain.PermissionResourceBroadcasts: {Read: true, Write: true},
+	domain.PermissionResourceTemplates:  {Read: true},
+}
+
 func TestBroadcastService_CreateBroadcast_Success(t *testing.T) {
 	d := setupBroadcastSvc(t)
 	defer d.ctrl.Finish()
@@ -805,7 +822,7 @@ func TestBroadcastService_ListBroadcasts_WithTemplates(t *testing.T) {
 
 	ctx := context.Background()
 	params := domain.ListBroadcastsParams{WorkspaceID: "w1", WithTemplates: true}
-	authOK(d.authService, ctx, params.WorkspaceID)
+	authAs(d.authService, ctx, params.WorkspaceID, "member", broadcastsAndTemplatesRead)
 
 	b := testBroadcast(params.WorkspaceID, "b1")
 	// Ensure there is a variation to load template for
@@ -1129,7 +1146,7 @@ func TestBroadcastService_ListBroadcasts_WithTemplates_TemplateError(t *testing.
 
 	ctx := context.Background()
 	params := domain.ListBroadcastsParams{WorkspaceID: "w1", WithTemplates: true}
-	authOK(d.authService, ctx, params.WorkspaceID)
+	authAs(d.authService, ctx, params.WorkspaceID, "member", broadcastsAndTemplatesRead)
 
 	b := testBroadcast(params.WorkspaceID, "b1")
 	b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: "tplA"}}
@@ -4034,4 +4051,48 @@ func TestBroadcastService_SendToIndividual_ListUnsubscribeHeader(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Without Templates read every template lookup is refused: the broadcasts come back without
+// their templates, without the refused calls and their error logs. The strict mock fails the
+// test on any GetTemplateByID call.
+func TestBroadcastService_ListBroadcasts_WithTemplates_WithoutTemplatesRead(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	params := domain.ListBroadcastsParams{WorkspaceID: "w1", WithTemplates: true}
+	authOK(d.authService, ctx, params.WorkspaceID)
+
+	b := testBroadcast(params.WorkspaceID, "b1")
+	b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: "tplA"}}
+	d.repo.EXPECT().ListBroadcasts(ctx, gomock.Any()).Return(
+		&domain.BroadcastListResponse{Broadcasts: []*domain.Broadcast{b}, TotalCount: 1}, nil)
+
+	out, err := d.svc.ListBroadcasts(ctx, params)
+	require.NoError(t, err)
+	require.Len(t, out.Broadcasts, 1)
+	v := out.Broadcasts[0].TestSettings.Variations[0]
+	assert.Equal(t, "tplA", v.TemplateID)
+	assert.Nil(t, v.Template)
+}
+
+// An owner holds every permission without listing them.
+func TestBroadcastService_ListBroadcasts_WithTemplates_Owner(t *testing.T) {
+	d := setupBroadcastSvc(t)
+	defer d.ctrl.Finish()
+
+	ctx := context.Background()
+	params := domain.ListBroadcastsParams{WorkspaceID: "w1", WithTemplates: true}
+	authAs(d.authService, ctx, params.WorkspaceID, "owner", nil)
+
+	b := testBroadcast(params.WorkspaceID, "b1")
+	b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: "tplA"}}
+	d.repo.EXPECT().ListBroadcasts(ctx, gomock.Any()).Return(
+		&domain.BroadcastListResponse{Broadcasts: []*domain.Broadcast{b}, TotalCount: 1}, nil)
+	d.templateSvc.EXPECT().GetTemplateByID(ctx, params.WorkspaceID, "tplA", int64(0)).Return(&domain.Template{ID: "tplA"}, nil)
+
+	out, err := d.svc.ListBroadcasts(ctx, params)
+	require.NoError(t, err)
+	require.NotNil(t, out.Broadcasts[0].TestSettings.Variations[0].Template)
 }
