@@ -15,10 +15,10 @@ export interface PayloadContext {
   status?: BroadcastStatus
 }
 
-const definedOnly = (utm: UTMParameters): UTMParameters | undefined => {
-  const entries = Object.entries(utm).filter(([, v]) => v !== undefined && v !== '')
-  return entries.length ? (Object.fromEntries(entries) as UTMParameters) : undefined
-}
+// Always an object, empty when every field is: the server keeps the stored parameters when the key
+// is absent, so clearing them all has to be sent.
+const definedOnly = (utm: UTMParameters): UTMParameters =>
+  Object.fromEntries(Object.entries(utm).filter(([, v]) => v !== undefined && v !== '')) as UTMParameters
 
 /**
  * The schedule choice of a draft, stored with is_scheduled false: nothing reads it until

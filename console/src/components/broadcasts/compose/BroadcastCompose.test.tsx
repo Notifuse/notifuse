@@ -249,6 +249,43 @@ describe('BroadcastCompose', () => {
     expect(payload).not.toHaveProperty('schedule')
   })
 
+  it('shows the refusal of Save changes on a scheduled broadcast', async () => {
+    ;(broadcastApi.get as Mock).mockResolvedValue({
+      broadcast: stored({ status: 'scheduled', schedule: { is_scheduled: true, scheduled_date: '2030-01-02', scheduled_time: '09:00', timezone: 'UTC', use_recipient_timezone: false } })
+    })
+    ;(broadcastApi.update as Mock).mockRejectedValue(new ApiError('The list no longer exists', 400))
+    renderCompose()
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Broadcast name' }), { target: { value: 'News fixed' } })
+    await userEvent.click(await screen.findByRole('button', { name: 'Save changes' }))
+    expect(await screen.findByText('The list no longer exists')).toBeInTheDocument()
+  })
+
+  it('sends a test of a scheduled broadcast without saving its pending changes', async () => {
+    ;(broadcastApi.get as Mock).mockResolvedValue({
+      broadcast: stored({ status: 'scheduled', schedule: { is_scheduled: true, scheduled_date: '2030-01-02', scheduled_time: '09:00', timezone: 'UTC', use_recipient_timezone: false } })
+    })
+    renderCompose()
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Broadcast name' }), { target: { value: 'News fixed' } })
+    const button = screen.getByRole('button', { name: 'Send test' })
+    await waitFor(() => expect(button).toBeEnabled())
+    await userEvent.click(button)
+    expect(await screen.findByTestId('send-test')).toBeInTheDocument()
+    expect(broadcastApi.update).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument()
+  })
+
+  it('opens no test when the draft cannot be saved', async () => {
+    ;(broadcastApi.update as Mock).mockRejectedValue(new ApiError('Refused', 400))
+    renderCompose()
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Broadcast name' }), { target: { value: 'News 2' } })
+    const button = screen.getByRole('button', { name: 'Send test' })
+    await waitFor(() => expect(button).toBeEnabled())
+    await userEvent.click(button)
+    await waitFor(() => expect(broadcastApi.update).toHaveBeenCalled())
+    expect((await screen.findAllByText('Refused')).length).toBeGreaterThan(0)
+    expect(screen.queryByTestId('send-test')).toBeNull()
+  })
+
   it('sends a test of the previewed template for the broadcast list', async () => {
     renderCompose()
     const button = await screen.findByRole('button', { name: 'Send test' })

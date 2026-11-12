@@ -228,10 +228,11 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
           : undefined
         const count = b.test_settings?.variations?.length ?? 0
         // The A/B pill opens the second line, so the name keeps the column's width.
+        const winnerName = winner ? winner.template?.name || winner.variation_name : ''
         const pill = ab ? (
           winner ? (
             <Pill tone="success" icon={<Trophy aria-hidden="true" />}>
-              {`A/B · ${winner.template?.name || winner.variation_name}`}
+              {t`A/B · ${winnerName}`}
             </Pill>
           ) : (
             <Pill tone="neutral" dot={false}>

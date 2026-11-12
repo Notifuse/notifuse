@@ -71,7 +71,12 @@ vi.mock('../components/broadcasts/detail/BroadcastDetail', () => ({
   BroadcastDetail: ({ broadcastId }: { broadcastId: string }) => <div data-testid="detail">{broadcastId}</div>
 }))
 vi.mock('../components/broadcasts/compose/BroadcastCompose', () => ({
-  BroadcastCompose: ({ composeId }: { composeId: string }) => <div data-testid="compose">{composeId}</div>
+  BroadcastCompose: ({ composeId, onClose }: { composeId: string; onClose: () => void }) => (
+    <div data-testid="compose">
+      {composeId}
+      <button onClick={onClose}>close composer</button>
+    </div>
+  )
 }))
 
 // The client imports the router, which imports this page: without this mock the page would be
@@ -288,6 +293,16 @@ describe('BroadcastsPage', () => {
     expect(url.get().compose).toBe('new')
   })
 
+  it('closes the composer past the route blocker: the composer has already asked', async () => {
+    url.set({ compose: 'd1' })
+    list.mockResolvedValue(page([broadcastOf('d1', { status: 'draft' })]))
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'close composer' }))
+
+    expect(navigate).toHaveBeenLastCalledWith(expect.objectContaining({ ignoreBlocker: true }))
+    await waitFor(() => expect(url.get().compose).toBeUndefined())
+  })
+
   it('walks the rows with J and K, loading the next page at the last row', async () => {
     const first = Array.from({ length: 25 }, (_, i) => broadcastOf(`b${i + 1}`))
     list.mockImplementation(({ offset }: { offset: number }) =>
@@ -305,6 +320,24 @@ describe('BroadcastsPage', () => {
     expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 25 }))
     fireEvent.keyDown(document.body, { key: 'k' })
     await waitFor(() => expect(url.get().broadcast).toBe('b25'))
+  })
+
+  it('drops a pending J when the drawer is closed before the next page arrives', async () => {
+    const first = Array.from({ length: 25 }, (_, i) => broadcastOf(`b${i + 1}`))
+    let resolveNext: (value: ReturnType<typeof page>) => void = () => {}
+    list.mockImplementation(({ offset }: { offset: number }) =>
+      offset === 0 ? Promise.resolve(page(first, 26)) : new Promise((resolve) => (resolveNext = resolve))
+    )
+    url.set({ broadcast: 'b25' })
+    renderPage()
+    expect(await screen.findByText('25 of 26')).toBeInTheDocument()
+
+    fireEvent.keyDown(document.body, { key: 'j' })
+    await waitFor(() => expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 25 })))
+    act(() => url.set({}))
+    await act(async () => resolveNext(page([broadcastOf('b26')], 26)))
+    expect(await screen.findByText('Broadcast b26')).toBeInTheDocument()
+    expect(url.get().broadcast).toBeUndefined()
   })
 
   it('loads 25 more from the footer', async () => {

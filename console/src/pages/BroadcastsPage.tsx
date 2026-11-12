@@ -141,8 +141,15 @@ export function BroadcastsPage() {
   // J and K walk the loaded rows; at the last one J loads the next page, then moves on.
   const index = search.broadcast ? rows.findIndex((b) => b.id === search.broadcast) : -1
   const pendingNext = useRef<string | null>(null)
+  // A pending J is dropped once the drawer leaves its row (K, close, another row) or the page fails.
   useEffect(() => {
-    if (!pendingNext.current) return
+    if (pendingNext.current && search.broadcast !== pendingNext.current) pendingNext.current = null
+  }, [search.broadcast])
+  useEffect(() => {
+    if (list.isFetchNextPageError) pendingNext.current = null
+  }, [list.isFetchNextPageError])
+  useEffect(() => {
+    if (!pendingNext.current || search.broadcast !== pendingNext.current) return
     const from = rows.findIndex((b) => b.id === pendingNext.current)
     if (from >= 0 && from < rows.length - 1) {
       pendingNext.current = null
@@ -342,7 +349,8 @@ export function BroadcastsPage() {
           workspace={workspace}
           permissions={permissions}
           composeId={composeKey.id}
-          onClose={() => navigate({ search: (prev) => ({ ...prev, compose: undefined }) })}
+          // The composer has already saved or asked: the route's blocker must not ask again.
+          onClose={() => navigate({ ignoreBlocker: true, search: (prev) => ({ ...prev, compose: undefined }) })}
           onCreated={(id) => navigate({ replace: true, ignoreBlocker: true, search: (prev) => ({ ...prev, compose: id }) })}
           onOpenDetail={(id) =>
             navigate({ replace: true, ignoreBlocker: true, search: (prev) => ({ ...prev, compose: undefined, broadcast: id }) })

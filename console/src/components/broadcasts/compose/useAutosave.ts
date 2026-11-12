@@ -42,7 +42,7 @@ export interface Autosave {
   /** Changes not yet on the server. */
   dirty: boolean
   /** Sends what is pending and waits for it; ok is false when nothing could be saved. */
-  flush: () => Promise<{ ok: boolean }>
+  flush: () => Promise<{ ok: boolean; error?: string }>
   /** Stops saving: the broadcast is being sent, or has left the statuses the composer edits. */
   freeze: () => void
   /** Saves again after a send the server refused. */
@@ -95,6 +95,8 @@ export function useAutosave({ workspaceId, values, context, broadcast, auto, onC
   const runningRef = useRef<Promise<boolean> | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const failedRef = useRef(false)
+  // The message of the last refusal, read by flush.
+  const lastErrorRef = useRef<string | null>(null)
 
   const [state, setState] = useState<SaveState>({ kind: 'idle' })
   const [id, setId] = useState<string | undefined>(broadcast?.id)
@@ -158,7 +160,8 @@ export function useAutosave({ workspaceId, values, context, broadcast, auto, onC
       return true
     } catch (error) {
       failedRef.current = true
-      setState({ kind: 'error', message: errorMessage(error) })
+      lastErrorRef.current = errorMessage(error)
+      setState({ kind: 'error', message: lastErrorRef.current })
       callbacks.current.onError?.(error)
       return false
     }
@@ -231,8 +234,10 @@ export function useAutosave({ workspaceId, values, context, broadcast, auto, onC
     }
     if (frozenRef.current) return { ok: true }
     failedRef.current = false
+    lastErrorRef.current = null
     const ok = await run()
-    return { ok: ok && currentKey() === savedKeyRef.current }
+    // The refusal's message, for a caller whose render predates the error state.
+    return { ok: ok && currentKey() === savedKeyRef.current, error: lastErrorRef.current ?? undefined }
   }, [currentKey, run])
 
   const freeze = useCallback(() => {

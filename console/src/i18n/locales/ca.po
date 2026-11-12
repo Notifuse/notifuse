@@ -236,7 +236,7 @@ msgid "{0} of {1} rules match"
 msgstr "{0} de {1} regles coincideixen"
 
 #. placeholder {0}: int(shown)
-#: src/pages/BroadcastsPage.tsx:202
+#: src/pages/BroadcastsPage.tsx:209
 msgid "{0} of {total, plural, one {# broadcast} other {# broadcasts}}"
 msgstr "{0} de {total, plural, one {# difusió} other {# difusions}}"
 
@@ -379,7 +379,7 @@ msgstr "{conversions, plural, one {# conversió} other {# conversions}} · {valu
 msgid "{count, plural, one {# recipient} other {# recipients}}"
 msgstr "{count, plural, one {# destinatari} other {# destinataris}}"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:238
+#: src/components/broadcasts/BroadcastsTable.tsx:239
 msgid "{count, plural, one {A/B · # variant} other {A/B · # variants}}"
 msgstr "{count, plural, one {A/B · # variant} other {A/B · # variants}}"
 
@@ -923,6 +923,10 @@ msgstr "S'ha seleccionat un guanyador. S'estan enviant els correus a la resta de
 msgid "A/B"
 msgstr "A/B"
 
+#: src/components/broadcasts/BroadcastsTable.tsx:235
+msgid "A/B · {winnerName}"
+msgstr "A/B · {winnerName}"
+
 #: src/components/broadcasts/compose/ContentCard.tsx:102
 #: src/components/broadcasts/compose/ContentCard.tsx:105
 #: src/components/broadcasts/detail/AbTestPanel.tsx:217
@@ -1403,7 +1407,7 @@ msgstr "Alineació"
 #: src/components/email_builder/panels/LibraryPanel.tsx:210
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:124
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
-#: src/pages/BroadcastsPage.tsx:174
+#: src/pages/BroadcastsPage.tsx:181
 #: src/pages/TemplatesPage.tsx:125
 msgid "All"
 msgstr "Tot"
@@ -1969,7 +1973,7 @@ msgstr "Regles d'atribució"
 #~ msgid "Attribution rules saved. Run a backfill to rewrite historical data."
 #~ msgstr ""
 
-#: src/components/broadcasts/BroadcastsTable.tsx:265
+#: src/components/broadcasts/BroadcastsTable.tsx:266
 #: src/components/broadcasts/compose/AudienceCard.tsx:56
 #: src/components/broadcasts/detail/BroadcastAside.tsx:143
 msgid "Audience"
@@ -2610,7 +2614,7 @@ msgid "Bounced {0} · Spam {1}"
 msgstr "Rebots {0} · Spam {1}"
 
 #: src/components/broadcasts/BroadcastKpis.tsx:150
-#: src/components/broadcasts/BroadcastsTable.tsx:312
+#: src/components/broadcasts/BroadcastsTable.tsx:313
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:109
 msgid "Bounces"
 msgstr "Rebots"
@@ -2726,7 +2730,7 @@ msgstr "S'ha posat en pausa la difusió «{name}»"
 msgid "Broadcast \"{name}\" resumed successfully"
 msgstr "S'ha reprès la difusió «{name}»"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:316
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:324
 msgid "Broadcast \"{name}\" sending started"
 msgstr "Ha començat l'enviament de la difusió «{name}»"
 
@@ -2748,7 +2752,7 @@ msgstr "ID de difusió"
 #~ msgid "Broadcast ID copied to clipboard"
 #~ msgstr "ID de difusió copiat al porta-retalls"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:401
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:409
 msgid "Broadcast name"
 msgstr "Nom de la difusió"
 
@@ -2757,18 +2761,18 @@ msgstr "Nom de la difusió"
 msgid "Broadcast not found"
 msgstr "No s'ha trobat la difusió"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:470
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:479
 msgid "Broadcast updated successfully"
 msgstr "Difusió actualitzada correctament"
 
 #: src/components/analytics/OriginVolumeChart.tsx:42
 #: src/components/analytics/UpcomingSends.tsx:77
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:87
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:417
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:425
 #: src/components/settings/permissionLabels.ts:10
 #: src/layouts/app-shell/menuItems.ts:175
-#: src/pages/BroadcastsPage.tsx:229
-#: src/pages/BroadcastsPage.tsx:326
+#: src/pages/BroadcastsPage.tsx:236
+#: src/pages/BroadcastsPage.tsx:333
 #: src/services/api/errors.ts:85
 msgid "Broadcasts"
 msgstr "Difusions"
@@ -2901,7 +2905,7 @@ msgstr "Campanyes"
 #: src/components/blog/ThemeEditorDrawer.tsx:469
 #: src/components/broadcasts/BroadcastsTable.tsx:187
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:350
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:358
 #: src/components/broadcasts/compose/ContentCard.tsx:81
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:48
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:340
@@ -3211,8 +3215,8 @@ msgstr "Trieu una data per programar"
 msgid "choose a list"
 msgstr "trieu una llista"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:362
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:381
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:370
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:389
 msgid "Choose a list first"
 msgstr "Primer trieu una llista"
 
@@ -3228,7 +3232,7 @@ msgstr "Tria un bloc desat"
 msgid "Choose a starting point for your new theme. You can customize everything later."
 msgstr "Trieu un punt de partida per al vostre nou tema. Podeu personalitzar-ho tot més tard."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:385
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:393
 msgid "Choose a template first"
 msgstr "Primer trieu una plantilla"
 
@@ -3284,7 +3288,7 @@ msgstr "Esborrar tot"
 msgid "Clear field"
 msgstr "Esborrar camp"
 
-#: src/pages/BroadcastsPage.tsx:299
+#: src/pages/BroadcastsPage.tsx:306
 msgid "Clear filters"
 msgstr "Esborrar filtres"
 
@@ -3389,7 +3393,7 @@ msgstr "Enllaços clicats"
 #~ msgstr "Clics"
 
 #: src/components/analytics/OriginVolumeChart.tsx:161
-#: src/components/broadcasts/BroadcastsTable.tsx:283
+#: src/components/broadcasts/BroadcastsTable.tsx:284
 #: src/components/broadcasts/detail/AbTestPanel.tsx:170
 #: src/components/contacts/TrackingConsent.tsx:31
 #: src/components/contacts/TrackingConsent.tsx:197
@@ -3717,7 +3721,7 @@ msgstr "Configurar ara"
 #~ msgstr "Configureu webhooks sortints per rebre notificacions en temps real quan es produeixin esdeveniments al vostre espai de treball."
 
 #: src/components/broadcasts/compose/SendSummary.tsx:155
-#: src/pages/BroadcastsPage.tsx:239
+#: src/pages/BroadcastsPage.tsx:246
 msgid "Configure Provider"
 msgstr "Configurar proveïdor"
 
@@ -4095,7 +4099,7 @@ msgstr ""
 msgid "Couldn't load"
 msgstr "No s'ha pogut carregar"
 
-#: src/pages/BroadcastsPage.tsx:216
+#: src/pages/BroadcastsPage.tsx:223
 msgid "Couldn't load the broadcasts"
 msgstr "No s'han pogut carregar les difusions"
 
@@ -5529,7 +5533,7 @@ msgid "Draft restored from local storage"
 msgstr "Esborrany restaurat des de l'emmagatzematge local"
 
 #: src/components/blog/PostsTable.tsx:425
-#: src/pages/BroadcastsPage.tsx:175
+#: src/pages/BroadcastsPage.tsx:182
 msgid "Drafts"
 msgstr "Esborranys"
 
@@ -6033,7 +6037,7 @@ msgstr "Previsualització del correu"
 msgid "Email Provider Configuration Needed"
 msgstr "Es necessita configuració del proveïdor de correu"
 
-#: src/pages/BroadcastsPage.tsx:235
+#: src/pages/BroadcastsPage.tsx:242
 msgid "Email Provider Required"
 msgstr "Proveïdor de correu obligatori"
 
@@ -6773,7 +6777,7 @@ msgstr "Fallat"
 #: src/components/settings/WebhookDetail.tsx:539
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:90
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:253
-#: src/pages/BroadcastsPage.tsx:181
+#: src/pages/BroadcastsPage.tsx:188
 #: src/pages/TransactionalNotificationsPage.tsx:242
 msgid "Failed"
 msgstr "Fallat"
@@ -7181,7 +7185,7 @@ msgstr "No s'ha pogut desar la subscripció del webhook"
 msgid "Failed to save Zapier integration"
 msgstr "No s'ha pogut desar la integració de Zapier"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:327
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:335
 msgid "Failed to schedule broadcast"
 msgstr "No s'ha pogut programar la difusió"
 
@@ -7189,7 +7193,7 @@ msgstr "No s'ha pogut programar la difusió"
 msgid "Failed to select winner"
 msgstr "No s'ha pogut seleccionar el guanyador"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:327
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:335
 msgid "Failed to send broadcast"
 msgstr "No s'ha pogut enviar la difusió"
 
@@ -7531,7 +7535,7 @@ msgstr "Primeres obertures"
 msgid "First opens counts the messages opened or clicked, once each; first clicks, the messages clicked once each."
 msgstr "Primeres obertures compta els missatges oberts o clicats, una vegada cadascun; primers clics, els missatges clicats, una vegada cadascun."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:360
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:368
 msgid "Fix {errors, plural, one {# issue} other {# issues}} first"
 msgstr "Primer corregiu {errors, plural, one {# problema} other {# problemes}}"
 
@@ -8436,7 +8440,7 @@ msgstr "Inclosos"
 msgid "Incoming Webhooks"
 msgstr "Webhooks entrants"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:528
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:537
 msgid "Incomplete: {reason}"
 msgstr "Incomplet: {reason}"
 
@@ -9380,7 +9384,7 @@ msgstr "LLM"
 msgid "LLM integration saved successfully"
 msgstr "Integració LLM desada correctament"
 
-#: src/pages/BroadcastsPage.tsx:205
+#: src/pages/BroadcastsPage.tsx:212
 msgid "Load {PAGE_SIZE} more"
 msgstr "Carrega'n {PAGE_SIZE} més"
 
@@ -9945,7 +9949,7 @@ msgstr "Mensual"
 #~ msgid "Monthly partitions older than this are dropped. 0 keeps data forever."
 #~ msgstr ""
 
-#: src/components/broadcasts/BroadcastsTable.tsx:392
+#: src/components/broadcasts/BroadcastsTable.tsx:393
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:345
 #: src/components/settings/Integrations.tsx:961
 #: src/components/settings/integrations/EmailProviderCard.tsx:343
@@ -10076,7 +10080,7 @@ msgid "New block"
 msgstr "Bloc nou"
 
 #: src/components/analytics/UpcomingSends.tsx:100
-#: src/pages/BroadcastsPage.tsx:191
+#: src/pages/BroadcastsPage.tsx:198
 msgid "New broadcast"
 msgstr "Nova difusió"
 
@@ -10241,7 +10245,7 @@ msgstr "Cap difusió programada"
 #~ msgid "No broadcasts found"
 #~ msgstr "No s'han trobat difusions"
 
-#: src/pages/BroadcastsPage.tsx:297
+#: src/pages/BroadcastsPage.tsx:304
 msgid "No broadcasts match"
 msgstr "Cap difusió coincideix"
 
@@ -10249,7 +10253,7 @@ msgstr "Cap difusió coincideix"
 #~ msgid "No broadcasts match your filters"
 #~ msgstr "Cap difusió coincideix amb els vostres filtres"
 
-#: src/pages/BroadcastsPage.tsx:252
+#: src/pages/BroadcastsPage.tsx:259
 msgid "No broadcasts yet"
 msgstr "Encara no hi ha difusions"
 
@@ -10449,7 +10453,7 @@ msgstr "Cap llista triada"
 msgid "No lists found"
 msgstr "No s'han trobat llistes"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:358
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:366
 #: src/components/broadcasts/compose/SendSummary.tsx:154
 msgid "No marketing email provider"
 msgstr "Cap proveïdor de correu de màrqueting"
@@ -10601,7 +10605,7 @@ msgstr "Cap lliurament correcte"
 msgid "No template chosen"
 msgstr "Cap plantilla triada"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:245
+#: src/components/broadcasts/BroadcastsTable.tsx:246
 #: src/components/broadcasts/detail/BroadcastAside.tsx:97
 msgid "No template yet"
 msgstr "Encara no hi ha plantilla"
@@ -10780,7 +10784,7 @@ msgstr "Ara no"
 msgid "Not resolved"
 msgstr "No resolt"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:534
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:543
 msgid "Not saved"
 msgstr "No desat"
 
@@ -11101,7 +11105,7 @@ msgstr "Obrir en una finestra"
 msgid "Open in new tab"
 msgstr "Obrir en una pestanya nova"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:432
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:440
 msgid "Open its page"
 msgstr "Obre'n la pàgina"
 
@@ -11166,7 +11170,7 @@ msgstr "Obert"
 #~ msgstr "Obertures"
 
 #: src/components/analytics/OriginVolumeChart.tsx:160
-#: src/components/broadcasts/BroadcastsTable.tsx:270
+#: src/components/broadcasts/BroadcastsTable.tsx:271
 #: src/components/broadcasts/detail/AbTestPanel.tsx:169
 #: src/components/contacts/TrackingConsent.tsx:28
 #: src/components/contacts/TrackingConsent.tsx:187
@@ -11434,8 +11438,8 @@ msgid "Path-style access"
 msgstr "Accés d'estil de camí"
 
 #: src/components/broadcasts/BroadcastsTable.tsx:185
-#: src/components/broadcasts/BroadcastsTable.tsx:380
-#: src/components/broadcasts/BroadcastsTable.tsx:384
+#: src/components/broadcasts/BroadcastsTable.tsx:381
+#: src/components/broadcasts/BroadcastsTable.tsx:385
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:313
 #: src/components/contacts/BulkActionProgressModal.tsx:50
 #: src/components/contacts/BulkUpdateDrawer.tsx:571
@@ -12579,7 +12583,7 @@ msgstr "Test del feed de destinatari completat amb èxit"
 msgid "recipient@example.com"
 msgstr "destinatari@exemple.com"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:267
+#: src/components/broadcasts/BroadcastsTable.tsx:268
 msgid "Recipients"
 msgstr "Destinataris"
 
@@ -13162,12 +13166,12 @@ msgstr "Retenció"
 #: src/components/analytics/BlockError.tsx:22
 #: src/components/analytics/DashboardKpis.tsx:183
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:92
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:537
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:546
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:169
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
 #: src/components/settings/WorkspaceMembers.tsx:495
-#: src/pages/BroadcastsPage.tsx:217
+#: src/pages/BroadcastsPage.tsx:224
 msgid "Retry"
 msgstr "Torna-ho a provar"
 
@@ -13426,7 +13430,7 @@ msgstr "Desar igualment"
 #~ msgid "Save Block"
 #~ msgstr "Desar bloc"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:475
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:484
 msgid "Save changes"
 msgstr "Desa els canvis"
 
@@ -13480,7 +13484,7 @@ msgstr "Desar metadades d'usuari en aquest camp JSON personalitzat (Opcional)"
 msgid "Saved ({0})"
 msgstr "Desat ({0})"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:524
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:533
 msgid "Saved {ago}"
 msgstr "Desat {ago}"
 
@@ -13505,11 +13509,11 @@ msgstr "Els blocs desats es poden fer servir en totes les plantilles de l’espa
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr "Desar la configuració reiniciarà el servidor. Haureu de tornar a iniciar sessió."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:521
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:530
 msgid "Saving…"
 msgstr "S'està desant…"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:374
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:382
 #: src/components/broadcasts/compose/SendingCard.tsx:86
 msgid "Schedule"
 msgstr "Programar"
@@ -13530,11 +13534,11 @@ msgstr "Zona horària de la programació"
 #: src/components/broadcasts/BroadcastStatusPill.tsx:27
 #: src/components/broadcasts/compose/SendingCard.tsx:36
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:201
-#: src/pages/BroadcastsPage.tsx:176
+#: src/pages/BroadcastsPage.tsx:183
 msgid "Scheduled"
 msgstr "Programat"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:319
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:327
 msgid "Scheduled for {date}"
 msgstr "Programada per al {date}"
 
@@ -13573,8 +13577,8 @@ msgstr "Amplada de pantalla per sota de la qual s'activa el disseny mòbil. Valo
 msgid "Search"
 msgstr "Cercar"
 
-#: src/pages/BroadcastsPage.tsx:277
-#: src/pages/BroadcastsPage.tsx:278
+#: src/pages/BroadcastsPage.tsx:284
+#: src/pages/BroadcastsPage.tsx:285
 #: src/pages/TemplatesPage.tsx:431
 msgid "Search by name"
 msgstr "Cercar per nom"
@@ -14097,8 +14101,8 @@ msgstr "Dimensions seleccionades, en ordre:"
 msgid "Selected: {0}"
 msgstr "Seleccionat: {0}"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:369
-#: src/components/broadcasts/BroadcastsTable.tsx:373
+#: src/components/broadcasts/BroadcastsTable.tsx:370
+#: src/components/broadcasts/BroadcastsTable.tsx:374
 msgid "Send"
 msgstr "Envia"
 
@@ -14162,8 +14166,8 @@ msgstr "Enviar invitació"
 msgid "Send Magic Code"
 msgstr "Enviar codi màgic"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:349
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:374
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:357
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:382
 msgid "Send now"
 msgstr "Envia ara"
 
@@ -14179,7 +14183,7 @@ msgstr "Envia ara"
 #~ msgid "Send or Schedule Broadcast"
 #~ msgstr "Enviar o programar difusió"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:391
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:399
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:305
 #: src/components/settings/WebhookDetail.tsx:324
 msgid "Send test"
@@ -14201,11 +14205,11 @@ msgstr "Enviar correu de prova"
 msgid "Send the winner automatically"
 msgstr "Envia el guanyador automàticament"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:338
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:346
 msgid "Send this broadcast now?"
 msgstr "Voleu enviar ara aquesta difusió?"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:339
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:347
 msgid "Send to ≈ {count, plural, one {# recipient} other {# recipients}} now?"
 msgstr "Voleu enviar ara a ≈ {count, plural, one {# destinatari} other {# destinataris}}?"
 
@@ -14213,7 +14217,7 @@ msgstr "Voleu enviar ara a ≈ {count, plural, one {# destinatari} other {# dest
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "Envieu notificacions transaccionals mitjançant relay SMTP. Perfecte per integrar amb sistemes de correu existents o aplicacions que suporten SMTP."
 
-#: src/pages/BroadcastsPage.tsx:253
+#: src/pages/BroadcastsPage.tsx:260
 msgid "Send your first newsletter to a list"
 msgstr "Envieu el vostre primer butlletí a una llista"
 
@@ -14249,14 +14253,14 @@ msgid "Senders"
 msgstr "Remitents"
 
 #: src/components/analytics/SendingCard.tsx:39
-#: src/components/broadcasts/BroadcastsTable.tsx:266
+#: src/components/broadcasts/BroadcastsTable.tsx:267
 #: src/components/broadcasts/BroadcastStatusPill.tsx:39
 #: src/components/broadcasts/BroadcastStatusPill.tsx:43
 #: src/components/broadcasts/BroadcastStatusPill.tsx:51
 #: src/components/broadcasts/compose/SendingCard.tsx:44
 #: src/components/broadcasts/compose/SendingCard.tsx:82
 #: src/components/settings/SettingsSidebar.tsx:27
-#: src/pages/BroadcastsPage.tsx:177
+#: src/pages/BroadcastsPage.tsx:184
 msgid "Sending"
 msgstr "Enviant"
 
@@ -14300,7 +14304,7 @@ msgstr "Enviat"
 #: src/components/messages/MessageHistoryTab.tsx:101
 #: src/components/messages/MessageHistoryTab.tsx:103
 #: src/components/messages/MessageHistoryTable.tsx:320
-#: src/pages/BroadcastsPage.tsx:178
+#: src/pages/BroadcastsPage.tsx:185
 #: src/pages/TransactionalNotificationsPage.tsx:208
 msgid "Sent"
 msgstr "Enviat"
@@ -14421,7 +14425,7 @@ msgstr "Sessions (canvi %)"
 msgid "Sessions (previous)"
 msgstr "Sessions (anterior)"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:332
+#: src/components/broadcasts/BroadcastsTable.tsx:333
 msgid "Sessions from the broadcast's UTM campaign, from the day it was sent to 7 days after it completed."
 msgstr "Sessions de la campanya UTM de la difusió, des del dia que es va enviar fins a 7 dies després d'acabar."
 
@@ -15820,7 +15824,8 @@ msgstr "El bloc i tot el seu contingut només s'envien als destinataris per als 
 msgid "The block will be sent to every recipient again."
 msgstr "El bloc s'enviarà de nou a tots els destinataris."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:297
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:292
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:305
 msgid "The broadcast could not be saved"
 msgstr "No s'ha pogut desar la difusió"
 
@@ -16216,7 +16221,7 @@ msgid "This broadcast failed due to an error. Check the logs for details."
 msgstr "Aquesta difusió ha fallat a causa d'un error. Consulteu els registres per als detalls."
 
 #: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:79
-#: src/components/broadcasts/BroadcastsTable.tsx:342
+#: src/components/broadcasts/BroadcastsTable.tsx:343
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:192
 msgid "This broadcast has no UTM campaign, so its website traffic can't be identified"
 msgstr "Aquesta difusió no té cap campanya UTM, de manera que el seu trànsit web no es pot identificar"
@@ -16225,7 +16230,7 @@ msgstr "Aquesta difusió no té cap campanya UTM, de manera que el seu trànsit 
 msgid "This broadcast is a draft and has not been scheduled or sent yet."
 msgstr "Aquesta difusió és un esborrany i encara no s'ha programat ni enviat."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:431
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:439
 msgid "This broadcast is no longer a draft, so it can't be edited here."
 msgstr "Aquesta difusió ja no és un esborrany, així que no es pot editar aquí."
 
@@ -17152,7 +17157,7 @@ msgstr "sense establir"
 msgid "Unsub"
 msgstr "Donat de baixa"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:296
+#: src/components/broadcasts/BroadcastsTable.tsx:297
 msgid "Unsub."
 msgstr "Donat de baixa"
 
@@ -17928,7 +17933,7 @@ msgstr "Analítica de visitants del lloc web — sessions, pàgines vistes i obj
 #: src/components/analytics/DashboardKpis.tsx:283
 #: src/components/analytics/DashboardKpis.tsx:291
 #: src/components/analytics/DashboardKpis.tsx:316
-#: src/components/broadcasts/BroadcastsTable.tsx:333
+#: src/components/broadcasts/BroadcastsTable.tsx:334
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:93
 msgid "Website visits"
 msgstr "Visites al lloc web"
@@ -18350,7 +18355,7 @@ msgstr "No teniu accés de lectura a {resource}."
 msgid "You do not have write access to {resource}."
 msgstr "No teniu accés d'escriptura a {resource}."
 
-#: src/pages/BroadcastsPage.tsx:236
+#: src/pages/BroadcastsPage.tsx:243
 msgid "You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts."
 msgstr "No teniu cap proveïdor de correu de màrqueting configurat. Si us plau, configureu un proveïdor de correu a la configuració de l'espai de treball per enviar difusions."
 
@@ -18375,7 +18380,7 @@ msgid "You don't have write permission for automations"
 msgstr "No teniu permís d'escriptura per a automatitzacions"
 
 #: src/components/broadcasts/BroadcastsTable.tsx:89
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:356
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:364
 #: src/components/broadcasts/detail/AbTestPanel.tsx:198
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:175
 #: src/pages/BroadcastsPage.tsx:45
@@ -18446,7 +18451,7 @@ msgstr "Us heu unit a {workspaceName}"
 #~ msgid "You need read template and write contact permissions to send test emails"
 #~ msgstr "Necessiteu permisos de lectura de plantilla i escriptura de contacte per enviar correus de prova"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:383
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:391
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:302
 #: src/components/templates/SendTestEmailButton.tsx:25
 msgid "You need Templates read and Transactional write permissions to send test emails"
@@ -18484,7 +18489,7 @@ msgstr "Les vostres credencials d'AWS no poden crear tenants SES. Concediu ses:C
 msgid "Your blog settings have not been saved. Leaving this page discards them."
 msgstr "La configuració del vostre blog no s'ha desat. Si sortiu d'aquesta pàgina, es descartarà."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:474
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:483
 msgid "Your changes to this scheduled broadcast will be lost."
 msgstr "Es perdran els canvis en aquesta difusió programada."
 

@@ -164,6 +164,15 @@ describe('buildBroadcastPayload', () => {
     })
   })
 
+  it('sends an empty utm object when every field is cleared, so the stored ones are removed', () => {
+    const payload = buildBroadcastPayload(
+      base({ utmSource: '', utmMedium: '', utmCampaign: '', utmTerm: undefined, utmContent: undefined }),
+      { ...ctx, id: 'bc-1', status: 'draft' }
+    )
+    expect(payload.utm_parameters).toEqual({})
+    expect(JSON.parse(JSON.stringify(payload))).toHaveProperty('utm_parameters', {})
+  })
+
   it('keeps the stored utm term and content', () => {
     const payload = buildBroadcastPayload(base({ utmTerm: 'kw', utmContent: 'c' }), ctx)
     expect(payload.utm_parameters).toMatchObject({ term: 'kw', content: 'c' })

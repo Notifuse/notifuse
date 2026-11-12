@@ -284,7 +284,15 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
   const testAllowed = canSendTestEmail(permissions)
   const sendTest = async () => {
     if (!previewTemplate) return
-    await autosave.flush()
+    // The test sends the template to the chosen addresses: a booked broadcast's pending edits stay
+    // pending (its Save bar decides), and a draft's refused save stops here, as Send now does.
+    if (!scheduled) {
+      const { ok, error } = await autosave.flush()
+      if (!ok) {
+        message.error(error ?? t`The broadcast could not be saved`)
+        return
+      }
+    }
     setTestTemplate(previewTemplate)
   }
 
@@ -466,9 +474,10 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
               dirty={autosave.dirty}
               saving={autosave.state.kind === 'saving'}
               onSave={async () => {
-                const { ok } = await autosave.flush()
+                // The flush answers with the refusal: this render's state predates it.
+                const { ok, error } = await autosave.flush()
                 if (ok) message.success(t`Broadcast updated successfully`)
-                else if (autosave.state.kind === 'error') message.error(autosave.state.message)
+                else if (error) message.error(error)
               }}
               onDiscard={() => setValues(savedValues)}
               leaveWarning={t`Your changes to this scheduled broadcast will be lost.`}
