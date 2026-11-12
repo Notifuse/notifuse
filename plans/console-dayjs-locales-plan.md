@@ -26,9 +26,9 @@ back to English while that dayjs locale is not registered.
    no dayjs locale is loaded.
 4. **`console/src/components/timeline/ContactTimeline.tsx`**: the tooltips' "… in Europe/Paris" glue
    goes through Lingui (`{when} in {zone}`), so a translated date is not followed by English. The
-   date is now formatted on that zone's clock (`.tz(zone)`): it used the browser's, under the
-   workspace zone's name. Test in `ContactTimeline.test.tsx`: hovering an entry's time in an
-   `Asia/Tokyo` workspace shows the Tokyo wall clock.
+   date is now formatted on that zone's clock (`.tz(zone)`, the contact's timezone, else the
+   workspace's): it used the browser's, under the zone's name. Test in `ContactTimeline.test.tsx`:
+   hovering an entry's time with an `Asia/Tokyo` timezone shows the Tokyo wall clock.
 
 Out of scope (other screens, owned by other work in progress): fixed English-order patterns such as
 `'MMM D'`, `'ha'`, `"MMM 'YY"`, `'D MMM'` and `'MMM D, YYYY HH:mm'` in web analytics, the blog and
