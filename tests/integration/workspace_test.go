@@ -594,6 +594,41 @@ func TestWorkspaceMembershipSuite(t *testing.T) {
 			assert.Equal(t, "owner", member["role"])
 		})
 
+		t.Run("members carry their name, a member without one has no name key", func(t *testing.T) {
+			var previous sql.NullString
+			require.NoError(t, db.QueryRow(`SELECT name FROM users WHERE email = $1`, ownerEmail).Scan(&previous))
+			_, err := db.Exec(`UPDATE users SET name = 'Ada Lovelace' WHERE email = $1`, ownerEmail)
+			require.NoError(t, err)
+			defer func() { _, _ = db.Exec(`UPDATE users SET name = $2 WHERE email = $1`, ownerEmail, previous) }()
+
+			unnamed, err := suite.DataFactory.CreateUser()
+			require.NoError(t, err)
+			_, err = db.Exec(`UPDATE users SET name = NULL WHERE id = $1`, unnamed.ID)
+			require.NoError(t, err)
+			require.NoError(t, suite.DataFactory.AddUserToWorkspace(unnamed.ID, workspaceID, "member"))
+			defer func() {
+				_, _ = db.Exec(`DELETE FROM user_workspaces WHERE user_id = $1 AND workspace_id = $2`, unnamed.ID, workspaceID)
+			}()
+
+			resp, err := client.Get("/api/workspaces.members", map[string]string{"id": workspaceID})
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+
+			var response struct {
+				Members []map[string]interface{} `json:"members"`
+			}
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&response))
+			byEmail := map[string]map[string]interface{}{}
+			for _, m := range response.Members {
+				byEmail[m["email"].(string)] = m
+			}
+			require.Contains(t, byEmail, ownerEmail)
+			require.Contains(t, byEmail, unnamed.Email)
+			assert.Equal(t, "Ada Lovelace", byEmail[ownerEmail]["name"])
+			assert.NotContains(t, byEmail[unnamed.Email], "name")
+		})
+
 		t.Run("missing workspace ID", func(t *testing.T) {
 			resp, err := client.Get("/api/workspaces.members")
 			require.NoError(t, err)
