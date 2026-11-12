@@ -164,13 +164,15 @@ const TransactionalNotificationCard: React.FC<{
                 <UpsertTransactionalNotificationDrawer
                   workspace={workspace}
                   notification={notification}
+                  canReadTemplates={!!permissions?.templates?.read}
                   buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
                   buttonProps={{ type: 'text', size: 'small' }}
                 />
               </span>
             </Tooltip>
           )}
-          {notification.channels?.email?.template_id && (
+          {/* Previewing reads the template, which needs Templates read. */}
+          {permissions?.templates?.read && notification.channels?.email?.template_id && (
             <TemplatePreview
               templateId={notification.channels.email.template_id}
               workspace={workspace}
@@ -401,6 +403,7 @@ export function TransactionalNotificationsPage() {
       <div>
         <UpsertTransactionalNotificationDrawer
           workspace={currentWorkspace}
+          canReadTemplates={!!permissions?.templates?.read}
           buttonContent={t`Create Notification`}
           buttonProps={{ type: 'primary', disabled: !canCreate }}
         />
