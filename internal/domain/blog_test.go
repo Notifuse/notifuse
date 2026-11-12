@@ -2119,3 +2119,9 @@ func TestBlogPostCounts_JSON(t *testing.T) {
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"all_total":0,"total":0,"published":0,"scheduled":0,"draft":0,"by_category":{}}`, string(raw))
 }
+
+func TestBlogSitemapLimits(t *testing.T) {
+	// The sitemap protocol allows 50,000 URLs; the home page and the main feed take two.
+	assert.Equal(t, 50000, BlogSitemapMaxURLs)
+	assert.Equal(t, 49998, BlogSitemapMaxPosts)
+}

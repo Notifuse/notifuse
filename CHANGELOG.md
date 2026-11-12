@@ -54,6 +54,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Liquid in templates now matches Shopify Liquid in more cases: `{% if order.total == 100 %}` matches numbers from your data, accented text is no longer corrupted by `capitalize` or `truncate`, amounts are exact (`0.1 | plus: 0.2` is `0.3`), `date` supports `%-d` and formats timestamps, and conditions on a text containing "and" or "or", tags written over several lines and `{%- raw -%}` work.
 
+- **Fix**: The blog's sitemap now lists the blog's posts and the feeds of its categories.
+
 - **Fix**: `{% if tags contains "vip" %}` on a list now matches only the element `vip`, no longer `vip_gold`. Check templates that relied on the partial match.
 
 - **Fix**: As in Shopify Liquid, `{{ item.size }}` on an object without a `size` field now gives its number of fields: use `item["size"]` to test an optional field. A filter given too many arguments now shows nothing instead of the unfiltered text.

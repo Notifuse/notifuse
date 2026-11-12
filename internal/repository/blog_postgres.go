@@ -966,6 +966,56 @@ func (r *blogPostRepository) ListFeedPosts(ctx context.Context, categorySlug *st
 	return posts, nil
 }
 
+// ListSitemapPosts returns, newest first, at most limit live posts with the slug of their
+// category. published_at is a TIMESTAMP without time zone holding UTC, so it is compared to
+// now in UTC rather than to NOW(), whose conversion depends on the session time zone.
+func (r *blogPostRepository) ListSitemapPosts(ctx context.Context, now time.Time, limit int) ([]*domain.BlogSitemapPost, error) {
+	if limit <= 0 {
+		return nil, fmt.Errorf("invalid sitemap limit: %d", limit)
+	}
+
+	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// The join drops posts without a category or in a deleted one: their address answers 404.
+	query := `
+		SELECT c.slug, p.slug, p.published_at
+		FROM blog_posts p
+		JOIN blog_categories c ON c.id = p.category_id AND c.deleted_at IS NULL
+		WHERE p.deleted_at IS NULL
+		  AND p.published_at IS NOT NULL
+		  AND p.published_at <= $1
+		ORDER BY p.published_at DESC, p.id DESC
+		LIMIT $2
+	`
+
+	rows, err := workspaceDB.QueryContext(ctx, query, now.UTC(), limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list sitemap posts: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var posts []*domain.BlogSitemapPost
+	for rows.Next() {
+		var post domain.BlogSitemapPost
+		if err := rows.Scan(&post.CategorySlug, &post.PostSlug, &post.PublishedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan sitemap post: %w", err)
+		}
+		posts = append(posts, &post)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating sitemap posts: %w", err)
+	}
+	return posts, nil
+}
+
 // GetFeedFingerprint returns (maxUpdatedAt, idsHash) over the same slice of
 // posts ListFeedPosts would return.
 //

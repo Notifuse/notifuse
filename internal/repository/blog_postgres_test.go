@@ -1280,6 +1280,114 @@ func TestBlogPostRepository_TxMethods(t *testing.T) {
 	})
 }
 
+func TestBlogPostRepository_ListSitemapPosts(t *testing.T) {
+	setup := func(t *testing.T) (*blogPostRepository, sqlmock.Sqlmock, context.Context) {
+		ctrl := gomock.NewController(t)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws1").Return(db, nil)
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "ws1")
+		return NewBlogPostRepository(mockWorkspaceRepo).(*blogPostRepository), sqlMock, ctx
+	}
+	// A time in another zone, to check the query receives it in UTC.
+	paris := time.FixedZone("Paris", 3600)
+	now := time.Date(2026, 11, 12, 13, 0, 0, 0, paris)
+	sitemapQuery := `(?s)SELECT c\.slug, p\.slug, p\.published_at\s+FROM blog_posts p\s+` +
+		`JOIN blog_categories c ON c\.id = p\.category_id AND c\.deleted_at IS NULL\s+` +
+		`WHERE p\.deleted_at IS NULL\s+AND p\.published_at IS NOT NULL\s+AND p\.published_at <= \$1\s+` +
+		`ORDER BY p\.published_at DESC, p\.id DESC\s+LIMIT \$2`
+
+	t.Run("lists live posts of live categories, newest first, with now in UTC", func(t *testing.T) {
+		repo, sqlMock, ctx := setup(t)
+		first := time.Date(2026, 11, 10, 9, 0, 0, 0, time.UTC)
+		second := time.Date(2026, 11, 1, 9, 0, 0, 0, time.UTC)
+		sqlMock.ExpectQuery(sitemapQuery).
+			WithArgs(now.UTC(), 500).
+			WillReturnRows(sqlmock.NewRows([]string{"slug", "slug", "published_at"}).
+				AddRow("tech", "newest", first).
+				AddRow("design", "older", second))
+
+		posts, err := repo.ListSitemapPosts(ctx, now, 500)
+
+		require.NoError(t, err)
+		assert.Equal(t, []*domain.BlogSitemapPost{
+			{CategorySlug: "tech", PostSlug: "newest", PublishedAt: first},
+			{CategorySlug: "design", PostSlug: "older", PublishedAt: second},
+		}, posts)
+		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+
+	t.Run("returns the query error", func(t *testing.T) {
+		repo, sqlMock, ctx := setup(t)
+		sqlMock.ExpectQuery(sitemapQuery).WillReturnError(errors.New("boom"))
+
+		_, err := repo.ListSitemapPosts(ctx, now, 500)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "boom")
+	})
+
+	t.Run("returns a scan error", func(t *testing.T) {
+		repo, sqlMock, ctx := setup(t)
+		sqlMock.ExpectQuery(sitemapQuery).
+			WillReturnRows(sqlmock.NewRows([]string{"slug", "slug", "published_at"}).
+				AddRow("tech", "post", "not a time"))
+
+		_, err := repo.ListSitemapPosts(ctx, now, 500)
+
+		require.Error(t, err)
+	})
+
+	t.Run("returns an iteration error", func(t *testing.T) {
+		repo, sqlMock, ctx := setup(t)
+		sqlMock.ExpectQuery(sitemapQuery).
+			WillReturnRows(sqlmock.NewRows([]string{"slug", "slug", "published_at"}).
+				AddRow("tech", "post", now).
+				RowError(0, errors.New("broken row")))
+
+		_, err := repo.ListSitemapPosts(ctx, now, 500)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "broken row")
+	})
+
+	t.Run("refuses a limit that is not positive, without a query", func(t *testing.T) {
+		for _, limit := range []int{0, -1} {
+			ctrl := gomock.NewController(t)
+			repo := NewBlogPostRepository(mocks.NewMockWorkspaceRepository(ctrl))
+			ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "ws1")
+
+			_, err := repo.ListSitemapPosts(ctx, now, limit)
+
+			assert.Error(t, err, "limit %d", limit)
+		}
+	})
+
+	t.Run("needs the workspace in the context", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		repo := NewBlogPostRepository(mocks.NewMockWorkspaceRepository(ctrl))
+
+		_, err := repo.ListSitemapPosts(context.Background(), now, 500)
+
+		require.Error(t, err)
+	})
+
+	t.Run("returns the connection error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws1").Return(nil, errors.New("no db"))
+		repo := NewBlogPostRepository(mockWorkspaceRepo)
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "ws1")
+
+		_, err := repo.ListSitemapPosts(ctx, now, 500)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no db")
+	})
+}
+
 // Feed-specific repository tests (Phase A follow-up).
 //
 // These tests validate that the new ListFeedPosts and GetFeedFingerprint

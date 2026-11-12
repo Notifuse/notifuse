@@ -335,6 +335,21 @@ func (mr *MockBlogServiceMockRecorder) ListPublicPosts(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPublicPosts", reflect.TypeOf((*MockBlogService)(nil).ListPublicPosts), arg0, arg1)
 }
 
+// ListPublicSitemapPosts mocks base method.
+func (m *MockBlogService) ListPublicSitemapPosts(arg0 context.Context) ([]*domain.BlogSitemapPost, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPublicSitemapPosts", arg0)
+	ret0, _ := ret[0].([]*domain.BlogSitemapPost)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPublicSitemapPosts indicates an expected call of ListPublicSitemapPosts.
+func (mr *MockBlogServiceMockRecorder) ListPublicSitemapPosts(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPublicSitemapPosts", reflect.TypeOf((*MockBlogService)(nil).ListPublicSitemapPosts), arg0)
+}
+
 // ListThemes mocks base method.
 func (m *MockBlogService) ListThemes(arg0 context.Context, arg1 *domain.ListBlogThemesRequest) (*domain.BlogThemeListResponse, error) {
 	m.ctrl.T.Helper()

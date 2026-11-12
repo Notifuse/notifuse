@@ -852,6 +852,16 @@ func (s *BlogService) ListPublicPosts(ctx context.Context, params *domain.ListBl
 	return s.postRepo.ListPosts(ctx, *params)
 }
 
+// ListPublicSitemapPosts returns the live posts the blog sitemap lists, newest first, at most
+// domain.BlogSitemapMaxPosts of them (no auth required: the sitemap is public)
+func (s *BlogService) ListPublicSitemapPosts(ctx context.Context) ([]*domain.BlogSitemapPost, error) {
+	posts, err := s.postRepo.ListSitemapPosts(ctx, time.Now().UTC(), domain.BlogSitemapMaxPosts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list sitemap posts: %w", err)
+	}
+	return posts, nil
+}
+
 // ====================
 // Theme Operations
 // ====================
