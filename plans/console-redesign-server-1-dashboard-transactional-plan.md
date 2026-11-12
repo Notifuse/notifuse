@@ -107,7 +107,7 @@ See Database.
 | `internal/http/message_history_handler.go` | nothing (passes `MessageListParams` through) | `internal/http/message_history_handler_test.go` | `transactional_notification_id` reaches the service (`gomock.Eq` on the full params) |
 | `internal/database/init.go` | three partial indexes | `internal/database/init_test.go` (or the existing schema test that lists init statements) | the three statements are in the workspace DDL |
 | `internal/migrations/v44.go` | three `CREATE INDEX IF NOT EXISTS` after the timeline step; doc comment updated | `internal/migrations/v44_test.go` | existing test renamed and extended: the timeline function, then the three statements, in that order and nothing else (`ExpectationsWereMet`); an error on each statement is returned with the workspace ID and stops the migration |
-| `tests/integration/analytics_message_origin_test.go` (new) | full stack | same | `TestAnalyticsMessageOrigin`: a broadcast message, its test send (broadcast ID), two automation messages, three transactional messages, a template test and a double opt-in confirmation (no IDs), two origins on the same day: each `origin` filter returns the right count; daily series in `Europe/Paris` with a message at 23:30 local time lands on its local day; the last day of `dateRange` is included; `inDateRange` on ISO instants; a member without `message_history` read is refused |
+| `tests/integration/analytics_message_origin_test.go` (new) | full stack | same | `TestAnalyticsMessageOrigin`: a broadcast message, its test send (broadcast ID), two automation messages, three transactional messages, a template test and a double opt-in confirmation (no IDs), two origins on the same day: each `origin` filter returns the right count; daily series in `Europe/Paris` with a message at 00:30 local time (the evening before in UTC) lands on its local day; the last day of `dateRange` is included; `inDateRange` on ISO instants; a member without `message_history` read is refused |
 | `tests/integration/message_history_handler_test.go` | new cases | same | `messages.list?transactional_notification_id=` returns only that notification's messages; `analytics.query` with `last_sent_at` by `transactional_notification_id` returns the last successful send per notification; a notification whose last message failed returns the success before it; one whose messages all failed returns `null`; one without messages in the window is absent |
 | `tests/integration/v44_message_history_indexes_migration_test.go` (new) | migration | same | `TestV44MessageHistoryIndexesMigration`: drop the three indexes, run v44 twice (no error, indexes present); with `enable_seqscan = off` and after `ANALYZE`, `EXPLAIN` of the complaints query (`WHERE complained_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 5`) uses `idx_message_history_complained_recent` |
 | `CHANGELOG.md` | under `[44.0] - unreleased`, one Feature line (below) | — | — |
@@ -169,9 +169,10 @@ was checked in the code; the corrections below take precedence over the sections
   `LIMIT 6`), for each of the three flags.
 - **S3**: verification adds `make test-database` and `TestTimelineLinkClicked` (already runs
   v44 on a real database).
-- **S4**: the `last_sent_at` comment says `sent_at` is stamped on the first attempt and a
-  retry upsert does not move it (`message_history_postgre.go:275-281`); for broadcast and
-  automation messages retried after a failure, `last_sent_at` is that first attempt.
+- **S4**: the `last_sent_at` comment says a retry upsert does not move `sent_at`
+  (`message_history_postgre.go:275-281`), and that for broadcast and automation messages
+  `sent_at` is the time the email was queued (`worker.go`, `SentAt: entry.CreatedAt`), so
+  `last_sent_at` there is the last queuing time (corrected after the code review).
 - N1: `init_test.go` uses `recordWorkspaceSchema(...).statementContaining`. N2: inline
   `MessageHistoryOption` closures for `created_at`, `transactional_notification_id`,
   `complained_at`; `last_sent_at` compared at second precision. N3: not taken (literal SQL
@@ -180,3 +181,21 @@ was checked in the code; the corrections below take precedence over the sections
   N6: the docs PR of spec 7 ships with the console PR. N7: "exactly one filter" pinned with
   `require.Len(…, 1)`. N8: databases already stamped 44 (dev, demo) do not get the indexes:
   noted for the console PRs' EXPLAIN. N9: released behaviours noted, unchanged.
+
+## Code review and corrections
+
+Review: `reviews/console-redesign-server/pr-1-code-review.md` in the project files.
+
+- B1 (false comment on `sent_at` for broadcast and automation messages): reworded.
+- Taken: the v44 doc comment gives the measured lock time (about 1 s for 2 M rows in memory),
+  says a rerun takes the lock too, and states the `lock_timeout` rule without contradiction;
+  the CHANGELOG has an Improvement line on the indexes and the write wait during the upgrade;
+  the origin filter test looks at the query's own `WHERE`; the unpinned "two IDs" comment is
+  reworded.
+- Known, not handled (for the console PRs): `origin` as a dimension with a daily series loses
+  rows in the gap filler (one query per origin instead); ordering by `last_sent_at` fails in
+  the query builder (existing limit, as `count_sent`); `last_sent_at` is `0` in a gap-filled
+  bucket; the `origin` filter cannot use an index (bounded by the date range);
+  `count_transactional_messages` counts automation messages (existing measure);
+  `transaction_timeout` is not lifted (no other migration does); the EXPLAIN test copies the
+  query by hand; the origin integration test builds fixture rows.

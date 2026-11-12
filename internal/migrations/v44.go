@@ -24,10 +24,13 @@ import (
 // Three partial indexes then hold the failed, bounced and complained messages in
 // messages.list order (created_at DESC, id DESC), so the latest few are read without walking
 // the whole table when none matches. The builds are plain CREATE INDEX (the migration runs in
-// a transaction) and hold a SHARE lock on message_history until commit: writes to it wait, a
-// few seconds on a large table. statement_timeout is lifted for them, since a build cut short
-// fails the migration again at every start (see v42); lock_timeout makes a busy table fail
-// the migration, retried at the next start, instead of queuing writes behind the build.
+// a transaction) and hold a SHARE lock on message_history until commit: writes to it wait,
+// about a second for 2 million rows in memory, longer once the table no longer fits. A rerun
+// takes the lock too, even when the indexes exist. statement_timeout is lifted for the
+// builds, since a build cut short fails the migration again at every start (see v42).
+// lock_timeout bounds the wait for the lock behind a transaction already writing to the
+// table, every later write queuing behind that wait: past 5 seconds the migration fails and
+// is retried at the next start.
 //
 // No column is renamed or dropped, so no automation trigger function needs regenerating.
 type V44Migration struct{}

@@ -213,7 +213,9 @@ func TestAnalyticsRepository_MessageHistoryOriginFilter(t *testing.T) {
 		Filters:  []analytics.Filter{{Member: "origin", Operator: "equals", Values: []string{"automation"}}},
 	}, []string{"count_sent"})
 
-	where := sent[strings.Index(sent, "WHERE"):]
+	// The query's own WHERE, after FROM: the measures' FILTER (WHERE ...) come before it.
+	afterFrom := sent[strings.Index(sent, " FROM "):]
+	where := afterFrom[strings.Index(afterFrom, "WHERE"):]
 	assert.Contains(t, where, originCaseSQL)
 }
 

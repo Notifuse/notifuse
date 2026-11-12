@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The analytics API splits message history by what sent each message, with the new `origin` dimension (`broadcast`, `automation` or `transactional`).
 
+- **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages.
+
 - **Feature**: The analytics API gives when each transactional notification last sent successfully, with the new `last_sent_at` measure of message history, and `messages.list` filters by `transactional_notification_id`.
 
 - **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.

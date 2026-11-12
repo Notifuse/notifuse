@@ -192,9 +192,10 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "sent_at",
 				Description: "When the most recent message accepted by the email provider was sent",
 				Filters: []analytics.MeasureFilter{
-					// sent_at is stamped on the first attempt whatever its outcome (see
-					// count_sent) and a retry upsert does not move it: a broadcast or automation
-					// message retried after a failure keeps its first attempt's time.
+					// sent_at is stamped whatever the outcome (see count_sent), and a retry
+					// upsert does not move it. A transactional message's sent_at is taken just
+					// before the provider call; a broadcast or automation message's is the time
+					// its email was queued, which can be hours before it left under a rate limit.
 					{SQL: "failed_at IS NULL"},
 				},
 			},

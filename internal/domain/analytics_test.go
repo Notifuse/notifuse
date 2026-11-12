@@ -427,8 +427,8 @@ func TestTrackedMeasuresAreSentEmailsWithTheirFlag(t *testing.T) {
 	assert.ElementsMatch(t, append(append([]string{}, sentEmails...), "clicks_tracked IS NOT FALSE"), filterSQL("count_clicks_tracked"))
 }
 
-// The origin dimension sorts every message into what sent it, from the two IDs a
-// message can carry. Its SQL is an expression, so it must be parenthesised: the
+// The origin dimension sorts every message into what sent it, from its broadcast and
+// automation IDs. Its SQL is an expression, so it must be parenthesised: the
 // query builder copies a dimension's SQL as is into SELECT, GROUP BY and filters.
 func TestMessageHistoryOriginDimension(t *testing.T) {
 	schema, ok := PredefinedSchemas["message_history"]
