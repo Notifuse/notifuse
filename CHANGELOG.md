@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 
+- **Feature**: The API counts what uses each template with the new `templates.usage` endpoint (broadcasts that may still send, transactional notifications, automations and double opt-in lists), and lists them for one template. It counts posts by status and category with the new `blogPosts.counts` endpoint; `blogPosts.list` lists the posts still to come with `status=scheduled` and searches titles with `search`; `workspaces.members` returns each member's `name`.
+
+- **Improvement**: `blogPosts.list` answers 400 instead of 500 for an invalid status.
+
 - **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.
 
 - **Improvement**: Opens and clicks on an email whose contact was deleted are no longer recorded. The link still redirects.

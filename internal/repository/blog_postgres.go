@@ -711,6 +711,54 @@ func (r *blogPostRepository) DeletePostTx(ctx context.Context, tx *sql.Tx, id st
 }
 
 // ListPosts retrieves blog posts with filtering and pagination
+// CountPosts reads every post that is not deleted in one query grouped by category, so the
+// totals and the per-category counts come from the same snapshot.
+func (r *blogPostRepository) CountPosts(ctx context.Context, workspaceID string, categoryID string, now time.Time) (*domain.BlogPostCounts, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// published_at is a UTC timestamp without time zone: compared with a UTC instant.
+	rows, err := workspaceDB.QueryContext(ctx, `
+		SELECT category_id, COUNT(*),
+		       COUNT(*) FILTER (WHERE published_at IS NOT NULL),
+		       COUNT(*) FILTER (WHERE published_at > $1),
+		       COUNT(*) FILTER (WHERE published_at IS NULL)
+		FROM blog_posts
+		WHERE deleted_at IS NULL
+		GROUP BY category_id
+	`, now.UTC())
+	if err != nil {
+		return nil, fmt.Errorf("failed to count blog posts: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	counts := domain.NewBlogPostCounts()
+	for rows.Next() {
+		var category sql.NullString
+		var total, published, scheduled, draft int
+		if err := rows.Scan(&category, &total, &published, &scheduled, &draft); err != nil {
+			return nil, fmt.Errorf("failed to scan blog post counts: %w", err)
+		}
+		counts.AllTotal += total
+		if category.Valid {
+			counts.ByCategory[category.String] = total
+		}
+		if categoryID == "" || (category.Valid && category.String == categoryID) {
+			counts.Total += total
+			counts.Published += published
+			counts.Scheduled += scheduled
+			counts.Draft += draft
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating blog post counts: %w", err)
+	}
+
+	return &counts, nil
+}
+
 func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBlogPostsRequest) (*domain.BlogPostListResponse, error) {
 	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
 	if !ok {
@@ -738,7 +786,22 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 		whereConditions = append(whereConditions, "published_at IS NULL")
 	case domain.BlogPostStatusPublished:
 		whereConditions = append(whereConditions, "published_at IS NOT NULL")
+	case domain.BlogPostStatusScheduled:
+		// published_at is a UTC timestamp without time zone: compared with a UTC instant.
+		now := params.Now
+		if now.IsZero() {
+			now = time.Now()
+		}
+		whereConditions = append(whereConditions, fmt.Sprintf("published_at IS NOT NULL AND published_at > $%d", argIndex))
+		args = append(args, now.UTC())
+		argIndex++
 		// BlogPostStatusAll means no filter on published_at
+	}
+
+	if params.Search != "" {
+		whereConditions = append(whereConditions, fmt.Sprintf("settings->>'title' ILIKE $%d", argIndex))
+		args = append(args, "%"+escapeLikePattern(params.Search)+"%")
+		argIndex++
 	}
 
 	whereClause := "WHERE " + whereConditions[0]
@@ -750,8 +813,11 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 	// disjoint: posts imported with the same backdated published_at would otherwise come
 	// back in an arbitrary order per query, repeating some posts across pages and skipping others.
 	orderByClause := "ORDER BY created_at DESC, id DESC"
-	if params.Status == domain.BlogPostStatusPublished {
+	switch params.Status {
+	case domain.BlogPostStatusPublished:
 		orderByClause = "ORDER BY published_at DESC, id DESC"
+	case domain.BlogPostStatusScheduled:
+		orderByClause = "ORDER BY published_at ASC, id ASC"
 	}
 
 	// Count total
