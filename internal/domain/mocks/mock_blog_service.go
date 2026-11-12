@@ -51,6 +51,21 @@ func (mr *MockBlogServiceMockRecorder) BuildFeed(arg0, arg1, arg2 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BuildFeed", reflect.TypeOf((*MockBlogService)(nil).BuildFeed), arg0, arg1, arg2)
 }
 
+// CountPosts mocks base method.
+func (m *MockBlogService) CountPosts(arg0 context.Context, arg1 string) (*domain.BlogPostCounts, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountPosts", arg0, arg1)
+	ret0, _ := ret[0].(*domain.BlogPostCounts)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountPosts indicates an expected call of CountPosts.
+func (mr *MockBlogServiceMockRecorder) CountPosts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountPosts", reflect.TypeOf((*MockBlogService)(nil).CountPosts), arg0, arg1)
+}
+
 // CreateCategory mocks base method.
 func (m *MockBlogService) CreateCategory(arg0 context.Context, arg1 *domain.CreateBlogCategoryRequest) (*domain.BlogCategory, error) {
 	m.ctrl.T.Helper()

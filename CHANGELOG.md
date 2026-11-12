@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 
+- **Feature**: The API counts what uses each template with the new `templates.usage` endpoint (broadcasts that may still send, transactional notifications, automations and double opt-in lists), and lists them for one template. It counts posts by status and category with the new `blogPosts.counts` endpoint; `blogPosts.list` lists the posts still to come with `status=scheduled` and searches titles with `search`; `workspaces.members` returns each member's `name`.
+
+- **Improvement**: `blogPosts.list` answers 400 instead of 500 for an invalid status.
+
 - **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.
 
 - **Improvement**: Opens and clicks on an email whose contact was deleted are no longer recorded. The link still redirects.
@@ -37,6 +41,8 @@ All notable changes to this project will be documented in this file.
 - **Fix**: `transactional.update`, `transactional.delete` and `templates.delete` now answer 400 with the reason, instead of 500, when they refuse to change the name or channels of a notification managed by an integration, or to delete such a notification or template. `templates.delete` also answers a missing permission with 403 and a revoked API key with 401, as the other endpoints do, instead of 500.
 
 - **Fix**: Liquid in templates now matches Shopify Liquid in more cases: `{% if order.total == 100 %}` matches numbers from your data, accented text is no longer corrupted by `capitalize` or `truncate`, amounts are exact (`0.1 | plus: 0.2` is `0.3`), `date` supports `%-d` and formats timestamps, and conditions on a text containing "and" or "or", tags written over several lines and `{%- raw -%}` work.
+
+- **Fix**: The blog's sitemap now lists the blog's posts and the feeds of its categories.
 
 - **Fix**: `{% if tags contains "vip" %}` on a list now matches only the element `vip`, no longer `vip_gold`. Check templates that relied on the partial match.
 
@@ -68,7 +74,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: The email editor no longer gives a new group a width of 100%, unless the template's default attributes give groups one, so it takes its share of the section, and the canvas shows each group at the width the email gives it. The Width field of a group shows that share when it is empty. Adding, moving, duplicating or deleting a group in a section resizes the section's columns to the room the groups leave, keeping their proportions.
 
-- **Fix**: The blog's sitemap now lists the blog's posts and the feeds of its categories.
+- **Fix**: `broadcasts.get` with `with_templates=true` now returns the latest version of each variation's template, the one that is sent, instead of its first version.
 
 ## [43.0] - 2026-11-07
 

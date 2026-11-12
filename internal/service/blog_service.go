@@ -691,7 +691,37 @@ func (s *BlogService) ListPosts(ctx context.Context, params *domain.ListBlogPost
 		return nil, err
 	}
 
+	// published_at is stored in UTC without a time zone.
+	params.Now = time.Now().UTC()
+
 	return s.postRepo.ListPosts(ctx, *params)
+}
+
+// CountPosts counts the posts by status, overall or in one category, and per category.
+func (s *BlogService) CountPosts(ctx context.Context, categoryID string) (*domain.BlogPostCounts, error) {
+	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to blog required",
+		)
+	}
+
+	counts, err := s.postRepo.CountPosts(ctx, workspaceID, categoryID, time.Now().UTC())
+	if err != nil {
+		return nil, fmt.Errorf("failed to count blog posts: %w", err)
+	}
+	return counts, nil
 }
 
 // PublishPost publishes a draft blog post

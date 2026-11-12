@@ -320,6 +320,56 @@ func (s *TemplateService) GetTemplates(ctx context.Context, workspaceID string, 
 	return templates, nil
 }
 
+// templateUsagePermissions is the read permission each usage type needs.
+var templateUsagePermissions = map[domain.TemplateUsageType]domain.PermissionResource{
+	domain.TemplateUsageTypeBroadcasts:                 domain.PermissionResourceBroadcasts,
+	domain.TemplateUsageTypeTransactionalNotifications: domain.PermissionResourceTransactional,
+	domain.TemplateUsageTypeAutomations:                domain.PermissionResourceAutomations,
+	domain.TemplateUsageTypeLists:                      domain.PermissionResourceLists,
+}
+
+// GetTemplateUsage counts what uses each template, or templateID only. A type the member may
+// not read is not queried: it is left out of the counts and references and listed in
+// HiddenTypes, so the member never sees a 0 for something they cannot see.
+func (s *TemplateService) GetTemplateUsage(ctx context.Context, workspaceID string, templateID string) (*domain.TemplateUsage, error) {
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceTemplates, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceTemplates,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to templates required",
+		)
+	}
+
+	readable := []domain.TemplateUsageType{}
+	hidden := []domain.TemplateUsageType{}
+	for _, typ := range domain.TemplateUsageTypes {
+		if userWorkspace.HasPermission(templateUsagePermissions[typ], domain.PermissionTypeRead) {
+			readable = append(readable, typ)
+		} else {
+			hidden = append(hidden, typ)
+		}
+	}
+
+	if len(readable) == 0 {
+		usage := domain.NewTemplateUsage(templateID != "")
+		usage.HiddenTypes = hidden
+		return &usage, nil
+	}
+
+	usage, err := s.repo.GetTemplateUsage(ctx, workspaceID, templateID, readable)
+	if err != nil {
+		s.logger.Error(fmt.Sprintf("Failed to get template usage: %v", err))
+		return nil, fmt.Errorf("failed to get template usage: %w", err)
+	}
+	usage.HiddenTypes = hidden
+	return usage, nil
+}
+
 func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string, template *domain.Template) error {
 	// Authenticate user for workspace
 	var err error

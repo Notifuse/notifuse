@@ -935,6 +935,10 @@ type TemplateService interface {
 
 	// CompileTemplate compiles a visual editor tree to MJML and HTML
 	CompileTemplate(ctx context.Context, payload CompileTemplateRequest) (*CompileTemplateResponse, error) // Use notifuse_mjml.EmailBlock
+
+	// GetTemplateUsage counts what uses each template, or one template when templateID is
+	// set, over the object types the member may read.
+	GetTemplateUsage(ctx context.Context, workspaceID string, templateID string) (*TemplateUsage, error)
 }
 
 // TemplateRepository provides database operations for templates
@@ -959,6 +963,111 @@ type TemplateRepository interface {
 
 	// DeleteTemplate deletes a template
 	DeleteTemplate(ctx context.Context, workspaceID string, id string) error
+
+	// GetTemplateUsage counts, for the given object types only, what uses each template (or
+	// only templateID when set, with its references). HiddenTypes is left empty.
+	GetTemplateUsage(ctx context.Context, workspaceID string, templateID string, types []TemplateUsageType) (*TemplateUsage, error)
+}
+
+// TemplateUsageType is a kind of object that can use a template.
+type TemplateUsageType string
+
+const (
+	TemplateUsageTypeBroadcasts                 TemplateUsageType = "broadcasts"
+	TemplateUsageTypeTransactionalNotifications TemplateUsageType = "transactional_notifications"
+	TemplateUsageTypeAutomations                TemplateUsageType = "automations"
+	TemplateUsageTypeLists                      TemplateUsageType = "lists"
+)
+
+// TemplateUsageTypes lists every TemplateUsageType, in the order of the response.
+var TemplateUsageTypes = []TemplateUsageType{
+	TemplateUsageTypeBroadcasts,
+	TemplateUsageTypeTransactionalNotifications,
+	TemplateUsageTypeAutomations,
+	TemplateUsageTypeLists,
+}
+
+// TemplateUsageCounts holds, for one template, how many objects of each type use it. A type
+// the member may not read stays nil and is left out of the JSON, so it never reads as 0.
+type TemplateUsageCounts struct {
+	Broadcasts                 *int `json:"broadcasts,omitempty"`
+	TransactionalNotifications *int `json:"transactional_notifications,omitempty"`
+	Automations                *int `json:"automations,omitempty"`
+	Lists                      *int `json:"lists,omitempty"`
+}
+
+// Set sets the counter of type t to n; an unknown type is ignored.
+func (c *TemplateUsageCounts) Set(t TemplateUsageType, n int) {
+	switch t {
+	case TemplateUsageTypeBroadcasts:
+		c.Broadcasts = &n
+	case TemplateUsageTypeTransactionalNotifications:
+		c.TransactionalNotifications = &n
+	case TemplateUsageTypeAutomations:
+		c.Automations = &n
+	case TemplateUsageTypeLists:
+		c.Lists = &n
+	}
+}
+
+// TemplateUsageReferenceType names one object in references.
+type TemplateUsageReferenceType string
+
+const (
+	TemplateUsageReferenceBroadcast                 TemplateUsageReferenceType = "broadcast"
+	TemplateUsageReferenceTransactionalNotification TemplateUsageReferenceType = "transactional_notification"
+	TemplateUsageReferenceAutomation                TemplateUsageReferenceType = "automation"
+	TemplateUsageReferenceList                      TemplateUsageReferenceType = "list"
+)
+
+// TemplateUsageReference is one object using the template asked for. Status is set for
+// broadcasts and automations only.
+type TemplateUsageReference struct {
+	Type   TemplateUsageReferenceType `json:"type"`
+	ID     string                     `json:"id"`
+	Name   string                     `json:"name"`
+	Status string                     `json:"status,omitempty"`
+}
+
+// TemplateUsage is the response of templates.usage. Usage holds only templates used at least
+// once. References is set, possibly empty, exactly when one template is asked for: at most
+// TemplateUsageReferenceLimit objects per type, while the counts in Usage stay exact.
+type TemplateUsage struct {
+	Usage       map[string]*TemplateUsageCounts `json:"usage"`
+	References  *[]TemplateUsageReference       `json:"references,omitempty"`
+	HiddenTypes []TemplateUsageType             `json:"hidden_types"`
+}
+
+// TemplateUsageReferenceLimit caps the references returned per object type.
+const TemplateUsageReferenceLimit = 50
+
+// NewTemplateUsage returns an empty usage whose collections encode as {} and [], with
+// references when one template is asked for.
+func NewTemplateUsage(withReferences bool) TemplateUsage {
+	u := TemplateUsage{
+		Usage:       map[string]*TemplateUsageCounts{},
+		HiddenTypes: []TemplateUsageType{},
+	}
+	if withReferences {
+		refs := []TemplateUsageReference{}
+		u.References = &refs
+	}
+	return u
+}
+
+// GetTemplateUsageRequest is the query of templates.usage.
+type GetTemplateUsageRequest struct {
+	WorkspaceID string `json:"workspace_id"`
+	TemplateID  string `json:"template_id,omitempty"`
+}
+
+func (r *GetTemplateUsageRequest) FromURLParams(queryParams url.Values) error {
+	r.WorkspaceID = queryParams.Get("workspace_id")
+	r.TemplateID = queryParams.Get("template_id")
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("invalid get template usage request: workspace_id is required")
+	}
+	return nil
 }
 
 // ErrTemplateNotFound is returned when a template is not found

@@ -38,6 +38,7 @@ func (h *TemplateHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/templates.update", requireAuth(http.HandlerFunc(h.handleUpdate)))
 	mux.Handle("/api/templates.delete", requireAuth(http.HandlerFunc(h.handleDelete)))
 	mux.Handle("/api/templates.compile", requireAuth(http.HandlerFunc(h.handleCompile)))
+	mux.Handle("/api/templates.usage", requireAuth(http.HandlerFunc(h.handleUsage)))
 }
 
 func (h *TemplateHandler) handleList(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +63,33 @@ func (h *TemplateHandler) handleList(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"templates": templates,
 	})
+}
+
+// handleUsage answers templates.usage: what uses each template, or one template with the
+// objects using it, over the types the member may read.
+func (h *TemplateHandler) handleUsage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.GetTemplateUsageRequest
+	if err := req.FromURLParams(r.URL.Query()); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	usage, err := h.service.GetTemplateUsage(r.Context(), req.WorkspaceID, req.TemplateID)
+	if err != nil {
+		if writeServiceError(w, err, "Failed to get template usage") {
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to get template usage")
+		WriteJSONError(w, "Failed to get template usage", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, usage)
 }
 
 func (h *TemplateHandler) handleGet(w http.ResponseWriter, r *http.Request) {
