@@ -6,15 +6,25 @@ import { App as AntApp } from 'antd'
 import type { ReactElement } from 'react'
 import { UpsertBroadcastDrawer } from './UpsertBroadcastDrawer'
 import { broadcastApi, Broadcast } from '../../services/api/broadcast'
+import { templatesApi } from '../../services/api/template'
 import type { Workspace } from '../../services/api/types'
 import type { List } from '../../services/api/list'
 
 // The template selector pulls in template list queries; replace it with a bare
 // input so the required template_id field can be filled without network calls.
 vi.mock('../templates/TemplateSelectorInput', () => ({
-  default: ({ value, onChange }: { value?: string; onChange?: (value: string) => void }) => (
+  default: ({
+    value,
+    onChange,
+    canReadTemplates
+  }: {
+    value?: string
+    onChange?: (value: string) => void
+    canReadTemplates?: boolean
+  }) => (
     <input
       data-testid="template-selector"
+      data-can-read-templates={String(canReadTemplates)}
       value={value ?? ''}
       onChange={(e) => onChange?.(e.target.value)}
     />
@@ -91,7 +101,7 @@ function renderDrawer(ui: ReactElement) {
 }
 
 const openEditDrawer = async (broadcast: Broadcast) => {
-  renderDrawer(<UpsertBroadcastDrawer workspace={workspace} broadcast={broadcast} lists={lists} />)
+  renderDrawer(<UpsertBroadcastDrawer canReadTemplates workspace={workspace} broadcast={broadcast} lists={lists} />)
   await userEvent.click(screen.getByRole('button', { name: /Edit Broadcast/i }))
 }
 
@@ -141,7 +151,7 @@ describe('UpsertBroadcastDrawer data feeds', () => {
   })
 
   it('records both feeds as off on a broadcast created without any feed', async () => {
-    renderDrawer(<UpsertBroadcastDrawer workspace={workspace} lists={lists} />)
+    renderDrawer(<UpsertBroadcastDrawer canReadTemplates workspace={workspace} lists={lists} />)
     await userEvent.click(screen.getByRole('button', { name: /Create Broadcast/i }))
 
     await userEvent.type(
@@ -222,7 +232,7 @@ describe('UpsertBroadcastDrawer schedule', () => {
   })
 
   it('creates a new broadcast unscheduled', async () => {
-    renderDrawer(<UpsertBroadcastDrawer workspace={workspace} lists={lists} />)
+    renderDrawer(<UpsertBroadcastDrawer canReadTemplates workspace={workspace} lists={lists} />)
     await userEvent.click(screen.getByRole('button', { name: /Create Broadcast/i }))
 
     await userEvent.type(
@@ -242,7 +252,7 @@ describe('UpsertBroadcastDrawer schedule', () => {
   })
 
   it('creates a new broadcast tracked, with the "Don\'t track" box unchecked', async () => {
-    renderDrawer(<UpsertBroadcastDrawer workspace={workspace} lists={lists} />)
+    renderDrawer(<UpsertBroadcastDrawer canReadTemplates workspace={workspace} lists={lists} />)
     await userEvent.click(screen.getByRole('button', { name: /Create Broadcast/i }))
 
     await userEvent.type(
@@ -349,6 +359,7 @@ describe('UpsertBroadcastDrawer tracking', () => {
     } as unknown as Workspace
     renderDrawer(
       <UpsertBroadcastDrawer
+        canReadTemplates
         workspace={strictWorkspace}
         broadcast={makeBroadcast({
           test_settings: {
@@ -431,7 +442,7 @@ describe('UpsertBroadcastDrawer sender', () => {
 
   const openWithSenders = async (broadcast: Broadcast) => {
     renderDrawer(
-      <UpsertBroadcastDrawer workspace={withSenders} broadcast={broadcast} lists={lists} />
+      <UpsertBroadcastDrawer canReadTemplates workspace={withSenders} broadcast={broadcast} lists={lists} />
     )
     await userEvent.click(screen.getByRole('button', { name: /Edit Broadcast/i }))
     await goToTab('4. Content')
@@ -533,5 +544,74 @@ describe('UpsertBroadcastDrawer sender', () => {
     const variations = updatePayload().test_settings.variations
     expect(variations[0].sender_id).toBe('s1')
     expect(variations[1].sender_id).toBe('s3')
+  })
+})
+
+// Without Templates read, templates.list and templates.get answer 403: each variation's template
+// field gets the permission, so it shows the stored ID locked, and the sender field beside it
+// requests nothing. The broadcast still saves with its templates.
+describe('UpsertBroadcastDrawer without Templates read', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(broadcastApi.update as Mock).mockResolvedValue({ broadcast: {} })
+  })
+
+  const openLocked = async (broadcast: Broadcast) => {
+    renderDrawer(
+      <UpsertBroadcastDrawer
+        canReadTemplates={false}
+        workspace={workspace}
+        broadcast={broadcast}
+        lists={lists}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: /Edit Broadcast/i }))
+    await goToTab('4. Content')
+  }
+
+  it('locks the template of a single variation and keeps it on save', async () => {
+    await openLocked(makeBroadcast())
+
+    const selectors = screen.getAllByTestId('template-selector')
+    expect(selectors.map((el) => el.getAttribute('data-can-read-templates'))).toEqual(['false'])
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(broadcastApi.update).toHaveBeenCalled())
+    expect(updatePayload().test_settings.variations[0].template_id).toBe('tmpl1')
+    expect(templatesApi.list).not.toHaveBeenCalled()
+  })
+
+  it('locks the template of every A/B variation', async () => {
+    await openLocked(
+      makeBroadcast({
+        test_settings: {
+          enabled: true,
+          sample_percentage: 20,
+          auto_send_winner: false,
+          variations: [
+            { variation_name: 'a', template_id: 'tmpl1' },
+            { variation_name: 'b', template_id: 'tmpl2' }
+          ]
+        }
+      })
+    )
+
+    const selectors = screen.getAllByTestId('template-selector')
+    expect(selectors.map((el) => el.getAttribute('data-can-read-templates'))).toEqual([
+      'false',
+      'false'
+    ])
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(templatesApi.list).not.toHaveBeenCalled()
+  })
+
+  it('gives the template fields the permission when the member has it', async () => {
+    renderDrawer(
+      <UpsertBroadcastDrawer canReadTemplates workspace={workspace} broadcast={makeBroadcast()} lists={lists} />
+    )
+    await userEvent.click(screen.getByRole('button', { name: /Edit Broadcast/i }))
+    await goToTab('4. Content')
+
+    expect(screen.getByTestId('template-selector').getAttribute('data-can-read-templates')).toBe('true')
+    await waitFor(() => expect(templatesApi.list).toHaveBeenCalled())
   })
 })

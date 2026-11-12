@@ -794,16 +794,11 @@ export const mockBlogThemesResponse = {
 // ANALYTICS
 // ============================================
 
+// The analytics.query response: rows plus the generated query. Empty, so every chart and count of
+// the dashboard reads zero.
 export const mockAnalyticsData = {
-  data: [
-    { date: '2024-01-01', sent: 100, delivered: 95, opened: 50, clicked: 20 },
-    { date: '2024-01-02', sent: 150, delivered: 145, opened: 75, clicked: 30 },
-    { date: '2024-01-03', sent: 200, delivered: 190, opened: 100, clicked: 45 }
-  ],
-  total_sent: 450,
-  total_delivered: 430,
-  total_opened: 225,
-  total_clicked: 95
+  data: [],
+  meta: { total: 0, query: '', params: [] }
 }
 
 // ============================================
@@ -844,7 +839,10 @@ export const mockLogsResponse = {
 
 export const mockEmptyLogs = {
   logs: [],
-  total: 0
+  total: 0,
+  // The messages.list shape (MessageListResult).
+  messages: [],
+  has_more: false
 }
 
 // ============================================

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -10,7 +10,9 @@ import type { NodeType } from '../../services/api/automation'
 // The per-type forms are exercised by their own tests; stubbing the barrel keeps this one about
 // the description field the panel owns, and keeps a single textbox on screen to address.
 vi.mock('./config', () => {
-  const Stub = () => <div data-testid="type-form" />
+  const Stub = ({ canReadTemplates }: { canReadTemplates?: boolean }) => (
+    <div data-testid="type-form" data-can-read-templates={String(canReadTemplates)} />
+  )
   return {
     TriggerConfigForm: Stub,
     DelayConfigForm: Stub,
@@ -24,8 +26,10 @@ vi.mock('./config', () => {
   }
 })
 
+const context = vi.hoisted(() => ({ canReadTemplates: true }))
+
 vi.mock('./context', () => ({
-  useAutomation: () => ({ workspace: { id: 'ws-1' } })
+  useAutomation: () => ({ workspace: { id: 'ws-1' }, canReadTemplates: context.canReadTemplates })
 }))
 
 // The NodeType union has no runtime counterpart; build the list from a map typed against it so a
@@ -156,5 +160,25 @@ describe('NodeConfigPanel description', () => {
     )
 
     expect(container).toBeEmptyDOMElement()
+  })
+})
+
+// Without Templates read the trigger's template filter and the email node's template are locked:
+// the panel hands the editor's permission to both forms.
+describe('NodeConfigPanel Templates read', () => {
+  afterEach(() => {
+    context.canReadTemplates = true
+  })
+
+  it.each([
+    { nodeType: 'trigger' as NodeType, canRead: false },
+    { nodeType: 'email' as NodeType, canRead: false },
+    { nodeType: 'trigger' as NodeType, canRead: true },
+    { nodeType: 'email' as NodeType, canRead: true }
+  ])('passes $canRead to the $nodeType form', ({ nodeType, canRead }) => {
+    context.canReadTemplates = canRead
+    renderPanel(makeNode('n1', nodeType, {}))
+
+    expect(screen.getByTestId('type-form').getAttribute('data-can-read-templates')).toBe(String(canRead))
   })
 })

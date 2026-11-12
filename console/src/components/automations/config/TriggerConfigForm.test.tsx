@@ -40,8 +40,20 @@ vi.mock('../../segment/BroadcastSelectorInput', () => ({
   )
 }))
 vi.mock('../../templates/TemplateSelectorInput', () => ({
-  default: ({ value, onChange }: { value?: string | null; onChange?: (v: string | null) => void }) => (
-    <button data-testid="template-selector" onClick={() => onChange?.('tpl-1')}>
+  default: ({
+    value,
+    onChange,
+    canReadTemplates
+  }: {
+    value?: string | null
+    onChange?: (v: string | null) => void
+    canReadTemplates?: boolean
+  }) => (
+    <button
+      data-testid="template-selector"
+      data-can-read-templates={String(canReadTemplates)}
+      onClick={() => onChange?.('tpl-1')}
+    >
       template:{value ?? 'any'}
     </button>
   )
@@ -96,10 +108,15 @@ interface TriggerConfigLike {
   template_id?: string
 }
 
-const renderForm = (config: TriggerConfigLike, onChange = vi.fn()) => {
+const renderForm = (config: TriggerConfigLike, onChange = vi.fn(), canReadTemplates?: boolean) => {
   render(
     <I18nProvider i18n={i18n}>
-      <TriggerConfigForm config={config} onChange={onChange} workspaceId="ws1" />
+      <TriggerConfigForm
+        config={config}
+        onChange={onChange}
+        workspaceId="ws1"
+        canReadTemplates={canReadTemplates}
+      />
     </I18nProvider>
   )
   return onChange
@@ -231,6 +248,17 @@ describe('TriggerConfigForm link click filters', () => {
     expect(screen.getByTestId('broadcast-selector')).toHaveTextContent('broadcast:bc-9')
     expect(screen.getByTestId('template-selector')).toHaveTextContent('template:any')
     expect(screen.getByText(/does not start it again/)).toBeInTheDocument()
+  })
+
+  // Without Templates read the template filter shows the stored ID, locked.
+  it.each([
+    { given: false, passed: 'false' },
+    { given: true, passed: 'true' },
+    { given: undefined, passed: 'true' }
+  ])('gives the template filter Templates read $given', ({ given, passed }) => {
+    renderForm({ event_kind: 'email.link_clicked', frequency: 'every_time', template_id: 'tpl-9' }, vi.fn(), given)
+
+    expect(screen.getByTestId('template-selector').getAttribute('data-can-read-templates')).toBe(passed)
   })
 
   it('shows none of them for a plain email click', () => {

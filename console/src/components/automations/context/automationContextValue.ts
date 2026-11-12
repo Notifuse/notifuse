@@ -29,6 +29,9 @@ export interface AutomationContextType {
   lists: List[]
   segments: Segment[]
   templates: Template[]
+  // Without Templates read, templates.list and templates.get answer 403: the template fields
+  // show the stored IDs, locked.
+  canReadTemplates: boolean
 
   // Form state
   name: string

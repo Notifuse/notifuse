@@ -44,6 +44,7 @@ func (h *AutomationHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Node executions/debugging
 	mux.Handle("/api/automations.nodeExecutions", requireAuth(http.HandlerFunc(h.handleGetContactNodeExecutions)))
+	mux.Handle("/api/automations.nodeStats", requireAuth(http.HandlerFunc(h.handleNodeStats)))
 }
 
 func (h *AutomationHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
@@ -143,10 +144,62 @@ func (h *AutomationHandler) handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	response := map[string]interface{}{
 		"automations": automations,
 		"total":       total,
-	})
+	}
+	if req.WithJourneyCounts {
+		ids := make([]string, 0, len(automations))
+		for _, a := range automations {
+			ids = append(ids, a.ID)
+		}
+		counts, err := h.service.CountJourneys(r.Context(), req.WorkspaceID, ids)
+		if err != nil {
+			h.logger.WithField("error", err.Error()).Error("Failed to count automation journeys")
+			if writePermissionError(w, err) {
+				return
+			}
+			WriteJSONError(w, "Failed to count automation journeys", http.StatusInternalServerError)
+			return
+		}
+		if counts == nil {
+			counts = map[string]domain.JourneyCounts{}
+		}
+		response["journey_counts"] = counts
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
+// handleNodeStats answers the counters of every step of an automation, over a period or all time.
+func (h *AutomationHandler) handleNodeStats(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.NodeStatsRequest
+	if err := req.FromURLParams(r.URL.Query()); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	stats, err := h.service.GetNodeStats(r.Context(), req.WorkspaceID, req.AutomationID, req.Since, req.Until)
+	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		var notFound *domain.ErrNotFound
+		if errors.As(err, &notFound) {
+			WriteJSONError(w, "Automation not found", http.StatusNotFound)
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to get automation node stats")
+		WriteJSONError(w, "Failed to get automation node stats", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, stats)
 }
 
 func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {

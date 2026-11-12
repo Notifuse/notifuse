@@ -40,7 +40,7 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 describe('DrawerSegment', () => {
   it('opens without a trigger and asks its caller to close', async () => {
     const setVisible = vi.fn()
-    render(<DrawerSegment setDrawserVisible={setVisible} />, { wrapper })
+    render(<DrawerSegment canReadTemplates setDrawserVisible={setVisible} />, { wrapper })
     expect(await screen.findByText('New segment')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(setVisible).toHaveBeenCalledWith(false)

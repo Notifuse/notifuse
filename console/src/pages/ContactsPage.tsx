@@ -743,6 +743,7 @@ export function ContactsPage() {
         <CreateListDrawer
           workspaceId={workspaceId}
           list={listDrawer === 'edit' ? list : undefined}
+          canReadTemplates={!!permissions?.templates?.read}
           open={listDrawer !== null}
           onClose={() => setListDrawer(null)}
         />
@@ -751,6 +752,7 @@ export function ContactsPage() {
       {segmentDrawerOpen ? (
         <DrawerSegment
           totalContacts={totalQuery.data?.total_contacts}
+          canReadTemplates={!!permissions?.templates?.read}
           setDrawserVisible={setSegmentDrawerOpen}
           onSuccess={() => queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })}
         />

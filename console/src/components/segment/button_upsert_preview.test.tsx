@@ -5,6 +5,7 @@ import { I18nProvider } from '@lingui/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { message } from 'antd'
 import ButtonUpsertSegment from './button_upsert'
+import { templatesApi } from '../../services/api/template'
 import type { PreviewSegmentRequest, Segment, TreeNode } from '../../services/api/segment'
 
 // antd's Select mounts a ResizeObserver; jsdom doesn't provide one.
@@ -119,13 +120,17 @@ const segmentWith = (tree: TreeNode): Segment => ({
   db_updated_at: '2026-01-01T00:00:00Z'
 })
 
-const openDrawer = (tree: TreeNode) => {
+const openDrawer = (tree: TreeNode, canReadTemplates = true) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
   const result = render(
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
-        <ButtonUpsertSegment segment={segmentWith(tree)} totalContacts={10000} />
+        <ButtonUpsertSegment
+          segment={segmentWith(tree)}
+          totalContacts={10000}
+          canReadTemplates={canReadTemplates}
+        />
       </I18nProvider>
     </QueryClientProvider>
   )
@@ -371,5 +376,52 @@ describe('segment drawer — contacts preview', { timeout: 20_000 }, () => {
     // The last known count stays on screen rather than being wiped by the failure
     expect(screen.getByText('1243 contacts')).toBeTruthy()
     expect(message.error).not.toHaveBeenCalled()
+  })
+})
+
+// Without Templates read, templates.list answers 403: the drawer's tree names an email condition's
+// template by ID and requests no template.
+describe('segment drawer without Templates read', () => {
+  const emailTree: TreeNode = {
+    kind: 'branch',
+    branch: {
+      operator: 'and',
+      leaves: [
+        {
+          kind: 'leaf',
+          leaf: {
+            source: 'contact_timeline',
+            contact_timeline: {
+              kind: 'email.opened',
+              template_id: 'tpl-welcome',
+              count_operator: 'at_least',
+              count_value: 1,
+              timeframe_operator: 'anytime',
+              timeframe_values: []
+            }
+          }
+        }
+      ]
+    }
+  }
+
+  beforeEach(() => {
+    previewSegmentMock.mockReset()
+    previewSegmentMock.mockResolvedValue(countOf(12))
+    vi.mocked(templatesApi.list).mockClear()
+  })
+
+  it('passes the permission to the tree', async () => {
+    openDrawer(emailTree, false)
+
+    expect(await screen.findByText('12 contacts')).toBeTruthy()
+    expect(screen.getByText('tpl-welcome')).toBeTruthy()
+    expect(templatesApi.list).not.toHaveBeenCalled()
+  })
+
+  it('requests the templates with Templates read', async () => {
+    openDrawer(emailTree, true)
+
+    await waitFor(() => expect(templatesApi.list).toHaveBeenCalled())
   })
 })

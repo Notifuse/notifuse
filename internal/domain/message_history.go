@@ -277,6 +277,7 @@ type MessageListParams struct {
 	Channel        string `json:"channel,omitempty"`         // email, sms, push, etc.
 	ContactEmail   string `json:"contact_email,omitempty"`   // filter by contact
 	BroadcastID    string `json:"broadcast_id,omitempty"`    // filter by broadcast
+	AutomationID   string `json:"automation_id,omitempty"`   // filter by automation
 	TemplateID     string `json:"template_id,omitempty"`     // filter by template
 	ClickedURL     string `json:"clicked_url,omitempty"`     // filter by a link clicked, exact URL as clicked_links holds it (requires broadcast_id)
 	IsSent         *bool  `json:"is_sent,omitempty"`         // filter messages that are sent
@@ -307,6 +308,7 @@ func (p *MessageListParams) FromQuery(query url.Values) error {
 	p.Channel = query.Get("channel")
 	p.ContactEmail = query.Get("contact_email")
 	p.BroadcastID = query.Get("broadcast_id")
+	p.AutomationID = query.Get("automation_id")
 	p.TransactionalNotificationID = query.Get("transactional_notification_id")
 	p.TemplateID = query.Get("template_id")
 	p.ClickedURL = query.Get("clicked_url")

@@ -46,8 +46,9 @@ func TestV44Migration_IsWhatLetsTheStampReachFortyFour(t *testing.T) {
 // lock behind a transaction already writing to it. Before the builds, outside their lock, the
 // backfill dates the broadcasts that started sending without a start date (a scheduled send
 // never got one) from their first message, in one grouped pass; it only fills a NULL, so a
-// rerun writes nothing. No column is renamed or dropped, so no automation trigger function
-// needs regenerating.
+// rerun writes nothing. The exited recount runs last, after the builds, so it never holds
+// automations rows while waiting for the message_history lock. No column is renamed or
+// dropped, so no automation trigger function needs regenerating.
 var v44ExpectedWorkspaceStatements = []string{
 	schema.TrackMessageHistoryChangesFunction(),
 	`SET LOCAL statement_timeout = 0`,
@@ -62,6 +63,16 @@ WHERE b.id = m.broadcast_id AND b.started_at IS NULL AND b.status NOT IN ('draft
 	`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`,
 	`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`,
 	`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`,
+	`UPDATE automations a
+SET stats = jsonb_set(COALESCE(a.stats, '{}'::jsonb), '{exited}', to_jsonb(c.n)),
+    updated_at = NOW()
+FROM (SELECT automation_id, COUNT(*) AS n FROM contact_automations
+      WHERE status = 'exited' GROUP BY automation_id) c
+WHERE c.automation_id = a.id
+  AND a.deleted_at IS NULL
+  AND (a.stats IS NULL OR jsonb_typeof(a.stats) = 'object')
+  AND c.n > CASE WHEN a.stats->>'exited' ~ '^[0-9]{1,18}$'
+                 THEN (a.stats->>'exited')::bigint ELSE 0 END`,
 }
 
 func TestV44Migration_UpdateWorkspaceRunsExactlyItsStatementsInOrder(t *testing.T) {

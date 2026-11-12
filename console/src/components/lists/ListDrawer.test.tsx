@@ -1,99 +1,85 @@
-import '../../__tests__/resizeObserverMock'
+import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App } from 'antd'
-import type { ReactNode } from 'react'
+import { i18n } from '@lingui/core'
+import { I18nProvider } from '@lingui/react'
+import { CreateListDrawer } from './ListDrawer'
+import { templatesApi } from '../../services/api/template'
+import { listsApi } from '../../services/api/list'
 import type { List } from '../../services/api/types'
 
+vi.mock('../../services/api/template', () => ({
+  templatesApi: { list: vi.fn(), get: vi.fn() }
+}))
 vi.mock('../../services/api/list', () => ({
-  listsApi: {
-    create: vi.fn(async () => ({})),
-    update: vi.fn(async () => ({}))
-  }
+  listsApi: { create: vi.fn(), update: vi.fn() }
 }))
-vi.mock('../../components/templates', () => ({
-  TemplateSelectorInput: () => null
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({ workspaces: [{ id: 'ws1', name: 'Workspace', integrations: [] }] })
 }))
+vi.mock('../templates/TemplatePreviewDrawer', () => ({
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>
+}))
+vi.mock('../templates/CreateTemplateDrawer', () => ({ CreateTemplateDrawer: () => null }))
 
-import { listsApi } from '../../services/api/list'
-import { CreateListDrawer } from './ListDrawer'
-
-const list: List = {
-  id: 'news',
+const list = {
+  id: 'newsletter',
   name: 'Newsletter',
-  description: 'Monthly',
-  is_double_optin: false,
-  is_public: true,
+  is_double_optin: true,
+  is_public: false,
+  double_optin_template: { id: 'tpl-optin', version: 1 },
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z'
-}
+} as unknown as List
 
-let queryClient: QueryClient
-function wrapper({ children }: { children: ReactNode }) {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <App>{children}</App>
+const openDrawer = (canReadTemplates: boolean) => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  render(
+    <QueryClientProvider client={client}>
+      <I18nProvider i18n={i18n}>
+        <App>
+          <CreateListDrawer workspaceId="ws1" list={list} canReadTemplates={canReadTemplates} />
+        </App>
+      </I18nProvider>
     </QueryClientProvider>
   )
+  fireEvent.click(screen.getByRole('button', { name: 'Edit List' }))
 }
 
-describe('CreateListDrawer', () => {
+describe('CreateListDrawer double opt-in template', () => {
   beforeEach(() => {
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    vi.mocked(listsApi.create).mockClear()
-    vi.mocked(listsApi.update).mockClear()
+    vi.mocked(templatesApi.list).mockReset().mockResolvedValue({ templates: [] } as never)
+    vi.mocked(templatesApi.get)
+      .mockReset()
+      .mockResolvedValue({ template: { id: 'tpl-optin', name: 'Confirm your subscription' } } as never)
+    vi.mocked(listsApi.update).mockReset().mockResolvedValue({ list } as never)
   })
 
-  it('renders its own button when uncontrolled', () => {
-    render(<CreateListDrawer workspaceId="ws" />, { wrapper })
-    fireEvent.click(screen.getByRole('button', { name: 'Create List' }))
-    expect(screen.getByRole('dialog', { name: 'Create New List' })).toBeInTheDocument()
-  })
+  // Without Templates read, templates.list and templates.get answer 403: the field shows the
+  // stored ID, locked, and saving keeps the template.
+  it("shows the template's ID without Templates read, requests nothing, and saves it unchanged", async () => {
+    openDrawer(false)
 
-  it('opens from the prop, without a trigger button', () => {
-    render(<CreateListDrawer workspaceId="ws" open onClose={vi.fn()} />, { wrapper })
-    expect(screen.queryByRole('button', { name: 'Create List' })).toBeNull()
-    expect(screen.getByRole('dialog', { name: 'Create New List' })).toBeInTheDocument()
-  })
+    const field = await screen.findByDisplayValue('tpl-optin')
+    expect(field).toBeDisabled()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(templatesApi.list).not.toHaveBeenCalled()
+    expect(templatesApi.get).not.toHaveBeenCalled()
 
-  it('stays closed while the prop is false', () => {
-    render(<CreateListDrawer workspaceId="ws" open={false} onClose={vi.fn()} />, { wrapper })
-    expect(screen.queryByRole('dialog')).toBeNull()
-  })
-
-  it('creates a list, refreshes the lists and their counts, and closes', async () => {
-    const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
-    const onClose = vi.fn()
-    render(<CreateListDrawer workspaceId="ws" open onClose={onClose} />, { wrapper })
-    fireEvent.change(screen.getByPlaceholderText('Enter list name'), { target: { value: 'Beta testers' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
-    await waitFor(() =>
-      expect(listsApi.create).toHaveBeenCalledWith(
-        expect.objectContaining({ workspace_id: 'ws', id: 'betatesters', name: 'Beta testers' })
-      )
-    )
-    await waitFor(() => expect(onClose).toHaveBeenCalled())
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['lists', 'ws'] })
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['lists-with-counts', 'ws'] })
-  })
-
-  it('edits the given list from the prop', async () => {
-    render(<CreateListDrawer workspaceId="ws" list={list} open onClose={vi.fn()} />, { wrapper })
-    expect(screen.getByRole('dialog', { name: 'Edit List' })).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByPlaceholderText('Enter list name')).toHaveValue('Newsletter'))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() =>
-      expect(listsApi.update).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'news', name: 'Newsletter' })
-      )
-    )
+    await waitFor(() => expect(listsApi.update).toHaveBeenCalled())
+    expect(vi.mocked(listsApi.update).mock.calls[0][0].double_optin_template).toEqual({
+      id: 'tpl-optin',
+      version: 1
+    })
   })
 
-  it('closes from the drawer', () => {
-    const onClose = vi.fn()
-    render(<CreateListDrawer workspaceId="ws" open onClose={onClose} />, { wrapper })
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-    expect(onClose).toHaveBeenCalled()
+  it("shows the template's name with Templates read", async () => {
+    openDrawer(true)
+
+    expect(await screen.findByDisplayValue('Confirm your subscription')).toBeInTheDocument()
+    expect(templatesApi.list).toHaveBeenCalled()
   })
 })

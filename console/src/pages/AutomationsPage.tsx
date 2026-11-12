@@ -20,6 +20,7 @@ export function AutomationsPage() {
   const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { permissions } = useWorkspacePermissions(workspaceId)
+  const canReadTemplates = !!permissions?.templates?.read
   const { workspaces } = useAuth()
   const queryClient = useQueryClient()
   const { message } = App.useApp()
@@ -71,7 +72,8 @@ export function AutomationsPage() {
   const { data: templatesData } = useQuery({
     queryKey: ['templates', workspaceId, 'email'],
     queryFn: () => templatesApi.list({ workspace_id: workspaceId, channel: 'email' }),
-    enabled: !!workspaceId
+    // Without Templates read it answers 403: the canvas then names templates by ID.
+    enabled: !!workspaceId && canReadTemplates
   })
 
   const automations = automationsData?.automations || []
@@ -166,6 +168,7 @@ export function AutomationsPage() {
               lists={lists}
               segments={segments}
               templates={templates}
+              canReadTemplates={canReadTemplates}
               buttonProps={{
                 type: 'primary',
                 icon: <PlusOutlined />,
@@ -190,6 +193,7 @@ export function AutomationsPage() {
               lists={lists}
               segments={segments}
               templates={templates}
+              canReadTemplates={canReadTemplates}
               buttonProps={{
                 type: 'primary',
                 icon: <PlusOutlined />,
@@ -239,6 +243,7 @@ export function AutomationsPage() {
           lists={lists}
           segments={segments}
           templates={templates}
+          canReadTemplates={canReadTemplates}
           open={!!editingAutomation}
           onOpenChange={(open) => {
             if (!open) handleEditClose()

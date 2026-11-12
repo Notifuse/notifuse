@@ -46,6 +46,7 @@ interface AutomationProviderProps {
   lists: List[]
   segments?: Segment[]
   templates?: Template[]
+  canReadTemplates: boolean
   onSaveSuccess?: () => void
   onClose?: () => void
   children: React.ReactNode
@@ -57,6 +58,7 @@ export function AutomationProvider({
   lists,
   segments = [],
   templates = [],
+  canReadTemplates,
   onSaveSuccess,
   // Reserved for future use
   onClose: _onClose,
@@ -400,6 +402,7 @@ export function AutomationProvider({
     lists,
     segments,
     templates,
+    canReadTemplates,
     name,
     setName: setNameWithChange,
     listId,
@@ -427,6 +430,7 @@ export function AutomationProvider({
     lists,
     segments,
     templates,
+    canReadTemplates,
     name,
     setNameWithChange,
     listId,

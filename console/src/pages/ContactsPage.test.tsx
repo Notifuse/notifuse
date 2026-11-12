@@ -146,13 +146,33 @@ vi.mock('../components/contacts/ExportContactsModal', () => ({
   ExportContactsModal: ({ visible }: { visible: boolean }) => (visible ? <div>export modal</div> : null)
 }))
 vi.mock('../components/segment/button_upsert', () => ({
-  DrawerSegment: ({ segment }: { segment?: { name: string } }) => (
-    <div>{segment ? `edit segment ${segment.name}` : 'new segment drawer'}</div>
+  DrawerSegment: ({
+    segment,
+    canReadTemplates
+  }: {
+    segment?: { name: string }
+    canReadTemplates: boolean
+  }) => (
+    <div data-can-read-templates={String(canReadTemplates)}>
+      {segment ? `edit segment ${segment.name}` : 'new segment drawer'}
+    </div>
   )
 }))
 vi.mock('../components/lists/ListDrawer', () => ({
-  CreateListDrawer: ({ open, list }: { open?: boolean; list?: unknown }) =>
-    open ? <div>{list ? 'edit list drawer' : 'new list drawer'}</div> : null
+  CreateListDrawer: ({
+    open,
+    list,
+    canReadTemplates
+  }: {
+    open?: boolean
+    list?: unknown
+    canReadTemplates: boolean
+  }) =>
+    open ? (
+      <div data-can-read-templates={String(canReadTemplates)}>
+        {list ? 'edit list drawer' : 'new list drawer'}
+      </div>
+    ) : null
 }))
 
 vi.mock('../services/api/contacts', () => ({
@@ -519,6 +539,20 @@ describe('ContactsPage', () => {
       expect(await screen.findByText('Country: FR - France')).toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
       expect(lastNavigation().search).toMatchObject({ country: undefined, search: undefined })
+    })
+  })
+
+  describe('Templates read', () => {
+    // Without it templates.list answers 403: the drawers show a template's ID, locked.
+    it.each([true, false])('passes Templates read %s to the list and segment drawers', async (read) => {
+      state.permissions = { ...createFullPermissions(), templates: { read, write: false } }
+      renderPage()
+      fireEvent.click(await screen.findByRole('button', { name: 'New list' }))
+      expect(screen.getByText('new list drawer').getAttribute('data-can-read-templates')).toBe(String(read))
+      fireEvent.click(screen.getByRole('button', { name: 'New segment' }))
+      expect(screen.getByText('new segment drawer').getAttribute('data-can-read-templates')).toBe(
+        String(read)
+      )
     })
   })
 

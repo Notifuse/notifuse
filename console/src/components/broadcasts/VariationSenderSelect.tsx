@@ -13,6 +13,9 @@ interface VariationSenderSelectProps {
   workspace: Workspace
   // The variation's template, whose sender applies while none is chosen here.
   templateId?: string
+  // Without Templates read, templates.list answers 403: the template's sender is not looked up.
+  // Defaults to true.
+  canReadTemplates?: boolean
 }
 
 // VariationSenderSelect picks the sender one broadcast variation leaves from, among the
@@ -22,7 +25,8 @@ export function VariationSenderSelect({
   value,
   onChange,
   workspace,
-  templateId
+  templateId,
+  canReadTemplates = true
 }: VariationSenderSelectProps) {
   const { t } = useLingui()
   const senders = getMarketingSenders(workspace)
@@ -36,7 +40,7 @@ export function VariationSenderSelect({
         category: 'marketing',
         channel: 'email'
       }),
-    enabled: !!workspace.id && !!templateId
+    enabled: !!workspace.id && !!templateId && canReadTemplates
   })
   const template = templatesResponse?.templates?.find((tpl) => tpl.id === templateId)
   // Known once the variation's template is: until then no sender can be said to be its.

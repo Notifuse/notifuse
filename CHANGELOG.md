@@ -4,11 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [44.0] - unreleased
 
+- **Feature**: Contacts, lists and segments share one page in the console. A side rail lists your lists and segments; selecting one shows its contacts, its counts by status and its settings. The Lists page now opens it. Clicking a contact opens its sheet, with its own link: move through the table with J and K, edit fields in place, and see the contact's key figures, filtered activity, messages and web visits.
+
 - **Feature**: Automations can start when a contact clicks a specific link, with the new "Clicked a link" trigger (`email.link_clicked`). It starts the first time a contact clicks each link of an email, and can be limited to links containing some text, to one broadcast or to one template. A click on an email the automation sent itself does not start it again. Clicks made before the upgrade, and clicks on links in emails sent before 42.2, do not start it; a link clicked before the upgrade starts it on its next click. The new event does not count toward the monthly event usage.
 
 - **Fix**: `automations.get` answers 404 instead of 500 for an automation that does not exist.
 
-- **Fix**: Contacts who leave an automation by replying now count in its exited total.
+- **Fix**: Contacts who leave an automation by replying now count in its exited total, past exits included.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 
@@ -17,6 +19,8 @@ All notable changes to this project will be documented in this file.
 - **Feature**: The analytics API gives when each transactional notification last sent successfully, with the new `last_sent_at` measure of message history, and `messages.list` filters by `transactional_notification_id`.
 
 - **Feature**: The API counts the recipients of a broadcast audience before it is sent, with the new `broadcasts.estimateAudience`. `broadcasts.list` gives the number of broadcasts in each status (`with_status_counts`) and keeps the ones started from a date (`started_after`), and the message history analytics take `opened_at` and `clicked_at` as time dimensions.
+
+- **Feature**: The API gives the statistics of each step of an automation, over a period or all time, with the new `automations.nodeStats`: visits, results, the path each split took, the journeys waiting or retrying there, and for email steps the messages sent, delivered, opened and clicked. `automations.list` gives each automation's journeys by status (`with_journey_counts`), `messages.list` filters by `automation_id`, and the message history analytics split by `automation_id`.
 
 - **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages when the table fits in memory, longer otherwise.
 
@@ -68,6 +72,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Create Notification is now disabled, and Edit hidden, on the transactional notifications page for members without Templates read: creating offered a template picker they could not load, and saving an edit was refused. Editing a notification managed by an integration stays available with Transactional write alone. Its edit drawer then shows the template's ID, with a note that Templates read is needed to see the template, instead of an empty field, and the page no longer requests templates without Templates read.
 
+- **Fix**: A member without Templates read now sees the template's ID instead of an empty field or "Untitled" in a list's double opt-in template, a broadcast's templates, an automation's email nodes and a segment's email conditions, and these screens no longer request templates such a member cannot read. The template fields carry a lock saying that Templates read is needed.
+
 - **Fix**: `transactional.update`, `transactional.delete` and `templates.delete` now answer 400 with the reason, instead of 500, when they refuse to change the name or channels of a notification managed by an integration, or to delete such a notification or template. `templates.delete` also answers a missing permission with 403 and a revoked API key with 401, as the other endpoints do, instead of 500.
 
 - **Fix**: Liquid in templates now matches Shopify Liquid in more cases: `{% if order.total == 100 %}` matches numbers from your data, accented text is no longer corrupted by `capitalize` or `truncate`, amounts are exact (`0.1 | plus: 0.2` is `0.3`), `date` supports `%-d` and formats timestamps, and conditions on a text containing "and" or "or", tags written over several lines and `{%- raw -%}` work.
@@ -113,6 +119,8 @@ All notable changes to this project will be documented in this file.
 - **Feature**: The console has a new, denser look: the Inter typeface, new colors and tighter spacing.
 
 - **Feature**: The console has a new navigation: a lighter sidebar, which folds to icons, now holds the workspace switcher, the help and the account menus, and the top bar is gone. On Settings and the blog, which keep their own side menu, the sidebar stays folded and opens over the page. The sign-in page has a new background photo, by Sean Oulashin.
+
+- **Feature**: The dashboard shows website visits, how rates moved since the previous period, emails sent each day by origin (broadcasts, transactional, automations), the latest failures and new contacts, and your upcoming broadcasts. Members who cannot read message history land on the first page they can open.
 
 ## [43.0] - 2026-11-07
 

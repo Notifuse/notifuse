@@ -115,6 +115,53 @@ export function firstPageOfGroup(group: string, hasAccess: HasAccess, workspaceI
   return null
 }
 
+/** The page each top entry links to, for the entries that are plain links. */
+const ENTRY_PAGES: Record<string, (workspaceId: string) => MenuTarget> = {
+  contacts: (workspaceId) => ({ to: '/console/workspace/$workspaceId/contacts', params: { workspaceId } }),
+  lists: (workspaceId) => ({ to: '/console/workspace/$workspaceId/lists', params: { workspaceId } }),
+  broadcasts: (workspaceId) => ({ to: '/console/workspace/$workspaceId/broadcasts', params: { workspaceId } }),
+  automations: (workspaceId) => ({ to: '/console/workspace/$workspaceId/automations', params: { workspaceId } }),
+  'transactional-notifications': (workspaceId) => ({
+    to: '/console/workspace/$workspaceId/transactional-notifications',
+    params: { workspaceId }
+  }),
+  logs: (workspaceId) => ({ to: '/console/workspace/$workspaceId/logs', params: { workspaceId } }),
+  settings: (workspaceId) => ({ to: '/console/workspace/$workspaceId/settings', params: { workspaceId } })
+}
+
+/** The sidebar's top entries after the dashboard, in its order, with the right each needs. */
+const ENTRIES_AFTER_DASHBOARD: { key: string; reachable: (hasAccess: HasAccess) => boolean }[] = [
+  { key: 'web-analytics', reachable: (hasAccess) => hasAccess('web_analytics') },
+  { key: 'contacts', reachable: (hasAccess) => hasAccess('contacts') },
+  { key: 'lists', reachable: (hasAccess) => hasAccess('lists') },
+  { key: 'broadcasts', reachable: (hasAccess) => hasAccess('broadcasts') },
+  { key: 'automations', reachable: (hasAccess) => hasAccess('automations') },
+  { key: 'transactional-notifications', reachable: (hasAccess) => hasAccess('transactional') },
+  { key: 'content', reachable: (hasAccess) => hasAccess('templates') || hasAccess('workspace') },
+  { key: 'logs', reachable: (hasAccess) => hasAccess('message_history') },
+  { key: 'settings', reachable: (hasAccess) => hasAccess('workspace') }
+]
+
+export interface MenuPage {
+  key: string
+  target: MenuTarget
+}
+
+/**
+ * Where a member who cannot read the dashboard lands: the first sidebar entry after it they can
+ * reach, Settings when none. Never the dashboard itself, so a redirect from it cannot loop.
+ */
+export function firstAccessiblePage(hasAccess: HasAccess, workspaceId: string): MenuPage {
+  for (const entry of ENTRIES_AFTER_DASHBOARD) {
+    if (!entry.reachable(hasAccess)) continue
+    const group = firstPageOfGroup(entry.key, hasAccess, workspaceId)
+    if (group) return { key: entry.key, target: group }
+    const page = ENTRY_PAGES[entry.key]
+    if (page) return { key: entry.key, target: page(workspaceId) }
+  }
+  return { key: 'settings', target: ENTRY_PAGES.settings(workspaceId) }
+}
+
 const LABELS = {
   dashboard: msg`Dashboard`,
   webAnalytics: msg`Web Analytics`,

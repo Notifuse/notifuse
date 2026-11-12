@@ -60,10 +60,11 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/`)
     await waitForPageLoad(page)
 
-    // Contact counters and the email metrics panel make up the dashboard
-    await expect(page.getByText('Total Contacts')).toBeVisible()
-    await expect(page.getByText('Email Metrics')).toBeVisible()
-    await expect(page.getByText('Recent New Contacts')).toBeVisible()
+    // The KPI strip, the chart of sends and the cards make up the dashboard
+    await expect(page.getByText('Emails sent', { exact: true })).toBeVisible()
+    await expect(page.getByText('Emails sent per day')).toBeVisible()
+    await expect(page.getByText('Recent failures')).toBeVisible()
+    await expect(page.getByText('Sending', { exact: true })).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)

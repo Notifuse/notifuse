@@ -183,6 +183,7 @@ export function ContactsViewHeader({
         {editSegmentOpen && segment ? (
           <DrawerSegment
             segment={segment}
+            canReadTemplates={!!permissions?.templates?.read}
             setDrawserVisible={(visible) => setEditSegmentOpen(visible)}
             onSuccess={invalidateSegments}
           />

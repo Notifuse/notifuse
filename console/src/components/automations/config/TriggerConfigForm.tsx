@@ -59,9 +59,17 @@ interface TriggerConfigFormProps {
   onChange: (config: TriggerConfig) => void
   workspaceId: string
   workspace?: Workspace
+  // Without Templates read the template filter shows the stored ID, locked. Defaults to true.
+  canReadTemplates?: boolean
 }
 
-export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, onChange, workspaceId, workspace }) => {
+export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
+  config,
+  onChange,
+  workspaceId,
+  workspace,
+  canReadTemplates = true
+}) => {
   const { t } = useLingui()
 
   // Cascader options for event kinds
@@ -408,6 +416,7 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
               onChange={handleTemplateIdChange}
               placeholder={t`Any template`}
               clearable={true}
+              canReadTemplates={canReadTemplates}
             />
           </Form.Item>
         </>
