@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -857,7 +858,7 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 
 	t.Run("lists every post at its category's address and each category's feed once", func(t *testing.T) {
 		// The strict mock fails on any other call: GetCategory, which needs a user, and
-		// ListPublicPosts, capped at 100 posts, are no longer used.
+		// ListPublicPosts, capped by ListBlogPostsRequest.Validate, are no longer used.
 		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
 		mockBlogService.EXPECT().
 			ListPublicSitemapPosts(gomock.Any()).
@@ -951,6 +952,20 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 		}, locs)
 	})
 
+	t.Run("stays within the sitemap protocol's URL limit", func(t *testing.T) {
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+		posts := make([]*domain.BlogSitemapPost, domain.BlogSitemapMaxPosts)
+		for i := range posts {
+			posts[i] = &domain.BlogSitemapPost{CategorySlug: "tech", PostSlug: fmt.Sprintf("p%d", i), PublishedAt: newest}
+		}
+		mockBlogService.EXPECT().ListPublicSitemapPosts(gomock.Any()).Return(posts, nil)
+
+		w := serve(t, handler, workspace)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, 50000, strings.Count(w.Body.String(), "<loc>"))
+	})
+
 	t.Run("answers 500 when the posts cannot be listed", func(t *testing.T) {
 		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
 		mockBlogService.EXPECT().ListPublicSitemapPosts(gomock.Any()).Return(nil, assert.AnError)
@@ -995,7 +1010,7 @@ func TestWriteBlogSitemap_URLBudget(t *testing.T) {
 		assert.NotContains(t, body, "p4")
 	})
 
-	t.Run("lists no feed of a category without its post", func(t *testing.T) {
+	t.Run("stops at the first post that does not fit", func(t *testing.T) {
 		// Home, main feed, p1 and the tech feed take 4; p2 does not fit in 4.
 		body := write(4)
 		assert.Equal(t, 4, strings.Count(body, "<loc>"))

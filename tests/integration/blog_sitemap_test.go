@@ -121,7 +121,7 @@ func TestBlogSitemap(t *testing.T) {
 		}
 	})
 
-	t.Run("lists no post a visitor could not open", func(t *testing.T) {
+	t.Run("lists no post that is not live", func(t *testing.T) {
 		for _, path := range []string{
 			"/tech/scheduled-post", "/tech/draft-post", "/tech/deleted-post", "/archived/archived-post",
 		} {

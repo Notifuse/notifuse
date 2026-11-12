@@ -101,7 +101,7 @@ needs to return more, since each post costs at least one URL.
 
 `serveBlogSitemap` calls `ListPublicSitemapPosts` (500 on error, as today) and writes the XML
 through a pure function, with the host stripped of its port (`hostWithoutPort`, shared with
-`ServeHTTP`'s workspace lookup). The workspace is found by the part before the colon only; the
+`RootHandler.Handle`'s workspace lookup). The workspace is found by the part before the colon only; the
 rest of the `Host` header is unchecked, and used raw it would be repeated, unescaped, in every
 `<loc>`: `Host: blog.example:&x` would make the XML malformed, and a long header would multiply
 the response size by the number of posts.

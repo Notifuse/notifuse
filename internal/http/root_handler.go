@@ -577,7 +577,7 @@ func (h *RootHandler) serveBlogSitemap(w http.ResponseWriter, r *http.Request, w
 
 // writeBlogSitemap writes the sitemap of a blog: the home page, the posts newest first, the
 // main feed, then the feed of each category with a listed post. It lists at most maxURLs
-// URLs: past them, the oldest posts are left out, and a category feed is listed only with a
+// URLs (the home page and the main feed always, so at least two): past them, the oldest posts are left out, and a category feed is listed only with a
 // post of its category.
 func writeBlogSitemap(w io.Writer, host string, posts []*domain.BlogSitemapPost, maxURLs int) {
 	writeURL := func(path, lastmod, changefreq, priority string) {

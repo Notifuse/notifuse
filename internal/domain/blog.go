@@ -665,8 +665,9 @@ func NewBlogPostCounts() BlogPostCounts {
 // BlogSitemapMaxURLs is the number of URLs the sitemap protocol allows in one sitemap.
 const BlogSitemapMaxURLs = 50000
 
-// BlogSitemapMaxPosts is the most posts a blog sitemap can list: BlogSitemapMaxURLs less the
-// home page and the main feed.
+// BlogSitemapMaxPosts is the most posts the sitemap needs to read: BlogSitemapMaxURLs less the
+// home page and the main feed. Each listed post's category feed also takes a URL, so a full
+// sitemap lists fewer posts.
 const BlogSitemapMaxPosts = BlogSitemapMaxURLs - 2
 
 // BlogSitemapPost is what the blog sitemap needs of a live post.
