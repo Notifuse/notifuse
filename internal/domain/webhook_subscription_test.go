@@ -68,6 +68,20 @@ func TestWebhookDeliveryStatus_Constants(t *testing.T) {
 	assert.Equal(t, "failed", WebhookDeliveryStatusFailed)
 }
 
+func TestIsValidWebhookDeliveryStatus(t *testing.T) {
+	for _, status := range []string{
+		WebhookDeliveryStatusPending,
+		WebhookDeliveryStatusDelivering,
+		WebhookDeliveryStatusDelivered,
+		WebhookDeliveryStatusFailed,
+	} {
+		assert.True(t, IsValidWebhookDeliveryStatus(status), "status %q should be accepted", status)
+	}
+	for _, status := range []string{"", "bogus", "FAILED", " failed"} {
+		assert.False(t, IsValidWebhookDeliveryStatus(status), "status %q should be refused", status)
+	}
+}
+
 func TestWebhookSubscription_Fields(t *testing.T) {
 	now := time.Now()
 	lastDelivery := now.Add(-1 * time.Hour)

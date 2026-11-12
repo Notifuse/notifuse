@@ -1,5 +1,6 @@
+import type React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -15,6 +16,20 @@ vi.mock('../../services/api/webhook_subscription', () => ({
     list: vi.fn(),
     getDeliveries: vi.fn()
   }
+}))
+
+// The shared macro mock (src/__tests__/setup.tsx) returns a new `t` on every render, where the
+// real one only changes with the locale. The tab memoises its filter options on `t` and
+// re-reads the address each time they change, so with a filter in the address it would
+// re-apply it forever. A `t` that keeps its identity, as the real one does.
+const stableLingui = vi.hoisted(() => {
+  const t = (strings: TemplateStringsArray, ...values: unknown[]) =>
+    strings.reduce((result, str, idx) => result + str + (idx < values.length ? String(values[idx]) : ''), '')
+  return { t }
+})
+vi.mock('@lingui/react/macro', () => ({
+  useLingui: () => ({ t: stableLingui.t }),
+  Trans: ({ children }: { children: React.ReactNode }) => children
 }))
 
 vi.mock('../../contexts/AuthContext', () => ({
@@ -108,5 +123,31 @@ describe('OutgoingWebhooksTab', () => {
     // The option list is built in the component; assert it carries every status the backend
     // can write, so a row can never exist that no filter can reach.
     expect(screen.getByText('Delivering')).toBeInTheDocument()
+  })
+
+  // The Status filter was offered and never sent, so the list ignored it.
+  it('sends the status filter read from the address, and keeps the tab in it', async () => {
+    const pushState = vi.spyOn(window.history, 'pushState').mockImplementation(() => undefined)
+    window.history.replaceState(null, '', '/console/workspace/ws1/logs?tab=outgoing-webhooks&status=failed')
+    try {
+      await renderTab()
+
+      await waitFor(() =>
+        expect(webhookSubscriptionApi.getDeliveries).toHaveBeenCalledWith(
+          'ws1',
+          undefined,
+          expect.any(Number),
+          0,
+          'failed'
+        )
+      )
+      const urls = pushState.mock.calls.map((call) => String(call[2]))
+      expect(urls.length).toBeGreaterThan(0)
+      urls.forEach((url) => expect(url).toContain('tab=outgoing-webhooks'))
+      expect(urls[urls.length - 1]).toContain('status=failed')
+    } finally {
+      pushState.mockRestore()
+      window.history.replaceState(null, '', '/')
+    }
   })
 })

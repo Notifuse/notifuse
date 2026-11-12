@@ -1568,7 +1568,7 @@ func (f *fakeDeliveryStore) Create(_ context.Context, _ string, delivery *domain
 	return nil
 }
 
-func (f *fakeDeliveryStore) ListAll(_ context.Context, _ string, _ *string, _, _ int) ([]*domain.WebhookDelivery, int, error) {
+func (f *fakeDeliveryStore) ListAll(_ context.Context, _ string, _, _ *string, _, _ int) ([]*domain.WebhookDelivery, int, error) {
 	return nil, 0, nil
 }
 

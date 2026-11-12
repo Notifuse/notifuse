@@ -22,6 +22,14 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Behind a reverse proxy, clicks on an email's unsubscribe and notification center links are no longer recorded per link, so the contact address these links carry is no longer stored with the click. Behind a proxy that forwards neither the public host nor `X-Forwarded-Host`, links on a custom domain the workspace no longer uses are still recorded. Links recorded before the upgrade stay in the per-link statistics.
 
+- **Fix**: The status filter of outgoing webhook deliveries now filters them. `webhookSubscriptions.deliveries` takes `status`.
+
+- **Fix**: Filtering incoming webhooks by Auth email or User created no longer fails.
+
+- **Fix**: A link to a webhooks tab, filtered or not, opens that tab again, not the messages.
+
+- **Fix**: View more on the failed messages card opens the failed messages.
+
 - **Feature**: Blocks of the visual email editor can now be sent only to some recipients, with a display condition on the email's data, such as "`order.total` is greater than 100" or "`contact.custom_string_1` equals `vip`" (#395). Add it at the top of a section, text, image, button or other block's settings, where its result with the test data shows; the preview hides the blocks it would hide. Columns and groups cannot have one. Through the API, a block of `visual_editor_tree` takes it as `display_condition`. The MJML export writes conditions as Liquid; importing that file back into the visual editor drops them.
 
 - **Feature**: Every email now includes a plain-text version, for mail clients that show text only and for better deliverability. By default it is generated from the HTML at every send, its links tracked like the links of the HTML. In the template editor's new Text version mode, and in the MJML editor's Text version tab, you can instead write your own, starting from the automatic version, with Liquid like the subject, for the default language and for each translation; a language without its own text gets the automatic version. A custom text is sent as written: its links are not tracked, and a marketing template's text should keep `{{ unsubscribe_url }}`, which the editor reminds you of. A custom text that cannot be rendered at send time is replaced by the automatic version. The template preview shows the text sent and where it comes from, and `templates.compile` returns it as `text`, with `text_source` and `text_error`.

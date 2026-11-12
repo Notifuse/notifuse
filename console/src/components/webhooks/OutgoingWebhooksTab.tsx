@@ -17,6 +17,7 @@ import {
   WebhookDelivery
 } from '../../services/api/webhook_subscription'
 import { useLingui } from '@lingui/react/macro'
+import { buildLogsTabUrl, LOGS_TAB } from '../logs/logsUrl'
 
 interface FilterOption {
   key: string
@@ -128,14 +129,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
 
   // Update URL when filters change
   useEffect(() => {
-    const searchParams = new URLSearchParams()
-
-    activeFilters.forEach((filter) => {
-      searchParams.set(filter.field, filter.value)
-    })
-
-    const newUrl =
-      window.location.pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '')
+    const newUrl = buildLogsTabUrl(window.location.pathname, LOGS_TAB.outgoingWebhooks, activeFilters)
 
     window.history.pushState({ path: newUrl }, '', newUrl)
   }, [activeFilters])
@@ -154,7 +148,8 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
         workspaceId,
         apiFilters.subscription_id,
         pageSize,
-        offset
+        offset,
+        apiFilters.status
       )
     },
     staleTime: 5000,
@@ -228,7 +223,8 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
   const clearAllFilters = () => {
     setActiveFilters([])
     setTempFilterValues({})
-    window.history.pushState({ path: window.location.pathname }, '', window.location.pathname)
+    const clearedUrl = buildLogsTabUrl(window.location.pathname, LOGS_TAB.outgoingWebhooks, [])
+    window.history.pushState({ path: clearedUrl }, '', clearedUrl)
   }
 
   const getStatusTag = (status: string) => {

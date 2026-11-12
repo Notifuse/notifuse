@@ -398,6 +398,17 @@ func (h *WebhookSubscriptionHandler) handleGetDeliveries(w http.ResponseWriter, 
 		subscriptionIDPtr = &subscriptionID
 	}
 
+	// status is optional too, and must be one a delivery can be in: an unknown value
+	// would otherwise list nothing and read as "no delivery in that state".
+	var statusPtr *string
+	if status := r.URL.Query().Get("status"); status != "" {
+		if !domain.IsValidWebhookDeliveryStatus(status) {
+			WriteJSONError(w, "Invalid status: must be pending, delivering, delivered or failed", http.StatusBadRequest)
+			return
+		}
+		statusPtr = &status
+	}
+
 	limit := 20
 	offset := 0
 
@@ -413,7 +424,7 @@ func (h *WebhookSubscriptionHandler) handleGetDeliveries(w http.ResponseWriter, 
 		}
 	}
 
-	deliveries, total, err := h.service.GetDeliveries(r.Context(), workspaceID, subscriptionIDPtr, limit, offset)
+	deliveries, total, err := h.service.GetDeliveries(r.Context(), workspaceID, subscriptionIDPtr, statusPtr, limit, offset)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get webhook deliveries")
 		if writeServiceError(w, err, "You do not have permission to read webhook subscriptions") {

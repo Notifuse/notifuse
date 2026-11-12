@@ -152,6 +152,17 @@ const (
 	WebhookDeliveryStatusFailed     = "failed"
 )
 
+// IsValidWebhookDeliveryStatus reports whether status is one a delivery can be in,
+// the values webhookSubscriptions.deliveries accepts as a filter.
+func IsValidWebhookDeliveryStatus(status string) bool {
+	switch status {
+	case WebhookDeliveryStatusPending, WebhookDeliveryStatusDelivering,
+		WebhookDeliveryStatusDelivered, WebhookDeliveryStatusFailed:
+		return true
+	}
+	return false
+}
+
 // Available webhook event types
 var WebhookEventTypes = []string{
 	// Contact events
@@ -240,7 +251,9 @@ type WebhookDeliveryRepository interface {
 	// The returned time is the new claimed_at, which the caller must carry into
 	// its next renewal of the same row.
 	RenewClaim(ctx context.Context, workspaceID, id string, claimedAt *time.Time) (bool, *time.Time, error)
-	ListAll(ctx context.Context, workspaceID string, subscriptionID *string, limit, offset int) ([]*WebhookDelivery, int, error)
+	// ListAll pages the workspace's deliveries, newest first; subscriptionID and status
+	// filter them when non-nil and non-empty, in the total as in the page.
+	ListAll(ctx context.Context, workspaceID string, subscriptionID, status *string, limit, offset int) ([]*WebhookDelivery, int, error)
 	UpdateStatus(ctx context.Context, workspaceID, id string, status string, attempts int, responseStatus *int, responseBody, lastError *string) error
 	MarkDelivered(ctx context.Context, workspaceID, id string, responseStatus int, responseBody string) error
 	ScheduleRetry(ctx context.Context, workspaceID, id string, nextAttempt time.Time, attempts int, responseStatus *int, responseBody, lastError *string) error
