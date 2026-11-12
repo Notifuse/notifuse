@@ -586,6 +586,39 @@ BroadcastListResponse:
       type: integer
       description: Total number of broadcasts matching the query
       example: 45
+    status_counts:
+      type: object
+      description: >-
+        Returned only with with_status_counts=true, always an object then. The number of
+        broadcasts in each status, following search and started_after but not status. A
+        status no broadcast has is absent.
+      additionalProperties:
+        type: integer
+      example:
+        draft: 3
+        processed: 12
+        paused: 1
+
+EstimateAudienceRequest:
+  type: object
+  required:
+    - workspace_id
+    - audience
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    audience:
+      $ref: '#/AudienceSettings'
+
+EstimateAudienceResponse:
+  type: object
+  properties:
+    count:
+      type: integer
+      description: Number of recipients a broadcast with this audience would be sent to
+      example: 2214
 
 VariationResult:
   type: object

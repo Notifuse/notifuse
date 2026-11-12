@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The analytics API gives when each transactional notification last sent successfully, with the new `last_sent_at` measure of message history, and `messages.list` filters by `transactional_notification_id`.
 
+- **Feature**: The API counts the recipients of a broadcast audience before it is sent, with the new `broadcasts.estimateAudience`. `broadcasts.list` gives the number of broadcasts in each status (`with_status_counts`) and keeps the ones started from a date (`started_after`), and the message history analytics take `opened_at` and `clicked_at` as time dimensions.
+
 - **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages when the table fits in memory, longer otherwise.
 
 - **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.
@@ -35,6 +37,8 @@ All notable changes to this project will be documented in this file.
 - **Feature**: A broadcast can now send from a sender other than its template's: each variation, in an A/B test too, chooses one of the marketing email integration's senders, or keeps its template's. A transactional email can do the same with `email_options.sender_id`. A sender that is not one of the integration's is refused when saving or sending. A variation whose chosen sender is removed from the integration afterwards is queued for no further recipient until another sender is chosen: the broadcast cannot be scheduled, cannot be resumed while that variation still has recipients to queue, and pauses at the next run of its sending task if it is queuing them. The console then offers to change the sender of the paused broadcast. Emails already queued keep the sender they were queued with, and no email falls back to another address.
 
 - **Security**: A custom domain can no longer be saved on a workspace when another workspace already uses it, whatever its case, port or trailing dot, since that workspace could show its own pages and emails under the other's brand. Notifuse checks that a domain points to it, not who owns it, so the first workspace to save a domain holds it. Workspaces that already share one keep it and can still edit its URL while the host stays the same; one that removes it cannot save it again.
+
+- **Fix**: Scheduled broadcasts now record when they started sending, as broadcasts sent at once already did. Upgrading to 44 dates the ones already sent from their first email.
 
 - **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
 
