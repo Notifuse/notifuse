@@ -133,8 +133,9 @@ func TestOrchestrator_Process_LaterRunKeepsExistingStartedAt(t *testing.T) {
 	require.Error(t, err)
 }
 
-// A broadcast read as cancelled stops without sending: it is not dated. The mock has no
-// MarkBroadcastStarted expectation, so any call fails the test.
+// A broadcast read as cancelled stops without sending: it is neither dated nor announced.
+// The mock has no MarkBroadcastStarted expectation, so any call fails the test, and a
+// sending_started publish fails it too.
 func TestOrchestrator_Process_CancelledBroadcastDoesNotStampStartedAt(t *testing.T) {
 	m := newSendingStartedMocks(t)
 	defer m.ctrl.Finish()
@@ -147,7 +148,9 @@ func TestOrchestrator_Process_CancelledBroadcastDoesNotStampStartedAt(t *testing
 		Return(bcast, nil).AnyTimes()
 	m.expectValidTemplate()
 	m.expectFailingRecipientFetch()
-	m.eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).AnyTimes()
+	m.eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Do(func(_ context.Context, event domain.EventPayload) {
+		assert.NotEqual(t, domain.EventBroadcastSendingStarted, event.Type, "a cancelled broadcast is not announced")
+	}).AnyTimes()
 	m.taskRepo.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	m.broadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 

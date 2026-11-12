@@ -1138,10 +1138,10 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// runs, so without this it never got one. Not only the first run: a scheduled send
 	// already under way when the upgrade to v44 ran, or a first write that failed, is dated
 	// by the next run. The write sets started_at alone and only while it is NULL, so once a
-	// date is stored the check below costs nothing. The copy in hand gets the same value so
-	// a full-row write later in this run keeps it. Failing to record the date does not stop
-	// the send. A paused or cancelled broadcast stops in the loop below without sending: it
-	// is not dated.
+	// date is stored the check below costs nothing. A full-row write later in this run keeps
+	// the stored date: those writes leave started_at alone when the copy has none. Failing to
+	// record the date does not stop the send. A paused or cancelled broadcast stops in the
+	// loop below without sending: it is neither dated nor announced.
 	startedAt := o.timeProvider.Now().UTC()
 	if broadcast.StartedAt == nil && broadcast.Status != domain.BroadcastStatusPaused &&
 		broadcast.Status != domain.BroadcastStatusCancelled {
@@ -1153,12 +1153,11 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				"error":        stampErr.Error(),
 			}).Error("Failed to record the broadcast start date")
 			// codecov:ignore:end
-		} else {
-			broadcast.StartedAt = &startedAt
 		}
 	}
 
-	if isFirstSendingRun && broadcast.Status != domain.BroadcastStatusPaused {
+	if isFirstSendingRun && broadcast.Status != domain.BroadcastStatusPaused &&
+		broadcast.Status != domain.BroadcastStatusCancelled {
 		if o.eventBus != nil {
 			o.eventBus.Publish(context.Background(), domain.EventPayload{
 				Type:        domain.EventBroadcastSendingStarted,

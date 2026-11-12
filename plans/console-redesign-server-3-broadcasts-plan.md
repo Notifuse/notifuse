@@ -174,14 +174,16 @@ Where the code differs from the sections above, or settles what they left open.
   run; this statement touches `started_at` only and cannot overwrite a date. The orchestrator
   calls it on every sending run, independently of the event bus, when the broadcast is
   neither paused nor cancelled and its `StartedAt` is nil (code review B2: a scheduled send
-  under way during the upgrade, or a failed first write, would otherwise never be dated),
-  then sets the same value on the copy in hand so a full-row write later in the run keeps it.
-  A failed write is logged and the send goes on. The `broadcast.sending_started` event stays
-  on the first run and shares the stored instant. Orchestrator tests that reach a sending run
+  under way during the upgrade, or a failed first write, would otherwise never be dated).
+  A full-row write later in the run keeps the stored date (see stale copies below). A failed
+  write is logged and the send goes on. The `broadcast.sending_started` event stays on the
+  first run, and is not published for a broadcast read as paused or cancelled; when that run
+  also writes the date, both carry the same instant. Orchestrator tests that reach a sending run
   of an undated broadcast now allow the call (`AnyTimes`); the new
   `orchestrator_started_at_test.go` pins it: stamped on the first run, with and without an
   event bus, and on a later run without a date; not called when a date is set (first or later
-  run), for a paused or a cancelled broadcast; a write failure does not stop the send.
+  run), for a paused or a cancelled broadcast, which are not announced either; a write
+  failure does not stop the send.
 - **Stale copies** (code review B5): `UpdateBroadcastTx` and `UpdateBroadcastStatusTx` write
   `started_at = COALESCE($n, started_at)`, so a cancel or an update holding a copy read before
   the stamp keeps the stored date. Nothing in the code clears a start date. Pinned by
@@ -225,6 +227,6 @@ Where the code differs from the sections above, or settles what they left open.
   broadcast tested days before it was sent gets the test's date.
 - A broadcast paused, cancelled or failed before it ever sent, with a test send, is dated by
   the backfill.
-- `MarkBroadcastStarted` does not report whether it wrote: when it writes nothing, the copy
-  in hand carries this run's instant instead of the stored one, until the loop re-reads the
-  broadcast.
+- A scheduled send already under way when the upgrade to v44 runs still has the status
+  `scheduled`, so the backfill skips it: it is dated at its next sending run, not at its first
+  message. Cancelled before that run, it stays undated.
