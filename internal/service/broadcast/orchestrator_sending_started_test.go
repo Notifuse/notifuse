@@ -254,6 +254,8 @@ func TestOrchestrator_Process_TemplateFailure_PublishesNothing(t *testing.T) {
 func TestOrchestrator_Process_DoesNotRepublishOnResume(t *testing.T) {
 	m := newSendingStartedMocks(t)
 	defer m.ctrl.Finish()
+	// A later run still dates a broadcast without a start date; this test is about the event.
+	m.broadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	m.expectConfiguredWorkspace()
 	m.broadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").

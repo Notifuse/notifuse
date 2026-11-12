@@ -245,7 +245,6 @@ func (s *BroadcastService) UpdateBroadcast(ctx context.Context, request *domain.
 	return updatedBroadcast, nil
 }
 
-// ListBroadcasts retrieves a list of broadcasts with pagination
 // EstimateAudience counts the recipients of an audience with CountContactsForBroadcast, the
 // count the send uses. An unknown list or segment counts 0.
 func (s *BroadcastService) EstimateAudience(ctx context.Context, workspaceID string, audience domain.AudienceSettings) (int, error) {
@@ -272,6 +271,7 @@ func (s *BroadcastService) EstimateAudience(ctx context.Context, workspaceID str
 	return count, nil
 }
 
+// ListBroadcasts retrieves a list of broadcasts with pagination
 func (s *BroadcastService) ListBroadcasts(ctx context.Context, params domain.ListBroadcastsParams) (*domain.BroadcastListResponse, error) {
 	// Authenticate user for workspace
 	var err error

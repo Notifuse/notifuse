@@ -48,10 +48,11 @@ func TestAnalyticsMessageEngagement(t *testing.T) {
 	require.NoError(t, err)
 	nowParis := time.Now().In(paris)
 	day := time.Date(nowParis.Year(), nowParis.Month(), nowParis.Day()-3, 0, 0, 0, 0, paris)
-	sentAt := day.Add(8 * time.Hour)
+	// Local wall-clock times, right on a clock-change day too.
 	at := func(hour, minute int) time.Time {
-		return day.Add(time.Duration(hour)*time.Hour + time.Duration(minute)*time.Minute)
+		return time.Date(day.Year(), day.Month(), day.Day(), hour, minute, 0, 0, paris)
 	}
+	sentAt := at(8, 0)
 
 	broadcastID, otherBroadcastID := "bc-engagement", "bc-engagement-other"
 	send := func(broadcast string) string {
@@ -103,7 +104,9 @@ func TestAnalyticsMessageEngagement(t *testing.T) {
 		got := map[string]float64{}
 		for _, row := range result.Data {
 			key, _ := row[dimension+"_hour"].(string)
-			got[key] += waNumber(t, row["count"])
+			_, seen := got[key]
+			require.False(t, seen, "one row per hour, %s twice", key)
+			got[key] = waNumber(t, row["count"])
 		}
 		return got
 	}

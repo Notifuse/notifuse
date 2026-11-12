@@ -108,9 +108,9 @@ Console, docs PR, the §4 fix (other thread), `EXPLAIN (ANALYZE, BUFFERS)` of th
 ## Verification
 
 ```bash
-make test-domain test-repo test-service test-http
+make test-domain test-repo test-service test-http test-migrations
 make openapi-lint && make openapi-bundle
-INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration -run 'TestBroadcastListCounts|TestBroadcastEstimateAudience|TestAnalyticsMessageEngagement' -v
+INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration -run 'TestBroadcastListCounts|TestBroadcastEstimateAudience|TestAnalyticsMessageEngagement|TestBroadcastScheduledSendRecordsStartedAt|TestV44BroadcastStartedAtBackfill|TestBroadcastStartedAtSurvivesAnOlderCopy' -v
 ```
 
 Then `make test-unit` once before review.
@@ -172,20 +172,32 @@ Where the code differs from the sections above, or settles what they left open.
   `UPDATE broadcasts SET started_at = $3 WHERE id = $1 AND workspace_id = $2 AND started_at IS NULL`.
   A full-row `UpdateBroadcast` would have rewritten status and counters read earlier in the
   run; this statement touches `started_at` only and cannot overwrite a date. The orchestrator
-  calls it in the first-sending-run block, independently of the event bus, when the
-  broadcast is not paused and its `StartedAt` is nil, then sets the same value on the copy in
-  hand so a full-row write later in the run keeps it. A failed write is logged and the send
-  goes on. The `broadcast.sending_started` event and the stored date share one instant.
-  Orchestrator tests that reach the first sending run now expect the call (`AnyTimes`); the
-  new `orchestrator_started_at_test.go` pins it: stamped on the first run, with and without
-  an event bus; not called when a date is set, on a later run, or for a paused broadcast; a
-  write failure does not stop the send.
-- **B1, backfill**: the last v44 workspace statement, after `statement_timeout` is lifted:
-  `UPDATE broadcasts b SET started_at = (SELECT MIN(mh.created_at) …) WHERE b.started_at IS NULL
-  AND b.status NOT IN ('draft', 'scheduled') AND EXISTS (…)`. The status condition is an
-  addition to the approved statement: `broadcasts.sendToIndividual` records its test send with
-  the broadcast ID, so a draft or scheduled broadcast with a test send would otherwise get a
-  start date. Part 4 appends its recount after this statement.
+  calls it on every sending run, independently of the event bus, when the broadcast is
+  neither paused nor cancelled and its `StartedAt` is nil (code review B2: a scheduled send
+  under way during the upgrade, or a failed first write, would otherwise never be dated),
+  then sets the same value on the copy in hand so a full-row write later in the run keeps it.
+  A failed write is logged and the send goes on. The `broadcast.sending_started` event stays
+  on the first run and shares the stored instant. Orchestrator tests that reach a sending run
+  of an undated broadcast now allow the call (`AnyTimes`); the new
+  `orchestrator_started_at_test.go` pins it: stamped on the first run, with and without an
+  event bus, and on a later run without a date; not called when a date is set (first or later
+  run), for a paused or a cancelled broadcast; a write failure does not stop the send.
+- **Stale copies** (code review B5): `UpdateBroadcastTx` and `UpdateBroadcastStatusTx` write
+  `started_at = COALESCE($n, started_at)`, so a cancel or an update holding a copy read before
+  the stamp keeps the stored date. Nothing in the code clears a start date. Pinned by
+  `TestBroadcastRepository_UpdatesKeepTheStoredStartedAt` (sqlmock) and
+  `TestBroadcastStartedAtSurvivesAnOlderCopy` (PostgreSQL, fails without the change).
+- **B1, backfill**: a v44 workspace statement, after `statement_timeout` is lifted and before
+  the index builds, so it reads `message_history` without their SHARE lock (code review N5):
+  `UPDATE broadcasts b SET started_at = m.first_at FROM (SELECT broadcast_id, MIN(created_at) …
+  GROUP BY broadcast_id) m WHERE … AND b.status NOT IN ('draft', 'scheduled')`. The grouped
+  form is one pass over the table; the correlated `MIN` first written walked the
+  `created_at` index once per broadcast, 28 s on a 3-million-message workspace against under
+  a second (code review B1). The status condition is an addition to the approved statement:
+  `broadcasts.sendToIndividual` records its test send with the broadcast ID, so a draft or
+  scheduled broadcast with a test send would otherwise get a start date. A scheduled
+  broadcast with messages may also be mid-send: its next sending run dates it. Part 4's
+  recount also runs before the index builds.
 - **Analytics**: the repository test pins the SQL (`DATE_TRUNC('hour', opened_at AT TIME ZONE
   'Europe/Paris')`, the `inDateRange` bounds as `$2`/`$3`, no `generate_series`), not the bound
   values: the SQL builder hands non-UTC bounds over as UTC instants, not as the strings
@@ -194,8 +206,13 @@ Where the code differs from the sections above, or settles what they left open.
   `TestBroadcastListCounts`, `TestBroadcastEstimateAudience` (compared with a real send's
   `enqueued_count` and task `total_recipients`; 403 without broadcasts, lists, or segments
   read when the audience has segments), `TestAnalyticsMessageEngagement`,
-  `TestBroadcastScheduledSendRecordsStartedAt` (fails with the stamp disabled) and
-  `TestV44BroadcastStartedAtBackfill` (two runs).
+  `TestBroadcastScheduledSendRecordsStartedAt` (fails with the stamp disabled),
+  `TestV44BroadcastStartedAtBackfill` (two runs) and `TestBroadcastStartedAtSurvivesAnOlderCopy`.
+  The engagement test builds local times with `time.Date` in Europe/Paris, so a clock-change
+  day does not shift them, and fails when an hour comes back in two rows.
+- **Plan details**: both `mock_broadcast_service.go` and `mock_broadcast_repository.go` are
+  regenerated. The estimate tests are in `broadcast_estimate_audience_service_test.go` and
+  `broadcast_estimate_audience_handler_test.go`.
 - **OpenAPI**: `broadcasts.list` documents `search`, `started_after`, `with_status_counts`,
   the comma-separated `status` with the real status names (the enum listed `sending` and
   `sent`, which do not exist), `status_counts`, the read permission and 403;
@@ -204,11 +221,10 @@ Where the code differs from the sections above, or settles what they left open.
 
 ### Known, not handled
 
-- A service write that read the broadcast before the stamp and writes `started_at` back as
-  it read it (pause, through `UpdateBroadcastStatusTx`) can clear the date if it lands right
-  after the stamp (the pause reads without `FOR UPDATE`). The window is the gap between the
-  pause's read and its write; the resume then dates the broadcast from the resume. The
-  orchestrator's own later writes keep the date.
 - The backfill dates a sent broadcast from its first message, a test send included: a
   broadcast tested days before it was sent gets the test's date.
-- A broadcast paused before it ever sent, with a test send, is dated by the backfill.
+- A broadcast paused, cancelled or failed before it ever sent, with a test send, is dated by
+  the backfill.
+- `MarkBroadcastStarted` does not report whether it wrote: when it writes nothing, the copy
+  in hand carries this run's instant instead of the stored one, until the loop re-reads the
+  broadcast.

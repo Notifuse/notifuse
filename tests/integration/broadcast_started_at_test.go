@@ -187,7 +187,8 @@ func TestV44BroadcastStartedAtBackfill(t *testing.T) {
 	message(sentNow, firstMessage)
 	// Nothing was ever sent.
 	noMessage := broadcast(domain.BroadcastStatusProcessed, nil)
-	// A draft and a scheduled broadcast whose only messages are test sends to one recipient.
+	// A draft and a scheduled broadcast with messages: test sends, or for the scheduled one a
+	// send still in progress, which its next sending run dates.
 	draftWithTest := broadcast(domain.BroadcastStatusDraft, nil)
 	message(draftWithTest, firstMessage)
 	scheduledWithTest := broadcast(domain.BroadcastStatusScheduled, nil)
@@ -215,7 +216,7 @@ func TestV44BroadcastStartedAtBackfill(t *testing.T) {
 			"a start date already set is kept":               {sentNow, &alreadySet},
 			"a broadcast without messages keeps no date":     {noMessage, nil},
 			"a draft with a test send keeps no date":         {draftWithTest, nil},
-			"a scheduled broadcast with a test send too":     {scheduledWithTest, nil},
+			"a scheduled broadcast is left to its next run":  {scheduledWithTest, nil},
 		} {
 			got := startedAtOf(t, want.id)
 			if want.want == nil {
@@ -225,5 +226,56 @@ func TestV44BroadcastStartedAtBackfill(t *testing.T) {
 			require.True(t, got.Valid, "run %d: %s", run, name)
 			assert.True(t, want.want.Equal(got.Time), "run %d: %s: got %s, want %s", run, name, got.Time, *want.want)
 		}
+	}
+}
+
+// A cancel or an update that read the broadcast before a sending run dated it writes back a
+// copy without a start date: the stored one is kept.
+func TestBroadcastStartedAtSurvivesAnOlderCopy(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer func() { suite.Cleanup() }()
+	factory := suite.DataFactory
+	ctx := context.Background()
+	repo := suite.ServerManager.GetApp().GetBroadcastRepository()
+
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	db, err := factory.GetWorkspaceDB(workspace.ID)
+	require.NoError(t, err)
+	stamped := time.Now().UTC().Truncate(time.Microsecond)
+
+	for name, write := range map[string]func(b *domain.Broadcast) error{
+		"a cancel": func(b *domain.Broadcast) error {
+			return repo.WithTransaction(ctx, workspace.ID, func(tx *sql.Tx) error {
+				return repo.UpdateBroadcastStatusTx(ctx, tx, b)
+			})
+		},
+		"an update": func(b *domain.Broadcast) error { return repo.UpdateBroadcast(ctx, b) },
+	} {
+		t.Run(name, func(t *testing.T) {
+			created, err := factory.CreateBroadcast(workspace.ID, testutil.WithBroadcastStatus(domain.BroadcastStatusScheduled))
+			require.NoError(t, err)
+			older, err := repo.GetBroadcast(ctx, workspace.ID, created.ID)
+			require.NoError(t, err)
+			require.Nil(t, older.StartedAt)
+
+			require.NoError(t, repo.MarkBroadcastStarted(ctx, workspace.ID, created.ID, stamped))
+			if name == "a cancel" {
+				now := time.Now().UTC()
+				older.Status, older.CancelledAt = domain.BroadcastStatusCancelled, &now
+			} else {
+				older.Name = "Renamed"
+			}
+			require.NoError(t, write(older))
+
+			var startedAt sql.NullTime
+			require.NoError(t, db.QueryRowContext(ctx, `SELECT started_at FROM broadcasts WHERE id = $1`, created.ID).Scan(&startedAt))
+			require.True(t, startedAt.Valid)
+			assert.True(t, stamped.Equal(startedAt.Time), "got %s, want %s", startedAt.Time, stamped)
+		})
 	}
 }

@@ -2060,3 +2060,39 @@ func TestBroadcastRepository_MarkBroadcastStarted(t *testing.T) {
 		assert.Contains(t, err.Error(), "no connection")
 	})
 }
+
+// A full or status update holding a copy without a start date keeps the stored one: a cancel
+// or an update that read the broadcast before a sending run stamped it does not clear it.
+func TestBroadcastRepository_UpdatesKeepTheStoredStartedAt(t *testing.T) {
+	workspaceID := "ws123"
+	setup := func(t *testing.T) (*broadcastRepository, *sql.DB, sqlmock.Sqlmock) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		return NewBroadcastRepository(mocks.NewMockWorkspaceRepository(ctrl)).(*broadcastRepository), db, mock
+	}
+
+	t.Run("UpdateBroadcastTx", func(t *testing.T) {
+		repo, db, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectExec(`started_at = COALESCE\(\$14, started_at\),`).WillReturnResult(sqlmock.NewResult(0, 1))
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		require.NoError(t, repo.UpdateBroadcastTx(context.Background(), tx,
+			&domain.Broadcast{ID: "bc123", WorkspaceID: workspaceID, Status: domain.BroadcastStatusCancelled}))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("UpdateBroadcastStatusTx", func(t *testing.T) {
+		repo, db, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectExec(`started_at = COALESCE\(\$4, started_at\),`).WillReturnResult(sqlmock.NewResult(0, 1))
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		require.NoError(t, repo.UpdateBroadcastStatusTx(context.Background(), tx,
+			&domain.Broadcast{ID: "bc123", WorkspaceID: workspaceID, Status: domain.BroadcastStatusCancelled}))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}

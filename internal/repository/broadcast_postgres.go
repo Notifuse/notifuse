@@ -265,7 +265,7 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			test_sent_at = $11,
 			winner_sent_at = $12,
 			updated_at = $13,
-			started_at = $14,
+			started_at = COALESCE($14, started_at),
 			completed_at = $15,
 			cancelled_at = $16,
 			paused_at = $17,
@@ -323,13 +323,17 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 // so pause/resume/cancel flows can transition a Processed broadcast.
 // Only updates: status, started_at, completed_at, cancelled_at, paused_at,
 // pause_reason, updated_at.
+//
+// started_at, here and in UpdateBroadcastTx, is only ever set, never cleared: a nil start
+// date keeps the stored one. A sending run stamps it with MarkBroadcastStarted while a
+// cancel or an update holding an older copy of the broadcast may be writing it back.
 func (r *broadcastRepository) UpdateBroadcastStatusTx(ctx context.Context, tx *sql.Tx, broadcast *domain.Broadcast) error {
 	broadcast.UpdatedAt = time.Now().UTC()
 
 	query := `
 		UPDATE broadcasts SET
 			status = $3,
-			started_at = $4,
+			started_at = COALESCE($4, started_at),
 			completed_at = $5,
 			cancelled_at = $6,
 			paused_at = $7,
@@ -436,7 +440,6 @@ func (r *broadcastRepository) UpdateBroadcastStatusUnless(ctx context.Context, b
 	return true, nil
 }
 
-// ListBroadcastsTx retrieves a list of broadcasts within a transaction
 // broadcastListWhere builds the WHERE clause of broadcasts.list and its arguments,
 // numbering its own placeholders. withStatus false leaves the status filter out, for the
 // status counts.
@@ -475,6 +478,7 @@ func broadcastListWhere(params domain.ListBroadcastsParams, withStatus bool) (st
 	return strings.Join(conditions, " AND "), args
 }
 
+// ListBroadcastsTx retrieves a list of broadcasts within a transaction
 func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params domain.ListBroadcastsParams) (*domain.BroadcastListResponse, error) {
 	whereClause, args := broadcastListWhere(params, true)
 	argIdx := len(args) + 1

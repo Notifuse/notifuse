@@ -1133,28 +1133,32 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	//
 	// A paused broadcast stops in the loop below without sending: it is not announced.
 	//
-	// The same run records the start date when none is stored yet. "Send now" and a resume
-	// set it themselves; a scheduled broadcast reaches sending only through this run, so
-	// without this it never got one. The write sets started_at alone and only while it is
-	// NULL, and the copy in hand gets the same value so a full-row write later in this run
-	// keeps it. Failing to record the date does not stop the send.
-	if isFirstSendingRun && broadcast.Status != domain.BroadcastStatusPaused {
-		startedAt := o.timeProvider.Now().UTC()
-
-		if broadcast.StartedAt == nil {
-			if stampErr := o.broadcastRepo.MarkBroadcastStarted(ctx, task.WorkspaceID, broadcast.ID, startedAt); stampErr != nil {
-				// codecov:ignore:start
-				o.logger.WithFields(map[string]interface{}{
-					"task_id":      task.ID,
-					"broadcast_id": broadcast.ID,
-					"error":        stampErr.Error(),
-				}).Error("Failed to record the broadcast start date")
-				// codecov:ignore:end
-			} else {
-				broadcast.StartedAt = &startedAt
-			}
+	// Every sending run records the start date when none is stored yet. "Send now" and a
+	// resume set it themselves; a scheduled broadcast reaches sending only through these
+	// runs, so without this it never got one. Not only the first run: a scheduled send
+	// already under way when the upgrade to v44 ran, or a first write that failed, is dated
+	// by the next run. The write sets started_at alone and only while it is NULL, so once a
+	// date is stored the check below costs nothing. The copy in hand gets the same value so
+	// a full-row write later in this run keeps it. Failing to record the date does not stop
+	// the send. A paused or cancelled broadcast stops in the loop below without sending: it
+	// is not dated.
+	startedAt := o.timeProvider.Now().UTC()
+	if broadcast.StartedAt == nil && broadcast.Status != domain.BroadcastStatusPaused &&
+		broadcast.Status != domain.BroadcastStatusCancelled {
+		if stampErr := o.broadcastRepo.MarkBroadcastStarted(ctx, task.WorkspaceID, broadcast.ID, startedAt); stampErr != nil {
+			// codecov:ignore:start
+			o.logger.WithFields(map[string]interface{}{
+				"task_id":      task.ID,
+				"broadcast_id": broadcast.ID,
+				"error":        stampErr.Error(),
+			}).Error("Failed to record the broadcast start date")
+			// codecov:ignore:end
+		} else {
+			broadcast.StartedAt = &startedAt
 		}
+	}
 
+	if isFirstSendingRun && broadcast.Status != domain.BroadcastStatusPaused {
 		if o.eventBus != nil {
 			o.eventBus.Publish(context.Background(), domain.EventPayload{
 				Type:        domain.EventBroadcastSendingStarted,

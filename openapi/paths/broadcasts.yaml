@@ -53,7 +53,7 @@
         description: >-
           Return status_counts, the number of broadcasts in each status. The counts follow
           search and started_after but not status, so each status tab has its own number.
-          Values other than true and false are refused with 400.
+          A value that is not a boolean is refused with 400.
         example: true
       - name: limit
         in: query

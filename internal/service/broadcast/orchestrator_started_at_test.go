@@ -12,8 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// The start date is stamped by the run that begins sending, the same run that announces it,
-// so a scheduled broadcast gets one too: until now only "send now" and a resume set it.
+// The start date is stamped by a sending run while none is stored, the first one being the
+// run that announces the start, so a scheduled broadcast gets one too: until now only "send
+// now" and a resume set it.
 // These tests reuse the sending-started mocks: every gate before the stamp is cleared and
 // the run is cut short at the first recipient batch, the step right after it.
 
@@ -83,8 +84,19 @@ func TestOrchestrator_Process_KeepsExistingStartedAt(t *testing.T) {
 	require.Error(t, err)
 }
 
-// A later run, such as one after a resume, has the cursor advanced: it is not the start.
-func TestOrchestrator_Process_LaterRunDoesNotStampStartedAt(t *testing.T) {
+func laterSendingRunTask() *domain.Task {
+	return sendingStartedTask(&domain.SendBroadcastState{
+		BroadcastID:     "broadcast-123",
+		TotalRecipients: 25,
+		RecipientOffset: 10,
+		EnqueuedCount:   10,
+	})
+}
+
+// A later run, its cursor advanced, dates a broadcast still without a start date: a
+// scheduled send under way during the upgrade, or one whose first write failed. It does not
+// announce the start again.
+func TestOrchestrator_Process_LaterRunStampsMissingStartedAt(t *testing.T) {
 	m := newSendingStartedMocks(t)
 	defer m.ctrl.Finish()
 
@@ -93,15 +105,53 @@ func TestOrchestrator_Process_LaterRunDoesNotStampStartedAt(t *testing.T) {
 		Return(sendingStartedBroadcast("Summer sale"), nil).AnyTimes()
 	m.expectValidTemplate()
 	m.expectFailingRecipientFetch()
+	m.broadcastRepo.EXPECT().
+		MarkBroadcastStarted(gomock.Any(), "workspace-123", "broadcast-123", sendingStartedTime).
+		Return(nil).Times(1)
 
-	task := sendingStartedTask(&domain.SendBroadcastState{
-		BroadcastID:     "broadcast-123",
-		TotalRecipients: 25,
-		RecipientOffset: 10,
-		EnqueuedCount:   10,
-	})
-	_, err := m.orchestrator(m.eventBus).Process(context.Background(), task, time.Now().Add(30*time.Second))
+	_, err := m.orchestrator(m.eventBus).Process(context.Background(), laterSendingRunTask(), time.Now().Add(30*time.Second))
 	require.Error(t, err)
+}
+
+// A later run of a broadcast already dated writes nothing. The mock has no
+// MarkBroadcastStarted expectation, so any call fails the test.
+func TestOrchestrator_Process_LaterRunKeepsExistingStartedAt(t *testing.T) {
+	m := newSendingStartedMocks(t)
+	defer m.ctrl.Finish()
+
+	startedAt := sendingStartedTime.Add(-time.Hour)
+	bcast := sendingStartedBroadcast("Summer sale")
+	bcast.StartedAt = &startedAt
+
+	m.expectConfiguredWorkspace()
+	m.broadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").
+		Return(bcast, nil).AnyTimes()
+	m.expectValidTemplate()
+	m.expectFailingRecipientFetch()
+
+	_, err := m.orchestrator(m.eventBus).Process(context.Background(), laterSendingRunTask(), time.Now().Add(30*time.Second))
+	require.Error(t, err)
+}
+
+// A broadcast read as cancelled stops without sending: it is not dated. The mock has no
+// MarkBroadcastStarted expectation, so any call fails the test.
+func TestOrchestrator_Process_CancelledBroadcastDoesNotStampStartedAt(t *testing.T) {
+	m := newSendingStartedMocks(t)
+	defer m.ctrl.Finish()
+
+	bcast := sendingStartedBroadcast("Summer sale")
+	bcast.Status = domain.BroadcastStatusCancelled
+
+	m.expectConfiguredWorkspace()
+	m.broadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").
+		Return(bcast, nil).AnyTimes()
+	m.expectValidTemplate()
+	m.expectFailingRecipientFetch()
+	m.eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).AnyTimes()
+	m.taskRepo.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	m.broadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	_, _ = m.orchestrator(m.eventBus).Process(context.Background(), firstSendingRunTask(), time.Now().Add(30*time.Second))
 }
 
 // A paused broadcast stops without sending, so it has not started; the resume stamps it.
