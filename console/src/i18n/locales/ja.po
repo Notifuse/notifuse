@@ -821,6 +821,10 @@ msgstr "1週間あたりの{what}"
 msgid "{what} per year"
 msgstr "1年あたりの{what}"
 
+#: src/components/timeline/ContactTimeline.tsx:106
+msgid "{when} in {zone}"
+msgstr "{when}（{zone}）"
+
 #: src/components/email_builder/panels/Preview.tsx:243
 msgid "// No test data yet..."
 msgstr "// テストデータがまだありません..."
