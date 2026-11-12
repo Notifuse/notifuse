@@ -432,13 +432,9 @@ test.describe('Contact timeline page views', () => {
 
     await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
     await waitForLoading(page)
-    await page
-      .locator('.ant-table-row')
-      .first()
-      .locator('.contacts-actions-col button')
-      .filter({ has: page.locator('svg[data-icon="eye"]') })
-      .click()
-    const contact = page.getByRole('dialog', { name: 'Contact Details', exact: true })
+    // A click on the row opens the contact sheet, on its activity
+    await page.locator('.ant-table-row').first().getByText(mockContacts[0].email).click()
+    const contact = page.getByRole('dialog').filter({ has: page.locator('[data-drawer-bar]') })
     await expect(contact).toBeVisible()
     await expect(contact.getByText('/pricing', { exact: true })).toBeVisible()
 
