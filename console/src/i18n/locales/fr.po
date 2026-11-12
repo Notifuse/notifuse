@@ -108,7 +108,7 @@ msgstr "{0} newsletters"
 #. placeholder {0}: int(s.clicked)
 #: src/components/contacts/sheet/ContactKpis.tsx:49
 msgid "{0} clicked"
-msgstr "{0} cliqués"
+msgstr "Cliqués : {0}"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:78
 #~ msgid "{0} contact(s)"
@@ -200,7 +200,7 @@ msgstr "{0} règles sur {1} correspondent"
 #. placeholder {0}: int(s.opened)
 #: src/components/contacts/sheet/ContactKpis.tsx:43
 msgid "{0} opened"
-msgstr "{0} ouverts"
+msgstr "Ouverts : {0}"
 
 #. placeholder {0}: requeued.toLocaleString()
 #: src/pages/BroadcastsPage.tsx:1547

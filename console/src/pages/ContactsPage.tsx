@@ -330,7 +330,7 @@ export function ContactsPage() {
     if (!search.contact) sheetOpenedHere.current = false
   }, [search.contact])
   const openContact = (email: string) => {
-    // A search still waiting for its timer lands first, in the entry the sheet will go back to.
+    // A search still waiting for its timer goes into the URL with the sheet, not after it.
     const typed = searchInput.trim() || undefined
     if (typed !== sentSearch.current) {
       window.clearTimeout(searchTimer.current)
