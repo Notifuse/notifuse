@@ -168,7 +168,7 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
         to="/console/workspace/$workspaceId/logs"
         params={{ workspaceId: workspace.id }}
         search={{ tab: LOGS_TAB.messages, transactional_notification_id: notification.id, ...filter }}
-        className="text-ink hover:text-primary-600"
+        className="hover:underline"
       >
         {value}
       </Link>
