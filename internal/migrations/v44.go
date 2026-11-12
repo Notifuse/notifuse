@@ -32,8 +32,27 @@ import (
 // table, every later write queuing behind that wait: past 5 seconds the migration fails and
 // is retried at the next start.
 //
+// Before the builds, so outside their lock, stats.exited of each automation is raised to the
+// number of its journeys that exited (v44ExitedRecountSQL). Until 44 a journey ended by a
+// reply exited without being counted there, so the counter fell short of the journeys it
+// describes. It is only ever raised, never lowered, and an automation whose stats are not a
+// JSON object, or a deleted one, is left as it is. A rerun writes nothing.
+//
 // No column is renamed or dropped, so no automation trigger function needs regenerating.
 type V44Migration struct{}
+
+// v44ExitedRecountSQL raises stats.exited to the number of exited journeys of the automation.
+// A stored value that is not a whole number below 10^18 counts as 0, so it is replaced.
+const v44ExitedRecountSQL = `UPDATE automations a
+SET stats = jsonb_set(COALESCE(a.stats, '{}'::jsonb), '{exited}', to_jsonb(c.n)),
+    updated_at = NOW()
+FROM (SELECT automation_id, COUNT(*) AS n FROM contact_automations
+      WHERE status = 'exited' GROUP BY automation_id) c
+WHERE c.automation_id = a.id
+  AND a.deleted_at IS NULL
+  AND (a.stats IS NULL OR jsonb_typeof(a.stats) = 'object')
+  AND c.n > CASE WHEN a.stats->>'exited' ~ '^[0-9]{1,18}$'
+                 THEN (a.stats->>'exited')::bigint ELSE 0 END`
 
 func (m *V44Migration) GetMajorVersion() float64 { return 44.0 }
 
@@ -59,6 +78,7 @@ func v44WorkspaceStatements() []v44WorkspaceStatement {
 		{schema.TrackMessageHistoryChangesFunction(), "install the link click timeline step"},
 		{`SET LOCAL statement_timeout = 0`, "lift the statement timeout"},
 		{`SET LOCAL lock_timeout = '5s'`, "set the lock timeout"},
+		{v44ExitedRecountSQL, "recount the exited journeys of each automation"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`, "create idx_message_history_failed_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`, "create idx_message_history_bounced_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`, "create idx_message_history_complained_recent"},

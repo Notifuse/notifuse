@@ -455,3 +455,14 @@ func TestMessageHistoryLastSentAtMeasure(t *testing.T) {
 	require.Len(t, measure.Filters, 1)
 	assert.Equal(t, "failed_at IS NULL", measure.Filters[0].SQL)
 }
+
+// The automation detail links to its messages in analytics by the automation that sent them.
+func TestMessageHistoryAutomationIDDimension(t *testing.T) {
+	schema, ok := PredefinedSchemas["message_history"]
+	require.True(t, ok)
+
+	dimension, exists := schema.Dimensions["automation_id"]
+	require.True(t, exists, "message_history should have an automation_id dimension")
+	assert.Equal(t, "string", dimension.Type)
+	assert.Equal(t, "automation_id", dimension.SQL)
+}
