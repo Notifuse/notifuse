@@ -10,8 +10,9 @@ import (
 )
 
 // V44Migration, on workspaces that already exist, makes a click on a link write its own
-// timeline entry, adds the partial indexes of the dashboard's recent failures and dates the
-// broadcasts that started without a start date.
+// timeline entry, adds the partial indexes of the dashboard's recent failures, dates the
+// broadcasts that started without a start date and recounts the exited journeys of each
+// automation.
 //
 // track_message_history_changes() is reinstalled from the shared schema package. It now
 // writes an email.link_clicked entry, with the URL, each time a click records a link of
@@ -42,6 +43,19 @@ import (
 // without any message keeps no date. The first messages are found in one grouped pass over
 // message_history, not one walk per broadcast.
 //
+// After the builds, stats.exited of each automation is raised to the number of its journeys
+// that exited (v44ExitedRecountSQL). Until 44 a journey ended by a reply exited without being
+// counted there, so the counter fell short of the journeys it describes. The recount comes
+// last because it row-locks automations: a tracking write locks message_history first and
+// then, through the timeline trigger, updates automations, so taking automations before the
+// builds' SHARE lock could deadlock with it. This order holds only while no transaction
+// updates automations and then writes message_history: one that did could deadlock with the
+// recount. The recount also waits for a row lock while it holds the SHARE lock, so a
+// transaction holding an automations row delays writes to message_history too, up to the
+// same 5-second lock_timeout for each row it waits on. A stored whole number below 10^18 is
+// only ever raised; any other value counts as 0. An automation whose stats are not a JSON
+// object, or a deleted one, is left as it is. A rerun writes nothing.
+//
 // No column is renamed or dropped, so no automation trigger function needs regenerating.
 type V44Migration struct{}
 
@@ -54,6 +68,19 @@ FROM (SELECT mh.broadcast_id, MIN(mh.created_at) AS first_at
                                 WHERE started_at IS NULL AND status NOT IN ('draft', 'scheduled'))
       GROUP BY mh.broadcast_id) m
 WHERE b.id = m.broadcast_id AND b.started_at IS NULL AND b.status NOT IN ('draft', 'scheduled')`
+
+// v44ExitedRecountSQL raises stats.exited to the number of exited journeys of the automation.
+// A stored value that is not a whole number below 10^18 counts as 0, so it is replaced.
+const v44ExitedRecountSQL = `UPDATE automations a
+SET stats = jsonb_set(COALESCE(a.stats, '{}'::jsonb), '{exited}', to_jsonb(c.n)),
+    updated_at = NOW()
+FROM (SELECT automation_id, COUNT(*) AS n FROM contact_automations
+      WHERE status = 'exited' GROUP BY automation_id) c
+WHERE c.automation_id = a.id
+  AND a.deleted_at IS NULL
+  AND (a.stats IS NULL OR jsonb_typeof(a.stats) = 'object')
+  AND c.n > CASE WHEN a.stats->>'exited' ~ '^[0-9]{1,18}$'
+                 THEN (a.stats->>'exited')::bigint ELSE 0 END`
 
 func (m *V44Migration) GetMajorVersion() float64 { return 44.0 }
 
@@ -83,6 +110,7 @@ func v44WorkspaceStatements() []v44WorkspaceStatement {
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`, "create idx_message_history_failed_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`, "create idx_message_history_bounced_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`, "create idx_message_history_complained_recent"},
+		{v44ExitedRecountSQL, "recount the exited journeys of each automation"},
 	}
 }
 

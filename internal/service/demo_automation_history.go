@@ -79,7 +79,23 @@ type demoNodeVisit struct {
 	EnteredAt   time.Time
 	CompletedAt time.Time
 	DurationMs  int
+	// Output is what the node's executor writes, so automations.nodeStats reads the split each
+	// journey took and the message each email step sent. nil is written as {}.
+	Output map[string]interface{}
 }
+
+// demoErrorRow is a row the engine's error path writes for each failed attempt of a step:
+// action 'failed', no completed_at, the error text. automations.nodeStats counts these as the
+// step's failed attempts.
+type demoErrorRow struct {
+	NodeID    string
+	NodeType  domain.NodeType
+	EnteredAt time.Time
+}
+
+// demoFailedAttempts is how many times a failing step is tried before its journey fails: the
+// default max_retries of a journey.
+const demoFailedAttempts = 3
 
 type demoJourney struct {
 	ID            string
@@ -91,6 +107,8 @@ type demoJourney struct {
 	EnteredAt     time.Time
 	EndedAt       time.Time
 	Visits        []demoNodeVisit
+	// ErrorRows are the error path's rows of a failed journey, one per attempt of its last step.
+	ErrorRows []demoErrorRow
 	// TimelineReason is what the automation.end row carries. It deliberately differs from
 	// ExitReason: the engine leaves the column NULL on a normal completion while still writing
 	// "completed" to the timeline.
@@ -254,6 +272,21 @@ func (s *DemoService) seedDemoAutomationHistory(ctx context.Context, workspaceID
 	}
 
 	rng := rand.New(rand.NewSource(demoAutomationHistorySeed))
+	// A source of its own, so the messages do not change the journeys the seed draws.
+	messageRng := rand.New(rand.NewSource(demoAutomationHistorySeed + 1))
+	// The workspace's secret key encrypts the message data. It is read once, on the first
+	// automation with messages to write.
+	var secretKey *string
+	readSecretKey := func() (string, error) {
+		if secretKey == nil {
+			workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+			if err != nil {
+				return "", fmt.Errorf("failed to get workspace: %w", err)
+			}
+			secretKey = &workspace.Settings.SecretKey
+		}
+		return *secretKey, nil
+	}
 	now := time.Now().UTC()
 
 	for _, automation := range automations {
@@ -299,9 +332,87 @@ func (s *DemoService) seedDemoAutomationHistory(ctx context.Context, workspaceID
 				"error":         err.Error(),
 			}).Warn("Failed to write demo automation list changes")
 		}
+		if err := s.writeDemoJourneyMessages(ctx, workspaceID, readSecretKey, automation, journeys, messageRng); err != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"automation_id": automation.ID,
+				"error":         err.Error(),
+			}).Warn("Failed to write demo automation messages")
+		}
 	}
 
 	return nil
+}
+
+// writeDemoJourneyMessages records the email each email step queued, in the message history, so the
+// step's email counters and messages.list?automation_id show them. Like the timeline it feeds, it
+// runs after the journeys have committed, one message per statement.
+func (s *DemoService) writeDemoJourneyMessages(ctx context.Context, workspaceID string, readSecretKey func() (string, error), automation *domain.Automation, journeys []demoJourney, rng *rand.Rand) error {
+	messages := demoJourneyMessages(automation, journeys, rng, time.Now().UTC())
+	if len(messages) == 0 {
+		return nil
+	}
+	secretKey, err := readSecretKey()
+	if err != nil {
+		return err
+	}
+	for _, message := range messages {
+		if err := s.messageHistoryRepo.Create(ctx, workspaceID, secretKey, message); err != nil {
+			return fmt.Errorf("failed to create demo automation message: %w", err)
+		}
+	}
+	return nil
+}
+
+// demoJourneyMessages builds the message of each email step that queued one, with the step's
+// message ID, its template and the automation's ID. It is sent when the step completed, and
+// most are delivered, about half of those opened and a third of the opens clicked; an event
+// that would fall after now is left out.
+func demoJourneyMessages(automation *domain.Automation, journeys []demoJourney, rng *rand.Rand, now time.Time) []*domain.MessageHistory {
+	automationID := automation.ID
+	var messages []*domain.MessageHistory
+	for _, j := range journeys {
+		for _, v := range j.Visits {
+			messageID, _ := v.Output["message_id"].(string)
+			templateID, _ := v.Output["template_id"].(string)
+			if messageID == "" || templateID == "" {
+				continue
+			}
+			sentAt := v.CompletedAt
+			message := &domain.MessageHistory{
+				ID:              messageID,
+				ContactEmail:    j.Email,
+				AutomationID:    &automationID,
+				TemplateID:      templateID,
+				TemplateVersion: 1,
+				Channel:         "email",
+				MessageData: domain.MessageData{
+					Data:     map[string]interface{}{"contact": map[string]interface{}{"email": j.Email}},
+					Metadata: map[string]interface{}{"demo_generated": true, "automation_id": automationID},
+				},
+				SentAt:    sentAt,
+				CreatedAt: sentAt,
+				UpdatedAt: sentAt,
+			}
+			at := func(after time.Time, within time.Duration) *time.Time {
+				t := after.Add(time.Duration(rng.Int63n(int64(within))))
+				if t.After(now) {
+					return nil
+				}
+				return &t
+			}
+			if rng.Float64() < 0.97 {
+				message.DeliveredAt = at(sentAt, 30*time.Minute)
+			}
+			if message.DeliveredAt != nil && rng.Float64() < 0.5 {
+				message.OpenedAt = at(*message.DeliveredAt, 48*time.Hour)
+			}
+			if message.OpenedAt != nil && rng.Float64() < 0.33 {
+				message.ClickedAt = at(*message.OpenedAt, time.Hour)
+			}
+			messages = append(messages, message)
+		}
+	}
+	return messages
 }
 
 func (s *DemoService) loadDemoCohort(ctx context.Context, db *sql.DB, automationID string) ([]demoCohortMember, error) {
@@ -397,7 +508,7 @@ func buildDemoJourneys(automation *domain.Automation, cohort []demoCohortMember,
 		}
 
 		last := visits[len(visits)-1]
-		journeys = append(journeys, demoJourney{
+		journey := demoJourney{
 			ID:             uuid.NewString(),
 			AutomationID:   automation.ID,
 			Email:          member.Email,
@@ -408,7 +519,18 @@ func buildDemoJourneys(automation *domain.Automation, cohort []demoCohortMember,
 			EndedAt:        last.CompletedAt,
 			Visits:         visits,
 			TimelineReason: timelineReason,
-		})
+		}
+		assignDemoNodeOutputs(automation, &journey)
+		if failLast {
+			// Every attempt is dated at the failure. Real retries are minutes apart, which would
+			// date the last attempts of the most recent journeys in the future.
+			for attempt := 0; attempt < demoFailedAttempts; attempt++ {
+				journey.ErrorRows = append(journey.ErrorRows, demoErrorRow{
+					NodeID: last.NodeID, NodeType: last.NodeType, EnteredAt: last.CompletedAt,
+				})
+			}
+		}
+		journeys = append(journeys, journey)
 	}
 	return journeys
 }
@@ -599,9 +721,21 @@ func insertDemoNodeExecutions(ctx context.Context, tx *sql.Tx, journeys []demoJo
 			rows = append(rows, row{journey: j, visit: v})
 		}
 	}
+	outputs := make([][]byte, len(rows))
+	for i, r := range rows {
+		output := []byte(`{}`)
+		if r.visit.Output != nil {
+			encoded, err := json.Marshal(r.visit.Output)
+			if err != nil {
+				return fmt.Errorf("failed to encode demo node output: %w", err)
+			}
+			output = encoded
+		}
+		outputs[i] = output
+	}
 
 	const columns = 10
-	return execDemoBatches(ctx, tx, len(rows), demoHistoryInsertBatch, columns,
+	err := execDemoBatches(ctx, tx, len(rows), demoHistoryInsertBatch, columns,
 		`INSERT INTO automation_node_executions
 			(id, contact_automation_id, automation_id, node_id, node_type, action, entered_at, completed_at, duration_ms, output) VALUES `,
 		func(index int) []interface{} {
@@ -628,9 +762,138 @@ func insertDemoNodeExecutions(ctx context.Context, tx *sql.Tx, journeys []demoJo
 				r.visit.EnteredAt,
 				completedAt,
 				durationMs,
-				[]byte(`{}`),
+				outputs[index],
 			}
 		})
+	if err != nil {
+		return err
+	}
+	return insertDemoErrorRows(ctx, tx, journeys)
+}
+
+// insertDemoErrorRows writes the error path's rows of the failed journeys: action 'failed', no
+// completed_at, and the error text, as AutomationExecutor.handleError does. Their node_type is
+// the node's real one, not the 'trigger' placeholder of the engine (see above).
+func insertDemoErrorRows(ctx context.Context, tx *sql.Tx, journeys []demoJourney) error {
+	type row struct {
+		journey demoJourney
+		error   demoErrorRow
+	}
+	var rows []row
+	for _, j := range journeys {
+		for _, e := range j.ErrorRows {
+			rows = append(rows, row{journey: j, error: e})
+		}
+	}
+
+	const columns = 8
+	return execDemoBatches(ctx, tx, len(rows), demoHistoryInsertBatch, columns,
+		`INSERT INTO automation_node_executions
+			(id, contact_automation_id, automation_id, node_id, node_type, action, entered_at, error) VALUES `,
+		func(index int) []interface{} {
+			r := rows[index]
+			return []interface{}{
+				uuid.NewString(), r.journey.ID, r.journey.AutomationID, r.error.NodeID,
+				string(r.error.NodeType), string(domain.NodeActionFailed), r.error.EnteredAt,
+				"node execution failed: " + demoNodeErrorText(r.error.NodeType),
+			}
+		})
+}
+
+// demoNodeErrorText is the error a failed step of this type plausibly reports.
+func demoNodeErrorText(nodeType domain.NodeType) string {
+	switch nodeType {
+	case domain.NodeTypeEmail:
+		return "failed to enqueue email: provider rate limit reached"
+	case domain.NodeTypeWebhook:
+		return "webhook returned status 503"
+	}
+	return "temporary database error"
+}
+
+// assignDemoNodeOutputs gives each visit the output its executor writes, derived from the node's
+// configuration and the next node of the journey's path: the filter's result, the list status
+// branch, the A/B variant, the delay's end, and for an email the message it queued or, for a
+// journey the subscription guard stopped, the skip and its reason. A failed visit has none.
+func assignDemoNodeOutputs(automation *domain.Automation, journey *demoJourney) {
+	// The step visits, without the enrollment row, in path order.
+	var steps []int
+	for i, v := range journey.Visits {
+		if v.Action != domain.NodeActionEntered {
+			steps = append(steps, i)
+		}
+	}
+	for k, i := range steps {
+		visit := &journey.Visits[i]
+		if visit.Action != domain.NodeActionCompleted {
+			continue
+		}
+		node := automation.GetNodeByID(visit.NodeID)
+		if node == nil {
+			continue
+		}
+		next := ""
+		if k+1 < len(steps) {
+			next = journey.Visits[steps[k+1]].NodeID
+		}
+		visit.Output = demoNodeOutput(automation, node, next, journey, k == len(steps)-1, visit)
+	}
+}
+
+func demoNodeOutput(automation *domain.Automation, node *domain.AutomationNode, next string, journey *demoJourney, isLast bool, visit *demoNodeVisit) map[string]interface{} {
+	config := node.Config
+	str := func(key string) string { v, _ := config[key].(string); return v }
+	output := map[string]interface{}{"node_type": string(node.Type)}
+
+	switch node.Type {
+	case domain.NodeTypeTrigger:
+		output["trigger_type"] = "timeline"
+	case domain.NodeTypeDelay:
+		output["delay_duration"] = config["duration"]
+		output["delay_unit"] = config["unit"]
+		output["delay_until"] = visit.CompletedAt
+	case domain.NodeTypeFilter:
+		// The next node is the branch taken; a journey that ends here took an empty branch,
+		// which is continue when exit is the wired one, and exit otherwise.
+		passed := next != "" && next == str("continue_node_id")
+		if next == "" {
+			passed = str("continue_node_id") == "" && str("exit_node_id") != ""
+		}
+		output["filter_passed"] = passed
+	case domain.NodeTypeListStatusBranch:
+		branch := ""
+		switch next {
+		case str("active_node_id"):
+			branch = "active"
+		case str("non_active_node_id"):
+			branch = "non_active"
+		case str("not_in_list_node_id"):
+			branch = "not_in_list"
+		}
+		output["list_id"] = str("list_id")
+		output["branch_taken"] = branch
+	case domain.NodeTypeABTest:
+		if variants, ok := config["variants"].([]domain.ABTestVariant); ok {
+			for _, v := range variants {
+				if v.NextNodeID == next {
+					output["variant_id"] = v.ID
+					output["variant_name"] = v.Name
+				}
+			}
+		}
+	case domain.NodeTypeEmail:
+		output["template_id"] = str("template_id")
+		output["to"] = journey.Email
+		if isLast && journey.Status == domain.ContactAutomationStatusExited && journey.ExitReason != nil {
+			output["skipped"] = true
+			output["skip_reason"] = *journey.ExitReason
+			output["contact_status"] = *journey.ExitReason
+		} else {
+			output["message_id"] = fmt.Sprintf("%s_%s", automation.WorkspaceID, uuid.NewString())
+			output["queued"] = true
+		}
+	}
+	return output
 }
 
 // demoTimelineEntry is one contact_timeline row for a journey.

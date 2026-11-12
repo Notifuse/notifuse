@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: `automations.get` answers 404 instead of 500 for an automation that does not exist.
 
-- **Fix**: Contacts who leave an automation by replying now count in its exited total.
+- **Fix**: Contacts who leave an automation by replying now count in its exited total, past exits included.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 
@@ -17,6 +17,8 @@ All notable changes to this project will be documented in this file.
 - **Feature**: The analytics API gives when each transactional notification last sent successfully, with the new `last_sent_at` measure of message history, and `messages.list` filters by `transactional_notification_id`.
 
 - **Feature**: The API counts the recipients of a broadcast audience before it is sent, with the new `broadcasts.estimateAudience`. `broadcasts.list` gives the number of broadcasts in each status (`with_status_counts`) and keeps the ones started from a date (`started_after`), and the message history analytics take `opened_at` and `clicked_at` as time dimensions.
+
+- **Feature**: The API gives the statistics of each step of an automation, over a period or all time, with the new `automations.nodeStats`: visits, results, the path each split took, the journeys waiting or retrying there, and for email steps the messages sent, delivered, opened and clicked. `automations.list` gives each automation's journeys by status (`with_journey_counts`), `messages.list` filters by `automation_id`, and the message history analytics split by `automation_id`.
 
 - **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages when the table fits in memory, longer otherwise.
 

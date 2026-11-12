@@ -2606,3 +2606,44 @@ func TestMessageHistoryRepository_ListMessages_TransactionalNotificationFilter(t
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }
+
+func TestMessageHistoryRepository_ListMessages_AutomationFilter(t *testing.T) {
+	columns := []string{
+		"id", "external_id", "contact_email", "broadcast_id", "automation_id", "transactional_notification_id", "list_id", "template_id", "template_version",
+		"channel", "status_info", "message_data", "channel_options", "attachments", "sent_at", "delivered_at",
+		"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+		"unsubscribed_at", "created_at", "updated_at", "opens_tracked", "clicks_tracked",
+	}
+	selectSQL := `SELECT id, external_id, contact_email, broadcast_id, automation_id, transactional_notification_id, list_id, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at, opens_tracked, clicks_tracked FROM message_history`
+
+	t.Run("adds the condition when set", func(t *testing.T) {
+		mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
+		defer cleanup()
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db, nil)
+
+		mock.ExpectQuery(regexp.QuoteMeta(selectSQL+` WHERE automation_id = $1 AND template_id = $2 ORDER BY created_at DESC, id DESC LIMIT 21`)).
+			WithArgs("auto-welcome", "tpl-1").
+			WillReturnRows(sqlmock.NewRows(columns))
+
+		_, _, err := repo.ListMessages(context.Background(), "workspace-123", testSecretKey, domain.MessageListParams{
+			Limit:        20,
+			AutomationID: "auto-welcome",
+			TemplateID:   "tpl-1",
+		})
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("no condition when empty", func(t *testing.T) {
+		mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
+		defer cleanup()
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db, nil)
+
+		mock.ExpectQuery(regexp.QuoteMeta(selectSQL + ` ORDER BY created_at DESC, id DESC LIMIT 21`)).
+			WillReturnRows(sqlmock.NewRows(columns))
+
+		_, _, err := repo.ListMessages(context.Background(), "workspace-123", testSecretKey, domain.MessageListParams{Limit: 20})
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+}
