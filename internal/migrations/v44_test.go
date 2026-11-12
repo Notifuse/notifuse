@@ -43,13 +43,16 @@ func TestV44Migration_IsWhatLetsTheStampReachFortyFour(t *testing.T) {
 // The exact statements of the workspace update, in order. The first one replaces the body of
 // the timeline function (no trigger is dropped or created). The two SET LOCAL statements let
 // the index builds outlive a configured statement_timeout, and bound the wait for the table
-// lock behind a transaction already writing to it. The exited recount runs before the builds,
-// outside their lock. No column is touched, so no automation trigger function needs
+// lock behind a transaction already writing to it. The exited recount runs last, after the
+// builds, so it never holds automations rows while waiting for the message_history lock. No column is touched, so no automation trigger function needs
 // regenerating.
 var v44ExpectedWorkspaceStatements = []string{
 	schema.TrackMessageHistoryChangesFunction(),
 	`SET LOCAL statement_timeout = 0`,
 	`SET LOCAL lock_timeout = '5s'`,
+	`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`,
+	`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`,
+	`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`,
 	`UPDATE automations a
 SET stats = jsonb_set(COALESCE(a.stats, '{}'::jsonb), '{exited}', to_jsonb(c.n)),
     updated_at = NOW()
@@ -60,9 +63,6 @@ WHERE c.automation_id = a.id
   AND (a.stats IS NULL OR jsonb_typeof(a.stats) = 'object')
   AND c.n > CASE WHEN a.stats->>'exited' ~ '^[0-9]{1,18}$'
                  THEN (a.stats->>'exited')::bigint ELSE 0 END`,
-	`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`,
-	`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`,
-	`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`,
 }
 
 func TestV44Migration_UpdateWorkspaceRunsExactlyItsStatementsInOrder(t *testing.T) {

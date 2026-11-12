@@ -131,14 +131,15 @@ const (
 	GROUP BY 1`
 
 	// d. Email counters: each completed email execution with the message it sent (primary
-	// key) and, when it has none yet, whether its email is still in the queue. The queue
-	// predicate is the worker's own fetch without its time bound: a permanent failure keeps
+	// key) and, when it has none yet, whether its email is still in the queue, read in one
+	// pass over the automation's queue entries (email_queue has no index on message_id). An
+	// entry counts as queued while the worker can still send it: a permanent failure keeps
 	// status 'failed' with next_retry_at NULL and a low attempt count, and is not queued.
 	// The message filters are those of the message_history analytics measures.
 	nodeStatsEmailSQL = `SELECT e.node_id,
 		COUNT(*),
-		COUNT(*) FILTER (WHERE m.id IS NULL AND q.queued IS NOT NULL),
-		COUNT(*) FILTER (WHERE m.id IS NULL AND q.queued IS NULL),
+		COUNT(*) FILTER (WHERE m.id IS NULL AND q.message_id IS NOT NULL),
+		COUNT(*) FILTER (WHERE m.id IS NULL AND q.message_id IS NULL),
 		COUNT(m.id) FILTER (WHERE m.sent_at IS NOT NULL AND m.failed_at IS NULL),
 		COUNT(m.id) FILTER (WHERE m.delivered_at IS NOT NULL),
 		COUNT(m.id) FILTER (WHERE m.opened_at IS NOT NULL),
@@ -151,15 +152,13 @@ const (
 		COUNT(m.id) FILTER (WHERE m.unsubscribed_at IS NOT NULL)
 	FROM automation_node_executions e
 	LEFT JOIN message_history m ON m.id = e.output->>'message_id'
-	LEFT JOIN LATERAL (
-		SELECT true AS queued
+	LEFT JOIN (
+		SELECT DISTINCT eq.message_id
 		FROM email_queue eq
-		WHERE eq.source_type = 'automation' AND eq.source_id = e.automation_id
-			AND eq.message_id = e.output->>'message_id'
+		WHERE eq.source_type = 'automation' AND eq.source_id = $1
 			AND (eq.status IN ('pending', 'processing', 'paused')
 				OR (eq.status = 'failed' AND eq.next_retry_at IS NOT NULL AND eq.attempts < eq.max_attempts))
-		LIMIT 1
-	) q ON true
+	) q ON q.message_id = e.output->>'message_id'
 	WHERE e.automation_id = $1 AND e.node_type = 'email' AND e.action = 'completed'
 		AND e.output ? 'message_id'%s
 	GROUP BY e.node_id`

@@ -51,6 +51,7 @@ func TestV44ExitedRecount(t *testing.T) {
 		"no-exit":     {stats: sql.NullString{String: `{"exited": 0}`, Valid: true}, journeys: map[string]int{"completed": 3}},
 		"deleted":     {stats: sql.NullString{String: `{"exited": 0}`, Valid: true}, deleted: true, journeys: map[string]int{"exited": 4}},
 		"array-stats": {stats: sql.NullString{String: `[1, 2]`, Valid: true}, journeys: map[string]int{"exited": 4}},
+		"json-null":   {stats: sql.NullString{String: `null`, Valid: true}, journeys: map[string]int{"exited": 4}},
 		"decimal":     {stats: sql.NullString{String: `{"exited": 7.0}`, Valid: true}, journeys: map[string]int{"exited": 2}},
 		"boolean":     {stats: sql.NullString{String: `{"exited": true}`, Valid: true}, journeys: map[string]int{"exited": 2}},
 		"beyond-int":  {stats: sql.NullString{String: `{"exited": 99999999999}`, Valid: true}, journeys: map[string]int{"exited": 2}},
@@ -115,8 +116,8 @@ func TestV44ExitedRecount(t *testing.T) {
 		}
 	})
 
-	t.Run("never lowered, and left alone when nothing is missing", func(t *testing.T) {
-		for _, id := range []string{"ahead", "equal", "no-exit", "deleted", "array-stats", "beyond-int"} {
+	t.Run("a whole number never lowered, and left alone when nothing is missing", func(t *testing.T) {
+		for _, id := range []string{"ahead", "equal", "no-exit", "deleted", "array-stats", "json-null", "beyond-int"} {
 			got, touched := stored(t, id)
 			assert.Equal(t, cases[id].stats, got, id)
 			assert.False(t, touched, id)

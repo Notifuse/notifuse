@@ -32,11 +32,14 @@ import (
 // table, every later write queuing behind that wait: past 5 seconds the migration fails and
 // is retried at the next start.
 //
-// Before the builds, so outside their lock, stats.exited of each automation is raised to the
-// number of its journeys that exited (v44ExitedRecountSQL). Until 44 a journey ended by a
-// reply exited without being counted there, so the counter fell short of the journeys it
-// describes. It is only ever raised, never lowered, and an automation whose stats are not a
-// JSON object, or a deleted one, is left as it is. A rerun writes nothing.
+// After the builds, stats.exited of each automation is raised to the number of its journeys
+// that exited (v44ExitedRecountSQL). Until 44 a journey ended by a reply exited without being
+// counted there, so the counter fell short of the journeys it describes. The recount comes
+// last because it row-locks automations: a tracking write locks message_history first and
+// then, through the timeline trigger, updates automations, so taking automations before the
+// builds' SHARE lock could deadlock with it. A stored whole number is only ever raised; a
+// value that is not one counts as 0. An automation whose stats are not a JSON object, or a
+// deleted one, is left as it is. A rerun writes nothing.
 //
 // No column is renamed or dropped, so no automation trigger function needs regenerating.
 type V44Migration struct{}
@@ -78,10 +81,10 @@ func v44WorkspaceStatements() []v44WorkspaceStatement {
 		{schema.TrackMessageHistoryChangesFunction(), "install the link click timeline step"},
 		{`SET LOCAL statement_timeout = 0`, "lift the statement timeout"},
 		{`SET LOCAL lock_timeout = '5s'`, "set the lock timeout"},
-		{v44ExitedRecountSQL, "recount the exited journeys of each automation"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`, "create idx_message_history_failed_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`, "create idx_message_history_bounced_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`, "create idx_message_history_complained_recent"},
+		{v44ExitedRecountSQL, "recount the exited journeys of each automation"},
 	}
 }
 

@@ -648,7 +648,7 @@ func TestDemoJourneys_FailedJourneysHaveTheirAttempts(t *testing.T) {
 			}
 			failed++
 			last := j.Visits[len(j.Visits)-1]
-			require.Len(t, j.ErrorRows, demoFailedAttempts)
+			require.Len(t, j.ErrorRows, 3, "one row per attempt of the default retry policy")
 			for _, e := range j.ErrorRows {
 				assert.Equal(t, last.NodeID, e.NodeID)
 				assert.Equal(t, last.NodeType, e.NodeType)
