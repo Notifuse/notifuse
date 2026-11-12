@@ -1,7 +1,6 @@
-import { Descriptions } from 'antd'
-import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
+import { KeyValueList, Mono, Panel, Pill } from '../layout'
 
 export function SMTPBridgeSettings() {
   const { t } = useLingui()
@@ -17,61 +16,54 @@ export function SMTPBridgeSettings() {
   return (
     <>
       <SettingsSectionHeader
-        title={t`SMTP Bridge`}
+        title={t`SMTP bridge`}
         description={t`SMTP bridge server for forwarding transactional emails`}
       />
 
       {window.SMTP_BRIDGE_ENABLED ? (
-        <>
-          <div style={{ marginBottom: '16px' }}>
+        <Panel
+          title={t`Server`}
+          extra={
             <a
               href="https://docs.notifuse.com/concepts/transactional-api#smtp-bridge"
               target="_blank"
               rel="noopener noreferrer"
+              className="text-xs"
             >
               {t`View SMTP Bridge documentation and setup guide`}
             </a>
-          </div>
-          <Descriptions
-            bordered
-            column={1}
-            size="small"
-            styles={{ label: { width: '200px', fontWeight: '500' } }}
-          >
-            <Descriptions.Item label={t`SMTP domain`}>
-              {window.SMTP_BRIDGE_DOMAIN || t`Not set`}
-            </Descriptions.Item>
-
-            <Descriptions.Item label={t`SMTP port`}>
-              {window.SMTP_BRIDGE_PORT || t`Not set`}
-            </Descriptions.Item>
-
-            <Descriptions.Item label={t`TLS`}>
-              {modeEnabled ? (
-                <span style={{ color: '#52c41a' }}>
-                  <CheckCircleOutlined style={{ marginRight: '8px' }} />
-                  {modeLabel[mode]}
-                </span>
-              ) : (
-                <span style={{ color: '#ff4d4f' }}>
-                  <CloseCircleOutlined style={{ marginRight: '8px' }} />
-                  {modeLabel[mode]}
-                </span>
-              )}
-            </Descriptions.Item>
-          </Descriptions>
-        </>
+          }
+        >
+          <KeyValueList
+            items={[
+              {
+                label: t`SMTP domain`,
+                value: window.SMTP_BRIDGE_DOMAIN ? <Mono copy>{window.SMTP_BRIDGE_DOMAIN}</Mono> : t`Not set`
+              },
+              {
+                label: t`SMTP port`,
+                value: window.SMTP_BRIDGE_PORT ? <Mono copy>{String(window.SMTP_BRIDGE_PORT)}</Mono> : t`Not set`
+              },
+              {
+                label: t`TLS`,
+                value: <Pill tone={modeEnabled ? 'success' : 'danger'}>{modeLabel[mode]}</Pill>
+              }
+            ]}
+          />
+        </Panel>
       ) : (
-        <div style={{ color: '#8c8c8c', fontStyle: 'italic' }}>
-          {t`SMTP bridge is not configured.`}{' '}
-          <a
-            href="https://docs.notifuse.com/installation#smtp-bridge-configuration"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t`Learn how to enable SMTP bridge`}
-          </a>
-        </div>
+        <Panel>
+          <div className="text-sm text-ink-3 italic">
+            {t`SMTP bridge is not configured.`}{' '}
+            <a
+              href="https://docs.notifuse.com/installation#smtp-bridge-configuration"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t`Learn how to enable SMTP bridge`}
+            </a>
+          </div>
+        </Panel>
       )}
     </>
   )

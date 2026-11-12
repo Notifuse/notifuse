@@ -5,6 +5,7 @@ import type { ColumnsType } from 'antd/es/table'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronRight } from '@fortawesome/free-solid-svg-icons'
 import { Trans, useLingui } from '@lingui/react/macro'
+import { PERMISSION_RESOURCE_LABELS } from './permissionLabels'
 import {
   ALL_PERMISSION_RESOURCES,
   OPT_IN_PERMISSION_RESOURCES,
@@ -121,7 +122,7 @@ export function PermissionsMatrix({
   disabled = false,
   fullAccessOnly = false
 }: PermissionsMatrixProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const editable = Boolean(onChange)
 
   // One row at a time. Several resources gate two dozen endpoints — Contacts alone gates 23 — so
@@ -129,23 +130,7 @@ export function PermissionsMatrix({
   // host drawer scrolling for pages. Opening a row therefore closes the previous one.
   const [expandedResource, setExpandedResource] = useState<PermissionResource | null>(null)
 
-  const resourceLabels: Record<PermissionResource, string> = {
-    contacts: t`Contacts`,
-    lists: t`Lists`,
-    templates: t`Templates`,
-    broadcasts: t`Broadcasts`,
-    transactional: t`Transactional`,
-    workspace: t`Workspace`,
-    message_history: t`Message History`,
-    blog: t`Blog`,
-    automations: t`Automations`,
-    llm: t`LLM`,
-    web_analytics: t`Web Analytics`,
-    segments: t`Segments`,
-    webhook_subscriptions: t`Webhook Subscriptions`,
-    webhook_events: t`Webhook Events`,
-    audit_logs: t`Audit Logs`
-  }
+  const resourceLabel = (resource: PermissionResource) => i18n._(PERMISSION_RESOURCE_LABELS[resource])
 
   // The canonical resource list drives the rows, never the keys of `value`: a resource the stored
   // map omits still gets a row, which is what makes it grantable instead of frozen at denied.
@@ -155,7 +140,7 @@ export function PermissionsMatrix({
     const granted = value?.[resource] ?? { read: false, write: false }
     return {
       key: resource,
-      resource: resourceLabels[resource],
+      resource: resourceLabel(resource),
       read: granted.read || (editable && !isPermissionEnforced(resource, 'read')),
       write: granted.write || (editable && !isPermissionEnforced(resource, 'write'))
     }

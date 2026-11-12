@@ -9,15 +9,20 @@ import {
   Radio,
   Row,
   Col,
-  Descriptions,
-  Popconfirm,
-  Tooltip
+  Tooltip,
+  Table,
+  Dropdown,
+  Empty
 } from 'antd'
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import type { ColumnsType } from 'antd/es/table'
+import { MoreHorizontal, Plus } from 'lucide-react'
+import type { MessageDescriptor } from '@lingui/core'
+import { msg, plural } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
+import { Mono, Panel } from '../layout'
 
 interface CustomFieldsConfigurationProps {
   workspace: Workspace | null
@@ -26,52 +31,58 @@ interface CustomFieldsConfigurationProps {
   canManage: boolean
 }
 
-interface CustomFieldMapping {
-  fieldKey: string
-  fieldType: string
+type CustomFieldType = 'String' | 'Number' | 'Datetime' | 'JSON'
+
+interface CustomFieldSlot {
+  key: string
+  type: CustomFieldType
+}
+
+interface NamedSlot extends CustomFieldSlot {
   label: string
 }
 
 // All available custom fields organized by type
-const CUSTOM_FIELDS_BY_TYPE = {
+const CUSTOM_FIELDS_BY_TYPE: Record<CustomFieldType, string[]> = {
   String: Array.from({ length: 5 }, (_, i) => `custom_string_${i + 1}`),
   Number: Array.from({ length: 5 }, (_, i) => `custom_number_${i + 1}`),
   Datetime: Array.from({ length: 5 }, (_, i) => `custom_datetime_${i + 1}`),
   JSON: Array.from({ length: 5 }, (_, i) => `custom_json_${i + 1}`)
 }
 
-const ALL_CUSTOM_FIELDS = [
-  ...CUSTOM_FIELDS_BY_TYPE.String.map((key) => ({ key, type: 'String' })),
-  ...CUSTOM_FIELDS_BY_TYPE.Number.map((key) => ({ key, type: 'Number' })),
-  ...CUSTOM_FIELDS_BY_TYPE.Datetime.map((key) => ({ key, type: 'Datetime' })),
-  ...CUSTOM_FIELDS_BY_TYPE.JSON.map((key) => ({ key, type: 'JSON' }))
-]
+export const ALL_CUSTOM_FIELDS: CustomFieldSlot[] = (
+  Object.keys(CUSTOM_FIELDS_BY_TYPE) as CustomFieldType[]
+).flatMap((type) => CUSTOM_FIELDS_BY_TYPE[type].map((key) => ({ key, type })))
+
+const TYPE_LABELS: Record<CustomFieldType, MessageDescriptor> = {
+  String: msg`Text`,
+  Number: msg`Number`,
+  Datetime: msg`Date`,
+  JSON: msg`JSON`
+}
 
 export function CustomFieldsConfiguration({
   workspace,
   onWorkspaceUpdate,
   canManage
 }: CustomFieldsConfigurationProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const [modalVisible, setModalVisible] = useState(false)
   const [editingField, setEditingField] = useState<string | null>(null)
   const [form] = Form.useForm()
   const [saving, setSaving] = useState(false)
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
 
   const customFieldLabels = workspace?.settings?.custom_field_labels || {}
 
-  // Get mapped fields
-  const mappedFields: CustomFieldMapping[] = Object.entries(customFieldLabels).map(
-    ([fieldKey, label]) => {
-      const field = ALL_CUSTOM_FIELDS.find((f) => f.key === fieldKey)
-      return {
-        fieldKey,
-        fieldType: field?.type || 'Unknown',
-        label
-      }
-    }
-  )
+  // The named slots, in the order of the slots themselves rather than of the stored labels.
+  const namedSlots: NamedSlot[] = ALL_CUSTOM_FIELDS.filter(
+    (field) => customFieldLabels[field.key]
+  ).map((field) => ({ ...field, label: customFieldLabels[field.key] }))
+  const total = ALL_CUSTOM_FIELDS.length
+  const named = namedSlots.length
+  const freeOf = (type: CustomFieldType) =>
+    CUSTOM_FIELDS_BY_TYPE[type].filter((key) => !customFieldLabels[key]).length
 
   // Get available fields for selection (fields not yet mapped)
   const availableFields = ALL_CUSTOM_FIELDS.filter(
@@ -150,84 +161,154 @@ export function CustomFieldsConfiguration({
     }
   }
 
-  return (
-    <>
-      <SettingsSectionHeader
-        title={t`Custom Fields`}
-        description={t`Set friendly display names for contact custom fields.`}
-      />
+  const noPermission = canManage ? undefined : t`You don't have permission to manage custom fields`
 
-      <div style={{ textAlign: 'right', marginBottom: 16 }}>
-        <Tooltip title={!canManage ? t`You don't have permission to manage custom fields` : undefined}>
-          <span style={{ display: 'inline-block' }}>
+  const confirmRemove = (slot: NamedSlot) =>
+    modal.confirm({
+      title: t`Remove custom field label`,
+      content: t`The values stay on your contacts; only the label is removed.`,
+      okText: t`Yes`,
+      cancelText: t`No`,
+      okButtonProps: { danger: true },
+      onOk: () => handleDelete(slot.key)
+    })
+
+  const columns: ColumnsType<NamedSlot> = [
+    {
+      title: t`Label`,
+      key: 'label',
+      render: (_, slot) => <span className="font-medium text-ink">{slot.label}</span>
+    },
+    {
+      title: t`Field`,
+      key: 'field',
+      width: 200,
+      render: (_, slot) => <Mono>{slot.key}</Mono>
+    },
+    {
+      title: t`Type`,
+      key: 'type',
+      width: 110,
+      render: (_, slot) => <span className="text-ink-3">{i18n._(TYPE_LABELS[slot.type])}</span>
+    },
+    {
+      title: '',
+      key: 'actions',
+      width: 48,
+      align: 'right',
+      render: (_, slot) => (
+        <Tooltip title={noPermission}>
+          <span className="inline-block">
+            <Dropdown
+              trigger={['click']}
+              placement="bottomRight"
+              disabled={!canManage}
+              menu={{
+                items: [
+                  {
+                    key: 'rename',
+                    label: t`Rename`,
+                    onClick: () => handleOpenModal(slot.key)
+                  },
+                  {
+                    key: 'remove',
+                    label: t`Remove label`,
+                    danger: true,
+                    onClick: () => confirmRemove(slot)
+                  }
+                ]
+              }}
+            >
+              <Button
+                type="text"
+                size="small"
+                aria-label={t`Actions`}
+                disabled={!canManage}
+                icon={<MoreHorizontal size={16} aria-hidden="true" />}
+              />
+            </Dropdown>
+          </span>
+        </Tooltip>
+      )
+    }
+  ]
+
+  const textFree = plural(freeOf('String'), { one: '# text', other: '# text' })
+  const numberFree = plural(freeOf('Number'), {
+    one: '# number',
+    other: '# number'
+  })
+  const dateFree = plural(freeOf('Datetime'), {
+    one: '# date',
+    other: '# date'
+  })
+  const jsonFree = plural(freeOf('JSON'), { one: '# JSON', other: '# JSON' })
+
+  const footer =
+    named === total ? (
+      <span
+        data-custom-fields-footer
+        className="text-ink-3"
+      >{t`All ${total} slots are named`}</span>
+    ) : (
+      <div data-custom-fields-footer className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <Tooltip title={noPermission}>
+          <span className="inline-block">
             <Button
-              type="primary"
-              ghost
+              type="link"
               size="small"
+              icon={<Plus size={14} aria-hidden="true" />}
               disabled={!canManage}
               onClick={() => handleOpenModal()}
             >
-              {t`Add Label`}
+              {t`Name a free slot`}
             </Button>
           </span>
         </Tooltip>
+        <span className="text-ink-3">{t`${textFree}, ${numberFree}, ${dateFree}, ${jsonFree} free`}</span>
       </div>
+    )
 
-      {mappedFields.length > 0 && (
-        <Descriptions bordered size="small" column={1}>
-          {mappedFields.map((field) => (
-            <Descriptions.Item
-              key={field.fieldKey}
-              label={
-                <span>
-                  <code style={{ fontSize: '12px' }}>{field.fieldKey}</code>
-                  <span style={{ color: '#888', marginLeft: 8 }}>({field.fieldType})</span>
-                </span>
-              }
+  return (
+    <>
+      <SettingsSectionHeader
+        title={t`Custom fields`}
+        description={t`Name the free fields of your contacts`}
+      />
+
+      <Panel
+        flush
+        title={t`Slots`}
+        extra={<span className="text-xs text-ink-3">{t`${named} of ${total} slots named`}</span>}
+      >
+        {named === 0 ? (
+          <div className="py-8">
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t`No custom field is named yet`}
             >
-              <div
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <span>{field.label}</span>
-                <Space size="small">
-                  <Tooltip
-                    title={
-                      !canManage ? t`You don't have permission to manage custom fields` : undefined
-                    }
-                  >
-                    <span style={{ display: 'inline-block' }}>
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<EditOutlined />}
-                        disabled={!canManage}
-                        onClick={() => handleOpenModal(field.fieldKey)}
-                      />
-                    </span>
-                  </Tooltip>
-                  {canManage ? (
-                    <Popconfirm
-                      title={t`Remove custom field label`}
-                      description={t`Are you sure you want to remove this custom field label?`}
-                      onConfirm={() => handleDelete(field.fieldKey)}
-                      okText={t`Yes`}
-                      cancelText={t`No`}
-                    >
-                      <Button type="text" size="small" icon={<DeleteOutlined />} />
-                    </Popconfirm>
-                  ) : (
-                    <Tooltip title={t`You don't have permission to manage custom fields`}>
-                      <span style={{ display: 'inline-block' }}>
-                        <Button type="text" size="small" icon={<DeleteOutlined />} disabled />
-                      </span>
-                    </Tooltip>
-                  )}
-                </Space>
-              </div>
-            </Descriptions.Item>
-          ))}
-        </Descriptions>
-      )}
+              <Tooltip title={noPermission}>
+                <span className="inline-block">
+                  <Button type="primary" disabled={!canManage} onClick={() => handleOpenModal()}>
+                    {t`Name a slot`}
+                  </Button>
+                </span>
+              </Tooltip>
+            </Empty>
+          </div>
+        ) : (
+          <>
+            <Table<NamedSlot>
+              rowKey="key"
+              size="middle"
+              columns={columns}
+              dataSource={namedSlots}
+              pagination={false}
+            />
+            <div className="border-t border-line-soft px-3.5 py-2 text-xs">{footer}</div>
+          </>
+        )}
+      </Panel>
 
       <Modal
         title={editingField ? t`Edit Custom Field Label` : t`Add Custom Field Label`}
