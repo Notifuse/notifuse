@@ -11,6 +11,8 @@ export interface ListContactsRequest {
   phone?: string
   country?: string
   language?: string
+  // Email, first, last or full name, or external ID containing this text.
+  search?: string
   with_contact_lists?: boolean
   list_id?: string
   contact_list_status?: string
@@ -110,6 +112,8 @@ export interface UpsertContactOperation {
   action: UpsertContactOperationAction
   email?: string
   error?: string
+  /** The stored row read back after the write (contacts.upsert). */
+  contact?: Contact
 }
 
 export interface BatchImportContactsResponse {
@@ -141,6 +145,7 @@ export const contactsApi = {
     if (params.phone) searchParams.append('phone', params.phone)
     if (params.country) searchParams.append('country', params.country)
     if (params.language) searchParams.append('language', params.language)
+    if (params.search) searchParams.append('search', params.search)
     if (params.list_id) searchParams.append('list_id', params.list_id)
     if (params.contact_list_status)
       searchParams.append('contact_list_status', params.contact_list_status)
@@ -189,6 +194,14 @@ export const contactsApi = {
       workspace_id: params.workspace_id,
       email: params.email
     })
+  },
+
+  // Exact match on the normalized email, with the contact's lists and segments; 404 when absent.
+  getByEmail: async (params: { workspace_id: string; email: string }): Promise<{ contact: Contact }> => {
+    const searchParams = new URLSearchParams()
+    searchParams.append('workspace_id', params.workspace_id)
+    searchParams.append('email', params.email)
+    return api.get<{ contact: Contact }>(`/api/contacts.getByEmail?${searchParams.toString()}`)
   },
 
   getTotalContacts: async (params: { workspace_id: string }): Promise<GetTotalContactsResponse> => {

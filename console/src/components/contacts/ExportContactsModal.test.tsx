@@ -45,3 +45,39 @@ describe('ExportContactsModal tracking consent filters', () => {
     })
   })
 })
+
+describe('ExportContactsModal view', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(contactsApi.list).mockResolvedValue({ contacts: [], next_cursor: undefined } as never)
+  })
+
+  it('exports the view on screen: search, segment view and full name', async () => {
+    render(
+      <I18nProvider i18n={i18n}>
+        <ExportContactsModal
+          visible
+          onCancel={vi.fn()}
+          workspaceId="ws1"
+          workspace={undefined}
+          filters={{ search: 'ann', segment_id: 'pro', full_name: 'Ann Lee' }}
+          segmentsData={[{ id: 'pro', name: 'Plan Pro' } as never]}
+          listsData={[]}
+        />
+      </I18nProvider>
+    )
+
+    expect(screen.getByText('Segment: Plan Pro', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('Search: ann', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('Full Name: Ann Lee', { exact: false })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /export/i }))
+
+    await waitFor(() => expect(contactsApi.list).toHaveBeenCalled())
+    expect(vi.mocked(contactsApi.list).mock.calls[0][0]).toMatchObject({
+      search: 'ann',
+      segments: ['pro'],
+      full_name: 'Ann Lee'
+    })
+  })
+})

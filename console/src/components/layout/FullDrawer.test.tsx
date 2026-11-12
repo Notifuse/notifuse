@@ -73,6 +73,19 @@ describe('FullDrawer', () => {
     expect(bar).toContainElement(screen.getByText('November news'))
   })
 
+  it('shows a total label in place of the total', () => {
+    renderDrawer({ nav: { position: 2, total: 50, totalLabel: '50+', context: 'All contacts' } })
+    expect(screen.getByText('2 of 50+')).toBeInTheDocument()
+  })
+
+  it('keeps only the context with buttons off', () => {
+    renderDrawer({ nav: { buttons: false, position: 2, total: 5, context: 'All contacts' } })
+    expect(screen.queryByRole('button', { name: 'Previous' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Next' })).toBeNull()
+    expect(document.querySelector('[data-drawer-position]')).toBeNull()
+    expect(screen.getByText('All contacts')).toBeInTheDocument()
+  })
+
   it('draws no previous or next without nav', () => {
     renderDrawer()
     expect(screen.queryByRole('button', { name: 'Previous' })).toBeNull()

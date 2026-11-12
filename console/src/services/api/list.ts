@@ -17,7 +17,7 @@ export interface List {
   double_optin_template?: TemplateReference
   created_at: string
   updated_at: string
-  /** With `with_counts`: the contacts subscribed to the list (active). */
+  // Active subscribers, only with lists.list with_counts.
   active_count?: number
 }
 
@@ -34,7 +34,7 @@ export interface CreateListRequest {
 export interface GetListsRequest {
   workspace_id: string
   with_templates?: boolean
-  /** Adds each list's `active_count`. */
+  // Adds active_count to each list.
   with_counts?: boolean
 }
 
