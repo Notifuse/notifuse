@@ -163,13 +163,20 @@ export interface DailyPoint {
  * "YYYY-MM-DDT00:00:00Z" in local time: the day is the first ten characters, no timezone shift.
  */
 export function parseDaily(rows: Record<string, unknown>[] | undefined): DailyPoint[] {
-  return (rows ?? []).map((row) => ({
-    day: String(row.created_at_day ?? '').slice(0, 10),
-    sent: toNumber(row.count_sent),
-    delivered: toNumber(row.count_delivered),
-    bounced: toNumber(row.count_bounced),
-    failed: toNumber(row.count_failed)
-  }))
+  return (rows ?? []).flatMap((row) => {
+    const day = String(row.created_at_day ?? '').slice(0, 10)
+    // A row without a valid day has no bar to go in.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(Date.parse(`${day}T00:00:00Z`))) return []
+    return [
+      {
+        day,
+        sent: toNumber(row.count_sent),
+        delivered: toNumber(row.count_delivered),
+        bounced: toNumber(row.count_bounced),
+        failed: toNumber(row.count_failed)
+      }
+    ]
+  })
 }
 
 /** The day with the most failures, or null without any. The first of equal days wins. */

@@ -108,6 +108,15 @@ describe('daily series', () => {
     expect(points[1]).toEqual({ day: '2026-11-11', sent: 12, delivered: 0, bounced: 1, failed: 4 })
   })
 
+  it('drops a row without a valid day', () => {
+    const parsed = parseDaily([
+      { date: '2024-01-01', sent: 100 },
+      { created_at_day: '2026-13-45T00:00:00Z', count_sent: 1 },
+      { created_at_day: '2026-11-10T00:00:00Z', count_sent: 2 }
+    ])
+    expect(parsed.map((point) => point.day)).toEqual(['2026-11-10'])
+  })
+
   it('finds the first day with the most failures', () => {
     expect(peakFailureDay(points)).toBe('2026-11-11')
     expect(peakFailureDay(parseDaily([{ created_at_day: '2026-11-10T00:00:00Z', count_sent: 4 }]))).toBeNull()

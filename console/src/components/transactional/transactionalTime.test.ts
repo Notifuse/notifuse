@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatLastSent, formatSendTime, formatSeriesDay, isToday } from './transactionalTime'
+import { formatFullDateTime, formatLastSent, formatSendTime, formatSeriesDay, isToday } from './transactionalTime'
 
 // 12 November 2026, 10:00 in Paris
 const now = new Date('2026-11-12T09:00:00Z')
@@ -10,7 +10,7 @@ const spaces = (text: string) => text.replace(/\s/g, ' ')
 describe('formatLastSent', () => {
   it('counts minutes, then hours, under a day', () => {
     expect(formatLastSent(ago(3), now, 'Europe/Paris', 'en', yesterday)).toBe('3 min. ago')
-    expect(formatLastSent(ago(0), now, 'Europe/Paris', 'en', yesterday)).toBe('this minute')
+    expect(formatLastSent(ago(0), now, 'Europe/Paris', 'en', yesterday)).toBe('now')
     expect(formatLastSent(ago(185), now, 'Europe/Paris', 'en', yesterday)).toBe('3 hr. ago')
   })
 
@@ -47,5 +47,16 @@ describe('isToday', () => {
 describe('formatSeriesDay', () => {
   it('reads a series key without shifting it', () => {
     expect(formatSeriesDay('2026-11-09', 'en')).toBe('Nov 9')
+  })
+})
+
+describe('formatFullDateTime', () => {
+  it('gives the full instant in the workspace timezone', () => {
+    expect(formatFullDateTime('2026-11-12T08:29:03Z', 'Europe/Paris', 'en-US')).toBe('Nov 12, 2026, 9:29:03 AM')
+  })
+
+  it('reads a missing or malformed date as a dash', () => {
+    expect(formatFullDateTime(undefined, 'Europe/Paris', 'en-US')).toBe('—')
+    expect(formatFullDateTime('soon', 'Europe/Paris', 'en-US')).toBe('—')
   })
 })

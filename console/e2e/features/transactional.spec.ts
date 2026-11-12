@@ -356,8 +356,9 @@ test.describe('Transactional Notifications Feature', () => {
       await drawer.getByLabel('Notification name').fill(testTransactionalData.name)
 
       // testTransactionalData.id contains dashes, which the API identifier rejects;
-      // the value the form derives from the name is what actually gets submitted.
-      const expectedId = 'e2e_test_transactional_notification'
+      // the value the form derives from the name is what actually gets submitted,
+      // cut to the identifier's 32 characters.
+      const expectedId = 'e2e_test_transactional_notificat'
       await expect(drawer.getByLabel('API Identifier')).toHaveValue(expectedId)
 
       await drawer.getByLabel('Description').fill(testTransactionalData.description!)

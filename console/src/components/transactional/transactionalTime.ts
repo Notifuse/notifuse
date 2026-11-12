@@ -35,9 +35,12 @@ export function formatShortDateTime(at: Date, timeZone: string, locale: string):
 }
 
 /** "12 Nov 2026, 18:12:05": the full instant, for a tooltip. */
-export function formatFullDateTime(iso: string, timeZone: string, locale: string): string {
+export function formatFullDateTime(iso: string | undefined, timeZone: string, locale: string): string {
+  const at = new Date(iso ?? '')
+  // A missing or malformed date reads as a dash rather than breaking the page.
+  if (Number.isNaN(at.getTime())) return '—'
   return new Intl.DateTimeFormat(locale, { timeZone: zone(timeZone), dateStyle: 'medium', timeStyle: 'medium' }).format(
-    new Date(iso)
+    at
   )
 }
 
@@ -70,6 +73,8 @@ export function formatLastSent(
   const at = new Date(iso)
   const minutes = Math.max(0, Math.floor((now.getTime() - at.getTime()) / 60_000))
   const relative = new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'short' })
+  // « now » under a minute, rather than « this minute ».
+  if (minutes === 0) return relative.format(0, 'second')
   if (minutes < 60) return relative.format(-minutes, 'minute')
   if (minutes < 24 * 60) return relative.format(-Math.floor(minutes / 60), 'hour')
   const dayBefore = new Date(now.getTime() - 86_400_000)
