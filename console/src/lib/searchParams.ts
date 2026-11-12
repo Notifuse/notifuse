@@ -4,6 +4,7 @@
  * each normalizer turns those back into the text of the URL, and drops what cannot be one.
  */
 
+import type { BlogPostStatus } from '../services/api/blog'
 import {
   isTemplateCategory,
   type TemplateCategory
@@ -44,5 +45,30 @@ export function parseTemplatesSearch(search: Record<string, unknown>): Templates
     ...(isTemplateCategory(category) ? { category } : {}),
     ...(q === undefined ? {} : { q }),
     ...(preview === undefined ? {} : { preview })
+  }
+}
+
+/** Search of `/blog`: status tab, category and title search. */
+export interface BlogSearch {
+  status?: BlogPostStatus
+  category_id?: string
+  q?: string
+}
+
+// Kept here rather than imported from the API module, which the router would then load early.
+const BLOG_POST_STATUSES: readonly BlogPostStatus[] = ['all', 'draft', 'published', 'scheduled']
+
+const isBlogPostStatus = (value: string | undefined): value is BlogPostStatus =>
+  value !== undefined && (BLOG_POST_STATUSES as readonly string[]).includes(value)
+
+export function parseBlogSearch(search: Record<string, unknown>): BlogSearch {
+  const status = searchString(search.status)
+  const categoryId = searchString(search.category_id)
+  const q = searchString(search.q)
+  return {
+    // An unknown status would reach the server, which answers 400.
+    ...(isBlogPostStatus(status) ? { status } : {}),
+    ...(categoryId === undefined ? {} : { category_id: categoryId }),
+    ...(q === undefined ? {} : { q })
   }
 }

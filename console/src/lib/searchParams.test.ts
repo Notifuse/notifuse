@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { searchString, parseSettingsSearch, parseTemplatesSearch } from './searchParams'
+import {
+  searchString,
+  parseSettingsSearch,
+  parseTemplatesSearch,
+  parseBlogSearch
+} from './searchParams'
 
 // The router's default search parser runs JSON.parse on each value: "?webhook=2024" arrives as the
 // number 2024 and "?webhook=true" as a boolean.
@@ -60,5 +65,28 @@ describe('parseTemplatesSearch', () => {
 
   it('leaves out empty values and other types', () => {
     expect(parseTemplatesSearch({ q: '', preview: { id: 1 } })).toEqual({})
+  })
+})
+
+describe('parseBlogSearch', () => {
+  it('keeps a known status, scheduled included', () => {
+    expect(parseBlogSearch({ status: 'scheduled' })).toEqual({ status: 'scheduled' })
+    expect(parseBlogSearch({ status: 'draft' })).toEqual({ status: 'draft' })
+  })
+
+  it('drops a status the server would refuse', () => {
+    expect(parseBlogSearch({ status: 'archived' })).toEqual({})
+    expect(parseBlogSearch({ status: 1 })).toEqual({})
+  })
+
+  it('keeps the category and the search as text', () => {
+    expect(parseBlogSearch({ category_id: 2024, q: ' launch ' })).toEqual({
+      category_id: '2024',
+      q: 'launch'
+    })
+  })
+
+  it('drops an empty category or search', () => {
+    expect(parseBlogSearch({ category_id: '', q: '  ' })).toEqual({})
   })
 })

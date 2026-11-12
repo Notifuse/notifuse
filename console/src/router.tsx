@@ -40,7 +40,11 @@ import { BlogPage } from "./pages/BlogPage";
 import SetupWizard from "./pages/SetupWizard";
 import { createRouter } from "@tanstack/react-router";
 import type { TrackingConsentFilter } from "./services/api/contacts";
-import { parseSettingsSearch, parseTemplatesSearch } from "./lib/searchParams";
+import {
+  parseBlogSearch,
+  parseSettingsSearch,
+  parseTemplatesSearch,
+} from "./lib/searchParams";
 import { DEFAULT_SETTINGS_SECTION } from "./components/settings/SettingsSidebar";
 
 export interface ContactsSearch {
@@ -103,11 +107,6 @@ export interface AcceptInvitationSearch {
   token?: string;
 }
 
-export interface BlogSearch {
-  status?: string;
-  category_id?: string;
-}
-
 export interface FileManagerSearch {
   path?: string;
 }
@@ -142,7 +141,7 @@ export function validateBroadcastsSearch(search: Record<string, unknown>): Broad
   };
 }
 
-export type { TemplatesSearch } from "./lib/searchParams";
+export type { BlogSearch, TemplatesSearch } from "./lib/searchParams";
 
 // Create the root route
 const rootRoute = createRootRoute({
@@ -463,10 +462,7 @@ const workspaceBlogRoute = createRoute({
   path: "/blog",
   component: BlogPage,
   staticData: { layout: "rail" },
-  validateSearch: (search: Record<string, unknown>): BlogSearch => ({
-    status: search.status as string | undefined,
-    category_id: search.category_id as string | undefined,
-  }),
+  validateSearch: parseBlogSearch,
 });
 
 // Create the router
