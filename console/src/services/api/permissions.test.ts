@@ -229,6 +229,9 @@ describe('templates read catalogue', () => {
     const endpoints = PERMISSION_DESCRIPTORS.templates.read.endpoints.map((e) => e.endpoint)
     expect(endpoints).toContain('/api/templates.usage')
   })
+})
+
+describe('blog read catalogue', () => {
   it('lists blogPosts.counts, which answers under Blog read', () => {
     const endpoints = PERMISSION_DESCRIPTORS.blog.read.endpoints.map((e) => e.endpoint)
     expect(endpoints).toContain('/api/blogPosts.counts')

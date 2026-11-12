@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { App, Button, Empty } from 'antd'
 import { useParams, useNavigate, useSearch } from '@tanstack/react-router'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { PostsTable } from '../components/blog/PostsTable'
@@ -45,7 +45,9 @@ export function BlogPage() {
   // B1, under the posts' key so every post change refreshes it.
   const countsQuery = useQuery({
     queryKey: ['blog-posts', workspaceId, 'counts', activeCategoryId],
-    queryFn: () => blogPostsApi.counts(workspaceId, activeCategoryId ?? undefined)
+    queryFn: () => blogPostsApi.counts(workspaceId, activeCategoryId ?? undefined),
+    // Keep the counts shown while another category's load: the rail's do not change with it.
+    placeholderData: keepPreviousData
   })
   const counts = countsQuery.data
 
@@ -76,31 +78,35 @@ export function BlogPage() {
   const renderMain = () => {
     if (categoriesQuery.isSuccess && categories.length === 0) {
       return (
-        <Empty description={t`No categories yet`} className="mt-24">
-          {canManageCategories ? (
-            <Button
-              type="primary"
-              icon={<Plus size={14} aria-hidden="true" />}
-              onClick={() => setCategoryDrawer({ category: null })}
-            >
-              {t`Create Your First Category`}
-            </Button>
-          ) : null}
-        </Empty>
+        <div className="mt-24">
+          <Empty description={t`No categories yet`}>
+            {canManageCategories ? (
+              <Button
+                type="primary"
+                icon={<Plus size={14} aria-hidden="true" />}
+                onClick={() => setCategoryDrawer({ category: null })}
+              >
+                {t`Create Your First Category`}
+              </Button>
+            ) : null}
+          </Empty>
+        </div>
       )
     }
     if (counts && counts.all_total === 0 && !activeCategoryId) {
       return (
-        <Empty description={t`Create your first blog post to get started`} className="mt-24">
-          <Button
-            type="primary"
-            icon={<Plus size={14} aria-hidden="true" />}
-            disabled={!canWritePosts}
-            onClick={() => setPostDrawerOpen(true)}
-          >
-            {t`Create Your First Post`}
-          </Button>
-        </Empty>
+        <div className="mt-24">
+          <Empty description={t`Create your first blog post to get started`}>
+            <Button
+              type="primary"
+              icon={<Plus size={14} aria-hidden="true" />}
+              disabled={!canWritePosts}
+              onClick={() => setPostDrawerOpen(true)}
+            >
+              {t`Create Your First Post`}
+            </Button>
+          </Empty>
+        </div>
       )
     }
     return (

@@ -769,12 +769,12 @@ export const mockBlogCategoriesResponse = {
 
 export const mockBlogPostsResponse = {
   posts: mockBlogPosts,
-  // The blog list endpoint names its count `total_count` (internal/http/blog_handler.go),
-  // and BlogPage reads that key to decide between the empty state and the posts table.
+  // The blog list endpoint names its count `total_count` (internal/http/blog_handler.go);
+  // the posts table reads it to show Load more.
   total_count: 4
 }
 
-// blogPosts.counts of the mocked posts: none scheduled, two published, two drafts.
+// blogPosts.counts of the mocked posts; BlogPage reads all_total to choose the empty state.
 export const mockBlogPostCounts = {
   all_total: 4,
   total: 4,

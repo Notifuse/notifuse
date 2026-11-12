@@ -111,8 +111,10 @@ export function PostsTable({
     initialPageParam: 1,
     getNextPageParam: (last, pages) => {
       const loaded = pages.reduce((sum, p) => sum + (p.posts?.length ?? 0), 0)
-      const more = last.has_next_page ?? loaded < last.total_count
-      return more && (last.posts?.length ?? 0) > 0 ? pages.length + 1 : undefined
+      // The server sends no next-page flag: more remain while fewer than its total are loaded.
+      return loaded < last.total_count && (last.posts?.length ?? 0) > 0
+        ? pages.length + 1
+        : undefined
     }
   })
 
@@ -277,7 +279,9 @@ export function PostsTable({
               <span className="truncate font-medium text-ink">{post.settings.title}</span>
             </Tooltip>
             {minutes > 0 ? (
-              <span className="text-xs text-ink-3">{t`${minutes} min read`}</span>
+              <span className="text-xs text-ink-3">
+                {plural(minutes, { one: '# min read', other: '# min read' })}
+              </span>
             ) : null}
           </div>
         )
@@ -429,7 +433,11 @@ export function PostsTable({
       )
     }
     if (posts.length === 0) {
-      return <Empty className="py-10" description={emptyDescription()} />
+      return (
+        <div className="py-10">
+          <Empty description={emptyDescription()} />
+        </div>
+      )
     }
     return (
       <Table<BlogPost>

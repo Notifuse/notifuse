@@ -78,10 +78,10 @@ const post = (n: number, overrides: Partial<BlogPost> = {}, settings: object = {
     ...overrides
   }) as unknown as BlogPost
 
-const page = (from: number, count: number, total: number, more = false): BlogPostListResponse => ({
+// As the server answers: the posts of the page and the total, no next-page flag.
+const page = (from: number, count: number, total: number): BlogPostListResponse => ({
   posts: Array.from({ length: count }, (_, i) => post(from + i)),
-  total_count: total,
-  has_next_page: more
+  total_count: total
 })
 
 const counts: BlogPostCounts = {
@@ -162,8 +162,8 @@ describe('PostsTable', () => {
 
   it('appends the next page on Load more, and counts what is shown', async () => {
     vi.mocked(blogPostsApi.list)
-      .mockResolvedValueOnce(page(1, 50, 60, true))
-      .mockResolvedValueOnce(page(51, 10, 60, false))
+      .mockResolvedValueOnce(page(1, 50, 60))
+      .mockResolvedValueOnce(page(51, 10, 60))
     renderTable()
     await screen.findByText('Post 1')
     expect(screen.getByText('50 of 60 posts')).toBeInTheDocument()
@@ -313,6 +313,8 @@ describe('PostsTable', () => {
     renderTable()
     fireEvent.click(await screen.findByText('Post 2'))
     expect(screen.getByTestId('post-drawer')).toHaveAttribute('data-post', 'post-2')
+    fireEvent.click(screen.getByRole('button', { name: /New post/ }))
+    expect(screen.getByTestId('post-drawer')).toHaveAttribute('data-post', 'new')
   })
 
   it('offers Open on web for a live post only, and Unpublish for a scheduled one', async () => {
@@ -335,6 +337,33 @@ describe('PostsTable', () => {
     const draft = await openMenu('Post 3')
     fireEvent.click(within(draft).getByRole('menuitem', { name: 'Publish' }))
     expect(screen.getByTestId('publish-post')).toHaveAttribute('data-post', 'post-3')
+  })
+
+  it('asks before unpublishing, and says a scheduled post will not go out on its date', async () => {
+    const soon = new Date(Date.now() + 3 * DAY).toISOString()
+    const past = new Date(Date.now() - 2 * DAY).toISOString()
+    vi.mocked(blogPostsApi.list).mockResolvedValue({
+      posts: [post(1, { published_at: soon }), post(2, { published_at: past })],
+      total_count: 2
+    })
+    vi.mocked(blogPostsApi.unpublish).mockResolvedValue({} as never)
+    renderTable()
+    await screen.findByText('Post 1')
+
+    fireEvent.click(within(await openMenu('Post 1')).getByRole('menuitem', { name: 'Unpublish' }))
+    expect(
+      await screen.findByText('The post goes back to drafts and will not be published on its date.')
+    ).toBeInTheDocument()
+    expect(blogPostsApi.unpublish).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Unpublish' }))
+    await waitFor(() =>
+      expect(blogPostsApi.unpublish).toHaveBeenCalledWith('ws1', { id: 'post-1' })
+    )
+
+    fireEvent.click(within(await openMenu('Post 2')).getByRole('menuitem', { name: 'Unpublish' }))
+    expect(
+      await screen.findByText('Are you sure you want to unpublish this post?')
+    ).toBeInTheDocument()
   })
 
   it('deletes from the row menu without opening the post', async () => {
@@ -361,7 +390,7 @@ describe('PostsTable', () => {
     expect(analyticsService.query).not.toHaveBeenCalled()
   })
 
-  it('counts the 30-day views of the live posts of each page', async () => {
+  it('counts the 30-day views of the live posts loaded', async () => {
     const past = new Date(Date.now() - 2 * DAY).toISOString()
     const soon = new Date(Date.now() + 2 * DAY).toISOString()
     vi.mocked(blogPostsApi.list).mockResolvedValue({
@@ -435,7 +464,7 @@ describe('PostsTable', () => {
 
   it('keeps the loaded posts and says so when the next page fails', async () => {
     vi.mocked(blogPostsApi.list)
-      .mockResolvedValueOnce(page(1, 50, 60, true))
+      .mockResolvedValueOnce(page(1, 50, 60))
       .mockRejectedValueOnce(new Error('timeout'))
     renderTable()
     await screen.findByText('Post 1')

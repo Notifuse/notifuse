@@ -456,7 +456,7 @@ msgstr "{days, plural, one {+{0} em # d} other {+{1} em # d}}"
 msgid "{days, plural, one {expires in # day} other {expires in # days}}"
 msgstr "{days, plural, one {expira em # dia} other {expira em # dias}}"
 
-#: src/components/blog/PostsTable.tsx:246
+#: src/components/blog/PostsTable.tsx:248
 msgid "{days, plural, one {Scheduled in # day} other {Scheduled in # days}}"
 msgstr "{days, plural, one {Agendado para daqui a # dia} other {Agendado para daqui a # dias}}"
 
@@ -584,13 +584,17 @@ msgstr "{maxScroll}% rolado"
 msgid "{median} median time on site"
 msgstr "{median} de tempo mediano no site"
 
+#: src/components/blog/PostsTable.tsx:283
+msgid "{minutes, plural, one {# min read} other {# min read}}"
+msgstr "{minutes, plural, one {# min de leitura} other {# min de leitura}}"
+
 #: src/components/contacts/visits/duration.ts:14
 msgid "{minutes} min {seconds} s"
 msgstr "{minutes} min {seconds} s"
 
 #: src/components/blog/PostsTable.tsx:280
-msgid "{minutes} min read"
-msgstr "{minutes} min de leitura"
+#~ msgid "{minutes} min read"
+#~ msgstr "{minutes} min de leitura"
 
 #: src/components/timeline/ContactTimeline.tsx:296
 msgid "{minutes}m"
@@ -705,7 +709,7 @@ msgstr "Livres: {textFree}, {numberFree}, {dateFree}, {jsonFree}"
 msgid "{time} local time"
 msgstr "{time} horário local"
 
-#: src/components/blog/PostsTable.tsx:453
+#: src/components/blog/PostsTable.tsx:461
 msgid "{total, plural, one {{shown} of # post} other {{shown} of # posts}}"
 msgstr "{total, plural, one {{shown} de # post} other {{shown} de # posts}}"
 
@@ -1570,7 +1574,7 @@ msgstr "Alinhar acima"
 msgid "Alignment"
 msgstr "Alinhamento"
 
-#: src/components/blog/PostsTable.tsx:398
+#: src/components/blog/PostsTable.tsx:402
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:104
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
 #: src/components/contacts/visits/ContactWebVisits.tsx:330
@@ -1633,7 +1637,7 @@ msgid "All marketing emails (broadcasts, campaigns) will be sent through this pr
 msgstr "Todos os emails de marketing (broadcasts, campanhas) serão enviados através deste provedor a partir de agora."
 
 #: src/components/blog/BlogSidebar.tsx:48
-#: src/components/blog/PostsTable.tsx:470
+#: src/components/blog/PostsTable.tsx:478
 msgid "All posts"
 msgstr "Todos os posts"
 
@@ -2071,7 +2075,7 @@ msgstr "Tem certeza que deseja remover este campo?"
 msgid "Are you sure you want to select \"{templateName}\" as the winner? The broadcast will be sent to the remaining recipients."
 msgstr "Tem certeza de que deseja selecionar \"{templateName}\" como vencedor? O broadcast será enviado aos destinatários restantes."
 
-#: src/components/blog/PostsTable.tsx:203
+#: src/components/blog/PostsTable.tsx:205
 msgid "Are you sure you want to unpublish this post?"
 msgstr "Tem certeza que deseja despublicar esta postagem?"
 
@@ -2219,7 +2223,7 @@ msgstr "Email de autenticacao enviado via Supabase"
 msgid "Authentication Type"
 msgstr "Tipo de Autenticacao"
 
-#: src/components/blog/PostsTable.tsx:321
+#: src/components/blog/PostsTable.tsx:325
 msgid "Author"
 msgstr "Autor"
 
@@ -2621,7 +2625,7 @@ msgstr "Blocos"
 #: src/components/settings/SettingsSidebar.tsx:67
 #: src/components/templates/templateCategories.ts:28
 #: src/layouts/app-shell/menuItems.ts:178
-#: src/pages/BlogPage.tsx:119
+#: src/pages/BlogPage.tsx:125
 #: src/services/api/errors.ts:89
 msgid "Blog"
 msgstr "Blog"
@@ -2638,7 +2642,7 @@ msgstr "URL do endpoint personalizado do blog nao esta configurada"
 msgid "Blog enabled but theme creation failed. Please create a theme manually."
 msgstr "Blog ativado mas a criacao do tema falhou. Por favor, crie um tema manualmente."
 
-#: src/components/blog/PostsTable.tsx:474
+#: src/components/blog/PostsTable.tsx:482
 msgid "Blog published on"
 msgstr "Blog publicado em"
 
@@ -3094,7 +3098,7 @@ msgstr "Campanhas"
 #: src/components/automations/UpsertAutomationDrawer.tsx:169
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:115
 #: src/components/blog/PostDrawer.tsx:682
-#: src/components/blog/PostsTable.tsx:205
+#: src/components/blog/PostsTable.tsx:207
 #: src/components/blog/PublishModal.tsx:205
 #: src/components/blog/RecentThemesTable.tsx:102
 #: src/components/blog/ThemeEditorDrawer.tsx:280
@@ -3255,7 +3259,7 @@ msgid "Categories"
 msgstr "Categorias"
 
 #: src/components/blog/PostDrawer.tsx:870
-#: src/components/blog/PostsTable.tsx:290
+#: src/components/blog/PostsTable.tsx:294
 #: src/components/blog/ThemeEditorDrawer.tsx:428
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:75
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:105
@@ -3268,7 +3272,7 @@ msgstr "Categoria"
 msgid "Category created successfully"
 msgstr "Categoria criada com sucesso"
 
-#: src/pages/BlogPage.tsx:55
+#: src/pages/BlogPage.tsx:57
 msgid "Category deleted successfully"
 msgstr "Categoria excluida com sucesso"
 
@@ -4336,13 +4340,13 @@ msgstr ""
 msgid "Couldn't check where this template is used"
 msgstr "Não foi possível verificar onde este modelo é usado"
 
-#: src/components/blog/PostsTable.tsx:362
+#: src/components/blog/PostsTable.tsx:366
 #: src/components/broadcasts/CouldntLoad.tsx:8
 #: src/pages/TemplatesPage.tsx:334
 msgid "Couldn't load"
 msgstr "Não foi possível carregar"
 
-#: src/components/blog/PostsTable.tsx:175
+#: src/components/blog/PostsTable.tsx:177
 msgid "Couldn't load more posts"
 msgstr "Não foi possível carregar mais posts"
 
@@ -4354,7 +4358,7 @@ msgstr "Não foi possível carregar os broadcasts"
 msgid "Couldn't load the members"
 msgstr "Não foi possível carregar os membros"
 
-#: src/components/blog/PostsTable.tsx:425
+#: src/components/blog/PostsTable.tsx:429
 msgid "Couldn't load the posts"
 msgstr "Não foi possível carregar os posts"
 
@@ -4653,7 +4657,7 @@ msgstr "Criar Workspace"
 msgid "Create your first automation"
 msgstr "Crie sua primeira automação"
 
-#: src/pages/BlogPage.tsx:94
+#: src/pages/BlogPage.tsx:99
 msgid "Create your first blog post to get started"
 msgstr "Crie sua primeira postagem de blog para começar"
 
@@ -4661,7 +4665,7 @@ msgstr "Crie sua primeira postagem de blog para começar"
 #~ msgid "Create your first broadcast to get started"
 #~ msgstr "Crie seu primeiro broadcast para começar"
 
-#: src/pages/BlogPage.tsx:86
+#: src/pages/BlogPage.tsx:89
 msgid "Create Your First Category"
 msgstr "Crie Sua Primeira Categoria"
 
@@ -4677,7 +4681,7 @@ msgstr "Crie sua primeira lista"
 msgid "Create your first notification to get started"
 msgstr "Crie sua primeira notificação para começar"
 
-#: src/pages/BlogPage.tsx:101
+#: src/pages/BlogPage.tsx:106
 msgid "Create Your First Post"
 msgstr "Crie Sua Primeira Postagem"
 
@@ -5170,7 +5174,7 @@ msgstr "Atraso"
 #: src/components/blog/BlogSidebar.tsx:89
 #: src/components/blog/DeleteCategoryModal.tsx:29
 #: src/components/blog/DeletePostModal.tsx:29
-#: src/components/blog/PostsTable.tsx:226
+#: src/components/blog/PostsTable.tsx:228
 #: src/components/broadcasts/BroadcastsTable.tsx:191
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:58
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:281
@@ -5823,8 +5827,7 @@ msgid "Downloaded {0} file(s)"
 msgstr "{0} arquivo(s) baixado(s)"
 
 #: src/components/automations/AutomationCard.tsx:63
-#: src/components/blog/PostsTable.tsx:313
-#: src/components/blog/PostStatusTag.tsx:33
+#: src/components/blog/PostsTable.tsx:317
 #: src/components/broadcasts/BroadcastStatusPill.tsx:23
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:198
 #: src/components/templates/templateUsage.ts:81
@@ -5835,7 +5838,7 @@ msgstr "Rascunho"
 msgid "Draft restored from local storage"
 msgstr "Rascunho restaurado do armazenamento local"
 
-#: src/components/blog/PostsTable.tsx:401
+#: src/components/blog/PostsTable.tsx:405
 #: src/pages/BroadcastsPage.tsx:182
 msgid "Drafts"
 msgstr "Rascunhos"
@@ -5993,7 +5996,7 @@ msgstr "Cada variação mantém o remetente do seu template, a menos que você e
 #: src/components/automations/config/ConditionsField.tsx:108
 #: src/components/automations/UpsertAutomationDrawer.tsx:291
 #: src/components/blog/BlogSidebar.tsx:86
-#: src/components/blog/PostsTable.tsx:212
+#: src/components/blog/PostsTable.tsx:214
 #: src/components/broadcasts/BroadcastsTable.tsx:184
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:309
 #: src/components/contacts/ContactsTable.tsx:329
@@ -6205,7 +6208,7 @@ msgid "Editable markup"
 msgstr "Markup editável"
 
 #. placeholder {0}: relative(post.updated_at)
-#: src/components/blog/PostsTable.tsx:239
+#: src/components/blog/PostsTable.tsx:241
 msgid "Edited {0}"
 msgstr "Editado {0}"
 
@@ -7244,7 +7247,7 @@ msgstr "Falha ao excluir automação"
 msgid "Failed to delete broadcast"
 msgstr "Falha ao excluir broadcast"
 
-#: src/pages/BlogPage.tsx:64
+#: src/pages/BlogPage.tsx:66
 msgid "Failed to delete category"
 msgstr "Falha ao excluir categoria"
 
@@ -7277,7 +7280,7 @@ msgstr "Falha ao excluir lista"
 msgid "Failed to delete notification"
 msgstr "Falha ao excluir notificação"
 
-#: src/components/blog/PostsTable.tsx:160
+#: src/components/blog/PostsTable.tsx:162
 msgid "Failed to delete post"
 msgstr "Falha ao excluir post"
 
@@ -7582,7 +7585,7 @@ msgstr "Falha ao testar conexão SMTP"
 msgid "Failed to toggle webhook subscription"
 msgstr "Falha ao alternar assinatura de webhook"
 
-#: src/components/blog/PostsTable.tsx:169
+#: src/components/blog/PostsTable.tsx:171
 msgid "Failed to unpublish post"
 msgstr "Falha ao despublicar post"
 
@@ -9819,7 +9822,7 @@ msgstr "Carregar mais {CONTACTS_PAGE_SIZE}"
 msgid "Load {PAGE_SIZE} more"
 msgstr "Carregar mais {PAGE_SIZE}"
 
-#: src/components/blog/PostsTable.tsx:461
+#: src/components/blog/PostsTable.tsx:469
 #: src/components/contacts/visits/ContactWebVisits.tsx:360
 msgid "Load more"
 msgstr "Carregar mais"
@@ -10404,7 +10407,7 @@ msgstr "Mensal"
 #~ msgid "Monthly partitions older than this are dropped. 0 keeps data forever."
 #~ msgstr ""
 
-#: src/components/blog/PostsTable.tsx:386
+#: src/components/blog/PostsTable.tsx:390
 #: src/components/broadcasts/BroadcastsTable.tsx:393
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:345
 #: src/components/contacts/ContactsViewHeader.tsx:109
@@ -10599,7 +10602,7 @@ msgstr "Novo código mágico enviado para seu email"
 msgid "New message (email...)"
 msgstr "Nova mensagem (email...)"
 
-#: src/components/blog/PostsTable.tsx:506
+#: src/components/blog/PostsTable.tsx:514
 msgid "New post"
 msgstr "Novo post"
 
@@ -10771,7 +10774,7 @@ msgid "No campaign data"
 msgstr "Nenhum dado de campanha"
 
 #: src/components/blog/BlogSidebar.tsx:62
-#: src/pages/BlogPage.tsx:79
+#: src/pages/BlogPage.tsx:82
 msgid "No categories yet"
 msgstr "Nenhuma categoria ainda"
 
@@ -10881,7 +10884,7 @@ msgstr "Nenhum dado de dispositivo"
 msgid "No dimensions found"
 msgstr "Nenhuma dimensão encontrada"
 
-#: src/components/blog/PostsTable.tsx:406
+#: src/components/blog/PostsTable.tsx:410
 msgid "No draft posts"
 msgstr "Nenhum rascunho"
 
@@ -11038,15 +11041,15 @@ msgstr "Nenhuma operação definida"
 msgid "No pages"
 msgstr "Nenhuma página"
 
-#: src/components/blog/PostsTable.tsx:409
+#: src/components/blog/PostsTable.tsx:413
 msgid "No posts in this category"
 msgstr "Nenhum post nesta categoria"
 
-#: src/components/blog/PostsTable.tsx:405
+#: src/components/blog/PostsTable.tsx:409
 msgid "No posts match your search"
 msgstr "Nenhum post corresponde à sua busca"
 
-#: src/components/blog/PostsTable.tsx:410
+#: src/components/blog/PostsTable.tsx:414
 msgid "No posts yet"
 msgstr "Nenhum post ainda"
 
@@ -11066,7 +11069,7 @@ msgstr "Sem propriedades"
 msgid "No provider configured for testing"
 msgstr "Nenhum provedor configurado para teste"
 
-#: src/components/blog/PostsTable.tsx:407
+#: src/components/blog/PostsTable.tsx:411
 msgid "No published posts"
 msgstr "Nenhum post publicado"
 
@@ -11108,7 +11111,7 @@ msgstr "Nenhum bloco salvo corresponde."
 msgid "No saved blocks yet"
 msgstr "Nenhum bloco salvo ainda"
 
-#: src/components/blog/PostsTable.tsx:408
+#: src/components/blog/PostsTable.tsx:412
 msgid "No scheduled posts"
 msgstr "Nenhum post agendado"
 
@@ -11682,7 +11685,7 @@ msgstr "Abrir na análise web"
 msgid "Open its page"
 msgstr "Abrir a página"
 
-#: src/components/blog/PostsTable.tsx:217
+#: src/components/blog/PostsTable.tsx:219
 msgid "Open on web"
 msgstr "Abrir na web"
 
@@ -11961,7 +11964,7 @@ msgstr "Página"
 msgid "Page view"
 msgstr "Visualização de página"
 
-#: src/components/blog/PostsTable.tsx:350
+#: src/components/blog/PostsTable.tsx:354
 msgid "Page views of this post's path over the last 30 days, counted by web analytics"
 msgstr "Visualizações do caminho deste post nos últimos 30 dias, contadas pela análise web"
 
@@ -12539,7 +12542,7 @@ msgstr "Porta para o servidor de relay SMTP (padrão: 587)"
 msgid "Port must be 1-65535"
 msgstr "A porta deve estar entre 1 e 65535"
 
-#: src/components/blog/PostsTable.tsx:257
+#: src/components/blog/PostsTable.tsx:259
 #: src/components/blog/ThemeEditorDrawer.tsx:437
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:88
 msgid "Post"
@@ -12549,7 +12552,7 @@ msgstr "Post"
 msgid "Post created successfully"
 msgstr "Post criado com sucesso"
 
-#: src/components/blog/PostsTable.tsx:156
+#: src/components/blog/PostsTable.tsx:158
 msgid "Post deleted successfully"
 msgstr "Post excluído com sucesso"
 
@@ -12561,7 +12564,7 @@ msgstr "Post publicado com sucesso"
 msgid "Post title"
 msgstr "Título do post"
 
-#: src/components/blog/PostsTable.tsx:166
+#: src/components/blog/PostsTable.tsx:168
 msgid "Post unpublished successfully"
 msgstr "Post despublicado com sucesso"
 
@@ -12877,7 +12880,7 @@ msgstr "URL publica onde esta instancia do Notifuse pode ser acessada"
 msgid "Publication"
 msgstr "Publicacao"
 
-#: src/components/blog/PostsTable.tsx:223
+#: src/components/blog/PostsTable.tsx:225
 #: src/components/blog/PublishModal.tsx:207
 #: src/components/blog/RecentThemesTable.tsx:100
 #: src/components/blog/RecentThemesTable.tsx:144
@@ -12905,15 +12908,14 @@ msgstr "Publicar tema"
 msgid "Publish this theme"
 msgstr "Publicar este tema"
 
-#: src/components/blog/PostsTable.tsx:309
-#: src/components/blog/PostsTable.tsx:341
-#: src/components/blog/PostsTable.tsx:399
-#: src/components/blog/PostStatusTag.tsx:27
+#: src/components/blog/PostsTable.tsx:313
+#: src/components/blog/PostsTable.tsx:345
+#: src/components/blog/PostsTable.tsx:403
 msgid "Published"
 msgstr "Publicado"
 
 #. placeholder {0}: fullDate(post.published_at as string)
-#: src/components/blog/PostsTable.tsx:236
+#: src/components/blog/PostsTable.tsx:238
 msgid "Published {0} · Updated {updatedAt} in {timezone}"
 msgstr "Publicado {0} · Atualizado {updatedAt} ({timezone})"
 
@@ -13801,7 +13803,7 @@ msgstr "Retenção"
 
 #: src/components/analytics/BlockError.tsx:22
 #: src/components/analytics/DashboardKpis.tsx:183
-#: src/components/blog/PostsTable.tsx:427
+#: src/components/blog/PostsTable.tsx:431
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:92
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:547
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:169
@@ -14170,9 +14172,8 @@ msgstr "Agendar ou enviar imediatamente um broadcast para todo o seu público"
 msgid "Schedule timezone"
 msgstr "Fuso horário do agendamento"
 
-#: src/components/blog/PostsTable.tsx:311
-#: src/components/blog/PostsTable.tsx:400
-#: src/components/blog/PostStatusTag.tsx:20
+#: src/components/blog/PostsTable.tsx:315
+#: src/components/blog/PostsTable.tsx:404
 #: src/components/broadcasts/BroadcastStatusPill.tsx:27
 #: src/components/broadcasts/compose/SendingCard.tsx:36
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:201
@@ -14200,7 +14201,7 @@ msgstr "Agendado para {date} às {time} {zone}"
 msgid "Scheduled sends and statistics use it"
 msgstr "Usado pelos envios agendados e pelas estatísticas"
 
-#: src/components/blog/PostsTable.tsx:245
+#: src/components/blog/PostsTable.tsx:247
 msgid "Scheduled today"
 msgstr "Agendado para hoje"
 
@@ -15735,7 +15736,7 @@ msgstr "Estado"
 msgid "Stats appear once the broadcast starts sending"
 msgstr "As estatísticas aparecem quando o broadcast começa a ser enviado"
 
-#: src/components/blog/PostsTable.tsx:302
+#: src/components/blog/PostsTable.tsx:306
 #: src/components/blog/RecentThemesTable.tsx:122
 #: src/components/broadcasts/BroadcastsTable.tsx:209
 #: src/components/broadcasts/detail/BroadcastAside.tsx:241
@@ -16681,7 +16682,7 @@ msgstr "o feed de dados por destinatário não tem URL"
 msgid "the per-recipient data feed URL must start with https:// or http://, without query or fragment"
 msgstr "a URL do feed de dados por destinatário deve começar com https:// ou http://, sem query nem fragmento"
 
-#: src/components/blog/PostsTable.tsx:202
+#: src/components/blog/PostsTable.tsx:204
 msgid "The post goes back to drafts and will not be published on its date."
 msgstr "O post volta para rascunhos e não será publicado na data."
 
@@ -16815,7 +16816,7 @@ msgstr "As configurações do workspace foram atualizadas!"
 msgid "The workspace's audit log: who changed what, from where, and whether it was allowed. Owners always read it; a member or an API key reads it only with this grant."
 msgstr "O log de auditoria do workspace: quem alterou o quê, de onde, e se foi permitido. Proprietários sempre o leem; um membro ou uma chave de API só o lê com esta permissão."
 
-#: src/components/blog/PostsTable.tsx:498
+#: src/components/blog/PostsTable.tsx:506
 msgid "Theme"
 msgstr "Tema"
 
@@ -17338,7 +17339,7 @@ msgid "Tips for fixing these errors:"
 msgstr "Dicas para corrigir esses erros:"
 
 #: src/components/blog/PostDrawer.tsx:801
-#: src/components/blog/PostsTable.tsx:519
+#: src/components/blog/PostsTable.tsx:527
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:408
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:34
 #: src/components/settings/BlogSettings.tsx:244
@@ -17739,7 +17740,7 @@ msgstr "Digite {selectedCount} para confirmar:"
 msgid "Type:"
 msgstr "Tipo:"
 
-#: src/components/blog/PostsTable.tsx:295
+#: src/components/blog/PostsTable.tsx:299
 msgid "Uncategorized"
 msgstr "Sem Categoria"
 
@@ -17793,7 +17794,7 @@ msgstr "Cliques únicos ÷ destinatários desta variação cujos cliques foram r
 msgid "Unique clicks counts each recipient once per link — someone who clicks several links appears in every row, so these won't add up to this variation's total number of clickers."
 msgstr "Cliques únicos conta cada destinatário uma vez por link — quem clica em vários links aparece em todas as linhas, então estes valores não somam o número total de pessoas que clicaram nesta variação."
 
-#: src/components/blog/PostsTable.tsx:296
+#: src/components/blog/PostsTable.tsx:300
 #: src/components/contacts/ContactUpsertDrawer.tsx:433
 #: src/components/contacts/TrackingConsent.tsx:13
 #: src/components/contacts/TrackingConsent.tsx:49
@@ -17852,12 +17853,12 @@ msgstr "Segmento desconhecido ({id})"
 msgid "Unlimited"
 msgstr ""
 
-#: src/components/blog/PostsTable.tsx:204
-#: src/components/blog/PostsTable.tsx:224
+#: src/components/blog/PostsTable.tsx:206
+#: src/components/blog/PostsTable.tsx:226
 msgid "Unpublish"
 msgstr "Despublicar"
 
-#: src/components/blog/PostsTable.tsx:199
+#: src/components/blog/PostsTable.tsx:201
 msgid "Unpublish post"
 msgstr "Despublicar post"
 
@@ -17982,7 +17983,7 @@ msgstr "Atualizado"
 msgid "Updated {updatedAgo}"
 msgstr "Atualizado {updatedAgo}"
 
-#: src/components/blog/PostsTable.tsx:235
+#: src/components/blog/PostsTable.tsx:237
 msgid "Updated {updatedAt} in {timezone}"
 msgstr "Atualizado {updatedAt} ({timezone})"
 
@@ -18437,7 +18438,7 @@ msgstr "Ver site"
 #~ msgid "Views"
 #~ msgstr ""
 
-#: src/components/blog/PostsTable.tsx:352
+#: src/components/blog/PostsTable.tsx:356
 msgid "Views 30d"
 msgstr "Visualizações 30 d"
 

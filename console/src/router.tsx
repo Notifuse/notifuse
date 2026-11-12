@@ -106,7 +106,6 @@ export interface AcceptInvitationSearch {
   token?: string;
 }
 
-
 export interface FileManagerSearch {
   path?: string;
 }

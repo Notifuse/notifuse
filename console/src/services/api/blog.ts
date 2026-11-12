@@ -154,9 +154,6 @@ export interface BlogPostListResponse {
   // null when no post matches: the server encodes an empty page as null
   posts: BlogPost[] | null
   total_count: number
-  current_page?: number
-  total_pages?: number
-  has_next_page?: boolean
 }
 
 /**

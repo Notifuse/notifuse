@@ -64,18 +64,19 @@ const counts = (overrides: Partial<BlogPostCounts> = {}): BlogPostCounts => ({
   ...overrides
 })
 
-const renderPage = () =>
-  render(
+const renderPage = () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const tree = () => (
     <I18nProvider i18n={i18n}>
       <App>
-        <QueryClientProvider
-          client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-        >
+        <QueryClientProvider client={client}>
           <BlogPage />
         </QueryClientProvider>
       </App>
     </I18nProvider>
   )
+  return { ...render(tree()), tree }
+}
 
 describe('BlogPage', () => {
   beforeEach(() => {
@@ -148,10 +149,31 @@ describe('BlogPage', () => {
     expect(screen.queryByTestId('posts-table')).not.toBeInTheDocument()
   })
 
-  it('keeps the table while the counts load or fail', async () => {
+  it('keeps the table while the counts load', async () => {
+    vi.mocked(blogPostsApi.counts).mockReturnValue(new Promise(() => {}))
+    renderPage()
+    expect(await screen.findByTestId('posts-table')).toHaveAttribute('data-total', '')
+  })
+
+  it('keeps the table when the counts fail', async () => {
     vi.mocked(blogPostsApi.counts).mockRejectedValue(new Error('boom'))
     renderPage()
     expect(await screen.findByTestId('posts-table')).toHaveAttribute('data-total', '')
+    await waitFor(() => expect(blogPostsApi.counts).toHaveBeenCalled())
+  })
+
+  it('keeps the counts shown while another category loads', async () => {
+    vi.mocked(blogPostsApi.counts).mockImplementation((_ws, categoryId) =>
+      categoryId ? new Promise(() => {}) : Promise.resolve(counts())
+    )
+    const view = renderPage()
+    await waitFor(() =>
+      expect(screen.getByTestId('posts-table')).toHaveAttribute('data-total', '9')
+    )
+    state.search = { category_id: 'c1' }
+    view.rerender(view.tree())
+    await waitFor(() => expect(blogPostsApi.counts).toHaveBeenCalledWith('ws1', 'c1'))
+    expect(screen.getByTestId('posts-table')).toHaveAttribute('data-total', '9')
   })
 
   it.each([
