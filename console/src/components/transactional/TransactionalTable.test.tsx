@@ -175,6 +175,13 @@ describe('TransactionalTable', () => {
     expect(within(entry(menu, 'Preview template')).getByText("Couldn't load the template")).toBeInTheDocument()
   })
 
+  it('says why the template preview is disabled for a notification without template', async () => {
+    renderTable([notification('bare', { channels: {} })])
+    const menu = await openMenu('Name bare')
+    expect(entry(menu, 'Preview template')).toHaveAttribute('aria-disabled', 'true')
+    expect(within(entry(menu, 'Preview template')).getByText('This notification has no email template')).toBeInTheDocument()
+  })
+
   it('says how far back « Last sent » looked when a notification has no send', async () => {
     renderTable([notification('welcome')])
     const row = screen.getByText('Name welcome').closest('tr') as HTMLElement

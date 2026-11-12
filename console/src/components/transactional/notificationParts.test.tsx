@@ -12,8 +12,9 @@ describe('MenuEntryLabel', () => {
 
   it('shows the label alone without a reason, or with an empty one', () => {
     const { container, rerender } = render(<MenuEntryLabel label="Delete" />)
-    expect(container.textContent).toBe('Delete')
+    expect(container.innerHTML).toBe('Delete')
     rerender(<MenuEntryLabel label="Delete" reason="" />)
-    expect(container.textContent).toBe('Delete')
+    // No second, blank line.
+    expect(container.innerHTML).toBe('Delete')
   })
 })

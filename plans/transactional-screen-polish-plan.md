@@ -170,7 +170,13 @@ disabled actions say why in the menu, and the sends per day can be read as a tab
 - The « empty list after a delete » page test now starts from a listed notification.
 - `MenuEntryLabel` has its own test (`notificationParts.test.tsx`); `focusManager` is reset after each test.
 - « Preview template » disabled because the template failed to load now says so
-  (« Couldn't load the template »), so every disabled menu entry gives its reason.
+  (« Couldn't load the template »), and so does a notification without template (« This notification
+  has no email template »): a disabled menu entry gives its reason in every state but the second or so
+  its template loads.
+
+## Delta review (Opus, high) of 14b910a — folded in
+- `MenuEntryLabel`'s empty-reason test compares the markup, so a blank second line would fail it.
+- The no-template reason above, and the wording of the line before it.
 
 Known, not treated: antd skips disabled menu items in arrow navigation, so a screen reader reads their
 reason in browse mode only; the default-sender reason, the deleted template pill and the Send test / Edit

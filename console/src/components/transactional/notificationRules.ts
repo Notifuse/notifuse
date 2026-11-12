@@ -58,13 +58,15 @@ export function useActionRules() {
           : writeMissing,
       preview: !permissions?.templates?.read
         ? t`You need access to templates`
-        : template?.status === 'notFound'
-          ? t`Template not found`
-          : template?.status === 'error'
-            ? t`Couldn't load the template`
-            : template?.status !== 'ok'
-              ? ''
-              : undefined,
+        : !templateIdOf(notification)
+          ? t`This notification has no email template`
+          : template?.status === 'notFound'
+            ? t`Template not found`
+            : template?.status === 'error'
+              ? t`Couldn't load the template`
+              : template?.status !== 'ok'
+                ? ''
+                : undefined,
       logs: permissions?.message_history?.read ? undefined : t`You need access to message history`,
       remove: !write
         ? writeMissing
