@@ -1087,6 +1087,28 @@ func TestBlogPost_IsDraft(t *testing.T) {
 	})
 }
 
+func TestBlogPost_IsLive(t *testing.T) {
+	now := time.Date(2026, 11, 12, 10, 0, 0, 0, time.UTC)
+	past := now.Add(-time.Hour)
+	future := now.Add(time.Hour)
+
+	t.Run("a draft is not live", func(t *testing.T) {
+		assert.False(t, (&BlogPost{}).IsLive(now))
+	})
+	t.Run("a post published in the past is live", func(t *testing.T) {
+		assert.True(t, (&BlogPost{PublishedAt: &past}).IsLive(now))
+	})
+	t.Run("a post published exactly now is live", func(t *testing.T) {
+		at := now
+		assert.True(t, (&BlogPost{PublishedAt: &at}).IsLive(now))
+	})
+	t.Run("a scheduled post is not live before its date", func(t *testing.T) {
+		post := &BlogPost{PublishedAt: &future}
+		assert.False(t, post.IsLive(now))
+		assert.True(t, post.IsPublished(), "it still counts as published for the console")
+	})
+}
+
 func TestBlogPost_IsPublished(t *testing.T) {
 	t.Run("returns true when PublishedAt is not nil", func(t *testing.T) {
 		now := time.Now()

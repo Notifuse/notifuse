@@ -147,7 +147,8 @@ export interface ListBlogPostsRequest {
 }
 
 export interface BlogPostListResponse {
-  posts: BlogPost[]
+  // null when no post matches: the server encodes an empty page as null
+  posts: BlogPost[] | null
   total_count: number
 }
 

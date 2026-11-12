@@ -1053,12 +1053,12 @@ func TestTaskBlogGap_BlogFeed_Branches(t *testing.T) {
 		assert.ErrorIs(t, err, sentinel)
 	})
 
-	t.Run("ListFeedPosts empty-string slug adds no filter and limit is $1", func(t *testing.T) {
+	t.Run("ListFeedPosts empty-string slug adds no filter: now is $1, limit is $2", func(t *testing.T) {
 		repo, mock, db := withPostDB(t)
 		defer func() { _ = db.Close() }()
 		empty := ""
-		mock.ExpectQuery(regexp.QuoteMeta("LIMIT $1")).
-			WithArgs(3).WillReturnRows(sqlmock.NewRows(blogPostCols).
+		mock.ExpectQuery(regexp.QuoteMeta("LIMIT $2")).
+			WithArgs(utcNowArg{}, 3).WillReturnRows(sqlmock.NewRows(blogPostCols).
 			AddRow("p1", "c1", "hello", []byte(`{}`), &now, now, now, nil))
 		posts, err := repo.ListFeedPosts(blogCtx(), &empty, 3)
 		require.NoError(t, err)
@@ -1099,12 +1099,12 @@ func TestTaskBlogGap_BlogFeed_Branches(t *testing.T) {
 		assert.ErrorIs(t, err, sentinel)
 	})
 
-	t.Run("GetFeedFingerprint with a category binds slug then limit", func(t *testing.T) {
+	t.Run("GetFeedFingerprint with a category binds slug, now, then limit", func(t *testing.T) {
 		repo, mock, db := withPostDB(t)
 		defer func() { _ = db.Close() }()
 		slug := "tech"
 		mock.ExpectQuery(regexp.QuoteMeta("WITH top_posts AS")).
-			WithArgs("tech", 7).
+			WithArgs("tech", utcNowArg{}, 7).
 			WillReturnRows(sqlmock.NewRows([]string{"max_updated_at", "ids_hash"}).
 				AddRow(now, "deadbeef"))
 		maxAt, hash, err := repo.GetFeedFingerprint(blogCtx(), &slug, 7)

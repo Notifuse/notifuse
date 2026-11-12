@@ -42,6 +42,10 @@ All notable changes to this project will be documented in this file.
 
 - **Security**: A custom domain can no longer be saved on a workspace when another workspace already uses it, whatever its case, port or trailing dot, since that workspace could show its own pages and emails under the other's brand. Notifuse checks that a domain points to it, not who owns it, so the first workspace to save a domain holds it. Workspaces that already share one keep it and can still edit its URL while the host stays the same; one that removes it cannot save it again.
 
+- **Fix**: A scheduled blog post now appears on the blog's pages and at its address only from its publication date.
+
+- **Fix**: The blog's post list in the console now shows every post, not only the first 100.
+
 - **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
 
 - **Fix**: Create Notification is now disabled, and Edit hidden, on the transactional notifications page for members without Templates read: creating offered a template picker they could not load, and saving an edit was refused. Editing a notification managed by an integration stays available with Transactional write alone. Its edit drawer then shows the template's ID, with a note that Templates read is needed to see the template, instead of an empty field, and the page no longer requests templates without Templates read.

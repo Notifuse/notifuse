@@ -284,6 +284,12 @@ func (p *BlogPost) IsPublished() bool {
 	return p.PublishedAt != nil
 }
 
+// IsLive returns true if the post is published and its publication date has
+// come: a post scheduled after now is published but not public yet.
+func (p *BlogPost) IsLive(now time.Time) bool {
+	return p.PublishedAt != nil && !p.PublishedAt.After(now)
+}
+
 // GetEffectiveSEOSettings merges the post's SEO settings with the category's defaults
 func (p *BlogPost) GetEffectiveSEOSettings(category *BlogCategory) *SEOSettings {
 	if category == nil {
@@ -601,6 +607,10 @@ type ListBlogPostsRequest struct {
 	// Now is the instant status=scheduled compares published_at with, in UTC. Set by the
 	// service, never read from a request.
 	Now time.Time `json:"-"`
+
+	// PublishedBefore, when set, keeps only posts published at or before it.
+	// Set by the public blog to hide scheduled posts; never read from the API.
+	PublishedBefore *time.Time `json:"-"`
 }
 
 // Validate validates the list blog posts request
@@ -705,8 +715,9 @@ type BlogPostRepository interface {
 	CountPosts(ctx context.Context, workspaceID string, categoryID string, now time.Time) (*BlogPostCounts, error)
 	// ListFeedPosts returns the top `limit` published posts (newest first) for
 	// RSS/JSON syndication. Enforces deleted_at IS NULL AND published_at IS NOT
-	// NULL AND published_at <= NOW() — the filter mirrors GetFeedFingerprint so
-	// the cheap 304 path always agrees with the rendered feed body.
+	// NULL AND published_at <= the current UTC time — the filter mirrors
+	// GetFeedFingerprint so the cheap 304 path always agrees with the rendered
+	// feed body.
 	ListFeedPosts(ctx context.Context, categorySlug *string, limit int) ([]*BlogPost, error)
 	// GetFeedFingerprint returns the inputs needed to compute a feed ETag
 	// without materializing items. maxUpdatedAt is GREATEST(post.updated_at,

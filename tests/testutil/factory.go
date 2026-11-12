@@ -2113,6 +2113,15 @@ func WithPostPublished(published bool) BlogPostOption {
 	}
 }
 
+// WithPostPublishedAt publishes the post at the given time, in the past or,
+// for a scheduled post, in the future.
+func WithPostPublishedAt(at time.Time) BlogPostOption {
+	return func(p *domain.BlogPost) {
+		utc := at.UTC()
+		p.PublishedAt = &utc
+	}
+}
+
 func WithPostAuthors(authors []domain.BlogAuthor) BlogPostOption {
 	return func(p *domain.BlogPost) {
 		p.Settings.Authors = authors
