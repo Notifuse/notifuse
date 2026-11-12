@@ -413,16 +413,23 @@ describe('ContactsPage', () => {
       expect(state.navigate).toHaveBeenCalledTimes(1)
     })
 
-    it('keeps a sheet opened before the search lands', async () => {
-      vi.useFakeTimers({ shouldAdvanceTime: true })
+    it('lands a pending search before opening a sheet, so closing it keeps the search', async () => {
       renderPage()
+      const row = await screen.findByRole('button', { name: 'bob@example.com' })
+      vi.useFakeTimers()
       fireEvent.change(screen.getByPlaceholderText('Email, name or external ID'), {
-        target: { value: 'bob' }
+        target: { value: 'bob ' }
       })
-      fireEvent.click(await screen.findByRole('button', { name: 'bob@example.com' }))
-      state.search = lastNavigation().search
+      fireEvent.click(row)
+      const calls = state.navigate.mock.calls.map((c) => c[0] as NavigateCall)
+      expect(calls.map((c) => !!c.replace)).toEqual([true, false])
+      // The search replaces the current entry; the sheet is pushed on top of it.
+      const before = calls[0].search(state.search)
+      expect(before).toMatchObject({ search: 'bob' })
+      expect(before.contact).toBeUndefined()
+      expect(calls[1].search(before)).toMatchObject({ search: 'bob', contact: 'bob@example.com' })
       act(() => vi.advanceTimersByTime(300))
-      expect(lastNavigation().search).toMatchObject({ search: 'bob', contact: 'bob@example.com' })
+      expect(state.navigate).toHaveBeenCalledTimes(2)
     })
 
     it('closes a sheet opened from a row with Back, and a linked one by replacing the entry', async () => {
@@ -434,12 +441,17 @@ describe('ContactsPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'close sheet' }))
       expect(back).toHaveBeenCalledTimes(1)
       expect(state.navigate).toHaveBeenCalledTimes(calls)
+      back.mockClear()
 
-      // Back closed it; a contact opened from a link then closes in place.
-      rerender({ contact: undefined })
+      // Opened from a row again, then closed by the browser's Back, not by the sheet.
+      rerender({})
+      fireEvent.click(screen.getByRole('button', { name: 'bob@example.com' }))
+      rerender(lastNavigation().search)
+      rerender({})
+      // A contact then opened from a link closes in place.
       rerender({ contact: 'alice@example.com' })
       fireEvent.click(screen.getByRole('button', { name: 'close sheet' }))
-      expect(back).toHaveBeenCalledTimes(1)
+      expect(back).not.toHaveBeenCalled()
       const { search, replace } = lastNavigation()
       expect(replace).toBe(true)
       expect(search.contact).toBeUndefined()

@@ -68,8 +68,8 @@ function FieldSection({
 }) {
   const { t } = useLingui()
   const [showEmpty, setShowEmpty] = useState(false)
-  // Keyed by field: a row moves from the empty fields to the filled ones on save, and an editor
-  // left open must keep its own field.
+  // Keyed by field: when a field moves from the empty group to the filled one, the rows after it
+  // shift, and an editor left open on one of them must keep its own field.
   const toItem = (field: FieldRow): KeyValueItem => ({
     key: field.key,
     label: field.label,

@@ -168,16 +168,20 @@ export function ContactsPage() {
     sentSearch.current = search.search
     setSearchInput(search.search ?? '')
   }, [search.search])
+  const searchTimer = React.useRef<number | undefined>(undefined)
+  const commitSearch = React.useCallback(
+    (next: string | undefined) => {
+      sentSearch.current = next
+      go((prev) => ({ ...prev, search: next, limit: undefined }), true)
+    },
+    [go]
+  )
   React.useEffect(() => {
     const next = searchInput.trim() || undefined
     if (next === sentSearch.current) return
-    const timer = window.setTimeout(() => {
-      sentSearch.current = next
-      // The open contact stays: a row clicked before the timer fires keeps its sheet.
-      go((prev) => ({ ...prev, search: next, limit: undefined }), true)
-    }, SEARCH_DEBOUNCE_MS)
-    return () => window.clearTimeout(timer)
-  }, [searchInput, go])
+    searchTimer.current = window.setTimeout(() => commitSearch(next), SEARCH_DEBOUNCE_MS)
+    return () => window.clearTimeout(searchTimer.current)
+  }, [searchInput, commitSearch])
 
   // ---- Columns
   const [visibleColumns, setVisibleColumns] = React.useState<Record<string, boolean>>(readStoredColumns)
@@ -326,6 +330,12 @@ export function ContactsPage() {
     if (!search.contact) sheetOpenedHere.current = false
   }, [search.contact])
   const openContact = (email: string) => {
+    // A search still waiting for its timer lands first, in the entry the sheet will go back to.
+    const typed = searchInput.trim() || undefined
+    if (typed !== sentSearch.current) {
+      window.clearTimeout(searchTimer.current)
+      commitSearch(typed)
+    }
     sheetOpenedHere.current = true
     go((prev) => ({ ...prev, contact: email }))
   }

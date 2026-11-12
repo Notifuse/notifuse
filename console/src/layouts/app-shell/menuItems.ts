@@ -118,7 +118,6 @@ export function firstPageOfGroup(group: string, hasAccess: HasAccess, workspaceI
 /** The page each top entry links to, for the entries that are plain links. */
 const ENTRY_PAGES: Record<string, (workspaceId: string) => MenuTarget> = {
   contacts: (workspaceId) => ({ to: '/console/workspace/$workspaceId/contacts', params: { workspaceId } }),
-  lists: (workspaceId) => ({ to: '/console/workspace/$workspaceId/lists', params: { workspaceId } }),
   broadcasts: (workspaceId) => ({ to: '/console/workspace/$workspaceId/broadcasts', params: { workspaceId } }),
   automations: (workspaceId) => ({ to: '/console/workspace/$workspaceId/automations', params: { workspaceId } }),
   'transactional-notifications': (workspaceId) => ({
@@ -132,8 +131,8 @@ const ENTRY_PAGES: Record<string, (workspaceId: string) => MenuTarget> = {
 /** The sidebar's top entries after the dashboard, in its order, with the right each needs. */
 const ENTRIES_AFTER_DASHBOARD: { key: string; reachable: (hasAccess: HasAccess) => boolean }[] = [
   { key: 'web-analytics', reachable: (hasAccess) => hasAccess('web_analytics') },
-  { key: 'contacts', reachable: (hasAccess) => hasAccess('contacts') },
-  { key: 'lists', reachable: (hasAccess) => hasAccess('lists') },
+  // Contacts holds the lists too, as the sidebar entry does.
+  { key: 'contacts', reachable: (hasAccess) => hasAccess('contacts') || hasAccess('lists') },
   { key: 'broadcasts', reachable: (hasAccess) => hasAccess('broadcasts') },
   { key: 'automations', reachable: (hasAccess) => hasAccess('automations') },
   { key: 'transactional-notifications', reachable: (hasAccess) => hasAccess('transactional') },
