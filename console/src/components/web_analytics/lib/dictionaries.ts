@@ -1,3 +1,5 @@
+import { formatHourOfDay } from '../../../i18n/dateFormats'
+
 // Value vocabularies for the filter builder's dropdowns. These mirror what the
 // SDK actually sends (web_analytics_sdk/src/detection/device.ts), so picking a
 // value from a list can never produce a filter that matches nothing.
@@ -87,13 +89,10 @@ export function weekdayLabel(
   )
 }
 
-/** "12a", "1a", … "11p" — the hour labels of the traffic heat map. */
-export const HOUR_LABELS = Array.from({ length: 24 }, (_, hour) => {
-  if (hour === 0) return '12a'
-  if (hour < 12) return `${hour}a`
-  if (hour === 12) return '12p'
-  return `${hour - 12}p`
-})
+/** The hour labels of the traffic heat map, in the console language: "12 AM" … "11 PM", "00 h" … "23 h". */
+export function hourLabels(): string[] {
+  return Array.from({ length: 24 }, (_, hour) => formatHourOfDay(hour))
+}
 
 /** Values a boolean dimension can take; the engine renders them as text. */
 export const BOOLEAN_VALUES = ['true', 'false'] as const

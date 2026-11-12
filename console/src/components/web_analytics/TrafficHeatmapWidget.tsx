@@ -5,7 +5,7 @@ import { i18n } from '@lingui/core'
 import { useLingui } from '@lingui/react/macro'
 import { useWebAnalytics } from './context'
 import { WidgetTabs } from './WidgetTabs'
-import { HOUR_LABELS, weekdayLabel } from './lib/dictionaries'
+import { hourLabels, weekdayLabel } from './lib/dictionaries'
 import { formatValue, toNumber } from './lib/format'
 import { mergeWidgetFilters } from './lib/dimensions'
 import { getTimescoreCellColor } from './lib/heatmap'
@@ -119,6 +119,8 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
     () => [1, 2, 3, 4, 5, 6, 7].map((day) => weekdayLabel(day, i18n.locale, 'short') ?? String(day)),
     [i18n.locale]
   )
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- hourLabels reads i18n.locale itself
+  const hours = useMemo(() => hourLabels(), [i18n.locale])
 
   const option = useMemo(() => {
     // A duration is judged against the TimeScore reference rather than against
@@ -137,7 +139,7 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
           const cell = coordinates(params)
           if (!cell) return ''
           const [hour, day, value] = cell
-          return `<div style="font-weight:500">${dayLabels[day]} ${HOUR_LABELS[hour]}</div><div>${
+          return `<div style="font-weight:500">${dayLabels[day]} ${hours[hour]}</div><div>${
             activeTab.label
           }: ${formatValue(value, activeTab.format)}</div>`
         }
@@ -145,7 +147,7 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
       grid: { left: 50, right: 20, top: 20, bottom: 40 },
       xAxis: {
         type: 'category',
-        data: HOUR_LABELS,
+        data: hours,
         splitArea: { show: true },
         axisLine: { lineStyle: { color: '#e5e7eb' } },
         axisLabel: { color: '#6b7280', fontSize: 10, interval: 2 }
@@ -187,7 +189,7 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
         }
       ]
     }
-  }, [cells, maxValue, activeTab, dayLabels])
+  }, [cells, maxValue, activeTab, dayLabels, hours])
 
   const onEvents = useMemo(
     () => ({

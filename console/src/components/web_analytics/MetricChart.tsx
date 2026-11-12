@@ -29,7 +29,7 @@ interface MetricChartProps {
   current: ChartDataPoint[]
   previous?: ChartDataPoint[]
   granularity: Granularity
-  /** Series names, e.g. "Dec 21-27" and "Dec 14-20". */
+  /** Series names, e.g. "Dec 21 – 27" and "Dec 14 – 20". */
   currentLabel: string
   previousLabel?: string
   loading?: boolean
@@ -90,7 +90,7 @@ export function MetricChart(props: MetricChartProps) {
     ]
 
     // Placed by bucket INDEX, never by axis label: at hour granularity
-    // `formatXAxisLabel` prints "3am" once per day, and echarts resolves a
+    // `formatXAxisLabel` prints "3:00 AM" once per day, and echarts resolves a
     // category name through a hash map where a repeat overwrites its
     // predecessor — so a label would drop every annotation on the last match.
     const marks = (props.annotations ?? [])

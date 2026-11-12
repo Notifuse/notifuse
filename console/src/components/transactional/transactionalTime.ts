@@ -1,6 +1,5 @@
 /**
- * Times of the transactional screens, with Intl in the console's language: no dayjs locale is
- * loaded in the console, so dayjs would print English everywhere.
+ * Times of the transactional screens, with Intl in the console's language.
  */
 
 function dayKey(at: Date, timeZone: string): string {

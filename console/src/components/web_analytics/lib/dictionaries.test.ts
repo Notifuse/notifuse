@@ -1,5 +1,24 @@
-import { describe, expect, it } from 'vitest'
-import { weekdayLabel } from './dictionaries'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@lingui/core'
+import { hourLabels, weekdayLabel } from './dictionaries'
+
+describe('hourLabels', () => {
+  afterEach(() => {
+    i18n.activate('en')
+  })
+
+  it('names the 24 hours of the day in the console language', () => {
+    const english = hourLabels()
+    expect(english).toHaveLength(24)
+    expect(english[0]).toBe('12 AM')
+    expect(english[23]).toBe('11 PM')
+
+    i18n.load('fr', {})
+    i18n.activate('fr')
+    expect(hourLabels()[0]).toBe('00 h')
+    expect(hourLabels()[23]).toBe('23 h')
+  })
+})
 
 describe('weekdayLabel', () => {
   it('maps ISODOW numbering, where Monday is 1 and Sunday is 7', () => {
