@@ -20,6 +20,8 @@ import {
   mockEmptyBroadcasts,
   mockTemplatesResponse,
   mockEmptyTemplates,
+  mockTemplatesUsage,
+  mockEmptyTemplatesUsage,
   mockTransactionalResponse,
   mockEmptyTransactional,
   mockEmptyLogs,
@@ -220,6 +222,9 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
     // ============================================
     if (url.includes('/api/template.list') || url.includes('/api/templates.list')) {
       return route.fulfill(jsonResponse(withData ? mockTemplatesResponse : mockEmptyTemplates))
+    }
+    if (url.includes('/api/templates.usage')) {
+      return route.fulfill(jsonResponse(withData ? mockTemplatesUsage : mockEmptyTemplatesUsage))
     }
     if (url.includes('/api/template.get') || url.includes('/api/templates.get')) {
       // Check if it's a validation call for a new template (ID check)

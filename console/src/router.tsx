@@ -40,7 +40,7 @@ import { BlogPage } from "./pages/BlogPage";
 import SetupWizard from "./pages/SetupWizard";
 import { createRouter } from "@tanstack/react-router";
 import type { TrackingConsentFilter } from "./services/api/contacts";
-import { parseSettingsSearch } from "./lib/searchParams";
+import { parseSettingsSearch, parseTemplatesSearch } from "./lib/searchParams";
 import { DEFAULT_SETTINGS_SECTION } from "./components/settings/SettingsSidebar";
 
 export interface ContactsSearch {
@@ -92,10 +92,7 @@ export interface BroadcastsSearch {
   q?: string;
 }
 
-export interface TemplatesSearch {
-  category?: string;
-  q?: string;
-}
+export type { TemplatesSearch } from "./lib/searchParams";
 
 // Create the root route
 const rootRoute = createRootRoute({
@@ -294,19 +291,7 @@ const workspaceTemplatesRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/templates",
   component: TemplatesPage,
-  validateSearch: (search: Record<string, unknown>): TemplatesSearch => {
-    // The default JSON.parse-based search parser coerces number/boolean-looking
-    // values (?q=123 -> number, ?q=a&q=b -> array), and the search box calls
-    // .trim() on q. Coerce every param to a clean string or undefined so a
-    // hand-written or shared URL can never feed a non-string into the page.
-    const normalize = (value: unknown): string | undefined => {
-      const single = Array.isArray(value) ? value[0] : value;
-      if (typeof single !== "string") return undefined;
-      const trimmed = single.trim();
-      return trimmed === "" ? undefined : trimmed;
-    };
-    return { category: normalize(search.category), q: normalize(search.q) };
-  },
+  validateSearch: parseTemplatesSearch,
 });
 
 const workspaceAnalyticsRoute = createRoute({
