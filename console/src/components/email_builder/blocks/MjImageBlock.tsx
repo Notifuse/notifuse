@@ -51,6 +51,7 @@ const MjImageSettingsPanel: React.FC<MjImageSettingsPanelProps> = ({
             !item.is_folder && (item.file_info?.content_type?.startsWith('image/') ?? false)
           }
           buttonText={t`Browse Images`}
+          targetLabel={t`the Image block`}
         />
       </InputLayout>
 

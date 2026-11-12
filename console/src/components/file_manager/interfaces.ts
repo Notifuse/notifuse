@@ -12,6 +12,9 @@ export interface StorageObject {
   path: string
   last_modified: Date
   file_info: FileInfo
+  // A folder that exists only as the prefix of other keys, without a "folder/" marker; its date
+  // is that of its newest object.
+  implicit?: boolean
 }
 
 export interface FileManagerProps {
@@ -31,6 +34,15 @@ export interface FileManagerProps {
   // Controlled path mode for router sync
   controlledPath?: string
   onPathChange?: (path: string) => void
+  // The workspace whose bucket is listed: part of the cached listing's key.
+  workspaceId: string
+  // Controlled chosen file (the page keeps it in the URL); internal state otherwise.
+  controlledFile?: string
+  onFileChange?: (key: string | undefined) => void
+  // Picker: where the chosen file goes ("the Image block"), shown in the footer.
+  targetLabel?: string
+  // Picker: the footer's Cancel.
+  onCancel?: () => void
 }
 
 export interface ItemFilter {

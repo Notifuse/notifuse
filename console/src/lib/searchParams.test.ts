@@ -3,7 +3,8 @@ import {
   searchString,
   parseSettingsSearch,
   parseTemplatesSearch,
-  parseBlogSearch
+  parseBlogSearch,
+  parseFileManagerSearch
 } from './searchParams'
 
 // The router's default search parser runs JSON.parse on each value: "?webhook=2024" arrives as the
@@ -88,5 +89,25 @@ describe('parseBlogSearch', () => {
 
   it('drops an empty category or search', () => {
     expect(parseBlogSearch({ category_id: '', q: '  ' })).toEqual({})
+  })
+})
+
+describe('parseFileManagerSearch', () => {
+  it('keeps the folder and the file as text, a number or a boolean included', () => {
+    expect(parseFileManagerSearch({ path: 'docs/', file: 2024 })).toEqual({
+      path: 'docs/',
+      file: '2024'
+    })
+    expect(parseFileManagerSearch({ path: true })).toEqual({ path: 'true/' })
+  })
+
+  it('turns a folder into a prefix: a trailing slash, no leading one', () => {
+    expect(parseFileManagerSearch({ path: 'docs' })).toEqual({ path: 'docs/' })
+    expect(parseFileManagerSearch({ path: '/docs/2026/' })).toEqual({ path: 'docs/2026/' })
+  })
+
+  it('drops an empty folder or file, and other types', () => {
+    expect(parseFileManagerSearch({ path: '', file: '  ' })).toEqual({})
+    expect(parseFileManagerSearch({ path: '/', file: { key: 'a' } })).toEqual({})
   })
 })
