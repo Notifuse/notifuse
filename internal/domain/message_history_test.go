@@ -575,6 +575,17 @@ func TestMessageListParams_FromQuery(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "with transactional_notification_id filter",
+			queryData: map[string][]string{
+				"transactional_notification_id": {"password_reset"},
+			},
+			want: MessageListParams{
+				TransactionalNotificationID: "password_reset",
+				Limit:                       20, // Default limit
+			},
+			wantErr: false,
+		},
+		{
 			name: "with id, external_id, and list_id filters",
 			queryData: map[string][]string{
 				"id":          {"msg-123"},

@@ -426,3 +426,32 @@ func TestTrackedMeasuresAreSentEmailsWithTheirFlag(t *testing.T) {
 	assert.ElementsMatch(t, append(append([]string{}, sentEmails...), "opens_tracked IS NOT FALSE"), filterSQL("count_opens_tracked"))
 	assert.ElementsMatch(t, append(append([]string{}, sentEmails...), "clicks_tracked IS NOT FALSE"), filterSQL("count_clicks_tracked"))
 }
+
+// The origin dimension sorts every message into what sent it, from the two IDs a
+// message can carry. Its SQL is an expression, so it must be parenthesised: the
+// query builder copies a dimension's SQL as is into SELECT, GROUP BY and filters.
+func TestMessageHistoryOriginDimension(t *testing.T) {
+	schema, ok := PredefinedSchemas["message_history"]
+	require.True(t, ok)
+
+	origin, exists := schema.Dimensions["origin"]
+	require.True(t, exists, "message_history should have an origin dimension")
+	assert.Equal(t, "string", origin.Type)
+	assert.Equal(t,
+		"(CASE WHEN broadcast_id IS NOT NULL THEN 'broadcast' WHEN automation_id IS NOT NULL THEN 'automation' ELSE 'transactional' END)",
+		origin.SQL)
+}
+
+// last_sent_at is the latest send the provider accepted: failed attempts are left
+// out, as in count_sent.
+func TestMessageHistoryLastSentAtMeasure(t *testing.T) {
+	schema, ok := PredefinedSchemas["message_history"]
+	require.True(t, ok)
+
+	measure, exists := schema.Measures["last_sent_at"]
+	require.True(t, exists, "message_history should have a last_sent_at measure")
+	assert.Equal(t, "max", measure.Type)
+	assert.Equal(t, "sent_at", measure.SQL)
+	require.Len(t, measure.Filters, 1)
+	assert.Equal(t, "failed_at IS NULL", measure.Filters[0].SQL)
+}

@@ -186,6 +186,18 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 					{SQL: "failed_at IS NULL"},
 				},
 			},
+			"last_sent_at": {
+				Type:        "max",
+				Title:       "Last Sent At",
+				SQL:         "sent_at",
+				Description: "When the most recent message accepted by the email provider was sent",
+				Filters: []analytics.MeasureFilter{
+					// sent_at is stamped on the first attempt whatever its outcome (see
+					// count_sent) and a retry upsert does not move it: a broadcast or automation
+					// message retried after a failure keeps its first attempt's time.
+					{SQL: "failed_at IS NULL"},
+				},
+			},
 		},
 		Dimensions: map[string]analytics.DimensionDefinition{
 			"created_at": {
@@ -235,6 +247,15 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				Title:       "Transactional Notification ID",
 				SQL:         "transactional_notification_id",
 				Description: "Transactional notification identifier",
+			},
+			// Parenthesised: the query builder copies a dimension's SQL into SELECT, GROUP BY
+			// and filters. A broadcast's test send carries its broadcast_id; template tests and
+			// double opt-in confirmations carry no ID and count as transactional.
+			"origin": {
+				Type:        "string",
+				Title:       "Origin",
+				SQL:         "(CASE WHEN broadcast_id IS NOT NULL THEN 'broadcast' WHEN automation_id IS NOT NULL THEN 'automation' ELSE 'transactional' END)",
+				Description: "What sent the message: broadcast, automation or transactional",
 			},
 		},
 	},

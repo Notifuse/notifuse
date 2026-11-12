@@ -2547,3 +2547,62 @@ func TestMessageHistoryRepository_ListMessages_CursorSubSecondPrecision(t *testi
 		"row at %s would be skipped by the next page's WHERE created_at < %s",
 		second.Format(time.RFC3339Nano), cursorTime.Format(time.RFC3339Nano))
 }
+
+func TestMessageHistoryRepository_ListMessages_TransactionalNotificationFilter(t *testing.T) {
+	columns := []string{
+		"id", "external_id", "contact_email", "broadcast_id", "automation_id", "transactional_notification_id", "list_id", "template_id", "template_version",
+		"channel", "status_info", "message_data", "channel_options", "attachments", "sent_at", "delivered_at",
+		"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+		"unsubscribed_at", "created_at", "updated_at", "opens_tracked", "clicks_tracked",
+	}
+	selectSQL := `SELECT id, external_id, contact_email, broadcast_id, automation_id, transactional_notification_id, list_id, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at, opens_tracked, clicks_tracked FROM message_history`
+
+	t.Run("adds the condition when set", func(t *testing.T) {
+		mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
+		defer cleanup()
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db, nil)
+
+		mock.ExpectQuery(regexp.QuoteMeta(selectSQL + ` WHERE transactional_notification_id = $1 ORDER BY created_at DESC, id DESC LIMIT 21`)).
+			WithArgs("password_reset").
+			WillReturnRows(sqlmock.NewRows(columns))
+
+		_, _, err := repo.ListMessages(context.Background(), "workspace-123", testSecretKey, domain.MessageListParams{
+			Limit:                       20,
+			TransactionalNotificationID: "password_reset",
+		})
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("combines with is_failed", func(t *testing.T) {
+		mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
+		defer cleanup()
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db, nil)
+
+		isFailed := true
+		mock.ExpectQuery(regexp.QuoteMeta(selectSQL + ` WHERE transactional_notification_id = $1 AND failed_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 6`)).
+			WithArgs("password_reset").
+			WillReturnRows(sqlmock.NewRows(columns))
+
+		_, _, err := repo.ListMessages(context.Background(), "workspace-123", testSecretKey, domain.MessageListParams{
+			Limit:                       5,
+			TransactionalNotificationID: "password_reset",
+			IsFailed:                    &isFailed,
+		})
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("no condition when empty", func(t *testing.T) {
+		mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
+		defer cleanup()
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db, nil)
+
+		mock.ExpectQuery(regexp.QuoteMeta(selectSQL + ` ORDER BY created_at DESC, id DESC LIMIT 21`)).
+			WillReturnRows(sqlmock.NewRows(columns))
+
+		_, _, err := repo.ListMessages(context.Background(), "workspace-123", testSecretKey, domain.MessageListParams{Limit: 20})
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+}

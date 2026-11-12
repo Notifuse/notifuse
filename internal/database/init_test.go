@@ -633,3 +633,18 @@ func TestInitializeWorkspaceDatabaseContext(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }
+
+// The dashboard's "Recent failures" card reads the latest failed, bounced and complained
+// messages in messages.list order; each partial index holds only the rows of one flag.
+func TestInitializeWorkspaceDatabase_MessageHistoryRecentFailureIndexes(t *testing.T) {
+	rec := recordWorkspaceSchema(t)
+	for name, want := range map[string]string{
+		"idx_message_history_failed_recent":     `CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`,
+		"idx_message_history_bounced_recent":    `CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`,
+		"idx_message_history_complained_recent": `CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, want, rec.statementContaining(t, " "+name+" "))
+		})
+	}
+}

@@ -710,3 +710,126 @@ func TestMessageDataEncryption(t *testing.T) {
 		assert.False(t, hasEncrypted, "decrypted data should not contain _encrypted key")
 	})
 }
+
+// The transactional screens list a notification's messages and show when each notification
+// last sent successfully.
+func TestMessageHistoryTransactionalNotifications(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	factory := suite.DataFactory
+
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	require.NoError(t, factory.AddUserToWorkspace(user.ID, workspace.ID, "owner"))
+	require.NoError(t, client.Login(user.Email, "password"))
+	client.SetWorkspaceID(workspace.ID)
+
+	template, err := factory.CreateTemplate(workspace.ID)
+	require.NoError(t, err)
+
+	now := time.Now().UTC().Truncate(time.Second)
+	create := func(notificationID string, at time.Time, failed bool) *domain.MessageHistory {
+		t.Helper()
+		msg, err := factory.CreateMessageHistory(workspace.ID,
+			testutil.WithMessageTemplate(template.ID),
+			func(m *domain.MessageHistory) {
+				id := notificationID
+				m.TransactionalNotificationID = &id
+				m.CreatedAt = at
+				m.SentAt = at
+				m.UpdatedAt = at
+				if failed {
+					failedAt := at
+					m.FailedAt = &failedAt
+				}
+			})
+		require.NoError(t, err)
+		return msg
+	}
+
+	// welcome: two successful sends, the later one is the last.
+	welcome1 := create("welcome", now.Add(-3*time.Hour), false)
+	welcome2 := create("welcome", now.Add(-1*time.Hour), false)
+	// reset: its latest message failed, so the success before it is the last.
+	create("reset", now.Add(-3*time.Hour), false)
+	create("reset", now.Add(-1*time.Hour), true)
+	// invoice: every message failed.
+	create("invoice", now.Add(-2*time.Hour), true)
+	// receipt: only a message older than the window.
+	create("receipt", now.AddDate(0, 0, -40), false)
+
+	t.Run("messages.list filters by transactional_notification_id", func(t *testing.T) {
+		resp, err := client.Get("/api/messages.list", map[string]string{
+			"workspace_id":                  workspace.ID,
+			"transactional_notification_id": "welcome",
+		})
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var result domain.MessageListResult
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+		ids := make([]string, 0, len(result.Messages))
+		for _, msg := range result.Messages {
+			ids = append(ids, msg.ID)
+		}
+		assert.Equal(t, []string{welcome2.ID, welcome1.ID}, ids, "only welcome's messages, newest first")
+	})
+
+	t.Run("last_sent_at gives each notification's last successful send", func(t *testing.T) {
+		resp, err := client.Post("/api/analytics.query", map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"query": map[string]interface{}{
+				"schema":     "message_history",
+				"measures":   []string{"last_sent_at"},
+				"dimensions": []string{"transactional_notification_id"},
+				"filters": []map[string]interface{}{
+					{"member": "transactional_notification_id", "operator": "in", "values": []string{"welcome", "reset", "invoice", "receipt"}},
+					{"member": "created_at", "operator": "inDateRange", "values": []string{
+						now.AddDate(0, 0, -30).Format(time.RFC3339), now.Add(time.Minute).Format(time.RFC3339),
+					}},
+				},
+			},
+		})
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode, string(body))
+
+		var result struct {
+			Data []map[string]interface{} `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(body, &result))
+
+		got := map[string]interface{}{}
+		for _, row := range result.Data {
+			id, _ := row["transactional_notification_id"].(string)
+			got[id] = row["last_sent_at"]
+		}
+		require.Len(t, got, 3, "receipt has no message in the window: %v", got)
+
+		parse := func(v interface{}) time.Time {
+			t.Helper()
+			s, ok := v.(string)
+			require.True(t, ok, "last_sent_at is an RFC 3339 string, got %T", v)
+			parsed, err := time.Parse(time.RFC3339, s)
+			require.NoError(t, err)
+			return parsed.UTC().Truncate(time.Second)
+		}
+		assert.Equal(t, now.Add(-1*time.Hour), parse(got["welcome"]))
+		assert.Equal(t, now.Add(-3*time.Hour), parse(got["reset"]))
+		assert.Contains(t, got, "invoice")
+		assert.Nil(t, got["invoice"], "every message failed")
+	})
+}

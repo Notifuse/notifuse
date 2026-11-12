@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -174,4 +175,68 @@ func TestAnalyticsRepository_GetSchemas(t *testing.T) {
 	assert.Len(t, schemas, 2)
 	assert.Contains(t, schemas, "schema1")
 	assert.Contains(t, schemas, "schema2")
+}
+
+// runMessageHistoryQuery runs q against the real message_history schema on a mocked
+// database and returns the SQL the repository sent.
+func runMessageHistoryQuery(t *testing.T, q analytics.Query, columns []string) string {
+	t.Helper()
+	var sent string
+	db, sqlMock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherFunc(func(_, actual string) error {
+		sent = actual
+		return nil
+	})))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace-123").
+		Return(&domain.Workspace{ID: "workspace-123"}, nil).AnyTimes()
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db, nil)
+
+	sqlMock.ExpectQuery("").WillReturnRows(sqlmock.NewRows(columns))
+
+	_, err = NewAnalyticsRepository(mockWorkspaceRepo, logger.NewLogger(), "").Query(context.Background(), "workspace-123", q)
+	require.NoError(t, err)
+	require.NoError(t, sqlMock.ExpectationsWereMet())
+	return sent
+}
+
+const originCaseSQL = "(CASE WHEN broadcast_id IS NOT NULL THEN 'broadcast' WHEN automation_id IS NOT NULL THEN 'automation' ELSE 'transactional' END)"
+
+func TestAnalyticsRepository_MessageHistoryOriginFilter(t *testing.T) {
+	sent := runMessageHistoryQuery(t, analytics.Query{
+		Schema:   "message_history",
+		Measures: []string{"count_sent"},
+		Filters:  []analytics.Filter{{Member: "origin", Operator: "equals", Values: []string{"automation"}}},
+	}, []string{"count_sent"})
+
+	where := sent[strings.Index(sent, "WHERE"):]
+	assert.Contains(t, where, originCaseSQL)
+}
+
+func TestAnalyticsRepository_MessageHistoryOriginDimension(t *testing.T) {
+	sent := runMessageHistoryQuery(t, analytics.Query{
+		Schema:     "message_history",
+		Measures:   []string{"count_sent"},
+		Dimensions: []string{"origin"},
+	}, []string{"origin", "count_sent"})
+
+	selectPart := sent[:strings.Index(sent, "FROM")]
+	groupBy := sent[strings.Index(sent, "GROUP BY"):]
+	assert.Contains(t, selectPart, originCaseSQL)
+	assert.Contains(t, groupBy, originCaseSQL)
+}
+
+func TestAnalyticsRepository_MessageHistoryLastSentAt(t *testing.T) {
+	sent := runMessageHistoryQuery(t, analytics.Query{
+		Schema:     "message_history",
+		Measures:   []string{"last_sent_at"},
+		Dimensions: []string{"transactional_notification_id"},
+		Filters:    []analytics.Filter{{Member: "transactional_notification_id", Operator: "in", Values: []string{"welcome", "reset"}}},
+	}, []string{"transactional_notification_id", "last_sent_at"})
+
+	assert.Contains(t, sent, "MAX(sent_at) FILTER (WHERE failed_at IS NULL)")
 }

@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 
+- **Feature**: The analytics API splits message history by what sent each message, with the new `origin` dimension (`broadcast`, `automation` or `transactional`).
+
+- **Feature**: The analytics API gives when each transactional notification last sent successfully, with the new `last_sent_at` measure of message history, and `messages.list` filters by `transactional_notification_id`.
+
 - **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.
 
 - **Improvement**: Opens and clicks on an email whose contact was deleted are no longer recorded. The link still redirects.
