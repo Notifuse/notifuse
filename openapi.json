@@ -3332,6 +3332,103 @@
         }
       }
     },
+    "/api/templates.usage": {
+      "get": {
+        "summary": "Get template usage",
+        "description": "Counts the broadcasts, transactional notifications, automations and double opt-in lists that use each template. Broadcasts count while they may still send (draft, scheduled, processing, paused, testing, test_completed or winner_selected); deleted notifications, automations and lists do not count; an automation counts once, through its email nodes or its trigger. Templates referenced in segment or trigger conditions, and blog web templates, are not counted. With `template_id`, only that template is counted and `references` lists the objects using it, at most 50 per type, ordered by name; the counts stay exact beyond. Requires the templates read permission; a type the member cannot read (broadcasts, transactional, automations or lists read) is left out of the counts and references and listed in `hidden_types`.",
+        "operationId": "getTemplateUsage",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          {
+            "name": "template_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Count this template only, and list what uses it.",
+            "example": "black-friday"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The usage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateUsageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "invalid get template usage request: workspace_id is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the templates read permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to templates required",
+                  "resource": "templates",
+                  "permission": "read"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Failed to get template usage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/templates.get": {
       "get": {
         "summary": "Get a template",
@@ -4266,7 +4363,7 @@
     "/api/blogPosts.list": {
       "get": {
         "summary": "List blog posts",
-        "description": "Returns posts page by page, drafts included unless filtered out. Posts come newest-created first; with `status=published`, most recently published first. Page through with `page` and `limit` until you have `total_count` posts. Requires the blog read permission.",
+        "description": "Returns posts page by page, drafts included unless filtered out. Posts come newest-created first; with `status=published`, most recently published first; with `status=scheduled`, soonest to publish first. Page through with `page` and `limit` until you have `total_count` posts. Requires the blog read permission.",
         "operationId": "listBlogPosts",
         "tags": [
           "Blog"
@@ -4306,12 +4403,24 @@
               "enum": [
                 "all",
                 "draft",
-                "published"
+                "published",
+                "scheduled"
               ],
               "default": "all"
             },
-            "description": "`draft` is posts never published or since unpublished; `published` is every post with a publication date, including one dated in the future.",
+            "description": "`draft` is posts never published or since unpublished; `published` is every post with a publication date, including one dated in the future; `scheduled` is only posts whose publication date is still to come.",
             "example": "published"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "description": "Only posts whose title contains this text, case-insensitively. Leading and trailing spaces are ignored; `total_count` counts the matching posts.",
+            "example": "release notes"
           },
           {
             "name": "page",
@@ -4366,6 +4475,16 @@
                     "value": {
                       "error": "page must be a valid integer"
                     }
+                  },
+                  "invalidStatus": {
+                    "value": {
+                      "error": "validation error: invalid status: archived"
+                    }
+                  },
+                  "searchTooLong": {
+                    "value": {
+                      "error": "validation error: search must be at most 200 characters"
+                    }
                   }
                 }
               }
@@ -4397,7 +4516,7 @@
             }
           },
           "500": {
-            "description": "Internal server error. Also returned for a `status` outside the enum.",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -4405,6 +4524,113 @@
                 },
                 "example": {
                   "error": "Failed to list posts"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blogPosts.counts": {
+      "get": {
+        "summary": "Count blog posts",
+        "description": "Counts the posts that are not deleted: in total, published (a post dated in the future included), scheduled (dated in the future) and draft. With `category_id`, these four follow that category, while `all_total` and `by_category` still cover every post. Requires the blog read permission.",
+        "operationId": "countBlogPosts",
+        "tags": [
+          "Blog"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          {
+            "name": "category_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Count the posts of this category only.",
+            "example": "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlogPostCounts"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingWorkspaceId": {
+                    "value": {
+                      "error": "workspace_id is required"
+                    }
+                  },
+                  "invalidCategory": {
+                    "value": {
+                      "error": "category_id must be a UUID"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing the blog read permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to blog required",
+                  "resource": "blog",
+                  "permission": "read"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -12784,6 +13010,164 @@
           },
           "web": {
             "$ref": "#/components/schemas/WebTemplate"
+          }
+        }
+      },
+      "TemplateUsageCounts": {
+        "type": "object",
+        "description": "How many objects of each type use the template. A type the member cannot read is absent, never 0.",
+        "properties": {
+          "broadcasts": {
+            "type": "integer",
+            "example": 1
+          },
+          "transactional_notifications": {
+            "type": "integer",
+            "example": 0
+          },
+          "automations": {
+            "type": "integer",
+            "example": 2
+          },
+          "lists": {
+            "type": "integer",
+            "example": 0
+          }
+        }
+      },
+      "TemplateUsageReference": {
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "name"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "broadcast",
+              "transactional_notification",
+              "automation",
+              "list"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "example": "bc_123"
+          },
+          "name": {
+            "type": "string",
+            "example": "Black Friday"
+          },
+          "status": {
+            "type": "string",
+            "description": "Set for broadcasts and automations only.",
+            "example": "scheduled"
+          }
+        }
+      },
+      "TemplateUsageResponse": {
+        "type": "object",
+        "required": [
+          "usage",
+          "hidden_types"
+        ],
+        "properties": {
+          "usage": {
+            "type": "object",
+            "description": "Templates used at least once, by template ID.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TemplateUsageCounts"
+            }
+          },
+          "references": {
+            "type": "array",
+            "description": "Present, possibly empty, exactly when `template_id` is given.",
+            "items": {
+              "$ref": "#/components/schemas/TemplateUsageReference"
+            }
+          },
+          "hidden_types": {
+            "type": "array",
+            "description": "The types the member cannot read, left out of `usage` and `references`.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "broadcasts",
+                "transactional_notifications",
+                "automations",
+                "lists"
+              ]
+            }
+          }
+        },
+        "example": {
+          "usage": {
+            "black-friday": {
+              "broadcasts": 1,
+              "transactional_notifications": 0,
+              "automations": 0
+            }
+          },
+          "references": [
+            {
+              "type": "broadcast",
+              "id": "bc_123",
+              "name": "Black Friday",
+              "status": "scheduled"
+            }
+          ],
+          "hidden_types": [
+            "lists"
+          ]
+        }
+      },
+      "BlogPostCounts": {
+        "type": "object",
+        "required": [
+          "all_total",
+          "total",
+          "published",
+          "scheduled",
+          "draft",
+          "by_category"
+        ],
+        "properties": {
+          "all_total": {
+            "type": "integer",
+            "description": "Every post that is not deleted, whatever `category_id`.",
+            "example": 42
+          },
+          "total": {
+            "type": "integer",
+            "description": "The posts of the category asked for, or every post without one.",
+            "example": 12
+          },
+          "published": {
+            "type": "integer",
+            "description": "Posts with a publication date, scheduled ones included.",
+            "example": 9
+          },
+          "scheduled": {
+            "type": "integer",
+            "description": "Posts whose publication date is still to come.",
+            "example": 1
+          },
+          "draft": {
+            "type": "integer",
+            "description": "Posts never published or since unpublished.",
+            "example": 3
+          },
+          "by_category": {
+            "type": "object",
+            "description": "Posts per category ID, over every post. Posts without a category are left out.",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "example": {
+              "7c9e6679-7425-40de-944b-e07fc1f90ae7": 12
+            }
           }
         }
       }

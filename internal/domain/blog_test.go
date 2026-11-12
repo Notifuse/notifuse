@@ -2071,3 +2071,51 @@ func TestListBlogThemesRequest_Validate(t *testing.T) {
 		assert.Equal(t, 20, req.Offset)
 	})
 }
+
+func TestListBlogPostsRequest_ScheduledAndSearch(t *testing.T) {
+	t.Run("scheduled is accepted", func(t *testing.T) {
+		req := ListBlogPostsRequest{Status: BlogPostStatusScheduled}
+		require.NoError(t, req.Validate())
+	})
+
+	t.Run("an unknown status is a validation error", func(t *testing.T) {
+		req := ListBlogPostsRequest{Status: "archived"}
+		err := req.Validate()
+		var validationErr ValidationError
+		require.ErrorAs(t, err, &validationErr)
+		assert.Contains(t, err.Error(), "archived")
+	})
+
+	t.Run("search is trimmed, and 200 characters are accepted", func(t *testing.T) {
+		req := ListBlogPostsRequest{Search: "  " + repeatRune('é', 200) + "  "}
+		require.NoError(t, req.Validate())
+		assert.Equal(t, repeatRune('é', 200), req.Search)
+	})
+
+	t.Run("201 characters of search are a validation error", func(t *testing.T) {
+		req := ListBlogPostsRequest{Search: repeatRune('é', 201)}
+		err := req.Validate()
+		var validationErr ValidationError
+		require.ErrorAs(t, err, &validationErr)
+	})
+
+	t.Run("now is never read from JSON", func(t *testing.T) {
+		var req ListBlogPostsRequest
+		require.NoError(t, json.Unmarshal([]byte(`{"status":"scheduled","Now":"2030-01-01T00:00:00Z","now":"2030-01-01T00:00:00Z"}`), &req))
+		assert.True(t, req.Now.IsZero())
+	})
+}
+
+func repeatRune(r rune, n int) string {
+	out := make([]rune, n)
+	for i := range out {
+		out[i] = r
+	}
+	return string(out)
+}
+
+func TestBlogPostCounts_JSON(t *testing.T) {
+	raw, err := json.Marshal(NewBlogPostCounts())
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"all_total":0,"total":0,"published":0,"scheduled":0,"draft":0,"by_category":{}}`, string(raw))
+}

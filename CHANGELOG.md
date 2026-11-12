@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 
+- **Feature**: The API counts what uses each template with the new `templates.usage` endpoint (broadcasts that may still send, transactional notifications, automations and double opt-in lists), and lists them for one template. It counts posts by status and category with the new `blogPosts.counts` endpoint; `blogPosts.list` lists the posts still to come with `status=scheduled` and searches titles with `search`; `workspaces.members` returns each member's `name`.
+
+- **Improvement**: `blogPosts.list` answers 400 instead of 500 for an invalid status.
+
 - **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.
 
 - **Improvement**: Opens and clicks on an email whose contact was deleted are no longer recorded. The link still redirects.
@@ -29,6 +33,10 @@ All notable changes to this project will be documented in this file.
 - **Feature**: A broadcast can now send from a sender other than its template's: each variation, in an A/B test too, chooses one of the marketing email integration's senders, or keeps its template's. A transactional email can do the same with `email_options.sender_id`. A sender that is not one of the integration's is refused when saving or sending. A variation whose chosen sender is removed from the integration afterwards is queued for no further recipient until another sender is chosen: the broadcast cannot be scheduled, cannot be resumed while that variation still has recipients to queue, and pauses at the next run of its sending task if it is queuing them. The console then offers to change the sender of the paused broadcast. Emails already queued keep the sender they were queued with, and no email falls back to another address.
 
 - **Security**: A custom domain can no longer be saved on a workspace when another workspace already uses it, whatever its case, port or trailing dot, since that workspace could show its own pages and emails under the other's brand. Notifuse checks that a domain points to it, not who owns it, so the first workspace to save a domain holds it. Workspaces that already share one keep it and can still edit its URL while the host stays the same; one that removes it cannot save it again.
+
+- **Fix**: A scheduled blog post now appears on the blog's pages and at its address only from its publication date.
+
+- **Fix**: The blog's post list in the console now shows every post, not only the first 100.
 
 - **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
 
@@ -68,9 +76,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: The email editor no longer gives a new group a width of 100%, unless the template's default attributes give groups one, so it takes its share of the section, and the canvas shows each group at the width the email gives it. The Width field of a group shows that share when it is empty. Adding, moving, duplicating or deleting a group in a section resizes the section's columns to the room the groups leave, keeping their proportions.
 
-- **Fix**: A scheduled blog post now appears on the blog's pages and at its address only from its publication date.
-
-- **Fix**: The blog's post list in the console now shows every post, not only the first 100.
+- **Fix**: `broadcasts.get` with `with_templates=true` now returns the latest version of each variation's template, the one that is sent, instead of its first version.
 
 ## [43.0] - 2026-11-07
 

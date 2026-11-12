@@ -73,6 +73,80 @@
             example:
               error: Failed to get templates
 
+/api/templates.usage:
+  get:
+    summary: Get template usage
+    description: >-
+      Counts the broadcasts, transactional notifications, automations and
+      double opt-in lists that use each template. Broadcasts count while they
+      may still send (draft, scheduled, processing, paused, testing,
+      test_completed or winner_selected); deleted notifications, automations
+      and lists do not count; an automation counts once, through its email
+      nodes or its trigger. Templates referenced in segment or trigger
+      conditions, and blog web templates, are not counted. With
+      `template_id`, only that template is counted and `references` lists the
+      objects using it, at most 50 per type, ordered by name; the counts stay
+      exact beyond. Requires the templates read permission; a type the member
+      cannot read (broadcasts, transactional, automations or lists read) is
+      left out of the counts and references and listed in `hidden_types`.
+    operationId: getTemplateUsage
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+      - name: template_id
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Count this template only, and list what uses it.
+        example: black-friday
+    responses:
+      '200':
+        description: The usage
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/template.yaml#/TemplateUsageResponse'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: 'invalid get template usage request: workspace_id is required'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '403':
+        description: Forbidden - missing the templates read permission
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/PermissionErrorResponse'
+            example:
+              error: 'Insufficient permissions: read access to templates required'
+              resource: templates
+              permission: read
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to get template usage
+
 /api/templates.get:
   get:
     summary: Get a template
