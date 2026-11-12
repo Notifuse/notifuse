@@ -163,6 +163,18 @@ describe('TransactionalTable', () => {
     expect(entry(menu, 'Preview template').textContent).toBe('Preview template')
   })
 
+  it('says why the template preview is disabled when its template failed to load', async () => {
+    renderTable(
+      [notification('welcome')],
+      full,
+      handlers(),
+      new Map([['tpl', { status: 'error', error: new Error('boom'), retry: () => {} }]])
+    )
+    const menu = await openMenu('Name welcome')
+    expect(entry(menu, 'Preview template')).toHaveAttribute('aria-disabled', 'true')
+    expect(within(entry(menu, 'Preview template')).getByText("Couldn't load the template")).toBeInTheDocument()
+  })
+
   it('says how far back « Last sent » looked when a notification has no send', async () => {
     renderTable([notification('welcome')])
     const row = screen.getByText('Name welcome').closest('tr') as HTMLElement

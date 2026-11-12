@@ -737,11 +737,11 @@ msgstr "Livres: {textFree}, {numberFree}, {dateFree}, {jsonFree}"
 msgid "{time} local time"
 msgstr "{time} horário local"
 
-#: src/components/transactional/notificationRules.ts:113
+#: src/components/transactional/notificationRules.ts:115
 msgid "{total, plural, one {{all} notification} other {{all} notifications}}"
 msgstr "{total, plural, one {{all} notificação} other {{all} notificações}}"
 
-#: src/components/transactional/notificationRules.ts:115
+#: src/components/transactional/notificationRules.ts:117
 msgid "{total, plural, one {{part} of {all} notification} other {{part} of {all} notifications}}"
 msgstr "{total, plural, one {{part} de {all} notificação} other {{part} de {all} notificações}}"
 
@@ -3244,7 +3244,7 @@ msgstr "Campanhas"
 #: src/components/templates/DeleteTemplateModal.tsx:115
 #: src/components/templates/SendTemplateModal.tsx:303
 #: src/components/templates/TemplateTranslationsTab.tsx:329
-#: src/components/transactional/notificationRules.ts:89
+#: src/components/transactional/notificationRules.ts:91
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:210
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
@@ -4463,6 +4463,10 @@ msgstr "Não foi possível carregar as estatísticas deste broadcast"
 msgid "Couldn't load the success rate"
 msgstr "Não foi possível carregar a taxa de sucesso"
 
+#: src/components/transactional/notificationRules.ts:64
+msgid "Couldn't load the template"
+msgstr "Não foi possível carregar o template"
+
 #: src/pages/TemplatesPage.tsx:491
 msgid "Couldn't load the templates"
 msgstr "Não foi possível carregar os modelos"
@@ -5498,7 +5502,7 @@ msgstr "Excluir segmento"
 msgid "Delete template?"
 msgstr "Excluir template?"
 
-#: src/components/transactional/notificationRules.ts:85
+#: src/components/transactional/notificationRules.ts:87
 msgid "Delete the notification?"
 msgstr "Excluir a notificação?"
 
@@ -7389,7 +7393,7 @@ msgstr "Falha ao excluir convite"
 msgid "Failed to delete list"
 msgstr "Falha ao excluir lista"
 
-#: src/components/transactional/notificationRules.ts:100
+#: src/components/transactional/notificationRules.ts:102
 msgid "Failed to delete notification"
 msgstr "Falha ao excluir notificação"
 
@@ -10140,7 +10144,7 @@ msgid "Managed by {0} ({1} integration)"
 msgstr "Gerenciado por {0} (integração {1})"
 
 #. placeholder {0}: integration.name
-#: src/components/transactional/notificationRules.ts:71
+#: src/components/transactional/notificationRules.ts:73
 msgid "Managed by {0}: it can't be deleted"
 msgstr "Gerenciada por {0}: não pode ser excluída"
 
@@ -10148,7 +10152,7 @@ msgstr "Gerenciada por {0}: não pode ser excluída"
 msgid "Managed by an integration"
 msgstr "Gerenciada por uma integração"
 
-#: src/components/transactional/notificationRules.ts:72
+#: src/components/transactional/notificationRules.ts:74
 msgid "Managed by an integration: it can't be deleted"
 msgstr "Gerenciada por uma integração: não pode ser excluída"
 
@@ -17196,7 +17200,7 @@ msgstr "Este broadcast define um conteúdo UTM fixo, então suas variações nã
 msgid "This broadcast was cancelled before completion."
 msgstr "Este broadcast foi cancelado antes da conclusão."
 
-#: src/components/transactional/notificationRules.ts:86
+#: src/components/transactional/notificationRules.ts:88
 msgid "This cannot be undone."
 msgstr "Isso não pode ser desfeito."
 
@@ -17881,7 +17885,7 @@ msgstr "ID Transacional"
 msgid "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
 msgstr "Definições de notificações transacionais e todos os caminhos que de fato enviam um email através das credenciais de provedor do workspace."
 
-#: src/components/transactional/notificationRules.ts:93
+#: src/components/transactional/notificationRules.ts:95
 msgid "Transactional notification deleted successfully"
 msgstr "Notificação transacional excluída com sucesso"
 
@@ -19373,7 +19377,7 @@ msgid "Yes, delete"
 msgstr "Sim, excluir"
 
 #: src/components/templates/DeleteTemplateModal.tsx:113
-#: src/components/transactional/notificationRules.ts:87
+#: src/components/transactional/notificationRules.ts:89
 msgid "Yes, Delete"
 msgstr "Sim, Excluir"
 
@@ -19504,7 +19508,7 @@ msgstr "Você entrou em {workspaceName}"
 #~ msgstr "Você deve configurar uma URL de Endpoint Personalizado nas Configurações Gerais acima antes de habilitar o blog."
 
 #: src/components/transactional/notificationParts.tsx:42
-#: src/components/transactional/notificationRules.ts:66
+#: src/components/transactional/notificationRules.ts:68
 msgid "You need access to message history"
 msgstr "Você precisa de acesso ao histórico de mensagens"
 

@@ -60,9 +60,11 @@ export function useActionRules() {
         ? t`You need access to templates`
         : template?.status === 'notFound'
           ? t`Template not found`
-          : template?.status !== 'ok'
-            ? ''
-            : undefined,
+          : template?.status === 'error'
+            ? t`Couldn't load the template`
+            : template?.status !== 'ok'
+              ? ''
+              : undefined,
       logs: permissions?.message_history?.read ? undefined : t`You need access to message history`,
       remove: !write
         ? writeMissing

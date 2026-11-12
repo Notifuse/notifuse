@@ -219,6 +219,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+  // A focus test forces the focus state: the next test starts from the browser's own.
+  focusManager.setFocused(undefined)
 })
 
 describe('TransactionalNotificationsPage list', () => {
@@ -604,6 +606,15 @@ describe('TransactionalNotificationsPage states', () => {
     expect(last.statsGate.loading).toBe(false)
   })
 
+  it('lets the sheet wait for the list rather than ask its own figures while the list loads', async () => {
+    listNotifications.mockImplementation(() => new Promise(() => {}))
+    state.search = { notification: 'created_since' }
+    renderPage()
+
+    await waitFor(() => expect(detailProps).toHaveBeenCalled())
+    expect((detailProps.mock.calls.at(-1)?.[0] as { listed: boolean }).listed).toBe(true)
+  })
+
   it('tells the sheet whether the statistics of the list cover its notification', async () => {
     state.search = { notification: 'welcome' }
     const { rerender } = renderPage()
@@ -623,13 +634,14 @@ describe('TransactionalNotificationsPage states', () => {
     expect((detailProps.mock.calls.at(-1)?.[0] as { listed: boolean }).listed).toBe(false)
   })
 
-  it('lets the sheet read its own figures once the list is empty after a delete', async () => {
+  it('stops counting a notification as listed once the list is read again without it', async () => {
     listNotifications.mockResolvedValueOnce({ notifications: [welcome], total: 1 })
     listNotifications.mockResolvedValue({ notifications: [], total: 0 })
-    state.search = { notification: 'created_since' }
+    state.search = { notification: 'welcome' }
     renderPage()
     await screen.findByText('Welcome')
     await strip().findByText('1,000')
+    expect((detailProps.mock.calls.at(-1)?.[0] as { listed: boolean }).listed).toBe(true)
 
     await act(() => queryClientOf().invalidateQueries({ queryKey: ['transactional-notifications', 'ws1'] }))
     await screen.findByText('No transactional notifications found')

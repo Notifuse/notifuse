@@ -737,11 +737,11 @@ msgstr "空き：{textFree}、{numberFree}、{dateFree}、{jsonFree}"
 msgid "{time} local time"
 msgstr "現地時間 {time}"
 
-#: src/components/transactional/notificationRules.ts:113
+#: src/components/transactional/notificationRules.ts:115
 msgid "{total, plural, one {{all} notification} other {{all} notifications}}"
 msgstr "{total, plural, other {{all} 件の通知}}"
 
-#: src/components/transactional/notificationRules.ts:115
+#: src/components/transactional/notificationRules.ts:117
 msgid "{total, plural, one {{part} of {all} notification} other {{part} of {all} notifications}}"
 msgstr "{total, plural, other {{all} 件中 {part} 件の通知}}"
 
@@ -3244,7 +3244,7 @@ msgstr "キャンペーン"
 #: src/components/templates/DeleteTemplateModal.tsx:115
 #: src/components/templates/SendTemplateModal.tsx:303
 #: src/components/templates/TemplateTranslationsTab.tsx:329
-#: src/components/transactional/notificationRules.ts:89
+#: src/components/transactional/notificationRules.ts:91
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:210
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
@@ -4463,6 +4463,10 @@ msgstr "このブロードキャストの統計を読み込めませんでした
 msgid "Couldn't load the success rate"
 msgstr "成功率を読み込めませんでした"
 
+#: src/components/transactional/notificationRules.ts:64
+msgid "Couldn't load the template"
+msgstr "テンプレートを読み込めませんでした"
+
 #: src/pages/TemplatesPage.tsx:491
 msgid "Couldn't load the templates"
 msgstr "テンプレートを読み込めませんでした"
@@ -5498,7 +5502,7 @@ msgstr "セグメントを削除"
 msgid "Delete template?"
 msgstr "テンプレートを削除しますか？"
 
-#: src/components/transactional/notificationRules.ts:85
+#: src/components/transactional/notificationRules.ts:87
 msgid "Delete the notification?"
 msgstr "通知を削除しますか？"
 
@@ -7389,7 +7393,7 @@ msgstr "招待の削除に失敗しました"
 msgid "Failed to delete list"
 msgstr "リストの削除に失敗しました"
 
-#: src/components/transactional/notificationRules.ts:100
+#: src/components/transactional/notificationRules.ts:102
 msgid "Failed to delete notification"
 msgstr "通知の削除に失敗しました"
 
@@ -10140,7 +10144,7 @@ msgid "Managed by {0} ({1} integration)"
 msgstr "{0}（{1}連携）によって管理"
 
 #. placeholder {0}: integration.name
-#: src/components/transactional/notificationRules.ts:71
+#: src/components/transactional/notificationRules.ts:73
 msgid "Managed by {0}: it can't be deleted"
 msgstr "{0} が管理しているため削除できません"
 
@@ -10148,7 +10152,7 @@ msgstr "{0} が管理しているため削除できません"
 msgid "Managed by an integration"
 msgstr "連携により管理"
 
-#: src/components/transactional/notificationRules.ts:72
+#: src/components/transactional/notificationRules.ts:74
 msgid "Managed by an integration: it can't be deleted"
 msgstr "連携が管理しているため削除できません"
 
@@ -17196,7 +17200,7 @@ msgstr "このブロードキャストは固定のUTMコンテンツを設定し
 msgid "This broadcast was cancelled before completion."
 msgstr "このブロードキャストは完了前にキャンセルされました。"
 
-#: src/components/transactional/notificationRules.ts:86
+#: src/components/transactional/notificationRules.ts:88
 msgid "This cannot be undone."
 msgstr "この操作は元に戻せません。"
 
@@ -17881,7 +17885,7 @@ msgstr "トランザクションID"
 msgid "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
 msgstr "トランザクション通知の定義と、ワークスペースのプロバイダー認証情報を使って実際にメールを送信するすべての経路。"
 
-#: src/components/transactional/notificationRules.ts:93
+#: src/components/transactional/notificationRules.ts:95
 msgid "Transactional notification deleted successfully"
 msgstr "トランザクション通知が正常に削除されました"
 
@@ -19373,7 +19377,7 @@ msgid "Yes, delete"
 msgstr "はい、削除"
 
 #: src/components/templates/DeleteTemplateModal.tsx:113
-#: src/components/transactional/notificationRules.ts:87
+#: src/components/transactional/notificationRules.ts:89
 msgid "Yes, Delete"
 msgstr "はい、削除"
 
@@ -19504,7 +19508,7 @@ msgstr "{workspaceName} に参加しました"
 #~ msgstr "ブログを有効にする前に、上の一般設定でカスタムエンドポイントURLを設定する必要があります。"
 
 #: src/components/transactional/notificationParts.tsx:42
-#: src/components/transactional/notificationRules.ts:66
+#: src/components/transactional/notificationRules.ts:68
 msgid "You need access to message history"
 msgstr "メッセージ履歴へのアクセス権が必要です"
 

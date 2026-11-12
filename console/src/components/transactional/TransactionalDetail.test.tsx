@@ -185,6 +185,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  // A focus test forces the focus state: the next test starts from the browser's own.
+  focusManager.setFocused(undefined)
 })
 
 describe('TransactionalDetail', () => {
@@ -313,6 +315,27 @@ describe('TransactionalDetail', () => {
       { member: 'transactional_notification_id', operator: 'in', values: ['reset'] },
       { member: 'created_at', operator: 'inDateRange', values: [periods.current.startUtc, periods.current.endUtc] }
     ])
+  })
+
+  it('waits for the new period of a notification outside the list rather than show the old one', async () => {
+    const daily = query.getMockImplementation()
+    query.mockImplementation((q: AnalyticsQuery) =>
+      q.dimensions.includes('transactional_notification_id')
+        ? Promise.resolve({
+            data: [{ transactional_notification_id: 'reset', count_sent: 1234 }],
+            meta: { total: 1, query: '', params: [] }
+          })
+        : daily?.(q)
+    )
+    const client = newClient()
+    const { rerender } = render(tree(props({ listed: false, stats: new Map() }), client))
+    await screen.findByText('Name reset')
+    await waitFor(() => expect(within(kpi('Sent')).getByText('1,234')).toBeInTheDocument())
+
+    query.mockImplementation(() => new Promise(() => {}))
+    const sevenDays = resolveTransactionalPeriod('7d', 'Europe/Paris')
+    rerender(tree(props({ listed: false, stats: new Map(), period: '7d', periods: sevenDays }), client))
+    await waitFor(() => expect(within(kpi('Sent')).queryByText('1,234')).not.toBeInTheDocument())
   })
 
   it("asks no figures of its own when the list's statistics cover the notification", async () => {

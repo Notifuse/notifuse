@@ -737,11 +737,11 @@ msgstr "Frei: {textFree}, {numberFree}, {dateFree}, {jsonFree}"
 msgid "{time} local time"
 msgstr "{time} Ortszeit"
 
-#: src/components/transactional/notificationRules.ts:113
+#: src/components/transactional/notificationRules.ts:115
 msgid "{total, plural, one {{all} notification} other {{all} notifications}}"
 msgstr "{total, plural, one {{all} Benachrichtigung} other {{all} Benachrichtigungen}}"
 
-#: src/components/transactional/notificationRules.ts:115
+#: src/components/transactional/notificationRules.ts:117
 msgid "{total, plural, one {{part} of {all} notification} other {{part} of {all} notifications}}"
 msgstr "{total, plural, one {{part} von {all} Benachrichtigung} other {{part} von {all} Benachrichtigungen}}"
 
@@ -3244,7 +3244,7 @@ msgstr "Kampagnen"
 #: src/components/templates/DeleteTemplateModal.tsx:115
 #: src/components/templates/SendTemplateModal.tsx:303
 #: src/components/templates/TemplateTranslationsTab.tsx:329
-#: src/components/transactional/notificationRules.ts:89
+#: src/components/transactional/notificationRules.ts:91
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:210
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
@@ -4463,6 +4463,10 @@ msgstr "Die Statistiken dieser Kampagne konnten nicht geladen werden"
 msgid "Couldn't load the success rate"
 msgstr "Die Erfolgsquote konnte nicht geladen werden"
 
+#: src/components/transactional/notificationRules.ts:64
+msgid "Couldn't load the template"
+msgstr "Die Vorlage konnte nicht geladen werden"
+
 #: src/pages/TemplatesPage.tsx:491
 msgid "Couldn't load the templates"
 msgstr "Die Vorlagen konnten nicht geladen werden"
@@ -5498,7 +5502,7 @@ msgstr "Segment löschen"
 msgid "Delete template?"
 msgstr "Vorlage löschen?"
 
-#: src/components/transactional/notificationRules.ts:85
+#: src/components/transactional/notificationRules.ts:87
 msgid "Delete the notification?"
 msgstr "Benachrichtigung löschen?"
 
@@ -7389,7 +7393,7 @@ msgstr "Löschen der Einladung fehlgeschlagen"
 msgid "Failed to delete list"
 msgstr "Löschen der Liste fehlgeschlagen"
 
-#: src/components/transactional/notificationRules.ts:100
+#: src/components/transactional/notificationRules.ts:102
 msgid "Failed to delete notification"
 msgstr "Löschen der Benachrichtigung fehlgeschlagen"
 
@@ -10140,7 +10144,7 @@ msgid "Managed by {0} ({1} integration)"
 msgstr "Verwaltet von {0} ({1}-Integration)"
 
 #. placeholder {0}: integration.name
-#: src/components/transactional/notificationRules.ts:71
+#: src/components/transactional/notificationRules.ts:73
 msgid "Managed by {0}: it can't be deleted"
 msgstr "Verwaltet von {0}: kann nicht gelöscht werden"
 
@@ -10148,7 +10152,7 @@ msgstr "Verwaltet von {0}: kann nicht gelöscht werden"
 msgid "Managed by an integration"
 msgstr "Von einer Integration verwaltet"
 
-#: src/components/transactional/notificationRules.ts:72
+#: src/components/transactional/notificationRules.ts:74
 msgid "Managed by an integration: it can't be deleted"
 msgstr "Von einer Integration verwaltet: kann nicht gelöscht werden"
 
@@ -17196,7 +17200,7 @@ msgstr "Diese Kampagne setzt einen festen UTM-Content, daher können ihre Variat
 msgid "This broadcast was cancelled before completion."
 msgstr "Diese Kampagne wurde vor dem Abschluss abgebrochen."
 
-#: src/components/transactional/notificationRules.ts:86
+#: src/components/transactional/notificationRules.ts:88
 msgid "This cannot be undone."
 msgstr "Dies kann nicht rückgängig gemacht werden."
 
@@ -17881,7 +17885,7 @@ msgstr "Transaktions-ID"
 msgid "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
 msgstr "Definitionen transaktionaler Benachrichtigungen und jeder Weg, der tatsächlich eine E-Mail über die Anbieter-Zugangsdaten des Arbeitsbereichs versendet."
 
-#: src/components/transactional/notificationRules.ts:93
+#: src/components/transactional/notificationRules.ts:95
 msgid "Transactional notification deleted successfully"
 msgstr "Transaktionale Benachrichtigung erfolgreich gelöscht"
 
@@ -19373,7 +19377,7 @@ msgid "Yes, delete"
 msgstr "Ja, löschen"
 
 #: src/components/templates/DeleteTemplateModal.tsx:113
-#: src/components/transactional/notificationRules.ts:87
+#: src/components/transactional/notificationRules.ts:89
 msgid "Yes, Delete"
 msgstr "Ja, löschen"
 
@@ -19504,7 +19508,7 @@ msgstr "Sie sind {workspaceName} beigetreten"
 #~ msgstr "Sie müssen eine benutzerdefinierte Endpunkt-URL in den allgemeinen Einstellungen oben konfigurieren, bevor Sie den Blog aktivieren."
 
 #: src/components/transactional/notificationParts.tsx:42
-#: src/components/transactional/notificationRules.ts:66
+#: src/components/transactional/notificationRules.ts:68
 msgid "You need access to message history"
 msgstr "Sie benötigen Zugriff auf den Nachrichtenverlauf"
 

@@ -12,8 +12,9 @@ Console only: no server, schema, query or environment change.
   so each row carries a link with an `href` (keyboard reachable, readable by screen readers, opens in a
   new tab with a modifier click).
 - Plain click on the link: `preventDefault()` so the Link does not navigate itself; the click bubbles to
-  the row, whose `onClick` opens the sheet once (a new history entry, as today). Modifier or middle
-  click (`metaKey`, `ctrlKey`, `shiftKey`, `altKey`, `button !== 0`): `stopPropagation()` only, so the
+  the row, whose `onClick` opens the sheet once (a new history entry, as today). Modifier click
+  (`metaKey`, `ctrlKey`, `shiftKey`, `altKey`; a middle click fires `auxclick`, not `click`, and never
+  reaches the row): `stopPropagation()` only, so the
   browser opens the link in a new tab and the row does not open the sheet as well.
 - The row loses `tabIndex`, `aria-label` and its Enter handler: the link is the keyboard target (Enter
   on a focused link fires its click). Mouse click anywhere on the row still opens the sheet.
@@ -162,3 +163,15 @@ disabled actions say why in the menu, and the sends per day can be read as a tab
   with `refetchOnWindowFocus: false`, as the console's, and reset `focusManager`. The preview e2e clicks
   inside the preview drawer, which fails if the sheet covers it.
 - i18n: `src/i18n/locales/catalogues.test.ts` (no empty msgstr) joins the targeted run.
+
+## Code review (Fable, high) of bdbf9e8 — folded in
+- Pinned: the sheet's own figures wait for a new period (`isPlaceholderData`), and the sheet waits for
+  the list rather than ask its own figures while the list loads.
+- The « empty list after a delete » page test now starts from a listed notification.
+- `MenuEntryLabel` has its own test (`notificationParts.test.tsx`); `focusManager` is reset after each test.
+- « Preview template » disabled because the template failed to load now says so
+  (« Couldn't load the template »), so every disabled menu entry gives its reason.
+
+Known, not treated: antd skips disabled menu items in arrow navigation, so a screen reader reads their
+reason in browse mode only; the default-sender reason, the deleted template pill and the Send test / Edit
+reasons stay hover tooltips; a KPI link without a rate is named « Delivered: —, … ».

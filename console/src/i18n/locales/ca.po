@@ -737,11 +737,11 @@ msgstr "Lliures: {textFree}, {numberFree}, {dateFree}, {jsonFree}"
 msgid "{time} local time"
 msgstr "{time} hora local"
 
-#: src/components/transactional/notificationRules.ts:113
+#: src/components/transactional/notificationRules.ts:115
 msgid "{total, plural, one {{all} notification} other {{all} notifications}}"
 msgstr "{total, plural, one {{all} notificació} other {{all} notificacions}}"
 
-#: src/components/transactional/notificationRules.ts:115
+#: src/components/transactional/notificationRules.ts:117
 msgid "{total, plural, one {{part} of {all} notification} other {{part} of {all} notifications}}"
 msgstr "{total, plural, one {{part} de {all} notificació} other {{part} de {all} notificacions}}"
 
@@ -3244,7 +3244,7 @@ msgstr "Campanyes"
 #: src/components/templates/DeleteTemplateModal.tsx:115
 #: src/components/templates/SendTemplateModal.tsx:303
 #: src/components/templates/TemplateTranslationsTab.tsx:329
-#: src/components/transactional/notificationRules.ts:89
+#: src/components/transactional/notificationRules.ts:91
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:210
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
@@ -4463,6 +4463,10 @@ msgstr "No s'han pogut carregar les estadístiques d'aquesta difusió"
 msgid "Couldn't load the success rate"
 msgstr "No s'ha pogut carregar la taxa d'èxit"
 
+#: src/components/transactional/notificationRules.ts:64
+msgid "Couldn't load the template"
+msgstr "No s'ha pogut carregar la plantilla"
+
 #: src/pages/TemplatesPage.tsx:491
 msgid "Couldn't load the templates"
 msgstr "No s'han pogut carregar les plantilles"
@@ -5498,7 +5502,7 @@ msgstr "Eliminar segment"
 msgid "Delete template?"
 msgstr "Eliminar plantilla?"
 
-#: src/components/transactional/notificationRules.ts:85
+#: src/components/transactional/notificationRules.ts:87
 msgid "Delete the notification?"
 msgstr "Eliminar la notificació?"
 
@@ -7389,7 +7393,7 @@ msgstr "No s'ha pogut eliminar la invitació"
 msgid "Failed to delete list"
 msgstr "No s'ha pogut eliminar la llista"
 
-#: src/components/transactional/notificationRules.ts:100
+#: src/components/transactional/notificationRules.ts:102
 msgid "Failed to delete notification"
 msgstr "No s'ha pogut eliminar la notificació"
 
@@ -10140,7 +10144,7 @@ msgid "Managed by {0} ({1} integration)"
 msgstr "Gestionat per {0} (integració {1})"
 
 #. placeholder {0}: integration.name
-#: src/components/transactional/notificationRules.ts:71
+#: src/components/transactional/notificationRules.ts:73
 msgid "Managed by {0}: it can't be deleted"
 msgstr "Gestionada per {0}: no es pot eliminar"
 
@@ -10148,7 +10152,7 @@ msgstr "Gestionada per {0}: no es pot eliminar"
 msgid "Managed by an integration"
 msgstr "Gestionada per una integració"
 
-#: src/components/transactional/notificationRules.ts:72
+#: src/components/transactional/notificationRules.ts:74
 msgid "Managed by an integration: it can't be deleted"
 msgstr "Gestionada per una integració: no es pot eliminar"
 
@@ -17196,7 +17200,7 @@ msgstr "Aquesta difusió estableix un contingut UTM fix, de manera que les seves
 msgid "This broadcast was cancelled before completion."
 msgstr "Aquesta difusió es va cancel·lar abans de completar-se."
 
-#: src/components/transactional/notificationRules.ts:86
+#: src/components/transactional/notificationRules.ts:88
 msgid "This cannot be undone."
 msgstr "Això no es pot desfer."
 
@@ -17881,7 +17885,7 @@ msgstr "ID transaccional"
 msgid "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
 msgstr "Definicions de notificacions transaccionals i tots els camins que realment envien un correu amb les credencials de proveïdor de l'espai de treball."
 
-#: src/components/transactional/notificationRules.ts:93
+#: src/components/transactional/notificationRules.ts:95
 msgid "Transactional notification deleted successfully"
 msgstr "Notificació transaccional eliminada correctament"
 
@@ -19373,7 +19377,7 @@ msgid "Yes, delete"
 msgstr "Sí, eliminar"
 
 #: src/components/templates/DeleteTemplateModal.tsx:113
-#: src/components/transactional/notificationRules.ts:87
+#: src/components/transactional/notificationRules.ts:89
 msgid "Yes, Delete"
 msgstr "Sí, eliminar"
 
@@ -19504,7 +19508,7 @@ msgstr "Us heu unit a {workspaceName}"
 #~ msgstr "Heu de configurar una URL de punt final personalitzat a la Configuració general anterior abans d'habilitar el blog."
 
 #: src/components/transactional/notificationParts.tsx:42
-#: src/components/transactional/notificationRules.ts:66
+#: src/components/transactional/notificationRules.ts:68
 msgid "You need access to message history"
 msgstr "Necessiteu accés a l'historial de missatges"
 
