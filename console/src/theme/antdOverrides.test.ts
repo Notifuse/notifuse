@@ -84,6 +84,9 @@ describe('global antd rules', () => {
     expect(main).toMatch(/import '\.\/theme\/fonts\.css'/)
     expect(main).toMatch(/import '\.\/theme\/antd-overrides\.css'/)
     expect(main.indexOf("'./index.css'")).toBeLessThan(main.indexOf("'./theme/antd-overrides.css'"))
+    // index.css gives pre/code/kbd/samp the code face over antd's reset, at equal specificity.
+    expect(main.indexOf("'antd/dist/reset.css'")).toBeGreaterThan(-1)
+    expect(main.indexOf("'antd/dist/reset.css'")).toBeLessThan(main.indexOf("'./index.css'"))
   })
 
   it('embed the latin and latin-ext subsets of the fonts only', () => {

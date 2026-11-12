@@ -132,7 +132,8 @@ interface CreateTemplateDrawerProps {
  */
 type TranslationEmailPayload = Partial<EmailTemplate> & Pick<EmailTemplate, 'subject'>
 
-const HEADER_HEIGHT = 66
+// The drawer header (61px with the theme's 28px controls) and its 1px rule.
+const HEADER_HEIGHT = 62
 
 // Liquid variables named in the custom text warnings, outside the translated sentences.
 const UNSUBSCRIBE_VARIABLE = '{{ unsubscribe_url }}'

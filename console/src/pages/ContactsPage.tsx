@@ -557,7 +557,7 @@ export function ContactsPage() {
       title: t`Email`,
       dataIndex: 'email',
       key: 'email',
-      fixed: 'left' as const,
+      fixed: 'left' as const
     },
     {
       title: t`Lists`,

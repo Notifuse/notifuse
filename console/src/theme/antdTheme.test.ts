@@ -14,6 +14,9 @@ describe('antd theme', () => {
     expect(derived.controlHeightSM).toBe(22)
   })
 
+  it('hovers table rows in a colour a neutral tag stays visible on', () => {
+    expect(components.Table?.rowHoverBg).not.toBe(components.Tag?.defaultBg)
+  })
 
   it('takes its colours from the Nuit claire tokens', () => {
     expect(token).toMatchObject({

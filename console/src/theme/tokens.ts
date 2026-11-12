@@ -40,7 +40,7 @@ export const colors = {
   surface: '#ffffff',
   /** Table headers and row hover, secondary areas inside a card. */
   subtle: gray[50],
-  /** Neutral pill, icon background, hover of a control. */
+  /** Neutral pill, icon background, hover of a menu item. */
   fill: gray[100],
   /** Card and control borders. */
   line: gray[200],

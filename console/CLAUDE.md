@@ -50,7 +50,7 @@ function MyComponent() {
 
 ## Styling (Nuit claire theme)
 
-Every colour, text size, radius, shadow and duration is defined once in `src/theme/tokens.ts`. The antd theme
+Every colour, radius, shadow and duration, and every text size of the Tailwind scale, is defined once in `src/theme/tokens.ts`. The antd theme
 (`src/theme/antdTheme.ts`) is built from it, and the Tailwind `@theme` block of `src/index.css` repeats it
 (`src/theme/tailwindTheme.contract.test.ts` keeps them in step).
 
