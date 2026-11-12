@@ -1,24 +1,25 @@
 import React, { useState, useRef, useCallback } from 'react'
 import { Popover, Tooltip } from 'antd'
-import { Plus, UserPlus, UserMinus, Filter, Globe, ListChecks } from 'lucide-react'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faHourglass, faEnvelope } from '@fortawesome/free-regular-svg-icons'
-import { faFlask } from '@fortawesome/free-solid-svg-icons'
+import { Plus } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import type { NodeType } from '../../services/api/automation'
+import { NODE_TYPES } from './nodeTypes'
 
-// Menu items structure without labels (labels are added inside component for i18n)
- 
-export const ADD_NODE_MENU_ITEMS: { key: NodeType; label: string; icon: React.ReactNode }[] = [
-  { key: 'delay', label: 'Delay', icon: <FontAwesomeIcon icon={faHourglass} style={{ color: '#faad14' }} /> },
-  { key: 'email', label: 'Email', icon: <FontAwesomeIcon icon={faEnvelope} style={{ color: '#1890ff' }} /> },
-  { key: 'filter', label: 'Filter', icon: <Filter size={14} style={{ color: '#eb2f96' }} /> },
-  { key: 'ab_test', label: 'A/B Test', icon: <FontAwesomeIcon icon={faFlask} style={{ color: '#2f54eb' }} /> },
-  { key: 'list_status_branch', label: 'List Status', icon: <ListChecks size={14} style={{ color: '#389e0d' }} /> },
-  { key: 'add_to_list', label: 'Add to List', icon: <UserPlus size={14} style={{ color: '#13c2c2' }} /> },
-  { key: 'remove_from_list', label: 'Remove from List', icon: <UserMinus size={14} style={{ color: '#fa541c' }} /> },
-  { key: 'webhook', label: 'Webhook', icon: <Globe size={14} style={{ color: '#9254de' }} /> }
-]
+/** The steps the "+" menu offers, in its order; label and icon come from NODE_TYPES. */
+export const ADD_NODE_MENU_ITEMS: { key: NodeType }[] = (
+  ['delay', 'email', 'filter', 'ab_test', 'list_status_branch', 'add_to_list', 'remove_from_list', 'webhook'] as NodeType[]
+).map((key) => ({ key }))
+
+/** A step type's chip: its icon on its tone. */
+export function NodeTypeChip({ type }: { type: NodeType }) {
+  const meta = NODE_TYPES[type]
+  const Icon = meta.icon
+  return (
+    <span className={`flex size-5.5 shrink-0 items-center justify-center rounded-md ${meta.chip}`}>
+      <Icon size={12} aria-hidden="true" />
+    </span>
+  )
+}
 
 interface AddNodeButtonProps {
   onSelectNodeType: (nodeType: NodeType) => void
@@ -41,7 +42,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
   tooltipPlacement = 'top',
   className = ''
 }) => {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   // Use controlled or uncontrolled menu state
   const [internalMenuOpen, setInternalMenuOpen] = useState(false)
   const isControlled = controlledMenuOpen !== undefined
@@ -65,29 +66,6 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
   )
 
 
-  // Labels live in here so `t` resolves to the useLingui() binding. Declared at module
-  // level taking `t` as a parameter, the macro cannot rewrite these tagged templates and
-  // what such a call reaches at runtime is i18n._, which answers "" to a tagged template
-  // — every label came back empty and the menu fell through to the raw node keys.
-  const getNodeTypeLabel = useCallback(
-    (key: NodeType): string => {
-      const labels: Record<NodeType, string> = {
-        trigger: t`Trigger`,
-        delay: t`Delay`,
-        email: t`Email`,
-        filter: t`Filter`,
-        ab_test: t`A/B Test`,
-        list_status_branch: t`List Status`,
-        add_to_list: t`Add to List`,
-        remove_from_list: t`Remove from List`,
-        webhook: t`Webhook`,
-        branch: t`Branch`
-      }
-      return labels[key] || key
-    },
-    [t]
-  )
-
   const buttonSize = size === 'small' ? 'w-6 h-6' : 'w-7 h-7'
   const shadowSize = size === 'small' ? 'shadow-md' : 'shadow-lg'
   const iconSize = size === 'small' ? 14 : 16
@@ -96,21 +74,21 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
     <div className="py-1 min-w-[180px]">
       {ADD_NODE_MENU_ITEMS.map((item) => {
         const isDisabled = item.key === 'email' && !hasListSelected
-        const translatedLabel = getNodeTypeLabel(item.key)
+        const translatedLabel = i18n._(NODE_TYPES[item.key].label)
         const button = (
           <button
             key={item.key}
-            className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${
-              isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 cursor-pointer'
+            type="button"
+            className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink ${
+              isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-fill'
             }`}
-            style={{ color: '#374151' }}
             onClick={() => {
               if (isDisabled) return
               onSelectNodeType(item.key)
               setMenuOpen(false)
             }}
           >
-            {item.icon}
+            <NodeTypeChip type={item.key} />
             {translatedLabel}
           </button>
         )
@@ -138,6 +116,8 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
           styles={{ container: { padding: 0 } }}
         >
           <button
+            type="button"
+            aria-label={t`Add node`}
             className={`add-node-button flex items-center justify-center ${buttonSize} rounded-full ${shadowSize} border-2 border-white cursor-pointer transition-transform hover:scale-110`}
           >
             <Plus size={iconSize} color="white" />
