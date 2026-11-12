@@ -36,8 +36,9 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // The segments filter always offers the create button, even with no segment yet
-      await expect(page.getByRole('button', { name: 'Segment', exact: true })).toBeVisible()
+      // The rail's Segments section always offers the create button, even with no segment yet
+      await expect(page.getByRole('button', { name: 'New segment', exact: true })).toBeVisible()
+      await expect(page.getByText('No segments yet')).toBeVisible()
     })
 
     test('loads debug segment page', async ({ authenticatedPage }) => {
@@ -69,7 +70,7 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      await page.getByRole('button', { name: 'Segment', exact: true }).click()
+      await page.getByRole('button', { name: 'New segment', exact: true }).click()
 
       const drawer = segmentDrawer(page, 'New segment')
       await expect(drawer).toBeVisible()
@@ -86,7 +87,7 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      await page.getByRole('button', { name: 'Segment', exact: true }).click()
+      await page.getByRole('button', { name: 'New segment', exact: true }).click()
 
       const drawer = segmentDrawer(page, 'New segment')
       await expect(drawer).toBeVisible()
@@ -180,10 +181,10 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // Every segment in the filter bar carries a status dot next to its name
-      const segmentButton = page.getByRole('button').filter({ hasText: 'Active Users' })
-      await expect(segmentButton).toBeVisible()
-      await expect(segmentButton.locator('.ant-badge-status-dot')).toBeVisible()
+      // Every segment in the rail carries its colour dot and, once computed, its contacts count
+      const segmentItem = page.locator('[data-rail-item]').filter({ hasText: 'Active Users' })
+      await expect(segmentItem).toBeVisible()
+      await expect(segmentItem.locator('span.rounded-full').first()).toBeVisible()
     })
   })
 
@@ -194,7 +195,7 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      await page.getByRole('button', { name: 'Segment', exact: true }).click()
+      await page.getByRole('button', { name: 'New segment', exact: true }).click()
       const drawer = segmentDrawer(page, 'New segment')
       await expect(drawer).toBeVisible()
 
@@ -207,17 +208,16 @@ test.describe('Segments Feature', () => {
   })
 
   test.describe('Integration', () => {
-    test('segment page accessible from contacts filter', async ({ authenticatedPageWithData }) => {
+    test('segments are listed in the contacts rail', async ({ authenticatedPageWithData }) => {
       const page = authenticatedPageWithData
 
       // Start at contacts
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // The segments the workspace owns are listed as filters above the contacts table
-      await expect(page.getByText('Segments:')).toBeVisible()
+      // The segments the workspace owns are views in the rail, beside the lists
       for (const name of ['Active Users', 'US Customers', 'Enterprise Plans']) {
-        await expect(page.getByRole('button').filter({ hasText: name })).toBeVisible()
+        await expect(page.locator('[data-rail-item]').filter({ hasText: name })).toBeVisible()
       }
     })
   })
@@ -268,12 +268,10 @@ test.describe('Segments Feature', () => {
   })
 
   test.describe('Edit Form Prefill', () => {
-    // The segment actions hang off the ellipsis button that sits next to each segment filter.
+    // A segment opens as a view from the rail; its header carries « Edit segment ».
     const openSegmentEditor = async (page: Page, segmentName: string) => {
-      const segmentGroup = page.locator('.ant-space-compact').filter({ hasText: segmentName })
-      await expect(segmentGroup).toBeVisible()
-      await segmentGroup.getByRole('button').last().click()
-      await page.getByRole('menuitem', { name: 'Update', exact: true }).click()
+      await page.locator('[data-rail-item]').filter({ hasText: segmentName }).click()
+      await page.getByRole('button', { name: 'Edit segment', exact: true }).click()
 
       const drawer = segmentDrawer(page, 'Update segment')
       await expect(drawer).toBeVisible()
@@ -327,7 +325,7 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      await page.getByRole('button', { name: 'Segment', exact: true }).click()
+      await page.getByRole('button', { name: 'New segment', exact: true }).click()
       const drawer = segmentDrawer(page, 'New segment')
       await expect(drawer).toBeVisible()
 
@@ -344,7 +342,7 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      await page.getByRole('button', { name: 'Segment', exact: true }).click()
+      await page.getByRole('button', { name: 'New segment', exact: true }).click()
       const drawer = segmentDrawer(page, 'New segment')
       await expect(drawer).toBeVisible()
 
@@ -446,7 +444,7 @@ test.describe('Segments Feature', () => {
       await waitForLoading(page)
 
       // Open segment drawer
-      await page.getByRole('button', { name: 'Segment', exact: true }).click()
+      await page.getByRole('button', { name: 'New segment', exact: true }).click()
       const drawer = segmentDrawer(page, 'New segment')
       await expect(drawer).toBeVisible()
 

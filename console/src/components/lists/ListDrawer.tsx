@@ -21,6 +21,9 @@ interface CreateListDrawerProps {
     size?: 'large' | 'middle' | 'small'
     disabled?: boolean
   }
+  /** Controlled mode: the drawer follows this prop and renders no trigger button. */
+  open?: boolean
+  onClose?: () => void
   // Without Templates read the double opt-in template field shows the stored ID and is locked.
   canReadTemplates: boolean
 }
@@ -33,10 +36,14 @@ export function CreateListDrawer({
     type: 'primary',
     buttonContent: list ? 'Edit List' : 'Create List',
     size: 'middle'
-  }
+  },
+  open: controlledOpen,
+  onClose: controlledOnClose
 }: CreateListDrawerProps) {
   const { t } = useLingui()
-  const [open, setOpen] = React.useState(false)
+  const isControlled = controlledOpen !== undefined
+  const [internalOpen, setInternalOpen] = React.useState(false)
+  const open = isControlled ? controlledOpen : internalOpen
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
   const isEditMode = !!list
@@ -67,9 +74,8 @@ export function CreateListDrawer({
     },
     onSuccess: () => {
       message.success(t`List created successfully`)
-      queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
-      setOpen(false)
-      form.resetFields()
+      invalidateLists()
+      onClose()
     },
     onError: (error) => {
       message.error(t`Failed to create list: ${error}`)
@@ -82,16 +88,22 @@ export function CreateListDrawer({
     },
     onSuccess: () => {
       message.success(t`List updated successfully`)
-      queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
-      setOpen(false)
-      form.resetFields()
+      invalidateLists()
+      onClose()
     },
     onError: (error) => {
       message.error(t`Failed to update list: ${error}`)
     }
   })
 
-  const showDrawer = () => {
+  // The lists and the counts of the Contacts rail, which has its own key so that the frequent
+  // invalidations of 'lists' do not recount every list.
+  function invalidateLists() {
+    queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
+    queryClient.invalidateQueries({ queryKey: ['lists-with-counts', workspaceId] })
+  }
+
+  const fillForm = () => {
     if (isEditMode) {
       // Populate form with existing list data
       form.setFieldsValue({
@@ -103,11 +115,22 @@ export function CreateListDrawer({
         double_optin_template_id: list.double_optin_template?.id
       })
     }
-    setOpen(true)
   }
 
-  const onClose = () => {
-    setOpen(false)
+  const showDrawer = () => {
+    fillForm()
+    setInternalOpen(true)
+  }
+
+  // Controlled: fill the form each time the drawer opens.
+  React.useEffect(() => {
+    if (isControlled && controlledOpen) fillForm()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on opening
+  }, [isControlled, controlledOpen, list?.id])
+
+  function onClose() {
+    if (isControlled) controlledOnClose?.()
+    else setInternalOpen(false)
     form.resetFields()
   }
 
@@ -148,14 +171,16 @@ export function CreateListDrawer({
 
   return (
     <>
-      <Button
-        type={buttonProps.type || 'primary'}
-        onClick={showDrawer}
-        size={buttonProps.size}
-        disabled={buttonProps.disabled}
-      >
-        {buttonProps.buttonContent || (isEditMode ? t`Edit List` : t`Create List`)}
-      </Button>
+      {isControlled ? null : (
+        <Button
+          type={buttonProps.type || 'primary'}
+          onClick={showDrawer}
+          size={buttonProps.size}
+          disabled={buttonProps.disabled}
+        >
+          {buttonProps.buttonContent || (isEditMode ? t`Edit List` : t`Create List`)}
+        </Button>
+      )}
       <Drawer
         title={isEditMode ? t`Edit List` : t`Create New List`}
         size={400}

@@ -43,7 +43,7 @@ msgstr "- キャンセル済み"
 #~ msgstr ""
 
 #. placeholder {0}: csvData.emails.length - 10
-#: src/components/contacts/BulkUpdateDrawer.tsx:671
+#: src/components/contacts/BulkUpdateDrawer.tsx:686
 msgid "... and {0} more emails"
 msgstr "... 他{0}件のメール"
 
@@ -95,7 +95,7 @@ msgstr "（あなた）"
 #. placeholder {0}: total.bounced
 #. placeholder {1}: int(total.bounced)
 #. placeholder {2}: int(total.bounced)
-#: src/pages/TransactionalNotificationsPage.tsx:296
+#: src/pages/TransactionalNotificationsPage.tsx:298
 msgid "{0, plural, one {{1} email} other {{2} emails}}"
 msgstr "{0, plural, other {{2} 件のメール}}"
 
@@ -149,12 +149,17 @@ msgstr "{0} 件のアクション"
 msgid "{0} broadcasts"
 msgstr "ブロードキャスト {0}"
 
+#. placeholder {0}: int(s.clicked)
+#: src/components/contacts/sheet/ContactKpis.tsx:49
+msgid "{0} clicked"
+msgstr "{0} 件クリック"
+
 #: src/components/contacts/BulkActionProgressModal.tsx:78
 #~ msgid "{0} contact(s)"
 #~ msgstr ""
 
 #. placeholder {0}: previewResponse!.total_count
-#: src/components/segment/button_upsert.tsx:642
+#: src/components/segment/button_upsert.tsx:643
 msgid "{0} contacts"
 msgstr "{0}件のコンタクト"
 
@@ -235,6 +240,11 @@ msgstr "{0} / {1}"
 #: src/components/web_analytics/filters/TestFilterModal.tsx:215
 msgid "{0} of {1} rules match"
 msgstr "{1}件中{0}件のルールが一致"
+
+#. placeholder {0}: int(s.opened)
+#: src/components/contacts/sheet/ContactKpis.tsx:43
+msgid "{0} opened"
+msgstr "{0} 件開封"
 
 #. placeholder {0}: requeued.toLocaleString()
 #: src/pages/BroadcastsPage.tsx:1547
@@ -358,7 +368,11 @@ msgstr "{recipients}人中{clicks}クリック"
 msgid "{clicks} clicks out of {tracked} tracked recipients ({recipients} sent)"
 msgstr "トラッキング対象 {tracked} 件中 {clicks} クリック（送信 {recipients} 件）"
 
-#: src/pages/ListsPage.tsx:143
+#: src/components/contacts/sheet/ContactProfileFields.tsx:101
+msgid "{count, plural, one {# empty field} other {# empty fields}}"
+msgstr "{count, plural, other {空のフィールド # 件}}"
+
+#: src/components/lists/DeleteListModal.tsx:59
 msgid "{count, plural, one {The list \"{listName}\" can't be deleted while a live automation uses it. Ask someone with access to automations to pause it.} other {The list \"{listName}\" can't be deleted while # live automations use it. Ask someone with access to automations to pause them.}}"
 msgstr "{count, plural, one {ライブ状態のオートメーションが使用しているため、リスト\"{listName}\"は削除できません。オートメーションへのアクセス権を持つユーザーに一時停止を依頼してください。} other {ライブ状態のオートメーション#件が使用しているため、リスト\"{listName}\"は削除できません。オートメーションへのアクセス権を持つユーザーに一時停止を依頼してください。}}"
 
@@ -368,7 +382,7 @@ msgstr "{count, plural, one {ライブ状態のオートメーションが使用
 
 #. placeholder {0}: points(change.points)
 #. placeholder {1}: points(change.points)
-#: src/pages/TransactionalNotificationsPage.tsx:269
+#: src/pages/TransactionalNotificationsPage.tsx:271
 msgid "{days, plural, one {{0} vs previous # day} other {{1} vs previous # days}}"
 msgstr "{days, plural, other {{1}（前の # 日間比）}}"
 
@@ -386,9 +400,81 @@ msgstr "{days, plural, other {# 日間で +{1}}}"
 msgid "{days, plural, one {expires in # day} other {expires in # days}}"
 msgstr "{days, plural, other {あと # 日で期限切れ}}"
 
-#: src/pages/TransactionalNotificationsPage.tsx:251
+#: src/pages/TransactionalNotificationsPage.tsx:253
 msgid "{days, plural, one {Last # day} other {Last # days}}"
 msgstr "{days, plural, other {過去 # 日間}}"
+
+#: src/components/segment/segmentSummary.ts:84
+msgid "{field} < {value}"
+msgstr "{field} < {value}"
+
+#: src/components/segment/segmentSummary.ts:80
+msgid "{field} > {value}"
+msgstr "{field} > {value}"
+
+#: src/components/segment/segmentSummary.ts:86
+msgid "{field} ≤ {value}"
+msgstr "{field} ≤ {value}"
+
+#: src/components/segment/segmentSummary.ts:82
+msgid "{field} ≥ {value}"
+msgstr "{field} ≥ {value}"
+
+#: src/components/segment/segmentSummary.ts:90
+msgid "{field} after {value}"
+msgstr "{field} が {value} より後"
+
+#: src/components/segment/segmentSummary.ts:88
+msgid "{field} before {value}"
+msgstr "{field} が {value} より前"
+
+#: src/components/segment/segmentSummary.ts:92
+msgid "{field} between {first} and {second}"
+msgstr "{field} が {first} から {second} の間"
+
+#: src/components/segment/segmentSummary.ts:72
+msgid "{field} contains {value}"
+msgstr "{field} が {value} を含む"
+
+#: src/components/segment/segmentSummary.ts:74
+msgid "{field} does not contain {value}"
+msgstr "{field} が {value} を含まない"
+
+#: src/components/segment/segmentSummary.ts:78
+msgid "{field} ends with {value}"
+msgstr "{field} が {value} で終わる"
+
+#: src/components/segment/segmentSummary.ts:96
+msgid "{field} in the last {days} days"
+msgstr "{field} が過去 {days} 日以内"
+
+#: src/components/segment/segmentSummary.ts:67
+msgid "{field} is {value}"
+msgstr "{field} が {value}"
+
+#: src/components/segment/segmentSummary.ts:69
+msgid "{field} is not {value}"
+msgstr "{field} が {value} 以外"
+
+#: src/components/segment/segmentSummary.ts:65
+msgid "{field} is not set"
+msgstr "{field} が未設定"
+
+#: src/components/segment/segmentSummary.ts:63
+msgid "{field} is set"
+msgstr "{field} が設定済み"
+
+#: src/components/segment/segmentSummary.ts:94
+msgid "{field} not between {first} and {second}"
+msgstr "{field} が {first} から {second} の範囲外"
+
+#: src/components/segment/segmentSummary.ts:98
+msgid "{field} not in the last {days} days"
+msgstr "{field} が過去 {days} 日以内ではない"
+
+#: src/components/segment/segmentSummary.ts:76
+msgid "{field} starts with {value}"
+msgstr "{field} が {value} で始まる"
 
 #: src/components/timeline/ContactTimeline.tsx:927
 msgid "{goalCount} goals"
@@ -397,6 +483,10 @@ msgstr "{goalCount}件のゴール"
 #: src/components/email_builder/panels/Preview.tsx:487
 msgid "{hiddenBlockCount} blocks hidden by their condition with this test data."
 msgstr "このテストデータでは {hiddenBlockCount} 個のブロックが条件により非表示です。"
+
+#: src/components/contacts/visits/duration.ts:12
+msgid "{hours} h {mm} min"
+msgstr "{hours} 時間 {mm} 分"
 
 #: src/components/timeline/ContactTimeline.tsx:302
 msgid "{hours}h"
@@ -434,11 +524,15 @@ msgstr "現在{liveSessions}件がライブ"
 msgid "{maxScroll}% scrolled"
 msgstr "{maxScroll}%スクロール"
 
+#: src/components/contacts/visits/duration.ts:14
+msgid "{minutes} min {seconds} s"
+msgstr "{minutes} 分 {seconds} 秒"
+
 #: src/components/timeline/ContactTimeline.tsx:296
 msgid "{minutes}m"
 msgstr "{minutes}分"
 
-#: src/components/contacts/ExportContactsModal.tsx:138
+#: src/components/contacts/ExportContactsModal.tsx:147
 msgid "{minutes}m {remainingSeconds}s"
 msgstr "{minutes}分{remainingSeconds}秒"
 
@@ -450,7 +544,7 @@ msgstr "{minutes}分{seconds}秒"
 msgid "{more, plural, one {+# more} other {+# more}}"
 msgstr "{more, plural, other {ほか # 件}}"
 
-#: src/pages/ListsPage.tsx:160
+#: src/components/lists/DeleteListModal.tsx:76
 msgid "{more, plural, one {The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\", \"{third}\" and # more use it. Pause them first, or change them to stop using the list.} other {The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\", \"{third}\" and # more use it. Pause them first, or change them to stop using the list.}}"
 msgstr "{more, plural, one {ライブ状態のオートメーション\"{first}\"、\"{second}\"、\"{third}\"ほか#件が使用しているため、リスト\"{listName}\"は削除できません。先にそれらを一時停止するか、このリストを使用しないように変更してください。} other {ライブ状態のオートメーション\"{first}\"、\"{second}\"、\"{third}\"ほか#件が使用しているため、リスト\"{listName}\"は削除できません。先にそれらを一時停止するか、このリストを使用しないように変更してください。}}"
 
@@ -488,7 +582,7 @@ msgstr "{pageviews}ページ"
 msgid "{perMinuteText} emails/min"
 msgstr "{perMinuteText} 通/分"
 
-#: src/components/layout/DrawerControls.tsx:51
+#: src/components/layout/DrawerControls.tsx:61
 msgid "{position} of {total}"
 msgstr "{position} / {total}"
 
@@ -496,11 +590,15 @@ msgstr "{position} / {total}"
 msgid "{propertyCount} properties"
 msgstr "{propertyCount}件のプロパティ"
 
-#: src/components/contacts/ExportContactsModal.tsx:134
+#: src/components/contacts/visits/duration.ts:15
+msgid "{seconds} s"
+msgstr "{seconds} 秒"
+
+#: src/components/contacts/ExportContactsModal.tsx:143
 msgid "{seconds} second"
 msgstr "{seconds}秒"
 
-#: src/components/contacts/ExportContactsModal.tsx:134
+#: src/components/contacts/ExportContactsModal.tsx:143
 msgid "{seconds} seconds"
 msgstr "{seconds}秒"
 
@@ -641,6 +739,15 @@ msgstr "+ プロパティフィルターを追加"
 msgid "+ Add variation"
 msgstr "+ バリエーションを追加"
 
+#. placeholder {0}: session.goal_count - 1
+#. placeholder {0}: session.pageview_count - 1
+#. placeholder {0}: summary.more
+#: src/components/contacts/SegmentDefinedBy.tsx:40
+#: src/components/contacts/visits/ContactWebVisits.tsx:278
+#: src/components/contacts/visits/ContactWebVisits.tsx:314
+msgid "+{0}"
+msgstr "+{0}"
+
 #. placeholder {0}: hidden.length
 #: src/components/web_analytics/filters/FilterTable.tsx:220
 msgid "+{0} more"
@@ -658,7 +765,7 @@ msgstr "≈ 1 時間あたり {perHour} · ≈ 1 日あたり {perDay}"
 msgid "0 clicks out of 0 recipients"
 msgstr "0人中0クリック"
 
-#: src/components/segment/button_upsert.tsx:640
+#: src/components/segment/button_upsert.tsx:641
 msgid "0 contacts"
 msgstr "0件のコンタクト"
 
@@ -669,6 +776,10 @@ msgstr "0人中0回開封"
 #: src/components/email_builder/panels/Preview.tsx:486
 msgid "1 block hidden by its condition with this test data."
 msgstr "このテストデータでは 1 個のブロックが条件により非表示です。"
+
+#: src/components/segment/segmentSummary.ts:116
+msgid "1 condition"
+msgstr "条件 1 件"
 
 #: src/components/timeline/ContactTimeline.tsx:927
 msgid "1 goal"
@@ -732,7 +843,7 @@ msgid "300 - Light"
 msgstr "300 - 細"
 
 #: src/components/transactional/SendsPerDayChart.tsx:182
-#: src/pages/TransactionalNotificationsPage.tsx:317
+#: src/pages/TransactionalNotificationsPage.tsx:319
 msgid "30d"
 msgstr "30日"
 
@@ -753,7 +864,7 @@ msgid "600 - Semi Bold"
 msgstr "600 - やや太"
 
 #: src/components/transactional/SendsPerDayChart.tsx:183
-#: src/pages/TransactionalNotificationsPage.tsx:317
+#: src/pages/TransactionalNotificationsPage.tsx:319
 msgid "60d"
 msgstr "60日"
 
@@ -770,7 +881,7 @@ msgid "700 - Bold"
 msgstr "700 - 太字"
 
 #: src/components/transactional/SendsPerDayChart.tsx:181
-#: src/pages/TransactionalNotificationsPage.tsx:317
+#: src/pages/TransactionalNotificationsPage.tsx:319
 msgid "7d"
 msgstr "7日"
 
@@ -832,7 +943,7 @@ msgid "A newer draft was found in local storage. Would you like to restore it or
 msgstr "ローカルストレージに新しい下書きが見つかりました。復元しますか、それとも破棄しますか?"
 
 #. placeholder {0}: csvData.fileName
-#: src/components/contacts/BulkUpdateDrawer.tsx:398
+#: src/components/contacts/BulkUpdateDrawer.tsx:413
 msgid "A previous {operation} operation for \"{0}\" was found. Would you like to resume from where you left off?"
 msgstr "\"{0}\"の前回の{operation}操作が見つかりました。中断したところから再開しますか?"
 
@@ -842,7 +953,7 @@ msgstr "\"{0}\"の前回の{operation}操作が見つかりました。中断し
 msgid "A previous upload for \"{0}\" was found ({1}). Would you like to resume from where you left off?"
 msgstr "\"{0}\"の前回のアップロード ({1}) が見つかりました。中断したところから再開しますか?"
 
-#: src/components/segment/button_upsert.tsx:165
+#: src/components/segment/button_upsert.tsx:166
 msgid "A segment with ID \"{id}\" already exists"
 msgstr "ID「{id}」のセグメントはすでに存在します"
 
@@ -854,7 +965,7 @@ msgstr "送信専用キーは本当に送信専用です。これは39.0から�
 msgid "A square image, shown next to the workspace name"
 msgstr "ワークスペース名の横に表示される正方形の画像"
 
-#: src/components/segment/button_upsert.tsx:763
+#: src/components/segment/button_upsert.tsx:764
 msgid "A tree is required"
 msgstr "ツリーが必要です"
 
@@ -907,7 +1018,7 @@ msgstr "アクセス"
 msgid "Access Key"
 msgstr "アクセスキー"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:589
+#: src/components/contacts/BulkUpdateDrawer.tsx:604
 #: src/components/settings/audit_logs/AuditFilterBuilder.tsx:100
 #: src/components/settings/audit_logs/AuditLogTable.tsx:209
 #: src/components/web_analytics/filters/TestFilterModal.tsx:183
@@ -922,6 +1033,13 @@ msgstr "アクション"
 #: src/pages/BroadcastsPage.tsx:1019
 msgid "Actions"
 msgstr "アクション"
+
+#. placeholder {0}: listName(subscription.list_id)
+#. placeholder {0}: record.email
+#: src/components/contacts/ContactsTable.tsx:337
+#: src/components/contacts/sheet/ContactListsCard.tsx:163
+msgid "Actions for {0}"
+msgstr "{0} の操作"
 
 #: src/components/automations/AutomationCard.tsx:220
 msgid "Activate"
@@ -942,16 +1060,15 @@ msgstr "有効"
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:48
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:60
 #: src/components/automations/nodes/StatNode.tsx:274
-#: src/components/contacts/ContactDetailsDrawer.tsx:587
-#: src/components/contacts/SegmentsFilter.tsx:57
-#: src/components/lists/ListStats.tsx:66
+#: src/components/contacts/contactDisplay.ts:35
+#: src/components/lists/ListHeader.tsx:62
 #: src/components/settings/LicenseSettings.tsx:109
 #: src/components/settings/WebhookDetail.tsx:265
-#: src/pages/ContactsPage.tsx:398
+#: src/pages/ContactsPage.tsx:521
 msgid "Active"
 msgstr "アクティブ"
 
-#: src/components/contacts/ExportContactsModal.tsx:361
+#: src/components/contacts/ExportContactsModal.tsx:372
 msgid "Active filters"
 msgstr "アクティブフィルター"
 
@@ -964,10 +1081,10 @@ msgstr "アクティブフィルター"
 #~ msgstr ""
 
 #: src/pages/ContactsPage.tsx:578
-msgid "Active subscriber"
-msgstr "アクティブ購読者"
+#~ msgid "Active subscriber"
+#~ msgstr "アクティブ購読者"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:1060
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:236
 #: src/components/segment/form_leaf.tsx:337
 #: src/components/segment/input.tsx:781
 #: src/components/segment/table_tag.tsx:30
@@ -991,7 +1108,6 @@ msgstr "実行者のメール"
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:111
 #: src/components/web_analytics/tabs/FiltersTab.tsx:130
-#: src/pages/ContactsPage.tsx:1085
 msgid "Add"
 msgstr "追加"
 
@@ -1191,7 +1307,7 @@ msgstr "タグを追加..."
 
 #: src/components/contacts/BulkActionsBar.tsx:92
 #: src/components/contacts/BulkActionsBar.tsx:134
-#: src/pages/ContactsPage.tsx:281
+#: src/pages/ContactsPage.tsx:256
 msgid "Add to list"
 msgstr "リストに追加"
 
@@ -1213,25 +1329,36 @@ msgstr "バリアントを追加"
 #~ msgid "Add Webhook"
 #~ msgstr "Webhookを追加"
 
+#: src/components/contacts/ContactsTable.tsx:306
+msgid "Added"
+msgstr "追加日"
+
+#. placeholder {0}: dayjs(contact.created_at).tz(workspaceTimezone).format('ll')
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:194
+msgid "Added on {0}"
+msgstr "{0} に追加"
+
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:199
 msgid "Additional context about this event"
 msgstr "このイベントに関する追加のコンテキスト"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:138
-#: src/pages/ContactsPage.tsx:451
-#: src/pages/ContactsPage.tsx:748
+#: src/components/contacts/ContactsTable.tsx:75
+#: src/components/contacts/ContactsTable.tsx:289
 msgid "Address"
 msgstr "住所"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:140
-#: src/components/contacts/ContactDetailsDrawer.tsx:450
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:97
+#: src/components/contacts/sheet/ContactProfileFields.tsx:117
+#: src/components/segment/segmentSummary.ts:37
 msgid "Address Line 1"
 msgstr "住所1"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:141
-#: src/components/contacts/ContactDetailsDrawer.tsx:451
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:98
+#: src/components/contacts/sheet/ContactProfileFields.tsx:118
+#: src/components/segment/segmentSummary.ts:38
 msgid "Address Line 2"
 msgstr "住所2"
 
@@ -1335,10 +1462,13 @@ msgstr "上揃え"
 msgid "Alignment"
 msgstr "配置"
 
+#: src/components/contacts/sheet/ContactActivityTab.tsx:35
+#: src/components/contacts/visits/ContactWebVisits.tsx:330
 #: src/components/email_builder/panels/LibraryPanel.tsx:210
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:124
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
 #: src/pages/BroadcastsPage.tsx:1672
+#: src/pages/ContactsPage.tsx:513
 #: src/pages/TemplatesPage.tsx:125
 msgid "All"
 msgstr "すべて"
@@ -1374,6 +1504,9 @@ msgid "All contact fields are optional except email."
 msgstr "メール以外のすべてのコンタクトフィールドはオプションです。"
 
 #: src/components/analytics/NewContactsTable.tsx:52
+#: src/components/contacts/ContactsRail.tsx:64
+#: src/pages/ContactsPage.tsx:450
+#: src/pages/ContactsPage.tsx:590
 msgid "All contacts"
 msgstr "すべてのコンタクト"
 
@@ -1483,7 +1616,7 @@ msgstr "API 呼び出しでは email_options.sender_id で別の送信者を選�
 msgid "An API call can set email_options.reply_to. A translation can use another one."
 msgstr "API 呼び出しでは email_options.reply_to を指定できます。翻訳では別の Reply-To を使用できます。"
 
-#: src/components/contacts/ExportContactsModal.tsx:314
+#: src/components/contacts/ExportContactsModal.tsx:325
 msgid "An error occurred during export"
 msgstr "エクスポート中にエラーが発生しました"
 
@@ -1516,6 +1649,7 @@ msgstr "アンカーID"
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
 #: src/components/segment/form_leaf.tsx:853
 #: src/components/segment/input.tsx:678
+#: src/components/segment/segmentSummary.ts:133
 msgid "and"
 msgstr "かつ"
 
@@ -1541,7 +1675,7 @@ msgstr "注釈を更新しました"
 
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:109
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:374
-#: src/layouts/app-shell/menuItems.ts:172
+#: src/layouts/app-shell/menuItems.ts:171
 #: src/pages/WebAnalyticsPage.tsx:99
 msgid "Annotations"
 msgstr "注釈"
@@ -1724,7 +1858,7 @@ msgstr "適用して再コンパイル"
 msgid "Apply filter"
 msgstr "フィルターを適用"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:434
+#: src/components/contacts/BulkUpdateDrawer.tsx:449
 msgid "Are you sure you want to cancel the operation? Progress will be saved and you can resume later."
 msgstr "操作をキャンセルしますか?進捗は保存され、後で再開できます。"
 
@@ -1737,7 +1871,7 @@ msgid "Are you sure you want to delete"
 msgstr "削除してもよろしいですか"
 
 #. placeholder {0}: segment.name
-#: src/components/contacts/SegmentsFilter.tsx:168
+#: src/components/contacts/ContactsViewHeader.tsx:140
 msgid "Are you sure you want to delete \"{0}\"?"
 msgstr "\"{0}\"を削除してもよろしいですか?"
 
@@ -1759,8 +1893,8 @@ msgstr "カテゴリを削除してもよろしいですか"
 msgid "Are you sure you want to delete the invitation for {email}?"
 msgstr "{email} への招待を削除してもよろしいですか？"
 
-#. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:424
+#. placeholder {0}: list.name
+#: src/components/lists/DeleteListModal.tsx:141
 msgid "Are you sure you want to delete the list \"{0}\"?"
 msgstr "リスト\"{0}\"を削除してもよろしいですか?"
 
@@ -1795,7 +1929,7 @@ msgid "Are you sure you want to publish theme v{0}? This will make it live on yo
 msgstr "テーマv{0}を公開しますか?これによりブログで公開されます。"
 
 #. placeholder {0}: segment.name
-#: src/components/contacts/SegmentsFilter.tsx:153
+#: src/components/contacts/ContactsViewHeader.tsx:164
 msgid "Are you sure you want to rebuild \"{0}\"? This will recalculate segment membership."
 msgstr "\"{0}\"を再構築しますか?セグメントのメンバーシップが再計算されます。"
 
@@ -2039,6 +2173,7 @@ msgstr "新規ユーザーを選択したリストに自動追加"
 msgid "Automatically send winner"
 msgstr "勝者を自動送信"
 
+#: src/components/contacts/sheet/activityLabel.ts:27
 #: src/components/timeline/ContactTimeline.tsx:1042
 msgid "Automation"
 msgstr "オートメーション"
@@ -2077,7 +2212,7 @@ msgstr "オートメーション:"
 
 #: src/components/analytics/OriginVolumeChart.tsx:44
 #: src/components/settings/permissionLabels.ts:15
-#: src/layouts/app-shell/menuItems.ts:176
+#: src/layouts/app-shell/menuItems.ts:174
 #: src/pages/AutomationsPage.tsx:163
 #: src/services/api/errors.ts:90
 msgid "Automations"
@@ -2369,7 +2504,7 @@ msgstr "ブロック"
 #: src/components/settings/BlogSettings.tsx:262
 #: src/components/settings/permissionLabels.ts:14
 #: src/components/settings/SettingsSidebar.tsx:67
-#: src/layouts/app-shell/menuItems.ts:180
+#: src/layouts/app-shell/menuItems.ts:178
 #: src/pages/BlogPage.tsx:117
 #: src/services/api/errors.ts:89
 msgid "Blog"
@@ -2478,6 +2613,7 @@ msgstr "右下"
 #~ msgstr "バウンス"
 
 #: src/components/analytics/RecentFailures.tsx:53
+#: src/components/contacts/sheet/activityLabel.ts:23
 #: src/components/timeline/ContactTimeline.tsx:734
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:219
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:73
@@ -2534,8 +2670,8 @@ msgstr "バウンスタイプ"
 #: src/components/automations/config/TriggerConfigForm.tsx:94
 #: src/components/automations/config/TriggerConfigForm.tsx:115
 #: src/components/broadcasts/BroadcastStats.tsx:338
-#: src/components/contacts/ContactDetailsDrawer.tsx:590
-#: src/components/lists/ListStats.tsx:134
+#: src/components/contacts/contactDisplay.ts:38
+#: src/components/lists/ListHeader.tsx:65
 #: src/components/messages/MessageHistoryTab.tsx:167
 #: src/components/messages/MessageHistoryTab.tsx:172
 #: src/components/messages/MessageHistoryTable.tsx:360
@@ -2543,9 +2679,9 @@ msgstr "バウンスタイプ"
 #: src/components/transactional/SendsPerDayChart.tsx:50
 #: src/components/transactional/TransactionalDetail.tsx:212
 #: src/components/transactional/TransactionalDetail.tsx:215
-#: src/pages/ContactsPage.tsx:401
-#: src/pages/TransactionalNotificationsPage.tsx:288
-#: src/pages/TransactionalNotificationsPage.tsx:294
+#: src/pages/ContactsPage.tsx:524
+#: src/pages/TransactionalNotificationsPage.tsx:290
+#: src/pages/TransactionalNotificationsPage.tsx:296
 msgid "Bounced"
 msgstr "バウンス済み"
 
@@ -2685,7 +2821,7 @@ msgstr "ブロードキャストを更新しました"
 #: src/components/analytics/OriginVolumeChart.tsx:42
 #: src/components/analytics/UpcomingSends.tsx:77
 #: src/components/settings/permissionLabels.ts:10
-#: src/layouts/app-shell/menuItems.ts:175
+#: src/layouts/app-shell/menuItems.ts:173
 #: src/pages/BroadcastsPage.tsx:1637
 #: src/services/api/errors.ts:85
 msgid "Broadcasts"
@@ -2739,12 +2875,12 @@ msgid "Build complex contact segments using AND/OR logic with filters across mul
 msgstr "複数のデータテーブルにまたがるフィルターとAND/ORロジックを使用して複雑なコンタクトセグメントを作成します。コンタクト、コンタクトリスト、またはコンタクトタイムラインイベントの条件を追加して開始してください。"
 
 #: src/components/contacts/SegmentsFilter.tsx:88
-msgid "Building"
-msgstr "構築中"
+#~ msgid "Building"
+#~ msgstr "構築中"
 
 #: src/components/contacts/SegmentsFilter.tsx:64
-msgid "Building segment"
-msgstr "セグメントを構築中"
+#~ msgid "Building segment"
+#~ msgstr "セグメントを構築中"
 
 #: src/services/api/permissions.ts:211
 msgid "Bulk create contacts and overwrite every field of every contact in the payload"
@@ -2755,10 +2891,14 @@ msgid "Bulk record custom events against contacts"
 msgstr "コンタクトに対してカスタムイベントを一括記録する"
 
 #: src/pages/ContactsPage.tsx:1065
-msgid "Bulk Update"
-msgstr "一括更新"
+#~ msgid "Bulk Update"
+#~ msgstr "一括更新"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:552
+#: src/components/contacts/ContactsViewHeader.tsx:196
+msgid "Bulk update (CSV)"
+msgstr "一括更新 (CSV)"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:567
 msgid "Bulk Update Contacts"
 msgstr "コンタクトを一括更新"
 
@@ -2822,16 +2962,16 @@ msgstr "キャンペーン"
 #: src/components/broadcasts/SendOrScheduleModal.tsx:301
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:348
 #: src/components/contacts/BulkActionProgressModal.tsx:60
-#: src/components/contacts/BulkUpdateDrawer.tsx:576
-#: src/components/contacts/ContactDetailsDrawer.tsx:1128
-#: src/components/contacts/ContactDetailsDrawer.tsx:1160
+#: src/components/contacts/BulkUpdateDrawer.tsx:591
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:822
 #: src/components/contacts/ContactUpsertDrawer.tsx:514
 #: src/components/contacts/DeleteContactModal.tsx:30
-#: src/components/contacts/ExportContactsModal.tsx:345
+#: src/components/contacts/ExportContactsModal.tsx:356
 #: src/components/contacts/InlineEditableField.tsx:291
-#: src/components/contacts/InlineEditableField.tsx:299
-#: src/components/contacts/TrackingConsent.tsx:211
+#: src/components/contacts/InlineEditableField.tsx:307
+#: src/components/contacts/InlineEditableField.tsx:345
+#: src/components/contacts/sheet/ContactListsCard.tsx:111
+#: src/components/contacts/TrackingConsent.tsx:204
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:155
 #: src/components/email_builder/EmailBuilder.tsx:926
 #: src/components/email_builder/EmailBuilder.tsx:942
@@ -2853,7 +2993,8 @@ msgstr "キャンペーン"
 #: src/components/file_manager/fileManager.tsx:931
 #: src/components/file_manager/fileManager.tsx:999
 #: src/components/file_manager/fileManager.tsx:1109
-#: src/components/segment/button_upsert.tsx:421
+#: src/components/lists/DeleteListModal.tsx:125
+#: src/components/segment/button_upsert.tsx:422
 #: src/components/segment/input_dimension_filters.tsx:179
 #: src/components/segment/input_event_property_filters.tsx:130
 #: src/components/segment/input.tsx:406
@@ -2894,7 +3035,6 @@ msgstr "キャンペーン"
 #: src/pages/BroadcastsPage.tsx:710
 #: src/pages/BroadcastsPage.tsx:1081
 #: src/pages/BroadcastsPage.tsx:1826
-#: src/pages/ListsPage.tsx:408
 #: src/pages/TemplatesPage.tsx:369
 msgid "Cancel"
 msgstr "キャンセル"
@@ -2919,7 +3059,7 @@ msgstr "ブロードキャストをキャンセル"
 msgid "Cancel broadcast?"
 msgstr "ブロードキャストをキャンセルしますか？"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:432
+#: src/components/contacts/BulkUpdateDrawer.tsx:447
 msgid "Cancel Operation?"
 msgstr "操作をキャンセルしますか?"
 
@@ -3063,13 +3203,17 @@ msgid "Change sender"
 msgstr "送信者を変更"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:1035
-msgid "Change Status"
-msgstr "ステータスを変更"
+#~ msgid "Change Status"
+#~ msgstr "ステータスを変更"
 
-#. placeholder {0}: selectedList?.name || 'List'
-#: src/components/contacts/ContactDetailsDrawer.tsx:1110
+#. placeholder {0}: listName(statusOf.list_id)
+#: src/components/contacts/sheet/ContactListsCard.tsx:196
 msgid "Change Status for {0}"
 msgstr "{0}のステータスを変更"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:96
+msgid "Change status…"
+msgstr "ステータスを変更…"
 
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:162
 msgid "Changes"
@@ -3155,7 +3299,8 @@ msgid "City level (~1km precision)"
 msgstr "都市レベル (約1kmの精度)"
 
 #: src/components/contacts/BulkActionsBar.tsx:183
-#: src/components/contacts/InlineEditableField.tsx:308
+#: src/components/contacts/ContactsFilters.tsx:117
+#: src/components/contacts/InlineEditableField.tsx:295
 #: src/components/email_builder/ui/ImportFontInput.tsx:169
 #: src/components/filters/Filter.tsx:193
 #: src/components/messages/MessageHistoryTab.tsx:546
@@ -3172,21 +3317,26 @@ msgstr "クリア"
 msgid "Clear All"
 msgstr "すべてクリア"
 
-#: src/components/contacts/InlineEditableField.tsx:295
+#: src/components/contacts/InlineEditableField.tsx:287
 msgid "Clear field"
 msgstr "フィールドをクリア"
 
 #: src/pages/BroadcastsPage.tsx:1771
+#: src/pages/ContactsPage.tsx:458
 msgid "Clear filters"
 msgstr "フィルターをクリア"
 
-#: src/pages/TransactionalNotificationsPage.tsx:368
+#: src/pages/TransactionalNotificationsPage.tsx:370
 msgid "Clear search"
 msgstr "検索をクリア"
 
 #: src/components/web_analytics/lib/filterCatalog.ts:226
 msgid "Clear value"
 msgstr "値をクリア"
+
+#: src/components/contacts/sheet/activityLabel.ts:13
+msgid "Click"
+msgstr "クリック"
 
 #: src/components/segment/form_leaf.tsx:386
 #: src/components/segment/input.tsx:791
@@ -3197,14 +3347,15 @@ msgstr "メールクリック"
 msgid "Click for options"
 msgstr "クリックでオプションを表示"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:645
+#: src/components/contacts/BulkUpdateDrawer.tsx:660
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:847
 msgid "Click or drag a CSV file to this area to upload"
 msgstr "CSVファイルをクリックまたはドラッグしてアップロード"
 
 #: src/components/analytics/DashboardKpis.tsx:276
 #: src/components/broadcasts/BroadcastLinkStats.tsx:186
-#: src/pages/TransactionalNotificationsPage.tsx:277
+#: src/components/contacts/sheet/ContactKpis.tsx:47
+#: src/pages/TransactionalNotificationsPage.tsx:279
 msgid "Click rate"
 msgstr "クリック率"
 
@@ -3220,7 +3371,7 @@ msgstr "クリック率"
 #~ msgid "Click Register Webhooks to set up reply forwarding, then point your domain's MX records at Mailgun."
 #~ msgstr ""
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:701
+#: src/components/contacts/BulkUpdateDrawer.tsx:716
 msgid "Click Resume to continue processing"
 msgstr "再開をクリックして処理を続行"
 
@@ -3232,7 +3383,7 @@ msgstr "「再開」をクリックすると処理を続行します。"
 #~ msgid "Click share"
 #~ msgstr ""
 
-#: src/components/segment/button_upsert.tsx:680
+#: src/components/segment/button_upsert.tsx:681
 msgid "Click to retry"
 msgstr "クリックして再試行"
 
@@ -3276,8 +3427,9 @@ msgstr "クリック"
 #: src/components/analytics/OriginVolumeChart.tsx:161
 #: src/components/broadcasts/BroadcastStats.tsx:273
 #: src/components/contacts/TrackingConsent.tsx:31
-#: src/components/contacts/TrackingConsent.tsx:197
-#: src/components/contacts/TrackingConsent.tsx:201
+#: src/components/contacts/TrackingConsent.tsx:192
+#: src/components/contacts/TrackingConsent.tsx:195
+#: src/components/contacts/TrackingConsent.tsx:221
 #: src/components/settings/GeneralSettings.tsx:286
 #: src/components/settings/GeneralSettings.tsx:436
 #: src/components/transactional/TransactionalDetail.tsx:348
@@ -3286,8 +3438,9 @@ msgstr "クリック"
 msgid "Clicks"
 msgstr "クリック"
 
-#: src/components/contacts/ExportContactsModal.tsx:99
-#: src/pages/ContactsPage.tsx:413
+#: src/components/contacts/ContactsFilters.tsx:35
+#: src/components/contacts/ExportContactsModal.tsx:108
+#: src/components/segment/segmentSummary.ts:45
 msgid "Clicks tracking consent"
 msgstr "クリックトラッキングへの同意"
 
@@ -3345,7 +3498,8 @@ msgstr "テンプレートを複製"
 #: src/components/broadcasts/GlobalFeedSettings.tsx:137
 #: src/components/contacts/BulkActionProgressModal.tsx:65
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:835
-#: src/components/layout/DrawerControls.tsx:77
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:157
+#: src/components/layout/DrawerControls.tsx:98
 #: src/components/settings/WebhookDetail.tsx:591
 #: src/components/settings/WorkspaceMembers.tsx:614
 #: src/components/transactional/ApiCommandModal.tsx:276
@@ -3467,11 +3621,12 @@ msgstr "苦情メール"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:95
 #: src/components/automations/config/TriggerConfigForm.tsx:116
-#: src/components/contacts/ContactDetailsDrawer.tsx:591
+#: src/components/contacts/contactDisplay.ts:39
+#: src/components/lists/ListHeader.tsx:66
 #: src/components/messages/MessageHistoryTab.tsx:183
 #: src/components/messages/MessageHistoryTab.tsx:185
 #: src/components/messages/MessageHistoryTable.tsx:368
-#: src/pages/ContactsPage.tsx:402
+#: src/pages/ContactsPage.tsx:525
 msgid "Complained"
 msgstr "苦情報告済み"
 
@@ -3480,6 +3635,7 @@ msgstr "苦情報告済み"
 #~ msgstr "苦情"
 
 #: src/components/analytics/RecentFailures.tsx:52
+#: src/components/contacts/sheet/activityLabel.ts:24
 #: src/components/timeline/ContactTimeline.tsx:735
 #: src/components/transactional/RecentSends.tsx:39
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:78
@@ -3487,7 +3643,6 @@ msgid "Complaint"
 msgstr "苦情"
 
 #: src/components/broadcasts/BroadcastStats.tsx:372
-#: src/components/lists/ListStats.tsx:158
 msgid "Complaints"
 msgstr "苦情"
 
@@ -3503,7 +3658,7 @@ msgstr "完了"
 msgid "Complete Setup"
 msgstr "セットアップ完了"
 
-#: src/components/segment/button_upsert.tsx:622
+#: src/components/segment/button_upsert.tsx:623
 msgid "Complete the condition to refresh the count"
 msgstr "件数を更新するには条件を完成させてください"
 
@@ -3525,6 +3680,12 @@ msgstr "完了"
 #: src/pages/BroadcastsPage.tsx:256
 msgid "Completed — {0} failed"
 msgstr "完了 — {0} 件失敗"
+
+#: src/components/contacts/SegmentProgress.tsx:58
+#: src/components/contacts/SegmentProgress.tsx:66
+#: src/pages/ContactsPage.tsx:477
+msgid "Computing this segment…"
+msgstr "このセグメントを計算中…"
 
 #: src/components/automations/nodes/FilterNode.tsx:66
 msgid "condition"
@@ -3627,7 +3788,7 @@ msgstr "{0}を設定中"
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:203
 #: src/components/filters/Filter.tsx:185
 #: src/components/filters/Filter.tsx:204
-#: src/components/segment/button_upsert.tsx:430
+#: src/components/segment/button_upsert.tsx:431
 #: src/components/segment/form_leaf.tsx:166
 #: src/components/segment/form_leaf.tsx:290
 #: src/components/segment/form_leaf.tsx:682
@@ -3701,26 +3862,31 @@ msgid "Console"
 msgstr "コンソール"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:79
+#: src/components/contacts/ContactsTable.tsx:158
 #: src/components/timeline/ContactTimeline.tsx:524
 #: src/components/timeline/ContactTimeline.tsx:593
 msgid "Contact"
 msgstr "コンタクト"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:295
+#: src/components/contacts/sheet/ContactListsCard.tsx:60
 msgid "Contact added to list successfully"
 msgstr "コンタクトをリストに追加しました"
+
+#: src/components/contacts/sheet/activityLabel.ts:20
+msgid "Contact created"
+msgstr "コンタクトを作成"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:333
 msgid "Contact created successfully"
 msgstr "コンタクトを作成しました"
 
-#: src/pages/ContactsPage.tsx:203
+#: src/pages/ContactsPage.tsx:365
 msgid "Contact deleted successfully"
 msgstr "コンタクトを削除しました"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:628
-msgid "Contact Details"
-msgstr "コンタクト詳細"
+#~ msgid "Contact Details"
+#~ msgstr "コンタクト詳細"
 
 #: src/components/messages/MessageHistoryTab.tsx:225
 #: src/components/messages/MessageHistoryTable.tsx:147
@@ -3752,6 +3918,10 @@ msgstr "コンタクトの識別"
 msgid "Contact is not subscribed to this list"
 msgstr "コンタクトはこのリストを購読していません"
 
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:156
+msgid "Contact not found"
+msgstr "コンタクトが見つかりません"
+
 #: src/components/segment/form_leaf.tsx:138
 #: src/components/segment/input.tsx:775
 #: src/components/segment/table_tag.tsx:20
@@ -3766,6 +3936,10 @@ msgstr "イベント発生ごとにコンタクトが再エントリー"
 msgid "Contact records and their fields, contact timelines, and custom events recorded against contacts."
 msgstr "コンタクトのレコードとそのフィールド、コンタクトのタイムライン、コンタクトに記録されたカスタムイベント。"
 
+#: src/components/contacts/sheet/ContactListsCard.tsx:87
+msgid "Contact removed from the list"
+msgstr "コンタクトをリストから削除しました"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:317
 #~ msgid "Contact timeline"
 #~ msgstr ""
@@ -3776,9 +3950,11 @@ msgstr "コンタクトを更新しました"
 
 #: src/components/analytics/DashboardKpis.tsx:220
 #: src/components/analytics/DashboardKpis.tsx:228
+#: src/components/contacts/ContactDetailsDrawer.tsx:125
+#: src/components/contacts/ContactsViewHeader.tsx:201
 #: src/components/settings/permissionLabels.ts:7
-#: src/layouts/app-shell/menuItems.ts:173
-#: src/pages/ContactsPage.tsx:1027
+#: src/layouts/app-shell/menuItems.ts:172
+#: src/pages/ContactsPage.tsx:571
 #: src/services/api/errors.ts:82
 msgid "Contacts"
 msgstr "コンタクト"
@@ -3834,7 +4010,7 @@ msgstr "含む"
 
 #: src/components/email_builder/panels/LibraryPanel.tsx:212
 #: src/components/settings/SettingsSidebar.tsx:28
-#: src/layouts/app-shell/menuItems.ts:178
+#: src/layouts/app-shell/menuItems.ts:176
 msgid "Content"
 msgstr "コンテンツ"
 
@@ -3909,8 +4085,8 @@ msgstr "{0}コードをコピー"
 msgid "Copy ID"
 msgstr "ID をコピー"
 
-#: src/components/layout/DrawerControls.tsx:69
-#: src/components/layout/DrawerControls.tsx:70
+#: src/components/layout/DrawerControls.tsx:80
+#: src/components/layout/DrawerControls.tsx:84
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:88
 msgid "Copy link"
 msgstr "リンクをコピー"
@@ -3947,6 +4123,7 @@ msgstr "リンクをコピーできませんでした"
 
 #: src/components/analytics/BlockError.tsx:20
 #: src/components/analytics/DashboardKpis.tsx:181
+#: src/components/contacts/BlockError.tsx:9
 msgid "Could not load"
 msgstr "読み込めませんでした"
 
@@ -3986,7 +4163,7 @@ msgstr ""
 #: src/components/transactional/LoadError.tsx:20
 #: src/components/transactional/notificationParts.tsx:48
 #: src/components/transactional/TransactionalDetail.tsx:229
-#: src/pages/TransactionalNotificationsPage.tsx:300
+#: src/pages/TransactionalNotificationsPage.tsx:302
 msgid "Couldn't load"
 msgstr "読み込めませんでした"
 
@@ -4039,16 +4216,17 @@ msgid "Countries"
 msgstr "国"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:142
-#: src/components/contacts/ContactDetailsDrawer.tsx:452
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:94
-#: src/components/contacts/ExportContactsModal.tsx:70
+#: src/components/contacts/ContactsFilters.tsx:26
+#: src/components/contacts/ContactsTable.tsx:72
+#: src/components/contacts/ContactsTable.tsx:274
+#: src/components/contacts/ExportContactsModal.tsx:79
+#: src/components/contacts/sheet/ContactProfileFields.tsx:119
+#: src/components/segment/segmentSummary.ts:34
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:224
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:232
 #: src/components/web_analytics/tabs/DashboardTab.tsx:215
 #: src/components/web_analytics/tabs/DashboardTab.tsx:220
-#: src/pages/ContactsPage.tsx:382
-#: src/pages/ContactsPage.tsx:448
-#: src/pages/ContactsPage.tsx:719
 msgid "Country"
 msgstr "国"
 
@@ -4072,7 +4250,7 @@ msgstr "テンプレート以外にも及びます: 再利用可能なブロッ�
 #: src/components/blog/CategoryDrawer.tsx:114
 #: src/components/blog/PostDrawer.tsx:691
 #: src/components/file_manager/fileManager.tsx:1008
-#: src/components/lists/ListDrawer.tsx:173
+#: src/components/lists/ListDrawer.tsx:198
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Create"
 msgstr "作成"
@@ -4175,7 +4353,7 @@ msgstr "ブロードキャストを作成"
 msgid "Create First Theme"
 msgstr "最初のテーマを作成"
 
-#: src/components/lists/ListDrawer.tsx:157
+#: src/components/lists/ListDrawer.tsx:181
 msgid "Create List"
 msgstr "リストを作成"
 
@@ -4196,7 +4374,7 @@ msgstr "新規カテゴリを作成"
 msgid "Create new folder"
 msgstr "新規フォルダを作成"
 
-#: src/components/lists/ListDrawer.tsx:160
+#: src/components/lists/ListDrawer.tsx:185
 msgid "Create New List"
 msgstr "新規リストを作成"
 
@@ -4267,11 +4445,15 @@ msgstr "最初のブロードキャストを作成して始めましょう"
 msgid "Create Your First Category"
 msgstr "最初のカテゴリを作成"
 
-#: src/pages/ListsPage.tsx:391
-msgid "Create your first list to get started"
-msgstr "最初のリストを作成して始めましょう"
+#: src/components/contacts/ContactsRail.tsx:87
+msgid "Create your first list"
+msgstr "最初のリストを作成"
 
-#: src/pages/TransactionalNotificationsPage.tsx:344
+#: src/pages/ListsPage.tsx:391
+#~ msgid "Create your first list to get started"
+#~ msgstr "最初のリストを作成して始めましょう"
+
+#: src/pages/TransactionalNotificationsPage.tsx:346
 msgid "Create your first notification to get started"
 msgstr "最初の通知を作成して始めましょう"
 
@@ -4296,11 +4478,12 @@ msgstr "作成済み"
 msgid "Created"
 msgstr "作成日"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:541
+#: src/components/contacts/ContactsTable.tsx:77
+#: src/components/contacts/ContactsTable.tsx:299
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:294
 #: src/components/messages/MessageHistoryTable.tsx:153
 #: src/components/messages/MessageHistoryTable.tsx:402
-#: src/pages/ContactsPage.tsx:453
-#: src/pages/ContactsPage.tsx:768
+#: src/components/segment/segmentSummary.ts:42
 msgid "Created At"
 msgstr "作成日時"
 
@@ -4349,7 +4532,7 @@ msgstr "CSSファイルURL"
 msgid "CSS Style Editor"
 msgstr "CSSスタイルエディタ"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:132
+#: src/components/contacts/BulkUpdateDrawer.tsx:147
 msgid "CSV must have at least a header row and one data row"
 msgstr "CSVにはヘッダー行と少なくとも1つのデータ行が必要です"
 
@@ -4414,8 +4597,8 @@ msgid "Custom Date Fields"
 msgstr "カスタム日付フィールド"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:903
-msgid "Custom Datetime Fields"
-msgstr "カスタム日時フィールド"
+#~ msgid "Custom Datetime Fields"
+#~ msgstr "カスタム日時フィールド"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:427
 msgid "Custom dimension labels"
@@ -4467,6 +4650,7 @@ msgstr "カスタムフィールドラベルを削除しました"
 msgid "Custom field label saved successfully"
 msgstr "カスタムフィールドラベルを保存しました"
 
+#: src/components/contacts/sheet/ContactProfileFields.tsx:166
 #: src/components/settings/CustomFieldsConfiguration.tsx:275
 #: src/components/settings/SettingsSidebar.tsx:66
 msgid "Custom fields"
@@ -4513,7 +4697,6 @@ msgid "Custom JSON 5"
 msgstr "カスタムJSON 5"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:185
-#: src/components/contacts/ContactDetailsDrawer.tsx:925
 msgid "Custom JSON Fields"
 msgstr "カスタムJSONフィールド"
 
@@ -4542,7 +4725,6 @@ msgid "Custom Number 5"
 msgstr "カスタム数値5"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:165
-#: src/components/contacts/ContactDetailsDrawer.tsx:881
 msgid "Custom Number Fields"
 msgstr "カスタム数値フィールド"
 
@@ -4599,7 +4781,6 @@ msgid "Custom String 5"
 msgstr "カスタム文字列5"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:155
-#: src/components/contacts/ContactDetailsDrawer.tsx:859
 msgid "Custom String Fields"
 msgstr "カスタム文字列フィールド"
 
@@ -4620,7 +4801,7 @@ msgstr "危険な操作"
 #~ msgstr "危険な操作"
 
 #: src/layouts/app-shell/AppSidebar.tsx:139
-#: src/layouts/app-shell/menuItems.ts:166
+#: src/layouts/app-shell/menuItems.ts:165
 #: src/pages/AnalyticsPage.tsx:105
 #: src/pages/WebAnalyticsLivePage.tsx:126
 #: src/pages/WebAnalyticsLivePage.tsx:127
@@ -4751,6 +4932,10 @@ msgstr "デフォルトはテンプレート ID"
 msgid "Define UTM parameters for links in your email for better campaign tracking."
 msgstr "キャンペーントラッキングのためにメール内リンクのUTMパラメータを設定します。"
 
+#: src/components/contacts/SegmentDefinedBy.tsx:31
+msgid "Defined by"
+msgstr "条件"
+
 #: src/components/automations/AddNodeButton.tsx:76
 #: src/components/automations/nodes/DelayNode.tsx:45
 #: src/components/automations/nodes/StatNode.tsx:81
@@ -4764,13 +4949,14 @@ msgstr "遅延"
 #: src/components/blog/PostsTable.tsx:367
 #: src/components/contacts/BulkActionsBar.tsx:177
 #: src/components/contacts/BulkActionsBar.tsx:219
+#: src/components/contacts/ContactsTable.tsx:330
 #: src/components/contacts/DeleteContactModal.tsx:40
-#: src/components/contacts/SegmentsFilter.tsx:164
 #: src/components/email_builder/EmailBuilder.tsx:940
 #: src/components/email_builder/ui/SavedBlockCard.tsx:115
 #: src/components/file_manager/fileManager.tsx:743
 #: src/components/file_manager/fileManager.tsx:748
 #: src/components/file_manager/fileManager.tsx:930
+#: src/components/lists/DeleteListModal.tsx:135
 #: src/components/segment/input.tsx:404
 #: src/components/settings/Integrations.tsx:969
 #: src/components/settings/integrations/EmailProviderCard.tsx:218
@@ -4790,12 +4976,10 @@ msgstr "遅延"
 #: src/components/web_analytics/filters/FilterTable.tsx:291
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
 #: src/pages/BroadcastsPage.tsx:1836
-#: src/pages/ContactsPage.tsx:975
-#: src/pages/ListsPage.tsx:418
 msgid "Delete"
 msgstr "削除"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:563
+#: src/components/contacts/BulkUpdateDrawer.tsx:578
 msgid "DELETE"
 msgstr "削除"
 
@@ -4906,13 +5090,17 @@ msgstr "ブロードキャストを削除"
 msgid "Delete Category"
 msgstr "カテゴリを削除"
 
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:213
+msgid "Delete contact"
+msgstr "コンタクトを削除"
+
 #: src/components/contacts/DeleteContactModal.tsx:25
 msgid "Delete Contact"
 msgstr "コンタクトを削除"
 
 #: src/components/contacts/BulkActionsBar.tsx:215
-#: src/components/contacts/BulkUpdateDrawer.tsx:596
-#: src/pages/ContactsPage.tsx:270
+#: src/components/contacts/BulkUpdateDrawer.tsx:611
+#: src/pages/ContactsPage.tsx:246
 msgid "Delete contacts"
 msgstr "コンタクトを削除"
 
@@ -4947,8 +5135,11 @@ msgstr "招待を削除"
 msgid "Delete key"
 msgstr "キーを削除"
 
-#: src/pages/ListsPage.tsx:283
-#: src/pages/ListsPage.tsx:403
+#: src/components/contacts/ContactsViewHeader.tsx:90
+msgid "Delete list"
+msgstr "リストを削除"
+
+#: src/components/lists/DeleteListModal.tsx:120
 msgid "Delete List"
 msgstr "リストを削除"
 
@@ -4965,7 +5156,8 @@ msgstr "投稿を削除"
 msgid "Delete rule"
 msgstr "ルールを削除"
 
-#: src/components/contacts/SegmentsFilter.tsx:167
+#: src/components/contacts/ContactsViewHeader.tsx:135
+#: src/components/contacts/ContactsViewHeader.tsx:139
 msgid "Delete segment"
 msgstr "セグメントを削除"
 
@@ -5032,7 +5224,6 @@ msgid "deleted"
 msgstr "削除済み"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:83
-#: src/components/contacts/SegmentsFilter.tsx:91
 msgid "Deleted"
 msgstr "削除済み"
 
@@ -5068,6 +5259,7 @@ msgstr "配信済み"
 #: src/components/analytics/DashboardKpis.tsx:258
 #: src/components/analytics/DashboardKpis.tsx:261
 #: src/components/broadcasts/BroadcastStats.tsx:211
+#: src/components/contacts/sheet/activityLabel.ts:15
 #: src/components/messages/MessageHistoryTab.tsx:115
 #: src/components/messages/MessageHistoryTab.tsx:117
 #: src/components/messages/MessageHistoryTable.tsx:328
@@ -5081,8 +5273,8 @@ msgstr "配信済み"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:68
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:85
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:235
-#: src/pages/TransactionalNotificationsPage.tsx:260
-#: src/pages/TransactionalNotificationsPage.tsx:266
+#: src/pages/TransactionalNotificationsPage.tsx:262
+#: src/pages/TransactionalNotificationsPage.tsx:268
 msgid "Delivered"
 msgstr "配信済み"
 
@@ -5125,10 +5317,9 @@ msgstr "この画像を説明..."
 
 #: src/components/automations/NodeConfigPanel.tsx:197
 #: src/components/blog/CategoryDrawer.tsx:155
-#: src/components/lists/ListDrawer.tsx:209
+#: src/components/lists/ListDrawer.tsx:234
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:368
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
-#: src/pages/ListsPage.tsx:345
 msgid "Description"
 msgstr "説明"
 
@@ -5156,6 +5347,7 @@ msgstr "ウェブサイトから検出"
 #~ msgid "Detect from website URL"
 #~ msgstr "WebサイトURLから検出"
 
+#: src/components/contacts/visits/ContactWebVisits.tsx:292
 #: src/components/web_analytics/explore/BreakdownModal.tsx:67
 #: src/components/web_analytics/explore/DimensionSelector.tsx:101
 #: src/components/web_analytics/FilterBuilder.tsx:59
@@ -5190,6 +5382,10 @@ msgstr "ディメンション"
 #: src/components/web_analytics/explore/CsvExportModal.tsx:155
 msgid "Dimensions:"
 msgstr "ディメンション:"
+
+#: src/components/contacts/visits/webVisitSource.ts:41
+msgid "Direct"
+msgstr "ダイレクト"
 
 #: src/components/settings/BlogSettings.tsx:205
 #: src/components/settings/BlogSettings.tsx:468
@@ -5251,6 +5447,10 @@ msgstr "保存されていない変更を破棄しますか？"
 #: src/components/settings/Integrations.tsx:1167
 msgid "Disconnect"
 msgstr "接続を解除"
+
+#: src/components/contacts/visits/webVisitSource.ts:37
+msgid "Display"
+msgstr "ディスプレイ"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:277
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:71
@@ -5376,12 +5576,15 @@ msgstr "点線"
 msgid "Double"
 msgstr "二重線"
 
-#: src/components/lists/ListDrawer.tsx:232
+#: src/components/lists/ListHeader.tsx:98
+msgid "Double opt-in"
+msgstr "ダブルオプトイン"
+
+#: src/components/lists/ListDrawer.tsx:257
 msgid "Double Opt-in"
 msgstr "ダブルオプトイン"
 
-#: src/components/lists/ListDrawer.tsx:253
-#: src/pages/ListsPage.tsx:359
+#: src/components/lists/ListDrawer.tsx:278
 msgid "Double Opt-in Template"
 msgstr "ダブルオプトインテンプレート"
 
@@ -5428,6 +5631,10 @@ msgstr "ここにファイルをドロップしてアップロード"
 #: src/components/email_builder/ui/SavedBlockCard.tsx:111
 msgid "Duplicate"
 msgstr "複製"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:284
+msgid "Duration"
+msgstr "滞在時間"
 
 #: src/services/api/permissions.ts:243
 msgid "Dynamic segment definitions, their compiled queries, and the background tasks that build them."
@@ -5552,13 +5759,14 @@ msgstr "各バリエーションは、別の送信者を選ばない限りテン
 #~ msgstr "Zapierの接続ごとに専用のキーが必要です。2つ目には別の名前を付けてください。"
 
 #: src/pages/ListsPage.tsx:105
-msgid "edit"
-msgstr "編集"
+#~ msgid "edit"
+#~ msgstr "編集"
 
 #: src/components/automations/config/ConditionsField.tsx:108
 #: src/components/automations/UpsertAutomationDrawer.tsx:291
 #: src/components/blog/BlogSidebar.tsx:62
 #: src/components/blog/PostsTable.tsx:375
+#: src/components/contacts/ContactsTable.tsx:329
 #: src/components/email_builder/EmailBuilder.tsx:1057
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
@@ -5570,7 +5778,6 @@ msgstr "編集"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:91
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
-#: src/pages/ContactsPage.tsx:969
 msgid "Edit"
 msgstr "編集"
 
@@ -5669,9 +5876,12 @@ msgstr "HTMLコンテンツを編集"
 msgid "Edit Liquid Content"
 msgstr "Liquidコンテンツを編集"
 
-#: src/components/lists/ListDrawer.tsx:157
-#: src/components/lists/ListDrawer.tsx:160
-#: src/pages/ListsPage.tsx:299
+#: src/components/lists/ListHeader.tsx:124
+msgid "Edit list"
+msgstr "リストを編集"
+
+#: src/components/lists/ListDrawer.tsx:181
+#: src/components/lists/ListDrawer.tsx:185
 msgid "Edit List"
 msgstr "リストを編集"
 
@@ -5701,6 +5911,7 @@ msgstr "投稿を編集"
 msgid "Edit rule"
 msgstr "ルールを編集"
 
+#: src/components/contacts/ContactsViewHeader.tsx:174
 #: src/components/segment/button_upsert.tsx:76
 msgid "Edit segment"
 msgstr "セグメントを編集"
@@ -5708,6 +5919,10 @@ msgstr "セグメントを編集"
 #: src/components/settings/Integrations.tsx:2082
 msgid "Edit Sender"
 msgstr "送信者を編集"
+
+#: src/components/lists/ListHeader.tsx:173
+msgid "Edit template"
+msgstr "テンプレートを編集"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:685
 #: src/pages/TemplatesPage.tsx:301
@@ -5731,7 +5946,7 @@ msgstr "テーマを編集"
 msgid "Edit Theme v{0}"
 msgstr "テーマ v{0} を編集"
 
-#: src/components/contacts/TrackingConsent.tsx:234
+#: src/components/contacts/TrackingConsent.tsx:231
 msgid "Edit tracking consent"
 msgstr "トラッキング同意を編集"
 
@@ -5766,7 +5981,7 @@ msgstr "EHLO ホスト名"
 msgid "EHLO Hostname"
 msgstr "EHLOホスト名"
 
-#: src/components/contacts/ExportContactsModal.tsx:384
+#: src/components/contacts/ExportContactsModal.tsx:395
 msgid "Elapsed"
 msgstr "経過時間"
 
@@ -5782,21 +5997,23 @@ msgstr "メール"
 #: src/components/automations/config/TriggerConfigForm.tsx:110
 #: src/components/automations/nodes/EmailNode.tsx:39
 #: src/components/automations/nodes/StatNode.tsx:82
-#: src/components/contacts/BulkUpdateDrawer.tsx:665
+#: src/components/contacts/BulkUpdateDrawer.tsx:680
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:89
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:930
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1052
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1126
+#: src/components/contacts/ContactsFilters.tsx:19
 #: src/components/contacts/ContactUpsertDrawer.tsx:530
-#: src/components/contacts/ExportContactsModal.tsx:55
+#: src/components/contacts/ExportContactsModal.tsx:61
+#: src/components/contacts/sheet/activityLabel.ts:16
+#: src/components/contacts/visits/webVisitSource.ts:27
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:326
 #: src/components/messages/MessageHistoryTab.tsx:220
+#: src/components/segment/segmentSummary.ts:28
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:122
 #: src/components/settings/Integrations.tsx:2097
 #: src/components/timeline/ContactTimeline.tsx:656
 #: src/components/transactional/TransactionalDetail.tsx:341
-#: src/pages/ContactsPage.tsx:375
-#: src/pages/ContactsPage.tsx:557
 #: src/pages/SignInPage.tsx:276
 #: src/pages/SignInPage.tsx:283
 msgid "Email"
@@ -5825,8 +6042,8 @@ msgid "Email Body Payload"
 msgstr "メール本文ペイロード"
 
 #: src/pages/ContactsPage.tsx:595
-msgid "Email bounced"
-msgstr "メールがバウンス"
+#~ msgid "Email bounced"
+#~ msgstr "メールがバウンス"
 
 #: src/components/settings/GeneralSettings.tsx:189
 #: src/components/settings/GeneralSettings.tsx:304
@@ -5950,9 +6167,17 @@ msgstr "メールトラッキングへの同意"
 msgid "Email widths above 650px may not display correctly in some email clients"
 msgstr "650pxを超える幅のメールは一部のメールクライアントで正しく表示されない場合があります"
 
+#: src/pages/ContactsPage.tsx:651
+msgid "Email, name or external ID"
+msgstr "メール、名前、外部 ID"
+
 #: src/pages/AcceptInvitationPage.tsx:152
 msgid "Email:"
 msgstr "メール:"
+
+#: src/components/contacts/sheet/ContactActivityTab.tsx:36
+msgid "Emails"
+msgstr "メール"
 
 #: src/pages/BroadcastsPage.tsx:183
 #~ msgid "Emails are being delivered. {0} sent, {1} remaining."
@@ -5971,9 +6196,13 @@ msgstr "メール/日"
 msgid "emails per hour"
 msgstr "メール/時間"
 
+#: src/components/contacts/sheet/ContactKpis.tsx:35
+msgid "Emails received"
+msgstr "受信メール"
+
 #: src/components/analytics/DashboardKpis.tsx:246
 #: src/components/analytics/DashboardKpis.tsx:249
-#: src/pages/TransactionalNotificationsPage.tsx:256
+#: src/pages/TransactionalNotificationsPage.tsx:258
 msgid "Emails sent"
 msgstr "送信メール数"
 
@@ -6123,7 +6352,7 @@ msgstr "ワークスペース名を入力"
 msgid "Enter a number, with at most 15 digits before the decimal point."
 msgstr "小数点より前が 15 桁以内の数値を入力してください。"
 
-#: src/components/lists/ListDrawer.tsx:206
+#: src/components/lists/ListDrawer.tsx:231
 msgid "Enter a unique alphanumeric ID"
 msgstr "一意の英数字IDを入力"
 
@@ -6227,7 +6456,7 @@ msgstr "画像URLを入力"
 msgid "Enter image URL or select from storage"
 msgstr "画像URLを入力またはストレージから選択"
 
-#: src/components/contacts/InlineEditableField.tsx:183
+#: src/components/contacts/InlineEditableField.tsx:186
 msgid "Enter JSON..."
 msgstr "JSONを入力..."
 
@@ -6235,15 +6464,15 @@ msgstr "JSONを入力..."
 msgid "Enter link URL or {{ url }}"
 msgstr "リンクURLまたは{{ url }}を入力"
 
-#: src/components/lists/ListDrawer.tsx:210
+#: src/components/lists/ListDrawer.tsx:235
 msgid "Enter list description"
 msgstr "リストの説明を入力"
 
-#: src/pages/ListsPage.tsx:430
+#: src/components/lists/DeleteListModal.tsx:147
 msgid "Enter list ID to confirm"
 msgstr "確認のためリストIDを入力"
 
-#: src/components/lists/ListDrawer.tsx:194
+#: src/components/lists/ListDrawer.tsx:219
 msgid "Enter list name"
 msgstr "リスト名を入力"
 
@@ -6251,7 +6480,7 @@ msgstr "リスト名を入力"
 msgid "Enter logo URL or select image"
 msgstr "ロゴURLを入力または画像を選択"
 
-#: src/components/contacts/InlineEditableField.tsx:197
+#: src/components/contacts/InlineEditableField.tsx:200
 msgid "Enter number..."
 msgstr "数値を入力..."
 
@@ -6298,6 +6527,10 @@ msgstr "エンティティID:"
 #: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:86
 msgid "Entries older than this are deleted once a day. Leave it empty for the deployment default ({AUDIT_LOG_DEFAULT_RETENTION_DAYS} days unless a root user changed it); 0 keeps every entry forever."
 msgstr "これより古い項目は 1 日 1 回削除されます。空欄にするとデプロイメントのデフォルト（root ユーザーが変更していなければ {AUDIT_LOG_DEFAULT_RETENTION_DAYS} 日）が適用され、0 はすべての項目を永久に保持します。"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:272
+msgid "Entry"
+msgstr "入口"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:445
 msgid "Entry conditions"
@@ -6387,6 +6620,7 @@ msgstr "エラー（{1}件中{0}件を表示）"
 msgid "event"
 msgstr "イベント"
 
+#: src/components/contacts/sheet/activityLabel.ts:22
 #: src/components/timeline/ContactTimeline.tsx:743
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:358
 msgid "Event"
@@ -6417,6 +6651,7 @@ msgstr "イベントタイプ"
 msgid "Event Types"
 msgstr "イベントタイプ"
 
+#: src/components/contacts/sheet/ContactActivityTab.tsx:39
 #: src/components/messages/MessageHistoryTable.tsx:151
 #: src/components/messages/MessageHistoryTable.tsx:311
 #: src/components/settings/WebhookDetail.tsx:478
@@ -6508,6 +6743,10 @@ msgstr "終了"
 msgid "Exited"
 msgstr "終了"
 
+#: src/components/contacts/visits/ContactWebVisits.tsx:214
+msgid "Exited on"
+msgstr "離脱ページ"
+
 #: src/components/web_analytics/tabs/DashboardTab.tsx:151
 msgid "Exits"
 msgstr "離脱数"
@@ -6538,20 +6777,20 @@ msgid "Expires:"
 msgstr "有効期限:"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:371
-#: src/layouts/app-shell/menuItems.ts:169
+#: src/layouts/app-shell/menuItems.ts:168
 #: src/pages/WebAnalyticsPage.tsx:96
 msgid "Explore"
 msgstr "探索"
 
-#: src/components/contacts/ExportContactsModal.tsx:354
+#: src/components/contacts/ContactsViewHeader.tsx:63
+#: src/components/contacts/ExportContactsModal.tsx:365
 #: src/components/email_builder/MjmlCodeEditor.tsx:640
 #: src/components/logs/AuditLogActions.tsx:52
 #: src/components/templates/ImportExportButton.tsx:432
-#: src/pages/ContactsPage.tsx:1043
 msgid "Export"
 msgstr "エクスポート"
 
-#: src/components/contacts/ExportContactsModal.tsx:340
+#: src/components/contacts/ExportContactsModal.tsx:351
 msgid "Export Contacts to CSV"
 msgstr "コンタクトをCSVにエクスポート"
 
@@ -6580,7 +6819,7 @@ msgstr "現在のフィルターを CSV または NDJSON でエクスポート�
 msgid "Export to CSV"
 msgstr "CSVにエクスポート"
 
-#: src/components/contacts/ExportContactsModal.tsx:371
+#: src/components/contacts/ExportContactsModal.tsx:382
 msgid "Exporting all contacts"
 msgstr "すべてのコンタクトをエクスポート中"
 
@@ -6589,14 +6828,15 @@ msgstr "すべてのコンタクトをエクスポート中"
 #~ msgstr "現在のフィルターを最大 {AUDIT_LOG_EXPORT_MAX_ROWS} 行までエクスポートします"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:132
-#: src/components/contacts/ContactDetailsDrawer.tsx:458
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:90
-#: src/components/contacts/ExportContactsModal.tsx:58
+#: src/components/contacts/ContactsFilters.tsx:20
+#: src/components/contacts/ExportContactsModal.tsx:64
+#: src/components/contacts/sheet/ContactProfileFields.tsx:125
 #: src/components/messages/MessageHistoryTab.tsx:227
 #: src/components/messages/MessageHistoryTable.tsx:145
 #: src/components/messages/MessageHistoryTable.tsx:172
+#: src/components/segment/segmentSummary.ts:29
 #: src/components/transactional/RecentSends.tsx:118
-#: src/pages/ContactsPage.tsx:376
 msgid "External ID"
 msgstr "外部ID"
 
@@ -6617,8 +6857,8 @@ msgstr "失敗"
 #: src/components/broadcasts/BroadcastStats.tsx:297
 #: src/components/contacts/BulkActionProgressModal.tsx:106
 #: src/components/contacts/BulkActionProgressModal.tsx:146
-#: src/components/contacts/BulkUpdateDrawer.tsx:695
-#: src/components/contacts/BulkUpdateDrawer.tsx:734
+#: src/components/contacts/BulkUpdateDrawer.tsx:710
+#: src/components/contacts/BulkUpdateDrawer.tsx:749
 #: src/components/messages/MessageHistoryTab.tsx:128
 #: src/components/messages/MessageHistoryTab.tsx:130
 #: src/components/messages/MessageHistoryTable.tsx:336
@@ -6633,7 +6873,7 @@ msgstr "失敗"
 #: src/pages/BroadcastsPage.tsx:459
 #: src/pages/BroadcastsPage.tsx:526
 #: src/pages/BroadcastsPage.tsx:1677
-#: src/pages/TransactionalNotificationsPage.tsx:280
+#: src/pages/TransactionalNotificationsPage.tsx:282
 msgid "Failed"
 msgstr "失敗"
 
@@ -6645,9 +6885,14 @@ msgstr "招待の承諾に失敗しました"
 msgid "Failed to activate automation"
 msgstr "オートメーションの有効化に失敗しました"
 
+#. placeholder {0}: error.message
+#: src/components/contacts/sheet/ContactListsCard.tsx:64
+msgid "Failed to add to list: {0}"
+msgstr "リストへの追加に失敗しました: {0}"
+
 #: src/components/contacts/ContactDetailsDrawer.tsx:318
-msgid "Failed to add to list: {error}"
-msgstr "リストへの追加に失敗しました: {error}"
+#~ msgid "Failed to add to list: {error}"
+#~ msgstr "リストへの追加に失敗しました: {error}"
 
 #: src/pages/BroadcastsPage.tsx:1589
 msgid "Failed to cancel broadcast"
@@ -6662,7 +6907,7 @@ msgstr "送信者を変更できませんでした"
 msgid "Failed to change the sender: {0}"
 msgstr "送信者を変更できませんでした: {0}"
 
-#: src/components/contacts/InlineEditableField.tsx:135
+#: src/components/contacts/InlineEditableField.tsx:138
 msgid "Failed to clear field"
 msgstr "フィールドのクリアに失敗しました"
 
@@ -6679,7 +6924,7 @@ msgid "Failed to connect Zapier"
 msgstr "Zapierの接続に失敗しました"
 
 #: src/components/common/CodeSnippet.tsx:35
-#: src/components/layout/DrawerControls.tsx:66
+#: src/components/layout/DrawerControls.tsx:77
 #: src/components/layout/Mono.tsx:22
 #: src/components/settings/WebhookDetail.tsx:214
 #: src/components/transactional/ApiCallPanel.tsx:39
@@ -6712,7 +6957,7 @@ msgstr "カテゴリの作成に失敗しました: {0}"
 msgid "Failed to create folder: "
 msgstr "フォルダの作成に失敗しました: "
 
-#: src/components/lists/ListDrawer.tsx:75
+#: src/components/lists/ListDrawer.tsx:81
 msgid "Failed to create list: {error}"
 msgstr "リストの作成に失敗しました: {error}"
 
@@ -6726,7 +6971,7 @@ msgstr "通知の作成に失敗しました: {0}"
 msgid "Failed to create post: {0}"
 msgstr "投稿の作成に失敗しました: {0}"
 
-#: src/components/segment/button_upsert.tsx:370
+#: src/components/segment/button_upsert.tsx:371
 msgid "Failed to create segment"
 msgstr "セグメントの作成に失敗しました"
 
@@ -6756,7 +7001,7 @@ msgstr "ブロードキャストの削除に失敗しました"
 msgid "Failed to delete category"
 msgstr "カテゴリの削除に失敗しました"
 
-#: src/pages/ContactsPage.tsx:217
+#: src/pages/ContactsPage.tsx:377
 msgid "Failed to delete contact"
 msgstr "コンタクトの削除に失敗しました"
 
@@ -6776,8 +7021,8 @@ msgstr "連携の削除に失敗しました"
 msgid "Failed to delete invitation"
 msgstr "招待の削除に失敗しました"
 
-#: src/pages/ListsPage.tsx:190
-#: src/pages/ListsPage.tsx:194
+#: src/components/lists/DeleteListModal.tsx:106
+#: src/components/lists/DeleteListModal.tsx:110
 msgid "Failed to delete list"
 msgstr "リストの削除に失敗しました"
 
@@ -6789,7 +7034,7 @@ msgstr "通知の削除に失敗しました"
 msgid "Failed to delete post"
 msgstr "投稿の削除に失敗しました"
 
-#: src/components/contacts/SegmentsFilter.tsx:214
+#: src/components/contacts/ContactsViewHeader.tsx:85
 msgid "Failed to delete segment"
 msgstr "セグメントの削除に失敗しました"
 
@@ -6911,12 +7156,12 @@ msgstr "オートメーションの一時停止に失敗しました"
 msgid "Failed to pause broadcast"
 msgstr "ブロードキャストの一時停止に失敗しました"
 
-#: src/components/segment/button_upsert.tsx:231
+#: src/components/segment/button_upsert.tsx:232
 msgid "Failed to preview segment"
 msgstr "セグメントのプレビューに失敗しました"
 
 #. placeholder {0}: emails.length
-#: src/components/contacts/BulkUpdateDrawer.tsx:370
+#: src/components/contacts/BulkUpdateDrawer.tsx:385
 msgid "Failed to process all {0} contacts"
 msgstr "全{0}件のコンタクト処理に失敗しました"
 
@@ -6938,7 +7183,7 @@ msgstr "テーマの公開に失敗しました"
 msgid "Failed to read the file"
 msgstr "ファイルの読み込みに失敗しました"
 
-#: src/components/contacts/SegmentsFilter.tsx:230
+#: src/components/contacts/ContactsViewHeader.tsx:75
 msgid "Failed to rebuild segment"
 msgstr "セグメントの再構築に失敗しました"
 
@@ -6995,7 +7240,7 @@ msgstr "コンタクトの保存に失敗しました"
 msgid "Failed to save contact. Please try again."
 msgstr "コンタクトの保存に失敗しました。再度お試しください。"
 
-#: src/components/contacts/InlineEditableField.tsx:121
+#: src/components/contacts/InlineEditableField.tsx:124
 msgid "Failed to save field"
 msgstr "フィールドの保存に失敗しました"
 
@@ -7117,9 +7362,8 @@ msgstr "カテゴリの更新に失敗しました: {0}"
 msgid "Failed to update custom field label"
 msgstr "カスタムフィールドラベルの更新に失敗しました"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:344
-#: src/components/contacts/ContactDetailsDrawer.tsx:357
-#: src/components/contacts/TrackingConsent.tsx:159
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:129
+#: src/components/contacts/TrackingConsent.tsx:158
 msgid "Failed to update field"
 msgstr "フィールドの更新に失敗しました"
 
@@ -7127,7 +7371,7 @@ msgstr "フィールドの更新に失敗しました"
 msgid "Failed to update file manager settings"
 msgstr "ファイルマネージャー設定の更新に失敗しました"
 
-#: src/components/lists/ListDrawer.tsx:90
+#: src/components/lists/ListDrawer.tsx:95
 msgid "Failed to update list: {error}"
 msgstr "リストの更新に失敗しました: {error}"
 
@@ -7145,13 +7389,18 @@ msgstr "権限の更新に失敗しました"
 msgid "Failed to update post: {0}"
 msgstr "投稿の更新に失敗しました: {0}"
 
-#: src/components/segment/button_upsert.tsx:370
+#: src/components/segment/button_upsert.tsx:371
 msgid "Failed to update segment"
 msgstr "セグメントの更新に失敗しました"
 
+#. placeholder {0}: error.message
+#: src/components/contacts/sheet/ContactListsCard.tsx:80
+msgid "Failed to update status: {0}"
+msgstr "ステータスの更新に失敗しました: {0}"
+
 #: src/components/contacts/ContactDetailsDrawer.tsx:287
-msgid "Failed to update status: {error}"
-msgstr "ステータスの更新に失敗しました: {error}"
+#~ msgid "Failed to update status: {error}"
+#~ msgstr "ステータスの更新に失敗しました: {error}"
 
 #. placeholder {0}: error.message
 #: src/components/templates/CreateTemplateDrawer.tsx:372
@@ -7203,7 +7452,7 @@ msgid "Feedback:"
 msgstr "フィードバック:"
 
 #. placeholder {0}: fetchedCount.toLocaleString()
-#: src/components/contacts/ExportContactsModal.tsx:380
+#: src/components/contacts/ExportContactsModal.tsx:391
 msgid "Fetched {0} contacts..."
 msgstr "{0}件のコンタクトを取得中..."
 
@@ -7256,7 +7505,7 @@ msgid "File is too large. Maximum size is 1MB."
 msgstr "ファイルが大きすぎます。最大サイズは1MBです。"
 
 #: src/components/file_manager/context.tsx:155
-#: src/layouts/app-shell/menuItems.ts:181
+#: src/layouts/app-shell/menuItems.ts:179
 #: src/pages/FileManagerPage.tsx:119
 msgid "File Manager"
 msgstr "ファイルマネージャー"
@@ -7305,6 +7554,10 @@ msgstr "{0}でフィルター"
 msgid "Filter by: {0}"
 msgstr "フィルター: {0}"
 
+#: src/components/contacts/ContactsFilters.tsx:86
+msgid "Filter by…"
+msgstr "絞り込み…"
+
 #: src/components/automations/config/FilterConfigForm.tsx:28
 msgid "Filter conditions"
 msgstr "フィルター条件"
@@ -7319,7 +7572,7 @@ msgstr "イベントプロパティでフィルター"
 
 #: src/components/messages/MessageHistoryTab.tsx:579
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:373
-#: src/layouts/app-shell/menuItems.ts:171
+#: src/layouts/app-shell/menuItems.ts:170
 #: src/pages/WebAnalyticsPage.tsx:98
 msgid "Filters"
 msgstr "フィルター"
@@ -7341,7 +7594,6 @@ msgstr "フィルター — クリア済み"
 #~ msgstr ""
 
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:112
-#: src/pages/ContactsPage.tsx:1099
 msgid "Filters:"
 msgstr "フィルター:"
 
@@ -7370,13 +7622,18 @@ msgstr "サブスクリプションのURLへテスト配信を実行する — �
 msgid "Firecrawl integration saved successfully"
 msgstr "Firecrawl連携を保存しました"
 
+#: src/components/contacts/visits/ContactWebVisits.tsx:116
+msgid "First identified visit"
+msgstr "最初の識別済み訪問"
+
 #: src/components/automations/config/TriggerConfigForm.tsx:129
-#: src/components/contacts/ContactDetailsDrawer.tsx:446
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:91
-#: src/components/contacts/ExportContactsModal.tsx:61
-#: src/pages/ContactsPage.tsx:377
-#: src/pages/ContactsPage.tsx:444
-#: src/pages/ContactsPage.tsx:692
+#: src/components/contacts/ContactsFilters.tsx:21
+#: src/components/contacts/ContactsTable.tsx:68
+#: src/components/contacts/ContactsTable.tsx:270
+#: src/components/contacts/ExportContactsModal.tsx:67
+#: src/components/contacts/sheet/ContactProfileFields.tsx:113
+#: src/components/segment/segmentSummary.ts:30
 msgid "First Name"
 msgstr "名"
 
@@ -7457,6 +7714,11 @@ msgstr "フォントサイズ"
 msgid "Font Styling"
 msgstr "フォントスタイリング"
 
+#. placeholder {0}: dayjs(subscription.created_at).fromNow(true)
+#: src/components/contacts/ContactsTable.tsx:195
+msgid "for {0}"
+msgstr "{0}前から"
+
 #: src/components/settings/GeneralSettings.tsx:271
 #: src/components/settings/GeneralSettings.tsx:404
 msgid "For contacts without a known language"
@@ -7499,7 +7761,7 @@ msgid "Forwards inbound replies to Notifuse so automations can stop when a conta
 msgstr "受信した返信をNotifuseへ転送し、コンタクトが返信したときにオートメーションを停止できるようにします (返信時に離脱)。Webhookを登録するとプロバイダー側のルートが作成されます。加えて、ドメインのMXレコードをメールプロバイダーに向ける必要があります。"
 
 #. placeholder {0}: parsedData.emails.length
-#: src/components/contacts/BulkUpdateDrawer.tsx:246
+#: src/components/contacts/BulkUpdateDrawer.tsx:261
 msgid "Found {0} email addresses"
 msgstr "{0}件のメールアドレスが見つかりました"
 
@@ -7516,6 +7778,10 @@ msgstr "頻度"
 #: src/components/templates/TemplatePreviewDrawer.tsx:303
 msgid "From"
 msgstr "差出人"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:332
+msgid "From an email"
+msgstr "メールから"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:405
 #: src/pages/SetupWizard.tsx:504
@@ -7551,10 +7817,12 @@ msgstr "フルアクセス"
 msgid "Full content"
 msgstr "全文"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:448
-#: src/pages/ContactsPage.tsx:379
-#: src/pages/ContactsPage.tsx:446
-#: src/pages/ContactsPage.tsx:706
+#: src/components/contacts/ContactsFilters.tsx:23
+#: src/components/contacts/ContactsTable.tsx:70
+#: src/components/contacts/ContactsTable.tsx:272
+#: src/components/contacts/ExportContactsModal.tsx:73
+#: src/components/contacts/sheet/ContactProfileFields.tsx:115
+#: src/components/segment/segmentSummary.ts:32
 msgid "Full Name"
 msgstr "氏名"
 
@@ -7615,7 +7883,7 @@ msgstr "送信のたびにHTMLから生成されます。管理は不要です�
 msgid "Generated HTML"
 msgstr "生成されたHTML"
 
-#: src/components/segment/button_upsert.tsx:702
+#: src/components/segment/button_upsert.tsx:703
 msgid "Generated SQL:"
 msgstr "生成されたSQL:"
 
@@ -7662,6 +7930,7 @@ msgstr "有効時はグローバルフィードのURLが必須です"
 msgid "Go to Sign In"
 msgstr "サインインへ"
 
+#: src/components/contacts/visits/ContactWebVisits.tsx:306
 #: src/components/segment/form_leaf.tsx:724
 #: src/components/segment/input.tsx:634
 #: src/components/web_analytics/explore/BreakdownModal.tsx:71
@@ -7707,7 +7976,7 @@ msgstr "ゴール:"
 #: src/components/web_analytics/tabs/DashboardTab.tsx:246
 #: src/components/web_analytics/tabs/DashboardTab.tsx:256
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:372
-#: src/layouts/app-shell/menuItems.ts:170
+#: src/layouts/app-shell/menuItems.ts:169
 #: src/pages/WebAnalyticsPage.tsx:97
 msgid "Goals"
 msgstr "ゴール"
@@ -7719,6 +7988,10 @@ msgstr "ゴール"
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:262
 msgid "Goals by day and hour"
 msgstr "曜日・時間帯別のゴール"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:129
+msgid "Goals reached"
+msgstr "達成したゴール"
 
 #: src/components/email_builder/panels/CanvasDropIndicator.tsx:25
 #: src/components/email_builder/ui/AddBlockPopover.tsx:149
@@ -7963,7 +8236,7 @@ msgstr "https://fonts.googleapis.com/css?family=... または {{ font_url }}"
 msgid "I ran {maxRounds} rounds of tool calls without reaching an answer and stopped there. Ask a narrower question and I will try again."
 msgstr "{maxRounds}回のツール呼び出しを行いましたが、答えに到達できなかったためそこで停止しました。もう少し絞り込んだ質問をいただければ、再度試みます。"
 
-#: src/components/segment/button_upsert.tsx:465
+#: src/components/segment/button_upsert.tsx:466
 msgid "i.e: Big spenders..."
 msgstr "例: 高額利用者..."
 
@@ -7996,10 +8269,10 @@ msgid "Icon/Favicon URL"
 msgstr "アイコン/ファビコンURL"
 
 #: src/components/automations/AutomationCard.tsx:296
+#: src/components/lists/ListHeader.tsx:113
 #: src/components/messages/MessageHistoryTable.tsx:273
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:149
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:355
-#: src/pages/ListsPage.tsx:343
 msgid "ID"
 msgstr "ID"
 
@@ -8015,8 +8288,8 @@ msgstr "IDは小文字の英字、数字、アンダースコアのみ使用で�
 msgid "ID copied"
 msgstr "ID をコピーしました"
 
+#: src/components/lists/DeleteListModal.tsx:153
 #: src/pages/BroadcastsPage.tsx:1867
-#: src/pages/ListsPage.tsx:436
 msgid "ID doesn't match"
 msgstr "IDが一致しません"
 
@@ -8028,11 +8301,11 @@ msgstr "API用ID:"
 msgid "ID is automatically generated but can be modified if needed"
 msgstr "IDは自動生成されますが、必要に応じて変更できます"
 
-#: src/components/lists/ListDrawer.tsx:202
+#: src/components/lists/ListDrawer.tsx:227
 msgid "ID must be alphanumeric"
 msgstr "IDは英数字である必要があります"
 
-#: src/components/lists/ListDrawer.tsx:203
+#: src/components/lists/ListDrawer.tsx:228
 msgid "ID must be less than 32 characters"
 msgstr "IDは32文字未満である必要があります"
 
@@ -8125,10 +8398,11 @@ msgstr "暗黙的TLS"
 msgid "Implicit TLS (SMTPS)"
 msgstr "暗黙的TLS (SMTPS)"
 
+#: src/components/contacts/ContactsViewHeader.tsx:206
 #: src/components/contacts/TrackingConsent.tsx:66
 #: src/components/email_builder/MjmlCodeEditor.tsx:628
 #: src/components/templates/ImportExportButton.tsx:403
-#: src/pages/ContactsPage.tsx:1036
+#: src/pages/ContactsPage.tsx:486
 msgid "Import"
 msgstr "インポート"
 
@@ -8150,7 +8424,7 @@ msgid "Import contacts"
 msgstr "コンタクトをインポート"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:792
-#: src/components/contacts/ContactsCsvUploadProvider.tsx:102
+#: src/components/contacts/ContactsCsvUploadProvider.tsx:105
 msgid "Import Contacts from CSV"
 msgstr "CSVからコンタクトをインポート"
 
@@ -8183,6 +8457,11 @@ msgstr "MJMLをインポート"
 #: src/components/templates/ImportExportButton.tsx:420
 msgid "Import MJML markup"
 msgstr "MJMLマークアップをインポート"
+
+#: src/components/contacts/ContactsViewHeader.tsx:105
+#: src/pages/ContactsPage.tsx:468
+msgid "Import to list"
+msgstr "リストにインポート"
 
 #: src/components/templates/ImportExportButton.tsx:199
 msgid "Import Validation Failed"
@@ -8222,10 +8501,18 @@ msgstr "いずれかに一致"
 msgid "in {0}"
 msgstr "{0}で"
 
+#: src/components/contacts/ContactsFilters.tsx:112
+msgid "In any of: {segmentNames}"
+msgstr "いずれかに所属: {segmentNames}"
+
 #: src/components/segment/form_leaf.tsx:520
 #: src/components/segment/form_leaf.tsx:895
 msgid "in date range"
 msgstr "日付範囲内"
+
+#: src/components/segment/segmentSummary.ts:114
+msgid "In list {list}"
+msgstr "リスト {list} に所属"
 
 #: src/pages/BroadcastsPage.tsx:1182
 msgid "in recipients timezone"
@@ -8414,7 +8701,7 @@ msgstr "無効な招待"
 msgid "Invalid invitation link: missing token"
 msgstr "無効な招待リンク: トークンがありません"
 
-#: src/components/contacts/InlineEditableField.tsx:94
+#: src/components/contacts/InlineEditableField.tsx:97
 #: src/components/email_builder/MjmlCodeEditor.tsx:606
 msgid "Invalid JSON format"
 msgstr "無効なJSON形式です"
@@ -8611,10 +8898,11 @@ msgstr "イタリック"
 msgid "Items per feed"
 msgstr "フィードあたりの件数"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:455
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:101
-#: src/pages/ContactsPage.tsx:452
-#: src/pages/ContactsPage.tsx:762
+#: src/components/contacts/ContactsTable.tsx:76
+#: src/components/contacts/ContactsTable.tsx:297
+#: src/components/contacts/sheet/ContactProfileFields.tsx:122
+#: src/components/segment/segmentSummary.ts:41
 msgid "Job Title"
 msgstr "役職"
 
@@ -8630,6 +8918,10 @@ msgstr "参加しました"
 #: src/components/settings/WorkspaceMembers.tsx:273
 msgid "Joined"
 msgstr "参加済み"
+
+#: src/components/contacts/sheet/activityLabel.ts:18
+msgid "Joined segment"
+msgstr "セグメントに参加"
 
 #: src/components/settings/CustomFieldsConfiguration.tsx:61
 #: src/components/templates/ImportExportButton.tsx:409
@@ -8709,15 +9001,16 @@ msgstr "ランディングページ"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:134
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:221
-#: src/components/contacts/ContactDetailsDrawer.tsx:457
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:96
-#: src/components/contacts/ExportContactsModal.tsx:73
+#: src/components/contacts/ContactsFilters.tsx:25
+#: src/components/contacts/ContactsTable.tsx:73
+#: src/components/contacts/ContactsTable.tsx:275
+#: src/components/contacts/ExportContactsModal.tsx:82
+#: src/components/contacts/sheet/ContactProfileFields.tsx:124
+#: src/components/segment/segmentSummary.ts:35
 #: src/components/templates/SendTemplateModal.tsx:392
 #: src/components/templates/TemplatePreviewDrawer.tsx:393
 #: src/layouts/app-shell/AccountMenu.tsx:68
-#: src/pages/ContactsPage.tsx:381
-#: src/pages/ContactsPage.tsx:449
-#: src/pages/ContactsPage.tsx:725
 msgid "Language"
 msgstr "言語"
 
@@ -8746,6 +9039,11 @@ msgstr "大きな画像は、特にモバイルデバイスや遅い接続では
 #~ msgid "Last 24 hours"
 #~ msgstr "過去24時間"
 
+#. placeholder {0}: int(s.sentLast30Days)
+#: src/components/contacts/sheet/ContactKpis.tsx:37
+msgid "Last 30 days: {0}"
+msgstr "過去 30 日: {0}"
+
 #: src/pages/WebAnalyticsLivePage.tsx:39
 #~ msgid "last 30 minutes"
 #~ msgstr ""
@@ -8754,15 +9052,19 @@ msgstr "大きな画像は、特にモバイルデバイスや遅い接続では
 #~ msgid "Last 7 days"
 #~ msgstr "過去7日間"
 
+#: src/components/contacts/sheet/ContactKpis.tsx:55
+msgid "Last activity"
+msgstr "最終アクティビティ"
+
 #: src/pages/WebAnalyticsFiltersPage.tsx:150
 #~ msgid "Last backfill rewrote"
 #~ msgstr ""
 
-#: src/components/contacts/TrackingConsent.tsx:174
+#: src/components/contacts/TrackingConsent.tsx:170
 msgid "Last change"
 msgstr "最終変更"
 
-#: src/components/contacts/TrackingConsent.tsx:169
+#: src/components/contacts/TrackingConsent.tsx:166
 msgid "Last changed {changedAt} from {changedFrom}"
 msgstr "最終変更 {changedAt}（{changedFrom}）"
 
@@ -8779,12 +9081,13 @@ msgid "Last modified"
 msgstr "最終更新"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:130
-#: src/components/contacts/ContactDetailsDrawer.tsx:447
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:92
-#: src/components/contacts/ExportContactsModal.tsx:64
-#: src/pages/ContactsPage.tsx:378
-#: src/pages/ContactsPage.tsx:445
-#: src/pages/ContactsPage.tsx:699
+#: src/components/contacts/ContactsFilters.tsx:22
+#: src/components/contacts/ContactsTable.tsx:69
+#: src/components/contacts/ContactsTable.tsx:271
+#: src/components/contacts/ExportContactsModal.tsx:70
+#: src/components/contacts/sheet/ContactProfileFields.tsx:114
+#: src/components/segment/segmentSummary.ts:31
 msgid "Last Name"
 msgstr "姓"
 
@@ -8857,6 +9160,10 @@ msgstr "退出しました"
 #: src/components/email_builder/ui/PaddingInput.tsx:199
 msgid "Left"
 msgstr "左"
+
+#: src/components/contacts/sheet/activityLabel.ts:19
+msgid "Left segment"
+msgstr "セグメントから離脱"
 
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:103
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:138
@@ -8946,7 +9253,7 @@ msgstr "リンク"
 msgid "Link contains {link}"
 msgstr "リンクに {link} を含む"
 
-#: src/components/layout/DrawerControls.tsx:65
+#: src/components/layout/DrawerControls.tsx:76
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:66
 msgid "Link copied"
 msgstr "リンクをコピーしました"
@@ -9005,20 +9312,20 @@ msgstr "Liquidブロック - クリックしてMJML + Liquidコンテンツを�
 #: src/components/automations/config/TriggerConfigForm.tsx:311
 #: src/components/automations/UpsertAutomationDrawer.tsx:195
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:546
-#: src/components/contacts/BulkUpdateDrawer.tsx:602
-#: src/components/contacts/ExportContactsModal.tsx:78
+#: src/components/contacts/BulkUpdateDrawer.tsx:617
+#: src/components/contacts/ExportContactsModal.tsx:87
+#: src/components/contacts/sheet/activityLabel.ts:17
 #: src/components/messages/MessageHistoryTable.tsx:150
 #: src/components/messages/MessageHistoryTable.tsx:277
 #: src/components/messages/MessageHistoryTable.tsx:291
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:231
 #: src/components/web_analytics/tabs/DashboardTab.tsx:220
 #: src/pages/BroadcastsPage.tsx:1149
-#: src/pages/ContactsPage.tsx:385
 msgid "List"
 msgstr "リスト"
 
-#. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:176
+#. placeholder {0}: list.name
+#: src/components/lists/DeleteListModal.tsx:94
 msgid "List \"{0}\" deleted successfully"
 msgstr "リスト\"{0}\"を削除しました"
 
@@ -9046,7 +9353,7 @@ msgstr "ブロードキャストを、そのオーディエンスとスケジュ
 msgid "List contacts with their full profile fields"
 msgstr "コンタクトを、そのプロフィールフィールドすべてとともに一覧表示する"
 
-#: src/components/lists/ListDrawer.tsx:69
+#: src/components/lists/ListDrawer.tsx:76
 msgid "List created successfully"
 msgstr "リストを作成しました"
 
@@ -9062,15 +9369,15 @@ msgstr "ダブルオプトインやテンプレート設定を含め、すべて
 msgid "List everything one contact is subscribed to (also needs Contacts read)"
 msgstr "1件のコンタクトが購読しているものをすべて一覧表示する (コンタクトの読み取りも必要)"
 
-#: src/components/lists/ListDrawer.tsx:199
+#: src/components/lists/ListDrawer.tsx:224
 #: src/components/messages/MessageHistoryTab.tsx:228
 msgid "List ID"
 msgstr "リストID"
 
 #. placeholder {0}: record.list_id
 #: src/components/contacts/ContactDetailsDrawer.tsx:990
-msgid "List ID: {0}"
-msgstr "リストID: {0}"
+#~ msgid "List ID: {0}"
+#~ msgstr "リストID: {0}"
 
 #: src/services/api/permissions.ts:248
 msgid "List segments with their full definition trees"
@@ -9084,8 +9391,7 @@ msgstr "送信済みメッセージを、受信者アドレス、配信・エン
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:38
 #: src/components/automations/nodes/StatNode.tsx:89
 #: src/components/automations/nodes/StatNode.tsx:251
-#: src/components/contacts/ExportContactsModal.tsx:85
-#: src/pages/ContactsPage.tsx:395
+#: src/components/contacts/ExportContactsModal.tsx:94
 msgid "List Status"
 msgstr "リストステータス"
 
@@ -9096,8 +9402,8 @@ msgid "List subscription"
 msgstr "リスト購読"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:963
-msgid "List Subscriptions"
-msgstr "リスト購読"
+#~ msgid "List Subscriptions"
+#~ msgstr "リスト購読"
 
 #: src/services/api/permissions.ts:829
 msgid "List subscriptions with their target URL, event types and filters"
@@ -9143,7 +9449,7 @@ msgstr "確認するリスト"
 msgid "List transactional notification definitions"
 msgstr "トランザクション通知の定義を一覧表示する"
 
-#: src/components/lists/ListDrawer.tsx:84
+#: src/components/lists/ListDrawer.tsx:90
 msgid "List updated successfully"
 msgstr "リストを更新しました"
 
@@ -9153,18 +9459,22 @@ msgstr "リストを更新しました"
 msgid "List:"
 msgstr "リスト:"
 
+#: src/components/contacts/ContactsRail.tsx:74
+#: src/components/contacts/ContactsTable.tsx:66
+#: src/components/contacts/ContactsTable.tsx:204
+#: src/components/contacts/sheet/ContactListsCard.tsx:120
 #: src/components/settings/permissionLabels.ts:8
-#: src/layouts/app-shell/menuItems.ts:174
-#: src/pages/ContactsPage.tsx:442
-#: src/pages/ContactsPage.tsx:563
-#: src/pages/ListsPage.tsx:227
 #: src/services/api/errors.ts:83
 msgid "Lists"
 msgstr "リスト"
 
+#: src/components/contacts/sheet/ContactActivityTab.tsx:37
+msgid "Lists & segments"
+msgstr "リストとセグメント"
+
 #: src/pages/ListsPage.tsx:215
-msgid "Lists refreshed"
-msgstr "リストを更新しました"
+#~ msgid "Lists refreshed"
+#~ msgstr "リストを更新しました"
 
 #: src/services/api/permissions.ts:367
 msgid "Lists write also grants contact writing. Subscribing an address through `/api/lists.subscribe` creates or overwrites that contact's whole record, with every field the request carries and without needing Contacts write — so anyone holding only Lists write can still rewrite contact data. It can also subscribe someone to a list that is not public. Read is not confined to list settings either: through /api/contactLists.* it lists the addresses of a list's members, which is why those two endpoints additionally require Contacts read."
@@ -9173,7 +9483,7 @@ msgstr "リストの書き込みは、コンタクトの書き込みも付与し
 #: src/components/automations/AutomationCard.tsx:65
 #: src/components/blog/RecentThemesTable.tsx:128
 #: src/components/web_analytics/LiveButton.tsx:46
-#: src/layouts/app-shell/menuItems.ts:168
+#: src/layouts/app-shell/menuItems.ts:167
 #: src/pages/WebAnalyticsLivePage.tsx:121
 msgid "Live"
 msgstr "ライブ"
@@ -9187,11 +9497,18 @@ msgstr "LLM"
 msgid "LLM integration saved successfully"
 msgstr "LLM連携を保存しました"
 
+#: src/pages/ContactsPage.tsx:704
+msgid "Load {CONTACTS_PAGE_SIZE} more"
+msgstr "さらに {CONTACTS_PAGE_SIZE} 件読み込む"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:360
+msgid "Load more"
+msgstr "さらに読み込む"
+
 #: src/components/messages/MessageHistoryTable.tsx:511
 #: src/components/settings/audit_logs/AuditLogTable.tsx:307
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:554
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:517
-#: src/pages/ContactsPage.tsx:1191
 msgid "Load More"
 msgstr "もっと読み込む"
 
@@ -9251,13 +9568,20 @@ msgstr "Webhookイベントを読み込み中..."
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:451
 #: src/layouts/RootLayout.tsx:99
-#: src/pages/ContactsPage.tsx:552
-#: src/pages/ContactsPage.tsx:1183
-#: src/pages/ListsPage.tsx:221
+#: src/pages/ContactsPage.tsx:418
 #: src/pages/LogsPage.tsx:29
 #: src/pages/TemplatesPage.tsx:204
 msgid "Loading..."
 msgstr "読み込み中..."
+
+#: src/components/contacts/ContactDetailsDrawer.tsx:105
+msgid "Loading…"
+msgstr "読み込み中…"
+
+#. placeholder {0}: dayjs().tz(value).format('HH:mm')
+#: src/components/contacts/sheet/ContactProfileFields.tsx:133
+msgid "Local time {0}"
+msgstr "現地時刻 {0}"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:267
 #~ msgid "Locations are resolved from the IP address on the server; the IP itself is never stored."
@@ -9281,7 +9605,7 @@ msgstr "ロゴURL"
 msgid "Logout"
 msgstr "ログアウト"
 
-#: src/layouts/app-shell/menuItems.ts:182
+#: src/layouts/app-shell/menuItems.ts:180
 #: src/pages/LogsPage.tsx:95
 msgid "Logs"
 msgstr "ログ"
@@ -9354,6 +9678,10 @@ msgstr "セクションをメールビューポート全幅に広げ、コンテ
 msgid "Makes the wrapper span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
 msgstr "ラッパーをメールビューポート全幅に広げ、コンテナの制約（通常600px）を無視します。全面背景やヒーローセクションに便利です。"
 
+#: src/components/contacts/sheet/ContactProfileFields.tsx:173
+msgid "Manage"
+msgstr "管理"
+
 #: src/components/settings/WorkspaceMembers.tsx:437
 #~ msgid "Manage your workspace members"
 #~ msgstr "ワークスペースメンバーを管理"
@@ -9411,7 +9739,6 @@ msgid "Mark the dates that explain a chart — a launch, a campaign, an outage �
 msgstr "チャートの動きを説明する日付 — ローンチ、キャンペーン、障害など — を記録すると、ダッシュボードとゴールのチャートにラベル付きの縦線として表示されます。"
 
 #: src/components/analytics/RecentFailures.tsx:57
-#: src/pages/ContactsPage.tsx:600
 msgid "Marked as spam"
 msgstr "スパムとしてマーク"
 
@@ -9448,11 +9775,12 @@ msgstr "マーケティング：未設定"
 msgid "Match"
 msgstr "一致条件"
 
-#: src/components/contacts/SegmentsFilter.tsx:77
+#: src/components/contacts/SegmentProgress.tsx:34
 msgid "Matched"
 msgstr "一致"
 
-#: src/pages/ContactsPage.tsx:670
+#: src/components/contacts/ContactsTable.tsx:246
+#: src/components/contacts/sheet/ContactListsCard.tsx:248
 msgid "Matched on:"
 msgstr "一致した項目:"
 
@@ -9464,7 +9792,7 @@ msgstr "一致"
 msgid "matches regex"
 msgstr "正規表現に一致"
 
-#: src/components/segment/button_upsert.tsx:697
+#: src/components/segment/button_upsert.tsx:698
 msgid "Matching contacts:"
 msgstr "一致するコンタクト:"
 
@@ -9491,6 +9819,11 @@ msgstr "最大期間は2年です。日付は{timezone}で解釈されます。"
 #: src/components/web_analytics/goals/GoalCard.tsx:46
 msgid "Median"
 msgstr "中央値"
+
+#. placeholder {0}: formatDuration(summary.median_duration_ms, i18n)
+#: src/components/contacts/sheet/ContactKpis.tsx:72
+msgid "Median {0}"
+msgstr "中央値 {0}"
 
 #: src/components/web_analytics/explore/ExploreSummary.tsx:52
 #: src/components/web_analytics/explore/ExploreTable.tsx:157
@@ -9577,7 +9910,7 @@ msgstr "メッセージストリーム"
 msgid "Message Stream"
 msgstr "メッセージストリーム"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:1086
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:252
 msgid "Messages"
 msgstr "メッセージ"
 
@@ -9760,6 +10093,10 @@ msgstr "月次"
 #~ msgid "Monthly partitions older than this are dropped. 0 keeps data forever."
 #~ msgstr ""
 
+#: src/components/contacts/ContactsViewHeader.tsx:109
+#: src/components/contacts/ContactsViewHeader.tsx:179
+#: src/components/contacts/ContactsViewHeader.tsx:217
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:217
 #: src/components/settings/Integrations.tsx:961
 #: src/components/settings/integrations/EmailProviderCard.tsx:343
 #: src/components/transactional/TransactionalDetail.tsx:295
@@ -9774,6 +10111,10 @@ msgstr "{name}のその他の操作"
 #: src/components/blog_editor/toolbars/components/MoreMenu.tsx:97
 msgid "More options"
 msgstr "その他のオプション"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:141
+msgid "Most viewed pages"
+msgstr "よく見られたページ"
 
 #: src/components/web_analytics/explore/DimensionSelector.tsx:164
 #: src/components/web_analytics/explore/DimensionSelector.tsx:165
@@ -9827,8 +10168,8 @@ msgstr "N/A"
 #: src/components/blog/CategoryDrawer.tsx:130
 #: src/components/email_builder/ui/SaveBlockModal.tsx:128
 #: src/components/file_manager/fileManager.tsx:847
-#: src/components/lists/ListDrawer.tsx:188
-#: src/components/segment/button_upsert.tsx:446
+#: src/components/lists/ListDrawer.tsx:213
+#: src/components/segment/button_upsert.tsx:447
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:125
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:154
 #: src/components/settings/GeneralSettings.tsx:197
@@ -9856,11 +10197,11 @@ msgid "Name is required"
 msgstr "名前は必須です"
 
 #: src/components/blog/CategoryDrawer.tsx:133
-#: src/components/lists/ListDrawer.tsx:191
+#: src/components/lists/ListDrawer.tsx:216
 msgid "Name must be less than 255 characters"
 msgstr "名前は255文字未満である必要があります"
 
-#: src/pages/TransactionalNotificationsPage.tsx:358
+#: src/pages/TransactionalNotificationsPage.tsx:360
 msgid "Name or ID"
 msgstr "名前または ID"
 
@@ -9904,6 +10245,11 @@ msgstr "新しいブロードキャスト"
 msgid "New Category"
 msgstr "新規カテゴリ"
 
+#: src/components/contacts/ContactsViewHeader.tsx:214
+#: src/pages/ContactsPage.tsx:490
+msgid "New contact"
+msgstr "新しいコンタクト"
+
 #: src/components/analytics/NewContactsTable.tsx:114
 msgid "New contacts"
 msgstr "新規コンタクト"
@@ -9923,6 +10269,10 @@ msgstr "新規フォルダ"
 #: src/components/settings/WorkspaceMembers.tsx:520
 msgid "New key"
 msgstr "新しいキー"
+
+#: src/components/contacts/ContactsRail.tsx:77
+msgid "New list"
+msgstr "新しいリスト"
 
 #: src/pages/SignInPage.tsx:230
 msgid "New magic code sent to your email"
@@ -9945,7 +10295,8 @@ msgstr "新規投稿"
 #~ msgid "New rule"
 #~ msgstr ""
 
-#: src/components/segment/button_upsert.tsx:413
+#: src/components/contacts/ContactsRail.tsx:115
+#: src/components/segment/button_upsert.tsx:414
 msgid "New segment"
 msgstr "新規セグメント"
 
@@ -9965,13 +10316,13 @@ msgstr "新規ワークスペース"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:353
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:363
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:374
-#: src/components/layout/DrawerControls.tsx:43
+#: src/components/layout/DrawerControls.tsx:50
 #: src/components/templates/CreateTemplateDrawer.tsx:714
 #: src/components/templates/CreateTemplateDrawer.tsx:735
 msgid "Next"
 msgstr "次へ"
 
-#: src/components/layout/DrawerControls.tsx:39
+#: src/components/layout/DrawerControls.tsx:46
 msgid "Next (J)"
 msgstr "次へ (J)"
 
@@ -9987,9 +10338,9 @@ msgstr "次回実行"
 #: src/components/broadcasts/HeadersEditor.tsx:66
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:270
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:870
+#: src/components/contacts/ContactsViewHeader.tsx:142
+#: src/components/contacts/ContactsViewHeader.tsx:166
 #: src/components/contacts/ContactUpsertDrawer.tsx:555
-#: src/components/contacts/SegmentsFilter.tsx:155
-#: src/components/contacts/SegmentsFilter.tsx:170
 #: src/components/messages/MessageHistoryTab.tsx:109
 #: src/components/messages/MessageHistoryTab.tsx:122
 #: src/components/messages/MessageHistoryTab.tsx:135
@@ -10027,6 +10378,10 @@ msgstr "アクセスなし"
 #: src/components/settings/WorkspaceMembers.tsx:165
 #~ msgid "No Access"
 #~ msgstr "アクセス権なし"
+
+#: src/components/contacts/sheet/ContactActivityTab.tsx:52
+msgid "No activity of this kind"
+msgstr "この種類のアクティビティはありません"
 
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:106
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:171
@@ -10109,12 +10464,28 @@ msgid "No contact yet"
 msgstr "まだコンタクトがありません"
 
 #: src/pages/ContactsPage.tsx:1182
-msgid "No contacts found. Add some contacts to get started."
-msgstr "コンタクトが見つかりません。開始するにはコンタクトを追加してください。"
+#~ msgid "No contacts found. Add some contacts to get started."
+#~ msgstr "コンタクトが見つかりません。開始するにはコンタクトを追加してください。"
 
-#: src/components/contacts/ExportContactsModal.tsx:204
+#: src/pages/ContactsPage.tsx:464
+msgid "No contacts in this list yet"
+msgstr "このリストにはまだコンタクトがいません"
+
+#: src/components/contacts/ExportContactsModal.tsx:215
 msgid "No contacts match the current filters"
 msgstr "現在のフィルターに一致するコンタクトがありません"
+
+#: src/pages/ContactsPage.tsx:477
+msgid "No contacts match this segment"
+msgstr "このセグメントに一致するコンタクトはありません"
+
+#: src/pages/ContactsPage.tsx:457
+msgid "No contacts match your filters"
+msgstr "フィルターに一致するコンタクトはありません"
+
+#: src/pages/ContactsPage.tsx:483
+msgid "No contacts yet"
+msgstr "まだコンタクトがありません"
 
 #: src/components/web_analytics/CountryMapView.tsx:165
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:218
@@ -10173,7 +10544,7 @@ msgstr "下書き投稿がありません"
 msgid "no email"
 msgstr "メールなし"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:149
+#: src/components/contacts/BulkUpdateDrawer.tsx:164
 msgid "No email column found. Please ensure your CSV has a column with \"email\" in the name"
 msgstr "メール列が見つかりません。CSVに「email」という名前の列があることを確認してください"
 
@@ -10212,6 +10583,10 @@ msgstr "ファイルが選択されていません"
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:264
 msgid "No goal data"
 msgstr "ゴールのデータがありません"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:131
+msgid "No goal yet"
+msgstr "まだゴールはありません"
 
 #: src/components/web_analytics/tabs/DashboardTab.tsx:248
 msgid "No goals data"
@@ -10254,8 +10629,12 @@ msgid "No list"
 msgstr "リストなし"
 
 #: src/pages/ListsPage.tsx:389
-msgid "No lists found"
-msgstr "リストが見つかりません"
+#~ msgid "No lists found"
+#~ msgstr "リストが見つかりません"
+
+#: src/components/contacts/ContactsRail.tsx:91
+msgid "No lists yet"
+msgstr "まだリストがありません"
 
 #: src/components/web_analytics/filters/TestFilterModal.tsx:162
 msgid "No match"
@@ -10285,7 +10664,7 @@ msgstr "このオートメーションにノードがありません"
 msgid "No notes"
 msgstr "メモなし"
 
-#: src/pages/TransactionalNotificationsPage.tsx:367
+#: src/pages/TransactionalNotificationsPage.tsx:369
 msgid "No notifications match"
 msgstr "一致する通知はありません"
 
@@ -10376,6 +10755,10 @@ msgstr "一致する保存済みブロックはありません。"
 msgid "No saved blocks yet"
 msgstr "保存されたブロックがまだありません"
 
+#: src/components/contacts/ContactsRail.tsx:125
+msgid "No segments yet"
+msgstr "まだセグメントがありません"
+
 #: src/components/transactional/TransactionalDetail.tsx:253
 msgid "No sender"
 msgstr "送信者なし"
@@ -10391,6 +10774,10 @@ msgstr "この期間に送信はありません"
 #: src/components/transactional/RecentSends.tsx:77
 msgid "No sends yet"
 msgstr "まだ送信はありません"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:338
+msgid "No sessions match this filter"
+msgstr "このフィルターに一致するセッションはありません"
 
 #: src/components/email_builder/blocks/MjAttributesBlock.tsx:15
 msgid "No settings available for the attributes container."
@@ -10456,13 +10843,17 @@ msgstr "過去24時間のトラフィックはありません"
 msgid "No transactional email provider. Notifications can't be sent until you choose one."
 msgstr "トランザクションメールのプロバイダーがありません。選択するまで通知は送信できません。"
 
-#: src/pages/TransactionalNotificationsPage.tsx:343
+#: src/pages/TransactionalNotificationsPage.tsx:345
 msgid "No transactional notifications found"
 msgstr "トランザクション通知が見つかりません"
 
 #: src/components/automations/AutomationCard.tsx:305
 msgid "No trigger configured"
 msgstr "トリガーが設定されていません"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:252
+msgid "No visits recorded for this contact"
+msgstr "このコンタクトの訪問は記録されていません"
 
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:468
 msgid "No webhook deliveries found"
@@ -10583,6 +10974,10 @@ msgstr "いずれにも一致しない"
 msgid "Not in List"
 msgstr "リストに含まれない"
 
+#: src/components/segment/segmentSummary.ts:113
+msgid "Not in list {list}"
+msgstr "リスト {list} に未所属"
+
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:184
 msgid "Not in the test data: the rule is evaluated as if the variable were empty."
 msgstr "テストデータにありません。変数が空であるものとしてルールを評価します。"
@@ -10595,7 +10990,7 @@ msgstr "今はしない"
 msgid "Not resolved"
 msgstr "未解決"
 
-#: src/components/contacts/InlineEditableField.tsx:144
+#: src/components/contacts/InlineEditableField.tsx:147
 #: src/components/settings/BlogSettings.tsx:245
 #: src/components/settings/BlogSettings.tsx:249
 #: src/components/settings/GeneralSettings.tsx:227
@@ -10613,7 +11008,7 @@ msgstr "未設定"
 #: src/components/settings/GeneralSettings.tsx:293
 #: src/components/transactional/TransactionalDetail.tsx:185
 #: src/components/transactional/TransactionalTable.tsx:45
-#: src/pages/TransactionalNotificationsPage.tsx:254
+#: src/pages/TransactionalNotificationsPage.tsx:256
 msgid "Not tracked"
 msgstr "トラッキングなし"
 
@@ -10804,7 +11199,7 @@ msgstr "OK"
 msgid "On"
 msgstr "オン"
 
-#: src/pages/TransactionalNotificationsPage.tsx:254
+#: src/pages/TransactionalNotificationsPage.tsx:256
 msgid "On tracked emails"
 msgstr "トラッキング対象のメール"
 
@@ -10884,9 +11279,10 @@ msgstr "メールテンプレートごとに1つのブレークポイントの�
 msgid "Only workspace owners can modify integrations"
 msgstr "ワークスペースオーナーのみが連携を変更できます"
 
+#: src/components/contacts/sheet/activityLabel.ts:14
 #: src/components/transactional/PreviewPanel.tsx:70
 msgid "Open"
-msgstr "開く"
+msgstr "開封"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:659
 msgid "Open and click tracking"
@@ -10925,6 +11321,10 @@ msgstr "ログで開く"
 msgid "Open in new tab"
 msgstr "新しいタブで開く"
 
+#: src/components/contacts/visits/ContactWebVisits.tsx:222
+msgid "Open in web analytics"
+msgstr "ウェブ解析で開く"
+
 #: src/pages/TransactionalNotificationsPage.tsx:229
 msgid "Open integrations"
 msgstr "連携を開く"
@@ -10938,7 +11338,8 @@ msgid "Open one audit entry with its before/after changes"
 msgstr "変更前後を含む監査エントリを 1 件開く"
 
 #: src/components/analytics/DashboardKpis.tsx:275
-#: src/pages/TransactionalNotificationsPage.tsx:276
+#: src/components/contacts/sheet/ContactKpis.tsx:41
+#: src/pages/TransactionalNotificationsPage.tsx:278
 msgid "Open rate"
 msgstr "開封率"
 
@@ -10986,8 +11387,9 @@ msgstr "開封"
 #: src/components/analytics/OriginVolumeChart.tsx:160
 #: src/components/broadcasts/BroadcastStats.tsx:242
 #: src/components/contacts/TrackingConsent.tsx:28
-#: src/components/contacts/TrackingConsent.tsx:187
-#: src/components/contacts/TrackingConsent.tsx:191
+#: src/components/contacts/TrackingConsent.tsx:183
+#: src/components/contacts/TrackingConsent.tsx:186
+#: src/components/contacts/TrackingConsent.tsx:217
 #: src/components/settings/GeneralSettings.tsx:280
 #: src/components/settings/GeneralSettings.tsx:426
 #: src/components/transactional/TransactionalDetail.tsx:344
@@ -11004,8 +11406,9 @@ msgstr "このブロードキャストでは開封とクリックをトラッキ
 msgid "Opens this email in the browser. The link is filled in for broadcasts and automations, and left empty in other emails."
 msgstr "このメールをブラウザで開きます。リンクはブロードキャストとオートメーションで設定され、その他のメールでは空になります。"
 
-#: src/components/contacts/ExportContactsModal.tsx:92
-#: src/pages/ContactsPage.tsx:407
+#: src/components/contacts/ContactsFilters.tsx:29
+#: src/components/contacts/ExportContactsModal.tsx:101
+#: src/components/segment/segmentSummary.ts:44
 msgid "Opens tracking consent"
 msgstr "開封トラッキングへの同意"
 
@@ -11025,7 +11428,7 @@ msgstr "操作をキャンセルしました"
 msgid "Operation complete"
 msgstr "操作が完了しました"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:751
+#: src/components/contacts/BulkUpdateDrawer.tsx:766
 msgid "Operation Complete"
 msgstr "操作完了"
 
@@ -11076,6 +11479,7 @@ msgstr "選択したリスト内のコンタクトをセグメントでフィル
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:116
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
+#: src/components/segment/segmentSummary.ts:133
 #: src/pages/SignInPage.tsx:294
 msgid "or"
 msgstr "または"
@@ -11088,6 +11492,14 @@ msgstr "またはブロックをメールにドラッグ"
 msgid "Or select a popular Google Font"
 msgstr "または人気のGoogle Fontを選択"
 
+#: src/components/contacts/visits/webVisitSource.ts:29
+msgid "Organic search"
+msgstr "オーガニック検索"
+
+#: src/components/contacts/visits/webVisitSource.ts:33
+msgid "Organic social"
+msgstr "オーガニックソーシャル"
+
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:255
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:255
 #: src/components/web_analytics/tabs/DashboardTab.tsx:239
@@ -11096,6 +11508,8 @@ msgid "OS"
 msgstr "OS"
 
 #: src/components/blog_editor/menus/suggestion/SlashPopoverContent.tsx:74
+#: src/components/contacts/visits/webVisitSource.ts:43
+#: src/components/contacts/visits/webVisitSource.ts:46
 #: src/components/settings/WebhooksSettings.tsx:606
 #: src/pages/TemplatesPage.tsx:133
 msgid "Other"
@@ -11173,6 +11587,7 @@ msgstr "パディング設定"
 msgid "Page"
 msgstr "ページ"
 
+#: src/components/contacts/sheet/activityLabel.ts:26
 #: src/components/timeline/ContactTimeline.tsx:992
 msgid "Page view"
 msgstr "ページビュー"
@@ -11190,6 +11605,18 @@ msgstr "ページ"
 #: src/components/web_analytics/CountryMapView.tsx:68
 msgid "Pageviews"
 msgstr "ページビュー"
+
+#: src/components/contacts/visits/webVisitSource.ts:31
+msgid "Paid search"
+msgstr "有料検索"
+
+#: src/components/contacts/visits/webVisitSource.ts:35
+msgid "Paid social"
+msgstr "有料ソーシャル"
+
+#: src/components/contacts/visits/webVisitSource.ts:39
+msgid "Paid video"
+msgstr "有料動画"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:385
 msgid "Parent Frame"
@@ -11242,7 +11669,7 @@ msgid "Path-style access"
 msgstr "パス形式アクセス"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:50
-#: src/components/contacts/BulkUpdateDrawer.tsx:571
+#: src/components/contacts/BulkUpdateDrawer.tsx:586
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:812
 msgid "Pause"
 msgstr "一時停止"
@@ -11290,19 +11717,19 @@ msgstr "{0} がピーク"
 #: src/components/automations/config/AddToListConfigForm.tsx:18
 #: src/components/automations/config/TriggerConfigForm.tsx:96
 #: src/components/automations/nodes/AddToListNode.tsx:59
-#: src/components/contacts/ContactDetailsDrawer.tsx:588
-#: src/components/lists/ListStats.tsx:90
+#: src/components/contacts/contactDisplay.ts:36
+#: src/components/lists/ListHeader.tsx:63
 #: src/components/settings/WorkspaceMembers.tsx:84
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:86
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:241
 #: src/pages/BroadcastsPage.tsx:453
-#: src/pages/ContactsPage.tsx:399
+#: src/pages/ContactsPage.tsx:522
 msgid "Pending"
 msgstr "保留中"
 
 #: src/pages/ContactsPage.tsx:583
-msgid "Pending confirmation"
-msgstr "確認待ち"
+#~ msgid "Pending confirmation"
+#~ msgstr "確認待ち"
 
 #: src/components/workspace/PendingInvitations.tsx:68
 msgid "Pending invitations"
@@ -11364,13 +11791,14 @@ msgid "Permissions updated successfully"
 msgstr "権限を更新しました"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:131
-#: src/components/contacts/ContactDetailsDrawer.tsx:449
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:93
-#: src/components/contacts/ExportContactsModal.tsx:67
+#: src/components/contacts/ContactsFilters.tsx:24
+#: src/components/contacts/ContactsTable.tsx:71
+#: src/components/contacts/ContactsTable.tsx:273
+#: src/components/contacts/ExportContactsModal.tsx:76
+#: src/components/contacts/sheet/ContactProfileFields.tsx:116
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:327
-#: src/pages/ContactsPage.tsx:380
-#: src/pages/ContactsPage.tsx:447
-#: src/pages/ContactsPage.tsx:713
+#: src/components/segment/segmentSummary.ts:33
 msgid "Phone"
 msgstr "電話番号"
 
@@ -11444,7 +11872,7 @@ msgstr "フォームにエラーがないか確認してください"
 msgid "Please check the form for errors."
 msgstr "フォームにエラーがないか確認してください。"
 
-#: src/components/segment/button_upsert.tsx:319
+#: src/components/segment/button_upsert.tsx:320
 msgid "Please choose a different segment name"
 msgstr "別のセグメント名を選択してください"
 
@@ -11472,11 +11900,11 @@ msgstr "カスタムラベルを入力してください"
 msgid "Please enter a label for this connection"
 msgstr "この接続のラベルを入力してください"
 
-#: src/components/lists/ListDrawer.tsx:201
+#: src/components/lists/ListDrawer.tsx:226
 msgid "Please enter a list ID"
 msgstr "リストIDを入力してください"
 
-#: src/components/lists/ListDrawer.tsx:190
+#: src/components/lists/ListDrawer.tsx:215
 msgid "Please enter a list name"
 msgstr "リスト名を入力してください"
 
@@ -11625,12 +12053,12 @@ msgid "Please select a JSON file"
 msgstr "JSONファイルを選択してください"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:551
-#: src/components/contacts/ContactDetailsDrawer.tsx:1145
+#: src/components/contacts/sheet/ContactListsCard.tsx:185
 #: src/components/segment/form_leaf.tsx:240
 msgid "Please select a list"
 msgstr "リストを選択してください"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:388
+#: src/components/contacts/BulkUpdateDrawer.tsx:403
 msgid "Please select a list for unsubscribe operation"
 msgstr "配信停止操作のリストを選択してください"
 
@@ -11643,7 +12071,7 @@ msgstr "モデルを選択してください"
 msgid "Please select a page size"
 msgstr "ページサイズを選択してください"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:1119
+#: src/components/contacts/sheet/ContactListsCard.tsx:213
 #: src/components/segment/form_leaf.tsx:268
 msgid "Please select a status"
 msgstr "ステータスを選択してください"
@@ -11652,7 +12080,7 @@ msgstr "ステータスを選択してください"
 msgid "Please select a template"
 msgstr "テンプレートを選択してください"
 
-#: src/components/lists/ListDrawer.tsx:255
+#: src/components/lists/ListDrawer.tsx:280
 msgid "Please select a template for double opt-in"
 msgstr "ダブルオプトイン用テンプレートを選択してください"
 
@@ -11687,7 +12115,7 @@ msgstr "MJMLファイルを選択してください"
 msgid "Please select an OAuth2 provider"
 msgstr "OAuth2プロバイダーを選択してください"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:383
+#: src/components/contacts/BulkUpdateDrawer.tsx:398
 msgid "Please select an operation"
 msgstr "操作を選択してください"
 
@@ -11703,7 +12131,7 @@ msgstr "演算子を選択してください"
 msgid "Please select or enter a model"
 msgstr "モデルを選択または入力してください"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:378
+#: src/components/contacts/BulkUpdateDrawer.tsx:393
 msgid "Please upload a CSV file with email addresses"
 msgstr "メールアドレスを含むCSVファイルをアップロードしてください"
 
@@ -11751,8 +12179,9 @@ msgid "Post updated successfully"
 msgstr "投稿を更新しました"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:144
-#: src/components/contacts/ContactDetailsDrawer.tsx:454
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:99
+#: src/components/contacts/sheet/ContactProfileFields.tsx:121
+#: src/components/segment/segmentSummary.ts:39
 msgid "Postcode"
 msgstr "郵便番号"
 
@@ -11801,19 +12230,19 @@ msgstr "Enterで確定、Escapeでキャンセル"
 #: src/pages/ListsPage.tsx:89
 #: src/pages/ListsPage.tsx:98
 #: src/pages/ListsPage.tsx:367
-msgid "preview"
-msgstr "プレビュー"
+#~ msgid "preview"
+#~ msgstr "プレビュー"
 
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:37
 #: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/common/ImageURLInput.tsx:52
 #: src/components/email_builder/EmailBuilder.tsx:1061
-#: src/components/segment/button_upsert.tsx:663
+#: src/components/segment/button_upsert.tsx:664
 #: src/components/transactional/PreviewPanel.tsx:127
 msgid "Preview"
 msgstr "プレビュー"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:658
+#: src/components/contacts/BulkUpdateDrawer.tsx:673
 msgid "Preview (first 10 emails)"
 msgstr "プレビュー（最初の10件）"
 
@@ -11842,7 +12271,7 @@ msgstr "プレビューモードが必要です"
 msgid "Preview of {0}"
 msgstr "{0} のプレビュー"
 
-#: src/components/segment/button_upsert.tsx:692
+#: src/components/segment/button_upsert.tsx:693
 msgid "Preview Results"
 msgstr "結果をプレビュー"
 
@@ -11887,13 +12316,13 @@ msgstr "メールをプレビュー"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:360
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:371
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:382
-#: src/components/layout/DrawerControls.tsx:33
+#: src/components/layout/DrawerControls.tsx:40
 #: src/components/templates/CreateTemplateDrawer.tsx:719
 #: src/components/templates/CreateTemplateDrawer.tsx:740
 msgid "Previous"
 msgstr "前へ"
 
-#: src/components/layout/DrawerControls.tsx:29
+#: src/components/layout/DrawerControls.tsx:36
 msgid "Previous (K)"
 msgstr "前へ (K)"
 
@@ -11967,11 +12396,11 @@ msgstr "優先度は必須です"
 msgid "Priority:"
 msgstr "優先度:"
 
-#: src/pages/ListsPage.tsx:353
+#: src/components/lists/ListHeader.tsx:92
 msgid "Private"
 msgstr "非公開"
 
-#: src/components/contacts/SegmentsFilter.tsx:73
+#: src/components/contacts/SegmentProgress.tsx:31
 msgid "Processed"
 msgstr "処理済み"
 
@@ -11981,12 +12410,12 @@ msgstr "処理済み"
 #. placeholder {1}: successCount.toLocaleString()
 #. placeholder {2}: failureCount.toLocaleString()
 #. placeholder {2}: progress.failed
-#: src/components/contacts/BulkUpdateDrawer.tsx:752
+#: src/components/contacts/BulkUpdateDrawer.tsx:767
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:897
 msgid "Processed {0} contacts: {1} successful, {2} failed"
 msgstr "{0}件の連絡先を処理: {1}件成功、{2}件失敗"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:372
+#: src/components/contacts/BulkUpdateDrawer.tsx:387
 msgid "Processed {successful} contacts successfully, {failed} failed"
 msgstr "{successful}件の連絡先を処理しました。{failed}件失敗"
 
@@ -11996,23 +12425,32 @@ msgstr "{successful}件の連絡先を処理しました。{failed}件失敗"
 msgid "Processing batch {currentBatch} of {totalBatches} ({0} of {1} rows)"
 msgstr "バッチ{currentBatch}/{totalBatches}を処理中（{0}/{1}行）"
 
-#: src/components/contacts/SegmentsFilter.tsx:88
+#: src/components/contacts/SegmentProgress.tsx:26
 msgid "Processing contacts"
 msgstr "連絡先を処理中"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:75
-#: src/components/contacts/BulkUpdateDrawer.tsx:684
+#: src/components/contacts/BulkUpdateDrawer.tsx:699
 msgid "Processing contacts..."
 msgstr "連絡先を処理中..."
 
 #: src/components/contacts/BulkActionProgressModal.tsx:114
-#: src/components/contacts/BulkUpdateDrawer.tsx:700
+#: src/components/contacts/BulkUpdateDrawer.tsx:715
 msgid "Processing paused"
 msgstr "処理を一時停止中"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:122
 msgid "Processing was stopped before completion."
 msgstr "処理は完了前に停止されました。"
+
+#: src/components/contacts/sheet/ContactActivityTab.tsx:38
+#: src/components/contacts/sheet/ContactProfileFields.tsx:156
+msgid "Profile"
+msgstr "プロフィール"
+
+#: src/components/contacts/sheet/activityLabel.ts:21
+msgid "Profile updated"
+msgstr "プロフィールを更新"
 
 #: src/pages/BroadcastsPage.tsx:503
 msgid "Progress"
@@ -12027,12 +12465,12 @@ msgstr "プロパティ名"
 msgid "Provider"
 msgstr "プロバイダー"
 
-#: src/components/lists/ListDrawer.tsx:217
-#: src/pages/ListsPage.tsx:349
+#: src/components/lists/ListDrawer.tsx:242
+#: src/components/lists/ListHeader.tsx:92
 msgid "Public"
 msgstr "公開"
 
-#: src/components/lists/ListDrawer.tsx:218
+#: src/components/lists/ListDrawer.tsx:243
 msgid "Public lists are visible in the Notification Center for users to subscribe to"
 msgstr "公開リストは通知センターでユーザーが購読できるように表示されます"
 
@@ -12307,8 +12745,8 @@ msgid "Ready to send"
 msgstr "送信準備完了"
 
 #: src/components/contacts/SegmentsFilter.tsx:57
-msgid "Ready to use"
-msgstr "使用可能"
+#~ msgid "Ready to use"
+#~ msgstr "使用可能"
 
 #: src/pages/BroadcastsPage.tsx:1207
 msgid "Reason:"
@@ -12319,10 +12757,10 @@ msgid "Reasoning effort"
 msgstr "推論の強度"
 
 #: src/components/contacts/SegmentsFilter.tsx:149
-msgid "Rebuild"
-msgstr "再構築"
+#~ msgid "Rebuild"
+#~ msgstr "再構築"
 
-#: src/components/contacts/SegmentsFilter.tsx:152
+#: src/components/contacts/ContactsViewHeader.tsx:163
 msgid "Rebuild segment"
 msgstr "セグメントを再構築"
 
@@ -12393,6 +12831,10 @@ msgstr "推奨: 150-160文字"
 msgid "Recommended: 50-60 characters"
 msgstr "推奨: 50-60文字"
 
+#: src/components/contacts/ContactsViewHeader.tsx:170
+msgid "Recompute"
+msgstr "再計算"
+
 #: src/services/api/permissions.ts:219
 msgid "Record or overwrite a custom event on a contact"
 msgstr "コンタクトにカスタムイベントを記録または上書きする"
@@ -12452,7 +12894,7 @@ msgstr "リファラー:"
 msgid "Referrers"
 msgstr "リファラー"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:635
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:205
 #: src/components/logs/AuditLogActions.tsx:32
 #: src/components/logs/AuditLogActions.tsx:37
 #: src/components/messages/MessageHistoryTable.tsx:426
@@ -12461,8 +12903,8 @@ msgstr "リファラー"
 #: src/components/settings/WebhooksSettings.tsx:458
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:425
-#: src/pages/ContactsPage.tsx:940
-#: src/pages/ListsPage.tsx:231
+#: src/pages/ContactsPage.tsx:673
+#: src/pages/ContactsPage.tsx:676
 msgid "Refresh"
 msgstr "更新"
 
@@ -12479,8 +12921,8 @@ msgid "Refresh the list"
 msgstr "リストを更新"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:685
-msgid "Refreshing contact data..."
-msgstr "連絡先データを更新中..."
+#~ msgid "Refreshing contact data..."
+#~ msgstr "連絡先データを更新中..."
 
 #: src/components/automations/nodes/WebhookNode.tsx:62
 msgid "Refused: private address"
@@ -12547,11 +12989,18 @@ msgstr "保存済みブロックを更新するにはページを再読み込み
 #: src/components/automations/config/ConditionsField.tsx:119
 #: src/components/automations/config/ConditionsField.tsx:124
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
+#: src/components/contacts/sheet/ContactListsCard.tsx:110
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:91
 #: src/components/settings/LogoInput.tsx:111
 #: src/components/settings/WorkspaceMembers.tsx:190
 msgid "Remove"
 msgstr "削除"
+
+#. placeholder {0}: contact.email
+#. placeholder {1}: listName(subscription.list_id)
+#: src/components/contacts/sheet/ContactListsCard.tsx:109
+msgid "Remove {0} from {1}?"
+msgstr "{0} を {1} から削除しますか？"
 
 #: src/services/api/permissions.ts:359
 msgid "Remove a contact from a list (also needs Contacts write)"
@@ -12580,7 +13029,9 @@ msgstr "フィールドを削除"
 
 #: src/components/contacts/BulkActionsBar.tsx:94
 #: src/components/contacts/BulkActionsBar.tsx:148
-#: src/pages/ContactsPage.tsx:320
+#: src/components/contacts/sheet/ContactListsCard.tsx:104
+#: src/components/contacts/sheet/ContactListsCard.tsx:108
+#: src/pages/ContactsPage.tsx:287
 msgid "Remove from list"
 msgstr "リストから削除"
 
@@ -12886,7 +13337,7 @@ msgstr "テストデータでの結果"
 msgid "Result:"
 msgstr "結果:"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:714
+#: src/components/contacts/BulkUpdateDrawer.tsx:729
 msgid "Results"
 msgstr "結果"
 
@@ -12896,8 +13347,8 @@ msgid "Results:"
 msgstr "結果:"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:55
-#: src/components/contacts/BulkUpdateDrawer.tsx:399
-#: src/components/contacts/BulkUpdateDrawer.tsx:581
+#: src/components/contacts/BulkUpdateDrawer.tsx:414
+#: src/components/contacts/BulkUpdateDrawer.tsx:596
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:377
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:817
 msgid "Resume"
@@ -12915,7 +13366,7 @@ msgstr "ブロードキャストを再開"
 msgid "Resume broadcast?"
 msgstr "ブロードキャストを再開しますか？"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:397
+#: src/components/contacts/BulkUpdateDrawer.tsx:412
 msgid "Resume Previous Operation"
 msgstr "前回の操作を再開"
 
@@ -12937,6 +13388,7 @@ msgstr "保持期間"
 
 #: src/components/analytics/BlockError.tsx:22
 #: src/components/analytics/DashboardKpis.tsx:183
+#: src/components/contacts/BlockError.tsx:11
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
 #: src/components/settings/WorkspaceMembers.tsx:495
@@ -13138,14 +13590,15 @@ msgstr "サンドボックスモード"
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:135
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:391
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
-#: src/components/contacts/InlineEditableField.tsx:318
-#: src/components/contacts/TrackingConsent.tsx:214
+#: src/components/contacts/InlineEditableField.tsx:311
+#: src/components/contacts/InlineEditableField.tsx:354
+#: src/components/contacts/TrackingConsent.tsx:207
 #: src/components/email_builder/panels/Preview.tsx:210
 #: src/components/email_builder/ui/SaveBlockModal.tsx:90
 #: src/components/email_builder/ui/StringPopoverInput.tsx:100
 #: src/components/file_manager/buttonSettings.tsx:312
 #: src/components/layout/SaveBar.tsx:87
-#: src/components/lists/ListDrawer.tsx:173
+#: src/components/lists/ListDrawer.tsx:198
 #: src/components/settings/CustomFieldsConfiguration.tsx:374
 #: src/components/settings/Integrations.tsx:1966
 #: src/components/settings/Integrations.tsx:2090
@@ -13295,6 +13748,7 @@ msgstr "URLをスクレイピングしてマークダウン形式でコンテン
 msgid "Screen width below which mobile layout is activated. Common values: 480px, 600px, 768px"
 msgstr "モバイルレイアウトが有効になる画面幅。一般的な値: 480px、600px、768px"
 
+#: src/components/contacts/ExportContactsModal.tsx:58
 #: src/components/web_analytics/FilterBuilder.tsx:332
 msgid "Search"
 msgstr "検索"
@@ -13430,7 +13884,7 @@ msgstr "クリックした人を表示"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:102
 #: src/components/automations/config/TriggerConfigForm.tsx:332
-#: src/components/contacts/ExportContactsModal.tsx:108
+#: src/components/contacts/ExportContactsModal.tsx:117
 #: src/components/segment/button_upsert.tsx:76
 #: src/components/timeline/ContactTimeline.tsx:625
 msgid "Segment"
@@ -13440,11 +13894,11 @@ msgstr "セグメント"
 msgid "Segment Conditions"
 msgstr "セグメント条件"
 
-#: src/components/contacts/SegmentsFilter.tsx:210
+#: src/components/contacts/ContactsViewHeader.tsx:81
 msgid "Segment deleted successfully"
 msgstr "セグメントが正常に削除されました"
 
-#: src/components/contacts/SegmentsFilter.tsx:226
+#: src/components/contacts/ContactsViewHeader.tsx:72
 msgid "Segment rebuild started successfully"
 msgstr "セグメントの再構築が正常に開始されました"
 
@@ -13456,11 +13910,12 @@ msgstr "セグメントツリーがコンソールに記録されました！"
 msgid "Segment tree reset"
 msgstr "セグメントツリーをリセット"
 
-#: src/components/contacts/SegmentsFilter.tsx:236
+#: src/components/contacts/ContactsRail.tsx:111
+#: src/components/contacts/ContactsTable.tsx:67
+#: src/components/contacts/ContactsTable.tsx:232
+#: src/components/contacts/sheet/ContactListsCard.tsx:235
 #: src/components/settings/permissionLabels.ts:18
 #: src/pages/BroadcastsPage.tsx:1130
-#: src/pages/ContactsPage.tsx:443
-#: src/pages/ContactsPage.tsx:644
 #: src/services/api/errors.ts:93
 msgid "Segments"
 msgstr "セグメント"
@@ -13524,7 +13979,7 @@ msgstr "フィールドを選択"
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:51
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:556
 #: src/components/contacts/BulkActionsBar.tsx:203
-#: src/components/contacts/ContactDetailsDrawer.tsx:1152
+#: src/components/contacts/sheet/ContactListsCard.tsx:189
 #: src/components/segment/form_leaf.tsx:242
 msgid "Select a list"
 msgstr "リストを選択"
@@ -13569,7 +14024,7 @@ msgstr "ソーシャルブロックを選択してください"
 msgid "Select a template"
 msgstr "テンプレートを選択"
 
-#: src/components/segment/button_upsert.tsx:582
+#: src/components/segment/button_upsert.tsx:583
 msgid "Select a time zone"
 msgstr "タイムゾーンを選択"
 
@@ -13614,7 +14069,7 @@ msgstr "カテゴリを選択"
 msgid "Select columns"
 msgstr "列を選択"
 
-#: src/components/lists/ListDrawer.tsx:261
+#: src/components/lists/ListDrawer.tsx:286
 msgid "Select confirmation email template"
 msgstr "確認メールテンプレートを選択"
 
@@ -13630,7 +14085,7 @@ msgstr "コンテンツモードを選択"
 msgid "Select country"
 msgstr "国を選択"
 
-#: src/components/contacts/InlineEditableField.tsx:263
+#: src/components/contacts/InlineEditableField.tsx:266
 msgid "Select country..."
 msgstr "国を選択..."
 
@@ -13695,16 +14150,16 @@ msgstr "インデックスオプションを選択"
 msgid "Select language"
 msgstr "言語を選択"
 
-#: src/components/contacts/InlineEditableField.tsx:245
+#: src/components/contacts/InlineEditableField.tsx:248
 msgid "Select language..."
 msgstr "言語を選択..."
 
 #: src/components/automations/UpsertAutomationDrawer.tsx:199
-#: src/components/contacts/BulkUpdateDrawer.tsx:604
+#: src/components/contacts/BulkUpdateDrawer.tsx:619
 msgid "Select list"
 msgstr "リストを選択"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:1144
+#: src/components/contacts/sheet/ContactListsCard.tsx:184
 msgid "Select List"
 msgstr "リストを選択"
 
@@ -13770,7 +14225,7 @@ msgstr "時間を選択"
 msgid "Select timezone"
 msgstr "タイムゾーンを選択"
 
-#: src/components/contacts/InlineEditableField.tsx:227
+#: src/components/contacts/InlineEditableField.tsx:230
 msgid "Select timezone..."
 msgstr "タイムゾーンを選択..."
 
@@ -13982,7 +14437,7 @@ msgid "Sends per day"
 msgstr "1 日あたりの送信数"
 
 #: src/components/transactional/TransactionalDetail.tsx:226
-#: src/pages/TransactionalNotificationsPage.tsx:283
+#: src/pages/TransactionalNotificationsPage.tsx:285
 msgid "Sends refused by the provider. Requests rejected before sending are not logged."
 msgstr "プロバイダーに拒否された送信。送信前に拒否されたリクエストは記録されません。"
 
@@ -14004,13 +14459,13 @@ msgid "Sent"
 msgstr "送信済み"
 
 #. placeholder {0}: provider.name
-#: src/pages/TransactionalNotificationsPage.tsx:307
+#: src/pages/TransactionalNotificationsPage.tsx:309
 msgid "Sent via {0}"
 msgstr "{0} 経由で送信"
 
 #. placeholder {0}: provider.name
 #. placeholder {1}: sender.email
-#: src/pages/TransactionalNotificationsPage.tsx:307
+#: src/pages/TransactionalNotificationsPage.tsx:309
 msgid "Sent via {0} · {1}"
 msgstr "{0} 経由で送信 · {1}"
 
@@ -14087,6 +14542,7 @@ msgstr "SESテナントの分離"
 msgid "SES tenant isolation requires a Notifuse {tier} licence."
 msgstr ""
 
+#: src/components/contacts/visits/ContactWebVisits.tsx:264
 #: src/components/web_analytics/explore/BreakdownModal.tsx:70
 #: src/components/web_analytics/explore/DimensionSelector.tsx:104
 #: src/components/web_analytics/FilterBuilder.tsx:62
@@ -14267,8 +14723,8 @@ msgstr "メールがモバイルレイアウトに切り替わる画面幅を設
 msgid "Setting up..."
 msgstr "セットアップ中..."
 
-#: src/components/transactional/TransactionalDetail.tsx:413
-#: src/layouts/app-shell/menuItems.ts:183
+#: src/components/transactional/TransactionalDetail.tsx:414
+#: src/layouts/app-shell/menuItems.ts:181
 #: src/pages/WorkspaceSettingsPage.tsx:269
 msgid "Settings"
 msgstr "設定"
@@ -14326,6 +14782,11 @@ msgstr "もっと表示（残り{0}件）"
 msgid "Show this block if"
 msgstr "このブロックを表示する条件"
 
+#. placeholder {0}: int(MAX_CONTACT_ROWS)
+#: src/pages/ContactsPage.tsx:691
+msgid "Showing the first {0} contacts. Refine your filters to see more."
+msgstr "最初の {0} 件のコンタクトを表示しています。さらに表示するにはフィルターを絞り込んでください。"
+
 #: src/components/file_manager/fileManager.tsx:765
 msgid "Showing the first {maxObjectsLabel} files of this bucket."
 msgstr "このバケットの最初の {maxObjectsLabel} 件のファイルを表示しています。"
@@ -14372,6 +14833,11 @@ msgstr "サインアップ"
 #~ msgid "Since"
 #~ msgstr "以来"
 
+#. placeholder {0}: dayjs(subscription.created_at).tz(timezone).format('ll')
+#: src/components/contacts/sheet/ContactListsCard.tsx:154
+msgid "since {0}"
+msgstr "{0}から"
+
 #: src/services/api/licenseErrors.ts:51
 msgid "Single sign-on"
 msgstr ""
@@ -14401,6 +14867,14 @@ msgstr "シングルサインオンは一時的に利用できません。マジ
 msgid "Single sign-on requires a Notifuse {tier} licence."
 msgstr ""
 
+#: src/components/contacts/sheet/activityLabel.ts:25
+msgid "Site visit"
+msgstr "サイト訪問"
+
+#: src/components/contacts/sheet/ContactKpis.tsx:68
+msgid "Site visits"
+msgstr "サイト訪問"
+
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:174
 #: src/components/email_builder/ui/FontStyleInput.tsx:179
 #: src/components/file_manager/fileManager.tsx:854
@@ -14409,7 +14883,7 @@ msgstr "サイズ"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:102
 #: src/components/contacts/BulkActionProgressModal.tsx:140
-#: src/components/contacts/BulkUpdateDrawer.tsx:727
+#: src/components/contacts/BulkUpdateDrawer.tsx:742
 msgid "Skipped"
 msgstr "スキップ"
 
@@ -14522,7 +14996,7 @@ msgstr "SMTPポートは必須です"
 #: src/components/broadcasts/BroadcastStats.tsx:318
 #: src/components/transactional/notificationParts.tsx:64
 #: src/components/transactional/TransactionalDetail.tsx:183
-#: src/pages/TransactionalNotificationsPage.tsx:290
+#: src/pages/TransactionalNotificationsPage.tsx:292
 msgid "SMTP provider doesn't support bounce webhooks, so bounce status cannot be tracked"
 msgstr "SMTPプロバイダーはバウンスWebhookをサポートしていないため、バウンスステータスを追跡できません"
 
@@ -14533,7 +15007,7 @@ msgstr "SMTPプロバイダーは苦情Webhookをサポートしていないた�
 #: src/components/broadcasts/BroadcastStats.tsx:191
 #: src/components/transactional/notificationParts.tsx:63
 #: src/components/transactional/TransactionalDetail.tsx:182
-#: src/pages/TransactionalNotificationsPage.tsx:262
+#: src/pages/TransactionalNotificationsPage.tsx:264
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
 msgstr "SMTPプロバイダーは配信Webhookをサポートしていないため、配信ステータスを追跡できません"
 
@@ -14611,6 +15085,10 @@ msgstr "編集中に他のユーザーがバージョン{0}を保存しました
 msgid "Something went wrong"
 msgstr "エラーが発生しました"
 
+#: src/components/contacts/visits/ContactWebVisits.tsx:270
+msgid "Source"
+msgstr "流入元"
+
 #. placeholder {0}: node.leaf?.source
 #: src/components/segment/input.tsx:471
 msgid "source {0} not found"
@@ -14641,7 +15119,7 @@ msgstr "SparkPost APIキー"
 msgid "Split"
 msgstr "分割"
 
-#: src/components/segment/button_upsert.tsx:721
+#: src/components/segment/button_upsert.tsx:722
 msgid "SQL Arguments:"
 msgstr "SQL引数:"
 
@@ -14653,7 +15131,7 @@ msgstr "SSO (OpenID Connect)"
 msgid "Standard value is 480px for most email clients"
 msgstr "ほとんどのメールクライアントで標準値は480pxです"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:566
+#: src/components/contacts/BulkUpdateDrawer.tsx:581
 msgid "Start"
 msgstr "開始"
 
@@ -14681,7 +15159,7 @@ msgstr "開始日を未来の日付にすることはできません"
 msgid "Start Fresh"
 msgstr "最初から開始"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:400
+#: src/components/contacts/BulkUpdateDrawer.tsx:415
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:378
 msgid "Start New"
 msgstr "新規開始"
@@ -14728,14 +15206,14 @@ msgid "STARTTLS required"
 msgstr "STARTTLS必須"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:143
-#: src/components/contacts/ContactDetailsDrawer.tsx:453
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:100
+#: src/components/contacts/sheet/ContactProfileFields.tsx:120
+#: src/components/segment/segmentSummary.ts:40
 msgid "State"
 msgstr "都道府県"
 
 #: src/components/blog/PostsTable.tsx:271
 #: src/components/blog/RecentThemesTable.tsx:122
-#: src/components/contacts/ContactDetailsDrawer.tsx:996
 #: src/components/messages/MessageHistoryTab.tsx:573
 #: src/components/settings/LicenseSettings.tsx:149
 #: src/components/transactional/RecentSends.tsx:107
@@ -14750,9 +15228,13 @@ msgstr "ステータス"
 msgid "status changed"
 msgstr "ステータス変更"
 
+#: src/components/contacts/ContactsTable.tsx:181
+msgid "Status in list"
+msgstr "リストでのステータス"
+
 #: src/pages/ContactsPage.tsx:604
-msgid "Status unknown"
-msgstr "ステータス不明"
+#~ msgid "Status unknown"
+#~ msgstr "ステータス不明"
 
 #: src/components/automations/UpsertAutomationDrawer.tsx:216
 msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop."
@@ -14831,7 +15313,7 @@ msgstr "件名のプレビュー ({0})"
 msgid "Submitting batch request to the server..."
 msgstr "バッチリクエストをサーバーに送信中..."
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:1158
+#: src/components/contacts/sheet/ContactListsCard.tsx:178
 msgid "Subscribe"
 msgstr "購読"
 
@@ -14843,9 +15325,11 @@ msgstr "公開・非公開を問わず任意のリストにアドレスを購読
 msgid "Subscribe imported contacts to lists — required only when the import names lists (also needs Contacts write)"
 msgstr "インポートしたコンタクトをリストに購読させる — インポートでリストを指定した場合にのみ必要 (コンタクトの書き込みも必要)"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:973
-#: src/components/contacts/ContactDetailsDrawer.tsx:1053
-#: src/components/contacts/ContactDetailsDrawer.tsx:1136
+#: src/components/contacts/sheet/ContactListsCard.tsx:133
+msgid "Subscribe to list"
+msgstr "リストに登録"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:174
 msgid "Subscribe to List"
 msgstr "リストに購読"
 
@@ -14868,12 +15352,17 @@ msgid "Subscribed"
 msgstr "購読済み"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:1007
-msgid "Subscribed on"
-msgstr "購読日"
+#~ msgid "Subscribed on"
+#~ msgstr "購読日"
 
 #: src/pages/ContactsPage.tsx:622
-msgid "Subscribed on:"
-msgstr "購読日:"
+#~ msgid "Subscribed on:"
+#~ msgstr "購読日:"
+
+#. placeholder {0}: fullDate(subscription.created_at)
+#: src/components/contacts/ContactsTable.tsx:216
+msgid "Subscribed on: {0}"
+msgstr "登録日: {0}"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:633
 msgid "Subscript"
@@ -14897,20 +15386,20 @@ msgid "Subscription ID:"
 msgstr "購読ID:"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:985
-msgid "Subscription list"
-msgstr "購読リスト"
+#~ msgid "Subscription list"
+#~ msgstr "購読リスト"
 
 #: src/components/automations/config/AddToListConfigForm.tsx:49
-#: src/components/contacts/ContactDetailsDrawer.tsx:1118
+#: src/components/contacts/sheet/ContactListsCard.tsx:212
 msgid "Subscription Status"
 msgstr "購読ステータス"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:264
+#: src/components/contacts/sheet/ContactListsCard.tsx:76
 msgid "Subscription status updated successfully"
 msgstr "購読ステータスが正常に更新されました"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:143
-#: src/components/contacts/BulkUpdateDrawer.tsx:730
+#: src/components/contacts/BulkUpdateDrawer.tsx:745
 #: src/components/settings/audit_logs/AuditFilterBuilder.tsx:109
 msgid "Success"
 msgstr "成功"
@@ -14928,11 +15417,11 @@ msgstr "成功率"
 #~ msgstr "成功率"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:98
-#: src/components/contacts/BulkUpdateDrawer.tsx:694
+#: src/components/contacts/BulkUpdateDrawer.tsx:709
 msgid "Successful"
 msgstr "成功"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:368
+#: src/components/contacts/BulkUpdateDrawer.tsx:383
 msgid "Successfully processed {successful} contacts"
 msgstr "{successful}件のコンタクトを正常に処理しました"
 
@@ -14994,6 +15483,10 @@ msgstr "プレビューモードに切り替えて、受信者にどのように
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:38
 msgid "Switch to Preview mode to see the breakpoint effects. The edit mode shows the raw structure, but only preview mode compiles the MJML template and renders the responsive behavior properly."
 msgstr "ブレークポイントの効果を確認するにはプレビューモードに切り替えてください。編集モードは生の構造を表示しますが、プレビューモードのみがMJMLテンプレートをコンパイルし、レスポンシブ動作を適切にレンダリングします。"
+
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:290
+msgid "System"
+msgstr "システム"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:102
 msgid "System Fonts"
@@ -15080,6 +15573,7 @@ msgstr "テンプレート"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:412
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:915
+#: src/components/lists/ListHeader.tsx:101
 #: src/components/messages/MessageHistoryTable.tsx:148
 #: src/components/messages/MessageHistoryTable.tsx:234
 #: src/components/transactional/TransactionalDetail.tsx:243
@@ -15218,7 +15712,7 @@ msgid "Template's sender ({0})"
 msgstr "テンプレートの送信者（{0}）"
 
 #: src/components/settings/permissionLabels.ts:9
-#: src/layouts/app-shell/menuItems.ts:179
+#: src/layouts/app-shell/menuItems.ts:177
 #: src/pages/TemplatesPage.tsx:397
 #: src/services/api/errors.ts:84
 msgid "Templates"
@@ -15479,7 +15973,7 @@ msgstr "比較期間を追加の列として表示"
 msgid "The CSV file appears to be empty or invalid."
 msgstr "CSVファイルが空か無効です。"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:647
+#: src/components/contacts/BulkUpdateDrawer.tsx:662
 msgid "The CSV file should have a column containing email addresses"
 msgstr "CSVファイルにはメールアドレスを含む列が必要です"
 
@@ -15566,15 +16060,15 @@ msgstr "前回のバックフィルは失敗しました"
 msgid "The licence covers this whole deployment rather than this workspace. Ask the person who runs this Notifuse instance."
 msgstr ""
 
-#: src/pages/ListsPage.tsx:150
+#: src/components/lists/DeleteListModal.tsx:66
 msgid "The list \"{listName}\" can't be deleted while the live automation \"{automationName}\" uses it. Pause it first, or change it to stop using the list."
 msgstr "ライブ状態のオートメーション\"{automationName}\"が使用しているため、リスト\"{listName}\"は削除できません。先にオートメーションを一時停止するか、このリストを使用しないように変更してください。"
 
-#: src/pages/ListsPage.tsx:154
+#: src/components/lists/DeleteListModal.tsx:70
 msgid "The list \"{listName}\" can't be deleted while the live automations \"{first}\" and \"{second}\" use it. Pause them first, or change them to stop using the list."
 msgstr "ライブ状態のオートメーション\"{first}\"と\"{second}\"が使用しているため、リスト\"{listName}\"は削除できません。先にそれらを一時停止するか、このリストを使用しないように変更してください。"
 
-#: src/pages/ListsPage.tsx:157
+#: src/components/lists/DeleteListModal.tsx:73
 msgid "The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\" and \"{third}\" use it. Pause them first, or change them to stop using the list."
 msgstr "ライブ状態のオートメーション\"{first}\"、\"{second}\"、\"{third}\"が使用しているため、リスト\"{listName}\"は削除できません。先にそれらを一時停止するか、このリストを使用しないように変更してください。"
 
@@ -15611,11 +16105,11 @@ msgstr "リクエストされたワークスペースが見つかりませんで
 msgid "The response was cut off because it reached the token limit. Lower the reasoning effort, simplify the request, or raise the token limit, then try again."
 msgstr "トークンの上限に達したため、応答が途中で打ち切られました。推論の強度を下げる、リクエストを簡素化する、またはトークンの上限を引き上げてから、もう一度お試しください。"
 
-#: src/components/segment/button_upsert.tsx:357
+#: src/components/segment/button_upsert.tsx:358
 msgid "The segment has been created!"
 msgstr "セグメントが作成されました！"
 
-#: src/components/segment/button_upsert.tsx:337
+#: src/components/segment/button_upsert.tsx:338
 msgid "The segment has been updated!"
 msgstr "セグメントが更新されました！"
 
@@ -15771,17 +16265,17 @@ msgstr "この操作は元に戻せません。"
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "この操作は元に戻せません。確認のため、ブロードキャストIDを入力してください:"
 
-#: src/pages/ListsPage.tsx:426
+#: src/components/lists/DeleteListModal.tsx:143
 msgid "This action cannot be undone. To confirm, please enter the list ID:"
 msgstr "この操作は元に戻せません。確認のため、リストIDを入力してください:"
 
 #. placeholder {0}: csvData.emails.length
-#: src/components/contacts/BulkUpdateDrawer.tsx:622
+#: src/components/contacts/BulkUpdateDrawer.tsx:637
 msgid "This action will permanently delete {0} contact(s)"
 msgstr "この操作により{0}件のコンタクトが完全に削除されます"
 
 #. placeholder {0}: csvData.emails.length
-#: src/components/contacts/BulkUpdateDrawer.tsx:623
+#: src/components/contacts/BulkUpdateDrawer.tsx:638
 msgid "This action will unsubscribe {0} contact(s)"
 msgstr "この操作により{0}件のコンタクトが購読解除されます"
 
@@ -15834,7 +16328,11 @@ msgstr "この操作は元に戻せません。"
 #~ msgid "This console is read-only: single sign-on is enabled and this deployment's licence does not include it."
 #~ msgstr ""
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:1044
+#: src/components/contacts/sheet/ContactListsCard.tsx:237
+msgid "This contact is in no segment"
+msgstr "このコンタクトはどのセグメントにも属していません"
+
+#: src/components/contacts/sheet/ContactListsCard.tsx:139
 msgid "This contact is not subscribed to any lists"
 msgstr "このコンタクトはどのリストにも購読していません"
 
@@ -15922,6 +16420,10 @@ msgstr ""
 msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 msgstr "このリストには2つの役割があります。1つは受信するビーコンのフィルタリングです — 他のオリジンからのものは黙って無視されます。もう1つはメールクリックによる識別の制御です: トラッキング対象のリンクが識別トークンを持つのは、ここに登録されたドメインの場合だけです。そのため、この欄が空のあいだは、どのメールリンクもコンタクトを識別できません。example.com とそのサブドメインの両方を対象にするには *.example.com を使用してください — example.com 単体では www.example.com には一致しません。"
 
+#: src/pages/ContactsPage.tsx:588
+msgid "This list no longer exists"
+msgstr "このリストはもう存在しません"
+
 #: src/components/transactional/notificationRules.ts:50
 msgid "This notification has no email template"
 msgstr "この通知にはメールテンプレートがありません"
@@ -15979,7 +16481,11 @@ msgstr "このルールは無効です。"
 msgid "This section is empty. Add columns or groups to display content."
 msgstr "このセクションは空です。コンテンツを表示するには列またはグループを追加してください。"
 
-#: src/components/segment/button_upsert.tsx:607
+#: src/pages/ContactsPage.tsx:588
+msgid "This segment no longer exists"
+msgstr "このセグメントはもう存在しません"
+
+#: src/components/segment/button_upsert.tsx:608
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "このセグメントは相対日付フィルターを使用しており、毎日午前5時（{timezone}）に自動的に再計算されます"
 
@@ -16081,7 +16587,7 @@ msgstr "すべてのコンテンツがデフォルト言語のテンプレート
 msgid "This will send a real test email to the address provided."
 msgstr "指定されたアドレスに実際のテストメールが送信されます。"
 
-#: src/components/contacts/InlineEditableField.tsx:296
+#: src/components/contacts/InlineEditableField.tsx:288
 msgid "This will set the value to NULL. Are you sure?"
 msgstr "値がNULLに設定されます。よろしいですか？"
 
@@ -16123,13 +16629,17 @@ msgid "timeframe"
 msgstr "期間"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:1068
-msgid "Timeline"
-msgstr "タイムライン"
+#~ msgid "Timeline"
+#~ msgstr "タイムライン"
 
 #: src/components/segment/form_leaf.tsx:505
 #: src/components/segment/input.tsx:822
 msgid "times"
 msgstr "回"
+
+#: src/components/contacts/sheet/ContactActivityTab.tsx:47
+msgid "Times in {timezone}"
+msgstr "時刻は {timezone}"
 
 #: src/components/web_analytics/DimensionTableWidget.tsx:91
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:205
@@ -16166,14 +16676,15 @@ msgstr "タイムスタンプ"
 #: src/components/automations/config/TriggerConfigForm.tsx:133
 #: src/components/blog/PublishModal.tsx:184
 #: src/components/broadcasts/SendOrScheduleModal.tsx:265
-#: src/components/contacts/ContactDetailsDrawer.tsx:456
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:95
+#: src/components/contacts/ContactsTable.tsx:74
+#: src/components/contacts/ContactsTable.tsx:276
+#: src/components/contacts/sheet/ContactProfileFields.tsx:123
+#: src/components/segment/segmentSummary.ts:36
 #: src/components/settings/GeneralSettings.tsx:254
 #: src/components/settings/GeneralSettings.tsx:367
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:169
 #: src/components/web_analytics/toolbar.tsx:92
-#: src/pages/ContactsPage.tsx:450
-#: src/pages/ContactsPage.tsx:731
 msgid "Timezone"
 msgstr "タイムゾーン"
 
@@ -16185,12 +16696,12 @@ msgstr "タイムゾーン — {detail}"
 msgid "Timezone is required"
 msgstr "タイムゾーンは必須です"
 
-#: src/components/segment/button_upsert.tsx:577
+#: src/components/segment/button_upsert.tsx:578
 msgid "Timezone used for dates"
 msgstr "日付に使用されるタイムゾーン"
 
-#: src/pages/ContactsPage.tsx:624
-#: src/pages/ContactsPage.tsx:673
+#: src/components/contacts/ContactsTable.tsx:250
+#: src/components/contacts/sheet/ContactListsCard.tsx:254
 msgid "Timezone:"
 msgstr "タイムゾーン:"
 
@@ -16291,6 +16802,7 @@ msgstr "これらのイベントを止めるには、代わりにZapierでZapを
 msgid "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
 msgstr "{0}を使用するには、ワークスペース設定でAnthropic連携を設定する必要があります。"
 
+#: src/components/contacts/visits/ContactWebVisits.tsx:244
 #: src/components/web_analytics/toolbar.tsx:15
 msgid "Today"
 msgstr "今日"
@@ -16377,7 +16889,7 @@ msgid "Top traffic sources"
 msgstr "上位トラフィックソース"
 
 #: src/components/automations/config/ABTestConfigForm.tsx:168
-#: src/components/contacts/SegmentsFilter.tsx:81
+#: src/components/contacts/SegmentProgress.tsx:38
 msgid "Total"
 msgstr "合計"
 
@@ -16435,9 +16947,9 @@ msgstr "A/Bテスト機能を使用するには、ワークスペース設定で
 msgid "Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
 msgstr "この機能を使用するには、ワークスペース設定でトラッキング（開封＆クリック）を有効にする必要があります"
 
-#: src/components/contacts/TrackingConsent.tsx:167
-#: src/pages/ContactsPage.tsx:454
-#: src/pages/ContactsPage.tsx:737
+#: src/components/contacts/ContactsTable.tsx:78
+#: src/components/contacts/ContactsTable.tsx:278
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:280
 msgid "Tracking consent"
 msgstr "トラッキングへの同意"
 
@@ -16460,7 +16972,7 @@ msgstr "どのフィルタールールも分類していないトラフィック
 #: src/components/settings/permissionLabels.ts:11
 #: src/components/transactional/TransactionalDetail.tsx:78
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
-#: src/layouts/app-shell/menuItems.ts:177
+#: src/layouts/app-shell/menuItems.ts:175
 #: src/pages/TemplatesPage.tsx:127
 #: src/pages/TransactionalNotificationsPage.tsx:168
 #: src/pages/TransactionalNotificationsPage.tsx:204
@@ -16661,7 +17173,6 @@ msgstr "ユニーククリックは、リンクごとに各受信者を1回だ�
 
 #: src/components/blog/PostsTable.tsx:196
 #: src/components/contacts/ContactUpsertDrawer.tsx:433
-#: src/components/contacts/SegmentsFilter.tsx:93
 #: src/components/contacts/TrackingConsent.tsx:13
 #: src/components/contacts/TrackingConsent.tsx:49
 #: src/components/timeline/ContactTimeline.tsx:1052
@@ -16671,10 +17182,14 @@ msgstr "ユニーククリックは、リンクごとに各受信者を1回だ�
 msgid "Unknown"
 msgstr "不明"
 
-#: src/pages/ContactsPage.tsx:615
-#: src/pages/ContactsPage.tsx:663
+#: src/components/contacts/ContactsTable.tsx:247
+#: src/components/contacts/sheet/ContactListsCard.tsx:251
 msgid "Unknown date"
 msgstr "日付不明"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:299
+msgid "Unknown device"
+msgstr "不明なデバイス"
 
 #: src/layouts/WorkspaceLayout.tsx:158
 msgid "Unknown error"
@@ -16703,8 +17218,8 @@ msgid "Unknown Segment"
 msgstr "不明なセグメント"
 
 #: src/components/contacts/SegmentsFilter.tsx:93
-msgid "Unknown status"
-msgstr "不明なステータス"
+#~ msgid "Unknown status"
+#~ msgstr "不明なステータス"
 
 #: src/components/settings/LicenseSettings.tsx:124
 msgid "Unlimited"
@@ -16740,8 +17255,8 @@ msgid "unset"
 msgstr "未設定"
 
 #: src/components/lists/ListStats.tsx:110
-msgid "Unsub"
-msgstr "解除"
+#~ msgid "Unsub"
+#~ msgstr "解除"
 
 #: src/components/broadcasts/BroadcastStats.tsx:396
 msgid "Unsub."
@@ -16751,35 +17266,36 @@ msgstr "解除"
 msgid "Unsubscribe"
 msgstr "購読解除"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:565
+#: src/components/contacts/BulkUpdateDrawer.tsx:580
 msgid "UNSUBSCRIBE"
 msgstr "購読解除"
 
 #: src/components/contacts/BulkActionsBar.tsx:96
 #: src/components/contacts/BulkActionsBar.tsx:162
-#: src/components/contacts/BulkUpdateDrawer.tsx:595
+#: src/components/contacts/BulkUpdateDrawer.tsx:610
 #: src/components/segment/form_leaf.tsx:389
 #: src/components/segment/input.tsx:795
-#: src/pages/ContactsPage.tsx:342
+#: src/pages/ContactsPage.tsx:304
 msgid "Unsubscribe from list"
 msgstr "リストから購読解除"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:91
 #: src/components/automations/config/TriggerConfigForm.tsx:117
-#: src/components/contacts/ContactDetailsDrawer.tsx:589
+#: src/components/contacts/contactDisplay.ts:37
+#: src/components/lists/ListHeader.tsx:64
 #: src/components/messages/MessageHistoryTab.tsx:196
 #: src/components/messages/MessageHistoryTab.tsx:201
 #: src/components/messages/MessageHistoryTable.tsx:376
 #: src/components/timeline/ContactTimeline.tsx:736
 #: src/components/transactional/RecentSends.tsx:41
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:83
-#: src/pages/ContactsPage.tsx:400
+#: src/pages/ContactsPage.tsx:523
 msgid "Unsubscribed"
 msgstr "購読解除済み"
 
 #: src/pages/ContactsPage.tsx:588
-msgid "Unsubscribed from list"
-msgstr "リストから購読解除済み"
+#~ msgid "Unsubscribed from list"
+#~ msgstr "リストから購読解除済み"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
 #~ msgid "Unsubscribes"
@@ -16799,7 +17315,6 @@ msgid "Upcoming sends"
 msgstr "今後の送信"
 
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:123
-#: src/components/contacts/SegmentsFilter.tsx:143
 msgid "Update"
 msgstr "更新"
 
@@ -16816,11 +17331,11 @@ msgstr "コンタクトを更新"
 msgid "Update Link"
 msgstr "リンクを更新"
 
-#: src/components/segment/button_upsert.tsx:413
+#: src/components/segment/button_upsert.tsx:414
 msgid "Update segment"
 msgstr "セグメントを更新"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:1126
+#: src/components/contacts/sheet/ContactListsCard.tsx:200
 msgid "Update Status"
 msgstr "ステータスを更新"
 
@@ -16840,7 +17355,12 @@ msgstr "更新済み"
 msgid "Updated {0}"
 msgstr "{0} に更新"
 
-#: src/components/contacts/ContactDetailsDrawer.tsx:542
+#: src/components/contacts/SegmentDefinedBy.tsx:46
+msgid "Updated {updatedAgo}"
+msgstr "{updatedAgo}に更新"
+
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:298
+#: src/components/segment/segmentSummary.ts:43
 msgid "Updated At"
 msgstr "更新日時"
 
@@ -17171,8 +17691,8 @@ msgid "VERSION NOTES (OPTIONAL)"
 msgstr "バージョンノート（任意）"
 
 #: src/pages/ContactsPage.tsx:671
-msgid "Version:"
-msgstr "バージョン:"
+#~ msgid "Version:"
+#~ msgstr "バージョン:"
 
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:58
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:358
@@ -17260,8 +17780,12 @@ msgstr "Webサイトを表示"
 #~ msgstr ""
 
 #: src/pages/ListsPage.tsx:346
-msgid "Visibility"
-msgstr "表示設定"
+#~ msgid "Visibility"
+#~ msgstr "表示設定"
+
+#: src/components/lists/ListHeader.tsx:89
+msgid "Visible in the notification center"
+msgstr "通知センターに表示"
 
 #: src/components/segment/form_leaf.tsx:391
 #: src/components/segment/input.tsx:799
@@ -17280,6 +17804,10 @@ msgstr "訪問者の所在地"
 #: src/components/web_analytics/SdkVersionWarning.tsx:85
 msgid "Visitors are being tracked by more than one SDK version ({0} alongside {newest}). A cached copy of the tracking snippet is probably still being served."
 msgstr "訪問者が複数のSDKバージョン ({newest} と並んで{0}) でトラッキングされています。トラッキングスニペットのキャッシュされたコピーがまだ配信されている可能性があります。"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:254
+msgid "Visits show up once the visitor is identified"
+msgstr "訪問者が識別されると訪問が表示されます"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1035
 msgid "Visual"
@@ -17313,6 +17841,10 @@ msgstr "注意"
 msgid "We'll automatically detect and use your website's favicon"
 msgstr "ウェブサイトのファビコンを自動検出して使用します"
 
+#: src/components/contacts/sheet/ContactActivityTab.tsx:40
+msgid "Web"
+msgstr "ウェブ"
+
 #: src/components/settings/SettingsSidebar.tsx:68
 #: src/components/settings/WebAnalyticsSettings.tsx:233
 #: src/components/settings/WebAnalyticsSettings.tsx:294
@@ -17322,7 +17854,7 @@ msgstr "ウェブ解析"
 #: src/components/settings/permissionLabels.ts:17
 #: src/components/settings/WebAnalyticsSettings.tsx:244
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:370
-#: src/layouts/app-shell/menuItems.ts:167
+#: src/layouts/app-shell/menuItems.ts:166
 #: src/pages/BroadcastsPage.tsx:1222
 #: src/pages/WebAnalyticsPage.tsx:95
 #: src/services/api/errors.ts:92
@@ -17368,6 +17900,10 @@ msgstr "Webセッション"
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:329
 msgid "Web version of the email"
 msgstr "メールのWeb版"
+
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:261
+msgid "Web visits"
+msgstr "ウェブ訪問"
 
 #: src/components/automations/AddNodeButton.tsx:83
 #: src/components/automations/nodes/StatNode.tsx:88
@@ -17545,7 +18081,7 @@ msgstr "無効にすると、受信するビーコンは拒否され、ダッシ
 #~ msgid "When enabled, links in the email will be tracked for opens and clicks"
 #~ msgstr "有効にすると、メール内のリンクが開封とクリックで追跡されます"
 
-#: src/components/lists/ListDrawer.tsx:233
+#: src/components/lists/ListDrawer.tsx:258
 msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
 msgstr "有効にすると、購読者はリストに追加される前にメールで購読を確認する必要があります"
 
@@ -17615,8 +18151,8 @@ msgid "Width"
 msgstr "幅"
 
 #: src/components/contacts/SegmentsFilter.tsx:91
-msgid "Will be removed"
-msgstr "削除されます"
+#~ msgid "Will be removed"
+#~ msgstr "削除されます"
 
 #. placeholder {0}: currentRow.toLocaleString()
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:982
@@ -17638,6 +18174,10 @@ msgstr "優勝者が正常に選択されました！ブロードキャストは
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:53
 msgid "Winning metric"
 msgstr "勝利指標"
+
+#: src/components/contacts/visits/ContactWebVisits.tsx:331
+msgid "With a goal"
+msgstr "ゴールあり"
 
 #: src/components/messages/MessageHistoryTab.tsx:235
 #~ msgid "With Errors"
@@ -17814,9 +18354,9 @@ msgstr "年次"
 #: src/components/broadcasts/HeadersEditor.tsx:65
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:269
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:869
+#: src/components/contacts/ContactsViewHeader.tsx:141
+#: src/components/contacts/ContactsViewHeader.tsx:165
 #: src/components/contacts/ContactUpsertDrawer.tsx:554
-#: src/components/contacts/SegmentsFilter.tsx:154
-#: src/components/contacts/SegmentsFilter.tsx:169
 #: src/components/messages/MessageHistoryTab.tsx:108
 #: src/components/messages/MessageHistoryTab.tsx:121
 #: src/components/messages/MessageHistoryTab.tsx:134
@@ -17848,7 +18388,7 @@ msgstr "はい、有効化"
 msgid "Yes, cancel"
 msgstr "はい、キャンセルします"
 
-#: src/components/contacts/InlineEditableField.tsx:298
+#: src/components/contacts/InlineEditableField.tsx:290
 msgid "Yes, clear it"
 msgstr "はい、クリア"
 
@@ -17878,6 +18418,7 @@ msgstr "はい、再送します"
 msgid "Yes, Select Winner"
 msgstr "はい、優勝者を選択"
 
+#: src/components/contacts/visits/ContactWebVisits.tsx:244
 #: src/components/web_analytics/toolbar.tsx:16
 msgid "Yesterday"
 msgstr "昨日"
@@ -17902,6 +18443,11 @@ msgstr "{resource}への書き込みアクセス権がありません。"
 #: src/pages/BroadcastsPage.tsx:1699
 msgid "You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts."
 msgstr "マーケティングメールプロバイダーが設定されていません。ブロードキャストを送信するには、ワークスペース設定でメールプロバイダーを設定してください。"
+
+#: src/pages/ContactsPage.tsx:429
+#: src/pages/ContactsPage.tsx:536
+msgid "You don't have access to contacts"
+msgstr "コンタクトへのアクセス権がありません"
 
 #: src/components/settings/CustomFieldsConfiguration.tsx:164
 msgid "You don't have permission to manage custom fields"
@@ -17937,16 +18483,11 @@ msgid "You don't have write permission for broadcasts"
 msgstr "ブロードキャストの書き込み権限がありません"
 
 #: src/components/contacts/BulkActionsBar.tsx:52
-#: src/pages/ContactsPage.tsx:1055
-#: src/pages/ContactsPage.tsx:1074
 msgid "You don't have write permission for contacts"
 msgstr "コンタクトの書き込み権限がありません"
 
 #: src/components/contacts/BulkActionsBar.tsx:54
-#: src/pages/ListsPage.tsx:242
-#: src/pages/ListsPage.tsx:282
-#: src/pages/ListsPage.tsx:298
-#: src/pages/ListsPage.tsx:321
+#: src/components/lists/ListHeader.tsx:117
 msgid "You don't have write permission for lists"
 msgstr "リストの書き込み権限がありません"
 

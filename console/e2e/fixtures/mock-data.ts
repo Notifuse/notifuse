@@ -537,10 +537,15 @@ export const mockEmptyTransactional = {
 export const mockSegments = [
   {
     id: 'seg-1',
+    color: 'blue',
+    timezone: 'UTC',
+    // The definition the console reads; `rules` is the legacy shape.
+    tree: { kind: 'branch', branch: { operator: 'and', leaves: [{ kind: 'leaf', leaf: { source: 'contact_timeline', contact_timeline: { kind: 'open_email', count_operator: 'at_least', count_value: 1, timeframe_operator: 'in_the_last_days', timeframe_values: ['30'] } } }] } },
     name: 'Active Users',
     description: 'Users who opened email in last 30 days',
     contact_count: 150,
-    status: 'ready',
+    users_count: 150,
+    status: 'active',
     rules: {
       operator: 'and',
       conditions: [
@@ -557,10 +562,15 @@ export const mockSegments = [
   },
   {
     id: 'seg-2',
+    color: 'green',
+    timezone: 'UTC',
+    // The definition the console reads; `rules` is the legacy shape.
+    tree: { kind: 'branch', branch: { operator: 'and', leaves: [{ kind: 'leaf', leaf: { source: 'contacts', contact: { filters: [{ field_name: 'country', field_type: 'string', operator: 'equals', string_values: ['US'] }] } } }] } },
     name: 'US Customers',
     description: 'Contacts located in the United States',
     contact_count: 250,
-    status: 'ready',
+    users_count: 250,
+    status: 'active',
     rules: {
       operator: 'and',
       conditions: [
@@ -577,9 +587,14 @@ export const mockSegments = [
   },
   {
     id: 'seg-3',
+    color: 'orange',
+    timezone: 'UTC',
+    // The definition the console reads; `rules` is the legacy shape.
+    tree: { kind: 'branch', branch: { operator: 'or', leaves: [{ kind: 'leaf', leaf: { source: 'contacts', contact: { filters: [{ field_name: 'custom_string_2', field_type: 'string', operator: 'equals', string_values: ['Enterprise'] }] } } }, { kind: 'leaf', leaf: { source: 'contacts', contact: { filters: [{ field_name: 'custom_string_2', field_type: 'string', operator: 'equals', string_values: ['Pro'] }] } } }] } },
     name: 'Enterprise Plans',
     description: 'Contacts on enterprise plans',
     contact_count: 45,
+    users_count: 45,
     status: 'building',
     rules: {
       operator: 'or',

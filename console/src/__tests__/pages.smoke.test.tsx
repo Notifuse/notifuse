@@ -9,6 +9,7 @@ import { i18n } from '@lingui/core'
 import { createFullPermissions } from '../services/api/permissions'
 
 // Use vi.hoisted to define mock data before mocks are hoisted
+const smokeSearch = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
 const { mockWorkspace, mockUser } = vi.hoisted(() => ({
   mockWorkspace: {
     id: 'test-workspace',
@@ -54,7 +55,7 @@ vi.mock('@tanstack/react-router', async () => {
     useNavigate: () => vi.fn(),
     useMatch: () => false,
     useParams: () => ({ workspaceId: 'test-workspace', section: 'team', tab: 'dashboard' }),
-    useSearch: () => ({}),
+    useSearch: () => smokeSearch.value,
     // The real Link reads the router through context; these tests render pages
     // in isolation, without a RouterProvider.
     Link: ({ children, ...props }: { children?: ReactNode; to?: string }) => (
@@ -296,7 +297,6 @@ import { CreateWorkspacePage } from '../pages/CreateWorkspacePage'
 import { AnalyticsPage } from '../pages/AnalyticsPage'
 import { BroadcastsPage } from '../pages/BroadcastsPage'
 import { ContactsPage } from '../pages/ContactsPage'
-import { ListsPage } from '../pages/ListsPage'
 import { TemplatesPage } from '../pages/TemplatesPage'
 import { AutomationsPage } from '../pages/AutomationsPage'
 import { TransactionalNotificationsPage } from '../pages/TransactionalNotificationsPage'
@@ -415,12 +415,14 @@ describe('Page Smoke Tests', () => {
       })
     })
 
-    it('ListsPage renders without error', async () => {
+    it('ContactsPage renders a list view without error', async () => {
+      smokeSearch.value = { list_id: 'newsletter' }
       const Wrapper = createWrapper()
-      expect(() => render(<ListsPage />, { wrapper: Wrapper })).not.toThrow()
+      expect(() => render(<ContactsPage />, { wrapper: Wrapper })).not.toThrow()
       await waitFor(() => {
         expect(document.body).toBeTruthy()
       })
+      smokeSearch.value = {}
     })
 
     it('TemplatesPage renders without error', async () => {
@@ -525,7 +527,7 @@ describe('Page Smoke Tests', () => {
       const Wrapper = createWrapper()
       render(<ContactsPage />, { wrapper: Wrapper })
       await waitFor(() => {
-        expect(screen.getByText(/Contacts/i)).toBeTruthy()
+        expect(screen.getByRole('heading', { name: 'Contacts' })).toBeTruthy()
       })
     })
   })
