@@ -26,13 +26,50 @@
 /* Active item of an inline menu (the sidebar and the left rails): a 2px bar on
    the left. An inset shadow rather than a border, which would shift the label.
    antd's own bar on the right (its ::after) is 0px wide in antd 6.6; it is
-   hidden here so a later default cannot bring it back next to this one. A collapsed
-   menu is not .ant-menu-inline, so it keeps the background without the bar. */
+   hidden here so a later default cannot bring it back next to this one. The
+   folded menu is handled below. */
 .ant-menu-inline .ant-menu-item-selected {
   box-shadow: inset 2px 0 0 var(--ant-color-primary);
 }
 .ant-menu-inline .ant-menu-item-selected::after {
   display: none;
+}
+
+/* The folded sidebar (inlineCollapsed): the active item keeps its primary-100
+   background and loses both bars, which a 40px icon tile does not need. antd
+   renders it as a vertical menu, whose ::after bar no token turns off. */
+.ant-menu-inline-collapsed .ant-menu-item-selected {
+  box-shadow: none;
+}
+.ant-menu-inline-collapsed .ant-menu-item-selected::after {
+  display: none;
+}
+
+/* Sidebar icons in ink-3, the active entry's in primary-500, and labels at 500:
+   antd colours an item's icon with its text and has no token for the weight.
+   Scoped to the sidebar, so the rails and the dropdown menus keep antd's. */
+.app-sidebar-nav .ant-menu .ant-menu-item-icon {
+  color: var(--ant-color-text-tertiary);
+}
+.app-sidebar-nav .ant-menu .ant-menu-item-selected .ant-menu-item-icon,
+.app-sidebar-nav .ant-menu .ant-menu-submenu-selected > .ant-menu-submenu-title .ant-menu-item-icon {
+  color: var(--ant-color-primary);
+}
+.app-sidebar-nav .ant-menu .ant-menu-title-content {
+  font-weight: 500;
+}
+
+/* The folded menu fills the 56px of the sidebar: antd fixes its width to
+   collapsedWidth, which the nav's scrollbar gutter would otherwise squeeze. */
+.app-sidebar-nav.is-collapsed .ant-menu-inline-collapsed {
+  width: 100%;
+}
+
+/* Full-width drawers (FullDrawer) sit on the canvas, like a page: antd paints a
+   drawer with colorBgElevated and has no per-drawer token. */
+.app-full-drawer .ant-drawer-section,
+.app-full-drawer .ant-drawer-body {
+  background: var(--ant-color-bg-layout);
 }
 
 /* Tags read as a fill, not an outline. Three quarters of the call sites

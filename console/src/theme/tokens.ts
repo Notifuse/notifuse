@@ -127,8 +127,8 @@ export const shadows = {
   focus: alpha(primary[500], 0.18)
 } as const
 
-/** Durations in ms. */
-export const motion = { fast: 120, slow: 180 } as const
+/** Durations in ms. `pillPulse` is one cycle of the halo of a pill whose state is live. */
+export const motion = { fast: 120, slow: 180, pillPulse: 1600 } as const
 
 /** Structural sizes in px. */
 export const layout = {

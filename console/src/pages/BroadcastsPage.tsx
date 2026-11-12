@@ -88,6 +88,7 @@ import {
   type VariationRate,
   type VariationRowMetrics
 } from '../components/broadcasts/variationMetrics'
+import { PageHeader } from '../components/layout'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -1624,33 +1625,35 @@ export function BroadcastsPage() {
   const hasMarketingEmailProvider = currentWorkspace?.settings?.marketing_email_provider_id
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">{t`Broadcasts`}</div>
-        {currentWorkspace && (hasBroadcasts || hasActiveFilter) && (
-          <Space>
-            <Tooltip
-              title={
-                !permissions?.broadcasts?.write
-                  ? t`You don't have write permission for broadcasts`
-                  : undefined
-              }
-            >
-              <div>
-                <UpsertBroadcastDrawer
-                  workspace={currentWorkspace}
-                  lists={lists}
-                  segments={segments}
-                  buttonContent={<>{t`Create Broadcast`}</>}
-                  buttonProps={{
-                    disabled: !permissions?.broadcasts?.write
-                  }}
-                />
-              </div>
-            </Tooltip>
-          </Space>
-        )}
-      </div>
+    <div className="flex flex-col gap-3">
+      <PageHeader
+        title={t`Broadcasts`}
+        actions={
+          currentWorkspace && (hasBroadcasts || hasActiveFilter) && (
+            <Space>
+              <Tooltip
+                title={
+                  !permissions?.broadcasts?.write
+                    ? t`You don't have write permission for broadcasts`
+                    : undefined
+                }
+              >
+                <div>
+                  <UpsertBroadcastDrawer
+                    workspace={currentWorkspace}
+                    lists={lists}
+                    segments={segments}
+                    buttonContent={<>{t`Create Broadcast`}</>}
+                    buttonProps={{
+                      disabled: !permissions?.broadcasts?.write
+                    }}
+                  />
+                </div>
+              </Tooltip>
+            </Space>
+          )
+        }
+      />
 
       {(hasBroadcasts || hasActiveFilter) && (
         <div className="flex justify-between items-center mb-6 gap-4">

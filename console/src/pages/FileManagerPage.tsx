@@ -10,6 +10,7 @@ import { workspaceService } from '../services/api/workspace'
 import { Workspace, FileManagerSettings } from '../services/api/types'
 import { useWorkspacePermissions } from '../contexts/AuthContext'
 import { workspaceFileManagerRoute } from '../router'
+import { PageHeader } from '../components/layout'
 
 export function FileManagerPage() {
   const { t } = useLingui()
@@ -114,10 +115,8 @@ export function FileManagerPage() {
   // console.log('currentWorkspace', currentWorkspace)
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">{t`File Manager`}</div>
-      </div>
+    <div className="flex flex-col gap-3">
+      <PageHeader title={t`File Manager`} />
 
       <div className="border border-gray-200 rounded-md p-4">
         <FileManager {...fileManagerProps} />

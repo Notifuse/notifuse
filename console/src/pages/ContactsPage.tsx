@@ -37,7 +37,6 @@ import {
 import { contactListApi } from '../services/api/contact_list'
 import dayjs from '../lib/dayjs'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
-import numbro from 'numbro'
 import { PlusOutlined, DownloadOutlined, UploadOutlined } from '@ant-design/icons'
 import { ExportContactsModal } from '../components/contacts/ExportContactsModal'
 import { useContactsCsvUpload } from '../components/contacts/ContactsCsvUploadProvider'
@@ -47,6 +46,7 @@ import {
   TrackingConsentSummary,
   useTrackingConsentOptions
 } from '../components/contacts/TrackingConsent'
+import { PageHeader } from '../components/layout'
 
 const STORAGE_KEY = 'contact_columns_visibility'
 
@@ -1022,85 +1022,77 @@ export function ContactsPage() {
   const showEmptyState = !isLoading && !isFetching && contacts.length === 0
 
   return (
-    <div className="p-6">
-      {/* Header with title and actions */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-3">
-          <div className="text-2xl font-medium">{t`Contacts`}</div>
-          {totalContactsData?.total_contacts !== undefined && (
-            <Tag variant="filled" color="blue">
-              {numbro(totalContactsData.total_contacts).format({
-                thousandSeparated: true,
-                mantissa: 0
-              })}
-            </Tag>
-          )}
-        </div>
-        <Space>
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: 'import',
-                  label: t`Import`,
-                  icon: <UploadOutlined />,
-                  disabled: !permissions?.contacts?.write,
-                  onClick: () => openImportDrawer(workspaceId, listsData?.lists || [], true)
-                },
-                {
-                  key: 'export',
-                  label: t`Export`,
-                  icon: <DownloadOutlined />,
-                  onClick: () => setExportModalVisible(true)
-                }
-              ]
-            }}
-          >
-            <Button type="text">CSV</Button>
-          </Dropdown>
-          <Tooltip
-            title={
-              !permissions?.contacts?.write
-                ? t`You don't have write permission for contacts`
-                : undefined
-            }
-          >
-            <span>
-              <BulkUpdateDrawer
-                workspaceId={workspaceId}
-                lists={listsData?.lists || []}
-                buttonProps={{
-                  type: 'text',
-                  children: t`Bulk Update`,
-                  disabled: !permissions?.contacts?.write
-                }}
-              />
-            </span>
-          </Tooltip>
-          <Tooltip
-            title={
-              !permissions?.contacts?.write
-                ? t`You don't have write permission for contacts`
-                : undefined
-            }
-          >
-            <div>
-              <ContactUpsertDrawer
-                workspace={currentWorkspace}
-                onSuccess={handleContactCreate}
-                buttonProps={{
-                  buttonContent: (
-                    <>
-                      <PlusOutlined /> {t`Add`}
-                    </>
-                  ),
-                  disabled: !permissions?.contacts?.write
-                }}
-              />
-            </div>
-          </Tooltip>
-        </Space>
-      </div>
+    <div className="flex flex-col gap-3">
+      <PageHeader
+        title={t`Contacts`}
+        count={totalContactsData?.total_contacts}
+        actions={
+          <Space>
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'import',
+                    label: t`Import`,
+                    icon: <UploadOutlined />,
+                    disabled: !permissions?.contacts?.write,
+                    onClick: () => openImportDrawer(workspaceId, listsData?.lists || [], true)
+                  },
+                  {
+                    key: 'export',
+                    label: t`Export`,
+                    icon: <DownloadOutlined />,
+                    onClick: () => setExportModalVisible(true)
+                  }
+                ]
+              }}
+            >
+              <Button type="text">CSV</Button>
+            </Dropdown>
+            <Tooltip
+              title={
+                !permissions?.contacts?.write
+                  ? t`You don't have write permission for contacts`
+                  : undefined
+              }
+            >
+              <span>
+                <BulkUpdateDrawer
+                  workspaceId={workspaceId}
+                  lists={listsData?.lists || []}
+                  buttonProps={{
+                    type: 'text',
+                    children: t`Bulk Update`,
+                    disabled: !permissions?.contacts?.write
+                  }}
+                />
+              </span>
+            </Tooltip>
+            <Tooltip
+              title={
+                !permissions?.contacts?.write
+                  ? t`You don't have write permission for contacts`
+                  : undefined
+              }
+            >
+              <div>
+                <ContactUpsertDrawer
+                  workspace={currentWorkspace}
+                  onSuccess={handleContactCreate}
+                  buttonProps={{
+                    buttonContent: (
+                      <>
+                        <PlusOutlined /> {t`Add`}
+                      </>
+                    ),
+                    disabled: !permissions?.contacts?.write
+                  }}
+                />
+              </div>
+            </Tooltip>
+          </Space>
+        }
+      />
 
       {/* Filters */}
       <div className="flex items-center gap-2 mb-4">

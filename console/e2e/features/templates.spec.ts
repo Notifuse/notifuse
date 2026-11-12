@@ -39,7 +39,7 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      const content = page.locator('.ant-layout-content')
+      const content = page.locator('main')
       await expect(content.getByText('No templates found')).toBeVisible()
       await expect(content.getByText('Create your first template to get started')).toBeVisible()
       await expect(page.getByRole('button', { name: 'Create Template', exact: true })).toBeVisible()

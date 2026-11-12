@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from '@tanstack/react-router'
-import { Layout } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { workspaceService } from '../services/api/workspace'
 import { Workspace, WorkspaceMember } from '../services/api/types'
@@ -17,13 +16,13 @@ import { isRootUser } from '../services/api/auth'
 import { AuditLogsSettings } from '../components/settings/audit_logs/AuditLogsSettings'
 import { LicenseSettings } from '../components/settings/LicenseSettings'
 import { DeleteWorkspaceSection } from '../components/settings/DeleteWorkspace'
+import { RailLayout } from '../components/layout'
 import {
   SettingsSidebar,
   SETTINGS_SECTIONS,
   SettingsSection
 } from '../components/settings/SettingsSidebar'
 
-const { Sider, Content } = Layout
 
 export function WorkspaceSettingsPage() {
   const { t } = useLingui()
@@ -195,26 +194,18 @@ export function WorkspaceSettingsPage() {
   }
 
   return (
-    <Layout style={{ minHeight: 'calc(100vh - 48px)' }}>
-      <Sider
-        width={250}
-        style={{
-          borderRight: '1px solid #f0f0f0',
-          overflow: 'auto'
-        }}
-      >
+    <RailLayout
+      title={t`Settings`}
+      rail={
         <SettingsSidebar
           activeSection={activeSection}
           onSectionChange={handleSectionChange}
           isOwner={isOwner}
           isRoot={isRootUser(user?.email)}
         />
-      </Sider>
-      <Layout>
-        <Content>
-          <div style={{ maxWidth: '700px', padding: '24px' }}>{renderSection()}</div>
-        </Content>
-      </Layout>
-    </Layout>
+      }
+    >
+      <div className="flex max-w-[700px] flex-col gap-3">{renderSection()}</div>
+    </RailLayout>
   )
 }

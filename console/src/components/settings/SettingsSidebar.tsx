@@ -1,4 +1,3 @@
-import { Menu, Divider } from 'antd'
 import {
   AuditOutlined,
   TeamOutlined,
@@ -10,7 +9,7 @@ import {
   SafetyCertificateOutlined
 } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
-import { colors } from '../../theme/tokens'
+import { RailItem } from '../layout'
 
 // The menu keys are cast to SettingsSection on click, so a stale key here reaches the router
 // unchallenged. Keeping the sections as a runtime value lets a test walk the rendered menu and
@@ -62,8 +61,8 @@ export function SettingsSidebar({
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
+          width="14"
+          height="14"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -83,8 +82,8 @@ export function SettingsSidebar({
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
+          width="14"
+          height="14"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -105,8 +104,8 @@ export function SettingsSidebar({
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
+          width="14"
+          height="14"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -171,17 +170,19 @@ export function SettingsSidebar({
     })
   }
 
+  // The rail's title ("Settings") is drawn by RailLayout, which names the navigation after it.
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div className="text-xl font-medium pt-6 pl-6">{t`Settings`}</div>
-      <Divider className="!my-4" />
-      <Menu
-        mode="inline"
-        selectedKeys={[activeSection]}
-        items={menuItems}
-        onClick={({ key }) => onSectionChange(key as SettingsSection)}
-        style={{ borderRight: 0, backgroundColor: colors.surface }}
-      />
+    <div className="flex flex-col gap-px">
+      {menuItems.map((item) => (
+        <RailItem
+          key={item.key}
+          icon={item.icon}
+          label={item.label}
+          active={item.key === activeSection}
+          tone={item.key === 'danger-zone' ? 'danger' : undefined}
+          onClick={() => onSectionChange(item.key as SettingsSection)}
+        />
+      ))}
     </div>
   )
 }

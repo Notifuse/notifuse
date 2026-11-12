@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Layout, Button, Empty, App } from 'antd'
+import { Button, Empty, App } from 'antd'
 import { useParams, useNavigate, useSearch } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PlusOutlined } from '@ant-design/icons'
@@ -11,8 +11,7 @@ import { DeleteCategoryModal } from '../components/blog/DeleteCategoryModal'
 import { PostDrawer } from '../components/blog/PostDrawer'
 import { blogCategoriesApi, blogPostsApi, BlogCategory } from '../services/api/blog'
 import { useAuth } from '../contexts/AuthContext'
-
-const { Sider, Content } = Layout
+import { RailLayout } from '../components/layout'
 
 interface BlogSearch {
   category_id?: string
@@ -114,14 +113,9 @@ export function BlogPage() {
   }
 
   return (
-    <Layout style={{ minHeight: 'calc(100vh - 48px)' }}>
-      <Sider
-        width={250}
-        style={{
-          borderRight: '1px solid #f0f0f0',
-          overflow: 'auto'
-        }}
-      >
+    <RailLayout
+      ariaLabel={t`Blog`}
+      rail={
         <BlogSidebar
           workspaceId={workspaceId}
           activeCategoryId={activeCategoryId}
@@ -130,31 +124,23 @@ export function BlogPage() {
           onEditCategory={handleEditCategory}
           onDeleteCategory={handleDeleteCategory}
         />
-      </Sider>
-      <Layout>
-        <Content>
-          <div style={{ padding: '24px' }}>
-            {!hasCategories ? (
-              <Empty description={t`No categories yet`} style={{ marginTop: '100px' }}>
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleNewCategory}>
-                  {t`Create Your First Category`}
-                </Button>
-              </Empty>
-            ) : !hasPosts && !activeCategoryId ? (
-              <Empty
-                description={t`Create your first blog post to get started`}
-                style={{ marginTop: '100px' }}
-              >
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreatePost}>
-                  {t`Create Your First Post`}
-                </Button>
-              </Empty>
-            ) : (
-              <PostsTable />
-            )}
-          </div>
-        </Content>
-      </Layout>
+      }
+    >
+      {!hasCategories ? (
+        <Empty description={t`No categories yet`} style={{ marginTop: '100px' }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleNewCategory}>
+            {t`Create Your First Category`}
+          </Button>
+        </Empty>
+      ) : !hasPosts && !activeCategoryId ? (
+        <Empty description={t`Create your first blog post to get started`} style={{ marginTop: '100px' }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreatePost}>
+            {t`Create Your First Post`}
+          </Button>
+        </Empty>
+      ) : (
+        <PostsTable />
+      )}
 
       <CategoryDrawer
         open={categoryDrawerOpen}
@@ -181,6 +167,6 @@ export function BlogPage() {
         workspace={workspace}
         initialCategoryId={activeCategoryId}
       />
-    </Layout>
+    </RailLayout>
   )
 }

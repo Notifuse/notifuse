@@ -412,12 +412,11 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
               </Col>
             </Row>
 
-            <Divider className="!my-8" />
-
             <SettingsSectionHeader
               title={t`RSS / Feeds`}
               description={t`Configure how your blog's RSS and JSON feeds are generated.`}
-              className="!mb-4"
+              level="section"
+              className="mb-4"
             />
 
             <Row gutter={16}>

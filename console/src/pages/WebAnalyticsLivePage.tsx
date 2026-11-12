@@ -1,6 +1,7 @@
 import { Link, useParams } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { ArrowLeft } from 'lucide-react'
+import { PageHeader, Pill } from '../components/layout'
 import { Dayjs } from 'dayjs'
 import { WebAnalyticsProvider, useWebAnalytics } from '../components/web_analytics/context'
 import { WebAnalyticsGate } from '../components/web_analytics/InstallOverlay'
@@ -115,26 +116,26 @@ function LiveView(props: { workspaceId: string }) {
   ]
 
   return (
-    <div className="p-4 md:p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <Link
-          to="/console/workspace/$workspaceId/web-analytics/$tab"
-          params={{ workspaceId: props.workspaceId, tab: 'dashboard' }}
-          className="flex items-center gap-1 text-gray-500 transition-colors hover:text-gray-700"
-        >
-          <ArrowLeft size={16} />
-          <span className="text-sm">{t`Dashboard`}</span>
-        </Link>
-        <div className="flex items-center gap-3">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-          </span>
-          <span className="text-lg font-medium text-gray-800">
+    <div className="flex flex-col gap-3">
+      <PageHeader
+        title={t`Live`}
+        leading={
+          <Link
+            to="/console/workspace/$workspaceId/web-analytics/$tab"
+            params={{ workspaceId: props.workspaceId, tab: 'dashboard' }}
+            aria-label={t`Dashboard`}
+            title={t`Dashboard`}
+            className="grid size-7 shrink-0 place-items-center rounded-md text-ink-3 hover:bg-fill hover:text-ink"
+          >
+            <ArrowLeft size={16} aria-hidden="true" />
+          </Link>
+        }
+        status={
+          <Pill tone="success" pulse>
             {t`${liveSessions} live now`}
-          </span>
-        </div>
-      </div>
+          </Pill>
+        }
+      />
 
       <WebAnalyticsGate>
         <LiveSessionMap data={locations} loading={mapResult.isLoading} />

@@ -9,6 +9,8 @@ import type { Entitlements } from '../types/license'
 export interface User {
   id: string
   email: string
+  /** The account's display name, when the server sends one: the avatar's initials. */
+  name?: string
   language?: string
 }
 

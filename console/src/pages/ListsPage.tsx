@@ -34,6 +34,7 @@ import { ImportContactsToListButton } from '../components/lists/ImportContactsTo
 import { ListStats } from '../components/lists/ListStats'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
+import { PageHeader } from '../components/layout'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -219,37 +220,39 @@ export function ListsPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">{t`Lists`}</div>
-        {(isLoading || hasLists) && (
-          <Space>
-            <Tooltip title={t`Refresh`}>
-              <Button
-                type="text"
-                size="small"
-                icon={<FontAwesomeIcon icon={faRefresh} />}
-                onClick={handleRefresh}
-                className="opacity-70 hover:opacity-100"
-              />
-            </Tooltip>
-            <Tooltip
-              title={
-                !permissions?.lists?.write ? t`You don't have write permission for lists` : undefined
-              }
-            >
-              <div>
-                <CreateListDrawer
-                  workspaceId={workspaceId}
-                  buttonProps={{
-                    disabled: !permissions?.lists?.write
-                  }}
+    <div className="flex flex-col gap-3">
+      <PageHeader
+        title={t`Lists`}
+        actions={
+          (isLoading || hasLists) && (
+            <Space>
+              <Tooltip title={t`Refresh`}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<FontAwesomeIcon icon={faRefresh} />}
+                  onClick={handleRefresh}
+                  className="opacity-70 hover:opacity-100"
                 />
-              </div>
-            </Tooltip>
-          </Space>
-        )}
-      </div>
+              </Tooltip>
+              <Tooltip
+                title={
+                  !permissions?.lists?.write ? t`You don't have write permission for lists` : undefined
+                }
+              >
+                <div>
+                  <CreateListDrawer
+                    workspaceId={workspaceId}
+                    buttonProps={{
+                      disabled: !permissions?.lists?.write
+                    }}
+                  />
+                </div>
+              </Tooltip>
+            </Space>
+          )
+        }
+      />
 
       {isLoading ? (
         <Row gutter={[16, 16]}>

@@ -108,7 +108,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The console has a new, denser look: the Inter typeface, new colors and tighter spacing.
 
-- **Improvement**: The sign-in page has a new background photo, by Sean Oulashin.
+- **Feature**: The console has a new navigation: a lighter sidebar, which folds to icons, now holds the workspace switcher, the help and the account menus, and the top bar is gone. On Settings and the blog, which keep their own side menu, the sidebar stays folded and opens over the page. The sign-in page has a new background photo, by Sean Oulashin.
 
 ## [43.0] - 2026-11-07
 

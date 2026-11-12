@@ -131,8 +131,8 @@ export function LicenseBanner() {
   return (
     <div
       ref={ref}
-      // Fixed rather than in flow: WorkspaceLayout's header and sider are themselves fixed at
-      // top 0, so a banner in the document flow would simply be painted over. z-index sits above
+      // Fixed rather than in flow: WorkspaceLayout's sidebar is itself fixed at top 0, so a
+      // banner in the document flow would simply be painted over. z-index sits above
       // that chrome (10) and below antd's modal layer (1000), so a dialog still covers it.
       style={{
         position: 'fixed',

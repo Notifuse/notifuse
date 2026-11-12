@@ -167,7 +167,7 @@ test.describe('Protected Pages Load', () => {
     await waitForPageLoad(page)
 
     // Settings rail plus the team table, with the signed-in owner in it
-    await expect(page.locator('.ant-layout-sider-dark')).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Settings' })).toBeVisible()
     await expect(page.getByText('Manage your workspace members')).toBeVisible()
     const memberRow = page.locator('.ant-table-row').filter({ hasText: 'test@example.com' })
     await expect(memberRow).toContainText('Owner')

@@ -84,7 +84,7 @@ describe('derived tokens', () => {
     expect(typography.size.sm).toBe(12.5)
     expect(typography.size.title).toBe(18)
     expect(radii).toEqual({ xs: 3, sm: 4, md: 6, lg: 8 })
-    expect(motion).toMatchObject({ fast: 120, slow: 180 })
+    expect(motion).toMatchObject({ fast: 120, slow: 180, pillPulse: 1600 })
     expect(layout).toMatchObject({ sidebar: 228, sidebarCollapsed: 56, rail: 220, sidepanel: 520 })
   })
 })
