@@ -210,6 +210,11 @@ msgstr "{0, plural, one {# retiré} other {# retirés}}"
 msgid "{0, plural, one {# retrying} other {# retrying}}"
 msgstr "{0, plural, one {# en nouvel essai} other {# en nouvel essai}}"
 
+#. placeholder {0}: checkedFiles.length
+#: src/components/file_manager/FileExplorer.tsx:693
+msgid "{0, plural, one {# selected} other {# selected}}"
+msgstr "{0, plural, one {# sélectionné} other {# sélectionnés}}"
+
 #. placeholder {0}: stats.email.sent
 #: src/components/automations/stats/NodeStatsFooter.tsx:54
 msgid "{0, plural, one {# sent} other {# sent}}"
@@ -239,6 +244,21 @@ msgstr "{0, plural, one {# en attente} other {# en attente}}"
 #: src/components/templates/DeleteTemplateModal.tsx:89
 msgid "{0, plural, one {and # more} other {and # more}}"
 msgstr "{0, plural, one {et # autre} other {et # autres}}"
+
+#. placeholder {0}: keys.length
+#: src/components/file_manager/FileExplorer.tsx:381
+msgid "{0, plural, one {Delete # selected file?} other {Delete # selected files?}}"
+msgstr "{0, plural, one {Supprimer # fichier sélectionné ?} other {Supprimer # fichiers sélectionnés ?}}"
+
+#. placeholder {0}: count.data
+#: src/components/file_manager/DeleteFolderModal.tsx:44
+msgid "{0, plural, one {Delete the folder {name} and its # file?} other {Delete the folder {name} and its # files?}}"
+msgstr "{0, plural, one {Supprimer le dossier {name} et # fichier ?} other {Supprimer le dossier {name} et ses # fichiers ?}}"
+
+#. placeholder {0}: checkedFiles.length
+#: src/components/file_manager/FileExplorer.tsx:367
+msgid "{0, plural, one {Downloaded # file} other {Downloaded # files}}"
+msgstr "{0, plural, one {# fichier téléchargé} other {# fichiers téléchargés}}"
 
 #. placeholder {0}: rows.length
 #: src/components/web_analytics/explore/CsvExportModal.tsx:116
@@ -528,6 +548,10 @@ msgstr "{count, plural, one {# automatisation} other {# automatisations}}"
 msgid "{count, plural, one {# empty field} other {# empty fields}}"
 msgstr "{count, plural, one {# champ vide} other {# champs vides}}"
 
+#: src/components/file_manager/FileTable.tsx:110
+msgid "{count, plural, one {# file} other {# files}}"
+msgstr "{count, plural, one {# fichier} other {# fichiers}}"
+
 #: src/components/templates/templateUsage.ts:20
 msgid "{count, plural, one {# list} other {# lists}}"
 msgstr "{count, plural, one {# liste} other {# listes}}"
@@ -600,6 +624,18 @@ msgstr "{days, plural, one {# dernier jour} other {# derniers jours}}"
 #: src/components/blog/PostsTable.tsx:248
 msgid "{days, plural, one {Scheduled in # day} other {Scheduled in # days}}"
 msgstr "{days, plural, one {Programmé dans # jour} other {Programmé dans # jours}}"
+
+#: src/components/file_manager/FileExplorer.tsx:397
+msgid "{deleted, plural, one {Deleted # file, {failed} failed} other {Deleted # files, {failed} failed}}"
+msgstr "{deleted, plural, one {# fichier supprimé, {failed} en échec} other {# fichiers supprimés, {failed} en échec}}"
+
+#: src/components/file_manager/FileExplorer.tsx:394
+msgid "{deleted, plural, one {Deleted # file} other {Deleted # files}}"
+msgstr "{deleted, plural, one {# fichier supprimé} other {# fichiers supprimés}}"
+
+#: src/components/file_manager/FileExplorer.tsx:342
+msgid "{deletedFiles, plural, one {Deleted # file, {failedFiles} failed} other {Deleted # files, {failedFiles} failed}}"
+msgstr "{deletedFiles, plural, one {# fichier supprimé, {failedFiles} en échec} other {# fichiers supprimés, {failedFiles} en échec}}"
 
 #: src/components/segment/segmentSummary.ts:84
 msgid "{field} < {value}"
@@ -1324,17 +1360,20 @@ msgid "Action"
 msgstr "Action"
 
 #: src/components/automations/nodeTypes.ts:42
-#: src/components/blog/RecentThemesTable.tsx:179
+#: src/components/blog/RecentThemesTable.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:225
 #: src/components/settings/WorkspaceMembers.tsx:227
 #: src/components/transactional/TransactionalTable.tsx:244
 msgid "Actions"
 msgstr "Actions"
 
+#. placeholder {0}: item.name
 #. placeholder {0}: listName(subscription.list_id)
 #. placeholder {0}: record.email
 #: src/components/contacts/ContactsTable.tsx:337
 #: src/components/contacts/sheet/ContactListsCard.tsx:163
+#: src/components/file_manager/FileGrid.tsx:105
+#: src/components/file_manager/FileTable.tsx:148
 msgid "Actions for {0}"
 msgstr "Actions pour {0}"
 
@@ -1735,7 +1774,7 @@ msgstr "Assistant IA non configuré"
 msgid "AI Blog Assistant"
 msgstr "Assistant IA Blog"
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:75
+#: src/components/email_builder/blocks/MjImageBlock.tsx:76
 msgid "Align"
 msgstr "Alignement"
 
@@ -1881,7 +1920,7 @@ msgstr "Domaines email autorisés"
 msgid "already set"
 msgstr "déjà défini"
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:67
+#: src/components/email_builder/blocks/MjImageBlock.tsx:68
 msgid "Alt text"
 msgstr "Texte alternatif"
 
@@ -1890,7 +1929,7 @@ msgstr "Texte alternatif"
 msgid "Alt Text"
 msgstr "Texte alternatif"
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:71
+#: src/components/email_builder/blocks/MjImageBlock.tsx:72
 msgid "Alternative text"
 msgstr "Texte alternatif"
 
@@ -1947,7 +1986,7 @@ msgstr "Un appel API peut définir email_options.reply_to. Une traduction peut e
 msgid "An error occurred during export"
 msgstr "Une erreur est survenue pendant l exportation"
 
-#: src/pages/FileManagerPage.tsx:38
+#: src/pages/FileManagerPage.tsx:25
 msgid "An error occurred with the file manager"
 msgstr "Une erreur est survenue avec le gestionnaire de fichiers"
 
@@ -2256,7 +2295,7 @@ msgid "Are you sure you want to disable the blog? All SEO settings and blog visi
 msgstr "Êtes-vous sûr de vouloir désactiver le blog ? Tous les paramètres SEO et la visibilité du blog seront perdus. Cette action est irréversible."
 
 #. placeholder {0}: theme.version
-#: src/components/blog/RecentThemesTable.tsx:93
+#: src/components/blog/RecentThemesTable.tsx:86
 msgid "Are you sure you want to publish theme v{0}? This will make it live on your blog."
 msgstr "Êtes-vous sûr de vouloir publier le thème v{0} ? Il sera mis en ligne sur votre blog."
 
@@ -2308,7 +2347,7 @@ msgstr "Voulez-vous vraiment choisir « {templateName} » comme gagnant ? La new
 msgid "Are you sure you want to unpublish this post?"
 msgstr "Êtes-vous sûr de vouloir dépublier cet article ?"
 
-#: src/components/file_manager/context.tsx:207
+#: src/components/file_manager/context.tsx:227
 msgid "Are you sure you want to use this file?"
 msgstr "Êtes-vous sûr de vouloir utiliser ce fichier ?"
 
@@ -2475,8 +2514,8 @@ msgstr "auto"
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:351
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:370
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:95
-#: src/components/email_builder/blocks/MjImageBlock.tsx:86
-#: src/components/email_builder/blocks/MjImageBlock.tsx:105
+#: src/components/email_builder/blocks/MjImageBlock.tsx:87
+#: src/components/email_builder/blocks/MjImageBlock.tsx:106
 #: src/components/email_builder/ui/BackgroundInput.tsx:85
 msgid "Auto"
 msgstr "Auto"
@@ -2883,7 +2922,7 @@ msgstr "Blog"
 msgid "Blog categories, posts and themes, plus the workspace-level blog configuration."
 msgstr "Les catégories, articles et thèmes du blog, ainsi que la configuration du blog au niveau de l'espace de travail."
 
-#: src/components/blog/RecentThemesTable.tsx:77
+#: src/components/blog/RecentThemesTable.tsx:70
 msgid "Blog custom endpoint URL is not configured"
 msgstr "L URL personnalisée du blog n est pas configurée"
 
@@ -2935,7 +2974,7 @@ msgstr "Réservation"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:321
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:84
-#: src/components/email_builder/blocks/MjImageBlock.tsx:156
+#: src/components/email_builder/blocks/MjImageBlock.tsx:157
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:62
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:59
 msgid "Border"
@@ -2948,7 +2987,7 @@ msgstr "Bordure"
 msgid "Border radius"
 msgstr "Rayon de bordure"
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:148
+#: src/components/email_builder/blocks/MjImageBlock.tsx:149
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:226
 msgid "Border Radius"
 msgstr "Rayon de bordure"
@@ -3085,6 +3124,10 @@ msgstr "Branche"
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:41
 msgid "Branch Logic"
 msgstr "Logique de branche"
+
+#: src/components/file_manager/FileExplorer.tsx:631
+msgid "Breadcrumb"
+msgstr "Fil d'Ariane"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:97
 msgid "Breakdown by"
@@ -3247,7 +3290,7 @@ msgstr "L'écriture Newsletters envoie. Le même interrupteur qui permet de réd
 msgid "Browse and filter the audit log, including every member's email address and IP address"
 msgstr "Parcourir et filtrer le journal d'audit, y compris l'adresse email et l'adresse IP de chaque membre"
 
-#: src/components/email_builder/ui/FileSrc.tsx:30
+#: src/components/email_builder/ui/FileSrc.tsx:33
 msgid "Browse Files"
 msgstr "Parcourir les fichiers"
 
@@ -3367,7 +3410,7 @@ msgstr "Campagnes"
 #: src/components/blog/PostDrawer.tsx:682
 #: src/components/blog/PostsTable.tsx:207
 #: src/components/blog/PublishModal.tsx:205
-#: src/components/blog/RecentThemesTable.tsx:102
+#: src/components/blog/RecentThemesTable.tsx:95
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
@@ -3407,12 +3450,13 @@ msgstr "Campagnes"
 #: src/components/email_builder/ui/StringPopoverInput.tsx:92
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:398
 #: src/components/file_manager/buttonSettings.tsx:309
-#: src/components/file_manager/context.tsx:192
-#: src/components/file_manager/fileManager.tsx:621
-#: src/components/file_manager/fileManager.tsx:744
-#: src/components/file_manager/fileManager.tsx:931
-#: src/components/file_manager/fileManager.tsx:999
-#: src/components/file_manager/fileManager.tsx:1109
+#: src/components/file_manager/context.tsx:212
+#: src/components/file_manager/DeleteFolderModal.tsx:54
+#: src/components/file_manager/FileExplorer.tsx:307
+#: src/components/file_manager/FileExplorer.tsx:386
+#: src/components/file_manager/FileExplorer.tsx:863
+#: src/components/file_manager/FileExplorer.tsx:906
+#: src/components/file_manager/FileExplorer.tsx:1146
 #: src/components/lists/DeleteListModal.tsx:125
 #: src/components/segment/button_upsert.tsx:422
 #: src/components/segment/input_dimension_filters.tsx:179
@@ -3504,7 +3548,7 @@ msgstr "Impossible de supprimer la liste tant que des nœuds email existent. Sup
 msgid "Cannot restore progress: CSV data is not available"
 msgstr "Impossible de restaurer la progression : les données CSV ne sont pas disponibles"
 
-#: src/components/file_manager/fileManager.tsx:478
+#: src/components/file_manager/FileExplorer.tsx:486
 msgid "Cannot upload in read-only mode"
 msgstr "Impossible d envoyer en mode lecture seule"
 
@@ -3683,6 +3727,10 @@ msgstr "Vérification des webhooks…"
 msgid "Choose a date to schedule"
 msgstr "Choisissez une date pour programmer"
 
+#: src/components/file_manager/context.tsx:167
+msgid "Choose a file"
+msgstr "Choisir un fichier"
+
 #: src/components/broadcasts/compose/useIssueText.ts:14
 msgid "choose a list"
 msgstr "choisissez une liste"
@@ -3711,6 +3759,10 @@ msgstr "Choisissez d'abord un modèle"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:84
 msgid "Choose a template to see the preview"
 msgstr "Choisissez un modèle pour voir l'aperçu"
+
+#: src/components/file_manager/context.tsx:166
+msgid "Choose an image"
+msgstr "Choisir une image"
 
 #: src/components/broadcasts/compose/useIssueText.ts:36
 msgid "choose the metric that picks the winner"
@@ -3742,6 +3794,7 @@ msgstr "Niveau ville (précision ~1 km)"
 #: src/components/contacts/ContactsFilters.tsx:117
 #: src/components/contacts/InlineEditableField.tsx:295
 #: src/components/email_builder/ui/ImportFontInput.tsx:169
+#: src/components/file_manager/FileExplorer.tsx:711
 #: src/components/filters/Filter.tsx:193
 #: src/components/messages/MessageHistoryTab.tsx:546
 #: src/components/settings/audit_logs/AuditFilterBuilder.tsx:248
@@ -4011,6 +4064,10 @@ msgstr "Éditeur de code"
 msgid "Collapse"
 msgstr "Réduire"
 
+#: src/components/file_manager/FolderTree.tsx:40
+msgid "Collapse {label}"
+msgstr "Replier {label}"
+
 #: src/layouts/app-shell/AppSidebar.tsx:148
 msgid "Collapse sidebar"
 msgstr "Replier la barre latérale"
@@ -4234,7 +4291,8 @@ msgstr "Configurez la manière dont les flux RSS et JSON de votre blog sont gén
 msgid "Configure Integration"
 msgstr "Configurer l intégration"
 
-#: src/components/file_manager/fileManager.tsx:592
+#: src/components/file_manager/FileExplorer.tsx:970
+#: src/components/file_manager/FileExplorer.tsx:975
 msgid "Configure now"
 msgstr "Configurer maintenant"
 
@@ -4292,6 +4350,10 @@ msgstr "Confirmé sur {list}"
 #: src/components/settings/Integrations.tsx:1294
 msgid "Connect"
 msgstr "Connecter"
+
+#: src/components/file_manager/FileExplorer.tsx:965
+msgid "Connect an S3-compatible bucket to upload images for your emails and blog."
+msgstr "Connectez un bucket compatible S3 pour importer les images de vos emails et de votre blog."
 
 #: src/components/settings/Integrations.tsx:2637
 #~ msgid "Connect and manage external services"
@@ -4484,7 +4546,7 @@ msgid "Container"
 msgstr "Conteneur"
 
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:99
-#: src/components/email_builder/blocks/MjImageBlock.tsx:139
+#: src/components/email_builder/blocks/MjImageBlock.tsx:140
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:50
 msgid "Container Background"
 msgstr "Arrière-plan du conteneur"
@@ -4598,7 +4660,8 @@ msgstr "Copier le secret"
 #~ msgid "Copy to clipboard"
 #~ msgstr "Copier dans le presse-papiers"
 
-#: src/components/file_manager/fileManager.tsx:880
+#: src/components/file_manager/FileExplorer.tsx:545
+#: src/components/file_manager/FilePreview.tsx:94
 msgid "Copy URL"
 msgstr "Copier l URL"
 
@@ -4692,6 +4755,10 @@ msgstr "Impossible de charger les automations"
 #: src/pages/BroadcastsPage.tsx:223
 msgid "Couldn't load the broadcasts"
 msgstr "Impossible de charger les newsletters"
+
+#: src/components/file_manager/FileExplorer.tsx:776
+msgid "Couldn't load the files"
+msgstr "Impossible de charger les fichiers"
 
 #: src/components/settings/WorkspaceMembers.tsx:494
 msgid "Couldn't load the members"
@@ -4820,7 +4887,7 @@ msgstr "Couvre plus que les modèles : les blocs réutilisables dépendent du m�
 #: src/components/automations/AutomationEditor.tsx:488
 #: src/components/blog/CategoryDrawer.tsx:116
 #: src/components/blog/PostDrawer.tsx:691
-#: src/components/file_manager/fileManager.tsx:1008
+#: src/components/file_manager/FileExplorer.tsx:909
 #: src/components/lists/ListDrawer.tsx:198
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Create"
@@ -4919,7 +4986,7 @@ msgstr "Créer une clé API"
 #~ msgid "Create Broadcast"
 #~ msgstr "Créer une diffusion"
 
-#: src/components/blog/RecentThemesTable.tsx:213
+#: src/components/blog/RecentThemesTable.tsx:206
 msgid "Create First Theme"
 msgstr "Créer le premier thème"
 
@@ -4940,7 +5007,7 @@ msgstr "Créer un nouveau modèle {0}"
 msgid "Create New Category"
 msgstr "Créer une nouvelle catégorie"
 
-#: src/components/file_manager/fileManager.tsx:994
+#: src/components/file_manager/FileExplorer.tsx:900
 msgid "Create new folder"
 msgstr "Créer un nouveau dossier"
 
@@ -5086,7 +5153,7 @@ msgstr "Nouvelle version v{0} créée"
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:175
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:144
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:118
-#: src/components/email_builder/blocks/MjImageBlock.tsx:176
+#: src/components/email_builder/blocks/MjImageBlock.tsx:177
 #: src/components/email_builder/blocks/MjRawBlock.tsx:334
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:160
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:87
@@ -5540,9 +5607,13 @@ msgstr "Délai"
 #: src/components/contacts/DeleteContactModal.tsx:40
 #: src/components/email_builder/EmailBuilder.tsx:940
 #: src/components/email_builder/ui/SavedBlockCard.tsx:115
-#: src/components/file_manager/fileManager.tsx:743
-#: src/components/file_manager/fileManager.tsx:748
-#: src/components/file_manager/fileManager.tsx:930
+#: src/components/file_manager/FileExplorer.tsx:306
+#: src/components/file_manager/FileExplorer.tsx:385
+#: src/components/file_manager/FileExplorer.tsx:554
+#: src/components/file_manager/FileExplorer.tsx:702
+#: src/components/file_manager/FileExplorer.tsx:707
+#: src/components/file_manager/FilePreview.tsx:108
+#: src/components/file_manager/FilePreview.tsx:113
 #: src/components/lists/DeleteListModal.tsx:135
 #: src/components/segment/input.tsx:404
 #: src/components/settings/Integrations.tsx:969
@@ -5577,8 +5648,8 @@ msgstr "Supprimer « {name} » de la bibliothèque ?"
 
 #. placeholder {0}: selectedRowKeys.length
 #: src/components/file_manager/fileManager.tsx:741
-msgid "Delete {0} selected item(s)?"
-msgstr "Supprimer {0} élément(s) sélectionné(s) ?"
+#~ msgid "Delete {0} selected item(s)?"
+#~ msgstr "Supprimer {0} élément(s) sélectionné(s) ?"
 
 #: src/components/blog/BlogSidebar.tsx:72
 #~ msgid "Delete {name}"
@@ -5698,17 +5769,21 @@ msgstr "Supprimer les contacts"
 msgid "Delete edge"
 msgstr "Supprimer le lien"
 
-#: src/components/file_manager/fileManager.tsx:942
+#: src/components/file_manager/FileExplorer.tsx:555
+#: src/components/file_manager/FileExplorer.tsx:700
+#: src/components/file_manager/FilePreview.tsx:106
 msgid "Delete file (Read-only mode)"
 msgstr "Supprimer le fichier (mode lecture seule)"
 
-#: src/components/file_manager/fileManager.tsx:610
-#: src/components/file_manager/fileManager.tsx:620
-#: src/components/file_manager/fileManager.tsx:629
+#: src/components/file_manager/DeleteFolderModal.tsx:52
+#: src/components/file_manager/DeleteFolderModal.tsx:53
+#: src/components/file_manager/FileExplorer.tsx:537
+#: src/components/file_manager/FileExplorer.tsx:1057
 msgid "Delete folder"
 msgstr "Supprimer le dossier"
 
-#: src/components/file_manager/fileManager.tsx:638
+#: src/components/file_manager/FileExplorer.tsx:538
+#: src/components/file_manager/FileExplorer.tsx:1058
 msgid "Delete folder (Read-only mode)"
 msgstr "Supprimer le dossier (mode lecture seule)"
 
@@ -5764,6 +5839,10 @@ msgstr "Supprimer l’étape"
 #: src/components/templates/DeleteTemplateModal.tsx:112
 msgid "Delete template?"
 msgstr "Supprimer le modèle ?"
+
+#: src/components/file_manager/DeleteFolderModal.tsx:43
+msgid "Delete the folder {name} and its files?"
+msgstr "Supprimer le dossier {name} et ses fichiers ?"
 
 #: src/components/transactional/notificationRules.ts:89
 msgid "Delete the notification?"
@@ -5824,16 +5903,16 @@ msgid "Deleted"
 msgstr "Supprimé"
 
 #: src/components/file_manager/fileManager.tsx:232
-msgid "Deleted {deleted} item(s) of the folder, failed to delete {failed}."
-msgstr "{deleted} élément(s) du dossier supprimé(s), échec de la suppression de {failed}."
+#~ msgid "Deleted {deleted} item(s) of the folder, failed to delete {failed}."
+#~ msgstr "{deleted} élément(s) du dossier supprimé(s), échec de la suppression de {failed}."
 
 #: src/components/file_manager/fileManager.tsx:575
-msgid "Deleted {deletedCount} item(s)"
-msgstr "{deletedCount} élément(s) supprimé(s)"
+#~ msgid "Deleted {deletedCount} item(s)"
+#~ msgstr "{deletedCount} élément(s) supprimé(s)"
 
 #: src/components/file_manager/fileManager.tsx:577
-msgid "Deleted {deletedCount}, failed {failedCount}"
-msgstr "{deletedCount} supprimé(s), {failedCount} échoué(s)"
+#~ msgid "Deleted {deletedCount}, failed {failedCount}"
+#~ msgstr "{deletedCount} supprimé(s), {failedCount} échoué(s)"
 
 #: src/components/transactional/notificationParts.tsx:78
 msgid "Deleted template"
@@ -5979,6 +6058,11 @@ msgstr "Diagnostic :"
 msgid "Dimension"
 msgstr "Dimension"
 
+#: src/components/file_manager/FilePreview.tsx:44
+#: src/components/file_manager/FileTable.tsx:95
+msgid "Dimensions"
+msgstr "Dimensions"
+
 #: src/components/web_analytics/explore/CsvExportModal.tsx:155
 msgid "Dimensions:"
 msgstr "Dimensions :"
@@ -6107,10 +6191,10 @@ msgid "Do you really want to remove this filter?"
 msgstr "Voulez-vous vraiment supprimer ce filtre ?"
 
 #: src/components/file_manager/fileManager.tsx:615
-msgid "Do you want to delete the"
-msgstr "Voulez-vous supprimer le"
+#~ msgid "Do you want to delete the"
+#~ msgstr "Voulez-vous supprimer le"
 
-#: src/components/file_manager/fileManager.tsx:927
+#: src/components/file_manager/FileExplorer.tsx:305
 msgid "Do you want to permanently delete this file from your storage?"
 msgstr "Voulez-vous supprimer définitivement ce fichier de votre stockage ?"
 
@@ -6189,18 +6273,24 @@ msgstr "Double opt-in"
 msgid "Double Opt-in Template"
 msgstr "Modèle de double opt-in"
 
+#: src/components/file_manager/FileExplorer.tsx:551
+#: src/components/file_manager/FilePreview.tsx:97
 #: src/components/web_analytics/explore/CsvExportModal.tsx:143
 msgid "Download"
 msgstr "Télécharger"
 
+#: src/components/file_manager/FileExplorer.tsx:697
+msgid "Download as zip"
+msgstr "Télécharger en zip"
+
 #: src/components/file_manager/fileManager.tsx:899
-msgid "Download file"
-msgstr "Télécharger le fichier"
+#~ msgid "Download file"
+#~ msgstr "Télécharger le fichier"
 
 #. placeholder {0}: selectedFiles.length
 #: src/components/file_manager/fileManager.tsx:526
-msgid "Downloaded {0} file(s)"
-msgstr "{0} fichier(s) téléchargé(s)"
+#~ msgid "Downloaded {0} file(s)"
+#~ msgstr "{0} fichier(s) téléchargé(s)"
 
 #: src/components/automations/AutomationStatusPill.tsx:15
 #: src/components/blog/PostsTable.tsx:317
@@ -6232,7 +6322,7 @@ msgstr "Glissez pour déplacer ce bloc dans l arborescence"
 msgid "Dragging {name} was cancelled."
 msgstr "Le déplacement de {name} a été annulé."
 
-#: src/components/file_manager/fileManager.tsx:985
+#: src/components/file_manager/FileExplorer.tsx:830
 msgid "Drop files here to upload"
 msgstr "Déposez les fichiers ici pour les envoyer"
 
@@ -6558,7 +6648,7 @@ msgstr "Modifier l'objet dans le modèle"
 msgid "Edit the template"
 msgstr "Modifier le modèle"
 
-#: src/components/blog/RecentThemesTable.tsx:186
+#: src/components/blog/RecentThemesTable.tsx:179
 msgid "Edit theme"
 msgstr "Modifier le thème"
 
@@ -7052,7 +7142,7 @@ msgstr "Entrez les adresses email CC"
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:74
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:388
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:148
-#: src/components/email_builder/blocks/MjImageBlock.tsx:180
+#: src/components/email_builder/blocks/MjImageBlock.tsx:181
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:91
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:483
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:92
@@ -7081,7 +7171,7 @@ msgstr "Entrez le titre de l email..."
 msgid "Enter event names to filter"
 msgstr "Entrez les noms d événements à filtrer"
 
-#: src/components/email_builder/ui/FileSrc.tsx:29
+#: src/components/email_builder/ui/FileSrc.tsx:32
 msgid "Enter file URL or use file manager"
 msgstr "Entrez l URL du fichier ou utilisez le gestionnaire de fichiers"
 
@@ -7105,7 +7195,7 @@ msgstr "Entrez l URL de l image ou sélectionnez depuis le stockage"
 msgid "Enter JSON..."
 msgstr "Entrez JSON..."
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:61
+#: src/components/email_builder/blocks/MjImageBlock.tsx:62
 msgid "Enter link URL or {{ url }}"
 msgstr "Entrez l URL du lien ou {{ url }}"
 
@@ -7420,6 +7510,10 @@ msgstr "Sorties"
 msgid "Expand"
 msgstr "Développer"
 
+#: src/components/file_manager/FolderTree.tsx:40
+msgid "Expand {label}"
+msgstr "Déplier {label}"
+
 #: src/layouts/app-shell/AppSidebar.tsx:200
 msgid "Expand sidebar"
 msgstr "Déplier la barre latérale"
@@ -7587,6 +7681,7 @@ msgstr "Échec de la connexion à Zapier"
 
 #: src/components/automations/AutomationEditor.tsx:378
 #: src/components/common/CodeSnippet.tsx:35
+#: src/components/file_manager/FileExplorer.tsx:293
 #: src/components/layout/DrawerControls.tsx:77
 #: src/components/layout/Mono.tsx:22
 #: src/components/settings/WebhookDetail.tsx:214
@@ -7615,8 +7710,7 @@ msgstr "Échec de la création de l automation : {0}"
 msgid "Failed to create category: {0}"
 msgstr "Échec de la création de la catégorie : {0}"
 
-#: src/components/file_manager/fileManager.tsx:339
-#: src/components/file_manager/fileManager.tsx:345
+#: src/components/file_manager/FileExplorer.tsx:504
 msgid "Failed to create folder: "
 msgstr "Échec de la création du dossier : "
 
@@ -7667,11 +7761,11 @@ msgstr "Échec de la suppression de la catégorie"
 msgid "Failed to delete contact"
 msgstr "Échec de la suppression du contact"
 
-#: src/components/file_manager/fileManager.tsx:261
+#: src/components/file_manager/FileExplorer.tsx:320
 msgid "Failed to delete file: "
 msgstr "Échec de la suppression du fichier : "
 
-#: src/components/file_manager/fileManager.tsx:236
+#: src/components/file_manager/FileExplorer.tsx:350
 msgid "Failed to delete folder: "
 msgstr "Échec de la suppression du dossier : "
 
@@ -7721,11 +7815,11 @@ msgstr "Échec de la suppression de l espace de travail"
 msgid "Failed to detect icon: {0}"
 msgstr "Échec de la détection de l icône : {0}"
 
-#: src/components/file_manager/fileManager.tsx:918
+#: src/components/file_manager/FileExplorer.tsx:299
 msgid "Failed to download file"
 msgstr "Échec du téléchargement du fichier"
 
-#: src/components/file_manager/fileManager.tsx:529
+#: src/components/file_manager/FileExplorer.tsx:371
 msgid "Failed to download files"
 msgstr "Échec du téléchargement des fichiers"
 
@@ -7763,8 +7857,8 @@ msgstr "Échec de la récupération des données : {0}"
 #~ msgstr "Échec de la récupération des données des nouveaux contacts"
 
 #: src/components/file_manager/fileManager.tsx:181
-msgid "Failed to fetch objects: "
-msgstr "Échec de la récupération des objets : "
+#~ msgid "Failed to fetch objects: "
+#~ msgstr "Échec de la récupération des objets : "
 
 #: src/pages/SetupWizard.tsx:58
 msgid "Failed to fetch setup status"
@@ -7836,7 +7930,7 @@ msgstr "Échec du traitement du fichier {0}"
 msgid "Failed to publish post"
 msgstr "Échec de la publication de l article"
 
-#: src/components/blog/RecentThemesTable.tsx:58
+#: src/components/blog/RecentThemesTable.tsx:51
 msgid "Failed to publish theme"
 msgstr "Échec de la publication du thème"
 
@@ -8029,7 +8123,7 @@ msgstr "Échec de la mise à jour de l étiquette de champ personnalisé"
 msgid "Failed to update field"
 msgstr "Échec de la mise à jour du champ"
 
-#: src/pages/FileManagerPage.tsx:85
+#: src/pages/FileManagerPage.tsx:78
 msgid "Failed to update file manager settings"
 msgstr "Échec de la mise à jour des paramètres du gestionnaire de fichiers"
 
@@ -8158,7 +8252,7 @@ msgstr "Fichier {0} ajouté"
 msgid "File {0} exceeds 3MB limit"
 msgstr "Le fichier {0} dépasse la limite de 3 Mo"
 
-#: src/components/file_manager/fileManager.tsx:256
+#: src/components/file_manager/FileExplorer.tsx:314
 msgid "File deleted successfully."
 msgstr "Fichier supprimé avec succès."
 
@@ -8166,25 +8260,26 @@ msgstr "Fichier supprimé avec succès."
 msgid "File is too large. Maximum size is 1MB."
 msgstr "Le fichier est trop volumineux. La taille maximale est de 1 Mo."
 
-#: src/components/file_manager/context.tsx:155
+#: src/components/file_manager/FileExplorer.tsx:984
 #: src/layouts/app-shell/menuItems.ts:179
-#: src/pages/FileManagerPage.tsx:119
 msgid "File Manager"
 msgstr "Gestionnaire de fichiers"
 
-#: src/components/file_manager/context.tsx:103
+#: src/components/file_manager/context.tsx:110
 msgid "File manager error: "
 msgstr "Erreur du gestionnaire de fichiers : "
 
-#: src/pages/FileManagerPage.tsx:82
+#: src/pages/FileManagerPage.tsx:75
 msgid "File manager settings updated successfully"
 msgstr "Paramètres du gestionnaire de fichiers mis à jour avec succès"
 
+#: src/components/file_manager/FileExplorer.tsx:724
+#: src/components/file_manager/FileExplorer.tsx:725
 #: src/components/web_analytics/explore/CsvExportModal.tsx:167
 msgid "File name"
 msgstr "Nom du fichier"
 
-#: src/components/file_manager/fileManager.tsx:587
+#: src/components/file_manager/FileExplorer.tsx:963
 msgid "File storage is not configured."
 msgstr "Le stockage de fichiers n est pas configuré."
 
@@ -8330,29 +8425,39 @@ msgstr "Corrigez le Zap dans Zapier, puis réactivez ce webhook pour reprendre l
 #~ msgid "Flow Stats: {0}"
 #~ msgstr "Statistiques du flux : {0}"
 
-#: src/components/file_manager/fileManager.tsx:321
+#: src/components/file_manager/FileGrid.tsx:44
+#: src/components/file_manager/FilePreview.tsx:59
+msgid "Folder"
+msgstr "Dossier"
+
+#: src/components/file_manager/FileExplorer.tsx:501
 msgid "Folder already exists."
 msgstr "Le dossier existe déjà."
 
-#: src/components/file_manager/fileManager.tsx:334
+#: src/components/file_manager/FileExplorer.tsx:502
 msgid "Folder created successfully."
 msgstr "Dossier créé avec succès."
 
-#: src/components/file_manager/fileManager.tsx:224
+#: src/components/file_manager/FileExplorer.tsx:334
 msgid "Folder deleted successfully."
 msgstr "Dossier supprimé avec succès."
 
-#: src/components/file_manager/fileManager.tsx:783
+#: src/components/file_manager/FileExplorer.tsx:771
 msgid "Folder is empty"
 msgstr "Le dossier est vide"
 
-#: src/components/file_manager/fileManager.tsx:1014
+#: src/components/file_manager/FileExplorer.tsx:916
 msgid "Folder name"
 msgstr "Nom du dossier"
 
 #: src/components/file_manager/fileManager.tsx:615
-msgid "folder with all its content?"
-msgstr "dossier avec tout son contenu ?"
+#~ msgid "folder with all its content?"
+#~ msgstr "dossier avec tout son contenu ?"
+
+#: src/components/file_manager/FileExplorer.tsx:619
+#: src/components/file_manager/FileExplorer.tsx:1076
+msgid "Folders"
+msgstr "Dossiers"
 
 #: src/components/transactional/TransactionalDetail.tsx:371
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:382
@@ -8514,7 +8619,7 @@ msgstr "Nom complet"
 msgid "Full Width"
 msgstr "Pleine largeur"
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:91
+#: src/components/email_builder/blocks/MjImageBlock.tsx:92
 msgid "Full width on mobile"
 msgstr "Pleine largeur sur mobile"
 
@@ -8721,6 +8826,11 @@ msgstr "Tout accorder"
 msgid "Granted"
 msgstr "Accordé"
 
+#: src/components/file_manager/FileExplorer.tsx:673
+#: src/components/file_manager/FileExplorer.tsx:674
+msgid "Grid"
+msgstr "Grille"
+
 #: src/components/email_builder/ui/BorderInput.tsx:60
 msgid "Groove"
 msgstr "Rainuré"
@@ -8784,7 +8894,7 @@ msgstr "La valeur du header est requise"
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:236
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:363
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:72
-#: src/components/email_builder/blocks/MjImageBlock.tsx:101
+#: src/components/email_builder/blocks/MjImageBlock.tsx:102
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:192
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:36
 #: src/components/email_builder/blocks/MjTextBlock.tsx:141
@@ -9067,7 +9177,7 @@ msgstr "Identifier un visiteur"
 msgid "Identify recipients who click a tracked email link"
 msgstr "Identifier les destinataires qui cliquent sur un lien d'email tracké"
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:92
+#: src/components/email_builder/blocks/MjImageBlock.tsx:93
 msgid "If \"true\", will be full width on mobile even if width is set"
 msgstr "Si \"true\", sera en pleine largeur sur mobile même si une largeur est définie"
 
@@ -9096,6 +9206,10 @@ msgstr "Attributs de l image"
 msgid "Image URL when shared on social media (og:image)"
 msgstr "URL de l image lors du partage sur les réseaux sociaux (og:image)"
 
+#: src/components/file_manager/DeleteFolderModal.tsx:62
+msgid "Images used in emails or blog posts will stop displaying."
+msgstr "Les images utilisées dans des emails ou des articles de blog ne s'afficheront plus."
+
 #: src/components/settings/SMTPBridgeSettings.tsx:12
 msgid "Implicit TLS"
 msgstr "TLS implicite"
@@ -9122,7 +9236,7 @@ msgstr "Importer / Exporter"
 msgid "Import & Export Templates"
 msgstr "Importer et exporter des modèles"
 
-#: src/components/file_manager/fileManager.tsx:443
+#: src/components/file_manager/FileExplorer.tsx:459
 msgid "Import cancelled"
 msgstr "Importation annulée"
 
@@ -9196,7 +9310,7 @@ msgstr "{0} contacts importés ({1} échoués, voir détails ci-dessous)"
 msgid "Imported Fonts"
 msgstr "Polices importées"
 
-#: src/components/file_manager/fileManager.tsx:1065
+#: src/components/file_manager/FileExplorer.tsx:835
 msgid "Importing files..."
 msgstr "Importation des fichiers..."
 
@@ -9327,6 +9441,10 @@ msgstr "Insérer un emoji"
 #: src/components/email_builder/panels/CanvasDropIndicator.tsx:106
 msgid "Insert here"
 msgstr "Insérer ici"
+
+#: src/components/file_manager/FileExplorer.tsx:1148
+msgid "Insert image"
+msgstr "Insérer l'image"
 
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:139
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:406
@@ -9526,7 +9644,7 @@ msgstr "Adresse IP"
 msgid "IP addresses are never stored — only used for geo lookup. Country is always included when geo tracking is enabled."
 msgstr "Les adresses IP ne sont jamais stockées — elles servent uniquement à la recherche géographique. Le pays est toujours inclus lorsque le suivi géographique est activé."
 
-#: src/components/file_manager/context.tsx:201
+#: src/components/file_manager/context.tsx:221
 #: src/components/segment/form_leaf.tsx:822
 #: src/components/segment/input.tsx:669
 msgid "is"
@@ -9754,11 +9872,11 @@ msgstr "Langue et fuseau horaire"
 #~ msgid "Languages available for template translations in this workspace"
 #~ msgstr "Langues disponibles pour les traductions de modèles dans cet espace de travail"
 
-#: src/components/file_manager/context.tsx:187
+#: src/components/file_manager/context.tsx:207
 msgid "Large File Warning"
 msgstr "Avertissement de fichier volumineux"
 
-#: src/components/file_manager/context.tsx:205
+#: src/components/file_manager/context.tsx:225
 msgid "Large images can significantly slow down email loading times for recipients, especially on mobile devices or slow connections."
 msgstr "Les grandes images peuvent ralentir considérablement le chargement des emails pour les destinataires, surtout sur les appareils mobiles ou les connexions lentes."
 
@@ -9805,7 +9923,7 @@ msgstr "Dernière modification"
 msgid "Last changed {changedAt} from {changedFrom}"
 msgstr "Modifié {changedAt} depuis {changedFrom}"
 
-#: src/components/blog/RecentThemesTable.tsx:165
+#: src/components/blog/RecentThemesTable.tsx:158
 msgid "Last Edited"
 msgstr "Dernière modification"
 
@@ -9814,8 +9932,8 @@ msgid "Last fetched:"
 msgstr "Dernière récupération :"
 
 #: src/components/file_manager/fileManager.tsx:861
-msgid "Last modified"
-msgstr "Dernière modification"
+#~ msgid "Last modified"
+#~ msgstr "Dernière modification"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:97
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:92
@@ -9867,7 +9985,7 @@ msgstr "Laissez vide pour conserver la clé API existante"
 msgid "Leave blank to use the default Firecrawl API (api.firecrawl.dev)"
 msgstr "Laissez vide pour utiliser l API Firecrawl par défaut (api.firecrawl.dev)"
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:82
+#: src/components/email_builder/blocks/MjImageBlock.tsx:83
 msgid "Leave empty for full container width"
 msgstr "Laissez vide pour la largeur complète du conteneur"
 
@@ -9990,7 +10108,7 @@ msgstr "Barré"
 
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:131
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:137
-#: src/components/email_builder/blocks/MjImageBlock.tsx:57
+#: src/components/email_builder/blocks/MjImageBlock.tsx:58
 msgid "Link"
 msgstr "Lien"
 
@@ -10066,6 +10184,8 @@ msgstr "Bloc Liquid - Cliquez pour ajouter du contenu MJML + Liquid"
 #: src/components/contacts/BulkUpdateDrawer.tsx:617
 #: src/components/contacts/ExportContactsModal.tsx:87
 #: src/components/contacts/sheet/activityLabel.ts:17
+#: src/components/file_manager/FileExplorer.tsx:679
+#: src/components/file_manager/FileExplorer.tsx:680
 #: src/components/messages/MessageHistoryTable.tsx:150
 #: src/components/messages/MessageHistoryTable.tsx:277
 #: src/components/messages/MessageHistoryTable.tsx:291
@@ -10240,7 +10360,7 @@ msgid "Lists write also grants contact writing. Subscribing an address through `
 msgstr "L'écriture Listes accorde aussi l'écriture des contacts. Abonner une adresse via `/api/lists.subscribe` crée ou écrase la fiche complète de ce contact, avec tous les champs que porte la requête et sans nécessiter l'écriture Contacts — toute personne ne disposant que de l'écriture Listes peut donc malgré tout réécrire des données de contact. Elle permet aussi d'abonner quelqu'un à une liste qui n'est pas publique. La lecture ne se limite pas non plus aux paramètres des listes : via /api/contactLists.*, elle liste les adresses des membres d'une liste, ce qui explique que ces deux endpoints exigent en plus la lecture Contacts."
 
 #: src/components/automations/AutomationStatusPill.tsx:11
-#: src/components/blog/RecentThemesTable.tsx:128
+#: src/components/blog/RecentThemesTable.tsx:121
 #: src/components/templates/templateUsage.ts:88
 #: src/components/web_analytics/LiveButton.tsx:46
 #: src/layouts/app-shell/menuItems.ts:167
@@ -10294,6 +10414,10 @@ msgstr "Charger la fiche de l'espace de travail, ce que la lecture comme l'écri
 #: src/components/templates/CreateTemplateDrawer.tsx:462
 msgid "Loaded the latest version of this template (v{0})."
 msgstr "La dernière version de ce modèle a été chargée (v{0})."
+
+#: src/components/file_manager/FileExplorer.tsx:801
+msgid "Loading"
+msgstr "Chargement"
 
 #: src/pages/AutomationsPage.tsx:184
 #~ msgid "Loading automations..."
@@ -10851,6 +10975,11 @@ msgstr "Modèle"
 msgid "Modest Branding"
 msgstr "Branding discret"
 
+#: src/components/file_manager/FilePreview.tsx:49
+#: src/components/file_manager/FileTable.tsx:116
+msgid "Modified"
+msgstr "Modifié"
+
 #: src/pages/LogsPage.tsx:29
 #~ msgid "Monitor message delivery status and webhook events"
 #~ msgstr "Surveiller le statut de livraison des messages et les événements webhook"
@@ -10880,6 +11009,7 @@ msgstr "Mensuel"
 #: src/components/contacts/ContactsViewHeader.tsx:179
 #: src/components/contacts/ContactsViewHeader.tsx:217
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:217
+#: src/components/file_manager/FileExplorer.tsx:1066
 #: src/components/settings/Integrations.tsx:961
 #: src/components/settings/integrations/EmailProviderCard.tsx:343
 #: src/components/transactional/TransactionalDetail.tsx:354
@@ -10948,7 +11078,7 @@ msgstr "N/A"
 #: src/components/blog/AuthorsTable.tsx:143
 #: src/components/blog/CategoryDrawer.tsx:132
 #: src/components/email_builder/ui/SaveBlockModal.tsx:128
-#: src/components/file_manager/fileManager.tsx:847
+#: src/components/file_manager/FileTable.tsx:78
 #: src/components/lists/ListDrawer.tsx:213
 #: src/components/segment/button_upsert.tsx:447
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:125
@@ -11056,9 +11186,16 @@ msgstr "Nouveaux contacts"
 msgid "New conversation"
 msgstr "Nouvelle conversation"
 
-#: src/components/file_manager/fileManager.tsx:736
+#: src/components/file_manager/FileExplorer.tsx:757
+#: src/components/file_manager/FileExplorer.tsx:759
+#: src/components/file_manager/FileExplorer.tsx:1035
 msgid "New folder"
 msgstr "Nouveau dossier"
+
+#: src/components/file_manager/FileExplorer.tsx:757
+#: src/components/file_manager/FileExplorer.tsx:1029
+msgid "New folder (Read-only mode)"
+msgstr "Nouveau dossier (mode lecture seule)"
 
 #: src/components/settings/WorkspaceMembers.tsx:520
 msgid "New key"
@@ -11107,7 +11244,7 @@ msgstr "Les nouveaux envois de ces éléments continueront d'utiliser le modèle
 msgid "New template"
 msgstr "Nouveau modèle"
 
-#: src/components/blog/RecentThemesTable.tsx:249
+#: src/components/blog/RecentThemesTable.tsx:242
 msgid "New Theme"
 msgstr "Nouveau thème"
 
@@ -11335,7 +11472,7 @@ msgid "No custom field is named yet"
 msgstr "Aucun champ personnalisé n'est encore nommé"
 
 #: src/components/web_analytics/DimensionTableWidget.tsx:283
-#: src/components/web_analytics/TrafficHeatmapWidget.tsx:226
+#: src/components/web_analytics/TrafficHeatmapWidget.tsx:228
 msgid "No data available"
 msgstr "Aucune donnée disponible"
 
@@ -11409,9 +11546,13 @@ msgstr "Aucune erreur"
 msgid "No failure"
 msgstr "Aucun échec"
 
+#: src/components/file_manager/FileExplorer.tsx:771
+msgid "No files match your search"
+msgstr "Aucun fichier ne correspond à votre recherche"
+
 #: src/components/file_manager/fileManager.tsx:500
-msgid "No files selected"
-msgstr "Aucun fichier sélectionné"
+#~ msgid "No files selected"
+#~ msgstr "Aucun fichier sélectionné"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:264
 msgid "No goal data"
@@ -11442,8 +11583,8 @@ msgid "No Issues"
 msgstr "Pas de problèmes"
 
 #: src/components/file_manager/fileManager.tsx:546
-msgid "No items selected"
-msgstr "Aucun élément sélectionné"
+#~ msgid "No items selected"
+#~ msgstr "Aucun élément sélectionné"
 
 #: src/components/automations/AutomationEditor.tsx:390
 msgid "No journeys yet"
@@ -11506,7 +11647,7 @@ msgstr "Pas de nom"
 #~ msgid "No nodes in this automation"
 #~ msgstr "Aucun nœud dans cette automation"
 
-#: src/components/blog/RecentThemesTable.tsx:156
+#: src/components/blog/RecentThemesTable.tsx:149
 msgid "No notes"
 msgstr "Pas de notes"
 
@@ -11702,7 +11843,7 @@ msgstr "Aucun modèle ne correspond à votre recherche"
 msgid "No text version: this email will be sent as HTML only."
 msgstr "Pas de version texte : cet email sera envoyé en HTML seul."
 
-#: src/components/blog/RecentThemesTable.tsx:211
+#: src/components/blog/RecentThemesTable.tsx:204
 msgid "No themes yet"
 msgstr "Pas encore de thèmes"
 
@@ -11920,7 +12061,7 @@ msgstr "Note : Le modèle sera masqué de votre espace de travail mais conservé
 msgid "Note: This might be caused by an incorrectly structured MJML file. HTML content inside mj-raw should be stored as text content, not as child elements."
 msgstr "Note : Cela peut être causé par un fichier MJML mal structuré. Le contenu HTML à l intérieur de mj-raw doit être stocké comme contenu texte, pas comme éléments enfants."
 
-#: src/components/blog/RecentThemesTable.tsx:151
+#: src/components/blog/RecentThemesTable.tsx:144
 msgid "Notes"
 msgstr "Notes"
 
@@ -12165,7 +12306,7 @@ msgstr "Uniquement les liens des emails de cette newsletter."
 msgid "Only links in emails sent with this template."
 msgstr "Uniquement les liens des emails envoyés avec ce modèle."
 
-#: src/components/file_manager/fileManager.tsx:1025
+#: src/components/file_manager/FileExplorer.tsx:927
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 msgstr "Seuls les caractères alphanumériques minuscules, le tiret bas et le tiret sont autorisés."
 
@@ -12185,6 +12326,7 @@ msgstr "Seuls les propriétaires de l espace de travail peuvent modifier les int
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:80
 #: src/components/contacts/sheet/activityLabel.ts:14
+#: src/components/file_manager/FileExplorer.tsx:534
 msgid "Open"
 msgstr "Ouverture"
 
@@ -12218,9 +12360,14 @@ msgstr "Image Open Graph"
 msgid "Open Graph Title"
 msgstr "Titre Open Graph"
 
+#: src/components/file_manager/FileExplorer.tsx:548
+#: src/components/file_manager/FilePreview.tsx:102
+msgid "Open in a new tab"
+msgstr "Ouvrir dans un nouvel onglet"
+
 #: src/components/file_manager/fileManager.tsx:892
-msgid "Open in a window"
-msgstr "Ouvrir dans une fenêtre"
+#~ msgid "Open in a window"
+#~ msgstr "Ouvrir dans une fenêtre"
 
 #: src/components/transactional/RecentSends.tsx:133
 msgid "Open in logs"
@@ -12509,7 +12656,7 @@ msgstr "Propriétaire"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:144
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:107
-#: src/components/email_builder/blocks/MjImageBlock.tsx:109
+#: src/components/email_builder/blocks/MjImageBlock.tsx:110
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:93
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:75
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:58
@@ -13224,6 +13371,7 @@ msgstr "Appuyez sur Entrée pour confirmer, Échap pour annuler"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:76
 #: src/components/common/ImageURLInput.tsx:52
 #: src/components/email_builder/EmailBuilder.tsx:1061
+#: src/components/file_manager/FileExplorer.tsx:1082
 #: src/components/segment/button_upsert.tsx:664
 #: src/components/transactional/PreviewPanel.tsx:120
 #: src/pages/TemplatesPage.tsx:292
@@ -13291,7 +13439,7 @@ msgstr "Paramètres du texte de prévisualisation"
 msgid "Preview text will appear here..."
 msgstr "Le texte de prévisualisation apparaîtra ici..."
 
-#: src/components/blog/RecentThemesTable.tsx:194
+#: src/components/blog/RecentThemesTable.tsx:187
 msgid "Preview this theme in a new tab"
 msgstr "Prévisualiser ce thème dans un nouvel onglet"
 
@@ -13479,8 +13627,8 @@ msgstr "Publication"
 
 #: src/components/blog/PostsTable.tsx:225
 #: src/components/blog/PublishModal.tsx:207
-#: src/components/blog/RecentThemesTable.tsx:100
-#: src/components/blog/RecentThemesTable.tsx:144
+#: src/components/blog/RecentThemesTable.tsx:93
+#: src/components/blog/RecentThemesTable.tsx:137
 msgid "Publish"
 msgstr "Publier"
 
@@ -13497,11 +13645,11 @@ msgstr "Publier maintenant"
 msgid "Publish Post"
 msgstr "Publier l article"
 
-#: src/components/blog/RecentThemesTable.tsx:88
+#: src/components/blog/RecentThemesTable.tsx:81
 msgid "Publish Theme"
 msgstr "Publier le thème"
 
-#: src/components/blog/RecentThemesTable.tsx:135
+#: src/components/blog/RecentThemesTable.tsx:128
 msgid "Publish this theme"
 msgstr "Publier ce thème"
 
@@ -13932,7 +14080,8 @@ msgstr "Actualiser les statistiques"
 msgid "Refresh the broadcast's data feed by calling the configured external URL"
 msgstr "Actualiser le flux de données de la diffusion en appelant l'URL externe configurée"
 
-#: src/components/file_manager/fileManager.tsx:642
+#: src/components/file_manager/FileExplorer.tsx:729
+#: src/components/file_manager/FileExplorer.tsx:733
 msgid "Refresh the list"
 msgstr "Actualiser la liste"
 
@@ -14442,6 +14591,7 @@ msgstr "Rétention"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:547
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:169
 #: src/components/contacts/BlockError.tsx:11
+#: src/components/file_manager/FileExplorer.tsx:780
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
 #: src/components/settings/WorkspaceMembers.tsx:495
@@ -14497,6 +14647,11 @@ msgstr "De droite à gauche"
 #~ msgid "Role"
 #~ msgstr "Rôle"
 
+#: src/components/file_manager/FileExplorer.tsx:633
+#: src/components/file_manager/FileExplorer.tsx:1020
+#: src/components/file_manager/FilePreview.tsx:62
+#: src/components/file_manager/FileTable.tsx:88
+#: src/components/file_manager/FolderTree.tsx:121
 #: src/layouts/app-shell/AccountMenu.tsx:60
 msgid "Root"
 msgstr "Root"
@@ -14613,8 +14768,8 @@ msgstr "Bucket S3"
 #: src/components/file_manager/fileManager.tsx:210
 #: src/components/file_manager/fileManager.tsx:296
 #: src/components/file_manager/fileManager.tsx:537
-msgid "S3 client is not initialized."
-msgstr "Le client S3 n est pas initialisé."
+#~ msgid "S3 client is not initialized."
+#~ msgstr "Le client S3 n est pas initialisé."
 
 #: src/components/file_manager/buttonSettings.tsx:224
 msgid "S3 Endpoint"
@@ -14628,6 +14783,10 @@ msgstr "Région S3"
 #: src/components/file_manager/buttonSettings.tsx:267
 msgid "S3 secret key"
 msgstr "Clé secrète S3"
+
+#: src/components/file_manager/FileExplorer.tsx:608
+msgid "S3 storage"
+msgstr "Stockage S3"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:384
 msgid "Same Window"
@@ -14898,6 +15057,10 @@ msgstr "Rechercher des dimensions"
 msgid "Search Engine Indexing"
 msgstr "Indexation des moteurs de recherche"
 
+#: src/components/file_manager/FileExplorer.tsx:1020
+msgid "Search results"
+msgstr "Résultats de recherche"
+
 #: src/components/email_builder/panels/LibraryPanel.tsx:197
 msgid "Search saved blocks"
 msgstr "Rechercher dans les blocs enregistrés"
@@ -15053,7 +15216,6 @@ msgid "Segments"
 msgstr "Segments"
 
 #: src/components/automations/nodes/EmailNode.tsx:35
-#: src/components/file_manager/fileManager.tsx:955
 #: src/components/settings/BlogSettings.tsx:357
 #: src/components/settings/BlogSettings.tsx:373
 #: src/components/templates/TemplateSelectorInput.tsx:256
@@ -15106,6 +15268,10 @@ msgstr "Sélectionner une plage de dates personnalisée"
 #: src/components/segment/input_dimension_filters.tsx:213
 msgid "Select a field"
 msgstr "Sélectionner un champ"
+
+#: src/components/file_manager/FileExplorer.tsx:1130
+msgid "Select a file"
+msgstr "Sélectionnez un fichier"
 
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:31
 #: src/components/broadcasts/compose/AudienceCard.tsx:64
@@ -15260,6 +15426,10 @@ msgstr "Sélectionner un champ"
 msgid "Select field to map to"
 msgstr "Sélectionner le champ à mapper"
 
+#: src/components/file_manager/FileExplorer.tsx:1148
+msgid "Select file"
+msgstr "Sélectionner le fichier"
+
 #: src/components/settings/WebhooksSettings.tsx:598
 msgid "Select goal types to filter"
 msgstr "Sélectionner les types d objectifs à filtrer"
@@ -15403,8 +15573,8 @@ msgstr "Dimensions sélectionnées, dans l'ordre :"
 
 #. placeholder {0}: pendingFile.name
 #. placeholder {0}: selectedFile.name
-#: src/components/file_manager/context.tsx:77
-#: src/components/file_manager/context.tsx:87
+#: src/components/file_manager/context.tsx:84
+#: src/components/file_manager/context.tsx:94
 msgid "Selected: {0}"
 msgstr "Sélectionné : {0}"
 
@@ -15845,7 +16015,7 @@ msgid "Set HTML Content"
 msgstr "Définir le contenu HTML"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:179
-#: src/components/email_builder/blocks/MjImageBlock.tsx:62
+#: src/components/email_builder/blocks/MjImageBlock.tsx:63
 msgid "Set link"
 msgstr "Définir le lien"
 
@@ -15983,7 +16153,7 @@ msgid "Show less"
 msgstr "Afficher moins"
 
 #. placeholder {0}: totalCount - limit
-#: src/components/blog/RecentThemesTable.tsx:264
+#: src/components/blog/RecentThemesTable.tsx:257
 msgid "Show More ({0} remaining)"
 msgstr "Afficher plus ({0} restants)"
 
@@ -16001,8 +16171,12 @@ msgid "Showing the first {0} contacts. Refine your filters to see more."
 msgstr "Affichage des {0} premiers contacts. Affinez vos filtres pour en voir d'autres."
 
 #: src/components/file_manager/fileManager.tsx:765
-msgid "Showing the first {maxObjectsLabel} files of this bucket."
-msgstr "Affichage des {maxObjectsLabel} premiers fichiers de ce bucket."
+#~ msgid "Showing the first {maxObjectsLabel} files of this bucket."
+#~ msgstr "Affichage des {maxObjectsLabel} premiers fichiers de ce bucket."
+
+#: src/components/file_manager/FileExplorer.tsx:878
+msgid "Showing the first {maxObjectsLabel} files of this bucket. Folder counts, total size and search only cover these files."
+msgstr "Seuls les {maxObjectsLabel} premiers fichiers de ce bucket sont affichés. Le nombre de fichiers par dossier, la taille totale et la recherche ne portent que sur eux."
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:132
 #~ msgid "Showing the top 200 links by total clicks."
@@ -16090,7 +16264,8 @@ msgstr "Visites du site"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:174
 #: src/components/email_builder/ui/FontStyleInput.tsx:179
-#: src/components/file_manager/fileManager.tsx:854
+#: src/components/file_manager/FilePreview.tsx:46
+#: src/components/file_manager/FileTable.tsx:101
 msgid "Size"
 msgstr "Taille"
 
@@ -16443,7 +16618,7 @@ msgstr "Les statistiques apparaissent dès que la newsletter commence à partir"
 
 #: src/components/automations/list/AutomationsTable.tsx:114
 #: src/components/blog/PostsTable.tsx:306
-#: src/components/blog/RecentThemesTable.tsx:122
+#: src/components/blog/RecentThemesTable.tsx:115
 #: src/components/broadcasts/BroadcastsTable.tsx:209
 #: src/components/broadcasts/detail/BroadcastAside.tsx:241
 #: src/components/messages/MessageHistoryTab.tsx:573
@@ -16483,11 +16658,14 @@ msgstr "Étapes"
 msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop."
 msgstr "Arrête cette automation pour un contact dès qu'il répond à l'un de ses emails. Cela nécessite que le transfert des réponses entrantes soit configuré chez votre fournisseur d'email (ESP) : les réponses adressées à votre domaine d'envoi doivent être routées vers le fournisseur, qui les transmet à Notifuse. Sans cette configuration, les réponses ne sont pas détectées et la séquence ne s'arrête pas."
 
-#: src/components/file_manager/fileManager.tsx:657
+#: src/components/file_manager/FileExplorer.tsx:584
+#: src/components/file_manager/FileExplorer.tsx:594
+#: src/components/file_manager/FileExplorer.tsx:598
 msgid "Storage settings"
 msgstr "Paramètres de stockage"
 
-#: src/components/file_manager/fileManager.tsx:665
+#: src/components/file_manager/FileExplorer.tsx:579
+#: src/components/file_manager/FileExplorer.tsx:968
 msgid "Storage settings (Read-only mode)"
 msgstr "Paramètres de stockage (Mode lecture seule)"
 
@@ -17288,7 +17466,7 @@ msgstr "Le fichier CSV doit avoir des en-têtes dans la première ligne."
 msgid "The current date range, filters and session threshold"
 msgstr "La plage de dates, les filtres et le seuil de sessions actuels"
 
-#: src/components/blog/RecentThemesTable.tsx:96
+#: src/components/blog/RecentThemesTable.tsx:89
 msgid "The currently published theme will be unpublished automatically."
 msgstr "Le thème actuellement publié sera automatiquement dépublié."
 
@@ -17348,6 +17526,10 @@ msgstr "l'URL du flux de données global doit commencer par https:// ou http://,
 #: src/pages/SetupWizard.tsx:524
 msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 msgstr "Le nom d'hôte sous lequel votre serveur s'identifie lors de la connexion au serveur SMTP. Par défaut, la valeur de l'hôte SMTP si le champ est vide."
+
+#: src/components/email_builder/blocks/MjImageBlock.tsx:54
+msgid "the Image block"
+msgstr "le bloc Image"
 
 #: src/services/api/permissions.ts:918
 msgid "The inbound events email providers send back — bounces, complaints, deliveries and replies — as the raw rows the provider posted."
@@ -17461,7 +17643,7 @@ msgstr "Le segment a été créé !"
 msgid "The segment has been updated!"
 msgstr "Le segment a été mis à jour !"
 
-#: src/components/file_manager/context.tsx:201
+#: src/components/file_manager/context.tsx:221
 msgid "The selected file"
 msgstr "Le fichier sélectionné"
 
@@ -17484,6 +17666,10 @@ msgstr "Le bouton SSO reste masqué sur la page de connexion tant qu'une licence
 #: src/components/automations/config/AddToListConfigForm.tsx:51
 msgid "The status to assign when adding to the list"
 msgstr "Le statut à attribuer lors de l'ajout à la liste"
+
+#: src/components/file_manager/FileExplorer.tsx:879
+msgid "The storage did not return the whole bucket. Folder counts, total size and search only cover the files shown."
+msgstr "Le stockage n'a pas renvoyé tout le bucket. Le nombre de fichiers par dossier, la taille totale et la recherche ne portent que sur les fichiers affichés."
 
 #: src/components/broadcasts/compose/SendSummary.tsx:168
 msgid "The template has no unsubscribe link ({languages})"
@@ -17574,7 +17760,7 @@ msgstr "Thème"
 msgid "Theme created successfully"
 msgstr "Thème créé avec succès"
 
-#: src/components/blog/RecentThemesTable.tsx:54
+#: src/components/blog/RecentThemesTable.tsx:47
 msgid "Theme published successfully"
 msgstr "Thème publié avec succès"
 
@@ -17582,7 +17768,7 @@ msgstr "Thème publié avec succès"
 msgid "Theme updated successfully"
 msgstr "Thème mis à jour avec succès"
 
-#: src/components/blog/RecentThemesTable.tsx:242
+#: src/components/blog/RecentThemesTable.tsx:235
 msgid "Theme Versions"
 msgstr "Versions du thème"
 
@@ -17752,6 +17938,11 @@ msgstr "Cette fonctionnalité effectue une requête HTTP pour chaque destinatair
 msgid "This file holds the display conditions of an export. They are not imported: the blocks they wrapped now show to every recipient. Add their conditions again in the block settings."
 msgstr "Ce fichier contient les conditions d'affichage d'un export. Elles ne sont pas importées : les blocs qu'elles entouraient s'affichent désormais pour tous les destinataires. Ajoutez de nouveau leurs conditions dans les réglages du bloc."
 
+#: src/components/file_manager/FileGrid.tsx:114
+#: src/components/file_manager/FileTable.tsx:188
+msgid "This file type can't be used here"
+msgstr "Ce type de fichier ne peut pas être utilisé ici"
+
 #: src/components/integrations/SupabaseIntegration.tsx:245
 msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
 msgstr "Ce hook ne bloque jamais la création d'utilisateur Supabase pour les erreurs. Cependant, si \"Rejeter les adresses email jetables\" est activé et qu'un email jetable est détecté, l'inscription de l'utilisateur sera rejetée par Supabase."
@@ -17768,6 +17959,7 @@ msgstr "Cet ID sera utilisé dans les URLs et les requêtes API. Il ne peut cont
 msgid "This ID will be used when triggering the notification via API"
 msgstr "Cet ID sera utilisé lors du déclenchement de la notification via API"
 
+#: src/components/file_manager/FilePreview.tsx:84
 #: src/components/settings/LogoInput.tsx:116
 msgid "This image couldn't be loaded"
 msgstr "Cette image n'a pas pu être chargée"
@@ -18505,6 +18697,7 @@ msgstr "Activer ou désactiver l'analyse web et modifier ses domaines autorisés
 msgid "type"
 msgstr "type"
 
+#: src/components/file_manager/FilePreview.tsx:47
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:118
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:146
 #: src/components/settings/CustomFieldsConfiguration.tsx:189
@@ -18809,8 +19002,8 @@ msgstr "Mis à jour le"
 #~ msgid "Upgrade licence"
 #~ msgstr "Monter en palier"
 
-#: src/components/file_manager/fileManager.tsx:688
-#: src/components/file_manager/fileManager.tsx:701
+#: src/components/file_manager/FileExplorer.tsx:754
+#: src/components/file_manager/FileExplorer.tsx:1046
 msgid "Upload"
 msgstr "Envoyer"
 
@@ -18822,6 +19015,10 @@ msgstr "Téléversement terminé"
 msgid "Upload Error"
 msgstr "Erreur de téléversement"
 
+#: src/components/file_manager/FileExplorer.tsx:439
+msgid "Upload failed: "
+msgstr "Échec de l'envoi : "
+
 #. placeholder {0}: error instanceof Error ? error.message : 'Unknown error'
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:734
 msgid "Upload failed: {0}"
@@ -18831,7 +19028,8 @@ msgstr "Échec du téléversement : {0}"
 msgid "Upload failed. Please try again."
 msgstr "Échec du téléversement. Veuillez réessayer."
 
-#: src/components/file_manager/fileManager.tsx:693
+#: src/components/file_manager/FileExplorer.tsx:747
+#: src/components/file_manager/FileExplorer.tsx:1038
 msgid "Upload file (Read-only mode)"
 msgstr "Envoyer un fichier (Mode lecture seule)"
 
@@ -18852,7 +19050,7 @@ msgstr "URL"
 #~ msgid "URL copied to clipboard"
 #~ msgstr ""
 
-#: src/components/file_manager/fileManager.tsx:886
+#: src/components/file_manager/FileExplorer.tsx:292
 msgid "URL copied to clipboard."
 msgstr "URL copiée dans le presse-papiers."
 
@@ -18901,7 +19099,7 @@ msgstr "Utiliser un autre email"
 msgid "Use a tenant you manage yourself. Requires a configuration set associated with it in AWS."
 msgstr "Utiliser un tenant que vous gérez vous-même. Nécessite un configuration set qui lui est associé dans AWS."
 
-#: src/components/file_manager/context.tsx:195
+#: src/components/file_manager/context.tsx:215
 msgid "Use Anyway"
 msgstr "Utiliser quand même"
 
@@ -19154,7 +19352,7 @@ msgstr "Vérifier le code"
 msgid "Verifying invitation..."
 msgstr "Vérification de l'invitation..."
 
-#: src/components/blog/RecentThemesTable.tsx:113
+#: src/components/blog/RecentThemesTable.tsx:106
 msgid "Version"
 msgstr "Version"
 
@@ -19658,9 +19856,13 @@ msgstr "Pourquoi le trafic a-t-il changé ?"
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:42
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:70
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:50
-#: src/components/email_builder/blocks/MjImageBlock.tsx:82
+#: src/components/email_builder/blocks/MjImageBlock.tsx:83
 msgid "Width"
 msgstr "Largeur"
+
+#: src/components/file_manager/FileExplorer.tsx:1135
+msgid "will be inserted into {targetLabel}"
+msgstr "sera inséré dans {targetLabel}"
 
 #: src/components/contacts/SegmentsFilter.tsx:91
 #~ msgid "Will be removed"
@@ -19811,7 +20013,7 @@ msgstr "Le nom de l'espace de travail doit comporter au plus {WORKSPACE_NAME_MAX
 
 #: src/layouts/WorkspaceLayout.tsx:137
 #: src/pages/AnalyticsPage.tsx:88
-#: src/pages/FileManagerPage.tsx:57
+#: src/pages/FileManagerPage.tsx:50
 msgid "Workspace not found"
 msgstr "Espace de travail introuvable"
 
@@ -20209,8 +20411,8 @@ msgid "Zapier owns this webhook's endpoint URL, so it cannot be changed here. Ch
 msgstr "L'URL du point d'accès de ce webhook appartient à Zapier et ne peut donc pas être modifiée ici. Modifier les types d'événements casse le Zap qui a créé ce webhook, sans qu'aucune erreur ne soit signalée dans Zapier."
 
 #: src/components/file_manager/fileManager.tsx:754
-msgid "Zip"
-msgstr "Zip"
+#~ msgid "Zip"
+#~ msgstr "Zip"
 
 #: src/components/automations/AutomationFlowEditor.tsx:127
 msgid "Zoom in"
