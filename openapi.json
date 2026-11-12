@@ -1893,6 +1893,297 @@
         }
       }
     },
+    "/api/automations.list": {
+      "get": {
+        "summary": "List automations",
+        "description": "Returns the workspace's automations, not the deleted ones, with the total matching the filters.\n\nWith `with_journey_counts=true`, the response also gives, for each automation returned, its journeys by status: `active`, `completed`, `exited`, `failed`, and `total`, which also counts any other status. An automation without any journey has zeros.\n\nRequires the automations read permission.\n",
+        "operationId": "listAutomations",
+        "tags": [
+          "Automations"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "live",
+                  "paused"
+                ]
+              }
+            },
+            "style": "form",
+            "explode": true,
+            "description": "Keep the automations in these statuses. Repeat the parameter for several.",
+            "example": [
+              "live"
+            ]
+          },
+          {
+            "name": "list_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Keep the automations of this list."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Maximum number of automations to return. Without it, all are returned.",
+            "example": 50
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Number of automations to skip.",
+            "example": 0
+          },
+          {
+            "name": "with_journey_counts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Return journey_counts, the journeys of each returned automation by status. A value that is not a boolean is refused with 400.",
+            "example": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The automations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListAutomationsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "invalid with_journey_counts parameter: must be true or false"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - missing or invalid authentication",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing required permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to automations required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/automations.nodeStats": {
+      "get": {
+        "summary": "Get the statistics of each step of an automation",
+        "description": "Returns, for every step of the automation's current graph, what its journeys did there: visits (distinct journeys that reached the step), completed and errored executions, failed attempts, skipped emails and their reasons, the path each split took, and the journeys that failed on the step. A step never visited is returned with zeros; a step that no longer exists in the graph is left out.\n\n`since` and `until` bound the time the executions entered their step, and the time failed journeys entered the automation; both are given, or neither for all time. `waiting`, `retrying` and `in_progress` describe the active journeys now, whatever the period.\n\nFor email steps, the `email` object counts the messages the step sent, from the message history: queued (still in the sending queue), not sent (neither sent nor queued, such as a cancelled send), sent, delivered, opened, clicked, failed, bounced, complained and unsubscribed, with the sent emails whose opens and clicks are tracked. It is present, with zeros if nothing was sent, on every email step when the caller may read the message history, and absent otherwise.\n\nRequires the automations read permission.\n",
+        "operationId": "getAutomationNodeStats",
+        "tags": [
+          "Automations"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          {
+            "name": "automation_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the automation",
+            "example": "welcome-series"
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Start of the period, RFC 3339. Requires until.",
+            "example": "2026-10-12T00:00:00+02:00"
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "End of the period, RFC 3339, not before since. Requires since.",
+            "example": "2026-11-10T23:59:59+01:00"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The statistics of each step, keyed by node ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeStatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingAutomationId": {
+                    "value": {
+                      "error": "automation_id is required"
+                    }
+                  },
+                  "halfPeriod": {
+                    "value": {
+                      "error": "since and until must be given together"
+                    }
+                  },
+                  "reversedPeriod": {
+                    "value": {
+                      "error": "since must not be after until"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - missing or invalid authentication",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing required permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to automations required"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The automation does not exist in the workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Automation not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/broadcasts.list": {
       "get": {
         "summary": "List broadcasts",
@@ -7322,6 +7613,96 @@
       }
     },
     "schemas": {
+      "Automation": {
+        "type": "object",
+        "description": "An automation, its trigger and the steps of its graph.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "welcome-series"
+          },
+          "workspace_id": {
+            "type": "string",
+            "example": "ws_1234567890"
+          },
+          "name": {
+            "type": "string",
+            "example": "Welcome Series"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "live",
+              "paused"
+            ],
+            "example": "live"
+          },
+          "list_id": {
+            "type": "string",
+            "description": "The list the automation sends to; empty when it has none.",
+            "example": "newsletter"
+          },
+          "exit_on_reply": {
+            "type": "boolean",
+            "description": "Whether a reply from the contact ends their journey."
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/AutomationTrigger"
+          },
+          "trigger_sql": {
+            "type": "string",
+            "description": "The condition generated from the trigger."
+          },
+          "root_node_id": {
+            "type": "string",
+            "description": "The first step of the graph, its trigger.",
+            "example": "ws-trigger"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationNode"
+            }
+          },
+          "stats": {
+            "$ref": "#/components/schemas/AutomationStats"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NodeStatsResponse": {
+        "type": "object",
+        "properties": {
+          "automation_id": {
+            "type": "string"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The start of the period, in UTC; absent for all time."
+          },
+          "until": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The end of the period, in UTC; absent for all time."
+          },
+          "nodes": {
+            "type": "object",
+            "description": "The statistics of every step of the graph, keyed by node ID.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/NodeStats"
+            }
+          }
+        }
+      },
       "ErrorResponse": {
         "type": "object",
         "properties": {
@@ -12753,6 +13134,331 @@
           "success": {
             "type": "boolean",
             "example": true
+          }
+        }
+      },
+      "AutomationTrigger": {
+        "type": "object",
+        "description": "The contact timeline event that starts a journey.",
+        "properties": {
+          "event_kind": {
+            "type": "string",
+            "description": "The timeline event kind, such as list.subscribed, custom_event or email.link_clicked.",
+            "example": "list.subscribed"
+          },
+          "list_id": {
+            "type": "string",
+            "description": "For list events."
+          },
+          "segment_id": {
+            "type": "string",
+            "description": "For segment events."
+          },
+          "custom_event_name": {
+            "type": "string",
+            "description": "For custom_event."
+          },
+          "updated_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "For contact.updated, the fields whose change starts a journey."
+          },
+          "link_url": {
+            "type": "string",
+            "description": "For email.link_clicked, text the clicked URL contains."
+          },
+          "broadcast_id": {
+            "type": "string",
+            "description": "For email.link_clicked, the broadcast that sent the email."
+          },
+          "template_id": {
+            "type": "string",
+            "description": "For email.link_clicked, the template the email was sent with."
+          },
+          "conditions": {
+            "type": "object",
+            "nullable": true,
+            "description": "Conditions on the contact, in the segment condition format."
+          },
+          "frequency": {
+            "type": "string",
+            "enum": [
+              "once",
+              "every_time"
+            ]
+          }
+        }
+      },
+      "AutomationNode": {
+        "type": "object",
+        "description": "A step of the automation.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ws-email-welcome"
+          },
+          "automation_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "trigger",
+              "delay",
+              "email",
+              "branch",
+              "filter",
+              "add_to_list",
+              "remove_from_list",
+              "ab_test",
+              "webhook",
+              "list_status_branch"
+            ]
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The step's settings, which depend on its type."
+          },
+          "next_node_id": {
+            "type": "string",
+            "description": "The next step, for steps that do not split."
+          },
+          "position": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              }
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AutomationStats": {
+        "type": "object",
+        "description": "The automation's journey counters.",
+        "properties": {
+          "enrolled": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "completed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "exited": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "JourneyCounts": {
+        "type": "object",
+        "description": "The journeys of an automation by status.",
+        "properties": {
+          "active": {
+            "type": "integer"
+          },
+          "completed": {
+            "type": "integer"
+          },
+          "exited": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Every journey, any other status included."
+          }
+        }
+      },
+      "ListAutomationsResponse": {
+        "type": "object",
+        "properties": {
+          "automations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Automation"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "description": "The automations matching the filters, without limit and offset."
+          },
+          "journey_counts": {
+            "type": "object",
+            "description": "With with_journey_counts=true only: the journey counts of each returned automation, keyed by automation ID. An empty object when no automation is returned.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JourneyCounts"
+            },
+            "example": {
+              "welcome-series": {
+                "active": 12,
+                "completed": 840,
+                "exited": 31,
+                "failed": 4,
+                "total": 887
+              }
+            }
+          }
+        }
+      },
+      "NodeEmailStats": {
+        "type": "object",
+        "description": "The messages an email step sent, from the message history.",
+        "properties": {
+          "executions": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Completed executions of the step that queued a message."
+          },
+          "queued": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Not in the message history yet and still in the sending queue."
+          },
+          "not_sent": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Neither in the message history nor in the sending queue."
+          },
+          "sent": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "delivered": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "opened": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "opens_tracked": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Sent emails whose opens are tracked, the base of an open rate."
+          },
+          "clicked": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "clicks_tracked": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Sent emails whose clicks are tracked, the base of a click rate."
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "bounced": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "complained": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "unsubscribed": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "NodeStats": {
+        "type": "object",
+        "description": "What the journeys did at one step.",
+        "properties": {
+          "node_type": {
+            "type": "string",
+            "description": "The step's type in the current graph.",
+            "example": "email"
+          },
+          "visits": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Distinct journeys that reached the step; a retry is the same visit."
+          },
+          "completed": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Executions that completed without an error."
+          },
+          "failed_attempts": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Attempts that failed, each retry counted."
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Emails not sent because the contact was not subscribed."
+          },
+          "skip_reasons": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": {
+              "unsubscribed": 3
+            }
+          },
+          "errors": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Executions that completed with an error in their output."
+          },
+          "failed_journeys": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Journeys that failed on this step."
+          },
+          "in_progress": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Active journeys on this step now."
+          },
+          "waiting": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Active journeys waiting on this delay now."
+          },
+          "retrying": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Active journeys waiting to retry this step now."
+          },
+          "branches": {
+            "type": "object",
+            "description": "For splits, the completed executions by path: yes and no for a filter, the branch for a list status branch, the variant ID for an A/B test, the path ID for a branch.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": {
+              "yes": 120,
+              "no": 34
+            }
+          },
+          "email": {
+            "$ref": "#/components/schemas/NodeEmailStats"
           }
         }
       },

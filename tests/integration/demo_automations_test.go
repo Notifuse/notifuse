@@ -14,6 +14,7 @@ import (
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/repository"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/tests/testutil"
 )
@@ -115,7 +116,8 @@ func TestDemoAutomationsSeedRealHistory(t *testing.T) {
 		&config.Config{Environment: "demo"},
 		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 		suite.ServerManager.GetApp().GetWorkspaceRepository(),
-		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, suite.ServerManager.GetApp().GetMessageHistoryRepository(),
+		nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 
 	require.NoError(t, demoSvc.SeedAutomationHistory(ctx, workspace.ID, automations))
@@ -201,6 +203,53 @@ func TestDemoAutomationsSeedRealHistory(t *testing.T) {
 			}
 			require.NoError(t, rows.Err())
 		}
+	})
+
+	// automations.nodeStats reads the outputs and the messages: every split the journeys took is
+	// counted, the email steps have their messages, and the failed journeys their attempts.
+	t.Run("the node stats read the seeded history", func(t *testing.T) {
+		repo := repository.NewAutomationRepository(suite.ServerManager.GetApp().GetWorkspaceRepository(), nil)
+		for _, automation := range automations {
+			raw, err := repo.GetNodeStats(ctx, workspace.ID, automation.ID, nil, nil, true)
+			require.NoError(t, err)
+			var failedJourneys int64
+			require.NoError(t, wsDB.QueryRowContext(ctx,
+				`SELECT COUNT(*) FROM contact_automations WHERE automation_id = $1 AND status = 'failed'`, automation.ID).Scan(&failedJourneys))
+			var counted, attempts int64
+			for _, node := range automation.Nodes {
+				stats := raw.Nodes[node.ID]
+				if stats == nil {
+					continue
+				}
+				counted += stats.FailedJourneys
+				attempts += stats.FailedAttempts
+				switch node.Type {
+				case domain.NodeTypeFilter, domain.NodeTypeListStatusBranch, domain.NodeTypeABTest:
+					var total int64
+					for _, n := range stats.Branches {
+						total += n
+					}
+					assert.Equal(t, stats.Completed, total, "%s %s: every completed split has its branch", automation.ID, node.ID)
+				case domain.NodeTypeEmail:
+					if stats.Completed > stats.Skipped {
+						require.NotNil(t, stats.Email, "%s %s", automation.ID, node.ID)
+						assert.Equal(t, stats.Completed-stats.Skipped, stats.Email.Executions, "%s %s: one message per queued email", automation.ID, node.ID)
+						assert.Equal(t, stats.Email.Executions, stats.Email.Sent, "%s %s: each one in the message history", automation.ID, node.ID)
+						assert.Positive(t, stats.Email.Delivered, "%s %s", automation.ID, node.ID)
+					}
+				}
+			}
+			assert.Equal(t, failedJourneys, counted, "%s: the failed journeys, on their step", automation.ID)
+			assert.Equal(t, failedJourneys*3, attempts, "%s: three attempts per failed journey", automation.ID)
+		}
+
+		var withoutStep int
+		require.NoError(t, wsDB.QueryRowContext(ctx, `
+			SELECT COUNT(*) FROM message_history m
+			WHERE m.automation_id IS NOT NULL AND NOT EXISTS (
+				SELECT 1 FROM automation_node_executions e
+				WHERE e.automation_id = m.automation_id AND e.output->>'message_id' = m.id)`).Scan(&withoutStep))
+		assert.Zero(t, withoutStep, "an automation message no step queued")
 	})
 
 	// Only the root node ever carries 'entered', because only the enroll function writes it. A

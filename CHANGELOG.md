@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The analytics API gives when each transactional notification last sent successfully, with the new `last_sent_at` measure of message history, and `messages.list` filters by `transactional_notification_id`.
 
+- **Feature**: The API gives the statistics of each step of an automation, over a period or all time, with the new `automations.nodeStats`: visits, results, the path each split took, the journeys waiting or retrying there, and for email steps the messages sent, delivered, opened and clicked. `automations.list` gives each automation's journeys by status (`with_journey_counts`), `messages.list` filters by `automation_id`, and the message history analytics split by `automation_id`.
+
 - **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages when the table fits in memory, longer otherwise.
 
 - **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.

@@ -1,0 +1,219 @@
+/api/automations.list:
+  get:
+    summary: List automations
+    description: >
+      Returns the workspace's automations, not the deleted ones, with the total
+      matching the filters.
+
+
+      With `with_journey_counts=true`, the response also gives, for each
+      automation returned, its journeys by status: `active`, `completed`,
+      `exited`, `failed`, and `total`, which also counts any other status. An
+      automation without any journey has zeros.
+
+
+      Requires the automations read permission.
+    operationId: listAutomations
+    tags: [Automations]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+            enum: [draft, live, paused]
+        style: form
+        explode: true
+        description: Keep the automations in these statuses. Repeat the parameter for several.
+        example: [live]
+      - name: list_id
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Keep the automations of this list.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: Maximum number of automations to return. Without it, all are returned.
+        example: 50
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: Number of automations to skip.
+        example: 0
+      - name: with_journey_counts
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+        description: >-
+          Return journey_counts, the journeys of each returned automation by
+          status. A value that is not a boolean is refused with 400.
+        example: true
+    responses:
+      '200':
+        description: The automations
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/automation.yaml#/ListAutomationsResponse'
+      '400':
+        description: Bad request - invalid query parameters
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: 'invalid with_journey_counts parameter: must be true or false'
+      '401':
+        description: Unauthorized - missing or invalid authentication
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '403':
+        description: Forbidden - missing required permission
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: 'Insufficient permissions: read access to automations required'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/automations.nodeStats:
+  get:
+    summary: Get the statistics of each step of an automation
+    description: >
+      Returns, for every step of the automation's current graph, what its
+      journeys did there: visits (distinct journeys that reached the step),
+      completed and errored executions, failed attempts, skipped emails and
+      their reasons, the path each split took, and the journeys that failed
+      on the step. A step never visited is returned with zeros; a step that
+      no longer exists in the graph is left out.
+
+
+      `since` and `until` bound the time the executions entered their step,
+      and the time failed journeys entered the automation; both are given, or
+      neither for all time. `waiting`, `retrying` and `in_progress` describe
+      the active journeys now, whatever the period.
+
+
+      For email steps, the `email` object counts the messages the step sent,
+      from the message history: queued (still in the sending queue), not sent
+      (neither sent nor queued, such as a cancelled send), sent, delivered,
+      opened, clicked, failed, bounced, complained and unsubscribed, with the
+      sent emails whose opens and clicks are tracked. It is present, with
+      zeros if nothing was sent, on every email step when the caller may read
+      the message history, and absent otherwise.
+
+
+      Requires the automations read permission.
+    operationId: getAutomationNodeStats
+    tags: [Automations]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+      - name: automation_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the automation
+        example: welcome-series
+      - name: since
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+        description: Start of the period, RFC 3339. Requires until.
+        example: '2026-10-12T00:00:00+02:00'
+      - name: until
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+        description: End of the period, RFC 3339, not before since. Requires since.
+        example: '2026-11-10T23:59:59+01:00'
+    responses:
+      '200':
+        description: The statistics of each step, keyed by node ID
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/automation.yaml#/NodeStatsResponse'
+      '400':
+        description: Bad request - invalid query parameters
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingAutomationId:
+                value:
+                  error: automation_id is required
+              halfPeriod:
+                value:
+                  error: since and until must be given together
+              reversedPeriod:
+                value:
+                  error: since must not be after until
+      '401':
+        description: Unauthorized - missing or invalid authentication
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '403':
+        description: Forbidden - missing required permission
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: 'Insufficient permissions: read access to automations required'
+      '404':
+        description: The automation does not exist in the workspace
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Automation not found
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'

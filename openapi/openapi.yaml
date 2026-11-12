@@ -56,6 +56,10 @@ paths:
     $ref: './paths/contacts.yaml#/~1api~1contacts.delete'
   /api/contactLists.updateStatus:
     $ref: './paths/contact-lists.yaml#/~1api~1contactLists.updateStatus'
+  /api/automations.list:
+    $ref: './paths/automations.yaml#/~1api~1automations.list'
+  /api/automations.nodeStats:
+    $ref: './paths/automations.yaml#/~1api~1automations.nodeStats'
   /api/broadcasts.list:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.list'
   /api/broadcasts.get:
@@ -177,6 +181,10 @@ components:
     BearerAuth:
       $ref: './components/security.yaml#/BearerAuth'
   schemas:
+    Automation:
+      $ref: './components/schemas/automation.yaml#/Automation'
+    NodeStatsResponse:
+      $ref: './components/schemas/automation.yaml#/NodeStatsResponse'
     ErrorResponse:
       $ref: './components/schemas/common.yaml#/ErrorResponse'
     PermissionErrorResponse:

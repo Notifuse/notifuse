@@ -233,3 +233,52 @@ was checked in the code; the corrections below take precedence over the sections
   checked when query c is written; noted if not handled. N4: `automations.list` is documented with a full
   `Automation` schema. N5: `pq.Array`, `regexp.QuoteMeta`, `errors.As`, return types stated in
   code. N6: databases already stamped 44 (dev, demo) do not get the recount: noted in the PR.
+
+## As built
+
+Where the code differs from the sections above, or settles what they left open.
+
+- **Files**: the new types are in `internal/domain/automation_node_stats.go` (tests in
+  `automation_node_stats_test.go`), the statements in `internal/repository/automation_stats_postgres.go`
+  (sqlmock tests in `automation_stats_postgres_test.go`) and the service methods in
+  `internal/service/automation_node_stats_service.go` (tests in
+  `automation_node_stats_service_test.go`), rather than in the existing automation files.
+- **Statements**: six, in one read-only `REPEATABLE READ` transaction: visits and results, skip
+  reasons, splits, journeys in place (no period), failed journeys (period on the journey's
+  `entered_at`) and, only when the caller may read message history, the email counters. A failed
+  attempt is the row the error path writes (`action = 'failed'`, no `completed_at`); visits are
+  distinct journeys. `queued` and `not_sent` come from the email statement (S1, B1).
+- **Handler**: `journey_counts` is always an object when asked (`{}` for an empty page). A count
+  error answers 500, a permission error 403. `automations.nodeStats` answers 404 on
+  `*domain.ErrNotFound` and keeps internal errors in the log.
+- **v44 recount**: the S2 statement, placed after the two `SET LOCAL` and before the index
+  builds rather than last (N1), so it does not run under their SHARE lock on `message_history`.
+  `TestV44ExitedRecount` covers the S2 cases: raised to the count, other keys kept, `null`
+  stats, a non-number (`"abc"`, `7.0`, `true`) replaced without an error, a value beyond `int`
+  kept, never lowered, deleted and non-object stats untouched, a rerun writes nothing.
+- **Demo** (S3, N2): every completed visit carries its executor's output, derived from the node
+  configuration and the next node of the path (`filter_passed`, `branch_taken`, `variant_id`,
+  `delay_until`; for an email `message_id` and `queued`, or `skipped` and `skip_reason` where the
+  guard stopped the journey). Each queued email gets its message, with `automation_id`, written
+  through the message history repository after the journeys commit (its data is encrypted with
+  the workspace key). A failed journey gets the error path's three rows on its failed step, dated
+  at the failure. `TestDemoAutomationsSeedRealHistory` now reads the seed through `GetNodeStats`.
+- **Integration**: `TestAutomationNodeStats` runs the real executor and queue with Mailpit. The
+  open is written straight to the row: the open path depends on tracking settings, not under
+  test. The 404 subtest needs `GetByID` to return `*domain.ErrNotFound`, which #522 brings: it
+  fails on this branch alone and passes with #522 merged (checked on a trial merge).
+- **CHANGELOG**: one Feature line. The recount phrase for #522's Fix line (S6) is added when this
+  branch is updated with dev after #522 merges.
+- **OpenAPI**: new `openapi/paths/automations.yaml` (`automations.list`, `automations.nodeStats`)
+  and `components/schemas/automation.yaml`. `messages.list` and the analytics schema are not in
+  the OpenAPI document, so their new filter and dimension are not documented there. Lint warnings
+  unchanged.
+
+### Known, not handled
+
+- Databases already stamped 44 (dev, demo) do not get the recount (N6).
+- `waiting` compares a delay's `delay_until`, written with the application clock, with the
+  database's `now()` (N3): a clock skew moves a journey between waiting and in progress for that
+  long.
+- The `EXPLAIN (ANALYZE, BUFFERS)` on a 1-million-journey automation is left for the console PR.
+- The demo models no bounce, complaint or failed send.
