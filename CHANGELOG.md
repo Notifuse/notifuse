@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: Automations can start when a contact clicks a specific link, with the new "Clicked a link" trigger (`email.link_clicked`). It starts the first time a contact clicks each link of an email, and can be limited to links containing some text, to one broadcast or to one template. A click on an email the automation sent itself does not start it again. Clicks made before the upgrade, and clicks on links in emails sent before 42.2, do not start it; a link clicked before the upgrade starts it on its next click. The new event does not count toward the monthly event usage.
 
+- **Fix**: `automations.get` answers 404 instead of 500 for an automation that does not exist.
+
+- **Fix**: Contacts who leave an automation by replying now count in its exited total.
+
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 
 - **Feature**: The API counts what uses each template with the new `templates.usage` endpoint (broadcasts that may still send, transactional notifications, automations and double opt-in lists), and lists them for one template. It counts posts by status and category with the new `blogPosts.counts` endpoint; `blogPosts.list` lists the posts still to come with `status=scheduled` and searches titles with `search`; `workspaces.members` returns each member's `name`.

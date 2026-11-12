@@ -170,7 +170,8 @@ func (r *AutomationRepository) GetByIDTx(ctx context.Context, tx *sql.Tx, worksp
 		&nodesJSON, &statsJSON, &automation.CreatedAt, &automation.UpdatedAt, &deletedAt, &automation.ExitOnReply,
 	)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("automation not found: %s", id)
+		// Typed so automations.get answers 404; the message still reads "automation not found".
+		return nil, &domain.ErrNotFound{Entity: "automation", ID: id}
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get automation: %w", err)
@@ -565,33 +566,97 @@ func (r *AutomationRepository) UpdateContactAutomationIfActive(ctx context.Conte
 // their automation has exit_on_reply enabled. When automationID is non-nil only
 // that automation's journey is exited; otherwise all of the contact's
 // exit_on_reply journeys are exited. Returns the number of journeys exited.
+//
+// The same statement raises stats.exited of each automation by the journeys it
+// exited, as IncrementAutomationStat does for the executor's exits. The automation
+// rows are locked in id order first, so two reply exits never deadlock, nor does a
+// reply exit with the enrollment of a single event (automation_enroll_contact). A
+// transaction that enrolls several contacts can still lock them in another order;
+// the statement is atomic, so on a deadlock it is run again, up to
+// exitOnReplyAttempts times. A stats value that is not a JSON object (JSON null, a
+// scalar) is replaced by one, since concatenating to it would store an array that
+// the automation no longer loads.
 func (r *AutomationRepository) ExitContactJourneysOnReply(ctx context.Context, workspaceID, contactEmail string, automationID *string, reason string, before time.Time) (int, error) {
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get database connection: %w", err)
 	}
 
-	query := `
-		UPDATE contact_automations
-		SET status = 'exited', scheduled_at = NULL, exit_reason = $1
-		WHERE contact_email = $2
-		  AND status = 'active'
-		  AND entered_at < $3
-		  AND automation_id IN (
-		      SELECT id FROM automations WHERE exit_on_reply = TRUE AND deleted_at IS NULL
-		  )`
-	args := []interface{}{reason, contactEmail, before}
+	args := []interface{}{reason, contactEmail, before, time.Now().UTC()}
+	automationFilter := ""
 	if automationID != nil && *automationID != "" {
-		query += " AND automation_id = $4"
+		automationFilter = "\n\t\t\t  AND automation_id = $5"
 		args = append(args, *automationID)
 	}
 
-	res, err := db.ExecContext(ctx, query, args...)
+	query := fmt.Sprintf(`
+		WITH exited AS (
+			UPDATE contact_automations
+			SET status = 'exited', scheduled_at = NULL, exit_reason = $1
+			WHERE contact_email = $2
+			  AND status = 'active'
+			  AND entered_at < $3
+			  AND automation_id IN (
+			      SELECT id FROM automations WHERE exit_on_reply = TRUE AND deleted_at IS NULL
+			  )%s
+			RETURNING automation_id
+		), counts AS (
+			SELECT automation_id, COUNT(*) AS n FROM exited GROUP BY automation_id
+		), locked AS (
+			SELECT a.id FROM automations a JOIN counts c ON c.automation_id = a.id
+			ORDER BY a.id FOR UPDATE OF a
+		)
+		UPDATE automations a
+		SET stats = (CASE WHEN jsonb_typeof(a.stats) = 'object' THEN a.stats ELSE '{}'::jsonb END) ||
+			jsonb_build_object('exited', COALESCE((CASE WHEN jsonb_typeof(a.stats) = 'object' THEN a.stats->>'exited' END)::int, 0) + c.n),
+			updated_at = $4
+		FROM counts c JOIN locked l ON l.id = c.automation_id
+		WHERE a.id = c.automation_id
+		RETURNING c.n`, automationFilter)
+
+	var total int
+	for attempt := 1; ; attempt++ {
+		total, err = runExitOnReply(ctx, db, query, args)
+		if err == nil || attempt >= exitOnReplyAttempts || !isDeadlock(err) {
+			break
+		}
+	}
 	if err != nil {
 		return 0, fmt.Errorf("failed to exit contact journeys on reply: %w", err)
 	}
-	n, _ := res.RowsAffected()
-	return int(n), nil
+	return total, nil
+}
+
+// exitOnReplyAttempts is how many times ExitContactJourneysOnReply runs its
+// statement when it is chosen as a deadlock victim.
+const exitOnReplyAttempts = 3
+
+// runExitOnReply runs the reply exit statement once and sums the journeys exited.
+func runExitOnReply(ctx context.Context, db *sql.DB, query string, args []interface{}) (int, error) {
+	rows, err := db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	total := 0
+	for rows.Next() {
+		var n int
+		if err := rows.Scan(&n); err != nil {
+			return 0, err
+		}
+		total += n
+	}
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+// isDeadlock reports whether err is PostgreSQL's deadlock_detected (40P01).
+func isDeadlock(err error) bool {
+	var pqErr *pq.Error
+	return errors.As(err, &pqErr) && pqErr.Code == "40P01"
 }
 
 // Delete soft-deletes an automation by setting deleted_at timestamp
