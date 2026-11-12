@@ -4,8 +4,10 @@ import { msg } from '@lingui/core/macro'
 /**
  * One sentence per audited action, starting with the verb: the actor is in its own column.
  * `<0>{target}</0>` is the target's name (or id), drawn bold. One entry per line, in this exact form:
- * internal/domain/audit_actions_test.go reads this block and checks it against the server's catalogue.
+ * internal/domain/audit_actions_test.go reads this block and checks it against the server's catalogue,
+ * so Prettier leaves its long lines alone.
  */
+// prettier-ignore
 export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'annotations.create': msg({ message: 'Added the annotation <0>{target}</0>' }),
   'annotations.delete': msg({ message: 'Deleted the annotation <0>{target}</0>' }),
@@ -33,16 +35,10 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'broadcasts.delete': msg({ message: 'Deleted the newsletter <0>{target}</0>' }),
   'broadcasts.pause': msg({ message: 'Paused the newsletter <0>{target}</0>' }),
   'broadcasts.resume': msg({ message: 'Resumed the newsletter <0>{target}</0>' }),
-  'broadcasts.retryFailed': msg({
-    message: 'Retried the failed sends of the newsletter <0>{target}</0>'
-  }),
+  'broadcasts.retryFailed': msg({ message: 'Retried the failed sends of the newsletter <0>{target}</0>' }),
   'broadcasts.schedule': msg({ message: 'Scheduled the newsletter <0>{target}</0>' }),
-  'broadcasts.selectWinner': msg({
-    message: 'Picked the winning version of the newsletter <0>{target}</0>'
-  }),
-  'broadcasts.sendToIndividual': msg({
-    message: 'Sent the newsletter <0>{target}</0> to one recipient'
-  }),
+  'broadcasts.selectWinner': msg({ message: 'Picked the winning version of the newsletter <0>{target}</0>' }),
+  'broadcasts.sendToIndividual': msg({ message: 'Sent the newsletter <0>{target}</0> to one recipient' }),
   'broadcasts.update': msg({ message: 'Updated the newsletter <0>{target}</0>' }),
   'contacts.delete': msg({ message: 'Deleted the contact <0>{target}</0>' }),
   'contacts.export': msg({ message: 'Exported contacts' }),
@@ -58,9 +54,7 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'segments.delete': msg({ message: 'Deleted the segment <0>{target}</0>' }),
   'segments.rebuild': msg({ message: 'Rebuilt the segment <0>{target}</0>' }),
   'segments.update': msg({ message: 'Updated the segment <0>{target}</0>' }),
-  'ses.enableTenantIsolation': msg({
-    message: 'Turned on Amazon SES tenant isolation for <0>{target}</0>'
-  }),
+  'ses.enableTenantIsolation': msg({ message: 'Turned on Amazon SES tenant isolation for <0>{target}</0>' }),
   'settings.update': msg({ message: 'Updated the system settings' }),
   'setup.initialize': msg({ message: 'Set up this Notifuse installation' }),
   'templateBlocks.create': msg({ message: 'Saved the block <0>{target}</0>' }),
@@ -69,15 +63,9 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'templates.create': msg({ message: 'Created the template <0>{target}</0>' }),
   'templates.delete': msg({ message: 'Deleted the template <0>{target}</0>' }),
   'templates.update': msg({ message: 'Updated the template <0>{target}</0>' }),
-  'transactional.create': msg({
-    message: 'Created the transactional notification <0>{target}</0>'
-  }),
-  'transactional.delete': msg({
-    message: 'Deleted the transactional notification <0>{target}</0>'
-  }),
-  'transactional.update': msg({
-    message: 'Updated the transactional notification <0>{target}</0>'
-  }),
+  'transactional.create': msg({ message: 'Created the transactional notification <0>{target}</0>' }),
+  'transactional.delete': msg({ message: 'Deleted the transactional notification <0>{target}</0>' }),
+  'transactional.update': msg({ message: 'Updated the transactional notification <0>{target}</0>' }),
   'user.logout': msg({ message: 'Signed out <0>{target}</0>' }),
   'user.oidc.callback': msg({ message: 'Signed in with single sign-on' }),
   'user.oidc.exchange': msg({ message: 'Signed in with single sign-on as <0>{target}</0>' }),
@@ -88,9 +76,7 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'webAnalytics.backfillStart': msg({ message: 'Started the web analytics backfill' }),
   'webhookSubscriptions.create': msg({ message: 'Created the webhook <0>{target}</0>' }),
   'webhookSubscriptions.delete': msg({ message: 'Deleted the webhook <0>{target}</0>' }),
-  'webhookSubscriptions.regenerateSecret': msg({
-    message: 'Regenerated the secret of the webhook <0>{target}</0>'
-  }),
+  'webhookSubscriptions.regenerateSecret': msg({ message: 'Regenerated the secret of the webhook <0>{target}</0>' }),
   'webhookSubscriptions.toggle': msg({ message: 'Turned the webhook <0>{target}</0> on or off' }),
   'webhookSubscriptions.update': msg({ message: 'Updated the webhook <0>{target}</0>' }),
   'webhooks.register': msg({ message: 'Registered the provider webhooks of <0>{target}</0>' }),
@@ -105,17 +91,11 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'workspaces.inviteMember': msg({ message: 'Invited <0>{target}</0>' }),
   'workspaces.joinInvitation': msg({ message: 'Joined with the invitation <0>{target}</0>' }),
   'workspaces.removeMember': msg({ message: 'Removed the member <0>{target}</0>' }),
-  'workspaces.setAuditLogSettings': msg({
-    message: 'Changed the audit log retention of <0>{target}</0>'
-  }),
+  'workspaces.setAuditLogSettings': msg({ message: 'Changed the audit log retention of <0>{target}</0>' }),
   'workspaces.setBlogSettings': msg({ message: 'Changed the blog settings of <0>{target}</0>' }),
-  'workspaces.setCustomFieldLabels': msg({
-    message: 'Renamed the custom fields of <0>{target}</0>'
-  }),
+  'workspaces.setCustomFieldLabels': msg({ message: 'Renamed the custom fields of <0>{target}</0>' }),
   'workspaces.setUserPermissions': msg({ message: 'Changed the permissions of <0>{target}</0>' }),
-  'workspaces.setWebAnalyticsSettings': msg({
-    message: 'Changed the web analytics settings of <0>{target}</0>'
-  }),
+  'workspaces.setWebAnalyticsSettings': msg({ message: 'Changed the web analytics settings of <0>{target}</0>' }),
   'workspaces.update': msg({ message: 'Updated the workspace settings of <0>{target}</0>' }),
   'workspaces.updateIntegration': msg({ message: 'Updated the integration <0>{target}</0>' })
 }
