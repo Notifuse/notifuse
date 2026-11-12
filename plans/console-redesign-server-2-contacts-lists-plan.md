@@ -240,6 +240,9 @@ Where the code differs from the sections above, the code is what is described he
   (`TestListService_GetLists_WithCounts`). `TestWorkspaceService_deleteSupabaseIntegrationResources`
   passed a `ListService` mock where `NewSupabaseService` takes a `ListRepository`; it compiled
   only because both had the same `GetLists`, and now passes a `ListRepository` mock.
+- **`with_counts`** is read by `strconv.ParseBool`, as the other boolean parameters are: `1`,
+  `t`, `T`, `TRUE`, `True` and `true` ask for the counts, `0`, `f`, `F`, `FALSE`, `False` and
+  `false` do not, anything else is 400 (section 2 said only `true` and `false`).
 - **Timeline**: the repository takes `domain.TimelineEntityTypeFilter{Only, Except}` rather
   than a list of types, `Only` rendering `ct.entity_type = ANY($n)` and `Except`
   `ct.entity_type <> ALL($n)`. The legacy `webhook_event` type is gated with message history,
@@ -257,6 +260,9 @@ Where the code differs from the sections above, the code is what is described he
     session's detail but not in the summary.
   - The goals of `contactSessionPages` are capped at 200, like its pages.
   - `session_id` is returned and taken back in canonical lower-case form.
+  - The email of both routes is refused with 400 when it holds a NUL byte or invalid UTF-8,
+    and `session_date` when its year is below 1 (Go reads year 0, PostgreSQL refuses it):
+    these reached the database and answered 500 (code review B1).
 - **CHANGELOG**: one Feature line (`search`) and the Fix line. `with_counts`, `entity_types`
   and the two web visit routes are internal to the console, so its PR describes them.
 

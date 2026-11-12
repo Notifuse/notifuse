@@ -35,6 +35,16 @@ func TestContactVisitsRequest_FromQuery(t *testing.T) {
 		assert.Contains(t, err.Error(), "email")
 	})
 
+	// PostgreSQL refuses a NUL byte, and invalid UTF-8 would be rewritten to U+FFFD and
+	// match nobody: both are the caller's error, answered 400, not 500 or an empty page.
+	t.Run("an email with a NUL byte or invalid UTF-8 refused", func(t *testing.T) {
+		for _, bad := range []string{"a\x00b@example.com", "a\xffb@example.com"} {
+			_, err := parse(url.Values{"email": {bad}})
+			require.Error(t, err, "%q", bad)
+			assert.Contains(t, err.Error(), "email")
+		}
+	})
+
 	t.Run("workspace_id required", func(t *testing.T) {
 		_, err := parse(url.Values{"workspace_id": {""}})
 		require.Error(t, err)
@@ -108,15 +118,32 @@ func TestContactSessionPagesRequest_FromQuery(t *testing.T) {
 		assert.Contains(t, err.Error(), missing)
 	}
 
-	for field, bad := range map[string]string{"session_id": "42", "session_date": "03/11/2026"} {
+	for _, bad := range []struct{ field, value string }{
+		{"session_id", "42"},
+		{"session_date", "03/11/2026"},
+		// Go reads year 0, PostgreSQL refuses it.
+		{"session_date", "0000-01-01"},
+		{"email", "a\x00b@example.com"},
+		{"email", "a\xffb@example.com"},
+	} {
 		q := url.Values{}
 		for k, v := range valid {
 			q[k] = v
 		}
-		q.Set(field, bad)
+		q.Set(bad.field, bad.value)
 		var r ContactSessionPagesRequest
-		require.Error(t, r.FromQuery(q), field)
+		err := r.FromQuery(q)
+		require.Error(t, err, "%s=%q", bad.field, bad.value)
+		assert.Contains(t, err.Error(), bad.field)
 	}
+
+	q := url.Values{}
+	for k, v := range valid {
+		q[k] = v
+	}
+	q.Set("session_date", "0001-01-01")
+	var first ContactSessionPagesRequest
+	require.NoError(t, first.FromQuery(q), "year 1 is the first PostgreSQL accepts")
 }
 
 func TestContactVisitsResponse_JSON(t *testing.T) {

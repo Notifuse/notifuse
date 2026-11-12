@@ -195,6 +195,21 @@ func TestWebAnalyticsContactVisits(t *testing.T) {
 		assert.JSONEq(t, `{"pages":[],"goals":[]}`, raw)
 	})
 
+	t.Run("malformed inputs are a 400, not a database error", func(t *testing.T) {
+		for _, tc := range []struct {
+			route  string
+			params map[string]string
+		}{
+			{"/api/webAnalytics.contactVisits", map[string]string{"email": "a\x00b@example.com"}},
+			{"/api/webAnalytics.contactVisits", map[string]string{"email": "a\xffb@example.com"}},
+			{"/api/webAnalytics.contactSessionPages", map[string]string{"email": "a\x00b@example.com", "session_id": latest.id, "session_date": latest.date}},
+			{"/api/webAnalytics.contactSessionPages", map[string]string{"email": ann, "session_id": latest.id, "session_date": "0000-01-01"}},
+		} {
+			status, raw := get(t, tc.route, tc.params, nil)
+			assert.Equal(t, http.StatusBadRequest, status, "%s %v: %s", tc.route, tc.params, raw)
+		}
+	})
+
 	t.Run("a member who may not read web analytics is refused", func(t *testing.T) {
 		member, err := factory.CreateUser()
 		require.NoError(t, err)

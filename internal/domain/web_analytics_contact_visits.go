@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 )
@@ -49,7 +50,11 @@ type ContactVisitsRequest struct {
 // FromQuery reads the request, applies the defaults and validates it.
 func (r *ContactVisitsRequest) FromQuery(query url.Values) error {
 	r.WorkspaceID = query.Get("workspace_id")
-	r.Email = NormalizeEmail(query.Get("email"))
+	email, err := contactVisitsEmail(query.Get("email"))
+	if err != nil {
+		return err
+	}
+	r.Email = email
 	r.Filter = query.Get("filter")
 	if r.Filter == "" {
 		r.Filter = ContactVisitsFilterAll
@@ -88,6 +93,16 @@ func (r *ContactVisitsRequest) Validate() error {
 		}
 	}
 	return nil
+}
+
+// contactVisitsEmail normalizes the email of a visits query. It refuses a NUL byte, which
+// PostgreSQL refuses, and invalid UTF-8, which normalizing would rewrite into an address
+// that matches nobody: both are the caller's error.
+func contactVisitsEmail(raw string) (string, error) {
+	if !utf8.ValidString(raw) || strings.ContainsRune(raw, 0) {
+		return "", fmt.Errorf("email must be valid UTF-8 without NUL bytes")
+	}
+	return NormalizeEmail(raw), nil
 }
 
 // EncodeContactVisitsCursor returns the opaque cursor after the session created at
@@ -130,7 +145,11 @@ type ContactSessionPagesRequest struct {
 // FromQuery reads and validates the request.
 func (r *ContactSessionPagesRequest) FromQuery(query url.Values) error {
 	r.WorkspaceID = query.Get("workspace_id")
-	r.Email = NormalizeEmail(query.Get("email"))
+	email, err := contactVisitsEmail(query.Get("email"))
+	if err != nil {
+		return err
+	}
+	r.Email = email
 	r.SessionID = query.Get("session_id")
 	r.SessionDate = query.Get("session_date")
 	return r.Validate()
@@ -155,7 +174,8 @@ func (r *ContactSessionPagesRequest) Validate() error {
 	if r.SessionDate == "" {
 		return fmt.Errorf("session_date is required")
 	}
-	if _, err := time.Parse(time.DateOnly, r.SessionDate); err != nil {
+	// Go reads year 0, which PostgreSQL refuses.
+	if date, err := time.Parse(time.DateOnly, r.SessionDate); err != nil || date.Year() < 1 {
 		return fmt.Errorf("session_date must be a YYYY-MM-DD date")
 	}
 	return nil
