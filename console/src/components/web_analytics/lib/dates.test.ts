@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { i18n } from '@lingui/core'
 import dayjs from '../../../lib/dayjs'
 import {
   computeComparisonRange,
@@ -156,16 +157,28 @@ describe('formatDateRangeLabel', () => {
   it('drops the parts both bounds share', () => {
     expect(
       formatDateRangeLabel({ start: dayjs('2026-02-03'), end: dayjs('2026-02-03') })
-    ).toBe('3 Feb')
+    ).toBe('Feb 3')
     expect(
       formatDateRangeLabel({ start: dayjs('2026-02-03'), end: dayjs('2026-02-09') })
-    ).toBe('3 - 9 Feb')
+    ).toBe('Feb 3 – 9')
     expect(
       formatDateRangeLabel({ start: dayjs('2026-01-28'), end: dayjs('2026-02-03') })
-    ).toBe('28 Jan - 3 Feb')
+    ).toBe('Jan 28 – Feb 3')
     expect(
       formatDateRangeLabel({ start: dayjs('2025-01-28'), end: dayjs('2026-02-03') })
-    ).toBe('28 Jan 25 - 3 Feb 26')
+    ).toBe('Jan 28, 2025 – Feb 3, 2026')
+  })
+
+  it('writes the range in the console language', () => {
+    i18n.load('fr', {})
+    i18n.activate('fr')
+    try {
+      expect(
+        formatDateRangeLabel({ start: dayjs('2026-02-03'), end: dayjs('2026-02-09') })
+      ).toBe('3–9 févr.')
+    } finally {
+      i18n.activate('en')
+    }
   })
 })
 

@@ -212,7 +212,7 @@ describe('MetricChart annotations', () => {
   })
 
   it('places annotations by bucket index, so repeated hour labels stay apart', () => {
-    // Both sit at 03:00, which formatXAxisLabel renders as "3am" for either.
+    // Both sit at 03:00, which formatXAxisLabel renders as "3:00 AM" for either.
     // Keying by that label would collapse them onto the same, last, bucket.
     renderChart({
       current: HOURLY,
