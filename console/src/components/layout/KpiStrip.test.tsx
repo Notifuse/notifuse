@@ -36,6 +36,11 @@ describe('KpiStrip', () => {
     globalThis.ResizeObserver = originalResizeObserver
   })
 
+  it('leaves space between a label and its value', () => {
+    render(<KpiStrip items={items(1)} />)
+    expect(screen.getByText('Label 0')).toHaveClass('mb-1')
+  })
+
   it('lays out one column per KPI while each keeps 140px', () => {
     const { container } = render(<KpiStrip items={items(5)} />)
     resizeTo(700)
