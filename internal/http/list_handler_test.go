@@ -107,7 +107,7 @@ func TestListHandler_HandleList(t *testing.T) {
 				"workspace_id": []string{"workspace123"},
 			},
 			setupMock: func(m *mocks.MockListService) {
-				m.EXPECT().GetLists(gomock.Any(), "workspace123").Return([]*domain.List{
+				m.EXPECT().GetLists(gomock.Any(), "workspace123", false).Return([]*domain.List{
 					{
 						ID:          "list1",
 						Name:        "Test List 1",
@@ -130,7 +130,7 @@ func TestListHandler_HandleList(t *testing.T) {
 				"workspace_id": []string{"workspace123"},
 			},
 			setupMock: func(m *mocks.MockListService) {
-				m.EXPECT().GetLists(gomock.Any(), "workspace123").Return(nil, errors.New("service error"))
+				m.EXPECT().GetLists(gomock.Any(), "workspace123", false).Return(nil, errors.New("service error"))
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedLists:  false,
@@ -981,7 +981,7 @@ func TestListHandler_PermissionDenied(t *testing.T) {
 		{
 			name: "List",
 			setupMock: func(m *mocks.MockListService) {
-				m.EXPECT().GetLists(gomock.Any(), "workspace123").
+				m.EXPECT().GetLists(gomock.Any(), "workspace123", false).
 					Return(nil, denial(domain.PermissionTypeRead))
 			},
 			serve: func(h *ListHandler, w http.ResponseWriter) {
@@ -1229,4 +1229,58 @@ func TestListHandler_HandleUpdate_OmittedFlagsNeverReachTheService(t *testing.T)
 			assert.Contains(t, rr.Body.String(), "is required")
 		})
 	}
+}
+
+func TestListHandler_HandleList_WithCounts(t *testing.T) {
+	serve := func(t *testing.T, query string, setup func(*mocks.MockListService)) *httptest.ResponseRecorder {
+		mockService, _, handler := setupListHandlerTest(t)
+		setup(mockService)
+		rr := httptest.NewRecorder()
+		handler.handleList(rr, httptest.NewRequest(http.MethodGet, "/api/lists.list?"+query, nil))
+		return rr
+	}
+
+	t.Run("with_counts=true asks for counts and returns them", func(t *testing.T) {
+		seven, zero := 7, 0
+		rr := serve(t, "workspace_id=workspace123&with_counts=true", func(m *mocks.MockListService) {
+			m.EXPECT().GetLists(gomock.Any(), "workspace123", true).
+				Return([]*domain.List{{ID: "news", ActiveCount: &seven}, {ID: "empty", ActiveCount: &zero}}, nil)
+		})
+		require.Equal(t, http.StatusOK, rr.Code)
+		var body struct {
+			Lists []map[string]interface{} `json:"lists"`
+		}
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
+		require.Len(t, body.Lists, 2)
+		assert.Equal(t, float64(7), body.Lists[0]["active_count"])
+		assert.Equal(t, float64(0), body.Lists[1]["active_count"])
+	})
+
+	t.Run("without the parameter no list has an active_count key", func(t *testing.T) {
+		rr := serve(t, "workspace_id=workspace123", func(m *mocks.MockListService) {
+			m.EXPECT().GetLists(gomock.Any(), "workspace123", false).Return([]*domain.List{{ID: "news"}}, nil)
+		})
+		require.Equal(t, http.StatusOK, rr.Code)
+		assert.NotContains(t, rr.Body.String(), "active_count")
+	})
+
+	t.Run("an invalid with_counts is a 400", func(t *testing.T) {
+		rr := serve(t, "workspace_id=workspace123&with_counts=maybe", func(m *mocks.MockListService) {})
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("a service error is a 500", func(t *testing.T) {
+		rr := serve(t, "workspace_id=workspace123&with_counts=true", func(m *mocks.MockListService) {
+			m.EXPECT().GetLists(gomock.Any(), "workspace123", true).Return(nil, errors.New("db down"))
+		})
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+
+	t.Run("a permission error is a 403", func(t *testing.T) {
+		rr := serve(t, "workspace_id=workspace123&with_counts=true", func(m *mocks.MockListService) {
+			m.EXPECT().GetLists(gomock.Any(), "workspace123", true).
+				Return(nil, domain.NewPermissionError(domain.PermissionResourceLists, domain.PermissionTypeRead, "Insufficient permissions"))
+		})
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
 }

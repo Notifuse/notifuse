@@ -10,6 +10,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/lib/pq"
 )
 
 // ContactTimelineRepository implements domain.ContactTimelineRepository
@@ -51,7 +52,7 @@ func (r *ContactTimelineRepository) Create(ctx context.Context, workspaceID stri
 }
 
 // List retrieves timeline entries for a contact with cursor-based pagination
-func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string, email string, limit int, cursor *string) ([]*domain.ContactTimelineEntry, *string, error) {
+func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string, email string, limit int, cursor *string, filter domain.TimelineEntityTypeFilter) ([]*domain.ContactTimelineEntry, *string, error) {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -138,6 +139,18 @@ func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string
 
 	args := []interface{}{email}
 	argIndex := 2
+
+	// Bare ct.entity_type comparisons keep idx_contact_timeline_email_created_at usable.
+	if len(filter.Only) > 0 {
+		query += fmt.Sprintf(" AND ct.entity_type = ANY($%d)", argIndex)
+		args = append(args, pq.StringArray(filter.Only))
+		argIndex++
+	}
+	if len(filter.Except) > 0 {
+		query += fmt.Sprintf(" AND ct.entity_type <> ALL($%d)", argIndex)
+		args = append(args, pq.StringArray(filter.Except))
+		argIndex++
+	}
 
 	// Handle cursor-based pagination
 	if cursor != nil && *cursor != "" {

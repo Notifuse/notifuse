@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -2897,5 +2898,50 @@ func TestCreateContactIfAbsent(t *testing.T) {
 			&domain.Contact{Email: "visitor@example.com"})
 		require.Error(t, err)
 		assert.False(t, created)
+	})
+}
+
+func TestGetContacts_Search(t *testing.T) {
+	searchCondition := regexp.QuoteMeta(`(c.email ILIKE $1 OR c.first_name ILIKE $2 OR c.last_name ILIKE $3 OR c.full_name ILIKE $4 OR c.external_id ILIKE $5)`)
+	run := func(t *testing.T, req *domain.GetContactsRequest, pattern string, args ...driver.Value) {
+		t.Helper()
+		db, mock, cleanup := setupMockDB(t)
+		defer cleanup()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws").Return(db, nil)
+		mock.ExpectQuery(pattern).WithArgs(args...).WillReturnRows(sqlmock.NewRows(contactColumns))
+
+		req.WorkspaceID = "ws"
+		req.Limit = 10
+		_, err := NewContactRepository(workspaceRepo).GetContacts(context.Background(), req)
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	}
+	five := func(p string) []driver.Value { return []driver.Value{p, p, p, p, p} }
+
+	t.Run("one pattern over email, names and external ID", func(t *testing.T) {
+		run(t, &domain.GetContactsRequest{Search: "John"},
+			`FROM contacts c WHERE `+searchCondition+` ORDER BY`, five("%John%")...)
+	})
+
+	t.Run("an underscore is not a wildcard", func(t *testing.T) {
+		run(t, &domain.GetContactsRequest{Search: "a_b"}, searchCondition, five(`%a\_b%`)...)
+	})
+
+	t.Run("percent and backslash are escaped", func(t *testing.T) {
+		run(t, &domain.GetContactsRequest{Search: `50%\off`}, searchCondition, five(`%50\%\\off%`)...)
+	})
+
+	t.Run("combined with list_id", func(t *testing.T) {
+		args := append(five("%ann%"), "list1")
+		run(t, &domain.GetContactsRequest{Search: "ann", ListID: "list1"},
+			searchCondition+regexp.QuoteMeta(` AND EXISTS (SELECT 1 FROM contact_lists cl WHERE cl.email = c.email AND cl.deleted_at IS NULL AND cl.list_id = $6)`),
+			args...)
+	})
+
+	t.Run("empty adds no condition", func(t *testing.T) {
+		run(t, &domain.GetContactsRequest{}, `FROM contacts c ORDER BY`)
 	})
 }
