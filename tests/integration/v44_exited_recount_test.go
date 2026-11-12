@@ -116,7 +116,7 @@ func TestV44ExitedRecount(t *testing.T) {
 		}
 	})
 
-	t.Run("a whole number never lowered, and left alone when nothing is missing", func(t *testing.T) {
+	t.Run("a whole number below 10^18 never lowered, and left alone when nothing is missing", func(t *testing.T) {
 		for _, id := range []string{"ahead", "equal", "no-exit", "deleted", "array-stats", "json-null", "beyond-int"} {
 			got, touched := stored(t, id)
 			assert.Equal(t, cases[id].stats, got, id)

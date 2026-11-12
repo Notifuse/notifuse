@@ -257,7 +257,7 @@ Where the code differs from the sections above, or settles what they left open.
   and then updates `automations` through the timeline trigger: the two could deadlock.
   `TestV44ExitedRecount` covers the S2 cases: raised to the count, other keys kept, `null`
   stats (SQL `NULL`; JSON `null` left as is), a non-number (`"abc"`, `7.0`, `true`) replaced
-  without an error, a value beyond `int` kept, a whole number never lowered, deleted and non-object stats untouched, a rerun writes nothing.
+  without an error, a value beyond `int` kept, a whole number below 10^18 never lowered, deleted and non-object stats untouched, a rerun writes nothing.
 - **Demo** (S3, N2): every completed visit carries its executor's output, derived from the node
   configuration and the next node of the path (`filter_passed`, `branch_taken`, `variant_id`,
   `delay_until`; for an email `message_id` and `queued`, or `skipped` and `skip_reason` where the

@@ -38,10 +38,10 @@ import (
 // last because it row-locks automations: a tracking write locks message_history first and
 // then, through the timeline trigger, updates automations, so taking automations before the
 // builds' SHARE lock could deadlock with it. This order holds only while no transaction
-// updates automations and then writes message_history: one that did would deadlock with the
+// updates automations and then writes message_history: one that did could deadlock with the
 // recount. The recount also waits for a row lock while it holds the SHARE lock, so a
 // transaction holding an automations row delays writes to message_history too, up to the
-// same 5-second lock_timeout. A stored whole number below 10^18 is only ever raised; any
+// same 5-second lock_timeout for each row it waits on. A stored whole number below 10^18 is only ever raised; any
 // other value counts as 0. An automation whose stats are not a JSON object, or a
 // deleted one, is left as it is. A rerun writes nothing.
 //
