@@ -93,7 +93,11 @@ export function BlogSidebar({
                       ]
                     }}
                   >
-                    <button type="button" aria-label={t`Actions for ${name}`} className={MENU_BUTTON}>
+                    <button
+                      type="button"
+                      aria-label={t`Actions for ${name}`}
+                      className={MENU_BUTTON}
+                    >
                       <MoreHorizontal size={14} aria-hidden="true" />
                     </button>
                   </Dropdown>

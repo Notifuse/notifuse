@@ -1,497 +1,548 @@
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { plural } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import {
-  Typography,
-  Button,
-  Table,
-  Space,
-  message,
-  TableColumnType,
-  Card,
-  Empty,
-  Segmented,
-  Popconfirm,
-  Tooltip,
-  Popover
-} from 'antd'
-import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
-import { blogPostsApi, blogCategoriesApi, BlogPost, BlogPostStatus } from '../../services/api/blog'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPenToSquare, faTrashCan, faEyeSlash } from '@fortawesome/free-regular-svg-icons'
-import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons'
-import { PlusOutlined } from '@ant-design/icons'
-import { useWorkspacePermissions, useAuth } from '../../contexts/AuthContext'
+  useInfiniteQuery,
+  useMutation,
+  useQueries,
+  useQueryClient,
+  type InfiniteData
+} from '@tanstack/react-query'
+import { App, Button, Dropdown, Empty, Result, Skeleton, Table, Tooltip } from 'antd'
+import type { MenuProps, TableColumnType } from 'antd'
+import { useNavigate, useSearch } from '@tanstack/react-router'
+import { ExternalLink, MoreHorizontal, Palette, Plus } from 'lucide-react'
+import {
+  blogPostsApi,
+  type BlogCategory,
+  type BlogPost,
+  type BlogPostCounts,
+  type BlogPostListResponse,
+  type BlogPostStatus
+} from '../../services/api/blog'
+import { analyticsService } from '../../services/api/analytics'
+import type { Workspace } from '../../services/api/types'
+import type { BlogSearch } from '../../lib/searchParams'
+import { useDebouncedUrlValue } from '../../lib/useDebouncedUrlValue'
 import dayjs from '../../lib/dayjs'
+import {
+  CountTabs,
+  Mono,
+  PageHeader,
+  Panel,
+  Pill,
+  TableToolbar,
+  useNumberFormat,
+  useRelativeDate,
+  type CountTabOption
+} from '../layout'
+import { MissingMetaTagsWarning } from '../seo/MissingMetaTagsWarning'
 import { PostDrawer } from './PostDrawer'
 import { DeletePostModal } from './DeletePostModal'
-import { PostStatusTag } from './PostStatusTag'
-import { CategoryDrawer } from './CategoryDrawer'
-import { DeleteCategoryModal } from './DeleteCategoryModal'
-import { MissingMetaTagsWarning } from '../seo/MissingMetaTagsWarning'
 import { PublishModal } from './PublishModal'
+import { postPath, postState } from './postState'
+import { postViewsQuery, viewsByPath, viewsWindow } from './postViews'
 
-const { Title, Paragraph } = Typography
-
-interface PostsSearch {
-  status?: BlogPostStatus
-  category_id?: string
-}
-
+const ROUTE = '/console/workspace/$workspaceId/blog'
 const PAGE_SIZE = 50
 
-export function PostsTable() {
+interface PostsTableProps {
+  workspace: Workspace
+  categories: BlogCategory[]
+  /** Posts by status in the current category; absent while loading or after an error. */
+  counts?: BlogPostCounts
+  /** Workspace write, the right the post buttons have always followed. */
+  canWritePosts: boolean
+  /** Web analytics on in the workspace and readable by the member: the Views 30d column. */
+  showViews: boolean
+}
+
+/** The blog's main column: header, status tabs and search, and the posts, 50 at a time. */
+export function PostsTable({
+  workspace,
+  categories,
+  counts,
+  canWritePosts,
+  showViews
+}: PostsTableProps) {
   const { t } = useLingui()
-  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/blog' })
-  const navigate = useNavigate({ from: '/console/workspace/$workspaceId/blog' })
-  const search = useSearch({ from: '/console/workspace/$workspaceId/blog' }) as PostsSearch
+  const { message, modal } = App.useApp()
+  const relative = useRelativeDate()
+  const { int } = useNumberFormat()
+  const navigate = useNavigate({ from: ROUTE })
+  const search = useSearch({ from: ROUTE }) as BlogSearch
   const queryClient = useQueryClient()
-  const { permissions } = useWorkspacePermissions(workspaceId)
-  const { workspaces } = useAuth()
+  const workspaceId = workspace.id
+  const timezone = workspace.settings?.timezone || 'UTC'
 
-  // All hooks must be called before any conditional returns
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [editingPost, setEditingPost] = useState<BlogPost | null>(null)
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-  const [postToDelete, setPostToDelete] = useState<BlogPost | null>(null)
-  const [publishModalOpen, setPublishModalOpen] = useState(false)
-  const [postToPublish, setPostToPublish] = useState<BlogPost | null>(null)
-  const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false)
-  const [deleteCategoryModalOpen, setDeleteCategoryModalOpen] = useState(false)
-
-  const status = (search.status || 'all') as BlogPostStatus
+  const status: BlogPostStatus = search.status ?? 'all'
   const categoryId = search.category_id
+  const q = search.q ?? ''
+  const category = categoryId ? categories.find((c) => c.id === categoryId) : undefined
 
-  // The page belongs to the filters it was picked under: changing the status or the
-  // category starts again from the first page, and so does coming back to them.
-  const filterKey = `${status}|${categoryId ?? ''}`
-  const [pageState, setPageState] = useState({ filterKey, page: 1 })
-  if (pageState.filterKey !== filterKey) {
-    setPageState({ filterKey, page: 1 })
-  }
-  const page = pageState.filterKey === filterKey ? pageState.page : 1
-  const setPage = (next: number) => setPageState({ filterKey, page: next })
+  const [searchInput, setSearchInput] = useDebouncedUrlValue(q, (value) =>
+    navigate({
+      replace: true,
+      search: (prev: BlogSearch) => ({ ...prev, q: value || undefined })
+    })
+  )
 
-  // Fetch categories for filter
-  const { data: categoriesData } = useQuery({
-    queryKey: ['blog-categories', workspaceId],
-    queryFn: () => blogCategoriesApi.list(workspaceId)
-  })
+  const [drawer, setDrawer] = useState<{ post: BlogPost | null } | null>(null)
+  const [postToDelete, setPostToDelete] = useState<BlogPost | null>(null)
+  const [postToPublish, setPostToPublish] = useState<BlogPost | null>(null)
 
-  // Fetch one page of posts; the server paginates
-  const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['blog-posts', workspaceId, status, categoryId, page],
-    queryFn: () =>
+  // B2: the posts of the view, a page of 50 at a time, appended by "Load more".
+  const postsQuery = useInfiniteQuery<
+    BlogPostListResponse,
+    Error,
+    InfiniteData<BlogPostListResponse, number>,
+    readonly unknown[],
+    number
+  >({
+    queryKey: ['blog-posts', workspaceId, 'list', status, categoryId ?? null, q],
+    queryFn: ({ pageParam }) =>
       blogPostsApi.list(workspaceId, {
         status,
         category_id: categoryId,
+        search: q || undefined,
         limit: PAGE_SIZE,
-        page
+        page: pageParam
       }),
-    placeholderData: keepPreviousData
+    initialPageParam: 1,
+    getNextPageParam: (last, pages) => {
+      const loaded = pages.reduce((sum, p) => sum + (p.posts?.length ?? 0), 0)
+      const more = last.has_next_page ?? loaded < last.total_count
+      return more && (last.posts?.length ?? 0) > 0 ? pages.length + 1 : undefined
+    }
   })
 
+  const pages = postsQuery.data?.pages ?? []
   // The API answers an empty page with "posts": null.
-  const posts = data?.posts ?? []
-  const totalCount = data?.total_count ?? 0
-  const lastPage = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+  const posts = pages.flatMap((p) => p.posts ?? [])
+  const total = pages.length > 0 ? pages[pages.length - 1].total_count : undefined
 
-  // A page emptied by a deletion: show the last page that still has posts.
-  useEffect(() => {
-    if (data && posts.length === 0 && totalCount > 0 && page > lastPage) {
-      setPageState({ filterKey, page: lastPage })
-    }
-  }, [data, posts.length, totalCount, page, lastPage, filterKey])
+  const categoryOf = (post: BlogPost) =>
+    post.category_id ? categories.find((c) => c.id === post.category_id) : undefined
+
+  // B3: page views of each live post over 30 days, one query per page of posts.
+  const viewsRange = useMemo(() => viewsWindow(), [])
+  const viewQueries = useQueries({
+    queries: pages.map((p) => {
+      const paths = (p.posts ?? []).flatMap((post) => {
+        const slug = categoryOf(post)?.slug
+        return slug && postState(post) === 'published' ? [postPath(slug, post.slug)] : []
+      })
+      return {
+        queryKey: ['blog-views-30d', workspaceId, viewsRange[0], paths],
+        queryFn: async () =>
+          viewsByPath(
+            (await analyticsService.query(postViewsQuery(paths, viewsRange), workspaceId)).data
+          ),
+        enabled: showViews && paths.length > 0,
+        staleTime: 5 * 60 * 1000
+      }
+    })
+  })
+  const views = new Map<string, number>()
+  for (const result of viewQueries) result.data?.forEach((count, path) => views.set(path, count))
+  const viewsFailed = viewQueries.some((result) => result.isError)
+
+  const invalidatePosts = () =>
+    queryClient.invalidateQueries({ queryKey: ['blog-posts', workspaceId] })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => blogPostsApi.delete(workspaceId, { id }),
     onSuccess: () => {
       message.success(t`Post deleted successfully`)
-      queryClient.invalidateQueries({ queryKey: ['blog-posts', workspaceId] })
-      setDeleteModalOpen(false)
+      void invalidatePosts()
       setPostToDelete(null)
     },
-    onError: (error: Error) => {
-      const errorMsg = error?.message || t`Failed to delete post`
-      message.error(errorMsg)
-    }
+    onError: (error: Error) => message.error(error?.message || t`Failed to delete post`)
   })
 
   const unpublishMutation = useMutation({
     mutationFn: (id: string) => blogPostsApi.unpublish(workspaceId, { id }),
     onSuccess: () => {
       message.success(t`Post unpublished successfully`)
-      queryClient.invalidateQueries({ queryKey: ['blog-posts', workspaceId] })
+      void invalidatePosts()
     },
-    onError: (error: Error) => {
-      const errorMsg = error?.message || t`Failed to unpublish post`
-      message.error(errorMsg)
-    }
+    onError: (error: Error) => message.error(error?.message || t`Failed to unpublish post`)
   })
 
-  const deleteCategoryMutation = useMutation({
-    mutationFn: (id: string) => blogCategoriesApi.delete(workspaceId, { id }),
-    onSuccess: () => {
-      message.success(t`Category deleted successfully`)
-      queryClient.invalidateQueries({ queryKey: ['blog-categories', workspaceId] })
-      setDeleteCategoryModalOpen(false)
-      // Navigate to all posts after deletion
-      navigate({
-        search: (prev) => ({ ...prev, category_id: undefined })
-      })
-    },
-    onError: (error: Error) => {
-      const errorMsg = error?.message || t`Failed to delete category`
-      message.error(errorMsg)
-    }
-  })
-
-  // Get the current workspace
-  const workspace = workspaces.find((w) => w.id === workspaceId)
-
-  // Early return after all hooks
-  if (!workspace) {
-    return null
-  }
-
-  // Find the selected category
-  const selectedCategory = categoryId
-    ? (categoriesData?.categories ?? []).find((c) => c.id === categoryId)
-    : null
-
-  const handleEdit = (post: BlogPost) => {
-    setEditingPost(post)
-    setDrawerOpen(true)
-  }
-
-  const handleDelete = (post: BlogPost) => {
-    setPostToDelete(post)
-    setDeleteModalOpen(true)
-  }
-
-  const handlePublish = (post: BlogPost) => {
-    setPostToPublish(post)
-    setPublishModalOpen(true)
-  }
-
-  const handleCreateNew = () => {
-    setEditingPost(null)
-    setDrawerOpen(true)
-  }
-
-  const handleDrawerClose = () => {
-    setDrawerOpen(false)
-    setEditingPost(null)
-  }
-
-  const handleStatusChange = (value: string | number) => {
-    navigate({
-      search: (prev) => ({ ...prev, status: value as BlogPostStatus })
+  const loadMore = () =>
+    postsQuery.fetchNextPage().then((result) => {
+      if (result.isFetchNextPageError) {
+        message.error(result.error?.message || t`Couldn't load more posts`)
+      }
     })
+
+  const setStatus = (value: BlogPostStatus) =>
+    navigate({
+      search: (prev: BlogSearch) => ({ ...prev, status: value === 'all' ? undefined : value })
+    })
+
+  const baseUrl = (
+    workspace.settings?.custom_endpoint_url ||
+    window.API_ENDPOINT ||
+    'https://example.com'
+  ).replace(/\/+$/, '')
+  const blogUrl = category ? `${baseUrl}/${category.slug}` : baseUrl
+  const blogDomain = baseUrl.replace(/^https?:\/\//, '')
+
+  const postUrl = (post: BlogPost) =>
+    `${baseUrl}/${categoryOf(post)?.slug || 'uncategorized'}/${post.slug}`
+
+  const fullDate = (date: string) => dayjs(date).tz(timezone).format('lll')
+
+  const confirmUnpublish = (post: BlogPost) =>
+    modal.confirm({
+      title: t`Unpublish post`,
+      content:
+        postState(post) === 'scheduled'
+          ? t`The post goes back to drafts and will not be published on its date.`
+          : t`Are you sure you want to unpublish this post?`,
+      okText: t`Unpublish`,
+      cancelText: t`Cancel`,
+      onOk: () => unpublishMutation.mutateAsync(post.id)
+    })
+
+  const rowMenu = (post: BlogPost): MenuProps['items'] => {
+    const state = postState(post)
+    return [
+      { key: 'edit', label: t`Edit`, onClick: () => setDrawer({ post }) },
+      ...(state === 'published'
+        ? [
+            {
+              key: 'open',
+              label: t`Open on web`,
+              onClick: () => window.open(postUrl(post), '_blank', 'noopener')
+            }
+          ]
+        : []),
+      state === 'draft'
+        ? { key: 'publish', label: t`Publish`, onClick: () => setPostToPublish(post) }
+        : { key: 'unpublish', label: t`Unpublish`, onClick: () => confirmUnpublish(post) },
+      { type: 'divider' as const },
+      { key: 'delete', label: t`Delete`, danger: true, onClick: () => setPostToDelete(post) }
+    ]
   }
 
-  const getCategoryName = (categoryId?: string | null) => {
-    if (!categoryId) return t`Uncategorized`
-    const category = (categoriesData?.categories ?? []).find((c) => c.id === categoryId)
-    return category?.settings.name || t`Unknown`
-  }
-
-  const getCategorySlug = (categoryId?: string | null) => {
-    if (!categoryId) return null
-    const category = (categoriesData?.categories ?? []).find((c) => c.id === categoryId)
-    return category?.slug || null
-  }
-
-  const getBlogPostUrl = (post: BlogPost) => {
-    const baseUrl =
-      workspace?.settings?.custom_endpoint_url || window.API_ENDPOINT || 'https://example.com'
-    const categorySlug = getCategorySlug(post.category_id) || 'uncategorized'
-    return `${baseUrl}/${categorySlug}/${post.slug}`
-  }
-
-  const handleOpenPost = (post: BlogPost) => {
-    const url = getBlogPostUrl(post)
-    window.open(url, '_blank')
+  const renderPublished = (post: BlogPost) => {
+    const state = postState(post)
+    const updatedAt = fullDate(post.updated_at)
+    const title =
+      state === 'draft'
+        ? t`Updated ${updatedAt} in ${timezone}`
+        : t`Published ${fullDate(post.published_at as string)} · Updated ${updatedAt} in ${timezone}`
+    let content
+    if (state === 'draft') {
+      content = <span className="text-ink-3">{t`Edited ${relative(post.updated_at)}`}</span>
+    } else if (state === 'scheduled') {
+      const days = dayjs(post.published_at).diff(dayjs(), 'day')
+      content = (
+        <span className="text-info-fg">
+          {days === 0
+            ? t`Scheduled today`
+            : plural(days, { one: 'Scheduled in # day', other: 'Scheduled in # days' })}
+        </span>
+      )
+    } else {
+      content = <span className="text-ink-2">{relative(post.published_at as string)}</span>
+    }
+    return <Tooltip title={title}>{content}</Tooltip>
   }
 
   const columns: TableColumnType<BlogPost>[] = [
     {
-      title: t`Title`,
-      dataIndex: ['settings', 'title'],
-      key: 'title',
-      render: (title: string, record: BlogPost) => (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div className="font-medium">{title}</div>
-            <div className="text-xs text-gray-500 mt-1">
-              <code>{record.slug}</code>
-            </div>
-          </div>
-          {record.settings.featured_image_url && (
-            <Popover
-              content={
-                <img
-                  src={record.settings.featured_image_url}
-                  alt="Featured"
-                  style={{ maxWidth: 400, maxHeight: 300, objectFit: 'contain' }}
-                />
+      title: t`Post`,
+      key: 'post',
+      render: (_: unknown, post: BlogPost) => {
+        const minutes = post.settings.reading_time_minutes
+        return (
+          <div className="flex min-w-0 flex-col">
+            <Tooltip
+              title={
+                <div className="flex flex-col gap-1.5">
+                  <Mono>{post.slug}</Mono>
+                  {post.settings.featured_image_url ? (
+                    <img
+                      src={post.settings.featured_image_url}
+                      alt=""
+                      className="max-w-[240px] rounded-sm"
+                    />
+                  ) : null}
+                </div>
               }
-              trigger="hover"
-              placement="right"
             >
-              <img
-                src={record.settings.featured_image_url}
-                alt="Featured"
-                style={{
-                  height: 40,
-                  objectFit: 'cover',
-                  borderRadius: 4,
-                  cursor: 'pointer',
-                  marginLeft: 12
-                }}
-              />
-            </Popover>
-          )}
-        </div>
-      )
+              <span className="truncate font-medium text-ink">{post.settings.title}</span>
+            </Tooltip>
+            {minutes > 0 ? (
+              <span className="text-xs text-ink-3">{t`${minutes} min read`}</span>
+            ) : null}
+          </div>
+        )
+      }
     },
     ...(categoryId
       ? []
       : [
           {
             title: t`Category`,
-            dataIndex: 'category_id',
-            key: 'category_id',
-            render: (categoryId?: string | null) => (
-              <span className="text-sm">{getCategoryName(categoryId)}</span>
+            key: 'category',
+            render: (_: unknown, post: BlogPost) => (
+              <Pill tone="neutral" dot={false}>
+                {!post.category_id
+                  ? t`Uncategorized`
+                  : (categoryOf(post)?.settings.name ?? t`Unknown`)}
+              </Pill>
             )
           }
         ]),
     {
       title: t`Status`,
       key: 'status',
-      render: (_: unknown, record: BlogPost) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <PostStatusTag post={record} />
-          <MissingMetaTagsWarning seo={record.settings.seo} />
-        </div>
-      )
-    },
-    {
-      title: t`Published`,
-      dataIndex: 'published_at',
-      key: 'published_at',
-      render: (publishedAt: string | null) => {
-        if (!publishedAt) return <span className="text-gray-400">—</span>
-
-        const timezone = workspace?.settings?.timezone || 'UTC'
-        const dateInTz = dayjs(publishedAt).tz(timezone)
-        const formattedDate = dateInTz.format('MMM D, YYYY HH:mm')
-        const now = dayjs()
-        const publishDate = dayjs(publishedAt)
-        const isFuture = publishDate.isAfter(now)
-
-        if (isFuture) {
-          const daysUntil = publishDate.diff(now, 'day')
-          const displayText = daysUntil === 0
-            ? t`Scheduled today`
-            : t`Scheduled in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}`
-
-          return (
-            <Tooltip title={`${formattedDate} ${timezone}`}>
-              <span className="text-blue-600">{displayText}</span>
-            </Tooltip>
-          )
-        }
-
-        const relativeTime = publishDate.fromNow()
+      render: (_: unknown, post: BlogPost) => {
+        const state = postState(post)
         return (
-          <Tooltip title={`${formattedDate} ${timezone}`}>
-            <span>{relativeTime}</span>
-          </Tooltip>
+          <span className="inline-flex items-center gap-1.5">
+            {state === 'published' ? (
+              <Pill tone="success">{t`Published`}</Pill>
+            ) : state === 'scheduled' ? (
+              <Pill tone="info">{t`Scheduled`}</Pill>
+            ) : (
+              <Pill tone="neutral">{t`Draft`}</Pill>
+            )}
+            <MissingMetaTagsWarning seo={post.settings.seo} />
+          </span>
         )
       }
     },
     {
-      title: t`Updated`,
-      dataIndex: 'updated_at',
-      key: 'updated_at',
-      render: (date: string) => dayjs(date).format('MMM D, YYYY')
+      title: t`Author`,
+      key: 'author',
+      render: (_: unknown, post: BlogPost) => {
+        const authors = post.settings.authors ?? []
+        if (authors.length === 0) return <span className="text-ink-4">—</span>
+        const others = authors.length - 1
+        const names = (
+          <span className="text-ink-2">
+            {authors[0].name}
+            {others > 0 ? <span className="text-ink-3"> +{int(others)}</span> : null}
+          </span>
+        )
+        return others > 0 ? (
+          <Tooltip title={authors.map((author) => author.name).join(', ')}>{names}</Tooltip>
+        ) : (
+          names
+        )
+      }
     },
     {
-      title: t`Actions`,
-      key: 'actions',
-      width: 150,
-      render: (_: unknown, record: BlogPost) => (
-        <Space size="small">
-          {record.published_at && (
-            <Tooltip title={t`Open on web`} placement="left">
-              <Button
-                type="text"
-                size="small"
-                icon={<FontAwesomeIcon icon={faExternalLinkAlt} style={{ opacity: 0.7 }} />}
-                onClick={() => handleOpenPost(record)}
-              />
-            </Tooltip>
-          )}
-          {permissions?.workspace?.write && (
-            <>
-              {record.published_at ? (
-                <Popconfirm
-                  title={t`Unpublish post`}
-                  description={t`Are you sure you want to unpublish this post?`}
-                  onConfirm={() => unpublishMutation.mutate(record.id)}
-                  okText={t`Yes`}
-                  cancelText={t`No`}
-                >
-                  <Tooltip title={t`Unpublish`} placement="left">
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<FontAwesomeIcon icon={faEyeSlash} style={{ opacity: 0.7 }} />}
-                      loading={unpublishMutation.isPending}
-                    />
+      title: t`Published`,
+      key: 'published',
+      render: (_: unknown, post: BlogPost) => renderPublished(post)
+    },
+    ...(showViews
+      ? [
+          {
+            title: (
+              <Tooltip
+                title={t`Page views of this post's path over the last 30 days, counted by web analytics`}
+              >
+                <span className="cursor-help">{t`Views 30d`}</span>
+              </Tooltip>
+            ),
+            key: 'views',
+            align: 'right' as const,
+            render: (_: unknown, post: BlogPost) => {
+              const slug = categoryOf(post)?.slug
+              const count = slug ? views.get(postPath(slug, post.slug)) : undefined
+              if (count === undefined) {
+                return viewsFailed ? (
+                  <Tooltip title={t`Couldn't load`}>
+                    <span className="text-ink-4">—</span>
                   </Tooltip>
-                </Popconfirm>
-              ) : (
-                <Tooltip title={t`Publish`} placement="left">
+                ) : (
+                  <span className="text-ink-4">—</span>
+                )
+              }
+              return <span className="text-ink-2 tabular-nums">{int(count)}</span>
+            }
+          }
+        ]
+      : []),
+    ...(canWritePosts
+      ? [
+          {
+            key: 'actions',
+            width: 48,
+            render: (_: unknown, post: BlogPost) => (
+              // The menu is not a click on the row.
+              <span onClick={(event) => event.stopPropagation()}>
+                <Dropdown trigger={['click']} menu={{ items: rowMenu(post) }}>
                   <Button
-                    type="primary"
+                    type="text"
                     size="small"
-                    onClick={() => handlePublish(record)}
-                  >
-                    {t`Publish`}
-                  </Button>
-                </Tooltip>
-              )}
-              <Tooltip title={t`Delete`}>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />}
-                  onClick={() => handleDelete(record)}
-                />
-              </Tooltip>
-              <Tooltip title={t`Edit`}>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
-                  onClick={() => handleEdit(record)}
-                />
-              </Tooltip>
-            </>
-          )}
-        </Space>
-      )
-    }
+                    aria-label={t`More actions`}
+                    icon={<MoreHorizontal size={16} aria-hidden="true" />}
+                  />
+                </Dropdown>
+              </span>
+            )
+          }
+        ]
+      : [])
   ]
 
-  const hasPosts = isLoading || totalCount > 0
+  const tabs: CountTabOption<BlogPostStatus>[] = [
+    { value: 'all', label: t`All`, count: counts?.total },
+    { value: 'published', label: t`Published`, count: counts?.published },
+    { value: 'scheduled', label: t`Scheduled`, count: counts?.scheduled },
+    { value: 'draft', label: t`Drafts`, count: counts?.draft }
+  ]
 
-  const getEmptyDescription = () => {
+  const emptyDescription = () => {
+    if (q) return t`No posts match your search`
     if (status === 'draft') return t`No draft posts`
     if (status === 'published') return t`No published posts`
+    if (status === 'scheduled') return t`No scheduled posts`
     if (categoryId) return t`No posts in this category`
     return t`No posts yet`
   }
 
-  return (
-    <div>
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <Title level={4} className="!mb-2">
-            {selectedCategory ? selectedCategory.settings.name : t`All Posts`}
-          </Title>
-          <Paragraph className="!mb-0 text-gray-600">
-            {selectedCategory
-              ? t`Posts in ${selectedCategory.settings.name}`
-              : t`Create and manage your blog content`}
-          </Paragraph>
+  const renderBody = () => {
+    if (postsQuery.isPending) {
+      return (
+        <div data-testid="posts-skeleton" className="px-3.5 py-3">
+          <Skeleton active title={false} paragraph={{ rows: 6 }} />
         </div>
-        {permissions?.workspace?.write && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateNew}>
-            {t`New Post`}
-          </Button>
-        )}
-      </div>
-
-      <div className="mb-4">
-        <Segmented
-          value={status}
-          onChange={handleStatusChange}
-          options={[
-            { label: t`All Posts`, value: 'all' },
-            { label: t`Drafts`, value: 'draft' },
-            { label: t`Published`, value: 'published' }
-          ]}
+      )
+    }
+    if (postsQuery.isError && pages.length === 0) {
+      return (
+        <Result
+          status="error"
+          title={t`Couldn't load the posts`}
+          subTitle={postsQuery.error.message}
+          extra={<Button onClick={() => void postsQuery.refetch()}>{t`Retry`}</Button>}
         />
-      </div>
+      )
+    }
+    if (posts.length === 0) {
+      return <Empty className="py-10" description={emptyDescription()} />
+    }
+    return (
+      <Table<BlogPost>
+        columns={columns}
+        dataSource={posts}
+        rowKey="id"
+        pagination={false}
+        rowClassName={() => (canWritePosts ? 'cursor-pointer' : '')}
+        onRow={(post) => ({
+          onClick: canWritePosts ? () => setDrawer({ post }) : undefined
+        })}
+      />
+    )
+  }
 
-      {hasPosts ? (
-        <Card>
-          <Table
-            columns={columns}
-            dataSource={posts}
-            loading={isFetching}
-            rowKey="id"
-            pagination={{
-              current: page,
-              pageSize: PAGE_SIZE,
-              total: totalCount,
-              showSizeChanger: false,
-              onChange: setPage,
-              showTotal: (total) => t`Total ${total} posts`
-            }}
-          />
-        </Card>
-      ) : (
-        <Card>
-          <Empty description={getEmptyDescription()} />
-        </Card>
-      )}
+  const shown = int(posts.length)
+  const footer =
+    total !== undefined && posts.length > 0 ? (
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-ink-3">
+          {plural(total, { one: `${shown} of # post`, other: `${shown} of # posts` })}
+        </span>
+        {postsQuery.hasNextPage ? (
+          <Button
+            size="small"
+            loading={postsQuery.isFetchingNextPage}
+            onClick={() => void loadMore()}
+          >
+            {t`Load more`}
+          </Button>
+        ) : null}
+      </div>
+    ) : undefined
+
+  return (
+    <div className="flex flex-col gap-3">
+      <PageHeader
+        title={category ? category.settings.name : t`All posts`}
+        count={total}
+        description={
+          <span className="inline-flex flex-wrap items-center gap-1">
+            {t`Blog published on`}
+            <a
+              href={blogUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700"
+            >
+              {category ? `${blogDomain}/${category.slug}` : blogDomain}
+              <ExternalLink size={12} aria-hidden="true" />
+            </a>
+          </span>
+        }
+        actions={
+          <>
+            <Button
+              icon={<Palette size={14} aria-hidden="true" />}
+              disabled={!canWritePosts}
+              onClick={() =>
+                navigate({
+                  to: '/console/workspace/$workspaceId/settings/$section',
+                  params: { workspaceId, section: 'blog' }
+                })
+              }
+            >
+              {t`Theme`}
+            </Button>
+            <Button
+              type="primary"
+              icon={<Plus size={14} aria-hidden="true" />}
+              disabled={!canWritePosts}
+              onClick={() => setDrawer({ post: null })}
+            >
+              {t`New post`}
+            </Button>
+          </>
+        }
+      />
+
+      <Panel flush footer={footer}>
+        <TableToolbar
+          start={<CountTabs<BlogPostStatus> options={tabs} value={status} onChange={setStatus} />}
+          end={
+            <TableToolbar.Search
+              value={searchInput}
+              onChange={setSearchInput}
+              placeholder={t`Title`}
+            />
+          }
+        />
+        {renderBody()}
+      </Panel>
 
       <PostDrawer
-        open={drawerOpen}
-        onClose={handleDrawerClose}
-        post={editingPost}
+        open={drawer !== null}
+        onClose={() => setDrawer(null)}
+        post={drawer?.post ?? null}
         workspace={workspace}
         initialCategoryId={categoryId}
       />
 
       <DeletePostModal
-        open={deleteModalOpen}
+        open={postToDelete !== null}
         post={postToDelete}
         onConfirm={() => postToDelete && deleteMutation.mutate(postToDelete.id)}
-        onCancel={() => {
-          setDeleteModalOpen(false)
-          setPostToDelete(null)
-        }}
+        onCancel={() => setPostToDelete(null)}
         loading={deleteMutation.isPending}
-      />
-
-      <CategoryDrawer
-        open={categoryDrawerOpen}
-        onClose={() => setCategoryDrawerOpen(false)}
-        category={selectedCategory || null}
-        workspaceId={workspaceId}
-      />
-
-      <DeleteCategoryModal
-        open={deleteCategoryModalOpen}
-        category={selectedCategory || null}
-        onConfirm={() => selectedCategory && deleteCategoryMutation.mutate(selectedCategory.id)}
-        onCancel={() => setDeleteCategoryModalOpen(false)}
-        loading={deleteCategoryMutation.isPending}
       />
 
       <PublishModal
         post={postToPublish}
-        visible={publishModalOpen}
-        onClose={() => {
-          setPublishModalOpen(false)
-          setPostToPublish(null)
-        }}
+        visible={postToPublish !== null}
+        onClose={() => setPostToPublish(null)}
         workspaceId={workspaceId}
         workspace={workspace}
       />

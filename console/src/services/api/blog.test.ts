@@ -27,9 +27,17 @@ describe('blogPostsApi.list', () => {
 
 describe('blogPostsApi.counts', () => {
   beforeEach(() =>
-    vi.mocked(api.get)
+    vi
+      .mocked(api.get)
       .mockReset()
-      .mockResolvedValue({ all_total: 0, total: 0, published: 0, scheduled: 0, draft: 0, by_category: {} })
+      .mockResolvedValue({
+        all_total: 0,
+        total: 0,
+        published: 0,
+        scheduled: 0,
+        draft: 0,
+        by_category: {}
+      })
   )
 
   it('counts every post without a category', async () => {
