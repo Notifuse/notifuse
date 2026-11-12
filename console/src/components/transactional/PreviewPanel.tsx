@@ -67,7 +67,7 @@ export function PreviewPanel({ workspace, template, onOpen }: PreviewPanelProps)
         </Tooltip>
       ) : null}
       <Button size="small" type="link" disabled={!loaded} onClick={onOpen}>
-        {t`Open`}
+        {t({ message: 'Open', context: 'action' })}
       </Button>
     </div>
   )

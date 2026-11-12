@@ -11280,7 +11280,11 @@ msgid "Only workspace owners can modify integrations"
 msgstr "Only workspace owners can modify integrations"
 
 #: src/components/contacts/sheet/activityLabel.ts:14
+msgid "Open"
+msgstr "Open"
+
 #: src/components/transactional/PreviewPanel.tsx:70
+msgctxt "action"
 msgid "Open"
 msgstr "Open"
 

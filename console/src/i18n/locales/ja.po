@@ -11280,9 +11280,13 @@ msgid "Only workspace owners can modify integrations"
 msgstr "ワークスペースオーナーのみが連携を変更できます"
 
 #: src/components/contacts/sheet/activityLabel.ts:14
-#: src/components/transactional/PreviewPanel.tsx:70
 msgid "Open"
 msgstr "開封"
+
+#: src/components/transactional/PreviewPanel.tsx:70
+msgctxt "action"
+msgid "Open"
+msgstr "開く"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:659
 msgid "Open and click tracking"
