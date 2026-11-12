@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +20,8 @@ func TestAutomationRepository_ExitContactJourneysOnReply(t *testing.T) {
 
 	// The journeys are exited and their automations' stats.exited raised in one statement:
 	// the exits counted per automation, the automation rows locked in id order (no deadlock
-	// with enrollment, which locks them too), stats guarded against a JSON null or scalar.
+	// between two reply exits, nor with the enrollment of a single event), stats guarded
+	// against a JSON null or scalar.
 	const exitPredicates = `(?s)WITH exited AS \(\s*UPDATE contact_automations\s+SET status = 'exited', scheduled_at = NULL, exit_reason = \$1.*WHERE contact_email = \$2.*status = 'active'.*entered_at < \$3.*exit_on_reply = TRUE AND deleted_at IS NULL`
 	const statsUpdate = `.*RETURNING automation_id.*COUNT\(\*\) AS n FROM exited GROUP BY automation_id.*ORDER BY a\.id FOR UPDATE OF a.*UPDATE automations a\s+SET stats = \(CASE WHEN jsonb_typeof\(a\.stats\) = 'object' THEN a\.stats ELSE '\{\}'::jsonb END\) \|\|\s*jsonb_build_object\('exited', COALESCE\(\(CASE WHEN jsonb_typeof\(a\.stats\) = 'object' THEN a\.stats->>'exited' END\)::int, 0\) \+ c\.n\),\s*updated_at = \$4.*RETURNING c\.n`
 
@@ -102,5 +104,48 @@ func TestAutomationRepository_ExitContactJourneysOnReply(t *testing.T) {
 		_, err := repo.ExitContactJourneysOnReply(context.Background(), "ws", "jane@x.com", nil, "replied", before)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "conn reset")
+	})
+
+	// A transaction enrolling several contacts (an import) can lock the same automation rows
+	// in another order. When the reply exit is the deadlock victim, the provider's retry of
+	// the reply is deduplicated and would never exit the journeys: the statement, atomic,
+	// is run again instead.
+	t.Run("a deadlock is retried", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectQuery(exitPredicates + statsUpdate).WillReturnError(&pq.Error{Code: "40P01", Message: "deadlock detected"})
+		mock.ExpectQuery(exitPredicates + statsUpdate).
+			WillReturnRows(sqlmock.NewRows([]string{"n"}).AddRow(2))
+
+		n, err := repo.ExitContactJourneysOnReply(context.Background(), "ws", "jane@x.com", nil, "replied", before)
+		require.NoError(t, err)
+		assert.Equal(t, 2, n)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a deadlock on every attempt is returned", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		for i := 0; i < exitOnReplyAttempts; i++ {
+			mock.ExpectQuery(exitPredicates + statsUpdate).WillReturnError(&pq.Error{Code: "40P01", Message: "deadlock detected"})
+		}
+
+		_, err := repo.ExitContactJourneysOnReply(context.Background(), "ws", "jane@x.com", nil, "replied", before)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "deadlock detected")
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("another error is not retried", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectQuery(exitPredicates + statsUpdate).WillReturnError(&pq.Error{Code: "23503", Message: "fk violation"})
+
+		_, err := repo.ExitContactJourneysOnReply(context.Background(), "ws", "jane@x.com", nil, "replied", before)
+		require.Error(t, err)
+		require.NoError(t, mock.ExpectationsWereMet(), "a single attempt")
 	})
 }
