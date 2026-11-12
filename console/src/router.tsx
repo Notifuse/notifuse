@@ -47,6 +47,8 @@ import {
   parseTemplatesSearch,
 } from "./lib/searchParams";
 import { DEFAULT_SETTINGS_SECTION } from "./components/settings/SettingsSidebar";
+import { parseLogsSearch } from "./components/logs/logsSearch";
+export type { LogsSearch } from "./components/logs/logsSearch";
 
 export interface ContactsSearch {
   email?: string;
@@ -282,18 +284,11 @@ const workspaceTransactionalNotificationsRoute = createRoute({
   validateSearch: validateTransactionalSearch,
 });
 
-// The tab is typed; the message tab's own filters (is_failed and friends) pass
-// through untouched, since that tab reads them straight off the location.
-export type LogsSearch = { tab?: string } & Record<string, unknown>;
-
-const workspaceLogsRoute = createRoute({
+export const workspaceLogsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/logs",
   component: LogsPage,
-  validateSearch: (search: Record<string, unknown>): LogsSearch => ({
-    ...search,
-    tab: typeof search.tab === "string" ? search.tab : undefined,
-  }),
+  validateSearch: parseLogsSearch,
 });
 
 export const workspaceContactsRoute = createRoute({

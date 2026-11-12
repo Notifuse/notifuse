@@ -46,6 +46,11 @@ vi.mock('../components/contacts/ContactsCsvUploadProvider', () => ({
 vi.mock('../components/file_manager/context', () => ({
   FileManagerProvider: ({ children }: { children: ReactNode }) => <>{children}</>
 }))
+// Its query needs a QueryClient; the access is what the layout reads.
+const auditAccess = vi.hoisted(() => ({ canRead: false, isRoot: false, loading: false }))
+vi.mock('../hooks/useAuditLogAccess', () => ({
+  useAuditLogAccess: () => auditAccess
+}))
 vi.mock('../contexts/LocaleContext', () => ({
   useLocale: () => ({ locale: 'en', setLocale: vi.fn() })
 }))
@@ -73,6 +78,7 @@ const signInAsRoot = () => {
   currentLayout = undefined
   vi.mocked(useNavigate).mockReturnValue(mockNavigate as never)
   vi.mocked(isRootUser).mockReturnValue(true)
+  auditAccess.canRead = false
   vi.mocked(useAuth).mockReturnValue({
     signout: vi.fn(),
     refreshWorkspaces: vi.fn(),
@@ -319,5 +325,52 @@ describe('WorkspaceLayout chrome', () => {
     await userEvent.click(screen.getByRole('button', { name: /Workspace One/ }))
     await userEvent.click(await screen.findByRole('menuitem', { name: /New workspace/ }))
     expect(mockNavigate).toHaveBeenCalledWith({ to: '/console/workspace/create' })
+  })
+})
+
+describe('WorkspaceLayout Logs entry', () => {
+  beforeEach(signInAsRoot)
+
+  const memberWith = (permissions: Record<string, { read: boolean; write: boolean }>) => {
+    vi.mocked(isRootUser).mockReturnValue(false)
+    vi.mocked(workspaceService.getMembers).mockResolvedValue({
+      members: [{ user_id: 'u1', permissions: { ...grantAll(false), ...permissions } }]
+    } as never)
+  }
+
+  // The settings entry needs workspace access, which every case below grants, so the sidebar has
+  // drawn once it shows.
+  const logsShown = async () => {
+    render(<WorkspaceLayout />)
+    await screen.findByText('Settings')
+    return screen.queryByText('Logs') !== null
+  }
+
+  const workspace = { workspace: { read: true, write: false } }
+
+  it('shows with the audit log access alone', async () => {
+    memberWith(workspace)
+    auditAccess.canRead = true
+    expect(await logsShown()).toBe(true)
+  })
+
+  it('shows with the incoming webhooks read alone', async () => {
+    memberWith({ ...workspace, webhook_events: { read: true, write: false } })
+    expect(await logsShown()).toBe(true)
+  })
+
+  it('shows with the outgoing webhooks read alone', async () => {
+    memberWith({ ...workspace, webhook_subscriptions: { read: true, write: false } })
+    expect(await logsShown()).toBe(true)
+  })
+
+  it('stays hidden for a member who may only write webhooks', async () => {
+    memberWith({ ...workspace, webhook_subscriptions: { read: false, write: true } })
+    expect(await logsShown()).toBe(false)
+  })
+
+  it('stays hidden without any logs right', async () => {
+    memberWith(workspace)
+    expect(await logsShown()).toBe(false)
   })
 })

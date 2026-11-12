@@ -61,6 +61,7 @@ const filterKeys = [
   'list_id',
   'template_id',
   'broadcast_id',
+  'automation_id',
   'transactional_notification_id',
   'clicked_url'
 ]
@@ -228,6 +229,7 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
       { key: 'list_id', label: t`List ID` },
       { key: 'template_id', label: t`Template ID` },
       { key: 'broadcast_id', label: t`Broadcast ID` },
+      { key: 'automation_id', label: t`Automation ID` },
       { key: 'transactional_notification_id', label: t`Transactional notification ID` },
       { key: 'clicked_url', label: t`Clicked link` }
     ],

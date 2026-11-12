@@ -129,6 +129,13 @@ describe('buildMenuItems', () => {
     gone.forEach((key) => expect(items).not.toContain(key))
   })
 
+  it('shows Logs when the layout says a Logs tab can open, whatever the message history right', () => {
+    const entries = (canOpenLogs: boolean, hasAccess: (resource: keyof UserPermissions) => boolean) =>
+      keys(buildMenuItems({ hasAccess, workspaceId: 'ws1', i18n, canOpenLogs }))
+    expect(entries(true, allowAllBut('message_history'))).toContain('logs')
+    expect(entries(false, allowAll)).not.toContain('logs')
+  })
+
   it('shows Contacts with contacts or lists, and drops it without both', () => {
     const entries = (hasAccess: (resource: keyof UserPermissions) => boolean) =>
       keys(buildMenuItems({ hasAccess, workspaceId: 'ws1', i18n }))

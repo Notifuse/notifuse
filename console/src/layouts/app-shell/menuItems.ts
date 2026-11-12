@@ -200,10 +200,15 @@ interface BuildMenuItemsOptions {
   workspaceId: string
   /** From useLingui(): the macro's `t` cannot leave the component that calls it. */
   i18n: I18n
+  /**
+   * Whether the member may open one of the Logs tabs: messages, incoming or outgoing webhooks read,
+   * or the audit log. Without it, the entry follows the message history right.
+   */
+  canOpenLogs?: boolean
 }
 
 /** The sidebar entries the member's rights allow, in the menu's order. */
-export function buildMenuItems({ hasAccess, workspaceId, i18n }: BuildMenuItemsOptions): MenuItem[] {
+export function buildMenuItems({ hasAccess, workspaceId, i18n, canOpenLogs }: BuildMenuItemsOptions): MenuItem[] {
   const label = (descriptor: MessageDescriptor) => i18n._(descriptor)
   const tab = (key: (typeof WEB_ANALYTICS_SECTIONS)[number], text: MessageDescriptor): MenuItem =>
     key === 'live'
@@ -341,7 +346,7 @@ export function buildMenuItems({ hasAccess, workspaceId, i18n }: BuildMenuItemsO
       label: label(LABELS.content),
       children: contentChildren
     },
-    hasAccess('message_history') && {
+    (canOpenLogs ?? hasAccess('message_history')) && {
       key: 'logs',
       icon: icon(AlignJustify),
       label: link({ to: '/console/workspace/$workspaceId/logs', params: { workspaceId } }, label(LABELS.logs))
