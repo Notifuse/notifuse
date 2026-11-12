@@ -266,6 +266,23 @@ func TestInboundWebhookEventListParams_Validate(t *testing.T) {
 			expectError: false,
 		},
 		{
+			// Supabase stores these two; the console offers them as filters.
+			name: "auth_email event type",
+			params: InboundWebhookEventListParams{
+				WorkspaceID: "workspace-123",
+				EventType:   EmailEventAuthEmail,
+			},
+			expectError: false,
+		},
+		{
+			name: "before_user_created event type",
+			params: InboundWebhookEventListParams{
+				WorkspaceID: "workspace-123",
+				EventType:   EmailEventBeforeUserCreated,
+			},
+			expectError: false,
+		},
+		{
 			name: "invalid event type",
 			params: InboundWebhookEventListParams{
 				WorkspaceID: "workspace-123",

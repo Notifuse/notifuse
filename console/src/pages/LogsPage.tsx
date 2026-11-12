@@ -11,6 +11,7 @@ import { AuditLogActions } from "../components/logs/AuditLogActions";
 import type { AuditLogTableHandle } from "../components/settings/audit_logs/AuditLogTable";
 import { useAuditLogAccess } from "../hooks/useAuditLogAccess";
 import { useAuth } from "../contexts/AuthContext";
+import { LOGS_TAB } from "../components/logs/logsUrl";
 
 const { Text } = Typography;
 
@@ -21,7 +22,7 @@ export function LogsPage() {
   const queryClient = useQueryClient();
   const { t } = useLingui();
   const { workspaces } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>(search.tab || "messages");
+  const [activeTab, setActiveTab] = useState<string>(search.tab || LOGS_TAB.messages);
   const auditTable = useRef<AuditLogTableHandle>(null);
   const auditAccess = useAuditLogAccess(workspaceId);
 
@@ -52,12 +53,12 @@ export function LogsPage() {
 
   const items = [
     {
-      key: "messages",
+      key: LOGS_TAB.messages,
       label: t`Message History`,
       children: <MessageHistoryTab workspaceId={workspaceId} />,
     },
     {
-      key: "incoming-webhooks",
+      key: LOGS_TAB.incomingWebhooks,
       label: t`Incoming Webhooks`,
       children: (
         <InboundWebhookEventsTab
@@ -67,7 +68,7 @@ export function LogsPage() {
       ),
     },
     {
-      key: "outgoing-webhooks",
+      key: LOGS_TAB.outgoingWebhooks,
       label: t`Outgoing Webhooks`,
       children: <OutgoingWebhooksTab workspaceId={workspaceId} />,
     },

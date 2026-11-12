@@ -86,7 +86,7 @@ func TestCoverage_HandleGetDeliveries_SuccessDefaults(t *testing.T) {
 
 	deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
 	deliveryRepo.EXPECT().
-		ListAll(gomock.Any(), "ws123", gomock.Nil(), 20, 0).
+		ListAll(gomock.Any(), "ws123", gomock.Nil(), gomock.Nil(), 20, 0).
 		Return([]*domain.WebhookDelivery{
 			{ID: "d1", SubscriptionID: "sub123", EventType: "contact.created", Status: "delivered", Attempts: 2},
 			{ID: "d2", SubscriptionID: "sub999", EventType: "list.subscribed", Status: "failed", Attempts: 3},
@@ -123,8 +123,8 @@ func TestCoverage_HandleGetDeliveries_ForwardsSubscriptionAndPagination(t *testi
 	deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
 	// Exact pointer value, limit and offset must reach the repository.
 	deliveryRepo.EXPECT().
-		ListAll(gomock.Any(), "ws123", gomock.Any(), 5, 10).
-		DoAndReturn(func(_ context.Context, _ string, subID *string, _, _ int) ([]*domain.WebhookDelivery, int, error) {
+		ListAll(gomock.Any(), "ws123", gomock.Any(), gomock.Nil(), 5, 10).
+		DoAndReturn(func(_ context.Context, _ string, subID, _ *string, _, _ int) ([]*domain.WebhookDelivery, int, error) {
 			require.NotNil(t, subID)
 			assert.Equal(t, "sub123", *subID)
 			return []*domain.WebhookDelivery{}, 0, nil
@@ -164,7 +164,7 @@ func TestCoverage_HandleGetDeliveries_InvalidPaginationFallsBack(t *testing.T) {
 			defer ctrl.Finish()
 			deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
 			deliveryRepo.EXPECT().
-				ListAll(gomock.Any(), "ws123", gomock.Nil(), tc.wantLimit, tc.wantOffset).
+				ListAll(gomock.Any(), "ws123", gomock.Nil(), gomock.Nil(), tc.wantLimit, tc.wantOffset).
 				Return([]*domain.WebhookDelivery{}, 0, nil)
 			handler := coverageDeliveriesHandler(t, webhookWriteAuth(ctrl, "ws123"), deliveryRepo)
 			req := httptest.NewRequest(http.MethodGet, "/api/webhookSubscriptions.deliveries?workspace_id=ws123&"+tc.query, nil)
@@ -185,7 +185,7 @@ func TestCoverage_HandleGetDeliveries_ServiceErrorIs500(t *testing.T) {
 
 	deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
 	deliveryRepo.EXPECT().
-		ListAll(gomock.Any(), "ws123", gomock.Nil(), 20, 0).
+		ListAll(gomock.Any(), "ws123", gomock.Nil(), gomock.Nil(), 20, 0).
 		Return(nil, 0, errors.New("db exploded"))
 
 	handler := coverageDeliveriesHandler(t, webhookWriteAuth(ctrl, "ws123"), deliveryRepo)
@@ -232,4 +232,44 @@ func TestCoverage_HandleGetDeliveries_ReadPermissionDeniedIs403(t *testing.T) {
 	assert.Equal(t, string(domain.PermissionResourceWebhookSubscriptions), body["resource"])
 	assert.Equal(t, string(domain.PermissionTypeRead), body["permission"])
 	assert.Contains(t, body["error"], "Insufficient permissions")
+}
+
+// The Status filter of the Outgoing webhooks tab reaches the repository, alone or with
+// a subscription.
+func TestCoverage_HandleGetDeliveries_ForwardsStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+	deliveryRepo.EXPECT().
+		ListAll(gomock.Any(), "ws123", gomock.Any(), gomock.Any(), 20, 0).
+		DoAndReturn(func(_ context.Context, _ string, subID, status *string, _, _ int) ([]*domain.WebhookDelivery, int, error) {
+			require.NotNil(t, subID)
+			assert.Equal(t, "sub123", *subID)
+			require.NotNil(t, status)
+			assert.Equal(t, domain.WebhookDeliveryStatusFailed, *status)
+			return []*domain.WebhookDelivery{{ID: "d1", Status: "failed"}}, 1, nil
+		})
+
+	handler := coverageDeliveriesHandler(t, webhookWriteAuth(ctrl, "ws123"), deliveryRepo)
+	req := httptest.NewRequest(http.MethodGet, "/api/webhookSubscriptions.deliveries?workspace_id=ws123&subscription_id=sub123&status=failed", nil)
+	rr := httptest.NewRecorder()
+	handler.handleGetDeliveries(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+}
+
+func TestCoverage_HandleGetDeliveries_RejectsUnknownStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// No ListAll expectation: an unknown status must not reach the repository.
+	deliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+	handler := coverageDeliveriesHandler(t, mocks.NewMockAuthService(ctrl), deliveryRepo)
+	req := httptest.NewRequest(http.MethodGet, "/api/webhookSubscriptions.deliveries?workspace_id=ws123&status=bogus", nil)
+	rr := httptest.NewRecorder()
+	handler.handleGetDeliveries(rr, req)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Contains(t, rr.Body.String(), "Invalid status")
 }

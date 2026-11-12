@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"strings"
 	"testing"
@@ -372,7 +373,7 @@ func TestWebhookDeliveryRepository_ListAll(t *testing.T) {
 			WithArgs(limit, offset).
 			WillReturnRows(rows)
 
-		deliveries, total, err := repo.ListAll(ctx, workspaceID, nil, limit, offset)
+		deliveries, total, err := repo.ListAll(ctx, workspaceID, nil, nil, limit, offset)
 		assert.NoError(t, err)
 		assert.Equal(t, 25, total)
 		assert.Len(t, deliveries, 2)
@@ -414,7 +415,7 @@ func TestWebhookDeliveryRepository_ListAll(t *testing.T) {
 			WithArgs(subscriptionID, limit, offset).
 			WillReturnRows(rows)
 
-		deliveries, total, err := repo.ListAll(ctx, workspaceID, &subscriptionID, limit, offset)
+		deliveries, total, err := repo.ListAll(ctx, workspaceID, &subscriptionID, nil, limit, offset)
 		assert.NoError(t, err)
 		assert.Equal(t, 10, total)
 		assert.Len(t, deliveries, 1)
@@ -428,7 +429,7 @@ func TestWebhookDeliveryRepository_ListAll(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(nil, expectedErr)
 
-		deliveries, total, err := repo.ListAll(ctx, workspaceID, nil, limit, offset)
+		deliveries, total, err := repo.ListAll(ctx, workspaceID, nil, nil, limit, offset)
 		assert.Error(t, err)
 		assert.Nil(t, deliveries)
 		assert.Equal(t, 0, total)
@@ -448,11 +449,100 @@ func TestWebhookDeliveryRepository_ListAll(t *testing.T) {
 		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM webhook_deliveries$`).
 			WillReturnError(expectedErr)
 
-		deliveries, total, err := repo.ListAll(ctx, workspaceID, nil, limit, offset)
+		deliveries, total, err := repo.ListAll(ctx, workspaceID, nil, nil, limit, offset)
 		assert.Error(t, err)
 		assert.Nil(t, deliveries)
 		assert.Equal(t, 0, total)
 		assert.Contains(t, err.Error(), "failed to count deliveries")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// The status filter applies to the count and to the page alike, alone or with a
+	// subscription, so the total the console pages on matches the rows it gets.
+	statusCases := []struct {
+		name         string
+		subscription *string
+		status       string
+		countRegex   string
+		pageRegex    string
+		countArgs    []driver.Value
+		pageArgs     []driver.Value
+	}{
+		{
+			name:       "Success - Filtered by status",
+			status:     domain.WebhookDeliveryStatusFailed,
+			countRegex: `SELECT COUNT\(\*\) FROM webhook_deliveries WHERE status = \$1$`,
+			pageRegex:  `SELECT .+ FROM webhook_deliveries WHERE status = \$1 ORDER BY created_at DESC LIMIT \$2 OFFSET \$3`,
+			countArgs:  []driver.Value{domain.WebhookDeliveryStatusFailed},
+			pageArgs:   []driver.Value{domain.WebhookDeliveryStatusFailed, limit, offset},
+		},
+		{
+			name:         "Success - Filtered by subscription and status",
+			subscription: &subscriptionID,
+			status:       domain.WebhookDeliveryStatusPending,
+			countRegex:   `SELECT COUNT\(\*\) FROM webhook_deliveries WHERE subscription_id = \$1 AND status = \$2$`,
+			pageRegex:    `SELECT .+ FROM webhook_deliveries WHERE subscription_id = \$1 AND status = \$2 ORDER BY created_at DESC LIMIT \$3 OFFSET \$4`,
+			countArgs:    []driver.Value{subscriptionID, domain.WebhookDeliveryStatusPending},
+			pageArgs:     []driver.Value{subscriptionID, domain.WebhookDeliveryStatusPending, limit, offset},
+		},
+	}
+	for _, tc := range statusCases {
+		t.Run(tc.name, func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer func() { _ = db.Close() }()
+
+			mockWorkspaceRepo.EXPECT().
+				GetConnection(gomock.Any(), workspaceID).
+				Return(db, nil)
+
+			mock.ExpectQuery(tc.countRegex).
+				WithArgs(tc.countArgs...).
+				WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(3))
+
+			rows := sqlmock.NewRows([]string{
+				"id", "subscription_id", "event_type", "payload", "status",
+				"attempts", "max_attempts", "next_attempt_at", "last_attempt_at",
+				"delivered_at", "last_response_status", "last_response_body", "last_error",
+				"claimed_at", "created_at",
+			}).AddRow(
+				"delivery-1", subscriptionID, "contact.created", `{"test": "data1"}`, tc.status,
+				2, 5, now, now, nil, 500, "boom", "boom", nil, now,
+			)
+			mock.ExpectQuery(tc.pageRegex).
+				WithArgs(tc.pageArgs...).
+				WillReturnRows(rows)
+
+			status := tc.status
+			deliveries, total, err := repo.ListAll(ctx, workspaceID, tc.subscription, &status, limit, offset)
+			require.NoError(t, err)
+			assert.Equal(t, 3, total)
+			require.Len(t, deliveries, 1)
+			assert.Equal(t, tc.status, deliveries[0].Status)
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+
+	t.Run("An empty status is no filter", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM webhook_deliveries$`).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+		mock.ExpectQuery(`SELECT .+ FROM webhook_deliveries ORDER BY created_at DESC LIMIT \$1 OFFSET \$2`).
+			WithArgs(limit, offset).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}))
+
+		empty := ""
+		deliveries, total, err := repo.ListAll(ctx, workspaceID, nil, &empty, limit, offset)
+		require.NoError(t, err)
+		assert.Equal(t, 0, total)
+		assert.Empty(t, deliveries)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }

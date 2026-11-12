@@ -9,6 +9,7 @@ import {
   MessageListParams
 } from '../../services/api/messages_history'
 import { Workspace } from '../../services/api/types'
+import { LOGS_TAB } from '../logs/logsUrl'
 
 interface FailedMessagesTableProps {
   workspace: Workspace
@@ -46,7 +47,9 @@ export const FailedMessagesTable: React.FC<FailedMessagesTableProps> = ({ worksp
     navigate({
       to: '/console/workspace/$workspaceId/logs',
       params: { workspaceId: workspace.id },
-      search: { is_failed: 'true' }
+      // A boolean, which the router writes as is_failed=true; the string 'true' would be
+      // written JSON-quoted and read back as not true, listing the messages that did not fail.
+      search: { tab: LOGS_TAB.messages, is_failed: true }
     })
   }
 
