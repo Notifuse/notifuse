@@ -32,6 +32,7 @@ import dayjs from '../lib/dayjs'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import { useLingui } from '@lingui/react/macro'
+import { PageHeader } from '../components/layout'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -391,29 +392,31 @@ export function TemplatesPage() {
   ]
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">{t`Templates`}</div>
-        {workspace && data?.templates && data.templates.length > 0 && (
-          <Tooltip
-            title={
-              !permissions?.templates?.write
-                ? t`You don't have write permission for templates`
-                : undefined
-            }
-          >
-            <div>
-              <CreateTemplateDrawer
-                canManageSavedBlocks={!!permissions?.templates?.write}
-                workspace={workspace}
-                buttonProps={{
-                  disabled: !permissions?.templates?.write
-                }}
-              />
-            </div>
-          </Tooltip>
-        )}
-      </div>
+    <div className="flex flex-col gap-3">
+      <PageHeader
+        title={t`Templates`}
+        actions={
+          workspace && data?.templates && data.templates.length > 0 && (
+            <Tooltip
+              title={
+                !permissions?.templates?.write
+                  ? t`You don't have write permission for templates`
+                  : undefined
+              }
+            >
+              <div>
+                <CreateTemplateDrawer
+                  canManageSavedBlocks={!!permissions?.templates?.write}
+                  workspace={workspace}
+                  buttonProps={{
+                    disabled: !permissions?.templates?.write
+                  }}
+                />
+              </div>
+            </Tooltip>
+          )
+        }
+      />
 
       <div className="flex justify-between items-center mb-4 gap-4">
         <Segmented

@@ -85,7 +85,7 @@ describe('BlogSettings', () => {
   it('renders a read-only view (no editor) when the user cannot manage', () => {
     renderComponent(false, makeWorkspace({ blog_enabled: false }))
     // No editor controls are rendered for non-managers.
-    expect(screen.queryByRole('button', { name: /Save Changes/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
     expect(screen.queryByRole('button', { name: /Enable Blog/i })).toBeNull()
     // The read-only status is shown instead.
     expect(screen.getByText(/Disabled/)).toBeInTheDocument()
@@ -98,8 +98,8 @@ describe('BlogSettings', () => {
 
   it('holds the save bar back until the form is touched', () => {
     renderComponent(true)
-    expect(screen.queryByRole('button', { name: /Save Changes/i })).toBeNull()
-    expect(screen.queryByText('You have unsaved changes')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
   })
 
   it('raises the save bar as soon as a field changes', () => {
@@ -109,8 +109,8 @@ describe('BlogSettings', () => {
       target: { value: 'New Blog Title' }
     })
 
-    expect(screen.getByText('You have unsaved changes')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Save Changes/i })).toBeEnabled()
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
   })
 
   it('restores the stored values on Discard instead of emptying the form', () => {
@@ -123,7 +123,7 @@ describe('BlogSettings', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Discard$/i }))
 
     expect(titleInput).toHaveValue('Existing Title')
-    expect(screen.queryByText('You have unsaved changes')).toBeNull()
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
   })
 
   it('loads the stored canonical URL and keeps it on save', async () => {
@@ -147,7 +147,7 @@ describe('BlogSettings', () => {
     fireEvent.change(screen.getByPlaceholderText('My Blog WS'), {
       target: { value: 'New Blog Title' }
     })
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
       expect(workspaceService.setBlogSettings).toHaveBeenCalledWith(
@@ -205,7 +205,7 @@ describe('BlogSettings', () => {
     const titleInput = screen.getByPlaceholderText('My Blog WS')
     fireEvent.change(titleInput, { target: { value: 'New Blog Title' } })
 
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
       expect(workspaceService.setBlogSettings).toHaveBeenCalledWith(
@@ -224,7 +224,7 @@ describe('BlogSettings', () => {
     fireEvent.change(screen.getByPlaceholderText('My Blog WS'), {
       target: { value: 'New Blog Title' }
     })
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(workspaceService.setBlogSettings).toHaveBeenCalled())
     const payload = vi.mocked(workspaceService.setBlogSettings).mock.calls[0][0]

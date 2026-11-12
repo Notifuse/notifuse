@@ -6,6 +6,14 @@ const SRC = resolve(__dirname, '..')
 const read = (path: string) => readFileSync(join(SRC, path), 'utf8')
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '')
 
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap((entry) => {
+    const path = join(dir, entry)
+    if (statSync(path).isDirectory()) return sourceFiles(path)
+    return /\.(ts|tsx)$/.test(path) && !path.endsWith('antdOverrides.test.ts') ? [relative(SRC, path)] : []
+  })
+}
+
 function cssFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
     const path = join(dir, entry)
@@ -40,7 +48,6 @@ const ALLOWED = [
 // Console classes that scope the antd rules allowed to stay in index.css.
 const INDEX_SCOPES = [
   '.drawer-body-no-padding',
-  '.workspace-sider',
   '.tabs-in-header',
   '.vertical-tabs'
 ]
@@ -58,6 +65,27 @@ describe('global antd rules', () => {
       .filter((selector) => selector.includes('.ant-'))
       .filter((selector) => !INDEX_SCOPES.some((scope) => selector.includes(scope)))
     expect(unscoped).toEqual([])
+  })
+
+  it('leave no rule or class of the former sider', () => {
+    const offenders = [...cssFiles(SRC), ...sourceFiles(SRC)].filter((file) =>
+      read(file).includes('workspace-sider')
+    )
+    expect(offenders).toEqual([])
+  })
+
+  it('fold the sidebar without the active bar, and colour its icons from the theme', () => {
+    const css = stripComments(read('theme/antd-overrides.css'))
+    expect(css).toMatch(/\.ant-menu-inline-collapsed \.ant-menu-item-selected\s*\{\s*box-shadow: none;/)
+    expect(css).toMatch(/\.app-sidebar-nav \.ant-menu \.ant-menu-item-icon\s*\{\s*color: var\(--ant-color-text-tertiary\);/)
+    expect(css).toMatch(/\.app-sidebar-nav\.is-collapsed \.ant-menu-inline-collapsed\s*\{\s*width: 100%;/)
+  })
+
+  it('put the full-width drawers on the canvas', () => {
+    const css = stripComments(read('theme/antd-overrides.css'))
+    expect(css).toMatch(
+      /\.app-full-drawer \.ant-drawer-section,\s*\.app-full-drawer \.ant-drawer-body\s*\{\s*background: var\(--ant-color-bg-layout\);/
+    )
   })
 
   it('no longer round every popover from the blog toolbar stylesheet', () => {
@@ -87,6 +115,13 @@ describe('global antd rules', () => {
     // index.css gives pre/code/kbd/samp the code face over antd's reset, at equal specificity.
     expect(main.indexOf("'antd/dist/reset.css'")).toBeGreaterThan(-1)
     expect(main.indexOf("'antd/dist/reset.css'")).toBeLessThan(main.indexOf("'./index.css'"))
+  })
+
+  it('hand the margin and weight of data-unreset elements back from the unlayered reset to Tailwind', () => {
+    const css = stripComments(read('index.css'))
+    expect(css).toMatch(
+      /:where\(h1, h2, h3, h4, h5, h6, p, dl, dt, dd\)\[data-unreset\] \{\s*margin: revert-layer;\s*font-weight: revert-layer;\s*\}/
+    )
   })
 
   it('declare each latin-ext face before the latin face of the same family and style', () => {

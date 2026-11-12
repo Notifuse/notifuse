@@ -1,0 +1,68 @@
+import { useRef, type ReactNode } from 'react'
+import { Button, Drawer } from 'antd'
+import { ArrowLeft } from 'lucide-react'
+import { useLingui } from '@lingui/react/macro'
+import { CloseButton, CopyLinkButton, DrawerNavButtons, type DrawerNav } from './DrawerControls'
+import { useDrawerNavKeys } from './useDrawerNavKeys'
+
+export interface FullDrawerProps {
+  open: boolean
+  onClose: () => void
+  /** Label of the back button, the name of the list ("Broadcasts"). */
+  backLabel?: ReactNode
+  nav?: DrawerNav
+  /** A copy-link button (default). */
+  copyLink?: boolean
+  /** Right side of the bar, before copy and close. */
+  topActions?: ReactNode
+  children?: ReactNode
+}
+
+/**
+ * A full-width drawer over the whole console, sidebar included, with a 40px navigation bar.
+ * Escape closes it (antd). Its content sits on the canvas (antd-overrides.css, `.app-full-drawer`).
+ */
+export function FullDrawer({ open, onClose, backLabel, nav, copyLink = true, topActions, children }: FullDrawerProps) {
+  const { t } = useLingui()
+  const barRef = useRef<HTMLDivElement>(null)
+  useDrawerNavKeys({ enabled: open, onPrev: nav?.onPrev, onNext: nav?.onNext, anchorRef: barRef })
+
+  return (
+    <Drawer
+      open={open}
+      onClose={onClose}
+      placement="right"
+      size="100%"
+      closable={false}
+      destroyOnHidden
+      rootClassName="app-full-drawer"
+      styles={{ body: { padding: 0 } }}
+    >
+      <div
+        ref={barRef}
+        data-drawer-bar
+        className="sticky top-0 z-10 flex h-10 items-center justify-between gap-3 border-b border-line-soft bg-surface pr-3 pl-2"
+      >
+        <div className="flex min-w-0 items-center gap-1">
+          <Button type="text" size="small" icon={<ArrowLeft size={14} aria-hidden="true" />} onClick={onClose}>
+            {backLabel ?? t`Back`}
+          </Button>
+          {nav ? (
+            <>
+              <span aria-hidden="true" className="mx-1 h-4 w-px shrink-0 bg-line" />
+              <DrawerNavButtons nav={nav} showPosition />
+            </>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          {topActions ? <div className="mr-1 flex items-center gap-2">{topActions}</div> : null}
+          {copyLink ? <CopyLinkButton /> : null}
+          <CloseButton onClose={onClose} />
+        </div>
+      </div>
+      <div data-drawer-content className="flex flex-col gap-3 px-5 pt-4 pb-6">
+        {children}
+      </div>
+    </Drawer>
+  )
+}

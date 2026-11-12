@@ -93,6 +93,12 @@ describe('antd theme', () => {
     })
     expect(components.Card).toMatchObject({ colorBorderSecondary: '#e1e3ea', headerHeight: 40, bodyPadding: 14 })
     expect(components.Layout).toMatchObject({ bodyBg: '#f3f4f7', lightSiderBg: '#ffffff' })
+    // The chrome no longer uses Layout.Header nor Layout.Sider.
+    expect(components.Layout).not.toHaveProperty('headerHeight')
+    expect(components.Layout).not.toHaveProperty('headerPadding')
+    expect(components.Layout).not.toHaveProperty('siderBg')
+    // The collapsed sidebar is 56px wide, and its menu as wide as it.
+    expect(components.Menu).toMatchObject({ collapsedWidth: 56, activeBarBorderWidth: 0 })
     expect(components.Modal).toMatchObject({ contentBg: '#ffffff', headerBg: '#ffffff', footerBg: '#ffffff' })
     expect(components.Timeline).toMatchObject({ dotBg: '#ffffff' })
   })

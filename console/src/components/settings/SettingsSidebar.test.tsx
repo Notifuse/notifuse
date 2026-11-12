@@ -22,9 +22,16 @@ const renderSidebar = () => {
 }
 
 describe('SettingsSidebar', () => {
+  it('marks the active section as the current page, and draws Danger Zone in the danger tone', () => {
+    renderSidebar()
+    expect(screen.getByRole('button', { name: 'Team' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Integrations' })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('button', { name: 'Danger Zone' }).className).toContain('text-danger-fg')
+  })
+
   it('reports a valid section for every entry it renders', () => {
     const onSectionChange = renderSidebar()
-    const entries = screen.getAllByRole('menuitem')
+    const entries = screen.getAllByRole('button')
 
     entries.forEach((entry) => fireEvent.click(entry))
 

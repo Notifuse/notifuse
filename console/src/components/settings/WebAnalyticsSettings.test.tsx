@@ -89,7 +89,7 @@ describe('WebAnalyticsSettings', () => {
 
   it('renders a read-only view (no editor) when the user cannot manage', () => {
     renderComponent(false, makeWorkspace({ enabled: false }))
-    expect(screen.queryByRole('button', { name: /Save Changes/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
     expect(screen.getByText(/Disabled/)).toBeInTheDocument()
   })
 
@@ -120,8 +120,8 @@ describe('WebAnalyticsSettings', () => {
 
   it('holds the save bar back until the form is touched', () => {
     renderComponent(true)
-    expect(screen.queryByRole('button', { name: /Save Changes/i })).toBeNull()
-    expect(screen.queryByText('You have unsaved changes')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
   })
 
   it('raises the save bar as soon as a field changes', () => {
@@ -129,8 +129,8 @@ describe('WebAnalyticsSettings', () => {
 
     fireEvent.change(screen.getByLabelText(/Bounce threshold/i), { target: { value: '25' } })
 
-    expect(screen.getByText('You have unsaved changes')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Save Changes/i })).toBeEnabled()
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
   })
 
   it('restores the stored values on Discard instead of emptying the form', () => {
@@ -142,7 +142,7 @@ describe('WebAnalyticsSettings', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Discard$/i }))
 
     expect(screen.getByLabelText(/Bounce threshold/i)).toHaveValue('10')
-    expect(screen.queryByText('You have unsaved changes')).toBeNull()
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
   })
 
   it('saves on Cmd/Ctrl+S once there are changes to save', async () => {
@@ -166,7 +166,7 @@ describe('WebAnalyticsSettings', () => {
     renderComponent(true, makeWorkspace({ enabled: false, allowed_domains: [] }))
 
     fireEvent.click(screen.getByLabelText(/Enable web analytics/i))
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
       expect(
@@ -180,7 +180,7 @@ describe('WebAnalyticsSettings', () => {
     renderComponent(true, makeWorkspace({ enabled: false, allowed_domains: [] }))
 
     fireEvent.click(screen.getByLabelText(/Enable web analytics/i))
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() =>
       expect(
         screen.getByText('List at least one domain to enable web analytics')
@@ -191,7 +191,7 @@ describe('WebAnalyticsSettings', () => {
     const domains = screen.getByLabelText(/Allowed domains/i)
     fireEvent.change(domains, { target: { value: 'example.com' } })
     fireEvent.keyDown(domains, { key: 'Enter', keyCode: 13 })
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
       expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
@@ -206,7 +206,7 @@ describe('WebAnalyticsSettings', () => {
     renderComponent(true, makeWorkspace({ enabled: false, allowed_domains: [] }))
 
     fireEvent.change(screen.getByLabelText(/Bounce threshold/i), { target: { value: '25' } })
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
       expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
@@ -222,7 +222,7 @@ describe('WebAnalyticsSettings', () => {
     fireEvent.change(screen.getByLabelText(/Bounce threshold/i), {
       target: { value: '25' }
     })
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
       expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
@@ -255,7 +255,7 @@ describe('WebAnalyticsSettings', () => {
     fireEvent.change(screen.getByLabelText(/Bounce threshold/i), {
       target: { value: '25' }
     })
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
       expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
@@ -271,7 +271,7 @@ describe('WebAnalyticsSettings', () => {
     fireEvent.change(screen.getByLabelText('custom_1'), {
       target: { value: 'Plan' }
     })
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
       expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
@@ -348,7 +348,7 @@ describe('WebAnalyticsSettings', () => {
     renderComponent(true)
 
     fireEvent.click(await screen.findByLabelText('Store city name'))
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
       expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
@@ -369,7 +369,7 @@ describe('WebAnalyticsSettings', () => {
     renderComponent(true, makeWorkspace({ geo_store_city: false, geo_coordinates_precision: 0 }))
 
     fireEvent.click(await screen.findByLabelText('Enable geo-location tracking'))
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
       expect(webAnalyticsService.setSettings).toHaveBeenCalledWith(
@@ -394,6 +394,6 @@ describe('WebAnalyticsSettings', () => {
     // be switched on from here.
     expect(screen.getByLabelText(/Bounce threshold/i)).toHaveValue('10')
     fireEvent.click(screen.getByLabelText(/Enable web analytics/i))
-    expect(screen.getByRole('button', { name: /Save Changes/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()
   })
 })

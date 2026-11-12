@@ -18,6 +18,7 @@ import { FilterBuilder } from '../components/web_analytics/FilterBuilder'
 import { DashboardTab } from '../components/web_analytics/tabs/DashboardTab'
 import { FiltersTab } from '../components/web_analytics/tabs/FiltersTab'
 import { LiveButton } from '../components/web_analytics/LiveButton'
+import { PageHeader } from '../components/layout'
 
 // Explore and Goals pull in the drill-down table and the goal drawer, neither
 // of which the landing section needs.
@@ -166,17 +167,15 @@ function WebAnalyticsSection(props: { tab: WebAnalyticsTab }) {
   )
 
   return (
-    <div className="p-4 md:p-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="text-2xl font-medium">{titles[activeTab]}</div>
-          {/* The dashboard is the section's landing page, so the live count
-              belongs there; on the other tabs it is a second, unrelated period
-              sitting next to a title about the one you chose. */}
-          {activeTab === 'dashboard' && settings?.enabled ? <LiveButton /> : null}
-        </div>
-        {showToolbar && settings && isExplore ? periodControls : null}
-      </div>
+    <div className="flex flex-col gap-3">
+      <PageHeader
+        title={titles[activeTab]}
+        // The dashboard is the section's landing page, so the live count belongs there; on the
+        // other tabs it is a second, unrelated period sitting next to a title about the one you
+        // chose.
+        status={activeTab === 'dashboard' && settings?.enabled ? <LiveButton /> : null}
+        actions={showToolbar && settings && isExplore ? periodControls : null}
+      />
 
       {/* The filters tab configures attribution rather than reading it, so a
           quiet day must not stand between the operator and their rules.

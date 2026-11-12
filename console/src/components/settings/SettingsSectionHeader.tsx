@@ -1,23 +1,17 @@
-import { Divider } from 'antd'
+import { PageHeader } from '../layout'
 
 interface SettingsSectionHeaderProps {
   title: string
   description: string
-  /** Extra classes for the trailing divider, e.g. `!mb-4` to tighten the gap. */
+  /** `page` (default): the title of a settings page, an h1. `section`: a part of one, an h2 under a rule. */
+  level?: 'page' | 'section'
   className?: string
 }
 
-export function SettingsSectionHeader({
-  title,
-  description,
-  className
-}: SettingsSectionHeaderProps) {
-  return (
-    <>
-      <div className="text-2xl font-medium mb-2">{title}</div>
-      <div className="text-gray-500">{description}</div>
-
-      <Divider className={className ? `mb-12 ${className}` : 'mb-12'} />
-    </>
-  )
+/** The title and description of a settings page, or of a section inside one. */
+export function SettingsSectionHeader({ title, description, level = 'page', className }: SettingsSectionHeaderProps) {
+  const classes = [level === 'section' ? 'border-t border-line-soft pt-4' : '', className ?? '']
+    .filter(Boolean)
+    .join(' ')
+  return <PageHeader title={title} description={description} level={level} className={classes || undefined} />
 }

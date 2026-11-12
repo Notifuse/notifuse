@@ -46,6 +46,7 @@ import {
   canEditTransactionalNotification,
   canSendTestEmail
 } from '../services/api/permissions'
+import { PageHeader } from '../components/layout'
 
 const { Title, Paragraph } = Typography
 
@@ -412,20 +413,22 @@ export function TransactionalNotificationsPage() {
   )
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">{t`Transactional Notifications`}</div>
-        {currentWorkspace && hasNotifications && (
-          <Space size="middle">
-            <Segmented
-              options={['7D', '30D', '60D']}
-              value={statsPeriod}
-              onChange={(value) => setStatsPeriod(value as '7D' | '30D' | '60D')}
-            />
-            {createButton}
-          </Space>
-        )}
-      </div>
+    <div className="flex flex-col gap-3">
+      <PageHeader
+        title={t`Transactional Notifications`}
+        actions={
+          currentWorkspace && hasNotifications && (
+            <Space size="middle">
+              <Segmented
+                options={['7D', '30D', '60D']}
+                value={statsPeriod}
+                onChange={(value) => setStatsPeriod(value as '7D' | '30D' | '60D')}
+              />
+              {createButton}
+            </Space>
+          )
+        }
+      />
 
       {isLoadingNotifications ? (
         <div>

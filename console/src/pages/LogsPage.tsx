@@ -1,4 +1,4 @@
-import { Typography, Tabs } from "antd";
+import { Tabs } from "antd";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLingui } from "@lingui/react/macro";
@@ -8,12 +8,11 @@ import { InboundWebhookEventsTab } from "../components/webhooks/InboundWebhookEv
 import { OutgoingWebhooksTab } from "../components/webhooks/OutgoingWebhooksTab";
 import { AuditLogsTab } from "../components/logs/AuditLogsTab";
 import { AuditLogActions } from "../components/logs/AuditLogActions";
+import { PageHeader } from "../components/layout";
 import type { AuditLogTableHandle } from "../components/settings/audit_logs/AuditLogTable";
 import { useAuditLogAccess } from "../hooks/useAuditLogAccess";
 import { useAuth } from "../contexts/AuthContext";
 import { LOGS_TAB } from "../components/logs/logsUrl";
-
-const { Text } = Typography;
 
 export function LogsPage() {
   const { workspaceId } = useParams({ strict: false });
@@ -91,11 +90,11 @@ export function LogsPage() {
   ];
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <div className="text-2xl font-medium">{t`Logs`}</div>
-        <Text type="secondary">{t`Monitor message delivery status, webhook events and the audit trail`}</Text>
-      </div>
+    <div className="flex flex-col gap-3">
+      <PageHeader
+        title={t`Logs`}
+        description={t`Monitor message delivery status, webhook events and the audit trail`}
+      />
 
       <Tabs
         activeKey={activeTab}

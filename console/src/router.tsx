@@ -273,12 +273,16 @@ const workspaceSettingsRedirectRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/settings",
   component: WorkspaceSettingsRedirect,
+  // Declared on the redirect too, so the expanded sidebar and the page margin do not flash
+  // before the first section takes over.
+  staticData: { layout: "rail" },
 });
 
 const workspaceSettingsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/settings/$section",
   component: WorkspaceSettingsPage,
+  staticData: { layout: "rail" },
 });
 
 const workspaceTemplatesRoute = createRoute({
@@ -400,6 +404,7 @@ const workspaceBlogRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/blog",
   component: BlogPage,
+  staticData: { layout: "rail" },
   validateSearch: (search: Record<string, unknown>): BlogSearch => ({
     status: search.status as string | undefined,
     category_id: search.category_id as string | undefined,
@@ -443,5 +448,13 @@ export const router = createRouter({
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
+  }
+  interface StaticDataRouteOption {
+    /**
+     * The page template WorkspaceLayout lays the route out with: `page` (the default) gets the
+     * page padding and the stored sidebar; `rail`, a page with its own left column (Settings,
+     * Blog), gets no padding and a folded sidebar.
+     */
+    layout?: "page" | "rail";
   }
 }

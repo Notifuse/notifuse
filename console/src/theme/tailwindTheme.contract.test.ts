@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
-import { colors, typography, radii, shadows, layout } from './tokens'
+import { colors, typography, radii, shadows, layout, motion } from './tokens'
 
 // Tailwind reads index.css, not tokens.ts, so the @theme block repeats the values by hand.
 // This contract is what keeps the two from drifting.
@@ -58,7 +58,8 @@ function expectedTheme(): Map<string, string> {
     ['--spacing-sidebar-collapsed', px(layout.sidebarCollapsed)],
     ['--spacing-rail', px(layout.rail)],
     ['--spacing-aside', px(layout.aside)],
-    ['--spacing-sidepanel', px(layout.sidepanel)]
+    ['--spacing-sidepanel', px(layout.sidepanel)],
+    ['--animate-pill-pulse', `pill-pulse ${motion.pillPulse / 1000}s ease-in-out infinite`]
   ])
   for (const [step, value] of Object.entries(colors.gray)) expected.set(`--color-gray-${step}`, value)
   for (const [step, value] of Object.entries(colors.primary)) expected.set(`--color-primary-${step}`, value)
@@ -92,8 +93,12 @@ describe('Tailwind @theme contract', () => {
   })
 
   it('declares nothing outside tokens.ts', () => {
-    const extra = [...block.keys()].filter((name) => !expected.has(name) && !name.startsWith('--animate-'))
+    const extra = [...block.keys()].filter((name) => !expected.has(name))
     expect(extra).toEqual([])
+  })
+
+  it('declares the keyframes its animations use', () => {
+    expect(css).toMatch(/@theme\s*\{[\s\S]*@keyframes pill-pulse\s*\{/)
   })
 
   it('drops the duplicate :root variables and the dark colour scheme', () => {

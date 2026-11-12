@@ -14,8 +14,8 @@ test.describe('Workspace Settings Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/team`)
       await waitForLoading(page)
 
-      // Should show settings sidebar (the inner settings one with dark theme)
-      await expect(page.locator('.ant-layout-sider-dark')).toBeVisible()
+      // Should show the settings rail, a navigation named after its title
+      await expect(page.getByRole('navigation', { name: 'Settings' })).toBeVisible()
 
       // Should show "Settings" title
       await expect(page.locator('text=Settings').first()).toBeVisible()
@@ -28,15 +28,24 @@ test.describe('Workspace Settings Feature', () => {
       await waitForLoading(page)
 
       // Click on General settings
-      await page.locator('.ant-menu-item').filter({ hasText: 'General' }).click()
+      await page
+        .getByRole('navigation', { name: 'Settings' })
+        .getByRole('button', { name: 'General', exact: true })
+        .click()
       await expect(page).toHaveURL(/settings\/general/)
 
       // Click on Integrations
-      await page.locator('.ant-menu-item').filter({ hasText: 'Integrations' }).click()
+      await page
+        .getByRole('navigation', { name: 'Settings' })
+        .getByRole('button', { name: 'Integrations', exact: true })
+        .click()
       await expect(page).toHaveURL(/settings\/integrations/)
 
       // Click on Custom Fields
-      await page.locator('.ant-menu-item').filter({ hasText: 'Custom Fields' }).click()
+      await page
+        .getByRole('navigation', { name: 'Settings' })
+        .getByRole('button', { name: 'Custom Fields', exact: true })
+        .click()
       await expect(page).toHaveURL(/settings\/custom-fields/)
     })
 
@@ -120,7 +129,7 @@ test.describe('Workspace Settings Feature', () => {
 
       // Should show General Settings section - look in the content area
       await expect(
-        page.locator('.ant-layout-content').getByText('General Settings').first()
+        page.locator('[data-rail-content]').getByText('General Settings').first()
       ).toBeVisible()
     })
 
@@ -154,7 +163,7 @@ test.describe('Workspace Settings Feature', () => {
 
       // Genuine role fork: owners get the editable form, everyone else the
       // read-only descriptions. Both branches assert, so neither passes silently.
-      const contentArea = page.locator('.ant-layout-content')
+      const contentArea = page.locator('[data-rail-content]')
       const nameInput = contentArea.locator('input[placeholder*="workspace name" i]')
       if ((await nameInput.count()) > 0) {
         // Fill workspace name
@@ -289,7 +298,7 @@ test.describe('Workspace Settings Feature', () => {
       await waitForLoading(page)
 
       // The fixture signs in as a workspace owner, so the danger zone is always rendered.
-      await expect(page.locator('.ant-layout-content').getByText('Danger Zone').first()).toBeVisible()
+      await expect(page.locator('[data-rail-content]').getByText('Danger Zone').first()).toBeVisible()
       await expect(page.getByRole('button', { name: 'Delete Workspace', exact: true })).toBeVisible()
     })
   })
@@ -302,22 +311,22 @@ test.describe('Workspace Settings Feature', () => {
       await waitForLoading(page)
 
       // Target the settings sidebar specifically
-      const settingsSidebar = page.locator('.ant-layout-sider-dark')
+      const settingsSidebar = page.getByRole('navigation', { name: 'Settings' })
 
       // Should show all menu items in settings sidebar
-      await expect(settingsSidebar.locator('.ant-menu-item').filter({ hasText: 'Team' })).toBeVisible()
+      await expect(settingsSidebar.getByRole('button', { name: 'Team', exact: true })).toBeVisible()
       await expect(
-        settingsSidebar.locator('.ant-menu-item').filter({ hasText: 'Integrations' })
+        settingsSidebar.getByRole('button', { name: 'Integrations', exact: true })
       ).toBeVisible()
-      await expect(settingsSidebar.locator('.ant-menu-item').filter({ hasText: 'Blog' })).toBeVisible()
+      await expect(settingsSidebar.getByRole('button', { name: 'Blog', exact: true })).toBeVisible()
       await expect(
-        settingsSidebar.locator('.ant-menu-item').filter({ hasText: 'Custom Fields' })
-      ).toBeVisible()
-      await expect(
-        settingsSidebar.locator('.ant-menu-item').filter({ hasText: 'SMTP Bridge' })
+        settingsSidebar.getByRole('button', { name: 'Custom Fields', exact: true })
       ).toBeVisible()
       await expect(
-        settingsSidebar.locator('.ant-menu-item').filter({ hasText: 'General' })
+        settingsSidebar.getByRole('button', { name: 'SMTP Bridge', exact: true })
+      ).toBeVisible()
+      await expect(
+        settingsSidebar.getByRole('button', { name: 'General', exact: true })
       ).toBeVisible()
     })
 
@@ -327,9 +336,11 @@ test.describe('Workspace Settings Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/general`)
       await waitForLoading(page)
 
-      // General should be selected
-      const generalMenuItem = page.locator('.ant-menu-item').filter({ hasText: 'General' })
-      await expect(generalMenuItem).toHaveClass(/ant-menu-item-selected/)
+      // General should be the current page
+      const generalMenuItem = page
+        .getByRole('navigation', { name: 'Settings' })
+        .getByRole('button', { name: 'General', exact: true })
+      await expect(generalMenuItem).toHaveAttribute('aria-current', 'page')
     })
   })
 

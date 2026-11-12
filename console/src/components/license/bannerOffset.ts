@@ -3,7 +3,7 @@
  *
  * The banner is mounted above workspace selection, in the authenticated shell, because read-only
  * mode is a property of the deployment rather than of a workspace. Everything it has to displace
- * — WorkspaceLayout's fixed header and sider, the workspace picker's fixed panel — is mounted by
+ * — WorkspaceLayout's fixed sidebar, the workspace picker's fixed panel — is mounted by
  * routes rendered underneath it, so a prop cannot reach them.
  *
  * A CSS variable on the document element can. The banner publishes its measured height there;

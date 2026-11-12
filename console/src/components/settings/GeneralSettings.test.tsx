@@ -67,7 +67,7 @@ describe('GeneralSettings', () => {
     fireEvent.change(screen.getByLabelText(/Workspace Name/i), {
       target: { value: 'a'.repeat(33) }
     })
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(
       await screen.findByText('Workspace name must be at most 32 characters long')
@@ -77,15 +77,15 @@ describe('GeneralSettings', () => {
 
   it('renders a read-only view (no editor) when the user is not an owner', () => {
     renderComponent(false)
-    expect(screen.queryByRole('button', { name: /Save Changes/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
     expect(screen.getByText('My WS')).toBeInTheDocument()
   })
 
   it('holds the save bar back until the form is touched', () => {
     renderComponent(true)
     expect(screen.getByLabelText(/Workspace Name/i)).toHaveValue('My WS')
-    expect(screen.queryByRole('button', { name: /Save Changes/i })).toBeNull()
-    expect(screen.queryByText('You have unsaved changes')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
   })
 
   it('raises the save bar as soon as a field changes', () => {
@@ -93,8 +93,8 @@ describe('GeneralSettings', () => {
 
     fireEvent.change(screen.getByLabelText(/Workspace Name/i), { target: { value: 'Renamed WS' } })
 
-    expect(screen.getByText('You have unsaved changes')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Save Changes/i })).toBeEnabled()
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
   })
 
   it('restores the stored values on Discard instead of emptying the form', () => {
@@ -107,14 +107,14 @@ describe('GeneralSettings', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Discard$/i }))
 
     expect(nameInput).toHaveValue('My WS')
-    expect(screen.queryByText('You have unsaved changes')).toBeNull()
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
   })
 
   it('saves the edited settings from the floating bar', async () => {
     renderComponent(true)
 
     fireEvent.change(screen.getByLabelText(/Workspace Name/i), { target: { value: 'Renamed WS' } })
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
       expect(workspaceService.update).toHaveBeenCalledWith(
@@ -157,7 +157,7 @@ describe('GeneralSettings', () => {
     const endpoint = screen.getByLabelText(/Custom Endpoint URL/i)
     expect(endpoint).toHaveValue('https://old.example.com')
     fireEvent.change(endpoint, { target: { value: '' } })
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
     expect(sentSettings().custom_endpoint_url).toBe('')
@@ -167,7 +167,7 @@ describe('GeneralSettings', () => {
     renderComponent(true, makeWorkspace({ custom_endpoint_url: 'https://track.example.com' }))
 
     fireEvent.change(screen.getByLabelText(/Workspace Name/i), { target: { value: 'Renamed WS' } })
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
     expect(sentSettings().custom_endpoint_url).toBe('https://track.example.com')
@@ -177,7 +177,7 @@ describe('GeneralSettings', () => {
     renderComponent(true)
 
     fireEvent.change(screen.getByLabelText(/Workspace Name/i), { target: { value: '' } })
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
       expect(screen.getByText('Please enter workspace name')).toBeInTheDocument()
@@ -205,7 +205,7 @@ describe('GeneralSettings email tracking', () => {
 
     fireEvent.click(screen.getByLabelText(/Email opens tracking/i))
     fireEvent.click(screen.getByLabelText(/Do not track/i))
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
     expect(sentSettings().email_tracking).toEqual({
@@ -229,7 +229,7 @@ describe('GeneralSettings email tracking', () => {
 
     fireEvent.click(screen.getByLabelText(/Email opens tracking/i))
     fireEvent.click(screen.getByLabelText(/Email clicks tracking/i))
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
     expect(sentSettings().email_tracking_enabled).toBe(false)

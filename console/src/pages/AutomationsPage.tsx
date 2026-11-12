@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Row, Col, Typography, Space, App, Empty, Pagination } from 'antd'
+import { Typography, App, Empty, Pagination } from 'antd'
+import { PageHeader } from '../components/layout'
 import { useParams } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PlusOutlined } from '@ant-design/icons'
@@ -147,7 +148,7 @@ export function AutomationsPage() {
 
   if (automationsError) {
     return (
-      <div className="p-6">
+      <div>
         <Title level={4}>{t`Error loading automations`}</Title>
         <p className="text-red-500">{String(automationsError)}</p>
       </div>
@@ -155,32 +156,26 @@ export function AutomationsPage() {
   }
 
   return (
-    <div>
-      <Row justify="space-between" align="middle" className="mb-6">
-        <Col>
-          <Title level={4} style={{ margin: 0 }}>
-            {t`Automations`}
-          </Title>
-        </Col>
-        <Col>
-          <Space>
-            {currentWorkspace && (
-              <UpsertAutomationDrawer
-                workspace={currentWorkspace}
-                lists={lists}
-                segments={segments}
-                templates={templates}
-                buttonProps={{
-                  type: 'primary',
-                  icon: <PlusOutlined />,
-                  disabled: !permissions?.automations?.write
-                }}
-                buttonContent={t`Create Automation`}
-              />
-            )}
-          </Space>
-        </Col>
-      </Row>
+    <div className="flex flex-col gap-3">
+      <PageHeader
+        title={t`Automations`}
+        actions={
+          currentWorkspace && (
+            <UpsertAutomationDrawer
+              workspace={currentWorkspace}
+              lists={lists}
+              segments={segments}
+              templates={templates}
+              buttonProps={{
+                type: 'primary',
+                icon: <PlusOutlined />,
+                disabled: !permissions?.automations?.write
+              }}
+              buttonContent={t`Create Automation`}
+            />
+          )
+        }
+      />
 
       {isLoadingAutomations ? (
         <div className="text-center py-12 text-gray-500">{t`Loading automations...`}</div>

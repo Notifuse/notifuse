@@ -200,16 +200,16 @@ test.describe('Blog Feature', () => {
       await waitForLoading(page)
 
       // Every mocked category is listed in the rail, next to the create entry point.
-      const rail = page.locator('.ant-menu').filter({ hasText: 'All Posts' })
-      await expect(rail.locator('.ant-menu-item').filter({ hasText: 'Engineering' })).toBeVisible()
+      const rail = page.getByRole('navigation', { name: 'Blog' })
+      await expect(rail.getByRole('button', { name: /^Engineering/ })).toBeVisible()
       await expect(
-        rail.locator('.ant-menu-item').filter({ hasText: 'Product Updates' })
+        rail.getByRole('button', { name: /^Product Updates/ })
       ).toBeVisible()
-      await expect(rail.locator('.ant-menu-item').filter({ hasText: 'Company News' })).toBeVisible()
+      await expect(rail.getByRole('button', { name: /^Company News/ })).toBeVisible()
       await expect(page.getByRole('button', { name: 'New Category' })).toBeVisible()
 
       // Picking a category scopes the list to it
-      await rail.locator('.ant-menu-item').filter({ hasText: 'Engineering' }).click()
+      await rail.getByRole('button', { name: /^Engineering/ }).click()
       await expect(page).toHaveURL(/category_id=cat-1/)
       await expect(page.getByRole('heading', { name: 'Engineering' })).toBeVisible()
     })

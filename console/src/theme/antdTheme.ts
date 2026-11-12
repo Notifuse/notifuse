@@ -1,5 +1,5 @@
 import type { ThemeConfig } from 'antd'
-import { alpha, colors as c, typography as t, radii, shadows as s, motion } from './tokens'
+import { alpha, colors as c, typography as t, radii, shadows as s, motion, layout } from './tokens'
 
 const seconds = (ms: number) => `${ms / 1000}s`
 
@@ -64,13 +64,12 @@ export const antdTheme: ThemeConfig = {
     motionDurationSlow: seconds(motion.slow)
   },
   components: {
+    // The console's chrome uses neither Layout.Header nor Layout.Sider; these serve the pages that
+    // still nest an antd Layout.
     Layout: {
       bodyBg: c.canvas,
       headerBg: c.canvas,
-      siderBg: c.surface,
-      lightSiderBg: c.surface,
-      headerHeight: 48,
-      headerPadding: '0 16px 0 20px'
+      lightSiderBg: c.surface
     },
     Menu: {
       itemHeight: 30,
@@ -87,7 +86,10 @@ export const antdTheme: ThemeConfig = {
       itemSelectedBg: c.primary[100],
       itemSelectedColor: c.primary[700],
       groupTitleFontSize: t.size.overline,
-      groupTitleColor: c.ink3
+      groupTitleColor: c.ink3,
+      collapsedWidth: layout.sidebarCollapsed,
+      // No right border on an inline menu: the sidebar draws its own edge.
+      activeBarBorderWidth: 0
     },
     Card: {
       // antd draws the card border (and its header divider) with colorBorderSecondary.

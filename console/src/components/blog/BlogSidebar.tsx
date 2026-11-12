@@ -1,12 +1,9 @@
 import { useLingui } from '@lingui/react/macro'
-import { Menu, Divider, Button, Space } from 'antd'
-import { PlusOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { blogCategoriesApi, BlogCategory } from '../../services/api/blog'
-import { faPenToSquare, faTrashCan } from '@fortawesome/free-regular-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { MissingMetaTagsWarning } from '../seo/MissingMetaTagsWarning'
-import { colors } from '../../theme/tokens'
+import { RailItem, RailSection } from '../layout'
 
 interface BlogSidebarProps {
   workspaceId: string
@@ -17,6 +14,10 @@ interface BlogSidebarProps {
   onDeleteCategory?: (category: BlogCategory) => void
 }
 
+const ACTION =
+  'grid size-5 cursor-pointer place-items-center rounded-sm border-0 bg-transparent text-ink-3 hover:bg-line-soft hover:text-ink focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none'
+
+/** The Blog's left rail: all posts, then one entry per category with its edit and delete actions. */
 export function BlogSidebar({
   workspaceId,
   activeCategoryId,
@@ -33,82 +34,56 @@ export function BlogSidebar({
 
   const categories = categoriesData?.categories ?? []
 
-  const handleEdit = (e: React.MouseEvent, category: BlogCategory) => {
-    e.stopPropagation()
-    onEditCategory?.(category)
-  }
-
-  const handleDelete = (e: React.MouseEvent, category: BlogCategory) => {
-    e.stopPropagation()
-    onDeleteCategory?.(category)
-  }
-
-  const menuItems = [
-    {
-      key: 'all',
-      label: t`All Posts`
-    },
-    ...categories.map((category) => ({
-      key: category.id,
-      label: (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            width: '100%'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span>{category.settings.name}</span>
-            <MissingMetaTagsWarning seo={category.settings.seo} />
-          </div>
-          {(onEditCategory || onDeleteCategory) && (
-            <Space size={4} onClick={(e) => e.stopPropagation()}>
-              {onEditCategory && (
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<FontAwesomeIcon icon={faPenToSquare} />}
-                  onClick={(e) => handleEdit(e, category)}
-                  style={{ padding: '0 4px', height: '20px', fontSize: '12px' }}
-                />
-              )}
-              {onDeleteCategory && (
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<FontAwesomeIcon icon={faTrashCan} />}
-                  onClick={(e) => handleDelete(e, category)}
-                  style={{ padding: '0 4px', height: '20px', fontSize: '12px' }}
-                />
-              )}
-            </Space>
-          )}
-        </div>
-      )
-    }))
-  ]
-
-  const selectedKey = activeCategoryId || 'all'
-
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div className="text-xl font-medium pt-6 pl-6">{t`Categories`}</div>
-      <Divider className="!my-4" />
-      <Menu
-        mode="inline"
-        selectedKeys={[selectedKey]}
-        items={menuItems}
-        onClick={({ key }) => onCategoryChange(key === 'all' ? null : key)}
-        style={{ borderRight: 0, backgroundColor: colors.surface }}
-      />
-      <Divider className="!my-4" />
-      <div className="px-6 pb-6">
-        <Button type="primary" ghost icon={<PlusOutlined />} onClick={onNewCategory} block>
-          {t`New Category`}
-        </Button>
-      </div>
+    <div className="flex flex-col gap-px">
+      <RailItem label={t`All Posts`} active={!activeCategoryId} onClick={() => onCategoryChange(null)} />
+      <RailSection title={t`Categories`} action={{ label: t`New Category`, icon: <Plus size={14} />, onClick: onNewCategory }}>
+        {categories.map((category) => {
+          const name = category.settings.name
+          return (
+            <RailItem
+              key={category.id}
+              label={
+                <span className="inline-flex max-w-full items-center gap-1.5">
+                  <span className="truncate">{name}</span>
+                  <MissingMetaTagsWarning seo={category.settings.seo} />
+                </span>
+              }
+              active={activeCategoryId === category.id}
+              onClick={() => onCategoryChange(category.id)}
+              trailingMode="actions"
+              trailing={
+                onEditCategory || onDeleteCategory ? (
+                  <>
+                    {onEditCategory ? (
+                      <button
+                        type="button"
+                        aria-label={t`Edit ${name}`}
+                        title={t`Edit`}
+                        className={ACTION}
+                        onClick={() => onEditCategory(category)}
+                      >
+                        <Pencil size={12} aria-hidden="true" />
+                      </button>
+                    ) : null}
+                    {onDeleteCategory ? (
+                      <button
+                        type="button"
+                        aria-label={t`Delete ${name}`}
+                        title={t`Delete`}
+                        className={ACTION}
+                        onClick={() => onDeleteCategory(category)}
+                      >
+                        <Trash2 size={12} aria-hidden="true" />
+                      </button>
+                    ) : null}
+                  </>
+                ) : undefined
+              }
+            />
+          )
+        })}
+      </RailSection>
     </div>
   )
 }

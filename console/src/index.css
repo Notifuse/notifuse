@@ -40,6 +40,14 @@
 
   --spacing-sidebar-head: 48px; --spacing-sidebar: 228px; --spacing-sidebar-collapsed: 56px;
   --spacing-rail: 220px;  --spacing-aside: 320px;   --spacing-sidepanel: 520px;
+
+  /* Halo of a pill whose state is live (sending, live visits), drawn around its dot in the dot's
+     own colour. Used under motion-safe: only. */
+  --animate-pill-pulse: pill-pulse 1.6s ease-in-out infinite;
+  @keyframes pill-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 18%, transparent); }
+    50% { box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent); }
+  }
 }
 
 :root {
@@ -82,6 +90,15 @@ samp {
   font-family: var(--font-mono);
 }
 
+/* antd's reset is unlayered too: its margins on h1–h6, p, dl and dd, and its weight 500 on headings
+   and dt, beat Tailwind's m-0 and font-semibold. A heading pushed up by its margin no longer lines up
+   with what sits beside it in a flex row (a page title and its count). The layout components mark
+   such elements with data-unreset, and revert-layer hands those two properties back to the utilities. */
+:where(h1, h2, h3, h4, h5, h6, p, dl, dt, dd)[data-unreset] {
+  margin: revert-layer;
+  font-weight: revert-layer;
+}
+
 .drawer-body-no-padding .ant-drawer-body {
   padding: 0;
 }
@@ -108,16 +125,10 @@ samp {
 }
 /* ---------------------------------------------------------------------------
    Workspace sidebar
-   The panel itself never scrolls: the logo and the footer are fixed rows and
-   only the nav between them overflows. That is what keeps menu items from
-   sliding under the collapse button, and keeps the scrollbar out of it.
+   The sidebar itself never scrolls: the logo, the workspace switcher and the
+   footer are fixed rows and only the nav between them overflows. That keeps
+   menu items from sliding under the footer, and keeps the scrollbar out of it.
 --------------------------------------------------------------------------- */
-.workspace-sider > .ant-layout-sider-children {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
 @property --nav-fade-top {
   syntax: '<length>';
   inherits: false;
@@ -130,13 +141,15 @@ samp {
   initial-value: 0px;
 }
 
-.workspace-sider-nav {
+.app-sidebar-nav {
   --nav-fade-size: 28px;
   flex: 1 1 auto;
   /* A flex item refuses to shrink below its content height without this, so
      the overflow would escape the nav instead of scrolling inside it. */
   min-height: 0;
   overflow-y: auto;
+  /* A folded menu item's tooltip anchor must not open a sideways scroll. */
+  overflow-x: hidden;
   /* Hitting either end stops there rather than scrolling the page behind. */
   overscroll-behavior: contain;
   /* Reserve the gutter so expanding a submenu doesn't shift the labels. */
@@ -163,9 +176,15 @@ samp {
    inactive when its container doesn't overflow, which leaves both fades at
    their 0px initial value — as does a browser without scroll-driven
    animations, so the nav simply renders unfaded there. */
+/* Folded, the 56px have no room for a reserved gutter: a classic scrollbar
+   would take it from the icons. */
+.app-sidebar-nav.is-collapsed {
+  scrollbar-gutter: auto;
+}
+
 @supports (animation-timeline: scroll()) {
-  .workspace-sider-nav {
-    animation-name: workspace-nav-fade-top, workspace-nav-fade-bottom;
+  .app-sidebar-nav {
+    animation-name: app-sidebar-nav-fade-top, app-sidebar-nav-fade-bottom;
     animation-timing-function: linear;
     animation-fill-mode: both;
     animation-timeline: scroll(self block);
@@ -173,7 +192,7 @@ samp {
   }
 }
 
-@keyframes workspace-nav-fade-top {
+@keyframes app-sidebar-nav-fade-top {
   from {
     --nav-fade-top: 0px;
   }
@@ -182,7 +201,7 @@ samp {
   }
 }
 
-@keyframes workspace-nav-fade-bottom {
+@keyframes app-sidebar-nav-fade-bottom {
   from {
     --nav-fade-bottom: var(--nav-fade-size);
   }
