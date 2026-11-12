@@ -226,3 +226,12 @@ describe('templates read catalogue', () => {
     )
   })
 })
+
+// broadcasts.estimateAudience answers to broadcasts read, plus lists read (and segments read
+// for an audience with segments), checked by the service.
+describe('broadcasts permission descriptor', () => {
+  it('names the audience estimate among the read endpoints', () => {
+    const endpoints = PERMISSION_DESCRIPTORS.broadcasts.read.endpoints.map((e) => e.endpoint)
+    expect(endpoints).toContain('/api/broadcasts.estimateAudience')
+  })
+})

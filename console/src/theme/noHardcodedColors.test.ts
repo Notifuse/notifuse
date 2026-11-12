@@ -15,7 +15,7 @@ const MIGRATED = [
   'components/settings/SettingsSidebar.tsx',
   'components/blog/BlogSidebar.tsx',
   'components/automations/nodes/BaseNode.tsx',
-  'components/broadcasts/BroadcastLinkStats.tsx',
+  'components/broadcasts/detail/LinkStatsPanel.tsx',
   'components/web_analytics/CountryMapView.tsx',
   'components/web_analytics/TrafficHeatmapWidget.tsx',
   'components/web_analytics/lib/types.ts'

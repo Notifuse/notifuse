@@ -17,6 +17,8 @@ export interface List {
   double_optin_template?: TemplateReference
   created_at: string
   updated_at: string
+  /** With `with_counts`: the contacts subscribed to the list (active). */
+  active_count?: number
 }
 
 export interface CreateListRequest {
@@ -32,6 +34,8 @@ export interface CreateListRequest {
 export interface GetListsRequest {
   workspace_id: string
   with_templates?: boolean
+  /** Adds each list's `active_count`. */
+  with_counts?: boolean
 }
 
 export interface GetListRequest {
@@ -124,6 +128,7 @@ export const listsApi = {
 
     // Add required param
     searchParams.append('workspace_id', params.workspace_id)
+    if (params.with_counts) searchParams.append('with_counts', 'true')
 
     return api.get<GetListsResponse>(`/api/lists.list?${searchParams.toString()}`)
   },

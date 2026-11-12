@@ -6,7 +6,8 @@ import {
   BROADCAST_EXPLORE_DIMENSIONS,
   BROADCAST_MIN_SESSIONS,
   WEB_ANALYTICS_TAB_ROUTE,
-  buildBroadcastAnalyticsLinks
+  buildBroadcastAnalyticsLinks,
+  broadcastAttributionWindow
 } from './broadcastLinks'
 
 const NOW = dayjs('2026-08-20T12:00:00Z')
@@ -155,5 +156,47 @@ describe('campaign encoding', () => {
     expect(JSON.parse(parsed.filters as string)).toEqual([
       { dimension: 'utm_campaign', operator: 'equals', values: ['weekly_newsletter_4'] }
     ])
+  })
+})
+
+describe('broadcastAttributionWindow', () => {
+  const day = (d: dayjs.Dayjs) => d.format('YYYY-MM-DD HH:mm')
+
+  it('runs from the start day to completion plus the conversion days', () => {
+    const window = broadcastAttributionWindow(
+      { started_at: '2026-08-01T09:30:00Z', completed_at: '2026-08-01T10:00:00Z' },
+      'UTC',
+      NOW
+    )!
+    expect(day(window.start)).toBe('2026-08-01 00:00')
+    expect(day(window.end)).toBe(`2026-08-0${1 + BROADCAST_CONVERSION_WINDOW_DAYS} 10:00`)
+  })
+
+  it('runs to now when the broadcast has not completed', () => {
+    const window = broadcastAttributionWindow({ started_at: '2026-08-19T09:30:00Z' }, 'UTC', NOW)!
+    expect(window.end.toISOString()).toBe(NOW.toISOString())
+  })
+
+  it('is capped at now', () => {
+    const window = broadcastAttributionWindow(
+      { started_at: '2026-08-18T09:30:00Z', completed_at: '2026-08-18T10:00:00Z' },
+      'UTC',
+      NOW
+    )!
+    expect(window.end.toISOString()).toBe(NOW.toISOString())
+  })
+
+  it('never ends before its start', () => {
+    const window = broadcastAttributionWindow({ started_at: '2026-08-21T09:30:00Z' }, 'UTC', NOW)!
+    expect(window.end.isBefore(window.start)).toBe(false)
+  })
+
+  it('starts on the local day of the workspace', () => {
+    const window = broadcastAttributionWindow({ started_at: '2026-08-10T23:30:00Z' }, 'Europe/Paris', NOW)!
+    expect(window.start.format('YYYY-MM-DD HH:mm')).toBe('2026-08-11 00:00')
+  })
+
+  it('is null before the broadcast started', () => {
+    expect(broadcastAttributionWindow({}, 'UTC', NOW)).toBeNull()
   })
 })
