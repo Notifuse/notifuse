@@ -2,21 +2,56 @@
 @import "./components/email_builder/editor.css";
 @import "./styles/reactflow.css";
 @theme {
-  --color-primary: #7763f1;
+  --font-sans: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Neutrals. They replace Tailwind's gray scale so existing gray-* classes take the Nuit claire
+     tint without rewriting them. Every value here mirrors src/theme/tokens.ts, which
+     src/theme/tailwindTheme.contract.test.ts checks. */
+  --color-gray-50: #f8f9fb;  --color-gray-100: #f1f2f6; --color-gray-200: #e1e3ea;
+  --color-gray-300: #cdd0da; --color-gray-400: #9095a7; --color-gray-500: #666c81;
+  --color-gray-600: #545a6e; --color-gray-700: #3d4255; --color-gray-800: #262a38;
+  --color-gray-900: #171923;
+  --color-canvas: #f3f4f7; --color-surface: #ffffff; --color-subtle: #f8f9fb; --color-fill: #f1f2f6;
+  --color-line: #e1e3ea;   --color-line-soft: #eceef3;
+  --color-ink: #171923; --color-ink-2: #545a6e; --color-ink-3: #666c81; --color-ink-4: #9095a7;
+  --color-primary-50: #f5f4ff;  --color-primary-100: #efedff; --color-primary-300: #c9c4ff;
+  --color-primary-400: #8c82ff; --color-primary-500: #6a5af9; --color-primary-600: #5b4beb;
+  --color-primary-700: #4b3fd6; --color-primary: #6a5af9;
+  --color-brand-pink: #e91e63;
+  --color-neutral-bg: #f1f2f6; --color-neutral-fg: #545a6e;
+  --color-info-bg: #eaf2fe;    --color-info-fg: #1d4ed8;
+  --color-success-bg: #e9f7ef; --color-success-fg: #15803d;
+  --color-warning-bg: #fff4e5; --color-warning-fg: #b45309;
+  --color-danger-bg: #fdecec;  --color-danger-fg: #b91c1c;
+
+  --text-overline: 10.5px; --text-overline--line-height: 1.3;
+  --text-2xs: 11.5px;      --text-2xs--line-height: 1.3;
+  --text-xs: 12px;         --text-xs--line-height: 1.4;
+  --text-sm: 12.5px;       --text-sm--line-height: 1.45;
+  --text-base: 13px;       --text-base--line-height: 1.45;
+  --text-subtitle: 15px;   --text-subtitle--line-height: 1.35;
+  --text-kpi: 17px;        --text-kpi--line-height: 1.35;
+  --text-title: 18px;      --text-title--line-height: 1.3;
+
+  --radius-xs: 3px; --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px;
+  --shadow-card: 0 1px 2px rgb(17 19 30 / .04);
+  --shadow-popup: 0 8px 24px -6px rgb(17 19 30 / .18), 0 0 0 1px rgb(17 19 30 / .06);
+
+  --spacing-sidebar-head: 48px; --spacing-sidebar: 228px; --spacing-sidebar-collapsed: 56px;
+  --spacing-rail: 220px;  --spacing-aside: 320px;   --spacing-sidepanel: 520px;
 }
 
 :root {
-  --background: rgb(243, 246, 252);
-  --foreground: #171717;
-  --primary: #7763f1;
-
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  /* Tailwind's preflight is layered and antd's reset.css sets `html { font-family: sans-serif }`
+     unlayered, so the stack is restated here for what renders outside antd's App (portals). */
+  font-family: var(--font-sans);
+  line-height: 1.45;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: var(--background);
+  color-scheme: light;
+  color: var(--color-ink);
+  background-color: var(--color-canvas);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -24,49 +59,17 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-/* .drawer-no-transition .ant-drawer-content-wrapper {
-  transition: none !important;
-} */
-
-.ant-table-tbody>tr:hover>td, .tr-hover:hover>td {
-  border-bottom: 1px solid rgba(78, 108, 255, 0.4) !important;
-}
-
-/* Contacts table: fixed left (email) and right (actions) columns need an
- * opaque background so scrolling content doesn't bleed through. Use enough
- * selector specificity to beat antd's own `.ant-table-cell.ant-table-cell-fix-*`
- * rules (0,2,0), otherwise the cells render transparent and horizontal scroll
- * content shows through underneath. */
-td.ant-table-cell.contacts-fixed-col,
-th.ant-table-cell.contacts-fixed-col {
-  background-color: #F9F9F9;
-}
-.ant-table-tbody > tr:hover > td.ant-table-cell.contacts-fixed-col {
-  background-color: #F9F9F9;
-}
-/* antd v6 emits its tokens as CSS variables by default and puts them on every
- * component root, so the selected-row color is finally readable by name here
- * instead of being pinned to a literal; the old literal stays as the fallback
- * in case the variable is ever turned off. `.ant-table-row` is in the selector
- * because v6 added that class to its own selected-row rule — without it ours
- * no longer outranks antd's and the fixed column keeps the grey above. */
-.ant-table-tbody > tr.ant-table-row.ant-table-row-selected > td.ant-table-cell.contacts-fixed-col,
-.ant-table-tbody > tr.ant-table-row.ant-table-row-selected:hover > td.ant-table-cell.contacts-fixed-col {
-  background-color: var(--ant-control-item-bg-active, rgb(244, 240, 255));
+/* Inside antd's App, anchors already take colorLink; this covers the ones rendered outside it.
+   In the base layer so a Tailwind text utility on an anchor still wins. */
+@layer base {
+  a {
+    font-weight: 500;
+    color: var(--color-primary-600);
+    text-decoration: inherit;
+  }
+  a:hover {
+    color: var(--color-primary-700);
+  }
 }
 
 .drawer-body-no-padding .ant-drawer-body {
@@ -91,47 +94,6 @@ th.ant-table-cell.contacts-fixed-col {
 .vertical-tabs .ant-tabs-nav {
   padding-top: 32px;
 }
-/* Tags read as a fill, not an outline. Three quarters of the call sites
- * already pass `bordered={false}`, so this is what makes the rest match
- * instead of leaving two looks side by side in one cell. Transparent rather
- * than `none` keeps the 1px box, so nothing reflows; !important because antd
- * injects its component styles at runtime, after this file. */
-.ant-tag {
-  border-color: transparent !important;
-}
-
-/* Custom Alert styling with left border */
-.ant-alert {
-  border: none !important;
-  border-left: 3px solid transparent !important;
-}
-
-.ant-alert.ant-alert-info {
-  border-left-color: #1890ff !important;
-}
-
-.ant-alert.ant-alert-success {
-  border-left-color: #52c41a !important;
-}
-
-.ant-alert.ant-alert-warning {
-  border-left-color: #faad14 !important;
-}
-
-.ant-alert.ant-alert-error {
-  border-left-color: #ff4d4f !important;
-}
-
-/* Required mark inscreses the line height of the form item creating discrepancy when using 2 columns.
- * This mirrors antd's own selector for the asterisk minus the generated hash class it
- * scopes with: that hash changes with every antd release and is not even emitted in
- * production builds, so naming it here would only ever match one dev build. Equal
- * specificity is enough to win because antd prepends its runtime styles above this file. */
-.ant-form-item .ant-form-item-label > label.ant-form-item-required::before {
-  font-family: inherit;
-}
-
-
 /* ---------------------------------------------------------------------------
    Workspace sidebar
    The panel itself never scrolls: the logo and the footer are fixed rows and
@@ -215,15 +177,4 @@ th.ant-table-cell.contacts-fixed-col {
   to {
     --nav-fade-bottom: 0px;
   }
-}
-
-/* The path to the best-performing combination in the explore report.
- *
- * An inset shadow rather than a border-left: a real border would add 4px to
- * the cell and shift every highlighted row's text out of line with the rest.
- * The colour is the top of the TimeScore heat scale — hue 142 + 38 in
- * getHeatMapColor — so the bar and the best row's dot are the same green-cyan
- * rather than two unrelated accents. */
-.ant-table-tbody > tr.best-timescore-row > td:first-child {
-  box-shadow: inset 4px 0 0 0 hsl(180, 70%, 50%);
 }

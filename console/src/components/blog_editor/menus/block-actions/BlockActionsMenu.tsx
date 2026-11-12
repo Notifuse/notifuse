@@ -125,6 +125,7 @@ export function BlockActionsMenu() {
         <InsertBlockButton editor={editor} node={blockNode} nodePos={blockPos} />
 
         <Dropdown
+          rootClassName="block-actions-dropdown"
           menu={{ items: menuItems }}
           open={optionsVisible}
           onOpenChange={setOptionsVisible}

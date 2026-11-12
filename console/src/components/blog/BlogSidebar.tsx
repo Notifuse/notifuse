@@ -6,6 +6,7 @@ import { blogCategoriesApi, BlogCategory } from '../../services/api/blog'
 import { faPenToSquare, faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { MissingMetaTagsWarning } from '../seo/MissingMetaTagsWarning'
+import { colors } from '../../theme/tokens'
 
 interface BlogSidebarProps {
   workspaceId: string
@@ -100,7 +101,7 @@ export function BlogSidebar({
         selectedKeys={[selectedKey]}
         items={menuItems}
         onClick={({ key }) => onCategoryChange(key === 'all' ? null : key)}
-        style={{ borderRight: 0, backgroundColor: '#F9F9F9' }}
+        style={{ borderRight: 0, backgroundColor: colors.surface }}
       />
       <Divider className="!my-4" />
       <div className="px-6 pb-6">

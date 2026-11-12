@@ -1,3 +1,5 @@
+import { colors } from '../../../theme/tokens'
+
 // Shared types for the web analytics console. Field names mirror
 // internal/domain/web_analytics_schemas.go so a dimension or measure id can be
 // pasted straight into an analytics query.
@@ -135,8 +137,8 @@ export interface MetricConfig {
   tooltip?: string
 }
 
-export const COMPARISON_COLOR = '#9ca3af'
-export const PRIMARY_COLOR = '#7763f1'
+export const COMPARISON_COLOR = colors.chart.comparison
+export const PRIMARY_COLOR = colors.chart.primary
 export const POSITIVE_COLOR = '#10b981'
 export const NEGATIVE_COLOR = '#f97316'
 

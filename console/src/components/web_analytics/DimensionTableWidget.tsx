@@ -301,9 +301,9 @@ function DimensionRowsTable(props: RowsTableProps) {
                 {column.label}
                 {props.sortBy === column.key ? (
                   props.sortDirection === 'desc' ? (
-                    <ArrowDown size={12} className="text-[var(--primary)]" />
+                    <ArrowDown size={12} className="text-primary" />
                   ) : (
-                    <ArrowUp size={12} className="text-[var(--primary)]" />
+                    <ArrowUp size={12} className="text-primary" />
                   )
                 ) : (
                   <ArrowDown size={12} className="opacity-0" />
@@ -337,7 +337,7 @@ function DimensionRowsTable(props: RowsTableProps) {
                 <td className="relative px-4">
                   <div
                     aria-hidden
-                    className="absolute inset-y-1 left-2 rounded bg-[var(--primary)] opacity-[0.06]"
+                    className="absolute inset-y-1 left-2 rounded bg-primary opacity-[0.06]"
                     style={{
                       width: leadValue
                         ? `${Math.max((Number(row[props.sortBy] ?? 0) / leadValue) * 100, 2)}%`

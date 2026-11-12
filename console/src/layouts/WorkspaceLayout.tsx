@@ -486,7 +486,7 @@ export function WorkspaceLayout() {
 
   return (
     <ContactsCsvUploadProvider>
-      <Layout style={{ minHeight: '100vh', backgroundColor: '#F9F9F9' }}>
+      <Layout style={{ minHeight: '100vh' }}>
         <Layout>
           <Sider
             width={250}
@@ -501,8 +501,7 @@ export function WorkspaceLayout() {
               // The nav inside owns the scrolling; the panel must not also
               // scroll, or the logo and the collapse button travel with it.
               overflow: 'hidden',
-              zIndex: 10,
-              backgroundColor: '#F9F9F9'
+              zIndex: 10
             }}
             collapsible
             collapsed={collapsed}
@@ -535,7 +534,6 @@ export function WorkspaceLayout() {
                 onOpenChange={handleOpenChange}
                 style={{
                   borderRight: 0,
-                  backgroundColor: '#F9F9F9',
                   fontSize: '13px',
                   // Item labels are <Link> anchors, which index.css pins to 500.
                   // Submenu titles are plain text and inherit this instead, so it
@@ -550,8 +548,7 @@ export function WorkspaceLayout() {
               style={{
                 flex: '0 0 auto',
                 padding: '16px',
-                borderTop: '1px solid #f0f0f0',
-                backgroundColor: '#F9F9F9'
+                borderTop: '1px solid #f0f0f0'
               }}
             >
               <div
@@ -582,7 +579,9 @@ export function WorkspaceLayout() {
               right: 0,
               width: `calc(100% - ${collapsed ? '80px' : '250px'})`,
               height: '64px',
-              backgroundColor: '#F9F9F9',
+              // The theme's Layout.headerHeight (48) also sets the header's line height;
+              // this bar keeps its 64px until the new chrome replaces it.
+              lineHeight: '64px',
               borderBottom: '1px solid #f0f0f0',
               padding: '0 24px',
               display: 'flex',
@@ -715,11 +714,10 @@ export function WorkspaceLayout() {
               marginLeft: collapsed ? '80px' : '250px',
               marginTop: withBannerOffset('64px'),
               padding: isSettingsPage ? '0' : '24px',
-              transition: 'margin-left 0.2s',
-              backgroundColor: '#F9F9F9'
+              transition: 'margin-left 0.2s'
             }}
           >
-            <Content style={{ backgroundColor: '#F9F9F9' }}>
+            <Content>
               <FileManagerProvider
                 key={`fm-${workspaceId}-${!userPermissions?.templates?.write}`}
                 settings={workspaces.find((w) => w.id === workspaceId)?.settings.file_manager}

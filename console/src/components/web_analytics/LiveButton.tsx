@@ -37,7 +37,7 @@ export function LiveButton() {
     <Link
       to="/console/workspace/$workspaceId/web-analytics/live"
       params={{ workspaceId }}
-      className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600 hover:border-[var(--primary)]"
+      className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600 hover:border-primary"
     >
       <span className="relative flex h-2 w-2">
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />

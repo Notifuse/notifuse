@@ -246,7 +246,7 @@ function FilterPicker(props: {
               onClick={() => setOperator(candidate)}
               className={
                 candidate === operator
-                  ? 'rounded bg-[var(--primary)] px-2 py-0.5 text-xs text-white'
+                  ? 'rounded bg-primary px-2 py-0.5 text-xs text-white'
                   : 'rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-200'
               }
             >
@@ -303,7 +303,7 @@ function FilterPicker(props: {
               onClick={() => setOperator(candidate)}
               className={
                 candidate === operator
-                  ? 'rounded bg-[var(--primary)] px-2 py-0.5 text-xs text-white'
+                  ? 'rounded bg-primary px-2 py-0.5 text-xs text-white'
                   : 'rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-200'
               }
             >
@@ -336,7 +336,7 @@ function FilterPicker(props: {
       <div className="mt-2 max-h-80 overflow-y-auto">
         {groups.map((group) => (
           <div key={group.category} className="mb-2">
-            <div className="px-1 py-1 text-[10px] font-semibold uppercase text-[var(--primary)]">
+            <div className="px-1 py-1 text-[10px] font-semibold uppercase text-primary">
               {categoryLabels[group.category] ?? group.category}
             </div>
             {group.dimensions.map((candidate) => (
@@ -357,7 +357,7 @@ function FilterPicker(props: {
         ))}
         {props.allowMetricFilters ? (
           <div className="mb-2">
-            <div className="px-1 py-1 text-[10px] font-semibold uppercase text-[var(--primary)]">
+            <div className="px-1 py-1 text-[10px] font-semibold uppercase text-primary">
               {t`Metrics`}
             </div>
             {FILTERABLE_METRICS.filter((candidate) => !usedMetrics.has(candidate)).map(

@@ -47,6 +47,11 @@ describe('BlockThumb', () => {
     expect(screen.getByText('Spring sale')).toBeInTheDocument()
   })
 
+  it('renders customer content under the canvas rules, like the canvas does', () => {
+    renderThumb()
+    expect(screen.getByText('Spring sale').closest('.email-canvas')).not.toBeNull()
+  })
+
   it('is inert, hidden from assistive technology and never focusable', () => {
     renderThumb()
     const thumb = screen.getByTestId('block-thumb')
