@@ -7,10 +7,10 @@ import { treeUsesSource } from '../../segment/tree_completeness'
 import type { TreeNode } from '../../../services/api/segment'
 import { listsApi } from '../../../services/api/list'
 import { listSegments } from '../../../services/api/segment'
-import { OptionSelector } from '../../ui/OptionSelector'
 import BroadcastSelectorInput from '../../segment/BroadcastSelectorInput'
 import TemplateSelectorInput from '../../templates/TemplateSelectorInput'
 import type { Workspace } from '../../../services/api/types'
+import { EVENT_KIND_OPTIONS } from '../describeTrigger'
 
 // Kinds that fire often enough that a condition is worth a word about cost: it runs for every
 // matching row written to contact_timeline.
@@ -61,6 +61,8 @@ interface TriggerConfigFormProps {
   workspace?: Workspace
   // Without Templates read the template filter shows the stored ID, locked. Defaults to true.
   canReadTemplates?: boolean
+  /** Read-only: a field that sets its own `disabled` ignores the panel's ConfigProvider. */
+  readOnly?: boolean
 }
 
 export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
@@ -68,57 +70,22 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
   onChange,
   workspaceId,
   workspace,
-  canReadTemplates = true
+  canReadTemplates = true,
+  readOnly = false
 }) => {
   const { t } = useLingui()
 
-  // Cascader options for event kinds
-  const EVENT_KIND_CASCADER_OPTIONS = useMemo(() => [
-    {
-      value: 'contact',
-      label: t`Contact`,
-      children: [
-        { value: 'contact.created', label: t`Created` },
-        { value: 'contact.updated', label: t`Updated` },
-        { value: 'contact.deleted', label: t`Deleted` }
-      ]
-    },
-    {
-      value: 'list',
-      label: t`List`,
-      children: [
-        { value: 'list.subscribed', label: t`Subscribed` },
-        { value: 'list.unsubscribed', label: t`Unsubscribed` },
-        { value: 'list.confirmed', label: t`Confirmed` },
-        { value: 'list.resubscribed', label: t`Resubscribed` },
-        { value: 'list.bounced', label: t`Bounced` },
-        { value: 'list.complained', label: t`Complained` },
-        { value: 'list.pending', label: t`Pending` },
-        { value: 'list.removed', label: t`Removed` }
-      ]
-    },
-    {
-      value: 'segment',
-      label: t`Segment`,
-      children: [
-        { value: 'segment.joined', label: t`Joined` },
-        { value: 'segment.left', label: t`Left` }
-      ]
-    },
-    {
-      value: 'email',
-      label: t`Email`,
-      children: [
-        { value: 'email.opened', label: t`Opened` },
-        { value: 'email.clicked', label: t`Clicked` },
-        { value: 'email.link_clicked', label: t`Clicked a link` },
-        { value: 'email.bounced', label: t`Bounced` },
-        { value: 'email.complained', label: t`Complained` },
-        { value: 'email.unsubscribed', label: t`Unsubscribed` }
-      ]
-    },
-    { value: 'custom_event', label: t`Custom Event` }
-  ], [t])
+  // Cascader options for event kinds, shared with the list's trigger labels.
+  const { i18n } = useLingui()
+  const EVENT_KIND_CASCADER_OPTIONS = useMemo(
+    () =>
+      EVENT_KIND_OPTIONS.map((option) => ({
+        value: option.value,
+        label: i18n._(option.label),
+        children: option.children?.map((child) => ({ value: child.value, label: i18n._(child.label) }))
+      })),
+    [i18n]
+  )
 
   // Build contact field options with custom labels from workspace settings
   const contactFieldOptions = useMemo(
@@ -236,10 +203,6 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
 
   const handleCustomEventNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange({ ...config, custom_event_name: e.target.value })
-  }
-
-  const handleFrequencyChange = (value: 'once' | 'every_time') => {
-    onChange({ ...config, frequency: value })
   }
 
   const handleUpdatedFieldsChange = (value: string[]) => {
@@ -417,29 +380,11 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
               placeholder={t`Any template`}
               clearable={true}
               canReadTemplates={canReadTemplates}
+              disabled={readOnly}
             />
           </Form.Item>
         </>
       )}
-
-      <Form.Item label={t`Frequency`} required>
-        <OptionSelector
-          value={config.frequency || 'once'}
-          onChange={handleFrequencyChange}
-          options={[
-            {
-              value: 'once',
-              label: t`Once per contact`,
-              description: t`Each contact enters the automation only once`
-            },
-            {
-              value: 'every_time',
-              label: t`Every time`,
-              description: t`Contact re-enters each time the event occurs`
-            }
-          ]}
-        />
-      </Form.Item>
 
       <ConditionsField
         title={t`Entry conditions`}
@@ -469,7 +414,6 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
           </>
         }
       />
-
     </Form>
   )
 }

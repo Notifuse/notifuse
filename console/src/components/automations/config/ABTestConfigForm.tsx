@@ -7,6 +7,8 @@ import type { ABTestNodeConfig, ABTestVariant } from '../../../services/api/auto
 interface ABTestConfigFormProps {
   config: ABTestNodeConfig
   onChange: (config: ABTestNodeConfig) => void
+  /** Read-only: a field that sets its own `disabled` ignores the panel's ConfigProvider. */
+  readOnly?: boolean
 }
 
 const VARIANT_IDS = ['A', 'B', 'C', 'D']
@@ -18,7 +20,7 @@ const DEFAULT_VARIANTS: ABTestVariant[] = [
   { id: 'B', name: 'Variant B', weight: 50, next_node_id: '' }
 ]
 
-export const ABTestConfigForm: React.FC<ABTestConfigFormProps> = ({ config, onChange }) => {
+export const ABTestConfigForm: React.FC<ABTestConfigFormProps> = ({ config, onChange, readOnly = false }) => {
   const { t } = useLingui()
   const variants = config?.variants?.length > 0 ? config.variants : DEFAULT_VARIANTS
 
@@ -142,7 +144,7 @@ export const ABTestConfigForm: React.FC<ABTestConfigFormProps> = ({ config, onCh
                 type="text"
                 icon={<DeleteOutlined />}
                 onClick={() => handleRemoveVariant(index)}
-                disabled={variants.length <= MIN_VARIANTS}
+                disabled={readOnly || variants.length <= MIN_VARIANTS}
                 danger
               />
             </div>
