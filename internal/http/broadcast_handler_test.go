@@ -314,7 +314,7 @@ func TestHandleGet(t *testing.T) {
 			UpdatedAt: time.Now(),
 		}
 		mockTemplateService.EXPECT().
-			GetTemplateByID(gomock.Any(), "workspace123", "template123", gomock.Any()).
+			GetTemplateByID(gomock.Any(), "workspace123", "template123", int64(0)).
 			Return(template, nil)
 
 		// Create request with WithTemplates=true
@@ -356,7 +356,7 @@ func TestHandleGet(t *testing.T) {
 		// Setup mock template service to return an error
 		templateError := errors.New("template error")
 		mockTemplateService.EXPECT().
-			GetTemplateByID(gomock.Any(), "workspace123", "template123", gomock.Any()).
+			GetTemplateByID(gomock.Any(), "workspace123", "template123", int64(0)).
 			Return(nil, templateError)
 
 		// Setup mock for logger.WithFields and the warning

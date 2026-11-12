@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 
+- **Feature**: The API counts what uses each template with the new `templates.usage` endpoint (broadcasts that may still send, transactional notifications, automations and double opt-in lists), and lists them for one template. It counts posts by status and category with the new `blogPosts.counts` endpoint; `blogPosts.list` lists the posts still to come with `status=scheduled` and searches titles with `search`; `workspaces.members` returns each member's `name`.
+
+- **Improvement**: `blogPosts.list` answers 400 instead of 500 for an invalid status.
+
 - **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.
 
 - **Improvement**: Opens and clicks on an email whose contact was deleted are no longer recorded. The link still redirects.
@@ -54,6 +58,10 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Blocks can now be dragged into empty columns, sections, wrappers, groups and social blocks, wrappers get a drag handle, and a section dragged below nested content finds its place without a sideways move. While dragging, moving the pointer left or right picks the level where the block goes, and the line shows that level. Moving, adding, duplicating or deleting a column keeps the other columns' proportions when their widths are percentages adding up to 100.
 
+- **Fix**: The file manager now lists up to 10,000 files of the bucket instead of the first 1,000, says when there are more, and shows folders created outside Notifuse.
+
+- **Fix**: Deleting a folder in the file manager now deletes its files too.
+
 - **Fix**: Emails sent in a template's translation now leave from the sender chosen on the template, with its reply-to, instead of the email integration's default sender with no reply-to. Emails already queued before the upgrade keep the sender they were queued with.
 
 - **Fix**: A transactional email sent with `email_options.reply_to`, or relayed through the SMTP bridge with a `Reply-To` header, now uses that address even when its template has a reply-to of its own.
@@ -68,9 +76,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: The email editor no longer gives a new group a width of 100%, unless the template's default attributes give groups one, so it takes its share of the section, and the canvas shows each group at the width the email gives it. The Width field of a group shows that share when it is empty. Adding, moving, duplicating or deleting a group in a section resizes the section's columns to the room the groups leave, keeping their proportions.
 
-- **Fix**: The file manager now lists up to 10,000 files of the bucket instead of the first 1,000, says when there are more, and shows folders created outside Notifuse.
-
-- **Fix**: Deleting a folder in the file manager now deletes its files too.
+- **Fix**: `broadcasts.get` with `with_templates=true` now returns the latest version of each variation's template, the one that is sent, instead of its first version.
 
 ## [43.0] - 2026-11-07
 

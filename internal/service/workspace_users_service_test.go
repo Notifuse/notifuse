@@ -1921,3 +1921,81 @@ func TestWorkspaceService_InviteMember_RejectsRootEmail(t *testing.T) {
 	assert.Empty(t, token)
 	assert.Contains(t, err.Error(), "platform admin")
 }
+
+func TestWorkspaceService_GetWorkspaceMembersWithEmail_Names(t *testing.T) {
+	ctx := context.Background()
+	workspaceID := "workspace1"
+	now := time.Now().UTC()
+
+	newService := func(t *testing.T, cfg *config.Config) (*WorkspaceService, *mocks.MockWorkspaceRepository, *mocks.MockUserServiceInterface, *mocks.MockAuthService) {
+		ctrl := gomock.NewController(t)
+		mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+		mockUserSvc := mocks.NewMockUserServiceInterface(ctrl)
+		mockAuthSvc := mocks.NewMockAuthService(ctrl)
+		service := NewWorkspaceService(
+			mockRepo,
+			mocks.NewMockUserRepository(ctrl),
+			mocks.NewMockTaskRepository(ctrl),
+			mockLogger,
+			mockUserSvc,
+			mockAuthSvc,
+			pkgmocks.NewMockMailer(ctrl),
+			cfg,
+			mocks.NewMockContactService(ctrl),
+			mocks.NewMockListService(ctrl),
+			mocks.NewMockContactListService(ctrl),
+			mocks.NewMockTemplateService(ctrl),
+			mocks.NewMockWebhookRegistrationService(ctrl),
+			"secret_key",
+			&SupabaseService{},
+			&DNSVerificationService{},
+			&BlogService{},
+			fullyLicensedProvider(ctrl),
+		)
+		return service, mockRepo, mockUserSvc, mockAuthSvc
+	}
+
+	t.Run("the reduced response keeps the caller's name", func(t *testing.T) {
+		service, mockRepo, _, mockAuthSvc := newService(t, &config.Config{})
+		mockAuthSvc.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: "user1"}, &domain.UserWorkspace{UserID: "user1", WorkspaceID: workspaceID, Role: "member"}, nil)
+		mockRepo.EXPECT().GetWorkspaceUsersWithEmail(ctx, workspaceID).Return([]*domain.UserWorkspaceWithEmail{
+			{UserWorkspace: domain.UserWorkspace{UserID: "owner1", Role: "owner"}, Email: "owner@example.com", Name: "Grace Hopper"},
+			{UserWorkspace: domain.UserWorkspace{UserID: "user1", Role: "member"}, Email: "user1@example.com", Name: "Ada Lovelace"},
+		}, nil)
+
+		members, err := service.GetWorkspaceMembersWithEmail(ctx, workspaceID)
+		require.NoError(t, err)
+		require.Len(t, members, 1)
+		assert.Equal(t, "Ada Lovelace", members[0].Name)
+	})
+
+	t.Run("an invitation has no name and a platform admin row carries its name", func(t *testing.T) {
+		service, mockRepo, mockUserSvc, mockAuthSvc := newService(t, &config.Config{RootEmail: "root@example.com"})
+		mockAuthSvc.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).
+			Return(ctx, &domain.User{ID: "owner1"}, &domain.UserWorkspace{UserID: "owner1", WorkspaceID: workspaceID, Role: "owner"}, nil)
+		mockRepo.EXPECT().GetWorkspaceUsersWithEmail(ctx, workspaceID).Return([]*domain.UserWorkspaceWithEmail{
+			{UserWorkspace: domain.UserWorkspace{UserID: "owner1", Role: "owner"}, Email: "owner@example.com", Name: "Grace Hopper"},
+		}, nil)
+		mockRepo.EXPECT().GetWorkspaceInvitations(ctx, workspaceID).Return([]*domain.WorkspaceInvitation{
+			{ID: "inv1", WorkspaceID: workspaceID, Email: "invited@example.com", ExpiresAt: now.Add(time.Hour), CreatedAt: now, UpdatedAt: now},
+		}, nil)
+		mockUserSvc.EXPECT().GetUserByEmail(ctx, "root@example.com").
+			Return(&domain.User{ID: "root1", Email: "root@example.com", Name: "Root Admin"}, nil)
+
+		members, err := service.GetWorkspaceMembersWithEmail(ctx, workspaceID)
+		require.NoError(t, err)
+		names := map[string]string{}
+		for _, m := range members {
+			names[m.Email] = m.Name
+		}
+		assert.Equal(t, map[string]string{
+			"owner@example.com":   "Grace Hopper",
+			"invited@example.com": "",
+			"root@example.com":    "Root Admin",
+		}, names)
+	})
+}

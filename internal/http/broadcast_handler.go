@@ -148,8 +148,8 @@ func (h *BroadcastHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		// Use the same logic as in ListBroadcasts to fetch templates
 		for i, variation := range broadcast.TestSettings.Variations {
 			if variation.TemplateID != "" {
-				// Fetch the template for this variation
-				template, err := h.templateSvc.GetTemplateByID(r.Context(), req.WorkspaceID, variation.TemplateID, 1)
+				// Latest version (0), the one that is sent, as ListBroadcasts does
+				template, err := h.templateSvc.GetTemplateByID(r.Context(), req.WorkspaceID, variation.TemplateID, 0)
 				if err != nil {
 					h.logger.WithFields(map[string]interface{}{
 						"error":        err,
