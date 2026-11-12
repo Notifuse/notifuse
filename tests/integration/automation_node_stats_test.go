@@ -202,9 +202,11 @@ func TestAutomationNodeStats(t *testing.T) {
 		assert.Nil(t, statsA.Nodes[delay].Email, "only an email step has email counters")
 	})
 
-	// The retry: the first webhook call fails, the journey waits for its retry.
+	// The retry: the first webhook call fails, the journey waits for its retry. The executor
+	// marks the attempt failed before handleError writes the failed-attempt row, so a read in
+	// between sees the journey retrying with no failed attempt yet: wait for both.
 	statsB := waitForStats(t, automationB, "a webhook retry", func(s domain.NodeStatsResponse) bool {
-		return s.Nodes[webhook] != nil && s.Nodes[webhook].Retrying == 1
+		return s.Nodes[webhook] != nil && s.Nodes[webhook].Retrying == 1 && s.Nodes[webhook].FailedAttempts == 1
 	})
 
 	t.Run("a failed attempt: retrying while it waits, counted once", func(t *testing.T) {
