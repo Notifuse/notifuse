@@ -135,7 +135,7 @@ export const toStorageItems = (
 
   const items = withKeys.map((object) => toStorageItem(object, baseUrl))
   for (const [prefix, lastModified] of implicit) {
-    items.push(toStorageItem({ Key: prefix, LastModified: lastModified }, baseUrl))
+    items.push({ ...toStorageItem({ Key: prefix, LastModified: lastModified }, baseUrl), implicit: true })
   }
   return items
 }
@@ -143,6 +143,9 @@ export const toStorageItems = (
 export interface DeleteFolderResult {
   deleted: number
   failed: number
+  // The same counts without the folder markers, for a message that speaks of files.
+  deletedFiles: number
+  failedFiles: number
 }
 
 // deleteFolder deletes every object under a folder prefix, its marker included, one
@@ -167,18 +170,20 @@ export const deleteFolder = async (
     throw new Error(`The storage did not return the whole content of "${prefix}"`)
   }
 
-  let deleted = 0
-  let failed = 0
+  const result: DeleteFolderResult = { deleted: 0, failed: 0, deletedFiles: 0, failedFiles: 0 }
   for (const object of objects) {
     // A provider that ignored Prefix must not make this delete objects outside the folder.
     if (!object.Key?.startsWith(prefix)) continue
+    const isFile = !object.Key.endsWith('/')
     try {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: object.Key }))
-      deleted++
+      result.deleted++
+      if (isFile) result.deletedFiles++
     } catch (error) {
       console.error(`Failed to delete ${object.Key}:`, error)
-      failed++
+      result.failed++
+      if (isFile) result.failedFiles++
     }
   }
-  return { deleted, failed }
+  return result
 }

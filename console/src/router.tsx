@@ -42,6 +42,7 @@ import { createRouter } from "@tanstack/react-router";
 import type { TrackingConsentFilter } from "./services/api/contacts";
 import {
   parseBlogSearch,
+  parseFileManagerSearch,
   parseSettingsSearch,
   parseTemplatesSearch,
 } from "./lib/searchParams";
@@ -107,10 +108,6 @@ export interface AcceptInvitationSearch {
   token?: string;
 }
 
-export interface FileManagerSearch {
-  path?: string;
-}
-
 export interface BroadcastsSearch {
   status?: string;
   q?: string;
@@ -141,7 +138,7 @@ export function validateBroadcastsSearch(search: Record<string, unknown>): Broad
   };
 }
 
-export type { BlogSearch, TemplatesSearch } from "./lib/searchParams";
+export type { BlogSearch, FileManagerSearch, TemplatesSearch } from "./lib/searchParams";
 
 // Create the root route
 const rootRoute = createRootRoute({
@@ -247,9 +244,8 @@ export const workspaceFileManagerRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/file-manager",
   component: FileManagerPage,
-  validateSearch: (search: Record<string, unknown>): FileManagerSearch => ({
-    path: search.path as string | undefined,
-  }),
+  staticData: { layout: "rail" },
+  validateSearch: parseFileManagerSearch,
 });
 
 const workspaceTransactionalNotificationsRoute = createRoute({

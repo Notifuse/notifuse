@@ -72,3 +72,21 @@ export function parseBlogSearch(search: Record<string, unknown>): BlogSearch {
     ...(q === undefined ? {} : { q })
   }
 }
+
+/** Search of `/file-manager`: the open folder and the previewed file. */
+export interface FileManagerSearch {
+  path?: string
+  file?: string
+}
+
+export function parseFileManagerSearch(search: Record<string, unknown>): FileManagerSearch {
+  const rawPath = searchString(search.path)
+  // A folder is a prefix ending with "/" and never starting with one: "docs" opens "docs/".
+  const trimmed = rawPath?.replace(/^\/+/, '')
+  const path = trimmed ? (trimmed.endsWith('/') ? trimmed : trimmed + '/') : undefined
+  const file = searchString(search.file)
+  return {
+    ...(path === undefined ? {} : { path }),
+    ...(file === undefined ? {} : { file })
+  }
+}

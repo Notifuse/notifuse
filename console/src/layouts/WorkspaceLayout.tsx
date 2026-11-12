@@ -197,6 +197,7 @@ export function WorkspaceLayout() {
           <div data-page-content className={pageLayout === 'page' ? 'px-5 pt-4 pb-6' : undefined}>
             <FileManagerProvider
               key={`fm-${workspaceId}-${!userPermissions?.templates?.write}`}
+              workspaceId={workspaceId}
               settings={workspaces.find((w) => w.id === workspaceId)?.settings.file_manager}
               onUpdateSettings={handleUpdateWorkspaceSettings}
               readOnly={!userPermissions?.templates?.write}

@@ -177,6 +177,13 @@ describe('toStorageItems', () => {
     )
   })
 
+  it('marks the folders that exist without a marker', () => {
+    const items = toStorageItems([obj('a/'), obj('a/b/c.png')], settings)
+
+    expect(items.find((i) => i.key === 'a/')?.implicit).toBeUndefined()
+    expect(items.find((i) => i.key === 'a/b/')?.implicit).toBe(true)
+  })
+
   it('does not duplicate a folder that has its marker', () => {
     const items = toStorageItems([obj('a/'), obj('a/c.png')], settings)
 
@@ -210,7 +217,7 @@ describe('deleteFolder', () => {
 
     const result = await deleteFolder(client, 'media', 'a/')
 
-    expect(result).toEqual({ deleted: 3, failed: 0 })
+    expect(result).toEqual({ deleted: 3, failed: 0, deletedFiles: 2, failedFiles: 0 })
     expect(listInputs(send).every((input) => input.Prefix === 'a/')).toBe(true)
     const deletedKeys = send.mock.calls
       .map(([command]) => command)
@@ -253,7 +260,7 @@ describe('deleteFolder', () => {
 
     const result = await deleteFolder(client, 'media', 'a/')
 
-    expect(result).toEqual({ deleted: 2, failed: 1 })
+    expect(result).toEqual({ deleted: 2, failed: 1, deletedFiles: 2, failedFiles: 1 })
   })
 
   it('deletes past the cap of the listing', async () => {
@@ -262,7 +269,7 @@ describe('deleteFolder', () => {
 
     const result = await deleteFolder(client, 'media', 'a/')
 
-    expect(result).toEqual({ deleted: MAX_OBJECTS + 1, failed: 0 })
+    expect(result).toMatchObject({ deleted: MAX_OBJECTS + 1, failed: 0 })
   })
 
   it('deletes nothing when the storage cuts the listing short', async () => {
@@ -279,7 +286,7 @@ describe('deleteFolder', () => {
 
     const result = await deleteFolder(client, 'media', 'a/')
 
-    expect(result).toEqual({ deleted: 1, failed: 0 })
+    expect(result).toEqual({ deleted: 1, failed: 0, deletedFiles: 1, failedFiles: 0 })
     const deletedKeys = send.mock.calls
       .map(([command]) => command)
       .filter((command): command is DeleteObjectCommand => command instanceof DeleteObjectCommand)
