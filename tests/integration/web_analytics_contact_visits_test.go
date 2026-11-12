@@ -45,7 +45,7 @@ func TestWebAnalyticsContactVisits(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// Sessions in this month and in the previous one: two monthly partitions.
+	// The monthly partitions of every session below: the current month, and earlier ones.
 	now := time.Now().UTC().Truncate(time.Second)
 	previousMonth := time.Date(now.Year(), now.Month(), 1, 12, 0, 0, 0, time.UTC).AddDate(0, 0, -10)
 	for _, month := range []time.Time{now, now.Add(-2 * time.Hour), previousMonth} {
