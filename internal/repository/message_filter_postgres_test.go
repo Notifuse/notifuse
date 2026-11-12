@@ -105,7 +105,7 @@ func TestMessageHistoryRepository_CountMessages(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db, nil)
 		where := list[len("SELECT id FROM message_history"):]
 		require.Len(t, listArgs, 2)
-		mock.ExpectQuery(regexp.QuoteMeta(countMessagesSelect + where)).
+		mock.ExpectQuery(regexp.QuoteMeta(countMessagesSelect+where)).
 			WithArgs("b1", driver.Value(after)).
 			WillReturnRows(sqlmock.NewRows([]string{"total", "delivered", "opened", "clicked", "bounced", "failed", "complained"}).
 				AddRow(0, 0, 0, 0, 0, 0, 0))
@@ -118,7 +118,7 @@ func TestMessageHistoryRepository_CountMessages(t *testing.T) {
 		mockWorkspaceRepo2, repo2, mock2, db2, cleanup2 := setupMessageHistoryTest(t)
 		defer cleanup2()
 		mockWorkspaceRepo2.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db2, nil)
-		mock2.ExpectQuery(regexp.QuoteMeta(where + ` ORDER BY created_at DESC, id DESC LIMIT 21`)).
+		mock2.ExpectQuery(regexp.QuoteMeta(where+` ORDER BY created_at DESC, id DESC LIMIT 21`)).
 			WithArgs("b1", driver.Value(after)).
 			WillReturnError(errors.New("stop"))
 		params := domain.MessageListParams{Limit: 20, BroadcastID: "b1", IsOpened: &yes, Origin: domain.MessageOriginBroadcast, CreatedAfter: &after}
