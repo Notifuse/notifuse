@@ -194,4 +194,25 @@ describe('AutomationProvider Templates read', () => {
 
     expect(screen.getByTestId('probe')).toHaveTextContent(String(canRead))
   })
+
+  // The permissions load after the page: an editor opened before then must unlock once they do.
+  it('follows the permission once it loads', () => {
+    const queryClient = new QueryClient()
+    const tree = (canRead: boolean) => (
+      <QueryClientProvider client={queryClient}>
+        <I18nProvider i18n={i18n}>
+          <App>
+            <AutomationProvider workspace={workspace} lists={[]} canReadTemplates={canRead}>
+              <TemplatesReadProbe />
+            </AutomationProvider>
+          </App>
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    const { rerender } = render(tree(false))
+    expect(screen.getByTestId('probe')).toHaveTextContent('false')
+
+    rerender(tree(true))
+    expect(screen.getByTestId('probe')).toHaveTextContent('true')
+  })
 })

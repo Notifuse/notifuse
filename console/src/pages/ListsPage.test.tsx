@@ -11,13 +11,17 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 const state = vi.hoisted(() => ({
-  permissions: {} as Record<string, { read: boolean; write: boolean }>,
+  permissions: {} as Record<string, { read: boolean; write: boolean }> | null,
+  permissionsLoading: false,
   lists: [] as Record<string, unknown>[]
 }))
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({ workspaces: [{ id: 'ws1', name: 'Workspace' }] }),
-  useWorkspacePermissions: () => ({ permissions: state.permissions })
+  useWorkspacePermissions: () => ({
+    permissions: state.permissions,
+    loading: state.permissionsLoading
+  })
 }))
 
 // The icon is the only content of the delete button; render something a test can find.
@@ -198,6 +202,7 @@ describe('ListsPage without Templates read', () => {
     state.lists = [
       { ...newsletter, is_double_optin: true, double_optin_template: { id: 'tpl-optin', version: 2 } }
     ]
+    state.permissionsLoading = false
   })
 
   const drawerFlags = () =>
@@ -222,6 +227,17 @@ describe('ListsPage without Templates read', () => {
     )
     expect(screen.queryByText('tpl-optin')).toBeNull()
     expect(drawerFlags()).toEqual(['true', 'true'])
+  })
+
+  it('shows neither the ID nor a preview request while the permissions load', async () => {
+    state.permissions = null
+    state.permissionsLoading = true
+    renderPage()
+
+    expect(await screen.findByText('Newsletter')).toBeInTheDocument()
+    expect(screen.queryByText('tpl-optin')).toBeNull()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(templatesApi.get).not.toHaveBeenCalled()
   })
 
   it('passes the permission to the drawer of an empty page', async () => {

@@ -70,7 +70,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Create Notification is now disabled, and Edit hidden, on the transactional notifications page for members without Templates read: creating offered a template picker they could not load, and saving an edit was refused. Editing a notification managed by an integration stays available with Transactional write alone. Its edit drawer then shows the template's ID, with a note that Templates read is needed to see the template, instead of an empty field, and the page no longer requests templates without Templates read.
 
-- **Fix**: A member without Templates read now sees the template's ID, with a lock saying that Templates read is needed, instead of an empty field or "Untitled", in a list's double opt-in template, a broadcast's templates, an automation's email nodes and a segment's email conditions, and these screens no longer request templates such a member cannot read.
+- **Fix**: A member without Templates read now sees the template's ID instead of an empty field or "Untitled" in a list's double opt-in template, a broadcast's templates, an automation's email nodes and a segment's email conditions, and these screens no longer request templates such a member cannot read. The template fields carry a lock saying that Templates read is needed.
 
 - **Fix**: `transactional.update`, `transactional.delete` and `templates.delete` now answer 400 with the reason, instead of 500, when they refuse to change the name or channels of a notification managed by an integration, or to delete such a notification or template. `templates.delete` also answers a missing permission with 403 and a revoked API key with 401, as the other endpoints do, instead of 500.
 

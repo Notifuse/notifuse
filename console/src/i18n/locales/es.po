@@ -1504,7 +1504,7 @@ msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "¿Estás seguro de que quieres eliminar la invitación para {0}?"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:418
+#: src/pages/ListsPage.tsx:424
 msgid "Are you sure you want to delete the list \"{0}\"?"
 msgstr "¿Estás seguro de que quieres eliminar la lista \"{0}\"?"
 
@@ -2584,7 +2584,7 @@ msgstr "Campañas"
 #: src/pages/BroadcastsPage.tsx:710
 #: src/pages/BroadcastsPage.tsx:1081
 #: src/pages/BroadcastsPage.tsx:1826
-#: src/pages/ListsPage.tsx:402
+#: src/pages/ListsPage.tsx:408
 #: src/pages/TemplatesPage.tsx:369
 #: src/pages/TransactionalNotificationsPage.tsx:155
 msgid "Cancel"
@@ -2997,8 +2997,8 @@ msgstr "El secreto de cliente es obligatorio"
 msgid "Client Secret Value"
 msgstr "Valor del secreto de cliente"
 
-#: src/components/templates/TemplateSelectorInput.tsx:248
-#: src/components/templates/TemplateSelectorInput.tsx:250
+#: src/components/templates/TemplateSelectorInput.tsx:249
+#: src/components/templates/TemplateSelectorInput.tsx:251
 msgid "Clone"
 msgstr "Clonar"
 
@@ -3804,7 +3804,7 @@ msgid "Create my own"
 msgstr "Crear el mío"
 
 #. placeholder {0}: category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:287
+#: src/components/templates/TemplateSelectorInput.tsx:288
 msgid "Create New {0} Template"
 msgstr "Crear nueva plantilla {0}"
 
@@ -3824,7 +3824,7 @@ msgstr "Crear nueva lista"
 msgid "Create New Post"
 msgstr "Crear nueva publicación"
 
-#: src/components/templates/TemplateSelectorInput.tsx:288
+#: src/components/templates/TemplateSelectorInput.tsx:289
 msgid "Create New Template"
 msgstr "Crear nueva plantilla"
 
@@ -3889,7 +3889,7 @@ msgstr "Crea tu primer envío masivo para comenzar"
 msgid "Create Your First Category"
 msgstr "Crea tu primera categoría"
 
-#: src/pages/ListsPage.tsx:385
+#: src/pages/ListsPage.tsx:391
 msgid "Create your first list to get started"
 msgstr "Crea tu primera lista para comenzar"
 
@@ -4373,7 +4373,7 @@ msgstr "Retraso"
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
 #: src/pages/BroadcastsPage.tsx:1836
 #: src/pages/ContactsPage.tsx:975
-#: src/pages/ListsPage.tsx:412
+#: src/pages/ListsPage.tsx:418
 msgid "Delete"
 msgstr "Eliminar"
 
@@ -4526,7 +4526,7 @@ msgid "Delete invitation"
 msgstr "Eliminar invitación"
 
 #: src/pages/ListsPage.tsx:283
-#: src/pages/ListsPage.tsx:397
+#: src/pages/ListsPage.tsx:403
 msgid "Delete List"
 msgstr "Eliminar lista"
 
@@ -5746,7 +5746,7 @@ msgstr "Introduce la URL del enlace o {{ url }}"
 msgid "Enter list description"
 msgstr "Introduce la descripción de la lista"
 
-#: src/pages/ListsPage.tsx:424
+#: src/pages/ListsPage.tsx:430
 msgid "Enter list ID to confirm"
 msgstr "Introduce el ID de la lista para confirmar"
 
@@ -7492,7 +7492,7 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "El ID solo puede contener letras minúsculas, números y guiones bajos"
 
 #: src/pages/BroadcastsPage.tsx:1867
-#: src/pages/ListsPage.tsx:430
+#: src/pages/ListsPage.tsx:436
 msgid "ID doesn't match"
 msgstr "El ID no coincide"
 
@@ -9425,7 +9425,7 @@ msgstr "Sin datos de campañas"
 msgid "No categories yet"
 msgstr "Sin categorías aún"
 
-#: src/components/templates/TemplateSelectorInput.tsx:265
+#: src/components/templates/TemplateSelectorInput.tsx:266
 msgid "No category"
 msgstr "Sin categoría"
 
@@ -9576,7 +9576,7 @@ msgstr "Aún no se han registrado clics en enlaces para esta variación"
 msgid "No list"
 msgstr "Sin lista"
 
-#: src/pages/ListsPage.tsx:383
+#: src/pages/ListsPage.tsx:389
 msgid "No lists found"
 msgstr "No se encontraron listas"
 
@@ -9714,13 +9714,13 @@ msgstr "Sin datos de fuentes"
 msgid "No specific details provided."
 msgstr "No se proporcionaron detalles específicos."
 
-#: src/components/templates/TemplateSelectorInput.tsx:275
+#: src/components/templates/TemplateSelectorInput.tsx:276
 #: src/pages/TemplatesPage.tsx:458
 msgid "No templates found"
 msgstr "No se encontraron plantillas"
 
 #. placeholder {0}: category.replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:274
+#: src/components/templates/TemplateSelectorInput.tsx:275
 msgid "No templates found for {0} category"
 msgstr "No se encontraron plantillas para la categoría {0}"
 
@@ -10995,6 +10995,7 @@ msgstr "Presiona Enter para confirmar, Escape para cancelar"
 
 #: src/pages/ListsPage.tsx:89
 #: src/pages/ListsPage.tsx:98
+#: src/pages/ListsPage.tsx:367
 msgid "preview"
 msgstr "vista previa"
 
@@ -12432,7 +12433,7 @@ msgstr "Indexación de motores de búsqueda"
 msgid "Search saved blocks"
 msgstr "Buscar bloques guardados"
 
-#: src/components/templates/TemplateSelectorInput.tsx:200
+#: src/components/templates/TemplateSelectorInput.tsx:201
 msgid "Search templates..."
 msgstr "Buscar plantillas..."
 
@@ -12574,7 +12575,7 @@ msgstr "Segmentos"
 #: src/components/file_manager/fileManager.tsx:955
 #: src/components/settings/BlogSettings.tsx:360
 #: src/components/settings/BlogSettings.tsx:376
-#: src/components/templates/TemplateSelectorInput.tsx:255
+#: src/components/templates/TemplateSelectorInput.tsx:256
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 #: src/pages/BroadcastsPage.tsx:1088
 msgid "Select"
@@ -12851,7 +12852,7 @@ msgstr "Selecciona los idiomas admitidos"
 msgid "Select template"
 msgstr "Seleccionar plantilla"
 
-#: src/components/templates/TemplateSelectorInput.tsx:190
+#: src/components/templates/TemplateSelectorInput.tsx:191
 msgid "Select Template"
 msgstr "Seleccionar plantilla"
 
@@ -14764,7 +14765,7 @@ msgstr "Esta acción no se puede deshacer."
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "Esta acción no se puede deshacer. Para confirmar, por favor introduce el ID del envío masivo:"
 
-#: src/pages/ListsPage.tsx:420
+#: src/pages/ListsPage.tsx:426
 msgid "This action cannot be undone. To confirm, please enter the list ID:"
 msgstr "Esta acción no se puede deshacer. Para confirmar, por favor introduce el ID de la lista:"
 

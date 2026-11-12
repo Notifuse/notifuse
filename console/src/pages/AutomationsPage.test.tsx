@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
@@ -25,7 +25,8 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 const state = vi.hoisted(() => ({
-  permissions: {} as Record<string, { read: boolean; write: boolean }>
+  permissions: {} as Record<string, { read: boolean; write: boolean }>,
+  automations: [] as Record<string, unknown>[]
 }))
 
 vi.mock('../contexts/AuthContext', () => ({
@@ -34,7 +35,15 @@ vi.mock('../contexts/AuthContext', () => ({
 }))
 
 // Keep the page render shallow — these children are exercised by their own tests.
-vi.mock('../components/automations/AutomationCard', () => ({ AutomationCard: () => null }))
+vi.mock('../components/automations/AutomationCard', () => ({
+  AutomationCard: ({
+    automation,
+    onEdit
+  }: {
+    automation: { id: string }
+    onEdit: (automation: { id: string }) => void
+  }) => <button onClick={() => onEdit(automation)}>edit {automation.id}</button>
+}))
 vi.mock('../components/automations/UpsertAutomationDrawer', () => ({
   UpsertAutomationDrawer: ({ canReadTemplates }: { canReadTemplates: boolean }) => (
     <span data-testid="automation-drawer" data-can-read-templates={String(canReadTemplates)} />
@@ -46,7 +55,11 @@ vi.mock('../services/api/template', () => ({
   templatesApi: { list: (...args: unknown[]) => templatesList(...args) }
 }))
 vi.mock('../services/api/automation', () => ({
-  automationApi: { list: vi.fn().mockResolvedValue({ automations: [], total: 0 }) },
+  automationApi: {
+    list: vi.fn(() =>
+      Promise.resolve({ automations: state.automations, total: state.automations.length })
+    )
+  },
   Automation: class {}
 }))
 vi.mock('../services/api/list', () => ({
@@ -74,6 +87,7 @@ const renderPage = () => {
 describe('AutomationsPage template reference query', () => {
   beforeEach(() => {
     templatesList.mockClear()
+    state.automations = []
     state.permissions = {
       automations: { read: true, write: true },
       templates: { read: true, write: false }
@@ -104,7 +118,10 @@ describe('AutomationsPage template reference query', () => {
 // Without Templates read, templates.list answers 403: the page does not request it, so the canvas
 // names templates by ID, and the drawers lock their template fields.
 describe('AutomationsPage without Templates read', () => {
-  beforeEach(() => templatesList.mockClear())
+  beforeEach(() => {
+    templatesList.mockClear()
+    state.automations = []
+  })
 
   const drawerFlags = () =>
     screen.getAllByTestId('automation-drawer').map((el) => el.getAttribute('data-can-read-templates'))
@@ -113,7 +130,8 @@ describe('AutomationsPage without Templates read', () => {
     state.permissions = { automations: { read: true, write: true } }
     renderPage()
 
-    expect(new Set(drawerFlags())).toEqual(new Set(['false']))
+    // The header's and the empty page's create drawers.
+    await waitFor(() => expect(drawerFlags()).toEqual(['false', 'false']))
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(templatesList).not.toHaveBeenCalled()
   })
@@ -126,6 +144,22 @@ describe('AutomationsPage without Templates read', () => {
     renderPage()
 
     await waitFor(() => expect(templatesList).toHaveBeenCalled())
-    expect(new Set(drawerFlags())).toEqual(new Set(['true']))
+    await waitFor(() => expect(drawerFlags()).toEqual(['true', 'true']))
+  })
+
+  it.each([
+    { read: false, passed: 'false' },
+    { read: true, passed: 'true' }
+  ])('passes Templates read $read to the edit drawer', async ({ read, passed }) => {
+    state.permissions = {
+      automations: { read: true, write: true },
+      templates: { read, write: false }
+    }
+    state.automations = [{ id: 'auto-1', name: 'Welcome' }]
+    renderPage()
+
+    fireEvent.click(await screen.findByText('edit auto-1'))
+    // The header's create drawer, then the edit drawer.
+    await waitFor(() => expect(drawerFlags()).toEqual([passed, passed]))
   })
 })

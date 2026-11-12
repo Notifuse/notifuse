@@ -1504,7 +1504,7 @@ msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "Esteu segur que voleu eliminar la invitació per a {0}?"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:418
+#: src/pages/ListsPage.tsx:424
 msgid "Are you sure you want to delete the list \"{0}\"?"
 msgstr "Esteu segur que voleu eliminar la llista \"{0}\"?"
 
@@ -2584,7 +2584,7 @@ msgstr "Campanyes"
 #: src/pages/BroadcastsPage.tsx:710
 #: src/pages/BroadcastsPage.tsx:1081
 #: src/pages/BroadcastsPage.tsx:1826
-#: src/pages/ListsPage.tsx:402
+#: src/pages/ListsPage.tsx:408
 #: src/pages/TemplatesPage.tsx:369
 #: src/pages/TransactionalNotificationsPage.tsx:155
 msgid "Cancel"
@@ -2997,8 +2997,8 @@ msgstr "El Client Secret és obligatori"
 msgid "Client Secret Value"
 msgstr "Valor del Client Secret"
 
-#: src/components/templates/TemplateSelectorInput.tsx:248
-#: src/components/templates/TemplateSelectorInput.tsx:250
+#: src/components/templates/TemplateSelectorInput.tsx:249
+#: src/components/templates/TemplateSelectorInput.tsx:251
 msgid "Clone"
 msgstr "Clonar"
 
@@ -3804,7 +3804,7 @@ msgid "Create my own"
 msgstr "Crear-ne un de propi"
 
 #. placeholder {0}: category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:287
+#: src/components/templates/TemplateSelectorInput.tsx:288
 msgid "Create New {0} Template"
 msgstr "Crear nova plantilla {0}"
 
@@ -3824,7 +3824,7 @@ msgstr "Crear nova llista"
 msgid "Create New Post"
 msgstr "Crear nova publicació"
 
-#: src/components/templates/TemplateSelectorInput.tsx:288
+#: src/components/templates/TemplateSelectorInput.tsx:289
 msgid "Create New Template"
 msgstr "Crear nova plantilla"
 
@@ -3889,7 +3889,7 @@ msgstr "Creeu la vostra primera difusió per començar"
 msgid "Create Your First Category"
 msgstr "Creeu la vostra primera categoria"
 
-#: src/pages/ListsPage.tsx:385
+#: src/pages/ListsPage.tsx:391
 msgid "Create your first list to get started"
 msgstr "Creeu la vostra primera llista per començar"
 
@@ -4373,7 +4373,7 @@ msgstr "Retard"
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
 #: src/pages/BroadcastsPage.tsx:1836
 #: src/pages/ContactsPage.tsx:975
-#: src/pages/ListsPage.tsx:412
+#: src/pages/ListsPage.tsx:418
 msgid "Delete"
 msgstr "Eliminar"
 
@@ -4526,7 +4526,7 @@ msgid "Delete invitation"
 msgstr "Eliminar invitació"
 
 #: src/pages/ListsPage.tsx:283
-#: src/pages/ListsPage.tsx:397
+#: src/pages/ListsPage.tsx:403
 msgid "Delete List"
 msgstr "Eliminar llista"
 
@@ -5746,7 +5746,7 @@ msgstr "Introduïu URL de l'enllaç o {{ url }}"
 msgid "Enter list description"
 msgstr "Introduïu descripció de la llista"
 
-#: src/pages/ListsPage.tsx:424
+#: src/pages/ListsPage.tsx:430
 msgid "Enter list ID to confirm"
 msgstr "Introduïu l'ID de la llista per confirmar"
 
@@ -7492,7 +7492,7 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "L'ID només pot contenir lletres minúscules, números i guions baixos"
 
 #: src/pages/BroadcastsPage.tsx:1867
-#: src/pages/ListsPage.tsx:430
+#: src/pages/ListsPage.tsx:436
 msgid "ID doesn't match"
 msgstr "L'ID no coincideix"
 
@@ -9425,7 +9425,7 @@ msgstr "No hi ha dades de campanya"
 msgid "No categories yet"
 msgstr "Encara no hi ha categories"
 
-#: src/components/templates/TemplateSelectorInput.tsx:265
+#: src/components/templates/TemplateSelectorInput.tsx:266
 msgid "No category"
 msgstr "Sense categoria"
 
@@ -9576,7 +9576,7 @@ msgstr "Encara no s'ha registrat cap clic en enllaços per a aquesta variació"
 msgid "No list"
 msgstr "Sense llista"
 
-#: src/pages/ListsPage.tsx:383
+#: src/pages/ListsPage.tsx:389
 msgid "No lists found"
 msgstr "No s'han trobat llistes"
 
@@ -9714,13 +9714,13 @@ msgstr "No hi ha dades de font"
 msgid "No specific details provided."
 msgstr "No s'han proporcionat detalls específics."
 
-#: src/components/templates/TemplateSelectorInput.tsx:275
+#: src/components/templates/TemplateSelectorInput.tsx:276
 #: src/pages/TemplatesPage.tsx:458
 msgid "No templates found"
 msgstr "No s'han trobat plantilles"
 
 #. placeholder {0}: category.replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:274
+#: src/components/templates/TemplateSelectorInput.tsx:275
 msgid "No templates found for {0} category"
 msgstr "No s'han trobat plantilles per a la categoria {0}"
 
@@ -10995,6 +10995,7 @@ msgstr "Premeu Enter per confirmar, Escape per cancel·lar"
 
 #: src/pages/ListsPage.tsx:89
 #: src/pages/ListsPage.tsx:98
+#: src/pages/ListsPage.tsx:367
 msgid "preview"
 msgstr "Previsualitzar"
 
@@ -12432,7 +12433,7 @@ msgstr "Indexació de motors de cerca"
 msgid "Search saved blocks"
 msgstr "Cerca blocs desats"
 
-#: src/components/templates/TemplateSelectorInput.tsx:200
+#: src/components/templates/TemplateSelectorInput.tsx:201
 msgid "Search templates..."
 msgstr "Cercar plantilles..."
 
@@ -12574,7 +12575,7 @@ msgstr "Segments"
 #: src/components/file_manager/fileManager.tsx:955
 #: src/components/settings/BlogSettings.tsx:360
 #: src/components/settings/BlogSettings.tsx:376
-#: src/components/templates/TemplateSelectorInput.tsx:255
+#: src/components/templates/TemplateSelectorInput.tsx:256
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 #: src/pages/BroadcastsPage.tsx:1088
 msgid "Select"
@@ -12851,7 +12852,7 @@ msgstr "Seleccionar els idiomes admesos"
 msgid "Select template"
 msgstr "Seleccionar plantilla"
 
-#: src/components/templates/TemplateSelectorInput.tsx:190
+#: src/components/templates/TemplateSelectorInput.tsx:191
 msgid "Select Template"
 msgstr "Seleccionar plantilla"
 
@@ -14764,7 +14765,7 @@ msgstr "Aquesta acció no es pot desfer."
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "Aquesta acció no es pot desfer. Per confirmar, si us plau introduïu l'ID de la difusió:"
 
-#: src/pages/ListsPage.tsx:420
+#: src/pages/ListsPage.tsx:426
 msgid "This action cannot be undone. To confirm, please enter the list ID:"
 msgstr "Aquesta acció no es pot desfer. Per confirmar, si us plau introduïu l'ID de la llista:"
 

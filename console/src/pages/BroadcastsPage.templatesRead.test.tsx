@@ -1,13 +1,15 @@
 import '../__tests__/resizeObserverMock'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 
 const state = vi.hoisted(() => ({
-  permissions: {} as Record<string, { read: boolean; write: boolean }>
+  permissions: {} as Record<string, { read: boolean; write: boolean }>,
+  empty: false,
+  status: 'paused'
 }))
 
 vi.mock('@tanstack/react-router', async (importOriginal) => ({
@@ -54,13 +56,13 @@ vi.mock('../services/api/broadcast', async (importOriginal) => {
       // Without Templates read the server lists the broadcast without its templates.
       list: vi.fn(() =>
         Promise.resolve({
-          broadcasts: [
+          broadcasts: state.empty ? [] : [
             {
               id: 'bc1',
               workspace_id: 'ws1',
               name: 'Spring sale',
               channel_type: 'email',
-              status: 'paused',
+              status: state.status,
               audience: { list: 'list1', segments: [], exclude_unsubscribed: true },
               schedule: { is_scheduled: false, use_recipient_timezone: false },
               test_settings: {
@@ -75,7 +77,7 @@ vi.mock('../services/api/broadcast', async (importOriginal) => {
               updated_at: '2026-01-01T00:00:00Z'
             }
           ],
-          total_count: 1
+          total_count: state.empty ? 0 : 1
         })
       ),
       getTestResults: vi.fn()
@@ -119,6 +121,8 @@ const flags = (testId: string) =>
 describe('BroadcastsPage without Templates read', () => {
   beforeEach(() => {
     state.permissions = { broadcasts: { read: true, write: true } }
+    state.empty = false
+    state.status = 'paused'
   })
 
   it("names each variation's template by its ID and passes the permission on", async () => {
@@ -127,7 +131,8 @@ describe('BroadcastsPage without Templates read', () => {
 
     expect(await screen.findByText('tpl-spring')).toBeInTheDocument()
     expect(screen.queryByText('Untitled')).toBeNull()
-    expect(new Set(flags('broadcast-drawer'))).toEqual(new Set(['false']))
+    // A paused broadcast is not edited: only the header's create drawer.
+    expect(flags('broadcast-drawer')).toEqual(['false'])
     expect(flags('sender-modal')).toEqual(['false'])
   })
 
@@ -137,7 +142,30 @@ describe('BroadcastsPage without Templates read', () => {
 
     expect(await screen.findByText('Untitled')).toBeInTheDocument()
     expect(screen.queryByText('tpl-spring')).toBeNull()
-    expect(new Set(flags('broadcast-drawer'))).toEqual(new Set(['true']))
+    expect(flags('broadcast-drawer')).toEqual(['true'])
     expect(flags('sender-modal')).toEqual(['true'])
+  })
+
+  it.each([
+    { read: false, passed: 'false' },
+    { read: true, passed: 'true' }
+  ])('passes Templates read $read to the edit drawer of a draft', async ({ read, passed }) => {
+    state.permissions.templates = { read, write: false }
+    state.status = 'draft'
+    renderPage()
+
+    // The card's edit drawer and the header's create drawer.
+    await waitFor(() => expect(flags('broadcast-drawer')).toEqual([passed, passed]))
+  })
+
+  it.each([
+    { read: false, passed: 'false' },
+    { read: true, passed: 'true' }
+  ])('passes Templates read $read to the drawer of an empty page', async ({ read, passed }) => {
+    state.permissions.templates = { read, write: false }
+    state.empty = true
+    renderPage()
+
+    await waitFor(() => expect(flags('broadcast-drawer')).toEqual([passed]))
   })
 })

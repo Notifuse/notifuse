@@ -84,10 +84,10 @@ them down as props, as #520 did.
      default.
 3. i18n: the new string in the 8 catalogues.
 4. `CHANGELOG.md`: a new `Fix` line under 44.0, right after #520's bullet, naming only what shipped: "A member without
-   Templates read now sees the template's ID, with a lock saying that Templates read is needed, instead of an empty
-   field or "Untitled", in a list's double opt-in template, a broadcast's templates, an automation's email nodes and a
-   segment's email conditions, and these screens no longer request templates such a member cannot read." The unreleased
-   trigger filter and sender select get no line.
+   Templates read now sees the template's ID instead of an empty field or "Untitled" in a list's double opt-in
+   template, a broadcast's templates, an automation's email nodes and a segment's email conditions, and these screens
+   no longer request templates such a member cannot read. The template fields carry a lock saying that Templates read
+   is needed." The unreleased trigger filter and sender select get no line.
 
 ## Tests
 
@@ -120,6 +120,8 @@ them down as props, as #520 did.
 
 - Other template reads such a member still triggers on a click: `MessageHistoryTable`'s template preview, the blog
   post drawer, the email builder preview.
+- `BroadcastsPage` still lists broadcasts `with_templates: true` without Templates read: no 403, but the server tries
+  each variation's template and logs the refusal (`broadcast_service.go:316-320`).
 - `TemplateSelector` (`components/templates/TemplateSelector.tsx`) is exported and used nowhere.
 - A member without Templates read still cannot choose a template for a new list, broadcast or email node, or clear a
   template filter: the lock says why.

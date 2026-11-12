@@ -143,6 +143,18 @@ describe('TemplateSelectorInput without Templates read', () => {
     )
   })
 
+  it('shows the lock hint to keyboard users too', async () => {
+    renderSelector('supabase_magiclink_000001')
+
+    await userEvent.tab()
+    expect(
+      screen.getByLabelText("You need Templates read permission to see this template's name and preview")
+    ).toHaveFocus()
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      "You need Templates read permission to see this template's name and preview"
+    )
+  })
+
   it('explains with a lock why no template can be chosen', async () => {
     renderSelector(null)
 

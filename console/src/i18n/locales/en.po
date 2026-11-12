@@ -1504,7 +1504,7 @@ msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "Are you sure you want to delete the invitation for {0}?"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:418
+#: src/pages/ListsPage.tsx:424
 msgid "Are you sure you want to delete the list \"{0}\"?"
 msgstr "Are you sure you want to delete the list \"{0}\"?"
 
@@ -2584,7 +2584,7 @@ msgstr "Campaigns"
 #: src/pages/BroadcastsPage.tsx:710
 #: src/pages/BroadcastsPage.tsx:1081
 #: src/pages/BroadcastsPage.tsx:1826
-#: src/pages/ListsPage.tsx:402
+#: src/pages/ListsPage.tsx:408
 #: src/pages/TemplatesPage.tsx:369
 #: src/pages/TransactionalNotificationsPage.tsx:155
 msgid "Cancel"
@@ -2997,8 +2997,8 @@ msgstr "Client Secret is required"
 msgid "Client Secret Value"
 msgstr "Client Secret Value"
 
-#: src/components/templates/TemplateSelectorInput.tsx:248
-#: src/components/templates/TemplateSelectorInput.tsx:250
+#: src/components/templates/TemplateSelectorInput.tsx:249
+#: src/components/templates/TemplateSelectorInput.tsx:251
 msgid "Clone"
 msgstr "Clone"
 
@@ -3804,7 +3804,7 @@ msgid "Create my own"
 msgstr "Create my own"
 
 #. placeholder {0}: category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:287
+#: src/components/templates/TemplateSelectorInput.tsx:288
 msgid "Create New {0} Template"
 msgstr "Create New {0} Template"
 
@@ -3824,7 +3824,7 @@ msgstr "Create New List"
 msgid "Create New Post"
 msgstr "Create New Post"
 
-#: src/components/templates/TemplateSelectorInput.tsx:288
+#: src/components/templates/TemplateSelectorInput.tsx:289
 msgid "Create New Template"
 msgstr "Create New Template"
 
@@ -3889,7 +3889,7 @@ msgstr "Create your first broadcast to get started"
 msgid "Create Your First Category"
 msgstr "Create Your First Category"
 
-#: src/pages/ListsPage.tsx:385
+#: src/pages/ListsPage.tsx:391
 msgid "Create your first list to get started"
 msgstr "Create your first list to get started"
 
@@ -4373,7 +4373,7 @@ msgstr "Delay"
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
 #: src/pages/BroadcastsPage.tsx:1836
 #: src/pages/ContactsPage.tsx:975
-#: src/pages/ListsPage.tsx:412
+#: src/pages/ListsPage.tsx:418
 msgid "Delete"
 msgstr "Delete"
 
@@ -4526,7 +4526,7 @@ msgid "Delete invitation"
 msgstr "Delete invitation"
 
 #: src/pages/ListsPage.tsx:283
-#: src/pages/ListsPage.tsx:397
+#: src/pages/ListsPage.tsx:403
 msgid "Delete List"
 msgstr "Delete List"
 
@@ -5746,7 +5746,7 @@ msgstr "Enter link URL or {{ url }}"
 msgid "Enter list description"
 msgstr "Enter list description"
 
-#: src/pages/ListsPage.tsx:424
+#: src/pages/ListsPage.tsx:430
 msgid "Enter list ID to confirm"
 msgstr "Enter list ID to confirm"
 
@@ -7492,7 +7492,7 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "ID can only contain lowercase letters, numbers, and underscores"
 
 #: src/pages/BroadcastsPage.tsx:1867
-#: src/pages/ListsPage.tsx:430
+#: src/pages/ListsPage.tsx:436
 msgid "ID doesn't match"
 msgstr "ID doesn't match"
 
@@ -9425,7 +9425,7 @@ msgstr "No campaign data"
 msgid "No categories yet"
 msgstr "No categories yet"
 
-#: src/components/templates/TemplateSelectorInput.tsx:265
+#: src/components/templates/TemplateSelectorInput.tsx:266
 msgid "No category"
 msgstr "No category"
 
@@ -9576,7 +9576,7 @@ msgstr "No link clicks recorded for this variation yet"
 msgid "No list"
 msgstr "No list"
 
-#: src/pages/ListsPage.tsx:383
+#: src/pages/ListsPage.tsx:389
 msgid "No lists found"
 msgstr "No lists found"
 
@@ -9714,13 +9714,13 @@ msgstr "No source data"
 msgid "No specific details provided."
 msgstr "No specific details provided."
 
-#: src/components/templates/TemplateSelectorInput.tsx:275
+#: src/components/templates/TemplateSelectorInput.tsx:276
 #: src/pages/TemplatesPage.tsx:458
 msgid "No templates found"
 msgstr "No templates found"
 
 #. placeholder {0}: category.replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:274
+#: src/components/templates/TemplateSelectorInput.tsx:275
 msgid "No templates found for {0} category"
 msgstr "No templates found for {0} category"
 
@@ -10995,6 +10995,7 @@ msgstr "Press Enter to confirm, Escape to cancel"
 
 #: src/pages/ListsPage.tsx:89
 #: src/pages/ListsPage.tsx:98
+#: src/pages/ListsPage.tsx:367
 msgid "preview"
 msgstr "preview"
 
@@ -12432,7 +12433,7 @@ msgstr "Search Engine Indexing"
 msgid "Search saved blocks"
 msgstr "Search saved blocks"
 
-#: src/components/templates/TemplateSelectorInput.tsx:200
+#: src/components/templates/TemplateSelectorInput.tsx:201
 msgid "Search templates..."
 msgstr "Search templates..."
 
@@ -12574,7 +12575,7 @@ msgstr "Segments"
 #: src/components/file_manager/fileManager.tsx:955
 #: src/components/settings/BlogSettings.tsx:360
 #: src/components/settings/BlogSettings.tsx:376
-#: src/components/templates/TemplateSelectorInput.tsx:255
+#: src/components/templates/TemplateSelectorInput.tsx:256
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 #: src/pages/BroadcastsPage.tsx:1088
 msgid "Select"
@@ -12851,7 +12852,7 @@ msgstr "Select supported languages"
 msgid "Select template"
 msgstr "Select template"
 
-#: src/components/templates/TemplateSelectorInput.tsx:190
+#: src/components/templates/TemplateSelectorInput.tsx:191
 msgid "Select Template"
 msgstr "Select Template"
 
@@ -14764,7 +14765,7 @@ msgstr "This action cannot be undone."
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "This action cannot be undone. To confirm, please enter the broadcast ID:"
 
-#: src/pages/ListsPage.tsx:420
+#: src/pages/ListsPage.tsx:426
 msgid "This action cannot be undone. To confirm, please enter the list ID:"
 msgstr "This action cannot be undone. To confirm, please enter the list ID:"
 

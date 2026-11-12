@@ -1504,7 +1504,7 @@ msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "Êtes-vous sûr de vouloir supprimer l invitation pour {0} ?"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:418
+#: src/pages/ListsPage.tsx:424
 msgid "Are you sure you want to delete the list \"{0}\"?"
 msgstr "Êtes-vous sûr de vouloir supprimer la liste \"{0}\" ?"
 
@@ -2584,7 +2584,7 @@ msgstr "Campagnes"
 #: src/pages/BroadcastsPage.tsx:710
 #: src/pages/BroadcastsPage.tsx:1081
 #: src/pages/BroadcastsPage.tsx:1826
-#: src/pages/ListsPage.tsx:402
+#: src/pages/ListsPage.tsx:408
 #: src/pages/TemplatesPage.tsx:369
 #: src/pages/TransactionalNotificationsPage.tsx:155
 msgid "Cancel"
@@ -2997,8 +2997,8 @@ msgstr "Le Client Secret est requis"
 msgid "Client Secret Value"
 msgstr "Valeur du Client Secret"
 
-#: src/components/templates/TemplateSelectorInput.tsx:248
-#: src/components/templates/TemplateSelectorInput.tsx:250
+#: src/components/templates/TemplateSelectorInput.tsx:249
+#: src/components/templates/TemplateSelectorInput.tsx:251
 msgid "Clone"
 msgstr "Cloner"
 
@@ -3804,7 +3804,7 @@ msgid "Create my own"
 msgstr "Créer le mien"
 
 #. placeholder {0}: category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:287
+#: src/components/templates/TemplateSelectorInput.tsx:288
 msgid "Create New {0} Template"
 msgstr "Créer un nouveau modèle {0}"
 
@@ -3824,7 +3824,7 @@ msgstr "Créer une nouvelle liste"
 msgid "Create New Post"
 msgstr "Créer un nouvel article"
 
-#: src/components/templates/TemplateSelectorInput.tsx:288
+#: src/components/templates/TemplateSelectorInput.tsx:289
 msgid "Create New Template"
 msgstr "Créer un nouveau modèle"
 
@@ -3889,7 +3889,7 @@ msgstr "Créez votre première diffusion pour commencer"
 msgid "Create Your First Category"
 msgstr "Créer votre première catégorie"
 
-#: src/pages/ListsPage.tsx:385
+#: src/pages/ListsPage.tsx:391
 msgid "Create your first list to get started"
 msgstr "Créez votre première liste pour commencer"
 
@@ -4373,7 +4373,7 @@ msgstr "Délai"
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
 #: src/pages/BroadcastsPage.tsx:1836
 #: src/pages/ContactsPage.tsx:975
-#: src/pages/ListsPage.tsx:412
+#: src/pages/ListsPage.tsx:418
 msgid "Delete"
 msgstr "Supprimer"
 
@@ -4526,7 +4526,7 @@ msgid "Delete invitation"
 msgstr "Supprimer l invitation"
 
 #: src/pages/ListsPage.tsx:283
-#: src/pages/ListsPage.tsx:397
+#: src/pages/ListsPage.tsx:403
 msgid "Delete List"
 msgstr "Supprimer la liste"
 
@@ -5746,7 +5746,7 @@ msgstr "Entrez l URL du lien ou {{ url }}"
 msgid "Enter list description"
 msgstr "Entrez la description de la liste"
 
-#: src/pages/ListsPage.tsx:424
+#: src/pages/ListsPage.tsx:430
 msgid "Enter list ID to confirm"
 msgstr "Entrez l ID de liste pour confirmer"
 
@@ -7492,7 +7492,7 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "L ID ne peut contenir que des lettres minuscules, des chiffres et des tirets bas"
 
 #: src/pages/BroadcastsPage.tsx:1867
-#: src/pages/ListsPage.tsx:430
+#: src/pages/ListsPage.tsx:436
 msgid "ID doesn't match"
 msgstr "L ID ne correspond pas"
 
@@ -9425,7 +9425,7 @@ msgstr "Aucune donnée de campagne"
 msgid "No categories yet"
 msgstr "Pas encore de catégories"
 
-#: src/components/templates/TemplateSelectorInput.tsx:265
+#: src/components/templates/TemplateSelectorInput.tsx:266
 msgid "No category"
 msgstr "Pas de catégorie"
 
@@ -9576,7 +9576,7 @@ msgstr "Aucun clic sur un lien enregistré pour cette variation pour le moment"
 msgid "No list"
 msgstr "Pas de liste"
 
-#: src/pages/ListsPage.tsx:383
+#: src/pages/ListsPage.tsx:389
 msgid "No lists found"
 msgstr "Aucune liste trouvée"
 
@@ -9714,13 +9714,13 @@ msgstr "Aucune donnée de source"
 msgid "No specific details provided."
 msgstr "Aucun détail spécifique fourni."
 
-#: src/components/templates/TemplateSelectorInput.tsx:275
+#: src/components/templates/TemplateSelectorInput.tsx:276
 #: src/pages/TemplatesPage.tsx:458
 msgid "No templates found"
 msgstr "Aucun modèle trouvé"
 
 #. placeholder {0}: category.replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:274
+#: src/components/templates/TemplateSelectorInput.tsx:275
 msgid "No templates found for {0} category"
 msgstr "Aucun modèle trouvé pour la catégorie {0}"
 
@@ -10995,6 +10995,7 @@ msgstr "Appuyez sur Entrée pour confirmer, Échap pour annuler"
 
 #: src/pages/ListsPage.tsx:89
 #: src/pages/ListsPage.tsx:98
+#: src/pages/ListsPage.tsx:367
 msgid "preview"
 msgstr "aperçu"
 
@@ -12432,7 +12433,7 @@ msgstr "Indexation des moteurs de recherche"
 msgid "Search saved blocks"
 msgstr "Rechercher dans les blocs enregistrés"
 
-#: src/components/templates/TemplateSelectorInput.tsx:200
+#: src/components/templates/TemplateSelectorInput.tsx:201
 msgid "Search templates..."
 msgstr "Rechercher des modèles..."
 
@@ -12574,7 +12575,7 @@ msgstr "Segments"
 #: src/components/file_manager/fileManager.tsx:955
 #: src/components/settings/BlogSettings.tsx:360
 #: src/components/settings/BlogSettings.tsx:376
-#: src/components/templates/TemplateSelectorInput.tsx:255
+#: src/components/templates/TemplateSelectorInput.tsx:256
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 #: src/pages/BroadcastsPage.tsx:1088
 msgid "Select"
@@ -12851,7 +12852,7 @@ msgstr "Sélectionner les langues prises en charge"
 msgid "Select template"
 msgstr "Sélectionner un modèle"
 
-#: src/components/templates/TemplateSelectorInput.tsx:190
+#: src/components/templates/TemplateSelectorInput.tsx:191
 msgid "Select Template"
 msgstr "Sélectionner un modèle"
 
@@ -14764,7 +14765,7 @@ msgstr "Cette action est irréversible."
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "Cette action est irréversible. Pour confirmer, veuillez entrer l'ID de la diffusion :"
 
-#: src/pages/ListsPage.tsx:420
+#: src/pages/ListsPage.tsx:426
 msgid "This action cannot be undone. To confirm, please enter the list ID:"
 msgstr "Cette action est irréversible. Pour confirmer, veuillez entrer l'ID de la liste :"
 

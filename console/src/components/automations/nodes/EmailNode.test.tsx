@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -39,6 +39,10 @@ const renderNode = (config: Record<string, unknown>) => {
 }
 
 describe('EmailNode', () => {
+  afterEach(() => {
+    mockCanReadTemplates = true
+  })
+
   it('shows the template name for a selected template of any category', () => {
     // Regression guard for the "Template set" bug: a welcome-category template is
     // a valid selection for an automation email node (welcome/unsubscribe emails
@@ -66,7 +70,6 @@ describe('EmailNode', () => {
     mockTemplates = []
     mockCanReadTemplates = false
     renderNode({ template_id: 'welcome-pdf' })
-    mockCanReadTemplates = true
 
     expect(screen.getByText('welcome-pdf')).toBeInTheDocument()
     expect(screen.queryByText('Template set')).not.toBeInTheDocument()

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { i18n } from '@lingui/core'
@@ -136,6 +136,10 @@ const confirmRemove = async () => {
 }
 
 describe('ConditionsField', () => {
+  afterEach(() => {
+    context.canReadTemplates = true
+  })
+
   it('shows the add affordance and no editor when there is nothing configured', () => {
     renderField(undefined)
 
@@ -171,7 +175,6 @@ describe('ConditionsField', () => {
 
     await userEvent.click(screen.getByText('Edit'))
     expect(screen.getByTestId('tree-editor').getAttribute('data-can-read-templates')).toBe(String(canRead))
-    context.canReadTemplates = true
   })
 
   it('keeps the editor out of the panel until it is asked for', async () => {

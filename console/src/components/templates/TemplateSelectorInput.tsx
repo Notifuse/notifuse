@@ -171,8 +171,9 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
           allowClear={clearable && canReadTemplates}
           suffix={
             canReadTemplates ? undefined : (
-              <Tooltip title={lockHint}>
-                <LockOutlined aria-label={lockHint} />
+              // Focusable, so the hint also reaches keyboard users: the input itself is disabled.
+              <Tooltip title={lockHint} trigger={['hover', 'focus']}>
+                <LockOutlined aria-label={lockHint} tabIndex={0} />
               </Tooltip>
             )
           }

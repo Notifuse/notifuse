@@ -119,7 +119,7 @@ export function ListsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
-  const { permissions } = useWorkspacePermissions(workspaceId)
+  const { permissions, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
   // Without Templates read, templates.list and templates.get answer 403.
   const canReadTemplates = !!permissions?.templates?.read
   const workspace = workspaces.find((w) => w.id === workspaceId)
@@ -360,7 +360,13 @@ export function ListsPage() {
                   {list.double_optin_template ? (
                     <Space>
                       <Check size={16} className="text-green-500 mt-1" />
-                      {canReadTemplates ? (
+                      {permissionsLoading ? (
+                        // Until the permissions are known, neither the preview (whose request
+                        // may be refused) nor the ID (which would flash before the preview).
+                        <Button type="link" size="small" loading>
+                          {t`preview`}
+                        </Button>
+                      ) : canReadTemplates ? (
                         <TemplatePreviewButton
                           templateRef={list.double_optin_template}
                           workspace={workspace}

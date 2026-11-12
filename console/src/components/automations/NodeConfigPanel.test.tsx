@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -166,6 +166,10 @@ describe('NodeConfigPanel description', () => {
 // Without Templates read the trigger's template filter and the email node's template are locked:
 // the panel hands the editor's permission to both forms.
 describe('NodeConfigPanel Templates read', () => {
+  afterEach(() => {
+    context.canReadTemplates = true
+  })
+
   it.each([
     { nodeType: 'trigger' as NodeType, canRead: false },
     { nodeType: 'email' as NodeType, canRead: false },
@@ -176,6 +180,5 @@ describe('NodeConfigPanel Templates read', () => {
     renderPanel(makeNode('n1', nodeType, {}))
 
     expect(screen.getByTestId('type-form').getAttribute('data-can-read-templates')).toBe(String(canRead))
-    context.canReadTemplates = true
   })
 })

@@ -1504,7 +1504,7 @@ msgid "Are you sure you want to delete the invitation for {0}?"
 msgstr "{0}への招待を削除してもよろしいですか?"
 
 #. placeholder {0}: listToDelete.name
-#: src/pages/ListsPage.tsx:418
+#: src/pages/ListsPage.tsx:424
 msgid "Are you sure you want to delete the list \"{0}\"?"
 msgstr "リスト\"{0}\"を削除してもよろしいですか?"
 
@@ -2584,7 +2584,7 @@ msgstr "キャンペーン"
 #: src/pages/BroadcastsPage.tsx:710
 #: src/pages/BroadcastsPage.tsx:1081
 #: src/pages/BroadcastsPage.tsx:1826
-#: src/pages/ListsPage.tsx:402
+#: src/pages/ListsPage.tsx:408
 #: src/pages/TemplatesPage.tsx:369
 #: src/pages/TransactionalNotificationsPage.tsx:155
 msgid "Cancel"
@@ -2997,8 +2997,8 @@ msgstr "クライアントシークレットは必須です"
 msgid "Client Secret Value"
 msgstr "クライアントシークレットの値"
 
-#: src/components/templates/TemplateSelectorInput.tsx:248
-#: src/components/templates/TemplateSelectorInput.tsx:250
+#: src/components/templates/TemplateSelectorInput.tsx:249
+#: src/components/templates/TemplateSelectorInput.tsx:251
 msgid "Clone"
 msgstr "複製"
 
@@ -3804,7 +3804,7 @@ msgid "Create my own"
 msgstr "自分で作成"
 
 #. placeholder {0}: category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:287
+#: src/components/templates/TemplateSelectorInput.tsx:288
 msgid "Create New {0} Template"
 msgstr "新規{0}テンプレートを作成"
 
@@ -3824,7 +3824,7 @@ msgstr "新規リストを作成"
 msgid "Create New Post"
 msgstr "新規投稿を作成"
 
-#: src/components/templates/TemplateSelectorInput.tsx:288
+#: src/components/templates/TemplateSelectorInput.tsx:289
 msgid "Create New Template"
 msgstr "新規テンプレートを作成"
 
@@ -3889,7 +3889,7 @@ msgstr "最初のブロードキャストを作成して始めましょう"
 msgid "Create Your First Category"
 msgstr "最初のカテゴリを作成"
 
-#: src/pages/ListsPage.tsx:385
+#: src/pages/ListsPage.tsx:391
 msgid "Create your first list to get started"
 msgstr "最初のリストを作成して始めましょう"
 
@@ -4373,7 +4373,7 @@ msgstr "遅延"
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
 #: src/pages/BroadcastsPage.tsx:1836
 #: src/pages/ContactsPage.tsx:975
-#: src/pages/ListsPage.tsx:412
+#: src/pages/ListsPage.tsx:418
 msgid "Delete"
 msgstr "削除"
 
@@ -4526,7 +4526,7 @@ msgid "Delete invitation"
 msgstr "招待を削除"
 
 #: src/pages/ListsPage.tsx:283
-#: src/pages/ListsPage.tsx:397
+#: src/pages/ListsPage.tsx:403
 msgid "Delete List"
 msgstr "リストを削除"
 
@@ -5746,7 +5746,7 @@ msgstr "リンクURLまたは{{ url }}を入力"
 msgid "Enter list description"
 msgstr "リストの説明を入力"
 
-#: src/pages/ListsPage.tsx:424
+#: src/pages/ListsPage.tsx:430
 msgid "Enter list ID to confirm"
 msgstr "確認のためリストIDを入力"
 
@@ -7492,7 +7492,7 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "IDは小文字の英字、数字、アンダースコアのみ使用できます"
 
 #: src/pages/BroadcastsPage.tsx:1867
-#: src/pages/ListsPage.tsx:430
+#: src/pages/ListsPage.tsx:436
 msgid "ID doesn't match"
 msgstr "IDが一致しません"
 
@@ -9425,7 +9425,7 @@ msgstr "キャンペーンのデータがありません"
 msgid "No categories yet"
 msgstr "カテゴリがまだありません"
 
-#: src/components/templates/TemplateSelectorInput.tsx:265
+#: src/components/templates/TemplateSelectorInput.tsx:266
 msgid "No category"
 msgstr "カテゴリなし"
 
@@ -9576,7 +9576,7 @@ msgstr "このバリエーションではまだリンクのクリックが記録
 msgid "No list"
 msgstr "リストなし"
 
-#: src/pages/ListsPage.tsx:383
+#: src/pages/ListsPage.tsx:389
 msgid "No lists found"
 msgstr "リストが見つかりません"
 
@@ -9714,13 +9714,13 @@ msgstr "ソースのデータがありません"
 msgid "No specific details provided."
 msgstr "詳細が提供されていません。"
 
-#: src/components/templates/TemplateSelectorInput.tsx:275
+#: src/components/templates/TemplateSelectorInput.tsx:276
 #: src/pages/TemplatesPage.tsx:458
 msgid "No templates found"
 msgstr "テンプレートが見つかりません"
 
 #. placeholder {0}: category.replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:274
+#: src/components/templates/TemplateSelectorInput.tsx:275
 msgid "No templates found for {0} category"
 msgstr "{0}カテゴリのテンプレートが見つかりません"
 
@@ -10995,6 +10995,7 @@ msgstr "Enterで確定、Escapeでキャンセル"
 
 #: src/pages/ListsPage.tsx:89
 #: src/pages/ListsPage.tsx:98
+#: src/pages/ListsPage.tsx:367
 msgid "preview"
 msgstr "プレビュー"
 
@@ -12432,7 +12433,7 @@ msgstr "検索エンジンインデックス"
 msgid "Search saved blocks"
 msgstr "保存済みブロックを検索"
 
-#: src/components/templates/TemplateSelectorInput.tsx:200
+#: src/components/templates/TemplateSelectorInput.tsx:201
 msgid "Search templates..."
 msgstr "テンプレートを検索..."
 
@@ -12574,7 +12575,7 @@ msgstr "セグメント"
 #: src/components/file_manager/fileManager.tsx:955
 #: src/components/settings/BlogSettings.tsx:360
 #: src/components/settings/BlogSettings.tsx:376
-#: src/components/templates/TemplateSelectorInput.tsx:255
+#: src/components/templates/TemplateSelectorInput.tsx:256
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 #: src/pages/BroadcastsPage.tsx:1088
 msgid "Select"
@@ -12851,7 +12852,7 @@ msgstr "対応言語を選択"
 msgid "Select template"
 msgstr "テンプレートを選択"
 
-#: src/components/templates/TemplateSelectorInput.tsx:190
+#: src/components/templates/TemplateSelectorInput.tsx:191
 msgid "Select Template"
 msgstr "テンプレートを選択"
 
@@ -14764,7 +14765,7 @@ msgstr "この操作は元に戻せません。"
 msgid "This action cannot be undone. To confirm, please enter the broadcast ID:"
 msgstr "この操作は元に戻せません。確認のため、ブロードキャストIDを入力してください:"
 
-#: src/pages/ListsPage.tsx:420
+#: src/pages/ListsPage.tsx:426
 msgid "This action cannot be undone. To confirm, please enter the list ID:"
 msgstr "この操作は元に戻せません。確認のため、リストIDを入力してください:"
 
