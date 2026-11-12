@@ -128,6 +128,11 @@ msgstr "{0} (audiencia del broadcast)"
 msgid "{0} actions"
 msgstr "{0} acciones"
 
+#. placeholder {0}: percent(kpis.sent.broadcastShare, 0)
+#: src/components/analytics/DashboardKpis.tsx:251
+msgid "{0} broadcasts"
+msgstr "{0} envíos masivos"
+
 #: src/components/contacts/BulkActionProgressModal.tsx:78
 #~ msgid "{0} contact(s)"
 #~ msgstr ""
@@ -144,8 +149,8 @@ msgstr "{0} no se aplica a este evento"
 
 #. placeholder {0}: stats.count_bounced
 #: src/components/analytics/EmailMetricsChart.tsx:437
-msgid "{0} emails bounced back"
-msgstr "{0} correos rebotados"
+#~ msgid "{0} emails bounced back"
+#~ msgstr "{0} correos rebotados"
 
 #. placeholder {0}: stats.total_bounced
 #: src/components/broadcasts/BroadcastStats.tsx:319
@@ -154,13 +159,13 @@ msgstr "{0} correos rebotados - Haz clic para ver detalles"
 
 #. placeholder {0}: stats.count_bounced
 #: src/components/analytics/EmailMetricsChart.tsx:437
-msgid "{0} emails bounced back (hidden from chart)"
-msgstr "{0} correos rebotados (ocultos del gráfico)"
+#~ msgid "{0} emails bounced back (hidden from chart)"
+#~ msgstr "{0} correos rebotados (ocultos del gráfico)"
 
 #. placeholder {0}: stats.count_failed
 #: src/components/analytics/EmailMetricsChart.tsx:518
-msgid "{0} emails failed to send"
-msgstr "{0} correos fallidos al enviar"
+#~ msgid "{0} emails failed to send"
+#~ msgstr "{0} correos fallidos al enviar"
 
 #. placeholder {0}: stats.total_failed
 #: src/components/broadcasts/BroadcastStats.tsx:284
@@ -169,13 +174,13 @@ msgstr "{0} correos fallidos al enviar - Haz clic para ver detalles"
 
 #. placeholder {0}: stats.count_failed
 #: src/components/analytics/EmailMetricsChart.tsx:518
-msgid "{0} emails failed to send (hidden from chart)"
-msgstr "{0} correos fallidos al enviar (ocultos del gráfico)"
+#~ msgid "{0} emails failed to send (hidden from chart)"
+#~ msgstr "{0} correos fallidos al enviar (ocultos del gráfico)"
 
 #. placeholder {0}: stats.count_delivered
 #: src/components/analytics/EmailMetricsChart.tsx:346
-msgid "{0} emails successfully delivered"
-msgstr "{0} correos entregados correctamente"
+#~ msgid "{0} emails successfully delivered"
+#~ msgstr "{0} correos entregados correctamente"
 
 #. placeholder {0}: stats.total_delivered
 #: src/components/broadcasts/BroadcastStats.tsx:192
@@ -184,8 +189,8 @@ msgstr "{0} correos entregados correctamente - Haz clic para ver detalles"
 
 #. placeholder {0}: stats.count_delivered
 #: src/components/analytics/EmailMetricsChart.tsx:346
-msgid "{0} emails successfully delivered (hidden from chart)"
-msgstr "{0} correos entregados correctamente (ocultos del gráfico)"
+#~ msgid "{0} emails successfully delivered (hidden from chart)"
+#~ msgstr "{0} correos entregados correctamente (ocultos del gráfico)"
 
 #. placeholder {0}: dayjs(dateString).format('lll')
 #. placeholder {1}: currentWorkspace?.settings.timezone || 'UTC'
@@ -232,8 +237,8 @@ msgstr "{0} segundos"
 
 #. placeholder {0}: stats.count_clicked
 #: src/components/analytics/EmailMetricsChart.tsx:407
-msgid "{0} total clicks"
-msgstr "{0} clics totales"
+#~ msgid "{0} total clicks"
+#~ msgstr "{0} clics totales"
 
 #. placeholder {0}: stats.total_clicked
 #: src/components/broadcasts/BroadcastStats.tsx:256
@@ -242,13 +247,13 @@ msgstr "{0} clics totales - Haz clic para ver detalles"
 
 #. placeholder {0}: stats.count_clicked
 #: src/components/analytics/EmailMetricsChart.tsx:407
-msgid "{0} total clicks (hidden from chart)"
-msgstr "{0} clics totales (ocultos del gráfico)"
+#~ msgid "{0} total clicks (hidden from chart)"
+#~ msgstr "{0} clics totales (ocultos del gráfico)"
 
 #. placeholder {0}: stats.count_complained
 #: src/components/analytics/EmailMetricsChart.tsx:464
-msgid "{0} total complaints"
-msgstr "{0} quejas totales"
+#~ msgid "{0} total complaints"
+#~ msgstr "{0} quejas totales"
 
 #. placeholder {0}: stats.total_complained
 #: src/components/broadcasts/BroadcastStats.tsx:353
@@ -257,13 +262,13 @@ msgstr "{0} quejas totales - Haz clic para ver detalles"
 
 #. placeholder {0}: stats.count_complained
 #: src/components/analytics/EmailMetricsChart.tsx:464
-msgid "{0} total complaints (hidden from chart)"
-msgstr "{0} quejas totales (ocultos del gráfico)"
+#~ msgid "{0} total complaints (hidden from chart)"
+#~ msgstr "{0} quejas totales (ocultos del gráfico)"
 
 #. placeholder {0}: stats.count_sent
 #: src/components/analytics/EmailMetricsChart.tsx:319
-msgid "{0} total emails sent"
-msgstr "{0} correos enviados en total"
+#~ msgid "{0} total emails sent"
+#~ msgstr "{0} correos enviados en total"
 
 #. placeholder {0}: stats.total_sent
 #: src/components/broadcasts/BroadcastStats.tsx:164
@@ -272,13 +277,13 @@ msgstr "{0} correos enviados en total - Haz clic para ver detalles"
 
 #. placeholder {0}: stats.count_sent
 #: src/components/analytics/EmailMetricsChart.tsx:319
-msgid "{0} total emails sent (hidden from chart)"
-msgstr "{0} correos enviados en total (ocultos del gráfico)"
+#~ msgid "{0} total emails sent (hidden from chart)"
+#~ msgstr "{0} correos enviados en total (ocultos del gráfico)"
 
 #. placeholder {0}: stats.count_opened
 #: src/components/analytics/EmailMetricsChart.tsx:375
-msgid "{0} total opens"
-msgstr "{0} aperturas totales"
+#~ msgid "{0} total opens"
+#~ msgstr "{0} aperturas totales"
 
 #. placeholder {0}: stats.total_opened
 #: src/components/broadcasts/BroadcastStats.tsx:225
@@ -287,13 +292,13 @@ msgstr "{0} aperturas totales - Haz clic para ver detalles"
 
 #. placeholder {0}: stats.count_opened
 #: src/components/analytics/EmailMetricsChart.tsx:375
-msgid "{0} total opens (hidden from chart)"
-msgstr "{0} aperturas totales (ocultos del gráfico)"
+#~ msgid "{0} total opens (hidden from chart)"
+#~ msgstr "{0} aperturas totales (ocultos del gráfico)"
 
 #. placeholder {0}: stats.count_unsubscribed
 #: src/components/analytics/EmailMetricsChart.tsx:491
-msgid "{0} total unsubscribes"
-msgstr "{0} cancelaciones de suscripción totales"
+#~ msgid "{0} total unsubscribes"
+#~ msgstr "{0} cancelaciones de suscripción totales"
 
 #. placeholder {0}: stats.total_unsubscribed
 #: src/components/broadcasts/BroadcastStats.tsx:383
@@ -302,8 +307,8 @@ msgstr "{0} cancelaciones de suscripción totales - Haz clic para ver detalles"
 
 #. placeholder {0}: stats.count_unsubscribed
 #: src/components/analytics/EmailMetricsChart.tsx:491
-msgid "{0} total unsubscribes (hidden from chart)"
-msgstr "{0} cancelaciones de suscripción totales (ocultos del gráfico)"
+#~ msgid "{0} total unsubscribes (hidden from chart)"
+#~ msgstr "{0} cancelaciones de suscripción totales (ocultos del gráfico)"
 
 #. placeholder {0}: range[0]
 #. placeholder {1}: range[1]
@@ -344,6 +349,16 @@ msgstr "{count, plural, one {La lista \"{listName}\" no se puede eliminar mientr
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:335
 #~ msgid "{count} filters applied"
 #~ msgstr ""
+
+#: src/components/analytics/DashboardKpis.tsx:190
+msgid "{days, plural, one {{shown} vs prev. # d} other {{shown} vs prev. # d}}"
+msgstr "{days, plural, one {{shown} vs # d ant.} other {{shown} vs # d ant.}}"
+
+#. placeholder {0}: int(kpis.contacts.added)
+#. placeholder {1}: int(kpis.contacts.added)
+#: src/components/analytics/DashboardKpis.tsx:235
+msgid "{days, plural, one {+{0} over # d} other {+{1} over # d}}"
+msgstr "{days, plural, one {+{0} en # d} other {+{1} en # d}}"
 
 #: src/components/settings/WorkspaceMembers.tsx:240
 msgid "{days, plural, one {expires in # day} other {expires in # days}}"
@@ -404,6 +419,10 @@ msgstr "{minutes}m {remainingSeconds}s"
 #: src/components/timeline/ContactTimeline.tsx:296
 msgid "{minutes}m {seconds}s"
 msgstr "{minutes} m {seconds} s"
+
+#: src/components/analytics/UpcomingSends.tsx:82
+msgid "{more, plural, one {+# more} other {+# more}}"
+msgstr "{more, plural, one {+# más} other {+# más}}"
 
 #: src/pages/ListsPage.tsx:160
 msgid "{more, plural, one {The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\", \"{third}\" and # more use it. Pause them first, or change them to stop using the list.} other {The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\", \"{third}\" and # more use it. Pause them first, or change them to stop using the list.}}"
@@ -477,6 +496,10 @@ msgstr "{share} % con seguimiento"
 #: src/components/settings/CustomFieldsConfiguration.tsx:268
 msgid "{textFree}, {numberFree}, {dateFree}, {jsonFree} free"
 msgstr "Libres: {textFree}, {numberFree}, {dateFree}, {jsonFree}"
+
+#: src/components/analytics/UpcomingSends.tsx:70
+msgid "{time} local time"
+msgstr "{time} hora local"
 
 #: src/components/timeline/ContactTimeline.tsx:292
 msgid "{totalSeconds}s"
@@ -611,6 +634,10 @@ msgstr "1 bloque oculto por su condición con estos datos de prueba."
 msgid "1 goal"
 msgstr "1 objetivo"
 
+#: src/components/analytics/UpcomingSends.tsx:66
+msgid "1 list"
+msgstr "1 lista"
+
 #: src/components/timeline/ContactTimeline.tsx:919
 msgid "1 page"
 msgstr "1 página"
@@ -656,6 +683,10 @@ msgstr "3. Feeds de datos"
 msgid "3. Translations"
 msgstr "3. Traducciones"
 
+#: src/pages/AnalyticsPage.tsx:112
+msgid "30 d"
+msgstr "30 d"
+
 #: src/components/email_builder/ui/FontStyleInput.tsx:113
 msgid "300 - Light"
 msgstr "300 - Ligero"
@@ -676,6 +707,10 @@ msgstr "500 - Medio"
 msgid "600 - Semi Bold"
 msgstr "600 - Seminegrita"
 
+#: src/pages/AnalyticsPage.tsx:111
+msgid "7 d"
+msgstr "7 d"
+
 #: src/components/settings/WebhookDetail.tsx:525
 msgid "7 days"
 msgstr "7 días"
@@ -687,6 +722,10 @@ msgstr "700 - Negrita"
 #: src/components/email_builder/ui/FontStyleInput.tsx:118
 msgid "800 - Extra Bold"
 msgstr "800 - Extra negrita"
+
+#: src/pages/AnalyticsPage.tsx:113
+msgid "90 d"
+msgstr "90 d"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:119
 msgid "900 - Black"
@@ -771,6 +810,10 @@ msgstr "Se requiere un valor..."
 #: src/pages/BroadcastsPage.tsx:226
 msgid "A winner has been selected. Emails are being sent to the remaining recipients."
 msgstr "Se ha seleccionado un ganador. Se están enviando los correos al resto de destinatarios."
+
+#: src/components/analytics/UpcomingSends.tsx:120
+msgid "A/B"
+msgstr "A/B"
 
 #: src/components/automations/AddNodeButton.tsx:79
 #: src/components/automations/nodes/ABTestNode.tsx:47
@@ -864,7 +907,6 @@ msgstr "Filtros activos"
 #~ msgid "Active Sessions"
 #~ msgstr ""
 
-#: src/components/analytics/NewContactsTable.tsx:88
 #: src/pages/ContactsPage.tsx:578
 msgid "Active subscriber"
 msgstr "Suscriptor activo"
@@ -1237,7 +1279,6 @@ msgstr "Alinear arriba"
 msgid "Alignment"
 msgstr "Alineación"
 
-#: src/components/analytics/EmailMetricsChart.tsx:297
 #: src/components/email_builder/panels/LibraryPanel.tsx:210
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:124
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
@@ -1275,6 +1316,10 @@ msgstr "Todas las condiciones deben coincidir (lógica AND):"
 #: src/components/transactional/ApiCommandModal.tsx:1007
 msgid "All contact fields are optional except email."
 msgstr "Todos los campos de contacto son opcionales excepto el correo electrónico."
+
+#: src/components/analytics/NewContactsTable.tsx:52
+msgid "All contacts"
+msgstr "Todos los contactos"
 
 #: src/components/web_analytics/explore/DimensionSelector.tsx:174
 msgid "All dimensions selected"
@@ -1424,7 +1469,7 @@ msgstr "Anotación actualizada"
 
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:109
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:374
-#: src/layouts/app-shell/menuItems.ts:125
+#: src/layouts/app-shell/menuItems.ts:172
 #: src/pages/WebAnalyticsPage.tsx:99
 msgid "Annotations"
 msgstr "Anotaciones"
@@ -1946,8 +1991,9 @@ msgstr "Automatización actualizada, pero está pausada: actívala para ejecutar
 msgid "Automation:"
 msgstr "Automatización:"
 
+#: src/components/analytics/OriginVolumeChart.tsx:44
 #: src/components/settings/permissionLabels.ts:15
-#: src/layouts/app-shell/menuItems.ts:129
+#: src/layouts/app-shell/menuItems.ts:176
 #: src/pages/AutomationsPage.tsx:163
 #: src/services/api/errors.ts:90
 msgid "Automations"
@@ -2235,7 +2281,7 @@ msgstr "Bloques"
 #: src/components/settings/BlogSettings.tsx:262
 #: src/components/settings/permissionLabels.ts:14
 #: src/components/settings/SettingsSidebar.tsx:67
-#: src/layouts/app-shell/menuItems.ts:133
+#: src/layouts/app-shell/menuItems.ts:180
 #: src/pages/BlogPage.tsx:117
 #: src/services/api/errors.ts:89
 msgid "Blog"
@@ -2287,7 +2333,7 @@ msgstr "Cuerpo:"
 msgid "Bold"
 msgstr "Negrita"
 
-#: src/components/settings/WebhooksSettings.tsx:602
+#: src/components/settings/WebhooksSettings.tsx:604
 msgid "Booking"
 msgstr "Reserva"
 
@@ -2343,6 +2389,7 @@ msgstr "Inferior derecha"
 #~ msgid "bounce"
 #~ msgstr "rebote"
 
+#: src/components/analytics/RecentFailures.tsx:53
 #: src/components/timeline/ContactTimeline.tsx:734
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:219
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:73
@@ -2395,8 +2442,7 @@ msgstr "Umbral de rebote (segundos)"
 msgid "Bounce Type"
 msgstr "Tipo de rebote"
 
-#: src/components/analytics/EmailMetricsChart.tsx:283
-#: src/components/analytics/EmailMetricsChart.tsx:452
+#: src/components/analytics/RecentFailures.tsx:58
 #: src/components/automations/config/TriggerConfigForm.tsx:94
 #: src/components/automations/config/TriggerConfigForm.tsx:115
 #: src/components/broadcasts/BroadcastStats.tsx:338
@@ -2409,6 +2455,12 @@ msgstr "Tipo de rebote"
 #: src/pages/TransactionalNotificationsPage.tsx:259
 msgid "Bounced"
 msgstr "Rebotado"
+
+#. placeholder {0}: percent(delivered.bounceRate)
+#. placeholder {1}: percent(delivered.complaintRate ?? 0, 2)
+#: src/components/analytics/DashboardKpis.tsx:268
+msgid "Bounced {0} · Spam {1}"
+msgstr "Rebotes {0} · Spam {1}"
 
 #: src/components/automations/AddNodeButton.tsx:84
 #: src/components/automations/nodes/StatNode.tsx:83
@@ -2529,9 +2581,10 @@ msgstr "Nombre del envío masivo"
 msgid "Broadcast updated successfully"
 msgstr "Envío masivo actualizado exitosamente"
 
-#: src/components/analytics/EmailMetricsChart.tsx:298
+#: src/components/analytics/OriginVolumeChart.tsx:42
+#: src/components/analytics/UpcomingSends.tsx:77
 #: src/components/settings/permissionLabels.ts:10
-#: src/layouts/app-shell/menuItems.ts:128
+#: src/layouts/app-shell/menuItems.ts:175
 #: src/pages/BroadcastsPage.tsx:1637
 #: src/services/api/errors.ts:85
 msgid "Broadcasts"
@@ -2716,7 +2769,7 @@ msgstr "Campañas"
 #: src/components/settings/SystemSettingsDrawer.tsx:176
 #: src/components/settings/WebhookDetail.tsx:575
 #: src/components/settings/WebhookDetail.tsx:594
-#: src/components/settings/WebhooksSettings.tsx:497
+#: src/components/settings/WebhooksSettings.tsx:499
 #: src/components/settings/WorkspaceMembers.tsx:191
 #: src/components/settings/WorkspaceMembers.tsx:203
 #: src/components/settings/WorkspaceMembers.tsx:556
@@ -3043,6 +3096,7 @@ msgstr "Haz clic para opciones"
 msgid "Click or drag a CSV file to this area to upload"
 msgstr "Haz clic o arrastra un archivo CSV a esta área para subir"
 
+#: src/components/analytics/DashboardKpis.tsx:276
 #: src/components/broadcasts/BroadcastLinkStats.tsx:186
 msgid "Click rate"
 msgstr "Tasa de clics"
@@ -3110,8 +3164,7 @@ msgstr "El enlace clicado contiene"
 msgid "clicks"
 msgstr "clics"
 
-#: src/components/analytics/EmailMetricsChart.tsx:282
-#: src/components/analytics/EmailMetricsChart.tsx:425
+#: src/components/analytics/OriginVolumeChart.tsx:161
 #: src/components/broadcasts/BroadcastStats.tsx:273
 #: src/components/contacts/TrackingConsent.tsx:31
 #: src/components/contacts/TrackingConsent.tsx:197
@@ -3311,13 +3364,12 @@ msgstr "Quejado"
 #~ msgid "complaint"
 #~ msgstr "queja"
 
+#: src/components/analytics/RecentFailures.tsx:52
 #: src/components/timeline/ContactTimeline.tsx:735
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:78
 msgid "Complaint"
 msgstr "Queja"
 
-#: src/components/analytics/EmailMetricsChart.tsx:284
-#: src/components/analytics/EmailMetricsChart.tsx:479
 #: src/components/broadcasts/BroadcastStats.tsx:372
 #: src/components/lists/ListStats.tsx:158
 msgid "Complaints"
@@ -3396,8 +3448,7 @@ msgstr "La configuración para {nodeType} no está disponible en la Fase 2"
 msgid "Configuration set"
 msgstr "Conjunto de configuración"
 
-#: src/components/analytics/AnalyticsDashboard.tsx:166
-#: src/components/analytics/AnalyticsDashboard.tsx:190
+#: src/components/analytics/SendingCard.tsx:67
 #: src/components/automations/NodeConfigPanel.tsx:178
 #: src/components/automations/nodes/ABTestNode.tsx:60
 #: src/components/automations/nodes/AddToListNode.tsx:54
@@ -3607,8 +3658,10 @@ msgstr "Registros de contacto y sus campos, líneas de tiempo de contactos y eve
 msgid "Contact updated successfully"
 msgstr "Contacto actualizado exitosamente"
 
+#: src/components/analytics/DashboardKpis.tsx:220
+#: src/components/analytics/DashboardKpis.tsx:228
 #: src/components/settings/permissionLabels.ts:7
-#: src/layouts/app-shell/menuItems.ts:126
+#: src/layouts/app-shell/menuItems.ts:173
 #: src/pages/ContactsPage.tsx:1027
 #: src/services/api/errors.ts:82
 msgid "Contacts"
@@ -3661,7 +3714,7 @@ msgstr "contiene"
 
 #: src/components/email_builder/panels/LibraryPanel.tsx:212
 #: src/components/settings/SettingsSidebar.tsx:28
-#: src/layouts/app-shell/menuItems.ts:131
+#: src/layouts/app-shell/menuItems.ts:178
 msgid "Content"
 msgstr "Contenido"
 
@@ -3766,6 +3819,11 @@ msgstr "Costo"
 msgid "Could not copy the link"
 msgstr "No se pudo copiar el enlace"
 
+#: src/components/analytics/BlockError.tsx:20
+#: src/components/analytics/DashboardKpis.tsx:181
+msgid "Could not load"
+msgstr "No se pudo cargar"
+
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:132
 msgid "Could not load the annotations"
 msgstr "No se pudieron cargar las anotaciones"
@@ -3834,12 +3892,15 @@ msgstr "Contar los contactos que coincidirían con un árbol de segmento arbitra
 msgid "Count the contacts matching an arbitrary segment definition (also needs Segments read)"
 msgstr "Contar los contactos que coinciden con una definición de segmento arbitraria (también necesita lectura de Segmentos)"
 
+#: src/components/analytics/DashboardKpis.tsx:271
+msgid "Counted from your providers' delivery webhooks"
+msgstr "Contado a partir de los webhooks de entrega de tus proveedores"
+
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:216
 #: src/components/web_analytics/tabs/DashboardTab.tsx:207
 msgid "Countries"
 msgstr "Países"
 
-#: src/components/analytics/NewContactsTable.tsx:178
 #: src/components/automations/config/TriggerConfigForm.tsx:142
 #: src/components/contacts/ContactDetailsDrawer.tsx:452
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:94
@@ -4046,7 +4107,7 @@ msgstr "Crea esto en Azure Portal > Registros de aplicación > Tu aplicación > 
 msgid "Create urgency or curiosity"
 msgstr "Crear urgencia o curiosidad"
 
-#: src/components/settings/WebhooksSettings.tsx:489
+#: src/components/settings/WebhooksSettings.tsx:491
 msgid "Create Webhook"
 msgstr "Crear webhook"
 
@@ -4252,7 +4313,7 @@ msgstr "Evento personalizado"
 msgid "Custom event filters"
 msgstr "Filtros de eventos personalizados"
 
-#: src/components/settings/WebhooksSettings.tsx:591
+#: src/components/settings/WebhooksSettings.tsx:593
 msgid "Custom Event Filters (optional)"
 msgstr "Filtros de eventos personalizados (opcional)"
 
@@ -4422,8 +4483,8 @@ msgstr "Zona de peligro"
 #~ msgstr "Zona de peligro"
 
 #: src/layouts/app-shell/AppSidebar.tsx:139
-#: src/layouts/app-shell/menuItems.ts:119
-#: src/pages/AnalyticsPage.tsx:78
+#: src/layouts/app-shell/menuItems.ts:166
+#: src/pages/AnalyticsPage.tsx:105
 #: src/pages/WebAnalyticsLivePage.tsx:126
 #: src/pages/WebAnalyticsLivePage.tsx:127
 msgid "Dashboard"
@@ -4856,8 +4917,8 @@ msgstr "Si eliminas este webhook, el Zap que lo creó dejará de funcionar. El Z
 msgid "delivered"
 msgstr "entregado"
 
-#: src/components/analytics/EmailMetricsChart.tsx:280
-#: src/components/analytics/EmailMetricsChart.tsx:361
+#: src/components/analytics/DashboardKpis.tsx:258
+#: src/components/analytics/DashboardKpis.tsx:261
 #: src/components/broadcasts/BroadcastStats.tsx:211
 #: src/components/messages/MessageHistoryTab.tsx:114
 #: src/components/messages/MessageHistoryTab.tsx:116
@@ -5524,7 +5585,7 @@ msgstr "Editar el consentimiento de seguimiento"
 msgid "Edit value"
 msgstr "Editar valor"
 
-#: src/components/settings/WebhooksSettings.tsx:489
+#: src/components/settings/WebhooksSettings.tsx:491
 msgid "Edit Webhook"
 msgstr "Editar webhook"
 
@@ -5562,7 +5623,6 @@ msgstr "Relleno del elemento"
 msgid "email"
 msgstr "correo electrónico"
 
-#: src/components/analytics/NewContactsTable.tsx:67
 #: src/components/automations/AddNodeButton.tsx:77
 #: src/components/automations/config/TriggerConfigForm.tsx:110
 #: src/components/automations/nodes/EmailNode.tsx:39
@@ -5608,7 +5668,6 @@ msgstr "Atributos del correo"
 msgid "Email Body Payload"
 msgstr "Cuerpo del payload del correo"
 
-#: src/components/analytics/NewContactsTable.tsx:105
 #: src/pages/ContactsPage.tsx:595
 msgid "Email bounced"
 msgstr "Correo rebotado"
@@ -5656,8 +5715,8 @@ msgid "Email mapping required"
 msgstr "Mapeo de correo requerido"
 
 #: src/components/analytics/EmailMetricsChart.tsx:291
-msgid "Email Metrics"
-msgstr "Métricas de correo"
+#~ msgid "Email Metrics"
+#~ msgstr "Métricas de correo"
 
 #: src/components/settings/GeneralSettings.tsx:158
 #: src/components/settings/GeneralSettings.tsx:270
@@ -5756,6 +5815,15 @@ msgstr "correos por día"
 msgid "emails per hour"
 msgstr "correos por hora"
 
+#: src/components/analytics/DashboardKpis.tsx:246
+#: src/components/analytics/DashboardKpis.tsx:249
+msgid "Emails sent"
+msgstr "Emails enviados"
+
+#: src/components/analytics/OriginVolumeChart.tsx:152
+msgid "Emails sent per day"
+msgstr "Emails enviados por día"
+
 #: src/components/blog_editor/menus/suggestion/EmojiMenu.tsx:313
 msgid "Emoji Suggestions"
 msgstr "Sugerencias de emojis"
@@ -5851,7 +5919,7 @@ msgstr "finalizado"
 msgid "Endpoint"
 msgstr "Punto final"
 
-#: src/components/settings/WebhooksSettings.tsx:526
+#: src/components/settings/WebhooksSettings.tsx:528
 msgid "Endpoint URL"
 msgstr "URL del punto final"
 
@@ -5978,7 +6046,7 @@ msgstr "Introduce dirección de correo"
 msgid "Enter email title..."
 msgstr "Introduce el título del correo..."
 
-#: src/components/settings/WebhooksSettings.tsx:611
+#: src/components/settings/WebhooksSettings.tsx:613
 msgid "Enter event names to filter"
 msgstr "Introduce nombres de eventos para filtrar"
 
@@ -6100,10 +6168,6 @@ msgstr "Enumerar todas las direcciones de suscriptores de una lista (también ne
 msgid "equals"
 msgstr "es igual a"
 
-#: src/components/analytics/ChartVisualization.tsx:390
-#: src/components/analytics/EmailMetricsChart.tsx:307
-#: src/components/analytics/FailedMessagesTable.tsx:71
-#: src/components/analytics/NewContactsTable.tsx:208
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:940
 #: src/components/messages/MessageHistoryTable.tsx:152
 #: src/components/messages/MessageHistoryTable.tsx:384
@@ -6180,7 +6244,7 @@ msgstr "nombre del evento"
 msgid "Event Name"
 msgstr "Nombre del evento"
 
-#: src/components/settings/WebhooksSettings.tsx:608
+#: src/components/settings/WebhooksSettings.tsx:610
 msgid "Event Names"
 msgstr "Nombres de eventos"
 
@@ -6193,7 +6257,7 @@ msgstr "Nombres de evento: {0}"
 msgid "Event Type"
 msgstr "Tipo de evento"
 
-#: src/components/settings/WebhooksSettings.tsx:539
+#: src/components/settings/WebhooksSettings.tsx:541
 msgid "Event Types"
 msgstr "Tipos de eventos"
 
@@ -6318,7 +6382,7 @@ msgid "Expires:"
 msgstr "Expira:"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:371
-#: src/layouts/app-shell/menuItems.ts:122
+#: src/layouts/app-shell/menuItems.ts:169
 #: src/pages/WebAnalyticsPage.tsx:96
 msgid "Explore"
 msgstr "Explorar"
@@ -6387,8 +6451,8 @@ msgstr "Muy alto"
 msgid "failed"
 msgstr "fallido"
 
-#: src/components/analytics/EmailMetricsChart.tsx:286
-#: src/components/analytics/EmailMetricsChart.tsx:533
+#: src/components/analytics/RecentFailures.tsx:54
+#: src/components/analytics/RecentFailures.tsx:59
 #: src/components/automations/AutomationCard.tsx:284
 #: src/components/automations/nodes/StatNode.tsx:138
 #: src/components/automations/nodes/StatNode.tsx:200
@@ -6617,16 +6681,16 @@ msgid "Failed to fetch data: {0}"
 msgstr "Error al obtener los datos: {0}"
 
 #: src/components/analytics/EmailMetricsChart.tsx:168
-msgid "Failed to fetch email metrics"
-msgstr "Error al obtener métricas de correo"
+#~ msgid "Failed to fetch email metrics"
+#~ msgstr "Error al obtener métricas de correo"
 
 #: src/components/analytics/FailedMessagesTable.tsx:40
-msgid "Failed to fetch failed messages data"
-msgstr "Error al obtener datos de mensajes fallidos"
+#~ msgid "Failed to fetch failed messages data"
+#~ msgstr "Error al obtener datos de mensajes fallidos"
 
 #: src/components/analytics/NewContactsTable.tsx:47
-msgid "Failed to fetch new contacts data"
-msgstr "Error al obtener datos de nuevos contactos"
+#~ msgid "Failed to fetch new contacts data"
+#~ msgstr "Error al obtener datos de nuevos contactos"
 
 #: src/components/file_manager/fileManager.tsx:181
 msgid "Failed to fetch objects: "
@@ -7029,7 +7093,7 @@ msgid "File is too large. Maximum size is 1MB."
 msgstr "El archivo es demasiado grande. El tamaño máximo es 1 MB."
 
 #: src/components/file_manager/context.tsx:155
-#: src/layouts/app-shell/menuItems.ts:134
+#: src/layouts/app-shell/menuItems.ts:181
 #: src/pages/FileManagerPage.tsx:119
 msgid "File Manager"
 msgstr "Administrador de archivos"
@@ -7092,7 +7156,7 @@ msgstr "Filtrar por una propiedad del evento"
 
 #: src/components/messages/MessageHistoryTab.tsx:577
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:373
-#: src/layouts/app-shell/menuItems.ts:124
+#: src/layouts/app-shell/menuItems.ts:171
 #: src/pages/WebAnalyticsPage.tsx:98
 msgid "Filters"
 msgstr "Filtros"
@@ -7461,7 +7525,7 @@ msgstr "nombre del objetivo"
 msgid "goal type"
 msgstr "tipo de objetivo"
 
-#: src/components/settings/WebhooksSettings.tsx:593
+#: src/components/settings/WebhooksSettings.tsx:595
 msgid "Goal Types"
 msgstr "Tipos de objetivo"
 
@@ -7479,7 +7543,7 @@ msgstr "Objetivo:"
 #: src/components/web_analytics/tabs/DashboardTab.tsx:246
 #: src/components/web_analytics/tabs/DashboardTab.tsx:256
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:372
-#: src/layouts/app-shell/menuItems.ts:123
+#: src/layouts/app-shell/menuItems.ts:170
 #: src/pages/WebAnalyticsPage.tsx:97
 msgid "Goals"
 msgstr "Objetivos"
@@ -7913,6 +7977,10 @@ msgstr "Importar y exportar plantillas"
 #: src/components/file_manager/fileManager.tsx:443
 msgid "Import cancelled"
 msgstr "Importación cancelada"
+
+#: src/components/analytics/NewContactsTable.tsx:73
+msgid "Import contacts"
+msgstr "Importar contactos"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:792
 #: src/components/contacts/ContactsCsvUploadProvider.tsx:102
@@ -8472,7 +8540,6 @@ msgstr "Páginas de destino"
 #~ msgid "Landing Pages"
 #~ msgstr ""
 
-#: src/components/analytics/NewContactsTable.tsx:166
 #: src/components/automations/config/TriggerConfigForm.tsx:134
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:221
 #: src/components/contacts/ContactDetailsDrawer.tsx:457
@@ -8559,7 +8626,7 @@ msgstr "Apellido"
 msgid "Last success"
 msgstr "Último éxito"
 
-#: src/components/settings/WebhooksSettings.tsx:600
+#: src/components/settings/WebhooksSettings.tsx:602
 msgid "Lead"
 msgstr "Prospecto"
 
@@ -8915,9 +8982,8 @@ msgstr "Lista actualizada exitosamente"
 msgid "List:"
 msgstr "Lista:"
 
-#: src/components/analytics/NewContactsTable.tsx:73
 #: src/components/settings/permissionLabels.ts:8
-#: src/layouts/app-shell/menuItems.ts:127
+#: src/layouts/app-shell/menuItems.ts:174
 #: src/pages/ContactsPage.tsx:442
 #: src/pages/ContactsPage.tsx:563
 #: src/pages/ListsPage.tsx:227
@@ -8936,7 +9002,7 @@ msgstr "La escritura de Listas concede también la escritura de contactos. Suscr
 #: src/components/automations/AutomationCard.tsx:65
 #: src/components/blog/RecentThemesTable.tsx:128
 #: src/components/web_analytics/LiveButton.tsx:46
-#: src/layouts/app-shell/menuItems.ts:121
+#: src/layouts/app-shell/menuItems.ts:168
 #: src/pages/WebAnalyticsLivePage.tsx:121
 msgid "Live"
 msgstr "En vivo"
@@ -9045,7 +9111,7 @@ msgstr "URL del logotipo"
 msgid "Logout"
 msgstr "Cerrar sesión"
 
-#: src/layouts/app-shell/menuItems.ts:135
+#: src/layouts/app-shell/menuItems.ts:182
 #: src/pages/LogsPage.tsx:95
 msgid "Logs"
 msgstr "Registros"
@@ -9132,7 +9198,7 @@ msgstr "gestionado"
 msgid "Managed by {0} ({1} integration)"
 msgstr "Administrado por {0} (integración {1})"
 
-#: src/components/settings/WebhooksSettings.tsx:511
+#: src/components/settings/WebhooksSettings.tsx:513
 msgid "Managed by Zapier"
 msgstr "Gestionado por Zapier"
 
@@ -9157,11 +9223,12 @@ msgstr "Mapea las columnas de tu CSV a los campos de contacto. El"
 msgid "Mark the dates that explain a chart — a launch, a campaign, an outage — and they appear as labelled verticals on the dashboard and goal charts."
 msgstr "Marca las fechas que explican un gráfico —un lanzamiento, una campaña, una caída— y aparecerán como líneas verticales etiquetadas en el panel y en los gráficos de objetivos."
 
-#: src/components/analytics/NewContactsTable.tsx:110
+#: src/components/analytics/RecentFailures.tsx:57
 #: src/pages/ContactsPage.tsx:600
 msgid "Marked as spam"
 msgstr "Marcado como spam"
 
+#: src/components/analytics/SendingCard.tsx:25
 #: src/pages/TemplatesPage.tsx:126
 msgid "Marketing"
 msgstr "Marketing"
@@ -9179,8 +9246,8 @@ msgstr "Se requiere proveedor de correo de marketing"
 #~ msgstr "Correos de marketing"
 
 #: src/components/analytics/AnalyticsDashboard.tsx:176
-msgid "Marketing Provider"
-msgstr "Proveedor de marketing"
+#~ msgid "Marketing Provider"
+#~ msgstr "Proveedor de marketing"
 
 #: src/components/settings/Integrations.tsx:1231
 msgid "Marketing: {marketingName}"
@@ -9544,7 +9611,7 @@ msgstr "Debe coincidir con la forma en que el valor está almacenado en el event
 msgid "My Amazing Blog"
 msgstr "Mi increíble blog"
 
-#: src/components/settings/WebhooksSettings.tsx:521
+#: src/components/settings/WebhooksSettings.tsx:523
 msgid "My Webhook"
 msgstr "Mi webhook"
 
@@ -9566,7 +9633,6 @@ msgstr "mi-tenant"
 msgid "N/A"
 msgstr "N/D"
 
-#: src/components/analytics/NewContactsTable.tsx:158
 #: src/components/automations/UpsertAutomationDrawer.tsx:184
 #: src/components/blog/AuthorsTable.tsx:143
 #: src/components/blog/CategoryDrawer.tsx:130
@@ -9580,7 +9646,7 @@ msgstr "N/D"
 #: src/components/settings/GeneralSettings.tsx:227
 #: src/components/settings/GeneralSettings.tsx:325
 #: src/components/settings/Integrations.tsx:2107
-#: src/components/settings/WebhooksSettings.tsx:518
+#: src/components/settings/WebhooksSettings.tsx:520
 #: src/components/settings/WorkspaceMembers.tsx:286
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:119
 #: src/components/web_analytics/filters/FilterTable.tsx:192
@@ -9637,13 +9703,21 @@ msgstr "Nuevo"
 msgid "New block"
 msgstr "Bloque nuevo"
 
+#: src/components/analytics/UpcomingSends.tsx:100
+msgid "New broadcast"
+msgstr "Nuevo envío masivo"
+
 #: src/components/blog/BlogSidebar.tsx:40
 msgid "New Category"
 msgstr "Nueva categoría"
 
-#: src/components/analytics/AnalyticsDashboard.tsx:141
-msgid "New Contacts"
+#: src/components/analytics/NewContactsTable.tsx:114
+msgid "New contacts"
 msgstr "Nuevos contactos"
+
+#: src/components/analytics/AnalyticsDashboard.tsx:141
+#~ msgid "New Contacts"
+#~ msgstr "Nuevos contactos"
 
 #: src/components/ai-assistant/AIAssistantChat.tsx:374
 msgid "New conversation"
@@ -9786,6 +9860,10 @@ msgstr "Sin automatizaciones aún"
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr "Aún no se ha ejecutado ningún relleno retroactivo. Ejecuta uno para aplicar estas reglas a las sesiones y objetivos históricos."
 
+#: src/components/analytics/UpcomingSends.tsx:97
+msgid "No broadcast scheduled"
+msgstr "Ningún envío masivo programado"
+
 #: src/pages/BroadcastsPage.tsx:1777
 msgid "No broadcasts found"
 msgstr "No se encontraron envíos masivos"
@@ -9829,6 +9907,10 @@ msgstr "Sin comparación"
 msgid "No conditions"
 msgstr "Sin condiciones"
 
+#: src/components/analytics/NewContactsTable.tsx:70
+msgid "No contact yet"
+msgstr "Aún no hay contactos"
+
 #: src/pages/ContactsPage.tsx:1182
 msgid "No contacts found. Add some contacts to get started."
 msgstr "No se encontraron contactos. Añade algunos contactos para comenzar."
@@ -9851,7 +9933,6 @@ msgstr "No hay datos CSV disponibles"
 msgid "No custom field is named yet"
 msgstr "Aún no hay ningún campo personalizado con nombre"
 
-#: src/components/analytics/ChartVisualization.tsx:395
 #: src/components/web_analytics/DimensionTableWidget.tsx:283
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:226
 msgid "No data available"
@@ -9872,6 +9953,10 @@ msgstr "No se devolvieron datos"
 #: src/components/templates/TemplatePreviewDrawer.tsx:324
 msgid "No default sender configured"
 msgstr "No hay remitente predeterminado configurado"
+
+#: src/components/analytics/DashboardKpis.tsx:265
+msgid "No delivery events"
+msgstr "Sin eventos de entrega"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:240
 #: src/pages/WebAnalyticsLivePage.tsx:188
@@ -9903,6 +9988,10 @@ msgstr "No hay integraciones de correo disponibles. Por favor, configura una en 
 msgid "No email provider yet"
 msgstr "Aún no hay ningún proveedor de correo"
 
+#: src/components/analytics/OriginVolumeChart.tsx:145
+msgid "No email sent in this period"
+msgstr "Ningún email enviado en este periodo"
+
 #: src/components/web_analytics/filters/BackfillStatus.tsx:121
 msgid "No error message was recorded."
 msgstr "No se registró ningún mensaje de error."
@@ -9914,6 +10003,10 @@ msgstr "Sin errores"
 #: src/components/messages/MessageHistoryTab.tsx:236
 #~ msgid "No Errors"
 #~ msgstr "Sin errores"
+
+#: src/components/analytics/RecentFailures.tsx:112
+msgid "No failure"
+msgstr "Sin fallos"
 
 #: src/components/file_manager/fileManager.tsx:500
 msgid "No files selected"
@@ -10229,8 +10322,7 @@ msgstr "No asignado"
 msgid "Not available here"
 msgstr "No disponible aquí"
 
-#: src/components/analytics/AnalyticsDashboard.tsx:164
-#: src/components/analytics/AnalyticsDashboard.tsx:188
+#: src/components/analytics/SendingCard.tsx:58
 #: src/components/settings/Integrations.tsx:989
 #: src/components/settings/Integrations.tsx:1102
 msgid "Not configured"
@@ -10445,6 +10537,10 @@ msgstr "Ocurrió:"
 msgid "of {tracked} tracked"
 msgstr "de {tracked} con seguimiento"
 
+#: src/components/analytics/OriginVolumeChart.tsx:46
+msgid "of emails sent that day"
+msgstr "de los emails enviados ese día"
+
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:313
 #: src/components/segment/input.tsx:965
 msgid "of the following conditions match:"
@@ -10587,6 +10683,10 @@ msgstr "Abrir en la web"
 msgid "Open one audit entry with its before/after changes"
 msgstr "Abrir una entrada de auditoría con sus cambios antes/después"
 
+#: src/components/analytics/DashboardKpis.tsx:275
+msgid "Open rate"
+msgstr "Tasa de apertura"
+
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:58
 msgid "Open Rate"
 msgstr "Tasa de apertura"
@@ -10626,8 +10726,7 @@ msgstr "Abierto"
 msgid "opens"
 msgstr "aperturas"
 
-#: src/components/analytics/EmailMetricsChart.tsx:281
-#: src/components/analytics/EmailMetricsChart.tsx:393
+#: src/components/analytics/OriginVolumeChart.tsx:160
 #: src/components/broadcasts/BroadcastStats.tsx:242
 #: src/components/contacts/TrackingConsent.tsx:28
 #: src/components/contacts/TrackingConsent.tsx:187
@@ -10738,7 +10837,7 @@ msgid "OS"
 msgstr "SO"
 
 #: src/components/blog_editor/menus/suggestion/SlashPopoverContent.tsx:74
-#: src/components/settings/WebhooksSettings.tsx:604
+#: src/components/settings/WebhooksSettings.tsx:606
 #: src/pages/TemplatesPage.tsx:133
 msgid "Other"
 msgstr "Otro"
@@ -10937,7 +11036,6 @@ msgstr "Payload:"
 msgid "Pending"
 msgstr "Pendiente"
 
-#: src/components/analytics/NewContactsTable.tsx:93
 #: src/pages/ContactsPage.tsx:583
 msgid "Pending confirmation"
 msgstr "Confirmación pendiente"
@@ -11122,7 +11220,7 @@ msgstr "Por favor, introduce un nombre de lista"
 msgid "Please enter a model name"
 msgstr "Por favor, introduce un nombre de modelo"
 
-#: src/components/settings/WebhooksSettings.tsx:519
+#: src/components/settings/WebhooksSettings.tsx:521
 msgid "Please enter a name"
 msgstr "Por favor, introduce un nombre"
 
@@ -11151,7 +11249,7 @@ msgstr "Por favor, introduce un nombre de propiedad"
 msgid "Please enter a slug"
 msgstr "Por favor, introduce un slug"
 
-#: src/components/settings/WebhooksSettings.tsx:528
+#: src/components/settings/WebhooksSettings.tsx:530
 msgid "Please enter a URL"
 msgstr "Por favor, introduce una URL"
 
@@ -11174,7 +11272,7 @@ msgstr "Por favor, introduce una URL de imagen válida"
 #: src/components/settings/GeneralSettings.tsx:347
 #: src/components/settings/GeneralSettings.tsx:356
 #: src/components/settings/GeneralSettings.tsx:463
-#: src/components/settings/WebhooksSettings.tsx:529
+#: src/components/settings/WebhooksSettings.tsx:531
 #: src/pages/CreateWorkspacePage.tsx:187
 msgid "Please enter a valid URL"
 msgstr "Por favor, introduce una URL válida"
@@ -11329,7 +11427,7 @@ msgstr "Por favor, selecciona un proveedor OAuth2"
 msgid "Please select an operation"
 msgstr "Por favor, selecciona una operación"
 
-#: src/components/settings/WebhooksSettings.tsx:553
+#: src/components/settings/WebhooksSettings.tsx:555
 msgid "Please select at least one event type"
 msgstr "Por favor, selecciona al menos un tipo de evento"
 
@@ -11711,7 +11809,7 @@ msgstr "Publicar este tema"
 msgid "Published"
 msgstr "Publicado"
 
-#: src/components/settings/WebhooksSettings.tsx:598
+#: src/components/settings/WebhooksSettings.tsx:600
 msgid "Purchase"
 msgstr "Compra"
 
@@ -11958,13 +12056,25 @@ msgstr "Reconstruir"
 msgid "Rebuild segment"
 msgstr "Reconstruir segmento"
 
+#: src/components/analytics/DashboardKpis.tsx:276
+msgid "Recent emails may still be clicked"
+msgstr "Los emails recientes aún pueden recibir clics"
+
+#: src/components/analytics/DashboardKpis.tsx:275
+msgid "Recent emails may still be opened"
+msgstr "Los emails recientes aún pueden abrirse"
+
 #: src/components/analytics/FailedMessagesTable.tsx:68
-msgid "Recent Failed Messages"
-msgstr "Mensajes fallidos recientes"
+#~ msgid "Recent Failed Messages"
+#~ msgstr "Mensajes fallidos recientes"
+
+#: src/components/analytics/RecentFailures.tsx:156
+msgid "Recent failures"
+msgstr "Fallos recientes"
 
 #: src/components/analytics/NewContactsTable.tsx:205
-msgid "Recent New Contacts"
-msgstr "Contactos nuevos recientes"
+#~ msgid "Recent New Contacts"
+#~ msgstr "Contactos nuevos recientes"
 
 #: src/components/blog_editor/components/colors/ColorGrid.tsx:48
 #: src/components/blog_editor/toolbars/components/ColorPicker.tsx:121
@@ -12548,6 +12658,8 @@ msgstr "Retención"
 #~ msgid "Retention (months)"
 #~ msgstr ""
 
+#: src/components/analytics/BlockError.tsx:22
+#: src/components/analytics/DashboardKpis.tsx:183
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
 #: src/components/settings/WorkspaceMembers.tsx:495
@@ -12763,7 +12875,7 @@ msgstr "Modo sandbox"
 #: src/components/settings/Integrations.tsx:2272
 #: src/components/settings/Integrations.tsx:2308
 #: src/components/settings/SystemSettingsDrawer.tsx:245
-#: src/components/settings/WebhooksSettings.tsx:499
+#: src/components/settings/WebhooksSettings.tsx:501
 #: src/components/templates/CreateTemplateDrawer.tsx:730
 #: src/components/templates/CreateTemplateDrawer.tsx:751
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:193
@@ -13182,7 +13294,7 @@ msgstr "Selecciona una plantilla"
 msgid "Select a time zone"
 msgstr "Selecciona una zona horaria"
 
-#: src/components/settings/WebhooksSettings.tsx:546
+#: src/components/settings/WebhooksSettings.tsx:548
 msgid "Select all"
 msgstr "Seleccionar todo"
 
@@ -13283,7 +13395,7 @@ msgstr "Selecciona un campo"
 msgid "Select field to map to"
 msgstr "Selecciona campo para mapear"
 
-#: src/components/settings/WebhooksSettings.tsx:596
+#: src/components/settings/WebhooksSettings.tsx:598
 msgid "Select goal types to filter"
 msgstr "Selecciona tipos de objetivo para filtrar"
 
@@ -13376,7 +13488,6 @@ msgstr "Seleccionar hora"
 #: src/components/broadcasts/SendOrScheduleModal.tsx:276
 #: src/components/contacts/ContactUpsertDrawer.tsx:445
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:175
-#: src/pages/AnalyticsPage.tsx:88
 msgid "Select timezone"
 msgstr "Seleccionar zona horaria"
 
@@ -13557,6 +13668,7 @@ msgstr "Remitente de la variante {name}"
 msgid "Senders"
 msgstr "Remitentes"
 
+#: src/components/analytics/SendingCard.tsx:39
 #: src/components/settings/SettingsSidebar.tsx:27
 #: src/pages/BroadcastsPage.tsx:1675
 msgid "Sending"
@@ -13587,8 +13699,7 @@ msgstr ""
 msgid "sent"
 msgstr "enviado"
 
-#: src/components/analytics/EmailMetricsChart.tsx:279
-#: src/components/analytics/EmailMetricsChart.tsx:334
+#: src/components/analytics/OriginVolumeChart.tsx:159
 #: src/components/broadcasts/BroadcastStats.tsx:177
 #: src/components/messages/MessageHistoryTab.tsx:101
 #: src/components/messages/MessageHistoryTab.tsx:103
@@ -13809,6 +13920,10 @@ msgstr "Establecer a null"
 msgid "Set up"
 msgstr "Configurado"
 
+#: src/components/analytics/DashboardKpis.tsx:324
+msgid "Set up web analytics"
+msgstr "Configurar la analítica web"
+
 #: src/pages/WebAnalyticsFiltersPage.tsx:368
 #~ msgid "set value"
 #~ msgstr ""
@@ -13847,7 +13962,7 @@ msgstr "Establece el ancho de pantalla por debajo del cual el correo cambiará a
 msgid "Setting up..."
 msgstr "Configurando..."
 
-#: src/layouts/app-shell/menuItems.ts:136
+#: src/layouts/app-shell/menuItems.ts:183
 #: src/pages/WorkspaceSettingsPage.tsx:269
 msgid "Settings"
 msgstr "Configuración"
@@ -13943,13 +14058,13 @@ msgstr "Sesión iniciada con"
 msgid "Signing out..."
 msgstr "Cerrando sesión..."
 
-#: src/components/settings/WebhooksSettings.tsx:601
+#: src/components/settings/WebhooksSettings.tsx:603
 msgid "Signup"
 msgstr "Registro"
 
-#: src/components/analytics/NewContactsTable.tsx:184
-msgid "Since"
-msgstr "Desde"
+#: src/components/settings/WorkspaceMembers.tsx:180
+#~ msgid "Since"
+#~ msgstr "Desde"
 
 #: src/services/api/licenseErrors.ts:51
 msgid "Single sign-on"
@@ -14322,7 +14437,6 @@ msgstr "Estado"
 msgid "status changed"
 msgstr "estado cambiado"
 
-#: src/components/analytics/NewContactsTable.tsx:114
 #: src/pages/ContactsPage.tsx:604
 msgid "Status unknown"
 msgstr "Estado desconocido"
@@ -14440,7 +14554,6 @@ msgstr "suscrito"
 msgid "Subscribed"
 msgstr "Suscrito"
 
-#: src/components/analytics/NewContactsTable.tsx:132
 #: src/components/contacts/ContactDetailsDrawer.tsx:1007
 msgid "Subscribed on"
 msgstr "Suscrito el"
@@ -14453,7 +14566,7 @@ msgstr "Suscrito el:"
 msgid "Subscript"
 msgstr "Subíndice"
 
-#: src/components/settings/WebhooksSettings.tsx:599
+#: src/components/settings/WebhooksSettings.tsx:601
 #: src/components/timeline/ContactTimeline.tsx:375
 #: src/components/timeline/ContactTimeline.tsx:388
 #: src/components/timeline/ContactTimeline.tsx:414
@@ -14783,7 +14896,7 @@ msgid "Template's sender ({0})"
 msgstr "Remitente de la plantilla ({0})"
 
 #: src/components/settings/permissionLabels.ts:9
-#: src/layouts/app-shell/menuItems.ts:132
+#: src/layouts/app-shell/menuItems.ts:179
 #: src/pages/TemplatesPage.tsx:397
 #: src/services/api/errors.ts:84
 msgid "Templates"
@@ -15169,7 +15282,7 @@ msgstr "El registro de mensajes salientes: todos los correos que envió el espac
 msgid "The provider refused {0} recipients and every retry was used up. Open the logs to see why, then retry them."
 msgstr "El proveedor rechazó {0} destinatarios y se agotaron todos los reintentos. Consulta los registros para ver por qué y vuelve a intentarlo."
 
-#: src/pages/AnalyticsPage.tsx:70
+#: src/pages/AnalyticsPage.tsx:89
 msgid "The requested workspace could not be found."
 msgstr "No se pudo encontrar el espacio de trabajo solicitado."
 
@@ -15715,8 +15828,6 @@ msgstr "El TimeScore es la mediana del tiempo de interacción de todas las sesio
 msgid "Timestamp"
 msgstr "Marca de tiempo"
 
-#: src/components/analytics/NewContactsTable.tsx:134
-#: src/components/analytics/NewContactsTable.tsx:172
 #: src/components/automations/config/TriggerConfigForm.tsx:133
 #: src/components/blog/PublishModal.tsx:184
 #: src/components/broadcasts/SendOrScheduleModal.tsx:265
@@ -15944,8 +16055,8 @@ msgid "Total clicks"
 msgstr "Clics totales"
 
 #: src/components/analytics/AnalyticsDashboard.tsx:129
-msgid "Total Contacts"
-msgstr "Contactos totales"
+#~ msgid "Total Contacts"
+#~ msgstr "Contactos totales"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:42
 msgid "Total Value"
@@ -16000,10 +16111,11 @@ msgstr "Tráfico por día y hora"
 msgid "Traffic no filter rule has classified"
 msgstr "Tráfico que ninguna regla de filtro ha clasificado"
 
-#: src/components/analytics/EmailMetricsChart.tsx:299
+#: src/components/analytics/OriginVolumeChart.tsx:43
+#: src/components/analytics/SendingCard.tsx:30
 #: src/components/settings/permissionLabels.ts:11
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
-#: src/layouts/app-shell/menuItems.ts:130
+#: src/layouts/app-shell/menuItems.ts:177
 #: src/pages/TemplatesPage.tsx:127
 #: src/services/api/errors.ts:86
 msgid "Transactional"
@@ -16030,8 +16142,8 @@ msgid "Transactional Notifications"
 msgstr "Notificaciones transaccionales"
 
 #: src/components/analytics/AnalyticsDashboard.tsx:152
-msgid "Transactional Provider"
-msgstr "Proveedor transaccional"
+#~ msgid "Transactional Provider"
+#~ msgstr "Proveedor transaccional"
 
 #: src/components/settings/Integrations.tsx:1237
 msgid "Transactional: {transactionalName}"
@@ -16050,7 +16162,7 @@ msgstr ""
 msgid "Transparent"
 msgstr "Transparente"
 
-#: src/components/settings/WebhooksSettings.tsx:603
+#: src/components/settings/WebhooksSettings.tsx:605
 msgid "Trial"
 msgstr "Prueba"
 
@@ -16208,7 +16320,6 @@ msgstr "Los clics únicos cuentan a cada destinatario una vez por enlace: alguie
 msgid "Unknown"
 msgstr "Desconocido"
 
-#: src/components/analytics/NewContactsTable.tsx:125
 #: src/pages/ContactsPage.tsx:615
 #: src/pages/ContactsPage.tsx:663
 msgid "Unknown date"
@@ -16281,7 +16392,6 @@ msgstr "sin establecer"
 msgid "Unsub"
 msgstr "Baja"
 
-#: src/components/analytics/EmailMetricsChart.tsx:506
 #: src/components/broadcasts/BroadcastStats.tsx:396
 msgid "Unsub."
 msgstr "Baja."
@@ -16315,14 +16425,13 @@ msgstr "Cancelar suscripción de lista"
 msgid "Unsubscribed"
 msgstr "Cancelado suscripción"
 
-#: src/components/analytics/NewContactsTable.tsx:98
 #: src/pages/ContactsPage.tsx:588
 msgid "Unsubscribed from list"
 msgstr "Suscripción cancelada de lista"
 
 #: src/components/analytics/EmailMetricsChart.tsx:285
-msgid "Unsubscribes"
-msgstr "Cancelaciones de suscripción"
+#~ msgid "Unsubscribes"
+#~ msgstr "Cancelaciones de suscripción"
 
 #: src/pages/BroadcastsPage.tsx:864
 msgid "Untitled"
@@ -16332,6 +16441,10 @@ msgstr "Sin título"
 #: src/components/settings/Integrations.tsx:1789
 msgid "Up to 64 letters, numbers, hyphens or underscores."
 msgstr "Hasta 64 letras, números, guiones o guiones bajos."
+
+#: src/components/analytics/UpcomingSends.tsx:130
+msgid "Upcoming sends"
+msgstr "Próximos envíos"
 
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:123
 #: src/components/contacts/SegmentsFilter.tsx:143
@@ -16737,14 +16850,18 @@ msgstr "Ver estadísticas de flujo"
 msgid "View full dashboard"
 msgstr "Ver el panel completo"
 
+#: src/components/analytics/RecentFailures.tsx:90
+msgid "View in logs"
+msgstr "Ver en los registros"
+
 #: src/components/settings/WebhookCard.tsx:247
 #~ msgid "View Logs"
 #~ msgstr "Ver registros"
 
 #: src/components/analytics/FailedMessagesTable.tsx:63
 #: src/components/analytics/NewContactsTable.tsx:200
-msgid "View more"
-msgstr "Ver más"
+#~ msgid "View more"
+#~ msgstr "Ver más"
 
 #: src/components/timeline/ContactTimeline.tsx:502
 msgid "View Raw JSON"
@@ -16844,7 +16961,7 @@ msgstr "Analítica web"
 #: src/components/settings/permissionLabels.ts:17
 #: src/components/settings/WebAnalyticsSettings.tsx:244
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:370
-#: src/layouts/app-shell/menuItems.ts:120
+#: src/layouts/app-shell/menuItems.ts:167
 #: src/pages/BroadcastsPage.tsx:1222
 #: src/pages/WebAnalyticsPage.tsx:95
 #: src/services/api/errors.ts:92
@@ -17004,6 +17121,12 @@ msgstr "URL del sitio web"
 #: src/services/api/permissions.ts:747
 msgid "Website visitor analytics — sessions, page views and goals — the annotations drawn on those charts, and the historical backfill."
 msgstr "Analíticas de visitantes del sitio web —sesiones, vistas de página y objetivos—, las anotaciones dibujadas en esos gráficos y el relleno retroactivo histórico."
+
+#: src/components/analytics/DashboardKpis.tsx:283
+#: src/components/analytics/DashboardKpis.tsx:291
+#: src/components/analytics/DashboardKpis.tsx:316
+msgid "Website visits"
+msgstr "Visitas al sitio web"
 
 #: src/components/web_analytics/toolbar.tsx:171
 msgid "Weekly"
@@ -17257,7 +17380,7 @@ msgid "Workspace name must be at most {WORKSPACE_NAME_MAX_LENGTH} characters lon
 msgstr "El nombre del espacio de trabajo debe tener como máximo {WORKSPACE_NAME_MAX_LENGTH} caracteres"
 
 #: src/layouts/WorkspaceLayout.tsx:137
-#: src/pages/AnalyticsPage.tsx:69
+#: src/pages/AnalyticsPage.tsx:88
 #: src/pages/FileManagerPage.tsx:57
 msgid "Workspace not found"
 msgstr "Espacio de trabajo no encontrado"
@@ -17500,7 +17623,7 @@ msgstr "Tiene cambios de retención sin guardar. ¿Salir sin guardar?"
 msgid "You joined {workspaceName}"
 msgstr "Te has unido a {workspaceName}"
 
-#: src/components/settings/BlogSettings.tsx:270
+#: src/components/settings/BlogSettings.tsx:273
 #~ msgid "You must configure a Custom Endpoint URL in General Settings above before enabling the blog."
 #~ msgstr "Debes configurar una URL de punto final personalizado en la Configuración general arriba antes de habilitar el blog."
 
@@ -17608,7 +17731,7 @@ msgstr "Integración de Zapier guardada exitosamente"
 msgid "Zapier is connected, but the integration list could not be refreshed"
 msgstr "Zapier está conectado, pero no se ha podido actualizar la lista de integraciones"
 
-#: src/components/settings/WebhooksSettings.tsx:512
+#: src/components/settings/WebhooksSettings.tsx:514
 msgid "Zapier owns this webhook's endpoint URL, so it cannot be changed here. Changing the event types breaks the Zap that created this webhook without reporting any error in Zapier."
 msgstr "La URL del punto final de este webhook pertenece a Zapier, así que no se puede cambiar aquí. Cambiar los tipos de evento hace que el Zap que creó este webhook deje de funcionar sin informar de ningún error en Zapier."
 

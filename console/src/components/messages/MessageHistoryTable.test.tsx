@@ -129,7 +129,7 @@ describe('MessageHistoryTable metadata column', () => {
   })
 
   it('shows the column when no visibility map is supplied', () => {
-    // ContactDetailsDrawer and FailedMessagesTable pass none. The Logs page does pass one,
+    // ContactDetailsDrawer passes none. The Logs page does pass one,
     // but leaves `metadata` out of it, so the column reads as visible there too.
     renderTable([message('m1', { data: {}, metadata: { order_id: '9912' } })])
 
