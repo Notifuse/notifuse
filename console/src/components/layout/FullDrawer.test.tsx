@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { App } from 'antd'
+import { App, Drawer } from 'antd'
 import { FullDrawer, type FullDrawerProps } from './FullDrawer'
 import * as clipboard from '../../lib/copyToClipboard'
 
@@ -127,5 +127,36 @@ describe('FullDrawer', () => {
     renderDrawer({ copyLink: false, topActions: <button type="button">Edit</button> })
     expect(screen.queryByRole('button', { name: 'Copy link' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+  })
+  it('fills the viewport height without padding with fill', () => {
+    renderDrawer({ fill: true })
+    const content = document.querySelector('[data-drawer-content]')!
+    expect(content.className).toContain('flex-1')
+    expect(content.className).toContain('min-h-0')
+    expect(content.className).not.toContain('px-5')
+    expect(content.parentElement!.className).toContain('h-full')
+  })
+
+  it('is pushed aside by a child drawer by default, and not with push false', async () => {
+    const wrapper = () => document.querySelector<HTMLElement>('.app-full-drawer .ant-drawer-content-wrapper')!
+    const child = <Drawer open title="Child" getContainer={false} />
+    const { unmount } = render(
+      <App>
+        <FullDrawer open onClose={() => {}}>
+          {child}
+        </FullDrawer>
+      </App>
+    )
+    await waitFor(() => expect(wrapper().style.transform).toContain('translateX'))
+    unmount()
+    render(
+      <App>
+        <FullDrawer open onClose={() => {}} push={false}>
+          {child}
+        </FullDrawer>
+      </App>
+    )
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(wrapper().style.transform).toBe('')
   })
 })

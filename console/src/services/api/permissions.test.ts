@@ -239,3 +239,10 @@ describe('broadcasts permission descriptor', () => {
     expect(endpoints).toContain('/api/broadcasts.estimateAudience')
   })
 })
+
+describe('automations catalogue', () => {
+  it('lists the step results under read', () => {
+    const endpoints = PERMISSION_DESCRIPTORS.automations.read?.endpoints.map((e) => e.endpoint) ?? []
+    expect(endpoints).toContain('/api/automations.nodeStats')
+  })
+})

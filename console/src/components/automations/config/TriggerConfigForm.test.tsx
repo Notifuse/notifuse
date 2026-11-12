@@ -209,11 +209,12 @@ describe('TriggerConfigForm guidance', () => {
 })
 
 describe('TriggerConfigForm existing controls', () => {
-  it('still renders the trigger event and frequency controls', () => {
+  // The frequency moved to the editor's settings column (EditorSettings).
+  it('renders the trigger event, and no frequency control', () => {
     renderForm({ event_kind: 'contact.created', frequency: 'once' })
 
     expect(screen.getByText('Trigger Event')).toBeInTheDocument()
-    expect(screen.getByText('Frequency')).toBeInTheDocument()
+    expect(screen.queryByText('Frequency')).not.toBeInTheDocument()
   })
 
   // The field filter and the entry conditions are different things, and the panel shows both

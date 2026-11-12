@@ -678,6 +678,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           action: msg`Read one named contact's journey through an automation, node by node`,
         },
         {
+          endpoint: "/api/automations.nodeStats",
+          action: msg`Read the results of each step of an automation; its email figures also need Message history read`,
+        },
+        {
           endpoint: "/api/analytics.query",
           action: msg`Run aggregate queries over the \`automation_node_executions\` schema`,
         },

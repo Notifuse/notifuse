@@ -42,7 +42,9 @@ import {
   mockBlogPostCreateResponse,
   mockBlogCategoryCreateResponse,
   mockTestEmailResponse,
-  mockCompiledTemplate
+  mockCompiledTemplate,
+  mockAutomationsResponse,
+  mockAutomationNodeStats
 } from './mock-data'
 
 // Helper to create JSON response
@@ -346,16 +348,25 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
     // AUTOMATIONS
     // ============================================
     if (url.includes('/api/automation.list') || url.includes('/api/automations.list')) {
-      return route.fulfill(jsonResponse({ automations: [] }))
+      return route.fulfill(jsonResponse(withData ? mockAutomationsResponse : { automations: [], total: 0, journey_counts: {} }))
+    }
+    if (url.includes('/api/automations.nodeStats')) {
+      return route.fulfill(jsonResponse(mockAutomationNodeStats))
     }
     if (url.includes('/api/automation.get') || url.includes('/api/automations.get')) {
-      return route.fulfill(jsonResponse({ automation: null }))
+      const id = new URL(url).searchParams.get('automation_id')
+      const automation = withData ? mockAutomationsResponse.automations.find((a) => a.id === id) : undefined
+      return automation
+        ? route.fulfill(jsonResponse({ automation }))
+        : route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Automation not found' }) })
     }
     if (url.includes('/api/automation.create') || url.includes('/api/automations.create')) {
-      return route.fulfill(jsonResponse({ automation: { id: 'new-automation' } }))
+      const body = route.request().postDataJSON() as { automation?: Record<string, unknown> } | null
+      return route.fulfill(jsonResponse({ automation: body?.automation ?? { id: 'new-automation' } }))
     }
     if (url.includes('/api/automation.update') || url.includes('/api/automations.update')) {
-      return route.fulfill(jsonResponse({ automation: { id: 'updated-automation' } }))
+      const body = route.request().postDataJSON() as { automation?: Record<string, unknown> } | null
+      return route.fulfill(jsonResponse({ automation: body?.automation ?? { id: 'updated-automation' } }))
     }
     if (url.includes('/api/automation.delete') || url.includes('/api/automations.delete')) {
       return route.fulfill(jsonResponse(mockSuccessResponse))

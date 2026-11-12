@@ -143,6 +143,32 @@ export function validateBroadcastsSearch(search: Record<string, unknown>): Broad
 
 export type { TemplatesSearch } from "./lib/searchParams";
 
+export type AutomationStatusFilter = "live" | "paused" | "draft";
+
+export interface AutomationsSearch {
+  status?: AutomationStatusFilter;
+  q?: string;
+  /** Opens the editor: `new`, or an automation id. */
+  automation?: string;
+  /** 1 when the editor shows each step's results. A number: a string that parses as JSON is written quoted. */
+  stats?: 1;
+}
+
+const AUTOMATION_STATUS_FILTERS: AutomationStatusFilter[] = ["live", "paused", "draft"];
+
+/** The automations search, normalised like the broadcasts one; an unknown status or stats is dropped. */
+export function validateAutomationsSearch(search: Record<string, unknown>): AutomationsSearch {
+  const plain = validateBroadcastsSearch({ status: search.status, q: search.q, broadcast: search.automation });
+  const status = AUTOMATION_STATUS_FILTERS.find((value) => value === plain.status);
+  const rawStats = Array.isArray(search.stats) ? search.stats[0] : search.stats;
+  return {
+    status,
+    q: plain.q,
+    automation: plain.broadcast,
+    stats: rawStats === 1 || rawStats === "1" ? 1 : undefined,
+  };
+}
+
 // Create the root route
 const rootRoute = createRootRoute({
   component: RootLayout,
@@ -227,6 +253,7 @@ const workspaceAutomationsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/automations",
   component: AutomationsPage,
+  validateSearch: validateAutomationsSearch,
 });
 
 // The lists live in the Contacts page's rail now.

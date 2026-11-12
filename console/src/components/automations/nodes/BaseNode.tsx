@@ -3,48 +3,38 @@ import { Trash2 } from 'lucide-react'
 import { Tooltip, Popconfirm } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import type { NodeType } from '../../../services/api/automation'
-import { alpha, colors } from '../../../theme/tokens'
-
-// The card's own geometry, kept in one place so the description's cap cannot drift from it. The
-// description is the only nowrap line on the card, so without a cap it would stretch the node to
-// the length of the text instead of truncating.
-const CARD_MIN_WIDTH = 300
-const CARD_PADDING_X = 12
-const DESCRIPTION_MAX_WIDTH = CARD_MIN_WIDTH - CARD_PADDING_X * 2
+import { NODE_TYPES } from '../nodeTypes'
+import { NodeStatsFooter } from '../stats/NodeStatsFooter'
 
 interface BaseNodeProps {
   type: NodeType
-  label: string
-  icon: React.ReactNode
-  /** Optional author-written note, shown under the label so the flow reads without opening nodes. */
+  /** The step's id: its results come under the card with "With stats" on. */
+  nodeId?: string
+  /** Optional author-written note, the card's title so the flow reads without opening nodes. */
   description?: string
   selected?: boolean
   isOrphan?: boolean
+  /** The step's detail line: what it does, as configured. */
   children?: React.ReactNode
   onDelete?: () => void
 }
 
-export const BaseNode: React.FC<BaseNodeProps> = ({
-  type,
-  label,
-  icon,
-  description,
-  selected,
-  isOrphan,
-  children,
-  onDelete
-}) => {
-  const { t } = useLingui()
+/** A step on the canvas: icon chip and type, the author's title, the detail, then the results. */
+export const BaseNode: React.FC<BaseNodeProps> = ({ type, nodeId, description, selected, isOrphan, children, onDelete }) => {
+  const { t, i18n } = useLingui()
+  const meta = NODE_TYPES[type]
+  const Icon = meta.icon
+  const border = selected ? 'border-primary-500 shadow-md' : isOrphan ? 'border-warning-fg' : 'border-line'
 
   return (
     <div className="relative">
       {isOrphan && (
-        <div className="absolute -top-6 left-0 right-0 text-center text-xs text-orange-500 font-medium">
+        <div className="absolute -top-6 right-0 left-0 text-center text-xs font-medium text-warning-fg">
           {t`Not connected`}
         </div>
       )}
       {selected && type !== 'trigger' && onDelete && (
-        <div className="absolute -right-8 top-1/2 -translate-y-1/2" style={{ zIndex: 10 }}>
+        <div className="absolute top-1/2 -right-8 z-10 -translate-y-1/2">
           <Popconfirm
             title={t`Delete node`}
             description={t`Are you sure you want to delete this node?`}
@@ -54,37 +44,35 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
             okButtonProps={{ danger: true }}
           >
             <Tooltip title={t`Delete node`} placement="right">
-              <button className="flex items-center justify-center w-6 h-6 rounded-full bg-white hover:bg-red-50 shadow-md border border-gray-200 cursor-pointer transition-transform hover:scale-110">
-                <Trash2 size={14} className="text-gray-400 hover:text-red-500" />
+              <button
+                type="button"
+                aria-label={t`Delete node`}
+                className="flex size-6 cursor-pointer items-center justify-center rounded-full border border-line bg-surface text-ink-4 shadow-md transition-transform hover:scale-110 hover:text-danger-fg"
+              >
+                <Trash2 size={14} aria-hidden="true" />
               </button>
             </Tooltip>
           </Popconfirm>
         </div>
       )}
       <div
-        className="automation-node bg-white rounded"
-        style={{
-          padding: `8px ${CARD_PADDING_X}px`,
-          minWidth: CARD_MIN_WIDTH,
-          border: selected ? `1px solid ${colors.primary[500]}` : isOrphan ? '1px solid #f97316' : '1px solid #e5e7eb',
-          boxShadow: selected ? `0 4px 12px ${alpha(colors.primary[500], 0.3)}` : 'none'
-        }}
+        data-automation-node
+        className={`automation-node w-75 rounded-lg border bg-surface px-3 py-2.5 ${border}`}
       >
-        <div className="flex items-center gap-1.5">
-          <span style={{ color: selected ? colors.primary[500] : '#6b7280' }}>{icon}</span>
-          <span style={{ fontSize: '16px', fontWeight: 500 }}>{label}</span>
+        <div className="flex items-center gap-2">
+          <span className={`flex size-5.5 shrink-0 items-center justify-center rounded-md ${meta.chip}`}>
+            <Icon size={12} aria-hidden="true" />
+          </span>
+          <span className="text-xs font-medium tracking-wide text-ink-3 uppercase">{i18n._(meta.label)}</span>
         </div>
         {description && (
           // Truncated to keep every card the same height; the full text stays reachable on hover.
-          <div
-            className="text-xs text-gray-500 truncate mt-0.5"
-            style={{ maxWidth: DESCRIPTION_MAX_WIDTH }}
-            title={description}
-          >
+          <div className="mt-1.5 truncate text-sm font-medium text-ink" title={description}>
             {description}
           </div>
         )}
-        {children && <div style={{ fontSize: '14px', color: '#888', marginTop: '8px' }}>{children}</div>}
+        {children && <div className={`text-sm text-ink-2 ${description ? 'mt-0.5' : 'mt-1.5'}`}>{children}</div>}
+        {nodeId ? <NodeStatsFooter nodeId={nodeId} nodeType={type} /> : null}
       </div>
     </div>
   )

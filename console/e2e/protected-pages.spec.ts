@@ -153,7 +153,7 @@ test.describe('Protected Pages Load', () => {
     await waitForPageLoad(page)
 
     await expect(page.getByRole('heading', { name: 'Automations' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Create Automation' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create your first automation' })).toBeVisible()
     await expect(page.getByText('No automations yet')).toBeVisible()
 
     // Check for critical console errors
