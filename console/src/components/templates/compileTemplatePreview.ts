@@ -69,16 +69,17 @@ export function buildTemplatePreviewRequest({
     return { request }
   }
 
-  const tree: unknown = email.visual_editor_tree
+  let tree: unknown = email.visual_editor_tree
   if (typeof tree === 'string') {
     try {
-      request.visual_editor_tree = JSON.parse(tree) as EmailBlock
+      tree = JSON.parse(tree)
     } catch {
       return { error: 'invalid_tree' }
     }
-  } else {
-    request.visual_editor_tree = tree as EmailBlock
   }
+  // A string such as "null" or "42" parses, but is no tree.
+  if (!tree || typeof tree !== 'object') return { error: 'invalid_tree' }
+  request.visual_editor_tree = tree as EmailBlock
   return { request }
 }
 

@@ -75,6 +75,27 @@ describe('buildTemplatePreviewRequest', () => {
     expect(buildTemplatePreviewRequest({ workspace, email })).toEqual({ error: 'invalid_tree' })
   })
 
+  it.each(['null', '0', 'false', '"text"'])('reports a tree string that parses to %s as invalid', (value) => {
+    const email = { ...visualEmail, visual_editor_tree: value } as unknown as EmailTemplate
+    expect(buildTemplatePreviewRequest({ workspace, email })).toEqual({ error: 'invalid_tree' })
+  })
+
+  it('reads the content of the editor mode only', () => {
+    // Code mode with a tree but no source, visual mode with a source but no tree.
+    expect(
+      buildTemplatePreviewRequest({
+        workspace,
+        email: { editor_mode: 'code', visual_editor_tree: tree, subject: 'S' } as unknown as EmailTemplate
+      })
+    ).toEqual({ error: 'missing_content' })
+    expect(
+      buildTemplatePreviewRequest({
+        workspace,
+        email: { mjml_source: '<mjml></mjml>', subject: 'S' } as unknown as EmailTemplate
+      })
+    ).toEqual({ error: 'missing_content' })
+  })
+
   it('reports missing content in either mode', () => {
     expect(
       buildTemplatePreviewRequest({ workspace, email: { subject: 'S' } as unknown as EmailTemplate })
@@ -95,6 +116,7 @@ describe('buildTemplatePreviewRequest', () => {
       workspace,
       email: { ...visualEmail, text: '   ' } as unknown as EmailTemplate
     })
+    expect('request' in blank).toBe(true)
     expect('request' in blank && 'text' in blank.request).toBe(false)
     const custom = buildTemplatePreviewRequest({
       workspace,
@@ -133,8 +155,10 @@ describe('compileTemplatePreview', () => {
     vi.mocked(templatesApi.compile).mockResolvedValue({ html: '<p>hi</p>', mjml: '<mjml/>' })
     const response = await compileTemplatePreview({ workspace, email: visualEmail })
     expect(response.html).toBe('<p>hi</p>')
-    const built = buildTemplatePreviewRequest({ workspace, email: visualEmail })
-    expect(templatesApi.compile).toHaveBeenCalledWith('request' in built ? built.request : null)
+    expect(templatesApi.compile).toHaveBeenCalledTimes(1)
+    expect(templatesApi.compile).toHaveBeenCalledWith(
+      expect.objectContaining({ workspace_id: 'ws-1', subject: 'Hello {{ contact.first_name }}', visual_editor_tree: tree })
+    )
   })
 
   it('rejects with the code when no request can be built, without calling the server', async () => {
