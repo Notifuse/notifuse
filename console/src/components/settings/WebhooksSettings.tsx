@@ -472,7 +472,9 @@ export function WebhooksSettings({
         webhookId={openWebhookId}
         placeholder={openIndex >= 0 ? subscriptions[openIndex] : undefined}
         canManage={canManage}
-        nav={nav}
+        // The edit drawer covers the panel at a higher z-index, which the panel's own check
+        // (document order) cannot see, so its J and K stop while the drawer is open.
+        nav={drawerVisible ? undefined : nav}
         onClose={() => onOpenWebhook(undefined)}
         onEdit={handleEdit}
         onNotFound={() => {

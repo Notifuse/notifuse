@@ -433,6 +433,30 @@ describe('WebhooksSettings table', () => {
     )
   })
 
+  // The panel's portal can come after the edit drawer's (it is rebuilt on each opening), so its
+  // J and K must stop while the drawer covers it, or the panel behind moves to another webhook.
+  it('keeps J and K from moving the panel while its edit drawer is open', async () => {
+    const { rerenderWith } = await renderSettings()
+    rerenderWith({ openWebhookId: 'wh-user' })
+    const heading = await screen.findByRole('heading', { name: 'My Own Webhook' })
+    const panel = heading.closest('[role="dialog"]') as HTMLElement
+    fireEvent.click(within(panel).getByRole('button', { name: 'Edit' }))
+    await screen.findByText('Edit Webhook')
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    rerenderWith({ openWebhookId: undefined })
+    rerenderWith({ openWebhookId: 'wh-user' })
+    const again = await screen.findByRole('heading', { name: 'My Own Webhook' })
+    const reopened = again.closest('[role="dialog"]') as HTMLElement
+    fireEvent.click(within(reopened).getByRole('button', { name: 'Edit' }))
+    await screen.findByText('Edit Webhook')
+    onOpenWebhook.mockClear()
+
+    fireEvent.keyDown(document.body, { key: 'j' })
+    fireEvent.keyDown(document.body, { key: 'k' })
+    expect(onOpenWebhook).not.toHaveBeenCalled()
+  })
+
   it('drops a webhook the URL names that no longer exists', async () => {
     renderTable({ openWebhookId: 'wh-gone' })
 
