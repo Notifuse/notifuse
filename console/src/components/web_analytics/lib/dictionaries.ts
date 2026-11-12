@@ -89,7 +89,7 @@ export function weekdayLabel(
   )
 }
 
-/** The hour labels of the traffic heat map, in the console language: "12 AM" … "11 PM", "00 h" … "23 h". */
+/** The hour labels of the traffic heat map, in the console language: "12:00 AM" … "11:00 PM", "0:00" … "23:00". */
 export function hourLabels(): string[] {
   return Array.from({ length: 24 }, (_, hour) => formatHourOfDay(hour))
 }

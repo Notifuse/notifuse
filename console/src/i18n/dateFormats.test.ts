@@ -1,4 +1,14 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, describe, expect, it } from 'vitest'
+
+// West of UTC, so a label formatted on the browser's clock rather than the dayjs object's lands on
+// the day before and fails, even on a runner that is itself on UTC. Restored after the file: a
+// worker can go on to run other files.
+const runnerTimeZone = process.env.TZ
+process.env.TZ = 'America/Los_Angeles'
+afterAll(() => {
+  if (runnerTimeZone === undefined) delete process.env.TZ
+  else process.env.TZ = runnerTimeZone
+})
 import { i18n } from '@lingui/core'
 import dayjs from '../lib/dayjs'
 import {
@@ -54,12 +64,11 @@ describe('formatHour', () => {
 
 describe('formatHourOfDay', () => {
   it('names each hour of the day as each language does', () => {
-    expect(formatHourOfDay(0)).toBe('12 AM')
-    expect(formatHourOfDay(15)).toBe('3 PM')
+    expect(formatHourOfDay(0)).toBe('12:00 AM')
+    expect(formatHourOfDay(15)).toBe('3:00 PM')
     inLocale('fr')
-    expect(formatHourOfDay(0)).toBe('00 h')
-    inLocale('ja')
-    expect(formatHourOfDay(15)).toBe('15時')
+    expect(formatHourOfDay(0)).toBe('0:00')
+    expect(formatHourOfDay(15)).toBe('15:00')
   })
 })
 
@@ -76,6 +85,10 @@ describe('formatMonthYear', () => {
 describe('formatDayRange', () => {
   it('gives one day when both bounds fall on it', () => {
     expect(formatDayRange(day('2026-02-03T00:00:00Z'), day('2026-02-03T23:59:59Z'))).toBe('Feb 3')
+  })
+
+  it('puts reversed bounds in order', () => {
+    expect(formatDayRange(day('2026-02-09T00:00:00Z'), day('2026-02-03T00:00:00Z'))).toBe('Feb 3 – 9')
   })
 
   it('drops the parts both bounds share', () => {

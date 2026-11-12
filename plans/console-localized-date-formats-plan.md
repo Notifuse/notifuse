@@ -15,13 +15,14 @@ their own PR.
    active Lingui locale, so each language orders and abbreviates its own way.
    - `formatMonthDay(d)` gives "Feb 3", "3 févr." or "2月3日".
    - `formatHour(d)` (`timeStyle: 'short'`) gives "9:00 AM", "09:00" or "9:00".
-   - `formatHourOfDay(hour)` gives "12 AM", "00 h" or "0時", for the heat map's hour columns.
+   - `formatHourOfDay(hour)` gives "12:00 AM" or "15:00", for the heat map's hour columns. The
+     minutes stay so that a bare "15" (Spanish, Catalan, Italian) never reads as a day.
    - `formatMonthYear(d)` gives "Aug 2026", "août 2026" or "2026年8月". The full year keeps it from
      reading as a day ("Aug 26").
    - `formatDayRange(start, end)` uses `formatRange`, which drops the parts both bounds share
      ("Feb 3 – 9", "3–9 févr."). It adds the full year only when the bounds' years differ, and
      gives one day when both are the same day. Intl writes Japanese ranges with numbers
-     ("02/03～02/09"), and keeps a reversed range reversed.
+     ("02/03～02/09"). Reversed bounds are put in order first, since some engines throw on them.
    - The functions take a `Dayjs` and format its wall clock: the fields the dayjs object shows,
      rebuilt as a UTC instant and formatted in UTC. A `.tz()` or `.utc()` instance therefore keeps
      the clock it was converted to, whatever the browser's zone.
@@ -40,8 +41,9 @@ their own PR.
 4. **`console/src/components/web_analytics/annotations/AnnotationTable.tsx`**: the date and time use
    dayjs `lll` (localized, still in the annotation's timezone).
 5. **`console/src/components/blog/RecentThemesTable.tsx`**: the tooltip uses `lll` in the workspace
-   timezone. It now imports `../../lib/dayjs`, which has `localizedFormat`, instead of bare dayjs
-   (bare dayjs prints `lll` literally).
+   timezone. It now imports `../../lib/dayjs`, which has `localizedFormat`, instead of extending bare
+   dayjs itself. This is hygiene: plugins are global to the dayjs singleton, which `lib/dayjs` has
+   always extended by the time the page renders.
 6. **`console/src/components/web_analytics/toolbar.tsx`**: the custom RangePicker shows `ll` instead
    of `D MMM YYYY` (which gave "3 2月 2026" in Japanese).
 7. **`console/src/components/web_analytics/lib/dictionaries.ts`**: `HOUR_LABELS` ("12a" … "11p" in
@@ -57,7 +59,7 @@ The English labels change too:
 - the series names change, "Dec 21-27" becoming "Dec 21 – 27", with one day shown once and the year
   across years;
 - "Aug 15, 2026 09:00" becomes "Aug 15, 2026 9:00 AM";
-- the heat map hours become "12 AM" … "11 PM".
+- the heat map hours become "12:00 AM" … "11:00 PM".
 
 They follow the English convention, and every language now goes through the same path.
 
@@ -65,30 +67,26 @@ They follow the English convention, and every language now goes through the same
 
 - **`console/src/i18n/dateFormats.test.ts`** (new). Each helper is checked in en, fr and ja (fr and ja
   activated on the Lingui singleton, then back to en).
-  - The wall clock is kept: `dayjs.utc('2026-08-09T23:30:00Z')` gives "Aug 9", and so does a Tokyo
-    `.tz()` instance whose wall clock is the 9th.
+  - The wall clock is kept: `dayjs.utc('2026-08-09T23:30:00Z')` gives "Aug 9", the same instant in
+    Tokyo gives "Aug 10", and 02:00 UTC on the 10th in Los Angeles gives "Aug 9". The file sets
+    `TZ=America/Los_Angeles` and restores it afterwards, so formatting on the browser's clock fails
+    even on a UTC runner.
   - The range drops shared parts within a month, keeps both months across months, and adds the year
     across years.
 - **`console/src/components/web_analytics/lib/format.test.ts`**: the English labels are updated, and
   French labels are added ("9 août", "août 2026").
 - **`console/src/components/web_analytics/lib/dates.test.ts`**: the `formatDateRangeLabel` cases use
   the new English output, and a French case is added.
-- **`console/src/components/web_analytics/tabs/AnnotationsTab.test.tsx`**: the expected moment is
-  `lll`.
-- **`console/src/components/web_analytics/tabs/AnnotationsTab.test.tsx`**: a French case
-  ("15 août 2026 09:00"), which a hard-coded English pattern fails.
+- **`console/src/components/web_analytics/tabs/AnnotationsTab.test.tsx`**: the expected English
+  moment is `lll`, and a French case ("15 août 2026 09:00") fails with a hard-coded English pattern.
 - **`console/src/components/blog/RecentThemesTable.test.tsx`** (new): hovering "Last Edited" in
   French shows `lll` on the Tokyo clock.
 - **`console/src/components/web_analytics/toolbar.test.tsx`** (new): in Japanese, the custom range
   button reads "02/03～02/09" and the picker "2026年2月3日". It fails with `D MMM YYYY`.
 - **`console/src/components/web_analytics/lib/dictionaries.test.ts`**: `hourLabels()` in English and
   French.
-- `dateFormats.test.ts` also pins `formatHourOfDay` and the Japanese ranges.
-
-## Verification
-
-- `cd console && npx vitest run src/i18n src/components/web_analytics src/components/blog`
-- Then once: `npm test`, `npx tsc -b`, `npm run lint`.
+- `dateFormats.test.ts` also pins `formatHourOfDay`, the Japanese ranges and reversed bounds.
+- `TrafficHeatmapWidget` has no test of its own; only `hourLabels()` is tested.
 
 ## Out of scope
 
@@ -96,5 +94,11 @@ They follow the English convention, and every language now goes through the same
 - `toLocaleDateString()` / `toLocaleString()` follow the browser's language, not the console's:
   `Integrations.tsx`, `LicenseSettings.tsx`, `LicenseBanner.tsx`, `AcceptInvitationPage.tsx`,
   `PostDrawer.tsx` and `ContactsCsvUploadDrawer.tsx`.
-- `router.tsx` does not check that a custom range's start comes before its end; such a range prints
-  reversed.
+- `router.tsx` does not check that a custom range's start comes before its end. The label puts such
+  a range in order, but the query keeps it as given.
+
+## Verification
+
+- `cd console && npx vitest run src/i18n src/components/web_analytics src/components/blog`
+- Then once: `npm test`, `npx tsc -b`, and `npx eslint .` (as CI runs it; `npm run lint` also fails
+  on two warnings that predate this change).

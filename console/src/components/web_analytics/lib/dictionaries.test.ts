@@ -10,13 +10,13 @@ describe('hourLabels', () => {
   it('names the 24 hours of the day in the console language', () => {
     const english = hourLabels()
     expect(english).toHaveLength(24)
-    expect(english[0]).toBe('12 AM')
-    expect(english[23]).toBe('11 PM')
+    expect(english[0]).toBe('12:00 AM')
+    expect(english[23]).toBe('11:00 PM')
 
     i18n.load('fr', {})
     i18n.activate('fr')
-    expect(hourLabels()[0]).toBe('00 h')
-    expect(hourLabels()[23]).toBe('23 h')
+    expect(hourLabels()[0]).toBe('0:00')
+    expect(hourLabels()[23]).toBe('23:00')
   })
 })
 

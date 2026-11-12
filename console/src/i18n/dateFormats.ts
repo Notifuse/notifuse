@@ -46,11 +46,14 @@ export function formatHour(at: Dayjs): string {
 }
 
 /**
- * The hour of the day alone, for the 24 columns of an hour grid: "12 AM", "00 h", "0時". Takes the
- * hour (0 to 23) rather than a date, since the grid has no date.
+ * The hour of the day alone, for the 24 columns of an hour grid: "12:00 AM", "0:00", "15:00". The
+ * minutes stay, so a bare "15" never reads as a day of the month. Takes the hour (0 to 23) rather
+ * than a date, since the grid has no date.
  */
 export function formatHourOfDay(hour: number): string {
-  return plain(formatter({ hour: 'numeric' }).format(new Date(Date.UTC(2026, 0, 1, hour))))
+  return plain(
+    formatter({ hour: 'numeric', minute: '2-digit' }).format(new Date(Date.UTC(2026, 0, 1, hour)))
+  )
 }
 
 /** "Aug 2026", "août 2026", "2026年8月". The full year, so it never reads as a day of the month. */
@@ -63,13 +66,14 @@ export function formatMonthYear(at: Dayjs): string {
  * and with the year when the bounds are in different years, "Dec 28, 2025 – Jan 3, 2026". In
  * Japanese, Intl writes ranges with numbers: "02/03～02/09".
  *
- * Intl drops the parts both bounds share and keeps the order it is given, so a start after its
- * end prints reversed rather than failing.
+ * The bounds are put in order first: some engines throw on a range whose start is after its end,
+ * and a custom range read from the URL is not checked before it is labelled.
  */
 export function formatDayRange(start: Dayjs, end: Dayjs): string {
-  const from = wallClock(start.startOf('day'))
-  const to = wallClock(end.startOf('day'))
-  const options = start.year() === end.year() ? MONTH_DAY : { ...MONTH_DAY, year: 'numeric' as const }
+  const [first, last] = start.isAfter(end) ? [end, start] : [start, end]
+  const from = wallClock(first.startOf('day'))
+  const to = wallClock(last.startOf('day'))
+  const options = first.year() === last.year() ? MONTH_DAY : { ...MONTH_DAY, year: 'numeric' as const }
   if (from.getTime() === to.getTime()) return plain(formatter(options).format(from))
   return plain(formatter(options).formatRange(from, to))
 }
