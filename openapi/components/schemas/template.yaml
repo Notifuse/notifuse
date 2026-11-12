@@ -598,3 +598,73 @@ DisplayConditionRule:
         `{{`, `}}`, `{%` and `%}`; for `gt`, `gte`, `lt` and `lte`, a number of at most 15
         digits before the decimal point.
       example: '100'
+
+TemplateUsageCounts:
+  type: object
+  description: >-
+    How many objects of each type use the template. A type the member cannot
+    read is absent, never 0.
+  properties:
+    broadcasts:
+      type: integer
+      example: 1
+    transactional_notifications:
+      type: integer
+      example: 0
+    automations:
+      type: integer
+      example: 2
+    lists:
+      type: integer
+      example: 0
+
+TemplateUsageReference:
+  type: object
+  required: [type, id, name]
+  properties:
+    type:
+      type: string
+      enum: [broadcast, transactional_notification, automation, list]
+    id:
+      type: string
+      example: bc_123
+    name:
+      type: string
+      example: Black Friday
+    status:
+      type: string
+      description: Set for broadcasts and automations only.
+      example: scheduled
+
+TemplateUsageResponse:
+  type: object
+  required: [usage, hidden_types]
+  properties:
+    usage:
+      type: object
+      description: Templates used at least once, by template ID.
+      additionalProperties:
+        $ref: '#/TemplateUsageCounts'
+    references:
+      type: array
+      description: Present, possibly empty, exactly when `template_id` is given.
+      items:
+        $ref: '#/TemplateUsageReference'
+    hidden_types:
+      type: array
+      description: The types the member cannot read, left out of `usage` and `references`.
+      items:
+        type: string
+        enum: [broadcasts, transactional_notifications, automations, lists]
+  example:
+    usage:
+      black-friday:
+        broadcasts: 1
+        transactional_notifications: 0
+        automations: 0
+    references:
+      - type: broadcast
+        id: bc_123
+        name: Black Friday
+        status: scheduled
+    hidden_types: [lists]

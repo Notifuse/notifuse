@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/google/uuid"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -45,6 +46,7 @@ func (h *BlogHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Register RPC-style endpoints with camelCase notation for posts
 	mux.Handle("/api/blogPosts.list", requireAuth(http.HandlerFunc(h.HandleListPosts)))
+	mux.Handle("/api/blogPosts.counts", requireAuth(http.HandlerFunc(h.HandleCountPosts)))
 	mux.Handle("/api/blogPosts.get", requireAuth(http.HandlerFunc(h.HandleGetPost)))
 	mux.Handle("/api/blogPosts.create", restrictedInDemo(requireAuth(http.HandlerFunc(h.HandleCreatePost))))
 	mux.Handle("/api/blogPosts.update", restrictedInDemo(requireAuth(http.HandlerFunc(h.HandleUpdatePost))))
@@ -274,6 +276,9 @@ func (h *BlogHandler) HandleListPosts(w http.ResponseWriter, r *http.Request) {
 
 	response, err := h.service.ListPosts(ctx, &params)
 	if err != nil {
+		if writeValidationError(w, err) {
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to list posts")
 		if writePermissionError(w, err) {
 			return
@@ -286,6 +291,46 @@ func (h *BlogHandler) HandleListPosts(w http.ResponseWriter, r *http.Request) {
 		"posts":       response.Posts,
 		"total_count": response.TotalCount,
 	})
+}
+
+// HandleCountPosts handles blogPosts.counts (GET): the posts by status, overall or in one
+// category, and per category.
+func (h *BlogHandler) HandleCountPosts(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	workspaceID := r.URL.Query().Get("workspace_id")
+	if workspaceID == "" {
+		WriteJSONError(w, "workspace_id is required", http.StatusBadRequest)
+		return
+	}
+
+	// uuid.Parse also accepts upper case, braces and the undashed form; the canonical
+	// spelling is what matches the stored ID.
+	categoryID := r.URL.Query().Get("category_id")
+	if categoryID != "" {
+		parsed, err := uuid.Parse(categoryID)
+		if err != nil {
+			WriteJSONError(w, "category_id must be a UUID", http.StatusBadRequest)
+			return
+		}
+		categoryID = parsed.String()
+	}
+
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspaceID)
+	counts, err := h.service.CountPosts(ctx, categoryID)
+	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to count posts")
+		WriteJSONError(w, "Failed to count posts", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, counts)
 }
 
 // HandleGetPost handles the get post request (GET)
@@ -533,6 +578,7 @@ func parseListBlogPostsParams(values url.Values) (domain.ListBlogPostsRequest, e
 	params := domain.ListBlogPostsRequest{
 		CategoryID: values.Get("category_id"),
 		Status:     domain.BlogPostStatus(values.Get("status")),
+		Search:     values.Get("search"),
 	}
 
 	// Parse limit

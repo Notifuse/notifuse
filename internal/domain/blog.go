@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 //go:generate mockgen -destination mocks/mock_blog_service.go -package mocks github.com/Notifuse/notifuse/internal/domain BlogService
@@ -581,7 +582,12 @@ const (
 	BlogPostStatusAll       BlogPostStatus = "all"
 	BlogPostStatusDraft     BlogPostStatus = "draft"
 	BlogPostStatusPublished BlogPostStatus = "published"
+	// BlogPostStatusScheduled lists posts whose publication date is still to come.
+	BlogPostStatusScheduled BlogPostStatus = "scheduled"
 )
+
+// BlogPostSearchMaxLength caps the search of blogPosts.list, in characters.
+const BlogPostSearchMaxLength = 200
 
 // ListBlogPostsRequest defines the request to list blog posts
 type ListBlogPostsRequest struct {
@@ -590,6 +596,11 @@ type ListBlogPostsRequest struct {
 	Page       int            `json:"page,omitempty"`   // Page number (1-indexed)
 	Limit      int            `json:"limit,omitempty"`  // Posts per page
 	Offset     int            `json:"offset,omitempty"` // Calculated from Page
+	// Search matches the post title, case-insensitively.
+	Search string `json:"search,omitempty"`
+	// Now is the instant status=scheduled compares published_at with, in UTC. Set by the
+	// service, never read from a request.
+	Now time.Time `json:"-"`
 }
 
 // Validate validates the list blog posts request
@@ -602,10 +613,15 @@ func (r *ListBlogPostsRequest) Validate() error {
 
 	// Validate status
 	switch r.Status {
-	case BlogPostStatusAll, BlogPostStatusDraft, BlogPostStatusPublished:
+	case BlogPostStatusAll, BlogPostStatusDraft, BlogPostStatusPublished, BlogPostStatusScheduled:
 		// Valid
 	default:
-		return fmt.Errorf("invalid status: %s", r.Status)
+		return ValidationError{Message: fmt.Sprintf("invalid status: %s", r.Status)}
+	}
+
+	r.Search = strings.TrimSpace(r.Search)
+	if utf8.RuneCountInString(r.Search) > BlogPostSearchMaxLength {
+		return ValidationError{Message: fmt.Sprintf("search must be at most %d characters", BlogPostSearchMaxLength)}
 	}
 
 	// Default page to 1 if not specified
@@ -627,6 +643,23 @@ func (r *ListBlogPostsRequest) Validate() error {
 	r.Offset = (r.Page - 1) * r.Limit
 
 	return nil
+}
+
+// BlogPostCounts is the response of blogPosts.counts. AllTotal and ByCategory cover every
+// post; Total, Published, Scheduled and Draft follow the category asked for, if any. A
+// scheduled post is also published: its publication date is set, still to come.
+type BlogPostCounts struct {
+	AllTotal   int            `json:"all_total"`
+	Total      int            `json:"total"`
+	Published  int            `json:"published"`
+	Scheduled  int            `json:"scheduled"`
+	Draft      int            `json:"draft"`
+	ByCategory map[string]int `json:"by_category"`
+}
+
+// NewBlogPostCounts returns zero counts whose by_category encodes as {}.
+func NewBlogPostCounts() BlogPostCounts {
+	return BlogPostCounts{ByCategory: map[string]int{}}
 }
 
 // BlogPostListResponse defines the response for listing blog posts
@@ -667,6 +700,9 @@ type BlogPostRepository interface {
 	UpdatePost(ctx context.Context, post *BlogPost) error
 	DeletePost(ctx context.Context, id string) error
 	ListPosts(ctx context.Context, params ListBlogPostsRequest) (*BlogPostListResponse, error)
+	// CountPosts counts the posts that are not deleted, as blogPosts.counts returns them.
+	// now decides which published posts are still scheduled.
+	CountPosts(ctx context.Context, workspaceID string, categoryID string, now time.Time) (*BlogPostCounts, error)
 	// ListFeedPosts returns the top `limit` published posts (newest first) for
 	// RSS/JSON syndication. Enforces deleted_at IS NULL AND published_at IS NOT
 	// NULL AND published_at <= NOW() — the filter mirrors GetFeedFingerprint so
@@ -711,6 +747,8 @@ type BlogService interface {
 	UpdatePost(ctx context.Context, request *UpdateBlogPostRequest) (*BlogPost, error)
 	DeletePost(ctx context.Context, request *DeleteBlogPostRequest) error
 	ListPosts(ctx context.Context, params *ListBlogPostsRequest) (*BlogPostListResponse, error)
+	// CountPosts counts the posts by status, overall or in one category, and per category.
+	CountPosts(ctx context.Context, categoryID string) (*BlogPostCounts, error)
 	PublishPost(ctx context.Context, request *PublishBlogPostRequest) error
 	UnpublishPost(ctx context.Context, request *UnpublishBlogPostRequest) error
 
