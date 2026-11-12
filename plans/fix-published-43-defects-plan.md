@@ -19,16 +19,17 @@ Out of scope here (owned elsewhere): spec 6 "Inflight" in Flow Stats (replaced b
 **Defect.** `BroadcastHandler.HandleGet` with `with_templates=true` loads version **1** of each
 variation's template (`internal/http/broadcast_handler.go:152`), while `broadcasts.list`
 (`broadcast_service.go:290`) and sending (`broadcast/orchestrator.go:155`) use version 0, the
-latest. A broadcast opened in the console shows the template's first subject and content.
+latest. An API client reading a broadcast gets the template's first subject and content (the console
+reads broadcasts through `broadcasts.list`, not affected).
 
 **Change.** Pass `0` instead of `1`.
 
 | File | Test file | Cases |
 |---|---|---|
 | `internal/http/broadcast_handler.go` | `internal/http/broadcast_handler_test.go` | the existing `with_templates=true` cases expect `GetTemplateByID(…, "template123", int64(0))` instead of `gomock.Any()` (pins the version) |
-| — | `tests/integration/broadcast_get_templates_test.go` (new) | template updated to version 2 (new subject): `broadcasts.get?with_templates=true` returns version 2's subject and `version: 2`, the same as `broadcasts.list?with_templates=true` |
+| — | `tests/integration/broadcast_handler_test.go` (new subtest) | template updated to version 2 (new subject): `broadcasts.get?with_templates=true` returns version 2's subject and `version: 2`, the same as `broadcasts.list?with_templates=true` |
 
-CHANGELOG: `- **Fix**: A broadcast opened in the console now shows the latest version of its templates, the one that is sent, instead of their first version.`
+CHANGELOG: `- **Fix**: \`broadcasts.get\` with \`with_templates=true\` now returns the latest version of each variation's template, the one that is sent, instead of its first version.`
 
 ---
 
@@ -274,25 +275,9 @@ CHANGELOG (PR 5):
 
 ---
 
-## Process (each PR)
-
-1. `git fetch origin dev`, branch from `origin/dev`.
-2. Tests first (unit, then integration), then code, until green.
-3. Commands run for the layers touched:
-   - Go: `make test-domain`, `make test-repo`, `make test-service`, `make test-http` as touched;
-     the new integration tests alone with
-     `INTEGRATION_TESTS=true go test -race -tags integration,licdev -run '<Name>' ./tests/integration/`
-     (Postgres on :5433); `go vet ./...`; `make openapi-bundle` for PR 3.
-   - Console: `npx vitest run <touched dirs>`, `npm run lingui:extract` (PR 5), `npm run lint`,
-     `npx tsc -b`, `npm run build`.
-4. Code review by an independent Fable reviewer (high effort) on the PR's last commit; confirmed
-   findings fixed; CI green on that commit before announcing it ready.
-
----
-
 ## Corrections after spec review (supersede the sections above where they differ)
 
-Spec review: Opus, xhigh effort, on this plan at `origin/dev` de243ef. Every finding was checked in
+Independent spec review of this plan at `origin/dev` de243ef. Every finding was checked in
 the code; all are integrated below.
 
 **PR 1.** The console never calls `broadcasts.get` with `with_templates` (only
@@ -367,3 +352,19 @@ keeps the previous tab's params (an audit `id` becomes the Messages `id` filter)
 - Listing loop also stops when `IsTruncated` is set without `NextContinuationToken`.
 - Partial failure message is a new Lingui string: extracted and translated in the 7 other locales.
 - CHANGELOG: `- **Fix**: The file manager now lists up to 10,000 files of the bucket instead of the first 1,000, says when there are more, and shows folders created outside Notifuse.`
+
+---
+
+## Process (each PR)
+
+1. `git fetch origin dev`, branch from `origin/dev`.
+2. Tests first (unit, then integration), then code, until green.
+3. Commands run for the layers touched:
+   - Go: `make test-domain`, `make test-repo`, `make test-service`, `make test-http` as touched;
+     the new integration tests alone with
+     `INTEGRATION_TESTS=true go test -race -tags integration,licdev -run '<Name>' ./tests/integration/`
+     (Postgres on :5433); `go vet ./...`; `make openapi-bundle` for PR 3.
+   - Console: `npx vitest run <touched dirs>`, `npm run lingui:extract` (PR 5), `npm run lint`,
+     `npx tsc -b`, `npm run build`.
+4. Independent code review on the PR's last commit; confirmed findings fixed; CI green on that
+   commit before announcing it ready.

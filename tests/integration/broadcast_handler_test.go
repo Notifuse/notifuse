@@ -100,7 +100,10 @@ func testBroadcastGetWithTemplatesLatestVersion(t *testing.T, client *testutil.A
 		var body map[string]interface{}
 		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
 		b := path(body)
-		variations := b["test_settings"].(map[string]interface{})["variations"].([]interface{})
+		testSettings, ok := b["test_settings"].(map[string]interface{})
+		require.True(t, ok, "broadcast should carry test_settings")
+		variations, ok := testSettings["variations"].([]interface{})
+		require.True(t, ok, "test_settings should carry variations")
 		require.Len(t, variations, 1)
 		tmpl, ok := variations[0].(map[string]interface{})["template"].(map[string]interface{})
 		require.True(t, ok, "variation should carry its template")
@@ -136,6 +139,7 @@ func testBroadcastGetWithTemplatesLatestVersion(t *testing.T, client *testutil.A
 		return nil
 	})
 	assert.Equal(t, got["version"], listed["version"])
+	assert.Equal(t, "Second subject", listed["email"].(map[string]interface{})["subject"])
 }
 
 func testBroadcastCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
