@@ -2527,11 +2527,11 @@ msgstr "キャンペーン"
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:398
 #: src/components/file_manager/buttonSettings.tsx:309
 #: src/components/file_manager/context.tsx:192
-#: src/components/file_manager/fileManager.tsx:596
-#: src/components/file_manager/fileManager.tsx:717
-#: src/components/file_manager/fileManager.tsx:904
-#: src/components/file_manager/fileManager.tsx:972
-#: src/components/file_manager/fileManager.tsx:1082
+#: src/components/file_manager/fileManager.tsx:621
+#: src/components/file_manager/fileManager.tsx:744
+#: src/components/file_manager/fileManager.tsx:931
+#: src/components/file_manager/fileManager.tsx:999
+#: src/components/file_manager/fileManager.tsx:1109
 #: src/components/segment/button_upsert.tsx:417
 #: src/components/segment/input_dimension_filters.tsx:179
 #: src/components/segment/input_event_property_filters.tsx:130
@@ -2626,7 +2626,7 @@ msgstr "メールノードが存在する間はリストを削除できません
 msgid "Cannot restore progress: CSV data is not available"
 msgstr "進捗を復元できません: CSVデータが利用できません"
 
-#: src/components/file_manager/fileManager.tsx:454
+#: src/components/file_manager/fileManager.tsx:478
 msgid "Cannot upload in read-only mode"
 msgstr "読み取り専用モードではアップロードできません"
 
@@ -3246,7 +3246,7 @@ msgstr "ブログのRSSおよびJSONフィードの生成方法を設定しま�
 msgid "Configure Integration"
 msgstr "連携を設定"
 
-#: src/components/file_manager/fileManager.tsx:568
+#: src/components/file_manager/fileManager.tsx:592
 msgid "Configure now"
 msgstr "今すぐ設定"
 
@@ -3555,7 +3555,7 @@ msgid "Copy to clipboard"
 msgstr "クリップボードにコピー"
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:132
-#: src/components/file_manager/fileManager.tsx:853
+#: src/components/file_manager/fileManager.tsx:880
 msgid "Copy URL"
 msgstr "URLをコピー"
 
@@ -3667,7 +3667,7 @@ msgstr "テンプレート以外にも及びます: 再利用可能なブロッ�
 #: src/components/automations/UpsertAutomationDrawer.tsx:173
 #: src/components/blog/CategoryDrawer.tsx:114
 #: src/components/blog/PostDrawer.tsx:690
-#: src/components/file_manager/fileManager.tsx:981
+#: src/components/file_manager/fileManager.tsx:1008
 #: src/components/lists/ListDrawer.tsx:170
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Create"
@@ -3789,7 +3789,7 @@ msgstr "新規{0}テンプレートを作成"
 msgid "Create New Category"
 msgstr "新規カテゴリを作成"
 
-#: src/components/file_manager/fileManager.tsx:967
+#: src/components/file_manager/fileManager.tsx:994
 msgid "Create new folder"
 msgstr "新規フォルダを作成"
 
@@ -4322,9 +4322,9 @@ msgstr "遅延"
 #: src/components/contacts/SegmentsFilter.tsx:159
 #: src/components/email_builder/EmailBuilder.tsx:940
 #: src/components/email_builder/ui/SavedBlockCard.tsx:115
-#: src/components/file_manager/fileManager.tsx:716
-#: src/components/file_manager/fileManager.tsx:721
-#: src/components/file_manager/fileManager.tsx:903
+#: src/components/file_manager/fileManager.tsx:743
+#: src/components/file_manager/fileManager.tsx:748
+#: src/components/file_manager/fileManager.tsx:930
 #: src/components/segment/input.tsx:401
 #: src/components/settings/Integrations.tsx:368
 #: src/components/settings/Integrations.tsx:1456
@@ -4357,7 +4357,7 @@ msgid "Delete \"{name}\" from the library?"
 msgstr "「{name}」をライブラリから削除しますか？"
 
 #. placeholder {0}: selectedRowKeys.length
-#: src/components/file_manager/fileManager.tsx:714
+#: src/components/file_manager/fileManager.tsx:741
 msgid "Delete {0} selected item(s)?"
 msgstr "{0}件の選択アイテムを削除しますか？"
 
@@ -4469,16 +4469,17 @@ msgstr "コンタクトを削除"
 msgid "Delete edge"
 msgstr "エッジを削除"
 
-#: src/components/file_manager/fileManager.tsx:915
+#: src/components/file_manager/fileManager.tsx:942
 msgid "Delete file (Read-only mode)"
 msgstr "ファイルを削除（読み取り専用モード）"
 
-#: src/components/file_manager/fileManager.tsx:586
-#: src/components/file_manager/fileManager.tsx:595
+#: src/components/file_manager/fileManager.tsx:610
+#: src/components/file_manager/fileManager.tsx:620
+#: src/components/file_manager/fileManager.tsx:629
 msgid "Delete folder"
 msgstr "フォルダを削除"
 
-#: src/components/file_manager/fileManager.tsx:611
+#: src/components/file_manager/fileManager.tsx:638
 msgid "Delete folder (Read-only mode)"
 msgstr "フォルダを削除（読み取り専用モード）"
 
@@ -4574,15 +4575,15 @@ msgstr "削除済み"
 msgid "Deleted"
 msgstr "削除済み"
 
-#: src/components/file_manager/fileManager.tsx:210
+#: src/components/file_manager/fileManager.tsx:232
 msgid "Deleted {deleted} item(s) of the folder, failed to delete {failed}."
 msgstr "フォルダ内の {deleted} 件を削除しました。{failed} 件は削除できませんでした。"
 
-#: src/components/file_manager/fileManager.tsx:551
+#: src/components/file_manager/fileManager.tsx:575
 msgid "Deleted {deletedCount} item(s)"
 msgstr "{deletedCount}件のアイテムを削除しました"
 
-#: src/components/file_manager/fileManager.tsx:553
+#: src/components/file_manager/fileManager.tsx:577
 msgid "Deleted {deletedCount}, failed {failedCount}"
 msgstr "{deletedCount}件を削除、{failedCount}件が失敗"
 
@@ -4811,11 +4812,11 @@ msgstr "この条件を削除してもよろしいですか？"
 msgid "Do you really want to remove this filter?"
 msgstr "このフィルターを削除してもよろしいですか？"
 
-#: src/components/file_manager/fileManager.tsx:591
+#: src/components/file_manager/fileManager.tsx:615
 msgid "Do you want to delete the"
 msgstr "削除しますか？"
 
-#: src/components/file_manager/fileManager.tsx:900
+#: src/components/file_manager/fileManager.tsx:927
 msgid "Do you want to permanently delete this file from your storage?"
 msgstr "このファイルをストレージから完全に削除しますか？"
 
@@ -4888,12 +4889,12 @@ msgstr "ダブルオプトインテンプレート"
 msgid "Download"
 msgstr "ダウンロード"
 
-#: src/components/file_manager/fileManager.tsx:872
+#: src/components/file_manager/fileManager.tsx:899
 msgid "Download file"
 msgstr "ファイルをダウンロード"
 
 #. placeholder {0}: selectedFiles.length
-#: src/components/file_manager/fileManager.tsx:502
+#: src/components/file_manager/fileManager.tsx:526
 msgid "Downloaded {0} file(s)"
 msgstr "{0}件のファイルをダウンロードしました"
 
@@ -4920,7 +4921,7 @@ msgstr "ドラッグしてツリー内でこのブロックを移動"
 msgid "Dragging {name} was cancelled."
 msgstr "{name} のドラッグをキャンセルしました。"
 
-#: src/components/file_manager/fileManager.tsx:958
+#: src/components/file_manager/fileManager.tsx:985
 msgid "Drop files here to upload"
 msgstr "ここにファイルをドロップしてアップロード"
 
@@ -6159,8 +6160,8 @@ msgstr "ブロードキャストの作成に失敗しました: {0}"
 msgid "Failed to create category: {0}"
 msgstr "カテゴリの作成に失敗しました: {0}"
 
-#: src/components/file_manager/fileManager.tsx:315
-#: src/components/file_manager/fileManager.tsx:321
+#: src/components/file_manager/fileManager.tsx:339
+#: src/components/file_manager/fileManager.tsx:345
 msgid "Failed to create folder: "
 msgstr "フォルダの作成に失敗しました: "
 
@@ -6212,11 +6213,11 @@ msgstr "カテゴリの削除に失敗しました"
 msgid "Failed to delete contact"
 msgstr "コンタクトの削除に失敗しました"
 
-#: src/components/file_manager/fileManager.tsx:237
+#: src/components/file_manager/fileManager.tsx:261
 msgid "Failed to delete file: "
 msgstr "ファイルの削除に失敗しました: "
 
-#: src/components/file_manager/fileManager.tsx:214
+#: src/components/file_manager/fileManager.tsx:236
 msgid "Failed to delete folder: "
 msgstr "フォルダを削除できませんでした: "
 
@@ -6266,11 +6267,11 @@ msgstr "ワークスペースの削除に失敗しました"
 msgid "Failed to detect icon: {0}"
 msgstr "アイコンの検出に失敗しました: {0}"
 
-#: src/components/file_manager/fileManager.tsx:891
+#: src/components/file_manager/fileManager.tsx:918
 msgid "Failed to download file"
 msgstr "ファイルのダウンロードに失敗しました"
 
-#: src/components/file_manager/fileManager.tsx:505
+#: src/components/file_manager/fileManager.tsx:529
 msgid "Failed to download files"
 msgstr "ファイルのダウンロードに失敗しました"
 
@@ -6307,7 +6308,7 @@ msgstr "失敗したメッセージデータの取得に失敗しました"
 msgid "Failed to fetch new contacts data"
 msgstr "新規コンタクトデータの取得に失敗しました"
 
-#: src/components/file_manager/fileManager.tsx:164
+#: src/components/file_manager/fileManager.tsx:181
 msgid "Failed to fetch objects: "
 msgstr "オブジェクトの取得に失敗しました: "
 
@@ -6695,7 +6696,7 @@ msgstr "ファイル {0} を追加しました"
 msgid "File {0} exceeds 3MB limit"
 msgstr "ファイル {0} は3MBの制限を超えています"
 
-#: src/components/file_manager/fileManager.tsx:232
+#: src/components/file_manager/fileManager.tsx:256
 msgid "File deleted successfully."
 msgstr "ファイルを削除しました。"
 
@@ -6721,7 +6722,7 @@ msgstr "ファイルマネージャー設定を更新しました"
 msgid "File name"
 msgstr "ファイル名"
 
-#: src/components/file_manager/fileManager.tsx:563
+#: src/components/file_manager/fileManager.tsx:587
 msgid "File storage is not configured."
 msgstr "ファイルストレージが設定されていません。"
 
@@ -6841,27 +6842,27 @@ msgstr "ZapierでZapを修正してから、このWebhookを再度有効にす�
 msgid "Flow Stats: {0}"
 msgstr "フロー統計: {0}"
 
-#: src/components/file_manager/fileManager.tsx:297
+#: src/components/file_manager/fileManager.tsx:321
 msgid "Folder already exists."
 msgstr "フォルダは既に存在します。"
 
-#: src/components/file_manager/fileManager.tsx:310
+#: src/components/file_manager/fileManager.tsx:334
 msgid "Folder created successfully."
 msgstr "フォルダを作成しました。"
 
-#: src/components/file_manager/fileManager.tsx:205
+#: src/components/file_manager/fileManager.tsx:224
 msgid "Folder deleted successfully."
 msgstr "フォルダを削除しました。"
 
-#: src/components/file_manager/fileManager.tsx:756
+#: src/components/file_manager/fileManager.tsx:783
 msgid "Folder is empty"
 msgstr "フォルダが空です"
 
-#: src/components/file_manager/fileManager.tsx:987
+#: src/components/file_manager/fileManager.tsx:1014
 msgid "Folder name"
 msgstr "フォルダ名"
 
-#: src/components/file_manager/fileManager.tsx:591
+#: src/components/file_manager/fileManager.tsx:615
 msgid "folder with all its content?"
 msgstr "フォルダとその中のすべてのコンテンツ？"
 
@@ -7570,7 +7571,7 @@ msgstr "インポート / エクスポート"
 msgid "Import & Export Templates"
 msgstr "テンプレートのインポート＆エクスポート"
 
-#: src/components/file_manager/fileManager.tsx:419
+#: src/components/file_manager/fileManager.tsx:443
 msgid "Import cancelled"
 msgstr "インポートがキャンセルされました"
 
@@ -7634,7 +7635,7 @@ msgstr "{0}件のコンタクトをインポートしました（{1}件失敗、
 msgid "Imported Fonts"
 msgstr "インポート済みフォント"
 
-#: src/components/file_manager/fileManager.tsx:1038
+#: src/components/file_manager/fileManager.tsx:1065
 msgid "Importing files..."
 msgstr "ファイルをインポート中..."
 
@@ -8172,7 +8173,7 @@ msgstr "最終編集"
 msgid "Last fetched:"
 msgstr "最終取得:"
 
-#: src/components/file_manager/fileManager.tsx:834
+#: src/components/file_manager/fileManager.tsx:861
 msgid "Last modified"
 msgstr "最終更新"
 
@@ -9156,7 +9157,7 @@ msgstr "N/A"
 #: src/components/blog/AuthorsTable.tsx:143
 #: src/components/blog/CategoryDrawer.tsx:130
 #: src/components/email_builder/ui/SaveBlockModal.tsx:128
-#: src/components/file_manager/fileManager.tsx:820
+#: src/components/file_manager/fileManager.tsx:847
 #: src/components/lists/ListDrawer.tsx:185
 #: src/components/segment/button_upsert.tsx:442
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:125
@@ -9219,7 +9220,7 @@ msgstr "新規コンタクト"
 msgid "New conversation"
 msgstr "新しい会話"
 
-#: src/components/file_manager/fileManager.tsx:709
+#: src/components/file_manager/fileManager.tsx:736
 msgid "New folder"
 msgstr "新規フォルダ"
 
@@ -9465,7 +9466,7 @@ msgstr "エラーなし"
 #~ msgid "No Errors"
 #~ msgstr "エラーなし"
 
-#: src/components/file_manager/fileManager.tsx:476
+#: src/components/file_manager/fileManager.tsx:500
 msgid "No files selected"
 msgstr "ファイルが選択されていません"
 
@@ -9493,7 +9494,7 @@ msgstr "アイコンが見つかりません"
 msgid "No Issues"
 msgstr "問題なし"
 
-#: src/components/file_manager/fileManager.tsx:522
+#: src/components/file_manager/fileManager.tsx:546
 msgid "No items selected"
 msgstr "アイテムが選択されていません"
 
@@ -10045,7 +10046,7 @@ msgstr "このブロードキャストのメール内のリンクのみ。"
 msgid "Only links in emails sent with this template."
 msgstr "このテンプレートで送信されたメール内のリンクのみ。"
 
-#: src/components/file_manager/fileManager.tsx:998
+#: src/components/file_manager/fileManager.tsx:1025
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 msgstr "小文字の英数字、アンダースコア、ハイフンのみ使用できます。"
 
@@ -10084,7 +10085,7 @@ msgstr "Open Graph画像"
 msgid "Open Graph Title"
 msgstr "Open Graphタイトル"
 
-#: src/components/file_manager/fileManager.tsx:865
+#: src/components/file_manager/fileManager.tsx:892
 msgid "Open in a window"
 msgstr "新しいウィンドウで開く"
 
@@ -11561,7 +11562,7 @@ msgstr "ブロードキャストを更新"
 msgid "Refresh the broadcast's data feed by calling the configured external URL"
 msgstr "設定された外部URLを呼び出して、ブロードキャストのデータフィードを更新する"
 
-#: src/components/file_manager/fileManager.tsx:615
+#: src/components/file_manager/fileManager.tsx:642
 msgid "Refresh the list"
 msgstr "リストを更新"
 
@@ -12132,9 +12133,9 @@ msgstr "S3アクセスキー"
 msgid "S3 bucket"
 msgstr "S3バケット"
 
-#: src/components/file_manager/fileManager.tsx:193
-#: src/components/file_manager/fileManager.tsx:272
-#: src/components/file_manager/fileManager.tsx:513
+#: src/components/file_manager/fileManager.tsx:210
+#: src/components/file_manager/fileManager.tsx:296
+#: src/components/file_manager/fileManager.tsx:537
 msgid "S3 client is not initialized."
 msgstr "S3クライアントが初期化されていません。"
 
@@ -12491,7 +12492,7 @@ msgid "Segments"
 msgstr "セグメント"
 
 #: src/components/automations/nodes/EmailNode.tsx:49
-#: src/components/file_manager/fileManager.tsx:928
+#: src/components/file_manager/fileManager.tsx:955
 #: src/components/settings/BlogSettings.tsx:360
 #: src/components/settings/BlogSettings.tsx:376
 #: src/components/templates/TemplateSelectorInput.tsx:243
@@ -13298,7 +13299,7 @@ msgstr "もっと表示（残り{0}件）"
 msgid "Show this block if"
 msgstr "このブロックを表示する条件"
 
-#: src/components/file_manager/fileManager.tsx:738
+#: src/components/file_manager/fileManager.tsx:765
 msgid "Showing the first {maxObjectsLabel} files of this bucket."
 msgstr "このバケットの最初の {maxObjectsLabel} 件のファイルを表示しています。"
 
@@ -13376,7 +13377,7 @@ msgstr ""
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:174
 #: src/components/email_builder/ui/FontStyleInput.tsx:179
-#: src/components/file_manager/fileManager.tsx:827
+#: src/components/file_manager/fileManager.tsx:854
 msgid "Size"
 msgstr "サイズ"
 
@@ -13711,11 +13712,11 @@ msgstr "ステータス不明"
 msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop."
 msgstr "コンタクトがこのオートメーションのメールに返信した時点で、そのコンタクトに対するオートメーションを停止します。これにはメールプロバイダー (ESP) 側で受信返信の転送が設定されている必要があります: 送信ドメイン宛の返信がプロバイダーにルーティングされ、プロバイダーがそれをNotifuseへ転送する構成です。この設定がない場合、返信は検出されず、シーケンスは停止しません。"
 
-#: src/components/file_manager/fileManager.tsx:630
+#: src/components/file_manager/fileManager.tsx:657
 msgid "Storage settings"
 msgstr "ストレージ設定"
 
-#: src/components/file_manager/fileManager.tsx:638
+#: src/components/file_manager/fileManager.tsx:665
 msgid "Storage settings (Read-only mode)"
 msgstr "ストレージ設定（読み取り専用モード）"
 
@@ -15702,8 +15703,8 @@ msgstr "更新日時"
 #~ msgid "Upgrade licence"
 #~ msgstr ""
 
-#: src/components/file_manager/fileManager.tsx:661
-#: src/components/file_manager/fileManager.tsx:674
+#: src/components/file_manager/fileManager.tsx:688
+#: src/components/file_manager/fileManager.tsx:701
 msgid "Upload"
 msgstr "アップロード"
 
@@ -15724,7 +15725,7 @@ msgstr "アップロード失敗: {0}"
 msgid "Upload failed. Please try again."
 msgstr "アップロードに失敗しました。もう一度お試しください。"
 
-#: src/components/file_manager/fileManager.tsx:666
+#: src/components/file_manager/fileManager.tsx:693
 msgid "Upload file (Read-only mode)"
 msgstr "ファイルをアップロード（読み取り専用モード）"
 
@@ -15746,7 +15747,7 @@ msgstr "URL"
 #~ msgstr ""
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:64
-#: src/components/file_manager/fileManager.tsx:859
+#: src/components/file_manager/fileManager.tsx:886
 msgid "URL copied to clipboard."
 msgstr "URLがクリップボードにコピーされました。"
 
@@ -16885,6 +16886,6 @@ msgstr "Zapierは接続されましたが、連携リストを更新できませ
 msgid "Zapier owns this webhook's endpoint URL, so it cannot be changed here. Changing the event types breaks the Zap that created this webhook without reporting any error in Zapier."
 msgstr "このWebhookのエンドポイントURLはZapierが所有しているため、ここでは変更できません。イベントの種類を変更すると、このWebhookを作成したZapは動作しなくなりますが、Zapierにはエラーが表示されません。"
 
-#: src/components/file_manager/fileManager.tsx:727
+#: src/components/file_manager/fileManager.tsx:754
 msgid "Zip"
 msgstr "郵便番号"

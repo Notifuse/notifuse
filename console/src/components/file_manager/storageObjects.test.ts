@@ -98,7 +98,17 @@ describe('listAllObjects', () => {
     const result = await listAllObjects(client, 'media')
 
     expect(result.objects).toHaveLength(1)
+    expect(result.cutShort).toBe(true)
+    expect(result.capped).toBe(false)
     expect(send).toHaveBeenCalledTimes(1)
+  })
+
+  it('says a whole listing was neither capped nor cut short', async () => {
+    const { client } = fakeClient([{ Contents: [obj('a.png')], IsTruncated: false }])
+
+    const result = await listAllObjects(client, 'media')
+
+    expect(result).toMatchObject({ capped: false, cutShort: false })
   })
 
   it('caps the listing of the file manager at ten thousand files', () => {
@@ -153,6 +163,17 @@ describe('toStorageItems', () => {
     )
     expect(items.find((i) => i.key === 'a/b/')?.last_modified).toEqual(
       new Date('2026-11-03T00:00:00Z')
+    )
+  })
+
+  it('dates an implicit folder by its newest file whatever the listing order', () => {
+    const items = toStorageItems(
+      [obj('a/new.png', '2026-11-09T00:00:00Z'), obj('a/old.png', '2026-11-02T00:00:00Z')],
+      settings
+    )
+
+    expect(items.find((i) => i.key === 'a/')?.last_modified).toEqual(
+      new Date('2026-11-09T00:00:00Z')
     )
   })
 
@@ -233,6 +254,37 @@ describe('deleteFolder', () => {
     const result = await deleteFolder(client, 'media', 'a/')
 
     expect(result).toEqual({ deleted: 2, failed: 1 })
+  })
+
+  it('deletes past the cap of the listing', async () => {
+    const many = Array.from({ length: MAX_OBJECTS + 1 }, (_, i) => obj(`a/${i}`))
+    const { client } = fakeClient([{ Contents: many, IsTruncated: false }])
+
+    const result = await deleteFolder(client, 'media', 'a/')
+
+    expect(result).toEqual({ deleted: MAX_OBJECTS + 1, failed: 0 })
+  })
+
+  it('deletes nothing when the storage cuts the listing short', async () => {
+    const { client, send } = fakeClient([{ Contents: [obj('a/1'), obj('a/2')], IsTruncated: true }])
+
+    await expect(deleteFolder(client, 'media', 'a/')).rejects.toThrow()
+    expect(send.mock.calls.some(([command]) => command instanceof DeleteObjectCommand)).toBe(false)
+  })
+
+  it('deletes only objects under the folder, even if the storage ignores the prefix', async () => {
+    const { client, send } = fakeClient([
+      { Contents: [obj('a/1'), obj('b/2'), obj('ab/3')], IsTruncated: false }
+    ])
+
+    const result = await deleteFolder(client, 'media', 'a/')
+
+    expect(result).toEqual({ deleted: 1, failed: 0 })
+    const deletedKeys = send.mock.calls
+      .map(([command]) => command)
+      .filter((command): command is DeleteObjectCommand => command instanceof DeleteObjectCommand)
+      .map((command) => command.input.Key)
+    expect(deletedKeys).toEqual(['a/1'])
   })
 
   it.each(['', 'a', 'a/b'])('refuses the prefix %j, which is not a folder', async (prefix) => {

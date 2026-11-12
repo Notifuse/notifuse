@@ -14,8 +14,10 @@ export const MAX_OBJECTS = 10_000
 
 export interface ListAllObjectsResult {
   objects: _Object[]
-  // true when the bucket holds more objects than were read
+  // true when the listing stopped at maxObjects while the bucket holds more
   capped: boolean
+  // true when the provider said there was more but gave no token to read it
+  cutShort: boolean
 }
 
 // listAllObjects reads the objects of a bucket, under a prefix when one is given,
@@ -38,14 +40,14 @@ export const listAllObjects = async (
       })
     )
     for (const object of response.Contents ?? []) {
-      if (objects.length >= maxObjects) return { objects, capped: true }
+      if (objects.length >= maxObjects) return { objects, capped: true, cutShort: false }
       objects.push(object)
     }
-    // A provider that sets IsTruncated without a token would make the loop run forever.
-    if (!response.IsTruncated || !response.NextContinuationToken) {
-      return { objects, capped: false }
-    }
-    if (objects.length >= maxObjects) return { objects, capped: true }
+    if (!response.IsTruncated) return { objects, capped: false, cutShort: false }
+    // A provider that sets IsTruncated without a token would make the loop run forever:
+    // stop, and say the listing is not whole.
+    if (!response.NextContinuationToken) return { objects, capped: false, cutShort: true }
+    if (objects.length >= maxObjects) return { objects, capped: true, cutShort: false }
     token = response.NextContinuationToken
   }
 }
@@ -156,14 +158,20 @@ export const deleteFolder = async (
     throw new Error(`Not a folder prefix: "${prefix}"`)
   }
 
-  const { objects } = await listAllObjects(client, bucket, {
+  const { objects, cutShort } = await listAllObjects(client, bucket, {
     prefix,
     maxObjects: Number.POSITIVE_INFINITY
   })
+  // Deleting part of the folder and reporting success would leave files behind unseen.
+  if (cutShort) {
+    throw new Error(`The storage did not return the whole content of "${prefix}"`)
+  }
 
   let deleted = 0
   let failed = 0
   for (const object of objects) {
+    // A provider that ignored Prefix must not make this delete objects outside the folder.
+    if (!object.Key?.startsWith(prefix)) continue
     try {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: object.Key }))
       deleted++

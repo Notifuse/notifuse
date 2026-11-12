@@ -113,6 +113,12 @@ export const FileManager = (props: FileManagerProps) => {
   const [isZipping, setIsZipping] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isCapped, setIsCapped] = useState(false)
+  const [isDeletingFolder, setIsDeletingFolder] = useState(false)
+  // A folder delete can take minutes: when it ends, the user may have moved on or left.
+  const mountedRef = useRef(true)
+  // Set synchronously, so a second confirmation before the next render is ignored too.
+  const deletingFolderRef = useRef(false)
+  const currentPathRef = useRef('')
   const maxObjectsLabel = new Intl.NumberFormat(i18n.locale).format(MAX_OBJECTS)
   const [uploadFileStatuses, setUploadFileStatuses] = useState<UploadFileStatus[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -128,6 +134,17 @@ export const FileManager = (props: FileManagerProps) => {
 
   // Effective current path: use controlled prop if in controlled mode, else internal state
   const currentPath = isControlledMode ? props.controlledPath! : internalPath
+
+  useEffect(() => {
+    currentPathRef.current = currentPath
+  }, [currentPath])
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   const selectedFileCount = useMemo(() => {
     if (!items) return 0
@@ -198,14 +215,19 @@ export const FileManager = (props: FileManagerProps) => {
 
     if (isFolder) {
       // A folder is a prefix: delete everything under it, not only its marker.
-      setIsDeleting(true)
+      if (deletingFolderRef.current) return
+      deletingFolderRef.current = true
+      setIsDeletingFolder(true)
       deleteFolder(s3Client, props.settings?.bucket || '', key)
         .then(({ deleted, failed }) => {
           if (failed === 0) {
             message.success(t`Folder deleted successfully.`)
-            // go to previous path
-            const parentPath = key.split('/').slice(0, -2).join('/')
-            goToPath(parentPath ? parentPath + '/' : '')
+            // Go to the parent folder, unless the user has left the deleted folder
+            // or the file manager in the meantime.
+            if (mountedRef.current && currentPathRef.current.startsWith(key)) {
+              const parentPath = key.split('/').slice(0, -2).join('/')
+              goToPath(parentPath ? parentPath + '/' : '')
+            }
           } else {
             message.error(t`Deleted ${deleted} item(s) of the folder, failed to delete ${failed}.`)
           }
@@ -215,7 +237,9 @@ export const FileManager = (props: FileManagerProps) => {
           props.onError(error instanceof Error ? error : new Error(String(error)))
         })
         .finally(() => {
-          setIsDeleting(false)
+          deletingFolderRef.current = false
+          if (!mountedRef.current) return
+          setIsDeletingFolder(false)
           fetchObjects()
         })
       return
@@ -592,6 +616,7 @@ export const FileManager = (props: FileManagerProps) => {
                         </>
                       }
                       onConfirm={() => deleteObject(currentPath, true)}
+                      disabled={isDeletingFolder}
                       okText={t`Delete folder`}
                       cancelText={t`Cancel`}
                       okButtonProps={{
@@ -601,6 +626,8 @@ export const FileManager = (props: FileManagerProps) => {
                       <Button
                         size="small"
                         type="text"
+                        aria-label={t`Delete folder`}
+                        loading={isDeletingFolder}
                         onClick={() => fetchObjects()}
                         icon={<Trash2 size={16} />}
                       />
