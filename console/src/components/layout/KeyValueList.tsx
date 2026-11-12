@@ -1,6 +1,8 @@
 import { Fragment, type ReactNode } from 'react'
 
 export interface KeyValueItem {
+  /** A stable key, for rows that hold state and can move (an inline editor); the index otherwise. */
+  key?: string
   label: ReactNode
   value: ReactNode
   hint?: ReactNode
@@ -62,7 +64,7 @@ export function KeyValueList({ items, labelWidth = 140, layout = 'inline', colum
       style={{ gridTemplateColumns: `${labelWidth}px minmax(0, 1fr)` }}
     >
       {items.map((item, index) => (
-        <Fragment key={index}>
+        <Fragment key={item.key ?? index}>
           <dt data-unreset className="text-ink-3">
             {item.label}
           </dt>

@@ -117,7 +117,94 @@ export const WEB_FILTER_WRITABLE_DIMENSIONS = [
   'is_direct'
 ] as const
 
+export type ContactVisitsFilter = 'all' | 'goal' | 'email'
+
+/** One web session of a contact (webAnalytics.contactVisits). */
+export interface ContactVisitSession {
+  id: string
+  /** YYYY-MM-DD, what contactSessionPages takes. */
+  session_date: string
+  created_at: string
+  duration_ms: number
+  pageview_count: number
+  landing_path: string
+  exit_path: string
+  channel: string
+  channel_group: string
+  referrer_domain: string
+  utm_source: string
+  utm_campaign: string
+  device: string
+  os: string
+  browser: string
+  country: string
+  goal_count: number
+  goal_value: number
+  first_goal_name: string | null
+}
+
+export interface ContactVisitsSummary {
+  sessions: number
+  goal_sessions: number
+  email_sessions: number
+  median_duration_ms: number
+  first_session: ContactVisitSession | null
+  goals: { goal_name: string; count: number; value: number }[]
+  top_pages: { path: string; views: number }[]
+}
+
+export interface ContactVisitsRequest {
+  workspace_id: string
+  email: string
+  filter?: ContactVisitsFilter
+  limit?: number
+  cursor?: string
+}
+
+export interface ContactVisitsResponse {
+  /** Only on the first page, over all of the contact's sessions whatever the filter. */
+  summary?: ContactVisitsSummary
+  sessions: ContactVisitSession[]
+  next_cursor?: string
+}
+
+export interface ContactSessionPagesRequest {
+  workspace_id: string
+  email: string
+  session_id: string
+  session_date: string
+}
+
+export interface ContactSessionPagesResponse {
+  pages: { entered_at: string; path: string; duration_ms: number; page_number: number }[]
+  goals: { goal_at: string; goal_name: string; goal_value: number; path: string }[]
+}
+
 export const webAnalyticsService = {
+  /** A contact's identified web sessions, newest first. */
+  async contactVisits(params: ContactVisitsRequest): Promise<ContactVisitsResponse> {
+    const searchParams = new URLSearchParams()
+    searchParams.append('workspace_id', params.workspace_id)
+    searchParams.append('email', params.email)
+    if (params.filter) searchParams.append('filter', params.filter)
+    if (params.limit !== undefined) searchParams.append('limit', String(params.limit))
+    if (params.cursor) searchParams.append('cursor', params.cursor)
+    return api.get<ContactVisitsResponse>(`/api/webAnalytics.contactVisits?${searchParams.toString()}`)
+  },
+
+  /** The pages and goals of one of the contact's sessions. */
+  async contactSessionPages(params: ContactSessionPagesRequest): Promise<ContactSessionPagesResponse> {
+    const searchParams = new URLSearchParams()
+    searchParams.append('workspace_id', params.workspace_id)
+    searchParams.append('email', params.email)
+    searchParams.append('session_id', params.session_id)
+    searchParams.append('session_date', params.session_date)
+    return api.get<ContactSessionPagesResponse>(
+      `/api/webAnalytics.contactSessionPages?${searchParams.toString()}`
+    )
+  },
+
+
   async setSettings(workspaceId: string, settings: WebAnalyticsSettings | null): Promise<void> {
     await api.post('/api/workspaces.setWebAnalyticsSettings', {
       workspace_id: workspaceId,
