@@ -114,6 +114,31 @@ export interface FileManagerSearch {
 export interface BroadcastsSearch {
   status?: string;
   q?: string;
+  /** Opens the detail page of this broadcast. */
+  broadcast?: string;
+  /** Opens the composer: `new`, or the id of a draft or scheduled broadcast. */
+  compose?: string;
+}
+
+/**
+ * Repeated query keys (?status=a&status=b) parse to arrays; coerce to a single value, trim, and
+ * drop empties so the page always sees a clean string or undefined. An identifier made of digits
+ * is parsed as a number by the router, and read back as text.
+ */
+export function validateBroadcastsSearch(search: Record<string, unknown>): BroadcastsSearch {
+  const normalize = (value: unknown, numbers = false): string | undefined => {
+    const single = Array.isArray(value) ? value[0] : value;
+    const text = numbers && typeof single === "number" && Number.isFinite(single) ? String(single) : single;
+    if (typeof text !== "string") return undefined;
+    const trimmed = text.trim();
+    return trimmed === "" ? undefined : trimmed;
+  };
+  return {
+    status: normalize(search.status),
+    q: normalize(search.q),
+    broadcast: normalize(search.broadcast, true),
+    compose: normalize(search.compose, true),
+  };
 }
 
 export interface TemplatesSearch {
@@ -198,18 +223,7 @@ const workspaceBroadcastsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/broadcasts",
   component: BroadcastsPage,
-  validateSearch: (search: Record<string, unknown>): BroadcastsSearch => {
-    // Repeated query keys (?status=a&status=b) parse to arrays; coerce to a
-    // single value, trim, and drop empties so the page always sees a clean
-    // string or undefined.
-    const normalize = (value: unknown): string | undefined => {
-      const single = Array.isArray(value) ? value[0] : value;
-      if (typeof single !== "string") return undefined;
-      const trimmed = single.trim();
-      return trimmed === "" ? undefined : trimmed;
-    };
-    return { status: normalize(search.status), q: normalize(search.q) };
-  },
+  validateSearch: validateBroadcastsSearch,
 });
 
 const workspaceAutomationsRoute = createRoute({

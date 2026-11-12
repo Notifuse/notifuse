@@ -283,7 +283,11 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
       return route.fulfill(jsonResponse(withData ? mockBroadcastsResponse : mockEmptyBroadcasts))
     }
     if (url.includes('/api/broadcast.get') || url.includes('/api/broadcasts.get')) {
-      return route.fulfill(jsonResponse({ broadcast: mockBroadcastsResponse.broadcasts[0] }))
+      const id = new URL(url).searchParams.get('id')
+      const broadcast = mockBroadcastsResponse.broadcasts.find((b) => b.id === id)
+      return broadcast
+        ? route.fulfill(jsonResponse({ broadcast }))
+        : route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Broadcast not found' }) })
     }
     if (url.includes('/api/broadcast.create') || url.includes('/api/broadcasts.create')) {
       return route.fulfill(jsonResponse(mockBroadcastCreateResponse))
