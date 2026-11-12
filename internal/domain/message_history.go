@@ -287,6 +287,9 @@ type MessageListParams struct {
 	IsBounced      *bool  `json:"is_bounced,omitempty"`      // filter messages that are bounced
 	IsComplained   *bool  `json:"is_complained,omitempty"`   // filter messages that are complained
 	IsUnsubscribed *bool  `json:"is_unsubscribed,omitempty"` // filter messages that are unsubscribed
+
+	TransactionalNotificationID string `json:"transactional_notification_id,omitempty"` // filter by transactional notification
+
 	// Time range filters
 	SentAfter     *time.Time `json:"sent_after,omitempty"`
 	SentBefore    *time.Time `json:"sent_before,omitempty"`
@@ -304,6 +307,7 @@ func (p *MessageListParams) FromQuery(query url.Values) error {
 	p.Channel = query.Get("channel")
 	p.ContactEmail = query.Get("contact_email")
 	p.BroadcastID = query.Get("broadcast_id")
+	p.TransactionalNotificationID = query.Get("transactional_notification_id")
 	p.TemplateID = query.Get("template_id")
 	p.ClickedURL = query.Get("clicked_url")
 

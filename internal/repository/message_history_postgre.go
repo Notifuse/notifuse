@@ -778,6 +778,10 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 		queryBuilder = queryBuilder.Where(sq.Eq{"broadcast_id": params.BroadcastID})
 	}
 
+	if params.TransactionalNotificationID != "" {
+		queryBuilder = queryBuilder.Where(sq.Eq{"transactional_notification_id": params.TransactionalNotificationID})
+	}
+
 	if params.TemplateID != "" {
 		queryBuilder = queryBuilder.Where(sq.Eq{"template_id": params.TemplateID})
 	}

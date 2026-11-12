@@ -1126,3 +1126,27 @@ func TestMessageHistoryHandler_handleList_ClickedURL(t *testing.T) {
 		assert.Contains(t, w.Body.String(), "clicked_url requires broadcast_id")
 	})
 }
+
+func TestMessageHistoryHandler_handleList_TransactionalNotificationFilter(t *testing.T) {
+	handler, mockService, mockAuthService, mockTracer, _ := setupMessageHistoryHandlerTest(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/messages.list?workspace_id=ws123&transactional_notification_id=password_reset", nil)
+	w := httptest.NewRecorder()
+
+	mockSpan := &trace.Span{}
+	mockTracer.EXPECT().StartSpan(gomock.Any(), "MessageHistoryHandler.handleList").Return(context.Background(), mockSpan)
+	mockTracer.EXPECT().EndSpan(mockSpan, nil)
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws123").
+		Return(context.Background(), &domain.User{ID: "user123"}, nil, nil)
+
+	mockService.EXPECT().
+		ListMessages(gomock.Any(), "ws123", gomock.Eq(domain.MessageListParams{
+			Limit:                       20,
+			TransactionalNotificationID: "password_reset",
+		})).
+		Return(&domain.MessageListResult{Messages: []*domain.MessageHistory{}}, nil)
+
+	handler.handleList(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}

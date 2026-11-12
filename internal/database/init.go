@@ -303,6 +303,10 @@ func workspaceSchemaGroups(now time.Time) []workspaceSchemaGroup {
 		`CREATE INDEX IF NOT EXISTS idx_message_history_template_id ON message_history(template_id, template_version)`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_created_at_id ON message_history(created_at DESC, id DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_smtp_message_id ON message_history(smtp_message_id) WHERE smtp_message_id IS NOT NULL`,
+		// The latest failed, bounced and complained messages, in messages.list order.
+		`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`,
 		`CREATE TABLE IF NOT EXISTS transactional_notifications (
 			id VARCHAR(32) NOT NULL PRIMARY KEY,
 			name VARCHAR(255) NOT NULL,
