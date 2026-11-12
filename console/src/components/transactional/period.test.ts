@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { resolveTransactionalPeriod } from './period'
+import { periodDays, resolveTransactionalPeriod, workspaceToday } from './period'
 
 const dayCount = (startDay: string, endDay: string) =>
   Math.round((Date.parse(`${endDay}T00:00:00Z`) - Date.parse(`${startDay}T00:00:00Z`)) / 86_400_000) + 1
@@ -22,6 +22,20 @@ describe('resolveTransactionalPeriod', () => {
     expect(current.endDay).toBe('2026-11-12')
     expect(dayCount(current.startDay, current.endDay)).toBe(days)
     expect(current.endUtc).toBe('2026-11-12T22:59:59.999Z')
+  })
+
+  it('ends on the day it is given, rather than the clock', () => {
+    const { current } = resolveTransactionalPeriod('7d', 'Europe/Paris', '2026-11-20')
+    expect(current.startDay).toBe('2026-11-14')
+    expect(current.endDay).toBe('2026-11-20')
+    expect(current.endUtc).toBe('2026-11-20T22:59:59.999Z')
+  })
+
+  it('reads today in the workspace timezone, and the days of each period', () => {
+    expect(workspaceToday('Europe/Paris')).toBe('2026-11-12')
+    expect(workspaceToday('America/New_York')).toBe('2026-11-11')
+    expect(workspaceToday('', new Date('2026-11-11T23:30:00Z'))).toBe('2026-11-11')
+    expect([periodDays('7d'), periodDays('30d'), periodDays('60d')]).toEqual([7, 30, 60])
   })
 
   it('takes today in the workspace timezone, behind UTC', () => {

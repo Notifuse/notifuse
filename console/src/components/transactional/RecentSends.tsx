@@ -65,7 +65,8 @@ export function RecentSends({ workspaceId, notificationId, timezone, canReadMess
 
   const rows = recent.data?.messages ?? []
   let body
-  if (recent.isError) body = <LoadError error={recent.error} onRetry={() => void recent.refetch()} />
+  // A failed refresh keeps the rows already loaded.
+  if (recent.isError && !recent.data) body = <LoadError error={recent.error} onRetry={() => void recent.refetch()} />
   else if (recent.isLoading)
     body = (
       <div className="px-3.5 py-3">

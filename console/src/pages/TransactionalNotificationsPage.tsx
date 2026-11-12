@@ -25,7 +25,7 @@ import {
   validateTransactionalSearch,
   type TransactionalPeriod
 } from '../components/transactional/transactionalSearch'
-import { resolveTransactionalPeriod } from '../components/transactional/period'
+import { periodDays, resolveTransactionalPeriod, workspaceToday } from '../components/transactional/period'
 import { useMinuteTick } from '../components/transactional/transactionalClient'
 import { useTemplateStates, useTransactionalStats } from '../components/transactional/useTransactionalStats'
 import { defaultSender, transactionalProvider } from '../components/transactional/senderInfo'
@@ -64,7 +64,9 @@ export function TransactionalNotificationsPage() {
   const tick = useMinuteTick()
   // Read again each minute, so relative times stay true on an open page.
   const now = useMemo(() => new Date(Math.max(Date.now(), tick * 60_000)), [tick])
-  const periods = useMemo(() => resolveTransactionalPeriod(period, timezone), [period, timezone])
+  // Resolved again when the workspace's day changes, so an open page follows midnight.
+  const today = workspaceToday(timezone, now)
+  const periods = useMemo(() => resolveTransactionalPeriod(period, timezone, today), [period, timezone, today])
   const countLabel = useNotificationCount()
 
   const setSearch = (change: Record<string, unknown>, replace = false) =>
@@ -233,14 +235,19 @@ export function TransactionalNotificationsPage() {
   // KPIs: the sum of the rows of every notification, the search filters the table only.
   const gate = {
     forbidden: ready && !canReadMessages,
-    loading: !ready || stats.current.isLoading,
+    // No figures yet and no failure: the list or the rights are still on their way.
+    loading: !ready || (canReadMessages && !stats.current.data && !stats.current.isError),
     error: stats.current.isError
   }
+  // The sheet's chart reloads on a period switch: its figures wait with it rather than show the old period.
+  const sheetGate = { ...gate, loading: gate.loading || stats.current.isPlaceholderData }
   const total = sumStats(stats.current.data, ids)
   const previous = stats.previous.data ? sumStats(stats.previous.data, ids) : undefined
   const rates = statsRates(total)
-  const change = deliveredChange(total, previous)
-  const days = periods.days
+  // While the old period stays on screen, it is not compared with the new previous period.
+  const change = stats.current.isPlaceholderData ? undefined : deliveredChange(total, previous)
+  // The figures shown are labelled with their own period, the old one while a switch loads.
+  const days = periodDays(stats.current.period ?? period)
   const lastDays = t`${plural(days, { one: 'Last # day', other: 'Last # days' })}`
   const dash = '—'
   const rate = (value: number | null) => (value === null ? dash : percent(value))
@@ -417,7 +424,7 @@ export function TransactionalNotificationsPage() {
         periods={periods}
         onPeriodChange={(value) => setSearch({ period: value === '30d' ? undefined : value })}
         stats={stats.current.data}
-        statsGate={gate}
+        statsGate={sheetGate}
         smtp={smtp}
         timezone={timezone}
         now={now}

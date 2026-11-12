@@ -87,7 +87,8 @@ vi.mock('../components/transactional/TransactionalDetail', () => ({
 vi.mock('../services/api/template', () => ({ templatesApi: { get: getTemplate } }))
 vi.mock('../components/transactional/transactionalClient', () => ({
   transactionalAnalytics: { query },
-  useMinuteTick: () => 0
+  // The minute of the mocked clock, so a test moving the clock moves the page's now.
+  useMinuteTick: () => Math.floor(Date.now() / 60_000)
 }))
 vi.mock('../services/api/transactional_notifications', () => ({
   transactionalNotificationsApi: { list: listNotifications, delete: vi.fn(), get: vi.fn() }
@@ -157,9 +158,16 @@ const full: StoredPermissions = {
   contacts: { read: true, write: false }
 }
 
+let client: QueryClient
+/** The client of the last render, so a rerender keeps its cache. */
+const queryClientOf = () => client
+
+/** A previous-window query of the 7-day period: from 30 October to 5 November in Paris. */
+const isSevenDays = (q: unknown) => (q as AnalyticsQuery).filters?.[1]?.values?.[0] === '2026-10-29T23:00:00.000Z'
+
 const renderPage = () =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={(client = new QueryClient({ defaultOptions: { queries: { retry: false } } }))}>
       <I18nProvider i18n={i18n}>
         <App>
           <TransactionalNotificationsPage />
@@ -236,6 +244,85 @@ describe('TransactionalNotificationsPage list', () => {
       values: ['managed', 'password_reset', 'welcome']
     })
     expect(current?.filters?.[1].operator).toBe('inDateRange')
+  })
+
+  it('asks the current and previous windows and the last sends over their exact bounds', async () => {
+    renderPage()
+    await strip().findByText('+1.5 pts vs previous 30 days')
+
+    const asked = query.mock.calls.map(([q]) => q as AnalyticsQuery)
+    const range = (q?: AnalyticsQuery) => q?.filters?.[1]
+    // 30 days in Paris, today included: from 14 October to 12 November.
+    expect(range(asked.find((q) => q.measures.length === 8))).toEqual({
+      member: 'created_at',
+      operator: 'inDateRange',
+      values: ['2026-10-13T22:00:00.000Z', '2026-11-12T22:59:59.999Z']
+    })
+    expect(range(asked.find((q) => q.measures.length === 2))).toEqual({
+      member: 'created_at',
+      operator: 'inDateRange',
+      values: ['2026-09-13T22:00:00.000Z', '2026-10-13T21:59:59.999Z']
+    })
+    expect(range(asked.find((q) => q.measures.includes('last_sent_at')))).toEqual({
+      member: 'created_at',
+      operator: 'gte',
+      values: ['2026-09-13T09:00:00.000Z']
+    })
+  })
+
+  it('slides the window when the day changes on an open page', async () => {
+    const { rerender } = renderPage()
+    await strip().findByText('2,000')
+    const before = query.mock.calls.length
+
+    // Past midnight in Paris.
+    vi.setSystemTime(new Date('2026-11-12T23:30:00Z'))
+    rerender(
+      <QueryClientProvider client={queryClientOf()}>
+        <I18nProvider i18n={i18n}>
+          <App>
+            <TransactionalNotificationsPage />
+          </App>
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+
+    await waitFor(() =>
+      expect(
+        query.mock.calls
+          .slice(before)
+          .map(([q]) => (q as AnalyticsQuery).filters?.[1]?.values?.[1])
+          .includes('2026-11-13T22:59:59.999Z')
+      ).toBe(true)
+    )
+  })
+
+  it('keeps the old period labelled as such while a switch loads, without comparing it', async () => {
+    const { rerender } = renderPage()
+    await strip().findByText('+1.5 pts vs previous 30 days')
+
+    // The 7-day totals never answer; the previous 7 days do.
+    query.mockImplementation((q: AnalyticsQuery) => (q.measures.length === 8 ? new Promise(() => {}) : answer(q)))
+    state.search = { period: '7d' }
+    rerender(
+      <QueryClientProvider client={queryClientOf()}>
+        <I18nProvider i18n={i18n}>
+          <App>
+            <TransactionalNotificationsPage />
+          </App>
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+
+    await waitFor(() =>
+      expect(query.mock.calls.some(([q]) => (q as AnalyticsQuery).measures.length === 2 && isSevenDays(q))).toBe(true)
+    )
+    await waitFor(() => expect(strip().queryByText(/vs previous/)).not.toBeInTheDocument())
+    expect(strip().getByText('2,000')).toBeInTheDocument()
+    expect(strip().getByText('Last 30 days')).toBeInTheDocument()
+    // The sheet waits for the new figures rather than show the old period.
+    const last = detailProps.mock.calls.at(-1)?.[0] as { statsGate: { loading: boolean } }
+    expect(last.statsGate.loading).toBe(true)
   })
 
   it('flags delivery under 97 % and bounces from 2 %, and says when opens or clicks are not tracked', async () => {

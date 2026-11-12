@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -52,9 +52,10 @@ const message = (id: string, extra: Partial<MessageHistory> = {}): MessageHistor
     ...extra
   }) as MessageHistory
 
+let client: QueryClient
 const renderPanel = (canReadMessages = true) =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={(client = new QueryClient({ defaultOptions: { queries: { retry: false } } }))}>
       <I18nProvider i18n={i18n}>
         <RecentSends
           workspaceId="ws1"
@@ -122,6 +123,18 @@ describe('RecentSends', () => {
 
     expect(await screen.findByText('No sends yet')).toBeInTheDocument()
     expect(useQuerySpy.mock.calls.at(-1)?.[0]).toMatchObject({ refetchInterval: 30_000 })
+  })
+
+  it('keeps the rows on screen when a refresh fails', async () => {
+    listMessages.mockResolvedValueOnce({ messages: [message('ada')], has_more: false })
+    listMessages.mockRejectedValueOnce(new Error('boom'))
+    renderPanel()
+    expect(await screen.findByText('ada@example.com')).toBeInTheDocument()
+
+    await act(() => client.refetchQueries())
+    expect(listMessages).toHaveBeenCalledTimes(2)
+    expect(screen.getByText('ada@example.com')).toBeInTheDocument()
+    expect(screen.queryByText("Couldn't load")).not.toBeInTheDocument()
   })
 
   it('says why sends are hidden without access to message history, and asks nothing', () => {

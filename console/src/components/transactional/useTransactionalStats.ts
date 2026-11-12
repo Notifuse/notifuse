@@ -34,18 +34,32 @@ export interface StatsResult<T> {
   /** Failed with nothing loaded; a failed refresh keeps the last figures. */
   isError: boolean
   error?: unknown
+  /** The figures shown are those of the previous key, kept while the new one loads. */
+  isPlaceholderData: boolean
 }
 
-const result = <T>(query: { data?: T; isLoading: boolean; isError: boolean; error: unknown }): StatsResult<T> => ({
+interface QueryLike<T> {
+  data?: T
+  isLoading: boolean
+  isError: boolean
+  error: unknown
+  isPlaceholderData: boolean
+}
+
+const result = <T>(query: QueryLike<T>): StatsResult<T> => ({
   data: query.data,
   isLoading: query.isLoading,
   isError: query.isError && query.data === undefined,
-  error: query.error ?? undefined
+  error: query.error ?? undefined,
+  isPlaceholderData: query.isPlaceholderData
 })
 
 export interface TransactionalStats {
   /** T2: the window's statistics by notification. */
-  current: StatsResult<Map<string, NotificationStats>>
+  current: StatsResult<Map<string, NotificationStats>> & {
+    /** The period of the figures shown, the old one while a switch loads. */
+    period?: TransactionalPeriod
+  }
   /** T3: sent and delivered of the previous window. */
   previous: StatsResult<Map<string, NotificationStats>>
   /** T4: when each notification last sent successfully. */
@@ -65,8 +79,9 @@ export function useTransactionalStats({
   const active = enabled && ids.length > 0
   const byId = { member: 'transactional_notification_id', operator: 'in' as const, values: ids }
 
+  // The last day enters the keys: at midnight the window slides, without a request at each render.
   const current = useQuery({
-    queryKey: ['transactional-stats', workspaceId, period, ids],
+    queryKey: ['transactional-stats', workspaceId, period, periods.current.endDay, ids],
     queryFn: async () => {
       const response = await transactionalAnalytics.query(
         {
@@ -85,15 +100,17 @@ export function useTransactionalStats({
         },
         workspaceId
       )
-      return statsByNotification(response.data)
+      return { period, stats: statsByNotification(response.data) }
     },
     enabled: active,
     staleTime: 60_000,
+    // Focus refetch is off for the console: a monitoring screen reads its figures again on return.
+    refetchOnWindowFocus: true,
     placeholderData: keepPreviousData
   })
 
   const previous = useQuery({
-    queryKey: ['transactional-stats', workspaceId, 'previous', period, ids],
+    queryKey: ['transactional-stats', workspaceId, 'previous', period, periods.current.endDay, ids],
     queryFn: async () => {
       const response = await transactionalAnalytics.query(
         {
@@ -135,10 +152,15 @@ export function useTransactionalStats({
       return lastSentByNotification(response.data)
     },
     enabled: active,
-    staleTime: 60_000
+    staleTime: 60_000,
+    refetchOnWindowFocus: true
   })
 
-  return { current: result(current), previous: result(previous), lastSent: result(lastSent) }
+  return {
+    current: { ...result({ ...current, data: current.data?.stats }), period: current.data?.period },
+    previous: result(previous),
+    lastSent: result(lastSent)
+  }
 }
 
 interface TemplatesOptions {

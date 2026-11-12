@@ -129,7 +129,7 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
   const rules = useActionRules()(notification, permissions, template, workspace)
 
   const daily = useQuery({
-    queryKey: ['transactional-daily', workspace.id, notification.id, period],
+    queryKey: ['transactional-daily', workspace.id, notification.id, period, periods.current.endDay],
     queryFn: async () => {
       const response = await transactionalAnalytics.query(
         {
@@ -152,6 +152,7 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
     },
     enabled: canReadMessages,
     staleTime: 60_000,
+    refetchOnWindowFocus: true,
     placeholderData: keepPreviousData
   })
 
@@ -231,7 +232,7 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
   const sender = resolveSenderInfo(workspace, loadedTemplate)
   const senderText = sender.sender
     ? `${sender.sender.name ? `${sender.sender.name} <${sender.sender.email}>` : sender.sender.email}${
-        sender.providerDefaultOnly ? ` ${t`(default)`}` : ''
+        sender.providerDefaultOnly && template?.status === 'forbidden' ? ` ${t`(default)`}` : ''
       }`
     : null
   const meta: ReactNode[] = []

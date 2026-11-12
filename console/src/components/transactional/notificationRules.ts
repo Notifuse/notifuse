@@ -92,6 +92,8 @@ export function useDeleteNotification(workspaceId: string, onDeleted?: (id: stri
           await transactionalNotificationsApi.delete({ workspace_id: workspaceId, id: notification.id })
           message.success(t`Transactional notification deleted successfully`)
           onDeleted?.(notification.id)
+          // Back in the history must not reopen the sheet from the cached notification.
+          queryClient.removeQueries({ queryKey: ['transactional-notification', workspaceId, notification.id] })
           await queryClient.invalidateQueries({ queryKey: ['transactional-notifications', workspaceId] })
         } catch (error) {
           console.error('Failed to delete notification:', error)

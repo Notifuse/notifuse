@@ -71,6 +71,7 @@ export function formatLastSent(
   yesterday: (time: string) => string
 ): string {
   const at = new Date(iso)
+  if (Number.isNaN(at.getTime())) return '—'
   const minutes = Math.max(0, Math.floor((now.getTime() - at.getTime()) / 60_000))
   const relative = new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'short' })
   // « now » under a minute, rather than « this minute ».
@@ -87,6 +88,7 @@ export function formatLastSent(
 /** "14:29:03" for a send of today, "9 Nov, 14:29" otherwise. */
 export function formatSendTime(iso: string, now: Date, timeZone: string, locale: string): string {
   const at = new Date(iso)
+  if (Number.isNaN(at.getTime())) return '—'
   return isToday(iso, timeZone, now)
     ? formatTime(at, timeZone, locale, true)
     : formatShortDateTime(at, timeZone, locale)

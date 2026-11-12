@@ -19,11 +19,12 @@ export function transactionalProvider(workspace: Pick<Workspace, 'settings' | 'i
 
 export function defaultSender(provider: Integration | null): Sender | null {
   const senders = provider?.email_provider?.senders ?? []
-  return senders.find((sender) => sender.is_default) ?? senders[0] ?? null
+  // As the server's EmailProvider.GetSender: no sender flagged default means none, and the send fails.
+  return senders.find((sender) => sender.is_default) ?? null
 }
 
 /**
- * The sender a send without email_options.sender_id uses, as EmailProvider.ResolveSender picks it:
+ * The sender a send without email_options.sender_id uses, as EmailProvider.GetSender picks it:
  * the template's default-language sender_id among the provider's senders, else the provider's
  * default. A translation can carry its own sender and Reply-To; this is the default language's.
  */

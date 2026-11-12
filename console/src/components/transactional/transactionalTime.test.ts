@@ -35,6 +35,11 @@ describe('formatSendTime', () => {
     expect(formatSendTime('2026-11-11T22:30:00Z', now, 'Europe/Paris', 'en')).toBe('Nov 11, 23:30')
     expect(formatSendTime('2026-11-11T22:30:00Z', now, 'America/New_York', 'en')).toBe('Nov 11, 17:30')
   })
+
+  it('shows a dash for a date it cannot read, as formatLastSent', () => {
+    expect(formatSendTime('not a date', now, 'Europe/Paris', 'en')).toBe('—')
+    expect(formatLastSent('not a date', now, 'Europe/Paris', 'en', yesterday)).toBe('—')
+  })
 })
 
 describe('isToday', () => {

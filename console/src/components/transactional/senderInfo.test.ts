@@ -12,7 +12,14 @@ const senders = [
 const workspace = (providerId?: string, providerSenders = senders) =>
   ({
     settings: { transactional_email_provider_id: providerId },
-    integrations: [{ id: 'postmark', name: 'Postmark', type: 'email', email_provider: { kind: 'postmark', senders: providerSenders } }]
+    integrations: [
+      {
+        id: 'postmark',
+        name: 'Postmark',
+        type: 'email',
+        email_provider: { kind: 'postmark', senders: providerSenders }
+      }
+    ]
   }) as unknown as Workspace
 
 const template = (email: Record<string, string>) => ({ email: { subject: 'Hi', ...email } }) as unknown as Template
@@ -26,13 +33,19 @@ describe('resolveSenderInfo', () => {
   })
 
   it("falls back to the provider's default sender", () => {
-    expect(resolveSenderInfo(workspace('postmark'), template({ sender_id: 'gone' })).sender?.email).toBe('noreply@acme.test')
+    expect(resolveSenderInfo(workspace('postmark'), template({ sender_id: 'gone' })).sender?.email).toBe(
+      'noreply@acme.test'
+    )
     expect(resolveSenderInfo(workspace('postmark'), template({})).sender?.email).toBe('noreply@acme.test')
   })
 
-  it('takes the first sender when none is the default', () => {
+  it('finds no sender when none is the default, as the server', () => {
     const plain = senders.map((sender) => ({ ...sender, is_default: false }))
-    expect(resolveSenderInfo(workspace('postmark', plain), template({})).sender?.email).toBe('hello@acme.test')
+    expect(resolveSenderInfo(workspace('postmark', plain), template({})).sender).toBeNull()
+    // The template's own sender still counts.
+    expect(resolveSenderInfo(workspace('postmark', plain), template({ sender_id: 's3' })).sender?.email).toBe(
+      'billing@acme.test'
+    )
   })
 
   it('finds no sender without a provider, or a provider gone or without senders', () => {
