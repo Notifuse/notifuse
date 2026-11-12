@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import {
   Typography,
   Button,
@@ -38,6 +38,8 @@ interface PostsSearch {
   category_id?: string
 }
 
+const PAGE_SIZE = 50
+
 export function PostsTable() {
   const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/blog' })
@@ -60,22 +62,41 @@ export function PostsTable() {
   const status = (search.status || 'all') as BlogPostStatus
   const categoryId = search.category_id
 
+  // The page belongs to the filters it was picked under: changing the status or the
+  // category starts again from the first page.
+  const filterKey = `${status}|${categoryId ?? ''}`
+  const [pageState, setPageState] = useState({ filterKey, page: 1 })
+  const page = pageState.filterKey === filterKey ? pageState.page : 1
+  const setPage = (next: number) => setPageState({ filterKey, page: next })
+
   // Fetch categories for filter
   const { data: categoriesData } = useQuery({
     queryKey: ['blog-categories', workspaceId],
     queryFn: () => blogCategoriesApi.list(workspaceId)
   })
 
-  // Fetch posts
-  const { data, isLoading } = useQuery({
-    queryKey: ['blog-posts', workspaceId, status, categoryId],
+  // Fetch one page of posts; the server paginates
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ['blog-posts', workspaceId, status, categoryId, page],
     queryFn: () =>
       blogPostsApi.list(workspaceId, {
         status,
         category_id: categoryId,
-        limit: 100
-      })
+        limit: PAGE_SIZE,
+        page
+      }),
+    placeholderData: keepPreviousData
   })
+
+  const totalCount = data?.total_count ?? 0
+  const lastPage = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+
+  // A page emptied by a deletion: show the last page that still has posts.
+  useEffect(() => {
+    if (data && data.posts.length === 0 && totalCount > 0 && page > lastPage) {
+      setPageState({ filterKey, page: lastPage })
+    }
+  }, [data, totalCount, page, lastPage, filterKey])
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => blogPostsApi.delete(workspaceId, { id }),
@@ -361,7 +382,7 @@ export function PostsTable() {
     }
   ]
 
-  const hasPosts = !isLoading && data?.posts && data.posts.length > 0
+  const hasPosts = isLoading || totalCount > 0
 
   const getEmptyDescription = () => {
     if (status === 'draft') return t`No draft posts`
@@ -407,10 +428,14 @@ export function PostsTable() {
           <Table
             columns={columns}
             dataSource={data?.posts}
-            loading={isLoading}
+            loading={isFetching}
             rowKey="id"
             pagination={{
-              pageSize: 50,
+              current: page,
+              pageSize: PAGE_SIZE,
+              total: totalCount,
+              showSizeChanger: false,
+              onChange: setPage,
               showTotal: (total) => t`Total ${total} posts`
             }}
           />

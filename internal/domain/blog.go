@@ -283,6 +283,12 @@ func (p *BlogPost) IsPublished() bool {
 	return p.PublishedAt != nil
 }
 
+// IsLive returns true if the post is published and its publication date has
+// come: a post scheduled after now is published but not public yet.
+func (p *BlogPost) IsLive(now time.Time) bool {
+	return p.PublishedAt != nil && !p.PublishedAt.After(now)
+}
+
 // GetEffectiveSEOSettings merges the post's SEO settings with the category's defaults
 func (p *BlogPost) GetEffectiveSEOSettings(category *BlogCategory) *SEOSettings {
 	if category == nil {
@@ -590,6 +596,10 @@ type ListBlogPostsRequest struct {
 	Page       int            `json:"page,omitempty"`   // Page number (1-indexed)
 	Limit      int            `json:"limit,omitempty"`  // Posts per page
 	Offset     int            `json:"offset,omitempty"` // Calculated from Page
+
+	// PublishedBefore, when set, keeps only posts published at or before it.
+	// Set by the public blog to hide scheduled posts; never read from the API.
+	PublishedBefore *time.Time `json:"-"`
 }
 
 // Validate validates the list blog posts request

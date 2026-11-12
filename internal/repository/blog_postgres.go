@@ -741,6 +741,12 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 		// BlogPostStatusAll means no filter on published_at
 	}
 
+	if params.PublishedBefore != nil {
+		whereConditions = append(whereConditions, fmt.Sprintf("published_at <= $%d", argIndex))
+		args = append(args, params.PublishedBefore.UTC())
+		argIndex++
+	}
+
 	whereClause := "WHERE " + whereConditions[0]
 	for i := 1; i < len(whereConditions); i++ {
 		whereClause += " AND " + whereConditions[i]
@@ -846,6 +852,10 @@ func (r *blogPostRepository) ListFeedPosts(ctx context.Context, categorySlug *st
 		categoryFilter = " AND c.slug = $1"
 		args = append(args, *categorySlug)
 	}
+	// published_at is a TIMESTAMP without time zone holding UTC: compare it to
+	// the current UTC time rather than NOW(), which follows the session's zone.
+	args = append(args, time.Now().UTC())
+	nowPlaceholder := fmt.Sprintf("$%d", len(args))
 	args = append(args, limit)
 	limitPlaceholder := fmt.Sprintf("$%d", len(args))
 
@@ -855,11 +865,11 @@ func (r *blogPostRepository) ListFeedPosts(ctx context.Context, categorySlug *st
 		JOIN blog_categories c ON c.id = p.category_id AND c.deleted_at IS NULL
 		WHERE p.deleted_at IS NULL
 		  AND p.published_at IS NOT NULL
-		  AND p.published_at <= NOW()
+		  AND p.published_at <= %s
 		  %s
 		ORDER BY p.published_at DESC
 		LIMIT %s
-	`, categoryFilter, limitPlaceholder)
+	`, nowPlaceholder, categoryFilter, limitPlaceholder)
 
 	rows, err := workspaceDB.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -914,6 +924,10 @@ func (r *blogPostRepository) GetFeedFingerprint(ctx context.Context, categorySlu
 		categoryFilter = " AND c.slug = $1"
 		args = append(args, *categorySlug)
 	}
+	// published_at is a TIMESTAMP without time zone holding UTC: compare it to
+	// the current UTC time rather than NOW(), which follows the session's zone.
+	args = append(args, time.Now().UTC())
+	nowPlaceholder := fmt.Sprintf("$%d", len(args))
 	args = append(args, limit)
 	limitPlaceholder := fmt.Sprintf("$%d", len(args))
 
@@ -930,7 +944,7 @@ func (r *blogPostRepository) GetFeedFingerprint(ctx context.Context, categorySlu
 			JOIN blog_categories c ON c.id = p.category_id AND c.deleted_at IS NULL
 			WHERE p.deleted_at IS NULL
 			  AND p.published_at IS NOT NULL
-			  AND p.published_at <= NOW()
+			  AND p.published_at <= %s
 			  %s
 			ORDER BY p.published_at DESC
 			LIMIT %s
@@ -939,7 +953,7 @@ func (r *blogPostRepository) GetFeedFingerprint(ctx context.Context, categorySlu
 			MAX(GREATEST(post_updated, cat_updated)) AS max_updated_at,
 			COALESCE(MD5(STRING_AGG(id::text, ',' ORDER BY id)), '') AS ids_hash
 		FROM top_posts
-	`, categoryFilter, limitPlaceholder)
+	`, nowPlaceholder, categoryFilter, limitPlaceholder)
 
 	var maxUpdatedAt sql.NullTime
 	var idsHash string

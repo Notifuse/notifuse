@@ -799,8 +799,8 @@ func (s *BlogService) GetPublicPostByCategoryAndSlug(ctx context.Context, catego
 		return nil, err
 	}
 
-	// Only return published posts
-	if !post.IsPublished() {
+	// Only return posts that are published and whose date has come
+	if !post.IsLive(time.Now().UTC()) {
 		return nil, fmt.Errorf("post not found")
 	}
 
@@ -809,8 +809,10 @@ func (s *BlogService) GetPublicPostByCategoryAndSlug(ctx context.Context, catego
 
 // ListPublicPosts retrieves published blog posts (no auth required)
 func (s *BlogService) ListPublicPosts(ctx context.Context, params *domain.ListBlogPostsRequest) (*domain.BlogPostListResponse, error) {
-	// Force status to published
+	// Force status to published, and hide posts scheduled after now
 	params.Status = domain.BlogPostStatusPublished
+	now := time.Now().UTC()
+	params.PublishedBefore = &now
 
 	// Validate the request
 	if err := params.Validate(); err != nil {
@@ -1176,11 +1178,13 @@ func (s *BlogService) RenderHomePage(ctx context.Context, workspaceID string, pa
 		pageSize = workspace.Settings.BlogSettings.GetHomePageSize()
 	}
 
-	// Get published posts for home page
+	// Get published posts for home page, without those scheduled after now
+	now := time.Now().UTC()
 	params := &domain.ListBlogPostsRequest{
-		Status: domain.BlogPostStatusPublished,
-		Page:   page,
-		Limit:  pageSize,
+		Status:          domain.BlogPostStatusPublished,
+		Page:            page,
+		Limit:           pageSize,
+		PublishedBefore: &now,
 	}
 	// Validate will calculate offset
 	if err := params.Validate(); err != nil {
@@ -1355,8 +1359,8 @@ func (s *BlogService) RenderPostPage(ctx context.Context, workspaceID, categoryS
 		}
 	}
 
-	// Check if post is published
-	if !post.IsPublished() {
+	// Check if post is published and its date has come
+	if !post.IsLive(time.Now().UTC()) {
 		return "", &domain.BlogRenderError{
 			Code:    domain.ErrCodePostNotFound,
 			Message: "Post is not published",
@@ -1511,7 +1515,7 @@ func (s *BlogService) RenderPostContent(ctx context.Context, workspaceID, catego
 			Details: err,
 		}
 	}
-	if !post.IsPublished() {
+	if !post.IsLive(time.Now().UTC()) {
 		return "", &domain.BlogRenderError{
 			Code:    domain.ErrCodePostNotFound,
 			Message: "Post is not published",
@@ -1908,12 +1912,14 @@ func (s *BlogService) RenderCategoryPage(ctx context.Context, workspaceID, categ
 		pageSize = workspace.Settings.BlogSettings.GetCategoryPageSize()
 	}
 
-	// Get published posts in this category
+	// Get published posts in this category, without those scheduled after now
+	now := time.Now().UTC()
 	params := &domain.ListBlogPostsRequest{
-		CategoryID: category.ID,
-		Status:     domain.BlogPostStatusPublished,
-		Page:       page,
-		Limit:      pageSize,
+		CategoryID:      category.ID,
+		Status:          domain.BlogPostStatusPublished,
+		Page:            page,
+		Limit:           pageSize,
+		PublishedBefore: &now,
 	}
 	// Validate will calculate offset
 	if err := params.Validate(); err != nil {
