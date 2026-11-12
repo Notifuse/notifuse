@@ -1132,16 +1132,40 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// announcement must outlive the request that triggered the run.
 	//
 	// A paused broadcast stops in the loop below without sending: it is not announced.
-	if isFirstSendingRun && broadcast.Status != domain.BroadcastStatusPaused && o.eventBus != nil {
-		o.eventBus.Publish(context.Background(), domain.EventPayload{
-			Type:        domain.EventBroadcastSendingStarted,
-			WorkspaceID: task.WorkspaceID,
-			EntityID:    broadcast.ID,
-			Data: map[string]interface{}{
-				"broadcast_name": broadcast.Name,
-				"started_at":     o.timeProvider.Now().UTC().Format(time.RFC3339),
-			},
-		})
+	//
+	// The same run records the start date when none is stored yet. "Send now" and a resume
+	// set it themselves; a scheduled broadcast reaches sending only through this run, so
+	// without this it never got one. The write sets started_at alone and only while it is
+	// NULL, and the copy in hand gets the same value so a full-row write later in this run
+	// keeps it. Failing to record the date does not stop the send.
+	if isFirstSendingRun && broadcast.Status != domain.BroadcastStatusPaused {
+		startedAt := o.timeProvider.Now().UTC()
+
+		if broadcast.StartedAt == nil {
+			if stampErr := o.broadcastRepo.MarkBroadcastStarted(ctx, task.WorkspaceID, broadcast.ID, startedAt); stampErr != nil {
+				// codecov:ignore:start
+				o.logger.WithFields(map[string]interface{}{
+					"task_id":      task.ID,
+					"broadcast_id": broadcast.ID,
+					"error":        stampErr.Error(),
+				}).Error("Failed to record the broadcast start date")
+				// codecov:ignore:end
+			} else {
+				broadcast.StartedAt = &startedAt
+			}
+		}
+
+		if o.eventBus != nil {
+			o.eventBus.Publish(context.Background(), domain.EventPayload{
+				Type:        domain.EventBroadcastSendingStarted,
+				WorkspaceID: task.WorkspaceID,
+				EntityID:    broadcast.ID,
+				Data: map[string]interface{}{
+					"broadcast_name": broadcast.Name,
+					"started_at":     startedAt.Format(time.RFC3339),
+				},
+			})
+		}
 	}
 
 	// Phase 3: Process recipients in batches with a timeout

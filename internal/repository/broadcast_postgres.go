@@ -363,6 +363,23 @@ func (r *broadcastRepository) UpdateBroadcastStatusTx(ctx context.Context, tx *s
 	return nil
 }
 
+// MarkBroadcastStarted sets started_at only while it is NULL, in a single statement, so a
+// start date already stored is never overwritten and no column a concurrent writer may be
+// changing (status, counters) is written. No row written means the date was already set
+// or the broadcast is gone; neither is an error for the caller, which only records a start.
+func (r *broadcastRepository) MarkBroadcastStarted(ctx context.Context, workspaceID, broadcastID string, startedAt time.Time) error {
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `UPDATE broadcasts SET started_at = $3 WHERE id = $1 AND workspace_id = $2 AND started_at IS NULL`
+	if _, err := db.ExecContext(ctx, query, broadcastID, workspaceID, startedAt); err != nil {
+		return fmt.Errorf("failed to mark broadcast started: %w", err)
+	}
+	return nil
+}
+
 // UpdateBroadcastStatusUnless writes the status, pause time and pause reason,
 // unless the stored status is one of unless. The condition sits in the UPDATE
 // itself: at READ COMMITTED, a write waiting on the row lock re-checks it once

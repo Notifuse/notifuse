@@ -1493,6 +1493,9 @@ type BroadcastRepository interface {
 	// row it writes, so one of those statuses committed after the caller's read
 	// is kept. It reports whether it wrote.
 	UpdateBroadcastStatusUnless(ctx context.Context, broadcast *Broadcast, unless []BroadcastStatus) (bool, error)
+	// MarkBroadcastStarted writes startedAt as the broadcast's start date if it has none
+	// yet, and touches no other column. A start date already stored is kept.
+	MarkBroadcastStarted(ctx context.Context, workspaceID, broadcastID string, startedAt time.Time) error
 	DeleteBroadcastTx(ctx context.Context, tx *sql.Tx, workspaceID, broadcastID string) error
 	ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params ListBroadcastsParams) (*BroadcastListResponse, error)
 }

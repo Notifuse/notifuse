@@ -1998,3 +1998,65 @@ func TestBroadcastRepository_ListBroadcasts_StatusCountsAndStartedAfter(t *testi
 		require.ErrorContains(t, err, "boom")
 	})
 }
+
+func TestBroadcastRepository_MarkBroadcastStarted(t *testing.T) {
+	workspaceID := "ws123"
+	startedAt := time.Date(2026, 11, 12, 8, 0, 0, 0, time.UTC)
+	setup := func(t *testing.T) (*broadcastRepository, *mocks.MockWorkspaceRepository, sqlmock.Sqlmock) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil).AnyTimes()
+		return NewBroadcastRepository(mockWorkspaceRepo).(*broadcastRepository), mockWorkspaceRepo, mock
+	}
+	// started_at only, and only while it is NULL: a start date already stored is kept,
+	// and no other column a concurrent writer may be changing is touched.
+	const stamp = `^UPDATE broadcasts SET started_at = \$3 WHERE id = \$1 AND workspace_id = \$2 AND started_at IS NULL$`
+
+	t.Run("sets started_at where it is still NULL", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectExec(stamp).
+			WithArgs("bc123", workspaceID, startedAt).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		require.NoError(t, repo.MarkBroadcastStarted(context.Background(), workspaceID, "bc123", startedAt))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("no row written is not an error: the start date was already set", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectExec(stamp).
+			WithArgs("bc123", workspaceID, startedAt).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		require.NoError(t, repo.MarkBroadcastStarted(context.Background(), workspaceID, "bc123", startedAt))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns the write error", func(t *testing.T) {
+		repo, _, mock := setup(t)
+		mock.ExpectExec(stamp).
+			WithArgs("bc123", workspaceID, startedAt).
+			WillReturnError(errors.New("db down"))
+
+		err := repo.MarkBroadcastStarted(context.Background(), workspaceID, "bc123", startedAt)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to mark broadcast started")
+		assert.Contains(t, err.Error(), "db down")
+	})
+
+	t.Run("returns the connection error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(nil, errors.New("no connection"))
+		repo := NewBroadcastRepository(mockWorkspaceRepo)
+
+		err := repo.MarkBroadcastStarted(context.Background(), workspaceID, "bc123", startedAt)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no connection")
+	})
+}
