@@ -206,7 +206,7 @@ func TestWebAnalyticsContactVisits(t *testing.T) {
 			{"/api/webAnalytics.contactSessionPages", map[string]string{"email": ann, "session_id": latest.id, "session_date": "0000-01-01"}},
 		} {
 			status, raw := get(t, tc.route, tc.params, nil)
-			assert.Equal(t, http.StatusBadRequest, status, "%s %v: %s", tc.route, tc.params, raw)
+			assert.Equal(t, http.StatusBadRequest, status, "%s %q: %s", tc.route, tc.params, raw)
 		}
 	})
 

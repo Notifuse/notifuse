@@ -1191,7 +1191,7 @@ func TestGetListsRequest_FromURLParams_WithCounts(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, req.WithCounts)
 
-	// strconv.ParseBool, as for the other boolean parameters.
+	// strconv.ParseBool, as for with_contact_lists and with_templates.
 	req, err = parse(url.Values{"with_counts": {"1"}})
 	require.NoError(t, err)
 	assert.True(t, req.WithCounts)
