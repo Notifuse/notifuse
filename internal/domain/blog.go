@@ -629,6 +629,20 @@ func (r *ListBlogPostsRequest) Validate() error {
 	return nil
 }
 
+// BlogSitemapMaxURLs is the number of URLs the sitemap protocol allows in one sitemap.
+const BlogSitemapMaxURLs = 50000
+
+// BlogSitemapMaxPosts is the most posts a blog sitemap can list: BlogSitemapMaxURLs less the
+// home page and the main feed.
+const BlogSitemapMaxPosts = BlogSitemapMaxURLs - 2
+
+// BlogSitemapPost is what the blog sitemap needs of a live post.
+type BlogSitemapPost struct {
+	CategorySlug string
+	PostSlug     string
+	PublishedAt  time.Time
+}
+
 // BlogPostListResponse defines the response for listing blog posts
 type BlogPostListResponse struct {
 	Posts           []*BlogPost `json:"posts"`
@@ -680,6 +694,9 @@ type BlogPostRepository interface {
 	GetFeedFingerprint(ctx context.Context, categorySlug *string, limit int) (maxUpdatedAt time.Time, idsHash string, err error)
 	PublishPost(ctx context.Context, id string, publishedAt *time.Time) error
 	UnpublishPost(ctx context.Context, id string) error
+	// ListSitemapPosts returns, newest first, at most limit live posts with the slug of their
+	// category: published at or before now, not deleted, in a category that is not deleted.
+	ListSitemapPosts(ctx context.Context, now time.Time, limit int) ([]*BlogSitemapPost, error)
 
 	// Transaction management
 	WithTransaction(ctx context.Context, workspaceID string, fn func(*sql.Tx) error) error
@@ -718,6 +735,9 @@ type BlogService interface {
 	GetPublicCategoryBySlug(ctx context.Context, slug string) (*BlogCategory, error)
 	GetPublicPostByCategoryAndSlug(ctx context.Context, categorySlug, postSlug string) (*BlogPost, error)
 	ListPublicPosts(ctx context.Context, params *ListBlogPostsRequest) (*BlogPostListResponse, error)
+	// ListPublicSitemapPosts returns the live posts the blog sitemap lists, newest first, at
+	// most BlogSitemapMaxPosts of them (no authentication: the sitemap is public).
+	ListPublicSitemapPosts(ctx context.Context) ([]*BlogSitemapPost, error)
 
 	// Theme operations
 	CreateTheme(ctx context.Context, request *CreateBlogThemeRequest) (*BlogTheme, error)

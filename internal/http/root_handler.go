@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -126,11 +127,7 @@ func (h *RootHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 5. Check if this is a custom domain for a workspace with blog enabled
-	host := r.Host
-	// Strip port if present
-	if colonIdx := strings.Index(host, ":"); colonIdx != -1 {
-		host = host[:colonIdx]
-	}
+	host := hostWithoutPort(r.Host)
 
 	workspace := h.detectWorkspaceByHost(r.Context(), host)
 	if workspace != nil && workspace.Settings.BlogEnabled && h.blogService != nil {
@@ -562,83 +559,70 @@ Sitemap: /sitemap.xml
 func (h *RootHandler) serveBlogSitemap(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace) {
 	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace.ID)
 
-	// Get all published posts
-	params := &domain.ListBlogPostsRequest{
-		Status: domain.BlogPostStatusPublished,
-		Limit:  1000,
-		Offset: 0,
-	}
-
-	response, err := h.blogService.ListPublicPosts(ctx, params)
+	posts, err := h.blogService.ListPublicSitemapPosts(ctx)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to list posts for sitemap")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	// Build sitemap XML
+	// The host without its port is the custom domain the workspace was found by: what
+	// follows the colon is not checked, and would be repeated in every URL.
 	var sitemap strings.Builder
-	sitemap.WriteString(`<?xml version="1.0" encoding="UTF-8"?>`)
-	sitemap.WriteString("\n")
-	sitemap.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`)
-	sitemap.WriteString("\n")
-
-	// Add homepage
-	sitemap.WriteString("  <url>\n")
-	fmt.Fprintf(&sitemap, "    <loc>https://%s/</loc>\n", r.Host)
-	sitemap.WriteString("    <changefreq>daily</changefreq>\n")
-	sitemap.WriteString("    <priority>1.0</priority>\n")
-	sitemap.WriteString("  </url>\n")
-
-	// Add posts
-	for _, post := range response.Posts {
-		if post.CategoryID != "" {
-			// Get category to build the URL
-			category, err := h.blogService.GetCategory(ctx, post.CategoryID)
-			if err == nil && category != nil {
-				sitemap.WriteString("  <url>\n")
-				fmt.Fprintf(&sitemap, "    <loc>https://%s/%s/%s</loc>\n", r.Host, category.Slug, post.Slug)
-				if post.PublishedAt != nil {
-					fmt.Fprintf(&sitemap, "    <lastmod>%s</lastmod>\n", post.PublishedAt.Format("2006-01-02"))
-				}
-				sitemap.WriteString("    <changefreq>monthly</changefreq>\n")
-				sitemap.WriteString("    <priority>0.8</priority>\n")
-				sitemap.WriteString("  </url>\n")
-			}
-		}
-	}
-
-	// Add main feed URL
-	sitemap.WriteString("  <url>\n")
-	fmt.Fprintf(&sitemap, "    <loc>https://%s/feed.xml</loc>\n", r.Host)
-	sitemap.WriteString("    <changefreq>daily</changefreq>\n")
-	sitemap.WriteString("    <priority>0.3</priority>\n")
-	sitemap.WriteString("  </url>\n")
-
-	// Add per-category feed URLs (deduplicated from the category set above)
-	seenCategories := map[string]struct{}{}
-	for _, post := range response.Posts {
-		if post.CategoryID == "" {
-			continue
-		}
-		if _, ok := seenCategories[post.CategoryID]; ok {
-			continue
-		}
-		seenCategories[post.CategoryID] = struct{}{}
-		category, err := h.blogService.GetCategory(ctx, post.CategoryID)
-		if err == nil && category != nil {
-			sitemap.WriteString("  <url>\n")
-			fmt.Fprintf(&sitemap, "    <loc>https://%s/%s/feed.xml</loc>\n", r.Host, category.Slug)
-			sitemap.WriteString("    <changefreq>daily</changefreq>\n")
-			sitemap.WriteString("    <priority>0.3</priority>\n")
-			sitemap.WriteString("  </url>\n")
-		}
-	}
-
-	sitemap.WriteString("</urlset>")
+	writeBlogSitemap(&sitemap, hostWithoutPort(r.Host), posts, domain.BlogSitemapMaxURLs)
 
 	w.Header().Set("Content-Type", "application/xml")
 	_, _ = w.Write([]byte(sitemap.String()))
+}
+
+// writeBlogSitemap writes the sitemap of a blog: the home page, the posts newest first, the
+// main feed, then the feed of each category with a listed post. It lists at most maxURLs
+// URLs: past them, the oldest posts are left out, and a category feed is listed only with a
+// post of its category.
+func writeBlogSitemap(w io.Writer, host string, posts []*domain.BlogSitemapPost, maxURLs int) {
+	writeURL := func(path, lastmod, changefreq, priority string) {
+		_, _ = io.WriteString(w, "  <url>\n")
+		_, _ = fmt.Fprintf(w, "    <loc>https://%s%s</loc>\n", host, path)
+		if lastmod != "" {
+			_, _ = fmt.Fprintf(w, "    <lastmod>%s</lastmod>\n", lastmod)
+		}
+		_, _ = fmt.Fprintf(w, "    <changefreq>%s</changefreq>\n", changefreq)
+		_, _ = fmt.Fprintf(w, "    <priority>%s</priority>\n", priority)
+		_, _ = io.WriteString(w, "  </url>\n")
+	}
+
+	_, _ = io.WriteString(w, `<?xml version="1.0" encoding="UTF-8"?>`+"\n")
+	_, _ = io.WriteString(w, `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`+"\n")
+
+	writeURL("/", "", "daily", "1.0")
+
+	// The home page and the main feed are always listed.
+	budget := maxURLs - 2
+	var categories []string
+	seen := map[string]struct{}{}
+	for _, post := range posts {
+		cost := 1
+		_, known := seen[post.CategorySlug]
+		if !known {
+			cost++
+		}
+		if cost > budget {
+			break
+		}
+		budget -= cost
+		if !known {
+			seen[post.CategorySlug] = struct{}{}
+			categories = append(categories, post.CategorySlug)
+		}
+		writeURL("/"+post.CategorySlug+"/"+post.PostSlug, post.PublishedAt.Format("2006-01-02"), "monthly", "0.8")
+	}
+
+	writeURL("/feed.xml", "", "daily", "0.3")
+	for _, slug := range categories {
+		writeURL("/"+slug+"/feed.xml", "", "daily", "0.3")
+	}
+
+	_, _ = io.WriteString(w, "</urlset>")
 }
 
 type feedFormat int
@@ -752,6 +736,14 @@ func (h *RootHandler) serveBlog404(w http.ResponseWriter, r *http.Request) {
 <p><a href="/">Go back home</a></p>
 </body>
 </html>`))
+}
+
+// hostWithoutPort returns the host of a Host header, without its port if it has one
+func hostWithoutPort(host string) string {
+	if colonIdx := strings.Index(host, ":"); colonIdx != -1 {
+		return host[:colonIdx]
+	}
+	return host
 }
 
 // detectWorkspaceByHost finds a workspace by matching the custom endpoint URL hostname

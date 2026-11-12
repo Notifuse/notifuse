@@ -1072,6 +1072,42 @@ func TestBlogService_ListPublicPosts(t *testing.T) {
 	})
 }
 
+func TestBlogService_ListPublicSitemapPosts(t *testing.T) {
+	// The auth mock has no expectation: any authentication call fails the test.
+	ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "ws1")
+
+	t.Run("lists the live posts up to the sitemap's cap, as of now in UTC", func(t *testing.T) {
+		service, _, mockPostRepo, _, _, _, _, _ := setupBlogServiceTest(t)
+		posts := []*domain.BlogSitemapPost{{CategorySlug: "tech", PostSlug: "hello", PublishedAt: time.Now().UTC()}}
+		before := time.Now()
+		mockPostRepo.EXPECT().
+			ListSitemapPosts(ctx, gomock.Any(), domain.BlogSitemapMaxPosts).
+			DoAndReturn(func(_ context.Context, now time.Time, _ int) ([]*domain.BlogSitemapPost, error) {
+				assert.Equal(t, time.UTC, now.Location())
+				assert.False(t, now.Before(before.Add(-time.Second)), "now is taken at the call")
+				assert.False(t, now.After(time.Now()), "now is taken at the call")
+				return posts, nil
+			})
+
+		result, err := service.ListPublicSitemapPosts(ctx)
+
+		require.NoError(t, err)
+		assert.Equal(t, posts, result)
+	})
+
+	t.Run("returns the repository error", func(t *testing.T) {
+		service, _, mockPostRepo, _, _, _, _, _ := setupBlogServiceTest(t)
+		mockPostRepo.EXPECT().
+			ListSitemapPosts(ctx, gomock.Any(), gomock.Any()).
+			Return(nil, errors.New("database error"))
+
+		_, err := service.ListPublicSitemapPosts(ctx)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "database error")
+	})
+}
+
 func TestBlogService_GetPostBySlug(t *testing.T) {
 	service, _, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 

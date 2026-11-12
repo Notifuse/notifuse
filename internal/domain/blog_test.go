@@ -2049,3 +2049,9 @@ func TestListBlogThemesRequest_Validate(t *testing.T) {
 		assert.Equal(t, 20, req.Offset)
 	})
 }
+
+func TestBlogSitemapLimits(t *testing.T) {
+	// The sitemap protocol allows 50,000 URLs; the home page and the main feed take two.
+	assert.Equal(t, 50000, BlogSitemapMaxURLs)
+	assert.Equal(t, 49998, BlogSitemapMaxPosts)
+}
