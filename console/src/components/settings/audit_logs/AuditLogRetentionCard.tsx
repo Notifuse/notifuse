@@ -9,6 +9,7 @@ import {
   AUDIT_LOG_MIN_RETENTION_DAYS,
 } from "../../../services/api/audit_log";
 import { SettingsSaveBar } from "../SettingsSaveBar";
+import { Panel } from "../../layout";
 
 const { Text } = Typography;
 
@@ -78,61 +79,62 @@ export function AuditLogRetentionCard({
   };
 
   return (
-    <div
-      className="border border-gray-200 rounded p-4 bg-white"
-      data-testid="audit-retention-card"
-    >
-      <div className="font-medium mb-1">{t`Retention`}</div>
-      <Text type="secondary" className="block mb-3">
-        {t`Entries older than this are deleted once a day. Leave it empty for the deployment default (${AUDIT_LOG_DEFAULT_RETENTION_DAYS} days unless a root user changed it); 0 keeps every entry forever.`}
-      </Text>
-      <Form<RetentionFormValues>
-        form={form}
-        layout="vertical"
-        disabled={!canManage}
-        onValuesChange={() => setFormTouched(true)}
-        onFinish={handleSave}
-      >
-        <Form.Item
-          name="retention_days"
-          label={t`Keep entries for (days)`}
-          rules={[
-            {
-              validator: (_, value: number | null | undefined) => {
-                if (value === null || value === undefined || value === 0)
-                  return Promise.resolve();
-                if (
-                  value < AUDIT_LOG_MIN_RETENTION_DAYS ||
-                  value > AUDIT_LOG_MAX_RETENTION_DAYS
-                ) {
-                  return Promise.reject(
-                    new Error(
-                      t`Use 0 to keep forever, or a value between ${AUDIT_LOG_MIN_RETENTION_DAYS} and ${AUDIT_LOG_MAX_RETENTION_DAYS}`,
-                    ),
-                  );
-                }
-                return Promise.resolve();
-              },
-            },
-          ]}
-        >
-          <InputNumber
-            min={0}
-            max={AUDIT_LOG_MAX_RETENTION_DAYS}
-            className="w-full"
-            placeholder={String(AUDIT_LOG_DEFAULT_RETENTION_DAYS)}
-          />
-        </Form.Item>
-        {canManage && (
-          <SettingsSaveBar
-            dirty={formTouched}
-            saving={saving}
-            onSave={() => form.submit()}
-            onDiscard={handleDiscard}
-            leaveWarning={t`You have unsaved retention changes. Leave without saving?`}
-          />
-        )}
-      </Form>
-    </div>
+    <>
+      <div data-testid="audit-retention-card">
+        <Panel title={t`Retention`}>
+          <Text type="secondary" className="block mb-3">
+            {t`Entries older than this are deleted once a day. Leave it empty for the deployment default (${AUDIT_LOG_DEFAULT_RETENTION_DAYS} days unless a root user changed it); 0 keeps every entry forever.`}
+          </Text>
+          <Form<RetentionFormValues>
+            form={form}
+            layout="vertical"
+            disabled={!canManage}
+            onValuesChange={() => setFormTouched(true)}
+            onFinish={handleSave}
+          >
+            <Form.Item
+              name="retention_days"
+              label={t`Keep entries for (days)`}
+              rules={[
+                {
+                  validator: (_, value: number | null | undefined) => {
+                    if (value === null || value === undefined || value === 0)
+                      return Promise.resolve();
+                    if (
+                      value < AUDIT_LOG_MIN_RETENTION_DAYS ||
+                      value > AUDIT_LOG_MAX_RETENTION_DAYS
+                    ) {
+                      return Promise.reject(
+                        new Error(
+                          t`Use 0 to keep forever, or a value between ${AUDIT_LOG_MIN_RETENTION_DAYS} and ${AUDIT_LOG_MAX_RETENTION_DAYS}`,
+                        ),
+                      );
+                    }
+                    return Promise.resolve();
+                  },
+                },
+              ]}
+            >
+              <InputNumber
+                min={0}
+                max={AUDIT_LOG_MAX_RETENTION_DAYS}
+                className="w-full"
+                placeholder={String(AUDIT_LOG_DEFAULT_RETENTION_DAYS)}
+              />
+            </Form.Item>
+          </Form>
+        </Panel>
+      </div>
+      {/* Outside the panel, which clips its content: the bar sticks to the bottom of the page. */}
+      {canManage && (
+        <SettingsSaveBar
+          dirty={formTouched}
+          saving={saving}
+          onSave={() => form.submit()}
+          onDiscard={handleDiscard}
+          leaveWarning={t`You have unsaved retention changes. Leave without saving?`}
+        />
+      )}
+    </>
   );
 }

@@ -168,7 +168,7 @@ export function ZapierSettings({
       extra={
         isEditing
           ? t`Renaming this connection does not change the address of the API key it already minted.`
-          : t`Names this connection in Notifuse, and the API key it creates in Settings → Team.`
+          : t`Names this connection in Notifuse, and the API key it creates in Settings → Team & API keys.`
       }
     >
       <Input
@@ -251,7 +251,7 @@ export function ZapierSettings({
               aria-label={t`API key token`}
             />
             <Text type="secondary" className="block mt-3">
-              {t`The key is listed in Settings → Team as ${connected.email}, where its permissions can be widened.`}
+              {t`The key is listed in Settings → Team & API keys as ${connected.email}, where its permissions can be widened.`}
             </Text>
             <div className="flex justify-end gap-2 mt-3">
               <Button

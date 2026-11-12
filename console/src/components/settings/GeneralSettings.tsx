@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Form, Input, Select, App, Switch, Descriptions, Radio } from 'antd'
-import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { Form, Input, Select, App, Switch, Segmented, Tooltip } from 'antd'
+import { Info } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
@@ -9,6 +9,9 @@ import { LANGUAGE_OPTIONS } from '../../lib/languages'
 import { LogoInput } from './LogoInput'
 import { SettingsSaveBar } from './SettingsSaveBar'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
+import { SettingsRow, SettingsRows } from './SettingsRow'
+import { KeyValueList, Mono, Panel, Pill } from '../layout'
+import { WorkspaceBadge } from '../../layouts/app-shell/WorkspaceSwitcher'
 import { WORKSPACE_NAME_MAX_LENGTH } from '../../constants/limits'
 import { getEmailTrackingPolicy, TRACKING_DOCS_URL } from '../../lib/emailTracking'
 import type { UnknownTrackingConsent } from '../../services/api/workspace'
@@ -52,6 +55,19 @@ function toFormValues(workspace: Workspace | null): GeneralSettingsFormValues {
     default_language: workspace?.settings.default_language || 'en'
   }
 }
+
+/** The host of a URL, or the fallback when it is not one. */
+function hostOf(url: string | undefined, fallback: string): string {
+  if (!url) return fallback
+  try {
+    return new URL(url).hostname
+  } catch {
+    return fallback
+  }
+}
+
+const languageLabel = (code: string) =>
+  LANGUAGE_OPTIONS.find((option) => option.value === code)?.label ?? code
 
 export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: GeneralSettingsProps) {
   const { t } = useLingui()
@@ -130,84 +146,169 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
   }
 
   const trackingPolicy = getEmailTrackingPolicy(workspace?.settings)
-  const renderEnabled = (enabled: boolean) =>
-    enabled ? (
-      <span style={{ color: '#52c41a' }}>
-        <CheckCircleOutlined style={{ marginRight: '8px' }} />
-        {t`Enabled`}
-      </span>
-    ) : (
-      <span style={{ color: '#ff4d4f' }}>
-        <CloseCircleOutlined style={{ marginRight: '8px' }} />
-        {t`Disabled`}
-      </span>
-    )
+  const storedDomain = workspace?.settings.custom_endpoint_url || ''
+  const watchedLanguages = Form.useWatch('languages', form)
+  const watchedDomain = Form.useWatch('custom_endpoint_url', form)
+  const watchedName = Form.useWatch('name', form)
+
+  const header = (
+    <SettingsSectionHeader
+      title={t`General`}
+      description={t`Workspace identity, languages and email tracking`}
+    />
+  )
+
+  const consentLabel = (
+    <span className="inline-flex items-center gap-1">
+      {t`Contacts without recorded consent`}
+      <Tooltip
+        title={t`A contact's own consent always wins. This choice applies to contacts whose consent to open and click tracking is not recorded. Some regulators, such as the Italian Garante and the French CNIL, expect tracking to require consent.`}
+      >
+        <Info size={13} aria-label={t`About consent`} className="text-ink-3" />
+      </Tooltip>
+    </span>
+  )
+  const consentHelp = (
+    <>
+      {t`A contact's own consent always wins.`}{' '}
+      <a href={TRACKING_DOCS_URL} target="_blank" rel="noopener noreferrer">
+        {t`Learn more`}
+      </a>
+    </>
+  )
+
+  const websiteHelp = t`Linked from the notification center and available to templates; also used to find your logo`
+  const logoHelp = t`A square image, shown next to the workspace name`
+  const domainHelp = t`Used in email links, the notification center and web pages. Leave empty to use the API endpoint`
+
+  const domainPill = storedDomain ? (
+    <Pill tone="neutral" dot={false}>
+      {t`In use`}
+    </Pill>
+  ) : null
+
+  const dnsRecord = (domain: string | undefined) => (
+    <div data-dns-record className="mt-1 flex flex-col gap-2 rounded-md bg-subtle p-3">
+      <div className="text-sm font-medium text-ink">{t`DNS record`}</div>
+      <KeyValueList
+        labelWidth={80}
+        items={[
+          { label: t`Type`, value: <Mono copy>CNAME</Mono> },
+          { label: t`Name`, value: <Mono copy>{hostOf(domain, 'blog.yourdomain.com')}</Mono> },
+          {
+            label: t`Value`,
+            value: (
+              <Mono copy>
+                {hostOf(window.API_ENDPOINT || 'http://localhost:3000', 'your-api-endpoint.com')}
+              </Mono>
+            )
+          }
+        ]}
+      />
+      <div className="text-xs text-ink-3">
+        {t`Configure a custom domain for email links, notification center, and web publications. DNS verification will be performed before saving to ensure you control this domain.`}{' '}
+        {t`DNS verification prevents domain squatting`}
+      </div>
+    </div>
+  )
+
+  const onOff = (enabled: boolean) => (enabled ? t`On` : t`Off`)
+  const readValue = (value: ReactNode) => <div className="text-sm text-ink">{value}</div>
 
   if (!isOwner) {
-    // Render read-only settings for non-owner users
+    // The same rows, with the values as text for members who cannot change them.
+    const settings = workspace?.settings
+    const languages = settings?.languages?.length ? settings.languages : ['en']
     return (
       <>
-        <SettingsSectionHeader
-          title={t`General Settings`}
-          description={t`General settings for your workspace`}
-        />
-
-        <Descriptions
-          bordered
-          column={1}
-          size="small"
-          styles={{ label: { width: '200px', fontWeight: '500' } }}
-        >
-          <Descriptions.Item label={t`Workspace Name`}>
-            {workspace?.name || t`Not set`}
-          </Descriptions.Item>
-
-          <Descriptions.Item label={t`Website URL`}>
-            {workspace?.settings.website_url || t`Not set`}
-          </Descriptions.Item>
-
-          <Descriptions.Item label={t`Logo`}>
-            {workspace?.settings.logo_url ? (
-              <img
-                src={workspace.settings.logo_url}
-                alt={t`Workspace logo`}
-                style={{ height: '24px', width: 'auto', objectFit: 'contain' }}
-              />
-            ) : (
-              t`Not set`
-            )}
-          </Descriptions.Item>
-
-          <Descriptions.Item label={t`Timezone`}>
-            {workspace?.settings.timezone || 'UTC'}
-          </Descriptions.Item>
-
-          <Descriptions.Item label={t`Email opens tracking`}>
-            {renderEnabled(trackingPolicy.opens_enabled)}
-          </Descriptions.Item>
-
-          <Descriptions.Item label={t`Email clicks tracking`}>
-            {renderEnabled(trackingPolicy.clicks_enabled)}
-          </Descriptions.Item>
-
-          <Descriptions.Item label={t`Contacts without recorded consent`}>
-            {trackingPolicy.unknown_consent === 'no_track' ? t`Not tracked` : t`Tracked`}
-          </Descriptions.Item>
-
-          <Descriptions.Item label={t`Custom Endpoint URL`}>
-            <div>{workspace?.settings.custom_endpoint_url || t`Default (API endpoint)`}</div>
-          </Descriptions.Item>
-        </Descriptions>
+        {header}
+        <Panel title={t`Workspace`}>
+          <SettingsRows>
+            <SettingsRow label={t`Name`}>{readValue(workspace?.name || t`Not set`)}</SettingsRow>
+            <SettingsRow label={t`Website`} help={websiteHelp}>
+              {readValue(
+                settings?.website_url ? (
+                  <a href={settings.website_url} target="_blank" rel="noopener noreferrer">
+                    {settings.website_url}
+                  </a>
+                ) : (
+                  t`Not set`
+                )
+              )}
+            </SettingsRow>
+            <SettingsRow label={t`Logo`} help={logoHelp}>
+              {settings?.logo_url ? (
+                <img
+                  src={settings.logo_url}
+                  alt={t`Workspace logo`}
+                  className="size-10 rounded-md border border-line bg-surface object-contain"
+                />
+              ) : (
+                <WorkspaceBadge workspace={{ name: workspace?.name ?? '' }} large />
+              )}
+            </SettingsRow>
+          </SettingsRows>
+        </Panel>
+        <Panel title={t`Language & timezone`}>
+          <SettingsRows>
+            <SettingsRow label={t`Timezone`} help={t`Scheduled sends and statistics use it`}>
+              {readValue(settings?.timezone || 'UTC')}
+            </SettingsRow>
+            <SettingsRow
+              label={t`Supported languages`}
+              help={t`One version of each template per language`}
+            >
+              <div className="flex flex-wrap gap-1">
+                {languages.map((code) => (
+                  <Pill key={code} tone="neutral" dot={false}>
+                    {languageLabel(code)}
+                  </Pill>
+                ))}
+              </div>
+            </SettingsRow>
+            <SettingsRow
+              label={t`Default language`}
+              help={t`For contacts without a known language`}
+            >
+              {readValue(languageLabel(settings?.default_language || 'en'))}
+            </SettingsRow>
+          </SettingsRows>
+        </Panel>
+        <Panel title={t`Email tracking`}>
+          <SettingsRows>
+            <SettingsRow
+              label={t`Opens`}
+              help={t`An invisible image in each email records when it is opened`}
+            >
+              {readValue(onOff(trackingPolicy.opens_enabled))}
+            </SettingsRow>
+            <SettingsRow
+              label={t`Clicks`}
+              help={t`Links go through a redirect that records each click`}
+            >
+              {readValue(onOff(trackingPolicy.clicks_enabled))}
+            </SettingsRow>
+            <SettingsRow label={consentLabel} help={consentHelp}>
+              {readValue(
+                trackingPolicy.unknown_consent === 'no_track' ? t`Not tracked` : t`Tracked`
+              )}
+            </SettingsRow>
+          </SettingsRows>
+        </Panel>
+        <Panel title={t`Custom domain`} extra={domainPill}>
+          <SettingsRows>
+            <SettingsRow label={t`Domain`} help={domainHelp}>
+              {readValue(storedDomain || t`Default (API endpoint)`)}
+            </SettingsRow>
+          </SettingsRows>
+        </Panel>
       </>
     )
   }
 
   return (
     <>
-      <SettingsSectionHeader
-        title={t`General Settings`}
-        description={t`General settings for your workspace`}
-      />
+      {header}
 
       <Form
         form={form}
@@ -218,170 +319,156 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
         // anywhere off screen when it is pressed.
         scrollToFirstError
       >
-        <Form.Item
-          name="name"
-          label={t`Workspace Name`}
-          rules={[
-            { required: true, message: t`Please enter workspace name` },
-            {
-              max: WORKSPACE_NAME_MAX_LENGTH,
-              message: t`Workspace name must be at most ${WORKSPACE_NAME_MAX_LENGTH} characters long`
-            }
-          ]}
-        >
-          <Input
-            placeholder={t`Enter workspace name`}
-            maxLength={WORKSPACE_NAME_MAX_LENGTH}
-            showCount
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="website_url"
-          label={t`Website URL`}
-          rules={[{ type: 'url' as const, message: t`Please enter a valid URL` }]}
-        >
-          <Input placeholder="https://example.com" />
-        </Form.Item>
-
-        <LogoInput />
-
-        <Form.Item
-          name="timezone"
-          label={t`Timezone`}
-          rules={[{ required: true, message: t`Please select a timezone` }]}
-        >
-          <Select options={TIMEZONE_OPTIONS} showSearch optionFilterProp="label" />
-        </Form.Item>
-
-        <Form.Item
-          name="languages"
-          label={t`Supported Languages`}
-          tooltip={t`Languages available for template translations in this workspace`}
-        >
-          <Select
-            mode="multiple"
-            options={LANGUAGE_OPTIONS}
-            showSearch
-            optionFilterProp="label"
-            placeholder={t`Select supported languages`}
-            onChange={(values: string[]) => {
-              const currentDefault = form.getFieldValue('default_language')
-              if (currentDefault && !values.includes(currentDefault)) {
-                form.setFieldsValue({ default_language: values[0] || 'en' })
-              }
-              handleFormChange()
-            }}
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="default_language"
-          label={t`Default Language`}
-          tooltip={t`The primary language for template content. Translations are stored for other languages.`}
-        >
-          <Select
-            options={(form.getFieldValue('languages') || ['en']).map((code: string) => {
-              const opt = LANGUAGE_OPTIONS.find((o) => o.value === code)
-              return opt || { label: code, value: code }
-            })}
-            showSearch
-            optionFilterProp="label"
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="opens_tracking_enabled"
-          label={t`Email opens tracking`}
-          tooltip={t`When enabled, emails carry an invisible image that records when they are opened`}
-          valuePropName="checked"
-        >
-          <Switch />
-        </Form.Item>
-
-        <Form.Item
-          name="clicks_tracking_enabled"
-          label={t`Email clicks tracking`}
-          tooltip={t`When enabled, links in emails go through a redirect that records each click`}
-          valuePropName="checked"
-        >
-          <Switch />
-        </Form.Item>
-
-        <Form.Item
-          name="unknown_consent"
-          label={t`Contacts without recorded consent`}
-          help={
-            <div className="mb-4">
-              {t`A contact's own consent always wins. This choice applies to contacts whose consent to open and click tracking is not recorded. Some regulators, such as the Italian Garante and the French CNIL, expect tracking to require consent.`}{' '}
-              <a href={TRACKING_DOCS_URL} target="_blank" rel="noopener noreferrer">
-                {t`Learn more`}
-              </a>
-            </div>
-          }
-        >
-          <Radio.Group>
-            <Radio value="track">{t`Track`}</Radio>
-            <Radio value="no_track">{t`Do not track`}</Radio>
-          </Radio.Group>
-        </Form.Item>
-
-        <Form.Item
-          name="custom_endpoint_url"
-          label={t`Custom Endpoint URL`}
-          tooltip={t`Custom domain for email links (unsubscribe, tracking, notification center). By default, the config API endpoint is used. Leave empty to use the default.`}
-          rules={[{ type: 'url' as const, message: t`Please enter a valid URL` }]}
-          help={
-            <div className="mb-4">
-              <div>
-                {t`Configure a custom domain for email links, notification center, and web publications. DNS verification will be performed before saving to ensure you control this domain.`}
-              </div>
-              <div
-                style={{
-                  marginTop: 8,
-                  fontFamily: 'monospace',
-                  fontSize: '12px',
-                  background: '#f5f5f5',
-                  padding: '4px 8px',
-                  borderRadius: '4px'
-                }}
-              >
-                <strong>{t`DNS Record Required:`}</strong>
-                <br />
-                {t`Type:`} CNAME
-                <br />
-                {t`Name:`}{' '}
-                {(() => {
-                  try {
-                    const customUrl = form.getFieldValue('custom_endpoint_url')
-                    if (customUrl) {
-                      return new URL(customUrl).hostname
+        <div className="flex flex-col gap-3">
+          <Panel title={t`Workspace`}>
+            <SettingsRows>
+              <SettingsRow label={t`Name`} htmlFor="name">
+                <Form.Item
+                  name="name"
+                  rules={[
+                    { required: true, message: t`Please enter workspace name` },
+                    {
+                      max: WORKSPACE_NAME_MAX_LENGTH,
+                      message: t`Workspace name must be at most ${WORKSPACE_NAME_MAX_LENGTH} characters long`
                     }
-                    return 'blog.yourdomain.com'
-                  } catch {
-                    return 'blog.yourdomain.com'
-                  }
-                })()}
-                <br />
-                {t`Value:`}{' '}
-                {(() => {
-                  try {
-                    const apiEndpoint = window.API_ENDPOINT || 'http://localhost:3000'
-                    return new URL(apiEndpoint).hostname
-                  } catch {
-                    return 'your-api-endpoint.com'
-                  }
-                })()}
-                <br />
-                <span style={{ color: '#999', fontSize: '11px' }}>
-                  {t`DNS verification prevents domain squatting`}
-                </span>
-              </div>
-            </div>
-          }
-        >
-          <Input placeholder="https://api.yourdomain.com" />
-        </Form.Item>
+                  ]}
+                >
+                  <Input
+                    placeholder={t`Enter workspace name`}
+                    maxLength={WORKSPACE_NAME_MAX_LENGTH}
+                    showCount
+                  />
+                </Form.Item>
+              </SettingsRow>
+
+              <SettingsRow label={t`Website`} help={websiteHelp} htmlFor="website_url">
+                <Form.Item
+                  name="website_url"
+                  rules={[{ type: 'url' as const, message: t`Please enter a valid URL` }]}
+                >
+                  <Input placeholder="https://example.com" />
+                </Form.Item>
+              </SettingsRow>
+
+              <SettingsRow label={t`Logo`} help={logoHelp}>
+                <Form.Item
+                  name="logo_url"
+                  rules={[{ type: 'url' as const, message: t`Please enter a valid URL` }]}
+                >
+                  <LogoInput workspaceName={watchedName || workspace?.name} />
+                </Form.Item>
+              </SettingsRow>
+            </SettingsRows>
+          </Panel>
+
+          <Panel title={t`Language & timezone`}>
+            <SettingsRows>
+              <SettingsRow
+                label={t`Timezone`}
+                help={t`Scheduled sends and statistics use it`}
+                htmlFor="timezone"
+              >
+                <Form.Item
+                  name="timezone"
+                  rules={[{ required: true, message: t`Please select a timezone` }]}
+                >
+                  <Select options={TIMEZONE_OPTIONS} showSearch optionFilterProp="label" />
+                </Form.Item>
+              </SettingsRow>
+
+              <SettingsRow
+                label={t`Supported languages`}
+                help={t`One version of each template per language`}
+                htmlFor="languages"
+              >
+                <Form.Item name="languages">
+                  <Select
+                    mode="multiple"
+                    options={LANGUAGE_OPTIONS}
+                    showSearch
+                    optionFilterProp="label"
+                    placeholder={t`Select supported languages`}
+                    onChange={(values: string[]) => {
+                      const currentDefault = form.getFieldValue('default_language')
+                      if (currentDefault && !values.includes(currentDefault)) {
+                        form.setFieldsValue({ default_language: values[0] || 'en' })
+                      }
+                      handleFormChange()
+                    }}
+                  />
+                </Form.Item>
+              </SettingsRow>
+
+              <SettingsRow
+                label={t`Default language`}
+                help={t`For contacts without a known language`}
+                htmlFor="default_language"
+              >
+                <Form.Item name="default_language">
+                  <Select
+                    options={(watchedLanguages?.length ? watchedLanguages : ['en']).map(
+                      (code: string) => {
+                        const opt = LANGUAGE_OPTIONS.find((o) => o.value === code)
+                        return opt || { label: code, value: code }
+                      }
+                    )}
+                    showSearch
+                    optionFilterProp="label"
+                  />
+                </Form.Item>
+              </SettingsRow>
+            </SettingsRows>
+          </Panel>
+
+          <Panel title={t`Email tracking`}>
+            <SettingsRows>
+              <SettingsRow
+                label={t`Opens`}
+                help={t`An invisible image in each email records when it is opened`}
+                htmlFor="opens_tracking_enabled"
+              >
+                <Form.Item name="opens_tracking_enabled" valuePropName="checked">
+                  <Switch />
+                </Form.Item>
+              </SettingsRow>
+
+              <SettingsRow
+                label={t`Clicks`}
+                help={t`Links go through a redirect that records each click`}
+                htmlFor="clicks_tracking_enabled"
+              >
+                <Form.Item name="clicks_tracking_enabled" valuePropName="checked">
+                  <Switch />
+                </Form.Item>
+              </SettingsRow>
+
+              <SettingsRow label={consentLabel} help={consentHelp}>
+                <Form.Item name="unknown_consent">
+                  <Segmented
+                    options={[
+                      { label: t`Track`, value: 'track' },
+                      { label: t`Don't track`, value: 'no_track' }
+                    ]}
+                  />
+                </Form.Item>
+              </SettingsRow>
+            </SettingsRows>
+          </Panel>
+
+          <Panel title={t`Custom domain`} extra={domainPill}>
+            <SettingsRows>
+              <SettingsRow label={t`Domain`} help={domainHelp} htmlFor="custom_endpoint_url">
+                <Form.Item
+                  name="custom_endpoint_url"
+                  rules={[{ type: 'url' as const, message: t`Please enter a valid URL` }]}
+                >
+                  <Input placeholder="https://api.yourdomain.com" />
+                </Form.Item>
+                {dnsRecord(watchedDomain)}
+              </SettingsRow>
+            </SettingsRows>
+          </Panel>
+        </div>
       </Form>
 
       {/* Last child on purpose — see SettingsSaveBar for why. */}

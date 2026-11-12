@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -57,14 +57,14 @@ describe('GeneralSettings', () => {
   // The API refuses a workspace name over 32 characters: the field says so as it is typed.
   it('limits the workspace name to 32 characters', () => {
     renderComponent(true)
-    expect(screen.getByLabelText(/Workspace Name/i)).toHaveAttribute('maxlength', '32')
+    expect(screen.getByLabelText('Name')).toHaveAttribute('maxlength', '32')
   })
 
   it('does not save a workspace name over 32 characters', async () => {
     renderComponent(true)
 
     // A change event sets the value past the input's maxlength, as a paste can.
-    fireEvent.change(screen.getByLabelText(/Workspace Name/i), {
+    fireEvent.change(screen.getByLabelText('Name'), {
       target: { value: 'a'.repeat(33) }
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -83,7 +83,7 @@ describe('GeneralSettings', () => {
 
   it('holds the save bar back until the form is touched', () => {
     renderComponent(true)
-    expect(screen.getByLabelText(/Workspace Name/i)).toHaveValue('My WS')
+    expect(screen.getByLabelText('Name')).toHaveValue('My WS')
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
     expect(screen.queryByText('Unsaved changes')).toBeNull()
   })
@@ -91,7 +91,7 @@ describe('GeneralSettings', () => {
   it('raises the save bar as soon as a field changes', () => {
     renderComponent(true)
 
-    fireEvent.change(screen.getByLabelText(/Workspace Name/i), { target: { value: 'Renamed WS' } })
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Renamed WS' } })
 
     expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
@@ -102,7 +102,7 @@ describe('GeneralSettings', () => {
     // setFieldsValue, so there are no initialValues to fall back on.
     renderComponent(true)
 
-    const nameInput = screen.getByLabelText(/Workspace Name/i)
+    const nameInput = screen.getByLabelText('Name')
     fireEvent.change(nameInput, { target: { value: 'Renamed WS' } })
     fireEvent.click(screen.getByRole('button', { name: /^Discard$/i }))
 
@@ -113,7 +113,7 @@ describe('GeneralSettings', () => {
   it('saves the edited settings from the floating bar', async () => {
     renderComponent(true)
 
-    fireEvent.change(screen.getByLabelText(/Workspace Name/i), { target: { value: 'Renamed WS' } })
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Renamed WS' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
@@ -135,7 +135,7 @@ describe('GeneralSettings', () => {
     fireEvent.keyDown(window, { key: 's', metaKey: true })
     expect(workspaceService.update).not.toHaveBeenCalled()
 
-    fireEvent.change(screen.getByLabelText(/Workspace Name/i), { target: { value: 'Renamed WS' } })
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Renamed WS' } })
     fireEvent.keyDown(window, { key: 's', metaKey: true })
 
     await waitFor(() =>
@@ -154,7 +154,7 @@ describe('GeneralSettings', () => {
   it('clears the custom endpoint URL when the field is emptied', async () => {
     renderComponent(true, makeWorkspace({ custom_endpoint_url: 'https://old.example.com' }))
 
-    const endpoint = screen.getByLabelText(/Custom Endpoint URL/i)
+    const endpoint = screen.getByLabelText('Domain')
     expect(endpoint).toHaveValue('https://old.example.com')
     fireEvent.change(endpoint, { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -166,7 +166,7 @@ describe('GeneralSettings', () => {
   it('keeps a custom endpoint URL the operator did not touch', async () => {
     renderComponent(true, makeWorkspace({ custom_endpoint_url: 'https://track.example.com' }))
 
-    fireEvent.change(screen.getByLabelText(/Workspace Name/i), { target: { value: 'Renamed WS' } })
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Renamed WS' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
@@ -176,7 +176,7 @@ describe('GeneralSettings', () => {
   it('refuses to save an empty workspace name', async () => {
     renderComponent(true)
 
-    fireEvent.change(screen.getByLabelText(/Workspace Name/i), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
@@ -203,8 +203,8 @@ describe('GeneralSettings email tracking', () => {
       })
     )
 
-    fireEvent.click(screen.getByLabelText(/Email opens tracking/i))
-    fireEvent.click(screen.getByLabelText(/Do not track/i))
+    fireEvent.click(screen.getByLabelText('Opens'))
+    fireEvent.click(screen.getByLabelText("Don't track"))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
@@ -219,19 +219,147 @@ describe('GeneralSettings email tracking', () => {
   it('reads a workspace saved with the single switch as both on, unknown tracked', async () => {
     renderComponent(true, makeWorkspace({ email_tracking_enabled: true }))
 
-    expect(screen.getByLabelText(/Email opens tracking/i)).toBeChecked()
-    expect(screen.getByLabelText(/Email clicks tracking/i)).toBeChecked()
+    expect(screen.getByLabelText('Opens')).toBeChecked()
+    expect(screen.getByLabelText('Clicks')).toBeChecked()
     expect(screen.getByLabelText(/^Track$/i)).toBeChecked()
   })
 
   it('turns the single switch off when neither is tracked', async () => {
     renderComponent(true, makeWorkspace({ email_tracking_enabled: true }))
 
-    fireEvent.click(screen.getByLabelText(/Email opens tracking/i))
-    fireEvent.click(screen.getByLabelText(/Email clicks tracking/i))
+    fireEvent.click(screen.getByLabelText('Opens'))
+    fireEvent.click(screen.getByLabelText('Clicks'))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
     expect(sentSettings().email_tracking_enabled).toBe(false)
+  })
+})
+
+describe('GeneralSettings rows', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const sentSettings = (): Record<string, unknown> =>
+    JSON.parse(JSON.stringify(vi.mocked(workspaceService.update).mock.calls[0][0].settings))
+
+  const openReplace = async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Replace' }))
+    return screen.findByLabelText('Logo URL')
+  }
+
+  it('puts the settings in four panels', () => {
+    renderComponent(true)
+
+    const titles = Array.from(document.querySelectorAll('[data-panel-head] h3')).map((h) => h.textContent)
+    expect(titles).toEqual(['Workspace', 'Language & timezone', 'Email tracking', 'Custom domain'])
+  })
+
+  it('keeps the logo when saving without opening Replace', async () => {
+    renderComponent(true, makeWorkspace({ logo_url: 'https://example.com/logo.png' }))
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Renamed WS' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
+    expect(sentSettings().logo_url).toBe('https://example.com/logo.png')
+  })
+
+  it('empties the logo with Remove', async () => {
+    renderComponent(true, makeWorkspace({ logo_url: 'https://example.com/logo.png' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+    expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
+    expect(sentSettings().logo_url).toBeNull()
+  })
+
+  it('shows a logo URL typed in Replace and says when it is not one', async () => {
+    renderComponent(true)
+
+    const input = await openReplace()
+    fireEvent.change(input, { target: { value: 'not a url' } })
+
+    expect(await screen.findByText('Please enter a valid URL')).toBeInTheDocument()
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+  })
+
+  it('raises the save bar when the icon of the website is detected', async () => {
+    vi.mocked(workspaceService.detectFavicon).mockResolvedValue({ iconUrl: 'https://example.com/favicon.png' })
+    renderComponent(true)
+
+    await openReplace()
+    fireEvent.click(screen.getByRole('button', { name: /Detect from website/ }))
+
+    await waitFor(() =>
+      expect(document.querySelector('[data-logo-preview]')).toHaveAttribute('src', 'https://example.com/favicon.png')
+    )
+    expect(workspaceService.detectFavicon).toHaveBeenCalledWith('https://example.com')
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+  })
+
+  it('falls back to the initial when the logo cannot be loaded', () => {
+    renderComponent(true, makeWorkspace({ logo_url: 'https://example.com/broken.png' }))
+
+    fireEvent.error(document.querySelector('[data-logo-preview]') as HTMLElement)
+
+    expect(screen.getByText("This image couldn't be loaded")).toBeInTheDocument()
+    expect(document.querySelector('[data-workspace-badge]')).toHaveTextContent('M')
+  })
+
+  it('replaces a removed default language with the first one left', async () => {
+    renderComponent(true, makeWorkspace({ languages: ['en', 'fr'], default_language: 'fr' }))
+
+    const row = screen.getByText('Supported languages').closest('[data-settings-row]') as HTMLElement
+    const removes = row.querySelectorAll('.ant-select-selection-item-remove')
+    fireEvent.click(removes[removes.length - 1])
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(workspaceService.update).toHaveBeenCalled())
+    expect(sentSettings().languages).toEqual(['en'])
+    expect(sentSettings().default_language).toBe('en')
+  })
+
+  it('keeps the long consent text in the tooltip of its label', async () => {
+    renderComponent(true)
+
+    expect(screen.queryByText(/Italian Garante/)).toBeNull()
+    fireEvent.mouseEnter(screen.getByLabelText('About consent'))
+
+    expect(await screen.findByText(/Italian Garante/)).toBeInTheDocument()
+  })
+
+  it('writes the DNS record for the domain typed', async () => {
+    renderComponent(true)
+
+    const record = document.querySelector('[data-dns-record]') as HTMLElement
+    expect(within(record).getByText('blog.yourdomain.com')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Domain'), { target: { value: 'https://links.acme.io' } })
+    expect(await within(record).findByText('links.acme.io')).toBeInTheDocument()
+    expect(within(record).getByText('CNAME')).toBeInTheDocument()
+  })
+
+  it('marks a saved domain as in use', () => {
+    renderComponent(true, makeWorkspace({ custom_endpoint_url: 'https://links.acme.io' }))
+    expect(screen.getByText('In use')).toBeInTheDocument()
+  })
+
+  it('lists the values without a field nor a save bar for a member who is not the owner', () => {
+    renderComponent(
+      false,
+      makeWorkspace({ languages: ['en', 'fr'], default_language: 'fr', email_tracking_enabled: true })
+    )
+
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(screen.queryByRole('switch')).toBeNull()
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
+    const languages = screen.getByText('Supported languages').closest('[data-settings-row]') as HTMLElement
+    expect(languages.textContent).toContain('English')
+    expect(languages.textContent).toContain('French')
+    expect(screen.getAllByText('On')).toHaveLength(2)
+    expect(screen.getByText('Default (API endpoint)')).toBeInTheDocument()
   })
 })

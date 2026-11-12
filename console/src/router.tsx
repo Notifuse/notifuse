@@ -40,6 +40,8 @@ import { BlogPage } from "./pages/BlogPage";
 import SetupWizard from "./pages/SetupWizard";
 import { createRouter } from "@tanstack/react-router";
 import type { TrackingConsentFilter } from "./services/api/contacts";
+import { parseSettingsSearch } from "./lib/searchParams";
+import { DEFAULT_SETTINGS_SECTION } from "./components/settings/SettingsSidebar";
 
 export interface ContactsSearch {
   email?: string;
@@ -263,7 +265,7 @@ const WorkspaceSettingsRedirect = () => {
   useEffect(() => {
     navigate({
       to: "/console/workspace/$workspaceId/settings/$section",
-      params: { workspaceId, section: "team" },
+      params: { workspaceId, section: DEFAULT_SETTINGS_SECTION },
       replace: true,
     });
   }, [workspaceId, navigate]);
@@ -284,6 +286,7 @@ const workspaceSettingsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/settings/$section",
   component: WorkspaceSettingsPage,
+  validateSearch: parseSettingsSearch,
   staticData: { layout: "rail" },
 });
 

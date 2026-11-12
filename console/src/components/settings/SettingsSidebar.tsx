@@ -1,37 +1,75 @@
-import {
-  AuditOutlined,
-  TeamOutlined,
-  TagsOutlined,
-  SettingOutlined,
-  ExclamationCircleOutlined,
-  LineChartOutlined,
-  MailOutlined,
-  SafetyCertificateOutlined
-} from '@ant-design/icons'
+import type { ReactNode } from 'react'
+import type { MessageDescriptor } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
-import { RailItem } from '../layout'
+import {
+  BadgeCheck,
+  Blocks,
+  BookOpen,
+  Braces,
+  ChartLine,
+  Mail,
+  ScrollText,
+  ShieldAlert,
+  SlidersHorizontal,
+  Users,
+  Webhook
+} from 'lucide-react'
+import { RailItem, RailSection } from '../layout'
 
-// The menu keys are cast to SettingsSection on click, so a stale key here reaches the router
-// unchallenged. Keeping the sections as a runtime value lets a test walk the rendered menu and
-// catch that; the type is derived from it so the two can never drift.
-export const SETTINGS_SECTIONS = [
-  'team',
-  'integrations',
-  'webhooks',
-  'custom-fields',
-  'smtp-bridge',
-  'general',
-  'blog',
-  'web-analytics',
-  'audit-logs',
-  // Deployment-wide rather than workspace-wide, and rendered only for a root user — but listed
-  // here unconditionally, because this array is what makes a URL valid and a root user must be
-  // able to reach /settings/licence from the banner whatever workspace they are in.
-  'licence',
-  'danger-zone'
-] as const
+/**
+ * The rail's groups, in their order. The menu keys are cast to SettingsSection on click, so a
+ * stale key here would reach the router unchallenged: the sections stay a runtime value a test
+ * walks, and the type derives from it.
+ */
+export const SETTINGS_GROUPS = [
+  { title: msg`Workspace`, sections: ['general', 'team'] },
+  { title: msg`Sending`, sections: ['integrations', 'webhooks', 'smtp-bridge'] },
+  { title: msg`Content`, sections: ['custom-fields', 'blog', 'web-analytics'] },
+  // Licence is deployment-wide rather than workspace-wide, and rendered only for a root user —
+  // but listed here unconditionally, because this list is what makes a URL valid and a root user
+  // must be able to reach /settings/licence from the banner whatever workspace they are in.
+  { title: msg`Security`, sections: ['audit-logs', 'licence', 'danger-zone'] }
+] as const satisfies ReadonlyArray<{ title: MessageDescriptor; sections: readonly string[] }>
 
-export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
+export type SettingsSection = (typeof SETTINGS_GROUPS)[number]['sections'][number]
+
+export const SETTINGS_SECTIONS: readonly SettingsSection[] = SETTINGS_GROUPS.flatMap(
+  (group) => group.sections
+)
+
+/** The section `/settings` and an unknown section open. */
+export const DEFAULT_SETTINGS_SECTION: SettingsSection = 'general'
+
+const ICON_SIZE = 15
+
+const ICONS: Record<SettingsSection, ReactNode> = {
+  general: <SlidersHorizontal size={ICON_SIZE} />,
+  team: <Users size={ICON_SIZE} />,
+  integrations: <Blocks size={ICON_SIZE} />,
+  webhooks: <Webhook size={ICON_SIZE} />,
+  'smtp-bridge': <Mail size={ICON_SIZE} />,
+  'custom-fields': <Braces size={ICON_SIZE} />,
+  blog: <BookOpen size={ICON_SIZE} />,
+  'web-analytics': <ChartLine size={ICON_SIZE} />,
+  'audit-logs': <ScrollText size={ICON_SIZE} />,
+  licence: <BadgeCheck size={ICON_SIZE} />,
+  'danger-zone': <ShieldAlert size={ICON_SIZE} />
+}
+
+const LABELS: Record<SettingsSection, MessageDescriptor> = {
+  general: msg`General`,
+  team: msg`Team & API keys`,
+  integrations: msg`Integrations`,
+  webhooks: msg`Webhooks`,
+  'smtp-bridge': msg`SMTP bridge`,
+  'custom-fields': msg`Custom fields`,
+  blog: msg`Blog`,
+  'web-analytics': msg`Web analytics`,
+  'audit-logs': msg`Audit log`,
+  licence: msg`Licence`,
+  'danger-zone': msg`Danger zone`
+}
 
 interface SettingsSidebarProps {
   activeSection: SettingsSection
@@ -42,147 +80,38 @@ interface SettingsSidebarProps {
   isRoot: boolean
 }
 
-export function SettingsSidebar({
-  activeSection,
-  onSectionChange,
-  isOwner,
-  isRoot
-}: SettingsSidebarProps) {
-  const { t } = useLingui()
+export function SettingsSidebar({ activeSection, onSectionChange, isOwner, isRoot }: SettingsSidebarProps) {
+  const { i18n } = useLingui()
 
-  const menuItems = [
-    {
-      key: 'team',
-      icon: <TeamOutlined />,
-      label: t`Team`
-    },
-    {
-      key: 'integrations',
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="lucide lucide-blocks-icon lucide-blocks"
-        >
-          <path d="M10 22V7a1 1 0 0 0-1-1H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a1 1 0 0 0-1-1H2" />
-          <rect x="14" y="2" width="8" height="8" rx="1" />
-        </svg>
-      ),
-      label: t`Integrations`
-    },
-    {
-      key: 'webhooks',
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="lucide lucide-webhook"
-        >
-          <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2" />
-          <path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06" />
-          <path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8" />
-        </svg>
-      ),
-      label: t`Webhooks`
-    },
-    {
-      key: 'blog',
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="lucide lucide-pen-line-icon lucide-pen-line"
-        >
-          <path d="M13 21h8" />
-          <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
-        </svg>
-      ),
-      label: t`Blog`
-    },
-    {
-      key: 'web-analytics',
-      icon: <LineChartOutlined />,
-      label: t`Web Analytics`
-    },
-    {
-      key: 'custom-fields',
-      icon: <TagsOutlined />,
-      label: t`Custom Fields`
-    },
-    {
-      key: 'smtp-bridge',
-      icon: <MailOutlined />,
-      label: t`SMTP Bridge`
-    },
-    {
-      key: 'general',
-      icon: <SettingOutlined />,
-      label: t`General`
-    }
-  ]
-
-  // Retention is an owner's decision; the log itself is read under Logs → Audit logs.
-  if (isOwner) {
-    menuItems.push({
-      key: 'audit-logs',
-      icon: <AuditOutlined />,
-      label: t`Audit logs`
-    })
-  }
-
-  // The licence panel names the licensee and takes a key, so it follows the server's root gate
-  // rather than workspace ownership.
-  if (isRoot) {
-    menuItems.push({
-      key: 'licence',
-      icon: <SafetyCertificateOutlined />,
-      label: t`Licence`
-    })
-  }
-
-  // Add danger zone only for owners
-  if (isOwner) {
-    menuItems.push({
-      key: 'danger-zone',
-      icon: <ExclamationCircleOutlined />,
-      label: t`Danger Zone`
-    })
+  const visible = (section: SettingsSection) => {
+    // Retention and deletion are an owner's decisions; the log itself is read under Logs.
+    if (section === 'audit-logs' || section === 'danger-zone') return isOwner
+    if (section === 'licence') return isRoot
+    return true
   }
 
   // The rail's title ("Settings") is drawn by RailLayout, which names the navigation after it.
   return (
-    <div className="flex flex-col gap-px">
-      {menuItems.map((item) => (
-        <RailItem
-          key={item.key}
-          icon={item.icon}
-          label={item.label}
-          active={item.key === activeSection}
-          tone={item.key === 'danger-zone' ? 'danger' : undefined}
-          onClick={() => onSectionChange(item.key as SettingsSection)}
-        />
-      ))}
+    <div className="flex flex-col">
+      {SETTINGS_GROUPS.map((group) => {
+        const sections = group.sections.filter(visible)
+        // A group without a visible entry disappears (Security for a member who is not root).
+        if (sections.length === 0) return null
+        return (
+          <RailSection key={group.sections[0]} title={i18n._(group.title)}>
+            {sections.map((section) => (
+              <RailItem
+                key={section}
+                icon={ICONS[section]}
+                label={i18n._(LABELS[section])}
+                active={section === activeSection}
+                tone={section === 'danger-zone' ? 'danger' : undefined}
+                onClick={() => onSectionChange(section)}
+              />
+            ))}
+          </RailSection>
+        )
+      })}
     </div>
   )
 }
