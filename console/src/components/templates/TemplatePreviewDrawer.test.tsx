@@ -255,32 +255,32 @@ describe('TemplatePreviewDrawer preview errors', () => {
   })
 })
 
-describe('TemplatePreviewDrawer opened from outside', () => {
-  const renderControlled = (open: boolean, onClose = vi.fn()) => {
-    const ui = (isOpen: boolean) => (
+// The templates page opens the preview from its row menu and from the URL.
+describe('TemplatePreviewDrawer controlled by the page', () => {
+  const renderControlled = (open: boolean, onClose = vi.fn()) =>
+    render(
       <ConfigProvider>
         <App>
-          <TemplatePreviewDrawer record={template} workspace={workspace} open={isOpen} onClose={onClose} />
+          <TemplatePreviewDrawer record={template} workspace={workspace} open={open} onClose={onClose} />
         </App>
       </ConfigProvider>
     )
-    const view = render(ui(open))
-    return { onClose, reopen: () => view.rerender(ui(true)) }
-  }
 
-  it('stays closed until the prop opens it', async () => {
-    const { reopen } = renderControlled(false)
-    expect(screen.queryByText('Template Data')).not.toBeInTheDocument()
-
-    reopen()
+  it('opens without children when told to', async () => {
+    renderControlled(true)
     expect(await screen.findByText('Template Data')).toBeInTheDocument()
   })
 
-  it('asks the parent to close it', async () => {
-    const { onClose } = renderControlled(true)
-    await screen.findByText('Template Data')
+  it('stays closed while open is false', () => {
+    renderControlled(false)
+    expect(screen.queryByText('Template Data')).not.toBeInTheDocument()
+  })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+  it('asks the page to close it', async () => {
+    const onClose = vi.fn()
+    renderControlled(true, onClose)
+    await screen.findByText('Template Data')
+    fireEvent.click(document.querySelector('.ant-drawer-close') as HTMLElement)
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 })

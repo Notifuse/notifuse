@@ -13,19 +13,29 @@ const WORKSPACE_ID = 'test-workspace'
 const templateDrawer = (page: Page, title: string) =>
   page.getByRole('dialog', { name: title, exact: true })
 
+// The header's button; the empty state repeats it below the table.
+const newTemplateButton = (page: Page): Locator =>
+  page.getByRole('button', { name: 'New template', exact: true }).first()
+
 const openCreateDrawer = async (page: Page) => {
-  await page.getByRole('button', { name: 'Create Template', exact: true }).click()
+  await newTemplateButton(page).click()
   const drawer = templateDrawer(page, 'Create an email template')
   await expect(drawer).toBeVisible()
   return drawer
 }
 
-// The row actions are icon-only buttons, so they are addressed by the icon they carry.
-const rowAction = (page: Page, icon: string): Locator =>
-  page.locator('.ant-table-row').first().locator(`button:has(svg[data-icon="${icon}"])`)
+// The row actions sit in the row's "More actions" menu.
+const rowAction = async (page: Page, action: string) => {
+  await page
+    .locator('.ant-table-row')
+    .first()
+    .getByRole('button', { name: 'More actions', exact: true })
+    .click()
+  await page.getByRole('menuitem', { name: action, exact: true }).click()
+}
 
 const openEditDrawer = async (page: Page) => {
-  await rowAction(page, 'pen-to-square').click()
+  await rowAction(page, 'Edit')
   const drawer = templateDrawer(page, 'Edit email template')
   await expect(drawer).toBeVisible()
   return drawer
@@ -42,7 +52,7 @@ test.describe('Templates Feature', () => {
       const content = page.locator('main')
       await expect(content.getByText('No templates found')).toBeVisible()
       await expect(content.getByText('Create your first template to get started')).toBeVisible()
-      await expect(page.getByRole('button', { name: 'Create Template', exact: true })).toBeVisible()
+      await expect(newTemplateButton(page)).toBeVisible()
     })
 
     test('loads templates page with data', async ({ authenticatedPageWithData }) => {
@@ -58,12 +68,18 @@ test.describe('Templates Feature', () => {
         await expect(page.locator('.ant-table').getByText(name, { exact: true })).toBeVisible()
       }
 
-      // The Subject column reads template.email.subject, with the subject preview under it
+      // Under the name: template.email.subject, then the subject preview
       const welcomeRow = rows.filter({ hasText: 'Welcome Email' })
       await expect(
-        welcomeRow.getByText('Welcome to {{workspace.name}}!', { exact: true })
+        welcomeRow.getByText('Welcome to {{workspace.name}}! · Your account is ready', {
+          exact: true
+        })
       ).toBeVisible()
-      await expect(welcomeRow.getByText('Your account is ready', { exact: true })).toBeVisible()
+
+      // Used in: what templates.usage counts for each template
+      const newsletterRow = rows.filter({ hasText: 'Monthly Newsletter' })
+      await expect(newsletterRow.getByText('1 newsletter', { exact: true })).toBeVisible()
+      await expect(welcomeRow.getByText('Not used', { exact: true })).toBeVisible()
     })
   })
 
@@ -117,7 +133,7 @@ test.describe('Templates Feature', () => {
       await waitForLoading(page)
 
       // The row's preview action opens the template's own drawer, titled after it
-      await rowAction(page, 'eye').click()
+      await rowAction(page, 'Preview')
 
       const preview = templateDrawer(page, 'Welcome Email')
       await expect(preview).toBeVisible()
@@ -309,7 +325,7 @@ test.describe('Templates Feature', () => {
 
       // Should be on templates page
       await expect(page).toHaveURL(/templates/)
-      await expect(page.getByRole('button', { name: 'Create Template', exact: true })).toBeVisible()
+      await expect(newTemplateButton(page)).toBeVisible()
     })
 
     test('can close create form', async ({ authenticatedPage }) => {

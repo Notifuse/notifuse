@@ -342,6 +342,15 @@ export const mockEmptyTemplates = {
   templates: []
 }
 
+// templates.usage: the monthly newsletter is the variation of one broadcast
+export const mockTemplatesUsage = {
+  usage: { 'tpl-2': { broadcasts: 1 } },
+  references: [{ type: 'broadcast', id: 'bc-1', name: 'November newsletter', status: 'draft' }],
+  hidden_types: []
+}
+
+export const mockEmptyTemplatesUsage = { usage: {}, references: [], hidden_types: [] }
+
 export const mockCompiledTemplate = {
   html: '<html><body><p>Welcome, John!</p></body></html>'
 }

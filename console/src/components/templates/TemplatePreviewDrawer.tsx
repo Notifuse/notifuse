@@ -15,9 +15,9 @@ interface TemplatePreviewDrawerProps {
   workspace: Workspace
   templateData?: Record<string, unknown>
   messageHistory?: MessageHistory
-  /** Clicking them opens the drawer. Left out when the drawer is opened by `open`. */
+  /** Opens the drawer on click; not needed in controlled mode. */
   children?: React.ReactNode
-  /** Opens the drawer from outside (a menu entry, a button elsewhere); `onClose` sets it back. */
+  /** Controlled mode, for a page that opens the drawer itself; onClose asks it to close. */
   open?: boolean
   onClose?: () => void
 }
@@ -42,8 +42,8 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [mjmlError, setMjmlError] = useState<MjmlCompileError | null>(null)
-  const controlled = open !== undefined
   const [ownOpen, setOwnOpen] = useState<boolean>(false)
+  const controlled = open !== undefined
   const isOpen = controlled ? open : ownOpen
   const close = () => (controlled ? onClose?.() : setOwnOpen(false))
   const [activeTabKey, setActiveTabKey] = useState<string>('1') // State for active tab

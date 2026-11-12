@@ -124,8 +124,8 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
     await waitForPageLoad(page)
 
-    await expect(page.getByRole('heading', { name: 'No templates found' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Create Template' })).toBeVisible()
+    await expect(page.getByText('No templates found', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'New template' }).first()).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
