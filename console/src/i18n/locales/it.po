@@ -10502,9 +10502,9 @@ msgstr "Telefono"
 msgid "Phone Number"
 msgstr "Numero di Telefono"
 
-#: src/layouts/MainLayout.tsx:36
-msgid "Photo by Zetong Li"
-msgstr "Foto di Zetong Li"
+#: src/layouts/MainLayout.tsx:37
+msgid "Photo by Sean Oulashin"
+msgstr "Foto di Sean Oulashin"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:110
 #~ msgid "Photo URL"

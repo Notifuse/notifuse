@@ -2,6 +2,7 @@ import { Layout } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { ReactNode } from 'react'
 import { withBannerOffset } from '../components/license/bannerOffset'
+import signinBackground from '../assets/signin-background.jpg'
 
 const { Content } = Layout
 
@@ -16,7 +17,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     <Layout
       style={{
         minHeight: '100vh',
-        backgroundImage: 'url(/console/splash.jpg)',
+        backgroundImage: `url(${signinBackground})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}
@@ -28,12 +29,12 @@ export function MainLayout({ children }: MainLayoutProps) {
       </Content>
       <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md px-2 py-1 rounded-sm text-[9px]">
         <a
-          href="https://unsplash.com/fr/@zetong"
+          href="https://unsplash.com/@oulashin"
           target="_blank"
           rel="noopener noreferrer"
           className="!text-gray-400 no-underline"
         >
-          {t`Photo by Zetong Li`}
+          {t`Photo by Sean Oulashin`}
         </a>
       </div>
     </Layout>
