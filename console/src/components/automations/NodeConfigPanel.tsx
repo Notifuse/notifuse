@@ -110,6 +110,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
             workspaceId={workspaceId}
             workspace={workspace}
             canReadTemplates={canReadTemplates}
+            readOnly={readOnly}
           />
         )
       case 'delay':
@@ -127,6 +128,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
             workspaceId={workspaceId}
             workspace={workspace}
             canReadTemplates={canReadTemplates}
+            readOnly={readOnly}
           />
         )
       case 'ab_test':
@@ -134,6 +136,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
           <ABTestConfigForm
             config={config as Structural<ABTestNodeConfig>}
             onChange={handleConfigChange}
+            readOnly={readOnly}
           />
         )
       case 'add_to_list':

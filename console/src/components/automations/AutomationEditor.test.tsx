@@ -152,8 +152,9 @@ function Harness(initial: Overrides) {
   )
 }
 
-const renderEditor = (props: Overrides = {}) => {
+const renderEditor = (props: Overrides = {}, seed?: Automation) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+  if (seed) queryClient.setQueryData(['automation', 'ws1', seed.id], { automation: seed })
   const utils = render(
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
@@ -420,5 +421,47 @@ describe('AutomationEditor, server answers', () => {
     await act(async () => fireEvent.click(button('Activate')))
     fireEvent.click(await screen.findByRole('button', { name: 'Yes, activate' }))
     await waitFor(() => expect(automationApi.activate).toHaveBeenCalledWith({ workspace_id: 'ws1', automation_id: 'auto-1' }))
+  })
+})
+
+describe('AutomationEditor, review fixes', () => {
+  it('opens on the server copy, never on one cached by an earlier opening', async () => {
+    // Cached with two steps; the server has one, and another name.
+    get.mockResolvedValue({
+      automation: automationOf({ name: 'Changed elsewhere', nodes: [{ ...automationOf().nodes[0], next_node_id: undefined }] })
+    })
+    renderEditor({}, automationOf())
+    await loaded()
+    expect(nameInput()).toHaveValue('Changed elsewhere')
+    fireEvent.change(nameInput(), { target: { value: 'Renamed' } })
+    fireEvent.click(button('Save'))
+    await waitFor(() => expect(update).toHaveBeenCalled())
+    expect(update.mock.calls[0][0].automation.nodes).toHaveLength(1)
+  })
+
+  it('creates once when the save shortcut is pressed twice, and ignores its auto-repeat', async () => {
+    let answer: (value: unknown) => void = () => {}
+    create.mockImplementation(() => new Promise((resolve) => (answer = resolve)))
+    renderEditor({ automationParam: 'new' })
+    await loaded()
+    fireEvent.change(nameInput(), { target: { value: 'Onboarding' } })
+    fireEvent.click(screen.getByText('probe: configure trigger'))
+    const canvas = screen.getByTestId('canvas')
+    fireEvent.keyDown(canvas, { key: 's', ctrlKey: true })
+    fireEvent.keyDown(canvas, { key: 's', ctrlKey: true })
+    fireEvent.keyDown(canvas, { key: 's', ctrlKey: true, repeat: true })
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
+    await act(async () => answer({ automation: create.mock.calls[0][0].automation }))
+    expect(create).toHaveBeenCalledTimes(1)
+  })
+
+  it('disables Pause and offers no Delete without write', async () => {
+    get.mockResolvedValue({ automation: automationOf({ status: 'live' }) })
+    renderEditor({ canWrite: false })
+    await loaded()
+    expect(button(/Pause/)).toBeDisabled()
+    fireEvent.click(button('More actions'))
+    expect(await screen.findByText('Copy ID')).toBeInTheDocument()
+    expect(screen.queryByText('Delete Automation')).not.toBeInTheDocument()
   })
 })

@@ -391,9 +391,13 @@ export function AutomationProvider({
     }
   })
 
+  // One save at a time: a second one (a held ⌘S) would create the automation twice. A ref, as the
+  // state only changes on the next render.
+  const savingRef = useRef(false)
+
   // Save automation
   const save = useCallback(async (): Promise<boolean> => {
-    if (readOnly) return false
+    if (readOnly || savingRef.current) return false
     // Validate name
     if (!name.trim()) {
       message.error(t`Please enter an automation name`)
@@ -409,6 +413,7 @@ export function AutomationProvider({
       return false
     }
 
+    savingRef.current = true
     setIsSaving(true)
     setLastError(null)
 
@@ -419,6 +424,7 @@ export function AutomationProvider({
     } catch {
       return false
     } finally {
+      savingRef.current = false
       setIsSaving(false)
     }
   }, [readOnly, name, payload, workspace.id, isEditing, validate, createMutation, updateMutation, message, t])

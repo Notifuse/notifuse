@@ -61,6 +61,10 @@ export function AutomationEditor(props: AutomationEditorProps) {
     enabled: !!id
   })
   const automation = e1.data?.automation
+  // The editor opens on a copy read since it opened, never on one cached by an earlier opening:
+  // its flow is copied into the editor once, and saving it would overwrite a newer one.
+  const [ready, setReady] = useState(false)
+  if (!ready && e1.isFetchedAfterMount && e1.status === 'success') setReady(true)
 
   const shell = (body: ReactNode) => (
     <FullDrawer open onClose={props.onClose} backLabel={t`Automations`} copyLink={false}>
@@ -69,8 +73,8 @@ export function AutomationEditor(props: AutomationEditorProps) {
   )
 
   // The skeleton and "not found" belong to the first load only: a later error keeps the editor.
-  if (session !== 'new' && !automation) {
-    if (e1.isError) {
+  if (session !== 'new' && (!ready || !automation)) {
+    if (e1.isError && !e1.isFetching) {
       const notFound = e1.error instanceof ApiError && e1.error.status === 404
       return shell(
         <Result
@@ -294,7 +298,7 @@ function EditorScreen({
       const key = e.key.toLowerCase()
       if (key === 's') {
         e.preventDefault()
-        void handleSave()
+        if (!e.repeat) void handleSave()
         return
       }
       if (isEditable(e.target)) return

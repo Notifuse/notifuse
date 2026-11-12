@@ -300,6 +300,16 @@ describe('NodeConfigPanel results', () => {
     expect(screen.getByTestId('email-preview')).toBeInTheDocument()
   })
 
+  it('keeps View messages and the preview on a read-only step', () => {
+    context.readOnly = true
+    renderPanel(makeNode('n1', 'email', { template_id: 'tpl-1' }), { stats: statsOn({ nodes: { n1: nodeStats() } }) })
+    const link = screen.getByRole('link', { name: 'View messages' })
+    expect(link).toHaveAttribute('href')
+    expect(link).not.toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByTestId('email-preview')).toBeInTheDocument()
+    context.readOnly = false
+  })
+
   it.each([
     { case: "the step's SMTP provider", integration_id: 'smtp', marketing: 'ses', smtp: true },
     { case: "the step's API provider over the workspace's SMTP", integration_id: 'ses', marketing: 'smtp', smtp: false },

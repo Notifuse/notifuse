@@ -276,7 +276,7 @@ table read from exact journey counts and a 30-day open rate, and the editor into
 ## Plan review and corrections (Opus xhigh, 12/11)
 
 The review found 13 blocking points and 9 others. Each is taken; these rules override the sections
-above where they differ.
+above where they differ, and the code review below overrides them where it says so (R1, R19, R21).
 
 - **R1 (B2) One 30-day window.** `resolveRange` takes a `DayjsRange`:
   `components/automations/last30Days.ts` exports `last30Days(tz) =
@@ -381,3 +381,46 @@ above where they differ.
 - Local e2e: `automations.spec.ts` and the automations case of `protected-pages.spec.ts` pass. The
   `LogsPage` case of `protected-pages.spec.ts` fails on dev as well (it expects the description the
   Logs screen had before its redesign); not this PR's screen.
+
+## Code review (Fable high, on 593cc97) and corrections
+
+Blocking, fixed in the following commit:
+
+- **Stale copy on reopening.** E1 kept its cache, so an automation reopened within the cache time was
+  copied into the editor from the old read, and the fresh one ignored: saving overwrote a newer
+  version. The editor now waits for a read made since it opened (`isFetchedAfterMount` and a
+  successful status) before mounting the provider. Test: a cached two-step copy and a one-step
+  server copy; the editor shows and saves the server's.
+- **Read-only not total.** A field that sets its own `disabled` wins over `ConfigProvider
+  componentDisabled`: the template field of the email and link-click trigger forms, the Exit on reply
+  switch and the A/B variant removal stayed enabled. Each now takes the editor's `readOnly`. Tests
+  with the real template field under a disabled provider, the switch read-only with an inbound
+  provider, and the variant buttons.
+- **Double create.** ⌘S during a create sent a second `automations.create`. `save()` refuses while a
+  save runs (a ref) and the shortcut ignores auto-repeat. Test: two presses and a repeat, one create.
+- **R1 changed: "Last 30 days" includes today.** `previous_30_days` ends yesterday, so an automation
+  activated today read zeros in its default stats view next to its in-progress pills.
+  `last30Days(tz)` is now the 30 days ending today, today included, in the workspace's timezone
+  (list open rate and step results alike). Tests in Paris across the DST change and in Tokyo.
+- **Test that could not fail.** The read-only drop case read the nodes before React rendered: now in
+  `act`, with the positive case beside it.
+- **R19 changed.** Passes of a branch that took no path (`none`) are a "No path" row of the step
+  panel's splits rather than a tooltip, so the shares add up to 100 %. Test.
+- **R5, R21 tests added.** View messages and the preview on a read-only email step; Pause disabled and
+  no Delete without write. **R21 "Save Anyway"** stays untested: no validation rule emits a
+  `Warning:` today, so the confirm is unreachable; kept for when one does.
+
+Known, not handled (reported, not blocking):
+
+- Edits made while E1 turns live (a failed save's refetch after someone activated the automation)
+  become read-only without a word.
+- The first load renders the skeleton in one `FullDrawer`, then the editor in another: the drawer may
+  slide in twice.
+- Activate and Pause are clickable again between the action's answer and the E1 refetch.
+- Under 1200 px the "+" buttons paint over the step panel (as before).
+- Deleting an edge of an API-made branch node leaves `paths[].next_node_id`.
+- "View messages" in the step panel is a plain link (full page load); "This template no longer
+  exists" for any failed template read; open rate reads "—" while loading; tooltips say Ctrl on a
+  Mac; a few Tailwind margin/width classes on antd `Input` and `Form.Item`; the live-save warning
+  path of the context is now unreachable; `markAsChanged` is an empty function; the stats context
+  value and the payload key are rebuilt on every render.

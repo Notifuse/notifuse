@@ -126,3 +126,15 @@ describe('StepStats', () => {
     expect(document.querySelector('[data-step-splits]')).toBeNull()
   })
 })
+
+describe('StepStats of a branch', () => {
+  it('shows the passes that took no path, so the shares add up', () => {
+    const config = { paths: [{ id: 'p1', name: 'Pro' }] }
+    renderStep('branch', stats({ branches: { p1: 3, none: 1 } }), config)
+    const splits = document.querySelector('[data-step-splits]')!
+    expect(splits).toHaveTextContent('Pro')
+    expect(splits).toHaveTextContent('75.0%')
+    expect(splits).toHaveTextContent('No path')
+    expect(splits).toHaveTextContent('25.0%')
+  })
+})

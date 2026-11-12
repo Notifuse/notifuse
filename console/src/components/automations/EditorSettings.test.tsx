@@ -59,6 +59,16 @@ describe('EditorSettings', () => {
     fireEvent.mouseEnter(screen.getByLabelText('About exit on reply'))
     expect(await screen.findByText(/requires inbound reply forwarding/)).toBeInTheDocument()
   })
+
+  it('locks exit on reply read-only, even with an inbound provider', () => {
+    ctx.value = {
+      ...ctx.value,
+      readOnly: true,
+      workspace: { id: 'ws', integrations: [{ email_provider: { kind: 'mailgun' } }] }
+    }
+    renderSettings()
+    expect(screen.getByRole('switch', { name: 'Exit on reply' })).toBeDisabled()
+  })
 })
 
 describe('NodePalette', () => {

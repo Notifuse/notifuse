@@ -1,6 +1,6 @@
 import '../../__tests__/resizeObserverMock'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App } from 'antd'
@@ -145,6 +145,8 @@ const declaredSourceHandles = (automation: Automation, nodeTypes: NodeTypes, nod
   return ids
 }
 
+const dropOf = (type: string) => ({ preventDefault() {}, clientX: 0, clientY: 0, dataTransfer: { getData: () => type } })
+
 beforeEach(() => {
   flow.captured = null
 })
@@ -207,8 +209,17 @@ describe('AutomationFlowEditor', () => {
     expect(captured.nodes.every((n) => (n.data as { onDelete?: unknown }).onDelete === undefined)).toBe(true)
 
     const before = captured.nodes.length
-    captured.onDrop({ preventDefault() {}, clientX: 0, clientY: 0, dataTransfer: { getData: () => 'delay' } })
+    act(() => captured.onDrop(dropOf('delay')))
     expect(flow.captured!.nodes.length).toBe(before)
+  })
+
+  it('adds the dropped step off read-only', () => {
+    const automation = makeAutomation([makeNode('t', 'trigger', { event_kind: 'contact.created' }, 'd'), makeNode('d', 'delay', { duration: 1, unit: 'days' })])
+    const captured = renderEditor(automation)
+    const real = () => flow.captured!.nodes.filter((n) => n.type !== 'placeholder').length
+    const before = real()
+    act(() => captured.onDrop(dropOf('delay')))
+    expect(real()).toBe(before + 1)
   })
 
   it('offers a "+" under an open output off read-only', () => {

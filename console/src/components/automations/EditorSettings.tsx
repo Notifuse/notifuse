@@ -7,7 +7,7 @@ import { useAutomation } from './context'
 /** The automation's own settings, above the palette: list, frequency, exit on reply. */
 export function EditorSettings() {
   const { t } = useLingui()
-  const { lists, listId, setListId, frequency, setFrequency, exitOnReply, setExitOnReply, workspace } = useAutomation()
+  const { lists, listId, setListId, frequency, setFrequency, exitOnReply, setExitOnReply, workspace, readOnly } = useAutomation()
 
   // "Exit on reply" needs an email provider that can ingest inbound replies. For SES this is also
   // region-aware: inbound only works in receiving-capable regions. Integration.email_provider is
@@ -58,7 +58,8 @@ export function EditorSettings() {
             aria-label={t`Exit on reply`}
             checked={exitOnReply && hasInboundIntegration}
             onChange={setExitOnReply}
-            disabled={!hasInboundIntegration}
+            // Its own `disabled` wins over the read-only ConfigProvider: read-only is said here.
+            disabled={readOnly || !hasInboundIntegration}
           />
         </div>
       </Form.Item>

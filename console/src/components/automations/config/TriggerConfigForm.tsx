@@ -61,6 +61,8 @@ interface TriggerConfigFormProps {
   workspace?: Workspace
   // Without Templates read the template filter shows the stored ID, locked. Defaults to true.
   canReadTemplates?: boolean
+  /** Read-only: a field that sets its own `disabled` ignores the panel's ConfigProvider. */
+  readOnly?: boolean
 }
 
 export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
@@ -68,7 +70,8 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
   onChange,
   workspaceId,
   workspace,
-  canReadTemplates = true
+  canReadTemplates = true,
+  readOnly = false
 }) => {
   const { t } = useLingui()
 
@@ -377,6 +380,7 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
               placeholder={t`Any template`}
               clearable={true}
               canReadTemplates={canReadTemplates}
+              disabled={readOnly}
             />
           </Form.Item>
         </>
