@@ -25,7 +25,10 @@ back to English while that dayjs locale is not registered.
 3. **`console/src/components/analytics/dashboardFormat.ts`**: correct the header comment that says
    no dayjs locale is loaded.
 4. **`console/src/components/timeline/ContactTimeline.tsx`**: the tooltips' "… in Europe/Paris" glue
-   goes through Lingui (`{when} in {zone}`), so a translated date is not followed by English.
+   goes through Lingui (`{when} in {zone}`), so a translated date is not followed by English. The
+   date is now formatted on that zone's clock (`.tz(zone)`): it used the browser's, under the
+   workspace zone's name. Test in `ContactTimeline.test.tsx`: hovering an entry's time in an
+   `Asia/Tokyo` workspace shows the Tokyo wall clock.
 
 Out of scope (other screens, owned by other work in progress): fixed English-order patterns such as
 `'MMM D'`, `'ha'`, `"MMM 'YY"`, `'D MMM'` and `'MMM D, YYYY HH:mm'` in web analytics, the blog and
@@ -45,7 +48,9 @@ ranges follow the activated one; loadLocale's generation guard keeps the two equ
     `marzo`, `March`). This pins that each locale module is actually registered.
   - French relative time: `dayjs().subtract(3, 'day').fromNow()` is `il y a 3 jours`.
 - **`console/src/__tests__/locale-race.test.tsx`** (extend existing cases)
-  - The newest request wins: `dayjs.locale()` is `en`, in both latency orders.
+  - The newest request wins: `dayjs.locale()` is `en`, in both latency orders. English is also
+    dayjs's default, so these two lines only catch an activation placed before the generation
+    guard (they pass without the change); the es, fr and fallback cases pin that dayjs follows.
   - The winner's catalog fails: dayjs stays on the superseded `es`.
   - A superseded failure does not drag dayjs to English: it stays `fr`.
   - Fallback after a failed `ja`: dayjs is `en`.

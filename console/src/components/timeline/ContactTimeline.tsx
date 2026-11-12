@@ -100,9 +100,9 @@ export function ContactTimeline({
 }: ContactTimelineProps) {
   const { t } = useLingui()
 
-  // A tooltip's full date, in the console's language, and the timezone it is shown in.
+  // A tooltip's full date, in the console's language, on the clock of the timezone it names.
   const timeInZone = (at: string, zone: string = timezone): string => {
-    const when = dayjs(at).format('LLLL')
+    const when = dayjs(at).tz(zone).format('LLLL')
     return t`${when} in ${zone}`
   }
 
