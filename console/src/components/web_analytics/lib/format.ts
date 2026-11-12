@@ -1,6 +1,7 @@
 import dayjs from '../../../lib/dayjs'
 import { DayjsRange } from './dates'
 import { Granularity, ValueFormat } from './types'
+import { formatDayRange, formatHour, formatMonthDay, formatMonthYear } from '../../../i18n/dateFormats'
 
 /**
  * Measures come back from the analytics engine as numbers or, for anything
@@ -94,11 +95,9 @@ export function changePercent(current: number, previous: number): number {
   return ((current - previous) / previous) * 100
 }
 
-/** Chart series name for a range, e.g. "Dec 21-27" or "Nov 28 - Dec 4". */
+/** Chart series name for a range, e.g. "Dec 21 – 27" or "Nov 28 – Dec 4", in the console language. */
 export function formatRangeSeriesName(range: DayjsRange): string {
-  const { start, end } = range
-  if (start.isSame(end, 'month')) return `${start.format('MMM D')}-${end.format('D')}`
-  return `${start.format('MMM D')} - ${end.format('MMM D')}`
+  return formatDayRange(range.start, range.end)
 }
 
 /**
@@ -115,12 +114,12 @@ export function formatXAxisLabel(timestamp: string, granularity: Granularity): s
   if (!parsed.isValid()) return timestamp
   switch (granularity) {
     case 'hour':
-      return parsed.format('ha')
+      return formatHour(parsed)
     case 'month':
-      return parsed.format("MMM 'YY")
+      return formatMonthYear(parsed)
     case 'year':
       return parsed.format('YYYY')
     default:
-      return parsed.format('MMM D')
+      return formatMonthDay(parsed)
   }
 }

@@ -50,7 +50,7 @@ function resolveZone(timezone?: string): string {
  * chart starts is not an annotation on its first bucket.
  *
  * Returns an INDEX, never a label. `formatXAxisLabel` produces duplicates (at
- * hour granularity "3am" repeats every 24 buckets, and hour granularity is
+ * hour granularity "3:00 AM" repeats every 24 buckets, and hour granularity is
  * offered up to 7 days = 168 buckets); echarts resolves a category name
  * through a hash map where a repeat overwrites its predecessor, so a label
  * would silently drop every annotation onto the last matching bucket.

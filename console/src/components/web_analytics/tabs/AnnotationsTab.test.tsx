@@ -38,6 +38,7 @@ vi.mock('../context', () => ({
 
 import { annotationService } from '../../../services/api/annotation'
 import { AnnotationsTab } from './AnnotationsTab'
+import { activateDayjsLocale } from '../../../i18n/dayjsLocales'
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
@@ -110,17 +111,29 @@ describe('AnnotationsTab', () => {
 
     // 00:00 UTC is 09:00 in Tokyo: the row must read back what was typed, not
     // the test runner's local equivalent.
-    expect(await desktop().findByText('Aug 15, 2026 09:00')).toBeInTheDocument()
+    expect(await desktop().findByText('Aug 15, 2026 9:00 AM')).toBeInTheDocument()
     expect(desktop().getByText('Product launch')).toBeInTheDocument()
     expect(desktop().getByText('Version 2 went live')).toBeInTheDocument()
     expect(desktop().getByText('Asia/Tokyo')).toBeInTheDocument()
-    expect(desktop().getByText('Aug 10, 2026 08:00')).toBeInTheDocument()
+    expect(desktop().getByText('Aug 10, 2026 8:00 AM')).toBeInTheDocument()
 
     // Read the inline style rather than toHaveStyle: the suite's setup stubs
     // getComputedStyle out, so the computed value is always empty.
     const dots = desktop().getAllByTestId('annotation-color')
     expect(dots).toHaveLength(2)
     expect(dots[0].style.backgroundColor).toBe('rgb(34, 197, 94)')
+  })
+
+  it('writes the moment in the console language', async () => {
+    activateDayjsLocale('fr')
+    try {
+      vi.mocked(annotationService.list).mockResolvedValue([tokyoAnnotation])
+      renderTab()
+
+      expect(await desktop().findByText('15 août 2026 09:00')).toBeInTheDocument()
+    } finally {
+      activateDayjsLocale('en')
+    }
   })
 
   it('creates an annotation at the instant the selected timezone implies', async () => {

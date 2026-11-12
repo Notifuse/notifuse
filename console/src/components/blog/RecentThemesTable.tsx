@@ -13,14 +13,7 @@ import { blogThemesApi, BlogTheme } from '../../services/api/blog'
 import type { Workspace } from '../../services/api/types'
 import { ThemeEditorDrawer } from './ThemeEditorDrawer'
 import { ThemePreset, THEME_PRESETS } from './themePresets'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import timezone from 'dayjs/plugin/timezone'
-import utc from 'dayjs/plugin/utc'
-
-dayjs.extend(relativeTime)
-dayjs.extend(utc)
-dayjs.extend(timezone)
+import dayjs from '../../lib/dayjs'
 
 interface RecentThemesTableProps {
   workspaceId: string
@@ -169,7 +162,7 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
       render: (date: string) => {
         const tz = workspace?.settings?.timezone || 'UTC'
         return (
-          <Tooltip title={`${dayjs(date).tz(tz).format('MMM DD, YYYY HH:mm')} ${tz}`}>
+          <Tooltip title={`${dayjs(date).tz(tz).format('lll')} ${tz}`}>
             {dayjs(date).fromNow()}
           </Tooltip>
         )
