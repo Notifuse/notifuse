@@ -153,6 +153,7 @@ func TestMessageFilter_RequireBound(t *testing.T) {
 			"id":                            {ID: "m1"},
 			"contact_email":                 {ContactEmail: "a@example.com"},
 			"broadcast_id":                  {BroadcastID: "b1"},
+			"automation_id":                 {AutomationID: "a1"},
 			"transactional_notification_id": {TransactionalNotificationID: "t1"},
 			"template_id":                   {TemplateID: "tpl1"},
 		} {

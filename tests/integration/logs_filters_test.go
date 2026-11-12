@@ -278,6 +278,11 @@ func TestLogsFilters(t *testing.T) {
 			require.NoError(t, json.Unmarshal(body, &counts))
 			assert.Equal(t, int64(8), counts.Total, "the window's broadcast messages and the older one")
 
+			status, body = get(t, "/api/messages.count", map[string]string{"workspace_id": workspace.ID, "automation_id": automationID})
+			require.Equal(t, http.StatusOK, status, string(body))
+			require.NoError(t, json.Unmarshal(body, &counts))
+			assert.Equal(t, int64(1), counts.Total, "the automation's message")
+
 			status, body = get(t, "/api/messages.count", map[string]string{"workspace_id": workspace.ID, "origin": "broadcast"})
 			assert.Equal(t, http.StatusBadRequest, status, string(body))
 			assert.Contains(t, string(body), "needs created_after")

@@ -131,3 +131,29 @@ INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integratio
 ```
 
 Then `make test-unit` once before review.
+
+## As built
+
+Where the code differs from the sections above, or settles what they left open.
+
+- **Files**: `MessageFilter`, `RequireBound`, `ParseMessageCountQuery`, `Filter()`, `setFilter`,
+  `MessageCounts` and the `MessageOrigin*` values are in `internal/domain/message_filter.go`
+  (tests in `message_filter_test.go`, with the `source` cases of `inboundWebhookEvents.list`);
+  `MessageListParams` and its two interface methods stay in `message_history.go`. The
+  repository tests of `applyMessageFilters` and `CountMessages` are in
+  `message_filter_postgres_test.go`, the service tests in
+  `message_history_count_service_test.go`, the handler tests in
+  `message_history_count_handler_test.go`.
+- **`automation_id`**: merged from server part 4 into `MessageFilter`; it counts as an indexed
+  filter for `messages.count` (`idx_message_history_automation_id`).
+- **Origin `other`**: `automation_id IS NULL AND broadcast_id IS NULL AND
+  transactional_notification_id IS NULL` (the query builder sorts the columns). The analytics
+  `origin` dimension of part 1 counts these messages as `transactional`; the list filter keeps
+  the four values of the spec.
+- **Accepted sources**: `domain.WebhookSources`; a test parses `inbound_webhook_event.go` and
+  checks that the slice holds every `WebhookSource` constant declared there.
+- **Integration**: `TestLogsFilters` (from the other thread's fix) gains two subtests: incoming
+  webhooks by provider, and messages by origin and creation period with `messages.count`
+  (every status count different and non-zero, each equal to the list it filters, a message
+  outside the window, `broadcast_id` or `automation_id` alone accepted, no bound refused).
+  The origin and `created_before` conditions were each removed once to see the test fail.

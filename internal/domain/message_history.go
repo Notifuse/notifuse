@@ -282,6 +282,7 @@ type MessageListParams struct {
 	Channel        string `json:"channel,omitempty"`         // email, sms, push, etc.
 	ContactEmail   string `json:"contact_email,omitempty"`   // filter by contact
 	BroadcastID    string `json:"broadcast_id,omitempty"`    // filter by broadcast
+	AutomationID   string `json:"automation_id,omitempty"`   // filter by automation
 	TemplateID     string `json:"template_id,omitempty"`     // filter by template
 	ClickedURL     string `json:"clicked_url,omitempty"`     // filter by a link clicked, exact URL as clicked_links holds it (requires broadcast_id)
 	IsSent         *bool  `json:"is_sent,omitempty"`         // filter messages that are sent

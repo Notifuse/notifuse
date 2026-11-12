@@ -750,6 +750,10 @@ func applyMessageFilters(queryBuilder sq.SelectBuilder, params domain.MessageFil
 		queryBuilder = queryBuilder.Where(sq.Eq{"broadcast_id": params.BroadcastID})
 	}
 
+	if params.AutomationID != "" {
+		queryBuilder = queryBuilder.Where(sq.Eq{"automation_id": params.AutomationID})
+	}
+
 	if params.TransactionalNotificationID != "" {
 		queryBuilder = queryBuilder.Where(sq.Eq{"transactional_notification_id": params.TransactionalNotificationID})
 	}

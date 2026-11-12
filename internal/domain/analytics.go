@@ -238,6 +238,12 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "broadcast_id",
 				Description: "Associated broadcast ID",
 			},
+			"automation_id": {
+				Type:        "string",
+				Title:       "Automation ID",
+				SQL:         "automation_id",
+				Description: "Automation that sent the message",
+			},
 			"channel": {
 				Type:        "string",
 				Title:       "Channel",

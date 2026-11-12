@@ -31,6 +31,7 @@ type MessageFilter struct {
 	Channel        string `json:"channel,omitempty"`
 	ContactEmail   string `json:"contact_email,omitempty"`
 	BroadcastID    string `json:"broadcast_id,omitempty"`
+	AutomationID   string `json:"automation_id,omitempty"`
 	TemplateID     string `json:"template_id,omitempty"`
 	ClickedURL     string `json:"clicked_url,omitempty"`
 	IsSent         *bool  `json:"is_sent,omitempty"`
@@ -62,6 +63,7 @@ func (f *MessageFilter) FromQuery(query url.Values) error {
 	f.Channel = query.Get("channel")
 	f.ContactEmail = query.Get("contact_email")
 	f.BroadcastID = query.Get("broadcast_id")
+	f.AutomationID = query.Get("automation_id")
 	f.TransactionalNotificationID = query.Get("transactional_notification_id")
 	f.TemplateID = query.Get("template_id")
 	f.ClickedURL = query.Get("clicked_url")
@@ -161,7 +163,7 @@ func (f MessageFilter) RequireBound() error {
 	if f.CreatedAfter != nil {
 		return nil
 	}
-	for _, indexed := range []string{f.ID, f.ContactEmail, f.BroadcastID, f.TransactionalNotificationID, f.TemplateID} {
+	for _, indexed := range []string{f.ID, f.ContactEmail, f.BroadcastID, f.AutomationID, f.TransactionalNotificationID, f.TemplateID} {
 		if indexed != "" {
 			return nil
 		}
@@ -194,6 +196,7 @@ func (p MessageListParams) Filter() MessageFilter {
 		Channel:                     p.Channel,
 		ContactEmail:                p.ContactEmail,
 		BroadcastID:                 p.BroadcastID,
+		AutomationID:                p.AutomationID,
 		TemplateID:                  p.TemplateID,
 		ClickedURL:                  p.ClickedURL,
 		IsSent:                      p.IsSent,
@@ -223,6 +226,7 @@ func (p *MessageListParams) setFilter(f MessageFilter) {
 	p.Channel = f.Channel
 	p.ContactEmail = f.ContactEmail
 	p.BroadcastID = f.BroadcastID
+	p.AutomationID = f.AutomationID
 	p.TemplateID = f.TemplateID
 	p.ClickedURL = f.ClickedURL
 	p.IsSent = f.IsSent

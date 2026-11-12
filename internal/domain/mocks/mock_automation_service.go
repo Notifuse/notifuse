@@ -7,6 +7,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	domain "github.com/Notifuse/notifuse/internal/domain"
 	gomock "github.com/golang/mock/gomock"
@@ -47,6 +48,21 @@ func (m *MockAutomationService) Activate(arg0 context.Context, arg1, arg2 string
 func (mr *MockAutomationServiceMockRecorder) Activate(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Activate", reflect.TypeOf((*MockAutomationService)(nil).Activate), arg0, arg1, arg2)
+}
+
+// CountJourneys mocks base method.
+func (m *MockAutomationService) CountJourneys(arg0 context.Context, arg1 string, arg2 []string) (map[string]domain.JourneyCounts, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountJourneys", arg0, arg1, arg2)
+	ret0, _ := ret[0].(map[string]domain.JourneyCounts)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountJourneys indicates an expected call of CountJourneys.
+func (mr *MockAutomationServiceMockRecorder) CountJourneys(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountJourneys", reflect.TypeOf((*MockAutomationService)(nil).CountJourneys), arg0, arg1, arg2)
 }
 
 // Create mocks base method.
@@ -106,6 +122,21 @@ func (m *MockAutomationService) GetContactNodeExecutions(arg0 context.Context, a
 func (mr *MockAutomationServiceMockRecorder) GetContactNodeExecutions(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContactNodeExecutions", reflect.TypeOf((*MockAutomationService)(nil).GetContactNodeExecutions), arg0, arg1, arg2, arg3)
+}
+
+// GetNodeStats mocks base method.
+func (m *MockAutomationService) GetNodeStats(arg0 context.Context, arg1, arg2 string, arg3, arg4 *time.Time) (*domain.NodeStatsResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNodeStats", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(*domain.NodeStatsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNodeStats indicates an expected call of GetNodeStats.
+func (mr *MockAutomationServiceMockRecorder) GetNodeStats(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeStats", reflect.TypeOf((*MockAutomationService)(nil).GetNodeStats), arg0, arg1, arg2, arg3, arg4)
 }
 
 // List mocks base method.

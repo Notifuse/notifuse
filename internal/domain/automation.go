@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -254,16 +255,6 @@ type AutomationStats struct {
 	Completed int64 `json:"completed"`
 	Exited    int64 `json:"exited"`
 	Failed    int64 `json:"failed"`
-}
-
-// AutomationNodeStats holds statistics for a single automation node
-type AutomationNodeStats struct {
-	NodeID    string `json:"node_id"`
-	NodeType  string `json:"node_type"`
-	Entered   int64  `json:"entered"`
-	Completed int64  `json:"completed"`
-	Failed    int64  `json:"failed"`
-	Skipped   int64  `json:"skipped"`
 }
 
 // Automation represents an email marketing automation workflow
@@ -942,6 +933,15 @@ type AutomationRepository interface {
 	UpdateAutomationStats(ctx context.Context, workspaceID, automationID string, stats *AutomationStats) error
 	UpdateAutomationStatsTx(ctx context.Context, tx *sql.Tx, workspaceID, automationID string, stats *AutomationStats) error
 	IncrementAutomationStat(ctx context.Context, workspaceID, automationID, statName string) error
+
+	// Results
+	// CountJourneysByStatus counts the journeys of each automation by status, keyed by
+	// automation ID. An automation without journey is absent.
+	CountJourneysByStatus(ctx context.Context, workspaceID string, automationIDs []string) (map[string]JourneyCounts, error)
+	// GetNodeStats reads the results of each step of an automation that executions
+	// reached, the period bounding the time executions entered their step (both nil: all
+	// time). The email counters are read only when withEmail.
+	GetNodeStats(ctx context.Context, workspaceID, automationID string, since, until *time.Time, withEmail bool) (*NodeStatsRaw, error)
 }
 
 //go:generate mockgen -destination mocks/mock_automation_service.go -package mocks github.com/Notifuse/notifuse/internal/domain AutomationService
@@ -961,6 +961,13 @@ type AutomationService interface {
 
 	// Node executions/debugging
 	GetContactNodeExecutions(ctx context.Context, workspaceID, automationID, email string) (*ContactAutomation, []*NodeExecution, error)
+
+	// Results
+	// CountJourneys counts the journeys of each automation by status, with zeros for an
+	// automation without journey.
+	CountJourneys(ctx context.Context, workspaceID string, automationIDs []string) (map[string]JourneyCounts, error)
+	// GetNodeStats returns the results of every step of the automation's graph.
+	GetNodeStats(ctx context.Context, workspaceID, automationID string, since, until *time.Time) (*NodeStatsResponse, error)
 }
 
 // HTTP Request/Response types for automation API
@@ -1045,6 +1052,8 @@ type ListAutomationsRequest struct {
 	ListID      string             `json:"list_id,omitempty"`
 	Limit       int                `json:"limit,omitempty"`
 	Offset      int                `json:"offset,omitempty"`
+	// WithJourneyCounts adds the journey counts of each listed automation to the response.
+	WithJourneyCounts bool `json:"with_journey_counts,omitempty"`
 }
 
 // FromURLParams parses the request from URL parameters
@@ -1070,6 +1079,13 @@ func (r *ListAutomationsRequest) FromURLParams(params map[string][]string) error
 		var offset int
 		_, _ = fmt.Sscanf(v[0], "%d", &offset)
 		r.Offset = offset
+	}
+	if v, ok := params["with_journey_counts"]; ok && len(v) > 0 && v[0] != "" {
+		withCounts, err := strconv.ParseBool(v[0])
+		if err != nil {
+			return fmt.Errorf("invalid with_journey_counts parameter: must be true or false")
+		}
+		r.WithJourneyCounts = withCounts
 	}
 	return r.Validate()
 }

@@ -37,6 +37,21 @@ func (m *MockAutomationRepository) EXPECT() *MockAutomationRepositoryMockRecorde
 	return m.recorder
 }
 
+// CountJourneysByStatus mocks base method.
+func (m *MockAutomationRepository) CountJourneysByStatus(arg0 context.Context, arg1 string, arg2 []string) (map[string]domain.JourneyCounts, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountJourneysByStatus", arg0, arg1, arg2)
+	ret0, _ := ret[0].(map[string]domain.JourneyCounts)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountJourneysByStatus indicates an expected call of CountJourneysByStatus.
+func (mr *MockAutomationRepositoryMockRecorder) CountJourneysByStatus(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountJourneysByStatus", reflect.TypeOf((*MockAutomationRepository)(nil).CountJourneysByStatus), arg0, arg1, arg2)
+}
+
 // Create mocks base method.
 func (m *MockAutomationRepository) Create(arg0 context.Context, arg1 string, arg2 *domain.Automation) error {
 	m.ctrl.T.Helper()
@@ -266,6 +281,21 @@ func (m *MockAutomationRepository) GetNodeExecutions(arg0 context.Context, arg1,
 func (mr *MockAutomationRepositoryMockRecorder) GetNodeExecutions(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeExecutions", reflect.TypeOf((*MockAutomationRepository)(nil).GetNodeExecutions), arg0, arg1, arg2)
+}
+
+// GetNodeStats mocks base method.
+func (m *MockAutomationRepository) GetNodeStats(arg0 context.Context, arg1, arg2 string, arg3, arg4 *time.Time, arg5 bool) (*domain.NodeStatsRaw, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNodeStats", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret0, _ := ret[0].(*domain.NodeStatsRaw)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNodeStats indicates an expected call of GetNodeStats.
+func (mr *MockAutomationRepositoryMockRecorder) GetNodeStats(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeStats", reflect.TypeOf((*MockAutomationRepository)(nil).GetNodeStats), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
 // GetScheduledContactAutomations mocks base method.
