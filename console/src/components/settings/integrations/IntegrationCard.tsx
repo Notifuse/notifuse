@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Tooltip } from 'antd'
 
 export interface IntegrationCardProps {
-  /** The provider's logo, shown in a 28px tile. */
+  /** The provider's logo, in a 28px-high tile that widens for a wordmark. */
   icon: ReactNode
   title: ReactNode
   /** On the title: the integration id, as before. */
@@ -40,7 +40,7 @@ export function IntegrationCard({
     >
       <div className="flex items-start justify-between gap-3 px-3.5 py-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-md border border-line-soft bg-surface">
+          <span className="flex h-7 min-w-7 max-w-[88px] shrink-0 items-center justify-center overflow-hidden rounded-md border border-line-soft bg-surface px-1 [&_img]:max-h-4 [&_img]:max-w-full [&_img]:object-contain">
             {icon}
           </span>
           <div className="flex min-w-0 flex-col">
