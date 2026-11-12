@@ -60,12 +60,17 @@ const makeBroadcast = (overrides: Partial<Broadcast> = {}): Broadcast =>
     ...overrides
   }) as unknown as Broadcast
 
-const renderModal = (broadcast: Broadcast, disabled = false) => {
+const renderModal = (broadcast: Broadcast, disabled = false, canReadTemplates = true) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
       <AntApp>
-        <ChangeVariationSenderModal workspace={workspace} broadcast={broadcast} disabled={disabled} />
+        <ChangeVariationSenderModal
+          workspace={workspace}
+          broadcast={broadcast}
+          disabled={disabled}
+          canReadTemplates={canReadTemplates}
+        />
       </AntApp>
     </QueryClientProvider>
   )
@@ -127,6 +132,16 @@ describe('ChangeVariationSenderModal', () => {
       { variation_name: 'A', template_id: 'tmpl-a', sender_id: 's2', metrics: undefined },
       { variation_name: 'B', template_id: 'tmpl-b', sender_id: 's1', metrics: undefined }
     ])
+  })
+
+  it('requests no template without Templates read', async () => {
+    const { templatesApi } = await import('../../services/api/template')
+    renderModal(makeBroadcast(), false, false)
+    await userEvent.click(screen.getByRole('button', { name: 'Change sender' }))
+
+    expect(await screen.findByText('Sender of variation A')).toBeInTheDocument()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(templatesApi.list).not.toHaveBeenCalled()
   })
 
   it('numbers unnamed variations, as the console saves them', async () => {

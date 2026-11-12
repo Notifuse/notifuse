@@ -1,6 +1,7 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { App, ConfigProvider } from 'antd'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { I18nProvider } from '@lingui/react'
@@ -126,6 +127,39 @@ describe('TemplateSelectorInput without Templates read', () => {
     expect(templatesApi.list).not.toHaveBeenCalled()
     expect(templatesApi.get).not.toHaveBeenCalled()
     expect(onChange).not.toHaveBeenCalled()
+  })
+
+  // The lock says why the field is locked, wherever the selector is used: most callers have no
+  // room or no extra of their own for it.
+  it('explains with a lock why the stored template is not shown', async () => {
+    renderSelector('supabase_magiclink_000001')
+
+    const lock = screen.getByLabelText(
+      "You need Templates read permission to see this template's name and preview"
+    )
+    await userEvent.hover(lock)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      "You need Templates read permission to see this template's name and preview"
+    )
+  })
+
+  it('explains with a lock why no template can be chosen', async () => {
+    renderSelector(null)
+
+    expect(screen.getByPlaceholderText('Select a template')).toBeDisabled()
+    const lock = screen.getByLabelText('You need Templates read permission to choose a template')
+    await userEvent.hover(lock)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'You need Templates read permission to choose a template'
+    )
+  })
+
+  it('shows no lock once the permission is granted', async () => {
+    const { grant } = renderSelector('tpl-a')
+    grant()
+
+    expect(await screen.findByDisplayValue('Template A')).toBeInTheDocument()
+    expect(screen.queryByLabelText(/You need Templates read permission/)).toBeNull()
   })
 
   it('resolves the template once the permission is granted', async () => {

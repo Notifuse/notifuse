@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Input, Drawer, List, Empty, Spin, Button, Space } from 'antd'
-import { EyeOutlined, SearchOutlined, PlusOutlined } from '@ant-design/icons'
+import { Input, Drawer, List, Empty, Spin, Button, Space, Tooltip } from 'antd'
+import { EyeOutlined, SearchOutlined, PlusOutlined, LockOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { templatesApi } from '../../services/api/template'
 import type { Template, Workspace } from '../../services/api/types'
@@ -27,7 +27,8 @@ interface TemplateSelectorInputProps {
   disabled?: boolean
   size?: 'small' | 'middle' | 'large'
   // Without Templates read, templates.list and templates.get answer 403: the field then shows
-  // the stored template ID, requests nothing and cannot be changed. Defaults to true.
+  // the stored template ID, requests nothing, cannot be changed, and a lock says why. Defaults
+  // to true.
   canReadTemplates?: boolean
 }
 
@@ -150,6 +151,10 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
     return <div>{t`Loading...`}</div>
   }
 
+  const lockHint = value
+    ? t`You need Templates read permission to see this template's name and preview`
+    : t`You need Templates read permission to choose a template`
+
   return (
     <>
       <Space.Compact style={{ width: '100%' }}>
@@ -164,6 +169,13 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
             onChange?.(null)
           }}
           allowClear={clearable && canReadTemplates}
+          suffix={
+            canReadTemplates ? undefined : (
+              <Tooltip title={lockHint}>
+                <LockOutlined aria-label={lockHint} />
+              </Tooltip>
+            )
+          }
           size={size}
           style={{ flex: 1 }}
         />

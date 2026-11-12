@@ -21,6 +21,8 @@ const state = vi.hoisted(() => {
     // admit (e.g. `contact_lists: null`), and those shapes are what the null-join
     // tests below exercise.
     contacts: [] as { email: string; [key: string]: unknown }[],
+    // Null means every permission; a test that needs fewer sets its own.
+    permissions: null as Record<string, { read: boolean; write: boolean }> | null,
     mockWorkspace: {
       id: 'test-workspace',
       name: 'Test Workspace',
@@ -62,7 +64,7 @@ vi.mock('../contexts/AuthContext', () => ({
     refreshWorkspaces: vi.fn()
   }),
   useWorkspacePermissions: () => ({
-    permissions: createFullPermissions(),
+    permissions: state.permissions ?? createFullPermissions(),
     loading: false
   })
 }))
@@ -84,6 +86,11 @@ vi.mock('../components/contacts/ContactDetailsDrawer', () => ({
 }))
 vi.mock('../components/contacts/ExportContactsModal', () => ({
   ExportContactsModal: () => null
+}))
+vi.mock('../components/contacts/SegmentsFilter', () => ({
+  SegmentsFilter: ({ canReadTemplates }: { canReadTemplates: boolean }) => (
+    <span data-testid="segments-filter" data-can-read-templates={String(canReadTemplates)} />
+  )
 }))
 
 vi.mock('../services/api/contacts', () => ({
@@ -149,6 +156,7 @@ async function deleteViaRowMenu(email: string) {
 describe('ContactsPage row delete and bulk selection', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    state.permissions = null
     state.contacts = [state.makeContact('alice@example.com'), state.makeContact('bob@example.com')]
   })
 
@@ -230,6 +238,7 @@ describe('ContactsPage row delete and bulk selection', () => {
 describe('ContactsPage Lists column with an empty contact_lists join', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    state.permissions = null
     // `ContactLists` is declared without `omitempty` in internal/domain/contact.go,
     // so a contact whose list join produced no rows arrives as `"contact_lists": null`.
     // Older payloads (and any handler that skips the join) omit the key entirely.
@@ -307,5 +316,25 @@ describe('ContactsPage Lists column with an empty contact_lists join', () => {
     expect(screen.getByText('absentjoin@example.com')).toBeInTheDocument()
     expect(screen.getByText('haslists@example.com')).toBeInTheDocument()
     expect(screen.queryByText('Something went wrong!')).toBeNull()
+  })
+})
+
+// Without Templates read, templates.list answers 403: the segment drawers get the permission so
+// their email conditions name templates by ID, locked.
+describe('ContactsPage segments without Templates read', () => {
+  beforeEach(() => {
+    state.contacts = []
+  })
+
+  it.each([
+    { read: false, passed: 'false' },
+    { read: true, passed: 'true' }
+  ])('passes Templates read $read to the segments', async ({ read, passed }) => {
+    state.permissions = { ...createFullPermissions(), templates: { read, write: false } }
+    render(<ContactsPage />, { wrapper: createWrapper() })
+
+    expect((await screen.findByTestId('segments-filter')).getAttribute('data-can-read-templates')).toBe(
+      passed
+    )
   })
 })

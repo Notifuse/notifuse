@@ -13,13 +13,16 @@ interface EmailConfigFormProps {
   onChange: (config: EmailNodeConfig) => void
   workspaceId: string
   workspace: Workspace
+  // Without Templates read the template field shows the stored ID, locked. Defaults to true.
+  canReadTemplates?: boolean
 }
 
 export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
   config,
   onChange,
   workspaceId,
-  workspace
+  workspace,
+  canReadTemplates = true
 }) => {
   const { t } = useLingui()
 
@@ -72,6 +75,7 @@ export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
           onChange={handleTemplateChange}
           workspaceId={workspaceId}
           placeholder={t`Select email template...`}
+          canReadTemplates={canReadTemplates}
         />
       </Form.Item>
 

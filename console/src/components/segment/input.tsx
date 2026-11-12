@@ -57,6 +57,9 @@ export type TreeNodeInputProps = {
   schemas: SegmentSchemas
   lists?: List[]
   workspaceId?: string
+  // Without Templates read, templates.list and templates.get answer 403: an email condition then
+  // names its template by ID, and its template field is locked. Defaults to true.
+  canReadTemplates?: boolean
   customFieldLabels?: Record<string, string>
   // Reports the tree as it would stand if the condition currently open in the form were confirmed,
   // and undefined once no condition is open. Lets the drawer preview an in-progress condition.
@@ -112,7 +115,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
   const { data: templatesData } = useQuery({
     queryKey: ['templates', props.workspaceId],
     queryFn: () => templatesApi.list({ workspace_id: props.workspaceId!, channel: 'email' }),
-    enabled: !!props.workspaceId,
+    enabled: !!props.workspaceId && props.canReadTemplates !== false,
   })
 
   const cascaderOptions = useMemo(() => {
@@ -547,6 +550,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               cancelOrDeleteNode={cancelOrDeleteNode.bind(null, path, pathKey)}
               customFieldLabels={props.customFieldLabels}
               workspaceId={props.workspaceId}
+              canReadTemplates={props.canReadTemplates}
             />
           )}
         </div>

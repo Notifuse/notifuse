@@ -19,8 +19,9 @@ vi.mock('@xyflow/react', () => ({
 // populated by AutomationsPage's templates query; EmailNode resolves the
 // selected template_id against it to display the template name on the canvas.
 let mockTemplates: Template[] = []
+let mockCanReadTemplates = true
 vi.mock('../context', () => ({
-  useAutomation: () => ({ templates: mockTemplates })
+  useAutomation: () => ({ templates: mockTemplates, canReadTemplates: mockCanReadTemplates })
 }))
 
 const makeTemplate = (id: string, name: string, category: string): Template =>
@@ -57,6 +58,18 @@ describe('EmailNode', () => {
     renderNode({ template_id: 'missing-id' })
 
     expect(screen.getByText('Template set')).toBeInTheDocument()
+  })
+
+  // Without Templates read the page does not list the templates: the node names its template by
+  // ID rather than the bare "Template set".
+  it("shows the template's ID without Templates read", () => {
+    mockTemplates = []
+    mockCanReadTemplates = false
+    renderNode({ template_id: 'welcome-pdf' })
+    mockCanReadTemplates = true
+
+    expect(screen.getByText('welcome-pdf')).toBeInTheDocument()
+    expect(screen.queryByText('Template set')).not.toBeInTheDocument()
   })
 
   it('prompts to select when no template is configured', () => {

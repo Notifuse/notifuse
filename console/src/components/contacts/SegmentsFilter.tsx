@@ -13,6 +13,8 @@ interface SegmentsFilterProps {
   selectedSegmentIds?: string[]
   totalContacts?: number
   onSegmentToggle: (segmentId: string) => void
+  // Without Templates read the segment drawers name email conditions' templates by ID, locked.
+  canReadTemplates: boolean
 }
 
 // Separate component for each segment button to handle individual task fetching
@@ -24,6 +26,7 @@ interface SegmentButtonProps {
   onToggle: () => void
   onDelete: (segmentId: string) => void
   onRebuild: (segmentId: string) => void
+  canReadTemplates: boolean
 }
 
 function SegmentButton({
@@ -33,7 +36,8 @@ function SegmentButton({
   totalContacts,
   onToggle,
   onDelete,
-  onRebuild
+  onRebuild,
+  canReadTemplates
 }: SegmentButtonProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
@@ -131,6 +135,7 @@ function SegmentButton({
                 <ButtonUpsertSegment
                   segment={segment}
                   totalContacts={totalContacts}
+                  canReadTemplates={canReadTemplates}
                   onSuccess={() => {
                     queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })
                   }}
@@ -188,7 +193,8 @@ export function SegmentsFilter({
   segments,
   selectedSegmentIds = [],
   totalContacts,
-  onSegmentToggle
+  onSegmentToggle,
+  canReadTemplates
 }: SegmentsFilterProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
@@ -242,6 +248,7 @@ export function SegmentsFilter({
               onToggle={() => onSegmentToggle(segment.id)}
               onDelete={(segmentId) => deleteSegmentMutation.mutate(segmentId)}
               onRebuild={(segmentId) => rebuildSegmentMutation.mutate(segmentId)}
+              canReadTemplates={canReadTemplates}
             />
           )
         })}
@@ -249,6 +256,7 @@ export function SegmentsFilter({
           btnType="primary"
           btnSize="small"
           totalContacts={totalContacts}
+          canReadTemplates={canReadTemplates}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })
           }}

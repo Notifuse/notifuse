@@ -1103,6 +1103,7 @@ export function ContactsPage() {
       {/* Segments */}
       <SegmentsFilter
         workspaceId={workspaceId}
+        canReadTemplates={!!permissions?.templates?.read}
         segments={segmentsData?.segments || []}
         selectedSegmentIds={search.segments}
         totalContacts={totalContactsData?.total_contacts}

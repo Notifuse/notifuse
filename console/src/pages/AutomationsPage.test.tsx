@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
@@ -24,15 +24,21 @@ vi.mock('@tanstack/react-router', () => ({
   useParams: () => ({ workspaceId: 'ws1' })
 }))
 
+const state = vi.hoisted(() => ({
+  permissions: {} as Record<string, { read: boolean; write: boolean }>
+}))
+
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({ workspaces: [{ id: 'ws1', name: 'Workspace' }] }),
-  useWorkspacePermissions: () => ({ permissions: { automations: { write: true } } })
+  useWorkspacePermissions: () => ({ permissions: state.permissions })
 }))
 
 // Keep the page render shallow — these children are exercised by their own tests.
 vi.mock('../components/automations/AutomationCard', () => ({ AutomationCard: () => null }))
 vi.mock('../components/automations/UpsertAutomationDrawer', () => ({
-  UpsertAutomationDrawer: () => null
+  UpsertAutomationDrawer: ({ canReadTemplates }: { canReadTemplates: boolean }) => (
+    <span data-testid="automation-drawer" data-can-read-templates={String(canReadTemplates)} />
+  )
 }))
 
 const templatesList = vi.fn().mockResolvedValue({ templates: [] })
@@ -66,7 +72,13 @@ const renderPage = () => {
 }
 
 describe('AutomationsPage template reference query', () => {
-  beforeEach(() => templatesList.mockClear())
+  beforeEach(() => {
+    templatesList.mockClear()
+    state.permissions = {
+      automations: { read: true, write: true },
+      templates: { read: true, write: false }
+    }
+  })
 
   it('fetches all email templates (no category filter) so email nodes resolve any selected template', async () => {
     // The automation email-node picker (EmailConfigForm -> TemplateSelectorInput)
@@ -86,5 +98,34 @@ describe('AutomationsPage template reference query', () => {
     expect(params.workspace_id).toBe('ws1')
     expect(params.channel).toBe('email')
     expect(params.category).toBeUndefined()
+  })
+})
+
+// Without Templates read, templates.list answers 403: the page does not request it, so the canvas
+// names templates by ID, and the drawers lock their template fields.
+describe('AutomationsPage without Templates read', () => {
+  beforeEach(() => templatesList.mockClear())
+
+  const drawerFlags = () =>
+    screen.getAllByTestId('automation-drawer').map((el) => el.getAttribute('data-can-read-templates'))
+
+  it('requests no template and passes the permission to the drawers', async () => {
+    state.permissions = { automations: { read: true, write: true } }
+    renderPage()
+
+    expect(new Set(drawerFlags())).toEqual(new Set(['false']))
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(templatesList).not.toHaveBeenCalled()
+  })
+
+  it('requests the templates and passes the permission with Templates read', async () => {
+    state.permissions = {
+      automations: { read: true, write: true },
+      templates: { read: true, write: false }
+    }
+    renderPage()
+
+    await waitFor(() => expect(templatesList).toHaveBeenCalled())
+    expect(new Set(drawerFlags())).toEqual(new Set(['true']))
   })
 })

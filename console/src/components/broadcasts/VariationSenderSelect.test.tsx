@@ -32,6 +32,7 @@ const renderSelect = (props: {
   onChange?: (v?: string) => void
   templateId?: string
   ws?: Workspace
+  canReadTemplates?: boolean
 }) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
@@ -41,6 +42,7 @@ const renderSelect = (props: {
         value={props.value}
         onChange={props.onChange}
         templateId={props.templateId}
+        canReadTemplates={props.canReadTemplates}
       />
     </QueryClientProvider>
   )
@@ -101,5 +103,27 @@ describe('VariationSenderSelect', () => {
   it('is disabled without a marketing integration', async () => {
     renderSelect({ ws: { id: 'ws1', settings: {} } as unknown as Workspace })
     await waitFor(() => expect(screen.getByRole('combobox')).toBeDisabled())
+  })
+})
+
+// Without Templates read, templates.list answers 403: the template's sender cannot be known, so
+// the field requests nothing and still offers every sender.
+describe('VariationSenderSelect without Templates read', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(templatesApi.list as Mock).mockResolvedValue({
+      templates: [{ id: 'tmpl1', email: { sender_id: 's2' } }]
+    })
+  })
+
+  it("offers the senders without requesting the template or tagging the template's", async () => {
+    renderSelect({ templateId: 'tmpl1', canReadTemplates: false })
+
+    expect(screen.getByText("Template's sender")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('combobox'))
+    expect(await screen.findByText('Newsletter <news@example.com>')).toBeInTheDocument()
+    expect(screen.getByText('Promos <promos@example.com>')).toBeInTheDocument()
+    expect(screen.queryByText("template's")).toBeNull()
+    expect(templatesApi.list).not.toHaveBeenCalled()
   })
 })
