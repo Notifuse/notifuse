@@ -424,6 +424,8 @@ describe('TemplatesPage', () => {
 
     expect(await screen.findByText('This template is still used')).toBeInTheDocument()
     expect(screen.getByText('Weekly 0')).toBeInTheDocument()
+    // The status of each broadcast, translated rather than the server's value
+    expect(screen.getByText('Weekly 0').parentElement).toHaveTextContent('Weekly 0Draft')
     expect(screen.queryByText('Weekly 5')).not.toBeInTheDocument()
     expect(screen.getByText('and 2 more')).toBeInTheDocument()
     expect(screen.getByText('Customers')).toBeInTheDocument()
@@ -444,6 +446,21 @@ describe('TemplatesPage', () => {
       await screen.findByText('Some uses may be hidden by your permissions.')
     ).toBeInTheDocument()
     expect(screen.queryByText('This template is still used')).not.toBeInTheDocument()
+  })
+
+  // An older server, or a proxy that strips empty fields, can leave the lists out.
+  it('reads a usage answer without its usage map or hidden types', async () => {
+    vi.mocked(templatesApi.usage).mockResolvedValue({} as GetTemplateUsageResponse)
+    renderPage()
+    await screen.findByText('Newsletter')
+    expect(await screen.findAllByText('Not used')).not.toHaveLength(0)
+
+    fireEvent.click(within(await openMenu('Newsletter')).getByText('Delete'))
+    expect(
+      await screen.findByText('Are you sure you want to delete this template?')
+    ).toBeInTheDocument()
+    expect(screen.queryByText('This template is still used')).not.toBeInTheDocument()
+    expect(screen.queryByText("Couldn't check where this template is used")).not.toBeInTheDocument()
   })
 
   it('still deletes when the uses could not be checked', async () => {

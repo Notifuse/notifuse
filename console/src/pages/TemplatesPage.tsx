@@ -256,7 +256,7 @@ export function TemplatesPage() {
   const timezone = workspace?.settings.timezone
   const fullDate = (date: string) => dayjs(date).tz(timezone).format('llll')
 
-  const hiddenUsage = (usageQuery.data?.hidden_types.length ?? 0) > 0
+  const hiddenUsage = (usageQuery.data?.hidden_types?.length ?? 0) > 0
 
   const menuItems = (template: Template): MenuProps['items'] => [
     {
@@ -312,7 +312,7 @@ export function TemplatesPage() {
         </Tooltip>
       )
     }
-    const summary = summarizeUsage(usageQuery.data.usage[template.id])
+    const summary = summarizeUsage(usageQuery.data.usage?.[template.id])
     if (!summary.label) return <span className="text-ink-4">{t`Not used`}</span>
     return summary.details.length > 1 ? (
       <Tooltip

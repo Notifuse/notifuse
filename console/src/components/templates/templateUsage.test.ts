@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { i18n } from '@lingui/core'
-import { summarizeUsage, groupReferences } from './templateUsage'
+import { summarizeUsage, groupReferences, referenceStatusLabel } from './templateUsage'
 import type { TemplateUsageReference } from '../../services/api/template'
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
@@ -62,5 +62,24 @@ describe('groupReferences', () => {
 
   it('leaves out a type without references', () => {
     expect(groupReferences([], { broadcasts: 0 }, 5)).toEqual([])
+  })
+})
+
+describe('referenceStatusLabel', () => {
+  it.each([
+    ['draft', 'Draft'],
+    ['scheduled', 'Scheduled'],
+    ['processing', 'Sending'],
+    ['paused', 'Paused'],
+    ['testing', 'Testing'],
+    ['test_completed', 'Test completed'],
+    ['winner_selected', 'Winner selected'],
+    ['live', 'Live']
+  ])('labels the status %s', (status, label) => {
+    expect(referenceStatusLabel(status, i18n)).toBe(label)
+  })
+
+  it('shows a status it does not know as the server sent it', () => {
+    expect(referenceStatusLabel('archived', i18n)).toBe('archived')
   })
 })

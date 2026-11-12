@@ -5,7 +5,7 @@ import { useLingui } from '@lingui/react/macro'
 import { templatesApi, type TemplateUsageType } from '../../services/api/template'
 import type { Template } from '../../services/api/types'
 import { Pill } from '../layout'
-import { groupReferences } from './templateUsage'
+import { groupReferences, referenceStatusLabel } from './templateUsage'
 
 /** References shown per type before "and {n} more". */
 const SHOWN_PER_TYPE = 5
@@ -30,7 +30,7 @@ export function DeleteTemplateModal({
   onConfirm,
   onCancel
 }: DeleteTemplateModalProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const usageQuery = useQuery({
     queryKey: ['templates-usage', workspaceId, template?.id],
     queryFn: () => templatesApi.usage({ workspace_id: workspaceId, template_id: template?.id }),
@@ -58,9 +58,9 @@ export function DeleteTemplateModal({
       )
     }
     const data = usageQuery.data
-    const counts = template ? data.usage[template.id] : undefined
+    const counts = template ? data.usage?.[template.id] : undefined
     const groups = groupReferences(data.references ?? [], counts, SHOWN_PER_TYPE)
-    const hidden = data.hidden_types.length > 0
+    const hidden = (data.hidden_types?.length ?? 0) > 0
     return (
       <div className="flex flex-col gap-2">
         {groups.length > 0 ? (
@@ -79,7 +79,7 @@ export function DeleteTemplateModal({
                           <span>{item.name}</span>
                           {item.status ? (
                             <Pill tone="neutral" dot={false}>
-                              {item.status}
+                              {referenceStatusLabel(item.status, i18n)}
                             </Pill>
                           ) : null}
                         </li>

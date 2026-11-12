@@ -1,4 +1,5 @@
-import { plural } from '@lingui/core/macro'
+import { msg, plural } from '@lingui/core/macro'
+import type { I18n, MessageDescriptor } from '@lingui/core'
 import {
   TEMPLATE_USAGE_TYPES,
   type TemplateUsageCounts,
@@ -73,4 +74,24 @@ export function groupReferences(
     const total = Math.max(counts?.[type] ?? 0, all.length)
     return [{ type, items, more: total - items.length }]
   })
+}
+
+// The statuses templates.usage sends: broadcasts that may still send, and automations.
+const REFERENCE_STATUS_LABELS: Record<string, MessageDescriptor> = {
+  draft: msg`Draft`,
+  scheduled: msg`Scheduled`,
+  processing: msg`Sending`,
+  paused: msg`Paused`,
+  testing: msg`Testing`,
+  test_completed: msg`Test completed`,
+  winner_selected: msg`Winner selected`,
+  live: msg`Live`
+}
+
+/** The status of a referencing broadcast or automation, translated; an unknown one as sent. */
+export function referenceStatusLabel(status: string, i18n: I18n): string {
+  const label = Object.prototype.hasOwnProperty.call(REFERENCE_STATUS_LABELS, status)
+    ? REFERENCE_STATUS_LABELS[status]
+    : undefined
+  return label ? i18n._(label) : status
 }
