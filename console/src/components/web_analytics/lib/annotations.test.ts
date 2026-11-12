@@ -36,8 +36,8 @@ function hasNoLoneSurrogate(value: string): boolean {
 describe('bucketIndexForAnnotation', () => {
   it('separates repeated hour labels by returning distinct indices', () => {
     // 48 hourly buckets over two days: both annotations sit at 03:00, which
-    // formatXAxisLabel renders as "3am" for either. Keying by label would
-    // resolve both to the last "3am" category.
+    // formatXAxisLabel renders as "3:00 AM" for either. Keying by label would
+    // resolve both to the last "3:00 AM" category.
     const series = buckets('2026-08-14T00:00:00Z', 48, 'hour')
 
     expect(

@@ -1352,7 +1352,7 @@ msgid "Action"
 msgstr "Acció"
 
 #: src/components/automations/nodeTypes.ts:42
-#: src/components/blog/RecentThemesTable.tsx:179
+#: src/components/blog/RecentThemesTable.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:225
 #: src/components/settings/WorkspaceMembers.tsx:227
 #: src/components/transactional/TransactionalTable.tsx:217
@@ -2287,7 +2287,7 @@ msgid "Are you sure you want to disable the blog? All SEO settings and blog visi
 msgstr "Esteu segur que voleu desactivar el blog? Es perdran tots els paràmetres SEO i la visibilitat del blog. Aquesta acció no es pot desfer."
 
 #. placeholder {0}: theme.version
-#: src/components/blog/RecentThemesTable.tsx:93
+#: src/components/blog/RecentThemesTable.tsx:86
 msgid "Are you sure you want to publish theme v{0}? This will make it live on your blog."
 msgstr "Esteu segur que voleu publicar el tema v{0}? Això el farà visible al vostre blog."
 
@@ -2914,7 +2914,7 @@ msgstr "Blog"
 msgid "Blog categories, posts and themes, plus the workspace-level blog configuration."
 msgstr "Categories, publicacions i temes del blog, més la configuració del blog a escala d'espai de treball."
 
-#: src/components/blog/RecentThemesTable.tsx:77
+#: src/components/blog/RecentThemesTable.tsx:70
 msgid "Blog custom endpoint URL is not configured"
 msgstr "L'URL del punt final personalitzat del blog no està configurat"
 
@@ -3403,7 +3403,7 @@ msgstr "Campanyes"
 #: src/components/blog/PostDrawer.tsx:682
 #: src/components/blog/PostsTable.tsx:207
 #: src/components/blog/PublishModal.tsx:205
-#: src/components/blog/RecentThemesTable.tsx:102
+#: src/components/blog/RecentThemesTable.tsx:95
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
@@ -4975,7 +4975,7 @@ msgstr "Crear clau API"
 #~ msgid "Create Broadcast"
 #~ msgstr "Crear difusió"
 
-#: src/components/blog/RecentThemesTable.tsx:213
+#: src/components/blog/RecentThemesTable.tsx:206
 msgid "Create First Theme"
 msgstr "Crear primer tema"
 
@@ -6635,7 +6635,7 @@ msgstr "Editeu l'assumpte a la plantilla"
 msgid "Edit the template"
 msgstr "Edita la plantilla"
 
-#: src/components/blog/RecentThemesTable.tsx:186
+#: src/components/blog/RecentThemesTable.tsx:179
 msgid "Edit theme"
 msgstr "Editar tema"
 
@@ -7917,7 +7917,7 @@ msgstr "No s'ha pogut processar el fitxer {0}"
 msgid "Failed to publish post"
 msgstr "No s'ha pogut publicar la publicació"
 
-#: src/components/blog/RecentThemesTable.tsx:58
+#: src/components/blog/RecentThemesTable.tsx:51
 msgid "Failed to publish theme"
 msgstr "No s'ha pogut publicar el tema"
 
@@ -9910,7 +9910,7 @@ msgstr "Darrer canvi"
 msgid "Last changed {changedAt} from {changedFrom}"
 msgstr "Darrer canvi {changedAt} des de {changedFrom}"
 
-#: src/components/blog/RecentThemesTable.tsx:165
+#: src/components/blog/RecentThemesTable.tsx:158
 msgid "Last Edited"
 msgstr "Última edició"
 
@@ -10347,7 +10347,7 @@ msgid "Lists write also grants contact writing. Subscribing an address through `
 msgstr "L'escriptura de Llistes també concedeix l'escriptura de contactes. Subscriure una adreça mitjançant `/api/lists.subscribe` crea o sobreescriu el registre sencer d'aquell contacte, amb tots els camps que porti la sol·licitud i sense necessitat d'escriptura de Contactes — de manera que qualsevol que només tingui escriptura de Llistes pot reescriure igualment dades de contactes. També pot subscriure algú a una llista que no és pública. La lectura tampoc no es limita a la configuració de la llista: mitjançant /api/contactLists.* llista les adreces dels membres d'una llista, i per això aquests dos endpoints requereixen a més la lectura de Contactes."
 
 #: src/components/automations/AutomationStatusPill.tsx:11
-#: src/components/blog/RecentThemesTable.tsx:128
+#: src/components/blog/RecentThemesTable.tsx:121
 #: src/components/templates/templateUsage.ts:88
 #: src/components/web_analytics/LiveButton.tsx:46
 #: src/layouts/app-shell/menuItems.ts:167
@@ -11231,7 +11231,7 @@ msgstr "Els nous enviaments d'aquests elements continuaran utilitzant la plantil
 msgid "New template"
 msgstr "Plantilla nova"
 
-#: src/components/blog/RecentThemesTable.tsx:249
+#: src/components/blog/RecentThemesTable.tsx:242
 msgid "New Theme"
 msgstr "Nou tema"
 
@@ -11459,7 +11459,7 @@ msgid "No custom field is named yet"
 msgstr "Encara no hi ha cap camp personalitzat amb nom"
 
 #: src/components/web_analytics/DimensionTableWidget.tsx:283
-#: src/components/web_analytics/TrafficHeatmapWidget.tsx:226
+#: src/components/web_analytics/TrafficHeatmapWidget.tsx:228
 msgid "No data available"
 msgstr "No hi ha dades disponibles"
 
@@ -11634,7 +11634,7 @@ msgstr "Sense nom"
 #~ msgid "No nodes in this automation"
 #~ msgstr "No hi ha nodes a aquesta automatització"
 
-#: src/components/blog/RecentThemesTable.tsx:156
+#: src/components/blog/RecentThemesTable.tsx:149
 msgid "No notes"
 msgstr "Sense notes"
 
@@ -11830,7 +11830,7 @@ msgstr "Cap plantilla coincideix amb la vostra cerca"
 msgid "No text version: this email will be sent as HTML only."
 msgstr "Sense versió de text: aquest correu s'enviarà només en HTML."
 
-#: src/components/blog/RecentThemesTable.tsx:211
+#: src/components/blog/RecentThemesTable.tsx:204
 msgid "No themes yet"
 msgstr "Encara no hi ha temes"
 
@@ -12048,7 +12048,7 @@ msgstr "Nota: La plantilla s'amagarà del vostre espai de treball però es prese
 msgid "Note: This might be caused by an incorrectly structured MJML file. HTML content inside mj-raw should be stored as text content, not as child elements."
 msgstr "Nota: Això pot ser causat per un fitxer MJML estructurat incorrectament. El contingut HTML dins de mj-raw s'ha d'emmagatzemar com a contingut de text, no com a elements fills."
 
-#: src/components/blog/RecentThemesTable.tsx:151
+#: src/components/blog/RecentThemesTable.tsx:144
 msgid "Notes"
 msgstr "Notes"
 
@@ -13426,7 +13426,7 @@ msgstr "Configuració del text de vista prèvia"
 msgid "Preview text will appear here..."
 msgstr "El text de vista prèvia apareixerà aquí..."
 
-#: src/components/blog/RecentThemesTable.tsx:194
+#: src/components/blog/RecentThemesTable.tsx:187
 msgid "Preview this theme in a new tab"
 msgstr "Previsualitza aquest tema en una nova pestanya"
 
@@ -13614,8 +13614,8 @@ msgstr "Publicació"
 
 #: src/components/blog/PostsTable.tsx:225
 #: src/components/blog/PublishModal.tsx:207
-#: src/components/blog/RecentThemesTable.tsx:100
-#: src/components/blog/RecentThemesTable.tsx:144
+#: src/components/blog/RecentThemesTable.tsx:93
+#: src/components/blog/RecentThemesTable.tsx:137
 msgid "Publish"
 msgstr "Publicar"
 
@@ -13632,11 +13632,11 @@ msgstr "Publicar ara"
 msgid "Publish Post"
 msgstr "Publicar publicació"
 
-#: src/components/blog/RecentThemesTable.tsx:88
+#: src/components/blog/RecentThemesTable.tsx:81
 msgid "Publish Theme"
 msgstr "Publicar tema"
 
-#: src/components/blog/RecentThemesTable.tsx:135
+#: src/components/blog/RecentThemesTable.tsx:128
 msgid "Publish this theme"
 msgstr "Publicar aquest tema"
 
@@ -16139,7 +16139,7 @@ msgid "Show less"
 msgstr "Mostra'n menys"
 
 #. placeholder {0}: totalCount - limit
-#: src/components/blog/RecentThemesTable.tsx:264
+#: src/components/blog/RecentThemesTable.tsx:257
 msgid "Show More ({0} remaining)"
 msgstr "Mostrar més ({0} restants)"
 
@@ -16604,7 +16604,7 @@ msgstr "Les estadístiques apareixen quan la difusió comença a enviar-se"
 
 #: src/components/automations/list/AutomationsTable.tsx:114
 #: src/components/blog/PostsTable.tsx:306
-#: src/components/blog/RecentThemesTable.tsx:122
+#: src/components/blog/RecentThemesTable.tsx:115
 #: src/components/broadcasts/BroadcastsTable.tsx:209
 #: src/components/broadcasts/detail/BroadcastAside.tsx:241
 #: src/components/messages/MessageHistoryTab.tsx:573
@@ -17452,7 +17452,7 @@ msgstr "El fitxer CSV ha de tenir capçaleres a la primera fila."
 msgid "The current date range, filters and session threshold"
 msgstr "L'interval de dates actual, els filtres i el llindar de sessió"
 
-#: src/components/blog/RecentThemesTable.tsx:96
+#: src/components/blog/RecentThemesTable.tsx:89
 msgid "The currently published theme will be unpublished automatically."
 msgstr "El tema publicat actualment es despublicarà automàticament."
 
@@ -17730,7 +17730,7 @@ msgstr "Tema"
 msgid "Theme created successfully"
 msgstr "Tema creat correctament"
 
-#: src/components/blog/RecentThemesTable.tsx:54
+#: src/components/blog/RecentThemesTable.tsx:47
 msgid "Theme published successfully"
 msgstr "Tema publicat correctament"
 
@@ -17738,7 +17738,7 @@ msgstr "Tema publicat correctament"
 msgid "Theme updated successfully"
 msgstr "Tema actualitzat correctament"
 
-#: src/components/blog/RecentThemesTable.tsx:242
+#: src/components/blog/RecentThemesTable.tsx:235
 msgid "Theme Versions"
 msgstr "Versions del tema"
 
@@ -19321,7 +19321,7 @@ msgstr "Verificar codi"
 msgid "Verifying invitation..."
 msgstr "Verificant invitació..."
 
-#: src/components/blog/RecentThemesTable.tsx:113
+#: src/components/blog/RecentThemesTable.tsx:106
 msgid "Version"
 msgstr "Versió"
 

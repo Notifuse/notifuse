@@ -1352,7 +1352,7 @@ msgid "Action"
 msgstr "Acao"
 
 #: src/components/automations/nodeTypes.ts:42
-#: src/components/blog/RecentThemesTable.tsx:179
+#: src/components/blog/RecentThemesTable.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:225
 #: src/components/settings/WorkspaceMembers.tsx:227
 #: src/components/transactional/TransactionalTable.tsx:217
@@ -2287,7 +2287,7 @@ msgid "Are you sure you want to disable the blog? All SEO settings and blog visi
 msgstr "Tem certeza que deseja desabilitar o blog? Todas as configurações de SEO e visibilidade do blog serão perdidas. Esta ação não pode ser desfeita."
 
 #. placeholder {0}: theme.version
-#: src/components/blog/RecentThemesTable.tsx:93
+#: src/components/blog/RecentThemesTable.tsx:86
 msgid "Are you sure you want to publish theme v{0}? This will make it live on your blog."
 msgstr "Tem certeza que deseja publicar o tema v{0}? Isso o tornará ativo no seu blog."
 
@@ -2914,7 +2914,7 @@ msgstr "Blog"
 msgid "Blog categories, posts and themes, plus the workspace-level blog configuration."
 msgstr "Categorias, posts e temas do blog, além da configuração do blog no nível do workspace."
 
-#: src/components/blog/RecentThemesTable.tsx:77
+#: src/components/blog/RecentThemesTable.tsx:70
 msgid "Blog custom endpoint URL is not configured"
 msgstr "URL do endpoint personalizado do blog nao esta configurada"
 
@@ -3403,7 +3403,7 @@ msgstr "Campanhas"
 #: src/components/blog/PostDrawer.tsx:682
 #: src/components/blog/PostsTable.tsx:207
 #: src/components/blog/PublishModal.tsx:205
-#: src/components/blog/RecentThemesTable.tsx:102
+#: src/components/blog/RecentThemesTable.tsx:95
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
@@ -4975,7 +4975,7 @@ msgstr "Criar Chave API"
 #~ msgid "Create Broadcast"
 #~ msgstr "Criar Broadcast"
 
-#: src/components/blog/RecentThemesTable.tsx:213
+#: src/components/blog/RecentThemesTable.tsx:206
 msgid "Create First Theme"
 msgstr "Criar Primeiro Tema"
 
@@ -6635,7 +6635,7 @@ msgstr "Editar o assunto no template"
 msgid "Edit the template"
 msgstr "Editar o template"
 
-#: src/components/blog/RecentThemesTable.tsx:186
+#: src/components/blog/RecentThemesTable.tsx:179
 msgid "Edit theme"
 msgstr "Editar tema"
 
@@ -7917,7 +7917,7 @@ msgstr "Falha ao processar arquivo {0}"
 msgid "Failed to publish post"
 msgstr "Falha ao publicar post"
 
-#: src/components/blog/RecentThemesTable.tsx:58
+#: src/components/blog/RecentThemesTable.tsx:51
 msgid "Failed to publish theme"
 msgstr "Falha ao publicar tema"
 
@@ -9910,7 +9910,7 @@ msgstr "Última alteração"
 msgid "Last changed {changedAt} from {changedFrom}"
 msgstr "Última alteração {changedAt} via {changedFrom}"
 
-#: src/components/blog/RecentThemesTable.tsx:165
+#: src/components/blog/RecentThemesTable.tsx:158
 msgid "Last Edited"
 msgstr "Última Edição"
 
@@ -10347,7 +10347,7 @@ msgid "Lists write also grants contact writing. Subscribing an address through `
 msgstr "A escrita de Listas também concede escrita de contatos. Inscrever um endereço através de `/api/lists.subscribe` cria ou sobrescreve o registro inteiro daquele contato, com todos os campos que a requisição carregar e sem exigir escrita de Contatos — então qualquer pessoa que tenha apenas escrita de Listas ainda consegue reescrever dados de contato. Ela também pode inscrever alguém em uma lista que não é pública. A leitura também não se limita às configurações da lista: através de /api/contactLists.* ela lista os endereços dos membros de uma lista, e é por isso que esses dois endpoints exigem adicionalmente leitura de Contatos."
 
 #: src/components/automations/AutomationStatusPill.tsx:11
-#: src/components/blog/RecentThemesTable.tsx:128
+#: src/components/blog/RecentThemesTable.tsx:121
 #: src/components/templates/templateUsage.ts:88
 #: src/components/web_analytics/LiveButton.tsx:46
 #: src/layouts/app-shell/menuItems.ts:167
@@ -11231,7 +11231,7 @@ msgstr "Os novos envios desses itens continuarão usando o modelo excluído até
 msgid "New template"
 msgstr "Novo modelo"
 
-#: src/components/blog/RecentThemesTable.tsx:249
+#: src/components/blog/RecentThemesTable.tsx:242
 msgid "New Theme"
 msgstr "Novo Tema"
 
@@ -11459,7 +11459,7 @@ msgid "No custom field is named yet"
 msgstr "Nenhum campo personalizado foi nomeado ainda"
 
 #: src/components/web_analytics/DimensionTableWidget.tsx:283
-#: src/components/web_analytics/TrafficHeatmapWidget.tsx:226
+#: src/components/web_analytics/TrafficHeatmapWidget.tsx:228
 msgid "No data available"
 msgstr "Nenhum dado disponível"
 
@@ -11634,7 +11634,7 @@ msgstr "Sem nome"
 #~ msgid "No nodes in this automation"
 #~ msgstr "Nenhum nó nesta automação"
 
-#: src/components/blog/RecentThemesTable.tsx:156
+#: src/components/blog/RecentThemesTable.tsx:149
 msgid "No notes"
 msgstr "Sem notas"
 
@@ -11830,7 +11830,7 @@ msgstr "Nenhum template corresponde à sua busca"
 msgid "No text version: this email will be sent as HTML only."
 msgstr "Sem versão em texto: este email será enviado apenas em HTML."
 
-#: src/components/blog/RecentThemesTable.tsx:211
+#: src/components/blog/RecentThemesTable.tsx:204
 msgid "No themes yet"
 msgstr "Nenhum tema ainda"
 
@@ -12048,7 +12048,7 @@ msgstr "Nota: O template será ocultado do seu workspace mas preservado para man
 msgid "Note: This might be caused by an incorrectly structured MJML file. HTML content inside mj-raw should be stored as text content, not as child elements."
 msgstr "Nota: Isso pode ser causado por um arquivo MJML estruturado incorretamente. Conteúdo HTML dentro de mj-raw deve ser armazenado como conteúdo de texto, não como elementos filhos."
 
-#: src/components/blog/RecentThemesTable.tsx:151
+#: src/components/blog/RecentThemesTable.tsx:144
 msgid "Notes"
 msgstr "Notas"
 
@@ -13426,7 +13426,7 @@ msgstr "Configuracoes do texto de visualizacao"
 msgid "Preview text will appear here..."
 msgstr "O texto de visualizacao aparecera aqui..."
 
-#: src/components/blog/RecentThemesTable.tsx:194
+#: src/components/blog/RecentThemesTable.tsx:187
 msgid "Preview this theme in a new tab"
 msgstr "Visualizar este tema em uma nova aba"
 
@@ -13614,8 +13614,8 @@ msgstr "Publicacao"
 
 #: src/components/blog/PostsTable.tsx:225
 #: src/components/blog/PublishModal.tsx:207
-#: src/components/blog/RecentThemesTable.tsx:100
-#: src/components/blog/RecentThemesTable.tsx:144
+#: src/components/blog/RecentThemesTable.tsx:93
+#: src/components/blog/RecentThemesTable.tsx:137
 msgid "Publish"
 msgstr "Publicar"
 
@@ -13632,11 +13632,11 @@ msgstr "Publicar agora"
 msgid "Publish Post"
 msgstr "Publicar post"
 
-#: src/components/blog/RecentThemesTable.tsx:88
+#: src/components/blog/RecentThemesTable.tsx:81
 msgid "Publish Theme"
 msgstr "Publicar tema"
 
-#: src/components/blog/RecentThemesTable.tsx:135
+#: src/components/blog/RecentThemesTable.tsx:128
 msgid "Publish this theme"
 msgstr "Publicar este tema"
 
@@ -16139,7 +16139,7 @@ msgid "Show less"
 msgstr "Mostrar menos"
 
 #. placeholder {0}: totalCount - limit
-#: src/components/blog/RecentThemesTable.tsx:264
+#: src/components/blog/RecentThemesTable.tsx:257
 msgid "Show More ({0} remaining)"
 msgstr "Mostrar Mais ({0} restantes)"
 
@@ -16604,7 +16604,7 @@ msgstr "As estatísticas aparecem quando o broadcast começa a ser enviado"
 
 #: src/components/automations/list/AutomationsTable.tsx:114
 #: src/components/blog/PostsTable.tsx:306
-#: src/components/blog/RecentThemesTable.tsx:122
+#: src/components/blog/RecentThemesTable.tsx:115
 #: src/components/broadcasts/BroadcastsTable.tsx:209
 #: src/components/broadcasts/detail/BroadcastAside.tsx:241
 #: src/components/messages/MessageHistoryTab.tsx:573
@@ -17452,7 +17452,7 @@ msgstr "O arquivo CSV deve ter cabeçalhos na primeira linha."
 msgid "The current date range, filters and session threshold"
 msgstr "O intervalo de datas, os filtros e o limite de sessão atuais"
 
-#: src/components/blog/RecentThemesTable.tsx:96
+#: src/components/blog/RecentThemesTable.tsx:89
 msgid "The currently published theme will be unpublished automatically."
 msgstr "O tema atualmente publicado será despublicado automaticamente."
 
@@ -17730,7 +17730,7 @@ msgstr "Tema"
 msgid "Theme created successfully"
 msgstr "Tema criado com sucesso"
 
-#: src/components/blog/RecentThemesTable.tsx:54
+#: src/components/blog/RecentThemesTable.tsx:47
 msgid "Theme published successfully"
 msgstr "Tema publicado com sucesso"
 
@@ -17738,7 +17738,7 @@ msgstr "Tema publicado com sucesso"
 msgid "Theme updated successfully"
 msgstr "Tema atualizado com sucesso"
 
-#: src/components/blog/RecentThemesTable.tsx:242
+#: src/components/blog/RecentThemesTable.tsx:235
 msgid "Theme Versions"
 msgstr "Versões do Tema"
 
@@ -19321,7 +19321,7 @@ msgstr "Verificar Código"
 msgid "Verifying invitation..."
 msgstr "Verificando convite..."
 
-#: src/components/blog/RecentThemesTable.tsx:113
+#: src/components/blog/RecentThemesTable.tsx:106
 msgid "Version"
 msgstr "Versão"
 

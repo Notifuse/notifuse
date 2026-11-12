@@ -1352,7 +1352,7 @@ msgid "Action"
 msgstr "アクション"
 
 #: src/components/automations/nodeTypes.ts:42
-#: src/components/blog/RecentThemesTable.tsx:179
+#: src/components/blog/RecentThemesTable.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:225
 #: src/components/settings/WorkspaceMembers.tsx:227
 #: src/components/transactional/TransactionalTable.tsx:217
@@ -2287,7 +2287,7 @@ msgid "Are you sure you want to disable the blog? All SEO settings and blog visi
 msgstr "ブログを無効にしますか?すべてのSEO設定とブログの表示設定が失われます。この操作は元に戻せません。"
 
 #. placeholder {0}: theme.version
-#: src/components/blog/RecentThemesTable.tsx:93
+#: src/components/blog/RecentThemesTable.tsx:86
 msgid "Are you sure you want to publish theme v{0}? This will make it live on your blog."
 msgstr "テーマv{0}を公開しますか?これによりブログで公開されます。"
 
@@ -2914,7 +2914,7 @@ msgstr "ブログ"
 msgid "Blog categories, posts and themes, plus the workspace-level blog configuration."
 msgstr "ブログのカテゴリ、投稿、テーマ、およびワークスペースレベルのブログ設定。"
 
-#: src/components/blog/RecentThemesTable.tsx:77
+#: src/components/blog/RecentThemesTable.tsx:70
 msgid "Blog custom endpoint URL is not configured"
 msgstr "ブログカスタムエンドポイントURLが設定されていません"
 
@@ -3403,7 +3403,7 @@ msgstr "キャンペーン"
 #: src/components/blog/PostDrawer.tsx:682
 #: src/components/blog/PostsTable.tsx:207
 #: src/components/blog/PublishModal.tsx:205
-#: src/components/blog/RecentThemesTable.tsx:102
+#: src/components/blog/RecentThemesTable.tsx:95
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
@@ -4975,7 +4975,7 @@ msgstr "APIキーを作成"
 #~ msgid "Create Broadcast"
 #~ msgstr "ブロードキャストを作成"
 
-#: src/components/blog/RecentThemesTable.tsx:213
+#: src/components/blog/RecentThemesTable.tsx:206
 msgid "Create First Theme"
 msgstr "最初のテーマを作成"
 
@@ -6635,7 +6635,7 @@ msgstr "テンプレートで件名を編集"
 msgid "Edit the template"
 msgstr "テンプレートを編集"
 
-#: src/components/blog/RecentThemesTable.tsx:186
+#: src/components/blog/RecentThemesTable.tsx:179
 msgid "Edit theme"
 msgstr "テーマを編集"
 
@@ -7917,7 +7917,7 @@ msgstr "ファイル{0}の処理に失敗しました"
 msgid "Failed to publish post"
 msgstr "投稿の公開に失敗しました"
 
-#: src/components/blog/RecentThemesTable.tsx:58
+#: src/components/blog/RecentThemesTable.tsx:51
 msgid "Failed to publish theme"
 msgstr "テーマの公開に失敗しました"
 
@@ -9910,7 +9910,7 @@ msgstr "最終変更"
 msgid "Last changed {changedAt} from {changedFrom}"
 msgstr "最終変更 {changedAt}（{changedFrom}）"
 
-#: src/components/blog/RecentThemesTable.tsx:165
+#: src/components/blog/RecentThemesTable.tsx:158
 msgid "Last Edited"
 msgstr "最終編集"
 
@@ -10347,7 +10347,7 @@ msgid "Lists write also grants contact writing. Subscribing an address through `
 msgstr "リストの書き込みは、コンタクトの書き込みも付与します。`/api/lists.subscribe` でアドレスを購読させると、そのコンタクトのレコード全体が、リクエストが含むすべてのフィールドとともに、コンタクトの書き込みなしで作成または上書きされます — つまりリストの書き込みしか持たない人でも、コンタクトのデータを書き換えられます。公開されていないリストに誰かを購読させることも可能です。読み取りもリストの設定に限られません: /api/contactLists.* を通じてリストのメンバーのアドレスを一覧表示できます。これら2つのエンドポイントが追加でコンタクトの読み取りを必要とするのはそのためです。"
 
 #: src/components/automations/AutomationStatusPill.tsx:11
-#: src/components/blog/RecentThemesTable.tsx:128
+#: src/components/blog/RecentThemesTable.tsx:121
 #: src/components/templates/templateUsage.ts:88
 #: src/components/web_analytics/LiveButton.tsx:46
 #: src/layouts/app-shell/menuItems.ts:167
@@ -11231,7 +11231,7 @@ msgstr "これらの項目からの新しい送信は、別のテンプレート
 msgid "New template"
 msgstr "新規テンプレート"
 
-#: src/components/blog/RecentThemesTable.tsx:249
+#: src/components/blog/RecentThemesTable.tsx:242
 msgid "New Theme"
 msgstr "新規テーマ"
 
@@ -11459,7 +11459,7 @@ msgid "No custom field is named yet"
 msgstr "名前の付いたカスタムフィールドはまだありません"
 
 #: src/components/web_analytics/DimensionTableWidget.tsx:283
-#: src/components/web_analytics/TrafficHeatmapWidget.tsx:226
+#: src/components/web_analytics/TrafficHeatmapWidget.tsx:228
 msgid "No data available"
 msgstr "データがありません"
 
@@ -11634,7 +11634,7 @@ msgstr "名前なし"
 #~ msgid "No nodes in this automation"
 #~ msgstr "このオートメーションにノードがありません"
 
-#: src/components/blog/RecentThemesTable.tsx:156
+#: src/components/blog/RecentThemesTable.tsx:149
 msgid "No notes"
 msgstr "メモなし"
 
@@ -11830,7 +11830,7 @@ msgstr "検索に一致するテンプレートはありません"
 msgid "No text version: this email will be sent as HTML only."
 msgstr "テキスト版はありません。このメールはHTMLのみで送信されます。"
 
-#: src/components/blog/RecentThemesTable.tsx:211
+#: src/components/blog/RecentThemesTable.tsx:204
 msgid "No themes yet"
 msgstr "テーマがまだありません"
 
@@ -12048,7 +12048,7 @@ msgstr "注意: テンプレートはワークスペースから非表示にな�
 msgid "Note: This might be caused by an incorrectly structured MJML file. HTML content inside mj-raw should be stored as text content, not as child elements."
 msgstr "注意: これは不正な構造のMJMLファイルが原因かもしれません。mj-raw内のHTMLコンテンツは子要素としてではなく、テキストコンテンツとして保存する必要があります。"
 
-#: src/components/blog/RecentThemesTable.tsx:151
+#: src/components/blog/RecentThemesTable.tsx:144
 msgid "Notes"
 msgstr "メモ"
 
@@ -13426,7 +13426,7 @@ msgstr "プレビューテキスト設定"
 msgid "Preview text will appear here..."
 msgstr "プレビューテキストがここに表示されます..."
 
-#: src/components/blog/RecentThemesTable.tsx:194
+#: src/components/blog/RecentThemesTable.tsx:187
 msgid "Preview this theme in a new tab"
 msgstr "新しいタブでこのテーマをプレビュー"
 
@@ -13614,8 +13614,8 @@ msgstr "公開"
 
 #: src/components/blog/PostsTable.tsx:225
 #: src/components/blog/PublishModal.tsx:207
-#: src/components/blog/RecentThemesTable.tsx:100
-#: src/components/blog/RecentThemesTable.tsx:144
+#: src/components/blog/RecentThemesTable.tsx:93
+#: src/components/blog/RecentThemesTable.tsx:137
 msgid "Publish"
 msgstr "公開"
 
@@ -13632,11 +13632,11 @@ msgstr "今すぐ公開"
 msgid "Publish Post"
 msgstr "記事を公開"
 
-#: src/components/blog/RecentThemesTable.tsx:88
+#: src/components/blog/RecentThemesTable.tsx:81
 msgid "Publish Theme"
 msgstr "テーマを公開"
 
-#: src/components/blog/RecentThemesTable.tsx:135
+#: src/components/blog/RecentThemesTable.tsx:128
 msgid "Publish this theme"
 msgstr "このテーマを公開"
 
@@ -16139,7 +16139,7 @@ msgid "Show less"
 msgstr "表示を減らす"
 
 #. placeholder {0}: totalCount - limit
-#: src/components/blog/RecentThemesTable.tsx:264
+#: src/components/blog/RecentThemesTable.tsx:257
 msgid "Show More ({0} remaining)"
 msgstr "もっと表示（残り{0}件）"
 
@@ -16604,7 +16604,7 @@ msgstr "ブロードキャストの送信が始まると統計が表示されま
 
 #: src/components/automations/list/AutomationsTable.tsx:114
 #: src/components/blog/PostsTable.tsx:306
-#: src/components/blog/RecentThemesTable.tsx:122
+#: src/components/blog/RecentThemesTable.tsx:115
 #: src/components/broadcasts/BroadcastsTable.tsx:209
 #: src/components/broadcasts/detail/BroadcastAside.tsx:241
 #: src/components/messages/MessageHistoryTab.tsx:573
@@ -17452,7 +17452,7 @@ msgstr "CSVファイルの1行目にはヘッダーが必要です。"
 msgid "The current date range, filters and session threshold"
 msgstr "現在の期間、フィルター、セッションのしきい値"
 
-#: src/components/blog/RecentThemesTable.tsx:96
+#: src/components/blog/RecentThemesTable.tsx:89
 msgid "The currently published theme will be unpublished automatically."
 msgstr "現在公開中のテーマは自動的に非公開になります。"
 
@@ -17730,7 +17730,7 @@ msgstr "テーマ"
 msgid "Theme created successfully"
 msgstr "テーマが正常に作成されました"
 
-#: src/components/blog/RecentThemesTable.tsx:54
+#: src/components/blog/RecentThemesTable.tsx:47
 msgid "Theme published successfully"
 msgstr "テーマが正常に公開されました"
 
@@ -17738,7 +17738,7 @@ msgstr "テーマが正常に公開されました"
 msgid "Theme updated successfully"
 msgstr "テーマが正常に更新されました"
 
-#: src/components/blog/RecentThemesTable.tsx:242
+#: src/components/blog/RecentThemesTable.tsx:235
 msgid "Theme Versions"
 msgstr "テーマバージョン"
 
@@ -19321,7 +19321,7 @@ msgstr "コードを確認"
 msgid "Verifying invitation..."
 msgstr "招待を確認中..."
 
-#: src/components/blog/RecentThemesTable.tsx:113
+#: src/components/blog/RecentThemesTable.tsx:106
 msgid "Version"
 msgstr "バージョン"
 

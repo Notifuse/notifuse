@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The file manager in the console shows your folders as a tree with their file counts, lists files as a table or a grid with their dimensions, and previews the selected file beside the list, with its own link. Files can be searched across folders. The file picker shows the chosen file's name, dimensions and size before you insert it.
 
-- **Improvement**: Most dates in the console follow its language: month and weekday names, "3 days ago" and the date pickers. Weeks start on Monday in French, Spanish, German, Catalan and Italian.
+- **Improvement**: Most dates in the console follow its language: month and weekday names, "3 days ago", the date pickers, and the web analytics charts, ranges and annotations. Weeks start on Monday in French, Spanish, German, Catalan and Italian.
 
 - **Fix**: In a contact's activity, the full date shown on hover is the time in the timezone it names (the contact's, else the workspace's), not in your browser's.
 

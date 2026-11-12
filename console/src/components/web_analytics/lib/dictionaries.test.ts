@@ -1,5 +1,24 @@
-import { describe, expect, it } from 'vitest'
-import { weekdayLabel } from './dictionaries'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@lingui/core'
+import { hourLabels, weekdayLabel } from './dictionaries'
+
+describe('hourLabels', () => {
+  afterEach(() => {
+    i18n.activate('en')
+  })
+
+  it('names the 24 hours of the day in the console language', () => {
+    const english = hourLabels()
+    expect(english).toHaveLength(24)
+    expect(english[0]).toBe('12:00 AM')
+    expect(english[23]).toBe('11:00 PM')
+
+    i18n.load('fr', {})
+    i18n.activate('fr')
+    expect(hourLabels()[0]).toBe('0:00')
+    expect(hourLabels()[23]).toBe('23:00')
+  })
+})
 
 describe('weekdayLabel', () => {
   it('maps ISODOW numbering, where Monday is 1 and Sunday is 7', () => {
@@ -48,7 +67,9 @@ describe('weekdayLabel', () => {
       process.env.TZ = 'America/Los_Angeles'
       expect(weekdayLabel(1, 'en')).toBe('Monday')
     } finally {
-      process.env.TZ = previous
+      // Assigning undefined would store the string "undefined", which Node then reads as a zone.
+      if (previous === undefined) delete process.env.TZ
+      else process.env.TZ = previous
     }
   })
 })
