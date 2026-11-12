@@ -67,6 +67,12 @@ describe('FullDrawer', () => {
     expect(screen.getByText('Pro plan')).toBeInTheDocument()
   })
 
+  it('puts a bar title in the bar, after the back button', () => {
+    renderDrawer({ barTitle: <span>November news</span> })
+    const bar = document.querySelector('[data-drawer-bar]')!
+    expect(bar).toContainElement(screen.getByText('November news'))
+  })
+
   it('draws no previous or next without nav', () => {
     renderDrawer()
     expect(screen.queryByRole('button', { name: 'Previous' })).toBeNull()
