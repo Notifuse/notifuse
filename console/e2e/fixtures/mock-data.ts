@@ -774,6 +774,16 @@ export const mockBlogPostsResponse = {
   total_count: 4
 }
 
+// blogPosts.counts of the mocked posts: none scheduled, two published, two drafts.
+export const mockBlogPostCounts = {
+  all_total: 4,
+  total: 4,
+  published: 2,
+  scheduled: 0,
+  draft: 2,
+  by_category: { 'cat-1': 1, 'cat-2': 2, 'cat-3': 1 }
+}
+
 export const mockEmptyBlogPosts = {
   posts: [],
   total_count: 0
