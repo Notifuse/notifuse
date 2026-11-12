@@ -621,7 +621,7 @@ msgstr "900 - Negre"
 msgid "A branch condition is required..."
 msgstr "Es requereix una condició de branca..."
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:343
 msgid "A brief description of this notification's purpose"
 msgstr "Una breu descripció del propòsit d'aquesta notificació"
 
@@ -1354,7 +1354,7 @@ msgid "API"
 msgstr "API"
 
 #: src/components/transactional/ApiCommandModal.tsx:976
-#: src/pages/TransactionalNotificationsPage.tsx:186
+#: src/pages/TransactionalNotificationsPage.tsx:188
 msgid "API Command"
 msgstr "Comanda API"
 
@@ -1369,11 +1369,11 @@ msgstr "Punt final API"
 msgid "API endpoint is required"
 msgstr "El punt final API és obligatori"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:290
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:294
 msgid "API Identifier"
 msgstr "Identificador API"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:300
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:304
 msgid "API identifier must be at most {TRANSACTIONAL_ID_MAX_LENGTH} characters long"
 msgstr "L'identificador API ha de tenir com a màxim {TRANSACTIONAL_ID_MAX_LENGTH} caràcters"
 
@@ -2239,7 +2239,7 @@ msgstr "Tipus de rebot"
 #: src/components/messages/MessageHistoryTab.tsx:170
 #: src/components/messages/MessageHistoryTable.tsx:360
 #: src/pages/ContactsPage.tsx:401
-#: src/pages/TransactionalNotificationsPage.tsx:256
+#: src/pages/TransactionalNotificationsPage.tsx:258
 msgid "Bounced"
 msgstr "Rebotat"
 
@@ -2555,7 +2555,7 @@ msgstr "Campanyes"
 #: src/components/templates/CreateTemplateDrawer.tsx:708
 #: src/components/templates/SendTemplateModal.tsx:303
 #: src/components/templates/TemplateTranslationsTab.tsx:329
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:180
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:184
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
 #: src/components/web_analytics/filters/BackfillStatus.tsx:87
@@ -2983,8 +2983,8 @@ msgstr "El Client Secret és obligatori"
 msgid "Client Secret Value"
 msgstr "Valor del Client Secret"
 
-#: src/components/templates/TemplateSelectorInput.tsx:231
-#: src/components/templates/TemplateSelectorInput.tsx:233
+#: src/components/templates/TemplateSelectorInput.tsx:236
+#: src/components/templates/TemplateSelectorInput.tsx:238
 msgid "Clone"
 msgstr "Clonar"
 
@@ -3694,7 +3694,7 @@ msgstr "Crear un informe personalitzat"
 msgid "Create a list"
 msgstr "Crear una llista"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:203
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:207
 msgid "Create a notification"
 msgstr "Crear una notificació"
 
@@ -3781,7 +3781,7 @@ msgid "Create my own"
 msgstr "Crear-ne un de propi"
 
 #. placeholder {0}: category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:270
+#: src/components/templates/TemplateSelectorInput.tsx:275
 msgid "Create New {0} Template"
 msgstr "Crear nova plantilla {0}"
 
@@ -3801,7 +3801,7 @@ msgstr "Crear nova llista"
 msgid "Create New Post"
 msgstr "Crear nova publicació"
 
-#: src/components/templates/TemplateSelectorInput.tsx:271
+#: src/components/templates/TemplateSelectorInput.tsx:276
 msgid "Create New Template"
 msgstr "Crear nova plantilla"
 
@@ -3815,8 +3815,8 @@ msgstr "Crear nou tema"
 msgid "Create New Theme - {0}"
 msgstr "Crear nou tema - {0}"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:199
-#: src/pages/TransactionalNotificationsPage.tsx:404
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:203
+#: src/pages/TransactionalNotificationsPage.tsx:407
 msgid "Create Notification"
 msgstr "Crear notificació"
 
@@ -3870,7 +3870,7 @@ msgstr "Creeu la vostra primera categoria"
 msgid "Create your first list to get started"
 msgstr "Creeu la vostra primera llista per començar"
 
-#: src/pages/TransactionalNotificationsPage.tsx:454
+#: src/pages/TransactionalNotificationsPage.tsx:457
 msgid "Create your first notification to get started"
 msgstr "Creeu la vostra primera notificació per començar"
 
@@ -4302,7 +4302,7 @@ msgstr "Per defecte és el meta títol"
 msgid "Defaults to SMTP host"
 msgstr "Per defecte, l'amfitrió SMTP"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:355
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:365
 msgid "Define UTM parameters for links in your email for better campaign tracking."
 msgstr "Definiu paràmetres UTM per als enllaços del vostre correu per a un millor seguiment de campanyes."
 
@@ -4606,7 +4606,7 @@ msgstr "Lliurat"
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:67
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:84
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:239
-#: src/pages/TransactionalNotificationsPage.tsx:222
+#: src/pages/TransactionalNotificationsPage.tsx:224
 msgid "Delivered"
 msgstr "Lliurat"
 
@@ -4642,10 +4642,10 @@ msgstr "Descriviu aquesta imatge..."
 #: src/components/automations/NodeConfigPanel.tsx:195
 #: src/components/blog/CategoryDrawer.tsx:155
 #: src/components/lists/ListDrawer.tsx:206
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:330
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:340
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
 #: src/pages/ListsPage.tsx:338
-#: src/pages/TransactionalNotificationsPage.tsx:271
+#: src/pages/TransactionalNotificationsPage.tsx:273
 msgid "Description"
 msgstr "Descripció"
 
@@ -4733,7 +4733,7 @@ msgstr "Desactivar webhook"
 msgid "Disabled"
 msgstr "Desactivat"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:349
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:359
 msgid "Disabled for this notification"
 msgstr "Desactivat per a aquesta notificació"
 
@@ -4938,11 +4938,11 @@ msgstr "p. ex. {0}"
 msgid "e.g. /pricing"
 msgstr "p. ex. /preus"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:391
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:401
 msgid "e.g. cta_button"
 msgstr "p. ex. cta_button"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:373
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:383
 msgid "e.g. email"
 msgstr "p. ex. email"
 
@@ -4950,7 +4950,7 @@ msgstr "p. ex. email"
 msgid "e.g. Marketing"
 msgstr "p. ex. Marketing"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:365
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:375
 msgid "e.g. notifuse"
 msgstr "p. ex. notifuse"
 
@@ -4958,11 +4958,11 @@ msgstr "p. ex. notifuse"
 msgid "e.g. order.has_image"
 msgstr "p. ex. order.has_image"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:281
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:285
 msgid "E.g. Password Reset Email"
 msgstr "P. ex. Correu de restabliment de contrasenya"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:305
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:309
 msgid "E.g. password_reset"
 msgstr "P. ex. password_reset"
 
@@ -4982,7 +4982,7 @@ msgstr "p. ex. sku"
 msgid "E.g. Weekly Newsletter - May 2023"
 msgstr "P. ex. Butlletí setmanal - Maig 2023"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:383
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:393
 msgid "e.g. welcome_series"
 msgstr "p. ex. welcome_series"
 
@@ -5167,11 +5167,11 @@ msgstr "Editar contingut Liquid"
 msgid "Edit List"
 msgstr "Editar llista"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:203
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:207
 msgid "Edit notification"
 msgstr "Editar notificació"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:199
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:203
 msgid "Edit Notification"
 msgstr "Editar notificació"
 
@@ -5408,7 +5408,7 @@ msgid "Email subject ({0})"
 msgstr "Assumpte del correu ({0})"
 
 #: src/components/automations/config/EmailConfigForm.tsx:66
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:314
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:318
 msgid "Email Template"
 msgstr "Plantilla de correu"
 
@@ -5807,7 +5807,7 @@ msgstr "Error en carregar les automatitzacions"
 #: src/components/messages/MessageHistoryTab.tsx:605
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:497
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:448
-#: src/pages/TransactionalNotificationsPage.tsx:378
+#: src/pages/TransactionalNotificationsPage.tsx:380
 msgid "Error loading data"
 msgstr "Error en carregar les dades"
 
@@ -6086,7 +6086,7 @@ msgstr "Fallat"
 #: src/pages/BroadcastsPage.tsx:456
 #: src/pages/BroadcastsPage.tsx:523
 #: src/pages/BroadcastsPage.tsx:1666
-#: src/pages/TransactionalNotificationsPage.tsx:239
+#: src/pages/TransactionalNotificationsPage.tsx:241
 msgid "Failed"
 msgstr "Fallat"
 
@@ -6165,7 +6165,7 @@ msgid "Failed to create list: {error}"
 msgstr "No s'ha pogut crear la llista: {error}"
 
 #. placeholder {0}: error.message
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:102
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:106
 msgid "Failed to create notification: {0}"
 msgstr "No s'ha pogut crear la notificació: {0}"
 
@@ -6225,7 +6225,7 @@ msgstr "No s'ha pogut eliminar la invitació"
 msgid "Failed to delete list"
 msgstr "No s'ha pogut eliminar la llista"
 
-#: src/pages/TransactionalNotificationsPage.tsx:361
+#: src/pages/TransactionalNotificationsPage.tsx:363
 msgid "Failed to delete notification"
 msgstr "No s'ha pogut eliminar la notificació"
 
@@ -6576,7 +6576,7 @@ msgid "Failed to update list: {error}"
 msgstr "No s'ha pogut actualitzar la llista: {error}"
 
 #. placeholder {0}: error.message
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:101
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:105
 msgid "Failed to update notification: {0}"
 msgstr "No s'ha pogut actualitzar la notificació: {0}"
 
@@ -6857,11 +6857,11 @@ msgstr "Nom de la carpeta"
 msgid "folder with all its content?"
 msgstr "carpeta amb tot el seu contingut?"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:344
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:354
 msgid "Follow workspace setting"
 msgstr "Seguir la configuració de l'espai de treball"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:340
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:350
 msgid "Following the workspace setting also respects each contact's tracking consent. Without open and click tracking, links keep their UTM parameters. When disabled, links are never rewritten: no tracking and no UTM parameters."
 msgstr "Seguir la configuració del workspace també respecta el consentiment de cada contacte. Sense seguiment d'obertures i clics, els enllaços conserven els paràmetres UTM. Desactivat, els enllaços no es reescriuen mai: ni seguiment ni paràmetres UTM."
 
@@ -7424,7 +7424,7 @@ msgstr "URL d'icona/favicon"
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:149
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:360
 #: src/pages/ListsPage.tsx:336
-#: src/pages/TransactionalNotificationsPage.tsx:269
+#: src/pages/TransactionalNotificationsPage.tsx:271
 msgid "ID"
 msgstr "ID"
 
@@ -7432,7 +7432,7 @@ msgstr "ID"
 msgid "ID can only contain lowercase letters and numbers"
 msgstr "L'ID només pot contenir lletres minúscules i números"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:296
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:300
 msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "L'ID només pot contenir lletres minúscules, números i guions baixos"
 
@@ -7485,19 +7485,19 @@ msgstr "ID: {segmentId}"
 msgid "ID: {webhookTemplateId}"
 msgstr "ID: {webhookTemplateId}"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:381
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:391
 msgid "Identifies a specific product promotion or strategic campaign"
 msgstr "Identifica una promoció de producte específica o campanya estratègica"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:389
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:399
 msgid "Identifies what specifically was clicked (e.g. header_link, body_link)"
 msgstr "Identifica què específicament s'ha clicat (p. ex. header_link, body_link)"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:371
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:381
 msgid "Identifies what type of link was used (e.g. email, cpc, banner)"
 msgstr "Identifica quin tipus d'enllaç s'ha utilitzat (p. ex. email, cpc, banner)"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:363
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:373
 msgid "Identifies which site sent the traffic (e.g. google, newsletter)"
 msgstr "Identifica quin lloc ha enviat el tràfic (p. ex. google, newsletter)"
 
@@ -8616,7 +8616,7 @@ msgstr "Carregant estat del webhook..."
 
 #: src/components/blog_editor/NotifuseEditor.tsx:480
 #: src/components/messages/MessageHistoryTab.tsx:612
-#: src/components/templates/TemplateSelectorInput.tsx:145
+#: src/components/templates/TemplateSelectorInput.tsx:150
 #: src/components/timeline/ContactTimeline.tsx:1122
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:504
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:455
@@ -8626,7 +8626,7 @@ msgstr "Carregant estat del webhook..."
 #: src/pages/ListsPage.tsx:218
 #: src/pages/LogsPage.tsx:29
 #: src/pages/TemplatesPage.tsx:203
-#: src/pages/TransactionalNotificationsPage.tsx:388
+#: src/pages/TransactionalNotificationsPage.tsx:390
 msgid "Loading..."
 msgstr "Carregant..."
 
@@ -9295,7 +9295,7 @@ msgstr "Propera execució"
 #: src/components/settings/WebhookCard.tsx:361
 #: src/components/settings/WorkspaceMembers.tsx:218
 #: src/components/settings/WorkspaceMembers.tsx:238
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:155
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:159
 #: src/components/web_analytics/filters/BackfillStatus.tsx:84
 #: src/components/web_analytics/filters/FilterTable.tsx:272
 #: src/pages/BroadcastsPage.tsx:731
@@ -9354,7 +9354,7 @@ msgstr "No hi ha dades de campanya"
 msgid "No categories yet"
 msgstr "Encara no hi ha categories"
 
-#: src/components/templates/TemplateSelectorInput.tsx:248
+#: src/components/templates/TemplateSelectorInput.tsx:253
 msgid "No category"
 msgstr "Sense categoria"
 
@@ -9545,7 +9545,7 @@ msgstr "Sense notes"
 msgid "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "No hi ha cap compte de Notifuse vinculat a aquesta identitat. Si us han convidat, obriu l'enllaç del correu d'invitació; si no, demaneu a un administrador que us convidi."
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:347
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:357
 msgid "No open or click tracking, keep UTM parameters"
 msgstr "Sense seguiment d'obertures ni clics, conservar UTM"
 
@@ -9643,13 +9643,13 @@ msgstr "No hi ha dades de font"
 msgid "No specific details provided."
 msgstr "No s'han proporcionat detalls específics."
 
-#: src/components/templates/TemplateSelectorInput.tsx:258
+#: src/components/templates/TemplateSelectorInput.tsx:263
 #: src/pages/TemplatesPage.tsx:455
 msgid "No templates found"
 msgstr "No s'han trobat plantilles"
 
 #. placeholder {0}: category.replace('_', ' ')
-#: src/components/templates/TemplateSelectorInput.tsx:257
+#: src/components/templates/TemplateSelectorInput.tsx:262
 msgid "No templates found for {0} category"
 msgstr "No s'han trobat plantilles per a la categoria {0}"
 
@@ -9678,7 +9678,7 @@ msgstr "No s'han trobat esdeveniments de cronologia per a aquest contacte"
 msgid "No traffic in the last 24 hours"
 msgstr "No hi ha trànsit en les darreres 24 hores"
 
-#: src/pages/TransactionalNotificationsPage.tsx:452
+#: src/pages/TransactionalNotificationsPage.tsx:455
 msgid "No transactional notifications found"
 msgstr "No s'han trobat notificacions transaccionals"
 
@@ -9862,19 +9862,19 @@ msgstr "No s'enregistra res i no es rebutja res: aquesta pàgina, l'exportació 
 msgid "Notification center"
 msgstr "Centre de notificacions"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:92
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:96
 msgid "Notification created successfully"
 msgstr "Notificació creada correctament"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:266
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:270
 msgid "Notification name"
 msgstr "Nom de la notificació"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:271
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:275
 msgid "Notification name must be at most {TRANSACTIONAL_NAME_MAX_LENGTH} characters long"
 msgstr "El nom de la notificació ha de tenir com a màxim {TRANSACTIONAL_NAME_MAX_LENGTH} caràcters"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:91
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:95
 msgid "Notification updated successfully"
 msgstr "Notificació actualitzada correctament"
 
@@ -10560,7 +10560,7 @@ msgstr "Si us plau, comproveu el formulari per errors"
 
 #: src/components/blog/PostDrawer.tsx:702
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:495
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:255
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:259
 msgid "Please check the form for errors."
 msgstr "Si us plau, comproveu el formulari per errors."
 
@@ -10612,7 +10612,7 @@ msgstr "Si us plau, introduïu un nom"
 #~ msgid "Please enter a name for the API key"
 #~ msgstr "Si us plau, introduïu un nom per a la clau API"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:268
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:272
 msgid "Please enter a notification name"
 msgstr "Si us plau, introduïu un nom de notificació"
 
@@ -10673,7 +10673,7 @@ msgstr "Si us plau, introduïu primer una URL de lloc web"
 msgid "Please enter a workspace name"
 msgstr "Si us plau, introduïu un nom d'espai de treball"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:293
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:297
 msgid "Please enter an API identifier"
 msgstr "Si us plau, introduïu un identificador API"
 
@@ -10791,7 +10791,7 @@ msgstr "Si us plau, seleccioneu un fus horari"
 msgid "Please select aggregate"
 msgstr "Si us plau, seleccioneu agregat"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:315
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:319
 msgid "Please select an email template"
 msgstr "Si us plau, seleccioneu una plantilla de correu"
 
@@ -12188,7 +12188,7 @@ msgstr "Mode de caixa de proves"
 #: src/components/settings/WebhooksSettings.tsx:253
 #: src/components/templates/CreateTemplateDrawer.tsx:729
 #: src/components/templates/CreateTemplateDrawer.tsx:750
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:189
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:193
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Save"
@@ -12344,7 +12344,7 @@ msgstr "Indexació de motors de cerca"
 msgid "Search saved blocks"
 msgstr "Cerca blocs desats"
 
-#: src/components/templates/TemplateSelectorInput.tsx:183
+#: src/components/templates/TemplateSelectorInput.tsx:188
 msgid "Search templates..."
 msgstr "Cercar plantilles..."
 
@@ -12486,7 +12486,7 @@ msgstr "Segments"
 #: src/components/file_manager/fileManager.tsx:976
 #: src/components/settings/BlogSettings.tsx:360
 #: src/components/settings/BlogSettings.tsx:376
-#: src/components/templates/TemplateSelectorInput.tsx:238
+#: src/components/templates/TemplateSelectorInput.tsx:243
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 #: src/pages/BroadcastsPage.tsx:1080
 msgid "Select"
@@ -12582,7 +12582,7 @@ msgstr "Seleccioneu un remitent"
 msgid "Select a social block"
 msgstr "Selecciona un bloc social"
 
-#: src/components/templates/TemplateSelectorInput.tsx:42
+#: src/components/templates/TemplateSelectorInput.tsx:46
 msgid "Select a template"
 msgstr "Seleccioneu una plantilla"
 
@@ -12663,7 +12663,7 @@ msgstr "Seleccionar data"
 msgid "Select dimension"
 msgstr "Seleccionar dimensió"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:324
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
 msgid "Select email template"
 msgstr "Seleccionar plantilla de correu"
 
@@ -12763,7 +12763,7 @@ msgstr "Seleccionar els idiomes admesos"
 msgid "Select template"
 msgstr "Seleccionar plantilla"
 
-#: src/components/templates/TemplateSelectorInput.tsx:173
+#: src/components/templates/TemplateSelectorInput.tsx:178
 msgid "Select Template"
 msgstr "Seleccionar plantilla"
 
@@ -12995,7 +12995,7 @@ msgstr "Enviat"
 #: src/components/messages/MessageHistoryTab.tsx:102
 #: src/components/messages/MessageHistoryTable.tsx:320
 #: src/pages/BroadcastsPage.tsx:1665
-#: src/pages/TransactionalNotificationsPage.tsx:205
+#: src/pages/TransactionalNotificationsPage.tsx:207
 msgid "Sent"
 msgstr "Enviat"
 
@@ -14164,7 +14164,7 @@ msgstr "Termes"
 #: src/components/settings/Integrations.tsx:375
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:104
 #: src/components/web_analytics/tabs/FiltersTab.tsx:127
-#: src/pages/TransactionalNotificationsPage.tsx:180
+#: src/pages/TransactionalNotificationsPage.tsx:182
 msgid "Test"
 msgstr "Provar"
 
@@ -14780,7 +14780,7 @@ msgstr "Aquest ID pertany a una plantilla eliminada i no es pot reutilitzar"
 msgid "This ID will be used in URLs and API requests. It can only contain lowercase letters and numbers."
 msgstr "Aquest ID s'utilitzarà en URLs i sol·licituds API. Només pot contenir lletres minúscules i números."
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:291
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:295
 msgid "This ID will be used when triggering the notification via API"
 msgstr "Aquest ID s'utilitzarà quan s'activi la notificació via API"
 
@@ -14820,11 +14820,11 @@ msgstr ""
 msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 msgstr "Aquesta llista fa dues coses. Filtra els senyals entrants — els altres orígens s'ignoren silenciosament. També controla la identificació per clic al correu: un enllaç amb seguiment només porta un token d'identitat per a un domini que consti aquí, de manera que mentre això estigui buit cap enllaç de correu no pot identificar un contacte. Utilitzeu *.example.com per cobrir tant example.com com els seus subdominis — example.com tot sol no coincideix amb www.example.com."
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:276
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:280
 msgid "This notification is managed by an integration and cannot be renamed"
 msgstr "Aquesta notificació està gestionada per una integració i no es pot canviar de nom"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:318
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:322
 msgid "This notification is managed by an integration and the template cannot be changed"
 msgstr "Aquesta notificació està gestionada per una integració i la plantilla no es pot canviar"
 
@@ -15294,7 +15294,7 @@ msgstr "Feu el seguiment del trànsit del lloc web amb un script de primera part
 msgid "Tracked"
 msgstr "Amb seguiment"
 
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:339
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:349
 msgid "Tracking"
 msgstr "Seguiment"
 
@@ -15347,11 +15347,11 @@ msgstr "ID transaccional"
 msgid "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
 msgstr "Definicions de notificacions transaccionals i tots els camins que realment envien un correu amb les credencials de proveïdor de l'espai de treball."
 
-#: src/pages/TransactionalNotificationsPage.tsx:355
+#: src/pages/TransactionalNotificationsPage.tsx:357
 msgid "Transactional notification deleted successfully"
 msgstr "Notificació transaccional eliminada correctament"
 
-#: src/pages/TransactionalNotificationsPage.tsx:414
+#: src/pages/TransactionalNotificationsPage.tsx:417
 msgid "Transactional Notifications"
 msgstr "Notificacions transaccionals"
 
@@ -15572,7 +15572,7 @@ msgstr "Despublicar publicació"
 #: src/components/automations/UpsertAutomationDrawer.tsx:147
 #: src/components/blog/PostDrawer.tsx:557
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:263
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:152
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:156
 msgid "Unsaved changes"
 msgstr "Canvis no desats"
 
@@ -16624,7 +16624,7 @@ msgstr "Anual"
 #: src/components/settings/WebhookCard.tsx:360
 #: src/components/settings/WorkspaceMembers.tsx:217
 #: src/components/settings/WorkspaceMembers.tsx:237
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:154
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:158
 #: src/components/web_analytics/filters/FilterTable.tsx:271
 msgid "Yes"
 msgstr "Sí"
@@ -16747,7 +16747,7 @@ msgstr "Teniu canvis sense desar"
 
 #: src/components/blog/PostDrawer.tsx:558
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:264
-#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:153
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:157
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "Teniu canvis no desats. Esteu segur que voleu tancar aquest panell?"
 
@@ -16780,7 +16780,11 @@ msgstr "Heu de configurar una URL de punt final personalitzat a la Configuració
 msgid "You need Templates read and Transactional write permissions to send test emails"
 msgstr "Necessiteu permisos de lectura de Plantilles i escriptura de Transaccional per enviar correus de prova"
 
-#: src/pages/TransactionalNotificationsPage.tsx:398
+#: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:328
+msgid "You need Templates read permission to see this template's name and preview"
+msgstr "Necessiteu permís de lectura de Plantilles per veure el nom i la previsualització d'aquesta plantilla"
+
+#: src/pages/TransactionalNotificationsPage.tsx:400
 msgid "You need Transactional write and Templates read permissions to create notifications"
 msgstr "Necessiteu permisos d'escriptura de Transaccional i lectura de Plantilles per crear notificacions"
 
