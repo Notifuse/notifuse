@@ -3,8 +3,7 @@ import { useLingui } from '@lingui/react/macro'
 import { Drawer, Typography, Spin, Alert, Tabs, Tag, Space, Descriptions, Segmented } from 'antd'
 import type { Template, MjmlCompileError, Workspace } from '../../services/api/types'
 import { templatesApi } from '../../services/api/template'
-import type { CompileTemplateRequest } from '../../services/api/template'
-import type { EmailBlock } from '../email_builder/types'
+import { buildTemplatePreviewRequest } from './compileTemplatePreview'
 import { Highlight, themes } from 'prism-react-renderer'
 import type { MessageHistory } from '../../services/api/messages_history'
 import { SUPPORTED_LANGUAGES } from '../../lib/languages'
@@ -76,9 +75,15 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   }, [effectiveLanguage, record.email, record.translations, workspace.settings?.default_language])
 
   const fetchPreview = async () => {
-    const isCodeMode = effectiveEmail?.editor_mode === 'code'
+    const built = workspace.id
+      ? buildTemplatePreviewRequest({
+          workspace,
+          email: effectiveEmail,
+          testData: templateData || record.test_data
+        })
+      : ({ error: 'missing_content' } as const)
 
-    if (!workspace.id || (!isCodeMode && !effectiveEmail?.visual_editor_tree) || (isCodeMode && !effectiveEmail?.mjml_source)) {
+    if ('error' in built && built.error === 'missing_content') {
       setError(t`Missing workspace ID or template data.`)
       setMjmlError(null)
       setPreviewMjml(null)
@@ -101,60 +106,17 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     setPreviewTextError(null)
 
     try {
-      // Build compile request based on editor mode.
-      // Subject and subject_preview are sent so the server can render them with
-      // the same Liquid engine used at send time, keeping preview and send in sync.
-      const req: Partial<CompileTemplateRequest> = {
-        workspace_id: workspace.id,
-        message_id: 'preview',
-        subject: effectiveEmail?.subject,
-        subject_preview: effectiveEmail?.subject_preview,
-        // The custom text of the language previewed; a translation without one receives
-        // the automatic version, never the text of the default language.
-        ...(effectiveEmail?.text?.trim() ? { text: effectiveEmail.text } : {}),
-        test_data: templateData || record.test_data || {},
-        tracking_settings: {
-          enable_tracking: workspace.settings?.email_tracking_enabled || false,
-          endpoint: workspace.settings?.custom_endpoint_url || undefined,
-          workspace_id: workspace.id,
-          message_id: 'preview'
-        }
+      if ('error' in built) {
+        setError(t`Invalid template structure data.`)
+        setMjmlError(null)
+        setPreviewMjml(null)
+        setIsLoading(false)
+        return
       }
-
-      if (isCodeMode) {
-        // Code mode: use mjml_source directly
-        req.mjml_source = effectiveEmail!.mjml_source
-      } else {
-        // Visual mode: parse visual_editor_tree
-        let treeObject: EmailBlock | null = null
-        if (effectiveEmail?.visual_editor_tree && typeof effectiveEmail.visual_editor_tree === 'string') {
-          try {
-            treeObject = JSON.parse(effectiveEmail.visual_editor_tree)
-          } catch (parseError) {
-            console.error('Failed to parse visual_editor_tree:', parseError)
-            setError(t`Invalid template structure data.`)
-            setMjmlError(null)
-            setPreviewMjml(null)
-            setIsLoading(false)
-            return
-          }
-        } else if (effectiveEmail?.visual_editor_tree) {
-          treeObject = effectiveEmail.visual_editor_tree as unknown as EmailBlock
-        }
-
-        if (!treeObject) {
-          setError(t`Template structure data is missing or invalid.`)
-          setMjmlError(null)
-          setPreviewMjml(null)
-          setIsLoading(false)
-          return
-        }
-
-        req.visual_editor_tree = treeObject
-      }
+      const req = built.request
 
       // console.log('Compile Request:', req)
-      const response = await templatesApi.compile(req as CompileTemplateRequest)
+      const response = await templatesApi.compile(req)
       // console.log('Compile Response:', response)
 
       // Server returns rendered subject/subject_preview on both success and

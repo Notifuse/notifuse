@@ -236,3 +236,21 @@ describe('TemplatePreviewDrawer custom text version', () => {
     vi.mocked(templatesApi.compile).mockRejectedValue(new Error('no preview in tests'))
   })
 })
+
+describe('TemplatePreviewDrawer preview errors', () => {
+  it('says the template data is missing when the editor mode has no content, without compiling', async () => {
+    vi.mocked(templatesApi.compile).mockClear()
+    await openDrawer(undefined, { ...template, email: { editor_mode: 'code' } } as unknown as Template)
+
+    expect(await screen.findByText('Missing workspace ID or template data.')).toBeInTheDocument()
+    expect(templatesApi.compile).not.toHaveBeenCalled()
+  })
+
+  it('says the structure is invalid when the tree does not parse, without compiling', async () => {
+    vi.mocked(templatesApi.compile).mockClear()
+    await openDrawer(undefined, { ...template, email: { visual_editor_tree: '{not json' } } as unknown as Template)
+
+    expect(await screen.findByText('Invalid template structure data.')).toBeInTheDocument()
+    expect(templatesApi.compile).not.toHaveBeenCalled()
+  })
+})
