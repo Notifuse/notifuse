@@ -195,7 +195,7 @@ describe('useStorage', () => {
     expect(listCalls().some(([command]) => command.input.Prefix === 'docs/')).toBe(true)
   })
 
-  it('deletes the files in order and counts the failures', async () => {
+  it('deletes the files and counts the failures', async () => {
     s3.send.mockImplementation(async (command: unknown) => {
       if (command instanceof ListObjectsV2Command) return { Contents: [], IsTruncated: false }
       if (command instanceof DeleteObjectCommand && command.input.Key === 'b.png') {
