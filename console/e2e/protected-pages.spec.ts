@@ -229,8 +229,8 @@ test.describe('Protected Pages Load', () => {
 
     // Category rail on the left, posts on the right
     await expect(page.getByText('Categories', { exact: true })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'All Posts' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'New Post' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'All posts' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'New post' })).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)

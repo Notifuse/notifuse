@@ -29,6 +29,7 @@ import {
   mockTotalContacts,
   mockAnalyticsData,
   mockBlogPostsResponse,
+  mockBlogPostCounts,
   mockBlogCategoriesResponse,
   mockBlogThemesResponse,
   mockSuccessResponse,
@@ -401,6 +402,9 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
     // ============================================
     // BLOG (supports blogPosts.*, blog.post.*, and blog_post.* patterns)
     // ============================================
+    if (url.includes('/api/blogPosts.counts')) {
+      return route.fulfill(jsonResponse(mockBlogPostCounts))
+    }
     if (url.includes('/api/blogPosts.list') || url.includes('/api/blog.post.list') || url.includes('/api/blog_post.list')) {
       return route.fulfill(jsonResponse(mockBlogPostsResponse))
     }

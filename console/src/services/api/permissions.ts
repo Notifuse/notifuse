@@ -455,6 +455,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           action: msg`Read one post, including unpublished drafts`,
         },
         {
+          endpoint: "/api/blogPosts.counts",
+          action: msg`Count posts by status and by category`,
+        },
+        {
           endpoint: "/api/blogThemes.list",
           action: msg`List theme versions`,
         },
