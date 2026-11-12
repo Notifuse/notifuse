@@ -75,6 +75,67 @@ func TestBroadcastHandler(t *testing.T) {
 	t.Run("Code Mode Lifecycle", func(t *testing.T) {
 		testBroadcastCodeModeLifecycle(t, client, factory, workspace.ID)
 	})
+
+	t.Run("Get With Templates Joins Latest Version", func(t *testing.T) {
+		testBroadcastGetWithTemplatesLatestVersion(t, client, factory, workspace.ID)
+	})
+}
+
+// broadcasts.get with with_templates=true used to join version 1 of each variation's
+// template while broadcasts.list and sending use the latest one.
+func testBroadcastGetWithTemplatesLatestVersion(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
+	template, err := factory.CreateTemplate(workspaceID, testutil.WithTemplateSubject("First subject"))
+	require.NoError(t, err)
+
+	template.Email.Subject = "Second subject"
+	require.NoError(t, factory.UpdateTemplate(workspaceID, template))
+	require.Equal(t, int64(2), template.Version)
+
+	broadcast, err := factory.CreateBroadcast(workspaceID, testutil.WithBroadcastTemplateID(template.ID))
+	require.NoError(t, err)
+
+	joinedTemplate := func(t *testing.T, resp *http.Response, path func(map[string]interface{}) map[string]interface{}) map[string]interface{} {
+		defer func() { _ = resp.Body.Close() }()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		b := path(body)
+		variations := b["test_settings"].(map[string]interface{})["variations"].([]interface{})
+		require.Len(t, variations, 1)
+		tmpl, ok := variations[0].(map[string]interface{})["template"].(map[string]interface{})
+		require.True(t, ok, "variation should carry its template")
+		return tmpl
+	}
+
+	resp, err := client.Get("/api/broadcasts.get", map[string]string{
+		"workspace_id":   workspaceID,
+		"id":             broadcast.ID,
+		"with_templates": "true",
+	})
+	require.NoError(t, err)
+	got := joinedTemplate(t, resp, func(body map[string]interface{}) map[string]interface{} {
+		return body["broadcast"].(map[string]interface{})
+	})
+	assert.Equal(t, float64(2), got["version"])
+	assert.Equal(t, "Second subject", got["email"].(map[string]interface{})["subject"])
+
+	resp, err = client.Get("/api/broadcasts.list", map[string]string{
+		"workspace_id":   workspaceID,
+		"with_templates": "true",
+		"limit":          "100",
+	})
+	require.NoError(t, err)
+	listed := joinedTemplate(t, resp, func(body map[string]interface{}) map[string]interface{} {
+		for _, item := range body["broadcasts"].([]interface{}) {
+			b := item.(map[string]interface{})
+			if b["id"] == broadcast.ID {
+				return b
+			}
+		}
+		t.Fatalf("broadcast %s not listed", broadcast.ID)
+		return nil
+	})
+	assert.Equal(t, got["version"], listed["version"])
 }
 
 func testBroadcastCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
