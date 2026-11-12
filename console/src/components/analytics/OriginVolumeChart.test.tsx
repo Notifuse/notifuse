@@ -14,7 +14,7 @@ vi.mock('./dashboardClient', () => ({
 
 let captured: {
   yAxis: { type: string }
-  series: { name: string; type: string; data: (number | null)[] }[]
+  series: { name: string; type: string; data: (number | null)[]; showSymbol?: boolean; showAllSymbol?: boolean }[]
 } | null = null
 vi.mock('echarts-for-react', () => ({
   default: ({ option }: { option: typeof captured }) => {
@@ -129,6 +129,8 @@ describe('OriginVolumeChart', () => {
     await screen.findByTestId('echart')
     expect(captured?.yAxis.type).toBe('log')
     expect(captured?.series[0].data).toEqual([null, 20000, null])
+    // Each lone send keeps its point, whatever the width of the chart.
+    expect(captured?.series[1]).toMatchObject({ type: 'line', showSymbol: true, showAllSymbol: true })
   })
 
   it('says so when nothing was sent', async () => {

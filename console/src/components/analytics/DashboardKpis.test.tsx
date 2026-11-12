@@ -168,6 +168,43 @@ describe('DashboardKpis', () => {
     )
   })
 
+  it('shows no change while either side is still the period before', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const tree = (shown: DashboardPeriods, seriesPlaceholder: boolean) => (
+      <QueryClientProvider client={client}>
+        <I18nProvider i18n={i18n}>
+          <DashboardKpis
+            workspace={workspace(true)}
+            permissions={fullPermissions}
+            periods={shown}
+            timezone="Europe/Paris"
+            totals={totals()}
+            seriesError={false}
+            seriesPlaceholder={seriesPlaceholder}
+            onRetrySeries={() => {}}
+          />
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    const { rerender } = render(tree(periods, false))
+    expect(await screen.findByText('+10.0 pts vs prev. 30 d')).toBeInTheDocument()
+    expect(await screen.findByText('+17.5% vs prev. 30 d')).toBeInTheDocument()
+
+    // The 7 days ask again; nothing of theirs has arrived yet.
+    query.mockImplementation(() => new Promise(() => {}))
+    const week: DashboardPeriods = {
+      days: 7,
+      preset: 'previous_7_days',
+      current: { ...periods.current, startDay: '2026-11-04', startUtc: '2026-11-03T23:00:00.000Z' },
+      previous: { ...periods.previous, startDay: '2026-10-28', startUtc: '2026-10-27T23:00:00.000Z' }
+    }
+    rerender(tree(week, true))
+    expect(screen.queryByText(/vs prev\./)).not.toBeInTheDocument()
+    expect(screen.queryByText(/over \d+ d/)).not.toBeInTheDocument()
+    // The figures of the period before stay on screen meanwhile.
+    expect(screen.getByText('18,342')).toBeInTheDocument()
+  })
+
   it('asks counts within the period bounds, emails only for the previous rates', async () => {
     renderKpis()
     await screen.findByText('+17.5% vs prev. 30 d')

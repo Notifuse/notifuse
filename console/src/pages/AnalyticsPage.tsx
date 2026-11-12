@@ -149,6 +149,7 @@ function Dashboard({ workspaceId }: { workspaceId: string }) {
         timezone={timezone}
         totals={series.totals}
         seriesError={series.isError}
+        seriesPlaceholder={series.isPlaceholderData}
         onRetrySeries={series.refetch}
       />
       <div className="grid grid-cols-1 items-start gap-3 min-[1200px]:grid-cols-[minmax(0,1fr)_var(--spacing-aside)]">

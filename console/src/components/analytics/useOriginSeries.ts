@@ -23,6 +23,8 @@ export interface OriginSeries {
   series?: Record<MessageOrigin, SeriesPoint[]>
   totals?: Record<MessageOrigin, MessageTotals>
   isLoading: boolean
+  /** Some origin still shows the previous period while the new one loads. */
+  isPlaceholderData: boolean
   /** A request failed with nothing loaded before; a failed refresh keeps the last figures. */
   isError: boolean
   error?: unknown
@@ -37,12 +39,13 @@ function combine(results: UseQueryResult<AnalyticsResponse>[]): OriginSeries {
   const failed = results.find((result) => result.isError && !result.data)
   const isLoading = results.some((result) => result.isLoading)
   const isError = Boolean(failed)
+  const isPlaceholderData = results.some((result) => result.isPlaceholderData)
   const refetch = () => {
     for (const result of results) void result.refetch()
   }
 
   if (isLoading || isError || results.some((result) => !result.data)) {
-    return { isLoading, isError, error: failed?.error, refetch }
+    return { isLoading, isPlaceholderData, isError, error: failed?.error, refetch }
   }
 
   const series = {} as Record<MessageOrigin, SeriesPoint[]>
@@ -51,7 +54,7 @@ function combine(results: UseQueryResult<AnalyticsResponse>[]): OriginSeries {
     series[origin] = parseSeries(results[index].data?.data)
     totals[origin] = sumSeries(series[origin])
   })
-  return { series, totals, isLoading, isError, refetch }
+  return { series, totals, isLoading, isPlaceholderData, isError, refetch }
 }
 
 /**

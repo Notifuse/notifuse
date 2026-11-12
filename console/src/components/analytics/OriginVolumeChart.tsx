@@ -64,6 +64,8 @@ export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolume
       symbol: 'circle',
       symbolSize: 4,
       showSymbol: chart.log,
+      // Every point, not only those on a labelled day: a narrow chart would hide the lone sends.
+      showAllSymbol: true,
       smooth: true,
       connectNulls: false,
       color: SERIES_COLOR[origin],

@@ -29,6 +29,8 @@ interface DashboardKpisProps {
   /** Totals of the period by origin, from the chart's series; undefined while they load. */
   totals?: Record<MessageOrigin, MessageTotals>
   seriesError: boolean
+  /** The totals are still the previous period's, while the new one loads. */
+  seriesPlaceholder?: boolean
   onRetrySeries: () => void
 }
 
@@ -72,6 +74,7 @@ export function DashboardKpis({
   timezone,
   totals,
   seriesError,
+  seriesPlaceholder = false,
   onRetrySeries
 }: DashboardKpisProps) {
   const { t } = useLingui()
@@ -153,12 +156,18 @@ export function DashboardKpis({
       transactional: emptyTotals(),
       automation: emptyTotals()
     },
-    // The previous period of the period shown: after a period switch, the placeholder is the old one.
-    previous: previousRates.data && !previousRates.isPlaceholderData ? readTotals(previousRates.data) : undefined,
+    // After a period switch either side can still be the old period's: no change until both are new.
+    previous:
+      previousRates.data && !previousRates.isPlaceholderData && !seriesPlaceholder
+        ? readTotals(previousRates.data)
+        : undefined,
     contactsTotal: toNumber(contactsTotal.data?.count),
     contactsNew: toNumber(contactsNew.data?.count),
     visits: visits.data ? toNumber(visits.data.sessions) : undefined,
-    previousVisits: previousVisits.data ? toNumber(previousVisits.data.sessions) : undefined
+    previousVisits:
+      previousVisits.data && !previousVisits.isPlaceholderData && !visits.isPlaceholderData
+        ? toNumber(previousVisits.data.sessions)
+        : undefined
   })
 
   const dash = '—'
@@ -218,9 +227,10 @@ export function DashboardKpis({
             key: 'contacts',
             label: t`Contacts`,
             value: contactsValue,
-            // Nothing until the count of new contacts arrives, rather than a false « +0 ».
+            // Nothing until the count of new contacts of this period arrives, rather than a false « +0 »
+            // or the count of the period before.
             sub:
-              contactsNew.data === undefined
+              contactsNew.data === undefined || contactsNew.isPlaceholderData
                 ? undefined
                 : t`${plural(days, {
                     one: `+${int(kpis.contacts.added)} over # d`,

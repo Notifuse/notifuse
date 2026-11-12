@@ -109,7 +109,7 @@ export function UpcomingSends({ workspaceId, timezone, canReadLists, canCreate }
         {shown.map((send) => (
           <div
             key={send.broadcast.id}
-            {...openableRow(() => void navigate(scheduledBroadcasts))}
+            {...openableRow(() => void navigate(scheduledBroadcasts), true)}
             className="flex cursor-pointer gap-3 border-t border-line px-3.5 py-2.5 text-sm first:border-t-0 hover:bg-fill"
           >
             <span className="w-[120px] shrink-0 text-xs text-ink-3 tabular-nums">{when(send)}</span>
