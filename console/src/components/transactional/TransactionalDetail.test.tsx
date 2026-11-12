@@ -565,7 +565,10 @@ describe('TransactionalDetail', () => {
     const { rerender } = render(tree(props(), client))
     await screen.findByTestId('echart')
 
-    const nextDay = resolveTransactionalPeriod('30d', 'Europe/Paris', '2026-11-13')
+    // The day after the fixture's own last day, whatever today is.
+    const after = new Date(`${periods.current.endDay}T00:00:00Z`)
+    after.setUTCDate(after.getUTCDate() + 1)
+    const nextDay = resolveTransactionalPeriod('30d', 'Europe/Paris', after.toISOString().slice(0, 10))
     rerender(tree(props({ periods: nextDay }), client))
     await waitFor(() =>
       expect(
