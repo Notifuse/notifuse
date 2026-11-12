@@ -75,7 +75,7 @@ const summary = (patch: Partial<ContactVisitsSummary> = {}): ContactVisitsSummar
   email_sessions: 2,
   median_duration_ms: 60000,
   first_session: session({ id: 'first', created_at: '2026-01-05T09:00:00Z', device: 'desktop' }),
-  goals: [{ goal_name: 'Upgrade', count: 1, value: 290 }],
+  goals: [{ goal_name: 'Upgrade', count: 1, value: 29.99 }],
   top_pages: [{ path: '/pricing', views: 9 }],
   ...patch
 })
@@ -104,7 +104,7 @@ describe('ContactWebVisits', () => {
   it('sums up the visits: first identified visit, goals reached, most viewed pages', async () => {
     renderVisits()
     expect(await screen.findByText('First identified visit')).toBeInTheDocument()
-    expect(screen.getByText('Upgrade · 1 · 290')).toBeInTheDocument()
+    expect(screen.getByText('Upgrade · 1 · 29.99')).toBeInTheDocument()
     expect(screen.getAllByText('/pricing').length).toBeGreaterThan(0)
     expect(screen.getByText('9')).toBeInTheDocument()
   })

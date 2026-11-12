@@ -75,6 +75,10 @@ export function webAnalyticsContactSearch(email: string, timezone: string, now =
   }
 }
 
+/** A goal's value, which may carry cents. */
+const goalValue = (value: number, locale: string) =>
+  new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value)
+
 function SourceCell({ session, i18n }: { session: ContactVisitSession; i18n: I18n }) {
   const source = visitSource(session, i18n)
   const Icon = SOURCE_ICONS[source.icon]
@@ -129,7 +133,7 @@ function Summary({ summary, workspace }: { summary: ContactVisitsSummary; worksp
           summary.goals.map((goal) => (
             <span key={goal.goal_name} className="flex items-center gap-1.5 text-sm text-ink">
               <Target size={13} aria-hidden="true" className="shrink-0 text-ink-3" />
-              {goal.goal_name} · {int(goal.count)} · {int(goal.value)}
+              {goal.goal_name} · {int(goal.count)} · {goalValue(goal.value, i18n.locale)}
             </span>
           ))
         )}
@@ -161,7 +165,6 @@ function SessionJourney({
   session: ContactVisitSession
 }) {
   const { t, i18n } = useLingui()
-  const { int } = useNumberFormat()
   const timezone = workspace.settings?.timezone || 'UTC'
   const journey = useQuery({
     queryKey: ['contact-session-pages', workspace.id, email, session.id],
@@ -201,7 +204,7 @@ function SessionJourney({
               <Target size={13} aria-hidden="true" className="text-success-fg" />
               {step.goal.goal_name}
               {step.goal.goal_value ? (
-                <span className="text-ink-3">· {int(step.goal.goal_value)}</span>
+                <span className="text-ink-3">· {goalValue(step.goal.goal_value, i18n.locale)}</span>
               ) : null}
             </span>
           )}

@@ -100,6 +100,18 @@ describe('ContactDetailsDrawer', () => {
     expect(onNavigate).toHaveBeenLastCalledWith('b@x.com')
     fireEvent.keyDown(document, { key: 'j' })
     expect(onNavigate).toHaveBeenCalledTimes(2)
+    expect(onNavigate).toHaveBeenLastCalledWith('b@x.com')
+    // K at the first row goes nowhere.
+    fireEvent.keyDown(document, { key: 'k' })
+    expect(onNavigate).toHaveBeenCalledTimes(2)
+  })
+
+  it('walks back with K', async () => {
+    const onNavigate = vi.fn()
+    renderPage({ email: 'b@x.com', search: { limit: 3 }, exactTotal: 3, onNavigate })
+    await waitFor(() => expect(position()).toBe('2 of 3'))
+    fireEvent.keyDown(document, { key: 'k' })
+    expect(onNavigate).toHaveBeenCalledWith('a@x.com')
   })
 
   it('disables Next on the last row when nothing remains', async () => {
@@ -158,6 +170,16 @@ describe('ContactDetailsDrawer', () => {
     fireEvent.click(prev())
     expect(onNavigate).toHaveBeenLastCalledWith('a@x.com')
     expect(screen.queryByText('Loading…')).toBeNull()
+
+    // Closed while waiting: reopened later, it waits no more and moves nowhere by itself.
+    rerender({ email: 'b@x.com', search: { limit: 2 }, onNavigate })
+    fireEvent.click(next())
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
+    rerender({ email: undefined, search: { limit: 2 }, onNavigate })
+    rerender({ email: 'b@x.com', search: { limit: 52 }, onNavigate })
+    await waitFor(() => expect(screen.queryByText('Loading…')).toBeNull())
+    await waitFor(() => expect(position()).toBe('2 of 3'))
+    expect(onNavigate).toHaveBeenCalledTimes(1)
   })
 
   it('reads the rows from the page cache: opening and walking the sheet runs no contacts.list', async () => {

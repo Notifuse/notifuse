@@ -115,6 +115,7 @@ vi.mock('../components/contacts/ContactDetailsDrawer', () => ({
     onDelete: (email: string) => void
     onNavigate: (email: string) => void
     onLoadMore: () => void
+    onClose: () => void
   }) =>
     props.email ? (
       <div data-testid="sheet">
@@ -127,6 +128,9 @@ vi.mock('../components/contacts/ContactDetailsDrawer', () => ({
         </button>
         <button type="button" onClick={() => props.onLoadMore()}>
           load more contacts
+        </button>
+        <button type="button" onClick={() => props.onClose()}>
+          close sheet
         </button>
       </div>
     ) : null
@@ -389,6 +393,39 @@ describe('ContactsPage', () => {
       expect(state.navigate).toHaveBeenCalledTimes(1)
     })
 
+    it('keeps a sheet opened before the search lands', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      renderPage()
+      fireEvent.change(screen.getByPlaceholderText('Email, name or external ID'), {
+        target: { value: 'bob' }
+      })
+      fireEvent.click(await screen.findByRole('button', { name: 'bob@example.com' }))
+      state.search = lastNavigation().search
+      act(() => vi.advanceTimersByTime(300))
+      expect(lastNavigation().search).toMatchObject({ search: 'bob', contact: 'bob@example.com' })
+    })
+
+    it('closes a sheet opened from a row with Back, and a linked one by replacing the entry', async () => {
+      const back = vi.spyOn(window.history, 'back').mockImplementation(() => {})
+      const { rerender } = renderPage()
+      fireEvent.click(await screen.findByRole('button', { name: 'bob@example.com' }))
+      rerender(lastNavigation().search)
+      const calls = state.navigate.mock.calls.length
+      fireEvent.click(screen.getByRole('button', { name: 'close sheet' }))
+      expect(back).toHaveBeenCalledTimes(1)
+      expect(state.navigate).toHaveBeenCalledTimes(calls)
+
+      // Back closed it; a contact opened from a link then closes in place.
+      rerender({ contact: undefined })
+      rerender({ contact: 'alice@example.com' })
+      fireEvent.click(screen.getByRole('button', { name: 'close sheet' }))
+      expect(back).toHaveBeenCalledTimes(1)
+      const { search, replace } = lastNavigation()
+      expect(replace).toBe(true)
+      expect(search.contact).toBeUndefined()
+      back.mockRestore()
+    })
+
     it('sends the search to contacts.list', async () => {
       renderPage({ search: 'ann' })
       await waitFor(() => expect(contactsApi.list).toHaveBeenCalled())
@@ -489,9 +526,8 @@ describe('ContactsPage', () => {
     it('shows ten skeleton rows on the first load', async () => {
       vi.mocked(contactsApi.list).mockImplementationOnce(() => new Promise(() => {}))
       renderPage()
-      expect(
-        await screen.findByText((_, el) => el?.hasAttribute('data-contacts-skeleton') ?? false)
-      ).toBeInTheDocument()
+      const skeleton = await screen.findByText((_, el) => el?.hasAttribute('data-contacts-skeleton') ?? false)
+      expect(skeleton.querySelectorAll('.ant-skeleton-paragraph > li')).toHaveLength(10)
     })
 
     it('says the table could not load, and retries', async () => {

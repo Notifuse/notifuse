@@ -129,10 +129,13 @@ export function ContactDetailsBody({
     if (response.action === 'error') throw new Error(response.error || t`Failed to update field`)
     const stored = response.contact
     if (stored) {
-      // The upsert reads back the contact row, without its lists and segments.
+      // The read-back omits a field stored as NULL (omitempty), so a cleared field is cleared here
+      // from what was sent. Lists and segments keep the cached ones, which their own card refreshes.
+      const cleared = Object.fromEntries(Object.entries(fields).filter(([, value]) => value === null))
       const merge = (old: Contact): Contact => ({
         ...old,
         ...stored,
+        ...cleared,
         contact_lists: old.contact_lists,
         contact_segments: old.contact_segments
       })

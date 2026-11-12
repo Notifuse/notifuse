@@ -192,7 +192,7 @@ export function ContactsTable({
                 {subscription.created_at ? (
                   <Tooltip title={fullDate(subscription.created_at)}>
                     <span className="text-xs text-ink-3">
-                      {t`since ${dayjs(subscription.created_at).fromNow(true)}`}
+                      {t`for ${dayjs(subscription.created_at).fromNow(true)}`}
                     </span>
                   </Tooltip>
                 ) : null}

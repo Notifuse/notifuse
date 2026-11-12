@@ -173,7 +173,8 @@ export function ContactsPage() {
     if (next === sentSearch.current) return
     const timer = window.setTimeout(() => {
       sentSearch.current = next
-      go((prev) => ({ ...prev, search: next, limit: undefined, contact: undefined }), true)
+      // The open contact stays: a row clicked before the timer fires keeps its sheet.
+      go((prev) => ({ ...prev, search: next, limit: undefined }), true)
     }, SEARCH_DEBOUNCE_MS)
     return () => window.clearTimeout(timer)
   }, [searchInput, go])
@@ -320,6 +321,10 @@ export function ContactsPage() {
 
   // ---- The contact sheet: opening adds a history entry, so browser Back closes it.
   const sheetOpenedHere = React.useRef(false)
+  React.useEffect(() => {
+    // Closed by Back, or by any other way: the next close no longer owns a history entry.
+    if (!search.contact) sheetOpenedHere.current = false
+  }, [search.contact])
   const openContact = (email: string) => {
     sheetOpenedHere.current = true
     go((prev) => ({ ...prev, contact: email }))

@@ -21,11 +21,15 @@ vi.mock('../../../services/api/contacts', () => ({
       }
       return { contact }
     }),
-    upsert: vi.fn(async ({ contact }: { contact: { email: string } }) => ({
-      action: 'update',
-      email: contact.email,
-      contact: { ...state.contacts[contact.email], ...contact }
-    }))
+    // As the server answers: the stored row, where a NULL field is absent (omitempty).
+    upsert: vi.fn(async ({ contact }: { contact: Record<string, unknown> & { email: string } }) => {
+      const stored = { ...state.contacts[contact.email], ...contact }
+      return {
+        action: 'update',
+        email: contact.email,
+        contact: Object.fromEntries(Object.entries(stored).filter(([, value]) => value !== null))
+      }
+    })
   }
 }))
 vi.mock('./useContactSheetQueries', () => ({
@@ -42,10 +46,15 @@ vi.mock('./ContactListsCard', () => ({
   ContactSegmentsCard: () => <div>segments card</div>
 }))
 vi.mock('./ContactProfileFields', () => ({
-  ContactProfileFields: ({ onSave }: { onSave: (key: string, value: string) => Promise<void> }) => (
-    <button type="button" onClick={() => onSave('first_name', 'Ann')}>
-      save first name
-    </button>
+  ContactProfileFields: ({ onSave }: { onSave: (key: string, value: string | null) => Promise<void> }) => (
+    <>
+      <button type="button" onClick={() => onSave('first_name', 'Ann')}>
+        save first name
+      </button>
+      <button type="button" onClick={() => onSave('job_title', null)}>
+        clear job title
+      </button>
+    </>
   )
 }))
 
@@ -149,6 +158,25 @@ describe('ContactDetailsBody', () => {
       expect(table?.contacts[1]).toEqual({ email: 'joann@x.com' })
     })
     expect(queryClient.getQueryData(contactKey('ws', 'ann@x.com'))).toMatchObject({ first_name: 'Ann' })
+  })
+
+  it('clears a field in the sheet and the table rows, though the server omits it', async () => {
+    queryClient.setQueryData(['contacts', 'ws', { limit: 50 }], {
+      contacts: [{ email: 'ann@x.com', job_title: 'CTO' }]
+    })
+    renderBody()
+    expect(await screen.findByText('CTO')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'clear job title' }))
+    await waitFor(() => expect(screen.queryByText('CTO')).toBeNull())
+    const table = queryClient.getQueryData<{ contacts: Record<string, unknown>[] }>([
+      'contacts',
+      'ws',
+      { limit: 50 }
+    ])
+    expect(table?.contacts[0].job_title).toBeNull()
+    expect(
+      queryClient.getQueryData<Record<string, unknown>>(contactKey('ws', 'ann@x.com'))?.job_title
+    ).toBeNull()
   })
 
   it('says the contact was not found, with a Close button', async () => {

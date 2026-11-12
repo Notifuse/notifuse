@@ -10,23 +10,35 @@ vi.mock('@tanstack/react-router', async () => ({
   ...(await vi.importActual('@tanstack/react-router')),
   Link: ({ children }: { children?: ReactNode }) => <a>{children}</a>
 }))
-vi.mock('../InlineEditableField', () => ({
-  InlineEditableField: ({
-    fieldKey,
-    value,
-    disabled,
-    hideLabel
-  }: {
-    fieldKey: string
-    value: unknown
-    disabled?: boolean
-    hideLabel?: boolean
-  }) => (
-    <span data-field={fieldKey} data-disabled={String(!!disabled)} data-hide-label={String(!!hideLabel)}>
-      {value === undefined || value === null || value === '' ? '' : String(value)}
-    </span>
-  )
-}))
+vi.mock('../InlineEditableField', async () => {
+  const { useState } = await import('react')
+  return {
+    InlineEditableField: ({
+      fieldKey,
+      value,
+      disabled,
+      hideLabel
+    }: {
+      fieldKey: string
+      value: unknown
+      disabled?: boolean
+      hideLabel?: boolean
+    }) => {
+      // The field this instance was mounted for, as an open editor's state would remember it.
+      const [mountedFor] = useState(fieldKey)
+      return (
+        <span
+          data-field={fieldKey}
+          data-mounted-for={mountedFor}
+          data-disabled={String(!!disabled)}
+          data-hide-label={String(!!hideLabel)}
+        >
+          {value === undefined || value === null || value === '' ? '' : String(value)}
+        </span>
+      )
+    }
+  }
+})
 
 import { ContactProfileFields } from './ContactProfileFields'
 
@@ -43,12 +55,14 @@ const contact = {
   contact_lists: []
 } as unknown as Contact
 
-function renderFields(canWrite = true) {
-  render(
+function renderFields(canWrite = true, shown: Contact = contact) {
+  const ui = (c: Contact) => (
     <App>
-      <ContactProfileFields workspace={workspace} contact={contact} canWrite={canWrite} onSave={vi.fn()} />
+      <ContactProfileFields workspace={workspace} contact={c} canWrite={canWrite} onSave={vi.fn()} />
     </App>
   )
+  const result = render(ui(shown))
+  return { rerender: (c: Contact) => result.rerender(ui(c)) }
 }
 
 const fieldKeys = () =>
@@ -61,6 +75,15 @@ describe('ContactProfileFields', () => {
     fireEvent.click(screen.getByRole('button', { name: '11 empty fields' }))
     expect(fieldKeys()).toContain('last_name')
     expect(document.querySelectorAll('[data-hide-label="true"]').length).toBe(fieldKeys().length)
+  })
+
+  it('keeps each field on its own row when a field moves from empty to filled', () => {
+    const { rerender } = renderFields()
+    fireEvent.click(screen.getByRole('button', { name: '11 empty fields' }))
+    rerender({ ...contact, last_name: 'Lee' } as Contact)
+    const rows = Array.from(document.querySelectorAll('[data-field]'))
+    expect(rows.map((el) => el.getAttribute('data-field'))).toContain('last_name')
+    for (const el of rows) expect(el.getAttribute('data-mounted-for')).toBe(el.getAttribute('data-field'))
   })
 
   it('lists the named empty custom fields first', () => {
