@@ -55,7 +55,7 @@ describe('groupReferences', () => {
   })
 
   it('counts the more from the exact usage count, beyond the references returned', () => {
-    // The server returns at most 50 references per type while its count stays exact.
+    // The server caps the references of each type while its count stays exact.
     const groups = groupReferences(refs('automation', 50), { automations: 120 }, 5)
     expect(groups[0].more).toBe(115)
   })

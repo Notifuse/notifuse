@@ -1308,7 +1308,7 @@ msgstr "Alineació"
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:124
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
 #: src/pages/BroadcastsPage.tsx:1672
-#: src/pages/TemplatesPage.tsx:150
+#: src/pages/TemplatesPage.tsx:151
 msgid "All"
 msgstr "Tot"
 
@@ -2902,7 +2902,7 @@ msgstr "Categories"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:75
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:105
 #: src/components/templates/CreateTemplateDrawer.tsx:1011
-#: src/pages/TemplatesPage.tsx:379
+#: src/pages/TemplatesPage.tsx:403
 msgid "Category"
 msgstr "Categoria"
 
@@ -3240,7 +3240,7 @@ msgstr "Valor del Client Secret"
 
 #: src/components/templates/TemplateSelectorInput.tsx:249
 #: src/components/templates/TemplateSelectorInput.tsx:251
-#: src/pages/TemplatesPage.tsx:277
+#: src/pages/TemplatesPage.tsx:301
 msgid "Clone"
 msgstr "Clonar"
 
@@ -3277,7 +3277,7 @@ msgid "Closed Captions (CC)"
 msgstr "Subtítols (CC)"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:675
-#: src/pages/TemplatesPage.tsx:361
+#: src/pages/TemplatesPage.tsx:385
 msgid "Code"
 msgstr "Codi"
 
@@ -3810,7 +3810,7 @@ msgstr "Copiar codi {0}"
 #~ msgid "Copy code"
 #~ msgstr ""
 
-#: src/pages/TemplatesPage.tsx:283
+#: src/pages/TemplatesPage.tsx:307
 msgid "Copy ID"
 msgstr "Copia l'ID"
 
@@ -3892,7 +3892,7 @@ msgstr ""
 msgid "Couldn't check where this template is used"
 msgstr "No s'ha pogut comprovar on s'utilitza aquesta plantilla"
 
-#: src/pages/TemplatesPage.tsx:310
+#: src/pages/TemplatesPage.tsx:334
 msgid "Couldn't load"
 msgstr "No s'ha pogut carregar"
 
@@ -3904,13 +3904,17 @@ msgstr "No s'han pogut carregar els membres"
 msgid "Couldn't load the success rate"
 msgstr "No s'ha pogut carregar la taxa d'èxit"
 
-#: src/pages/TemplatesPage.tsx:467
+#: src/pages/TemplatesPage.tsx:491
 msgid "Couldn't load the templates"
 msgstr "No s'han pogut carregar les plantilles"
 
 #: src/components/settings/WebhooksSettings.tsx:385
 msgid "Couldn't load the webhooks"
 msgstr "No s'han pogut carregar els webhooks"
+
+#: src/pages/TemplatesPage.tsx:207
+msgid "Couldn't load this template"
+msgstr "No s'ha pogut carregar aquesta plantilla"
 
 #: src/components/settings/WebhookDetail.tsx:426
 msgid "Couldn't load this webhook"
@@ -4190,7 +4194,7 @@ msgstr "Creeu la vostra primera notificació per començar"
 msgid "Create Your First Post"
 msgstr "Creeu la vostra primera publicació"
 
-#: src/pages/TemplatesPage.tsx:480
+#: src/pages/TemplatesPage.tsx:504
 msgid "Create your first template to get started"
 msgstr "Creeu la vostra primera plantilla per començar"
 
@@ -4208,7 +4212,7 @@ msgstr "Creat"
 #. placeholder {0}: fullDate(template.created_at)
 #. placeholder {1}: fullDate(template.updated_at)
 #. placeholder {2}: timezone ?? 'UTC'
-#: src/pages/TemplatesPage.tsx:425
+#: src/pages/TemplatesPage.tsx:449
 msgid "Created {0} · Updated {1} in {2}"
 msgstr "Creada {0} · Actualitzada {1} a {2}"
 
@@ -4594,7 +4598,7 @@ msgstr "Deduplicació:"
 #: src/components/broadcasts/VariationSenderSelect.tsx:61
 #: src/components/settings/integrations/EmailProviderCard.tsx:284
 #: src/components/templates/SendTemplateModal.tsx:99
-#: src/pages/TemplatesPage.tsx:417
+#: src/pages/TemplatesPage.tsx:441
 msgid "default"
 msgstr "Per defecte"
 
@@ -4702,8 +4706,8 @@ msgstr "Retard"
 #: src/pages/BroadcastsPage.tsx:1836
 #: src/pages/ContactsPage.tsx:975
 #: src/pages/ListsPage.tsx:418
-#: src/pages/TemplatesPage.tsx:293
-#: src/pages/TemplatesPage.tsx:296
+#: src/pages/TemplatesPage.tsx:317
+#: src/pages/TemplatesPage.tsx:320
 msgid "Delete"
 msgstr "Eliminar"
 
@@ -5471,7 +5475,7 @@ msgstr "Editar"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
 #: src/pages/ContactsPage.tsx:969
-#: src/pages/TemplatesPage.tsx:264
+#: src/pages/TemplatesPage.tsx:288
 #: src/pages/TransactionalNotificationsPage.tsx:163
 msgid "Edit"
 msgstr "Editar"
@@ -6686,7 +6690,7 @@ msgstr "No s'ha pogut eliminar la publicació"
 msgid "Failed to delete segment"
 msgstr "No s'ha pogut eliminar el segment"
 
-#: src/pages/TemplatesPage.tsx:218
+#: src/pages/TemplatesPage.tsx:232
 msgid "Failed to delete template: {errorMsg}"
 msgstr "No s'ha pogut eliminar la plantilla: {errorMsg}"
 
@@ -7904,7 +7908,7 @@ msgstr "L'ID només pot contenir lletres minúscules i números"
 msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "L'ID només pot contenir lletres minúscules, números i guions baixos"
 
-#: src/pages/TemplatesPage.tsx:285
+#: src/pages/TemplatesPage.tsx:309
 msgid "ID copied"
 msgstr "ID copiat"
 
@@ -7918,7 +7922,7 @@ msgstr "L'ID no coincideix"
 #~ msgstr "ID per a API:"
 
 #. placeholder {0}: template.id
-#: src/pages/TemplatesPage.tsx:356
+#: src/pages/TemplatesPage.tsx:380
 msgid "ID for API: {0}"
 msgstr "ID per a l'API: {0}"
 
@@ -8027,7 +8031,7 @@ msgstr "TLS implícit (SMTPS)"
 #: src/components/email_builder/MjmlCodeEditor.tsx:628
 #: src/components/templates/ImportExportButton.tsx:204
 #: src/pages/ContactsPage.tsx:1036
-#: src/pages/TemplatesPage.tsx:552
+#: src/pages/TemplatesPage.tsx:578
 msgid "Import"
 msgstr "Importar"
 
@@ -9262,7 +9266,7 @@ msgstr "gestionat"
 
 #. placeholder {0}: integration.name
 #. placeholder {1}: integration.type
-#: src/pages/TemplatesPage.tsx:348
+#: src/pages/TemplatesPage.tsx:372
 #: src/pages/TransactionalNotificationsPage.tsx:140
 msgid "Managed by {0} ({1} integration)"
 msgstr "Gestionat per {0} (integració {1})"
@@ -9571,7 +9575,7 @@ msgstr "L'exportació MJML ha fallat"
 msgid "MJML exported successfully"
 msgstr "MJML exportat correctament"
 
-#: src/pages/TemplatesPage.tsx:538
+#: src/pages/TemplatesPage.tsx:564
 msgid "MJML file (.mjml)"
 msgstr "Fitxer MJML (.mjml)"
 
@@ -9648,7 +9652,7 @@ msgstr "Mensual"
 
 #: src/components/settings/Integrations.tsx:961
 #: src/components/settings/integrations/EmailProviderCard.tsx:343
-#: src/pages/TemplatesPage.tsx:446
+#: src/pages/TemplatesPage.tsx:470
 msgid "More actions"
 msgstr "Més accions"
 
@@ -9745,7 +9749,7 @@ msgstr "El nom és obligatori"
 msgid "Name must be less than 255 characters"
 msgstr "El nom ha de tenir menys de 255 caràcters"
 
-#: src/pages/TemplatesPage.tsx:586
+#: src/pages/TemplatesPage.tsx:612
 msgid "Name or subject"
 msgstr "Nom o assumpte"
 
@@ -9834,8 +9838,8 @@ msgstr "Nou segment"
 msgid "New sends from these items will keep using the deleted template until you pick another one. Messages already sent stay in the logs, but their web version stops working."
 msgstr "Els nous enviaments d'aquests elements continuaran utilitzant la plantilla eliminada fins que en trieu una altra. Els missatges ja enviats es queden als registres, però la seva versió web deixa de funcionar."
 
-#: src/pages/TemplatesPage.tsx:492
-#: src/pages/TemplatesPage.tsx:565
+#: src/pages/TemplatesPage.tsx:516
+#: src/pages/TemplatesPage.tsx:591
 msgid "New template"
 msgstr "Plantilla nova"
 
@@ -9856,7 +9860,7 @@ msgstr "Nou espai de treball"
 msgid "Newsletters"
 msgstr "Butlletins"
 
-#: src/pages/TemplatesPage.tsx:394
+#: src/pages/TemplatesPage.tsx:418
 msgid "Newsletters that may still send, transactional notifications, automations and double opt-in lists. Segment filters on a template aren't counted."
 msgstr "Butlletins que encara es poden enviar, notificacions transaccionals, automatitzacions i llistes amb doble opt-in. Els filtres de segment sobre una plantilla no es compten."
 
@@ -10295,7 +10299,7 @@ msgid "No successful delivery"
 msgstr "Cap lliurament correcte"
 
 #: src/components/templates/TemplateSelectorInput.tsx:276
-#: src/pages/TemplatesPage.tsx:479
+#: src/pages/TemplatesPage.tsx:503
 msgid "No templates found"
 msgstr "No s'han trobat plantilles"
 
@@ -10304,7 +10308,7 @@ msgstr "No s'han trobat plantilles"
 msgid "No templates found for {0} category"
 msgstr "No s'han trobat plantilles per a la categoria {0}"
 
-#: src/pages/TemplatesPage.tsx:507
+#: src/pages/TemplatesPage.tsx:532
 msgid "No templates found for category \"{label}\""
 msgstr "No hi ha plantilles a la categoria \"{label}\""
 
@@ -10312,7 +10316,7 @@ msgstr "No hi ha plantilles a la categoria \"{label}\""
 #~ msgid "No templates found for category \"{selectedCategory}\""
 #~ msgstr "No s'han trobat plantilles per a la categoria \"{selectedCategory}\""
 
-#: src/pages/TemplatesPage.tsx:526
+#: src/pages/TemplatesPage.tsx:552
 msgid "No templates match your search"
 msgstr "Cap plantilla coincideix amb la vostra cerca"
 
@@ -10490,7 +10494,7 @@ msgstr "Sense configurar"
 msgid "Not tracked"
 msgstr "Sense seguiment"
 
-#: src/pages/TemplatesPage.tsx:316
+#: src/pages/TemplatesPage.tsx:340
 msgid "Not used"
 msgstr "Sense ús"
 
@@ -10546,7 +10550,7 @@ msgstr "Notificació actualitzada correctament"
 msgid "Notifuse disabled this webhook automatically"
 msgstr "Notifuse ha desactivat aquest webhook automàticament"
 
-#: src/pages/TemplatesPage.tsx:537
+#: src/pages/TemplatesPage.tsx:563
 msgid "Notifuse export (.json)"
 msgstr "Exportació de Notifuse (.json)"
 
@@ -11653,7 +11657,7 @@ msgstr "Previsualitzar"
 #: src/components/common/ImageURLInput.tsx:52
 #: src/components/email_builder/EmailBuilder.tsx:1061
 #: src/components/segment/button_upsert.tsx:663
-#: src/pages/TemplatesPage.tsx:268
+#: src/pages/TemplatesPage.tsx:292
 msgid "Preview"
 msgstr "Previsualitzar"
 
@@ -12656,7 +12660,7 @@ msgstr "Reiniciar una tasca de sincronització d'integració perquè es torni a 
 msgid "Reset formatting"
 msgstr "Restablir format"
 
-#: src/pages/TemplatesPage.tsx:512
+#: src/pages/TemplatesPage.tsx:537
 msgid "reset the filter"
 msgstr "restablir el filtre"
 
@@ -12771,7 +12775,7 @@ msgstr "Retenció"
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
 #: src/components/settings/WorkspaceMembers.tsx:495
-#: src/pages/TemplatesPage.tsx:469
+#: src/pages/TemplatesPage.tsx:493
 msgid "Retry"
 msgstr "Torna-ho a provar"
 
@@ -13728,7 +13732,7 @@ msgid "Send or Schedule Broadcast"
 msgstr "Enviar o programar difusió"
 
 #: src/components/settings/WebhookDetail.tsx:324
-#: src/pages/TemplatesPage.tsx:271
+#: src/pages/TemplatesPage.tsx:295
 msgid "Send test"
 msgstr "Envia una prova"
 
@@ -13751,7 +13755,7 @@ msgstr "Envieu notificacions transaccionals mitjançant relay SMTP. Perfecte per
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:927
 #: src/components/templates/CreateTemplateDrawer.tsx:1069
 #: src/components/templates/SendTemplateModal.tsx:340
-#: src/pages/TemplatesPage.tsx:406
+#: src/pages/TemplatesPage.tsx:430
 msgid "Sender"
 msgstr "Remitent"
 
@@ -14885,7 +14889,7 @@ msgstr "plantilla"
 #: src/components/messages/MessageHistoryTable.tsx:234
 #: src/pages/BroadcastsPage.tsx:897
 #: src/pages/BroadcastsPage.tsx:899
-#: src/pages/TemplatesPage.tsx:336
+#: src/pages/TemplatesPage.tsx:360
 msgid "Template"
 msgstr "Plantilla"
 
@@ -14930,7 +14934,7 @@ msgstr "Dades de la plantilla"
 msgid "Template Data & Liquid Templating"
 msgstr "Dades de plantilla i plantilles Liquid"
 
-#: src/pages/TemplatesPage.tsx:211
+#: src/pages/TemplatesPage.tsx:225
 msgid "Template deleted successfully"
 msgstr "Plantilla eliminada correctament"
 
@@ -15011,7 +15015,7 @@ msgstr "Remitent de la plantilla ({0})"
 
 #: src/components/settings/permissionLabels.ts:9
 #: src/layouts/app-shell/menuItems.ts:179
-#: src/pages/TemplatesPage.tsx:544
+#: src/pages/TemplatesPage.tsx:570
 #: src/services/api/errors.ts:84
 msgid "Templates"
 msgstr "Plantilles"
@@ -15784,7 +15788,7 @@ msgstr "Aquest remitent ja no forma part de la integració d'email de màrquetin
 msgid "This template is already used in another variation"
 msgstr "Aquesta plantilla ja s'utilitza en una altra variació"
 
-#: src/pages/TemplatesPage.tsx:292
+#: src/pages/TemplatesPage.tsx:316
 msgid "This template is managed by an integration and cannot be deleted"
 msgstr "Aquesta plantilla està gestionada per una integració i no es pot eliminar"
 
@@ -15792,7 +15796,7 @@ msgstr "Aquesta plantilla està gestionada per una integració i no es pot elimi
 msgid "This template is still used"
 msgstr "Aquesta plantilla encara s'utilitza"
 
-#: src/pages/TemplatesPage.tsx:192
+#: src/pages/TemplatesPage.tsx:201
 msgid "This template no longer exists"
 msgstr "Aquesta plantilla ja no existeix"
 
@@ -16324,7 +16328,7 @@ msgstr "cert"
 msgid "Try adjusting your search or status filter"
 msgstr "Proveu d'ajustar la cerca o el filtre d'estat"
 
-#: src/pages/TemplatesPage.tsx:510
+#: src/pages/TemplatesPage.tsx:535
 msgid "Try selecting a different category or"
 msgstr "Proveu de seleccionar una categoria diferent o"
 
@@ -16611,7 +16615,7 @@ msgstr "Actualitzat"
 #: src/components/automations/AutomationCard.tsx:313
 #: src/components/automations/config/TriggerConfigForm.tsx:82
 #: src/components/blog/PostsTable.tsx:316
-#: src/pages/TemplatesPage.tsx:421
+#: src/pages/TemplatesPage.tsx:445
 msgid "Updated"
 msgstr "Actualitzat"
 
@@ -16790,7 +16794,7 @@ msgstr "Utilitzar el valor predeterminat de l'espai de treball"
 #~ msgid "Used for"
 #~ msgstr "Utilitzat per a"
 
-#: src/pages/TemplatesPage.tsx:399
+#: src/pages/TemplatesPage.tsx:423
 msgid "Used in"
 msgstr "S'utilitza a"
 
@@ -16837,7 +16841,7 @@ msgstr "Nom d'usuari"
 msgid "Users"
 msgstr "Usuaris"
 
-#: src/pages/TemplatesPage.tsx:395
+#: src/pages/TemplatesPage.tsx:419
 msgid "Uses you can't see aren't counted."
 msgstr "No es compten els usos que no podeu veure."
 
@@ -17729,7 +17733,7 @@ msgstr "No teniu permís d'escriptura per a contactes"
 msgid "You don't have write permission for lists"
 msgstr "No teniu permís d'escriptura per a llistes"
 
-#: src/pages/TemplatesPage.tsx:247
+#: src/pages/TemplatesPage.tsx:261
 msgid "You don't have write permission for templates"
 msgstr "No teniu permís d'escriptura per a plantilles"
 

@@ -6,6 +6,7 @@ import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { MoreHorizontal, Plus, SquareTerminal, Upload } from 'lucide-react'
 import { templatesApi } from '../services/api/template'
+import { ApiError } from '../services/api/errors'
 import type { Template, Workspace } from '../services/api/types'
 import { canSendTestEmail } from '../services/api/permissions'
 import { CreateTemplateDrawer } from '../components/templates/CreateTemplateDrawer'
@@ -179,20 +180,33 @@ export function TemplatesPage() {
     enabled: Boolean(previewId) && listQuery.isSuccess && !listedPreview
   })
   const fetchedPreview = previewQuery.data?.template
-  const previewTemplate =
-    listedPreview ?? (fetchedPreview && !fetchedPreview.deleted_at ? fetchedPreview : undefined)
+  // A web template (blog) is not on this page and has no email to preview.
+  const fetchedEmail =
+    fetchedPreview && !fetchedPreview.deleted_at && fetchedPreview.channel === 'email'
+      ? fetchedPreview
+      : undefined
+  const previewTemplate = listedPreview ?? fetchedEmail
+  const lookedUp = Boolean(previewId) && listQuery.isSuccess && !listedPreview
+  // Only a 404 or a deleted template means the link is dead; another error keeps it, for a reload.
   const previewMissing =
-    Boolean(previewId) &&
-    listQuery.isSuccess &&
-    !listedPreview &&
-    (previewQuery.isError || Boolean(fetchedPreview?.deleted_at))
+    lookedUp &&
+    ((previewQuery.error instanceof ApiError && previewQuery.error.status === 404) ||
+      Boolean(fetchedPreview?.deleted_at))
+  const previewElsewhere =
+    lookedUp && Boolean(fetchedPreview) && !fetchedPreview?.deleted_at && !fetchedEmail
+  const previewFailed = lookedUp && previewQuery.isError && !previewMissing
 
   useEffect(() => {
-    if (!previewMissing) return
-    message.info(t`This template no longer exists`)
+    if (!previewMissing && !previewElsewhere) return
+    if (previewMissing) message.info(t`This template no longer exists`)
     setPreview(undefined)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- setPreview only navigates
-  }, [previewMissing])
+  }, [previewMissing, previewElsewhere])
+
+  useEffect(() => {
+    if (previewFailed) message.error(t`Couldn't load this template`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- message is stable
+  }, [previewFailed])
 
   const [drawer, setDrawer] = useState<DrawerState | null>(null)
   const drawerKey = useRef(0)
@@ -258,10 +272,20 @@ export function TemplatesPage() {
 
   const hiddenUsage = (usageQuery.data?.hidden_types?.length ?? 0) > 0
 
+  // A write the member cannot make says why, as the header buttons do.
+  const withNoWriteTip = (label: string) =>
+    noWriteTooltip ? (
+      <Tooltip title={noWriteTooltip}>
+        <span>{label}</span>
+      </Tooltip>
+    ) : (
+      label
+    )
+
   const menuItems = (template: Template): MenuProps['items'] => [
     {
       key: 'edit',
-      label: t`Edit`,
+      label: withNoWriteTip(t`Edit`),
       disabled: !canWrite,
       onClick: () => openDrawer({ mode: 'edit', template })
     },
@@ -274,7 +298,7 @@ export function TemplatesPage() {
     },
     {
       key: 'clone',
-      label: t`Clone`,
+      label: withNoWriteTip(t`Clone`),
       disabled: !canWrite,
       onClick: () => openDrawer({ mode: 'clone', template })
     },
@@ -293,7 +317,7 @@ export function TemplatesPage() {
           <span>{t`Delete`}</span>
         </Tooltip>
       ) : (
-        t`Delete`
+        withNoWriteTip(t`Delete`)
       ),
       danger: true,
       disabled: !canWrite || Boolean(template.integration_id),
@@ -472,49 +496,51 @@ export function TemplatesPage() {
     }
     if (allTemplates.length === 0) {
       return (
-        <Empty
-          className="py-10"
-          description={
-            <div className="flex flex-col gap-1">
-              <span className="font-medium text-ink-2">{t`No templates found`}</span>
-              <span>{t`Create your first template to get started`}</span>
-            </div>
-          }
-        >
-          <Tooltip title={noWriteTooltip}>
-            <span className="inline-block">
-              <Button
-                type="primary"
-                icon={<Plus size={14} aria-hidden="true" />}
-                disabled={!canWrite}
-                onClick={() => openDrawer({ mode: 'create' })}
-              >
-                {t`New template`}
-              </Button>
-            </span>
-          </Tooltip>
-        </Empty>
+        <div className="py-10">
+          <Empty
+            description={
+              <div className="flex flex-col gap-1">
+                <span className="font-medium text-ink-2">{t`No templates found`}</span>
+                <span>{t`Create your first template to get started`}</span>
+              </div>
+            }
+          >
+            <Tooltip title={noWriteTooltip}>
+              <span className="inline-block">
+                <Button
+                  type="primary"
+                  icon={<Plus size={14} aria-hidden="true" />}
+                  disabled={!canWrite}
+                  onClick={() => openDrawer({ mode: 'create' })}
+                >
+                  {t`New template`}
+                </Button>
+              </span>
+            </Tooltip>
+          </Empty>
+        </div>
       )
     }
     if (inCategory.length === 0 && selectedCategory !== 'all') {
       const label = i18n._(TEMPLATE_CATEGORY_LABELS[selectedCategory])
       return (
-        <Empty
-          className="py-10"
-          description={
-            <div className="flex flex-col gap-1">
-              <span className="font-medium text-ink-2">
-                {t`No templates found for category "${label}"`}
-              </span>
-              <span>
-                {t`Try selecting a different category or`}{' '}
-                <Button type="link" size="small" onClick={() => setCategory('all')}>
-                  {t`reset the filter`}
-                </Button>
-              </span>
-            </div>
-          }
-        />
+        <div className="py-10">
+          <Empty
+            description={
+              <div className="flex flex-col gap-1">
+                <span className="font-medium text-ink-2">
+                  {t`No templates found for category "${label}"`}
+                </span>
+                <span>
+                  {t`Try selecting a different category or`}{' '}
+                  <Button type="link" size="small" onClick={() => setCategory('all')}>
+                    {t`reset the filter`}
+                  </Button>
+                </span>
+              </div>
+            }
+          />
+        </div>
       )
     }
     return (
@@ -524,8 +550,8 @@ export function TemplatesPage() {
         rowKey="id"
         pagination={false}
         locale={{ emptyText: t`No templates match your search` }}
-        rowClassName={() => 'cursor-pointer'}
         onRow={(template) => ({
+          style: { cursor: 'pointer' },
           onClick: () =>
             canWrite ? openDrawer({ mode: 'edit', template }) : setPreview(template.id)
         })}

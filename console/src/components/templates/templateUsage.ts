@@ -59,8 +59,8 @@ export interface ReferenceGroup {
 
 /**
  * The references of one template grouped by type, in the order of the response, with at most
- * `limit` per type. The server returns at most 50 per type while its counts stay exact, so what
- * is left over is computed from the counts.
+ * `limit` per type. The server caps the references of each type while its counts stay exact, so
+ * what is left over is computed from the counts.
  */
 export function groupReferences(
   references: TemplateUsageReference[],

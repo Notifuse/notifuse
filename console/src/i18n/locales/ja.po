@@ -1308,7 +1308,7 @@ msgstr "配置"
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:124
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
 #: src/pages/BroadcastsPage.tsx:1672
-#: src/pages/TemplatesPage.tsx:150
+#: src/pages/TemplatesPage.tsx:151
 msgid "All"
 msgstr "すべて"
 
@@ -2902,7 +2902,7 @@ msgstr "カテゴリ"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:75
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:105
 #: src/components/templates/CreateTemplateDrawer.tsx:1011
-#: src/pages/TemplatesPage.tsx:379
+#: src/pages/TemplatesPage.tsx:403
 msgid "Category"
 msgstr "カテゴリ"
 
@@ -3240,7 +3240,7 @@ msgstr "クライアントシークレットの値"
 
 #: src/components/templates/TemplateSelectorInput.tsx:249
 #: src/components/templates/TemplateSelectorInput.tsx:251
-#: src/pages/TemplatesPage.tsx:277
+#: src/pages/TemplatesPage.tsx:301
 msgid "Clone"
 msgstr "複製"
 
@@ -3277,7 +3277,7 @@ msgid "Closed Captions (CC)"
 msgstr "字幕 (CC)"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:675
-#: src/pages/TemplatesPage.tsx:361
+#: src/pages/TemplatesPage.tsx:385
 msgid "Code"
 msgstr "コード"
 
@@ -3810,7 +3810,7 @@ msgstr "{0}コードをコピー"
 #~ msgid "Copy code"
 #~ msgstr ""
 
-#: src/pages/TemplatesPage.tsx:283
+#: src/pages/TemplatesPage.tsx:307
 msgid "Copy ID"
 msgstr "IDをコピー"
 
@@ -3892,7 +3892,7 @@ msgstr ""
 msgid "Couldn't check where this template is used"
 msgstr "このテンプレートの使用箇所を確認できませんでした"
 
-#: src/pages/TemplatesPage.tsx:310
+#: src/pages/TemplatesPage.tsx:334
 msgid "Couldn't load"
 msgstr "読み込めませんでした"
 
@@ -3904,13 +3904,17 @@ msgstr "メンバーを読み込めませんでした"
 msgid "Couldn't load the success rate"
 msgstr "成功率を読み込めませんでした"
 
-#: src/pages/TemplatesPage.tsx:467
+#: src/pages/TemplatesPage.tsx:491
 msgid "Couldn't load the templates"
 msgstr "テンプレートを読み込めませんでした"
 
 #: src/components/settings/WebhooksSettings.tsx:385
 msgid "Couldn't load the webhooks"
 msgstr "Webhook を読み込めませんでした"
+
+#: src/pages/TemplatesPage.tsx:207
+msgid "Couldn't load this template"
+msgstr "このテンプレートを読み込めませんでした"
 
 #: src/components/settings/WebhookDetail.tsx:426
 msgid "Couldn't load this webhook"
@@ -4190,7 +4194,7 @@ msgstr "最初の通知を作成して始めましょう"
 msgid "Create Your First Post"
 msgstr "最初の投稿を作成"
 
-#: src/pages/TemplatesPage.tsx:480
+#: src/pages/TemplatesPage.tsx:504
 msgid "Create your first template to get started"
 msgstr "最初のテンプレートを作成して始めましょう"
 
@@ -4208,7 +4212,7 @@ msgstr "作成日"
 #. placeholder {0}: fullDate(template.created_at)
 #. placeholder {1}: fullDate(template.updated_at)
 #. placeholder {2}: timezone ?? 'UTC'
-#: src/pages/TemplatesPage.tsx:425
+#: src/pages/TemplatesPage.tsx:449
 msgid "Created {0} · Updated {1} in {2}"
 msgstr "作成 {0} · 更新 {1}（{2}）"
 
@@ -4594,7 +4598,7 @@ msgstr "重複排除:"
 #: src/components/broadcasts/VariationSenderSelect.tsx:61
 #: src/components/settings/integrations/EmailProviderCard.tsx:284
 #: src/components/templates/SendTemplateModal.tsx:99
-#: src/pages/TemplatesPage.tsx:417
+#: src/pages/TemplatesPage.tsx:441
 msgid "default"
 msgstr "デフォルト"
 
@@ -4702,8 +4706,8 @@ msgstr "遅延"
 #: src/pages/BroadcastsPage.tsx:1836
 #: src/pages/ContactsPage.tsx:975
 #: src/pages/ListsPage.tsx:418
-#: src/pages/TemplatesPage.tsx:293
-#: src/pages/TemplatesPage.tsx:296
+#: src/pages/TemplatesPage.tsx:317
+#: src/pages/TemplatesPage.tsx:320
 msgid "Delete"
 msgstr "削除"
 
@@ -5471,7 +5475,7 @@ msgstr "編集"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
 #: src/pages/ContactsPage.tsx:969
-#: src/pages/TemplatesPage.tsx:264
+#: src/pages/TemplatesPage.tsx:288
 #: src/pages/TransactionalNotificationsPage.tsx:163
 msgid "Edit"
 msgstr "編集"
@@ -6686,7 +6690,7 @@ msgstr "投稿の削除に失敗しました"
 msgid "Failed to delete segment"
 msgstr "セグメントの削除に失敗しました"
 
-#: src/pages/TemplatesPage.tsx:218
+#: src/pages/TemplatesPage.tsx:232
 msgid "Failed to delete template: {errorMsg}"
 msgstr "テンプレートの削除に失敗しました: {errorMsg}"
 
@@ -7904,7 +7908,7 @@ msgstr "IDは小文字の英字と数字のみ使用できます"
 msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "IDは小文字の英字、数字、アンダースコアのみ使用できます"
 
-#: src/pages/TemplatesPage.tsx:285
+#: src/pages/TemplatesPage.tsx:309
 msgid "ID copied"
 msgstr "IDをコピーしました"
 
@@ -7918,7 +7922,7 @@ msgstr "IDが一致しません"
 #~ msgstr "API用ID:"
 
 #. placeholder {0}: template.id
-#: src/pages/TemplatesPage.tsx:356
+#: src/pages/TemplatesPage.tsx:380
 msgid "ID for API: {0}"
 msgstr "API用ID：{0}"
 
@@ -8027,7 +8031,7 @@ msgstr "暗黙的TLS (SMTPS)"
 #: src/components/email_builder/MjmlCodeEditor.tsx:628
 #: src/components/templates/ImportExportButton.tsx:204
 #: src/pages/ContactsPage.tsx:1036
-#: src/pages/TemplatesPage.tsx:552
+#: src/pages/TemplatesPage.tsx:578
 msgid "Import"
 msgstr "インポート"
 
@@ -9262,7 +9266,7 @@ msgstr "管理対象"
 
 #. placeholder {0}: integration.name
 #. placeholder {1}: integration.type
-#: src/pages/TemplatesPage.tsx:348
+#: src/pages/TemplatesPage.tsx:372
 #: src/pages/TransactionalNotificationsPage.tsx:140
 msgid "Managed by {0} ({1} integration)"
 msgstr "{0}（{1}連携）によって管理"
@@ -9571,7 +9575,7 @@ msgstr "MJMLエクスポートに失敗しました"
 msgid "MJML exported successfully"
 msgstr "MJMLを正常にエクスポートしました"
 
-#: src/pages/TemplatesPage.tsx:538
+#: src/pages/TemplatesPage.tsx:564
 msgid "MJML file (.mjml)"
 msgstr "MJMLファイル（.mjml）"
 
@@ -9648,7 +9652,7 @@ msgstr "月次"
 
 #: src/components/settings/Integrations.tsx:961
 #: src/components/settings/integrations/EmailProviderCard.tsx:343
-#: src/pages/TemplatesPage.tsx:446
+#: src/pages/TemplatesPage.tsx:470
 msgid "More actions"
 msgstr "その他の操作"
 
@@ -9745,7 +9749,7 @@ msgstr "名前は必須です"
 msgid "Name must be less than 255 characters"
 msgstr "名前は255文字未満である必要があります"
 
-#: src/pages/TemplatesPage.tsx:586
+#: src/pages/TemplatesPage.tsx:612
 msgid "Name or subject"
 msgstr "名前または件名"
 
@@ -9834,8 +9838,8 @@ msgstr "新規セグメント"
 msgid "New sends from these items will keep using the deleted template until you pick another one. Messages already sent stay in the logs, but their web version stops working."
 msgstr "これらの項目からの新しい送信は、別のテンプレートを選ぶまで削除されたテンプレートを使い続けます。送信済みのメッセージはログに残りますが、Web版は表示されなくなります。"
 
-#: src/pages/TemplatesPage.tsx:492
-#: src/pages/TemplatesPage.tsx:565
+#: src/pages/TemplatesPage.tsx:516
+#: src/pages/TemplatesPage.tsx:591
 msgid "New template"
 msgstr "新規テンプレート"
 
@@ -9856,7 +9860,7 @@ msgstr "新規ワークスペース"
 msgid "Newsletters"
 msgstr "ニュースレター"
 
-#: src/pages/TemplatesPage.tsx:394
+#: src/pages/TemplatesPage.tsx:418
 msgid "Newsletters that may still send, transactional notifications, automations and double opt-in lists. Segment filters on a template aren't counted."
 msgstr "まだ送信される可能性のあるニュースレター、トランザクション通知、オートメーション、ダブルオプトインのリスト。テンプレートに対するセグメントの条件は数えません。"
 
@@ -10295,7 +10299,7 @@ msgid "No successful delivery"
 msgstr "成功した配信はありません"
 
 #: src/components/templates/TemplateSelectorInput.tsx:276
-#: src/pages/TemplatesPage.tsx:479
+#: src/pages/TemplatesPage.tsx:503
 msgid "No templates found"
 msgstr "テンプレートが見つかりません"
 
@@ -10304,7 +10308,7 @@ msgstr "テンプレートが見つかりません"
 msgid "No templates found for {0} category"
 msgstr "{0}カテゴリのテンプレートが見つかりません"
 
-#: src/pages/TemplatesPage.tsx:507
+#: src/pages/TemplatesPage.tsx:532
 msgid "No templates found for category \"{label}\""
 msgstr "カテゴリ「{label}」にテンプレートはありません"
 
@@ -10312,7 +10316,7 @@ msgstr "カテゴリ「{label}」にテンプレートはありません"
 #~ msgid "No templates found for category \"{selectedCategory}\""
 #~ msgstr "カテゴリ「{selectedCategory}」のテンプレートが見つかりません"
 
-#: src/pages/TemplatesPage.tsx:526
+#: src/pages/TemplatesPage.tsx:552
 msgid "No templates match your search"
 msgstr "検索に一致するテンプレートはありません"
 
@@ -10490,7 +10494,7 @@ msgstr "未設定"
 msgid "Not tracked"
 msgstr "トラッキングなし"
 
-#: src/pages/TemplatesPage.tsx:316
+#: src/pages/TemplatesPage.tsx:340
 msgid "Not used"
 msgstr "未使用"
 
@@ -10546,7 +10550,7 @@ msgstr "通知を更新しました"
 msgid "Notifuse disabled this webhook automatically"
 msgstr "NotifuseがこのWebhookを自動的に無効化しました"
 
-#: src/pages/TemplatesPage.tsx:537
+#: src/pages/TemplatesPage.tsx:563
 msgid "Notifuse export (.json)"
 msgstr "Notifuseエクスポート（.json）"
 
@@ -11653,7 +11657,7 @@ msgstr "プレビュー"
 #: src/components/common/ImageURLInput.tsx:52
 #: src/components/email_builder/EmailBuilder.tsx:1061
 #: src/components/segment/button_upsert.tsx:663
-#: src/pages/TemplatesPage.tsx:268
+#: src/pages/TemplatesPage.tsx:292
 msgid "Preview"
 msgstr "プレビュー"
 
@@ -12656,7 +12660,7 @@ msgstr "インテグレーションの同期タスクをリセットし、最初
 msgid "Reset formatting"
 msgstr "書式をリセット"
 
-#: src/pages/TemplatesPage.tsx:512
+#: src/pages/TemplatesPage.tsx:537
 msgid "reset the filter"
 msgstr "フィルターをリセット"
 
@@ -12771,7 +12775,7 @@ msgstr "保持期間"
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
 #: src/components/settings/WorkspaceMembers.tsx:495
-#: src/pages/TemplatesPage.tsx:469
+#: src/pages/TemplatesPage.tsx:493
 msgid "Retry"
 msgstr "再試行"
 
@@ -13728,7 +13732,7 @@ msgid "Send or Schedule Broadcast"
 msgstr "ブロードキャストを送信または予約"
 
 #: src/components/settings/WebhookDetail.tsx:324
-#: src/pages/TemplatesPage.tsx:271
+#: src/pages/TemplatesPage.tsx:295
 msgid "Send test"
 msgstr "テスト送信"
 
@@ -13751,7 +13755,7 @@ msgstr "SMTPリレーを使用してトランザクション通知を送信。�
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:927
 #: src/components/templates/CreateTemplateDrawer.tsx:1069
 #: src/components/templates/SendTemplateModal.tsx:340
-#: src/pages/TemplatesPage.tsx:406
+#: src/pages/TemplatesPage.tsx:430
 msgid "Sender"
 msgstr "送信者"
 
@@ -14885,7 +14889,7 @@ msgstr "テンプレート"
 #: src/components/messages/MessageHistoryTable.tsx:234
 #: src/pages/BroadcastsPage.tsx:897
 #: src/pages/BroadcastsPage.tsx:899
-#: src/pages/TemplatesPage.tsx:336
+#: src/pages/TemplatesPage.tsx:360
 msgid "Template"
 msgstr "テンプレート"
 
@@ -14930,7 +14934,7 @@ msgstr "テンプレートデータ"
 msgid "Template Data & Liquid Templating"
 msgstr "テンプレートデータとLiquidテンプレート"
 
-#: src/pages/TemplatesPage.tsx:211
+#: src/pages/TemplatesPage.tsx:225
 msgid "Template deleted successfully"
 msgstr "テンプレートが正常に削除されました"
 
@@ -15011,7 +15015,7 @@ msgstr "テンプレートの送信者（{0}）"
 
 #: src/components/settings/permissionLabels.ts:9
 #: src/layouts/app-shell/menuItems.ts:179
-#: src/pages/TemplatesPage.tsx:544
+#: src/pages/TemplatesPage.tsx:570
 #: src/services/api/errors.ts:84
 msgid "Templates"
 msgstr "テンプレート"
@@ -15784,7 +15788,7 @@ msgstr "この送信者はマーケティングメール連携に含まれなく
 msgid "This template is already used in another variation"
 msgstr "このテンプレートは既に別のバリエーションで使用されています"
 
-#: src/pages/TemplatesPage.tsx:292
+#: src/pages/TemplatesPage.tsx:316
 msgid "This template is managed by an integration and cannot be deleted"
 msgstr "このテンプレートは連携によって管理されており、削除できません"
 
@@ -15792,7 +15796,7 @@ msgstr "このテンプレートは連携によって管理されており、削
 msgid "This template is still used"
 msgstr "このテンプレートはまだ使用されています"
 
-#: src/pages/TemplatesPage.tsx:192
+#: src/pages/TemplatesPage.tsx:201
 msgid "This template no longer exists"
 msgstr "このテンプレートはもう存在しません"
 
@@ -16324,7 +16328,7 @@ msgstr "真"
 msgid "Try adjusting your search or status filter"
 msgstr "検索条件やステータスフィルターを調整してみてください"
 
-#: src/pages/TemplatesPage.tsx:510
+#: src/pages/TemplatesPage.tsx:535
 msgid "Try selecting a different category or"
 msgstr "別のカテゴリを選択するか、"
 
@@ -16611,7 +16615,7 @@ msgstr "更新済み"
 #: src/components/automations/AutomationCard.tsx:313
 #: src/components/automations/config/TriggerConfigForm.tsx:82
 #: src/components/blog/PostsTable.tsx:316
-#: src/pages/TemplatesPage.tsx:421
+#: src/pages/TemplatesPage.tsx:445
 msgid "Updated"
 msgstr "更新済み"
 
@@ -16790,7 +16794,7 @@ msgstr "ワークスペースのデフォルトを使用"
 #~ msgid "Used for"
 #~ msgstr "用途"
 
-#: src/pages/TemplatesPage.tsx:399
+#: src/pages/TemplatesPage.tsx:423
 msgid "Used in"
 msgstr "使用箇所"
 
@@ -16837,7 +16841,7 @@ msgstr "ユーザー名"
 msgid "Users"
 msgstr "ユーザー"
 
-#: src/pages/TemplatesPage.tsx:395
+#: src/pages/TemplatesPage.tsx:419
 msgid "Uses you can't see aren't counted."
 msgstr "表示できない使用箇所は数えられません。"
 
@@ -17729,7 +17733,7 @@ msgstr "コンタクトの書き込み権限がありません"
 msgid "You don't have write permission for lists"
 msgstr "リストの書き込み権限がありません"
 
-#: src/pages/TemplatesPage.tsx:247
+#: src/pages/TemplatesPage.tsx:261
 msgid "You don't have write permission for templates"
 msgstr "テンプレートの書き込み権限がありません"
 

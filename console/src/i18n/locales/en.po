@@ -1308,7 +1308,7 @@ msgstr "Alignment"
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:124
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
 #: src/pages/BroadcastsPage.tsx:1672
-#: src/pages/TemplatesPage.tsx:150
+#: src/pages/TemplatesPage.tsx:151
 msgid "All"
 msgstr "All"
 
@@ -2902,7 +2902,7 @@ msgstr "Categories"
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:75
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:105
 #: src/components/templates/CreateTemplateDrawer.tsx:1011
-#: src/pages/TemplatesPage.tsx:379
+#: src/pages/TemplatesPage.tsx:403
 msgid "Category"
 msgstr "Category"
 
@@ -3240,7 +3240,7 @@ msgstr "Client Secret Value"
 
 #: src/components/templates/TemplateSelectorInput.tsx:249
 #: src/components/templates/TemplateSelectorInput.tsx:251
-#: src/pages/TemplatesPage.tsx:277
+#: src/pages/TemplatesPage.tsx:301
 msgid "Clone"
 msgstr "Clone"
 
@@ -3277,7 +3277,7 @@ msgid "Closed Captions (CC)"
 msgstr "Closed Captions (CC)"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:675
-#: src/pages/TemplatesPage.tsx:361
+#: src/pages/TemplatesPage.tsx:385
 msgid "Code"
 msgstr "Code"
 
@@ -3810,7 +3810,7 @@ msgstr "Copy {0} Code"
 #~ msgid "Copy code"
 #~ msgstr "Copy code"
 
-#: src/pages/TemplatesPage.tsx:283
+#: src/pages/TemplatesPage.tsx:307
 msgid "Copy ID"
 msgstr "Copy ID"
 
@@ -3892,7 +3892,7 @@ msgstr "Could not read the licence state"
 msgid "Couldn't check where this template is used"
 msgstr "Couldn't check where this template is used"
 
-#: src/pages/TemplatesPage.tsx:310
+#: src/pages/TemplatesPage.tsx:334
 msgid "Couldn't load"
 msgstr "Couldn't load"
 
@@ -3904,13 +3904,17 @@ msgstr "Couldn't load the members"
 msgid "Couldn't load the success rate"
 msgstr "Couldn't load the success rate"
 
-#: src/pages/TemplatesPage.tsx:467
+#: src/pages/TemplatesPage.tsx:491
 msgid "Couldn't load the templates"
 msgstr "Couldn't load the templates"
 
 #: src/components/settings/WebhooksSettings.tsx:385
 msgid "Couldn't load the webhooks"
 msgstr "Couldn't load the webhooks"
+
+#: src/pages/TemplatesPage.tsx:207
+msgid "Couldn't load this template"
+msgstr "Couldn't load this template"
 
 #: src/components/settings/WebhookDetail.tsx:426
 msgid "Couldn't load this webhook"
@@ -4190,7 +4194,7 @@ msgstr "Create your first notification to get started"
 msgid "Create Your First Post"
 msgstr "Create Your First Post"
 
-#: src/pages/TemplatesPage.tsx:480
+#: src/pages/TemplatesPage.tsx:504
 msgid "Create your first template to get started"
 msgstr "Create your first template to get started"
 
@@ -4208,7 +4212,7 @@ msgstr "Created"
 #. placeholder {0}: fullDate(template.created_at)
 #. placeholder {1}: fullDate(template.updated_at)
 #. placeholder {2}: timezone ?? 'UTC'
-#: src/pages/TemplatesPage.tsx:425
+#: src/pages/TemplatesPage.tsx:449
 msgid "Created {0} · Updated {1} in {2}"
 msgstr "Created {0} · Updated {1} in {2}"
 
@@ -4594,7 +4598,7 @@ msgstr "Deduplication:"
 #: src/components/broadcasts/VariationSenderSelect.tsx:61
 #: src/components/settings/integrations/EmailProviderCard.tsx:284
 #: src/components/templates/SendTemplateModal.tsx:99
-#: src/pages/TemplatesPage.tsx:417
+#: src/pages/TemplatesPage.tsx:441
 msgid "default"
 msgstr "default"
 
@@ -4702,8 +4706,8 @@ msgstr "Delay"
 #: src/pages/BroadcastsPage.tsx:1836
 #: src/pages/ContactsPage.tsx:975
 #: src/pages/ListsPage.tsx:418
-#: src/pages/TemplatesPage.tsx:293
-#: src/pages/TemplatesPage.tsx:296
+#: src/pages/TemplatesPage.tsx:317
+#: src/pages/TemplatesPage.tsx:320
 msgid "Delete"
 msgstr "Delete"
 
@@ -5471,7 +5475,7 @@ msgstr "edit"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
 #: src/pages/ContactsPage.tsx:969
-#: src/pages/TemplatesPage.tsx:264
+#: src/pages/TemplatesPage.tsx:288
 #: src/pages/TransactionalNotificationsPage.tsx:163
 msgid "Edit"
 msgstr "Edit"
@@ -6686,7 +6690,7 @@ msgstr "Failed to delete post"
 msgid "Failed to delete segment"
 msgstr "Failed to delete segment"
 
-#: src/pages/TemplatesPage.tsx:218
+#: src/pages/TemplatesPage.tsx:232
 msgid "Failed to delete template: {errorMsg}"
 msgstr "Failed to delete template: {errorMsg}"
 
@@ -7904,7 +7908,7 @@ msgstr "ID can only contain lowercase letters and numbers"
 msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "ID can only contain lowercase letters, numbers, and underscores"
 
-#: src/pages/TemplatesPage.tsx:285
+#: src/pages/TemplatesPage.tsx:309
 msgid "ID copied"
 msgstr "ID copied"
 
@@ -7918,7 +7922,7 @@ msgstr "ID doesn't match"
 #~ msgstr "ID for API:"
 
 #. placeholder {0}: template.id
-#: src/pages/TemplatesPage.tsx:356
+#: src/pages/TemplatesPage.tsx:380
 msgid "ID for API: {0}"
 msgstr "ID for API: {0}"
 
@@ -8027,7 +8031,7 @@ msgstr "Implicit TLS (SMTPS)"
 #: src/components/email_builder/MjmlCodeEditor.tsx:628
 #: src/components/templates/ImportExportButton.tsx:204
 #: src/pages/ContactsPage.tsx:1036
-#: src/pages/TemplatesPage.tsx:552
+#: src/pages/TemplatesPage.tsx:578
 msgid "Import"
 msgstr "Import"
 
@@ -9262,7 +9266,7 @@ msgstr "managed"
 
 #. placeholder {0}: integration.name
 #. placeholder {1}: integration.type
-#: src/pages/TemplatesPage.tsx:348
+#: src/pages/TemplatesPage.tsx:372
 #: src/pages/TransactionalNotificationsPage.tsx:140
 msgid "Managed by {0} ({1} integration)"
 msgstr "Managed by {0} ({1} integration)"
@@ -9571,7 +9575,7 @@ msgstr "MJML Export Failed"
 msgid "MJML exported successfully"
 msgstr "MJML exported successfully"
 
-#: src/pages/TemplatesPage.tsx:538
+#: src/pages/TemplatesPage.tsx:564
 msgid "MJML file (.mjml)"
 msgstr "MJML file (.mjml)"
 
@@ -9648,7 +9652,7 @@ msgstr "Monthly"
 
 #: src/components/settings/Integrations.tsx:961
 #: src/components/settings/integrations/EmailProviderCard.tsx:343
-#: src/pages/TemplatesPage.tsx:446
+#: src/pages/TemplatesPage.tsx:470
 msgid "More actions"
 msgstr "More actions"
 
@@ -9745,7 +9749,7 @@ msgstr "Name is required"
 msgid "Name must be less than 255 characters"
 msgstr "Name must be less than 255 characters"
 
-#: src/pages/TemplatesPage.tsx:586
+#: src/pages/TemplatesPage.tsx:612
 msgid "Name or subject"
 msgstr "Name or subject"
 
@@ -9834,8 +9838,8 @@ msgstr "New segment"
 msgid "New sends from these items will keep using the deleted template until you pick another one. Messages already sent stay in the logs, but their web version stops working."
 msgstr "New sends from these items will keep using the deleted template until you pick another one. Messages already sent stay in the logs, but their web version stops working."
 
-#: src/pages/TemplatesPage.tsx:492
-#: src/pages/TemplatesPage.tsx:565
+#: src/pages/TemplatesPage.tsx:516
+#: src/pages/TemplatesPage.tsx:591
 msgid "New template"
 msgstr "New template"
 
@@ -9856,7 +9860,7 @@ msgstr "New workspace"
 msgid "Newsletters"
 msgstr "Newsletters"
 
-#: src/pages/TemplatesPage.tsx:394
+#: src/pages/TemplatesPage.tsx:418
 msgid "Newsletters that may still send, transactional notifications, automations and double opt-in lists. Segment filters on a template aren't counted."
 msgstr "Newsletters that may still send, transactional notifications, automations and double opt-in lists. Segment filters on a template aren't counted."
 
@@ -10295,7 +10299,7 @@ msgid "No successful delivery"
 msgstr "No successful delivery"
 
 #: src/components/templates/TemplateSelectorInput.tsx:276
-#: src/pages/TemplatesPage.tsx:479
+#: src/pages/TemplatesPage.tsx:503
 msgid "No templates found"
 msgstr "No templates found"
 
@@ -10304,7 +10308,7 @@ msgstr "No templates found"
 msgid "No templates found for {0} category"
 msgstr "No templates found for {0} category"
 
-#: src/pages/TemplatesPage.tsx:507
+#: src/pages/TemplatesPage.tsx:532
 msgid "No templates found for category \"{label}\""
 msgstr "No templates found for category \"{label}\""
 
@@ -10312,7 +10316,7 @@ msgstr "No templates found for category \"{label}\""
 #~ msgid "No templates found for category \"{selectedCategory}\""
 #~ msgstr "No templates found for category \"{selectedCategory}\""
 
-#: src/pages/TemplatesPage.tsx:526
+#: src/pages/TemplatesPage.tsx:552
 msgid "No templates match your search"
 msgstr "No templates match your search"
 
@@ -10490,7 +10494,7 @@ msgstr "Not set up"
 msgid "Not tracked"
 msgstr "Not tracked"
 
-#: src/pages/TemplatesPage.tsx:316
+#: src/pages/TemplatesPage.tsx:340
 msgid "Not used"
 msgstr "Not used"
 
@@ -10546,7 +10550,7 @@ msgstr "Notification updated successfully"
 msgid "Notifuse disabled this webhook automatically"
 msgstr "Notifuse disabled this webhook automatically"
 
-#: src/pages/TemplatesPage.tsx:537
+#: src/pages/TemplatesPage.tsx:563
 msgid "Notifuse export (.json)"
 msgstr "Notifuse export (.json)"
 
@@ -11653,7 +11657,7 @@ msgstr "preview"
 #: src/components/common/ImageURLInput.tsx:52
 #: src/components/email_builder/EmailBuilder.tsx:1061
 #: src/components/segment/button_upsert.tsx:663
-#: src/pages/TemplatesPage.tsx:268
+#: src/pages/TemplatesPage.tsx:292
 msgid "Preview"
 msgstr "Preview"
 
@@ -12656,7 +12660,7 @@ msgstr "Reset an integration sync task so it re-runs from the start"
 msgid "Reset formatting"
 msgstr "Reset formatting"
 
-#: src/pages/TemplatesPage.tsx:512
+#: src/pages/TemplatesPage.tsx:537
 msgid "reset the filter"
 msgstr "reset the filter"
 
@@ -12771,7 +12775,7 @@ msgstr "Retention"
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
 #: src/components/settings/WorkspaceMembers.tsx:495
-#: src/pages/TemplatesPage.tsx:469
+#: src/pages/TemplatesPage.tsx:493
 msgid "Retry"
 msgstr "Retry"
 
@@ -13728,7 +13732,7 @@ msgid "Send or Schedule Broadcast"
 msgstr "Send or Schedule Broadcast"
 
 #: src/components/settings/WebhookDetail.tsx:324
-#: src/pages/TemplatesPage.tsx:271
+#: src/pages/TemplatesPage.tsx:295
 msgid "Send test"
 msgstr "Send test"
 
@@ -13751,7 +13755,7 @@ msgstr "Send transactional notifications using SMTP bridge. Perfect for integrat
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:927
 #: src/components/templates/CreateTemplateDrawer.tsx:1069
 #: src/components/templates/SendTemplateModal.tsx:340
-#: src/pages/TemplatesPage.tsx:406
+#: src/pages/TemplatesPage.tsx:430
 msgid "Sender"
 msgstr "Sender"
 
@@ -14885,7 +14889,7 @@ msgstr "template"
 #: src/components/messages/MessageHistoryTable.tsx:234
 #: src/pages/BroadcastsPage.tsx:897
 #: src/pages/BroadcastsPage.tsx:899
-#: src/pages/TemplatesPage.tsx:336
+#: src/pages/TemplatesPage.tsx:360
 msgid "Template"
 msgstr "Template"
 
@@ -14930,7 +14934,7 @@ msgstr "Template Data"
 msgid "Template Data & Liquid Templating"
 msgstr "Template Data & Liquid Templating"
 
-#: src/pages/TemplatesPage.tsx:211
+#: src/pages/TemplatesPage.tsx:225
 msgid "Template deleted successfully"
 msgstr "Template deleted successfully"
 
@@ -15011,7 +15015,7 @@ msgstr "Template's sender ({0})"
 
 #: src/components/settings/permissionLabels.ts:9
 #: src/layouts/app-shell/menuItems.ts:179
-#: src/pages/TemplatesPage.tsx:544
+#: src/pages/TemplatesPage.tsx:570
 #: src/services/api/errors.ts:84
 msgid "Templates"
 msgstr "Templates"
@@ -15784,7 +15788,7 @@ msgstr "This sender is no longer one of the marketing email integration's. Choos
 msgid "This template is already used in another variation"
 msgstr "This template is already used in another variation"
 
-#: src/pages/TemplatesPage.tsx:292
+#: src/pages/TemplatesPage.tsx:316
 msgid "This template is managed by an integration and cannot be deleted"
 msgstr "This template is managed by an integration and cannot be deleted"
 
@@ -15792,7 +15796,7 @@ msgstr "This template is managed by an integration and cannot be deleted"
 msgid "This template is still used"
 msgstr "This template is still used"
 
-#: src/pages/TemplatesPage.tsx:192
+#: src/pages/TemplatesPage.tsx:201
 msgid "This template no longer exists"
 msgstr "This template no longer exists"
 
@@ -16324,7 +16328,7 @@ msgstr "true"
 msgid "Try adjusting your search or status filter"
 msgstr "Try adjusting your search or status filter"
 
-#: src/pages/TemplatesPage.tsx:510
+#: src/pages/TemplatesPage.tsx:535
 msgid "Try selecting a different category or"
 msgstr "Try selecting a different category or"
 
@@ -16611,7 +16615,7 @@ msgstr "updated"
 #: src/components/automations/AutomationCard.tsx:313
 #: src/components/automations/config/TriggerConfigForm.tsx:82
 #: src/components/blog/PostsTable.tsx:316
-#: src/pages/TemplatesPage.tsx:421
+#: src/pages/TemplatesPage.tsx:445
 msgid "Updated"
 msgstr "Updated"
 
@@ -16790,7 +16794,7 @@ msgstr "Use workspace default"
 #~ msgid "Used for"
 #~ msgstr "Used for"
 
-#: src/pages/TemplatesPage.tsx:399
+#: src/pages/TemplatesPage.tsx:423
 msgid "Used in"
 msgstr "Used in"
 
@@ -16837,7 +16841,7 @@ msgstr "Username"
 msgid "Users"
 msgstr "Users"
 
-#: src/pages/TemplatesPage.tsx:395
+#: src/pages/TemplatesPage.tsx:419
 msgid "Uses you can't see aren't counted."
 msgstr "Uses you can't see aren't counted."
 
@@ -17729,7 +17733,7 @@ msgstr "You don't have write permission for contacts"
 msgid "You don't have write permission for lists"
 msgstr "You don't have write permission for lists"
 
-#: src/pages/TemplatesPage.tsx:247
+#: src/pages/TemplatesPage.tsx:261
 msgid "You don't have write permission for templates"
 msgstr "You don't have write permission for templates"
 

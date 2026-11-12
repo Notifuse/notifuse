@@ -152,7 +152,7 @@ export interface TemplateUsageReference {
 
 export interface GetTemplateUsageRequest {
   workspace_id: string
-  /** One template: its counts, with at most 50 references per type. */
+  /** One template: its counts, with a capped list of references per type. */
   template_id?: string
 }
 

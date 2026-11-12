@@ -67,6 +67,7 @@ vi.mock('../components/templates/SendTemplateModal', () => ({
 }))
 
 vi.mock('../services/api/client', () => ({ api: { get: vi.fn(), post: vi.fn() } }))
+vi.mock('../lib/copyToClipboard', () => ({ copyToClipboard: vi.fn(async () => true) }))
 vi.mock('../services/api/template', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../services/api/template')>()
   return {
@@ -77,6 +78,8 @@ vi.mock('../services/api/template', async (importOriginal) => {
 
 import { TemplatesPage } from './TemplatesPage'
 import { templatesApi } from '../services/api/template'
+import { ApiError } from '../services/api/errors'
+import { copyToClipboard } from '../lib/copyToClipboard'
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
@@ -171,6 +174,8 @@ describe('TemplatesPage', () => {
       'Transactional1'
     )
     expect(within(tabs).queryByText('Bounce')).not.toBeInTheDocument()
+    // Every template is on one page.
+    expect(document.querySelector('.ant-pagination')).toBeNull()
   })
 
   it('filters the category of the URL in the browser, and shows it at 0 when empty', async () => {
@@ -286,7 +291,7 @@ describe('TemplatesPage', () => {
     expect(await screen.findByTestId('preview-drawer')).toHaveAttribute('data-template', 'promo')
   })
 
-  it('reads a template to preview that the category tab leaves out', async () => {
+  it('reads a template to preview that the list does not hold', async () => {
     vi.mocked(templatesApi.get).mockResolvedValue({
       template: make({ id: 'other', name: 'Other' })
     })
@@ -295,7 +300,11 @@ describe('TemplatesPage', () => {
   })
 
   it.each([
-    ['unknown', () => vi.mocked(templatesApi.get).mockRejectedValue(new Error('not found'))],
+    [
+      'unknown',
+      () =>
+        vi.mocked(templatesApi.get).mockRejectedValue(new ApiError('Template not found', 404, null))
+    ],
     [
       'deleted',
       () =>
@@ -309,6 +318,33 @@ describe('TemplatesPage', () => {
     expect(await screen.findByText('This template no longer exists')).toBeInTheDocument()
     expect(lastSearch()).toEqual({})
     expect(screen.queryByTestId('preview-drawer')).not.toBeInTheDocument()
+  })
+
+  it('keeps the preview link when the template could not be read, and says so', async () => {
+    vi.mocked(templatesApi.get).mockRejectedValue(new ApiError('Internal error', 500, null))
+    renderPage({ preview: 'other' })
+    expect(await screen.findByText("Couldn't load this template")).toBeInTheDocument()
+    expect(screen.queryByText('This template no longer exists')).not.toBeInTheDocument()
+    expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it('drops, without a message, the preview of a template that is not an email', async () => {
+    vi.mocked(templatesApi.get).mockResolvedValue({
+      template: make({ id: 'blog-tpl', channel: 'web' })
+    })
+    renderPage({ preview: 'blog-tpl' })
+    await waitFor(() => expect(lastSearch()).toEqual({}))
+    expect(screen.queryByText('This template no longer exists')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('preview-drawer')).not.toBeInTheDocument()
+  })
+
+  it('copies the ID of a template from the menu', async () => {
+    renderPage()
+    await screen.findByText('Newsletter')
+    const menu = await openMenu('Newsletter')
+    fireEvent.click(within(menu).getByText('Copy ID'))
+    await waitFor(() => expect(copyToClipboard).toHaveBeenCalledWith('newsletter'))
+    expect(await screen.findByText('ID copied')).toBeInTheDocument()
   })
 
   it('disables the writes of the menu without Templates write, and keeps the rest', async () => {
@@ -327,6 +363,12 @@ describe('TemplatesPage', () => {
     }
     expect(screen.getByRole('button', { name: /New template/ })).toBeDisabled()
     expect(screen.getByRole('button', { name: /Import/ })).toBeDisabled()
+
+    // A disabled write says why.
+    fireEvent.mouseEnter(within(menu).getByText('Edit'))
+    expect(
+      (await screen.findAllByText("You don't have write permission for templates")).length
+    ).toBeGreaterThan(0)
   })
 
   it('disables Delete for a template an integration manages', async () => {
@@ -369,7 +411,7 @@ describe('TemplatesPage', () => {
     expect(drawer).toHaveAttribute('data-from', '')
   })
 
-  it('imports a file into a new template named after it, without saving', async () => {
+  it('imports a file into a new template named after it', async () => {
     const { container } = renderPage()
     await screen.findByText('Newsletter')
     const input = container.querySelector('input[accept^=".json"]') as HTMLInputElement
