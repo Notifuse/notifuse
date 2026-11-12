@@ -53,7 +53,10 @@ export function LogsPage() {
   const timezone = workspaces.find((workspace) => workspace.id === workspaceId)?.settings.timezone
 
   const header = (
-    <PageHeader title={t`Logs`} description={t`Everything sent, received and changed in this workspace`} />
+    <PageHeader
+      title={t`Logs`}
+      description={t`Everything sent, received and changed in this workspace`}
+    />
   )
 
   if (!ready) {
@@ -98,14 +101,18 @@ export function LogsPage() {
           <InboundWebhookEventsTab
             workspaceId={workspaceId}
             onRefresh={() =>
-              void queryClient.invalidateQueries({ queryKey: ['inbound-webhook-events', workspaceId] })
+              void queryClient.invalidateQueries({
+                queryKey: ['inbound-webhook-events', workspaceId]
+              })
             }
           />
         )
       case 'outgoing-webhooks':
         return <OutgoingWebhooksTab workspaceId={workspaceId} />
       case 'audit':
-        return <AuditLogTab workspaceId={workspaceId} timezone={timezone} isRoot={auditAccess.isRoot} />
+        return (
+          <AuditLogTab workspaceId={workspaceId} timezone={timezone} isRoot={auditAccess.isRoot} />
+        )
     }
   }
 

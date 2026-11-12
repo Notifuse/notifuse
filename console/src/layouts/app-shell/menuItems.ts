@@ -93,7 +93,11 @@ export type GroupPage =
     }
 
 /** Where opening a group lands: the first child the group renders. */
-export function firstPageOfGroup(group: string, hasAccess: HasAccess, workspaceId: string): GroupPage | null {
+export function firstPageOfGroup(
+  group: string,
+  hasAccess: HasAccess,
+  workspaceId: string
+): GroupPage | null {
   if (group === 'web-analytics') {
     return {
       to: '/console/workspace/$workspaceId/web-analytics/$tab',
@@ -117,15 +121,27 @@ export function firstPageOfGroup(group: string, hasAccess: HasAccess, workspaceI
 
 /** The page each top entry links to, for the entries that are plain links. */
 const ENTRY_PAGES: Record<string, (workspaceId: string) => MenuTarget> = {
-  contacts: (workspaceId) => ({ to: '/console/workspace/$workspaceId/contacts', params: { workspaceId } }),
-  broadcasts: (workspaceId) => ({ to: '/console/workspace/$workspaceId/broadcasts', params: { workspaceId } }),
-  automations: (workspaceId) => ({ to: '/console/workspace/$workspaceId/automations', params: { workspaceId } }),
+  contacts: (workspaceId) => ({
+    to: '/console/workspace/$workspaceId/contacts',
+    params: { workspaceId }
+  }),
+  broadcasts: (workspaceId) => ({
+    to: '/console/workspace/$workspaceId/broadcasts',
+    params: { workspaceId }
+  }),
+  automations: (workspaceId) => ({
+    to: '/console/workspace/$workspaceId/automations',
+    params: { workspaceId }
+  }),
   'transactional-notifications': (workspaceId) => ({
     to: '/console/workspace/$workspaceId/transactional-notifications',
     params: { workspaceId }
   }),
   logs: (workspaceId) => ({ to: '/console/workspace/$workspaceId/logs', params: { workspaceId } }),
-  settings: (workspaceId) => ({ to: '/console/workspace/$workspaceId/settings', params: { workspaceId } })
+  settings: (workspaceId) => ({
+    to: '/console/workspace/$workspaceId/settings',
+    params: { workspaceId }
+  })
 }
 
 /** The sidebar's top entries after the dashboard, in its order, with the right each needs. */
@@ -208,7 +224,12 @@ interface BuildMenuItemsOptions {
 }
 
 /** The sidebar entries the member's rights allow, in the menu's order. */
-export function buildMenuItems({ hasAccess, workspaceId, i18n, canOpenLogs }: BuildMenuItemsOptions): MenuItem[] {
+export function buildMenuItems({
+  hasAccess,
+  workspaceId,
+  i18n,
+  canOpenLogs
+}: BuildMenuItemsOptions): MenuItem[] {
   const label = (descriptor: MessageDescriptor) => i18n._(descriptor)
   const tab = (key: (typeof WEB_ANALYTICS_SECTIONS)[number], text: MessageDescriptor): MenuItem =>
     key === 'live'
@@ -278,7 +299,10 @@ export function buildMenuItems({ hasAccess, workspaceId, i18n, canOpenLogs }: Bu
     hasAccess('message_history') && {
       key: 'analytics',
       icon: icon(LayoutGrid),
-      label: link({ to: '/console/workspace/$workspaceId', params: { workspaceId } }, label(LABELS.dashboard))
+      label: link(
+        { to: '/console/workspace/$workspaceId', params: { workspaceId } },
+        label(LABELS.dashboard)
+      )
     },
     hasAccess('web_analytics') && {
       key: 'web-analytics',
@@ -349,7 +373,10 @@ export function buildMenuItems({ hasAccess, workspaceId, i18n, canOpenLogs }: Bu
     (canOpenLogs ?? hasAccess('message_history')) && {
       key: 'logs',
       icon: icon(AlignJustify),
-      label: link({ to: '/console/workspace/$workspaceId/logs', params: { workspaceId } }, label(LABELS.logs))
+      label: link(
+        { to: '/console/workspace/$workspaceId/logs', params: { workspaceId } },
+        label(LABELS.logs)
+      )
     },
     hasAccess('workspace') && {
       key: 'settings',

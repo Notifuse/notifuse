@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { App } from 'antd'
-import { CodeBlock, formatCode } from './CodeBlock'
+import { CodeBlock } from './CodeBlock'
+import { formatCode } from './formatCode'
 
 const copy = vi.hoisted(() => vi.fn().mockResolvedValue(true))
 vi.mock('../../lib/copyToClipboard', () => ({ copyToClipboard: copy }))

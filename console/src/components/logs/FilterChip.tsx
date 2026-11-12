@@ -1,7 +1,7 @@
 import { Dropdown, Popover, type MenuProps } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { ChevronDown, X } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 export interface FilterChipProps {
   label: ReactNode
@@ -12,7 +12,11 @@ export interface FilterChipProps {
   /** …free content (a text field, a date range) in a popover. */
   content?: ReactNode
   open?: boolean
+  /** Opens on mount: a filter just added from "+ Filter". */
+  defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
+  /** Wraps the menu (a date range under the period choices). */
+  popupRender?: (menu: ReactNode) => ReactNode
   /** Shows a cross that removes the filter. */
   onClear?: () => void
   /** Text for the cross's accessible name; the label when it is a string. */
@@ -31,13 +35,22 @@ export function FilterChip({
   menu,
   content,
   open,
+  defaultOpen,
   onOpenChange,
+  popupRender,
   onClear,
   clearLabel,
   dashed
 }: FilterChipProps) {
   const { t } = useLingui()
-  const openProps = open === undefined ? {} : { open }
+  // Uncontrolled unless `open` is given; `defaultOpen` opens it once, on mount.
+  const [ownOpen, setOwnOpen] = useState(Boolean(defaultOpen))
+  const isOpen = open ?? ownOpen
+  const handleOpenChange = (next: boolean) => {
+    setOwnOpen(next)
+    onOpenChange?.(next)
+  }
+  const openProps = { open: isOpen, onOpenChange: handleOpenChange }
 
   const button = (
     <button
@@ -57,17 +70,11 @@ export function FilterChip({
   )
 
   const trigger = menu ? (
-    <Dropdown menu={menu} trigger={['click']} onOpenChange={onOpenChange} {...openProps}>
+    <Dropdown menu={menu} trigger={['click']} popupRender={popupRender} {...openProps}>
       {button}
     </Dropdown>
   ) : (
-    <Popover
-      content={content}
-      trigger="click"
-      placement="bottomLeft"
-      onOpenChange={onOpenChange}
-      {...openProps}
-    >
+    <Popover content={content} trigger="click" placement="bottomLeft" {...openProps}>
       {button}
     </Popover>
   )

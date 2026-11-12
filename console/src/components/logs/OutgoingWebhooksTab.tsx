@@ -11,25 +11,25 @@ import {
   webhookSubscriptionApi,
   type WebhookDelivery
 } from '../../services/api/webhook_subscription'
-import { KeyValueList, Mono, Panel, Pill, SidePanel, TableToolbar, useNumberFormat, type PillTone } from '../layout'
+import {
+  KeyValueList,
+  Mono,
+  Panel,
+  Pill,
+  SidePanel,
+  TableToolbar,
+  useNumberFormat,
+  type PillTone
+} from '../layout'
 import { CodeBlock } from './CodeBlock'
 import { FilterChip } from './FilterChip'
 import { DELIVERY_STATUS_LABELS } from './labels'
 import { DELIVERY_STATUSES, type DeliveryStatus } from './logsSearch'
 import { formatLogDateTime, formatLogTime } from './logTime'
 import { useLogsUrl } from './useLogsUrl'
+import { deliveryState, type DeliveryState } from './deliveryState'
 
 const PAGE_SIZE = 50
-
-type DeliveryState = keyof typeof DELIVERY_STATUS_LABELS
-
-/** Retrying and Failed are both `failed`: the attempts left tell them apart. */
-export function deliveryState(delivery: Pick<WebhookDelivery, 'status' | 'attempts' | 'max_attempts'>): DeliveryState {
-  if (delivery.status === 'failed') {
-    return delivery.attempts < delivery.max_attempts ? 'retrying' : 'failed'
-  }
-  return delivery.status
-}
 
 const STATE_TONES: Record<DeliveryState, PillTone> = {
   delivered: 'success',
@@ -64,13 +64,20 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
     staleTime: 5 * 60 * 1000
   })
   const subscriptions = subscriptionsQuery.data?.subscriptions ?? []
-  const subscriptionName = (id: string) => subscriptions.find((subscription) => subscription.id === id)?.name
+  const subscriptionName = (id: string) =>
+    subscriptions.find((subscription) => subscription.id === id)?.name
 
   // O2: deliveries by offset, 50 at a time.
   const deliveriesQuery = useInfiniteQuery({
     queryKey: ['logs', 'deliveries', workspaceId, { subscriptionId, status }],
     queryFn: ({ pageParam }) =>
-      webhookSubscriptionApi.getDeliveries(workspaceId, subscriptionId, PAGE_SIZE, pageParam, status),
+      webhookSubscriptionApi.getDeliveries(
+        workspaceId,
+        subscriptionId,
+        PAGE_SIZE,
+        pageParam,
+        status
+      ),
     initialPageParam: 0,
     getNextPageParam: (last) => {
       const next = last.offset + last.deliveries.length
@@ -94,7 +101,8 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
   }, [deliveriesQuery.data])
   const total = deliveriesQuery.data?.pages[0]?.total
 
-  const refresh = () => void queryClient.resetQueries({ queryKey: ['logs', 'deliveries', workspaceId] })
+  const refresh = () =>
+    void queryClient.resetQueries({ queryKey: ['logs', 'deliveries', workspaceId] })
 
   const subscriptionMenu: MenuProps = {
     items: [
@@ -108,7 +116,10 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
   const statusMenu: MenuProps = {
     items: [
       { key: '', label: t`All` },
-      ...DELIVERY_STATUSES.map((value) => ({ key: value, label: i18n._(DELIVERY_STATUS_LABELS[value]) }))
+      ...DELIVERY_STATUSES.map((value) => ({
+        key: value,
+        label: i18n._(DELIVERY_STATUS_LABELS[value])
+      }))
     ],
     selectable: true,
     selectedKeys: [status ?? ''],
@@ -133,7 +144,13 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
       }
       end={
         <Tooltip title={t`Refresh`}>
-          <Button type="text" size="small" aria-label={t`Refresh`} icon={<RefreshCw size={14} />} onClick={refresh} />
+          <Button
+            type="text"
+            size="small"
+            aria-label={t`Refresh`}
+            icon={<RefreshCw size={14} />}
+            onClick={refresh}
+          />
         </Tooltip>
       }
     />
@@ -146,7 +163,9 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
       width: 150,
       render: (_, delivery) => (
         <Tooltip title={formatLogDateTime(delivery.created_at, timezone)}>
-          <span className="text-ink-3 tabular-nums">{formatLogTime(i18n, delivery.created_at, timezone)}</span>
+          <span className="text-ink-3 tabular-nums">
+            {formatLogTime(i18n, delivery.created_at, timezone)}
+          </span>
         </Tooltip>
       )
     },
@@ -200,10 +219,10 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
       <Result
         status="error"
         title={t`Couldn't load the deliveries`}
-        subTitle={deliveriesQuery.error instanceof Error ? deliveriesQuery.error.message : undefined}
-        extra={
-          <Button onClick={() => void deliveriesQuery.refetch()}>{t`Retry`}</Button>
+        subTitle={
+          deliveriesQuery.error instanceof Error ? deliveriesQuery.error.message : undefined
         }
+        extra={<Button onClick={() => void deliveriesQuery.refetch()}>{t`Retry`}</Button>}
       />
     )
   } else if (deliveries.length === 0) {
@@ -237,7 +256,9 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
         dataSource={deliveries}
         rowKey="id"
         pagination={false}
-        rowClassName={(delivery) => (delivery.id === openId ? 'cursor-pointer bg-primary-50' : 'cursor-pointer')}
+        rowClassName={(delivery) =>
+          delivery.id === openId ? 'cursor-pointer bg-primary-50' : 'cursor-pointer'
+        }
         onRow={(delivery) => ({
           onClick: () => setOpenId(delivery.id),
           onKeyDown: (event) => {
@@ -396,7 +417,9 @@ function DeliveryDetail({
           <h4 data-unreset className="m-0 text-sm font-semibold text-ink">
             {t`Response`}
           </h4>
-          {delivery.last_error ? <Alert type="warning" showIcon message={delivery.last_error} /> : null}
+          {delivery.last_error ? (
+            <Alert type="warning" showIcon title={delivery.last_error} />
+          ) : null}
           {delivery.last_response_status !== undefined ? (
             <>
               <div>

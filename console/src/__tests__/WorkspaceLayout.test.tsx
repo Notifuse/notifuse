@@ -257,7 +257,9 @@ describe('WorkspaceLayout chrome', () => {
     expect(aside().dataset.collapsed).toBe('false')
     const nav = screen.getByRole('navigation', { name: 'Main navigation' })
     await waitFor(() =>
-      expect(nav.querySelector('.ant-menu-submenu-open > .ant-menu-submenu-title')).toHaveTextContent('Content')
+      expect(
+        nav.querySelector('.ant-menu-submenu-open > .ant-menu-submenu-title')
+      ).toHaveTextContent('Content')
     )
     expect(nav.querySelector('.ant-menu-item-selected')).toHaveTextContent('Blog')
     expect(main().className).toContain('ml-sidebar-collapsed')
@@ -292,7 +294,9 @@ describe('WorkspaceLayout chrome', () => {
     vi.mocked(isRootUser).mockReturnValue(false)
     vi.mocked(workspaceService.getMembers).mockReturnValue(new Promise(() => {}))
     render(<WorkspaceLayout />)
-    await waitFor(() => expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument()
+    )
     expect(document.querySelectorAll('.app-sidebar-nav .ant-menu-item')).toHaveLength(0)
   })
 
@@ -302,7 +306,9 @@ describe('WorkspaceLayout chrome', () => {
       members: [{ user_id: 'u1', role: 'owner', permissions: grantAll(true) }]
     } as never)
     render(<WorkspaceLayout />)
-    await waitFor(() => expect(document.querySelector('[data-account-role]')).toHaveTextContent('Owner · EN'))
+    await waitFor(() =>
+      expect(document.querySelector('[data-account-role]')).toHaveTextContent('Owner · EN')
+    )
   })
 
   it('switches workspace and opens the workspace creation', async () => {

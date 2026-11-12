@@ -88,7 +88,10 @@ const tree = () => (
 const renderPage = (search: LogsSearch = {}) => {
   state.search = search
   const view = render(tree())
-  return { ...view, rerenderWith: (next: LogsSearch) => ((state.search = next), view.rerender(tree())) }
+  return {
+    ...view,
+    rerenderWith: (next: LogsSearch) => ((state.search = next), view.rerender(tree()))
+  }
 }
 
 const allRights = (): Rights => ({
@@ -110,7 +113,9 @@ describe('LogsPage', () => {
 
   it('names the page and its four tabs', () => {
     renderPage()
-    expect(screen.getByText('Everything sent, received and changed in this workspace')).toBeInTheDocument()
+    expect(
+      screen.getByText('Everything sent, received and changed in this workspace')
+    ).toBeInTheDocument()
     expect(tabNames()).toEqual(['Messages', 'Incoming webhooks', 'Outgoing webhooks', 'Audit log'])
   })
 

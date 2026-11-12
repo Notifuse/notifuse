@@ -22,7 +22,11 @@ export interface PeriodBounds {
  * Refresh, not the render's: the lower bound is part of the query key, rounded down to the minute
  * so two queries of the same minute share their cache.
  */
-export function periodBounds(period: LogsPeriod, now: number, custom: PeriodBounds = {}): PeriodBounds {
+export function periodBounds(
+  period: LogsPeriod,
+  now: number,
+  custom: PeriodBounds = {}
+): PeriodBounds {
   if (period === 'custom') {
     return {
       ...(custom.from ? { from: custom.from } : {}),

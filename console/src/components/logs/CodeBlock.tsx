@@ -2,24 +2,13 @@ import { App } from 'antd'
 import { Copy } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { copyToClipboard } from '../../lib/copyToClipboard'
+import { formatCode } from './formatCode'
 
 export interface CodeBlockProps {
   /** Text, or a value shown as indented JSON. */
   value: unknown
   /** Names the block for the copy button ("Copy payload"). */
   label: string
-}
-
-/** JSON or raw text written as indented JSON when it parses, as-is otherwise. */
-export function formatCode(value: unknown): string {
-  if (typeof value === 'string') {
-    try {
-      return JSON.stringify(JSON.parse(value), null, 2)
-    } catch {
-      return value
-    }
-  }
-  return JSON.stringify(value, null, 2) ?? ''
 }
 
 /** A scrolling code block of bounded height, with a copy button. */

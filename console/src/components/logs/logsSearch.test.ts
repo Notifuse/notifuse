@@ -57,9 +57,11 @@ describe('parseLogsSearch', () => {
         period: '7d'
       })
     ).toEqual({ tab: 'incoming-webhooks', source: 'postmark', event_type: 'reply', period: '7d' })
-    expect(
-      parseLogsSearch({ tab: 'messages', origin: 'automation', channel: 'email' })
-    ).toEqual({ tab: 'messages', origin: 'automation', channel: 'email' })
+    expect(parseLogsSearch({ tab: 'messages', origin: 'automation', channel: 'email' })).toEqual({
+      tab: 'messages',
+      origin: 'automation',
+      channel: 'email'
+    })
     expect(
       parseLogsSearch({ tab: 'outgoing-webhooks', status: 'failed', subscription_id: 'sub1' })
     ).toEqual({ tab: 'outgoing-webhooks', status: 'failed', subscription_id: 'sub1' })
@@ -104,7 +106,10 @@ describe('parseLogsSearch', () => {
     expect(parseLogsSearch({ tab: 'messages', period: '90d' })).toEqual({ tab: 'messages' })
     expect(parseLogsSearch({ tab: 'messages', period: 'custom' })).toEqual({ tab: 'messages' })
     expect(parseLogsSearch({ tab: 'audit', period: '1h' })).toEqual({ tab: 'audit' })
-    expect(parseLogsSearch({ tab: 'audit', period: '90d' })).toEqual({ tab: 'audit', period: '90d' })
+    expect(parseLogsSearch({ tab: 'audit', period: '90d' })).toEqual({
+      tab: 'audit',
+      period: '90d'
+    })
     // Without a tab the page opens the messages, so their periods apply.
     expect(parseLogsSearch({ period: '1h' })).toEqual({ period: '1h' })
     expect(parseLogsSearch({ period: '90d' })).toEqual({})

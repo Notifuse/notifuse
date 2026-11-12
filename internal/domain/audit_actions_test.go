@@ -1,6 +1,9 @@
 package domain
 
 import (
+	"os"
+	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -102,4 +105,67 @@ func TestAuditCatalogue_TargetPathsAreWellFormed(t *testing.T) {
 	for _, route := range []string{"broadcasts.create", "automations.create", "templateBlocks.create", "annotations.create", "blogPosts.create", "blogCategories.create", "webhookSubscriptions.create", "transactional.create"} {
 		assert.NotEmpty(t, AuditedActions[route].ResponseKey, route)
 	}
+}
+
+// auditPhrase is one line of the console's AUDIT_PHRASES block: the action and its sentence.
+var auditPhraseLine = regexp.MustCompile(`^\s*'([A-Za-z]+(?:\.[A-Za-z]+)+)':\s*msg\(\{\s*message:\s*'(.*)'\s*\}\),?$`)
+
+// readConsoleAuditPhrases reads console/src/components/logs/auditPhrases.ts, the sentence the audit
+// log shows for each action. The console cannot import the catalogue, so the two are compared here.
+func readConsoleAuditPhrases(t *testing.T) map[string]string {
+	t.Helper()
+	source, err := os.ReadFile(filepath.Join(repoRoot(t), "console", "src", "components", "logs", "auditPhrases.ts"))
+	require.NoError(t, err)
+
+	lines := strings.Split(string(source), "\n")
+	start := -1
+	for i, line := range lines {
+		if strings.HasPrefix(line, "export const AUDIT_PHRASES") {
+			start = i
+			break
+		}
+	}
+	require.NotEqual(t, -1, start, "auditPhrases.ts has no AUDIT_PHRASES block")
+
+	phrases := map[string]string{}
+	for _, line := range lines[start+1:] {
+		if strings.TrimSpace(line) == "}" {
+			return phrases
+		}
+		match := auditPhraseLine.FindStringSubmatch(line)
+		require.NotNil(t, match, "a line of AUDIT_PHRASES is not in the form the test reads: %q", line)
+		_, duplicate := phrases[match[1]]
+		require.False(t, duplicate, "%s has two phrases", match[1])
+		phrases[match[1]] = match[2]
+	}
+	t.Fatal("AUDIT_PHRASES is not closed")
+	return nil
+}
+
+func TestTheConsoleHasAPhraseForEveryAuditedAction(t *testing.T) {
+	phrases := readConsoleAuditPhrases(t)
+
+	catalogue := map[string]AuditActionDescriptor{}
+	for _, descriptor := range AuditActionCatalogue() {
+		catalogue[descriptor.Action] = descriptor
+	}
+
+	for action, descriptor := range catalogue {
+		phrase, ok := phrases[action]
+		if !assert.True(t, ok, "the console has no audit phrase for %s", action) {
+			continue
+		}
+		if descriptor.TargetType == "" {
+			assert.NotContains(t, phrase, "<0>{target}</0>",
+				"%s has no target, yet its phrase names one", action)
+		}
+	}
+	for action := range phrases {
+		_, ok := catalogue[action]
+		assert.True(t, ok, "the console has a phrase for %s, which the server does not audit", action)
+	}
+
+	// Two actions with two dots in their name, which a one-dot pattern would skip.
+	assert.Contains(t, phrases, "user.oidc.callback")
+	assert.Contains(t, phrases, "user.oidc.exchange")
 }
