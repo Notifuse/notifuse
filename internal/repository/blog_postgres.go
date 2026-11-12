@@ -710,7 +710,6 @@ func (r *blogPostRepository) DeletePostTx(ctx context.Context, tx *sql.Tx, id st
 	return nil
 }
 
-// ListPosts retrieves blog posts with filtering and pagination
 // CountPosts reads every post that is not deleted in one query grouped by category, so the
 // totals and the per-category counts come from the same snapshot.
 func (r *blogPostRepository) CountPosts(ctx context.Context, workspaceID string, categoryID string, now time.Time) (*domain.BlogPostCounts, error) {
@@ -759,6 +758,7 @@ func (r *blogPostRepository) CountPosts(ctx context.Context, workspaceID string,
 	return &counts, nil
 }
 
+// ListPosts retrieves blog posts with filtering and pagination
 func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBlogPostsRequest) (*domain.BlogPostListResponse, error) {
 	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
 	if !ok {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -88,6 +89,17 @@ func TestBlogHandler_HandleCountPosts(t *testing.T) {
 		handler.HandleCountPosts(w, httptest.NewRequest(http.MethodGet, "/api/blogPosts.counts?workspace_id=ws-123&category_id="+categoryID, nil))
 		require.Equal(t, http.StatusOK, w.Code)
 		assert.JSONEq(t, `{"all_total":8,"total":5,"published":3,"scheduled":1,"draft":2,"by_category":{"`+categoryID+`":5}}`, w.Body.String())
+	})
+
+	t.Run("a category_id in another UUID spelling is passed in canonical form", func(t *testing.T) {
+		handler, mockService, _, ctrl := setupBlogHandler(t)
+		defer ctrl.Finish()
+		counts := domain.NewBlogPostCounts()
+		mockService.EXPECT().CountPosts(gomock.Any(), categoryID).Return(&counts, nil)
+
+		w := httptest.NewRecorder()
+		handler.HandleCountPosts(w, httptest.NewRequest(http.MethodGet, "/api/blogPosts.counts?workspace_id=ws-123&category_id={"+strings.ToUpper(categoryID)+"}", nil))
+		require.Equal(t, http.StatusOK, w.Code)
 	})
 
 	t.Run("a service error is a 500", func(t *testing.T) {

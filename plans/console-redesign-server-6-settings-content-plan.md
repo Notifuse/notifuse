@@ -194,3 +194,32 @@ INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integratio
 make test-unit
 make test-integration
 ```
+
+## Code review and corrections
+
+Review: `reviews/console-redesign-server/pr-6-code-review.md` in the project files.
+
+Corrected:
+
+- `blogPosts.counts` passes `category_id` in canonical UUID form: an upper-case, braced or
+  undashed ID returned zero counts (handler test added).
+- The doc comment of `ListPosts` had moved onto `CountPosts`; restored.
+- Files as built (the table above names the files planned): `GetTemplateUsage` is in
+  `internal/repository/template_usage_postgres.go`, and the new unit tests are in
+  `template_usage_postgres_test.go`, `template_usage_service_test.go`,
+  `template_usage_handler_test.go`, `blog_counts_postgres_test.go`,
+  `blog_counts_service_test.go` and `blog_counts_handler_test.go`, beside the domain tests in
+  `template_test.go`, `blog_test.go` and `workspace_test.go`.
+
+Known, not handled:
+
+- A NUL byte or invalid UTF-8 in `search` or `template_id` answers 500, and
+  `blogPosts.list?category_id=news` answers 500 as before this change.
+- A `winner_selected` broadcast counts its losing variation's template, and a broadcast with
+  A/B testing off counts every stored variation although only the first is sent.
+- The `<> ''` guards, the broadcast-variations guard and `LIMIT 50` with `COUNT(*) OVER ()` are
+  pinned by SQL-string tests only; no test compares instants across time zones; the sqlmock
+  labels of `…_OnlyRequestedTypes` do not identify the query that ran.
+- Nits: a stray comment in `blog_postgres.go`, an imprecise doc on `GetTemplateUsage`, the
+  `uuid` import in the standard-library group of `blog_handler.go`, `template_id=` (empty)
+  read as absent, and an error-level log for a request answered with 400.

@@ -307,12 +307,16 @@ func (h *BlogHandler) HandleCountPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// uuid.Parse also accepts upper case, braces and the undashed form; the canonical
+	// spelling is what matches the stored ID.
 	categoryID := r.URL.Query().Get("category_id")
 	if categoryID != "" {
-		if _, err := uuid.Parse(categoryID); err != nil {
+		parsed, err := uuid.Parse(categoryID)
+		if err != nil {
 			WriteJSONError(w, "category_id must be a UUID", http.StatusBadRequest)
 			return
 		}
+		categoryID = parsed.String()
 	}
 
 	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspaceID)
