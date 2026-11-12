@@ -10,7 +10,8 @@ import (
 )
 
 // V44Migration, on workspaces that already exist, makes a click on a link write its own
-// timeline entry and adds the partial indexes of the dashboard's recent failures.
+// timeline entry, adds the partial indexes of the dashboard's recent failures and dates the
+// broadcasts that started without a start date.
 //
 // track_message_history_changes() is reinstalled from the shared schema package. It now
 // writes an email.link_clicked entry, with the URL, each time a click records a link of
@@ -31,6 +32,13 @@ import (
 // lock_timeout bounds the wait for the lock behind a transaction already writing to the
 // table, every later write queuing behind that wait: past 5 seconds the migration fails and
 // is retried at the next start.
+//
+// Last, the broadcasts that started sending without a start date get the creation time of
+// their first message as one. Until v44 only "send now" and a resume set started_at, so a
+// scheduled broadcast never had it; the first sending run now records it. Drafts and
+// scheduled broadcasts are left alone even when they have messages: those are test sends to
+// one recipient, not a start. Only a NULL is filled, so a rerun writes nothing, and a
+// broadcast without any message keeps no date. The aggregate reads idx_message_history_broadcast_id.
 //
 // No column is renamed or dropped, so no automation trigger function needs regenerating.
 type V44Migration struct{}
@@ -62,6 +70,7 @@ func v44WorkspaceStatements() []v44WorkspaceStatement {
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`, "create idx_message_history_failed_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`, "create idx_message_history_bounced_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`, "create idx_message_history_complained_recent"},
+		{`UPDATE broadcasts b SET started_at = (SELECT MIN(mh.created_at) FROM message_history mh WHERE mh.broadcast_id = b.id) WHERE b.started_at IS NULL AND b.status NOT IN ('draft', 'scheduled') AND EXISTS (SELECT 1 FROM message_history mh WHERE mh.broadcast_id = b.id)`, "date the broadcasts that started without a start date"},
 	}
 }
 

@@ -43,8 +43,10 @@ func TestV44Migration_IsWhatLetsTheStampReachFortyFour(t *testing.T) {
 // The exact statements of the workspace update, in order. The first one replaces the body of
 // the timeline function (no trigger is dropped or created). The two SET LOCAL statements let
 // the index builds outlive a configured statement_timeout, and bound the wait for the table
-// lock behind a transaction already writing to it. No column is touched, so no automation
-// trigger function needs regenerating.
+// lock behind a transaction already writing to it. The last one dates the broadcasts that
+// started sending without a start date (a scheduled send never got one) from their first
+// message; it only fills a NULL, so a rerun writes nothing. No column is renamed or dropped,
+// so no automation trigger function needs regenerating.
 var v44ExpectedWorkspaceStatements = []string{
 	schema.TrackMessageHistoryChangesFunction(),
 	`SET LOCAL statement_timeout = 0`,
@@ -52,6 +54,7 @@ var v44ExpectedWorkspaceStatements = []string{
 	`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`,
 	`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`,
 	`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`,
+	`UPDATE broadcasts b SET started_at = (SELECT MIN(mh.created_at) FROM message_history mh WHERE mh.broadcast_id = b.id) WHERE b.started_at IS NULL AND b.status NOT IN ('draft', 'scheduled') AND EXISTS (SELECT 1 FROM message_history mh WHERE mh.broadcast_id = b.id)`,
 }
 
 func TestV44Migration_UpdateWorkspaceRunsExactlyItsStatementsInOrder(t *testing.T) {
