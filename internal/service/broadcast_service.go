@@ -246,6 +246,32 @@ func (s *BroadcastService) UpdateBroadcast(ctx context.Context, request *domain.
 }
 
 // ListBroadcasts retrieves a list of broadcasts with pagination
+// EstimateAudience counts the recipients of an audience with CountContactsForBroadcast, the
+// count the send uses. An unknown list or segment counts 0.
+func (s *BroadcastService) EstimateAudience(ctx context.Context, workspaceID string, audience domain.AudienceSettings) (int, error) {
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	required := []domain.PermissionResource{domain.PermissionResourceBroadcasts, domain.PermissionResourceLists}
+	if len(audience.Segments) > 0 {
+		required = append(required, domain.PermissionResourceSegments)
+	}
+	for _, resource := range required {
+		if !userWorkspace.HasPermission(resource, domain.PermissionTypeRead) {
+			return 0, domain.NewPermissionError(resource, domain.PermissionTypeRead,
+				fmt.Sprintf("Insufficient permissions: read access to %s required", resource))
+		}
+	}
+
+	count, err := s.contactRepo.CountContactsForBroadcast(ctx, workspaceID, audience)
+	if err != nil {
+		return 0, fmt.Errorf("failed to estimate audience: %w", err)
+	}
+	return count, nil
+}
+
 func (s *BroadcastService) ListBroadcasts(ctx context.Context, params domain.ListBroadcastsParams) (*domain.BroadcastListResponse, error) {
 	// Authenticate user for workspace
 	var err error

@@ -78,6 +78,21 @@ func (mr *MockBroadcastServiceMockRecorder) DeleteBroadcast(arg0, arg1 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBroadcast", reflect.TypeOf((*MockBroadcastService)(nil).DeleteBroadcast), arg0, arg1)
 }
 
+// EstimateAudience mocks base method.
+func (m *MockBroadcastService) EstimateAudience(arg0 context.Context, arg1 string, arg2 domain.AudienceSettings) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EstimateAudience", arg0, arg1, arg2)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EstimateAudience indicates an expected call of EstimateAudience.
+func (mr *MockBroadcastServiceMockRecorder) EstimateAudience(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EstimateAudience", reflect.TypeOf((*MockBroadcastService)(nil).EstimateAudience), arg0, arg1, arg2)
+}
+
 // GetBroadcast mocks base method.
 func (m *MockBroadcastService) GetBroadcast(arg0 context.Context, arg1, arg2 string) (*domain.Broadcast, error) {
 	m.ctrl.T.Helper()

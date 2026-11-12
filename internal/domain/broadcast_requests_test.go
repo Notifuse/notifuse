@@ -1,8 +1,11 @@
 package domain
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -317,4 +320,90 @@ func TestParseIntAndBoolParam(t *testing.T) {
 		require.NoError(t, err, "ParseBoolParam(%q)", s)
 		assert.Equal(t, want, b)
 	}
+}
+
+func TestGetBroadcastsRequest_StatusCountsAndStartedAfter(t *testing.T) {
+	parse := func(extra url.Values) (GetBroadcastsRequest, error) {
+		values := url.Values{"workspace_id": {"ws-1"}}
+		for k, v := range extra {
+			values[k] = v
+		}
+		var req GetBroadcastsRequest
+		err := req.FromURLParams(values)
+		return req, err
+	}
+
+	t.Run("with_status_counts true, false, absent", func(t *testing.T) {
+		req, err := parse(url.Values{"with_status_counts": {"true"}})
+		require.NoError(t, err)
+		assert.True(t, req.WithStatusCounts)
+
+		req, err = parse(url.Values{"with_status_counts": {"false"}})
+		require.NoError(t, err)
+		assert.False(t, req.WithStatusCounts)
+
+		req, err = parse(nil)
+		require.NoError(t, err)
+		assert.False(t, req.WithStatusCounts)
+	})
+
+	t.Run("with_status_counts invalid", func(t *testing.T) {
+		_, err := parse(url.Values{"with_status_counts": {"yes"}})
+		require.ErrorContains(t, err, "invalid with_status_counts parameter")
+	})
+
+	t.Run("started_after read as RFC 3339, converted to UTC", func(t *testing.T) {
+		req, err := parse(url.Values{"started_after": {"2026-10-13T00:00:00+02:00"}})
+		require.NoError(t, err)
+		require.NotNil(t, req.StartedAfter)
+		assert.Equal(t, time.Date(2026, 10, 12, 22, 0, 0, 0, time.UTC), *req.StartedAfter)
+		assert.Equal(t, time.UTC, req.StartedAfter.Location())
+
+		req, err = parse(nil)
+		require.NoError(t, err)
+		assert.Nil(t, req.StartedAfter)
+	})
+
+	t.Run("started_after unreadable", func(t *testing.T) {
+		_, err := parse(url.Values{"started_after": {"2026-10-13"}})
+		require.ErrorContains(t, err, "invalid started_after parameter")
+	})
+}
+
+func TestEstimateAudienceRequest(t *testing.T) {
+	decode := func(t *testing.T, body string) EstimateAudienceRequest {
+		t.Helper()
+		var req EstimateAudienceRequest
+		require.NoError(t, json.Unmarshal([]byte(body), &req))
+		return req
+	}
+
+	t.Run("exclude_unsubscribed omitted or null means true, false and true kept", func(t *testing.T) {
+		for body, want := range map[string]bool{
+			`{"workspace_id":"ws","audience":{"list":"l1"}}`:                              true,
+			`{"workspace_id":"ws","audience":{"list":"l1","exclude_unsubscribed":null}}`:  true,
+			`{"workspace_id":"ws","audience":{"list":"l1","exclude_unsubscribed":false}}`: false,
+			`{"workspace_id":"ws","audience":{"list":"l1","exclude_unsubscribed":true}}`:  true,
+		} {
+			assert.Equal(t, want, decode(t, body).Audience.ExcludeUnsubscribed, body)
+		}
+	})
+
+	t.Run("workspace_id and list required", func(t *testing.T) {
+		req := decode(t, `{"audience":{"list":"l1"}}`)
+		require.EqualError(t, req.Validate(), "workspace_id is required")
+		req = decode(t, `{"workspace_id":"ws","audience":{"segments":["s1"]}}`)
+		require.EqualError(t, req.Validate(), "audience.list is required")
+		req = decode(t, `{"workspace_id":"ws"}`)
+		require.EqualError(t, req.Validate(), "audience.list is required")
+	})
+
+	t.Run("many segments accepted", func(t *testing.T) {
+		segments := make([]string, 200)
+		for i := range segments {
+			segments[i] = fmt.Sprintf("seg%d", i)
+		}
+		req := EstimateAudienceRequest{WorkspaceID: "ws", Audience: AudienceSettings{List: "l1", Segments: segments}}
+		require.NoError(t, req.Validate())
+	})
 }

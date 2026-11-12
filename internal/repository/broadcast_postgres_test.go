@@ -1913,3 +1913,88 @@ func TestBroadcastRepository_TrackingModeRoundTrip(t *testing.T) {
 		assert.Equal(t, domain.BroadcastTrackingModeNoTracking, b.TrackingMode)
 	})
 }
+
+// started_after and the status counts: the count query keeps every filter but the status
+// one, numbers its own placeholders, and runs before the data query.
+func TestBroadcastRepository_ListBroadcasts_StatusCountsAndStartedAfter(t *testing.T) {
+	ctx := context.Background()
+	workspaceID := "ws123"
+	startedAfter := time.Date(2026, 10, 13, 0, 0, 0, 0, time.UTC)
+
+	setup := func(t *testing.T) (domain.BroadcastRepository, sqlmock.Sqlmock) {
+		ctrl := gomock.NewController(t)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil)
+		return NewBroadcastRepository(mockWorkspaceRepo), mock
+	}
+
+	t.Run("every filter combined, counts without the status filter", func(t *testing.T) {
+		repo, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectQuery(`^SELECT COUNT\(\*\) FROM broadcasts WHERE workspace_id = \$1 AND status IN \(\$2\) AND name ILIKE \$3 AND started_at >= \$4$`).
+			WithArgs(workspaceID, domain.BroadcastStatusProcessed, "%promo%", startedAfter).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
+		mock.ExpectQuery(`^SELECT status, COUNT\(\*\) FROM broadcasts WHERE workspace_id = \$1 AND name ILIKE \$2 AND started_at >= \$3 GROUP BY status$`).
+			WithArgs(workspaceID, "%promo%", startedAfter).
+			WillReturnRows(sqlmock.NewRows([]string{"status", "count"}).AddRow("processed", 2).AddRow("paused", 1))
+		mock.ExpectQuery(`FROM broadcasts WHERE workspace_id = \$1 AND status IN \(\$2\) AND name ILIKE \$3 AND started_at >= \$4 ORDER BY created_at DESC LIMIT \$5 OFFSET \$6`).
+			WithArgs(workspaceID, domain.BroadcastStatusProcessed, "%promo%", startedAfter, 10, 0).
+			WillReturnRows(sqlmock.NewRows(broadcastListColumnNames))
+		mock.ExpectCommit()
+
+		result, err := repo.ListBroadcasts(ctx, domain.ListBroadcastsParams{
+			WorkspaceID: workspaceID, Statuses: []domain.BroadcastStatus{domain.BroadcastStatusProcessed},
+			Search: "promo", StartedAfter: &startedAfter, WithStatusCounts: true, Limit: 10,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, map[domain.BroadcastStatus]int{domain.BroadcastStatusProcessed: 2, domain.BroadcastStatusPaused: 1}, result.StatusCounts)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("started_after alone", func(t *testing.T) {
+		repo, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectQuery(`^SELECT COUNT\(\*\) FROM broadcasts WHERE workspace_id = \$1 AND started_at >= \$2$`).
+			WithArgs(workspaceID, startedAfter).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+		mock.ExpectQuery(`FROM broadcasts WHERE workspace_id = \$1 AND started_at >= \$2 ORDER BY created_at DESC LIMIT \$3 OFFSET \$4`).
+			WithArgs(workspaceID, startedAfter, 10, 0).
+			WillReturnRows(sqlmock.NewRows(broadcastListColumnNames))
+		mock.ExpectCommit()
+
+		result, err := repo.ListBroadcasts(ctx, domain.ListBroadcastsParams{WorkspaceID: workspaceID, StartedAfter: &startedAfter, Limit: 10})
+		require.NoError(t, err)
+		assert.Nil(t, result.StatusCounts, "no count query without WithStatusCounts")
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("no broadcast: an empty map, not nil", func(t *testing.T) {
+		repo, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectQuery(`^SELECT COUNT\(\*\) FROM broadcasts WHERE workspace_id = \$1$`).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+		mock.ExpectQuery(`^SELECT status, COUNT\(\*\) FROM broadcasts WHERE workspace_id = \$1 GROUP BY status$`).
+			WillReturnRows(sqlmock.NewRows([]string{"status", "count"}))
+		mock.ExpectQuery(`ORDER BY created_at DESC`).WillReturnRows(sqlmock.NewRows(broadcastListColumnNames))
+		mock.ExpectCommit()
+
+		result, err := repo.ListBroadcasts(ctx, domain.ListBroadcastsParams{WorkspaceID: workspaceID, WithStatusCounts: true, Limit: 10})
+		require.NoError(t, err)
+		assert.NotNil(t, result.StatusCounts)
+		assert.Empty(t, result.StatusCounts)
+	})
+
+	t.Run("count query error returned", func(t *testing.T) {
+		repo, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectQuery(`^SELECT COUNT\(\*\)`).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+		mock.ExpectQuery(`^SELECT status, COUNT\(\*\)`).WillReturnError(errors.New("boom"))
+		mock.ExpectRollback()
+
+		_, err := repo.ListBroadcasts(ctx, domain.ListBroadcastsParams{WorkspaceID: workspaceID, WithStatusCounts: true, Limit: 10})
+		require.ErrorContains(t, err, "boom")
+	})
+}

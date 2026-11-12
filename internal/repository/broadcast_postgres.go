@@ -420,37 +420,47 @@ func (r *broadcastRepository) UpdateBroadcastStatusUnless(ctx context.Context, b
 }
 
 // ListBroadcastsTx retrieves a list of broadcasts within a transaction
-func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params domain.ListBroadcastsParams) (*domain.BroadcastListResponse, error) {
-	// Build the WHERE clause dynamically from the provided filters so status
-	// and name search can be combined in any arrangement.
+// broadcastListWhere builds the WHERE clause of broadcasts.list and its arguments,
+// numbering its own placeholders. withStatus false leaves the status filter out, for the
+// status counts.
+func broadcastListWhere(params domain.ListBroadcastsParams, withStatus bool) (string, []interface{}) {
 	conditions := []string{"workspace_id = $1"}
 	args := []interface{}{params.WorkspaceID}
-	argIdx := 2
+	next := func(value interface{}) string {
+		args = append(args, value)
+		return fmt.Sprintf("$%d", len(args))
+	}
 
 	// Status filter: prefer the multi-status list, falling back to the single
 	// Status field for backward compatibility.
-	if len(params.Statuses) > 0 {
-		placeholders := make([]string, len(params.Statuses))
-		for i, status := range params.Statuses {
-			placeholders[i] = fmt.Sprintf("$%d", argIdx)
-			args = append(args, status)
-			argIdx++
+	if withStatus {
+		if len(params.Statuses) > 0 {
+			placeholders := make([]string, len(params.Statuses))
+			for i, status := range params.Statuses {
+				placeholders[i] = next(status)
+			}
+			conditions = append(conditions, fmt.Sprintf("status IN (%s)", strings.Join(placeholders, ", ")))
+		} else if params.Status != "" {
+			conditions = append(conditions, "status = "+next(params.Status))
 		}
-		conditions = append(conditions, fmt.Sprintf("status IN (%s)", strings.Join(placeholders, ", ")))
-	} else if params.Status != "" {
-		conditions = append(conditions, fmt.Sprintf("status = $%d", argIdx))
-		args = append(args, params.Status)
-		argIdx++
 	}
 
 	// Search filter: case-insensitive substring match on the broadcast name.
 	if params.Search != "" {
-		conditions = append(conditions, fmt.Sprintf("name ILIKE $%d", argIdx))
-		args = append(args, "%"+escapeLikePattern(params.Search)+"%")
-		argIdx++
+		conditions = append(conditions, "name ILIKE "+next("%"+escapeLikePattern(params.Search)+"%"))
 	}
 
-	whereClause := strings.Join(conditions, " AND ")
+	// A broadcast that never started has a NULL started_at, which this leaves out.
+	if params.StartedAfter != nil {
+		conditions = append(conditions, "started_at >= "+next(params.StartedAfter.UTC()))
+	}
+
+	return strings.Join(conditions, " AND "), args
+}
+
+func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params domain.ListBroadcastsParams) (*domain.BroadcastListResponse, error) {
+	whereClause, args := broadcastListWhere(params, true)
+	argIdx := len(args) + 1
 
 	// First count total records that match the criteria
 	countQuery := "SELECT COUNT(*) FROM broadcasts WHERE " + whereClause
@@ -459,6 +469,15 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 	err := tx.QueryRowContext(ctx, countQuery, args...).Scan(&totalCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count broadcasts: %w", err)
+	}
+
+	// The status counts run before the data query: lib/pq refuses a query on the
+	// transaction while another query's rows are open.
+	var statusCounts map[domain.BroadcastStatus]int
+	if params.WithStatusCounts {
+		if statusCounts, err = countBroadcastsByStatus(ctx, tx, params); err != nil {
+			return nil, err
+		}
 	}
 
 	// Then query paginated data using the same filters plus pagination.
@@ -488,9 +507,35 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 	}
 
 	return &domain.BroadcastListResponse{
-		Broadcasts: broadcasts,
-		TotalCount: totalCount,
+		Broadcasts:   broadcasts,
+		TotalCount:   totalCount,
+		StatusCounts: statusCounts,
 	}, nil
+}
+
+// countBroadcastsByStatus counts the broadcasts of each status under every list filter but
+// the status one, so each status tab shows its own number.
+func countBroadcastsByStatus(ctx context.Context, tx *sql.Tx, params domain.ListBroadcastsParams) (map[domain.BroadcastStatus]int, error) {
+	whereClause, args := broadcastListWhere(params, false)
+	rows, err := tx.QueryContext(ctx, "SELECT status, COUNT(*) FROM broadcasts WHERE "+whereClause+" GROUP BY status", args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count broadcasts by status: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	counts := map[domain.BroadcastStatus]int{}
+	for rows.Next() {
+		var status domain.BroadcastStatus
+		var n int
+		if err := rows.Scan(&status, &n); err != nil {
+			return nil, fmt.Errorf("failed to scan broadcast status count: %w", err)
+		}
+		counts[status] = n
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read broadcast status counts: %w", err)
+	}
+	return counts, nil
 }
 
 // ListBroadcasts retrieves a list of broadcasts

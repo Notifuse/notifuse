@@ -284,6 +284,7 @@ var AuditExcludedRoutes = map[string]struct{}{
 	"blogThemes.getPublished":          {},
 	"blogThemes.list":                  {},
 	"broadcasts.get":                   {},
+	"broadcasts.estimateAudience":      {},
 	"broadcasts.getTestResults":        {},
 	"broadcasts.list":                  {},
 	"contactLists.getByIDs":            {},

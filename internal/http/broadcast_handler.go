@@ -48,6 +48,7 @@ func (h *BroadcastHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Register RPC-style endpoints with dot notation
 	mux.Handle("/api/broadcasts.list", requireAuth(http.HandlerFunc(h.HandleList)))
+	mux.Handle("/api/broadcasts.estimateAudience", requireAuth(http.HandlerFunc(h.HandleEstimateAudience)))
 	mux.Handle("/api/broadcasts.get", requireAuth(http.HandlerFunc(h.HandleGet)))
 	mux.Handle("/api/broadcasts.create", requireAuth(http.HandlerFunc(h.HandleCreate)))
 	mux.Handle("/api/broadcasts.update", requireAuth(http.HandlerFunc(h.HandleUpdate)))
@@ -81,12 +82,14 @@ func (h *BroadcastHandler) HandleList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := domain.ListBroadcastsParams{
-		WorkspaceID:   req.WorkspaceID,
-		Status:        domain.BroadcastStatus(req.Status),
-		Search:        req.Search,
-		Limit:         req.Limit,
-		Offset:        req.Offset,
-		WithTemplates: req.WithTemplates,
+		WorkspaceID:      req.WorkspaceID,
+		Status:           domain.BroadcastStatus(req.Status),
+		Search:           req.Search,
+		Limit:            req.Limit,
+		Offset:           req.Offset,
+		WithTemplates:    req.WithTemplates,
+		WithStatusCounts: req.WithStatusCounts,
+		StartedAfter:     req.StartedAfter,
 	}
 	for _, s := range req.Statuses {
 		params.Statuses = append(params.Statuses, domain.BroadcastStatus(s))
@@ -110,10 +113,48 @@ func (h *BroadcastHandler) HandleList(w http.ResponseWriter, r *http.Request) {
 		broadcasts = []*domain.Broadcast{}
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	body := map[string]interface{}{
 		"broadcasts":  broadcasts,
 		"total_count": response.TotalCount,
-	})
+	}
+	// When asked for, status_counts is always an object, {} when nothing matches.
+	if req.WithStatusCounts {
+		statusCounts := response.StatusCounts
+		if statusCounts == nil {
+			statusCounts = map[domain.BroadcastStatus]int{}
+		}
+		body["status_counts"] = statusCounts
+	}
+	writeJSON(w, http.StatusOK, body)
+}
+
+// HandleEstimateAudience counts the recipients a broadcast with this audience would have.
+func (h *BroadcastHandler) HandleEstimateAudience(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.EstimateAudienceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := req.Validate(); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	count, err := h.service.EstimateAudience(r.Context(), req.WorkspaceID, req.Audience)
+	if err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to estimate broadcast audience")
+		WriteJSONError(w, "Failed to estimate audience", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"count": count})
 }
 
 // HandleGet handles the broadcast get request
