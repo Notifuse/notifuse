@@ -15,7 +15,7 @@ function drawer(page: Page, title: string): Locator {
 async function openCreatePostDrawer(page: Page): Promise<Locator> {
   // The button carries a plus icon whose aria-label joins the accessible name,
   // so the match is on the substring rather than the exact string.
-  await page.getByRole('button', { name: 'New Post' }).click()
+  await page.getByRole('button', { name: 'New post' }).click()
   const postDrawer = drawer(page, 'Create New Post')
   await expect(postDrawer).toBeVisible()
   return postDrawer
@@ -111,8 +111,8 @@ test.describe('Blog Feature', () => {
       await expect(page).toHaveURL(/blog/)
       // Category rail on the left, posts on the right.
       await expect(page.getByText('Categories', { exact: true })).toBeVisible()
-      await expect(page.getByRole('heading', { name: 'All Posts' })).toBeVisible()
-      await expect(page.getByRole('button', { name: 'New Post' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'All posts' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'New post' })).toBeVisible()
     })
 
     test('loads blog page with posts', async ({ authenticatedPageWithData }) => {
@@ -122,11 +122,11 @@ test.describe('Blog Feature', () => {
       await waitForLoading(page)
 
       await expect(page).toHaveURL(/blog/)
-      // The four mocked posts, with their slugs and categories.
+      // The four mocked posts, with their reading time and categories.
       await expect(page.locator('.ant-table-row')).toHaveCount(4)
       await expect(
         page.locator('.ant-table-row').filter({ hasText: 'Getting Started with Email Marketing' })
-      ).toContainText('getting-started-email-marketing')
+      ).toContainText('5 min read')
       await expect(
         page.locator('.ant-table-row').filter({ hasText: 'New Feature: A/B Testing' })
       ).toContainText('Product Updates')
@@ -178,12 +178,8 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // The row actions are icon-only buttons; the pencil is the edit one.
-      const row = page.locator('.ant-table-row').filter({ hasText: 'Draft Post' })
-      await row
-        .getByRole('button')
-        .filter({ has: page.locator('[data-icon="pen-to-square"]') })
-        .click()
+      // A click on the row opens the post
+      await page.locator('.ant-table-row').filter({ hasText: 'Draft Post' }).click()
 
       const editDrawer = drawer(page, 'Edit Post')
       await expect(editDrawer).toBeVisible()
@@ -206,7 +202,7 @@ test.describe('Blog Feature', () => {
         rail.getByRole('button', { name: /^Product Updates/ })
       ).toBeVisible()
       await expect(rail.getByRole('button', { name: /^Company News/ })).toBeVisible()
-      await expect(page.getByRole('button', { name: 'New Category' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'New category' })).toBeVisible()
 
       // Picking a category scopes the list to it
       await rail.getByRole('button', { name: /^Engineering/ }).click()
@@ -227,11 +223,14 @@ test.describe('Blog Feature', () => {
         page
           .locator('.ant-table-row')
           .filter({ hasText: 'Getting Started with Email Marketing' })
-          .locator('.ant-tag')
-      ).toHaveText('Published')
+          .getByText('Published', { exact: true })
+      ).toBeVisible()
       await expect(
-        page.locator('.ant-table-row').filter({ hasText: 'Draft Post' }).locator('.ant-tag')
-      ).toHaveText('Draft')
+        page
+          .locator('.ant-table-row')
+          .filter({ hasText: 'Draft Post' })
+          .getByText('Draft', { exact: true })
+      ).toBeVisible()
     })
 
     test('shows draft posts', async ({ authenticatedPageWithData }) => {
@@ -251,7 +250,7 @@ test.describe('Blog Feature', () => {
       await listRequest
 
       await expect(page).toHaveURL(/status=draft/)
-      await expect(page.locator('.ant-segmented-item-selected')).toHaveText('Drafts')
+      await expect(page.locator('.ant-segmented-item-selected')).toContainText('Drafts')
     })
 
     test('shows published posts', async ({ authenticatedPageWithData }) => {
@@ -268,7 +267,7 @@ test.describe('Blog Feature', () => {
       await listRequest
 
       await expect(page).toHaveURL(/status=published/)
-      await expect(page.locator('.ant-segmented-item-selected')).toHaveText('Published')
+      await expect(page.locator('.ant-segmented-item-selected')).toContainText('Published')
     })
   })
 
@@ -336,7 +335,7 @@ test.describe('Blog Feature', () => {
       await page.locator('.ant-menu-item').filter({ hasText: 'Blog' }).click()
 
       await expect(page).toHaveURL(/\/blog/)
-      await expect(page.getByRole('heading', { name: 'All Posts' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'All posts' })).toBeVisible()
     })
 
     test('can close create form', async ({ authenticatedPage }) => {
