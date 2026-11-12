@@ -12,8 +12,8 @@
 --------------------------------------------------------------------------- */
 
 /* Table headers: antd sizes header cells with the body cell tokens, and has no
-   separate token for them. One selector per table size, at antd's own
-   specificity, gives ≈ 30px headers in all three sizes. */
+   separate token for them. One selector per table size gives ≈ 30px headers in
+   all three sizes; a header holding a sorter is taller, by the sorter's icons. */
 .ant-table-wrapper .ant-table .ant-table-thead > tr > th,
 .ant-table-wrapper .ant-table.ant-table-medium .ant-table-thead > tr > th,
 .ant-table-wrapper .ant-table.ant-table-small .ant-table-thead > tr > th {
@@ -24,8 +24,9 @@
 }
 
 /* Active item of an inline menu (the sidebar and the left rails): a 2px bar on
-   the left. An inset shadow rather than a border, which would shift the label;
-   antd only offers a bar on the right (its ::after), hidden here. A collapsed
+   the left. An inset shadow rather than a border, which would shift the label.
+   antd's own bar on the right (its ::after) is 0px wide in antd 6.6; it is
+   hidden here so a later default cannot bring it back next to this one. A collapsed
    menu is not .ant-menu-inline, so it keeps the background without the bar. */
 .ant-menu-inline .ant-menu-item-selected {
   box-shadow: inset 2px 0 0 var(--ant-color-primary);
@@ -37,8 +38,8 @@
 /* Tags read as a fill, not an outline. Three quarters of the call sites
  * already pass `bordered={false}`, so this is what makes the rest match
  * instead of leaving two looks side by side in one cell. Transparent rather
- * than `none` keeps the 1px box, so nothing reflows. Statuses go through the
- * Pill component instead. */
+ * than `none` keeps the 1px box, so nothing reflows. Statuses are meant to be
+ * drawn as pills (the status tones of tokens.ts), not tags. */
 .ant-tag {
   border-color: transparent !important;
 }

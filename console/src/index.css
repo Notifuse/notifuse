@@ -59,8 +59,9 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Inside antd's App, anchors already take colorLink; this covers the ones rendered outside it.
-   In the base layer so a Tailwind text utility on an anchor still wins. */
+/* Inside antd's App, anchors take colorLink from antd's own unlayered rule, which also beats a
+   Tailwind text utility put on them. This covers the anchors rendered outside the App, in the
+   base layer so a utility on one of those still wins. */
 @layer base {
   a {
     font-weight: 500;
@@ -72,14 +73,25 @@
   }
 }
 
+/* antd's reset gives pre, code, kbd and samp an SF Mono stack, unlayered, which beats Tailwind's
+   preflight and the font-mono utility: one rule keeps a single code face in the console. */
+pre,
+code,
+kbd,
+samp {
+  font-family: var(--font-mono);
+}
+
 .drawer-body-no-padding .ant-drawer-body {
   padding: 0;
 }
 
+/* The tabs sit in the drawer header, 61px tall with the theme's 28px controls:
+   their box and their 8px padding plus the 45px line end on the header's rule. */
 .tabs-in-header {
   position: absolute;
   top: 0;
-  height: 65px;
+  height: 61px;
   width: 40%;
   right: 30%;
   left: 30%;
@@ -88,7 +100,7 @@
 }
 
 .tabs-in-header .ant-tabs-tab {
-  line-height: 41px;
+  line-height: 45px;
 }
 
 .vertical-tabs .ant-tabs-nav {

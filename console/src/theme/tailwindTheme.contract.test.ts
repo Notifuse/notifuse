@@ -105,7 +105,7 @@ describe('Tailwind @theme contract', () => {
     expect(root).toMatch(/font-family:\s*var\(--font-sans\)/)
   })
 
-  it('colours raw links in the base layer, so utilities still win over them', () => {
+  it('colours the links outside antd\'s App in the base layer, so utilities still win over them', () => {
     expect(css).toMatch(/@layer base\s*\{[^@]*\ba\s*\{[^}]*var\(--color-primary-600\)/)
     const outsideBaseLayer = css.replace(/@layer base\s*\{[\s\S]*?\n\}/, '')
     expect(outsideBaseLayer).not.toMatch(/(^|\n)\s*a(:hover)?\s*\{/)

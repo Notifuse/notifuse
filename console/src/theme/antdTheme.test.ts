@@ -1,12 +1,20 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
+import { theme } from 'antd'
 import { antdTheme } from './antdTheme'
 
 const token = antdTheme.token!
 const components = antdTheme.components!
 
 describe('antd theme', () => {
+  it('derives 20px small lines, so a tag is as tall as a 22px small control', () => {
+    const derived = theme.getDesignToken(antdTheme)
+    expect(derived.fontSizeSM * derived.lineHeightSM).toBeCloseTo(20)
+    expect(derived.controlHeightSM).toBe(22)
+  })
+
+
   it('takes its colours from the Nuit claire tokens', () => {
     expect(token).toMatchObject({
       colorPrimary: '#6a5af9',
@@ -28,7 +36,7 @@ describe('antd theme', () => {
       colorBgLayout: '#f3f4f7',
       colorBgContainer: '#ffffff',
       colorBgElevated: '#ffffff',
-      colorFillTertiary: '#f1f2f6',
+      colorFillTertiary: 'rgba(23, 25, 35, 0.05)',
       controlItemBgActive: '#efedff',
       controlOutline: 'rgba(106, 90, 249, 0.18)'
     })
@@ -64,7 +72,7 @@ describe('antd theme', () => {
       headerBg: '#f8f9fb',
       headerColor: '#666c81',
       borderColor: '#eceef3',
-      rowHoverBg: '#f1f2f6',
+      rowHoverBg: '#f8f9fb',
       rowSelectedBg: '#f5f4ff',
       rowSelectedHoverBg: '#efedff',
       cellFontSize: 12.5,

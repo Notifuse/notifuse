@@ -26,7 +26,7 @@ const OLD_COLOURS = /#7763f1|rgba\(\s*119\s*,\s*99\s*,\s*241|#f9f9f9/i
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
     const path = join(dir, entry)
-    if (statSync(path).isDirectory()) return entry === 'identity' ? [] : sourceFiles(path)
+    if (statSync(path).isDirectory()) return sourceFiles(path)
     return /\.(tsx?|css)$/.test(entry) ? [relative(SRC, path)] : []
   })
 }

@@ -38,9 +38,9 @@ export const colors = {
   canvas: '#f3f4f7',
   /** Cards, tables, sidebar, left rail, side drawers, popups. */
   surface: '#ffffff',
-  /** Table headers, secondary areas inside a card. */
+  /** Table headers and row hover, secondary areas inside a card. */
   subtle: gray[50],
-  /** Row hover, neutral pill, icon background. */
+  /** Neutral pill, icon background, hover of a control. */
   fill: gray[100],
   /** Card and control borders. */
   line: gray[200],

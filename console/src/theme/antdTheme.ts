@@ -1,5 +1,5 @@
 import type { ThemeConfig } from 'antd'
-import { colors as c, typography as t, radii, shadows as s, motion } from './tokens'
+import { alpha, colors as c, typography as t, radii, shadows as s, motion } from './tokens'
 
 const seconds = (ms: number) => `${ms / 1000}s`
 
@@ -31,17 +31,22 @@ export const antdTheme: ThemeConfig = {
     colorBgLayout: c.canvas,
     colorBgContainer: c.surface,
     colorBgElevated: c.surface,
-    colorFillTertiary: c.fill,
+    // Translucent, as antd's own: a filled control or a text-button hover must still show on the
+    // canvas, which an opaque fill two levels away from it would not.
+    colorFillTertiary: alpha(c.ink, 0.05),
     controlItemBgActive: c.primary[100],
     fontFamily: t.sans,
     fontFamilyCode: t.mono,
     fontSize: t.size.base,
     fontSizeSM: t.size.xs,
-    // Written out so the drawer title size is a choice: antd would derive 16 from fontSize 13.
+    // Written out so the drawer title size is a choice rather than a derivation (antd also gives 14).
     fontSizeLG: 14,
     fontSizeHeading4: t.size.title,
     fontSizeHeading5: t.size.subtitle,
     lineHeight: t.lineHeight.base,
+    // antd derives lineHeightSM from its own fontSizeSM (10 for a 13px base), which gives 12px text
+    // a 21.6px line and 23.6px tags; 20px keeps a tag as tall as a small control.
+    lineHeightSM: 20 / t.size.xs,
     lineHeightHeading4: t.lineHeight.title,
     lineHeightHeading5: t.lineHeight.subtitle,
     controlHeight: 28,
@@ -97,7 +102,8 @@ export const antdTheme: ThemeConfig = {
       headerColor: c.ink3,
       headerSplitColor: 'transparent',
       borderColor: c.lineSoft,
-      rowHoverBg: c.fill,
+      // Subtle rather than fill: a neutral tag (fill) must stay visible on a hovered row.
+      rowHoverBg: c.subtle,
       rowSelectedBg: c.primary[50],
       rowSelectedHoverBg: c.primary[100],
       cellFontSize: t.size.sm,

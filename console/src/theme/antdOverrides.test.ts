@@ -33,7 +33,6 @@ const ALLOWED = [
   /^components\/email_builder\/editor\.css$/,
   /^components\/blog_editor\//,
   /^components\/segment\/input\.module\.css$/,
-  /^identity\//,
   // Checked below, rule by rule.
   /^index\.css$/
 ]
@@ -80,18 +79,18 @@ describe('global antd rules', () => {
     )
   })
 
-  it('load the fonts and the overrides from main.tsx, after index.css', () => {
+  it('load the fonts from main.tsx, and the overrides after index.css', () => {
     const main = read('main.tsx')
     expect(main).toMatch(/import '\.\/theme\/fonts\.css'/)
     expect(main).toMatch(/import '\.\/theme\/antd-overrides\.css'/)
     expect(main.indexOf("'./index.css'")).toBeLessThan(main.indexOf("'./theme/antd-overrides.css'"))
   })
 
-  it('embed the latin subset of the fonts only', () => {
+  it('embed the latin and latin-ext subsets of the fonts only', () => {
     const fonts = stripComments(read('theme/fonts.css'))
     const urls = [...fonts.matchAll(/url\(([^)]+)\)/g)].map((m) => m[1])
     expect(urls.length).toBeGreaterThan(0)
-    for (const url of urls) expect(url).toMatch(/@fontsource-variable\/[a-z-]+\/files\/[a-z-]+-latin-wght-(normal|italic)\.woff2/)
+    for (const url of urls) expect(url).toMatch(/@fontsource-variable\/[a-z-]+\/files\/[a-z-]+-latin(-ext)?-wght-(normal|italic)\.woff2/)
   })
 
   it('keep the email canvas rules at the specificity of the global rules they replace', () => {

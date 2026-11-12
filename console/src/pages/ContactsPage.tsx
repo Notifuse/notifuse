@@ -558,8 +558,6 @@ export function ContactsPage() {
       dataIndex: 'email',
       key: 'email',
       fixed: 'left' as const,
-      onHeaderCell: () => ({ className: 'contacts-fixed-col' }),
-      onCell: () => ({ className: 'contacts-fixed-col' })
     },
     {
       title: t`Lists`,
@@ -961,10 +959,9 @@ export function ContactsPage() {
       width: 120,
       fixed: 'right' as const,
       align: 'right' as const,
-      onHeaderCell: () => ({ className: 'contacts-fixed-col' }),
       // `contacts-actions-col` is only on the body cells: it is what the row
       // click handler looks for to leave the controls in this column alone.
-      onCell: () => ({ className: 'contacts-fixed-col contacts-actions-col' }),
+      onCell: () => ({ className: 'contacts-actions-col' }),
       render: (_: unknown, record: Contact) => {
         const menuItems: MenuProps['items'] = [
           {
