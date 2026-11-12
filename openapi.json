@@ -974,7 +974,7 @@
     "/api/contacts.list": {
       "get": {
         "summary": "List contacts with filtering and pagination",
-        "description": "Retrieves a paginated list of contacts with optional filtering. All contact fields are always returned.\n\n**Filtering**: Use filters to search for contacts. Text filters (email, external_id, first_name, last_name, full_name, phone, country, language) use case-insensitive partial matching (ILIKE).\n\n**List filtering**: Use `list_id` and/or `contact_list_status` to filter contacts by list membership.\n\n**Segment filtering**: Use `segments[]` to filter contacts that belong to specific segments.\n\n**Contact lists**: By default, `contact_lists` is not included in the response. Set `with_contact_lists=true` to include the contact's list subscriptions.\n\n**Pagination**: Uses cursor-based pagination. Use the `next_cursor` from the response to fetch the next page.\n",
+        "description": "Retrieves a paginated list of contacts with optional filtering. All contact fields are always returned.\n\n**Filtering**: Use `search` to match email, names and external ID at once, or filters on single fields. Text filters (email, external_id, first_name, last_name, full_name, phone, country, language) use case-insensitive partial matching (ILIKE).\n\n**List filtering**: Use `list_id` and/or `contact_list_status` to filter contacts by list membership.\n\n**Segment filtering**: Use `segments[]` to filter contacts that belong to specific segments.\n\n**Contact lists**: By default, `contact_lists` is not included in the response. Set `with_contact_lists=true` to include the contact's list subscriptions.\n\n**Pagination**: Uses cursor-based pagination. Use the `next_cursor` from the response to fetch the next page.\n",
         "operationId": "listContacts",
         "security": [
           {
@@ -991,6 +991,17 @@
             },
             "description": "The ID of the workspace",
             "example": "ws_1234567890"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "description": "Search across email, first name, last name, full name and external ID (case-insensitive partial match).\nLeading and trailing spaces are ignored; `%` and `_` are matched literally. At most 100 characters.\n",
+            "example": "john"
           },
           {
             "name": "email",

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -25,6 +26,10 @@ type List struct {
 	CreatedAt           time.Time          `json:"created_at"`
 	UpdatedAt           time.Time          `json:"updated_at"`
 	DeletedAt           *time.Time         `json:"-" db:"deleted_at"`
+
+	// ActiveCount is the number of active subscribers, set only when lists.list is called
+	// with with_counts.
+	ActiveCount *int `json:"active_count,omitempty"`
 }
 
 // Validate performs validation on the list fields
@@ -158,10 +163,16 @@ func (r *CreateListRequest) Validate() (list *List, workspaceID string, err erro
 
 type GetListsRequest struct {
 	WorkspaceID string `json:"workspace_id"`
+	WithCounts  bool   `json:"with_counts,omitempty"`
 }
 
 func (r *GetListsRequest) FromURLParams(queryParams url.Values) (err error) {
 	r.WorkspaceID = queryParams.Get("workspace_id")
+	if v := queryParams.Get("with_counts"); v != "" {
+		if r.WithCounts, err = strconv.ParseBool(v); err != nil {
+			return fmt.Errorf("invalid get lists request: with_counts must be true or false")
+		}
+	}
 
 	if r.WorkspaceID == "" {
 		return fmt.Errorf("invalid get lists request: workspace_id is required")
@@ -462,8 +473,8 @@ type ListService interface {
 	// GetListByID retrieves a list by ID
 	GetListByID(ctx context.Context, workspaceID string, id string) (*List, error)
 
-	// GetLists retrieves all lists
-	GetLists(ctx context.Context, workspaceID string) ([]*List, error)
+	// GetLists retrieves all lists. withCounts also sets each list's ActiveCount.
+	GetLists(ctx context.Context, workspaceID string, withCounts bool) ([]*List, error)
 
 	// UpdateList updates an existing list
 	UpdateList(ctx context.Context, workspaceID string, list *List) error
@@ -484,6 +495,10 @@ type ListRepository interface {
 
 	// GetLists retrieves all lists
 	GetLists(ctx context.Context, workspaceID string) ([]*List, error)
+
+	// CountActiveContactsByList returns the number of active subscribers of each list
+	// that has any, keyed by list ID.
+	CountActiveContactsByList(ctx context.Context, workspaceID string) (map[string]int, error)
 
 	// UpdateList updates an existing list
 	UpdateList(ctx context.Context, workspaceID string, list *List) error

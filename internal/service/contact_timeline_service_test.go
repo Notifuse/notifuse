@@ -13,6 +13,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// readableByContactsOnly is the filter for a member who may read contacts and nothing
+// else: the entries carrying message or website data are dropped.
+var readableByContactsOnly = domain.TimelineEntityTypeFilter{Except: []string{
+	"message_history", "inbound_webhook_event", "webhook_event", "web_session", "web_page",
+}}
+
 func TestContactTimelineService_List(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -71,10 +77,10 @@ func TestContactTimelineService_List(t *testing.T) {
 		}
 
 		mockRepo.EXPECT().
-			List(ctx, workspaceID, email, limit, (*string)(nil)).
+			List(ctx, workspaceID, email, limit, (*string)(nil), readableByContactsOnly).
 			Return(expectedEntries, &cursor, nil)
 
-		entries, nextCursor, err := service.List(ctx, workspaceID, email, limit, nil)
+		entries, nextCursor, err := service.List(ctx, workspaceID, email, limit, nil, nil)
 
 		require.NoError(t, err)
 		assert.Len(t, entries, 2)
@@ -107,10 +113,10 @@ func TestContactTimelineService_List(t *testing.T) {
 		}
 
 		mockRepo.EXPECT().
-			List(ctx, workspaceID, email, limit, &cursor).
+			List(ctx, workspaceID, email, limit, &cursor, readableByContactsOnly).
 			Return(expectedEntries, nil, nil)
 
-		entries, _, err := service.List(ctx, workspaceID, email, limit, &cursor)
+		entries, _, err := service.List(ctx, workspaceID, email, limit, &cursor, nil)
 
 		require.NoError(t, err)
 		assert.Len(t, entries, 1)
@@ -124,10 +130,10 @@ func TestContactTimelineService_List(t *testing.T) {
 		expectedEntries := []*domain.ContactTimelineEntry{}
 
 		mockRepo.EXPECT().
-			List(ctx, workspaceID, email, limit, (*string)(nil)).
+			List(ctx, workspaceID, email, limit, (*string)(nil), readableByContactsOnly).
 			Return(expectedEntries, nil, nil)
 
-		entries, _, err := service.List(ctx, workspaceID, email, limit, nil)
+		entries, _, err := service.List(ctx, workspaceID, email, limit, nil, nil)
 
 		require.NoError(t, err)
 		assert.Empty(t, entries)
@@ -155,10 +161,10 @@ func TestContactTimelineService_List(t *testing.T) {
 		}
 
 		mockRepo.EXPECT().
-			List(ctx, workspaceID, email, limit, (*string)(nil)).
+			List(ctx, workspaceID, email, limit, (*string)(nil), readableByContactsOnly).
 			Return(expectedEntries, nil, nil)
 
-		entries, _, err := service.List(ctx, workspaceID, email, limit, nil)
+		entries, _, err := service.List(ctx, workspaceID, email, limit, nil, nil)
 
 		require.NoError(t, err)
 		assert.Len(t, entries, 1)
@@ -169,10 +175,10 @@ func TestContactTimelineService_List(t *testing.T) {
 
 	t.Run("Error - Repository error", func(t *testing.T) {
 		mockRepo.EXPECT().
-			List(ctx, workspaceID, email, limit, (*string)(nil)).
+			List(ctx, workspaceID, email, limit, (*string)(nil), readableByContactsOnly).
 			Return(nil, nil, assert.AnError)
 
-		entries, nextCursor, err := service.List(ctx, workspaceID, email, limit, nil)
+		entries, nextCursor, err := service.List(ctx, workspaceID, email, limit, nil, nil)
 
 		assert.Error(t, err)
 		assert.Nil(t, entries)
@@ -192,10 +198,10 @@ func TestContactTimelineService_List(t *testing.T) {
 		}
 
 		mockRepo.EXPECT().
-			List(ctx, workspaceID, email, customLimit, (*string)(nil)).
+			List(ctx, workspaceID, email, customLimit, (*string)(nil), readableByContactsOnly).
 			Return(expectedEntries, nil, nil)
 
-		entries, _, err := service.List(ctx, workspaceID, email, customLimit, nil)
+		entries, _, err := service.List(ctx, workspaceID, email, customLimit, nil, nil)
 
 		require.NoError(t, err)
 		assert.Len(t, entries, 1)
@@ -248,7 +254,7 @@ func TestContactTimelineService_PermissionEnforcement(t *testing.T) {
 			},
 		}, nil)
 
-	entries, nextCursor, err := service.List(ctx, "ws123", "user@example.com", 50, nil)
+	entries, nextCursor, err := service.List(ctx, "ws123", "user@example.com", 50, nil, nil)
 
 	require.Error(t, err)
 
@@ -274,9 +280,90 @@ func TestContactTimelineService_List_AuthenticationError(t *testing.T) {
 		AuthenticateUserForWorkspace(ctx, "ws123").
 		Return(ctx, nil, nil, assert.AnError)
 
-	entries, nextCursor, err := service.List(ctx, "ws123", "user@example.com", 50, nil)
+	entries, nextCursor, err := service.List(ctx, "ws123", "user@example.com", 50, nil, nil)
 
 	assert.Error(t, err)
 	assert.Nil(t, entries)
 	assert.Nil(t, nextCursor)
+}
+
+func TestContactTimelineService_List_EntityTypes(t *testing.T) {
+	ctx := context.Background()
+	full := domain.UserPermissions{
+		domain.PermissionResourceContacts:       {Read: true},
+		domain.PermissionResourceMessageHistory: {Read: true},
+		domain.PermissionResourceWebAnalytics:   {Read: true},
+	}
+	without := func(resource domain.PermissionResource) domain.UserPermissions {
+		perms := domain.UserPermissions{}
+		for r, p := range full {
+			if r != resource {
+				perms[r] = p
+			}
+		}
+		return perms
+	}
+	setup := func(t *testing.T, perms domain.UserPermissions) (*ContactTimelineService, *mocks.MockContactTimelineRepository) {
+		ctrl := gomock.NewController(t)
+		repo := mocks.NewMockContactTimelineRepository(ctrl)
+		auth := mocks.NewMockAuthService(ctrl)
+		auth.EXPECT().AuthenticateUserForWorkspace(ctx, "ws").
+			Return(ctx, &domain.User{ID: "u1"}, &domain.UserWorkspace{UserID: "u1", WorkspaceID: "ws", Role: "member", Permissions: perms}, nil)
+		return NewContactTimelineService(repo, auth), repo
+	}
+	expect := func(repo *mocks.MockContactTimelineRepository, filter domain.TimelineEntityTypeFilter) {
+		repo.EXPECT().List(ctx, "ws", "a@example.com", 20, (*string)(nil), filter).Return(nil, nil, nil)
+	}
+
+	t.Run("full permissions and no type: no filter", func(t *testing.T) {
+		svc, repo := setup(t, full)
+		expect(repo, domain.TimelineEntityTypeFilter{})
+		_, _, err := svc.List(ctx, "ws", "a@example.com", 20, nil, nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("full permissions keep the requested types", func(t *testing.T) {
+		svc, repo := setup(t, full)
+		expect(repo, domain.TimelineEntityTypeFilter{Only: []string{"web_page", "message_history"}})
+		_, _, err := svc.List(ctx, "ws", "a@example.com", 20, nil, []string{"web_page", "message_history"})
+		require.NoError(t, err)
+	})
+
+	t.Run("without message_history.read and no type: message and provider entries denied", func(t *testing.T) {
+		svc, repo := setup(t, without(domain.PermissionResourceMessageHistory))
+		expect(repo, domain.TimelineEntityTypeFilter{Except: []string{"message_history", "inbound_webhook_event", "webhook_event"}})
+		_, _, err := svc.List(ctx, "ws", "a@example.com", 20, nil, nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("without message_history.read, requested message entries removed", func(t *testing.T) {
+		svc, repo := setup(t, without(domain.PermissionResourceMessageHistory))
+		expect(repo, domain.TimelineEntityTypeFilter{Only: []string{"contact"}})
+		_, _, err := svc.List(ctx, "ws", "a@example.com", 20, nil, []string{"message_history", "contact", "inbound_webhook_event"})
+		require.NoError(t, err)
+	})
+
+	t.Run("without web_analytics.read, website entries removed", func(t *testing.T) {
+		svc, repo := setup(t, without(domain.PermissionResourceWebAnalytics))
+		expect(repo, domain.TimelineEntityTypeFilter{Except: []string{"web_session", "web_page"}})
+		_, _, err := svc.List(ctx, "ws", "a@example.com", 20, nil, nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("every requested type removed: empty list, no cursor, repository not called", func(t *testing.T) {
+		svc, _ := setup(t, without(domain.PermissionResourceWebAnalytics))
+		entries, cursor, err := svc.List(ctx, "ws", "a@example.com", 20, nil, []string{"web_session", "web_page"})
+		require.NoError(t, err)
+		assert.NotNil(t, entries)
+		assert.Empty(t, entries)
+		assert.Nil(t, cursor)
+	})
+
+	t.Run("without contacts.read still refused, whatever the types", func(t *testing.T) {
+		svc, _ := setup(t, without(domain.PermissionResourceContacts))
+		_, _, err := svc.List(ctx, "ws", "a@example.com", 20, nil, []string{"contact"})
+		var permErr *domain.PermissionError
+		require.ErrorAs(t, err, &permErr)
+		assert.Equal(t, domain.PermissionResourceContacts, permErr.Resource)
+	})
 }

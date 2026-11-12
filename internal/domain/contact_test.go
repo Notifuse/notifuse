@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -2994,5 +2995,48 @@ func TestUpsertContactOperation_ContactIsAdditive(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.False(t, gjson.GetBytes(encoded, "Err").Exists())
+	})
+}
+
+func TestGetContactsRequest_FromQueryParams_Search(t *testing.T) {
+	parse := func(search string) (*GetContactsRequest, error) {
+		req := &GetContactsRequest{}
+		err := req.FromQueryParams(url.Values{"workspace_id": {"ws1"}, "search": {search}})
+		return req, err
+	}
+
+	t.Run("read from the query, spaces trimmed", func(t *testing.T) {
+		req, err := parse("  john doe \t")
+		require.NoError(t, err)
+		assert.Equal(t, "john doe", req.Search)
+	})
+
+	t.Run("absent leaves it empty", func(t *testing.T) {
+		req := &GetContactsRequest{}
+		require.NoError(t, req.FromQueryParams(url.Values{"workspace_id": {"ws1"}}))
+		assert.Equal(t, "", req.Search)
+	})
+
+	t.Run("100 characters accepted, counted as characters not bytes", func(t *testing.T) {
+		search := strings.Repeat("é", 100)
+		req, err := parse(search)
+		require.NoError(t, err)
+		assert.Equal(t, search, req.Search)
+	})
+
+	t.Run("101 characters refused", func(t *testing.T) {
+		_, err := parse(strings.Repeat("a", 101))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "search")
+	})
+
+	t.Run("NUL refused", func(t *testing.T) {
+		_, err := parse("a\x00b")
+		require.Error(t, err)
+	})
+
+	t.Run("invalid UTF-8 refused", func(t *testing.T) {
+		_, err := parse("a\xffb")
+		require.Error(t, err)
 	})
 }

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/asaskevich/govalidator"
@@ -494,6 +495,10 @@ type GetContactsRequest struct {
 	ContactListStatus string   `json:"contact_list_status,omitempty" valid:"optional"`
 	Segments          []string `json:"segments,omitempty" valid:"optional"`
 
+	// Search matches email, first, last and full name, and external ID (case-insensitive
+	// substring). It is trimmed and at most ContactSearchMaxLength characters.
+	Search string `json:"search,omitempty" valid:"optional"`
+
 	// Tracking consent filters: granted, denied or unknown (no value recorded).
 	TrackingOpensConsent  string `json:"tracking_opens_consent,omitempty" valid:"optional"`
 	TrackingClicksConsent string `json:"tracking_clicks_consent,omitempty" valid:"optional"`
@@ -520,6 +525,10 @@ func (r *GetContactsRequest) FromQueryParams(params url.Values) error {
 	r.ListID = params.Get("list_id")
 	r.ContactListStatus = params.Get("contact_list_status")
 	r.Cursor = params.Get("cursor")
+	r.Search = strings.TrimSpace(params.Get("search"))
+	if err := validateContactSearch(r.Search); err != nil {
+		return err
+	}
 	r.TrackingOpensConsent = params.Get("tracking_opens_consent")
 	r.TrackingClicksConsent = params.Get("tracking_clicks_consent")
 	if err := validateTrackingConsentFilter("tracking_opens_consent", r.TrackingOpensConsent); err != nil {
@@ -560,6 +569,19 @@ func (r *GetContactsRequest) FromQueryParams(params url.Values) error {
 		r.WithContactLists = withContactLists
 	}
 
+	return nil
+}
+
+// ContactSearchMaxLength is the longest contacts.list search, in characters.
+const ContactSearchMaxLength = 100
+
+func validateContactSearch(search string) error {
+	if !utf8.ValidString(search) || strings.ContainsRune(search, 0) {
+		return fmt.Errorf("invalid search: must be valid UTF-8 text")
+	}
+	if utf8.RuneCountInString(search) > ContactSearchMaxLength {
+		return fmt.Errorf("search must be at most %d characters", ContactSearchMaxLength)
+	}
 	return nil
 }
 

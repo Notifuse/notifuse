@@ -89,7 +89,7 @@ func TestContactTimelineHandler_handleList(t *testing.T) {
 			},
 		}
 		mockService.EXPECT().
-			List(gomock.Any(), "ws1", "user@example.com", 10, (*string)(nil)).
+			List(gomock.Any(), "ws1", "user@example.com", 10, (*string)(nil), []string(nil)).
 			Return(entries, &cursor, nil)
 
 		handler.handleList(w, req)
@@ -118,7 +118,7 @@ func TestContactTimelineHandler_handleList(t *testing.T) {
 
 		entries := []*domain.ContactTimelineEntry{}
 		mockService.EXPECT().
-			List(gomock.Any(), "ws1", "user@example.com", 50, &cursor).
+			List(gomock.Any(), "ws1", "user@example.com", 50, &cursor, []string(nil)).
 			Return(entries, nil, nil)
 
 		handler.handleList(w, req)
@@ -206,7 +206,7 @@ func TestContactTimelineHandler_handleList(t *testing.T) {
 			Return(context.Background(), &domain.User{ID: "user1"}, &domain.UserWorkspace{WorkspaceID: "ws1"}, nil)
 
 		mockService.EXPECT().
-			List(gomock.Any(), "ws1", "user@example.com", 50, (*string)(nil)).
+			List(gomock.Any(), "ws1", "user@example.com", 50, (*string)(nil), []string(nil)).
 			Return(nil, nil, assert.AnError)
 
 		mockLogger.EXPECT().Error(gomock.Any())
@@ -226,7 +226,7 @@ func TestContactTimelineHandler_handleList(t *testing.T) {
 			Return(context.Background(), &domain.User{ID: "user1"}, &domain.UserWorkspace{WorkspaceID: "ws1"}, nil)
 
 		mockService.EXPECT().
-			List(gomock.Any(), "ws1", "user@example.com", 50, (*string)(nil)).
+			List(gomock.Any(), "ws1", "user@example.com", 50, (*string)(nil), []string(nil)).
 			Return(nil, nil, domain.NewPermissionError(
 				domain.PermissionResourceContacts,
 				domain.PermissionTypeRead,
@@ -243,6 +243,32 @@ func TestContactTimelineHandler_handleList(t *testing.T) {
 		require.NoError(t, json.NewDecoder(w.Body).Decode(&body))
 		assert.Equal(t, string(domain.PermissionResourceContacts), body["resource"])
 		assert.Equal(t, string(domain.PermissionTypeRead), body["permission"])
+	})
+
+	t.Run("Success - entity_types passed to the service", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/timeline.list?workspace_id=ws1&email=user@example.com&entity_types=contact,message_history", nil)
+		w := httptest.NewRecorder()
+
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), "ws1").
+			Return(context.Background(), &domain.User{ID: "user1"}, &domain.UserWorkspace{WorkspaceID: "ws1"}, nil)
+		mockService.EXPECT().
+			List(gomock.Any(), "ws1", "user@example.com", 50, (*string)(nil), []string{"contact", "message_history"}).
+			Return([]*domain.ContactTimelineEntry{}, nil, nil)
+
+		handler.handleList(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("Error - unknown entity type", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/timeline.list?workspace_id=ws1&email=user@example.com&entity_types=contact,bogus", nil)
+		w := httptest.NewRecorder()
+
+		handler.handleList(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "bogus")
 	})
 }
 

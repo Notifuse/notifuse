@@ -269,7 +269,7 @@ func TestListService_GetLists(t *testing.T) {
 		mockRepo.EXPECT().GetLists(ctx, workspaceID).Return(expectedLists, nil)
 		mockLogger.EXPECT().Error(gomock.Any()).Times(0)
 
-		lists, err := service.GetLists(ctx, workspaceID)
+		lists, err := service.GetLists(ctx, workspaceID, false)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedLists, lists)
 	})
@@ -277,7 +277,7 @@ func TestListService_GetLists(t *testing.T) {
 	t.Run("authentication failure", func(t *testing.T) {
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, nil, nil, errors.New("auth error"))
 
-		lists, err := service.GetLists(ctx, workspaceID)
+		lists, err := service.GetLists(ctx, workspaceID, false)
 		assert.Error(t, err)
 		assert.Nil(t, lists)
 		assert.Contains(t, err.Error(), "failed to authenticate user")
@@ -296,7 +296,7 @@ func TestListService_GetLists(t *testing.T) {
 		mockRepo.EXPECT().GetLists(ctx, workspaceID).Return(nil, errors.New("db error"))
 		mockLogger.EXPECT().Error(gomock.Any())
 
-		lists, err := service.GetLists(ctx, workspaceID)
+		lists, err := service.GetLists(ctx, workspaceID, false)
 		assert.Error(t, err)
 		assert.Nil(t, lists)
 		assert.Contains(t, err.Error(), "failed to get lists")
@@ -2917,4 +2917,70 @@ func TestListService_SubscribeToLists_DiscardsResults(t *testing.T) {
 		ListIDs:     []string{"list123"},
 	}, true)
 	assert.NoError(t, err)
+}
+
+func TestListService_GetLists_WithCounts(t *testing.T) {
+	ctx := context.Background()
+	readLists := &domain.UserWorkspace{UserID: "u1", WorkspaceID: "ws", Permissions: domain.UserPermissions{
+		domain.PermissionResourceLists: {Read: true},
+	}}
+	setup := func(t *testing.T) (*ListService, *mocks.MockListRepository, *mocks.MockAuthService, *pkgmocks.MockLogger) {
+		ctrl := gomock.NewController(t)
+		repo := mocks.NewMockListRepository(ctrl)
+		auth := mocks.NewMockAuthService(ctrl)
+		logger := pkgmocks.NewMockLogger(ctrl)
+		svc := NewListService(repo, mocks.NewMockWorkspaceRepository(ctrl), mocks.NewMockContactListRepository(ctrl),
+			mocks.NewMockContactRepository(ctrl), mocks.NewMockMessageHistoryRepository(ctrl), auth,
+			mocks.NewMockEmailServiceInterface(ctrl), logger, "https://api.example.com", pkgmocks.NewMockCache(ctrl))
+		return svc, repo, auth, logger
+	}
+
+	t.Run("each list carries its count, 0 when it has no active subscriber", func(t *testing.T) {
+		svc, repo, auth, _ := setup(t)
+		auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws").Return(ctx, &domain.User{}, readLists, nil).Times(1)
+		repo.EXPECT().GetLists(ctx, "ws").Return([]*domain.List{{ID: "news"}, {ID: "empty"}}, nil)
+		repo.EXPECT().CountActiveContactsByList(ctx, "ws").Return(map[string]int{"news": 7, "deleted": 2}, nil)
+
+		lists, err := svc.GetLists(ctx, "ws", true)
+		require.NoError(t, err)
+		require.Len(t, lists, 2)
+		require.NotNil(t, lists[0].ActiveCount)
+		assert.Equal(t, 7, *lists[0].ActiveCount)
+		require.NotNil(t, lists[1].ActiveCount)
+		assert.Equal(t, 0, *lists[1].ActiveCount)
+	})
+
+	t.Run("without counts the repository is not asked and no list carries one", func(t *testing.T) {
+		svc, repo, auth, _ := setup(t)
+		auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws").Return(ctx, &domain.User{}, readLists, nil)
+		repo.EXPECT().GetLists(ctx, "ws").Return([]*domain.List{{ID: "news"}}, nil)
+		repo.EXPECT().CountActiveContactsByList(gomock.Any(), gomock.Any()).Times(0)
+
+		lists, err := svc.GetLists(ctx, "ws", false)
+		require.NoError(t, err)
+		assert.Nil(t, lists[0].ActiveCount)
+	})
+
+	t.Run("refused without lists.read", func(t *testing.T) {
+		svc, _, auth, _ := setup(t)
+		auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws").
+			Return(ctx, &domain.User{}, &domain.UserWorkspace{Permissions: domain.UserPermissions{}}, nil)
+
+		_, err := svc.GetLists(ctx, "ws", true)
+		var permErr *domain.PermissionError
+		require.ErrorAs(t, err, &permErr)
+	})
+
+	t.Run("count error returned", func(t *testing.T) {
+		svc, repo, auth, logger := setup(t)
+		auth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws").Return(ctx, &domain.User{}, readLists, nil)
+		repo.EXPECT().GetLists(ctx, "ws").Return([]*domain.List{{ID: "news"}}, nil)
+		repo.EXPECT().CountActiveContactsByList(ctx, "ws").Return(nil, errors.New("db down"))
+		logger.EXPECT().Error(gomock.Any())
+
+		lists, err := svc.GetLists(ctx, "ws", true)
+		require.Error(t, err)
+		assert.Nil(t, lists)
+		assert.Contains(t, err.Error(), "db down")
+	})
 }
