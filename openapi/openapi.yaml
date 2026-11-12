@@ -90,6 +90,8 @@ paths:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.testRecipientFeed'
   /api/templates.list:
     $ref: './paths/templates.yaml#/~1api~1templates.list'
+  /api/templates.usage:
+    $ref: './paths/templates.yaml#/~1api~1templates.usage'
   /api/templates.get:
     $ref: './paths/templates.yaml#/~1api~1templates.get'
   /api/templates.create:
@@ -112,6 +114,8 @@ paths:
     $ref: './paths/blog.yaml#/~1api~1blogCategories.delete'
   /api/blogPosts.list:
     $ref: './paths/blog.yaml#/~1api~1blogPosts.list'
+  /api/blogPosts.counts:
+    $ref: './paths/blog.yaml#/~1api~1blogPosts.counts'
   /api/blogPosts.get:
     $ref: './paths/blog.yaml#/~1api~1blogPosts.get'
   /api/blogPosts.create:

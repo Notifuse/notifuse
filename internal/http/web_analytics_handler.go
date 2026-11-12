@@ -41,6 +41,15 @@ type WebAnalyticsHandler struct {
 	sdkGzip     []byte
 	sdkETag     string
 	sdkGzipETag string
+
+	// contactVisits serves a contact's web visits; nil leaves those routes unregistered.
+	contactVisits domain.WebAnalyticsContactVisitsService
+}
+
+// WithContactVisits registers the contact web visit routes, served by svc.
+func (h *WebAnalyticsHandler) WithContactVisits(svc domain.WebAnalyticsContactVisitsService) *WebAnalyticsHandler {
+	h.contactVisits = svc
+	return h
 }
 
 // NewWebAnalyticsHandler creates the handler. sdkJS may be nil until the SDK
@@ -98,7 +107,61 @@ func (h *WebAnalyticsHandler) RegisterRoutes(mux *http.ServeMux) {
 		mux.Handle("/api/webAnalytics.backfillStart", requireAuth(http.HandlerFunc(h.handleBackfillStart)))
 		mux.Handle("/api/webAnalytics.backfillStatus", requireAuth(http.HandlerFunc(h.handleBackfillStatus)))
 		mux.Handle("/api/webAnalytics.backfillCancel", requireAuth(http.HandlerFunc(h.handleBackfillCancel)))
+		if h.contactVisits != nil {
+			mux.Handle("/api/webAnalytics.contactVisits", requireAuth(http.HandlerFunc(h.handleContactVisits)))
+			mux.Handle("/api/webAnalytics.contactSessionPages", requireAuth(http.HandlerFunc(h.handleContactSessionPages)))
+		}
 	}
+}
+
+// writeContactVisitsError answers a failed contact visits request: disabled analytics and
+// permission errors with their own status, anything else with a fixed message.
+func (h *WebAnalyticsHandler) writeContactVisitsError(w http.ResponseWriter, workspaceID string, err error) {
+	if errors.Is(err, domain.ErrWebAnalyticsNotEnabled) {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if writeServiceError(w, err, "You do not have access to this workspace") {
+		return
+	}
+	h.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to read contact web visits")
+	WriteJSONError(w, "Failed to read contact web visits", http.StatusInternalServerError)
+}
+
+func (h *WebAnalyticsHandler) handleContactVisits(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req domain.ContactVisitsRequest
+	if err := req.FromQuery(r.URL.Query()); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response, err := h.contactVisits.ContactVisits(r.Context(), req)
+	if err != nil {
+		h.writeContactVisitsError(w, req.WorkspaceID, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, response)
+}
+
+func (h *WebAnalyticsHandler) handleContactSessionPages(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req domain.ContactSessionPagesRequest
+	if err := req.FromQuery(r.URL.Query()); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response, err := h.contactVisits.ContactSessionPages(r.Context(), req)
+	if err != nil {
+		h.writeContactVisitsError(w, req.WorkspaceID, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, response)
 }
 
 type webAnalyticsBackfillRequest struct {

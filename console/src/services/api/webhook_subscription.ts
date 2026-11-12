@@ -182,11 +182,13 @@ export const webhookSubscriptionApi = {
     workspaceId: string,
     subscriptionId?: string,
     limit?: number,
-    offset?: number
+    offset?: number,
+    status?: string
   ): Promise<GetDeliveriesResponse> => {
     const searchParams = new URLSearchParams()
     searchParams.append('workspace_id', workspaceId)
     if (subscriptionId) searchParams.append('subscription_id', subscriptionId)
+    if (status) searchParams.append('status', status)
     if (limit !== undefined) searchParams.append('limit', limit.toString())
     if (offset !== undefined) searchParams.append('offset', offset.toString())
     return api.get<GetDeliveriesResponse>(

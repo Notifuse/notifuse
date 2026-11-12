@@ -1649,7 +1649,11 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 		loadWebAnalyticsSDK(a.logger),
-	)
+	).WithContactVisits(service.NewWebAnalyticsContactVisitsService(
+		repository.NewWebAnalyticsContactVisitsRepository(a.workspaceRepo),
+		a.workspaceRepo,
+		a.authService,
+	))
 	usageHandler := httpHandler.NewUsageHandler(
 		a.usageService,
 		a.config.Security.SecretKey,

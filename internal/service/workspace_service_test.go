@@ -4423,7 +4423,7 @@ func TestWorkspaceService_deleteSupabaseIntegrationResources(t *testing.T) {
 		mockRepo,
 		nil, // emailService
 		mockContactService,
-		mockListService,
+		mocks.NewMockListRepository(ctrl),
 		mockContactListRepo,
 		mockTemplateRepo,
 		mockTemplateService,

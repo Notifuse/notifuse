@@ -20,6 +20,7 @@ import {
 import { MessageHistoryTable } from './MessageHistoryTable'
 import { broadcastApi } from '../../services/api/broadcast'
 import { listsApi } from '../../services/api/list'
+import { buildLogsTabUrl, LOGS_TAB } from '../logs/logsUrl'
 
 const { Title, Text } = Typography
 
@@ -352,14 +353,7 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
 
   // Update URL when filters change
   React.useEffect(() => {
-    const searchParams = new URLSearchParams()
-
-    activeFilters.forEach((filter) => {
-      searchParams.set(filter.field, filter.value)
-    })
-
-    const newUrl =
-      window.location.pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '')
+    const newUrl = buildLogsTabUrl(window.location.pathname, LOGS_TAB.messages, activeFilters)
 
     window.history.pushState({ path: newUrl }, '', newUrl)
   }, [activeFilters])
@@ -456,7 +450,8 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
     setActiveFilters([])
     setTempFilterValues({})
     // Clear URL params
-    window.history.pushState({ path: window.location.pathname }, '', window.location.pathname)
+    const clearedUrl = buildLogsTabUrl(window.location.pathname, LOGS_TAB.messages, [])
+    window.history.pushState({ path: clearedUrl }, '', clearedUrl)
   }
 
   // Render filter buttons for a specific filter group

@@ -178,3 +178,53 @@ func TestTimelineListRequest_FromQuery(t *testing.T) {
 		assert.Contains(t, err.Error(), "email is required")
 	})
 }
+
+func TestTimelineListRequest_EntityTypes(t *testing.T) {
+	parse := func(entityTypes string) (*TimelineListRequest, error) {
+		req := &TimelineListRequest{}
+		err := req.FromQuery(url.Values{"workspace_id": {"ws1"}, "email": {"a@example.com"}, "entity_types": {entityTypes}})
+		return req, err
+	}
+
+	t.Run("comma-separated values, trimmed, in order", func(t *testing.T) {
+		req, err := parse(" message_history, contact ")
+		require.NoError(t, err)
+		assert.Equal(t, []string{"message_history", "contact"}, req.EntityTypes)
+	})
+
+	t.Run("duplicates removed keeping the first position", func(t *testing.T) {
+		req, err := parse("contact,web_page,contact")
+		require.NoError(t, err)
+		assert.Equal(t, []string{"contact", "web_page"}, req.EntityTypes)
+	})
+
+	t.Run("blank items dropped, all blank means no filter", func(t *testing.T) {
+		req, err := parse("contact,, ,")
+		require.NoError(t, err)
+		assert.Equal(t, []string{"contact"}, req.EntityTypes)
+
+		req, err = parse(" , ")
+		require.NoError(t, err)
+		assert.Empty(t, req.EntityTypes)
+	})
+
+	t.Run("absent means no filter", func(t *testing.T) {
+		req := &TimelineListRequest{}
+		require.NoError(t, req.FromQuery(url.Values{"workspace_id": {"ws1"}, "email": {"a@example.com"}}))
+		assert.Empty(t, req.EntityTypes)
+	})
+
+	t.Run("an unknown value is refused", func(t *testing.T) {
+		_, err := parse("contact,bogus")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "bogus")
+	})
+
+	t.Run("every known type is accepted", func(t *testing.T) {
+		for _, typ := range []string{"contact", "contact_list", "contact_segment", "message_history", "custom_event",
+			"inbound_webhook_event", "webhook_event", "automation", "web_session", "web_page"} {
+			_, err := parse(typ)
+			assert.NoError(t, err, typ)
+		}
+	})
+}

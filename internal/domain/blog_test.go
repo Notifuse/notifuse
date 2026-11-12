@@ -1087,6 +1087,28 @@ func TestBlogPost_IsDraft(t *testing.T) {
 	})
 }
 
+func TestBlogPost_IsLive(t *testing.T) {
+	now := time.Date(2026, 11, 12, 10, 0, 0, 0, time.UTC)
+	past := now.Add(-time.Hour)
+	future := now.Add(time.Hour)
+
+	t.Run("a draft is not live", func(t *testing.T) {
+		assert.False(t, (&BlogPost{}).IsLive(now))
+	})
+	t.Run("a post published in the past is live", func(t *testing.T) {
+		assert.True(t, (&BlogPost{PublishedAt: &past}).IsLive(now))
+	})
+	t.Run("a post published exactly now is live", func(t *testing.T) {
+		at := now
+		assert.True(t, (&BlogPost{PublishedAt: &at}).IsLive(now))
+	})
+	t.Run("a scheduled post is not live before its date", func(t *testing.T) {
+		post := &BlogPost{PublishedAt: &future}
+		assert.False(t, post.IsLive(now))
+		assert.True(t, post.IsPublished(), "it still counts as published for the console")
+	})
+}
+
 func TestBlogPost_IsPublished(t *testing.T) {
 	t.Run("returns true when PublishedAt is not nil", func(t *testing.T) {
 		now := time.Now()
@@ -2048,4 +2070,58 @@ func TestListBlogThemesRequest_Validate(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 20, req.Offset)
 	})
+}
+
+func TestListBlogPostsRequest_ScheduledAndSearch(t *testing.T) {
+	t.Run("scheduled is accepted", func(t *testing.T) {
+		req := ListBlogPostsRequest{Status: BlogPostStatusScheduled}
+		require.NoError(t, req.Validate())
+	})
+
+	t.Run("an unknown status is a validation error", func(t *testing.T) {
+		req := ListBlogPostsRequest{Status: "archived"}
+		err := req.Validate()
+		var validationErr ValidationError
+		require.ErrorAs(t, err, &validationErr)
+		assert.Contains(t, err.Error(), "archived")
+	})
+
+	t.Run("search is trimmed, and 200 characters are accepted", func(t *testing.T) {
+		req := ListBlogPostsRequest{Search: "  " + repeatRune('é', 200) + "  "}
+		require.NoError(t, req.Validate())
+		assert.Equal(t, repeatRune('é', 200), req.Search)
+	})
+
+	t.Run("201 characters of search are a validation error", func(t *testing.T) {
+		req := ListBlogPostsRequest{Search: repeatRune('é', 201)}
+		err := req.Validate()
+		var validationErr ValidationError
+		require.ErrorAs(t, err, &validationErr)
+	})
+
+	t.Run("now is never read from JSON", func(t *testing.T) {
+		var req ListBlogPostsRequest
+		require.NoError(t, json.Unmarshal([]byte(`{"status":"scheduled","Now":"2030-01-01T00:00:00Z","now":"2030-01-01T00:00:00Z"}`), &req))
+		assert.True(t, req.Now.IsZero())
+	})
+}
+
+func repeatRune(r rune, n int) string {
+	out := make([]rune, n)
+	for i := range out {
+		out[i] = r
+	}
+	return string(out)
+}
+
+func TestBlogPostCounts_JSON(t *testing.T) {
+	raw, err := json.Marshal(NewBlogPostCounts())
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"all_total":0,"total":0,"published":0,"scheduled":0,"draft":0,"by_category":{}}`, string(raw))
+}
+
+func TestBlogSitemapLimits(t *testing.T) {
+	// The sitemap protocol allows 50,000 URLs; the home page and the main feed take two.
+	assert.Equal(t, 50000, BlogSitemapMaxURLs)
+	assert.Equal(t, 49998, BlogSitemapMaxPosts)
 }

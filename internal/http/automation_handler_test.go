@@ -167,10 +167,25 @@ func TestAutomationHandler_Get(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
-	t.Run("not found", func(t *testing.T) {
-		automationSvc.EXPECT().Get(gomock.Any(), "workspace-123", "nonexistent").Return(nil, errors.New("not found"))
+	t.Run("not found answers 404", func(t *testing.T) {
+		notFound := &domain.ErrNotFound{Entity: "automation", ID: "nonexistent"}
+		automationSvc.EXPECT().Get(gomock.Any(), "workspace-123", "nonexistent").
+			Return(nil, fmt.Errorf("failed to get automation: %w", notFound))
 
 		req := httptest.NewRequest(http.MethodGet, "/api/automations.get?workspace_id=workspace-123&automation_id=nonexistent", nil)
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Contains(t, w.Body.String(), "Automation not found")
+	})
+
+	t.Run("untyped error answers 500", func(t *testing.T) {
+		automationSvc.EXPECT().Get(gomock.Any(), "workspace-123", "broken").Return(nil, errors.New("connection refused"))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/automations.get?workspace_id=workspace-123&automation_id=broken", nil)
 		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
 
 		w := httptest.NewRecorder()

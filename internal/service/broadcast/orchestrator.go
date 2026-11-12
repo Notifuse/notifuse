@@ -1131,7 +1131,8 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// run. context.Background() matches the other publishes in this file — the
 	// announcement must outlive the request that triggered the run.
 	//
-	// A paused broadcast stops in the loop below without sending: it is not announced.
+	// A paused or cancelled broadcast stops in the loop below without sending: it is not
+	// announced.
 	//
 	// Every sending run records the start date when none is stored yet. "Send now" and a
 	// resume set it themselves; a scheduled broadcast reaches sending only through these

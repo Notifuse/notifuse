@@ -198,8 +198,10 @@ Where the code differs from the sections above, or settles what they left open.
   a second (code review B1). The status condition is an addition to the approved statement:
   `broadcasts.sendToIndividual` records its test send with the broadcast ID, so a draft or
   scheduled broadcast with a test send would otherwise get a start date. A scheduled
-  broadcast with messages may also be mid-send: its next sending run dates it. Part 4's
-  recount also runs before the index builds.
+  broadcast with messages may also be mid-send: its next sending run dates it. No trigger and
+  no application transaction locks `message_history` and then updates `broadcasts`, so the
+  backfill's row locks held into the builds cannot deadlock with a tracking write (delta
+  review 2).
 - **Analytics**: the repository test pins the SQL (`DATE_TRUNC('hour', opened_at AT TIME ZONE
   'Europe/Paris')`, the `inDateRange` bounds as `$2`/`$3`, no `generate_series`), not the bound
   values: the SQL builder hands non-UTC bounds over as UTC instants, not as the strings

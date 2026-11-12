@@ -372,6 +372,14 @@
           type: string
         description: The ID of the webhook subscription (optional - if not provided, returns all deliveries for the workspace)
         example: whsub_a1b2c3d4e5f6
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [pending, delivering, delivered, failed]
+        description: Only deliveries in this status (optional). `total` counts the filtered deliveries. Any other value answers 400.
+        example: failed
       - name: limit
         in: query
         required: false

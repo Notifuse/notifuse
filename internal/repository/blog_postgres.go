@@ -710,6 +710,54 @@ func (r *blogPostRepository) DeletePostTx(ctx context.Context, tx *sql.Tx, id st
 	return nil
 }
 
+// CountPosts reads every post that is not deleted in one query grouped by category, so the
+// totals and the per-category counts come from the same snapshot.
+func (r *blogPostRepository) CountPosts(ctx context.Context, workspaceID string, categoryID string, now time.Time) (*domain.BlogPostCounts, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// published_at is a UTC timestamp without time zone: compared with a UTC instant.
+	rows, err := workspaceDB.QueryContext(ctx, `
+		SELECT category_id, COUNT(*),
+		       COUNT(*) FILTER (WHERE published_at IS NOT NULL),
+		       COUNT(*) FILTER (WHERE published_at > $1),
+		       COUNT(*) FILTER (WHERE published_at IS NULL)
+		FROM blog_posts
+		WHERE deleted_at IS NULL
+		GROUP BY category_id
+	`, now.UTC())
+	if err != nil {
+		return nil, fmt.Errorf("failed to count blog posts: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	counts := domain.NewBlogPostCounts()
+	for rows.Next() {
+		var category sql.NullString
+		var total, published, scheduled, draft int
+		if err := rows.Scan(&category, &total, &published, &scheduled, &draft); err != nil {
+			return nil, fmt.Errorf("failed to scan blog post counts: %w", err)
+		}
+		counts.AllTotal += total
+		if category.Valid {
+			counts.ByCategory[category.String] = total
+		}
+		if categoryID == "" || (category.Valid && category.String == categoryID) {
+			counts.Total += total
+			counts.Published += published
+			counts.Scheduled += scheduled
+			counts.Draft += draft
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating blog post counts: %w", err)
+	}
+
+	return &counts, nil
+}
+
 // ListPosts retrieves blog posts with filtering and pagination
 func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBlogPostsRequest) (*domain.BlogPostListResponse, error) {
 	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
@@ -738,7 +786,28 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 		whereConditions = append(whereConditions, "published_at IS NULL")
 	case domain.BlogPostStatusPublished:
 		whereConditions = append(whereConditions, "published_at IS NOT NULL")
+	case domain.BlogPostStatusScheduled:
+		// published_at is a UTC timestamp without time zone: compared with a UTC instant.
+		now := params.Now
+		if now.IsZero() {
+			now = time.Now()
+		}
+		whereConditions = append(whereConditions, fmt.Sprintf("published_at IS NOT NULL AND published_at > $%d", argIndex))
+		args = append(args, now.UTC())
+		argIndex++
 		// BlogPostStatusAll means no filter on published_at
+	}
+
+	if params.PublishedBefore != nil {
+		whereConditions = append(whereConditions, fmt.Sprintf("published_at <= $%d", argIndex))
+		args = append(args, params.PublishedBefore.UTC())
+		argIndex++
+	}
+
+	if params.Search != "" {
+		whereConditions = append(whereConditions, fmt.Sprintf("settings->>'title' ILIKE $%d", argIndex))
+		args = append(args, "%"+escapeLikePattern(params.Search)+"%")
+		argIndex++
 	}
 
 	whereClause := "WHERE " + whereConditions[0]
@@ -750,8 +819,11 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 	// disjoint: posts imported with the same backdated published_at would otherwise come
 	// back in an arbitrary order per query, repeating some posts across pages and skipping others.
 	orderByClause := "ORDER BY created_at DESC, id DESC"
-	if params.Status == domain.BlogPostStatusPublished {
+	switch params.Status {
+	case domain.BlogPostStatusPublished:
 		orderByClause = "ORDER BY published_at DESC, id DESC"
+	case domain.BlogPostStatusScheduled:
+		orderByClause = "ORDER BY published_at ASC, id ASC"
 	}
 
 	// Count total
@@ -846,6 +918,10 @@ func (r *blogPostRepository) ListFeedPosts(ctx context.Context, categorySlug *st
 		categoryFilter = " AND c.slug = $1"
 		args = append(args, *categorySlug)
 	}
+	// published_at is a TIMESTAMP without time zone holding UTC: compare it to
+	// the current UTC time rather than NOW(), which follows the session's zone.
+	args = append(args, time.Now().UTC())
+	nowPlaceholder := fmt.Sprintf("$%d", len(args))
 	args = append(args, limit)
 	limitPlaceholder := fmt.Sprintf("$%d", len(args))
 
@@ -855,11 +931,11 @@ func (r *blogPostRepository) ListFeedPosts(ctx context.Context, categorySlug *st
 		JOIN blog_categories c ON c.id = p.category_id AND c.deleted_at IS NULL
 		WHERE p.deleted_at IS NULL
 		  AND p.published_at IS NOT NULL
-		  AND p.published_at <= NOW()
+		  AND p.published_at <= %s
 		  %s
 		ORDER BY p.published_at DESC
 		LIMIT %s
-	`, categoryFilter, limitPlaceholder)
+	`, nowPlaceholder, categoryFilter, limitPlaceholder)
 
 	rows, err := workspaceDB.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -890,6 +966,56 @@ func (r *blogPostRepository) ListFeedPosts(ctx context.Context, categorySlug *st
 	return posts, nil
 }
 
+// ListSitemapPosts returns, newest first, at most limit live posts with the slug of their
+// category. published_at is a TIMESTAMP without time zone holding UTC, so it is compared to
+// now in UTC rather than to NOW(), whose conversion depends on the session time zone.
+func (r *blogPostRepository) ListSitemapPosts(ctx context.Context, now time.Time, limit int) ([]*domain.BlogSitemapPost, error) {
+	if limit <= 0 {
+		return nil, fmt.Errorf("invalid sitemap limit: %d", limit)
+	}
+
+	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// The join drops posts without a category or in a deleted one: their address answers 404.
+	query := `
+		SELECT c.slug, p.slug, p.published_at
+		FROM blog_posts p
+		JOIN blog_categories c ON c.id = p.category_id AND c.deleted_at IS NULL
+		WHERE p.deleted_at IS NULL
+		  AND p.published_at IS NOT NULL
+		  AND p.published_at <= $1
+		ORDER BY p.published_at DESC, p.id DESC
+		LIMIT $2
+	`
+
+	rows, err := workspaceDB.QueryContext(ctx, query, now.UTC(), limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list sitemap posts: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var posts []*domain.BlogSitemapPost
+	for rows.Next() {
+		var post domain.BlogSitemapPost
+		if err := rows.Scan(&post.CategorySlug, &post.PostSlug, &post.PublishedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan sitemap post: %w", err)
+		}
+		posts = append(posts, &post)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating sitemap posts: %w", err)
+	}
+	return posts, nil
+}
+
 // GetFeedFingerprint returns (maxUpdatedAt, idsHash) over the same slice of
 // posts ListFeedPosts would return.
 //
@@ -914,6 +1040,10 @@ func (r *blogPostRepository) GetFeedFingerprint(ctx context.Context, categorySlu
 		categoryFilter = " AND c.slug = $1"
 		args = append(args, *categorySlug)
 	}
+	// published_at is a TIMESTAMP without time zone holding UTC: compare it to
+	// the current UTC time rather than NOW(), which follows the session's zone.
+	args = append(args, time.Now().UTC())
+	nowPlaceholder := fmt.Sprintf("$%d", len(args))
 	args = append(args, limit)
 	limitPlaceholder := fmt.Sprintf("$%d", len(args))
 
@@ -930,7 +1060,7 @@ func (r *blogPostRepository) GetFeedFingerprint(ctx context.Context, categorySlu
 			JOIN blog_categories c ON c.id = p.category_id AND c.deleted_at IS NULL
 			WHERE p.deleted_at IS NULL
 			  AND p.published_at IS NOT NULL
-			  AND p.published_at <= NOW()
+			  AND p.published_at <= %s
 			  %s
 			ORDER BY p.published_at DESC
 			LIMIT %s
@@ -939,7 +1069,7 @@ func (r *blogPostRepository) GetFeedFingerprint(ctx context.Context, categorySlu
 			MAX(GREATEST(post_updated, cat_updated)) AS max_updated_at,
 			COALESCE(MD5(STRING_AGG(id::text, ',' ORDER BY id)), '') AS ids_hash
 		FROM top_posts
-	`, categoryFilter, limitPlaceholder)
+	`, nowPlaceholder, categoryFilter, limitPlaceholder)
 
 	var maxUpdatedAt sql.NullTime
 	var idsHash string
