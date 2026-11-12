@@ -16,7 +16,7 @@ their own PR.
    - `formatMonthDay(d)` gives "Feb 3", "3 févr." or "2月3日".
    - `formatHour(d)` (`timeStyle: 'short'`) gives "9:00 AM", "09:00" or "9:00".
    - `formatHourOfDay(hour)` gives "12:00 AM" or "15:00", for the heat map's hour columns. The
-     minutes stay so that a bare "15" (Spanish, Catalan, Italian) never reads as a day.
+     minutes stay so that a bare "15" (Spanish, Catalan, Italian, Brazilian Portuguese) never reads as a day.
    - `formatMonthYear(d)` gives "Aug 2026", "août 2026" or "2026年8月". The full year keeps it from
      reading as a day ("Aug 26").
    - `formatDayRange(start, end)` uses `formatRange`, which drops the parts both bounds share
@@ -100,5 +100,5 @@ They follow the English convention, and every language now goes through the same
 ## Verification
 
 - `cd console && npx vitest run src/i18n src/components/web_analytics src/components/blog`
-- Then once: `npm test`, `npx tsc -b`, and `npx eslint .` (as CI runs it; `npm run lint` also fails
-  on two warnings that predate this change).
+- Then once: `npm test`, `npx tsc -b`, and `npx eslint .` as CI runs it. `npm run lint` uses
+  `--max-warnings 0` and already fails on warnings that predate this change.

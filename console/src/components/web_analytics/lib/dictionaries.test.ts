@@ -67,7 +67,9 @@ describe('weekdayLabel', () => {
       process.env.TZ = 'America/Los_Angeles'
       expect(weekdayLabel(1, 'en')).toBe('Monday')
     } finally {
-      process.env.TZ = previous
+      // Assigning undefined would store the string "undefined", which Node then reads as a zone.
+      if (previous === undefined) delete process.env.TZ
+      else process.env.TZ = previous
     }
   })
 })

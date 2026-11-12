@@ -1,14 +1,4 @@
 import { afterAll, afterEach, describe, expect, it } from 'vitest'
-
-// West of UTC, so a label formatted on the browser's clock rather than the dayjs object's lands on
-// the day before and fails, even on a runner that is itself on UTC. Restored after the file: a
-// worker can go on to run other files.
-const runnerTimeZone = process.env.TZ
-process.env.TZ = 'America/Los_Angeles'
-afterAll(() => {
-  if (runnerTimeZone === undefined) delete process.env.TZ
-  else process.env.TZ = runnerTimeZone
-})
 import { i18n } from '@lingui/core'
 import dayjs from '../lib/dayjs'
 import {
@@ -18,6 +8,17 @@ import {
   formatMonthDay,
   formatMonthYear
 } from './dateFormats'
+
+// West of UTC, so a label formatted on the browser's clock rather than the dayjs object's lands on
+// the day before and fails, even on a runner that is itself on UTC. Restored after the file: a
+// worker can go on to run other files. The zone is read when Date and Intl run, after the imports
+// above.
+const runnerTimeZone = process.env.TZ
+process.env.TZ = 'America/Los_Angeles'
+afterAll(() => {
+  if (runnerTimeZone === undefined) delete process.env.TZ
+  else process.env.TZ = runnerTimeZone
+})
 
 // The helpers read the active Lingui locale. Switch it for one case, then put English back.
 function inLocale(locale: string): void {
