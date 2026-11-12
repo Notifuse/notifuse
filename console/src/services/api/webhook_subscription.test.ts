@@ -70,3 +70,32 @@ describe('webhookSubscriptionApi.update', () => {
     expect(sentBody().custom_event_filters).toEqual({})
   })
 })
+
+describe('webhookSubscriptionApi.getDeliveries', () => {
+  beforeEach(() => {
+    vi.mocked(api.get).mockReset()
+    vi.mocked(api.get).mockResolvedValue({ deliveries: [], total: 0 })
+  })
+
+  const sentParams = () =>
+    new URL(vi.mocked(api.get).mock.calls[0][0] as string, 'https://console.test').searchParams
+
+  it('sends the status filter it is given', async () => {
+    await webhookSubscriptionApi.getDeliveries('ws1', 'wh1', 20, 40, 'failed')
+
+    const params = sentParams()
+    expect(params.get('workspace_id')).toBe('ws1')
+    expect(params.get('subscription_id')).toBe('wh1')
+    expect(params.get('status')).toBe('failed')
+    expect(params.get('limit')).toBe('20')
+    expect(params.get('offset')).toBe('40')
+  })
+
+  it('sends no status without one', async () => {
+    await webhookSubscriptionApi.getDeliveries('ws1', undefined, 20, 0)
+
+    const params = sentParams()
+    expect(params.has('status')).toBe(false)
+    expect(params.has('subscription_id')).toBe(false)
+  })
+})

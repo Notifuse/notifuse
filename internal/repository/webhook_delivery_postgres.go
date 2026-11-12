@@ -188,7 +188,7 @@ func (r *webhookDeliveryRepository) RenewClaim(ctx context.Context, workspaceID,
 	return true, &renewed, nil
 }
 
-// ListAll retrieves all deliveries for a workspace with optional subscription filter and pagination
+// ListAll retrieves all deliveries for a workspace, optionally filtered by subscription and status, with pagination
 func (r *webhookDeliveryRepository) ListAll(ctx context.Context, workspaceID string, subscriptionID, status *string, limit, offset int) ([]*WebhookDelivery, int, error) {
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
