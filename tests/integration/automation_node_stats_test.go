@@ -300,23 +300,28 @@ func TestAutomationNodeStats(t *testing.T) {
 				shortuuid.New(), caID, automationA, email1, messageID)
 			require.NoError(t, err)
 		}
-		// A retry due tomorrow (out of the worker's reach today) and a permanent failure.
-		insertQueue := func(messageID string, nextRetry interface{}) {
+		// A retry due tomorrow (out of the worker's reach today), entered twice, and a permanent
+		// failure. The cancelled send's message ID is still queued, but by automation B: it
+		// is not this automation's queue entry.
+		insertQueue := func(sourceID, messageID string, nextRetry interface{}) {
 			_, err := db.ExecContext(ctx, `
 				INSERT INTO email_queue (id, status, source_type, source_id, integration_id, provider_kind, contact_email,
 				                         message_id, template_id, payload, attempts, max_attempts, next_retry_at)
 				VALUES ($1, 'failed', 'automation', $2, 'integration', 'smtp', $3, $4, $5, '{}'::jsonb, 1, 3, $6)`,
-				shortuuid.New(), automationA, fr1, messageID, template.ID, nextRetry)
+				shortuuid.New(), sourceID, fr1, messageID, template.ID, nextRetry)
 			require.NoError(t, err)
 		}
-		insertQueue("queued-"+suffix, time.Now().UTC().Add(24*time.Hour))
-		insertQueue("permanent-"+suffix, nil)
+		tomorrow := time.Now().UTC().Add(24 * time.Hour)
+		insertQueue(automationA, "queued-"+suffix, tomorrow)
+		insertQueue(automationA, "queued-"+suffix, tomorrow)
+		insertQueue(automationA, "permanent-"+suffix, nil)
+		insertQueue(automationB, "cancelled-"+suffix, tomorrow)
 
 		status, stats := nodeStats(t, automationA, nil)
 		require.Equal(t, http.StatusOK, status)
 		e1 := stats.Nodes[email1].Email
-		assert.Equal(t, int64(6), e1.Executions)
-		assert.Equal(t, int64(1), e1.Queued)
+		assert.Equal(t, int64(6), e1.Executions, "a message queued twice is one execution")
+		assert.Equal(t, int64(1), e1.Queued, "another automation's queue entry does not count")
 		assert.Equal(t, int64(2), e1.NotSent)
 		assert.Equal(t, int64(3), e1.Sent)
 		assert.Equal(t, int64(3), stats.Nodes[email1].Visits, "the same journeys")
