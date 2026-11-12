@@ -79,35 +79,7 @@ export function useTransactionalStats({
   const active = enabled && ids.length > 0
   const byId = { member: 'transactional_notification_id', operator: 'in' as const, values: ids }
 
-  // The last day enters the keys: at midnight the window slides, without a request at each render.
-  const current = useQuery({
-    queryKey: ['transactional-stats', workspaceId, period, periods.current.endDay, ids],
-    queryFn: async () => {
-      const response = await transactionalAnalytics.query(
-        {
-          schema: 'message_history',
-          measures: Object.values(STATS_MEASURES),
-          dimensions: ['transactional_notification_id'],
-          timezone,
-          filters: [
-            byId,
-            {
-              member: 'created_at',
-              operator: 'inDateRange',
-              values: [periods.current.startUtc, periods.current.endUtc]
-            }
-          ]
-        },
-        workspaceId
-      )
-      return { period, stats: statsByNotification(response.data) }
-    },
-    enabled: active,
-    staleTime: 60_000,
-    // Focus refetch is off for the console: a monitoring screen reads its figures again on return.
-    refetchOnWindowFocus: true,
-    placeholderData: keepPreviousData
-  })
+  const current = useCurrentStats({ workspaceId, ids, period, periods, timezone, enabled: active })
 
   const previous = useQuery({
     queryKey: ['transactional-stats', workspaceId, 'previous', period, periods.current.endDay, ids],
@@ -161,6 +133,44 @@ export function useTransactionalStats({
     previous: result(previous),
     lastSent: result(lastSent)
   }
+}
+
+type CurrentStatsOptions = Omit<StatsOptions, 'smtp'>
+
+/**
+ * T2: the window's statistics of `ids`, with the period they belong to. The list and the sheet of a
+ * notification outside it share this key and this query, so an entry one of them made fits the other.
+ */
+export function useCurrentStats({ workspaceId, ids, period, periods, timezone, enabled }: CurrentStatsOptions) {
+  // The last day enters the key: at midnight the window slides, without a request at each render.
+  return useQuery({
+    queryKey: ['transactional-stats', workspaceId, period, periods.current.endDay, ids],
+    queryFn: async () => {
+      const response = await transactionalAnalytics.query(
+        {
+          schema: 'message_history',
+          measures: Object.values(STATS_MEASURES),
+          dimensions: ['transactional_notification_id'],
+          timezone,
+          filters: [
+            { member: 'transactional_notification_id', operator: 'in', values: ids },
+            {
+              member: 'created_at',
+              operator: 'inDateRange',
+              values: [periods.current.startUtc, periods.current.endUtc]
+            }
+          ]
+        },
+        workspaceId
+      )
+      return { period, stats: statsByNotification(response.data) }
+    },
+    enabled,
+    staleTime: 60_000,
+    // Focus refetch is off for the console: a monitoring screen reads its figures again on return.
+    refetchOnWindowFocus: true,
+    placeholderData: keepPreviousData
+  })
 }
 
 interface TemplatesOptions {

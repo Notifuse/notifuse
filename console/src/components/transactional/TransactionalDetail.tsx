@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Button, Dropdown, Result, Skeleton, Tooltip, type MenuProps } from 'antd'
@@ -33,10 +33,10 @@ import {
   type NotificationStats,
   type TrackedRate
 } from './transactionalStats'
-import { IntegrationTag, type StatGate } from './notificationParts'
+import { DeletedTemplatePill, IntegrationTag, MenuEntryLabel, type StatGate } from './notificationParts'
 import { templateIdOf, useActionRules } from './notificationRules'
 import type { TransactionalRowActions } from './TransactionalTable'
-import { useTemplateStates } from './useTransactionalStats'
+import { useCurrentStats, useTemplateStates } from './useTransactionalStats'
 
 export interface TransactionalDetailProps extends Omit<TransactionalRowActions, 'onOpen' | 'onApi'> {
   notificationId: string | undefined
@@ -55,6 +55,8 @@ export interface TransactionalDetailProps extends Omit<TransactionalRowActions, 
   periods: TransactionalPeriods
   onPeriodChange: (period: TransactionalPeriod) => void
   stats?: Map<string, NotificationStats>
+  /** `stats` covers this notification; when it does not, the sheet reads its own. */
+  listed: boolean
   statsGate: StatGate
   smtp: boolean
   timezone: string
@@ -156,19 +158,31 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
     placeholderData: keepPreviousData
   })
 
-  const stats = statsOf(props.stats, notification.id)
+  // A notification the list's statistics do not cover (created since, or opened by link) reads its own.
+  const ids = useMemo(() => [notification.id], [notification.id])
+  const own = useCurrentStats({
+    workspaceId: workspace.id,
+    ids,
+    period,
+    periods,
+    timezone,
+    enabled: canReadMessages && !props.listed
+  })
+  const stats = statsOf(props.listed ? props.stats : own.data?.stats, notification.id)
   const rates = statsRates(stats)
   const peak = peakFailureDay(daily.data ?? [])
   const daysLabel = t`${plural(periods.days, { one: 'Last # day', other: 'Last # days' })}`
   const emails = (n: number) => t`${plural(n, { one: `${int(n)} email`, other: `${int(n)} emails` })}`
 
   /** A KPI value that opens the message log with the cell's filter. */
-  const logLink = (value: string, filter: Record<string, boolean>): ReactNode =>
+  const logLink = (label: string, value: string, filter: Record<string, boolean>): ReactNode =>
     canReadMessages ? (
       <Link
         to="/console/workspace/$workspaceId/logs"
         params={{ workspaceId: workspace.id }}
         search={{ tab: LOGS_TAB.messages, transactional_notification_id: notification.id, ...filter }}
+        // Named by what it counts, not by its number alone; the number stays in the name.
+        aria-label={t`${label}: ${value}, view in the message log`}
         className="hover:underline"
       >
         {value}
@@ -184,43 +198,63 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
 
   const trackedSub = (rate: TrackedRate, count: number) => (rate.notTracked ? t`Not tracked` : emails(count))
   const rateValue = (rate: number | null) => (rate === null ? '—' : percent(rate))
-  const gate = props.statsGate
+  const gate: StatGate = props.listed
+    ? props.statsGate
+    : {
+        forbidden: props.statsGate.forbidden,
+        // A period switch waits for the new figures, as the list's do.
+        loading: !ready || own.isLoading || own.isPlaceholderData,
+        error: own.isError && own.data === undefined
+      }
 
+  const labels = {
+    sent: t`Sent`,
+    delivered: t`Delivered`,
+    opened: t`Opened`,
+    clicked: t`Clicked`,
+    bounced: t`Bounced`,
+    failed: t`Failed`
+  }
   const kpis: KpiItem[] = [
-    { key: 'sent', label: t`Sent`, value: logLink(int(stats.sent), { is_failed: false }), sub: daysLabel },
+    {
+      key: 'sent',
+      label: labels.sent,
+      value: logLink(labels.sent, int(stats.sent), { is_failed: false }),
+      sub: daysLabel
+    },
     smtp
-      ? { key: 'delivered', label: t`Delivered`, value: '—', hint: smtpTooltip('delivery') }
+      ? { key: 'delivered', label: labels.delivered, value: '—', hint: smtpTooltip('delivery') }
       : {
           key: 'delivered',
-          label: t`Delivered`,
-          value: logLink(rateValue(rates.delivered), { is_delivered: true }),
+          label: labels.delivered,
+          value: logLink(labels.delivered, rateValue(rates.delivered), { is_delivered: true }),
           sub: emails(stats.delivered)
         },
     {
       key: 'opened',
-      label: t`Opened`,
-      value: logLink(rateValue(rates.opens.rate), { is_opened: true }),
+      label: labels.opened,
+      value: logLink(labels.opened, rateValue(rates.opens.rate), { is_opened: true }),
       sub: trackedSub(rates.opens, stats.opened)
     },
     {
       key: 'clicked',
-      label: t`Clicked`,
-      value: logLink(rateValue(rates.clicks.rate), { is_clicked: true }),
+      label: labels.clicked,
+      value: logLink(labels.clicked, rateValue(rates.clicks.rate), { is_clicked: true }),
       sub: trackedSub(rates.clicks, stats.clicked)
     },
     smtp
-      ? { key: 'bounced', label: t`Bounced`, value: '—', hint: smtpTooltip('bounce') }
+      ? { key: 'bounced', label: labels.bounced, value: '—', hint: smtpTooltip('bounce') }
       : {
           key: 'bounced',
-          label: t`Bounced`,
-          value: logLink(rateValue(rates.bounced), { is_bounced: true }),
+          label: labels.bounced,
+          value: logLink(labels.bounced, rateValue(rates.bounced), { is_bounced: true }),
           sub: emails(stats.bounced),
           tone: rates.bounced !== null && rates.bounced >= BOUNCE_WARNING ? 'warning' : undefined
         },
     {
       key: 'failed',
-      label: t`Failed`,
-      value: logLink(int(stats.failed), { is_failed: true }),
+      label: labels.failed,
+      value: logLink(labels.failed, int(stats.failed), { is_failed: true }),
       sub: peak ? t`Peak on ${formatSeriesDay(peak, i18n.locale)}` : undefined,
       tone: peak ? 'warning' : undefined,
       hint: t`Sends refused by the provider. Requests rejected before sending are not logged.`
@@ -230,17 +264,30 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
 
   // Header: template, sender, last update.
   const sender = resolveSenderInfo(workspace, loadedTemplate)
+  // Without the template read (no right, missing, failed, or none set), its own sender is unknown:
+  // the provider's default is shown, and marked as such.
   const senderText = sender.sender
     ? `${sender.sender.name ? `${sender.sender.name} <${sender.sender.email}>` : sender.sender.email}${
-        sender.providerDefaultOnly && template?.status === 'forbidden' ? ` ${t`(default)`}` : ''
+        sender.providerDefaultOnly ? ` ${t`(default)`}` : ''
       }`
     : null
+  // Why the provider's default stands in for the template's sender.
+  const defaultReason = !templateId
+    ? t`The provider's default sender: this notification has no email template.`
+    : template?.status === 'forbidden'
+      ? t`The provider's default sender: you need access to templates to see the template's own.`
+      : template?.status === 'notFound'
+        ? t`The provider's default sender: the template was not found.`
+        : template?.status === 'error'
+          ? t`The provider's default sender: the template, which can choose another one, couldn't be loaded.`
+          : undefined
   const meta: ReactNode[] = []
   if (templateId) {
     const name = loadedTemplate?.name
     meta.push(
       <span key="template" className="inline-flex items-center gap-1">
         {t`Template`} {name ? <span className="text-ink-2">{name}</span> : <Mono>{templateId}</Mono>}
+        {loadedTemplate?.deleted_at ? <DeletedTemplatePill /> : null}
       </span>
     )
   }
@@ -248,7 +295,10 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
     meta.push(
       <Tooltip
         key="sender"
-        title={t`An API call can choose another sender with email_options.sender_id. A translation can use another sender.`}
+        title={
+          (sender.sender && sender.providerDefaultOnly ? defaultReason : undefined) ??
+          t`An API call can choose another sender with email_options.sender_id. A translation can use another sender.`
+        }
       >
         {senderText ? <span>{senderText}</span> : <span className="text-warning-fg">{t`No sender`}</span>}
       </Tooltip>
@@ -260,9 +310,18 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
 
   const menuItems: MenuProps['items'] = [
     { key: 'copy', label: t`Copy ID` },
-    { key: 'logs', label: t`View in logs`, disabled: rules.logs !== undefined },
+    {
+      key: 'logs',
+      label: <MenuEntryLabel label={t`View in logs`} reason={rules.logs} />,
+      disabled: rules.logs !== undefined
+    },
     { type: 'divider' },
-    { key: 'delete', label: t`Delete`, danger: rules.remove === undefined, disabled: rules.remove !== undefined }
+    {
+      key: 'delete',
+      label: <MenuEntryLabel label={t`Delete`} reason={rules.remove} />,
+      danger: rules.remove === undefined,
+      disabled: rules.remove !== undefined
+    }
   ]
   const onMenu: MenuProps['onClick'] = ({ key }) => {
     if (key === 'copy') props.onCopyId(notification)
@@ -353,7 +412,8 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
       label: t`Reply-To`,
       value: (
         <Tooltip title={t`An API call can set email_options.reply_to. A translation can use another one.`}>
-          <span>{sender.replyTo ?? '—'}</span>
+          {/* A template not read may set one: unknown, not none. */}
+          <span>{sender.replyTo ?? (templateId && defaultReason ? t`Unknown` : '—')}</span>
         </Tooltip>
       )
     },

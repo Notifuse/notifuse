@@ -61,7 +61,7 @@ msgstr "(sempre coincideix)"
 msgid "(Cancelled)"
 msgstr "(Cancel·lat)"
 
-#: src/components/transactional/TransactionalDetail.tsx:235
+#: src/components/transactional/TransactionalDetail.tsx:271
 msgid "(default)"
 msgstr "(per defecte)"
 
@@ -140,7 +140,7 @@ msgid "{0, plural, one {Exported # row} other {Exported # rows}}"
 msgstr "{0, plural, one {# fila exportada} other {# files exportades}}"
 
 #. placeholder {0}: periods.days
-#: src/components/transactional/TransactionalDetail.tsx:162
+#: src/components/transactional/TransactionalDetail.tsx:174
 msgid "{0, plural, one {Last # day} other {Last # days}}"
 msgstr "{0, plural, one {Últim # dia} other {Últims # dies}}"
 
@@ -582,6 +582,10 @@ msgstr "{inactive, plural, one {# webhook inactiu} other {# webhooks inactius}}"
 msgid "{label} copied to clipboard"
 msgstr "{label} copiat al porta-retalls"
 
+#: src/components/transactional/TransactionalDetail.tsx:185
+msgid "{label}: {value}, view in the message log"
+msgstr "{label}: {value}, veure al registre de missatges"
+
 #: src/components/templates/CreateTemplateDrawer.tsx:822
 msgid "{langName} translation is missing required fields (subject and preview)"
 msgstr "A la traducció {langName} li falten camps obligatoris (assumpte i vista prèvia)"
@@ -589,6 +593,10 @@ msgstr "A la traducció {langName} li falten camps obligatoris (assumpte i vista
 #: src/components/transactional/ApiCommandModal.tsx:104
 msgid "{language} code copied to clipboard!"
 msgstr "Codi {language} copiat al porta-retalls!"
+
+#: src/components/transactional/TransactionalTable.tsx:224
+msgid "{LAST_SENT_DAYS, plural, one {No successful send in the last # day} other {No successful send in the last # days}}"
+msgstr "{LAST_SENT_DAYS, plural, one {Cap enviament correcte l'últim # dia} other {Cap enviament correcte els últims # dies}}"
 
 #: src/components/automations/config/ConditionsField.tsx:103
 msgid "{leafCount, plural, one {# condition} other {# conditions}}"
@@ -632,7 +640,7 @@ msgstr "{more, plural, one {La llista \"{listName}\" no es pot eliminar mentre l
 
 #. placeholder {0}: int(n)
 #. placeholder {1}: int(n)
-#: src/components/transactional/TransactionalDetail.tsx:163
+#: src/components/transactional/TransactionalDetail.tsx:175
 msgid "{n, plural, one {{0} email} other {{1} emails}}"
 msgstr "{n, plural, one {{0} correu} other {{1} correus}}"
 
@@ -961,7 +969,7 @@ msgstr "30 d"
 msgid "300 - Light"
 msgstr "300 - Lleuger"
 
-#: src/components/transactional/SendsPerDayChart.tsx:182
+#: src/components/transactional/SendsPerDayChart.tsx:227
 #: src/pages/TransactionalNotificationsPage.tsx:319
 msgid "30d"
 msgstr "30 d"
@@ -986,7 +994,7 @@ msgstr "500 - Mitjà"
 msgid "600 - Semi Bold"
 msgstr "600 - Semi negreta"
 
-#: src/components/transactional/SendsPerDayChart.tsx:183
+#: src/components/transactional/SendsPerDayChart.tsx:228
 #: src/pages/TransactionalNotificationsPage.tsx:319
 msgid "60d"
 msgstr "60 d"
@@ -1004,7 +1012,7 @@ msgstr "7 dies"
 msgid "700 - Bold"
 msgstr "700 - Negreta"
 
-#: src/components/transactional/SendsPerDayChart.tsx:181
+#: src/components/transactional/SendsPerDayChart.tsx:226
 #: src/pages/TransactionalNotificationsPage.tsx:319
 msgid "7d"
 msgstr "7 d"
@@ -1175,7 +1183,7 @@ msgstr "Acció"
 #: src/components/blog/RecentThemesTable.tsx:179
 #: src/components/settings/CustomFieldsConfiguration.tsx:225
 #: src/components/settings/WorkspaceMembers.tsx:227
-#: src/components/transactional/TransactionalTable.tsx:217
+#: src/components/transactional/TransactionalTable.tsx:244
 msgid "Actions"
 msgstr "Accions"
 
@@ -1766,11 +1774,11 @@ msgstr "una prova A/B necessita almenys 2 variants"
 msgid "An address that is not a contact yet becomes one, carrying the country, language and timezone the visit reported; an existing contact is never modified. Visitors arriving from a tracked email link are identified automatically, with no code."
 msgstr "Una adreça que encara no és un contacte passa a ser-ho, amb el país, l'idioma i la zona horària que ha informat la visita; un contacte existent no es modifica mai. Els visitants que arriben des d'un enllaç de correu amb seguiment s'identifiquen automàticament, sense cap codi."
 
-#: src/components/transactional/TransactionalDetail.tsx:251
+#: src/components/transactional/TransactionalDetail.tsx:300
 msgid "An API call can choose another sender with email_options.sender_id. A translation can use another sender."
 msgstr "Una crida a l'API pot triar un altre remitent amb email_options.sender_id. Una traducció pot fer servir un altre remitent."
 
-#: src/components/transactional/TransactionalDetail.tsx:355
+#: src/components/transactional/TransactionalDetail.tsx:414
 msgid "An API call can set email_options.reply_to. A translation can use another one."
 msgstr "Una crida a l'API pot definir email_options.reply_to. Una traducció pot fer servir una altra adreça."
 
@@ -1782,7 +1790,7 @@ msgstr "S'ha produït un error durant l'exportació"
 msgid "An error occurred with the file manager"
 msgstr "S'ha produït un error amb el gestor de fitxers"
 
-#: src/components/transactional/TransactionalDetail.tsx:361
+#: src/components/transactional/TransactionalDetail.tsx:421
 msgid "an integration"
 msgstr "una integració"
 
@@ -1895,8 +1903,8 @@ msgstr "API"
 msgid "API call"
 msgstr "Crida a l'API"
 
-#: src/components/transactional/TransactionalTable.tsx:268
-#: src/components/transactional/TransactionalTable.tsx:272
+#: src/components/transactional/TransactionalTable.tsx:302
+#: src/components/transactional/TransactionalTable.tsx:306
 msgid "API command"
 msgstr "Comanda API"
 
@@ -2456,7 +2464,7 @@ msgstr "Torna a les difusions"
 #~ msgid "Back to the dashboard"
 #~ msgstr ""
 
-#: src/components/transactional/TransactionalDetail.tsx:102
+#: src/components/transactional/TransactionalDetail.tsx:104
 msgid "Back to Transactional"
 msgstr "Tornar a Transaccional"
 
@@ -2855,7 +2863,6 @@ msgstr "Tipus de rebot"
 #: src/components/messages/MessageHistoryTable.tsx:360
 #: src/components/transactional/RecentSends.tsx:40
 #: src/components/transactional/SendsPerDayChart.tsx:50
-#: src/components/transactional/TransactionalDetail.tsx:212
 #: src/components/transactional/TransactionalDetail.tsx:215
 #: src/pages/ContactsPage.tsx:524
 #: src/pages/TransactionalNotificationsPage.tsx:290
@@ -2876,7 +2883,7 @@ msgstr "Rebotats o fallats"
 #: src/components/broadcasts/BroadcastKpis.tsx:150
 #: src/components/broadcasts/BroadcastsTable.tsx:313
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:109
-#: src/components/transactional/TransactionalTable.tsx:178
+#: src/components/transactional/TransactionalTable.tsx:200
 msgid "Bounces"
 msgstr "Rebots"
 
@@ -3436,7 +3443,7 @@ msgid "Changing your domain"
 msgstr "Canviar de domini"
 
 #: src/components/messages/MessageHistoryTab.tsx:218
-#: src/components/transactional/TransactionalDetail.tsx:341
+#: src/components/transactional/TransactionalDetail.tsx:400
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
 #: src/components/web_analytics/explore/DimensionSelector.tsx:97
 #: src/components/web_analytics/FilterBuilder.tsx:55
@@ -3643,7 +3650,7 @@ msgstr "Clicat"
 #: src/components/messages/MessageHistoryTab.tsx:156
 #: src/components/messages/MessageHistoryTable.tsx:352
 #: src/components/transactional/RecentSends.tsx:42
-#: src/components/transactional/TransactionalDetail.tsx:207
+#: src/components/transactional/TransactionalDetail.tsx:214
 msgid "Clicked"
 msgstr "Clicat"
 
@@ -3685,8 +3692,8 @@ msgstr "Enllaços clicats"
 #: src/components/contacts/TrackingConsent.tsx:221
 #: src/components/settings/GeneralSettings.tsx:286
 #: src/components/settings/GeneralSettings.tsx:436
-#: src/components/transactional/TransactionalDetail.tsx:348
-#: src/components/transactional/TransactionalTable.tsx:165
+#: src/components/transactional/TransactionalDetail.tsx:407
+#: src/components/transactional/TransactionalTable.tsx:187
 msgid "Clicks"
 msgstr "Clics"
 
@@ -4236,7 +4243,7 @@ msgstr "Els contactes s'afegiran a aquestes llistes en importar (opcional)"
 msgid "Contacts without recorded consent"
 msgstr "Contactes sense consentiment registrat"
 
-#: src/components/transactional/TransactionalDetail.tsx:305
+#: src/components/transactional/TransactionalDetail.tsx:364
 msgid "Contacts' tracking consent still applies"
 msgstr "El consentiment de seguiment dels contactes continua aplicant-se"
 
@@ -4343,8 +4350,8 @@ msgstr "Copiar codi {0}"
 #~ msgid "Copy code"
 #~ msgstr ""
 
-#: src/components/transactional/TransactionalDetail.tsx:262
-#: src/components/transactional/TransactionalTable.tsx:231
+#: src/components/transactional/TransactionalDetail.tsx:312
+#: src/components/transactional/TransactionalTable.tsx:262
 #: src/pages/TemplatesPage.tsx:307
 msgid "Copy ID"
 msgstr "Copia l'ID"
@@ -4430,7 +4437,7 @@ msgstr "No s'ha pogut comprovar on s'utilitza aquesta plantilla"
 #: src/components/broadcasts/CouldntLoad.tsx:8
 #: src/components/transactional/LoadError.tsx:20
 #: src/components/transactional/notificationParts.tsx:48
-#: src/components/transactional/TransactionalDetail.tsx:229
+#: src/components/transactional/TransactionalDetail.tsx:263
 #: src/pages/TemplatesPage.tsx:334
 #: src/pages/TransactionalNotificationsPage.tsx:302
 msgid "Couldn't load"
@@ -4778,7 +4785,7 @@ msgstr "Creat"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:276
 #: src/components/settings/WebhookDetail.tsx:502
 #: src/components/settings/WorkspaceMembers.tsx:297
-#: src/components/transactional/TransactionalDetail.tsx:363
+#: src/components/transactional/TransactionalDetail.tsx:423
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:414
 msgid "Created"
 msgstr "Creat"
@@ -5142,6 +5149,10 @@ msgstr "La data és obligatòria"
 msgid "Date range"
 msgstr "Interval de dates"
 
+#: src/components/transactional/SendsPerDayChart.tsx:191
+msgid "Day"
+msgstr "Dia"
+
 #: src/components/segment/form_leaf.tsx:559
 #: src/components/segment/form_leaf.tsx:932
 #: src/components/segment/input.tsx:700
@@ -5238,7 +5249,7 @@ msgstr "Per defecte és el meta títol"
 msgid "Defaults to SMTP host"
 msgstr "Per defecte, l'amfitrió SMTP"
 
-#: src/components/transactional/TransactionalDetail.tsx:329
+#: src/components/transactional/TransactionalDetail.tsx:388
 msgid "Defaults to the template ID"
 msgstr "Per defecte, l'ID de la plantilla"
 
@@ -5282,8 +5293,8 @@ msgstr "Retard"
 #: src/components/settings/WebhookDetail.tsx:351
 #: src/components/settings/WorkspaceMembers.tsx:190
 #: src/components/settings/WorkspaceMembers.tsx:202
-#: src/components/transactional/TransactionalDetail.tsx:265
-#: src/components/transactional/TransactionalTable.tsx:236
+#: src/components/transactional/TransactionalDetail.tsx:321
+#: src/components/transactional/TransactionalTable.tsx:271
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:83
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:86
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:141
@@ -5557,8 +5568,7 @@ msgstr "Eliminat(s) {deletedCount} element(s)"
 msgid "Deleted {deletedCount}, failed {failedCount}"
 msgstr "Eliminat(s) {deletedCount}, fallat(s) {failedCount}"
 
-#: src/components/transactional/PreviewPanel.tsx:65
-#: src/components/transactional/TransactionalTable.tsx:69
+#: src/components/transactional/notificationParts.tsx:78
 msgid "Deleted template"
 msgstr "Plantilla eliminada"
 
@@ -5586,9 +5596,8 @@ msgstr "Lliurat"
 #: src/components/timeline/ContactTimeline.tsx:733
 #: src/components/transactional/RecentSends.tsx:44
 #: src/components/transactional/SendsPerDayChart.tsx:49
-#: src/components/transactional/TransactionalDetail.tsx:192
-#: src/components/transactional/TransactionalDetail.tsx:195
-#: src/components/transactional/TransactionalTable.tsx:151
+#: src/components/transactional/TransactionalDetail.tsx:212
+#: src/components/transactional/TransactionalTable.tsx:173
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:68
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:85
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:235
@@ -5742,7 +5751,7 @@ msgstr "Desactivar webhook"
 msgid "Disabled"
 msgstr "Desactivat"
 
-#: src/components/transactional/TransactionalDetail.tsx:311
+#: src/components/transactional/TransactionalDetail.tsx:370
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:387
 msgid "Disabled for this notification"
 msgstr "Desactivat per a aquesta notificació"
@@ -6105,8 +6114,8 @@ msgstr "Cada variació conserva el remitent de la seva plantilla, tret que en tr
 #: src/components/settings/Integrations.tsx:934
 #: src/components/settings/integrations/EmailProviderCard.tsx:337
 #: src/components/settings/WebhookDetail.tsx:331
-#: src/components/transactional/TransactionalDetail.tsx:290
-#: src/components/transactional/TransactionalTable.tsx:225
+#: src/components/transactional/TransactionalDetail.tsx:349
+#: src/components/transactional/TransactionalTable.tsx:254
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:91
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
@@ -6357,7 +6366,7 @@ msgstr "Farciment de l'element"
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:122
 #: src/components/settings/Integrations.tsx:2097
 #: src/components/timeline/ContactTimeline.tsx:656
-#: src/components/transactional/TransactionalDetail.tsx:341
+#: src/components/transactional/TransactionalDetail.tsx:400
 #: src/pages/SignInPage.tsx:276
 #: src/pages/SignInPage.tsx:283
 msgid "Email"
@@ -7222,8 +7231,8 @@ msgstr "Fallat"
 #: src/components/settings/WebhookDetail.tsx:539
 #: src/components/transactional/RecentSends.tsx:38
 #: src/components/transactional/SendsPerDayChart.tsx:51
-#: src/components/transactional/TransactionalDetail.tsx:222
-#: src/components/transactional/TransactionalTable.tsx:170
+#: src/components/transactional/TransactionalDetail.tsx:216
+#: src/components/transactional/TransactionalTable.tsx:192
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:90
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:253
 #: src/pages/BroadcastsPage.tsx:188
@@ -8044,7 +8053,7 @@ msgstr "Nom de la carpeta"
 msgid "folder with all its content?"
 msgstr "carpeta amb tot el seu contingut?"
 
-#: src/components/transactional/TransactionalDetail.tsx:312
+#: src/components/transactional/TransactionalDetail.tsx:371
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:382
 msgid "Follow workspace setting"
 msgstr "Seguir la configuració de l'espai de treball"
@@ -9498,7 +9507,7 @@ msgstr "Última modificació"
 msgid "Last Name"
 msgstr "Cognom"
 
-#: src/components/transactional/TransactionalTable.tsx:193
+#: src/components/transactional/TransactionalTable.tsx:215
 msgid "Last sent"
 msgstr "Últim enviament"
 
@@ -10119,7 +10128,7 @@ msgstr "Gestiona"
 msgid "managed"
 msgstr "gestionat"
 
-#: src/components/transactional/TransactionalDetail.tsx:361
+#: src/components/transactional/TransactionalDetail.tsx:421
 msgid "Managed by"
 msgstr "Gestionada per"
 
@@ -10539,8 +10548,8 @@ msgstr "Mensual"
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:217
 #: src/components/settings/Integrations.tsx:961
 #: src/components/settings/integrations/EmailProviderCard.tsx:343
-#: src/components/transactional/TransactionalDetail.tsx:295
-#: src/components/transactional/TransactionalTable.tsx:281
+#: src/components/transactional/TransactionalDetail.tsx:354
+#: src/components/transactional/TransactionalTable.tsx:315
 #: src/pages/TemplatesPage.tsx:470
 msgid "More actions"
 msgstr "Més accions"
@@ -11158,7 +11167,7 @@ msgstr "Cap notificació coincideix"
 msgid "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "No hi ha cap compte de Notifuse vinculat a aquesta identitat. Si us han convidat, obriu l'enllaç del correu d'invitació; si no, demaneu a un administrador que us convidi."
 
-#: src/components/transactional/TransactionalDetail.tsx:309
+#: src/components/transactional/TransactionalDetail.tsx:368
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:385
 msgid "No open or click tracking, keep UTM parameters"
 msgstr "Sense seguiment d'obertures ni clics, conservar UTM"
@@ -11241,7 +11250,7 @@ msgstr "Encara no hi ha blocs desats"
 msgid "No segments yet"
 msgstr "Encara no hi ha segments"
 
-#: src/components/transactional/TransactionalDetail.tsx:253
+#: src/components/transactional/TransactionalDetail.tsx:303
 msgid "No sender"
 msgstr "Sense remitent"
 
@@ -11287,8 +11296,8 @@ msgid "No successful delivery"
 msgstr "Cap lliurament correcte"
 
 #: src/components/transactional/TransactionalTable.tsx:201
-msgid "No successful send in the last 60 days"
-msgstr "Cap enviament correcte en els últims 60 dies"
+#~ msgid "No successful send in the last 60 days"
+#~ msgstr "Cap enviament correcte en els últims 60 dies"
 
 #: src/components/broadcasts/compose/SendSummary.tsx:134
 msgid "No template chosen"
@@ -11396,7 +11405,7 @@ msgstr "No actiu"
 #: src/components/email_builder/ui/FontStyleInput.tsx:129
 #: src/components/email_builder/ui/FontStyleInput.tsx:136
 #: src/components/integrations/LLMIntegration.tsx:229
-#: src/components/transactional/TransactionalDetail.tsx:316
+#: src/components/transactional/TransactionalDetail.tsx:375
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:114
 msgid "None"
 msgstr "Cap"
@@ -11512,8 +11521,8 @@ msgstr "Sense configurar"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:201
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:41
 #: src/components/settings/GeneralSettings.tsx:293
-#: src/components/transactional/TransactionalDetail.tsx:185
-#: src/components/transactional/TransactionalTable.tsx:45
+#: src/components/transactional/TransactionalDetail.tsx:199
+#: src/components/transactional/TransactionalTable.tsx:55
 #: src/pages/TransactionalNotificationsPage.tsx:256
 msgid "Not tracked"
 msgstr "Sense seguiment"
@@ -11550,7 +11559,7 @@ msgstr "No s'ha registrat res en les darreres 24 hores. Comproveu que aquest fra
 msgid "Nothing is being recorded, and nothing is refused: this page, the export and the retention setting stay available, and entries recorded while a licence covered audit logs stay readable."
 msgstr "No s'enregistra res i no es rebutja res: aquesta pàgina, l'exportació i el paràmetre de retenció continuen disponibles, i les entrades enregistrades mentre una llicència cobria els registres d'auditoria continuen sent llegibles."
 
-#: src/components/transactional/TransactionalTable.tsx:120
+#: src/components/transactional/TransactionalTable.tsx:134
 msgid "Notification"
 msgstr "Notificació"
 
@@ -11570,7 +11579,7 @@ msgstr "Nom de la notificació"
 msgid "Notification name must be at most {TRANSACTIONAL_NAME_MAX_LENGTH} characters long"
 msgstr "El nom de la notificació ha de tenir com a màxim {TRANSACTIONAL_NAME_MAX_LENGTH} caràcters"
 
-#: src/components/transactional/TransactionalDetail.tsx:101
+#: src/components/transactional/TransactionalDetail.tsx:103
 msgid "Notification not found"
 msgstr "Notificació no trobada"
 
@@ -11694,9 +11703,9 @@ msgstr "de les condicions següents coincideixen:"
 
 #: src/components/broadcasts/compose/AdvancedRow.tsx:52
 #: src/components/settings/GeneralSettings.tsx:215
-#: src/components/transactional/TransactionalDetail.tsx:306
-#: src/components/transactional/TransactionalDetail.tsx:345
-#: src/components/transactional/TransactionalDetail.tsx:349
+#: src/components/transactional/TransactionalDetail.tsx:365
+#: src/components/transactional/TransactionalDetail.tsx:404
+#: src/components/transactional/TransactionalDetail.tsx:408
 msgid "Off"
 msgstr "Desactivat"
 
@@ -11713,7 +11722,7 @@ msgid "OK"
 msgstr "D'acord"
 
 #: src/components/settings/GeneralSettings.tsx:215
-#: src/components/transactional/TransactionalDetail.tsx:306
+#: src/components/transactional/TransactionalDetail.tsx:365
 msgid "On"
 msgstr "Activat"
 
@@ -11806,7 +11815,7 @@ msgstr "Només els propietaris de l'espai de treball poden modificar integracion
 msgid "Open"
 msgstr "Obertura"
 
-#: src/components/transactional/PreviewPanel.tsx:70
+#: src/components/transactional/PreviewPanel.tsx:63
 msgctxt "action"
 msgid "Open"
 msgstr "Obre"
@@ -11912,7 +11921,7 @@ msgstr "Obert"
 #: src/components/messages/MessageHistoryTab.tsx:143
 #: src/components/messages/MessageHistoryTable.tsx:344
 #: src/components/transactional/RecentSends.tsx:43
-#: src/components/transactional/TransactionalDetail.tsx:201
+#: src/components/transactional/TransactionalDetail.tsx:213
 msgid "Opened"
 msgstr "Obert"
 
@@ -11933,8 +11942,8 @@ msgstr "Obert"
 #: src/components/contacts/TrackingConsent.tsx:217
 #: src/components/settings/GeneralSettings.tsx:280
 #: src/components/settings/GeneralSettings.tsx:426
-#: src/components/transactional/TransactionalDetail.tsx:344
-#: src/components/transactional/TransactionalTable.tsx:160
+#: src/components/transactional/TransactionalDetail.tsx:403
+#: src/components/transactional/TransactionalTable.tsx:182
 msgid "Opens"
 msgstr "Obertures"
 
@@ -12272,7 +12281,7 @@ msgid "Payload:"
 msgstr "Càrrega:"
 
 #. placeholder {0}: formatSeriesDay(peak, i18n.locale)
-#: src/components/transactional/TransactionalDetail.tsx:224
+#: src/components/transactional/TransactionalDetail.tsx:258
 msgid "Peak on {0}"
 msgstr "Pic el {0}"
 
@@ -12814,7 +12823,7 @@ msgstr "Premeu Enter per confirmar, Escape per cancel·lar"
 #: src/components/common/ImageURLInput.tsx:52
 #: src/components/email_builder/EmailBuilder.tsx:1061
 #: src/components/segment/button_upsert.tsx:664
-#: src/components/transactional/PreviewPanel.tsx:127
+#: src/components/transactional/PreviewPanel.tsx:120
 #: src/pages/TemplatesPage.tsx:292
 msgid "Preview"
 msgstr "Previsualitzar"
@@ -12844,7 +12853,7 @@ msgid "Preview Mode Required"
 msgstr "Cal mode de vista prèvia"
 
 #. placeholder {0}: loaded?.name ?? ''
-#: src/components/transactional/PreviewPanel.tsx:111
+#: src/components/transactional/PreviewPanel.tsx:104
 msgid "Preview of {0}"
 msgstr "Previsualització de {0}"
 
@@ -12858,7 +12867,7 @@ msgstr "Resultats de la vista prèvia"
 
 #: src/components/broadcasts/detail/AbTestPanel.tsx:182
 #: src/components/broadcasts/detail/AbTestPanel.tsx:183
-#: src/components/transactional/TransactionalTable.tsx:228
+#: src/components/transactional/TransactionalTable.tsx:259
 msgid "Preview template"
 msgstr "Previsualitzar plantilla"
 
@@ -13770,7 +13779,7 @@ msgstr "Respondre a"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:113
 #: src/components/templates/SendTemplateModal.tsx:450
-#: src/components/transactional/TransactionalDetail.tsx:353
+#: src/components/transactional/TransactionalDetail.tsx:412
 msgid "Reply-To"
 msgstr "Respondre a"
 
@@ -15020,9 +15029,9 @@ msgstr "Envia ara"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:400
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:305
 #: src/components/settings/WebhookDetail.tsx:324
-#: src/components/transactional/TransactionalDetail.tsx:283
-#: src/components/transactional/TransactionalTable.tsx:255
-#: src/components/transactional/TransactionalTable.tsx:261
+#: src/components/transactional/TransactionalDetail.tsx:342
+#: src/components/transactional/TransactionalTable.tsx:289
+#: src/components/transactional/TransactionalTable.tsx:295
 #: src/pages/TemplatesPage.tsx:295
 msgid "Send test"
 msgstr "Envia una prova"
@@ -15132,11 +15141,12 @@ msgstr "Enviant webhook de prova..."
 msgid "Sending through this integration is unaffected, and a tenant that already exists keeps being used. Switching isolation on needs a licence."
 msgstr ""
 
-#: src/components/transactional/SendsPerDayChart.tsx:174
+#: src/components/transactional/SendsPerDayChart.tsx:188
+#: src/components/transactional/SendsPerDayChart.tsx:219
 msgid "Sends per day"
 msgstr "Enviaments per dia"
 
-#: src/components/transactional/TransactionalDetail.tsx:226
+#: src/components/transactional/TransactionalDetail.tsx:260
 #: src/pages/TransactionalNotificationsPage.tsx:285
 msgid "Sends refused by the provider. Requests rejected before sending are not logged."
 msgstr "Enviaments rebutjats pel proveïdor. Les sol·licituds rebutjades abans de l'enviament no es registren."
@@ -15154,8 +15164,8 @@ msgstr "Enviat"
 #: src/components/messages/MessageHistoryTable.tsx:320
 #: src/components/transactional/RecentSends.tsx:45
 #: src/components/transactional/SendsPerDayChart.tsx:48
-#: src/components/transactional/TransactionalDetail.tsx:190
-#: src/components/transactional/TransactionalTable.tsx:145
+#: src/components/transactional/TransactionalDetail.tsx:211
+#: src/components/transactional/TransactionalTable.tsx:167
 #: src/pages/BroadcastsPage.tsx:185
 msgid "Sent"
 msgstr "Enviat"
@@ -15445,7 +15455,7 @@ msgstr "Estableix l'amplada de pantalla per sota de la qual el correu canviarà 
 msgid "Setting up..."
 msgstr "Configurant..."
 
-#: src/components/transactional/TransactionalDetail.tsx:414
+#: src/components/transactional/TransactionalDetail.tsx:474
 #: src/layouts/app-shell/menuItems.ts:181
 #: src/pages/WorkspaceSettingsPage.tsx:269
 msgid "Settings"
@@ -15729,7 +15739,7 @@ msgstr "El port SMTP és obligatori"
 
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:113
 #: src/components/transactional/notificationParts.tsx:64
-#: src/components/transactional/TransactionalDetail.tsx:183
+#: src/components/transactional/TransactionalDetail.tsx:197
 #: src/pages/TransactionalNotificationsPage.tsx:292
 msgid "SMTP provider doesn't support bounce webhooks, so bounce status cannot be tracked"
 msgstr "El proveïdor SMTP no suporta webhooks de rebot, per tant l'estat de rebot no es pot rastrejar"
@@ -15740,7 +15750,7 @@ msgstr "El proveïdor SMTP no suporta webhooks de queixes, per tant les queixes 
 
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:40
 #: src/components/transactional/notificationParts.tsx:63
-#: src/components/transactional/TransactionalDetail.tsx:182
+#: src/components/transactional/TransactionalDetail.tsx:196
 #: src/pages/TransactionalNotificationsPage.tsx:264
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
 msgstr "El proveïdor SMTP no suporta webhooks de lliurament, per tant l'estat de lliurament no es pot rastrejar"
@@ -16338,8 +16348,8 @@ msgstr "plantilla"
 #: src/components/lists/ListHeader.tsx:101
 #: src/components/messages/MessageHistoryTable.tsx:148
 #: src/components/messages/MessageHistoryTable.tsx:234
-#: src/components/transactional/TransactionalDetail.tsx:243
-#: src/components/transactional/TransactionalTable.tsx:137
+#: src/components/transactional/TransactionalDetail.tsx:289
+#: src/components/transactional/TransactionalTable.tsx:159
 #: src/pages/TemplatesPage.tsx:360
 msgid "Template"
 msgstr "Plantilla"
@@ -16427,8 +16437,8 @@ msgstr "El nom de la plantilla ha de tenir com a màxim {TEMPLATE_NAME_MAX_LENGT
 
 #: src/components/transactional/notificationRules.ts:52
 #: src/components/transactional/notificationRules.ts:62
-#: src/components/transactional/PreviewPanel.tsx:83
-#: src/components/transactional/TransactionalTable.tsx:78
+#: src/components/transactional/PreviewPanel.tsx:76
+#: src/components/transactional/TransactionalTable.tsx:82
 msgid "Template not found"
 msgstr "Plantilla no trobada"
 
@@ -16922,6 +16932,22 @@ msgstr "l'URL del feed de dades per destinatari ha de començar per https:// o h
 #~ msgid "The provider refused {0} recipients and every retry was used up. Open the logs to see why, then retry them."
 #~ msgstr "El proveïdor ha rebutjat {0} destinataris i s'han esgotat tots els reintents. Consulteu els registres per saber-ne el motiu i reintenteu-ho."
 
+#: src/components/transactional/TransactionalDetail.tsx:280
+msgid "The provider's default sender: the template was not found."
+msgstr "Remitent predeterminat del proveïdor: no s'ha trobat la plantilla."
+
+#: src/components/transactional/TransactionalDetail.tsx:282
+msgid "The provider's default sender: the template, which can choose another one, couldn't be loaded."
+msgstr "Remitent predeterminat del proveïdor: no s'ha pogut carregar la plantilla, que en pot triar un altre."
+
+#: src/components/transactional/TransactionalDetail.tsx:276
+msgid "The provider's default sender: this notification has no email template."
+msgstr "Remitent predeterminat del proveïdor: aquesta notificació no té plantilla de correu."
+
+#: src/components/transactional/TransactionalDetail.tsx:278
+msgid "The provider's default sender: you need access to templates to see the template's own."
+msgstr "Remitent predeterminat del proveïdor: cal accés a les plantilles per veure el de la plantilla."
+
 #: src/pages/AnalyticsPage.tsx:89
 msgid "The requested workspace could not be found."
 msgstr "No s'ha pogut trobar l'espai de treball sol·licitat."
@@ -17287,8 +17313,7 @@ msgstr "Aquesta notificació està gestionada per una integració i no es pot ca
 msgid "This notification is managed by an integration and the template cannot be changed"
 msgstr "Aquesta notificació està gestionada per una integració i la plantilla no es pot canviar"
 
-#: src/components/transactional/PreviewPanel.tsx:63
-#: src/components/transactional/TransactionalTable.tsx:67
+#: src/components/transactional/notificationParts.tsx:76
 msgid "This notification still sends with it"
 msgstr "Aquesta notificació continua enviant amb ella"
 
@@ -17345,7 +17370,7 @@ msgstr "Aquest segment utilitza filtres de data relativa i es recalcularà autom
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "Aquest remitent ja no forma part de la integració d'email de màrqueting. Tria'n un altre o buida el camp per fer servir el de la plantilla."
 
-#: src/components/transactional/PreviewPanel.tsx:87
+#: src/components/transactional/PreviewPanel.tsx:80
 msgid "This template has no content to preview yet"
 msgstr "Aquesta plantilla encara no té contingut per previsualitzar"
 
@@ -17792,12 +17817,12 @@ msgstr "Feu el seguiment del trànsit del lloc web amb un script de primera part
 msgid "Tracked"
 msgstr "Amb seguiment"
 
-#: src/components/transactional/TransactionalTable.tsx:50
+#: src/components/transactional/TransactionalTable.tsx:60
 msgid "Tracked on {tracked} of {total} emails"
 msgstr "Amb seguiment en {tracked} de {total} correus"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:298
-#: src/components/transactional/TransactionalDetail.tsx:342
+#: src/components/transactional/TransactionalDetail.tsx:401
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:377
 msgid "Tracking"
 msgstr "Seguiment"
@@ -17835,7 +17860,7 @@ msgstr "Trànsit que cap regla de filtre no ha classificat"
 #: src/components/settings/permissionLabels.ts:11
 #: src/components/templates/DeleteTemplateModal.tsx:42
 #: src/components/templates/templateCategories.ts:21
-#: src/components/transactional/TransactionalDetail.tsx:78
+#: src/components/transactional/TransactionalDetail.tsx:80
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
 #: src/layouts/app-shell/menuItems.ts:175
 #: src/pages/TransactionalNotificationsPage.tsx:168
@@ -18052,6 +18077,7 @@ msgstr "Els clics únics compten cada destinatari una vegada per enllaç — alg
 #: src/components/contacts/TrackingConsent.tsx:13
 #: src/components/contacts/TrackingConsent.tsx:49
 #: src/components/timeline/ContactTimeline.tsx:1052
+#: src/components/transactional/TransactionalDetail.tsx:416
 #: src/components/web_analytics/LiveSessionMap.tsx:49
 msgid "Unknown"
 msgstr "Desconegut"
@@ -18234,7 +18260,7 @@ msgid "Updated"
 msgstr "Actualitzat"
 
 #. placeholder {0}: formatFullDateTime(notification.updated_at, timezone, i18n.locale)
-#: src/components/transactional/TransactionalDetail.tsx:258
+#: src/components/transactional/TransactionalDetail.tsx:308
 msgid "Updated {0}"
 msgstr "Actualitzada el {0}"
 
@@ -18473,7 +18499,7 @@ msgstr "No es compten els usos que no podeu veure."
 msgid "Using {0}..."
 msgstr "Utilitzant {0}..."
 
-#: src/components/transactional/TransactionalDetail.tsx:351
+#: src/components/transactional/TransactionalDetail.tsx:410
 #: src/components/web_analytics/explore/BreakdownModal.tsx:64
 #: src/components/web_analytics/explore/DimensionSelector.tsx:98
 #: src/components/web_analytics/FilterBuilder.tsx:56
@@ -18644,8 +18670,8 @@ msgstr "Veure el tauler complet"
 
 #: src/components/analytics/RecentFailures.tsx:90
 #: src/components/transactional/RecentSends.tsx:54
-#: src/components/transactional/TransactionalDetail.tsx:263
-#: src/components/transactional/TransactionalTable.tsx:232
+#: src/components/transactional/TransactionalDetail.tsx:315
+#: src/components/transactional/TransactionalTable.tsx:265
 msgid "View in logs"
 msgstr "Mostra als registres"
 
@@ -19373,7 +19399,7 @@ msgstr "Sí, reintenta"
 msgid "Yesterday"
 msgstr "Ahir"
 
-#: src/components/transactional/TransactionalTable.tsx:208
+#: src/components/transactional/TransactionalTable.tsx:235
 msgid "Yesterday, {time}"
 msgstr "Ahir, {time}"
 
@@ -19487,7 +19513,7 @@ msgid "You need access to message history to see sends"
 msgstr "Necessiteu accés a l'historial de missatges per veure els enviaments"
 
 #: src/components/transactional/notificationRules.ts:60
-#: src/components/transactional/PreviewPanel.tsx:82
+#: src/components/transactional/PreviewPanel.tsx:75
 msgid "You need access to templates"
 msgstr "Necessiteu accés a les plantilles"
 

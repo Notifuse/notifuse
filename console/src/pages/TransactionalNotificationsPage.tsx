@@ -426,6 +426,8 @@ export function TransactionalNotificationsPage() {
         periods={periods}
         onPeriodChange={(value) => setSearch({ period: value === '30d' ? undefined : value })}
         stats={stats.current.data}
+        // Until the list is known, the sheet waits for its figures rather than ask its own.
+        listed={list.isLoading || (search.notification !== undefined && ids.includes(search.notification))}
         statsGate={sheetGate}
         smtp={smtp}
         timezone={timezone}

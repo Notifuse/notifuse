@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -103,11 +103,12 @@ describe('PreviewPanel', () => {
     expect(onOpen).toHaveBeenCalledTimes(1)
   })
 
-  it('flags a deleted template the notification still sends with', async () => {
-    compile.mockResolvedValue({ html: '', mjml: '' })
+  it("leaves the deleted template's pill to the sheet's header", async () => {
+    compile.mockResolvedValue({ html: '<p>hi</p>', mjml: '' })
     renderPanel({ status: 'ok', template: template({ deleted_at: '2026-11-01T00:00:00Z' }) })
 
-    expect(await screen.findByText('Deleted template')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Open' })).toBeEnabled())
+    expect(screen.queryByText('Deleted template')).not.toBeInTheDocument()
   })
 
   it('says when the template has no content yet', async () => {

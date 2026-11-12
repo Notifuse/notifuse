@@ -68,3 +68,29 @@ export function SmtpDash({ kind }: { kind: 'delivery' | 'bounce' }) {
     </Tooltip>
   )
 }
+
+/** The warning pill of a template deleted since: the notification still sends with it. */
+export function DeletedTemplatePill() {
+  const { t } = useLingui()
+  return (
+    <Tooltip title={t`This notification still sends with it`}>
+      <span className="shrink-0">
+        <Pill tone="warning">{t`Deleted template`}</Pill>
+      </span>
+    </Tooltip>
+  )
+}
+
+/**
+ * A menu entry, and under it why it is disabled: written in the entry, so it is read without a
+ * mouse. An empty reason (still loading) shows the label alone.
+ */
+export function MenuEntryLabel({ label, reason }: { label: string; reason?: string }) {
+  if (!reason) return <>{label}</>
+  return (
+    <span className="flex max-w-[260px] flex-col py-0.5 leading-snug">
+      <span>{label}</span>
+      <span className="text-xs whitespace-normal text-ink-3">{reason}</span>
+    </span>
+  )
+}

@@ -1,10 +1,36 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { createEvent, render, screen, fireEvent, within } from '@testing-library/react'
+import type { MouseEvent, ReactNode } from 'react'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import type { TransactionalNotification } from '../../services/api/transactional_notifications'
 import type { UserPermissions, Workspace } from '../../services/api/types'
+// The router's Link as an anchor: its search resolved against a current `?q=pass`, its onClick kept.
+vi.mock('@tanstack/react-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@tanstack/react-router')>()),
+  Link: ({
+    search,
+    children,
+    onClick,
+    className
+  }: {
+    search?: (prev: Record<string, unknown>) => Record<string, string>
+    children: ReactNode
+    onClick?: (event: MouseEvent<HTMLAnchorElement>) => void
+    className?: string
+  }) => (
+    <a href={`?${new URLSearchParams(search?.({ q: 'pass' })).toString()}`} onClick={onClick} className={className}>
+      {children}
+    </a>
+  )
+}))
+// Another window than the shipped one, so the tooltip is seen to follow the constant.
+vi.mock('./useTransactionalStats', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./useTransactionalStats')>()),
+  LAST_SENT_DAYS: 45
+}))
+
 import { TransactionalTable, type TransactionalRowActions } from './TransactionalTable'
 import type { TemplateState } from './PreviewPanel'
 
@@ -113,8 +139,10 @@ describe('TransactionalTable', () => {
       expect(entry(menu, label)).toHaveAttribute('aria-disabled', 'true')
     }
     expect(entry(menu, 'Copy ID')).not.toHaveAttribute('aria-disabled', 'true')
-    fireEvent.mouseEnter(within(entry(menu, 'Delete')).getByText('Delete'))
-    expect(await screen.findByText('You need Transactional write permission')).toBeInTheDocument()
+    // Written in the entry, without hover.
+    expect(within(entry(menu, 'Delete')).getByText('You need Transactional write permission')).toBeInTheDocument()
+    expect(within(entry(menu, 'View in logs')).getByText('You need access to message history')).toBeInTheDocument()
+    expect(within(entry(menu, 'Preview template')).getByText('You need access to templates')).toBeInTheDocument()
   })
 
   it('refuses to delete a notification an integration manages, and names it', async () => {
@@ -122,8 +150,7 @@ describe('TransactionalTable', () => {
     const menu = await openMenu('Name managed')
 
     expect(entry(menu, 'Delete')).toHaveAttribute('aria-disabled', 'true')
-    fireEvent.mouseEnter(within(entry(menu, 'Delete')).getByText('Delete'))
-    expect(await screen.findByText("Managed by Supabase: it can't be deleted")).toBeInTheDocument()
+    expect(within(entry(menu, 'Delete')).getByText("Managed by Supabase: it can't be deleted")).toBeInTheDocument()
     // The label of the integration stands next to the name.
     expect(screen.getAllByText('Supabase').length).toBeGreaterThan(0)
   })
@@ -132,15 +159,59 @@ describe('TransactionalTable', () => {
     renderTable([notification('welcome')], full, handlers(), new Map([['tpl', { status: 'loading' }]]))
     const menu = await openMenu('Name welcome')
     expect(entry(menu, 'Preview template')).toHaveAttribute('aria-disabled', 'true')
+    // Nothing to say while it loads.
+    expect(entry(menu, 'Preview template').textContent).toBe('Preview template')
   })
 
-  it('does not open the sheet when Enter is pressed on a button of the row', () => {
+  it('says how far back « Last sent » looked when a notification has no send', async () => {
+    renderTable([notification('welcome')])
+    const row = screen.getByText('Name welcome').closest('tr') as HTMLElement
+    const cells = row.querySelectorAll('td')
+    // The column before the actions.
+    const dash = within(cells[cells.length - 2] as HTMLElement).getByText('—')
+    fireEvent.mouseEnter(dash)
+    expect(await screen.findByText('No successful send in the last 45 days')).toBeInTheDocument()
+  })
+
+  it('gives each notification a link to its sheet, which opens it once', () => {
+    const actions = renderTable([notification('welcome')])
+    const link = screen.getByRole('link', { name: 'Name welcome' })
+    expect(link.getAttribute('href')).toBe('?q=pass&notification=welcome')
+
+    // The row opens the sheet; the link's own navigation is held back, so one history entry.
+    const click = createEvent.click(link)
+    fireEvent(link, click)
+    expect(click.defaultPrevented).toBe(true)
+    expect(actions.onOpen).toHaveBeenCalledTimes(1)
+    expect(actions.onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'welcome' }))
+  })
+
+  it('leaves a modified click on the link to the browser, without opening the sheet here', () => {
+    const actions = renderTable([notification('welcome')])
+    const link = screen.getByRole('link', { name: 'Name welcome' })
+    // jsdom cannot open a new tab: the test holds the navigation back, out of the spy's sight.
+    const holdBack = (event: Event) => Event.prototype.preventDefault.call(event)
+    window.addEventListener('click', holdBack, { capture: true })
+
+    for (const modifier of [{ metaKey: true }, { ctrlKey: true }, { shiftKey: true }]) {
+      const click = createEvent.click(link, modifier)
+      const preventDefault = vi.spyOn(click, 'preventDefault')
+      fireEvent(link, click)
+      expect(preventDefault).not.toHaveBeenCalled()
+    }
+    expect(actions.onOpen).not.toHaveBeenCalled()
+    window.removeEventListener('click', holdBack, { capture: true })
+  })
+
+  it('opens the sheet on a click anywhere on the row, but not from its buttons', () => {
     const actions = renderTable([notification('welcome')])
     const row = screen.getByText('Name welcome').closest('tr') as HTMLElement
 
-    fireEvent.keyDown(within(row).getByRole('button', { name: 'API command' }), { key: 'Enter' })
+    fireEvent.click(within(row).getByRole('button', { name: 'API command' }))
     expect(actions.onOpen).not.toHaveBeenCalled()
-    fireEvent.keyDown(row, { key: 'Enter' })
+    fireEvent.click(within(row).getByText('Tpl'))
     expect(actions.onOpen).toHaveBeenCalledTimes(1)
+    // The link is the row's keyboard stop, not the row itself.
+    expect(row).not.toHaveAttribute('tabindex')
   })
 })
