@@ -229,3 +229,42 @@ was checked in the code; the corrections below take precedence over the sections
   "members and API keys". N11: `internal/app` tests run. N12: `GetLists` gets a `withCounts`
   option instead of a second service method (its only caller is the handler), one
   authentication per request. N13: no other repository `List` caller.
+
+## As built
+
+Where the code differs from the sections above, the code is what is described here.
+
+- **Lists (N12)**: `ListService.GetLists(ctx, workspaceID, withCounts bool)`; there is no
+  `GetActiveCounts`. The counts come from `ListRepository.CountActiveContactsByList`, and the
+  handler passes `with_counts` through. Service tests are in `list_service_test.go`
+  (`TestListService_GetLists_WithCounts`). `TestWorkspaceService_deleteSupabaseIntegrationResources`
+  passed a `ListService` mock where `NewSupabaseService` takes a `ListRepository`; it compiled
+  only because both had the same `GetLists`, and now passes a `ListRepository` mock.
+- **Timeline**: the repository takes `domain.TimelineEntityTypeFilter{Only, Except}` rather
+  than a list of types, `Only` rendering `ct.entity_type = ANY($n)` and `Except`
+  `ct.entity_type <> ALL($n)`. The legacy `webhook_event` type is gated with message history,
+  like `inbound_webhook_event`, since it carried the same data before v19 renamed it.
+- **Web visits**:
+  - Domain types, interfaces and their tests are in the new
+    `internal/domain/web_analytics_contact_visits.go` and `…_test.go`, not in
+    `web_analytics.go`. Handler tests are in the new
+    `internal/http/web_analytics_contact_visits_handler_test.go`.
+  - The handler's routes are registered only when `WithContactVisits` was called and a JWT
+    secret is set, and `internal/app/app.go` calls it.
+  - `first_goal_name` and the pages route's goals are read by the session's key, not by
+    `contact_email`, for the reason N14 gives for pages. The summary's goals and top pages
+    stay on `contact_email`, so a goal or page recorded before identification is in the
+    session's detail but not in the summary.
+  - The goals of `contactSessionPages` are capped at 200, like its pages.
+  - `session_id` is returned and taken back in canonical lower-case form.
+- **CHANGELOG**: one Feature line (`search`) and the Fix line. `with_counts`, `entity_types`
+  and the two web visit routes are internal to the console, so its PR describes them.
+
+## Final verification
+
+```bash
+go vet ./... && go vet -tags integration,licdev ./tests/...
+make test-unit
+INTEGRATION_TESTS=true go test -race -tags integration,licdev -count=1 -run 'TestContactsListsRedesign|TestWebAnalyticsContactVisits' ./tests/integration/ -v
+make openapi-lint && make openapi-bundle
+```

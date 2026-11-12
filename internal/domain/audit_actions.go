@@ -320,6 +320,8 @@ var AuditExcludedRoutes = map[string]struct{}{
 	"usage.get":                        {},
 	"user.me":                          {},
 	"webAnalytics.backfillStatus":      {},
+	"webAnalytics.contactSessionPages": {},
+	"webAnalytics.contactVisits":       {},
 	"webhooks.status":                  {},
 	"webhookSubscriptions.deliveries":  {},
 	"webhookSubscriptions.eventTypes":  {},
