@@ -123,7 +123,10 @@ describe('toStorageItems', () => {
   })
 
   it('prefers the CDN endpoint for file URLs', () => {
-    const [file] = toStorageItems([obj('a.png')], { ...settings, cdn_endpoint: 'https://cdn.example.com/' })
+    const [file] = toStorageItems([obj('a.png')], {
+      ...settings,
+      cdn_endpoint: 'https://cdn.example.com/'
+    })
     expect(file.file_info.url).toBe('https://cdn.example.com/a.png')
   })
 
@@ -145,8 +148,12 @@ describe('toStorageItems', () => {
       settings
     )
 
-    expect(items.find((i) => i.key === 'a/')?.last_modified).toEqual(new Date('2026-11-05T00:00:00Z'))
-    expect(items.find((i) => i.key === 'a/b/')?.last_modified).toEqual(new Date('2026-11-03T00:00:00Z'))
+    expect(items.find((i) => i.key === 'a/')?.last_modified).toEqual(
+      new Date('2026-11-05T00:00:00Z')
+    )
+    expect(items.find((i) => i.key === 'a/b/')?.last_modified).toEqual(
+      new Date('2026-11-03T00:00:00Z')
+    )
   })
 
   it('does not duplicate a folder that has its marker', () => {
@@ -158,7 +165,12 @@ describe('toStorageItems', () => {
   it('creates the parent folder of a nested folder marker', () => {
     const items = toStorageItems([obj('a/b/')], settings)
 
-    expect(items.filter((i) => i.is_folder).map((f) => f.key).sort()).toEqual(['a/', 'a/b/'])
+    expect(
+      items
+        .filter((i) => i.is_folder)
+        .map((f) => f.key)
+        .sort()
+    ).toEqual(['a/', 'a/b/'])
   })
 
   it('creates no nameless folder for a key with an empty segment', () => {
