@@ -1836,8 +1836,8 @@ func testAutomationDeletionCleanup(t *testing.T, factory *testutil.TestDataFacto
 	// 8. Verify via HTTP: automation should return 404 or error (not 200)
 	getResp, err := client.GetAutomation(automationID)
 	require.NoError(t, err)
-	// Soft-deleted automation should NOT return 200 OK - it should be 404 or 500
-	require.NotEqual(t, http.StatusOK, getResp.StatusCode, "Deleted automation should not return 200 OK")
+	// A soft-deleted automation is not found
+	require.Equal(t, http.StatusNotFound, getResp.StatusCode, "Deleted automation should answer 404")
 	getResp.Body.Close()
 
 	// 9. Verify via factory: automation is soft-deleted, not removed
