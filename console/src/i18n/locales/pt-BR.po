@@ -2527,11 +2527,11 @@ msgstr "Campanhas"
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:398
 #: src/components/file_manager/buttonSettings.tsx:309
 #: src/components/file_manager/context.tsx:192
-#: src/components/file_manager/fileManager.tsx:653
-#: src/components/file_manager/fileManager.tsx:774
-#: src/components/file_manager/fileManager.tsx:952
-#: src/components/file_manager/fileManager.tsx:1020
-#: src/components/file_manager/fileManager.tsx:1130
+#: src/components/file_manager/fileManager.tsx:596
+#: src/components/file_manager/fileManager.tsx:717
+#: src/components/file_manager/fileManager.tsx:904
+#: src/components/file_manager/fileManager.tsx:972
+#: src/components/file_manager/fileManager.tsx:1082
 #: src/components/segment/button_upsert.tsx:417
 #: src/components/segment/input_dimension_filters.tsx:179
 #: src/components/segment/input_event_property_filters.tsx:130
@@ -2626,7 +2626,7 @@ msgstr "Nao e possivel remover a lista enquanto existem nos de email. Exclua os 
 msgid "Cannot restore progress: CSV data is not available"
 msgstr "Nao e possivel restaurar o progresso: dados CSV nao estao disponiveis"
 
-#: src/components/file_manager/fileManager.tsx:511
+#: src/components/file_manager/fileManager.tsx:454
 msgid "Cannot upload in read-only mode"
 msgstr "Nao e possivel fazer upload em modo somente leitura"
 
@@ -3246,7 +3246,7 @@ msgstr "Configure como os feeds RSS e JSON do seu blog são gerados."
 msgid "Configure Integration"
 msgstr "Configurar Integração"
 
-#: src/components/file_manager/fileManager.tsx:625
+#: src/components/file_manager/fileManager.tsx:568
 msgid "Configure now"
 msgstr "Configurar agora"
 
@@ -3555,7 +3555,7 @@ msgid "Copy to clipboard"
 msgstr "Copiar para área de transferência"
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:132
-#: src/components/file_manager/fileManager.tsx:901
+#: src/components/file_manager/fileManager.tsx:853
 msgid "Copy URL"
 msgstr "Copiar URL"
 
@@ -3667,7 +3667,7 @@ msgstr "Abrange mais do que templates: os blocos reutilizáveis respondem ao mes
 #: src/components/automations/UpsertAutomationDrawer.tsx:173
 #: src/components/blog/CategoryDrawer.tsx:114
 #: src/components/blog/PostDrawer.tsx:690
-#: src/components/file_manager/fileManager.tsx:1029
+#: src/components/file_manager/fileManager.tsx:981
 #: src/components/lists/ListDrawer.tsx:170
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Create"
@@ -3789,7 +3789,7 @@ msgstr "Criar Novo Template {0}"
 msgid "Create New Category"
 msgstr "Criar Nova Categoria"
 
-#: src/components/file_manager/fileManager.tsx:1015
+#: src/components/file_manager/fileManager.tsx:967
 msgid "Create new folder"
 msgstr "Criar nova pasta"
 
@@ -4322,9 +4322,9 @@ msgstr "Atraso"
 #: src/components/contacts/SegmentsFilter.tsx:159
 #: src/components/email_builder/EmailBuilder.tsx:940
 #: src/components/email_builder/ui/SavedBlockCard.tsx:115
-#: src/components/file_manager/fileManager.tsx:773
-#: src/components/file_manager/fileManager.tsx:778
-#: src/components/file_manager/fileManager.tsx:951
+#: src/components/file_manager/fileManager.tsx:716
+#: src/components/file_manager/fileManager.tsx:721
+#: src/components/file_manager/fileManager.tsx:903
 #: src/components/segment/input.tsx:401
 #: src/components/settings/Integrations.tsx:368
 #: src/components/settings/Integrations.tsx:1456
@@ -4357,7 +4357,7 @@ msgid "Delete \"{name}\" from the library?"
 msgstr "Excluir \"{name}\" da biblioteca?"
 
 #. placeholder {0}: selectedRowKeys.length
-#: src/components/file_manager/fileManager.tsx:771
+#: src/components/file_manager/fileManager.tsx:714
 msgid "Delete {0} selected item(s)?"
 msgstr "Excluir {0} item(ns) selecionado(s)?"
 
@@ -4469,16 +4469,16 @@ msgstr "Excluir contatos"
 msgid "Delete edge"
 msgstr "Excluir conexão"
 
-#: src/components/file_manager/fileManager.tsx:963
+#: src/components/file_manager/fileManager.tsx:915
 msgid "Delete file (Read-only mode)"
 msgstr "Excluir arquivo (Modo somente leitura)"
 
-#: src/components/file_manager/fileManager.tsx:643
-#: src/components/file_manager/fileManager.tsx:652
+#: src/components/file_manager/fileManager.tsx:586
+#: src/components/file_manager/fileManager.tsx:595
 msgid "Delete folder"
 msgstr "Excluir pasta"
 
-#: src/components/file_manager/fileManager.tsx:668
+#: src/components/file_manager/fileManager.tsx:611
 msgid "Delete folder (Read-only mode)"
 msgstr "Excluir pasta (Modo somente leitura)"
 
@@ -4574,11 +4574,15 @@ msgstr "excluído"
 msgid "Deleted"
 msgstr "Excluído"
 
-#: src/components/file_manager/fileManager.tsx:608
+#: src/components/file_manager/fileManager.tsx:210
+msgid "Deleted {deleted} item(s) of the folder, failed to delete {failed}."
+msgstr "{deleted} item(ns) da pasta excluído(s), falha ao excluir {failed}."
+
+#: src/components/file_manager/fileManager.tsx:551
 msgid "Deleted {deletedCount} item(s)"
 msgstr "Excluído(s) {deletedCount} item(ns)"
 
-#: src/components/file_manager/fileManager.tsx:610
+#: src/components/file_manager/fileManager.tsx:553
 msgid "Deleted {deletedCount}, failed {failedCount}"
 msgstr "Excluído(s) {deletedCount}, falhou {failedCount}"
 
@@ -4807,11 +4811,11 @@ msgstr "Você realmente deseja remover esta condição?"
 msgid "Do you really want to remove this filter?"
 msgstr "Você realmente deseja remover este filtro?"
 
-#: src/components/file_manager/fileManager.tsx:648
+#: src/components/file_manager/fileManager.tsx:591
 msgid "Do you want to delete the"
 msgstr "Você deseja excluir o"
 
-#: src/components/file_manager/fileManager.tsx:948
+#: src/components/file_manager/fileManager.tsx:900
 msgid "Do you want to permanently delete this file from your storage?"
 msgstr "Você deseja excluir permanentemente este arquivo do seu armazenamento?"
 
@@ -4884,12 +4888,12 @@ msgstr "Template de Confirmação Dupla"
 msgid "Download"
 msgstr "Baixar"
 
-#: src/components/file_manager/fileManager.tsx:920
+#: src/components/file_manager/fileManager.tsx:872
 msgid "Download file"
 msgstr "Baixar arquivo"
 
 #. placeholder {0}: selectedFiles.length
-#: src/components/file_manager/fileManager.tsx:559
+#: src/components/file_manager/fileManager.tsx:502
 msgid "Downloaded {0} file(s)"
 msgstr "{0} arquivo(s) baixado(s)"
 
@@ -4916,7 +4920,7 @@ msgstr "Arraste para mover este bloco na árvore"
 msgid "Dragging {name} was cancelled."
 msgstr "O arraste de {name} foi cancelado."
 
-#: src/components/file_manager/fileManager.tsx:1006
+#: src/components/file_manager/fileManager.tsx:958
 msgid "Drop files here to upload"
 msgstr "Solte arquivos aqui para fazer upload"
 
@@ -6155,8 +6159,8 @@ msgstr "Falha ao criar broadcast: {0}"
 msgid "Failed to create category: {0}"
 msgstr "Falha ao criar categoria: {0}"
 
-#: src/components/file_manager/fileManager.tsx:372
-#: src/components/file_manager/fileManager.tsx:378
+#: src/components/file_manager/fileManager.tsx:315
+#: src/components/file_manager/fileManager.tsx:321
 msgid "Failed to create folder: "
 msgstr "Falha ao criar pasta: "
 
@@ -6208,9 +6212,13 @@ msgstr "Falha ao excluir categoria"
 msgid "Failed to delete contact"
 msgstr "Falha ao excluir contato"
 
-#: src/components/file_manager/fileManager.tsx:294
+#: src/components/file_manager/fileManager.tsx:237
 msgid "Failed to delete file: "
 msgstr "Falha ao excluir arquivo: "
+
+#: src/components/file_manager/fileManager.tsx:214
+msgid "Failed to delete folder: "
+msgstr "Falha ao excluir a pasta: "
 
 #: src/components/settings/Integrations.tsx:1200
 msgid "Failed to delete integration"
@@ -6258,11 +6266,11 @@ msgstr "Falha ao excluir workspace"
 msgid "Failed to detect icon: {0}"
 msgstr "Falha ao detectar ícone: {0}"
 
-#: src/components/file_manager/fileManager.tsx:939
+#: src/components/file_manager/fileManager.tsx:891
 msgid "Failed to download file"
 msgstr "Falha ao baixar arquivo"
 
-#: src/components/file_manager/fileManager.tsx:562
+#: src/components/file_manager/fileManager.tsx:505
 msgid "Failed to download files"
 msgstr "Falha ao baixar arquivos"
 
@@ -6299,7 +6307,7 @@ msgstr "Falha ao buscar dados de mensagens com falha"
 msgid "Failed to fetch new contacts data"
 msgstr "Falha ao buscar dados de novos contatos"
 
-#: src/components/file_manager/fileManager.tsx:238
+#: src/components/file_manager/fileManager.tsx:164
 msgid "Failed to fetch objects: "
 msgstr "Falha ao buscar objetos: "
 
@@ -6687,7 +6695,7 @@ msgstr "Arquivo {0} adicionado"
 msgid "File {0} exceeds 3MB limit"
 msgstr "Arquivo {0} excede o limite de 3MB"
 
-#: src/components/file_manager/fileManager.tsx:288
+#: src/components/file_manager/fileManager.tsx:232
 msgid "File deleted successfully."
 msgstr "Arquivo excluído com sucesso."
 
@@ -6713,7 +6721,7 @@ msgstr "Configurações do gerenciador de arquivos atualizadas com sucesso"
 msgid "File name"
 msgstr "Nome do arquivo"
 
-#: src/components/file_manager/fileManager.tsx:620
+#: src/components/file_manager/fileManager.tsx:563
 msgid "File storage is not configured."
 msgstr "Armazenamento de arquivos não está configurado."
 
@@ -6833,27 +6841,27 @@ msgstr "Corrija o Zap no Zapier e ative este webhook novamente para retomar as e
 msgid "Flow Stats: {0}"
 msgstr "Estatísticas do Fluxo: {0}"
 
-#: src/components/file_manager/fileManager.tsx:354
+#: src/components/file_manager/fileManager.tsx:297
 msgid "Folder already exists."
 msgstr "Pasta já existe."
 
-#: src/components/file_manager/fileManager.tsx:367
+#: src/components/file_manager/fileManager.tsx:310
 msgid "Folder created successfully."
 msgstr "Pasta criada com sucesso."
 
-#: src/components/file_manager/fileManager.tsx:283
+#: src/components/file_manager/fileManager.tsx:205
 msgid "Folder deleted successfully."
 msgstr "Pasta excluída com sucesso."
 
-#: src/components/file_manager/fileManager.tsx:804
+#: src/components/file_manager/fileManager.tsx:756
 msgid "Folder is empty"
 msgstr "Pasta está vazia"
 
-#: src/components/file_manager/fileManager.tsx:1035
+#: src/components/file_manager/fileManager.tsx:987
 msgid "Folder name"
 msgstr "Nome da pasta"
 
-#: src/components/file_manager/fileManager.tsx:648
+#: src/components/file_manager/fileManager.tsx:591
 msgid "folder with all its content?"
 msgstr "pasta com todo seu conteúdo?"
 
@@ -7562,7 +7570,7 @@ msgstr "Importar / Exportar"
 msgid "Import & Export Templates"
 msgstr "Importar e Exportar Templates"
 
-#: src/components/file_manager/fileManager.tsx:476
+#: src/components/file_manager/fileManager.tsx:419
 msgid "Import cancelled"
 msgstr "Importação cancelada"
 
@@ -7626,7 +7634,7 @@ msgstr "{0} contatos importados ({1} falharam, veja detalhes abaixo)"
 msgid "Imported Fonts"
 msgstr "Fontes Importadas"
 
-#: src/components/file_manager/fileManager.tsx:1086
+#: src/components/file_manager/fileManager.tsx:1038
 msgid "Importing files..."
 msgstr "Importando arquivos..."
 
@@ -8164,7 +8172,7 @@ msgstr "Última Edição"
 msgid "Last fetched:"
 msgstr "Última recuperação:"
 
-#: src/components/file_manager/fileManager.tsx:882
+#: src/components/file_manager/fileManager.tsx:834
 msgid "Last modified"
 msgstr "Última modificação"
 
@@ -9148,7 +9156,7 @@ msgstr "N/D"
 #: src/components/blog/AuthorsTable.tsx:143
 #: src/components/blog/CategoryDrawer.tsx:130
 #: src/components/email_builder/ui/SaveBlockModal.tsx:128
-#: src/components/file_manager/fileManager.tsx:868
+#: src/components/file_manager/fileManager.tsx:820
 #: src/components/lists/ListDrawer.tsx:185
 #: src/components/segment/button_upsert.tsx:442
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:125
@@ -9211,7 +9219,7 @@ msgstr "Novos Contatos"
 msgid "New conversation"
 msgstr "Nova conversa"
 
-#: src/components/file_manager/fileManager.tsx:766
+#: src/components/file_manager/fileManager.tsx:709
 msgid "New folder"
 msgstr "Nova pasta"
 
@@ -9457,7 +9465,7 @@ msgstr "Sem erros"
 #~ msgid "No Errors"
 #~ msgstr "Sem Erros"
 
-#: src/components/file_manager/fileManager.tsx:533
+#: src/components/file_manager/fileManager.tsx:476
 msgid "No files selected"
 msgstr "Nenhum arquivo selecionado"
 
@@ -9485,7 +9493,7 @@ msgstr "Nenhum ícone encontrado"
 msgid "No Issues"
 msgstr "Sem Problemas"
 
-#: src/components/file_manager/fileManager.tsx:579
+#: src/components/file_manager/fileManager.tsx:522
 msgid "No items selected"
 msgstr "Nenhum item selecionado"
 
@@ -10037,7 +10045,7 @@ msgstr "Apenas links nos emails deste broadcast."
 msgid "Only links in emails sent with this template."
 msgstr "Apenas links nos emails enviados com este template."
 
-#: src/components/file_manager/fileManager.tsx:1046
+#: src/components/file_manager/fileManager.tsx:998
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 msgstr "Apenas caracteres alfanuméricos minúsculos, sublinhado e hífen são permitidos."
 
@@ -10076,7 +10084,7 @@ msgstr "Imagem Open Graph"
 msgid "Open Graph Title"
 msgstr "Título Open Graph"
 
-#: src/components/file_manager/fileManager.tsx:913
+#: src/components/file_manager/fileManager.tsx:865
 msgid "Open in a window"
 msgstr "Abrir em uma janela"
 
@@ -11553,7 +11561,7 @@ msgstr "Atualizar Broadcast"
 msgid "Refresh the broadcast's data feed by calling the configured external URL"
 msgstr "Atualizar o feed de dados do broadcast chamando a URL externa configurada"
 
-#: src/components/file_manager/fileManager.tsx:672
+#: src/components/file_manager/fileManager.tsx:615
 msgid "Refresh the list"
 msgstr "Atualizar a lista"
 
@@ -12124,9 +12132,9 @@ msgstr "Chave de acesso S3"
 msgid "S3 bucket"
 msgstr "Bucket S3"
 
-#: src/components/file_manager/fileManager.tsx:267
-#: src/components/file_manager/fileManager.tsx:329
-#: src/components/file_manager/fileManager.tsx:570
+#: src/components/file_manager/fileManager.tsx:193
+#: src/components/file_manager/fileManager.tsx:272
+#: src/components/file_manager/fileManager.tsx:513
 msgid "S3 client is not initialized."
 msgstr "O cliente S3 não foi inicializado."
 
@@ -12483,7 +12491,7 @@ msgid "Segments"
 msgstr "Segmentos"
 
 #: src/components/automations/nodes/EmailNode.tsx:49
-#: src/components/file_manager/fileManager.tsx:976
+#: src/components/file_manager/fileManager.tsx:928
 #: src/components/settings/BlogSettings.tsx:360
 #: src/components/settings/BlogSettings.tsx:376
 #: src/components/templates/TemplateSelectorInput.tsx:243
@@ -13290,6 +13298,10 @@ msgstr "Mostrar Mais ({0} restantes)"
 msgid "Show this block if"
 msgstr "Exibir este bloco se"
 
+#: src/components/file_manager/fileManager.tsx:738
+msgid "Showing the first {maxObjectsLabel} files of this bucket."
+msgstr "Mostrando os primeiros {maxObjectsLabel} arquivos deste bucket."
+
 #: src/components/broadcasts/BroadcastLinkStats.tsx:132
 #~ msgid "Showing the top 200 links by total clicks."
 #~ msgstr ""
@@ -13364,7 +13376,7 @@ msgstr ""
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:174
 #: src/components/email_builder/ui/FontStyleInput.tsx:179
-#: src/components/file_manager/fileManager.tsx:875
+#: src/components/file_manager/fileManager.tsx:827
 msgid "Size"
 msgstr "Tamanho"
 
@@ -13699,11 +13711,11 @@ msgstr "Status desconhecido"
 msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop."
 msgstr "Interrompe esta automação para um contato assim que ele responder a um dos emails dela. Isso exige que o encaminhamento de respostas recebidas esteja configurado no seu provedor de email (ESP): as respostas ao seu domínio de envio devem ser roteadas para o provedor, que as encaminha ao Notifuse. Sem essa configuração, as respostas não são detectadas e a sequência não será interrompida."
 
-#: src/components/file_manager/fileManager.tsx:687
+#: src/components/file_manager/fileManager.tsx:630
 msgid "Storage settings"
 msgstr "Configurações de armazenamento"
 
-#: src/components/file_manager/fileManager.tsx:695
+#: src/components/file_manager/fileManager.tsx:638
 msgid "Storage settings (Read-only mode)"
 msgstr "Configurações de armazenamento (Modo somente leitura)"
 
@@ -15690,8 +15702,8 @@ msgstr "Atualizado Em"
 #~ msgid "Upgrade licence"
 #~ msgstr ""
 
-#: src/components/file_manager/fileManager.tsx:718
-#: src/components/file_manager/fileManager.tsx:731
+#: src/components/file_manager/fileManager.tsx:661
+#: src/components/file_manager/fileManager.tsx:674
 msgid "Upload"
 msgstr "Upload"
 
@@ -15712,7 +15724,7 @@ msgstr "Falha no upload: {0}"
 msgid "Upload failed. Please try again."
 msgstr "Falha no upload. Por favor, tente novamente."
 
-#: src/components/file_manager/fileManager.tsx:723
+#: src/components/file_manager/fileManager.tsx:666
 msgid "Upload file (Read-only mode)"
 msgstr "Enviar arquivo (Modo somente leitura)"
 
@@ -15734,7 +15746,7 @@ msgstr "URL"
 #~ msgstr ""
 
 #: src/components/broadcasts/BroadcastLinkStats.tsx:64
-#: src/components/file_manager/fileManager.tsx:907
+#: src/components/file_manager/fileManager.tsx:859
 msgid "URL copied to clipboard."
 msgstr "URL copiada para a área de transferência."
 
@@ -16873,6 +16885,6 @@ msgstr "O Zapier está conectado, mas não foi possível atualizar a lista de in
 msgid "Zapier owns this webhook's endpoint URL, so it cannot be changed here. Changing the event types breaks the Zap that created this webhook without reporting any error in Zapier."
 msgstr "A URL do endpoint deste webhook pertence ao Zapier, portanto não pode ser alterada aqui. Alterar os tipos de evento quebra o Zap que criou este webhook sem relatar nenhum erro no Zapier."
 
-#: src/components/file_manager/fileManager.tsx:784
+#: src/components/file_manager/fileManager.tsx:727
 msgid "Zip"
 msgstr "Zip"

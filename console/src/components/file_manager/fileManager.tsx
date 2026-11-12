@@ -36,7 +36,7 @@ import {
   DeleteObjectCommand,
   type DeleteObjectCommandInput
 } from '@aws-sdk/client-s3'
-import GetContentType from './fileExtensions'
+import { deleteFolder, listAllObjects, MAX_OBJECTS, toStorageItems } from './storageObjects'
 import dayjs from 'dayjs'
 import timezone from 'dayjs/plugin/timezone'
 import utc from 'dayjs/plugin/utc'
@@ -99,7 +99,7 @@ const styles = {
 }
 
 export const FileManager = (props: FileManagerProps) => {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const { message } = App.useApp()
   const [internalPath, setInternalPath] = useState(props.currentPath || '')
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
@@ -112,6 +112,8 @@ export const FileManager = (props: FileManagerProps) => {
   const [isUploading, setIsUploading] = useState(false)
   const [isZipping, setIsZipping] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isCapped, setIsCapped] = useState(false)
+  const maxObjectsLabel = new Intl.NumberFormat(i18n.locale).format(MAX_OBJECTS)
   const [uploadFileStatuses, setUploadFileStatuses] = useState<UploadFileStatus[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const dragCounterRef = useRef(0)
@@ -150,94 +152,18 @@ export const FileManager = (props: FileManagerProps) => {
     if (!s3ClientRef.current || !props.settings?.bucket) return
 
     setIsLoading(true)
-    const input: ListObjectsV2CommandInput = {
-      Bucket: props.settings.bucket
-    }
-
-    const command = new ListObjectsV2Command(input)
-    s3ClientRef.current.send(command).then((response) => {
-      // console.log('response', response)
-      if (!response.Contents) {
-        setItems([])
+    const settings = props.settings
+    listAllObjects(s3ClientRef.current, settings.bucket)
+      .then(({ objects, capped }) => {
+        setItems(toStorageItems(objects, settings))
+        setIsCapped(capped)
         setIsLoading(false)
-        return
-      }
-
-      const newItems = response.Contents.map((x) => {
-        const key = x.Key as string
-
-        // Construct the base URL for accessing files
-        let baseUrl = ''
-
-        if (props.settings?.cdn_endpoint && props.settings.cdn_endpoint.trim() !== '') {
-          // Use CDN endpoint if provided
-          baseUrl = props.settings.cdn_endpoint.replace(/\/$/, '') // Remove trailing slash
-        } else if (props.settings?.endpoint && props.settings?.bucket) {
-          // Construct URL from S3 endpoint and bucket
-          const cleanEndpoint = props.settings.endpoint.replace(/\/$/, '') // Remove trailing slash
-          baseUrl = `${cleanEndpoint}/${props.settings.bucket}`
-        }
-
-        const isFolder = key.endsWith('/')
-        let name =
-          key
-            .split('/')
-            .filter((x) => x !== '')
-            .pop() || ''
-
-        if (!isFolder) {
-          name = key.split('/').pop() || ''
-        }
-
-        // console.log('item', x)
-
-        let itemPath = ''
-        const pathParts = key.split('/')
-
-        if (isFolder) {
-          itemPath = pathParts.slice(0, pathParts.length - 2).join('/') + '/'
-          // console.log('folder path', itemCurrentPath)
-        } else {
-          itemPath = pathParts.slice(0, pathParts.length - 1).join('/') + '/'
-          // console.log('file path', itemCurrentPath)
-        }
-
-        if (itemPath === '/') itemPath = ''
-
-        const item = {
-          key: key,
-          name: name,
-          path: itemPath,
-          is_folder: isFolder,
-          last_modified: x.LastModified
-        } as StorageObject
-
-        if (!isFolder) {
-          // Encode each path segment separately to preserve folder structure
-          // This ensures spaces and special chars are encoded but slashes are kept
-          const encodedKey = key
-            .split('/')
-            .map((segment) => encodeURIComponent(segment))
-            .join('/')
-          item.file_info = {
-            size: x.Size as number,
-            size_human: filesize(x.Size || 0, { round: 0 }),
-            content_type: GetContentType(key),
-            url: baseUrl ? `${baseUrl}/${encodedKey}` : encodedKey
-          }
-        }
-
-        return item
       })
-
-      // console.log('new items', newItems)
-      setItems(newItems)
-      setIsLoading(false)
-    }).catch((error: unknown) => {
-      console.error('Failed to fetch objects:', error)
-      message.error(t`Failed to fetch objects: ` + error)
-      setIsLoading(false)
-    })
+      .catch((error: unknown) => {
+        console.error('Failed to fetch objects:', error)
+        message.error(t`Failed to fetch objects: ` + error)
+        setIsLoading(false)
+      })
   }, [props.settings, message, t])
 
   // Initialize or reinitialize S3 client when settings change
@@ -270,6 +196,31 @@ export const FileManager = (props: FileManagerProps) => {
 
     const s3Client = s3ClientRef.current
 
+    if (isFolder) {
+      // A folder is a prefix: delete everything under it, not only its marker.
+      setIsDeleting(true)
+      deleteFolder(s3Client, props.settings?.bucket || '', key)
+        .then(({ deleted, failed }) => {
+          if (failed === 0) {
+            message.success(t`Folder deleted successfully.`)
+            // go to previous path
+            const parentPath = key.split('/').slice(0, -2).join('/')
+            goToPath(parentPath ? parentPath + '/' : '')
+          } else {
+            message.error(t`Deleted ${deleted} item(s) of the folder, failed to delete ${failed}.`)
+          }
+        })
+        .catch((error: unknown) => {
+          message.error(t`Failed to delete folder: ` + error)
+          props.onError(error instanceof Error ? error : new Error(String(error)))
+        })
+        .finally(() => {
+          setIsDeleting(false)
+          fetchObjects()
+        })
+      return
+    }
+
     const input: DeleteObjectCommandInput = {
       Bucket: props.settings?.bucket || '',
       Key: key
@@ -278,15 +229,7 @@ export const FileManager = (props: FileManagerProps) => {
     s3Client
       .send(new DeleteObjectCommand(input))
       .then(() => {
-        if (isFolder) {
-          fetchObjects()
-          message.success(t`Folder deleted successfully.`)
-          // go to previous path
-          const parentPath = key.split('/').slice(0, -2).join('/')
-          goToPath(parentPath ? parentPath + '/' : '')
-        } else {
-          message.success(t`File deleted successfully.`)
-        }
+        message.success(t`File deleted successfully.`)
         // refresh
         fetchObjects()
       })
@@ -786,6 +729,15 @@ export const FileManager = (props: FileManagerProps) => {
               )}
             </Space>
           </div>
+
+          {isCapped && (
+            <Alert
+              style={{ marginTop: 16 }}
+              type="warning"
+              showIcon
+              title={t`Showing the first ${maxObjectsLabel} files of this bucket.`}
+            />
+          )}
 
           {/* Table container with drag and drop */}
           <div
