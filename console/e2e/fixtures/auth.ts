@@ -344,7 +344,11 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
       return route.fulfill(jsonResponse(withData ? mockTransactionalResponse : mockEmptyTransactional))
     }
     if (url.includes('/api/transactional.get')) {
-      return route.fulfill(jsonResponse({ notification: mockTransactionalResponse.notifications[0] }))
+      // The notification of the requested id, so a sheet opened by URL shows that one.
+      const id = new URL(url).searchParams.get('id')
+      const notification =
+        mockTransactionalResponse.notifications.find((item) => item.id === id) ?? mockTransactionalResponse.notifications[0]
+      return route.fulfill(jsonResponse({ notification }))
     }
     if (url.includes('/api/transactional.create')) {
       return route.fulfill(jsonResponse(mockTransactionalCreateResponse))

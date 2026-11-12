@@ -23,7 +23,13 @@ beforeEach(() => {
 describe('ApiCommandModal', () => {
   it('offers the SMTP bridge only when it is enabled', () => {
     renderModal()
-    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['cURL', 'TypeScript', 'Python', 'Go', 'Java'])
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+      'cURL',
+      'TypeScript',
+      'Python',
+      'Go',
+      'Java'
+    ])
   })
 
   it('adds the SMTP tab when the bridge is enabled', () => {
