@@ -189,4 +189,17 @@ describe('MessageHistoryTab clicked link filter', () => {
     })
     expect(screen.queryByText(`Clicked link: ${pricing}`)).not.toBeInTheDocument()
   })
+
+  it('filters on the transactional notification from the URL, and lets it be removed', async () => {
+    window.history.replaceState({}, '', '/logs?transactional_notification_id=password_reset')
+    renderTab()
+
+    await waitFor(async () =>
+      expect(await lastListParams()).toMatchObject({ transactional_notification_id: 'password_reset' })
+    )
+    fireEvent.click(screen.getByText('Transactional notification ID: password_reset'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Clear' }))
+
+    await waitFor(async () => expect(await lastListParams()).not.toHaveProperty('transactional_notification_id'))
+  })
 })

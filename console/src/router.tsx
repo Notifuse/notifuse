@@ -20,6 +20,7 @@ import { TemplatesPage } from "./pages/TemplatesPage";
 import { BroadcastsPage } from "./pages/BroadcastsPage";
 import { AutomationsPage } from "./pages/AutomationsPage";
 import { TransactionalNotificationsPage } from "./pages/TransactionalNotificationsPage";
+import { validateTransactionalSearch } from "./components/transactional/transactionalSearch";
 import { LogsPage } from "./pages/LogsPage";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { validateDashboardSearch } from "./components/analytics/dashboardSearch";
@@ -255,6 +256,7 @@ const workspaceTransactionalNotificationsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/transactional-notifications",
   component: TransactionalNotificationsPage,
+  validateSearch: validateTransactionalSearch,
 });
 
 // The tab is typed; the message tab's own filters (is_failed and friends) pass

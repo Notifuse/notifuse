@@ -14,7 +14,9 @@ i18n.activate('en')
 // This mock simulates the real behavior by using i18n._ for translations
 vi.mock('@lingui/react/macro', () => ({
   useLingui: () => ({
-    t: (strings: TemplateStringsArray, ...values: unknown[]) => {
+    t: (strings: TemplateStringsArray | { message: string; context?: string }, ...values: unknown[]) => {
+      // A descriptor (t({ message, context })): the context only tells catalog entries apart.
+      if (!Array.isArray(strings)) return i18n._((strings as { message: string }).message)
       // Reconstruct the template literal to get the message ID
       const messageId = strings.reduce((result, str, idx) => {
         return result + str + (values[idx] !== undefined ? `{${idx}}` : '')
