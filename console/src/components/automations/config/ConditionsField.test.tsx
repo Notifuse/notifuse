@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { i18n } from '@lingui/core'
@@ -14,10 +14,13 @@ class ResizeObserverStub {
 }
 vi.stubGlobal('ResizeObserver', ResizeObserverStub)
 
+const context = vi.hoisted(() => ({ canReadTemplates: true }))
+
 vi.mock('../context', () => ({
   useAutomation: () => ({
     lists: [{ id: 'list123', name: 'My List' }],
-    workspace: { id: 'ws1' }
+    workspace: { id: 'ws1' },
+    canReadTemplates: context.canReadTemplates
   })
 }))
 
@@ -25,9 +28,19 @@ vi.mock('../context', () => ({
 // before any filter exists. The mock has to be able to do the same, or the abandonment path
 // below is untestable.
 vi.mock('../../segment/input', () => ({
-  TreeNodeInput: ({ onChange }: { onChange: (tree: TreeNode) => void }) => (
+  TreeNodeInput: ({
+    onChange,
+    canReadTemplates
+  }: {
+    onChange: (tree: TreeNode) => void
+    canReadTemplates?: boolean
+  }) => (
     <>
-      <button data-testid="tree-editor" onClick={() => onChange(twoLeafTree)}>
+      <button
+        data-testid="tree-editor"
+        data-can-read-templates={String(canReadTemplates)}
+        onClick={() => onChange(twoLeafTree)}
+      >
         tree editor
       </button>
       <button data-testid="pick-source" onClick={() => onChange(incompleteTree)}>
@@ -123,6 +136,10 @@ const confirmRemove = async () => {
 }
 
 describe('ConditionsField', () => {
+  afterEach(() => {
+    context.canReadTemplates = true
+  })
+
   it('shows the add affordance and no editor when there is nothing configured', () => {
     renderField(undefined)
 
@@ -148,6 +165,16 @@ describe('ConditionsField', () => {
     renderField(oneLeafTree)
 
     expect(screen.getByText('1 condition')).toBeInTheDocument()
+  })
+
+  // Without Templates read an email condition names its template by ID, locked: the editor gets
+  // the automation's permission.
+  it.each([false, true])('gives the editor Templates read %s', async (canRead) => {
+    context.canReadTemplates = canRead
+    renderField(oneLeafTree)
+
+    await userEvent.click(screen.getByText('Edit'))
+    expect(screen.getByTestId('tree-editor').getAttribute('data-can-read-templates')).toBe(String(canRead))
   })
 
   it('keeps the editor out of the panel until it is asked for', async () => {

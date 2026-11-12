@@ -56,7 +56,12 @@ const renderEditor = () => {
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
         <App>
-          <AutomationProvider workspace={workspace} automation={liveAutomation} lists={[]}>
+          <AutomationProvider
+            workspace={workspace}
+            automation={liveAutomation}
+            lists={[]}
+            canReadTemplates
+          >
             <SaveButton />
           </AutomationProvider>
         </App>
@@ -163,5 +168,51 @@ describe('AutomationProvider saving an automation the editor loaded live', () =>
         'Failed to update automation: invalid trigger conditions: operator does not exist'
       )
     )
+  })
+})
+
+function TemplatesReadProbe() {
+  const { canReadTemplates } = useAutomation()
+  return <span data-testid="probe">{String(canReadTemplates)}</span>
+}
+
+// The editor's template fields read the permission from the context.
+describe('AutomationProvider Templates read', () => {
+  it.each([false, true])('exposes canReadTemplates %s', (canRead) => {
+    const queryClient = new QueryClient()
+    render(
+      <QueryClientProvider client={queryClient}>
+        <I18nProvider i18n={i18n}>
+          <App>
+            <AutomationProvider workspace={workspace} lists={[]} canReadTemplates={canRead}>
+              <TemplatesReadProbe />
+            </AutomationProvider>
+          </App>
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+
+    expect(screen.getByTestId('probe')).toHaveTextContent(String(canRead))
+  })
+
+  // The permissions load after the page: an editor opened before then must unlock once they do.
+  it('follows the permission once it loads', () => {
+    const queryClient = new QueryClient()
+    const tree = (canRead: boolean) => (
+      <QueryClientProvider client={queryClient}>
+        <I18nProvider i18n={i18n}>
+          <App>
+            <AutomationProvider workspace={workspace} lists={[]} canReadTemplates={canRead}>
+              <TemplatesReadProbe />
+            </AutomationProvider>
+          </App>
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    const { rerender } = render(tree(false))
+    expect(screen.getByTestId('probe')).toHaveTextContent('false')
+
+    rerender(tree(true))
+    expect(screen.getByTestId('probe')).toHaveTextContent('true')
   })
 })

@@ -119,7 +119,9 @@ export function ListsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
-  const { permissions } = useWorkspacePermissions(workspaceId)
+  const { permissions, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
+  // Without Templates read, templates.list and templates.get answer 403.
+  const canReadTemplates = !!permissions?.templates?.read
   const workspace = workspaces.find((w) => w.id === workspaceId)
 
   const { data, isLoading } = useQuery({
@@ -243,6 +245,7 @@ export function ListsPage() {
                 <div>
                   <CreateListDrawer
                     workspaceId={workspaceId}
+                    canReadTemplates={canReadTemplates}
                     buttonProps={{
                       disabled: !permissions?.lists?.write
                     }}
@@ -300,6 +303,7 @@ export function ListsPage() {
                       <CreateListDrawer
                         workspaceId={workspaceId}
                         list={list}
+                        canReadTemplates={canReadTemplates}
                         buttonProps={{
                           type: 'text',
                           size: 'small',
@@ -356,10 +360,20 @@ export function ListsPage() {
                   {list.double_optin_template ? (
                     <Space>
                       <Check size={16} className="text-green-500 mt-1" />
-                      <TemplatePreviewButton
-                        templateRef={list.double_optin_template}
-                        workspace={workspace}
-                      />
+                      {permissionsLoading ? (
+                        // Until the permissions are known, neither the preview (whose request
+                        // may be refused) nor the ID (which would flash before the preview).
+                        <Button type="link" size="small" loading>
+                          {t`preview`}
+                        </Button>
+                      ) : canReadTemplates ? (
+                        <TemplatePreviewButton
+                          templateRef={list.double_optin_template}
+                          workspace={workspace}
+                        />
+                      ) : (
+                        <Text code>{list.double_optin_template.id}</Text>
+                      )}
                     </Space>
                   ) : (
                     <X size={16} className="text-slate-500 mt-1" />
@@ -376,7 +390,11 @@ export function ListsPage() {
           </Title>
           <Paragraph type="secondary">{t`Create your first list to get started`}</Paragraph>
           <div className="mt-4">
-            <CreateListDrawer workspaceId={workspaceId} buttonProps={{ size: 'large' }} />
+            <CreateListDrawer
+              workspaceId={workspaceId}
+              canReadTemplates={canReadTemplates}
+              buttonProps={{ size: 'large' }}
+            />
           </div>
         </div>
       )}

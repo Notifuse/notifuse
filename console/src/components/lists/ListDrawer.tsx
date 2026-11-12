@@ -21,11 +21,14 @@ interface CreateListDrawerProps {
     size?: 'large' | 'middle' | 'small'
     disabled?: boolean
   }
+  // Without Templates read the double opt-in template field shows the stored ID and is locked.
+  canReadTemplates: boolean
 }
 
 export function CreateListDrawer({
   workspaceId,
   list,
+  canReadTemplates,
   buttonProps = {
     type: 'primary',
     buttonContent: list ? 'Edit List' : 'Create List',
@@ -257,6 +260,7 @@ export function CreateListDrawer({
                     category="opt_in"
                     placeholder={t`Select confirmation email template`}
                     clearable={false}
+                    canReadTemplates={canReadTemplates}
                   />
                 </Form.Item>
               ) : null

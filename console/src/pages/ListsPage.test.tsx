@@ -10,9 +10,18 @@ vi.mock('@tanstack/react-router', () => ({
   useParams: () => ({ workspaceId: 'ws1' })
 }))
 
+const state = vi.hoisted(() => ({
+  permissions: {} as Record<string, { read: boolean; write: boolean }> | null,
+  permissionsLoading: false,
+  lists: [] as Record<string, unknown>[]
+}))
+
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({ workspaces: [{ id: 'ws1', name: 'Workspace' }] }),
-  useWorkspacePermissions: () => ({ permissions: { lists: { read: true, write: true } } })
+  useWorkspacePermissions: () => ({
+    permissions: state.permissions,
+    loading: state.permissionsLoading
+  })
 }))
 
 // The icon is the only content of the delete button; render something a test can find.
@@ -23,7 +32,11 @@ vi.mock('@fortawesome/react-fontawesome', () => ({
 }))
 
 // Keep the page render shallow: these children play no part in deleting a list.
-vi.mock('../components/lists/ListDrawer', () => ({ CreateListDrawer: () => null }))
+vi.mock('../components/lists/ListDrawer', () => ({
+  CreateListDrawer: ({ canReadTemplates }: { canReadTemplates: boolean }) => (
+    <span data-testid="list-drawer" data-can-read-templates={String(canReadTemplates)} />
+  )
+}))
 vi.mock('../components/lists/ImportContactsToListButton', () => ({
   ImportContactsToListButton: () => null
 }))
@@ -37,23 +50,22 @@ vi.mock('../services/api/template', () => ({ templatesApi: { get: vi.fn() } }))
 const deleteList = vi.fn()
 vi.mock('../services/api/list', () => ({
   listsApi: {
-    list: vi.fn().mockResolvedValue({
-      lists: [
-        {
-          id: 'newsletter',
-          name: 'Newsletter',
-          is_double_optin: false,
-          is_public: false,
-          created_at: '2026-01-01T00:00:00Z',
-          updated_at: '2026-01-01T00:00:00Z'
-        }
-      ]
-    }),
+    list: vi.fn(() => Promise.resolve({ lists: state.lists })),
     delete: (...args: unknown[]) => deleteList(...args)
   }
 }))
 
 import { ListsPage } from './ListsPage'
+import { templatesApi } from '../services/api/template'
+
+const newsletter = {
+  id: 'newsletter',
+  name: 'Newsletter',
+  is_double_optin: false,
+  is_public: false,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z'
+}
 
 const renderPage = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -83,6 +95,8 @@ const deleteTheList = async (container: HTMLElement) => {
 
 describe('ListsPage list deletion', () => {
   beforeEach(() => {
+    state.permissions = { lists: { read: true, write: true } }
+    state.lists = [newsletter]
     deleteList.mockReset()
     vi.mocked(message.error).mockClear()
   })
@@ -174,5 +188,64 @@ describe('ListsPage list deletion', () => {
 
     await waitFor(() => expect(message.error).toHaveBeenCalledWith('Failed to delete list'))
     expect(message.error).not.toHaveBeenCalledWith('pq: connection reset')
+  })
+})
+
+// Without Templates read, templates.get answers 403: the card shows the double opt-in template's
+// ID instead of a preview link that does nothing, and the drawers lock their template field.
+describe('ListsPage without Templates read', () => {
+  beforeEach(() => {
+    vi.mocked(templatesApi.get).mockReset()
+    vi.mocked(templatesApi.get).mockResolvedValue({
+      template: { id: 'tpl-optin', name: 'Confirm your subscription' }
+    } as Awaited<ReturnType<typeof templatesApi.get>>)
+    state.lists = [
+      { ...newsletter, is_double_optin: true, double_optin_template: { id: 'tpl-optin', version: 2 } }
+    ]
+    state.permissionsLoading = false
+  })
+
+  const drawerFlags = () =>
+    screen.getAllByTestId('list-drawer').map((el) => el.getAttribute('data-can-read-templates'))
+
+  it("shows the template's ID and requests no template", async () => {
+    state.permissions = { lists: { read: true, write: true }, templates: { read: false, write: false } }
+    renderPage()
+
+    expect(await screen.findByText('tpl-optin')).toBeInTheDocument()
+    expect(drawerFlags()).toEqual(['false', 'false'])
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(templatesApi.get).not.toHaveBeenCalled()
+  })
+
+  it('previews the template with Templates read', async () => {
+    state.permissions = { lists: { read: true, write: true }, templates: { read: true, write: false } }
+    renderPage()
+
+    await waitFor(() =>
+      expect(templatesApi.get).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'tpl-optin', version: 2 })
+    )
+    expect(screen.queryByText('tpl-optin')).toBeNull()
+    expect(drawerFlags()).toEqual(['true', 'true'])
+  })
+
+  it('shows neither the ID nor a preview request while the permissions load', async () => {
+    state.permissions = null
+    state.permissionsLoading = true
+    renderPage()
+
+    expect(await screen.findByText('Newsletter')).toBeInTheDocument()
+    expect(screen.queryByText('tpl-optin')).toBeNull()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(templatesApi.get).not.toHaveBeenCalled()
+  })
+
+  it('passes the permission to the drawer of an empty page', async () => {
+    state.permissions = { lists: { read: true, write: true }, templates: { read: false, write: false } }
+    state.lists = []
+    renderPage()
+
+    expect(await screen.findByText('No lists found')).toBeInTheDocument()
+    expect(drawerFlags()).toEqual(['false'])
   })
 })

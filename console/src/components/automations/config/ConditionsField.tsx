@@ -64,7 +64,7 @@ export const ConditionsField: React.FC<ConditionsFieldProps> = ({
   notice
 }) => {
   const { t } = useLingui()
-  const { lists, workspace } = useAutomation()
+  const { lists, workspace, canReadTemplates } = useAutomation()
   const [open, setOpen] = useState(false)
 
   const configured = HasLeaf(value)
@@ -143,6 +143,7 @@ export const ConditionsField: React.FC<ConditionsFieldProps> = ({
           schemas={TableSchemas}
           lists={lists}
           workspaceId={workspace.id}
+          canReadTemplates={canReadTemplates}
         />
       </Drawer>
     </>

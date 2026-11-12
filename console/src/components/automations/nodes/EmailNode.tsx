@@ -12,7 +12,7 @@ type EmailNodeProps = NodeProps<AutomationFlowNode>
 
 export const EmailNode: React.FC<EmailNodeProps> = ({ data, selected }) => {
   const { t } = useLingui()
-  const { templates } = useAutomation()
+  const { templates, canReadTemplates } = useAutomation()
   const config = data.config as Structural<EmailNodeConfig>
   const hasTemplate = !!config?.template_id
   const templateName = config?.template_id ? templates.find(tmpl => tmpl.id === config.template_id)?.name : undefined
@@ -44,7 +44,8 @@ export const EmailNode: React.FC<EmailNodeProps> = ({ data, selected }) => {
         onDelete={data.onDelete}
       >
         {hasTemplate ? (
-          <div>{templateName || t`Template set`}</div>
+          // Without Templates read the templates are not listed: the ID says which.
+          <div>{canReadTemplates ? templateName || t`Template set` : config.template_id}</div>
         ) : (
           <div className="text-orange-500">{t`Select`}</div>
         )}

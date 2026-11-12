@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -19,8 +19,9 @@ vi.mock('@xyflow/react', () => ({
 // populated by AutomationsPage's templates query; EmailNode resolves the
 // selected template_id against it to display the template name on the canvas.
 let mockTemplates: Template[] = []
+let mockCanReadTemplates = true
 vi.mock('../context', () => ({
-  useAutomation: () => ({ templates: mockTemplates })
+  useAutomation: () => ({ templates: mockTemplates, canReadTemplates: mockCanReadTemplates })
 }))
 
 const makeTemplate = (id: string, name: string, category: string): Template =>
@@ -38,6 +39,10 @@ const renderNode = (config: Record<string, unknown>) => {
 }
 
 describe('EmailNode', () => {
+  afterEach(() => {
+    mockCanReadTemplates = true
+  })
+
   it('shows the template name for a selected template of any category', () => {
     // Regression guard for the "Template set" bug: a welcome-category template is
     // a valid selection for an automation email node (welcome/unsubscribe emails
@@ -57,6 +62,17 @@ describe('EmailNode', () => {
     renderNode({ template_id: 'missing-id' })
 
     expect(screen.getByText('Template set')).toBeInTheDocument()
+  })
+
+  // Without Templates read the page does not list the templates: the node names its template by
+  // ID rather than the bare "Template set".
+  it("shows the template's ID without Templates read", () => {
+    mockTemplates = []
+    mockCanReadTemplates = false
+    renderNode({ template_id: 'welcome-pdf' })
+
+    expect(screen.getByText('welcome-pdf')).toBeInTheDocument()
+    expect(screen.queryByText('Template set')).not.toBeInTheDocument()
   })
 
   it('prompts to select when no template is configured', () => {

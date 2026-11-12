@@ -31,6 +31,8 @@ interface UpsertAutomationDrawerProps {
   lists?: List[]
   segments?: Segment[]
   templates?: Template[]
+  // Without Templates read the template fields of the canvas show the stored IDs, locked.
+  canReadTemplates: boolean
   // Controlled mode props
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -247,6 +249,7 @@ export function UpsertAutomationDrawer({
   lists = [],
   segments = [],
   templates = [],
+  canReadTemplates,
   open: controlledOpen,
   onOpenChange
 }: UpsertAutomationDrawerProps) {
@@ -312,6 +315,7 @@ export function UpsertAutomationDrawer({
             lists={lists}
             segments={segments}
             templates={templates}
+            canReadTemplates={canReadTemplates}
             onSaveSuccess={handleSaveSuccess}
             onClose={handleClose}
           >

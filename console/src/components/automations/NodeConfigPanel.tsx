@@ -71,7 +71,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   onClose
 }) => {
   const { t } = useLingui()
-  const { workspace } = useAutomation()
+  const { workspace, canReadTemplates } = useAutomation()
 
   if (!selectedNode) {
     return null
@@ -99,6 +99,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
             onChange={handleConfigChange}
             workspaceId={workspaceId}
             workspace={workspace}
+            canReadTemplates={canReadTemplates}
           />
         )
       case 'delay':
@@ -115,6 +116,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
             onChange={handleConfigChange}
             workspaceId={workspaceId}
             workspace={workspace}
+            canReadTemplates={canReadTemplates}
           />
         )
       case 'ab_test':

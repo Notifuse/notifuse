@@ -82,6 +82,9 @@ interface UpsertBroadcastDrawerProps {
   onClose?: () => void
   lists?: List[]
   segments?: { id: string; name: string; color: string; users_count?: number }[]
+  // Without Templates read the template fields show the stored IDs, locked, and the sender
+  // fields do not look up the templates' senders.
+  canReadTemplates: boolean
 }
 
 export function UpsertBroadcastDrawer({
@@ -91,7 +94,8 @@ export function UpsertBroadcastDrawer({
   buttonContent,
   onClose,
   lists = [],
-  segments = []
+  segments = [],
+  canReadTemplates
 }: UpsertBroadcastDrawerProps) {
   const { t } = useLingui()
   const [isOpen, setIsOpen] = useState(false)
@@ -834,6 +838,7 @@ export function UpsertBroadcastDrawer({
                                                 workspaceId={workspace.id}
                                                 placeholder={t`Select template`}
                                                 category="marketing"
+                                                canReadTemplates={canReadTemplates}
                                               />
                                             </Form.Item>
                                             <Form.Item
@@ -847,6 +852,7 @@ export function UpsertBroadcastDrawer({
                                                 templateId={
                                                   watchedVariations?.[field.name]?.template_id
                                                 }
+                                                canReadTemplates={canReadTemplates}
                                               />
                                             </Form.Item>
                                           </Col>
@@ -913,6 +919,7 @@ export function UpsertBroadcastDrawer({
                                 workspaceId={workspace.id}
                                 placeholder={t`Select template`}
                                 category="marketing"
+                                canReadTemplates={canReadTemplates}
                               />
                             </Form.Item>
                             <Form.Item
@@ -924,6 +931,7 @@ export function UpsertBroadcastDrawer({
                               <VariationSenderSelect
                                 workspace={workspace}
                                 templateId={watchedVariations?.[0]?.template_id}
+                                canReadTemplates={canReadTemplates}
                               />
                             </Form.Item>
                           </div>

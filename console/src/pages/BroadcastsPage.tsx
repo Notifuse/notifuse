@@ -358,6 +358,8 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
   const [testModalOpen, setTestModalOpen] = useState(false)
   const [templateToTest, setTemplateToTest] = useState<Template | null>(null)
   const [progressStats, setProgressStats] = useState<ProgressStats | undefined>()
+  // Without Templates read, templates.list and templates.get answer 403.
+  const canReadTemplates = !!permissions?.templates?.read
 
   const variations = broadcast.test_settings.variations || []
 
@@ -621,6 +623,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                 {currentWorkspace && (
                   <UpsertBroadcastDrawer
                     workspace={currentWorkspace}
+                    canReadTemplates={canReadTemplates}
                     broadcast={broadcast}
                     lists={lists}
                     segments={segments}
@@ -688,6 +691,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               workspace={currentWorkspace}
               broadcast={broadcast}
               disabled={!permissions?.broadcasts?.write}
+              canReadTemplates={canReadTemplates}
             />
           )}
           {broadcast.status === 'paused' && (
@@ -854,7 +858,10 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                     key: variation.template_id || index,
                     index: index + 1,
                     isWinner,
-                    templateName: variation.template?.name || t`Untitled`,
+                    // Without Templates read the list comes without templates: the ID says which.
+                    templateName:
+                      variation.template?.name ||
+                      (canReadTemplates ? t`Untitled` : variation.template_id),
                     template: variation.template,
                     sender: resolvedSender.sender
                       ? formatSender(resolvedSender.sender)
@@ -1641,6 +1648,7 @@ export function BroadcastsPage() {
                 <div>
                   <UpsertBroadcastDrawer
                     workspace={currentWorkspace}
+                    canReadTemplates={!!permissions?.templates?.read}
                     lists={lists}
                     segments={segments}
                     buttonContent={<>{t`Create Broadcast`}</>}
@@ -1781,6 +1789,7 @@ export function BroadcastsPage() {
                 <div>
                   <UpsertBroadcastDrawer
                     workspace={currentWorkspace}
+                    canReadTemplates={!!permissions?.templates?.read}
                     lists={lists}
                     segments={segments}
                     buttonContent={t`Create Broadcast`}
