@@ -424,6 +424,8 @@ export interface WorkspaceMember {
   workspace_id: string
   role: string
   email: string
+  /** The member's name; empty or absent for an invitation and a member who gave none. */
+  name?: string
   type: 'user' | 'api_key'
   created_at: string
   updated_at: string

@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WebhooksSettings } from './WebhooksSettings'
 import { webhookSubscriptionApi } from '../../services/api/webhook_subscription'
+import { analyticsService } from '../../services/api/analytics'
+import { ApiError } from '../../services/api/errors'
 // Type-only: the module itself is mocked below, and an erased import cannot resurrect it.
 import type { WebhookSubscription } from '../../services/api/webhook_subscription'
 
@@ -16,9 +19,13 @@ vi.mock('../../services/api/analytics', () => ({
   }
 }))
 
+const router = vi.hoisted(() => ({ navigate: vi.fn() }))
+vi.mock('@tanstack/react-router', () => ({ useNavigate: () => router.navigate }))
+
 vi.mock('../../services/api/webhook_subscription', () => ({
   webhookSubscriptionApi: {
     list: vi.fn(),
+    get: vi.fn(),
     getEventTypes: vi.fn().mockResolvedValue({ event_types: ['contact.created', 'list.subscribed'] }),
     create: vi.fn().mockResolvedValue({}),
     update: vi.fn().mockResolvedValue({}),
@@ -57,38 +64,73 @@ const subscriptions: WebhookSubscription[] = [
   }
 ]
 
-const renderSettings = async () => {
-  const utils = render(
-    <I18nProvider i18n={i18n}>
-      <ConfigProvider>
-        <App>
-          <WebhooksSettings workspaceId="ws1" />
-        </App>
-      </ConfigProvider>
-    </I18nProvider>
+interface RenderOptions {
+  canManage?: boolean
+  openWebhookId?: string
+  client?: QueryClient
+}
+
+const onOpenWebhook = vi.fn()
+
+const renderTable = (options: RenderOptions = {}) => {
+  const client = options.client ?? new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const ui = (opts: RenderOptions) => (
+    <QueryClientProvider client={client}>
+      <I18nProvider i18n={i18n}>
+        <ConfigProvider>
+          <App>
+            <WebhooksSettings
+              workspaceId="ws1"
+              canManage={opts.canManage ?? true}
+              openWebhookId={opts.openWebhookId}
+              onOpenWebhook={onOpenWebhook}
+            />
+          </App>
+        </ConfigProvider>
+      </I18nProvider>
+    </QueryClientProvider>
   )
+  const utils = render(ui(options))
+  return { ...utils, client, rerenderWith: (next: RenderOptions) => utils.rerender(ui({ ...options, ...next })) }
+}
+
+const renderSettings = async (options: RenderOptions = {}) => {
+  const utils = renderTable(options)
   await screen.findByText('My Own Webhook')
   return utils
 }
 
-const cardOf = (name: string): HTMLElement => {
-  const card = screen.getByText(name).closest('.ant-card')
-  if (!card) throw new Error(`no card rendered for ${name}`)
-  return card as HTMLElement
+const rowOf = (name: string): HTMLElement => {
+  const row = screen.getAllByText(name)[0].closest('tr')
+  if (!row) throw new Error(`no row rendered for ${name}`)
+  return row as HTMLElement
 }
 
-const editButton = (card: HTMLElement): HTMLButtonElement => {
-  const svg = card.querySelector('[data-icon="pen-to-square"]')
-  if (!svg) throw new Error('no edit icon rendered')
-  const button = svg.closest('button')
-  if (!button) throw new Error('edit icon is not inside a button')
-  return button
+let currentList: WebhookSubscription[] = subscriptions
+const setList = (list: WebhookSubscription[]) => {
+  currentList = list
+  vi.mocked(webhookSubscriptionApi.list).mockResolvedValue({ subscriptions: list })
+  vi.mocked(webhookSubscriptionApi.get).mockImplementation(async (_ws: string, id: string) => {
+    const found = currentList.find((sub) => sub.id === id)
+    if (!found) throw new ApiError('webhook subscription not found', 404)
+    return { subscription: found }
+  })
+}
+
+// The edit drawer opens from the detail panel of the subscription.
+const openEdit = async (name: string, id: string) => {
+  const { rerenderWith } = await renderSettings()
+  rerenderWith({ openWebhookId: id })
+  const panel = await screen.findByRole('dialog')
+  await within(panel).findByRole('heading', { name })
+  fireEvent.click(within(panel).getByRole('button', { name: 'Edit' }))
 }
 
 describe('WebhooksSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(webhookSubscriptionApi.list).mockResolvedValue({ subscriptions })
+    setList(subscriptions)
+    vi.mocked(analyticsService.query).mockResolvedValue({ data: [], meta: { total: 0, query: '', params: [] } })
     vi.mocked(webhookSubscriptionApi.getEventTypes).mockResolvedValue({
       event_types: ['contact.created', 'list.subscribed']
     })
@@ -97,15 +139,12 @@ describe('WebhooksSettings', () => {
   it('badges only the subscription Zapier created', async () => {
     await renderSettings()
 
-    expect(screen.getByText('Zap: new contact to Slack')).toBeInTheDocument()
-    expect(cardOf('Zap: new contact to Slack').textContent).toContain('Zapier')
-    expect(cardOf('My Own Webhook').textContent).not.toContain('Zapier')
+    expect(rowOf('Zap: new contact to Slack').textContent).toContain('Zapier')
+    expect(rowOf('My Own Webhook').textContent).not.toContain('Zapier')
   })
 
   it('locks the endpoint URL and warns when editing a Zapier subscription', async () => {
-    await renderSettings()
-
-    fireEvent.click(editButton(cardOf('Zap: new contact to Slack')))
+    await openEdit('Zap: new contact to Slack', 'wh-zap')
 
     expect(await screen.findByText('Managed by Zapier')).toBeInTheDocument()
     await waitFor(() =>
@@ -114,9 +153,7 @@ describe('WebhooksSettings', () => {
   })
 
   it('leaves the endpoint URL editable and unwarned for a user-created subscription', async () => {
-    await renderSettings()
-
-    fireEvent.click(editButton(cardOf('My Own Webhook')))
+    await openEdit('My Own Webhook', 'wh-user')
 
     await waitFor(() =>
       expect(screen.getByPlaceholderText('https://example.com/webhook')).toBeEnabled()
@@ -130,22 +167,18 @@ describe('WebhooksSettings', () => {
   // name, and this drawer is the only place a user can remove these, so an absent key would
   // leave the filter the user just cleared in place with nothing able to shift it.
   it('sends an empty custom event filter when the user clears the last one', async () => {
-    vi.mocked(webhookSubscriptionApi.list).mockResolvedValue({
-      subscriptions: [
-        {
-          ...subscriptions[0],
-          settings: {
-            event_types: ['custom_event.created'],
-            custom_event_filters: { goal_types: ['purchase'] }
-          },
-          // The drawer seeds its controls from the flattened field, not from settings.
+    setList([
+      {
+        ...subscriptions[0],
+        settings: {
+          event_types: ['custom_event.created'],
           custom_event_filters: { goal_types: ['purchase'] }
-        }
-      ]
-    })
-    await renderSettings()
-
-    fireEvent.click(editButton(cardOf('My Own Webhook')))
+        },
+        // The drawer seeds its controls from the flattened field, not from settings.
+        custom_event_filters: { goal_types: ['purchase'] }
+      }
+    ])
+    await openEdit('My Own Webhook', 'wh-user')
     // The two filter controls are the drawer's only antd Selects — event types are a
     // Checkbox.Group — so the one removable tag on screen is the stored goal type.
     const remove = await waitFor(() => {
@@ -170,9 +203,7 @@ describe('WebhooksSettings', () => {
   // request. It is also the second line of defence if that contract ever regresses: this is
   // the save that would widen a Zap watching one list to every list in the workspace.
   it('preserves the list filter when a Zapier subscription is saved', async () => {
-    await renderSettings()
-
-    fireEvent.click(editButton(cardOf('Zap: new contact to Slack')))
+    await openEdit('Zap: new contact to Slack', 'wh-zap')
     await screen.findByText('Managed by Zapier')
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -184,9 +215,7 @@ describe('WebhooksSettings', () => {
   })
 
   it('sends no filters for a subscription that has none', async () => {
-    await renderSettings()
-
-    fireEvent.click(editButton(cardOf('My Own Webhook')))
+    await openEdit('My Own Webhook', 'wh-user')
     await waitFor(() =>
       expect(screen.getByPlaceholderText('https://example.com/webhook')).toBeEnabled()
     )
@@ -203,9 +232,7 @@ describe('WebhooksSettings', () => {
   // anything it sends is the value read when the drawer opened - and toMatchObject cannot tell
   // an absent key from a matching one, which is why these assert on the key itself.
   it('sends no enabled flag when an enabled subscription is saved', async () => {
-    await renderSettings()
-
-    fireEvent.click(editButton(cardOf('My Own Webhook')))
+    await openEdit('My Own Webhook', 'wh-user')
     await waitFor(() =>
       expect(screen.getByPlaceholderText('https://example.com/webhook')).toBeEnabled()
     )
@@ -218,12 +245,8 @@ describe('WebhooksSettings', () => {
   })
 
   it('sends no enabled flag when a disabled subscription is saved', async () => {
-    vi.mocked(webhookSubscriptionApi.list).mockResolvedValue({
-      subscriptions: [{ ...subscriptions[0], enabled: false }]
-    })
-    await renderSettings()
-
-    fireEvent.click(editButton(cardOf('My Own Webhook')))
+    setList([{ ...subscriptions[0], enabled: false }])
+    await openEdit('My Own Webhook', 'wh-user')
     await waitFor(() =>
       expect(screen.getByPlaceholderText('https://example.com/webhook')).toBeEnabled()
     )
@@ -231,5 +254,160 @@ describe('WebhooksSettings', () => {
 
     await waitFor(() => expect(webhookSubscriptionApi.update).toHaveBeenCalled())
     expect('enabled' in vi.mocked(webhookSubscriptionApi.update).mock.calls[0][0]).toBe(false)
+  })
+})
+
+const rates = (rows: Array<{ id: string; delivered: number; failed: number }>) => {
+  vi.mocked(analyticsService.query).mockResolvedValue({
+    data: rows.map((row) => ({ subscription_id: row.id, count_delivered: row.delivered, count_failed: row.failed })),
+    meta: { total: rows.length, query: '', params: [] }
+  })
+}
+
+// The pill of a rate carries its tone as its background.
+const toneOf = (text: string): string | undefined => {
+  const pill = screen.getByText(text).closest('span[class*="bg-"]')
+  return pill?.className.match(/bg-(success|warning|danger|neutral)-bg/)?.[1]
+}
+
+describe('WebhooksSettings table', () => {
+  const three: WebhookSubscription[] = [
+    ...subscriptions,
+    { ...subscriptions[0], id: 'wh-bad', name: 'Flaky endpoint', url: 'https://flaky.example.com/in' }
+  ]
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setList(three)
+    rates([])
+    vi.mocked(webhookSubscriptionApi.getEventTypes).mockResolvedValue({ event_types: ['contact.created'] })
+  })
+
+  it('tones the 7-day success rate of each endpoint', async () => {
+    rates([
+      { id: 'wh-user', delivered: 998, failed: 2 },
+      { id: 'wh-zap', delivered: 95, failed: 5 },
+      { id: 'wh-bad', delivered: 61, failed: 39 }
+    ])
+    await renderSettings()
+
+    expect(await screen.findByText('99.8%')).toBeInTheDocument()
+    expect(toneOf('99.8%')).toBe('success')
+    expect(toneOf('95.0%')).toBe('warning')
+    expect(toneOf('61.0%')).toBe('danger')
+  })
+
+  it('reads the rates in one query over the last 7 days', async () => {
+    await renderSettings()
+
+    await waitFor(() => expect(analyticsService.query).toHaveBeenCalledTimes(1))
+    const query = vi.mocked(analyticsService.query).mock.calls[0][0]
+    expect(query.dimensions).toEqual(['subscription_id'])
+    expect(query.measures).toEqual(['count_delivered', 'count_failed'])
+    const since = new Date(query.filters?.find((f) => f.member === 'created_at')?.values?.[0] as string)
+    const days = (Date.now() - since.getTime()) / (24 * 60 * 60 * 1000)
+    expect(days).toBeGreaterThan(6.99)
+    expect(days).toBeLessThan(7.01)
+    // Rounded to the minute, so a re-render does not start a new query.
+    expect(since.getSeconds()).toBe(0)
+  })
+
+  it('shows a dash for an endpoint without deliveries in 7 days', async () => {
+    rates([{ id: 'wh-user', delivered: 10, failed: 0 }])
+    await renderSettings()
+
+    await screen.findByText('100.0%')
+    expect(rowOf('Flaky endpoint').textContent).toContain('—')
+  })
+
+  it('shows a dash when the rates fail to load', async () => {
+    vi.mocked(analyticsService.query).mockRejectedValue(new Error('analytics down'))
+    await renderSettings()
+
+    await waitFor(() => expect(rowOf('My Own Webhook').textContent).toContain('—'))
+  })
+
+  it('dates the last successful delivery, or says there was none', async () => {
+    setList([{ ...subscriptions[0], last_delivery_at: new Date(Date.now() - 2 * 60 * 1000).toISOString() }, subscriptions[1]])
+    await renderSettings()
+
+    expect(rowOf('My Own Webhook').textContent).toContain('2 minutes ago')
+    expect(rowOf('Zap: new contact to Slack').textContent).toContain('No successful delivery')
+  })
+
+  it('marks a disabled and an auto-disabled endpoint', async () => {
+    setList([
+      { ...subscriptions[0], enabled: false },
+      { ...subscriptions[1], enabled: false, disabled_reason: 'Endpoint kept failing' }
+    ])
+    await renderSettings()
+
+    expect(rowOf('My Own Webhook').textContent).toContain('Disabled')
+    expect(rowOf('Zap: new contact to Slack').textContent).toContain('Auto-disabled')
+  })
+
+  it('opens the detail of the row clicked', async () => {
+    await renderSettings()
+
+    fireEvent.click(rowOf('My Own Webhook'))
+
+    expect(onOpenWebhook).toHaveBeenCalledWith('wh-user')
+  })
+
+  it('opens the panel the URL names, and walks the rows with J', async () => {
+    renderTable({ openWebhookId: 'wh-zap' })
+
+    const panel = await screen.findByRole('dialog')
+    expect(await within(panel).findByRole('heading', { name: 'Zap: new contact to Slack' })).toBeInTheDocument()
+    await screen.findByText('Flaky endpoint')
+
+    fireEvent.keyDown(document.body, { key: 'j' })
+    expect(onOpenWebhook).toHaveBeenCalledWith('wh-bad')
+  })
+
+  it('drops a webhook the URL names that no longer exists', async () => {
+    renderTable({ openWebhookId: 'wh-gone' })
+
+    await waitFor(() => expect(onOpenWebhook).toHaveBeenCalledWith(undefined))
+    expect(await screen.findByText('This webhook no longer exists')).toBeInTheDocument()
+  })
+
+  it('disables adding an endpoint without the right to manage webhooks', async () => {
+    await renderSettings({ canManage: false })
+
+    expect(screen.getByRole('button', { name: /Add endpoint/ })).toBeDisabled()
+  })
+
+  it('keeps "Add endpoint" while the list loads', async () => {
+    vi.mocked(webhookSubscriptionApi.list).mockReturnValue(new Promise(() => {}))
+    renderTable()
+
+    expect(await screen.findByTestId('webhooks-skeleton')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Add endpoint/ })).toBeEnabled()
+  })
+
+  it('says so when the member may not view webhooks', async () => {
+    vi.mocked(webhookSubscriptionApi.list).mockRejectedValue(new ApiError('forbidden', 403))
+    renderTable()
+
+    expect(await screen.findByText("You don't have permission to view webhooks")).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
+  })
+
+  it('offers a retry when the list fails for another reason', async () => {
+    vi.mocked(webhookSubscriptionApi.list).mockRejectedValueOnce(new ApiError('database is down', 500))
+    renderTable()
+
+    expect(await screen.findByText('database is down')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByText('My Own Webhook')).toBeInTheDocument()
+  })
+
+  it('invites to add the first endpoint when there is none', async () => {
+    setList([])
+    renderTable()
+
+    expect(await screen.findByText('No webhooks yet')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Add endpoint/ }).length).toBeGreaterThan(0)
   })
 })

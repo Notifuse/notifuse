@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { i18n } from '@lingui/core'
-import { useNumberFormat, numberFormat } from './format'
+import { useNumberFormat, numberFormat, relativeDate } from './format'
 
 const NNBSP = ' ' // narrow no-break space: French thousands separator
 const NBSP = ' ' // no-break space: before French % and compact units
@@ -49,5 +49,34 @@ describe('useNumberFormat', () => {
 
   it('follows the console locale it is called with', () => {
     expect(numberFormat('de', i18n).int(1234567)).toBe('1.234.567')
+  })
+})
+
+describe('relativeDate', () => {
+  const now = new Date('2026-11-12T12:00:00Z')
+
+  it('reads a date under 7 days old relative to now, in the console language', () => {
+    expect(relativeDate('en', new Date('2026-11-12T11:58:00Z'), now)).toBe('2 minutes ago')
+    expect(relativeDate('en', new Date('2026-11-12T09:00:00Z'), now)).toBe('3 hours ago')
+    expect(relativeDate('en', new Date('2026-11-11T09:00:00Z'), now)).toBe('yesterday')
+    expect(relativeDate('en', new Date('2026-11-07T12:00:00Z'), now)).toBe('5 days ago')
+    expect(relativeDate('fr', new Date('2026-11-12T09:00:00Z'), now)).toBe('il y a 3 heures')
+  })
+
+  it('says now for a date under a minute old', () => {
+    expect(relativeDate('en', new Date('2026-11-12T11:59:40Z'), now)).toBe('now')
+  })
+
+  it('writes the date itself from 7 days on', () => {
+    expect(relativeDate('en', new Date('2026-11-05T12:00:00Z'), now)).toBe('Nov 5, 2026')
+    expect(relativeDate('fr', new Date('2026-10-01T12:00:00Z'), now)).toBe('1 oct. 2026')
+  })
+
+  it('reads a date to come relative to now as well', () => {
+    expect(relativeDate('en', new Date('2026-11-14T12:00:00Z'), now)).toBe('in 2 days')
+  })
+
+  it('takes ISO strings', () => {
+    expect(relativeDate('en', '2026-11-12T11:00:00Z', now)).toBe('1 hour ago')
   })
 })

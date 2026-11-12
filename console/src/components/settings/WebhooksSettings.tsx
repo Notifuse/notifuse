@@ -1,77 +1,122 @@
-import { useState, useEffect } from 'react'
-import {
-  Alert,
-  Card,
-  Button,
-  Space,
-  Form,
-  Input,
-  Select,
-  Checkbox,
-  message,
-  Drawer,
-  Row,
-  Col
-} from 'antd'
-import { faPlus } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { useEffect, useMemo, useState } from 'react'
+import { Alert, Button, Checkbox, Col, Drawer, Empty, Form, Input, Result, Row, Select, Skeleton, Space, Table, Tooltip, message } from 'antd'
+import type { ColumnsType } from 'antd/es/table'
+import { ChevronRight, Globe, Plus, RefreshCw } from 'lucide-react'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
-import { WebhookCard } from './WebhookCard'
+import { WebhookDetail } from './WebhookDetail'
+import { invalidateWebhookQueries, webhookQueryKeys } from './webhookQueries'
 import Subtitle from '../common/subtitle'
+import { Mono, Panel, Pill, useNumberFormat, useRelativeDate, type PillTone } from '../layout'
 import {
   webhookSubscriptionApi,
   WebhookSubscription,
   CustomEventFilters,
   UpdateWebhookSubscriptionRequest
 } from '../../services/api/webhook_subscription'
+import { analyticsService } from '../../services/api/analytics'
+import { ApiError } from '../../services/api/errors'
 
 interface WebhooksSettingsProps {
   workspaceId: string
+  /** Owner or `webhook_subscriptions.write`: every write is disabled without it. */
+  canManage: boolean
+  /** The subscription whose panel is open (`?webhook=`). */
+  openWebhookId?: string
+  /** Opens a subscription's panel, or closes it without an id. */
+  onOpenWebhook: (id?: string) => void
 }
 
-export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
+interface DeliveryCounts {
+  delivered: number
+  failed: number
+}
+
+const DAY = 24 * 60 * 60 * 1000
+const MINUTE = 60 * 1000
+
+/** Seven days back, rounded down to the minute so the query key holds still between renders. */
+const sevenDaysAgo = () => new Date(Math.floor((Date.now() - 7 * DAY) / MINUTE) * MINUTE).toISOString()
+
+/** The success rate rounded as it is shown, so the tone never contradicts the figure. */
+function rateTone(ratio: number): PillTone {
+  const shown = Math.round(ratio * 1000) / 1000
+  if (shown >= 0.99) return 'success'
+  if (shown >= 0.9) return 'warning'
+  return 'danger'
+}
+
+/** A long URL cut in its middle, which keeps the host and the end of the path. */
+function middleTruncate(text: string, max = 44): string {
+  if (text.length <= max) return text
+  const tail = Math.floor((max - 1) / 3)
+  return `${text.slice(0, max - 1 - tail)}…${text.slice(-tail)}`
+}
+
+export function WebhooksSettings({ workspaceId, canManage, openWebhookId, onOpenWebhook }: WebhooksSettingsProps) {
   const { t } = useLingui()
-  const [subscriptions, setSubscriptions] = useState<WebhookSubscription[]>([])
-  const [eventTypes, setEventTypes] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+  const relativeDate = useRelativeDate()
+  const { percent } = useNumberFormat()
   const [drawerVisible, setDrawerVisible] = useState(false)
   const [editingSubscription, setEditingSubscription] = useState<WebhookSubscription | null>(null)
   const [form] = Form.useForm()
   const [saving, setSaving] = useState(false)
-
+  // W2 counts from this time; it moves only with Refresh.
+  const [from, setFrom] = useState(sevenDaysAgo)
   useEffect(() => {
-    fetchSubscriptions()
-    fetchEventTypes()
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchSubscriptions is stable
+    setFrom(sevenDaysAgo())
   }, [workspaceId])
 
-  const fetchSubscriptions = async () => {
-    try {
-      setLoading(true)
-      const response = await webhookSubscriptionApi.list(workspaceId)
-      setSubscriptions(response.subscriptions || [])
-    } catch (error) {
-      console.error('Failed to fetch webhook subscriptions:', error)
-      message.error(t`Failed to load webhook subscriptions`)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // W1. The cache holds the raw response, as the Outgoing webhooks tab of Logs reads it.
+  const listQuery = useQuery({
+    queryKey: webhookQueryKeys.list(workspaceId),
+    queryFn: () => webhookSubscriptionApi.list(workspaceId)
+  })
+  const subscriptions = useMemo(() => listQuery.data?.subscriptions ?? [], [listQuery.data])
 
-  const fetchEventTypes = async () => {
-    try {
-      const response = await webhookSubscriptionApi.getEventTypes()
-      setEventTypes(response.event_types || [])
-    } catch (error) {
-      console.error('Failed to fetch event types:', error)
-    }
+  const eventTypesQuery = useQuery({
+    queryKey: ['webhook-event-types'],
+    queryFn: () => webhookSubscriptionApi.getEventTypes(),
+    staleTime: Infinity
+  })
+  const eventTypes = eventTypesQuery.data?.event_types ?? []
+
+  // W2: one grouped query for every subscription.
+  const ratesQuery = useQuery({
+    queryKey: webhookQueryKeys.successRates(workspaceId, from),
+    queryFn: async () => {
+      const result = await analyticsService.query(
+        {
+          schema: 'webhook_deliveries',
+          measures: ['count_delivered', 'count_failed'],
+          dimensions: ['subscription_id'],
+          filters: [{ member: 'created_at', operator: 'gte', values: [from] }]
+        },
+        workspaceId
+      )
+      const counts = new Map<string, DeliveryCounts>()
+      for (const row of result.data) {
+        counts.set(String(row.subscription_id), {
+          delivered: Number(row.count_delivered) || 0,
+          failed: Number(row.count_failed) || 0
+        })
+      }
+      return counts
+    },
+    placeholderData: keepPreviousData
+  })
+
+  const refresh = () => {
+    setFrom(sevenDaysAgo())
+    void queryClient.invalidateQueries({ queryKey: webhookQueryKeys.list(workspaceId) })
   }
 
   // Neither of these seeds `enabled`: the drawer registers no such Form.Item, so a value put in
   // the store here is never returned by validateFields and only makes the switch look like it
   // round-trips through the form. The drawer does not send the flag at all, and the switch
-  // itself lives on the subscription card.
+  // itself lives in the subscription's panel.
   const handleCreate = () => {
     setEditingSubscription(null)
     form.resetFields()
@@ -117,8 +162,8 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
         // instead of replacing, so a body that never mentions it leaves the subscription
         // set to whatever it is set to now. Sending editingSubscription.enabled would send
         // the value read when the drawer opened, and a stale true switches back on a
-        // subscription somebody disabled from the card meanwhile — wiping its failure
-        // counters on the way through. The switch on the card is the only place enabled
+        // subscription somebody disabled from its panel meanwhile — wiping its failure
+        // counters on the way through. The switch in the panel is the only place enabled
         // moves. Nothing here casts the key away any more; the request type says it is
         // optional, which is what keeps the next author from innocently filling it in.
         const update: UpdateWebhookSubscriptionRequest = {
@@ -153,38 +198,12 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
       }
 
       setDrawerVisible(false)
-      fetchSubscriptions()
+      await invalidateWebhookQueries(queryClient, workspaceId)
     } catch (error) {
       console.error('Failed to save webhook subscription:', error)
       message.error(t`Failed to save webhook subscription`)
     } finally {
       setSaving(false)
-    }
-  }
-
-  const handleDelete = async (id: string) => {
-    try {
-      await webhookSubscriptionApi.delete(workspaceId, id)
-      message.success(t`Webhook subscription deleted`)
-      fetchSubscriptions()
-    } catch (error) {
-      console.error('Failed to delete webhook subscription:', error)
-      message.error(t`Failed to delete webhook subscription`)
-    }
-  }
-
-  const handleToggle = async (id: string, enabled: boolean) => {
-    try {
-      await webhookSubscriptionApi.toggle({
-        workspace_id: workspaceId,
-        id,
-        enabled
-      })
-      message.success(enabled ? t`Webhook enabled` : t`Webhook disabled`)
-      fetchSubscriptions()
-    } catch (error) {
-      console.error('Failed to toggle webhook subscription:', error)
-      message.error(t`Failed to toggle webhook subscription`)
     }
   }
 
@@ -201,43 +220,223 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
     t.startsWith('custom_event.')
   )
 
+  const noPermission = canManage ? undefined : t`You don't have permission to manage webhooks`
+  const addButton = (
+    <Tooltip title={noPermission}>
+      <Button
+        type="primary"
+        size="small"
+        icon={<Plus size={14} aria-hidden="true" />}
+        onClick={handleCreate}
+        disabled={!canManage}
+      >
+        {t`Add endpoint`}
+      </Button>
+    </Tooltip>
+  )
+
+  const rateCell = (subscription: WebhookSubscription) => {
+    if (ratesQuery.isPending) return <Skeleton.Button active size="small" />
+    if (ratesQuery.isError) {
+      return (
+        <Tooltip title={t`Couldn't load the success rate`}>
+          <span className="text-ink-4">—</span>
+        </Tooltip>
+      )
+    }
+    const counts = ratesQuery.data?.get(subscription.id)
+    const attempts = counts ? counts.delivered + counts.failed : 0
+    if (!counts || attempts === 0) return <span className="text-ink-4">—</span>
+    const ratio = counts.delivered / attempts
+    return <Pill tone={rateTone(ratio)}>{percent(ratio)}</Pill>
+  }
+
+  const columns: ColumnsType<WebhookSubscription> = [
+    {
+      title: t`Endpoint`,
+      key: 'endpoint',
+      render: (_, subscription) => (
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Globe size={15} aria-hidden="true" className="shrink-0 text-ink-3" />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate font-medium text-ink">{subscription.name}</span>
+              {subscription.source === 'zapier' ? (
+                <Pill tone="neutral" dot={false}>
+                  {t`Zapier`}
+                </Pill>
+              ) : null}
+              {!subscription.enabled ? (
+                subscription.disabled_reason ? (
+                  <Pill tone="warning">{t`Auto-disabled`}</Pill>
+                ) : (
+                  <Pill tone="neutral">{t`Disabled`}</Pill>
+                )
+              ) : null}
+            </div>
+            <Tooltip title={subscription.url}>
+              <span className="min-w-0">
+                <Mono>{middleTruncate(subscription.url)}</Mono>
+              </span>
+            </Tooltip>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: t`Events`,
+      key: 'events',
+      width: 200,
+      render: (_, subscription) => {
+        const types = subscription.settings.event_types ?? []
+        if (types.length === 0) return <span className="text-ink-4">—</span>
+        const more = types.length - 1
+        return (
+          <Tooltip
+            title={
+              <div className="flex flex-col">
+                {types.map((type) => (
+                  <span key={type}>{type}</span>
+                ))}
+              </div>
+            }
+          >
+            <span className="inline-flex min-w-0 items-center gap-1.5">
+              <Mono>{types[0]}</Mono>
+              {more > 0 ? <span className="shrink-0 text-xs text-ink-3">+{more}</span> : null}
+            </span>
+          </Tooltip>
+        )
+      }
+    },
+    { title: t`Success 7d`, key: 'success', width: 110, render: (_, subscription) => rateCell(subscription) },
+    {
+      title: t`Last success`,
+      key: 'last-success',
+      width: 150,
+      render: (_, subscription) =>
+        subscription.last_delivery_at ? (
+          <span className="text-ink-2">{relativeDate(subscription.last_delivery_at)}</span>
+        ) : (
+          <span className="text-ink-3">{t`No successful delivery`}</span>
+        )
+    },
+    {
+      title: '',
+      key: 'open',
+      width: 40,
+      align: 'right',
+      render: () => <ChevronRight size={15} aria-hidden="true" className="text-ink-4" />
+    }
+  ]
+
+  const listError = listQuery.error
+  const forbidden = listError instanceof ApiError && listError.status === 403
+
+  const renderList = () => {
+    if (listQuery.isPending) {
+      return (
+        <div data-testid="webhooks-skeleton" className="px-3.5 py-3">
+          <Skeleton active title={false} paragraph={{ rows: 4 }} />
+        </div>
+      )
+    }
+    if (listQuery.isError) {
+      return forbidden ? (
+        <Result status="warning" title={t`You don't have permission to view webhooks`} />
+      ) : (
+        <Result
+          status="error"
+          title={t`Couldn't load the webhooks`}
+          subTitle={listError instanceof Error ? listError.message : undefined}
+          extra={<Button onClick={() => listQuery.refetch()}>{t`Retry`}</Button>}
+        />
+      )
+    }
+    if (subscriptions.length === 0) {
+      return (
+        <div className="py-8">
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={
+              <div className="flex flex-col gap-1">
+                <span className="font-medium text-ink">{t`No webhooks yet`}</span>
+                <span className="text-ink-3">{t`Add an endpoint to receive real-time notifications when events occur in your workspace.`}</span>
+              </div>
+            }
+          >
+            {addButton}
+          </Empty>
+        </div>
+      )
+    }
+    return (
+      <Table<WebhookSubscription>
+        rowKey="id"
+        size="middle"
+        columns={columns}
+        dataSource={subscriptions}
+        pagination={false}
+        rowClassName={() => 'cursor-pointer'}
+        onRow={(subscription) => ({
+          onClick: () => onOpenWebhook(subscription.id),
+          onKeyDown: (event) => {
+            if (event.key === 'Enter') onOpenWebhook(subscription.id)
+          },
+          tabIndex: 0
+        })}
+      />
+    )
+  }
+
+  // J and K walk the rows of the list while a panel is open.
+  const openIndex = subscriptions.findIndex((subscription) => subscription.id === openWebhookId)
+  const nav =
+    openIndex >= 0
+      ? {
+          position: openIndex + 1,
+          total: subscriptions.length,
+          onPrev: openIndex > 0 ? () => onOpenWebhook(subscriptions[openIndex - 1].id) : undefined,
+          onNext:
+            openIndex < subscriptions.length - 1 ? () => onOpenWebhook(subscriptions[openIndex + 1].id) : undefined
+        }
+      : undefined
+
   return (
     <>
-      <SettingsSectionHeader
-        title={t`Webhooks`}
-        description={t`Configure outgoing webhooks to receive real-time notifications when events occur in your workspace.`}
+      <SettingsSectionHeader title={t`Webhooks`} description={t`Tell your systems when something changes`} />
+
+      <Panel
+        flush
+        title={t`Outgoing webhooks`}
+        extra={
+          <>
+            <Tooltip title={t`Refresh`}>
+              <Button
+                type="text"
+                size="small"
+                aria-label={t`Refresh`}
+                icon={<RefreshCw size={14} aria-hidden="true" />}
+                onClick={refresh}
+              />
+            </Tooltip>
+            {addButton}
+          </>
+        }
+      >
+        {renderList()}
+      </Panel>
+
+      <WebhookDetail
+        workspaceId={workspaceId}
+        webhookId={openWebhookId}
+        placeholder={openIndex >= 0 ? subscriptions[openIndex] : undefined}
+        canManage={canManage}
+        nav={nav}
+        onClose={() => onOpenWebhook(undefined)}
+        onEdit={handleEdit}
+        onNotFound={() => onOpenWebhook(undefined)}
       />
-
-      {subscriptions.length === 0 && !loading ? (
-        <Card className="text-center py-8">
-          <p className="text-gray-500 mb-4">{t`No webhook subscriptions configured`}</p>
-          <Button type="primary" onClick={handleCreate}>
-            <FontAwesomeIcon icon={faPlus} className="mr-2" />
-            {t`Create Webhook`}
-          </Button>
-        </Card>
-      ) : (
-        <>
-          <div className="mb-4 text-right">
-            <Button type="primary" onClick={handleCreate}>
-              <FontAwesomeIcon icon={faPlus} className="mr-2" />
-              {t`Add Webhook`}
-            </Button>
-          </div>
-
-          {subscriptions.map((webhook) => (
-            <WebhookCard
-              key={webhook.id}
-              webhook={webhook}
-              workspaceId={workspaceId}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onToggle={handleToggle}
-              onRefresh={fetchSubscriptions}
-            />
-          ))}
-        </>
-      )}
 
       {/* Create/Edit Drawer */}
       <Drawer
