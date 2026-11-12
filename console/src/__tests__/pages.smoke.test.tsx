@@ -170,9 +170,26 @@ vi.mock('../services/api/broadcasts', () => ({
 }))
 
 // Mock automations API
-vi.mock('../services/api/automations', () => ({
-  automationsApi: {
-    list: vi.fn().mockResolvedValue({ automations: [] }),
+vi.mock('../services/api/automation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../services/api/automation')>()),
+  automationApi: {
+    list: vi.fn().mockResolvedValue({
+      automations: [
+        {
+          id: 'auto-smoke',
+          workspace_id: 'test-workspace',
+          name: 'Smoke automation',
+          status: 'paused',
+          list_id: '',
+          root_node_id: 't',
+          nodes: [],
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z'
+        }
+      ],
+      total: 1,
+      journey_counts: {}
+    }),
     get: vi.fn().mockResolvedValue({ automation: null }),
     create: vi.fn().mockResolvedValue({}),
     update: vi.fn().mockResolvedValue({}),
@@ -433,12 +450,10 @@ describe('Page Smoke Tests', () => {
       })
     })
 
-    it('AutomationsPage renders without error', async () => {
+    it('AutomationsPage renders a mocked row', async () => {
       const Wrapper = createWrapper()
-      expect(() => render(<AutomationsPage />, { wrapper: Wrapper })).not.toThrow()
-      await waitFor(() => {
-        expect(document.body).toBeTruthy()
-      })
+      render(<AutomationsPage />, { wrapper: Wrapper })
+      expect(await screen.findByText('Smoke automation')).toBeInTheDocument()
     })
 
     it('TransactionalNotificationsPage renders without error', async () => {

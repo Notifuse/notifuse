@@ -1,11 +1,11 @@
 import React, { useCallback, useRef, useEffect, useState, useMemo } from 'react'
 import {
   ReactFlow,
-  Controls,
   Background,
   MiniMap,
   Panel,
   useReactFlow,
+  useViewport,
   ReactFlowProvider,
   type Node,
   type NodeChange,
@@ -15,16 +15,28 @@ import {
   type OnNodesChange,
   BackgroundVariant
 } from '@xyflow/react'
-import { LayoutGrid } from 'lucide-react'
-import { Tooltip } from 'antd'
+import { LayoutGrid, Maximize, Minus, Plus } from 'lucide-react'
+import { Button, Tooltip } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { TriggerNode, DelayNode, EmailNode, ABTestNode, AddToListNode, RemoveFromListNode, FilterNode, WebhookNode, ListStatusBranchNode } from './nodes'
+import {
+  TriggerNode,
+  DelayNode,
+  EmailNode,
+  ABTestNode,
+  AddToListNode,
+  RemoveFromListNode,
+  FilterNode,
+  WebhookNode,
+  ListStatusBranchNode,
+  BranchNode
+} from './nodes'
 import { PlaceholderNode } from './nodes/PlaceholderNode'
 import { NodeConfigPanel } from './NodeConfigPanel'
 import { AddNodeEdge, type AddNodeEdgeData } from './edges/AddNodeEdge'
 import { AutomationEdge, type AutomationEdgeData } from './edges/AutomationEdge'
 import { AddNodeButton } from './AddNodeButton'
-import { NodePalette } from './NodePalette'
+import { useNumberFormat } from '../layout'
+import { colors } from '../../theme/tokens'
 import { useAutomation } from './context'
 import { useAutomationCanvas } from './hooks'
 import type { AutomationFlowNode, AutomationNodeData } from './utils/flowConverter'
@@ -56,8 +68,12 @@ const nodeTypes: NodeTypes = {
   filter: FilterNode,
   webhook: WebhookNode,
   list_status_branch: ListStatusBranchNode,
+  branch: BranchNode,
   placeholder: PlaceholderNode
 }
+
+/** Exported for the registry tests. */
+export const AUTOMATION_NODE_TYPES = nodeTypes
 
 // Define edgeTypes OUTSIDE component to prevent re-renders
 const edgeTypes: EdgeTypes = {
@@ -98,8 +114,37 @@ const FloatingAddButton: React.FC<{
   )
 }
 
+// Zoom out, the zoom level, zoom in and fit, bottom-left.
+const ZoomControl: React.FC = () => {
+  const { t } = useLingui()
+  const { percent } = useNumberFormat()
+  const { zoomIn, zoomOut, fitView } = useReactFlow()
+  const { zoom } = useViewport()
+  return (
+    <div className="flex items-center gap-0.5 rounded-md border border-line bg-surface p-0.5 shadow-sm" data-zoom-control>
+      <Button type="text" size="small" aria-label={t`Zoom out`} icon={<Minus size={14} aria-hidden="true" />} onClick={() => void zoomOut()} />
+      <span className="w-11 text-center text-xs text-ink-2 tabular-nums">{percent(zoom, 0)}</span>
+      <Button type="text" size="small" aria-label={t`Zoom in`} icon={<Plus size={14} aria-hidden="true" />} onClick={() => void zoomIn()} />
+      <Tooltip title={t`Fit to screen`}>
+        <Button
+          type="text"
+          size="small"
+          aria-label={t`Fit to screen`}
+          icon={<Maximize size={14} aria-hidden="true" />}
+          onClick={() => void fitView({ padding: 0.4, maxZoom: 0.9, duration: 200 })}
+        />
+      </Tooltip>
+    </div>
+  )
+}
+
+export interface AutomationFlowEditorProps {
+  /** Shown over the top of the canvas: the live banner, a stats error. */
+  overlay?: React.ReactNode
+}
+
 // Inner component that uses useReactFlow hook
-const AutomationFlowEditorInner: React.FC = () => {
+const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({ overlay }) => {
   const { t } = useLingui()
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const [buttonPositions, setButtonPositions] = useState<Map<string, { x: number; y: number }>>(new Map())
@@ -111,7 +156,7 @@ const AutomationFlowEditorInner: React.FC = () => {
   const { getViewport, setViewport, fitView, screenToFlowPosition } = useReactFlow()
 
   // Get context and hook
-  const { listId, workspace, isEditing } = useAutomation()
+  const { listId, workspace, isEditing, readOnly } = useAutomation()
   const {
     nodes,
     edges,
@@ -130,13 +175,15 @@ const AutomationFlowEditorInner: React.FC = () => {
     onConnect,
     onNodeDragStop,
     handleIsValidConnection,
-    unconnectedOutputs,
+    unconnectedOutputs: allUnconnectedOutputs,
     orphanNodeIds,
     needsReorganize,
     clearReorganizeFlag
   } = useAutomationCanvas()
 
   const hasListSelected = !!listId
+  // Read-only, no "+" to add a step under an open output.
+  const unconnectedOutputs = useMemo(() => (readOnly ? [] : allUnconnectedOutputs), [readOnly, allUnconnectedOutputs])
 
   // Keep ref updated with latest reorganizeNodes to avoid stale closure issues
   useEffect(() => {
@@ -221,12 +268,14 @@ const AutomationFlowEditorInner: React.FC = () => {
     // Mark nodes with orphan status and add delete callback
     const nodesWithOrphanStatus: AutomationFlowNode[] = nodes.map((node) => ({
       ...node,
+      draggable: !readOnly,
       data: {
         ...node.data,
         isOrphan: orphanNodeIds.has(node.id),
-        onDelete: () => removeNode(node.id)
+        onDelete: readOnly ? undefined : () => removeNode(node.id)
       }
     }))
+    const byId = new Map(nodes.map((node) => [node.id, node]))
 
     // Create invisible placeholder nodes for each unconnected output
     const placeholderNodes: PlaceholderFlowNode[] = unconnectedOutputs.map((output) => ({
@@ -249,7 +298,9 @@ const AutomationFlowEditorInner: React.FC = () => {
         sourceNodeId: output.nodeId,
         sourceHandle: output.handleId,
         label: output.label,
-        color: output.color
+        color: output.color,
+        sourceType: byId.get(output.nodeId)?.data.nodeType,
+        sourceConfig: byId.get(output.nodeId)?.data.config
       } as AddNodeEdgeData
     }))
 
@@ -260,15 +311,19 @@ const AutomationFlowEditorInner: React.FC = () => {
       zIndex: 1,
       data: {
         ...edge.data,
-        onInsert: (nodeType: NodeType) => {
-          // Auto-reorganize when inserting filter/ab_test
-          if (nodeType === 'filter' || nodeType === 'ab_test') {
-            pendingReorganizeRef.current = true
-          }
-          insertNodeOnEdge(edge.id, nodeType)
-        },
-        onDelete: () => deleteEdge(edge.id),
-        hasListSelected
+        onInsert: readOnly
+          ? undefined
+          : (nodeType: NodeType) => {
+              // Auto-reorganize when inserting filter/ab_test
+              if (nodeType === 'filter' || nodeType === 'ab_test') {
+                pendingReorganizeRef.current = true
+              }
+              insertNodeOnEdge(edge.id, nodeType)
+            },
+        onDelete: readOnly ? undefined : () => deleteEdge(edge.id),
+        hasListSelected,
+        sourceType: byId.get(edge.source)?.data.nodeType,
+        sourceConfig: byId.get(edge.source)?.data.config
       } as AutomationEdgeData
     }))
 
@@ -276,7 +331,7 @@ const AutomationFlowEditorInner: React.FC = () => {
       nodesWithPlaceholders: [...nodesWithOrphanStatus, ...placeholderNodes],
       edgesWithPlaceholders: [...enhancedEdges, ...placeholderEdges]
     }
-  }, [nodes, edges, unconnectedOutputs, orphanNodeIds, insertNodeOnEdge, deleteEdge, hasListSelected, removeNode])
+  }, [nodes, edges, unconnectedOutputs, orphanNodeIds, insertNodeOnEdge, deleteEdge, hasListSelected, removeNode, readOnly])
 
   // Calculate button positions based on unconnected output positions and viewport
   const updateButtonPositions = useCallback(() => {
@@ -377,7 +432,7 @@ const AutomationFlowEditorInner: React.FC = () => {
     (event: React.DragEvent) => {
       event.preventDefault()
       const type = event.dataTransfer.getData('application/reactflow') as NodeType
-      if (!type) return
+      if (!type || readOnly) return
 
       // Don't allow email nodes without list
       if (type === 'email' && !hasListSelected) return
@@ -388,109 +443,117 @@ const AutomationFlowEditorInner: React.FC = () => {
       })
       addNode(type, position)
     },
-    [screenToFlowPosition, addNode, hasListSelected]
+    [screenToFlowPosition, addNode, hasListSelected, readOnly]
   )
 
   return (
-    <div className="h-full flex">
-      <NodePalette hasListSelected={hasListSelected} />
-      <div className="flex-1 relative" ref={reactFlowWrapper}>
+    <div className="relative flex h-full min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1" ref={reactFlowWrapper} data-canvas>
         <ReactFlow
-        nodes={nodesWithPlaceholders}
-        edges={edgesWithPlaceholders}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        onNodesChange={handleNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onNodeClick={handleNodeClick}
-        onPaneClick={handlePaneClick}
-        onMove={handleMove}
-        onNodeDragStop={onNodeDragStop}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-        isValidConnection={handleIsValidConnection}
-        minZoom={0.2}
-        maxZoom={1.5}
-        defaultViewport={{ x: 50, y: 50, zoom: 1 }}
-        deleteKeyCode={['Backspace', 'Delete']}
-        className="bg-gray-50"
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-        <Controls position="top-left" showInteractive={false} />
-        <Panel position="top-left" style={{ marginTop: 120 }}>
-          <div className="bg-white border border-gray-200 rounded shadow-sm">
-            <Tooltip title={t`Reorganize layout`} placement="right">
-              <button
-                className="flex items-center justify-center w-7 h-7 hover:bg-gray-100 cursor-pointer"
-                onClick={handleReorganize}
-              >
-                <LayoutGrid size={16} className="text-gray-600" />
-              </button>
-            </Tooltip>
-          </div>
-        </Panel>
-        <Panel position="bottom-left">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-            <div className="text-xs text-gray-500 px-2 py-2 border-b border-gray-200">{t`Minimap`}</div>
-            <MiniMap position="top-left" bgColor="white" maskColor="transparent" style={{ position: 'relative', margin: 0 }} />
-          </div>
-        </Panel>
-      </ReactFlow>
-
-      {/* Floating Add Buttons - OUTSIDE ReactFlow */}
-      {unconnectedOutputs.map((output) => {
-        const key = `${output.nodeId}-${output.handleId || 'default'}`
-        const position = buttonPositions.get(key)
-        if (!position) return null
-
-        return (
-          <FloatingAddButton
-            key={key}
-            nodeId={output.nodeId}
-            sourceHandle={output.handleId}
-            position={position}
-            onAddNode={handleAddNodeFromTerminal}
-            hasListSelected={hasListSelected}
-            isMenuOpen={openMenuKey === key}
-            onMenuToggle={(open) => setOpenMenuKey(open ? key : null)}
+          nodes={nodesWithPlaceholders}
+          edges={edgesWithPlaceholders}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeClick={handleNodeClick}
+          onPaneClick={handlePaneClick}
+          onMove={handleMove}
+          onNodeDragStop={onNodeDragStop}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          isValidConnection={handleIsValidConnection}
+          nodesDraggable={!readOnly}
+          nodesConnectable={!readOnly}
+          edgesReconnectable={!readOnly}
+          minZoom={0.2}
+          maxZoom={1.5}
+          defaultViewport={{ x: 50, y: 50, zoom: 1 }}
+          // An existing automation opens on its whole flow; a new one is placed by the effect above.
+          fitView={isEditing}
+          fitViewOptions={{ padding: 0.3, maxZoom: 0.9 }}
+          deleteKeyCode={readOnly ? null : ['Backspace', 'Delete']}
+          className="bg-subtle"
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background variant={BackgroundVariant.Dots} gap={16} size={1} color={colors.gray[300]} />
+          {overlay ? (
+            <Panel position="top-center" className="w-full max-w-xl">
+              {overlay}
+            </Panel>
+          ) : null}
+          {!readOnly ? (
+            <Panel position="top-left">
+              <Tooltip title={t`Reorganize layout`} placement="right">
+                <Button
+                  size="small"
+                  aria-label={t`Reorganize layout`}
+                  icon={<LayoutGrid size={14} aria-hidden="true" />}
+                  onClick={handleReorganize}
+                />
+              </Tooltip>
+            </Panel>
+          ) : null}
+          <Panel position="bottom-left">
+            <ZoomControl />
+          </Panel>
+          <MiniMap
+            position="bottom-right"
+            pannable
+            zoomable
+            bgColor={colors.surface}
+            maskColor={colors.fill}
+            nodeColor={colors.gray[300]}
+            ariaLabel={t`Minimap`}
           />
-        )
-      })}
+        </ReactFlow>
 
-      {/* Fixed Node Configuration Panel - Top Right */}
+        {/* Floating Add Buttons - OUTSIDE ReactFlow */}
+        {unconnectedOutputs.map((output) => {
+          const key = `${output.nodeId}-${output.handleId || 'default'}`
+          const position = buttonPositions.get(key)
+          if (!position) return null
+
+          return (
+            <FloatingAddButton
+              key={key}
+              nodeId={output.nodeId}
+              sourceHandle={output.handleId}
+              position={position}
+              onAddNode={handleAddNodeFromTerminal}
+              hasListSelected={hasListSelected}
+              isMenuOpen={openMenuKey === key}
+              onMenuToggle={(open) => setOpenMenuKey(open ? key : null)}
+            />
+          )
+        })}
+      </div>
+
+      {/* The step's panel: its own column, over the canvas on a narrow screen. */}
       {selectedNode && (
-        <div
-          // One width for every node type: the condition tree, the only thing that ever
-          // justified a wider panel, is edited in a drawer now.
-          className="absolute bg-white border border-gray-200 rounded-lg shadow-lg w-[480px]"
-          style={{
-            top: 16,
-            right: 16,
-            maxHeight: 'calc(100% - 32px)',
-            overflow: 'auto',
-            zIndex: 50
-          }}
+        <aside
+          aria-label={t`Step`}
+          className="absolute inset-y-0 right-0 z-20 w-aside shrink-0 overflow-hidden border-l border-line bg-surface shadow-lg min-[1200px]:static min-[1200px]:shadow-none"
         >
           <NodeConfigPanel
             selectedNode={selectedNode}
             onNodeUpdate={handleNodeUpdateFromPanel}
             workspaceId={workspace.id}
             onClose={unselectNode}
+            onDelete={readOnly ? undefined : removeNode}
           />
-        </div>
+        </aside>
       )}
-      </div>
     </div>
   )
 }
 
 // Wrapper component that provides ReactFlowProvider
-export const AutomationFlowEditor: React.FC = () => {
+export const AutomationFlowEditor: React.FC<AutomationFlowEditorProps> = (props) => {
   return (
     <ReactFlowProvider>
-      <AutomationFlowEditorInner />
+      <AutomationFlowEditorInner {...props} />
     </ReactFlowProvider>
   )
 }

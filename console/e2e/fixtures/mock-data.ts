@@ -973,3 +973,136 @@ export const mockTestEmailResponse = {
   sent: true,
   message_id: 'test-message-id-123'
 }
+
+// ============================================
+// AUTOMATIONS
+// ============================================
+const automationNode = (
+  automationId: string,
+  id: string,
+  type: string,
+  config: Record<string, unknown>,
+  y: number,
+  next?: string,
+  x = 400
+) => ({
+  id,
+  automation_id: automationId,
+  type,
+  config,
+  next_node_id: next,
+  position: { x, y },
+  created_at: '2026-09-01T09:00:00Z'
+})
+
+export const mockAutomations = [
+  {
+    id: 'auto-welcome',
+    workspace_id: 'test-workspace',
+    name: 'Welcome series',
+    status: 'live',
+    list_id: 'list-1',
+    exit_on_reply: false,
+    trigger: { event_kind: 'list.subscribed', list_id: 'list-1', frequency: 'once' },
+    root_node_id: 'w-trigger',
+    nodes: [
+      automationNode('auto-welcome', 'w-trigger', 'trigger', {}, 50, 'w-email'),
+      automationNode('auto-welcome', 'w-email', 'email', { template_id: 'tpl-1', description: 'Welcome email' }, 250, 'w-delay'),
+      automationNode('auto-welcome', 'w-delay', 'delay', { duration: 2, unit: 'days' }, 450, 'w-filter'),
+      automationNode(
+        'auto-welcome',
+        'w-filter',
+        'filter',
+        {
+          description: 'Opened the welcome email',
+          conditions: {
+            kind: 'leaf',
+            leaf: { source: 'contacts', contact: { filters: [{ field_name: 'email', field_type: 'string', operator: 'contains', string_values: ['@'] }] } }
+          },
+          continue_node_id: 'w-tour',
+          exit_node_id: 'w-remind'
+        },
+        650
+      ),
+      automationNode('auto-welcome', 'w-tour', 'email', { template_id: 'tpl-2', description: 'Product tour' }, 900, undefined, 230),
+      automationNode('auto-welcome', 'w-remind', 'email', { template_id: 'tpl-1', description: 'Reminder' }, 900, undefined, 570)
+    ],
+    created_at: '2026-09-01T09:00:00Z',
+    updated_at: '2026-11-10T14:00:00Z'
+  },
+  {
+    id: 'auto-tag',
+    workspace_id: 'test-workspace',
+    name: 'Tag trial users',
+    status: 'paused',
+    list_id: '',
+    exit_on_reply: false,
+    trigger: { event_kind: 'custom_event', custom_event_name: 'trial_started', frequency: 'every_time' },
+    root_node_id: 't-trigger',
+    nodes: [
+      automationNode('auto-tag', 't-trigger', 'trigger', {}, 50, 't-add'),
+      automationNode('auto-tag', 't-add', 'add_to_list', { list_id: 'list-2', status: 'active' }, 250)
+    ],
+    created_at: '2026-10-01T09:00:00Z',
+    updated_at: '2026-11-01T09:00:00Z'
+  }
+]
+
+export const mockAutomationsResponse = {
+  automations: mockAutomations,
+  total: mockAutomations.length,
+  journey_counts: {
+    'auto-welcome': { active: 214, completed: 2840, exited: 512, failed: 12, total: 3578 },
+    'auto-tag': { active: 0, completed: 940, exited: 0, failed: 3, total: 943 }
+  }
+}
+
+const stepStats = (over: Record<string, unknown>) => ({
+  visits: 0,
+  completed: 0,
+  failed_attempts: 0,
+  skipped: 0,
+  skip_reasons: {},
+  errors: 0,
+  failed_journeys: 0,
+  in_progress: 0,
+  waiting: 0,
+  retrying: 0,
+  branches: {},
+  ...over
+})
+
+const emailStats = (sent: number, opened: number, clicked: number) => ({
+  executions: sent,
+  queued: 0,
+  not_sent: 0,
+  sent,
+  delivered: Math.round(sent * 0.98),
+  opened,
+  opens_tracked: sent,
+  clicked,
+  clicks_tracked: sent,
+  failed: 2,
+  bounced: 9,
+  complained: 0,
+  unsubscribed: 6
+})
+
+export const mockAutomationNodeStats = {
+  automation_id: 'auto-welcome',
+  nodes: {
+    'w-trigger': stepStats({ node_type: 'trigger', visits: 1240, completed: 1240 }),
+    'w-email': stepStats({
+      node_type: 'email',
+      visits: 1238,
+      completed: 1236,
+      skipped: 2,
+      skip_reasons: { unsubscribed: 2 },
+      email: emailStats(1236, 642, 188)
+    }),
+    'w-delay': stepStats({ node_type: 'delay', visits: 1236, completed: 1102, waiting: 134, in_progress: 134 }),
+    'w-filter': stepStats({ node_type: 'filter', visits: 1102, completed: 1102, branches: { yes: 701, no: 401 } }),
+    'w-tour': stepStats({ node_type: 'email', visits: 701, completed: 699, failed_journeys: 2, email: emailStats(699, 380, 121) }),
+    'w-remind': stepStats({ node_type: 'email', visits: 401, completed: 401, email: emailStats(401, 143, 22) })
+  }
+}

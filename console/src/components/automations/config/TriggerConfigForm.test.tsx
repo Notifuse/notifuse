@@ -43,15 +43,18 @@ vi.mock('../../templates/TemplateSelectorInput', () => ({
   default: ({
     value,
     onChange,
-    canReadTemplates
+    canReadTemplates,
+    disabled
   }: {
     value?: string | null
     onChange?: (v: string | null) => void
     canReadTemplates?: boolean
+    disabled?: boolean
   }) => (
     <button
       data-testid="template-selector"
       data-can-read-templates={String(canReadTemplates)}
+      data-disabled={String(!!disabled)}
       onClick={() => onChange?.('tpl-1')}
     >
       template:{value ?? 'any'}
@@ -108,7 +111,7 @@ interface TriggerConfigLike {
   template_id?: string
 }
 
-const renderForm = (config: TriggerConfigLike, onChange = vi.fn(), canReadTemplates?: boolean) => {
+const renderForm = (config: TriggerConfigLike, onChange = vi.fn(), canReadTemplates?: boolean, readOnly?: boolean) => {
   render(
     <I18nProvider i18n={i18n}>
       <TriggerConfigForm
@@ -116,6 +119,7 @@ const renderForm = (config: TriggerConfigLike, onChange = vi.fn(), canReadTempla
         onChange={onChange}
         workspaceId="ws1"
         canReadTemplates={canReadTemplates}
+        readOnly={readOnly}
       />
     </I18nProvider>
   )
@@ -209,11 +213,12 @@ describe('TriggerConfigForm guidance', () => {
 })
 
 describe('TriggerConfigForm existing controls', () => {
-  it('still renders the trigger event and frequency controls', () => {
+  // The frequency moved to the editor's settings column (EditorSettings).
+  it('renders the trigger event, and no frequency control', () => {
     renderForm({ event_kind: 'contact.created', frequency: 'once' })
 
     expect(screen.getByText('Trigger Event')).toBeInTheDocument()
-    expect(screen.getByText('Frequency')).toBeInTheDocument()
+    expect(screen.queryByText('Frequency')).not.toBeInTheDocument()
   })
 
   // The field filter and the entry conditions are different things, and the panel shows both
@@ -307,5 +312,16 @@ describe('TriggerConfigForm event change', () => {
     expect(emitted.link_url).toBeUndefined()
     expect(emitted.broadcast_id).toBeUndefined()
     expect(emitted.template_id).toBeUndefined()
+  })
+})
+
+// The template field sets its own `disabled`, which wins over the read-only ConfigProvider.
+describe('TriggerConfigForm read-only', () => {
+  it.each([
+    { readOnly: true, passed: 'true' },
+    { readOnly: false, passed: 'false' }
+  ])('locks the link template when read-only is $readOnly', ({ readOnly, passed }) => {
+    renderForm({ event_kind: 'email.link_clicked', frequency: 'once' }, vi.fn(), true, readOnly)
+    expect(screen.getByTestId('template-selector').dataset.disabled).toBe(passed)
   })
 })

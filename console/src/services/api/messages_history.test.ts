@@ -30,4 +30,16 @@ describe('listMessages', () => {
     await listMessages('ws1', { limit: 10 })
     expect(sentQuery().has('transactional_notification_id')).toBe(false)
   })
+
+  it('sends the automation filter when it is set', async () => {
+    await listMessages('ws1', { automation_id: 'a1', template_id: 'tpl' })
+    const query = sentQuery()
+    expect(query.get('automation_id')).toBe('a1')
+    expect(query.get('template_id')).toBe('tpl')
+  })
+
+  it('leaves the automation filter out otherwise', async () => {
+    await listMessages('ws1', { limit: 10 })
+    expect(sentQuery().has('automation_id')).toBe(false)
+  })
 })
