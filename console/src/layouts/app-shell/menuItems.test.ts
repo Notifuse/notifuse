@@ -2,7 +2,15 @@ import { describe, it, expect, vi } from 'vitest'
 import { i18n } from '@lingui/core'
 import type { ReactNode } from 'react'
 import type { UserPermissions } from '../../services/api/types'
-import { activeGroup, buildMenuItems, firstPageOfGroup, selectedMenuKey, type MenuItem } from './menuItems'
+import {
+  activeGroup,
+  buildMenuItems,
+  firstAccessiblePage,
+  firstPageOfGroup,
+  selectedMenuKey,
+  type HasAccess,
+  type MenuItem
+} from './menuItems'
 
 vi.mock('./MenuLink', () => ({
   MenuLink: ({ children }: { children: ReactNode }) => children
@@ -141,5 +149,52 @@ describe('buildMenuItems', () => {
     }[]
     items.forEach((item) => expect(item.icon).toBeTruthy())
     items.flatMap((item) => item.children ?? []).forEach((child) => expect(child.icon).toBeUndefined())
+  })
+})
+
+describe('firstAccessiblePage', () => {
+  const only =
+    (...resources: (keyof UserPermissions)[]): HasAccess =>
+    (resource) =>
+      resources.includes(resource)
+
+  it.each([
+    ['a full access', allowAll],
+    ['no web analytics', allowAllBut('web_analytics')],
+    ['lists and logs only', only('lists', 'message_history')],
+    ['templates and logs only', only('templates', 'message_history')],
+    ['logs only', only('message_history')]
+  ] as const)('opens the first entry after the dashboard the sidebar shows, with %s', (_, hasAccess) => {
+    const shown = keys(buildMenuItems({ hasAccess, workspaceId: 'ws1', i18n })).filter((key) => key !== 'analytics')
+    expect(firstAccessiblePage(hasAccess, 'ws1').key).toBe(shown[0])
+  })
+
+  it('lands on the web analytics dashboard, else the first content page', () => {
+    expect(firstAccessiblePage(allowAll, 'ws1').target).toEqual({
+      to: '/console/workspace/$workspaceId/web-analytics/$tab',
+      params: { workspaceId: 'ws1', tab: 'dashboard' }
+    })
+    expect(firstAccessiblePage(only('templates'), 'ws1').target).toEqual({
+      to: '/console/workspace/$workspaceId/templates',
+      params: { workspaceId: 'ws1' }
+    })
+    expect(firstAccessiblePage(only('contacts'), 'ws1').target).toEqual({
+      to: '/console/workspace/$workspaceId/contacts',
+      params: { workspaceId: 'ws1' }
+    })
+  })
+
+  it('never sends a member who may only write message history back to the dashboard', () => {
+    // The dashboard tests message_history.read strictly and passes the same strict check here.
+    const page = firstAccessiblePage(only(), 'ws1')
+    expect(page.key).toBe('settings')
+    expect(page.target.to).not.toBe('/console/workspace/$workspaceId')
+  })
+
+  it('falls back to settings when nothing is reachable', () => {
+    expect(firstAccessiblePage(() => false, 'ws1')).toEqual({
+      key: 'settings',
+      target: { to: '/console/workspace/$workspaceId/settings', params: { workspaceId: 'ws1' } }
+    })
   })
 })
