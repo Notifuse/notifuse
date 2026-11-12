@@ -1,0 +1,87 @@
+/* ---------------------------------------------------------------------------
+   Global antd rules the theme cannot express.
+
+   antd's theme (src/theme/antdTheme.ts) sets everything it has a token for. What
+   is left lives here, one rule per need, each saying why no token is enough.
+   Colours are read from antd's CSS variables (--ant-*), not Tailwind's, so they
+   follow the antd theme, nested ConfigProviders included. Any new global .ant-*
+   rule goes in this file (src/theme/antdOverrides.test.ts enforces it).
+
+   antd prepends its runtime styles to <head> and wraps its hash class in
+   :where(), so a selector of equal specificity here wins on source order.
+--------------------------------------------------------------------------- */
+
+/* Table headers: antd sizes header cells with the body cell tokens, and has no
+   separate token for them. One selector per table size gives ≈ 30px headers in
+   all three sizes; a header holding a sorter is taller, by the sorter's icons. */
+.ant-table-wrapper .ant-table .ant-table-thead > tr > th,
+.ant-table-wrapper .ant-table.ant-table-medium .ant-table-thead > tr > th,
+.ant-table-wrapper .ant-table.ant-table-small .ant-table-thead > tr > th {
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  padding-block: 7px;
+}
+
+/* Active item of an inline menu (the sidebar and the left rails): a 2px bar on
+   the left. An inset shadow rather than a border, which would shift the label.
+   antd's own bar on the right (its ::after) is 0px wide in antd 6.6; it is
+   hidden here so a later default cannot bring it back next to this one. A collapsed
+   menu is not .ant-menu-inline, so it keeps the background without the bar. */
+.ant-menu-inline .ant-menu-item-selected {
+  box-shadow: inset 2px 0 0 var(--ant-color-primary);
+}
+.ant-menu-inline .ant-menu-item-selected::after {
+  display: none;
+}
+
+/* Tags read as a fill, not an outline. Three quarters of the call sites
+ * already pass `bordered={false}`, so this is what makes the rest match
+ * instead of leaving two looks side by side in one cell. Transparent rather
+ * than `none` keeps the 1px box, so nothing reflows. Statuses are meant to be
+ * drawn as pills (the status tones of tokens.ts), not tags. */
+.ant-tag {
+  border-color: transparent !important;
+}
+
+/* Alerts: a coloured left border instead of antd's full outline. */
+.ant-alert {
+  border: none !important;
+  border-left: 3px solid transparent !important;
+}
+
+.ant-alert.ant-alert-info {
+  border-left-color: var(--ant-color-info) !important;
+}
+
+.ant-alert.ant-alert-success {
+  border-left-color: var(--ant-color-success) !important;
+}
+
+.ant-alert.ant-alert-warning {
+  border-left-color: var(--ant-color-warning) !important;
+}
+
+.ant-alert.ant-alert-error {
+  border-left-color: var(--ant-color-error) !important;
+}
+
+/* The required mark's own font increases the line height of the form item,
+ * creating a discrepancy when using 2 columns. This mirrors antd's own selector
+ * for the asterisk minus the generated hash class it scopes with: that hash
+ * changes with every antd release and is not even emitted in production builds,
+ * so naming it here would only ever match one dev build. */
+.ant-form-item .ant-form-item-label > label.ant-form-item-required::before {
+  font-family: inherit;
+}
+
+/* The path to the best-performing combination in the explore report.
+ *
+ * An inset shadow rather than a border-left: a real border would add 4px to
+ * the cell and shift every highlighted row's text out of line with the rest.
+ * The colour is the top of the TimeScore heat scale — hue 142 + 38 in
+ * getHeatMapColor — so the bar and the best row's dot are the same green-cyan
+ * rather than two unrelated accents. */
+.ant-table-tbody > tr.best-timescore-row > td:first-child {
+  box-shadow: inset 4px 0 0 0 hsl(180, 70%, 50%);
+}

@@ -177,7 +177,7 @@ export function DimensionSelector(props: DimensionSelectorProps) {
         ) : (
           groups.map((group) => (
             <div key={group.category}>
-              <div className="px-3 py-1 text-[10px] font-semibold uppercase text-[var(--primary)]">
+              <div className="px-3 py-1 text-[10px] font-semibold uppercase text-primary">
                 {categoryLabels[group.category] ?? group.category}
               </div>
               {group.dimensions.map((entry) => {

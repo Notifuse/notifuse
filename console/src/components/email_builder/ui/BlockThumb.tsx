@@ -108,6 +108,7 @@ const BlockThumbContent: React.FC<BlockThumbProps> = ({
       {rendered ? (
         <div
           ref={innerRef}
+          className="email-canvas"
           style={{
             width: THUMB_LAYOUT_WIDTH,
             transform: `scale(${scale})`,

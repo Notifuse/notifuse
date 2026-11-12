@@ -152,11 +152,6 @@
   flex-shrink: 0;
 }
 
-/* Ant Design Popover customization for toolbar */
-.ant-popover-inner {
-  border-radius: 8px;
-}
-
 /* Ensure toolbar has proper z-index */
 .notifuse-editor-floating-toolbar {
   z-index: 1000;

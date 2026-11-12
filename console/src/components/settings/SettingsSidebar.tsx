@@ -10,6 +10,7 @@ import {
   SafetyCertificateOutlined
 } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
+import { colors } from '../../theme/tokens'
 
 // The menu keys are cast to SettingsSection on click, so a stale key here reaches the router
 // unchallenged. Keeping the sections as a runtime value lets a test walk the rendered menu and
@@ -179,7 +180,7 @@ export function SettingsSidebar({
         selectedKeys={[activeSection]}
         items={menuItems}
         onClick={({ key }) => onSectionChange(key as SettingsSection)}
-        style={{ borderRight: 0, backgroundColor: '#F9F9F9' }}
+        style={{ borderRight: 0, backgroundColor: colors.surface }}
       />
     </div>
   )

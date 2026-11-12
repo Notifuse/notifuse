@@ -111,7 +111,7 @@ export function GoalCard({ goalName, totals, onOpenDashboard }: GoalCardProps) {
                 isRightEdgeMobile ? '' : 'border-r border-gray-100',
                 isRightEdgeDesktop ? 'sm:border-r-0' : 'sm:border-r sm:border-gray-100',
                 isSelected
-                  ? 'border-b-2 border-b-[var(--primary)] bg-gray-50/50'
+                  ? 'border-b-2 border-b-primary bg-gray-50/50'
                   : 'border-b border-b-gray-100 hover:bg-gray-50'
               ].join(' ')}
             >

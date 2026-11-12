@@ -118,7 +118,7 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
       afterOpenChange={props.afterOpenChange}
       placement="right"
       size="100%"
-      styles={{ body: { background: 'var(--background)' } }}
+      styles={{ body: { background: 'var(--color-canvas)' } }}
       title={
         <div className="flex items-center gap-2">
           <Tag color="green" className="m-0">

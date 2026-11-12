@@ -43,7 +43,7 @@ export function MetricSummary(props: MetricSummaryProps) {
               'cursor-pointer p-4 text-left transition-colors',
               index < columns - 1 ? 'border-r border-gray-200' : '',
               isSelected
-                ? 'border-b-2 border-b-[var(--primary)]'
+                ? 'border-b-2 border-b-primary'
                 : 'border-b border-b-gray-200 hover:bg-gray-50'
             ].join(' ')}
           >

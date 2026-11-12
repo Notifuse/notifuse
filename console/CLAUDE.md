@@ -47,3 +47,22 @@ function MyComponent() {
 - Config: `console/lingui.config.ts`
 - Setup: `console/src/i18n/index.ts`
 - Locales: `console/src/i18n/locales/`
+
+## Styling (Nuit claire theme)
+
+Every colour, radius, shadow and duration, and every text size the `@theme` block declares, is defined once in
+`src/theme/tokens.ts`. The antd theme (`src/theme/antdTheme.ts`) is built from it, and the Tailwind `@theme`
+block of `src/index.css` repeats it (`src/theme/tailwindTheme.contract.test.ts` keeps them in step).
+
+- Tailwind is for layout (grids, spacing, widths, alignment) and home-made elements (pills, mini bars).
+  antd components are styled through the theme, never with Tailwind classes put on them.
+- Colours, text sizes, radii and shadows come from the tokens: no bracket values (`text-[13px]`,
+  `bg-[#F3F4F7]`) and no `style={{ color: … }}` in screen code. Brackets stay allowed for a width or height
+  specific to one screen (`w-[190px]`).
+- Spacing uses the scale (`gap-3`, `px-3.5`), never pixels.
+- Text colours use `ink` to `ink-4` by role rather than `gray-*` (same colours, but `ink` says why).
+- No `!important` nor Tailwind `!` to force an antd component. When the theme cannot express something, the
+  rule goes into `src/theme/antd-overrides.css` with its reason (`src/theme/antdOverrides.test.ts`).
+- Repeated recipes (card header, pill, mini bar) are React components, not `@apply` classes.
+- Pill tones and other variants are written as complete class strings in a map: Tailwind only generates
+  classes it finds whole in the source.

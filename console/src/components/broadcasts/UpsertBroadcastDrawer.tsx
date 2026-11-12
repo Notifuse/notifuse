@@ -506,7 +506,7 @@ export function UpsertBroadcastDrawer({
                 onChange={handleTabChange}
                 tabPlacement="start"
                 className="vertical-tabs"
-                style={{ minHeight: 'calc(100vh - 65px)' }}
+                style={{ minHeight: 'calc(100vh - 61px)' }}
                 items={[
                   {
                     key: 'audience',

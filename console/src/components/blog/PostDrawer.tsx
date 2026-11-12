@@ -85,7 +85,8 @@ interface PostDrawerProps {
   initialCategoryId?: string | null
 }
 
-const HEADER_HEIGHT = 66
+// The drawer header: 16px padding, the theme's 28px controls, 16px padding and its 1px rule.
+const HEADER_HEIGHT = 61
 
 export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }: PostDrawerProps) {
   const { t } = useLingui()
