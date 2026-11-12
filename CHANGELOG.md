@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The blog page in the console lists posts with a tab per status, scheduled posts included, and their counts, a title search, and each post's views over 30 days once the web analytics script is in the blog's theme. Categories show their post counts in the side rail, with a menu to edit or delete them.
 
+- **Improvement**: Most dates in the console follow its language: month and weekday names, "3 days ago" and the date pickers. Weeks start on Monday in French, Spanish, German, Catalan and Italian.
+
+- **Fix**: In a contact's activity, the full date shown on hover is the time in the timezone it names (the contact's, else the workspace's), not in your browser's.
+
 - **Feature**: Automations can start when a contact clicks a specific link, with the new "Clicked a link" trigger (`email.link_clicked`). It starts the first time a contact clicks each link of an email, and can be limited to links containing some text, to one broadcast or to one template. A click on an email the automation sent itself does not start it again. Clicks made before the upgrade, and clicks on links in emails sent before 42.2, do not start it; a link clicked before the upgrade starts it on its next click. The new event does not count toward the monthly event usage.
 
 - **Fix**: `automations.get` answers 404 instead of 500 for an automation that does not exist.
