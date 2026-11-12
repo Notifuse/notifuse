@@ -89,6 +89,23 @@ describe('global antd rules', () => {
     expect(main.indexOf("'antd/dist/reset.css'")).toBeLessThan(main.indexOf("'./index.css'"))
   })
 
+  it('declare each latin-ext face before the latin face of the same family and style', () => {
+    // The face declared last wins a code point both unicode-ranges list: it must be the latin one.
+    const fonts = stripComments(read('theme/fonts.css'))
+    const faces = [
+      ...fonts.matchAll(
+        /url\(@fontsource-variable\/[a-z-]+\/files\/([a-z-]+?)-(latin(?:-ext)?)-wght-(normal|italic)/g
+      )
+    ]
+    const order = faces.map((m) => `${m[1]} ${m[3]} ${m[2]}`)
+    const pairs = new Set(faces.map((m) => `${m[1]} ${m[3]}`))
+    expect(pairs.size).toBeGreaterThan(0)
+    for (const pair of pairs) {
+      expect(order.indexOf(`${pair} latin-ext`)).toBeGreaterThanOrEqual(0)
+      expect(order.indexOf(`${pair} latin-ext`)).toBeLessThan(order.indexOf(`${pair} latin`))
+    }
+  })
+
   it('embed the latin and latin-ext subsets of the fonts only', () => {
     const fonts = stripComments(read('theme/fonts.css'))
     const urls = [...fonts.matchAll(/url\(([^)]+)\)/g)].map((m) => m[1])

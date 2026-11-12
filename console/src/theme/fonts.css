@@ -9,8 +9,8 @@
    Files and unicode-range come from @fontsource-variable 5.3.0 (OFL-1.1).
 --------------------------------------------------------------------------- */
 
-/* latin-ext first: a code point both subsets cover (U+0304, U+0308, U+0329) goes
-   to the face declared last, which must be the latin one every page loads. */
+/* latin-ext first: a combining mark both subsets have a glyph for (U+0304, U+0308) goes to the
+   face declared last, which must be the latin one every page loads. */
 
 @font-face {
   font-family: 'Inter Variable';

@@ -145,7 +145,7 @@ const CodeDrawerInput: React.FC<CodeDrawerInputProps> = ({
           }
         >
           <Editor
-            height="calc(100vh - 56px)"
+            height="calc(100vh - 55px)"
             language={language}
             theme="vs"
             value={tempContent}
@@ -185,7 +185,7 @@ const CodeDrawerInput: React.FC<CodeDrawerInputProps> = ({
         }
       >
         <Editor
-          height="calc(100vh - 56px)"
+          height="calc(100vh - 55px)"
           language={language}
           theme="vs"
           value={tempContent}

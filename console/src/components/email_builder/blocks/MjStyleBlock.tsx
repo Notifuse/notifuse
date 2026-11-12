@@ -161,7 +161,7 @@ const MjStyleSettingsPanel: React.FC<MjStyleSettingsPanelProps> = ({
           }
         >
           <Editor
-            height="calc(100vh - 56px)"
+            height="calc(100vh - 55px)"
             language="css"
             theme="vs"
             value={tempCssContent}
