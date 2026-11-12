@@ -139,7 +139,7 @@ test.describe('Protected Pages Load', () => {
     await waitForPageLoad(page)
 
     await expect(page.getByText('No transactional notifications found')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Create Notification' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'New notification' })).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
