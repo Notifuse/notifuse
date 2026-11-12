@@ -2,11 +2,7 @@ import type { ReactNode } from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import {
-  DeleteObjectCommand,
-  ListObjectsV2Command,
-  PutObjectCommand
-} from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3'
 import { useStorage } from './useStorage'
 
 // Every S3Client the hook builds answers through this send.
@@ -16,7 +12,12 @@ vi.mock('@aws-sdk/client-s3', async (importOriginal) => {
   return {
     ...actual,
     S3Client: class {
-      send = s3.send
+      secret: string | undefined
+      constructor(config: { credentials?: { secretAccessKey?: string } }) {
+        this.secret = config.credentials?.secretAccessKey
+      }
+      // The client's secret key comes second, so a test can tell which settings listed.
+      send = (command: unknown) => s3.send(command, this.secret)
     }
   }
 })
@@ -38,6 +39,21 @@ const at = (day: number) => new Date(Date.UTC(2026, 0, day))
 describe('useStorage', () => {
   beforeEach(() => {
     s3.send.mockReset()
+  })
+
+  it('lists the bucket again with the new keys once the settings change', async () => {
+    s3.send.mockResolvedValue({ Contents: [], IsTruncated: false })
+    const { rerender } = renderHook(
+      ({ secret }) =>
+        useStorage({ workspaceId: 'ws', settings: { ...settings, secret_key: secret } }),
+      { wrapper: wrapper(), initialProps: { secret: 'old' } }
+    )
+    await waitFor(() => expect(listCalls()).toHaveLength(1))
+    expect(listCalls()[0][1]).toBe('old')
+
+    rerender({ secret: 'new' })
+    await waitFor(() => expect(listCalls()).toHaveLength(2))
+    expect(listCalls()[1][1]).toBe('new')
   })
 
   it('reads every page of the bucket until the last one', async () => {
@@ -179,7 +195,7 @@ describe('useStorage', () => {
     expect(listCalls().some(([command]) => command.input.Prefix === 'docs/')).toBe(true)
   })
 
-  it('deletes the files one by one and counts the failures', async () => {
+  it('deletes the files in order and counts the failures', async () => {
     s3.send.mockImplementation(async (command: unknown) => {
       if (command instanceof ListObjectsV2Command) return { Contents: [], IsTruncated: false }
       if (command instanceof DeleteObjectCommand && command.input.Key === 'b.png') {

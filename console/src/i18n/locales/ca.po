@@ -125,7 +125,7 @@ msgid "{0, plural, one {# number} other {# number}}"
 msgstr "{0, plural, one {# número} other {# números}}"
 
 #. placeholder {0}: checkedFiles.length
-#: src/components/file_manager/FileExplorer.tsx:655
+#: src/components/file_manager/FileExplorer.tsx:693
 msgid "{0, plural, one {# selected} other {# selected}}"
 msgstr "{0, plural, one {# seleccionat} other {# seleccionats}}"
 
@@ -140,7 +140,7 @@ msgid "{0, plural, one {and # more} other {and # more}}"
 msgstr "{0, plural, one {i # més} other {i # més}}"
 
 #. placeholder {0}: keys.length
-#: src/components/file_manager/FileExplorer.tsx:364
+#: src/components/file_manager/FileExplorer.tsx:381
 msgid "{0, plural, one {Delete # selected file?} other {Delete # selected files?}}"
 msgstr "{0, plural, one {Vols eliminar # fitxer seleccionat?} other {Vols eliminar # fitxers seleccionats?}}"
 
@@ -150,7 +150,7 @@ msgid "{0, plural, one {Delete the folder {name} and its # file?} other {Delete 
 msgstr "{0, plural, one {Vols eliminar la carpeta {name} i el seu # fitxer?} other {Vols eliminar la carpeta {name} i els seus # fitxers?}}"
 
 #. placeholder {0}: checkedFiles.length
-#: src/components/file_manager/FileExplorer.tsx:350
+#: src/components/file_manager/FileExplorer.tsx:367
 msgid "{0, plural, one {Downloaded # file} other {Downloaded # files}}"
 msgstr "{0, plural, one {# fitxer descarregat} other {# fitxers descarregats}}"
 
@@ -433,7 +433,7 @@ msgstr "{count, plural, one {# automatització} other {# automatitzacions}}"
 msgid "{count, plural, one {# empty field} other {# empty fields}}"
 msgstr "{count, plural, one {# camp buit} other {# camps buits}}"
 
-#: src/components/file_manager/FileTable.tsx:109
+#: src/components/file_manager/FileTable.tsx:110
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# fitxer} other {# fitxers}}"
 
@@ -510,15 +510,15 @@ msgstr "{days, plural, one {Últim # dia} other {Últims # dies}}"
 msgid "{days, plural, one {Scheduled in # day} other {Scheduled in # days}}"
 msgstr "{days, plural, one {Programat d'aquí a # dia} other {Programat d'aquí a # dies}}"
 
-#: src/components/file_manager/FileExplorer.tsx:380
+#: src/components/file_manager/FileExplorer.tsx:397
 msgid "{deleted, plural, one {Deleted # file, {failed} failed} other {Deleted # files, {failed} failed}}"
 msgstr "{deleted, plural, one {# fitxer eliminat, {failed} amb error} other {# fitxers eliminats, {failed} amb error}}"
 
-#: src/components/file_manager/FileExplorer.tsx:377
+#: src/components/file_manager/FileExplorer.tsx:394
 msgid "{deleted, plural, one {Deleted # file} other {Deleted # files}}"
 msgstr "{deleted, plural, one {# fitxer eliminat} other {# fitxers eliminats}}"
 
-#: src/components/file_manager/FileExplorer.tsx:325
+#: src/components/file_manager/FileExplorer.tsx:342
 msgid "{deletedFiles, plural, one {Deleted # file, {failedFiles} failed} other {Deleted # files, {failedFiles} failed}}"
 msgstr "{deletedFiles, plural, one {# fitxer eliminat, {failedFiles} amb error} other {# fitxers eliminats, {failedFiles} amb error}}"
 
@@ -1236,7 +1236,7 @@ msgstr "Accions"
 #: src/components/contacts/ContactsTable.tsx:337
 #: src/components/contacts/sheet/ContactListsCard.tsx:163
 #: src/components/file_manager/FileGrid.tsx:105
-#: src/components/file_manager/FileTable.tsx:144
+#: src/components/file_manager/FileTable.tsx:148
 msgid "Actions for {0}"
 msgstr "Accions per a {0}"
 
@@ -2961,7 +2961,7 @@ msgstr "Branca"
 msgid "Branch Logic"
 msgstr "Lògica de branca"
 
-#: src/components/file_manager/FileExplorer.tsx:596
+#: src/components/file_manager/FileExplorer.tsx:631
 msgid "Breadcrumb"
 msgstr "Ruta de navegació"
 
@@ -3283,11 +3283,11 @@ msgstr "Campanyes"
 #: src/components/file_manager/buttonSettings.tsx:309
 #: src/components/file_manager/context.tsx:212
 #: src/components/file_manager/DeleteFolderModal.tsx:54
-#: src/components/file_manager/FileExplorer.tsx:291
-#: src/components/file_manager/FileExplorer.tsx:369
-#: src/components/file_manager/FileExplorer.tsx:813
-#: src/components/file_manager/FileExplorer.tsx:856
-#: src/components/file_manager/FileExplorer.tsx:1076
+#: src/components/file_manager/FileExplorer.tsx:307
+#: src/components/file_manager/FileExplorer.tsx:386
+#: src/components/file_manager/FileExplorer.tsx:863
+#: src/components/file_manager/FileExplorer.tsx:906
+#: src/components/file_manager/FileExplorer.tsx:1146
 #: src/components/lists/DeleteListModal.tsx:125
 #: src/components/segment/button_upsert.tsx:422
 #: src/components/segment/input_dimension_filters.tsx:179
@@ -3379,7 +3379,7 @@ msgstr "No es pot treure la llista mentre existeixin nodes de correu. Elimineu p
 msgid "Cannot restore progress: CSV data is not available"
 msgstr "No es pot restaurar el progrés: les dades CSV no estan disponibles"
 
-#: src/components/file_manager/FileExplorer.tsx:466
+#: src/components/file_manager/FileExplorer.tsx:486
 msgid "Cannot upload in read-only mode"
 msgstr "No es pot pujar en mode de només lectura"
 
@@ -3625,7 +3625,7 @@ msgstr "Nivell de ciutat (~1 km de precisió)"
 #: src/components/contacts/ContactsFilters.tsx:117
 #: src/components/contacts/InlineEditableField.tsx:295
 #: src/components/email_builder/ui/ImportFontInput.tsx:169
-#: src/components/file_manager/FileExplorer.tsx:673
+#: src/components/file_manager/FileExplorer.tsx:711
 #: src/components/filters/Filter.tsx:193
 #: src/components/messages/MessageHistoryTab.tsx:546
 #: src/components/settings/audit_logs/AuditFilterBuilder.tsx:248
@@ -4103,8 +4103,8 @@ msgstr "Configureu com es generen els feeds RSS i JSON del vostre blog."
 msgid "Configure Integration"
 msgstr "Configurar integració"
 
-#: src/components/file_manager/FileExplorer.tsx:918
-#: src/components/file_manager/FileExplorer.tsx:923
+#: src/components/file_manager/FileExplorer.tsx:970
+#: src/components/file_manager/FileExplorer.tsx:975
 msgid "Configure now"
 msgstr "Configurar ara"
 
@@ -4159,7 +4159,7 @@ msgstr "Confirmat"
 msgid "Connect"
 msgstr "Connectar"
 
-#: src/components/file_manager/FileExplorer.tsx:913
+#: src/components/file_manager/FileExplorer.tsx:965
 msgid "Connect an S3-compatible bucket to upload images for your emails and blog."
 msgstr "Connecta un bucket compatible amb S3 per pujar imatges per als teus correus i el teu blog."
 
@@ -4458,7 +4458,7 @@ msgstr "Copia el secret"
 #~ msgid "Copy to clipboard"
 #~ msgstr "Copiar al porta-retalls"
 
-#: src/components/file_manager/FileExplorer.tsx:523
+#: src/components/file_manager/FileExplorer.tsx:545
 #: src/components/file_manager/FilePreview.tsx:94
 msgid "Copy URL"
 msgstr "Copiar URL"
@@ -4541,7 +4541,7 @@ msgstr "No s'han pogut carregar més articles"
 msgid "Couldn't load the broadcasts"
 msgstr "No s'han pogut carregar les difusions"
 
-#: src/components/file_manager/FileExplorer.tsx:738
+#: src/components/file_manager/FileExplorer.tsx:776
 msgid "Couldn't load the files"
 msgstr "No s'han pogut carregar els fitxers"
 
@@ -4668,7 +4668,7 @@ msgstr "Abasta més que les plantilles: els blocs reutilitzables responen al mat
 #: src/components/automations/UpsertAutomationDrawer.tsx:175
 #: src/components/blog/CategoryDrawer.tsx:116
 #: src/components/blog/PostDrawer.tsx:691
-#: src/components/file_manager/FileExplorer.tsx:859
+#: src/components/file_manager/FileExplorer.tsx:909
 #: src/components/lists/ListDrawer.tsx:198
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Create"
@@ -4788,7 +4788,7 @@ msgstr "Crear nova plantilla {0}"
 msgid "Create New Category"
 msgstr "Crear nova categoria"
 
-#: src/components/file_manager/FileExplorer.tsx:850
+#: src/components/file_manager/FileExplorer.tsx:900
 msgid "Create new folder"
 msgstr "Crear nova carpeta"
 
@@ -5384,11 +5384,11 @@ msgstr "Retard"
 #: src/components/contacts/DeleteContactModal.tsx:40
 #: src/components/email_builder/EmailBuilder.tsx:940
 #: src/components/email_builder/ui/SavedBlockCard.tsx:115
-#: src/components/file_manager/FileExplorer.tsx:290
-#: src/components/file_manager/FileExplorer.tsx:368
-#: src/components/file_manager/FileExplorer.tsx:530
-#: src/components/file_manager/FileExplorer.tsx:664
-#: src/components/file_manager/FileExplorer.tsx:669
+#: src/components/file_manager/FileExplorer.tsx:306
+#: src/components/file_manager/FileExplorer.tsx:385
+#: src/components/file_manager/FileExplorer.tsx:554
+#: src/components/file_manager/FileExplorer.tsx:702
+#: src/components/file_manager/FileExplorer.tsx:707
 #: src/components/file_manager/FilePreview.tsx:108
 #: src/components/file_manager/FilePreview.tsx:113
 #: src/components/lists/DeleteListModal.tsx:135
@@ -5543,21 +5543,21 @@ msgstr "Eliminar contactes"
 msgid "Delete edge"
 msgstr "Eliminar aresta"
 
-#: src/components/file_manager/FileExplorer.tsx:530
-#: src/components/file_manager/FileExplorer.tsx:662
+#: src/components/file_manager/FileExplorer.tsx:555
+#: src/components/file_manager/FileExplorer.tsx:700
 #: src/components/file_manager/FilePreview.tsx:106
 msgid "Delete file (Read-only mode)"
 msgstr "Eliminar fitxer (Mode de només lectura)"
 
 #: src/components/file_manager/DeleteFolderModal.tsx:52
 #: src/components/file_manager/DeleteFolderModal.tsx:53
-#: src/components/file_manager/FileExplorer.tsx:518
-#: src/components/file_manager/FileExplorer.tsx:999
+#: src/components/file_manager/FileExplorer.tsx:537
+#: src/components/file_manager/FileExplorer.tsx:1057
 msgid "Delete folder"
 msgstr "Eliminar carpeta"
 
-#: src/components/file_manager/FileExplorer.tsx:518
-#: src/components/file_manager/FileExplorer.tsx:999
+#: src/components/file_manager/FileExplorer.tsx:538
+#: src/components/file_manager/FileExplorer.tsx:1058
 msgid "Delete folder (Read-only mode)"
 msgstr "Eliminar carpeta (Mode de només lectura)"
 
@@ -5963,7 +5963,7 @@ msgstr "Esteu segur que voleu treure aquest filtre?"
 #~ msgid "Do you want to delete the"
 #~ msgstr "Voleu eliminar el/la"
 
-#: src/components/file_manager/FileExplorer.tsx:289
+#: src/components/file_manager/FileExplorer.tsx:305
 msgid "Do you want to permanently delete this file from your storage?"
 msgstr "Voleu eliminar permanentment aquest fitxer del vostre emmagatzematge?"
 
@@ -6042,13 +6042,13 @@ msgstr "Doble opt-in"
 msgid "Double Opt-in Template"
 msgstr "Plantilla de doble opt-in"
 
-#: src/components/file_manager/FileExplorer.tsx:529
+#: src/components/file_manager/FileExplorer.tsx:551
 #: src/components/file_manager/FilePreview.tsx:97
 #: src/components/web_analytics/explore/CsvExportModal.tsx:143
 msgid "Download"
 msgstr "Descarregar"
 
-#: src/components/file_manager/FileExplorer.tsx:659
+#: src/components/file_manager/FileExplorer.tsx:697
 msgid "Download as zip"
 msgstr "Descarrega com a zip"
 
@@ -6086,7 +6086,7 @@ msgstr "Arrossegueu per moure aquest bloc a l'arbre"
 msgid "Dragging {name} was cancelled."
 msgstr "S’ha cancel·lat l’arrossegament de {name}."
 
-#: src/components/file_manager/FileExplorer.tsx:792
+#: src/components/file_manager/FileExplorer.tsx:830
 msgid "Drop files here to upload"
 msgstr "Deixeu anar fitxers aquí per pujar"
 
@@ -7423,7 +7423,7 @@ msgid "Failed to connect Zapier"
 msgstr "No s'ha pogut connectar Zapier"
 
 #: src/components/common/CodeSnippet.tsx:35
-#: src/components/file_manager/FileExplorer.tsx:277
+#: src/components/file_manager/FileExplorer.tsx:293
 #: src/components/layout/DrawerControls.tsx:77
 #: src/components/layout/Mono.tsx:22
 #: src/components/settings/WebhookDetail.tsx:214
@@ -7452,7 +7452,7 @@ msgstr "No s'ha pogut crear l'automatització: {0}"
 msgid "Failed to create category: {0}"
 msgstr "No s'ha pogut crear la categoria: {0}"
 
-#: src/components/file_manager/FileExplorer.tsx:484
+#: src/components/file_manager/FileExplorer.tsx:504
 msgid "Failed to create folder: "
 msgstr "No s'ha pogut crear la carpeta: "
 
@@ -7503,11 +7503,11 @@ msgstr "No s'ha pogut eliminar la categoria"
 msgid "Failed to delete contact"
 msgstr "No s'ha pogut eliminar el contacte"
 
-#: src/components/file_manager/FileExplorer.tsx:303
+#: src/components/file_manager/FileExplorer.tsx:320
 msgid "Failed to delete file: "
 msgstr "No s'ha pogut eliminar el fitxer: "
 
-#: src/components/file_manager/FileExplorer.tsx:333
+#: src/components/file_manager/FileExplorer.tsx:350
 msgid "Failed to delete folder: "
 msgstr "No s'ha pogut suprimir la carpeta: "
 
@@ -7557,11 +7557,11 @@ msgstr "No s'ha pogut eliminar l'espai de treball"
 msgid "Failed to detect icon: {0}"
 msgstr "No s'ha pogut detectar la icona: {0}"
 
-#: src/components/file_manager/FileExplorer.tsx:283
+#: src/components/file_manager/FileExplorer.tsx:299
 msgid "Failed to download file"
 msgstr "No s'ha pogut descarregar el fitxer"
 
-#: src/components/file_manager/FileExplorer.tsx:354
+#: src/components/file_manager/FileExplorer.tsx:371
 msgid "Failed to download files"
 msgstr "No s'han pogut descarregar els fitxers"
 
@@ -7994,7 +7994,7 @@ msgstr "Fitxer {0} afegit"
 msgid "File {0} exceeds 3MB limit"
 msgstr "El fitxer {0} supera el límit de 3MB"
 
-#: src/components/file_manager/FileExplorer.tsx:298
+#: src/components/file_manager/FileExplorer.tsx:314
 msgid "File deleted successfully."
 msgstr "Fitxer eliminat correctament."
 
@@ -8002,7 +8002,7 @@ msgstr "Fitxer eliminat correctament."
 msgid "File is too large. Maximum size is 1MB."
 msgstr "El fitxer és massa gran. La mida màxima és d'1 MB."
 
-#: src/components/file_manager/FileExplorer.tsx:932
+#: src/components/file_manager/FileExplorer.tsx:984
 #: src/layouts/app-shell/menuItems.ts:179
 msgid "File Manager"
 msgstr "Gestor de fitxers"
@@ -8015,13 +8015,13 @@ msgstr "Error del gestor de fitxers: "
 msgid "File manager settings updated successfully"
 msgstr "Paràmetres del gestor de fitxers actualitzats correctament"
 
-#: src/components/file_manager/FileExplorer.tsx:686
-#: src/components/file_manager/FileExplorer.tsx:687
+#: src/components/file_manager/FileExplorer.tsx:724
+#: src/components/file_manager/FileExplorer.tsx:725
 #: src/components/web_analytics/explore/CsvExportModal.tsx:167
 msgid "File name"
 msgstr "Nom del fitxer"
 
-#: src/components/file_manager/FileExplorer.tsx:911
+#: src/components/file_manager/FileExplorer.tsx:963
 msgid "File storage is not configured."
 msgstr "L'emmagatzematge de fitxers no està configurat."
 
@@ -8170,23 +8170,23 @@ msgstr "Estadístiques de flux: {0}"
 msgid "Folder"
 msgstr "Carpeta"
 
-#: src/components/file_manager/FileExplorer.tsx:481
+#: src/components/file_manager/FileExplorer.tsx:501
 msgid "Folder already exists."
 msgstr "La carpeta ja existeix."
 
-#: src/components/file_manager/FileExplorer.tsx:482
+#: src/components/file_manager/FileExplorer.tsx:502
 msgid "Folder created successfully."
 msgstr "Carpeta creada correctament."
 
-#: src/components/file_manager/FileExplorer.tsx:317
+#: src/components/file_manager/FileExplorer.tsx:334
 msgid "Folder deleted successfully."
 msgstr "Carpeta eliminada correctament."
 
-#: src/components/file_manager/FileExplorer.tsx:733
+#: src/components/file_manager/FileExplorer.tsx:771
 msgid "Folder is empty"
 msgstr "La carpeta és buida"
 
-#: src/components/file_manager/FileExplorer.tsx:866
+#: src/components/file_manager/FileExplorer.tsx:916
 msgid "Folder name"
 msgstr "Nom de la carpeta"
 
@@ -8194,8 +8194,8 @@ msgstr "Nom de la carpeta"
 #~ msgid "folder with all its content?"
 #~ msgstr "carpeta amb tot el seu contingut?"
 
-#: src/components/file_manager/FileExplorer.tsx:590
-#: src/components/file_manager/FileExplorer.tsx:1012
+#: src/components/file_manager/FileExplorer.tsx:619
+#: src/components/file_manager/FileExplorer.tsx:1076
 msgid "Folders"
 msgstr "Carpetes"
 
@@ -8566,8 +8566,8 @@ msgstr "Concedir-ho tot"
 msgid "Granted"
 msgstr "Concedit"
 
-#: src/components/file_manager/FileExplorer.tsx:635
-#: src/components/file_manager/FileExplorer.tsx:636
+#: src/components/file_manager/FileExplorer.tsx:673
+#: src/components/file_manager/FileExplorer.tsx:674
 msgid "Grid"
 msgstr "Graella"
 
@@ -8971,7 +8971,7 @@ msgstr "Importar / Exportar"
 msgid "Import & Export Templates"
 msgstr "Importar i exportar plantilles"
 
-#: src/components/file_manager/FileExplorer.tsx:439
+#: src/components/file_manager/FileExplorer.tsx:459
 msgid "Import cancelled"
 msgstr "Importació cancel·lada"
 
@@ -9045,7 +9045,7 @@ msgstr "Importats {0} contactes ({1} fallats, vegeu detalls a continuació)"
 msgid "Imported Fonts"
 msgstr "Fonts importades"
 
-#: src/components/file_manager/FileExplorer.tsx:797
+#: src/components/file_manager/FileExplorer.tsx:835
 msgid "Importing files..."
 msgstr "Important fitxers..."
 
@@ -9172,7 +9172,7 @@ msgstr "Inserir emoji"
 msgid "Insert here"
 msgstr "Insereix aquí"
 
-#: src/components/file_manager/FileExplorer.tsx:1078
+#: src/components/file_manager/FileExplorer.tsx:1148
 msgid "Insert image"
 msgstr "Insereix la imatge"
 
@@ -9900,8 +9900,8 @@ msgstr "Bloc Liquid - Feu clic per afegir contingut MJML + Liquid"
 #: src/components/contacts/BulkUpdateDrawer.tsx:617
 #: src/components/contacts/ExportContactsModal.tsx:87
 #: src/components/contacts/sheet/activityLabel.ts:17
-#: src/components/file_manager/FileExplorer.tsx:641
-#: src/components/file_manager/FileExplorer.tsx:642
+#: src/components/file_manager/FileExplorer.tsx:679
+#: src/components/file_manager/FileExplorer.tsx:680
 #: src/components/messages/MessageHistoryTable.tsx:150
 #: src/components/messages/MessageHistoryTable.tsx:277
 #: src/components/messages/MessageHistoryTable.tsx:291
@@ -10130,7 +10130,7 @@ msgstr "Carregar el registre de l'espai de treball, cosa que admeten tant la lec
 msgid "Loaded the latest version of this template (v{0})."
 msgstr "S'ha carregat la darrera versió d'aquesta plantilla (v{0})."
 
-#: src/components/file_manager/FileExplorer.tsx:763
+#: src/components/file_manager/FileExplorer.tsx:801
 msgid "Loading"
 msgstr "Carregant"
 
@@ -10687,7 +10687,7 @@ msgid "Modest Branding"
 msgstr "Marca modesta"
 
 #: src/components/file_manager/FilePreview.tsx:49
-#: src/components/file_manager/FileTable.tsx:115
+#: src/components/file_manager/FileTable.tsx:116
 msgid "Modified"
 msgstr "Modificat"
 
@@ -10718,7 +10718,7 @@ msgstr "Mensual"
 #: src/components/contacts/ContactsViewHeader.tsx:179
 #: src/components/contacts/ContactsViewHeader.tsx:217
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:217
-#: src/components/file_manager/FileExplorer.tsx:1004
+#: src/components/file_manager/FileExplorer.tsx:1066
 #: src/components/settings/Integrations.tsx:961
 #: src/components/settings/integrations/EmailProviderCard.tsx:343
 #: src/components/transactional/TransactionalDetail.tsx:295
@@ -10892,14 +10892,14 @@ msgstr "Contactes nous"
 msgid "New conversation"
 msgstr "Nova conversa"
 
-#: src/components/file_manager/FileExplorer.tsx:719
-#: src/components/file_manager/FileExplorer.tsx:721
-#: src/components/file_manager/FileExplorer.tsx:979
+#: src/components/file_manager/FileExplorer.tsx:757
+#: src/components/file_manager/FileExplorer.tsx:759
+#: src/components/file_manager/FileExplorer.tsx:1035
 msgid "New folder"
 msgstr "Nova carpeta"
 
-#: src/components/file_manager/FileExplorer.tsx:719
-#: src/components/file_manager/FileExplorer.tsx:973
+#: src/components/file_manager/FileExplorer.tsx:757
+#: src/components/file_manager/FileExplorer.tsx:1029
 msgid "New folder (Read-only mode)"
 msgstr "Nova carpeta (mode de només lectura)"
 
@@ -11246,7 +11246,7 @@ msgstr "Sense errors"
 msgid "No failure"
 msgstr "Cap error"
 
-#: src/components/file_manager/FileExplorer.tsx:733
+#: src/components/file_manager/FileExplorer.tsx:771
 msgid "No files match your search"
 msgstr "Cap fitxer coincideix amb la cerca"
 
@@ -11992,7 +11992,7 @@ msgstr "Només els enllaços dels emails d'aquesta difusió."
 msgid "Only links in emails sent with this template."
 msgstr "Només els enllaços dels emails enviats amb aquesta plantilla."
 
-#: src/components/file_manager/FileExplorer.tsx:876
+#: src/components/file_manager/FileExplorer.tsx:927
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 msgstr "Només es permeten caràcters alfanumèrics en minúscules, guió baix i guió."
 
@@ -12012,7 +12012,7 @@ msgstr "Només els propietaris de l'espai de treball poden modificar integracion
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:80
 #: src/components/contacts/sheet/activityLabel.ts:14
-#: src/components/file_manager/FileExplorer.tsx:517
+#: src/components/file_manager/FileExplorer.tsx:534
 msgid "Open"
 msgstr "Obertura"
 
@@ -12046,7 +12046,7 @@ msgstr "Imatge Open Graph"
 msgid "Open Graph Title"
 msgstr "Títol Open Graph"
 
-#: src/components/file_manager/FileExplorer.tsx:526
+#: src/components/file_manager/FileExplorer.tsx:548
 #: src/components/file_manager/FilePreview.tsx:102
 msgid "Open in a new tab"
 msgstr "Obre en una pestanya nova"
@@ -13033,7 +13033,7 @@ msgstr "Premeu Enter per confirmar, Escape per cancel·lar"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:76
 #: src/components/common/ImageURLInput.tsx:52
 #: src/components/email_builder/EmailBuilder.tsx:1061
-#: src/components/file_manager/FileExplorer.tsx:1018
+#: src/components/file_manager/FileExplorer.tsx:1082
 #: src/components/segment/button_upsert.tsx:664
 #: src/components/transactional/PreviewPanel.tsx:127
 #: src/pages/TemplatesPage.tsx:292
@@ -13733,8 +13733,8 @@ msgstr "Actualitza les estadístiques"
 msgid "Refresh the broadcast's data feed by calling the configured external URL"
 msgstr "Actualitzar el feed de dades de la difusió cridant l'URL externa configurada"
 
-#: src/components/file_manager/FileExplorer.tsx:691
-#: src/components/file_manager/FileExplorer.tsx:695
+#: src/components/file_manager/FileExplorer.tsx:729
+#: src/components/file_manager/FileExplorer.tsx:733
 msgid "Refresh the list"
 msgstr "Actualitzar la llista"
 
@@ -14223,7 +14223,7 @@ msgstr "Retenció"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:547
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:169
 #: src/components/contacts/BlockError.tsx:11
-#: src/components/file_manager/FileExplorer.tsx:742
+#: src/components/file_manager/FileExplorer.tsx:780
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
 #: src/components/settings/WorkspaceMembers.tsx:495
@@ -14274,8 +14274,8 @@ msgstr "Dreta a esquerra"
 #~ msgid "Role"
 #~ msgstr "Rol"
 
-#: src/components/file_manager/FileExplorer.tsx:597
-#: src/components/file_manager/FileExplorer.tsx:968
+#: src/components/file_manager/FileExplorer.tsx:633
+#: src/components/file_manager/FileExplorer.tsx:1020
 #: src/components/file_manager/FilePreview.tsx:62
 #: src/components/file_manager/FileTable.tsx:88
 #: src/components/file_manager/FolderTree.tsx:121
@@ -14411,7 +14411,7 @@ msgstr "Regió S3"
 msgid "S3 secret key"
 msgstr "Clau secreta S3"
 
-#: src/components/file_manager/FileExplorer.tsx:580
+#: src/components/file_manager/FileExplorer.tsx:608
 msgid "S3 storage"
 msgstr "Emmagatzematge S3"
 
@@ -14663,7 +14663,7 @@ msgstr "Cercar dimensions"
 msgid "Search Engine Indexing"
 msgstr "Indexació de motors de cerca"
 
-#: src/components/file_manager/FileExplorer.tsx:968
+#: src/components/file_manager/FileExplorer.tsx:1020
 msgid "Search results"
 msgstr "Resultats de la cerca"
 
@@ -14875,7 +14875,7 @@ msgstr "Seleccionar un interval de dates personalitzat"
 msgid "Select a field"
 msgstr "Seleccioneu un camp"
 
-#: src/components/file_manager/FileExplorer.tsx:1060
+#: src/components/file_manager/FileExplorer.tsx:1130
 msgid "Select a file"
 msgstr "Selecciona un fitxer"
 
@@ -15032,7 +15032,7 @@ msgstr "Seleccionar camp"
 msgid "Select field to map to"
 msgstr "Seleccionar camp per assignar"
 
-#: src/components/file_manager/FileExplorer.tsx:1078
+#: src/components/file_manager/FileExplorer.tsx:1148
 msgid "Select file"
 msgstr "Selecciona el fitxer"
 
@@ -15774,7 +15774,7 @@ msgstr "Es mostren els primers {0} contactes. Afina els filtres per veure'n més
 #~ msgid "Showing the first {maxObjectsLabel} files of this bucket."
 #~ msgstr "Es mostren els primers {maxObjectsLabel} fitxers d'aquest bucket."
 
-#: src/components/file_manager/FileExplorer.tsx:828
+#: src/components/file_manager/FileExplorer.tsx:878
 msgid "Showing the first {maxObjectsLabel} files of this bucket. Folder counts, total size and search only cover these files."
 msgstr "Es mostren els primers {maxObjectsLabel} fitxers d'aquest bucket. Els recomptes de carpetes, la mida total i la cerca només inclouen aquests fitxers."
 
@@ -16241,14 +16241,14 @@ msgstr "Estat a la llista"
 msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop."
 msgstr "Atura aquesta automatització per a un contacte tan bon punt respon a un dels seus correus. Això requereix que el reenviament de respostes entrants estigui configurat al vostre proveïdor de correu (ESP): les respostes al vostre domini d'enviament s'han d'encaminar cap al proveïdor, que les reenvia a Notifuse. Sense aquesta configuració, les respostes no es detecten i la seqüència no s'atura."
 
-#: src/components/file_manager/FileExplorer.tsx:556
-#: src/components/file_manager/FileExplorer.tsx:566
-#: src/components/file_manager/FileExplorer.tsx:570
+#: src/components/file_manager/FileExplorer.tsx:584
+#: src/components/file_manager/FileExplorer.tsx:594
+#: src/components/file_manager/FileExplorer.tsx:598
 msgid "Storage settings"
 msgstr "Configuració d'emmagatzematge"
 
-#: src/components/file_manager/FileExplorer.tsx:551
-#: src/components/file_manager/FileExplorer.tsx:916
+#: src/components/file_manager/FileExplorer.tsx:579
+#: src/components/file_manager/FileExplorer.tsx:968
 msgid "Storage settings (Read-only mode)"
 msgstr "Configuració d'emmagatzematge (Mode només lectura)"
 
@@ -17105,7 +17105,7 @@ msgstr "El nom d'amfitrió amb què el vostre servidor s'identifica en connectar
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:54
 msgid "the Image block"
-msgstr "el bloc Imatge"
+msgstr "bloc Imatge"
 
 #: src/services/api/permissions.ts:914
 msgid "The inbound events email providers send back — bounces, complaints, deliveries and replies — as the raw rows the provider posted."
@@ -17227,7 +17227,7 @@ msgstr ""
 msgid "The status to assign when adding to the list"
 msgstr "L'estat a assignar quan s'afegeix a la llista"
 
-#: src/components/file_manager/FileExplorer.tsx:829
+#: src/components/file_manager/FileExplorer.tsx:879
 msgid "The storage did not return the whole bucket. Folder counts, total size and search only cover the files shown."
 msgstr "L'emmagatzematge no ha retornat tot el bucket. Els recomptes de carpetes, la mida total i la cerca només inclouen els fitxers mostrats."
 
@@ -17489,7 +17489,7 @@ msgid "This file holds the display conditions of an export. They are not importe
 msgstr "Aquest fitxer conté les condicions de visualització d'una exportació. No s'importen: els blocs que envoltaven ara es mostren a tots els destinataris. Torna a afegir les seves condicions a la configuració del bloc."
 
 #: src/components/file_manager/FileGrid.tsx:114
-#: src/components/file_manager/FileTable.tsx:184
+#: src/components/file_manager/FileTable.tsx:188
 msgid "This file type can't be used here"
 msgstr "Aquest tipus de fitxer no es pot utilitzar aquí"
 
@@ -18535,8 +18535,8 @@ msgstr "Actualitzat el"
 #~ msgid "Upgrade licence"
 #~ msgstr ""
 
-#: src/components/file_manager/FileExplorer.tsx:716
-#: src/components/file_manager/FileExplorer.tsx:990
+#: src/components/file_manager/FileExplorer.tsx:754
+#: src/components/file_manager/FileExplorer.tsx:1046
 msgid "Upload"
 msgstr "Pujar"
 
@@ -18548,7 +18548,7 @@ msgstr "Càrrega completada"
 msgid "Upload Error"
 msgstr "Error de càrrega"
 
-#: src/components/file_manager/FileExplorer.tsx:419
+#: src/components/file_manager/FileExplorer.tsx:439
 msgid "Upload failed: "
 msgstr "Error en pujar: "
 
@@ -18561,8 +18561,8 @@ msgstr "Càrrega fallida: {0}"
 msgid "Upload failed. Please try again."
 msgstr "Càrrega fallida. Si us plau, torneu-ho a provar."
 
-#: src/components/file_manager/FileExplorer.tsx:709
-#: src/components/file_manager/FileExplorer.tsx:982
+#: src/components/file_manager/FileExplorer.tsx:747
+#: src/components/file_manager/FileExplorer.tsx:1038
 msgid "Upload file (Read-only mode)"
 msgstr "Pujar fitxer (Mode només lectura)"
 
@@ -18583,7 +18583,7 @@ msgstr "URL"
 #~ msgid "URL copied to clipboard"
 #~ msgstr ""
 
-#: src/components/file_manager/FileExplorer.tsx:276
+#: src/components/file_manager/FileExplorer.tsx:292
 msgid "URL copied to clipboard."
 msgstr "URL copiada al porta-retalls."
 
@@ -19381,9 +19381,9 @@ msgstr "Per què ha canviat el trànsit?"
 msgid "Width"
 msgstr "Amplada"
 
-#: src/components/file_manager/FileExplorer.tsx:1065
+#: src/components/file_manager/FileExplorer.tsx:1135
 msgid "will be inserted into {targetLabel}"
-msgstr "s'inserirà a {targetLabel}"
+msgstr "s'inserirà al {targetLabel}"
 
 #: src/components/contacts/SegmentsFilter.tsx:91
 #~ msgid "Will be removed"

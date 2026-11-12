@@ -29,7 +29,9 @@ function Consumer(props: {
 
 const renderPicker = (props: Parameters<typeof Consumer>[0]) =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
       <ConfigProvider>
         <App>
           <FileManagerProvider workspaceId="ws" settings={settings} onUpdateSettings={vi.fn()}>
@@ -87,6 +89,7 @@ describe('FileManagerProvider picker', () => {
     fireEvent.click(within(footer()).getByRole('button', { name: 'Insert image' }))
     expect(onSelect).toHaveBeenCalledWith('https://s3.example.com/media/small.png')
     expect(await screen.findByText('Selected: small.png')).toBeTruthy()
+    await waitFor(() => expect(footer()).toBeNull())
   })
 
   it('warns before inserting a large file', async () => {

@@ -102,7 +102,8 @@ export function FileTable({
       key: 'size',
       width: 110,
       render: (_, item) => {
-        if (!item.is_folder) return cell(item, <span className="tabular-nums">{item.file_info.size_human}</span>)
+        if (!item.is_folder)
+          return cell(item, <span className="tabular-nums">{item.file_info.size_human}</span>)
         const count = counts.get(item.key) ?? 0
         return (
           <span className="text-ink-3 tabular-nums">
@@ -136,7 +137,10 @@ export function FileTable({
         const menu = menuFor(item)
         if (!menu || menu.length === 0) return null
         return (
-          <span onClick={(event) => event.stopPropagation()}>
+          <span
+            onClick={(event) => event.stopPropagation()}
+            onDoubleClick={(event) => event.stopPropagation()}
+          >
             <Dropdown menu={{ items: menu }} trigger={['click']} placement="bottomRight">
               <Button
                 type="text"

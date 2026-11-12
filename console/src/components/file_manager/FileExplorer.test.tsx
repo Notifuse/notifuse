@@ -2,11 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import {
-  DeleteObjectCommand,
-  ListObjectsV2Command,
-  PutObjectCommand
-} from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3'
 import { FileExplorer, type FileExplorerProps } from './FileExplorer'
 import { clearImageSizes } from './imageDimensions'
 import type { StorageObject } from './interfaces'
@@ -130,6 +126,15 @@ describe('FileExplorer page', () => {
     expect(within(tree).getByText(/media · /)).toBeTruthy()
   })
 
+  it('shows no count nor size in the rail before the listing answers', async () => {
+    s3.send.mockReturnValue(new Promise(() => {}))
+    renderExplorer()
+    const tree = await screen.findByRole('navigation', { name: 'Folders' })
+    expect(within(tree).getByRole('button', { name: 'Root' })).toBeTruthy()
+    expect(within(tree).getByText('media')).toBeTruthy()
+    expect(within(tree).queryByText(/ · /)).toBeNull()
+  })
+
   it('titles the page after the folder, with its file count', async () => {
     listing()
     renderExplorer()
@@ -183,7 +188,9 @@ describe('FileExplorer page', () => {
     unmount()
 
     renderExplorer()
-    await waitFor(() => expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull())
+    await waitFor(() =>
+      expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull()
+    )
   })
 
   it('searches file names in the whole bucket and shows each file’s folder', async () => {
@@ -191,7 +198,9 @@ describe('FileExplorer page', () => {
     renderExplorer()
     await screen.findByText('a.png')
 
-    fireEvent.change(screen.getByRole('textbox', { name: 'File name' }), { target: { value: 'PNG' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'File name' }), {
+      target: { value: 'PNG' }
+    })
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Search results' })).toBeTruthy()
     const rows = screen.getAllByRole('row').slice(1)
@@ -201,7 +210,9 @@ describe('FileExplorer page', () => {
     ])
     expect(rows[0].textContent).toContain('docs/2026/')
 
-    fireEvent.change(screen.getByRole('textbox', { name: 'File name' }), { target: { value: 'zzz' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'File name' }), {
+      target: { value: 'zzz' }
+    })
     expect(await screen.findByText('No files match your search')).toBeTruthy()
   })
 
@@ -231,7 +242,7 @@ describe('FileExplorer page', () => {
     expect(document.querySelector('[data-selection-bar]')).toBeNull()
   })
 
-  it('deletes the checked files one by one and says how many went', async () => {
+  it('deletes the checked files in order and says how many went', async () => {
     listing()
     renderExplorer()
     await screen.findByText('a.png')
@@ -249,20 +260,57 @@ describe('FileExplorer page', () => {
     expect(deleted).toEqual(['docs/a.png', 'docs/report.pdf'])
   })
 
+  it('leaves the file in the URL alone when a delete ends after the page is gone', async () => {
+    listing()
+    let release: () => void = () => {}
+    const base = s3.send.getMockImplementation()
+    s3.send.mockImplementation(async (command: unknown) => {
+      if (command instanceof DeleteObjectCommand) {
+        return new Promise((resolve) => {
+          release = () => resolve({})
+        })
+      }
+      return base?.(command)
+    })
+    const onFileChange = vi.fn()
+    const { unmount } = renderExplorer({ controlledFile: 'docs/a.png', onFileChange })
+    await screen.findByText('report.pdf')
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'a.png' }))
+    const bar = document.querySelector('[data-selection-bar]') as HTMLElement
+    fireEvent.click(within(bar).getByRole('button', { name: 'Delete' }))
+    await screen.findAllByText('Delete 1 selected file?')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Delete' }).at(-1) as HTMLElement)
+    await waitFor(() =>
+      expect(s3.send.mock.calls.some(([command]) => command instanceof DeleteObjectCommand)).toBe(
+        true
+      )
+    )
+    unmount()
+    await act(async () => release())
+
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 0)))
+    expect(onFileChange).not.toHaveBeenCalled()
+  })
+
   it('disables the writes in read-only mode', async () => {
     listing()
     renderExplorer({ readOnly: true })
     await screen.findByText('a.png')
 
-    expect((screen.getByRole('button', { name: 'Upload' }) as HTMLButtonElement).disabled).toBe(true)
-    expect((screen.getByRole('button', { name: 'New folder' }) as HTMLButtonElement).disabled).toBe(true)
-    expect((screen.getByRole('button', { name: 'Storage settings' }) as HTMLButtonElement).disabled).toBe(
+    expect((screen.getByRole('button', { name: 'Upload' }) as HTMLButtonElement).disabled).toBe(
       true
     )
-    const menu = await openMenu('a.png')
-    expect(within(menu).getByRole('menuitem', { name: 'Delete' }).getAttribute('aria-disabled')).toBe(
-      'true'
+    expect((screen.getByRole('button', { name: 'New folder' }) as HTMLButtonElement).disabled).toBe(
+      true
     )
+    expect(
+      (screen.getByRole('button', { name: 'Storage settings' }) as HTMLButtonElement).disabled
+    ).toBe(true)
+    const menu = await openMenu('a.png')
+    expect(
+      within(menu).getByRole('menuitem', { name: 'Delete' }).getAttribute('aria-disabled')
+    ).toBe('true')
   })
 
   it('offers copy, open, download and delete on a file, open and delete on a folder', async () => {
@@ -271,20 +319,20 @@ describe('FileExplorer page', () => {
     await screen.findByText('a.png')
 
     let menu = await openMenu('a.png')
-    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
-      'Copy URL',
-      'Open in a new tab',
-      'Download',
-      'Delete'
-    ])
+    expect(
+      within(menu)
+        .getAllByRole('menuitem')
+        .map((item) => item.textContent)
+    ).toEqual(['Copy URL', 'Open in a new tab', 'Download', 'Delete'])
     fireEvent.keyDown(menu, { key: 'Escape' })
 
     menu = await openMenu('2026')
     await waitFor(() =>
-      expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
-        'Open',
-        'Delete folder'
-      ])
+      expect(
+        within(menu)
+          .getAllByRole('menuitem')
+          .map((item) => item.textContent)
+      ).toEqual(['Open', 'Delete folder'])
     )
   })
 
@@ -459,7 +507,9 @@ describe('FileExplorer folder delete', () => {
 
     await openFolderDelete()
     expect(await screen.findByText('Delete the folder docs and its 3 files?')).toBeTruthy()
-    expect(screen.getByText('Images used in emails or blog posts will stop displaying.')).toBeTruthy()
+    expect(
+      screen.getByText('Images used in emails or blog posts will stop displaying.')
+    ).toBeTruthy()
   })
 
   it('shows the delete in progress and ignores a second confirmation', async () => {
@@ -569,15 +619,17 @@ describe('FileExplorer picker', () => {
   it('shows a grid, dims the files it cannot use and asks to select a file', async () => {
     listing()
     renderPicker()
-    await waitFor(() => expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull())
+    await waitFor(() =>
+      expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull()
+    )
 
     const pdf = document.querySelector('[data-file-card="docs/report.pdf"]') as HTMLElement
     expect(pdf.getAttribute('aria-disabled')).toBe('true')
     expect(pdf.className).toContain('opacity-50')
     expect(footer().textContent).toContain('Select a file')
-    expect((within(footer()).getByRole('button', { name: 'Insert image' }) as HTMLButtonElement).disabled).toBe(
-      true
-    )
+    expect(
+      (within(footer()).getByRole('button', { name: 'Insert image' }) as HTMLButtonElement).disabled
+    ).toBe(true)
     // No checkboxes in the picker.
     expect(screen.queryByRole('checkbox')).toBeNull()
   })
@@ -586,7 +638,9 @@ describe('FileExplorer picker', () => {
     listing()
     const onSelect = vi.fn()
     renderPicker({ onSelect, targetLabel: 'the Image block' })
-    await waitFor(() => expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull())
+    await waitFor(() =>
+      expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull()
+    )
 
     fireEvent.click(document.querySelector('[data-file-card="docs/a.png"]') as HTMLElement)
     expect(onSelect).not.toHaveBeenCalled()
@@ -599,7 +653,9 @@ describe('FileExplorer picker', () => {
   it('leaves the target out of the footer when the caller names none', async () => {
     listing()
     renderPicker()
-    await waitFor(() => expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull())
+    await waitFor(() =>
+      expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull()
+    )
 
     fireEvent.click(document.querySelector('[data-file-card="docs/a.png"]') as HTMLElement)
     expect(footer().textContent).toContain('a.png · 2 kB')
@@ -610,7 +666,9 @@ describe('FileExplorer picker', () => {
     listing()
     const onSelect = vi.fn()
     renderPicker({ onSelect })
-    await waitFor(() => expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull())
+    await waitFor(() =>
+      expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull()
+    )
     const card = document.querySelector('[data-file-card="docs/a.png"]') as HTMLElement
 
     fireEvent.doubleClick(card)
@@ -618,14 +676,45 @@ describe('FileExplorer picker', () => {
     fireEvent.keyDown(card, { key: 'Enter' })
     expect(onSelect).toHaveBeenCalledTimes(2)
 
-    fireEvent.doubleClick(document.querySelector('[data-file-card="docs/report.pdf"]') as HTMLElement)
+    fireEvent.doubleClick(
+      document.querySelector('[data-file-card="docs/report.pdf"]') as HTMLElement
+    )
     expect(onSelect).toHaveBeenCalledTimes(2)
+  })
+
+  it('walks with J and K over the files it can use only', async () => {
+    listing([...BUCKET, { Key: 'docs/c.png', LastModified: at(1), Size: 5 }])
+    renderPicker()
+    await waitFor(() =>
+      expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull()
+    )
+
+    fireEvent.click(document.querySelector('[data-file-card="docs/a.png"]') as HTMLElement)
+    // report.pdf comes between a.png and c.png, and is skipped.
+    fireEvent.keyDown(document, { key: 'j' })
+    expect(footer().textContent).toContain('c.png')
+    expect(footer().textContent).not.toContain('report.pdf')
+    fireEvent.keyDown(document, { key: 'k' })
+    expect(footer().textContent).toContain('a.png')
+  })
+
+  it('does not insert on a double click of a row’s menu button in the list', async () => {
+    localStorage.setItem('notifuse.files.view.picker', 'list')
+    listing()
+    const onSelect = vi.fn()
+    renderPicker({ onSelect })
+    const button = await screen.findByRole('button', { name: 'Actions for a.png' })
+
+    fireEvent.doubleClick(button)
+    expect(onSelect).not.toHaveBeenCalled()
   })
 
   it('keeps Delete folder in a folder’s menu', async () => {
     listing()
     renderPicker()
-    await waitFor(() => expect(document.querySelector('[data-file-card="docs/2026/"]')).not.toBeNull())
+    await waitFor(() =>
+      expect(document.querySelector('[data-file-card="docs/2026/"]')).not.toBeNull()
+    )
 
     const menu = await openMenu('2026')
     await waitFor(() =>
@@ -636,7 +725,9 @@ describe('FileExplorer picker', () => {
   it('chooses the image it has just uploaded', async () => {
     listing()
     renderPicker()
-    await waitFor(() => expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull())
+    await waitFor(() =>
+      expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull()
+    )
 
     const file = new File(['x'], 'New Logo.PNG', { type: 'image/png' })
     Object.defineProperty(file, 'arrayBuffer', { value: async () => new ArrayBuffer(1) })

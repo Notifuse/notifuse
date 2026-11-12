@@ -53,6 +53,8 @@ export interface FileExplorerProps extends FileManagerProps {
   mode: FileExplorerMode
 }
 
+const NO_COUNTS = new Map<string, number>()
+
 const VIEW_KEYS: Record<FileExplorerMode, string> = {
   page: 'notifuse.files.view.page',
   picker: 'notifuse.files.view.picker'
@@ -88,10 +90,13 @@ const PICKER_OVERLAY_Z = 1400
 function coveredByOverlay(root: HTMLElement | null): boolean {
   if (!root) return true
   const own = root.closest<HTMLElement>('.ant-modal-wrap, .ant-drawer')
-  const overlays = document.querySelectorAll<HTMLElement>('.ant-drawer.ant-drawer-open, .ant-modal-wrap')
+  const overlays = document.querySelectorAll<HTMLElement>(
+    '.ant-drawer.ant-drawer-open, .ant-modal-wrap'
+  )
   const popupOpen =
-    document.querySelector('.ant-popover:not(.ant-popover-hidden), .ant-dropdown:not(.ant-dropdown-hidden)') !==
-    null
+    document.querySelector(
+      '.ant-popover:not(.ant-popover-hidden), .ant-dropdown:not(.ant-dropdown-hidden)'
+    ) !== null
   if (popupOpen) return true
   return Array.from(overlays).some(
     (overlay) =>
@@ -199,8 +204,17 @@ export function FileExplorer(props: FileExplorerProps) {
   useEffect(() => {
     if (!selectedKey || !storage.isSuccess || storage.isFetching) return
     if (storage.isCapped || storage.cutShort) return
-    if (!items.some((item) => item.key === selectedKey && !item.is_folder)) setSelectedKey(undefined)
-  }, [selectedKey, storage.isSuccess, storage.isFetching, storage.isCapped, storage.cutShort, items, setSelectedKey])
+    if (!items.some((item) => item.key === selectedKey && !item.is_folder))
+      setSelectedKey(undefined)
+  }, [
+    selectedKey,
+    storage.isSuccess,
+    storage.isFetching,
+    storage.isCapped,
+    storage.cutShort,
+    items,
+    setSelectedKey
+  ])
 
   const isRefused = useCallback(
     (item: StorageObject) => isPicker && !item.is_folder && !props.acceptItem(item),
@@ -234,12 +248,14 @@ export function FileExplorer(props: FileExplorerProps) {
     else if (!isRefused(item)) setSelectedKey(item.key)
   }
 
-  // J and K walk through the files of the list; Escape closes the page's preview column.
-  const navIndex = selectedItem ? visibleFiles.findIndex((item) => item.key === selectedItem.key) : -1
-  const onPrev = navIndex > 0 ? () => setSelectedKey(visibleFiles[navIndex - 1].key) : undefined
+  // J and K walk through the files of the list that can be chosen; Escape closes the page's
+  // preview column.
+  const navFiles = visibleFiles.filter((item) => !isRefused(item))
+  const navIndex = selectedItem ? navFiles.findIndex((item) => item.key === selectedItem.key) : -1
+  const onPrev = navIndex > 0 ? () => setSelectedKey(navFiles[navIndex - 1].key) : undefined
   const onNext =
-    navIndex >= 0 && navIndex < visibleFiles.length - 1
-      ? () => setSelectedKey(visibleFiles[navIndex + 1].key)
+    navIndex >= 0 && navIndex < navFiles.length - 1
+      ? () => setSelectedKey(navFiles[navIndex + 1].key)
       : undefined
   const navRef = useRef({ onPrev, onNext, close: () => setSelectedKey(undefined) })
   useEffect(() => {
@@ -296,6 +312,7 @@ export function FileExplorer(props: FileExplorerProps) {
           .deleteFile(item.key)
           .then(() => {
             message.success(t`File deleted successfully.`)
+            if (!mountedRef.current) return
             setCheckedKeys((keys) => keys.filter((key) => key !== item.key))
             if (selectedKey === item.key) setSelectedKey(undefined)
           })
@@ -383,8 +400,11 @@ export function FileExplorer(props: FileExplorerProps) {
               })
             )
           }
-          setCheckedKeys([])
-          if (selectedKey && keys.includes(selectedKey)) setSelectedKey(undefined)
+          // Left meanwhile: the page has moved on, so neither the selection nor the URL changes.
+          if (mountedRef.current) {
+            setCheckedKeys([])
+            if (selectedKey && keys.includes(selectedKey)) setSelectedKey(undefined)
+          }
         } finally {
           if (mountedRef.current) setIsDeletingFiles(false)
         }
@@ -489,11 +509,8 @@ export function FileExplorer(props: FileExplorerProps) {
     })
   }
 
-  const updateSettings = async (settings: FileManagerSettings) => {
-    await props.onUpdateSettings(settings)
-    // Same bucket and endpoint, new keys: the cached listing may belong to the old ones.
-    void storage.invalidate()
-  }
+  // useStorage lists the bucket again once the new settings reach it.
+  const updateSettings = (settings: FileManagerSettings) => props.onUpdateSettings(settings)
 
   // Menus
 
@@ -515,8 +532,13 @@ export function FileExplorer(props: FileExplorerProps) {
     if (item.is_folder) {
       return [
         { key: 'open', label: t`Open`, onClick: () => goToPath(item.key) },
-        writeEntry('delete-folder', t`Delete folder`, t`Delete folder (Read-only mode)`, () =>
-          setFolderToDelete(item.key), true)
+        writeEntry(
+          'delete-folder',
+          t`Delete folder`,
+          t`Delete folder (Read-only mode)`,
+          () => setFolderToDelete(item.key),
+          true
+        )
       ]
     }
     return [
@@ -527,7 +549,13 @@ export function FileExplorer(props: FileExplorerProps) {
         onClick: () => window.open(item.file_info.url, '_blank', 'noopener,noreferrer')
       },
       { key: 'download', label: t`Download`, onClick: () => download(item) },
-      writeEntry('delete', t`Delete`, t`Delete file (Read-only mode)`, () => confirmDeleteFile(item), true)
+      writeEntry(
+        'delete',
+        t`Delete`,
+        t`Delete file (Read-only mode)`,
+        () => confirmDeleteFile(item),
+        true
+      )
     ]
   }
 
@@ -579,7 +607,8 @@ export function FileExplorer(props: FileExplorerProps) {
       <div className="flex min-w-0 flex-col">
         <span className="text-ink-3">{t`S3 storage`}</span>
         <span className="truncate text-ink-2">
-          {props.settings?.bucket} · {filesize(total, { round: 0 })}
+          {props.settings?.bucket}
+          {storage.isSuccess ? ` · ${filesize(total, { round: 0 })}` : null}
         </span>
       </div>
       {settingsButton}
@@ -588,35 +617,44 @@ export function FileExplorer(props: FileExplorerProps) {
 
   const folderTreeSection = (
     <RailSection title={t`Folders`}>
-      <FolderTree tree={tree} counts={counts} currentPath={currentPath} onOpen={goToPath} />
+      {/* No counts before the listing answers: an empty map would read as empty folders. */}
+      <FolderTree
+        tree={tree}
+        counts={storage.isSuccess ? counts : NO_COUNTS}
+        currentPath={currentPath}
+        onOpen={goToPath}
+      />
     </RailSection>
   )
 
   const breadcrumb = (
     <nav aria-label={t`Breadcrumb`} className="flex min-w-0 items-center gap-1 text-sm">
-      {[{ key: '', label: t`Root` }, ...ancestorFolders(currentPath).map((key) => ({ key, label: folderName(key) }))].map(
-        (crumb, index, crumbs) => {
-          const last = index === crumbs.length - 1 && !searching
-          return (
-            <span key={crumb.key || 'root'} className="flex min-w-0 items-center gap-1">
-              {index > 0 ? <ChevronRight size={12} aria-hidden="true" className="shrink-0 text-ink-4" /> : null}
-              {last ? (
-                <span aria-current="page" className="truncate font-medium text-ink">
-                  {crumb.label}
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => goToPath(crumb.key)}
-                  className="truncate text-ink-3 hover:text-ink focus-visible:outline-none"
-                >
-                  {crumb.label}
-                </button>
-              )}
-            </span>
-          )
-        }
-      )}
+      {[
+        { key: '', label: t`Root` },
+        ...ancestorFolders(currentPath).map((key) => ({ key, label: folderName(key) }))
+      ].map((crumb, index, crumbs) => {
+        const last = index === crumbs.length - 1 && !searching
+        return (
+          <span key={crumb.key || 'root'} className="flex min-w-0 items-center gap-1">
+            {index > 0 ? (
+              <ChevronRight size={12} aria-hidden="true" className="shrink-0 text-ink-4" />
+            ) : null}
+            {last ? (
+              <span aria-current="page" className="truncate font-medium text-ink">
+                {crumb.label}
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => goToPath(crumb.key)}
+                className="truncate text-ink-3 hover:text-ink focus-visible:outline-none"
+              >
+                {crumb.label}
+              </button>
+            )}
+          </span>
+        )
+      })}
     </nav>
   )
 
@@ -795,15 +833,27 @@ export function FileExplorer(props: FileExplorerProps) {
       {isUploading ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-lg bg-surface/95">
           <div className="text-subtitle font-semibold text-ink">{t`Importing files...`}</div>
-          <ul data-unreset className="m-0 flex max-h-[300px] w-4/5 max-w-[400px] list-none flex-col overflow-y-auto p-0">
+          <ul
+            data-unreset
+            className="m-0 flex max-h-[300px] w-4/5 max-w-[400px] list-none flex-col overflow-y-auto p-0"
+          >
             {uploadStatuses.map((row, index) => (
-              <li key={index} className="flex items-center gap-2 border-b border-line-soft py-2 text-sm">
-                {row.status === 'pending' ? <Clock size={14} aria-hidden="true" className="text-ink-4" /> : null}
+              <li
+                key={index}
+                className="flex items-center gap-2 border-b border-line-soft py-2 text-sm"
+              >
+                {row.status === 'pending' ? (
+                  <Clock size={14} aria-hidden="true" className="text-ink-4" />
+                ) : null}
                 {row.status === 'uploading' ? (
                   <Loader2 size={14} aria-hidden="true" className="animate-spin text-primary-500" />
                 ) : null}
-                {row.status === 'done' ? <CheckCircle2 size={14} aria-hidden="true" className="text-success-fg" /> : null}
-                {row.status === 'failed' ? <XCircle size={14} aria-hidden="true" className="text-danger-fg" /> : null}
+                {row.status === 'done' ? (
+                  <CheckCircle2 size={14} aria-hidden="true" className="text-success-fg" />
+                ) : null}
+                {row.status === 'failed' ? (
+                  <XCircle size={14} aria-hidden="true" className="text-danger-fg" />
+                ) : null}
                 <span className="min-w-0 flex-1 truncate text-ink">{row.file.name}</span>
                 <span className="text-xs text-ink-3">{filesize(row.file.size, { round: 0 })}</span>
               </li>
@@ -873,7 +923,9 @@ export function FileExplorer(props: FileExplorerProps) {
                 validator(_rule, value, callback) {
                   // Lowercase letters, digits, underscore and dash.
                   if (!/^[a-z0-9_-]+$/.test(value ?? '')) {
-                    callback(t`Only lowercase alphanumeric characters, underscore, and dash are allowed.`)
+                    callback(
+                      t`Only lowercase alphanumeric characters, underscore, and dash are allowed.`
+                    )
                     return
                   }
                   callback()
@@ -966,7 +1018,11 @@ export function FileExplorer(props: FileExplorerProps) {
   }
 
   const pageTitle = searching ? t`Search results` : currentPath ? folderName(currentPath) : t`Root`
-  const pageCount = storage.isSuccess ? (searching ? visibleFiles.length : (counts.get(currentPath) ?? 0)) : undefined
+  const pageCount = storage.isSuccess
+    ? searching
+      ? visibleFiles.length
+      : (counts.get(currentPath) ?? 0)
+    : undefined
 
   const headerActions = (
     <>
@@ -996,12 +1052,20 @@ export function FileExplorer(props: FileExplorerProps) {
           placement="bottomRight"
           menu={{
             items: [
-              writeEntry('delete-folder', t`Delete folder`, t`Delete folder (Read-only mode)`, () =>
-                setFolderToDelete(currentPath), true)
+              writeEntry(
+                'delete-folder',
+                t`Delete folder`,
+                t`Delete folder (Read-only mode)`,
+                () => setFolderToDelete(currentPath),
+                true
+              )
             ]
           }}
         >
-          <Button aria-label={t`More actions`} icon={<MoreHorizontal size={16} aria-hidden="true" />} />
+          <Button
+            aria-label={t`More actions`}
+            icon={<MoreHorizontal size={16} aria-hidden="true" />}
+          />
         </Dropdown>
       ) : null}
     </>
@@ -1051,7 +1115,13 @@ interface PickerFooterProps {
 }
 
 /** The picker's footer: what the chosen file is and where it goes, Cancel and Insert. */
-function PickerFooter({ item, acceptFileType, targetLabel, onCancel, onInsert }: PickerFooterProps) {
+function PickerFooter({
+  item,
+  acceptFileType,
+  targetLabel,
+  onCancel,
+  onInsert
+}: PickerFooterProps) {
   const { t } = useLingui()
   const images = acceptFileType.startsWith('image/')
   const isImage = item?.file_info?.content_type?.startsWith('image/') ?? false

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   DeleteObjectCommand,
@@ -89,6 +89,15 @@ export function useStorage({ workspaceId, settings, maxObjects = MAX_OBJECTS }: 
     [queryClient, workspaceId]
   )
 
+  // New connection settings (keys, region, path style are not in the key): list again with the
+  // client they build, once it exists. Skipped on mount, where the query lists on its own.
+  const firstClientRef = useRef(client)
+  useEffect(() => {
+    if (client === firstClientRef.current) return
+    firstClientRef.current = client
+    void invalidate()
+  }, [client, invalidate])
+
   const requireClient = useCallback((): S3Client => {
     if (!client) throw new Error('S3 client is not initialized.')
     return client
@@ -118,7 +127,12 @@ export function useStorage({ workspaceId, settings, maxObjects = MAX_OBJECTS }: 
           try {
             const body = new Uint8Array(await file.arrayBuffer())
             await s3.send(
-              new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: file.type }),
+              new PutObjectCommand({
+                Bucket: bucket,
+                Key: key,
+                Body: body,
+                ContentType: file.type
+              }),
               { abortSignal: options.signal }
             )
             written.push(key)
