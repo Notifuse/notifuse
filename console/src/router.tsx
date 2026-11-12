@@ -15,7 +15,6 @@ import { CreateWorkspacePage } from "./pages/CreateWorkspacePage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { WorkspaceSettingsPage } from "./pages/WorkspaceSettingsPage";
 import { ContactsPage } from "./pages/ContactsPage";
-import { ListsPage } from "./pages/ListsPage";
 import { FileManagerPage } from "./pages/FileManagerPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { BroadcastsPage } from "./pages/BroadcastsPage";
@@ -56,8 +55,33 @@ export interface ContactsSearch {
   contact_list_status?: string;
   tracking_opens_consent?: TrackingConsentFilter;
   tracking_clicks_consent?: TrackingConsentFilter;
+  /** Legacy filter: contacts in any of these segments (a chip). */
   segments?: string[];
+  /** The segment view; sent to the API as segments=[segment_id]. */
+  segment_id?: string;
+  /** Unified search on email, names and external ID. */
+  search?: string;
+  /** Email of the contact whose sheet is open. */
+  contact?: string;
   limit?: number;
+}
+
+const CONTACTS_DEFAULT_LIMIT = 50;
+const CONTACTS_MAX_LIMIT = 10000;
+
+// The default search parser JSON.parses each value, so ?search=123 arrives as a number and
+// ?x=a&x=b as an array: every contacts parameter is read back as one string.
+function searchText(value: unknown): string | undefined {
+  const single = Array.isArray(value) ? value[0] : value;
+  if (single === undefined || single === null) return undefined;
+  const text = String(single);
+  return text.trim() === "" ? undefined : text;
+}
+
+function contactsLimit(value: unknown): number {
+  const limit = Math.floor(Number(value));
+  if (!Number.isFinite(limit) || limit < 1) return CONTACTS_DEFAULT_LIMIT;
+  return Math.min(limit, CONTACTS_MAX_LIMIT);
 }
 
 const trackingConsentFilters: readonly TrackingConsentFilter[] = ["granted", "denied", "unknown"];
@@ -90,6 +114,31 @@ export interface FileManagerSearch {
 export interface BroadcastsSearch {
   status?: string;
   q?: string;
+  /** Opens the detail page of this broadcast. */
+  broadcast?: string;
+  /** Opens the composer: `new`, or the id of a draft or scheduled broadcast. */
+  compose?: string;
+}
+
+/**
+ * Repeated query keys (?status=a&status=b) parse to arrays; coerce to a single value, trim, and
+ * drop empties so the page always sees a clean string or undefined. An identifier made of digits
+ * is parsed as a number by the router, and read back as text.
+ */
+export function validateBroadcastsSearch(search: Record<string, unknown>): BroadcastsSearch {
+  const normalize = (value: unknown, numbers = false): string | undefined => {
+    const single = Array.isArray(value) ? value[0] : value;
+    const text = numbers && typeof single === "number" && Number.isFinite(single) ? String(single) : single;
+    if (typeof text !== "string") return undefined;
+    const trimmed = text.trim();
+    return trimmed === "" ? undefined : trimmed;
+  };
+  return {
+    status: normalize(search.status),
+    q: normalize(search.q),
+    broadcast: normalize(search.broadcast, true),
+    compose: normalize(search.compose, true),
+  };
 }
 
 export type { TemplatesSearch } from "./lib/searchParams";
@@ -171,18 +220,7 @@ const workspaceBroadcastsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/broadcasts",
   component: BroadcastsPage,
-  validateSearch: (search: Record<string, unknown>): BroadcastsSearch => {
-    // Repeated query keys (?status=a&status=b) parse to arrays; coerce to a
-    // single value, trim, and drop empties so the page always sees a clean
-    // string or undefined.
-    const normalize = (value: unknown): string | undefined => {
-      const single = Array.isArray(value) ? value[0] : value;
-      if (typeof single !== "string") return undefined;
-      const trimmed = single.trim();
-      return trimmed === "" ? undefined : trimmed;
-    };
-    return { status: normalize(search.status), q: normalize(search.q) };
-  },
+  validateSearch: validateBroadcastsSearch,
 });
 
 const workspaceAutomationsRoute = createRoute({
@@ -191,10 +229,18 @@ const workspaceAutomationsRoute = createRoute({
   component: AutomationsPage,
 });
 
+// The lists live in the Contacts page's rail now.
 const workspaceListsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/lists",
-  component: ListsPage,
+  staticData: { layout: "rail" },
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/console/workspace/$workspaceId/contacts",
+      params: { workspaceId: params.workspaceId },
+      replace: true,
+    });
+  },
 });
 
 export const workspaceFileManagerRoute = createRoute({
@@ -230,26 +276,45 @@ export const workspaceContactsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/contacts",
   component: ContactsPage,
-  validateSearch: (search: Record<string, unknown>): ContactsSearch => ({
-    email: search.email as string | undefined,
-    external_id: search.external_id as string | undefined,
-    first_name: search.first_name as string | undefined,
-    last_name: search.last_name as string | undefined,
-    full_name: search.full_name as string | undefined,
-    phone: search.phone as string | undefined,
-    country: search.country as string | undefined,
-    language: search.language as string | undefined,
-    list_id: search.list_id as string | undefined,
-    contact_list_status: search.contact_list_status as string | undefined,
-    tracking_opens_consent: trackingConsentFilter(search.tracking_opens_consent),
-    tracking_clicks_consent: trackingConsentFilter(search.tracking_clicks_consent),
-    segments: Array.isArray(search.segments)
-      ? (search.segments as string[])
-      : search.segments
-        ? [search.segments as string]
-        : undefined,
-    limit: search.limit ? Number(search.limit) : 10,
-  }),
+  staticData: { layout: "rail" },
+  validateSearch: (search: Record<string, unknown>): ContactsSearch => {
+    const listId = searchText(search.list_id);
+    const segments = (Array.isArray(search.segments) ? search.segments : [search.segments])
+      .map(searchText)
+      .filter((id): id is string => id !== undefined);
+    return {
+      email: searchText(search.email),
+      external_id: searchText(search.external_id),
+      first_name: searchText(search.first_name),
+      last_name: searchText(search.last_name),
+      full_name: searchText(search.full_name),
+      phone: searchText(search.phone),
+      country: searchText(search.country),
+      language: searchText(search.language),
+      list_id: listId,
+      contact_list_status: searchText(search.contact_list_status),
+      tracking_opens_consent: trackingConsentFilter(search.tracking_opens_consent),
+      tracking_clicks_consent: trackingConsentFilter(search.tracking_clicks_consent),
+      segments: segments.length > 0 ? segments : undefined,
+      // A list and a segment are both views: the list wins.
+      segment_id: listId ? undefined : searchText(search.segment_id),
+      search: searchText(search.search),
+      contact: searchText(search.contact),
+      limit: contactsLimit(search.limit),
+    };
+  },
+  // A link with one segment and no other view (the former segment filter) opens that
+  // segment's view.
+  beforeLoad: ({ params, search }) => {
+    if (search.segments?.length === 1 && !search.list_id && !search.segment_id) {
+      throw redirect({
+        to: "/console/workspace/$workspaceId/contacts",
+        params: { workspaceId: params.workspaceId },
+        search: { ...search, segments: undefined, segment_id: search.segments[0] },
+        replace: true,
+      });
+    }
+  },
 });
 
 // eslint-disable-next-line react-refresh/only-export-components -- Internal redirect component

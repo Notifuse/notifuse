@@ -132,8 +132,23 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
     ) {
       return route.fulfill(jsonResponse(mockTotalContacts))
     }
+    if (url.includes('/api/contacts.getByEmail')) {
+      // The contact sheet reads its contact by exact email.
+      const email = new URL(url).searchParams.get('email')
+      const contact = mockContactsResponse.contacts.find((c) => c.email === email)
+      return contact
+        ? route.fulfill(jsonResponse({ contact }))
+        : route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'contact not found' }) })
+    }
     if (url.includes('/api/contact.get') || url.includes('/api/contacts.get')) {
       return route.fulfill(jsonResponse({ contact: mockContactsResponse.contacts[0] }))
+    }
+    // The contact sheet's activity and web visits: none in these fixtures.
+    if (url.includes('/api/timeline.list')) {
+      return route.fulfill(jsonResponse({ timeline: [] }))
+    }
+    if (url.includes('/api/webAnalytics.contactVisits')) {
+      return route.fulfill(jsonResponse({ sessions: [] }))
     }
     if (
       url.includes('/api/contact.upsert') ||
@@ -273,7 +288,11 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
       return route.fulfill(jsonResponse(withData ? mockBroadcastsResponse : mockEmptyBroadcasts))
     }
     if (url.includes('/api/broadcast.get') || url.includes('/api/broadcasts.get')) {
-      return route.fulfill(jsonResponse({ broadcast: mockBroadcastsResponse.broadcasts[0] }))
+      const id = new URL(url).searchParams.get('id')
+      const broadcast = mockBroadcastsResponse.broadcasts.find((b) => b.id === id)
+      return broadcast
+        ? route.fulfill(jsonResponse({ broadcast }))
+        : route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Broadcast not found' }) })
     }
     if (url.includes('/api/broadcast.create') || url.includes('/api/broadcasts.create')) {
       return route.fulfill(jsonResponse(mockBroadcastCreateResponse))

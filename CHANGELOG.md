@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [44.0] - unreleased
 
+- **Feature**: Contacts, lists and segments share one page in the console, with your lists and segments in a side rail; the Lists page now opens it. A contact opens in a sheet with its own link: move through the table with J and K, edit fields in place, and see its key figures, activity, messages and web visits.
+
 - **Feature**: Automations can start when a contact clicks a specific link, with the new "Clicked a link" trigger (`email.link_clicked`). It starts the first time a contact clicks each link of an email, and can be limited to links containing some text, to one broadcast or to one template. A click on an email the automation sent itself does not start it again. Clicks made before the upgrade, and clicks on links in emails sent before 42.2, do not start it; a link clicked before the upgrade starts it on its next click. The new event does not count toward the monthly event usage.
 
 - **Fix**: `automations.get` answers 404 instead of 500 for an automation that does not exist.
@@ -16,7 +18,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The analytics API gives when each transactional notification last sent successfully, with the new `last_sent_at` measure of message history, and `messages.list` filters by `transactional_notification_id`.
 
-- **Feature**: The API counts the recipients of a broadcast audience before it is sent, with the new `broadcasts.estimateAudience`. `broadcasts.list` gives the number of broadcasts in each status (`with_status_counts`) and keeps the ones started from a date (`started_after`), and the message history analytics take `opened_at` and `clicked_at` as time dimensions.
+- **Feature**: The API counts the recipients of a broadcast audience before it is sent, with the new `broadcasts.estimateAudience`. `broadcasts.list` gives the number of broadcasts in each status (`with_status_counts`) and keeps the ones started from a date (`started_after`), and the message history analytics take `opened_at` and `clicked_at` as time dimensions. In the console, broadcasts get a new list with status tabs, a search and their 30-day results, a detail page with the funnel, opens and clicks over time, the A/B test and the clicked links, and a one-screen editor that saves as you type, previews the email and checks everything before sending.
 
 - **Feature**: The API gives the statistics of each step of an automation, over a period or all time, with the new `automations.nodeStats`: visits, results, the path each split took, the journeys waiting or retrying there, and for email steps the messages sent, delivered, opened and clicked. `automations.list` gives each automation's journeys by status (`with_journey_counts`), `messages.list` filters by `automation_id`, and the message history analytics split by `automation_id`.
 

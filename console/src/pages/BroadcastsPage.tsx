@@ -1,1403 +1,74 @@
-import { useQuery, useQueries, useQueryClient, keepPreviousData } from '@tanstack/react-query'
-import {
-  Card,
-  Row,
-  Col,
-  Typography,
-  Space,
-  Tooltip,
-  Button,
-  Modal,
-  Input,
-  App,
-  Badge,
-  Descriptions,
-  Progress,
-  Popover,
-  Alert,
-  Popconfirm,
-  Pagination,
-  Tag,
-  Table,
-  Segmented
-} from 'antd'
-import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Alert, Button, Empty, Input, Result, Skeleton, Tooltip } from 'antd'
+import { useQuery } from '@tanstack/react-query'
+import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
-import {
-  broadcastApi,
-  Broadcast,
-  TestResultsResponse,
-  getStatusesForGroup,
-  testEmailListProps
-} from '../services/api/broadcast'
-import { listsApi } from '../services/api/list'
-import { taskApi } from '../services/api/task'
-import {
-  getBroadcastVariationStats,
-  MessageHistoryStatusSum
-} from '../services/api/messages_history'
-import { listSegments } from '../services/api/segment'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  faCirclePause,
-  faCircleCheck,
-  faCircleXmark,
-  faPenToSquare,
-  faTrashCan,
-  faCirclePlay,
-  faCopy,
-  faEye,
-  faCircleQuestion
-} from '@fortawesome/free-regular-svg-icons'
-import {
-  faRotateRight,
-  faArrowPointer,
-  faBan,
-  faChevronDown,
-  faChevronUp,
-  faSpinner,
-  faRefresh
-} from '@fortawesome/free-solid-svg-icons'
-import React, { useState, useEffect, useRef } from 'react'
-import dayjs from '../lib/dayjs'
-import { canSelectWinner } from '../lib/abTestWinner'
-import { UpsertBroadcastDrawer } from '../components/broadcasts/UpsertBroadcastDrawer'
-import { SendOrScheduleModal } from '../components/broadcasts/SendOrScheduleModal'
-import { ChangeVariationSenderModal } from '../components/broadcasts/ChangeVariationSenderModal'
+import { plural } from '@lingui/core/macro'
+import { Plus, Search } from 'lucide-react'
+import { CountTabs, FullDrawer, PageHeader, Panel, TableToolbar, useNumberFormat, type CountTabOption } from '../components/layout'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
-import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
-import { BroadcastStats, ProgressStats } from '../components/broadcasts/BroadcastStats'
-import { BroadcastLinkStats } from '../components/broadcasts/BroadcastLinkStats'
-import { SendingProgress } from '../components/broadcasts/SendingProgress'
-import { BroadcastAnalyticsLinks } from '../components/broadcasts/BroadcastAnalyticsLinks'
-import { List } from '../services/api/types'
-import {
-  formatSender,
-  getMarketingSenders,
-  resolveVariationSender
-} from '../components/broadcasts/variationSender'
-import SendTemplateModal from '../components/templates/SendTemplateModal'
-import SendTestEmailButton from '../components/templates/SendTestEmailButton'
-import { Workspace, UserPermissions } from '../services/api/types'
-import { Template } from '../services/api/template'
-import { Template as BroadcastTemplate } from '../services/api/broadcast'
-import Subtitle from '../components/common/subtitle'
-import {
-  describeVariationRate,
-  toVariationMetrics,
-  type VariationRate,
-  type VariationRowMetrics
-} from '../components/broadcasts/variationMetrics'
-import { PageHeader } from '../components/layout'
+import { BROADCAST_STATUS_GROUPS, type Broadcast } from '../services/api/broadcast'
+import { listsApi } from '../services/api/list'
+import { listSegments } from '../services/api/segment'
+import type { BroadcastsSearch } from '../router'
+import { BroadcastKpis } from '../components/broadcasts/BroadcastKpis'
+import { BroadcastsTable } from '../components/broadcasts/BroadcastsTable'
+import { DeleteBroadcastModal } from '../components/broadcasts/DeleteBroadcastModal'
+import { BroadcastDetail } from '../components/broadcasts/detail/BroadcastDetail'
+import { BroadcastCompose } from '../components/broadcasts/compose/BroadcastCompose'
+import { canReadWebAnalytics } from '../components/broadcasts/access'
+import { useAudienceEstimates } from '../components/broadcasts/useAudienceEstimates'
+import { useBroadcastActions } from '../components/broadcasts/useBroadcastActions'
+import { useBroadcastPageStats } from '../components/broadcasts/useBroadcastPageStats'
+import { PAGE_SIZE, groupCount, useBroadcastsList } from '../components/broadcasts/useBroadcastsList'
 
-const { Title, Paragraph, Text } = Typography
+type StatusGroup = 'all' | keyof typeof BROADCAST_STATUS_GROUPS
 
-// Helper to convert broadcast Template to template Template
-const toTemplateApiType = (template: BroadcastTemplate): Template => {
-  return template as unknown as Template
-}
-
-// Helper function to calculate remaining test time
-const getRemainingTestTime = (broadcast: Broadcast, testResults?: TestResultsResponse) => {
-  if (
-    broadcast.status !== 'testing' ||
-    !broadcast.test_settings.enabled ||
-    !broadcast.test_settings.test_duration_hours
-  ) {
-    return null
-  }
-
-  // Use test_started_at from testResults if available, otherwise use test_sent_at from broadcast
-  const testStartTime = testResults?.test_started_at || broadcast.test_sent_at
-  if (!testStartTime || typeof testStartTime !== 'string') {
-    return null
-  }
-
-  const startTime = dayjs(testStartTime)
-  const endTime = startTime.add(broadcast.test_settings.test_duration_hours, 'hours')
-  const now = dayjs()
-
-  if (now.isAfter(endTime)) {
-    return null // Don't show anything if expired
-  }
-
-  // Use dayjs .to() method for natural time formatting
-  return now.to(endTime, true) + ' remaining'
-}
-
-// Under a variation's rate, a warning when fewer than half its recipients were
-// tracked, since a rate over few tracked recipients compares poorly. The tracked
-// count itself is in the cell's tooltip.
-function TrackedShareNote({ rate }: { rate: VariationRate }) {
-  const { t } = useLingui()
-  if (rate.trackedShare === undefined || !rate.lowTrackedShare) return null
-  const share = Math.round(rate.trackedShare * 100)
-  return <div className="text-xs text-orange-500">{t`${share}% tracked`}</div>
-}
-
-// The status badge for a broadcast, with its explanatory tooltip.
-interface StatusBadgeProps {
-  broadcast: Broadcast
-  remainingTime?: string | null
-  progressStats?: ProgressStats
-}
-
-// Whether a campaign has finished, and whether it reached everyone, is a question for
-// the queue. Message history cannot answer it: sent_at is stamped on the first attempt
-// whatever its outcome, so `remaining` reached zero for a campaign whose provider had
-// refused a third of its recipients, and the badge went green over it.
-//
-// The counts are undefined when the queue could not be read. That is "unknown", not
-// "finished", so the old arithmetic stands in rather than claiming success.
-type DeliveryVerdict =
-  | { kind: 'sending'; remaining: number }
-  | { kind: 'complete' }
-  | { kind: 'completedWithFailures'; failed: number }
-
-const deliveryVerdict = (progressStats?: ProgressStats): DeliveryVerdict => {
-  if (progressStats?.inFlight === undefined) {
-    const remaining = progressStats?.remaining ?? 0
-    return remaining > 0 ? { kind: 'sending', remaining } : { kind: 'complete' }
-  }
-  if (progressStats.inFlight > 0) {
-    return { kind: 'sending', remaining: progressStats.inFlight }
-  }
-  // The queue has stopped. How many were given up on comes from message history, not
-  // from the queue: abandoned rows are swept after their retention window, and reading
-  // the verdict from them alone would repaint a campaign green a week later — the very
-  // thing this is here to stop. failedTerminal is only about whether a retry is still
-  // possible, which is a different question and a shorter-lived one.
-  if (progressStats.failedCount > 0) {
-    return { kind: 'completedWithFailures', failed: progressStats.failedCount }
-  }
-  return { kind: 'complete' }
-}
-
-// A component rather than a helper handed `t`: the Lingui macro only rewrites t`…` where
-// `t` resolves to the useLingui() binding, so threaded in as a parameter every message
-// below stayed untransformed. What the parameter actually received at runtime is i18n._,
-// which answers "" to a tagged template — so each badge and tooltip here rendered blank.
-export const StatusBadge = ({ broadcast, remainingTime, progressStats }: StatusBadgeProps) => {
-  const { t } = useLingui()
-  switch (broadcast.status) {
-    case 'draft':
-      return (
-        <Tooltip title={t`This broadcast is a draft and has not been scheduled or sent yet.`}>
-          <span>
-            <Badge status="default" text={t`Draft`} />
-          </span>
-        </Tooltip>
-      )
-    case 'scheduled':
-      return (
-        <Tooltip title={t`This broadcast is scheduled and will start sending at the specified time.`}>
-          <span>
-            <Badge status="processing" text={t`Scheduled`} />
-          </span>
-        </Tooltip>
-      )
-    case 'processing':
-      return (
-        <Tooltip title={t`Preparing emails for delivery. Contacts are being added to the sending queue.`}>
-          <span>
-            <Badge status="processing" text={t`Preparing...`} />
-          </span>
-        </Tooltip>
-      )
-    case 'paused':
-      return (
-        <Tooltip
-          title={broadcast.pause_reason || t`Sending has been paused. You can resume at any time.`}
-        >
-          <Space size="small">
-            <Badge status="warning" text={t`Paused`} />
-            {broadcast.pause_reason && (
-              <FontAwesomeIcon
-                icon={faCircleQuestion}
-                className="text-orange-500 cursor-help"
-                style={{ opacity: 0.7 }}
-              />
-            )}
-          </Space>
-        </Tooltip>
-      )
-    case 'winner_selected':
-      return (
-        <Tooltip title={t`A winner has been selected. Emails are being sent to the remaining recipients.`}>
-          <span>
-            <Badge status="success" text={t`Winner Selected`} />
-          </span>
-        </Tooltip>
-      )
-    case 'processed': {
-      const verdict = deliveryVerdict(progressStats)
-
-      if (verdict.kind === 'sending') {
-        const tooltipText = t`Emails are being delivered. ${verdict.remaining.toLocaleString()} still to go.`
-        return (
-          <Tooltip title={tooltipText}>
-            <span>
-              <Badge
-                status="warning"
-                text={t`Sending ${verdict.remaining.toLocaleString()} remaining`}
-              />
-            </span>
-          </Tooltip>
-        )
-      }
-
-      if (verdict.kind === 'completedWithFailures') {
-        const failedTooltip = t`The provider refused ${verdict.failed.toLocaleString()} recipients and every retry was used up. Open the logs to see why, then retry them.`
-        return (
-          <Tooltip title={failedTooltip}>
-            <span>
-              <Badge
-                status="warning"
-                text={t`Completed — ${verdict.failed.toLocaleString()} failed`}
-              />
-            </span>
-          </Tooltip>
-        )
-      }
-
-      const completeTooltip = progressStats
-        ? t`All ${progressStats.enqueuedCount.toLocaleString()} emails have been processed.`
-        : t`All emails have been sent.`
-      return (
-        <Tooltip title={completeTooltip}>
-          <span>
-            <Badge status="success" text={t`Complete`} />
-          </span>
-        </Tooltip>
-      )
-    }
-    case 'cancelled':
-      return (
-        <Tooltip title={t`This broadcast was cancelled before completion.`}>
-          <span>
-            <Badge status="error" text={t`Cancelled`} />
-          </span>
-        </Tooltip>
-      )
-    case 'failed':
-      return (
-        <Tooltip title={t`This broadcast failed due to an error. Check the logs for details.`}>
-          <span>
-            <Badge status="error" text={t`Failed`} />
-          </span>
-        </Tooltip>
-      )
-    case 'testing':
-      return (
-        <Tooltip title={t`A/B test is in progress. Emails are being sent to the test group.`}>
-          <Space size="small">
-            <Badge status="processing" text={t`A/B Testing`} />
-            {remainingTime && (
-              <Text type="secondary" style={{ fontSize: '12px' }}>
-                ({remainingTime})
-              </Text>
-            )}
-          </Space>
-        </Tooltip>
-      )
-    case 'test_completed':
-      return (
-        <Tooltip title={t`A/B test has completed. Select a winner to send to the remaining recipients.`}>
-          <span>
-            <Badge status="success" text={t`Test Completed`} />
-          </span>
-        </Tooltip>
-      )
-    default:
-      return <Badge status="default" text={broadcast.status} />
-  }
-}
-
-// Component for rendering a single broadcast card
-interface BroadcastCardProps {
-  broadcast: Broadcast
-  lists: List[]
-  segments: { id: string; name: string; color: string; users_count?: number }[]
-  workspaceId: string
-  onDelete: (broadcast: Broadcast) => void
-  onPause: (broadcast: Broadcast) => void
-  onRetryFailed: (broadcast: Broadcast) => void
-  onResume: (broadcast: Broadcast) => void
-  onCancel: (broadcast: Broadcast) => void
-  onSchedule: (broadcast: Broadcast) => void
-  onRefresh: (broadcast: Broadcast) => void
-  currentWorkspace: Workspace | undefined
-  permissions: UserPermissions | null
-  isFirst?: boolean
-  currentPage: number
-  pageSize: number
-}
-
-const BroadcastCard: React.FC<BroadcastCardProps> = ({
-  broadcast,
-  lists,
-  segments,
-  workspaceId,
-  onDelete,
-  onPause,
-  onRetryFailed,
-  onResume,
-  onCancel,
-  onSchedule,
-  onRefresh,
-  currentWorkspace,
-  permissions,
-  isFirst = false,
-  currentPage,
-  pageSize
-}) => {
-  const { t } = useLingui()
-  const [showDetails, setShowDetails] = useState(isFirst)
-  const queryClient = useQueryClient()
-  const { message } = App.useApp()
-  const [testModalOpen, setTestModalOpen] = useState(false)
-  const [templateToTest, setTemplateToTest] = useState<Template | null>(null)
-  const [progressStats, setProgressStats] = useState<ProgressStats | undefined>()
-  // Without Templates read, templates.list and templates.get answer 403.
-  const canReadTemplates = !!permissions?.templates?.read
-
-  const variations = broadcast.test_settings.variations || []
-
-  // Per-variation aggregate stats. The A/B testResults endpoint only serves testing-phase
-  // broadcasts, so once a broadcast is processed these power the variation Opens/Clicks
-  // columns and the per-link Click rate denominator. Fetched lazily when details are open.
-  const variationStatsQueries = useQueries({
-    queries: variations.map((v) => ({
-      queryKey: ['broadcast-variation-stats', workspaceId, broadcast.id, v.template_id],
-      queryFn: () => getBroadcastVariationStats(workspaceId, broadcast.id, v.template_id),
-      enabled: showDetails && broadcast.status !== 'draft' && !!v.template_id,
-      staleTime: 60_000
-    }))
-  })
-  const variationStatsById: Record<string, MessageHistoryStatusSum> = {}
-  variations.forEach((v, i) => {
-    const stats = variationStatsQueries[i]?.data?.stats
-    if (v.template_id && stats) variationStatsById[v.template_id] = stats
-  })
-
-  // Fetch task associated with this broadcast
-  const { data: task, isLoading: isTaskLoading } = useQuery({
-    queryKey: ['task', workspaceId, broadcast.id],
-    queryFn: () => {
-      return taskApi.findByBroadcastId(workspaceId, broadcast.id)
-    },
-    // Only fetch task data if the broadcast status indicates a task might exist
-    // enabled: ['scheduled', 'processing', 'paused', 'failed'].includes(broadcast.status),
-    refetchInterval:
-      broadcast.status === 'processing'
-        ? 5000 // Refetch every 5 seconds for processing broadcasts
-        : broadcast.status === 'scheduled'
-          ? 30000 // Refetch every 30 seconds for scheduled broadcasts
-          : broadcast.status === 'processed'
-            ? 10000 // Mid-drain (Phase 2): poll every 10s while remaining > 0
-            : false // Don't auto-refetch for terminal statuses
-  })
-
-  // Fetch test results if broadcast has A/B testing enabled and is in testing phase
-  const { data: testResults } = useQuery({
-    queryKey: ['testResults', workspaceId, broadcast.id],
-    queryFn: () => {
-      return broadcastApi.getTestResults({
-        workspace_id: workspaceId,
-        id: broadcast.id
-      })
-    },
-    enabled:
-      broadcast.test_settings.enabled &&
-      ['testing', 'test_completed', 'winner_selected'].includes(broadcast.status),
-    refetchInterval: broadcast.status === 'testing' ? 10000 : false // Refetch every 10 seconds during testing
-  })
-
-  // Calculate remaining test time
-  const remainingTestTime = getRemainingTestTime(broadcast, testResults)
-
-  // Get enqueued count from task state
-  const enqueuedCount = task?.state?.send_broadcast?.enqueued_count
-
-  // Handler for selecting winner
-  const handleSelectWinner = async (templateId: string) => {
-    try {
-      await broadcastApi.selectWinner({
-        workspace_id: workspaceId,
-        id: broadcast.id,
-        template_id: templateId
-      })
-      message.success(
-        t`Winner selected successfully! The broadcast will be sent to remaining recipients.`
-      )
-      queryClient.invalidateQueries({
-        queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
-      })
-      queryClient.invalidateQueries({ queryKey: ['testResults', workspaceId, broadcast.id] })
-    } catch (error) {
-      message.error(t`Failed to select winner`)
-      console.error(error)
-    }
-  }
-
-  // Handler for testing a template
-  const handleTestTemplate = (template: Template) => {
-    setTemplateToTest(template)
-    setTestModalOpen(true)
-  }
-
-  // Helper function to render task status badge
-  const getTaskStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge status="processing" text={t`Pending`} />
-      case 'running':
-        return <Badge status="processing" text={t`Running`} />
-      case 'completed':
-        return <Badge status="success" text={t`Completed`} />
-      case 'failed':
-        return <Badge status="error" text={t`Failed`} />
-      case 'cancelled':
-        return <Badge status="warning" text={t`Cancelled`} />
-      case 'paused':
-        return <Badge status="warning" text={t`Paused`} />
-      default:
-        return <Badge status="default" text={status} />
-    }
-  }
-
-  // Create popover content for details
-  const taskPopoverContent = () => {
-    if (!task) return null
-
-    return (
-      <div className="max-w-xs">
-        <div className="mb-2">
-          <div className="font-medium text-gray-500">{t`Status`}</div>
-          <div>{getTaskStatusBadge(task.status)}</div>
-        </div>
-
-        {task.next_run_after && task.status !== 'completed' && (
-          <div className="mb-2">
-            <div className="font-medium text-gray-500">{t`Next Run`}</div>
-            <div className="text-sm">
-              {task.status === 'paused' ? (
-                <Tooltip title={dayjs(task.next_run_after).format('lll')}>
-                  <span className="text-orange-600">{dayjs(task.next_run_after).fromNow()}</span>
-                </Tooltip>
-              ) : task.status === 'pending' ? (
-                <Tooltip title={dayjs(task.next_run_after).format('lll')}>
-                  <span className="text-blue-600">{dayjs(task.next_run_after).fromNow()}</span>
-                </Tooltip>
-              ) : (
-                <Tooltip title={dayjs(task.next_run_after).format('lll')}>
-                  <span>{dayjs(task.next_run_after).fromNow()}</span>
-                </Tooltip>
-              )}
-            </div>
-          </div>
-        )}
-
-        {(task.progress > 0 || task.state?.send_broadcast) && (
-          <div className="mb-2">
-            <div className="font-medium text-gray-500">{t`Progress`}</div>
-            <Progress
-              percent={Math.round(
-                task.state?.send_broadcast
-                  ? (task.state.send_broadcast.enqueued_count /
-                      task.state.send_broadcast.total_recipients) *
-                      100
-                  : task.progress * 100
-              )}
-              size="small"
-            />
-          </div>
-        )}
-
-        {task.state?.message && (
-          <div className="mb-2">
-            <div className="font-medium text-gray-500">{t`Message`}</div>
-            <div>{task.state.message}</div>
-          </div>
-        )}
-
-        {task.state?.send_broadcast && task.state.send_broadcast.failed_count > 0 && (
-          <div className="mb-2">
-            <div className="font-medium text-gray-500">{t`Failed`}</div>
-            <div className="text-sm text-red-500">{task.state.send_broadcast.failed_count}</div>
-          </div>
-        )}
-
-        {task.error_message && (
-          <div className="mb-2">
-            <div className="font-medium text-gray-500">{t`Error`}</div>
-            <div className="text-red-500 text-sm">{task.error_message}</div>
-          </div>
-        )}
-
-        {task.type && <div className="text-xs text-gray-500 mt-2">{t`Task type:`} {task.type}</div>}
-      </div>
-    )
-  }
-
-  return (
-    <Card
-      styles={{
-        body: {
-          padding: 0
-        }
-      }}
-      title={
-        <Space size="large">
-          <div>{broadcast.name}</div>
-          <div className="text-xs font-normal">
-            {task ? (
-              <Popover
-                content={taskPopoverContent}
-                title={t`Task Status`}
-                placement="bottom"
-                trigger="hover"
-              >
-                <span className="cursor-help">
-                  <StatusBadge
-                    broadcast={broadcast}
-                    remainingTime={remainingTestTime}
-                    progressStats={progressStats}
-                  />
-                  <FontAwesomeIcon
-                    icon={faCircleQuestion}
-                    style={{ opacity: 0.7 }}
-                    className="ml-2"
-                  />
-                </span>
-              </Popover>
-            ) : isTaskLoading ? (
-              <span className="text-gray-400">
-                <StatusBadge
-                  broadcast={broadcast}
-                  remainingTime={remainingTestTime}
-                  progressStats={progressStats}
-                />
-                <FontAwesomeIcon icon={faSpinner} spin className="ml-2" />
-              </span>
-            ) : (
-              <StatusBadge
-                broadcast={broadcast}
-                remainingTime={remainingTestTime}
-                progressStats={progressStats}
-              />
-            )}
-          </div>
-        </Space>
-      }
-      extra={
-        <Space>
-          {/* Leftmost: the action buttons after it come and go with the
-              broadcast's status, so anchoring the reports here keeps them in
-              one place across every status. */}
-          <BroadcastAnalyticsLinks
-            workspaceId={workspaceId}
-            workspace={currentWorkspace}
-            broadcast={broadcast}
-            permissions={permissions}
-            withDivider
-          />
-          <Tooltip title={t`Refresh Broadcast`}>
-            <Button
-              type="text"
-              size="small"
-              icon={<FontAwesomeIcon icon={faRefresh} />}
-              onClick={() => onRefresh(broadcast)}
-              className="opacity-70 hover:opacity-100"
-            />
-          </Tooltip>
-          {(broadcast.status === 'draft' || broadcast.status === 'scheduled') && (
-            <Tooltip
-              title={
-                !permissions?.broadcasts?.write
-                  ? t`You don't have write permission for broadcasts`
-                  : t`Edit Broadcast`
-              }
-            >
-              <div>
-                {currentWorkspace && (
-                  <UpsertBroadcastDrawer
-                    workspace={currentWorkspace}
-                    canReadTemplates={canReadTemplates}
-                    broadcast={broadcast}
-                    lists={lists}
-                    segments={segments}
-                    buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
-                    buttonProps={{
-                      size: 'small',
-                      type: 'text',
-                      disabled: !permissions?.broadcasts?.write
-                    }}
-                  />
-                )}
-              </div>
-            </Tooltip>
-          )}
-          {(broadcast.status === 'processed' || broadcast.status === 'failed') &&
-            (progressStats?.failedTerminal ?? 0) > 0 &&
-            deliveryVerdict(progressStats).kind === 'completedWithFailures' && (
-            <Tooltip
-              title={
-                !permissions?.broadcasts?.write
-                  ? t`You don't have write permission for broadcasts`
-                  : t`Retry the recipients the provider refused`
-              }
-            >
-              <Popconfirm
-                title={t`Retry the failed recipients?`}
-                description={t`They will be sent the same email again. Fix whatever the provider objected to first, or they will fail a second time.`}
-                onConfirm={() => onRetryFailed(broadcast)}
-                okText={t`Yes, retry`}
-                cancelText={t`Cancel`}
-                disabled={!permissions?.broadcasts?.write}
-              >
-                <Button type="text" size="small" disabled={!permissions?.broadcasts?.write}>
-                  <FontAwesomeIcon icon={faRotateRight} style={{ opacity: 0.7 }} />
-                </Button>
-              </Popconfirm>
-            </Tooltip>
-          )}
-          {(broadcast.status === 'processing' ||
-            (broadcast.status === 'processed' &&
-              deliveryVerdict(progressStats).kind === 'sending')) && (
-            <Tooltip
-              title={
-                !permissions?.broadcasts?.write
-                  ? t`You don't have write permission for broadcasts`
-                  : t`Pause Broadcast`
-              }
-            >
-              <Popconfirm
-                title={t`Pause broadcast?`}
-                description={t`The broadcast will stop sending and can be resumed later.`}
-                onConfirm={() => onPause(broadcast)}
-                okText={t`Yes, pause`}
-                cancelText={t`Cancel`}
-                disabled={!permissions?.broadcasts?.write}
-              >
-                <Button type="text" size="small" disabled={!permissions?.broadcasts?.write}>
-                  <FontAwesomeIcon icon={faCirclePause} style={{ opacity: 0.7 }} />
-                </Button>
-              </Popconfirm>
-            </Tooltip>
-          )}
-          {broadcast.status === 'paused' && currentWorkspace && (
-            <ChangeVariationSenderModal
-              workspace={currentWorkspace}
-              broadcast={broadcast}
-              disabled={!permissions?.broadcasts?.write}
-              canReadTemplates={canReadTemplates}
-            />
-          )}
-          {broadcast.status === 'paused' && (
-            <Tooltip
-              title={
-                !permissions?.broadcasts?.write
-                  ? t`You don't have write permission for broadcasts`
-                  : t`Resume Broadcast`
-              }
-            >
-              <Popconfirm
-                title={t`Resume broadcast?`}
-                description={t`The broadcast will continue sending from where it was paused.`}
-                onConfirm={() => onResume(broadcast)}
-                okText={t`Yes, resume`}
-                cancelText={t`Cancel`}
-                disabled={!permissions?.broadcasts?.write}
-              >
-                <Button type="text" size="small" disabled={!permissions?.broadcasts?.write}>
-                  <FontAwesomeIcon icon={faCirclePlay} style={{ opacity: 0.7 }} />
-                </Button>
-              </Popconfirm>
-            </Tooltip>
-          )}
-          {(broadcast.status === 'scheduled' ||
-            broadcast.status === 'paused' ||
-            broadcast.status === 'processing' ||
-            (broadcast.status === 'processed' &&
-              deliveryVerdict(progressStats).kind === 'sending')) && (
-            <Tooltip
-              title={
-                !permissions?.broadcasts?.write
-                  ? t`You don't have write permission for broadcasts`
-                  : t`Cancel Broadcast`
-              }
-            >
-              <Popconfirm
-                title={t`Cancel broadcast?`}
-                description={t`Queued emails will not be sent. In-flight sends will complete.`}
-                onConfirm={() => onCancel(broadcast)}
-                okText={t`Yes, cancel`}
-                cancelText={t`No`}
-                disabled={!permissions?.broadcasts?.write}
-              >
-                <Button type="text" size="small" disabled={!permissions?.broadcasts?.write}>
-                  <FontAwesomeIcon icon={faBan} style={{ opacity: 0.7 }} />
-                </Button>
-              </Popconfirm>
-            </Tooltip>
-          )}
-          {broadcast.status === 'draft' && (
-            <>
-              <Tooltip
-                title={
-                  !permissions?.broadcasts?.write
-                    ? t`You don't have write permission for broadcasts`
-                    : t`Delete Broadcast`
-                }
-              >
-                <Button
-                  type="text"
-                  size="small"
-                  onClick={() => onDelete(broadcast)}
-                  disabled={!permissions?.broadcasts?.write}
-                >
-                  <FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />
-                </Button>
-              </Tooltip>
-              <Tooltip
-                title={
-                  !permissions?.broadcasts?.write
-                    ? t`You don't have write permission for broadcasts`
-                    : undefined
-                }
-              >
-                <Button
-                  type="primary"
-                  size="small"
-                  ghost
-                  disabled={
-                    !permissions?.broadcasts?.write ||
-                    !currentWorkspace?.settings?.marketing_email_provider_id
-                  }
-                  onClick={() => onSchedule(broadcast)}
-                >
-                  {t`Send or Schedule`}
-                </Button>
-              </Tooltip>
-            </>
-          )}
-        </Space>
-      }
-      key={broadcast.id}
-      className="!mb-6"
-    >
-      <div className="p-6">
-        {/* Show progress bar when sending */}
-        {broadcast.status === 'processed' &&
-          enqueuedCount &&
-          progressStats &&
-          deliveryVerdict(progressStats).kind === 'sending' && (
-            <SendingProgress
-              enqueuedCount={enqueuedCount}
-              sentCount={progressStats.sentCount}
-              failedCount={progressStats.failedCount}
-              startedAt={broadcast.started_at}
-              remainingOverride={progressStats.inFlight}
-            />
-          )}
-        <BroadcastStats
-          workspaceId={workspaceId}
-          broadcastId={broadcast.id}
-          workspace={currentWorkspace}
-          enqueuedCount={enqueuedCount}
-          broadcastStatus={broadcast.status}
-          onStatsUpdate={setProgressStats}
-        />
-      </div>
-
-      <div className={`bg-gradient-to-br from-gray-50 to-violet-50 border-t border-gray-200`}>
-        <div className="text-center py-2">
-          <Button type="link" onClick={() => setShowDetails(!showDetails)}>
-            {showDetails ? (
-              <Space size="small">
-                <FontAwesomeIcon icon={faChevronUp} style={{ opacity: 0.7 }} className="mr-1" />{' '}
-                {t`Hide Details`}
-              </Space>
-            ) : (
-              <Space size="small">
-                <FontAwesomeIcon icon={faChevronDown} style={{ opacity: 0.7 }} className="mr-1" />{' '}
-                {t`Show Details`}
-              </Space>
-            )}
-          </Button>
-        </div>
-
-        {showDetails && (
-          <div className="p-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Subtitle className="!mb-0">{t`Variations`}</Subtitle>
-            </div>
-            <div className="mb-6">
-              <Table
-                showHeader={false}
-                dataSource={(broadcast.test_settings.variations || []).map((variation, index) => {
-                  // A broadcast always sends through the marketing integration, whatever its
-                  // templates' category.
-                  const senderId = variation.sender_id
-                  const resolvedSender = resolveVariationSender(
-                    getMarketingSenders(currentWorkspace),
-                    senderId,
-                    variation.template?.email?.sender_id
-                  )
-
-                  const variationResult = testResults?.variation_results?.[variation.template_id]
-                  // Winner comes from live A/B results while testing, else from the
-                  // winning_template recorded on the broadcast (top-level column) — so a
-                  // sent broadcast still highlights it.
-                  const isWinner =
-                    (testResults?.winning_template || broadcast.winning_template) ===
-                    variation.template_id
-
-                  return {
-                    key: variation.template_id || index,
-                    index: index + 1,
-                    isWinner,
-                    // Without Templates read the list comes without templates: the ID says which.
-                    templateName:
-                      variation.template?.name ||
-                      (canReadTemplates ? t`Untitled` : variation.template_id),
-                    template: variation.template,
-                    sender: resolvedSender.sender
-                      ? formatSender(resolvedSender.sender)
-                      : resolvedSender.missing
-                        ? t`${senderId} (deleted)`
-                        : t`Default sender`,
-                    senderChosen: resolvedSender.chosen,
-                    senderMissing: resolvedSender.missing,
-                    subject: variation.template?.email?.subject || t`N/A`,
-                    subjectPreview: variation.template?.email?.subject_preview,
-                    replyTo: variation.template?.email?.reply_to || '-',
-                    metrics:
-                      variationResult ||
-                      toVariationMetrics(variationStatsById[variation.template_id]) ||
-                      variation.metrics,
-                    variation,
-                    templateId: variation.template_id
-                  }
-                })}
-                columns={[
-                  {
-                    title: '#',
-                    dataIndex: 'index',
-                    key: 'index',
-                    render: (index, record) => (
-                      <Space>
-                        {'#' + index}
-                        {record.isWinner && <Badge status="success" />}
-                      </Space>
-                    )
-                  },
-                  {
-                    title: t`Template`,
-                    key: 'templateName',
-                    render: (record) => <Tooltip title={t`Template`}>{record.templateName}</Tooltip>
-                  },
-                  {
-                    title: t`Subject`,
-                    dataIndex: 'subject',
-                    key: 'subject',
-                    render: (subject, record) => (
-                      <div>
-                        <div>{subject}</div>
-                        {record.subjectPreview && (
-                          <div className="text-xs text-gray-500">{record.subjectPreview}</div>
-                        )}
-                      </div>
-                    )
-                  },
-                  {
-                    title: t`Info`,
-                    key: 'sender',
-                    render: (record) => (
-                      <div>
-                        <div>
-                          <span className="font-medium text-gray-500">{t`From:`}</span> {record.sender}
-                          {record.senderChosen && (
-                            <Tag className="!ml-2" color={record.senderMissing ? 'red' : 'purple'}>
-                              {t`chosen on the broadcast`}
-                            </Tag>
-                          )}
-                        </div>
-                        {record.replyTo && record.replyTo !== '-' && (
-                          <div>
-                            <span className="font-medium text-gray-500">{t`Reply To:`}</span>{' '}
-                            {record.replyTo}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  },
-                  ...(broadcast.status !== 'draft'
-                    ? [
-                        {
-                          title: t`Opens`,
-                          key: 'opens',
-                          width: 100,
-                          render: (_: unknown, record: { metrics?: VariationRowMetrics }) => {
-                            const metrics = record.metrics
-                            if (!metrics) {
-                              return (
-                                <Tooltip title={t`0 opens out of 0 recipients`}>
-                                  <>
-                                    <FontAwesomeIcon icon={faEye} style={{ opacity: 0.7 }} className="text-purple-500" />
-                                    <span className="cursor-help ml-1">{t`N/A`}</span>
-                                  </>
-                                </Tooltip>
-                              )
-                            }
-                            const opens = metrics.opens || 0
-                            const recipients = metrics.recipients || 0
-                            const rate = describeVariationRate(metrics.open_rate || 0, recipients, metrics.opens_tracked)
-                            const tracked = rate.tracked
-                            return (
-                              <Tooltip
-                                title={
-                                  rate.trackedShare === undefined
-                                    ? t`${opens} opens out of ${recipients} recipients`
-                                    : t`${opens} opens out of ${tracked} tracked recipients (${recipients} sent)`
-                                }
-                              >
-                                <>
-                                  <FontAwesomeIcon icon={faEye} style={{ opacity: 0.7 }} className="text-purple-500" />{' '}
-                                  <span className="cursor-help ml-1">{rate.text}</span>
-                                  <TrackedShareNote rate={rate} />
-                                </>
-                              </Tooltip>
-                            )
-                          }
-                        },
-                        {
-                          title: t`Clicks`,
-                          key: 'clicks',
-                          width: 100,
-                          render: (_: unknown, record: { metrics?: VariationRowMetrics }) => {
-                            const metrics = record.metrics
-                            if (!metrics) {
-                              return (
-                                <Tooltip title={t`0 clicks out of 0 recipients`}>
-                                  <>
-                                    <FontAwesomeIcon
-                                      icon={faArrowPointer}
-                                      style={{ opacity: 0.7 }}
-                                      className="text-cyan-500"
-                                    />{' '}
-                                    <span className="cursor-help ml-1">{t`N/A`}</span>
-                                  </>
-                                </Tooltip>
-                              )
-                            }
-                            const clicks = metrics.clicks || 0
-                            const recipients = metrics.recipients || 0
-                            const rate = describeVariationRate(metrics.click_rate || 0, recipients, metrics.clicks_tracked)
-                            const tracked = rate.tracked
-                            return (
-                              <Tooltip
-                                title={
-                                  rate.trackedShare === undefined
-                                    ? t`${clicks} clicks out of ${recipients} recipients`
-                                    : t`${clicks} clicks out of ${tracked} tracked recipients (${recipients} sent)`
-                                }
-                              >
-                                <>
-                                  <FontAwesomeIcon icon={faArrowPointer} style={{ opacity: 0.7 }} className="text-cyan-500" />{' '}
-                                  <span className="cursor-help ml-1">{rate.text}</span>
-                                  <TrackedShareNote rate={rate} />
-                                </>
-                              </Tooltip>
-                            )
-                          }
-                        }
-                      ]
-                    : []),
-                  {
-                    title: t`Actions`,
-                    key: 'actions',
-                    width: 150,
-                    align: 'right',
-                    render: (_, record) => {
-                      const winnerSelectable = canSelectWinner(broadcast)
-                      return (
-                        // Stop clicks here from toggling the row's expand-on-click.
-                        <Space size="small" onClick={(e) => e.stopPropagation()}>
-                          {/* Scoped to this variation's utm_content, so an A/B
-                              test's two creatives are read apart. */}
-                          <BroadcastAnalyticsLinks
-                            workspaceId={workspaceId}
-                            workspace={currentWorkspace}
-                            broadcast={broadcast}
-                            permissions={permissions}
-                            variationTemplateId={record.templateId ?? ''}
-                            withDivider
-                          />
-                          {record.template && (
-                            <SendTestEmailButton
-                              size="small"
-                              permissions={permissions}
-                              onClick={() => record.template && handleTestTemplate(toTemplateApiType(record.template))}
-                            />
-                          )}
-                          <Tooltip title={t`Preview Template`}>
-                            <>
-                              {record.template && currentWorkspace ? (
-                                <TemplatePreviewDrawer
-                                  record={toTemplateApiType(record.template)}
-                                  workspace={currentWorkspace}
-                                >
-                                  <Button
-                                    size="small"
-                                    type="text"
-                                    icon={<FontAwesomeIcon icon={faEye} className="opacity-70" />}
-                                  />
-                                </TemplatePreviewDrawer>
-                              ) : (
-                                <Button
-                                  size="small"
-                                  type="text"
-                                  icon={<FontAwesomeIcon icon={faEye} className="opacity-70" />}
-                                  disabled
-                                />
-                              )}
-                            </>
-                          </Tooltip>
-                          {winnerSelectable && record.templateId && (
-                            <Tooltip
-                              title={
-                                !permissions?.broadcasts?.write
-                                  ? t`You don't have write permission for broadcasts`
-                                  : undefined
-                              }
-                            >
-                              <Popconfirm
-                                title={t`Select Winner`}
-                                description={t`Are you sure you want to select "${record.templateName}" as the winner? The broadcast will be sent to the remaining recipients.`}
-                                onConfirm={() => handleSelectWinner(record.templateId)}
-                                okText={t`Yes, Select Winner`}
-                                cancelText={t`Cancel`}
-                              >
-                                <Button
-                                  size="small"
-                                  type="primary"
-                                  disabled={!permissions?.broadcasts?.write}
-                                >
-                                  {t`Select`}
-                                </Button>
-                              </Popconfirm>
-                            </Tooltip>
-                          )}
-                        </Space>
-                      )
-                    }
-                  }
-                ]}
-                size="small"
-                pagination={false}
-                scroll={{ x: 'max-content' }}
-                rowClassName={(record) => (record.isWinner ? 'bg-green-50' : '')}
-                expandable={{
-                  // Only sent broadcasts have click data; a single-variation broadcast
-                  // opens its row by default so the links are visible without a click.
-                  rowExpandable: () => broadcast.status !== 'draft',
-                  // Clicking anywhere on the row toggles it (the Actions cell stops
-                  // propagation so its buttons still work).
-                  expandRowByClick: true,
-                  defaultExpandedRowKeys:
-                    variations.length === 1 ? [variations[0].template_id || 0] : [],
-                  expandedRowRender: (record) => (
-                    <BroadcastLinkStats
-                      workspaceId={workspaceId}
-                      broadcastId={broadcast.id}
-                      templateId={record.templateId}
-                      recipients={record.metrics?.clicks_tracked ?? record.metrics?.recipients}
-                    />
-                  )
-                }}
-              />
-            </div>
-
-            <Row gutter={32}>
-              <Col span={8}>
-                <Subtitle className="mt-8 mb-4">{t`Audience`}</Subtitle>
-
-                <Descriptions bordered={false} size="small" column={1}>
-                  {/* Audience Information */}
-                  {broadcast.audience.segments && broadcast.audience.segments.length > 0 && (
-                    <Descriptions.Item label={t`Segments`}>
-                      <Space wrap>
-                        {broadcast.audience.segments.map((segmentId) => {
-                          const segment = segments.find((s) => s.id === segmentId)
-                          return segment ? (
-                            <Tag key={segment.id} color={segment.color} variant="filled">
-                              {segment.name}
-                            </Tag>
-                          ) : (
-                            <Tag key={segmentId} variant="filled">
-                              {t`Unknown segment`} ({segmentId})
-                            </Tag>
-                          )
-                        })}
-                      </Space>
-                    </Descriptions.Item>
-                  )}
-
-                  {broadcast.audience.list && (
-                    <Descriptions.Item label={t`List`}>
-                      {(() => {
-                        const list = lists.find((l) => l.id === broadcast.audience.list)
-                        return list ? list.name : t`Unknown list` + ` (${broadcast.audience.list})`
-                      })()}
-                    </Descriptions.Item>
-                  )}
-
-                  <Descriptions.Item label={t`Exclude Unsubscribed`}>
-                    {broadcast.audience.exclude_unsubscribed ? (
-                      <FontAwesomeIcon
-                        icon={faCircleCheck}
-                        className="text-green-500 opacity-70 mt-1"
-                      />
-                    ) : (
-                      <FontAwesomeIcon
-                        icon={faCircleXmark}
-                        className="text-orange-500 opacity-70 mt-1"
-                      />
-                    )}
-                  </Descriptions.Item>
-                </Descriptions>
-
-                {/* Schedule Information */}
-                {broadcast.schedule.is_scheduled &&
-                  broadcast.schedule.scheduled_date &&
-                  broadcast.schedule.scheduled_time && (
-                    <Descriptions.Item label={t`Scheduled`}>
-                      {dayjs(
-                        `${broadcast.schedule.scheduled_date} ${broadcast.schedule.scheduled_time}`
-                      ).format('lll')}
-                      {' '}
-                      {broadcast.schedule.use_recipient_timezone
-                        ? t`in recipients timezone`
-                        : t`in ${broadcast.schedule.timezone}`}
-                    </Descriptions.Item>
-                  )}
-
-                {/* sending */}
-                <Descriptions bordered={false} size="small" column={1}>
-                  {broadcast.started_at && (
-                    <Descriptions.Item label={t`Started`}>
-                      {dayjs(broadcast.started_at).fromNow()}
-                    </Descriptions.Item>
-                  )}
-
-                  {broadcast.completed_at && (
-                    <Descriptions.Item label={t`Completed`}>
-                      {dayjs(broadcast.completed_at).fromNow()}
-                    </Descriptions.Item>
-                  )}
-
-                  {broadcast.paused_at && (
-                    <Descriptions.Item label={t`Paused`}>
-                      <Space orientation="vertical" size="small">
-                        <div>{dayjs(broadcast.paused_at).fromNow()}</div>
-                        {broadcast.pause_reason && (
-                          <div className="text-orange-600 text-sm">
-                            <strong>{t`Reason:`}</strong> {broadcast.pause_reason}
-                          </div>
-                        )}
-                      </Space>
-                    </Descriptions.Item>
-                  )}
-
-                  {broadcast.cancelled_at && (
-                    <Descriptions.Item label={t`Cancelled`}>
-                      {dayjs(broadcast.cancelled_at).fromNow()}
-                    </Descriptions.Item>
-                  )}
-                </Descriptions>
-              </Col>
-              <Col span={8}>
-                <Subtitle className="mt-8 mb-4">{t`Web Analytics`}</Subtitle>
-                <Descriptions bordered={false} size="small" column={1}>
-                  {broadcast.utm_parameters?.source && (
-                    <Descriptions.Item label={t`UTM Source`}>
-                      {broadcast.utm_parameters.source}
-                    </Descriptions.Item>
-                  )}
-
-                  {broadcast.utm_parameters?.medium && (
-                    <Descriptions.Item label={t`UTM Medium`}>
-                      {broadcast.utm_parameters.medium}
-                    </Descriptions.Item>
-                  )}
-
-                  {broadcast.utm_parameters?.campaign && (
-                    <Descriptions.Item label={t`UTM Campaign`}>
-                      {broadcast.utm_parameters.campaign}
-                    </Descriptions.Item>
-                  )}
-
-                  {broadcast.utm_parameters?.term && (
-                    <Descriptions.Item label={t`UTM Term`}>
-                      {broadcast.utm_parameters.term}
-                    </Descriptions.Item>
-                  )}
-
-                  {broadcast.utm_parameters?.content && (
-                    <Descriptions.Item label={t`UTM Content`}>
-                      {broadcast.utm_parameters.content}
-                    </Descriptions.Item>
-                  )}
-                </Descriptions>
-              </Col>
-              <Col span={8}>
-                {broadcast.test_settings.enabled && (
-                  <>
-                    <Subtitle className="mt-8 mb-4">{t`A/B Test`}</Subtitle>
-                    <Descriptions bordered={false} size="small" column={1}>
-                      <Descriptions.Item label={t`Sample Percentage`}>
-                        {broadcast.test_settings.sample_percentage}%
-                      </Descriptions.Item>
-
-                      {broadcast.test_settings.auto_send_winner &&
-                        broadcast.test_settings.auto_send_winner_metric &&
-                        broadcast.test_settings.test_duration_hours && (
-                          <Descriptions.Item label={t`Auto-send Winner`}>
-                            <div className="flex items-center">
-                              <FontAwesomeIcon
-                                icon={faCircleCheck}
-                                className="text-green-500 mr-2"
-                                size="sm"
-                                style={{ opacity: 0.7 }}
-                              />
-                              <span>
-                                {t`After ${broadcast.test_settings.test_duration_hours} hours based on highest ${broadcast.test_settings.auto_send_winner_metric === 'open_rate' ? t`opens` : t`clicks`}`}
-                              </span>
-                            </div>
-                          </Descriptions.Item>
-                        )}
-
-                      {testResults && testResults.recommended_winner && (
-                        <Descriptions.Item label={t`Recommended Winner`}>
-                          <Space>
-                            <Badge status="processing" text={t`Recommended`} />
-                            {Object.values(testResults.variation_results).find(
-                              (result) => result.template_id === testResults.recommended_winner
-                            )?.template_name || t`Unknown`}
-                          </Space>
-                        </Descriptions.Item>
-                      )}
-
-                      {testResults && testResults.winning_template && (
-                        <Descriptions.Item label={t`Selected Winner`}>
-                          <Space>
-                            <Badge status="success" text={t`Winner`} />
-                            {Object.values(testResults.variation_results).find(
-                              (result) => result.template_id === testResults.winning_template
-                            )?.template_name || t`Unknown`}
-                          </Space>
-                        </Descriptions.Item>
-                      )}
-                    </Descriptions>
-                  </>
-                )}
-              </Col>
-            </Row>
-          </div>
-        )}
-      </div>
-
-      {/* Test Template Modal */}
-      {currentWorkspace && (
-        <SendTemplateModal
-          isOpen={testModalOpen}
-          onClose={() => setTestModalOpen(false)}
-          template={templateToTest}
-          workspace={currentWorkspace}
-          canReadLists={!!permissions?.lists?.read}
-          canReadContacts={!!permissions?.contacts?.read}
-          {...testEmailListProps(broadcast)}
-        />
-      )}
-    </Card>
-  )
-}
-
-// URL search params for the broadcasts list (status group + name search query)
-interface BroadcastsSearch {
-  status?: string
-  q?: string
-}
-
-// Valid Segmented status group values. Anything else falls back to 'all'.
-const STATUS_GROUP_VALUES = ['all', 'draft', 'scheduled', 'sending', 'sent', 'failed']
+// Valid status groups of the URL; anything else falls back to 'all'.
+const STATUS_GROUP_VALUES: StatusGroup[] = ['all', 'draft', 'scheduled', 'sending', 'sent', 'failed']
+const SEARCH_DELAY_MS = 300
+const ROUTE = '/console/workspace/$workspaceId/broadcasts'
 
 export function BroadcastsPage() {
   const { t } = useLingui()
-  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/broadcasts' })
-  const navigate = useNavigate({ from: '/console/workspace/$workspaceId/broadcasts' })
-  const routeSearch = useSearch({
-    from: '/console/workspace/$workspaceId/broadcasts'
-  }) as BroadcastsSearch
-
-  // Active status group + search term derived from the URL
-  const statusGroup =
-    routeSearch.status && STATUS_GROUP_VALUES.includes(routeSearch.status)
-      ? routeSearch.status
-      : 'all'
-  const searchTerm = routeSearch.q ?? ''
-  const hasActiveFilter = statusGroup !== 'all' || searchTerm !== ''
-
-  // Local mirror of the search box so typing stays responsive; the URL (and
-  // therefore the query) is only updated after a short debounce.
-  const [searchInput, setSearchInput] = useState(searchTerm)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  // The last value we ourselves pushed to the URL via the debounce. Lets the
-  // URL->input sync effect ignore the echo of our own writes and only react to
-  // external changes (back/forward, deep links), so in-progress typing is never
-  // overwritten.
-  const lastNavigatedQRef = useRef<string | undefined>(undefined)
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false)
-  const [broadcastToDelete, setBroadcastToDelete] = useState<Broadcast | null>(null)
-  const [confirmationInput, setConfirmationInput] = useState('')
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [isScheduleModalVisible, setIsScheduleModalVisible] = useState(false)
-  const [broadcastToSchedule, setBroadcastToSchedule] = useState<Broadcast | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize] = useState(5)
-  const queryClient = useQueryClient()
+  const { int } = useNumberFormat()
+  const { workspaceId } = useParams({ from: ROUTE })
+  const navigate = useNavigate({ from: ROUTE })
+  const search = useSearch({ from: ROUTE }) as BroadcastsSearch
   const { workspaces } = useAuth()
   const { permissions } = useWorkspacePermissions(workspaceId)
-  const { message } = App.useApp()
+  const workspace = workspaces.find((w) => w.id === workspaceId)
 
-  // Find the current workspace from the workspaces array
-  const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
+  const canWrite = !!permissions?.broadcasts?.write
+  const canReadHistory = !!permissions?.message_history?.read
+  const canReadWeb = canReadWebAnalytics(workspace, permissions)
+  const noWrite = t`You don't have write permission for broadcasts`
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['broadcasts', workspaceId, currentPage, pageSize, statusGroup, searchTerm],
-    queryFn: () => {
-      return broadcastApi.list({
-        workspace_id: workspaceId,
-        with_templates: true,
-        limit: pageSize,
-        offset: (currentPage - 1) * pageSize,
-        statuses: getStatusesForGroup(statusGroup),
-        search: searchTerm || undefined
-      })
-    },
-    // Keep the previous page's results visible while a new filter/search/page
-    // fetches, so the filter bar and list don't flash empty on every change.
-    placeholderData: keepPreviousData
-  })
+  const statusGroup: StatusGroup =
+    search.status && STATUS_GROUP_VALUES.includes(search.status as StatusGroup) ? (search.status as StatusGroup) : 'all'
+  const searchTerm = search.q ?? ''
+  const hasActiveFilter = statusGroup !== 'all' || searchTerm !== ''
 
-  // Mirror the URL query into the search box ONLY for external changes
-  // (browser back/forward, deep links). Our own debounced writes are skipped
-  // via lastNavigatedQRef so they never clobber what the user is typing. On a
-  // genuine external change we also cancel any pending debounce (so a stale
-  // timer can't navigate back over where the user just went) and re-seed the
-  // ref so a later forward-nav to the same value still syncs the box.
+  // An unknown status lingers in shared links while the screen reads it as All: strip it.
+  useEffect(() => {
+    if (search.status && !STATUS_GROUP_VALUES.includes(search.status as StatusGroup)) {
+      navigate({ replace: true, search: (prev) => ({ ...prev, status: undefined }) })
+    }
+  }, [search.status, navigate])
+
+  // The composer wins over the detail.
+  useEffect(() => {
+    if (search.compose && search.broadcast) {
+      navigate({ replace: true, search: (prev) => ({ ...prev, broadcast: undefined }) })
+    }
+  }, [search.compose, search.broadcast, navigate])
+
+  // Search box: typing stays responsive, the URL (and the query) follows after a pause. The last
+  // value written lets the URL-to-box sync ignore the echo of its own writes and react only to
+  // back/forward and links.
+  const [searchInput, setSearchInput] = useState(searchTerm)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const lastNavigatedQRef = useRef<string | undefined>(undefined)
   useEffect(() => {
     if (searchTerm !== lastNavigatedQRef.current) {
       if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -1405,470 +76,291 @@ export function BroadcastsPage() {
       lastNavigatedQRef.current = searchTerm
     }
   }, [searchTerm])
-
-  // Strip an unknown status value from the URL (e.g. a hand-edited or stale
-  // ?status=garbage) so it doesn't linger in shareable links while the UI
-  // silently treats it as "All". replace: avoids adding a history entry.
-  useEffect(() => {
-    if (routeSearch.status && !STATUS_GROUP_VALUES.includes(routeSearch.status)) {
-      navigate({ replace: true, search: (prev) => ({ ...prev, status: undefined }) })
-    }
-  }, [routeSearch.status, navigate])
-
-  // Reset to the first page whenever the active filter or search changes. This
-  // also covers browser back/forward, which change the URL (and thus
-  // statusGroup/searchTerm) without going through the handlers below.
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [statusGroup, searchTerm])
-
-  // Safety net: if we land on an out-of-range page (current page is empty but
-  // matches exist, e.g. after data changes), jump back to the first page so
-  // results are never hidden behind a stale offset.
-  useEffect(() => {
-    if (
-      !isLoading &&
-      data &&
-      (data.broadcasts?.length ?? 0) === 0 &&
-      data.total_count > 0 &&
-      currentPage > 1
-    ) {
-      setCurrentPage(1)
-    }
-  }, [isLoading, data, currentPage])
-
-  // Clear any pending debounce on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-  }, [])
-
-  const handleStatusGroupChange = (value: string) => {
-    setCurrentPage(1)
-    navigate({ search: (prev) => ({ ...prev, status: value === 'all' ? undefined : value }) })
-  }
+  useEffect(() => () => clearTimeout(debounceRef.current), [])
 
   const handleSearchChange = (value: string) => {
     setSearchInput(value)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       const trimmed = value.trim()
-      // Record the value searchTerm will become so the sync effect treats this
-      // as our own write and leaves the (possibly untrimmed) input untouched.
       lastNavigatedQRef.current = trimmed
-      setCurrentPage(1)
-      // replace: each keystroke updates the URL in place instead of pushing a
-      // history entry, so Back doesn't step through every intermediate term.
       navigate({ replace: true, search: (prev) => ({ ...prev, q: trimmed || undefined }) })
-    }, 300)
+    }, SEARCH_DELAY_MS)
   }
-
   const handleClearFilters = () => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     lastNavigatedQRef.current = ''
     setSearchInput('')
-    setCurrentPage(1)
     navigate({ search: (prev) => ({ ...prev, status: undefined, q: undefined }) })
   }
 
-  // Fetch lists for the current workspace
-  const { data: listsData } = useQuery({
+  // L1, then the stats of the loaded rows. A followed row sending by its verdict makes the list
+  // refetch as a live status does.
+  const [verdictLive, setVerdictLive] = useState(false)
+  const list = useBroadcastsList({ workspaceId, statusGroup, q: searchTerm, verdictLive })
+  const rows = list.rows
+  const pageStats = useBroadcastPageStats({ workspace, rows, canReadHistory, canReadWeb })
+  useEffect(() => setVerdictLive(pageStats.verdictLive), [pageStats.verdictLive])
+  const estimates = useAudienceEstimates(workspaceId, rows, permissions)
+
+  const listsQuery = useQuery({
     queryKey: ['lists', workspaceId],
-    queryFn: () => {
-      return listsApi.list({ workspace_id: workspaceId, with_templates: true })
-    }
+    queryFn: () => listsApi.list({ workspace_id: workspaceId }),
+    enabled: !!permissions?.lists?.read
   })
-
-  const lists = listsData?.lists || []
-
-  // Fetch segments for the current workspace
-  const { data: segmentsData } = useQuery({
+  const segmentsQuery = useQuery({
     queryKey: ['segments', workspaceId],
-    queryFn: () => {
-      return listSegments({ workspace_id: workspaceId, with_count: true })
-    }
+    queryFn: () => listSegments({ workspace_id: workspaceId, with_count: true }),
+    enabled: !!permissions?.segments?.read
   })
 
-  const segments = segmentsData?.segments || []
+  const actions = useBroadcastActions(workspaceId)
+  const [deleting, setDeleting] = useState<Broadcast | null>(null)
 
-  const handleDeleteBroadcast = async () => {
-    if (!broadcastToDelete) return
+  // Drawers driven by the URL.
+  const openDetail = (id: string, replace = false) =>
+    navigate({ replace, search: (prev) => ({ ...prev, broadcast: id, compose: undefined }) })
+  const openCompose = (id: string) => navigate({ search: (prev) => ({ ...prev, compose: id, broadcast: undefined }) })
+  const closeDetail = () => navigate({ search: (prev) => ({ ...prev, broadcast: undefined }) })
 
-    setIsDeleting(true)
-    try {
-      await broadcastApi.delete({
-        workspace_id: workspaceId,
-        id: broadcastToDelete.id
-      })
+  // The detail keeps its last broadcast while it closes, so the drawer does not empty itself.
+  const lastDetailId = useRef<string | undefined>(search.broadcast)
+  if (search.broadcast) lastDetailId.current = search.broadcast
+  const detailId = search.broadcast ?? lastDetailId.current
 
-      message.success(t`Broadcast "${broadcastToDelete.name}" deleted successfully`)
-      queryClient.invalidateQueries({
-        queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
-      })
+  // The composer's body key is fixed when it opens: `new` becoming an id after the create does
+  // not remount the form being typed in.
+  const [composeKey, setComposeKey] = useState<{ key: number; id: string } | null>(
+    search.compose ? { key: 0, id: search.compose } : null
+  )
+  useEffect(() => {
+    if (search.compose && !composeKey) setComposeKey({ key: Date.now(), id: search.compose })
+    if (!search.compose && composeKey) setComposeKey(null)
+  }, [search.compose, composeKey])
 
-      // If we're on a page > 1 and this was the last item on the page, go to previous page
-      if (currentPage > 1 && data?.broadcasts.length === 1) {
-        setCurrentPage(currentPage - 1)
-      }
-      setDeleteModalVisible(false)
-      setBroadcastToDelete(null)
-      setConfirmationInput('')
-    } catch (error) {
-      message.error(t`Failed to delete broadcast`)
-      console.error(error)
-    } finally {
-      setIsDeleting(false)
+  // J and K walk the loaded rows; at the last one J loads the next page, then moves on.
+  const index = search.broadcast ? rows.findIndex((b) => b.id === search.broadcast) : -1
+  const pendingNext = useRef<string | null>(null)
+  // A pending J is dropped once the drawer leaves its row (K, close, another row) or its page fails.
+  useEffect(() => {
+    if (pendingNext.current && search.broadcast !== pendingNext.current) pendingNext.current = null
+  }, [search.broadcast])
+  useEffect(() => {
+    if (!pendingNext.current || search.broadcast !== pendingNext.current) return
+    const from = rows.findIndex((b) => b.id === pendingNext.current)
+    if (from >= 0 && from < rows.length - 1) {
+      pendingNext.current = null
+      openDetail(rows[from + 1].id, true)
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows])
+  const nav =
+    index >= 0
+      ? {
+          position: index + 1,
+          total: list.total,
+          onPrev: index > 0 ? () => openDetail(rows[index - 1].id, true) : undefined,
+          onNext:
+            index < rows.length - 1
+              ? () => openDetail(rows[index + 1].id, true)
+              : list.hasNextPage
+                ? () => {
+                    const from = rows[index].id
+                    pendingNext.current = from
+                    void list.fetchNextPage().then((result) => {
+                      if (result.isError && pendingNext.current === from) pendingNext.current = null
+                    })
+                  }
+                : undefined
+        }
+      : undefined
 
-  const handlePauseBroadcast = async (broadcast: Broadcast) => {
-    try {
-      await broadcastApi.pause({
-        workspace_id: workspaceId,
-        id: broadcast.id
-      })
-      message.success(t`Broadcast "${broadcast.name}" paused successfully`)
-      queryClient.invalidateQueries({
-        queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
-      })
-    } catch (error) {
-      message.error(t`Failed to pause broadcast`)
-      console.error(error)
-    }
-  }
+  const counts = list.statusCounts
+  const allCount = groupCount(counts, undefined)
+  const tabs: CountTabOption<StatusGroup>[] = [
+    { value: 'all', label: t`All`, count: allCount },
+    { value: 'draft', label: t`Drafts`, count: groupCount(counts, BROADCAST_STATUS_GROUPS.draft) },
+    { value: 'scheduled', label: t`Scheduled`, count: groupCount(counts, BROADCAST_STATUS_GROUPS.scheduled) },
+    { value: 'sending', label: t`Sending`, count: groupCount(counts, BROADCAST_STATUS_GROUPS.sending) },
+    { value: 'sent', label: t`Sent`, count: groupCount(counts, BROADCAST_STATUS_GROUPS.sent) }
+  ]
+  const failedCount = groupCount(counts, BROADCAST_STATUS_GROUPS.failed) ?? 0
+  if (failedCount > 0 || statusGroup === 'failed') tabs.push({ value: 'failed', label: t`Failed`, count: failedCount })
 
-  const handleRetryFailedBroadcast = async (broadcast: Broadcast) => {
-    try {
-      const { requeued } = await broadcastApi.retryFailed({
-        workspace_id: workspaceId,
-        id: broadcast.id
-      })
-      message.success(t`${requeued.toLocaleString()} recipients queued for another attempt`)
-      // The badge and the failed count both come from these two queries.
-      queryClient.invalidateQueries({ queryKey: ['broadcast-stats', workspaceId, broadcast.id] })
-      queryClient.invalidateQueries({
-        queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
-      })
-    } catch (error) {
-      message.error(error instanceof Error ? error.message : t`Failed to retry the recipients`)
-      console.error(error)
-    }
-  }
+  const hasMarketingProvider = !!workspace?.settings?.marketing_email_provider_id
+  // Nothing at all in the workspace: no search, and the counts of every status are zero.
+  const workspaceEmpty = list.isSuccess && !searchTerm && (allCount ?? list.total) === 0
 
-  const handleResumeBroadcast = async (broadcast: Broadcast) => {
-    try {
-      await broadcastApi.resume({
-        workspace_id: workspaceId,
-        id: broadcast.id
-      })
-      message.success(t`Broadcast "${broadcast.name}" resumed successfully`)
-      queryClient.invalidateQueries({
-        queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
-      })
-    } catch (error) {
-      // The server names why, e.g. a chosen sender that left the integration.
-      message.error(
-        error instanceof Error && error.message ? error.message : t`Failed to resume broadcast`
+  const newButton = (
+    <Tooltip title={canWrite ? undefined : noWrite}>
+      <span className="inline-flex">
+        <Button type="primary" icon={<Plus size={14} />} disabled={!canWrite} onClick={() => openCompose('new')}>
+          {t`New broadcast`}
+        </Button>
+      </span>
+    </Tooltip>
+  )
+
+  const shown = rows.length
+  const total = list.total
+  const footer =
+    shown > 0 ? (
+      <>
+        <span>{t`${int(shown)} of ${plural(total, { one: '# broadcast', other: '# broadcasts' })}`}</span>
+        {list.hasNextPage ? (
+          <Button size="small" loading={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
+            {t`Load ${PAGE_SIZE} more`}
+          </Button>
+        ) : null}
+      </>
+    ) : undefined
+
+  const body = useMemo(() => {
+    if (list.isError && !list.data) {
+      return (
+        <Result
+          status="error"
+          title={t`Couldn't load the broadcasts`}
+          extra={<Button onClick={() => void list.refetch()}>{t`Retry`}</Button>}
+        />
       )
-      console.error(error)
     }
-  }
+    return null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list.isError, list.data])
 
-  const handleCancelBroadcast = async (broadcast: Broadcast) => {
-    try {
-      await broadcastApi.cancel({
-        workspace_id: workspaceId,
-        id: broadcast.id
-      })
-      message.success(t`Broadcast "${broadcast.name}" cancelled successfully`)
-      queryClient.invalidateQueries({
-        queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
-      })
-    } catch (error) {
-      message.error(t`Failed to cancel broadcast`)
-      console.error(error)
-    }
-  }
-
-  const openDeleteModal = (broadcast: Broadcast) => {
-    setBroadcastToDelete(broadcast)
-    setDeleteModalVisible(true)
-  }
-
-  const closeDeleteModal = () => {
-    setDeleteModalVisible(false)
-    setBroadcastToDelete(null)
-    setConfirmationInput('')
-  }
-
-  const handleScheduleBroadcast = (broadcast: Broadcast) => {
-    setBroadcastToSchedule(broadcast)
-    setIsScheduleModalVisible(true)
-  }
-
-  const closeScheduleModal = () => {
-    setIsScheduleModalVisible(false)
-    setBroadcastToSchedule(null)
-  }
-
-  const handleRefreshBroadcast = (broadcast: Broadcast) => {
-    // Refresh specific broadcast data
-    queryClient.invalidateQueries({ queryKey: ['broadcast-stats', workspaceId, broadcast.id] })
-    queryClient.invalidateQueries({ queryKey: ['task', workspaceId, broadcast.id] })
-    queryClient.invalidateQueries({ queryKey: ['testResults', workspaceId, broadcast.id] })
-    // Also refresh the main broadcast data to get updated status
-    queryClient.invalidateQueries({ queryKey: ['broadcasts', workspaceId, currentPage, pageSize] })
-    message.success(t`Broadcast "${broadcast.name}" refreshed`)
-  }
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
-    // Scroll to top when page changes
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const hasBroadcasts = !isLoading && data?.broadcasts && data.broadcasts.length > 0
-  const hasMarketingEmailProvider = currentWorkspace?.settings?.marketing_email_provider_id
+  if (!workspace) return null
 
   return (
     <div className="flex flex-col gap-3">
-      <PageHeader
-        title={t`Broadcasts`}
-        actions={
-          currentWorkspace && (hasBroadcasts || hasActiveFilter) && (
-            <Space>
-              <Tooltip
-                title={
-                  !permissions?.broadcasts?.write
-                    ? t`You don't have write permission for broadcasts`
-                    : undefined
-                }
-              >
-                <div>
-                  <UpsertBroadcastDrawer
-                    workspace={currentWorkspace}
-                    canReadTemplates={!!permissions?.templates?.read}
-                    lists={lists}
-                    segments={segments}
-                    buttonContent={<>{t`Create Broadcast`}</>}
-                    buttonProps={{
-                      disabled: !permissions?.broadcasts?.write
-                    }}
-                  />
-                </div>
-              </Tooltip>
-            </Space>
-          )
-        }
-      />
+      <PageHeader title={t`Broadcasts`} count={allCount} actions={workspaceEmpty ? undefined : newButton} />
 
-      {(hasBroadcasts || hasActiveFilter) && (
-        <div className="flex justify-between items-center mb-6 gap-4">
-          <Segmented
-            value={statusGroup}
-            onChange={(value) => handleStatusGroupChange(value as string)}
-            options={[
-              { label: t`All`, value: 'all' },
-              { label: t`Draft`, value: 'draft' },
-              { label: t`Scheduled`, value: 'scheduled' },
-              { label: t`Sending`, value: 'sending' },
-              { label: t`Sent`, value: 'sent' },
-              { label: t`Failed`, value: 'failed' }
-            ]}
-          />
-          <Input.Search
-            allowClear
-            placeholder={t`Search by name`}
-            value={searchInput}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            onBlur={() => {
-              // Reconcile the box to the trimmed term that is actually applied
-              // so stray leading/trailing spaces don't linger after editing.
-              const trimmed = searchInput.trim()
-              if (trimmed !== searchInput) setSearchInput(trimmed)
-            }}
-            className="max-w-xs"
-          />
-        </div>
-      )}
-
-      {!hasMarketingEmailProvider && (
+      {!hasMarketingProvider ? (
         <Alert
-          title={t`Email Provider Required`}
-          description={t`You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts.`}
           type="warning"
           showIcon
-          className="!mb-6"
+          title={t`Email Provider Required`}
+          description={t`You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts.`}
           action={
-            <Button
-              type="primary"
-              size="small"
-              href={`/console/workspace/${workspaceId}/settings/integrations`}
-            >
+            <Button size="small" href={`/console/workspace/${workspaceId}/settings/integrations`}>
               {t`Configure Provider`}
             </Button>
           }
         />
-      )}
+      ) : null}
 
-      {isLoading ? (
-        <Row gutter={[16, 16]}>
-          {[1, 2, 3].map((key) => (
-            <Col xs={24} sm={12} lg={8} key={key}>
-              <Card loading variant="outlined" />
-            </Col>
-          ))}
-        </Row>
-      ) : hasBroadcasts ? (
-        <div>
-          {data.broadcasts.map((broadcast: Broadcast, index) => (
-            <BroadcastCard
-              key={broadcast.id}
-              broadcast={broadcast}
-              lists={lists}
-              segments={segments}
-              workspaceId={workspaceId}
-              onDelete={openDeleteModal}
-              onPause={handlePauseBroadcast}
-              onRetryFailed={handleRetryFailedBroadcast}
-              onResume={handleResumeBroadcast}
-              onCancel={handleCancelBroadcast}
-              onSchedule={handleScheduleBroadcast}
-              onRefresh={handleRefreshBroadcast}
-              currentWorkspace={currentWorkspace}
-              permissions={permissions}
-              isFirst={index === 0}
-              currentPage={currentPage}
-              pageSize={pageSize}
-            />
-          ))}
-
-          {/* Pagination */}
-          {data && data.total_count > pageSize && (
-            <div className="flex justify-center mt-8">
-              <Pagination
-                current={currentPage}
-                pageSize={pageSize}
-                total={data.total_count}
-                onChange={handlePageChange}
-                showSizeChanger={false}
-                showQuickJumper={false}
-                showTotal={(total, range) => t`${range[0]}-${range[1]} of ${total} broadcasts`}
-              />
-            </div>
-          )}
-        </div>
-      ) : hasActiveFilter ? (
-        <div className="text-center py-12">
-          <Title level={4} type="secondary">
-            {t`No broadcasts match your filters`}
-          </Title>
-          <Paragraph type="secondary">
-            {t`Try adjusting your search or status filter`}
-          </Paragraph>
-          <div className="mt-4">
-            <Button onClick={handleClearFilters}>{t`Clear filters`}</Button>
-          </div>
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <Title level={4} type="secondary">
-            {t`No broadcasts found`}
-          </Title>
-          <Paragraph type="secondary">{t`Create your first broadcast to get started`}</Paragraph>
-          <div className="mt-4">
-            {currentWorkspace && (
-              <Tooltip
-                title={
-                  !permissions?.broadcasts?.write
-                    ? t`You don't have write permission for broadcasts`
-                    : undefined
-                }
-              >
-                <div>
-                  <UpsertBroadcastDrawer
-                    workspace={currentWorkspace}
-                    canReadTemplates={!!permissions?.templates?.read}
-                    lists={lists}
-                    segments={segments}
-                    buttonContent={t`Create Broadcast`}
-                    buttonProps={{
-                      disabled: !permissions?.broadcasts?.write
-                    }}
-                  />
-                </div>
-              </Tooltip>
-            )}
-          </div>
-        </div>
-      )}
-
-      <SendOrScheduleModal
-        broadcast={broadcastToSchedule}
-        visible={isScheduleModalVisible}
-        onClose={closeScheduleModal}
-        workspaceId={workspaceId}
-        workspace={currentWorkspace}
-        onSuccess={() => {
-          queryClient.invalidateQueries({
-            queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
-          })
-        }}
-      />
-
-      <Modal
-        title={t`Delete Broadcast`}
-        open={deleteModalVisible}
-        onCancel={closeDeleteModal}
-        footer={[
-          <Button key="cancel" onClick={closeDeleteModal}>
-            {t`Cancel`}
-          </Button>,
-          <Button
-            key="delete"
-            type="primary"
-            danger
-            loading={isDeleting}
-            disabled={confirmationInput !== (broadcastToDelete?.id || '')}
-            onClick={handleDeleteBroadcast}
-          >
-            {t`Delete`}
-          </Button>
-        ]}
-      >
-        {broadcastToDelete && (
-          <>
-            <p>{t`Are you sure you want to delete the broadcast "${broadcastToDelete.name}"?`}</p>
-            <p>
-              {t`This action cannot be undone. To confirm, please enter the broadcast ID:`}{' '}
-              <Text code>{broadcastToDelete.id}</Text>
-              <Tooltip title={t`Copy to clipboard`}>
-                <Button
-                  type="text"
-                  icon={<FontAwesomeIcon icon={faCopy} style={{ opacity: 0.7 }} />}
-                  size="small"
-                  onClick={() => {
-                    navigator.clipboard.writeText(broadcastToDelete.id)
-                    message.success(t`Broadcast ID copied to clipboard`)
-                  }}
-                />
-              </Tooltip>
-            </p>
-            <Input
-              placeholder={t`Enter broadcast ID to confirm`}
-              value={confirmationInput}
-              onChange={(e) => setConfirmationInput(e.target.value)}
-              status={
-                confirmationInput && confirmationInput !== broadcastToDelete.id ? 'error' : ''
+      {body ?? (
+        workspaceEmpty ? (
+          <Panel>
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <span className="flex flex-col gap-1">
+                  <span className="text-base font-medium text-ink">{t`No broadcasts yet`}</span>
+                  <span className="text-sm text-ink-3">{t`Send your first newsletter to a list`}</span>
+                </span>
               }
-            />
-            {confirmationInput && confirmationInput !== broadcastToDelete.id && (
-              <p className="text-red-500 mt-2">{t`ID doesn't match`}</p>
-            )}
+            >
+              {newButton}
+            </Empty>
+          </Panel>
+        ) : (
+          <>
+            <BroadcastKpis workspace={workspace} permissions={permissions} />
+            <Panel flush footer={footer}>
+              <TableToolbar
+                start={
+                  <CountTabs<StatusGroup>
+                    options={tabs}
+                    value={statusGroup}
+                    onChange={(value) => navigate({ search: (prev) => ({ ...prev, status: value === 'all' ? undefined : value }) })}
+                  />
+                }
+                end={
+                  <div className="w-64">
+                    <Input
+                      allowClear
+                      size="small"
+                      aria-label={t`Search by name`}
+                      placeholder={t`Search by name`}
+                      prefix={<Search size={14} aria-hidden="true" />}
+                      value={searchInput}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      onBlur={() => {
+                        const trimmed = searchInput.trim()
+                        if (trimmed !== searchInput) setSearchInput(trimmed)
+                      }}
+                    />
+                  </div>
+                }
+              />
+              {list.isLoading ? (
+                <div className="px-3.5 py-3">
+                  <Skeleton active title={false} paragraph={{ rows: 8 }} />
+                </div>
+              ) : rows.length === 0 && hasActiveFilter ? (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={<span className="text-sm text-ink-3">{t`No broadcasts match`}</span>}
+                >
+                  <Button onClick={handleClearFilters}>{t`Clear filters`}</Button>
+                </Empty>
+              ) : (
+                <BroadcastsTable
+                  workspace={workspace}
+                  rows={rows}
+                  loading={list.isFetching && !list.isFetchingNextPage && !list.isRefetching}
+                  permissions={permissions}
+                  canReadHistory={canReadHistory}
+                  canReadWeb={canReadWeb}
+                  pageStats={pageStats}
+                  estimates={estimates}
+                  lists={listsQuery.data?.lists ?? []}
+                  segments={segmentsQuery.data?.segments ?? []}
+                  activeId={search.broadcast}
+                  onOpen={(b) => (b.status === 'draft' && canWrite ? openCompose(b.id) : openDetail(b.id))}
+                  onCompose={(b) => openCompose(b.id)}
+                  onAction={(action, b) => actions.confirm(action, b)}
+                  onOpenDetail={(b) => openDetail(b.id)}
+                  onDelete={setDeleting}
+                />
+              )}
+            </Panel>
           </>
-        )}
-      </Modal>
+        )
+      )}
+
+      <FullDrawer open={!!search.broadcast && !search.compose} onClose={closeDetail} backLabel={t`Broadcasts`} nav={nav}>
+        {detailId ? (
+          <BroadcastDetail
+            key={detailId}
+            workspace={workspace}
+            permissions={permissions}
+            broadcastId={detailId}
+            onEdit={(id) => openCompose(id)}
+            onClose={closeDetail}
+          />
+        ) : null}
+      </FullDrawer>
+
+      {search.compose && composeKey ? (
+        <BroadcastCompose
+          key={composeKey.key}
+          workspace={workspace}
+          permissions={permissions}
+          composeId={composeKey.id}
+          // The composer has already saved or asked: the route's blocker must not ask again.
+          onClose={() => navigate({ ignoreBlocker: true, search: (prev) => ({ ...prev, compose: undefined }) })}
+          onCreated={(id) => navigate({ replace: true, ignoreBlocker: true, search: (prev) => ({ ...prev, compose: id }) })}
+          onOpenDetail={(id) =>
+            navigate({ replace: true, ignoreBlocker: true, search: (prev) => ({ ...prev, compose: undefined, broadcast: id }) })
+          }
+        />
+      ) : null}
+
+      <DeleteBroadcastModal broadcast={deleting} onClose={() => setDeleting(null)} onDelete={actions.remove} />
     </div>
   )
 }
+
+export default BroadcastsPage

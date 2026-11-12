@@ -51,6 +51,9 @@ interface BulkUpdateDrawerProps {
   workspaceId: string
   lists: List[]
   buttonProps?: ButtonProps
+  /** Controlled use: the drawer opens from this prop and renders no trigger button. */
+  open?: boolean
+  onClose?: () => void
 }
 
 interface CSVData {
@@ -86,9 +89,21 @@ interface SavedProgress {
   timestamp: number
 }
 
-export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdateDrawerProps) {
+export function BulkUpdateDrawer({
+  workspaceId,
+  lists,
+  buttonProps,
+  open: openProp,
+  onClose: onCloseProp
+}: BulkUpdateDrawerProps) {
   const { t } = useLingui()
-  const [open, setOpen] = useState(false)
+  const [openState, setOpenState] = useState(false)
+  const controlled = openProp !== undefined
+  const open = controlled ? openProp : openState
+  const setOpen = (value: boolean) => {
+    if (!controlled) setOpenState(value)
+    else if (!value) onCloseProp?.()
+  }
   const [csvData, setCsvData] = useState<CSVData | null>(null)
   const [fileList, setFileList] = useState<UploadFile[]>([])
   const [operation, setOperation] = useState<string>('')
@@ -546,7 +561,7 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
 
   return (
     <>
-      <Button {...buttonProps} onClick={() => setOpen(true)} />
+      {controlled ? null : <Button {...buttonProps} onClick={() => setOpen(true)} />}
 
       <Drawer
         title={t`Bulk Update Contacts`}

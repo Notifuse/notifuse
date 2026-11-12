@@ -531,6 +531,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           action: msg`Read A/B test results for a broadcast`,
         },
         {
+          endpoint: "/api/broadcasts.estimateAudience",
+          action: msg`Count the contacts an audience would reach (lists and, for segments, segments read too)`,
+        },
+        {
           endpoint: "/api/analytics.query",
           action: msg`Run aggregate queries over the \`broadcasts\` schema`,
         },
