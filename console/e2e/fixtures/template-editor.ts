@@ -28,14 +28,12 @@ export const openTemplateEditor = async (
 ) => {
   await mockApi(page, 'templates.list', { templates: [shown], total: 1 })
   await mockApi(page, 'templates.get', { template: shown })
+  await mockApi(page, 'templates.usage', { usage: {}, references: [], hidden_types: [] })
 
   await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
   await waitForLoading(page)
-  await page
-    .locator('.ant-table-row')
-    .first()
-    .locator('button:has(svg[data-icon="pen-to-square"])')
-    .click()
+  // A click on the row opens the editor of a member who can write templates
+  await page.locator('.ant-table-row').first().click()
   const drawer = page.getByRole('dialog', { name: labels.drawer, exact: true })
   await expect(drawer).toBeVisible()
   await drawer.getByRole('tab', { name: labels.templateTab }).click()

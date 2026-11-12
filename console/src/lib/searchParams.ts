@@ -4,6 +4,11 @@
  * each normalizer turns those back into the text of the URL, and drops what cannot be one.
  */
 
+import {
+  isTemplateCategory,
+  type TemplateCategory
+} from '../components/templates/templateCategories'
+
 /** A search value as a non-empty, trimmed string, or undefined. */
 export function searchString(value: unknown): string | undefined {
   const single = Array.isArray(value) ? value[0] : value
@@ -22,4 +27,22 @@ export function parseSettingsSearch(search: Record<string, unknown>): SettingsSe
   const webhook = searchString(search.webhook)
   // Optional output: a Link to a section needs no search, and an absent key stays absent.
   return webhook === undefined ? {} : { webhook }
+}
+
+/** Search of `/templates`: category tab, search box and the template whose preview is open. */
+export interface TemplatesSearch {
+  category?: TemplateCategory
+  q?: string
+  preview?: string
+}
+
+export function parseTemplatesSearch(search: Record<string, unknown>): TemplatesSearch {
+  const category = searchString(search.category)
+  const q = searchString(search.q)
+  const preview = searchString(search.preview)
+  return {
+    ...(isTemplateCategory(category) ? { category } : {}),
+    ...(q === undefined ? {} : { q }),
+    ...(preview === undefined ? {} : { preview })
+  }
 }
