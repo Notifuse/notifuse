@@ -122,6 +122,8 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: Settings have a new layout. The side menu groups the pages into Workspace, Sending, Content and Security. General shows the workspace, its languages, email tracking and custom domain in separate panels, with a logo preview. Team & API keys lists members and keys in tables with each one's access, and invitations with when they expire. Each email provider is a card with its roles, webhook status, settings and senders, which you can add from the card. Webhooks are listed with their success rate over the last 7 days and their last success; a webhook opens in a side panel, with its statistics, its secret, a test and a link to its deliveries. Custom fields list the named slots, and how many of each type are still free.
 
+- **Feature**: The transactional page shows each notification's open and click rates and its last send, and opens a detail view with sends per day, the latest sends, a preview of its template and the API call in cURL, TypeScript and Python. The message log can be filtered by transactional notification in the console.
+
 ## [43.0] - 2026-11-07
 
 - **Feature**: Contacts can now agree to or refuse open tracking and click tracking, each on its own. Their choice is stored on the contact (`tracking_opens_consent`, `tracking_clicks_consent`, with the date and source of the change), set through the API, the console, CSV import and the notification center, exported, filterable in the contact list and in segments, usable as an automation trigger field, and sent in contact webhooks. A contact who refused gets no open pixel or no tracked links, and a later refusal also stops recording opens and clicks of emails already sent.
