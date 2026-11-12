@@ -230,6 +230,8 @@ func (p *InboundWebhookEventListParams) Validate() error {
 			string(EmailEventUnsubscribe),
 			string(EmailEventReply),
 			string(EmailEventAutoReply),
+			string(EmailEventAuthEmail),
+			string(EmailEventBeforeUserCreated),
 		}
 		if !govalidator.IsIn(string(p.EventType), validEventTypes...) {
 			return fmt.Errorf("invalid event type: %s", p.EventType)

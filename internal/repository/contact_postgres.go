@@ -329,6 +329,17 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 	if req.Language != "" {
 		sb = sb.Where(sq.ILike{"c.language": "%" + req.Language + "%"})
 	}
+	if req.Search != "" {
+		// Wildcards in the search are literal: "a_b" must not match "axb".
+		pattern := "%" + escapeLikePattern(req.Search) + "%"
+		sb = sb.Where(sq.Or{
+			sq.ILike{"c.email": pattern},
+			sq.ILike{"c.first_name": pattern},
+			sq.ILike{"c.last_name": pattern},
+			sq.ILike{"c.full_name": pattern},
+			sq.ILike{"c.external_id": pattern},
+		})
+	}
 
 	sb = withTrackingConsentFilter(sb, "c.tracking_opens_consent", req.TrackingOpensConsent)
 	sb = withTrackingConsentFilter(sb, "c.tracking_clicks_consent", req.TrackingClicksConsent)

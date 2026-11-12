@@ -3,14 +3,19 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/base64"
 	"fmt"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/golang/mock/gomock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,7 +54,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			WithArgs(email, sqlmock.AnyArg()).
 			WillReturnRows(rows)
 
-		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil)
+		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil, domain.TimelineEntityTypeFilter{})
 
 		require.NoError(t, err)
 		assert.Len(t, entries, 2)
@@ -90,7 +95,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			WithArgs(email, sqlmock.AnyArg(), sqlmock.AnyArg(), cursorID, sqlmock.AnyArg()).
 			WillReturnRows(rows)
 
-		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, &cursorStr)
+		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, &cursorStr, domain.TimelineEntityTypeFilter{})
 
 		require.NoError(t, err)
 		assert.Len(t, entries, 1)
@@ -122,7 +127,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			WithArgs(email, sqlmock.AnyArg()).
 			WillReturnRows(rows)
 
-		entries, nextCursor, err := repo.List(ctx, workspaceID, email, 10, nil)
+		entries, nextCursor, err := repo.List(ctx, workspaceID, email, 10, nil, domain.TimelineEntityTypeFilter{})
 
 		require.NoError(t, err)
 		assert.Len(t, entries, 10) // Should return only 10, not 11
@@ -150,7 +155,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			WithArgs(email, sqlmock.AnyArg()).
 			WillReturnRows(rows)
 
-		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil)
+		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil, domain.TimelineEntityTypeFilter{})
 
 		require.NoError(t, err)
 		assert.Len(t, entries, 1)
@@ -178,7 +183,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			WithArgs(email, sqlmock.AnyArg()).
 			WillReturnRows(rows)
 
-		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil)
+		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil, domain.TimelineEntityTypeFilter{})
 
 		require.NoError(t, err)
 		assert.Empty(t, entries)
@@ -202,7 +207,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			WillReturnRows(rows)
 
 		// Pass 0 limit, should default to 50
-		entries, nextCursor, err := repo.List(ctx, workspaceID, email, 0, nil)
+		entries, nextCursor, err := repo.List(ctx, workspaceID, email, 0, nil, domain.TimelineEntityTypeFilter{})
 
 		require.NoError(t, err)
 		assert.Empty(t, entries)
@@ -226,7 +231,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			WillReturnRows(rows)
 
 		// Pass 150 limit, should be capped at 100
-		entries, nextCursor, err := repo.List(ctx, workspaceID, email, 150, nil)
+		entries, nextCursor, err := repo.List(ctx, workspaceID, email, 150, nil, domain.TimelineEntityTypeFilter{})
 
 		require.NoError(t, err)
 		assert.Empty(t, entries)
@@ -239,7 +244,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(nil, assert.AnError)
 
-		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil)
+		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil, domain.TimelineEntityTypeFilter{})
 
 		assert.Error(t, err)
 		assert.Nil(t, entries)
@@ -258,7 +263,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 
 		invalidCursor := "invalid-cursor!!!"
 
-		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, &invalidCursor)
+		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, &invalidCursor, domain.TimelineEntityTypeFilter{})
 
 		assert.Error(t, err)
 		assert.Nil(t, entries)
@@ -278,7 +283,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 		// Valid base64 but wrong format (missing pipe separator)
 		invalidCursor := base64.StdEncoding.EncodeToString([]byte("no-pipe-separator"))
 
-		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, &invalidCursor)
+		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, &invalidCursor, domain.TimelineEntityTypeFilter{})
 
 		assert.Error(t, err)
 		assert.Nil(t, entries)
@@ -299,7 +304,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			WithArgs(email, sqlmock.AnyArg()).
 			WillReturnError(sql.ErrConnDone)
 
-		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil)
+		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil, domain.TimelineEntityTypeFilter{})
 
 		assert.Error(t, err)
 		assert.Nil(t, entries)
@@ -325,7 +330,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			WithArgs(email, sqlmock.AnyArg()).
 			WillReturnRows(rows)
 
-		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil)
+		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil, domain.TimelineEntityTypeFilter{})
 
 		assert.Error(t, err)
 		assert.Nil(t, entries)
@@ -352,7 +357,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			WithArgs(email, sqlmock.AnyArg()).
 			WillReturnRows(rows)
 
-		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil)
+		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil, domain.TimelineEntityTypeFilter{})
 
 		assert.Error(t, err)
 		assert.Nil(t, entries)
@@ -379,7 +384,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			WithArgs(email, sqlmock.AnyArg()).
 			WillReturnRows(rows)
 
-		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil)
+		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil, domain.TimelineEntityTypeFilter{})
 
 		assert.Error(t, err)
 		assert.Nil(t, entries)
@@ -545,5 +550,51 @@ func TestContactTimelineRepository_DeleteForEmail(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to delete timeline entries")
 		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+func TestContactTimelineRepository_List_EntityTypeFilter(t *testing.T) {
+	ctx := context.Background()
+	columns := []string{"id", "email", "operation", "entity_type", "kind", "changes", "entity_id", "created_at", "db_created_at", "entity_data"}
+	run := func(t *testing.T, filter domain.TimelineEntityTypeFilter, cursor *string, pattern string, args ...driver.Value) {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		workspaceRepo.EXPECT().GetConnection(ctx, "ws").Return(db, nil)
+		// The query is multi-line: any run of whitespace matches a space of the pattern.
+		mock.ExpectQuery(strings.ReplaceAll(pattern, " ", `\s+`)).WithArgs(args...).WillReturnRows(sqlmock.NewRows(columns))
+
+		_, _, err = NewContactTimelineRepository(workspaceRepo).List(ctx, "ws", "a@example.com", 20, cursor, filter)
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	}
+
+	t.Run("Only keeps the listed types", func(t *testing.T) {
+		run(t, domain.TimelineEntityTypeFilter{Only: []string{"contact", "message_history"}}, nil,
+			regexp.QuoteMeta(`WHERE ct.email = $1 AND ct.entity_type = ANY($2) ORDER BY ct.created_at DESC, ct.id DESC LIMIT $3`),
+			"a@example.com", pq.StringArray{"contact", "message_history"}, 21)
+	})
+
+	t.Run("Except drops the listed types", func(t *testing.T) {
+		run(t, domain.TimelineEntityTypeFilter{Except: []string{"web_session", "web_page"}}, nil,
+			regexp.QuoteMeta(`WHERE ct.email = $1 AND ct.entity_type <> ALL($2) ORDER BY`),
+			"a@example.com", pq.StringArray{"web_session", "web_page"}, 21)
+	})
+
+	t.Run("no filter adds no condition", func(t *testing.T) {
+		run(t, domain.TimelineEntityTypeFilter{}, nil,
+			regexp.QuoteMeta(`WHERE ct.email = $1 ORDER BY ct.created_at DESC, ct.id DESC LIMIT $2`),
+			"a@example.com", 21)
+	})
+
+	t.Run("the cursor condition follows the filter", func(t *testing.T) {
+		at := time.Date(2026, 11, 1, 10, 0, 0, 0, time.UTC)
+		cursor := encodeCursor(at, "e9")
+		run(t, domain.TimelineEntityTypeFilter{Only: []string{"contact"}}, &cursor,
+			regexp.QuoteMeta(`WHERE ct.email = $1 AND ct.entity_type = ANY($2) AND (ct.created_at < $3 OR (ct.created_at = $4 AND ct.id < $5)) ORDER BY ct.created_at DESC, ct.id DESC LIMIT $6`),
+			"a@example.com", pq.StringArray{"contact"}, at, at, "e9", 21)
 	})
 }

@@ -431,3 +431,35 @@ ListBlogThemesResponse:
       type: integer
       description: Theme versions in the workspace across all pages.
       example: 4
+
+BlogPostCounts:
+  type: object
+  required: [all_total, total, published, scheduled, draft, by_category]
+  properties:
+    all_total:
+      type: integer
+      description: Every post that is not deleted, whatever `category_id`.
+      example: 42
+    total:
+      type: integer
+      description: The posts of the category asked for, or every post without one.
+      example: 12
+    published:
+      type: integer
+      description: Posts with a publication date, scheduled ones included.
+      example: 9
+    scheduled:
+      type: integer
+      description: Posts whose publication date is still to come.
+      example: 1
+    draft:
+      type: integer
+      description: Posts never published or since unpublished.
+      example: 3
+    by_category:
+      type: object
+      description: Posts per category ID, over every post. Posts without a category are left out.
+      additionalProperties:
+        type: integer
+      example:
+        7c9e6679-7425-40de-944b-e07fc1f90ae7: 12

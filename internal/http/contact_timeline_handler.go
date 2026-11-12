@@ -102,7 +102,7 @@ func (h *ContactTimelineHandler) handleList(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Call service to get the timeline entries
-	entries, nextCursor, err := h.service.List(ctx, req.WorkspaceID, req.Email, req.Limit, req.Cursor)
+	entries, nextCursor, err := h.service.List(ctx, req.WorkspaceID, req.Email, req.Limit, req.Cursor, req.EntityTypes)
 	if err != nil {
 		// codecov:ignore:start
 		h.logger.Error(err.Error())

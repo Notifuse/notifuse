@@ -267,10 +267,10 @@ Where the code differs from the sections above, or settles what they left open.
   at the failure. `TestDemoAutomationsSeedRealHistory` now reads the seed through `GetNodeStats`.
 - **Integration**: `TestAutomationNodeStats` runs the real executor and queue with Mailpit. The
   open is written straight to the row: the open path depends on tracking settings, not under
-  test. The 404 subtest needs `GetByID` to return `*domain.ErrNotFound`, which #522 brings: it
-  fails on this branch alone and passes with #522 merged (checked on a trial merge).
-- **CHANGELOG**: one Feature line. The recount phrase for #522's Fix line (S6) is added when this
-  branch is updated with dev after #522 merges.
+  test. The 404 subtest needs `GetByID` to return `*domain.ErrNotFound`, which #522 brings; it
+  passes since this branch was updated with dev.
+- **CHANGELOG**: one Feature line, and #522's Fix line now ends "past exits included" (S6),
+  edited when this branch was updated with dev after #522 merged.
 - **OpenAPI**: new `openapi/paths/automations.yaml` (`automations.list`, `automations.nodeStats`)
   and `components/schemas/automation.yaml`. `messages.list` and the analytics schema are not in
   the OpenAPI document, so their new filter and dimension are not documented there. Lint warnings

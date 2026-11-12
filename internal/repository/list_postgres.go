@@ -120,6 +120,35 @@ func (r *listRepository) GetLists(ctx context.Context, workspaceID string) ([]*d
 	return lists, nil
 }
 
+func (r *listRepository) CountActiveContactsByList(ctx context.Context, workspaceID string) (map[string]int, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	rows, err := workspaceDB.QueryContext(ctx,
+		`SELECT list_id, COUNT(*) FROM contact_lists WHERE status = $1 AND deleted_at IS NULL GROUP BY list_id`,
+		string(domain.ContactListStatusActive))
+	if err != nil {
+		return nil, fmt.Errorf("failed to count active contacts by list: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	counts := map[string]int{}
+	for rows.Next() {
+		var listID string
+		var n int
+		if err := rows.Scan(&listID, &n); err != nil {
+			return nil, fmt.Errorf("failed to scan active contact count: %w", err)
+		}
+		counts[listID] = n
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating active contact counts: %w", err)
+	}
+	return counts, nil
+}
+
 func (r *listRepository) UpdateList(ctx context.Context, workspaceID string, list *domain.List) error {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)

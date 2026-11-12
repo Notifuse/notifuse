@@ -1271,6 +1271,12 @@ func TestBlogHandler_PermissionErrors(t *testing.T) {
 			wantErr: readErr,
 		},
 		{
+			name: "blogPosts.counts", method: http.MethodGet, target: "/api/blogPosts.counts?workspace_id=ws-123",
+			expect:  func(m *mocks.MockBlogService) { m.EXPECT().CountPosts(gomock.Any(), "").Return(nil, readErr) },
+			handler: func(h *http_handler.BlogHandler) http.HandlerFunc { return h.HandleCountPosts },
+			wantErr: readErr,
+		},
+		{
 			name: "blogPosts.get", method: http.MethodGet, target: "/api/blogPosts.get?workspace_id=ws-123&id=post-1",
 			expect:  func(m *mocks.MockBlogService) { m.EXPECT().GetPost(gomock.Any(), "post-1").Return(nil, readErr) },
 			handler: func(h *http_handler.BlogHandler) http.HandlerFunc { return h.HandleGetPost },

@@ -105,7 +105,7 @@ func (s *ListService) GetListByID(ctx context.Context, workspaceID string, id st
 	return list, nil
 }
 
-func (s *ListService) GetLists(ctx context.Context, workspaceID string) ([]*domain.List, error) {
+func (s *ListService) GetLists(ctx context.Context, workspaceID string, withCounts bool) ([]*domain.List, error) {
 	var err error
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
@@ -125,6 +125,18 @@ func (s *ListService) GetLists(ctx context.Context, workspaceID string) ([]*doma
 	if err != nil {
 		s.logger.Error(fmt.Sprintf("Failed to get lists: %v", err))
 		return nil, fmt.Errorf("failed to get lists: %w", err)
+	}
+
+	if withCounts {
+		counts, err := s.repo.CountActiveContactsByList(ctx, workspaceID)
+		if err != nil {
+			s.logger.Error(fmt.Sprintf("Failed to count list subscribers: %v", err))
+			return nil, fmt.Errorf("failed to count list subscribers: %w", err)
+		}
+		for _, list := range lists {
+			n := counts[list.ID]
+			list.ActiveCount = &n
+		}
 	}
 
 	return lists, nil

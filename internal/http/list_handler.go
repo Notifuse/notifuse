@@ -68,7 +68,7 @@ func (h *ListHandler) handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lists, err := h.service.GetLists(r.Context(), req.WorkspaceID)
+	lists, err := h.service.GetLists(r.Context(), req.WorkspaceID, req.WithCounts)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get lists")
 		if writeServiceError(w, err, "You do not have access to this workspace") {

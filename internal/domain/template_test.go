@@ -3172,3 +3172,77 @@ func TestTranslationsWiden_IgnoresDerivedFields(t *testing.T) {
 		assert.Equal(t, "<p>a</p>", stored["fr"].Web.HTML)
 	})
 }
+
+func TestGetTemplateUsageRequest_FromURLParams(t *testing.T) {
+	t.Run("workspace_id is required", func(t *testing.T) {
+		var req GetTemplateUsageRequest
+		require.Error(t, req.FromURLParams(url.Values{}))
+	})
+
+	t.Run("template_id is optional", func(t *testing.T) {
+		var req GetTemplateUsageRequest
+		require.NoError(t, req.FromURLParams(url.Values{"workspace_id": {"ws1"}}))
+		assert.Equal(t, GetTemplateUsageRequest{WorkspaceID: "ws1"}, req)
+
+		require.NoError(t, req.FromURLParams(url.Values{"workspace_id": {"ws1"}, "template_id": {"welcome"}}))
+		assert.Equal(t, GetTemplateUsageRequest{WorkspaceID: "ws1", TemplateID: "welcome"}, req)
+	})
+}
+
+func TestTemplateUsage_JSON(t *testing.T) {
+	one, zero := 1, 0
+	decode := func(t *testing.T, u TemplateUsage) map[string]interface{} {
+		t.Helper()
+		raw, err := json.Marshal(u)
+		require.NoError(t, err)
+		var decoded map[string]interface{}
+		require.NoError(t, json.Unmarshal(raw, &decoded))
+		return decoded
+	}
+
+	t.Run("without template_id there is no references key, and empty collections are not null", func(t *testing.T) {
+		decoded := decode(t, NewTemplateUsage(false))
+		assert.NotContains(t, decoded, "references")
+		assert.Equal(t, map[string]interface{}{}, decoded["usage"])
+		assert.Equal(t, []interface{}{}, decoded["hidden_types"])
+	})
+
+	t.Run("with template_id references is an array, even empty", func(t *testing.T) {
+		decoded := decode(t, NewTemplateUsage(true))
+		assert.Equal(t, []interface{}{}, decoded["references"])
+	})
+
+	t.Run("a hidden type's counter is absent, a readable zero is present", func(t *testing.T) {
+		u := NewTemplateUsage(false)
+		u.Usage["welcome"] = &TemplateUsageCounts{Broadcasts: &one, TransactionalNotifications: &zero, Automations: &zero}
+		u.HiddenTypes = []TemplateUsageType{TemplateUsageTypeLists}
+		decoded := decode(t, u)
+		assert.Equal(t, map[string]interface{}{
+			"broadcasts": float64(1), "transactional_notifications": float64(0), "automations": float64(0),
+		}, decoded["usage"].(map[string]interface{})["welcome"])
+		assert.Equal(t, []interface{}{"lists"}, decoded["hidden_types"])
+	})
+
+	t.Run("a reference without status has no status key", func(t *testing.T) {
+		u := NewTemplateUsage(true)
+		*u.References = append(*u.References,
+			TemplateUsageReference{Type: TemplateUsageReferenceBroadcast, ID: "bc1", Name: "Black Friday", Status: "scheduled"},
+			TemplateUsageReference{Type: TemplateUsageReferenceList, ID: "l1", Name: "Newsletter"})
+		decoded := decode(t, u)
+		assert.Equal(t, []interface{}{
+			map[string]interface{}{"type": "broadcast", "id": "bc1", "name": "Black Friday", "status": "scheduled"},
+			map[string]interface{}{"type": "list", "id": "l1", "name": "Newsletter"},
+		}, decoded["references"])
+	})
+}
+
+func TestTemplateUsageCounts_Set(t *testing.T) {
+	var c TemplateUsageCounts
+	for i, typ := range TemplateUsageTypes {
+		c.Set(typ, i+1)
+	}
+	c.Set(TemplateUsageType("segments"), 99)
+	raw, err := json.Marshal(c)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"broadcasts":1,"transactional_notifications":2,"automations":3,"lists":4}`, string(raw))
+}

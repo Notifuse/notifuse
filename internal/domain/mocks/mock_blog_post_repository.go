@@ -37,6 +37,21 @@ func (m *MockBlogPostRepository) EXPECT() *MockBlogPostRepositoryMockRecorder {
 	return m.recorder
 }
 
+// CountPosts mocks base method.
+func (m *MockBlogPostRepository) CountPosts(arg0 context.Context, arg1, arg2 string, arg3 time.Time) (*domain.BlogPostCounts, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountPosts", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(*domain.BlogPostCounts)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountPosts indicates an expected call of CountPosts.
+func (mr *MockBlogPostRepositoryMockRecorder) CountPosts(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountPosts", reflect.TypeOf((*MockBlogPostRepository)(nil).CountPosts), arg0, arg1, arg2, arg3)
+}
+
 // CreatePost mocks base method.
 func (m *MockBlogPostRepository) CreatePost(arg0 context.Context, arg1 *domain.BlogPost) error {
 	m.ctrl.T.Helper()
@@ -227,6 +242,21 @@ func (m *MockBlogPostRepository) ListPosts(arg0 context.Context, arg1 domain.Lis
 func (mr *MockBlogPostRepositoryMockRecorder) ListPosts(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPosts", reflect.TypeOf((*MockBlogPostRepository)(nil).ListPosts), arg0, arg1)
+}
+
+// ListSitemapPosts mocks base method.
+func (m *MockBlogPostRepository) ListSitemapPosts(arg0 context.Context, arg1 time.Time, arg2 int) ([]*domain.BlogSitemapPost, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListSitemapPosts", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]*domain.BlogSitemapPost)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListSitemapPosts indicates an expected call of ListSitemapPosts.
+func (mr *MockBlogPostRepositoryMockRecorder) ListSitemapPosts(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSitemapPosts", reflect.TypeOf((*MockBlogPostRepository)(nil).ListSitemapPosts), arg0, arg1, arg2)
 }
 
 // PublishPost mocks base method.

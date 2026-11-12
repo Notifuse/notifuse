@@ -64,9 +64,9 @@ func (mr *MockContactTimelineRepositoryMockRecorder) DeleteForEmail(arg0, arg1, 
 }
 
 // List mocks base method.
-func (m *MockContactTimelineRepository) List(arg0 context.Context, arg1, arg2 string, arg3 int, arg4 *string) ([]*domain.ContactTimelineEntry, *string, error) {
+func (m *MockContactTimelineRepository) List(arg0 context.Context, arg1, arg2 string, arg3 int, arg4 *string, arg5 domain.TimelineEntityTypeFilter) ([]*domain.ContactTimelineEntry, *string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "List", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "List", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].([]*domain.ContactTimelineEntry)
 	ret1, _ := ret[1].(*string)
 	ret2, _ := ret[2].(error)
@@ -74,7 +74,7 @@ func (m *MockContactTimelineRepository) List(arg0 context.Context, arg1, arg2 st
 }
 
 // List indicates an expected call of List.
-func (mr *MockContactTimelineRepositoryMockRecorder) List(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockContactTimelineRepositoryMockRecorder) List(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockContactTimelineRepository)(nil).List), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockContactTimelineRepository)(nil).List), arg0, arg1, arg2, arg3, arg4, arg5)
 }

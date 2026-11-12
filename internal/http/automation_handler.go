@@ -100,8 +100,17 @@ func (h *AutomationHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 
 	automation, err := h.service.Get(r.Context(), req.WorkspaceID, req.AutomationID)
 	if err != nil {
-		h.logger.WithField("error", err.Error()).Error("Failed to get automation")
+		var notFound *domain.ErrNotFound
+		if errors.As(err, &notFound) {
+			h.logger.WithField("error", err.Error()).Warn("Automation not found")
+		} else {
+			h.logger.WithField("error", err.Error()).Error("Failed to get automation")
+		}
 		if writePermissionError(w, err) {
+			return
+		}
+		if notFound != nil {
+			WriteJSONError(w, "Automation not found", http.StatusNotFound)
 			return
 		}
 		WriteJSONError(w, "Failed to get automation", http.StatusInternalServerError)

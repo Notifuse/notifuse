@@ -21,6 +21,7 @@ import { faTriangleExclamation, faRefresh, faBan } from '@fortawesome/free-solid
 import dayjs from '../../lib/dayjs'
 import { getProviderIcon, getProviderName } from '../integrations/EmailProviders'
 import { useLingui } from '@lingui/react/macro'
+import { buildLogsTabUrl, LOGS_TAB } from '../logs/logsUrl'
 
 const { Title, Text } = Typography
 
@@ -148,14 +149,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
 
   // Update URL when filters change
   React.useEffect(() => {
-    const searchParams = new URLSearchParams()
-
-    activeFilters.forEach((filter) => {
-      searchParams.set(filter.field, filter.value)
-    })
-
-    const newUrl =
-      window.location.pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '')
+    const newUrl = buildLogsTabUrl(window.location.pathname, LOGS_TAB.incomingWebhooks, activeFilters)
 
     window.history.pushState({ path: newUrl }, '', newUrl)
   }, [activeFilters])
@@ -245,7 +239,8 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
     setActiveFilters([])
     setTempFilterValues({})
     // Clear URL params
-    window.history.pushState({ path: window.location.pathname }, '', window.location.pathname)
+    const clearedUrl = buildLogsTabUrl(window.location.pathname, LOGS_TAB.incomingWebhooks, [])
+    window.history.pushState({ path: clearedUrl }, '', clearedUrl)
   }
 
   // Render filter buttons

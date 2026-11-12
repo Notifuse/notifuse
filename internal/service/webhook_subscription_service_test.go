@@ -900,11 +900,13 @@ func TestWebhookSubscriptionService_RegenerateSecret(t *testing.T) {
 func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 	now := time.Now()
 	subID := "sub123"
+	failedStatus := domain.WebhookDeliveryStatusFailed
 
 	testCases := []struct {
 		name           string
 		workspaceID    string
 		subscriptionID *string
+		status         *string
 		limit          int
 		offset         int
 		setupMocks     func(*mocks.MockWebhookDeliveryRepository)
@@ -913,6 +915,21 @@ func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 		expectedCount  int
 	}{
 		{
+			name:           "forwards the status filter with the subscription",
+			workspaceID:    "workspace123",
+			subscriptionID: &subID,
+			status:         &failedStatus,
+			limit:          10,
+			offset:         0,
+			setupMocks: func(mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
+				mockDeliveryRepo.EXPECT().
+					ListAll(gomock.Any(), "workspace123", gomock.Eq(&subID), gomock.Eq(&failedStatus), 10, 0).
+					Return([]*domain.WebhookDelivery{{ID: "d1", Status: domain.WebhookDeliveryStatusFailed}}, 1, nil)
+			},
+			expectedTotal: 1,
+			expectedCount: 1,
+		},
+		{
 			name:           "successful retrieval with deliveries",
 			workspaceID:    "workspace123",
 			subscriptionID: &subID,
@@ -920,7 +937,7 @@ func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 			offset:         0,
 			setupMocks: func(mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
 				mockDeliveryRepo.EXPECT().
-					ListAll(gomock.Any(), "workspace123", gomock.Any(), 10, 0).
+					ListAll(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(), 10, 0).
 					Return([]*domain.WebhookDelivery{
 						{
 							ID:             "delivery1",
@@ -950,7 +967,7 @@ func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 			offset:         0,
 			setupMocks: func(mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
 				mockDeliveryRepo.EXPECT().
-					ListAll(gomock.Any(), "workspace123", gomock.Any(), 10, 0).
+					ListAll(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(), 10, 0).
 					Return([]*domain.WebhookDelivery{}, 0, nil)
 			},
 			expectError:   false,
@@ -965,7 +982,7 @@ func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 			offset:         10,
 			setupMocks: func(mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
 				mockDeliveryRepo.EXPECT().
-					ListAll(gomock.Any(), "workspace123", gomock.Any(), 5, 10).
+					ListAll(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(), 5, 10).
 					Return([]*domain.WebhookDelivery{
 						{ID: "delivery11", SubscriptionID: "sub123"},
 						{ID: "delivery12", SubscriptionID: "sub123"},
@@ -983,7 +1000,7 @@ func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 			offset:         0,
 			setupMocks: func(mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
 				mockDeliveryRepo.EXPECT().
-					ListAll(gomock.Any(), "workspace123", nil, 10, 0).
+					ListAll(gomock.Any(), "workspace123", nil, gomock.Any(), 10, 0).
 					Return([]*domain.WebhookDelivery{
 						{ID: "delivery1", SubscriptionID: "sub123"},
 						{ID: "delivery2", SubscriptionID: "sub456"},
@@ -1001,7 +1018,7 @@ func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 			offset:         0,
 			setupMocks: func(mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
 				mockDeliveryRepo.EXPECT().
-					ListAll(gomock.Any(), "workspace123", gomock.Any(), 10, 0).
+					ListAll(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(), 10, 0).
 					Return(nil, 0, errors.New("database error"))
 			},
 			expectError: true,
@@ -1019,6 +1036,7 @@ func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 				context.Background(),
 				tc.workspaceID,
 				tc.subscriptionID,
+				tc.status,
 				tc.limit,
 				tc.offset,
 			)
@@ -1603,7 +1621,7 @@ func TestWebhookSubscriptionService_RejectsNonMembers(t *testing.T) {
 			return err
 		}},
 		{"GetDeliveries", func(ctx context.Context, s *WebhookSubscriptionService) error {
-			_, _, err := s.GetDeliveries(ctx, victimWorkspace, nil, 10, 0)
+			_, _, err := s.GetDeliveries(ctx, victimWorkspace, nil, nil, 10, 0)
 			return err
 		}},
 	}
@@ -1846,7 +1864,7 @@ func TestWebhookSubscriptionService_PermissionEnforcement(t *testing.T) {
 			return err
 		}},
 		{"GetDeliveries", domain.PermissionTypeRead, func(ctx context.Context, s *WebhookSubscriptionService) error {
-			_, _, err := s.GetDeliveries(ctx, workspaceID, nil, 10, 0)
+			_, _, err := s.GetDeliveries(ctx, workspaceID, nil, nil, 10, 0)
 			return err
 		}},
 		{"GetForTestDelivery", domain.PermissionTypeWrite, func(ctx context.Context, s *WebhookSubscriptionService) error {

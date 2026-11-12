@@ -572,3 +572,35 @@ func TestListRepository_DeleteList_LiveAutomations(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }
+
+func TestListRepository_CountActiveContactsByList(t *testing.T) {
+	countSQL := regexp.QuoteMeta(`SELECT list_id, COUNT(*) FROM contact_lists WHERE status = $1 AND deleted_at IS NULL GROUP BY list_id`)
+	setup := func(t *testing.T) (*listRepository, sqlmock.Sqlmock) {
+		repo, workspaceRepo := setupListRepositoryTest(t)
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws").Return(db, nil)
+		return repo, mock
+	}
+
+	t.Run("one entry per list with active subscribers", func(t *testing.T) {
+		repo, mock := setup(t)
+		mock.ExpectQuery(countSQL).WithArgs(string(domain.ContactListStatusActive)).
+			WillReturnRows(sqlmock.NewRows([]string{"list_id", "count"}).AddRow("news", 12).AddRow("promo", 3))
+
+		got, err := repo.CountActiveContactsByList(context.Background(), "ws")
+		require.NoError(t, err)
+		assert.Equal(t, map[string]int{"news": 12, "promo": 3}, got)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("query error returned", func(t *testing.T) {
+		repo, mock := setup(t)
+		mock.ExpectQuery(countSQL).WillReturnError(errors.New("boom"))
+
+		_, err := repo.CountActiveContactsByList(context.Background(), "ws")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "boom")
+	})
+}

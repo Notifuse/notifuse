@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -187,49 +188,38 @@ func (r *webhookDeliveryRepository) RenewClaim(ctx context.Context, workspaceID,
 	return true, &renewed, nil
 }
 
-// ListAll retrieves all deliveries for a workspace with optional subscription filter and pagination
-func (r *webhookDeliveryRepository) ListAll(ctx context.Context, workspaceID string, subscriptionID *string, limit, offset int) ([]*WebhookDelivery, int, error) {
+// ListAll retrieves all deliveries for a workspace, optionally filtered by subscription and status, with pagination
+func (r *webhookDeliveryRepository) ListAll(ctx context.Context, workspaceID string, subscriptionID, status *string, limit, offset int) ([]*WebhookDelivery, int, error) {
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	var total int
-	var rows *sql.Rows
-
+	// One WHERE for the count and the page, so the total matches the filtered rows.
+	var conditions []string
+	var args []interface{}
 	if subscriptionID != nil && *subscriptionID != "" {
-		// With subscription filter
-		countQuery := `SELECT COUNT(*) FROM webhook_deliveries WHERE subscription_id = $1`
-		err = workspaceDB.QueryRowContext(ctx, countQuery, *subscriptionID).Scan(&total)
-		if err != nil {
-			return nil, 0, fmt.Errorf("failed to count deliveries: %w", err)
-		}
-
-		query := `
-			SELECT ` + webhookDeliveryColumns + `
-			FROM webhook_deliveries
-			WHERE subscription_id = $1
-			ORDER BY created_at DESC
-			LIMIT $2 OFFSET $3
-		`
-		rows, err = workspaceDB.QueryContext(ctx, query, *subscriptionID, limit, offset)
-	} else {
-		// Without subscription filter - all deliveries
-		countQuery := `SELECT COUNT(*) FROM webhook_deliveries`
-		err = workspaceDB.QueryRowContext(ctx, countQuery).Scan(&total)
-		if err != nil {
-			return nil, 0, fmt.Errorf("failed to count deliveries: %w", err)
-		}
-
-		query := `
-			SELECT ` + webhookDeliveryColumns + `
-			FROM webhook_deliveries
-			ORDER BY created_at DESC
-			LIMIT $1 OFFSET $2
-		`
-		rows, err = workspaceDB.QueryContext(ctx, query, limit, offset)
+		args = append(args, *subscriptionID)
+		conditions = append(conditions, fmt.Sprintf("subscription_id = $%d", len(args)))
+	}
+	if status != nil && *status != "" {
+		args = append(args, *status)
+		conditions = append(conditions, fmt.Sprintf("status = $%d", len(args)))
+	}
+	where := ""
+	if len(conditions) > 0 {
+		where = " WHERE " + strings.Join(conditions, " AND ")
 	}
 
+	var total int
+	countQuery := `SELECT COUNT(*) FROM webhook_deliveries` + where
+	if err := workspaceDB.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count deliveries: %w", err)
+	}
+
+	query := fmt.Sprintf(`SELECT %s FROM webhook_deliveries%s ORDER BY created_at DESC LIMIT $%d OFFSET $%d`,
+		webhookDeliveryColumns, where, len(args)+1, len(args)+2)
+	rows, err := workspaceDB.QueryContext(ctx, query, append(args, limit, offset)...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to query deliveries: %w", err)
 	}

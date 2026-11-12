@@ -95,9 +95,9 @@ func (mr *MockWebhookDeliveryRepositoryMockRecorder) GetPendingForWorkspace(arg0
 }
 
 // ListAll mocks base method.
-func (m *MockWebhookDeliveryRepository) ListAll(arg0 context.Context, arg1 string, arg2 *string, arg3, arg4 int) ([]*domain.WebhookDelivery, int, error) {
+func (m *MockWebhookDeliveryRepository) ListAll(arg0 context.Context, arg1 string, arg2, arg3 *string, arg4, arg5 int) ([]*domain.WebhookDelivery, int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAll", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "ListAll", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].([]*domain.WebhookDelivery)
 	ret1, _ := ret[1].(int)
 	ret2, _ := ret[2].(error)
@@ -105,9 +105,9 @@ func (m *MockWebhookDeliveryRepository) ListAll(arg0 context.Context, arg1 strin
 }
 
 // ListAll indicates an expected call of ListAll.
-func (mr *MockWebhookDeliveryRepositoryMockRecorder) ListAll(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockWebhookDeliveryRepositoryMockRecorder) ListAll(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAll", reflect.TypeOf((*MockWebhookDeliveryRepository)(nil).ListAll), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAll", reflect.TypeOf((*MockWebhookDeliveryRepository)(nil).ListAll), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
 // MarkDelivered mocks base method.

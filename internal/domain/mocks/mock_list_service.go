@@ -94,18 +94,18 @@ func (mr *MockListServiceMockRecorder) GetListStats(arg0, arg1, arg2 interface{}
 }
 
 // GetLists mocks base method.
-func (m *MockListService) GetLists(arg0 context.Context, arg1 string) ([]*domain.List, error) {
+func (m *MockListService) GetLists(arg0 context.Context, arg1 string, arg2 bool) ([]*domain.List, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLists", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetLists", arg0, arg1, arg2)
 	ret0, _ := ret[0].([]*domain.List)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetLists indicates an expected call of GetLists.
-func (mr *MockListServiceMockRecorder) GetLists(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockListServiceMockRecorder) GetLists(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLists", reflect.TypeOf((*MockListService)(nil).GetLists), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLists", reflect.TypeOf((*MockListService)(nil).GetLists), arg0, arg1, arg2)
 }
 
 // SubscribeToLists mocks base method.

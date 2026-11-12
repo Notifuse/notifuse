@@ -1070,6 +1070,7 @@ type UserWorkspace struct {
 type UserWorkspaceWithEmail struct {
 	UserWorkspace
 	Email               string     `json:"email" db:"email"`
+	Name                string     `json:"name,omitempty" db:"name"`
 	Type                UserType   `json:"type" db:"type"`
 	Language            string     `json:"language" db:"language"`
 	InvitationExpiresAt *time.Time `json:"invitation_expires_at" db:"invitation_expires_at"`

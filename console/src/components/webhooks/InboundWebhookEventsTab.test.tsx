@@ -25,7 +25,7 @@ i18n.loadAndActivate({ locale: 'en', messages: {} })
 // filter options. Those are memoised on `t`, which the shared Lingui mock creates anew on
 // every render, where the real one only changes with the locale: with a filter in the
 // address, the tab would re-apply it forever. Keep the address out of it.
-vi.spyOn(window.history, 'pushState').mockImplementation(() => undefined)
+const pushState = vi.spyOn(window.history, 'pushState').mockImplementation(() => undefined)
 
 // Mailjet reports an unsubscribe as an event of its own, which the webhook records as an
 // unsubscribe rather than a complaint.
@@ -94,5 +94,16 @@ describe('InboundWebhookEventsTab', () => {
         expect.objectContaining({ event_type: 'unsubscribe' })
       )
     })
+  })
+
+  // The tab used to write its filters over the whole address, dropping `tab`: a copied link
+  // of this tab, filtered or not, reopened the message history.
+  it('keeps its tab in the address it writes', async () => {
+    renderTab()
+    await screen.findByText('Unsubscribed')
+
+    const urls = pushState.mock.calls.map((call) => String(call[2]))
+    expect(urls.length).toBeGreaterThan(0)
+    urls.forEach((url) => expect(url).toContain('tab=incoming-webhooks'))
   })
 })

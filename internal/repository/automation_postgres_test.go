@@ -213,6 +213,11 @@ func TestAutomationRepository_GetByID(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, automation)
 	assert.Contains(t, err.Error(), "automation not found")
+	// Typed, so the handler can answer 404 instead of 500.
+	var notFound *domain.ErrNotFound
+	require.True(t, errors.As(err, &notFound), "not-found must be a *domain.ErrNotFound, got %T", err)
+	assert.Equal(t, "automation", notFound.Entity)
+	assert.Equal(t, automationID, notFound.ID)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
 	// Test database error
