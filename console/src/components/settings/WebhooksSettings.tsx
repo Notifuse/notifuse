@@ -72,6 +72,9 @@ function middleTruncate(text: string, max = 44): string {
   return `${text.slice(0, max - 1 - tail)}…${text.slice(-tail)}`
 }
 
+// One above antd's drawer default (1000), which the detail panel uses.
+const EDIT_DRAWER_Z_INDEX = 1001
+
 export function WebhooksSettings({
   workspaceId,
   canManage,
@@ -472,13 +475,20 @@ export function WebhooksSettings({
         nav={nav}
         onClose={() => onOpenWebhook(undefined)}
         onEdit={handleEdit}
-        onNotFound={() => onOpenWebhook(undefined)}
+        onNotFound={() => {
+          onOpenWebhook(undefined)
+          // Deleted elsewhere: the row leaves the list rather than open an empty panel again.
+          void invalidateWebhookQueries(queryClient, workspaceId)
+        }}
       />
 
       {/* Create/Edit Drawer */}
+      {/* Above the detail panel it opens from: both are drawers at the same level, and the one
+          whose portal comes last in the page would otherwise paint on top. */}
       <Drawer
         title={editingSubscription ? t`Edit Webhook` : t`Create Webhook`}
         size={500}
+        zIndex={EDIT_DRAWER_Z_INDEX}
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         footer={

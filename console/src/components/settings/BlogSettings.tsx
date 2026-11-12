@@ -267,7 +267,7 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
         <Alert
           type="warning"
           showIcon
-          title={t`You must configure a Custom Endpoint URL in General Settings above before enabling the blog.`}
+          title={t`Set a domain in General, under Custom domain, before enabling the blog.`}
         />
       )}
 

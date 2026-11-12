@@ -113,8 +113,12 @@ export function WebhookDetail({
 
   const reportedMissing = useRef<string | undefined>(undefined)
   useEffect(() => {
-    if (!webhookId || !isNotFound(subscriptionQuery.error) || reportedMissing.current === webhookId)
+    // Closed: the next opening of the same id reports it again.
+    if (!webhookId) {
+      reportedMissing.current = undefined
       return
+    }
+    if (!isNotFound(subscriptionQuery.error) || reportedMissing.current === webhookId) return
     reportedMissing.current = webhookId
     message.info(t`This webhook no longer exists`)
     onNotFound()
@@ -601,23 +605,23 @@ export function WebhookDetail({
         }
       >
         {testResult ? (
-          <div className="max-h-80 overflow-auto rounded-lg bg-gray-900 p-4 font-mono text-sm text-gray-100">
+          <div className="max-h-80 overflow-auto rounded-lg border border-line bg-subtle p-4 font-mono text-sm text-ink">
             <div>
-              <span className="text-purple-400">HTTP/1.1</span>{' '}
-              <span className={testResult.success ? 'text-green-400' : 'text-red-400'}>
+              <span className="text-ink-3">HTTP/1.1</span>{' '}
+              <span className={testResult.success ? 'text-success-fg' : 'text-danger-fg'}>
                 {testResult.statusCode || 0}
               </span>
             </div>
             {testResult.error && (
               <>
-                <div className="mt-3 text-gray-500">{t`Error:`}</div>
-                <div className="text-red-400">{testResult.error}</div>
+                <div className="mt-3 text-ink-3">{t`Error:`}</div>
+                <div className="text-danger-fg">{testResult.error}</div>
               </>
             )}
             {testResult.responseBody && (
               <>
-                <div className="mt-3 text-gray-500">{t`Body:`}</div>
-                <div className="break-all whitespace-pre-wrap text-gray-300">
+                <div className="mt-3 text-ink-3">{t`Body:`}</div>
+                <div className="break-all whitespace-pre-wrap text-ink-2">
                   {testResult.responseBody}
                 </div>
               </>

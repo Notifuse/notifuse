@@ -26,7 +26,9 @@ vi.mock('../../services/api/webhook_subscription', () => ({
   webhookSubscriptionApi: {
     list: vi.fn(),
     get: vi.fn(),
-    getEventTypes: vi.fn().mockResolvedValue({ event_types: ['contact.created', 'list.subscribed'] }),
+    getEventTypes: vi
+      .fn()
+      .mockResolvedValue({ event_types: ['contact.created', 'list.subscribed'] }),
     create: vi.fn().mockResolvedValue({}),
     update: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue({}),
@@ -73,7 +75,8 @@ interface RenderOptions {
 const onOpenWebhook = vi.fn()
 
 const renderTable = (options: RenderOptions = {}) => {
-  const client = options.client ?? new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const client =
+    options.client ?? new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const ui = (opts: RenderOptions) => (
     <QueryClientProvider client={client}>
       <I18nProvider i18n={i18n}>
@@ -91,7 +94,11 @@ const renderTable = (options: RenderOptions = {}) => {
     </QueryClientProvider>
   )
   const utils = render(ui(options))
-  return { ...utils, client, rerenderWith: (next: RenderOptions) => utils.rerender(ui({ ...options, ...next })) }
+  return {
+    ...utils,
+    client,
+    rerenderWith: (next: RenderOptions) => utils.rerender(ui({ ...options, ...next }))
+  }
 }
 
 const renderSettings = async (options: RenderOptions = {}) => {
@@ -130,7 +137,10 @@ describe('WebhooksSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     setList(subscriptions)
-    vi.mocked(analyticsService.query).mockResolvedValue({ data: [], meta: { total: 0, query: '', params: [] } })
+    vi.mocked(analyticsService.query).mockResolvedValue({
+      data: [],
+      meta: { total: 0, query: '', params: [] }
+    })
     vi.mocked(webhookSubscriptionApi.getEventTypes).mockResolvedValue({
       event_types: ['contact.created', 'list.subscribed']
     })
@@ -259,7 +269,11 @@ describe('WebhooksSettings', () => {
 
 const rates = (rows: Array<{ id: string; delivered: number; failed: number }>) => {
   vi.mocked(analyticsService.query).mockResolvedValue({
-    data: rows.map((row) => ({ subscription_id: row.id, count_delivered: row.delivered, count_failed: row.failed })),
+    data: rows.map((row) => ({
+      subscription_id: row.id,
+      count_delivered: row.delivered,
+      count_failed: row.failed
+    })),
     meta: { total: rows.length, query: '', params: [] }
   })
 }
@@ -273,14 +287,21 @@ const toneOf = (text: string): string | undefined => {
 describe('WebhooksSettings table', () => {
   const three: WebhookSubscription[] = [
     ...subscriptions,
-    { ...subscriptions[0], id: 'wh-bad', name: 'Flaky endpoint', url: 'https://flaky.example.com/in' }
+    {
+      ...subscriptions[0],
+      id: 'wh-bad',
+      name: 'Flaky endpoint',
+      url: 'https://flaky.example.com/in'
+    }
   ]
 
   beforeEach(() => {
     vi.clearAllMocks()
     setList(three)
     rates([])
-    vi.mocked(webhookSubscriptionApi.getEventTypes).mockResolvedValue({ event_types: ['contact.created'] })
+    vi.mocked(webhookSubscriptionApi.getEventTypes).mockResolvedValue({
+      event_types: ['contact.created']
+    })
   })
 
   it('tones the 7-day success rate of each endpoint', async () => {
@@ -304,7 +325,9 @@ describe('WebhooksSettings table', () => {
     const query = vi.mocked(analyticsService.query).mock.calls[0][0]
     expect(query.dimensions).toEqual(['subscription_id'])
     expect(query.measures).toEqual(['count_delivered', 'count_failed'])
-    const since = new Date(query.filters?.find((f) => f.member === 'created_at')?.values?.[0] as string)
+    const since = new Date(
+      query.filters?.find((f) => f.member === 'created_at')?.values?.[0] as string
+    )
     const days = (Date.now() - since.getTime()) / (24 * 60 * 60 * 1000)
     expect(days).toBeGreaterThan(6.99)
     expect(days).toBeLessThan(7.01)
@@ -328,7 +351,10 @@ describe('WebhooksSettings table', () => {
   })
 
   it('dates the last successful delivery, or says there was none', async () => {
-    setList([{ ...subscriptions[0], last_delivery_at: new Date(Date.now() - 2 * 60 * 1000).toISOString() }, subscriptions[1]])
+    setList([
+      { ...subscriptions[0], last_delivery_at: new Date(Date.now() - 2 * 60 * 1000).toISOString() },
+      subscriptions[1]
+    ])
     await renderSettings()
 
     expect(rowOf('My Own Webhook').textContent).toContain('2 minutes ago')
@@ -358,11 +384,53 @@ describe('WebhooksSettings table', () => {
     renderTable({ openWebhookId: 'wh-zap' })
 
     const panel = await screen.findByRole('dialog')
-    expect(await within(panel).findByRole('heading', { name: 'Zap: new contact to Slack' })).toBeInTheDocument()
+    expect(
+      await within(panel).findByRole('heading', { name: 'Zap: new contact to Slack' })
+    ).toBeInTheDocument()
     await screen.findByText('Flaky endpoint')
 
     fireEvent.keyDown(document.body, { key: 'j' })
     expect(onOpenWebhook).toHaveBeenCalledWith('wh-bad')
+  })
+
+  // A row deleted elsewhere: the first click says so, and the row leaves the list, so it cannot
+  // be clicked again into an empty panel.
+  it('drops from the list a webhook found deleted, so the panel cannot open on it again', async () => {
+    const { rerenderWith } = await renderSettings()
+    setList([subscriptions[1]])
+    rerenderWith({ openWebhookId: 'wh-user' })
+    await waitFor(() => expect(onOpenWebhook).toHaveBeenCalledWith(undefined))
+    rerenderWith({ openWebhookId: undefined })
+    await waitFor(() => expect(screen.queryByText('My Own Webhook')).not.toBeInTheDocument())
+  })
+
+  it('closes again on a second opening of a webhook that no longer exists', async () => {
+    const { rerenderWith } = renderTable({ openWebhookId: 'wh-gone' })
+    await waitFor(() => expect(onOpenWebhook).toHaveBeenCalledTimes(1))
+    rerenderWith({ openWebhookId: undefined })
+    rerenderWith({ openWebhookId: 'wh-gone' })
+    await waitFor(() => expect(onOpenWebhook).toHaveBeenCalledTimes(2))
+    expect(onOpenWebhook).toHaveBeenLastCalledWith(undefined)
+  })
+
+  // Both are drawers: the edit drawer has to paint above the panel it was opened from, even
+  // when its own portal was created first (Add endpoint used before opening a row).
+  it('opens the edit drawer above the detail panel', async () => {
+    const { rerenderWith } = await renderSettings()
+    fireEvent.click(screen.getByRole('button', { name: /Add endpoint/ }))
+    await screen.findByText('Create Webhook')
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    rerenderWith({ openWebhookId: 'wh-user' })
+    const heading = await screen.findByRole('heading', { name: 'My Own Webhook' })
+    const panel = heading.closest('[role="dialog"]') as HTMLElement
+    fireEvent.click(within(panel).getByRole('button', { name: 'Edit' }))
+    const title = await screen.findByText('Edit Webhook')
+
+    const zIndex = (el: Element | null) => Number((el as HTMLElement | null)?.style.zIndex || 1000)
+    expect(zIndex(title.closest('.ant-drawer'))).toBeGreaterThan(
+      zIndex(panel.closest('.ant-drawer'))
+    )
   })
 
   it('drops a webhook the URL names that no longer exists', async () => {
@@ -390,12 +458,16 @@ describe('WebhooksSettings table', () => {
     vi.mocked(webhookSubscriptionApi.list).mockRejectedValue(new ApiError('forbidden', 403))
     renderTable()
 
-    expect(await screen.findByText("You don't have permission to view webhooks")).toBeInTheDocument()
+    expect(
+      await screen.findByText("You don't have permission to view webhooks")
+    ).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
   })
 
   it('offers a retry when the list fails for another reason', async () => {
-    vi.mocked(webhookSubscriptionApi.list).mockRejectedValueOnce(new ApiError('database is down', 500))
+    vi.mocked(webhookSubscriptionApi.list).mockRejectedValueOnce(
+      new ApiError('database is down', 500)
+    )
     renderTable()
 
     expect(await screen.findByText('database is down')).toBeInTheDocument()

@@ -1,28 +1,55 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
-import { SettingsSidebar, SETTINGS_SECTIONS, SETTINGS_GROUPS, SettingsSection } from './SettingsSidebar'
+import {
+  SettingsSidebar,
+  SETTINGS_SECTIONS,
+  SETTINGS_GROUPS,
+  SettingsSection
+} from './SettingsSidebar'
 
 // Menu keys are strings until the onClick handler casts them to SettingsSection, so a key that no
 // longer matches a section compiles, renders, and routes to a page that will never resolve. These
 // tests walk the menu the way a user does — clicking, not reading the source — so the cast is
 // exercised rather than trusted.
-const renderSidebar = ({ isOwner = true, isRoot = true, active = 'general' as SettingsSection } = {}) => {
+const renderSidebar = ({
+  isOwner = true,
+  isRoot = true,
+  active = 'general' as SettingsSection
+} = {}) => {
   const onSectionChange = vi.fn<(section: SettingsSection) => void>()
   render(
-    <SettingsSidebar activeSection={active} onSectionChange={onSectionChange} isOwner={isOwner} isRoot={isRoot} />
+    <SettingsSidebar
+      activeSection={active}
+      onSectionChange={onSectionChange}
+      isOwner={isOwner}
+      isRoot={isRoot}
+    />
   )
   return onSectionChange
 }
 
 describe('SETTINGS_GROUPS', () => {
-  it('puts every section in exactly one group, and nothing else', () => {
-    const grouped = SETTINGS_GROUPS.flatMap((group) => group.sections)
-    expect([...grouped].sort()).toEqual([...SETTINGS_SECTIONS].sort())
-    expect(new Set(grouped).size).toBe(grouped.length)
-  })
-
-  it('lists the sections in the order of the groups', () => {
-    expect(SETTINGS_GROUPS.flatMap((group) => group.sections)).toEqual([...SETTINGS_SECTIONS])
+  // Written out rather than derived: this list is what makes a settings URL valid.
+  it('groups the sections, each once, in menu order', () => {
+    expect(SETTINGS_GROUPS.map((group) => [...group.sections])).toEqual([
+      ['general', 'team'],
+      ['integrations', 'webhooks', 'smtp-bridge'],
+      ['custom-fields', 'blog', 'web-analytics'],
+      ['audit-logs', 'licence', 'danger-zone']
+    ])
+    expect(SETTINGS_SECTIONS).toEqual([
+      'general',
+      'team',
+      'integrations',
+      'webhooks',
+      'smtp-bridge',
+      'custom-fields',
+      'blog',
+      'web-analytics',
+      'audit-logs',
+      'licence',
+      'danger-zone'
+    ])
   })
 })
 
@@ -50,9 +77,14 @@ describe('SettingsSidebar', () => {
 
   it('marks the active section as the current page, and draws Danger zone in the danger tone', () => {
     renderSidebar({ active: 'team' })
-    expect(screen.getByRole('button', { name: 'Team & API keys' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Team & API keys' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    )
     expect(screen.getByRole('button', { name: 'Integrations' })).not.toHaveAttribute('aria-current')
-    expect(screen.getByRole('button', { name: 'Danger zone' }).className).toContain('text-danger-fg')
+    expect(screen.getByRole('button', { name: 'Danger zone' }).className).toContain(
+      'text-danger-fg'
+    )
   })
 
   it('reports a valid section for every entry it renders', () => {

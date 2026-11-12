@@ -68,8 +68,9 @@ describe('relativeDate', () => {
   })
 
   it('writes the date itself from 7 days on', () => {
-    expect(relativeDate('en', new Date('2026-11-05T12:00:00Z'), now)).toBe('Nov 5, 2026')
-    expect(relativeDate('fr', new Date('2026-10-01T12:00:00Z'), now)).toBe('1 oct. 2026')
+    // Local noon: the date is written in the reader's time zone, whatever the machine's is.
+    expect(relativeDate('en', new Date(2026, 10, 4, 12), now)).toBe('Nov 4, 2026')
+    expect(relativeDate('fr', new Date(2026, 9, 1, 12), now)).toBe('1 oct. 2026')
   })
 
   it('reads a date to come relative to now as well', () => {
