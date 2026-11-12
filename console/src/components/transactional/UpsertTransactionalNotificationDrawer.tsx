@@ -34,11 +34,15 @@ interface UpsertTransactionalNotificationDrawerProps {
   buttonProps?: Record<string, unknown>
   buttonContent?: React.ReactNode
   onClose?: () => void
+  // Without Templates read the template field requests nothing and says why it shows only
+  // the template's ID. Required, so a caller cannot forget it.
+  canReadTemplates: boolean
 }
 
 export function UpsertTransactionalNotificationDrawer({
   workspace,
   notification,
+  canReadTemplates,
   buttonProps = {},
   buttonContent,
   onClose
@@ -318,12 +322,18 @@ export function UpsertTransactionalNotificationDrawer({
                     ? t`This notification is managed by an integration and the template cannot be changed`
                     : undefined
                 }
+                extra={
+                  canReadTemplates
+                    ? undefined
+                    : t`You need Templates read permission to see this template's name and preview`
+                }
               >
                 <TemplateSelectorInput
                   workspaceId={workspace.id}
                   placeholder={t`Select email template`}
                   category="transactional"
                   disabled={isIntegrationManaged}
+                  canReadTemplates={canReadTemplates}
                 />
               </Form.Item>
 
