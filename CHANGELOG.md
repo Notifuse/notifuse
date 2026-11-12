@@ -8,11 +8,23 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 
+- **Feature**: The API counts what uses each template with the new `templates.usage` endpoint (broadcasts that may still send, transactional notifications, automations and double opt-in lists), and lists them for one template. It counts posts by status and category with the new `blogPosts.counts` endpoint; `blogPosts.list` lists the posts still to come with `status=scheduled` and searches titles with `search`; `workspaces.members` returns each member's `name`.
+
+- **Improvement**: `blogPosts.list` answers 400 instead of 500 for an invalid status.
+
 - **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.
 
 - **Improvement**: Opens and clicks on an email whose contact was deleted are no longer recorded. The link still redirects.
 
 - **Improvement**: Behind a reverse proxy, clicks on an email's unsubscribe and notification center links are no longer recorded per link, so the contact address these links carry is no longer stored with the click. Behind a proxy that forwards neither the public host nor `X-Forwarded-Host`, links on a custom domain the workspace no longer uses are still recorded. Links recorded before the upgrade stay in the per-link statistics.
+
+- **Fix**: The status filter of outgoing webhook deliveries now filters them. `webhookSubscriptions.deliveries` takes `status`.
+
+- **Fix**: Filtering incoming webhooks by Auth email or User created no longer fails.
+
+- **Fix**: A link to a webhooks tab, filtered or not, opens that tab again, not the messages.
+
+- **Fix**: View more on the failed messages card opens the failed messages.
 
 - **Feature**: Blocks of the visual email editor can now be sent only to some recipients, with a display condition on the email's data, such as "`order.total` is greater than 100" or "`contact.custom_string_1` equals `vip`" (#395). Add it at the top of a section, text, image, button or other block's settings, where its result with the test data shows; the preview hides the blocks it would hide. Columns and groups cannot have one. Through the API, a block of `visual_editor_tree` takes it as `display_condition`. The MJML export writes conditions as Liquid; importing that file back into the visual editor drops them.
 
@@ -68,13 +80,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: The email editor no longer gives a new group a width of 100%, unless the template's default attributes give groups one, so it takes its share of the section, and the canvas shows each group at the width the email gives it. The Width field of a group shows that share when it is empty. Adding, moving, duplicating or deleting a group in a section resizes the section's columns to the room the groups leave, keeping their proportions.
 
-- **Fix**: The status filter of outgoing webhook deliveries now filters them. `webhookSubscriptions.deliveries` takes `status`.
-
-- **Fix**: Filtering incoming webhooks by Auth email or User created no longer fails.
-
-- **Fix**: A link to a webhooks tab, filtered or not, opens that tab again, not the messages.
-
-- **Fix**: View more on the failed messages card opens the failed messages.
+- **Fix**: `broadcasts.get` with `with_templates=true` now returns the latest version of each variation's template, the one that is sent, instead of its first version.
 
 ## [43.0] - 2026-11-07
 

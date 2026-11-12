@@ -1466,6 +1466,7 @@ func (s *WorkspaceService) GetWorkspaceMembersWithEmail(ctx context.Context, id 
 					UpdatedAt:   now,
 				},
 				Email: rootEmail,
+				Name:  rootUser.Name,
 				Type:  domain.UserTypeUser,
 			})
 			existingEmails[rootEmail] = struct{}{}

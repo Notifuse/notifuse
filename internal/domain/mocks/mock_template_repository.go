@@ -93,6 +93,21 @@ func (mr *MockTemplateRepositoryMockRecorder) GetTemplateLatestVersion(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTemplateLatestVersion", reflect.TypeOf((*MockTemplateRepository)(nil).GetTemplateLatestVersion), arg0, arg1, arg2)
 }
 
+// GetTemplateUsage mocks base method.
+func (m *MockTemplateRepository) GetTemplateUsage(arg0 context.Context, arg1, arg2 string, arg3 []domain.TemplateUsageType) (*domain.TemplateUsage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTemplateUsage", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(*domain.TemplateUsage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTemplateUsage indicates an expected call of GetTemplateUsage.
+func (mr *MockTemplateRepositoryMockRecorder) GetTemplateUsage(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTemplateUsage", reflect.TypeOf((*MockTemplateRepository)(nil).GetTemplateUsage), arg0, arg1, arg2, arg3)
+}
+
 // GetTemplates mocks base method.
 func (m *MockTemplateRepository) GetTemplates(arg0 context.Context, arg1, arg2, arg3 string) ([]*domain.Template, error) {
 	m.ctrl.T.Helper()
