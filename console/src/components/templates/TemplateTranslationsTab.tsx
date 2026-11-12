@@ -389,7 +389,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
               onCompile={handleCompileCode}
               testData={testData}
               onTestDataChange={onTestDataChange}
-              height="calc(100vh - 66px)"
+              height="calc(100vh - 61px)"
               templateId={`translation-${editorDrawerLang}`}
               textVersion={{ custom: activeCustomText }}
             />
@@ -408,7 +408,7 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
               onRenameSavedBlock={onRenameSavedBlock}
               onDeleteSavedBlock={onDeleteSavedBlock}
               hiddenBlocks={['mj-title', 'mj-preview']}
-              height="calc(100vh - 66px)"
+              height="calc(100vh - 61px)"
               textVersion={{ enabled: true, custom: activeCustomText }}
             />
           )}

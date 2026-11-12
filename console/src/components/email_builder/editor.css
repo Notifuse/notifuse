@@ -150,3 +150,22 @@
 [data-library-dragging] iframe {
     pointer-events: none !important;
 }
+
+/* Customer HTML on the canvas (and in block thumbnails) used to inherit the
+   console's global h1 and a rules; the console dropped them, so they are kept
+   here for the canvas alone, to render emails exactly as before. :where() keeps
+   the specificity of the old global rules, so .email-text-preview a still wins. */
+:where(.email-canvas) h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+:where(.email-canvas) a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+
+:where(.email-canvas) a:hover {
+  color: #535bf2;
+}

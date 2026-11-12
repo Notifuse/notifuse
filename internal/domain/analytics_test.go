@@ -466,3 +466,16 @@ func TestMessageHistoryAutomationIDDimension(t *testing.T) {
 	assert.Equal(t, "string", dimension.Type)
 	assert.Equal(t, "automation_id", dimension.SQL)
 }
+
+// Opens and clicks over time: both are time dimensions on their own columns.
+func TestMessageHistoryEngagementTimeDimensions(t *testing.T) {
+	schema, ok := PredefinedSchemas["message_history"]
+	require.True(t, ok)
+
+	for _, name := range []string{"opened_at", "clicked_at"} {
+		dimension, exists := schema.Dimensions[name]
+		require.True(t, exists, name)
+		assert.Equal(t, "time", dimension.Type, name)
+		assert.Equal(t, name, dimension.SQL, name)
+	}
+}

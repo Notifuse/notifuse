@@ -62,6 +62,8 @@ paths:
     $ref: './paths/automations.yaml#/~1api~1automations.nodeStats'
   /api/broadcasts.list:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.list'
+  /api/broadcasts.estimateAudience:
+    $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.estimateAudience'
   /api/broadcasts.get:
     $ref: './paths/broadcasts.yaml#/~1api~1broadcasts.get'
   /api/broadcasts.create:
@@ -277,6 +279,10 @@ components:
       $ref: './components/schemas/broadcast.yaml#/SelectWinnerRequest'
     BroadcastListResponse:
       $ref: './components/schemas/broadcast.yaml#/BroadcastListResponse'
+    EstimateAudienceRequest:
+      $ref: './components/schemas/broadcast.yaml#/EstimateAudienceRequest'
+    EstimateAudienceResponse:
+      $ref: './components/schemas/broadcast.yaml#/EstimateAudienceResponse'
     VariationResult:
       $ref: './components/schemas/broadcast.yaml#/VariationResult'
     TestResultsResponse:

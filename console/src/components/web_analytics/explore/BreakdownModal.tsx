@@ -151,7 +151,7 @@ export function BreakdownModal(props: BreakdownModalProps) {
               <div key={index}>
                 {column.map((group) => (
                   <div key={group.category} className="mb-4">
-                    <div className="mb-2 text-xs font-semibold uppercase text-[var(--primary)]">
+                    <div className="mb-2 text-xs font-semibold uppercase text-primary">
                       {categoryLabels[group.category] ?? group.category}
                     </div>
                     <div className="space-y-1">

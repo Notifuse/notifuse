@@ -52,18 +52,20 @@
   cursor: not-allowed !important;
 }
 
-/* Antd component overrides */
-.ant-dropdown .ant-menu-item {
+/* Antd overrides, limited to the block actions menu: its Dropdown carries
+   rootClassName="block-actions-dropdown", which antd puts on the .ant-dropdown
+   element itself. */
+.ant-dropdown.block-actions-dropdown .ant-menu-item {
   border-radius: 6px;
   margin: 2px 4px;
 }
 
-.ant-dropdown .ant-divider-horizontal {
+.ant-dropdown.block-actions-dropdown .ant-divider-horizontal {
   margin: 4px 0;
 }
 
 /* Remove extra margin from menu item groups to align with regular items */
-.ant-dropdown .ant-dropdown-menu-item-group-list {
+.ant-dropdown.block-actions-dropdown .ant-dropdown-menu-item-group-list {
   margin: 0 !important;
 }
 

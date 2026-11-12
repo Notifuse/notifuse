@@ -325,6 +325,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
         <div
           ref={canvasRootRef}
           data-canvas-root
+          className="email-canvas"
           style={{
             width: bodyWidth,
             minWidth: '600px',

@@ -82,7 +82,7 @@ export function DateRangePicker({ size = 'middle' }: { size?: 'small' | 'middle'
               className="flex w-full items-center justify-between gap-6 px-3 py-1.5 text-left text-sm hover:bg-gray-50"
             >
               <span>{labels[preset]}</span>
-              {period === preset ? <CheckOutlined className="text-[var(--primary)]" /> : null}
+              {period === preset ? <CheckOutlined className="text-primary" /> : null}
             </button>
           ))}
         </div>

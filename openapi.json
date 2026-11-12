@@ -2198,7 +2198,7 @@
     "/api/broadcasts.list": {
       "get": {
         "summary": "List broadcasts",
-        "description": "Retrieves a list of broadcasts with pagination and optional filtering by status. Supports fetching template details for each variation.",
+        "description": "Retrieves a list of broadcasts with pagination and optional filtering by status, name and start date. Supports fetching template details for each variation, and the number of broadcasts in each status. Requires the broadcasts read permission.",
         "operationId": "listBroadcasts",
         "security": [
           {
@@ -2221,21 +2221,42 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "enum": [
-                "draft",
-                "scheduled",
-                "sending",
-                "paused",
-                "sent",
-                "cancelled",
-                "failed",
-                "testing",
-                "test_completed",
-                "winner_selected"
-              ]
+              "type": "string"
             },
-            "description": "Filter broadcasts by status"
+            "description": "Filter broadcasts by status: one status, or several separated by commas. Each one is draft, scheduled, processing, paused, processed, cancelled, failed, testing, test_completed or winner_selected; any other value is refused with 400.",
+            "example": "processing,paused"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Keep the broadcasts whose name contains this text, ignoring case. Leading and trailing spaces are ignored.",
+            "example": "autumn"
+          },
+          {
+            "name": "started_after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Keep the broadcasts that started sending at or after this RFC 3339 date-time. A broadcast that never started is left out. Applies to the rows, total_count and status_counts. An unreadable value is refused with 400.",
+            "example": "2026-10-13T00:00:00Z"
+          },
+          {
+            "name": "with_status_counts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Return status_counts, the number of broadcasts in each status. The counts follow search and started_after but not status, so each status tab has its own number. A value that is not a boolean is refused with 400.",
+            "example": true
           },
           {
             "name": "limit",
@@ -2305,6 +2326,19 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden - missing required permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to broadcasts required"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -2314,6 +2348,99 @@
                 },
                 "example": {
                   "error": "Failed to list broadcasts"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/broadcasts.estimateAudience": {
+      "post": {
+        "summary": "Estimate a broadcast audience",
+        "description": "Counts the recipients a broadcast with this audience would be sent to, with the count the send itself uses: the list's members, without the bounced and complained ones, the unsubscribed ones unless exclude_unsubscribed is false, and on a double opt-in list the ones who never confirmed; narrowed to the contacts in at least one of the segments when some are given. An unknown list or segment counts 0. Read only. Requires the broadcasts and lists read permissions, and the segments read permission when the audience names segments.",
+        "operationId": "estimateBroadcastAudience",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EstimateAudienceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Number of recipients",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstimateAudienceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid body or validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "audience.list is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - missing required permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions: read access to lists required"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed - only POST is accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Failed to estimate audience"
                 }
               }
             }
@@ -10137,6 +10264,45 @@
             "type": "integer",
             "description": "Total number of broadcasts matching the query",
             "example": 45
+          },
+          "status_counts": {
+            "type": "object",
+            "description": "Returned only with with_status_counts=true, always an object then. The number of broadcasts in each status, following search and started_after but not status. A status no broadcast has is absent.",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "example": {
+              "draft": 3,
+              "processed": 12,
+              "paused": 1
+            }
+          }
+        }
+      },
+      "EstimateAudienceRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "audience"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          "audience": {
+            "$ref": "#/components/schemas/AudienceSettings"
+          }
+        }
+      },
+      "EstimateAudienceResponse": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Number of recipients a broadcast with this audience would be sent to",
+            "example": 2214
           }
         }
       },

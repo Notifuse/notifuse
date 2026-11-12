@@ -65,11 +65,11 @@
 
 /* Add node button on edges */
 .add-node-button {
-  background-color: var(--primary);
+  background-color: var(--color-primary);
   transition: background-color 0.2s ease;
   cursor: pointer !important;
 }
 
 .add-node-button:hover {
-  background-color: #6354d1;
+  background-color: var(--color-primary-600);
 }

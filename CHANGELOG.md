@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The analytics API gives when each transactional notification last sent successfully, with the new `last_sent_at` measure of message history, and `messages.list` filters by `transactional_notification_id`.
 
+- **Feature**: The API counts the recipients of a broadcast audience before it is sent, with the new `broadcasts.estimateAudience`. `broadcasts.list` gives the number of broadcasts in each status (`with_status_counts`) and keeps the ones started from a date (`started_after`), and the message history analytics take `opened_at` and `clicked_at` as time dimensions.
+
 - **Feature**: The API gives the statistics of each step of an automation, over a period or all time, with the new `automations.nodeStats`: visits, results, the path each split took, the journeys waiting or retrying there, and for email steps the messages sent, delivered, opened and clicked. `automations.list` gives each automation's journeys by status (`with_journey_counts`), `messages.list` filters by `automation_id`, and the message history analytics split by `automation_id`.
 
 - **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages when the table fits in memory, longer otherwise.
@@ -57,6 +59,8 @@ All notable changes to this project will be documented in this file.
 - **Fix**: A contact's activity (`timeline.list`) no longer shows messages and provider events such as bounces to members and API keys without Message history read, nor website visits to those without Web analytics read.
 
 - **Security**: A custom domain can no longer be saved on a workspace when another workspace already uses it, whatever its case, port or trailing dot, since that workspace could show its own pages and emails under the other's brand. Notifuse checks that a domain points to it, not who owns it, so the first workspace to save a domain holds it. Workspaces that already share one keep it and can still edit its URL while the host stays the same; one that removes it cannot save it again.
+
+- **Fix**: Scheduled broadcasts now record when they started sending, as broadcasts sent at once already did. Upgrading to 44 dates the ones already sent from their first email.
 
 - **Fix**: A scheduled blog post now appears on the blog's pages and at its address only from its publication date.
 
@@ -107,6 +111,8 @@ All notable changes to this project will be documented in this file.
 - **Improvement**: The email editor no longer gives a new group a width of 100%, unless the template's default attributes give groups one, so it takes its share of the section, and the canvas shows each group at the width the email gives it. The Width field of a group shows that share when it is empty. Adding, moving, duplicating or deleting a group in a section resizes the section's columns to the room the groups leave, keeping their proportions.
 
 - **Fix**: `broadcasts.get` with `with_templates=true` now returns the latest version of each variation's template, the one that is sent, instead of its first version.
+
+- **Feature**: The console has a new, denser look: the Inter typeface, new colors and tighter spacing.
 
 ## [43.0] - 2026-11-07
 

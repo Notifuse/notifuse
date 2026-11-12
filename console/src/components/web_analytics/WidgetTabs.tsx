@@ -36,7 +36,7 @@ export function WidgetTabs({ tabs, activeKey, onChange, className }: WidgetTabsP
           onClick={() => onChange(tab.key)}
           className={`-mb-px cursor-pointer border-b-2 pb-2 text-xs transition-colors ${
             tab.key === activeKey
-              ? 'border-[var(--primary)] text-gray-900'
+              ? 'border-primary text-gray-900'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >

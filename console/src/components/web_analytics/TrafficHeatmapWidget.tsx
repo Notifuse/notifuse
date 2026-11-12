@@ -11,6 +11,7 @@ import { mergeWidgetFilters } from './lib/dimensions'
 import { getTimescoreCellColor } from './lib/heatmap'
 import { buildWebQuery, readMeasure, useWebQuery } from './lib/query'
 import { PRIMARY_COLOR, WebDimensionFilter } from './lib/types'
+import { alpha, colors } from '../../theme/tokens'
 
 export interface HeatmapTab {
   key: string
@@ -168,11 +169,7 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
             inRange: {
               color: [
                 '#f5f5f5',
-                'rgba(119, 99, 241, 0.2)',
-                'rgba(119, 99, 241, 0.4)',
-                'rgba(119, 99, 241, 0.6)',
-                'rgba(119, 99, 241, 0.8)',
-                'rgba(119, 99, 241, 1)'
+                ...[0.2, 0.4, 0.6, 0.8, 1].map((opacity) => alpha(colors.primary[500], opacity))
               ]
             }
           },

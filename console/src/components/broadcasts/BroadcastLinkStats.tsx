@@ -5,13 +5,14 @@ import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCopy, faCircleQuestion, faUser } from '@fortawesome/free-regular-svg-icons'
 import { getBroadcastLinkStats, LinkClickStats } from '../../services/api/messages_history'
+import { alpha, colors } from '../../theme/tokens'
 
 const { Text } = Typography
 
 // Single sequential hue for the magnitude bars — the brand primary at reduced opacity
 // (a solid primary reads too bright as a full bar), over a lighter tint of it as the track.
-const BAR_FILL = 'rgba(119, 99, 241, 0.5)' // --color-primary @ 50%
-const BAR_TRACK = 'rgba(119, 99, 241, 0.12)'
+const BAR_FILL = alpha(colors.primary[500], 0.5)
+const BAR_TRACK = alpha(colors.primary[500], 0.12)
 
 interface BroadcastLinkStatsProps {
   workspaceId: string

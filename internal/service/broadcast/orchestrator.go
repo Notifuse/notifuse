@@ -1131,17 +1131,45 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// run. context.Background() matches the other publishes in this file — the
 	// announcement must outlive the request that triggered the run.
 	//
-	// A paused broadcast stops in the loop below without sending: it is not announced.
-	if isFirstSendingRun && broadcast.Status != domain.BroadcastStatusPaused && o.eventBus != nil {
-		o.eventBus.Publish(context.Background(), domain.EventPayload{
-			Type:        domain.EventBroadcastSendingStarted,
-			WorkspaceID: task.WorkspaceID,
-			EntityID:    broadcast.ID,
-			Data: map[string]interface{}{
-				"broadcast_name": broadcast.Name,
-				"started_at":     o.timeProvider.Now().UTC().Format(time.RFC3339),
-			},
-		})
+	// A paused or cancelled broadcast stops in the loop below without sending: it is not
+	// announced.
+	//
+	// Every sending run records the start date when none is stored yet. "Send now" and a
+	// resume set it themselves; a scheduled broadcast reaches sending only through these
+	// runs, so without this it never got one. Not only the first run: a scheduled send
+	// already under way when the upgrade to v44 ran, or a first write that failed, is dated
+	// by the next run. The write sets started_at alone and only while it is NULL, so once a
+	// date is stored the check below costs nothing. A full-row write later in this run keeps
+	// the stored date: those writes leave started_at alone when the copy has none. Failing to
+	// record the date does not stop the send. A paused or cancelled broadcast stops in the
+	// loop below without sending: it is neither dated nor announced.
+	startedAt := o.timeProvider.Now().UTC()
+	if broadcast.StartedAt == nil && broadcast.Status != domain.BroadcastStatusPaused &&
+		broadcast.Status != domain.BroadcastStatusCancelled {
+		if stampErr := o.broadcastRepo.MarkBroadcastStarted(ctx, task.WorkspaceID, broadcast.ID, startedAt); stampErr != nil {
+			// codecov:ignore:start
+			o.logger.WithFields(map[string]interface{}{
+				"task_id":      task.ID,
+				"broadcast_id": broadcast.ID,
+				"error":        stampErr.Error(),
+			}).Error("Failed to record the broadcast start date")
+			// codecov:ignore:end
+		}
+	}
+
+	if isFirstSendingRun && broadcast.Status != domain.BroadcastStatusPaused &&
+		broadcast.Status != domain.BroadcastStatusCancelled {
+		if o.eventBus != nil {
+			o.eventBus.Publish(context.Background(), domain.EventPayload{
+				Type:        domain.EventBroadcastSendingStarted,
+				WorkspaceID: task.WorkspaceID,
+				EntityID:    broadcast.ID,
+				Data: map[string]interface{}{
+					"broadcast_name": broadcast.Name,
+					"started_at":     startedAt.Format(time.RFC3339),
+				},
+			})
+		}
 	}
 
 	// Phase 3: Process recipients in batches with a timeout

@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react'
 import { Tooltip, Popconfirm } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import type { NodeType } from '../../../services/api/automation'
+import { alpha, colors } from '../../../theme/tokens'
 
 // The card's own geometry, kept in one place so the description's cap cannot drift from it. The
 // description is the only nowrap line on the card, so without a cap it would stretch the node to
@@ -65,12 +66,12 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
         style={{
           padding: `8px ${CARD_PADDING_X}px`,
           minWidth: CARD_MIN_WIDTH,
-          border: selected ? '1px solid #7763F1' : isOrphan ? '1px solid #f97316' : '1px solid #e5e7eb',
-          boxShadow: selected ? '0 4px 12px rgba(119,99,241,0.3)' : 'none'
+          border: selected ? `1px solid ${colors.primary[500]}` : isOrphan ? '1px solid #f97316' : '1px solid #e5e7eb',
+          boxShadow: selected ? `0 4px 12px ${alpha(colors.primary[500], 0.3)}` : 'none'
         }}
       >
         <div className="flex items-center gap-1.5">
-          <span style={{ color: selected ? '#7763F1' : '#6b7280' }}>{icon}</span>
+          <span style={{ color: selected ? colors.primary[500] : '#6b7280' }}>{icon}</span>
           <span style={{ fontSize: '16px', fontWeight: 500 }}>{label}</span>
         </div>
         {description && (

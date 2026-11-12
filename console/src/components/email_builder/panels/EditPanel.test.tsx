@@ -84,6 +84,13 @@ describe('EditPanel', () => {
     expect(document.querySelector('.ant-modal')).toBeNull()
   })
 
+  it('renders customer content under the canvas rules, which the console no longer applies globally', () => {
+    const canvasRef: { current: CanvasHandle | null } = { current: null }
+    const { unmount } = renderPanel({ canvasRef })
+    expect(canvasRef.current!.root()!.classList.contains('email-canvas')).toBe(true)
+    unmount()
+  })
+
   it('hands over its canvas: the rendered email and the element that scrolls it', () => {
     const canvasRef: { current: CanvasHandle | null } = { current: null }
     const { unmount } = renderPanel({ canvasRef })
