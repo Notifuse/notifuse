@@ -6268,3 +6268,21 @@ func TestCheckStoredWorkspace(t *testing.T) {
 		assert.NoError(t, CheckStoredWorkspace(settings, nil, key))
 	})
 }
+
+func TestUserWorkspaceWithEmail_NameJSON(t *testing.T) {
+	t.Run("a member with a name carries it", func(t *testing.T) {
+		raw, err := json.Marshal(UserWorkspaceWithEmail{Email: "ada@example.com", Name: "Ada Lovelace"})
+		require.NoError(t, err)
+		var decoded map[string]interface{}
+		require.NoError(t, json.Unmarshal(raw, &decoded))
+		assert.Equal(t, "Ada Lovelace", decoded["name"])
+	})
+
+	t.Run("a member without a name has no name key", func(t *testing.T) {
+		raw, err := json.Marshal(UserWorkspaceWithEmail{Email: "ada@example.com"})
+		require.NoError(t, err)
+		var decoded map[string]interface{}
+		require.NoError(t, json.Unmarshal(raw, &decoded))
+		assert.NotContains(t, decoded, "name")
+	})
+}

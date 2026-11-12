@@ -14,6 +14,10 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages when the table fits in memory, longer otherwise.
 
+- **Feature**: The API counts what uses each template with the new `templates.usage` endpoint (broadcasts that may still send, transactional notifications, automations and double opt-in lists), and lists them for one template. It counts posts by status and category with the new `blogPosts.counts` endpoint; `blogPosts.list` lists the posts still to come with `status=scheduled` and searches titles with `search`; `workspaces.members` returns each member's `name`.
+
+- **Improvement**: `blogPosts.list` answers 400 instead of 500 for an invalid status.
+
 - **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.
 
 - **Improvement**: Opens and clicks on an email whose contact was deleted are no longer recorded. The link still redirects.
@@ -73,6 +77,8 @@ All notable changes to this project will be documented in this file.
 - **Improvement**: Groups in email templates now render as in MJML: a group without a width takes its share of the section, a group with a percentage width keeps it, and in Outlook a group sits side by side with the columns and groups of its section, with raw HTML blocks placed between them. A group saved with a width of 100% next to another column or group now makes a row wider than the email in Outlook: give the group and the columns next to it widths that add up to 100%.
 
 - **Improvement**: The email editor no longer gives a new group a width of 100%, unless the template's default attributes give groups one, so it takes its share of the section, and the canvas shows each group at the width the email gives it. The Width field of a group shows that share when it is empty. Adding, moving, duplicating or deleting a group in a section resizes the section's columns to the room the groups leave, keeping their proportions.
+
+- **Fix**: `broadcasts.get` with `with_templates=true` now returns the latest version of each variation's template, the one that is sent, instead of its first version.
 
 ## [43.0] - 2026-11-07
 

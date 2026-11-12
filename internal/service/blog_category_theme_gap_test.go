@@ -257,7 +257,7 @@ func TestBlogGap_ListPostsGuards(t *testing.T) {
 		svc4, _, _, _, _, _, _, auth4 := setupBlogServiceTest(t)
 		ctx4 := expectBlogAuth(auth4, "ws-1", true, false)
 		_, err = svc4.ListPosts(ctx4, &domain.ListBlogPostsRequest{Status: "bogus"})
-		require.EqualError(t, err, "invalid status: bogus")
+		require.EqualError(t, err, "validation error: invalid status: bogus")
 	})
 
 	t.Run("validated params reach the repo and its error passes through", func(t *testing.T) {
