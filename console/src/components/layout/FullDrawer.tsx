@@ -13,6 +13,8 @@ export interface FullDrawerProps {
   nav?: DrawerNav
   /** A copy-link button (default). */
   copyLink?: boolean
+  /** Left side of the bar, after the back button: an editable name, a status. */
+  barTitle?: ReactNode
   /** Right side of the bar, before copy and close. */
   topActions?: ReactNode
   children?: ReactNode
@@ -22,7 +24,7 @@ export interface FullDrawerProps {
  * A full-width drawer over the whole console, sidebar included, with a 40px navigation bar.
  * Escape closes it (antd). Its content sits on the canvas (antd-overrides.css, `.app-full-drawer`).
  */
-export function FullDrawer({ open, onClose, backLabel, nav, copyLink = true, topActions, children }: FullDrawerProps) {
+export function FullDrawer({ open, onClose, backLabel, nav, copyLink = true, barTitle, topActions, children }: FullDrawerProps) {
   const { t } = useLingui()
   const barRef = useRef<HTMLDivElement>(null)
   useDrawerNavKeys({ enabled: open, onPrev: nav?.onPrev, onNext: nav?.onNext, anchorRef: barRef })
@@ -51,6 +53,12 @@ export function FullDrawer({ open, onClose, backLabel, nav, copyLink = true, top
             <>
               <span aria-hidden="true" className="mx-1 h-4 w-px shrink-0 bg-line" />
               <DrawerNavButtons nav={nav} showPosition />
+            </>
+          ) : null}
+          {barTitle ? (
+            <>
+              <span aria-hidden="true" className="mx-1 h-4 w-px shrink-0 bg-line" />
+              <div className="flex min-w-0 items-center gap-2">{barTitle}</div>
             </>
           ) : null}
         </div>

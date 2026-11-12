@@ -200,6 +200,10 @@ export interface ListBroadcastsRequest {
   limit?: number
   offset?: number
   with_templates?: boolean
+  /** Adds `status_counts`, counted under every filter but the status one. */
+  with_status_counts?: boolean
+  /** An ISO instant: the broadcasts that started at or after it. */
+  started_after?: string
 }
 
 // Status filter groups shown in the broadcasts list Segmented control. Each
@@ -228,6 +232,17 @@ export const getStatusesForGroup = (group: string | undefined): BroadcastStatus[
 export interface ListBroadcastsResponse {
   broadcasts: Broadcast[]
   total_count: number
+  /** With `with_status_counts`: the count of each status; a status absent counts 0. */
+  status_counts?: Partial<Record<BroadcastStatus, number>>
+}
+
+export interface EstimateAudienceRequest {
+  workspace_id: string
+  audience: AudienceSettings
+}
+
+export interface EstimateAudienceResponse {
+  count: number
 }
 
 export interface GetBroadcastRequest {
@@ -365,6 +380,8 @@ export const broadcastApi = {
     if (params.offset) searchParams.append('offset', params.offset.toString())
     if (params.with_templates !== undefined)
       searchParams.append('with_templates', params.with_templates.toString())
+    if (params.with_status_counts) searchParams.append('with_status_counts', 'true')
+    if (params.started_after) searchParams.append('started_after', params.started_after)
 
     return api.get<ListBroadcastsResponse>(`/api/broadcasts.list?${searchParams.toString()}`)
   },
@@ -436,6 +453,11 @@ export const broadcastApi = {
 
   refreshGlobalFeed: async (params: RefreshGlobalFeedRequest): Promise<RefreshGlobalFeedResponse> => {
     return api.post<RefreshGlobalFeedResponse>('/api/broadcasts.refreshGlobalFeed', params)
+  },
+
+  /** The contacts a broadcast with this audience would be sent to now. */
+  estimateAudience: async (params: EstimateAudienceRequest): Promise<EstimateAudienceResponse> => {
+    return api.post<EstimateAudienceResponse>('/api/broadcasts.estimateAudience', params)
   },
 
   testRecipientFeed: async (params: TestRecipientFeedRequest): Promise<TestRecipientFeedResponse> => {

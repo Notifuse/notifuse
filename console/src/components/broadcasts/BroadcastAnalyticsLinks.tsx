@@ -4,7 +4,7 @@ import { faBullseye, faChartLine } from '@fortawesome/free-solid-svg-icons'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { useLingui } from '@lingui/react/macro'
 import { useRouter } from '@tanstack/react-router'
-import { getBrowserTimezone } from '../../lib/timezoneNormalizer'
+import { canReadWebAnalytics, workspaceTimezone } from './access'
 import { Broadcast } from '../../services/api/broadcast'
 import { UserPermissions, Workspace } from '../../services/api/workspace'
 import {
@@ -47,8 +47,7 @@ export function BroadcastAnalyticsLinks({
   const { t } = useLingui()
   const router = useRouter()
 
-  if (!workspace?.settings?.web_analytics?.enabled) return null
-  if (!permissions?.web_analytics?.read) return null
+  if (!canReadWebAnalytics(workspace, permissions)) return null
   if (!broadcast.started_at) return null
 
   const isVariation = variationTemplateId !== undefined
@@ -72,7 +71,7 @@ export function BroadcastAnalyticsLinks({
           content,
           startedAt: broadcast.started_at,
           completedAt: broadcast.completed_at,
-          timezone: workspace.settings?.timezone || getBrowserTimezone() || 'UTC'
+          timezone: workspaceTimezone(workspace)
         })
       : null
 

@@ -78,8 +78,8 @@ test.describe('Protected Pages Load', () => {
     await waitForPageLoad(page)
 
     // The fixture serves no broadcasts, so the list shows its empty state
-    await expect(page.getByRole('heading', { name: 'No broadcasts found' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Create Broadcast' })).toBeVisible()
+    await expect(page.getByText('No broadcasts yet')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'New broadcast' })).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)
