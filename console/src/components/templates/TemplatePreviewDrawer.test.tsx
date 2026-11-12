@@ -254,3 +254,33 @@ describe('TemplatePreviewDrawer preview errors', () => {
     expect(templatesApi.compile).not.toHaveBeenCalled()
   })
 })
+
+describe('TemplatePreviewDrawer opened from outside', () => {
+  const renderControlled = (open: boolean, onClose = vi.fn()) => {
+    const ui = (isOpen: boolean) => (
+      <ConfigProvider>
+        <App>
+          <TemplatePreviewDrawer record={template} workspace={workspace} open={isOpen} onClose={onClose} />
+        </App>
+      </ConfigProvider>
+    )
+    const view = render(ui(open))
+    return { onClose, reopen: () => view.rerender(ui(true)) }
+  }
+
+  it('stays closed until the prop opens it', async () => {
+    const { reopen } = renderControlled(false)
+    expect(screen.queryByText('Template Data')).not.toBeInTheDocument()
+
+    reopen()
+    expect(await screen.findByText('Template Data')).toBeInTheDocument()
+  })
+
+  it('asks the parent to close it', async () => {
+    const { onClose } = renderControlled(true)
+    await screen.findByText('Template Data')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+})
