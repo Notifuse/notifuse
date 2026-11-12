@@ -88,6 +88,10 @@ msgstr "(buit)"
 msgid "(original: {0})"
 msgstr "(original: {0})"
 
+#: src/components/logs/AuditPhrase.tsx:23
+msgid "(unknown)"
+msgstr "(desconegut)"
+
 #: src/components/settings/WorkspaceMembers.tsx:257
 msgid "(you)"
 msgstr "(vós)"
@@ -98,6 +102,11 @@ msgstr "(vós)"
 #: src/pages/TransactionalNotificationsPage.tsx:298
 msgid "{0, plural, one {{1} email} other {{2} emails}}"
 msgstr "{0, plural, one {{1} correu} other {{2} correus}}"
+
+#. placeholder {0}: actions.length
+#: src/components/logs/AuditLogTab.tsx:355
+msgid "{0, plural, one {# action} other {# actions}}"
+msgstr "{0, plural, one {# acció} other {# accions}}"
 
 #. placeholder {0}: stats.completed
 #: src/components/automations/stats/NodeStatsFooter.tsx:68
@@ -205,6 +214,11 @@ msgstr "{0, plural, one {# arribat} other {# arribats}}"
 msgid "{0, plural, one {# removed} other {# removed}}"
 msgstr "{0, plural, one {# eliminat} other {# eliminats}}"
 
+#. placeholder {0}: categories.length
+#: src/components/logs/AuditLogTab.tsx:277
+msgid "{0, plural, one {# resource} other {# resources}}"
+msgstr "{0, plural, one {# recurs} other {# recursos}}"
+
 #. placeholder {0}: stats.retrying
 #: src/components/automations/stats/NodeStatsFooter.tsx:97
 msgid "{0, plural, one {# retrying} other {# retrying}}"
@@ -292,8 +306,8 @@ msgstr "{0} (audiència del broadcast)"
 
 #. placeholder {0}: filters.actions.length
 #: src/components/settings/audit_logs/AuditFilterBuilder.tsx:118
-msgid "{0} actions"
-msgstr "{0} accions"
+#~ msgid "{0} actions"
+#~ msgstr "{0} accions"
 
 #. placeholder {0}: percent(kpis.sent.broadcastShare, 0)
 #: src/components/analytics/DashboardKpis.tsx:251
@@ -367,14 +381,13 @@ msgstr "{0} no s'aplica a aquest esdeveniment"
 #. placeholder {0}: dayjs(dateString).format('lll')
 #. placeholder {1}: currentWorkspace?.settings.timezone || 'UTC'
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:338
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:270
 msgid "{0} in {1}"
 msgstr "{0} a {1}"
 
 #. placeholder {0}: formatAuditDate(value, timezone)
 #: src/components/settings/audit_logs/AuditLogTable.tsx:176
-msgid "{0} in {timezone}"
-msgstr "{0} a {timezone}"
+#~ msgid "{0} in {timezone}"
+#~ msgstr "{0} a {timezone}"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:180
 #~ msgid "{0} months"
@@ -851,6 +864,10 @@ msgstr "{propertyCount} propietats"
 msgid "{requeued, plural, one {# recipient queued for another attempt} other {# recipients queued for another attempt}}"
 msgstr "{requeued, plural, one {# destinatari a la cua per a un altre intent} other {# destinataris a la cua per a un altre intent}}"
 
+#: src/components/logs/AuditLogTab.tsx:648
+msgid "{retentionDays, plural, one {Kept # day} other {Kept # days}}"
+msgstr "{retentionDays, plural, one {Es conserva # dia} other {Es conserva # dies}}"
+
 #: src/components/broadcasts/compose/ContentCard.tsx:283
 msgid "{sampleContacts, plural, one {# contact} other {# contacts}}"
 msgstr "{sampleContacts, plural, one {# contacte} other {# contactes}}"
@@ -888,6 +905,12 @@ msgstr "{senderId} (eliminat)"
 msgid "{share}% tracked"
 msgstr "{share} % amb seguiment"
 
+#. placeholder {0}: int(shown)
+#. placeholder {1}: int(shown)
+#: src/components/logs/AuditLogTab.tsx:658
+msgid "{shown, plural, one {{0} entry} other {{1} entries}}"
+msgstr "{shown, plural, one {{0} entrada} other {{1} entrades}}"
+
 #: src/components/settings/CustomFieldsConfiguration.tsx:268
 msgid "{textFree}, {numberFree}, {dateFree}, {jsonFree} free"
 msgstr "Lliures: {textFree}, {numberFree}, {dateFree}, {jsonFree}"
@@ -896,13 +919,17 @@ msgstr "Lliures: {textFree}, {numberFree}, {dateFree}, {jsonFree}"
 msgid "{time} local time"
 msgstr "{time} hora local"
 
-#: src/components/transactional/notificationRules.ts:113
+#: src/components/transactional/notificationRules.ts:114
 msgid "{total, plural, one {{all} notification} other {{all} notifications}}"
 msgstr "{total, plural, one {{all} notificació} other {{all} notificacions}}"
 
-#: src/components/transactional/notificationRules.ts:115
+#: src/components/transactional/notificationRules.ts:116
 msgid "{total, plural, one {{part} of {all} notification} other {{part} of {all} notifications}}"
 msgstr "{total, plural, one {{part} de {all} notificació} other {{part} de {all} notificacions}}"
+
+#: src/components/logs/OutgoingWebhooksTab.tsx:278
+msgid "{total, plural, one {{shown} of # delivery} other {{shown} of # deliveries}}"
+msgstr "{total, plural, one {{shown} de # lliurament} other {{shown} de # lliuraments}}"
 
 #: src/components/blog/PostsTable.tsx:461
 msgid "{total, plural, one {{shown} of # post} other {{shown} of # posts}}"
@@ -1027,6 +1054,10 @@ msgstr "+ Afegir filtre de propietat"
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:897
 #~ msgid "+ Add variation"
 #~ msgstr "+ Afegir variació"
+
+#: src/components/logs/AuditLogTab.tsx:453
+msgid "+ Filter"
+msgstr "+ Filtre"
 
 #. placeholder {0}: session.goal_count - 1
 #. placeholder {0}: session.pageview_count - 1
@@ -1335,6 +1366,10 @@ msgstr "Sobre aquestes xifres"
 msgid "Accept Invitation"
 msgstr "Acceptar invitació"
 
+#: src/components/logs/auditPhrases.ts:83
+msgid "Accepted the invitation <0>{target}</0>"
+msgstr "Ha acceptat la invitació <0>{target}</0>"
+
 #: src/components/settings/WorkspaceMembers.tsx:271
 #: src/components/settings/WorkspaceMembers.tsx:295
 msgid "Access"
@@ -1345,8 +1380,9 @@ msgid "Access Key"
 msgstr "Clau d'accés"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:604
-#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:100
-#: src/components/settings/audit_logs/AuditLogTable.tsx:209
+#: src/components/logs/AuditEntryDetail.tsx:127
+#: src/components/logs/AuditLogTab.tsx:282
+#: src/components/logs/AuditLogTab.tsx:532
 #: src/components/web_analytics/filters/TestFilterModal.tsx:183
 msgid "Action"
 msgstr "Acció"
@@ -1387,6 +1423,10 @@ msgstr "Activar automatització"
 msgid "Activate automation?"
 msgstr "Activar automatització?"
 
+#: src/components/logs/auditPhrases.ts:17
+msgid "Activated the automation <0>{target}</0>"
+msgstr "Ha activat l'automatització <0>{target}</0>"
+
 #: src/components/settings/integrations/EmailProviderCard.tsx:113
 msgid "active"
 msgstr "actiu"
@@ -1425,12 +1465,13 @@ msgstr "Filtres actius"
 msgid "Activity"
 msgstr "Activitat"
 
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:117
-#: src/components/settings/audit_logs/AuditLogTable.tsx:190
+#: src/components/logs/AuditEntryDetail.tsx:140
+#: src/components/logs/AuditLogTab.tsx:449
+#: src/components/logs/AuditLogTab.tsx:526
 msgid "Actor"
 msgstr "Actor"
 
-#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:102
+#: src/components/logs/AuditLogTab.tsx:284
 msgid "Actor email"
 msgstr "Correu de l'actor"
 
@@ -1473,6 +1514,10 @@ msgstr "Afegir un filtre"
 #: src/components/settings/Integrations.tsx:1247
 msgid "Add a provider"
 msgstr "Afegeix un proveïdor"
+
+#: src/components/logs/OutgoingWebhooksTab.tsx:245
+msgid "Add a webhook"
+msgstr "Afegeix un webhook"
 
 #: src/services/api/permissions.ts:808
 msgid "Add an annotation to the analytics timeline"
@@ -1678,6 +1723,14 @@ msgstr "Afegit"
 msgid "Added on {0}"
 msgstr "Afegit el {0}"
 
+#: src/components/logs/auditPhrases.ts:12
+msgid "Added the annotation <0>{target}</0>"
+msgstr "Ha afegit l'anotació <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:87
+msgid "Added the integration <0>{target}</0>"
+msgstr "Ha afegit la integració <0>{target}</0>"
+
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:199
 msgid "Additional context about this event"
 msgstr "Context addicional sobre aquest esdeveniment"
@@ -1733,6 +1786,10 @@ msgstr "Afecta com s'apilen les columnes en dispositius mòbils"
 #: src/components/segment/input.tsx:725
 #: src/components/segment/input.tsx:864
 msgid "after"
+msgstr "Després"
+
+#: src/components/logs/AuditEntryDetail.tsx:188
+msgid "After"
 msgstr "Després"
 
 #. placeholder {0}: broadcast.test_settings.test_duration_hours
@@ -1807,6 +1864,13 @@ msgstr "Alineació"
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
 #: src/components/contacts/visits/ContactWebVisits.tsx:330
 #: src/components/email_builder/panels/LibraryPanel.tsx:210
+#: src/components/logs/AuditLogTab.tsx:214
+#: src/components/logs/AuditLogTab.tsx:236
+#: src/components/logs/AuditLogTab.tsx:274
+#: src/components/logs/OutgoingWebhooksTab.tsx:109
+#: src/components/logs/OutgoingWebhooksTab.tsx:118
+#: src/components/logs/OutgoingWebhooksTab.tsx:135
+#: src/components/logs/OutgoingWebhooksTab.tsx:140
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:124
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
 #: src/pages/AutomationsPage.tsx:134
@@ -1886,6 +1950,7 @@ msgstr "Tots els costats"
 
 #: src/components/automations/AutomationEditor.tsx:455
 #: src/components/automations/NodeConfigPanel.tsx:188
+#: src/components/logs/AuditLogTab.tsx:177
 #: src/components/web_analytics/toolbar.tsx:32
 msgid "All time"
 msgstr "Tot el temps"
@@ -1991,6 +2056,10 @@ msgstr "una integració"
 msgid "An invisible image in each email records when it is opened"
 msgstr "Una imatge invisible a cada correu registra quan s'obre"
 
+#: src/components/logs/AuditLogTab.tsx:407
+msgid "An IP address and a target ID must match exactly; an actor email matches any part of it."
+msgstr "Una adreça IP i un ID de destinació han de coincidir exactament; un correu d'actor coincideix amb qualsevol part."
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:215
 msgid "Analytics Assistant"
 msgstr "Assistent d'analítica"
@@ -2037,7 +2106,7 @@ msgstr "Anotació actualitzada"
 
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:109
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:374
-#: src/layouts/app-shell/menuItems.ts:171
+#: src/layouts/app-shell/menuItems.ts:187
 #: src/pages/WebAnalyticsPage.tsx:99
 msgid "Annotations"
 msgstr "Anotacions"
@@ -2050,9 +2119,19 @@ msgstr "Les anotacions no tenen cap permís propi: responen deliberadament a aqu
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "Hi ha un altre canvi de la biblioteca en curs. Torna-ho a provar d’aquí a un moment."
 
+#: src/components/logs/AuditLogTab.tsx:325
+#: src/components/logs/AuditLogTab.tsx:352
+#: src/components/logs/AuditLogTab.tsx:382
+msgid "Any"
+msgstr "Qualsevol"
+
 #: src/components/segment/input.tsx:963
 msgid "ANY"
 msgstr "Qualsevol"
+
+#: src/components/logs/AuditLogTab.tsx:203
+msgid "Any API key"
+msgstr "Qualsevol clau API"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:371
 #: src/components/segment/form_leaf.tsx:447
@@ -2074,6 +2153,10 @@ msgstr "Qualsevol nom d'objectiu"
 #: src/components/automations/nodes/TriggerNode.tsx:46
 msgid "Any link"
 msgstr "Qualsevol enllaç"
+
+#: src/components/logs/AuditLogTab.tsx:202
+msgid "Any member"
+msgstr "Qualsevol membre"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:380
 #: src/components/segment/form_leaf.tsx:428
@@ -2130,6 +2213,7 @@ msgstr "Identificador API"
 msgid "API identifier must be at most {TRANSACTIONAL_ID_MAX_LENGTH} characters long"
 msgstr "L'identificador API ha de tenir com a màxim {TRANSACTIONAL_ID_MAX_LENGTH} caràcters"
 
+#: src/components/logs/auditDisplay.ts:22
 #: src/components/settings/integrations/providerDetails.ts:28
 #: src/components/settings/integrations/providerDetails.ts:30
 #: src/components/settings/integrations/providerDetails.ts:31
@@ -2183,6 +2267,7 @@ msgstr "Nom de la clau API"
 msgid "API key token"
 msgstr "Token de la clau API"
 
+#: src/components/logs/labels.ts:11
 #: src/components/settings/WorkspaceMembers.tsx:516
 msgid "API keys"
 msgstr "Claus API"
@@ -2202,12 +2287,11 @@ msgid "Applies to every workspace that has not set its own retention, and to dep
 msgstr "S'aplica a cada workspace que no ha definit la seva pròpia retenció i a les entrades a nivell de desplegament, com els inicis de sessió. 0 conserva cada entrada per sempre."
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:293
-#: src/components/messages/MessageHistoryTab.tsx:541
-#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:244
+#: src/components/logs/AuditLogTab.tsx:751
+#: src/components/messages/MessageHistoryTab.tsx:543
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:47
 #: src/components/web_analytics/toolbar.tsx:118
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:307
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:328
 msgid "Apply"
 msgstr "Aplicar"
 
@@ -2401,7 +2485,8 @@ msgstr "com a màxim"
 msgid "Attachments"
 msgstr "Adjunts"
 
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:380
+#: src/components/logs/OutgoingWebhooksTab.tsx:190
+#: src/components/logs/OutgoingWebhooksTab.tsx:407
 msgid "Attempts"
 msgstr "Intents"
 
@@ -2427,13 +2512,15 @@ msgstr "Audiència"
 #~ msgid "Audit"
 #~ msgstr "Auditoria"
 
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:77
+#: src/components/logs/AuditEntryDetail.tsx:91
 msgid "Audit entry"
 msgstr "Entrada d'auditoria"
 
+#: src/components/logs/labels.ts:22
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:31
 #: src/components/settings/SettingsSidebar.tsx:69
 #: src/components/settings/SystemSettingsDrawer.tsx:715
+#: src/pages/LogsPage.tsx:92
 msgid "Audit log"
 msgstr "Registre d'auditoria"
 
@@ -2442,7 +2529,6 @@ msgid "Audit log retention saved"
 msgstr "Retenció del registre d'auditoria desada"
 
 #: src/components/settings/LicenseSettings.tsx:118
-#: src/pages/LogsPage.tsx:78
 #: src/services/api/licenseErrors.ts:52
 msgid "Audit logs"
 msgstr "Registres d'auditoria"
@@ -2572,6 +2658,10 @@ msgstr "Automatització eliminada correctament"
 msgid "Automation flows — their triggers, nodes and per-contact execution history."
 msgstr "Fluxos d'automatització — els seus disparadors, nodes i historial d'execució per contacte."
 
+#: src/components/messages/MessageHistoryTab.tsx:232
+msgid "Automation ID"
+msgstr "ID d'automatització"
+
 #: src/components/automations/AutomationEditor.tsx:402
 #: src/components/automations/AutomationEditor.tsx:403
 msgid "Automation name"
@@ -2600,9 +2690,10 @@ msgstr "Automatització:"
 #: src/components/analytics/OriginVolumeChart.tsx:44
 #: src/components/automations/AutomationEditor.tsx:70
 #: src/components/automations/AutomationEditor.tsx:545
+#: src/components/logs/labels.ts:16
 #: src/components/settings/permissionLabels.ts:15
 #: src/components/templates/DeleteTemplateModal.tsx:43
-#: src/layouts/app-shell/menuItems.ts:174
+#: src/layouts/app-shell/menuItems.ts:190
 #: src/pages/AutomationsPage.tsx:198
 #: src/services/api/errors.ts:90
 msgid "Automations"
@@ -2794,6 +2885,10 @@ msgstr "Destinataris CCO"
 msgid "before"
 msgstr "Abans"
 
+#: src/components/logs/AuditEntryDetail.tsx:187
+msgid "Before"
+msgstr "Abans"
+
 #: src/components/segment/form_leaf.tsx:521
 #: src/components/segment/form_leaf.tsx:896
 msgid "before date"
@@ -2898,13 +2993,14 @@ msgstr "Llista de bloqueig"
 msgid "Blocks"
 msgstr "Blocs"
 
+#: src/components/logs/labels.ts:20
 #: src/components/settings/BlogSettings.tsx:219
 #: src/components/settings/BlogSettings.tsx:228
 #: src/components/settings/BlogSettings.tsx:262
 #: src/components/settings/permissionLabels.ts:14
 #: src/components/settings/SettingsSidebar.tsx:67
 #: src/components/templates/templateCategories.ts:28
-#: src/layouts/app-shell/menuItems.ts:178
+#: src/layouts/app-shell/menuItems.ts:194
 #: src/pages/BlogPage.tsx:126
 #: src/services/api/errors.ts:89
 msgid "Blog"
@@ -3076,8 +3172,8 @@ msgstr "Tipus de rebot"
 #: src/components/automations/stats/NodeStatsFooter.tsx:84
 #: src/components/contacts/contactDisplay.ts:38
 #: src/components/lists/ListHeader.tsx:65
-#: src/components/messages/MessageHistoryTab.tsx:167
-#: src/components/messages/MessageHistoryTab.tsx:172
+#: src/components/messages/MessageHistoryTab.tsx:168
+#: src/components/messages/MessageHistoryTab.tsx:173
 #: src/components/messages/MessageHistoryTable.tsx:360
 #: src/components/transactional/RecentSends.tsx:40
 #: src/components/transactional/SendsPerDayChart.tsx:50
@@ -3237,7 +3333,7 @@ msgstr "Difusió {today}"
 #~ msgstr "Difusió creada correctament"
 
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:71
-#: src/components/messages/MessageHistoryTab.tsx:230
+#: src/components/messages/MessageHistoryTab.tsx:231
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:110
 msgid "Broadcast ID"
 msgstr "ID de difusió"
@@ -3264,7 +3360,7 @@ msgstr "Difusió actualitzada correctament"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:87
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:426
 #: src/components/settings/permissionLabels.ts:10
-#: src/layouts/app-shell/menuItems.ts:173
+#: src/layouts/app-shell/menuItems.ts:189
 #: src/pages/BroadcastsPage.tsx:236
 #: src/pages/BroadcastsPage.tsx:333
 #: src/services/api/errors.ts:85
@@ -3293,8 +3389,12 @@ msgid "Browse Images"
 msgstr "Navegar imatges"
 
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:36
-msgid "Browse, filter and export the log under Logs → Audit logs."
-msgstr "Exploreu, filtreu i exporteu el registre a Logs → Registres d’auditoria."
+msgid "Browse, filter and export the log under Logs → Audit log."
+msgstr "Consulta, filtra i exporta el registre a Logs → Registre d'auditoria."
+
+#: src/components/settings/audit_logs/AuditLogsSettings.tsx:36
+#~ msgid "Browse, filter and export the log under Logs → Audit logs."
+#~ msgstr "Exploreu, filtreu i exporteu el registre a Logs → Registres d’auditoria."
 
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:32
 #~ msgid "Browse, filter and export the log under Logs → Audit."
@@ -3477,7 +3577,7 @@ msgstr "Campanyes"
 #: src/components/templates/DeleteTemplateModal.tsx:115
 #: src/components/templates/SendTemplateModal.tsx:303
 #: src/components/templates/TemplateTranslationsTab.tsx:329
-#: src/components/transactional/notificationRules.ts:89
+#: src/components/transactional/notificationRules.ts:90
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:210
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
@@ -3529,6 +3629,18 @@ msgstr "Cancel·lar pujada?"
 msgid "Cancelled"
 msgstr "Cancel·lat"
 
+#: src/components/logs/auditPhrases.ts:90
+msgid "Cancelled the invitation <0>{target}</0>"
+msgstr "Ha cancel·lat la invitació <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:33
+msgid "Cancelled the newsletter <0>{target}</0>"
+msgstr "Ha cancel·lat el butlletí <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:75
+msgid "Cancelled the web analytics backfill"
+msgstr "Ha cancel·lat l'emplenament de l'analítica web"
+
 #: src/pages/SignInPage.tsx:250
 msgid "Cannot reach the configured API endpoint"
 msgstr "No es pot accedir al punt final API configurat"
@@ -3566,7 +3678,6 @@ msgstr "Categories"
 #: src/components/blog/PostsTable.tsx:294
 #: src/components/blog/ThemeEditorDrawer.tsx:428
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:75
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:105
 #: src/components/templates/CreateTemplateDrawer.tsx:1011
 #: src/pages/TemplatesPage.tsx:403
 msgid "Category"
@@ -3644,6 +3755,10 @@ msgstr "Canviar una subscripció, inclòs on publica i quins esdeveniments trans
 msgid "Change a template's content, in any language"
 msgstr "Canviar el contingut d'una plantilla, en qualsevol idioma"
 
+#: src/components/logs/AuditLogTab.tsx:687
+msgid "Change in Settings"
+msgstr "Canvia-ho a Configuració"
+
 #: src/components/file_manager/buttonSettings.tsx:192
 msgid "Change provider"
 msgstr "Canviar proveïdor"
@@ -3666,7 +3781,23 @@ msgstr "Canviar estat per a {0}"
 msgid "Change status…"
 msgstr "Canviar l'estat…"
 
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:162
+#: src/components/logs/auditPhrases.ts:94
+msgid "Changed the audit log retention of <0>{target}</0>"
+msgstr "Ha canviat la conservació del registre d'auditoria de <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:95
+msgid "Changed the blog settings of <0>{target}</0>"
+msgstr "Ha canviat la configuració del blog de <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:97
+msgid "Changed the permissions of <0>{target}</0>"
+msgstr "Ha canviat els permisos de <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:98
+msgid "Changed the web analytics settings of <0>{target}</0>"
+msgstr "Ha canviat la configuració de l'analítica web de <0>{target}</0>"
+
+#: src/components/logs/AuditEntryDetail.tsx:182
 msgid "Changes"
 msgstr "Canvis"
 
@@ -3674,7 +3805,7 @@ msgstr "Canvis"
 msgid "Changing your domain"
 msgstr "Canviar de domini"
 
-#: src/components/messages/MessageHistoryTab.tsx:218
+#: src/components/messages/MessageHistoryTab.tsx:219
 #: src/components/transactional/TransactionalDetail.tsx:341
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
 #: src/components/web_analytics/explore/DimensionSelector.tsx:97
@@ -3753,6 +3884,10 @@ msgstr "Primer trieu una plantilla"
 msgid "Choose a template to see the preview"
 msgstr "Trieu una plantilla per veure'n la previsualització"
 
+#: src/components/logs/AuditLogTab.tsx:366
+msgid "Choose actions"
+msgstr "Tria accions"
+
 #: src/components/file_manager/context.tsx:166
 msgid "Choose an image"
 msgstr "Tria una imatge"
@@ -3789,17 +3924,17 @@ msgstr "Nivell de ciutat (~1 km de precisió)"
 #: src/components/email_builder/ui/ImportFontInput.tsx:169
 #: src/components/file_manager/FileExplorer.tsx:711
 #: src/components/filters/Filter.tsx:193
-#: src/components/messages/MessageHistoryTab.tsx:546
-#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:248
+#: src/components/messages/MessageHistoryTab.tsx:548
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:312
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:333
 msgid "Clear"
 msgstr "Esborrar"
 
-#: src/components/messages/MessageHistoryTab.tsx:590
-#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:268
+#: src/components/logs/AuditLogTab.tsx:457
+msgid "Clear all"
+msgstr "Esborra-ho tot"
+
+#: src/components/messages/MessageHistoryTab.tsx:592
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:328
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:349
 msgid "Clear All"
 msgstr "Esborrar tot"
 
@@ -3807,6 +3942,8 @@ msgstr "Esborrar tot"
 msgid "Clear field"
 msgstr "Esborrar camp"
 
+#: src/components/logs/AuditLogTab.tsx:607
+#: src/components/logs/OutgoingWebhooksTab.tsx:233
 #: src/pages/AutomationsPage.tsx:259
 #: src/pages/BroadcastsPage.tsx:306
 #: src/pages/ContactsPage.tsx:458
@@ -3889,8 +4026,8 @@ msgstr "Clicat"
 #: src/components/automations/stats/EmailStepStats.tsx:78
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:67
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:70
-#: src/components/messages/MessageHistoryTab.tsx:154
-#: src/components/messages/MessageHistoryTab.tsx:156
+#: src/components/messages/MessageHistoryTab.tsx:155
+#: src/components/messages/MessageHistoryTab.tsx:157
 #: src/components/messages/MessageHistoryTable.tsx:352
 #: src/components/transactional/RecentSends.tsx:42
 #: src/components/transactional/TransactionalDetail.tsx:207
@@ -3918,7 +4055,7 @@ msgstr "Ha clicat un enllaç"
 msgid "Clicked a link in {source}"
 msgstr "Ha fet clic a un enllaç de {source}"
 
-#: src/components/messages/MessageHistoryTab.tsx:232
+#: src/components/messages/MessageHistoryTab.tsx:234
 msgid "Clicked link"
 msgstr "Enllaç clicat"
 
@@ -4150,8 +4287,8 @@ msgstr "Correu de queixa"
 #: src/components/automations/stats/NodeStatsFooter.tsx:84
 #: src/components/contacts/contactDisplay.ts:39
 #: src/components/lists/ListHeader.tsx:66
-#: src/components/messages/MessageHistoryTab.tsx:183
-#: src/components/messages/MessageHistoryTab.tsx:185
+#: src/components/messages/MessageHistoryTab.tsx:184
+#: src/components/messages/MessageHistoryTab.tsx:186
 #: src/components/messages/MessageHistoryTable.tsx:368
 #: src/pages/ContactsPage.tsx:525
 msgid "Complained"
@@ -4366,6 +4503,10 @@ msgstr "Connectar Zapier"
 msgid "Connected"
 msgstr "Connectat el"
 
+#: src/components/logs/auditPhrases.ts:84
+msgid "Connected Zapier with the API key <0>{target}</0>"
+msgstr "Ha connectat Zapier amb la clau API <0>{target}</0>"
+
 #: src/components/settings/ZapierSettings.tsx:171
 #~ msgid "Connecting Zapier lets a Zap react to Notifuse events — a new contact, a list subscription, a segment a contact joined — and lets a Zap create or update contacts and subscribe them to your lists. Each Zap you turn on registers its own webhook subscription, which you can see in Settings → Webhooks."
 #~ msgstr "Connectar Zapier permet que un Zap reaccioni als esdeveniments de Notifuse — un contacte nou, una subscripció a una llista, un segment al qual s'ha incorporat un contacte — i que un Zap creï o actualitzi contactes i els subscrigui a les vostres llistes. Cada Zap que activeu registra la seva pròpia subscripció de webhook, que podeu veure a Configuració → Webhooks."
@@ -4430,7 +4571,7 @@ msgstr "Contacte eliminat correctament"
 #~ msgid "Contact Details"
 #~ msgstr "Detalls del contacte"
 
-#: src/components/messages/MessageHistoryTab.tsx:225
+#: src/components/messages/MessageHistoryTab.tsx:226
 #: src/components/messages/MessageHistoryTable.tsx:147
 #: src/components/messages/MessageHistoryTable.tsx:414
 msgid "Contact Email"
@@ -4498,8 +4639,9 @@ msgstr "Contacte actualitzat correctament"
 #: src/components/analytics/DashboardKpis.tsx:228
 #: src/components/contacts/ContactDetailsDrawer.tsx:125
 #: src/components/contacts/ContactsViewHeader.tsx:201
+#: src/components/logs/labels.ts:21
 #: src/components/settings/permissionLabels.ts:7
-#: src/layouts/app-shell/menuItems.ts:172
+#: src/layouts/app-shell/menuItems.ts:188
 #: src/pages/ContactsPage.tsx:571
 #: src/services/api/errors.ts:82
 msgid "Contacts"
@@ -4561,7 +4703,7 @@ msgstr "conté"
 #: src/components/broadcasts/compose/ContentCard.tsx:115
 #: src/components/email_builder/panels/LibraryPanel.tsx:212
 #: src/components/settings/SettingsSidebar.tsx:28
-#: src/layouts/app-shell/menuItems.ts:176
+#: src/layouts/app-shell/menuItems.ts:192
 msgid "Content"
 msgstr "Contingut"
 
@@ -4610,12 +4752,14 @@ msgstr "Precisió de les coordenades"
 
 #: src/components/common/CodeSnippet.tsx:46
 #: src/components/layout/Mono.tsx:21
+#: src/components/logs/CodeBlock.tsx:21
 msgid "Copied"
 msgstr "Copiat"
 
 #: src/components/common/CodeSnippet.tsx:46
 #: src/components/layout/Mono.tsx:33
 #: src/components/layout/Mono.tsx:34
+#: src/components/logs/CodeBlock.tsx:33
 #: src/components/settings/WebhookDetail.tsx:379
 #: src/components/settings/ZapierSettings.tsx:193
 #: src/components/settings/ZapierSettings.tsx:261
@@ -4627,6 +4771,10 @@ msgstr "Copiar"
 #: src/components/transactional/ApiCommandModal.tsx:273
 msgid "Copy {0} Code"
 msgstr "Copiar codi {0}"
+
+#: src/components/logs/CodeBlock.tsx:32
+msgid "Copy {label}"
+msgstr "Copia {label}"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:100
 #~ msgid "Copy code"
@@ -4641,7 +4789,7 @@ msgstr "Copia l'ID"
 
 #: src/components/layout/DrawerControls.tsx:80
 #: src/components/layout/DrawerControls.tsx:84
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:88
+#: src/components/logs/AuditEntryDetail.tsx:120
 msgid "Copy link"
 msgstr "Copia l'enllaç"
 
@@ -4671,7 +4819,7 @@ msgstr "Camps principals"
 msgid "Cost"
 msgstr "Cost"
 
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:68
+#: src/components/logs/AuditEntryDetail.tsx:85
 msgid "Could not copy the link"
 msgstr "No s'ha pogut copiar l'enllaç"
 
@@ -4737,6 +4885,10 @@ msgstr "No s'han pogut carregar més articles"
 msgid "Couldn't load stats"
 msgstr "No s'han pogut carregar les estadístiques"
 
+#: src/components/logs/AuditLogTab.tsx:592
+msgid "Couldn't load the audit log"
+msgstr "No s'ha pogut carregar el registre d'auditoria"
+
 #: src/components/automations/AutomationEditor.tsx:82
 msgid "Couldn't load the automation"
 msgstr "No s'ha pogut carregar l'automatització"
@@ -4748,6 +4900,10 @@ msgstr "No s'han pogut carregar les automatitzacions"
 #: src/pages/BroadcastsPage.tsx:223
 msgid "Couldn't load the broadcasts"
 msgstr "No s'han pogut carregar les difusions"
+
+#: src/components/logs/OutgoingWebhooksTab.tsx:221
+msgid "Couldn't load the deliveries"
+msgstr "No s'han pogut carregar els lliuraments"
 
 #: src/components/file_manager/FileExplorer.tsx:776
 msgid "Couldn't load the files"
@@ -5097,10 +5253,10 @@ msgstr "Creat"
 
 #: src/components/automations/describeTrigger.ts:25
 #: src/components/broadcasts/detail/BroadcastAside.tsx:276
+#: src/components/logs/OutgoingWebhooksTab.tsx:400
 #: src/components/settings/WebhookDetail.tsx:502
 #: src/components/settings/WorkspaceMembers.tsx:297
 #: src/components/transactional/TransactionalDetail.tsx:363
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:414
 msgid "Created"
 msgstr "Creat"
 
@@ -5128,6 +5284,54 @@ msgstr "Creat per Zapier"
 #: src/components/blog/ThemeEditorDrawer.tsx:246
 msgid "Created new version v{0}"
 msgstr "Creada nova versió v{0}"
+
+#: src/components/logs/auditPhrases.ts:86
+msgid "Created the API key <0>{target}</0>"
+msgstr "Ha creat la clau API <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:18
+msgid "Created the automation <0>{target}</0>"
+msgstr "Ha creat l'automatització <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:22
+msgid "Created the blog category <0>{target}</0>"
+msgstr "Ha creat la categoria del blog <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:25
+msgid "Created the blog post <0>{target}</0>"
+msgstr "Ha creat l'entrada del blog <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:30
+msgid "Created the blog theme <0>{target}</0>"
+msgstr "Ha creat el tema del blog <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:50
+msgid "Created the list <0>{target}</0>"
+msgstr "Ha creat la llista <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:34
+msgid "Created the newsletter <0>{target}</0>"
+msgstr "Ha creat el butlletí <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:53
+msgid "Created the segment <0>{target}</0>"
+msgstr "Ha creat el segment <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:63
+msgid "Created the template <0>{target}</0>"
+msgstr "Ha creat la plantilla <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:66
+msgid "Created the transactional notification <0>{target}</0>"
+msgstr "Ha creat la notificació transaccional <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:77
+msgid "Created the webhook <0>{target}</0>"
+msgstr "Ha creat el webhook <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:85
+msgid "Created the workspace <0>{target}</0>"
+msgstr "Ha creat l'espai de treball <0>{target}</0>"
 
 #: src/components/settings/ZapierSettings.tsx:187
 #~ msgid "Creates a key limited to the permissions Zapier needs: contacts, lists and webhook subscriptions."
@@ -5373,6 +5577,7 @@ msgstr ""
 msgid "Custom permissions require a Notifuse {tier} licence."
 msgstr ""
 
+#: src/components/logs/AuditLogTab.tsx:178
 #: src/components/web_analytics/toolbar.tsx:33
 msgid "Custom range"
 msgstr "Interval personalitzat"
@@ -5434,7 +5639,7 @@ msgstr "Zona de perill"
 #~ msgstr "Zona de perill"
 
 #: src/layouts/app-shell/AppSidebar.tsx:139
-#: src/layouts/app-shell/menuItems.ts:165
+#: src/layouts/app-shell/menuItems.ts:181
 #: src/pages/AnalyticsPage.tsx:105
 #: src/pages/WebAnalyticsLivePage.tsx:126
 #: src/pages/WebAnalyticsLivePage.tsx:127
@@ -5460,8 +5665,8 @@ msgid "Date is required"
 msgstr "La data és obligatòria"
 
 #: src/components/settings/audit_logs/AuditFilterBuilder.tsx:105
-msgid "Date range"
-msgstr "Interval de dates"
+#~ msgid "Date range"
+#~ msgstr "Interval de dates"
 
 #: src/components/segment/form_leaf.tsx:559
 #: src/components/segment/form_leaf.tsx:932
@@ -5829,7 +6034,7 @@ msgstr "Eliminar plantilla?"
 msgid "Delete the folder {name} and its files?"
 msgstr "Vols eliminar la carpeta {name} i els seus fitxers?"
 
-#: src/components/transactional/notificationRules.ts:85
+#: src/components/transactional/notificationRules.ts:86
 msgid "Delete the notification?"
 msgstr "Eliminar la notificació?"
 
@@ -5899,10 +6104,66 @@ msgstr "Eliminat"
 #~ msgid "Deleted {deletedCount}, failed {failedCount}"
 #~ msgstr "Eliminat(s) {deletedCount}, fallat(s) {failedCount}"
 
+#: src/components/logs/auditPhrases.ts:15
+msgid "Deleted entries past the retention period"
+msgstr "Ha eliminat les entrades fora del període de conservació"
+
 #: src/components/transactional/PreviewPanel.tsx:65
 #: src/components/transactional/TransactionalTable.tsx:69
 msgid "Deleted template"
 msgstr "Plantilla eliminada"
+
+#: src/components/logs/auditPhrases.ts:13
+msgid "Deleted the annotation <0>{target}</0>"
+msgstr "Ha eliminat l'anotació <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:19
+msgid "Deleted the automation <0>{target}</0>"
+msgstr "Ha eliminat l'automatització <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:23
+msgid "Deleted the blog category <0>{target}</0>"
+msgstr "Ha eliminat la categoria del blog <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:26
+msgid "Deleted the blog post <0>{target}</0>"
+msgstr "Ha eliminat l'entrada del blog <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:43
+msgid "Deleted the contact <0>{target}</0>"
+msgstr "Ha eliminat el contacte <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:51
+msgid "Deleted the list <0>{target}</0>"
+msgstr "Ha eliminat la llista <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:35
+msgid "Deleted the newsletter <0>{target}</0>"
+msgstr "Ha eliminat el butlletí <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:61
+msgid "Deleted the saved block <0>{target}</0>"
+msgstr "Ha eliminat el bloc desat <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:54
+msgid "Deleted the segment <0>{target}</0>"
+msgstr "Ha eliminat el segment <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:64
+msgid "Deleted the template <0>{target}</0>"
+msgstr "Ha eliminat la plantilla <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:67
+msgid "Deleted the transactional notification <0>{target}</0>"
+msgstr "Ha eliminat la notificació transaccional <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:78
+msgid "Deleted the webhook <0>{target}</0>"
+msgstr "Ha eliminat el webhook <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:88
+msgid "Deleted the workspace <0>{target}</0>"
+msgstr "Ha eliminat l'espai de treball <0>{target}</0>"
 
 #: src/components/settings/Integrations.tsx:1169
 msgid "Deleting revokes the API key this connection minted, so any Zap still using it stops working. This action cannot be undone."
@@ -5922,8 +6183,10 @@ msgstr "Lliurat"
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:46
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:49
 #: src/components/contacts/sheet/activityLabel.ts:15
-#: src/components/messages/MessageHistoryTab.tsx:115
-#: src/components/messages/MessageHistoryTab.tsx:117
+#: src/components/logs/labels.ts:38
+#: src/components/logs/OutgoingWebhooksTab.tsx:402
+#: src/components/messages/MessageHistoryTab.tsx:116
+#: src/components/messages/MessageHistoryTab.tsx:118
 #: src/components/messages/MessageHistoryTable.tsx:328
 #: src/components/settings/WebhookDetail.tsx:534
 #: src/components/timeline/ContactTimeline.tsx:739
@@ -5933,8 +6196,6 @@ msgstr "Lliurat"
 #: src/components/transactional/TransactionalDetail.tsx:195
 #: src/components/transactional/TransactionalTable.tsx:151
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:68
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:85
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:235
 #: src/pages/TransactionalNotificationsPage.tsx:262
 #: src/pages/TransactionalNotificationsPage.tsx:268
 msgid "Delivered"
@@ -5948,8 +6209,7 @@ msgstr "els esdeveniments de lliurament, rebot i queixa no estan registrats"
 msgid "Deliveries"
 msgstr "Lliuraments"
 
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:89
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:247
+#: src/components/logs/labels.ts:37
 msgid "Delivering"
 msgstr "Lliurant"
 
@@ -5957,19 +6217,23 @@ msgstr "Lliurant"
 #~ msgid "Delivery"
 #~ msgstr "Lliurament"
 
+#: src/components/logs/OutgoingWebhooksTab.tsx:398
+msgid "Delivery ID"
+msgstr "ID del lliurament"
+
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:484
-msgid "Delivery ID:"
-msgstr "ID de lliurament:"
+#~ msgid "Delivery ID:"
+#~ msgstr "ID de lliurament:"
 
 #: src/components/contacts/TrackingConsent.tsx:12
 #: src/components/contacts/TrackingConsent.tsx:44
 #: src/components/contacts/TrackingConsent.tsx:48
-#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:111
+#: src/components/logs/labels.ts:28
 msgid "Denied"
 msgstr "Denegat"
 
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:111
-#: src/components/settings/audit_logs/AuditLogTable.tsx:252
+#: src/components/logs/AuditEntryDetail.tsx:175
+#: src/components/logs/AuditLogTab.tsx:567
 msgid "Deployment"
 msgstr "Desplegament"
 
@@ -6002,8 +6266,8 @@ msgid "Desktop view (100%)"
 msgstr "Vista d'escriptori (100%)"
 
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:180
-msgid "Details"
-msgstr "Detalls"
+#~ msgid "Details"
+#~ msgstr "Detalls"
 
 #: src/components/settings/LogoInput.tsx:81
 msgid "Detect from website"
@@ -6713,9 +6977,8 @@ msgstr "Farciment de l'element"
 #: src/components/contacts/sheet/activityLabel.ts:16
 #: src/components/contacts/visits/webVisitSource.ts:27
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:326
-#: src/components/messages/MessageHistoryTab.tsx:220
+#: src/components/messages/MessageHistoryTab.tsx:221
 #: src/components/segment/segmentSummary.ts:28
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:122
 #: src/components/settings/Integrations.tsx:2097
 #: src/components/timeline/ContactTimeline.tsx:662
 #: src/components/transactional/TransactionalDetail.tsx:341
@@ -7044,12 +7307,10 @@ msgstr "Interacció per país i regió"
 #~ msgstr "Inscrit"
 
 #. placeholder {0}: fieldInfo.label.toLowerCase()
-#. placeholder {0}: labels[key]
 #. placeholder {0}: option.label
 #: src/components/contacts/ContactUpsertDrawer.tsx:401
 #: src/components/contacts/ContactUpsertDrawer.tsx:415
 #: src/components/contacts/ContactUpsertDrawer.tsx:491
-#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:204
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:288
 msgid "Enter {0}"
 msgstr "Introduïu {0}"
@@ -7295,9 +7556,8 @@ msgstr "Error"
 #~ msgid "Error loading automations"
 #~ msgstr "Error en carregar les automatitzacions"
 
-#: src/components/messages/MessageHistoryTab.tsx:602
+#: src/components/messages/MessageHistoryTab.tsx:604
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:492
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:444
 msgid "Error loading data"
 msgstr "Error en carregar les dades"
 
@@ -7316,7 +7576,6 @@ msgid "Error parsing CSV: {0}"
 msgstr "Error en analitzar CSV: {0}"
 
 #: src/components/settings/WebhookDetail.tsx:617
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:491
 msgid "Error:"
 msgstr "Error:"
 
@@ -7348,8 +7607,8 @@ msgid "event"
 msgstr "esdeveniment"
 
 #: src/components/contacts/sheet/activityLabel.ts:22
+#: src/components/logs/OutgoingWebhooksTab.tsx:172
 #: src/components/timeline/ContactTimeline.tsx:749
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:358
 msgid "Event"
 msgstr "Esdeveniment"
 
@@ -7429,9 +7688,17 @@ msgstr "Cada vegada"
 msgid "Everyone signs in with a login code in the meantime; nobody is locked out."
 msgstr ""
 
+#: src/pages/LogsPage.tsx:58
+msgid "Everything sent, received and changed in this workspace"
+msgstr "Tot el que s'envia, es rep i es modifica en aquest espai de treball"
+
 #: src/components/license/LicenseBanner.tsx:119
 msgid "Everything the key grants keeps working during the grace period. Renew it to avoid losing licensed capabilities."
 msgstr ""
+
+#: src/components/logs/AuditLogTab.tsx:389
+msgid "Exact value"
+msgstr "Valor exacte"
 
 #: src/components/segment/form_leaf.tsx:492
 #: src/components/segment/input.tsx:817
@@ -7522,7 +7789,7 @@ msgid "Expires:"
 msgstr "Caduca:"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:371
-#: src/layouts/app-shell/menuItems.ts:168
+#: src/layouts/app-shell/menuItems.ts:184
 #: src/pages/WebAnalyticsPage.tsx:96
 msgid "Explore"
 msgstr "Explorar"
@@ -7530,7 +7797,7 @@ msgstr "Explorar"
 #: src/components/contacts/ContactsViewHeader.tsx:63
 #: src/components/contacts/ExportContactsModal.tsx:365
 #: src/components/email_builder/MjmlCodeEditor.tsx:640
-#: src/components/logs/AuditLogActions.tsx:52
+#: src/components/logs/AuditLogTab.tsx:493
 #: src/components/templates/ImportExportButton.tsx:233
 msgid "Export"
 msgstr "Exportar"
@@ -7540,8 +7807,8 @@ msgid "Export Contacts to CSV"
 msgstr "Exportar contactes a CSV"
 
 #: src/components/logs/AuditLogActions.tsx:24
-msgid "Export failed"
-msgstr "L'exportació ha fallat"
+#~ msgid "Export failed"
+#~ msgstr "L'exportació ha fallat"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:649
 msgid "Export HTML"
@@ -7556,13 +7823,21 @@ msgid "Export the audit log as CSV or NDJSON"
 msgstr "Exportar el registre d'auditoria com a CSV o NDJSON"
 
 #: src/components/logs/AuditLogActions.tsx:50
-msgid "Export the current filter as CSV or NDJSON, up to {AUDIT_LOG_EXPORT_MAX_ROWS} rows"
-msgstr "Exporta el filtre actual com a CSV o NDJSON, fins a {AUDIT_LOG_EXPORT_MAX_ROWS} files"
+#~ msgid "Export the current filter as CSV or NDJSON, up to {AUDIT_LOG_EXPORT_MAX_ROWS} rows"
+#~ msgstr "Exporta el filtre actual com a CSV o NDJSON, fins a {AUDIT_LOG_EXPORT_MAX_ROWS} files"
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:128
 #: src/pages/WebAnalyticsPage.tsx:125
 msgid "Export to CSV"
 msgstr "Exportar a CSV"
+
+#: src/components/logs/auditPhrases.ts:44
+msgid "Exported contacts"
+msgstr "Ha exportat contactes"
+
+#: src/components/logs/auditPhrases.ts:16
+msgid "Exported the audit log"
+msgstr "Ha exportat el registre d'auditoria"
 
 #: src/components/contacts/ExportContactsModal.tsx:382
 msgid "Exporting all contacts"
@@ -7577,7 +7852,7 @@ msgstr "Exportant tots els contactes"
 #: src/components/contacts/ContactsFilters.tsx:20
 #: src/components/contacts/ExportContactsModal.tsx:64
 #: src/components/contacts/sheet/ContactProfileFields.tsx:125
-#: src/components/messages/MessageHistoryTab.tsx:227
+#: src/components/messages/MessageHistoryTab.tsx:228
 #: src/components/messages/MessageHistoryTable.tsx:145
 #: src/components/messages/MessageHistoryTable.tsx:172
 #: src/components/segment/segmentSummary.ts:29
@@ -7605,16 +7880,16 @@ msgstr "Fallat"
 #: src/components/contacts/BulkActionProgressModal.tsx:146
 #: src/components/contacts/BulkUpdateDrawer.tsx:710
 #: src/components/contacts/BulkUpdateDrawer.tsx:749
-#: src/components/messages/MessageHistoryTab.tsx:128
-#: src/components/messages/MessageHistoryTab.tsx:130
+#: src/components/logs/labels.ts:27
+#: src/components/logs/labels.ts:40
+#: src/components/messages/MessageHistoryTab.tsx:129
+#: src/components/messages/MessageHistoryTab.tsx:131
 #: src/components/messages/MessageHistoryTable.tsx:336
 #: src/components/settings/WebhookDetail.tsx:539
 #: src/components/transactional/RecentSends.tsx:38
 #: src/components/transactional/SendsPerDayChart.tsx:51
 #: src/components/transactional/TransactionalDetail.tsx:222
 #: src/components/transactional/TransactionalTable.tsx:170
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:90
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:253
 #: src/pages/BroadcastsPage.tsx:188
 #: src/pages/TransactionalNotificationsPage.tsx:282
 msgid "Failed"
@@ -7671,6 +7946,7 @@ msgstr "No s'ha pogut connectar Zapier"
 #: src/components/file_manager/FileExplorer.tsx:293
 #: src/components/layout/DrawerControls.tsx:77
 #: src/components/layout/Mono.tsx:22
+#: src/components/logs/CodeBlock.tsx:22
 #: src/components/settings/WebhookDetail.tsx:214
 #: src/components/transactional/ApiCallPanel.tsx:39
 #: src/components/transactional/ApiCommandModal.tsx:107
@@ -7769,7 +8045,7 @@ msgstr "No s'ha pogut eliminar la invitació"
 msgid "Failed to delete list"
 msgstr "No s'ha pogut eliminar la llista"
 
-#: src/components/transactional/notificationRules.ts:100
+#: src/components/transactional/notificationRules.ts:101
 msgid "Failed to delete notification"
 msgstr "No s'ha pogut eliminar la notificació"
 
@@ -8158,7 +8434,7 @@ msgstr "No s'ha pogut actualitzar la configuració d'analítica web"
 msgid "Failed to update workspace settings"
 msgstr "No s'han pogut actualitzar els paràmetres de l'espai de treball"
 
-#: src/layouts/WorkspaceLayout.tsx:159
+#: src/layouts/WorkspaceLayout.tsx:162
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "No s'han pogut actualitzar els paràmetres de l'espai de treball: {errorMessage}"
 
@@ -8167,8 +8443,8 @@ msgid "Failed to verify code"
 msgstr "Error en verificar el codi"
 
 #: src/components/settings/audit_logs/AuditFilterBuilder.tsx:110
-msgid "Failure"
-msgstr "Error"
+#~ msgid "Failure"
+#~ msgstr "Error"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:149
 msgid "false"
@@ -8208,6 +8484,7 @@ msgstr "Obtenint dades..."
 msgid "Fetching: {0}"
 msgstr "Obtenint: {0}"
 
+#: src/components/logs/AuditEntryDetail.tsx:186
 #: src/components/settings/CustomFieldsConfiguration.tsx:183
 msgid "Field"
 msgstr "Camp"
@@ -8248,7 +8525,7 @@ msgid "File is too large. Maximum size is 1MB."
 msgstr "El fitxer és massa gran. La mida màxima és d'1 MB."
 
 #: src/components/file_manager/FileExplorer.tsx:984
-#: src/layouts/app-shell/menuItems.ts:179
+#: src/layouts/app-shell/menuItems.ts:195
 msgid "File Manager"
 msgstr "Gestor de fitxers"
 
@@ -8311,9 +8588,9 @@ msgstr "Condicions de filtre"
 msgid "Filter on an event property"
 msgstr "Filtrar per una propietat de l'esdeveniment"
 
-#: src/components/messages/MessageHistoryTab.tsx:579
+#: src/components/messages/MessageHistoryTab.tsx:581
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:373
-#: src/layouts/app-shell/menuItems.ts:170
+#: src/layouts/app-shell/menuItems.ts:186
 #: src/pages/WebAnalyticsPage.tsx:98
 msgid "Filters"
 msgstr "Filtres"
@@ -8759,7 +9036,7 @@ msgstr "Objectiu:"
 #: src/components/web_analytics/tabs/DashboardTab.tsx:246
 #: src/components/web_analytics/tabs/DashboardTab.tsx:256
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:372
-#: src/layouts/app-shell/menuItems.ts:169
+#: src/layouts/app-shell/menuItems.ts:185
 #: src/pages/WebAnalyticsPage.tsx:97
 msgid "Goals"
 msgstr "Objectius"
@@ -9062,7 +9339,6 @@ msgstr "URL d'icona/favicon"
 
 #: src/components/lists/ListHeader.tsx:113
 #: src/components/messages/MessageHistoryTable.tsx:273
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:149
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:355
 msgid "ID"
 msgstr "ID"
@@ -9293,6 +9569,14 @@ msgstr "Importats {0} contactes"
 msgid "Imported {0} contacts ({1} failed, see details below)"
 msgstr "Importats {0} contactes ({1} fallats, vegeu detalls a continuació)"
 
+#: src/components/logs/auditPhrases.ts:45
+msgid "Imported contacts"
+msgstr "Ha importat contactes"
+
+#: src/components/logs/auditPhrases.ts:46
+msgid "Imported custom events"
+msgstr "Ha importat esdeveniments personalitzats"
+
 #: src/components/email_builder/ui/FontStyleInput.tsx:87
 msgid "Imported Fonts"
 msgstr "Fonts importades"
@@ -9367,9 +9651,13 @@ msgstr "Incloeu una crida a l'acció clara"
 msgid "Included"
 msgstr "Inclosos"
 
-#: src/pages/LogsPage.tsx:61
-msgid "Incoming Webhooks"
+#: src/pages/LogsPage.tsx:90
+msgid "Incoming webhooks"
 msgstr "Webhooks entrants"
+
+#: src/pages/LogsPage.tsx:61
+#~ msgid "Incoming Webhooks"
+#~ msgstr "Webhooks entrants"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:538
 msgid "Incomplete: {reason}"
@@ -9492,6 +9780,7 @@ msgstr "Integració no trobada o no és un proveïdor de correu"
 msgid "Integration updated successfully"
 msgstr "Integració actualitzada correctament"
 
+#: src/components/logs/labels.ts:12
 #: src/components/settings/Integrations.tsx:2066
 #: src/components/settings/SettingsSidebar.tsx:63
 msgid "Integrations"
@@ -9614,18 +9903,26 @@ msgstr "Convida"
 msgid "Invite Member"
 msgstr "Convidar membre"
 
+#: src/components/logs/auditPhrases.ts:91
+msgid "Invited <0>{target}</0>"
+msgstr "Ha convidat <0>{target}</0>"
+
 #: src/components/workspace/PendingInvitations.tsx:85
 msgid "Invited by {inviterName}"
 msgstr "Invitació de {inviterName}"
 
 #: src/components/settings/audit_logs/AuditLogTable.tsx:266
-msgid "IP"
-msgstr "IP"
+#~ msgid "IP"
+#~ msgstr "IP"
 
-#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:104
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:131
+#: src/components/logs/AuditEntryDetail.tsx:158
+#: src/components/logs/AuditLogTab.tsx:286
 msgid "IP address"
 msgstr "Adreça IP"
+
+#: src/components/logs/AuditLogTab.tsx:412
+msgid "IP address, actor email or target ID"
+msgstr "Adreça IP, correu de l'actor o ID de destinació"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:422
 msgid "IP addresses are never stored — only used for geo lookup. Country is always included when geo tracking is enabled."
@@ -9753,6 +10050,10 @@ msgstr "Ha entrat al segment"
 msgid "Joined segment {segment}"
 msgstr "S'ha unit al segment {segment}"
 
+#: src/components/logs/auditPhrases.ts:92
+msgid "Joined with the invitation <0>{target}</0>"
+msgstr "S'ha unit amb la invitació <0>{target}</0>"
+
 #: src/pages/AutomationsPage.tsx:238
 msgid "Journeys since creation · open rate last 30 days"
 msgstr "Recorreguts des de la creació · taxa d'obertura dels darrers 30 dies"
@@ -9805,6 +10106,14 @@ msgstr "Conserva l'enllaç de confirmació: {CONFIRM_VARIABLE}."
 #: src/components/email_builder/panels/TextVersionPanel.tsx:204
 msgid "Keep the unsubscribe link: {UNSUBSCRIBE_VARIABLE}."
 msgstr "Conserva l'enllaç per donar-se de baixa: {UNSUBSCRIBE_VARIABLE}."
+
+#: src/components/logs/AuditLogTab.tsx:649
+msgid "Kept for the deployment default"
+msgstr "Es conserva segons el valor per defecte de la instal·lació"
+
+#: src/components/logs/AuditLogTab.tsx:646
+msgid "Kept forever"
+msgstr "Es conserva per sempre"
 
 #: src/components/segment/input_json_path.tsx:88
 msgid "key or index"
@@ -9871,13 +10180,14 @@ msgstr "Les imatges grans poden alentir significativament els temps de càrrega 
 #~ msgid "Last {WINDOW_MINUTES} minutes"
 #~ msgstr ""
 
-#: src/components/settings/WebhookCard.tsx:380
-#~ msgid "Last 24 hours"
-#~ msgstr "Últimes 24 hores"
+#: src/components/logs/AuditLogTab.tsx:173
+msgid "Last 24 hours"
+msgstr "Últimes 24 hores"
 
 #: src/components/automations/AutomationEditor.tsx:454
 #: src/components/automations/NodeConfigPanel.tsx:188
 #: src/components/broadcasts/BroadcastKpis.tsx:138
+#: src/components/logs/AuditLogTab.tsx:175
 msgid "Last 30 days"
 msgstr "Últims 30 dies"
 
@@ -9890,13 +10200,21 @@ msgstr "Últims 30 dies: {0}"
 #~ msgid "last 30 minutes"
 #~ msgstr ""
 
-#: src/components/settings/WebhookCard.tsx:380
-#~ msgid "Last 7 days"
-#~ msgstr "Últims 7 dies"
+#: src/components/logs/AuditLogTab.tsx:174
+msgid "Last 7 days"
+msgstr "Últims 7 dies"
+
+#: src/components/logs/AuditLogTab.tsx:176
+msgid "Last 90 days"
+msgstr "Últims 90 dies"
 
 #: src/components/contacts/sheet/ContactKpis.tsx:55
 msgid "Last activity"
 msgstr "Darrera activitat"
+
+#: src/components/logs/OutgoingWebhooksTab.tsx:401
+msgid "Last attempt"
+msgstr "Últim intent"
 
 #: src/pages/WebAnalyticsFiltersPage.tsx:150
 #~ msgid "Last backfill rewrote"
@@ -10040,6 +10358,7 @@ msgstr "Espaiat de lletres"
 msgid "Library"
 msgstr "Biblioteca"
 
+#: src/components/logs/labels.ts:7
 #: src/components/settings/LicenseSettings.tsx:59
 #: src/components/settings/LicenseSettings.tsx:142
 #: src/components/settings/SettingsSidebar.tsx:70
@@ -10108,7 +10427,7 @@ msgid "Link contains {link}"
 msgstr "L'enllaç conté {link}"
 
 #: src/components/layout/DrawerControls.tsx:76
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:66
+#: src/components/logs/AuditEntryDetail.tsx:84
 msgid "Link copied"
 msgstr "Enllaç copiat"
 
@@ -10235,7 +10554,7 @@ msgid "List everything one contact is subscribed to (also needs Contacts read)"
 msgstr "Llistar tot allò a què està subscrit un contacte (també necessita lectura de Contactes)"
 
 #: src/components/lists/ListDrawer.tsx:224
-#: src/components/messages/MessageHistoryTab.tsx:228
+#: src/components/messages/MessageHistoryTab.tsx:229
 msgid "List ID"
 msgstr "ID de llista"
 
@@ -10328,6 +10647,7 @@ msgstr "Llista:"
 #: src/components/contacts/ContactsTable.tsx:66
 #: src/components/contacts/ContactsTable.tsx:204
 #: src/components/contacts/sheet/ContactListsCard.tsx:120
+#: src/components/logs/labels.ts:17
 #: src/components/settings/permissionLabels.ts:8
 #: src/components/templates/DeleteTemplateModal.tsx:44
 #: src/services/api/errors.ts:83
@@ -10350,7 +10670,7 @@ msgstr "L'escriptura de Llistes també concedeix l'escriptura de contactes. Subs
 #: src/components/blog/RecentThemesTable.tsx:121
 #: src/components/templates/templateUsage.ts:88
 #: src/components/web_analytics/LiveButton.tsx:46
-#: src/layouts/app-shell/menuItems.ts:167
+#: src/layouts/app-shell/menuItems.ts:183
 #: src/pages/AutomationsPage.tsx:135
 #: src/pages/WebAnalyticsLivePage.tsx:121
 msgid "Live"
@@ -10375,13 +10695,13 @@ msgstr "Carrega'n {PAGE_SIZE} més"
 
 #: src/components/blog/PostsTable.tsx:469
 #: src/components/contacts/visits/ContactWebVisits.tsx:360
+#: src/components/logs/AuditLogTab.tsx:667
+#: src/components/logs/OutgoingWebhooksTab.tsx:286
 msgid "Load more"
 msgstr "Carrega'n més"
 
 #: src/components/messages/MessageHistoryTable.tsx:511
-#: src/components/settings/audit_logs/AuditLogTable.tsx:307
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:554
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:517
 msgid "Load More"
 msgstr "Carregar més"
 
@@ -10427,8 +10747,8 @@ msgid "Loading template..."
 msgstr "Carregant plantilla..."
 
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:463
-msgid "Loading webhook deliveries..."
-msgstr "Carregant enviaments de webhook..."
+#~ msgid "Loading webhook deliveries..."
+#~ msgstr "Carregant enviaments de webhook..."
 
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:512
 msgid "Loading webhook events..."
@@ -10439,14 +10759,12 @@ msgstr "Carregant esdeveniments de webhook..."
 #~ msgstr "Carregant estat del webhook..."
 
 #: src/components/blog_editor/NotifuseEditor.tsx:480
-#: src/components/messages/MessageHistoryTab.tsx:609
+#: src/components/messages/MessageHistoryTab.tsx:611
 #: src/components/templates/TemplateSelectorInput.tsx:151
 #: src/components/timeline/ContactTimeline.tsx:1128
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:499
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:451
 #: src/layouts/RootLayout.tsx:99
 #: src/pages/ContactsPage.tsx:418
-#: src/pages/LogsPage.tsx:29
 msgid "Loading..."
 msgstr "Carregant..."
 
@@ -10485,8 +10803,8 @@ msgstr "URL del logotip"
 msgid "Logout"
 msgstr "Tancar sessió"
 
-#: src/layouts/app-shell/menuItems.ts:180
-#: src/pages/LogsPage.tsx:95
+#: src/layouts/app-shell/menuItems.ts:196
+#: src/pages/LogsPage.tsx:57
 msgid "Logs"
 msgstr "Registres"
 
@@ -10582,7 +10900,7 @@ msgid "Managed by {0} ({1} integration)"
 msgstr "Gestionat per {0} (integració {1})"
 
 #. placeholder {0}: integration.name
-#: src/components/transactional/notificationRules.ts:71
+#: src/components/transactional/notificationRules.ts:72
 msgid "Managed by {0}: it can't be deleted"
 msgstr "Gestionada per {0}: no es pot eliminar"
 
@@ -10590,7 +10908,7 @@ msgstr "Gestionada per {0}: no es pot eliminar"
 msgid "Managed by an integration"
 msgstr "Gestionada per una integració"
 
-#: src/components/transactional/notificationRules.ts:72
+#: src/components/transactional/notificationRules.ts:73
 msgid "Managed by an integration: it can't be deleted"
 msgstr "Gestionada per una integració: no es pot eliminar"
 
@@ -10697,6 +11015,10 @@ msgstr "L'interval màxim és de 2 anys"
 msgid "Maximum range is 2 years. Dates are read in {timezone}."
 msgstr "L'interval màxim és de 2 anys. Les dates es llegeixen en {timezone}."
 
+#: src/components/logs/AuditLogTab.tsx:209
+msgid "Me"
+msgstr "Jo"
+
 #: src/components/web_analytics/goals/GoalCard.tsx:46
 msgid "Median"
 msgstr "Mediana"
@@ -10748,6 +11070,7 @@ msgstr "Mitjana"
 msgid "Mediums"
 msgstr "Mitjans"
 
+#: src/components/logs/auditDisplay.ts:20
 #: src/components/settings/WorkspaceMembers.tsx:246
 #: src/layouts/app-shell/AccountMenu.tsx:60
 msgid "Member"
@@ -10757,6 +11080,7 @@ msgstr "Membre"
 msgid "Member removed successfully"
 msgstr "Membre tret correctament"
 
+#: src/components/logs/labels.ts:10
 #: src/components/settings/WorkspaceMembers.tsx:477
 msgid "Members"
 msgstr "Membres"
@@ -10766,7 +11090,6 @@ msgid "Message"
 msgstr "Missatge"
 
 #: src/components/settings/permissionLabels.ts:13
-#: src/pages/LogsPage.tsx:56
 #: src/services/api/errors.ts:88
 msgid "Message History"
 msgstr "Historial de missatges"
@@ -10775,7 +11098,7 @@ msgstr "Historial de missatges"
 msgid "Message history and webhook events will be anonymized (email addresses redacted) but retained for analytics."
 msgstr "L'historial de missatges i els esdeveniments de webhook s'anonimitzaran (adreces de correu redactades) però es conservaran per a analítica."
 
-#: src/components/messages/MessageHistoryTab.tsx:226
+#: src/components/messages/MessageHistoryTab.tsx:227
 #: src/components/messages/MessageHistoryTable.tsx:144
 #: src/components/messages/MessageHistoryTable.tsx:159
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:108
@@ -10792,6 +11115,7 @@ msgid "Message Stream"
 msgstr "Flux de missatges"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:252
+#: src/pages/LogsPage.tsx:89
 msgid "Messages"
 msgstr "Missatges"
 
@@ -10808,6 +11132,11 @@ msgstr "Meta descripció"
 msgid "Meta Title"
 msgstr "Meta títol"
 
+#: src/components/logs/AuditEntryDetail.tsx:211
+msgid "metadata"
+msgstr "metadades"
+
+#: src/components/logs/AuditEntryDetail.tsx:210
 #: src/components/messages/MessageHistoryTable.tsx:146
 #: src/components/messages/MessageHistoryTable.tsx:190
 #: src/components/templates/TemplatePreviewDrawer.tsx:283
@@ -10972,8 +11301,8 @@ msgstr "Modificat"
 #~ msgstr "Monitorar l'estat de lliurament de missatges i esdeveniments de webhook"
 
 #: src/pages/LogsPage.tsx:96
-msgid "Monitor message delivery status, webhook events and the audit trail"
-msgstr "Superviseu l'estat de lliurament dels missatges, els esdeveniments de webhook i el registre d'auditoria"
+#~ msgid "Monitor message delivery status, webhook events and the audit trail"
+#~ msgstr "Superviseu l'estat de lliurament dels missatges, els esdeveniments de webhook i el registre d'auditoria"
 
 #: src/components/web_analytics/toolbar.tsx:25
 msgid "Month to date"
@@ -11068,8 +11397,6 @@ msgstr "N/D"
 #: src/components/file_manager/FileTable.tsx:78
 #: src/components/lists/ListDrawer.tsx:213
 #: src/components/segment/button_upsert.tsx:447
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:125
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:154
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
 #: src/components/settings/GeneralSettings.tsx:325
@@ -11244,6 +11571,7 @@ msgstr "Nova finestra"
 msgid "New workspace"
 msgstr "Nou espai de treball"
 
+#: src/components/logs/labels.ts:15
 #: src/components/templates/DeleteTemplateModal.tsx:41
 msgid "Newsletters"
 msgstr "Butlletins"
@@ -11261,6 +11589,10 @@ msgstr "Següent"
 #: src/components/layout/DrawerControls.tsx:46
 msgid "Next (J)"
 msgstr "Següent (J)"
+
+#: src/components/logs/OutgoingWebhooksTab.tsx:404
+msgid "Next attempt"
+msgstr "Proper intent"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:249
 msgid "Next run"
@@ -11281,14 +11613,14 @@ msgstr "Propera execució"
 #: src/components/contacts/ContactsViewHeader.tsx:142
 #: src/components/contacts/ContactsViewHeader.tsx:166
 #: src/components/contacts/ContactUpsertDrawer.tsx:555
-#: src/components/messages/MessageHistoryTab.tsx:109
-#: src/components/messages/MessageHistoryTab.tsx:122
-#: src/components/messages/MessageHistoryTab.tsx:135
-#: src/components/messages/MessageHistoryTab.tsx:148
-#: src/components/messages/MessageHistoryTab.tsx:161
-#: src/components/messages/MessageHistoryTab.tsx:177
-#: src/components/messages/MessageHistoryTab.tsx:190
-#: src/components/messages/MessageHistoryTab.tsx:206
+#: src/components/messages/MessageHistoryTab.tsx:110
+#: src/components/messages/MessageHistoryTab.tsx:123
+#: src/components/messages/MessageHistoryTab.tsx:136
+#: src/components/messages/MessageHistoryTab.tsx:149
+#: src/components/messages/MessageHistoryTab.tsx:162
+#: src/components/messages/MessageHistoryTab.tsx:178
+#: src/components/messages/MessageHistoryTab.tsx:191
+#: src/components/messages/MessageHistoryTab.tsx:207
 #: src/components/settings/CustomFieldsConfiguration.tsx:171
 #: src/components/settings/Integrations.tsx:950
 #: src/components/settings/integrations/EmailProviderCard.tsx:157
@@ -11340,8 +11672,12 @@ msgid "No attribution rules yet. Create the first one to start shaping your traf
 msgstr "Encara no hi ha regles d'atribució. Creeu la primera per començar a donar forma a les vostres dades de trànsit."
 
 #: src/components/settings/audit_logs/AuditLogTable.tsx:287
-msgid "No audit entries match"
-msgstr "Cap entrada d'auditoria coincideix"
+#~ msgid "No audit entries match"
+#~ msgstr "Cap entrada d'auditoria coincideix"
+
+#: src/components/logs/AuditLogTab.tsx:610
+msgid "No audit entries yet"
+msgstr "Encara no hi ha entrades d'auditoria"
 
 #: src/pages/AutomationsPage.tsx:258
 msgid "No automations match"
@@ -11711,9 +12047,18 @@ msgstr "No hi ha referents"
 msgid "No Repeat"
 msgstr "Sense repetició"
 
+#: src/components/logs/OutgoingWebhooksTab.tsx:442
+msgid "No response"
+msgstr "Sense resposta"
+
 #: src/components/web_analytics/FilterBuilder.tsx:381
 msgid "No results found"
 msgstr "No s'han trobat resultats"
+
+#: src/components/logs/AuditLogTab.tsx:606
+#: src/components/logs/OutgoingWebhooksTab.tsx:232
+msgid "No results match"
+msgstr "Cap resultat no coincideix"
 
 #: src/components/web_analytics/tabs/FiltersTab.tsx:180
 msgid "No rule carries the selected tag"
@@ -11859,8 +12204,12 @@ msgid "No visits recorded for this contact"
 msgstr "No hi ha visites registrades per a aquest contacte"
 
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:468
-msgid "No webhook deliveries found"
-msgstr "No s'han trobat enviaments de webhook"
+#~ msgid "No webhook deliveries found"
+#~ msgstr "No s'han trobat enviaments de webhook"
+
+#: src/components/logs/OutgoingWebhooksTab.tsx:236
+msgid "No webhook deliveries yet"
+msgstr "Encara no hi ha lliuraments de webhook"
 
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:517
 msgid "No webhook events found"
@@ -12055,6 +12404,14 @@ msgstr "Notes"
 #: src/components/web_analytics/InstallOverlay.tsx:77
 msgid "Nothing has been recorded over the last 24 hours. Check that this snippet is still installed on your website."
 msgstr "No s'ha registrat res en les darreres 24 hores. Comproveu que aquest fragment segueixi instal·lat al vostre lloc web."
+
+#: src/components/logs/AuditLogTab.tsx:612
+msgid "Nothing in the last 7 days"
+msgstr "Res en els últims 7 dies"
+
+#: src/components/logs/AuditLogTab.tsx:614
+msgid "Nothing in this period"
+msgstr "Res en aquest període"
 
 #: src/components/license/LicenceGateNotice.tsx:67
 msgid "Nothing is being recorded, and nothing is refused: this page, the export and the retention setting stay available, and entries recorded while a licence covered audit logs stay readable."
@@ -12402,6 +12759,10 @@ msgstr "Taxa d'obertura"
 #~ msgid "Open Rate"
 #~ msgstr "Taxa d'obertura"
 
+#: src/components/logs/OutgoingWebhooksTab.tsx:391
+msgid "Open subscription"
+msgstr "Obre la subscripció"
+
 #: src/components/automations/stats/EmailStepPreview.tsx:65
 msgid "Open template"
 msgstr "Obre la plantilla"
@@ -12430,8 +12791,8 @@ msgstr "Obert"
 #: src/components/automations/stats/EmailStepStats.tsx:77
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:55
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:58
-#: src/components/messages/MessageHistoryTab.tsx:141
-#: src/components/messages/MessageHistoryTab.tsx:143
+#: src/components/messages/MessageHistoryTab.tsx:142
+#: src/components/messages/MessageHistoryTab.tsx:144
 #: src/components/messages/MessageHistoryTable.tsx:344
 #: src/components/transactional/RecentSends.tsx:43
 #: src/components/transactional/TransactionalDetail.tsx:201
@@ -12574,6 +12935,10 @@ msgstr "Cerca orgànica"
 msgid "Organic social"
 msgstr "Social orgànic"
 
+#: src/components/logs/AuditLogTab.tsx:552
+msgid "Origin"
+msgstr "Origen"
+
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:255
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:255
 #: src/components/web_analytics/tabs/DashboardTab.tsx:239
@@ -12597,19 +12962,19 @@ msgstr "Altres integracions"
 msgid "Outbound webhook subscriptions — where the workspace POSTs its own events — and their delivery log."
 msgstr "Subscripcions de webhooks sortints — on l'espai de treball fa POST dels seus propis esdeveniments — i el seu registre de lliuraments."
 
-#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:101
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:99
-#: src/components/settings/audit_logs/AuditLogTable.tsx:257
+#: src/components/logs/AuditEntryDetail.tsx:130
+#: src/components/logs/AuditLogTab.tsx:283
 msgid "Outcome"
 msgstr "Resultat"
 
 #: src/components/settings/WebhooksSettings.tsx:451
+#: src/pages/LogsPage.tsx:91
 msgid "Outgoing webhooks"
 msgstr "Webhooks sortints"
 
 #: src/pages/LogsPage.tsx:71
-msgid "Outgoing Webhooks"
-msgstr "Webhooks sortints"
+#~ msgid "Outgoing Webhooks"
+#~ msgstr "Webhooks sortints"
 
 #: src/components/ai-assistant/AIAssistantChat.tsx:381
 msgid "Output"
@@ -12699,6 +13064,10 @@ msgstr "Vídeo de pagament"
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:385
 msgid "Parent Frame"
 msgstr "Marc pare"
+
+#: src/components/logs/AuditLogTab.tsx:389
+msgid "Part of an email"
+msgstr "Part d'un correu"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:357
 msgid "Part of the link's URL, not case-sensitive. Leave empty to start on any link."
@@ -12798,13 +13167,29 @@ msgstr "Primer posa en pausa l'automatització"
 msgid "Paused"
 msgstr "Pausat"
 
+#: src/components/logs/auditPhrases.ts:20
+msgid "Paused the automation <0>{target}</0>"
+msgstr "Ha posat en pausa l'automatització <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:36
+msgid "Paused the newsletter <0>{target}</0>"
+msgstr "Ha posat en pausa el butlletí <0>{target}</0>"
+
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:210
 msgid "Paused: {reason}"
 msgstr "En pausa: {reason}"
 
+#: src/components/logs/OutgoingWebhooksTab.tsx:449
+msgid "payload"
+msgstr "payload"
+
+#: src/components/logs/OutgoingWebhooksTab.tsx:447
+msgid "Payload"
+msgstr "Payload"
+
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:504
-msgid "Payload:"
-msgstr "Càrrega:"
+#~ msgid "Payload:"
+#~ msgstr "Càrrega:"
 
 #. placeholder {0}: formatSeriesDay(peak, i18n.locale)
 #: src/components/transactional/TransactionalDetail.tsx:224
@@ -12817,9 +13202,8 @@ msgstr "Pic el {0}"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:223
 #: src/components/contacts/contactDisplay.ts:36
 #: src/components/lists/ListHeader.tsx:63
+#: src/components/logs/labels.ts:36
 #: src/components/settings/WorkspaceMembers.tsx:84
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:86
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:241
 #: src/pages/ContactsPage.tsx:522
 msgid "Pending"
 msgstr "Pendent"
@@ -12865,6 +13249,7 @@ msgstr "URL del feed per destinatari"
 #~ msgstr "L'URL del feed per destinatari és requerida quan està habilitat"
 
 #: src/components/automations/AutomationEditor.tsx:450
+#: src/components/logs/AuditLogTab.tsx:421
 msgid "Period"
 msgstr "Període"
 
@@ -12947,6 +13332,10 @@ msgstr "Tria com a guanyador"
 #: src/services/api/permissions.ts:595
 msgid "Pick the winning A/B variation and send it to the remaining audience"
 msgstr "Triar la variació A/B guanyadora i enviar-la a la resta del públic"
+
+#: src/components/logs/auditPhrases.ts:40
+msgid "Picked the winning version of the newsletter <0>{target}</0>"
+msgstr "Ha triat la versió guanyadora del butlletí <0>{target}</0>"
 
 #: src/components/email_builder/dnd/LibraryDnd.tsx:134
 msgid "Picked up {name}."
@@ -13651,11 +14040,19 @@ msgstr "Publicat"
 msgid "Published {0} · Updated {updatedAt} in {timezone}"
 msgstr "Publicat {0} · Actualitzat {updatedAt} ({timezone})"
 
+#: src/components/logs/auditPhrases.ts:27
+msgid "Published the blog post <0>{target}</0>"
+msgstr "Ha publicat l'entrada del blog <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:31
+msgid "Published the blog theme <0>{target}</0>"
+msgstr "Ha publicat el tema del blog <0>{target}</0>"
+
 #: src/components/settings/WebhooksSettings.tsx:600
 msgid "Purchase"
 msgstr "Compra"
 
-#: src/components/messages/MessageHistoryTab.tsx:222
+#: src/components/messages/MessageHistoryTab.tsx:223
 msgid "Push"
 msgstr "Enviar"
 
@@ -13679,7 +14076,11 @@ msgstr "Límit d'enviament per al màrqueting"
 msgid "Rate limit for marketing emails (emails per minute)"
 msgstr "Límit de velocitat per a correus de màrqueting (correus per minut)"
 
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:195
+#: src/components/logs/AuditEntryDetail.tsx:215
+msgid "raw entry"
+msgstr "entrada en brut"
+
+#: src/components/logs/AuditEntryDetail.tsx:214
 msgid "Raw entry"
 msgstr "Entrada en brut"
 
@@ -13906,6 +14307,10 @@ msgstr "Esforç de raonament"
 msgid "Rebuild segment"
 msgstr "Reconstruir segment"
 
+#: src/components/logs/auditPhrases.ts:55
+msgid "Rebuilt the segment <0>{target}</0>"
+msgstr "Ha recalculat el segment <0>{target}</0>"
+
 #: src/components/analytics/DashboardKpis.tsx:276
 msgid "Recent emails may still be clicked"
 msgstr "Els correus recents encara poden rebre clics"
@@ -14001,6 +14406,14 @@ msgstr "Registrar la regió o l'estat dels visitants"
 #~ msgid "Record web navigation on the contact timeline"
 #~ msgstr ""
 
+#: src/components/logs/auditPhrases.ts:47
+msgid "Recording resumed"
+msgstr "Registre represo"
+
+#: src/components/logs/auditPhrases.ts:48
+msgid "Recording stopped: no valid licence"
+msgstr "Registre aturat: cap llicència vàlida"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:332
 #~ msgid "Records each session and pageview of visitors identified with identify() as contact timeline entries. Unlike goals, navigation never triggers automations. A busy visit can add dozens of entries to a contact's timeline. Obtaining consent to store browsing history against a contact is your responsibility."
 #~ msgstr ""
@@ -14042,14 +14455,15 @@ msgid "Referrers"
 msgstr "Referents"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:205
-#: src/components/logs/AuditLogActions.tsx:32
-#: src/components/logs/AuditLogActions.tsx:37
+#: src/components/logs/AuditLogTab.tsx:498
+#: src/components/logs/AuditLogTab.tsx:502
+#: src/components/logs/OutgoingWebhooksTab.tsx:146
+#: src/components/logs/OutgoingWebhooksTab.tsx:150
 #: src/components/messages/MessageHistoryTable.tsx:426
 #: src/components/settings/LicenseSettings.tsx:156
 #: src/components/settings/WebhooksSettings.tsx:454
 #: src/components/settings/WebhooksSettings.tsx:458
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:429
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:425
 #: src/pages/ContactsPage.tsx:673
 #: src/pages/ContactsPage.tsx:676
 msgid "Refresh"
@@ -14088,6 +14502,10 @@ msgstr "Regenerar"
 msgid "Regenerate secret?"
 msgstr "Regenerar secret?"
 
+#: src/components/logs/auditPhrases.ts:79
+msgid "Regenerated the secret of the webhook <0>{target}</0>"
+msgstr "Ha regenerat el secret del webhook <0>{target}</0>"
+
 #: src/components/settings/Integrations.tsx:1670
 #: src/components/settings/integrations/providerDetails.ts:136
 msgid "Region"
@@ -14113,6 +14531,10 @@ msgstr "Registreu els webhooks per configurar el reenviament de respostes i desp
 #: src/components/settings/integrations/EmailProviderCard.tsx:154
 msgid "Register webhooks?"
 msgstr "Registrar webhooks?"
+
+#: src/components/logs/auditPhrases.ts:82
+msgid "Registered the provider webhooks of <0>{target}</0>"
+msgstr "Ha registrat els webhooks del proveïdor de <0>{target}</0>"
 
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:89
 msgid "Regular expression"
@@ -14162,6 +14584,10 @@ msgstr "Treure"
 #: src/components/contacts/sheet/ContactListsCard.tsx:109
 msgid "Remove {0} from {1}?"
 msgstr "Vols treure {0} de {1}?"
+
+#: src/components/logs/FilterChip.tsx:89
+msgid "Remove {name} filter"
+msgstr "Treu el filtre {name}"
 
 #: src/services/api/permissions.ts:359
 msgid "Remove a contact from a list (also needs Contacts write)"
@@ -14253,6 +14679,14 @@ msgstr "Eliminat"
 msgid "Removed from {list}"
 msgstr "Eliminat de {list}"
 
+#: src/components/logs/auditPhrases.ts:89
+msgid "Removed the integration <0>{target}</0>"
+msgstr "Ha retirat la integració <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:93
+msgid "Removed the member <0>{target}</0>"
+msgstr "Ha retirat el membre <0>{target}</0>"
+
 #: src/components/email_builder/ui/SavedBlockCard.tsx:98
 #: src/components/settings/CustomFieldsConfiguration.tsx:210
 msgid "Rename"
@@ -14265,6 +14699,10 @@ msgstr "Canviar el nom o el slug d'una categoria"
 #: src/services/api/permissions.ts:977
 msgid "Rename the workspace's custom contact field labels"
 msgstr "Canviar el nom de les etiquetes de camps de contacte personalitzats de l'espai de treball"
+
+#: src/components/logs/auditPhrases.ts:96
+msgid "Renamed the custom fields of <0>{target}</0>"
+msgstr "Ha canviat el nom dels camps personalitzats de <0>{target}</0>"
 
 #: src/components/settings/ZapierSettings.tsx:170
 msgid "Renaming this connection does not change the address of the API key it already minted."
@@ -14384,7 +14822,7 @@ msgstr "L'aïllament de reputació està actiu per a aquesta integració"
 msgid "Reputation isolation is on. These senders have no verified identity and will fail to send: {0}"
 msgstr "L'aïllament de reputació està activat. Aquests remitents no tenen cap identitat verificada i no podran enviar: {0}"
 
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:137
+#: src/components/logs/AuditEntryDetail.tsx:168
 msgid "Request ID"
 msgstr "ID de la sol·licitud"
 
@@ -14469,17 +14907,25 @@ msgstr "Restablir la traducció"
 msgid "Resolved"
 msgstr "Resolt"
 
+#: src/components/logs/AuditEntryDetail.tsx:128
+#: src/components/logs/AuditLogTab.tsx:450
+#: src/components/logs/AuditLogTab.tsx:546
 #: src/components/settings/PermissionsMatrix.tsx:237
 msgid "Resource"
 msgstr "Recurs"
 
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:389
+#: src/components/logs/OutgoingWebhooksTab.tsx:438
+msgid "response"
+msgstr "resposta"
+
+#: src/components/logs/OutgoingWebhooksTab.tsx:199
+#: src/components/logs/OutgoingWebhooksTab.tsx:418
 msgid "Response"
 msgstr "Resposta"
 
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:497
-msgid "Response Body:"
-msgstr "Cos de la resposta:"
+#~ msgid "Response Body:"
+#~ msgstr "Cos de la resposta:"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:167
 msgid "Restart Server?"
@@ -14561,6 +15007,10 @@ msgstr "Reprendre càrrega anterior"
 msgid "Resume Upload"
 msgstr "Reprendre pujada"
 
+#: src/components/logs/auditPhrases.ts:37
+msgid "Resumed the newsletter <0>{target}</0>"
+msgstr "Ha reprès el butlletí <0>{target}</0>"
+
 #: src/components/settings/audit_logs/AuditLogRetentionCard.tsx:84
 msgid "Retention"
 msgstr "Retenció"
@@ -14568,6 +15018,10 @@ msgstr "Retenció"
 #: src/components/settings/WebAnalyticsSettings.tsx:242
 #~ msgid "Retention (months)"
 #~ msgstr ""
+
+#: src/components/logs/auditPhrases.ts:38
+msgid "Retried the failed sends of the newsletter <0>{target}</0>"
+msgstr "Ha reintentat els enviaments fallits del butlletí <0>{target}</0>"
 
 #: src/components/analytics/BlockError.tsx:22
 #: src/components/analytics/DashboardKpis.tsx:183
@@ -14579,6 +15033,8 @@ msgstr "Retenció"
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:169
 #: src/components/contacts/BlockError.tsx:11
 #: src/components/file_manager/FileExplorer.tsx:780
+#: src/components/logs/AuditLogTab.tsx:594
+#: src/components/logs/OutgoingWebhooksTab.tsx:225
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
 #: src/components/settings/WorkspaceMembers.tsx:495
@@ -14608,6 +15064,7 @@ msgstr "Voleu reintentar els destinataris amb error?"
 #~ msgstr "Reintenta els destinataris que el proveïdor ha rebutjat"
 
 #: src/components/automations/stats/StepStats.tsx:25
+#: src/components/logs/labels.ts:39
 msgid "Retrying"
 msgstr "En reintent"
 
@@ -14950,6 +15407,10 @@ msgstr "Blocs desats ({savedCount})"
 msgid "Saved blocks can be used in every template of the workspace. Templates that already contain this block do not change."
 msgstr "Els blocs desats es poden fer servir en totes les plantilles de l’espai de treball. Les plantilles que ja contenen aquest bloc no canvien."
 
+#: src/components/logs/auditPhrases.ts:60
+msgid "Saved the block <0>{target}</0>"
+msgstr "Ha desat el bloc <0>{target}</0>"
+
 #: src/components/settings/SystemSettingsDrawer.tsx:157
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr "Desar la configuració reiniciarà el servidor. Haureu de tornar a iniciar sessió."
@@ -15004,6 +15465,10 @@ msgstr "Programada per al {date} a les {time} {zone}"
 msgid "Scheduled sends and statistics use it"
 msgstr "L'utilitzen els enviaments programats i les estadístiques"
 
+#: src/components/logs/auditPhrases.ts:39
+msgid "Scheduled the newsletter <0>{target}</0>"
+msgstr "Ha programat el butlletí <0>{target}</0>"
+
 #: src/components/blog/PostsTable.tsx:247
 msgid "Scheduled today"
 msgstr "Programat per avui"
@@ -15056,6 +15521,10 @@ msgstr "Cerca blocs desats"
 msgid "Search templates..."
 msgstr "Cercar plantilles..."
 
+#: src/components/logs/AuditLogTab.tsx:411
+msgid "Search the audit log"
+msgstr "Cerca al registre d'auditoria"
+
 #: src/components/web_analytics/tabs/FiltersTab.tsx:159
 msgid "Search..."
 msgstr "Cercar..."
@@ -15063,6 +15532,18 @@ msgstr "Cercar..."
 #: src/components/integrations/FirecrawlIntegration.tsx:108
 msgid "Searches the web and returns relevant URLs"
 msgstr "Cerca a la web i retorna URLs rellevants"
+
+#: src/components/logs/AuditLogTab.tsx:167
+msgid "Searching by actor email"
+msgstr "Cercant pel correu de l'actor"
+
+#: src/components/logs/AuditLogTab.tsx:166
+msgid "Searching by IP address"
+msgstr "Cercant per adreça IP"
+
+#: src/components/logs/AuditLogTab.tsx:168
+msgid "Searching by target ID"
+msgstr "Cercant per ID de destinació"
 
 #. placeholder {0}: toolInput.query
 #: src/components/ai-assistant/useAIAssistant.tsx:341
@@ -15197,6 +15678,7 @@ msgstr "Arbre del segment restablert"
 #: src/components/contacts/ContactsTable.tsx:67
 #: src/components/contacts/ContactsTable.tsx:232
 #: src/components/contacts/sheet/ContactListsCard.tsx:235
+#: src/components/logs/labels.ts:18
 #: src/components/settings/permissionLabels.ts:18
 #: src/services/api/errors.ts:93
 msgid "Segments"
@@ -15210,12 +15692,8 @@ msgstr "Segments"
 msgid "Select"
 msgstr "Seleccionar"
 
-#. placeholder {0}: labels[key]
 #. placeholder {0}: option.label
-#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:163
-#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:175
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:275
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:309
 msgid "Select {0}"
 msgstr "Seleccionar {0}"
 
@@ -15784,8 +16262,8 @@ msgstr "Enviat"
 #: src/components/broadcasts/BroadcastStatusPill.tsx:55
 #: src/components/broadcasts/detail/AbTestPanel.tsx:161
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:44
-#: src/components/messages/MessageHistoryTab.tsx:102
-#: src/components/messages/MessageHistoryTab.tsx:104
+#: src/components/messages/MessageHistoryTab.tsx:103
+#: src/components/messages/MessageHistoryTab.tsx:105
 #: src/components/messages/MessageHistoryTable.tsx:320
 #: src/components/transactional/RecentSends.tsx:45
 #: src/components/transactional/SendsPerDayChart.tsx:48
@@ -15798,6 +16276,10 @@ msgstr "Enviat"
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:217
 msgid "Sent on {date} at {time}"
 msgstr "Enviada el {date} a les {time}"
+
+#: src/components/logs/auditPhrases.ts:41
+msgid "Sent the newsletter <0>{target}</0> to one recipient"
+msgstr "Ha enviat el butlletí <0>{target}</0> a un destinatari"
 
 #: src/components/broadcasts/detail/AbTestPanel.tsx:265
 msgid "sent to the remaining {remaining} at {time}"
@@ -16026,6 +16508,10 @@ msgstr "Establir farciment"
 msgid "Set Publication Date"
 msgstr "Establir data de publicació"
 
+#: src/components/logs/auditPhrases.ts:49
+msgid "Set the licence <0>{target}</0>"
+msgstr "Ha establert la llicència <0>{target}</0>"
+
 #: src/components/web_analytics/lib/filterCatalog.ts:235
 msgid "set to"
 msgstr "establir a"
@@ -16037,6 +16523,10 @@ msgstr "Establir a null"
 #: src/components/settings/integrations/EmailProviderCard.tsx:248
 msgid "Set up"
 msgstr "Configurat"
+
+#: src/components/logs/auditPhrases.ts:59
+msgid "Set up this Notifuse installation"
+msgstr "Ha configurat aquesta instal·lació de Notifuse"
 
 #: src/components/analytics/DashboardKpis.tsx:324
 msgid "Set up web analytics"
@@ -16081,7 +16571,7 @@ msgid "Setting up..."
 msgstr "Configurant..."
 
 #: src/components/transactional/TransactionalDetail.tsx:414
-#: src/layouts/app-shell/menuItems.ts:181
+#: src/layouts/app-shell/menuItems.ts:197
 #: src/pages/WorkspaceSettingsPage.tsx:269
 msgid "Settings"
 msgstr "Configuració"
@@ -16113,6 +16603,10 @@ msgstr "compartit amb la resta d'aquest compte d'AWS"
 #: src/components/settings/WebhookDetail.tsx:377
 msgid "Show"
 msgstr "Mostrar"
+
+#: src/components/logs/AuditLogTab.tsx:601
+msgid "Show all time"
+msgstr "Mostra tot el temps"
 
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:160
 #~ msgid "Show broadcast annotations on charts"
@@ -16190,9 +16684,38 @@ msgstr "Iniciar sessió"
 msgid "Sign in with SSO"
 msgstr "Iniciar sessió amb SSO"
 
+#: src/components/logs/labels.ts:6
+msgid "Sign-in"
+msgstr "Inici de sessió"
+
+#: src/components/logs/auditPhrases.ts:73
+msgid "Signed in as <0>{target}</0>"
+msgstr "Ha iniciat la sessió com a <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:72
+msgid "Signed in as root <0>{target}</0>"
+msgstr "Ha iniciat la sessió com a root <0>{target}</0>"
+
 #: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:128
-msgid "Signed in with"
-msgstr "Sessió iniciada amb"
+#~ msgid "Signed in with"
+#~ msgstr "Sessió iniciada amb"
+
+#: src/components/logs/auditPhrases.ts:70
+msgid "Signed in with single sign-on"
+msgstr "Ha iniciat la sessió amb inici de sessió únic"
+
+#: src/components/logs/auditPhrases.ts:71
+msgid "Signed in with single sign-on as <0>{target}</0>"
+msgstr "Ha iniciat la sessió amb inici de sessió únic com a <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:69
+msgid "Signed out <0>{target}</0>"
+msgstr "Ha tancat la sessió de <0>{target}</0>"
+
+#: src/components/logs/auditDisplay.ts:26
+#: src/components/logs/AuditLogTab.tsx:205
+msgid "Signed-out visitor"
+msgstr "Visitant sense sessió"
 
 #: src/pages/LogoutPage.tsx:29
 msgid "Signing out..."
@@ -16284,7 +16807,7 @@ msgstr "L'slug ha de tenir menys de 100 caràcters"
 msgid "Slug must contain only lowercase letters, numbers, and hyphens"
 msgstr "L'slug només pot contenir lletres minúscules, números i guions"
 
-#: src/components/messages/MessageHistoryTab.tsx:221
+#: src/components/messages/MessageHistoryTab.tsx:222
 msgid "SMS"
 msgstr "SMS"
 
@@ -16575,6 +17098,10 @@ msgstr "Iniciat"
 msgid "Started"
 msgstr "Iniciat"
 
+#: src/components/logs/auditPhrases.ts:76
+msgid "Started the web analytics backfill"
+msgstr "Ha iniciat l'emplenament de l'analítica web"
+
 #: src/components/broadcasts/compose/SendingCard.tsx:85
 msgid "Starts as soon as you send it"
 msgstr "Comença tan bon punt l'envieu"
@@ -16607,12 +17134,12 @@ msgstr "Les estadístiques apareixen quan la difusió comença a enviar-se"
 #: src/components/blog/RecentThemesTable.tsx:115
 #: src/components/broadcasts/BroadcastsTable.tsx:209
 #: src/components/broadcasts/detail/BroadcastAside.tsx:241
-#: src/components/messages/MessageHistoryTab.tsx:573
+#: src/components/logs/OutgoingWebhooksTab.tsx:139
+#: src/components/logs/OutgoingWebhooksTab.tsx:182
+#: src/components/messages/MessageHistoryTab.tsx:575
 #: src/components/settings/LicenseSettings.tsx:149
 #: src/components/transactional/RecentSends.tsx:107
 #: src/components/web_analytics/filters/FilterTable.tsx:264
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:83
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:374
 msgid "Status"
 msgstr "Estat"
 
@@ -16786,12 +17313,12 @@ msgstr "Subscrit a {list}"
 msgid "Subscript"
 msgstr "Subíndex"
 
+#: src/components/logs/OutgoingWebhooksTab.tsx:134
+#: src/components/logs/OutgoingWebhooksTab.tsx:174
 #: src/components/settings/WebhooksSettings.tsx:601
 #: src/components/timeline/ContactTimeline.tsx:381
 #: src/components/timeline/ContactTimeline.tsx:394
 #: src/components/timeline/ContactTimeline.tsx:420
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:75
-#: src/components/webhooks/OutgoingWebhooksTab.tsx:364
 msgid "Subscription"
 msgstr "Subscripció"
 
@@ -16799,9 +17326,13 @@ msgstr "Subscripció"
 msgid "Subscription form"
 msgstr "Formulari de subscripció"
 
+#: src/components/logs/OutgoingWebhooksTab.tsx:399
+msgid "Subscription ID"
+msgstr "ID de subscripció"
+
 #: src/components/webhooks/OutgoingWebhooksTab.tsx:487
-msgid "Subscription ID:"
-msgstr "ID de subscripció:"
+#~ msgid "Subscription ID:"
+#~ msgstr "ID de subscripció:"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:985
 #~ msgid "Subscription list"
@@ -16818,7 +17349,7 @@ msgstr "Estat de subscripció actualitzat correctament"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:143
 #: src/components/contacts/BulkUpdateDrawer.tsx:745
-#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:109
+#: src/components/logs/labels.ts:26
 msgid "Success"
 msgstr "Èxit"
 
@@ -16907,6 +17438,9 @@ msgid "Switch to Preview mode to see the breakpoint effects. The edit mode shows
 msgstr "Canvieu al mode de vista prèvia per veure els efectes del punt de ruptura. El mode d'edició mostra l'estructura en brut, però només el mode de vista prèvia compila la plantilla MJML i renderitza correctament el comportament responsiu."
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:290
+#: src/components/logs/auditDisplay.ts:24
+#: src/components/logs/AuditLogTab.tsx:204
+#: src/components/logs/labels.ts:8
 msgid "System"
 msgstr "Sistema"
 
@@ -16941,12 +17475,11 @@ msgid "Take a Tour"
 msgstr "Fer una visita guiada"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:375
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:145
-#: src/components/settings/audit_logs/AuditLogTable.tsx:226
+#: src/components/logs/AuditEntryDetail.tsx:144
 msgid "Target"
 msgstr "Objectiu"
 
-#: src/components/settings/audit_logs/AuditFilterBuilder.tsx:103
+#: src/components/logs/AuditLogTab.tsx:285
 msgid "Target ID"
 msgstr "ID de l'objectiu"
 
@@ -17058,7 +17591,7 @@ msgstr "Plantilla eliminada correctament"
 msgid "Template Error"
 msgstr "Error de plantilla"
 
-#: src/components/messages/MessageHistoryTab.tsx:229
+#: src/components/messages/MessageHistoryTab.tsx:230
 msgid "Template ID"
 msgstr "ID de plantilla"
 
@@ -17090,8 +17623,8 @@ msgstr "Nom de la plantilla"
 msgid "Template name must be at most {TEMPLATE_NAME_MAX_LENGTH} characters long"
 msgstr "El nom de la plantilla ha de tenir com a màxim {TEMPLATE_NAME_MAX_LENGTH} caràcters"
 
-#: src/components/transactional/notificationRules.ts:52
-#: src/components/transactional/notificationRules.ts:62
+#: src/components/transactional/notificationRules.ts:53
+#: src/components/transactional/notificationRules.ts:63
 #: src/components/transactional/PreviewPanel.tsx:83
 #: src/components/transactional/TransactionalTable.tsx:78
 msgid "Template not found"
@@ -17140,8 +17673,9 @@ msgstr "Remitent de la plantilla"
 msgid "Template's sender ({0})"
 msgstr "Remitent de la plantilla ({0})"
 
+#: src/components/logs/labels.ts:14
 #: src/components/settings/permissionLabels.ts:9
-#: src/layouts/app-shell/menuItems.ts:177
+#: src/layouts/app-shell/menuItems.ts:193
 #: src/pages/TemplatesPage.tsx:570
 #: src/services/api/errors.ts:84
 msgid "Templates"
@@ -17488,6 +18022,10 @@ msgstr "El cos del correu ha de contenir JSON vàlid que coincideixi amb el form
 msgid "The email could not be compiled"
 msgstr "No s'ha pogut compilar el correu"
 
+#: src/components/logs/AuditLogTab.tsx:145
+msgid "The export failed"
+msgstr "L'exportació ha fallat"
+
 #: src/components/web_analytics/explore/CsvExportModal.tsx:119
 msgid "The export failed. Please try again."
 msgstr "L'exportació ha fallat. Torneu-ho a provar."
@@ -17816,7 +18354,7 @@ msgstr "Aquesta anotació es va crear automàticament quan es va iniciar una dif
 msgid "This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line."
 msgstr "Això apareix a les pestanyes del navegador quan es visualitza el correu en un navegador web i en alguns clients de correu. Normalment és el mateix o està relacionat amb l'assumpte del correu."
 
-#: src/components/settings/audit_logs/AuditLogTable.tsx:145
+#: src/components/logs/AuditEntryDetail.tsx:94
 msgid "This audit entry could not be found"
 msgstr "No s'ha trobat aquesta entrada d'auditoria"
 
@@ -17863,7 +18401,7 @@ msgstr "Aquesta difusió estableix un contingut UTM fix, de manera que les seves
 msgid "This broadcast was cancelled before completion."
 msgstr "Aquesta difusió es va cancel·lar abans de completar-se."
 
-#: src/components/transactional/notificationRules.ts:86
+#: src/components/transactional/notificationRules.ts:87
 msgid "This cannot be undone."
 msgstr "Això no es pot desfer."
 
@@ -17974,7 +18512,7 @@ msgstr "Aquesta llista fa dues coses. Filtra els senyals entrants — els altres
 msgid "This list no longer exists"
 msgstr "Aquesta llista ja no existeix"
 
-#: src/components/transactional/notificationRules.ts:50
+#: src/components/transactional/notificationRules.ts:51
 msgid "This notification has no email template"
 msgstr "Aquesta notificació no té plantilla de correu"
 
@@ -18155,7 +18693,7 @@ msgstr "Això enviarà un correu de prova real a l'adreça proporcionada."
 msgid "This will set the value to NULL. Are you sure?"
 msgstr "Això establirà el valor a NULL. N'esteu segur?"
 
-#: src/components/logs/AuditLogsTab.tsx:64
+#: src/components/logs/AuditLogTab.tsx:476
 msgid "This workspace"
 msgstr "Aquest workspace"
 
@@ -18170,6 +18708,8 @@ msgstr "Aquest contenidor no té seccions. Afegiu una secció per mostrar contin
 #: src/components/blog/PublishModal.tsx:149
 #: src/components/broadcasts/compose/SendingCard.tsx:100
 #: src/components/broadcasts/compose/SendingCard.tsx:102
+#: src/components/logs/AuditLogTab.tsx:514
+#: src/components/logs/OutgoingWebhooksTab.tsx:161
 #: src/components/transactional/RecentSends.tsx:89
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:154
 #: src/components/web_analytics/explore/BreakdownModal.tsx:69
@@ -18536,12 +19076,13 @@ msgstr "Trànsit que cap regla de filtre no ha classificat"
 
 #: src/components/analytics/OriginVolumeChart.tsx:43
 #: src/components/analytics/SendingCard.tsx:30
+#: src/components/logs/labels.ts:19
 #: src/components/settings/permissionLabels.ts:11
 #: src/components/templates/DeleteTemplateModal.tsx:42
 #: src/components/templates/templateCategories.ts:21
 #: src/components/transactional/TransactionalDetail.tsx:78
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:408
-#: src/layouts/app-shell/menuItems.ts:175
+#: src/layouts/app-shell/menuItems.ts:191
 #: src/pages/TransactionalNotificationsPage.tsx:168
 #: src/pages/TransactionalNotificationsPage.tsx:204
 #: src/services/api/errors.ts:86
@@ -18560,11 +19101,11 @@ msgstr "ID transaccional"
 msgid "Transactional notification definitions and every path that actually sends an email through the workspace's provider credentials."
 msgstr "Definicions de notificacions transaccionals i tots els camins que realment envien un correu amb les credencials de proveïdor de l'espai de treball."
 
-#: src/components/transactional/notificationRules.ts:93
+#: src/components/transactional/notificationRules.ts:94
 msgid "Transactional notification deleted successfully"
 msgstr "Notificació transaccional eliminada correctament"
 
-#: src/components/messages/MessageHistoryTab.tsx:231
+#: src/components/messages/MessageHistoryTab.tsx:233
 msgid "Transactional notification ID"
 msgstr "ID de notificació transaccional"
 
@@ -18658,6 +19199,14 @@ msgstr "Activar o desactivar el blog i canviar-ne el títol, l'SEO, la paginaci�
 msgid "Turn web analytics on or off and change its allowed domains, filters, custom dimension labels and email-link identification"
 msgstr "Activar o desactivar l'analítica web i canviar-ne els dominis permesos, els filtres, les etiquetes de dimensions personalitzades i la identificació per enllaç de correu"
 
+#: src/components/logs/auditPhrases.ts:57
+msgid "Turned on Amazon SES tenant isolation for <0>{target}</0>"
+msgstr "Ha activat l'aïllament de tenants d'Amazon SES per a <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:80
+msgid "Turned the webhook <0>{target}</0> on or off"
+msgstr "Ha activat o desactivat el webhook <0>{target}</0>"
+
 #: src/components/web_analytics/tabs/SettingsTab.tsx:144
 #~ msgid "Two decimals is roughly one kilometer."
 #~ msgstr ""
@@ -18668,8 +19217,6 @@ msgid "type"
 msgstr "Tipus"
 
 #: src/components/file_manager/FilePreview.tsx:47
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:118
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:146
 #: src/components/settings/CustomFieldsConfiguration.tsx:189
 #: src/components/settings/GeneralSettings.tsx:196
 #: src/components/webhooks/InboundWebhookEventsTab.tsx:365
@@ -18768,7 +19315,7 @@ msgstr "Data desconeguda"
 msgid "Unknown device"
 msgstr "Dispositiu desconegut"
 
-#: src/layouts/WorkspaceLayout.tsx:158
+#: src/layouts/WorkspaceLayout.tsx:161
 msgid "Unknown error"
 msgstr "Error desconegut"
 
@@ -18817,6 +19364,10 @@ msgstr "Despublicar"
 #: src/components/blog/PostsTable.tsx:201
 msgid "Unpublish post"
 msgstr "Despublicar publicació"
+
+#: src/components/logs/auditPhrases.ts:28
+msgid "Unpublished the blog post <0>{target}</0>"
+msgstr "Ha despublicat l'entrada del blog <0>{target}</0>"
 
 #: src/components/automations/AutomationEditor.tsx:412
 #: src/components/blog/PostDrawer.tsx:558
@@ -18871,8 +19422,8 @@ msgstr "Donar de baixa de la llista"
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:123
 #: src/components/contacts/contactDisplay.ts:37
 #: src/components/lists/ListHeader.tsx:64
-#: src/components/messages/MessageHistoryTab.tsx:196
-#: src/components/messages/MessageHistoryTab.tsx:201
+#: src/components/messages/MessageHistoryTab.tsx:197
+#: src/components/messages/MessageHistoryTab.tsx:202
 #: src/components/messages/MessageHistoryTable.tsx:376
 #: src/components/timeline/ContactTimeline.tsx:742
 #: src/components/transactional/RecentSends.tsx:41
@@ -18966,6 +19517,66 @@ msgstr "Actualitzat {updatedAt} ({timezone})"
 #: src/components/segment/segmentSummary.ts:43
 msgid "Updated At"
 msgstr "Actualitzat el"
+
+#: src/components/logs/auditPhrases.ts:14
+msgid "Updated the annotation <0>{target}</0>"
+msgstr "Ha actualitzat l'anotació <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:21
+msgid "Updated the automation <0>{target}</0>"
+msgstr "Ha actualitzat l'automatització <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:24
+msgid "Updated the blog category <0>{target}</0>"
+msgstr "Ha actualitzat la categoria del blog <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:29
+msgid "Updated the blog post <0>{target}</0>"
+msgstr "Ha actualitzat l'entrada del blog <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:32
+msgid "Updated the blog theme <0>{target}</0>"
+msgstr "Ha actualitzat el tema del blog <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:100
+msgid "Updated the integration <0>{target}</0>"
+msgstr "Ha actualitzat la integració <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:52
+msgid "Updated the list <0>{target}</0>"
+msgstr "Ha actualitzat la llista <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:42
+msgid "Updated the newsletter <0>{target}</0>"
+msgstr "Ha actualitzat el butlletí <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:62
+msgid "Updated the saved block <0>{target}</0>"
+msgstr "Ha actualitzat el bloc desat <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:56
+msgid "Updated the segment <0>{target}</0>"
+msgstr "Ha actualitzat el segment <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:58
+msgid "Updated the system settings"
+msgstr "Ha actualitzat la configuració del sistema"
+
+#: src/components/logs/auditPhrases.ts:65
+msgid "Updated the template <0>{target}</0>"
+msgstr "Ha actualitzat la plantilla <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:68
+msgid "Updated the transactional notification <0>{target}</0>"
+msgstr "Ha actualitzat la notificació transaccional <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:81
+msgid "Updated the webhook <0>{target}</0>"
+msgstr "Ha actualitzat el webhook <0>{target}</0>"
+
+#: src/components/logs/auditPhrases.ts:99
+msgid "Updated the workspace settings of <0>{target}</0>"
+msgstr "Ha actualitzat la configuració de l'espai de treball <0>{target}</0>"
 
 #: src/components/settings/LicenseSettings.tsx:130
 #~ msgid "Upgrade licence"
@@ -19156,7 +19767,7 @@ msgstr "S'utilitza als enllaços dels correus, al centre de notificacions i a le
 msgid "User"
 msgstr "Usuari"
 
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:134
+#: src/components/logs/AuditEntryDetail.tsx:162
 msgid "User agent"
 msgstr "User agent"
 
@@ -19312,6 +19923,10 @@ msgstr "Variants"
 #: src/pages/BroadcastsPage.tsx:834
 #~ msgid "Variations"
 #~ msgstr "Variacions"
+
+#: src/components/logs/auditPhrases.ts:74
+msgid "Verified the sign-in code of <0>{target}</0>"
+msgstr "Ha verificat el codi d'inici de sessió de <0>{target}</0>"
 
 #: src/pages/SignInPage.tsx:335
 msgid "Verify Code"
@@ -19515,7 +20130,7 @@ msgstr "Analítica web"
 #: src/components/settings/permissionLabels.ts:17
 #: src/components/settings/WebAnalyticsSettings.tsx:244
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:370
-#: src/layouts/app-shell/menuItems.ts:166
+#: src/layouts/app-shell/menuItems.ts:182
 #: src/pages/WebAnalyticsPage.tsx:95
 #: src/services/api/errors.ts:92
 msgid "Web Analytics"
@@ -19627,6 +20242,7 @@ msgstr "Subscripcions de webhooks"
 msgid "Webhook URL"
 msgstr "URL del webhook"
 
+#: src/components/logs/labels.ts:13
 #: src/components/settings/SettingsSidebar.tsx:64
 #: src/components/settings/WebhooksSettings.tsx:445
 msgid "Webhooks"
@@ -19730,8 +20346,6 @@ msgstr "Benvingut al meu blog on comparteixo reflexions sobre..."
 msgid "What gets exported"
 msgstr "Què s'exporta"
 
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:95
-#: src/components/settings/audit_logs/AuditLogTable.tsx:181
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:39
 msgid "When"
 msgstr "Quan"
@@ -19812,7 +20426,7 @@ msgstr "Qui pot fer què en aquest espai de treball"
 msgid "Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed."
 msgstr "Qui ha fet què en aquest workspace: membres, permisos, claus d'API, integracions, configuració i canvis de contingut, amb l'adreça d'origen i si estava permès."
 
-#: src/components/logs/AuditLogsTab.tsx:65
+#: src/components/logs/AuditLogTab.tsx:477
 msgid "Whole deployment"
 msgstr "Tot el desplegament"
 
@@ -19915,8 +20529,9 @@ msgstr "Sense una llista, el correu de prova no té cap enllaç de baixa vàlid 
 msgid "Without its own text, this language receives the automatic version."
 msgstr "Sense text propi, aquest idioma rep la versió automàtica."
 
-#: src/components/settings/audit_logs/AuditLogDetailsDrawer.tsx:109
-#: src/components/settings/audit_logs/AuditLogTable.tsx:248
+#: src/components/logs/AuditEntryDetail.tsx:174
+#: src/components/logs/AuditLogTab.tsx:561
+#: src/components/logs/labels.ts:9
 #: src/components/settings/GeneralSettings.tsx:225
 #: src/components/settings/GeneralSettings.tsx:323
 #: src/components/settings/permissionLabels.ts:12
@@ -19980,14 +20595,14 @@ msgstr "El nom de l'espai de treball ha de tenir almenys 3 caràcters"
 msgid "Workspace name must be at most {WORKSPACE_NAME_MAX_LENGTH} characters long"
 msgstr "El nom de l'espai de treball ha de tenir com a màxim {WORKSPACE_NAME_MAX_LENGTH} caràcters"
 
-#: src/layouts/WorkspaceLayout.tsx:137
+#: src/layouts/WorkspaceLayout.tsx:140
 #: src/pages/AnalyticsPage.tsx:88
 #: src/pages/FileManagerPage.tsx:50
 msgid "Workspace not found"
 msgstr "Espai de treball no trobat"
 
 #: src/components/settings/GeneralSettings.tsx:133
-#: src/layouts/WorkspaceLayout.tsx:155
+#: src/layouts/WorkspaceLayout.tsx:158
 msgid "Workspace settings updated successfully"
 msgstr "Configuració de l'espai de treball actualitzada correctament"
 
@@ -20056,14 +20671,14 @@ msgstr "Anual"
 #: src/components/contacts/ContactsViewHeader.tsx:141
 #: src/components/contacts/ContactsViewHeader.tsx:165
 #: src/components/contacts/ContactUpsertDrawer.tsx:554
-#: src/components/messages/MessageHistoryTab.tsx:108
-#: src/components/messages/MessageHistoryTab.tsx:121
-#: src/components/messages/MessageHistoryTab.tsx:134
-#: src/components/messages/MessageHistoryTab.tsx:147
-#: src/components/messages/MessageHistoryTab.tsx:160
-#: src/components/messages/MessageHistoryTab.tsx:176
-#: src/components/messages/MessageHistoryTab.tsx:189
-#: src/components/messages/MessageHistoryTab.tsx:205
+#: src/components/messages/MessageHistoryTab.tsx:109
+#: src/components/messages/MessageHistoryTab.tsx:122
+#: src/components/messages/MessageHistoryTab.tsx:135
+#: src/components/messages/MessageHistoryTab.tsx:148
+#: src/components/messages/MessageHistoryTab.tsx:161
+#: src/components/messages/MessageHistoryTab.tsx:177
+#: src/components/messages/MessageHistoryTab.tsx:190
+#: src/components/messages/MessageHistoryTab.tsx:206
 #: src/components/settings/CustomFieldsConfiguration.tsx:170
 #: src/components/settings/Integrations.tsx:949
 #: src/components/settings/integrations/EmailProviderCard.tsx:156
@@ -20098,7 +20713,7 @@ msgid "Yes, delete"
 msgstr "Sí, eliminar"
 
 #: src/components/templates/DeleteTemplateModal.tsx:113
-#: src/components/transactional/notificationRules.ts:87
+#: src/components/transactional/notificationRules.ts:88
 msgid "Yes, Delete"
 msgstr "Sí, eliminar"
 
@@ -20125,6 +20740,10 @@ msgstr "Sí, reintenta"
 msgid "Yesterday"
 msgstr "Ahir"
 
+#: src/components/logs/logTime.ts:23
+msgid "Yesterday {time}"
+msgstr "Ahir {time}"
+
 #: src/components/transactional/TransactionalTable.tsx:208
 msgid "Yesterday, {time}"
 msgstr "Ahir, {time}"
@@ -20149,6 +20768,10 @@ msgstr "No teniu cap proveïdor de correu de màrqueting configurat. Si us plau,
 #: src/pages/ContactsPage.tsx:536
 msgid "You don't have access to contacts"
 msgstr "No tens accés als contactes"
+
+#: src/pages/LogsPage.tsx:75
+msgid "You don't have access to logs"
+msgstr "No tens accés als logs"
 
 #: src/components/settings/CustomFieldsConfiguration.tsx:164
 msgid "You don't have permission to manage custom fields"
@@ -20229,7 +20852,7 @@ msgstr "Us heu unit a {workspaceName}"
 #~ msgstr "Heu de configurar una URL de punt final personalitzat a la Configuració general anterior abans d'habilitar el blog."
 
 #: src/components/transactional/notificationParts.tsx:42
-#: src/components/transactional/notificationRules.ts:66
+#: src/components/transactional/notificationRules.ts:67
 msgid "You need access to message history"
 msgstr "Necessiteu accés a l'historial de missatges"
 
@@ -20237,7 +20860,7 @@ msgstr "Necessiteu accés a l'historial de missatges"
 msgid "You need access to message history to see sends"
 msgstr "Necessiteu accés a l'historial de missatges per veure els enviaments"
 
-#: src/components/transactional/notificationRules.ts:60
+#: src/components/transactional/notificationRules.ts:61
 #: src/components/transactional/PreviewPanel.tsx:82
 msgid "You need access to templates"
 msgstr "Necessiteu accés a les plantilles"
@@ -20258,11 +20881,11 @@ msgstr "Necessites accés a l'historial de missatges per veure els correus d'aqu
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:392
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:302
 #: src/components/templates/SendTestEmailButton.tsx:25
-#: src/components/transactional/notificationRules.ts:48
+#: src/components/transactional/notificationRules.ts:49
 msgid "You need Templates read and Transactional write permissions to send test emails"
 msgstr "Necessiteu permisos de lectura de Plantilles i escriptura de Transaccional per enviar correus de prova"
 
-#: src/components/transactional/notificationRules.ts:57
+#: src/components/transactional/notificationRules.ts:58
 msgid "You need Templates read permission"
 msgstr "Necessiteu el permís de lectura de Plantilles"
 
@@ -20281,7 +20904,7 @@ msgstr "Necessiteu permís de lectura de Plantilles per veure el nom i la previs
 msgid "You need Transactional write and Templates read permissions to create notifications"
 msgstr "Necessiteu permisos d'escriptura de Transaccional i lectura de Plantilles per crear notificacions"
 
-#: src/components/transactional/notificationRules.ts:45
+#: src/components/transactional/notificationRules.ts:46
 msgid "You need Transactional write permission"
 msgstr "Necessiteu el permís d'escriptura de Transaccional"
 
