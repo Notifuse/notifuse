@@ -265,7 +265,7 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			test_sent_at = $11,
 			winner_sent_at = $12,
 			updated_at = $13,
-			started_at = $14,
+			started_at = COALESCE($14, started_at),
 			completed_at = $15,
 			cancelled_at = $16,
 			paused_at = $17,
@@ -323,13 +323,17 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 // so pause/resume/cancel flows can transition a Processed broadcast.
 // Only updates: status, started_at, completed_at, cancelled_at, paused_at,
 // pause_reason, updated_at.
+//
+// started_at, here and in UpdateBroadcastTx, is only ever set, never cleared: a nil start
+// date keeps the stored one. A sending run stamps it with MarkBroadcastStarted while a
+// cancel or an update holding an older copy of the broadcast may be writing it back.
 func (r *broadcastRepository) UpdateBroadcastStatusTx(ctx context.Context, tx *sql.Tx, broadcast *domain.Broadcast) error {
 	broadcast.UpdatedAt = time.Now().UTC()
 
 	query := `
 		UPDATE broadcasts SET
 			status = $3,
-			started_at = $4,
+			started_at = COALESCE($4, started_at),
 			completed_at = $5,
 			cancelled_at = $6,
 			paused_at = $7,
@@ -359,6 +363,23 @@ func (r *broadcastRepository) UpdateBroadcastStatusTx(ctx context.Context, tx *s
 	}
 	if rowsAffected == 0 {
 		return &domain.ErrBroadcastNotFound{ID: broadcast.ID}
+	}
+	return nil
+}
+
+// MarkBroadcastStarted sets started_at only while it is NULL, in a single statement, so a
+// start date already stored is never overwritten and no column a concurrent writer may be
+// changing (status, counters) is written. No row written means the date was already set
+// or the broadcast is gone; neither is an error for the caller, which only records a start.
+func (r *broadcastRepository) MarkBroadcastStarted(ctx context.Context, workspaceID, broadcastID string, startedAt time.Time) error {
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `UPDATE broadcasts SET started_at = $3 WHERE id = $1 AND workspace_id = $2 AND started_at IS NULL`
+	if _, err := db.ExecContext(ctx, query, broadcastID, workspaceID, startedAt); err != nil {
+		return fmt.Errorf("failed to mark broadcast started: %w", err)
 	}
 	return nil
 }
@@ -419,38 +440,48 @@ func (r *broadcastRepository) UpdateBroadcastStatusUnless(ctx context.Context, b
 	return true, nil
 }
 
-// ListBroadcastsTx retrieves a list of broadcasts within a transaction
-func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params domain.ListBroadcastsParams) (*domain.BroadcastListResponse, error) {
-	// Build the WHERE clause dynamically from the provided filters so status
-	// and name search can be combined in any arrangement.
+// broadcastListWhere builds the WHERE clause of broadcasts.list and its arguments,
+// numbering its own placeholders. withStatus false leaves the status filter out, for the
+// status counts.
+func broadcastListWhere(params domain.ListBroadcastsParams, withStatus bool) (string, []interface{}) {
 	conditions := []string{"workspace_id = $1"}
 	args := []interface{}{params.WorkspaceID}
-	argIdx := 2
+	next := func(value interface{}) string {
+		args = append(args, value)
+		return fmt.Sprintf("$%d", len(args))
+	}
 
 	// Status filter: prefer the multi-status list, falling back to the single
 	// Status field for backward compatibility.
-	if len(params.Statuses) > 0 {
-		placeholders := make([]string, len(params.Statuses))
-		for i, status := range params.Statuses {
-			placeholders[i] = fmt.Sprintf("$%d", argIdx)
-			args = append(args, status)
-			argIdx++
+	if withStatus {
+		if len(params.Statuses) > 0 {
+			placeholders := make([]string, len(params.Statuses))
+			for i, status := range params.Statuses {
+				placeholders[i] = next(status)
+			}
+			conditions = append(conditions, fmt.Sprintf("status IN (%s)", strings.Join(placeholders, ", ")))
+		} else if params.Status != "" {
+			conditions = append(conditions, "status = "+next(params.Status))
 		}
-		conditions = append(conditions, fmt.Sprintf("status IN (%s)", strings.Join(placeholders, ", ")))
-	} else if params.Status != "" {
-		conditions = append(conditions, fmt.Sprintf("status = $%d", argIdx))
-		args = append(args, params.Status)
-		argIdx++
 	}
 
 	// Search filter: case-insensitive substring match on the broadcast name.
 	if params.Search != "" {
-		conditions = append(conditions, fmt.Sprintf("name ILIKE $%d", argIdx))
-		args = append(args, "%"+escapeLikePattern(params.Search)+"%")
-		argIdx++
+		conditions = append(conditions, "name ILIKE "+next("%"+escapeLikePattern(params.Search)+"%"))
 	}
 
-	whereClause := strings.Join(conditions, " AND ")
+	// A broadcast that never started has a NULL started_at, which this leaves out.
+	if params.StartedAfter != nil {
+		conditions = append(conditions, "started_at >= "+next(params.StartedAfter.UTC()))
+	}
+
+	return strings.Join(conditions, " AND "), args
+}
+
+// ListBroadcastsTx retrieves a list of broadcasts within a transaction
+func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params domain.ListBroadcastsParams) (*domain.BroadcastListResponse, error) {
+	whereClause, args := broadcastListWhere(params, true)
+	argIdx := len(args) + 1
 
 	// First count total records that match the criteria
 	countQuery := "SELECT COUNT(*) FROM broadcasts WHERE " + whereClause
@@ -459,6 +490,15 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 	err := tx.QueryRowContext(ctx, countQuery, args...).Scan(&totalCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count broadcasts: %w", err)
+	}
+
+	// The status counts run before the data query: lib/pq refuses a query on the
+	// transaction while another query's rows are open.
+	var statusCounts map[domain.BroadcastStatus]int
+	if params.WithStatusCounts {
+		if statusCounts, err = countBroadcastsByStatus(ctx, tx, params); err != nil {
+			return nil, err
+		}
 	}
 
 	// Then query paginated data using the same filters plus pagination.
@@ -488,9 +528,35 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 	}
 
 	return &domain.BroadcastListResponse{
-		Broadcasts: broadcasts,
-		TotalCount: totalCount,
+		Broadcasts:   broadcasts,
+		TotalCount:   totalCount,
+		StatusCounts: statusCounts,
 	}, nil
+}
+
+// countBroadcastsByStatus counts the broadcasts of each status under every list filter but
+// the status one, so each status tab shows its own number.
+func countBroadcastsByStatus(ctx context.Context, tx *sql.Tx, params domain.ListBroadcastsParams) (map[domain.BroadcastStatus]int, error) {
+	whereClause, args := broadcastListWhere(params, false)
+	rows, err := tx.QueryContext(ctx, "SELECT status, COUNT(*) FROM broadcasts WHERE "+whereClause+" GROUP BY status", args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count broadcasts by status: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	counts := map[domain.BroadcastStatus]int{}
+	for rows.Next() {
+		var status domain.BroadcastStatus
+		var n int
+		if err := rows.Scan(&status, &n); err != nil {
+			return nil, fmt.Errorf("failed to scan broadcast status count: %w", err)
+		}
+		counts[status] = n
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read broadcast status counts: %w", err)
+	}
+	return counts, nil
 }
 
 // ListBroadcasts retrieves a list of broadcasts

@@ -122,6 +122,7 @@ func TestOrchestrator_Process_RunAfterAManualPickSendsTheWinnerOnly(t *testing.T
 
 	m.expectConfiguredWorkspace()
 	m.expectAudience()
+	m.broadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	m.broadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").
 		DoAndReturn(func(context.Context, string, string) (*domain.Broadcast, error) {
 			return abBroadcast(domain.BroadcastStatusWinnerSelected, stringPtr("template-B")), nil
@@ -174,6 +175,8 @@ func TestOrchestrator_Process_RunAfterAManualPickSendsTheWinnerOnly(t *testing.T
 func TestOrchestrator_Process_WinnerPickedDuringTheRunSendsTheNextBatchWithTheWinnerOnly(t *testing.T) {
 	m := newSendingStartedMocks(t)
 	defer m.ctrl.Finish()
+	// The first sending run records the start date (orchestrator_started_at_test.go).
+	m.broadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	m.expectConfiguredWorkspace()
 	m.expectAudience()
@@ -225,6 +228,8 @@ func TestOrchestrator_Process_WinnerPhaseThatCannotSendTheWinnerFails(t *testing
 	t.Run("the broadcast says a winner is selected but names none", func(t *testing.T) {
 		m := newSendingStartedMocks(t)
 		defer m.ctrl.Finish()
+		// The first sending run records the start date (orchestrator_started_at_test.go).
+		m.broadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 		m.expectConfiguredWorkspace()
 		m.broadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").
@@ -272,6 +277,8 @@ func TestOrchestrator_Process_WinnerPhaseThatCannotSendTheWinnerFails(t *testing
 		t.Run(name, func(t *testing.T) {
 			m := newSendingStartedMocks(t)
 			defer m.ctrl.Finish()
+			// The first sending run records the start date (orchestrator_started_at_test.go).
+			m.broadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 			m.expectConfiguredWorkspace()
 			m.expectAudience()

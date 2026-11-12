@@ -655,6 +655,8 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			setupMocks: func(ctrl *gomock.Controller) (*mocks.MockMessageSender, *domainmocks.MockBroadcastRepository, *domainmocks.MockTemplateRepository, *domainmocks.MockContactRepository, *domainmocks.MockTaskRepository, *domainmocks.MockWorkspaceRepository, *pkgmocks.MockLogger, *mocks.MockTimeProvider) {
 				mockMessageSender := mocks.NewMockMessageSender(ctrl)
 				mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+				// The first sending run records the start date (orchestrator_started_at_test.go).
+				mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 				mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 				mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
@@ -794,6 +796,8 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			setupMocks: func(ctrl *gomock.Controller) (*mocks.MockMessageSender, *domainmocks.MockBroadcastRepository, *domainmocks.MockTemplateRepository, *domainmocks.MockContactRepository, *domainmocks.MockTaskRepository, *domainmocks.MockWorkspaceRepository, *pkgmocks.MockLogger, *mocks.MockTimeProvider) {
 				mockMessageSender := mocks.NewMockMessageSender(ctrl)
 				mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+				// The first sending run records the start date (orchestrator_started_at_test.go).
+				mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 				mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 				mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
@@ -927,6 +931,8 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			setupMocks: func(ctrl *gomock.Controller) (*mocks.MockMessageSender, *domainmocks.MockBroadcastRepository, *domainmocks.MockTemplateRepository, *domainmocks.MockContactRepository, *domainmocks.MockTaskRepository, *domainmocks.MockWorkspaceRepository, *pkgmocks.MockLogger, *mocks.MockTimeProvider) {
 				mockMessageSender := mocks.NewMockMessageSender(ctrl)
 				mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+				// The first sending run records the start date (orchestrator_started_at_test.go).
+				mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 				mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 				mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
@@ -978,6 +984,8 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			setupMocks: func(ctrl *gomock.Controller) (*mocks.MockMessageSender, *domainmocks.MockBroadcastRepository, *domainmocks.MockTemplateRepository, *domainmocks.MockContactRepository, *domainmocks.MockTaskRepository, *domainmocks.MockWorkspaceRepository, *pkgmocks.MockLogger, *mocks.MockTimeProvider) {
 				mockMessageSender := mocks.NewMockMessageSender(ctrl)
 				mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+				// The first sending run records the start date (orchestrator_started_at_test.go).
+				mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 				mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 				mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
@@ -1037,6 +1045,8 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			setupMocks: func(ctrl *gomock.Controller) (*mocks.MockMessageSender, *domainmocks.MockBroadcastRepository, *domainmocks.MockTemplateRepository, *domainmocks.MockContactRepository, *domainmocks.MockTaskRepository, *domainmocks.MockWorkspaceRepository, *pkgmocks.MockLogger, *mocks.MockTimeProvider) {
 				mockMessageSender := mocks.NewMockMessageSender(ctrl)
 				mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+				// The first sending run records the start date (orchestrator_started_at_test.go).
+				mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 				mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 				mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
@@ -1128,6 +1138,8 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			setupMocks: func(ctrl *gomock.Controller) (*mocks.MockMessageSender, *domainmocks.MockBroadcastRepository, *domainmocks.MockTemplateRepository, *domainmocks.MockContactRepository, *domainmocks.MockTaskRepository, *domainmocks.MockWorkspaceRepository, *pkgmocks.MockLogger, *mocks.MockTimeProvider) {
 				mockMessageSender := mocks.NewMockMessageSender(ctrl)
 				mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+				// The first sending run records the start date (orchestrator_started_at_test.go).
+				mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 				mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 				mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
@@ -1232,6 +1244,8 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			setupMocks: func(ctrl *gomock.Controller) (*mocks.MockMessageSender, *domainmocks.MockBroadcastRepository, *domainmocks.MockTemplateRepository, *domainmocks.MockContactRepository, *domainmocks.MockTaskRepository, *domainmocks.MockWorkspaceRepository, *pkgmocks.MockLogger, *mocks.MockTimeProvider) {
 				mockMessageSender := mocks.NewMockMessageSender(ctrl)
 				mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+				// The first sending run records the start date (orchestrator_started_at_test.go).
+				mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 				mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 				mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
@@ -1426,6 +1440,8 @@ func TestBroadcastOrchestrator_Process_ABTestStartSetsTestingAndCompletesTestPha
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	// The first sending run records the start date (orchestrator_started_at_test.go).
+	mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
@@ -1657,6 +1673,8 @@ func TestBroadcastOrchestrator_Process_BatchSizeZeroTriggersPhaseCompletion(t *t
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	// The first sending run records the start date (orchestrator_started_at_test.go).
+	mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
@@ -1709,6 +1727,8 @@ func TestBroadcastOrchestrator_Process_EmptyRecipientsTriggersTestCompletion(t *
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	// The first sending run records the start date (orchestrator_started_at_test.go).
+	mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
@@ -1763,6 +1783,8 @@ func TestBroadcastOrchestrator_Process_AutoWinnerEvaluationPath(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	// The first sending run records the start date (orchestrator_started_at_test.go).
+	mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
@@ -1883,6 +1905,7 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 	// Create mocks
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
@@ -2834,6 +2857,8 @@ func TestBroadcastOrchestrator_Process_PartialBatchCursorUpdate(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	// The first sending run records the start date (orchestrator_started_at_test.go).
+	mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
@@ -3061,6 +3086,8 @@ func TestProcessBroadcastTask_RecipientFeedFailure_PausesBroadcast(t *testing.T)
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	// The first sending run records the start date (orchestrator_started_at_test.go).
+	mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
@@ -3175,6 +3202,8 @@ func TestProcessBroadcastTask_RecipientFeedFailure_NotMarkedAsFailed(t *testing.
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	// The first sending run records the start date (orchestrator_started_at_test.go).
+	mockBroadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)

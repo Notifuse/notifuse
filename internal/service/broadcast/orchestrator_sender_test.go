@@ -148,6 +148,8 @@ func TestProcessBroadcastTask_VariationSenderGone_NoPauseWhileNotSending(t *test
 	for _, status := range []domain.BroadcastStatus{domain.BroadcastStatusTestCompleted, domain.BroadcastStatusPaused} {
 		t.Run(string(status), func(t *testing.T) {
 			d := newSenderOrchestratorDeps(t)
+			// The first sending run records the start date (orchestrator_started_at_test.go).
+			d.broadcasts.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 			d.broadcasts.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(&domain.Broadcast{
 				ID:       "broadcast-123",
@@ -212,6 +214,8 @@ func TestSenderUnavailableError_PauseReason(t *testing.T) {
 
 func TestProcessBroadcastTask_WinnerPhase_OnlyTheWinnersSenderCounts(t *testing.T) {
 	d := newSenderOrchestratorDeps(t)
+	// The first sending run records the start date (orchestrator_started_at_test.go).
+	d.broadcasts.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	winner := "template-a"
 	d.broadcasts.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(&domain.Broadcast{

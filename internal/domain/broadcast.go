@@ -982,12 +982,61 @@ type ListBroadcastsParams struct {
 	Limit         int
 	Offset        int
 	WithTemplates bool // Whether to fetch and include template details for each variation
+	// WithStatusCounts also counts the broadcasts of each status, under every filter but
+	// the status one.
+	WithStatusCounts bool
+	// StartedAfter keeps the broadcasts that started at or after this instant; one that
+	// never started is left out.
+	StartedAfter *time.Time
 }
 
 // BroadcastListResponse defines the response for listing broadcasts
 type BroadcastListResponse struct {
 	Broadcasts []*Broadcast `json:"broadcasts"`
 	TotalCount int          `json:"total_count"`
+	// StatusCounts is set only with ListBroadcastsParams.WithStatusCounts. A status without
+	// broadcast is absent.
+	StatusCounts map[BroadcastStatus]int `json:"status_counts,omitempty"`
+}
+
+// EstimateAudienceRequest is the body of broadcasts.estimateAudience.
+type EstimateAudienceRequest struct {
+	WorkspaceID string           `json:"workspace_id"`
+	Audience    AudienceSettings `json:"audience"`
+}
+
+// UnmarshalJSON reads an omitted or null exclude_unsubscribed as true, as
+// broadcasts.create does, so the estimate counts what that broadcast would send to.
+func (r *EstimateAudienceRequest) UnmarshalJSON(data []byte) error {
+	type alias EstimateAudienceRequest
+	if err := json.Unmarshal(data, (*alias)(r)); err != nil {
+		return err
+	}
+	var sent map[string]json.RawMessage
+	if err := json.Unmarshal(data, &sent); err != nil {
+		return err
+	}
+	var audience map[string]json.RawMessage
+	if !jsonKeyOmitted(sent, "audience") {
+		if err := json.Unmarshal(sent["audience"], &audience); err != nil {
+			return err
+		}
+	}
+	if jsonKeyOmitted(audience, "exclude_unsubscribed") {
+		r.Audience.ExcludeUnsubscribed = true
+	}
+	return nil
+}
+
+// Validate checks the request. The number of segments is not capped, as for a send.
+func (r *EstimateAudienceRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+	if r.Audience.List == "" {
+		return fmt.Errorf("audience.list is required")
+	}
+	return nil
 }
 
 // SendToIndividualRequest defines the request to send a broadcast to an individual
@@ -1028,6 +1077,10 @@ type GetBroadcastsRequest struct {
 	Limit         int    `json:"limit,omitempty"`
 	Offset        int    `json:"offset,omitempty"`
 	WithTemplates bool   `json:"with_templates,omitempty"`
+	// WithStatusCounts asks for the count of each status (with_status_counts).
+	WithStatusCounts bool `json:"with_status_counts,omitempty"`
+	// StartedAfter is the started_after instant, in UTC.
+	StartedAfter *time.Time `json:"started_after,omitempty"`
 }
 
 // FromURLParams parses URL query parameters into the request
@@ -1111,6 +1164,23 @@ func (r *GetBroadcastsRequest) FromURLParams(values url.Values) error {
 		if err != nil {
 			return fmt.Errorf("invalid with_templates parameter: %w", err)
 		}
+	}
+
+	if v := values.Get("with_status_counts"); v != "" {
+		var err error
+		r.WithStatusCounts, err = ParseBoolParam(v)
+		if err != nil {
+			return fmt.Errorf("invalid with_status_counts parameter: %w", err)
+		}
+	}
+
+	if v := values.Get("started_after"); v != "" {
+		startedAfter, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			return fmt.Errorf("invalid started_after parameter: must be an RFC 3339 date-time")
+		}
+		startedAfter = startedAfter.UTC()
+		r.StartedAfter = &startedAfter
 	}
 
 	return nil
@@ -1343,6 +1413,10 @@ type BroadcastService interface {
 	// ListBroadcasts retrieves a list of broadcasts with pagination
 	ListBroadcasts(ctx context.Context, params ListBroadcastsParams) (*BroadcastListResponse, error)
 
+	// EstimateAudience counts the contacts a broadcast with this audience would send to,
+	// with the count the send itself uses.
+	EstimateAudience(ctx context.Context, workspaceID string, audience AudienceSettings) (int, error)
+
 	// ScheduleBroadcast schedules a broadcast for sending
 	ScheduleBroadcast(ctx context.Context, request *ScheduleBroadcastRequest) error
 
@@ -1419,6 +1493,9 @@ type BroadcastRepository interface {
 	// row it writes, so one of those statuses committed after the caller's read
 	// is kept. It reports whether it wrote.
 	UpdateBroadcastStatusUnless(ctx context.Context, broadcast *Broadcast, unless []BroadcastStatus) (bool, error)
+	// MarkBroadcastStarted writes startedAt as the broadcast's start date if it has none
+	// yet, and touches no other column. A start date already stored is kept.
+	MarkBroadcastStarted(ctx context.Context, workspaceID, broadcastID string, startedAt time.Time) error
 	DeleteBroadcastTx(ctx context.Context, tx *sql.Tx, workspaceID, broadcastID string) error
 	ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params ListBroadcastsParams) (*BroadcastListResponse, error)
 }

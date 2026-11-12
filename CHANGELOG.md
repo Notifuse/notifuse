@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The analytics API gives when each transactional notification last sent successfully, with the new `last_sent_at` measure of message history, and `messages.list` filters by `transactional_notification_id`.
 
+- **Feature**: The API counts the recipients of a broadcast audience before it is sent, with the new `broadcasts.estimateAudience`. `broadcasts.list` gives the number of broadcasts in each status (`with_status_counts`) and keeps the ones started from a date (`started_after`), and the message history analytics take `opened_at` and `clicked_at` as time dimensions.
+
 - **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages when the table fits in memory, longer otherwise.
 
 - **Feature**: The API counts what uses each template with the new `templates.usage` endpoint (broadcasts that may still send, transactional notifications, automations and double opt-in lists), and lists them for one template. It counts posts by status and category with the new `blogPosts.counts` endpoint; `blogPosts.list` lists the posts still to come with `status=scheduled` and searches titles with `search`; `workspaces.members` returns each member's `name`.
@@ -55,6 +57,8 @@ All notable changes to this project will be documented in this file.
 - **Fix**: A contact's activity (`timeline.list`) no longer shows messages and provider events such as bounces to members and API keys without Message history read, nor website visits to those without Web analytics read.
 
 - **Security**: A custom domain can no longer be saved on a workspace when another workspace already uses it, whatever its case, port or trailing dot, since that workspace could show its own pages and emails under the other's brand. Notifuse checks that a domain points to it, not who owns it, so the first workspace to save a domain holds it. Workspaces that already share one keep it and can still edit its URL while the host stays the same; one that removes it cannot save it again.
+
+- **Fix**: Scheduled broadcasts now record when they started sending, as broadcasts sent at once already did. Upgrading to 44 dates the ones already sent from their first email.
 
 - **Fix**: A scheduled blog post now appears on the blog's pages and at its address only from its publication date.
 

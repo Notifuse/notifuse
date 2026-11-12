@@ -10,7 +10,8 @@ import (
 )
 
 // V44Migration, on workspaces that already exist, makes a click on a link write its own
-// timeline entry and adds the partial indexes of the dashboard's recent failures.
+// timeline entry, adds the partial indexes of the dashboard's recent failures and dates the
+// broadcasts that started without a start date.
 //
 // track_message_history_changes() is reinstalled from the shared schema package. It now
 // writes an email.link_clicked entry, with the URL, each time a click records a link of
@@ -32,8 +33,27 @@ import (
 // table, every later write queuing behind that wait: past 5 seconds the migration fails and
 // is retried at the next start.
 //
+// Before the builds, so outside their lock, the broadcasts that started sending without a
+// start date get the creation time of their first message as one (v44StartedAtBackfillSQL).
+// Until v44 only "send now" and a resume set started_at, so a scheduled broadcast never had
+// it; a sending run now records it. Drafts and scheduled broadcasts are left alone even when
+// they have messages: those are test sends, or a scheduled send still in progress, which its
+// next sending run dates. Only a NULL is filled, so a rerun writes nothing, and a broadcast
+// without any message keeps no date. The first messages are found in one grouped pass over
+// message_history, not one walk per broadcast.
+//
 // No column is renamed or dropped, so no automation trigger function needs regenerating.
 type V44Migration struct{}
+
+// v44StartedAtBackfillSQL dates each broadcast that sent without a start date from its first
+// message.
+const v44StartedAtBackfillSQL = `UPDATE broadcasts b SET started_at = m.first_at
+FROM (SELECT mh.broadcast_id, MIN(mh.created_at) AS first_at
+      FROM message_history mh
+      WHERE mh.broadcast_id IN (SELECT id FROM broadcasts
+                                WHERE started_at IS NULL AND status NOT IN ('draft', 'scheduled'))
+      GROUP BY mh.broadcast_id) m
+WHERE b.id = m.broadcast_id AND b.started_at IS NULL AND b.status NOT IN ('draft', 'scheduled')`
 
 func (m *V44Migration) GetMajorVersion() float64 { return 44.0 }
 
@@ -59,6 +79,7 @@ func v44WorkspaceStatements() []v44WorkspaceStatement {
 		{schema.TrackMessageHistoryChangesFunction(), "install the link click timeline step"},
 		{`SET LOCAL statement_timeout = 0`, "lift the statement timeout"},
 		{`SET LOCAL lock_timeout = '5s'`, "set the lock timeout"},
+		{v44StartedAtBackfillSQL, "date the broadcasts that started without a start date"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`, "create idx_message_history_failed_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`, "create idx_message_history_bounced_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`, "create idx_message_history_complained_recent"},

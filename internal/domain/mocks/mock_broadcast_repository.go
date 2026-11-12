@@ -8,6 +8,7 @@ import (
 	context "context"
 	sql "database/sql"
 	reflect "reflect"
+	time "time"
 
 	domain "github.com/Notifuse/notifuse/internal/domain"
 	gomock "github.com/golang/mock/gomock"
@@ -165,6 +166,20 @@ func (m *MockBroadcastRepository) ListBroadcastsTx(arg0 context.Context, arg1 *s
 func (mr *MockBroadcastRepositoryMockRecorder) ListBroadcastsTx(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBroadcastsTx", reflect.TypeOf((*MockBroadcastRepository)(nil).ListBroadcastsTx), arg0, arg1, arg2)
+}
+
+// MarkBroadcastStarted mocks base method.
+func (m *MockBroadcastRepository) MarkBroadcastStarted(arg0 context.Context, arg1, arg2 string, arg3 time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkBroadcastStarted", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkBroadcastStarted indicates an expected call of MarkBroadcastStarted.
+func (mr *MockBroadcastRepositoryMockRecorder) MarkBroadcastStarted(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkBroadcastStarted", reflect.TypeOf((*MockBroadcastRepository)(nil).MarkBroadcastStarted), arg0, arg1, arg2, arg3)
 }
 
 // UpdateBroadcast mocks base method.

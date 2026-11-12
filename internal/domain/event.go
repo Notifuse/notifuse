@@ -18,7 +18,8 @@ const (
 	// EventBroadcastSendingStarted fires once, on the task run that begins pushing
 	// a broadcast to recipients. Not on a resume, not on the counting run, and not
 	// at all for a scheduled broadcast's status change — the scheduled path never
-	// flips status, which is why this is published from the orchestrator.
+	// flips status, which is why this is published from the orchestrator. Not for a
+	// broadcast read as paused or cancelled on that run either: it sends nothing.
 	EventBroadcastSendingStarted EventType = "broadcast.sending_started"
 	EventBroadcastPaused         EventType = "broadcast.paused"
 	EventBroadcastResumed        EventType = "broadcast.resumed"

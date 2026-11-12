@@ -181,6 +181,8 @@ func TestBroadcastOrchestrator_Process_PausedDuringProcessing(t *testing.T) {
 
 	mockMessageSender := mocks.NewMockMessageSender(ctrl)
 	mockBroadcastRepository := domainmocks.NewMockBroadcastRepository(ctrl)
+	// The first sending run records the start date (orchestrator_started_at_test.go).
+	mockBroadcastRepository.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)

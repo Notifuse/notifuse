@@ -43,12 +43,22 @@ func TestV44Migration_IsWhatLetsTheStampReachFortyFour(t *testing.T) {
 // The exact statements of the workspace update, in order. The first one replaces the body of
 // the timeline function (no trigger is dropped or created). The two SET LOCAL statements let
 // the index builds outlive a configured statement_timeout, and bound the wait for the table
-// lock behind a transaction already writing to it. No column is touched, so no automation
-// trigger function needs regenerating.
+// lock behind a transaction already writing to it. Before the builds, outside their lock, the
+// backfill dates the broadcasts that started sending without a start date (a scheduled send
+// never got one) from their first message, in one grouped pass; it only fills a NULL, so a
+// rerun writes nothing. No column is renamed or dropped, so no automation trigger function
+// needs regenerating.
 var v44ExpectedWorkspaceStatements = []string{
 	schema.TrackMessageHistoryChangesFunction(),
 	`SET LOCAL statement_timeout = 0`,
 	`SET LOCAL lock_timeout = '5s'`,
+	`UPDATE broadcasts b SET started_at = m.first_at
+FROM (SELECT mh.broadcast_id, MIN(mh.created_at) AS first_at
+      FROM message_history mh
+      WHERE mh.broadcast_id IN (SELECT id FROM broadcasts
+                                WHERE started_at IS NULL AND status NOT IN ('draft', 'scheduled'))
+      GROUP BY mh.broadcast_id) m
+WHERE b.id = m.broadcast_id AND b.started_at IS NULL AND b.status NOT IN ('draft', 'scheduled')`,
 	`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`,
 	`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`,
 	`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`,

@@ -1725,6 +1725,7 @@ func TestRegisterRoutes(t *testing.T) {
 	// Define all expected routes
 	routes := []string{
 		"/api/broadcasts.list",
+		"/api/broadcasts.estimateAudience",
 		"/api/broadcasts.get",
 		"/api/broadcasts.create",
 		"/api/broadcasts.update",
