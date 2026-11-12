@@ -10511,9 +10511,9 @@ msgstr "Telefon"
 msgid "Phone Number"
 msgstr "Telefonnummer"
 
-#: src/layouts/MainLayout.tsx:36
-msgid "Photo by Zetong Li"
-msgstr "Foto von Zetong Li"
+#: src/layouts/MainLayout.tsx:37
+msgid "Photo by Sean Oulashin"
+msgstr "Foto von Sean Oulashin"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:110
 #~ msgid "Photo URL"
