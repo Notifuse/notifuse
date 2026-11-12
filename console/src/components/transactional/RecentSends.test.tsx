@@ -132,7 +132,10 @@ describe('RecentSends', () => {
     expect(await screen.findByText('ada@example.com')).toBeInTheDocument()
 
     await act(() => client.refetchQueries())
+    // The query tells React of the failure on a later tick.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)))
     expect(listMessages).toHaveBeenCalledTimes(2)
+    expect(client.getQueryState(['transactional-recent', 'ws1', 'password_reset'])?.status).toBe('error')
     expect(screen.getByText('ada@example.com')).toBeInTheDocument()
     expect(screen.queryByText("Couldn't load")).not.toBeInTheDocument()
   })

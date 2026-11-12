@@ -235,11 +235,13 @@ export function TransactionalNotificationsPage() {
   // KPIs: the sum of the rows of every notification, the search filters the table only.
   const gate = {
     forbidden: ready && !canReadMessages,
-    // No figures yet and no failure: the list or the rights are still on their way.
-    loading: !ready || (canReadMessages && !stats.current.data && !stats.current.isError),
+    // No figures yet and no failure while the list loads or has notifications: they are on their way.
+    loading:
+      !ready ||
+      (canReadMessages && (list.isLoading || ids.length > 0) && !stats.current.data && !stats.current.isError),
     error: stats.current.isError
   }
-  // The sheet's chart reloads on a period switch: its figures wait with it rather than show the old period.
+  // On a period switch the sheet's figures wait for the new period, as its chart does, rather than show the old one.
   const sheetGate = { ...gate, loading: gate.loading || stats.current.isPlaceholderData }
   const total = sumStats(stats.current.data, ids)
   const previous = stats.previous.data ? sumStats(stats.previous.data, ids) : undefined

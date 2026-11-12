@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
@@ -317,7 +317,9 @@ describe('TransactionalNotificationsPage list', () => {
     await waitFor(() =>
       expect(query.mock.calls.some(([q]) => (q as AnalyticsQuery).measures.length === 2 && isSevenDays(q))).toBe(true)
     )
-    await waitFor(() => expect(strip().queryByText(/vs previous/)).not.toBeInTheDocument())
+    // Let the previous 7 days answer: the old totals must still not be compared with them.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)))
+    expect(strip().queryByText(/vs previous/)).not.toBeInTheDocument()
     expect(strip().getByText('2,000')).toBeInTheDocument()
     expect(strip().getByText('Last 30 days')).toBeInTheDocument()
     // The sheet waits for the new figures rather than show the old period.
@@ -537,6 +539,16 @@ describe('TransactionalNotificationsPage rights', () => {
 })
 
 describe('TransactionalNotificationsPage states', () => {
+  it('does not wait forever for figures when the list is empty and a sheet is opened by link', async () => {
+    listNotifications.mockResolvedValue({ notifications: [], total: 0 })
+    state.search = { notification: 'created_since' }
+    renderPage()
+
+    await screen.findByText('No transactional notifications found')
+    const last = detailProps.mock.calls.at(-1)?.[0] as { statsGate: { loading: boolean } }
+    expect(last.statsGate.loading).toBe(false)
+  })
+
   it('shows the empty page with its own button, none in the header', async () => {
     listNotifications.mockResolvedValue({ notifications: [], total: 0 })
     renderPage()

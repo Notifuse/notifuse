@@ -331,12 +331,23 @@ describe('TransactionalDetail', () => {
     expect(screen.getByText('You need access to templates')).toBeInTheDocument()
   })
 
+  it('shows the chart loading on a period switch rather than the old days', async () => {
+    const client = newClient()
+    const { rerender } = render(tree(props(), client))
+    expect(await screen.findByTestId('echart')).toBeInTheDocument()
+
+    query.mockImplementation(() => new Promise(() => {}))
+    rerender(tree(props({ period: '7d' }), client))
+    expect(await screen.findByTestId('sends-chart-loading')).toBeInTheDocument()
+    expect(screen.queryByTestId('echart')).not.toBeInTheDocument()
+  })
+
   it("does not mark the provider's default when the template only failed to load", { timeout: 15_000 }, async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     getTemplate.mockRejectedValue(new Error('boom'))
     renderDetail()
 
-    // The template is asked again twice before it shows as failed.
+    // The template is asked again before it shows as failed.
     expect(await screen.findAllByRole('button', { name: 'Retry' }, { timeout: 8000 })).not.toHaveLength(0)
     expect(screen.getByText('Acme <hello@acme.test>')).toBeInTheDocument()
     expect(screen.queryByText(/\(default\)/)).not.toBeInTheDocument()

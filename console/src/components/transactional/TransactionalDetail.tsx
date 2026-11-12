@@ -384,7 +384,8 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
               <KpiStrip items={kpiItems} loading={!ready || gate.loading} />
               <SendsPerDayChart
                 points={daily.data}
-                loading={!ready || daily.isLoading}
+                // A period switch keeps the old days in cache only: the chart waits rather than show them.
+                loading={!ready || daily.isLoading || daily.isPlaceholderData}
                 error={daily.isError && !daily.data ? daily.error : undefined}
                 onRetry={() => void daily.refetch()}
                 smtp={smtp}
