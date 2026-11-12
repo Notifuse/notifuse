@@ -118,6 +118,8 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The console has a new navigation: a lighter sidebar, which folds to icons, now holds the workspace switcher, the help and the account menus, and the top bar is gone. On Settings and the blog, which keep their own side menu, the sidebar stays folded and opens over the page. The sign-in page has a new background photo, by Sean Oulashin.
 
+- **Feature**: The dashboard shows website visits, how rates moved since the previous period, emails sent each day by origin (broadcasts, transactional, automations), the latest failures and new contacts, and your upcoming broadcasts. Members who cannot read message history land on the first page they can open.
+
 ## [43.0] - 2026-11-07
 
 - **Feature**: Contacts can now agree to or refuse open tracking and click tracking, each on its own. Their choice is stored on the contact (`tracking_opens_consent`, `tracking_clicks_consent`, with the date and source of the change), set through the API, the console, CSV import and the notification center, exported, filterable in the contact list and in segments, usable as an automation trigger field, and sent in contact webhooks. A contact who refused gets no open pixel or no tracked links, and a later refusal also stops recording opens and clicks of emails already sent.

@@ -23,6 +23,7 @@ import { AutomationsPage } from "./pages/AutomationsPage";
 import { TransactionalNotificationsPage } from "./pages/TransactionalNotificationsPage";
 import { LogsPage } from "./pages/LogsPage";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
+import { validateDashboardSearch } from "./components/analytics/dashboardSearch";
 import { WebAnalyticsPage } from "./pages/WebAnalyticsPage";
 import { WebAnalyticsLivePage } from "./pages/WebAnalyticsLivePage";
 import {
@@ -163,6 +164,7 @@ const workspaceIndexRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/",
   component: AnalyticsPage,
+  validateSearch: validateDashboardSearch,
 });
 
 // Create workspace child routes
@@ -308,6 +310,7 @@ const workspaceAnalyticsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/analytics",
   component: AnalyticsPage,
+  validateSearch: validateDashboardSearch,
 });
 
 // eslint-disable-next-line react-refresh/only-export-components -- Internal redirect component
