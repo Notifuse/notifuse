@@ -46,7 +46,8 @@ export function BlogPage() {
   const countsQuery = useQuery({
     queryKey: ['blog-posts', workspaceId, 'counts', activeCategoryId],
     queryFn: () => blogPostsApi.counts(workspaceId, activeCategoryId ?? undefined),
-    // Keep the counts shown while another category's load: the rail's do not change with it.
+    // The rail's counts do not change with the category: keep them while another category's
+    // load. The status tabs do, so the table gets none until they arrive.
     placeholderData: keepPreviousData
   })
   const counts = countsQuery.data
@@ -113,7 +114,7 @@ export function BlogPage() {
       <PostsTable
         workspace={workspace}
         categories={categories}
-        counts={counts}
+        counts={countsQuery.isPlaceholderData ? undefined : counts}
         canWritePosts={canWritePosts}
         showViews={showViews}
       />

@@ -75,7 +75,7 @@ const renderPage = () => {
       </App>
     </I18nProvider>
   )
-  return { ...render(tree()), tree }
+  return { ...render(tree()), tree, client }
 }
 
 describe('BlogPage', () => {
@@ -157,12 +157,14 @@ describe('BlogPage', () => {
 
   it('keeps the table when the counts fail', async () => {
     vi.mocked(blogPostsApi.counts).mockRejectedValue(new Error('boom'))
-    renderPage()
-    expect(await screen.findByTestId('posts-table')).toHaveAttribute('data-total', '')
-    await waitFor(() => expect(blogPostsApi.counts).toHaveBeenCalled())
+    const { client } = renderPage()
+    await waitFor(() =>
+      expect(client.getQueryState(['blog-posts', 'ws1', 'counts', null])?.status).toBe('error')
+    )
+    expect(screen.getByTestId('posts-table')).toHaveAttribute('data-total', '')
   })
 
-  it('keeps the counts shown while another category loads', async () => {
+  it('keeps the rail counts while another category loads, and gives the table none', async () => {
     vi.mocked(blogPostsApi.counts).mockImplementation((_ws, categoryId) =>
       categoryId ? new Promise(() => {}) : Promise.resolve(counts())
     )
@@ -173,7 +175,8 @@ describe('BlogPage', () => {
     state.search = { category_id: 'c1' }
     view.rerender(view.tree())
     await waitFor(() => expect(blogPostsApi.counts).toHaveBeenCalledWith('ws1', 'c1'))
-    expect(screen.getByTestId('posts-table')).toHaveAttribute('data-total', '9')
+    expect(screen.getByRole('button', { name: /^All posts/ })).toHaveTextContent('9')
+    expect(screen.getByTestId('posts-table')).toHaveAttribute('data-total', '')
   })
 
   it.each([
