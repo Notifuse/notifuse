@@ -679,8 +679,9 @@ type BlogPostRepository interface {
 	ListPosts(ctx context.Context, params ListBlogPostsRequest) (*BlogPostListResponse, error)
 	// ListFeedPosts returns the top `limit` published posts (newest first) for
 	// RSS/JSON syndication. Enforces deleted_at IS NULL AND published_at IS NOT
-	// NULL AND published_at <= NOW() — the filter mirrors GetFeedFingerprint so
-	// the cheap 304 path always agrees with the rendered feed body.
+	// NULL AND published_at <= the current UTC time — the filter mirrors
+	// GetFeedFingerprint so the cheap 304 path always agrees with the rendered
+	// feed body.
 	ListFeedPosts(ctx context.Context, categorySlug *string, limit int) ([]*BlogPost, error)
 	// GetFeedFingerprint returns the inputs needed to compute a feed ETag
 	// without materializing items. maxUpdatedAt is GREATEST(post.updated_at,

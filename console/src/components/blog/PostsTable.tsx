@@ -63,9 +63,12 @@ export function PostsTable() {
   const categoryId = search.category_id
 
   // The page belongs to the filters it was picked under: changing the status or the
-  // category starts again from the first page.
+  // category starts again from the first page, and so does coming back to them.
   const filterKey = `${status}|${categoryId ?? ''}`
   const [pageState, setPageState] = useState({ filterKey, page: 1 })
+  if (pageState.filterKey !== filterKey) {
+    setPageState({ filterKey, page: 1 })
+  }
   const page = pageState.filterKey === filterKey ? pageState.page : 1
   const setPage = (next: number) => setPageState({ filterKey, page: next })
 
@@ -88,15 +91,17 @@ export function PostsTable() {
     placeholderData: keepPreviousData
   })
 
+  // The API answers an empty page with "posts": null.
+  const posts = data?.posts ?? []
   const totalCount = data?.total_count ?? 0
   const lastPage = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
 
   // A page emptied by a deletion: show the last page that still has posts.
   useEffect(() => {
-    if (data && data.posts.length === 0 && totalCount > 0 && page > lastPage) {
+    if (data && posts.length === 0 && totalCount > 0 && page > lastPage) {
       setPageState({ filterKey, page: lastPage })
     }
-  }, [data, totalCount, page, lastPage, filterKey])
+  }, [data, posts.length, totalCount, page, lastPage, filterKey])
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => blogPostsApi.delete(workspaceId, { id }),
@@ -427,7 +432,7 @@ export function PostsTable() {
         <Card>
           <Table
             columns={columns}
-            dataSource={data?.posts}
+            dataSource={posts}
             loading={isFetching}
             rowKey="id"
             pagination={{

@@ -163,6 +163,58 @@ describe('PostsTable', () => {
     expect(screen.queryByText('No posts yet')).toBeNull()
   })
 
+  it('shows the empty state when the server answers no posts with null', async () => {
+    // The API encodes an empty page as "posts": null, not [].
+    vi.mocked(blogPostsApi.list).mockResolvedValue({ posts: null, total_count: 0 })
+    renderTable()
+
+    await screen.findByText('No posts yet')
+  })
+
+  it('moves to the last page when the current one comes back as null', async () => {
+    let deleted = false
+    vi.mocked(blogPostsApi.list).mockImplementation(async (_ws, params) => {
+      if (params.page === 2) return deleted ? { posts: null, total_count: 50 } : page(51, 1, 51)
+      return page(1, 50, deleted ? 50 : 51)
+    })
+    const { client } = renderTable()
+
+    await screen.findByText('Post 1')
+    fireEvent.click(screen.getByTitle('2'))
+    await screen.findByText('Post 51')
+
+    deleted = true
+    await client.invalidateQueries({ queryKey: ['blog-posts', 'ws1'] })
+
+    await waitFor(() => expect(listCalls().at(-1)).toMatchObject({ page: 1 }))
+    await screen.findByText('Post 1')
+  })
+
+  it('starts from the first page again after going to another filter and back', async () => {
+    vi.mocked(blogPostsApi.list).mockImplementation(async (_ws, params) =>
+      params.page === 2 ? page(51, 10, 60) : page(1, 50, 60)
+    )
+    const { rerenderTable } = renderTable()
+
+    await screen.findByText('Post 1')
+    fireEvent.click(screen.getByTitle('2'))
+    await screen.findByText('Post 51')
+
+    router.search = { status: 'draft' }
+    rerenderTable()
+    await waitFor(() => expect(listCalls().at(-1)).toMatchObject({ status: 'draft', page: 1 }))
+
+    const callsBeforeReturn = listCalls().length
+    router.search = {}
+    rerenderTable()
+
+    await screen.findByText('Post 1')
+    expect(screen.queryByText('Post 51')).toBeNull()
+    expect(listCalls().slice(callsBeforeReturn)).not.toContainEqual(
+      expect.objectContaining({ page: 2 })
+    )
+  })
+
   it('shows the empty state only when there are no posts at all', async () => {
     vi.mocked(blogPostsApi.list).mockResolvedValue(page(0, 0, 0))
     renderTable()
@@ -175,7 +227,7 @@ describe('PostsTable', () => {
     const { client } = renderTable()
 
     await screen.findByText('Post 1')
-    // BlogPage.tsx asks for one post under ['blog-posts', ws, 'all', undefined].
+    // BlogPage.tsx probes for any post under ['blog-posts', ws, 'all', undefined].
     expect(client.getQueryData(['blog-posts', 'ws1', 'all', undefined])).toBeUndefined()
   })
 })
