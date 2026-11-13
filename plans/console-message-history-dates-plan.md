@@ -8,8 +8,8 @@ English whatever the console language:
 - `MessageHistoryTable.tsx` `formatDate` gives `` `${dayjs(d).format('lll')} in ${workspace.settings.timezone}` ``:
   the time is on the browser's clock, the zone is the workspace's.
 - `utils/formatters.tsx` `formatValue` (dates inside a contact's event properties in the timeline,
-  and a contact's datetime fields through `InlineEditableField.tsx`, both with the workspace or
-  contact timezone) gives `` `${date.format('LLLL')} in ${timezone}` ``, with the same mismatch.
+  with the contact's timezone else the workspace's, and a contact's datetime fields through
+  `InlineEditableField.tsx`, with the workspace's) gives `` `${date.format('LLLL')} in ${timezone}` ``, with the same mismatch.
 
 `ContactTimeline.tsx` already fixed its own tooltip this way in #545 (`.tz(zone)` and
 `` t`${when} in ${zone}` ``). This is the second half of the follow-up of #550, held until the first
@@ -18,8 +18,8 @@ Logs PR (#552) merged; it did not touch these two files.
 ## Change
 
 1. **`console/src/components/messages/MessageHistoryTable.tsx`**: `formatDate` converts to the
-   workspace timezone (`'UTC'` when unset, where the label read "in undefined" and `.tz('')` would
-   throw) and wraps the suffix: `` t`${when} in ${zone}` ``.
+   workspace timezone (`'UTC'` when empty or missing: an empty zone would make `.tz('')` throw, and a
+   missing one used to read "in undefined") and wraps the suffix: `` t`${when} in ${zone}` ``.
 2. **`console/src/utils/formatters.tsx`**: with a timezone, the date is `date.tz(timezone).format('LLLL')`
    and the title `i18n._(msg`${when} in ${zone}`)` (the function is not a component, so no hook).
    Without a timezone, the plain `LLLL` on the browser clock, with no zone name, as before.
@@ -38,7 +38,7 @@ Logs PR (#552) merged; it did not touch these two files.
 - **`console/src/components/messages/MessageHistoryTable.test.tsx`**: `renderTable` takes a workspace;
   hovering Created At in a Tokyo workspace shows "Aug 1, 2026 7:00 PM in Asia/Tokyo"; a workspace
   with no timezone shows "Aug 1, 2026 10:00 AM in UTC".
-- The Tokyo cases fail with the old code on any runner not itself in Tokyo (CI runs in UTC).
+- The Tokyo cases fail with the old code on any runner not on UTC+9 (CI runs in UTC).
 
 ## Out of scope
 

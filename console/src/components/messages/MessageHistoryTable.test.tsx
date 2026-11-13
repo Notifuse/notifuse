@@ -192,7 +192,7 @@ describe('MessageHistoryTable dates', () => {
     fireEvent.mouseEnter(screen.getByText(dayjs('2026-08-01T10:00:00Z').fromNow()))
 
     // 10:00 UTC is 19:00 in Tokyo. The browser's clock, which the old label used, shows another
-    // hour on every runner not itself in Tokyo.
+    // hour on every runner not on UTC+9.
     expect(await screen.findByText('Aug 1, 2026 7:00 PM in Asia/Tokyo')).toBeInTheDocument()
   })
 
