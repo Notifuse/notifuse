@@ -27,8 +27,11 @@ Out of scope (not critical, or not reachable in production): `internal/app/app.g
   `onEmailSent` / `onEmailFailed` branches are dead too.
 - `!token.Valid` after a nil error from `jwt.ParseWithClaims` cannot happen with
   golang-jwt v5 (`smtp_bridge_handler.go`, `auth_service.go`, `middleware/auth.go`);
-  the post-`Verify` `idToken.Issuer` check in OIDC cannot fail after
-  go-oidc's own issuer check. These defensive lines stay uncovered.
+  these defensive lines stay uncovered.
+- The post-`Verify` `idToken.Issuer` check in OIDC *is* reachable: go-oidc accepts
+  `iss = "accounts.google.com"` for the `https://accounts.google.com` provider, and
+  `oidc_service.go` then rejects it. The fake IdP cannot serve that issuer, so the
+  branch stays untested here.
 - In `Process`, the three "test phase complete but winner already selected" branches
   cannot be reached: a winner known before the loop switches the phase up front, and
   the refresh at the loop top re-checks right after reassigning the broadcast. The
@@ -47,7 +50,7 @@ Out of scope (not critical, or not reachable in production): `internal/app/app.g
 
 ### 1. SMTP bridge — `internal/service/smtp_bridge_handler.go`
 
-Test file: `internal/service/smtp_bridge_handler_test.go` (append).
+Test file: `internal/service/smtp_bridge_handler_refusals_test.go`.
 
 `Authenticate`:
 - **Rate limit**: policy of 1 attempt/min; a first bad attempt consumes it, the
@@ -75,9 +78,8 @@ Test file: `internal/service/smtp_bridge_handler_test.go` (append).
 
 ### 2. OIDC — `internal/service/oidc_service.go`
 
-Test files: `internal/service/oidc_idp_test.go` (HandleCallback, with the fake IdP;
-add a counter of `/token` hits to `fakeIdP`), `internal/service/oidc_service_test.go`
-(resolveOrProvisionUser).
+Test file: `internal/service/oidc_fail_closed_test.go` (with the fake IdP of
+`oidc_idp_test.go`, which gains a counter of `/token` hits).
 
 `HandleCallback`:
 - **`?iss=` mismatch (RFC 9207)** → "oidc issuer mismatch", and the token endpoint
@@ -99,11 +101,12 @@ add a counter of `/token` hits to `fakeIdP`), `internal/service/oidc_service_tes
 - JIT create fails with another error → error, no link.
 - `linkIdentity`: federated `Create` fails with a non-duplicate error → error.
 - `mintSession`: session creation fails → error, no token.
-- `OpenFlowState`: empty and garbled (not base64 / too short) input → error.
+- `OpenFlowState`: empty input, and authentic ciphertext whose plaintext is not JSON
+  → error (garbled ciphertext is already covered).
 
 ### 3. Auth tokens — `internal/service/auth_service.go`
 
-Test file: `internal/service/auth_service_test.go` (append).
+Test file: `internal/service/auth_service_secret_test.go`.
 
 - `ValidateInvitationToken` refuses an `alg: none` token (wrong secret is already
   covered).
@@ -116,14 +119,14 @@ Test file: `internal/service/auth_service_test.go` (append).
 
 ### 3b. Sign-in brute-force limits — `internal/service/user_service.go`
 
-Test file: `internal/service/user_service_test.go` (append).
+Test file: `internal/service/user_service_rate_limit_test.go`.
 
 - Magic-code `SignIn` and root sign-in refuse once the rate limiter denies the
   email, without touching the repository or sending a code.
 
 ### 3c. Transactional send failures — `internal/service/transactional_service.go`
 
-Test file: `internal/service/transactional_service_test.go` (append).
+Test file: `internal/service/transactional_service_send_failures_test.go`.
 
 - No email provider configured → error, no message history.
 - `SendEmailForTemplate` fails → "failed to send notification through any channel".
@@ -131,7 +134,7 @@ Test file: `internal/service/transactional_service_test.go` (append).
 
 ### 4. Automation permissions — `internal/service/automation_service.go`
 
-Test file: `internal/service/automation_service_test.go` (append one table test).
+Test file: `internal/service/automation_service_permissions_test.go`.
 
 - Member with **read-only** automations permission: `Create`, `Update`, `Delete`,
   `Activate`, `Pause` return a `*domain.PermissionError`; the repository is never
@@ -144,7 +147,7 @@ Test file: `internal/service/automation_service_test.go` (append one table test)
 
 ### 5. Recipient data feed — `internal/service/broadcast/data_feed.go`
 
-Test file: `internal/service/broadcast/data_feed_test.go` (append; uses
+Test file: `internal/service/broadcast/data_feed_failures_test.go` (uses
 `NewUnsafeDataFeedFetcher` against `httptest`).
 
 Timeout (5 s), retries (2) and retry delay (5 s, plain `time.Sleep`) are hard-coded,
@@ -164,8 +167,7 @@ lands in another branch), empty error body logged as "(empty)", `null` body.
 
 ### 6. Orchestrator A/B and cancellation — `internal/service/broadcast/orchestrator.go`
 
-Test files: `internal/service/broadcast/orchestrator_winner_templates_test.go`,
-`internal/service/broadcast/orchestrator_cancellation_test.go` (append, reusing
+Test file: `internal/service/broadcast/orchestrator_stop_test.go` (reusing
 `sendingStartedMocks`, `abBroadcast`, `recordBatches`).
 
 - **Test phase ends with no winner** (status transition already covered in
@@ -175,11 +177,12 @@ Test files: `internal/service/broadcast/orchestrator_winner_templates_test.go`,
   read → `allDone` true, nil error, `SendBatch` never called, broadcast not marked
   `processed`.
 - **Time limit reached between batches** (real `time.Now()`): the first `SendBatch`
-  sleeps past `timeoutAt` → `allDone` false, one `SaveState`, no second batch.
+  sleeps past `timeoutAt` → `allDone` false, the first batch's progress saved, no
+  second batch.
 
 ### 7. Queue sender — `internal/service/broadcast/queue_message_sender.go`
 
-Test file: `internal/service/broadcast/queue_message_sender_test.go` (append).
+Test file: `internal/service/broadcast/queue_message_sender_batch_failures_test.go`.
 
 - `GetBroadcast` fails → returns `(0, len(recipients), err)`, nothing enqueued.
 - Every recipient fails to build (empty templates map, or broken Liquid subject) →
@@ -192,7 +195,7 @@ Test file: `internal/service/broadcast/queue_message_sender_test.go` (append).
 
 ### 8. `internal/http/automation_handler.go`
 
-Test file: `internal/http/automation_handler_test.go` (append one table test).
+Test file: `internal/http/automation_handler_requests_test.go`.
 
 Only the cases not already covered:
 - wrong HTTP method → 405, service not called: get, list, update, delete, activate,
@@ -201,8 +204,9 @@ Only the cases not already covered:
 - request failing `Validate()` → 400: delete, activate, pause;
 - service returns `*domain.PermissionError` → 403: get, list, delete, pause,
   nodeExecutions;
-- service returns `domain.ErrAPIKeyRevoked` → 401: every endpoint (checks the wiring;
-  the helper itself is tested in `utils_test.go`).
+- service returns `domain.ErrAPIKeyRevoked` → 401: each endpoint above (checks the
+  wiring; the helper itself is tested in `utils_test.go`). `nodeStats` is not in the
+  table.
 
 ## Spec review
 
@@ -228,4 +232,4 @@ go test -coverprofile=coverage.out ./internal/service/... ./internal/http/... &&
 ```
 
 Then compare the per-file coverage of the files above with the Codecov baseline
-(dev @ 02af998).
+(Codecov on dev @ 02af998; the branch is based on dev @ bcffc25).

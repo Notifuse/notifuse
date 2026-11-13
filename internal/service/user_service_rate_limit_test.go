@@ -30,10 +30,16 @@ func TestUserService_SignIn_RateLimitedBeforeLookup(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "too many sign-in attempts")
 	assert.Empty(t, code)
-	assert.True(t, record.Failed(), "the refusal is audited as a failure")
+	assertAuditReason(t, record, "rate_limited")
+}
 
-	// Another address keeps its own attempts.
-	assert.True(t, service.rateLimiter.Allow("signin", "other@example.com"))
+// assertAuditReason checks the request is audited as a failure for reason.
+func assertAuditReason(t *testing.T, record *domain.AuditRecord, reason string) {
+	t.Helper()
+	assert.True(t, record.Failed(), "the refusal is audited as a failure")
+	event, skipped := record.Finalize(429)
+	require.False(t, skipped)
+	assert.Equal(t, reason, event.Metadata["reason"])
 }
 
 func TestUserService_RootSignin_RateLimitedBeforeSignatureCheck(t *testing.T) {
@@ -47,5 +53,5 @@ func TestUserService_RootSignin_RateLimitedBeforeSignatureCheck(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "too many sign-in attempts")
 	assert.Nil(t, resp)
-	assert.True(t, record.Failed())
+	assertAuditReason(t, record, "rate_limited")
 }

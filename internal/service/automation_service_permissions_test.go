@@ -104,8 +104,8 @@ func TestAutomationService_RefusesMembersWithoutPermission(t *testing.T) {
 	}
 }
 
-// A failed authentication is reported as such by every method, with no
-// repository call.
+// A failed authentication is reported as such by each method in the table, with
+// no repository call.
 func TestAutomationService_AuthenticationFailure(t *testing.T) {
 	for _, c := range automationServiceCalls() {
 		t.Run(c.name, func(t *testing.T) {

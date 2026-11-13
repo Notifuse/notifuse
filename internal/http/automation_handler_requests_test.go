@@ -200,8 +200,8 @@ func TestAutomationHandler_InvalidRequestIsRefused(t *testing.T) {
 	}
 }
 
-// Every route answers a denied permission with 403 and a revoked API key with
-// 401, wrapped or not, instead of a generic 500.
+// Each route in the table answers a denied permission with 403 and a revoked API
+// key with 401, wrapped or not, instead of a generic 500.
 func TestAutomationHandler_AuthErrorsKeepTheirStatus(t *testing.T) {
 	permissionErr := domain.NewPermissionError(domain.PermissionResourceAutomations, domain.PermissionTypeWrite, "user lacks automations access")
 	cases := []struct {

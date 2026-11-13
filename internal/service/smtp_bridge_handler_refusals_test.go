@@ -61,7 +61,7 @@ func TestSMTPBridgeHandlerService_Authenticate_RefusedBeforeAccountLookup(t *tes
 			apiKey: func(t *testing.T) string {
 				return bridgeAPIKey(t, apiEmail, jwt.SigningMethodNone, jwt.UnsafeAllowNoneSignatureType, valid)
 			},
-			wantErr: "invalid API key",
+			wantErr: "unexpected signing method",
 		},
 		{
 			name:     "expired token",

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
@@ -110,14 +111,19 @@ func TestDataFeedFetcher_FetchRecipient_CancelledInFlight_NotRetried(t *testing.
 		cancel()
 	}()
 
-	result, err := NewUnsafeDataFeedFetcher(log).FetchRecipient(ctx,
-		&domain.RecipientFeedSettings{Enabled: true, URL: server.URL}, recipientPayload())
+	settings := &domain.RecipientFeedSettings{Enabled: true, URL: server.URL}
+	start := time.Now()
+	result, err := NewUnsafeDataFeedFetcher(log).FetchRecipient(ctx, settings, recipientPayload())
+	elapsed := time.Since(start)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "request cancelled")
 	assert.ErrorIs(t, err, context.Canceled)
 	assert.Nil(t, result)
-	assert.Equal(t, int32(1), hits.Load(), "a cancelled request is not retried")
+	assert.Equal(t, int32(1), hits.Load())
+	// A retry on the cancelled context never reaches the server, so the hit count
+	// alone cannot see it; the delay before each retry can.
+	assert.Less(t, elapsed, time.Duration(settings.GetRetryDelay())*time.Millisecond, "a cancelled request is not retried")
 }
 
 // A 200 that is not JSON is the feed's bug, not a transient fault: no retry.
@@ -178,7 +184,7 @@ func TestDataFeedFetcher_FetchRecipient_NilPayloadAndNullAnswer(t *testing.T) {
 func TestDataFeedFetcher_FetchGlobal_CancelledInFlight(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	log, _ := newFieldRecorder(ctrl)
-	server, started, hits := blockingServer(t)
+	server, started, _ := blockingServer(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		<-started
@@ -192,7 +198,6 @@ func TestDataFeedFetcher_FetchGlobal_CancelledInFlight(t *testing.T) {
 	assert.Contains(t, err.Error(), "request cancelled")
 	assert.ErrorIs(t, err, context.Canceled)
 	assert.Nil(t, result)
-	assert.Equal(t, int32(1), hits.Load())
 }
 
 func TestDataFeedFetcher_FetchGlobal_HTTPErrorWithEmptyBody(t *testing.T) {

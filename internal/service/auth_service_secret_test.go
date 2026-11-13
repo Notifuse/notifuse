@@ -22,7 +22,7 @@ func TestAuthService_UnusableSecret_SignsAndAcceptsNothing(t *testing.T) {
 		wantErr   string
 	}{
 		{name: "empty secret", getSecret: func() ([]byte, error) { return []byte{}, nil }, wantErr: "cannot be empty"},
-		{name: "secret unavailable", getSecret: func() ([]byte, error) { return nil, errors.New("vault down") }, wantErr: "not available"},
+		{name: "secret unavailable", getSecret: func() ([]byte, error) { return nil, errors.New("vault down") }, wantErr: "vault down"},
 	}
 	for _, tc := range secrets {
 		t.Run(tc.name, func(t *testing.T) {
@@ -68,6 +68,7 @@ func TestAuthService_ValidateInvitationToken_RefusesUnsignedToken(t *testing.T) 
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid invitation token")
+	assert.Contains(t, err.Error(), "unexpected signing method")
 	assert.Empty(t, invitationID)
 	assert.Empty(t, workspaceID)
 	assert.Empty(t, email)
