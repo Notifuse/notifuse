@@ -77,14 +77,17 @@ func TestAnalyticsMessageOrigin(t *testing.T) {
 	// Broadcast: a message of the broadcast and its test send, which carries the broadcast ID.
 	create(noon, testutil.WithMessageBroadcast(broadcastID))
 	create(noon, testutil.WithMessageBroadcast(broadcastID))
-	// Automation: two messages, the same day as the broadcast.
+	// Automation: three messages, the same day as the broadcast. One also carries a
+	// notification ID, as the upgrade to 28.0 left some automation emails: it stays the
+	// automation's, as in the messages.list origin filter.
 	create(noon, withAutomation)
 	create(noon, withAutomation)
-	// Transactional: three notification messages (one just after local midnight), plus a
-	// template test and a double opt-in confirmation, which carry no ID at all.
+	create(noon, withAutomation, withNotification)
+	// Transactional: three notification messages, one just after local midnight.
 	create(noon, withNotification)
 	create(noon, withNotification)
 	create(justAfterLocalMidnight, withNotification)
+	// Other: a template test and a double opt-in confirmation, which carry no ID at all.
 	create(noon)
 	create(noon)
 	// Outside the range: never counted.
@@ -111,11 +114,11 @@ func TestAnalyticsMessageOrigin(t *testing.T) {
 			origin, _ := row["origin"].(string)
 			got[origin] += waNumber(t, row["count"])
 		}
-		assert.Equal(t, map[string]float64{"broadcast": 2, "automation": 2, "transactional": 5}, got)
+		assert.Equal(t, map[string]float64{"broadcast": 2, "automation": 3, "transactional": 3, "other": 2}, got)
 	})
 
 	t.Run("each origin filter counts its own messages", func(t *testing.T) {
-		for origin, want := range map[string]float64{"broadcast": 2, "automation": 2, "transactional": 5} {
+		for origin, want := range map[string]float64{"broadcast": 2, "automation": 3, "transactional": 3, "other": 2} {
 			result := waRunQuery(t, suite, workspace.ID, map[string]interface{}{
 				"schema": "message_history", "measures": []string{"count"},
 				"filters": []map[string]interface{}{
@@ -147,7 +150,7 @@ func TestAnalyticsMessageOrigin(t *testing.T) {
 		}
 		assert.Equal(t, map[string]float64{
 			previousDay.Format("2006-01-02") + "T00:00:00Z": 0,
-			day.Format("2006-01-02") + "T00:00:00Z":         5,
+			day.Format("2006-01-02") + "T00:00:00Z":         3,
 		}, byDay)
 	})
 

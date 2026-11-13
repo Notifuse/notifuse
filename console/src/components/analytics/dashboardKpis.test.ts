@@ -67,12 +67,21 @@ describe('computeDashboardKpis', () => {
       clicksTracked: 300
     }),
     transactional: totals({
-      sent: 100,
-      delivered: 100,
-      opened: 60,
-      opensTracked: 100,
-      clicked: 10,
-      clicksTracked: 100
+      sent: 80,
+      delivered: 80,
+      opened: 50,
+      opensTracked: 80,
+      clicked: 8,
+      clicksTracked: 80
+    }),
+    // Template tests and double opt-in confirmations: in the totals like any other email.
+    other: totals({
+      sent: 20,
+      delivered: 20,
+      opened: 10,
+      opensTracked: 20,
+      clicked: 2,
+      clicksTracked: 20
     })
   }
 
@@ -91,7 +100,8 @@ describe('computeDashboardKpis', () => {
       series: {
         broadcast: emptyTotals(),
         automation: emptyTotals(),
-        transactional: emptyTotals()
+        transactional: emptyTotals(),
+        other: emptyTotals()
       }
     })
     expect(kpis.sent.total).toBe(0)
@@ -108,7 +118,8 @@ describe('computeDashboardKpis', () => {
         ...series,
         broadcast: totals({ sent: 10 }),
         automation: emptyTotals(),
-        transactional: emptyTotals()
+        transactional: emptyTotals(),
+        other: emptyTotals()
       }
     })
     expect(kpis.delivered.noDeliveryEvents).toBe(true)
@@ -116,7 +127,7 @@ describe('computeDashboardKpis', () => {
   })
 
   it('warns above 2 % bounces or 0.1 % complaints', () => {
-    const only = { automation: emptyTotals(), transactional: emptyTotals() }
+    const only = { automation: emptyTotals(), transactional: emptyTotals(), other: emptyTotals() }
     const ok = computeDashboardKpis({
       series: {
         ...only,

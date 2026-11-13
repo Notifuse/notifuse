@@ -157,8 +157,10 @@ func (f MessageFilter) Validate() error {
 }
 
 // RequireBound refuses a messages.count filter that no index can narrow: it needs
-// created_after, or a filter on an indexed column. list_id and external_id are not indexed
-// for this. A wide period or a common value can still read a large part of the table.
+// created_after, or one of id, contact_email, broadcast_id, automation_id,
+// transactional_notification_id and template_id. Without one of these the other filters are
+// refused, even one an index could use, such as created_before. A wide period or a common
+// value can still read a large part of the table.
 func (f MessageFilter) RequireBound() error {
 	if f.CreatedAfter != nil {
 		return nil

@@ -1426,3 +1426,19 @@ func TestDemoService_CreateSampleTemplates_RefusesLoudlyWhenUnlicensed(t *testin
 		assert.Equal(t, domain.FeatureTemplateI18n, refused.Feature)
 	}
 }
+
+// Each demo transactional email carries the ID of the notification that sends it, so the
+// dashboard and the Logs page count it as transactional and not as other.
+func TestDemoService_TransactionalMessagesCarryTheirNotification(t *testing.T) {
+	svc := &DemoService{logger: logger.NewLoggerWithLevel("disabled")}
+	contact := &domain.Contact{Email: "test@example.com"}
+
+	for messageType, want := range map[string]string{"password-reset": "password_reset", "welcome": "welcome"} {
+		templateID := map[string]string{"password-reset": "password-reset", "welcome": "welcome-email"}[messageType]
+		message, _ := svc.generateTransactionalMessageHistoryForContact(contact, templateID, 1, messageType, time.Now())
+		require.NotNil(t, message.TransactionalNotificationID, messageType)
+		assert.Equal(t, want, *message.TransactionalNotificationID, messageType)
+		assert.Nil(t, message.BroadcastID, messageType)
+		assert.Nil(t, message.AutomationID, messageType)
+	}
+}

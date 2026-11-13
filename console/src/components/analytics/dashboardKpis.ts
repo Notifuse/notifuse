@@ -1,8 +1,9 @@
 import { isPartiallyTracked } from '../../lib/emailTracking'
 import type { KpiTone } from '../layout'
 
-export type MessageOrigin = 'broadcast' | 'automation' | 'transactional'
-export const MESSAGE_ORIGINS: MessageOrigin[] = ['broadcast', 'transactional', 'automation']
+/** The values of the analytics origin dimension; other is none of the three, such as a template test. */
+export type MessageOrigin = 'broadcast' | 'automation' | 'transactional' | 'other'
+export const MESSAGE_ORIGINS: MessageOrigin[] = ['broadcast', 'transactional', 'automation', 'other']
 
 /** The message_history measures the dashboard reads, per day or summed. */
 export interface MessageTotals {

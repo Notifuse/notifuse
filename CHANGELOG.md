@@ -28,7 +28,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 
-- **Feature**: The analytics API splits message history by what sent each message, with the new `origin` dimension (`broadcast`, `automation` or `transactional`).
+- **Feature**: The analytics API splits message history by what sent each message, with the new `origin` dimension (`broadcast`, `automation`, `transactional` or `other`, the values of the `messages.list` filter).
 
 - **Feature**: The analytics API gives when each transactional notification last sent successfully, with the new `last_sent_at` measure of message history, and `messages.list` filters by `transactional_notification_id`.
 
@@ -140,7 +140,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The console has a new navigation: a lighter sidebar, which folds to icons, now holds the workspace switcher, the help and the account menus, and the top bar is gone. On Settings and the blog, which keep their own side menu, the sidebar stays folded and opens over the page. The sign-in page has a new background photo, by Sean Oulashin.
 
-- **Feature**: The dashboard shows website visits, how rates moved since the previous period, emails sent each day by origin (broadcasts, transactional, automations), the latest failures and new contacts, and your upcoming broadcasts. Members who cannot read message history land on the first page they can open.
+- **Feature**: The dashboard shows website visits, how rates moved since the previous period, emails sent each day by origin (broadcasts, transactional, automations, other), the latest failures and new contacts, and your upcoming broadcasts. Members who cannot read message history land on the first page they can open.
 
 - **Feature**: Settings have a new layout. The side menu groups the pages into Workspace, Sending, Content and Security. General shows the workspace, its languages, email tracking and custom domain in separate panels, with a logo preview. Team & API keys lists members and keys in tables with each one's access, and invitations with when they expire. Each email provider is a card with its roles, webhook status, settings and senders, which you can add from the card. Webhooks are listed with their success rate over the last 7 days and their last success; a webhook opens in a side panel, with its statistics, its secret, a test and a link to its deliveries. Custom fields list the named slots, and how many of each type are still free.
 

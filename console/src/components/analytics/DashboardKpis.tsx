@@ -154,7 +154,8 @@ export function DashboardKpis({
     series: totals ?? {
       broadcast: emptyTotals(),
       transactional: emptyTotals(),
-      automation: emptyTotals()
+      automation: emptyTotals(),
+      other: emptyTotals()
     },
     // After a period switch either side can still be the old period's: no change until both are new.
     previous:
