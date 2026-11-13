@@ -612,14 +612,15 @@ describe('ContactTimeline numbers in the console language', () => {
       created_at: '2026-08-12T10:03:00Z',
       db_created_at: '2026-08-12T10:03:00Z'
     }
+    // The contact trigger writes each change as an old/new pair.
     const scored: ContactTimelineEntry = {
       id: '55555555-5555-5555-5555-555555555555',
       email: 'reader@example.com',
       operation: 'update',
       entity_type: 'contact',
-      kind: 'contact.update',
+      kind: 'contact.updated',
       entity_id: 'reader@example.com',
-      changes: { score: 12345.5 } as unknown as ContactTimelineEntry['changes'],
+      changes: { custom_number_1: { old: 1234.5, new: 12345 } },
       created_at: '2026-08-12T10:04:00Z',
       db_created_at: '2026-08-12T10:04:00Z'
     }
@@ -627,7 +628,8 @@ describe('ContactTimeline numbers in the console language', () => {
 
     // French groups thousands with a narrow no-break space, which \s matches.
     expect(screen.getByText(/^\$1\s234,50$/)).toBeInTheDocument()
-    expect(screen.getByText(/^12\s345,5$/)).toBeInTheDocument()
+    expect(screen.getByText(/^1\s234,5$/)).toBeInTheDocument()
+    expect(screen.getByText(/^12\s345$/)).toBeInTheDocument()
   })
 })
 

@@ -17,17 +17,21 @@ these as known. Pierre chose to align them in one small PR.
    - `contacts/ContactsCsvUploadDrawer.tsx`: the import, progress, error and resume counts, and the
      row count of the file.
    - `settings/Integrations.tsx`: the emails per hour and per day under the rate limit.
-2. `timeline/ContactTimeline.tsx`: a changed number and a goal value pass `i18n.locale` to
-   `toLocaleString`, keeping their options (the goal value keeps two decimals and its "$").
+2. `timeline/ContactTimeline.tsx`: the old and new values of a contact change (the `{old, new}` pairs
+   the contact trigger writes, shown "1 234,5 → 12 345"), a flat changed number and a goal value pass
+   `i18n.locale` to `toLocaleString`, keeping their options (the goal value keeps two decimals and
+   its "$"). Non-numbers are still shown with `String()`.
 3. `web_analytics/lib/format.ts` `formatCurrency`: `i18n.locale || 'en'` instead of the browser's
    locale, in both branches. The K and M suffix now goes after the whole number, group separators
-   included, so a French amount past a billion reads "2 346M €" and not "2M 346 €".
+   included, so a French amount past a billion reads "2 346M €" and not "2M 346 €". That fixes a
+   released behaviour (in a French browser), so it gets its own Fix line.
 4. `utils/formatters.tsx` `formatValue`: `Intl.NumberFormat(i18n.locale || 'en')` replaces numbro,
-   with the same rule (a positive decimal keeps up to two digits, anything else is rounded). It
-   serves the timeline's event values and a contact's number fields (`InlineEditableField`).
+   with the same rule: a positive decimal keeps up to two digits, anything else is rounded half up
+   with `Math.round` first, as numbro did, and a rounded -0 shows as "0", not "-0". It serves the timeline's event values and a contact's number fields (`InlineEditableField`).
 5. Every changed message keeps a call expression inside `t`, so the message ids keep their
    positional placeholders. `npm run lingui:extract` adds and changes no message (not kept).
-6. **CHANGELOG**: folded into the unreleased 44.0 Improvement bullet on the console language.
+6. **CHANGELOG**: folded into the unreleased 44.0 Improvement bullet on the console language, plus a
+   Fix line for the billion suffix.
 
 ## Tests (TDD: written first, seen failing)
 
@@ -39,12 +43,16 @@ thousands with a narrow no-break space, matched with `\s` or normalised.
 - `broadcasts/SendingProgress.test.tsx` (new): "1 234 of 5 678".
 - `web_analytics/filters/BackfillStatus.test.tsx` (new): "12 345 rows rewritten", with the service
   mocked.
-- `utils/formatters.test.tsx`: "12 345" and "1 234,57" in French, "12,345" and "1,234.5" in English.
-- `timeline/ContactTimeline.test.tsx`: a purchase goal reads "$1 234,50" and a changed number
-  "12 345,5" in French.
-- Not tested: `ExportContactsModal` (the count shows only mid-export), `ContactsCsvUploadDrawer`
-  (inside the import flow) and the Integrations rate limit (inside the provider form). Each is the
-  same `int(...)` call the tested screens use.
+- `utils/formatters.test.tsx`: "12 345" and "1 234,57" in French, "12,345" and "1,234.5" in English,
+  and -0.4 gives "0", -1234.5 "-1,234".
+- `timeline/ContactTimeline.test.tsx`: a purchase goal reads "$1 234,50", and a contact change
+  `{ old: 1234.5, new: 12345 }` reads "1 234,5" and "12 345" in French.
+- `settings/Integrations.test.tsx`: the SES form's rate limit (25 per minute) reads "≈ 1 500" and
+  "≈ 36 000" in French.
+- Not tested: `ExportContactsModal` (the count shows only while the export fetches) and
+  `ContactsCsvUploadDrawer` (inside the import flow). Each is the same `int(...)` call the tested
+  screens use. The flat changed number in the timeline is not tested either: the trigger always
+  writes old/new pairs.
 
 ## Out of scope
 

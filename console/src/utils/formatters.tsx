@@ -19,10 +19,12 @@ export const formatValue = (value: unknown, timezone?: string): React.ReactNode 
   }
 
   // Numbers with the separators of the console's language: "12 345" in French, "12,345" in
-  // English. A positive decimal keeps up to two digits ("1 234,57"); anything else is rounded.
+  // English. A positive decimal keeps up to two digits ("1 234,57"); anything else is rounded
+  // half up first, as before, and `|| 0` turns a rounded -0 into 0 rather than "-0".
   if (typeof value === 'number') {
     const decimals = String(value).includes('.') && value > 0 ? 2 : 0
-    return new Intl.NumberFormat(i18n.locale || 'en', { maximumFractionDigits: decimals }).format(value)
+    const shown = decimals ? value : Math.round(value) || 0
+    return new Intl.NumberFormat(i18n.locale || 'en', { maximumFractionDigits: decimals }).format(shown)
   }
 
   // Handle date strings (ISO 8601 format)

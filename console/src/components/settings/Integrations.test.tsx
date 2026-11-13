@@ -174,6 +174,22 @@ describe('Integrations — marketing rate limit', () => {
   })
 })
 
+describe('Integrations — marketing rate limit in the console language', () => {
+  afterEach(() => {
+    i18n.activate('en')
+  })
+
+  it('writes the hourly and daily volume with the separators of the console language', async () => {
+    i18n.load('fr', {})
+    i18n.activate('fr')
+    await openSESDrawer()
+
+    // 25 per minute by default. French groups thousands with a narrow no-break space.
+    expect(screen.getByText(/^≈ 1\s500/)).toBeInTheDocument()
+    expect(screen.getByText(/^≈ 36\s000/)).toBeInTheDocument()
+  })
+})
+
 describe('Integrations — SES tenant isolation', () => {
   // The gate is EnsureTenantIsolation's, and it still answers 402. What this pins is the order
   // of events: an owner on an unlicensed deployment meets a locked switch that names the plan,

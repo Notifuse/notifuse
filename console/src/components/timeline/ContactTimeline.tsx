@@ -100,6 +100,11 @@ export function ContactTimeline({
 }: ContactTimelineProps) {
   const { t, i18n } = useLingui()
 
+  // A changed value as written beside its old one: numbers with the separators of the console's
+  // language ("1 234,5" in French), anything else as it came.
+  const changedValue = (value: unknown): string =>
+    typeof value === 'number' ? value.toLocaleString(i18n.locale) : String(value)
+
   // A tooltip's full date, in the console's language, on the clock of the timezone it names.
   const timeInZone = (at: string, zone: string = timezone): string => {
     const when = dayjs(at).tz(zone).format('LLLL')
@@ -549,9 +554,9 @@ export function ContactTimeline({
                           <Text type="secondary" className="font-mono text-xs">
                             {key}:
                           </Text>{' '}
-                          <Text type="secondary">{String(oldVal)}</Text>
+                          <Text type="secondary">{changedValue(oldVal)}</Text>
                           <Text type="secondary"> → </Text>
-                          <Text>{String(newVal)}</Text>
+                          <Text>{changedValue(newVal)}</Text>
                         </div>
                       )
                     } else {

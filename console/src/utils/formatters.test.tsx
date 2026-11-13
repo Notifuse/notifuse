@@ -55,5 +55,17 @@ describe('formatValue numbers', () => {
     expect(screen.getByText('12,345')).toBeInTheDocument()
     expect(screen.getByText('1,234.5')).toBeInTheDocument()
   })
+
+  it('rounds a negative decimal half up, never to "-0"', () => {
+    render(
+      <>
+        <span>{formatValue(-0.4)}</span>
+        <span>{formatValue(-1234.5)}</span>
+      </>
+    )
+
+    expect(screen.getByText('0')).toBeInTheDocument()
+    expect(screen.getByText('-1,234')).toBeInTheDocument()
+  })
 })
 
