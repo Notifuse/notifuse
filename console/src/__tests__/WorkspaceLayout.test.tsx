@@ -2,24 +2,29 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WorkspaceLayout } from '../layouts/WorkspaceLayout'
-import { useAuth } from '../contexts/AuthContext'
+import { AuthContext, useAuth } from '../contexts/AuthContext'
 import { useNavigate } from '@tanstack/react-router'
 import { isRootUser } from '../services/api/auth'
 import { workspaceService } from '../services/api/workspace'
 
-vi.mock('../contexts/AuthContext', () => ({
+// The layout's own useAuth is mocked; useWorkspacePermissions is the real one, which reads the
+// same value from the provider renderLayout puts around the layout.
+vi.mock('../contexts/AuthContext', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../contexts/AuthContext')>()),
   useAuth: vi.fn()
 }))
 
 // Read at render time, so a test can put the layout on any route before rendering.
 let currentPathname = '/console/workspace/ws1'
 let currentLayout: 'page' | 'rail' | undefined
+let currentWorkspaceId = 'ws1'
 
 vi.mock('@tanstack/react-router', () => ({
   Outlet: () => <div data-testid="outlet" />,
   Link: ({ children }: { children: ReactNode }) => <a>{children}</a>,
-  useParams: () => ({ workspaceId: 'ws1' }),
+  useParams: () => ({ workspaceId: currentWorkspaceId }),
   // The workspace route declares no layout; the leaf may.
   useMatches: () => [
     { pathname: '/console/workspace/ws1', staticData: {} },
@@ -57,6 +62,19 @@ vi.mock('../contexts/LocaleContext', () => ({
 
 const mockNavigate = vi.fn()
 
+// A fresh query cache per render, and the mocked auth value in the provider the permissions hook
+// reads.
+const renderLayout = () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(<WorkspaceLayout />, {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>
+        <AuthContext.Provider value={vi.mocked(useAuth)()}>{children}</AuthContext.Provider>
+      </QueryClientProvider>
+    )
+  })
+}
+
 const grantAll = (value: boolean) => ({
   contacts: { read: value, write: value },
   lists: { read: value, write: value },
@@ -76,6 +94,7 @@ const signInAsRoot = () => {
   window.localStorage.clear()
   currentPathname = '/console/workspace/ws1'
   currentLayout = undefined
+  currentWorkspaceId = 'ws1'
   vi.mocked(useNavigate).mockReturnValue(mockNavigate as never)
   vi.mocked(isRootUser).mockReturnValue(true)
   auditAccess.canRead = false
@@ -91,7 +110,7 @@ describe('WorkspaceLayout sidebar groups', () => {
   beforeEach(signInAsRoot)
 
   const openGroup = async (label: string) => {
-    render(<WorkspaceLayout />)
+    renderLayout()
     const title = await screen.findByText(label)
     await userEvent.click(title)
     return title
@@ -150,7 +169,7 @@ describe('WorkspaceLayout web analytics entries', () => {
   const selectedLabel = () => document.querySelector('.ant-menu-item-selected')?.textContent ?? null
 
   it('lists Annotations under the Web Analytics group', async () => {
-    render(<WorkspaceLayout />)
+    renderLayout()
     await userEvent.click(await screen.findByText('Web Analytics'))
 
     expect(screen.getByText('Annotations')).toBeInTheDocument()
@@ -162,7 +181,7 @@ describe('WorkspaceLayout web analytics entries', () => {
     // sidebar says you are somewhere you are not.
     currentPathname = '/console/workspace/ws1/web-analytics/annotations'
 
-    render(<WorkspaceLayout />)
+    renderLayout()
     await screen.findByText('Annotations')
 
     expect(selectedLabel()).toBe('Annotations')
@@ -171,7 +190,7 @@ describe('WorkspaceLayout web analytics entries', () => {
   it('still highlights the filters entry on the filters route', async () => {
     currentPathname = '/console/workspace/ws1/web-analytics/filters'
 
-    render(<WorkspaceLayout />)
+    renderLayout()
     await screen.findByText('Filters')
 
     expect(selectedLabel()).toBe('Filters')
@@ -186,20 +205,20 @@ describe('WorkspaceLayout chrome', () => {
   const content = () => document.querySelector<HTMLElement>('[data-page-content]')!
 
   it('isolates the page, so its z-indexes stay under the sidebar and its menus', async () => {
-    render(<WorkspaceLayout />)
+    renderLayout()
     await screen.findByText('Contacts')
     expect(main().className.split(' ')).toContain('isolate')
   })
 
   it('pads a page and leaves a rail page to its own layout', async () => {
-    const { unmount } = render(<WorkspaceLayout />)
+    const { unmount } = renderLayout()
     await screen.findByText('Contacts')
     expect(content().className).toBe('px-5 pt-4 pb-6')
     unmount()
 
     currentPathname = '/console/workspace/ws1/settings/team'
     currentLayout = 'rail'
-    render(<WorkspaceLayout />)
+    renderLayout()
     await screen.findByRole('navigation', { name: 'Main navigation' })
     expect(content().className).toBe('')
   })
@@ -208,14 +227,14 @@ describe('WorkspaceLayout chrome', () => {
     window.localStorage.setItem('notifuse.sidebar.collapsed', 'false')
     currentPathname = '/console/workspace/ws1/settings/team'
     currentLayout = 'rail'
-    render(<WorkspaceLayout />)
+    renderLayout()
     await screen.findByRole('navigation', { name: 'Main navigation' })
     expect(aside().dataset.collapsed).toBe('true')
     expect(main().className).toContain('ml-sidebar-collapsed')
   })
 
   it('keeps the collapse chosen on a page, and writes it', async () => {
-    render(<WorkspaceLayout />)
+    renderLayout()
     expect(main().className).toContain('ml-sidebar')
     expect(main().className).not.toContain('ml-sidebar-collapsed')
     await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
@@ -225,7 +244,7 @@ describe('WorkspaceLayout chrome', () => {
 
   it('reads a stored collapse', () => {
     window.localStorage.setItem('notifuse.sidebar.collapsed', 'true')
-    render(<WorkspaceLayout />)
+    renderLayout()
     expect(aside().dataset.collapsed).toBe('true')
   })
 
@@ -237,7 +256,7 @@ describe('WorkspaceLayout chrome', () => {
     const getItem = vi.spyOn(window.localStorage, 'getItem').mockImplementation(denied)
     const setItem = vi.spyOn(window.localStorage, 'setItem').mockImplementation(denied)
     try {
-      render(<WorkspaceLayout />)
+      renderLayout()
       expect(aside().dataset.collapsed).toBe('false')
       await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
       expect(aside().dataset.collapsed).toBe('true')
@@ -251,7 +270,7 @@ describe('WorkspaceLayout chrome', () => {
   it('peeks on the Blog with Content open and Blog selected, without moving the content', async () => {
     currentPathname = '/console/workspace/ws1/blog'
     currentLayout = 'rail'
-    render(<WorkspaceLayout />)
+    renderLayout()
     await screen.findByRole('navigation', { name: 'Main navigation' })
     await userEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
     expect(aside().dataset.collapsed).toBe('false')
@@ -269,7 +288,7 @@ describe('WorkspaceLayout chrome', () => {
   it('folds the peek back on navigation', async () => {
     currentPathname = '/console/workspace/ws1/blog'
     currentLayout = 'rail'
-    const { rerender } = render(<WorkspaceLayout />)
+    const { rerender } = renderLayout()
     await screen.findByRole('navigation', { name: 'Main navigation' })
     await userEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
     expect(aside().dataset.collapsed).toBe('false')
@@ -279,13 +298,13 @@ describe('WorkspaceLayout chrome', () => {
   })
 
   it('places the sidebar and the page under the licence banner', () => {
-    render(<WorkspaceLayout />)
+    renderLayout()
     expect(aside().style.top).toBe('calc(0px + var(--license-banner-height, 0px))')
     expect(main().style.paddingTop).toBe('calc(0px + var(--license-banner-height, 0px))')
   })
 
   it('no longer paints the former #F9F9F9 background', () => {
-    const { container } = render(<WorkspaceLayout />)
+    const { container } = renderLayout()
     expect(container.innerHTML.toLowerCase()).not.toContain('#f9f9f9')
     expect(container.firstElementChild?.className).toContain('bg-canvas')
   })
@@ -293,7 +312,7 @@ describe('WorkspaceLayout chrome', () => {
   it('shows no entry while the rights load', async () => {
     vi.mocked(isRootUser).mockReturnValue(false)
     vi.mocked(workspaceService.getMembers).mockReturnValue(new Promise(() => {}))
-    render(<WorkspaceLayout />)
+    renderLayout()
     await waitFor(() =>
       expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument()
     )
@@ -305,10 +324,48 @@ describe('WorkspaceLayout chrome', () => {
     vi.mocked(workspaceService.getMembers).mockResolvedValue({
       members: [{ user_id: 'u1', role: 'owner', permissions: grantAll(true) }]
     } as never)
-    render(<WorkspaceLayout />)
+    renderLayout()
     await waitFor(() =>
       expect(document.querySelector('[data-account-role]')).toHaveTextContent('Owner · EN')
     )
+  })
+
+  // The layout stays mounted on a switch: until the new workspace answers, it shows no entry and
+  // no role, never the previous workspace's.
+  it("never shows the previous workspace's menu or role after a switch", async () => {
+    vi.mocked(isRootUser).mockReturnValue(false)
+    let answerWs2!: (value: unknown) => void
+    vi.mocked(workspaceService.getMembers).mockImplementation(((id: string) =>
+      id === 'ws1'
+        ? Promise.resolve({
+            members: [{ user_id: 'u1', role: 'owner', permissions: grantAll(true) }]
+          })
+        : new Promise((resolve) => (answerWs2 = resolve))) as never)
+    const { rerender } = renderLayout()
+    expect(await screen.findByText('Broadcasts')).toBeInTheDocument()
+    expect(document.querySelector('[data-account-role]')).toHaveTextContent('Owner')
+
+    currentWorkspaceId = 'ws2'
+    rerender(<WorkspaceLayout />)
+
+    expect(screen.queryByText('Broadcasts')).toBeNull()
+    expect(document.querySelectorAll('.app-sidebar-nav .ant-menu-item')).toHaveLength(0)
+    expect(document.querySelector('[data-account-role]')).not.toHaveTextContent('Owner')
+
+    await act(async () => {
+      answerWs2({
+        members: [
+          {
+            user_id: 'u1',
+            role: 'member',
+            permissions: { ...grantAll(false), workspace: { read: true, write: false } }
+          }
+        ]
+      })
+    })
+    expect(await screen.findByText('Settings')).toBeInTheDocument()
+    expect(screen.queryByText('Broadcasts')).toBeNull()
+    expect(document.querySelector('[data-account-role]')).toHaveTextContent('Member')
   })
 
   it('switches workspace and opens the workspace creation', async () => {
@@ -321,7 +378,7 @@ describe('WorkspaceLayout chrome', () => {
       ],
       user: { id: 'u1', email: 'root@example.com' }
     } as never)
-    render(<WorkspaceLayout />)
+    renderLayout()
     await userEvent.click(screen.getByRole('button', { name: /Workspace One/ }))
     await userEvent.click(await screen.findByRole('menuitem', { name: /Workspace Two/ }))
     expect(mockNavigate).toHaveBeenCalledWith({
@@ -347,7 +404,7 @@ describe('WorkspaceLayout Logs entry', () => {
   // The settings entry needs workspace access, which every case below grants, so the sidebar has
   // drawn once it shows.
   const logsShown = async () => {
-    render(<WorkspaceLayout />)
+    renderLayout()
     await screen.findByText('Settings')
     return screen.queryByText('Logs') !== null
   }

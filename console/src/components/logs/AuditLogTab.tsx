@@ -120,7 +120,7 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
   // A4: the members and API keys, for the Actor choices. A member's access already loads it under
   // this key; a root, whose access skips it, loads it here in workspace view.
   const membersQuery = useQuery({
-    queryKey: ['workspace-members', workspaceId],
+    queryKey: ['workspace-members', workspaceId, user?.id],
     queryFn: () => workspaceService.getMembers(workspaceId),
     enabled: scope === 'workspace',
     staleTime: 60_000

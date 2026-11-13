@@ -40,6 +40,35 @@ describe("useAuditLogAccess", () => {
     vi.mocked(workspaceService.getMembers).mockReset();
   });
 
+  // A member without Workspace read is sent only their own entry: the next user on the same
+  // workspace must not be answered from it.
+  it("fetches the list again for another user on the same workspace", async () => {
+    vi.mocked(workspaceService.getMembers)
+      .mockResolvedValueOnce(members({ role: "owner" }) as never)
+      .mockResolvedValueOnce({
+        members: [{ user_id: "u2", role: "member", permissions: {} }],
+      } as never);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const stable = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result, rerender } = renderHook(() => useAuditLogAccess("ws1"), {
+      wrapper: stable,
+    });
+    await waitFor(() => expect(result.current.canRead).toBe(true));
+
+    auth.user = { id: "u2", email: "bob@example.com" };
+    rerender();
+
+    await waitFor(() =>
+      expect(workspaceService.getMembers).toHaveBeenCalledTimes(2),
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.canRead).toBe(false);
+  });
+
   it("grants an owner", async () => {
     vi.mocked(workspaceService.getMembers).mockResolvedValue(
       members({ role: "owner" }) as never,

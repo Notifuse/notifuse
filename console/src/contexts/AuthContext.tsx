@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, ReactNode, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { authService } from '../services/api/auth'
 import { workspaceService } from '../services/api/workspace'
 import { createEmptyPermissions, createFullPermissions } from '../services/api/permissions'
@@ -157,50 +158,68 @@ const ROOT_USER_PERMISSIONS: UserPermissions = createFullPermissions()
 
 const NO_PERMISSIONS: UserPermissions = createEmptyPermissions()
 
-// Custom hook to get user permissions for a specific workspace
+export interface WorkspacePermissions {
+  // Null while the workspace's members load, and when there is no user or no workspace.
+  permissions: UserPermissions | null
+  // The user's role in the workspace; undefined while loading and for a non-member.
+  role: 'root' | 'owner' | 'member' | undefined
+  loading: boolean
+}
+
+// The signed-in user's permissions in a workspace, read from its members list. Pages and the
+// workspace layout stay mounted when the workspace changes, so the list is a query keyed by the
+// workspace: after a switch the hook answers "loading" until the new workspace's list arrives,
+// never the previous workspace's permissions, and a late answer for a previous workspace only
+// fills that workspace's entry. The key is shared with useAuditLogAccess and the audit log, so
+// they fetch the list once.
 // eslint-disable-next-line react-refresh/only-export-components -- Hook co-located with context
-export function useWorkspacePermissions(workspaceId: string) {
+export function useWorkspacePermissions(workspaceId: string): WorkspacePermissions {
   const { user } = useAuth()
-  const [permissions, setPermissions] = useState<UserPermissions | null>(null)
-  const [loading, setLoading] = useState(true)
+  const isRoot = isRootUser(user?.email)
 
-  useEffect(() => {
-    const fetchPermissions = async () => {
-      if (!user || !workspaceId) {
-        setLoading(false)
-        return
-      }
+  const userId = user?.id
 
-      // If user is root, they have full permissions
-      if (isRootUser(user.email)) {
-        setPermissions(ROOT_USER_PERMISSIONS)
-        setLoading(false)
-        return
-      }
+  // The list depends on who asks (a member without Workspace read gets only their own entry),
+  // hence the user in the key.
+  const { data, isFetchedAfterMount } = useQuery({
+    queryKey: ['workspace-members', workspaceId, userId],
+    queryFn: () => workspaceService.getMembers(workspaceId),
+    enabled: !!userId && !!workspaceId && !isRoot
+  })
 
-      try {
-        const response = await workspaceService.getMembers(workspaceId)
-        const currentUserMember = response.members.find((member) => member.user_id === user.id)
-
-        if (currentUserMember) {
-          // The stored map may be partial or null; a resource it does not mention is denied,
-          // which is what the empty base spells out.
-          setPermissions({ ...createEmptyPermissions(), ...currentUserMember.permissions })
-        } else {
-          // User is not a member of this workspace, set empty permissions
-          setPermissions(NO_PERMISSIONS)
-        }
-      } catch (error) {
-        console.error('Failed to fetch user permissions', error)
-        // On error, assume no permissions
-        setPermissions(NO_PERMISSIONS)
-      } finally {
-        setLoading(false)
-      }
+  // Memoised, so a caller that depends on the permissions object sees it change only when the
+  // answer does.
+  return useMemo<WorkspacePermissions>(() => {
+    if (!userId || !workspaceId) {
+      return { permissions: null, role: undefined, loading: false }
+    }
+    // A root user has every permission, with no request.
+    if (isRoot) {
+      return { permissions: ROOT_USER_PERMISSIONS, role: 'root', loading: false }
+    }
+    // A cached list may predate a change of permissions: wait for this mount's own answer, as
+    // when each caller fetched its own. (resetQueries on this key would set its answer count
+    // back and leave a caller mounted over a cached list loading: nothing resets it today.)
+    if (!isFetchedAfterMount) {
+      return { permissions: null, role: undefined, loading: true }
+    }
+    // On error with no list, assume no permissions. A failed refetch keeps the list the query
+    // holds, so a network blip neither empties the menu nor sends a page away.
+    if (!data) {
+      return { permissions: NO_PERMISSIONS, role: undefined, loading: false }
     }
 
-    fetchPermissions()
-  }, [workspaceId, user])
-
-  return { permissions, loading }
+    const currentUserMember = data.members.find((member) => member.user_id === userId)
+    if (!currentUserMember) {
+      // User is not a member of this workspace, set empty permissions
+      return { permissions: NO_PERMISSIONS, role: undefined, loading: false }
+    }
+    return {
+      // The stored map may be partial or null; a resource it does not mention is denied, which
+      // is what the empty base spells out.
+      permissions: { ...createEmptyPermissions(), ...currentUserMember.permissions },
+      role: currentUserMember.role === 'owner' ? 'owner' : 'member',
+      loading: false
+    }
+  }, [userId, workspaceId, isRoot, data, isFetchedAfterMount])
 }
