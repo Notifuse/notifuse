@@ -58,8 +58,9 @@ only numbro depends on) remain.
   - Spanish: 2,345,678,000 EUR → "2.345,68 M €" (fails without forced grouping).
   Non-breaking spaces compared as plain spaces, as today.
 - The components that show amounts (`MetricSummary`, `GoalCard`, `GoalDashboardDrawer`,
-  `DimensionTableWidget`, `DashboardTab`, `MetricChart`, `BroadcastKpis`, `BroadcastFunnel`) only call `formatValue`/`formatCurrency`:
-  their existing tests must still pass.
+  `DimensionTableWidget`, `DashboardTab`, `MetricChart`, `BroadcastKpis`, `BroadcastFunnel`) only
+  call `formatValue`/`formatCurrency`. The tests of `MetricChart`, `BroadcastKpis` and
+  `BroadcastFunnel` must still pass; the other five have no test of their own.
 
 ## Out of scope
 
