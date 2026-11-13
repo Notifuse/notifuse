@@ -2054,7 +2054,7 @@
     "/api/automations.nodeStats": {
       "get": {
         "summary": "Get the statistics of each step of an automation",
-        "description": "Returns, for every step of the automation's current graph, what its journeys did there: visits (distinct journeys that reached the step), completed and errored executions, failed attempts, skipped emails and their reasons, the path each split took, and the journeys that failed on the step. A step never visited is returned with zeros; a step that no longer exists in the graph is left out.\n\n`since` and `until` bound the time the executions entered their step, and the time failed journeys entered the automation; both are given, or neither for all time. `waiting`, `retrying` and `in_progress` describe the active journeys now, whatever the period.\n\nFor email steps, the `email` object counts the messages the step sent, from the message history: queued (still in the sending queue), not sent (neither sent nor queued, such as a cancelled send), sent, delivered, opened, clicked, failed, bounced, complained and unsubscribed, with the sent emails whose opens and clicks are tracked. It is present, with zeros if nothing was sent, on every email step when the caller may read the message history, and absent otherwise.\n\nRequires the automations read permission.\n",
+        "description": "Returns, for every step of the automation's current graph, what its journeys did there: visits (each time a journey reached the step: a loop counts each time round, a retry is the same visit), completed and errored executions, failed attempts, skipped emails and their reasons, the path each split took, and the journeys that failed on the step. A step never visited is returned with zeros; a step that no longer exists in the graph is left out.\n\n`since` and `until` bound the time the executions entered their step (a visit is dated by its attempt that succeeded, else by its last attempt), and the time failed journeys entered the automation; both are given, or neither for all time. `waiting`, `retrying` and `in_progress` describe the active journeys now, whatever the period.\n\nFor email steps, the `email` object counts the messages the step sent, from the message history: queued (still in the sending queue), not sent (neither sent nor queued, such as a cancelled send), sent, delivered, opened, clicked, failed, bounced, complained and unsubscribed, with the sent emails whose opens and clicks are tracked. It is present, with zeros if nothing was sent, on every email step when the caller may read the message history, and absent otherwise.\n\nRequires the automations read permission.\n",
         "operationId": "getAutomationNodeStats",
         "tags": [
           "Automations"
@@ -13812,7 +13812,7 @@
           "visits": {
             "type": "integer",
             "format": "int64",
-            "description": "Distinct journeys that reached the step; a retry is the same visit."
+            "description": "Each time a journey reached the step. A loop counts each time round; a retry is the same visit."
           },
           "completed": {
             "type": "integer",

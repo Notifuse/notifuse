@@ -111,7 +111,8 @@ type NodeEmailStats struct {
 // NodeStats are the results of one step of an automation.
 type NodeStats struct {
 	NodeType NodeType `json:"node_type"`
-	// Visits are the distinct journeys that reached the step: a retry is not a new visit.
+	// Visits are the passes on the step: each time a journey reached it. A loop counts each
+	// time round; a retry is the same pass.
 	Visits    int64 `json:"visits"`
 	Completed int64 `json:"completed"`
 	// FailedAttempts counts each failed attempt, retries included.

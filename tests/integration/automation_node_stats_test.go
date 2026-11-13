@@ -326,7 +326,7 @@ func TestAutomationNodeStats(t *testing.T) {
 		assert.Equal(t, int64(1), e1.Queued, "another automation's queue entry does not count")
 		assert.Equal(t, int64(2), e1.NotSent)
 		assert.Equal(t, int64(3), e1.Sent)
-		assert.Equal(t, int64(3), stats.Nodes[email1].Visits, "the same journeys")
+		assert.Equal(t, int64(6), stats.Nodes[email1].Visits, "each pass counts: three more email-1 runs")
 	})
 
 	t.Run("a period leaves out the executions entered before it", func(t *testing.T) {
@@ -345,7 +345,7 @@ func TestAutomationNodeStats(t *testing.T) {
 		assert.Equal(t, int64(0), stats.Nodes[email2].Visits)
 		require.NotNil(t, stats.Nodes[email2].Email, "an email step keeps its counters, at zero")
 		assert.Equal(t, domain.NodeEmailStats{}, *stats.Nodes[email2].Email)
-		assert.Equal(t, int64(3), stats.Nodes[email1].Visits)
+		assert.Equal(t, int64(6), stats.Nodes[email1].Visits)
 
 		status, stats = nodeStats(t, automationA, nil)
 		require.Equal(t, http.StatusOK, status)
@@ -367,7 +367,7 @@ func TestAutomationNodeStats(t *testing.T) {
 		for id, n := range stats.Nodes {
 			assert.Nil(t, n.Email, id)
 		}
-		assert.Equal(t, int64(3), stats.Nodes[email1].Visits)
+		assert.Equal(t, int64(6), stats.Nodes[email1].Visits)
 	})
 
 	t.Run("a member without automations read is refused", func(t *testing.T) {
@@ -395,4 +395,172 @@ func TestAutomationNodeStats(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, status)
 	})
 
+	// The passes, on automations of their own. statsAt reads a period, or all time when nil.
+	statsAt := func(t *testing.T, automationID string, since, until *time.Time) domain.NodeStatsResponse {
+		t.Helper()
+		params := map[string]string{}
+		if since != nil {
+			params["since"], params["until"] = since.Format(time.RFC3339), until.Format(time.RFC3339)
+		}
+		status, stats := nodeStats(t, automationID, params)
+		require.Equal(t, http.StatusOK, status)
+		return stats
+	}
+	enrol := func(t *testing.T, eventName string) string {
+		t.Helper()
+		email := eventName + "-" + shortuuid.New() + "@example.com"
+		_, err := factory.CreateContact(workspace.ID, testutil.WithContactEmail(email))
+		require.NoError(t, err)
+		_, err = factory.CreateContactList(workspace.ID, testutil.WithContactListEmail(email),
+			testutil.WithContactListListID(list.ID), testutil.WithContactListStatus(domain.ContactListStatusActive))
+		require.NoError(t, err)
+		require.NoError(t, factory.CreateCustomEvent(workspace.ID, email, eventName, nil))
+		return email
+	}
+	journeyOf := func(t *testing.T, automationID, email string) string {
+		t.Helper()
+		var id string
+		require.Eventually(t, func() bool {
+			return db.QueryRowContext(ctx, `SELECT id FROM contact_automations WHERE automation_id = $1 AND contact_email = $2`,
+				automationID, email).Scan(&id) == nil
+		}, 30*time.Second, 100*time.Millisecond, "the journey of %s", email)
+		return id
+	}
+	// Waits for the journey's k-th failure to be persisted (its retry count), then makes the
+	// retry due now.
+	retryNow := func(t *testing.T, caID string, k int) {
+		t.Helper()
+		require.Eventually(t, func() bool {
+			var n int
+			require.NoError(t, db.QueryRowContext(ctx, `SELECT retry_count FROM contact_automations WHERE id = $1`, caID).Scan(&n))
+			return n == k
+		}, 30*time.Second, 100*time.Millisecond, "failure %d persisted", k)
+		require.NoError(t, factory.UpdateContactAutomationScheduledAt(workspace.ID, caID, time.Now().UTC().Add(-time.Second)))
+	}
+	countRows := func(t *testing.T, query string, args ...interface{}) int64 {
+		t.Helper()
+		var n int64
+		require.NoError(t, db.QueryRowContext(ctx, query, args...).Scan(&n))
+		return n
+	}
+
+	t.Run("a loop counts each pass, and a pass not passed yet once", func(t *testing.T) {
+		// L: trigger → W1 → W2 → back to W1. W2 answers 500 from its third call, and the retry
+		// backoff stops the loop there.
+		var w1Calls, w2Calls int32
+		loopReceiver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/w2" && atomic.AddInt32(&w2Calls, 1) >= 3 {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			if r.URL.Path == "/w1" {
+				atomic.AddInt32(&w1Calls, 1)
+			}
+			_, _ = w.Write([]byte(`{}`))
+		}))
+		defer loopReceiver.Close()
+		automationL := shortuuid.New()
+		triggerL, w1, w2 := shortuuid.New(), shortuuid.New(), shortuuid.New()
+		createAndActivate(t, automationL, "node_stats_loop", triggerL, []map[string]interface{}{
+			node(automationL, triggerL, "trigger", map[string]interface{}{}, w1),
+			node(automationL, w1, "webhook", map[string]interface{}{"url": loopReceiver.URL + "/w1"}, w2),
+			node(automationL, w2, "webhook", map[string]interface{}{"url": loopReceiver.URL + "/w2"}, w1),
+		})
+		enrol(t, "node_stats_loop")
+
+		stats := waitForStats(t, automationL, "W2 retrying on its third pass", func(s domain.NodeStatsResponse) bool {
+			return s.Nodes[w2] != nil && s.Nodes[w2].Retrying == 1 && s.Nodes[w2].FailedAttempts == 1
+		})
+		completedW2 := countRows(t, `SELECT COUNT(*) FROM automation_node_executions WHERE automation_id = $1 AND node_id = $2 AND action = 'completed'`, automationL, w2)
+		assert.Equal(t, int64(2), completedW2)
+		assert.Equal(t, completedW2+1, stats.Nodes[w2].Visits, "two passes done, the third one waiting for its retry")
+		assert.Equal(t, int64(atomic.LoadInt32(&w1Calls)), stats.Nodes[w1].Visits, "one W1 pass per W1 call")
+		assert.Equal(t, int64(3), stats.Nodes[w1].Visits)
+		assert.Equal(t, int64(1), stats.Nodes[triggerL].Visits, "the trigger, once")
+	})
+
+	// C: trigger → a webhook that always fails.
+	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer failing.Close()
+	automationC := shortuuid.New()
+	triggerC, webhookC := shortuuid.New(), shortuuid.New()
+	var c1 string
+
+	t.Run("retries exhausted: one pass, the journey failed there", func(t *testing.T) {
+		createAndActivate(t, automationC, "node_stats_failing", triggerC, []map[string]interface{}{
+			node(automationC, triggerC, "trigger", map[string]interface{}{}, webhookC),
+			node(automationC, webhookC, "webhook", map[string]interface{}{"url": failing.URL}, ""),
+		})
+		c1 = journeyOf(t, automationC, enrol(t, "node_stats_failing"))
+		retryNow(t, c1, 1)
+		retryNow(t, c1, 2)
+		stats := waitForStats(t, automationC, "the journey failed", func(s domain.NodeStatsResponse) bool {
+			return s.Nodes[webhookC] != nil && s.Nodes[webhookC].FailedJourneys == 1
+		})
+		w := stats.Nodes[webhookC]
+		assert.Equal(t, int64(1), w.Visits)
+		assert.Equal(t, int64(3), w.FailedAttempts)
+		assert.Equal(t, int64(0), w.Retrying)
+		assert.Equal(t, int64(0), w.Completed)
+	})
+
+	t.Run("an exit while waiting for a retry keeps its pass, once", func(t *testing.T) {
+		c2 := journeyOf(t, automationC, enrol(t, "node_stats_failing"))
+		require.Eventually(t, func() bool {
+			return countRows(t, `SELECT retry_count FROM contact_automations WHERE id = $1`, c2) == 1
+		}, 30*time.Second, 100*time.Millisecond, "the first failure persisted")
+		// As ExitContactJourneysOnReply writes it.
+		_, err := db.ExecContext(ctx, `UPDATE contact_automations SET status = 'exited', scheduled_at = NULL, exit_reason = 'replied'
+			WHERE id = $1 AND status = 'active'`, c2)
+		require.NoError(t, err)
+
+		w := statsAt(t, automationC, nil, nil).Nodes[webhookC]
+		assert.Equal(t, int64(2), w.Visits, "the failed journey and the exited one")
+		assert.Equal(t, int64(0), w.Retrying)
+		assert.Equal(t, int64(4), w.FailedAttempts)
+	})
+
+	t.Run("a period dates a pass by its successful attempt, else by its last one", func(t *testing.T) {
+		now := time.Now().UTC()
+		last30, untilNow := now.AddDate(0, 0, -30), now.Add(time.Hour)
+		before, beforeEnd := now.AddDate(0, 0, -50), now.AddDate(0, 0, -31)
+
+		// B's webhook succeeded on its second attempt: that row 40 days back moves the pass out.
+		_, err := db.ExecContext(ctx, `UPDATE automation_node_executions SET entered_at = entered_at - INTERVAL '40 days'
+			WHERE automation_id = $1 AND node_id = $2 AND action = 'completed'`, automationB, webhook)
+		require.NoError(t, err)
+		w := statsAt(t, automationB, &last30, &untilNow).Nodes[webhook]
+		assert.Equal(t, int64(0), w.Visits, "the pass is dated by its successful attempt")
+		assert.Equal(t, int64(1), w.FailedAttempts, "its failed attempt stays in the period")
+		assert.Equal(t, int64(1), statsAt(t, automationB, &before, &beforeEnd).Nodes[webhook].Visits)
+
+		// c1 failed on C's webhook after three attempts: its first two, 40 days back, leave the
+		// pass in the period of its last one.
+		_, err = db.ExecContext(ctx, `UPDATE automation_node_executions SET entered_at = entered_at - INTERVAL '40 days'
+			WHERE contact_automation_id = $1 AND node_id = $2 AND entered_at < (
+				SELECT MAX(entered_at) FROM automation_node_executions WHERE contact_automation_id = $1 AND node_id = $2 AND completed_at IS NOT NULL)`,
+			c1, webhookC)
+		require.NoError(t, err)
+		w = statsAt(t, automationC, &last30, &untilNow).Nodes[webhookC]
+		assert.Equal(t, int64(2), w.Visits, "c1 by its last attempt, and the exited journey")
+		assert.Equal(t, int64(2), w.FailedAttempts, "c1's last failure and the exited journey's")
+		w = statsAt(t, automationC, &before, &beforeEnd).Nodes[webhookC]
+		assert.Equal(t, int64(0), w.Visits)
+		assert.Equal(t, int64(2), w.FailedAttempts, "c1's first two failures")
+	})
+
+	t.Run("a journey enrolled and not processed yet counts on the root", func(t *testing.T) {
+		root := statsAt(t, automationA, nil, nil).Nodes[triggerA].Visits
+		caID := shortuuid.New()
+		// As the enrollment function writes it, due tomorrow so the scheduler leaves it alone.
+		_, err := db.ExecContext(ctx, `INSERT INTO contact_automations (id, automation_id, contact_email, current_node_id, status, entered_at, scheduled_at)
+			VALUES ($1, $2, $3, $4, 'active', NOW(), NOW() + INTERVAL '1 day')`, caID, automationA, "pending-"+suffix+"@example.com", triggerA)
+		require.NoError(t, err)
+		_, err = db.ExecContext(ctx, `INSERT INTO automation_node_executions (id, contact_automation_id, automation_id, node_id, node_type, action, entered_at, output)
+			VALUES ($1, $2, $3, $4, 'trigger', 'entered', NOW(), '{}'::jsonb)`, shortuuid.New(), caID, automationA, triggerA)
+		require.NoError(t, err)
+		assert.Equal(t, root+1, statsAt(t, automationA, nil, nil).Nodes[triggerA].Visits)
+	})
 }

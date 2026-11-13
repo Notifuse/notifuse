@@ -59,11 +59,19 @@ func periodCondition(column string, since, until *time.Time) (string, []interfac
 // The step results, one statement each, all filtered on the automation. The jsonb ?
 // operator is written as is: these run through database/sql, which does not rewrite it.
 const (
-	// a. Visits: distinct journeys, since a retry adds a row for the same step. A failed
-	// attempt is counted on the row handleError writes (no completed_at); the processing
-	// row it marks failed carries a completed_at and is not counted again.
+	// a. Visits are passes: each time a journey reached the step, so a loop counts each time
+	// round and a retry is the same pass. A pass is either passed, one row of an attempt that
+	// succeeded or is running ('processing', 'completed'; 'skipped' has no writer and counts
+	// with them; a failed attempt's rows are 'failed'), or not passed yet, which
+	// nodeStatsNotPassedSQL adds. No COUNT(DISTINCT): its sort was most of the cost.
+	// A failed attempt is counted on the row handleError writes (no completed_at); the
+	// processing row it marks failed carries a completed_at and is not counted again.
+	// Known limits: a process killed in the middle of a step (crash, deploy, cancelled
+	// context) or an attempt whose failure was not written leaves a 'processing' row behind,
+	// and the step run again counts one more pass; two instances running one journey count
+	// both runs, since the step did run twice.
 	nodeStatsVisitsSQL = `SELECT node_id,
-		COUNT(DISTINCT contact_automation_id),
+		COUNT(*) FILTER (WHERE action IN ('processing', 'completed', 'skipped')),
 		COUNT(*) FILTER (WHERE action = 'completed' AND NOT COALESCE(output ? 'error', false)),
 		COUNT(*) FILTER (WHERE action = 'completed' AND output ? 'error'),
 		COUNT(*) FILTER (WHERE action = 'failed' AND completed_at IS NULL),
@@ -71,6 +79,27 @@ const (
 	FROM automation_node_executions
 	WHERE automation_id = $1%s
 	GROUP BY node_id`
+
+	// The passes not passed yet: a journey on its step now, or that ended on it, whose last
+	// execution is there and is the enrollment ('entered', on the root) or a failed attempt.
+	// Looking at the last execution rather than "no successful row on the step" keeps a loop's
+	// earlier passes out; a journey that moved on after a delay has its last execution on the
+	// delay, not on its next step. The period bounds that last execution, so a pass is dated
+	// by its successful attempt, else by its last attempt.
+	// (idx_contact_automations_automation, then idx_node_executions_contact_automation.)
+	nodeStatsNotPassedSQL = `SELECT ca.current_node_id, COUNT(*)
+	FROM contact_automations ca
+	CROSS JOIN LATERAL (
+		SELECT e.node_id, e.action, e.entered_at
+		FROM automation_node_executions e
+		WHERE e.contact_automation_id = ca.id
+		ORDER BY e.entered_at DESC
+		LIMIT 1
+	) l
+	WHERE ca.automation_id = $1 AND ca.status IN ('active', 'failed', 'exited')
+		AND ca.current_node_id IS NOT NULL
+		AND l.node_id = ca.current_node_id AND l.action IN ('entered', 'failed')%s
+	GROUP BY 1`
 
 	// Skipped emails by reason.
 	nodeStatsSkipReasonsSQL = `SELECT node_id, output->>'skip_reason', COUNT(*)
@@ -219,6 +248,18 @@ func (r *AutomationRepository) GetNodeStats(ctx context.Context, workspaceID, au
 		}
 		n := node(id)
 		n.Visits, n.Completed, n.Errors, n.FailedAttempts, n.Skipped = visits, completed, errorsCount, failedAttempts, skipped
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	if err := query("not passed", nodeStatsNotPassedSQL, "l.entered_at", func(rows *sql.Rows) error {
+		var id string
+		var n int64
+		if err := rows.Scan(&id, &n); err != nil {
+			return err
+		}
+		node(id).Visits += n
 		return nil
 	}); err != nil {
 		return nil, err
