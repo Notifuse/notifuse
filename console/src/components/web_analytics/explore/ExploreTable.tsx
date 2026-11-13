@@ -9,7 +9,7 @@ import { useWebAnalytics } from '../context'
 import { Delta } from '../Delta'
 import { formatDimensionValue, getDimensionLabel } from '../lib/dimensions'
 import { canExpandRow, ExploreRow, ExploreTotals, isBestPathRow } from '../lib/exploreRows'
-import { formatDuration, formatNumber } from '../lib/format'
+import { formatDuration, formatNumber, formatPercent } from '../lib/format'
 import { getHeatMapStyle } from '../lib/heatmap'
 import { TIMESCORE_REFERENCE_SECONDS } from '../lib/types'
 
@@ -105,7 +105,7 @@ export function ExploreTable(props: ExploreTableProps) {
           <div className="flex items-center justify-end gap-1">
             <span>{formatNumber(value)}</span>
             {share !== null ? (
-              <span className="text-xs text-gray-400">({share.toFixed(1)}%)</span>
+              <span className="text-xs text-gray-400">({formatPercent(share)})</span>
             ) : null}
             {context.showComparison ? (
               <Delta change={record.sessions_change as number | undefined} />
@@ -146,7 +146,7 @@ export function ExploreTable(props: ExploreTableProps) {
       sorter: (a, b) => a.bounce_rate - b.bounce_rate,
       render: (value: number, record) => (
         <div className="flex items-center justify-end gap-1">
-          <span>{value.toFixed(1)}%</span>
+          <span>{formatPercent(value)}</span>
           {context.showComparison ? (
             <Delta change={record.bounce_rate_change as number | undefined} invertTrend />
           ) : null}
@@ -162,7 +162,7 @@ export function ExploreTable(props: ExploreTableProps) {
       sorter: (a, b) => a.median_scroll - b.median_scroll,
       render: (value: number, record) => (
         <div className="flex items-center justify-end gap-1">
-          <span>{value.toFixed(1)}%</span>
+          <span>{formatPercent(value)}</span>
           {context.showComparison ? (
             <Delta change={record.median_scroll_change as number | undefined} />
           ) : null}

@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { NEGATIVE_COLOR, POSITIVE_COLOR } from './lib/types'
+import { formatPercent } from './lib/format'
 
 interface DeltaProps {
   /** Percentage change; nothing is rendered at exactly zero. */
@@ -30,7 +31,7 @@ export function Delta({ change, invertTrend, size = 12, decimals = 0 }: DeltaPro
       style={{ color: better ? POSITIVE_COLOR : NEGATIVE_COLOR, fontSize: size }}
     >
       <Icon size={size} />
-      {Math.abs(change).toFixed(decimals)}%
+      {formatPercent(Math.abs(change), decimals)}
     </span>
   )
 }
