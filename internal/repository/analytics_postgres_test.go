@@ -204,7 +204,7 @@ func runMessageHistoryQuery(t *testing.T, q analytics.Query, columns []string) s
 	return sent
 }
 
-const originCaseSQL = "(CASE WHEN broadcast_id IS NOT NULL THEN 'broadcast' WHEN automation_id IS NOT NULL THEN 'automation' ELSE 'transactional' END)"
+const originCaseSQL = "(CASE WHEN broadcast_id IS NOT NULL THEN 'broadcast' WHEN automation_id IS NOT NULL THEN 'automation' WHEN transactional_notification_id IS NOT NULL THEN 'transactional' ELSE 'other' END)"
 
 func TestAnalyticsRepository_MessageHistoryOriginFilter(t *testing.T) {
 	sent := runMessageHistoryQuery(t, analytics.Query{

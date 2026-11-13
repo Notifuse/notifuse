@@ -269,13 +269,15 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				Description: "Transactional notification identifier",
 			},
 			// Parenthesised: the query builder copies a dimension's SQL into SELECT, GROUP BY
-			// and filters. A broadcast's test send carries its broadcast_id; template tests and
-			// double opt-in confirmations carry no ID and count as transactional.
+			// and filters. The values and their order are those of the messages.list origin
+			// filter: an automation email that also carries a notification ID is the
+			// automation's. A broadcast's test send carries its broadcast_id; template tests and
+			// double opt-in confirmations carry no ID and count as other.
 			"origin": {
 				Type:        "string",
 				Title:       "Origin",
-				SQL:         "(CASE WHEN broadcast_id IS NOT NULL THEN 'broadcast' WHEN automation_id IS NOT NULL THEN 'automation' ELSE 'transactional' END)",
-				Description: "What sent the message: broadcast, automation or transactional",
+				SQL:         "(CASE WHEN broadcast_id IS NOT NULL THEN 'broadcast' WHEN automation_id IS NOT NULL THEN 'automation' WHEN transactional_notification_id IS NOT NULL THEN 'transactional' ELSE 'other' END)",
+				Description: "What sent the message: broadcast, automation, transactional, or other (none of the three, such as template tests and double opt-in confirmations)",
 			},
 		},
 	},

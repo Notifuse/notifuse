@@ -72,18 +72,19 @@ beforeEach(() => {
 
 describe('OriginVolumeChart', () => {
   it('asks one series per origin, emails only, in the workspace timezone', async () => {
+    const sent: Record<string, number> = { broadcast: 10, transactional: 5, automation: 4, other: 1 }
     query.mockImplementation(async (q: AnalyticsQuery) =>
       rows(() => ({
-        count_sent: originOf(q) === 'broadcast' ? 10 : 5,
+        count_sent: sent[originOf(q) ?? ''] ?? 0,
         count_opened: 2
       }))
     )
     renderChart()
     await screen.findByTestId('echart')
 
-    expect(query).toHaveBeenCalledTimes(3)
+    expect(query).toHaveBeenCalledTimes(4)
     const queries = query.mock.calls.map(([q]) => q as AnalyticsQuery)
-    expect(queries.map(originOf).sort()).toEqual(['automation', 'broadcast', 'transactional'])
+    expect(queries.map(originOf).sort()).toEqual(['automation', 'broadcast', 'other', 'transactional'])
     for (const q of queries) {
       expect(q.schema).toBe('message_history')
       expect(q.dimensions).toEqual([])
@@ -101,10 +102,11 @@ describe('OriginVolumeChart', () => {
         values: ['email']
       })
     }
-    expect(captured?.series.map((s) => [s.type, s.data])).toEqual([
-      ['bar', [10, 10, 10]],
-      ['line', [5, 5, 5]],
-      ['line', [5, 5, 5]]
+    expect(captured?.series.map((s) => [s.name, s.type, s.data])).toEqual([
+      ['Broadcasts', 'bar', [10, 10, 10]],
+      ['Transactional', 'line', [5, 5, 5]],
+      ['Automations', 'line', [4, 4, 4]],
+      ['Other', 'line', [1, 1, 1]]
     ])
   })
 
@@ -116,7 +118,7 @@ describe('OriginVolumeChart', () => {
     await waitFor(() => expect(captured?.series[0].data).toEqual([3, 3, 3]))
     fireEvent.click(screen.getByText('Clicks'))
     await waitFor(() => expect(captured?.series[0].data).toEqual([1, 1, 1]))
-    expect(query).toHaveBeenCalledTimes(3)
+    expect(query).toHaveBeenCalledTimes(4)
   })
 
   it('uses a log axis when a broadcast dwarfs the daily sends', async () => {

@@ -220,6 +220,12 @@ func TestLogsFilters(t *testing.T) {
 		oldBroadcast := create(t, now.Add(-48*time.Hour), fromBroadcast)
 
 		automationMessage := create(t, at, func(m *domain.MessageHistory) { m.AutomationID = &automationID })
+		// An automation email that also carries a notification ID, as the upgrade to 28.0 left
+		// some: it is the automation's, as in the analytics origin dimension.
+		automationWithNotification := create(t, at, func(m *domain.MessageHistory) {
+			m.AutomationID = &automationID
+			m.TransactionalNotificationID = &notificationID
+		})
 		transactionalMessage := create(t, at, func(m *domain.MessageHistory) { m.TransactionalNotificationID = &notificationID })
 		otherMessage := create(t, at)
 
@@ -241,7 +247,7 @@ func TestLogsFilters(t *testing.T) {
 
 		t.Run("each origin lists its own messages only", func(t *testing.T) {
 			assert.ElementsMatch(t, broadcastIDs, list(t, map[string]string{"origin": "broadcast", "created_after": after}))
-			assert.ElementsMatch(t, []string{automationMessage}, list(t, map[string]string{"origin": "automation", "created_after": after}))
+			assert.ElementsMatch(t, []string{automationMessage, automationWithNotification}, list(t, map[string]string{"origin": "automation", "created_after": after}))
 			assert.ElementsMatch(t, []string{transactionalMessage}, list(t, map[string]string{"origin": "transactional", "created_after": after}))
 			assert.ElementsMatch(t, []string{otherMessage}, list(t, map[string]string{"origin": "other", "created_after": after}))
 		})
@@ -281,7 +287,7 @@ func TestLogsFilters(t *testing.T) {
 			status, body = get(t, "/api/messages.count", map[string]string{"workspace_id": workspace.ID, "automation_id": automationID})
 			require.Equal(t, http.StatusOK, status, string(body))
 			require.NoError(t, json.Unmarshal(body, &counts))
-			assert.Equal(t, int64(1), counts.Total, "the automation's message")
+			assert.Equal(t, int64(2), counts.Total, "the automation's messages")
 
 			status, body = get(t, "/api/messages.count", map[string]string{"workspace_id": workspace.ID, "origin": "broadcast"})
 			assert.Equal(t, http.StatusBadRequest, status, string(body))

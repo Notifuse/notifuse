@@ -100,7 +100,8 @@ const totals = (overrides: Partial<Record<MessageOrigin, Partial<MessageTotals>>
     clicksTracked: 400,
     ...overrides.transactional
   },
-  automation: { ...emptyTotals(), ...overrides.automation }
+  automation: { ...emptyTotals(), ...overrides.automation },
+  other: { ...emptyTotals(), ...overrides.other }
 })
 
 const row = (data: Record<string, unknown>) => ({

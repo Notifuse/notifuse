@@ -79,7 +79,8 @@ export const colors = {
     primary: primary[500],
     comparison: '#b4b8c7',
     series2: '#0ea5e9',
-    series3: '#14b8a6'
+    series3: '#14b8a6',
+    series4: '#f59e0b'
   }
 } as const
 

@@ -21,7 +21,8 @@ const CHART_HEIGHT = 250
 const SERIES_COLOR: Record<MessageOrigin, string> = {
   broadcast: colors.chart.primary,
   transactional: colors.chart.series2,
-  automation: colors.chart.series3
+  automation: colors.chart.series3,
+  other: colors.chart.series4
 }
 
 interface TooltipParam {
@@ -33,7 +34,7 @@ interface TooltipParam {
 
 const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`)
 
-/** Emails per day by origin: broadcasts as bars, transactional and automations as lines. */
+/** Emails per day by origin: broadcasts as bars, the other origins as lines. */
 export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolumeChartProps) {
   const { t, i18n } = useLingui()
   const { int, compact } = useNumberFormat()
@@ -41,7 +42,8 @@ export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolume
   const names: Record<MessageOrigin, string> = {
     broadcast: t`Broadcasts`,
     transactional: t`Transactional`,
-    automation: t`Automations`
+    automation: t`Automations`,
+    other: t`Other`
   }
   const ofSentThatDay = metric === 'sent' ? '' : t`of emails sent that day`
 
@@ -124,7 +126,8 @@ export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolume
           itemStyle: { borderRadius: [2, 2, 0, 0] }
         },
         line('transactional'),
-        line('automation')
+        line('automation'),
+        line('other')
       ]
     }
     // names and the tooltip note follow the language, which re-renders the page anyway

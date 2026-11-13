@@ -853,13 +853,16 @@ func applyMessageFilters(queryBuilder sq.SelectBuilder, params domain.MessageFil
 		queryBuilder = queryBuilder.Where(sq.LtOrEq{"updated_at": params.UpdatedBefore})
 	}
 
+	// The order of the analytics origin dimension: a broadcast ID first, then an automation
+	// ID, then a notification ID. Some automation emails also carry a notification ID (the
+	// upgrade to 28.0 gave them one): they are the automation's.
 	switch params.Origin {
 	case domain.MessageOriginBroadcast:
 		queryBuilder = queryBuilder.Where(sq.NotEq{"broadcast_id": nil})
 	case domain.MessageOriginAutomation:
-		queryBuilder = queryBuilder.Where(sq.NotEq{"automation_id": nil})
+		queryBuilder = queryBuilder.Where(sq.And{sq.NotEq{"automation_id": nil}, sq.Eq{"broadcast_id": nil}})
 	case domain.MessageOriginTransactional:
-		queryBuilder = queryBuilder.Where(sq.NotEq{"transactional_notification_id": nil})
+		queryBuilder = queryBuilder.Where(sq.And{sq.NotEq{"transactional_notification_id": nil}, sq.Eq{"automation_id": nil}, sq.Eq{"broadcast_id": nil}})
 	case domain.MessageOriginOther:
 		queryBuilder = queryBuilder.Where(sq.Eq{"broadcast_id": nil, "automation_id": nil, "transactional_notification_id": nil})
 	}

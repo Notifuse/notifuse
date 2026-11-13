@@ -30,8 +30,9 @@ func TestApplyMessageFilters(t *testing.T) {
 	}{
 		{"no filter", domain.MessageFilter{}, "", nil},
 		{"origin broadcast", domain.MessageFilter{Origin: domain.MessageOriginBroadcast}, "broadcast_id IS NOT NULL", nil},
-		{"origin automation", domain.MessageFilter{Origin: domain.MessageOriginAutomation}, "automation_id IS NOT NULL", nil},
-		{"origin transactional", domain.MessageFilter{Origin: domain.MessageOriginTransactional}, "transactional_notification_id IS NOT NULL", nil},
+		{"origin automation", domain.MessageFilter{Origin: domain.MessageOriginAutomation}, "(automation_id IS NOT NULL AND broadcast_id IS NULL)", nil},
+		{"origin transactional", domain.MessageFilter{Origin: domain.MessageOriginTransactional},
+			"(transactional_notification_id IS NOT NULL AND automation_id IS NULL AND broadcast_id IS NULL)", nil},
 		{"origin other", domain.MessageFilter{Origin: domain.MessageOriginOther},
 			"automation_id IS NULL AND broadcast_id IS NULL AND transactional_notification_id IS NULL", nil},
 		{"created range", domain.MessageFilter{CreatedAfter: &after, CreatedBefore: &before},
@@ -48,7 +49,7 @@ func TestApplyMessageFilters(t *testing.T) {
 		{"sent and updated ranges", domain.MessageFilter{SentAfter: &after, SentBefore: &before, UpdatedAfter: &after, UpdatedBefore: &before},
 			"sent_at >= $1 AND sent_at <= $2 AND updated_at >= $3 AND updated_at <= $4", []interface{}{&after, &before, &after, &before}},
 		{"origin with a period and a status", domain.MessageFilter{Origin: domain.MessageOriginAutomation, IsOpened: &yes, CreatedAfter: &after},
-			"opened_at IS NOT NULL AND automation_id IS NOT NULL AND created_at >= $1", []interface{}{&after}},
+			"opened_at IS NOT NULL AND (automation_id IS NOT NULL AND broadcast_id IS NULL) AND created_at >= $1", []interface{}{&after}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -80,7 +81,7 @@ func TestMessageHistoryRepository_CountMessages(t *testing.T) {
 		defer cleanup()
 		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace-123").Return(db, nil)
 
-		mock.ExpectQuery(regexp.QuoteMeta(countMessagesSelect + ` WHERE automation_id IS NOT NULL AND created_at >= $1`)).
+		mock.ExpectQuery(regexp.QuoteMeta(countMessagesSelect + ` WHERE (automation_id IS NOT NULL AND broadcast_id IS NULL) AND created_at >= $1`)).
 			WithArgs(driver.Value(after)).
 			WillReturnRows(sqlmock.NewRows([]string{"total", "delivered", "opened", "clicked", "bounced", "failed", "complained"}).
 				AddRow(70, 60, 50, 40, 3, 2, 1))

@@ -24,7 +24,7 @@ function median(values: number[]): number {
 }
 
 /**
- * The three daily series of one metric, on the days the server returned (the gap filler gives
+ * The daily series of one metric, one per origin, on the days the server returned (the gap filler gives
  * every day of the range, so the series share them). A single newsletter in the middle of small
  * daily sends would flatten the lines to the floor: past a ratio of ten between the peak and the
  * median of non-zero days, the axis turns logarithmic, where a zero cannot be drawn and is
