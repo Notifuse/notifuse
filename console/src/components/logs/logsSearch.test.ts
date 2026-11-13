@@ -137,5 +137,20 @@ describe('parseLogsSearch', () => {
     expect(
       parseLogsSearch({ from: '2026-11-01T00:00:00.000+09:00', to: '2026-11-02T00:00:00' })
     ).toEqual({ from: '2026-11-01T00:00:00.000+09:00' })
+    // The right shape with a field out of its range.
+    for (const bad of [
+      '2026-13-01T00:00:00Z',
+      '2026-02-30T00:00:00Z',
+      '2026-11-31T00:00:00Z',
+      '2026-11-01T24:00:00Z',
+      '2026-11-01T00:60:00Z',
+      '2026-11-01T00:00:60Z',
+      '2026-11-01T00:00:00+25:00'
+    ]) {
+      expect(parseLogsSearch({ from: bad })).toEqual({})
+    }
+    expect(parseLogsSearch({ from: '2028-02-29T23:59:59.999Z' })).toEqual({
+      from: '2028-02-29T23:59:59.999Z'
+    })
   })
 })

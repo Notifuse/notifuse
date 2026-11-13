@@ -123,7 +123,28 @@ function flag(value: unknown): boolean | undefined {
   return undefined
 }
 
-const RFC3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/
+const RFC3339 =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-](\d{2}):(\d{2}))$/
+
+/** A time Go's `time.Parse(time.RFC3339, …)` reads: the shape, and each field in its range. */
+function isRfc3339(value: string): boolean {
+  const match = RFC3339.exec(value)
+  if (!match) return false
+  const [year, month, day, hour, minute, second] = match.slice(1, 7).map(Number)
+  const [offsetHour, offsetMinute] = [match[7], match[8]].map((part) => Number(part ?? 0))
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  return (
+    month >= 1 &&
+    month <= 12 &&
+    day >= 1 &&
+    day <= daysInMonth &&
+    hour <= 23 &&
+    minute <= 59 &&
+    second <= 59 &&
+    offsetHour <= 23 &&
+    offsetMinute <= 59
+  )
+}
 
 export function parseLogsSearch(search: Record<string, unknown>): LogsSearch {
   const out: LogsSearch = {}
@@ -163,7 +184,7 @@ export function parseLogsSearch(search: Record<string, unknown>): LogsSearch {
   // The bounds of a custom period reach the server, which reads RFC 3339 and answers 400 to
   // anything else (a bare date included).
   for (const key of ['from', 'to'] as const) {
-    if (out[key] !== undefined && !RFC3339.test(out[key])) delete out[key]
+    if (out[key] !== undefined && !isRfc3339(out[key])) delete out[key]
   }
   return out
 }
