@@ -465,6 +465,9 @@ describe('MessagesTab', () => {
     fireEvent.click(copy)
     fireEvent.keyDown(copy, { key: 'Enter' })
     expect(state.navigate).not.toHaveBeenCalled()
+    // The ID itself opens the message, like the rest of the row.
+    fireEvent.click(within(rows()[0] as HTMLElement).getByText('m1'))
+    expect(state.navigate).toHaveBeenCalledTimes(1)
   })
 
   it('asks the list and the counts once on Refresh, the window moved or not', async () => {

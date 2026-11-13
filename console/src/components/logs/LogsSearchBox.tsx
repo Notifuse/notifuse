@@ -40,13 +40,16 @@ export function LogsSearchBox<K extends string>({
 
   // The parameter searched follows the URL (a link, Back); otherwise the member's choice.
   const [chosen, setChosen] = useState<K>(urlKey ?? keys[0].key)
-  // A key the member picked in the menu stays until the box is emptied: an ID may hold an "@" (a
-  // reply's Message-ID, an external ID). Otherwise a newly typed "@" switches to Email.
+  // A key the member picked in the menu stays until the box is emptied, by the member or by the URL
+  // (Clear filters, Back): an ID may hold an "@" (a reply's Message-ID, an external ID). Otherwise a
+  // newly typed "@" switches to Email. A key the URL brings is not a pick.
   const [picked, setPicked] = useState(false)
   const [seenUrlKey, setSeenUrlKey] = useState(urlKey)
   if (urlKey !== seenUrlKey) {
     setSeenUrlKey(urlKey)
     if (urlKey) setChosen(urlKey)
+    // The box's own writes go to the key chosen; any other change comes from outside.
+    if (urlKey !== chosen) setPicked(false)
   }
 
   const writeFor = (key: K, value: string) => {
@@ -64,7 +67,7 @@ export function LogsSearchBox<K extends string>({
   )
 
   const onChange = (value: string) => {
-    if (value.trim() === '') setPicked(false)
+    if (value === '') setPicked(false)
     else if (
       !picked &&
       emailKey &&

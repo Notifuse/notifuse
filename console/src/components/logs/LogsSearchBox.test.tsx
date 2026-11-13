@@ -18,12 +18,12 @@ const cleared = { contact_email: undefined, id: undefined, external_id: undefine
 
 const renderBox = (values: Partial<Record<Key, string>> = {}) => {
   const onWrite = vi.fn()
-  const view = render(
+  const ui = (current: Partial<Record<Key, string>>) => (
     <I18nProvider i18n={i18n}>
       <ConfigProvider>
         <LogsSearchBox<Key>
           keys={KEYS}
-          values={values}
+          values={current}
           onWrite={onWrite}
           ariaLabel="Search the messages"
           placeholder="Search"
@@ -31,7 +31,15 @@ const renderBox = (values: Partial<Record<Key, string>> = {}) => {
       </ConfigProvider>
     </I18nProvider>
   )
-  return { onWrite, ...view }
+  const view = render(ui(values))
+  // The URL changing, by the box's own write or from outside (Clear filters, Back).
+  const setUrl = (next: Partial<Record<Key, string>>) => view.rerender(ui(next))
+  return { onWrite, setUrl, ...view }
+}
+
+const pick = (label: string) => {
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Search by' }))
+  fireEvent.click(screen.getByRole('option', { name: label }))
 }
 
 const box = () => screen.getByRole('textbox', { name: 'Search the messages' })
@@ -120,5 +128,51 @@ describe('LogsSearchBox', () => {
     expect(chosenKey()).toBe('External ID')
     act(() => vi.advanceTimersByTime(300))
     expect(onWrite).toHaveBeenLastCalledWith({ ...cleared, external_id: 'order@shop2' })
+  })
+
+  it('keeps a picked key across its own write to the URL', () => {
+    const { onWrite, setUrl } = renderBox()
+    pick('External ID')
+    type('order')
+    act(() => vi.advanceTimersByTime(300))
+    setUrl({ external_id: 'order' })
+    type('order@shop')
+    expect(chosenKey()).toBe('External ID')
+    act(() => vi.advanceTimersByTime(300))
+    expect(onWrite).toHaveBeenLastCalledWith({ ...cleared, external_id: 'order@shop' })
+  })
+
+  it('forgets a picked key when the URL empties the box', () => {
+    const { onWrite, setUrl } = renderBox()
+    pick('Message ID')
+    type('msg_1')
+    act(() => vi.advanceTimersByTime(300))
+    setUrl({ id: 'msg_1' })
+    setUrl({})
+    expect(box()).toHaveValue('')
+    type('ann@example.com')
+    expect(chosenKey()).toBe('Email')
+    act(() => vi.advanceTimersByTime(300))
+    expect(onWrite).toHaveBeenLastCalledWith({ ...cleared, contact_email: 'ann@example.com' })
+  })
+
+  it('forgets a picked key when the URL brings another one', () => {
+    const { setUrl } = renderBox()
+    pick('External ID')
+    type('order-1')
+    act(() => vi.advanceTimersByTime(300))
+    setUrl({ external_id: 'order-1' })
+    setUrl({ id: 'msg_9' })
+    expect(chosenKey()).toBe('Message ID')
+    type('ann@example.com')
+    expect(chosenKey()).toBe('Email')
+  })
+
+  it('keeps a picked key while the box holds only spaces', () => {
+    renderBox()
+    pick('Message ID')
+    type(' ')
+    type(' CAFabc@mail.gmail.com')
+    expect(chosenKey()).toBe('Message ID')
   })
 })

@@ -138,8 +138,9 @@ function LoadedMessage({
   const canReadTemplates = Boolean(permissions?.templates?.read)
   const canReadContacts = Boolean(permissions?.contacts?.read)
   // The tab shown, back to Events for each message; the preview compiles once "Sent content" was
-  // opened, and the subject then comes from it. Reset here rather than by remounting, so J and K
-  // keep the panel and the focus on its buttons.
+  // opened, and the subject then comes from it. Reset here rather than by remounting the panel, so
+  // J and K keep it and the focus on its header buttons; only its body is remounted (bodyKey),
+  // which scrolls it back to the top and drops a focus held inside it.
   const [view, setView] = useState({ id: message.id, tab: 'events', previewWanted: false })
   if (view.id !== message.id) setView({ id: message.id, tab: 'events', previewWanted: false })
   const tab = view.id === message.id ? view.tab : 'events'
@@ -492,11 +493,13 @@ interface MessageFieldsProps {
 /**
  * The From address as the send most likely picked it: the email's sender, else the default one, of
  * the provider that sent it. A notification goes through the transactional provider; a newsletter
- * or an automation through the marketing one. A message of no origin is mostly a double opt-in
- * confirmation (marketing, with an opt-in template) or a template test, sent by default through the
- * marketing provider for a marketing template and the transactional one otherwise. Not recorded on
- * the message, so not shown here: an automation email node's own integration, a test sent through
- * another integration, and a sender_id passed to a transactional send.
+ * or an automation through the marketing one. A message of no origin is a double opt-in
+ * confirmation (marketing provider, opt-in template) or a template test, read here as the test
+ * dialog's default: the marketing provider for a marketing template, the transactional one
+ * otherwise, and the first email integration when that default is not set. An unknown template (no
+ * templates.read, still loading, deleted) counts as marketing. Not recorded on the message, so not
+ * shown here: the integration and the sender picked in a test dialog, an automation email node's
+ * own integration, a newsletter variation's sender, and a sender_id passed to a transactional send.
  */
 function senderOf(
   workspace: Workspace | undefined,
@@ -512,9 +515,15 @@ function senderOf(
   const providerId = transactional
     ? workspace?.settings?.transactional_email_provider_id
     : workspace?.settings?.marketing_email_provider_id
-  const provider = workspace?.integrations?.find(
-    (integration) => integration.id === providerId
-  )?.email_provider
+  const integrations = workspace?.integrations ?? []
+  const integration =
+    integrations.find((candidate) => candidate.id === providerId) ??
+    (origin === 'other'
+      ? integrations.find(
+          (candidate) => candidate.type === 'email' && candidate.email_provider?.kind
+        )
+      : undefined)
+  const provider = integration?.email_provider
   return (
     provider?.senders.find((sender) => sender.id === email?.sender_id) ??
     provider?.senders.find((sender) => sender.is_default)

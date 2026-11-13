@@ -691,14 +691,14 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
       key: 'id',
       hidden: !columns.id,
       render: (_, message) => (
-        // The copy button must not open the message as well; the ID itself opens it like the row,
-        // and J and K still reach the panel.
+        // The copy button must not open the message as well (a click, or Enter, which the row
+        // handles); the ID itself opens it like the rest of the row.
         <span
           onClick={(event) => {
             if ((event.target as HTMLElement).closest('button')) event.stopPropagation()
           }}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') event.stopPropagation()
+            if (event.key === 'Enter') event.stopPropagation()
           }}
         >
           <Mono copy>{message.id}</Mono>

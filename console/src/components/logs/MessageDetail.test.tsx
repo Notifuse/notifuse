@@ -13,7 +13,9 @@ const state = vi.hoisted(() => ({
   listMessages: vi.fn(),
   getTemplate: vi.fn(),
   preview: vi.fn(),
-  permissions: {} as Record<string, { read: boolean; write: boolean }>
+  permissions: {} as Record<string, { read: boolean; write: boolean }>,
+  // Workspace settings laid over the defaults below.
+  settings: {} as Record<string, string | undefined>
 }))
 
 vi.mock('../../services/api/client', () => ({
@@ -31,11 +33,13 @@ vi.mock('../../contexts/AuthContext', () => ({
           timezone: 'UTC',
           default_language: 'en',
           marketing_email_provider_id: 'm',
-          transactional_email_provider_id: 't'
+          transactional_email_provider_id: 't',
+          ...state.settings
         },
         integrations: [
           {
             id: 'm',
+            type: 'email',
             email_provider: {
               kind: 'ses',
               senders: [{ id: 's9', name: 'News', email: 'news@acme.io', is_default: true }]
@@ -43,6 +47,7 @@ vi.mock('../../contexts/AuthContext', () => ({
           },
           {
             id: 't',
+            type: 'email',
             email_provider: {
               kind: 'postmark',
               senders: [
@@ -160,6 +165,7 @@ describe('MessageDetail', () => {
   beforeEach(() => {
     state.navigate.mockClear()
     state.permissions = allRead
+    state.settings = {}
     state.listMessages.mockReset()
     state.listMessages.mockResolvedValue({ messages: [message()], has_more: false })
     state.getTemplate.mockReset()
@@ -209,12 +215,15 @@ describe('MessageDetail', () => {
     const { show } = renderDetail({ onNext: vi.fn() })
     await screen.findByText('To m1@example.com')
     const drawer = document.querySelector('.ant-drawer')
+    const body = document.querySelector('[data-sidepanel-body]')
     await userEvent.click(screen.getByRole('tab', { name: 'Data' }))
     const next = screen.getByRole('button', { name: 'Next' })
     next.focus()
     show('m2', message({ id: 'm2', contact_email: 'm2@example.com' }))
     expect(await screen.findByText('To m2@example.com')).toBeInTheDocument()
     expect(document.querySelector('.ant-drawer')).toBe(drawer)
+    // A new body, so it starts at the top.
+    expect(document.querySelector('[data-sidepanel-body]')).not.toBe(body)
     // The focus stays on the button J and K mirror.
     expect(document.activeElement).toBe(next)
     expect(screen.getByRole('tab', { name: 'Events' })).toHaveAttribute('aria-selected', 'true')
@@ -271,9 +280,33 @@ describe('MessageDetail', () => {
       messages: [message({ transactional_notification_id: 'password_reset' })],
       has_more: false
     })
-    renderDetail()
+    const third = renderDetail()
     await screen.findByText('To ann@example.com')
     await waitFor(() => expect(value('From')).toHaveTextContent('Default <default@acme.io>'))
+    third.unmount()
+
+    // A test of any other template, as the test dialog sends it: through the transactional
+    // provider, with the template's sender.
+    state.getTemplate.mockResolvedValue({ template: template({ category: 'welcome' }) })
+    state.listMessages.mockResolvedValue({ messages: [message()], has_more: false })
+    const fourth = renderDetail()
+    await screen.findByText('To ann@example.com')
+    await waitFor(() => expect(value('From')).toHaveTextContent('Acme <hello@acme.io>'))
+    fourth.unmount()
+
+    // Without a transactional provider, the dialog falls back to the first email integration.
+    state.settings = { transactional_email_provider_id: undefined }
+    const fifth = renderDetail()
+    await screen.findByText('To ann@example.com')
+    await waitFor(() => expect(value('From')).toHaveTextContent('News <news@acme.io>'))
+    fifth.unmount()
+    state.settings = {}
+
+    // An unknown template counts as marketing.
+    state.permissions = { ...allRead, templates: { read: false, write: false } }
+    renderDetail()
+    await screen.findByText('To ann@example.com')
+    expect(value('From')).toHaveTextContent('News <news@acme.io>')
   })
 
   it('lists the events in time order, without a line for the send', async () => {
