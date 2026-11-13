@@ -22,6 +22,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: `automations.get` answers 404 instead of 500 for an automation that does not exist.
 
+- **Improvement**: `tasks.reset` and `tasks.trigger` answer 500 when the database fails, without the internal error in the response, and 404 only for a task that no longer exists. A refusal because of the task's state (not recurring, not failed, already completed) still answers 400, its message now starting with "validation error: ".
+
 - **Fix**: Contacts who leave an automation by replying now count in its exited total, past exits included.
 
 - **Fix**: With several Notifuse instances, a contact could go through the same automation step twice and receive the same email twice; an instance now claims each journey before it runs it, so another instance leaves it alone.

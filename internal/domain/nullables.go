@@ -195,17 +195,37 @@ func (nt *NullableTime) Scan(value interface{}) error {
 		nt.IsNull = false
 		return nil
 	case []byte:
-		cloned := bytes.Clone(v)
-		var t sql.NullTime
-		if err := t.Scan(cloned); err != nil {
-			return err
-		}
-		nt.Time = t.Time
-		nt.IsNull = !t.Valid
-		return nil
+		return nt.scanText(string(v))
+	case string:
+		return nt.scanText(v)
 	default:
 		return fmt.Errorf("cannot scan %T into NullableTime", value)
 	}
+}
+
+// timestampTextLayouts are the forms a timestamp takes as text: RFC 3339 (JSON),
+// PostgreSQL's output with its numeric zone, and both without a zone, read as UTC as
+// the TIMESTAMP columns are written. Fractional seconds are optional in each.
+var timestampTextLayouts = []string{
+	time.RFC3339Nano,
+	"2006-01-02T15:04:05.999999999",
+	"2006-01-02 15:04:05.999999999Z07:00",
+	"2006-01-02 15:04:05.999999999Z07",
+	"2006-01-02 15:04:05.999999999",
+	"2006-01-02",
+}
+
+// scanText reads a timestamp given as text. Text in none of the layouts is refused,
+// infinity and BC dates included: a time.Time cannot hold them.
+func (nt *NullableTime) scanText(text string) error {
+	for _, layout := range timestampTextLayouts {
+		if t, err := time.Parse(layout, text); err == nil {
+			nt.Time = t
+			nt.IsNull = false
+			return nil
+		}
+	}
+	return fmt.Errorf("cannot scan %q into NullableTime: not a timestamp", text)
 }
 
 // MarshalJSON implements json.Marshaler

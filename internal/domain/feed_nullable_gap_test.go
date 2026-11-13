@@ -82,10 +82,10 @@ func TestGapNullableTimeScan(t *testing.T) {
 	assert.False(t, nt.IsNull)
 	assert.Equal(t, stamp, nt.Time)
 
-	// []byte input defers to sql.NullTime, which cannot scan byte slices:
-	// the driver error propagates unwrapped rather than being swallowed.
-	err2 := nt.Scan([]byte("2026-03-04 05:06:07"))
-	require.EqualError(t, err2, "unsupported Scan, storing driver.Value type []uint8 into type *time.Time")
+	// A timestamp read as text is parsed; a zoneless one is UTC.
+	require.NoError(t, nt.Scan([]byte("2026-03-04 05:06:07")))
+	assert.False(t, nt.IsNull)
+	assert.True(t, stamp.Equal(nt.Time))
 	err := nt.Scan(12345)
 	require.EqualError(t, err, "cannot scan int into NullableTime")
 

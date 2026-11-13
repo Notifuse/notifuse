@@ -1581,21 +1581,25 @@ func (s *TaskService) ResetTask(ctx context.Context, workspace, taskID string) e
 	tracing.AddAttribute(ctx, "task_id", taskID)
 	tracing.AddAttribute(ctx, "workspace_id", workspace)
 
-	// Get the task
+	// Get the task. Only the repository's not-found answer is a missing task: a failed
+	// read is a failure, which the API answers as one rather than as a 404.
 	task, err := s.repo.Get(ctx, workspace, taskID)
 	if err != nil {
 		tracing.MarkSpanError(ctx, err)
-		return domain.ErrTaskNotFound
+		if errors.Is(err, domain.ErrTaskNotFound) {
+			return domain.ErrTaskNotFound
+		}
+		return fmt.Errorf("failed to get task: %w", err)
 	}
 
 	// Verify task is in failed state
 	if task.Status != domain.TaskStatusFailed {
-		return fmt.Errorf("task is not in failed state, current status: %s", task.Status)
+		return domain.NewValidationError(fmt.Sprintf("task is not in failed state, current status: %s", task.Status))
 	}
 
 	// Verify task is recurring
 	if !task.IsRecurring() {
-		return fmt.Errorf("task is not a recurring task")
+		return domain.NewValidationError("task is not a recurring task")
 	}
 
 	// Reset error state in IntegrationSync
@@ -1634,16 +1638,20 @@ func (s *TaskService) TriggerTask(ctx context.Context, workspace, taskID string)
 	tracing.AddAttribute(ctx, "task_id", taskID)
 	tracing.AddAttribute(ctx, "workspace_id", workspace)
 
-	// Get the task
+	// Get the task. Only the repository's not-found answer is a missing task: a failed
+	// read is a failure, which the API answers as one rather than as a 404.
 	task, err := s.repo.Get(ctx, workspace, taskID)
 	if err != nil {
 		tracing.MarkSpanError(ctx, err)
-		return domain.ErrTaskNotFound
+		if errors.Is(err, domain.ErrTaskNotFound) {
+			return domain.ErrTaskNotFound
+		}
+		return fmt.Errorf("failed to get task: %w", err)
 	}
 
 	// Verify task is recurring
 	if !task.IsRecurring() {
-		return fmt.Errorf("task is not a recurring task")
+		return domain.NewValidationError("task is not a recurring task")
 	}
 
 	// Check if task is already running
@@ -1653,7 +1661,7 @@ func (s *TaskService) TriggerTask(ctx context.Context, workspace, taskID string)
 
 	// Check if task is in a state that can be triggered
 	if task.Status != domain.TaskStatusPending && task.Status != domain.TaskStatusPaused {
-		return fmt.Errorf("task cannot be triggered in current status: %s", task.Status)
+		return domain.NewValidationError(fmt.Sprintf("task cannot be triggered in current status: %s", task.Status))
 	}
 
 	// Schedule for immediate execution. The wake re-checks the status where it

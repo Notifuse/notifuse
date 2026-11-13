@@ -1803,6 +1803,7 @@ func TestTaskRepository_MarkAsPending(t *testing.T) {
 		err := repo.MarkAsPending(ctx, workspace, id, nextRunAfter, progress, state)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "task not found")
+		assert.ErrorIs(t, err, domain.ErrTaskNotFound, "a task deleted meanwhile is told apart from a failed write")
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }
@@ -1876,6 +1877,7 @@ func TestTaskRepository_MarkAsPendingTx(t *testing.T) {
 		err = repo.MarkAsPendingTx(ctx, tx, workspace, id, nextRunAfter, progress, state)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "task not found")
+		assert.ErrorIs(t, err, domain.ErrTaskNotFound)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
