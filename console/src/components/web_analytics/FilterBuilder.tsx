@@ -90,7 +90,7 @@ export function FilterBuilder(props: FilterBuilderProps) {
   const describeMetricValue = (filter: WebMetricFilter) =>
     filter.metric === 'median_duration'
       ? formatDuration(filter.values[0])
-      : formatPercent(filter.values[0], 2, 0)
+      : formatPercent(filter.values[0], 20, 0)
 
   return (
     <div className="flex flex-wrap items-center gap-2">

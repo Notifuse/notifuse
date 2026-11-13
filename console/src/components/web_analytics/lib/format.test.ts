@@ -75,8 +75,9 @@ describe('formatters', () => {
     expect(formatNumber(999)).toBe('999')
     expect(formatNumber(1500)).toBe('1.5K')
     expect(formatNumber(2_400_000)).toBe('2.4M')
-    // Rounded before it is abbreviated: never "1000.0K".
+    // Rounded before it is abbreviated: never "1000.0K", and 999.6 reads like 1000.
     expect(formatNumber(999_999)).toBe('1M')
+    expect(formatNumber(999.6)).toBe('1K')
     expect(formatDuration(45)).toBe('45 s')
     expect(formatDuration(312)).toBe('5 min 12 s')
     expect(formatDuration(300)).toBe('5 min')
@@ -87,6 +88,10 @@ describe('formatters', () => {
     // Seconds that round up to a minute carry over: never "4 min 60 s".
     expect(formatDuration(299.6)).toBe('5 min')
     expect(formatDuration(7199.9)).toBe('2 h')
+    // From an hour, rounded to the minute from the value itself.
+    expect(formatDuration(7170)).toBe('2 h')
+    expect(formatDuration(3630)).toBe('1 h 01 min')
+    expect(formatDuration(3629.5)).toBe('1 h')
   })
 
   it('writes percentages and axis values', () => {
@@ -96,6 +101,7 @@ describe('formatters', () => {
     expect(formatValue(312, 'duration')).toBe('5 min 12 s')
     expect(formatAxisValue(12.6, 'percentage')).toBe('13%')
     expect(formatAxisValue(45, 'duration')).toBe('45 s')
+    expect(formatAxisValue(59.6, 'duration')).toBe('1 min')
     expect(formatAxisValue(150, 'duration')).toBe('2.5 min')
     expect(formatAxisValue(1500, 'number')).toBe('1.5K')
   })
@@ -116,6 +122,17 @@ describe('formatters in the console language', () => {
       expect(plain(formatValue(12.5, 'percentage'))).toBe('12,5 %')
       expect(plain(formatAxisValue(150, 'duration'))).toBe('2,5 min')
       expect(plain(formatAxisValue(12.6, 'percentage'))).toBe('13 %')
+    } finally {
+      i18n.activate('en')
+    }
+  })
+
+  it('groups four-digit counts in languages that do not abbreviate them', () => {
+    i18n.load('de', {})
+    i18n.activate('de')
+    try {
+      expect(formatNumber(1234)).toBe('1.234')
+      expect(plain(formatNumber(2_400_000))).toBe('2,4 Mio.')
     } finally {
       i18n.activate('en')
     }

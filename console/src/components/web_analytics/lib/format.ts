@@ -28,10 +28,18 @@ const locale = (): string => i18n.locale || 'en'
  */
 export function formatNumber(value: number): string {
   if (!Number.isFinite(value)) return '0'
-  if (Math.abs(value) < 1_000) {
+  // Rounded before the cutoff, so 999.6 reads "1K" like 1000 does, not "1,000".
+  const rounded = Math.round(value)
+  if (Math.abs(rounded) < 1_000) {
     return new Intl.NumberFormat(locale(), { maximumFractionDigits: 0 }).format(value)
   }
-  return new Intl.NumberFormat(locale(), { notation: 'compact', maximumFractionDigits: 1 }).format(value)
+  // Grouping forced: compact notation leaves German and Japanese four-digit counts ungrouped
+  // ("1234") where the rest of the console writes "1.234".
+  return new Intl.NumberFormat(locale(), {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+    useGrouping: true
+  }).format(Math.abs(value) < 1_000 ? rounded : value)
 }
 
 /** A percentage given in percent: 12.5 → "12.5%" in English, "12,5 %" in French. */
@@ -59,7 +67,8 @@ export function formatDuration(value: number): string {
     const seconds = total % 60
     return seconds > 0 ? i18n._(msg`${minutes} min ${seconds} s`) : i18n._(msg`${minutes} min`)
   }
-  const roundedMinutes = Math.round(total / 60)
+  // Rounded to the minute from the value itself, not from its rounded seconds.
+  const roundedMinutes = Math.round(value / 60)
   const hours = Math.floor(roundedMinutes / 60)
   const rest = roundedMinutes % 60
   if (rest === 0) return i18n._(msg`${hours} h`)
@@ -109,11 +118,11 @@ export function formatValue(value: number, format: ValueFormat, currency?: strin
   }
 }
 
-/** Shorter than formatValue: chart axes have no room for "5m 12s". */
+/** Shorter than formatValue: chart axes have no room for "5 min 12 s". */
 export function formatAxisValue(value: number, format: ValueFormat): string {
   switch (format) {
     case 'duration': {
-      if (value < 60) {
+      if (Math.round(value) < 60) {
         const seconds = Math.round(value)
         return i18n._(msg`${seconds} s`)
       }
