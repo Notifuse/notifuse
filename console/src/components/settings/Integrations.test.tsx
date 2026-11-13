@@ -477,7 +477,7 @@ describe('Integrations — drawer titles', () => {
 
   it.each([
     ['Supabase', 'Add Supabase integration'],
-    ['Anthropic', 'Add Anthropic integration'],
+    ['OpenAI', 'Add OpenAI integration'],
     ['Firecrawl', 'Add Firecrawl integration']
   ])('names %s in the title of its drawer', async (item, title) => {
     const user = userEvent.setup()
