@@ -1726,13 +1726,20 @@ func (s *DemoService) createPasswordResetMJMLStructure(c passwordResetContent) n
 	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase6}
 }
 
+// demoNotificationIDs gives, by message type, the transactional notification that sends the
+// demo's transactional emails: their messages carry its ID, as real ones do.
+var demoNotificationIDs = map[string]string{
+	"password-reset": "password_reset",
+	"welcome":        "welcome",
+}
+
 // createSampleTransactionalNotifications creates sample transactional notifications
 func (s *DemoService) createSampleTransactionalNotifications(ctx context.Context, workspaceID string) error {
 	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample transactional notifications")
 
 	// Create password reset transactional notification
 	passwordResetNotification := domain.TransactionalNotificationCreateParams{
-		ID:          "password_reset",
+		ID:          demoNotificationIDs["password-reset"],
 		Name:        "Password Reset Email",
 		Description: "Sent when a user requests to reset their password",
 		Channels: domain.ChannelTemplates{
@@ -1752,6 +1759,27 @@ func (s *DemoService) createSampleTransactionalNotifications(ctx context.Context
 	_, err := s.transactionalNotificationService.CreateNotification(ctx, workspaceID, passwordResetNotification)
 	if err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to create password reset transactional notification")
+	}
+
+	// The welcome emails the demo seeds are sent by this notification.
+	welcomeNotification := domain.TransactionalNotificationCreateParams{
+		ID:          demoNotificationIDs["welcome"],
+		Name:        "Welcome Email",
+		Description: "Sent when a user signs up",
+		Channels: domain.ChannelTemplates{
+			domain.TransactionalChannelEmail: domain.ChannelTemplate{
+				TemplateID: "welcome-email",
+			},
+		},
+		TrackingSettings: notifuse_mjml.TrackingSettings{
+			EnableTracking: true,
+		},
+		Metadata: domain.MapOfAny{
+			"category": "onboarding",
+		},
+	}
+	if _, err := s.transactionalNotificationService.CreateNotification(ctx, workspaceID, welcomeNotification); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create welcome transactional notification")
 	}
 
 	s.logger.WithField("workspace_id", workspaceID).Info("Sample transactional notifications created successfully")
@@ -2019,6 +2047,15 @@ func (s *DemoService) updateClickedMessagesForBatch(ctx context.Context, workspa
 	return nil
 }
 
+// notificationIDOf is the ID of the demo notification that sends a message type, nil for none.
+func notificationIDOf(messageType string) *string {
+	id, ok := demoNotificationIDs[messageType]
+	if !ok {
+		return nil
+	}
+	return &id
+}
+
 // generateTransactionalMessageHistoryForContact creates a realistic transactional message history record for a contact
 // Transactional messages have no broadcast ID and different engagement patterns
 // Engagement rates: 100% delivered, 60% open rate, 20% click rate
@@ -2049,16 +2086,17 @@ func (s *DemoService) generateTransactionalMessageHistoryForContact(contact *dom
 	// Base transactional message with sent status
 	sentTime := baseTime.Add(time.Duration(rand.Intn(3600)) * time.Second) // Random time within first hour
 	message := &domain.MessageHistory{
-		ID:              messageID,
-		ContactEmail:    contact.Email,
-		BroadcastID:     nil, // Transactional messages have no broadcast ID
-		TemplateID:      templateID,
-		TemplateVersion: templateVersion,
-		Channel:         "email",
-		MessageData:     messageData,
-		SentAt:          sentTime,
-		CreatedAt:       sentTime,
-		UpdatedAt:       sentTime,
+		ID:                          messageID,
+		ContactEmail:                contact.Email,
+		BroadcastID:                 nil, // Transactional messages have no broadcast ID
+		TemplateID:                  templateID,
+		TransactionalNotificationID: notificationIDOf(messageType),
+		TemplateVersion:             templateVersion,
+		Channel:                     "email",
+		MessageData:                 messageData,
+		SentAt:                      sentTime,
+		CreatedAt:                   sentTime,
+		UpdatedAt:                   sentTime,
 	}
 
 	// Initialize engagement

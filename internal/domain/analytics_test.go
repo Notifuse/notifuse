@@ -428,8 +428,9 @@ func TestTrackedMeasuresAreSentEmailsWithTheirFlag(t *testing.T) {
 }
 
 // The origin dimension sorts every message into what sent it, from its broadcast, automation
-// and transactional notification IDs, with the values of the messages.list origin filter. Its SQL is an expression, so it must be parenthesised: the
-// query builder copies a dimension's SQL as is into SELECT, GROUP BY and filters.
+// and transactional notification IDs, with the values of the messages.list origin filter. Its
+// SQL is an expression, so it must be parenthesised: the query builder copies a dimension's
+// SQL as is into SELECT, GROUP BY and filters.
 func TestMessageHistoryOriginDimension(t *testing.T) {
 	schema, ok := PredefinedSchemas["message_history"]
 	require.True(t, ok)

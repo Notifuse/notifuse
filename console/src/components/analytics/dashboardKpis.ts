@@ -1,7 +1,7 @@
 import { isPartiallyTracked } from '../../lib/emailTracking'
 import type { KpiTone } from '../layout'
 
-/** The values of the analytics origin dimension; other is a template test or a double opt-in confirmation. */
+/** The values of the analytics origin dimension; other is none of the three, such as a template test. */
 export type MessageOrigin = 'broadcast' | 'automation' | 'transactional' | 'other'
 export const MESSAGE_ORIGINS: MessageOrigin[] = ['broadcast', 'transactional', 'automation', 'other']
 

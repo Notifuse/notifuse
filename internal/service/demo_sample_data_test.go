@@ -162,27 +162,29 @@ func TestDemoService_CreateSampleTransactionalNotifications(t *testing.T) {
 	}
 	owner := &domain.UserWorkspace{UserID: "u1", WorkspaceID: "ws-1", Role: "owner"}
 
-	t.Run("the password-reset notification is created with its template", func(t *testing.T) {
+	// One per kind of transactional email the demo seeds, so its messages carry their
+	// notification's ID.
+	t.Run("the password-reset and welcome notifications are created with their templates", func(t *testing.T) {
 		svc, repo, authService := newSvc(t)
 		authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws-1").
-			Return(ctx, &domain.User{ID: "u1"}, owner, nil).Times(1)
+			Return(ctx, &domain.User{ID: "u1"}, owner, nil).Times(2)
+		created := map[string]string{}
 		repo.EXPECT().Create(gomock.Any(), "ws-1", gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ string, n *domain.TransactionalNotification) error {
-				assert.Equal(t, "password_reset", n.ID)
-				assert.Equal(t, "password-reset",
-					n.Channels[domain.TransactionalChannelEmail].TemplateID)
+				created[n.ID] = n.Channels[domain.TransactionalChannelEmail].TemplateID
 				return nil
-			}).Times(1)
+			}).Times(2)
 
 		require.NoError(t, svc.createSampleTransactionalNotifications(ctx, "ws-1"))
+		assert.Equal(t, map[string]string{"password_reset": "password-reset", "welcome": "welcome-email"}, created)
 	})
 
 	t.Run("a creation failure degrades to nil, never aborting the seed", func(t *testing.T) {
 		svc, repo, authService := newSvc(t)
 		authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws-1").
-			Return(ctx, &domain.User{ID: "u1"}, owner, nil).Times(1)
+			Return(ctx, &domain.User{ID: "u1"}, owner, nil).Times(2)
 		repo.EXPECT().Create(gomock.Any(), "ws-1", gomock.Any()).
-			Return(errors.New("already exists")).Times(1)
+			Return(errors.New("already exists")).Times(2)
 
 		assert.NoError(t, svc.createSampleTransactionalNotifications(ctx, "ws-1"))
 	})

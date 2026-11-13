@@ -17,42 +17,45 @@ Also in this PR: the `RequireBound` comment (part 5) names the accepted fields i
 indexed column", which was wider than the code (`created_before` alone, `is_failed`, `is_bounced`,
 `is_complained` can use an index and are refused).
 
-## Changes
+## Changes (as built, after the plan and code reviews)
 
 ### Server
 
 - `internal/domain/analytics.go`, dimension `origin`:
   - SQL: `(CASE WHEN broadcast_id IS NOT NULL THEN 'broadcast' WHEN automation_id IS NOT NULL THEN 'automation' WHEN transactional_notification_id IS NOT NULL THEN 'transactional' ELSE 'other' END)`;
-  - Description: "What sent the message: broadcast, automation, transactional, or other (none of the three: template tests, double opt-in confirmations)";
-  - the comment above it: template tests and double opt-in confirmations carry no ID and count as `other`, the value the `messages.list` origin filter gives them.
-- `internal/domain/message_filter.go`, `RequireBound` comment: "it needs created_after, or one of id, contact_email, broadcast_id, automation_id, transactional_notification_id and template_id, which an index narrows. created_before alone, list_id, external_id and the is_* filters are refused. A wide period or a common value can still read a large part of the table." No code change.
-- `CHANGELOG.md`, 44.0 Feature line of the origin dimension: values become `broadcast`, `automation`, `transactional` or `other`, "as the `messages.list` filter". No Fix line: the dimension never shipped.
+  - Description: "What sent the message: broadcast, automation, transactional, or other (none of the three, such as template tests and double opt-in confirmations)";
+  - the comment above it: the values and their order are those of the `messages.list` origin filter.
+- `internal/repository/message_history_postgre.go`, `applyMessageFilters`: the origin filter follows the dimension's order. Some automation emails also carry a notification ID (the 28.0 upgrade backfilled one by template, excluding broadcasts only): `automation` excludes a broadcast ID, `transactional` excludes a broadcast or automation ID, so the four values partition the table as the dimension does.
+- `internal/service/demo_service.go`: the demo workspace's transactional emails carried no notification ID, so they would become `other` on the demo dashboard. The demo now creates a `welcome` notification beside `password_reset`, and each seeded transactional email carries the ID of the notification that sends it (`demoNotificationIDs`).
+- `internal/domain/message_filter.go`, `RequireBound` comment: names the six accepted fields (besides `created_after`), and says that without one of them the other filters are refused, even one an index could use, such as `created_before`. No code change.
+- `CHANGELOG.md`, 44.0: the origin dimension's Feature line lists `other`, "the values of the `messages.list` filter"; the dashboard's Feature line lists the `other` series. No Fix line: neither shipped.
 
 ### Console (dashboard)
 
-- `console/src/components/analytics/dashboardKpis.ts`: `MessageOrigin` adds `'other'`; `MESSAGE_ORIGINS` becomes `['broadcast', 'transactional', 'automation', 'other']`.
-- `console/src/components/analytics/DashboardKpis.tsx`: the empty `series` fallback gets `other: emptyTotals()`.
-- `console/src/components/analytics/OriginVolumeChart.tsx`: a fourth line `other`, named t`Other` (already translated in every catalogue), colour `colors.chart.series4`; the doc comment says broadcasts as bars, the three others as lines.
-- `console/src/theme/tokens.ts`: `chart.series4`, a gray (`gray[400]`), so the minor series stays quiet next to the three main ones. `chart` is not mirrored in the Tailwind `@theme` block, so `tailwindTheme.contract.test.ts` is not concerned.
-- `console/src/components/analytics/useOriginSeries.ts`: the doc comment says the totals are the sums of the series (no count).
-- `originChart.ts`: its doc comment says "The daily series of one metric" (no count).
-- `npm run lingui:extract`: no new message expected (`Other` exists); the catalogues only move references.
+- `dashboardKpis.ts`: `MessageOrigin` adds `'other'`; `MESSAGE_ORIGINS` becomes `['broadcast', 'transactional', 'automation', 'other']`.
+- `DashboardKpis.tsx`: the empty `series` fallback gets `other: emptyTotals()`.
+- `OriginVolumeChart.tsx`: a fourth line `other`, named t`Other` (already translated in every catalogue), colour `colors.chart.series4`; broadcasts as bars, the other origins as lines.
+- `theme/tokens.ts`: `chart.series4`, amber (`#f59e0b`); a gray would read as a legend item switched off. `chart` is not mirrored in the Tailwind `@theme` block.
+- `useOriginSeries.ts`, `originChart.ts`: doc comments without a count of series.
+- No `.po` change: `Other` exists in every catalogue, and `lingui extract` only moves references.
 
 ## Tests
 
 | Implementation file | Test file | Cases |
 |---|---|---|
-| `internal/domain/analytics.go` | `internal/domain/analytics_test.go` `TestMessageHistoryOriginDimension` | the exact new SQL, parenthesised |
+| `internal/domain/analytics.go` | `internal/domain/analytics_test.go` `TestMessageHistoryOriginDimension` | the exact new SQL |
+| `internal/domain/analytics.go` (query builder) | `internal/repository/analytics_postgres_test.go` (`originCaseSQL`) | the SQL in SELECT, GROUP BY and filters |
+| `internal/repository/message_history_postgre.go` | `internal/repository/message_filter_postgres_test.go` | the exclusive `automation` and `transactional` conditions, alone and with other filters; `CountMessages` with the same conditions |
+| `internal/service/demo_service.go` | `demo_service_test.go` `TestDemoService_TransactionalMessagesCarryTheirNotification`; `demo_sample_data_test.go` `TestDemoService_CreateSampleTransactionalNotifications`; `demo_sample_gap_test.go` | each seeded transactional email carries its notification's ID; both notifications are created with their templates; a creation failure never aborts the seed |
 | `internal/domain/message_filter.go` | existing `TestMessageFilter_RequireBound` | unchanged (comment only) |
-| `analytics.go` (full stack) | `tests/integration/analytics_message_origin_test.go` `TestAnalyticsMessageOrigin` | the dimension splits into `{broadcast: 2, automation: 2, transactional: 3, other: 2}`; each origin filter, `other` included, counts its own messages; the daily Paris series stays as is |
-| `dashboardKpis.ts` | `dashboardKpis.test.ts` | the totals include `other` (sent share and rates over the four origins) |
-| `useOriginSeries.ts` / `OriginVolumeChart.tsx` | `OriginVolumeChart.test.tsx` | one series per origin, `other` included (`['automation', 'broadcast', 'other', 'transactional']`); the legend shows Other |
-| `DashboardKpis.tsx` | `DashboardKpis.test.tsx` | the `totals` helper gives `other`; a sent figure that includes `other` |
-| `originChart.ts` | `originChart.test.ts` | the fixtures give the four origins; the log-axis and empty rules hold with `other` |
+| full stack | `tests/integration/analytics_message_origin_test.go` `TestAnalyticsMessageOrigin` | the dimension splits into `{broadcast: 2, automation: 3, transactional: 3, other: 2}`, one automation email carrying a notification ID too; each origin filter, `other` included, counts its own messages; the daily Paris series of `transactional` counts the notification messages only |
+| full stack | `tests/integration/logs_filters_test.go` `TestLogsFilters` | the automation email with a notification ID is listed under `automation`, not `transactional`; `messages.count` by `automation_id` counts both automation emails |
+| `dashboardKpis.ts` | `dashboardKpis.test.ts` | `other` is summed into the totals (1000, not 980), the broadcast share and the rates |
+| `useOriginSeries.ts` / `OriginVolumeChart.tsx` | `OriginVolumeChart.test.tsx` | one query per origin, `other` included; the series by name, type and values |
+| `DashboardKpis.tsx` | `DashboardKpis.test.tsx` | the `totals` helper gives `other` (type only; the sums are pinned in `dashboardKpis.test.ts`) |
+| `originChart.ts` | `originChart.test.ts` | the fixtures give `other`; its metric values; not empty when only `other` sent |
 
-Integration test: the existing test's comment ("Transactional: three notification messages … plus a template test and a double opt-in confirmation") is split, so the two ID-less messages are labelled as `other`.
-
-## Plan review corrections (applied)
+## Review corrections (applied, folded into the sections above)
 
 - `internal/repository/analytics_postgres_test.go` pins the dimension's SQL (`originCaseSQL`): updated, and `make test-repo` added to the run.
 - The daily Paris series filters `origin=transactional`: its expected day count drops to the three notification messages.
@@ -62,11 +65,12 @@ Integration test: the existing test's comment ("Transactional: three notificatio
 - The 44.0 dashboard CHANGELOG line lists the `other` series; the Description says "such as".
 - Colour: amber (`#f59e0b`) rather than `gray[400]`, which reads as a legend item switched off.
 - No `.po` change: `Other` already exists in every catalogue, and the extract only moves references.
+- Code review: the demo workspace seeded its transactional emails without a notification ID; it now creates a `welcome` notification and gives each email its notification's ID.
 
 ## Run
 
 ```
-make test-domain test-repo
+make test-domain test-repo test-service
 INTEGRATION_TESTS=true go test -race -tags integration,licdev -count=1 -run 'TestAnalyticsMessageOrigin|TestLogsFilters' ./tests/integration/
 cd console && npx vitest run src/components/analytics src/theme src/i18n && npx tsc -b && npx eslint .
 ```

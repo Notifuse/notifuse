@@ -223,7 +223,7 @@ func TestDemoService_AddSampleData_GapMessageHistoryFailureAborts(t *testing.T) 
 
 	// Transactional notifications (step 6) succeed.
 	txRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
-	txRepo.EXPECT().Create(gomock.Any(), "ws-gap", gomock.Any()).Return(nil).Times(1)
+	txRepo.EXPECT().Create(gomock.Any(), "ws-gap", gomock.Any()).Return(nil).Times(2) // password reset and welcome
 	txAuth := mocks.NewMockAuthService(ctrl)
 	owner := &domain.UserWorkspace{UserID: "u1", WorkspaceID: "ws-gap", Role: "owner"}
 	txAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
@@ -285,7 +285,7 @@ func TestDemoService_AddSampleData_GapFullSuccessNonFatalStepsDegrade(t *testing
 	d.svc.broadcastRepo = broadcastRepo
 
 	txRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
-	txRepo.EXPECT().Create(gomock.Any(), "ws-gap", gomock.Any()).Return(nil).Times(1)
+	txRepo.EXPECT().Create(gomock.Any(), "ws-gap", gomock.Any()).Return(nil).Times(2) // password reset and welcome
 	txAuth := mocks.NewMockAuthService(ctrl)
 	owner := &domain.UserWorkspace{UserID: "u1", WorkspaceID: "ws-gap", Role: "owner"}
 	txAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).
