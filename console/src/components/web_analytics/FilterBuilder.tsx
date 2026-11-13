@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Button, Input, InputNumber, Popover, Select, Space, Tag } from 'antd'
 import { PlusCircleOutlined, SearchOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
-import { useWebAnalytics } from './context'
+import { useWebAnalytics } from './useWebAnalytics'
 import {
   DimensionInfo,
   dimensionsForSchema,

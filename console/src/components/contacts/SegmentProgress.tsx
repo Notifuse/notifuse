@@ -7,7 +7,7 @@ import { taskApi } from '../../services/api/task'
 import { useNumberFormat } from '../layout'
 
 /** The build task of a segment being computed, read again every 15 seconds. */
-export function useSegmentBuildTask(workspaceId: string, segment: Pick<Segment, 'id' | 'status'>) {
+function useSegmentBuildTask(workspaceId: string, segment: Pick<Segment, 'id' | 'status'>) {
   const building = segment.status === 'building'
   return useQuery({
     queryKey: ['segment-task', workspaceId, segment.id],

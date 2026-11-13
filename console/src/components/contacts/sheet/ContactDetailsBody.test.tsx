@@ -59,7 +59,8 @@ vi.mock('./ContactProfileFields', () => ({
 }))
 
 import { contactsApi } from '../../../services/api/contacts'
-import { ContactDetailsBody, contactKey } from './ContactDetailsBody'
+import { ContactDetailsBody } from './ContactDetailsBody'
+import { contactKey } from './contactKey'
 
 const workspace = (webAnalytics = true) =>
   ({

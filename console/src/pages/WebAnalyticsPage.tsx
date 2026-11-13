@@ -6,9 +6,9 @@ import { useLingui } from '@lingui/react/macro'
 import {
   WEB_ANALYTICS_TABS,
   WebAnalyticsProvider,
-  WebAnalyticsTab,
-  useWebAnalytics
+  WebAnalyticsTab
 } from '../components/web_analytics/context'
+import { useWebAnalytics } from '../components/web_analytics/useWebAnalytics'
 import { WebAnalyticsGate } from '../components/web_analytics/InstallOverlay'
 import { ComparisonPicker, DateRangePicker } from '../components/web_analytics/toolbar'
 import { CsvExportModal } from '../components/web_analytics/explore/CsvExportModal'

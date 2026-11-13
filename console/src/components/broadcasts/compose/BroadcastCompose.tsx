@@ -24,7 +24,8 @@ import { AdvancedRow } from './AdvancedRow'
 import { AudienceCard } from './AudienceCard'
 import { ContentCard } from './ContentCard'
 import { PreviewPanel } from './PreviewPanel'
-import { SendSummary, errorCount, summaryChecks, useCheckText } from './SendSummary'
+import { SendSummary } from './SendSummary'
+import { errorCount, summaryChecks, useCheckText } from './sendSummaryChecks'
 import { SendingCard } from './SendingCard'
 import { TrackingCard } from './TrackingCard'
 import { fromBroadcast, newDraft, withName, type ComposeValues } from './composeValues'
@@ -34,7 +35,7 @@ import { validateDraft } from './validateDraft'
 import type { ComposeUpdate } from './types'
 
 /** The statuses the composer edits; any other opens the detail instead. */
-export const EDITABLE_STATUSES: Broadcast['status'][] = ['draft', 'scheduled']
+const EDITABLE_STATUSES: Broadcast['status'][] = ['draft', 'scheduled']
 
 export interface BroadcastComposeProps {
   workspace: Workspace

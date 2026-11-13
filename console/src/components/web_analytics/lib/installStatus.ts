@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import dayjs from '../../../lib/dayjs'
-import { useWebAnalytics } from '../context'
+import { useWebAnalytics } from '../useWebAnalytics'
 import { buildWebQuery, readTotals, useWebQuery } from './query'
 import { ResolvedRange } from './types'
 

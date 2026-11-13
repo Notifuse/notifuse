@@ -2,34 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 import { Button, Tooltip } from 'antd'
 import { Pencil, SlidersHorizontal } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
-import { listsApi } from '../../services/api/list'
 import { templatesApi } from '../../services/api/template'
-import type { List, ListStats, TemplateReference, UserPermissions, Workspace } from '../../services/api/types'
+import type { List, TemplateReference, UserPermissions, Workspace } from '../../services/api/types'
 import { KpiStrip, Mono, Pill, useNumberFormat, type KpiItem } from '../layout'
 import TemplatePreviewDrawer from '../templates/TemplatePreviewDrawer'
 import { CreateTemplateDrawer } from '../templates/CreateTemplateDrawer'
-
-export type ListStatus = 'active' | 'pending' | 'unsubscribed' | 'bounced' | 'complained'
-
-export const LIST_STATUSES: ListStatus[] = ['active', 'pending', 'unsubscribed', 'bounced', 'complained']
-
-export const LIST_STAT_KEYS: Record<ListStatus, keyof ListStats> = {
-  active: 'total_active',
-  pending: 'total_pending',
-  unsubscribed: 'total_unsubscribed',
-  bounced: 'total_bounced',
-  complained: 'total_complained'
-}
-
-/** lists.stats of one list, read again every minute. */
-export function useListStats(workspaceId: string, listId: string | undefined, enabled = true) {
-  return useQuery({
-    queryKey: ['list-stats', workspaceId, listId],
-    queryFn: () => listsApi.stats({ workspace_id: workspaceId, list_id: listId! }),
-    enabled: enabled && !!listId,
-    refetchInterval: 60000
-  })
-}
+import { LIST_STATUSES, LIST_STAT_KEYS, useListStats, type ListStatus } from './listStats'
 
 export interface ListHeaderProps {
   workspace: Workspace

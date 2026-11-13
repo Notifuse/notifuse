@@ -74,6 +74,27 @@ describe('LogsSearchBox', () => {
     expect(onWrite).toHaveBeenCalledWith({ ...cleared, contact_email: 'ann@example.com' })
   })
 
+  it('describes the input by the hint while it shows, beside the tooltip', () => {
+    renderBox()
+    type('camille@')
+    const hint = screen.getByText('Enter a full email address')
+    expect(hint.id).not.toBe('')
+    expect(box().getAttribute('aria-describedby')?.split(' ')).toContain(hint.id)
+
+    // The "Exact match" tooltip, once open, describes the input too.
+    fireEvent.mouseEnter(box())
+    act(() => vi.advanceTimersByTime(500))
+    const ids = box().getAttribute('aria-describedby')?.split(' ') ?? []
+    expect(ids).toContain(hint.id)
+    // (Under test the tooltip's id is a fixed placeholder, so it is read from the tooltip itself.)
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Exact match')
+    expect(ids).toContain(screen.getByRole('tooltip').id)
+
+    type('camille@example.com')
+    expect(screen.queryByText('Enter a full email address')).toBeNull()
+    expect(box().getAttribute('aria-describedby') ?? '').not.toContain(hint.id)
+  })
+
   it('writes at once on Enter', () => {
     const { onWrite } = renderBox({ external_id: 'x' })
     type('order-42')

@@ -70,7 +70,7 @@ const TemplatePreviewButton: React.FC<TemplatePreviewButtonProps> = ({
       })
 
       if (!response.template) {
-        throw new Error('Failed to load template')
+        throw new Error(t`The server returned no template`)
       }
 
       return response.template

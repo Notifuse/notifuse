@@ -9,7 +9,7 @@ import {
   AnnotationSource,
   annotationService
 } from '../../../services/api/annotation'
-import { useWebAnalytics } from '../context'
+import { useWebAnalytics } from '../useWebAnalytics'
 import { AnnotationDraft, AnnotationFormModal } from '../annotations/AnnotationFormModal'
 import { AnnotationTable } from '../annotations/AnnotationTable'
 

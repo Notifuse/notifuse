@@ -32,6 +32,7 @@ import { BlockError } from '../BlockError'
 import { useContactVisits } from '../sheet/useContactSheetQueries'
 import { formatDuration } from './duration'
 import { deviceIcon, visitSource, type DeviceIcon, type VisitSourceIcon } from './webVisitSource'
+import { webAnalyticsContactSearch } from './webAnalyticsContactSearch'
 
 const SOURCE_ICONS: Record<VisitSourceIcon, typeof Mail> = {
   mail: Mail,
@@ -62,17 +63,6 @@ function sessionDay(createdAt: string, timezone: string, labels: { today: string
       ? labels.yesterday
       : start.format('ll')
   return `${day} · ${start.format('HH:mm')}`
-}
-
-/** The link to the web analytics dashboard, last 30 days, filtered on the contact's email. */
-export function webAnalyticsContactSearch(email: string, timezone: string, now = dayjs()) {
-  const end = now.tz(timezone)
-  return {
-    period: 'custom' as const,
-    customStart: end.subtract(30, 'day').format('YYYY-MM-DD'),
-    customEnd: end.format('YYYY-MM-DD'),
-    filters: JSON.stringify([{ dimension: 'contact_email', operator: 'equals', values: [email] }])
-  }
 }
 
 /** A goal's value, which may carry cents. */

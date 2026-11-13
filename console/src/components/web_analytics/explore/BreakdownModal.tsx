@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Button, Checkbox, Empty, Modal, Tag } from 'antd'
 import { CloseOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
-import { useWebAnalytics } from '../context'
+import { useWebAnalytics } from '../useWebAnalytics'
 import {
   DimensionCategory,
   DimensionInfo,

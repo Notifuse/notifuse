@@ -6,7 +6,8 @@ import { createFullPermissions } from '../../services/api/permissions'
 import type { Contact } from '../../services/api/contacts'
 import type { Segment } from '../../services/api/segment'
 import type { List, UserPermissions, Workspace } from '../../services/api/types'
-import { ContactsTable, DEFAULT_VISIBLE_COLUMNS, type ContactsTableProps } from './ContactsTable'
+import { ContactsTable, type ContactsTableProps } from './ContactsTable'
+import { DEFAULT_VISIBLE_COLUMNS } from './contactColumns'
 
 const workspace = { id: 'ws', settings: { timezone: 'UTC' } } as unknown as Workspace
 

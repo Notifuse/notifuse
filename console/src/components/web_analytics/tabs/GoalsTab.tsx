@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Alert, Empty, Skeleton } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { useWebAnalytics } from '../context'
+import { useWebAnalytics } from '../useWebAnalytics'
 import { GoalCard, GoalMetricKey } from '../goals/GoalCard'
 import { GoalDashboardDrawer } from '../goals/GoalDashboardDrawer'
 import { GOAL_MEASURES, filtersForSchema } from '../goals/queries'

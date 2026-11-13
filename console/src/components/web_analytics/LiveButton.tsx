@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
-import { useWebAnalytics } from './context'
+import { useWebAnalytics } from './useWebAnalytics'
 import { useMinuteTick } from './lib/useMinuteTick'
 import { readTotals, useWebQuery } from './lib/query'
 import { AnalyticsQuery } from '../../services/api/analytics'

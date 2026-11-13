@@ -7,8 +7,9 @@ import type { BroadcastVariation } from '../../../services/api/broadcast'
 import type { Template } from '../../../services/api/template'
 import type { Workspace } from '../../../services/api/types'
 import IphoneEmailPreview from '../../templates/PhonePreview'
-import { TemplatePreviewFrame, useTemplatePreview } from '../detail/TemplatePreviewFrame'
-import { useSenderText } from '../detail/VariationSender'
+import { TemplatePreviewFrame } from '../detail/TemplatePreviewFrame'
+import { useTemplatePreview } from '../detail/useTemplatePreview'
+import { useSenderText } from '../detail/senderText'
 import { VARIANT_LETTERS, type ComposeVariant } from './composeValues'
 
 /** The width the mobile view renders the email at. */

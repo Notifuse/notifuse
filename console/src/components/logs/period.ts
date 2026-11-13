@@ -71,7 +71,10 @@ export function defaultAuditPeriod(search: LogsSearch): AuditPeriod {
  * messages, 1.5 million of them in the last 30 days, messages.count read the whole table over 30
  * days: 1 to 2 seconds warm, 2 to 3.4 seconds cold. Over 7 days it took 0.2 to 0.65 seconds.
  */
-export const COUNT_MAX_PERIOD: LivePeriod = '7d'
+export const COUNT_MAX_PERIOD: CountedPeriod = '7d'
+
+/** Every rolling period, the ones COUNT_MAX_PERIOD can name; only those up to it are counted. */
+export type CountedPeriod = Exclude<LivePeriod, 'all'>
 
 const COUNTED_PERIODS: readonly LivePeriod[] = ['1h', '24h', '7d', '30d']
 

@@ -2,7 +2,7 @@ import { Skeleton, Tooltip } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { i18n } from "@lingui/core";
 import { useLingui } from "@lingui/react/macro";
-import { useWebAnalytics } from "../context";
+import { useWebAnalytics } from "../useWebAnalytics";
 import { Delta } from "../Delta";
 import { ExploreTotals } from "../lib/exploreRows";
 import { formatDimensionValue, getDimensionLabel } from "../lib/dimensions";

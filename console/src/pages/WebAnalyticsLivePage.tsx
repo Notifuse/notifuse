@@ -3,7 +3,8 @@ import { useLingui } from '@lingui/react/macro'
 import { ArrowLeft } from 'lucide-react'
 import { PageHeader, Pill } from '../components/layout'
 import { Dayjs } from 'dayjs'
-import { WebAnalyticsProvider, useWebAnalytics } from '../components/web_analytics/context'
+import { WebAnalyticsProvider } from '../components/web_analytics/context'
+import { useWebAnalytics } from '../components/web_analytics/useWebAnalytics'
 import { WebAnalyticsGate } from '../components/web_analytics/InstallOverlay'
 import {
   ColumnConfig,

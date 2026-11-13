@@ -25,7 +25,7 @@ interface TestContext {
 
 const context: { current: TestContext } = { current: { workspaceId: 'ws1', timezone: 'UTC' } }
 
-vi.mock('../context', () => ({
+vi.mock('../useWebAnalytics', () => ({
   useWebAnalytics: () => context.current
 }))
 

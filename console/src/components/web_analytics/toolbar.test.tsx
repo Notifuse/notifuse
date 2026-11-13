@@ -7,7 +7,7 @@ import dayjs from '../../lib/dayjs'
 import { activateDayjsLocale } from '../../i18n/dayjsLocales'
 import { DateRangePicker } from './toolbar'
 
-vi.mock('./context', () => ({
+vi.mock('./useWebAnalytics', () => ({
   useWebAnalytics: () => ({
     period: 'custom',
     range: { start: dayjs('2026-02-03'), end: dayjs('2026-02-09').endOf('day') },

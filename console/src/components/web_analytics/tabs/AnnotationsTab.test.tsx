@@ -32,7 +32,7 @@ const webAnalyticsContext = {
   workspaceId: 'ws1',
   timezone: 'UTC'
 }
-vi.mock('../context', () => ({
+vi.mock('../useWebAnalytics', () => ({
   useWebAnalytics: () => webAnalyticsContext
 }))
 

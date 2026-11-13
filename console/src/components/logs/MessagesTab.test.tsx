@@ -16,7 +16,9 @@ const state = vi.hoisted(() => ({
   listAutomations: vi.fn(),
   listLists: vi.fn(),
   permissions: {} as Record<string, { read: boolean; write: boolean }>,
-  workspace: {} as Record<string, unknown>
+  workspace: {} as Record<string, unknown>,
+  // The longest period counted; the tooltip's duration follows it.
+  countMax: '7d'
 }))
 
 vi.mock('../../services/api/client', () => ({
@@ -42,6 +44,12 @@ vi.mock('../../services/api/automation', () => ({
 }))
 vi.mock('../../services/api/list', () => ({
   listsApi: { list: state.listLists }
+}))
+vi.mock('./period', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./period')>()),
+  get COUNT_MAX_PERIOD() {
+    return state.countMax
+  }
 }))
 vi.mock('./MessageDetail', () => ({
   MessageDetail: ({ id }: { id?: string }) => (id ? <div>detail {id}</div> : null)
@@ -131,6 +139,7 @@ const counter = (name: RegExp) => screen.getByRole('button', { name })
 describe('MessagesTab', () => {
   beforeEach(() => {
     localStorage.clear()
+    state.countMax = '7d'
     state.navigate.mockClear()
     state.permissions = allRead
     state.workspace = smtpWorkspace('postmark', 'postmark')
@@ -277,6 +286,14 @@ describe('MessagesTab', () => {
     expect(within(counter(/^All/)).queryByText(/\d/)).toBeNull()
     fireEvent.mouseOver(counter(/^All/))
     expect(await screen.findByText(/^Counts cover 7 days at most/)).toBeInTheDocument()
+  })
+
+  it('names the longest period counted in the tooltip', async () => {
+    state.countMax = '24h'
+    renderTab({ tab: 'messages', period: 'all' })
+    await screen.findByText('ann@example.com')
+    fireEvent.mouseOver(counter(/^All/))
+    expect(await screen.findByText(/^Counts cover 24 hours at most/)).toBeInTheDocument()
   })
 
   it('counts all time with an indexed filter', async () => {

@@ -4,7 +4,7 @@ import { ExperimentOutlined, PlusOutlined, SearchOutlined } from '@ant-design/ic
 import { useLingui } from '@lingui/react/macro'
 import { useAuth } from '../../../contexts/AuthContext'
 import { WebFilter, webAnalyticsService } from '../../../services/api/web_analytics'
-import { useWebAnalytics } from '../context'
+import { useWebAnalytics } from '../useWebAnalytics'
 import { BackfillStatus } from '../filters/BackfillStatus'
 import { FilterDraft, FilterFormDrawer } from '../filters/FilterFormDrawer'
 import { FilterTable } from '../filters/FilterTable'

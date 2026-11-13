@@ -52,7 +52,7 @@ export interface BroadcastsTableProps {
 const isStarted = (b: Broadcast) => b.status !== 'draft' && b.status !== 'scheduled'
 
 /** The template shown for a row: the winner's once chosen, else the first variant's. */
-export function shownVariation(broadcast: Broadcast) {
+function shownVariation(broadcast: Broadcast) {
   const variations = broadcast.test_settings?.variations ?? []
   return (
     (broadcast.winning_template && variations.find((v) => v.template_id === broadcast.winning_template)) ||

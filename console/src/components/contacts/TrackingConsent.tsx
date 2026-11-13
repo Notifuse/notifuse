@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { App, Button, Select, Space, Tag, Tooltip } from 'antd'
 import { Info, Pencil } from 'lucide-react'
 import dayjs from '../../lib/dayjs'
 import { useLingui } from '@lingui/react/macro'
 import type { TrackingConsent } from '../../services/api/contacts'
+import { useTrackingConsentOptions } from './trackingConsentOptions'
 
 /** One consent as a tag: granted, denied, or unknown when none is recorded. */
 export function TrackingConsentTag({ consent }: { consent?: TrackingConsent | null }) {
@@ -34,27 +35,8 @@ export function TrackingConsentSummary({
   )
 }
 
-/** The consent values a form or filter offers. */
-export function useTrackingConsentOptions() {
-  const { t } = useLingui()
-  return useMemo(
-    () => ({
-      values: [
-        { value: 'granted', label: t`Granted` },
-        { value: 'denied', label: t`Denied` }
-      ],
-      filters: [
-        { value: 'granted', label: t`Granted` },
-        { value: 'denied', label: t`Denied` },
-        { value: 'unknown', label: t`Unknown` }
-      ]
-    }),
-    [t]
-  )
-}
-
 /** A readable name for where a consent change came from. */
-export function useTrackingConsentSourceLabel() {
+function useTrackingConsentSourceLabel() {
   const { t } = useLingui()
   return (source?: string) => {
     switch (source) {

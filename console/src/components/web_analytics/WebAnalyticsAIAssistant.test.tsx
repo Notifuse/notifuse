@@ -3,7 +3,8 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
-import { WebAnalyticsAIAssistant, shouldHideAssistant } from './WebAnalyticsAIAssistant'
+import { WebAnalyticsAIAssistant } from './WebAnalyticsAIAssistant'
+import { shouldHideAssistant } from './shouldHideAssistant'
 import { isValidElement } from 'react'
 import {
   BookOpen,
@@ -86,8 +87,8 @@ vi.mock('@tanstack/react-router', async () => {
 
 // Falls through to the REAL hook when no fixture is installed, so the
 // no-provider case exercises the actual guard rather than a stubbed throw.
-vi.mock('./context', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./context')>()
+vi.mock('./useWebAnalytics', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./useWebAnalytics')>()
   return {
     ...actual,
     useWebAnalytics: () => contextRef.current ?? actual.useWebAnalytics()

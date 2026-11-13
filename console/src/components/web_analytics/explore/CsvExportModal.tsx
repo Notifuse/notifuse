@@ -3,7 +3,7 @@ import { Alert, App, Button, Descriptions, Modal } from 'antd'
 import { DownloadOutlined } from '@ant-design/icons'
 import { Plural, useLingui } from '@lingui/react/macro'
 import dayjs from '../../../lib/dayjs'
-import { useWebAnalytics } from '../context'
+import { useWebAnalytics } from '../useWebAnalytics'
 import { getDimensionLabel } from '../lib/dimensions'
 import {
   buildCsv,

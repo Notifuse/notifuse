@@ -456,10 +456,8 @@ export function PostsTable({
   const shown = int(posts.length)
   const footer =
     total !== undefined && posts.length > 0 ? (
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-ink-3">
-          {plural(total, { one: `${shown} of # post`, other: `${shown} of # posts` })}
-        </span>
+      <>
+        <span>{plural(total, { one: `${shown} of # post`, other: `${shown} of # posts` })}</span>
         {postsQuery.hasNextPage ? (
           <Button
             size="small"
@@ -469,7 +467,7 @@ export function PostsTable({
             {t`Load more`}
           </Button>
         ) : null}
-      </div>
+      </>
     ) : undefined
 
   return (

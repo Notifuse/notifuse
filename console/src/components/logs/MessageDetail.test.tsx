@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -22,7 +23,30 @@ vi.mock('../../services/api/client', () => ({
   api: { get: vi.fn(), post: vi.fn() }
 }))
 vi.mock('@tanstack/react-router', () => ({
-  useNavigate: () => state.navigate
+  useNavigate: () => state.navigate,
+  // The href the router would build: the params filled into the path, then the search.
+  Link: ({
+    children,
+    to,
+    params,
+    search
+  }: {
+    children: ReactNode
+    to: string
+    params?: Record<string, string>
+    search?: Record<string, string>
+  }) => (
+    <a
+      href={
+        Object.entries(params ?? {}).reduce(
+          (path, [key, value]) => path.replace(`$${key}`, value),
+          to
+        ) + (search ? `?${new URLSearchParams(search).toString()}` : '')
+      }
+    >
+      {children}
+    </a>
+  )
 }))
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
@@ -251,6 +275,24 @@ describe('MessageDetail', () => {
     expect(screen.getByText('server error')).toBeInTheDocument()
   })
 
+  it('says in the console language that the server returned no template', async () => {
+    state.getTemplate.mockResolvedValue({})
+    i18n.load('fr', { 'The server returned no template': "Le serveur n'a renvoyé aucun modèle" })
+    i18n.activate('fr')
+    try {
+      renderDetail()
+      await screen.findByText('To ann@example.com')
+      await userEvent.click(screen.getByRole('tab', { name: 'Sent content' }))
+      expect(
+        await screen.findByText("Le serveur n'a renvoyé aucun modèle", undefined, {
+          timeout: 4000
+        })
+      ).toBeInTheDocument()
+    } finally {
+      i18n.activate('en')
+    }
+  })
+
   it('takes the sender of the provider the message went through', async () => {
     // A newsletter goes through the marketing provider, whatever is known of its template.
     state.permissions = { ...allRead, templates: { read: false, write: false } }
@@ -417,14 +459,39 @@ describe('MessageDetail', () => {
     })
     const { unmount } = renderDetail()
     await screen.findByText('Sent by the automation Onboarding')
-    await userEvent.click(screen.getByRole('link', { name: 'Onboarding' }))
-    expect(state.navigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: '/console/workspace/$workspaceId/automations',
-        search: { automation: 'a1' }
-      })
+    expect(screen.getByRole('link', { name: 'Onboarding' })).toHaveAttribute(
+      'href',
+      '/console/workspace/ws1/automations?automation=a1'
     )
     unmount()
+
+    state.listMessages.mockResolvedValue({
+      messages: [message({ broadcast_id: 'b1' })],
+      has_more: false
+    })
+    const newsletter = renderDetail()
+    await screen.findByText('Sent by the newsletter November newsletter')
+    expect(screen.getByRole('link', { name: 'November newsletter' })).toHaveAttribute(
+      'href',
+      '/console/workspace/ws1/broadcasts?broadcast=b1'
+    )
+    newsletter.unmount()
+
+    state.listMessages.mockResolvedValue({
+      messages: [message({ transactional_notification_id: 'password_reset' })],
+      has_more: false
+    })
+    const notification = renderDetail()
+    expect(await screen.findByRole('link', { name: 'password_reset' })).toHaveAttribute(
+      'href',
+      '/console/workspace/ws1/transactional-notifications?notification=password_reset'
+    )
+    notification.unmount()
+
+    state.listMessages.mockResolvedValue({
+      messages: [message({ automation_id: 'a1' })],
+      has_more: false
+    })
     state.permissions = { ...allRead, automations: { read: false, write: false } }
     renderDetail()
     await screen.findByText('Sent by the automation Onboarding')
