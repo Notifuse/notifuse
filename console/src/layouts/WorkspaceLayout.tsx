@@ -2,17 +2,15 @@ import { useEffect, useState } from 'react'
 import { message, type MenuProps } from 'antd'
 import { Outlet, useMatches, useNavigate, useParams } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import type { UserPermissions } from '../services/api/types'
 import { ContactsCsvUploadProvider } from '../components/contacts/ContactsCsvUploadProvider'
 import { FileManagerProvider } from '../components/file_manager/context'
 import type { FileManagerSettings } from '../components/file_manager/interfaces'
 import { workspaceService } from '../services/api/workspace'
-import { createEmptyPermissions, createFullPermissions } from '../services/api/permissions'
 import { isRootUser } from '../services/api/auth'
 import { withBannerOffset } from '../components/license/bannerOffset'
 import { AppSidebar } from './app-shell/AppSidebar'
-import type { AccountRole } from './app-shell/AccountMenu'
 import {
   activeGroup as groupOf,
   buildMenuItems,
@@ -29,9 +27,13 @@ export function WorkspaceLayout() {
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { signout, workspaces, user, refreshWorkspaces } = useAuth()
   const navigate = useNavigate()
-  const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null)
-  const [role, setRole] = useState<AccountRole | undefined>()
-  const [loadingPermissions, setLoadingPermissions] = useState(true)
+  // Keyed by the workspace: the layout stays mounted on a switch, and shows no entry until the new
+  // workspace's permissions arrive.
+  const {
+    permissions: userPermissions,
+    role,
+    loading: loadingPermissions
+  } = useWorkspacePermissions(workspaceId)
 
   const matches = useMatches()
   const currentPath = matches[matches.length - 1]?.pathname || ''
@@ -63,49 +65,6 @@ export function WorkspaceLayout() {
     if (menuCollapsed) return
     setOpenKeys(activeGroup ? [activeGroup] : [])
   }, [activeGroup, menuCollapsed])
-
-  // Fetch user permissions for the current workspace
-  useEffect(() => {
-    const fetchUserPermissions = async () => {
-      if (!user || !workspaceId) {
-        setLoadingPermissions(false)
-        return
-      }
-
-      // If user is root, they have full permissions
-      if (isRootUser(user.email)) {
-        setUserPermissions(createFullPermissions())
-        setRole('root')
-        setLoadingPermissions(false)
-        return
-      }
-
-      try {
-        const response = await workspaceService.getMembers(workspaceId)
-        const currentUserMember = response.members.find((member) => member.user_id === user.id)
-
-        if (currentUserMember) {
-          // The stored map may be partial or null; a resource it does not mention is denied,
-          // which is what the empty base spells out.
-          setUserPermissions({ ...createEmptyPermissions(), ...currentUserMember.permissions })
-          setRole(currentUserMember.role === 'owner' ? 'owner' : 'member')
-        } else {
-          // User is not a member of this workspace, set empty permissions
-          setUserPermissions(createEmptyPermissions())
-          setRole(undefined)
-        }
-      } catch (error) {
-        console.error('Failed to fetch user permissions', error)
-        // On error, assume no permissions
-        setUserPermissions(createEmptyPermissions())
-        setRole(undefined)
-      } finally {
-        setLoadingPermissions(false)
-      }
-    }
-
-    fetchUserPermissions()
-  }, [workspaceId, user])
 
   const auditAccess = useAuditLogAccess(workspaceId)
 
