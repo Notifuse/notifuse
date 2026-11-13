@@ -23,7 +23,7 @@ const ONE_HOUR = 60 * 60_000
 const CAMPAIGNS_PAGE = 100
 
 /** The rate of a numerator over a denominator, or null when the denominator is 0. */
-export const rate = (numerator: number, denominator: number) => (denominator > 0 ? numerator / denominator : null)
+const rate = (numerator: number, denominator: number) => (denominator > 0 ? numerator / denominator : null)
 
 /** Every broadcast started since `startedAfter` (L6), 100 at a time. */
 async function listStartedSince(workspaceId: string, startedAfter: string): Promise<Broadcast[]> {

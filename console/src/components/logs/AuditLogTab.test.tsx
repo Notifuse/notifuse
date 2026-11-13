@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -26,7 +27,26 @@ vi.mock('../../services/api/client', () => ({
 }))
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => state.navigate,
-  useSearch: () => state.search
+  useSearch: () => state.search,
+  // The href the router would build: the params filled into the path.
+  Link: ({
+    children,
+    to,
+    params
+  }: {
+    children: ReactNode
+    to: string
+    params?: Record<string, string>
+  }) => (
+    <a
+      href={Object.entries(params ?? {}).reduce(
+        (path, [key, value]) => path.replace(`$${key}`, value),
+        to
+      )}
+    >
+      {children}
+    </a>
+  )
 }))
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
@@ -328,6 +348,30 @@ describe('AuditLogTab', () => {
   })
 
   it.each([
+    ['minutes later', { tab: 'audit' } as LogsSearch, 3 * 60_000],
+    ['in the same minute', { tab: 'audit' } as LogsSearch, 20_000],
+    ['over all time', { tab: 'audit', period: 'all' } as LogsSearch, 3 * 60_000],
+    [
+      'over a custom range',
+      { tab: 'audit', period: 'custom', from: '2026-11-01', to: '2026-11-05' } as LogsSearch,
+      3 * 60_000
+    ]
+  ])('asks once on Refresh %s', async (_, search, later) => {
+    // A minute start, so that a short wait stays in the same minute.
+    const start = Math.floor(Date.now() / 60_000) * 60_000 + 1_000
+    const spy = vi.spyOn(Date, 'now').mockReturnValue(start)
+    renderTab(search)
+    await waitFor(() => expect(rows()).toHaveLength(1))
+    const calls = state.list.mock.calls.length
+
+    spy.mockReturnValue(start + later)
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    await waitFor(() => expect(state.list.mock.calls.length).toBe(calls + 1))
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(state.list.mock.calls.length).toBe(calls + 1)
+  })
+
+  it.each([
     ['CSV', 'csv'],
     ['NDJSON', 'ndjson']
   ])('exports as %s with the filters of the link', async (label, format) => {
@@ -382,11 +426,10 @@ describe('AuditLogTab', () => {
 
   it('links the owner to the retention setting', async () => {
     renderTab()
-    fireEvent.click(await screen.findByText('Change in Settings'))
-    expect(state.navigate).toHaveBeenCalledWith({
-      to: '/console/workspace/$workspaceId/settings/$section',
-      params: { workspaceId: 'ws1', section: 'audit-logs' }
-    })
+    expect(await screen.findByRole('link', { name: 'Change in Settings' })).toHaveAttribute(
+      'href',
+      '/console/workspace/ws1/settings/audit-logs'
+    )
   })
 
   it('does not offer the setting to a member', async () => {

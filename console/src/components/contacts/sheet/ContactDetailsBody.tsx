@@ -20,8 +20,7 @@ import { ContactListsCard, ContactSegmentsCard } from './ContactListsCard'
 import { ContactMessagesTab } from './ContactMessagesTab'
 import { ContactProfileFields } from './ContactProfileFields'
 import { useContactMessageStats, useContactVisits } from './useContactSheetQueries'
-
-export const contactKey = (workspaceId: string, email: string) => ['contact', workspaceId, email] as const
+import { contactKey } from './contactKey'
 
 type FieldValues = Record<string, string | number | object | null>
 

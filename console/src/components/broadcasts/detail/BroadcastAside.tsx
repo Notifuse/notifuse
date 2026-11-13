@@ -9,8 +9,8 @@ import type { Workspace } from '../../../services/api/types'
 import TemplatePreviewDrawer from '../../templates/TemplatePreviewDrawer'
 import { workspaceTimezone } from '../access'
 import { useBroadcastDates } from '../useBroadcastDates'
-import { asTemplate } from './AbTestPanel'
-import { resolveSenderOf, useSenderText } from './VariationSender'
+import { asTemplate } from './asTemplate'
+import { resolveSenderOf, useSenderText } from './senderText'
 import { TemplatePreviewFrame } from './TemplatePreviewFrame'
 
 export interface BroadcastAsideProps {
@@ -45,13 +45,6 @@ export function BroadcastAside({
       <HistoryBlock broadcast={broadcast} timezone={workspaceTimezone(workspace)} />
     </div>
   )
-}
-
-/** The variant whose template the detail previews: the winner once there is one, else the first. */
-export function previewVariationOf(broadcast: Broadcast, winningTemplate?: string): BroadcastVariation | undefined {
-  const variations = broadcast.test_settings?.variations ?? []
-  const winner = winningTemplate || broadcast.winning_template
-  return variations.find((v) => winner && v.template_id === winner) ?? variations[0]
 }
 
 function PreviewBlock({

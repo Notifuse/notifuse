@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button, InputNumber, Popover, Tag } from 'antd'
 import { Trans, useLingui } from '@lingui/react/macro'
-import { useWebAnalytics } from '../context'
+import { useWebAnalytics } from '../useWebAnalytics'
 
 /**
  * Session floor for the report.

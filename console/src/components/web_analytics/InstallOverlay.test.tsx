@@ -30,7 +30,7 @@ const { installState, webAnalyticsContext } = vi.hoisted(() => ({
 
 const checkTrafficCalls: Array<boolean | undefined> = []
 
-vi.mock('./context', () => ({
+vi.mock('./useWebAnalytics', () => ({
   useWebAnalytics: () => webAnalyticsContext
 }))
 

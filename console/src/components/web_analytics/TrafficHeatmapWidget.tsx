@@ -3,7 +3,7 @@ import ReactECharts from 'echarts-for-react'
 import { Empty, Spin } from 'antd'
 import { i18n } from '@lingui/core'
 import { useLingui } from '@lingui/react/macro'
-import { useWebAnalytics } from './context'
+import { useWebAnalytics } from './useWebAnalytics'
 import { WidgetTabs } from './WidgetTabs'
 import { hourLabels, weekdayLabel } from './lib/dictionaries'
 import { formatValue, toNumber } from './lib/format'
@@ -20,8 +20,6 @@ export interface HeatmapTab {
   measure: string
   format: 'number' | 'duration'
 }
-
-
 
 interface TrafficHeatmapWidgetProps {
   title: string
@@ -115,12 +113,13 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
   // Built here rather than at module scope: the labels follow the console's
   // locale, which is not known when the module is first evaluated. Memoized on
   // the locale so the option below keeps its own memo.
+  const locale = i18n.locale
   const dayLabels = useMemo(
-    () => [1, 2, 3, 4, 5, 6, 7].map((day) => weekdayLabel(day, i18n.locale, 'short') ?? String(day)),
-    [i18n.locale]
+    () => [1, 2, 3, 4, 5, 6, 7].map((day) => weekdayLabel(day, locale, 'short') ?? String(day)),
+    [locale]
   )
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- hourLabels reads i18n.locale itself
-  const hours = useMemo(() => hourLabels(), [i18n.locale])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- hourLabels reads the locale itself; memoized on it
+  const hours = useMemo(() => hourLabels(), [locale])
 
   const option = useMemo(() => {
     // A duration is judged against the TimeScore reference rather than against

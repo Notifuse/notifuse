@@ -17,7 +17,7 @@ import {
 } from 'antd'
 import { DeleteOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
-import { useTrackingConsentOptions } from './TrackingConsent'
+import { useTrackingConsentOptions } from './trackingConsentOptions'
 import type { InputProps } from 'antd/es/input'
 import type { TextAreaProps } from 'antd/es/input/TextArea'
 import type { SelectProps, DefaultOptionType } from 'antd/es/select'

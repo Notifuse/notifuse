@@ -44,7 +44,13 @@ import {
   type MessageColumns
 } from './messageColumns'
 import { ERASED_EMAIL, countsDeliveries, messageOrigin, rowIsSmtp } from './messageProvider'
-import { canCountMessages, defaultMessagesPeriod, periodBounds } from './period'
+import {
+  COUNT_MAX_PERIOD,
+  canCountMessages,
+  defaultMessagesPeriod,
+  periodBounds,
+  type CountedPeriod
+} from './period'
 import { useLogsUrl } from './useLogsUrl'
 
 const PAGE_SIZE = 50
@@ -115,6 +121,14 @@ export interface MessagesTabProps {
 /** Logs → Messages: every message the workspace sent, with counts by status. */
 export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
   const { t, i18n } = useLingui()
+  // The longest period counted without an indexed filter, as the counters' tooltip names it.
+  const countedDurations: Record<CountedPeriod, string> = {
+    '1h': t`1 hour`,
+    '24h': t`24 hours`,
+    '7d': t`7 days`,
+    '30d': t`30 days`
+  }
+  const countMax = countedDurations[COUNT_MAX_PERIOD]
   const { int } = useNumberFormat()
   const relative = useRelativeDate()
   const queryClient = useQueryClient()
@@ -577,7 +591,7 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
         ) : (
           <Tooltip
             key={item.count}
-            title={t`Counts cover 7 days at most. To count further, filter by an email, a message ID, a newsletter, an automation, a notification or a template`}
+            title={t`Counts cover ${countMax} at most. To count further, filter by an email, a message ID, a newsletter, an automation, a notification or a template`}
           >
             {button}
           </Tooltip>

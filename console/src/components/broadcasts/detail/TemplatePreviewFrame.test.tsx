@@ -7,6 +7,9 @@ import { compileTemplatePreview, TemplatePreviewError } from '../../templates/co
 import type { Template } from '../../../services/api/template'
 import type { Workspace } from '../../../services/api/types'
 
+// The API client imports the router, and the router every page: loading the real module inside the
+// factory below would reach this component's hook through the composer before the mock is in place.
+vi.mock('../../../router', () => ({ router: { navigate: vi.fn() } }))
 vi.mock('../../templates/compileTemplatePreview', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../templates/compileTemplatePreview')>()),
   compileTemplatePreview: vi.fn()

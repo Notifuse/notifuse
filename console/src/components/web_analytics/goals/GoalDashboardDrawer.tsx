@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Alert, Drawer, Tag } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { useWebAnalytics } from '../context'
+import { useWebAnalytics } from '../useWebAnalytics'
 import { ColumnConfig, DimensionTabConfig, DimensionTableWidget } from '../DimensionTableWidget'
 import { MetricChart, useAnnotations } from '../MetricChart'
 import { MetricSummary } from '../MetricSummary'

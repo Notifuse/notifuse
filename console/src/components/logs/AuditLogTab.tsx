@@ -19,7 +19,7 @@ import type { ColumnsType } from 'antd/es/table'
 import type { Dayjs } from 'dayjs'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
-import { useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { ChevronDown, ChevronRight, Download, RefreshCw } from 'lucide-react'
 import dayjs from '../../lib/dayjs'
 import { downloadBlob } from '../../lib/download'
@@ -72,7 +72,6 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
   const { t, i18n } = useLingui()
   const { message } = App.useApp()
   const { int } = useNumberFormat()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user, workspaces } = useAuth()
   const outcomeLabel = useOutcomeLabel()
@@ -131,9 +130,16 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
   const me = members.find((member) => member.user_id === user?.id)
   const isOwner = me?.role === 'owner'
 
+  // Refresh moves the clock. When the window moves with it (a rolling period, minutes later), the
+  // new key fetches on its own; resetting too would refetch the old key still on screen. When it
+  // stays (all time, a custom range, the same minute), the key is the same and is reset.
   const refresh = () => {
-    setClock({ key: filtersKey, now: Date.now() })
-    void queryClient.resetQueries({ queryKey: ['audit-logs'] })
+    const next = Date.now()
+    const sameWindow =
+      JSON.stringify(auditListParams(search, { scope, workspaceId, now: next })) ===
+      JSON.stringify(params)
+    setClock({ key: filtersKey, now: next })
+    if (sameWindow) void queryClient.resetQueries({ queryKey: ['audit-logs'] })
   }
 
   const exportAs = async (format: AuditExportFormat) => {
@@ -683,18 +689,12 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
             {isOwner ? (
               <>
                 {' · '}
-                <a
-                  onClick={(event) => {
-                    event.preventDefault()
-                    void navigate({
-                      to: '/console/workspace/$workspaceId/settings/$section',
-                      params: { workspaceId, section: 'audit-logs' }
-                    })
-                  }}
-                  href="#"
+                <Link
+                  to="/console/workspace/$workspaceId/settings/$section"
+                  params={{ workspaceId, section: 'audit-logs' }}
                 >
                   {t`Change in Settings`}
-                </a>
+                </Link>
               </>
             ) : null}
           </span>

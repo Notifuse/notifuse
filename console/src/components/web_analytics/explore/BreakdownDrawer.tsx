@@ -2,48 +2,15 @@ import { Divider, Drawer, Space, Table, Tag } from 'antd'
 import { useQueries } from '@tanstack/react-query'
 import { i18n } from '@lingui/core'
 import { useLingui } from '@lingui/react/macro'
-import { useWebAnalytics } from '../context'
+import { useWebAnalytics } from '../useWebAnalytics'
 import { formatDimensionValue, getDimensionLabel } from '../lib/dimensions'
 import { ExploreRow } from '../lib/exploreRows'
 import { formatDuration, formatNumber, formatPercent, toNumber } from '../lib/format'
 import { getHeatMapStyle } from '../lib/heatmap'
-import { buildWebQuery, webAnalyticsClient } from '../lib/query'
-import {
-  ResolvedRange,
-  SESSION_METRIC_KEYS,
-  TIMESCORE_REFERENCE_SECONDS,
-  WebDimensionFilter,
-  WebMetricFilter
-} from '../lib/types'
-import type { AnalyticsQuery, AnalyticsResponse } from '../../../services/api/analytics'
-
-export interface BreakdownQueryParams {
-  dimension: string
-  filters: WebDimensionFilter[]
-  metricFilters: WebMetricFilter[]
-  minSessions: number
-  range: ResolvedRange
-  timezone: string
-}
-
-/**
- * One breakdown column's query. Shared with the hover prefetch on the table so
- * both produce the same cache key and the drawer opens on warm data.
- */
-export function buildBreakdownQuery(params: BreakdownQueryParams): AnalyticsQuery {
-  return buildWebQuery({
-    schema: 'web_sessions',
-    measures: SESSION_METRIC_KEYS,
-    dimensions: [params.dimension],
-    range: params.range,
-    filters: params.filters,
-    metricFilters: params.metricFilters,
-    minSessions: params.minSessions,
-    order: { sessions: 'desc' },
-    limit: 100,
-    timezone: params.timezone
-  })
-}
+import { webAnalyticsClient } from '../lib/query'
+import { TIMESCORE_REFERENCE_SECONDS, WebDimensionFilter } from '../lib/types'
+import type { AnalyticsResponse } from '../../../services/api/analytics'
+import { buildBreakdownQuery } from './breakdownQuery'
 
 interface BreakdownDrawerProps {
   open: boolean

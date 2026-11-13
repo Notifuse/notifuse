@@ -3,7 +3,7 @@ import { Alert, Button } from 'antd'
 import { Link } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import dayjs from '../../lib/dayjs'
-import { useWebAnalytics } from './context'
+import { useWebAnalytics } from './useWebAnalytics'
 import { buildWebQuery, useWebQuery } from './lib/query'
 import { ResolvedRange } from './lib/types'
 

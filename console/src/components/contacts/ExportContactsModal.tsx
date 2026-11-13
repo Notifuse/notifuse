@@ -6,7 +6,7 @@ import { ContactsSearch } from '../../router'
 import { Workspace, List, Segment } from '../../services/api/types'
 import { contactsApi, Contact, ListContactsRequest } from '../../services/api/contacts'
 import { getCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
-import { useTrackingConsentOptions } from './TrackingConsent'
+import { useTrackingConsentOptions } from './trackingConsentOptions'
 import { useNumberFormat } from '../layout'
 
 interface ExportContactsModalProps {

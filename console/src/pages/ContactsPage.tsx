@@ -10,14 +10,14 @@ import { contactListApi } from '../services/api/contact_list'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import { CountTabs, Panel, RailLayout, TableToolbar, useNumberFormat } from '../components/layout'
 import { ContactsRail } from '../components/contacts/ContactsRail'
+import { ContactsTable, CONTACT_COLUMNS_STORAGE_KEY } from '../components/contacts/ContactsTable'
 import {
-  ContactsTable,
-  CONTACT_COLUMNS_STORAGE_KEY,
   DEFAULT_VISIBLE_COLUMNS,
   useSelectableColumns
-} from '../components/contacts/ContactsTable'
+} from '../components/contacts/contactColumns'
 import { ContactsViewHeader } from '../components/contacts/ContactsViewHeader'
-import { ContactsFilters, useContactFilterFields } from '../components/contacts/ContactsFilters'
+import { ContactsFilters } from '../components/contacts/ContactsFilters'
+import { useContactFilterFields } from '../components/contacts/contactFilterFields'
 import { ContactColumnsSelector } from '../components/contacts/ContactColumnsSelector'
 import { ContactDetailsDrawer } from '../components/contacts/ContactDetailsDrawer'
 import { ContactUpsertDrawer } from '../components/contacts/ContactUpsertDrawer'
@@ -43,13 +43,13 @@ import {
   type ContactsView
 } from '../components/contacts/contactsView'
 import { exactViewTotal } from '../components/contacts/contactNavigation'
+import { ListHeader } from '../components/lists/ListHeader'
 import {
-  ListHeader,
   LIST_STATUSES,
   LIST_STAT_KEYS,
   useListStats,
   type ListStatus
-} from '../components/lists/ListHeader'
+} from '../components/lists/listStats'
 import { CreateListDrawer } from '../components/lists/ListDrawer'
 import { DrawerSegment } from '../components/segment/button_upsert'
 import { useBulkContactAction, SkippedAction, type BulkActionResult } from '../hooks/useBulkContactAction'

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button, Card, Tag } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { useWebAnalytics } from '../context'
+import { useWebAnalytics } from '../useWebAnalytics'
 import { BreakdownModal } from './BreakdownModal'
 import { getDimensionLabel } from '../lib/dimensions'
 import { WebDimensionFilter } from '../lib/types'

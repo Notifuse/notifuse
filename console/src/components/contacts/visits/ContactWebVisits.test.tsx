@@ -42,7 +42,8 @@ vi.mock('../../../services/api/web_analytics', () => ({
 }))
 
 import { webAnalyticsService } from '../../../services/api/web_analytics'
-import { ContactWebVisits, webAnalyticsContactSearch } from './ContactWebVisits'
+import { ContactWebVisits } from './ContactWebVisits'
+import { webAnalyticsContactSearch } from './webAnalyticsContactSearch'
 
 const workspace = { id: 'ws', settings: { timezone: 'UTC' } } as unknown as Workspace
 

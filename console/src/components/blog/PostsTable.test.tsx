@@ -167,6 +167,11 @@ describe('PostsTable', () => {
     renderTable()
     await screen.findByText('Post 1')
     expect(screen.getByText('50 of 60 posts')).toBeInTheDocument()
+    // The count and Load more are the footer's own items, which it spreads across the panel.
+    const footer = document.querySelector('[data-panel-footer]') as HTMLElement
+    expect(screen.getByText('50 of 60 posts').parentElement).toBe(footer)
+    expect(screen.getByRole('button', { name: 'Load more' }).parentElement).toBe(footer)
+    expect(screen.getByText('50 of 60 posts')).not.toHaveClass('text-sm')
 
     fireEvent.click(screen.getByRole('button', { name: 'Load more' }))
     expect(await screen.findByText('Post 60')).toBeInTheDocument()

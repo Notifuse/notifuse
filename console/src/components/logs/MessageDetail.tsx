@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Alert, Button, Empty, Result, Segmented, Skeleton, Tooltip } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import {
   Ban,
   CircleCheck,
@@ -155,7 +155,7 @@ function LoadedMessage({
         id: message.template_id,
         version: message.template_version
       })
-      if (!response.template) throw new Error('Failed to load template')
+      if (!response.template) throw new Error(t`The server returned no template`)
       return response.template
     },
     enabled: canReadTemplates,
@@ -547,7 +547,6 @@ function MessageFields({
   names
 }: MessageFieldsProps) {
   const { t } = useLingui()
-  const navigate = useNavigate()
   const options = message.channel_options
 
   const sender = senderOf(workspace, message, template, email)
@@ -595,14 +594,15 @@ function MessageFields({
       <SourceLink
         label={names.broadcast(id) ?? id}
         enabled={Boolean(permissions?.broadcasts?.read)}
-        onOpen={() =>
-          void navigate({
-            to: '/console/workspace/$workspaceId/broadcasts',
-            params: { workspaceId },
-            search: { broadcast: id }
-          })
-        }
-      />
+      >
+        <Link
+          to="/console/workspace/$workspaceId/broadcasts"
+          params={{ workspaceId }}
+          search={{ broadcast: id }}
+        >
+          {names.broadcast(id) ?? id}
+        </Link>
+      </SourceLink>
     )
   } else if (origin === 'automation' && message.automation_id) {
     const id = message.automation_id
@@ -610,29 +610,28 @@ function MessageFields({
       <SourceLink
         label={names.automation(id) ?? id}
         enabled={Boolean(permissions?.automations?.read)}
-        onOpen={() =>
-          void navigate({
-            to: '/console/workspace/$workspaceId/automations',
-            params: { workspaceId },
-            search: { automation: id }
-          })
-        }
-      />
+      >
+        <Link
+          to="/console/workspace/$workspaceId/automations"
+          params={{ workspaceId }}
+          search={{ automation: id }}
+        >
+          {names.automation(id) ?? id}
+        </Link>
+      </SourceLink>
     )
   } else if (origin === 'transactional' && message.transactional_notification_id) {
     const id = message.transactional_notification_id
     sentBy = (
-      <SourceLink
-        label={id}
-        enabled={Boolean(permissions?.transactional?.read)}
-        onOpen={() =>
-          void navigate({
-            to: '/console/workspace/$workspaceId/transactional-notifications',
-            params: { workspaceId },
-            search: { notification: id }
-          })
-        }
-      />
+      <SourceLink label={id} enabled={Boolean(permissions?.transactional?.read)}>
+        <Link
+          to="/console/workspace/$workspaceId/transactional-notifications"
+          params={{ workspaceId }}
+          search={{ notification: id }}
+        >
+          {id}
+        </Link>
+      </SourceLink>
     )
   }
 
@@ -689,27 +688,17 @@ function MessageFields({
   )
 }
 
+/** What sent the message: its link with the right to read it, else its name as text. */
 function SourceLink({
   label,
   enabled,
-  onOpen
+  children
 }: {
   label: string
   enabled: boolean
-  onOpen: () => void
+  children: ReactNode
 }) {
-  if (!enabled) return <span>{label}</span>
-  return (
-    <a
-      href="#"
-      onClick={(event) => {
-        event.preventDefault()
-        onOpen()
-      }}
-    >
-      {label}
-    </a>
-  )
+  return enabled ? children : <span>{label}</span>
 }
 
 interface SentContentProps {

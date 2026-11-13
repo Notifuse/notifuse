@@ -8,7 +8,7 @@ import {
   resolveTrackingEndpoint
 } from '../../services/api/web_analytics'
 import { CodeSnippet } from '../common/CodeSnippet'
-import { useWebAnalytics } from './context'
+import { useWebAnalytics } from './useWebAnalytics'
 import { InstallState, useInstallStatus } from './lib/installStatus'
 
 /**

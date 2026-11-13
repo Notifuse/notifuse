@@ -5,7 +5,7 @@ import { WebMetricFilter } from './lib/types'
 
 const context: { metricFilters: WebMetricFilter[] } = { metricFilters: [] }
 
-vi.mock('./context', () => ({
+vi.mock('./useWebAnalytics', () => ({
   useWebAnalytics: () => ({
     filters: [],
     setFilters: vi.fn(),

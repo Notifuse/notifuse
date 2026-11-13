@@ -18,9 +18,7 @@ import { workspaceTimezone } from '../access'
 import { useBroadcastDates } from '../useBroadcastDates'
 import { VARIANT_LETTERS } from '../compose/composeValues'
 import { VariationSender } from './VariationSender'
-
-/** The template a broadcast joins to a variant, as the template screens type it. */
-export const asTemplate = (variation: BroadcastVariation) => variation.template as unknown as Template | undefined
+import { asTemplate } from './asTemplate'
 
 export interface AbTestPanelProps {
   workspace: Workspace

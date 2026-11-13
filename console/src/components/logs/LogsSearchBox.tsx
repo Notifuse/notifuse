@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Input, Select, Space, Tooltip } from 'antd'
+import { forwardRef, useId, useState } from 'react'
+import { Input, Select, Space, Tooltip, type InputProps, type InputRef } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { isFullEmail } from '../../lib/email'
 import { useDebouncedUrlValue } from '../../lib/useDebouncedUrlValue'
@@ -89,6 +89,7 @@ export function LogsSearchBox<K extends string>({
     if (text.trim()) writeFor(key, text.trim())
   }
 
+  const hintId = useId()
   const incomplete =
     chosen === emailKey && text.trim() !== '' && !isFullEmail(text.trim().toLowerCase())
 
@@ -104,7 +105,8 @@ export function LogsSearchBox<K extends string>({
           style={{ width: 130 }}
         />
         <Tooltip title={t`Exact match`}>
-          <Input
+          <DescribedInput
+            hintId={incomplete ? hintId : undefined}
             allowClear
             aria-label={ariaLabel}
             placeholder={placeholder}
@@ -117,8 +119,22 @@ export function LogsSearchBox<K extends string>({
         </Tooltip>
       </Space.Compact>
       {incomplete ? (
-        <span className="text-xs text-ink-3">{t`Enter a full email address`}</span>
+        <span id={hintId} className="text-xs text-ink-3">
+          {t`Enter a full email address`}
+        </span>
       ) : null}
     </div>
   )
 }
+
+/**
+ * The search input, described by its tooltip and by the hint below it. The tooltip clones its child
+ * with its own aria-describedby (its id while open), which would replace the hint's: both are joined
+ * here, and every other prop and the ref pass through.
+ */
+const DescribedInput = forwardRef<InputRef, InputProps & { hintId?: string }>(
+  function DescribedInput({ hintId, 'aria-describedby': tooltipId, ...props }, ref) {
+    const describedBy = [tooltipId, hintId].filter(Boolean).join(' ')
+    return <Input ref={ref} {...props} aria-describedby={describedBy || undefined} />
+  }
+)

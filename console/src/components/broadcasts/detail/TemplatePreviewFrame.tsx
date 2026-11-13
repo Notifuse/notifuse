@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Spin } from 'antd'
-import { useQuery } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
 import type { Template } from '../../../services/api/template'
 import type { Workspace } from '../../../services/api/types'
-import { compileTemplatePreview, TemplatePreviewError } from '../../templates/compileTemplatePreview'
+import { TemplatePreviewError } from '../../templates/compileTemplatePreview'
+import { useTemplatePreview } from './useTemplatePreview'
 
 /** Emails are designed 600px wide; the frame renders them at that width and scales them down. */
 export const EMAIL_WIDTH = 600
@@ -17,17 +17,6 @@ export interface TemplatePreviewFrameProps {
   testData?: Record<string, unknown>
   /** The width the email is rendered at before scaling (600, or a phone's 375). */
   emailWidth?: number
-}
-
-/** The compiled preview of a template; the frame and the composer's rendered subject share it. */
-export function useTemplatePreview(workspace: Workspace, template: Template | undefined, testData?: Record<string, unknown>) {
-  return useQuery({
-    queryKey: ['template-preview', workspace.id, template?.id, template?.version, testData ?? null],
-    queryFn: () => compileTemplatePreview({ workspace, email: template!.email, testData: testData ?? template!.test_data }),
-    enabled: !!template,
-    staleTime: 5 * 60_000,
-    retry: false
-  })
 }
 
 /** A scaled-down, non-interactive render of a template, compiled as it is sent. */

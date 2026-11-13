@@ -25,7 +25,9 @@ vi.mock('../../../services/api/template', () => ({ templatesApi: { get: vi.fn() 
 vi.mock('../../../services/api/list', () => ({ listsApi: { list: vi.fn() } }))
 vi.mock('../../../services/api/segment', () => ({ listSegments: vi.fn() }))
 vi.mock('../detail/TemplatePreviewFrame', () => ({
-  TemplatePreviewFrame: () => <div data-testid="frame" />,
+  TemplatePreviewFrame: () => <div data-testid="frame" />
+}))
+vi.mock('../detail/useTemplatePreview', () => ({
   useTemplatePreview: () => ({ data: undefined })
 }))
 vi.mock('../../templates/TemplateSelectorInput', () => ({ default: () => <div data-testid="template-selector" /> }))

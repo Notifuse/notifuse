@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Panel } from '../../layout'
-import type { DataFeedSettings, GlobalFeedSettings as GlobalFeed, RecipientFeedSettings as RecipientFeed } from '../../../services/api/broadcast'
+import type { DataFeedSettings } from '../../../services/api/broadcast'
 import { GlobalFeedSettings } from '../GlobalFeedSettings'
 import { RecipientFeedSettings } from '../RecipientFeedSettings'
 import type { ComposeValues } from './composeValues'
 import type { ComposeUpdate } from './types'
+import { feedState } from './feedState'
 
 export interface AdvancedRowProps {
   workspaceId: string
@@ -16,16 +17,6 @@ export interface AdvancedRowProps {
   onChange: ComposeUpdate
   /** What the global feed last returned, stored on the broadcast. */
   stored?: DataFeedSettings
-}
-
-/** "Off", or the host of the feed's URL. */
-export function feedState(feed: GlobalFeed | RecipientFeed, off: string): string {
-  if (!feed.enabled) return off
-  try {
-    return new URL(feed.url ?? '').host || feed.url || off
-  } catch {
-    return feed.url || off
-  }
 }
 
 /** The two data feeds, folded until opened. */

@@ -58,13 +58,9 @@ jobs:
       - name: Unit tests
         run: npx vitest run
 
-      # Deliberately not `npm run lint`: that script passes --max-warnings 0, and the
-      # tree carries 5 long-standing warnings (4 react-refresh/only-export-components,
-      # 1 react-hooks/exhaustive-deps), so it has never exited 0 and would red-flag this
-      # workflow on day one. Errors are the gate; warnings still print in the log.
-      # Switch this to `npm run lint` once those five are cleared.
+      # `npm run lint` passes --max-warnings 0: a warning fails the job like an error.
       - name: Lint
-        run: npx eslint .
+        run: npm run lint
 
       # The full production pipeline (tsc -b -> vite build), which is what Dockerfile
       # stage 1 runs. Catches catalog and bundler failures that a type-check alone
