@@ -225,4 +225,31 @@ describe('templates read catalogue', () => {
       ])
     )
   })
+  it('lists templates.usage, which answers under Templates read', () => {
+    const endpoints = PERMISSION_DESCRIPTORS.templates.read.endpoints.map((e) => e.endpoint)
+    expect(endpoints).toContain('/api/templates.usage')
+  })
+})
+
+describe('blog read catalogue', () => {
+  it('lists blogPosts.counts, which answers under Blog read', () => {
+    const endpoints = PERMISSION_DESCRIPTORS.blog.read.endpoints.map((e) => e.endpoint)
+    expect(endpoints).toContain('/api/blogPosts.counts')
+  })
+})
+
+// broadcasts.estimateAudience answers to broadcasts read, plus lists read (and segments read
+// for an audience with segments), checked by the service.
+describe('broadcasts permission descriptor', () => {
+  it('names the audience estimate among the read endpoints', () => {
+    const endpoints = PERMISSION_DESCRIPTORS.broadcasts.read.endpoints.map((e) => e.endpoint)
+    expect(endpoints).toContain('/api/broadcasts.estimateAudience')
+  })
+})
+
+describe('automations catalogue', () => {
+  it('lists the step results under read', () => {
+    const endpoints = PERMISSION_DESCRIPTORS.automations.read?.endpoints.map((e) => e.endpoint) ?? []
+    expect(endpoints).toContain('/api/automations.nodeStats')
+  })
 })

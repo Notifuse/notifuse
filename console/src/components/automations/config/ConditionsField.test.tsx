@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -14,13 +14,14 @@ class ResizeObserverStub {
 }
 vi.stubGlobal('ResizeObserver', ResizeObserverStub)
 
-const context = vi.hoisted(() => ({ canReadTemplates: true }))
+const context = vi.hoisted(() => ({ canReadTemplates: true, readOnly: false }))
 
 vi.mock('../context', () => ({
   useAutomation: () => ({
     lists: [{ id: 'list123', name: 'My List' }],
     workspace: { id: 'ws1' },
-    canReadTemplates: context.canReadTemplates
+    canReadTemplates: context.canReadTemplates,
+    readOnly: context.readOnly
   })
 }))
 
@@ -138,6 +139,19 @@ const confirmRemove = async () => {
 describe('ConditionsField', () => {
   afterEach(() => {
     context.canReadTemplates = true
+    context.readOnly = false
+  })
+
+  it('read-only, shows the conditions and nothing to change', () => {
+    context.readOnly = true
+    renderField(twoLeafTree)
+    expect(screen.getByText('2 conditions')).toBeInTheDocument()
+    expect(screen.queryByText('Edit')).not.toBeInTheDocument()
+    expect(screen.queryByText('Remove')).not.toBeInTheDocument()
+    cleanup()
+    renderField(undefined)
+    expect(screen.getByText('No conditions')).toBeInTheDocument()
+    expect(screen.queryByText('Add entry conditions')).not.toBeInTheDocument()
   })
 
   it('shows the add affordance and no editor when there is nothing configured', () => {

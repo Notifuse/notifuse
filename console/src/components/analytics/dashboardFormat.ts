@@ -1,6 +1,5 @@
 /**
- * Dates of the dashboard cards, with Intl in the console's language: no dayjs locale is loaded in
- * the console, so dayjs would print English month names everywhere.
+ * Dates of the dashboard cards, with Intl in the console's language.
  */
 
 function dayKey(at: Date, timeZone: string): string {

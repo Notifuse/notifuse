@@ -126,4 +126,24 @@ describe('SaveBar', () => {
     expect(await screen.findByText('Ctrl+S')).toBeInTheDocument()
     platform.mockRestore()
   })
+
+  it('takes another label for its save button', () => {
+    renderBar({ saveLabel: 'Save changes' })
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument()
+  })
+
+  it('disables the save, with its reason as tooltip, and leaves the shortcut alone', async () => {
+    const { onSave } = renderBar({ saveDisabled: true, saveDisabledReason: 'Choose a list first' })
+    const button = screen.getByRole('button', { name: 'Save' })
+    expect(button).toBeDisabled()
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true })
+    expect(onSave).not.toHaveBeenCalled()
+    fireEvent.mouseEnter(button.parentElement as HTMLElement)
+    expect(await screen.findByText('Choose a list first')).toBeInTheDocument()
+  })
+
+  it('leaves navigation to the screen when told to', () => {
+    renderBar({ blockNavigation: false })
+    expect(shouldBlock()).toBe(false)
+  })
 })

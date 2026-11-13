@@ -7,7 +7,7 @@ import { BaseNode } from './BaseNode'
 const renderNode = (props: { description?: string }) =>
   render(
     <I18nProvider i18n={i18n}>
-      <BaseNode type="delay" label="Delay" icon={<span />} description={props.description}>
+      <BaseNode type="delay" description={props.description}>
         <div>2 days</div>
       </BaseNode>
     </I18nProvider>

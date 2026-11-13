@@ -39,6 +39,9 @@ export const ContactsCsvUploadProvider: React.FC<ContactsCsvUploadDrawerProvider
       queryClient.invalidateQueries({ queryKey: ['contacts', contextWorkspaceId] })
       queryClient.invalidateQueries({ queryKey: ['lists', contextWorkspaceId] })
       queryClient.invalidateQueries({ queryKey: ['list-stats', contextWorkspaceId] })
+      // An import can subscribe its contacts to lists: the Contacts rail's counts change too.
+      queryClient.invalidateQueries({ queryKey: ['lists-with-counts', contextWorkspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['total-contacts', contextWorkspaceId] })
     }
   }
 

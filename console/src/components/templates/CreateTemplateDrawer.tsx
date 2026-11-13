@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { buildDefaultTestData } from './defaultTestData'
 import { useLingui } from '@lingui/react/macro'
 import {
@@ -12,7 +12,6 @@ import {
   Tabs,
   Row,
   Col,
-  Tag,
   Dropdown,
   Radio,
   MenuProps
@@ -52,6 +51,7 @@ import TemplateTranslationsTab from './TemplateTranslationsTab'
 import type { TranslationEditorState } from './TemplateTranslationsTab'
 import type { EmailTemplate, TemplateTranslation } from '../../services/api/template'
 import { customTextOrUndefined, missingRequiredLink, seedTextVersion } from './textVersionSeed'
+import { TemplateCategoryTag } from './TemplateCategoryTag'
 
 /**
  * Validates liquid template tags in a string to ensure they are properly closed
@@ -120,6 +120,16 @@ interface CreateTemplateDrawerProps {
   forceCategory?: string
   // The member may rename, replace, duplicate and delete saved blocks from the editor's library
   canManageSavedBlocks?: boolean
+  /**
+   * Controlled mode, for a page that opens the drawer itself: no button is rendered, the drawer
+   * opens when this turns true and calls onClose for the page to set it back to false.
+   */
+  open?: boolean
+  /** A new template only: the content of an imported file, put in the editor without saving. */
+  initialTree?: EmailBlock
+  initialTestData?: Record<string, unknown>
+  /** A new template only: its name, from which its ID is derived. */
+  initialName?: string
 }
 
 /**
@@ -172,26 +182,11 @@ const HelpSupportDropdown: React.FC<{ onStartTour: () => void }> = ({ onStartTou
   )
 }
 /**
- * Renders a Tag component with the appropriate color for an email template category
+ * Renders a Tag component with the appropriate color and translated label for an email template
+ * category.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- Utility export co-located with component
-export const renderCategoryTag = (category: string) => {
-  let color = 'default'
-
-  if (['marketing', 'transactional'].includes(category)) {
-    color = 'green'
-  } else if (category === 'welcome') {
-    color = 'blue'
-  } else if (['opt_in', 'unsubscribe', 'bounce', 'blocklist'].includes(category)) {
-    color = 'purple'
-  }
-
-  return (
-    <Tag variant="filled" color={color}>
-      {category.charAt(0).toUpperCase() + category.slice(1).replace('_', '-')}
-    </Tag>
-  )
-}
+export const renderCategoryTag = (category: string) => <TemplateCategoryTag category={category} />
 
 export function CreateTemplateDrawer({
   workspace,
@@ -201,7 +196,11 @@ export function CreateTemplateDrawer({
   buttonContent,
   onClose,
   forceCategory,
-  canManageSavedBlocks = false
+  canManageSavedBlocks = false,
+  open,
+  initialTree,
+  initialTestData,
+  initialName
 }: CreateTemplateDrawerProps) {
   const { t } = useLingui()
   const [isOpen, setIsOpen] = useState(false)
@@ -544,6 +543,16 @@ export function CreateTemplateDrawer({
           }
         }
       }
+    } else {
+      // A new template, possibly from an imported file: nothing is saved before Save.
+      if (initialName) {
+        form.setFieldsValue({ name: initialName, id: templateIdFromName(initialName) })
+      }
+      if (initialTestData) form.setFieldsValue({ test_data: initialTestData })
+      if (initialTree) {
+        setEditorMode('visual')
+        setVisualEditorTree(initialTree)
+      }
     }
     setIsOpen(true)
 
@@ -554,7 +563,7 @@ export function CreateTemplateDrawer({
     }, 100)
   }
 
-  const handleClose = () => {
+  const handleClose = (notify = true) => {
     setIsOpen(false)
     form.resetFields()
     setTab('settings')
@@ -564,10 +573,25 @@ export function CreateTemplateDrawer({
     setEmailText(undefined)
     textSessionRef.current++
     setTextSession(textSessionRef.current)
-    if (onClose) {
+    if (notify && onClose) {
       onClose()
     }
   }
+
+  // Controlled mode: follow the page's open flag. Opening runs what the button runs; a close
+  // the page decides on its own resets the drawer without calling onClose back.
+  const controlled = open !== undefined
+  const showDrawerRef = useRef(showDrawer)
+  showDrawerRef.current = showDrawer
+  const handleCloseRef = useRef(handleClose)
+  handleCloseRef.current = handleClose
+  const isOpenRef = useRef(isOpen)
+  isOpenRef.current = isOpen
+  useEffect(() => {
+    if (!controlled) return
+    if (open && !isOpenRef.current) showDrawerRef.current()
+    if (!open && isOpenRef.current) handleCloseRef.current(false)
+  }, [controlled, open])
 
   const handleImport = (tree: EmailBlock) => {
     dirtyRef.current = true
@@ -680,10 +704,12 @@ export function CreateTemplateDrawer({
 
   return (
     <>
-      <Button type="primary" onClick={showDrawer} {...buttonProps}>
-        {buttonContent ||
-          (template ? t`Edit Template` : fromTemplate ? t`Clone Template` : t`Create Template`)}
-      </Button>
+      {controlled ? null : (
+        <Button type="primary" onClick={showDrawer} {...buttonProps}>
+          {buttonContent ||
+            (template ? t`Edit Template` : fromTemplate ? t`Clone Template` : t`Create Template`)}
+        </Button>
+      )}
       {isOpen && (
         <Drawer
           title={
@@ -700,12 +726,12 @@ export function CreateTemplateDrawer({
           mask={{ closable: false }}
           size={'100%'}
           open={isOpen}
-          onClose={handleClose}
+          onClose={() => handleClose()}
           className="drawer-no-transition drawer-body-no-padding"
           extra={
             <div className="text-right">
               <Space>
-                <Button type="link" loading={loading} onClick={handleClose}>
+                <Button type="link" loading={loading} onClick={() => handleClose()}>
                   {t`Cancel`}
                 </Button>
 
@@ -865,7 +891,7 @@ export function CreateTemplateDrawer({
             initialValues={{
               'email.visual_editor_tree': visualEditorTree,
               category: forceCategory || undefined,
-              test_data: defaultTestData
+              test_data: (!template && !fromTemplate && initialTestData) || defaultTestData
             }}
           >
             <Form.Item name="test_data" hidden>

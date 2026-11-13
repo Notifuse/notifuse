@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useLicense } from '../../hooks/useLicense'
 import { LICENSE_PRICING_URL } from '../../types/license'
 import { LICENSE_BANNER_HEIGHT_VAR } from './bannerOffset'
+import dayjs from '../../lib/dayjs'
 
 const { Text } = Typography
 
@@ -93,7 +94,7 @@ export function LicenseBanner() {
     })
   }
 
-  const expiryLabel = expiresAt ? expiresAt.toLocaleDateString() : ''
+  const expiryLabel = expiresAt ? dayjs(expiresAt).format('ll') : ''
 
   const actions = (
     <Space size="small" wrap style={{ marginTop: '8px' }}>

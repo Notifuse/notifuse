@@ -119,7 +119,7 @@ export function DateRangePicker({ size = 'middle' }: { size?: 'small' | 'middle'
         cancelText={t`Cancel`}
       >
         <DatePicker.RangePicker
-          format="D MMM YYYY"
+          format="ll"
           variant="filled"
           className="w-full"
           value={draft}

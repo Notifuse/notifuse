@@ -11,6 +11,8 @@ interface LayoutOptions {
 
 interface NodeWithType {
   id: string
+  /** ReactFlow's measured size, once rendered: a node grows with its stats footer. */
+  measured?: { width?: number; height?: number }
   data: {
     nodeType: NodeType
     config?: Record<string, unknown>
@@ -25,7 +27,7 @@ const DEFAULT_OPTIONS: Required<LayoutOptions> = {
   startY: 50
 }
 
-// Node height from BaseNode component
+// Node height before ReactFlow has measured it
 const NODE_HEIGHT = 86
 
 /**
@@ -391,12 +393,13 @@ export function layoutNodes<T extends NodeWithType>(
     lineY1: number,
     lineY2: number,
     nodeX: number,
-    nodeY: number
+    nodeY: number,
+    nodeHeight: number = NODE_HEIGHT
   ): boolean => {
     const nodeLeft = nodeX - nodeWidth / 2 - horizontalSpacing / 4
     const nodeRight = nodeX + nodeWidth / 2 + horizontalSpacing / 4
     const nodeTop = nodeY
-    const nodeBottom = nodeY + NODE_HEIGHT
+    const nodeBottom = nodeY + nodeHeight
 
     // Check if line X is within node's horizontal bounds
     if (lineX < nodeLeft || lineX > nodeRight) return false
@@ -441,9 +444,10 @@ export function layoutNodes<T extends NodeWithType>(
           if (!intermediatePos) continue
 
           const levelY = startY + lvl * verticalSpacing
+          const intermediateHeight = nodes.find((n) => n.id === intermediateId)?.measured?.height ?? NODE_HEIGHT
 
           // Check if edge would cross this node
-          if (lineIntersectsNode(edgeX, sourcePos.y, targetPos.y, intermediatePos.x, levelY)) {
+          if (lineIntersectsNode(edgeX, sourcePos.y, targetPos.y, intermediatePos.x, levelY, intermediateHeight)) {
             // Move the intermediate node out of the way
             // Determine direction: move away from edge
             const nodeCenter = intermediatePos.x

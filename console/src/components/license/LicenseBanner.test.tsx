@@ -1,9 +1,20 @@
-import { describe, it, expect, vi } from 'vitest'
+import { afterAll, afterEach, describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { LicenseContext, LicenseContextValue, UNKNOWN_LICENSE } from '../../contexts/licenseState'
 import { LicenseBanner } from './LicenseBanner'
 import { LICENSE_BANNER_HEIGHT_VAR } from './bannerOffset'
 import type { Entitlements } from '../../types/license'
+import { activateDayjsLocale } from '../../i18n/dayjsLocales'
+
+// The dates here are read on the browser's clock. Pinned to UTC so the day the tests expect is the
+// day shown on any runner, including one east of UTC+11 or west of UTC-10. Restored after the
+// file: a worker can go on to run other files.
+const runnerTimeZone = process.env.TZ
+process.env.TZ = 'UTC'
+afterAll(() => {
+  if (runnerTimeZone === undefined) delete process.env.TZ
+  else process.env.TZ = runnerTimeZone
+})
 
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
@@ -31,6 +42,10 @@ const renderBanner = (value: Partial<LicenseContextValue>) =>
       <LicenseBanner />
     </LicenseContext.Provider>
   )
+
+afterEach(() => {
+  activateDayjsLocale('en')
+})
 
 describe('LicenseBanner', () => {
   // The banner has exactly one trigger, and everything else must leave the console alone. An
@@ -69,6 +84,15 @@ describe('LicenseBanner', () => {
     })
 
     expect(screen.getByText(/expired on/i)).toBeInTheDocument()
+  })
+
+  it('writes the expiry date in the console language', () => {
+    activateDayjsLocale('fr')
+    renderBanner({
+      entitlements: entitlements({ state: 'grace', expires_at: '2026-03-01T12:00:00Z' })
+    })
+
+    expect(screen.getByText(/expired on 1 mars 2026 /)).toBeInTheDocument()
   })
 
   it('offers the licence page to a root user and tells everyone else who to ask', () => {

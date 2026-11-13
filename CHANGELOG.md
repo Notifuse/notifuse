@@ -4,11 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [44.0] - unreleased
 
+- **Feature**: Contacts, lists and segments share one page in the console, with your lists and segments in a side rail; the Lists page now opens it. A contact opens in a sheet with its own link: move through the table with J and K, edit fields in place, and see its key figures, activity, messages and web visits.
+
+- **Feature**: The blog page in the console lists posts with a tab per status, scheduled posts included, and their counts, a title search, and each post's views over 30 days once the web analytics script is in the blog's theme. Categories show their post counts in the side rail, with a menu to edit or delete them.
+
+- **Feature**: The file manager in the console shows your folders as a tree with their file counts, lists files as a table or a grid with their dimensions, and previews the selected file beside the list, with its own link. Files can be searched across folders. The file picker shows the chosen file's name, dimensions and size before you insert it.
+
+- **Feature**: The Logs page shows the tabs you may open, and the Logs menu entry appears with any of them, the audit log included. The audit log reads as sentences, such as "Invited ann@example.com", filtered by period, actor, resource, action or outcome, with its filters kept in the link. An outgoing webhook delivery opens in a side panel with its response and payload.
+
+- **Improvement**: Most dates in the console follow its language: month and weekday names, "3 days ago", the date pickers, the web analytics charts, ranges and annotations, the licence and invitation expiry dates, the day an integration was connected, and the dates in the prompts to restore a blog draft or resume a contact import. Weeks start on Monday in French, Spanish, German, Catalan and Italian.
+
+- **Fix**: In a contact's activity and fields and in the message history, the full date shown on hover is the time in the timezone it names (the contact's or the workspace's), in the console's language, not in your browser's.
+
 - **Feature**: Automations can start when a contact clicks a specific link, with the new "Clicked a link" trigger (`email.link_clicked`). It starts the first time a contact clicks each link of an email, and can be limited to links containing some text, to one broadcast or to one template. A click on an email the automation sent itself does not start it again. Clicks made before the upgrade, and clicks on links in emails sent before 42.2, do not start it; a link clicked before the upgrade starts it on its next click. The new event does not count toward the monthly event usage.
 
 - **Fix**: `automations.get` answers 404 instead of 500 for an automation that does not exist.
 
 - **Fix**: Contacts who leave an automation by replying now count in its exited total, past exits included.
+
+- **Fix**: With several Notifuse instances, a contact could go through the same automation step twice and receive the same email twice; an instance now claims each journey before it runs it, so another instance leaves it alone.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 
@@ -16,9 +30,11 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The analytics API gives when each transactional notification last sent successfully, with the new `last_sent_at` measure of message history, and `messages.list` filters by `transactional_notification_id`.
 
-- **Feature**: The API counts the recipients of a broadcast audience before it is sent, with the new `broadcasts.estimateAudience`. `broadcasts.list` gives the number of broadcasts in each status (`with_status_counts`) and keeps the ones started from a date (`started_after`), and the message history analytics take `opened_at` and `clicked_at` as time dimensions.
+- **Feature**: The API counts the recipients of a broadcast audience before it is sent, with the new `broadcasts.estimateAudience`. `broadcasts.list` gives the number of broadcasts in each status (`with_status_counts`) and keeps the ones started from a date (`started_after`), and the message history analytics take `opened_at` and `clicked_at` as time dimensions. In the console, broadcasts get a new list with status tabs, a search and their 30-day results, a detail page with the funnel, opens and clicks over time, the A/B test and the clicked links, and a one-screen editor that saves as you type, previews the email and checks everything before sending.
 
-- **Feature**: The API gives the statistics of each step of an automation, over a period or all time, with the new `automations.nodeStats`: visits, results, the path each split took, the journeys waiting or retrying there, and for email steps the messages sent, delivered, opened and clicked. `automations.list` gives each automation's journeys by status (`with_journey_counts`), `messages.list` filters by `automation_id`, and the message history analytics split by `automation_id`.
+- **Feature**: The API gives the statistics of each step of an automation, over a period or all time, with the new `automations.nodeStats`: visits, results, the path each split took, the journeys waiting or retrying there, and for email steps the messages sent, delivered, opened and clicked. `automations.list` gives each automation's journeys by status (`with_journey_counts`), `messages.list` filters by `automation_id`, and the message history analytics split by `automation_id`. In the console, automations get a list with status tabs, a search and their journeys, completion and open rates, and the editor becomes a full-screen canvas: read-only while live, warning before you leave unsaved changes, with a "With stats" view that shows each step's results on the canvas and in its panel, with the email's preview.
+
+- **Fix**: An automation's statistics no longer count every journey that entered as in flight; each step shows the journeys actually on it.
 
 - **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages when the table fits in memory, longer otherwise.
 
@@ -68,7 +84,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
 
-- **Fix**: Create Notification is now disabled, and Edit hidden, on the transactional notifications page for members without Templates read: creating offered a template picker they could not load, and saving an edit was refused. Editing a notification managed by an integration stays available with Transactional write alone. Its edit drawer then shows the template's ID, with a note that Templates read is needed to see the template, instead of an empty field, and the page no longer requests templates without Templates read.
+- **Fix**: New notification and Edit are now disabled, with a tooltip naming the missing permission, on the transactional notifications page for members without Templates read: creating offered a template picker they could not load, and saving an edit was refused. Editing a notification managed by an integration stays available with Transactional write alone. Its edit drawer then shows the template's ID, with a note that Templates read is needed to see the template, instead of an empty field, and the page no longer requests templates without Templates read.
 
 - **Fix**: A member without Templates read now sees the template's ID instead of an empty field or "Untitled" in a list's double opt-in template, a broadcast's templates, an automation's email nodes and a segment's email conditions, and these screens no longer request templates such a member cannot read. The template fields carry a lock saying that Templates read is needed.
 
@@ -121,6 +137,10 @@ All notable changes to this project will be documented in this file.
 - **Feature**: The dashboard shows website visits, how rates moved since the previous period, emails sent each day by origin (broadcasts, transactional, automations), the latest failures and new contacts, and your upcoming broadcasts. Members who cannot read message history land on the first page they can open.
 
 - **Feature**: Settings have a new layout. The side menu groups the pages into Workspace, Sending, Content and Security. General shows the workspace, its languages, email tracking and custom domain in separate panels, with a logo preview. Team & API keys lists members and keys in tables with each one's access, and invitations with when they expire. Each email provider is a card with its roles, webhook status, settings and senders, which you can add from the card. Webhooks are listed with their success rate over the last 7 days and their last success; a webhook opens in a side panel, with its statistics, its secret, a test and a link to its deliveries. Custom fields list the named slots, and how many of each type are still free.
+
+- **Feature**: Templates are listed in a table with a tab per category and a search on name or subject. Each template shows where it is used (newsletters, transactional notifications, automations, lists), and deleting one lists what still uses it first. A Notifuse export or an MJML file is imported from the page header into a new template, and a template's preview has its own link.
+
+- **Feature**: The transactional page shows each notification's open and click rates and its last send, and opens a detail view with sends per day, the latest sends, a preview of its template and the API call in cURL, TypeScript and Python. The message log can be filtered by transactional notification in the console. Each notification's name links to its detail view, a disabled action says why in its menu, and the sends per day can be read as a table by screen readers.
 
 ## [43.0] - 2026-11-07
 

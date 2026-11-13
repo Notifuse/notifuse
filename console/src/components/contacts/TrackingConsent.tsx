@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { App, Button, Select, Space, Tag, Tooltip } from 'antd'
-import { EditOutlined, InfoCircleOutlined } from '@ant-design/icons'
+import { Info, Pencil } from 'lucide-react'
 import dayjs from '../../lib/dayjs'
 import { useLingui } from '@lingui/react/macro'
 import type { TrackingConsent } from '../../services/api/contacts'
@@ -92,9 +92,8 @@ interface TrackingConsentEditorProps {
 }
 
 /**
- * The tracking consent row of the contact details: both consents as tags, the
- * date and source of the last change in a tooltip, and an edit button that
- * opens a form for both.
+ * The tracking consent panel of the contact sheet: both consents as tags, the date and
+ * source of the last change in a tooltip, and an edit button that opens a form for both.
  */
 export function TrackingConsentEditor({
   opens,
@@ -162,42 +161,37 @@ export function TrackingConsentEditor({
     }
   }
 
-  const label = (
-    <span className="font-semibold text-slate-600">
-      {t`Tracking consent`}
-      {changedAt && (
-        <Tooltip title={t`Last changed ${changedAt} from ${changedFrom}`} trigger={['hover', 'focus']}>
-          <InfoCircleOutlined
-            className="ml-1 text-gray-400"
-            role="img"
-            tabIndex={0}
-            aria-label={t`Last change`}
-            data-testid="tracking-consent-changed"
-          />
-        </Tooltip>
-      )}
-    </span>
-  )
+  // When and where the consents last changed, beside the values.
+  const changeInfo = changedAt ? (
+    <Tooltip title={t`Last changed ${changedAt} from ${changedFrom}`} trigger={['hover', 'focus']}>
+      <span
+        role="img"
+        tabIndex={0}
+        aria-label={t`Last change`}
+        data-testid="tracking-consent-changed"
+        className="flex text-ink-4"
+      >
+        <Info size={14} aria-hidden="true" />
+      </span>
+    </Tooltip>
+  ) : null
 
   if (editing) {
     return (
-      <div className="py-2 px-4 text-xs bg-blue-50 border-b border-dashed border-gray-300">
-        <div className="mb-2">{label}</div>
-        <div className="grid grid-cols-2 gap-x-1 gap-y-2 items-center mb-2">
-          <span className="text-slate-600">{t`Opens`}</span>
+      <div className="flex flex-col gap-3 text-sm">
+        <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2">
+          <span className="text-ink-3">{t`Opens`}</span>
           <Select
             size="small"
-            style={{ width: 140 }}
             aria-label={t`Opens`}
             value={draftOpens}
             options={filters}
             disabled={saving}
             onChange={setDraftOpens}
           />
-          <span className="text-slate-600">{t`Clicks`}</span>
+          <span className="text-ink-3">{t`Clicks`}</span>
           <Select
             size="small"
-            style={{ width: 140 }}
             aria-label={t`Clicks`}
             value={draftClicks}
             options={filters}
@@ -205,38 +199,40 @@ export function TrackingConsentEditor({
             onChange={setDraftClicks}
           />
         </div>
-        <div className="flex justify-end">
-          <Space size="small">
-            <Button size="small" type="link" onClick={() => setEditing(false)} disabled={saving}>
-              {t`Cancel`}
-            </Button>
-            <Button size="small" type="primary" onClick={save} loading={saving}>
-              {t`Save`}
-            </Button>
-          </Space>
+        <div className="flex justify-end gap-2">
+          <Button size="small" onClick={() => setEditing(false)} disabled={saving}>
+            {t`Cancel`}
+          </Button>
+          <Button size="small" type="primary" onClick={save} loading={saving}>
+            {t`Save`}
+          </Button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="py-2 px-4 grid grid-cols-[1fr_auto] text-xs gap-1 border-b border-dashed border-gray-300">
-      <div className="grid grid-cols-2 gap-1">
-        {label}
-        <TrackingConsentSummary opens={opens} clicks={clicks} />
+    <div className="flex items-start justify-between gap-3 text-sm">
+      <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5">
+        <span className="text-ink-3">{t`Opens`}</span>
+        <span>
+          <TrackingConsentTag consent={opens} />
+        </span>
+        <span className="text-ink-3">{t`Clicks`}</span>
+        <span>
+          <TrackingConsentTag consent={clicks} />
+        </span>
       </div>
-      <div className="flex items-start">
-        {/* Laid out as narrow as the edit icon of the other fields, so the values line up;
-            the negative margin keeps a larger click area, no wider than the gap so it stays off the values */}
-        <button
-          type="button"
-          className="-my-1.5 -mx-1 py-1.5 px-1 rounded border-0 bg-transparent leading-none text-gray-400 enabled:hover:text-blue-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500"
+      <div className="flex items-center gap-1">
+        {changeInfo}
+        <Button
+          type="text"
+          size="small"
           aria-label={t`Edit tracking consent`}
+          icon={<Pencil size={14} aria-hidden="true" />}
           disabled={disabled}
           onClick={startEdit}
-        >
-          <EditOutlined />
-        </button>
+        />
       </div>
     </div>
   )

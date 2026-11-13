@@ -801,3 +801,75 @@ describe('CreateTemplateDrawer custom text version', () => {
     expect(screen.queryByText(/has no unsubscribe link/)).toBeNull()
   })
 })
+
+// The templates page opens the drawer itself (row menu, New template, Import): no button of
+// its own, open and close driven by the page.
+describe('CreateTemplateDrawer controlled by the page', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    builder.props = undefined
+    ;(templatesApi.get as Mock).mockRejectedValue(new Error('Template not found'))
+  })
+
+  const nameInput = () => screen.getByPlaceholderText('i.e: Welcome Email') as HTMLInputElement
+  const idInput = () => screen.getByPlaceholderText('i.e: welcome-email') as HTMLInputElement
+
+  it('renders no button and opens when told to', async () => {
+    const { rerender } = renderDrawer(
+      <CreateTemplateDrawer workspace={workspace} open={false} onClose={vi.fn()} />
+    )
+    expect(screen.queryByRole('button', { name: /Create Template/i })).not.toBeInTheDocument()
+    expect(screen.queryByText('Create an email template')).not.toBeInTheDocument()
+
+    rerender(
+      <QueryClientProvider client={new QueryClient()}>
+        <AntApp>
+          <CreateTemplateDrawer workspace={workspace} open onClose={vi.fn()} />
+        </AntApp>
+      </QueryClientProvider>
+    )
+    expect(await screen.findByText('Create an email template')).toBeInTheDocument()
+  })
+
+  it('opens an existing template and freshens it like the button does', async () => {
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: makeTemplate(3) })
+    renderDrawer(
+      <CreateTemplateDrawer workspace={workspace} template={makeTemplate(3)} open onClose={vi.fn()} />
+    )
+    expect(await screen.findByText('Edit email template')).toBeInTheDocument()
+    await waitFor(() => expect(nameInput().value).toBe('Welcome'))
+    expect(templatesApi.get).toHaveBeenCalled()
+  })
+
+  it('calls onClose on Cancel, for the page to close it', async () => {
+    const onClose = vi.fn()
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={onClose} />)
+    await screen.findByText('Create an email template')
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('starts a new template from an imported tree, name and test data, saving nothing', async () => {
+    const importedTree = {
+      id: 'imported',
+      type: 'mjml',
+      children: []
+    } as unknown as EmailBlock
+    renderDrawer(
+      <CreateTemplateDrawer
+        workspace={workspace}
+        open
+        onClose={vi.fn()}
+        initialName="Spring sale"
+        initialTree={importedTree}
+        initialTestData={{ contact: { first_name: 'Ada' } }}
+      />
+    )
+    await screen.findByText('Create an email template')
+    expect(nameInput().value).toBe('Spring sale')
+    expect(idInput().value).toBe('spring-sale')
+    await waitFor(() => expect(builder.props?.tree).toEqual(importedTree))
+    expect(builder.props?.testData).toEqual({ contact: { first_name: 'Ada' } })
+    expect(templatesApi.create).not.toHaveBeenCalled()
+  })
+})

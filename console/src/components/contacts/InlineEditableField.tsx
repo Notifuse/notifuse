@@ -25,6 +25,8 @@ interface InlineEditableFieldProps {
   onSave: (fieldKey: string, value: string | number | object | null) => Promise<void>
   isLoading?: boolean
   disabled?: boolean
+  /** The value alone, for a field whose label a KeyValueList already shows. */
+  hideLabel?: boolean
 }
 
 export function InlineEditableField({
@@ -38,7 +40,8 @@ export function InlineEditableField({
   workspace,
   onSave,
   isLoading = false,
-  disabled = false
+  disabled = false,
+  hideLabel = false
 }: InlineEditableFieldProps) {
   const { t } = useLingui()
   const [isEditing, setIsEditing] = React.useState(false)
@@ -279,6 +282,57 @@ export function InlineEditableField({
 
   const labelToDisplay = displayLabel || label || fieldKey
 
+  const clearButton = value !== null && value !== undefined && value !== '' && (
+    <Popconfirm
+      title={t`Clear field`}
+      description={t`This will set the value to NULL. Are you sure?`}
+      onConfirm={handleSetNull}
+      okText={t`Yes, clear it`}
+      cancelText={t`Cancel`}
+      okButtonProps={{ danger: true }}
+    >
+      <Button size="small" type="link" danger disabled={isSaving}>
+        {t`Clear`}
+      </Button>
+    </Popconfirm>
+  )
+
+  if (hideLabel && isEditing) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        {renderInput()}
+        <div className="flex justify-end">
+          <Space size={4}>
+            <Button size="small" type="link" onClick={handleCancel} disabled={isSaving}>
+              {t`Cancel`}
+            </Button>
+            {clearButton}
+            <Button size="small" type="primary" onClick={handleSave} loading={isSaving}>
+              {t`Save`}
+            </Button>
+          </Space>
+        </div>
+      </div>
+    )
+  }
+
+  if (hideLabel) {
+    // A KeyValueList row: the value, and a pencil on hover when it can be edited.
+    return (
+      <div
+        className={`group flex min-w-0 items-start justify-between gap-1 ${disabled ? '' : 'cursor-pointer'}`}
+        onClick={disabled ? undefined : handleStartEdit}
+      >
+        <span className="min-w-0 break-words">{formatDisplayValue()}</span>
+        {!disabled && (
+          <span className="flex shrink-0 items-center text-ink-4 opacity-0 transition-opacity group-hover:opacity-100">
+            {isLoading ? '…' : <EditOutlined />}
+          </span>
+        )}
+      </div>
+    )
+  }
+
   // Edit mode
   if (isEditing) {
     return (
@@ -290,25 +344,7 @@ export function InlineEditableField({
             <Button size="small" type="link" onClick={handleCancel} disabled={isSaving}>
               {t`Cancel`}
             </Button>
-            {value !== null && value !== undefined && value !== '' && (
-              <Popconfirm
-                title={t`Clear field`}
-                description={t`This will set the value to NULL. Are you sure?`}
-                onConfirm={handleSetNull}
-                okText={t`Yes, clear it`}
-                cancelText={t`Cancel`}
-                okButtonProps={{ danger: true }}
-              >
-                <Button
-                  size="small"
-                  type="link"
-                  danger
-                  disabled={isSaving}
-                >
-                  {t`Clear`}
-                </Button>
-              </Popconfirm>
-            )}
+            {clearButton}
             <Button
               size="small"
               type="primary"

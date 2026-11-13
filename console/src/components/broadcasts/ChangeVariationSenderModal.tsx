@@ -111,6 +111,8 @@ export function ChangeVariationSenderModal({
       message.success(t`Sender changed. You can now resume the broadcast.`)
       setOpen(false)
       queryClient.invalidateQueries({ queryKey: ['broadcasts', workspace.id] })
+      // The detail page reads the broadcast by its own key.
+      queryClient.invalidateQueries({ queryKey: ['broadcast', workspace.id, broadcast.id] })
     } catch (error) {
       message.error(
         error instanceof Error
