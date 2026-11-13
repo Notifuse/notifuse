@@ -64,8 +64,8 @@ func TestAutomationRepository_CountJourneysByStatus(t *testing.T) {
 	})
 }
 
-// The node stats statements, matched on their FROM and WHERE clauses, the part that decides
-// which rows count; the integration test checks what they count.
+// The node stats statements, matched on the parts that decide which rows count (the visits'
+// FILTER, the FROM and WHERE clauses); the integration test checks what they count.
 const (
 	visitsQuery         = `SELECT node_id,\s+COUNT\(\*\) FILTER \(WHERE action IN \('processing', 'completed', 'skipped'\)\),[\s\S]*FROM automation_node_executions\s+WHERE automation_id = \$1%s\s+GROUP BY node_id$`
 	notPassedQuery      = `FROM contact_automations ca\s+CROSS JOIN LATERAL \([\s\S]*ORDER BY e.entered_at DESC\s+LIMIT 1\s+\) l\s+WHERE ca.automation_id = \$1 AND ca.status IN \('active', 'failed', 'exited'\)\s+AND ca.current_node_id IS NOT NULL\s+AND l.node_id = ca.current_node_id AND l.action IN \('entered', 'failed'\)%s\s+GROUP BY 1$`

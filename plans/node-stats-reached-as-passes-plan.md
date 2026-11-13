@@ -95,7 +95,8 @@ round, a retry is the same pass)".
 - Then `make openapi-bundle` for `openapi.json`, and copy the result to `../docs/openapi.json` (docs PR).
 - `../docs/features/automations.mdx:405` "Reached": "Times journeys reached the step (a loop counts each
   time round)".
-- CHANGELOG: nothing. 44.0 is unreleased, and the nodeStats bullet says "visits", which stays true.
+- CHANGELOG: no Fix line, since 44.0 is unreleased. The nodeStats feature bullet's "visits" gets its
+  definition: each time a journey reached the step, a loop counting each time round.
 
 ## Tests (written first, run red, then green)
 
@@ -149,15 +150,17 @@ round, a retry is the same pass)".
    - On C's failed journey, a period that contains its last failed row but not its `entered` row still
      counts the not-passed pass once.
 
-## Known limits (written in the code comment and in the plan)
+## Known limits (the first two are also in the code comment)
 
 - **A process killed in the middle of a step** (crash, deploy, cancelled context) leaves a `processing`
   row that never completes. The next tick runs the step again, which counts one more pass. This is the
   same as a double run.
 - **Two replicas running the same journey** count two passes, which is true: the step ran twice. That
   scheduler bug is separate.
-- **`persistIfActive` failing at line 187.** The `failed` row is then on the next step while the journey
-  stays on X, so that pass is counted on neither step. This is rare.
+- **The persist failing at line 185.** `CurrentNodeID` has already moved to Y (`:154`), so `handleError`
+  (`:187`) writes its failed row on Y, and X's `processing` row stays and counts on X. If `handleError`'s
+  own persist succeeds, the count is exact (X 1, Y 1 while retrying). If it fails too, X runs again and
+  counts twice, like a crash. This is rare.
 - **The last row is picked by `entered_at`.** Two rows of the same journey with the same timestamp have
   no defined order. The executor writes them in sequence, so it does not happen in practice.
 
@@ -212,3 +215,20 @@ Non-blocking points taken:
   attempt. So the root is dated when it is processed, not at enrollment.
 - **Regression check.** In `tests/integration/demo_automations_test.go`, each node's `Visits` must equal
   `COUNT(DISTINCT contact_automation_id)` on the demo history, which has no loops.
+
+## Code review (Fable high) on c48ce8b
+
+Nothing blocked in the code, SQL, tests, OpenAPI or changelog. Three stale plan sentences (the changelog
+line, the line-185 limit, where the limits are written) were corrected, with three comment fixes.
+
+Known, not handled:
+- **A closed period can change later.** A pass moves from the window of its last failed attempt (or its
+  enrollment, on the root) to the window of its success, so a past window's Reached can go down, and a
+  window can show failed attempts with no visit. Documented in the API reference and the docs.
+- **Cost growth.** The not-passed statement probes the last execution of every active journey, and of
+  every failed or exited journey that keeps a `current_node_id`; that set only grows. Fine at the measured
+  sizes (0.08 s on 1M journeys); worth re-measuring on an automation with many journeys on a long delay.
+- **No test has a delay followed by another step**, so "a journey waiting on a delay does not count on
+  its next step" is shown by the SQL, not by a test.
+- **The trigger card's "entered"** counts each loop back to the root.
+- The C subtests share their automation, so a later one cannot run alone with `-run` (the file's style).

@@ -69,7 +69,7 @@ const (
 	// Known limits: a process killed in the middle of a step (crash, deploy, cancelled
 	// context) or an attempt whose failure was not written leaves a 'processing' row behind,
 	// and the step run again counts one more pass; two instances running one journey count
-	// both runs, which did happen.
+	// both runs, since the step did run twice.
 	nodeStatsVisitsSQL = `SELECT node_id,
 		COUNT(*) FILTER (WHERE action IN ('processing', 'completed', 'skipped')),
 		COUNT(*) FILTER (WHERE action = 'completed' AND NOT COALESCE(output ? 'error', false)),

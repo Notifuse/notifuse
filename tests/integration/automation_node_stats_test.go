@@ -446,7 +446,7 @@ func TestAutomationNodeStats(t *testing.T) {
 
 	t.Run("a loop counts each pass, and a pass not passed yet once", func(t *testing.T) {
 		// L: trigger → W1 → W2 → back to W1. W2 answers 500 from its third call, and the retry
-		// backoff (2 minutes) stops the loop there.
+		// backoff stops the loop there.
 		var w1Calls, w2Calls int32
 		loopReceiver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/w2" && atomic.AddInt32(&w2Calls, 1) >= 3 {
