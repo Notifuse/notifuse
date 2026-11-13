@@ -28,8 +28,9 @@ const locale = (): string => i18n.locale || 'en'
  */
 export function formatNumber(value: number): string {
   if (!Number.isFinite(value)) return '0'
-  // Rounded before the cutoff, so 999.6 reads "1K" like 1000 does, not "1,000".
-  const rounded = Math.round(value)
+  // Rounded before the cutoff, so 999.6 reads "1K" like 1000 does, not "1,000". Halves go away
+  // from zero, as Intl rounds them, so -999.5 reads "-1K" like 999.5 reads "1K".
+  const rounded = Math.sign(value) * Math.round(Math.abs(value))
   if (Math.abs(rounded) < 1_000) {
     return new Intl.NumberFormat(locale(), { maximumFractionDigits: 0 }).format(value)
   }

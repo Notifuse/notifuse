@@ -87,10 +87,12 @@ export function FilterBuilder(props: FilterBuilderProps) {
   const describeValues = (filter: WebDimensionFilter) =>
     VALUELESS_OPERATORS.includes(filter.operator) ? '' : filter.values.join(', ')
 
+  // The threshold as typed. Ten decimals at most: formatPercent divides by 100 and Intl multiplies
+  // back, which turns 12.3 into "12.300000000000001%" when twenty are allowed.
   const describeMetricValue = (filter: WebMetricFilter) =>
     filter.metric === 'median_duration'
       ? formatDuration(filter.values[0])
-      : formatPercent(filter.values[0], 20, 0)
+      : formatPercent(filter.values[0], 10, 0)
 
   return (
     <div className="flex flex-wrap items-center gap-2">

@@ -78,6 +78,9 @@ describe('formatters', () => {
     // Rounded before it is abbreviated: never "1000.0K", and 999.6 reads like 1000.
     expect(formatNumber(999_999)).toBe('1M')
     expect(formatNumber(999.6)).toBe('1K')
+    // Halves round away from zero on both sides, like Intl does: -999.5 is "-1K", not "-1,000".
+    expect(formatNumber(-999.5)).toBe('-1K')
+    expect(formatNumber(999.5)).toBe('1K')
     expect(formatDuration(45)).toBe('45 s')
     expect(formatDuration(312)).toBe('5 min 12 s')
     expect(formatDuration(300)).toBe('5 min')
