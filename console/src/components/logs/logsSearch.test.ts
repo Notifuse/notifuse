@@ -125,9 +125,17 @@ describe('parseLogsSearch', () => {
     ).toEqual({ tab: 'audit', categories: 'templates,blog', actions: 'templates.create' })
   })
 
-  it('drops a custom bound that is not a date', () => {
+  it('drops a custom bound that is not an RFC 3339 time', () => {
     expect(
       parseLogsSearch({ tab: 'audit', period: 'custom', from: 'x', to: '2026-11-02T00:00:00Z' })
     ).toEqual({ tab: 'audit', period: 'custom', to: '2026-11-02T00:00:00Z' })
+    // Times the browser reads, which the server refuses.
+    expect(parseLogsSearch({ tab: 'audit', period: 'custom', from: '2026-11-01', to: 1 })).toEqual({
+      tab: 'audit',
+      period: 'custom'
+    })
+    expect(
+      parseLogsSearch({ from: '2026-11-01T00:00:00.000+09:00', to: '2026-11-02T00:00:00' })
+    ).toEqual({ from: '2026-11-01T00:00:00.000+09:00' })
   })
 })

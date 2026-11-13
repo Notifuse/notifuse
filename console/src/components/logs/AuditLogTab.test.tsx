@@ -405,7 +405,7 @@ describe('AuditLogTab', () => {
       period: '1h'
     } as unknown as LogsSearch)
     await waitFor(() => expect(state.list).toHaveBeenCalled())
-    expect(lastListParams()).not.toHaveProperty('outcome', 'bogus')
+    expect(lastListParams().outcome).toBeUndefined()
     expect(lastListParams().actor_type).toBeUndefined()
     expect(screen.getByRole('button', { name: /Period Last 7 days/ })).toBeInTheDocument()
   })
@@ -427,6 +427,11 @@ describe('AuditLogTab', () => {
     expect(
       await screen.findByRole('button', { name: /Period Nov 10, 2026 → Nov 10, 2026/ })
     ).toBeInTheDocument()
+  })
+
+  it('applies its own periods to a link without a tab', async () => {
+    renderTab({ period: '90d' } as LogsSearch)
+    expect(await screen.findByRole('button', { name: /Period Last 90 days/ })).toBeInTheDocument()
   })
 
   it('names the parameter the search box shows', async () => {

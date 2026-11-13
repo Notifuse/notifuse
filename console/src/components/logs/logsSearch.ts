@@ -1,8 +1,9 @@
 /**
  * Search of the `/logs` route. The router's default parser runs JSON.parse on each value, so
  * `?is_failed=true` arrives as a boolean, `?template_id=2024` as a number and a string the page
- * once wrote as 'true' as the text "true". Everything is normalised here, once, by the route's
- * `validateSearch`: the tabs read typed values and never the raw location.
+ * once wrote as 'true' as the text "true". The route's `validateSearch` normalises it, and each tab
+ * reads it through `parseLogsSearch` again: the router keeps the raw value of a key the parser
+ * dropped. The old Messages and Incoming webhooks tabs still read the location themselves.
  */
 
 import { searchString } from '../../lib/searchParams'
@@ -122,6 +123,8 @@ function flag(value: unknown): boolean | undefined {
   return undefined
 }
 
+const RFC3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/
+
 export function parseLogsSearch(search: Record<string, unknown>): LogsSearch {
   const out: LogsSearch = {}
   const tab = oneOf(LOGS_TABS, search.tab)
@@ -157,9 +160,10 @@ export function parseLogsSearch(search: Record<string, unknown>): LogsSearch {
     const value = searchString(search[key])
     if (value !== undefined) out[key] = value
   }
-  // The bounds of a custom period reach the server as dates, which answers 400 to anything else.
+  // The bounds of a custom period reach the server, which reads RFC 3339 and answers 400 to
+  // anything else (a bare date included).
   for (const key of ['from', 'to'] as const) {
-    if (out[key] !== undefined && Number.isNaN(Date.parse(out[key]))) delete out[key]
+    if (out[key] !== undefined && !RFC3339.test(out[key])) delete out[key]
   }
   return out
 }

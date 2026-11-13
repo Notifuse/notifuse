@@ -19,7 +19,7 @@ export function auditSearchKey(text: string): AuditSearchKey {
   return 'target_id'
 }
 
-/** The parameter the box shows: the first of the three the URL holds. */
+/** The parameter the box shows: the target, else the actor email, else the IP address. */
 export function auditSearchShown(search: LogsSearch): AuditSearchKey | undefined {
   if (search.target_id !== undefined) return 'target_id'
   if (search.actor_email !== undefined) return 'actor_email'

@@ -138,4 +138,28 @@ describe('AuditEntryDetail', () => {
     renderDetail({ id: undefined })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
+
+  it('asks again for the same entry in another workspace', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const detail = (workspaceId: string) => (
+      <QueryClientProvider client={client}>
+        <I18nProvider i18n={i18n}>
+          <ConfigProvider>
+            <App>
+              <AuditEntryDetail
+                workspaceId={workspaceId}
+                scope="workspace"
+                id="e1"
+                onClose={vi.fn()}
+              />
+            </App>
+          </ConfigProvider>
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    const view = render(detail('ws1'))
+    await waitFor(() => expect(state.get).toHaveBeenCalledWith('e1', 'workspace', 'ws1'))
+    view.rerender(detail('ws2'))
+    await waitFor(() => expect(state.get).toHaveBeenCalledWith('e1', 'workspace', 'ws2'))
+  })
 })

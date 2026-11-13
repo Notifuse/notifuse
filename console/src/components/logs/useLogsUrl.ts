@@ -12,8 +12,10 @@ export interface LogsUrl {
 /** The URL of one Logs tab: its filters are written through the router, always with the tab. */
 export function useLogsUrl(workspaceId: string, tab: LogsTab): LogsUrl {
   // Parsed again: the router keeps the raw value of a key its parser dropped (`outcome=bogus`),
-  // which would reach the server as written.
-  const search = parseLogsSearch(useSearch({ strict: false }) as Record<string, unknown>)
+  // which would reach the server as written. With this tab, so that its periods apply even to a
+  // link without one.
+  const raw = useSearch({ strict: false }) as Record<string, unknown>
+  const search = parseLogsSearch({ ...raw, tab })
   const navigate = useNavigate()
 
   const write = (next: LogsSearch, replace?: boolean) =>

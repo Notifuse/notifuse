@@ -147,7 +147,7 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
     }
   }
 
-  // The search box fills one of three parameters; the others stay as "+ Filter" set them.
+  // The search box fills one of its parameters; the others stay as "+ Filter" set them.
   const shownKey = auditSearchShown(search)
   const [searchText, setSearchText] = useDebouncedUrlValue(
     shownKey ? (search[shownKey] ?? '') : '',
